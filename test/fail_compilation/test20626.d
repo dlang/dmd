@@ -19,4 +19,4 @@ struct S
     invariant {}
 }
 
-pragma(msg, typeof(S.init.__invariant1));
+pragma(msg, typeof(S.init.__invariant_L6_C5));

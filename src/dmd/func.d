@@ -4150,7 +4150,7 @@ extern (C++) final class InvariantDeclaration : FuncDeclaration
 {
     extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, Identifier id, Statement fbody)
     {
-        super(loc, endloc, id ? id : Identifier.generateId("__invariant"), stc, null);
+        super(loc, endloc, id ? id : Identifier.generateIdWithLoc("__invariant", loc), stc, null);
         this.fbody = fbody;
     }
 
