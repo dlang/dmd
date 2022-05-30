@@ -1030,7 +1030,7 @@ $(P
 
 $(P The implementations of all predefined macros are implementation-defined. The
 reference implementation's macro definitions can be found $(HTTPS
-github.com/dlang/dmd/blob/master/res/default_ddoc_theme.ddoc, here).)
+github.com/dlang/dmd/blob/master/src/dmd/res/default_ddoc_theme.ddoc, here).)
 
 $(P
     Ddoc does not generate HTML code. It formats into the basic
