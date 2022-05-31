@@ -617,9 +617,7 @@ struct Print_BCGen
             string funcName;
             if (fn.vType == BCValueType.Immediate)
             {
-                if (fn.imm32 == uint.max - 1)
-                    funcName = "NodeFromName";
-                else goto LsetFuncName;
+                goto LsetFuncName;
             }
             else
             {

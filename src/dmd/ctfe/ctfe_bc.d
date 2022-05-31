@@ -25,7 +25,7 @@ import dmd.dinterpret;
 import core.stdc.stdio : printf;
 import std.string : fromStringz;
 
-enum perf = 1;
+enum perf = 0;
 enum bailoutMessages = 0;
 enum printResult = 0;
 enum cacheBC = 1;
@@ -9358,8 +9358,7 @@ _sharedCtfeState.typeToString(_sharedCtfeState.elementType(rhs.type)) ~ " -- " ~
         enum DruntimeBultin
         {
             Invalid = 0,
-            setArrayLength,
-            nodeFromName,
+            setArrayLength
         }
 
         static DruntimeBultin isDruntimeBuiltin(FuncDeclaration fd)
@@ -9369,24 +9368,6 @@ _sharedCtfeState.typeToString(_sharedCtfeState.elementType(rhs.type)) ~ " -- " ~
             if (fd.ident == Id._d_arraysetlengthT)
             {
                 result = DruntimeBultin.setArrayLength;
-            }
-            else
-            {
-                static if (__traits(compiles, { import dmd.reflect; } ))
-                {
-                   import dmd.reflect;
-
-                    if (auto rKind = reflectKind(fd))
-                    {
-                        import dmd.dinterpret : ctfeGlobals;
-                        if (rKind == REFLECT.nodeFromName)
-                        {
-                            return DruntimeBultin.nodeFromName;
-                        }
-                        else
-                            assert(0, "Unknown reflection builtin");
-                    }
-                }
             }
             return result;
         }
@@ -9416,19 +9397,6 @@ _sharedCtfeState.typeToString(_sharedCtfeState.elementType(rhs.type)) ~ " -- " ~
                     BCValue newLength = genExpr(newLengthExp, "ArrayExpansion newLength");
                     expandSliceTo(array, newLength);
                     retval = newLength;
-                    return ;
-                }
-                case nodeFromName : {
-                    BCValue[] args;
-                    args.length = ce.arguments.length; 
-                    foreach(i, arg;*ce.arguments)
-                    {
-                        args[i] = genExpr(arg);
-                        printf("arg: %s ... bcValue %s", arg.toChars(), args[i].toString().ptr);
-                    }
-                    auto val = genTemporary(toBCType(ce.type));
-                    Call(val, imm32(uint.max - 1), args);
-                    retval = val;
                     return ;
                 }
                 case Invalid : {} break; // just move on

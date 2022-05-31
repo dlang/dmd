@@ -6,7 +6,6 @@ import dmd.ctfe.fpconv_ctfe;
 /// calling them is equivlent to an expensive nop
 /// this is true for direct and indirect calls
 enum skipFn = uint.max;
-enum nodeFromName = uint.max - 1;
 enum currentScope = uint.max - 2;
 
 struct CndJmpBegin
