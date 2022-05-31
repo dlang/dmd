@@ -29,10 +29,7 @@ enum perf = 0;
 enum bailoutMessages = 0;
 enum printResult = 0;
 enum cacheBC = 1;
-enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
-enum UseCBackend = 0;
-enum UseGCCJITBackend = 0;
 enum abortOnCritical = 1;
 enum state_logging = 0;
 
@@ -302,31 +299,12 @@ bool isPassedByPointer(BCTypeEnum type)
     ;
 }
 
-static if (UseLLVMBackend)
-{
-    import dmd.ctfe.bc_llvm_backend;
-
-    alias BCGenT = LLVM_BCGen;
-}
-else static if (UseCBackend)
-{
-    import dmd.ctfe.bc_c_backend;
-
-    alias BCGenT = C_BCGen;
-}
-else static if (UsePrinterBackend)
+static if (UsePrinterBackend)
 {
     import dmd.ctfe.bc_printer_backend;
 
     alias BCGenT = Print_BCGen;
-}
-else static if (UseGCCJITBackend)
-{
-    import dmd.ctfe.bc_gccjit_backend;
-
-    alias BCGenT = GCCJIT_BCGen;
-}
-else
+} else
 {
     import dmd.ctfe.bc;
 
@@ -506,27 +484,11 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args)
 
         bcv.Finalize();
 
-        static if (UseLLVMBackend)
-        {
-            bcv.gen.print();
-
-            auto retval = bcv.gen.interpret(bc_args, &_sharedExecutionState.heap);
-        }
-        else static if (UseCBackend)
-        {
-            auto retval = BCValue.init;
-            writeln(bcv.functionalize);
-            return null;
-        }
-        else static if (UsePrinterBackend)
+        static if (UsePrinterBackend)
         {
             auto retval = BCValue.init;
             writeln(bcv.result);
             // return null;
-        }
-        else static if (UseGCCJITBackend)
-        {
-            auto retval = bcv.gen.run(0, bc_args, &_sharedExecutionState.heap);
         }
         else
         {
@@ -4684,11 +4646,6 @@ public:
                 {
                     static if (UsePrinterBackend)
                         writeln(result);
-                    else static if (UseCBackend)
-                        writeln(code);
-                    else static if (UseLLVMBackend)
-                    {
-                    }
                     else
                         writeln(printInstructions(byteCodeArray[0 .. ip]));
                     static if (bailoutMessages)
