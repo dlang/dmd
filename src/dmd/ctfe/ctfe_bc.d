@@ -499,7 +499,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args)
                 writeln("I have ", _sharedCtfeState.functionCount, " functions!");
                 printInstructions(bcv.gen.byteCodeArray[0 .. bcv.ip], bcv.stackMap).writeln();
             }
-
+            import dmd.ctfe.bc_interpreter;
             auto retval = interpret_(0, bc_args,
                 &_sharedExecutionState.heap, &_sharedCtfeState.functions[0], &bcv.calls[0],
                 &errorValues[0], &errorValues[1], &errorValues[2], &errorValues[3],
@@ -2653,7 +2653,7 @@ extern (C++) final class BCTypeVisitor : Visitor
         case TY.Tchar:
             return BCType(BCTypeEnum.c8);
         case TY.Twchar:
-            //return BCType(BCTypeEnum.c16);
+            return BCType(BCTypeEnum.c16);
         case TY.Tdchar:
             return BCType(BCTypeEnum.c32);
         case TY.Tuns8:

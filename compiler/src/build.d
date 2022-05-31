@@ -1564,6 +1564,7 @@ auto sourceFiles()
             statementsem.d staticassert.d staticcond.d stmtstate.d target.d templateparamsem.d traits.d
             transitivevisitor.d typesem.d typinf.d utils.d visitor.d foreachvar.d
             cparse.d ctfe/ctfe_bc.d ctfe/bc.d ctfe/bc_common.d ctfe/bc_abi.d ctfe/fpconv_ctfe.d ctfe/bc_printer_backend.d
+            ctfe/bc_interpreter.d
         "),
         backendHeaders: fileArray(env["C"], "
             cc.d cdef.d cgcv.d code.d cv4.d dt.d el.d global.d
