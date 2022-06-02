@@ -191,6 +191,11 @@ struct ASTBase
             return null;
         }
 
+        inout(StorageClassDeclaration) isStorageClassDeclaration() inout
+        {
+            return null;
+        }
+
         inout(FuncLiteralDeclaration) isFuncLiteralDeclaration() inout
         {
             return null;
@@ -1240,6 +1245,11 @@ struct ASTBase
         override void accept(Visitor v)
         {
             v.visit(this);
+        }
+
+        override final inout(StorageClassDeclaration) isStorageClassDeclaration() inout
+        {
+            return this;
         }
     }
 
