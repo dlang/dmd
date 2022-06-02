@@ -7723,7 +7723,7 @@ extern (C++) final class TemplateMixin : TemplateInstance
             }
             if (!tempdecl)
             {
-                error("`%s` isn't a template", s.toChars());
+                error("- `%s` is a %s, not a template", s.toChars(), s.kind());
                 return false;
             }
         }
