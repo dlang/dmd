@@ -96,6 +96,14 @@ struct Output
     int bufferLines;    // number of lines written to the buffer
 };
 
+struct ManglePrefix
+{
+    DString path;   // Can be a file or folder path (should be canonical)
+    FileType type;  // Whether the path is a file or folder
+    DString prefix; // Fully qualified name like "pegged.v2_1"
+    Array<class Identifier *> *identList; // Parsed form of prefix
+};
+
 // Put command line switches in here
 struct Param
 {
@@ -190,6 +198,8 @@ struct Param
     Output makeDeps;          // Generate make file dependencies
     Output mixinOut;          // write expanded mixins for debugging
     Output moduleDeps;        // Generate `.deps` module dependencies
+
+    Array<ManglePrefix> manglePrefixList; // info on how to mangle symbols in certain files
 
     unsigned debuglevel;   // debug level
     Array<const char *> *debugids;     // debug identifiers

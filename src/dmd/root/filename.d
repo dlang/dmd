@@ -881,6 +881,27 @@ nothrow:
         }
     }
 
+    /// Useful when checking if a file resides in a particular directory
+    /// See_Also:
+    ///     FileName.canonicalName, FileName.exists
+    static const(char)[] ensureDirSeparatorEnding(const(char)[] path)
+    {
+        if (path.length == 0)
+            return null;
+        if (!isDirSeparator(path[$ - 1]))
+        {
+            char[] result = (cast(char*)mem.xmalloc_noscan(path.length + 1))[0 .. path.length + 1];
+            result[0 .. path.length][] = path[];
+            version(Windows)
+                result[$ - 1] = '\\';
+            else version(Posix)
+                result[$ - 1] = '/';
+            return result;
+        }
+        else
+            return path;
+    }
+
     /**
        Ensure that the provided path exists
 
@@ -1054,7 +1075,12 @@ nothrow:
                 // Actually get the full path name. If the buffer is large enough,
                 // the returned length does NOT include the terminating null...
                 const length = GetFullPathNameW(&wname[0], capacity, buffer, null /*filePart*/);
-                assert(length == capacity - 1);
+                //if (length != capacity - 1)
+                //{
+                //    import core.stdc.stdio;
+                //    printf("%.*s -> %ls: length = %d  capacity = %d\n", cast(int)name.length, name.ptr, buffer, length, capacity);
+                //}
+                assert(length != 0 && length < capacity);
 
                 return toNarrowStringz(buffer[0 .. length]);
             });

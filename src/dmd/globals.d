@@ -96,6 +96,17 @@ extern(C++) struct Output
     OutBuffer* buffer;  // if this output is buffered, this is the buffer
     int bufferLines;    // number of lines written to the buffer
 }
+
+alias Identifiers = Array!(Identifier);
+
+extern (C++) struct ManglePrefix
+{
+    const(char)[] path;     // Can be a file or folder path (should be canonical)
+    FileType type;          // Whether the path is a file or folder
+    const(char)[] prefix;   // Fully qualified name like "pegged.v2_1"
+    Identifiers* identList; // Parsed form of prefix
+}
+
 /// Put command line switches in here
 extern (C++) struct Param
 {
@@ -201,6 +212,8 @@ extern (C++) struct Param
     Output makeDeps;                    // Generate make file dependencies
     Output mixinOut;                    // write expanded mixins for debugging
     Output moduleDeps;                  // Generate `.deps` module dependencies
+
+    Array!(ManglePrefix) manglePrefixList; // info on how to mangle symbols in certain files
 
     uint debuglevel;                    // debug level
     Array!(const(char)*)* debugids;     // debug identifiers
