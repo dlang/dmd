@@ -433,7 +433,7 @@ enum PINLINE : ubyte
 }
 
 /// Source file type
-enum FileType : ubyte
+enum SourceType : ubyte
 {
     d,    /// normal D source file
     dhdr, /// D header file (.di)

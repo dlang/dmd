@@ -358,7 +358,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 //            m.deleteObjFile();
 
         m.parse();
-        if (m.filetype == FileType.dhdr)
+        if (m.sourceType == SourceType.dhdr)
         {
             // Remove m's object file from list of object files
             for (size_t j = 0; j < params.objfiles.length; j++)
@@ -372,7 +372,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             if (params.objfiles.length == 0)
                 driverParams.link = false;
         }
-        if (m.filetype == FileType.ddoc)
+        if (m.sourceType == SourceType.ddoc)
         {
             anydocfiles = true;
             gendocfile(m);
@@ -410,7 +410,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
          */
         foreach (m; modules)
         {
-            if (m.filetype == FileType.dhdr)
+            if (m.sourceType == SourceType.dhdr)
                 continue;
             if (params.verbose)
                 message("import    %s", m.toChars());

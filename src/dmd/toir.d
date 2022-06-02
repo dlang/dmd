@@ -101,7 +101,7 @@ struct IRState
         mayThrow = global.params.useExceptions
             && ClassDeclaration.throwable
             && !(fd && fd.hasNoEH);
-        this.Cfile = m.filetype == FileType.c;
+        this.Cfile = m.sourceType == SourceType.c;
     }
 
     FuncDeclaration getFunc()
@@ -115,7 +115,7 @@ struct IRState
      */
     bool arrayBoundsCheck()
     {
-        if (m.filetype == FileType.c)
+        if (m.sourceType == SourceType.c)
             return false;
         bool result;
         final switch (global.params.useArrayBounds)

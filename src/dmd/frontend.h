@@ -465,6 +465,13 @@ enum class JsonFieldFlags : uint32_t
     semantics = 8u,
 };
 
+enum class FileType
+{
+    none = 0,
+    file = 1,
+    folder = 2,
+};
+
 enum class MessageStyle : uint8_t
 {
     digitalmars = 0u,
@@ -799,7 +806,7 @@ public:
     static bool equalsExt(const char* name, const char* ext);
     bool equalsExt(const char* ext) const;
     static const char* searchPath(Array<const char* >* path, const char* name, bool cwd);
-    static int32_t exists(const char* name);
+    static FileType exists(const char* name);
     static bool ensurePathExists(const char* path);
     static const char* canonicalName(const char* name);
     static void free(const char* str);
@@ -1626,7 +1633,7 @@ enum class PKG
     package_ = 2,
 };
 
-enum class FileType : uint8_t
+enum class SourceType : uint8_t
 {
     d = 0u,
     dhdr = 1u,
@@ -6153,7 +6160,7 @@ public:
     _d_dynamicArray< const uint8_t > src;
     uint32_t errors;
     uint32_t numlines;
-    FileType filetype;
+    SourceType sourceType;
     bool hasAlwaysInlines;
     bool isPackageFile;
     Package* pkg;

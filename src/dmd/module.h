@@ -74,7 +74,7 @@ public:
     DArray<unsigned char> src; // Raw content of the file
     unsigned errors;    // if any errors in file
     unsigned numlines;  // number of lines in source file
-    FileType filetype;  // source file type
+    SourceType sourceType;  // source file type
     bool hasAlwaysInlines; // contains references to functions that must be inlined
     bool isPackageFile; // if it is a package.d
     Package *pkg;       // if isPackageFile is true, the Package that contains this package.d

@@ -14,6 +14,13 @@
 
 typedef Array<const char *> Strings;
 
+enum class FileType
+{
+    none = 0,
+    file = 1,
+    folder = 2,
+};
+
 struct FileName
 {
 private:
@@ -38,7 +45,7 @@ public:
     bool equalsExt(const char *ext);
 
     static const char *searchPath(Strings *path, const char *name, bool cwd);
-    static int exists(const char *name);
+    static FileType exists(const char *name);
     static bool ensurePathExists(const char *path);
     static const char *canonicalName(const char *name);
 

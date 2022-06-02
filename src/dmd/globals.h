@@ -388,7 +388,7 @@ enum class PINLINE : uint8_t
     always        // always inline
 };
 
-enum class FileType : uint8_t
+enum class SourceType : uint8_t
 {
     d,    /// normal D source file
     dhdr, /// D header file (.di)
