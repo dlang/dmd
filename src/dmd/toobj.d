@@ -389,7 +389,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             // Put out the TypeInfo
             if (gentypeinfo)
-                genTypeInfo(cd.loc, cd.type, null);
+                genTypeInfoForType(cd.loc, cd.type);
             //toObjFile(cd.type.vtinfo, multiobj);
 
             if (genclassinfo)
@@ -472,7 +472,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             // Put out the TypeInfo
             if (gentypeinfo)
             {
-                genTypeInfo(id.loc, id.type, null);
+                genTypeInfoForType(id.loc, id.type);
                 id.type.vtinfo.accept(this);
             }
 
@@ -508,7 +508,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                     toDebug(sd);
 
                 if (global.params.useTypeInfo && Type.dtypeinfo)
-                    genTypeInfo(sd.loc, sd.type, null);
+                    genTypeInfoForType(sd.loc, sd.type);
 
                 // Generate static initializer
                 auto sinit = toInitializer(sd);
@@ -689,7 +689,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 toDebug(ed);
 
             if (global.params.useTypeInfo && Type.dtypeinfo)
-                genTypeInfo(ed.loc, ed.type, null);
+                genTypeInfoForType(ed.loc, ed.type);
 
             TypeEnum tc = cast(TypeEnum)ed.type;
             if (!tc.sym.members || ed.type.isZeroInit(Loc.initial))
@@ -1180,6 +1180,18 @@ private size_t emitVtbl(ref DtBuilder dtb, BaseClass *b, ref FuncDeclarations bv
     return id_vtbl_dim * target.ptrsize;
 }
 
+
+/**
+ * Generate the TypeInfo for a type, and write it to the object file
+ * Params:
+ *      loc = the location for reporting line numbers in errors
+ *      type = the type to generate `TypeInfo` for
+ */
+void genTypeInfoForType(const ref Loc loc, Type type)
+{
+    if (auto tinfo = genTypeInfo(loc, type))
+        toObjFile(tinfo, global.params.multiobj);
+}
 
 /******************************************************
  * Generate the ClassInfo for a Class (__classZ) symbol.

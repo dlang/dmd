@@ -30,22 +30,21 @@ import core.stdc.stdio;
  * Params:
  *      loc   = the location for reporting line numbers in errors
  *      torig = the type to generate the `TypeInfo` object for
- *      sc    = the scope
+ * Returns:
+ *      The `TypeInfo` object associated with `torig` if it needs to be written
+ *      to object file
  */
-extern (C++) void genTypeInfo(const ref Loc loc, Type torig, Scope* sc)
+extern (C++) TypeInfoDeclaration genTypeInfo(const ref Loc loc, Type torig)
 {
     // printf("genTypeInfo() %s\n", torig.toChars());
 
     // Even when compiling without `useTypeInfo` (e.g. -betterC) we should
     // still be able to evaluate `TypeInfo` at compile-time, just not at runtime.
     // https://issues.dlang.org/show_bug.cgi?id=18472
-    if (!sc || !(sc.flags & SCOPE.ctfe))
+    if (!global.params.useTypeInfo)
     {
-        if (!global.params.useTypeInfo)
-        {
-            .error(loc, "`TypeInfo` cannot be used with -betterC");
-            fatal();
-        }
+        .error(loc, "`TypeInfo` cannot be used with -betterC");
+        fatal();
     }
 
     if (!Type.dtypeinfo)
@@ -55,6 +54,7 @@ extern (C++) void genTypeInfo(const ref Loc loc, Type torig, Scope* sc)
     }
 
     Type t = torig.merge2(); // do this since not all Type's are merge'd
+    TypeInfoDeclaration tinfo;
     if (!t.vtinfo)
     {
         if (t.isShared()) // does both 'shared' and 'shared const'
@@ -72,29 +72,22 @@ extern (C++) void genTypeInfo(const ref Loc loc, Type torig, Scope* sc)
         // ClassInfos are generated as part of ClassDeclaration codegen
         const isUnqualifiedClassInfo = (t.ty == Tclass && !t.mod);
 
-        // generate a COMDAT for other TypeInfos not available as builtins in
-        // druntime
+        // Only generate TypeInfos not available as builtins in druntime.
         if (!isUnqualifiedClassInfo && !builtinTypeInfo(t))
-        {
-            if (sc) // if in semantic() pass
-            {
-                // Find module that will go all the way to an object file
-                Module m = sc._module.importedFrom;
-                m.members.push(t.vtinfo);
-            }
-            else // if in obj generation pass
-            {
-                toObjFile(t.vtinfo, global.params.multiobj);
-            }
-        }
+            tinfo = t.vtinfo;
     }
     if (!torig.vtinfo)
         torig.vtinfo = t.vtinfo; // Types aren't merged, but we can share the vtinfo's
     assert(torig.vtinfo);
+
+    return tinfo;
 }
 
 /****************************************************
- * Gets the type of the `TypeInfo` object associated with `t`
+ * Gets the type of the `TypeInfo` object associated with `t`.
+ * If called from the semantic pass, the generated `TypeInfo` is
+ * also appended to the root module's members array so that it
+ * will end up being written to object file.
  * Params:
  *      loc = the location for reporting line nunbers in errors
  *      t   = the type to get the type of the `TypeInfo` object for
@@ -102,10 +95,20 @@ extern (C++) void genTypeInfo(const ref Loc loc, Type torig, Scope* sc)
  * Returns:
  *      The type of the `TypeInfo` object associated with `t`
  */
-extern (C++) Type getTypeInfoType(const ref Loc loc, Type t, Scope* sc)
+Type getTypeInfoType(const ref Loc loc, Type t, Scope* sc)
 {
     assert(t.ty != Terror);
-    genTypeInfo(loc, t, sc);
+    if (!(sc.flags & SCOPE.ctfe) && !global.params.useTypeInfo)
+    {
+        .error(loc, "`TypeInfo` cannot be used with -betterC");
+        fatal();
+    }
+    if (auto tinfo = genTypeInfo(loc, t))
+    {
+        // Find module that will go all the way to an object file
+        Module m = sc._module.importedFrom;
+        m.members.push(t.vtinfo);
+    }
     return t.vtinfo.type;
 }
 
