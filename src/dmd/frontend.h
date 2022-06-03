@@ -3022,6 +3022,7 @@ public:
     bool addPostInvariant();
     InvariantDeclaration* isInvariantDeclaration();
     void accept(Visitor* v);
+    void fixupInvariantIdent(size_t offset);
 };
 
 class NewDeclaration final : public FuncDeclaration
