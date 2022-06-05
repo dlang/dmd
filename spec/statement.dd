@@ -1494,36 +1494,32 @@ $(GNAME ReturnStatement):
     $(D return) $(EXPRESSION)$(OPT) $(D ;)
 )
 
-$(P `return` exits the current function and supplies its return value.)
+$(P `return` exits the current function and supplies its
+$(DDSUBLINK spec/function, function-return-values, return value).)
 
 $(P *Expression* is required if the function specifies a return type that is
 not void. The *Expression* is implicitly converted to the function return
 type.)
 
-        $(P At least one return statement, throw statement, or assert(0) expression
-        is required if the function specifies a return type that is not void,
-        unless the function contains inline assembler code.)
-
-$(COMMENT
-        *Expression* is allowed even if the function specifies
-        a $(D_KEYWORD void) return type. The *Expression* will be evaluated,
-        but nothing will be returned.
+$(P
+        An *Expression* of type void is allowed if the function specifies
+        a void return type. The *Expression* will be evaluated,
+        but nothing will be returned. This is useful in generic programming.
         If the *Expression* has no side effects, and the return
-        type is $(D_KEYWORD void), then it is illegal.
+        type is void, then it is illegal.
 )
         $(P Before the function actually returns,
-        any objects with scope storage duration are destroyed,
-        any enclosing finally clauses are executed,
-        any scope(exit) statements are executed,
-        any scope(success) statements are executed,
+        any objects with `scope` storage duration are destroyed,
+        any enclosing `finally` clauses are executed,
+        any `scope(exit)` statements are executed,
+        any `scope(success)` statements are executed,
         and any enclosing synchronization
         objects are released.)
 
-        $(P The function will not return if any enclosing finally clause
-        does a return, goto or throw that exits the finally clause.)
+        $(P The function will not return if any enclosing `finally` clause
+        does a return, goto or throw that exits the `finally` clause.)
 
-        $(P If there is an out postcondition
-        (see $(DDLINK spec/contracts, Contract Programming, Contract Programming)),
+        $(P If there is an $(DDSUBLINK spec/function, postconditions, `out` postcondition),
         that postcondition is executed
         after the *Expression* is evaluated and before the function
         actually returns.)
