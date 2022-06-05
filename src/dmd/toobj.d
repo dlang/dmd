@@ -389,7 +389,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             // Put out the TypeInfo
             if (gentypeinfo)
-                genTypeInfo(cd.loc, cd.type, null);
+                genTypeInfo(null, cd.loc, cd.type, null);
             //toObjFile(cd.type.vtinfo, multiobj);
 
             if (genclassinfo)
@@ -472,7 +472,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             // Put out the TypeInfo
             if (gentypeinfo)
             {
-                genTypeInfo(id.loc, id.type, null);
+                genTypeInfo(null, id.loc, id.type, null);
                 id.type.vtinfo.accept(this);
             }
 
@@ -508,7 +508,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                     toDebug(sd);
 
                 if (global.params.useTypeInfo && Type.dtypeinfo)
-                    genTypeInfo(sd.loc, sd.type, null);
+                    genTypeInfo(null, sd.loc, sd.type, null);
 
                 // Generate static initializer
                 auto sinit = toInitializer(sd);
@@ -689,7 +689,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 toDebug(ed);
 
             if (global.params.useTypeInfo && Type.dtypeinfo)
-                genTypeInfo(ed.loc, ed.type, null);
+                genTypeInfo(null, ed.loc, ed.type, null);
 
             TypeEnum tc = cast(TypeEnum)ed.type;
             if (!tc.sym.members || ed.type.isZeroInit(Loc.initial))

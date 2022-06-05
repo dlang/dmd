@@ -798,7 +798,7 @@ elem* toElem(Expression e, IRState *irs)
         //printf("TypeidExp.toElem() %s\n", e.toChars());
         if (Type t = isType(e.obj))
         {
-            elem* result = getTypeInfo(e.loc, t, irs);
+            elem* result = getTypeInfo(e, t, irs);
             return el_bin(OPadd, result.Ety, result, el_long(TYsize_t, t.vtinfo.offset));
         }
         if (Expression ex = isExpression(e.obj))
@@ -1178,7 +1178,7 @@ elem* toElem(Expression e, IRState *irs)
             elem *ez = null;
 
             // call _d_newitemT(ti)
-            e = getTypeInfo(ne.loc, ne.newtype, irs);
+            e = getTypeInfo(ne, ne.newtype, irs);
 
             const rtl = t.isZeroInit(Loc.initial) ? RTLSYM.NEWITEMT : RTLSYM.NEWITEMIT;
             ex = el_bin(OPcall,TYnptr,el_var(getRtlsym(rtl)),e);
@@ -1243,7 +1243,7 @@ elem* toElem(Expression e, IRState *irs)
                 e = toElem(arg, irs);
 
                 // call _d_newT(ti, arg)
-                e = el_param(e, getTypeInfo(ne.loc, ne.type, irs));
+                e = el_param(e, getTypeInfo(ne, ne.type, irs));
                 const rtl = tda.next.isZeroInit(Loc.initial) ? RTLSYM.NEWARRAYT : RTLSYM.NEWARRAYIT;
                 e = el_bin(OPcall,TYdarray,el_var(getRtlsym(rtl)),e);
                 toTraceGC(irs, e, ne.loc);
@@ -1265,7 +1265,7 @@ elem* toElem(Expression e, IRState *irs)
                 e = el_pair(TYdarray, el_long(TYsize_t, ne.arguments.dim), el_ptr(sdata));
                 if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
                     e = addressElem(e, Type.tsize_t.arrayOf());
-                e = el_param(e, getTypeInfo(ne.loc, ne.type, irs));
+                e = el_param(e, getTypeInfo(ne, ne.type, irs));
                 const rtl = t.isZeroInit(Loc.initial) ? RTLSYM.NEWARRAYMTX : RTLSYM.NEWARRAYMITX;
                 e = el_bin(OPcall,TYdarray,el_var(getRtlsym(rtl)),e);
                 toTraceGC(irs, e, ne.loc);
@@ -1279,7 +1279,7 @@ elem* toElem(Expression e, IRState *irs)
             elem *ezprefix = ne.argprefix ? toElem(ne.argprefix, irs) : null;
 
             // call _d_newitemT(ti)
-            e = getTypeInfo(ne.loc, ne.newtype, irs);
+            e = getTypeInfo(ne, ne.newtype, irs);
 
             const rtl = tp.next.isZeroInit(Loc.initial) ? RTLSYM.NEWITEMT : RTLSYM.NEWITEMIT;
             e = el_bin(OPcall,TYnptr,el_var(getRtlsym(rtl)),e);
@@ -1726,7 +1726,7 @@ elem* toElem(Expression e, IRState *irs)
             elem *ep = el_pair(TYdarray, el_long(TYsize_t, elems.dim), el_ptr(sdata));
             if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
                 ep = addressElem(ep, Type.tvoid.arrayOf());
-            ep = el_param(ep, getTypeInfo(ce.loc, ta, irs));
+            ep = el_param(ep, getTypeInfo(ce, ta, irs));
             e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM.ARRAYCATNTX)), ep);
             toTraceGC(irs, e, ce.loc);
             e = el_combine(earr, e);
@@ -1735,7 +1735,7 @@ elem* toElem(Expression e, IRState *irs)
         {
             elem *e1 = eval_Darray(ce.e1);
             elem *e2 = eval_Darray(ce.e2);
-            elem *ep = el_params(e2, e1, getTypeInfo(ce.loc, ta, irs), null);
+            elem *ep = el_params(e2, e1, getTypeInfo(ce, ta, irs), null);
             e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM.ARRAYCATT)), ep);
             toTraceGC(irs, e, ce.loc);
         }
@@ -1929,7 +1929,7 @@ elem* toElem(Expression e, IRState *irs)
             elem *ea1 = eval_Darray(ee.e1);
             elem *ea2 = eval_Darray(ee.e2);
 
-            elem *ep = el_params(getTypeInfo(ee.loc, telement.arrayOf(), irs),
+            elem *ep = el_params(getTypeInfo(ee, telement.arrayOf(), irs),
                     ea2, ea1, null);
             const rtlfunc = RTLSYM.ARRAYEQ2;
             e = el_bin(OPcall, TYint, el_var(getRtlsym(rtlfunc)), ep);
@@ -1941,7 +1941,7 @@ elem* toElem(Expression e, IRState *irs)
         {
             TypeAArray taa = cast(TypeAArray)t1;
             Symbol *s = aaGetSymbol(taa, "Equal", 0);
-            elem *ti = getTypeInfo(ee.loc, taa, irs);
+            elem *ti = getTypeInfo(ee, taa, irs);
             elem *ea1 = toElem(ee.e1, irs);
             elem *ea2 = toElem(ee.e2, irs);
             // aaEqual(ti, e1, e2)
@@ -2033,7 +2033,7 @@ elem* toElem(Expression e, IRState *irs)
         // aaInX(aa, keyti, key);
         key = addressElem(key, ie.e1.type);
         Symbol *s = aaGetSymbol(taa, "InX", 0);
-        elem *keyti = getTypeInfo(ie.loc, taa.index, irs);
+        elem *keyti = getTypeInfo(ie, taa.index, irs);
         elem *ep = el_params(key, keyti, aa, null);
         elem *e = el_bin(OPcall, totym(ie.type), el_var(s), ep);
 
@@ -2053,7 +2053,7 @@ elem* toElem(Expression e, IRState *irs)
 
         ekey = addressElem(ekey, re.e2.type);
         Symbol *s = aaGetSymbol(taa, "DelX", 0);
-        elem *keyti = getTypeInfo(re.loc, taa.index, irs);
+        elem *keyti = getTypeInfo(re, taa.index, irs);
         elem *ep = el_params(ekey, keyti, ea, null);
         elem *e = el_bin(OPcall, TYnptr, el_var(s), ep);
 
@@ -2300,7 +2300,7 @@ elem* toElem(Expression e, IRState *irs)
                      *     _d_arrayassign(ti, efrom, eto)
                      */
                     el_free(esize);
-                    elem *eti = getTypeInfo(ae.e1.loc, t1.nextOf().toBasetype(), irs);
+                    elem *eti = getTypeInfo(ae.e1, t1.nextOf().toBasetype(), irs);
                     if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
                     {
                         eto   = addressElem(eto,   Type.tvoid.arrayOf());
@@ -2630,7 +2630,7 @@ elem* toElem(Expression e, IRState *irs)
                  * or:
                  *      _d_arrayassign_r(ti, e2, e1, etmp)
                  */
-                elem *eti = getTypeInfo(ae.e1.loc, t1b.nextOf().toBasetype(), irs);
+                elem *eti = getTypeInfo(ae.e1, t1b.nextOf().toBasetype(), irs);
                 if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
                 {
                     e1 = addressElem(e1, Type.tvoid.arrayOf());
@@ -3766,12 +3766,12 @@ elem* toElem(Expression e, IRState *irs)
             {
                 n1 = el_una(OPaddr, TYnptr, n1);
                 s = aaGetSymbol(taa, "GetY", 1);
-                ti = getTypeInfo(ie.e1.loc, taa.unSharedOf().mutableOf(), irs);
+                ti = getTypeInfo(ie.e1, taa.unSharedOf().mutableOf(), irs);
             }
             else
             {
                 s = aaGetSymbol(taa, "GetRvalueX", 1);
-                ti = getTypeInfo(ie.e1.loc, taa.index, irs);
+                ti = getTypeInfo(ie.e1, taa.index, irs);
             }
             //printf("taa.index = %s\n", taa.index.toChars());
             //printf("ti:\n"); elem_print(ti);
@@ -3899,7 +3899,7 @@ elem* toElem(Expression e, IRState *irs)
                 // call _d_arrayliteralTX(ti, dim)
                 e = el_bin(OPcall, TYnptr,
                     el_var(getRtlsym(RTLSYM.ARRAYLITERALTX)),
-                    el_param(el_long(TYsize_t, dim), getTypeInfo(ale.loc, ale.type, irs)));
+                    el_param(el_long(TYsize_t, dim), getTypeInfo(ale, ale.type, irs)));
                 toTraceGC(irs, e, ale.loc);
 
                 Symbol *stmp = symbol_genauto(Type_toCtype(Type.tvoid.pointerTo()));
@@ -3961,7 +3961,7 @@ elem* toElem(Expression e, IRState *irs)
                 ek = addressElem(ek, Type.tvoid.arrayOf());
             }
             elem *e = el_params(ev, ek,
-                                getTypeInfo(aale.loc, ta, irs),
+                                getTypeInfo(aale, ta, irs),
                                 null);
 
             // call _d_assocarrayliteralTX(ti, keys, values)
@@ -5956,12 +5956,22 @@ elem *sarray_toDarray(const ref Loc loc, Type tfrom, Type tto, elem *e)
     return e;
 }
 
-elem *getTypeInfo(Loc loc, Type t, IRState *irs)
+/****************************************
+ * Get the TypeInfo for type `t`
+ * Params:
+ *      e = for error reporting
+ *      t = type for which we need TypeInfo
+ *      irs = context
+ * Returns:
+ *      TypeInfo
+ */
+private
+elem *getTypeInfo(Expression e, Type t, IRState* irs)
 {
     assert(t.ty != Terror);
-    genTypeInfo(loc, t, null);
-    elem *e = el_ptr(toSymbol(t.vtinfo));
-    return e;
+    genTypeInfo(e, e.loc, t, null);
+    elem* result = el_ptr(toSymbol(t.vtinfo));
+    return result;
 }
 
 /********************************************
@@ -6082,7 +6092,7 @@ Lagain:
                     r = RTLSYM.ARRAYSETASSIGN;
                     evalue = el_una(OPaddr, TYnptr, evalue);
                     // This is a hack so we can call postblits on const/immutable objects.
-                    elem *eti = getTypeInfo(exp.loc, tb.unSharedOf().mutableOf(), irs);
+                    elem *eti = getTypeInfo(exp, tb.unSharedOf().mutableOf(), irs);
                     elem *e = el_params(eti, edim, evalue, eptr, null);
                     e = el_bin(OPcall,TYnptr,el_var(getRtlsym(r)),e);
                     return e;
