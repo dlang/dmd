@@ -777,8 +777,19 @@ void setClosureVarOffset(FuncDeclaration fd)
 void buildClosure(FuncDeclaration fd, IRState *irs)
 {
     //printf("buildClosure(fd = %s)\n", fd.toChars());
+    const oldValue = fd.requiresClosure;
     if (fd.needsClosure())
     {
+        /* nrvo is incompatible with closure
+         */
+        if (oldValue != fd.requiresClosure && (fd.nrvo_var || irs.params.betterC))
+        {
+            /* https://issues.dlang.org/show_bug.cgi?id=23112
+             * This can shift due to templates being expanded that access alias symbols.
+             */
+            fd.checkClosure();   // give decent diagnostic
+        }
+
         setClosureVarOffset(fd);
 
         // Generate closure on the heap
