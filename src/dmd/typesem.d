@@ -410,101 +410,6 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
         pt = t.merge();
 }
 
-/************************************
- * Transitively search a type for all function types.
- * If any function types with parameters are found that have parameter identifiers
- * or default arguments, remove those and create a new type stripped of those.
- * This is used to determine the "canonical" version of a type which is useful for
- * comparisons.
- * Params:
- *      t = type to scan
- * Returns:
- *      `t` if no parameter identifiers or default arguments found, otherwise a new type that is
- *      the same as t but with no parameter identifiers or default arguments.
- */
-private Type stripDefaultArgs(Type t)
-{
-    static Parameters* stripParams(Parameters* parameters)
-    {
-        static Parameter stripParameter(Parameter p)
-        {
-            Type t = stripDefaultArgs(p.type);
-            return (t != p.type || p.defaultArg || p.ident || p.userAttribDecl)
-                ? new Parameter(p.storageClass, t, null, null, null)
-                : null;
-        }
-
-        if (parameters)
-        {
-            foreach (i, p; *parameters)
-            {
-                Parameter ps = stripParameter(p);
-                if (ps)
-                {
-                    // Replace params with a copy we can modify
-                    Parameters* nparams = new Parameters(parameters.dim);
-
-                    foreach (j, ref np; *nparams)
-                    {
-                        Parameter pj = (*parameters)[j];
-                        if (j < i)
-                            np = pj;
-                        else if (j == i)
-                            np = ps;
-                        else
-                        {
-                            Parameter nps = stripParameter(pj);
-                            np = nps ? nps : pj;
-                        }
-                    }
-                    return nparams;
-                }
-            }
-        }
-        return parameters;
-    }
-
-    if (t is null)
-        return t;
-
-    if (auto tf = t.isTypeFunction())
-    {
-        Type tret = stripDefaultArgs(tf.next);
-        Parameters* params = stripParams(tf.parameterList.parameters);
-        if (tret == tf.next && params == tf.parameterList.parameters)
-            return t;
-        TypeFunction tr = tf.copy().isTypeFunction();
-        tr.parameterList.parameters = params;
-        tr.next = tret;
-        //printf("strip %s\n   <- %s\n", tr.toChars(), t.toChars());
-        return tr;
-    }
-    else if (auto tt = t.isTypeTuple())
-    {
-        Parameters* args = stripParams(tt.arguments);
-        if (args == tt.arguments)
-            return t;
-        TypeTuple tr = t.copy().isTypeTuple();
-        tr.arguments = args;
-        return tr;
-    }
-    else if (t.ty == Tenum)
-    {
-        // TypeEnum::nextOf() may be != NULL, but it's not necessary here.
-        return t;
-    }
-    else
-    {
-        Type tn = t.nextOf();
-        Type n = stripDefaultArgs(tn);
-        if (n == tn)
-            return t;
-        TypeNext tr = cast(TypeNext)t.copy();
-        tr.next = n;
-        return tr;
-    }
-}
-
 /******************************************
  * We've mistakenly parsed `t` as a type.
  * Redo `t` as an Expression only if there are no type modifiers.
@@ -4819,6 +4724,101 @@ Expression semanticLength(Scope* sc, TupleDeclaration tup, Expression exp)
     sc.pop();
 
     return exp;
+}
+
+/************************************
+ * Transitively search a type for all function types.
+ * If any function types with parameters are found that have parameter identifiers
+ * or default arguments, remove those and create a new type stripped of those.
+ * This is used to determine the "canonical" version of a type which is useful for
+ * comparisons.
+ * Params:
+ *      t = type to scan
+ * Returns:
+ *      `t` if no parameter identifiers or default arguments found, otherwise a new type that is
+ *      the same as t but with no parameter identifiers or default arguments.
+ */
+Type stripDefaultArgs(Type t)
+{
+    static Parameters* stripParams(Parameters* parameters)
+    {
+        static Parameter stripParameter(Parameter p)
+        {
+            Type t = stripDefaultArgs(p.type);
+            return (t != p.type || p.defaultArg || p.ident || p.userAttribDecl)
+                ? new Parameter(p.storageClass, t, null, null, null)
+                : null;
+        }
+
+        if (parameters)
+        {
+            foreach (i, p; *parameters)
+            {
+                Parameter ps = stripParameter(p);
+                if (ps)
+                {
+                    // Replace params with a copy we can modify
+                    Parameters* nparams = new Parameters(parameters.dim);
+
+                    foreach (j, ref np; *nparams)
+                    {
+                        Parameter pj = (*parameters)[j];
+                        if (j < i)
+                            np = pj;
+                        else if (j == i)
+                            np = ps;
+                        else
+                        {
+                            Parameter nps = stripParameter(pj);
+                            np = nps ? nps : pj;
+                        }
+                    }
+                    return nparams;
+                }
+            }
+        }
+        return parameters;
+    }
+
+    if (t is null)
+        return t;
+
+    if (auto tf = t.isTypeFunction())
+    {
+        Type tret = stripDefaultArgs(tf.next);
+        Parameters* params = stripParams(tf.parameterList.parameters);
+        if (tret == tf.next && params == tf.parameterList.parameters)
+            return t;
+        TypeFunction tr = tf.copy().isTypeFunction();
+        tr.parameterList.parameters = params;
+        tr.next = tret;
+        //printf("strip %s\n   <- %s\n", tr.toChars(), t.toChars());
+        return tr;
+    }
+    else if (auto tt = t.isTypeTuple())
+    {
+        Parameters* args = stripParams(tt.arguments);
+        if (args == tt.arguments)
+            return t;
+        TypeTuple tr = t.copy().isTypeTuple();
+        tr.arguments = args;
+        return tr;
+    }
+    else if (t.ty == Tenum)
+    {
+        // TypeEnum::nextOf() may be != NULL, but it's not necessary here.
+        return t;
+    }
+    else
+    {
+        Type tn = t.nextOf();
+        Type n = stripDefaultArgs(tn);
+        if (n == tn)
+            return t;
+        TypeNext tr = cast(TypeNext)t.copy();
+        tr.next = n;
+        return tr;
+    }
 }
 
 /******************************
