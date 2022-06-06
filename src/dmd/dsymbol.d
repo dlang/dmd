@@ -2189,10 +2189,9 @@ extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
      * Can be `null` before being lazily initialized.
      */
     ScopeDsymbol forward;
-    extern (D) this(ScopeDsymbol forward) nothrow
+    extern (D) this() nothrow
     {
         super(null);
-        this.forward = forward;
     }
 
     override Dsymbol symtabInsert(Dsymbol s) nothrow
