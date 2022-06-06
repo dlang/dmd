@@ -47,9 +47,9 @@ import dmd.backend.cdef;
 version(Windows)
 {
     nothrow
-    extern (C) char* getcwd(char* buffer, size_t maxlen);
+    private extern (C) char* getcwd(char* buffer, size_t maxlen);
     nothrow
-    extern (C) int* _errno();   // not the multi-threaded version
+    private extern (C) int* _errno();   // not the multi-threaded version
 }
 else
 {
