@@ -64,48 +64,6 @@ import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
 
-/**************************
- * This evaluates exp while setting length to be the number
- * of elements in the tuple t.
- */
-private Expression semanticLength(Scope* sc, Type t, Expression exp)
-{
-    if (auto tt = t.isTypeTuple())
-    {
-        ScopeDsymbol sym = new ArrayScopeSymbol(sc, tt);
-        sym.parent = sc.scopesym;
-        sc = sc.push(sym);
-        sc = sc.startCTFE();
-        exp = exp.expressionSemantic(sc);
-        exp = resolveProperties(sc, exp);
-        sc = sc.endCTFE();
-        sc.pop();
-    }
-    else
-    {
-        sc = sc.startCTFE();
-        exp = exp.expressionSemantic(sc);
-        exp = resolveProperties(sc, exp);
-        sc = sc.endCTFE();
-    }
-    return exp;
-}
-
-private Expression semanticLength(Scope* sc, TupleDeclaration tup, Expression exp)
-{
-    ScopeDsymbol sym = new ArrayScopeSymbol(sc, tup);
-    sym.parent = sc.scopesym;
-
-    sc = sc.push(sym);
-    sc = sc.startCTFE();
-    exp = exp.expressionSemantic(sc);
-    exp = resolveProperties(sc, exp);
-    sc = sc.endCTFE();
-    sc.pop();
-
-    return exp;
-}
-
 /*************************************
  * Resolve a tuple index, `s[oindex]`, by figuring out what `s[oindex]` represents.
  * Setting one of pe/pt/ps.
@@ -4820,6 +4778,48 @@ extern (C++) Expression defaultInit(Type mt, const ref Loc loc, const bool isCfi
 /******************************* Private *****************************************/
 
 private:
+
+/**************************
+ * This evaluates exp while setting length to be the number
+ * of elements in the tuple t.
+ */
+Expression semanticLength(Scope* sc, Type t, Expression exp)
+{
+    if (auto tt = t.isTypeTuple())
+    {
+        ScopeDsymbol sym = new ArrayScopeSymbol(sc, tt);
+        sym.parent = sc.scopesym;
+        sc = sc.push(sym);
+        sc = sc.startCTFE();
+        exp = exp.expressionSemantic(sc);
+        exp = resolveProperties(sc, exp);
+        sc = sc.endCTFE();
+        sc.pop();
+    }
+    else
+    {
+        sc = sc.startCTFE();
+        exp = exp.expressionSemantic(sc);
+        exp = resolveProperties(sc, exp);
+        sc = sc.endCTFE();
+    }
+    return exp;
+}
+
+Expression semanticLength(Scope* sc, TupleDeclaration tup, Expression exp)
+{
+    ScopeDsymbol sym = new ArrayScopeSymbol(sc, tup);
+    sym.parent = sc.scopesym;
+
+    sc = sc.push(sym);
+    sc = sc.startCTFE();
+    exp = exp.expressionSemantic(sc);
+    exp = resolveProperties(sc, exp);
+    sc = sc.endCTFE();
+    sc.pop();
+
+    return exp;
+}
 
 /******************************
  * Get the value of the .max/.min property of `ed` as an Expression.
