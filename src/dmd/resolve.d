@@ -37,6 +37,30 @@ import dmd.tokens;
 import dmd.typesem;
 
 /***************************************
+ * Prints `undefined identifier` error, and look for what the user might have intended.
+ * Params:
+ *      loc = location for error messages
+ *      sc = context
+ *      ident = name of unresolved identifier
+ */
+void resolveError(const ref Loc loc, Scope* sc, Identifier ident)
+{
+    if (const n = importHint(ident.toString()))
+        error(loc, "`%s` is not defined, perhaps `import %.*s;` is needed?", ident.toChars(), cast(int)n.length, n.ptr);
+    else if (auto s2 = sc.search_correct(ident))
+        error(loc, "undefined identifier `%s`, did you mean %s `%s`?", ident.toChars(), s2.kind(), s2.toChars());
+    else if (const q = Scope.search_correct_C(ident))
+        error(loc, "undefined identifier `%s`, did you mean `%s`?", ident.toChars(), q);
+    else if ((ident == Id.This   && sc.getStructClassScope()) ||
+             (ident == Id._super && sc.getClassScope()))
+        error(loc, "undefined identifier `%s`, did you mean `typeof(%s)`?", ident.toChars(), ident.toChars());
+    else if (ident == Id.dollar)
+        error(loc, "undefined identifier `$`");
+    else
+        error(loc, "undefined identifier `%s`", ident.toChars());
+}
+
+/***************************************
  * Resolve identifier `ident` to a symbol.
  * Params:
  *      loc = location for error messages
@@ -806,22 +830,7 @@ void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymbol s, Ds
 
     if (!s)
     {
-        /* Look for what user might have intended
-         */
-        const p = mt.mutableOf().unSharedOf().toChars();
-        auto id = Identifier.idPool(p, cast(uint)strlen(p));
-        if (const n = importHint(id.toString()))
-            error(loc, "`%s` is not defined, perhaps `import %.*s;` ?", p, cast(int)n.length, n.ptr);
-        else if (auto s2 = sc.search_correct(id))
-            error(loc, "undefined identifier `%s`, did you mean %s `%s`?", p, s2.kind(), s2.toChars());
-        else if (const q = Scope.search_correct_C(id))
-            error(loc, "undefined identifier `%s`, did you mean `%s`?", p, q);
-        else if ((id == Id.This   && sc.getStructClassScope()) ||
-                 (id == Id._super && sc.getClassScope()))
-            error(loc, "undefined identifier `%s`, did you mean `typeof(%s)`?", p, p);
-        else
-            error(loc, "undefined identifier `%s`", p);
-
+        resolveError(loc, sc, Identifier.idPool(mt.mutableOf().unSharedOf().toString()));
         pt = Type.terror;
         return;
     }

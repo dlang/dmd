@@ -49,7 +49,6 @@ import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
-import dmd.imphint;
 import dmd.importc;
 import dmd.init;
 import dmd.initsem;
@@ -2784,19 +2783,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
 
-        /* Look for what user might have meant
-         */
-        if (const n = importHint(exp.ident.toString()))
-            exp.error("`%s` is not defined, perhaps `import %.*s;` is needed?", exp.ident.toChars(), cast(int)n.length, n.ptr);
-        else if (auto s2 = sc.search_correct(exp.ident))
-            exp.error("undefined identifier `%s`, did you mean %s `%s`?", exp.ident.toChars(), s2.kind(), s2.toChars());
-        else if (const p = Scope.search_correct_C(exp.ident))
-            exp.error("undefined identifier `%s`, did you mean `%s`?", exp.ident.toChars(), p);
-        else if (exp.ident == Id.dollar)
-            exp.error("undefined identifier `$`");
-        else
-            exp.error("undefined identifier `%s`", exp.ident.toChars());
-
+        resolveError(exp.loc, sc, exp.ident);
         result = ErrorExp.get();
     }
 
