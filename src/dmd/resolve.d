@@ -36,6 +36,63 @@ import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
 
+/***************************************
+ * Resolve identifier `ident` to a symbol.
+ * Params:
+ *      loc = location for error messages
+ *      sc = context
+ *      ident = name to look up
+ *      scopesym = if symbol is found, set to scope that `ident` was found in
+ */
+Dsymbol resolveIdentifier(const ref Loc loc, Scope* sc, Identifier ident, out Dsymbol scopesym)
+{
+    Dsymbol s = sc.search(loc, ident, &scopesym);
+    /*
+     * https://issues.dlang.org/show_bug.cgi?id=1170
+     * https://issues.dlang.org/show_bug.cgi?id=10739
+     *
+     * If a symbol is not found, it might be declared in
+     * a mixin-ed string or a mixin-ed template, so before
+     * issuing an error semantically analyze all string/template
+     * mixins that are members of the current ScopeDsymbol.
+     */
+    if (!s && sc.enclosing)
+    {
+        ScopeDsymbol sds = sc.enclosing.scopesym;
+        if (sds && sds.members)
+        {
+            void semanticOnMixin(Dsymbol member)
+            {
+                if (auto compileDecl = member.isCompileDeclaration())
+                    compileDecl.dsymbolSemantic(sc);
+                else if (auto mixinTempl = member.isTemplateMixin())
+                    mixinTempl.dsymbolSemantic(sc);
+            }
+            sds.members.foreachDsymbol( s => semanticOnMixin(s) );
+            s = sc.search(loc, ident, &scopesym);
+        }
+    }
+
+    if (s)
+    {
+        // https://issues.dlang.org/show_bug.cgi?id=16042
+        // If `f` is really a function template, then replace `f`
+        // with the function template declaration.
+        if (auto f = s.isFuncDeclaration())
+        {
+            if (auto td = getFuncTemplateDecl(f))
+            {
+                // If not at the beginning of the overloaded list of
+                // `TemplateDeclaration`s, then get the beginning
+                if (td.overroot)
+                    td = td.overroot;
+                return td;
+            }
+        }
+    }
+    return s;
+}
+
 /************************************
  * Resolve type 'mt' to either type, symbol, or expression.
  * If errors happened, resolved to Type.terror.
@@ -235,50 +292,7 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
         }
 
         Dsymbol scopesym;
-        Dsymbol s = sc.search(loc, mt.ident, &scopesym);
-        /*
-         * https://issues.dlang.org/show_bug.cgi?id=1170
-         * https://issues.dlang.org/show_bug.cgi?id=10739
-         *
-         * If a symbol is not found, it might be declared in
-         * a mixin-ed string or a mixin-ed template, so before
-         * issuing an error semantically analyze all string/template
-         * mixins that are members of the current ScopeDsymbol.
-         */
-        if (!s && sc.enclosing)
-        {
-            ScopeDsymbol sds = sc.enclosing.scopesym;
-            if (sds && sds.members)
-            {
-                void semanticOnMixin(Dsymbol member)
-                {
-                    if (auto compileDecl = member.isCompileDeclaration())
-                        compileDecl.dsymbolSemantic(sc);
-                    else if (auto mixinTempl = member.isTemplateMixin())
-                        mixinTempl.dsymbolSemantic(sc);
-                }
-                sds.members.foreachDsymbol( s => semanticOnMixin(s) );
-                s = sc.search(loc, mt.ident, &scopesym);
-            }
-        }
-
-        if (s)
-        {
-            // https://issues.dlang.org/show_bug.cgi?id=16042
-            // If `f` is really a function template, then replace `f`
-            // with the function template declaration.
-            if (auto f = s.isFuncDeclaration())
-            {
-                if (auto td = getFuncTemplateDecl(f))
-                {
-                    // If not at the beginning of the overloaded list of
-                    // `TemplateDeclaration`s, then get the beginning
-                    if (td.overroot)
-                        td = td.overroot;
-                    s = td;
-                }
-            }
-        }
+        Dsymbol s = resolveIdentifier(loc, sc, mt.ident, scopesym);
 
         mt.resolveHelper(loc, sc, s, scopesym, pe, pt, ps, intypeid);
         if (pt)
