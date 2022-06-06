@@ -3698,6 +3698,13 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
 
         if (oss.tok != TOK.onScopeExit)
         {
+            // https://issues.dlang.org/show_bug.cgi?id=23159
+            if (!global.params.useExceptions)
+            {
+                oss.error("`%s` cannot be used with -betterC", Token.toChars(oss.tok));
+                return setError();
+            }
+
             // scope(success) and scope(failure) are rewritten to try-catch(-finally) statement,
             // so the generated catch block cannot be placed in finally block.
             // See also Catch::semantic.
