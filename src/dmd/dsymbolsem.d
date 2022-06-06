@@ -59,6 +59,7 @@ import dmd.opover;
 import dmd.parse;
 import dmd.root.filename;
 import dmd.common.outbuffer;
+import dmd.resolve;
 import dmd.root.rmem;
 import dmd.root.rootobject;
 import dmd.root.utf;

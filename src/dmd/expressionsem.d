@@ -49,7 +49,6 @@ import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
-import dmd.imphint;
 import dmd.importc;
 import dmd.init;
 import dmd.initsem;
@@ -62,10 +61,12 @@ import dmd.opover;
 import dmd.optimize;
 import dmd.parse;
 import dmd.printast;
+import dmd.resolve;
 import dmd.root.ctfloat;
 import dmd.root.file;
 import dmd.root.filename;
 import dmd.common.outbuffer;
+import dmd.resolve;
 import dmd.root.rootobject;
 import dmd.root.string;
 import dmd.root.utf;
@@ -2782,19 +2783,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
 
-        /* Look for what user might have meant
-         */
-        if (const n = importHint(exp.ident.toString()))
-            exp.error("`%s` is not defined, perhaps `import %.*s;` is needed?", exp.ident.toChars(), cast(int)n.length, n.ptr);
-        else if (auto s2 = sc.search_correct(exp.ident))
-            exp.error("undefined identifier `%s`, did you mean %s `%s`?", exp.ident.toChars(), s2.kind(), s2.toChars());
-        else if (const p = Scope.search_correct_C(exp.ident))
-            exp.error("undefined identifier `%s`, did you mean `%s`?", exp.ident.toChars(), p);
-        else if (exp.ident == Id.dollar)
-            exp.error("undefined identifier `$`");
-        else
-            exp.error("undefined identifier `%s`", exp.ident.toChars());
-
+        resolveError(exp.loc, sc, exp.ident);
         result = ErrorExp.get();
     }
 
@@ -3257,7 +3246,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Type t;
         Dsymbol s;
 
-        dmd.typesem.resolve(exp.type, exp.loc, sc, e, t, s, true);
+        exp.type.resolve(exp.loc, sc, e, t, s, true);
         if (e)
         {
             // `(Type)` is actually `(var)` so if `(var)` is a member requiring `this`
@@ -5364,7 +5353,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (ta)
         {
-            dmd.typesem.resolve(ta, exp.loc, sc, ea, ta, sa, true);
+            ta.resolve(exp.loc, sc, ea, ta, sa, true);
         }
 
         if (ea)
@@ -6434,7 +6423,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 Expression e;
                 Type t;
                 Dsymbol s;
-                dmd.typesem.resolve(exp.e1.type, exp.e1.loc, sc, e, t, s, true);
+                exp.e1.type.resolve(exp.e1.loc, sc, e, t, s, true);
                 if (e)
                 {
                     exp.e1.error("argument to `_Alignof` must be a type");
