@@ -466,53 +466,6 @@ Expression typeToExpression(Type t)
     }
 }
 
-/* Helper function for `typeToExpression`. Contains common code
- * for TypeQualified derived classes.
- */
-Expression typeToExpressionHelper(TypeQualified t, Expression e, size_t i = 0)
-{
-    //printf("toExpressionHelper(e = %s %s)\n", EXPtoString(e.op).ptr, e.toChars());
-    foreach (id; t.idents[i .. t.idents.dim])
-    {
-        //printf("\t[%d] e: '%s', id: '%s'\n", i, e.toChars(), id.toChars());
-
-        final switch (id.dyncast())
-        {
-            // ... '. ident'
-            case DYNCAST.identifier:
-                e = new DotIdExp(e.loc, e, cast(Identifier)id);
-                break;
-
-            // ... '. name!(tiargs)'
-            case DYNCAST.dsymbol:
-                auto ti = (cast(Dsymbol)id).isTemplateInstance();
-                assert(ti);
-                e = new DotTemplateInstanceExp(e.loc, e, ti.name, ti.tiargs);
-                break;
-
-            // ... '[type]'
-            case DYNCAST.type:          // https://issues.dlang.org/show_bug.cgi?id=1215
-                e = new ArrayExp(t.loc, e, new TypeExp(t.loc, cast(Type)id));
-                break;
-
-            // ... '[expr]'
-            case DYNCAST.expression:    // https://issues.dlang.org/show_bug.cgi?id=1215
-                e = new ArrayExp(t.loc, e, cast(Expression)id);
-                break;
-
-            case DYNCAST.object:
-            case DYNCAST.tuple:
-            case DYNCAST.parameter:
-            case DYNCAST.statement:
-            case DYNCAST.condition:
-            case DYNCAST.templateparameter:
-            case DYNCAST.initializer:
-                assert(0);
-        }
-    }
-    return e;
-}
-
 /******************************************
  * Perform semantic analysis on a type.
  * Params:
@@ -4642,6 +4595,53 @@ extern (C++) Expression defaultInit(Type mt, const ref Loc loc, const bool isCfi
 /******************************* Private *****************************************/
 
 private:
+
+/* Helper function for `typeToExpression`. Contains common code
+ * for TypeQualified derived classes.
+ */
+Expression typeToExpressionHelper(TypeQualified t, Expression e, size_t i = 0)
+{
+    //printf("toExpressionHelper(e = %s %s)\n", EXPtoString(e.op).ptr, e.toChars());
+    foreach (id; t.idents[i .. t.idents.dim])
+    {
+        //printf("\t[%d] e: '%s', id: '%s'\n", i, e.toChars(), id.toChars());
+
+        final switch (id.dyncast())
+        {
+            // ... '. ident'
+            case DYNCAST.identifier:
+                e = new DotIdExp(e.loc, e, cast(Identifier)id);
+                break;
+
+            // ... '. name!(tiargs)'
+            case DYNCAST.dsymbol:
+                auto ti = (cast(Dsymbol)id).isTemplateInstance();
+                assert(ti);
+                e = new DotTemplateInstanceExp(e.loc, e, ti.name, ti.tiargs);
+                break;
+
+            // ... '[type]'
+            case DYNCAST.type:          // https://issues.dlang.org/show_bug.cgi?id=1215
+                e = new ArrayExp(t.loc, e, new TypeExp(t.loc, cast(Type)id));
+                break;
+
+            // ... '[expr]'
+            case DYNCAST.expression:    // https://issues.dlang.org/show_bug.cgi?id=1215
+                e = new ArrayExp(t.loc, e, cast(Expression)id);
+                break;
+
+            case DYNCAST.object:
+            case DYNCAST.tuple:
+            case DYNCAST.parameter:
+            case DYNCAST.statement:
+            case DYNCAST.condition:
+            case DYNCAST.templateparameter:
+            case DYNCAST.initializer:
+                assert(0);
+        }
+    }
+    return e;
+}
 
 /**************************
  * This evaluates exp while setting length to be the number
