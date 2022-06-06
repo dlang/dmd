@@ -4817,6 +4817,9 @@ extern (C++) Expression defaultInit(Type mt, const ref Loc loc, const bool isCfi
     }
 }
 
+/******************************* Private *****************************************/
+
+private:
 
 /******************************
  * Get the value of the .max/.min property of `ed` as an Expression.
@@ -4829,7 +4832,7 @@ extern (C++) Expression defaultInit(Type mt, const ref Loc loc, const bool isCfi
  * Returns:
  *      corresponding value of .max/.min
  */
-private Expression getMaxMinValue(EnumDeclaration ed, const ref Loc loc, Identifier id)
+Expression getMaxMinValue(EnumDeclaration ed, const ref Loc loc, Identifier id)
 {
     //printf("EnumDeclaration::getMaxValue()\n");
 
