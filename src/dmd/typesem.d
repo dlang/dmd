@@ -2020,47 +2020,6 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
     }
 }
 
-/******************************************
- * Compile the MixinType, returning the type or expression AST.
- *
- * Doesn't run semantic() on the returned object.
- * Params:
- *      tm = mixin to compile as a type or expression
- *      loc = location for error messages
- *      sc = context
- * Return:
- *      null if error, else RootObject AST as parsed
- */
-RootObject compileTypeMixin(TypeMixin tm, Loc loc, Scope* sc)
-{
-    OutBuffer buf;
-    if (expressionsToString(buf, sc, tm.exps))
-        return null;
-
-    const errors = global.errors;
-    const len = buf.length;
-    buf.writeByte(0);
-    const str = buf.extractSlice()[0 .. len];
-    scope p = new Parser!ASTCodegen(loc, sc._module, str, false);
-    p.nextToken();
-    //printf("p.loc.linnum = %d\n", p.loc.linnum);
-
-    auto o = p.parseTypeOrAssignExp(TOK.endOfFile);
-    if (errors != global.errors)
-    {
-        assert(global.errors != errors); // should have caught all these cases
-        return null;
-    }
-    if (p.token.value != TOK.endOfFile)
-    {
-        .error(loc, "incomplete mixin type `%s`", str.ptr);
-        return null;
-    }
-
-    return o;
-}
-
-
 /************************************
  * If an identical type to `type` is in `type.stringtable`, return
  * the latter one. Otherwise, add it to `type.stringtable`.
@@ -4937,4 +4896,44 @@ Expression getMaxMinValue(EnumDeclaration ed, const ref Loc loc, Identifier id)
         }
     }
     return ed.errors ? errorReturn() : pvalToResult(*pval, loc);
+}
+
+/******************************************
+ * Compile the MixinType, returning the type or expression AST.
+ *
+ * Doesn't run semantic() on the returned object.
+ * Params:
+ *      tm = mixin to compile as a type or expression
+ *      loc = location for error messages
+ *      sc = context
+ * Return:
+ *      null if error, else RootObject AST as parsed
+ */
+RootObject compileTypeMixin(TypeMixin tm, Loc loc, Scope* sc)
+{
+    OutBuffer buf;
+    if (expressionsToString(buf, sc, tm.exps))
+        return null;
+
+    const errors = global.errors;
+    const len = buf.length;
+    buf.writeByte(0);
+    const str = buf.extractSlice()[0 .. len];
+    scope p = new Parser!ASTCodegen(loc, sc._module, str, false);
+    p.nextToken();
+    //printf("p.loc.linnum = %d\n", p.loc.linnum);
+
+    auto o = p.parseTypeOrAssignExp(TOK.endOfFile);
+    if (errors != global.errors)
+    {
+        assert(global.errors != errors); // should have caught all these cases
+        return null;
+    }
+    if (p.token.value != TOK.endOfFile)
+    {
+        .error(loc, "incomplete mixin type `%s`", str.ptr);
+        return null;
+    }
+
+    return o;
 }
