@@ -1299,7 +1299,6 @@ extern(C++) final class ForwardingAttribDeclaration : AttribDeclaration
     override void addMember(Scope* sc, ScopeDsymbol sds)
     {
         sym.parent = sds;
-        sym.forward = sds;
         return super.addMember(sc, sym);
     }
 
