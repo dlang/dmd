@@ -845,10 +845,10 @@ $(GNAME Float):
 
 $(GNAME DecimalFloat):
     $(GLINK LeadingDecimal) $(B .)
-    $(GLINK LeadingDecimal) $(B .) $(GLINK DecimalDigits)
-    $(GLINK DecimalDigits) $(B .) $(GLINK DecimalDigitsNoStartingUS) $(GLINK DecimalExponent)
-    $(B .) $(GLINK DecimalInteger)
-    $(B .) $(GLINK DecimalInteger) $(GLINK DecimalExponent)
+    $(GLINK LeadingDecimal) $(B .) $(GLINK DecimalDigitsNoStartingUS)
+    $(GLINK LeadingDecimal) $(B .) $(GLINK DecimalDigitsNoStartingUS) $(GLINK DecimalExponent)
+    $(B .) $(GLINK DecimalDigitsNoStartingUS)
+    $(B .) $(GLINK DecimalDigitsNoStartingUS) $(GLINK DecimalExponent)
     $(GLINK LeadingDecimal) $(GLINK DecimalExponent)
 
 $(GNAME DecimalExponent):
