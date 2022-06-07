@@ -38,6 +38,7 @@ import dmd.init;
 import dmd.initsem;
 import dmd.mtype;
 import dmd.opover;
+import dmd.printast;
 import dmd.statement;
 import dmd.tokens;
 import dmd.visitor;
@@ -1428,8 +1429,20 @@ public:
                 }
             }
         }
+        else if (auto fe = e.e1.isFuncExp())
+        {
+            if (fe.fd)
+            {
+                fd = fe.fd;
+                inlineFd();
+            }
+            else
+                return;
+        }
         else
+        {
             return;
+        }
 
         if (global.params.verbose && (eresult || sresult))
             message("inlined   %s =>\n          %s", fd.toPrettyChars(), parent.toPrettyChars());
