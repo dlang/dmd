@@ -2048,7 +2048,8 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 if (global.params.useDIP1000 == FeatureState.enabled)
                     err |= checkParamArgumentEscape(sc, fd, p, arg, false, false);
             }
-            else if (!(pStc & STC.return_))
+            else if (!(pStc & STC.return_) &&
+                ((global.params.useDIP1000 == FeatureState.enabled) || !(p.storageClass & STC.scopeinferred)))
             {
                 /* Argument value cannot escape from the called function.
                  */
