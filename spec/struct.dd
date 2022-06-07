@@ -1608,30 +1608,6 @@ $(GNAME Invariant):
     succeed.
     )
 
-    $(P If the invariant does not hold, then the program enters an invalid state.)
-
-    $(P Any invariants for fields are applied before the struct invariant.)
-
-    $(P There may be multiple invariants in a struct. They are applied in lexical order.)
-
-    $(P Struct $(I Invariant)s must hold at the exit of the struct constructor (if any),
-    and at the entry of the struct destructor (if any).)
-
-    $(P Struct $(I Invariant)s must hold
-    at the entry and exit of all public or exported non-static member functions.
-    The order of application of invariants is:
-    )
-    $(OL
-    $(LI preconditions)
-    $(LI invariant)
-    $(LI function body)
-    $(LI invariant)
-    $(LI postconditions)
-    )
-
-    $(P The invariant need not hold if the struct instance is implicitly constructed using
-    the default $(D .init) value.)
-
     $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     struct Date
@@ -1655,6 +1631,41 @@ $(GNAME Invariant):
     ---
     )
 
+    $(P Any invariants for fields are applied before the struct invariant.)
+
+    $(P There may be multiple invariants in a struct. They are applied in lexical order.)
+
+    $(P Struct $(I Invariant)s must hold at the exit of the struct constructor (if any),
+    and at the entry of the struct destructor (if any).)
+
+    $(P Struct $(I Invariant)s must hold
+    at the entry and exit of all public or exported non-static member functions.
+    The order of application of invariants is:
+    )
+    $(OL
+    $(LI preconditions)
+    $(LI invariant)
+    $(LI function body)
+    $(LI invariant)
+    $(LI postconditions)
+    )
+
+    $(P The invariant need not hold if the struct instance is implicitly constructed using
+    the default $(D .init) value.)
+
+    $(P If the invariant does not hold, then the program enters an invalid state.)
+
+    $(IMPLEMENTATION_DEFINED
+    $(OL
+    $(LI Whether the struct $(I Invariant) is executed at runtime or not. This is typically
+    controlled with a compiler switch.)
+    $(LI The behavior when the invariant does not hold is typically the same as
+    for when $(GLINK2 expression, AssertExpression)s fail.)
+    )
+    )
+
+    $(UNDEFINED_BEHAVIOR happens if the invariant does not hold and execution continues.)
+
     $(P Public or exported non-static member functions cannot be called from within an invariant.)
 
     $(SPEC_RUNNABLE_EXAMPLE_FAIL
@@ -1671,17 +1682,6 @@ $(GNAME Invariant):
         }
     }
     ---
-    )
-
-    $(UNDEFINED_BEHAVIOR happens if the invariant does not hold and execution continues.)
-
-    $(IMPLEMENTATION_DEFINED
-    $(OL
-    $(LI Whether the struct $(I Invariant) is executed at runtime or not. This is typically
-    controlled with a compiler switch.)
-    $(LI The behavior when the invariant does not hold is typically the same as
-    for when $(GLINK2 expression, AssertExpression)s fail.)
-    )
     )
 
     $(BEST_PRACTICE

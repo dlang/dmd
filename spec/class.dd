@@ -937,30 +937,7 @@ $(GNAME Invariant):
     succeed.
     )
 
-    $(P If the invariant does not hold, then the program enters an invalid state.)
-
-    $(P Any class invariants for base classes are applied before the class invariant for the derived class.)
-
-    $(P There may be multiple invariants in a class. They are applied in lexical order.)
-
-    $(P Class $(I Invariant)s must hold at the exit of the class constructor (if any),
-    at the entry of the class destructor (if any).)
-
-    $(P Class $(I Invariant)s must hold
-    at the entry and exit of all public or exported non-static member functions.
-    The order of application of invariants is:
-    $(OL
-    $(LI preconditions)
-    $(LI invariant)
-    $(LI function body)
-    $(LI invariant)
-    $(LI postconditions)
-    )
-    )
-
-    $(P The invariant need not hold if the class instance is implicitly constructed using
-    the default $(D .init) value.)
-
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     class Date
     {
@@ -981,6 +958,38 @@ $(GNAME Invariant):
         int hour;
     }
     ---
+    )
+
+    $(P Any class invariants for base classes are applied before the class invariant for the derived class.)
+
+    $(P There may be multiple invariants in a class. They are applied in lexical order.)
+
+    $(P Class $(I Invariant)s must hold at the exit of the class constructor (if any), and
+    at the entry of the class destructor (if any).)
+
+    $(P Class $(I Invariant)s must hold
+    at the entry and exit of all public or exported non-static member functions.
+    The order of application of invariants is:)
+    $(OL
+    $(LI preconditions)
+    $(LI invariant)
+    $(LI function body)
+    $(LI invariant)
+    $(LI postconditions)
+    )
+
+    $(P If the invariant does not hold, then the program enters an invalid state.)
+
+    $(IMPLEMENTATION_DEFINED
+    $(OL
+    $(LI Whether the class $(I Invariant) is executed at runtime or not. This is typically
+    controlled with a compiler switch.)
+    $(LI The behavior when the invariant does not hold is typically the same as
+    for when $(GLINK2 expression, AssertExpression)s fail.)
+    )
+    )
+
+    $(UNDEFINED_BEHAVIOR happens if the invariant does not hold and execution continues.)
 
     $(P Public or exported non-static member functions cannot be called from within an invariant.)
 
@@ -997,17 +1006,6 @@ $(GNAME Invariant):
         }
     }
     ---
-
-    $(UNDEFINED_BEHAVIOR happens if the invariant does not hold and execution continues.)
-
-    $(IMPLEMENTATION_DEFINED
-    $(OL
-    $(LI Whether the class $(I Invariant) is executed at runtime or not. This is typically
-    controlled with a compiler switch.)
-    $(LI The behavior when the invariant does not hold is typically the same as
-    for when $(GLINK2 expression, AssertExpression)s fail.)
-    )
-    )
 
     $(BEST_PRACTICE
     $(OL
