@@ -502,10 +502,10 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
     override void visit(ForwardingStatement ss)
     {
         assert(ss.sym);
-        for (Scope* csc = sc; !ss.sym.forward; csc = csc.enclosing)
+        for (Scope* csc = sc; !ss.sym.parent; csc = csc.enclosing)
         {
             assert(csc);
-            ss.sym.forward = csc.scopesym;
+            ss.sym.parent = csc.scopesym;
         }
         sc = sc.push(ss.sym);
         sc.sbreak = ss;
