@@ -7036,9 +7036,19 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 /* Because nested functions cannot be overloaded,
                  * mark here that we took its address because castTo()
                  * may not be called with an exact match.
+                 *
+                 * https://issues.dlang.org/show_bug.cgi?id=19285 :
+                 * We also need to make sure we aren't inside a typeof. Ideally the compiler
+                 * would do typeof(...) semantic analysis speculatively then collect information
+                 * about what it used rather than relying on what are effectively semantically-global
+                 * variables but it doesn't.
                  */
-                if (!ve.hasOverloads || (f.isNested() && !f.needThis()))
+                if (!sc.isFromSpeculativeSemanticContext() && (!ve.hasOverloads || (f.isNested() && !f.needThis())))
+                {
+                    // TODO: Refactor to use a proper interface that can keep track of causes.
                     f.tookAddressOf++;
+                }
+
                 if (f.isNested() && !f.needThis())
                 {
                     if (f.isFuncLiteralDeclaration())
