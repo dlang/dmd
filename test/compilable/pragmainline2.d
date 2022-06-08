@@ -37,3 +37,41 @@ void main()
     f2f();
     f2d();
 }
+
+/*
+TEST_OUTPUT:
+---
+compilable/pragmainline2.d(50): Warning: cannot inline function `pragmainline2.jazz`
+compilable/pragmainline2.d(63): Warning: cannot inline function `pragmainline2.metal`
+---
+*/
+
+pragma(inline, true)
+auto jazz()
+{
+    static struct U
+    {
+        int a = 42;
+        float b;
+        ~this(){} // __dtor: inline not allowed
+    }
+    U u;
+    return u.a;
+}
+
+pragma(inline, true)
+auto metal()
+{
+    class U   // class : inline not allowed
+    {
+        int a = 42;
+        float b;
+    }
+    return (new U).a;
+}
+
+void music()
+{
+    auto f = jazz();
+    auto b = metal();
+}

@@ -341,7 +341,7 @@ extern (D) private void sliceStructs_Replace(ref symtab_t symtab, const SymInfo[
 @trusted
 void sliceStructs(ref symtab_t symtab, block* startblock)
 {
-if (1)
+if (1) // disable while we test the inliner
 {
     if (log) printf("\n************ sliceStructs() %s *******************\n", funcsym_p.Sident.ptr);
     const sia_length = symtab.length;

@@ -31,6 +31,7 @@ import dmd.backend.oper;
 import dmd.backend.global;
 import dmd.backend.goh;
 import dmd.backend.el;
+import dmd.backend.inliner;
 import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
@@ -338,6 +339,7 @@ else
                 }
             }
         //printf("blockopt\n");
+        scanForInlines(funcsym_p);
         if (go.mfoptim & MFdc)
             blockopt(0);                // do block optimization
         out_regcand(&globsym);          // recompute register candidates
