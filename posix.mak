@@ -195,6 +195,9 @@ $(DOC_OUTPUT_DIR)/core_stdc_%.html : src/core/stdc/%.d $(DMD)
 $(DOC_OUTPUT_DIR)/core_stdcpp_%.html : src/core/stdcpp/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
+$(DOC_OUTPUT_DIR)/core_sync.html : src/core/sync/package.d $(DMD)
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+
 $(DOC_OUTPUT_DIR)/core_sync_%.html : src/core/sync/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
