@@ -6612,6 +6612,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = e;
             return;
         }
+        else if (auto ad = exp.var.isAliasDeclaration())
+        {
+            if (auto t = ad.getType())
+            {
+                result = new TypeExp(exp.loc, t).expressionSemantic(sc);
+                return;
+            }
+        }
 
         exp.e1 = exp.e1.addDtorHook(sc);
 
@@ -12895,11 +12903,8 @@ Expression semanticY(DotTemplateInstanceExp exp, Scope* sc, int flag)
 
         if (Declaration v = exp.ti.toAlias().isDeclaration())
         {
-            if (v.isFuncDeclaration() || v.isVarDeclaration())
-            {
-                return new DotVarExp(exp.loc, exp.e1, v)
-                       .expressionSemantic(sc);
-            }
+            return new DotVarExp(exp.loc, exp.e1, v)
+                   .expressionSemantic(sc);
         }
         return new DotExp(exp.loc, exp.e1, new ScopeExp(exp.loc, exp.ti))
                .expressionSemantic(sc);
