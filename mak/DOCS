@@ -109,6 +109,7 @@ DOCS=\
 	$(DOCDIR)\core_stdcpp_string.html \
 	$(DOCDIR)\core_stdcpp_vector.html \
 	\
+	$(DOCDIR)\core_sync.html \
 	$(DOCDIR)\core_sync_event.html \
 	$(DOCDIR)\core_sync_exception.html \
 	$(DOCDIR)\core_sync_barrier.html \
