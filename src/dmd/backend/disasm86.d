@@ -1776,7 +1776,27 @@ void puts(const(char)* s)
     }
 }
 
-
+/**
+ * Holding area for functions that implement X86 instruction patterns
+ * It's a mixin template so it can be mixed into `disassemble` to access
+ * it's state.
+ */
+mixin template PatternFunctions()
+{
+    /**
+     * Implements `xmm1, xmm2/m128, imm8`
+     * Params:
+     *   indexOffset = this will be called from various amounts of
+     *                 lookahead into the code buffer which means an index is needed
+     *                 for finding the right offset to the register.
+     */
+    void xmm_xmm_imm8(uint indexOffset)
+    {
+        p2 = xmmreg[reg];
+        p3 = getEAxmm(rex, c + indexOffset);
+        p4 = immed8(c + 2 + EAbytes(c + 1));
+    }
+}
 /*************************
  * Disassemble the instruction at `c`
  * Params:
@@ -1808,6 +1828,8 @@ void disassemble(uint c)
     const(char)* s2;
     const(char)* s3;
     char[BUFMAX] buf = void;
+
+    mixin PatternFunctions;
     enum MOV = "mov";
     enum XCHG = "xchg";
     enum IMUL = "imul";
@@ -1937,7 +1959,10 @@ void disassemble(uint c)
                 case 0x5D:      p1 = "minsd";           goto Lsd;
                 case 0x5E:      p1 = "divsd";           goto Lsd;
                 case 0x5F:      p1 = "maxsd";           goto Lsd;
-                case 0x70:      p1 = "pshuflw";         goto Lsdxmm;
+                case 0x70:
+                            p1 = "pshuflw";
+                            xmm_xmm_imm8(1);
+                            break;
                 case 0x7C:      p1 = "haddps";          goto Lsdxmm;
                 case 0x7D:      p1 = "hsubps";          goto Lsdxmm;
                 case 0xC2:      p1 = "cmpsd";           goto Lsdi;
@@ -1973,8 +1998,14 @@ void disassemble(uint c)
                 case 0x5E:      p1 = "divss";           goto Lsd;
                 case 0x5F:      p1 = "maxss";           goto Lsd;
                 case 0x6F:      p1 = "movdqu";          goto Lsdxmm;
-                case 0x70:      p1 = "pshufhw";         goto Lsdxmm;
-                case 0xC2:      p1 = "cmpss";           goto Lsdi;
+                case 0x70:
+                        p1 = "pshufhw";
+                        xmm_xmm_imm8(1);
+                        break;
+                case 0xC2:
+                        p1 = "cmpss";
+                        xmm_xmm_imm8(1);
+                        break;
                 case 0xD6:      p1 = "movq2dq";         goto Lsdmmr;
                 case 0xE6:      p1 = "cvtdq2pd";        goto Lsd;
                 case 0x7E:      p1 = "movq";            goto Lsdxmm;
@@ -1999,6 +2030,7 @@ void disassemble(uint c)
                     p2 = xmmreg[reg];
                     p3 = getEAxmm(rex, c + 1);
                     goto Ldone;
+
                 Lsdxmmr:
                     p3 = xmmreg[reg];
                     p2 = getEAxmm(rex, c + 1);
@@ -2301,6 +2333,7 @@ void disassemble(uint c)
                     p1 = (opsize != defopsize) ? "movmskpd" : "movmskps";
                     p2 = ereg[reg];
                     p3 = getEA(rex, c);
+
                     goto Ldone;
                 case 0x51:
                     p1 = (opsize != defopsize) ? "sqrtpd" : "sqrtps";
@@ -2358,10 +2391,14 @@ void disassemble(uint c)
                     break;
                 case 0x70:
                     if (opsize != defopsize)
-                    {   p1 = "pshufd";
-                        p2 = xmmreg[reg];
-                        p3 = getEAxmm(rex, c);
+                    {
+                        p1 = "pshufd";
+                        xmm_xmm_imm8(0);
                         goto Ldone;
+                        /* p2 = xmmreg[reg];
+                        p3 = getEAxmm(rex, c);
+                        p4 = immed8(c + 2 + EAbytes(c + 1));
+                        goto Ldone; */
                     }
                     else
                     {   p1 = "pshufw";
@@ -2575,8 +2612,8 @@ void disassemble(uint c)
                     goto Ldone;
                 case 0xC2:
                     p1 = (opsize != defopsize) ? "cmppd" : "cmpps";
-                    p4 = immed8(c + 2 + EAbytes(c + 1));
-                    goto Lxmm;
+                    xmm_xmm_imm8(1);
+                    goto Ldone;
                 Lxmm:
                     p2 = xmmreg[(code[c + 2] >> 3) & 7];
                     p3 = getEA(rex, c);
@@ -2608,8 +2645,9 @@ void disassemble(uint c)
                     break;
                 case 0xC6:
                     p1 = (opsize != defopsize) ? "shufpd" : "shufps";
-                    p4 = immed8(c + 2 + EAbytes(c + 1));
-                    goto Lxmm;
+                    xmm_xmm_imm8(0);
+                    //p4 = immed8(c + 2 + EAbytes(c + 1));
+                    goto Ldone;
                 case 0xC7:
                     if (reg == 1)
                     {
@@ -3604,7 +3642,7 @@ unittest
     ];
 
     int line64 = __LINE__;
-    string[16] cases64 =      // 64 bit code gen
+    string[24] cases64 =      // 64 bit code gen
     [
         "31 C0               xor  EAX,EAX",
         "48 89 4C 24 08      mov  8[RSP],RCX",
@@ -3621,7 +3659,15 @@ unittest
         "BF 00 00 00 00      mov  EDI,0",
         "41 0F C7 09         cmpxchg8b [R9]",
         "49 0F C7 09         cmpxchg16b [R9]",
-        "0F 01 F9            rdtscp"
+        "0F 01 F9            rdtscp",
+        "66 41 0F 70 C7 66   pshufd    XMM0,XMM15,066h",
+        "F2 41 0F 70 C7 F1   pshuflw   XMM0,XMM15,0F1h",
+        "F3 41 0F 70 C7 C2   pshufhw   XMM0,XMM15,0C2h",
+        "66 41 0F C6 C7 CF   shufpd    XMM0,XMM15,0CFh",
+        "66 0F C6 00 CF      shufpd    XMM0,[RAX],0CFh",
+        "66 0F C2 00 CF      cmppd     XMM0,[RAX],0CFh",
+        "F3 41 0F C2 C7 AF   cmpss     XMM0,XMM15,0C7h",
+        "66 0F 73 FF 99      pslldq    XMM7,099h",
     ];
 
     char[BUFMAX] buf;
