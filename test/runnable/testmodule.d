@@ -1,5 +1,10 @@
 // PERMUTE_ARGS:
 
+// MS linker apparently doesn't (properly?) support Unicode in
+//      `/INCLUDE:symbol` linker directives.
+//      This has been upstreamed from LDC.
+// DISABLED: win
+
 // $HeadURL$
 // $Date$
 // $Author$
