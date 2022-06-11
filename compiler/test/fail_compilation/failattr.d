@@ -3,12 +3,18 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/failattr.d(16): Error: variable `failattr.C2901.v1` cannot be `synchronized`
-fail_compilation/failattr.d(17): Error: variable `failattr.C2901.v2` cannot be `override`
-fail_compilation/failattr.d(18): Error: variable `failattr.C2901.v3` cannot be `abstract`
-fail_compilation/failattr.d(19): Error: variable `failattr.C2901.v4` cannot be `final`, perhaps you meant `const`?
-fail_compilation/failattr.d(31): Error: variable `failattr.C2901.v13` cannot be `final abstract synchronized override`
-fail_compilation/failattr.d(33): Error: variable `failattr.C2901.v14` cannot be `final`, perhaps you meant `const`?
+fail_compilation/failattr.d(22): Error: variable `failattr.C2901.v1` cannot be `synchronized`
+fail_compilation/failattr.d(23): Error: variable `failattr.C2901.v2` cannot be `override`
+fail_compilation/failattr.d(24): Error: variable `failattr.C2901.v3` cannot be `abstract`
+fail_compilation/failattr.d(25): Error: variable `failattr.C2901.v4` cannot be `final`, perhaps you meant `const`?
+fail_compilation/failattr.d(37): Error: variable `failattr.C2901.v13` cannot be `final abstract synchronized override`
+fail_compilation/failattr.d(39): Error: variable `failattr.C2901.v14` cannot be `final`, perhaps you meant `const`?
+fail_compilation/failattr.d(43): Deprecation: variable `failattr.e1` cannot be `@nogc`
+fail_compilation/failattr.d(44): Deprecation: variable `failattr.e2` cannot be `@property`
+fail_compilation/failattr.d(45): Deprecation: variable `failattr.e3` cannot be `nothrow`
+fail_compilation/failattr.d(46): Deprecation: variable `failattr.e4` cannot be `pure`
+fail_compilation/failattr.d(47): Deprecation: variable `failattr.e5` cannot be `@live`
+fail_compilation/failattr.d(62): Error: variable `failattr.c6` cannot be `final @nogc`
 ---
 */
 class C2901
@@ -32,3 +38,29 @@ class C2901
 
     static final int v14;           // error, even if static is applied at the same time
 }
+
+// https://issues.dlang.org/show_bug.cgi?id=7432
+@nogc           int e1;         // deprecation
+@property       int e2;         // deprecation
+nothrow         int e3;         // deprecation
+pure            int e4;         // deprecation
+@live           int e5;         // deprecation
+
+@nogc          { int s1; }      // no error
+@property      { int s2; }      // no error
+nothrow        { int s3; }      // no error
+pure           { int s4; }      // no error
+@live          { int s5; }      // no error
+
+@nogc:         int c1;          // no error
+@property:     int c2;          // no error
+nothrow:       int c3;          // no error
+pure:          int c4;          // no error
+@live:         int c5;          // no error
+
+// deprecation + error => error
+@nogc final int c6;             // error
+
+// this should still be allowed
+nothrow void function() x = null;
+@nogc void function()[1] x = [null];

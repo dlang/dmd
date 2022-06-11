@@ -2833,7 +2833,7 @@ void callcdxxx(ref CodeBuilder cdb, elem *e, regm_t *pretregs, OPER op)
 }
 
 // jump table
-private extern (C++) __gshared nothrow void function (ref CodeBuilder,elem *,regm_t *)[OPMAX] cdxxx =
+private extern (C++) __gshared void function (ref CodeBuilder,elem *,regm_t *)[OPMAX] cdxxx =
 [
     OPunde:    &cderr,
     OPadd:     &cdorth,

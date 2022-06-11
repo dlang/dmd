@@ -386,10 +386,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
         else
         {
-            /* Pick up storage classes from context, but except synchronized,
-             * override, abstract, and final.
+            /* Pick up storage classes from context, except when they don't
+             * apply to variables (e.g. override, @nogc, @property)
              */
-            dsym.storage_class |= (sc.stc & ~(STC.synchronized_ | STC.override_ | STC.abstract_ | STC.final_));
+            dsym.storage_class |= (sc.stc & ~(STC.varError | STC.varDeprecation));
             dsym.userAttribDecl = sc.userAttribDecl;
             dsym.cppnamespace = sc.namespace;
             dsym._linkage = sc.linkage;
@@ -688,7 +688,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         else if (dsym.type.isWild())
             dsym.storage_class |= STC.wild;
 
-        if (StorageClass stc = dsym.storage_class & (STC.synchronized_ | STC.override_ | STC.abstract_ | STC.final_))
+        if (StorageClass stc = dsym.storage_class & (STC.varError | STC.varDeprecation))
         {
             if (stc == STC.final_)
                 dsym.error("cannot be `final`, perhaps you meant `const`?");
@@ -696,7 +696,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 OutBuffer buf;
                 stcToBuffer(&buf, stc);
-                dsym.error("cannot be `%s`", buf.peekChars());
+                // @@@DEPRECATED_2.111@@@ https://issues.dlang.org/show_bug.cgi?id=7432
+                // Deprecated in 2.101
+                // Make an error in 2.111
+                if (dsym.storage_class & STC.varError)
+                    dsym.error("cannot be `%s`", buf.peekChars());
+                else
+                    dsym.deprecation("cannot be `%s`", buf.peekChars());
             }
             dsym.storage_class &= ~stc; // strip off
         }

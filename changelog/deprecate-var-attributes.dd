@@ -1,0 +1,33 @@
+Deprecate explicitly annotating variables with irrelevant attributes
+
+Certain attributes never apply to variables, and applying them directly raises an error:
+
+---
+synchronized int v1; // error
+override     int v2; // error
+abstract     int v3; // error
+final        int v4; // error
+---
+
+However, some attributes that never apply to variables do not raise an error:
+
+---
+@nogc     int w1;
+@property int w2;
+nothrow   int w3;
+pure      int w4;
+@live     int w5;
+---
+(Note that safety attributes are not included in this list because of [DIP1035: `@system` variables](dlang.org/dips/1035))
+
+Starting with this release, using these as variable annotations raises a deprecation warning. It will become an error in 2.111.
+
+When the attribute applies to a larger scope, it is never raises an error or deprecation:
+
+---
+pure { int x; } // fine
+
+@property:
+
+int y; // fine
+---

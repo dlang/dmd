@@ -132,6 +132,13 @@ enum STC : ulong  // transfer changes to declaration.h
                          STC.TYPECTOR | STC.final_ | STC.tls | STC.gshared | STC.ref_ | STC.return_ | STC.property |
                          STC.nothrow_ | STC.pure_ | STC.safe | STC.trusted | STC.system), /// for a FuncDeclaration
 
+    /* These cause an error when applied directly to a variable instead of function
+     */
+    varError = STC.synchronized_ | STC.override_ | STC.abstract_ | STC.final_,
+
+    /* These should also cause an error, but deprecation for now to avoid breaking code
+     */
+    varDeprecation = STC.nothrow_ | STC.nogc | STC.pure_ | STC.property | STC.live,
 }
 
 alias StorageClass = ulong;
