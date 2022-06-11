@@ -222,6 +222,7 @@ void genModuleInfo(Module m)
     //////////////////////////////////////////////
 
     objmod.moduleinfo(msym);
+    objmod.export_symbol(m.csym, 0);
 }
 
 /*****************************************

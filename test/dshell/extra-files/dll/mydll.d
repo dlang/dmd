@@ -1,4 +1,5 @@
 module mydll;
+import issue23177;
 
 export:
 
