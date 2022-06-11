@@ -3,7 +3,7 @@
 
 dir=${RESULTS_DIR}${SEP}runnable
 
-libname=${OUTPUT_BASE}${LIBEXT}
+libname=${OUTPUT_BASE}_dep${LIBEXT}
 exename=${OUTPUT_BASE}${EXE}
 
 $DMD -m${MODEL} -I${EXTRA_FILES} -lib           -of${libname} ${EXTRA_FILES}${SEP}link14834a.d

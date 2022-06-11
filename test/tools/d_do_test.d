@@ -1730,13 +1730,22 @@ int tryMain(string[] args)
                 }
             }
 
+            /// This should be similar in nature as ``dshell_prebuilt.d`` ``filterCompilerOutput`` function.
             void prepare(ref string compile_output)
             {
                 if (compile_output.empty)
                     return;
 
                 compile_output = compile_output.unifyNewLine();
-                compile_output = std.regex.replaceAll(compile_output, regex(`^DMD v2\.[0-9]+.*\n? DEBUG$`, "m"), "");
+                compile_output = std.regex.replaceAll(compile_output, std.regex.regex(`^DMD v2\.[0-9]+.*\n? DEBUG$`, "m"), "");
+
+                if(envData.os == "windows" && envData.model != "32omf") {
+                    // For MSVC linker, when it generates a binary file with an export table (with the import generation) it will add a message
+                    // this message is both linker specific and platform specific, which we do not want our tests checked against.
+                    // so we'll remove it prior to doing anything with the output.
+                    compile_output = std.regex.replaceAll(compile_output, std.regex.regex(r"\s*Creating library [\S\\/]+ and object [\S\\/]+\r?\n?", "s"), "");
+                }
+
                 compile_output = std.string.strip(compile_output);
                 // replace test_result path with fixed ones
                 compile_output = compile_output.replace(result_path, resultsDirReplacement);

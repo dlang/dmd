@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 
-libname=${OUTPUT_BASE}${LIBEXT}
+libname=${OUTPUT_BASE}_dep${LIBEXT}
 
 
 $DMD -m${MODEL} -Irunnable -I${EXTRA_FILES} -of${libname} -c ${EXTRA_FILES}${SEP}lib10386${SEP}foo${SEP}bar.d ${EXTRA_FILES}${SEP}lib10386${SEP}foo${SEP}package.d -lib

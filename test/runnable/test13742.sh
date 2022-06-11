@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 
 
-$DMD -m${MODEL} -I${EXTRA_FILES} -lib -cov -of${OUTPUT_BASE}${LIBEXT} ${EXTRA_FILES}${SEP}lib13742a.d ${EXTRA_FILES}${SEP}lib13742b.d
-$DMD -m${MODEL} -I${EXTRA_FILES} -cov -of${OUTPUT_BASE}${EXE} ${EXTRA_FILES}${SEP}test13742.d ${OUTPUT_BASE}${LIBEXT}
+libname=${OUTPUT_BASE}_dep${LIBEXT}
+
+
+$DMD -m${MODEL} -I${EXTRA_FILES} -lib -cov -of${libname} ${EXTRA_FILES}${SEP}lib13742a.d ${EXTRA_FILES}${SEP}lib13742b.d
+$DMD -m${MODEL} -I${EXTRA_FILES} -cov -of${OUTPUT_BASE}${EXE} ${EXTRA_FILES}${SEP}test13742.d ${libname}
 
 ${OUTPUT_BASE}${EXE} --DRT-covopt=dstpath:${RESULTS_TEST_DIR}
 
