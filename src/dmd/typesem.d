@@ -1247,7 +1247,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                         errors = true;
                     }
                 }
-                else if (!(fparam.storageClass & STC.lazy_) && t.ty == Tvoid)
+                else if (!fparam.isLazy() && t.ty == Tvoid)
                 {
                     .error(loc, "cannot have parameter of type `%s`", fparam.type.toChars());
                     errors = true;

@@ -569,6 +569,8 @@ public:
                              Expression *defaultArg, UserAttributeDeclaration *userAttribDecl);
     Parameter *syntaxCopy();
     Type *isLazyArray();
+    bool isLazy() const;
+    bool isReference() const;
     // kludge for template.isType()
     DYNCAST dyncast() const override { return DYNCAST_PARAMETER; }
     void accept(Visitor *v) override { v->visit(this); }

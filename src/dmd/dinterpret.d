@@ -492,7 +492,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
             if (CTFEExp.isCantExp(earg))
                 return earg;
         }
-        else if (fparam.storageClass & STC.lazy_)
+        else if (fparam.isLazy())
         {
         }
         else

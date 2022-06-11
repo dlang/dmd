@@ -1264,7 +1264,7 @@ extern(D):
                 Type t = p.type.merge2();
                 if (p.isReference())
                     t = t.referenceTo();
-                else if (p.storageClass & STC.lazy_)
+                else if (p.isLazy())
                 {
                     // Mangle as delegate
                     auto tf = new TypeFunction(ParameterList(), t, LINK.d);

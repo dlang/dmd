@@ -4329,7 +4329,7 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
         if (!skip && dim == 2)
         {
             // Declare key
-            if (p.storageClass & (STC.out_ | STC.ref_ | STC.lazy_))
+            if (p.isReference() || p.isLazy())
             {
                 fs.error("no storage class for key `%s`", p.ident.toChars());
                 return returnEarly();

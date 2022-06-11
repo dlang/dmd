@@ -1856,7 +1856,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             }
 
         L1:
-            if (!(p.storageClass & STC.lazy_ && p.type.ty == Tvoid))
+            if (!(p.isLazy() && p.type.ty == Tvoid))
             {
                 if (ubyte wm = arg.type.deduceWild(p.type, p.isReference()))
                 {
@@ -1953,7 +1953,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             Type targ = arg.type;               // keep original type for isCopyable() because alias this
                                                 // resolution may hide an uncopyable type
 
-            if (!(p.storageClass & STC.lazy_ && p.type.ty == Tvoid))
+            if (!(p.isLazy() && p.type.ty == Tvoid))
             {
                 Type tprm = p.type.hasWild()
                     ? p.type.substWildTo(wildmatch)
@@ -2018,7 +2018,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 }
                 arg = arg.toLvalue(sc, arg);
             }
-            else if (p.storageClass & STC.lazy_)
+            else if (p.isLazy())
             {
                 // Convert lazy argument to a delegate
                 auto t = (p.type.ty == Tvoid) ? p.type : arg.type;
@@ -2050,7 +2050,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             // Turning heap allocations into stack allocations is dangerous without dip1000, since `scope` inference
             // may be unreliable when scope violations only manifest as deprecation warnings.
             // However, existing `@nogc` code may rely on it, so still do it when the parameter is explicitly marked `scope`
-            const explicitScope = (p.storageClass & STC.lazy_) ||
+            const explicitScope = p.isLazy() ||
                 ((p.storageClass & STC.scope_) && !(p.storageClass & STC.scopeinferred));
             if ((pStc & (STC.scope_ | STC.lazy_)) &&
                 ((global.params.useDIP1000 == FeatureState.enabled) || explicitScope) &&
@@ -2261,7 +2261,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             if (arg.type.needsDestruction())
             {
                 Parameter p = (i >= nparams ? null : tf.parameterList[i]);
-                if (!(p && (p.storageClass & (STC.lazy_ | STC.ref_ | STC.out_))))
+                if (!(p && (p.isLazy() || p.isReference())))
                 {
                     if (firstdtor == -1)
                         firstdtor = i;
@@ -2302,7 +2302,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
 
             Parameter parameter = (i >= nparams ? null : tf.parameterList[i]);
             const bool isRef = parameter && parameter.isReference();
-            const bool isLazy = (parameter && (parameter.storageClass & STC.lazy_));
+            const bool isLazy = parameter && parameter.isLazy();
 
             /* Skip lazy parameters
              */

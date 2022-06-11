@@ -129,7 +129,7 @@ extern (C++) type* Type_toCtype(Type t)
             type* tp = Type_toCtype(p.type);
             if (p.isReference())
                 tp = type_allocn(TYnref, tp);
-            else if (p.storageClass & STC.lazy_)
+            else if (p.isLazy())
             {
                 // Mangle as delegate
                 type* tf = type_function(TYnfunc, null, false, tp);
