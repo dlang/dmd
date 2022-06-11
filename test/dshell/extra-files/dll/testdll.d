@@ -1,4 +1,5 @@
 import mydll;
+import issue23177;
 
 void test1()
 {
