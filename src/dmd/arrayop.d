@@ -186,38 +186,15 @@ Expression arrayOp(BinAssignExp e, Scope* sc)
  */
 private void buildArrayOp(Scope* sc, Expression e, Objects* tiargs, Expressions* args)
 {
-    extern (C++) final class BuildArrayOpVisitor : Visitor
+    void check(Expression e)
     {
-        alias visit = Visitor.visit;
-        Scope* sc;
-        Objects* tiargs;
-        Expressions* args;
-
-    public:
-        extern (D) this(Scope* sc, Objects* tiargs, Expressions* args)
-        {
-            this.sc = sc;
-            this.tiargs = tiargs;
-            this.args = args;
-        }
-
-        override void visit(Expression e)
+        void visit(Expression e)
         {
             tiargs.push(e.type);
             args.push(e);
         }
 
-        override void visit(SliceExp e)
-        {
-            visit(cast(Expression) e);
-        }
-
-        override void visit(CastExp e)
-        {
-            visit(cast(Expression) e);
-        }
-
-        override void visit(UnaExp e)
+        void visitUna(UnaExp e)
         {
             Type tb = e.type.toBasetype();
             if (tb.ty != Tarray && tb.ty != Tsarray) // hoist scalar expressions
@@ -230,12 +207,12 @@ private void buildArrayOp(Scope* sc, Expression e, Objects* tiargs, Expressions*
                 OutBuffer buf;
                 buf.writestring("u");
                 buf.writestring(EXPtoString(e.op));
-                e.e1.accept(this);
+                check(e.e1);
                 tiargs.push(new StringExp(Loc.initial, buf.extractSlice()).expressionSemantic(sc));
             }
         }
 
-        override void visit(BinExp e)
+        void visitBin(BinExp e)
         {
             Type tb = e.type.toBasetype();
             if (tb.ty != Tarray && tb.ty != Tsarray) // hoist scalar expressions
@@ -245,15 +222,19 @@ private void buildArrayOp(Scope* sc, Expression e, Objects* tiargs, Expressions*
             else
             {
                 // RPN
-                e.e1.accept(this);
-                e.e2.accept(this);
+                check(e.e1);
+                check(e.e2);
                 tiargs.push(new StringExp(Loc.initial, EXPtoString(e.op)).expressionSemantic(sc));
             }
         }
+        if (auto be = e.isBinExp())
+            visitBin(be);
+        else if (auto ue = e.isUnaExp())
+            visitUna(ue);
+        else
+            visit(e);
     }
-
-    scope v = new BuildArrayOpVisitor(sc, tiargs, args);
-    e.accept(v);
+    check(e);
 }
 
 /***********************************************
