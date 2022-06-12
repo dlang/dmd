@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 
-libname=${OUTPUT_BASE}_dep${LIBEXT}
+libname=${OUTPUT_BASE}${LIBEXT}
 
 
 $DMD -m${MODEL} -I${EXTRA_FILES} -of${libname} -lib ${EXTRA_FILES}${SEP}lib13666.d
