@@ -227,10 +227,12 @@ private void buildArrayOp(Scope* sc, Expression e, Objects* tiargs, Expressions*
                 tiargs.push(new StringExp(Loc.initial, EXPtoString(e.op)).expressionSemantic(sc));
             }
         }
-        if (auto be = e.isBinExp())
-            visitBin(be);
+        if (e.isSliceExp() || e.isCastExp())
+            visit(e);
         else if (auto ue = e.isUnaExp())
             visitUna(ue);
+        else if (auto be = e.isBinExp())
+            visitBin(be);
         else
             visit(e);
     }
