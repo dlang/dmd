@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 
-libname=${OUTPUT_BASE}_dep${LIBEXT}
+libname=${OUTPUT_BASE}${LIBEXT}
 
 
 # build library
