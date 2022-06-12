@@ -2029,9 +2029,8 @@ int runGDBTestWithLock(const ref EnvData envData, int delegate() fun)
 int runDShellTest(string input_dir, string test_name, const ref EnvData envData,
     string output_dir, string output_file)
 {
-    const testScriptDir = buildPath(dmdTestDir, input_dir);
-    const testScriptPath = buildPath(testScriptDir, test_name ~ ".d");
-    const testOutDir = buildPath(output_dir, test_name);
+    const testOutBase = buildPath(output_dir, test_name);
+    const testOutDir = buildPath(testOutBase, "work");
     const testLogName = format("%s/%s.d", input_dir, test_name);
 
     writefln(" ... %s", testLogName);
@@ -2040,51 +2039,10 @@ int runDShellTest(string input_dir, string test_name, const ref EnvData envData,
         rmdirRecurse(testOutDir);
     mkdirRecurse(testOutDir);
 
-    // create the "dshell" module for the tests
-    {
-        auto dshellFile = File(buildPath(testOutDir, "dshell.d"), "w");
-        dshellFile.writeln(`module dshell;
-public import dshell_prebuilt;
-static this()
-{
-    dshellPrebuiltInit("` ~ input_dir ~ `", "`, test_name , `");
-}
-`);
-    }
-
-    const testScriptExe = buildPath(testOutDir, "run" ~ envData.exe);
+    const testScriptExe = buildPath(testOutBase, "run" ~ envData.exe);
 
     auto outfile = File(output_file, "w");
     enum keepFilesOpen = Config.retainStdout | Config.retainStderr;
-
-    //
-    // compile the test
-    //
-    {
-        const compile = [envData.dmd, "-conf=", "-m"~envData.model] ~
-            envData.picFlag ~ [
-            "-od" ~ testOutDir,
-            "-of" ~ testScriptExe,
-            "-I=" ~ testScriptDir,
-            "-I=" ~ testOutDir,
-            "-I=" ~ buildPath(dmdTestDir, "tools", "dshell_prebuilt"),
-            "-i",
-            // Causing linker errors for some reason?
-            "-i=-dshell_prebuilt", buildPath(envData.results_dir, "dshell_prebuilt" ~ envData.obj),
-            testScriptPath,
-        ];
-        outfile.writeln("[COMPILE_TEST] ", escapeShellCommand(compile));
-        outfile.flush();
-        // Note that spawnprocess closes the file, so it will need to be re-opened
-        // below when we run the test
-        auto compileProc = std.process.spawnProcess(compile, stdin, outfile, outfile, null, keepFilesOpen);
-        const exitCode = wait(compileProc);
-        if (exitCode != 0)
-        {
-            printTestFailure(testLogName, outfile);
-            return exitCode;
-        }
-    }
 
     //
     // run the test
@@ -2094,6 +2052,7 @@ static this()
         outfile.writeln("\n[RUN_TEST] ", escapeShellCommand(runTest));
         outfile.flush();
         auto runTestProc = std.process.spawnProcess(runTest, stdin, outfile, outfile, null, keepFilesOpen);
+        // auto runTestProc = std.process.spawnProcess(runTest, stdin, outfile, outfile, env, keepFilesOpen, dmdTestDir);
         const exitCode = wait(runTestProc);
 
         if (exitCode == 125) // = DISABLED from tools/dshell_prebuilt.d
@@ -2127,7 +2086,7 @@ string printTestFailure(string testLogName, scope ref File outfile, string extra
 
     writeln("==============================");
     writefln("Test '%s' failed. The logged output:", testLogName);
-    const output = readText(output_file_temp);
+    const output = cast(string) read(output_file_temp);
     write(output);
     if (!output.endsWith("\n"))
           writeln();

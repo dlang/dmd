@@ -50,10 +50,10 @@ enum toolsDir = testPath("tools");
 
 enum TestTools
 {
-    unitTestRunner = TestTool("unit_test_runner", [toolsDir.buildPath("paths")]),
-    testRunner = TestTool("d_do_test", ["-I" ~ toolsDir, "-i", "-version=NoMain"]),
-    jsonSanitizer = TestTool("sanitize_json"),
-    dshellPrebuilt = TestTool("dshell_prebuilt", null, Yes.linksWithTests),
+    unitTestRunner = TestTool("tools/unit_test_runner", [toolsDir.buildPath("paths")]),
+    testRunner = TestTool("tools/d_do_test", ["-g", "-I" ~ toolsDir, "-i", "-version=NoMain"]),
+    jsonSanitizer = TestTool("tools/sanitize_json"),
+    dshellPrebuilt = TestTool("tools/dshell_prebuilt", [ "-c" ], buildPath("tools", "dshell_prebuilt".objName)),
 }
 
 immutable struct TestTool
@@ -64,8 +64,8 @@ immutable struct TestTool
     /// Extra arguments that should be supplied to the compiler when compiling the tool.
     string[] extraArgs;
 
-    /// Indicates the tool is a binary that links with tests
-    Flag!"linksWithTests" linksWithTests;
+    /// Output path
+    string binary;
 
     alias name this;
 }
@@ -124,7 +124,7 @@ Options:
 
     // allow overwrites from the environment
     hostDMD = environment.get("HOST_DMD", "dmd");
-    unitTestRunnerCommand = resultsDir.buildPath("unit_test_runner").exeName;
+    unitTestRunnerCommand = resultsDir.buildPath("tools", "unit_test_runner").exeName;
 
     // bootstrap all needed environment variables
     const env = getEnvironment();
@@ -149,6 +149,7 @@ Options:
     }
 
     ensureToolsExists(env, EnumMembers!TestTools);
+    ensureToolsExists(env, listDshellScripts());
 
     if (args == ["tools"])
         return 0;
@@ -264,54 +265,31 @@ void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
     shared uint failCount = 0;
     foreach (tool; tools.parallel(1))
     {
+        const string sourceFile = scriptDir.buildPath(tool ~ ".d");
+
         string targetBin;
-        string sourceFile;
-        if (tool.linksWithTests)
-        {
-            targetBin = resultsDir.buildPath(tool).objName;
-            sourceFile = toolsDir.buildPath(tool, tool ~ ".d");
-        }
+        if (tool.binary)
+            targetBin = resultsDir.buildPath(tool.binary);
         else
-        {
             targetBin = resultsDir.buildPath(tool).exeName;
-            sourceFile = toolsDir.buildPath(tool ~ ".d");
-        }
+
         if (targetBin.timeLastModified.ifThrown(SysTime.init) >= sourceFile.timeLastModified)
             log("%s is already up-to-date", tool);
         else
         {
-            string[] command;
-            bool overrideEnv;
-            if (tool.linksWithTests)
-            {
-                // This will compile the dshell library thus needs the actual
-                // DMD compiler under test
-                command = [
-                    env["DMD"],
-                    "-conf=",
-                    "-m"~env["MODEL"],
-                    "-of" ~ targetBin,
-                    "-c",
-                    sourceFile
-                ] ~ getPicFlags(env);
-                overrideEnv = true;
-            }
-            else
-            {
-                string model = env["MODEL"];
-                if (model == "32omf") model = "32";
+            string model = env["MODEL"];
+            if (model == "32omf") model = "32";
 
-                command = [
+            string[] command = [
                     hostDMD,
                     "-m"~model,
-                    "-of"~targetBin,
+                    "-of="~targetBin,
                     sourceFile
                 ] ~ getPicFlags(env) ~ tool.extraArgs;
-            }
 
             writefln("Executing: %-(%s %)", command);
             stdout.flush();
-            if (spawnProcess(command, overrideEnv ? env : null).wait)
+            if (spawnProcess(command, null, Config.none, scriptDir).wait)
             {
                 stderr.writefln("failed to build '%s'", targetBin);
                 atomicOp!"+="(failCount, 1);
@@ -320,6 +298,38 @@ void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
     }
     if (failCount > 0)
         quitSilently(1); // error already printed
+}
+
+TestTool[] listDshellScripts()
+{
+    TestTool[] list;
+    immutable string[] args = [
+        "-I" ~ toolsDir,
+        buildPath(resultsDir, TestTools.dshellPrebuilt.binary)
+    ];
+    const dshellDir = buildPath(scriptDir, "dshell");
+    enum runner = "run".exeName;
+
+    foreach (const entry; dirEntries(dshellDir, "*.d", SpanMode.shallow))
+    {
+        const name = entry.name[scriptDir.length + 1 .. $ - 2];
+        const impDir = buildPath(resultsDir, name);
+        const source = buildPath(impDir, "dshell.d");
+
+        mkdirRecurse(impDir);
+        File(source, "w").writeln(`module dshell;
+public import dshell_prebuilt;
+static this()
+{
+    dshellPrebuiltInit("dshell", "`, baseName(name) , `");
+}
+`);
+        const binary = buildPath(name, runner);
+
+        list ~= TestTool(name, args ~ ("-I" ~ impDir) ~ source, binary);
+    }
+
+    return list;
 }
 
 /// A single target to execute.

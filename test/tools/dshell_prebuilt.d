@@ -84,7 +84,7 @@ void dshellPrebuiltInit(string testDir, string testName)
     // reference to the resulting test_dir folder, e.g .test_results/runnable
     Vars.set("RESULTS_TEST_DIR", buildPath(RESULTS_DIR, TEST_DIR));
     // reference to the resulting files without a suffix, e.g. test_results/runnable/test123import test);
-    Vars.set("OUTPUT_BASE", buildPath(RESULTS_TEST_DIR, TEST_NAME));
+    Vars.set("OUTPUT_BASE", buildPath(RESULTS_TEST_DIR, TEST_NAME, "work"));
     // reference to the extra files directory
     Vars.set("EXTRA_FILES", buildPath(TEST_DIR, "extra-files"));
     // reference to the imports directory
