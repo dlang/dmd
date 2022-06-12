@@ -3018,6 +3018,7 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
         {
             pt = mt.obj.isType();
             ps = mt.obj.isDsymbol();
+            pe = mt.obj.isExpression();
             return;
         }
 
@@ -3085,7 +3086,10 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
             case EXP.overloadSet:
                 mt.obj = e.isOverExp().type;
                 break;
+            case EXP.error:
+                break;
             default:
+                mt.obj = e;
                 break;
             }
         }
@@ -3093,14 +3097,19 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
         if (mt.obj)
         {
             if (auto t = mt.obj.isType())
-                returnType(t.addMod(mt.mod));
+            {
+                t = t.addMod(mt.mod);
+                mt.obj = t;
+                returnType(t);
+            }
             else if (auto s = mt.obj.isDsymbol())
                 returnSymbol(s);
-            else
-                assert(0);
+            else if (auto e = mt.obj.isExpression())
+                returnExp(e);
         }
         else
         {
+            assert(global.errors);
             mt.obj = Type.terror;
             return returnError();
         }
