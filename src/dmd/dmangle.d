@@ -259,8 +259,26 @@ public:
 
     void mangleIdentifier(Identifier id, Dsymbol s)
     {
+        import dmd.target;
+
         if (!backref.addRefToIdentifier(buf, id))
-            toBuffer(buf, id.toString(), s);
+        {
+            // The following code, looks to see if we need to sanitize the identifier into becomming ASCII only.
+            // Windows does not appear to support Unicode in symbol names,
+            // and identifiers are a source of Unicode in a symbol name.
+            // This detection only applies to extern(D) to prevent mangling issues with ABI's that we don't own.
+            // If other platforms need ASCII only symbol names, this can be generalized to not be Windows specific.
+            bool sanitizeUnicode = target.os == Target.OS.Windows;
+            Declaration declaration;
+
+            if (sanitizeUnicode && (declaration = cast(Declaration)s) !is null)
+            {
+                const linkage = declaration.resolvedLinkage();
+                sanitizeUnicode = linkage == LINK.default_ || linkage == LINK.d;
+            }
+
+            toBuffer(buf, id.toString(), s, sanitizeUnicode);
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -1217,17 +1235,52 @@ void writeBackRef(OutBuffer* buf, size_t pos)
 
 /************************************************************
  * Write length prefixed string to buf.
+ *
+ * Opt-in capable of turning unicode text into Hex.
+ * This may be required on some platforms like Windows.
  */
 private
-extern (D) void toBuffer(OutBuffer* buf, const(char)[] id, Dsymbol s)
+extern (D) void toBuffer(OutBuffer* buf, const(char)[] id, Dsymbol s, bool turnUnicodeIntoHex = false)
 {
-    const len = id.length;
+    enum UnicodeHexPrefix = "__0x";
+    bool containsUnicode;
+
+    if (turnUnicodeIntoHex)
+    {
+        // If a character is more than 0x7F, it is the first byte of a multi-byte UTF-8 codepoint.
+        foreach(char c; id)
+        {
+            if (c > 0x7F)
+            {
+                containsUnicode = true;
+                break;
+            }
+        }
+    }
+
+    // Unicode hex encoding of identifiers is prefix then the hex digits of id, note that they are double the length
+    const len = (!containsUnicode ? id.length : (UnicodeHexPrefix.length + (id.length * 2)));
+
     if (buf.length + len >= 8 * 1024 * 1024) // 8 megs ought be enough for anyone
         s.error("excessive length %llu for symbol, possible recursive expansion?", cast(ulong)(buf.length + len));
-    else
+    else if (!containsUnicode)
     {
         buf.print(len);
         buf.writestring(id);
+    }
+    else
+    {
+        buf.print(len);
+        buf.writestring(UnicodeHexPrefix);
+
+        foreach(char c; id)
+        {
+            uint tempChar = (c >> 4) & 0xF;
+            buf.writeByte(tempChar > 9 ? ((tempChar - 10) + 'A') : (tempChar + '0'));
+
+            tempChar = c & 0xF;
+            buf.writeByte(tempChar > 9 ? ((tempChar - 10) + 'A') : (tempChar + '0'));
+        }
     }
 }
 
