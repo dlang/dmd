@@ -94,6 +94,11 @@ void dshellPrebuiltInit(string testDir, string testName)
         Vars.set("LIBEXT", ".lib");
         Vars.set("SOEXT", ".dll");
     }
+    else version (OSX)
+    {
+        Vars.set("LIBEXT", ".a");
+        Vars.set(`SOEXT`, `.dylib`);
+    }
     else
     {
         Vars.set("LIBEXT", ".a");

@@ -16,9 +16,6 @@ int main()
         if (Vars.MODEL == "32")
             return DISABLED;
 
-    version (OSX)
-        Vars.set(`SOEXT`, `.dylib`);
-
     Vars.set(`SRC`, `$EXTRA_FILES${SEP}dll_cxx`);
     Vars.set(`EXE_NAME`, `$OUTPUT_BASE${SEP}testdll$EXE`);
     Vars.set(`DLL`, `$OUTPUT_BASE${SEP}mydll$SOEXT`);
