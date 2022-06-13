@@ -6124,7 +6124,10 @@ Lagain:
                     /* Need to do postblit/destructor.
                      *   void *_d_arraysetassign(void *p, void *value, int dim, TypeInfo ti);
                      */
-                    assert(op != EXP.construct, "Trying reference _d_arraysetctor, this should not happen!");
+                    if (op == EXP.construct)
+                    {
+                        assert(0, "Trying reference _d_arraysetctor, this should not happen!");
+                    }
                     r = RTLSYM.ARRAYSETASSIGN;
                     evalue = el_una(OPaddr, TYnptr, evalue);
                     // This is a hack so we can call postblits on const/immutable objects.
