@@ -39,6 +39,7 @@ struct Vars
         return result;
     }
     static string opDispatch(string name)() { return get(name); }
+    static void opDispatch(string name)(string value) { set(name, value); }
 }
 
 private alias requiredEnvVars = AliasSeq!(
@@ -86,6 +87,8 @@ void dshellPrebuiltInit(string testDir, string testName)
     Vars.set("OUTPUT_BASE", buildPath(RESULTS_TEST_DIR, TEST_NAME));
     // reference to the extra files directory
     Vars.set("EXTRA_FILES", buildPath(TEST_DIR, "extra-files"));
+    // reference to the imports directory
+    Vars.set("IMPORT_FILES", buildPath(TEST_DIR, "imports"));
     version (Windows)
     {
         Vars.set("LIBEXT", ".lib");
@@ -153,7 +156,7 @@ void mkdirFor(string filename)
 Run the given command. The `tryRun` variants return the exit code, whereas the `run` variants
 will assert on a non-zero exit code.
 */
-auto tryRun(scope const(char[])[] args, File stdout = std.stdio.stdout,
+int tryRun(scope const(char[])[] args, File stdout = std.stdio.stdout,
             File stderr = std.stdio.stderr, string[string] env = null)
 {
     std.stdio.stdout.write("[RUN]");
@@ -169,11 +172,22 @@ auto tryRun(scope const(char[])[] args, File stdout = std.stdio.stdout,
     {
         std.stdio.stdout.write(" > ", stdout.name);
     }
+    // "Commit" all output from the tester
     std.stdio.stdout.writeln();
     std.stdio.stdout.flush();
+    std.stdio.stderr.writeln();
+    std.stdio.stderr.flush();
     auto proc = spawnProcess(args, stdin, stdout, stderr, env);
     return wait(proc);
 }
+
+/// ditto
+int tryRun(string cmd, File stdout = std.stdio.stdout,
+            File stderr = std.stdio.stderr, string[string] env = null)
+{
+    return tryRun(parseCommand(cmd), stdout, stderr, env);
+}
+
 /// ditto
 void run(scope const(char[])[] args, File stdout = std.stdio.stdout,
          File stderr = std.stdio.stderr, string[string] env = null)

@@ -1,10 +1,10 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
- * http://www.digitalmars.com
+ * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
- * http://www.boost.org/LICENSE_1_0.txt
+ * https://www.boost.org/LICENSE_1_0.txt
  * https://github.com/dlang/dmd/blob/master/src/dmd/version.h
  */
 
@@ -12,30 +12,30 @@
 
 #include "dsymbol.h"
 
-class DebugSymbol : public Dsymbol
+class DebugSymbol final : public Dsymbol
 {
 public:
     unsigned level;
 
-    DebugSymbol *syntaxCopy(Dsymbol *);
+    DebugSymbol *syntaxCopy(Dsymbol *) override;
 
-    const char *toChars() const;
-    void addMember(Scope *sc, ScopeDsymbol *sds);
-    const char *kind() const;
-    DebugSymbol *isDebugSymbol();
-    void accept(Visitor *v) { v->visit(this); }
+    const char *toChars() const override;
+    void addMember(Scope *sc, ScopeDsymbol *sds) override;
+    const char *kind() const override;
+    DebugSymbol *isDebugSymbol() override;
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
-class VersionSymbol : public Dsymbol
+class VersionSymbol final : public Dsymbol
 {
 public:
     unsigned level;
 
-    VersionSymbol *syntaxCopy(Dsymbol *);
+    VersionSymbol *syntaxCopy(Dsymbol *) override;
 
-    const char *toChars() const;
-    void addMember(Scope *sc, ScopeDsymbol *sds);
-    const char *kind() const;
-    VersionSymbol *isVersionSymbol();
-    void accept(Visitor *v) { v->visit(this); }
+    const char *toChars() const override;
+    void addMember(Scope *sc, ScopeDsymbol *sds) override;
+    const char *kind() const override;
+    VersionSymbol *isVersionSymbol() override;
+    void accept(Visitor *v) override { v->visit(this); }
 };

@@ -2,12 +2,12 @@
 
 This is the source code to the DMD compiler
 for the D Programming Language defined in the documents at
-http://dlang.org/
+https://dlang.org/
 
 These sources are free, they are redistributable and modifiable
 under the terms of the Boost Software License, Version 1.0.
 The terms of this license are in the file boostlicense.txt,
-or see http://www.boost.org/LICENSE_1_0.txt.
+or see https://www.boost.org/LICENSE_1_0.txt.
 
 If a particular file has a different license in it, that overrides
 this license for that file.
@@ -33,6 +33,7 @@ Note that these groups have no strict meaning, the category assignments are a bi
 |-----------------------------------------------------------------------------|-----------------------------------------------------------------------|
 | [mars.d](https://github.com/dlang/dmd/blob/master/src/dmd/mars.d)           | The entry point. Contains `main`.                                     |
 | [cli.d](https://github.com/dlang/dmd/blob/master/src/dmd/cli.d)             | Define the command line interface                                     |
+| [dmdparams.d](https://github.com/dlang/dmd/blob/master/src/dmd/dmdparams.d) | DMD-specific parameters                                               |
 | [globals.d](https://github.com/dlang/dmd/blob/master/src/dmd/globals.d)     | Define a structure storing command line options                       |
 | [dinifile.d](https://github.com/dlang/dmd/blob/master/src/dmd/dinifile.d)   | Parse settings from .ini file (`sc.ini` / `dmd.conf`)                 |
 | [vsoptions.d](https://github.com/dlang/dmd/blob/master/src/dmd/vsoptions.d) | Detect the Microsoft Visual Studio toolchain for linking              |
@@ -129,6 +130,8 @@ Note that these groups have no strict meaning, the category assignments are a bi
 | [impcnvtab.d](https://github.com/dlang/dmd/blob/master/src/dmd/impcnvtab.d)   | Define an implicit conversion table for basic types                                        |
 | [importc.d](https://github.com/dlang/dmd/blob/master/src/dmd/importc.d)       | Helpers specific to ImportC                                                                |
 | [sideeffect.d](https://github.com/dlang/dmd/blob/master/src/dmd/sideeffect.d) | Extract side-effects of expressions for certain lowerings.                                 |
+| [mustuse.d](https://github.com/dlang/dmd/blob/master/src/dmd/mustuse.d)       | Helpers related to the `@mustuse` attribute                                                |
+
 
 **Compile Time Function Execution (CTFE)**
 
@@ -161,20 +164,21 @@ Note that these groups have no strict meaning, the category assignments are a bi
 
 **Other**
 
-| File                                                                          | Purpose                                                                                     |
-|-------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
-| [aliasthis.d](https://github.com/dlang/dmd/blob/master/src/dmd/aliasthis.d)   | Resolve implicit conversions for `alias X this`                                             |
-| [traits.d](https://github.com/dlang/dmd/blob/master/src/dmd/traits.d)         | `__traits()`                                                                                |
-| [lambdacomp.d](https://github.com/dlang/dmd/blob/master/src/dmd/lambdacomp.d) | `__traits(isSame, x => y, z => w)`                                                          |
-| [cond.d](https://github.com/dlang/dmd/blob/master/src/dmd/cond.d)             | Evaluate `static if`, `version` `debug `                                                    |
-| [staticcond.d](https://github.com/dlang/dmd/blob/master/src/dmd/staticcond.d) | Lazily evaluate static conditions for `static if`, `static assert` and template constraints |
-| [delegatize.d](https://github.com/dlang/dmd/blob/master/src/dmd/delegatize.d) | Converts expression to delegates for `lazy` parameters                                      |
-| [eh.d](https://github.com/dlang/dmd/blob/master/src/dmd/eh.d)                 | Generate tables for exception handling                                                      |
-| [nspace.d](https://github.com/dlang/dmd/blob/master/src/dmd/nspace.d)         | Namespace for `extern (C++, Module)`                                                        |
-| [intrange.d](https://github.com/dlang/dmd/blob/master/src/dmd/intrange.d)     | [Value range propagation](https://digitalmars.com/articles/b62.html)                        |
-| [dimport.d](https://github.com/dlang/dmd/blob/master/src/dmd/dimport.d)       | Renamed imports (`import aliasSymbol = pkg1.pkg2.symbol`)                                   |
-| [arrayop.d](https://github.com/dlang/dmd/blob/master/src/dmd/arrayop.d)       | Array operations (`a[] = b[] + c[]`)                                                        |
-| [typinf.d](https://github.com/dlang/dmd/blob/master/src/dmd/typinf.d)         | Generate typeinfo for `typeid()` (as well as internals)                                     |
+| File                                                                           | Purpose                                                                                     |
+|--------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
+| [aliasthis.d](https://github.com/dlang/dmd/blob/master/src/dmd/aliasthis.d)    | Resolve implicit conversions for `alias X this`                                             |
+| [traits.d](https://github.com/dlang/dmd/blob/master/src/dmd/traits.d)          | `__traits()`                                                                                |
+| [lambdacomp.d](https://github.com/dlang/dmd/blob/master/src/dmd/lambdacomp.d)  | `__traits(isSame, x => y, z => w)`                                                          |
+| [cond.d](https://github.com/dlang/dmd/blob/master/src/dmd/cond.d)              | Evaluate `static if`, `version` `debug `                                                    |
+| [staticcond.d](https://github.com/dlang/dmd/blob/master/src/dmd/staticcond.d)  | Lazily evaluate static conditions for `static if`, `static assert` and template constraints |
+| [delegatize.d](https://github.com/dlang/dmd/blob/master/src/dmd/delegatize.d)  | Converts expression to delegates for `lazy` parameters                                      |
+| [eh.d](https://github.com/dlang/dmd/blob/master/src/dmd/eh.d)                  | Generate tables for exception handling                                                      |
+| [nspace.d](https://github.com/dlang/dmd/blob/master/src/dmd/nspace.d)          | Namespace for `extern (C++, Module)`                                                        |
+| [intrange.d](https://github.com/dlang/dmd/blob/master/src/dmd/intrange.d)      | [Value range propagation](https://digitalmars.com/articles/b62.html)                        |
+| [dimport.d](https://github.com/dlang/dmd/blob/master/src/dmd/dimport.d)        | Renamed imports (`import aliasSymbol = pkg1.pkg2.symbol`)                                   |
+| [arrayop.d](https://github.com/dlang/dmd/blob/master/src/dmd/arrayop.d)        | Array operations (`a[] = b[] + c[]`)                                                        |
+| [cpreprocess.d](https://github.com/dlang/dmd/blob/master/src/dmd/cpreprocess.d)| Run the C preprocessor on C source files                                                   |
+| [typinf.d](https://github.com/dlang/dmd/blob/master/src/dmd/typinf.d)          | Generate typeinfo for `typeid()` (as well as internals)                                     |
 
 | File                                                                        | Purpose                                                                            |
 |-----------------------------------------------------------------------------|------------------------------------------------------------------------------------|
@@ -247,12 +251,9 @@ Note: many other utilities are in [dmd/root](https://github.com/dlang/dmd/tree/m
 
 | File                                                                              | Purpose                                           |
 |-----------------------------------------------------------------------------------|---------------------------------------------------|
-| [env.d](https://github.com/dlang/dmd/blob/master/src/dmd/env.d)                   | Modify environment variables                      |
 | [console.d](https://github.com/dlang/dmd/blob/master/src/dmd/console.d)           | Print error messages in color                     |
-| [utf.d](https://github.com/dlang/dmd/blob/master/src/dmd/utf.d)                   | Encoding/decoding Unicode text                    |
 | [file_manager.d](https://github.com/dlang/dmd/blob/master/src/dmd/file_manager.d) | Keep file contents in memory                      |
 | [utils.d](https://github.com/dlang/dmd/blob/master/src/dmd/utils.d)               | Utility functions related to files and file paths |
-| [complex.d](https://github.com/dlang/dmd/blob/master/src/dmd/complex.d)           | A complex number type                             |
 
 | File                                                                            | Purpose                                                       |
 |---------------------------------------------------------------------------------|---------------------------------------------------------------|

@@ -1,0 +1,12 @@
+Improvements for the C++ header generation
+
+The following features/bugfixes/improvements were implemented for the
+experimental C++ header generator:
+
+- Overriding virtual functions are now marked with the `override` keyword when
+  generating C++11 compatible headers.
+- Final virtual functions are now marked with the `final` keyword when
+  generating C++11 compatible headers.
+
+Note: The header generator is still considered experimental, so please submit
+      any bugs encountered to [the bug tracker](https://issues.dlang.org).

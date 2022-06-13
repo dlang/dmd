@@ -1,12 +1,6 @@
 // check semantic analysis of C files
 /* TEST_OUTPUT:
 ---
-fail_compilation/failcstuff2.c(54): Error: `& var` has no effect
-fail_compilation/failcstuff2.c(55): Error: `*ptr` has no effect
-fail_compilation/failcstuff2.c(56): Error: `var` has no effect
-fail_compilation/failcstuff2.c(57): Error: `-var` has no effect
-fail_compilation/failcstuff2.c(58): Error: `~var` has no effect
-fail_compilation/failcstuff2.c(59): Error: `!var` has no effect
 fail_compilation/failcstuff2.c(113): Error: `cast(int)var` is not an lvalue and cannot be modified
 fail_compilation/failcstuff2.c(114): Error: `sizeof` is not a member of `int`
 fail_compilation/failcstuff2.c(115): Error: `cast(short)3` is not an lvalue and cannot be modified
@@ -24,12 +18,6 @@ fail_compilation/failcstuff2.c(126): Error: `makeS22067().field` is not an lvalu
 fail_compilation/failcstuff2.c(127): Error: `makeS22067().field` is not an lvalue and cannot be modified
 fail_compilation/failcstuff2.c(153): Error: `cast(short)var` is not an lvalue and cannot be modified
 fail_compilation/failcstuff2.c(154): Error: `cast(long)var` is not an lvalue and cannot be modified
-fail_compilation/failcstuff2.c(204): Error: variable `var` is used as a type
-fail_compilation/failcstuff2.c(203):        variable `var` is declared here
-fail_compilation/failcstuff2.c(205): Error: variable `var` is used as a type
-fail_compilation/failcstuff2.c(203):        variable `var` is declared here
-fail_compilation/failcstuff2.c(254): Error: identifier or `(` expected before `)`
-fail_compilation/failcstuff2.c(255): Error: identifier or `(` expected
 fail_compilation/failcstuff2.c(308): Error: cannot modify `const` expression `(*s).p`
 fail_compilation/failcstuff2.c(354): Error: variable `arr` cannot be read at compile time
 fail_compilation/failcstuff2.c(360): Error: variable `str` cannot be read at compile time
@@ -94,26 +82,6 @@ void test22068()
     --(long long) var;
 }
 
-#line 200
-/***************************************************/
-// https://issues.dlang.org/show_bug.cgi?id=21992
-void test21992(int var)
-{
-    var = (var) ~ 1234;
-    var = (var) ! 1234;
-}
-
-/***************************************************/
-// https://issues.dlang.org/show_bug.cgi?id=22102
-#line 250
-typedef int int22102;
-
-void test22102()
-{
-    int22102();
-    int22102(0);
-}
-
 /***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=22405
 #line 300
@@ -143,5 +111,3 @@ void test22413b()
     const char *str = "hello";
     char msg[] = str;
 }
-
-/***************************************************/

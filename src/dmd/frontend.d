@@ -1,9 +1,9 @@
 /**
  * Contains high-level interfaces for interacting with DMD as a library.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/id.d, _id.d)
  * Documentation:  https://dlang.org/phobos/dmd_frontend.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/frontend.d
@@ -13,7 +13,7 @@ module dmd.frontend;
 import dmd.astcodegen : ASTCodegen;
 import dmd.dmodule : Module;
 import dmd.globals : CHECKENABLE, Loc, DiagnosticReporting;
-import dmd.errors : DiagnosticHandler, diagnosticHandler, Classification;
+import dmd.errors;
 
 import std.range.primitives : isInputRange, ElementType;
 import std.traits : isNarrowString;
@@ -96,12 +96,14 @@ Initializes the global variables of the DMD compiler.
 This needs to be done $(I before) calling any function.
 
 Params:
-    handler = a delegate to configure what to do with diagnostics (other than printing to console or stderr).
+    diagnosticHandler = a delegate to configure what to do with diagnostics (other than printing to console or stderr).
+    fatalErrorHandler = a delegate to configure what to do with fatal errors (default is to call exit(EXIT_FAILURE)).
     contractChecks = indicates which contracts should be enabled or not
     versionIdentifiers = a list of version identifiers that should be enabled
 */
 void initDMD(
-    DiagnosticHandler handler = null,
+    DiagnosticHandler diagnosticHandler = null,
+    FatalErrorHandler fatalErrorHandler = null,
     const string[] versionIdentifiers = [],
     ContractChecks contractChecks = ContractChecks()
 )
@@ -124,7 +126,8 @@ void initDMD(
     import dmd.objc : Objc;
     import dmd.target : target, defaultTargetOS;
 
-    diagnosticHandler = handler;
+    .diagnosticHandler = diagnosticHandler;
+    .fatalErrorHandler = fatalErrorHandler;
 
     global._init();
 
@@ -166,6 +169,7 @@ application.
 void deinitializeDMD()
 {
     import dmd.dmodule : Module;
+    import dmd.dsymbol : Dsymbol;
     import dmd.expression : Expression;
     import dmd.globals : global;
     import dmd.id : Id;
@@ -174,6 +178,7 @@ void deinitializeDMD()
     import dmd.target : target;
 
     diagnosticHandler = null;
+    fatalErrorHandler = null;
 
     global.deinitialize();
 
@@ -183,6 +188,7 @@ void deinitializeDMD()
     target.deinitialize();
     Expression.deinitialize();
     Objc.deinitialize();
+    Dsymbol.deinitialize();
 }
 
 /**
@@ -376,7 +382,7 @@ Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(AST = ASTCodeg
     const(char)[] fileName,
     const(char)[] code = null)
 {
-    import dmd.root.file : File, FileBuffer;
+    import dmd.root.file : File, Buffer;
 
     import dmd.globals : Loc, global;
     import dmd.parse : Parser;
@@ -394,20 +400,14 @@ Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(AST = ASTCodeg
         m.read(Loc.initial);
     else
     {
-        File.ReadResult readResult = {
-            success: true,
-            buffer: FileBuffer(cast(ubyte[]) code.dup ~ '\0')
-        };
+        import dmd.root.filename : FileName;
 
-        if (m.loadSourceBuffer(Loc.initial, readResult))
-        {
-            import dmd.file_manager : FileManager;
-            import dmd.root.filename : FileName;
-            FileManager.fileManager.add(FileName(fileName), m.srcBuffer);
-        }
+        auto fb = cast(ubyte[]) code.dup ~ '\0';
+        global.fileManager.add(FileName(fileName), fb);
+        m.src = fb;
     }
 
-    m.parseModule!AST();
+    m = m.parseModule!AST();
 
     Diagnostics diagnostics = {
         errors: global.errors,
@@ -676,4 +676,3 @@ nothrow:
         return false;
     }
 }
-

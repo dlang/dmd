@@ -747,4 +747,3 @@ enum
         DW_RLE_start_end                = 0x06,
         DW_RLE_start_length             = 0x07,
 }
-

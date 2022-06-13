@@ -2,12 +2,12 @@
  * Routines to handle elems.
  *
  * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/elem.d, backend/elem.d)
  */
 
@@ -2221,8 +2221,7 @@ L1:
 
                     case TYcent:
                     case TYucent:
-                        if (n1.EV.Vcent.lsw != n2.EV.Vcent.lsw ||
-                            n1.EV.Vcent.msw != n2.EV.Vcent.msw)
+                        if (n1.EV.Vcent != n2.EV.Vcent)
                                 return false;
                         break;
 
@@ -2328,7 +2327,7 @@ L1:
                     case TYulong4:
                     case TYllong2:
                     case TYullong2:
-                        if (n1.EV.Vcent.msw != n2.EV.Vcent.msw || n1.EV.Vcent.lsw != n2.EV.Vcent.lsw)
+                        if (n1.EV.Vcent != n2.EV.Vcent)
                             return false;
                         break;
 
@@ -2887,7 +2886,7 @@ void elem_print(const elem* e, int nestlevel = 0)
             e.Ety == TYstruct || e.Ety == TYarray)
             if (e.ET)
                 printf("%d ", cast(int)type_size(e.ET));
-        printf("%s\n", tym_str(e.Ety));
+        printf("%s ", tym_str(e.Ety));
     }
     if (OTunary(e.Eoper))
     {
@@ -2922,7 +2921,7 @@ void elem_print(const elem* e, int nestlevel = 0)
 
             case OPasm:
             case OPstring:
-                printf(" '%s',%lld\n",e.EV.Vstring,cast(ulong)e.EV.Voffset);
+                printf(" '%s',%lld",e.EV.Vstring,cast(ulong)e.EV.Voffset);
                 break;
 
             case OPconst:
@@ -3010,7 +3009,7 @@ case_tym:
 
         case TYcent:
         case TYucent:
-            printf("%lluLL+%lluLL ", cast(ulong)e.EV.Vcent.msw, cast(ulong)e.EV.Vcent.lsw);
+            printf("%lluLL+%lluLL ", cast(ulong)e.EV.Vcent.hi, cast(ulong)e.EV.Vcent.lo);
             break;
 
         case TYfloat:
@@ -3072,7 +3071,7 @@ case_tym:
         case TYulong4:
         case TYllong2:
         case TYullong2:
-            printf("%llxLL+%llxLL ", cast(long)e.EV.Vcent.msw, cast(long)e.EV.Vcent.lsw);
+            printf("%llxLL+%llxLL ", cast(long)e.EV.Vcent.hi, cast(long)e.EV.Vcent.lo);
             break;
 
 version (MARS) { } else

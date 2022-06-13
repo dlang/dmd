@@ -7,12 +7,12 @@
  * - generation / peephole optimizations of jump / branch instructions
  *
  * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cod3.d, backend/cod3.d)
  * Documentation:  https://dlang.org/phobos/dmd_backend_cod3.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/cod3.d
@@ -34,6 +34,7 @@ import core.stdc.stdlib;
 import core.stdc.string;
 
 import dmd.backend.backend;
+import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcse;
@@ -1132,6 +1133,7 @@ static if (NTEXCEPTIONS)
         case BCretexp:
             reg_t reg1, reg2, lreg, mreg;
             retregs = allocretregs(e.Ety, e.ET, funcsym_p.ty(), reg1, reg2);
+            //printf("allocretregs returns %s\n", regm_str(mask(reg1) | mask(reg2)));
 
             lreg = mreg = NOREG;
             if (reg1 == NOREG)
@@ -1743,6 +1745,7 @@ void doswitch(ref CodeBuilder cdb, block *b)
         reg_t sreg = NOREG;                          // may need a scratch register
 
         // Put into casevals[0..ncases] so we can sort then slice
+        assert(ncases < size_t.max / (2 * CaseVal.sizeof));
         CaseVal *casevals = cast(CaseVal *)malloc(ncases * CaseVal.sizeof);
         assert(casevals);
         for (uint n = 0; n < ncases; n++)
@@ -4067,7 +4070,7 @@ void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv, regm_t namedargs)
 void prolog_gen_win64_varargs(ref CodeBuilder cdb)
 {
     /* The Microsoft scheme.
-     * http://msdn.microsoft.com/en-US/library/dd2wa36c(v=vs.80)
+     * https://msdn.microsoft.com/en-US/library/dd2wa36c%28v=vs.100%29
      * Copy registers onto stack.
          mov     8[RSP],RCX
          mov     010h[RSP],RDX
@@ -4124,8 +4127,8 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
         // This logic is same as FuncParamRegs_alloc function at src/dmd/backend/cod1.d
         //
         // Find suitable SROA based on the element type
-        // (Don't put volatile parameters in registers)
-        if (tyb == TYarray && !(t.Tty & mTYvolatile))
+        // (Don't put volatile parameters in registers on Windows)
+        if (tyb == TYarray && (config.exe != EX_WIN64 || !(t.Tty & mTYvolatile)))
         {
             type *targ1;
             argtypes(t, targ1, t2);
@@ -4147,7 +4150,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
             }
         }
 
-        if (Symbol_Sisdead(s, anyiasm))
+        if (Symbol_Sisdead(*s, anyiasm))
         {
             // Ignore it, as it is never referenced
             continue;
@@ -4221,7 +4224,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
     if (config.exe == EX_WIN64 && variadic(funcsym_p.Stype))
     {
         /* The Microsoft scheme.
-         * http://msdn.microsoft.com/en-US/library/dd2wa36c(v=vs.80)
+         * https://msdn.microsoft.com/en-US/library/dd2wa36c%28v=vs.100%29
          * Copy registers onto stack.
              mov     8[RSP],RCX or XMM0
              mov     010h[RSP],RDX or XMM1
@@ -4542,7 +4545,7 @@ void epilog(block *b)
                     cdbx.gen1(0x58 + BP);                                 // POP BP
                 }
                 else if (config.exe == EX_WIN64)
-                {   // See http://msdn.microsoft.com/en-us/library/tawsa7cb(v=vs.80).aspx
+                {   // See https://msdn.microsoft.com/en-us/library/tawsa7cb%28v=vs.100%29.aspx
                     // LEA RSP,0[RBP]
                     cdbx.genc1(LEA,(REX_W<<16)|modregrm(2,SP,BPRM),FLconst,0);
                     cdbx.gen1(0x58 + BP);      // POP RBP
@@ -4672,7 +4675,7 @@ static if (0)
 @trusted
 targ_size_t cod3_spoff()
 {
-    //printf("spoff = x%x, localsize = x%x\n", (int)spoff, (int)localsize);
+    //printf("spoff = x%x, localsize = x%x\n", cast(int)spoff, cast(int)localsize);
     return spoff + localsize;
 }
 
@@ -4901,7 +4904,7 @@ void cod3_thunk(Symbol *sthunk,Symbol *sfunc,uint p,tym_t thisty,
     thunkoffset = Offset(seg);
     code *c = cdb.finish();
     pinholeopt(c,null);
-    codout(seg,c);
+    codout(seg,c,null);
     code_free(c);
 
     sthunk.Soffset = thunkoffset;
@@ -5179,7 +5182,7 @@ void cod3_adjSymOffsets()
                 break;
 
             case SCfastpar:
-//printf("\tfastpar %s %p Soffset %x Fast.size %x BPoff %x\n", s.Sident, s, (int)s.Soffset, (int)Fast.size, (int)BPoff);
+//printf("\tfastpar %s %p Soffset %x Fast.size %x BPoff %x\n", s.Sident, s, cast(int)s.Soffset, cast(int)Fast.size, cast(int)BPoff);
                 s.Soffset += Fast.size + BPoff;
                 break;
 
@@ -5188,7 +5191,7 @@ void cod3_adjSymOffsets()
                 if (s.Sfl == FLfast)
                     s.Soffset += Fast.size + BPoff;
                 else
-//printf("s = '%s', Soffset = x%x, Auto.size = x%x, BPoff = x%x EBPtoESP = x%x\n", s.Sident, (int)s.Soffset, (int)Auto.size, (int)BPoff, (int)EBPtoESP);
+//printf("s = '%s', Soffset = x%x, Auto.size = x%x, BPoff = x%x EBPtoESP = x%x\n", s.Sident, cast(int)s.Soffset, cast(int)Auto.size, cast(int)BPoff, cast(int)EBPtoESP);
 //              if (!(funcsym_p.Sfunc.Fflags3 & Fnested))
                     s.Soffset += Auto.size + BPoff;
                 break;
@@ -5262,7 +5265,7 @@ void assignaddrc(code *c)
         {
             if (c.Iop == (ESCAPE | ESCadjesp))
             {
-                //printf("adjusting EBPtoESP (%d) by %ld\n",EBPtoESP,(long)c.IEV1.Vint);
+                //printf("adjusting EBPtoESP (%d) by %ld\n",EBPtoESP,cast(long)c.IEV1.Vint);
                 EBPtoESP += c.IEV1.Vint;
                 c.Iop = NOP;
             }
@@ -5408,7 +5411,7 @@ void assignaddrc(code *c)
             case FLauto:
                 soff = Auto.size;
             L1:
-                if (Symbol_Sisdead(s, anyiasm))
+                if (Symbol_Sisdead(*s, anyiasm))
                 {
                     c.Iop = NOP;               // remove references to it
                     continue;
@@ -6783,26 +6786,24 @@ nomatch:
 
 }
 
-/**************************
- * Write code to intermediate file.
- * Code starts at offset.
- * Returns:
- *      addr of end of code
+/************************
+ * Little buffer allocated on the stack to accumulate instruction bytes to
+ * later be sent along to objmod
  */
-
 private struct MiniCodeBuf
 {
 nothrow:
-    size_t index;
-    size_t offset;
+    uint index;
+    uint offset;
     int seg;
-    char[100] bytes; // = void;
+    Barray!ubyte* disasmBuf;
+    ubyte[256] bytes; // = void;
 
     @trusted
     this(int seg)
     {
         index = 0;
-        this.offset = cast(size_t)Offset(seg);
+        this.offset = cast(uint)Offset(seg);
         this.seg = seg;
     }
 
@@ -6811,28 +6812,88 @@ nothrow:
     {
         // Emit accumulated bytes to code segment
         debug assert(index < bytes.length);
-        offset += objmod.bytes(seg, offset, cast(uint)index, bytes.ptr);
+
+        if (disasmBuf)                     // write to buffer for disassembly
+        {
+            foreach (c; bytes[0 .. index]) // not efficient, but for verbose output anyway
+                disasmBuf.push(c);
+        }
+
+        offset += objmod.bytes(seg, offset, index, bytes.ptr);
         index = 0;
     }
 
     @trusted
-    void gen(char c) { bytes[index++] = c; }
+    void gen(ubyte c) { bytes[index++] = c; }
 
     @trusted
-    void genp(size_t n, void *p) { memcpy(&bytes[index], p, n); index += n; }
+    void genp(uint n, void *p) { memcpy(&bytes[index], p, n); index += n; }
 
     @trusted
     void flush() { if (index) flushx(); }
 
     @trusted
-    uint getOffset() { return cast(uint)(offset + index); }
+    uint getOffset() { return offset + index; }
 
     @trusted
-    uint available() { return cast(uint)(bytes.sizeof - index); }
+    uint available() { return cast(uint)bytes.length - index; }
+
+    /******************************
+     * write64/write32/write16 write `value` to `disasmBuf`
+     */
+    @trusted
+    void write64(ulong value)
+    {
+        if (disasmBuf)
+        {
+            disasmBuf.push(cast(ubyte)value);
+            disasmBuf.push(cast(ubyte)(value >>  8));
+            disasmBuf.push(cast(ubyte)(value >> 16));
+            disasmBuf.push(cast(ubyte)(value >> 24));
+            disasmBuf.push(cast(ubyte)(value >> 32));
+            disasmBuf.push(cast(ubyte)(value >> 36));
+            disasmBuf.push(cast(ubyte)(value >> 40));
+            disasmBuf.push(cast(ubyte)(value >> 44));
+        }
+    }
+
+    pragma(inline, true)
+    @trusted
+    void write32(uint value)
+    {
+        if (disasmBuf)
+        {
+            disasmBuf.push(cast(ubyte)value);
+            disasmBuf.push(cast(ubyte)(value >>  8));
+            disasmBuf.push(cast(ubyte)(value >> 16));
+            disasmBuf.push(cast(ubyte)(value >> 24));
+        }
+    }
+
+    pragma(inline, true)
+    @trusted
+    void write16(uint value)
+    {
+        if (disasmBuf)
+        {
+            disasmBuf.push(cast(ubyte)value);
+            disasmBuf.push(cast(ubyte)(value >> 8));
+        }
+    }
 }
 
+/**************************
+ * Convert instructions to object code and write them to objmod.
+ * Params:
+ *      seg = code segment to write to, code starts at Offset(seg)
+ *      c = list of instructions to write
+ *      disasmBuf = if not null, then also write object code here
+ * Returns:
+ *      offset of end of code emitted
+ */
+
 @trusted
-uint codout(int seg, code *c)
+uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
 {
     ubyte rm,mod;
     ubyte ins;
@@ -6845,8 +6906,9 @@ uint codout(int seg, code *c)
 
     MiniCodeBuf ggen = void;
     ggen.index = 0;
-    ggen.offset = cast(size_t)Offset(seg);
+    ggen.offset = cast(uint)Offset(seg);
     ggen.seg = seg;
+    ggen.disasmBuf = disasmBuf;
 
     for (; c; c = code_next(c))
     {
@@ -6906,7 +6968,7 @@ else
 }
 }
                     case ESCadjesp:
-                        //printf("adjust ESP %ld\n", (long)c.IEV1.Vint);
+                        //printf("adjust ESP %ld\n", cast(long)c.IEV1.Vint);
                         break;
 
                     default:
@@ -7346,6 +7408,7 @@ private void do64bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags)
 
         case FLdatseg:
             pbuf.flush();
+            pbuf.write64(uev.Vpointer);
             objmod.reftodatseg(pbuf.seg,pbuf.offset,uev.Vpointer,uev.Vseg,CFoffset64 | flags);
             break;
 
@@ -7357,6 +7420,7 @@ private void do64bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags)
         case FLswitch:
             pbuf.flush();
             ad = uev.Vswitch.Btableoffset;
+            pbuf.write64(ad);
             if (config.flags & CFGromable)
                     objmod.reftocodeseg(pbuf.seg,pbuf.offset,ad);
             else
@@ -7373,6 +7437,7 @@ private void do64bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags)
         case FLtlsdata:
             pbuf.flush();
             s = uev.Vsym;               /* symbol pointer               */
+            pbuf.write64(uev.Voffset);
             objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset,CFoffset64 | flags);
             break;
 
@@ -7385,6 +7450,7 @@ private void do64bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags)
             {
                 pbuf.flush();
                 s = uev.Vsym;               /* symbol pointer               */
+                pbuf.write64(uev.Voffset);
                 objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset,CFoffset64 | flags);
                 break;
             }
@@ -7402,6 +7468,7 @@ private void do64bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags)
             {
                 pbuf.flush();
                 s = uev.Vsym;               /* symbol pointer               */
+                pbuf.write64(uev.Voffset);
                 objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset,CFoffset64 | flags);
                 break;
             }
@@ -7412,6 +7479,7 @@ private void do64bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags)
             s = uev.Vsym;               /* symbol pointer               */
             assert(TARGET_SEGMENTED || !tyfarfunc(s.ty()));
             pbuf.flush();
+            pbuf.write64(0);
             objmod.reftoident(pbuf.seg,pbuf.offset,s,0,CFoffset64 | flags);
             break;
 
@@ -7424,6 +7492,7 @@ private void do64bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags)
             pbuf.flush();
             assert(uev.Vblock);
             //printf("FLblockoff: offset = %x, Boffset = %x, funcoffset = %x\n", pbuf.offset, uev.Vblock.Boffset, funcoffset);
+            pbuf.write64(uev.Vblock.Boffset);
             objmod.reftocodeseg(pbuf.seg,pbuf.offset,uev.Vblock.Boffset);
             break;
 
@@ -7455,6 +7524,7 @@ private void do32bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags, int val)
         case FLdatseg:
             pbuf.flush();
             objmod.reftodatseg(pbuf.seg,pbuf.offset,uev.Vpointer,uev.Vseg,flags);
+            pbuf.write32(cast(uint)uev.Vpointer);
             break;
 
         case FLframehandler:
@@ -7495,6 +7565,7 @@ private void do32bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags, int val)
             }
             else
                     objmod.reftodatseg(pbuf.seg,pbuf.offset,ad,objmod.jmpTableSegment(funcsym_p),CFoff);
+            pbuf.write32(cast(uint)ad);
             break;
 
         case FLcode:
@@ -7502,6 +7573,7 @@ private void do32bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags, int val)
             pbuf.flush();
             ad = *cast(targ_size_t *) uev + pbuf.getOffset();
             objmod.reftocodeseg(pbuf.seg,pbuf.offset,ad);
+            pbuf.write32(cast(uint)ad);
             break;
 
         case FLcsdata:
@@ -7524,9 +7596,13 @@ private void do32bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags, int val)
                 flags |= (-val & 7) << 24;          // set CFREL value
                 assert(CFREL == (7 << 24));
                 objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset,flags);
+                pbuf.write32(cast(uint)uev.Voffset);
             }
             else
+            {
                 objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset + val,flags);
+                pbuf.write32(cast(uint)(uev.Voffset + val));
+            }
             break;
 
         case FLgotoff:
@@ -7539,6 +7615,7 @@ private void do32bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags, int val)
                 pbuf.flush();
                 s = uev.Vsym;               /* symbol pointer               */
                 objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset + val,flags);
+                pbuf.write32(cast(uint)(uev.Voffset + val));
                 break;
             }
             else
@@ -7556,6 +7633,7 @@ private void do32bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags, int val)
                 pbuf.flush();
                 s = uev.Vsym;               /* symbol pointer               */
                 objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset + val,flags);
+                pbuf.write32(cast(uint)(uev.Voffset + val));
                 break;
             }
             else
@@ -7567,6 +7645,7 @@ private void do32bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags, int val)
             {   /* Large code references are always absolute    */
                 pbuf.flush();
                 pbuf.offset += objmod.reftoident(pbuf.seg,pbuf.offset,s,0,flags) - 4;
+                pbuf.write32(0);
             }
             else if (s.Sseg == pbuf.seg &&
                      (s.Sclass == SCstatic || s.Sclass == SCglobal) &&
@@ -7580,6 +7659,7 @@ private void do32bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags, int val)
                 assert(TARGET_SEGMENTED || !tyfarfunc(s.ty()));
                 pbuf.flush();
                 objmod.reftoident(pbuf.seg,pbuf.offset,s,val,flags);
+                pbuf.write32(cast(uint)(val));
             }
             break;
 
@@ -7593,6 +7673,7 @@ private void do32bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags, int val)
             assert(uev.Vblock);
             //printf("FLblockoff: offset = %x, Boffset = %x, funcoffset = %x\n", pbuf.offset, uev.Vblock.Boffset, funcoffset);
             objmod.reftocodeseg(pbuf.seg,pbuf.offset,uev.Vblock.Boffset);
+            pbuf.write32(cast(uint)(uev.Vblock.Boffset));
             break;
 
         default:
@@ -7619,6 +7700,7 @@ private void do16bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags)
         case FLdatseg:
             pbuf.flush();
             objmod.reftodatseg(pbuf.seg,pbuf.offset,uev.Vpointer,uev.Vseg,flags);
+            pbuf.write16(cast(uint)uev.Vpointer);
             break;
 
         case FLswitch:
@@ -7628,6 +7710,7 @@ private void do16bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags)
                 objmod.reftocodeseg(pbuf.seg,pbuf.offset,ad);
             else
                 objmod.reftodatseg(pbuf.seg,pbuf.offset,ad,objmod.jmpTableSegment(funcsym_p),CFoff);
+            pbuf.write16(cast(uint)ad);
             break;
 
         case FLcsdata:
@@ -7638,6 +7721,7 @@ private void do16bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags)
             pbuf.flush();
             s = uev.Vsym;               /* symbol pointer               */
             objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset,flags);
+            pbuf.write16(cast(uint)uev.Voffset);
             break;
 
         case FLfunc:                        /* function call                */
@@ -7660,6 +7744,7 @@ private void do16bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags)
                 pbuf.flush();
                 objmod.reftoident(pbuf.seg,pbuf.offset,s,0,flags);
             }
+            pbuf.write16(0);
             break;
 
         case FLblock:                       /* displacement to another block */
@@ -7676,6 +7761,7 @@ private void do16bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags)
         case FLblockoff:
             pbuf.flush();
             objmod.reftocodeseg(pbuf.seg,pbuf.offset,uev.Vblock.Boffset);
+            pbuf.write16(cast(uint)uev.Vblock.Boffset);
             break;
 
         default:
@@ -8085,7 +8171,7 @@ void WRcodlst(code *c)
 }
 
 @trusted
-extern (C) void code_print(code* c)
+extern (C) void code_print(scope code* c)
 {
     ubyte ins;
     ubyte rexb;
@@ -8259,6 +8345,53 @@ extern (C) void code_print(code* c)
                 break;
         }
     }
+    printf("\n");
+}
+
+/**************************************
+ * Pretty-print a CF mask.
+ * Params:
+ *      cf = CF mask
+ */
+@trusted
+extern (C) void CF_print(uint cf)
+{
+    void print(uint mask, const(char)* string)
+    {
+        if (cf & mask)
+        {
+            printf(string);
+            cf &= ~mask;
+            if (cf)
+                printf("|");
+        }
+    }
+
+    print(CFindirect, "CFindirect");
+    print(CFswitch, "CFswitch");
+    print(CFjmp5, "CFjmp5");
+    print(CFvex3, "CFvex3");
+    print(CFvex, "CFvex");
+    print(CFpc32, "CFpc32");
+    print(CFoffset64, "CFoffset64");
+    print(CFclassinit, "CFclassinit");
+    print(CFvolatile, "CFvolatile");
+    print(CFtarg2, "CFtarg2");
+    print(CFunambig, "CFunambig");
+    print(CFselfrel, "CFselfrel");
+    print(CFwait, "CFwait");
+    print(CFfs, "CFfs");
+    print(CFcs, "CFcs");
+    print(CFds, "CFds");
+    print(CFss, "CFss");
+    print(CFes, "CFes");
+    print(CFaddrsize, "CFaddrsize");
+    print(CFopsize, "CFopsize");
+    print(CFpsw, "CFpsw");
+    print(CFoff, "CFoff");
+    print(CFseg, "CFseg");
+    print(CFtarg, "CFtarg");
+    print(CFjmp16, "CFjmp16");
     printf("\n");
 }
 

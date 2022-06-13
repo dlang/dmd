@@ -2,9 +2,9 @@
  * Put initializers and objects created from CTFE into a `dt_t` data structure
  * so the backend puts them into the data segment.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/todt.d, _todt.d)
  * Documentation:  https://dlang.org/phobos/dmd_todt.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/todt.d
@@ -16,13 +16,13 @@ import core.stdc.stdio;
 import core.stdc.string;
 
 import dmd.root.array;
+import dmd.root.complex;
 import dmd.root.rmem;
 
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.backend.type;
-import dmd.complex;
 import dmd.ctfeexpr;
 import dmd.declaration;
 import dmd.dclass;
@@ -63,7 +63,7 @@ alias Dts = Array!(dt_t*);
 
 /* ================================================================ */
 
-extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb)
+extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb, bool isCfile)
 {
     void visitError(ErrorInitializer)
     {
@@ -112,14 +112,14 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb)
 
             assert(length < ai.dim);
             auto dtb = DtBuilder(0);
-            Initializer_toDt(ai.value[i], dtb);
+            Initializer_toDt(ai.value[i], dtb, isCfile);
             if (dts[length])
                 error(ai.loc, "duplicate initializations for index `%d`", length);
             dts[length] = dtb.finish();
             length++;
         }
 
-        Expression edefault = tb.nextOf().defaultInit(Loc.initial);
+        Expression edefault = tb.nextOf().defaultInit(Loc.initial, isCfile);
 
         const n = tn.numberOfElems(ai.loc);
 
@@ -149,7 +149,7 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb)
                 size_t tadim = cast(size_t)ta.dim.toInteger();
                 if (ai.dim < tadim)
                 {
-                    if (edefault.isBool(false))
+                    if (edefault.toBool().hasValue(false))
                     {
                         // pad out end of array
                         dtbarray.nzeros(cast(uint)(size * (tadim - ai.dim)));
@@ -243,7 +243,7 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb)
                 else
                 {
                     ++i;
-                    Initializer_toDt(di.initializer, dtb);
+                    Initializer_toDt(di.initializer, dtb, isCfile);
                 }
             }
         }
@@ -272,10 +272,29 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
     {
         version (none)
         {
-            printf("Expression.toDt() %d\n", e.op);
+            printf("Expression.toDt() op = %d e = %s \n", e.op, e.toChars());
         }
         e.error("non-constant expression `%s`", e.toChars());
         dtb.nzeros(1);
+    }
+
+    void visitSlice(SliceExp e)
+    {
+        version (none)
+        {
+            printf("SliceExp.toDt() %d from %s to %s\n", e.op, e.e1.type.toChars(), e.type.toChars());
+        }
+        if (!e.lwr && !e.upr)
+            return Expression_toDt(e.e1, dtb);
+        if (auto strExp = e.e1.isStringExp())
+        {
+            auto lwr = e.lwr.isIntegerExp();
+            auto upr = e.upr.isIntegerExp();
+            if (lwr && upr && lwr.toInteger() == 0 && upr.toInteger() == strExp.len)
+                return Expression_toDt(e.e1, dtb);
+        }
+
+        nonConstExpError(e);
     }
 
     void visitCast(CastExp e)
@@ -518,7 +537,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
     {
         //printf("StructLiteralExp.toDt() %s, ctfe = %d\n", sle.toChars(), sle.ownedByCtfe);
         assert(sle.sd.nonHiddenFields() <= sle.elements.dim);
-        membersToDt(sle.sd, dtb, sle.elements, 0, null);
+        membersToDt(sle.sd, dtb, sle.elements, 0, null, null);
     }
 
     void visitSymOff(SymOffExp e)
@@ -547,17 +566,26 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
                 return;
             }
             v.inuse++;
-            Initializer_toDt(v._init, dtb);
+            Initializer_toDt(v._init, dtb, v.isCsymbol());
             v.inuse--;
             return;
         }
 
         if (auto sd = e.var.isSymbolDeclaration())
+        {
             if (sd.dsym)
             {
-                StructDeclaration_toDt(sd.dsym, dtb);
+
+                if (auto s = sd.dsym.isStructDeclaration())
+                    StructDeclaration_toDt(s, dtb);
+                else if (auto c = sd.dsym.isClassDeclaration())
+                    // Should be unreachable ATM, but just to be sure
+                    ClassDeclaration_toDt(c, dtb);
+                else
+                    assert(false);
                 return;
             }
+        }
 
         return nonConstExpError(e);
     }
@@ -612,7 +640,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
     {
         if (Type t = isType(e.obj))
         {
-            genTypeInfo(e.loc, t, null);
+            genTypeInfo(e, e.loc, t, null);
             Symbol *s = toSymbol(t.vtinfo);
             dtb.xoff(s, 0);
             return;
@@ -629,22 +657,23 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
     switch (e.op)
     {
         default:                 return nonConstExpError(e);
-        case TOK.cast_:          return visitCast          (e.isCastExp());
-        case TOK.address:        return visitAddr          (e.isAddrExp());
-        case TOK.int64:          return visitInteger       (e.isIntegerExp());
-        case TOK.float64:        return visitReal          (e.isRealExp());
-        case TOK.complex80:      return visitComplex       (e.isComplexExp());
-        case TOK.null_:          return visitNull          (e.isNullExp());
-        case TOK.string_:        return visitString        (e.isStringExp());
-        case TOK.arrayLiteral:   return visitArrayLiteral  (e.isArrayLiteralExp());
-        case TOK.structLiteral:  return visitStructLiteral (e.isStructLiteralExp());
-        case TOK.symbolOffset:   return visitSymOff        (e.isSymOffExp());
-        case TOK.variable:       return visitVar           (e.isVarExp());
-        case TOK.function_:      return visitFunc          (e.isFuncExp());
-        case TOK.vector:         return visitVector        (e.isVectorExp());
-        case TOK.classReference: return visitClassReference(e.isClassReferenceExp());
-        case TOK.typeid_:        return visitTypeid        (e.isTypeidExp());
-        case TOK.assert_:        return visitNoreturn      (e);
+        case EXP.cast_:          return visitCast          (e.isCastExp());
+        case EXP.address:        return visitAddr          (e.isAddrExp());
+        case EXP.int64:          return visitInteger       (e.isIntegerExp());
+        case EXP.float64:        return visitReal          (e.isRealExp());
+        case EXP.complex80:      return visitComplex       (e.isComplexExp());
+        case EXP.null_:          return visitNull          (e.isNullExp());
+        case EXP.string_:        return visitString        (e.isStringExp());
+        case EXP.arrayLiteral:   return visitArrayLiteral  (e.isArrayLiteralExp());
+        case EXP.structLiteral:  return visitStructLiteral (e.isStructLiteralExp());
+        case EXP.symbolOffset:   return visitSymOff        (e.isSymOffExp());
+        case EXP.variable:       return visitVar           (e.isVarExp());
+        case EXP.function_:      return visitFunc          (e.isFuncExp());
+        case EXP.vector:         return visitVector        (e.isVectorExp());
+        case EXP.classReference: return visitClassReference(e.isClassReferenceExp());
+        case EXP.typeid_:        return visitTypeid        (e.isTypeidExp());
+        case EXP.assert_:        return visitNoreturn      (e);
+        case EXP.slice:          return visitSlice         (e.isSliceExp());
     }
 }
 
@@ -656,7 +685,7 @@ extern (C++) void ClassDeclaration_toDt(ClassDeclaration cd, ref DtBuilder dtb)
 {
     //printf("ClassDeclaration.toDt(this = '%s')\n", cd.toChars());
 
-    membersToDt(cd, dtb, null, 0, cd);
+    membersToDt(cd, dtb, null, 0, cd, null);
 
     //printf("-ClassDeclaration.toDt(this = '%s')\n", cd.toChars());
 }
@@ -664,7 +693,7 @@ extern (C++) void ClassDeclaration_toDt(ClassDeclaration cd, ref DtBuilder dtb)
 extern (C++) void StructDeclaration_toDt(StructDeclaration sd, ref DtBuilder dtb)
 {
     //printf("+StructDeclaration.toDt(), this='%s'\n", sd.toChars());
-    membersToDt(sd, dtb, null, 0, null);
+    membersToDt(sd, dtb, null, 0, null, null);
 
     //printf("-StructDeclaration.toDt(), this='%s'\n", sd.toChars());
 }
@@ -713,9 +742,10 @@ extern (C++) void cpp_type_info_ptr_toDt(ClassDeclaration cd, ref DtBuilder dtb)
 private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
         Expressions* elements, size_t firstFieldIndex,
         ClassDeclaration concreteType,
-        BaseClass*** ppb = null)
+        BaseClass*** ppb)
 {
     ClassDeclaration cd = ad.isClassDeclaration();
+    const bool isCtype = ad.isCsymbol();
     version (none)
     {
         printf("membersToDt(ad = '%s', concrete = '%s', ppb = %p)\n", ad.toChars(), concreteType ? concreteType.toChars() : "null", ppb);
@@ -731,10 +761,13 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
         {
             foreach (i, field; ad.fields)
             {
-                printf("  fields[%d]: %s %d\n", cast(int)i, field.toChars(), field.offset);
+                if (auto bf = field.isBitFieldDeclaration())
+                    printf("  fields[%d]: %s %2d bitoffset %2d width %2d\n", cast(int)i, bf.toChars(), bf.offset, bf.bitOffset, bf.fieldWidth);
+                else
+                    printf("  fields[%d]: %s %2d\n", cast(int)i, field.toChars(), field.offset);
             }
         }
-        version (all)
+        version (none)
         {
             printf("  firstFieldIndex: %d\n", cast(int)firstFieldIndex);
             foreach (i; 0 .. elements.length)
@@ -745,6 +778,7 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
         }
     }
     dtb.checkInitialized();
+    //printf("+dtb.length: %d\n", dtb.length);
 
     /* Order:
      *  { base class } or { __vptr, __monitor }
@@ -755,19 +789,22 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
     uint offset;
     if (cd)
     {
+        const bool gentypeinfo = global.params.useTypeInfo && Type.dtypeinfo;
+        const bool genclassinfo = gentypeinfo || !(cd.isCPPclass || cd.isCOMclass);
+
         if (ClassDeclaration cdb = cd.baseClass)
         {
             // Insert { base class }
             size_t index = 0;
             for (ClassDeclaration c = cdb.baseClass; c; c = c.baseClass)
                 index += c.fields.dim;
-            membersToDt(cdb, dtb, elements, index, concreteType);
+            membersToDt(cdb, dtb, elements, index, concreteType, null);
             offset = cdb.structsize;
         }
         else if (InterfaceDeclaration id = cd.isInterfaceDeclaration())
         {
             offset = (**ppb).offset;
-            if (id.vtblInterfaces.dim == 0)
+            if (id.vtblInterfaces.dim == 0 && genclassinfo)
             {
                 BaseClass* b = **ppb;
                 //printf("  Interface %s, b = %p\n", id.toChars(), b);
@@ -799,7 +836,10 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
         }
 
         // Interface vptr initializations
-        toSymbol(cd);                                         // define csym
+        if (genclassinfo)
+        {
+            toSymbol(cd);                                         // define csym
+        }
 
         BaseClass** pb;
         if (!ppb)
@@ -814,7 +854,7 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
             if (offset < b.offset)
                 dtb.nzeros(b.offset - offset);
             membersToDt(si.sym, dtb, elements, firstFieldIndex, concreteType, ppb);
-            //printf("b.offset = %d, b.sym.structsize = %d\n", (int)b.offset, (int)b.sym.structsize);
+            //printf("b.offset = %d, b.sym.structsize = %d\n", cast(int)b.offset, cast(int)b.sym.structsize);
             offset = b.offset + b.sym.structsize;
         }
     }
@@ -826,6 +866,7 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
            firstFieldIndex <= elements.dim &&
            firstFieldIndex + ad.fields.dim <= elements.dim);
 
+    uint bitByteOffset = 0;     // byte offset of bit field
     uint bitOffset = 0;         // starting bit number
     ulong bitFieldValue = 0;    // in-flight bit field value
     uint bitFieldSize;          // in-flight size in bytes of bit field
@@ -834,12 +875,43 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
     {
         if (bitOffset)
         {
+            //printf("finishInFlightBitField() offset %d bitOffset %d bitFieldSize %d bitFieldValue x%llx\n", offset, bitOffset, bitFieldSize, bitFieldValue);
             assert(bitFieldSize);
+
+            // advance to start of bit field
+            if (offset < bitByteOffset)
+            {
+                dtb.nzeros(bitByteOffset - offset);
+                offset = bitByteOffset;
+            }
+
             dtb.nbytes(bitFieldSize, cast(char*)&bitFieldValue);
             offset += bitFieldSize;
             bitOffset = 0;
             bitFieldValue = 0;
             bitFieldSize = 0;
+        }
+    }
+
+    static if (0)
+    {
+        foreach (i, field; ad.fields)
+        {
+            if (elements && !(*elements)[firstFieldIndex + i])
+                continue;       // no element for this field
+
+            if (!elements || !(*elements)[firstFieldIndex + i])
+            {
+                if (field._init && field._init.isVoidInitializer())
+                    continue;   // void initializer for this field
+            }
+
+            VarDeclaration vd = field;
+            auto bf = vd.isBitFieldDeclaration();
+            if (bf)
+                printf("%s\t offset: %d width: %u bit: %u\n", bf.toChars(), bf.offset, bf.fieldWidth, bf.bitOffset);
+            else
+                printf("%s\t offset: %d\n", vd.toChars(), vd.offset);
         }
     }
 
@@ -911,7 +983,7 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
             switch (target.c.bitFieldStyle)
             {
                 case TargetC.BitFieldStyle.Gcc_Clang:
-                    bitFieldSize = (bitOffset + bf.fieldWidth + 7) / 8;
+                    bitFieldSize = (bf.bitOffset + bf.fieldWidth + 7) / 8;
                     break;
 
                 case TargetC.BitFieldStyle.DM:
@@ -925,10 +997,14 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
             }
         }
 
-        assert(offset <= vd.offset);
+        //printf("offset: %u, vd: %s vd.offset: %u\n", offset, vd.toChars(), vd.offset);
+        if (vd.offset < offset)
+            continue;           // a union field
         if (offset < vd.offset)
+        {
             dtb.nzeros(vd.offset - offset);
-        //printf("vd: %s offset: %u, vd.offset: %u\n", vd.toChars(), offset, vd.offset);
+            offset = vd.offset;
+        }
 
         auto dtbx = DtBuilder(0);
         if (elements)
@@ -936,7 +1012,7 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
             Expression e = (*elements)[firstFieldIndex + k];
             //printf("elements initializer %s\n", e.toChars());
             if (auto tsa = vd.type.toBasetype().isTypeSArray())
-                toDtElem(tsa, dtbx, e);
+                toDtElem(tsa, dtbx, e, isCtype);
             else if (bf)
             {
                 auto ie = e.isIntegerExp();
@@ -950,7 +1026,7 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
             else
                 Expression_toDt(e, dtbx);    // convert e to an initializer dt
         }
-        else
+        else if (!bf)
         {
             if (Initializer init = vd._init)
             {
@@ -963,9 +1039,9 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
                 auto ei = init.isExpInitializer();
                 auto tsa = vd.type.toBasetype().isTypeSArray();
                 if (ei && tsa)
-                    toDtElem(tsa, dtbx, ei.exp);
+                    toDtElem(tsa, dtbx, ei.exp, isCtype);
                 else
-                    Initializer_toDt(init, dtbx);
+                    Initializer_toDt(init, dtbx, isCtype);
             }
             else if (offset <= vd.offset)
             {
@@ -980,6 +1056,7 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
             dtb.cat(dtbx);
         if (bf)
         {
+            bitByteOffset = bf.offset;
             bitOffset = bf.bitOffset + bf.fieldWidth;
         }
         else
@@ -992,21 +1069,22 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
 
     if (offset < ad.structsize)
         dtb.nzeros(ad.structsize - offset);
+    //printf("-dtb.length: %d\n", dtb.length);
 }
 
 
 /* ================================================================= */
 
-extern (C++) void Type_toDt(Type t, ref DtBuilder dtb)
+extern (C++) void Type_toDt(Type t, ref DtBuilder dtb, bool isCtype = false)
 {
     switch (t.ty)
     {
         case Tvector:
-            toDtElem(t.isTypeVector().basetype.isTypeSArray(), dtb, null);
+            toDtElem(t.isTypeVector().basetype.isTypeSArray(), dtb, null, isCtype);
             break;
 
         case Tsarray:
-            toDtElem(t.isTypeSArray(), dtb, null);
+            toDtElem(t.isTypeSArray(), dtb, null, isCtype);
             break;
 
         case Tstruct:
@@ -1014,12 +1092,12 @@ extern (C++) void Type_toDt(Type t, ref DtBuilder dtb)
             break;
 
         default:
-            Expression_toDt(t.defaultInit(Loc.initial), dtb);
+            Expression_toDt(t.defaultInit(Loc.initial, isCtype), dtb);
             break;
     }
 }
 
-private void toDtElem(TypeSArray tsa, ref DtBuilder dtb, Expression e)
+private void toDtElem(TypeSArray tsa, ref DtBuilder dtb, Expression e, bool isCtype)
 {
     //printf("TypeSArray.toDtElem() tsa = %s\n", tsa.toChars());
     if (tsa.size(Loc.initial) == 0)
@@ -1042,7 +1120,7 @@ private void toDtElem(TypeSArray tsa, ref DtBuilder dtb, Expression e)
             tbn = tnext.toBasetype();
         }
         if (!e)                             // if not already supplied
-            e = tsa.defaultInit(Loc.initial);    // use default initializer
+            e = tsa.defaultInit(Loc.initial, isCtype);    // use default initializer
 
         if (!e.type.implicitConvTo(tnext))    // https://issues.dlang.org/show_bug.cgi?id=14996
         {
@@ -1084,7 +1162,7 @@ extern (C++) void ClassReferenceExp_toInstanceDt(ClassReferenceExp ce, ref DtBui
     size_t firstFieldIndex = 0;
     for (ClassDeclaration c = cd.baseClass; c; c = c.baseClass)
         firstFieldIndex += c.fields.dim;
-    membersToDt(cd, dtb, ce.value.elements, firstFieldIndex, cd);
+    membersToDt(cd, dtb, ce.value.elements, firstFieldIndex, cd, null);
 }
 
 /****************************************************
@@ -1138,7 +1216,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
             dtb.size(0);                                  // monitor
         Type tm = d.tinfo.mutableOf();
         tm = tm.merge();
-        genTypeInfo(d.loc, tm, null);
+        genTypeInfo(null, d.loc, tm, null);
         dtb.xoff(toSymbol(tm.vtinfo), 0);
     }
 
@@ -1152,7 +1230,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
             dtb.size(0);                                      // monitor
         Type tm = d.tinfo.mutableOf();
         tm = tm.merge();
-        genTypeInfo(d.loc, tm, null);
+        genTypeInfo(null, d.loc, tm, null);
         dtb.xoff(toSymbol(tm.vtinfo), 0);
     }
 
@@ -1166,7 +1244,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
             dtb.size(0);                                 // monitor
         Type tm = d.tinfo.unSharedOf();
         tm = tm.merge();
-        genTypeInfo(d.loc, tm, null);
+        genTypeInfo(null, d.loc, tm, null);
         dtb.xoff(toSymbol(tm.vtinfo), 0);
     }
 
@@ -1180,7 +1258,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
             dtb.size(0);                              // monitor
         Type tm = d.tinfo.mutableOf();
         tm = tm.merge();
-        genTypeInfo(d.loc, tm, null);
+        genTypeInfo(null, d.loc, tm, null);
         dtb.xoff(toSymbol(tm.vtinfo), 0);
     }
 
@@ -1207,7 +1285,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         // TypeInfo for enum members
         if (sd.memtype)
         {
-            genTypeInfo(d.loc, sd.memtype, null);
+            genTypeInfo(null, d.loc, sd.memtype, null);
             dtb.xoff(toSymbol(sd.memtype.vtinfo), 0);
         }
         else
@@ -1247,7 +1325,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
 
         auto tc = d.tinfo.isTypePointer();
 
-        genTypeInfo(d.loc, tc.next, null);
+        genTypeInfo(null, d.loc, tc.next, null);
         dtb.xoff(toSymbol(tc.next.vtinfo), 0); // TypeInfo for type being pointed to
     }
 
@@ -1262,7 +1340,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
 
         auto tc = d.tinfo.isTypeDArray();
 
-        genTypeInfo(d.loc, tc.next, null);
+        genTypeInfo(null, d.loc, tc.next, null);
         dtb.xoff(toSymbol(tc.next.vtinfo), 0); // TypeInfo for array of type
     }
 
@@ -1277,7 +1355,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
 
         auto tc = d.tinfo.isTypeSArray();
 
-        genTypeInfo(d.loc, tc.next, null);
+        genTypeInfo(null, d.loc, tc.next, null);
         dtb.xoff(toSymbol(tc.next.vtinfo), 0);   // TypeInfo for array of type
 
         dtb.size(tc.dim.toInteger());          // length
@@ -1294,7 +1372,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
 
         auto tc = d.tinfo.isTypeVector();
 
-        genTypeInfo(d.loc, tc.basetype, null);
+        genTypeInfo(null, d.loc, tc.basetype, null);
         dtb.xoff(toSymbol(tc.basetype.vtinfo), 0); // TypeInfo for equivalent static array
     }
 
@@ -1309,10 +1387,10 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
 
         auto tc = d.tinfo.isTypeAArray();
 
-        genTypeInfo(d.loc, tc.next, null);
+        genTypeInfo(null, d.loc, tc.next, null);
         dtb.xoff(toSymbol(tc.next.vtinfo), 0);   // TypeInfo for array of type
 
-        genTypeInfo(d.loc, tc.index, null);
+        genTypeInfo(null, d.loc, tc.index, null);
         dtb.xoff(toSymbol(tc.index.vtinfo), 0);  // TypeInfo for array of type
     }
 
@@ -1327,7 +1405,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
 
         auto tc = d.tinfo.isTypeFunction();
 
-        genTypeInfo(d.loc, tc.next, null);
+        genTypeInfo(null, d.loc, tc.next, null);
         dtb.xoff(toSymbol(tc.next.vtinfo), 0); // TypeInfo for function return value
 
         const name = d.tinfo.deco;
@@ -1351,7 +1429,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
 
         auto tc = d.tinfo.isTypeDelegate();
 
-        genTypeInfo(d.loc, tc.next.nextOf(), null);
+        genTypeInfo(null, d.loc, tc.next.nextOf(), null);
         dtb.xoff(toSymbol(tc.next.nextOf().vtinfo), 0); // TypeInfo for delegate return value
 
         const name = d.tinfo.deco;
@@ -1506,7 +1584,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
                 // m_argi
                 if (auto t = sd.argType(i))
                 {
-                    genTypeInfo(d.loc, t, null);
+                    genTypeInfo(null, d.loc, t, null);
                     dtb.xoff(toSymbol(t.vtinfo), 0);
                 }
                 else
@@ -1568,7 +1646,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         auto dtbargs = DtBuilder(0);
         foreach (arg; *tu.arguments)
         {
-            genTypeInfo(d.loc, arg.type, null);
+            genTypeInfo(null, d.loc, arg.type, null);
             Symbol* s = toSymbol(arg.type.vtinfo);
             dtbargs.xoff(s, 0);
         }

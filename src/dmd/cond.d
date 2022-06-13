@@ -3,9 +3,9 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/version.html, Conditional Compilation)
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/cond.d, _cond.d)
  * Documentation:  https://dlang.org/phobos/dmd_cond.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/cond.d
@@ -152,7 +152,7 @@ extern (C++) final class StaticForeach : RootObject
         sc = sc.endCTFE();
         el = el.optimize(WANTvalue);
         el = el.ctfeInterpret();
-        if (el.op == TOK.int64)
+        if (el.op == EXP.int64)
         {
             Expressions *es = void;
             if (auto ale = aggr.isArrayLiteralExp())
@@ -370,7 +370,7 @@ extern (C++) final class StaticForeach : RootObject
         Type ety = new TypeTypeof(aloc, wrapAndCall(aloc, new CompoundStatement(aloc, s1)));
         auto aty = ety.arrayOf();
         auto idres = Identifier.generateId("__res");
-        auto vard = new VarDeclaration(aloc, aty, idres, null);
+        auto vard = new VarDeclaration(aloc, aty, idres, null, STC.temp);
         auto s2 = new Statements();
 
         // Run 'typeof' gagged to avoid duplicate errors and if it fails just create
@@ -452,7 +452,6 @@ extern (C++) final class StaticForeach : RootObject
             sc = sc.startCTFE();
             aggrfe.aggr = aggrfe.aggr.expressionSemantic(sc);
             sc = sc.endCTFE();
-            aggrfe.aggr = aggrfe.aggr.optimize(WANTvalue);
         }
 
         if (aggrfe && aggrfe.aggr.type.toBasetype().ty == Terror)
@@ -985,9 +984,9 @@ bool findCondition(Identifiers* ids, Identifier ident) @safe nothrow pure
 // Helper for printing dependency information
 private void printDepsConditional(Scope* sc, DVCondition condition, const(char)[] depType)
 {
-    if (!global.params.moduleDeps || global.params.moduleDepsFile)
+    if (!global.params.moduleDeps.buffer || global.params.moduleDeps.name)
         return;
-    OutBuffer* ob = global.params.moduleDeps;
+    OutBuffer* ob = global.params.moduleDeps.buffer;
     Module imod = sc ? sc._module : condition.mod;
     if (!imod)
         return;

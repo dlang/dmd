@@ -45,5 +45,3 @@ void test()
 
     int e5 = _Generic(1, int:E);
 }
-
-

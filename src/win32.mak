@@ -3,18 +3,18 @@
 #
 # Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
 # written by Walter Bright
-# http://www.digitalmars.com
+# https://www.digitalmars.com
 # Distributed under the Boost Software License, Version 1.0.
-# http://www.boost.org/LICENSE_1_0.txt
+# https://www.boost.org/LICENSE_1_0.txt
 # https://github.com/dlang/dmd/blob/master/src/win32.mak
 #
 # Dependencies:
 #
 # Digital Mars C++ toolset
-#   http://www.digitalmars.com/download/freecompiler.html
+#   https://www.digitalmars.com/download/freecompiler.html
 #
 # win32.mak (this file) - requires Digital Mars Make ($DM_HOME\dm\bin\make.exe)
-#   http://www.digitalmars.com/ctg/make.html
+#   https://www.digitalmars.com/ctg/make.html
 #
 # Configuration:
 #
@@ -72,7 +72,7 @@ DMDMAKE=$(MAKE) -fwin32.mak MAKE="$(MAKE)" HOST_DC="$(HOST_DC)" MODEL=$(MODEL) C
 
 ############################### Rule Variables ###############################
 
-RUN_BUILD=$(GEN)\build.exe --called-from-make "OS=$(OS)" "BUILD=$(BUILD)" "MODEL=$(MODEL)" "HOST_DMD=$(HOST_DMD)" "HOST_DC=$(HOST_DC)" "MAKE=$(MAKE)" "VERBOSE=$(VERBOSE)" "ENABLE_RELEASE=$(ENABLE_RELEASE)" "ENABLE_DEBUG=$(ENABLE_DEBUG)" "ENABLE_ASSERTS=$(ENABLE_ASSERTS)" "ENABLE_UNITTEST=$(ENABLE_UNITTEST)" "ENABLE_PROFILE=$(ENABLE_PROFILE)" "ENABLE_COVERAGE=$(ENABLE_COVERAGE)" "DFLAGS=$(DFLAGS)"
+RUN_BUILD=$(GEN)\build.exe --called-from-make "OS=$(OS)" "BUILD=$(BUILD)" "MODEL=$(MODEL)" "HOST_DMD=$(HOST_DMD)" "HOST_DC=$(HOST_DC)" "MAKE=$(MAKE)" "VERBOSE=$(VERBOSE)" "ENABLE_RELEASE=$(ENABLE_RELEASE)" "ENABLE_DEBUG=$(ENABLE_DEBUG)" "ENABLE_ASSERTS=$(ENABLE_ASSERTS)" "ENABLE_LTO=$(ENABLE_LTO)" "ENABLE_UNITTEST=$(ENABLE_UNITTEST)" "ENABLE_PROFILE=$(ENABLE_PROFILE)" "ENABLE_COVERAGE=$(ENABLE_COVERAGE)" "DFLAGS=$(DFLAGS)"
 
 ############################## Release Targets ###############################
 
@@ -107,7 +107,7 @@ check-host-dc:
 debdmd: check-host-dc debdmd-make
 
 debdmd-make:
-	$(DMDMAKE) "ENABLE_DEBUG=1" "ENABLE_UNITTEST=1" $(TARGETEXE)
+	$(DMDMAKE) "ENABLE_DEBUG=1" $(TARGETEXE)
 
 reldmd: check-host-dc reldmd-make
 

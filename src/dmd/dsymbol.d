@@ -1,9 +1,9 @@
 /**
  * The base class for a D symbol, which can be a module, variable, function, enum, etc.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dsymbol.d, _dsymbol.d)
  * Documentation:  https://dlang.org/phobos/dmd_dsymbol.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/dsymbol.d
@@ -51,6 +51,7 @@ import dmd.root.rootobject;
 import dmd.root.speller;
 import dmd.root.string;
 import dmd.statement;
+import dmd.staticassert;
 import dmd.tokens;
 import dmd.visitor;
 
@@ -111,12 +112,12 @@ struct Ungag
 {
     uint oldgag;
 
-    extern (D) this(uint old)
+    extern (D) this(uint old) nothrow
     {
         this.oldgag = old;
     }
 
-    extern (C++) ~this()
+    extern (C++) ~this() nothrow
     {
         global.gag = oldgag;
     }
@@ -189,7 +190,7 @@ struct Visibility
 
 enum PASS : ubyte
 {
-    init,           // initial state
+    initial,        // initial state
     semantic,       // semantic() started
     semanticdone,   // semantic() done
     semantic2,      // semantic2() started
@@ -244,43 +245,37 @@ extern (C++) class Dsymbol : ASTNode
     /// C++ namespace this symbol belongs to
     CPPNamespaceDeclaration cppnamespace;
     Symbol* csym;           // symbol for code generator
-    Symbol* isym;           // import version of csym
-    const(char)* comment;   // documentation comment for this Dsymbol
     const Loc loc;          // where defined
     Scope* _scope;          // !=null means context to use for semantic()
     const(char)* prettystring;  // cached value of toPrettyChars()
     bool errors;            // this symbol failed to pass semantic()
-    PASS semanticRun = PASS.init;
+    PASS semanticRun = PASS.initial;
     ushort localNum;        /// perturb mangled name to avoid collisions with those in FuncDeclaration.localsymtab
 
     DeprecatedDeclaration depdecl;           // customized deprecation message
     UserAttributeDeclaration userAttribDecl;    // user defined attributes
 
-    // !=null means there's a ddoc unittest associated with this symbol
-    // (only use this with ddoc)
-    UnitTestDeclaration ddocUnittest;
-
-    final extern (D) this()
+    final extern (D) this() nothrow
     {
         //printf("Dsymbol::Dsymbol(%p)\n", this);
         loc = Loc(null, 0, 0);
     }
 
-    final extern (D) this(Identifier ident)
+    final extern (D) this(Identifier ident) nothrow
     {
         //printf("Dsymbol::Dsymbol(%p, ident)\n", this);
         this.loc = Loc(null, 0, 0);
         this.ident = ident;
     }
 
-    final extern (D) this(const ref Loc loc, Identifier ident)
+    final extern (D) this(const ref Loc loc, Identifier ident) nothrow
     {
         //printf("Dsymbol::Dsymbol(%p, ident)\n", this);
         this.loc = loc;
         this.ident = ident;
     }
 
-    static Dsymbol create(Identifier ident)
+    static Dsymbol create(Identifier ident) nothrow
     {
         return new Dsymbol(ident);
     }
@@ -462,6 +457,18 @@ extern (C++) class Dsymbol : ASTNode
         return null;
     }
 
+    /**************************************
+     * Does this Dsymbol come from a C file?
+     * Returns:
+     *  true if it does
+     */
+     final bool isCsymbol()
+     {
+        if (Module m = getModule())
+            return m.filetype == FileType.c;
+        return false;
+    }
+
     /**********************************
      * Determine which Module a Dsymbol is in, as far as access rights go.
      */
@@ -614,7 +621,7 @@ extern (C++) class Dsymbol : ASTNode
         static bool has2This(Dsymbol s)
         {
             if (auto f = s.isFuncDeclaration())
-                return f.isThis2;
+                return f.hasDualContext();
             if (auto ad = s.isAggregateDeclaration())
                 return ad.vthis2 !is null;
             return false;
@@ -793,9 +800,25 @@ extern (C++) class Dsymbol : ASTNode
             if (isAliasDeclaration() && !_scope)
                 setScope(sc);
             Dsymbol s2 = sds.symtabLookup(this,ident);
+            /* https://issues.dlang.org/show_bug.cgi?id=17434
+             *
+             * If we are trying to add an import to the symbol table
+             * that has already been introduced, then keep the one with
+             * larger visibility. This is fine for imports because if
+             * we have multiple imports of the same file, if a single one
+             * is public then the symbol is reachable.
+             */
+            if (auto i1 = isImport())
+            {
+                if (auto i2 = s2.isImport())
+                {
+                    if (sc.explicitVisibility && sc.visibility > i2.visibility)
+                        sds.symtab.update(this);
+                }
+            }
 
             // If using C tag/prototype/forward declaration rules
-            if (sc.flags & SCOPE.Cfile)
+            if (sc.flags & SCOPE.Cfile && !this.isImport())
             {
                 if (handleTagSymbols(*sc, this, s2, sds))
                     return;
@@ -815,7 +838,8 @@ extern (C++) class Dsymbol : ASTNode
         }
         if (sds.isAggregateDeclaration() || sds.isEnumDeclaration())
         {
-            if (ident == Id.__sizeof || ident == Id.__xalignof || ident == Id._mangleof)
+            if (ident == Id.__sizeof ||
+                !(sc && sc.flags & SCOPE.Cfile) && (ident == Id.__xalignof || ident == Id._mangleof))
             {
                 error("`.%s` property cannot be redefined", ident.toChars());
                 errors = true;
@@ -926,14 +950,7 @@ extern (C++) class Dsymbol : ASTNode
                 TemplateInstance ti = st.isTemplateInstance();
                 sm = s.search(loc, ti.name);
                 if (!sm)
-                {
-                    sm = s.search_correct(ti.name);
-                    if (sm)
-                        .error(loc, "template identifier `%s` is not a member of %s `%s`, did you mean %s `%s`?", ti.name.toChars(), s.kind(), s.toPrettyChars(), sm.kind(), sm.toChars());
-                    else
-                        .error(loc, "template identifier `%s` is not a member of %s `%s`", ti.name.toChars(), s.kind(), s.toPrettyChars());
                     return null;
-                }
                 sm = sm.toAlias();
                 TemplateDeclaration td = sm.isTemplateDeclaration();
                 if (!td)
@@ -965,9 +982,9 @@ extern (C++) class Dsymbol : ASTNode
      * Returns:
      *  SIZE_INVALID when the size cannot be determined
      */
-    d_uns64 size(const ref Loc loc)
+    uinteger_t size(const ref Loc loc)
     {
-        error("Dsymbol `%s` has no size", toChars());
+        error("symbol `%s` has no size", toChars());
         return SIZE_INVALID;
     }
 
@@ -1198,16 +1215,64 @@ extern (C++) class Dsymbol : ASTNode
      */
     void addComment(const(char)* comment)
     {
-        //if (comment)
-        //    printf("adding comment '%s' to symbol %p '%s'\n", comment, this, toChars());
-        if (!this.comment)
-            this.comment = comment;
-        else if (comment && strcmp(cast(char*)comment, cast(char*)this.comment) != 0)
+        if (!comment || !*comment)
+            return;
+
+        //printf("addComment '%s' to Dsymbol %p '%s'\n", comment, this, toChars());
+        void* h = cast(void*)this;      // just the pointer is the key
+        auto p = h in commentHashTable;
+        if (!p)
+        {
+            commentHashTable[h] = comment;
+            return;
+        }
+        if (strcmp(*p, comment) != 0)
         {
             // Concatenate the two
-            this.comment = Lexer.combineComments(this.comment.toDString(), comment.toDString(), true);
+            *p = Lexer.combineComments((*p).toDString(), comment.toDString(), true);
         }
     }
+
+    /// get documentation comment for this Dsymbol
+    final const(char)* comment()
+    {
+        //printf("getcomment: %p '%s'\n", this, this.toChars());
+        if (auto p = cast(void*)this in commentHashTable)
+        {
+            //printf("comment: '%s'\n", *p);
+            return *p;
+        }
+        return null;
+    }
+
+    /* Shell around addComment() to avoid disruption for the moment */
+    final void comment(const(char)* comment) { addComment(comment); }
+
+    private extern (D) __gshared const(char)*[void*] commentHashTable;
+
+
+    /**********************************
+     * Get ddoc unittest associated with this symbol.
+     * (only use this with ddoc)
+     * Returns: ddoc unittest, null if none
+     */
+    final UnitTestDeclaration ddocUnittest()
+    {
+        if (auto p = cast(void*)this in ddocUnittestHashTable)
+            return *p;
+        return null;
+    }
+
+    /**********************************
+     * Set ddoc unittest associated with this symbol.
+     */
+    final void ddocUnittest(UnitTestDeclaration utd)
+    {
+        ddocUnittestHashTable[cast(void*)this] = utd;
+    }
+
+    private extern (D) __gshared UnitTestDeclaration[void*] ddocUnittestHashTable;
+
 
     /****************************************
      * Returns true if this symbol is defined in a non-root module without instantiation.
@@ -1229,6 +1294,18 @@ extern (C++) class Dsymbol : ASTNode
             }
         }
         return false;
+    }
+
+    /**
+     * Deinitializes the global state of the compiler.
+     *
+     * This can be used to restore the state set by `_init` to its original
+     * state.
+     */
+    static void deinitialize()
+    {
+        commentHashTable = commentHashTable.init;
+        ddocUnittestHashTable = ddocUnittestHashTable.init;
     }
 
     /************
@@ -1290,9 +1367,10 @@ extern (C++) class Dsymbol : ASTNode
     inout(AttribDeclaration)           isAttribDeclaration()           inout { return null; }
     inout(AnonDeclaration)             isAnonDeclaration()             inout { return null; }
     inout(CPPNamespaceDeclaration)     isCPPNamespaceDeclaration()     inout { return null; }
-    inout(VisibilityDeclaration)             isVisibilityDeclaration()             inout { return null; }
+    inout(VisibilityDeclaration)       isVisibilityDeclaration()       inout { return null; }
     inout(OverloadSet)                 isOverloadSet()                 inout { return null; }
     inout(CompileDeclaration)          isCompileDeclaration()          inout { return null; }
+    inout(StaticAssert)                isStaticAssert()                inout { return null; }
 }
 
 /***********************************************************
@@ -1313,16 +1391,16 @@ private:
     BitArray accessiblePackages, privateAccessiblePackages;// whitelists of accessible (imported) packages
 
 public:
-    final extern (D) this()
+    final extern (D) this() nothrow
     {
     }
 
-    final extern (D) this(Identifier ident)
+    final extern (D) this(Identifier ident) nothrow
     {
         super(ident);
     }
 
-    final extern (D) this(const ref Loc loc, Identifier ident)
+    final extern (D) this(const ref Loc loc, Identifier ident) nothrow
     {
         super(loc, ident);
     }
@@ -1536,7 +1614,7 @@ public:
         return os;
     }
 
-    void importScope(Dsymbol s, Visibility visibility)
+    void importScope(Dsymbol s, Visibility visibility) nothrow
     {
         //printf("%s.ScopeDsymbol::importScope(%s, %d)\n", toChars(), s.toChars(), visibility);
         // No circular or redundant import's
@@ -1563,7 +1641,33 @@ public:
         }
     }
 
-    extern (D) final void addAccessiblePackage(Package p, Visibility visibility)
+
+    /*****************************************
+     * Returns: the symbols whose members have been imported, i.e. imported modules
+     * and template mixins.
+     *
+     * See_Also: importScope
+     */
+    extern (D) final Dsymbols* getImportedScopes() nothrow @nogc @safe pure
+    {
+        return importedScopes;
+    }
+
+    /*****************************************
+     * Returns: the array of visibilities associated with each imported scope. The
+     * length of the array matches the imported scopes array.
+     *
+     * See_Also: getImportedScopes
+     */
+    extern (D) final Visibility.Kind[] getImportVisibilities() nothrow @nogc @safe pure
+    {
+        if (!importedScopes)
+            return null;
+
+        return (() @trusted => visibilities[0 .. importedScopes.dim])();
+    }
+
+    extern (D) final void addAccessiblePackage(Package p, Visibility visibility) nothrow
     {
         auto pary = visibility.kind == Visibility.Kind.private_ ? &privateAccessiblePackages : &accessiblePackages;
         if (pary.length <= p.tag)
@@ -1571,7 +1675,7 @@ public:
         (*pary)[p.tag] = true;
     }
 
-    bool isPackageAccessible(Package p, Visibility visibility, int flags = 0)
+    bool isPackageAccessible(Package p, Visibility visibility, int flags = 0) nothrow
     {
         if (p.tag < accessiblePackages.length && accessiblePackages[p.tag] ||
             visibility.kind == Visibility.Kind.private_ && p.tag < privateAccessiblePackages.length && privateAccessiblePackages[p.tag])
@@ -1586,7 +1690,7 @@ public:
         return false;
     }
 
-    override final bool isforwardRef()
+    override final bool isforwardRef() nothrow
     {
         return (members is null);
     }
@@ -1674,7 +1778,7 @@ public:
      * Returns:
      *   null if already in table, `s` if inserted
      */
-    Dsymbol symtabInsert(Dsymbol s)
+    Dsymbol symtabInsert(Dsymbol s) nothrow
     {
         return symtab.insert(s);
     }
@@ -1687,7 +1791,7 @@ public:
      * Returns:
      *   Dsymbol if found, null if not
      */
-    Dsymbol symtabLookup(Dsymbol s, Identifier id)
+    Dsymbol symtabLookup(Dsymbol s, Identifier id) nothrow
     {
         return symtab.lookup(id);
     }
@@ -1770,7 +1874,7 @@ extern (C++) final class WithScopeSymbol : ScopeDsymbol
 {
     WithStatement withstate;
 
-    extern (D) this(WithStatement withstate)
+    extern (D) this(WithStatement withstate) nothrow
     {
         this.withstate = withstate;
     }
@@ -1783,13 +1887,13 @@ extern (C++) final class WithScopeSymbol : ScopeDsymbol
         // Acts as proxy to the with class declaration
         Dsymbol s = null;
         Expression eold = null;
-        for (Expression e = withstate.exp; e != eold; e = resolveAliasThis(_scope, e))
+        for (Expression e = withstate.exp; e && e != eold; e = resolveAliasThis(_scope, e, true))
         {
-            if (e.op == TOK.scope_)
+            if (e.op == EXP.scope_)
             {
                 s = (cast(ScopeExp)e).sds;
             }
-            else if (e.op == TOK.type)
+            else if (e.op == EXP.type)
             {
                 s = e.type.toDsymbol(null);
             }
@@ -1826,25 +1930,25 @@ extern (C++) final class WithScopeSymbol : ScopeDsymbol
 extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
 {
     // either a SliceExp, an IndexExp, an ArrayExp, a TypeTuple or a TupleDeclaration.
-    // Discriminated using DYNCAST and, for expressions, also TOK
+    // Discriminated using DYNCAST and, for expressions, also EXP
     private RootObject arrayContent;
     Scope* sc;
 
-    extern (D) this(Scope* sc, Expression exp)
+    extern (D) this(Scope* sc, Expression exp) nothrow
     {
         super(exp.loc, null);
-        assert(exp.op == TOK.index || exp.op == TOK.slice || exp.op == TOK.array);
+        assert(exp.op == EXP.index || exp.op == EXP.slice || exp.op == EXP.array);
         this.sc = sc;
         this.arrayContent = exp;
     }
 
-    extern (D) this(Scope* sc, TypeTuple type)
+    extern (D) this(Scope* sc, TypeTuple type) nothrow
     {
         this.sc = sc;
         this.arrayContent = type;
     }
 
-    extern (D) this(Scope* sc, TupleDeclaration td)
+    extern (D) this(Scope* sc, TupleDeclaration td) nothrow
     {
         this.sc = sc;
         this.arrayContent = td;
@@ -1874,8 +1978,9 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
         }
 
         const DYNCAST kind = arrayContent.dyncast();
-        if (kind == DYNCAST.dsymbol)
+        switch (kind) with (DYNCAST)
         {
+        case dsymbol:
             TupleDeclaration td = cast(TupleDeclaration) arrayContent;
             /* $ gives the number of elements in the tuple
              */
@@ -1885,10 +1990,10 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
             v.storage_class |= STC.temp | STC.static_ | STC.const_;
             v.dsymbolSemantic(sc);
             return v;
-        }
-        if (kind == DYNCAST.type)
-        {
+        case type:
             return dollarFromTypeTuple(loc, cast(TypeTuple) arrayContent, sc);
+        default:
+            break;
         }
         Expression exp = cast(Expression) arrayContent;
         if (auto ie = exp.isIndexExp())
@@ -1950,7 +2055,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
             else if (ce.type && (t = ce.type.toBasetype()) !is null && (t.ty == Tstruct || t.ty == Tclass))
             {
                 // Look for opDollar
-                assert(exp.op == TOK.array || exp.op == TOK.slice);
+                assert(exp.op == EXP.array || exp.op == EXP.slice);
                 AggregateDeclaration ad = isAggregate(t);
                 assert(ad);
                 Dsymbol s = ad.search(loc, Id.opDollar);
@@ -1962,11 +2067,11 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                 if (TemplateDeclaration td = s.isTemplateDeclaration())
                 {
                     dinteger_t dim = 0;
-                    if (exp.op == TOK.array)
+                    if (exp.op == EXP.array)
                     {
                         dim = (cast(ArrayExp)exp).currentDimension;
                     }
-                    else if (exp.op == TOK.slice)
+                    else if (exp.op == EXP.slice)
                     {
                         dim = 0; // slices are currently always one-dimensional
                     }
@@ -1987,7 +2092,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                      * Note that it's impossible to have both template & function opDollar,
                      * because both take no arguments.
                      */
-                    if (exp.op == TOK.array && (cast(ArrayExp)exp).arguments.dim != 1)
+                    if (exp.op == EXP.array && (cast(ArrayExp)exp).arguments.dim != 1)
                     {
                         exp.error("`%s` only defines opDollar for one dimension", ad.toChars());
                         return null;
@@ -2041,7 +2146,7 @@ extern (C++) final class OverloadSet : Dsymbol
 {
     Dsymbols a;     // array of Dsymbols
 
-    extern (D) this(Identifier ident, OverloadSet os = null)
+    extern (D) this(Identifier ident, OverloadSet os = null) nothrow
     {
         super(ident);
         if (os)
@@ -2050,7 +2155,7 @@ extern (C++) final class OverloadSet : Dsymbol
         }
     }
 
-    void push(Dsymbol s)
+    void push(Dsymbol s) nothrow
     {
         a.push(s);
     }
@@ -2079,19 +2184,13 @@ extern (C++) final class OverloadSet : Dsymbol
  */
 extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
 {
-    /*************************
-     * Symbol to forward insertions to.
-     * Can be `null` before being lazily initialized.
-     */
-    ScopeDsymbol forward;
-    extern (D) this(ScopeDsymbol forward)
+    extern (D) this() nothrow
     {
-        super(null);
-        this.forward = forward;
+        super();
     }
-    override Dsymbol symtabInsert(Dsymbol s)
+
+    override Dsymbol symtabInsert(Dsymbol s) nothrow
     {
-        assert(forward);
         if (auto d = s.isDeclaration())
         {
             if (d.storage_class & STC.local)
@@ -2106,6 +2205,8 @@ extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
                 return super.symtabInsert(s); // insert locally
             }
         }
+        auto forward = parent.isScopeDsymbol();
+        assert(forward);
         if (!forward.symtab)
         {
             forward.symtab = new DsymbolTable();
@@ -2120,9 +2221,8 @@ extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
      * and
      *     static foreach (i; [0]) { enum i = 2; }
      */
-    override Dsymbol symtabLookup(Dsymbol s, Identifier id)
+    override Dsymbol symtabLookup(Dsymbol s, Identifier id) nothrow
     {
-        assert(forward);
         // correctly diagnose clashing foreach loop variables.
         if (auto d = s.isDeclaration())
         {
@@ -2137,6 +2237,8 @@ extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
         }
         // Declarations within `static foreach` do not clash with
         // `static foreach` loop variables.
+        auto forward = parent.isScopeDsymbol();
+        assert(forward);
         if (!forward.symtab)
         {
             forward.symtab = new DsymbolTable();
@@ -2146,12 +2248,14 @@ extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
 
     override void importScope(Dsymbol s, Visibility visibility)
     {
+        auto forward = parent.isScopeDsymbol();
+        assert(forward);
         forward.importScope(s, visibility);
     }
 
     override const(char)* kind()const{ return "local scope"; }
 
-    override inout(ForwardingScopeDsymbol) isForwardingScopeDsymbol() inout
+    override inout(ForwardingScopeDsymbol) isForwardingScopeDsymbol() inout nothrow
     {
         return this;
     }
@@ -2166,13 +2270,13 @@ extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
 extern (C++) final class ExpressionDsymbol : Dsymbol
 {
     Expression exp;
-    this(Expression exp)
+    this(Expression exp) nothrow
     {
         super();
         this.exp = exp;
     }
 
-    override inout(ExpressionDsymbol) isExpressionDsymbol() inout
+    override inout(ExpressionDsymbol) isExpressionDsymbol() inout nothrow
     {
         return this;
     }
@@ -2191,7 +2295,7 @@ extern (C++) final class AliasAssign : Dsymbol
     Dsymbol aliassym; /// replace previous RHS of AliasDeclaration with `aliassym`
                       /// only one of type and aliassym can be != null
 
-    extern (D) this(const ref Loc loc, Identifier ident, Type type, Dsymbol aliassym)
+    extern (D) this(const ref Loc loc, Identifier ident, Type type, Dsymbol aliassym) nothrow
     {
         super(loc, null);
         this.ident = ident;
@@ -2230,6 +2334,8 @@ extern (C++) final class AliasAssign : Dsymbol
 extern (C++) final class DsymbolTable : RootObject
 {
     AssocArray!(Identifier, Dsymbol) tab;
+
+  nothrow:
 
    /***************************
     * Look up Identifier in symbol table
@@ -2330,7 +2436,8 @@ extern (C++) final class DsymbolTable : RootObject
 Dsymbol handleTagSymbols(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsymbol sds)
 {
     enum log = false;
-    if (log) printf("handleTagSymbols('%s')\n", s.toChars());
+    if (log) printf("handleTagSymbols('%s') add %p existing %p\n", s.toChars(), s, s2);
+    if (log) printf("  add %s %s, existing %s %s\n", s.kind(), s.toChars(), s2.kind(), s2.toChars());
     auto sd = s.isScopeDsymbol(); // new declaration
     auto sd2 = s2.isScopeDsymbol(); // existing declaration
 
@@ -2389,6 +2496,7 @@ Dsymbol handleTagSymbols(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsymbol sds)
         sc._module.tagSymTab[cast(void*)s] = s2;
         return s;
     }
+    // neither s2 nor s is a tag
     if (log) printf(" collision\n");
     return null;
 }
@@ -2415,18 +2523,31 @@ Dsymbol handleSymbolRedeclarations(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsy
 {
     enum log = false;
     if (log) printf("handleSymbolRedeclarations('%s')\n", s.toChars());
+    if (log) printf("  add %s %s, existing %s %s\n", s.kind(), s.toChars(), s2.kind(), s2.toChars());
 
     static Dsymbol collision()
     {
         if (log) printf(" collision\n");
         return null;
     }
+    /*
+    Handle merging declarations with asm("foo") and their definitions
+    */
+    static void mangleWrangle(Declaration oldDecl, Declaration newDecl)
+    {
+        if (oldDecl && newDecl)
+        {
+            newDecl.mangleOverride = oldDecl.mangleOverride ? oldDecl.mangleOverride : null;
+        }
+    }
 
     auto vd = s.isVarDeclaration(); // new declaration
     auto vd2 = s2.isVarDeclaration(); // existing declaration
     if (vd && vd2)
     {
-        // if one is `static` and the other isn't
+        /* if one is `static` and the other isn't, the result is undefined
+         * behavior, C11 6.2.2.7
+         */
         if ((vd.storage_class ^ vd2.storage_class) & STC.static_)
             return collision();
 
@@ -2436,8 +2557,14 @@ Dsymbol handleSymbolRedeclarations(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsy
         if (i1 && i2)
             return collision();         // can't both have initializers
 
-        if (i1)
+        mangleWrangle(vd2, vd);
+
+        if (i1)                         // vd is the definition
+        {
+            vd2.storage_class |= STC.extern_;  // so toObjFile() won't emit it
+            sds.symtab.update(vd);      // replace vd2 with the definition
             return vd;
+        }
 
         /* BUG: the types should match, which needs semantic() to be run on it
          *    extern int x;
@@ -2454,19 +2581,51 @@ Dsymbol handleSymbolRedeclarations(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsy
     auto fd2 = s2.isFuncDeclaration(); // existing declaration
     if (fd && fd2)
     {
-        // if one is `static` and the other isn't
-        if ((fd.storage_class ^ fd2.storage_class) & STC.static_)
+        /* if one is `static` and the other isn't, the result is undefined
+         * behavior, C11 6.2.2.7
+         * However, match what gcc allows:
+         *    static int sun1(); int sun1() { return 0; }
+         * and:
+         *    static int sun2() { return 0; } int sun2();
+         * Both produce a static function.
+         *
+         * Both of these should fail:
+         *    int sun3(); static int sun3() { return 0; }
+         * and:
+         *    int sun4() { return 0; } static int sun4();
+         */
+        // if adding `static`
+        if (   fd.storage_class & STC.static_ &&
+            !(fd2.storage_class & STC.static_))
+        {
             return collision();
+        }
 
         if (fd.fbody && fd2.fbody)
             return collision();         // can't both have bodies
 
-        if (fd.fbody)
-            return fd;
+        mangleWrangle(fd2, fd);
 
-        /* BUG: just like with VarDeclaration, the types should match, which needs semantic() to be run on it.
-         * FuncDeclaration::semantic2() can detect this, but it relies overnext being set.
+        if (fd.fbody)                   // fd is the definition
+        {
+            if (log) printf(" replace existing with new\n");
+            sds.symtab.update(fd);      // replace fd2 in symbol table with fd
+            fd.overnext = fd2;
+
+            /* If fd2 is covering a tag symbol, then fd has to cover the same one
+             */
+            auto ps = cast(void*)fd2 in sc._module.tagSymTab;
+            if (ps)
+                sc._module.tagSymTab[cast(void*)fd] = *ps;
+
+            return fd;
+        }
+
+        /* Just like with VarDeclaration, the types should match, which needs semantic() to be run on it.
+         * FuncDeclaration::semantic() detects this, but it relies on .overnext being set.
          */
+        fd2.overloadInsert(fd);
+
         return fd2;
     }
 

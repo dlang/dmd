@@ -2,9 +2,9 @@
  * Implements LSDA (Language Specific Data Area) table generation
  * for Dwarf Exception Handling.
  *
- * Copyright: Copyright (C) 2015-2021 by The D Language Foundation, All Rights Reserved
- * Authors: Walter Bright, http://www.digitalmars.com
- * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright: Copyright (C) 2015-2022 by The D Language Foundation, All Rights Reserved
+ * Authors: Walter Bright, https://www.digitalmars.com
+ * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dwarfeh.d, backend/dwarfeh.d)
  */
 
@@ -57,6 +57,7 @@ nothrow:
         assert(dim <= capacity);
         if (dim == capacity)
         {
+            assert(capacity < uint.max / (3 * DwEhTableEntry.sizeof));  // conservative overflow check
             capacity += capacity + 16;
             ptr = cast(DwEhTableEntry *)realloc(ptr, capacity * DwEhTableEntry.sizeof);
             assert(ptr);
@@ -204,7 +205,7 @@ static if (0)
             assert(n == 0);
         }
     }
-    //printf("deh.dim = %d\n", (int)deh.dim);
+    //printf("deh.dim = %d\n", cast(int)deh.dim);
 
 static if (1)
 {
@@ -592,4 +593,3 @@ void unittest_dwarfeh()
     unittest_LEB128();
     unittest_actionTableInsert();
 }
-

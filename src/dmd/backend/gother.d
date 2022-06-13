@@ -2,10 +2,10 @@
  * Other global optimizations
  *
  * Copyright:   Copyright (C) 1986-1998 by Symantec
- *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
+ *              https://www.boost.org/LICENSE_1_0.txt
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/gother.d
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/gother.d
  * Documentation: https://dlang.org/phobos/dmd_backend_gother.html
@@ -379,7 +379,7 @@ private void conpropwalk(elem *n,vec_t IN)
     /* propagate a constant.                                */
     if (op == OPvar && sytab[n.EV.Vsym.Sclass] & SCRD)
     {
-        //printf("const prop: %s\n", n.EV.Vsym.Sident);
+        //printf("const prop: %s\n", n.EV.Vsym.Sident.ptr);
         Barray!(elem*) rdl;
         listrds(IN,n,null,&rdl);
 
@@ -475,7 +475,8 @@ private void chkrd(elem *n, Barray!(elem*) rdlist)
         }
     }
 
-    version (MARS)
+    //version (MARS)
+    version(none)
     {
         /* Watch out for:
             void test()

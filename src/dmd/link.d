@@ -1,9 +1,9 @@
 /**
  * Invoke the linker as a separate process.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/link.d, _link.d)
  * Documentation:  https://dlang.org/phobos/dmd_link.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/link.d
@@ -19,13 +19,15 @@ import core.sys.posix.stdlib;
 import core.sys.posix.unistd;
 import core.sys.windows.winbase;
 import core.sys.windows.windef;
-import dmd.env;
+import dmd.dmdparams;
 import dmd.errors;
 import dmd.globals;
-import dmd.mars;
+import dmd.root.array;
+import dmd.root.env;
 import dmd.root.file;
 import dmd.root.filename;
 import dmd.common.outbuffer;
+import dmd.common.string;
 import dmd.root.rmem;
 import dmd.root.string;
 import dmd.utils;
@@ -33,9 +35,22 @@ import dmd.target;
 import dmd.vsoptions;
 
 version (Posix) extern (C) int pipe(int*);
-version (Windows) extern (C) int spawnlp(int, const char*, const char*, const char*, const char*);
-version (Windows) extern (C) int spawnl(int, const char*, const char*, const char*, const char*);
-version (Windows) extern (C) int spawnv(int, const char*, const char**);
+
+version (Windows)
+{
+    /* https://www.digitalmars.com/rtl/process.html#_spawn
+     * https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/spawnvp-wspawnvp?view=msvc-170
+     */
+    extern (C)
+    {
+        int spawnlp(int, const char*, const char*, const char*, const char*);
+        int spawnl(int, const char*, const char*, const char*, const char*);
+        int spawnv(int, const char*, const char**);
+        int spawnvp(int, const char*, const char**);
+        enum _P_WAIT = 0;
+    }
+}
+
 // Workaround lack of 'vfork' in older druntime binding for non-Glibc
 version (Posix) extern(C) pid_t vfork();
 version (CRuntime_Microsoft)
@@ -203,7 +218,7 @@ version (Windows)
  */
 public int runLINK()
 {
-    const phobosLibname = global.finalDefaultlibname();
+    const phobosLibname = finalDefaultlibname();
 
     void setExeFile()
     {
@@ -226,7 +241,7 @@ public int runLINK()
         if (phobosLibname)
             global.params.libfiles.push(phobosLibname.xarraydup.ptr);
 
-        if (target.mscoff)
+        if (target.objectFormat() == Target.ObjectFormat.coff)
         {
             OutBuffer cmdbuf;
             cmdbuf.writestring("/NOLOGO");
@@ -259,7 +274,7 @@ public int runLINK()
                 cmdbuf.writestring("/MAP:");
                 writeFilename(&cmdbuf, global.params.mapfile);
             }
-            else if (dmdParams.map)
+            else if (driverParams.map)
             {
                 cmdbuf.writestring("/MAP:");
                 writeFilename(&cmdbuf, getMapFilename());
@@ -276,7 +291,7 @@ public int runLINK()
                 cmdbuf.writestring("/DEF:");
                 writeFilename(&cmdbuf, global.params.deffile);
             }
-            if (global.params.symdebug)
+            if (driverParams.symdebug)
             {
                 cmdbuf.writeByte(' ');
                 cmdbuf.writestring("/DEBUG");
@@ -284,7 +299,7 @@ public int runLINK()
                 if (global.params.release)
                     cmdbuf.writestring(" /OPT:REF");
             }
-            if (global.params.dll)
+            if (driverParams.dll)
             {
                 cmdbuf.writeByte(' ');
                 cmdbuf.writestring("/DLL");
@@ -297,8 +312,8 @@ public int runLINK()
 
             VSOptions vsopt;
             // if a runtime library (msvcrtNNN.lib) from the mingw folder is selected explicitly, do not detect VS and use lld
-            if (global.params.mscrtlib.length <= 6 ||
-                global.params.mscrtlib[0..6] != "msvcrt" || !isdigit(global.params.mscrtlib[6]))
+            if (driverParams.mscrtlib.length <= 6 ||
+                driverParams.mscrtlib[0..6] != "msvcrt" || !isdigit(driverParams.mscrtlib[6]))
                 vsopt.initialize();
 
             const(char)* linkcmd = getenv(target.is64bit ? "LINKCMD64" : "LINKCMD");
@@ -345,7 +360,7 @@ public int runLINK()
             }
             return status;
         }
-        else
+        else if (target.objectFormat() == Target.ObjectFormat.omf)
         {
             OutBuffer cmdbuf;
             global.params.libfiles.push("user32");
@@ -378,7 +393,7 @@ public int runLINK()
             cmdbuf.writeByte(',');
             if (global.params.mapfile)
                 writeFilename(&cmdbuf, global.params.mapfile);
-            else if (dmdParams.map)
+            else if (driverParams.map)
             {
                 writeFilename(&cmdbuf, getMapFilename());
             }
@@ -409,7 +424,7 @@ public int runLINK()
                 cmdbuf.writestring("/RC:");
                 writeFilename(&cmdbuf, global.params.resfile);
             }
-            if (dmdParams.map || global.params.mapfile)
+            if (driverParams.map || global.params.mapfile)
                 cmdbuf.writestring("/m");
             version (none)
             {
@@ -424,7 +439,7 @@ public int runLINK()
             }
             else
             {
-                if (global.params.symdebug)
+                if (driverParams.symdebug)
                     cmdbuf.writestring("/co");
             }
             cmdbuf.writestring("/noi");
@@ -458,6 +473,10 @@ public int runLINK()
             }
             return status;
         }
+        else
+        {
+            assert(0);
+        }
     }
     else version (Posix)
     {
@@ -487,12 +506,12 @@ public int runLINK()
         {
             // If we are on Mac OS X and linking a dynamic library,
             // add the "-dynamiclib" flag
-            if (global.params.dll)
+            if (driverParams.dll)
                 argv.push("-dynamiclib");
         }
         else version (Posix)
         {
-            if (global.params.dll)
+            if (driverParams.dll)
                 argv.push("-shared");
         }
         // None of that a.out stuff. Use explicit exe file name, or
@@ -544,7 +563,7 @@ public int runLINK()
             n = FileName.name(n);
             if (const e = FileName.ext(n))
             {
-                if (global.params.dll)
+                if (driverParams.dll)
                     ex = FileName.forceExt(ex, target.dll_ext);
                 else
                     ex = FileName.removeExt(n);
@@ -556,7 +575,7 @@ public int runLINK()
         }
         // Make sure path to exe file exists
         ensurePathToNameExists(Loc.initial, global.params.exefile);
-        if (global.params.symdebug)
+        if (driverParams.symdebug)
             argv.push("-g");
         if (target.is64bit)
             argv.push("-m64");
@@ -583,7 +602,7 @@ public int runLINK()
             argv.push("-Xlinker");
             argv.push("-no_compact_unwind");
         }
-        if (dmdParams.map || global.params.mapfile.length)
+        if (driverParams.map || global.params.mapfile.length)
         {
             argv.push("-Xlinker");
             version (OSX)
@@ -706,8 +725,7 @@ public int runLINK()
         {
             const bufsize = 2 + libname.length + 1;
             auto buf = (cast(char*) malloc(bufsize))[0 .. bufsize];
-            if (!buf)
-                Mem.error();
+            Mem.check(buf.ptr);
             buf[0 .. 2] = "-l";
 
             char* getbuf(const(char)[] suffix)
@@ -838,7 +856,7 @@ version (Windows)
         size_t len;
         if (global.params.verbose)
             message("%s %s", cmd, args);
-        if (!target.mscoff)
+        if (target.objectFormat() == Target.ObjectFormat.omf)
         {
             if ((len = strlen(args)) > 255)
             {
@@ -1010,4 +1028,421 @@ public int runProgram()
     {
         assert(0);
     }
+}
+
+/***************************************
+ * Run the C preprocessor.
+ * Params:
+ *    cpp = name of C preprocessor program
+ *    filename = C source file name
+ *    importc_h = filename of importc.h
+ *    cppswitches = array of switches to pass to C preprocessor
+ *    output = preprocessed output file name
+ *    defines = buffer to append any `#define` and `#undef` lines encountered to
+ * Returns:
+ *    exit status.
+ */
+public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char)* importc_h, ref Array!(const(char)*) cppswitches,
+    const(char)[] output, OutBuffer* defines)
+{
+    //printf("runPreprocessor() cpp: %.*s filename: %.*s\n", cast(int)cpp.length, cpp.ptr, cast(int)filename.length, filename.ptr);
+    version (Windows)
+    {
+        // Build argv[]
+        Strings argv;
+        if (target.objectFormat() == Target.ObjectFormat.coff)
+        {
+            static if (1)
+            {
+                /* Run command, intercept stdout, remove first line that CL insists on emitting
+                 */
+                OutBuffer buf;
+                buf.writestring(cpp);
+                buf.printf(" /P /Zc:preprocessor /PD /nologo %.*s /FI%s /Fi%.*s",
+                    cast(int)filename.length, filename.ptr, importc_h, cast(int)output.length, output.ptr);
+
+                /* Append preprocessor switches to command line
+                 */
+                foreach (a; cppswitches)
+                {
+                    if (a && a[0])
+                    {
+                        buf.writeByte(' ');
+                        buf.writestring(a);
+                    }
+                }
+
+                if (global.params.verbose)
+                    message(buf.peekChars());
+
+                ubyte[2048] buffer = void;
+
+                OutBuffer linebuf;      // each line from stdout
+                bool print = false;     // print line collected from stdout
+
+                /* Collect text captured from stdout to linebuf[].
+                 * Then decide to print or discard the contents.
+                 * Discarding lines that consist only of a filename is necessary to pass
+                 * the D test suite which diffs the output. CL's emission of filenames cannot
+                 * be turned off.
+                 */
+                void sink(ubyte[] data)
+                {
+                    foreach (c; data)
+                    {
+                        switch (c)
+                        {
+                            case '\r':
+                                break;
+
+                            case '\n':
+                                if (print)
+                                    printf("%s\n", linebuf.peekChars());
+
+                                // set up for next line
+                                linebuf.setsize(0);
+                                print = false;
+                                break;
+
+                            case '\t':
+                            case ';':
+                            case '(':
+                            case '\'':
+                            case '"':   // various non-filename characters
+                                print = true; // mean it's not a filename
+                                goto default;
+
+                            default:
+                                linebuf.writeByte(c);
+                                break;
+                        }
+                    }
+                }
+
+                // Convert command to wchar
+                wchar[1024] scratch = void;
+                auto smbuf = SmallBuffer!wchar(scratch.length, scratch[]);
+                auto szCommand = toWStringz(buf.peekChars()[0 .. buf.length], smbuf);
+
+                int exitCode = runProcessCollectStdout(szCommand.ptr, buffer[], &sink);
+
+                if (linebuf.length && print)  // anything leftover from stdout collection
+                    printf("%s\n", defines.peekChars());
+
+                return exitCode;
+            }
+            else
+            {
+                argv.push("cl".ptr);            // null terminated copy
+                argv.push("/P".ptr);            // preprocess only
+                argv.push("/nologo".ptr);       // don't print logo
+                argv.push(filename.xarraydup.ptr);   // and the input
+
+                OutBuffer buf;
+                buf.writestring("/Fi");       // https://docs.microsoft.com/en-us/cpp/build/reference/fi-preprocess-output-file-name?view=msvc-170
+                buf.writeStringz(output);
+                argv.push(buf.extractData()); // output file
+
+                argv.push(null);                     // argv[] always ends with a null
+                // spawnlp returns intptr_t in some systems, not int
+                return spawnvp(_P_WAIT, "cl".ptr, argv.tdata());
+            }
+        }
+        else if (target.objectFormat() == Target.ObjectFormat.omf)
+        {
+            /* Digital Mars Win32 target
+             * sppn filename -oooutput
+             * https://www.digitalmars.com/ctg/sc.html
+             */
+
+            static if (1)
+            {
+                /* Run command
+                 */
+                OutBuffer buf;
+                buf.writestring(cpp);
+                buf.printf(" %.*s -HI%s -ED -o%.*s",
+                    cast(int)filename.length, filename.ptr, importc_h, cast(int)output.length, output.ptr);
+
+                /* Append preprocessor switches to command line
+                 */
+                foreach (a; cppswitches)
+                {
+                    if (a && a[0])
+                    {
+                        buf.writeByte(' ');
+                        buf.writestring(a);
+                    }
+                }
+
+                if (global.params.verbose)
+                    message(buf.peekChars());
+
+                ubyte[2048] buffer = void;
+
+                /* Write lines captured from stdout to either defines[] or stdout
+                 */
+                enum S
+                {
+                    start, // start of line
+                    hash,  // write to defines[]
+                    other, // write to stdout
+                }
+
+                S state = S.start;
+
+                void sinkomf(ubyte[] data)
+                {
+                    foreach (c; data)
+                    {
+                        final switch (state)
+                        {
+                            case S.start:
+                                if (c == '#')
+                                {
+                                    defines.writeByte(c);
+                                    state = S.hash;
+                                }
+                                else
+                                {
+                                    fputc(c, stdout);
+                                    state = S.other;
+                                }
+                                break;
+
+                            case S.hash:
+                                defines.writeByte(c);
+                                if (c == '\n')
+                                    state = S.start;
+                                break;
+
+                            case S.other:
+                                fputc(c, stdout);
+                                if (c == '\n')
+                                    state = S.start;
+                                break;
+                        }
+                    }
+                    //printf("%.*s", cast(int)data.length, data.ptr);
+                }
+
+                // Convert command to wchar
+                wchar[1024] scratch = void;
+                auto smbuf = SmallBuffer!wchar(scratch.length, scratch[]);
+                auto szCommand = toWStringz(buf.peekChars()[0 .. buf.length], smbuf);
+
+                //printf("szCommand: %ls\n", szCommand.ptr);
+                int exitCode = runProcessCollectStdout(szCommand.ptr, buffer[], &sinkomf);
+                printf("\n");
+                return exitCode;
+            }
+            else
+            {
+                auto cmd = cpp.xarraydup.ptr;
+                argv.push(cmd);                      // Digita; Mars C preprocessor
+                argv.push(filename.xarraydup.ptr);   // and the input file
+
+                OutBuffer buf;
+                buf.writestring("-o");        // https://www.digitalmars.com/ctg/sc.html#dashofilename
+                buf.writeString(output);
+                argv.push(buf.extractData()); // output file
+
+                argv.push(null);              // argv[] always ends with a null
+                // spawnlp returns intptr_t in some systems, not int
+                return spawnvp(_P_WAIT, cmd, argv.tdata());
+            }
+        }
+        else
+        {
+            assert(0);
+        }
+    }
+    else version (Posix)
+    {
+        // Build argv[]
+        Strings argv;
+        argv.push(cpp.xarraydup.ptr);       // null terminated copy
+
+        foreach (p; cppswitches)
+        {
+            if (p && p[0])
+                argv.push(p);
+        }
+
+        // merge #define's with output
+        argv.push("-dD");       // https://gcc.gnu.org/onlinedocs/cpp/Invocation.html#index-dD
+
+        if (target.os == Target.OS.OSX)
+        {
+            argv.push("-include");          // OSX cpp has switch order dependencies
+            argv.push(importc_h);
+            argv.push(filename.xarraydup.ptr);  // and the input
+        }
+        else
+        {
+            argv.push(filename.xarraydup.ptr);  // and the input
+            argv.push("-include");
+            argv.push(importc_h);
+        }
+        if (target.os == Target.OS.FreeBSD)
+            argv.push("-o");                // specify output file
+        argv.push(output.xarraydup.ptr);    // and the output
+        argv.push(null);                    // argv[] always ends with a null
+
+        if (global.params.verbose)
+        {
+            OutBuffer buf;
+
+            foreach (i, a; argv[])
+            {
+                if (a)
+                {
+                    if (i)
+                        buf.writeByte(' ');
+                    buf.writestring(a);
+                }
+            }
+            message(buf.peekChars());
+        }
+
+        pid_t childpid = fork();
+        if (childpid == 0)
+        {
+            const(char)[] fn = argv[0].toDString();
+            fn.toCStringThen!((fnp) {
+                    execvp(fnp.ptr, argv.tdata());
+                    // If execv returns, it failed to execute
+                    perror(fnp.ptr);
+                });
+            return -1;
+        }
+        int status;
+        waitpid(childpid, &status, 0);
+        if (WIFEXITED(status))
+        {
+            status = WEXITSTATUS(status);
+            //printf("--- errorlevel %d\n", status);
+        }
+        else if (WIFSIGNALED(status))
+        {
+            error(Loc.initial, "program killed by signal %d", WTERMSIG(status));
+            status = 1;
+        }
+        return status;
+    }
+    else
+    {
+        assert(0);
+    }
+}
+
+/*********************************
+ * Run a command and intercept its stdout, which is redirected
+ * to sink().
+ * Params:
+ *      szCommand = command to run
+ *      buffer = buffer to collect stdout data to
+ *      sink = stdout data is sent to sink()
+ * Returns:
+ *      0 on success
+ * Reference:
+ *      Based on
+ *      https://github.com/dlang/visuald/blob/master/tools/pipedmd.d#L252
+ */
+version (Windows)
+int runProcessCollectStdout(const(wchar)* szCommand, ubyte[] buffer, void delegate(ubyte[]) sink)
+{
+    import core.sys.windows.windows;
+    import core.sys.windows.wtypes;
+    import core.sys.windows.psapi;
+
+    //printf("runProcess() command: %ls\n", szCommand);
+    // Set the bInheritHandle flag so pipe handles are inherited.
+    SECURITY_ATTRIBUTES saAttr;
+    saAttr.nLength = SECURITY_ATTRIBUTES.sizeof;
+    saAttr.bInheritHandle = TRUE;
+    saAttr.lpSecurityDescriptor = null;
+
+    // Create a pipe for the child process's STDOUT.
+    HANDLE hStdOutRead;
+    HANDLE hStdOutWrite;
+    if ( !CreatePipe(&hStdOutRead, &hStdOutWrite, &saAttr, 0) )
+            assert(0);
+    // Ensure the read handle to the pipe for STDOUT is not inherited.
+    if ( !SetHandleInformation(hStdOutRead, HANDLE_FLAG_INHERIT, 0) )
+            assert(0);
+
+    // Another pipe
+    HANDLE hStdInRead;
+    HANDLE hStdInWrite;
+    if ( !CreatePipe(&hStdInRead, &hStdInWrite, &saAttr, 0) )
+            assert(0);
+    if ( !SetHandleInformation(hStdInWrite, HANDLE_FLAG_INHERIT, 0) )
+            assert(0);
+
+    // Set up members of the PROCESS_INFORMATION structure.
+    PROCESS_INFORMATION piProcInfo;
+    memset( &piProcInfo, 0, PROCESS_INFORMATION.sizeof );
+
+    // Set up members of the STARTUPINFO structure.
+    // This structure specifies the STDIN and STDOUT handles for redirection.
+    STARTUPINFOW siStartInfo;
+    memset( &siStartInfo, 0, STARTUPINFOW.sizeof );
+    siStartInfo.cb = STARTUPINFOW.sizeof;
+    siStartInfo.hStdError = hStdOutWrite;
+    siStartInfo.hStdOutput = hStdOutWrite;
+    siStartInfo.hStdInput = hStdInRead;
+    siStartInfo.dwFlags |= STARTF_USESTDHANDLES;
+
+    // https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw
+    BOOL bSuccess = CreateProcessW(null,
+                          cast(wchar*)szCommand,     // command line
+                          null,          // process security attributes
+                          null,          // primary thread security attributes
+                          TRUE,          // handles are inherited
+                          CREATE_SUSPENDED,             // creation flags
+                          null,          // use parent's environment
+                          null,          // use parent's current directory
+                          &siStartInfo,  // STARTUPINFO pointer
+                          &piProcInfo);  // receives PROCESS_INFORMATION
+
+    if (!bSuccess)
+    {
+        printf("failed launching %ls\n", cast(wchar*)szCommand); // https://issues.dlang.org/show_bug.cgi?id=21958
+        return 1;
+    }
+
+    ResumeThread(piProcInfo.hThread);
+
+    DWORD bytesFilled = 0;
+    DWORD bytesAvailable = 0;
+    DWORD bytesRead = 0;
+    DWORD exitCode = 0;
+
+    while (true)
+    {
+        DWORD dwlen = cast(DWORD)buffer.length;
+        bSuccess = PeekNamedPipe(hStdOutRead, buffer.ptr + bytesFilled, dwlen - bytesFilled, &bytesRead, &bytesAvailable, null);
+        if (bSuccess && bytesRead > 0)
+            bSuccess = ReadFile(hStdOutRead, buffer.ptr + bytesFilled, dwlen - bytesFilled, &bytesRead, null);
+        if (bSuccess && bytesRead > 0)
+        {
+            sink(buffer[0 .. bytesRead]);
+        }
+
+        bSuccess = GetExitCodeProcess(piProcInfo.hProcess, &exitCode);
+        if (!bSuccess || exitCode != 259) //259 == STILL_ACTIVE
+        {
+            break;
+        }
+        Sleep(1);
+    }
+
+    // close the handles to the process
+    CloseHandle(hStdInWrite);
+    CloseHandle(hStdOutRead);
+    CloseHandle(piProcInfo.hProcess);
+    CloseHandle(piProcInfo.hThread);
+
+    return exitCode;
 }

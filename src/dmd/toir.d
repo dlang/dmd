@@ -1,9 +1,9 @@
 /**
  * Convert to Intermediate Representation (IR) for the back-end.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/_tocsym.d, _toir.d)
  * Documentation:  https://dlang.org/phobos/dmd_toir.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/toir.d
@@ -38,6 +38,7 @@ import dmd.attrib;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dmangle;
+import dmd.dmdparams;
 import dmd.dmodule;
 import dmd.dstruct;
 import dmd.dsymbol;
@@ -99,7 +100,8 @@ struct IRState
         this.target = target;
         mayThrow = global.params.useExceptions
             && ClassDeclaration.throwable
-            && !(fd && fd.eh_none);
+            && !(fd && fd.hasNoEH);
+        this.Cfile = m.filetype == FileType.c;
     }
 
     FuncDeclaration getFunc()
@@ -113,7 +115,7 @@ struct IRState
      */
     bool arrayBoundsCheck()
     {
-        if (m.isCFile)
+        if (m.filetype == FileType.c)
             return false;
         bool result;
         final switch (global.params.useArrayBounds)
@@ -421,7 +423,7 @@ elem *getEthis(const ref Loc loc, IRState *irs, Dsymbol fd, Dsymbol fdp = null, 
  */
 elem *fixEthis2(elem *ethis, FuncDeclaration fd, bool ctxt2 = false)
 {
-    if (fd && fd.isThis2)
+    if (fd && fd.hasDualContext())
     {
         if (ctxt2)
             ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYsize_t, tysize(TYnptr)));
@@ -449,7 +451,7 @@ elem *setEthis(const ref Loc loc, IRState *irs, elem *ey, AggregateDeclaration a
     {
         ethis = getEthis(loc, irs, ad);
     }
-    else if (thisfd.vthis && !thisfd.isThis2 &&
+    else if (thisfd.vthis && !thisfd.hasDualContext() &&
           (adp == thisfd.toParent2() ||
            (adp.isClassDeclaration() &&
             adp.isClassDeclaration().isBaseOf(thisfd.toParent2().isClassDeclaration(), &offset)
@@ -496,8 +498,9 @@ int intrinsic_op(FuncDeclaration fd)
         return op;
     //printf("intrinsic_op(%s)\n", name);
 
-    // Look for [core|std].module.function as id3.id2.id1 ...
     const Identifier id3 = fd.ident;
+
+    // Look for [core|std].module.function as id3.id2.id1 ...
     auto m = fd.getModule();
     if (!m || !m.md)
         return op;
@@ -745,10 +748,7 @@ void setClosureVarOffset(FuncDeclaration fd)
         /* Can't do nrvo if the variable is put in a closure, since
          * what the shidden points to may no longer exist.
          */
-        if (fd.nrvo_can && fd.nrvo_var == v)
-        {
-            fd.nrvo_can = false;
-        }
+        assert(!fd.isNRVO() || fd.nrvo_var != v);
     }
 }
 
@@ -865,7 +865,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
         Closstru.Ttag.Sstruct.Sstructsize = cast(uint)structsize;
         fd.csym.Sscope = sclosure;
 
-        if (global.params.symdebug)
+        if (driverParams.symdebug)
             toDebugClosure(Closstru.Ttag);
 
         // Allocate memory for the closure
@@ -940,9 +940,9 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
  */
 void buildCapture(FuncDeclaration fd)
 {
-    if (!global.params.symdebug)
+    if (!driverParams.symdebug)
         return;
-    if (!target.mscoff)  // toDebugClosure only implemented for CodeView,
+    if (target.objectFormat() != Target.ObjectFormat.coff)  // toDebugClosure only implemented for CodeView,
         return;                 //  but optlink crashes for negative field offsets
 
     if (fd.closureVars.dim && !fd.needsClosure)

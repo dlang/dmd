@@ -1083,6 +1083,15 @@
                 "protection": "public"
             },
             {
+                "char": 20,
+                "deco": "VALUE_REMOVED_FOR_TEST",
+                "kind": "variable",
+                "line": 191,
+                "linkage": "system",
+                "name": "vlinkageSystem",
+                "protection": "public"
+            },
+            {
                 "char": 12,
                 "deco": "VALUE_REMOVED_FOR_TEST",
                 "kind": "function",
@@ -1135,6 +1144,16 @@
                 "line": 197,
                 "linkage": "objc",
                 "name": "flinkageObjc",
+                "protection": "public"
+            },
+            {
+                "char": 20,
+                "deco": "VALUE_REMOVED_FOR_TEST",
+                "kind": "function",
+                "line": 198,
+                "linkage": "system",
+                "name": "flinkageSystem",
+                "originalType": "extern (System) int()",
                 "protection": "public"
             },
             {

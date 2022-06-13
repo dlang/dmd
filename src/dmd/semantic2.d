@@ -1,9 +1,9 @@
 /**
  * Performs the semantic2 stage, which deals with initializer expressions.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/semantic2.d, _semantic2.d)
  * Documentation:  https://dlang.org/phobos/dmd_semantic2.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/semantic2.d
@@ -56,11 +56,11 @@ import dmd.root.filename;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.rootobject;
+import dmd.root.utf;
 import dmd.sideeffect;
 import dmd.statementsem;
 import dmd.staticassert;
 import dmd.tokens;
-import dmd.utf;
 import dmd.statement;
 import dmd.target;
 import dmd.templateparamsem;
@@ -238,7 +238,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
             return;
         }
 
-        UserAttributeDeclaration.checkGNUABITag(vd, vd.linkage);
+        UserAttributeDeclaration.checkGNUABITag(vd, vd._linkage);
 
         if (vd._init && !vd.toParent().isFuncDeclaration())
         {
@@ -278,15 +278,15 @@ private extern(C++) final class Semantic2Visitor : Visitor
                         return false;
                     }
 
-                    if (e.op == TOK.classReference)
+                    if (e.op == EXP.classReference)
                         return true;
-                    if (e.op == TOK.address && (cast(AddrExp)e).e1.op == TOK.structLiteral)
+                    if (e.op == EXP.address && (cast(AddrExp)e).e1.op == EXP.structLiteral)
                         return true;
-                    if (e.op == TOK.arrayLiteral)
+                    if (e.op == EXP.arrayLiteral)
                         return arrayHasInvalidEnumInitializer((cast(ArrayLiteralExp)e).elements);
-                    if (e.op == TOK.structLiteral)
+                    if (e.op == EXP.structLiteral)
                         return arrayHasInvalidEnumInitializer((cast(StructLiteralExp)e).elements);
-                    if (e.op == TOK.assocArrayLiteral)
+                    if (e.op == EXP.assocArrayLiteral)
                     {
                         AssocArrayLiteralExp ae = cast(AssocArrayLiteralExp)e;
                         return arrayHasInvalidEnumInitializer(ae.values) ||
@@ -306,13 +306,13 @@ private extern(C++) final class Semantic2Visitor : Visitor
             if ((vd.type.ty == Tclass) && vd.type.isMutable() && !vd.type.isShared())
             {
                 ExpInitializer ei = vd._init.isExpInitializer();
-                if (ei && ei.exp.op == TOK.classReference)
+                if (ei && ei.exp.op == EXP.classReference)
                     vd.error("is a thread-local class and cannot have a static initializer. Use `static this()` to initialize instead.");
             }
             else if (vd.type.ty == Tpointer && vd.type.nextOf().ty == Tstruct && vd.type.nextOf().isMutable() && !vd.type.nextOf().isShared())
             {
                 ExpInitializer ei = vd._init.isExpInitializer();
-                if (ei && ei.exp.op == TOK.address && (cast(AddrExp)ei.exp).e1.op == TOK.structLiteral)
+                if (ei && ei.exp.op == EXP.address && (cast(AddrExp)ei.exp).e1.op == EXP.structLiteral)
                     vd.error("is a thread-local pointer to struct and cannot have a static initializer. Use `static this()` to initialize instead.");
             }
         }
@@ -330,11 +330,14 @@ private extern(C++) final class Semantic2Visitor : Visitor
         // gets imported, it is unaffected by context.
         Scope* sc = Scope.createGlobal(mod); // create root scope
         //printf("Module = %p\n", sc.scopesym);
-        // Pass 2 semantic routines: do initializers and function bodies
-        for (size_t i = 0; i < mod.members.dim; i++)
+        if (mod.members)
         {
-            Dsymbol s = (*mod.members)[i];
-            s.semantic2(sc);
+            // Pass 2 semantic routines: do initializers and function bodies
+            for (size_t i = 0; i < mod.members.dim; i++)
+            {
+                Dsymbol s = (*mod.members)[i];
+                s.semantic2(sc);
+            }
         }
         if (mod.userAttribDecl)
         {
@@ -376,6 +379,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
             alias f1 = fd;
             auto tf1 = cast(TypeFunction) f1.type;
             auto parent1 = f1.toParent2();
+            const linkage1 = f1.resolvedLinkage();
 
             overloadApply(f1, (Dsymbol s)
             {
@@ -388,7 +392,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
                     return 0;
 
                 // Functions with different manglings can never conflict
-                if (f1.linkage != f2.linkage)
+                if (linkage1 != f2.resolvedLinkage())
                     return 0;
 
                 // Functions with different names never conflict
@@ -422,15 +426,15 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 const sameParams = tf1.parameterList == tf2.parameterList;
 
                 // Allow the hack to declare overloads with different parameters/STC's
-                // @@@DEPRECATED_2.094@@@
+                // @@@DEPRECATED_2.104@@@
                 // Deprecated in 2020-08, make this an error in 2.104
                 if (parent1.isModule() &&
-                    f1.linkage != LINK.d && f1.linkage != LINK.cpp &&
+                    linkage1 != LINK.d && linkage1 != LINK.cpp &&
                     (!sameAttr || !sameParams)
                 )
                 {
                     f2.deprecation("cannot overload `extern(%s)` function at %s",
-                            linkageToChars(f1.linkage),
+                            linkageToChars(f1._linkage),
                             f1.loc.toChars());
                     return 0;
                 }
@@ -440,7 +444,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
                     return 0;
 
                 // Different attributes don't conflict in extern(D)
-                if (!sameAttr && f1.linkage == LINK.d)
+                if (!sameAttr && linkage1 == LINK.d)
                     return 0;
 
                 error(f2.loc, "%s `%s%s` conflicts with previous declaration at %s",
@@ -457,7 +461,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
             return;
         TypeFunction f = cast(TypeFunction) fd.type;
 
-        UserAttributeDeclaration.checkGNUABITag(fd, fd.linkage);
+        UserAttributeDeclaration.checkGNUABITag(fd, fd._linkage);
         //semantic for parameters' UDAs
         foreach (i, param; f.parameterList)
         {
@@ -475,7 +479,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
         i.mod.semantic2(null);
         if (i.mod.needmoduleinfo)
         {
-            //printf("module5 %s because of %s\n", sc.module.toChars(), mod.toChars());
+            //printf("module5 %s because of %s\n", sc._module.toChars(), mod.toChars());
             if (sc)
                 sc._module.needmoduleinfo = 1;
         }
@@ -569,7 +573,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 e = e.expressionSemantic(sc);
                 if (definitelyValueParameter(e))
                     e = e.ctfeInterpret();
-                if (e.op == TOK.tuple)
+                if (e.op == EXP.tuple)
                 {
                     TupleExp te = cast(TupleExp)e;
                     eval(sc, te.exps, lastTag);
@@ -640,7 +644,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
                     {
                         //printf("            found\n");
                         // Check that calling conventions match
-                        if (fd.linkage != ifd.linkage)
+                        if (fd._linkage != ifd._linkage)
                             fd.error("linkage doesn't match interface function");
 
                         // Check that it is current
@@ -697,7 +701,7 @@ private void doGNUABITagSemantic(ref Expression e, ref Expression* lastTag)
     import dmd.dmangle;
 
     // When `@gnuAbiTag` is used, the type will be the UDA, not the struct literal
-    if (e.op == TOK.type)
+    if (e.op == EXP.type)
     {
         e.error("`@%s` at least one argument expected", Id.udaGNUAbiTag.toChars());
         return;

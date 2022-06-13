@@ -1,9 +1,9 @@
 /**
  * A library in the ELF format, used on Unix.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/libelf.d, _libelf.d)
  * Documentation:  https://dlang.org/phobos/dmd_libelf.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/libelf.d
@@ -232,13 +232,13 @@ final class LibElf : Library
                 if (s - symtab > symtab_size)
                     return corrupt(__LINE__);
                 uint moff = Port.readlongBE(symtab + 4 + i * 4);
-                //printf("symtab[%d] moff = %x  %x, name = %s\n", i, moff, moff + sizeof(Header), name.ptr);
+                //printf("symtab[%d] moff = %x  %x, name = %s\n", i, moff, moff + ElfLibHeader.sizeof, name.ptr);
                 for (uint m = mstart; 1; m++)
                 {
                     if (m == objmodules.dim)
                         return corrupt(__LINE__);  // didn't find it
                     ElfObjModule* om = objmodules[m];
-                    //printf("\t%x\n", (char *)om.base - (char *)buf);
+                    //printf("\t%x\n", cast(char *)om.base - cast(char *)buf);
                     if (moff + ElfLibHeader.sizeof == cast(char*)om.base - cast(char*)buf)
                     {
                         addSymbol(om, name, 1);

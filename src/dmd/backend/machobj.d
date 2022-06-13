@@ -2,11 +2,11 @@
  * Generate Mach-O object files
  *
  * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2009-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 2009-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/machobj.d, backend/machobj.d)
  */
 
@@ -278,7 +278,7 @@ struct Relocation
                         // to address of this symbol
     uint targseg;       // if !=0, then location is to be fixed up
                         // to address of start of this segment
-    ubyte rtype;        // RELxxxx
+    ubyte rtype;        // RELaddr or RELrel
     ubyte flag;         // 1: emit SUBTRACTOR/UNSIGNED pair
     short val;          // 0, -1, -2, -4
 }
@@ -297,7 +297,7 @@ IDXSTR MachObj_addstr(OutBuffer *strtab, const(char)* str)
 {
     //printf("MachObj_addstr(strtab = %p str = '%s')\n",strtab,str);
     IDXSTR idx = cast(IDXSTR)strtab.length();        // remember starting offset
-    strtab.writeString(str);
+    strtab.writeStringz(str);
     //printf("\tidx %d, new size %d\n",idx,strtab.length());
     return idx;
 }
@@ -356,7 +356,7 @@ static if (0)
     }
     else if (tyfunc(s.ty()) && s.Sfunc && s.Sfunc.Fredirect)
         name = s.Sfunc.Fredirect;
-    symtab_strings.writeString(name);
+    symtab_strings.writeStringz(name);
     if (destr != dest.ptr)                  // if we resized result
         mem_free(destr);
     //dbg_printf("\telf_addmagled symtab_strings %s namidx %d len %d size %d\n",name, namidx,len,symtab_strings.length());
@@ -604,7 +604,7 @@ int32_t *patchAddr64(int seg, targ_size_t offset)
 @trusted
 void patch(seg_data *pseg, targ_size_t offset, int seg, targ_size_t value)
 {
-    //printf("patch(offset = x%04x, seg = %d, value = x%llx)\n", (uint)offset, seg, value);
+    //printf("patch(offset = x%04x, seg = %d, value = x%llx)\n", cast(uint)offset, seg, value);
     if (I64)
     {
         int32_t *p = cast(int32_t *)(fobjbuf.buf + SecHdrTab64[pseg.SDshtidx].offset + offset);
@@ -871,7 +871,7 @@ version (SCPP)
                 section_64 *psechdr = &SecHdrTab64[pseg.SDshtidx]; // corresponding section
 
                 // Do zero-fill the second time through this loop
-                if (i ^ (psechdr.flags == S_ZEROFILL))
+                if (i ^ (psechdr.flags == S_ZEROFILL || psechdr.flags == S_THREAD_LOCAL_ZEROFILL))
                     continue;
 
                 int align_ = 1 << psechdr._align;
@@ -882,7 +882,7 @@ version (SCPP)
                 }
                 foffset = elf_align(align_, foffset);
                 vmaddr = (vmaddr + align_ - 1) & ~(align_ - 1);
-                if (psechdr.flags == S_ZEROFILL)
+                if (psechdr.flags == S_ZEROFILL || psechdr.flags == S_THREAD_LOCAL_ZEROFILL)
                 {
                     psechdr.offset = 0;
                     psechdr.size = pseg.SDoffset; // accumulated size
@@ -909,7 +909,7 @@ version (SCPP)
                 section *psechdr = &SecHdrTab[pseg.SDshtidx]; // corresponding section
 
                 // Do zero-fill the second time through this loop
-                if (i ^ (psechdr.flags == S_ZEROFILL))
+                if (i ^ (psechdr.flags == S_ZEROFILL || psechdr.flags == S_THREAD_LOCAL_ZEROFILL))
                     continue;
 
                 int align_ = 1 << psechdr._align;
@@ -920,7 +920,7 @@ version (SCPP)
                 }
                 foffset = elf_align(align_, foffset);
                 vmaddr = (vmaddr + align_ - 1) & ~(align_ - 1);
-                if (psechdr.flags == S_ZEROFILL)
+                if (psechdr.flags == S_ZEROFILL || psechdr.flags == S_THREAD_LOCAL_ZEROFILL)
                 {
                     psechdr.offset = 0;
                     psechdr.size = cast(uint)pseg.SDoffset; // accumulated size
@@ -999,7 +999,7 @@ version (SCPP)
                 {
                     //printf("Relocation\n");
                     //symbol_print(s);
-                    if (r.flag == 1)
+                    if (r.flag == 1)  // emit SUBTRACTOR/UNSIGNED pair
                     {
                         if (I64)
                         {
@@ -1069,10 +1069,13 @@ version (SCPP)
                             if (s.Sclass == SCextern ||
                                 s.Sclass == SCcomdef ||
                                 s.Sclass == SCcomdat ||
+                                s.Sclass == SCstatic ||
                                 s.Sclass == SCglobal)
                             {
-                                if (I64 && (s.ty() & mTYLINK) == mTYthread && r.rtype == RELaddr)
+                                if ((s.ty() & mTYLINK) == mTYthread && r.rtype == RELaddr)
                                     rel.r_type = X86_64_RELOC_TLV;
+                                else if (s.Sfl == FLfunc && s.Sclass == SCstatic && r.rtype == RELaddr)
+                                    rel.r_type = X86_64_RELOC_SIGNED;
                                 else if ((s.Sfl == FLfunc || s.Sfl == FLextern || s.Sclass == SCglobal || s.Sclass == SCcomdat || s.Sclass == SCcomdef) && r.rtype == RELaddr)
                                 {
                                     rel.r_type = X86_64_RELOC_GOT_LOAD;
@@ -1104,7 +1107,7 @@ version (SCPP)
                                 int32_t *p = patchAddr64(seg, r.offset);
                                 // Absolute address; add in addr of start of targ seg
 //printf("*p = x%x, .addr = x%x, Soffset = x%x\n", *p, cast(int)SecHdrTab64[SegData[s.Sseg].SDshtidx].addr, cast(int)s.Soffset);
-//printf("pseg = x%x, r.offset = x%x\n", (int)SecHdrTab64[pseg.SDshtidx].addr, cast(int)r.offset);
+//printf("pseg = x%x, r.offset = x%x\n", cast(int)SecHdrTab64[pseg.SDshtidx].addr, cast(int)r.offset);
                                 *p += SecHdrTab64[SegData[s.Sseg].SDshtidx].addr;
                                 *p += s.Soffset;
                                 *p -= SecHdrTab64[pseg.SDshtidx].addr + r.offset + 4;
@@ -1893,7 +1896,7 @@ int MachObj_getsegment(const(char)* sectname, const(char)* segname,
 
     if (!pseg.SDbuf)
     {
-        if (flags != S_ZEROFILL)
+        if (flags != S_ZEROFILL && flags != S_THREAD_LOCAL_ZEROFILL)
         {
             pseg.SDbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
             assert(pseg.SDbuf);
@@ -2418,7 +2421,9 @@ void MachObj_lidata(int seg,targ_size_t offset,targ_size_t count)
 {
     //printf("MachObj_lidata(%d,%x,%d)\n",seg,offset,count);
     size_t idx = SegData[seg].SDshtidx;
-    if ((I64 ? SecHdrTab64[idx].flags : SecHdrTab[idx].flags) == S_ZEROFILL)
+
+    const flags = (I64 ? SecHdrTab64[idx].flags : SecHdrTab[idx].flags);
+    if (flags == S_ZEROFILL || flags == S_THREAD_LOCAL_ZEROFILL)
     {   // Use SDoffset to record size of bss section
         SegData[seg].SDoffset += count;
     }
@@ -2584,7 +2589,7 @@ static if (0)
 
 void MachObj_reftocodeseg(int seg,targ_size_t offset,targ_size_t val)
 {
-    //printf("MachObj_reftocodeseg(seg=%d, offset=x%lx, val=x%lx )\n",seg,cast(uint)offset,cast(uint)val);
+    //printf("MachObj_reftocodeseg(seg=%d, offset=x%x, val=x%x )\n",seg,cast(uint)offset,cast(uint)val);
     assert(seg > 0);
     OutBuffer *buf = SegData[seg].SDbuf;
     int save = cast(int)buf.length();
@@ -2621,8 +2626,9 @@ int MachObj_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
     int retsize = (flags & CFoffset64) ? 8 : 4;
 static if (0)
 {
-    printf("\nMachObj_reftoident('%s' seg %d, offset x%llx, val x%llx, flags x%x)\n",
+    printf("\nMachObj_reftoident('%s' seg %d, offset x%llx, val x%llx, flags x%x) ",
         s.Sident.ptr,seg,cast(ulong)offset,cast(ulong)val,flags);
+    CF_print(flags);
     printf("retsize = %d\n", retsize);
     //dbg_printf("Sseg = %d, Sxtrnnum = %d\n",s.Sseg,s.Sxtrnnum);
     symbol_print(s);
@@ -2736,7 +2742,7 @@ static if (0)
                 indirectsymbuf2.write((&s)[0 .. 1]);
 
              L2:
-                //printf("MachObj_reftoident: seg = %d, offset = x%x, s = %s, val = x%x, pointersSeg = %d\n", seg, (int)offset, s.Sident.ptr, (int)val, pointersSeg);
+                //printf("MachObj_reftoident: seg = %d, offset = x%x, s = %s, val = x%x, pointersSeg = %d\n", seg, cast(int)offset, s.Sident.ptr, cast(int)val, pointersSeg);
                 if (flags & CFindirect)
                 {
                     Relocation rel = void;
@@ -2928,7 +2934,7 @@ void MachObj_write_pointerRef(Symbol* s, uint off)
  */
 int mach_dwarf_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val)
 {
-    //printf("dwarf_reftoident(seg=%d offset=x%x s=%s val=x%x\n", seg, (int)offset, s.Sident.ptr, (int)val);
+    //printf("dwarf_reftoident(seg=%d offset=x%x s=%s val=x%x\n", seg, cast(int)offset, s.Sident.ptr, cast(int)val);
     MachObj_reftoident(seg, offset, s, val + 4, I64 ? CFoff : CFindirect);
     return 4;
 }

@@ -47,4 +47,3 @@ void test18266()
         auto s = S(i);
     }
 }
-

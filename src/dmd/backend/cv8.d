@@ -5,11 +5,11 @@
  * which are the MS-Coff symbolic debug info and type debug info sections.
  *
  * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:    Copyright (C) 2012-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:    Copyright (C) 2012-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cv8.d, backend/cv8.d)
  */
 
@@ -531,7 +531,7 @@ void cv8_linnum(Srcpos srcpos, uint offset)
         const sfilename = srcpos.Sfilename;
     else
         const sfilename = srcpos_name(srcpos);
-    //printf("cv8_linnum(file = %s, line = %d, offset = x%x)\n", sfilename, (int)srcpos.Slinnum, (uint)offset);
+    //printf("cv8_linnum(file = %s, line = %d, offset = x%x)\n", sfilename, cast(int)srcpos.Slinnum, cast(uint)offset);
 
     if (!sfilename)
         return;
@@ -640,7 +640,7 @@ L1:
     uint u = 0;
     while (u + 8 <= length)
     {
-        //printf("\t%x\n", *(uint *)(p + u));
+        //printf("\t%x\n", *cast(uint *)(p + u));
         if (off == *cast(uint *)(p + u))
         {
             //printf("\tfound %x\n", u);

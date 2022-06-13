@@ -56,4 +56,3 @@ void test()
     _Static_assert(a == 0, "in");
     _Static_assert(b == 1, "in");
 }
-

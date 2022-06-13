@@ -2,13 +2,13 @@
  * Global optimizer declarations
  *
  * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1986-1998 by Symantec
- *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
+ *              https://www.boost.org/LICENSE_1_0.txt
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/goh.d
  */
 
@@ -135,4 +135,3 @@ void listrds(vec_t, elem *, vec_t, Barray!(elem*)*);
 
 /* gslice.c */
 void sliceStructs(ref symtab_t symtab, block* startblock);
-

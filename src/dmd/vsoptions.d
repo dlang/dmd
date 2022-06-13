@@ -1,9 +1,9 @@
 /**
  * When compiling on Windows with the Microsoft toolchain, try to detect the Visual Studio setup.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/link.d, _vsoptions.d)
  * Documentation:  https://dlang.org/phobos/dmd_vsoptions.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/vsoptions.d
@@ -20,7 +20,7 @@ import core.sys.windows.winbase;
 import core.sys.windows.windef;
 import core.sys.windows.winreg;
 
-import dmd.env;
+import dmd.root.env;
 import dmd.root.file;
 import dmd.root.filename;
 import dmd.common.outbuffer;
@@ -186,6 +186,26 @@ extern(C++) struct VSOptions
         return "link.exe";
     }
 
+    /**
+    * retrieve path to the Microsoft compiler executable
+    * Params:
+    *   x64 = target architecture (x86 if false)
+    * Returns:
+    *   absolute path to cl.exe, just "cl.exe" if not found
+    */
+    const(char)* compilerPath(bool x64)
+    {
+        const(char)* addpath;
+        if (auto p = getVCBinDir(x64, addpath))
+        {
+            OutBuffer cmdbuf;
+            cmdbuf.writestring(p);
+            cmdbuf.writestring(r"\cl.exe");
+            return cmdbuf.extractChars();
+        }
+        return "cl.exe";
+    }
+
 private:
     /**
      * detect WindowsSdkDir and WindowsSDKVersion from environment or registry
@@ -323,7 +343,7 @@ private:
             if (FileName.exists(defverFile))
             {
                 // VS 2017
-                auto readResult = File.read(defverFile); // adds sentinel 0 at end of file
+                auto readResult = File.read(defverFile.toDString); // adds sentinel 0 at end of file
                 if (readResult.success)
                 {
                     auto ver = cast(char*)readResult.buffer.data.ptr;
@@ -438,11 +458,17 @@ public:
     */
     const(char)* getVCLibDir(bool x64) const
     {
+        const(char)* proposed;
+
         if (VCToolsInstallDir !is null)
-            return FileName.combine(VCToolsInstallDir, x64 ? r"lib\x64" : r"lib\x86");
-        if (VCInstallDir !is null)
-            return FileName.combine(VCInstallDir, x64 ? r"lib\amd64" : "lib");
-        return null;
+            proposed = FileName.combine(VCToolsInstallDir, x64 ? r"lib\x64" : r"lib\x86");
+        else if (VCInstallDir !is null)
+            proposed = FileName.combine(VCInstallDir, x64 ? r"lib\amd64" : "lib");
+
+        // Due to the possibility of VS being installed with VC directory without the libraries
+        // we must check that the expected directory does exist.
+        // It is possible that this isn't the only location a file check is required.
+        return FileName.exists(proposed) ? proposed : null;
     }
 
     /**

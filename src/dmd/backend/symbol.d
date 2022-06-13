@@ -2,12 +2,12 @@
  * Symbols for the back end
  *
  * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/symbol.d
  */
 
@@ -176,7 +176,7 @@ void symbol_keep(Symbol *s)
  * Return alignment of symbol.
  */
 @trusted
-int Symbol_Salignsize(Symbol* s)
+int Symbol_Salignsize(ref Symbol s)
 {
     if (s.Salignment > 0)
         return s.Salignment;
@@ -204,7 +204,7 @@ int Symbol_Salignsize(Symbol* s)
  */
 
 @trusted
-bool Symbol_Sisdead(const Symbol* s, bool anyInlineAsm)
+bool Symbol_Sisdead(const ref Symbol s, bool anyInlineAsm)
 {
     version (MARS)
         enum vol = false;
@@ -231,11 +231,11 @@ bool Symbol_Sisdead(const Symbol* s, bool anyInlineAsm)
  */
 
 @trusted
-int Symbol_needThis(const Symbol* s)
+int Symbol_needThis(const ref Symbol s)
 {
     //printf("needThis() '%s'\n", Sident.ptr);
 
-    debug assert(isclassmember(s));
+    debug assert(isclassmember(&s));
 
     if (s.Sclass == SCmember || s.Sclass == SCfield)
         return 1;
@@ -334,7 +334,7 @@ Symbol * symbol_calloc(const(char)* id)
 Symbol * symbol_calloc(const(char)* id, uint len)
 {   Symbol *s;
 
-    //printf("sizeof(symbol)=%d, sizeof(s.Sident)=%d, len=%d\n",sizeof(symbol),sizeof(s.Sident),(int)len);
+    //printf("sizeof(symbol)=%d, sizeof(s.Sident)=%d, len=%d\n", symbol.sizeof, s.Sident.sizeof, cast(int)len);
     s = cast(Symbol *) mem_fmalloc(Symbol.sizeof - s.Sident.length + len + 1 + 5);
     memset(s,0,Symbol.sizeof - s.Sident.length);
 version (SCPP_HTOD)

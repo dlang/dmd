@@ -1,11 +1,11 @@
 /**
  * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgobj.d, backend/cgobj.d)
  */
 module dmd.backend.cgobj;
@@ -1013,7 +1013,7 @@ else
         ln.reset();
 
     L1:
-        //printf("offset = x%x, line = %d\n", (int)offset, linnum);
+        //printf("offset = x%x, line = %d\n", cast(int)offset, linnum);
         ln.data.write16(linnum);
         if (_tysize[TYint] == 2)
             ln.data.write16(cast(int)offset);
@@ -1261,16 +1261,15 @@ void OmfObj_dosseg()
 @trusted
 private void obj_comment(ubyte x, const(char)* string, size_t len)
 {
+    import dmd.common.string : SmallBuffer;
     char[128] buf = void;
+    auto sb = SmallBuffer!char(2 + len, buf[]);
+    char *library = sb.ptr;
 
-    char *library = (2 + len <= buf.sizeof) ? buf.ptr : cast(char *) malloc(2 + len);
-    assert(library);
     library[0] = 0;
     library[1] = x;
     memcpy(library + 2,string,len);
     objrecord(COMENT,library,cast(uint)(len + 2));
-    if (library != buf.ptr)
-        free(library);
 }
 
 /*******************************

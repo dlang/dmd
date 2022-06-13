@@ -1,10 +1,10 @@
 /**
  * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2009-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 2009-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/mscoffobj.d, backend/mscoffobj.d)
  */
 
@@ -177,7 +177,7 @@ IDXSTR MsCoffObj_addstr(OutBuffer *strtab, const(char)* str)
 {
     //printf("MsCoffObj_addstr(strtab = %p str = '%s')\n",strtab,str);
     IDXSTR idx = cast(IDXSTR)strtab.length();        // remember starting offset
-    strtab.writeString(str);
+    strtab.writeStringz(str);
     //printf("\tidx %d, new size %d\n",idx,strtab.length());
     return idx;
 }
@@ -1162,7 +1162,7 @@ void MsCoffObj_staticdtor(Symbol *s)
 void MsCoffObj_setModuleCtorDtor(Symbol *sfunc, bool isCtor)
 {
     // Also see https://blogs.msdn.microsoft.com/vcblog/2006/10/20/crt-initialization/
-    // and http://www.codeguru.com/cpp/misc/misc/applicationcontrol/article.php/c6945/Running-Code-Before-and-After-Main.htm
+    // and https://www.codeguru.com/cplusplus/running-code-before-and-after-main/
     const int align_ = I64 ? IMAGE_SCN_ALIGN_8BYTES : IMAGE_SCN_ALIGN_4BYTES;
     const int attr = IMAGE_SCN_CNT_INITIALIZED_DATA | align_ | IMAGE_SCN_MEM_READ;
     const int seg = MsCoffObj_getsegment(isCtor ? ".CRT$XCU" : ".CRT$XPU", attr);
@@ -1835,7 +1835,7 @@ segidx_t MsCoffObj_data_start(Symbol *sdata, targ_size_t datasize, segidx_t seg)
 {
     targ_size_t alignbytes;
 
-    //printf("MsCoffObj_data_start(%s,size %d,seg %d)\n",sdata.Sident.ptr,(int)datasize,seg);
+    //printf("MsCoffObj_data_start(%s,size %d,seg %d)\n",sdata.Sident.ptr,cast(int)datasize,seg);
     //symbol_print(sdata);
 
     assert(sdata.Sseg);
@@ -1929,7 +1929,7 @@ void MsCoffObj_pubdef(segidx_t seg, Symbol *s, targ_size_t offset)
             symbuf.write((&s)[0 .. 1]);
             break;
     }
-    //printf("%p\n", *(void**)symbuf.buf);
+    //printf("%p\n", *cast(void**)symbuf.buf);
     s.Sxtrnnum = 1;
 }
 
@@ -2430,7 +2430,7 @@ int elf_align(int size, int foffset)
     if (size <= 1)
         return foffset;
     int offset = (foffset + size - 1) & ~(size - 1);
-    //printf("offset = x%lx, foffset = x%lx, size = x%lx\n", offset, foffset, (int)size);
+    //printf("offset = x%lx, foffset = x%lx, size = x%lx\n", offset, foffset, cast(int)size);
     if (offset > foffset)
         fobjbuf.writezeros(offset - foffset);
     return offset;

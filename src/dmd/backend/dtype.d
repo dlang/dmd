@@ -1,11 +1,11 @@
 /**
  * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/dtype.d
  */
 
@@ -656,6 +656,20 @@ type *type_enum(const(char)* name, type *tbase)
 type *type_struct_class(const(char)* name, uint alignsize, uint structsize,
         type *arg1type, type *arg2type, bool isUnion, bool isClass, bool isPOD, bool is0size)
 {
+    static if (0)
+    {
+        printf("type_struct_class(%s, %p, %p)\n", name, arg1type, arg2type);
+        if (arg1type)
+        {
+            printf("arg1type:\n");
+            type_print(arg1type);
+        }
+        if (arg2type)
+        {
+            printf("arg2type:\n");
+            type_print(arg2type);
+        }
+    }
     Symbol *s = symbol_calloc(name);
     s.Sclass = SCstruct;
     s.Sstruct = struct_calloc();
@@ -1330,7 +1344,7 @@ printf("Pident=%p,Ptype=%p,Pelem=%p,Pnext=%p ",p.Pident,p.Ptype,p.Pelem,p.Pnext)
  */
 
 @trusted
-void param_t_print(const param_t* p)
+void param_t_print(const scope param_t* p)
 {
     printf("Pident=%p,Ptype=%p,Pelem=%p,Psym=%p,Pnext=%p\n",p.Pident,p.Ptype,p.Pelem,p.Psym,p.Pnext);
     if (p.Pident)
@@ -1355,7 +1369,7 @@ void param_t_print(const param_t* p)
     }
 }
 
-void param_t_print_list(param_t* p)
+void param_t_print_list(scope param_t* p)
 {
     for (; p; p = p.Pnext)
         p.print();
@@ -1563,7 +1577,7 @@ void param_free(param_t **pparamlst)
  * Compute number of parameters
  */
 
-uint param_t_length(param_t* p)
+uint param_t_length(scope param_t* p)
 {
     uint nparams = 0;
 
@@ -1580,7 +1594,7 @@ uint param_t_length(param_t* p)
  */
 
 @trusted
-param_t *param_t_createTal(param_t* p, param_t *ptali)
+param_t* param_t_createTal(scope param_t* p, param_t *ptali)
 {
 version (SCPP_HTOD)
 {
@@ -1633,7 +1647,7 @@ version (SCPP_HTOD)
  */
 
 @trusted
-param_t *param_t_search(param_t* p, char *id)
+param_t* param_t_search(scope param_t* p, char *id)
 {
     for (; p; p = p.Pnext)
     {

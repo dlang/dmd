@@ -18,5 +18,3 @@ void test2()
 {
     int array2[][4];
 }
-
-

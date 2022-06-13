@@ -2,12 +2,12 @@
  * Define registers, register masks, and the CPU instruction linked list
  *
  * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/code.d, backend/_code.d)
  */
 
@@ -139,7 +139,7 @@ struct LocalSection
     int alignment;              // alignment size
 
   nothrow:
-    void init()                 // initialize
+    void initialize()
     {   offset = 0;
         size = 0;
         alignment = 0;
@@ -356,12 +356,12 @@ extern __gshared
 }
 
 /* cgcod.c */
-extern __gshared int pass;
-enum
+extern __gshared BackendPass pass;
+enum BackendPass
 {
-    PASSinitial,     // initial pass through code generator
-    PASSreg,         // register assignment pass
-    PASSfinal,       // final pass
+    initial,    /// initial pass through code generator
+    reg,        /// register assignment pass
+    final_,     /// final pass
 }
 
 extern __gshared int dfoidx;
@@ -564,7 +564,7 @@ void jmpaddr (code *c);
 int code_match(code *c1,code *c2);
 uint calcblksize (code *c);
 uint calccodsize(code *c);
-uint codout(int seg, code *c);
+uint codout(int seg, code *c,Barray!ubyte*);
 size_t addtofixlist(Symbol *s , targ_size_t soffset , int seg , targ_size_t val , int flags );
 void searchfixlist(Symbol *s) {}
 void outfixlist();
@@ -661,10 +661,20 @@ void cdd_u64(ref CodeBuilder cdb, elem *e, regm_t *pretregs);
 void cdd_u32(ref CodeBuilder cdb, elem *e, regm_t *pretregs);
 void loadPair87(ref CodeBuilder cdb, elem *e, regm_t *pretregs);
 
-/* iasm.c */
-//void iasm_term();
-regm_t iasm_regs(block *bp);
+/**********************************
+ * Get registers used by a given block
+ * Params: bp = asm block
+ * Returns: mask of registers used by block bp.
+ */
+@system
+regm_t iasm_regs(block *bp)
+{
+    debug (debuga)
+        printf("Block iasm regs = 0x%X\n", bp.usIasmregs);
 
+    refparam |= bp.bIasmrefparam;
+    return bp.usIasmregs;
+}
 
 /**********************************
  * Set value in regimmed for reg.
@@ -678,8 +688,3 @@ void regimmed_set(int reg, targ_size_t e)
     regcon.immed.mval |= 1 << (reg);
     //printf("regimmed_set %s %d\n", regm_str(1 << reg), cast(int)e);
 }
-
-
-
-
-

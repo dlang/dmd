@@ -14,9 +14,9 @@
  * - Protection (`private`, `public`)
  * - Deprecated declarations (`@deprecated`)
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/attrib.d, _attrib.d)
  * Documentation:  https://dlang.org/phobos/dmd_attrib.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/attrib.d
@@ -43,7 +43,7 @@ import dmd.identifier;
 import dmd.mtype;
 import dmd.objc; // for objc.addSymbols
 import dmd.common.outbuffer;
-import dmd.target; // for target.systemLinkage
+import dmd.root.array; // for each
 import dmd.tokens;
 import dmd.visitor;
 
@@ -246,12 +246,12 @@ extern (C++) class StorageClassDeclaration : AttribDeclaration
          */
         if (stc & (STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.manifest))
             scstc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.manifest);
-        if (stc & (STC.auto_ | STC.scope_ | STC.static_ | STC.tls | STC.manifest | STC.gshared))
-            scstc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.tls | STC.manifest | STC.gshared);
+        if (stc & (STC.auto_ | STC.scope_ | STC.static_ | STC.manifest | STC.gshared))
+            scstc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.manifest | STC.gshared);
         if (stc & (STC.const_ | STC.immutable_ | STC.manifest))
             scstc &= ~(STC.const_ | STC.immutable_ | STC.manifest);
-        if (stc & (STC.gshared | STC.shared_ | STC.tls))
-            scstc &= ~(STC.gshared | STC.shared_ | STC.tls);
+        if (stc & (STC.gshared | STC.shared_))
+            scstc &= ~(STC.gshared | STC.shared_);
         if (stc & (STC.safe | STC.trusted | STC.system))
             scstc &= ~(STC.safe | STC.trusted | STC.system);
         scstc |= stc;
@@ -398,7 +398,7 @@ extern (C++) final class LinkDeclaration : AttribDeclaration
     {
         super(loc, null, decl);
         //printf("LinkDeclaration(linkage = %d, decl = %p)\n", linkage, decl);
-        this.linkage = (linkage == LINK.system) ? target.systemLinkage() : linkage;
+        this.linkage = linkage;
     }
 
     static LinkDeclaration create(const ref Loc loc, LINK p, Dsymbols* decl)
@@ -929,12 +929,13 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
             (*args)[0] = e;
         }
 
-        if (e.isBool(true))
-            return PINLINE.always;
-        else if (e.isBool(false))
-            return PINLINE.never;
-        else
+        const opt = e.toBool();
+        if (opt.isEmpty())
             return PINLINE.default_;
+        else if (opt.get())
+            return PINLINE.always;
+        else
+            return PINLINE.never;
     }
 
     override const(char)* kind() const
@@ -992,7 +993,7 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
     // Decide if 'then' or 'else' code should be included
     override Dsymbols* include(Scope* sc)
     {
-        //printf("ConditionalDeclaration::include(sc = %p) scope = %p\n", sc, scope);
+        //printf("ConditionalDeclaration::include(sc = %p) scope = %p\n", sc, _scope);
 
         if (errors)
             return null;
@@ -1055,7 +1056,7 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
      */
     override Dsymbols* include(Scope* sc)
     {
-        //printf("StaticIfDeclaration::include(sc = %p) scope = %p\n", sc, scope);
+        //printf("StaticIfDeclaration::include(sc = %p) scope = %p\n", sc, _scope);
 
         if (errors || onStack)
             return null;
@@ -1198,7 +1199,7 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
 
         // expand static foreach
         import dmd.statementsem: makeTupleForeach;
-        Dsymbols* d = makeTupleForeach!(true,true)(_scope, sfe.aggrfe, decl, sfe.needExpansion);
+        Dsymbols* d = makeTupleForeach(_scope, true, true, sfe.aggrfe, decl, sfe.needExpansion).decl;
         if (d) // process generated declarations
         {
             // Add members lazily.
@@ -1273,14 +1274,14 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
  * declarations.
  */
 
-extern(C++) final class ForwardingAttribDeclaration: AttribDeclaration
+extern(C++) final class ForwardingAttribDeclaration : AttribDeclaration
 {
     ForwardingScopeDsymbol sym = null;
 
     this(Dsymbols* decl)
     {
         super(decl);
-        sym = new ForwardingScopeDsymbol(null);
+        sym = new ForwardingScopeDsymbol();
         sym.symtab = new DsymbolTable();
     }
 
@@ -1297,7 +1298,7 @@ extern(C++) final class ForwardingAttribDeclaration: AttribDeclaration
      */
     override void addMember(Scope* sc, ScopeDsymbol sds)
     {
-        parent = sym.parent = sym.forward = sds;
+        sym.parent = sds;
         return super.addMember(sc, sym);
     }
 
@@ -1494,12 +1495,7 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
         if (global.params.cplusplus < CppStdRevision.cpp11)
             return;
 
-        // Avoid `if` at the call site
-        if (sym.userAttribDecl is null || sym.userAttribDecl.atts is null)
-            return;
-
-        foreach (exp; *sym.userAttribDecl.atts)
-        {
+        foreachUdaNoSemantic(sym, (exp) {
             if (isGNUABITag(exp))
             {
                 if (sym.isCPPNamespaceDeclaration() || sym.isNspace())
@@ -1513,8 +1509,95 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
                     sym.errors = true;
                 }
                 // Only one `@gnuAbiTag` is allowed by semantic2
-                return;
+                return 1; // break
             }
-        }
+            return 0; // continue
+        });
     }
+}
+
+/**
+ * Returns `true` if the given symbol is a symbol declared in
+ * `core.attribute` and has the given identifier.
+ *
+ * This is used to determine if a symbol is a UDA declared in
+ * `core.attribute`.
+ *
+ * Params:
+ *  sym = the symbol to check
+ *  ident = the name of the expected UDA
+ */
+bool isCoreUda(Dsymbol sym, Identifier ident)
+{
+    if (sym.ident != ident || !sym.parent)
+        return false;
+
+    auto _module = sym.parent.isModule();
+    return _module && _module.isCoreModule(Id.attribute);
+}
+
+/**
+ * Iterates the UDAs attached to the given symbol.
+ *
+ * Params:
+ *  sym = the symbol to get the UDAs from
+ *  sc = scope to use for semantic analysis of UDAs
+ *  dg = called once for each UDA
+ *
+ * Returns:
+ *  If `dg` returns `!= 0`, stops the iteration and returns that value.
+ *  Otherwise, returns 0.
+ */
+int foreachUda(Dsymbol sym, Scope* sc, int delegate(Expression) dg)
+{
+    if (!sym.userAttribDecl)
+        return 0;
+
+    auto udas = sym.userAttribDecl.getAttributes();
+    arrayExpressionSemantic(udas, sc, true);
+
+    return udas.each!((uda) {
+        if (!uda.isTupleExp())
+            return 0;
+
+        auto exps = uda.isTupleExp().exps;
+
+        return exps.each!((e) {
+            assert(e);
+
+            if (auto result = dg(e))
+                return result;
+
+            return 0;
+        });
+    });
+}
+
+/**
+ * Iterates the UDAs attached to the given symbol, without performing semantic
+ * analysis.
+ *
+ * Use this function instead of `foreachUda` if semantic analysis of `sym` is
+ * still in progress.
+ *
+ * Params:
+ *  sym = the symbol to get the UDAs from
+ *  dg = called once for each UDA
+ *
+ * Returns:
+ *  If `dg` returns `!= 0`, stops the iteration and returns that value.
+ *  Otherwise, returns 0.
+ */
+int foreachUdaNoSemantic(Dsymbol sym, int delegate(Expression) dg)
+{
+    if (sym.userAttribDecl is null || sym.userAttribDecl.atts is null)
+        return 0;
+
+    foreach (exp; *sym.userAttribDecl.atts)
+    {
+        if (auto result = dg(exp))
+            return result;
+    }
+
+    return 0;
 }

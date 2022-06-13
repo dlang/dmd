@@ -7,7 +7,7 @@ unittest
 {
     import dmd.globals : global;
 
-    static void assertStructsEqual(T)(const ref T a, const ref T b) @nogc pure nothrow
+    static void assertStructsEqual(T)(const ref T a, const ref T b)
     if (is(T == struct))
     {
         foreach (i, _; typeof(a.tupleof))

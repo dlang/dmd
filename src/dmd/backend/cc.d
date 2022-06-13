@@ -2,12 +2,12 @@
  * Common definitions
  *
  * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cc.d, backend/_cc.d)
  */
 
@@ -440,7 +440,6 @@ struct Blockx
     int next_index;             // value for next scope index
     uint flags;                 // value to OR into Bflags
     block* tryblock;            // current enclosing try block
-    elem* init;                 // static initializer
     ClassDeclaration_ classdec;
     Declaration_ member;        // member we're compiling for
     Module_ _module;            // module we're in
@@ -1259,7 +1258,7 @@ struct Symbol
     int Salignment;             // variables: alignment, 0 or -1 means default alignment
 
     int Salignsize()            // variables: return alignment
-    { return Symbol_Salignsize(&this); }
+    { return Symbol_Salignsize(this); }
 
     type* Stype;                // type of Symbol
     tym_t ty() const { return Stype.Tty; }
@@ -1448,10 +1447,10 @@ struct Symbol
     char[1] Sident;
 
     int needThis()              // !=0 if symbol needs a 'this' pointer
-    { return Symbol_needThis(&this); }
+    { return Symbol_needThis(this); }
 
     bool Sisdead(bool anyiasm)  // if variable is not referenced
-    { return Symbol_Sisdead(&this, anyiasm); }
+    { return Symbol_Sisdead(this, anyiasm); }
 }
 
 void symbol_debug(const Symbol* s)
@@ -1459,9 +1458,9 @@ void symbol_debug(const Symbol* s)
     debug assert(s.id == s.IDsymbol);
 }
 
-int Symbol_Salignsize(Symbol* s);
-bool Symbol_Sisdead(const Symbol* s, bool anyInlineAsm);
-int Symbol_needThis(const Symbol* s);
+int Symbol_Salignsize(ref Symbol s);
+bool Symbol_Sisdead(const ref Symbol s, bool anyInlineAsm);
+int Symbol_needThis(const ref Symbol s);
 bool Symbol_isAffected(const ref Symbol s);
 
 bool isclassmember(const Symbol* s) { return s.Sscope && s.Sscope.Sclass == SCstruct; }
@@ -1589,11 +1588,11 @@ nothrow:
     { param_t_print_list(&this); }
 }
 
-void param_t_print(const param_t* p);
-void param_t_print_list(param_t* p);
-uint param_t_length(param_t* p);
-param_t *param_t_createTal(param_t* p, param_t *ptali);
-param_t *param_t_search(param_t* p, char *id);
+void param_t_print(const scope param_t* p);
+void param_t_print_list(scope param_t* p);
+uint param_t_length(scope param_t* p);
+param_t* param_t_createTal(scope param_t* p, param_t *ptali);
+param_t* param_t_search(scope param_t* p, char *id);
 int param_t_searchn(param_t* p, char *id);
 
 

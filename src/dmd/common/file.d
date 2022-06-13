@@ -4,9 +4,9 @@
  * Functions and objects dedicated to file I/O and management. TODO: Move here artifacts
  * from places such as root/ so both the frontend and the backend have access to them.
  *
- * Copyright: Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:   Walter Bright, http://www.digitalmars.com
- * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright: Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:   Walter Bright, https://www.digitalmars.com
+ * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/common/file.d, common/_file.d)
  * Documentation: https://dlang.org/phobos/dmd_common_file.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/common/file.d
@@ -24,6 +24,8 @@ import core.sys.posix.fcntl;
 import core.sys.posix.unistd;
 
 import dmd.common.string;
+
+nothrow:
 
 /**
 Encapsulated management of a memory-mapped file.
@@ -51,6 +53,8 @@ struct FileMapping(Datum)
     /// Name of underlying file, zero-terminated
     private const(char)* name;
     // state }
+
+  nothrow:
 
     /**
     Open `filename` and map it in memory. If `Datum` is `const`, opens for

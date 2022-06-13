@@ -28,7 +28,6 @@ subPackage {
     "src/dmd/identifier.d" \
     "src/dmd/lexer.d" \
     "src/dmd/tokens.d" \
-    "src/dmd/utf.d" \
     "src/dmd/utils.d"
 
   versions \

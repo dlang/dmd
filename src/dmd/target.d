@@ -15,9 +15,9 @@
  * - $(LINK2 https://github.com/ldc-developers/ldc, LDC repository)
  * - $(LINK2 https://github.com/D-Programming-GDC/gcc, GDC repository)
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/target.d, _target.d)
  * Documentation:  https://dlang.org/phobos/dmd_target.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/target.d
@@ -27,7 +27,7 @@ module dmd.target;
 
 import dmd.globals : Param;
 
-enum CPU
+enum CPU : ubyte
 {
     x87,
     mmx,
@@ -65,6 +65,26 @@ Target.OS defaultTargetOS()
     else
         static assert(0, "unknown TARGET");
 }
+
+ubyte defaultTargetOSMajor()
+{
+    version (FreeBSD)
+    {
+        version (TARGET_FREEBSD10)
+            return 10;
+        else version (TARGET_FREEBSD11)
+            return 11;
+        else version (TARGET_FREEBSD12)
+            return 12;
+        else version (TARGET_FREEBSD13)
+            return 13;
+        else
+            return 0;
+    }
+    else
+        return 0;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 /**
  * Describes a back-end target. At present it is incomplete, but in the future
@@ -80,11 +100,12 @@ extern (C++) struct Target
     import dmd.dscope : Scope;
     import dmd.expression : Expression;
     import dmd.func : FuncDeclaration;
-    import dmd.globals : LINK, Loc, d_int64;
-    import dmd.astenums : TY;
+    import dmd.globals : Loc;
+    import dmd.astenums : LINK, TY;
     import dmd.mtype : Type, TypeFunction, TypeTuple;
     import dmd.root.ctfloat : real_t;
     import dmd.statement : Statement;
+    import dmd.tokens : EXP;
 
     /// Bit decoding of the Target.OS
     enum OS : ubyte
@@ -92,7 +113,7 @@ extern (C++) struct Target
         /* These are mutually exclusive; one and only one is set.
          * Match spelling and casing of corresponding version identifiers
          */
-        Freestanding = 0,
+        none         = 0,
         linux        = 1,
         Windows      = 2,
         OSX          = 4,
@@ -106,8 +127,16 @@ extern (C++) struct Target
         Posix = linux | OSX | OpenBSD | FreeBSD | Solaris | DragonFlyBSD,
     }
 
+    extern(D) enum ObjectFormat : ubyte
+    {
+        elf,
+        macho,
+        coff,
+        omf
+    }
+
     OS os = defaultTargetOS();
-    ubyte osMajor;
+    ubyte osMajor = defaultTargetOSMajor();
 
     // D ABI
     ubyte ptrsize;            /// size of a pointer in bytes
@@ -137,24 +166,24 @@ extern (C++) struct Target
     const(char)[] lib_ext;    /// extension for static library files
     const(char)[] dll_ext;    /// extension for dynamic library files
     bool run_noext;           /// allow -run sources without extensions
-    bool mscoff = false;      // for Win32: write MsCoff object files instead of OMF
+    bool omfobj = false;      // for Win32: write OMF object files instead of MsCoff
     /**
      * Values representing all properties for floating point types
      */
     extern (C++) struct FPTypeProperties(T)
     {
-        real_t max;                         /// largest representable value that's not infinity
-        real_t min_normal;                  /// smallest representable normalized value that's not 0
-        real_t nan;                         /// NaN value
-        real_t infinity;                    /// infinity value
-        real_t epsilon;                     /// smallest increment to the value 1
+        real_t max;         /// largest representable value that's not infinity
+        real_t min_normal;  /// smallest representable normalized value that's not 0
+        real_t nan;         /// NaN value
+        real_t infinity;    /// infinity value
+        real_t epsilon;     /// smallest increment to the value 1
 
-        d_int64 dig = T.dig;                /// number of decimal digits of precision
-        d_int64 mant_dig = T.mant_dig;      /// number of bits in mantissa
-        d_int64 max_exp = T.max_exp;        /// maximum int value such that 2$(SUPERSCRIPT `max_exp-1`) is representable
-        d_int64 min_exp = T.min_exp;        /// minimum int value such that 2$(SUPERSCRIPT `min_exp-1`) is representable as a normalized value
-        d_int64 max_10_exp = T.max_10_exp;  /// maximum int value such that 10$(SUPERSCRIPT `max_10_exp` is representable)
-        d_int64 min_10_exp = T.min_10_exp;  /// minimum int value such that 10$(SUPERSCRIPT `min_10_exp`) is representable as a normalized value
+        long dig;           /// number of decimal digits of precision
+        long mant_dig;      /// number of bits in mantissa
+        long max_exp;       /// maximum int value such that 2$(SUPERSCRIPT `max_exp-1`) is representable
+        long min_exp;       /// minimum int value such that 2$(SUPERSCRIPT `min_exp-1`) is representable as a normalized value
+        long max_10_exp;    /// maximum int value such that 10$(SUPERSCRIPT `max_10_exp` is representable)
+        long min_10_exp;    /// minimum int value such that 10$(SUPERSCRIPT `min_10_exp`) is representable as a normalized value
 
         extern (D) void initialize()
         {
@@ -163,6 +192,12 @@ extern (C++) struct Target
             nan = T.nan;
             infinity = T.infinity;
             epsilon = T.epsilon;
+            dig = T.dig;
+            mant_dig = T.mant_dig;
+            max_exp = T.max_exp;
+            min_exp = T.min_exp;
+            max_10_exp = T.max_10_exp;
+            min_10_exp = T.min_10_exp;
         }
     }
 
@@ -179,7 +214,7 @@ extern (C++) struct Target
      */
     extern (C++) void _init(ref const Param params)
     {
-        // is64bit, mscoff and cpu are initialized in parseCommandLine
+        // is64bit, omfobj and cpu are initialized in parseCommandLine
 
         this.params = &params;
 
@@ -242,10 +277,6 @@ extern (C++) struct Target
                 realpad = 6;
                 realalignsize = 16;
             }
-            else if (os == OS.Windows)
-            {
-                mscoff = true;
-            }
         }
 
         c.initialize(params, this);
@@ -279,6 +310,21 @@ extern (C++) struct Target
     }
 
     /**
+     Determine the object format to be used
+     */
+    extern(D) Target.ObjectFormat objectFormat()
+    {
+        if (os == Target.OS.OSX)
+            return Target.ObjectFormat.macho;
+        else if (os & Target.OS.Posix)
+            return Target.ObjectFormat.elf;
+        else if (os == Target.OS.Windows)
+            return omfobj ? Target.ObjectFormat.omf : Target.ObjectFormat.coff;
+        else
+            assert(0, "unkown object format");
+    }
+
+    /**
      * Determine the instruction set to be used
      */
     void setCPU()
@@ -307,91 +353,6 @@ extern (C++) struct Target
         }
     }
 
-    void setTriple(const ref Triple triple)
-    {
-        cpu     = triple.cpu;
-        is64bit = triple.is64bit;
-        isLP64  = triple.isLP64;
-        os      = triple.os;
-        osMajor = triple.osMajor;
-        c.runtime   = triple.cenv;
-        cpp.runtime = triple.cppenv;
-    }
-    /**
-     * Add predefined global identifiers that are determied by the target
-     */
-    void addPredefinedGlobalIdentifiers() const
-    {
-        import dmd.cond : VersionCondition;
-
-        alias predef = VersionCondition.addPredefinedGlobalIdent;
-        if (cpu >= CPU.sse2)
-        {
-            predef("D_SIMD");
-            if (cpu >= CPU.avx)
-                predef("D_AVX");
-            if (cpu >= CPU.avx2)
-                predef("D_AVX2");
-        }
-        if (os & OS.Posix)
-            predef("Posix");
-        if (os & (OS.linux | OS.FreeBSD | OS.OpenBSD | OS.DragonFlyBSD | OS.Solaris))
-            predef("ELFv1");
-        switch (os)
-        {
-            case OS.Freestanding: { predef("FreeStanding"); break; }
-            case OS.linux:        { predef("linux");        break; }
-            case OS.Windows:      { predef("Windows");      break; }
-            case OS.OpenBSD:      { predef("OpenBSD");      break; }
-            case OS.DragonFlyBSD: { predef("DragonFlyBSD"); break; }
-            case OS.Solaris:      { predef("Solaris");      break; }
-            case OS.OSX:
-            {
-                predef("OSX");
-                // For legacy compatibility
-                predef("darwin");
-                break;
-            }
-            case OS.FreeBSD:
-            {
-                predef("FreeBSD");
-                switch (osMajor)
-                {
-                    case 10: predef("FreeBSD_10");  break;
-                    case 11: predef("FreeBSD_11"); break;
-                    case 12: predef("FreeBSD_12"); break;
-                    default: predef("FreeBSD_11"); break;
-                }
-                break;
-            }
-            default: assert(0);
-        }
-        c.addRuntimePredefinedGlobalIdent();
-        cpp.addRuntimePredefinedGlobalIdent();
-        if (is64bit)
-        {
-            VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86_64");
-            VersionCondition.addPredefinedGlobalIdent("X86_64");
-            if (os & OS.Windows)
-            {
-                VersionCondition.addPredefinedGlobalIdent("Win64");
-            }
-        }
-        else
-        {
-            VersionCondition.addPredefinedGlobalIdent("D_InlineAsm"); //legacy
-            VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86");
-            VersionCondition.addPredefinedGlobalIdent("X86");
-            if (os == OS.Windows)
-            {
-                VersionCondition.addPredefinedGlobalIdent("Win32");
-            }
-        }
-        if (isLP64)
-            VersionCondition.addPredefinedGlobalIdent("D_LP64");
-        else if (is64bit)
-            VersionCondition.addPredefinedGlobalIdent("X32");
-    }
     /**
      * Deinitializes the global state of the compiler.
      *
@@ -576,9 +537,9 @@ extern (C++) struct Target
      * Returns:
      *      true if the operation is supported or type is not a vector
      */
-    extern (C++) bool isVectorOpSupported(Type type, uint op, Type t2 = null)
+    extern (C++) bool isVectorOpSupported(Type type, EXP op, Type t2 = null)
     {
-        import dmd.tokens : TOK, Token;
+        import dmd.hdrgen : EXPtoString;
 
         auto tvec = type.isTypeVector();
         if (tvec is null)
@@ -593,12 +554,12 @@ extern (C++) struct Target
         bool supported = false;
         switch (op)
         {
-        case TOK.uadd:
+        case EXP.uadd:
             // Expression is a no-op, supported everywhere.
             supported = tvec.isscalar();
             break;
 
-        case TOK.negate:
+        case EXP.negate:
             if (vecsize == 16)
             {
                 // float[4] negate needs SSE support ({V}SUBPS)
@@ -622,15 +583,15 @@ extern (C++) struct Target
             }
             break;
 
-        case TOK.lessThan, TOK.greaterThan, TOK.lessOrEqual, TOK.greaterOrEqual, TOK.equal, TOK.notEqual, TOK.identity, TOK.notIdentity:
+        case EXP.lessThan, EXP.greaterThan, EXP.lessOrEqual, EXP.greaterOrEqual, EXP.equal, EXP.notEqual, EXP.identity, EXP.notIdentity:
             supported = false;
             break;
 
-        case TOK.leftShift, TOK.leftShiftAssign, TOK.rightShift, TOK.rightShiftAssign, TOK.unsignedRightShift, TOK.unsignedRightShiftAssign:
+        case EXP.leftShift, EXP.leftShiftAssign, EXP.rightShift, EXP.rightShiftAssign, EXP.unsignedRightShift, EXP.unsignedRightShiftAssign:
             supported = false;
             break;
 
-        case TOK.add, TOK.addAssign, TOK.min, TOK.minAssign:
+        case EXP.add, EXP.addAssign, EXP.min, EXP.minAssign:
             if (vecsize == 16)
             {
                 // float[4] add/sub needs SSE support ({V}ADDPS, {V}SUBPS)
@@ -654,7 +615,7 @@ extern (C++) struct Target
             }
             break;
 
-        case TOK.mul, TOK.mulAssign:
+        case EXP.mul, EXP.mulAssign:
             if (vecsize == 16)
             {
                 // float[4] multiply needs SSE support ({V}MULPS)
@@ -684,7 +645,7 @@ extern (C++) struct Target
             }
             break;
 
-        case TOK.div, TOK.divAssign:
+        case EXP.div, EXP.divAssign:
             if (vecsize == 16)
             {
                 // float[4] divide needs SSE support ({V}DIVPS)
@@ -702,11 +663,11 @@ extern (C++) struct Target
             }
             break;
 
-        case TOK.mod, TOK.modAssign:
+        case EXP.mod, EXP.modAssign:
             supported = false;
             break;
 
-        case TOK.and, TOK.andAssign, TOK.or, TOK.orAssign, TOK.xor, TOK.xorAssign:
+        case EXP.and, EXP.andAssign, EXP.or, EXP.orAssign, EXP.xor, EXP.xorAssign:
             // (u)byte[16]/short[8]/int[4]/long[2] bitwise ops needs SSE2 support ({V}PAND, {V}POR, {V}PXOR)
             if (vecsize == 16 && tvec.isintegral() && cpu >= CPU.sse2)
                 supported = true;
@@ -715,11 +676,11 @@ extern (C++) struct Target
                 supported = true;
             break;
 
-        case TOK.not:
+        case EXP.not:
             supported = false;
             break;
 
-        case TOK.tilde:
+        case EXP.tilde:
             // (u)byte[16]/short[8]/int[4]/long[2] logical exclusive needs SSE2 support ({V}PXOR)
             if (vecsize == 16 && tvec.isintegral() && cpu >= CPU.sse2)
                 supported = true;
@@ -728,14 +689,14 @@ extern (C++) struct Target
                 supported = true;
             break;
 
-        case TOK.pow, TOK.powAssign:
+        case EXP.pow, EXP.powAssign:
             supported = false;
             break;
 
         default:
             // import std.stdio : stderr, writeln;
             // stderr.writeln(op);
-            assert(0, "unhandled op " ~ Token.toString(cast(TOK)op));
+            assert(0, "unhandled op " ~ EXPtoString(cast(EXP)op));
         }
         return supported;
     }
@@ -812,7 +773,7 @@ extern (C++) struct Target
 
         if (os == Target.OS.Windows && is64bit)
         {
-            // http://msdn.microsoft.com/en-us/library/7572ztz4.aspx
+            // https://msdn.microsoft.com/en-us/library/7572ztz4%28v=vs.100%29.aspx
             if (tns.ty == TY.Tcomplex32)
                 return true;
             if (tns.isscalar())
@@ -833,7 +794,7 @@ extern (C++) struct Target
                 return false;
             return true;
         }
-        else if (os == Target.OS.Windows && mscoff)
+        else if (os == Target.OS.Windows)
         {
             Type tb = tns.baseElemOf();
             if (tb.ty == TY.Tstruct)
@@ -955,35 +916,6 @@ extern (C++) struct Target
         }
     }
 
-    /***
-     * Determine the size a value of type `t` will be when it
-     * is passed on the function parameter stack.
-     * Params:
-     *  loc = location to use for error messages
-     *  t = type of parameter
-     * Returns:
-     *  size used on parameter stack
-     */
-    extern (C++) ulong parameterSize(const ref Loc loc, Type t)
-    {
-        if (!is64bit &&
-            (os & (Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.OSX)))
-        {
-            /* These platforms use clang, which regards a struct
-             * with size 0 as being of size 0 on the parameter stack,
-             * even while sizeof(struct) is 1.
-             * It's an ABI incompatibility with gcc.
-             */
-            if (auto ts = t.isTypeStruct())
-            {
-                if (ts.sym.hasNoFields)
-                    return 0;
-            }
-        }
-        const sz = t.size(loc);
-        return is64bit ? (sz + 7) & ~7 : (sz + 3) & ~3;
-    }
-
     /**
      * Decides whether an `in` parameter of the specified POD type is to be
      * passed by reference or by value. To be used with `-preview=in` only!
@@ -1061,6 +993,7 @@ extern (C++) struct Target
      */
     extern (C++) Expression getTargetInfo(const(char)* name, const ref Loc loc)
     {
+        import dmd.dmdparams : driverParams;
         import dmd.expression : IntegerExp, StringExp;
         import dmd.root.string : toDString;
 
@@ -1073,7 +1006,7 @@ extern (C++) struct Target
         {
             case objectFormat.stringof:
                 if (os == Target.OS.Windows)
-                    return stringExp(mscoff ? "coff" : "omf");
+                    return stringExp(omfobj ? "omf" : "coff" );
                 else if (os == Target.OS.OSX)
                     return stringExp("macho");
                 else
@@ -1083,9 +1016,9 @@ extern (C++) struct Target
             case cppRuntimeLibrary.stringof:
                 if (os == Target.OS.Windows)
                 {
-                    if (mscoff)
-                        return stringExp(params.mscrtlib);
-                    return stringExp("snn");
+                    if (omfobj)
+                        return stringExp("snn");
+                    return stringExp(driverParams.mscrtlib);
                 }
                 return stringExp("");
             case cppStd.stringof:
@@ -1129,6 +1062,16 @@ extern (C++) struct Target
             return false;
         }
         return true;
+    }
+
+    /**
+     * Returns true if the target supports `pragma(linkerDirective)`.
+     * Returns:
+     *      `false` if the target does not support `pragma(linkerDirective)`.
+     */
+    extern (C++) bool supportsLinkerDirective() const
+    {
+        return os == Target.OS.Windows && !omfobj;
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -1185,8 +1128,12 @@ struct TargetC
                               /// https://docs.microsoft.com/en-us/cpp/cpp/cpp-bit-fields?view=msvc-160
         Gcc_Clang,            /// gcc and clang
     }
-
+    bool  crtDestructorsSupported = true; /// Not all platforms support crt_destructor
+    ubyte boolsize;           /// size of a C `_Bool` type
+    ubyte shortsize;          /// size of a C `short` or `unsigned short` type
+    ubyte intsize;            /// size of a C `int` or `unsigned int` type
     ubyte longsize;           /// size of a C `long` or `unsigned long` type
+    ubyte long_longsize;      /// size of a C `long long` or `unsigned long long` type
     ubyte long_doublesize;    /// size of a C `long double`
     ubyte wchar_tsize;        /// size of a C `wchar_t` type
     Runtime runtime;          /// vendor of the C runtime to link against
@@ -1195,6 +1142,10 @@ struct TargetC
     extern (D) void initialize(ref const Param params, ref const Target target)
     {
         const os = target.os;
+        boolsize = 1;
+        shortsize = 2;
+        intsize = 4;
+        long_longsize = 8;
         if (os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.DragonFlyBSD | Target.OS.Solaris))
             longsize = 4;
         else if (os == Target.OS.OSX)
@@ -1220,7 +1171,7 @@ struct TargetC
             wchar_tsize = 4;
 
         if (os == Target.OS.Windows)
-            runtime = target.mscoff ? Runtime.Microsoft : Runtime.DigitalMars;
+            runtime = target.omfobj ? Runtime.DigitalMars : Runtime.Microsoft;
         else if (os == Target.OS.linux)
         {
             // Note: This is overridden later by `-target=<triple>` if supplied.
@@ -1232,31 +1183,18 @@ struct TargetC
         }
 
         if (os == Target.OS.Windows)
-            bitFieldStyle = target.mscoff ? BitFieldStyle.MS : BitFieldStyle.DM;
+            bitFieldStyle = target.omfobj ? BitFieldStyle.DM : BitFieldStyle.MS;
         else if (os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OSX |
                        Target.OS.OpenBSD | Target.OS.DragonFlyBSD | Target.OS.Solaris))
             bitFieldStyle = BitFieldStyle.Gcc_Clang;
         else
             assert(0);
-    }
-
-    void addRuntimePredefinedGlobalIdent() const
-    {
-        import dmd.cond : VersionCondition;
-
-        alias predef = VersionCondition.addPredefinedGlobalIdent;
-        with (Runtime) switch (runtime)
+        /*
+            MacOS Monterey (12) does not support C runtime destructors.
+        */
+        if (os == Target.OS.OSX)
         {
-        default:
-        case Unspecified: return;
-        case Bionic:      return predef("CRuntime_Bionic");
-        case DigitalMars: return predef("CRuntime_DigitalMars");
-        case Glibc:       return predef("CRuntime_Glibc");
-        case Microsoft:   return predef("CRuntime_Microsoft");
-        case Musl:        return predef("CRuntime_Musl");
-        case Newlib:      return predef("CRuntime_Newlib");
-        case UClibc:      return predef("CRuntime_UClibc");
-        case WASI:        return predef("CRuntime_WASI");
+            crtDestructorsSupported = false;
         }
     }
 }
@@ -1270,7 +1208,7 @@ struct TargetCPP
     import dmd.dsymbol : Dsymbol;
     import dmd.dclass : ClassDeclaration;
     import dmd.func : FuncDeclaration;
-    import dmd.mtype : Parameter, Type;
+    import dmd.mtype : Type;
 
     enum Runtime : ubyte
     {
@@ -1284,6 +1222,7 @@ struct TargetCPP
     bool reverseOverloads;    /// set if overloaded functions are grouped and in reverse order (such as in dmc and cl)
     bool exceptions;          /// set if catching C++ exceptions is supported
     bool twoDtorInVtable;     /// target C++ ABI puts deleting and non-deleting destructor into vtable
+    bool splitVBasetable;     /// set if C++ ABI uses separate tables for virtual functions and virtual bases
     bool wrapDtorInExternD;   /// set if C++ dtors require a D wrapper to be callable from runtime
     Runtime runtime;          /// vendor of the C++ runtime to link against
 
@@ -1295,18 +1234,21 @@ struct TargetCPP
         else if (os == Target.OS.OSX)
             twoDtorInVtable = true;
         else if (os == Target.OS.Windows)
+        {
             reverseOverloads = true;
+            splitVBasetable = !target.omfobj;
+        }
         else
             assert(0);
         exceptions = (os & Target.OS.Posix) != 0;
         if (os == Target.OS.Windows)
-            runtime = target.mscoff ? Runtime.Microsoft : Runtime.DigitalMars;
+            runtime = target.omfobj ? Runtime.DigitalMars : Runtime.Microsoft;
         else if (os & (Target.OS.linux | Target.OS.DragonFlyBSD))
             runtime = Runtime.Gcc;
         else if (os & (Target.OS.OSX | Target.OS.FreeBSD | Target.OS.OpenBSD))
             runtime = Runtime.Clang;
         else if (os == Target.OS.Solaris)
-            runtime = Runtime.Sun;
+            runtime = Runtime.Gcc;
         else
             assert(0);
         // C++ and D ABI incompatible on all (?) x86 32-bit platforms
@@ -1323,12 +1265,17 @@ struct TargetCPP
     extern (C++) const(char)* toMangle(Dsymbol s)
     {
         import dmd.cppmangle : toCppMangleItanium;
-        import dmd.cppmanglewin : toCppMangleMSVC;
+        import dmd.cppmanglewin : toCppMangleDMC, toCppMangleMSVC;
 
         if (target.os & (Target.OS.linux | Target.OS.OSX | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
             return toCppMangleItanium(s);
         if (target.os == Target.OS.Windows)
-            return toCppMangleMSVC(s);
+        {
+            if (target.omfobj)
+                return toCppMangleDMC(s);
+            else
+                return toCppMangleMSVC(s);
+        }
         else
             assert(0, "fix this");
     }
@@ -1343,12 +1290,17 @@ struct TargetCPP
     extern (C++) const(char)* typeInfoMangle(ClassDeclaration cd)
     {
         import dmd.cppmangle : cppTypeInfoMangleItanium;
-        import dmd.cppmanglewin : cppTypeInfoMangleMSVC;
+        import dmd.cppmanglewin : cppTypeInfoMangleDMC, cppTypeInfoMangleMSVC;
 
         if (target.os & (Target.OS.linux | Target.OS.OSX | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
             return cppTypeInfoMangleItanium(cd);
         if (target.os == Target.OS.Windows)
-            return cppTypeInfoMangleMSVC(cd);
+        {
+            if (target.omfobj)
+                return cppTypeInfoMangleDMC(cd);
+            else
+                return cppTypeInfoMangleMSVC(cd);
+        }
         else
             assert(0, "fix this");
     }
@@ -1382,30 +1334,15 @@ struct TargetCPP
 
     /**
      * Get the type that will really be used for passing the given argument
-     * to an `extern(C++)` function.
+     * to an `extern(C++)` function, or `null` if unhandled.
      * Params:
-     *      p = parameter to be passed.
+     *      t = type to be passed.
      * Returns:
-     *      `Type` to use for parameter `p`.
+     *      `Type` to use for type `t`.
      */
-    extern (C++) Type parameterType(Parameter p)
+    extern (C++) Type parameterType(Type t)
     {
-        import dmd.astenums : STC;
-        import dmd.globals : LINK;
-        import dmd.mtype : ParameterList, TypeDelegate, TypeFunction;
-        import dmd.typesem : merge;
-
-        Type t = p.type.merge2();
-        if (p.isReference())
-            t = t.referenceTo();
-        else if (p.storageClass & STC.lazy_)
-        {
-            // Mangle as delegate
-            auto tf = new TypeFunction(ParameterList(), t, LINK.d);
-            auto td = new TypeDelegate(tf);
-            t = td.merge();
-        }
-        return t;
+        return null;
     }
 
     /**
@@ -1437,23 +1374,6 @@ struct TargetCPP
         else
             return baseClass.structsize;
     }
-
-    void addRuntimePredefinedGlobalIdent() const
-    {
-        import dmd.cond : VersionCondition;
-
-        alias predef = VersionCondition.addPredefinedGlobalIdent;
-        with (Runtime) switch (runtime)
-        {
-        default:
-        case Unspecified: return;
-        case Clang:       return predef("CppRuntime_Clang");
-        case DigitalMars: return predef("CppRuntime_DigitalMars");
-        case Gcc:         return predef("CppRuntime_Gcc");
-        case Microsoft:   return predef("CppRuntime_Microsoft");
-        case Sun:         return predef("CppRuntime_Sun");
-        }
-    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1468,205 +1388,6 @@ struct TargetObjC
     {
         if (target.os == Target.OS.OSX && target.is64bit)
             supported = true;
-    }
-}
-
-/**
- Sets CPU Operating System, and optionally C/C++ runtime environment from the given triple
- e.g.
-    x86_64+avx2-apple-darwin20.3.0
-    x86-unknown-linux-musl-clang
-    x64-windows-msvc
-    x64-pc-windows-msvc
- */
-struct Triple
-{
-    private const(char)[] source;
-    CPU               cpu;
-    bool              is64bit;
-    bool              isLP64;
-    Target.OS         os;
-    ubyte             osMajor;
-    TargetC.Runtime   cenv;
-    TargetCPP.Runtime cppenv;
-
-    this(const(char)* _triple)
-    {
-        import dmd.root.string : toDString, toCStringThen;
-        const(char)[] triple = _triple.toDString();
-        const(char)[] next()
-        {
-            size_t i = 0;
-            const tmp = triple;
-            while (triple.length && triple[0] != '-')
-            {
-                triple = triple[1 .. $];
-                ++i;
-            }
-            if (triple.length && triple[0] == '-')
-            {
-                triple = triple[1 .. $];
-            }
-            return tmp[0 .. i];
-        }
-
-        parseArch(next);
-        const(char)[] vendorOrOS = next();
-        const(char)[] _os;
-        if (tryParseVendor(vendorOrOS))
-            _os = next();
-        else
-            _os = vendorOrOS;
-        os = parseOS(_os, osMajor);
-
-        const(char)[] _cenv = next();
-        if (_cenv.length)
-            cenv = parseCEnv(_cenv);
-        else if (this.os == Target.OS.Windows)
-            cenv = TargetC.Runtime.Microsoft;
-        const(char)[] _cppenv = next();
-        if (_cppenv.length)
-            cppenv = parseCPPEnv(_cppenv);
-        else if (this.os == Target.OS.Windows)
-            cppenv = TargetCPP.Runtime.Microsoft;
-    }
-    private extern(D):
-
-    void unknown(const(char)[] unk, const(char)* what)
-    {
-        import dmd.errors : error;
-        import dmd.root.string : toCStringThen;
-        import dmd.globals : Loc;
-        unk.toCStringThen!(p => error(Loc.initial,"unknown %s `%s` for `-target`", what, p.ptr));
-    }
-
-    void parseArch(const(char)[] arch)
-    {
-        bool matches(const(char)[] str)
-        {
-            import dmd.root.string : startsWith;
-            if (!arch.ptr.startsWith(str))
-                return false;
-            arch = arch[str.length-1 .. $-1];
-            return true;
-        }
-
-        if (matches("x86_64"))
-            is64bit = true;
-        else if (matches("x86"))
-            is64bit = false;
-        else if (matches("x64"))
-            is64bit = true;
-        else if (matches("x32"))
-        {
-            is64bit = true;
-            isLP64 = false;
-        }
-        else
-            return unknown(arch, "architecture");
-
-        if (!arch.length)
-            return;
-
-        switch (arch)
-        {
-            case "+sse2": cpu = CPU.sse2; break;
-            case "+avx":  cpu = CPU.avx;  break;
-            case "+avx2": cpu = CPU.avx2; break;
-            default:
-                unknown(arch, "architecture feature");
-        }
-    }
-
-    // try parsing vendor if present
-    bool tryParseVendor(const(char)[] vendor)
-    {
-        switch (vendor)
-        {
-            case "unknown": return true;
-            case "apple":   return true;
-            case "pc":      return true;
-            case "amd":     return true;
-            default:        return false;
-        }
-    }
-
-    Target.OS parseOS(const(char)[] _os, out ubyte _osMajor)
-    {
-        bool matches(const(char)[] str)
-        {
-            import dmd.root.string : startsWith;
-            if (!_os.ptr.startsWith(str))
-                return false;
-            _os = _os[str.length .. $];
-            return true;
-        }
-        if (_os == "freestanding")
-            return Target.OS.Freestanding;
-        Target.OS os;
-        _osMajor = 0;
-        if (matches("darwin"))
-            os = Target.OS.OSX;
-        else if (matches("dragonfly"))
-            os =  Target.OS.DragonFlyBSD;
-        else if (matches("freebsd"))
-            os =  Target.OS.FreeBSD;
-        else if (matches("openbsd"))
-            os =  Target.OS.OpenBSD;
-        else if (matches("linux"))
-            os =  Target.OS.linux;
-        else if (matches("windows"))
-            os =  Target.OS.Windows;
-        else
-        {
-            unknown(_os, "operating system");
-            return Target.OS.Freestanding;
-        }
-        while (_os.length)
-        {
-            if (!('0' < _os[0] && _os[0] < '9'))
-                break;
-            osMajor *= 10;
-            osMajor = cast(ubyte)((_os[0] - '0') + osMajor);
-            _os = _os[1 .. $];
-        }
-        return os;
-    }
-
-    TargetC.Runtime parseCEnv(const(char)[] cenv)
-    {
-        with (TargetC.Runtime) switch (cenv)
-        {
-            case "musl":         return Musl;
-            case "msvc":         return Microsoft;
-            case "bionic":       return Bionic;
-            case "digital_mars": return DigitalMars;
-            case "newlib":       return Newlib;
-            case "uclibc":       return UClibc;
-            case "glibc":        return Glibc;
-            default:
-            {
-                unknown(cenv, "C runtime environment");
-                return Unspecified;
-            }
-        }
-    }
-
-    TargetCPP.Runtime parseCPPEnv(const(char)[] cppenv)
-    {
-        with (TargetCPP.Runtime) switch (cppenv)
-        {
-            case "clang":        return Clang;
-            case "gcc":          return Gcc;
-            case "msvc":         return Microsoft;
-            case "sun":          return Sun;
-            case "digital_mars": return DigitalMars;
-            default:
-            {
-                unknown(cppenv, "C++ runtime environment");
-                return Unspecified;
-            }
-        }
     }
 }
 

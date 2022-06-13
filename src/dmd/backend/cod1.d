@@ -4,12 +4,12 @@
  * Handles function calls: putting arguments in registers / on the stack, and jumping to the function.
  *
  * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cod1.d, backend/cod1.d)
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/cod1.d
  */
@@ -1604,6 +1604,19 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                 debug if (debugr) printf("'%s' not reg cand due to offset or size\n", s.Sident.ptr);
                 s.Sflags &= ~GTregcand;
             }
+            else if (tyvector(s.Stype.Tty))
+            {
+                // https://issues.dlang.org/show_bug.cgi?id=21673
+                // https://issues.dlang.org/show_bug.cgi?id=21676
+                // https://issues.dlang.org/show_bug.cgi?id=23009
+                // Currently, when assigning to element [0] of a double2 and -O puts it in
+                // a register, this gets generated:
+                // movsd   XMM0,[RDI]
+                // This clears the rest of XMM0, setting element [1] to 0.
+                // Until this is fixed, keep vector variables on the stack
+                debug if (debugr) printf("'%s' not reg cand due to vector type\n", s.Sident.ptr);
+                s.Sflags &= ~GTregcand;
+            }
 
             if (config.fpxmmregs && tyfloating(s.ty()) && !tyfloating(ty))
             {
@@ -2157,13 +2170,13 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo)
 
             case CLIB.ldiv:
                 cinfo.retregs16 = mDX|mAX;
-                if (config.exe & (EX_LINUX | EX_FREEBSD))
+                if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD))
                 {
                     s = symboly("__divdi3", mAX|mBX|mCX|mDX);
                     cinfo.flags = INFpushebx;
                     cinfo.retregs32 = mDX|mAX;
                 }
-                else if (config.exe & (EX_OPENBSD | EX_SOLARIS))
+                else if (config.exe & EX_SOLARIS)
                 {
                     s = symboly("__LDIV2__", mAX|mBX|mCX|mDX);
                     cinfo.flags = INFpushebx;
@@ -2185,13 +2198,13 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo)
 
             case CLIB.lmod:
                 cinfo.retregs16 = mCX|mBX;
-                if (config.exe & (EX_LINUX | EX_FREEBSD))
+                if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD))
                 {
                     s = symboly("__moddi3", mAX|mBX|mCX|mDX);
                     cinfo.flags = INFpushebx;
                     cinfo.retregs32 = mDX|mAX;
                 }
-                else if (config.exe & (EX_OPENBSD | EX_SOLARIS))
+                else if (config.exe & EX_SOLARIS)
                 {
                     s = symboly("__LDIV2__", mAX|mBX|mCX|mDX);
                     cinfo.flags = INFpushebx;
@@ -2213,13 +2226,13 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo)
 
             case CLIB.uldiv:
                 cinfo.retregs16 = mDX|mAX;
-                if (config.exe & (EX_LINUX | EX_FREEBSD))
+                if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD))
                 {
                     s = symboly("__udivdi3", mAX|mBX|mCX|mDX);
                     cinfo.flags = INFpushebx;
                     cinfo.retregs32 = mDX|mAX;
                 }
-                else if (config.exe & (EX_OPENBSD | EX_SOLARIS))
+                else if (config.exe & EX_SOLARIS)
                 {
                     s = symboly("__ULDIV2__", mAX|mBX|mCX|mDX);
                     cinfo.flags = INFpushebx;
@@ -2241,13 +2254,13 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo)
 
             case CLIB.ulmod:
                 cinfo.retregs16 = mCX|mBX;
-                if (config.exe & (EX_LINUX | EX_FREEBSD))
+                if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD))
                 {
                     s = symboly("__umoddi3", mAX|mBX|mCX|mDX);
                     cinfo.flags = INFpushebx;
                     cinfo.retregs32 = mDX|mAX;
                 }
-                else if (config.exe & (EX_OPENBSD | EX_SOLARIS))
+                else if (config.exe & EX_SOLARIS)
                 {
                     s = symboly("__LDIV2__", mAX|mBX|mCX|mDX);
                     cinfo.flags = INFpushebx;
@@ -3464,7 +3477,7 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
 
         if (numpara > cgstate.funcarg.size)
         {   // New high water mark
-            //printf("increasing size from %d to %d\n", (int)cgstate.funcarg.size, (int)numpara);
+            //printf("increasing size from %d to %d\n", cast(int)cgstate.funcarg.size, cast(int)numpara);
             cgstate.funcarg.size = numpara;
         }
         usefuncarg = true;
@@ -3489,7 +3502,7 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
         assert(numpara == ((np < 4) ? 4 * REGSIZE : np * REGSIZE));
 
         // Allocate stack space for four entries anyway
-        // http://msdn.microsoft.com/en-US/library/ew5tede7(v=vs.80)
+        // https://msdn.microsoft.com/en-US/library/ew5tede7%28v=vs.100%29
     }
 
     int[XMM7 + 1] regsaved = void;
@@ -3711,7 +3724,7 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
 
     if (config.exe == EX_WIN64)
     {   // Allocate stack space for four entries anyway
-        // http://msdn.microsoft.com/en-US/library/ew5tede7(v=vs.80)
+        // https://msdn.microsoft.com/en-US/library/ew5tede7%28v=vs.100%29
         {   uint sz = 4 * REGSIZE;
             if (usefuncarg)
             {
@@ -3763,7 +3776,7 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
         keepmsk |= mAX;
     }
 
-    //printf("funcargtos2 = %d\n", (int)funcargtos);
+    //printf("funcargtos2 = %d\n", cast(int)funcargtos);
     assert(!usefuncarg || (funcargtos == 0 && cgstate.funcargtos == 0));
     cgstate.stackclean--;
 
@@ -4243,7 +4256,7 @@ private void movParams(ref CodeBuilder cdb, elem* e, uint stackalign, uint funca
     targ_size_t sz = _align(stackalign, szb);       // size after alignment
     assert((sz & (stackalign - 1)) == 0);         // ensure that alignment worked
     assert((sz & (REGSIZE - 1)) == 0);
-    //printf("szb = %d sz = %d\n", (int)szb, (int)sz);
+    //printf("szb = %d sz = %d\n", cast(int)szb, cast(int)sz);
 
     code cs;
     cs.Iflags = 0;
@@ -5482,8 +5495,8 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
         }
         else if (I64 && sz == 16)
         {
-            movregconst(cdb, findreglsw(forregs), cast(targ_size_t)e.EV.Vcent.lsw, 64);
-            movregconst(cdb, findregmsw(forregs), cast(targ_size_t)e.EV.Vcent.msw, 64);
+            movregconst(cdb, findreglsw(forregs), cast(targ_size_t)e.EV.Vcent.lo, 64);
+            movregconst(cdb, findregmsw(forregs), cast(targ_size_t)e.EV.Vcent.hi, 64);
         }
         else
             assert(0);
@@ -5502,19 +5515,22 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
              regcon.params & mask(e.EV.Vsym.Spreg2) && e.EV.Voffset == REGSIZE) &&
             sz <= REGSIZE)                  // make sure no 'paint' to a larger size happened
         {
-            reg = e.EV.Voffset ? e.EV.Vsym.Spreg2 : e.EV.Vsym.Spreg;
-            forregs = mask(reg);
+            const reg_t preg = e.EV.Voffset ? e.EV.Vsym.Spreg2 : e.EV.Vsym.Spreg;
+            const regm_t pregm = mask(preg);
 
-            if (debugr)
-                printf("%s.%d is fastpar and using register %s\n",
-                       e.EV.Vsym.Sident.ptr,
-                       cast(int)e.EV.Voffset,
-                       regm_str(forregs));
+            if (!(sz <= 2 && pregm & XMMREGS))   // no SIMD instructions to load 1 or 2 byte quantities
+            {
+                if (debugr)
+                    printf("%s.%d is fastpar and using register %s\n",
+                           e.EV.Vsym.Sident.ptr,
+                           cast(int)e.EV.Voffset,
+                           regm_str(pregm));
 
-            mfuncreg &= ~forregs;
-            regcon.used |= forregs;
-            fixresult(cdb,e,forregs,pretregs);
-            return;
+                mfuncreg &= ~pregm;
+                regcon.used |= pregm;
+                fixresult(cdb,e,pregm,pretregs);
+                return;
+            }
         }
 
         allocreg(cdb, &forregs, &reg, tym);            // allocate registers

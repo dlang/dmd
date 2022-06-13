@@ -4,9 +4,9 @@
  * Specification: $(LINK2 https://dlang.org/spec/struct.html, Structs, Unions),
  *                $(LINK2 https://dlang.org/spec/class.html, Class).
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/aggregate.d, _aggregate.d)
  * Documentation:  https://dlang.org/phobos/dmd_aggregate.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/aggregate.d
@@ -55,6 +55,28 @@ enum ClassKind : ubyte
     objc,
     /// the aggregate is a C struct
     c,
+}
+
+/**
+ * Give a nice string for a class kind for error messages
+ * Params:
+ *     c = class kind
+ * Returns:
+ *     0-terminated string for `c`
+ */
+const(char)* toChars(ClassKind c)
+{
+    final switch (c)
+    {
+        case ClassKind.d:
+            return "D";
+        case ClassKind.cpp:
+            return "C++";
+        case ClassKind.objc:
+            return "Objective-C";
+        case ClassKind.c:
+            return "C";
+    }
 }
 
 /**
@@ -234,7 +256,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
     abstract void finalizeSize();
 
-    override final d_uns64 size(const ref Loc loc)
+    override final uinteger_t size(const ref Loc loc)
     {
         //printf("+AggregateDeclaration::size() %s, scope = %p, sizeok = %d\n", toChars(), _scope, sizeok);
         bool ok = determineSize(loc);
@@ -472,7 +494,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         }
         foreach (e; *elements)
         {
-            if (e && e.op == TOK.error)
+            if (e && e.op == EXP.error)
                 return false;
         }
 
@@ -547,7 +569,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         if (overflow) assert(0);
 
         // Skip no-op for noreturn without custom aligment
-        if (memsize != 0 || !alignment.isDefault())
+        if (memalignsize != 0 || !alignment.isDefault())
         {
             const pofs = ofs;
             alignmember(alignment, memalignsize, &ofs);
@@ -576,6 +598,18 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
     override final Type getType()
     {
+        /* Apply storage classes to forward references. (Issue 22254)
+         * Note: Avoid interfaces for now. Implementing qualifiers on interface
+         * definitions exposed some issues in their TypeInfo generation in DMD.
+         * Related PR: https://github.com/dlang/dmd/pull/13312
+         */
+        if (semanticRun == PASS.initial && !isInterfaceDeclaration())
+        {
+            auto stc = storage_class;
+            if (_scope)
+                stc |= _scope.stc;
+            type = type.addSTC(stc);
+        }
         return type;
     }
 
@@ -746,7 +780,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
                 extern (C++) static int fp(Dsymbol s, void* ctxt)
                 {
                     auto f = s.isCtorDeclaration();
-                    if (f && f.semanticRun == PASS.init)
+                    if (f && f.semanticRun == PASS.initial)
                         f.dsymbolSemantic(null);
                     return 0;
                 }

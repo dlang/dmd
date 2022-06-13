@@ -180,8 +180,9 @@ _Static_assert(s5(4) == 5, "s5(4) == 5");
 void tokens()
 <%
     char c = 'c';
+    char* cs = u8"utf8-string";
     unsigned short w = L'w';
-    //unsigned short* ws = L"wstring";
+    unsigned short* ws = L"wstring";
     int LLL1[1];
     int LLL2<:1:>;
 %>
@@ -212,7 +213,6 @@ _Static_assert(u'a' == 0x61, "ok");
 _Static_assert(u'ab' == 0x610062, "ok");
 _Static_assert(U'a' == 0x61, "ok");
 _Static_assert(u'\u1234' == 0x1234, "ok");
-_Static_assert(U'\U00011234' == 0x11234, "ok");
 _Static_assert(L'\u1234' == 0x1234, "ok");
 
 /********************************/
@@ -479,21 +479,16 @@ void testtags()
 
 /********************************/
 
+void testoverflow()
+{
+    long long a = 18446744073709551615L;
+}
+
+/********************************/
+
 int printf(const char*, ...);
 
 int main()
 {
     printf("hello world\n");
 }
-
-#line 1000
-%:line 1010
-
-# 1020 "cstuff1.c" 1 2 3 4
-# 1030
-struct S21944
-{
-    int var;
-#1040 "cstuff1.c" 3 4
-};
-

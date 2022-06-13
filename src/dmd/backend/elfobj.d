@@ -4,12 +4,12 @@
  * http://www.sco.com/developers/gabi/2003-12-17/ch4.sheader.html
  *
  * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) ?-1998 by Symantec
- *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/elfobj.d, backend/elfobj.d)
  */
 
@@ -312,7 +312,7 @@ IDXSTR ElfObj_addstr(OutBuffer *strtab, const(char)* str)
 {
     //dbg_printf("ElfObj_addstr(strtab = x%x str = '%s')\n",strtab,str);
     IDXSTR idx = cast(IDXSTR)strtab.length();        // remember starting offset
-    strtab.writeString(str);
+    strtab.writeStringz(str);
     //dbg_printf("\tidx %d, new size %d\n",idx,strtab.length());
     return idx;
 }
@@ -520,11 +520,11 @@ Returns:
 private Pair* elf_addsectionname(const(char)* name, const(char)* suffix = null, bool *padded = null)
 {
     IDXSTR namidx = cast(IDXSTR)section_names.length();
-    section_names.writeString(name);
+    section_names.writeStringz(name);
     if (suffix)
     {   // Append suffix string
         section_names.setsize(cast(uint)section_names.length() - 1);  // back up over terminating 0
-        section_names.writeString(suffix);
+        section_names.writeStringz(suffix);
     }
     Pair* pidx = section_names_hashtable.get(namidx, cast(uint)section_names.length() - 1);
     if (pidx.start)
@@ -636,11 +636,17 @@ int ElfObj_string_literal_segment(uint sz)
 /******************************
  * Perform initialization that applies to all .o output files.
  *      Called before any other obj_xxx routines
+ *      Called by Obj.initialize()
+ * Params:
+ *      objbuf = where to write the object file data
+ *      filename = source file name
+ *      csegname = name for code segment
  */
 
+private
 Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
 {
-    //printf("ElfObj_init()\n");
+    //printf("ElfObj_init(filename = %s, csegname = %s)\n",filename,csegname);
     Obj obj = cast(Obj)mem_calloc(__traits(classInstanceSize, Obj));
 
     cseg = CODE;
@@ -825,6 +831,7 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
 
 /**************************
  * Initialize the start of object output for this particular .o file.
+ * Called by Obj.initfile()
  *
  * Input:
  *      filename:       Name of source file
@@ -833,7 +840,7 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
 
 void ElfObj_initfile(const(char)* filename, const(char)* csegname, const(char)* modname)
 {
-    //dbg_printf("ElfObj_initfile(filename = %s, modname = %s)\n",filename,modname);
+    //printf("ElfObj_initfile(filename = %s, modname = %s)\n",filename,modname);
 
     IDXSTR name = ElfObj_addstr(symtab_strings, filename);
     if (I64)
@@ -2679,18 +2686,17 @@ void ElfObj_addrel(int seg, targ_size_t offset, uint type,
             relidx = SHN_RELDATA;
         else
         {
+            import dmd.common.string : SmallBuffer;
             // Get the section name, and make a copy because
             // elf_newsection() may reallocate the string buffer.
             char *section_name = cast(char *)GET_SECTION_NAME(secidx);
             size_t len = strlen(section_name) + 1;
             char[20] buf2 = void;
-            char *p = len <= buf2.sizeof ? &buf2[0] : cast(char *)malloc(len);
-            assert(p);
+            auto sb = SmallBuffer!char(len, buf2[]);
+            char *p = sb.ptr;
             memcpy(p, section_name, len);
 
             relidx = elf_newsection(I64 ? ".rela" : ".rel", p, I64 ? SHT_RELA : SHT_REL, 0);
-            if (p != &buf2[0])
-                free(p);
             segdata.SDrelidx = relidx;
             addSectionToComdat(relidx,seg);
         }
@@ -3371,7 +3377,7 @@ void ElfObj_dehinfo(Symbol *scc)
 
 private void obj_rtinit()
 {
-    // section start/stop symbols are defined by the linker (http://www.airs.com/blog/archives/56)
+    // section start/stop symbols are defined by the linker (https://www.airs.com/blog/archives/56)
     // make the symbols hidden so that each DSO gets its own brackets
     IDXSYM minfo_beg, minfo_end, dso_rec;
 
@@ -3796,9 +3802,9 @@ int elf_dwarf_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val
 
             // Add "DW.ref." ~ name to the symtab_strings table
             const namidx = cast(IDXSTR)symtab_strings.length();
-            symtab_strings.writeString("DW.ref.");
+            symtab_strings.writeStringz("DW.ref.");
             symtab_strings.setsize(cast(uint)(symtab_strings.length() - 1));  // back up over terminating 0
-            symtab_strings.writeString(s.Sident.ptr);
+            symtab_strings.writeStringz(s.Sident.ptr);
 
             s.Sdw_ref_idx = elf_addsym(namidx, val, 8, STT_OBJECT, STB_WEAK, MAP_SEG2SECIDX(dataDWref_seg), STV_HIDDEN);
         }

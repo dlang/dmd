@@ -3,9 +3,9 @@
  * Generate exception handling tables.
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/eh.d, _eh.d)
  * Documentation:  https://dlang.org/phobos/dmd_eh.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/eh.d
@@ -186,7 +186,7 @@ void except_fillInEHTable(Symbol *s)
 
             if (config.ehmethod == EHmethod.EH_DM)
             {
-            //printf("DHandlerInfo: offset = %x", (int)(b.Boffset - startblock.Boffset));
+            //printf("DHandlerInfo: offset = %x", cast(int)(b.Boffset - startblock.Boffset));
             dtb.dword(cast(int)(b.Boffset - startblock.Boffset));    // offset to start of block
 
             // Compute ending offset

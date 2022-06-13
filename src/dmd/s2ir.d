@@ -1,9 +1,9 @@
 /**
  * Convert statements to Intermediate Representation (IR) for the back-end.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _s2ir.d)
  * Documentation: $(LINK https://dlang.org/phobos/dmd_s2ir.html)
  * Coverage:    $(LINK https://codecov.io/gh/dlang/dmd/src/master/src/dmd/s2ir.d)
@@ -26,6 +26,7 @@ import dmd.astenums;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.denum;
+import dmd.dmdparams;
 import dmd.dmodule;
 import dmd.dsymbol;
 import dmd.dstruct;
@@ -90,7 +91,7 @@ private void srcpos_setLoc(ref Srcpos s, const ref Loc loc) pure nothrow
 
 private bool isAssertFalse(const Expression e) nothrow
 {
-    return e ? e.type == Type.tnoreturn && (e.op == TOK.halt || e.op == TOK.assert_) : false;
+    return e ? e.type == Type.tnoreturn && (e.op == EXP.halt || e.op == EXP.assert_) : false;
 }
 
 private bool isAssertFalse(const Statement s) nothrow
@@ -646,7 +647,7 @@ private extern (C++) class S2irVisitor : Visitor
                  */
                 else if (auto ce = s.exp.isCallExp())
                 {
-                    if (ce.e1.op == TOK.variable || ce.e1.op == TOK.star)
+                    if (ce.e1.op == EXP.variable || ce.e1.op == EXP.star)
                     {
                         Type t = ce.e1.type.toBasetype();
                         if (t.ty == Tdelegate)
@@ -686,7 +687,7 @@ private extern (C++) class S2irVisitor : Visitor
                 assert(e);
 
                 if (writetohp ||
-                    (func.nrvo_can && func.nrvo_var))
+                    (func.isNRVO() && func.nrvo_var))
                 {
                     // Return value via hidden pointer passed as parameter
                     // Write exp; return shidden;
@@ -853,7 +854,7 @@ private extern (C++) class S2irVisitor : Visitor
     override void visit(WithStatement s)
     {
         //printf("WithStatement.toIR()\n");
-        if (s.exp.op == TOK.scope_ || s.exp.op == TOK.type)
+        if (s.exp.op == EXP.scope_ || s.exp.op == EXP.type)
         {
         }
         else
@@ -1311,7 +1312,7 @@ private extern (C++) class S2irVisitor : Visitor
             }
             else
             {
-                if (!irs.params.optimize)
+                if (!driverParams.optimize)
                 {
                     /* If this is reached at runtime, there's a bug
                      * in the computation of s.bodyFallsThru. Inserting a HALT

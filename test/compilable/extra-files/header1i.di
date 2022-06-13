@@ -590,7 +590,7 @@ class TestClass
 	{
 		return aa;
 	}
-	@trusted @nogc @disable ~this()
+	@nogc @trusted @disable ~this()
 	{
 	}
 }
@@ -659,7 +659,8 @@ struct SafeS
 		}
 		ref scope SafeS foo3() return
 		{
-			return this;
+			static SafeS s;
+			return s;
 		}
 		int* p;
 	}
@@ -684,4 +685,30 @@ void test14x(@(Test14UDA1) int, @Test14UDA2("1") int, @test14uda3("2") int, @(Te
 }
 void test15x(@(20) void delegate(int) @safe dg)
 {
+}
+T throwStuff(T)(T t)
+{
+	if (false)
+		test13x(1, throw new Exception(""), 2);
+	return t ? t : throw new Exception("Bad stuff happens!");
+}
+class C12344
+{
+	abstract int c12344(int x)
+	in (x > 0)
+	out(result)
+	{
+		assert(result > 0);
+	}
+	;
+}
+interface I12344
+{
+	int i12344(int x)
+	in (x > 0)
+	out(result)
+	{
+		assert(result > 0);
+	}
+	;
 }

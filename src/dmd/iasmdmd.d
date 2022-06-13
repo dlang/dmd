@@ -3,9 +3,9 @@
  * https://dlang.org/spec/iasm.html
  *
  * Copyright:   Copyright (c) 1992-1999 by Symantec
- *              Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     Mike Cote, John Micco and $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ *              Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     Mike Cote, John Micco and $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/iasmdmd.d, _iasmdmd.d)
  * Documentation:  https://dlang.org/phobos/dmd_iasmdmd.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/iasmdmd.d
@@ -21,6 +21,7 @@ import core.stdc.string;
 import dmd.astenums;
 import dmd.declaration;
 import dmd.denum;
+import dmd.dmdparams;
 import dmd.dscope;
 import dmd.dsymbol;
 import dmd.errors;
@@ -48,7 +49,7 @@ import dmd.backend.code_x86;
 import dmd.backend.codebuilder : CodeBuilder;
 import dmd.backend.global;
 import dmd.backend.iasm;
-import dmd.backend.ptrntab : asm_opstr, asm_op_lookup, init_optab;
+import dmd.backend.ptrntab : asm_opstr, asm_op_lookup;
 import dmd.backend.xmm;
 
 //debug = EXTRA_DEBUG;
@@ -111,7 +112,6 @@ version (none) // don't use bReturnax anymore, and will fail anyway if we use re
     if (!asmstate.bInit)
     {
         asmstate.bInit = true;
-        init_optab();
         asmstate.psDollar = LabelDsymbol.create(Id._dollar);
         asmstate.psLocalsize = Dsymbol.create(Id.__LOCAL_SIZE);
     }
@@ -124,8 +124,10 @@ version (none) // don't use bReturnax anymore, and will fail anyway if we use re
     switch (asmstate.tokValue)
     {
         case cast(TOK)ASMTKnaked:
+            import dmd.func : FUNCFLAG;
+
             s.naked = true;
-            sc.func.naked = true;
+            sc.func.flags |= FUNCFLAG.naked;
             asm_token();
             break;
 
@@ -259,22 +261,6 @@ AFTER_EMIT:
     }
     return asmstate.errors ? new ErrorStatement() : s;
 }
-
-/**********************************
- * Called from back end.
- * Params: bp = asm block
- * Returns: mask of registers used by block bp.
- */
-extern (C++) public regm_t iasm_regs(block *bp)
-{
-    debug (debuga)
-        printf("Block iasm regs = 0x%X\n", bp.usIasmregs);
-
-    refparam |= bp.bIasmrefparam;
-    return bp.usIasmregs;
-}
-
-
 
 private:
 
@@ -1445,7 +1431,7 @@ code *asm_emit(Loc loc,
         CodeBuilder cdb;
         cdb.ctor();
 
-        if (global.params.symdebug)
+        if (driverParams.symdebug)
         {
             cdb.genlinnum(Srcpos.create(loc.filename, loc.linnum, loc.charnum));
         }
@@ -2228,24 +2214,26 @@ private void asm_merge_opnds(ref OPND o1, ref OPND o2)
         else
         {
             RootObject o = (*tup.objects)[index];
-            if (o.dyncast() == DYNCAST.dsymbol)
+            switch (o.dyncast()) with (DYNCAST)
             {
+            case dsymbol:
                 o1.s = cast(Dsymbol)o;
                 return;
-            }
-            else if (o.dyncast() == DYNCAST.expression)
-            {
+            case expression:
                 Expression e = cast(Expression)o;
-                if (e.op == TOK.variable)
+                if (auto ve = e.isVarExp())
                 {
-                    o1.s = (cast(VarExp)e).var;
+                    o1.s = ve.var;
                     return;
                 }
-                else if (e.op == TOK.function_)
+                else if (auto fe = e.isFuncExp())
                 {
-                    o1.s = (cast(FuncExp)e).fd;
+                    o1.s = fe.fd;
                     return;
                 }
+                break;
+            default:
+                break;
             }
             asmerr("invalid asm operand `%s`", o1.s.toChars());
         }
@@ -2358,7 +2346,8 @@ void asm_merge_symbol(ref OPND o1, Dsymbol s)
               * We could leave it on unless fd.nrvo_var==v,
               * but fd.nrvo_var isn't set yet
               */
-             fd.nrvo_can = false;
+            import dmd.func : FUNCFLAG;
+            fd.flags &= ~FUNCFLAG.NRVO;
         }
 
         if (v.isParameter())
@@ -2387,7 +2376,7 @@ void asm_merge_symbol(ref OPND o1, Dsymbol s)
             asmerr("cannot directly load TLS variable `%s`", v.toChars());
             return;
         }
-        else if (v.isDataseg() && global.params.pic != PIC.fixed)
+        else if (v.isDataseg() && driverParams.pic != PIC.fixed)
         {
             asmerr("cannot directly load global variable `%s` with PIC or PIE code", v.toChars());
             return;
@@ -3518,7 +3507,7 @@ code *asm_da_parse(OP *pop)
             else
                 label.iasm = true;
 
-            if (global.params.symdebug)
+            if (driverParams.symdebug)
                 cdb.genlinnum(Srcpos.create(asmstate.loc.filename, asmstate.loc.linnum, asmstate.loc.charnum));
             cdb.genasm(cast(_LabelDsymbol*)label);
         }
@@ -3587,10 +3576,10 @@ code *asm_db_parse(OP *pop)
         switch (asmstate.tokValue)
         {
             case TOK.int32Literal:
-                dt.ul = cast(d_int32)asmstate.tok.intvalue;
+                dt.ul = cast(int)asmstate.tok.intvalue;
                 goto L1;
             case TOK.uns32Literal:
-                dt.ul = cast(d_uns32)asmstate.tok.unsvalue;
+                dt.ul = cast(uint)asmstate.tok.unsvalue;
                 goto L1;
             case TOK.int64Literal:
                 dt.ul = asmstate.tok.intvalue;
@@ -3645,12 +3634,12 @@ code *asm_db_parse(OP *pop)
                 e = e.expressionSemantic(sc);
                 sc.endCTFE();
                 e = e.ctfeInterpret();
-                if (e.op == TOK.int64)
+                if (e.op == EXP.int64)
                 {
                     dt.ul = e.toInteger();
                     goto L2;
                 }
-                else if (e.op == TOK.float64)
+                else if (e.op == EXP.float64)
                 {
                     switch (op)
                     {
@@ -3702,7 +3691,7 @@ code *asm_db_parse(OP *pop)
 
     CodeBuilder cdb;
     cdb.ctor();
-    if (global.params.symdebug)
+    if (driverParams.symdebug)
         cdb.genlinnum(Srcpos.create(asmstate.loc.filename, asmstate.loc.linnum, asmstate.loc.charnum));
     cdb.genasm(bytes.peekChars(), cast(uint)bytes.length);
     code *c = cdb.finish();
@@ -3725,11 +3714,11 @@ int asm_getnum()
     switch (asmstate.tokValue)
     {
         case TOK.int32Literal:
-            v = cast(d_int32)asmstate.tok.intvalue;
+            v = cast(int)asmstate.tok.intvalue;
             break;
 
         case TOK.uns32Literal:
-            v = cast(d_uns32)asmstate.tok.unsvalue;
+            v = cast(uint)asmstate.tok.unsvalue;
             break;
 
         case TOK.identifier:
@@ -4492,12 +4481,12 @@ void asm_primary_exp(out OPND o1)
             break;
 
         case TOK.int32Literal:
-            o1.disp = cast(d_int32)asmstate.tok.intvalue;
+            o1.disp = cast(int)asmstate.tok.intvalue;
             asm_token();
             break;
 
         case TOK.uns32Literal:
-            o1.disp = cast(d_uns32)asmstate.tok.unsvalue;
+            o1.disp = cast(uint)asmstate.tok.unsvalue;
             asm_token();
             break;
 

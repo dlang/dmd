@@ -1,9 +1,9 @@
 /**
  * Convert a D symbol to a symbol the linker understands (with mangled name).
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _tocsym.d)
  * Documentation:  https://dlang.org/phobos/dmd_tocsym.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/tocsym.d
@@ -15,12 +15,12 @@ import core.stdc.stdio;
 import core.stdc.string;
 
 import dmd.root.array;
+import dmd.root.complex;
 import dmd.root.rmem;
 
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
-import dmd.complex;
 import dmd.ctfeexpr;
 import dmd.declaration;
 import dmd.dclass;
@@ -68,7 +68,7 @@ extern (C++):
 Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, int sclass, type *t, const(char)* suffix)
 {
     //printf("Dsymbol::toSymbolX('%s')\n", prefix);
-    import core.stdc.stdlib : malloc, free;
+    import dmd.common.string : SmallBuffer;
     import dmd.common.outbuffer : OutBuffer;
 
     OutBuffer buf;
@@ -83,11 +83,8 @@ Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, int sclass, type *t, const(ch
     size_t idlen = 2 + nlen + size_t.sizeof * 3 + prefixlen + suffixlen + 1;
 
     char[64] idbuf = void;
-    char *id = &idbuf[0];
-    if (idlen > idbuf.sizeof)
-    {
-        id = cast(char *)Mem.check(malloc(idlen));
-    }
+    auto sb = SmallBuffer!(char)(idlen, idbuf[]);
+    char *id = sb.ptr;
 
     int nwritten = sprintf(id,"_D%.*s%d%.*s%.*s",
         cast(int)nlen, n,
@@ -97,14 +94,9 @@ Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, int sclass, type *t, const(ch
 
     Symbol *s = symbol_name(id, nwritten, sclass, t);
 
-    if (id != &idbuf[0])
-        free(id);
-
     //printf("-Dsymbol::toSymbolX() %s\n", id);
     return s;
 }
-
-private __gshared Symbol *scc;
 
 /*************************************
  */
@@ -138,10 +130,10 @@ Symbol *toSymbol(Dsymbol s)
             //printf("VarDeclaration.toSymbol(%s)\n", vd.toChars());
             assert(!vd.needThis());
 
-            const(char)[] id;
             import dmd.common.outbuffer : OutBuffer;
             OutBuffer buf;
             bool isNRVO = false;
+            const(char)[] id = vd.ident.toString();
             if (vd.isDataseg())
             {
                 mangleToBuffer(vd, &buf);
@@ -149,10 +141,9 @@ Symbol *toSymbol(Dsymbol s)
             }
             else
             {
-                id = vd.ident.toString();
                 if (FuncDeclaration fd = vd.toParent2().isFuncDeclaration())
                 {
-                    if (fd.nrvo_can && fd.nrvo_var == vd)
+                    if (fd.isNRVO() && fd.nrvo_var == vd)
                     {
                         buf.writestring("__nrvo_");
                         buf.writestring(id);
@@ -246,10 +237,19 @@ Symbol *toSymbol(Dsymbol s)
                 }
                 s.Sclass = SCextern;
                 s.Sfl = FLextern;
+
+                /* Make C static variables SCstatic
+                 */
+                if (vd.storage_class & STC.static_ && vd.isCsymbol())
+                {
+                    s.Sclass = SCstatic;
+                    s.Sfl = FLdata;
+                }
+
                 /* if it's global or static, then it needs to have a qualified but unmangled name.
                  * This gives some explanation of the separation in treating name mangling.
                  * It applies to PDB format, but should apply to CV as PDB derives from CV.
-                 *    http://msdn.microsoft.com/en-us/library/ff553493(VS.85).aspx
+                 *    https://msdn.microsoft.com/en-us/library/ff553493%28VS.85%29.aspx
                  */
                 s.prettyIdent = vd.toPrettyChars(true);
             }
@@ -276,7 +276,7 @@ Symbol *toSymbol(Dsymbol s)
             }
 
             mangle_t m = 0;
-            final switch (vd.linkage)
+            final switch (vd.resolvedLinkage())
             {
                 case LINK.windows:
                     m = target.is64bit ? mTYman_c : mTYman_std;
@@ -299,7 +299,7 @@ Symbol *toSymbol(Dsymbol s)
                 case LINK.default_:
                 case LINK.system:
                     printf("linkage = %d, vd = %s %s @ [%s]\n",
-                        vd.linkage, vd.kind(), vd.toChars(), vd.loc.toChars());
+                        vd._linkage, vd.kind(), vd.toChars(), vd.loc.toChars());
                     assert(0);
             }
 
@@ -339,7 +339,13 @@ Symbol *toSymbol(Dsymbol s)
             auto s = symbol_calloc(id, cast(uint)strlen(id));
 
             s.prettyIdent = fd.toPrettyChars(true);
-            s.Sclass = SCglobal;
+
+            /* Make C static functions SCstatic
+             */
+            s.Sclass = (fd.storage_class & STC.static_ && fd.isCsymbol())
+                ? SCstatic
+                : SCglobal;
+
             symbol_func(s);
             func_t *f = s.Sfunc;
             if (fd.isVirtual() && fd.vtblIndex != -1)
@@ -363,7 +369,7 @@ Symbol *toSymbol(Dsymbol s)
             }
             else
             {
-                final switch (fd.linkage)
+                final switch (fd.resolvedLinkage())
                 {
                     case LINK.windows:
                         t.Tmangle = target.is64bit ? mTYman_c : mTYman_std;
@@ -379,7 +385,9 @@ Symbol *toSymbol(Dsymbol s)
                         break;
                     case LINK.cpp:
                         s.Sflags |= SFLpublic;
-                        if (fd.isThis() && !target.is64bit && target.os == Target.OS.Windows)
+                        /* Nested functions use the same calling convention as
+                         * member functions, because both can be used as delegates. */
+                        if ((fd.isThis() || fd.isNested()) && !target.is64bit && target.os == Target.OS.Windows)
                         {
                             if ((cast(TypeFunction)fd.type).parameterList.varargs == VarArg.variadic)
                             {
@@ -394,7 +402,7 @@ Symbol *toSymbol(Dsymbol s)
                         break;
                     case LINK.default_:
                     case LINK.system:
-                        printf("linkage = %d\n", fd.linkage);
+                        printf("linkage = %d\n", fd._linkage);
                         assert(0);
                 }
             }
@@ -411,6 +419,7 @@ Symbol *toSymbol(Dsymbol s)
 
         static type* getClassInfoCType()
         {
+            __gshared Symbol* scc;
             if (!scc)
                 scc = fake_classsym(Id.ClassInfo);
             return scc.Stype;
@@ -475,7 +484,7 @@ Symbol *toImport(Symbol *sym, Loc loc)
     int idlen;
     if (target.os & Target.OS.Posix)
     {
-        error(loc, "Could not generate import symbol for this platform");
+        error(loc, "could not generate import symbol for this platform");
         fatal();
     }
     else if (sym.Stype.Tmangle == mTYman_std && tyfunc(sym.Stype.Tty))
@@ -505,7 +514,7 @@ Symbol *toImport(Symbol *sym, Loc loc)
  * Generate import symbol from symbol.
  */
 
-Symbol *toImport(Dsymbol ds)
+Symbol *toImport(Declaration ds)
 {
     if (!ds.isym)
     {
@@ -563,11 +572,11 @@ Classsym *fake_classsym(Identifier id)
  * needed directly (like for rtti comparisons), make it directly accessible.
  */
 
-Symbol *toVtblSymbol(ClassDeclaration cd)
+Symbol *toVtblSymbol(ClassDeclaration cd, bool genCsymbol = true)
 {
     if (!cd.vtblsym || !cd.vtblsym.csym)
     {
-        if (!cd.csym)
+        if (!cd.csym && genCsymbol)
             toSymbol(cd);
 
         auto t = type_allocn(TYnptr | mTYconst, tstypes[TYvoid]);

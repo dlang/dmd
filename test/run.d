@@ -133,24 +133,25 @@ Options:
     if (verbose || dumpEnvironment)
     {
         writefln("================================================================================");
-        foreach (key, value; env)
-            writefln("%s=%s", key, value);
+        foreach (key; env.keys.sort())
+            writefln("%s=%s", key, env[key]);
         writefln("================================================================================");
+        stdout.flush();
     }
+
+    verifyCompilerExists(env);
+    prepareOutputDirectory(env);
 
     if (runUnitTests)
     {
-        verifyCompilerExists(env);
         ensureToolsExists(env, TestTools.unitTestRunner);
-        return spawnProcess(unitTestRunnerCommand ~ args).wait();
+        return spawnProcess(unitTestRunnerCommand ~ args, env, Config.none, scriptDir).wait();
     }
 
+    ensureToolsExists(env, EnumMembers!TestTools);
+
     if (args == ["tools"])
-    {
-        verifyCompilerExists(env);
-        ensureToolsExists(env, EnumMembers!TestTools);
         return 0;
-    }
 
     // default target
     if (!args.length)
@@ -184,17 +185,17 @@ Options:
 
     if (targets.length > 0)
     {
-        verifyCompilerExists(env);
-
         string[] failedTargets;
-        ensureToolsExists(env, EnumMembers!TestTools);
         foreach (target; parallel(targets, 1))
         {
             log("run: %-(%s %)", target.args);
             int status = spawnProcess(target.args, env, Config.none, scriptDir).wait;
             if (status != 0)
             {
-                const name = target.normalizedTestName;
+                const string name = target.filename
+                            ? target.normalizedTestName
+                            : "`unit` tests";
+
                 writeln(">>> TARGET FAILED: ", name);
                 failedTargets ~= name;
             }
@@ -221,13 +222,12 @@ void verifyCompilerExists(const string[string] env)
     }
 }
 
-/**
-Builds the binary of the tools required by the testsuite.
-Does nothing if the tools already exist and are newer than their source.
-*/
-void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
+/// Creates the necessary directories and files for the test runner(s)
+void prepareOutputDirectory(const string[string] env)
 {
-    resultsDir.mkdirRecurse;
+    // ensure output directories exist
+    foreach (dir; testDirs)
+        resultsDir.buildPath(dir).mkdirRecurse;
 
     version (Windows)
     {{
@@ -253,7 +253,14 @@ void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
             wrapper.write(`[ -z "${`, key, `+x}" ] && export `, key, `='`, value, "' ;\n");
         }
     }}
+}
 
+/**
+Builds the binaries of the tools required by the testsuite.
+Does nothing if the tools already exist and are newer than their source.
+*/
+void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
+{
     shared uint failCount = 0;
     foreach (tool; tools.parallel(1))
     {
@@ -291,9 +298,12 @@ void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
             }
             else
             {
+                string model = env["MODEL"];
+                if (model == "32omf") model = "32";
+
                 command = [
                     hostDMD,
-                    "-m"~env["MODEL"],
+                    "-m"~model,
                     "-of"~targetBin,
                     sourceFile
                 ] ~ getPicFlags(env) ~ tool.extraArgs;
@@ -310,10 +320,6 @@ void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
     }
     if (failCount > 0)
         quitSilently(1); // error already printed
-
-    // ensure output directories exist
-    foreach (dir; testDirs)
-        resultsDir.buildPath(dir).mkdirRecurse;
 }
 
 /// A single target to execute.
@@ -362,11 +368,11 @@ Goes through the target list and replaces short-hand targets with their expanded
 Special targets:
 - clean -> removes resultsDir + immediately stops the runner
 */
-auto predefinedTargets(string[] targets)
+Target[] predefinedTargets(string[] targets)
 {
     static findFiles(string dir)
     {
-        return testPath(dir).dirEntries("*{.d,.c,.sh}", SpanMode.shallow).map!(e => e.name);
+        return testPath(dir).dirEntries("*{.d,.c,.i,.sh}", SpanMode.shallow).map!(e => e.name);
     }
 
     static Target createUnitTestTarget()
@@ -436,7 +442,7 @@ auto predefinedTargets(string[] targets)
 }
 
 // Removes targets that do not need updating (i.e. their .out file exists and is newer than the source file)
-auto filterTargets(Target[] targets, const string[string] env)
+Target[] filterTargets(Target[] targets, const string[string] env)
 {
     bool error;
     foreach (target; targets)
@@ -490,7 +496,7 @@ Params:
     key = key to check for existence and write into the new env
     default_ = fallback value if the key doesn't exist in the global environment
 */
-auto setDefault(string[string] env, string key, string default_)
+string setDefault(string[string] env, string key, string default_)
 {
     if (key in environment)
         env[key] = environment[key];
@@ -560,14 +566,14 @@ string[string] getEnvironment()
 }
 
 // Logging primitive
-auto log(T...)(T args)
+void log(T...)(T args)
 {
     if (verbose)
         writefln(args);
 }
 
 // Add the executable filename extension to the given `name` for the current OS.
-auto exeName(T)(T name)
+string exeName(string name)
 {
     version(Windows)
         name ~= ".exe";
@@ -575,7 +581,7 @@ auto exeName(T)(T name)
 }
 
 // Add the object filename extension to the given `name` for the current OS.
-auto objName(T)(T name)
+string objName(string name)
 {
     version(Windows)
         return name ~ ".obj";

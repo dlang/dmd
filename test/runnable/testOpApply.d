@@ -1,4 +1,4 @@
-/* PERMUTE_ARGS:
+/* PERMUTE_ARGS: -preview=dip1000
  */
 
 // https://issues.dlang.org/show_bug.cgi?id=15624
@@ -49,6 +49,7 @@ int main()
     test();
     testDifferentTypes();
     testSameAttributes();
+    testInverseAttributes();
     return 0;
 }
 
@@ -105,4 +106,66 @@ void testSameAttributes()
         assert(sa.x == 1);
     }
     system();
+}
+
+// Not useful but enabled by the associated patch
+void testInverseAttributes()
+{
+    static struct InverseAttributes
+    {
+        int x;
+        int opApply(int delegate(int) @system dg) @safe {
+            x = 1;
+            return 0;
+        }
+        int opApply(int delegate(int) @safe dg) @system {
+            x = 2;
+            return 0;
+        }
+    }
+
+    static void system() @system
+    {
+        InverseAttributes sa;
+        foreach (i; sa) {}
+        assert(sa.x == 1);
+    }
+    system();
+
+    static void safe() @safe
+    {
+        InverseAttributes sa;
+        (() @trusted { foreach (i; sa) {} })();
+        assert(sa.x == 2);
+    }
+    safe();
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=20907
+Lockstep!() lockstep()
+{
+    return Lockstep!()();
+}
+
+struct Lockstep()
+{
+    int opApply(int delegate(int) callback) @system
+    {
+        return 0;
+    }
+
+    int opApply(int delegate(int) pure nothrow @nogc @safe callback) pure nothrow @nogc @safe
+    {
+        return 0;
+    }
+}
+
+void foo0()
+{
+    foreach (x; lockstep()) {}
+}
+
+void foo1()
+{
+    foreach (x; lockstep()) {}
 }

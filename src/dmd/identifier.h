@@ -1,10 +1,10 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
- * http://www.digitalmars.com
+ * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
- * http://www.boost.org/LICENSE_1_0.txt
+ * https://www.boost.org/LICENSE_1_0.txt
  * https://github.com/dlang/dmd/blob/master/src/dmd/identifier.h
  */
 
@@ -13,7 +13,7 @@
 #include "root/dcompat.h"
 #include "root/object.h"
 
-class Identifier : public RootObject
+class Identifier final : public RootObject
 {
 private:
     int value;
@@ -22,12 +22,11 @@ private:
 
 public:
     static Identifier* create(const char *string);
-    bool equals(const RootObject *o) const;
-    const char *toChars() const;
+    const char *toChars() const override;
     int getValue() const;
     bool isAnonymous() const;
     const char *toHChars2() const;
-    DYNCAST dyncast() const;
+    DYNCAST dyncast() const override;
 
     static Identifier *generateId(const char *prefix, size_t length, size_t suffix);
     static Identifier *idPool(const char *s, unsigned len);

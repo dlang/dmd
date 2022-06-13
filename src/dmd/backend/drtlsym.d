@@ -2,12 +2,12 @@
  * Compiler runtime function symbols
  *
  * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1996-1998 by Symantec
- *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/drtlsym.d, backend/drtlsym.d)
  */
 
@@ -238,6 +238,7 @@ Symbol *getRtlsym(RTLSYM i)
         case RTLSYM.C__ASSERT_FAIL:         symbolz(ps,FLfunc,FREGSAVED,"__assert_fail", SFLexit, t); break;
         case RTLSYM.C__ASSERT_RTN:          symbolz(ps,FLfunc,FREGSAVED,"__assert_rtn", SFLexit, t); break;
 
+        case RTLSYM.CXA_ATEXIT:          symbolz(ps,FLfunc,FREGSAVED,"__cxa_atexit", 0, t); break;
         default:
             assert(0);
     }
@@ -284,7 +285,7 @@ version (MARS)
 void rtlsym_reset()
 {
     clib_inited = 0;            // reset CLIB symbols, too
-    for (size_t i = 0; i < RTLSYM.max; i++)
+    for (size_t i = 0; i <= RTLSYM.max; i++)
     {
         if (rtlsym[i])
         {

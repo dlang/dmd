@@ -29,9 +29,10 @@ echo "GREP_VERSION: $(grep --version)"
 install_host_dmc
 DM_MAKE="$PWD/dm/bin/make.exe"
 
-if [ "$MODEL" == "32" ] ; then
+if [ "$MODEL" == "32omf" ] ; then
     CC="$PWD/dm/bin/dmc.exe"
     AR="$PWD/dm/bin/lib.exe"
+    export CPPCMD="$PWD/dm/bin/sppn.exe"
 else
     CC="$(where cl.exe)"
     AR="$(where lib.exe)" # must be done before installing dmd
@@ -73,8 +74,11 @@ fi
 ################################################################################
 # Build DMD (incl. building and running the unittests)
 ################################################################################
-
-DMD_BIN_PATH="$DMD_DIR/generated/windows/release/$MODEL/dmd"
+if [ "$MODEL" == "32omf" ] ; then
+    DMD_BIN_PATH="$DMD_DIR/generated/windows/release/32/dmd"
+else
+    DMD_BIN_PATH="$DMD_DIR/generated/windows/release/$MODEL/dmd"
+fi
 
 cd "$DMD_DIR/src"
 "$DM_MAKE" -f "$MAKE_FILE" MAKE="$DM_MAKE" BUILD=debug unittest
@@ -99,7 +103,14 @@ cd "$DMD_DIR/test"
 
 # build run.d testrunner and its tools while host compiler is untampered
 cd ../test
-"$HOST_DC" -m$MODEL -g -i run.d
+
+if [ "$MODEL" == "32omf" ] ; then
+    TOOL_MODEL=32;
+else
+    TOOL_MODEL="$MODEL"
+fi
+
+"$HOST_DC" -m$TOOL_MODEL -g -i run.d
 ./run tools
 
 # Rebuild dmd with ENABLE_COVERAGE for coverage tests
@@ -111,7 +122,7 @@ if [ "${DMD_TEST_COVERAGE:-0}" = "1" ] ; then
     DFLAGS="-L-LARGEADDRESSAWARE" ../generated/build.exe --jobs=$N ENABLE_DEBUG=1 ENABLE_COVERAGE=1 unittest
 fi
 
-if [ "$MODEL" == "32" ] ; then
+if [ "$MODEL" == "32omf" ] ; then
     # WORKAROUND: Make Optlink use freshly built Phobos, not the host compiler's.
     # Optlink apparently prefers LIB in sc.ini over the LIB env variable (and
     # `-conf=` for DMD apparently doesn't prevent that, and there's apparently
@@ -133,9 +144,6 @@ CC="$CC" ./run --environment --jobs=$N "${targets[@]}" "${args[@]}"
 ################################################################################
 
 if [ "${DMD_TEST_COVERAGE:-0}" = "1" ] ; then
-    cd $DMD_DIR
-    OS_NAME=windows source ci/codecov.sh
-
     # Skip druntime & phobos tests
     exit 0
 fi
@@ -151,7 +159,7 @@ cd "$DMD_DIR/../druntime"
 # Build and run Phobos unittests
 ################################################################################
 
-if [ "$MODEL" = "32" ] ; then
+if [ "$MODEL" = "32omf" ] ; then
     echo "FIXME: cannot compile 32-bit OMF Phobos unittests ('more than 32767 symbols in object file')"
 else
     cd "$DMD_DIR/../phobos"

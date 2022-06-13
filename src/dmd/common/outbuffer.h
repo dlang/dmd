@@ -1,17 +1,17 @@
 
-/* Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
+/* Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
- * http://www.digitalmars.com
+ * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
- * http://www.boost.org/LICENSE_1_0.txt
+ * https://www.boost.org/LICENSE_1_0.txt
  * https://github.com/dlang/dmd/blob/master/src/dmd/common/outbuffer.h
  */
 
 #pragma once
 
-#include "root/dsystem.h"
-#include "root/dcompat.h"
-#include "root/rmem.h"
+#include "../root/dsystem.h"
+#include "../root/dcompat.h"
+#include "../root/rmem.h"
 
 class RootObject;
 
@@ -49,7 +49,7 @@ public:
     void reserve(d_size_t nbytes);
     void setsize(d_size_t size);
     void reset();
-    void write(const void *data, size_t nbytes);
+    void write(const void *data, d_size_t nbytes);
     void writestring(const char *string);
     void prependstring(const char *string);
     void writenl();                     // write newline

@@ -29,6 +29,8 @@ BUILD=release
 
 ifeq (freebsd,$(OS))
     SHELL=/usr/local/bin/bash
+else ifeq (openbsd,$(OS))
+    SHELL=/usr/local/bin/bash
 else ifeq (netbsd,$(OS))
     SHELL=/usr/pkg/bin/bash
 else ifeq (dragonflybsd,$(OS))
@@ -135,7 +137,7 @@ export HOST_DMD:=$(subst \,/,$(HOST_DMD))
 RUNNER:=$(RESULTS_DIR)/run$(EXE)
 EXECUTE_RUNNER:=$(RUNNER) --environment
 
-# N determines the amount of parallel jobs, see ci.sh
+# N determines the amount of parallel jobs, see ci/run.sh
 ifneq ($(N),)
     EXECUTE_RUNNER:=$(EXECUTE_RUNNER) --jobs=$N
 endif
