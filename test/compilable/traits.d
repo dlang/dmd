@@ -35,6 +35,15 @@ version (linux)
 
 static assert(__traits(getTargetInfo, "cppStd") == 199711);
 
+enum testPredefinedVersions = ()
+{
+    static foreach (predef; __traits(getTargetInfo, "predefinedVersions"))
+        mixin("enum __"~predef~"__ = 1;");
+    static assert(__traits(compiles, __all__));
+    static assert(__traits(compiles, __D_Version2__));
+    static assert(!__traits(compiles, __DavidLister__));
+};
+
 import imports.plainpackage.plainmodule;
 import imports.pkgmodule.plainmodule;
 
