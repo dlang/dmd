@@ -664,7 +664,7 @@ void blockopt(int iter)
 
             do
             {
-                compdfo();              /* compute depth first order (DFO) */
+                compdfo(dfo, startblock); // compute depth first order (DFO)
                 elimblks();             /* remove blocks not in DFO      */
                 assert(count < iterationLimit);
                 count++;
@@ -1158,18 +1158,11 @@ private void brrear()
  *      dfo = array to fill in in DFO
  *      startblock = list of blocks
  */
-
-@trusted
-void compdfo()
-{
-    compdfo(dfo, startblock);
-}
-
-@trusted
+@safe
 void compdfo(ref Barray!(block*) dfo, block* startblock)
 {
     debug if (debugc) printf("compdfo()\n");
-    assert(OPTIMIZER);
+    debug assert(OPTIMIZER);
     block_clearvisit();
     debug assert(!PARSER);
     dfo.setLength(0);
@@ -1215,7 +1208,7 @@ void compdfo(ref Barray!(block*) dfo, block* startblock)
             b.Bdfoidx = cast(uint)j;
     }
 
-    static if(0)
+    static if (0) debug
     {
         foreach (i, b; dfo[])
             printf("dfo[%d] = %p\n", cast(int)i, b);
@@ -2220,7 +2213,7 @@ private void emptyloops()
  */
 
 @trusted
-void funcsideeffects()
+private void funcsideeffects()
 {
     version (MARS)
     {
