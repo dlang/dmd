@@ -608,7 +608,7 @@ void boolopt()
 
     debug if (debugc) printf("boolopt()\n");
     if (!dfo.length)
-        compdfo();
+        compdfo(dfo, startblock);
     flowae();                       /* compute available expressions */
     if (go.exptop <= 1)             /* if no AEs                     */
         return;

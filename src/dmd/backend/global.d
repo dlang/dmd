@@ -417,7 +417,7 @@ void block_initvar(Symbol *s);
 void block_endfunc(int flag);
 void brcombine();
 void blockopt(int);
-void compdfo();
+void compdfo(ref Barray!(block*) dfo, block* startblock);
 
 //#define block_initvar(s) (curblock->Binitvar = (s))
 
