@@ -353,6 +353,24 @@ Symbol *toSymbol(Dsymbol s)
             else if (fd.isMember2() && fd.isStatic())
                 f.Fflags |= Fstatic;
 
+            if (fd.inlining == PINLINE.default_ && global.params.useInline ||
+                fd.inlining == PINLINE.always)
+            {
+                // this is copied from inline.d
+                if (!fd.fbody ||
+                    fd.ident == Id.ensure ||
+                    (fd.ident == Id.require &&
+                     fd.toParent().isFuncDeclaration() &&
+                     fd.toParent().isFuncDeclaration().needThis()) ||
+                                (fd.isSynchronized() ||
+                                 fd.isImportedSymbol() ||
+                                 fd.hasNestedFrameRefs() ||
+                                 (fd.isVirtual() && !fd.isFinalFunc())))
+                { }
+                else
+                    f.Fflags |= Finline;    // inline this function if possible
+            }
+
             if (fd.type.toBasetype().isTypeFunction().nextOf().isTypeNoreturn() || fd.flags & FUNCFLAG.noreturn)
                 s.Sflags |= SFLexit;    // the function never returns
 
@@ -537,6 +555,8 @@ Symbol *toThunkSymbol(FuncDeclaration fd, int offset)
 
     if (retStyle(fd.type.isTypeFunction(), fd.needThis()) == RET.stack)
         s.Sfunc.Fflags3 |= F3hiddenPtr;
+
+    s.Sfunc.Fflags &= ~Finline;  // thunks are not real functions, don't inline them
 
     __gshared int tmpnum;
     char[6 + tmpnum.sizeof * 3 + 1] name = void;

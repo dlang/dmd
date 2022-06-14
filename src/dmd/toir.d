@@ -327,6 +327,9 @@ elem *getEthis(const ref Loc loc, IRState *irs, Dsymbol fd, Dsymbol fdp = null, 
                  */
                 ethis = el_long(TYnptr, 0);
                 ethis.Eoper = OPframeptr;
+
+                thisfd.csym.Sfunc.Fflags &= ~Finline; // inliner breaks with this because the offsets are off
+                                                      // see runnable/ice10086b.d
             }
             else
             {

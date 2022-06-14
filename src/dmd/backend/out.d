@@ -32,6 +32,7 @@ import dmd.backend.el;
 import dmd.backend.exh;
 import dmd.backend.global;
 import dmd.backend.goh;
+import dmd.backend.inliner;
 import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;
@@ -1200,26 +1201,8 @@ version (SCPP)
         globsym[si] = f.Flocsym[si];
 
     assert(startblock == null);
-    if (f.Fflags & Finline)            // if keep function around
-    {   // Generate copy of function
-
-        block **pb = &startblock;
-        for (block *bf = f.Fstartblock; bf; bf = bf.Bnext)
-        {
-            block *b = block_calloc();
-            *pb = b;
-            pb = &b.Bnext;
-
-            *b = *bf;
-            assert(b.numSucc() == 0);
-            assert(!b.Bpred);
-            b.Belem = el_copytree(b.Belem);
-        }
-    }
-    else
-    {   startblock = sfunc.Sfunc.Fstartblock;
-        sfunc.Sfunc.Fstartblock = null;
-    }
+    startblock = sfunc.Sfunc.Fstartblock;
+    sfunc.Sfunc.Fstartblock = null;
     assert(startblock);
 
     /* Do any in-line expansion of function calls inside sfunc  */
@@ -1479,7 +1462,18 @@ else
     codgen(sfunc);                  // generate code
 }
     //printf("after codgen for %s Coffset %x\n",sfunc.Sident.ptr,Offset(cseg));
-    blocklist_free(&startblock);
+    sfunc.Sfunc.Fstartblock = startblock;
+    bool saveForInlining = canInlineFunction(sfunc);
+    if (saveForInlining)
+    {
+        startblock = null;
+    }
+    else
+    {
+        sfunc.Sfunc.Fstartblock = null;
+        blocklist_free(&startblock);
+    }
+
 version (SCPP)
 {
     PARSER = 1;
@@ -1641,11 +1635,20 @@ else
 Ldone:
     funcsym_p = null;
 
-version (SCPP)
-{
-    // Free any added symbols
-    freesymtab(globsym[].ptr,nsymbols,globsym.length);
-}
+    if (saveForInlining)
+    {
+        f.Flocsym.setLength(globsym.length);
+        foreach (si; 0 .. globsym.length)
+            f.Flocsym[si] = globsym[si];
+    }
+    else
+    {
+        version (SCPP)
+        {
+            // Free any added symbols
+            freesymtab(globsym[].ptr,nsymbols,globsym.length);
+        }
+    }
     globsym.setLength(0);
 
     //printf("done with writefunc()\n");

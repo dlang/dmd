@@ -647,9 +647,10 @@ elem * el_copytree(elem *e)
     elem_debug(e);
     d = el_calloc();
     el_copy(d,e);
-    assert(!e.Ecount);
+    d.Ecount = 0;
     version (SCPP_HTOD)
     {
+        assert(!e.Ecount);
         if (PARSER)
         {
             type_debug(d.ET);
