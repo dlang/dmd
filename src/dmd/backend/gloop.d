@@ -3722,7 +3722,8 @@ bool loopunroll(ref Loop l)
     if (l.Lhead.Bflags & BFLnounroll)
         return false;
     l.Lhead.Bflags |= BFLnounroll;
-    if (log) WRfunc();
+    if (log)
+        WRfunc("loop", funcsym_p, startblock);
 
     if (l.Lhead.Btry || l.Ltail.Btry)
         return false;
@@ -3887,7 +3888,7 @@ bool loopunroll(ref Loop l)
         e2.Ety = etail.Ety;
     }
 
-    //WRfunc();
+    //WRfunc("loopunroll done", funcsym_p, startblock);
     return true;
 }
 

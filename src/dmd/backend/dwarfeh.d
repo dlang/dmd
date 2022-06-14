@@ -109,8 +109,7 @@ void genDwarfEh(Funcsym *sfunc, int seg, OutBuffer *et, bool scancode, uint star
 
 static if (0)
 {
-    printf("------- before ----------\n");
-    for (block *b = startblock; b; b = b.Bnext) WRblock(b);
+    WRfunc("genDwarfEH()", funcsym_p, startblock);
     printf("-------------------------\n");
 }
 

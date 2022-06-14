@@ -1374,10 +1374,7 @@ version (MARS)
     {
         if (debugb)
         {
-            printf("...................%s().............\n", funcsym_p.Sident.ptr);
-            numberBlocks(startblock);
-            for (block *b = startblock; b; b = b.Bnext)
-                WRblock(b);
+            WRfunc("codegen", funcsym_p, startblock);
         }
     }
 
