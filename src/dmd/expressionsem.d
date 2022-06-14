@@ -1754,8 +1754,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                         goto L2;
                     return errorArgs();
                 }
-                arg = p.defaultArg;
-                arg = inlineCopy(arg, sc);
+                arg = p.defaultArg.copy();
                 // __FILE__, __LINE__, __MODULE__, __FUNCTION__, and __PRETTY_FUNCTION__
                 arg = arg.resolveLoc(loc, sc);
                 arguments.push(arg);
