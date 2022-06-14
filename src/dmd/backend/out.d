@@ -1492,81 +1492,9 @@ version (HTOD) { } else
             objmod.pubdef(sfunc.Sseg,sfunc,sfunc.Soffset);       // make a public definition
         }
 
-version (SCPP)
-{
-version (Win32)
-{
-        // Determine which startup code to reference
-        if (!CPP || !isclassmember(sfunc))              // if not member function
-        {   __gshared const(char)*[6] startup =
-            [   "__acrtused","__acrtused_winc","__acrtused_dll",
-                "__acrtused_con","__wacrtused","__wacrtused_con",
-            ];
-            int i;
-
-            const(char)* id = sfunc.Sident.ptr;
-            switch (id[0])
-            {
-                case 'D': if (strcmp(id,"DllMain"))
-                                break;
-                          if (config.exe == EX_WIN32)
-                          {     i = 2;
-                                goto L2;
-                          }
-                          break;
-
-                case 'm': if (strcmp(id,"main"))
-                                break;
-                          if (config.exe == EX_WIN32)
-                                i = 3;
-                          else if (config.wflags & WFwindows)
-                                i = 1;
-                          else
-                                i = 0;
-                          goto L2;
-
-                case 'w': if (strcmp(id,"wmain") == 0)
-                          {
-                                if (config.exe == EX_WIN32)
-                                {   i = 5;
-                                    goto L2;
-                                }
-                                break;
-                          }
-                          goto case;
-                case 'W': if (stricmp(id,"WinMain") == 0)
-                          {
-                                i = 0;
-                                goto L2;
-                          }
-                          if (stricmp(id,"wWinMain") == 0)
-                          {
-                                if (config.exe == EX_WIN32)
-                                {   i = 4;
-                                    goto L2;
-                                }
-                          }
-                          break;
-
-                case 'L':
-                case 'l': if (stricmp(id,"LibMain"))
-                                break;
-                          if (config.exe != EX_WIN32 && config.wflags & WFwindows)
-                          {     i = 2;
-                                goto L2;
-                          }
-                          break;
-
-                L2:     objmod.external_def(startup[i]);          // pull in startup code
-                        break;
-
-                default:
-                    break;
-            }
-        }
-}
-}
+        addStartupReference(sfunc);
     }
+
     if (config.wflags & WFexpdef &&
         sfunc.Sclass != SCstatic &&
         sfunc.Sclass != SCsinline &&
@@ -1806,6 +1734,101 @@ else
 }
     printf(", Slinnum = %u", srcpos.Slinnum);
     printf(")\n");
+}
+
+/*********************************************
+ * If sfunc is the entry point, add a reference to pull
+ * in the startup code.
+ * Params:
+ *      sfunc = function
+ */
+private
+@trusted
+void addStartupReference(Symbol* sfunc)
+{
+version (SCPP) version (Win32)
+{
+    // Determine which startup code to reference
+    if (!CPP || !isclassmember(sfunc))              // if not member function
+    {
+        __gshared const(char)*[6] startup =
+        [   "__acrtused","__acrtused_winc","__acrtused_dll",
+            "__acrtused_con","__wacrtused","__wacrtused_con",
+        ];
+        int i;
+
+        const(char)* id = sfunc.Sident.ptr;
+        switch (id[0])
+        {
+            case 'D':
+                if (strcmp(id,"DllMain"))
+                    break;
+                if (config.exe == EX_WIN32)
+                {
+                    i = 2;
+                    goto L2;
+                }
+                break;
+
+            case 'm':
+                if (strcmp(id,"main"))
+                    break;
+                if (config.exe == EX_WIN32)
+                    i = 3;
+                else if (config.wflags & WFwindows)
+                    i = 1;
+                else
+                    i = 0;
+                goto L2;
+
+            case 'w':
+                if (strcmp(id,"wmain") == 0)
+                {
+                    if (config.exe == EX_WIN32)
+                    {
+                        i = 5;
+                        goto L2;
+                    }
+                    break;
+                }
+                goto case;
+
+            case 'W':
+                if (stricmp(id,"WinMain") == 0)
+                {
+                    i = 0;
+                    goto L2;
+                }
+                if (stricmp(id,"wWinMain") == 0)
+                {
+                    if (config.exe == EX_WIN32)
+                    {
+                        i = 4;
+                        goto L2;
+                    }
+                }
+                break;
+
+            case 'L':
+            case 'l':
+                if (stricmp(id,"LibMain"))
+                    break;
+                if (config.exe != EX_WIN32 && config.wflags & WFwindows)
+                {
+                    i = 2;
+                    goto L2;
+                }
+                break;
+
+            L2:
+                objmod.external_def(startup[i]);          // pull in startup code
+                break;
+
+            default:
+                break;
+        }
+    }
+}
 }
 
 
