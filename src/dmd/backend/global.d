@@ -433,7 +433,7 @@ void WRblock(block *b);
 void WRblocklist(list_t bl);
 void WReqn(elem *e);
 void numberBlocks(block* startblock);
-void WRfunc();
+void WRfunc(const char* msg, Symbol* sfunc, block* startblock);
 void WRdefnod();
 void WRFL(FL);
 char *sym_ident(SYMIDX si);

@@ -275,8 +275,7 @@ else
 
     debug if (debugb)
     {
-        printf("................Before optimization.........\n");
-        WRfunc();
+        WRfunc("before optimization", funcsym_p, startblock);
     }
 
     if (localgot)
@@ -422,8 +421,7 @@ else
 
     debug if (debugb)
     {
-        printf(".............After optimization...........\n");
-        WRfunc();
+        WRfunc("after optimization", funcsym_p, startblock);
     }
 
     // Prepare for code generator

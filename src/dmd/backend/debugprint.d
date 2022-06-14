@@ -498,6 +498,7 @@ version (MARS)
  * Number the blocks starting at 1.
  * So much more convenient than pointer values.
  */
+@safe
 void numberBlocks(block *startblock)
 {
     uint number = 0;
@@ -505,15 +506,20 @@ void numberBlocks(block *startblock)
         b.Bnumber = ++number;
 }
 
+/**************************************
+ * Print out the intermediate code for a function.
+ * Params:
+ *      msg = label for the print
+ *      sfunc = function to print
+ *      startblock = intermediate code
+ */
 @trusted
-void WRfunc()
+void WRfunc(const char* msg, Symbol* sfunc, block* startblock)
 {
-        printf("func: '%s'\n",funcsym_p.Sident.ptr);
-
-        numberBlocks(startblock);
-
-        for (block *b = startblock; b; b = b.Bnext)
-                WRblock(b);
+    printf("............%s...%s().............\n", msg, sfunc.Sident.ptr);
+    numberBlocks(startblock);
+    for (block *b = startblock; b; b = b.Bnext)
+        WRblock(b);
 }
 
 }

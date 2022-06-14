@@ -673,9 +673,7 @@ void blockopt(int iter)
 
         debug if (debugw)
         {
-            numberBlocks(startblock);
-            for (block *b = startblock; b; b = b.Bnext)
-                WRblock(b);
+            WRfunc("After blockopt()", funcsym_p, startblock);
         }
     }
     else
@@ -689,7 +687,10 @@ void blockopt(int iter)
         for (block *b = startblock; b; b = b.Bnext)
         {
             debug if (debugb)
+            {
+                printf("before doptelem():\n");
                 WRblock(b);
+            }
 
             if (b.Belem)
             {
@@ -699,7 +700,8 @@ void blockopt(int iter)
             }
 
             debug if (debugb)
-            {   printf("after optelem():\n");
+            {
+                printf("after optelem():\n");
                 WRblock(b);
             }
         }
@@ -718,10 +720,7 @@ void blockopt(int iter)
 
         debug if (debugb)
         {
-            printf("...................After blockopt().............\n");
-            numberBlocks(startblock);
-            for (block *b = startblock; b; b = b.Bnext)
-                WRblock(b);
+            WRfunc("After blockopt()", funcsym_p, startblock);
         }
     }
 }
@@ -736,9 +735,7 @@ void blockopt(int iter)
 void brcombine()
 {
     debug if (debugc) printf("brcombine()\n");
-    //numberBlocks(startblock);
-    //for (block *b = startblock; b; b = b.Bnext)
-        //WRblock(b);
+    //WRfunc("brcombine()", funcsym_p, startblock);
 
     if (funcsym_p.Sfunc.Fflags3 & (Fcppeh | Fnteh))
     {   // Don't mess up extra EH info by eliminating blocks
