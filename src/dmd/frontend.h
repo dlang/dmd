@@ -2740,18 +2740,21 @@ struct AttributeViolation final
     const char* fmtStr;
     RootObject* arg0;
     RootObject* arg1;
+    RootObject* arg2;
     AttributeViolation() :
         loc(Loc(nullptr, 0u, 0u)),
         fmtStr(nullptr),
         arg0(nullptr),
-        arg1(nullptr)
+        arg1(nullptr),
+        arg2(nullptr)
     {
     }
-    AttributeViolation(Loc loc, const char* fmtStr = nullptr, RootObject* arg0 = nullptr, RootObject* arg1 = nullptr) :
+    AttributeViolation(Loc loc, const char* fmtStr = nullptr, RootObject* arg0 = nullptr, RootObject* arg1 = nullptr, RootObject* arg2 = nullptr) :
         loc(loc),
         fmtStr(fmtStr),
         arg0(arg0),
-        arg1(arg1)
+        arg1(arg1),
+        arg2(arg2)
         {}
 };
 
