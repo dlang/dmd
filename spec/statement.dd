@@ -1505,8 +1505,6 @@ $(P
         An *Expression* of type void is allowed if the function specifies
         a void return type. The *Expression* will be evaluated,
         but nothing will be returned. This is useful in generic programming.
-        If the *Expression* has no side effects, and the return
-        type is void, then it is illegal.
 )
         $(P Before the function actually returns,
         any objects with `scope` storage duration are destroyed,
