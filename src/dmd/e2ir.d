@@ -2079,6 +2079,15 @@ elem* toElem(Expression e, IRState *irs)
             return e;
         }
 
+        /*
+            https://issues.dlang.org/show_bug.cgi?id=23120
+
+            If rhs is a noreturn expression, then there is no point
+            to generate any code for the noreturen variable.
+         */
+        if (ae.e2.type.isTypeNoreturn())
+            return setResult(toElem(ae.e2, irs));
+
         Type t1b = ae.e1.type.toBasetype();
 
         // Look for array.length = n
