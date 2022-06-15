@@ -6036,9 +6036,15 @@ public:
     Expression* maxval;
     Expression* minval;
     Expression* defaultval;
-    bool isdeprecated;
-    bool added;
-    int32_t inuse;
+    bool isdeprecated() const;
+    bool isdeprecated(bool v);
+    bool added() const;
+    bool added(bool v);
+    bool inuse() const;
+    bool inuse(bool v);
+private:
+    uint8_t bitFields;
+public:
     EnumDeclaration* syntaxCopy(Dsymbol* s) override;
     void addMember(Scope* sc, ScopeDsymbol* sds) override;
     void setScope(Scope* sc) override;
