@@ -113,6 +113,7 @@ struct Param
     bool vfield;        // identify non-mutable field variables
     bool vcomplex;      // identify complex/imaginary type usage
     bool vin;           // identify 'in' parameters
+    bool vinScope;      // identify GC->stack allocations because of 'in' parameters now implying `scope`
     Diagnostic useDeprecated;
     bool useUnitTests;  // generate unittest code
     bool useInline;     // inline expand functions

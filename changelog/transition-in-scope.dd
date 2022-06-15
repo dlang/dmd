@@ -1,0 +1,25 @@
+Add `-transition=inScope` flag
+
+The `in` storage class used to only mean `const`, but with `-preview=in` it also means `scope`.
+The `scope` attribute is only verified in `@safe` code and when using `-preview=dip1000`.
+The compiler does optimizations based on `scope`, notably turning GC allocations into stack allocations, but this may cause memory corruption when legacy code uses `in` parameters without treating them as `scope`:
+
+---
+@nogc:
+int[] fun(in int[] arr)
+{
+    auto tmp = arr;
+    return tmp; // escaping a scope pointer, function is @system so no error
+}
+
+void main()
+{
+    int[] x = fun([10, 20, 30]);
+    // x is now pointing to freed memory because the compiler
+    // assumed the array literal would not be returned based on `in`
+}
+---
+
+The `-transition=inScope` flag will now list instances where the compiler assumes `in` is `scope` for optimizations.
+
+See [issue 23175](https://issues.dlang.org/show_bug.cgi?id=23175) for more info.

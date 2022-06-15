@@ -113,6 +113,7 @@ extern (C++) struct Param
     bool vfield;            // identify non-mutable field variables
     bool vcomplex = true;   // identify complex/imaginary type usage
     bool vin;               // identify 'in' parameters
+    bool vinScope;          // identify GC->stack allocations because of 'in' parameters now implying `scope`
     DiagnosticReporting useDeprecated = DiagnosticReporting.inform;  // how use of deprecated features are handled
     bool useUnitTests;          // generate unittest code
     bool useInline = false;     // inline expand functions

@@ -844,6 +844,8 @@ dmd -cov -unittest myprog.d
             "list all variables going into thread local storage"),
         Feature("in", "vin",
             "list all usages of 'in' on parameter"),
+        Feature("inScope", "vinScope",
+            "list places where `in` parameters risk breaking code written before `in` implied `scope` (https://issues.dlang.org/show_bug.cgi?id=23175)"),
     ];
 
     /// Returns all available reverts

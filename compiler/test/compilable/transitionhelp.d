@@ -9,5 +9,6 @@ Language transitions listed by -transition=name:
   =complex          give deprecation messages about all usages of complex or imaginary types [DEPRECATED]
   =tls              list all variables going into thread local storage
   =in               list all usages of 'in' on parameter
+  =inScope          list places where `in` parameters risk breaking code written before `in` implied `scope` (https://issues.dlang.org/show_bug.cgi?id=23175)
 ----
 */

@@ -2063,6 +2063,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                     a = ce.e1;
 
                 ArrayLiteralExp ale;
+                bool affected = true;
                 if (p.type.toBasetype().ty == Tarray &&
                     (ale = a.isArrayLiteralExp()) !is null && ale.elements && ale.elements.length > 0)
                 {
@@ -2097,6 +2098,18 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                             //printf("--tookAddressOf = %d\n", f.tookAddressOf);
                         }
                     }
+                }
+                else
+                {
+                    affected = false;
+                }
+
+                // https://issues.dlang.org/show_bug.cgi?id=23175
+                const scopeFromIn = global.params.previewIn &&
+                    !(p.storageClass & STC.scope_) && (p.storageClass & STC.in_) && tf.trust != TRUST.safe;
+                if (global.params.vinScope && affected && scopeFromIn)
+                {
+                    message(arg.loc, "`in` treated as scope without checking for scope violations");
                 }
             }
             if (!p.isReference())
