@@ -4891,9 +4891,9 @@ Expression getMaxMinValue(EnumDeclaration ed, const ref Loc loc, Identifier id)
              */
             Expression e = em.value;
             Expression ec = new CmpExp(id == Id.max ? EXP.greaterThan : EXP.lessThan, em.loc, e, *pval);
-            ed.inuse++;
+            ed.inuse = true;
             ec = ec.expressionSemantic(em._scope);
-            ed.inuse--;
+            ed.inuse = false;
             ec = ec.ctfeInterpret();
             if (ec.op == EXP.error)
             {
