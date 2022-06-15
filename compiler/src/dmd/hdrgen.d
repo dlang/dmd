@@ -1890,7 +1890,17 @@ private void expressionPrettyPrint(Expression e, OutBuffer* buf, HdrGenState* hg
                 buf.printf("%uu", cast(uint)v);
                 break;
             case Tint64:
-                buf.printf("%lldL", v);
+                if (v == long.min)
+                {
+                    // https://issues.dlang.org/show_bug.cgi?id=23173
+                    // This is a special case because - is not part of the
+                    // integer literal and 9223372036854775808L overflows a long
+                    buf.writestring("cast(long)-9223372036854775808");
+                }
+                else
+                {
+                    buf.printf("%lldL", v);
+                }
                 break;
             case Tuns64:
                 buf.printf("%lluLU", v);
