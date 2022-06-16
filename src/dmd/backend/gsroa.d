@@ -47,7 +47,8 @@ extern (C++):
 nothrow:
 @safe:
 
-enum log = false;       // print logging info
+private enum log = false;       // print logging info
+private enum enable = true;     // enable SROA
 
 int REGSIZE();
 
@@ -341,7 +342,7 @@ extern (D) private void sliceStructs_Replace(ref symtab_t symtab, const SymInfo[
 @trusted
 void sliceStructs(ref symtab_t symtab, block* startblock)
 {
-if (1) // disable while we test the inliner
+if (enable) // disable while we test the inliner
 {
     if (log) printf("\n************ sliceStructs() %s *******************\n", funcsym_p.Sident.ptr);
     const sia_length = symtab.length;
