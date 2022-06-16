@@ -54,7 +54,7 @@ extern (C) void _d_monitordelete(Object h, bool det)
 }
 
 // does not call dispose events, for internal use only
-extern (C) void _d_monitordelete_nogc(Object h) @nogc
+extern (C) void _d_monitordelete_nogc(Object h) @nogc nothrow
 {
     auto m = getMonitor(h);
     if (m is null)
