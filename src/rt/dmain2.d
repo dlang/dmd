@@ -74,7 +74,7 @@ extern (C) void rt_moduleDtor();
 extern (C) void rt_moduleTlsDtor();
 extern (C) void thread_joinAll();
 extern (C) UnitTestResult runModuleUnitTests();
-extern (C) void _d_initMonoTime();
+extern (C) void _d_initMonoTime() @nogc nothrow;
 
 version (CRuntime_Microsoft)
 {
