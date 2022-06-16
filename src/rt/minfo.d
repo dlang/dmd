@@ -58,7 +58,7 @@ struct ModuleGroup
     // target modules are involved in a cycle.
     //
     // The return value is malloc'd using C, so it must be freed after use.
-    private size_t[] genCyclePath(size_t srcidx, size_t targetidx, int[][] edges)
+    private size_t[] genCyclePath(size_t srcidx, size_t targetidx, int[][] edges) nothrow
     {
         import core.bitop : bt, btc, bts;
 
@@ -162,7 +162,7 @@ struct ModuleGroup
      * Throws:
      *  Exception if it fails.
      */
-    void sortCtors(string cycleHandling)
+    void sortCtors(string cycleHandling) nothrow
     {
         import core.bitop : bts, btr, bt, BitRange;
         import core.internal.container.hashtab;
@@ -281,7 +281,7 @@ struct ModuleGroup
             .free(edges.ptr);
         }
 
-        void buildCycleMessage(size_t sourceIdx, size_t cycleIdx, scope void delegate(string) sink)
+        void buildCycleMessage(size_t sourceIdx, size_t cycleIdx, scope void delegate(string) nothrow sink)
         {
             version (Windows)
                 enum EOL = "\r\n";
@@ -313,7 +313,7 @@ struct ModuleGroup
         //
         // If a cycle is detected, returns the index of the module that completes the cycle.
         // Returns: true for success, false for a deprecated cycle error
-        bool findDeps(size_t idx, size_t* reachable)
+        bool findDeps(size_t idx, size_t* reachable) nothrow
         {
             static struct stackFrame
             {
@@ -411,7 +411,7 @@ struct ModuleGroup
         // ctor/dtors that must be dealt with. It recurses only when it finds
         // dependencies that also have static ctor/dtors.
         // Returns: true for success, false for a deprecated cycle error
-        bool processMod(size_t curidx)
+        bool processMod(size_t curidx) nothrow
         {
             immutable ModuleInfo* current = _modules[curidx];
 
@@ -454,7 +454,7 @@ struct ModuleGroup
         }
 
         // returns `false` if deprecated cycle error otherwise set `result`.
-        bool doSort(size_t relevantFlags, ref immutable(ModuleInfo)*[] result)
+        bool doSort(size_t relevantFlags, ref immutable(ModuleInfo)*[] result) nothrow
         {
             clearFlags(relevant);
             clearFlags(ctorstart);
