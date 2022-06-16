@@ -6250,13 +6250,6 @@ extern void semanticTypeInfo(Scope* sc, Type* t);
 class StructDeclaration : public AggregateDeclaration
 {
 public:
-    bool zeroInit;
-    bool hasIdentityAssign;
-    bool hasBlitAssign;
-    bool hasIdentityEquals;
-    bool hasNoFields;
-    bool hasCopyCtor;
-    bool requestTypeInfo;
     Array<FuncDeclaration* > postblits;
     FuncDeclaration* postblit;
     FuncDeclaration* xeq;
@@ -6264,9 +6257,26 @@ public:
     FuncDeclaration* xhash;
     static FuncDeclaration* xerreq;
     static FuncDeclaration* xerrcmp;
+    TypeTuple* argTypes;
     structalign_t alignment;
     ThreeState ispod;
-    TypeTuple* argTypes;
+    bool zeroInit() const;
+    bool zeroInit(bool v);
+    bool hasIdentityAssign() const;
+    bool hasIdentityAssign(bool v);
+    bool hasBlitAssign() const;
+    bool hasBlitAssign(bool v);
+    bool hasIdentityEquals() const;
+    bool hasIdentityEquals(bool v);
+    bool hasNoFields() const;
+    bool hasNoFields(bool v);
+    bool hasCopyCtor() const;
+    bool hasCopyCtor(bool v);
+    bool requestTypeInfo() const;
+    bool requestTypeInfo(bool v);
+private:
+    uint8_t bitFields;
+public:
     static StructDeclaration* create(const Loc& loc, Identifier* id, bool inObject);
     StructDeclaration* syntaxCopy(Dsymbol* s) override;
     Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8) final override;
