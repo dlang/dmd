@@ -5,8 +5,6 @@
  * This inlines based on the intermediate code, after it is optimized,
  * which is simpler and presumably can inline more functions.
  * It does not yet have full functionality,
- * - it inlines one expression only, statements that can be turned into ||, && or ?:
- *   expressions are not done
  * - it does not inline expressions with string literals in them, as these get turned into
  *   local symbols which cannot be referenced from another object file
  * - exception handling code for Win32 is not inlined
@@ -51,6 +49,7 @@ import dmd.backend.dlist;
 nothrow:
 
 enum log = false;
+enum log2 = false;
 
 /**********************************
  * Determine if function can be inline'd.
@@ -80,6 +79,11 @@ bool canInlineFunction(Symbol *sfunc)
             return false;
         if (config.ehmethod == EHmethod.EH_WIN32 && !(f.Fflags3 & Feh_none))
             return false;       // not working properly, so don't inline it
+
+        static if (0) // disable for the moment
+        while (b.BC == BCgoto && b.Bnext == b.nthSucc(0) && canInlineExpression(b.Belem))
+            b = b.Bnext;
+
         switch (b.BC)
         {   case BCret:
                 if (tybasic(t.Tnext.Tty) != TYvoid
@@ -155,6 +159,8 @@ private:
  */
 bool canInlineExpression(elem* e)
 {
+    if (!e)
+        return true;
     while (1)
     {
         if (OTleaf(e.Eoper))
@@ -332,7 +338,7 @@ private elem* tryInliningCall(elem *e)
 }
 
 /**********************************
- * Inline expand a function.
+ * Inline expand a function call.
  * Params:
  *      e = the OPcall or OPucall that calls sfunc, this gets free'd
  *      sfunc = function being called that gets inlined
@@ -345,7 +351,7 @@ private elem* inlineCall(elem *e,Symbol *sfunc)
     if (debugc)
         printf("inline %s\n", prettyident(sfunc));
     if (log) printf("inlineCall(e = %p, func %p = '%s')\n", e, sfunc, prettyident(sfunc));
-    //printf("before:\n"); elem_print(e);
+    if (log2) { printf("before:\n"); elem_print(e); }
     //symbol_debug(sfunc);
     assert(e.Eoper == OPcall || e.Eoper == OPucall);
     func_t* f = sfunc.Sfunc;
@@ -409,8 +415,11 @@ private elem* inlineCall(elem *e,Symbol *sfunc)
 
     /* Create duplicate of function elems
      */
-    assert(f.Fstartblock);
-    elem* ec = el_copytree(f.Fstartblock.Belem);
+    elem* ec;
+    for (block* b = f.Fstartblock; b; b = b.Bnext)
+    {
+        ec = el_combine(ec, el_copytree(b.Belem));
+    }
 
     /* Walk the copied tree, replacing references to the old
      * variables with references to the new
@@ -449,7 +458,7 @@ private elem* inlineCall(elem *e,Symbol *sfunc)
     else
         ec = el_long(TYint,0);
     el_free(e);                         // dump function call
-    //printf("after:\n"); elem_print(ec);
+    if (log2) { printf("after:\n"); elem_print(ec); }
     return ec;
 }
 
@@ -539,8 +548,8 @@ private elem* initializeParamsWithArgs(elem *e, ref int pn, SYMIDX sistart)
                             }
                             assert(e.Eoper == OPvar);
                             elem* e2 = el_copytree(e);
-                            e.EV.Voffset = 0;
-                            e2.EV.Voffset = szs;
+                            e.EV.Voffset += 0;
+                            e2.EV.Voffset += szs;
                             e.Ety = ty;
                             e2.Ety = ty;
                             elem* elo = el_bin(OPeq, ty, el_var(s), e);
@@ -561,7 +570,11 @@ private elem* initializeParamsWithArgs(elem *e, ref int pn, SYMIDX sistart)
                             elem* evar = el_var(s);
                             elem* ex = el_copytree(e);
                             auto ty = tybasic(ex.Ety);
-                            if (szs < sze && sze == 4)
+                            if (szs == 3)
+                            {
+                                ty = TYstruct;
+                            }
+                            else if (szs < sze && sze == 4)
                             {
                                 // e got promoted to int
                                 ex = el_una(OP32_16, TYshort, ex);
