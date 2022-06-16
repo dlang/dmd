@@ -2218,9 +2218,21 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 }
                 else
                 {
+                    // C11 6.7.2.2-3 add 1 to value of previous enumeration constant
+                    bool first = (em == (*em.ed.members)[0]);
+                    if (!first)
+                    {
+                        import core.checkedint : adds;
+                        bool overflow;
+                        nextValue = adds(nextValue, 1, overflow);
+                        if (overflow)
+                        {
+                            em.error("initialization with `%d+1` causes overflow for type `int`", nextValue - 1);
+                            return errorReturn(em);
+                        }
+                    }
                     em.value = new IntegerExp(em.loc, nextValue, Type.tint32);
                 }
-                ++nextValue; // C11 6.7.2.2-3 add 1 to value of previous enumeration constant
                 em.semanticRun = PASS.semanticdone;
             }
 
