@@ -67,7 +67,6 @@ extern (C) void gc_init();
 extern (C) void gc_term();
 extern (C) void thread_init() @nogc nothrow;
 extern (C) void thread_term() @nogc nothrow;
-extern (C) void lifetime_init();
 extern (C) void rt_moduleCtor();
 extern (C) void rt_moduleTlsCtor();
 extern (C) void rt_moduleDtor();
@@ -131,7 +130,6 @@ extern (C) int rt_init()
         thread_init();
         // TODO: fixme - calls GC.addRange -> Initializes GC
         initStaticDataGC();
-        lifetime_init();
         rt_moduleCtor();
         rt_moduleTlsCtor();
         return 1;
