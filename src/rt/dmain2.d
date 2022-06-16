@@ -59,10 +59,10 @@ struct UnitTestResult
     bool summarize;
 }
 
-extern (C) void _d_monitor_staticctor();
-extern (C) void _d_monitor_staticdtor();
-extern (C) void _d_critical_init();
-extern (C) void _d_critical_term();
+extern (C) void _d_monitor_staticctor() @nogc nothrow;
+extern (C) void _d_monitor_staticdtor() @nogc nothrow;
+extern (C) void _d_critical_init() @nogc nothrow;
+extern (C) void _d_critical_term() @nogc nothrow;
 extern (C) void gc_init();
 extern (C) void gc_term();
 extern (C) void thread_init() @nogc;

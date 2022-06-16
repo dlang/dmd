@@ -148,7 +148,7 @@ extern (C) void rt_detachDisposeEvent(Object h, DEvent e)
 
 nothrow:
 
-extern (C) void _d_monitor_staticctor()
+extern (C) void _d_monitor_staticctor() @nogc nothrow
 {
     version (Posix)
     {
@@ -158,7 +158,7 @@ extern (C) void _d_monitor_staticctor()
     initMutex(&gmtx);
 }
 
-extern (C) void _d_monitor_staticdtor()
+extern (C) void _d_monitor_staticdtor() @nogc nothrow
 {
     destroyMutex(&gmtx);
     version (Posix)
