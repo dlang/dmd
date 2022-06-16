@@ -123,6 +123,8 @@ $(H2 $(LEGACY_LNAME2 Basic Data Types, basic-data-types, Basic Data Types))
     $(TROW $(D dchar), $(D '\U0000FFFF'), unsigned 32 bit (UTF-32 code unit))
     )
 
+    $(P Endianness of basic types is part of the $(DDSUBLINK spec/abi, endianness, ABI))
+
     $(IMPLEMENTATION_DEFINED The real floating point type has at least the range and precision
     of the `double` type. On x86 CPUs it is often implemented as the 80 bit Extended Real
     type supported by the x86 FPU.

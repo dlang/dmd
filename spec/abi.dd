@@ -47,6 +47,9 @@ $(H2 $(LNAME2 basic_types, Basic Types))
         $(TROW double, 64 bit IEEE 754 floating point value)
         $(TROW real, implementation defined floating point value$(COMMA) for x86 it is
          80 bit IEEE 754 extended real)
+        $(TROW char, 8 bit unsigned value)
+        $(TROW wchar, 16 bit unsigned value)
+        $(TROW dchar, 32 bit unsigned value)
         )
 
 $(H2 $(LNAME2 delegates, Delegates))
