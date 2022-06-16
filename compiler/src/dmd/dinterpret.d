@@ -453,14 +453,17 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
     if (global.params.newCTFE && !istate && !thisarg && !fd.needThis && !fd.isNested)
     {
         assert(!thisarg);
-        import dmd.ctfe.ctfe_bc;
-        printf("Attempting to eval: %s\n", fd.toPrettyChars());
-        if (auto e = evaluateFunction(fd, arguments))
+        static import dmd.ctfe.ctfe_bc;
+        if (global.params.verbose)
+            message("Attempting to eval: %s\n", fd.toPrettyChars());
+        if (auto e = dmd.ctfe.ctfe_bc.evaluateFunction(fd, arguments))
         {
-            printf("... success\n");
+            if (global.params.verbose)
+                message("... success\n");
             return e;
         }
-        printf("... failed\n");
+        if (global.params.verbose)
+            message("... failed\n");
     }
     // Nested functions always inherit the 'this' pointer from the parent,
     // except for delegates. (Note that the 'this' pointer may be null).

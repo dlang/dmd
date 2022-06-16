@@ -5303,7 +5303,8 @@ static if (is(BCGen))
                 {
                     if (var.type.ty == Tclass || var.type.ty == Tstruct)
                     {
-                        printf("We think %s is struct/class\n", vd.toChars());
+                        debug(bc)
+                            printf("We think %s is struct/class\n", vd.toChars());
                         if (se.offset == 0)
                         {
                             // this is the same as a ref ...
