@@ -1647,7 +1647,7 @@ version (SCPP_HTOD)
  */
 
 @trusted
-param_t* param_t_search(scope param_t* p, char *id)
+param_t* param_t_search(return scope param_t* p, char *id)
 {
     for (; p; p = p.Pnext)
     {

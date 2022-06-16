@@ -1230,9 +1230,24 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                 !(!refs && sc.func.isFuncDeclaration().getLevel(pfunc, sc.intypeof) > 0)
                )
             {
-                // https://issues.dlang.org/show_bug.cgi?id=17029
-                result |= sc.setUnsafeDIP1000(gag, e.loc, "scope variable `%s` may not be returned", v);
-                continue;
+                if (v.isParameter() && !(v.storage_class & STC.return_))
+                {
+                    // https://issues.dlang.org/show_bug.cgi?id=23191
+                    if (!gag)
+                    {
+                        previewErrorFunc(sc.isDeprecated(), global.params.useDIP1000)(e.loc,
+                            "scope parameter `%s` may not be returned", v.toChars()
+                        );
+                        result = true;
+                        continue;
+                    }
+                }
+                else
+                {
+                    // https://issues.dlang.org/show_bug.cgi?id=17029
+                    result |= sc.setUnsafeDIP1000(gag, e.loc, "scope variable `%s` may not be returned", v);
+                    continue;
+                }
             }
         }
         else if (v.storage_class & STC.variadic && p == sc.func)

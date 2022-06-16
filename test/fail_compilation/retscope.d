@@ -2,7 +2,7 @@
 REQUIRED_ARGS: -preview=dip1000
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(22): Error: scope variable `p` may not be returned
+fail_compilation/retscope.d(22): Error: scope parameter `p` may not be returned
 fail_compilation/retscope.d(32): Error: returning `b ? nested1(& i) : nested2(& j)` escapes a reference to local variable `j`
 fail_compilation/retscope.d(45): Error: scope variable `p` assigned to non-scope `q`
 fail_compilation/retscope.d(47): Error: address of variable `i` assigned to `q` with longer lifetime
@@ -149,7 +149,7 @@ S10* test10()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(158): Error: scope variable `this` may not be returned
+fail_compilation/retscope.d(158): Error: scope parameter `this` may not be returned
 ---
 */
 
@@ -218,7 +218,7 @@ void* escape3 (scope void* p) @safe {
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(229): Error: scope variable `ptr` may not be returned
+fail_compilation/retscope.d(229): Error: scope parameter `ptr` may not be returned
 ---
 */
 

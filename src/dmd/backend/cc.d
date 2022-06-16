@@ -1573,7 +1573,7 @@ nothrow:
                                 // template-parameter-list
     { return param_t_createTal(&this, p); }
 
-    param_t* search(char* id)   // look for Pident matching id
+    param_t* search(char* id) return // look for Pident matching id
     { return param_t_search(&this, id); }
 
     int searchn(char* id);      // look for Pident matching id, return index
@@ -1592,7 +1592,7 @@ void param_t_print(const scope param_t* p);
 void param_t_print_list(scope param_t* p);
 uint param_t_length(scope param_t* p);
 param_t* param_t_createTal(scope param_t* p, param_t *ptali);
-param_t* param_t_search(scope param_t* p, char *id);
+param_t* param_t_search(return scope param_t* p, char *id);
 int param_t_searchn(param_t* p, char *id);
 
 
