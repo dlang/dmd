@@ -2511,12 +2511,12 @@ enum R_TILEGX_GNU_VTENTRY =    129;
 
 enum R_TILEGX_NUM =            130;
 
-enum EF_RISCV_RVC =            0x0001;
-enum EF_RISCV_FLOAT_ABI =      0x0006;
-enum EF_RISCV_FLOAT_ABI_SOFT = 0x0000;
+enum EF_RISCV_RVC =              0x0001;
+enum EF_RISCV_FLOAT_ABI =        0x0006;
+enum EF_RISCV_FLOAT_ABI_SOFT =   0x0000;
 enum EF_RISCV_FLOAT_ABI_SINGLE = 0x0002;
 enum EF_RISCV_FLOAT_ABI_DOUBLE = 0x0004;
-enum EF_RISCV_FLOAT_ABI_QUAD = 0x0006;
+enum EF_RISCV_FLOAT_ABI_QUAD =   0x0006;
 enum R_RISCV_NONE =            0;
 enum R_RISCV_32 =              1;
 enum R_RISCV_64 =              2;
