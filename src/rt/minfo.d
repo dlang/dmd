@@ -109,7 +109,7 @@ struct ModuleGroup
             // release mode.
             if (distance[target] != curdist)
             {
-                throw new Error("internal error printing module cycle");
+                assert(0, "internal error printing module cycle");
             }
 
             // determine the path. This is tricky, because we have to
@@ -196,7 +196,7 @@ struct ModuleGroup
             break;
         default:
             // invalid cycle handling option.
-            throw new Error("DRT invalid cycle handling option: " ~ cycleHandling);
+            assert(0, "DRT invalid cycle handling option: " ~ cycleHandling);
         }
 
         debug (printModuleDependencies)
