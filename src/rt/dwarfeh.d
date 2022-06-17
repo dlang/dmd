@@ -73,6 +73,16 @@ else version (MIPS32)
     enum eh_exception_regno = 4;
     enum eh_selector_regno = 5;
 }
+else version (RISCV64)
+{
+    enum eh_exception_regno = 10;
+    enum eh_selector_regno = 11;
+}
+else version (RISCV32)
+{
+    enum eh_exception_regno = 10;
+    enum eh_selector_regno = 11;
+}
 else
 {
     static assert(0, "Unknown EH register numbers for this architecture");
