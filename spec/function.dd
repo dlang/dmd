@@ -3083,15 +3083,20 @@ $(H2 $(LNAME2 main, $(D main()) Function))
 
         $(GRAMMAR
         $(GNAME MainFunction):
-            $(GLINK MainReturnDecl) $(D main$(LPAREN)$(RPAREN)) $(GLINK2 statement, BlockStatement)
-            $(GLINK MainReturnDecl) $(D main$(LPAREN)string[]) $(GLINK_LEX Identifier)$(D $(RPAREN)) $(GLINK2 statement, BlockStatement)
+            $(GLINK MainReturnDecl) $(D main$(LPAREN)$(RPAREN)) $(GLINK2 statement, MainFunctionBody)
+            $(GLINK MainReturnDecl) $(D main$(LPAREN)string[]) $(GLINK_LEX Identifier)$(D $(RPAREN)) $(GLINK2 statement, MainFunctionBody)
 
         $(GNAME MainReturnDecl):
             $(D void)
             $(D int)
             $(GLINK2 type, noreturn)
             $(RELATIVE_LINK2 auto-functions, $(D auto))
+
+        $(GNAME MainFunctionBody):
+            $(GLINK ShortenedFunctionBody)
+            $(GLINK SpecifiedFunctionBody)
         )
+
 
         $(UL
         $(LI If `main` returns `void`, the OS will receive a zero value on success.)
