@@ -1,3 +1,11 @@
+/**
+ * Defines limits for certain things in the engine.
+ *
+ * Whether this module should exist is debatable.
+ *
+ * Copyright:   Copyright (C) 2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     Stefan Koch, Max Haughton
+ */
 module dmd.ctfe.bc_limits;
 
 enum bc_max_members = 96;

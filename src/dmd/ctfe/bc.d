@@ -1,3 +1,9 @@
+/**
+ * This module defines both abstract meaning and memory layout of the instruction set.
+ *
+ * Copyright:   Copyright (C) 2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     Stefan Koch, Max Haughton
+ */
 module dmd.ctfe.bc;
 
 import dmd.ctfe.bc_common;
@@ -5,9 +11,7 @@ import dmd.ctfe.bc_limits;
 import dmd.ctfe.bc_abi;
 import core.stdc.stdio;
 
-/**
- * Written By Stefan Koch in 2016/2017/2019/2020/2021
- */
+
 enum InstKind
 {
     ShortInst,

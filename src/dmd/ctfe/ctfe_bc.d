@@ -1,3 +1,11 @@
+/**
+ * Defines the basic state and entry point (`evaluteFunction`) of the interpreter.
+ *
+ * The boundary between this module and `bc_interpret` is currently fuzzy and subject to change.
+ *
+ * Copyright:   Copyright (C) 2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     Stefan Koch, Max Haughton
+ */
 module dmd.ctfe.ctfe_bc;
 import dmd.ctfe.bc_limits;
 import dmd.expression;
@@ -17,10 +25,6 @@ import dmd.arraytypes : Expressions, VarDeclarations, Catches;
 import dmd.root.rmem;
 import dmd.astenums;
 import dmd.dinterpret;
-/**
- * Written By Stefan Koch in 2016-21
- * Rebased by max haughton.
- */
 
 import core.stdc.stdio : printf;
 import std.string : fromStringz;
@@ -216,7 +220,7 @@ struct BlackList
     }
 
 }
-
+///
 Expression evaluateFunction(FuncDeclaration fd, Expressions* args)
 {
 //    pragma(msg, __traits(allMembers, typeof(*args)));

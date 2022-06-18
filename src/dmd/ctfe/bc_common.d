@@ -1,3 +1,9 @@
+/**
+ * This module is for common utilities for the bytecode engine.
+ *
+ * Copyright:   Copyright (C) 2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     Stefan Koch, Max Haughton
+ */
 module dmd.ctfe.bc_common;
 
 import dmd.ctfe.fpconv_ctfe;

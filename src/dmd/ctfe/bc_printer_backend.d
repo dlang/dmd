@@ -1,3 +1,9 @@
+/**
+ * A debug printer for the bytecode used by the CTFE engine.
+ *
+ * Copyright:   Copyright (C) 2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     Stefan Koch, Max Haughton
+ */
 module dmd.ctfe.bc_printer_backend;
 //version = std_algo;
 import dmd.ctfe.bc_common;

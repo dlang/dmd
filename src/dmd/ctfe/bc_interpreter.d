@@ -1,7 +1,14 @@
+/**
+ * Implements the interpreter loop for the bytecode interpreter engine.
+ *
+ * Copyright:   Copyright (C) 2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     Stefan Koch, Max Haughton
+ */
 module dmd.ctfe.bc_interpreter;
 import dmd.ctfe.bc_common;
 import dmd.ctfe.bc;
 import dmd.ctfe.bc_abi;
+///
 auto interpret(ref BCGen gen, BCValue[] args, BCHeap* heapPtr = null) @trusted
 {
     with(gen)
@@ -16,6 +23,7 @@ auto interpret(ref BCGen gen, BCValue[] args, BCHeap* heapPtr = null) @trusted
         return interpret_(0, args, heapPtr, &f, &calls[0]);
     }
 }
+
 const(BCValue) interpret_(int fnId, const BCValue[] args,
     BCHeap* heapPtr = null, const BCFunction* functions = null,
     const RetainedCall* calls = null,

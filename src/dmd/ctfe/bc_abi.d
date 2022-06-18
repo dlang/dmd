@@ -1,6 +1,9 @@
-/// This module contains ABI definitions in form of structs and helper functions
-/// sizes and offsets are in Bytes
-
+/**
+ * This module contains ABI definitions in form of structs and helper functions
+ * sizes and offsets are in Bytes
+ * Copyright:   Copyright (C) 2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     Stefan Koch, Max Haughton
+ */
 module dmd.ctfe.bc_abi;
 
 import dmd.ctfe.bc_limits;

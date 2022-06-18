@@ -1,3 +1,9 @@
+/**
+ * Some bytecode executions tests.
+ *
+ * Copyright:   Copyright (C) 2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     Stefan Koch, Max Haughton
+ */
 module dmd.ctfe.bc_test;
 
 /// All my bc-tests
