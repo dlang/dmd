@@ -113,9 +113,6 @@ COPY:=$(subst \,/,$(COPY))
 include mak/DOCS
 DOCS:=$(subst \,/,$(DOCS))
 
-include mak/IMPORTS
-IMPORTS:=$(subst \,/,$(IMPORTS))
-
 include mak/SRCS
 SRCS:=$(subst \,/,$(SRCS))
 
@@ -132,9 +129,9 @@ TIMELIMIT:=$(if $(shell which timelimit 2>/dev/null || true),timelimit -t 10 ,)
 ######################## All of'em ##############################
 
 ifneq (,$(SHARED))
-target : import copy dll $(DRUNTIME)
+target : copy dll $(DRUNTIME)
 else
-target : import copy $(DRUNTIME)
+target : copy $(DRUNTIME)
 endif
 
 ######################## Doc .html file generation ##############################
@@ -324,21 +321,14 @@ $(DOC_OUTPUT_DIR)/rt_typeinfo_%.html : src/rt/typeinfo/%.d $(DMD)
 $(DOC_OUTPUT_DIR)/rt_util_%.html : src/rt/util/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
-######################## Header .di file generation ##############################
+######################## Header file copy ##############################
 
-import: $(IMPORTS)
-
-$(IMPDIR)/core/sync/%.di : src/core/sync/%.d $(DMD)
-	@mkdir -p $(dir $@)
-	$(DMD) -conf= -c -o- -Isrc -Iimport -Hf$@ $<
-
-######################## Header .di file copy ##############################
+import: copy
 
 copy: $(COPY)
 
 $(IMPDIR)/object.d : src/object.d
 	@mkdir -p $(dir $@)
-	@rm -f $(IMPDIR)/object.di
 	@cp $< $@
 
 $(IMPDIR)/%.di : src/%.di

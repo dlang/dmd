@@ -49,11 +49,10 @@ CFLAGS=$(CFLAGS) /Zl
 
 DOCFMT=
 
-target: import copydir copy $(DRUNTIME)
+target: copydir copy $(DRUNTIME)
 
 $(mak\COPY)
 $(mak\DOCS)
-$(mak\IMPORTS)
 $(mak\SRCS)
 
 # NOTE: trace.d and cover.d are not necessary for a successful build
@@ -62,10 +61,9 @@ $(mak\SRCS)
 OBJS= errno_c_$(MODEL).obj
 OBJS_TO_DELETE= errno_c_$(MODEL).obj
 
-######################## Header file generation ##############################
+######################## Header file copy ##############################
 
-import:
-	"$(MAKE)" -f mak/WINDOWS import DMD="$(DMD)" HOST_DMD="$(HOST_DMD)" MODEL=$(MODEL) IMPDIR="$(IMPDIR)"
+import: copy
 
 copydir:
 	"$(MAKE)" -f mak/WINDOWS copydir DMD="$(DMD)" HOST_DMD="$(HOST_DMD)" MODEL=$(MODEL) IMPDIR="$(IMPDIR)"

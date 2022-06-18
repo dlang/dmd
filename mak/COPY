@@ -120,7 +120,14 @@ COPY=\
 	$(IMPDIR)\core\stdcpp\vector.d \
 	$(IMPDIR)\core\stdcpp\xutility.d \
 	\
+	$(IMPDIR)\core\sync\barrier.d \
+	$(IMPDIR)\core\sync\condition.d \
+	$(IMPDIR)\core\sync\config.d \
 	$(IMPDIR)\core\sync\event.d \
+	$(IMPDIR)\core\sync\exception.d \
+	$(IMPDIR)\core\sync\mutex.d \
+	$(IMPDIR)\core\sync\rwmutex.d \
+	$(IMPDIR)\core\sync\semaphore.d \
 	\
 	$(IMPDIR)\core\sys\bionic\err.d \
 	$(IMPDIR)\core\sys\bionic\fcntl.d \

@@ -1,33 +1,8 @@
 $(mak\COPY)
-$(mak\IMPORTS)
 
-######################## Header .di file generation ##############################
+######################## Header file copy ##############################
 
-import: $(IMPORTS)
-
-$(IMPDIR)\core\sync\barrier.di : src\core\sync\barrier.d
-	$(DMD) -conf= -c -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\sync\condition.di : src\core\sync\condition.d
-	$(DMD) -conf= -c -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\sync\config.di : src\core\sync\config.d
-	$(DMD) -conf= -c -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\sync\exception.di : src\core\sync\exception.d
-	$(DMD) -conf= -c -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\sync\mutex.di : src\core\sync\mutex.d
-	$(DMD) -conf= -c -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\sync\rwmutex.di : src\core\sync\rwmutex.d
-	$(DMD) -conf= -c -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\sync\semaphore.di : src\core\sync\semaphore.d
-	$(DMD) -conf= -c -o- -Isrc -Iimport -Hf$@ $**
-
-
-######################## Header .di file copy ##############################
+import: copy
 
 copydir: $(IMPDIR)
 

@@ -29,11 +29,10 @@ DRUNTIME=lib\$(DRUNTIME_BASE).lib
 
 DOCFMT=
 
-target: import copydir copy $(DRUNTIME)
+target: copydir copy $(DRUNTIME)
 
 $(mak\COPY)
 $(mak\DOCS)
-$(mak\IMPORTS)
 $(mak\SRCS)
 
 # NOTE: trace.d and cover.d are not necessary for a successful build
@@ -44,10 +43,9 @@ $(mak\SRCS)
 OBJS= errno_c_32omf.obj src\rt\minit.obj
 OBJS_TO_DELETE= errno_c_32omf.obj
 
-######################## Header file generation ##############################
+######################## Header file copy ##############################
 
-import:
-	"$(MAKE)" -f mak/WINDOWS import DMD="$(DMD)" HOST_DMD="$(HOST_DMD)" MODEL=32 IMPDIR="$(IMPDIR)"
+import: copy
 
 copydir:
 	"$(MAKE)" -f mak/WINDOWS copydir DMD="$(DMD)" HOST_DMD="$(HOST_DMD)" MODEL=32 IMPDIR="$(IMPDIR)"
