@@ -23,7 +23,8 @@ auto interpret(ref BCGen gen, BCValue[] args, BCHeap* heapPtr = null) @trusted
         return interpret_(0, args, heapPtr, &f, &calls[0]);
     }
 }
-
+/* TODO: This interface (interpret_) is absolutely awful */
+///
 const(BCValue) interpret_(int fnId, const BCValue[] args,
     BCHeap* heapPtr = null, const BCFunction* functions = null,
     const RetainedCall* calls = null,

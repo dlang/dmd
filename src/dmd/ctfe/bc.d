@@ -1,5 +1,7 @@
 /**
- * This module defines both abstract meaning and memory layout of the instruction set.
+ * This module defines:
+ *     - The abstract meaning and memory layout of the instruction set.
+ *     - The `BCGen` utility for building bytecode programs.
  *
  * Copyright:   Copyright (C) 2022 by The D Language Foundation, All Rights Reserved
  * Authors:     Stefan Koch, Max Haughton
