@@ -584,11 +584,6 @@ destructors. Violation of this rule will result in a runtime exception.)
     $(OL
     $(LI `abort` The default behavior. The normal behavior as described
             in the previous section.)
-    $(LI `deprecate` This works just like `abort`, but upon cycle
-            detection the runtime will use a flawed pre-2.072 algorithm to
-            determine if the cycle was previously detected. If no cycles are
-            detected in the old algorithm, execution continues, but a
-            deprecation message is printed.)
     $(LI `print` Print all cycles detected, but do not abort execution.
             When cycles are present, the order of static construction is
             implementation defined, and not guaranteed to be valid.)
