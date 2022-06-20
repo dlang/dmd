@@ -108,7 +108,7 @@ are often overkill for nested functions and function literals; use ordinary
 comments for those. Follow the [D Style](https://dlang.org/dstyle.html#phobos_documentation)
 for comment blocks.
 
-3. Do not use `strlen`/`strcmp` and their ilk. Use D arrays instead.
+3. Do not use `strlen`/`strcmp` and their like. Use D arrays instead.
 If slicing from a `char*` is required then use `dmd.utils.toDString`
 or the member function `.toString` that is implemented in many classes.
 
