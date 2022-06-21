@@ -80,7 +80,7 @@ bool canInlineFunction(Symbol *sfunc)
         if (config.ehmethod == EHmethod.EH_WIN32 && !(f.Fflags3 & Feh_none))
             return false;       // not working properly, so don't inline it
 
-        static if (0) // disable for the moment
+        static if (1) // enable for the moment
         while (b.BC == BCgoto && b.Bnext == b.nthSucc(0) && canInlineExpression(b.Belem))
             b = b.Bnext;
 
