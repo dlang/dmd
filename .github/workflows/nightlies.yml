@@ -18,6 +18,8 @@ on:
 jobs:
   # Build and package a new release for all supported platforms
   build-all-releases:
+    permissions:
+      contents: none
     name: Build nightly from master
     if: github.repository == 'dlang/dmd'
     uses: dlang/installer/.github/workflows/build_release_template.yml@master

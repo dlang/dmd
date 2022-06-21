@@ -44,6 +44,9 @@ on:
       # Use this branch name in your fork to test changes
       - github-actions
 
+permissions:
+  contents: read
+
 jobs:
   main:
     name: Run
