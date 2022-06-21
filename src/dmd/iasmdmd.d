@@ -2208,7 +2208,7 @@ private void asm_merge_opnds(ref OPND o1, ref OPND o2)
         size_t index = cast(int)o2.disp;
         if (index >= tup.objects.dim)
         {
-            asmerr("tuple index %llu exceeds length %llu",
+            asmerr("tuple index `%llu` out of bounds `[0 .. %llu]`",
                     cast(ulong) index, cast(ulong) tup.objects.dim);
         }
         else
