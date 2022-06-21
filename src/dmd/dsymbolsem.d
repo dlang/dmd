@@ -728,6 +728,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             else if (!dsym.type.hasPointers())
             {
                 dsym.storage_class &= ~STC.scope_;     // silently ignore; may occur in generic code
+                // https://issues.dlang.org/show_bug.cgi?id=23168
+                if (dsym.storage_class & STC.returnScope)
+                {
+                    dsym.storage_class &= ~(STC.return_ | STC.returnScope);
+                }
             }
         }
 
@@ -3208,10 +3213,19 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 sc.stc |= STC.scope_;
 
             // If 'this' has no pointers, remove 'scope' as it has no meaning
+            // Note: this is already covered by semantic of `VarDeclaration` and `TypeFunction`,
+            // but existing code relies on `hasPointers()` being called here to resolve forward references:
+            // https://github.com/dlang/dmd/pull/14232#issuecomment-1162906573
             if (sc.stc & STC.scope_ && ad && ad.isStructDeclaration() && !ad.type.hasPointers())
             {
                 sc.stc &= ~STC.scope_;
                 tf.isScopeQual = false;
+                if (tf.isreturnscope)
+                {
+                    sc.stc &= ~(STC.return_ | STC.returnScope);
+                    tf.isreturn = false;
+                    tf.isreturnscope = false;
+                }
             }
 
             sc.linkage = funcdecl._linkage;
