@@ -485,12 +485,12 @@ extern (C++) abstract class Declaration : Dsymbol
         return (storage_class & STC.auto_) != 0;
     }
 
-    final bool isScope() const pure nothrow @nogc @safe
+    bool isScope()
     {
         return (storage_class & STC.scope_) != 0;
     }
 
-    final bool isReturn() const pure nothrow @nogc @safe
+    bool isReturn()
     {
         return (storage_class & STC.return_) != 0;
     }
@@ -1117,7 +1117,7 @@ extern (C++) class VarDeclaration : Declaration
     VarDeclaration lastVar;         // Linked list of variables for goto-skips-init detection
     Expression edtor;               // if !=null, does the destruction of the variable
     IntRange* range;                // if !=null, the variable is known to be within the range
-    VarDeclarations* maybes;        // maybeScope variables that are assigned to this maybeScope variable
+    VarDeclaration lifetimeParent; // the declaration with represents the lifetime of this variable, null = its own root
 
     uint endlinnum;                 // line number of end of scope that this var lives in
     uint offset;
@@ -1434,6 +1434,18 @@ extern (C++) class VarDeclaration : Declaration
 
         return   bitoffset < vbitoffset + vbitsize &&
                 vbitoffset <  bitoffset + tbitsize;
+    }
+
+    override final bool isScope()
+    {
+        import dmd.escape : findLifetimeRoot;
+        return !!(this.findLifetimeRoot().storage_class & STC.scope_);
+    }
+
+    override final bool isReturn()
+    {
+        import dmd.escape : findLifetimeRoot;
+        return (this.findLifetimeRoot().storage_class & STC.return_) != 0;
     }
 
     override final bool hasPointers()

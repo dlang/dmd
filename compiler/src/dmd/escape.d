@@ -671,7 +671,6 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
 
     FuncDeclaration fd = sc.func;
 
-
     // Determine if va is a `ref` parameter, so it has a lifetime exceding the function scope
     const bool vaIsRef = va && va.isParameter() && va.isReference();
     if (log && vaIsRef) printf("va is ref `%s`\n", va.toChars());
@@ -707,36 +706,22 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
 
         Dsymbol p = v.toParent2();
 
-        if (va && !vaIsRef && !va.isScope() && !v.isScope() &&
-            !v.isTypesafeVariadicArray && !va.isTypesafeVariadicArray &&
-            (va.isParameter() && va.maybeScope && v.isParameter() && v.maybeScope) &&
-            p == fd)
-        {
-            /* Add v to va's list of dependencies
-             */
-            va.addMaybe(v);
-            continue;
-        }
-
         if (vaIsFirstRef && p == fd)
         {
             inferReturn(fd, v, /*returnScope:*/ true);
         }
 
-        if (!(va && va.isScope()) || vaIsRef)
-            notMaybeScope(v, e);
-
-        if (v.isScope())
+        if (v.isParameter() && v.isReturn() && v.isScope() && vaIsFirstRef)
         {
-            if (vaIsFirstRef && v.isParameter() && v.isReturn())
-            {
-                // va=v, where v is `return scope`
-                if (inferScope(va))
-                    continue;
-            }
+            // va=v, where v is `return scope`
+            if (inferScope(va))
+                continue;
+        }
 
-            // If va's lifetime encloses v's, then error
-            if (EnclosedBy eb = va.enclosesLifetimeOf(v))
+        // If va's lifetime encloses v's, then error
+        if (EnclosedBy eb = va.enclosesLifetimeOf(v))
+        {
+            if (v.isScope())
             {
                 const(char)* msg;
                 final switch (eb)
@@ -764,38 +749,28 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
                     continue;
                 }
             }
+            else
+                notMaybeScope(v, e);
+        }
+        else if (p == fd)
+        {
+            if (v.isScope() && inferScope(va))
+                continue;
 
-            // v = scope, va should be scope as well
-            const vaWasScope = va && va.isScope();
-            if (inferScope(va))
+            if (va && va.maybeScope)
             {
-                // In case of `scope local = returnScopeParam`, do not infer return scope for `x`
-                if (!vaWasScope && v.isReturn() && !va.isReturn())
-                {
-                    if (log) printf("infer return for %s\n", va.toChars());
-                    va.storage_class |= STC.return_ | STC.returninferred;
-
-                    // Added "return scope" so don't confuse it with "return ref"
-                    if (isRefReturnScope(va.storage_class))
-                        va.storage_class |= STC.returnScope;
-                }
+                tieLifetime(va, v);
                 continue;
             }
+
             result |= sc.setUnsafeDIP1000(gag, ae.loc, "scope variable `%s` assigned to non-scope `%s`", v, e1);
         }
-        else if (v.isTypesafeVariadicArray && p == fd)
+
+        if (v.isTypesafeVariadicArray && p == fd)
         {
             if (inferScope(va))
                 continue;
             result |= sc.setUnsafeDIP1000(gag, ae.loc, "variadic variable `%s` assigned to non-scope `%s`", v, e1);
-        }
-        else
-        {
-            /* v is not 'scope', and we didn't check the scope of where we assigned it to.
-             * It may escape via that assignment, therefore, v can never be 'scope'.
-             */
-            //printf("no infer for %s in %s, %d\n", v.toChars(), fd.ident.toChars(), __LINE__);
-            doNotInferScope(v, e);
         }
     }
 
@@ -1271,7 +1246,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
         else
         {
             //printf("no infer for %s in %s, %d\n", v.toChars(), sc.func.ident.toChars(), __LINE__);
-            doNotInferScope(v, e);
+            // notMaybeScope(v, e);
         }
     }
 
@@ -1437,9 +1412,11 @@ bool inferScope(VarDeclaration va)
 {
     if (!va)
         return false;
+    va = va.findLifetimeRoot();
     if (!va.isDataseg() && va.maybeScope && !va.isScope())
     {
         //printf("inferring scope for %s\n", va.toChars());
+        va.lifetimeParent = null;
         va.maybeScope = false;
         va.storage_class |= STC.scope_ | STC.scopeinferred;
         return true;
@@ -1458,6 +1435,9 @@ bool inferScope(VarDeclaration va)
  */
 private bool inferReturn(FuncDeclaration fd, VarDeclaration v, bool returnScope)
 {
+    // v is a local in the current function
+    v = v.findLifetimeRoot();
+
     if (v.isReturn())
         return !!(v.storage_class & STC.returnScope) == returnScope;
 
@@ -1470,7 +1450,8 @@ private bool inferReturn(FuncDeclaration fd, VarDeclaration v, bool returnScope)
     if (returnScope && !(v.isScope() || v.maybeScope))
         return false;
 
-    //printf("for function '%s' inferring 'return' for variable '%s', returnScope: %d\n", fd.toChars(), v.toChars(), returnScope);
+
+    // printf("for function '%s' inferring 'return' for variable '%s', returnScope: %d\n", fd.toChars(), v.toChars(), returnScope);
     auto newStcs = STC.return_ | STC.returninferred | (returnScope ? STC.returnScope : 0);
     v.storage_class |= newStcs;
 
@@ -2248,7 +2229,7 @@ public void findAllOuterAccessedVariables(FuncDeclaration fd, VarDeclarations* v
 }
 
 /***********************************
- * Turn off `maybeScope` for variable `v`.
+ * Turn off `STC.maybescope` for variable `v`.
  *
  * This exists in order to find where `maybeScope` is getting turned off.
  * Params:
@@ -2260,29 +2241,15 @@ public void findAllOuterAccessedVariables(FuncDeclaration fd, VarDeclarations* v
  */
 private void notMaybeScope(VarDeclaration v, RootObject o)
 {
-    if (v.maybeScope)
+    auto root = v.findLifetimeRoot();
+    if (root.maybeScope)
     {
+        root.maybeScope = false;
         v.maybeScope = false;
         if (o && v.isParameter())
             EscapeState.scopeInferFailure[v.sequenceNumber] = o;
     }
-}
 
-/***********************************
- * Turn off `maybeScope` for variable `v` if it's not a parameter.
- *
- * This is for compatibility with the old system with both `STC.maybescope` and `VarDeclaration.doNotInferScope`,
- * which is now just `VarDeclaration.maybeScope`.
- * This function should probably be removed in future refactors.
- *
- * Params:
- *      v = variable
- *      o = reason for it being turned off
- */
-private void doNotInferScope(VarDeclaration v, RootObject o)
-{
-    if (!v.isParameter)
-        notMaybeScope(v, o);
 }
 
 /***********************************
@@ -2315,29 +2282,6 @@ void finishScopeParamInference(FuncDeclaration funcdecl, ref TypeFunction f)
         return;
     funcdecl.inferScope = false;
 
-    // Eliminate maybescope's
-    {
-        // Create and fill array[] with maybe candidates from the `this` and the parameters
-        VarDeclaration[10] tmp = void;
-        size_t dim = (funcdecl.vthis !is null) + (funcdecl.parameters ? funcdecl.parameters.length : 0);
-
-        import dmd.common.string : SmallBuffer;
-        auto sb = SmallBuffer!VarDeclaration(dim, tmp[]);
-        VarDeclaration[] array = sb[];
-
-        size_t n = 0;
-        if (funcdecl.vthis)
-            array[n++] = funcdecl.vthis;
-        if (funcdecl.parameters)
-        {
-            foreach (v; *funcdecl.parameters)
-            {
-                array[n++] = v;
-            }
-        }
-        eliminateMaybeScopes(array[0 .. n]);
-    }
-
     // Infer STC.scope_
     if (funcdecl.parameters && !funcdecl.errors)
     {
@@ -2345,75 +2289,40 @@ void finishScopeParamInference(FuncDeclaration funcdecl, ref TypeFunction f)
         foreach (u, p; f.parameterList)
         {
             auto v = (*funcdecl.parameters)[u];
-            if (!v.isScope() && v.type.hasPointers() && inferScope(v))
+            auto root = v.findLifetimeRoot();
+            // printf("Inferring scope for %s, root = %s\n", v.toChars(), root.toChars());
+            if (!v.isScope() && v.type.hasPointers() && inferScope(root))
             {
+                const success = inferScope(v);
+                assert(success);
                 //printf("Inferring scope for %s\n", v.toChars());
                 p.storageClass |= STC.scope_ | STC.scopeinferred;
+            }
+            if (root.isReturn())
+            {
+                p.storageClass |= STC.return_ | STC.returninferred;
             }
         }
     }
 
     if (funcdecl.vthis)
     {
-        inferScope(funcdecl.vthis);
-        f.isScopeQual = funcdecl.vthis.isScope();
-        f.isscopeinferred = !!(funcdecl.vthis.storage_class & STC.scopeinferred);
-    }
-}
-
-/**********************************************
- * Have some variables that are maybescopes that were
- * assigned values from other maybescope variables.
- * Now that semantic analysis of the function is
- * complete, we can finalize this by turning off
- * maybescope for array elements that cannot be scope.
- *
- * $(TABLE2 Scope Table,
- * $(THEAD `va`, `v`,    =>,  `va` ,  `v`  )
- * $(TROW maybe, maybe,  =>,  scope,  scope)
- * $(TROW scope, scope,  =>,  scope,  scope)
- * $(TROW scope, maybe,  =>,  scope,  scope)
- * $(TROW maybe, scope,  =>,  scope,  scope)
- * $(TROW -    , -    ,  =>,  -    ,  -    )
- * $(TROW -    , maybe,  =>,  -    ,  -    )
- * $(TROW -    , scope,  =>,  error,  error)
- * $(TROW maybe, -    ,  =>,  scope,  -    )
- * $(TROW scope, -    ,  =>,  scope,  -    )
- * )
- * Params:
- *      array = array of variables that were assigned to from maybescope variables
- */
-private void eliminateMaybeScopes(VarDeclaration[] array)
-{
-    enum log = false;
-    if (log) printf("eliminateMaybeScopes()\n");
-    bool changes;
-    do
-    {
-        changes = false;
-        foreach (va; array)
+        auto root = funcdecl.vthis.findLifetimeRoot();
+        if (inferScope(root))
         {
-            if (log) printf("  va = %s\n", va.toChars());
-            if (!(va.maybeScope || va.isScope()))
-            {
-                if (va.maybes)
-                {
-                    foreach (v; *va.maybes)
-                    {
-                        if (log) printf("    v = %s\n", v.toChars());
-                        if (v.maybeScope)
-                        {
-                            // v cannot be scope since it is assigned to a non-scope va
-                            notMaybeScope(v, va);
-                            if (!v.isReference())
-                                v.storage_class &= ~(STC.return_ | STC.returninferred);
-                            changes = true;
-                        }
-                    }
-                }
-            }
+            const success = inferScope(funcdecl.vthis);
+            assert(success);
+            f.isScopeQual = true;
+            f.isscopeinferred = true;
         }
-    } while (changes);
+        if (root.isReturn())
+        {
+            funcdecl.vthis.storage_class |= STC.return_ | STC.returninferred;
+            f.isreturn = true;
+            f.isreturninferred = true;
+            // f.isreturnscope = true;
+        }
+    }
 }
 
 /************************************************
@@ -2534,29 +2443,19 @@ private EnclosedBy enclosesLifetimeOf(VarDeclaration va, VarDeclaration v)
         return EnclosedBy.refVar;
 
     assert(va.sequenceNumber != va.sequenceNumber.init);
-    assert(v.sequenceNumber != v.sequenceNumber.init);
+    // assert(v.sequenceNumber != v.sequenceNumber.init);
+    // Fixme: the assert fails on this pattern in std.utf unittest:
+    // enum Enum : string { a = "test.d" }
+    // auto orig = Enum.a;
+
+    if (v.isReturn())
+        return EnclosedBy.none;
+
+    // printf("va < v ?? %s < %s\n", va.findLifetimeRoot().toChars, v.toChars);
     if (va.sequenceNumber < v.sequenceNumber)
         return EnclosedBy.longerScope;
 
     return EnclosedBy.none;
-}
-
-/***************************************
- * Add variable `v` to maybes[]
- *
- * When a maybescope variable `v` is assigned to a maybescope variable `va`,
- * we cannot determine if `this` is actually scope until the semantic
- * analysis for the function is completed. Thus, we save the data
- * until then.
- * Params:
- *     v = a variable with `maybeScope == true` that was assigned to `this`
- */
-private void addMaybe(VarDeclaration va, VarDeclaration v)
-{
-    //printf("add %s to %s's list of dependencies\n", v.toChars(), toChars());
-    if (!va.maybes)
-        va.maybes = new VarDeclarations();
-    va.maybes.push(v);
 }
 
 // `setUnsafePreview` partially evaluated for dip1000
@@ -2622,4 +2521,45 @@ private bool isTypesafeVariadicArray(VarDeclaration v)
             return true;
     }
     return false;
+}
+
+/****************************
+ * Find the life time root and update other variables in the life time chain.
+ *
+ * Similar to `find` in disjoint union data structure
+ *
+ * Params:
+ *     vd = variable to check
+ *
+ * Returns: variable which represents the lifetime of `vd`
+ */
+VarDeclaration findLifetimeRoot(VarDeclaration vd)
+{
+    if (vd is null)
+        return vd;
+
+    VarDeclaration root = vd;
+
+    while (root.lifetimeParent)
+        root = root.lifetimeParent;
+
+    // Make all links on the way point directly to root for faster future lookups
+    for (VarDeclaration c = vd; c.lifetimeParent !is null; c = c.lifetimeParent)
+        c.lifetimeParent = root;
+
+    return root;
+}
+
+/****************************
+ * Params:
+ *   va = variable assigned to
+ *   v = variable being assigned
+ */
+void tieLifetime(VarDeclaration va, VarDeclaration v)
+{
+    if (va is null)
+        return;
+    // printf("tie va=%s v=%s, v.root = %s\n", va.toChars, v.toChars, findLifetimeRoot(v).toChars);
+    // assume va has shorter lifetime than v
+    va.lifetimeParent = findLifetimeRoot(v);
 }
