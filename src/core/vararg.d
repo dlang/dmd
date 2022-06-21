@@ -141,7 +141,15 @@ void va_arg()(ref va_list ap, TypeInfo ti, void* parmn)
     else version (RISCV_Any)
     {
         const tsize = ti.tsize;
-        auto p = cast(void*) ap;
+        void* p;
+        if (tsize > (size_t.sizeof << 1))
+            p = *cast(void**) ap;
+        else
+        {
+            if (tsize == (size_t.sizeof << 1))
+                ap = ap.alignUp!(size_t.sizeof << 1);
+            p = cast(void*) ap;
+        }
         ap += tsize.alignUp;
         parmn[0..tsize] = p[0..tsize];
     }

@@ -269,7 +269,14 @@ T va_arg(T)(ref va_list ap)
     }
     else version (RISCV_Any)
     {
-        auto p = cast(T*) ap;
+        static if (T.sizeof > (size_t.sizeof << 1))
+            auto p = *cast(T**) ap;
+        else
+        {
+            static if (T.alignof == (size_t.sizeof << 1))
+                ap = ap.alignUp!(size_t.sizeof << 1);
+            auto p = cast(T*) ap;
+        }
         ap += T.sizeof.alignUp;
         return *p;
     }
