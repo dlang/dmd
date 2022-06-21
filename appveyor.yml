@@ -59,6 +59,6 @@ build_script:
   - cd c:\projects\dmd\src
   - msbuild vcbuild\dmd.sln /m /p:Configuration=Release;Platform=x64
   - cd c:\projects\druntime
-  - make -f win64.mak DMD=../dmd/generated/Windows/Release/x64/dmd CC=cl auto-tester-build auto-tester-test
+  - make -f win64.mak DMD=../dmd/generated/Windows/Release/x64/dmd auto-tester-build auto-tester-test
 
 test_script: true

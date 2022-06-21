@@ -1,28 +1,16 @@
-# Makefile to build D runtime library druntime64.lib for Win64
+# Makefile to build D runtime library druntime{64,32mscoff}.lib for Windows MSVC
 
+# Set this to `32mscoff` for a 32-bit build.
 MODEL=64
 
-# Visual Studio 2019
-#VCDIR=\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.27.29110
-#SDKDIR=\Program Files (x86)\Windows Kits\10\Include\10.0.18362.0
-# Visual Studio 2015 and before
-VCDIR=\Program Files (x86)\Microsoft Visual Studio 10.0\VC
-SDKDIR=\Program Files (x86)\Microsoft SDKs\Windows\v7.0A
+# Assume MSVC cl.exe in PATH is set up for the target MODEL.
+# Otherwise set it explicitly, e.g., to `C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\bin\Hostx86\x86\cl.exe`.
+CC=cl
 
 DMD_DIR=..\dmd
 BUILD=release
 OS=windows
 DMD=$(DMD_DIR)\generated\$(OS)\$(BUILD)\$(MODEL)\dmd
-
-# Visual Studio 2017/2019
-#BINDIR=$(VCDIR)\bin\Hostx64\x64
-# Visual Studio 2015 and before
-BINDIR=$(VCDIR)\bin\amd64
-
-CC=$(BINDIR)\cl
-LD=$(BINDIR)\link
-AR=$(BINDIR)\lib
-CP=cp
 
 DOCDIR=doc
 IMPDIR=import
@@ -36,10 +24,7 @@ DDOCFLAGS=-conf= -c -w -o- -Isrc -Iimport -version=CoreDdoc
 
 UTFLAGS=-version=CoreUnittest -unittest -checkaction=context
 
-#CFLAGS=/O2 /I"$(VCDIR)"\INCLUDE /I"$(SDKDIR)"\Include
-CFLAGS=/Z7 /I"$(VCDIR)"\INCLUDE /I"$(SDKDIR)"\Include
-# Visual Studio 2019
-#CFLAGS=/Z7 /I"$(VCDIR)"\include /I"$(SDKDIR)"\ucrt
+CFLAGS=/Z7
 
 DRUNTIME_BASE=druntime$(MODEL)
 DRUNTIME=lib\$(DRUNTIME_BASE).lib
@@ -86,52 +71,41 @@ unittest: $(SRCS) $(DRUNTIME)
 	*"$(DMD)" $(UDFLAGS) -version=druntime_unittest $(UTFLAGS) -ofunittest.exe -main $(SRCS) $(DRUNTIME) -debuglib=$(DRUNTIME) -defaultlib=$(DRUNTIME) user32.lib
 	.\unittest.exe
 
-################### Win32 COFF support #########################
-
-# default to 32-bit compiler relative to 64-bit compiler, link and lib are architecture agnostic
-CC32=$(CC)\..\..\cl
-
-druntime32mscoff:
-	"$(MAKE)" -f win64.mak "DMD=$(DMD)" MODEL=32mscoff "CC=$(CC32)" "AR=$(AR)" "VCDIR=$(VCDIR)" "SDKDIR=$(SDKDIR)"
-
-unittest32mscoff:
-	"$(MAKE)" -f win64.mak "DMD=$(DMD)" MODEL=32mscoff "CC=$(CC32)" "AR=$(AR)" "VCDIR=$(VCDIR)" "SDKDIR=$(SDKDIR)" unittest
-
 ################### tests ######################################
 
 test_uuid:
-	"$(MAKE)" -f test\uuid\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) "VCDIR=$(VCDIR)" DRUNTIMELIB=$(DRUNTIME) test
+	"$(MAKE)" -f test\uuid\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) DRUNTIMELIB=$(DRUNTIME) test
 
 test_aa:
 	"$(DMD)" -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIME) -run test\aa\src\test_aa.d
 
 test_betterc:
-	"$(MAKE)" -f test\betterc\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) "VCDIR=$(VCDIR)" DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
+	"$(MAKE)" -f test\betterc\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
 
 test_betterc_mingw:
-	"$(MAKE)" -f test\betterc\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) "VCDIR=$(VCDIR)" DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" MINGW=_mingw test
+	"$(MAKE)" -f test\betterc\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" MINGW=_mingw test
 
 test_cpuid:
-	"$(MAKE)" -f test\cpuid\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) "VCDIR=$(VCDIR)" DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
+	"$(MAKE)" -f test\cpuid\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
 
 test_exceptions:
-	"$(MAKE)" -f test\exceptions\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) "VCDIR=$(VCDIR)" DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
+	"$(MAKE)" -f test\exceptions\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
 
 test_hash:
 	"$(DMD)" -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIME) -run test\hash\src\test_hash.d
 
 test_stdcpp:
 	setmscver.bat
-	"$(MAKE)" -f test\stdcpp\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) "VCDIR=$(VCDIR)" DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
+	"$(MAKE)" -f test\stdcpp\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
 
 test_gc:
-	"$(MAKE)" -f test\gc\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) "VCDIR=$(VCDIR)" DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
+	"$(MAKE)" -f test\gc\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
 
 custom_gc:
-	$(MAKE) -f test\init_fini\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) "VCDIR=$(VCDIR)" DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
+	$(MAKE) -f test\init_fini\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
 
 test_shared:
-	$(MAKE) -f test\shared\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) "VCDIR=$(VCDIR)" DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
+	$(MAKE) -f test\shared\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
 
 test_common: test_shared test_aa test_cpuid test_exceptions test_hash test_gc custom_gc
 

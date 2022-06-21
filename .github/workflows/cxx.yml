@@ -275,7 +275,7 @@ jobs:
         # but providing all three to avoid surprise for future contributors
         # Those should really be in the path, though.
         cd druntime
-        make -f win64.mak CC=cl.exe LD=link "AR=$VISUAL_STUDIO_LIB_NOT_DM"
+        make -f win64.mak
         if [ $? -ne 0 ]; then return 1; fi
         cd ../phobos/
         make -f win64.mak CC=cl.exe LD=link "AR=$VISUAL_STUDIO_LIB_NOT_DM"
