@@ -490,7 +490,6 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         removeHdrFilesAndFail(params, modules);
 
     // Scan for functions to inline
-static if(0)
     foreach (m; modules)
     {
         if (params.useInline || m.hasAlwaysInlines)

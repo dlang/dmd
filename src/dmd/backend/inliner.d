@@ -48,8 +48,8 @@ import dmd.backend.dlist;
 
 nothrow:
 
-enum log = false;
-enum log2 = false;
+private enum log = false;
+private enum log2 = false;
 
 /**********************************
  * Determine if function can be inline'd.
@@ -443,8 +443,7 @@ private elem* inlineCall(elem *e,Symbol *sfunc)
      */
     if (e.Eoper == OPcall)
     {
-        int n = 0;
-        elem* eargs = initializeParamsWithArgs(e.EV.E2, n, sistart);
+        elem* eargs = initializeParamsWithArgs(e.EV.E2, sistart, globsym.length);
         ec = el_combine(eargs,ec);
     }
 
@@ -467,141 +466,164 @@ private elem* inlineCall(elem *e,Symbol *sfunc)
  * local parameters. If there are more arguments than parameters,
  * evaluate the remaining arguments for side effects only.
  * Params:
- *      pn = this is the nth argument (starts at 0), incremented once for each parameter
+ *      eargs = argument tree
  *      sistart = starting index in globsym[] of the inlined function's parameters
  * Returns:
  *      expression representing the argument list
  */
 
-private elem* initializeParamsWithArgs(elem *e, ref int pn, SYMIDX sistart)
+private elem* initializeParamsWithArgs(elem* eargs, SYMIDX sistart, SYMIDX siend)
 {
+    /* Create args[] and fill it with the arguments
+     */
+    const nargs = el_nparams(eargs);
+    assert(nargs < size_t.max / (2 * (elem *).sizeof));   // conservative overflow check
+    elem*[] args = (cast(elem **)malloc(nargs * (elem *).sizeof))[0 .. nargs];
+    elem **tmp = args.ptr;
+    el_paramArray(&tmp, eargs);
+
     elem* ecopy;
 
-    //elem_debug(e);
-    if (e.Eoper == OPparam)
+    auto si = sistart;
+    for (size_t n = args.length; n; --n)
     {
-        elem* e1 = initializeParamsWithArgs(e.EV.E2, pn, sistart);
-        elem* e2 = initializeParamsWithArgs(e.EV.E1, pn, sistart);
-        ecopy = el_combine(e1,e2);
-    }
-    else
-    {
+        elem* e = args[n - 1];
+
         if (e.Eoper == OPstrpar)
             e = e.EV.E1;
 
-        auto n = pn;
-        ++pn;
-        // Find the nth parameter in the symbol table
-        for (auto si = sistart; 1; si++)
+        /* Look for and return next parameter Symbol
+         */
+        Symbol* nextSymbol(ref SYMIDX si)
         {
-            if (si == globsym.length)              // for ... parameters
-            {   ecopy = el_copytree(e);
-                break;
-            }
-            Symbol* s = globsym[si];
-            // SCregpar was turned into SCregister, SCparameter to SCauto
-            if (s.Sclass == SCregister || s.Sclass == SCauto)
-            {   if (n == 0)
-                {
-                    if (e.Eoper == OPstrctor)
-                    {
-                        ecopy = el_copytree(e.EV.E1);     // skip the OPstrctor
-                        e = ecopy;
-                        //while (e.Eoper == OPcomma)
-                        //    e = e.EV.E2;
-                        debug
-                        {
-                            if (e.Eoper != OPcall && e.Eoper != OPcond)
-                                elem_print(e);
-                        }
-                        assert(e.Eoper == OPcall || e.Eoper == OPcond || e.Eoper == OPinfo);
-                        //exp2_setstrthis(e,s,0,ecopy.ET);
-                    }
-                    else
-                    {
-                        /* s is the parameter, e is the argument, s = e
-                         */
-                        const szs = type_size(s.Stype);
-                        const sze = getSize(e);
+            while (1)
+            {
+                if (si == siend)
+                    return null;
 
-                        if (szs * 2 == sze && szs == REGSIZE())     // s got SROA'd into 2 slices
-                        {
-                            if (log) printf("detected slice with %s\n", s.Sident.ptr);
-                            if (si + 1 >= globsym.length) { symbol_print(s); elem_print(e); }
-                            assert(si + 1 < globsym.length);
-                            auto s2 = globsym[si + 1];
-                            assert(szs == type_size(s2.Stype));
-                            --n;
-                            ++pn;
-                            const ty = s.Stype.Tty;
-
-                            e = el_copytree(e);         // copy argument
-                            if (e.Eoper != OPvar)
-                            {
-                                elem* ec = exp2_copytotemp(e);
-                                e = ec.EV.E2;
-                                ecopy = ec.EV.E1;
-                                ec.EV.E1 = null;
-                                ec.EV.E2 = null;
-                                el_free(ec);
-                                e.EV.Vsym.Sfl = FLauto;
-                            }
-                            assert(e.Eoper == OPvar);
-                            elem* e2 = el_copytree(e);
-                            e.EV.Voffset += 0;
-                            e2.EV.Voffset += szs;
-                            e.Ety = ty;
-                            e2.Ety = ty;
-                            elem* elo = el_bin(OPeq, ty, el_var(s), e);
-                            elem* ehi = el_bin(OPeq, ty, el_var(s2), e2);
-                            if (tybasic(ty) == TYstruct || tybasic(ty) == TYarray)
-                            {
-                                elo.Eoper = OPstreq;
-                                ehi.Eoper = OPstreq;
-                                elo.ET = s.Stype;
-                                ehi.ET = s.Stype;
-                            }
-                            ecopy = el_combine(ecopy, elo);
-                            ecopy = el_combine(ecopy, ehi);
-                        }
-                        else
-                        {
-                            // s = e;
-                            elem* evar = el_var(s);
-                            elem* ex = el_copytree(e);
-                            auto ty = tybasic(ex.Ety);
-                            if (szs == 3)
-                            {
-                                ty = TYstruct;
-                            }
-                            else if (szs < sze && sze == 4)
-                            {
-                                // e got promoted to int
-                                ex = el_una(OP32_16, TYshort, ex);
-                                ty = TYshort;
-                                if (szs == 1)
-                                {
-                                    ex = el_una(OP16_8, TYchar, ex);
-                                    ty = TYchar;
-                                }
-                            }
-                            evar.Ety = ty;
-                            ecopy = el_bin(OPeq,ty,evar,ex);
-                            // If struct copy
-                            if (tybasic(ecopy.Ety) == TYstruct || tybasic(ecopy.Ety) == TYarray)
-                            {
-                                ecopy.Eoper = OPstreq;
-                                ecopy.ET = s.Stype;
-                            }
-                            //el_settype(evar,ecopy.ET);
-                        }
-                    }
-                    break;
-                }
-                n--;
+                Symbol* s = globsym[si];
+                ++si;
+                // SCregpar was turned into SCregister, SCparameter to SCauto
+                if (s.Sclass == SCregister || s.Sclass == SCauto)
+                    return s;
             }
         }
+
+        Symbol *s = nextSymbol(si);
+        if (!s)
+        {
+            ecopy = el_combine(el_copytree(e), ecopy); // for ... arguments
+            continue;
+        }
+
+        //printf("Param[%d] %s %s\n", cast(int)cast(int)si, s.Sident.ptr, tym_str(s.Stype.Tty));
+        //elem_print(e);
+        if (e.Eoper == OPstrctor)
+        {
+            ecopy = el_combine(el_copytree(e.EV.E1), ecopy);     // skip the OPstrctor
+            e = ecopy;
+            //while (e.Eoper == OPcomma)
+            //    e = e.EV.E2;
+            debug
+            {
+                if (e.Eoper != OPcall && e.Eoper != OPcond)
+                    elem_print(e);
+            }
+            assert(e.Eoper == OPcall || e.Eoper == OPcond || e.Eoper == OPinfo);
+            //exp2_setstrthis(e,s,0,ecopy.ET);
+            continue;
+        }
+
+        /* s is the parameter, e is the argument, s = e
+         */
+        const szs = type_size(s.Stype);
+        const sze = getSize(e);
+
+        if (szs * 2 == sze && szs == REGSIZE())     // s got SROA'd into 2 slices
+        {
+            if (log) printf("detected slice with %s\n", s.Sident.ptr);
+            auto s2 = nextSymbol(si);
+            if (!s2) { symbol_print(s); elem_print(e); assert(0); }
+            assert(szs == type_size(s2.Stype));
+            const ty = s.Stype.Tty;
+
+            elem* ex;
+            e = el_copytree(e);         // copy argument
+            if (e.Eoper != OPvar)
+            {
+                elem* ec = exp2_copytotemp(e);
+                e = ec.EV.E2;
+                ex = ec.EV.E1;
+                ec.EV.E1 = null;
+                ec.EV.E2 = null;
+                el_free(ec);
+                e.EV.Vsym.Sfl = FLauto;
+            }
+            assert(e.Eoper == OPvar);
+            elem* e2 = el_copytree(e);
+            e.EV.Voffset += 0;
+            e2.EV.Voffset += szs;
+            e.Ety = ty;
+            e2.Ety = ty;
+            elem* elo = el_bin(OPeq, ty, el_var(s), e);
+            elem* ehi = el_bin(OPeq, ty, el_var(s2), e2);
+            if (tybasic(ty) == TYstruct || tybasic(ty) == TYarray)
+            {
+                elo.Eoper = OPstreq;
+                ehi.Eoper = OPstreq;
+                elo.ET = s.Stype;
+                ehi.ET = s.Stype;
+            }
+            ex = el_combine(ex, elo);
+            ex = el_combine(ex, ehi);
+
+            ecopy = el_combine(ex, ecopy);
+            continue;
+        }
+
+        if (sze * 2 == szs && szs == 2 * REGSIZE() && n >= 2)
+        {
+            /* This happens when elparam() splits an OPpair into
+             * two OPparams. Try to reverse this here
+             */
+            elem* e2 = args[--n - 1];
+            assert(getSize(e2) == sze);
+            e = el_bin(OPpair, s.Stype.Tty, e, e2);
+        }
+
+        // s = e;
+        elem* evar = el_var(s);
+        elem* ex = el_copytree(e);
+        auto ty = tybasic(ex.Ety);
+        if (szs == 3)
+        {
+            ty = TYstruct;
+        }
+        else if (szs < sze && sze == 4)
+        {
+            // e got promoted to int
+            ex = el_una(OP32_16, TYshort, ex);
+            ty = TYshort;
+            if (szs == 1)
+            {
+                ex = el_una(OP16_8, TYchar, ex);
+                ty = TYchar;
+            }
+        }
+        evar.Ety = ty;
+        auto eeq = el_bin(OPeq,ty,evar,ex);
+        // If struct copy
+        if (tybasic(eeq.Ety) == TYstruct || tybasic(eeq.Ety) == TYarray)
+        {
+            eeq.Eoper = OPstreq;
+            eeq.ET = s.Stype;
+        }
+        //el_settype(evar,ecopy.ET);
+
+        ecopy = el_combine(eeq, ecopy);
+        continue;
     }
+    free(args.ptr);
     return ecopy;
 }
 
