@@ -9,17 +9,20 @@ BUILD=release
 OS=windows
 DMD=$(DMD_DIR)\generated\$(OS)\$(BUILD)\32\dmd
 
+# Used for running MASM assembler on .asm files
 CC=dmc
+
 MAKE=make
 HOST_DMD=dmd
 
 DOCDIR=doc
 IMPDIR=import
 
+# For compiling D and ImportC files
 DFLAGS=-m32omf -conf= -O -release -preview=dip1000 -preview=fieldwise -preview=dtorfields -inline -w -Isrc -Iimport
+# For unittest build
 UDFLAGS=-m32omf -conf= -O -release -preview=dip1000 -preview=fieldwise -w -Isrc -Iimport
-DDOCFLAGS=-conf= -c -w -o- -Isrc -Iimport -version=CoreDdoc
-
+# Also for unittest build
 UTFLAGS=-version=CoreUnittest -unittest -checkaction=context
 
 CFLAGS=
@@ -97,7 +100,7 @@ lib\win32\winspool.lib: def\winspool.def
 ################### C\ASM Targets ############################
 
 errno_c_32omf.obj: src\core\stdc\errno.c
-	$(CC) -c -o$@ $(CFLAGS) src\core\stdc\errno.c
+	$(DMD) -c -o$@ $(DFLAGS) src\core\stdc\errno.c
 
 # only rebuild explicitly
 rebuild_minit_obj: src\rt\minit.asm
