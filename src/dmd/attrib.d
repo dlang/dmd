@@ -641,6 +641,11 @@ extern (C++) final class VisibilityDeclaration : AttribDeclaration
             visibility.pkg = tmp ? tmp.isPackage() : null;
             pkg_identifiers = null;
         }
+
+        if (visibility.kind == Visibility.Kind.privateThis && sds.isModule())
+        {
+            error("cannot be used in global scope");
+        }
         if (visibility.kind == Visibility.Kind.package_ && visibility.pkg && sc._module)
         {
             Module m = sc._module;

@@ -868,6 +868,8 @@ dmd -cov -unittest myprog.d
             "allow use of => for methods and top-level functions in addition to lambdas"),
         Feature("fixImmutableConv", "fixImmutableConv",
             "disallow unsound immutable conversions that were formerly incorrectly permitted"),
+        Feature("privateThis", "privateThis",
+            "add `private(this)` visibility attribute, private to the class/struct/union instead of module"),
     ];
 }
 

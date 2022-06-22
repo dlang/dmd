@@ -525,6 +525,7 @@ extern(D):
     {
         switch (d.visibility.kind)
         {
+            case Visibility.Kind.privateThis:
             case Visibility.Kind.private_:
                 buf.writeByte(privProtDef[0]);
                 break;

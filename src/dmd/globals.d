@@ -133,6 +133,7 @@ extern (C++) struct Param
     bool useExceptions = true;   // support exception handling
     bool noSharedAccess;         // read/write access to shared memory objects
     bool previewIn;         // `in` means `[ref] scope const`, accepts rvalues
+    bool privateThis;       // add `private(this)`, limiting access to this class/struct/union
     bool shortenedMethods; // allow => in normal function declarations
     bool betterC;           // be a "better C" compiler; no dependency on D runtime
     bool addMain;           // add a default main() function

@@ -3015,6 +3015,8 @@ extern (D) string visibilityToString(Visibility.Kind kind) nothrow pure
         return null;
     case Visibility.Kind.none:
         return "none";
+    case Visibility.Kind.privateThis:
+        return "private(this)";
     case Visibility.Kind.private_:
         return "private";
     case Visibility.Kind.package_:

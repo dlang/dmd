@@ -860,7 +860,22 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 }
 
             case TOK.private_:
-                prot = AST.Visibility.Kind.private_;
+                if (peekNext() == TOK.leftParenthesis && peekNext2() == TOK.this_)
+                {
+                    if (!global.params.privateThis)
+                    {
+                        error("use `-preview=privateThis` to enable usage of `private(this)`");
+                    }
+                    nextToken();
+                    nextToken();
+                    nextToken();
+                    check(TOK.rightParenthesis);
+                    prot = AST.Visibility.Kind.privateThis;
+                }
+                else
+                {
+                    prot = AST.Visibility.Kind.private_;
+                }
                 goto Lprot;
 
             case TOK.package_:
@@ -889,7 +904,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     }
                     pAttrs.visibility.kind = prot;
 
-                    nextToken();
+                    if (pAttrs.visibility.kind != AST.Visibility.Kind.privateThis)
+                        nextToken();
 
                     // optional qualified package identifier to bind
                     // visibility to

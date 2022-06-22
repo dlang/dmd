@@ -130,6 +130,7 @@ struct Visibility
     {
         undefined,
         none,           // no access
+        privateThis,    // only within aggregate
         private_,
         package_,
         protected_,

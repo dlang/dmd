@@ -239,31 +239,26 @@ bool checkAccess(Scope* sc, Package p)
  * Check whether symbols `s` is visible in `mod`.
  *
  * Params:
- *  mod = lookup origin
+ *  origin = lookup origin
  *  s = symbol to check for visibility
  * Returns: true if s is visible in mod
  */
-bool symbolIsVisible(Module mod, Dsymbol s)
+bool symbolIsVisible(Dsymbol origin, Dsymbol s)
 {
+    Module mod = origin.getAccessModule();
+
     // should sort overloads by ascending visibility instead of iterating here
     s = mostVisibleOverload(s);
     final switch (s.visible().kind)
     {
     case Visibility.Kind.undefined: return true;
     case Visibility.Kind.none: return false; // no access
+    case Visibility.Kind.privateThis: return origin == s.isMember2();
     case Visibility.Kind.private_: return s.getAccessModule() == mod;
     case Visibility.Kind.package_: return s.getAccessModule() == mod || hasPackageAccess(mod, s);
     case Visibility.Kind.protected_: return s.getAccessModule() == mod;
     case Visibility.Kind.public_, Visibility.Kind.export_: return true;
     }
-}
-
-/**
- * Same as above, but determines the lookup module from symbols `origin`.
- */
-bool symbolIsVisible(Dsymbol origin, Dsymbol s)
-{
-    return symbolIsVisible(origin.getAccessModule(), s);
 }
 
 /**
@@ -296,6 +291,7 @@ bool checkSymbolAccess(Scope *sc, Dsymbol s)
     {
     case Visibility.Kind.undefined: return true;
     case Visibility.Kind.none: return false; // no access
+    case Visibility.Kind.privateThis: return sc.getStructClassScope() == s.isMember2();
     case Visibility.Kind.private_: return sc._module == s.getAccessModule();
     case Visibility.Kind.package_: return sc._module == s.getAccessModule() || hasPackageAccess(sc._module, s);
     case Visibility.Kind.protected_: return hasProtectedAccess(sc, s);
