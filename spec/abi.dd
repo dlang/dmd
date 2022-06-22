@@ -546,7 +546,10 @@ $(GNAME FuncAttr):
     $(GLINK FuncAttrLive)
 )
 
-    $(P Function attributes are emitted in the order as listed above.)
+    $(P Function attributes are emitted in the order as listed above, with the exception of `return` and `scope`.
+    `return` comes before `scope` when `this` is a $(DDSUBLINK spec/function, return-scope-parameters, `return scope`) parameter,
+    and after `scope` when `this` is a $(DDSUBLINK spec/function, scope-parameters, `scope`) and $(DDSUBLINK spec/function, return-ref-parameters, `return ref`) parameter.
+    )
 
 $(GRAMMAR
 $(GNAME FuncAttrPure):
