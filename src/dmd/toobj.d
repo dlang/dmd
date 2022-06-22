@@ -566,7 +566,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             if (vd.aliassym)
             {
-                visitNoMultiObj(vd.toAlias());
+                vd.toAlias().accept(this);
                 return;
             }
 
@@ -871,6 +871,11 @@ void toObjFile(Dsymbol ds, bool multiobj)
                     ns.members.foreachDsymbol( (s) { s.accept(this); } );
                 }
             }
+        }
+
+        override void visit(TupleDeclaration tup)
+        {
+            tup.foreachVar((s) { s.accept(this); });
         }
 
     private:
