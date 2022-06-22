@@ -6,7 +6,7 @@ some users dislike having to put classes into individual files to accomplish thi
 
 With the `-preview=privateThis` switch, member variables can now be marked invisible outside of the
 `class`, `struct` or `union` it's declared in.
-Note that this feature it not accepted as part of the D language yet.
+Note that this feature has not been accepted into the D language yet.
 
 ---
 class C
