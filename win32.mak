@@ -100,7 +100,7 @@ lib\win32\winspool.lib: def\winspool.def
 ################### C\ASM Targets ############################
 
 errno_c_32omf.obj: src\core\stdc\errno.c
-	$(DMD) -c -of=$@ $(DFLAGS) src\core\stdc\errno.c
+	$(DMD) -c -of=$@ $(DFLAGS) -v -P=-I. src\core\stdc\errno.c
 
 # only rebuild explicitly
 rebuild_minit_obj: src\rt\minit.asm
