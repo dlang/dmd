@@ -23,14 +23,14 @@ import dmd.root.string : toDString;
 // Thread local profiler instance (multithread currently not supported because compiler is single-threaded)
 TimeTraceProfiler* timeTraceProfiler = null;
 
-// processName pointer is captured
+/// processName pointer is captured
 extern(C++)
 void initializeTimeTrace(uint timeGranularity, uint memoryGranularity, const(char)* processName)
 {
     assert(timeTraceProfiler is null, "Double initialization of timeTraceProfiler");
     timeTraceProfiler = new TimeTraceProfiler(timeGranularity, memoryGranularity, processName);
 }
-
+///
 extern(C++)
 void deinitializeTimeTrace()
 {

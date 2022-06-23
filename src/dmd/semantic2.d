@@ -75,10 +75,8 @@ enum LOG = false;
  */
 extern(C++) void semantic2(Dsymbol dsym, Scope* sc)
 {
-    import dmd.timetrace_sema;
     scope v = new Semantic2Visitor(sc);
-    scope vtimetrace = new SemanticTimeTraceVisitor!Semantic2Visitor(v);
-    dsym.accept(vtimetrace);
+    dsym.accept(v);
 }
 
 private extern(C++) final class Semantic2Visitor : Visitor
