@@ -2413,11 +2413,19 @@ final class CParser(AST) : Parser!AST
                 if (scw & scwx)
                     error("duplicate storage class");
                 scw |= scwx;
+                // C11 6.7.1-2 At most one storage-class may be given, except that
+                // _Thread_local may appear with static or extern.
                 const scw2 = scw & (SCW.xstatic | SCW.xextern | SCW.xauto | SCW.xregister | SCW.xtypedef);
                 if (scw2 & (scw2 - 1) ||
-                    scw & (SCW.xauto | SCW.xregister) && scw & (SCW.xinline | SCW.x_Noreturn))
+                    scw & (SCW.x_Thread_local) && scw & (SCW.xauto | SCW.xregister | SCW.xtypedef))
                 {
-                    error("conflicting storage class");
+                    error("multiple storage classes in declaration specifiers");
+                    scw &= ~scwx;
+                }
+                if (level == LVL.local &&
+                    scw & (SCW.x_Thread_local) && scw & (SCW.xinline | SCW.x_Noreturn))
+                {
+                    error("`inline` and `_Noreturn` function specifiers not allowed for `_Thread_local`");
                     scw &= ~scwx;
                 }
                 if (level & (LVL.parameter | LVL.prototype) &&
