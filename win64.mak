@@ -24,13 +24,8 @@ DDOCFLAGS=-conf= -c -w -o- -Isrc -Iimport -version=CoreDdoc
 
 UTFLAGS=-version=CoreUnittest -unittest -checkaction=context
 
-CFLAGS=/Z7
-
 DRUNTIME_BASE=druntime$(MODEL)
 DRUNTIME=lib\$(DRUNTIME_BASE).lib
-
-# do not preselect a C runtime (extracted from the line above to make the auto tester happy)
-CFLAGS=$(CFLAGS) /Zl
 
 DOCFMT=
 
@@ -59,7 +54,7 @@ copy:
 ################### C\ASM Targets ############################
 
 errno_c_$(MODEL).obj: src\core\stdc\errno.c
-	"$(CC)" -c -Fo$@ $(CFLAGS) src\core\stdc\errno.c
+	$(DMD) -c -of=$@ $(DFLAGS) -v -P=-I. src\core\stdc\errno.c
 
 ################### Library generation #########################
 
@@ -80,32 +75,32 @@ test_aa:
 	"$(DMD)" -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIME) -run test\aa\src\test_aa.d
 
 test_betterc:
-	"$(MAKE)" -f test\betterc\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
+	"$(MAKE)" -f test\betterc\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) DRUNTIMELIB=$(DRUNTIME) test
 
 test_betterc_mingw:
-	"$(MAKE)" -f test\betterc\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" MINGW=_mingw test
+	"$(MAKE)" -f test\betterc\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) DRUNTIMELIB=$(DRUNTIME) MINGW=_mingw test
 
 test_cpuid:
-	"$(MAKE)" -f test\cpuid\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
+	"$(MAKE)" -f test\cpuid\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) DRUNTIMELIB=$(DRUNTIME) test
 
 test_exceptions:
-	"$(MAKE)" -f test\exceptions\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
+	"$(MAKE)" -f test\exceptions\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) DRUNTIMELIB=$(DRUNTIME) test
 
 test_hash:
 	"$(DMD)" -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIME) -run test\hash\src\test_hash.d
 
 test_stdcpp:
 	setmscver.bat
-	"$(MAKE)" -f test\stdcpp\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
+	"$(MAKE)" -f test\stdcpp\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) DRUNTIMELIB=$(DRUNTIME) test
 
 test_gc:
-	"$(MAKE)" -f test\gc\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
+	"$(MAKE)" -f test\gc\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) DRUNTIMELIB=$(DRUNTIME) test
 
 custom_gc:
-	$(MAKE) -f test\init_fini\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
+	$(MAKE) -f test\init_fini\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) DRUNTIMELIB=$(DRUNTIME) test
 
 test_shared:
-	$(MAKE) -f test\shared\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
+	$(MAKE) -f test\shared\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) DRUNTIMELIB=$(DRUNTIME) test
 
 test_common: test_shared test_aa test_cpuid test_exceptions test_hash test_gc custom_gc
 
