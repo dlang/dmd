@@ -1,0 +1,5 @@
+Add predefined version `D_Optimized` when compiling with `-O`
+
+So that code can be aware of whether it's compiled with `-O`, e.g., to
+distinguish between debug and optimized release builds (not necessarily
+using `-release`).
