@@ -347,9 +347,7 @@ extern (C++) class FuncDeclaration : Declaration
     ///
     void clearAddressTakens()
     {
-        // Seems to cause memory corruption.
-        // destroy(*addressTakens);
-        addressTakens = null;
+        addressTakens.setDim(0);
         // As above
         tookAddressOf = 0;
     }
