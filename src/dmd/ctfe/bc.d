@@ -826,7 +826,7 @@ struct BCGen
         ip += 2;
     }
 
-    void emitArithInstruction(LongInst inst, BCValue lhs, BCValue rhs, BCTypeEnum* resultTypeEnum = null)
+    void emitArithInstruction(LongInst inst, BCValue lhs, BCValue rhs, scope BCTypeEnum* resultTypeEnum = null)
     {
         assert(inst >= LongInst.Add && inst < LongInst.ImmAdd,
             "Instruction is not in Range for Arith Instructions");
