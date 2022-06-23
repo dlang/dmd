@@ -5138,6 +5138,7 @@ final class CParser(AST) : Parser!AST
         if (!defines || defines.length < 10)  // minimum length of a #define line
             return;
         const length = defines.length;
+        defines.writeByte(0);
         auto slice = defines.peekChars()[0 .. length];
         resetDefineLines(slice);                // reset lexer
 
@@ -5234,12 +5235,15 @@ final class CParser(AST) : Parser!AST
                 }
                 skipToNextLine();
             }
-            else if (n.value != TOK.endOfLine)
+            else
             {
-                skipToNextLine();
+                scan(&n);
+                if (n.value != TOK.endOfLine)
+                {
+                    skipToNextLine();
+                }
             }
             nextDefineLine();
-            assert(p - slice.ptr <= length);
         }
     }
 
