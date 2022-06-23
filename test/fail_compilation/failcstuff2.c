@@ -21,6 +21,15 @@ fail_compilation/failcstuff2.c(154): Error: `cast(long)var` is not an lvalue and
 fail_compilation/failcstuff2.c(308): Error: cannot modify `const` expression `(*s).p`
 fail_compilation/failcstuff2.c(354): Error: variable `arr` cannot be read at compile time
 fail_compilation/failcstuff2.c(360): Error: variable `str` cannot be read at compile time
+fail_compilation/failcstuff2.c(352): Error: cannot take address of register variable `reg1`
+fail_compilation/failcstuff2.c(355): Error: cannot take address of register variable `reg2`
+fail_compilation/failcstuff2.c(358): Error: cannot take address of register variable `reg3`
+fail_compilation/failcstuff2.c(359): Error: cannot index through register variable `reg3`
+fail_compilation/failcstuff2.c(360): Error: cannot take address of register variable `reg3`
+fail_compilation/failcstuff2.c(361): Error: cannot take address of register variable `reg3`
+fail_compilation/failcstuff2.c(371): Error: cannot take address of register variable `reg4`
+fail_compilation/failcstuff2.c(372): Error: cannot take address of register variable `reg4`
+fail_compilation/failcstuff2.c(373): Error: cannot take address of register variable `reg4`
 ---
 */
 
@@ -110,4 +119,32 @@ void test22413b()
 {
     const char *str = "hello";
     char msg[] = str;
+}
+
+/***************************************************/
+#line 350
+void testRegister(register int reg1)
+{
+    int *ptr1 = &reg1;
+
+    register int reg2;
+    int *ptr2 = &reg2;
+
+    register int reg3[1];
+    int *ptr3 = (int *)reg3;
+    int idx1 = reg3[0];
+    int idx2 = *reg3;
+    int idx3 = reg3 + 0;
+
+    register struct
+    {
+        struct
+        {
+            int i;
+            int a[1];
+        } inner;
+    } reg4;
+    int *ptr4a = &(reg4.inner.i);
+    int *ptr4b = reg4.inner.a;
+    int *ptr4c = (int*)reg4.inner.a;
 }
