@@ -804,7 +804,8 @@ public:
     static const char* canonicalName(const char* name);
     static void free(const char* str);
     const char* toChars() const;
-    FileName()
+    FileName() :
+        str()
     {
     }
 };
@@ -856,10 +857,11 @@ struct Global final
         debugids(),
         hasMainFunction(),
         varSequenceNumber(1u),
-        fileManager()
+        fileManager(),
+        preprocess()
     {
     }
-    Global(_d_dynamicArray< const char > inifilename, _d_dynamicArray< const char > copyright = { 73, "Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved" }, _d_dynamicArray< const char > written = { 24, "written by Walter Bright" }, Array<const char* >* path = nullptr, Array<const char* >* filePath = nullptr, _d_dynamicArray< const char > vendor = {}, Param params = Param(), uint32_t errors = 0u, uint32_t warnings = 0u, uint32_t gag = 0u, uint32_t gaggedErrors = 0u, uint32_t gaggedWarnings = 0u, void* console = nullptr, Array<Identifier* >* versionids = nullptr, Array<Identifier* >* debugids = nullptr, bool hasMainFunction = false, uint32_t varSequenceNumber = 1u, FileManager* fileManager = nullptr) :
+    Global(_d_dynamicArray< const char > inifilename, _d_dynamicArray< const char > copyright = { 73, "Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved" }, _d_dynamicArray< const char > written = { 24, "written by Walter Bright" }, Array<const char* >* path = nullptr, Array<const char* >* filePath = nullptr, _d_dynamicArray< const char > vendor = {}, Param params = Param(), uint32_t errors = 0u, uint32_t warnings = 0u, uint32_t gag = 0u, uint32_t gaggedErrors = 0u, uint32_t gaggedWarnings = 0u, void* console = nullptr, Array<Identifier* >* versionids = nullptr, Array<Identifier* >* debugids = nullptr, bool hasMainFunction = false, uint32_t varSequenceNumber = 1u, FileManager* fileManager = nullptr, FileName(*preprocess)(FileName , const Loc& , Array<const char* >& cppswitches, bool& , OutBuffer* defines) = nullptr) :
         inifilename(inifilename),
         copyright(copyright),
         written(written),
@@ -877,7 +879,8 @@ struct Global final
         debugids(debugids),
         hasMainFunction(hasMainFunction),
         varSequenceNumber(varSequenceNumber),
-        fileManager(fileManager)
+        fileManager(fileManager),
+        preprocess(preprocess)
         {}
 };
 
@@ -1095,9 +1098,15 @@ private:
     size_t len;
     uint64_t* ptr;
 public:
-    BitArray()
+    BitArray() :
+        len(),
+        ptr()
     {
     }
+    BitArray(uint64_t len, uint64_t* ptr = nullptr) :
+        len(len),
+        ptr(ptr)
+        {}
 };
 
 class ScopeDsymbol : public Dsymbol
@@ -1177,9 +1186,15 @@ public:
     uint32_t get() const;
     bool isPack() const;
     void setPack(bool pack);
-    structalign_t()
+    structalign_t() :
+        value(0u),
+        pack()
     {
     }
+    structalign_t(uint16_t value, bool pack = false) :
+        value(value),
+        pack(pack)
+        {}
 };
 
 enum class PINLINE : uint8_t
@@ -1678,6 +1693,10 @@ public:
     char* peekChars();
     char* extractChars();
     OutBuffer() :
+        data(),
+        offset(),
+        notlinehead(),
+        fileMapping(),
         doindent(),
         spaces(),
         level()
@@ -6114,6 +6133,9 @@ public:
     MacroTable()
     {
     }
+    MacroTable(void* mactab) :
+        mactab(mactab)
+        {}
 };
 
 extern const char* mangleExact(FuncDeclaration* fd);
@@ -6673,7 +6695,8 @@ private:
     // Ignoring var u alignment 8
     __AnonStruct__u u;
 public:
-    UnionExp()
+    UnionExp() :
+        u()
     {
     }
 };
@@ -7875,10 +7898,12 @@ public:
         omfobj(false),
         FloatProperties(),
         DoubleProperties(),
-        RealProperties()
+        RealProperties(),
+        tvalist(),
+        params()
     {
     }
-    Target(OS os, uint8_t osMajor = 0u, uint8_t ptrsize = 0u, uint8_t realsize = 0u, uint8_t realpad = 0u, uint8_t realalignsize = 0u, uint8_t classinfosize = 0u, uint64_t maxStaticDataSize = 0LLU, TargetC c = TargetC(), TargetCPP cpp = TargetCPP(), TargetObjC objc = TargetObjC(), _d_dynamicArray< const char > architectureName = {}, CPU cpu = (CPU)11u, bool is64bit = true, bool isLP64 = false, _d_dynamicArray< const char > obj_ext = {}, _d_dynamicArray< const char > lib_ext = {}, _d_dynamicArray< const char > dll_ext = {}, bool run_noext = false, bool omfobj = false, FPTypeProperties<float > FloatProperties = FPTypeProperties<float >(), FPTypeProperties<double > DoubleProperties = FPTypeProperties<double >(), FPTypeProperties<_d_real > RealProperties = FPTypeProperties<_d_real >()) :
+    Target(OS os, uint8_t osMajor = 0u, uint8_t ptrsize = 0u, uint8_t realsize = 0u, uint8_t realpad = 0u, uint8_t realalignsize = 0u, uint8_t classinfosize = 0u, uint64_t maxStaticDataSize = 0LLU, TargetC c = TargetC(), TargetCPP cpp = TargetCPP(), TargetObjC objc = TargetObjC(), _d_dynamicArray< const char > architectureName = {}, CPU cpu = (CPU)11u, bool is64bit = true, bool isLP64 = false, _d_dynamicArray< const char > obj_ext = {}, _d_dynamicArray< const char > lib_ext = {}, _d_dynamicArray< const char > dll_ext = {}, bool run_noext = false, bool omfobj = false, FPTypeProperties<float > FloatProperties = FPTypeProperties<float >(), FPTypeProperties<double > DoubleProperties = FPTypeProperties<double >(), FPTypeProperties<_d_real > RealProperties = FPTypeProperties<_d_real >(), Type* tvalist = nullptr, const Param* params = nullptr) :
         os(os),
         osMajor(osMajor),
         ptrsize(ptrsize),
@@ -7901,7 +7926,9 @@ public:
         omfobj(omfobj),
         FloatProperties(FloatProperties),
         DoubleProperties(DoubleProperties),
-        RealProperties(RealProperties)
+        RealProperties(RealProperties),
+        tvalist(tvalist),
+        params(params)
         {}
 };
 
