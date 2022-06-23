@@ -324,8 +324,37 @@ extern (C++) class FuncDeclaration : Declaration
     /// set if this is a known, builtin function we can evaluate at compile time
     BUILTIN builtin = BUILTIN.unknown;
 
+    struct AddressOf
+    {
+        Expression expr;
+        Scope* context;
+        // For debugging the compiler, not used yet
+        string internalFile;
+        int line;
+    }
+    import dmd.root.array : Array;
+    private Array!(AddressOf)* addressTakens;
+    ///
+    void takeAddressOf(Expression expr, Scope* context)
+    {
+        addressTakens.push(AddressOf(expr, context));
+        /*
+            Eventually this logic will be replaced entirely but for the moment
+            moving it inside the function means you changing less code.
+        */
+        ++tookAddressOf;
+    }
+    ///
+    void clearAddressTakens()
+    {
+        // Seems to cause memory corruption.
+        // destroy(*addressTakens);
+        addressTakens = null;
+        // As above
+        tookAddressOf = 0;
+    }
     /// set if someone took the address of this function
-    int tookAddressOf;
+    int tookAddressOf; // This needs to go
 
     bool requiresClosure;               // this function needs a closure
 
@@ -380,6 +409,8 @@ extern (C++) class FuncDeclaration : Declaration
          */
         if (type && type.nextOf() is null)
             this.flags |= FUNCFLAG.inferRetType;
+
+        this.addressTakens = new typeof(*this.addressTakens);
     }
 
     static FuncDeclaration create(const ref Loc loc, const ref Loc endloc, Identifier id, StorageClass storage_class, Type type, bool noreturn = false)
@@ -2218,6 +2249,13 @@ extern (C++) class FuncDeclaration : Declaration
                         a.push(f);
                         .errorSupplemental(f.loc, "%s closes over variable %s at %s",
                             f.toPrettyChars(), v.toChars(), v.loc.toChars());
+                        foreach(adr; *f.addressTakens)
+                        {
+                            with(adr)
+                            {
+                                .errorSupplemental(expr.loc, "the expression `%s` is where `%s` is considered to have escaped", expr.toChars(), f.toPrettyChars());
+                            }
+                        }
                         break LcheckAncestorsOfANestedRef;
                     }
                 }

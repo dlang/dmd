@@ -1386,7 +1386,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
         else
         {
             if (global.params.useDIP1000 == FeatureState.enabled)
-                ++(cast(FuncExp)flde).fd.tookAddressOf;  // allocate a closure unless the opApply() uses 'scope'
+                (cast(FuncExp)flde).fd.takeAddressOf(flde, sc2);  // allocate a closure unless the opApply() uses 'scope'
         }
         assert(tab.ty == Tstruct || tab.ty == Tclass);
         assert(sapply);
@@ -1670,7 +1670,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
         fld.fbody = fs._body;
         Expression flde = new FuncExp(fs.loc, fld);
         flde = flde.expressionSemantic(sc);
-        fld.tookAddressOf = 0;
+        fld.clearAddressTakens();
         if (flde.op == EXP.error)
             return null;
         return cast(FuncExp)flde;

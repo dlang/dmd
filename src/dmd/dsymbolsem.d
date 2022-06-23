@@ -1052,7 +1052,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                             // or a delegate that doesn't escape a reference to the function
                             FuncDeclaration f = fe.fd;
                             if (f.tookAddressOf)
-                                f.tookAddressOf--;
+                                f.clearAddressTakens();
+                                // f.tookAddressOf--;
                         }
                     }
                 }
