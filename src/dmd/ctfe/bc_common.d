@@ -329,7 +329,7 @@ enum BCTypeFlags : ubyte
 string typeFlagsToString(BCTypeFlags flags) pure @safe
 {
     string result;
- 
+
     if (!flags)
     {
         result = "None";
@@ -372,40 +372,40 @@ struct RegStatusList(int STATIC_NREGS)
 
     uint unusedBitfield = 0;
     uint dirtyBitfield = 0;
-    
+
     uint nextFree()
     {
         pragma(inline, true);
         import core.bitop : bsf;
-        
+
         uint result = 0;
         if (freeBitfield != 0)
             result = bsf(freeBitfield) + 1;
         return result;
     }
-    
+
     uint nextUnused()
     {
         pragma(inline, true);
         import core.bitop : bsf;
-        
+
         uint result = 0;
         if (unusedBitfield)
             result = bsf(unusedBitfield) + 1;
         return result;
     }
-    
+
     uint nextDirty()
     {
         pragma(inline, true);
         import core.bitop : bsf;
-        
+
         uint result = 0;
         if (dirtyBitfield)
             result = bsf(dirtyBitfield) + 1;
         return result;
     }
-    
+
     uint n_free()
     {
         pragma(inline, true);
@@ -413,7 +413,7 @@ struct RegStatusList(int STATIC_NREGS)
         assert(popcnt(freeBitfield) <= NREGS);
         return popcnt(freeBitfield);
     }
-    
+
     /// mark register as unoccupied
     void markFree(int regIdx)
     {
@@ -421,7 +421,7 @@ struct RegStatusList(int STATIC_NREGS)
         assert(regIdx && regIdx <= NREGS);
         freeBitfield |= (1 << (regIdx - 1));
     }
-    
+
     /// mark register as eviction canidate
     void markUnused(int regIdx)
     {
@@ -429,7 +429,7 @@ struct RegStatusList(int STATIC_NREGS)
         assert(regIdx && regIdx <= NREGS);
         unusedBitfield |= (1 << (regIdx - 1));
     }
-    
+
     /// mark register as used
     void markUsed(int regIdx)
     {
@@ -438,14 +438,14 @@ struct RegStatusList(int STATIC_NREGS)
         freeBitfield &= ~(1 << (regIdx - 1));
         unusedBitfield &= ~(1 << (regIdx - 1));
     }
-    
+
     void markClean(int regIdx)
     {
         pragma(inline, true);
         assert(regIdx && regIdx <= NREGS);
         dirtyBitfield &= ~(1 << (regIdx - 1));
     }
-    
+
     void markDirty(int regIdx)
     {
         pragma(inline, true);
@@ -479,7 +479,7 @@ struct RegStatusList(int STATIC_NREGS)
 static assert(()
     {
         RegStatusList!16 f;
-        
+
         assert(f.n_free == 16);
         assert(f.nextDirty() == 0);
         assert(f.nextUnused() == 0);
@@ -568,7 +568,7 @@ enum heapMaxOffset = BCHeap.init.heapMax.offsetof;
 enum heapDataOffset = BCHeap.init.heapData.offsetof;
 
 enum heapDataLengthOffset = heapDataOffset + 0; // should really be [].length.offsetof
-enum heapDataPtrOffset = heapDataOffset + size_t.sizeof;  // should be [].ptr.offsetof        
+enum heapDataPtrOffset = heapDataOffset + size_t.sizeof;  // should be [].ptr.offsetof
 
 struct BCHeap
 {
@@ -822,7 +822,7 @@ struct BCValue
     {
         string result = "vType: ";
         result ~= enumToString(vType);
-        result ~= "\tType: "; 
+        result ~= "\tType: ";
         result ~= type.toString;
         result ~= "\n\tValue: ";
         result ~= valueToString;
@@ -863,7 +863,7 @@ struct BCValue
     bool opEquals(const BCValue rhs) const
     {
         BCTypeEnum commonType = commonTypeEnum(this.type.type, rhs.type.type);
-       
+
         if (this.vType == rhs.vType)
         {
             final switch (this.vType)

@@ -153,7 +153,7 @@ const(BCValue) interpret_(int fnId, const BCValue[] args,
                     // out of the function .. we can ignore the state of the stack and such
                     else
                     {
-                       
+
                         debug { if (!__ctfe) writeln("we have not been able to catch the expection returning."); }
                         return true;
                     }
@@ -171,7 +171,7 @@ const(BCValue) interpret_(int fnId, const BCValue[] args,
             else
                 assert(0);
     }
-     
+
 
     bool Return()
     {
@@ -1068,7 +1068,7 @@ const(BCValue) interpret_(int fnId, const BCValue[] args,
             case LongInst.Throw:
             {
                 uint expP = ((*opRef) & uint.max);
-                debug { if (!__ctfe) writeln("*opRef: ", expP); } 
+                debug { if (!__ctfe) writeln("*opRef: ", expP); }
                 auto expTypeIdx = heapPtr.heapData[expP + ClassMetaData.TypeIdIdxOffset];
                 auto expValue = BCValue(HeapAddr(expP), BCType(BCTypeEnum.Class, expTypeIdx));
                 expValue.vType = BCValueType.Exception;

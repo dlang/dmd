@@ -112,7 +112,7 @@ struct Print_BCGen
     uint addErrorValue(BCValue v)
     {
         // FIXME HACK renable this!
-/+ 
+/+
         if (errorInfoCount < errorInfos.length)
         {
             assert(errorInfoCount);
@@ -162,21 +162,21 @@ struct Print_BCGen
                 }
                 else if (val.type.type == BCTypeEnum.i64)
                 {
-                    result ~= "Imm64(" ~ 
-                        ((cast(ulong)val.imm64.imm64 <= uint.max) 
-                            ? itos(val.imm64.imm64 & uint.max) 
+                    result ~= "Imm64(" ~
+                        ((cast(ulong)val.imm64.imm64 <= uint.max)
+                            ? itos(val.imm64.imm64 & uint.max)
                             : itos(val.imm64.imm64 & uint.max) ~ " | (" ~
-                                itos(val.imm64.imm64 >> 32) ~"UL << 32)" 
+                                itos(val.imm64.imm64 >> 32) ~"UL << 32)"
                         )
                     ~ ", true)";
 		}
                 else if (val.type.type == BCTypeEnum.u64)
                 {
-                    result ~= "Imm64(" ~ 
-                        ((cast(ulong)val.imm64.imm64 <= uint.max) 
-                            ? itos(val.imm64.imm64 & uint.max) 
+                    result ~= "Imm64(" ~
+                        ((cast(ulong)val.imm64.imm64 <= uint.max)
+                            ? itos(val.imm64.imm64 & uint.max)
                             : itos(val.imm64.imm64 & uint.max) ~ " | (" ~
-                                itos(val.imm64.imm64 >> 32) ~"UL << 32)" 
+                                itos(val.imm64.imm64 >> 32) ~"UL << 32)"
                         )
                     ~ ")";
                 }

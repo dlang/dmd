@@ -106,4 +106,3 @@ struct DelegateDescriptor
     enum ContextPtrOffset = 4;
     enum Size = 8;
 }
-

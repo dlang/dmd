@@ -211,7 +211,7 @@ struct BlackList
     void defaultBlackList()
     {
         initialize([
-                "grisu2", // because it does not work yet ... 
+                "grisu2", // because it does not work yet ...
                 "modify14304", //because of fail_compilation/fail14304.d; We should not be required to check for this.
                 "bug2931", //temporarily to pass a test for multi-dimensional arrays
                 "bug2931_2", //temporarily to pass a test for multi-dimensional arrays
@@ -294,7 +294,7 @@ bool is64BitReg(BCTypeEnum type)
 }
 bool isPassedByPointer(BCTypeEnum type)
 {
-    return type == BCTypeEnum.Struct 
+    return type == BCTypeEnum.Struct
         || type == BCTypeEnum.Class
         || type == BCTypeEnum.Slice
         || type == BCTypeEnum.Array
@@ -2517,7 +2517,7 @@ extern (C++) final class BCArgumentVisitor : Visitor
         {
             double tmp = cast(double)re.value;
             result = BCValue(Imm64(*cast(ulong*)&tmp));
- 
+
             result.type.type = BCTypeEnum.f52;
         }
         else
@@ -4229,7 +4229,7 @@ public:
 //                        bailout("default parent ctor unknown");
                 }
             }
-            // here 
+            // here
 
             Store32AtOffset(p1, imm32(bcClass.vtblPtr), ClassMetaData.VtblOffset);
             Store32AtOffset(p1, imm32(uc.type.typeIndex), ClassMetaData.TypeIdIdxOffset);
@@ -4549,7 +4549,7 @@ public:
 
         }
 
-        // import std.stdio : writeln; debug { if (!__ctfe) {writeln("fInfo: ", fInfo, "vd: ", vd.toString()); } } //DEBUGLINE 
+        // import std.stdio : writeln; debug { if (!__ctfe) {writeln("fInfo: ", fInfo, "vd: ", vd.toString()); } } //DEBUGLINE
         return fInfo;
     }
 
@@ -5417,7 +5417,7 @@ static if (is(BCGen))
         }
 
         bool isAA = (indexed.type.type == BCTypeEnum.AArray);
-        
+
         if (isAA)
         {
         }
@@ -5760,7 +5760,7 @@ static if (is(BCGen))
     {
         auto dgType = toBCType(de.type);
         auto dg = genTemporary(dgType);
-        
+
         if (!dg) { bailout("Could not generate DelegateExp"); return ; }
 
         Alloc(dg.i32, imm32(DelegateDescriptor.Size), dgType);
@@ -6081,7 +6081,7 @@ static if (is(BCGen))
             {
                 type = _sharedCtfeState.pointerOf(type);
             }
-            
+
             if (oldAssignTo)
             {
                 retval = oldAssignTo;
@@ -6090,7 +6090,7 @@ static if (is(BCGen))
             {
                 retval = genTemporary(type);
             }
-            
+
             if (exprFlags & GenExprFlags.asAddress)
             {
                 Add3(retval, lhs.i32, imm32(fInfo.offset));
@@ -6204,7 +6204,7 @@ static if (is(BCGen))
             writeln("Adding array of Type:  ", arrayType);
         }
 
-       
+
         if (constAle(ale))
         {
             retval = genArg(ale);
@@ -6279,7 +6279,7 @@ static if (is(BCGen))
             Alloc(newMem, allocSize, slice_type);
             setLength(sliceDescAddr, desired_length);
             setBase(sliceDescAddr, newMem);
-            
+
             return allocSize;
         }
         else
@@ -6399,7 +6399,7 @@ static if (is(BCGen))
 
         structVal = assignTo ? assignTo : genTemporary(BCType(BCTypeEnum.Struct, idx));
         Alloc(structVal.i32, imm32(struct_size), BCType(BCTypeEnum.Struct, idx));
-        
+
         structVal.type = BCType(BCTypeEnum.Struct, idx);
 
         initStruct(structVal);
@@ -6584,7 +6584,7 @@ static if (is(BCGen))
         retval = BCValue(e1.heapRef).i32; // hack this is a ptr not an i32;
         // import std.stdio; writeln(ae.toString ~ " --  " ~ "retval: " ~ retval.toString); //debugline
         //assert(0, "Dieng on Addr ?");
-+/        
++/
     }
 
     override void visit(ThisExp te)
@@ -7617,8 +7617,8 @@ static if (is(BCGen))
     static bool canHandleBinExpTypes(const BCTypeEnum lhs, const BCTypeEnum rhs) pure
     {
         return ((lhs == BCTypeEnum.i32 || lhs == BCTypeEnum.u32 || lhs == BCTypeEnum.u64 || lhs == BCTypeEnum.i64 ||
-                 lhs == BCTypeEnum.f23 || lhs == BCTypeEnum.f52) && rhs == lhs) 
-            || (lhs == BCTypeEnum.u32 || lhs == BCTypeEnum.u64 || lhs == BCTypeEnum.i32 || lhs == BCTypeEnum.i64) && 
+                 lhs == BCTypeEnum.f23 || lhs == BCTypeEnum.f52) && rhs == lhs)
+            || (lhs == BCTypeEnum.u32 || lhs == BCTypeEnum.u64 || lhs == BCTypeEnum.i32 || lhs == BCTypeEnum.i64) &&
                (rhs == BCTypeEnum.u32 || rhs == BCTypeEnum.u64 || rhs == BCTypeEnum.i32 || rhs == BCTypeEnum.i64)
             || (lhs == BCTypeEnum.i64 && (rhs == BCTypeEnum.i32 || rhs == BCTypeEnum.i64));
     }
@@ -8255,7 +8255,7 @@ _sharedCtfeState.typeToString(_sharedCtfeState.elementType(rhs.type)) ~ " -- " ~
             {
                 auto ifRet = If(lhs_length, &Neq3, rhs_length);
                 {
-                    Assert(imm32(0), 
+                    Assert(imm32(0),
                         addError(ae.loc, "array length mismatch assigning [%d..%d] to [%d..%d]", rhs_lwr, rhs_upr, lhs_lwr, lhs_upr));
                 }
                 EndIf(ifRet);
@@ -9923,7 +9923,7 @@ _sharedCtfeState.typeToString(_sharedCtfeState.elementType(rhs.type)) ~ " -- " ~
         else if (toType.type == BCTypeEnum.Class && fromType.type == BCTypeEnum.Class)
         {
             ClassDeclaration cdTo = _sharedCtfeState.classDeclTypePointers[toType.typeIndex - 1];
-            ClassDeclaration cdFrom = _sharedCtfeState.classDeclTypePointers[fromType.typeIndex - 1]; 
+            ClassDeclaration cdFrom = _sharedCtfeState.classDeclTypePointers[fromType.typeIndex - 1];
 
             if (cdTo.isBaseOf(cdFrom, null))
             {

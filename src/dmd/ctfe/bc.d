@@ -218,7 +218,7 @@ enum LongInst : ushort
 /+
     PushImm32,
     Alloca
-+/    
++/
 }
 //Imm-Instructions and corresponding 2Operand instructions have to be in the same order
 static immutable bc_order_errors = () {
@@ -275,7 +275,7 @@ enum CondFlagMask = 0b11_0000_0000;
 * -----------------
 * [8-31]  Register (extra_data)
 * [32-48] Register (lhs)
-* [48-64] Register (rhs) 
+* [48-64] Register (rhs)
 */
 struct LongInst64
 {
@@ -1263,7 +1263,7 @@ struct BCGen
         }
         assert(isStackValueOrParameter(_to), "to has the vType " ~ enumToString(_to.vType));
         assert(isStackValueOrParameter(from), "from has the vType " ~ enumToString(from.vType));
-        
+
         emitLongInst(LongInst.HeapLoad8, _to.stackAddr, from.stackAddr);
     }
 
@@ -1297,25 +1297,25 @@ struct BCGen
         }
         assert(isStackValueOrParameter(_to), "to has the vType " ~ enumToString(_to.vType));
         assert(isStackValueOrParameter(from), "from has the vType " ~ enumToString(from.vType));
-        
+
         emitLongInst(LongInst.HeapLoad16, _to.stackAddr, from.stackAddr);
     }
-    
+
     void Store16(BCValue _to, BCValue value)
     {
         if (!isStackValueOrParameter(value))
         {
             value = pushOntoStack(value);
         }
-        
+
         if (!isStackValueOrParameter(_to))
         {
             _to = pushOntoStack(_to);
         }
-        
+
         assert(isStackValueOrParameter(_to), "to has the vType " ~ enumToString(_to.vType));
         assert(isStackValueOrParameter(value), "value has the vType " ~ enumToString(value.vType));
-        
+
         emitLongInst(LongInst.HeapStore16, _to.stackAddr, value.stackAddr);
     }
 
@@ -1325,15 +1325,15 @@ struct BCGen
         {
             from = pushOntoStack(from);
         }
-        
+
         if (!isStackValueOrParameter(_to))
         {
             _to = pushOntoStack(_to);
         }
-        
+
         assert(isStackValueOrParameter(_to), "to has the vType " ~ enumToString(_to.vType));
         assert(isStackValueOrParameter(from), "from has the vType " ~ enumToString(from.vType));
-        
+
         emitLongInst(LongInst.HeapLoad32, _to.stackAddr, from.stackAddr);
     }
 
@@ -1645,14 +1645,14 @@ string printInstructions(const uint* startInstructions, uint length, const strin
         const lengthOverFour = textLength / 4;
         auto restLength =  textLength % 4;
         const alignedLength = align4(textLength) / 4;
-        
+
         // alignLengthBy2
         assert(alignedLength <= length, "text (" ~ itos(alignedLength) ~") longer then code (" ~ itos(length) ~ ")");
         auto insertPos = result.length;
         result.length += textLength;
-        
+
         result[insertPos .. insertPos + textLength] = '_';
-        
+
         foreach(chars; arr[pos .. pos + lengthOverFour])
         {
             result[insertPos++] = chars >> 0x00 & 0xFF;
@@ -1660,16 +1660,16 @@ string printInstructions(const uint* startInstructions, uint length, const strin
             result[insertPos++] = chars >> 0x10 & 0xFF;
             result[insertPos++] = chars >> 0x18 & 0xFF;
         }
-        
+
         int shiftAmount = 0;
         const lastChars = restLength ? arr[pos + lengthOverFour] : 0;
-        
+
         while(restLength--)
         {
             result[insertPos++] = lastChars >> shiftAmount & 0xFF;
             shiftAmount += 8;
         }
-        
+
         pos += alignedLength;
         length -= alignedLength;
     }
@@ -2172,7 +2172,7 @@ string printInstructions(const uint* startInstructions, uint length, const strin
             {
                 result ~= "HeapLoad8 " ~ localName(stackMap, hi & 0xFFFF) ~ ", HEAP[" ~ localName(stackMap, hi >> 16) ~  "]\n";
             }
-            break;        
+            break;
         case LongInst.HeapStore8:
             {
                 result ~= "HeapStore8 HEAP[" ~ localName(stackMap, hi & 0xFFFF)  ~ "], " ~ localName(stackMap, hi >> 16) ~ "\n";
@@ -2183,13 +2183,13 @@ string printInstructions(const uint* startInstructions, uint length, const strin
             {
                 result ~= "HeapLoad16 " ~ localName(stackMap, hi & 0xFFFF) ~ ", HEAP[" ~ localName(stackMap, hi >> 16) ~  "]\n";
             }
-            break;        
+            break;
         case LongInst.HeapStore16:
             {
                 result ~= "HeapStore16 HEAP[" ~ localName(stackMap, hi & 0xFFFF)  ~ "], " ~ localName(stackMap, hi >> 16) ~ "\n";
             }
         break;
-            
+
         case LongInst.HeapLoad32:
             {
                 result ~= "HeapLoad32 " ~ localName(stackMap, hi & 0xFFFF) ~ ", HEAP[" ~ localName(stackMap, hi >> 16) ~  "]\n";
