@@ -48,6 +48,21 @@ fail_compilation/failcstuff1.c(504): Error: found `;` when expecting `)`
 fail_compilation/failcstuff1.c(505): Error: `=`, `;` or `,` expected to end declaration instead of `int`
 fail_compilation/failcstuff1.c(551): Error: missing comma or semicolon after declaration of `pluto`, found `p` instead
 fail_compilation/failcstuff1.c(601): Error: `=`, `;` or `,` expected to end declaration instead of `'s'`
+fail_compilation/failcstuff1.c(652): Error: multiple storage classes in declaration specifiers
+fail_compilation/failcstuff1.c(653): Error: multiple storage classes in declaration specifiers
+fail_compilation/failcstuff1.c(654): Error: multiple storage classes in declaration specifiers
+fail_compilation/failcstuff1.c(655): Error: multiple storage classes in declaration specifiers
+fail_compilation/failcstuff1.c(656): Error: multiple storage classes in declaration specifiers
+fail_compilation/failcstuff1.c(657): Error: multiple storage classes in declaration specifiers
+fail_compilation/failcstuff1.c(658): Error: multiple storage classes in declaration specifiers
+fail_compilation/failcstuff1.c(659): Error: multiple storage classes in declaration specifiers
+fail_compilation/failcstuff1.c(660): Error: multiple storage classes in declaration specifiers
+fail_compilation/failcstuff1.c(661): Error: multiple storage classes in declaration specifiers
+fail_compilation/failcstuff1.c(662): Error: multiple storage classes in declaration specifiers
+fail_compilation/failcstuff1.c(663): Error: multiple storage classes in declaration specifiers
+fail_compilation/failcstuff1.c(664): Error: multiple storage classes in declaration specifiers
+fail_compilation/failcstuff1.c(666): Error: `inline` and `_Noreturn` function specifiers not allowed for `_Thread_local`
+fail_compilation/failcstuff1.c(667): Error: `inline` and `_Noreturn` function specifiers not allowed for `_Thread_local`
 ---
 */
 
@@ -160,3 +175,40 @@ int * pluto p;
 #line 600
 
 char c22909 = u8's';
+
+/****************************************************/
+#line 650
+void testDeclSpec()
+{
+    static extern int aa;
+    static auto int ab;
+    static register int ac;
+    static typedef int ad;
+    extern auto int ah;
+    extern register int ai;
+    extern typedef int aj;
+    auto register int an;
+    auto typedef int ao;
+    auto _Thread_local int ar;
+    register typedef int as;
+    register _Thread_local int av;
+    typedef _Thread_local int ay;
+    // Mixing function-specifiers with _Thread_local
+    inline _Thread_local int ba;
+    _Noreturn _Thread_local int bb;
+    // Valid code as per C11 spec
+    static _Thread_local int ag;
+    extern _Thread_local int am;
+    // Mixing declaration and function specifiers meaningless, but ignored.
+    static inline int ae;
+    static _Noreturn int af;
+    extern inline int ak;
+    extern _Noreturn int al;
+    auto inline int ap;
+    auto _Noreturn int aq;
+    register inline int at;
+    register _Noreturn int au;
+    typedef inline int aw;
+    typedef _Noreturn int ax;
+    inline _Noreturn int az;
+}
