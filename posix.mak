@@ -354,9 +354,9 @@ $(ROOT)/%.o : src/rt/%.c
 	@mkdir -p $(dir $@)
 	$(CC) -c $(CFLAGS) $< -o$@
 
-$(ROOT)/errno_c.o : src/core/stdc/errno.c
+$(ROOT)/errno_c.o : src/core/stdc/errno.c $(DMD)
 	@mkdir -p $(dir $@)
-	$(CC) -c $(CFLAGS) $< -o$@
+	$(DMD) -c $(DFLAGS) -I. -v $< -of$@
 
 $(ROOT)/threadasm.o : src/core/threadasm.S
 	@mkdir -p $(dir $@)
