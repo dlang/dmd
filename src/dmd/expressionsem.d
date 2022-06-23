@@ -6963,6 +6963,22 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.error("cannot take address of `%s`", exp.e1.toChars());
             return setError();
         }
+        if (sc.flags & SCOPE.Cfile)
+        {
+            auto e1x = exp.e1;
+            while (e1x.op == EXP.dotVariable)
+                e1x = e1x.isDotVarExp().e1;
+            if (auto ve = e1x.isVarExp())
+            {
+                // C11 6.5.3.2 A variable that has its address taken cannot be
+                // stored in a register.
+                if (ve.var.storage_class & STC.register)
+                {
+                    exp.error("cannot take address of register variable `%s`", ve.toChars());
+                    return setError();
+                }
+            }
+        }
         if (auto dve = exp.e1.isDotVarExp())
         {
             /* https://issues.dlang.org/show_bug.cgi?id=22749

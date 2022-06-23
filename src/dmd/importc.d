@@ -79,6 +79,20 @@ Expression arrayFuncConv(Expression e, Scope* sc)
         return e;
 
     auto t = e.type.toBasetype();
+    auto e1x = e;
+    while (e1x.op == EXP.dotVariable)
+        e1x = e1x.isDotVarExp().e1;
+    if (auto ve = e1x.isVarExp())
+    {
+        // C11 6.3.2.1 casting a variable from array to pointer takes its address,
+        // which is forbidden in C.
+        if ((t.ty == Tarray || t.ty == Tsarray) && ve.var.storage_class & STC.register)
+        {
+            e.error("cannot take address of register variable `%s`", ve.toChars());
+            return ErrorExp.get();
+        }
+    }
+
     if (auto ta = t.isTypeDArray())
     {
         e = e.castTo(sc, ta.next.pointerTo());
@@ -149,6 +163,16 @@ Expression carraySemantic(ArrayExp ae, Scope* sc)
 
     auto e1 = ae.e1.expressionSemantic(sc);
 
+    if (auto ve = e1.isVarExp())
+    {
+        // C11 6.3.2.1: Forbids the address of any part of an object declared
+        // register from being computed.
+        if (ve.var.storage_class & STC.register)
+        {
+            ae.error("cannot index through register variable `%s`", ve.toChars());
+            return ErrorExp.get();
+        }
+    }
     assert(ae.arguments.length == 1);
     Expression e2 = (*ae.arguments)[0];
 

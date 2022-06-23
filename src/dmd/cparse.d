@@ -2972,7 +2972,8 @@ final class CParser(AST) : Parser!AST
                 cparseGnuAttributes(specifier);
             if (specifier.mod & MOD.xconst)
                 t = toConst(t);
-            auto param = new AST.Parameter(STC.parameter, t, id, null, null);
+            auto param = new AST.Parameter(specifiersToSTC(LVL.parameter, specifier),
+                                           t, id, null, null);
             parameters.push(param);
             if (token.value == TOK.rightParenthesis)
                 break;
@@ -4638,6 +4639,15 @@ final class CParser(AST) : Parser!AST
                     stc = AST.STC.extern_ | AST.STC.gshared;
                 else if (specifier.scw & SCW.xstatic)
                     stc = AST.STC.gshared;
+                else if (specifier.scw & SCW.xregister)
+                    stc = AST.STC.register;
+            }
+            else if (level == LVL.parameter)
+            {
+                if (specifier.scw & SCW.xregister)
+                    stc = AST.STC.register | AST.STC.parameter;
+                else
+                    stc = AST.STC.parameter;
             }
             else if (level == LVL.member)
             {

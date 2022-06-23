@@ -486,6 +486,16 @@ void testoverflow()
 
 /********************************/
 
+int testregister(register int x)
+{
+  register int y = x * 2;
+  register int z[] = {x, y};
+
+  return y + sizeof z;
+}
+
+/********************************/
+
 int printf(const char*, ...);
 
 int main()

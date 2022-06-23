@@ -63,6 +63,7 @@ fail_compilation/failcstuff1.c(663): Error: multiple storage classes in declarat
 fail_compilation/failcstuff1.c(664): Error: multiple storage classes in declaration specifiers
 fail_compilation/failcstuff1.c(666): Error: `inline` and `_Noreturn` function specifiers not allowed for `_Thread_local`
 fail_compilation/failcstuff1.c(667): Error: `inline` and `_Noreturn` function specifiers not allowed for `_Thread_local`
+fail_compilation/failcstuff1.c(700): Error: `auto` and `register` storage class not allowed for global
 ---
 */
 
@@ -212,3 +213,7 @@ void testDeclSpec()
     typedef _Noreturn int ax;
     inline _Noreturn int az;
 }
+
+/****************************************************/
+#line 700
+register char *stack_pointer;
