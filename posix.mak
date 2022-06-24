@@ -350,9 +350,9 @@ $(DMD):
 
 ################### C/ASM Targets ############################
 
-$(ROOT)/%.o : src/rt/%.c
+$(ROOT)/%.o : src/rt/%.c $(DMD)
 	@mkdir -p $(dir $@)
-	$(CC) -c $(CFLAGS) $< -o$@
+	$(DMD) -c $(DFLAGS) -I. -v $< -of$@
 
 $(ROOT)/errno_c.o : src/core/stdc/errno.c $(DMD)
 	@mkdir -p $(dir $@)
