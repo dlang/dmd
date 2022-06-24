@@ -494,6 +494,22 @@ int testregister(register int x)
   return y + sizeof z;
 }
 
+int testregisterptr()
+{
+    register struct
+    {
+        int i;
+        int a[1];
+    } *regptr1;
+    int a = regptr1->i;
+    int *b = &regptr1->i;
+    int *c = regptr1->a;
+    int d = regptr1->a[0];
+
+    register int *regptr2;
+    return regptr2[0];
+}
+
 /********************************/
 
 int printf(const char*, ...);

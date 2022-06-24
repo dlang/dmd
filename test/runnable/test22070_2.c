@@ -29,6 +29,14 @@ short test3(void)
 
 _Static_assert(test3() == 2, "");
 
+char test4(void)
+{
+   register char(*bar)[4] = &"456";
+   return 1[*bar];
+}
+
+_Static_assert(test4() == '5', "in");
+
 int main()
 {
     if ((*var)[2] != '3')
@@ -40,6 +48,8 @@ int main()
     if (test2() != '5')
         return 1;
     if (test3() != 2)
+        return 1;
+    if (test4() != '5')
         return 1;
     return 0;
 }
