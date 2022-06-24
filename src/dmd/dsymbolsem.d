@@ -656,7 +656,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
                 v.dsymbolSemantic(sc);
 
-                Expression e = new DsymbolExp(dsym.loc, v);
+                Expression e = new VarExp(dsym.loc, v);
                 (*exps)[i] = e;
             }
             auto v2 = new TupleDeclaration(dsym.loc, dsym.ident, exps);

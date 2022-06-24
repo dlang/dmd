@@ -1220,9 +1220,9 @@ public:
             RootObject *o = (*d->objects)[i];
             if (o->dyncast() == DYNCAST_EXPRESSION)
             {
-                DsymbolExp *de = ((Expression *) o)->isDsymbolExp();
-                if (de && de->s->isDeclaration())
-                    de->s->accept(this);
+                VarExp *ve = ((Expression *) o)->isVarExp();
+                if (ve)
+                    ve->var->accept(this);
             }
         }
     }

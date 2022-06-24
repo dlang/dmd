@@ -661,7 +661,7 @@ extern (C++) final class TupleDeclaration : Declaration
 
     /***********************************************************
      * Calls dg(Dsymbol) for each Dsymbol, which should be a VarDeclaration
-     * inside DsymbolExp (isexp == true).
+     * inside VarExp (isexp == true).
      * Params:
      *    dg = delegate to call for each Dsymbol
      */
@@ -671,14 +671,14 @@ extern (C++) final class TupleDeclaration : Declaration
         foreach (o; *objects)
         {
             if (auto e = o.isExpression())
-                if (auto se = e.isDsymbolExp())
-                    dg(se.s);
+                if (auto ve = e.isVarExp())
+                    dg(ve.var);
         }
     }
 
     /***********************************************************
      * Calls dg(Dsymbol) for each Dsymbol, which should be a VarDeclaration
-     * inside DsymbolExp (isexp == true).
+     * inside VarExp (isexp == true).
      * If dg returns !=0, stops and returns that value else returns 0.
      * Params:
      *    dg = delegate to call for each Dsymbol
@@ -691,8 +691,8 @@ extern (C++) final class TupleDeclaration : Declaration
         foreach (o; *objects)
         {
             if (auto e = o.isExpression())
-                if (auto se = e.isDsymbolExp())
-                    if(auto ret = dg(se.s))
+                if (auto ve = e.isVarExp())
+                    if(auto ret = dg(ve.var))
                         return ret;
         }
         return 0;
