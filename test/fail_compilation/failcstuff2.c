@@ -27,9 +27,14 @@ fail_compilation/failcstuff2.c(358): Error: cannot take address of register vari
 fail_compilation/failcstuff2.c(359): Error: cannot index through register variable `reg3`
 fail_compilation/failcstuff2.c(360): Error: cannot take address of register variable `reg3`
 fail_compilation/failcstuff2.c(361): Error: cannot take address of register variable `reg3`
-fail_compilation/failcstuff2.c(371): Error: cannot take address of register variable `reg4`
-fail_compilation/failcstuff2.c(372): Error: cannot take address of register variable `reg4`
+fail_compilation/failcstuff2.c(362): Error: cannot index through register variable `reg3`
 fail_compilation/failcstuff2.c(373): Error: cannot take address of register variable `reg4`
+fail_compilation/failcstuff2.c(374): Error: cannot take address of register variable `reg4`
+fail_compilation/failcstuff2.c(375): Error: cannot take address of register variable `reg4`
+fail_compilation/failcstuff2.c(376): Error: cannot take address of bit-field `b`
+fail_compilation/failcstuff2.c(377): Error: cannot index through register variable `reg4`
+fail_compilation/failcstuff2.c(378): Error: cannot index through register variable `reg4`
+fail_compilation/failcstuff2.c(381): Error: cannot take address of register variable `reg5`
 ---
 */
 
@@ -132,19 +137,27 @@ void testRegister(register int reg1)
 
     register int reg3[1];
     int *ptr3 = (int *)reg3;
-    int idx1 = reg3[0];
-    int idx2 = *reg3;
-    int idx3 = reg3 + 0;
+    int idx3a = reg3[0];
+    int idx3b = *reg3;
+    int idx3c = reg3 + 0;
+    int idx3d = 0[reg3];
 
     register struct
     {
         struct
         {
             int i;
+            int b : 4;
             int a[1];
         } inner;
     } reg4;
     int *ptr4a = &(reg4.inner.i);
     int *ptr4b = reg4.inner.a;
     int *ptr4c = (int*)reg4.inner.a;
+    int *ptr4d = &(reg4.inner.b);
+    int idx4a = reg4.inner.a[0];
+    int idx4b = 0[reg4.inner.a];
+
+    register int *reg5;
+    int **ptr5 = &reg5;
 }

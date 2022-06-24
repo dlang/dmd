@@ -6963,34 +6963,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.error("cannot take address of `%s`", exp.e1.toChars());
             return setError();
         }
-        if (sc.flags & SCOPE.Cfile)
-        {
-            auto e1x = exp.e1;
-            while (e1x.op == EXP.dotVariable)
-                e1x = e1x.isDotVarExp().e1;
-            if (auto ve = e1x.isVarExp())
-            {
-                // C11 6.5.3.2 A variable that has its address taken cannot be
-                // stored in a register.
-                if (ve.var.storage_class & STC.register)
-                {
-                    exp.error("cannot take address of register variable `%s`", ve.toChars());
-                    return setError();
-                }
-            }
-        }
-        if (auto dve = exp.e1.isDotVarExp())
-        {
-            /* https://issues.dlang.org/show_bug.cgi?id=22749
-             * Error about taking address of any bit-field, regardless of
-             * whether SCOPE.Cfile is set.
-             */
-            if (auto bf = dve.var.isBitFieldDeclaration())
-            {
-                exp.error("cannot take address of bit-field `%s`", bf.toChars());
-                return setError();
-            }
-        }
+        if (!checkAddressable(exp, sc))
+            return setError();
 
         bool hasOverloads;
         if (auto f = isFuncAddress(exp, &hasOverloads))
@@ -8338,6 +8312,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             t1b = tv1.basetype;
             t1b = t1b.castMod(tv1.mod);
             exp.e1.type = t1b;
+        }
+        if (t1b.ty == Tsarray || t1b.ty == Tarray)
+        {
+            if (!checkAddressable(exp, sc))
+                return setError();
         }
 
         /* Run semantic on e2
@@ -13164,6 +13143,69 @@ bool checkAddressVar(Scope* sc, Expression exp, VarDeclaration v)
                 return false;
             }
         }
+    }
+    return true;
+}
+
+/**************************************
+ * This check ensures that the object in `exp` can have its address taken, or
+ * issue a diagnostic error.
+ * Params:
+ *      e = expression to check
+ *      sc = context
+ * Returns:
+ *      true if the expression is addressable
+ */
+bool checkAddressable(Expression e, Scope* sc)
+{
+    Expression ex = e;
+    while (true)
+    {
+        switch (ex.op)
+        {
+            case EXP.dotVariable:
+                // https://issues.dlang.org/show_bug.cgi?id=22749
+                // Error about taking address of any bit-field, regardless of
+                // whether SCOPE.Cfile is set.
+                if (auto bf = ex.isDotVarExp().var.isBitFieldDeclaration())
+                {
+                    e.error("cannot take address of bit-field `%s`", bf.toChars());
+                    return false;
+                }
+                goto case EXP.cast_;
+
+            case EXP.index:
+                ex = ex.isBinExp().e1;
+                continue;
+
+            case EXP.address:
+            case EXP.array:
+            case EXP.cast_:
+                ex = ex.isUnaExp().e1;
+                continue;
+
+            case EXP.variable:
+                if (sc.flags & SCOPE.Cfile)
+                {
+                    // C11 6.5.3.2: A variable that has its address taken cannot be
+                    // stored in a register.
+                    // C11 6.3.2.1: An array that has its address computed with `[]`
+                    // or cast to an lvalue pointer cannot be stored in a register.
+                    if (ex.isVarExp().var.storage_class & STC.register)
+                    {
+                        if (e.isIndexExp())
+                            e.error("cannot index through register variable `%s`", ex.toChars());
+                        else
+                            e.error("cannot take address of register variable `%s`", ex.toChars());
+                        return false;
+                    }
+                }
+                break;
+
+            default:
+                break;
+        }
+        break;
     }
     return true;
 }
