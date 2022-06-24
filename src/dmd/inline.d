@@ -631,12 +631,7 @@ public:
                     // Need to figure this out before inlining can work for tuples
                     if (auto tup = vd.toAlias().isTupleDeclaration())
                     {
-                        foreach (i; 0 .. tup.objects.dim)
-                        {
-                            DsymbolExp se = (*tup.objects)[i];
-                            assert(se.op == EXP.dSymbol);
-                            se.s;
-                        }
+                        tup.foreachVar((s) { s; });
                         result = st.objects.dim;
                         return;
                     }
@@ -1203,12 +1198,10 @@ public:
             TupleDeclaration td = vd.toAlias().isTupleDeclaration();
             if (td)
             {
-                foreach (i; 0 .. td.objects.dim)
+                td.foreachVar((s)
                 {
-                    DsymbolExp se = cast(DsymbolExp)(*td.objects)[i];
-                    assert(se.op == EXP.dSymbol);
-                    scanVar(se.s); // TODO
-                }
+                    scanVar(s); // TODO
+                });
             }
             else if (vd._init)
             {
@@ -2347,20 +2340,7 @@ private bool expNeedsDtor(Expression exp)
             }
             else if (auto td = s.isTupleDeclaration())
             {
-                foreach (o; *td.objects)
-                {
-                    import dmd.root.rootobject;
-
-                    if (o.dyncast() == DYNCAST.expression)
-                    {
-                        Expression eo = cast(Expression)o;
-                        if (eo.op == EXP.dSymbol)
-                        {
-                            DsymbolExp se = cast(DsymbolExp)eo;
-                            Dsymbol_needsDtor(se.s);
-                        }
-                    }
-                }
+                td.foreachVar(&symbolDg);
             }
 
 
