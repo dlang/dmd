@@ -4182,16 +4182,7 @@ elem *Dsymbol_toElem(Dsymbol s, IRState* irs)
     }
     else if (auto td = s.isTupleDeclaration())
     {
-        foreach (o; *td.objects)
-        {
-            if (o.dyncast() == DYNCAST.expression)
-            {   Expression eo = cast(Expression)o;
-                if (eo.op == EXP.dSymbol)
-                {   DsymbolExp se = cast(DsymbolExp)eo;
-                    e = el_combine(e, Dsymbol_toElem(se.s, irs));
-                }
-            }
-        }
+        td.foreachVar(&symbolDg);
     }
     else if (auto ed = s.isEnumDeclaration())
     {
