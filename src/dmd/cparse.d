@@ -1619,6 +1619,12 @@ final class CParser(AST) : Parser!AST
             return;
         }
 
+        if (token.value == TOK.__pragma)
+        {
+            uupragmaDirective(scanloc);
+            return;
+        }
+
         if (token.value == TOK._import) // import declaration extension
         {
             auto a = parseImport();
@@ -4966,6 +4972,35 @@ final class CParser(AST) : Parser!AST
     }
 
     /*********************************************
+     * VC __pragma
+     * https://docs.microsoft.com/en-us/cpp/preprocessor/pragma-directives-and-the-pragma-keyword?view=msvc-170
+     * Scanner is on the `__pragma`
+     * Params:
+     *  startloc = location to use for error messages
+     */
+    private void uupragmaDirective(const ref Loc startloc)
+    {
+        const loc = startloc;
+        nextToken();
+        if (token.value != TOK.leftParenthesis)
+        {
+            error(loc, "left parenthesis expected to follow `__pragma`");
+            return;
+        }
+        nextToken();
+        if (token.value == TOK.identifier && token.ident == Id.pack)
+            pragmaPack(startloc, false);
+        else
+            error(loc, "unrecognized __pragma");
+        if (token.value != TOK.rightParenthesis)
+        {
+            error(loc, "right parenthesis expected to close `__pragma(...)`");
+            return;
+        }
+        nextToken();
+    }
+
+    /*********************************************
      * C11 6.10.6 Pragma directive
      * # pragma pp-tokens(opt) new-line
      * The C preprocessor sometimes leaves pragma directives in
@@ -4977,7 +5012,7 @@ final class CParser(AST) : Parser!AST
         Token n;
         scan(&n);
         if (n.value == TOK.identifier && n.ident == Id.pack)
-            return pragmaPack(loc);
+            return pragmaPack(loc, true);
         if (n.value != TOK.endOfLine)
             skipToNextLine();
     }
@@ -4989,10 +5024,27 @@ final class CParser(AST) : Parser!AST
      * Scanner is on the `pack`
      * Params:
      *  startloc = location to use for error messages
+     *  useScan = use scan() to retrieve next token, instead of nextToken()
      */
-    private void pragmaPack(const ref Loc startloc)
+    private void pragmaPack(const ref Loc startloc, bool useScan)
     {
         const loc = startloc;
+
+        /* Pull tokens from scan() or nextToken()
+         */
+        void scan(Token* t)
+        {
+            if (useScan)
+            {
+                Lexer.scan(t);
+            }
+            else
+            {
+                nextToken();
+                *t = token;
+            }
+        }
+
         Token n;
         scan(&n);
         if (n.value != TOK.leftParenthesis)
