@@ -42,14 +42,13 @@ version (Windows) version = runPreprocessor;
  * Params:
  *      csrcfile = C file to be preprocessed, with .c or .h extension
  *      loc = The source location where preprocess is requested from
- *      cppswitches = array of switches to pass to C preprocessor
  *      ifile = set to true if an output file was written
  *      defines = buffer to append any `#define` and `#undef` lines encountered to
  * Result:
  *      filename of output
  */
 extern (C++)
-FileName preprocess(FileName csrcfile, ref const Loc loc, ref Array!(const(char)*) cppswitches, out bool ifile, OutBuffer* defines)
+FileName preprocess(FileName csrcfile, ref const Loc loc, out bool ifile, OutBuffer* defines)
 {
     /* Look for "importc.h" by searching along import path.
      * It should be in the same place as "object.d"
@@ -91,7 +90,7 @@ FileName preprocess(FileName csrcfile, ref const Loc loc, ref Array!(const(char)
         assert(ext);
         const ifilename = FileName.addExt(name[0 .. name.length - (ext.length + 1)], i_ext);
         const command = cppCommand();
-        auto status = runPreprocessor(command, csrcfile.toString(), importc_h, cppswitches, ifilename, defines);
+        auto status = runPreprocessor(command, csrcfile.toString(), importc_h, global.params.cppswitches, ifilename, defines);
         if (status)
         {
             error(loc, "C preprocess command %.*s failed for file %s, exit status %d\n",
