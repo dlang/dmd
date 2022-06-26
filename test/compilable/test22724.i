@@ -3,4 +3,8 @@
 
 __pragma(pack(push, 8))
 
-typedef unsigned int     size_t;
+typedef unsigned int size_t;
+
+// https://issues.dlang.org/show_bug.cgi?id=23206
+
+__declspec(noreturn) void abra(void);
