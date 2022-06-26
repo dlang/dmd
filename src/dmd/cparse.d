@@ -2328,6 +2328,14 @@ final class CParser(AST) : Parser!AST
                     break;
                 }
 
+                case TOK.__declspec:
+                {
+                    /* Microsoft extension
+                     */
+                    cparseDeclspec(specifier);
+                    break;
+                }
+
                 case TOK.typeof_:
                 {
                     nextToken();
@@ -3048,9 +3056,13 @@ final class CParser(AST) : Parser!AST
      * extended-decl-modifier:
      *    dllimport
      *    dllexport
+     *    noreturn
+     * Params:
+     *  specifier = filled in with the attribute(s)
      */
-    private void cparseDeclspec()
+    private void cparseDeclspec(ref Specifier specifier)
     {
+        //printf("cparseDeclspec()\n");
         /* Check for dllexport, dllimport
          * Ignore the rest
          */
@@ -3079,6 +3091,11 @@ final class CParser(AST) : Parser!AST
                     dllexport = true;
                     nextToken();
                 }
+                else if (token.ident == Id.noreturn)
+                {
+                    specifier.noreturn = true;
+                    nextToken();
+                }
                 else
                 {
                     nextToken();
@@ -3089,8 +3106,8 @@ final class CParser(AST) : Parser!AST
             else
             {
                 error("extended-decl-modifier expected");
+                break;
             }
-            break;
         }
     }
 
