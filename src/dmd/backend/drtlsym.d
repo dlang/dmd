@@ -133,12 +133,7 @@ Symbol *getRtlsym(RTLSYM i)
         case RTLSYM.ASSOCARRAYLITERALTX:    symbolz(ps,FLfunc,FREGSAVED,"_d_assocarrayliteralTX", 0, t); break;
         case RTLSYM.CALLFINALIZER:          symbolz(ps,FLfunc,FREGSAVED,"_d_callfinalizer", 0, t); break;
         case RTLSYM.CALLINTERFACEFINALIZER: symbolz(ps,FLfunc,FREGSAVED,"_d_callinterfacefinalizer", 0, t); break;
-        case RTLSYM.DELCLASS:               symbolz(ps,FLfunc,FREGSAVED,"_d_delclass", 0, t); break;
-        case RTLSYM.DELINTERFACE:           symbolz(ps,FLfunc,FREGSAVED,"_d_delinterface", 0, t); break;
-        case RTLSYM.DELSTRUCT:              symbolz(ps,FLfunc,FREGSAVED,"_d_delstruct", 0, t); break;
         case RTLSYM.ALLOCMEMORY:            symbolz(ps,FLfunc,FREGSAVED,"_d_allocmemory", 0, t); break;
-        case RTLSYM.DELARRAYT:              symbolz(ps,FLfunc,FREGSAVED,"_d_delarray_t", 0, t); break;
-        case RTLSYM.DELMEMORY:              symbolz(ps,FLfunc,FREGSAVED,"_d_delmemory", 0, t); break;
         case RTLSYM.DYNAMIC_CAST:           symbolz(ps,FLfunc,FREGSAVED,"_d_dynamic_cast", 0, t); break;
         case RTLSYM.INTERFACE_CAST:         symbolz(ps,FLfunc,FREGSAVED,"_d_interface_cast", 0, t); break;
         case RTLSYM.ARRAYCATT:              symbolz(ps,FLfunc,FREGSAVED,"_d_arraycatT", 0, t); break;
@@ -196,11 +191,6 @@ Symbol *getRtlsym(RTLSYM i)
         case RTLSYM.TRACENEWITEMIT:         symbolz(ps,FLfunc,FREGSAVED,"_d_newitemiTTrace", 0, t); break;
         case RTLSYM.TRACECALLFINALIZER:     symbolz(ps,FLfunc,FREGSAVED,"_d_callfinalizerTrace", 0, t); break;
         case RTLSYM.TRACECALLINTERFACEFINALIZER: symbolz(ps,FLfunc,FREGSAVED,"_d_callinterfacefinalizerTrace", 0, t); break;
-        case RTLSYM.TRACEDELCLASS:          symbolz(ps,FLfunc,FREGSAVED,"_d_delclassTrace", 0, t); break;
-        case RTLSYM.TRACEDELINTERFACE:      symbolz(ps,FLfunc,FREGSAVED,"_d_delinterfaceTrace", 0, t); break;
-        case RTLSYM.TRACEDELSTRUCT:         symbolz(ps,FLfunc,FREGSAVED,"_d_delstructTrace", 0, t); break;
-        case RTLSYM.TRACEDELARRAYT:         symbolz(ps,FLfunc,FREGSAVED,"_d_delarray_tTrace", 0, t); break;
-        case RTLSYM.TRACEDELMEMORY:         symbolz(ps,FLfunc,FREGSAVED,"_d_delmemoryTrace", 0, t); break;
         case RTLSYM.TRACEARRAYLITERALTX:    symbolz(ps,FLfunc,FREGSAVED,"_d_arrayliteralTXTrace", 0, t); break;
         case RTLSYM.TRACEASSOCARRAYLITERALTX: symbolz(ps,FLfunc,FREGSAVED,"_d_assocarrayliteralTXTrace", 0, t); break;
         case RTLSYM.TRACEARRAYCATT:         symbolz(ps,FLfunc,FREGSAVED,"_d_arraycatTTrace", 0, t); break;
