@@ -18,13 +18,11 @@ import dmd.backend.cc : Symbol;
 
 enum RTLSYM
 {
-    THROW,
     THROWC,
     THROWDWARF,
     MONITOR_HANDLER,
     MONITOR_PROLOG,
     MONITOR_EPILOG,
-    DCOVER,
     DCOVER2,
     DASSERT,
     DASSERTP,
@@ -32,7 +30,6 @@ enum RTLSYM
     DUNITTEST,
     DUNITTESTP,
     DUNITTEST_MSG,
-    DARRAY,
     DARRAYP,
     DARRAY_SLICEP,
     DARRAY_INDEXP,
@@ -50,16 +47,7 @@ enum RTLSYM
     MEMSETDOUBLE,
     MEMSETSIMD,
     MEMSETN,
-    MODULO,
-    MONITORENTER,
-    MONITOREXIT,
-    CRITICALENTER,
-    CRITICALEXIT,
-    SWITCH_STRING,       // unused
-    SWITCH_USTRING,      // unused
-    SWITCH_DSTRING,      // unused
     DSWITCHERR,
-    DHIDDENFUNC,
     NEWCLASS,
     NEWTHROW,
     NEWARRAYT,
@@ -78,10 +66,8 @@ enum RTLSYM
     ALLOCMEMORY,
     DELARRAYT,
     DELMEMORY,
-    INTERFACE,
     DYNAMIC_CAST,
     INTERFACE_CAST,
-    FATEXIT,
     ARRAYCATT,
     ARRAYCATNTX,
     ARRAYAPPENDT,
@@ -94,19 +80,9 @@ enum RTLSYM
     ARRAYASSIGN,
     ARRAYASSIGN_R,
     ARRAYASSIGN_L,
-    ARRAYCTOR,
     ARRAYSETASSIGN,
-    ARRAYSETCTOR,
-    ARRAYCAST,           // unused
-    ARRAYEQ,             // unused
     ARRAYEQ2,
-    ARRAYCMP,            // unused
-    ARRAYCMP2,           // unused
-    ARRAYCMPCHAR,        // unused
-    OBJ_EQ,              // unused
-    OBJ_CMP,             // unused
 
-    EXCEPT_HANDLER2,
     EXCEPT_HANDLER3,
     CPP_HANDLER,
     D_HANDLER,
@@ -137,8 +113,6 @@ enum RTLSYM
     TRACE_PRO_F,
     TRACE_EPI_N,
     TRACE_EPI_F,
-    TRACE_CPRO,
-    TRACE_CEPI,
 
     TRACENEWCLASS,
     TRACENEWARRAYT,
