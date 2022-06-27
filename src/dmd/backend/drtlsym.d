@@ -121,7 +121,6 @@ Symbol *getRtlsym(RTLSYM i)
         case RTLSYM.MEMSETDOUBLE:           symbolz(ps,FLfunc,FREGSAVED,"_memsetDouble", 0, t); break;
         case RTLSYM.MEMSETSIMD:             symbolz(ps,FLfunc,FREGSAVED,"_memsetSIMD",0, t); break;
         case RTLSYM.MEMSETN:                symbolz(ps,FLfunc,FREGSAVED,"_memsetn",  0, t); break;
-        case RTLSYM.DSWITCHERR:             symbolz(ps,FLfunc,FREGSAVED,"_d_switch_error", SFLexit, t); break;
         case RTLSYM.NEWCLASS:               symbolz(ps,FLfunc,FREGSAVED,"_d_newclass", 0, t); break;
         case RTLSYM.NEWTHROW:               symbolz(ps,FLfunc,FREGSAVED,"_d_newThrowable", 0, t); break;
         case RTLSYM.NEWARRAYT:              symbolz(ps,FLfunc,FREGSAVED,"_d_newarrayT", 0, t); break;
