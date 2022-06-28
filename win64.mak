@@ -1,6 +1,8 @@
-# Makefile to build D runtime library druntime{64,32mscoff}.lib for Windows MSVC
+# Makefile to build D runtime library lib\druntime64.lib for 64 bit Windows and
+# lib\druntime32mscoff.lib for 32 bit Windows. Both are for use with the MSVC toolchain.
 
-# Set this to `32mscoff` for a 32-bit build.
+# Determines whether lib\druntime32mscoff.lib is built or lib\druntime64.lib
+# Set to `32mscoff` for a 32-bit build, `64` for 64-bit build.
 MODEL=64
 
 # Assume MSVC cl.exe in PATH is set up for the target MODEL.
@@ -8,14 +10,20 @@ MODEL=64
 CC=cl
 
 DMD_DIR=..\dmd
+
 BUILD=release
 OS=windows
+
+# The D compiler used to build things
 DMD=$(DMD_DIR)\generated\$(OS)\$(BUILD)\$(MODEL)\dmd
 
 DOCDIR=doc
 IMPDIR=import
 
+# Make program to use. Designed to be run with make.exe which can be obtained from
+# http://downloads.dlang.org/other/dm857c.zip
 MAKE=make
+
 HOST_DMD=dmd
 
 DFLAGS=-m$(MODEL) -conf= -O -release -preview=dip1000 -preview=fieldwise -preview=dtorfields -inline -w -Isrc -Iimport
@@ -52,6 +60,9 @@ copy:
 	"$(MAKE)" -f mak/WINDOWS copy DMD="$(DMD)" HOST_DMD="$(HOST_DMD)" MODEL=$(MODEL) IMPDIR="$(IMPDIR)"
 
 ################### C\ASM Targets ############################
+
+# Although dmd is compiling the .c files, the preprocessor used is cl.exe. The INCLUDE
+# environment variable needs to be set with the path to the VC system include files.
 
 errno_c_$(MODEL).obj: src\core\stdc\errno.c
 	$(DMD) -c -of=$@ $(DFLAGS) -v -P=-I. src\core\stdc\errno.c
