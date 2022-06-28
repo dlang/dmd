@@ -733,9 +733,26 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
         {
             assert(oaggr.type);
 
-            fs.error("invalid `foreach` aggregate `%s` of type `%s`", oaggr.toChars(), oaggr.type.toPrettyChars());
-            if (isAggregate(fs.aggr.type))
-                fs.loc.errorSupplemental("maybe define `opApply()`, range primitives, or use `.tupleof`");
+            fs.error("invalid `%s` aggregate `%s` of type `%s`",
+                Token.toChars(fs.op), oaggr.toChars(), oaggr.type.toPrettyChars());
+
+            if (auto ad = isAggregate(fs.aggr.type))
+            {
+                if (fs.op == TOK.foreach_reverse_)
+                {
+                    fs.loc.errorSupplemental("`foreach_reverse` works with bidirectional ranges"~
+                        " (implementing `back` and `popBack`), aggregates implementing" ~
+                        " `opApplyReverse`, or the result of an aggregate's `.tupleof` property");
+                    fs.loc.errorSupplemental("https://dlang.org/phobos/std_range_primitives.html#isBidirectionalRange");
+                }
+                else
+                {
+                    fs.loc.errorSupplemental("`foreach` works with input ranges"~
+                        " (implementing `front` and `popFront`), aggregates implementing" ~
+                        " `opApply`, or the result of an aggregate's `.tupleof` property");
+                    fs.loc.errorSupplemental("https://dlang.org/phobos/std_range_primitives.html#isInputRange");
+                }
+            }
 
             return setError();
         }
