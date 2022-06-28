@@ -13133,25 +13133,25 @@ bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
 bool checkAddressVar(Scope* sc, Expression exp, VarDeclaration v)
 {
     //printf("checkAddressVar(exp: %s, v: %s)\n", exp.toChars(), v.toChars());
-    if (v)
+    if (v is null)
+        return true;
+
+    if (!v.canTakeAddressOf())
     {
-        if (!v.canTakeAddressOf())
+        exp.error("cannot take address of `%s`", exp.toChars());
+        return false;
+    }
+    if (sc.func && !sc.intypeof && !v.isDataseg())
+    {
+        const(char)* p = v.isParameter() ? "parameter" : "local";
+        v.storage_class &= ~STC.maybescope;
+        v.doNotInferScope = true;
+        if (global.params.useDIP1000 != FeatureState.enabled &&
+            !(v.storage_class & STC.temp) &&
+            sc.setUnsafe())
         {
-            exp.error("cannot take address of `%s`", exp.toChars());
+            exp.error("cannot take address of %s `%s` in `@safe` function `%s`", p, v.toChars(), sc.func.toChars());
             return false;
-        }
-        if (sc.func && !sc.intypeof && !v.isDataseg())
-        {
-            const(char)* p = v.isParameter() ? "parameter" : "local";
-            v.storage_class &= ~STC.maybescope;
-            v.doNotInferScope = true;
-            if (global.params.useDIP1000 != FeatureState.enabled &&
-                !(v.storage_class & STC.temp) &&
-                sc.setUnsafe())
-            {
-                exp.error("cannot take address of %s `%s` in `@safe` function `%s`", p, v.toChars(), sc.func.toChars());
-                return false;
-            }
         }
     }
     return true;
