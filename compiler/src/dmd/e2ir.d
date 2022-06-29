@@ -1304,7 +1304,7 @@ elem* toElem(Expression e, IRState *irs)
         else if (auto taa = t.isTypeAArray())
         {
             Symbol *s = aaGetSymbol(taa, "New", 0);
-            elem *ti = getTypeInfo(ne.loc, taa, irs);
+            elem *ti = getTypeInfo(ne, t, irs);
             // aaNew(ti)
             elem *ep = el_params(ti, null);
             e = el_bin(OPcall, TYnptr, el_var(s), ep);
