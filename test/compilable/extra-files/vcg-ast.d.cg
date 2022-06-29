@@ -1,6 +1,8 @@
 === compilable/vcg-ast.d.cg
 module vcg;
 import object;
+alias xyz = vcg;
+alias named = vcg;
 template Seq(A...)
 {
 	alias Seq = A;
