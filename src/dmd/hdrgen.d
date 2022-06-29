@@ -1449,7 +1449,20 @@ public:
             buf.writestring(" = ");
             if (stcToBuffer(buf, d.storage_class))
                 buf.writeByte(' ');
-            d.aliassym.accept(this);
+            /*
+                https://issues.dlang.org/show_bug.cgi?id=23223
+                https://issues.dlang.org/show_bug.cgi?id=23222
+                This special case (initially just for modules) avoids some segfaults
+                and nicer -vcg-ast output.
+            */
+            if (d.aliassym.isModule())
+            {
+                buf.writestring(d.aliassym.ident.toString());
+            }
+            else
+            {
+                d.aliassym.accept(this);
+            }
         }
         else if (d.type.ty == Tfunction)
         {
