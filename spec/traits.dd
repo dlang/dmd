@@ -1146,11 +1146,13 @@ $(H3 $(GNAME isModule))
         modules even if they have not been directly imported as modules.
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
+import core.thread;
 import std.algorithm.sorting;
 
 // A regular package (no package.d)
-static assert(!__traits(isModule, std));
+static assert(!__traits(isModule, core));
 // A package module (has a package.d file)
 // Note that we haven't imported std.algorithm directly.
 // (In other words, we don't have an "import std.algorithm;" directive.)
@@ -1158,6 +1160,7 @@ static assert(__traits(isModule, std.algorithm));
 // A regular module
 static assert(__traits(isModule, std.algorithm.sorting));
 ---
+)
 
 $(H3 $(GNAME isPackage))
 
