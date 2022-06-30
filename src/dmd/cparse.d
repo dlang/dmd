@@ -4812,6 +4812,8 @@ final class CParser(AST) : Parser!AST
         // type function itself.
         if (auto tf = t.isTypeFunction())
             tf.next = tf.next.addSTC(STC.const_);
+        else if (auto tt = t.isTypeTag())
+            tt.mod |= MODFlags.const_;
         else
             t = t.addSTC(STC.const_);
         return t;

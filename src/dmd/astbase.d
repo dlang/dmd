@@ -3701,6 +3701,7 @@ struct ASTBase
         Dsymbols* members;
 
         Type resolved;
+        MOD mod;
 
         extern (D) this(const ref Loc loc, TOK tok, Identifier id, Dsymbols* members)
         {
@@ -3710,6 +3711,7 @@ struct ASTBase
             this.tok = tok;
             this.id = id;
             this.members = members;
+            this.mod = 0;
         }
 
         override TypeTag syntaxCopy()
