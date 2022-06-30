@@ -3916,6 +3916,8 @@ private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
 
     void visitTag(TypeTag t)
     {
+        if (t.mod & MODFlags.const_)
+            buf.writestring("const ");
         buf.writestring(Token.toChars(t.tok));
         buf.writeByte(' ');
         if (t.id)

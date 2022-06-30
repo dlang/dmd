@@ -3858,6 +3858,7 @@ public:
     Type* base;
     Array<Dsymbol* >* members;
     Type* resolved;
+    uint8_t mod;
     const char* kind() const override;
     TypeTag* syntaxCopy() override;
     void accept(Visitor* v) override;
