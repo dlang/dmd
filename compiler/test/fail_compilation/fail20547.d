@@ -1,11 +1,10 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail20547.d(12): Error: cannot create a `string[string]` with `new`
-fail_compilation/fail20547.d(14): Error: cannot create a `string[string]` with `new`
+fail_compilation/fail20547.d(14): Error: cannot implicitly convert expression `new string[string]` of type `string[string]` to `int[string]`
 ---
 */
-
+#line 9
 void main()
 {
     //https://issues.dlang.org/show_bug.cgi?id=11790
