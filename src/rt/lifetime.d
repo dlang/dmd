@@ -1135,15 +1135,6 @@ extern (C) void* _d_newitemiT(in TypeInfo _ti) pure nothrow @weak
     return p;
 }
 
-/**
- *
- */
-struct Array
-{
-    size_t length;
-    byte*  data;
-}
-
 debug(PRINTF)
 {
     extern(C) void printArrayCache()
