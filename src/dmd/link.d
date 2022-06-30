@@ -1287,7 +1287,7 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
             argv.push("-include");
             argv.push(importc_h);
         }
-        if (target.os == Target.OS.FreeBSD)
+        if (target.os == Target.OS.FreeBSD || target.os == Target.OS.OpenBSD)
             argv.push("-o");                // specify output file
         argv.push(output.xarraydup.ptr);    // and the output
         argv.push(null);                    // argv[] always ends with a null
