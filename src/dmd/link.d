@@ -1269,6 +1269,9 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
                 argv.push(p);
         }
 
+        // Set memory model
+        argv.push(target.is64bit ? "-m64" : "-m32");
+
         // merge #define's with output
         argv.push("-dD");       // https://gcc.gnu.org/onlinedocs/cpp/Invocation.html#index-dD
 
