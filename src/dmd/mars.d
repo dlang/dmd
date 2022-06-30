@@ -2811,7 +2811,7 @@ Module createModule(const(char)* file, ref Strings libmodules, const ref Target 
             return null;
         }
     }
-    if (ext == ddoc_ext)
+    if (FileName.equals(ext, ddoc_ext))
     {
         global.params.ddoc.files.push(file);
         return null;
