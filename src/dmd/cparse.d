@@ -4986,7 +4986,8 @@ final class CParser(AST) : Parser!AST
                 return true;
             }
         }
-        error("C preprocessor directive `#%s` is not supported", n.toChars());
+        if (n.ident != Id.undef)
+            error("C preprocessor directive `#%s` is not supported", n.toChars());
         return false;
     }
 
@@ -5226,12 +5227,34 @@ final class CParser(AST) : Parser!AST
     {
         if (!defines || defines.length < 10)  // minimum length of a #define line
             return;
-        const length = defines.length;
-        defines.writeByte(0);
-        auto slice = defines.peekChars()[0 .. length];
+        OutBuffer* buf = defines;
+        defines = null;                 // prevent skipToNextLine() and parseSpecialTokenSequence()
+                                        // from appending to slice[]
+        const length = buf.length;
+        buf.writeByte(0);
+        auto slice = buf.peekChars()[0 .. length];
         resetDefineLines(slice);                // reset lexer
 
         const(char)* endp = &slice[length - 7];
+
+        size_t[void*] defineTab;    // hash table of #define's turned into Symbol's
+                                    // indexed by Identifier, returns index into symbols[]
+                                    // The memory for this is leaked
+
+        void addVar(AST.VarDeclaration v)
+        {
+            /* If it's already defined, replace the earlier
+             * definition
+             */
+            if (size_t* pd = cast(void*)v.ident in defineTab)
+            {
+                //printf("replacing %s\n", v.toChars());
+                (*symbols)[*pd] = v;
+                return;
+            }
+            defineTab[cast(void*)v.ident] = symbols.length;
+            symbols.push(v);
+        }
 
         Token n;
 
@@ -5271,7 +5294,7 @@ final class CParser(AST) : Parser!AST
                                  */
                                 AST.Expression e = new AST.IntegerExp(scanloc, intvalue, t);
                                 auto v = new AST.VarDeclaration(scanloc, t, id, new AST.ExpInitializer(scanloc, e), STC.manifest);
-                                symbols.push(v);
+                                addVar(v);
                                 nextDefineLine();
                                 continue;
                             }
@@ -5294,7 +5317,7 @@ final class CParser(AST) : Parser!AST
                                  */
                                 AST.Expression e = new AST.RealExp(scanloc, floatvalue, t);
                                 auto v = new AST.VarDeclaration(scanloc, t, id, new AST.ExpInitializer(scanloc, e), STC.manifest);
-                                symbols.push(v);
+                                addVar(v);
                                 nextDefineLine();
                                 continue;
                             }
@@ -5312,7 +5335,7 @@ final class CParser(AST) : Parser!AST
                                  */
                                 AST.Expression e = new AST.StringExp(scanloc, str[0 .. len], len, 1, postfix);
                                 auto v = new AST.VarDeclaration(scanloc, null, id, new AST.ExpInitializer(scanloc, e), STC.manifest);
-                                symbols.push(v);
+                                addVar(v);
                                 nextDefineLine();
                                 continue;
                             }
@@ -5334,6 +5357,8 @@ final class CParser(AST) : Parser!AST
             }
             nextDefineLine();
         }
+
+        defines = buf;
     }
 
     //}
