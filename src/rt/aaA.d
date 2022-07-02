@@ -485,7 +485,13 @@ pure nothrow @nogc unittest
 // API Implementation
 //------------------------------------------------------------------------------
 
-/// Allocate new AA implementation.
+/** Allocate associative array data.
+ * Called for `new SomeAA` expression.
+ * Params:
+ *      ti = TypeInfo for the associative array
+ * Returns:
+ *      A new associative array.
+ */
 extern (C) AA _aaNew(const TypeInfo_AssociativeArray ti)
 {
     AA aa;
