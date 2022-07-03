@@ -718,7 +718,7 @@ extern(C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) /+nothrow+/
     }
 }
 
-package bool hasPostblit(in TypeInfo ti)
+package bool hasPostblit(in TypeInfo ti) nothrow pure
 {
     return (&ti.postblit).funcptr !is &TypeInfo.postblit;
 }

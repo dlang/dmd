@@ -50,7 +50,7 @@ struct AA
 private struct Impl
 {
 private:
-    this(scope const TypeInfo_AssociativeArray ti, size_t sz = INIT_NUM_BUCKETS)
+    this(scope const TypeInfo_AssociativeArray ti, size_t sz = INIT_NUM_BUCKETS) nothrow
     {
         keysz = cast(uint) ti.key.tsize;
         valsz = cast(uint) ti.value.tsize;
@@ -125,7 +125,7 @@ private:
         }
     }
 
-    void grow(scope const TypeInfo keyti)
+    void grow(scope const TypeInfo keyti) pure nothrow
     {
         // If there are so many deleted entries, that growing would push us
         // below the shrink threshold, we just purge deleted entries instead.
@@ -135,7 +135,7 @@ private:
             resize(GROW_FAC * dim);
     }
 
-    void shrink(scope const TypeInfo keyti)
+    void shrink(scope const TypeInfo keyti) pure nothrow
     {
         if (dim > INIT_NUM_BUCKETS)
             resize(dim / GROW_FAC);
@@ -233,7 +233,7 @@ package void entryDtor(void* p, const TypeInfo_Struct sti)
     extra[1].destroy(p + talign(extra[0].tsize, extra[1].talign));
 }
 
-private bool hasDtor(const TypeInfo ti)
+private bool hasDtor(const TypeInfo ti) pure nothrow
 {
     import rt.lifetime : unqualify;
 
@@ -246,7 +246,7 @@ private bool hasDtor(const TypeInfo ti)
     return false;
 }
 
-private immutable(void)* getRTInfo(const TypeInfo ti)
+private immutable(void)* getRTInfo(const TypeInfo ti) pure nothrow
 {
     // classes are references
     const isNoClass = ti && typeid(ti) !is typeid(TypeInfo_Class);
@@ -254,7 +254,7 @@ private immutable(void)* getRTInfo(const TypeInfo ti)
 }
 
 // build type info for Entry with additional key and value fields
-TypeInfo_Struct fakeEntryTI(ref Impl aa, const TypeInfo keyti, const TypeInfo valti)
+TypeInfo_Struct fakeEntryTI(ref Impl aa, const TypeInfo keyti, const TypeInfo valti) nothrow
 {
     import rt.lifetime : unqualify;
 
@@ -319,7 +319,8 @@ TypeInfo_Struct fakeEntryTI(ref Impl aa, const TypeInfo keyti, const TypeInfo va
 }
 
 // build appropriate RTInfo at runtime
-immutable(void)* rtinfoEntry(ref Impl aa, immutable(size_t)* keyinfo, immutable(size_t)* valinfo, size_t* rtinfoData, size_t rtinfoSize)
+immutable(void)* rtinfoEntry(ref Impl aa, immutable(size_t)* keyinfo,
+    immutable(size_t)* valinfo, size_t* rtinfoData, size_t rtinfoSize) pure nothrow
 {
     enum bitsPerWord = 8 * size_t.sizeof;
 
@@ -456,7 +457,7 @@ private size_t mix(size_t h) @safe pure nothrow @nogc
     return h;
 }
 
-private size_t calcHash(scope const void* pkey, scope const TypeInfo keyti)
+private size_t calcHash(scope const void* pkey, scope const TypeInfo keyti) nothrow
 {
     immutable hash = keyti.getHash(pkey);
     // highest bit is set to distinguish empty/deleted from filled buckets
