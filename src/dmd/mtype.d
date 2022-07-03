@@ -4437,15 +4437,7 @@ extern (C++) final class TypeFunction : TypeNext
             // Check escaping through `this`
             if (tthis && tthis.isMutable())
             {
-                auto tb = tthis.toBasetype();
-                AggregateDeclaration ad;
-                if (auto tc = tb.isTypeClass())
-                    ad = tc.sym;
-                else if (auto ts = tb.isTypeStruct())
-                    ad = ts.sym;
-                else
-                    assert(0);
-                foreach (VarDeclaration v; ad.fields)
+                foreach (VarDeclaration v; isAggregate(tthis).fields)
                 {
                     if (v.hasPointers())
                         return stc;
