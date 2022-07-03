@@ -7,10 +7,10 @@ $(HEADERNAV_TOC)
     $(NOTE This document is under construction. Please excuse the dust and noise.)
 
     $(P ImportC is a C compiler embedded into the D implementation.
-    Its purpose is to enable direct importation of C files, without
+    It enables direct importation of C files, without
     needing to manually prepare a D file corresponding to the declarations
-    in the C file. It enables directly compiling C files into modules, and
-    linking them in with D code to form an executable. It can be used
+    in the C file. It directly compiles C files into modules that can be
+    linked in with D code to form an executable. It can be used
     as a C compiler to compile and link 100% C programs.
     )
 
@@ -20,7 +20,7 @@ $(HEADERNAV_TOC)
 
     $(P ImportC and $(LINK2 https://dlang.org/spec/betterc.html, BetterC) are very different.
     ImportC is an actual C compiler. BetterC is a subset of D that relies only on the
-    existence of the C Standard library.)
+    existence of the C Standard library. BetterC code can be linked with ImportC code, too.)
 
 $(H2 $(LNAME2 dialect, ImportC Dialect))
 
@@ -32,23 +32,17 @@ $(H2 $(LNAME2 dialect, ImportC Dialect))
     )
 
     $(P Adjustment to the ImportC dialect is made to match the
-    behavior of the C compiler that the D compiler is matched to
-    i.e. the $(I associated C compiler).
-    For example, on Win32 D is matched to the Digital Mars C compiler,
-    and can be matched to the Visual C compiler using the $(TT -m32mscoff)
-    switch. Win64 D is matched to the Visual C compiler.
-    On Posix targets, the matching C compiler is Gnu C or Clang C.
+    behavior of the C compiler that the D compiler is matched to,
+    i.e. the $(DDSUBLINK glossary, acc, Associated C Compiler).
     )
 
     $(P Further adjustment is made to take advantage of some of the D
     implementation's capabilities.)
 
-    $(P This is all covered in the rest of this document.)
-
 
 $(H2 $(LNAME2 command-line, Invoking ImportC))
 
-    $(P The ImportC compiler can be invoked in two ways:)
+    $(P The ImportC compiler can be invoked:)
 
     $(UL
     $(LI directly via the command line)
@@ -57,8 +51,32 @@ $(H2 $(LNAME2 command-line, Invoking ImportC))
 
     $(H3 $(LNAME2 command-line, ImportC Files on the Command Line))
 
+    $(P ImportC files have one of the extensions `.i`, or `.c`. If no
+    extension is given, `.i` is tried first, then `.c`.
+    )
+
+    $(CONSOLE
+    dmd hello.c
+    )
+
+    $(P will compile `hello.c` with ImportC and link it to create the executable
+    file `hello` (`hello.exe` on Windows) which can be run
+    )
+
+    $(BEST_PRACTICE explicitly use a `.i` or `.c` extension when
+    specifying C files on the command line.)
+
     $(H3 $(LNAME2 importing, Importing C Files))
 
+    $(P Use the D $(GLINK2 module, ImportDeclaration):)
+
+    ---
+    import hello;
+    ---
+
+    $(P which will, if `hello` is not a D file, and has an extension `.i` or `.c`,
+    compile `hello` with ImportC.
+    )
 
 $(H2 $(LNAME2 preprocessor, Preprocessor))
 
