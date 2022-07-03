@@ -407,8 +407,31 @@ alias versionFile = makeRule!((builder, rule) {
     alias contents = memoize!(() {
         if (dmdRepo.buildPath(".git").exists)
         {
+            bool validVersionNumber(string version_)
+            {
+                // ensure tag has initial 'v'
+                if (!version_.length || !version_[0] == 'v')
+                    return false;
+                size_t i = 1;
+                // validate full major version number
+                for (; i < version_.length; i++)
+                {
+                    if ('0' <= version_[i] && version_[i] <= '9')
+                        continue;
+                    else if (version_[i] == '.')
+                        break;
+                    return false;
+                }
+                // ensure tag has point
+                if (i >= version_.length || version_[i++] != '.')
+                    return false;
+                // only validate first digit of minor version number
+                if ('0' > version_[i] || version_[i] > '9')
+                    return false;
+                return true;
+            }
             auto gitResult = tryRun([env["GIT"], "describe", "--dirty"]);
-            if (gitResult.status == 0)
+            if (gitResult.status == 0 && validVersionNumber(gitResult.output))
                 return gitResult.output.strip;
         }
         // version fallback
