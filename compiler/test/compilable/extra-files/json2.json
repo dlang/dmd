@@ -9,7 +9,7 @@
         "importPaths": [
             "compilable",
             "../../druntime/import",
-            "../../phobos"
+            "../../../phobos"
         ],
         "libName": "VALUE_REMOVED_FOR_TEST",
         "libraryFiles": [

@@ -7,4 +7,3 @@ DRUNTIMELIB=druntime64.lib
 test:
 	$(DMD) -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIMELIB) test\uuid\test.d uuid.lib
 	del test.exe test.obj
-

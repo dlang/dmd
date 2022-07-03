@@ -10,4 +10,3 @@ custom_gc:
 	$(DMD) -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIMELIB) test\init_fini\src\custom_gc.d
 	custom_gc.exe
 	del custom_gc.exe custom_gc.obj
-

@@ -37,22 +37,22 @@ REM configure LDC path
 if "%D_COMPILER%" == "ldc" reg add "HKLM\SOFTWARE\LDC" /v InstallationFolder /t REG_SZ /d "%LDC_DIR%" /reg:32 /f
 
 echo [STEP]: Building DMD via VS projects
-cd src
+cd compiler\src
 if "%D_COMPILER%" == "ldc" set LDC_ARGS=%LDC_ARGS% /p:DCompiler=LDC
 msbuild /target:dmd /p:Configuration=%CONFIGURATION% /p:Platform=%PLATFORM% %LDC_ARGS% vcbuild\dmd.sln || exit /B 1
 %DMD% --version
 
 echo [STEP]: Building druntime
-cd "%DMD_DIR%\..\druntime"
+cd "%DMD_DIR%\druntime"
 "%DM_MAKE%" -f win64.mak MODEL=%MODEL% "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "MAKE=%DM_MAKE%" "HOST_DMD=%HOST_DMD%" target || exit /B 2
 
 echo [STEP]: Building phobos
 cd "%DMD_DIR%\..\phobos"
-"%DM_MAKE%" -f win64.mak MODEL=%MODEL% "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "AR=%MSVC_AR%" "MAKE=%DM_MAKE%" || exit /B 3
+"%DM_MAKE%" -f win64.mak MODEL=%MODEL% "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "AR=%MSVC_AR%" "MAKE=%DM_MAKE%" "DRUNTIME=%DMD_DIR%\druntime" || exit /B 3
 
 echo [STEP]: Building run.d testrunner and its tools
 REM needs to be done before tampering with LIB and DFLAGS env variables (affecting the ldmd2 host compiler too)
-cd "%DMD_DIR%\test"
+cd "%DMD_DIR%\compiler\test"
 "%HOST_DMD%" -m%MODEL% -g -i run.d || exit /B 4
 run.exe tools "BUILD=%CONFIGURATION%" "DMD_MODEL=%PLATFORM%" || exit /B 4
 
@@ -77,17 +77,17 @@ if not "%C_RUNTIME%" == "mingw" goto not_mingw
     rem skip runnable_cxx tests (incompatible MSVC runtime versions - 2017 (cl.exe) vs. 2013)
     set DMD_TESTS=runnable compilable fail_compilation dshell unit_tests
     rem FIXME: debug info incomplete when linking through lld-link
-    del test\runnable\testpdb.d
+    del compiler\test\runnable\testpdb.d
 
     set DRUNTIME_TESTS=test_mingw
 :not_mingw
 
 echo [STEP]: Building and running druntime tests
-cd "%DMD_DIR%\..\druntime"
+cd "%DMD_DIR%\druntime"
 "%DM_MAKE%" -f win64.mak MODEL=%MODEL% "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "MAKE=%DM_MAKE%" unittest %DRUNTIME_TESTS% || exit /B 5
 
 echo [STEP]: Running DMD testsuite
-cd "%DMD_DIR%\test"
+cd "%DMD_DIR%\compiler\test"
 set CC=%MSVC_CC%
 run.exe --environment --jobs=%N% %DMD_TESTS% "ARGS=-O -inline -g" "BUILD=%CONFIGURATION%" "DMD_MODEL=%PLATFORM%" || exit /B 6
 
@@ -99,4 +99,4 @@ if "%D_COMPILER%_%MODEL%" == "ldc_64" copy %LDC_DIR%\lib64\libcurl.dll .
 if "%D_COMPILER%_%MODEL%" == "ldc_32mscoff" copy %LDC_DIR%\lib32\libcurl.dll .
 if "%D_COMPILER%_%MODEL%" == "dmd_64" copy %DMD_DIR%\dmd2\windows\bin64\libcurl.dll .
 if "%D_COMPILER%_%MODEL%" == "dmd_32mscoff" copy %DMD_DIR%\dmd2\windows\bin\libcurl.dll .
-"%DM_MAKE%" -f win64.mak MODEL=%MODEL% "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "MAKE=%DM_MAKE%" unittest || exit /B 7
+"%DM_MAKE%" -f win64.mak MODEL=%MODEL% "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "MAKE=%DM_MAKE%" "DRUNTIME=%DMD_DIR%\druntime" unittest || exit /B 7

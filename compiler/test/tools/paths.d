@@ -30,12 +30,13 @@ else version (SunOS)
 else
     static assert(0, "Unrecognized or unsupported OS.");
 
-enum projectRootDir = __FILE_FULL_PATH__.dirName.buildNormalizedPath("..", "..");
+enum projectRootDir = __FILE_FULL_PATH__.dirName.buildNormalizedPath("..", "..", "..");
 enum generatedDir = projectRootDir.buildPath("generated");
 
 enum dmdFilename = "dmd".setExtension(exeExtension);
 
-alias testPath = path => projectRootDir.buildPath("test", path);
+enum compilerRootDir = __FILE_FULL_PATH__.dirName.buildNormalizedPath("..", "..");
+alias testPath = path => compilerRootDir.buildPath("test", path);
 
 string build()
 {

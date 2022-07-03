@@ -95,7 +95,7 @@ setup_repos() {
         git checkout -f FETCH_HEAD
     fi
 
-    for proj in druntime phobos; do
+    for proj in phobos; do
         if [ $base_branch != master ] && [ $base_branch != stable ] &&
             ! git ls-remote --exit-code --heads https://github.com/dlang/$proj.git $base_branch > /dev/null; then
             # use master as fallback for other repos to test feature branches
@@ -114,10 +114,10 @@ coverage()
     local build_path=generated/linux/$BUILD/$MODEL
     local builder=generated/build
 
-    dmd -g -od=generated -of=$builder src/build
+    dmd -g -od=generated -of=$builder compiler/src/build
     # build dmd, druntime, and phobos
     $builder MODEL=$MODEL HOST_DMD=$DMD BUILD=$BUILD all
-    make -j$N -C ../druntime -f posix.mak MODEL=$MODEL BUILD=$BUILD
+    make -j$N -C druntime -f posix.mak MODEL=$MODEL BUILD=$BUILD
     make -j$N -C ../phobos -f posix.mak MODEL=$MODEL BUILD=$BUILD
 
     # save the built dmd as host compiler this time
@@ -134,14 +134,14 @@ coverage()
 
     # FIXME
     # Temporarily the failing long file name test has been removed
-    rm -rf test/compilable/issue17167.sh
+    rm -rf compiler/test/compilable/issue17167.sh
 
     # rebuild dmd with coverage enabled
     $builder MODEL=$MODEL BUILD=$BUILD HOST_DMD=$PWD/_${build_path}/host_dmd ENABLE_COVERAGE=1
 
     cp $build_path/dmd _${build_path}/host_dmd_cov
     $builder MODEL=$MODEL BUILD=$BUILD HOST_DMD=$PWD/_${build_path}/host_dmd ENABLE_COVERAGE=1 unittest
-    _${build_path}/host_dmd -Itest -i -run ./test/run.d -j$N MODEL=$MODEL BUILD=$BUILD ARGS="-O -inline -release" DMD_TEST_COVERAGE=1 HOST_DMD=$PWD/_${build_path}/host_dmd
+    _${build_path}/host_dmd -Icompiler/test -i -run ./compiler/test/run.d -j$N MODEL=$MODEL BUILD=$BUILD ARGS="-O -inline -release" DMD_TEST_COVERAGE=1 HOST_DMD=$PWD/_${build_path}/host_dmd
 }
 
 # Checks that all files have been committed and no temporary, untracked files exist.
@@ -149,13 +149,13 @@ coverage()
 check_clean_git()
 {
     # Restore temporarily removed files
-    git checkout test/compilable/issue17167.sh
+    git checkout compiler/test/compilable/issue17167.sh
     # Remove temporary directory + install script
     rm -rf _generated
     rm -f install.sh
     # auto-removal of these files doesn't work on CirleCi
-    rm -f test/compilable/vcg-ast.d.cg
-    rm -f test/compilable/vcg-ast-arraylength.d.cg
+    rm -f compiler/test/compilable/vcg-ast.d.cg
+    rm -f compiler/test/compilable/vcg-ast-arraylength.d.cg
     # Ensure that there are no untracked changes
     make -f posix.mak check-clean-git
 }
@@ -164,7 +164,7 @@ check_clean_git()
 check_run_individual()
 {
     local build_path=generated/linux/$BUILD/$MODEL
-    "${build_path}/dmd" -I./test -i -run ./test/run.d "BUILD=$BUILD" "MODEL=$MODEL" test/runnable/template2962.d ./test/compilable/test14275.d
+    "${build_path}/dmd" -Icompiler/test -i -run ./compiler/test/run.d "BUILD=$BUILD" "MODEL=$MODEL" compiler/test/runnable/template2962.d ./compiler/test/compilable/test14275.d
 }
 
 # Checks the D build.d script
@@ -173,12 +173,12 @@ check_d_builder()
     echo "Testing D build"
     # load environment for bootstrap compiler
     source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
-    ./src/build.d clean
+    ./compiler/src/build.d clean
     rm -rf generated # just to be sure
     # TODO: add support for 32-bit builds
-    ./src/build.d MODEL=64
+    ./compiler/src/build.d MODEL=64
     ./generated/linux/release/64/dmd --version | grep -v "dirty"
-    ./src/build.d clean
+    ./compiler/src/build.d clean
     deactivate
 }
 
@@ -188,10 +188,10 @@ test_cxx()
     # load environment for bootstrap compiler
     source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
     echo "Test CXX frontend.h header generation"
-    ./src/build.d
-    make -j$N -C ../druntime -f posix.mak MODEL=$MODEL BUILD=$BUILD
+    ./compiler/src/build.d
+    make -j$N -C druntime -f posix.mak MODEL=$MODEL BUILD=$BUILD
     make -j$N -C ../phobos -f posix.mak MODEL=$MODEL BUILD=$BUILD
-    ./src/build.d cxx-headers-test
+    ./compiler/src/build.d cxx-headers-test
     deactivate
 }
 

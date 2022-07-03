@@ -17,7 +17,7 @@ OS=windows
 	$(HOST_DC) -g -of$@ $<
 
 D=dmd
-GEN = ..\generated
+GEN = ..\..\generated
 G = $(GEN)\$(OS)\$(BUILD)\$(MODEL)
 DEPENDENCIES=vcbuild\msvc-lib.exe $G
 

@@ -21,8 +21,9 @@ import std.parallelism : TaskPool, totalCPUs;
 
 const thisBuildScript = __FILE_FULL_PATH__.buildNormalizedPath;
 const srcDir = thisBuildScript.dirName;
-const dmdRepo = srcDir.dirName;
-const testDir = dmdRepo.buildPath("test");
+const compilerDir = srcDir.dirName;
+const dmdRepo = compilerDir.dirName;
+const testDir = compilerDir.buildPath("test");
 
 shared bool verbose; // output verbose logging
 shared bool force; // always build everything (ignores timestamp checking)
@@ -292,7 +293,7 @@ alias lexer = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule 
             extraFlags,
             // source files need to have relative paths in order for the code coverage
             // .lst files to be named properly for CodeCov to find them
-            rule.sources.map!(e => e.relativePath(dmdRepo))
+            rule.sources.map!(e => e.relativePath(compilerDir))
         ).array
     )
 );
@@ -307,7 +308,7 @@ alias dmdConf = makeRule!((builder, rule) {
     {
         enum confFile = "sc.ini";
         enum conf = `[Environment]
-DFLAGS="-I%@P%\..\..\..\..\..\druntime\import" "-I%@P%\..\..\..\..\..\phobos"
+DFLAGS="-I%@P%\..\..\..\..\druntime\import" "-I%@P%\..\..\..\..\..\phobos"
 LIB="%@P%\..\..\..\..\..\phobos"
 
 [Environment32]
@@ -324,10 +325,10 @@ DFLAGS=%DFLAGS% -L/OPT:NOICF
     {
         enum confFile = "dmd.conf";
         enum conf = `[Environment32]
-DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/../../../../../phobos/generated/{OS}/{BUILD}/32{exportDynamic} -fPIC
+DFLAGS=-I%@P%/../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/../../../../../phobos/generated/{OS}/{BUILD}/32{exportDynamic} -fPIC
 
 [Environment64]
-DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/../../../../../phobos/generated/{OS}/{BUILD}/64{exportDynamic} -fPIC
+DFLAGS=-I%@P%/../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/../../../../../phobos/generated/{OS}/{BUILD}/64{exportDynamic} -fPIC
 `;
     }
 
@@ -362,7 +363,7 @@ alias common = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule
 
             // source files need to have relative paths in order for the code coverage
             // .lst files to be named properly for CodeCov to find them
-            rule.sources.map!(e => e.relativePath(dmdRepo))
+            rule.sources.map!(e => e.relativePath(compilerDir))
         ).array)
 );
 
@@ -398,7 +399,7 @@ alias backend = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRul
 
             // source files need to have relative paths in order for the code coverage
             // .lst files to be named properly for CodeCov to find them
-            rule.sources.map!(e => e.relativePath(dmdRepo))
+            rule.sources.map!(e => e.relativePath(compilerDir))
         ).array)
 );
 
@@ -490,7 +491,7 @@ alias dmdExe = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule
             ].chain(extraFlags, platformArgs, flags["DFLAGS"],
                 // source files need to have relative paths in order for the code coverage
                 // .lst files to be named properly for CodeCov to find them
-                rule.sources.map!(e => e.relativePath(dmdRepo))
+                rule.sources.map!(e => e.relativePath(compilerDir))
             ).array);
 });
 
@@ -587,9 +588,9 @@ alias dmdPGO = makeRule!((builder, rule) {
             // Run phobos unittests
             //TODO makefiles
             //generated/linux/release/64/unittest/test_runner builds the unittests without running them.
-            const scope cmd = ["make", "-C", "../phobos", "-j" ~ jobs.to!string, "-fposix.mak", "generated/linux/release/64/unittest/test_runner", "DMD_DIR="~dmdRepo];
+            const scope cmd = ["make", "-C", "../phobos", "-j" ~ jobs.to!string, "-fposix.mak", "generated/linux/release/64/unittest/test_runner", "DMD_DIR="~compilerDir];
             log("%-(%s %)", cmd);
-            if (spawnProcess(cmd, null, Config.init, dmdRepo).wait())
+            if (spawnProcess(cmd, null, Config.init, compilerDir).wait())
                 stderr.writeln("Phobos Tests failed! This will not end the PGO build because some data may have been gathered");
         }));
     alias finalDataMerge = methodInit!(BuildRule, (rundBuilder, rundRule) => rundBuilder
@@ -807,7 +808,7 @@ alias toolsRepo = makeRule!((builder, rule) => builder
         auto toolsDir = env["TOOLS_DIR"];
         version(Win32)
             // Win32-git seems to confuse C:\... as a relative path
-            toolsDir = toolsDir.relativePath(dmdRepo);
+            toolsDir = toolsDir.relativePath(compilerDir);
         run([env["GIT"], "clone", "--depth=1", env["GIT_HOME"] ~ "/tools", toolsDir]);
     })
 );
@@ -893,7 +894,7 @@ alias man = makeRule!((builder, rule) {
     alias genMan = methodInit!(BuildRule, (genManBuilder, genManRule) => genManBuilder
         .target(env["G"].buildPath("gen_man"))
         .sources([
-            dmdRepo.buildPath("docs", "gen_man.d"),
+            compilerDir.buildPath("docs", "gen_man.d"),
             env["D"].buildPath("cli.d")])
         .command([
             env["HOST_DMD_RUN"],
@@ -920,7 +921,7 @@ alias man = makeRule!((builder, rule) {
         "man1/dumpobj.1 man1/obj2asm.1 man5/dmd.conf.5".split
         .map!(e => methodInit!(BuildRule, (manFileBuilder, manFileRule) => manFileBuilder
             .target(genManDir.buildPath(e))
-            .sources([dmdRepo.buildPath("docs", "man", e)])
+            .sources([compilerDir.buildPath("docs", "man", e)])
             .deps([directoryRule(manFileRule.target.dirName)])
             .commandFunction(() => copyAndTouch(manFileRule.sources[0], manFileRule.target))
             .msg("copy '%s' to '%s'".format(manFileRule.sources[0], manFileRule.target))
@@ -1069,17 +1070,17 @@ alias install = makeRule!((builder, rule) {
         installRelativeFiles(env["INSTALL"].buildPath(env["OS"], bin), dmdExeFile.dirName, dmdExeFile.only, octal!755);
 
         version (Windows)
-            installRelativeFiles(env["INSTALL"], dmdRepo, sourceFiles);
+            installRelativeFiles(env["INSTALL"], compilerDir, sourceFiles);
 
         const scPath = buildPath(env["OS"], bin, conf);
-        const iniPath = buildPath(dmdRepo, "ini");
+        const iniPath = buildPath(compilerDir, "ini");
 
         // The sources distributed alongside an official release only include the
         // configuration of the current OS at the root directory instead of the
         // whole `ini` folder in the project root.
         const confPath = iniPath.exists()
                         ? buildPath(iniPath, scPath)
-                        : buildPath(dmdRepo, "..", scPath);
+                        : buildPath(dmdRepo, scPath);
 
         copyAndTouch(confPath, buildPath(env["INSTALL"], scPath));
 
@@ -1258,9 +1259,9 @@ void parseEnvironment()
     else
         enum installPref = "..";
 
-    env.setDefault("INSTALL", environment.get("INSTALL_DIR", dmdRepo.buildPath(installPref, "install")));
+    env.setDefault("INSTALL", environment.get("INSTALL_DIR", compilerDir.buildPath(installPref, "install")));
 
-    env.setDefault("DOCSRC", dmdRepo.buildPath("dlang.org"));
+    env.setDefault("DOCSRC", compilerDir.buildPath("dlang.org"));
     env.setDefault("DOCDIR", srcDir);
     env.setDefault("DOC_OUTPUT_DIR", env["DOCDIR"]);
 
@@ -1272,7 +1273,7 @@ void parseEnvironment()
     auto generated = env["GENERATED"] = dmdRepo.buildPath("generated");
     auto g = env["G"] = generated.buildPath(os, build, model);
     mkdirRecurse(g);
-    env.setDefault("TOOLS_DIR", dmdRepo.dirName.buildPath("tools"));
+    env.setDefault("TOOLS_DIR", compilerDir.dirName.buildPath("tools"));
 
     auto hostDmdDef = env.getDefault("HOST_DMD", null);
     if (hostDmdDef.length == 0)
@@ -2243,7 +2244,7 @@ class BuildException : Exception
 The directory where all run commands are executed from.  All relative file paths
 in a `run` command must be relative to `runDir`.
 */
-alias runDir = dmdRepo;
+alias runDir = compilerDir;
 
 /**
 Run a command which may not succeed and optionally log the invocation.

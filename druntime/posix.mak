@@ -5,9 +5,9 @@
 
 QUIET:=
 
-DMD_DIR=../dmd
+DMD_DIR=../compiler
 DUB=dub
-TOOLS_DIR=../tools
+TOOLS_DIR=../../tools
 
 include $(DMD_DIR)/src/osmodel.mak
 
@@ -25,8 +25,8 @@ ifneq ($(BUILD),release)
     endif
 endif
 
-DMD=$(DMD_DIR)/generated/$(OS)/$(BUILD)/$(MODEL)/dmd
-INSTALL_DIR=../install
+DMD=$(DMD_DIR)/../generated/$(OS)/$(BUILD)/$(MODEL)/dmd
+INSTALL_DIR=../../install
 
 # directory where the html files for the documentation are placed
 DOC_OUTPUT_DIR=doc
@@ -88,7 +88,7 @@ endif
 UTFLAGS:=-version=CoreUnittest -unittest -checkaction=context
 
 # Set PHOBOS_DFLAGS (for linking against Phobos)
-PHOBOS_PATH=../phobos
+PHOBOS_PATH=../../phobos
 SHARED=$(if $(findstring $(OS),linux freebsd),1,)
 ROOT_DIR := $(shell pwd)
 PHOBOS_DFLAGS=-conf= $(MODEL_FLAG) -I$(ROOT_DIR)/import -I$(PHOBOS_PATH) -L-L$(PHOBOS_PATH)/generated/$(OS)/$(BUILD)/$(MODEL) $(PIC)
@@ -96,7 +96,7 @@ ifeq (1,$(SHARED))
 PHOBOS_DFLAGS+=-defaultlib=libphobos2.so -L-rpath=$(PHOBOS_PATH)/generated/$(OS)/$(BUILD)/$(MODEL)
 endif
 
-ROOT_OF_THEM_ALL = generated
+ROOT_OF_THEM_ALL = ../generated
 ROOT = $(ROOT_OF_THEM_ALL)/$(OS)/$(BUILD)/$(MODEL)
 OBJDIR=obj/$(OS)/$(BUILD)/$(MODEL)
 DRUNTIME_BASE=druntime-$(OS)$(MODEL)

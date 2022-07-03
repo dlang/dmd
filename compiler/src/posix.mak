@@ -68,7 +68,7 @@ endif
 INSTALL_DIR=../../install
 D = dmd
 
-GENERATED = ../generated
+GENERATED = ../../generated
 G = $(GENERATED)/$(OS)/$(BUILD)/$(MODEL)
 $(shell mkdir -p $G)
 

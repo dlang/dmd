@@ -61,10 +61,10 @@ private struct CallbackHelper {
 
 int main()
 {
-    auto dmdParentDir = dirName(dirName(dirName(__FILE_FULL_PATH__)));
+    auto dmdParentDir = dirName(dirName(dirName(dirName(__FILE_FULL_PATH__))));
     global.path = new Strings();
     global.path.push((dmdParentDir ~ "/phobos").ptr);
-    global.path.push((dmdParentDir ~ "/druntime/import").ptr);
+    global.path.push((dmdParentDir ~ "/dmd/druntime/import").ptr);
 
     /* comment for error output in parsing & semantic */
     diagnosticHandler = (const ref Loc location,

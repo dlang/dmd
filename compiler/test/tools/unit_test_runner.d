@@ -239,7 +239,7 @@ void writeRunnerFile(Range)(Range moduleNames, string path, string filter)
         .joiner(",\n")
         .to!string;
 
-    const content = format!codeTemplate(imports, modules, format!`"%s"`(filter), projectRootDir);
+    const content = format!codeTemplate(imports, modules, format!`"%s"`(filter), compilerRootDir);
     write(path, content);
 }
 
@@ -269,7 +269,7 @@ string[] buildCmdArgs(string runnerPath, string outputPath, const string[] testF
         "-of" ~ outputPath,
         "-m" ~ model
     ],
-        testFiles.map!(f => relativePath(f, projectRootDir)),
+        testFiles.map!(f => relativePath(f, compilerRootDir)),
         [ runnerPath ]
     ).array;
 
@@ -339,7 +339,7 @@ int main(string[] args)
     const flags = buildCmdArgs(runnerPath, outputPath, testFiles);
     write(cmdfilePath, flags.join("\n"));
 
-    const dmd = execute([ dmdPath, "@" ~ cmdfilePath ], null, Config.none, size_t.max, projectRootDir);
+    const dmd = execute([ dmdPath, "@" ~ cmdfilePath ], null, Config.none, size_t.max, compilerRootDir);
     if (dmd.status)
     {
         enum msg = "Failed to compile the `unit` test executable! (exit code %d)

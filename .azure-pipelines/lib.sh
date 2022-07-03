@@ -89,7 +89,7 @@ clone_repos() {
         local REPO_BRANCH="$SYSTEM_PULLREQUEST_TARGETBRANCH"
     fi
 
-    for proj in druntime phobos; do
+    for proj in phobos; do
         if [ "$REPO_BRANCH" != master ] && [ "$REPO_BRANCH" != stable ] &&
                 ! git ls-remote --exit-code --heads "https://github.com/dlang/$proj.git" "$REPO_BRANCH" > /dev/null; then
             # use master as fallback for other repos to test feature branches

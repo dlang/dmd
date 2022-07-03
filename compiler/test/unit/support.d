@@ -22,7 +22,7 @@ string[] defaultImportPaths()
 
     enum dlangDir = __FILE_FULL_PATH__.dirName.buildNormalizedPath("..", "..", "..");
     enum druntimeDir = dlangDir.buildPath("druntime", "import");
-    enum phobosDir = dlangDir.buildPath("phobos");
+    enum phobosDir = dlangDir.buildPath("..", "phobos");
 
     return [
         environment.get("DRUNTIME_PATH", druntimeDir),

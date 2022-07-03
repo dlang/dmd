@@ -4,10 +4,10 @@
 # Ignored, only the default value is supported
 #MODEL=32omf
 
-DMD_DIR=..\dmd
+DMD_DIR=..\compiler
 BUILD=release
 OS=windows
-DMD=$(DMD_DIR)\generated\$(OS)\$(BUILD)\32\dmd
+DMD=$(DMD_DIR)\..\generated\$(OS)\$(BUILD)\32\dmd
 
 # Used for running MASM assembler on .asm files
 CC=dmc

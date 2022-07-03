@@ -9,13 +9,13 @@ MODEL=64
 # Otherwise set it explicitly, e.g., to `C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\bin\Hostx86\x86\cl.exe`.
 CC=cl
 
-DMD_DIR=..\dmd
+DMD_DIR=..\compiler
 
 BUILD=release
 OS=windows
 
 # The D compiler used to build things
-DMD=$(DMD_DIR)\generated\$(OS)\$(BUILD)\$(MODEL)\dmd
+DMD=$(DMD_DIR)\..\generated\$(OS)\$(BUILD)\$(MODEL)\dmd
 
 DOCDIR=doc
 IMPDIR=import

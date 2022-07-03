@@ -529,7 +529,7 @@ string[string] getEnvironment()
         env["DSEP"] = `\\`;
         env["SEP"] = `\`;
         auto druntimePath = environment.get("DRUNTIME_PATH", testPath(`..\..\druntime`));
-        auto phobosPath = environment.get("PHOBOS_PATH", testPath(`..\..\phobos`));
+        auto phobosPath = environment.get("PHOBOS_PATH", testPath(`..\..\..\phobos`));
         env["DFLAGS"] = `-I"%s\import" -I"%s"`.format(druntimePath, phobosPath);
         env["LIB"] = phobosPath ~ ";" ~ environment.get("LIB");
     }
@@ -540,7 +540,7 @@ string[string] getEnvironment()
         env["DSEP"] = "/";
         env["SEP"] = "/";
         auto druntimePath = environment.get("DRUNTIME_PATH", testPath(`../../druntime`));
-        auto phobosPath = environment.get("PHOBOS_PATH", testPath(`../../phobos`));
+        auto phobosPath = environment.get("PHOBOS_PATH", testPath(`../../../phobos`));
 
         // default to PIC, use PIC=1/0 to en-/disable PIC.
         // Note that shared libraries and C files are always compiled with PIC.

@@ -48,31 +48,31 @@ ifeq ($(findstring win,$(OS)),win)
     PIC?=0
 
     DRUNTIME_PATH=..\..\druntime
-    PHOBOS_PATH=..\..\phobos
+    PHOBOS_PATH=..\..\..\phobos
     export DFLAGS=-I$(DRUNTIME_PATH)\import -I$(PHOBOS_PATH)
     export LIB=$(PHOBOS_PATH)
 
     # auto-tester might run the testsuite with a different $(MODEL) than DMD
     # has been compiled with. Hence we manually check which binary exists.
     # For windows the $(OS) during build is: `windows`
-    ifeq (,$(wildcard ../generated/windows/$(BUILD)/64/dmd$(EXE)))
+    ifeq (,$(wildcard ../../generated/windows/$(BUILD)/64/dmd$(EXE)))
         DMD_MODEL=32
     else
         DMD_MODEL=64
     endif
-    export DMD=../generated/windows/$(BUILD)/$(DMD_MODEL)/dmd$(EXE)
+    export DMD=../../generated/windows/$(BUILD)/$(DMD_MODEL)/dmd$(EXE)
 
 else
     export EXE=
 
     # auto-tester might run the testsuite with a different $(MODEL) than DMD
     # has been compiled with. Hence we manually check which binary exists.
-    ifeq (,$(wildcard ../generated/$(OS)/$(BUILD)/64/dmd))
+    ifeq (,$(wildcard ../../generated/$(OS)/$(BUILD)/64/dmd))
         DMD_MODEL=32
     else
         DMD_MODEL=64
     endif
-    export DMD=../generated/$(OS)/$(BUILD)/$(DMD_MODEL)/dmd
+    export DMD=../../generated/$(OS)/$(BUILD)/$(DMD_MODEL)/dmd
 
     # default to PIC, use PIC=1/0 to en-/disable PIC.
     # Note that shared libraries and C files are always compiled with PIC.
@@ -86,7 +86,7 @@ else
     endif
 
     DRUNTIME_PATH=../../druntime
-    PHOBOS_PATH=../../phobos
+    PHOBOS_PATH=../../../phobos
     # link against shared libraries (defaults to true on supported platforms, can be overridden w/ make SHARED=0)
     SHARED=$(if $(findstring $(OS),linux freebsd),1,)
     DFLAGS=-I$(DRUNTIME_PATH)/import -I$(PHOBOS_PATH) -L-L$(PHOBOS_PATH)/generated/$(OS)/$(BUILD)/$(MODEL)

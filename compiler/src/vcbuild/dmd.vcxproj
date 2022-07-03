@@ -112,32 +112,32 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>..\..\generated\Windows\$(Configuration)\$(PlatformName)\</OutDir>
+    <OutDir>..\..\..\generated\Windows\$(Configuration)\$(PlatformName)\</OutDir>
     <IntDir>$(OutDir)\dmd\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>..\..\generated\Windows\$(Configuration)\$(PlatformName)\</OutDir>
+    <OutDir>..\..\..\generated\Windows\$(Configuration)\$(PlatformName)\</OutDir>
     <IntDir>$(OutDir)\dmd\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>..\..\generated\Windows\$(Configuration)\$(PlatformName)\</OutDir>
+    <OutDir>..\..\..\generated\Windows\$(Configuration)\$(PlatformName)\</OutDir>
     <IntDir>$(OutDir)\dmd\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithAsserts|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>..\..\generated\Windows\$(Configuration)\$(PlatformName)\</OutDir>
+    <OutDir>..\..\..\generated\Windows\$(Configuration)\$(PlatformName)\</OutDir>
     <IntDir>$(OutDir)\dmd\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>..\..\generated\Windows\$(Configuration)\$(PlatformName)\</OutDir>
+    <OutDir>..\..\..\generated\Windows\$(Configuration)\$(PlatformName)\</OutDir>
     <IntDir>$(OutDir)\dmd\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithAsserts|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>..\..\generated\Windows\$(Configuration)\$(PlatformName)\</OutDir>
+    <OutDir>..\..\..\generated\Windows\$(Configuration)\$(PlatformName)\</OutDir>
     <IntDir>$(OutDir)\dmd\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -316,9 +316,9 @@
     <ClInclude Include="../dmd/**/*.h" />
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\..\VERSION">
-      <Message>Creating VERSION: $(_rdmdExe) ..\..\config.d $(OutDir) ..\..\VERSION</Message>
-      <Command>$(_rdmdExe) ..\..\config.d $(OutDir) ..\..\VERSION</Command>
+    <CustomBuild Include="..\..\..\VERSION">
+      <Message>Creating VERSION: $(_rdmdExe) ..\..\..\config.d $(OutDir) ..\..\..\VERSION</Message>
+      <Command>$(_rdmdExe) ..\..\..\config.d $(OutDir) ..\..\..\VERSION</Command>
       <Outputs>$(OutDir)VERSION;%(Outputs)</Outputs>
     </CustomBuild>
   </ItemGroup>

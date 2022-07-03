@@ -49,7 +49,7 @@ OS=windows
 D=dmd
 
 # Generated files directory
-GEN = ..\generated
+GEN = ..\..\generated
 G = $(GEN)\$(OS)\$(BUILD)\$(MODEL)
 
 ##### Tools
