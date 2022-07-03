@@ -485,6 +485,20 @@ pure nothrow @nogc unittest
 // API Implementation
 //------------------------------------------------------------------------------
 
+/** Allocate associative array data.
+ * Called for `new SomeAA` expression.
+ * Params:
+ *      ti = TypeInfo for the associative array
+ * Returns:
+ *      A new associative array.
+ */
+extern (C) AA _aaNew(const TypeInfo_AssociativeArray ti)
+{
+    AA aa;
+    aa.impl = new Impl(ti);
+    return aa;
+}
+
 /// Determine number of entries in associative array.
 extern (C) size_t _aaLen(scope const AA aa) pure nothrow @nogc
 {
