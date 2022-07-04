@@ -3765,6 +3765,7 @@ private size_t getArrayHash(const scope TypeInfo element, const scope void* ptr,
     if (!is(const(T) : T))
 {
     import core.internal.traits : Unconst;
+    import core.internal.array.duplication : _dup;
     static assert(is(T : Unconst!T), "Cannot implicitly convert type "~T.stringof~
                   " to "~Unconst!T.stringof~" in dup.");
 
@@ -3786,6 +3787,7 @@ private size_t getArrayHash(const scope TypeInfo element, const scope void* ptr,
 @property T[] dup(T)(const(T)[] a)
     if (is(const(T) : T))
 {
+    import core.internal.array.duplication : _dup;
     return _dup!(const(T), T)(a);
 }
 
@@ -3793,6 +3795,7 @@ private size_t getArrayHash(const scope TypeInfo element, const scope void* ptr,
 /// Provide the .idup array property.
 @property immutable(T)[] idup(T)(T[] a)
 {
+    import core.internal.array.duplication : _dup;
     static assert(is(T : immutable(T)), "Cannot implicitly convert type "~T.stringof~
                   " to immutable in idup.");
     return _dup!(T, immutable(T))(a);
@@ -3811,58 +3814,6 @@ private size_t getArrayHash(const scope TypeInfo element, const scope void* ptr,
     string s = arr.idup;
     arr[0] = '.';
     assert(s == "abc");
-}
-
-private U[] _dup(T, U)(scope T[] a) pure nothrow @trusted if (__traits(isPOD, T))
-{
-    if (__ctfe)
-        return _dupCtfe!(T, U)(a);
-
-    import core.stdc.string : memcpy;
-    auto arr = _d_newarrayU(typeid(T[]), a.length);
-    memcpy(arr.ptr, cast(const(void)*) a.ptr, T.sizeof * a.length);
-    return *cast(U[]*) &arr;
-}
-
-private U[] _dupCtfe(T, U)(scope T[] a)
-{
-    static if (is(T : void))
-        assert(0, "Cannot dup a void[] array at compile time.");
-    else
-    {
-        U[] res;
-        foreach (ref e; a)
-            res ~= e;
-        return res;
-    }
-}
-
-private U[] _dup(T, U)(T[] a) if (!__traits(isPOD, T))
-{
-    // note: copyEmplace is `@system` inside a `@trusted` block, so the __ctfe branch
-    // has the extra duty to infer _dup `@system` when the copy-constructor is `@system`.
-    if (__ctfe)
-        return _dupCtfe!(T, U)(a);
-
-    import core.lifetime: copyEmplace;
-    U[] res = () @trusted {
-        auto arr = cast(U*) _d_newarrayU(typeid(T[]), a.length);
-        size_t i;
-        scope (failure)
-        {
-            import core.internal.lifetime: emplaceInitializer;
-            // Initialize all remaining elements to not destruct garbage
-            foreach (j; i .. a.length)
-                emplaceInitializer(cast() arr[j]);
-        }
-        for (; i < a.length; i++)
-        {
-            copyEmplace(a.ptr[i], arr[i]);
-        }
-        return cast(U[])(arr[0..a.length]);
-    } ();
-
-    return res;
 }
 
 // HACK:  This is a lie.  `_d_arraysetcapacity` is neither `nothrow` nor `pure`, but this lie is
@@ -4051,8 +4002,6 @@ auto ref inout(T[]) assumeSafeAppend(T)(auto ref inout(T[]) arr) nothrow @system
     assert(is(typeof(a3) == int[]));
     assert(is(typeof(b3) == immutable(int[])));
 }
-
-private extern (C) void[] _d_newarrayU(const scope TypeInfo ti, size_t length) pure nothrow;
 
 private void _doPostblit(T)(T[] arr)
 {
