@@ -123,6 +123,18 @@ private const(char)[] cppCommand()
         {
             return "sppn.exe";
         }
+        // Perhaps we are cross-compiling.
+        return "cpp";
     }
-    return "cpp";
+    else version (OpenBSD)
+    {
+        // On OpenBSD, we need to use the actual binary /usr/libexec/cpp
+        // rather than the shell script wrapper /usr/bin/cpp ...
+        // Turns out the shell script doesn't really understand -o
+        return "/usr/libexec/cpp";
+    }
+    else
+    {
+        return "cpp";
+    }
 }
