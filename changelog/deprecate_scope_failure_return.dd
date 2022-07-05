@@ -1,0 +1,23 @@
+`scope(failure)` blocks that contain `return` statements are now deprecated
+
+Starting with this release, having a `return` statement in the body of a `scope(failure)`
+statement is deprecated. Having the ability to `return` from such blocks is error prone since currently, Errors are also handled by `scope(failure)`. This leads to the following situation:
+
+---
+ulong get () @safe nothrow
+{
+    scope (failure) return 10;
+    throw new Error("");
+}
+
+void main () @safe
+{
+    assert(get() == 10);  // passes
+}
+---
+
+where an error is circumvented by a return. If a return is indeed desired
+in such situations, then the solution is to simply use a try-catch block
+for the function body.
+
+Note: `scope(exit)` and `scope(success)` already present this restriction.
