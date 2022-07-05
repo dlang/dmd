@@ -4,8 +4,6 @@ $(SPEC_S ImportC,
 
 $(HEADERNAV_TOC)
 
-    $(NOTE This document is under construction. Please excuse the dust and noise.)
-
     $(P ImportC is a C compiler embedded into the D implementation.
     It enables direct importation of C files, without
     needing to manually prepare a D file corresponding to the declarations
@@ -14,13 +12,60 @@ $(HEADERNAV_TOC)
     as a C compiler to compile and link 100% C programs.
     )
 
-    $(P This is not a C reference manual nor programming tutorial.
-    It describes the specifics of the dialect of C that
-    ImportC is, and how to use it effectively.)
-
-    $(P ImportC and $(LINK2 https://dlang.org/spec/betterc.html, BetterC) are very different.
+    $(NOTE ImportC and $(LINK2 https://dlang.org/spec/betterc.html, BetterC) are very different.
     ImportC is an actual C compiler. BetterC is a subset of D that relies only on the
     existence of the C Standard library. BetterC code can be linked with ImportC code, too.)
+
+$(H2 $(LNAME2 examples, Quick Examples))
+
+    $(P C code in file $(TT hello.c):)
+
+    $(CCODE
+    #include <stdio.h>
+    int main()
+    {
+        printf("hello world\n");
+        return 0;
+    }
+    )
+
+    $(P Compile and run:)
+
+    $(CONSOLE
+    dmd hello.c
+    ./hello
+    hello world
+    )
+
+    $(P C function in file $(TT square.c):)
+
+    $(CCODE
+    int square(int i)
+    {
+        return i * i;
+    }
+    )
+
+    $(P D program in file $(TT demo.d):)
+
+    ---
+    import std.stdio;
+    import square;
+    void main()
+    {
+        int i = 7;
+        writefln("The square of %s is %s", i, square(i));
+    }
+    ---
+
+    $(P Compile and run:)
+
+    $(CONSOLE
+    dmd demo.d square.c
+    ./demo
+    The square of 7 is 49
+    )
+
 
 $(H2 $(LNAME2 dialect, ImportC Dialect))
 
@@ -38,6 +83,10 @@ $(H2 $(LNAME2 dialect, ImportC Dialect))
 
     $(P Further adjustment is made to take advantage of some of the D
     implementation's capabilities.)
+
+    $(NOTE: This is not a C reference manual nor programming tutorial.
+    It describes the specifics of the dialect of C that
+    ImportC is, and how to use it effectively.)
 
 
 $(H2 $(LNAME2 command-line, Invoking ImportC))
