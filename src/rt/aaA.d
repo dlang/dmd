@@ -493,11 +493,9 @@ pure nothrow @nogc unittest
  * Returns:
  *      A new associative array.
  */
-extern (C) AA _aaNew(const TypeInfo_AssociativeArray ti)
+extern (C) Impl* _aaNew(const TypeInfo_AssociativeArray ti)
 {
-    AA aa;
-    aa.impl = new Impl(ti);
-    return aa;
+    return new Impl(ti);
 }
 
 /// Determine number of entries in associative array.
@@ -751,7 +749,15 @@ extern (C) int _aaApply2(AA aa, const size_t keysz, dg2_t dg)
     return 0;
 }
 
-/// Construct an associative array of type ti from keys and value
+/** Construct an associative array of type ti from corresponding keys and values.
+ * Called for an AA literal `[k1:v1, k2:v2]`.
+ * Params:
+ *      ti = TypeInfo for the associative array
+ *      keys = array of keys
+ *      vals = array of values
+ * Returns:
+ *      A new associative array opaque pointer, or null if `keys` is empty.
+ */
 extern (C) Impl* _d_assocarrayliteralTX(const TypeInfo_AssociativeArray ti, void[] keys,
     void[] vals)
 {
