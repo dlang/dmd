@@ -3,21 +3,22 @@ REQUIRED_ARGS: -w -o-
 
 TEST_OUTPUT:
 ---
-fail_compilation/noreturn.d(39): Error: `"Accessed expression of type `noreturn`"`
-fail_compilation/noreturn.d(43):        called from here: `assign()`
-fail_compilation/noreturn.d(50): Error: `"Accessed expression of type `noreturn`"`
-fail_compilation/noreturn.d(50):        called from here: `foo(n)`
-fail_compilation/noreturn.d(54):        called from here: `calling()`
-fail_compilation/noreturn.d(60): Error: `"Accessed expression of type `noreturn`"`
-fail_compilation/noreturn.d(63):        called from here: `nested()`
-fail_compilation/noreturn.d(73): Deprecation: `n` has no effect
-fail_compilation/noreturn.d(69): Error: `"Accessed expression of type `noreturn`"`
-fail_compilation/noreturn.d(79):        called from here: `casting(0)`
+fail_compilation/noreturn.d(40): Error: `"Accessed expression of type `noreturn`"`
+fail_compilation/noreturn.d(44):        called from here: `assign()`
+fail_compilation/noreturn.d(51): Error: `"Accessed expression of type `noreturn`"`
+fail_compilation/noreturn.d(51):        called from here: `foo(n)`
+fail_compilation/noreturn.d(55):        called from here: `calling()`
+fail_compilation/noreturn.d(61): Error: `"Accessed expression of type `noreturn`"`
+fail_compilation/noreturn.d(64):        called from here: `nested()`
 fail_compilation/noreturn.d(70): Error: `"Accessed expression of type `noreturn`"`
-fail_compilation/noreturn.d(80):        called from here: `casting(1)`
-fail_compilation/noreturn.d(73): Error: `"Accessed expression of type `noreturn`"`
-fail_compilation/noreturn.d(81):        called from here: `casting(2)`
-fail_compilation/noreturn.d(121): Error: uncaught CTFE exception `object.Exception("")`
+fail_compilation/noreturn.d(80):        called from here: `casting(0)`
+fail_compilation/noreturn.d(71): Error: `"Accessed expression of type `noreturn`"`
+fail_compilation/noreturn.d(81):        called from here: `casting(1)`
+fail_compilation/noreturn.d(74): Error: `"Accessed expression of type `noreturn`"`
+fail_compilation/noreturn.d(82):        called from here: `casting(2)`
+fail_compilation/noreturn.d(122): Error: uncaught CTFE exception `object.Exception("")`
+fail_compilation/noreturn.d(127): Error: `"Accessed expression of type `noreturn`"`
+fail_compilation/noreturn.d(130):        called from here: `func()`
 ---
 https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1034.md
 */
@@ -120,16 +121,6 @@ enum forceInClassRef = inClassRef();
 
 enum throwEnum = throw new Exception("");
 
-
-/*
-https://issues.dlang.org/show_bug.cgi?id=23063
-
-TEST_OUTPUT:
----
-fail_compilation/noreturn.d(135): Error: `"Accessed expression of type `noreturn`"`
-fail_compilation/noreturn.d(138):        called from here: `func()`
----
-*/
 noreturn func()
 {
     noreturn a;

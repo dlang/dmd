@@ -4,11 +4,6 @@ RUN_OUTPUT:
 ---
 getAndPrintS
 ---
-
-TEST_OUTPUT:
----
-runnable/noreturn2.d(142): Deprecation: `a` has no effect
----
 */
 
 import core.stdc.stdio;
