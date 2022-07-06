@@ -867,6 +867,8 @@ extern (C++) class FuncDeclaration : Declaration
             auto f = s.isFuncDeclaration();
             if (!f)
                 return 0;
+            if (f.storage_class & STC.disable)
+                return 0;
             if (t.equals(f.type))
             {
                 fd = f;
