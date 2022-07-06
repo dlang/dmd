@@ -362,6 +362,7 @@ FLOAT  Four;
 FLOAT  Five;
 FLOAT  Eight;
 FLOAT  Nine;
+FLOAT  Ten;
 FLOAT  TwentySeven;
 FLOAT  ThirtyTwo;
 FLOAT  TwoForty;
@@ -458,6 +459,7 @@ int  main()
 	Five = Four + One;
 	Eight = Four + Four;
 	Nine = Three * Three;
+	Ten = Five * Two;
 	TwentySeven = Nine * Three;
 	ThirtyTwo = Four * Eight;
 	TwoForty = Four * Five * Three * Four;
@@ -627,7 +629,7 @@ void part2(){
 	else  printf("MYSTERY: recalculated Radix = "), printFLOAT("%.7e", Radix), printf(" .\n");
 	TstCond (Defect, Radix <= Eight + Eight,
 		   "Radix is too big: roundoff problems");
-	TstCond (Flaw, (Radix == Two) || (Radix == 10)
+	TstCond (Flaw, (Radix == Two) || (Radix == Ten)
 		   || (Radix == One), "Radix is not as good as 2 or 10");
 	/*=============================================*/
 	Milestone = 20;
@@ -723,7 +725,7 @@ void part2(){
 					Q = - LOG(X);
 					printf("Some subexpressions appear to be calculated extra\n");
 					printf("precisely with about "); printFLOAT("%g", Q / LOG(Radix)); printf(" extra B-digits, i.e.\n");
-					printf("roughly "); printFLOAT("%g", Q / LOG(10)); printf(" extra significant decimals.\n");
+					printf("roughly "); printFLOAT("%g", Q / LOG(Ten)); printf(" extra significant decimals.\n");
 					}
 				printf("That feature is not tested further by this program.\n");
 				}
