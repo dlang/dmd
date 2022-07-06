@@ -2914,7 +2914,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
                 }
 
                 // @@@DEPRECATED_2.111@@@
-                uint olderrors = global.startGagging();
+                const olderrors = global.startGagging();
                 // uncomment to turn deprecation into an error when
                 // deprecation cycle is over
                 if (discardValue(rs.exp))
