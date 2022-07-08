@@ -8900,6 +8900,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if ((t1.ty != Tstruct && t1.ty != Tclass && e2x.checkValue()) ||
                 e2x.checkSharedAccess(sc))
                 return setError();
+
+            if (e2x.type.isTypeNoreturn() && !e2x.isAssertExp() && !e2x.isThrowExp() && !e2x.isCallExp())
+            {
+                auto msg = new StringExp(e2x.loc, "Accessed expression of type `noreturn`");
+                msg.type = Type.tstring;
+                e2x = new AssertExp(e2x.loc, IntegerExp.literal!0, msg);
+                e2x.type = Type.tnoreturn;
+                return setResult(e2x);
+            }
             exp.e2 = e2x;
         }
 
