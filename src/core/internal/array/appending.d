@@ -34,22 +34,8 @@ template _d_arrayappendcTXImpl(Tarr : T[], T)
     *   purity, and throwabilty checks. To prevent breaking existing code, this function template
     *   is temporarily declared `@trusted pure` until the implementation can be brought up to modern D expectations.
      */
-    static if (isCopyingNothrow!T) // `nothrow` deduction doesn't work, so this is needed
-        ref Tarr _d_arrayappendcTX(return ref scope Tarr px, size_t n) @trusted pure nothrow
-        {
-            pragma(inline, false);
-
-            mixin(_d_arrayappendcTXBody);
-        }
-    else
-        ref Tarr _d_arrayappendcTX(return ref scope Tarr px, size_t n) @trusted pure nothrow
-        {
-            pragma(inline, false);
-
-            mixin(_d_arrayappendcTXBody);
-        }
-
-    private enum _d_arrayappendcTXBody = q{
+    ref Tarr _d_arrayappendcTX(return ref scope Tarr px, size_t n) @trusted pure nothrow
+    {
         version (D_TypeInfo)
         {
             auto ti = typeid(Tarr);
@@ -64,7 +50,7 @@ template _d_arrayappendcTXImpl(Tarr : T[], T)
         }
         else
             assert(0, "Cannot append arrays if compiling without support for runtime type information!");
-    };
+    }
 
     /**
      * TraceGC wrapper around $(REF _d_arrayappendcTX, rt,array,appending,_d_arrayappendcTXImpl).
