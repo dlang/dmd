@@ -49,6 +49,7 @@ SRCS=\
 	src\core\internal\array\casting.d \
 	src\core\internal\array\capacity.d \
 	src\core\internal\array\concatenation.d \
+	src\core\internal\array\duplication.d \
 	src\core\internal\array\operations.d \
 	src\core\internal\array\utils.d \
 	\
