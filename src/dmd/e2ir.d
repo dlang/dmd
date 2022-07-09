@@ -5256,7 +5256,7 @@ elem *callfunc(const ref Loc loc,
 
     const ty = fd ? toSymbol(fd).Stype.Tty : ec.Ety;
     const left_to_right = tyrevfunc(ty);   // left-to-right parameter evaluation
-                                           // (TYnpfunc, TYjfunc, TYfpfunc, TYf16func)
+                                           // (TYnpfunc, TYfpfunc, TYf16func)
     elem* ep = null;
     const op = fd ? intrinsic_op(fd) : NotIntrinsic;
 
@@ -5435,11 +5435,9 @@ elem *callfunc(const ref Loc loc,
         {
             if (ep)
             {
-                /* // BUG: implement
-                if (left_to_right && type_mangle(tfunc) == mTYman_cpp)
+                if (left_to_right)
                     ep = el_param(ehidden,ep);
                 else
-                */
                     ep = el_param(ep,ehidden);
             }
             else
@@ -5521,7 +5519,12 @@ elem *callfunc(const ref Loc loc,
 
     ep = el_param(ep, ethis2 ? ethis2 : ethis);
     if (ehidden)
-        ep = el_param(ep, ehidden);     // if ehidden goes last
+    {
+        if (left_to_right)
+            ep = el_param(ehidden,ep);
+        else
+            ep = el_param(ep,ehidden);
+    }
 
     const tyret = totym(tret);
 
@@ -5543,16 +5546,10 @@ elem *callfunc(const ref Loc loc,
             }
             if (op == OPscale)
             {
-                elem *et = e.EV.E1;
-                e.EV.E1 = el_una(OPs32_d, TYdouble, e.EV.E2);
-                e.EV.E1 = el_una(OPd_ld, TYldouble, e.EV.E1);
-                e.EV.E2 = et;
-            }
-            else if (op == OPyl2x || op == OPyl2xp1)
-            {
-                elem *et = e.EV.E1;
-                e.EV.E1 = e.EV.E2;
-                e.EV.E2 = et;
+                elem *et = e.EV.E2;
+                e.EV.E2 = el_una(OPs32_d, TYdouble, e.EV.E1);
+                e.EV.E2 = el_una(OPd_ld, TYldouble, e.EV.E2);
+                e.EV.E1 = et;
             }
         }
         else if (op == OPvector)
@@ -6872,21 +6869,10 @@ elem* constructVa_start(elem* e)
 
     e.Eoper = OPva_start;
     e.Ety = TYvoid;
-    if (target.is64bit)
-    {
-        // (OPparam &va &arg)
-        // call as (OPva_start &va)
-        auto earg = e.EV.E2;
-        e.EV.E2 = null;
-        return el_combine(earg, e);
-    }
-    else // 32 bit
-    {
-        // (OPparam &arg &va)  note arguments are swapped from 64 bit path
-        // call as (OPva_start &va)
-        auto earg = e.EV.E1;
-        e.EV.E1 = e.EV.E2;
-        e.EV.E2 = null;
-        return el_combine(earg, e);
-    }
+    // (OPparam &arg &va)
+    // call as (OPva_start &va)
+    auto earg = e.EV.E1;
+    e.EV.E1 = e.EV.E2;
+    e.EV.E2 = null;
+    return el_combine(earg, e);
 }
