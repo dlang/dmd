@@ -1348,6 +1348,7 @@ void cddiv(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
     code cs = void;
     cs.Iflags = 0;
+    cs.IFL2 = 0;
     cs.Irex = 0;
 
     switch (e2.Eoper)

@@ -85,7 +85,7 @@ class C : Object
 	}
 	invariant
 	{
-		this.__invariant1() , this.__invariant2();
+		this.__invariant0() , this.__invariant1();
 	}
 }
 enum __c_wchar_t : dchar;

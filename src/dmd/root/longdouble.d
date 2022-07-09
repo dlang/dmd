@@ -156,6 +156,7 @@ nothrow @nogc pure:
             static if      (op == "+") return longdouble_soft(rhs).ld_add(this);
             else static if (op == "-") return longdouble_soft(rhs).ld_sub(this);
             else static if (op == "*") return longdouble_soft(rhs).ld_mul(this);
+            else static if (op == "/") return longdouble_soft(rhs).ld_div(this);
             else static if (op == "%") return longdouble_soft(rhs).ld_mod(this);
             else static assert(false, "Operator `"~op~"` is not implemented");
         }

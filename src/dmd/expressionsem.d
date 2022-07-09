@@ -9896,9 +9896,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 ae.e2.type.nextOf &&
                 ae.e1.type.nextOf.mutableOf.equals(ae.e2.type.nextOf.mutableOf);
 
+            /* Unlike isArrayCtor above, lower all Rvalues. If the RHS is a literal,
+             * then we do want to make a temporary for it and call its destructor.
+             */
             const isArraySetCtor =
                 (ae.e1.isSliceExp || ae.e1.type.ty == Tsarray) &&
-                ae.e2.isLvalue &&
                 (ae.e2.type.ty == Tstruct || ae.e2.type.ty == Tsarray) &&
                 ae.e1.type.nextOf &&
                 ae.e1.type.nextOf.equivalent(ae.e2.type);
@@ -12638,7 +12640,7 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
                     e = new CommaExp(exp.loc, eleft, e);
                     e.type = Type.tvoid; // ambiguous type?
                 }
-                return e;
+                return e.expressionSemantic(sc);
             }
             if (auto o = s.isOverloadSet())
             {

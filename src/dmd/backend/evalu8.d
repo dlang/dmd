@@ -984,6 +984,10 @@ static if (0)
                         case TYdouble_alias:
                             e.EV.Vdouble = e1.EV.Vdouble / e2.EV.Vdouble;
                             break;
+                        case TYldouble:
+                            // cast is required because Vldouble is a soft type on windows
+                            e.EV.Vdouble = cast(double)(e1.EV.Vdouble / e2.EV.Vldouble);
+                            break;
                         case TYidouble:
                             e.EV.Vdouble = -e1.EV.Vdouble / e2.EV.Vdouble;
                             break;

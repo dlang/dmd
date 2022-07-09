@@ -237,7 +237,7 @@ public:
                     auto e1 = doInlineAs!Expression(ifs.ifbody, ids);
                     assert(ids.foundReturn);
                     auto e2 = doInlineAs!Expression(s3, ids);
-
+                    assert(e2);
                     Expression e = new CondExp(econd.loc, econd, e1, e2);
                     e.type = e1.type;
                     if (e.type.ty == Ttuple)
@@ -250,6 +250,7 @@ public:
                 }
                 else
                 {
+                    ids.foundReturn = false;
                     auto e = doInlineAs!Expression(sx, ids);
                     result = Expression.combine(result, e);
                 }
@@ -375,6 +376,7 @@ public:
 
     override void visit(ImportStatement s)
     {
+        //printf("ImportStatement.doInlineAs!%s()\n", Result.stringof.ptr);
     }
 
     override void visit(ForStatement s)
