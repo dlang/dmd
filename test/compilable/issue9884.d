@@ -22,4 +22,14 @@ struct Foo
     }
 }
 
+__gshared const(int)[] data2;
+
+pragma(crt_constructor)
+extern(C) void initialize()
+{
+    data2 = new int[10];
+    foreach (ref x; data2) x = 1;
+    data2[] = 1;
+}
+
 void main() {}

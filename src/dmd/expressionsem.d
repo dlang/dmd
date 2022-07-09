@@ -5205,6 +5205,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = Expression.combine(de, result);
             result = result.expressionSemantic(sc);
         }
+
+        if (exp.f && exp.f.isCrtConstructor() && sc.func.setUnsafe())
+        {
+            exp.error("cannot call `crt_constructor` function `%s` in `@safe` code", exp.f.toChars());
+            return setError();
+        }
+
     }
 
     override void visit(DeclarationExp e)
@@ -7117,6 +7124,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             ce.e1 = ce.e1.expressionSemantic(sc);
             ce.e2.type = null;
             ce.e2 = ce.e2.expressionSemantic(sc);
+        }
+
+        if (auto ve = exp.e1.isVarExp())
+        {
+            auto fd = ve.var.isFuncDeclaration();
+            if (fd && fd.isCrtConstructor() && sc.func.setUnsafe())
+            {
+                exp.error("cannot take address of `crt_constructor` function `%s` in `@safe` code", fd.toChars());
+                return setError();
+            }
         }
         result = exp.optimize(WANTvalue);
     }
@@ -9592,7 +9609,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (exp.op == EXP.assign && !tn.isMutable() &&
                 // allow modifiation in module ctor, see
                 // https://issues.dlang.org/show_bug.cgi?id=9884
-                (!fun || (fun && !fun.isStaticCtorDeclaration())))
+                (!fun || (fun && !(fun.isStaticCtorDeclaration() || fun.isCrtConstructor()))))
             {
                 exp.error("slice `%s` is not mutable", se.toChars());
                 return setError();
