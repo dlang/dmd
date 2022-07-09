@@ -1,0 +1,41 @@
+fix Issue 18119 - Allow code that may allocate inside __ctfe condition branches in @nogc functions
+
+The following conditions are now recognized as a specialization during compile-time.
+
+---
+if (__ctfe)
+{
+}
+
+if (!__ctfe)
+{
+}
+---
+
+Where any code inside the CTFE branch that can be evaluated at compile-time is now permissible
+in @nogc functions regardless of whether an allocation would occur or not during runtime.
+
+The following is an example of a function that benefits from this enhancement taken from druntime.
+
+---
+@trusted pure nothrow
+const(ubyte)[] toUbyte(T)(T[] arr)
+    if ((is(typeof(toUbyte(arr[0])) == const(ubyte)[])) && (T.sizeof > 1))
+{
+    if (__ctfe)
+    {
+        const(ubyte)[] ret;
+        foreach (cur; arr)
+        {
+            ret ~= toUbyte(cur);
+        }
+        return ret;
+    }
+    else
+    {
+        return (cast(const(ubyte)*)(arr.ptr))[0 .. T.sizeof*arr.length];
+    }
+}
+---
+
+With this change, it can now be marked as `@nogc`.

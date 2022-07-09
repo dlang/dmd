@@ -1949,13 +1949,34 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
         // Save 'root' of two branches (then and else) at the point where it forks
         CtorFlow ctorflow_root = scd.ctorflow.clone();
 
+        // Recognize if (__ctfe) as a special form condition and allow allocations
+        // in @nogc functions if we're in a __ctfe branch.
+        if (VarExp ve = ifs.condition.isVarExp())
+        {
+            if (ve.var && ve.var.ident == Id.ctfe)
+                scd.flags |= SCOPE.ctfe;
+        }
         ifs.ifbody = ifs.ifbody.semanticNoScope(scd);
         scd.pop();
 
         CtorFlow ctorflow_then = sc.ctorflow;   // move flow results
         sc.ctorflow = ctorflow_root;            // reset flow analysis back to root
         if (ifs.elsebody)
-            ifs.elsebody = ifs.elsebody.semanticScope(sc, null, null, null);
+        {
+            Scope *sce = sc.push();
+            // Recognize if (!__ctfe) as a special form condition and allow allocations
+            // in @nogc functions if we're in a __ctfe branch.
+            if (ifs.condition.op == EXP.not)
+            {
+                if (VarExp ve = ifs.condition.isUnaExp().e1.isVarExp())
+                {
+                    if (ve.var && ve.var.ident == Id.ctfe)
+                        sce.flags |= SCOPE.ctfe;
+                }
+            }
+            ifs.elsebody = ifs.elsebody.semanticNoScope(sce);
+            sce.pop();
+        }
 
         // Merge 'then' results into 'else' results
         sc.merge(ifs.loc, ctorflow_then);
