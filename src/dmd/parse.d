@@ -2434,6 +2434,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 error(loc, "use `static ~this()` to declare a static destructor");
             else if (ss == (STC.shared_ | STC.static_))
                 error(loc, "use `shared static ~this()` to declare a shared static destructor");
+            else if (ss == AST.STC.shared_)
+                error(loc, "destructor cannot be shared");
         }
 
         auto f = new AST.DtorDeclaration(loc, Loc.initial, stc, Id.dtor);

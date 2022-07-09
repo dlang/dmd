@@ -2673,24 +2673,33 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
         /* For constructors, qualifier check will be opposite direction.
          * Qualified constructor always makes qualified object, then will be checked
          * that it is implicitly convertible to tthis.
+         *
+         * For destructors, the shared qualifier is stripped from the object.
          */
         Type tthis_fd = fd.needThis() ? tthis : null;
         bool isCtorCall = tthis_fd && fd.isCtorDeclaration();
-        if (isCtorCall)
+        if (tthis_fd)
         {
-            //printf("%s tf.mod = x%x tthis_fd.mod = x%x %d\n", tf.toChars(),
-            //        tf.mod, tthis_fd.mod, fd.isReturnIsolated());
-            if (MODimplicitConv(tf.mod, tthis_fd.mod) ||
-                tf.isWild() && tf.isShared() == tthis_fd.isShared() ||
-                fd.isReturnIsolated())
+            if (isCtorCall)
             {
-                /* && tf.isShared() == tthis_fd.isShared()*/
-                // Uniquely constructed object can ignore shared qualifier.
-                // TODO: Is this appropriate?
-                tthis_fd = null;
+                //printf("%s tf.mod = x%x tthis_fd.mod = x%x %d\n", tf.toChars(),
+                //        tf.mod, tthis_fd.mod, fd.isReturnIsolated());
+                if (MODimplicitConv(tf.mod, tthis_fd.mod) ||
+                    tf.isWild() && tf.isShared() == tthis_fd.isShared() ||
+                    fd.isReturnIsolated())
+                {
+                    /* && tf.isShared() == tthis_fd.isShared()*/
+                    // Uniquely constructed object can ignore shared qualifier.
+                    // TODO: Is this appropriate?
+                    tthis_fd = null;
+                }
+                else
+                    return 0;   // MATCH.nomatch
             }
-            else
-                return 0;   // MATCH.nomatch
+            else if (fd.isDtorDeclaration() && tthis_fd.isShared())
+            {
+                tthis_fd = tthis_fd.unSharedOf();
+            }
         }
         /* Fix Issue 17970:
            If a struct is declared as shared the dtor is automatically
