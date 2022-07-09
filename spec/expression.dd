@@ -1955,26 +1955,48 @@ $(GNAME FunctionLiteralBody2):
 
 $(H4 $(LNAME2 lambda-type-inference, Type Inference))
 
-    $(P If $(D function) or $(D delegate) is omitted,
-        it is inferred to be `delegate` if accessing
-        variables in enclosing functions, otherwise `function` is inferred.
+    $(P If a literal omits $(D function) or $(D delegate) and there's no
+        expected type from the context, then
+        it is inferred to be a delegate if it accesses a
+        variable in an enclosing function, otherwise it is a function pointer.
         )
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         -------------
-        int abc(int delegate(int i));
-        int def(uint function(uint s));
+        void test()
+        {
+            int b = 3;
+
+            auto fp = (uint c) { return c * 2; }; // inferred as function pointer
+            auto dg = (int c) { return 6 + b; }; // inferred as delegate
+
+            static assert(!is(typeof(fp) == delegate));
+            static assert(is(typeof(dg) == delegate));
+        }
+        -------------
+        )
+    $(P If a delegate is expected, the literal will be inferred as a delegate
+        even if it accesses no variables from an enclosing function:)
+
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        -------------
+        void abc(int delegate(int i)) {}
+        void def(uint function(uint s)) {}
 
         void test()
         {
             int b = 3;
 
             abc( (int c) { return 6 + b; } );  // inferred as delegate
+            abc( (int c) { return c * 2; } );  // inferred as delegate
+
             def( (uint c) { return c * 2; } ); // inferred as function
             //def( (uint c) { return c * b; } );  // error!
             // Because the FunctionLiteral accesses b, its type
             // is inferred as delegate. But def cannot accept a delegate argument.
         }
         -------------
+        )
 
     $(P If the type of a function literal can be uniquely determined from its context,
         parameter type inference is possible.)
@@ -1985,26 +2007,35 @@ $(H4 $(LNAME2 lambda-type-inference, Type Inference))
         void test()
         {
             int function(int) fp = (n) { return n * 2; };
-            // The type of parameter n is inferred to int.
+            // The type of parameter n is inferred as int.
 
             foo((n) { return n * 2; });
-            // The type of parameter n is inferred to int.
+            // The type of parameter n is inferred as int.
         }
         -------------
 
         ---
-        auto fp1 = function (i) { return 1; }; // error, cannot infer type of `i`
+        auto fp = (i) { return 1; }; // error, cannot infer type of `i`
         ---
 
-    $(P If the function literal is assigned to an alias, the inference
+    $(P If a function literal is
+        $(DDSUBLINK spec/declaration, alias, aliased), the inference
         of the parameter types is done when the types are needed, as
-        the function literal becomes a template.)
+        the function literal becomes a
+        $(DDSUBLINK spec/template, function-templates, template).)
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
-        alias fp3 = function (i) { return 1; };   // ok, infer type of `i` when used
-        int j = fp3(4);       // `i` is inferred as `int` here
-        double d = fp3(10.3); // `i` is inferred as `double` here
+        alias fpt = (i) { return i; }; // ok, infer type of `i` when used
+        //auto fpt(T)(T i) { return i; } // equivalent
+
+        auto v = fpt(4);    // `i` is inferred as int
+        auto d = fpt(10.3); // `i` is inferred as double
+
+        alias fp = fpt!float;
+        auto f = fp(0); // f is a float
         ---
+        )
 
 $(H4 $(LNAME2 lambda-short-syntax, Short Syntax))
 
