@@ -604,10 +604,21 @@ extern (C++) final class Module : Package
     {
         if (FileName.equals(srcfile.toString(), "object.d"))
         {
-            .error(loc, "cannot find source code for runtime library file 'object.d'");
-            errorSupplemental(loc, "dmd might not be correctly installed. Run 'dmd -man' for installation instructions.");
-            const dmdConfFile = global.inifilename.length ? FileName.canonicalName(global.inifilename) : "not found";
-            errorSupplemental(loc, "config file: %.*s", cast(int)dmdConfFile.length, dmdConfFile.ptr);
+            error("cannot find source code for runtime library file `object.d`.");
+            /* errorSupplemental("DMD might not be correctly installed. Run 'dmd -man' for installation instructions."); */
+            if (global.inifilename.length)
+            {
+                const dmdConfFile = FileName.canonicalName(global.inifilename);
+                errorSupplemental(loc, "Perhaps add an include path using `-I` or into the config file (`%.*s`)",
+                        cast(int)dmdConfFile.length,
+                        dmdConfFile.ptr);
+            }
+            else
+            {
+                errorSupplemental(loc, "There is no config file. Perhaps add one or add an include path using `-I`.");
+            }
+            if (global.path)
+                errorSupplemental(loc, "Currently, the compiler search on the following include paths:");
         }
         else if (FileName.ext(this.arg) || !loc.isValid())
         {
@@ -624,28 +635,34 @@ extern (C++) final class Module : Package
                 .error(loc, "importing package '%s' requires a 'package.d' file which cannot be found in '%s'", toChars(), srcfile.toChars());
             else
             {
-                .error(loc, "unable to read module `%s`", toChars());
+                error("unable to read module `%s`", toChars());
                 const pkgfile = FileName.combine(FileName.removeExt(srcfile.toString()), package_d);
-                .errorSupplemental(loc, "Expected '%s' or '%s' in one of the following import paths:",
+                .errorSupplemental(loc,
+                    global.path
+                        ? "Expected '%s' or '%s' in one of the following import paths:"
+                        : "Expected '%s' or '%s' in the import paths.",
                     srcfile.toChars(), pkgfile.ptr);
             }
         }
-        if (!global.gag)
-        {
-            /* Print path
-             */
-            if (global.path)
-            {
-                foreach (i, p; *global.path)
-                    fprintf(stderr, "import path[%llu] = %s\n", cast(ulong)i, p);
-            }
-            else
-            {
-                fprintf(stderr, "Specify path to file '%s' with -I switch\n", srcfile.toChars());
-            }
 
-            removeHdrFilesAndFail(global.params, Module.amodules);
+        /* Print path
+         */
+        if (global.path)
+        {
+            foreach (idx, path; *global.path)
+            {
+                const attr = FileName.exists(path);
+                const(char)* err = attr == 2 ? "" :
+                    (attr == 1 ? " (not a directory)" : " (path not found)");
+                .errorSupplemental(loc, "[%llu]: `%s`%s", cast(ulong)idx, path, err);
+            }
         }
+        else
+        {
+            .errorSupplemental(loc, "Specify the import path for file `%s` with -I switch.", srcfile.toChars());
+        }
+        if (!global.gag)
+            removeHdrFilesAndFail(global.params, Module.amodules);
     }
 
     /**
