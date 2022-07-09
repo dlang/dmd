@@ -697,3 +697,19 @@ int i;
 _Static_assert( sizeof (s).x == sizeof(int), "" );
 _Static_assert( sizeof (fn)() == sizeof(int), "" );
 _Static_assert( sizeof (i)++ == sizeof(int), "" );
+
+// https://issues.dlang.org/show_bug.cgi?id=23143
+
+enum E1;
+
+enum E1 {
+    m3,
+    m4 = m3
+};
+
+typedef enum E2 T1;
+
+enum E2 {
+    m1,
+    m2 = m1
+};

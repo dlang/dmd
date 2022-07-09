@@ -25,7 +25,6 @@ fail_compilation/failcstuff1.c(260): Error: identifier or `(` expected
 fail_compilation/failcstuff1.c(301): Error: illegal type combination
 fail_compilation/failcstuff1.c(352): Error: found `2` when expecting `:`
 fail_compilation/failcstuff1.c(352): Error: found `:` instead of statement
-fail_compilation/failcstuff1.c(400): Error: `enum ENUM` has no members
 fail_compilation/failcstuff1.c(450): Error: static array parameters are not supported
 fail_compilation/failcstuff1.c(450): Error: static or type qualifier used in non-outermost array type derivation
 fail_compilation/failcstuff1.c(451): Error: static or type qualifier used in non-outermost array type derivation
