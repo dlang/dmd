@@ -223,7 +223,7 @@ jobs:
       shell: powershell
       run: |
         $url = "http://ftp.digitalmars.com/Digital_Mars_C++/Patch/dm857c.zip"
-        $sha256hash = "3034016E02057618F1C6E33B9B3EACAE5F5BE25B203025BCC08F1C5D9340AE38"
+        $sha256hash = "F51CDFEB45EAF4FFBF7ABF0FE9B3D548B202B4528401005C2C3192B00BC32367"
         Write-Host ('Downloading {0} ...' -f $url)
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
         $ProgressPreference = 'SilentlyContinue'
