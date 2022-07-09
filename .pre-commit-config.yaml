@@ -5,14 +5,14 @@ repos:
   - id: trailing-whitespace
     exclude: >
       (?x)^(
-        ^test/runnable/extra-files/.*$|
-        ^test/compilable/extra-files/.*$|
+        ^compiler/test/runnable/extra-files/.*$|
+        ^compiler/test/compilable/extra-files/.*$|
       )$
   - id: end-of-file-fixer
     exclude: >
       (?x)^(
-        ^test/runnable/extra-files/.*$|
-        ^test/compilable/extra-files/.*$|
+        ^compiler/test/runnable/extra-files/.*$|
+        ^compiler/test/compilable/extra-files/.*$|
       )$
   - id: check-merge-conflict
   - id: check-added-large-files
