@@ -71,6 +71,7 @@ import dmd.common.outbuffer;
 import dmd.root.rootobject;
 import dmd.semantic2;
 import dmd.semantic3;
+import dmd.staticcond;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
@@ -573,7 +574,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     TemplatePrevious* previous;
 
     private Expression lastConstraint; /// the constraint after the last failed evaluation
-    private Array!Expression lastConstraintNegs; /// its negative parts
+    private Array!ConstraintFailResult lastConstraintNegs; /// its negative parts (raw, evaluated)
     private Objects* lastConstraintTiargs; /// template instance arguments for `lastConstraint`
 
     extern (D) this(const ref Loc loc, Identifier ident, TemplateParameters* parameters, Expression constraint, Dsymbols* decldefs, bool ismixin = false, bool literal = false)
@@ -887,8 +888,6 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         lastConstraintTiargs = ti.tiargs;
         lastConstraintNegs.setDim(0);
 
-        import dmd.staticcond;
-
         assert(ti.inst is null);
         ti.inst = ti; // temporary instantiation to enable genIdent()
         bool errors;
@@ -915,8 +914,6 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
      */
     const(char)* getConstraintEvalError(ref const(char)* tip)
     {
-        import dmd.staticcond;
-
         // there will be a full tree view in verbose mode, and more compact list in the usual
         const full = global.params.verbose;
         uint count;

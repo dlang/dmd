@@ -1,0 +1,38 @@
+Library authors can now provide error messages for template constraint failures
+
+Constraints like `isInputRange` can now return a custom struct that casts to
+`bool` and defines a `toString` method. When the expression evaluates to false,
+(returns false in the opCast) the toString method is evaluated and printed with
+the template error message when a constraint does not match.
+
+---
+// test.d
+struct ConstraintInfo {
+	bool matches;
+	string errorMessage;
+
+	bool opCast() const { return matches; }
+	string toString() const { return errorMessage; }
+}
+
+enum ConstraintInfo isSmallEnough(T) = ConstraintInfo(T.sizeof <= 4,
+	T.stringof ~ " must be smaller or equal than 4 bytes, but is "
+		~ T.sizeof.stringof ~ " bytes large");
+
+void foo(T)(T arg) if (isSmallEnough!T) {}
+
+void main() {
+	foo(4);
+	foo(long(4));
+}
+---
+
+now results in:
+
+---
+test.d(18): Error: template `test.foo` cannot deduce function from argument types `!()(long)`
+test.d(14):        Candidate is: `foo(T)(T arg)`
+  with `T = long`
+  must satisfy the following constraint:
+`       isSmallEnough!T: long must be smaller or equal than 4 bytes, but is 8LU bytes large
+---
