@@ -1355,6 +1355,10 @@ extern (C++) class FuncDeclaration : Declaration
             (!isMember() || sc.func.isSafeBypassingInference() && !isInstantiated()))
             return true;
 
+        // Private functions get their attributes inferred
+        if (this.prot.kind == Prot.Kind.private_)
+            return true;
+
         if (isFuncLiteralDeclaration() ||               // externs are not possible with literals
             (storage_class & STC.inference) ||           // do attribute inference
             (inferRetType && !isCtorDeclaration()))
