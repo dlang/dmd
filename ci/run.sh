@@ -140,7 +140,7 @@ test_dub_package() {
         done
         popd
         # Test rdmd build
-        "${build_path}/dmd" -version=NoBackend -version=GC -version=NoMain -Jgenerated/dub -Jsrc/dmd/res -Isrc -i -run test/dub_package/frontend.d
+        "${build_path}/dmd" -version=NoBackend -version=GC -version=NoMain -Jgenerated/dub -Jcompiler/src/dmd/res -Icompiler/src -i -run compiler/test/dub_package/frontend.d
     fi
     deactivate
 }
