@@ -5800,13 +5800,6 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
 
     // Get the instantiating module from the scope minst
     tempinst.minst = sc.minst;
-    // https://issues.dlang.org/show_bug.cgi?id=10920
-    // If the enclosing function is non-root symbol,
-    // this instance should be speculative.
-    if (!tempinst.tinst && sc.func && sc.func.inNonRoot())
-    {
-        tempinst.minst = null;
-    }
 
     tempinst.gagged = (global.gag > 0);
 
@@ -5966,7 +5959,10 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
                 override void visit(Dsymbol d)
                 {
                     if (d._scope)
+                    {
+                        d._scope.tinst = inst;
                         d._scope.minst = inst.minst;
+                    }
                 }
 
                 override void visit(ScopeDsymbol sds)
