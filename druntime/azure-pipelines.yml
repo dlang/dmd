@@ -1,0 +1,111 @@
+# Learn more: https://aka.ms/yaml
+
+variables:
+  VSINSTALLDIR: C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\
+
+jobs:
+  - job: Windows
+    timeoutInMinutes: 60
+    pool:
+      vmImage: 'windows-2019'
+    variables:
+      D_COMPILER: dmd
+      HOST_DMD_VERSION: LATEST
+    strategy:
+      matrix:
+        x64:
+          OS: Win_64
+          MODEL: 64
+          ARCH: x64
+        x86-OMF:
+          OS: Win_32
+          MODEL: 32omf
+          ARCH: x86
+    steps:
+      - checkout: self
+        fetchDepth: 1
+      - script: set
+        displayName: Print environment variables
+      - script: systeminfo
+        displayName: Print system info
+      - task: CopyFiles@2
+        inputs:
+          sourceFolder: '$(Build.SourcesDirectory)'
+          contents: '**/*'
+          TargetFolder: '$(Build.SourcesDirectory)/../druntime'
+      - bash: |
+          set -ex
+          if [ -z ${SYSTEM_PULLREQUEST_TARGETBRANCH+x} ]; then
+              # no PR
+              DMD_BRANCH="$BUILD_SOURCEBRANCHNAME"
+          elif [ $SYSTEM_PULLREQUEST_ISFORK == False ]; then
+              # PR originating from the official dlang repo
+              DMD_BRANCH="$SYSTEM_PULLREQUEST_SOURCEBRANCH"
+          else
+              # PR from a fork
+              DMD_BRANCH="$SYSTEM_PULLREQUEST_TARGETBRANCH"
+          fi
+          if [ "$DMD_BRANCH" != master ] && [ "$DMD_BRANCH" != stable ] &&
+             ! git ls-remote --exit-code --heads "https://github.com/dlang/dmd.git" "$DMD_BRANCH" > /dev/null; then
+            DMD_BRANCH="master"
+          fi
+          git clone --branch "$DMD_BRANCH" --depth 1 https://github.com/dlang/dmd.git ../dmd
+        displayName: Clone DMD repo
+      - script: |
+          call "%VSINSTALLDIR%\VC\Auxiliary\Build\vcvarsall.bat" %ARCH%
+          cd ../dmd && sh --login .azure-pipelines/windows.sh
+        displayName: Build and test
+
+  - job: Windows_VisualD
+    timeoutInMinutes: 60
+    pool:
+      vmImage: 'windows-2019'
+    variables:
+      D_COMPILER: ldc
+      VISUALD_VER: v0.49.0
+      LDC_VERSION: 1.23.0
+    strategy:
+      matrix:
+        x86-mscoff:
+          OS: Win_32
+          MODEL: 32mscoff
+          ARCH: x86
+        x86-mscoff_MinGW:
+          OS: Win_32
+          MODEL: 32mscoff
+          ARCH: x86
+          C_RUNTIME: mingw
+    steps:
+      - checkout: self
+        fetchDepth: 1
+      - script: set
+        displayName: Print environment variables
+      - script: systeminfo
+        displayName: Print system info
+      - task: CopyFiles@2
+        inputs:
+          sourceFolder: '$(Build.SourcesDirectory)'
+          contents: '**/*'
+          TargetFolder: '$(Build.SourcesDirectory)/../druntime'
+      - bash: |
+          set -ex
+          if [ -z ${SYSTEM_PULLREQUEST_TARGETBRANCH+x} ]; then
+              # no PR
+              DMD_BRANCH="$BUILD_SOURCEBRANCHNAME"
+          elif [ $SYSTEM_PULLREQUEST_ISFORK == False ]; then
+              # PR originating from the official dlang repo
+              DMD_BRANCH="$SYSTEM_PULLREQUEST_SOURCEBRANCH"
+          else
+              # PR from a fork
+              DMD_BRANCH="$SYSTEM_PULLREQUEST_TARGETBRANCH"
+          fi
+          if [ "$DMD_BRANCH" != master ] && [ "$DMD_BRANCH" != stable ] &&
+             ! git ls-remote --exit-code --heads "https://github.com/dlang/dmd.git" "$DMD_BRANCH" > /dev/null; then
+            DMD_BRANCH="master"
+          fi
+          git clone --branch "$DMD_BRANCH" --depth 1 https://github.com/dlang/dmd.git ../dmd
+        displayName: Clone DMD repo
+      - script: cd ../dmd && sh --login .azure-pipelines/windows-visual-studio.sh
+        displayName: Download required binaries
+      - script: cd ../dmd && call .azure-pipelines/windows-msbuild.bat
+        displayName: Build and test

@@ -1,0 +1,48 @@
+# Documentation: https://docs.codecov.io/docs/codecov-yaml
+
+codecov:
+  notify:
+    # We don't want to wait for the CodeCov report
+    # See https://github.com/codecov/support/issues/312
+    require_ci_to_pass: false
+    after_n_builds: 1  # send notifications after the first upload
+    wait_for_ci: false
+
+  bot: dlang-bot
+  ci:
+    # https://docs.codecov.io/docs/detecting-ci-services
+    # Only CircleCi generates coverages files atm.
+    # Don't wait for the other CIs
+    - circleci.com
+    - !dtest.dlang.io
+    - !auto-tester.puremagic.com
+    - !appveyor.com
+    - !ci.dlang.io
+    - !travis-ci.org
+
+  # At CircleCi, the PR is merged into `master` before the testsuite is run.
+  # This allows CodeCov to adjust the resulting coverage diff, s.t. it matches
+  # with the GitHub diff.
+  # https://github.com/codecov/support/issues/363
+  # https://docs.codecov.io/v4.3.6/docs/comparing-commits
+  allow_coverage_offsets: true
+
+coverage:
+  precision: 3
+  round: down
+  range: "70...100"
+
+  # Learn more at https://docs.codecov.io/docs/commit-status
+  status:
+    project: off
+    patch:
+      default:
+        informational: true
+    changes: off
+
+  notify:
+    webhook:
+      default:
+        url: "https://dlang-bot.herokuapp.com/codecov_hook"
+
+comment: false

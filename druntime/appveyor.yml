@@ -1,0 +1,64 @@
+
+os: Visual Studio 2017
+
+environment:
+  matrix:
+    - D_COMPILER:          dmd
+      D_VERSION:           2.079.1
+
+skip_commits:
+  # Avoid retesting the merged PR on `master` or `stable`
+  message: /^Merge pull request/
+
+cache:
+  - C:\projects\cache\dmd-2.079.1.7z
+  - C:\projects\cache\VisualD-v0.47.0.exe
+
+artifacts:
+
+init:
+  - git config --global core.autocrlf input
+
+build_script:
+  - cd c:/projects/
+  - if not exist cache\nul md cache
+
+  # Download & extract host D compiler
+  - ps: |
+        $cachefile = 'cache\dmd-' + $Env:D_VERSION + '.7z'
+        If ($Env:D_COMPILER -eq 'dmd') {
+            If (-not (Test-Path $cachefile)) {
+                $downloadlink = 'http://downloads.dlang.org/releases/2.x/' + $Env:D_VERSION + '/dmd.' + $Env:D_VERSION + '.windows.7z'
+                Start-FileDownload $downloadlink -FileName $cachefile
+            }
+            7z x $cachefile > $null
+        } ElseIf ($Env:D_COMPILER -eq 'dmd-nightly') {
+            Start-FileDownload 'http://nightlies.dlang.org/dmd-nightly/dmd.master.windows.7z' -FileName 'dmd2.7z'
+            7z x dmd2.7z > $null
+        }
+        Set-Item -path env:DMD -value c:\projects\dmd2\windows\bin\dmd.exe
+        c:\projects\dmd2\windows\bin\dmd.exe --version
+  - set PATH=%PATH%;c:\projects\dmd2\windows\bin
+
+  # Download & install Visual D
+  - ps: |
+        If (-not (Test-Path 'cache\VisualD-v0.47.0.exe')) {
+            Start-FileDownload 'https://github.com/dlang/visuald/releases/download/v0.47.0/VisualD-v0.47.0.exe' -FileName 'cache\VisualD-v0.47.0.exe'
+        }
+  - cache\VisualD-v0.47.0.exe /S
+  # configure DMD path
+  - reg add "HKLM\SOFTWARE\DMD" /v InstallationFolder /t REG_SZ /d c:\projects /reg:32 /f
+  # disable link dependencies monitoring, fails on AppVeyor server
+  - reg add "HKLM\SOFTWARE\Microsoft\VisualStudio\14.0\ToolsOptionsPages\Projects\Visual D Settings" /v optlinkDeps /t REG_DWORD /d 0 /reg:32 /f
+
+  - git clone -b %APPVEYOR_REPO_BRANCH% https://github.com/dlang/dmd.git dmd
+
+  # - call "c:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
+  - call "c:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"
+
+  - cd c:\projects\dmd\src
+  - msbuild vcbuild\dmd.sln /m /p:Configuration=Release;Platform=x64
+  - cd c:\projects\druntime
+  - make -f win64.mak DMD=../dmd/generated/Windows/Release/x64/dmd auto-tester-build auto-tester-test
+
+test_script: true
