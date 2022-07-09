@@ -30,6 +30,8 @@ jobs:
     needs:
       - build-all-releases
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
 
     steps:
       #################################################################
