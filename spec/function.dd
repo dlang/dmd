@@ -3039,6 +3039,7 @@ $(H3 $(LNAME2 function-delegate-init, Initialization))
         a static member function, or a static nested function.
         )
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
         struct S
         {
@@ -3052,20 +3053,21 @@ $(H3 $(LNAME2 function-delegate-init, Initialization))
             int delegate() dg = &s.member; // Ok, s supplies context pointer
             assert(dg() == 1);
 
-            dg = &S.sfunc;  // error
-            dg = &S.member; // error
+            //dg = &S.sfunc;  // error
+            //dg = &S.member; // error
 
             int moon() { return 2; }
             dg = &moon;     // Ok
             assert(dg() == 2);
 
             static int mars() { return 3; }
-            dg = &mars;     // error
+            //dg = &mars;     // error
 
             dg = () { return 4; }; // Ok
             assert(dg() == 4);
         }
         ---
+        )
 
         $(NOTE Function pointers can be passed to functions taking a delegate argument by passing
         them through the $(REF toDelegate, std,functional) template, which converts any callable
