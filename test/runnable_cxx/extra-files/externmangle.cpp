@@ -143,12 +143,12 @@ int Test20::test20 = 20;
 int Test20::test21 = 21;
 int Test20::test22 = 22;
 
-int test23(Test10**, Test10*, Test10***, Test10 const *const)
+int test23(Test10**, Test10*, Test10***, Test10 const *)
 {
     return 1;
 }
 
-int test23b(Test10 const *const *const,  Test10 const* const, Test10*)
+int test23b(Test10 const *const *const,  Test10 const*, Test10*)
 {
     return 1;
 }
@@ -375,6 +375,21 @@ C1* C1::init(const char *p)
 const char* C1::getDataCPP()
 {
     return data;
+}
+
+const char *getC1DataTailConst(const C1 *c)
+{
+    return c->data;
+}
+
+const char *getC1DataTailConstRef(const C1 *const &c)
+{
+    return c->data;
+}
+
+const C1 *getC1Identity(const C1 *c)
+{
+    return c;
 }
 
 template<class T>
