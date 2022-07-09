@@ -133,6 +133,10 @@ private const(char)[] cppCommand()
         // Turns out the shell script doesn't really understand -o
         return "/usr/libexec/cpp";
     }
+    else version (OSX)
+    {
+        return "clang";
+    }
     else
     {
         return "cpp";
