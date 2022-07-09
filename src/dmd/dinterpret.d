@@ -227,6 +227,10 @@ struct CtfeGlobals
     int maxCallDepth = 0;     // highest number of recursive calls
     int numArrayAllocs = 0;   // Number of allocated arrays
     int numAssignments = 0;   // total number of assignments executed
+
+    // destructors that are called at the end of an ExpStatement
+    // for the generated temporaries
+    Expressions dtorsForTemporaries;
 }
 
 __gshared CtfeGlobals ctfeGlobals;
@@ -477,6 +481,17 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
     for (size_t i = 0; i < dim; i++)
     {
         Expression earg = (*arguments)[i];
+        if (auto commaExp = earg.isCommaExp())
+        {
+            if (auto declExp = commaExp.e1.isDeclarationExp())
+            {
+                if (auto vd = declExp.declaration.isVarDeclaration())
+                {
+                    if (vd.edtor)
+                        ctfeGlobals.dtorsForTemporaries.push(vd.edtor);
+                }
+            }
+        }
         Parameter fparam = tf.parameterList[i];
 
         if (fparam.isReference())
@@ -746,6 +761,7 @@ public:
     Expression result;
     UnionExp* pue;              // storage for `result`
 
+
     extern (D) this(UnionExp* pue, InterState* istate, CTFEGoal goal)
     {
         this.pue = pue;
@@ -816,6 +832,26 @@ public:
         Expression e = interpret(pue, s.exp, istate, CTFEGoal.Nothing);
         if (exceptionOrCant(e))
             return;
+
+        // destroy temporaries
+        // https://issues.dlang.org/show_bug.cgi?id=22536
+        auto dtors = ctfeGlobals.dtorsForTemporaries.copy();
+        ctfeGlobals.dtorsForTemporaries.setDim(0);
+        foreach (dtor; *dtors)
+        {
+            auto res = interpret(dtor, istate);
+            if (auto ctfeError = res.isThrownExceptionExp())
+            {
+                ctfeError.generateUncaughtError();
+                e = CTFEExp.cantexp;
+                break;
+            }
+            if (CTFEExp.isCantExp(res))
+            {
+                e = res;
+                break;
+            }
+        }
     }
 
     override void visit(CompoundStatement s)
