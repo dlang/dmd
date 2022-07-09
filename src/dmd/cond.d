@@ -631,116 +631,182 @@ extern (C++) final class VersionCondition : DVCondition
      * Returns:
      *   `true` if it is reserved, `false` otherwise
      */
-    extern(D) private static bool isReserved(const(char)[] ident)
+    extern(D) private static int isReserved(const(char)[] ident)
     {
-        // This list doesn't include "D_*" versions, see the last return
-        switch (ident)
-        {
-            case "AArch64":
-            case "AIX":
-            case "all":
-            case "Alpha":
-            case "Alpha_HardFloat":
-            case "Alpha_SoftFloat":
-            case "Android":
-            case "ARM":
-            case "ARM_HardFloat":
-            case "ARM_SoftFloat":
-            case "ARM_SoftFP":
-            case "ARM_Thumb":
-            case "AsmJS":
-            case "assert":
-            case "AVR":
-            case "BigEndian":
-            case "BSD":
-            case "CppRuntime_Clang":
-            case "CppRuntime_DigitalMars":
-            case "CppRuntime_Gcc":
-            case "CppRuntime_Microsoft":
-            case "CppRuntime_Sun":
-            case "CRuntime_Bionic":
-            case "CRuntime_DigitalMars":
-            case "CRuntime_Glibc":
-            case "CRuntime_Microsoft":
-            case "CRuntime_Musl":
-            case "CRuntime_Newlib":
-            case "CRuntime_UClibc":
-            case "CRuntime_WASI":
-            case "Cygwin":
-            case "DigitalMars":
-            case "DragonFlyBSD":
-            case "Emscripten":
-            case "ELFv1":
-            case "ELFv2":
-            case "Epiphany":
-            case "FreeBSD":
-            case "FreeStanding":
-            case "GNU":
-            case "Haiku":
-            case "HPPA":
-            case "HPPA64":
-            case "Hurd":
-            case "IA64":
-            case "iOS":
-            case "LDC":
-            case "linux":
-            case "LittleEndian":
-            case "MinGW":
-            case "MIPS32":
-            case "MIPS64":
-            case "MIPS_EABI":
-            case "MIPS_HardFloat":
-            case "MIPS_N32":
-            case "MIPS_N64":
-            case "MIPS_O32":
-            case "MIPS_O64":
-            case "MIPS_SoftFloat":
-            case "MSP430":
-            case "NetBSD":
-            case "none":
-            case "NVPTX":
-            case "NVPTX64":
-            case "OpenBSD":
-            case "OSX":
-            case "PlayStation":
-            case "PlayStation4":
-            case "Posix":
-            case "PPC":
-            case "PPC64":
-            case "PPC_HardFloat":
-            case "PPC_SoftFloat":
-            case "RISCV32":
-            case "RISCV64":
-            case "S390":
-            case "S390X":
-            case "SDC":
-            case "SH":
-            case "SkyOS":
-            case "Solaris":
-            case "SPARC":
-            case "SPARC64":
-            case "SPARC_HardFloat":
-            case "SPARC_SoftFloat":
-            case "SPARC_V8Plus":
-            case "SystemZ":
-            case "SysV3":
-            case "SysV4":
-            case "TVOS":
-            case "unittest":
-            case "WASI":
-            case "WatchOS":
-            case "WebAssembly":
-            case "Win32":
-            case "Win64":
-            case "Windows":
-            case "X86":
-            case "X86_64":
-                return true;
+        // Anything that starts with "D_" is reserved
+        if (startsWith(ident.ptr, "D_"))
+            return 1;
 
-            default:
-                // Anything that starts with "D_" is reserved
-                return (ident.length >= 2 && ident[0 .. 2] == "D_");
+        static immutable string[26][] reservedVersionTable = [
+            [
+                "AArch64",
+                "AIX",
+                "all",
+                "Alpha",
+                // @@@ Implicitly reserved by Alpha -> to remove
+                "Alpha_HardFloat", "Alpha_SoftFloat",
+                "Android",
+                "ARM",
+                // @@@ Implicitly reserved by ARM -> to remove
+                "ARM_HardFloat", "ARM_SoftFloat", "ARM_SoftFP", "ARM_Thumb",
+                "AsmJS",
+                "assert",
+                "AVR",
+            ],
+            [
+                "BigEndian",
+                "BSD",
+            ],
+            [
+                "CppRuntime_Clang",
+                "CppRuntime_DigitalMars",
+                "CppRuntime_Gcc",
+                "CppRuntime_Microsoft",
+                "CppRuntime_Sun",
+                "CRuntime_Bionic",
+                "CRuntime_DigitalMars",
+                "CRuntime_Glibc",
+                "CRuntime_Microsoft",
+                "CRuntime_Musl",
+                "CRuntime_Newlib",
+                "CRuntime_UClibc",
+                "CRuntime_WASI",
+                "Cygwin",
+            ],
+            [
+                "DigitalMars",
+                "DragonFlyBSD",
+            ],
+            [
+                "Emscripten",
+                "ELFv1",
+                "ELFv2",
+                "Epiphany",
+            ],
+            [
+                "FreeBSD",
+                "FreeStanding",
+            ],
+            [
+                "GNU",
+            ],
+            [
+                "Haiku",
+                "HPPA",
+                // ??? HPPA64 would be implicitly reserved by HPPA
+                "HPPA64",
+                "Hurd",
+            ],
+            [
+                "IA64",
+                "iOS",
+            ],
+            [], // J
+            [], // K
+            [
+                "LDC",
+                "linux",
+                "LittleEndian",
+            ],
+            [
+                "MinGW",
+                "MIPS32",
+                "MIPS64",
+                "MIPS_EABI",
+                "MIPS_HardFloat",
+                "MIPS_N32",
+                "MIPS_N64",
+                "MIPS_O32",
+                "MIPS_O64",
+                "MIPS_SoftFloat",
+                "MSP430",
+            ],
+            [
+                "NetBSD",
+                "none",
+                "NVPTX",
+                // ??? NVPTX64 would be implicitly reserved by NVPTX
+                "NVPTX64",
+            ],
+            [
+                "OpenBSD",
+                "OSX",
+            ],
+            [
+                "PlayStation",
+                // ??? PlayStation4 would be implicitly reserved by PlayStation
+                "PlayStation4",
+                "Posix",
+                "PPC",
+                // ??? PPC64 would be implicitly reserved by PPC
+                "PPC64",
+                // @@@ Implicitly reserved by PPC -> to remove
+                "PPC_HardFloat", "PPC_SoftFloat",
+            ],
+            [], // Q
+            [
+                "RISCV32",
+                "RISCV64",
+            ],
+            [
+                "S390",
+                // ??? S390X would be implicitly reserved by S390X
+                "S390X",
+                "SDC",
+                "SH",
+                "SkyOS",
+                "Solaris",
+                "SPARC",
+                // ??? SPARC64 would be implicitly reserved by SPARC
+                "SPARC64",
+                // @@@ Implicitly reserved by SPARC -> to remove
+                "SPARC_HardFloat", "SPARC_SoftFloat", "SPARC_V8Plus",
+                "SystemZ",
+                "SysV3",
+                "SysV4",
+            ],
+            [
+                "TVOS",
+            ],
+            [
+                "unittest",
+            ],
+            [], // V
+            [
+                "WASI",
+                "WatchOS",
+                "WebAssembly",
+                "Win32",
+                "Win64",
+                "Windows",
+            ],
+            [
+                "X86",
+                // ??? X86_64 would be implicitly reserved by X86
+                "X86_64",
+            ],
+            [], // Y
+            [], // Z
+        ];
+
+        immutable int idx = tolower(ident[0]) - 'a';
+        if (idx >= 0 && idx < 26)
+        {
+            // @@@ In future, we will only need to check whether `ident` startsWith
+            // one of the reserved version identifiers, removing the need to loop
+            // twice over the list.
+            foreach (version_; reservedVersionTable[idx])
+            {
+                if (version_ && version_ == ident)
+                    return 1;
+            }
+            foreach (version_; reservedVersionTable[idx])
+            {
+                if (version_ && startsWith(ident.ptr, version_))
+                    return 2;
+            }
         }
+        return 0;
     }
 
     /**
@@ -755,9 +821,16 @@ extern (C++) final class VersionCondition : DVCondition
      */
     extern(D) static void checkReserved(const ref Loc loc, const(char)[] ident)
     {
-        if (isReserved(ident))
-            error(loc, "version identifier `%s` is reserved and cannot be set",
-                  ident.ptr);
+        // @@@DEPRECATED_2.111@@@
+        if (auto reserved = isReserved(ident))
+        {
+            if (reserved == 1)
+                error(loc, "version identifier `%s` is reserved and cannot be set",
+                      ident.ptr);
+            else
+                deprecation(loc, "version identifier `%s` is reserved and cannot be set",
+                            ident.ptr);
+        }
     }
 
     /**
