@@ -1,7 +1,7 @@
 <div align="center">
 
 ![dlang logo](https://dlang.org/images/dlogo.png)
-# DMD
+# DMD (TEST)
 [![GitHub tag](https://img.shields.io/github/tag-date/dlang/dmd.svg?maxAge=86400&style=flat)](https://github.com/dlang/dmd/releases)
 [![Code coverage](https://img.shields.io/codecov/c/github/dlang/dmd.svg?maxAge=86400&style=flat)](https://codecov.io/gh/dlang/dmd)
 [![Bugzilla Issues](https://img.shields.io/badge/issues-Bugzilla-green.svg?style=flat)](https://issues.dlang.org/buglist.cgi?component=dmd&list_id=220151&product=D&resolution=---)
