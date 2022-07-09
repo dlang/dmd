@@ -2766,7 +2766,6 @@ Params:
 Returns:
   A D module
 */
-private
 Module createModule(const(char)* file, ref Strings libmodules, const ref Target target)
 {
     const(char)[] name;
