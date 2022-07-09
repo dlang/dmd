@@ -981,6 +981,7 @@ extern (C++) struct Target
         cppStd,
         floatAbi,
         objectFormat,
+        predefinedVersions,
     }
 
     /**
@@ -993,8 +994,10 @@ extern (C++) struct Target
      */
     extern (C++) Expression getTargetInfo(const(char)* name, const ref Loc loc)
     {
+        import dmd.arraytypes : Expressions;
         import dmd.dmdparams : driverParams;
-        import dmd.expression : IntegerExp, StringExp;
+        import dmd.expression : ArrayLiteralExp, IntegerExp, StringExp;
+        import dmd.globals : global;
         import dmd.root.string : toDString;
 
         StringExp stringExp(const(char)[] sval)
@@ -1023,6 +1026,11 @@ extern (C++) struct Target
                 return stringExp("");
             case cppStd.stringof:
                 return new IntegerExp(params.cplusplus);
+            case predefinedVersions.stringof:
+                auto elements = new Expressions();
+                foreach (const id; *global.versionids)
+                    elements.push(stringExp(id.toString()));
+                return new ArrayLiteralExp(loc, null, elements);
 
             default:
                 return null;
