@@ -843,8 +843,8 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
          * closure to be allocated.
          */
         if (va && va.isScope() && !(va.storage_class & STC.return_) && func.tookAddressOf)
-            --func.tookAddressOf;
-
+            // --func.tookAddressOf;
+            func.clearAddressTakens();
         foreach (v; vars)
         {
             //printf("v = %s\n", v.toChars());

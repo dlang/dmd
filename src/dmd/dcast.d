@@ -2143,7 +2143,8 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
             }
             if (f)
             {
-                f.tookAddressOf++;
+                // f.tookAddressOf++;
+                f.takeAddressOf(e, sc);
                 auto se = new SymOffExp(e.loc, f, 0, false);
                 auto se2 = se.expressionSemantic(sc);
                 // Let SymOffExp::castTo() do the heavy lifting
@@ -2421,7 +2422,8 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                     result = new SymOffExp(e.loc, f, 0, false);
                     result.type = t;
                 }
-                f.tookAddressOf++;
+                f.takeAddressOf(e, sc);
+                // f.tookAddressOf++;
                 return result;
             }
         }
@@ -2451,7 +2453,8 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
         if (tb.equals(typeb) && !e.hasOverloads)
         {
             int offset;
-            e.func.tookAddressOf++;
+            // e.func.tookAddressOf++;
+            e.func.takeAddressOf(e, sc);
             if (e.func.tintro && e.func.tintro.nextOf().isBaseOf(e.func.type.nextOf(), &offset) && offset)
                 e.error("%s", msg.ptr);
             auto result = e.copy();
@@ -2471,7 +2474,8 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                     if (f.tintro && f.tintro.nextOf().isBaseOf(f.type.nextOf(), &offset) && offset)
                         e.error("%s", msg.ptr);
                     if (f != e.func)    // if address not already marked as taken
-                        f.tookAddressOf++;
+                        f.takeAddressOf(e, sc);
+                        // f.tookAddressOf++;
                     auto result = new DelegateExp(e.loc, e.e1, f, false, e.vthis2);
                     result.type = t;
                     return result;

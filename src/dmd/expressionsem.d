@@ -2080,7 +2080,8 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                     /* Function literals can only appear once, so if this
                      * appearance was scoped, there cannot be any others.
                      */
-                    fe.fd.tookAddressOf = 0;
+                    // fe.fd.tookAddressOf = 0;
+                    fe.fd.clearAddressTakens();
                 }
                 else if (auto de = a.isDelegateExp())
                 {
@@ -2093,7 +2094,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                         if (auto f = ve.var.isFuncDeclaration())
                         {
                             if (f.tookAddressOf)
-                                --f.tookAddressOf;
+                                f.clearAddressTakens(); //--f.tookAddressOf;
                             //printf("--tookAddressOf = %d\n", f.tookAddressOf);
                         }
                     }
@@ -4134,7 +4135,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 exp.fd.vthis = null;
             }
         }
-        exp.fd.tookAddressOf++;
+        exp.fd.takeAddressOf(exp, sc); // exp.fd.tookAddressOf++;
 
     Ldone:
         sc = sc.pop();
@@ -5153,7 +5154,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         // Handle the case of a direct lambda call
         if (exp.f && exp.f.isFuncLiteralDeclaration() && sc.func && !sc.intypeof)
         {
-            exp.f.tookAddressOf = 0;
+            exp.f.clearAddressTakens(); // exp.f.tookAddressOf = 0;
         }
 
         result = Expression.combine(argprefix, exp);
@@ -7001,7 +7002,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 f = f.toAliasFunc(); // FIXME, should see overloads
                                      // https://issues.dlang.org/show_bug.cgi?id=1983
                 if (!dve.hasOverloads)
-                    f.tookAddressOf++;
+                    f.takeAddressOf(exp, sc); // f.tookAddressOf++;
 
                 Expression e;
                 if (f.needThis())
@@ -7044,7 +7045,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (!sc.isFromSpeculativeSemanticContext() && (!ve.hasOverloads || (f.isNested() && !f.needThis())))
                 {
                     // TODO: Refactor to use a proper interface that can keep track of causes.
-                    f.tookAddressOf++;
+                    f.takeAddressOf(exp, sc); // f.tookAddressOf++;
                 }
 
                 if (f.isNested() && !f.needThis())
