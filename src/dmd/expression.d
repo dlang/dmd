@@ -4634,16 +4634,17 @@ extern (C++) class BinAssignExp : BinExp
 extern (C++) final class MixinExp : Expression
 {
     Expressions* exps;
-
-    extern (D) this(const ref Loc loc, Expressions* exps)
+    const FileType language;
+    extern (D) this(const ref Loc loc, Expressions* exps, const FileType lang)
     {
         super(loc, EXP.mixin_, __traits(classInstanceSize, MixinExp));
         this.exps = exps;
+        this.language = lang;
     }
 
     override MixinExp syntaxCopy()
     {
-        return new MixinExp(loc, arraySyntaxCopy(exps));
+        return new MixinExp(loc, arraySyntaxCopy(exps), this.language);
     }
 
     override bool equals(const RootObject o) const

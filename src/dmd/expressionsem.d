@@ -5957,23 +5957,49 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (expressionsToString(buf, sc, exp.exps))
             return null;
 
-        uint errors = global.errors;
+        const errors = global.errors;
         const len = buf.length;
         const str = buf.extractChars()[0 .. len];
-        scope p = new Parser!ASTCodegen(exp.loc, sc._module, str, false);
-        p.nextToken();
-        //printf("p.loc.linnum = %d\n", p.loc.linnum);
 
-        Expression e = p.parseExpression();
-        if (global.errors != errors)
-            return null;
-
-        if (p.token.value != TOK.endOfFile)
+        switch (exp.language)
+        with(FileType)
         {
-            exp.error("incomplete mixin expression `%s`", str.ptr);
-            return null;
+            case d:
+                scope p = new Parser!ASTCodegen(exp.loc, sc._module, str, false);
+                p.nextToken();
+                //printf("p.loc.linnum = %d\n", p.loc.linnum);
+
+                Expression e = p.parseExpression();
+                if (global.errors != errors)
+                    return null;
+
+                if (p.token.value != TOK.endOfFile)
+                {
+                    exp.error("incomplete mixin expression `%s`", str.ptr);
+                    return null;
+                }
+                return e.expressionSemantic(sc);
+            case c:
+                import dmd.cparse : CParser;
+                scope p = new CParser!ASTCodegen(sc._module, str, false, target.c);
+                p.nextToken();
+
+                Expression e = p.cparseExpression();
+                if (global.errors != errors)
+                    return null;
+
+                if (p.token.value != TOK.endOfFile)
+                {
+                    exp.error("incomplete mixin[C] expression `%s`", str.ptr);
+                    return null;
+                }
+                Scope* cScope = sc.push();
+                if (exp.language == FileType.c)
+                    cScope.flags |= SCOPE.Cfile;
+                return e.expressionSemantic(cScope);
+            default:
+                assert(0, "Invalid FileType");
         }
-        return e;
     }
 
     override void visit(MixinExp exp)
@@ -5989,7 +6015,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         auto e = compileIt(exp);
         if (!e)
             return setError();
-        result = e.expressionSemantic(sc);
+        result = e;
     }
 
     override void visit(ImportExp e)
