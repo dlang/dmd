@@ -306,6 +306,13 @@ extern (C++) final class StaticForeach : RootObject
 
     private void lowerNonArrayAggregate(Scope* sc)
     {
+        // attributes that pass through scope can interfer with the lambda used
+        // the lambda is only ever used at compile time, so they can be ignored
+        sc = sc.push();
+        sc.stc &= ~STCFlowThruFunction;
+        scope(exit)
+            sc = sc.pop();
+
         auto nvars = aggrfe ? aggrfe.parameters.dim : 1;
         auto aloc = aggrfe ? aggrfe.aggr.loc : rangefe.lwr.loc;
         // We need three sets of foreach loop variables because the
