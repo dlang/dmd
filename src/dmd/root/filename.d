@@ -71,6 +71,13 @@ private bool isDirSeparator(char c) pure nothrow @nogc @safe
     }
 }
 
+enum FileType : int
+{
+    none   = 0,
+    file   = 1,
+    folder = 2,
+}
+
 /***********************************************************
  * Encapsulate path and file names.
  */
@@ -835,24 +842,24 @@ nothrow:
          1 if it exists and is not a directory
          2 if it exists and is a directory
      */
-    extern (C++) static int exists(const(char)* name)
+    extern (C++) static FileType exists(const(char)* name)
     {
         return exists(name.toDString);
     }
 
     /// Ditto
-    extern (D) static int exists(const(char)[] name)
+    extern (D) static FileType exists(const(char)[] name)
     {
         if (!name.length)
-            return 0;
+            return FileType.none;
         version (Posix)
         {
             stat_t st;
             if (name.toCStringThen!((v) => stat(v.ptr, &st)) < 0)
-                return 0;
+                return FileType.none;
             if (S_ISDIR(st.st_mode))
-                return 2;
-            return 1;
+                return FileType.folder;
+            return FileType.file;
         }
         else version (Windows)
         {
@@ -860,17 +867,38 @@ nothrow:
             {
                 const dw = GetFileAttributesW(&wname[0]);
                 if (dw == -1)
-                    return 0;
+                    return FileType.none;
                 else if (dw & FILE_ATTRIBUTE_DIRECTORY)
-                    return 2;
+                    return FileType.folder;
                 else
-                    return 1;
+                    return FileType.file;
             });
         }
         else
         {
             assert(0);
         }
+    }
+
+    /// Useful when checking if a file resides in a particular directory
+    /// See_Also:
+    ///     FileName.canonicalName, FileName.exists
+    static const(char)[] ensureDirSeparatorEnding(const(char)[] path)
+    {
+        if (path.length == 0)
+            return null;
+        if (!isDirSeparator(path[$ - 1]))
+        {
+            char[] result = (cast(char*)mem.xmalloc_noscan(path.length + 1))[0 .. path.length + 1];
+            result[0 .. path.length][] = path[];
+            version(Windows)
+                result[$ - 1] = '\\';
+            else version(Posix)
+                result[$ - 1] = '/';
+            return result;
+        }
+        else
+            return path;
     }
 
     /**
@@ -1046,7 +1074,12 @@ nothrow:
                 // Actually get the full path name. If the buffer is large enough,
                 // the returned length does NOT include the terminating null...
                 const length = GetFullPathNameW(&wname[0], capacity, buffer, null /*filePart*/);
-                assert(length == capacity - 1);
+                //if (length != capacity - 1)
+                //{
+                //    import core.stdc.stdio;
+                //    printf("%.*s -> %ls: length = %d  capacity = %d\n", cast(int)name.length, name.ptr, buffer, length, capacity);
+                //}
+                assert(length != 0 && length < capacity);
 
                 return toNarrowStringz(buffer[0 .. length]);
             });
@@ -1095,6 +1128,25 @@ nothrow:
     if (is(T == bool))
     {
         return str.ptr !is null;
+    }
+}
+
+struct CanonicalFilenameCache
+{
+    private const(char)[][const(char)[]] cache;
+
+    const(char)[] get(const(char)[] filename)
+    {
+        const(char)[]* canonical = filename in cache;
+        if (canonical)
+            return *canonical;
+        else
+            return cache[filename] = FileName.canonicalName(filename);
+    }
+
+    void clear()
+    {
+        cache.clear();
     }
 }
 

@@ -109,7 +109,7 @@ void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
         Module firstm;    // first module we generate code for
         foreach (m; modules)
         {
-            if (m.filetype == FileType.dhdr)
+            if (m.sourceType == SourceType.dhdr)
                 continue;
             if (!firstm)
             {
@@ -130,7 +130,7 @@ void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
         OutBuffer objbuf;
         foreach (m; modules)
         {
-            if (m.filetype == FileType.dhdr)
+            if (m.sourceType == SourceType.dhdr)
                 continue;
             if (verbose)
                 message("code      %s", m.toChars());
@@ -621,7 +621,7 @@ private void genObjFile(Module m, bool multiobj)
      *  explicitly disabled through compiler switches such as `-betterC`.
      *  Don't generate ModuleInfo for C files.
      */
-    if (global.params.useModuleInfo && Module.moduleinfo && m.filetype != FileType.c/*|| needModuleInfo()*/)
+    if (global.params.useModuleInfo && Module.moduleinfo && m.sourceType != SourceType.c/*|| needModuleInfo()*/)
         genModuleInfo(m);
 
     objmod.termfile();

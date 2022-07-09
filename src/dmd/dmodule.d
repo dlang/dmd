@@ -75,7 +75,7 @@ void removeHdrFilesAndFail(ref Param params, ref Modules modules) nothrow
     {
         foreach (m; modules)
         {
-            if (m.filetype == FileType.dhdr)
+            if (m.sourceType == SourceType.dhdr)
                 continue;
             File.remove(m.hdrfile.toChars());
         }
@@ -354,7 +354,7 @@ extern (C++) final class Module : Package
     const(ubyte)[] src;         /// Raw content of the file
     uint errors;                // if any errors in file
     uint numlines;              // number of lines in source file
-    FileType filetype;          // source file type
+    SourceType sourceType;          // source file type
     bool hasAlwaysInlines;      // contains references to functions that must be inlined
     bool isPackageFile;         // if it is a package.d
     Package pkg;                // if isPackageFile is true, the Package that contains this package.d
@@ -938,7 +938,7 @@ extern (C++) final class Module : Package
         if (buf.length>= 4 && buf[0..4] == "Ddoc")
         {
             comment = buf.ptr + 4;
-            filetype = FileType.ddoc;
+            sourceType = SourceType.ddoc;
             if (!docfile)
                 setDocfile();
             return this;
@@ -951,7 +951,7 @@ extern (C++) final class Module : Package
         if (FileName.equalsExt(arg, dd_ext))
         {
             comment = buf.ptr; // the optional Ddoc, if present, is handled above.
-            filetype = FileType.ddoc;
+            sourceType = SourceType.ddoc;
             if (!docfile)
                 setDocfile();
             return this;
@@ -959,7 +959,7 @@ extern (C++) final class Module : Package
         /* If it has the extension ".di", it is a "header" file.
          */
         if (FileName.equalsExt(arg, hdr_ext))
-            filetype = FileType.dhdr;
+            sourceType = SourceType.dhdr;
 
         /// Promote `this` to a root module if requested via `-i`
         void checkCompiledImport()
@@ -976,7 +976,7 @@ extern (C++) final class Module : Package
          */
         if (FileName.equalsExt(arg, c_ext) || FileName.equalsExt(arg, i_ext))
         {
-            filetype = FileType.c;
+            sourceType = SourceType.c;
 
             scope p = new CParser!AST(this, buf, cast(bool) docfile, target.c, &defines);
             p.nextToken();
@@ -1134,7 +1134,7 @@ extern (C++) final class Module : Package
         //printf("+Module::importAll(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
         if (_scope)
             return; // already done
-        if (filetype == FileType.ddoc)
+        if (sourceType == SourceType.ddoc)
         {
             error("is a Ddoc file, cannot import it");
             return;
@@ -1154,7 +1154,7 @@ extern (C++) final class Module : Package
         // If it isn't there, some compiler rewrites, like
         //    classinst == classinst -> .object.opEquals(classinst, classinst)
         // would fail inside object.d.
-        if (filetype != FileType.c &&
+        if (sourceType != SourceType.c &&
             (members.dim == 0 ||
              (*members)[0].ident != Id.object ||
              (*members)[0].isImport() is null))

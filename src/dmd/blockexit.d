@@ -144,7 +144,7 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
                             if (sl && (!sl.hasCode() || sl.isErrorStatement()))
                             {
                             }
-                            else if (func.getModule().filetype != FileType.c)
+                            else if (func.getModule().sourceType != SourceType.c)
                             {
                                 const(char)* gototype = s.isCaseStatement() ? "case" : "default";
                                 // @@@DEPRECATED_2.110@@@ https://issues.dlang.org/show_bug.cgi?id=22999

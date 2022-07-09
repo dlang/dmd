@@ -465,7 +465,7 @@ extern (C++) class Dsymbol : ASTNode
      final bool isCsymbol()
      {
         if (Module m = getModule())
-            return m.filetype == FileType.c;
+            return m.sourceType == SourceType.c;
         return false;
     }
 

@@ -544,6 +544,10 @@ dmd -cov -unittest myprog.d
                 undefined, $(B Safari) is assumed.
             )`,
         ),
+        Option("mangle-prefix=<path>:<prefix>",
+            "add 'prefix' while mangling symbols in 'path'",
+            `Add $(I prefix) while mangling symbols in $(I path)`,
+        ),
         Option("map",
             "generate linker .map file",
             `Generate a $(TT .map) file`,

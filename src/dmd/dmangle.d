@@ -478,9 +478,13 @@ public:
             assert(0);
     }
 
-    void mangleParent(Dsymbol s)
+    void mangleParent(Dsymbol s, Dsymbol leaf = null)
     {
         //printf("mangleParent() %s %s\n", s.kind(), s.toChars());
+        import dmd.dmodule;
+        import dmd.root.filename;
+
+        leaf = leaf ? leaf : s;
         Dsymbol p;
         if (TemplateInstance ti = s.isTemplateInstance())
             p = ti.isTemplateMixin() ? ti.parent : ti.tempdecl.parent;
@@ -489,7 +493,7 @@ public:
         if (p)
         {
             uint localNum = s.localNum;
-            mangleParent(p);
+            mangleParent(p, leaf);
             auto ti = p.isTemplateInstance();
             if (ti && !ti.isTemplateMixin())
             {
@@ -507,6 +511,41 @@ public:
 
             if (localNum)
                 writeLocalParent(buf, localNum);
+        }
+        else // No parent means it's the root symbol
+        if (global.params.manglePrefixList.length > 0)
+        {
+            static CanonicalFilenameCache cache;
+            const char[] symbolOrigin = // Handle ModuleInfo
+                                        leaf.isModule ? cache.get((cast(Module)leaf).srcfile.toString) :
+                                        // Regular symbols
+                                        leaf.loc.filename ? cache.get(leaf.loc.filename.toDString) :
+                                        // Auto generated struct members have no defined source origin (aka Loc)
+                                        // so we use their parent (the struct itself) for extracting the source file path
+                                        leaf.parent && leaf.parent.isStructDeclaration ? cache.get(leaf.parent.loc.filename.toDString) : null;
+            // ModuleInfo needs to be handled first beacuse it contains references to other ModuleInfo symbols from which it imports.
+            // These imports have both `Dsymbol.Loc.filename` and `Module.srcfile`, former tells the importing module
+            // and the later tells the imported module.
+
+            if (symbolOrigin == null)
+                return;
+
+            // Implement -mangle-prefix
+            foreach_reverse (mangleSuffix; global.params.manglePrefixList)
+            {
+                const(char)[] origin = symbolOrigin;
+                if (mangleSuffix.type == FileType.folder && mangleSuffix.path.length < origin.length)
+                    origin = origin[0 .. mangleSuffix.path.length]; // Only compare heads (see: ensureDirSeparatorEnding)
+                else if (mangleSuffix.type == FileType.none)
+                    continue;
+
+                if (FileName.equals(mangleSuffix.path, origin))
+                {
+                    foreach (ident; *mangleSuffix.identList)
+                        mangleIdentifier(ident, null);
+                    break; // Only the last matching rule is used
+                }
+            }
         }
     }
 

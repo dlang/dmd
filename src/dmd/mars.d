@@ -358,7 +358,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 //            m.deleteObjFile();
 
         m.parse();
-        if (m.filetype == FileType.dhdr)
+        if (m.sourceType == SourceType.dhdr)
         {
             // Remove m's object file from list of object files
             for (size_t j = 0; j < params.objfiles.length; j++)
@@ -372,7 +372,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             if (params.objfiles.length == 0)
                 driverParams.link = false;
         }
-        if (m.filetype == FileType.ddoc)
+        if (m.sourceType == SourceType.ddoc)
         {
             anydocfiles = true;
             gendocfile(m);
@@ -410,7 +410,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
          */
         foreach (m; modules)
         {
-            if (m.filetype == FileType.dhdr)
+            if (m.sourceType == SourceType.dhdr)
                 continue;
             if (params.verbose)
                 message("import    %s", m.toChars());
@@ -1729,6 +1729,100 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         else if (arg == "-fPIE")
         {
             driverParams.pic = PIC.pie;
+        }
+        else if (startsWith(p + 1, "mangle-prefix=")) // https://dlang.org/dmd.html#switch-mangle-prefix
+        {
+            /* Parse:
+             *    -mangle-prefix=path:prefix
+             */
+            static inout(T)[][] split(T)(inout(T)[] slice, T separator)
+            {
+                inout(T)[][] result;
+                size_t last = 0;
+                foreach (i, e; slice)
+                {
+                    if (e == separator)
+                    {
+                        result ~= slice[last .. i];
+                        last = i + 1;
+                    }
+                }
+                result ~= slice[last .. $];
+                return result;
+            }
+            bool err = false;
+            bool colonFound = false;
+            enum len = "-mangle-prefix=".length;
+
+            const(char)[] path;
+            FileType type;
+            const(char)[] prefix;
+            Identifiers identList;
+
+            // Only consider the last ':' since it can also be part of the file name on posix
+            foreach_reverse (j, ch; arg)
+            {
+                if (ch == ':')
+                {
+                    path = arg[len .. j];
+                    type = FileName.exists(path);
+                    if (type == FileType.none)
+                    {
+                        error("`%.*s` does not exist", cast(int)path.length, path.ptr);
+                        err = true;
+                    }
+                    else
+                    {
+                        path = FileName.canonicalName(path);
+                        if (type == FileType.folder)
+                        {
+                            // Adding the last '/' makes determining if a file is inside a folder easier
+                            path = FileName.ensureDirSeparatorEnding(path);
+                        }
+                    }
+                    prefix = arg[j + 1 .. $];
+                    colonFound = true;
+                    break;
+                }
+            }
+            if (colonFound)
+            {
+                if (path.length == 0)
+                {
+                    error("`-mangle-prefix=<path>:<prefix>` requires a path");
+                    err = true;
+                }
+                if (prefix.length == 0)
+                {
+                    error("`-mangle-prefix=<path>:<prefix>` requires a prefix");
+                    err = true;
+                }
+                else
+                {
+                    foreach (ident; split(prefix, '.'))
+                    {
+                        if (Identifier.isValidIdentifier(ident))
+                        {
+                            import dmd.tokens;
+                            identList.push(new Identifier(ident, TOK.identifier));
+                        }
+                        else
+                        {
+                            error("'%.*s' in `-mangle-prefix=<path>:<prefix>` needs to be a valid identifier", cast(int)ident.length, ident.ptr);
+                            err = true;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                error("Incorrect syntax for `-mangle-prefix=<path>:<prefix>`");
+                err = true;
+            }
+            if (err)
+                break;
+            else
+                params.manglePrefixList.push(ManglePrefix(path, type, prefix, identList.copy));
         }
         else if (arg == "-map") // https://dlang.org/dmd.html#switch-map
             driverParams.map = true;
