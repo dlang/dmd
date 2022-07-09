@@ -5837,8 +5837,28 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
     TemplateDeclaration tempdecl = tempinst.tempdecl.isTemplateDeclaration();
     assert(tempdecl);
 
-    TemplateStats.incInstance(tempdecl, tempinst);
+    //This will point onto the heap allocated time stat to be written into
+    long* time; //in micro-seconds
+    import core.time : MonoTime;
+    const before = MonoTime.currTime;
 
+    TemplateStats.incInstance(tempdecl, tempinst, &time);
+    /+
+        https://issues.dlang.org/show_bug.cgi?id=22772
+        Measure time of template instantiations.
+
+        This aims to measure the total time of all instantiations of a given
+        Declaration, not the time of each one individually.
+    +/
+    scope(exit) {
+        //If time is null then we shouldn't be timing because incInstance didn't register it.
+        if (time)
+        {
+            const timeElapsed = MonoTime.currTime() - before;
+            //+= because we're measuring the total for the declaration.
+            *time += timeElapsed.total!"usecs";
+        }
+    }
     tempdecl.checkDeprecated(tempinst.loc, sc);
 
     // If tempdecl is a mixin, disallow it
