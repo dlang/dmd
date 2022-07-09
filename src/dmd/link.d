@@ -1277,9 +1277,11 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
 
         if (target.os == Target.OS.OSX)
         {
+            argv.push("-E");                // run preprocessor only for clang
             argv.push("-include");          // OSX cpp has switch order dependencies
             argv.push(importc_h);
             argv.push(filename.xarraydup.ptr);  // and the input
+            argv.push("-o");                // specify output file
         }
         else
         {
