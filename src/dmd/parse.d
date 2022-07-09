@@ -6944,6 +6944,8 @@ LagainStc:
             break;
         }
         nextToken();
+        version(DMDLIB) {}
+        else useInlineAsm = true;
         auto s = new AST.CompoundAsmStatement(loc, statements, stc);
         return s;
     }
