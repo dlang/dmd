@@ -397,26 +397,138 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
                 auto line = lines[loc.linnum - 1];
                 if (loc.charnum < line.length)
                 {
-                    fprintf(stderr, "%.*s\n", cast(int)line.length, line.ptr);
                     // The number of column bytes and the number of display columns
                     // occupied by a character are not the same for non-ASCII charaters.
                     // https://issues.dlang.org/show_bug.cgi?id=21849
-                    size_t c = 0;
-                    while (c < loc.charnum - 1)
-                    {
-                        import dmd.root.utf : utf_decodeChar;
-                        dchar u;
-                        const msg = utf_decodeChar(line, c, u);
-                        assert(msg is null, msg);
-                        fputc(' ', stderr);
-                    }
-                    fputc('^', stderr);
-                    fputc('\n', stderr);
+
+                    // Account for tabs by replacing them with spaces
+                    // https://issues.dlang.org/show_bug.cgi?id=22678
+
+                    tmp.reset();
+
+                    CharMetrics state = CharMetrics(0, 0, 0);
+                    const CharMetrics cursorPos = CharMetrics(loc.charnum - 1, size_t.max, size_t.max);
+                    enum size_t tabSize = 4; // hardcoded for now
+
+                    // print the source line before the cursor
+                    detabString(tmp, line, state, cursorPos, tabSize);
+
+                    // zero-based index of the cursor column
+                    size_t cursorColumn = state.numColumns;
+
+                    // print the rest of the line
+                    detabString(tmp, line, state, CharMetrics.max, tabSize);
+                    tmp.writeByte('\n');
+
+                    // spaces before the cursor
+                    char[] spaces = tmp.allocate(cursorColumn);
+                    spaces[] = ' ';
+
+                    tmp.writeByte('^');
+                    tmp.writeByte('\n');
+
+                    fputs(tmp.peekChars(), stderr);
                 }
             }
         }
     }
     fflush(stderr);     // ensure it gets written out in case of compiler aborts
+}
+
+/*
+ * Prints the chars from `str` to `sink` replacing each tab character with the number
+ * of spaces necessary to align the following character at the next tab stop.
+ * New line characters are not treated specially, suited for single line of text.
+ * `end` state specifies exclusive end of the range using 3 variables, first one to trigger will terminate the walk.
+ *   - min(end.numCodeUnits, str.length)
+ *   - end.numCodePoints
+ *   - end.numColumns
+ * Only start of the code point is checked against the limit
+ * TODO: This function can be improved to handle other wide chars too
+ * Params:
+ *      sink    = detabbed string will be printed here
+ *      str     = string to detab
+ *      state   = starting state, updated during the iteration
+ *      end     = ending state (exclusive)
+ *      tabSize = tab size
+ */
+private void detabString(ref OutBuffer sink, const(char)[] str, ref CharMetrics state, CharMetrics end, in size_t tabSize)
+{
+    if (end.numCodeUnits >= str.length) end.numCodeUnits = str.length;
+
+    while(true)
+    {
+        if (state.numCodeUnits  >= end.numCodeUnits)  return;
+        if (state.numCodePoints >= end.numCodePoints) return;
+        if (state.numColumns    >= end.numColumns)    return;
+
+        const CharWithMetrics metrics = getCharMetrics(str, state.numColumns, state.numCodeUnits, tabSize);
+
+        switch (metrics.ch)
+        {
+            case '\t':
+                char[] spaces = sink.allocate(metrics.metrics.numColumns);
+                spaces[] = ' ';
+                break;
+            default:
+                sink.writestring(str[state.numCodeUnits..state.numCodeUnits + metrics.metrics.numCodeUnits]);
+                break;
+        }
+
+        state.numCodeUnits  += metrics.metrics.numCodeUnits;
+        state.numCodePoints += metrics.metrics.numCodePoints;
+        state.numColumns    += metrics.metrics.numColumns;
+    }
+}
+
+/*
+ * Decodes single code point from the `str`, starting at `startCodeUnitIndex`.
+ * `column` and `tabSize` are used to calculate width of the tab character.
+ * Params:
+ *      str                = string
+ *      column             = starting column
+ *      startCodeUnitIndex = starting code unit within the `str`
+ *      tabSize            = tab size
+ * Returns:
+ *      decoded char and its metrics (number of code units and columns. `numCodePoints` is always 1)
+ */
+private CharWithMetrics getCharMetrics(const(char)[] str, in size_t column, in size_t startCodeUnitIndex, in size_t tabSize) @nogc pure nothrow
+{
+    import dmd.root.utf : utf_decodeChar;
+
+    size_t endCodeUnitIndex = startCodeUnitIndex;
+    dchar ch;
+
+    const msg = utf_decodeChar(str, endCodeUnitIndex, ch);
+    assert(msg is null, msg);
+
+    const size_t numCodeUnits = endCodeUnitIndex - startCodeUnitIndex;
+
+    switch (ch)
+    {
+        case '\t':
+            const size_t numColumns = tabSize == 0 ?
+                0 : // prevent division by zero
+                tabSize - (column % tabSize);
+            return CharWithMetrics(CharMetrics(numCodeUnits, 1, numColumns), ch);
+
+        default: return CharWithMetrics(CharMetrics(numCodeUnits, 1, 1), ch);
+    }
+}
+
+private struct CharMetrics
+{
+    size_t numCodeUnits;
+    size_t numCodePoints;
+    size_t numColumns;
+
+    enum max = CharMetrics(size_t.max, size_t.max, size_t.max);
+}
+
+private struct CharWithMetrics
+{
+    CharMetrics metrics;
+    dchar ch;
 }
 
 /**
