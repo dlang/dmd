@@ -2902,6 +2902,8 @@ int function(int)   fp1 = &abc;
 uint function(uint) fp2 = &def;
 // Do not rely on fp1 and fp2 being different values; the compiler may merge
 // them.
+
+void main() {}
 ------
 )
 
