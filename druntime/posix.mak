@@ -352,11 +352,11 @@ $(DMD):
 
 $(ROOT)/%.o : src/rt/%.c $(DMD)
 	@mkdir -p $(dir $@)
-	$(DMD) -c $(DFLAGS) -I. -v $< -of$@
+	$(DMD) -c $(DFLAGS) -I. $< -of$@
 
 $(ROOT)/errno_c.o : src/core/stdc/errno.c $(DMD)
 	@mkdir -p $(dir $@)
-	$(DMD) -c $(DFLAGS) -I. -v $< -of$@
+	$(DMD) -c $(DFLAGS) -I. $< -of$@
 
 $(ROOT)/threadasm.o : src/core/threadasm.S
 	@mkdir -p $(dir $@)
