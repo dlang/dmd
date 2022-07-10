@@ -392,6 +392,7 @@ CpuFeatures* getCpuFeatures() @nogc nothrow
     enum : uint
     {
         FSGSBASE_BIT = 1 << 0,
+        SGX_BIT = 1 << 2,
         BMI1_BIT = 1 << 3,
         HLE_BIT = 1 << 4,
         AVX2_BIT = 1 << 5,
@@ -401,8 +402,18 @@ CpuFeatures* getCpuFeatures() @nogc nothrow
         INVPCID_BIT = 1 << 10,
         RTM_BIT = 1 << 11,
         AVX512F_BIT = 1 << 16,
+        AVX512DQ_BIT = 1 << 17,
         RDSEED_BIT = 1 << 18,
+        ADX_BIT = 1 << 19,
+        AVX512IFMA_BIT = 1 << 21,
+        CLFLUSHOPT_BIT = 1 << 23,
+        CLWB_BIT = 1 << 24,
+        AVX512PF_BIT = 1 << 26,
+        AVX512ER_BIT = 1 << 27,
+        AVX512CD_BIT = 1 << 28,
         SHA_BIT = 1 << 29,
+        AVX512BW_BIT = 1 << 30,
+        AVX512VL_BIT = 1 << 31,
     }
     // feature flags XFEATURES_ENABLED_MASK
     enum : ulong
