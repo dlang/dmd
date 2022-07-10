@@ -499,7 +499,6 @@ else
 install: target
 	mkdir -p $(INSTALL_DIR)/src/druntime/import
 	cp -r import/* $(INSTALL_DIR)/src/druntime/import/
-	cp LICENSE.txt $(INSTALL_DIR)/druntime-LICENSE.txt
 endif
 
 clean: $(addsuffix /.clean,$(ADDITIONAL_TESTS))
