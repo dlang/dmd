@@ -352,11 +352,11 @@ $(DMD):
 
 $(ROOT)/%.o : src/rt/%.c $(DMD)
 	@mkdir -p $(dir $@)
-	$(DMD) -c $(DFLAGS) -I. -v $< -of$@
+	$(DMD) -c $(DFLAGS) -I. $< -of$@
 
 $(ROOT)/errno_c.o : src/core/stdc/errno.c $(DMD)
 	@mkdir -p $(dir $@)
-	$(DMD) -c $(DFLAGS) -I. -v $< -of$@
+	$(DMD) -c $(DFLAGS) -I. $< -of$@
 
 $(ROOT)/threadasm.o : src/core/threadasm.S
 	@mkdir -p $(dir $@)
@@ -499,7 +499,6 @@ else
 install: target
 	mkdir -p $(INSTALL_DIR)/src/druntime/import
 	cp -r import/* $(INSTALL_DIR)/src/druntime/import/
-	cp LICENSE.txt $(INSTALL_DIR)/druntime-LICENSE.txt
 endif
 
 clean: $(addsuffix /.clean,$(ADDITIONAL_TESTS))

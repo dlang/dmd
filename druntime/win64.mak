@@ -65,7 +65,7 @@ copy:
 # environment variable needs to be set with the path to the VC system include files.
 
 errno_c_$(MODEL).obj: src\core\stdc\errno.c
-	$(DMD) -c -of=$@ $(DFLAGS) -v -P=-I. src\core\stdc\errno.c
+	$(DMD) -c -of=$@ $(DFLAGS) -P=-I. src\core\stdc\errno.c
 
 ################### Library generation #########################
 
