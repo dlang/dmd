@@ -62,7 +62,7 @@ jobs:
           name: DMD nightly
           prerelease: true
           body: |
-            Nightly build of the reference D compiler (incl. Druntime and Phobos)
+            Nightly build of the reference D compiler
 
             Note that the official date and commit will be outdated because this
             release is continuously updated. The actually built revisions are:
@@ -70,7 +70,6 @@ jobs:
             | Component | Revision                                                         |
             | --------- | ---------------------------------------------------------------- |
             | DMD       | dlang/dmd@${{ needs.build-all-releases.outputs.dmd-revision }}           |
-            | DRuntime  | dlang/druntime@${{ needs.build-all-releases.outputs.druntime-revision }} |
             | Phobos    | dlang/phobos@${{ needs.build-all-releases.outputs.phobos-revision }}     |
 
           artifacts:  ${{ steps.list-artifacts.outputs.artifacts_directory }}/*
