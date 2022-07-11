@@ -396,6 +396,60 @@ enum bool isPointer(T) = is(T == U*, U) && !isAggregateType!T;
 
 enum bool isDynamicArray(T) = is(DynamicArrayTypeOf!T) && !isAggregateType!T;
 
+enum bool isFloatingPoint(T) = __traits(isFloating, T) && is(T : real);
+
+// taken from std.traits.isIntegral
+template isIntegral(T)
+{
+    static if (!__traits(isIntegral, T))
+        enum isIntegral = false;
+    else static if (is(T U == enum))
+        enum isIntegral = isIntegral!U;
+    else
+        enum isIntegral = __traits(isZeroInit, T) // Not char, wchar, or dchar.
+            && !is(immutable T == immutable bool) && !is(T == __vector);
+}
+
+// taken from std.traits.isSigned
+private enum bool isSigned(T) = __traits(isArithmetic, T) && !__traits(isUnsigned, T)
+                                                          && is(T : real);
+// taken from std.traits.isUnsigned
+private template isUnsigned(T)
+{
+    static if (!__traits(isUnsigned, T))
+        enum isUnsigned = false;
+    else static if (is(T U == enum))
+        enum isUnsigned = isUnsigned!U;
+    else
+        enum isUnsigned = __traits(isZeroInit, T) // Not char, wchar, or dchar.
+            && !is(immutable T == immutable bool) && !is(T == __vector);
+}
+
+// taken from std.traits.Unsigned
+template Unsigned(T)
+{
+    template Impl(T)
+    {
+        static if (is(T : __vector(V[N]), V, size_t N))
+            alias Impl = __vector(Impl!V[N]);
+        else static if (isUnsigned!T)
+            alias Impl = T;
+        else static if (isSigned!T && !isFloatingPoint!T)
+        {
+            static if (is(T == byte )) alias Impl = ubyte;
+            static if (is(T == short)) alias Impl = ushort;
+            static if (is(T == int  )) alias Impl = uint;
+            static if (is(T == long )) alias Impl = ulong;
+            static if (is(ucent) && is(T == cent )) alias Impl = ucent;
+        }
+        else
+            static assert(false, "Type " ~ T.stringof ~
+                                 " does not have an Unsigned counterpart");
+    }
+
+    alias Unsigned = ModifyTypePreservingTQ!(Impl, OriginalType!T);
+}
+
 template OriginalType(T)
 {
     template Impl(T)
