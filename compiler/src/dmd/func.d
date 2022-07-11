@@ -3295,7 +3295,8 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
                    td.kind(), td.parent.toPrettyChars(), td.ident.toChars(),
                    tiargsBuf.peekChars(), fargsBuf.peekChars());
 
-            printCandidates(loc, td, sc.isDeprecated());
+            if (!global.gag || global.params.showGaggedErrors)
+                printCandidates(loc, td, sc.isDeprecated());
             return null;
         }
         /* This case used to happen when several ctors are mixed in an agregate.
@@ -3333,7 +3334,8 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
         {
             .error(loc, "none of the overloads of `%s` are callable using a %sobject",
                    fd.ident.toChars(), thisBuf.peekChars());
-            printCandidates(loc, fd, sc.isDeprecated());
+            if (!global.gag || global.params.showGaggedErrors)
+                printCandidates(loc, fd, sc.isDeprecated());
             return null;
         }
 
@@ -3363,18 +3365,23 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
     {
         .error(loc, "none of the overloads of `%s` are callable using argument types `%s`",
                fd.toChars(), fargsBuf.peekChars());
-        printCandidates(loc, fd, sc.isDeprecated());
+        if (!global.gag || global.params.showGaggedErrors)
+            printCandidates(loc, fd, sc.isDeprecated());
         return null;
     }
 
     .error(loc, "%s `%s%s%s` is not callable using argument types `%s`",
            fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameterList),
            tf.modToChars(), fargsBuf.peekChars());
+
     // re-resolve to check for supplemental message
-    const(char)* failMessage;
-    functionResolve(m, orig_s, loc, sc, tiargs, tthis, fargs, &failMessage);
-    if (failMessage)
-        errorSupplemental(loc, failMessage);
+    if (!global.gag || global.params.showGaggedErrors)
+    {
+        const(char)* failMessage;
+        functionResolve(m, orig_s, loc, sc, tiargs, tthis, fargs, &failMessage);
+        if (failMessage)
+            errorSupplemental(loc, failMessage);
+    }
     return null;
 }
 
