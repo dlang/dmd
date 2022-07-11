@@ -9,7 +9,7 @@
  *    (See accompanying file LICENSE)
  * Authors:   Sean Kelly,
  *            Alex Rønne Petersen
- * Source:    https://github.com/dlang/druntime/blob/master/src/core/stdc/stdio.d
+ * Source:    https://github.com/dlang/dmd/blob/master/druntime/src/core/stdc/stdio.d
  * Standards: ISO/IEC 9899:1999 (E)
  */
 
