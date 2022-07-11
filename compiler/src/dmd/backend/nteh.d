@@ -774,7 +774,7 @@ else
     const reg_t reg = CX;
 
 version (MARS)
-    // https://github.com/dlang/druntime/blob/master/src/rt/deh_win32.d#L924
+    // https://github.com/dlang/dmd/blob/cdfadf8a18f474e6a1b8352af2541efe3e3467cc/druntime/src/rt/deh_win32.d#L934
     const local_unwind = RTLSYM.D_LOCAL_UNWIND2;    // __d_local_unwind2()
 else
     // dm/src/win32/ehsup.c
