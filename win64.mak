@@ -7,3 +7,6 @@ MAKE=make
 all:
 	cd compiler\src
 	$(MAKE) -f win64.mak
+	cd ..\druntime\
+	$(MAKE) -f win64.mak
+	cd ..\..\

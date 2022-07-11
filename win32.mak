@@ -3,6 +3,8 @@ MAKE=make
 defaulttarget:
 	cd compiler\src
 	$(MAKE) -f win32.mak
+	cd ..\druntime\
+	$(MAKE) -f win32.mak
 	cd ..\..
 
 auto-tester-build:

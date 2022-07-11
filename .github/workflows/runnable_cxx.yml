@@ -196,7 +196,7 @@ jobs:
         fi
 
     #########################################
-    # Checking out up DMD, druntime, Phobos #
+    # Checking out up core repositories     #
     #########################################
     - name: Checkout DMD
       uses: actions/checkout@v2
@@ -356,30 +356,23 @@ jobs:
       # https://help.github.com/en/actions/reference/virtual-environments-for-github-hosted-runners#supported-runners-and-hardware-resources
       run: |
         # All hosts are 64 bits but let's be explicit
-        ./dmd/compiler/src/build.d -j2 MODEL=64
-        make -C dmd/druntime -f posix.mak -j2 MODEL=64
-        make -C phobos   -f posix.mak -j2 MODEL=64
+        make -C dmd    -f posix.mak install -j2 MODEL=64
+        make -C phobos -f posix.mak install -j2 MODEL=64
         # Both version can live side by side (they end up in a different directory)
         # However, since clang does not provide a multilib package, only test 32 bits with g++
         if [ ${{ matrix.compiler }} == "g++" ]; then
-          ./dmd/compiler/src/build.d install -j2 MODEL=32
-          make -C dmd/druntime -f posix.mak install -j2 MODEL=32
-          make -C phobos   -f posix.mak install -j2 MODEL=32
+          make -C dmd    -f posix.mak install -j2 MODEL=64
+          make -C phobos -f posix.mak install -j2 MODEL=32
         fi
 
     - name: '[Windows] Build compiler & standard library'
       if: runner.os == 'Windows'
       shell: bash
       run: |
-        dmd -run dmd/compiler/src/build.d -j2 MODEL=64
-        if [ $? -ne 0 ]; then return 1; fi
-        # Note: Only CC for druntime and AR for Phobos are required ATM,
-        # but providing all three to avoid surprise for future contributors
-        # Those should really be in the path, though.
-        cd dmd/druntime
+        cd dmd
         make -f win64.mak
         if [ $? -ne 0 ]; then return 1; fi
-        cd ../../phobos/
+        cd ../phobos/
         make -f win64.mak CC=cl.exe LD=link "AR=$VISUAL_STUDIO_LIB_NOT_DM"
         if [ $? -ne 0 ]; then return 1; fi
         cd ../
