@@ -4466,12 +4466,15 @@ void errorSupplementalInferredSafety(FuncDeclaration fd, int maxDepth, bool depr
             errorFunc(s.loc, s.fmtStr,
                 s.arg0 ? s.arg0.toChars() : "", s.arg1 ? s.arg1.toChars() : "", s.arg2 ? s.arg2.toChars() : "");
         }
-        else if (FuncDeclaration fd2 = cast(FuncDeclaration) s.arg0)
+        else if (s.arg0.dyncast() == DYNCAST.dsymbol)
         {
-            if (maxDepth > 0)
+            if (FuncDeclaration fd2 = (cast(Dsymbol) s.arg0).isFuncDeclaration())
             {
-                errorFunc(s.loc, "which calls `%s`", fd2.toPrettyChars());
-                errorSupplementalInferredSafety(fd2, maxDepth - 1, deprecation);
+                if (maxDepth > 0)
+                {
+                    errorFunc(s.loc, "which calls `%s`", fd2.toPrettyChars());
+                    errorSupplementalInferredSafety(fd2, maxDepth - 1, deprecation);
+                }
             }
         }
     }
