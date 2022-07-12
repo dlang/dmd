@@ -1981,7 +1981,8 @@ $(CONSOLE
 
         A $(D scope(exit)) or $(D scope(success)) statement
         may not exit with a throw, goto, break, continue, or
-        return; nor may it be entered with a goto.
+        return; nor may it be entered with a goto. A $(D scope(failure))
+        statement may not exit with a return.
 
 $(H3 $(LNAME2 catching_cpp_class_objects, Catching C++ Class Objects))
 
