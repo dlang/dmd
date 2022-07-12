@@ -2495,15 +2495,15 @@ Package resolveIsPackage(Dsymbol sym)
     return pkg;
 }
 
-private Module loadStdMath()
+private Module loadCoreMath()
 {
-    __gshared Import impStdMath = null;
-    __gshared Identifier[1] stdID;
-    if (!impStdMath)
+    __gshared Import impCoreMath = null;
+    __gshared Identifier[1] coreID;
+    if (!impCoreMath)
     {
-        stdID[0] = Id.std;
-        auto s = new Import(Loc.initial, stdID[], Id.math, null, false);
-        // Module.load will call fatal() if there's no std.math available.
+        coreID[0] = Id.core;
+        auto s = new Import(Loc.initial, coreID[], Id.math, null, false);
+        // Module.load will call fatal() if there's no core.math available.
         // Gag the error here, pushing the error handling to the caller.
         uint errors = global.startGagging();
         s.load(null);
@@ -2513,9 +2513,9 @@ private Module loadStdMath()
             s.mod.dsymbolSemantic(null);
         }
         global.endGagging(errors);
-        impStdMath = s;
+        impCoreMath = s;
     }
-    return impStdMath.mod;
+    return impCoreMath.mod;
 }
 
 private extern (C++) final class ExpressionSemanticVisitor : Visitor
@@ -11124,22 +11124,22 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        Module mmath = loadStdMath();
+        Module mmath = loadCoreMath();
         if (!mmath)
         {
-            e.error("`%s` requires `std.math` for `^^` operators", e.toChars());
+            e.error("`%s` requires `core.math` for `^^` operators", e.toChars());
             return setError();
         }
         e = new ScopeExp(exp.loc, mmath);
 
         if (exp.e2.op == EXP.float64 && exp.e2.toReal() == CTFloat.half)
         {
-            // Replace e1 ^^ 0.5 with .std.math.sqrt(e1)
+            // Replace e1 ^^ 0.5 with .core.math.sqrt(e1)
             e = new CallExp(exp.loc, new DotIdExp(exp.loc, e, Id._sqrt), exp.e1);
         }
         else
         {
-            // Replace e1 ^^ e2 with .std.math.pow(e1, e2)
+            // Replace e1 ^^ e2 with .core.math.pow(e1, e2)
             e = new CallExp(exp.loc, new DotIdExp(exp.loc, e, Id._pow), exp.e1, exp.e2);
         }
         e = e.expressionSemantic(sc);
