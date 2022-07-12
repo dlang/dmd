@@ -2862,7 +2862,9 @@ void test()
 
     $(P Nested functions cannot be overloaded.)
 
-$(H2 $(LNAME2 closures, Delegates, Function Pointers, and Closures))
+$(H2 $(LNAME2 function-pointers-delegates, Function Pointers, Delegates and Closures))
+
+$(H3 $(LNAME2 function-pointers, Function Pointers))
 
         $(P A function pointer can point to a static nested function:)
 
@@ -2896,16 +2898,20 @@ $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 int abc(int x)   { return x + 1; }
 uint def(uint y) { return y + 1; }
 
-int delegate(int)   fp1 = &abc;
-uint delegate(uint) fp2 = &def;
+int function(int)   fp1 = &abc;
+uint function(uint) fp2 = &def;
 // Do not rely on fp1 and fp2 being different values; the compiler may merge
 // them.
+
+void main() {}
 ------
 )
 
+$(H3 $(LNAME2 closures, Delegates & Closures))
+
         $(P A delegate can be set to a non-static nested function:)
 
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ------
 int delegate() dg;
 
@@ -2916,6 +2922,13 @@ void test()
 
     dg = &foo;
     int i = dg(); // i is set to 10
+}
+
+void main()
+{
+    test();
+    int i = dg(); // ok, test.a is in a closure and still exists
+    assert(i == 10);
 }
 ------
 )
@@ -2933,15 +2946,6 @@ void test()
         a closure and is an error.
         )
 
-------
-void bar()
-{
-    int b;
-    test();
-    int i = dg(); // ok, test.a is in a closure and still exists
-}
-------
-
         $(P Delegates to non-static nested functions contain two pieces of
         data: the pointer to the stack frame of the lexically enclosing
         function (called the $(I context pointer)) and the address of the
@@ -2952,7 +2956,7 @@ void bar()
         the same type.
         )
 
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ------
 struct Foo
 {
@@ -2965,15 +2969,17 @@ int foo(int delegate() dg)
     return dg() + 1;
 }
 
-void test()
+void main()
 {
+    Foo f;
+    int i = foo(&f.bar);
+    assert(i == 8);
+
     int x = 27;
     int abc() { return x; }
-    Foo f;
-    int i;
 
-    i = foo(&abc);   // i is set to 28
-    i = foo(&f.bar); // i is set to 8
+    i = foo(&abc);
+    assert(i == 28);
 }
 ------
 )
@@ -2989,6 +2995,8 @@ void test()
         $(P The $(D .funcptr) property of a delegate will return the
         $(I function pointer) value as a function type.
         )
+
+$(H3 $(LNAME2 function-delegate-init, Initialization))
 
         $(P Function pointers are zero-initialized by default.
         They can be initialized to the address of any function (including a function literal).
@@ -3033,6 +3041,7 @@ void test()
         a static member function, or a static nested function.
         )
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
         struct S
         {
@@ -3046,20 +3055,24 @@ void test()
             int delegate() dg = &s.member; // Ok, s supplies context pointer
             assert(dg() == 1);
 
-            dg = &S.sfunc;  // error
-            dg = &S.member; // error
+            //dg = &S.sfunc;  // error
+            //dg = &S.member; // error
 
             int moon() { return 2; }
             dg = &moon;     // Ok
             assert(dg() == 2);
 
             static int mars() { return 3; }
-            dg = &mars;     // error
+            //dg = &mars;     // error
 
             dg = () { return 4; }; // Ok
             assert(dg() == 4);
         }
         ---
+        )
+        $(P The last assignment uses a $(GLINK2 expression, FunctionLiteral), which
+        $(DDSUBLINK spec/expression, lambda-type-inference, implicitly converts)
+        to a delegate.)
 
         $(NOTE Function pointers can be passed to functions taking a delegate argument by passing
         them through the $(REF toDelegate, std,functional) template, which converts any callable
