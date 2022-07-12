@@ -1505,17 +1505,11 @@ UnionExp Cat(const ref Loc loc, Type type, Expression e1, Expression e2)
     Type t2 = e2.type.toBasetype();
     //printf("Cat(e1 = %s, e2 = %s)\n", e1.toChars(), e2.toChars());
     //printf("\tt1 = %s, t2 = %s, type = %s\n", t1.toChars(), t2.toChars(), type.toChars());
-    if (e1.op == EXP.null_ && (e2.op == EXP.int64 || e2.op == EXP.structLiteral))
+
+    /* e is the non-null operand, t is the type of the null operand
+     */
+    UnionExp catNull(Expression e, Type t)
     {
-        e = e2;
-        t = t1;
-        goto L2;
-    }
-    else if ((e1.op == EXP.int64 || e1.op == EXP.structLiteral) && e2.op == EXP.null_)
-    {
-        e = e1;
-        t = t2;
-    L2:
         Type tn = e.type.toBasetype();
         if (tn.ty.isSomeChar)
         {
@@ -1544,6 +1538,15 @@ UnionExp Cat(const ref Loc loc, Type type, Expression e1, Expression e2)
         }
         assert(ue.exp().type);
         return ue;
+    }
+
+    if (e1.op == EXP.null_ && (e2.op == EXP.int64 || e2.op == EXP.structLiteral))
+    {
+        return catNull(e2, t1);
+    }
+    else if ((e1.op == EXP.int64 || e1.op == EXP.structLiteral) && e2.op == EXP.null_)
+    {
+        return catNull(e1, t2);
     }
     else if (e1.op == EXP.null_ && e2.op == EXP.null_)
     {
