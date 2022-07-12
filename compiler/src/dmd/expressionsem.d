@@ -5019,7 +5019,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         sc.func.kind(), sc.func.toPrettyChars(), p, exp.e1.toChars());
                     err = true;
                 }
-                if (tf.trust <= TRUST.system && sc.setUnsafe())
+                if (tf.trust <= TRUST.system && sc.setUnsafe(true, exp.loc,
+                    "`@safe` function `%s` cannot call `@system` `%s`", sc.func, exp.e1))
                 {
                     exp.error("`@safe` %s `%s` cannot call `@system` %s `%s`",
                         sc.func.kind(), sc.func.toPrettyChars(), p, exp.e1.toChars());
@@ -7588,11 +7589,20 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         // Check for unsafe casts
-        if (!isSafeCast(ex, t1b, tob) &&
-            (!sc.func && sc.stc & STC.safe || sc.setUnsafe()))
+        if (!isSafeCast(ex, t1b, tob))
         {
-            exp.error("cast from `%s` to `%s` not allowed in safe code", exp.e1.type.toChars(), exp.to.toChars());
-            return setError();
+            // This is an ad-hoc fix for https://issues.dlang.org/show_bug.cgi?id=19646
+            // Should be replaced by a more general @system variables implementation
+            if (!sc.func && sc.stc & STC.safe)
+            {
+                exp.error("cast from `%s` to `%s` not allowed in safe code", exp.e1.type.toChars(), exp.to.toChars());
+                return setError();
+            }
+
+            if (sc.setUnsafe(false, exp.loc, "cast from `%s` to `%s` not allowed in safe code", exp.e1.type, exp.to))
+            {
+                return setError();
+            }
         }
 
         // `object.__ArrayCast` is a rewrite of an old runtime hook `_d_arraycast`. `_d_arraycast` was not built
@@ -13152,14 +13162,12 @@ bool checkAddressVar(Scope* sc, Expression exp, VarDeclaration v)
     }
     if (sc.func && !sc.intypeof && !v.isDataseg())
     {
-        const(char)* p = v.isParameter() ? "parameter" : "local";
         v.storage_class &= ~STC.maybescope;
         v.doNotInferScope = true;
         if (global.params.useDIP1000 != FeatureState.enabled &&
             !(v.storage_class & STC.temp) &&
-            sc.setUnsafe())
+            sc.setUnsafe(false, exp.loc, "cannot take address of local `%s` in `@safe` function `%s`", v, sc.func))
         {
-            exp.error("cannot take address of %s `%s` in `@safe` function `%s`", p, v.toChars(), sc.func.toChars());
             return false;
         }
     }
