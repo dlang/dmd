@@ -6,6 +6,11 @@ Since DMD runs on many platforms and lots of D infrastructure depends on it, the
 ## Troubleshooting failed checks
 When your PR fails checks, click on the "Details" link next to it to see what the error is.
 
+Most log files are the output of `make`, which prints the commands it invokes followed by the output of that command.
+Execution stops after a failed command, so errors can usually be found near the end of the log.
+Because of multi-threaded builds, they don't need to be at the very end however.
+You can Ctrl+F search for a triple asterisk `***` to easily find failed commands.
+
 Errors caused by the changes you made should be addressed by pushing new commits to your branch.
 
 When it looks like the error is unrelated to your PR's changes, try rebasing your branch.
