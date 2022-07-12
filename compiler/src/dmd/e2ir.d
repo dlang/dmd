@@ -2312,22 +2312,7 @@ elem* toElem(Expression e, IRState *irs)
                 else if ((postblit || destructor) &&
                     ae.op != EXP.blit &&
                     ae.op != EXP.construct)
-                {
-                    /* Generate:
-                     *     _d_arrayassign(ti, efrom, eto)
-                     */
-                    el_free(esize);
-                    elem *eti = getTypeInfo(ae.e1, t1.nextOf().toBasetype(), irs);
-                    if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
-                    {
-                        eto   = addressElem(eto,   Type.tvoid.arrayOf());
-                        efrom = addressElem(efrom, Type.tvoid.arrayOf());
-                    }
-                    elem *ep = el_params(eto, efrom, eti, null);
-                    auto rtl = RTLSYM.ARRAYASSIGN;
-                    elem* e = el_bin(OPcall, totym(ae.type), el_var(getRtlsym(rtl)), ep);
-                    return setResult(e);
-                }
+                    assert(0, "Trying to reference `_d_arrayassign`, this should not happen!");
                 else
                 {
                     // Generate:
@@ -2636,27 +2621,10 @@ elem* toElem(Expression e, IRState *irs)
             }
             else
             {
-                e1 = sarray_toDarray(ae.e1.loc, ae.e1.type, null, e1);
-                e2 = sarray_toDarray(ae.e2.loc, ae.e2.type, null, e2);
-
-                Symbol *stmp = symbol_genauto(Type_toCtype(t1b.nextOf()));
-                elem *etmp = el_una(OPaddr, TYnptr, el_var(stmp));
-
-                /* Generate:
-                 *      _d_arrayassign_l(ti, e2, e1, etmp)
-                 * or:
-                 *      _d_arrayassign_r(ti, e2, e1, etmp)
-                 */
-                elem *eti = getTypeInfo(ae.e1, t1b.nextOf().toBasetype(), irs);
-                if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
-                {
-                    e1 = addressElem(e1, Type.tvoid.arrayOf());
-                    e2 = addressElem(e2, Type.tvoid.arrayOf());
-                }
-                elem *ep = el_params(etmp, e1, e2, eti, null);
-                const rtl = lvalueElem ? RTLSYM.ARRAYASSIGN_L : RTLSYM.ARRAYASSIGN_R;
-                elem* e = el_bin(OPcall, TYdarray, el_var(getRtlsym(rtl)), ep);
-                return setResult2(e);
+                if (ae.e2.isLvalue)
+                    assert(0, "Trying to reference `_d_arrayassign_l`, this should not happen!");
+                else
+                    assert(0, "Trying to reference `_d_arrayassign_r`, this should not happen!");
             }
         }
         else
