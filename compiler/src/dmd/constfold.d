@@ -946,7 +946,7 @@ UnionExp Cast(const ref Loc loc, Type type, Type to, Expression e1)
         emplaceExp!(UnionExp)(&ue, e1);
         return ue;
     }
-    if (e1.op == EXP.vector && (cast(TypeVector)e1.type).basetype.equals(type) && type.equals(to))
+    if (e1.isVectorExp() && e1.type.isTypeVector().basetype.equals(type) && type.equals(to))
     {
         Expression ex = e1.isVectorExp().e1;
         emplaceExp!(UnionExp)(&ue, ex);
@@ -1118,9 +1118,9 @@ UnionExp ArrayLength(Type type, Expression e1)
         size_t dim = ale.keys.dim;
         emplaceExp!(IntegerExp)(&ue, loc, dim, type);
     }
-    else if (e1.type.toBasetype().ty == Tsarray)
+    else if (auto ts = e1.type.toBasetype().isTypeSArray())
     {
-        Expression e = (cast(TypeSArray)e1.type.toBasetype()).dim;
+        Expression e = ts.dim;
         emplaceExp!(UnionExp)(&ue, e);
     }
     else
@@ -1136,6 +1136,7 @@ UnionExp Index(Type type, Expression e1, Expression e2, bool indexIsInBounds)
     Loc loc = e1.loc;
     //printf("Index(e1 = %s, e2 = %s)\n", e1.toChars(), e2.toChars());
     assert(e1.type);
+
     if (e1.op == EXP.string_ && e2.op == EXP.int64)
     {
         StringExp es1 = e1.isStringExp();
@@ -1150,18 +1151,38 @@ UnionExp Index(Type type, Expression e1, Expression e2, bool indexIsInBounds)
             emplaceExp!(IntegerExp)(&ue, loc, es1.getCodeUnit(cast(size_t) i), type);
         }
     }
-    else if (e1.type.toBasetype().ty == Tsarray && e2.op == EXP.int64)
+    else if (auto ale = e1.isArrayLiteralExp())
     {
-        TypeSArray tsa = cast(TypeSArray)e1.type.toBasetype();
-        uinteger_t length = tsa.dim.toInteger();
-        uinteger_t i = e2.toInteger();
-        if (i >= length && (e1.op == EXP.arrayLiteral || !indexIsInBounds))
+        if (e2.op != EXP.int64)
+        {
+            cantExp(ue);
+            return ue;
+        }
+        const uinteger_t i = e2.toInteger();
+
+        uinteger_t length;
+        if (auto tsa = ale.type.toBasetype().isTypeSArray())
+        {
+            length = tsa.dim.toInteger();
+        }
+        else if (ale.type.toBasetype().isTypeDArray())
+        {
+            indexIsInBounds = false;
+            length = ale.elements.dim;
+        }
+        else
+        {
+            cantExp(ue);
+            return ue;
+        }
+
+        if (i >= length && !indexIsInBounds)
         {
             // C code only checks bounds if an ArrayLiteralExp
             e1.error("array index %llu is out of bounds `%s[0 .. %llu]`", i, e1.toChars(), length);
             emplaceExp!(ErrorExp)(&ue);
         }
-        else if (ArrayLiteralExp ale = e1.isArrayLiteralExp())
+        else
         {
             auto e = ale[cast(size_t)i];
             e.type = type;
@@ -1171,32 +1192,6 @@ UnionExp Index(Type type, Expression e1, Expression e2, bool indexIsInBounds)
             else
                 emplaceExp!(UnionExp)(&ue, e);
         }
-        else
-            cantExp(ue);
-    }
-    else if (e1.type.toBasetype().ty == Tarray && e2.op == EXP.int64)
-    {
-        uinteger_t i = e2.toInteger();
-        if (ArrayLiteralExp ale = e1.isArrayLiteralExp())
-        {
-            if (i >= ale.elements.dim)
-            {
-                e1.error("array index %llu is out of bounds `%s[0 .. %llu]`", i, e1.toChars(), cast(ulong) ale.elements.dim);
-                emplaceExp!(ErrorExp)(&ue);
-            }
-            else
-            {
-                auto e = ale[cast(size_t)i];
-                e.type = type;
-                e.loc = loc;
-                if (hasSideEffect(e))
-                    cantExp(ue);
-                else
-                    emplaceExp!(UnionExp)(&ue, e);
-            }
-        }
-        else
-            cantExp(ue);
     }
     else if (AssocArrayLiteralExp ae = e1.isAssocArrayLiteralExp())
     {
