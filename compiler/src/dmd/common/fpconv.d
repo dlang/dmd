@@ -1,8 +1,14 @@
-
-/** Port of grisu2 implementation by night-shift
+/**
+ * Port of grisu2 implementation by night-shift
    https://github.com/night-shift/fpconv
-   Converted to (CTFEable) D by Stefan Koch */
-
+ *
+ * Copyright: Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:   Stefan Koch, Max Haughton
+ * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/common/fpconv.d, common/fpconv.d)
+ * Documentation: https://dlang.org/phobos/dmd_common_fpconv.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/common/fpconv.d
+ */
 module dmd.common.fpconv;
 
 enum npowers = 87;
