@@ -69,14 +69,14 @@ $(H2 $(LNAME2 examples, Quick Examples))
 
 $(H2 $(LNAME2 dialect, ImportC Dialect))
 
-    $(P There are many versions of C. ImportC is designed to be an
+    $(P There are many versions of C. ImportC is an
     implementation of $(LINK2 https://en.wikipedia.org/wiki/C11_(C_standard_revision), ISO/IEC 9899:2011),
-    which will hereafter be referred to as $(B C11).
+    which will be referred to as $(B C11).
     References to the C11 Standard will be C11 followed by the paragraph number.
     Prior versions, such as C99, C89, and K+R C, are not supported.
     )
 
-    $(P Adjustment to the ImportC dialect is made to match the
+    $(IMPLEMENTATION_DEFINED Adjustment to the ImportC dialect is made to match the
     behavior of the C compiler that the D compiler is matched to,
     i.e. the $(DDSUBLINK glossary, acc, Associated C Compiler).
     )
@@ -84,7 +84,7 @@ $(H2 $(LNAME2 dialect, ImportC Dialect))
     $(P Further adjustment is made to take advantage of some of the D
     implementation's capabilities.)
 
-    $(NOTE: This is not a C reference manual nor programming tutorial.
+    $(NOTE This is not a C reference manual nor programming tutorial.
     It describes the specifics of the dialect of C that
     ImportC is, and how to use it effectively.)
 
@@ -115,7 +115,7 @@ $(H2 $(LNAME2 command-line, Invoking ImportC))
     $(BEST_PRACTICE explicitly use a `.i` or `.c` extension when
     specifying C files on the command line.)
 
-    $(H3 $(LNAME2 importing, Importing C Files))
+    $(H3 $(LNAME2 importing, Importing C Files from D Code))
 
     $(P Use the D $(GLINK2 module, ImportDeclaration):)
 
@@ -146,6 +146,7 @@ $(H2 $(LNAME2 preprocessor, Preprocessor))
     $(LI When compiling for Windows with the $(DDSUBLINK dmd, switch-m32mscoff, $(TT -m32mscoff))
     or the $(DDSUBLINK dmd, switch-m64, $(TT -m64)) switch, $(TT cl.exe /P /Zc:preprocessor) will be used
     as the preprocessor.)
+    $(LI When compiling for OSX, the $(TT clang -E) preprocessor will be used.)
     $(LI Otherwise the $(TT cpp) preprocessor will be used.)
     )
 
@@ -155,7 +156,7 @@ $(H2 $(LNAME2 preprocessor, Preprocessor))
     that invokes the preprocessor.
     )
 
-    $(P The $(DDSUBLINK dmd, switch-P, $(TT -P<preprocessorflag>)) switch passes $(TT <preprocessorflag>)
+    $(P The $(DDSUBLINK dmd, switch-P, $(TT -P$(I preprocessorflag))) switch passes $(TT $(I preprocessorflag))
     to the preprocessor.
     )
 
@@ -190,7 +191,7 @@ $(H2 $(LNAME2 preprocessor, Preprocessor))
     $(P The $(LINK2 https://freecompilercamp.org/clang-basics/, Clang Preprocessor) can be invoked as:)
 
     $(CONSOLE
-    clang -E file.c > file.i
+    clang -E file.c -o file.i
     )
 
     $(H4 $(LNAME2 vc-preprocessor, Microsoft VC Preprocessor))
@@ -238,12 +239,18 @@ $(H2 $(LNAME2 predefined-macros, Predefined Macros))
 
     $(P ImportC does not predefine any macros.)
 
-    $(BEST_PRACTICE To distinguish an ImportC compile vs some other C compiler, define
-    `__IMPORTC__` to be `1` when the preprocessor is run.)
+    $(P To distinguish an ImportC compile vs some other C compiler, use:)
+
+$(CCODE
+#if __IMPORTC__
+)
+
+    $(P $(TT __IMPORTC__) is defined in $(TT src/importc.h) which is automatically
+    included when the preprocessor is run.)
 
 $(H2 $(LNAME2 preprocessor-directives, Preprocessor Directives))
 
-    $(P Nevertheless, ImportC supports these preprocessor directives:)
+    $(P ImportC supports these preprocessor directives:)
 
     $(H3 $(LNAME2 line-control, Line control))
 
@@ -256,7 +263,18 @@ $(H2 $(LNAME2 preprocessor-directives, Preprocessor Directives))
 
     $(H3 $(LNAME2 pragma, pragma))
 
-    $(P Pragma directives are ignored.)
+    $(P The following pragmas are supported:)
+
+    $(UL
+    $(LI $(TT #pragma pack ( )))
+    $(LI $(TT #pragma pack ( show )))
+    $(LI $(TT #pragma pack ( push )))
+    $(LI $(TT #pragma pack ( push , identifier )))
+    $(LI $(TT #pragma pack ( push , integer )))
+    $(LI $(TT #pragma pack ( push , identifier , integer )))
+    $(LI $(TT #pragma pack ( pop )))
+    $(LI $(TT #pragma pack ( pop PopList )))
+    )
 
 $(H2 $(LNAME2 implementation, Implementation))
 
