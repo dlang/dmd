@@ -3748,20 +3748,7 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
             {
                 Expression exp = s.exp;
                 if (exp && !exp.type.equals(tret))
-                {
-                    /* https://issues.dlang.org/show_bug.cgi?id=23234
-
-                    If the return statement of a FuncLiteralDeclaration
-                    is rewritten to match an expected type, we should
-                    check alias this before bluntly casting.
-                    */
-                    import dmd.aliasthis : resolveAliasThis;
-                    auto e = resolveAliasThis(sc, exp, true);
-                    if (e && e != exp && e.type.equals(tret))
-                        s.exp = e;
-                    else
-                        s.exp = exp.castTo(sc, tret);
-                }
+                    s.exp = exp.implicitCastTo(sc, tret);
             }
         }
 
