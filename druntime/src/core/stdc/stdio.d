@@ -1286,6 +1286,57 @@ version (MinGW)
     ///
     alias __mingw_scanf scanf;
 }
+else version (CRuntime_Glibc)
+{
+    ///
+    pragma(printf)
+    int fprintf(FILE* stream, scope const char* format, scope const ...);
+    ///
+    pragma(scanf)
+    int __isoc99_fscanf(FILE* stream, scope const char* format, scope ...);
+    ///
+    alias fscanf = __isoc99_fscanf;
+    ///
+    pragma(printf)
+    int sprintf(scope char* s, scope const char* format, scope const ...);
+    ///
+    pragma(scanf)
+    int __isoc99_sscanf(scope const char* s, scope const char* format, scope ...);
+    ///
+    alias sscanf = __isoc99_sscanf;
+    ///
+    pragma(printf)
+    int vfprintf(FILE* stream, scope const char* format, va_list arg);
+    ///
+    pragma(scanf)
+    int __isoc99_vfscanf(FILE* stream, scope const char* format, va_list arg);
+    ///
+    alias vfscanf = __isoc99_vfscanf;
+    ///
+    pragma(printf)
+    int vsprintf(scope char* s, scope const char* format, va_list arg);
+    ///
+    pragma(scanf)
+    int __isoc99_vsscanf(scope const char* s, scope const char* format, va_list arg);
+    ///
+    alias vsscanf = __isoc99_vsscanf;
+    ///
+    pragma(printf)
+    int vprintf(scope const char* format, va_list arg);
+    ///
+    pragma(scanf)
+    int __isoc99_vscanf(scope const char* format, va_list arg);
+    ///
+    alias vscanf = __isoc99_vscanf;
+    ///
+    pragma(printf)
+    int printf(scope const char* format, scope const ...);
+    ///
+    pragma(scanf)
+    int __isoc99_scanf(scope const char* format, scope ...);
+    ///
+    alias scanf = __isoc99_scanf;
+}
 else
 {
     ///

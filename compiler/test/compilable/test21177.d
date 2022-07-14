@@ -32,13 +32,13 @@ void main()
         printf("%*m");
 
         char* a, b;
-        sscanf("salut poilu", "%a %m", a, b);
+        sscanf("salut poilu", "%m %m", a, b);
         assert(!strcmp(a, b));
         free(a);
         free(b);
 
         char* t, p;
-        sscanf("Tomate Patate", "%ms %as", t, p);
+        sscanf("Tomate Patate", "%ms %m[^\n]", t, p);
         free(t);
         free(p);
 
@@ -48,11 +48,14 @@ void main()
         sscanf("152", "%a");
         sscanf("153", "%as");
 
+        #line 200
         pragma(msg, "compilable/test21177.d(200): Deprecation: more format specifiers than 0 arguments");
+
+        char* c;
         pragma(msg, "compilable/test21177.d(203): Deprecation: format specifier `\"%m\"` is invalid");
         pragma(msg, "compilable/test21177.d(204): Deprecation: format specifier `\"%m\"` is invalid");
-        pragma(msg, "compilable/test21177.d(205): Deprecation: argument `c` for format specification `\"%a\"` must be `float*`, not `char*`");
-        pragma(msg, "compilable/test21177.d(206): Deprecation: argument `c` for format specification `\"%a\"` must be `float*`, not `char*`");
+        sscanf("206", "%a", c);
+        sscanf("207", "%as", c);
     }
     else
     {
@@ -71,6 +74,5 @@ void main()
         sscanf("205", "%ms", c);
         sscanf("206", "%a", c);
         sscanf("207", "%as", c);
-
     }
 }

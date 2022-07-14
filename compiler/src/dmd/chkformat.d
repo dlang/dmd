@@ -207,7 +207,6 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
                     errorMsg(null, e, "ptrdiff_t", t);
                 break;
 
-            case Format.GNU_a:  // Format.GNU_a is only for scanf
             case Format.lg:
             case Format.g:      // double
                 if (t.ty != Tfloat64 && t.ty != Timaginary64)
@@ -481,7 +480,6 @@ bool checkScanfFormat(ref const Loc loc, scope const char[] format, scope Expres
                     errorMsg(null, e, "real*", t);
                 break;
 
-            case Format.GNU_a:
             case Format.GNU_m:
             case Format.c:
             case Format.s:      // pointer to char string
@@ -799,7 +797,6 @@ enum Format
     jn,         // pointer to intmax_t
     zn,         // pointer to size_t
     tn,         // pointer to ptrdiff_t
-    GNU_a,      // GNU ext. : address to a string with no maximum size (scanf)
     GNU_m,      // GNU ext. : string corresponding to the error code in errno (printf) / length modifier (scanf)
     percent,    // %% (i.e. no argument)
     error,      // invalid format specification
@@ -893,21 +890,13 @@ Format parseGenericFormatSpecifier(scope const char[] format,
                                                Format.u;
             break;
 
-        case 'a':
-            if (useGNUExts)
-            {
-                // https://www.gnu.org/software/libc/manual/html_node/Dynamic-String-Input.html
-                specifier = Format.GNU_a;
-                break;
-            }
-            goto case;
-
         case 'f':
         case 'F':
         case 'e':
         case 'E':
         case 'g':
         case 'G':
+        case 'a':
         case 'A':
             if (lm == 'L')
                 specifier = Format.Lg;
@@ -1126,9 +1115,12 @@ unittest
      assert(idx == 2);
 
      idx = 0;
-     Format g = parsePrintfFormatSpecifier("%a", idx, widthStar, precisionStar);
-     assert(g == Format.g || g == Format.GNU_a);
+     assert(parsePrintfFormatSpecifier("%a", idx, widthStar, precisionStar) == Format.g);
      assert(idx == 2);
+
+     idx = 0;
+     assert(parsePrintfFormatSpecifier("%La", idx, widthStar, precisionStar) == Format.Lg);
+     assert(idx == 3);
 
      idx = 0;
      assert(parsePrintfFormatSpecifier("%A", idx, widthStar, precisionStar) == Format.g);
@@ -1296,8 +1288,7 @@ unittest
     assert(idx == 2);
 
     idx = 0;
-    g = parseScanfFormatSpecifier("%a", idx, asterisk);
-    assert(g == Format.g || g == Format.GNU_a);
+    assert(parseScanfFormatSpecifier("%a", idx, asterisk) == Format.g);
     assert(idx == 2);
 
     idx = 0;
