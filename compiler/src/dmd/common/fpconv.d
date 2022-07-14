@@ -3,7 +3,7 @@
    https://github.com/night-shift/fpconv
    Converted to (CTFEable) D by Stefan Koch */
 
-module dmd.ctfe.fpconv_ctfe;
+module dmd.common.fpconv;
 
 enum npowers = 87;
 enum steppowers = 8;

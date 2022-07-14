@@ -6,7 +6,7 @@
  */
 module dmd.ctfe.bc_common;
 
-import dmd.ctfe.fpconv_ctfe;
+import dmd.common.fpconv;
 
 /// functions with index skipFn will be skipped
 /// calling them is equivlent to an expensive nop
