@@ -1285,7 +1285,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         else if (typeOfArg)
         {
-            // If there is a type but no symbol, do nothing rather than errorring.
+            // If there is a type but no symbol, do nothing rather than erroring.
         }
         else
         {
