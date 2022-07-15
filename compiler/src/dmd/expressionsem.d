@@ -11891,6 +11891,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             //printf("Lowering to __equals %s %s\n", exp.e1.toChars(), exp.e2.toChars());
 
+            // https://issues.dlang.org/show_bug.cgi?id=22390
+            // Equality comparison between array of noreturns simply lowers to length equality comparison
+            if (t1.nextOf.isTypeNoreturn() && t2.nextOf.isTypeNoreturn())
+            {
+                Expression exp_l1 = new DotIdExp(exp.e1.loc, exp.e1, Id.length);
+                Expression exp_l2 = new DotIdExp(exp.e2.loc, exp.e2, Id.length);
+                auto e = new EqualExp(EXP.equal, exp.loc, exp_l1, exp_l2);
+                result = e.expressionSemantic(sc);
+                return;
+            }
+
             if (!verifyHookExist(exp.loc, *sc, Id.__equals, "equal checks on arrays"))
                 return setError();
 
