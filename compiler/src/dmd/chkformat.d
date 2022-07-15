@@ -570,6 +570,25 @@ Format parseScanfFormatSpecifier(scope const char[] format, ref size_t idx,
      */
     if (format[i] == '[')
     {
+        i++;
+        if (i == length)
+            return error();
+
+        // If the conversion specifier begins with `[]` or `[^]`, the right
+        // bracket character is not the terminator, but in the scanlist.
+        if (format[i] == '^')
+        {
+            i++;
+            if (i == length)
+                return error();
+        }
+        if (format[i] == ']')
+        {
+            i++;
+            if (i == length)
+                return error();
+        }
+
         while (i < length)
         {
             if (format[i] == ']')
@@ -1336,6 +1355,16 @@ unittest
     assert(idx == 12);
     assert(asterisk);
 
+    idx = 0;
+    assert(parseScanfFormatSpecifier("%[]]s", idx, asterisk) == Format.s);
+    assert(idx == 5);
+    assert(!asterisk);
+
+    idx = 0;
+    assert(parseScanfFormatSpecifier("%[^]]s", idx, asterisk) == Format.s);
+    assert(idx == 6);
+    assert(!asterisk);
+
     // Too short formats
     foreach (s; ["%", "% ", "%#", "%0", "%*", "%1", "%19",
                  "%j", "%z", "%t", "%l", "%h", "%ll", "%hh", "%K"])
@@ -1359,7 +1388,7 @@ unittest
     }
 
     // Invalid scansets
-    foreach (s; ["%[]", "%[s", "%[0-9lld", "%[", "%[a-z]"])
+    foreach (s; ["%[]", "%[^", "%[^]", "%[s", "%[0-9lld", "%[", "%[a-z]"])
     {
         idx = 0;
         assert(parseScanfFormatSpecifier(s, idx, asterisk) == Format.error);
