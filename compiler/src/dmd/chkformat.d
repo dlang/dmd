@@ -759,6 +759,20 @@ Format parsePrintfFormatSpecifier(scope const char[] format, ref size_t idx,
     return specifier;  // success
 }
 
+/* Different kinds of conversion modifiers. */
+enum Modifier
+{
+    none,
+    h,          // short
+    hh,         // char
+    j,          // intmax_t
+    l,          // long int
+    ll,         // long long int
+    L,          // long double
+    t,          // ptrdiff_t
+    z           // size_t
+}
+
 /* Different kinds of formatting specifications, variations we don't
    care about are merged. (Like we don't care about the difference between
    f, e, g, a, etc.)
@@ -813,6 +827,7 @@ enum Format
  *          even if `Format.error` is returned
  *      genSpecifier = Generic specifier. For instance, it will be set to `d` if the
  *           format is `hdd`.
+ *      useGNUExts = true if parsing GNU format extensions
  * Returns:
  *      Format
  */
@@ -825,30 +840,41 @@ Format parseGenericFormatSpecifier(scope const char[] format,
     /* Read the `length modifier`
      */
     const lm = format[idx];
-    bool lm1;        // if jztL
-    bool lm2;        // if `hh` or `ll`
-    if (lm == 'j' ||
-        lm == 'z' ||
-        lm == 't' ||
-        lm == 'L')
+    Modifier flags;
+    switch (lm)
     {
-        ++idx;
-        if (idx == length)
-            return Format.error;
-        lm1 = true;
-    }
-    else if (lm == 'h' || lm == 'l')
-    {
-        ++idx;
-        if (idx == length)
-            return Format.error;
-        lm2 = lm == format[idx];
-        if (lm2)
-        {
+        case 'j':
+        case 'z':
+        case 't':
+        case 'L':
+            flags = lm == 'j' ? Modifier.j :
+                    lm == 'z' ? Modifier.z :
+                    lm == 't' ? Modifier.t :
+                                Modifier.L;
             ++idx;
             if (idx == length)
                 return Format.error;
-        }
+            break;
+
+        case 'h':
+        case 'l':
+            ++idx;
+            if (idx == length)
+                return Format.error;
+            if (lm == format[idx])
+            {
+                flags = lm == 'h' ? Modifier.hh : Modifier.ll;
+                ++idx;
+                if (idx == length)
+                    return Format.error;
+            }
+            else
+                flags = lm == 'h' ? Modifier.h : Modifier.l;
+            break;
+
+        default:
+            flags = Modifier.none;
+            break;
     }
 
     /* Read the `specifier`
@@ -860,34 +886,30 @@ Format parseGenericFormatSpecifier(scope const char[] format,
     {
         case 'd':
         case 'i':
-            if (lm == 'L')
-                specifier = Format.error;
-            else
-                specifier = lm == 'h' && lm2 ? Format.hhd :
-                            lm == 'h'        ? Format.hd  :
-                            lm == 'l' && lm2 ? Format.lld :
-                            lm == 'l'        ? Format.ld  :
-                            lm == 'j'        ? Format.jd  :
-                            lm == 'z'        ? Format.zd  :
-                            lm == 't'        ? Format.td  :
-                                               Format.d;
+            specifier = flags == Modifier.none ? Format.d   :
+                        flags == Modifier.hh   ? Format.hhd :
+                        flags == Modifier.h    ? Format.hd  :
+                        flags == Modifier.ll   ? Format.lld :
+                        flags == Modifier.l    ? Format.ld  :
+                        flags == Modifier.j    ? Format.jd  :
+                        flags == Modifier.z    ? Format.zd  :
+                        flags == Modifier.t    ? Format.td  :
+                                                 Format.error;
             break;
 
         case 'u':
         case 'o':
         case 'x':
         case 'X':
-            if (lm == 'L')
-                specifier = Format.error;
-            else
-                specifier = lm == 'h' && lm2 ? Format.hhu :
-                            lm == 'h'        ? Format.hu  :
-                            lm == 'l' && lm2 ? Format.llu :
-                            lm == 'l'        ? Format.lu  :
-                            lm == 'j'        ? Format.ju  :
-                            lm == 'z'        ? Format.zd  :
-                            lm == 't'        ? Format.td  :
-                                               Format.u;
+            specifier = flags == Modifier.none ? Format.u   :
+                        flags == Modifier.hh   ? Format.hhu :
+                        flags == Modifier.h    ? Format.hu  :
+                        flags == Modifier.ll   ? Format.llu :
+                        flags == Modifier.l    ? Format.lu  :
+                        flags == Modifier.j    ? Format.ju  :
+                        flags == Modifier.z    ? Format.zd  :
+                        flags == Modifier.t    ? Format.td  :
+                                                 Format.error;
             break;
 
         case 'f':
@@ -898,47 +920,39 @@ Format parseGenericFormatSpecifier(scope const char[] format,
         case 'G':
         case 'a':
         case 'A':
-            if (lm == 'L')
-                specifier = Format.Lg;
-            else if (lm1 || lm2 || lm == 'h')
-                specifier = Format.error;
-            else
-                specifier = lm == 'l' ? Format.lg : Format.g;
+            specifier = flags == Modifier.none ? Format.g  :
+                        flags == Modifier.L    ? Format.Lg :
+                        flags == Modifier.l    ? Format.lg :
+                                                 Format.error;
             break;
 
         case 'c':
-            if (lm1 || lm2 || lm == 'h')
-                specifier = Format.error;
-            else
-                specifier = lm == 'l' ? Format.lc : Format.c;
+            specifier = flags == Modifier.none ? Format.c       :
+                        flags == Modifier.l    ? Format.lc      :
+                                                 Format.error;
             break;
 
         case 's':
-            if (lm1 || lm2 || lm == 'h')
-                specifier = Format.error;
-            else
-                specifier = lm == 'l' ? Format.ls : Format.s;
+            specifier = flags == Modifier.none ? Format.s       :
+                        flags == Modifier.l    ? Format.ls      :
+                                                 Format.error;
             break;
 
         case 'p':
-            if (lm1 || lm2 || lm == 'h' || lm == 'l')
-                specifier = Format.error;
-            else
-                specifier = Format.p;
+            specifier = flags == Modifier.none ? Format.p :
+                                                 Format.error;
             break;
 
         case 'n':
-            if (lm == 'L')
-                specifier = Format.error;
-            else
-                specifier = lm == 'l' && lm2 ? Format.lln :
-                            lm == 'l'        ? Format.ln  :
-                            lm == 'h' && lm2 ? Format.hhn :
-                            lm == 'h'        ? Format.hn  :
-                            lm == 'j'        ? Format.jn  :
-                            lm == 'z'        ? Format.zn  :
-                            lm == 't'        ? Format.tn  :
-                                               Format.n;
+            specifier = flags == Modifier.none ? Format.n   :
+                        flags == Modifier.ll   ? Format.lln :
+                        flags == Modifier.l    ? Format.ln  :
+                        flags == Modifier.hh   ? Format.hhn :
+                        flags == Modifier.h    ? Format.hn  :
+                        flags == Modifier.j    ? Format.jn  :
+                        flags == Modifier.z    ? Format.zn  :
+                        flags == Modifier.t    ? Format.tn  :
+                                                 Format.error;
             break;
 
         case 'm':
