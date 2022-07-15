@@ -62,7 +62,7 @@ import dmd.target;
 bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expression[] args, bool isVa_list)
 {
     //printf("checkPrintFormat('%.*s')\n", cast(int)format.length, format.ptr);
-    size_t n, gnu_m_count;    // index in args / number of Format.GNU_m
+    size_t n;    // index in args
     for (size_t i = 0; i < format.length;)
     {
         if (format[i] != '%')
@@ -79,6 +79,8 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
 
         if (fmt == Format.percent)
             continue;                   // "%%", no arguments
+        if (fmt == Format.GNU_m)
+            continue;                   // "%m", no arguments
 
         if (isVa_list)
         {
@@ -88,14 +90,11 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
             continue;
         }
 
-        if (fmt == Format.GNU_m)
-            ++gnu_m_count;
-
         Expression getNextArg(ref bool skip)
         {
             if (n == args.length)
             {
-                if (args.length < (n + 1) - gnu_m_count)
+                if (args.length < (n + 1))
                     deprecation(loc, "more format specifiers than %d arguments", cast(int)n);
                 else
                     skip = true;
@@ -288,8 +287,8 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
                 break;
 
             case Format.GNU_m:
-                break;  // not assert(0) because it may go through it if there are extra arguments
-
+            case Format.POSIX_ms:
+            case Format.POSIX_mls:
             case Format.percent:
                 assert(0);
         }
@@ -480,7 +479,6 @@ bool checkScanfFormat(ref const Loc loc, scope const char[] format, scope Expres
                     errorMsg(null, e, "real*", t);
                 break;
 
-            case Format.GNU_m:
             case Format.c:
             case Format.s:      // pointer to char string
                 if (!(t.ty == Tpointer && (tnext.ty == Tchar || tnext.ty == Tint8 || tnext.ty == Tuns8)))
@@ -498,10 +496,23 @@ bool checkScanfFormat(ref const Loc loc, scope const char[] format, scope Expres
                     errorMsg(null, e, "void**", t);
                 break;
 
+            case Format.POSIX_ms: // pointer to pointer to char string
+                Type tnext2 = tnext ? tnext.nextOf() : null;
+                if (!(t.ty == Tpointer && tnext.ty == Tpointer && (tnext2.ty == Tchar || tnext2.ty == Tint8 || tnext2.ty == Tuns8)))
+                    errorMsg(null, e, "char**", t);
+                break;
+
+            case Format.POSIX_mls: // pointer to pointer to wchar_t string
+                Type tnext2 = tnext ? tnext.nextOf() : null;
+                if (!(t.ty == Tpointer && tnext.ty == Tpointer && tnext2.ty.isSomeChar && tnext2.size() == target.c.wchar_tsize))
+                    errorMsg(null, e, "wchar_t**", t);
+                break;
+
             case Format.error:
                 deprecation(loc, "format specifier `\"%.*s\"` is invalid", cast(int)slice.length, slice.ptr);
                 break;
 
+            case Format.GNU_m:
             case Format.percent:
                 assert(0);
         }
@@ -609,10 +620,40 @@ Format parseScanfFormatSpecifier(scope const char[] format, ref size_t idx,
 
     /* Read the specifier
      */
-    char genSpec;
-    Format specifier = parseGenericFormatSpecifier(format, i, genSpec);
-    if (specifier == Format.error)
-        return error();
+    Format specifier;
+    switch (format[i])
+    {
+        case 'm':
+            // https://pubs.opengroup.org/onlinepubs/9699919799/functions/scanf.html
+            // POSIX.1-2017 C Extension (CX)
+            Modifier flags = Modifier.m;
+            ++i;
+            if (i == length)
+                return error();
+            if (format[i] == 'l')
+            {
+                ++i;
+                if (i == length)
+                    return error();
+                flags = Modifier.ml;
+            }
+
+            // Check valid conversion types for %m.
+            if (format[i] == 'c' || format[i] == 's')
+                specifier = flags == Modifier.ml ? Format.POSIX_mls :
+                                                   Format.POSIX_ms;
+            else
+                specifier = Format.error;
+            ++i;
+            break;
+
+        default:
+            char genSpec;
+            specifier = parseGenericFormatSpecifier(format, i, genSpec);
+            if (specifier == Format.error)
+                return error();
+            break;
+    }
 
     idx = i;
     return specifier;  // success
@@ -630,11 +671,13 @@ Format parseScanfFormatSpecifier(scope const char[] format, ref size_t idx,
  *          even if `Format.error` is returned
  *      widthStar = set if * for width
  *      precisionStar = set if * for precision
+ *      useGNUExts = true if parsing GNU format extensions
  * Returns:
  *      Format
  */
 Format parsePrintfFormatSpecifier(scope const char[] format, ref size_t idx,
-        out bool widthStar, out bool precisionStar) nothrow pure @safe
+        out bool widthStar, out bool precisionStar, bool useGNUExts =
+        findCondition(global.versionids, Identifier.idPool("CRuntime_Glibc"))) nothrow pure @safe
 {
     auto i = idx;
     assert(format[i] == '%');
@@ -747,9 +790,26 @@ Format parsePrintfFormatSpecifier(scope const char[] format, ref size_t idx,
     /* Read the specifier
      */
     char genSpec;
-    Format specifier = parseGenericFormatSpecifier(format, i, genSpec);
-    if (specifier == Format.error)
-        return error();
+    Format specifier;
+    switch (format[i])
+    {
+        case 'm':
+            // https://www.gnu.org/software/libc/manual/html_node/Other-Output-Conversions.html
+            if (useGNUExts)
+            {
+                specifier = Format.GNU_m;
+                genSpec = format[i];
+                ++i;
+                break;
+            }
+            goto default;
+
+        default:
+            specifier = parseGenericFormatSpecifier(format, i, genSpec);
+            if (specifier == Format.error)
+                return error();
+            break;
+    }
 
     switch (genSpec)
     {
@@ -762,6 +822,11 @@ Format parsePrintfFormatSpecifier(scope const char[] format, ref size_t idx,
         case 'd':
         case 'i':
             if (hash)
+                return error();
+            break;
+
+        case 'm':
+            if (hash || zero || flags)
                 return error();
             break;
 
@@ -788,6 +853,8 @@ enum Modifier
     l,          // long int
     ll,         // long long int
     L,          // long double
+    m,          // char**
+    ml,         // wchar_t**
     t,          // ptrdiff_t
     z           // size_t
 }
@@ -830,7 +897,9 @@ enum Format
     jn,         // pointer to intmax_t
     zn,         // pointer to size_t
     tn,         // pointer to ptrdiff_t
-    GNU_m,      // GNU ext. : string corresponding to the error code in errno (printf) / length modifier (scanf)
+    GNU_m,      // GNU ext. : string corresponding to the error code in errno (printf)
+    POSIX_ms,   // POSIX ext. : dynamically allocated char string  (scanf)
+    POSIX_mls,  // POSIX ext. : dynamically allocated wchar_t string (scanf)
     percent,    // %% (i.e. no argument)
     error,      // invalid format specification
 }
@@ -846,13 +915,11 @@ enum Format
  *          even if `Format.error` is returned
  *      genSpecifier = Generic specifier. For instance, it will be set to `d` if the
  *           format is `hdd`.
- *      useGNUExts = true if parsing GNU format extensions
  * Returns:
  *      Format
  */
 Format parseGenericFormatSpecifier(scope const char[] format,
-    ref size_t idx, out char genSpecifier, bool useGNUExts =
-    findCondition(global.versionids, Identifier.idPool("CRuntime_Glibc"))) nothrow pure @trusted
+    ref size_t idx, out char genSpecifier) nothrow pure @safe
 {
     const length = format.length;
 
@@ -973,15 +1040,6 @@ Format parseGenericFormatSpecifier(scope const char[] format,
                         flags == Modifier.t    ? Format.tn  :
                                                  Format.error;
             break;
-
-        case 'm':
-            if (useGNUExts)
-            {
-                // https://www.gnu.org/software/libc/manual/html_node/Other-Output-Conversions.html
-                specifier = Format.GNU_m;
-                break;
-            }
-            goto default;
 
         default:
             specifier = Format.error;
@@ -1395,4 +1453,67 @@ unittest
         assert(idx == s.length);
     }
 
+    // Posix extensions
+    foreach (s; ["%jm", "%zm", "%tm", "%Lm", "%hm", "%hhm", "%lm", "%llm",
+                 "%m", "%ma", "%md", "%ml", "%mm", "%mlb", "%mlj", "%mlr", "%mlz"])
+    {
+        idx = 0;
+        assert(parseScanfFormatSpecifier(s, idx, asterisk) == Format.error);
+        assert(idx == s.length);
+    }
+
+    idx = 0;
+    assert(parseScanfFormatSpecifier("%mc", idx, asterisk) == Format.POSIX_ms);
+    assert(idx == 3);
+
+    idx = 0;
+    assert(parseScanfFormatSpecifier("%ms", idx, asterisk) == Format.POSIX_ms);
+    assert(idx == 3);
+
+    idx = 0;
+    assert(parseScanfFormatSpecifier("%mlc", idx, asterisk) == Format.POSIX_mls);
+    assert(idx == 4);
+
+    idx = 0;
+    assert(parseScanfFormatSpecifier("%mls", idx, asterisk) == Format.POSIX_mls);
+    assert(idx == 4);
+
+    // GNU extensions: explicitly toggle ISO/GNU flag.
+    // ISO printf()
+    bool useGNUExts = false;
+    {
+        foreach (s; ["%jm", "%zm", "%tm", "%Lm", "%hm", "%hhm", "%lm", "%llm",
+                     "%#m", "%+m", "%-m", "% m", "%0m"])
+        {
+            idx = 0;
+            assert(parsePrintfFormatSpecifier(s, idx, widthStar, precisionStar, useGNUExts) == Format.error);
+            assert(idx == s.length);
+        }
+        foreach (s; ["%m", "%md", "%mz", "%mc", "%mm", "%msyz", "%ml", "%mlz", "%mlc", "%mlm"])
+        {
+            idx = 0;
+            assert(parsePrintfFormatSpecifier(s, idx, widthStar, precisionStar, useGNUExts) == Format.error);
+            assert(idx == 2);
+        }
+    }
+
+    // GNU printf()
+    useGNUExts = true;
+    {
+        foreach (s; ["%jm", "%zm", "%tm", "%Lm", "%hm", "%hhm", "%lm", "%llm",
+                     "%#m", "%+m", "%-m", "% m", "%0m"])
+        {
+            idx = 0;
+            assert(parsePrintfFormatSpecifier(s, idx, widthStar, precisionStar, useGNUExts) == Format.error);
+            assert(idx == s.length);
+        }
+
+        // valid cases, all parsed as `%m`
+        foreach (s; ["%m", "%md", "%mz", "%mc", "%mm", "%msyz", "%ml", "%mlz", "%mlc", "%mlm"])
+        {
+            idx = 0;
+            assert(parsePrintfFormatSpecifier(s, idx, widthStar, precisionStar, useGNUExts) == Format.GNU_m);
+            assert(idx == 2);
+        }
+    }
 }
