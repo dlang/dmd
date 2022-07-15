@@ -243,7 +243,7 @@ static assert(S.sizeof == 16);
 )
         $(P The $(I AssignExpression) specifies the alignment
         which matches the behavior of the companion C compiler when non-default
-        alignments are used. It must be a positive power of 2.
+        alignments are used. It must be a non-negative power of 2.
         )
 
         $(P A value of 1 means that no alignment is done;
