@@ -929,8 +929,6 @@ version (CoreUnittest)
     @safe pure nothrow unittest
     {
 
-        testType!(shared int*)();
-
         static interface Inter {}
         static class KlassImpl : Inter {}
         testXCHG!(shared Inter)(new shared(KlassImpl));
@@ -1000,6 +998,8 @@ version (CoreUnittest)
 
     @betterC pure nothrow unittest
     {
+        testType!(shared int*)();
+
         static if (has128BitCAS)
         {
             struct DoubleValue

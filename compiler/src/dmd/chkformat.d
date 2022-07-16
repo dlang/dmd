@@ -526,7 +526,7 @@ private:
  *      Format
  */
 Format parseScanfFormatSpecifier(scope const char[] format, ref size_t idx,
-        out bool asterisk) nothrow pure @safe
+        out bool asterisk) nothrow @trusted
 {
     auto i = idx;
     assert(format[i] == '%');
@@ -634,7 +634,7 @@ Format parseScanfFormatSpecifier(scope const char[] format, ref size_t idx,
  *      Format
  */
 Format parsePrintfFormatSpecifier(scope const char[] format, ref size_t idx,
-        out bool widthStar, out bool precisionStar) nothrow pure @safe
+        out bool widthStar, out bool precisionStar) nothrow @trusted
 {
     auto i = idx;
     assert(format[i] == '%');

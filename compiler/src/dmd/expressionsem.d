@@ -1755,9 +1755,11 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                     return errorArgs();
                 }
                 arg = p.defaultArg;
-                arg = inlineCopy(arg, sc);
+                arg = arg.syntaxCopy();
                 // __FILE__, __LINE__, __MODULE__, __FUNCTION__, and __PRETTY_FUNCTION__
                 arg = arg.resolveLoc(loc, sc);
+                arg = arg.expressionSemantic(sc);
+                arg = resolveProperties(sc, arg);
                 arguments.push(arg);
                 nargs++;
             }
