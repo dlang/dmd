@@ -8034,6 +8034,7 @@ public:
     void visit(FuncLiteralDeclaration* f) override;
     void visit(PostBlitDeclaration* d) override;
     void visit(DtorDeclaration* d) override;
+    void visit(CtorDeclaration* d) override;
     void visit(StaticCtorDeclaration* d) override;
     void visit(StaticDtorDeclaration* d) override;
     void visit(InvariantDeclaration* d) override;
