@@ -576,57 +576,16 @@ Format parseScanfFormatSpecifier(scope const char[] format, ref size_t idx,
             return error();
     }
 
-    /* Read the scanset
-     * A scanset can be anything, so we just check that it is paired
-     */
-    if (format[i] == '[')
-    {
-        i++;
-        if (i == length)
-            return error();
-
-        // If the conversion specifier begins with `[]` or `[^]`, the right
-        // bracket character is not the terminator, but in the scanlist.
-        if (format[i] == '^')
-        {
-            i++;
-            if (i == length)
-                return error();
-        }
-        if (format[i] == ']')
-        {
-            i++;
-            if (i == length)
-                return error();
-        }
-
-        while (i < length)
-        {
-            if (format[i] == ']')
-                break;
-            ++i;
-        }
-
-        // no `]` found
-        if (i == length)
-            return error();
-
-        ++i;
-        // no specifier after `]`
-        // it could be mixed with the one above, but then idx won't have the right index
-        if (i == length)
-            return error();
-    }
-
     /* Read the specifier
      */
     Format specifier;
+    Modifier flags = Modifier.none;
     switch (format[i])
     {
         case 'm':
             // https://pubs.opengroup.org/onlinepubs/9699919799/functions/scanf.html
             // POSIX.1-2017 C Extension (CX)
-            Modifier flags = Modifier.m;
+            flags = Modifier.m;
             ++i;
             if (i == length)
                 return error();
@@ -642,8 +601,59 @@ Format parseScanfFormatSpecifier(scope const char[] format, ref size_t idx,
             if (format[i] == 'c' || format[i] == 's')
                 specifier = flags == Modifier.ml ? Format.POSIX_mls :
                                                    Format.POSIX_ms;
+            else if (format[i] == '[')
+                goto case '[';
             else
                 specifier = Format.error;
+            ++i;
+            break;
+
+        case 'l':
+            // Look for wchar_t scanset %l[..]
+            immutable j = i + 1;
+            if (j < length && format[j] == '[')
+            {
+                i = j;
+                flags = Modifier.l;
+                goto case '[';
+            }
+            goto default;
+
+        case '[':
+            // Read the scanset
+            i++;
+            if (i == length)
+                return error();
+            // If the conversion specifier begins with `[]` or `[^]`, the right
+            // bracket character is not the terminator, but in the scanlist.
+            if (format[i] == '^')
+            {
+                i++;
+                if (i == length)
+                    return error();
+            }
+            if (format[i] == ']')
+            {
+                i++;
+                if (i == length)
+                    return error();
+            }
+            // A scanset can be anything, so we just check that it is paired
+            while (i < length)
+            {
+                if (format[i] == ']')
+                    break;
+                ++i;
+            }
+            // no `]` found
+            if (i == length)
+                return error();
+
+            specifier = flags == Modifier.none ? Format.s         :
+                        flags == Modifier.l    ? Format.ls        :
+                        flags == Modifier.m    ? Format.POSIX_ms  :
+                        flags == Modifier.ml   ? Format.POSIX_mls :
+                                                 Format.error;
             ++i;
             break;
 
@@ -1404,23 +1414,23 @@ unittest
 
     // scansets
     idx = 0;
-    assert(parseScanfFormatSpecifier("%[a-zA-Z]s", idx, asterisk) == Format.s);
-    assert(idx == 10);
+    assert(parseScanfFormatSpecifier("%[a-zA-Z]", idx, asterisk) == Format.s);
+    assert(idx == 9);
     assert(!asterisk);
 
     idx = 0;
-    assert(parseScanfFormatSpecifier("%*25[a-z]hhd", idx, asterisk) == Format.hhd);
-    assert(idx == 12);
+    assert(parseScanfFormatSpecifier("%*25l[a-z]", idx, asterisk) == Format.ls);
+    assert(idx == 10);
     assert(asterisk);
 
     idx = 0;
-    assert(parseScanfFormatSpecifier("%[]]s", idx, asterisk) == Format.s);
-    assert(idx == 5);
+    assert(parseScanfFormatSpecifier("%[]]", idx, asterisk) == Format.s);
+    assert(idx == 4);
     assert(!asterisk);
 
     idx = 0;
-    assert(parseScanfFormatSpecifier("%[^]]s", idx, asterisk) == Format.s);
-    assert(idx == 6);
+    assert(parseScanfFormatSpecifier("%[^]]", idx, asterisk) == Format.s);
+    assert(idx == 5);
     assert(!asterisk);
 
     // Too short formats
@@ -1446,7 +1456,7 @@ unittest
     }
 
     // Invalid scansets
-    foreach (s; ["%[]", "%[^", "%[^]", "%[s", "%[0-9lld", "%[", "%[a-z]"])
+    foreach (s; ["%[]", "%[^", "%[^]", "%[s", "%[0-9lld", "%[", "%l[^]"])
     {
         idx = 0;
         assert(parseScanfFormatSpecifier(s, idx, asterisk) == Format.error);
@@ -1471,12 +1481,20 @@ unittest
     assert(idx == 3);
 
     idx = 0;
+    assert(parseScanfFormatSpecifier("%m[0-9]", idx, asterisk) == Format.POSIX_ms);
+    assert(idx == 7);
+
+    idx = 0;
     assert(parseScanfFormatSpecifier("%mlc", idx, asterisk) == Format.POSIX_mls);
     assert(idx == 4);
 
     idx = 0;
     assert(parseScanfFormatSpecifier("%mls", idx, asterisk) == Format.POSIX_mls);
     assert(idx == 4);
+
+    idx = 0;
+    assert(parseScanfFormatSpecifier("%ml[^0-9]", idx, asterisk) == Format.POSIX_mls);
+    assert(idx == 9);
 
     // GNU extensions: explicitly toggle ISO/GNU flag.
     // ISO printf()
