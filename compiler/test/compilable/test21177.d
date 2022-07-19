@@ -5,7 +5,6 @@ TEST_OUTPUT:
 ---
 compilable/test21177.d(103): Deprecation: more format specifiers than 0 arguments
 compilable/test21177.d(111): Deprecation: more format specifiers than 0 arguments
-compilable/test21177.d(115): Deprecation: format specifier `"%m["` is invalid
 compilable/test21177.d(150): Deprecation: more format specifiers than 0 arguments
 compilable/test21177.d(151): Deprecation: more format specifiers than 0 arguments
 compilable/test21177.d(152): Deprecation: more format specifiers than 0 arguments
