@@ -616,8 +616,9 @@ $(GNAME IdentityExpression):
         bits in the operands being identical.
     )
 
-    $(P For static and dynamic arrays, identity is defined as referring
-        to the same array elements and the same number of elements.
+    $(P For static and dynamic arrays, identity of two arrays is given when
+    both arrays refer to the same memory location and contain the same number
+    of elements.
     )
 
     $(P For other operand types, identity is defined as being the same
