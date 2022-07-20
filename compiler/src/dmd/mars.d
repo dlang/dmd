@@ -2595,18 +2595,6 @@ private void reconcileCommands(ref Param params, ref Target target)
                 break;
             }
         }
-
-        if (!driverParams.mscrtlib)
-        {
-            version (Windows)
-            {
-                VSOptions vsopt;
-                vsopt.initialize();
-                driverParams.mscrtlib = vsopt.defaultRuntimeLibrary(target.is64bit).toDString;
-            }
-            else
-                error(Loc.initial, "must supply `-mscrtlib` manually when cross compiling to windows");
-        }
     }
     else
     {
@@ -2693,6 +2681,25 @@ private void reconcileLinkRunLib(ref Param params, size_t numSrcFiles, const cha
 {
     if (!params.obj || driverParams.lib)
         driverParams.link = false;
+
+    if (target.os == Target.OS.Windows)
+    {
+        if (!driverParams.mscrtlib)
+        {
+            version (Windows)
+            {
+                VSOptions vsopt;
+                vsopt.initialize();
+                driverParams.mscrtlib = vsopt.defaultRuntimeLibrary(target.is64bit).toDString;
+            }
+            else
+            {
+                if (driverParams.link)
+                    error(Loc.initial, "must supply `-mscrtlib` manually when cross compiling to windows");
+            }
+        }
+    }
+
     if (driverParams.link)
     {
         params.exefile = params.objname;
