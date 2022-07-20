@@ -173,6 +173,7 @@ $(H2 $(LNAME2 class_properties, Class Properties))
         $(DDSUBLINK spec/template, homogeneous_sequences, lvalue sequence)
         of all the non-static fields in the class, excluding the hidden fields and
         the fields in the base class.)
+        $(P The order of the fields in the tuple matches the order in which the fields are declared.)
         $(NOTE `.tupleof` is not available for `extern(Objective-C)` classes due to
         their fields having a dynamic offset.
         )
