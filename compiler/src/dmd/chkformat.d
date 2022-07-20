@@ -601,6 +601,9 @@ Format parseScanfFormatSpecifier(scope const char[] format, ref size_t idx,
             if (format[i] == 'c' || format[i] == 's')
                 specifier = flags == Modifier.ml ? Format.POSIX_mls :
                                                    Format.POSIX_ms;
+            else if (format[i] == 'C' || format[i] == 'S')
+                specifier = flags == Modifier.m ? Format.POSIX_mls :
+                                                  Format.error;
             else if (format[i] == '[')
                 goto case '[';
             else
@@ -825,6 +828,8 @@ Format parsePrintfFormatSpecifier(scope const char[] format, ref size_t idx,
     {
         case 'c':
         case 's':
+        case 'C':
+        case 'S':
             if (hash || zero)
                 return error();
             break;
@@ -860,7 +865,7 @@ enum Modifier
     h,          // short
     hh,         // char
     j,          // intmax_t
-    l,          // long int
+    l,          // wint_t/wchar_t
     ll,         // long long int
     L,          // long double
     m,          // char**
@@ -1048,6 +1053,20 @@ Format parseGenericFormatSpecifier(scope const char[] format,
                         flags == Modifier.j    ? Format.jn  :
                         flags == Modifier.z    ? Format.zn  :
                         flags == Modifier.t    ? Format.tn  :
+                                                 Format.error;
+            break;
+
+        case 'C':
+            // POSIX.1-2017 X/Open System Interfaces (XSI)
+            // %C format is equivalent to %lc
+            specifier = flags == Modifier.none ? Format.lc :
+                                                 Format.error;
+            break;
+
+        case 'S':
+            // POSIX.1-2017 X/Open System Interfaces (XSI)
+            // %S format is equivalent to %ls
+            specifier = flags == Modifier.none ? Format.ls :
                                                  Format.error;
             break;
 
@@ -1465,7 +1484,9 @@ unittest
 
     // Posix extensions
     foreach (s; ["%jm", "%zm", "%tm", "%Lm", "%hm", "%hhm", "%lm", "%llm",
-                 "%m", "%ma", "%md", "%ml", "%mm", "%mlb", "%mlj", "%mlr", "%mlz"])
+                 "%m", "%ma", "%md", "%ml", "%mm", "%mlb", "%mlj", "%mlr", "%mlz",
+                 "%LC", "%lC", "%llC", "%jC", "%tC", "%hC", "%hhC", "%zC",
+                 "%LS", "%lS", "%llS", "%jS", "%tS", "%hS", "%hhS", "%zS"])
     {
         idx = 0;
         assert(parseScanfFormatSpecifier(s, idx, asterisk) == Format.error);
@@ -1495,6 +1516,30 @@ unittest
     idx = 0;
     assert(parseScanfFormatSpecifier("%ml[^0-9]", idx, asterisk) == Format.POSIX_mls);
     assert(idx == 9);
+
+    idx = 0;
+    assert(parseScanfFormatSpecifier("%mC", idx, asterisk) == Format.POSIX_mls);
+    assert(idx == 3);
+
+    idx = 0;
+    assert(parseScanfFormatSpecifier("%mS", idx, asterisk) == Format.POSIX_mls);
+    assert(idx == 3);
+
+    idx = 0;
+    assert(parsePrintfFormatSpecifier("%C", idx, widthStar, precisionStar) == Format.lc);
+    assert(idx == 2);
+
+    idx = 0;
+    assert(parseScanfFormatSpecifier("%C", idx, asterisk) == Format.lc);
+    assert(idx == 2);
+
+    idx = 0;
+    assert(parsePrintfFormatSpecifier("%S", idx, widthStar, precisionStar) == Format.ls);
+    assert(idx == 2);
+
+    idx = 0;
+    assert(parseScanfFormatSpecifier("%S", idx, asterisk) == Format.ls);
+    assert(idx == 2);
 
     // GNU extensions: explicitly toggle ISO/GNU flag.
     // ISO printf()
