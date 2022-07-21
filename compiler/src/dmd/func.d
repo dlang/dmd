@@ -438,17 +438,7 @@ extern (C++) class FuncDeclaration : Declaration
         if (isInstantiated() && !isVirtualMethod() &&
             ((ti = parent.isTemplateInstance()) is null || ti.isTemplateMixin() || ti.tempdecl.ident == ident))
         {
-            AggregateDeclaration ad = isMemberLocal();
-            if (ad && ad.sizeok != Sizeok.done)
-            {
-                /* Currently dmd cannot resolve forward references per methods,
-                 * then setting SIZOKfwd is too conservative and would break existing code.
-                 * So, just stop method attributes inference until ad.dsymbolSemantic() done.
-                 */
-                //ad.sizeok = Sizeok.fwd;
-            }
-            else
-                return functionSemantic3() || !errors;
+            return functionSemantic3() || !errors;
         }
 
         if (storage_class & STC.inference)
