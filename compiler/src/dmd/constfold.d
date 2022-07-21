@@ -1123,6 +1123,10 @@ UnionExp ArrayLength(Type type, Expression e1)
         Expression e = (cast(TypeSArray)e1.type.toBasetype()).dim;
         emplaceExp!(UnionExp)(&ue, e);
     }
+    else if (e1.isNullExp())
+    {
+        emplaceExp!(IntegerExp)(&ue, loc, 0, type);
+    }
     else
         cantExp(ue);
     return ue;
