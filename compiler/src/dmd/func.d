@@ -2050,9 +2050,11 @@ extern (C++) class FuncDeclaration : Declaration
                     }
                     if (!found)
                     {
-                        //printf("\tadding sibling %s\n", fdthis.toPrettyChars());
+                        //printf("\tadding sibling %s to %s\n", fdthis.toPrettyChars(), toPrettyChars());
                         if (!sc.intypeof && !(sc.flags & SCOPE.compile))
+                        {
                             siblingCallers.push(fdthis);
+                        }
                     }
                 }
 
@@ -2166,7 +2168,6 @@ extern (C++) class FuncDeclaration : Declaration
         return false;
 
     Lyes:
-        //printf("\tneeds closure\n");
         return true;
     }
 
@@ -2180,12 +2181,19 @@ extern (C++) class FuncDeclaration : Declaration
      */
     extern (D) final bool checkClosure()
     {
+        //printf("checkClosure() %s\n", toChars());
         if (!needsClosure())
             return false;
 
         if (setGC())
         {
-            error("is `@nogc` yet allocates closures with the GC");
+            error("is `@nogc` yet allocates closure for `%s()` with the GC", toChars());
+            if (global.gag)     // need not report supplemental errors
+                return true;
+        }
+        else if (global.params.betterC)
+        {
+            error("is `-betterC` yet allocates closure for `%s()` with the GC", toChars());
             if (global.gag)     // need not report supplemental errors
                 return true;
         }
@@ -2218,7 +2226,7 @@ extern (C++) class FuncDeclaration : Declaration
                                 break LcheckAncestorsOfANestedRef;
                         }
                         a.push(f);
-                        .errorSupplemental(f.loc, "%s closes over variable %s at %s",
+                        .errorSupplemental(f.loc, "`%s` closes over variable `%s` at %s",
                             f.toPrettyChars(), v.toChars(), v.loc.toChars());
                         break LcheckAncestorsOfANestedRef;
                     }
