@@ -88,7 +88,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
     alias visit = Visitor.visit;
 
     Scope* sc;
-    this(Scope* sc)
+    this(Scope* sc) scope
     {
         this.sc = sc;
     }
@@ -1599,7 +1599,7 @@ private struct FuncDeclSem3
 
     // Scope of analysis
     Scope* sc;
-    this(FuncDeclaration fd,Scope* s)
+    this(FuncDeclaration fd,Scope* s) scope
     {
         funcdecl = fd;
         sc = s;

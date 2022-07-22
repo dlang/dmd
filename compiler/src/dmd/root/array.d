@@ -41,7 +41,7 @@ public:
      * Params:
      *  dim = initial length of array
      */
-    this(size_t dim) pure nothrow
+    this(size_t dim) pure nothrow scope
     {
         reserve(dim);
         this.length = dim;

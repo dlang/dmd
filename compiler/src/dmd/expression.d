@@ -734,7 +734,7 @@ extern (C++) abstract class Expression : ASTNode
     Type type;      // !=null means that semantic() has been run
     Loc loc;        // file location
 
-    extern (D) this(const ref Loc loc, EXP op, int size)
+    extern (D) this(const ref Loc loc, EXP op, int size) scope
     {
         //printf("Expression::Expression(op = %d) this = %p\n", op, this);
         this.loc = loc;
@@ -2336,7 +2336,7 @@ extern (C++) class IdentifierExp : Expression
 {
     Identifier ident;
 
-    extern (D) this(const ref Loc loc, Identifier ident)
+    extern (D) this(const ref Loc loc, Identifier ident) scope
     {
         super(loc, EXP.identifier, __traits(classInstanceSize, IdentifierExp));
         this.ident = ident;
@@ -2491,7 +2491,7 @@ extern (C++) final class SuperExp : ThisExp
  */
 extern (C++) final class NullExp : Expression
 {
-    extern (D) this(const ref Loc loc, Type type = null)
+    extern (D) this(const ref Loc loc, Type type = null) scope
     {
         super(loc, EXP.null_, __traits(classInstanceSize, NullExp));
         this.type = type;
@@ -2550,7 +2550,7 @@ extern (C++) final class StringExp : Expression
     char postfix = NoPostfix;   // 'c', 'w', 'd'
     OwnedBy ownedByCtfe = OwnedBy.code;
 
-    extern (D) this(const ref Loc loc, const(void)[] string)
+    extern (D) this(const ref Loc loc, const(void)[] string) scope
     {
         super(loc, EXP.string_, __traits(classInstanceSize, StringExp));
         this.string = cast(char*)string.ptr; // note that this.string should be const
@@ -2558,7 +2558,7 @@ extern (C++) final class StringExp : Expression
         this.sz = 1;                    // work around LDC bug #1286
     }
 
-    extern (D) this(const ref Loc loc, const(void)[] string, size_t len, ubyte sz, char postfix = NoPostfix)
+    extern (D) this(const ref Loc loc, const(void)[] string, size_t len, ubyte sz, char postfix = NoPostfix) scope
     {
         super(loc, EXP.string_, __traits(classInstanceSize, StringExp));
         this.string = cast(char*)string.ptr; // note that this.string should be const
@@ -4294,7 +4294,7 @@ extern (C++) final class IsExp : Expression
     TOK tok;            // ':' or '=='
     TOK tok2;           // 'struct', 'union', etc.
 
-    extern (D) this(const ref Loc loc, Type targ, Identifier id, TOK tok, Type tspec, TOK tok2, TemplateParameters* parameters)
+    extern (D) this(const ref Loc loc, Type targ, Identifier id, TOK tok, Type tspec, TOK tok2, TemplateParameters* parameters) scope
     {
         super(loc, EXP.is_, __traits(classInstanceSize, IsExp));
         this.targ = targ;
@@ -4334,7 +4334,7 @@ extern (C++) abstract class UnaExp : Expression
     Expression e1;
     Type att1;      // Save alias this type to detect recursion
 
-    extern (D) this(const ref Loc loc, EXP op, int size, Expression e1)
+    extern (D) this(const ref Loc loc, EXP op, int size, Expression e1) scope
     {
         super(loc, op, size);
         this.e1 = e1;
@@ -4407,7 +4407,7 @@ extern (C++) abstract class BinExp : Expression
     Type att1;      // Save alias this type to detect recursion
     Type att2;      // Save alias this type to detect recursion
 
-    extern (D) this(const ref Loc loc, EXP op, int size, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, EXP op, int size, Expression e1, Expression e2) scope
     {
         super(loc, op, size);
         this.e1 = e1;
@@ -4698,7 +4698,7 @@ extern (C++) abstract class BinExp : Expression
  */
 extern (C++) class BinAssignExp : BinExp
 {
-    extern (D) this(const ref Loc loc, EXP op, int size, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, EXP op, int size, Expression e1, Expression e2) scope
     {
         super(loc, op, size, e1, e2);
     }
@@ -5404,7 +5404,7 @@ extern (C++) final class NegExp : UnaExp
  */
 extern (C++) final class UAddExp : UnaExp
 {
-    extern (D) this(const ref Loc loc, Expression e)
+    extern (D) this(const ref Loc loc, Expression e) scope
     {
         super(loc, EXP.uadd, __traits(classInstanceSize, UAddExp), e);
     }
@@ -6466,7 +6466,7 @@ extern (C++) final class MinExp : BinExp
  */
 extern (C++) final class CatExp : BinExp
 {
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2) scope
     {
         super(loc, EXP.concatenate, __traits(classInstanceSize, CatExp), e1, e2);
     }
@@ -6796,7 +6796,7 @@ extern (C++) final class CondExp : BinExp
 {
     Expression econd;
 
-    extern (D) this(const ref Loc loc, Expression econd, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Expression econd, Expression e1, Expression e2) scope
     {
         super(loc, EXP.question, __traits(classInstanceSize, CondExp), e1, e2);
         this.econd = econd;

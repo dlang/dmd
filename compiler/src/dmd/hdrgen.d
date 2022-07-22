@@ -145,7 +145,7 @@ public:
     OutBuffer* buf;
     HdrGenState* hgs;
 
-    extern (D) this(OutBuffer* buf, HdrGenState* hgs)
+    extern (D) this(OutBuffer* buf, HdrGenState* hgs) scope
     {
         this.buf = buf;
         this.hgs = hgs;
@@ -806,7 +806,7 @@ public:
     OutBuffer* buf;
     HdrGenState* hgs;
 
-    extern (D) this(OutBuffer* buf, HdrGenState* hgs)
+    extern (D) this(OutBuffer* buf, HdrGenState* hgs) scope
     {
         this.buf = buf;
         this.hgs = hgs;
@@ -2762,7 +2762,7 @@ public:
     OutBuffer* buf;
     HdrGenState* hgs;
 
-    extern (D) this(OutBuffer* buf, HdrGenState* hgs)
+    extern (D) this(OutBuffer* buf, HdrGenState* hgs) scope
     {
         this.buf = buf;
         this.hgs = hgs;
@@ -2843,7 +2843,7 @@ public:
     OutBuffer* buf;
     HdrGenState* hgs;
 
-    extern (D) this(OutBuffer* buf, HdrGenState* hgs)
+    extern (D) this(OutBuffer* buf, HdrGenState* hgs) scope
     {
         this.buf = buf;
         this.hgs = hgs;

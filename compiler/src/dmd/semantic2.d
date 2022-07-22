@@ -83,7 +83,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
 {
     alias visit = Visitor.visit;
     Scope* sc;
-    this(Scope* sc)
+    this(Scope* sc) scope
     {
         this.sc = sc;
     }

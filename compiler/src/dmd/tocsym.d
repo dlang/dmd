@@ -110,7 +110,7 @@ Symbol *toSymbol(Dsymbol s)
 
         Symbol *result;
 
-        this()
+        this() scope
         {
             result = null;
         }

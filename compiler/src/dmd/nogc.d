@@ -37,7 +37,7 @@ public:
     bool checkOnly;     // don't print errors
     bool err;
 
-    extern (D) this(FuncDeclaration f)
+    extern (D) this(FuncDeclaration f) scope
     {
         this.f = f;
     }

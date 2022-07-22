@@ -122,7 +122,7 @@ private final class VisualCPPMangler : Visitor
     int flags;
     OutBuffer buf;
 
-    extern (D) this(VisualCPPMangler rvl)
+    extern (D) this(VisualCPPMangler rvl) scope
     {
         flags |= (rvl.flags & IS_DMC);
         saved_idents[] = rvl.saved_idents[];
@@ -131,7 +131,7 @@ private final class VisualCPPMangler : Visitor
     }
 
 public:
-    extern (D) this(bool isdmc, Loc loc)
+    extern (D) this(bool isdmc, Loc loc) scope
     {
         if (isdmc)
         {

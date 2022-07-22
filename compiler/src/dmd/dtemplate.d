@@ -5897,7 +5897,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         }
     }
 
-    extern (D) this(const ref Loc loc, Identifier ident, Objects* tiargs)
+    extern (D) this(const ref Loc loc, Identifier ident, Objects* tiargs) scope
     {
         super(loc, null);
         static if (LOG)
@@ -5912,7 +5912,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
      * This constructor is only called when we figured out which function
      * template to instantiate.
      */
-    extern (D) this(const ref Loc loc, TemplateDeclaration td, Objects* tiargs)
+    extern (D) this(const ref Loc loc, TemplateDeclaration td, Objects* tiargs) scope
     {
         super(loc, null);
         static if (LOG)

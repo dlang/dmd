@@ -156,11 +156,11 @@ public:
     FuncDeclaration fd;
     int cost;           // zero start for subsequent AST
 
-    extern (D) this()
+    extern (D) this() scope
     {
     }
 
-    extern (D) this(bool hasthis, bool hdrscan, bool allowAlloca, FuncDeclaration fd)
+    extern (D) this(bool hasthis, bool hdrscan, bool allowAlloca, FuncDeclaration fd) scope
     {
         this.hasthis = hasthis;
         this.hdrscan = hdrscan;
@@ -168,7 +168,7 @@ public:
         this.fd = fd;
     }
 
-    extern (D) this(InlineCostVisitor icv)
+    extern (D) this(InlineCostVisitor icv) scope
     {
         nested = icv.nested;
         hasthis = icv.hasthis;

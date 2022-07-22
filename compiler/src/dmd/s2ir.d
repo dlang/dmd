@@ -146,7 +146,7 @@ private extern (C++) class S2irVisitor : Visitor
     IRState* irs;
     StmtState* stmtstate;
 
-    this(IRState *irs, StmtState* stmtstate)
+    this(IRState *irs, StmtState* stmtstate) scope
     {
         this.irs = irs;
         this.stmtstate = stmtstate;

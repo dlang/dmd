@@ -194,7 +194,7 @@ private Expressions* buildArrayOp(Scope* sc, Expression e, Objects* tiargs)
         Expressions* args;
 
     public:
-        extern (D) this(Scope* sc, Objects* tiargs)
+        extern (D) this(Scope* sc, Objects* tiargs) scope
         {
             this.sc = sc;
             this.tiargs = tiargs;

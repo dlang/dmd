@@ -240,7 +240,7 @@ public:
     OutBuffer* buf;
     Backref backref;
 
-    extern (D) this(OutBuffer* buf, Type rootType = null)
+    extern (D) this(OutBuffer* buf, Type rootType = null) scope
     {
         this.buf = buf;
         this.backref = Backref(rootType);

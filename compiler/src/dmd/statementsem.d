@@ -160,7 +160,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
     Statement result;
     Scope* sc;
 
-    this(Scope* sc)
+    this(Scope* sc) scope
     {
         this.sc = sc;
     }

@@ -1156,7 +1156,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         }
     }
 
-    this(ref DtBuilder dtb)
+    this(ref DtBuilder dtb) scope
     {
         this.dtb = &dtb;
     }
