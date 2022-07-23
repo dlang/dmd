@@ -663,7 +663,8 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
             !(v.storage_class & STC.return_) &&
             v.isParameter() &&
             fd.flags & FUNCFLAG.returnInprocess &&
-            p == fd)
+            p == fd &&
+            !isTypesafeVariadicParameter(fd, v))
         {
             if (log) printf("inferring 'return' for parameter %s in function %s\n", v.toChars(), fd.toChars());
             inferReturn(fd, v, /*returnScope:*/ true); // infer addition of 'return' to make `return scope`
@@ -2585,4 +2586,34 @@ private bool checkScopeVarAddr(VarDeclaration v, Expression e, Scope* sc, bool g
     // take address of `scope` variable not allowed, requires transitive scope
     return sc.setUnsafeDIP1000(gag, e.loc,
         "cannot take address of `scope` variable `%s` since `scope` applies to first indirection only", v);
+}
+
+/****************************
+ * Determine if `v` is a typesafe variadic parameter.
+ * Params:
+ *      fd = function that `v` is in
+ *      v = variable to check
+ * Returns:
+ *      true if `v` is a variadic parameter
+ */
+bool isTypesafeVariadicParameter(FuncDeclaration fd, VarDeclaration v)
+{
+    if (!(v.storage_class & STC.parameter))
+        return false;
+    if (auto tf = fd.type.toBasetype().isTypeFunction())
+    {
+        if (tf.parameterList.varargs != VarArg.typesafe)
+            return false;
+        if (const dim = tf.parameterList.length)
+        {
+            Parameter fparam = tf.parameterList[dim - 1];
+            if (fparam.ident == v.ident)
+            {
+                Type t = v.type.toBasetype();
+                if (t.isTypeDArray() || t.isTypeClass())
+                    return true;
+            }
+        }
+    }
+    return false;
 }
