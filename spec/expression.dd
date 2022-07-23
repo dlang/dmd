@@ -1854,7 +1854,7 @@ $(GNAME FunctionLiteral):
     $(D function) $(D ref)$(OPT) $(GLINK2 type, Type)$(OPT) $(GLINK ParameterWithAttributes)$(OPT) $(GLINK FunctionLiteralBody2)
     $(D delegate) $(D ref)$(OPT) $(GLINK2 type, Type)$(OPT) $(GLINK ParameterWithMemberAttributes)$(OPT) $(GLINK FunctionLiteralBody2)
     $(D ref)$(OPT) $(GLINK ParameterWithMemberAttributes) $(GLINK FunctionLiteralBody2)
-    $(GLINK2 function, SpecifiedFunctionBody)
+    $(GLINK2 statement, BlockStatement)
     $(IDENTIFIER) $(D =>) $(GLINK AssignExpression)
 
 $(GNAME ParameterWithAttributes):
@@ -1865,14 +1865,14 @@ $(GNAME ParameterWithMemberAttributes):
 
 $(GNAME FunctionLiteralBody2):
     $(D =>) $(GLINK AssignExpression)
-    $(GLINK2 function, SpecifiedFunctionBody)
+    $(GLINK2 statement, BlockStatement)
 )
 
     $(P $(I FunctionLiteral)s (also known as $(LNAME2 lambdas, $(I Lambdas))) enable embedding anonymous functions
         and anonymous delegates directly into expressions.
         $(I Type) is the return type of the function or delegate -
         if omitted it is inferred from either the *AssignExpression*, or
-        any $(GLINK2 statement, ReturnStatement)s in the $(I SpecifiedFunctionBody).
+        any $(GLINK2 statement, ReturnStatement)s in the $(I BlockStatement).
         $(I ParameterWithAttributes) or $(I ParameterWithMemberAttributes)
         can be used to specify the parameters for the function. If these are
         omitted, the function defaults to the empty parameter list $(D ( )).
