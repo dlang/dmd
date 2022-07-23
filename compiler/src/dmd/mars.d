@@ -2370,6 +2370,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 {
                     if (!params.debuglevel.parseDigits(p.toDString()[7 .. $]))
                         goto Lerror;
+
+                    // @@@DEPRECATED_2.111@@@
+                    // Deprecated in 2.101, remove in 2.111
+                    deprecation(Loc.initial, "`-debug=number` is deprecated, use debug identifiers instead");
                 }
                 else if (Identifier.isValidIdentifier(p + 7))
                 {
@@ -2396,9 +2400,14 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 {
                     if (!params.versionlevel.parseDigits(p.toDString()[9 .. $]))
                         goto Lerror;
+
+                    // @@@DEPRECATED_2.111@@@
+                    // Deprecated in 2.101, remove in 2.111
+                    deprecation(Loc.initial, "`-version=number` is deprecated, use version identifiers instead");
                 }
                 else if (Identifier.isValidIdentifier(p + 9))
                 {
+
                     if (!params.versionids)
                         params.versionids = new Array!(const(char)*);
                     params.versionids.push(p + 9);
