@@ -2443,6 +2443,7 @@ void foo()
                 $(D delegate)
                 $(D const)
                 $(D immutable)
+                $(D inout)
                 $(D shared)
                 $(D module)
                 $(D package)
@@ -2568,7 +2569,10 @@ void foo()
                 $(D delegate)
                 $(D const)
                 $(D immutable)
+                $(D inout)
                 $(D shared)
+                $(D module)
+                $(D package)
 
         then the condition is satisfied if $(I Type) is one of those.
         *TypeSpecialization* can also match the following keywords:
@@ -2604,15 +2608,11 @@ void foo()
         $(TROW $(CODE __parameters), $(ARGS the parameter sequence of a function, delegate, or function pointer.
          This includes the parameter types, names, and default values.))
         $(TROW $(D const), $(I Type))
-        $(TROW
-        $(D immutable),
-        $(I Type)
-        )
-        $(TROW
-        $(CODE shared),
-        $(I Type)
-        )
-
+        $(TROW $(D immutable), $(I Type))
+        $(TROW $(D inout), $(I Type))
+        $(TROW $(D shared), $(I Type))
+        $(TROW $(D module), the module)
+        $(TROW $(D package), the package)
         )
 
     ---
