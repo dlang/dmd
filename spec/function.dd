@@ -73,6 +73,10 @@ $(GNAME VariadicArgumentsAttribute):
     $(D shared)
 )
 
+$(NOTE In D2, declaring a parameter `final` is a semantic error, but not a parse error.)
+
+$(P See also: $(RELATIVE_LINK2 param-storage, parameter storage classes).)
+
 $(H3 Function attributes)
 
 $(GRAMMAR
