@@ -15,4 +15,9 @@ void main()
     assert(aa.length);
     assert(ab.length);
     assert(ac.length);
+
+    int[string] a = new int[string];
+    auto b = a;
+    a["seven"] = 7;
+    assert(b["seven"] == 7);
 }
