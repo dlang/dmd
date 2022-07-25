@@ -1865,7 +1865,7 @@ $(GNAME ParameterWithMemberAttributes):
 
 $(GNAME FunctionLiteralBody2):
     $(D =>) $(GLINK AssignExpression)
-    $(GLINK2 statement, BlockStatement)
+    $(GLINK2 function, SpecifiedFunctionBody)
 )
 
     $(P $(I FunctionLiteral)s (also known as $(LNAME2 lambdas, $(I Lambdas))) enable embedding anonymous functions
