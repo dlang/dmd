@@ -351,7 +351,7 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, STC
         {
             unsafeAssign!"scope variable"(v);
         }
-        else if (v.storage_class & STC.variadic && p == sc.func)
+        else if (v.isTypesafeVariadicParameter && p == sc.func)
         {
             Type tb = v.type.toBasetype();
             if (tb.ty == Tarray || tb.ty == Tsarray)
@@ -649,7 +649,8 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
         Dsymbol p = v.toParent2();
 
         if (va && !vaIsRef && !va.isScope() && !v.isScope() &&
-            (va.storage_class & v.storage_class & (STC.maybescope | STC.variadic)) == STC.maybescope &&
+            !v.isTypesafeVariadicParameter && !va.isTypesafeVariadicParameter &&
+            (va.storage_class & v.storage_class & STC.maybescope) &&
             p == fd)
         {
             /* Add v to va's list of dependencies
@@ -664,7 +665,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
             v.isParameter() &&
             fd.flags & FUNCFLAG.returnInprocess &&
             p == fd &&
-            !isTypesafeVariadicParameter(fd, v))
+            !v.isTypesafeVariadicParameter)
         {
             if (log) printf("inferring 'return' for parameter %s in function %s\n", v.toChars(), fd.toChars());
             inferReturn(fd, v, /*returnScope:*/ true); // infer addition of 'return' to make `return scope`
@@ -736,7 +737,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
             }
             result |= sc.setUnsafeDIP1000(gag, ae.loc, "scope variable `%s` assigned to non-scope `%s`", v, e1);
         }
-        else if (v.storage_class & STC.variadic && p == fd)
+        else if (v.isTypesafeVariadicParameter && p == fd)
         {
             Type tb = v.type.toBasetype();
             if (tb.ty == Tarray || tb.ty == Tsarray)
@@ -1023,7 +1024,7 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
                 continue;
             }
         }
-        else if (v.storage_class & STC.variadic && p == sc.func)
+        else if (v.isTypesafeVariadicParameter && p == sc.func)
         {
             Type tb = v.type.toBasetype();
             if (tb.ty == Tarray || tb.ty == Tsarray)
@@ -1251,7 +1252,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                 }
             }
         }
-        else if (v.storage_class & STC.variadic && p == sc.func)
+        else if (v.isTypesafeVariadicParameter && p == sc.func)
         {
             Type tb = v.type.toBasetype();
             if (tb.ty == Tarray || tb.ty == Tsarray)
@@ -1628,7 +1629,7 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false, bool re
             {
                 if (tb.ty == Tsarray)
                     return;
-                if (v.storage_class & STC.variadic)
+                if (v.isTypesafeVariadicParameter)
                 {
                     er.byvalue.push(v);
                     return;
@@ -1944,7 +1945,7 @@ void escapeByRef(Expression e, EscapeByResults* er, bool live = false, bool retR
             VarDeclaration v = ve.var.isVarDeclaration();
             if (tb.ty == Tarray || tb.ty == Tsarray)
             {
-                if (v && v.storage_class & STC.variadic)
+                if (v && v.isTypesafeVariadicParameter)
                 {
                     er.pushRef(v, retRefTransition);
                     return;
@@ -2591,29 +2592,11 @@ private bool checkScopeVarAddr(VarDeclaration v, Expression e, Scope* sc, bool g
 /****************************
  * Determine if `v` is a typesafe variadic parameter.
  * Params:
- *      fd = function that `v` is in
  *      v = variable to check
  * Returns:
  *      true if `v` is a variadic parameter
  */
-bool isTypesafeVariadicParameter(FuncDeclaration fd, VarDeclaration v)
+bool isTypesafeVariadicParameter(VarDeclaration v)
 {
-    if (!(v.storage_class & STC.parameter))
-        return false;
-    if (auto tf = fd.type.toBasetype().isTypeFunction())
-    {
-        if (tf.parameterList.varargs != VarArg.typesafe)
-            return false;
-        if (const dim = tf.parameterList.length)
-        {
-            Parameter fparam = tf.parameterList[dim - 1];
-            if (fparam.ident == v.ident)
-            {
-                Type t = v.type.toBasetype();
-                if (t.isTypeDArray() || t.isTypeClass())
-                    return true;
-            }
-        }
-    }
-    return false;
+    return !!(v.storage_class & STC.variadic);
 }
