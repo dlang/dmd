@@ -9312,13 +9312,10 @@ LagainStc:
         {
             AST.TypeAArray taa = cast(AST.TypeAArray)t;
             AST.Type index = taa.index;
+            // `new Type[expr]` is a static array
             auto edim = AST.typeToExpression(index);
-            if (!edim)
-            {
-                error("cannot create a `%s` with `new`", t.toChars);
-                return new AST.NullExp(loc);
-            }
-            t = new AST.TypeSArray(taa.next, edim);
+            if (edim)
+                t = new AST.TypeSArray(taa.next, edim);
         }
         else if (token.value == TOK.leftParenthesis && t.ty != Tsarray)
         {
