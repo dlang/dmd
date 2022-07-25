@@ -1196,7 +1196,8 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
             v.isParameter() &&
             !v.doNotInferReturn &&
             sc.func.flags & FUNCFLAG.returnInprocess &&
-            p == sc.func)
+            p == sc.func &&
+            !v.isTypesafeVariadicParameter)
         {
             inferReturn(sc.func, v, /*returnScope:*/ true); // infer addition of 'return'
             continue;
