@@ -563,8 +563,9 @@ extern (C++) abstract class Declaration : Dsymbol
 extern (C++) final class TupleDeclaration : Declaration
 {
     Objects* objects;
-    bool isexp;             // true: expression tuple
     TypeTuple tupletype;    // !=null if this is a type tuple
+    bool isexp;             // true: expression tuple
+    bool building;          // it's growing in AliasAssign semantic
 
     extern (D) this(const ref Loc loc, Identifier ident, Objects* objects)
     {
@@ -588,7 +589,7 @@ extern (C++) final class TupleDeclaration : Declaration
          */
 
         //printf("TupleDeclaration::getType() %s\n", toChars());
-        if (isexp)
+        if (isexp || building)
             return null;
         if (!tupletype)
         {
@@ -931,6 +932,19 @@ extern (C++) final class AliasDeclaration : Declaration
         }
         else
         {
+            // stop AliasAssign tuple building
+            if (aliassym)
+            {
+                if (auto td = aliassym.isTupleDeclaration())
+                {
+                    if (td.building)
+                    {
+                        td.building = false;
+                        semanticRun = PASS.semanticdone;
+                        return td;
+                    }
+                }
+            }
             if (_import && _import._scope)
             {
                 /* If this is an internal alias for selective/renamed import,
