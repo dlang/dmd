@@ -166,9 +166,9 @@ class TupleDeclaration final : public Declaration
 {
 public:
     Objects *objects;
-    bool isexp;                 // true: expression tuple
-
     TypeTuple *tupletype;       // !=NULL if this is a type tuple
+    bool isexp;                 // true: expression tuple
+    bool building;              // it's growing in AliasAssign semantic
 
     TupleDeclaration *syntaxCopy(Dsymbol *) override;
     const char *kind() const override;

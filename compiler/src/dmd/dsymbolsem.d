@@ -6332,6 +6332,10 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
          * resolve the alias of eponymous member.
          */
         tempinst.aliasdecl = tempinst.aliasdecl.toAlias2();
+
+        // stop AliasAssign tuple building
+        if (auto td = tempinst.aliasdecl.isTupleDeclaration())
+            td.building = false;
     }
 
 Laftersemantic:
@@ -6726,13 +6730,28 @@ private void aliasAssignSemantic(AliasAssign ds, Scope* sc)
      */
 
     const errors = global.errors;
+    Dsymbol s;
+
+    // Try AliasSeq optimization
+    if (auto ti = ds.type.isTypeInstance())
+    {
+        if (!ti.tempinst.findTempDecl(sc, null))
+            return errorRet();
+        if (auto tempinst = isAliasSeq(sc, ti))
+        {
+            s = aliasAssignInPlace(sc, tempinst, aliassym);
+            if (!s)
+                return errorRet();
+            goto Lsymdone;
+        }
+    }
 
     /* This section is needed because Type.resolve() will:
      *   const x = 3;
      *   alias y = x;
      * try to convert identifier x to 3.
      */
-    auto s = ds.type.toDsymbol(sc);
+    s = ds.type.toDsymbol(sc);
     if (errors != global.errors)
         return errorRet();
     if (s == aliassym)
@@ -6784,6 +6803,7 @@ private void aliasAssignSemantic(AliasAssign ds, Scope* sc)
 
     if (s) // it's a symbolic alias
     {
+    Lsymdone:
         //printf("alias %s resolved to %s %s\n", toChars(), s.kind(), s.toChars());
         aliassym.type = null;
         aliassym.aliassym = s;
@@ -6810,6 +6830,135 @@ private void aliasAssignSemantic(AliasAssign ds, Scope* sc)
     }
 
     ds.semanticRun = PASS.semanticdone;
+}
+
+/***************************************
+ * Expands template instance arguments inside 'alias assign' target declaration (aliassym),
+ * instead of inside 'tempinst.tiargs' every time.
+ * Params:
+ *      tempinst = AliasSeq instance
+ *      aliassym = the AliasDeclaration corresponding to AliasAssign
+ * Returns:
+ *       null.
+ */
+private TupleDeclaration aliasAssignInPlace(Scope* sc, TemplateInstance tempinst,
+                                            AliasDeclaration aliassym)
+{
+    // Mark instance with semantic done, not needed but just in case.
+    tempinst.inst = tempinst;
+    tempinst.semanticRun = PASS.semanticdone;
+    TupleDeclaration td;
+    if (aliassym.type)
+    {
+        // Convert TypeTuple to TupleDeclaration to avoid back and forth allocations
+        // in the assignment process
+        if (auto tt = aliassym.type.isTypeTuple())
+        {
+            auto objs = new Objects(tt.arguments.length);
+            foreach (i, p; *tt.arguments)
+                (*objs)[i] = p.type;
+            td = new TupleDeclaration(tempinst.loc, aliassym.ident, objs);
+            td.storage_class |= STC.templateparameter;
+            td.building = true;
+            aliassym.type = null;
+        }
+        else if (aliassym.type.isTypeError())
+            return null;
+
+    }
+    else if (auto otd = aliassym.aliassym.isTupleDeclaration())
+    {
+        if (otd.building)
+            td = otd;
+        else
+        {
+            td = new TupleDeclaration(tempinst.loc, aliassym.ident, otd.objects.copy());
+            td.storage_class |= STC.templateparameter;
+            td.building = true;
+        }
+    }
+    // If starting from single element in aliassym (td == null) we need to build the tuple
+    // after semanticTiargs to keep same semantics (for example a FuncLiteraldeclaration
+    // template argument is converted to FuncExp)
+    if (td)
+        aliassym.aliassym = td;
+    aliassym.semanticRun = PASS.semanticdone;
+    if (!TemplateInstance.semanticTiargs(tempinst.loc, sc, tempinst.tiargs, 0, td))
+    {
+        tempinst.errors = true;
+        return null;
+    }
+    // The alias will stop tuple 'building' mode when used (in AliasDeclaration.toAlias(),
+    // then TupleDeclaration.getType() will work again)
+    aliassym.semanticRun = PASS.initial;
+    if (!td)
+    {
+        td = new TupleDeclaration(tempinst.loc, aliassym.ident, tempinst.tiargs);
+        td.storage_class |= STC.templateparameter;
+        td.building = true;
+        return td;
+    }
+
+    auto tiargs = tempinst.tiargs;
+    size_t oldlen = td.objects.length;
+    size_t origstart;
+    size_t insertidx;
+    size_t insertlen;
+    foreach (i, o; *tiargs)
+    {
+        if (o !is td)
+        {
+            ++insertlen;
+            continue;
+        }
+        // tuple contains itself (tuple = AliasSeq!(..., tuple, ...))
+        if (insertlen) // insert any left element before
+        {
+            td.objects.insert(insertidx, (*tiargs)[i - insertlen .. i]);
+            if (insertidx == 0) // reset original tuple start point
+                origstart = insertlen;
+            insertlen = 0;
+        }
+        if (insertidx) // insert tuple if found more than one time
+        {
+            td.objects.reserve(oldlen); // reserve first to assert a valid slice
+            td.objects.pushSlice((*td.objects)[origstart .. origstart + oldlen]);
+        }
+        insertidx = td.objects.length;
+    }
+    if (insertlen)
+    {
+        if (insertlen != tiargs.length) // insert any left element
+            td.objects.pushSlice((*tiargs)[$ - insertlen .. $]);
+        else
+            // just assign tiargs if tuple = AliasSeq!(nottuple, nottuple...)
+            td.objects = tempinst.tiargs;
+    }
+    return td;
+}
+
+/***************************************
+ * Check if a template instance is a trivial AliasSeq but without other overloads.
+ * We can only be 100% sure of being AliasSeq after running semanticTiargs()
+ * and findBestMatch() but this optimization must happen before that.
+ */
+private TemplateInstance isAliasSeq(Scope* sc, TypeInstance ti)
+{
+    auto tovers = ti.tempinst.tempdecl.isOverloadSet();
+    foreach (size_t oi; 0 .. tovers ? tovers.a.dim : 1)
+    {
+        Dsymbol dstart = tovers ? tovers.a[oi] : ti.tempinst.tempdecl;
+        int r = overloadApply(dstart, (Dsymbol s)
+        {
+            auto td = s.isTemplateDeclaration();
+            if (!td || !td.isTrivialAliasSeq)
+                return 1;
+            return 0;
+        });
+        if (r)
+            return null;
+    }
+    return ti.tempinst;
 }
 
 /***************************************

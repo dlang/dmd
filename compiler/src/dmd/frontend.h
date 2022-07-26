@@ -5787,8 +5787,9 @@ class TupleDeclaration final : public Declaration
 {
 public:
     Array<RootObject* >* objects;
-    bool isexp;
     TypeTuple* tupletype;
+    bool isexp;
+    bool building;
     TupleDeclaration* syntaxCopy(Dsymbol* s) override;
     const char* kind() const override;
     Type* getType() override;
