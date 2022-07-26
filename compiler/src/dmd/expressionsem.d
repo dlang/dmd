@@ -10330,6 +10330,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     // `__appendtmp*` will be destroyed together with the array `exp.e1`.
                     auto vd = eValue2.isDeclarationExp().declaration.isVarDeclaration();
                     vd.storage_class |= STC.nodtor;
+                    // Be more explicit that this "declaration" is local to the expression
+                    vd.storage_class |= STC.exptemp;
                 }
 
                 auto ale = new ArrayLengthExp(exp.loc, value1);
