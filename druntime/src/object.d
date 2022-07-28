@@ -3473,13 +3473,18 @@ ref V require(K, V)(ref V[K] aa, K key, lazy V value = V.init)
 private enum bool isSafeCopyable(T) = is(typeof(() @safe { union U { T x; } T *x; auto u = U(*x); }));
 
 /***********************************
- * Looks up key; if it exists applies the update callable else evaluates the
- * create callable and adds it to the associative array
+ * Calls `create` if `key` doesn't exist in the associative array,
+ * otherwise calls `update`.
+ * `create` returns a corresponding value for `key`.
+ * `update` accepts a key parameter. If it returns a value, the value is
+ * set for `key`.
  * Params:
  *      aa =     The associative array.
  *      key =    The key.
- *      create = The callable to apply on create.
- *      update = The callable to apply on update.
+ *      create = The callable to create a value for `key`.
+ *               Must return V.
+ *      update = The callable to call if `key` exists.
+ *               Takes a K argument, returns a V or void.
  */
 void update(K, V, C, U)(ref V[K] aa, K key, scope C create, scope U update)
 if (is(typeof(create()) : V) && (is(typeof(update(aa[K.init])) : V) || is(typeof(update(aa[K.init])) == void)))
@@ -3509,23 +3514,39 @@ if (is(typeof(create()) : V) && (is(typeof(update(aa[K.init])) : V) || is(typeof
 }
 
 ///
-@system unittest
+@safe unittest
 {
-    auto aa = ["k1": 1];
+    int[string] aa;
 
-    aa.update("k1", {
-        return -1; // create (won't be executed)
-    }, (ref int v) {
-        v += 1; // update
-    });
-    assert(aa["k1"] == 2);
+    // create
+    aa.update("key",
+        () => 1,
+        (int) {} // not executed
+        );
+    assert(aa["key"] == 1);
 
-    aa.update("k2", {
-        return 0; // create
-    }, (ref int v) {
-        v = -1; // update (won't be executed)
-    });
-    assert(aa["k2"] == 0);
+    // update value by ref
+    aa.update("key",
+        () => 0, // not executed
+        (ref int v) {
+            v += 1;
+        });
+    assert(aa["key"] == 2);
+
+    // update from return value
+    aa.update("key",
+        () => 0, // not executed
+        (int v) => v * 2
+        );
+    assert(aa["key"] == 4);
+
+    // 'update' without changing value
+    aa.update("key",
+        () => 0, // not executed
+        (int) {
+            // do something else
+        });
+    assert(aa["key"] == 4);
 }
 
 @safe unittest
