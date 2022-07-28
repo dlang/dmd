@@ -2054,6 +2054,20 @@ extern (C++) class FuncDeclaration : Declaration
                         if (!sc.intypeof && !(sc.flags & SCOPE.compile))
                         {
                             siblingCallers.push(fdthis);
+
+                            // https://issues.dlang.org/show_bug.cgi?id=23112
+                            // Modifying siblingCallers can change the result of needsClosure() for
+                            // parent functions. This is due to templates being expanded that access
+                            // alias symbols. Check again whether any `@nogc` attributes are violated.
+                            foreach (var; outerVars)
+                            {
+                                if (auto fdp = var.parent.isFuncDeclaration())
+                                {
+                                    const oldValue = fdp.requiresClosure;
+                                    if (fdp.needsClosure() && oldValue != fdp.requiresClosure)
+                                        fdp.checkClosure();   // give decent diagnostic
+                                }
+                            }
                         }
                     }
                 }
