@@ -553,7 +553,16 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
         return false;
 
     if (e1.isSliceExp())
-        return false;
+    {
+        if (VarDeclaration va = expToVariable(e1))
+        {
+            if (!va.type.toBasetype().isTypeSArray() || // treat static array slice same as a variable
+                !va.type.hasPointers())
+                return false;
+        }
+        else
+            return false;
+    }
 
     /* The struct literal case can arise from the S(e2) constructor call:
      *    return S(e2);
