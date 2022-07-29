@@ -6,7 +6,8 @@ $(HEADERNAV_TOC)
 
 $(H2 $(LNAME2 intro, Introduction))
 
-    $(P Whereas classes are reference types, structs are value types.
+    $(P Whereas $(DDLINK spec/class, Classes, classes) are reference types,
+    structs are value types.
     Structs and unions are simple aggregations of data and their
     associated operations on that data.
     )
@@ -397,17 +398,86 @@ $(H2 $(LEGACY_LNAME2 StructLiteral, struct-literal, Struct Literals))
         If a struct has a member function named $(CODE opCall), then
         struct literals for that struct are not possible. See also
         $(DDSUBLINK spec/operatoroverloading, FunctionCall, opCall operator overloading)
-        for the issue workaround.
+        for the issue workaround.)
+        $(P
         It is an error if there are more arguments than fields of
         the struct.
         If there are fewer arguments than fields, the remaining
         fields are initialized with their respective default
-        initializers.
-        If there are anonymous unions in the struct, only the first
-        member of the anonymous union can be initialized with a
-        struct literal, and all subsequent non-overlapping fields are default
-        initialized.
+        initializers.)
+        $(P
+        If there is a union field in the struct, only the first
+        member of the union can be initialized inside a
+        struct literal. This matches the behaviour for union literals.
         )
+
+$(H2 $(LNAME2 union-literal, Union Literals))
+
+    $(P A union literal is like a struct literal, but only the first field can
+    be initialized with an initializer expression. Any field larger than the
+    first will have the remainder of its memory initialized to zero.
+    )
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+union U
+{
+    byte a;
+    char[2] b;
+}
+
+U u = U(2);
+assert(u.a == 2);
+assert(u.b == [2, 0]);
+---
+)
+
+$(H2 $(LNAME2 anonymous, Anonymous Structs and Unions))
+
+    $(P An anonymous union is useful inside a class or struct to share
+    memory for fields, without having to name a parent field with a
+    separate union type.)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+struct S
+{
+    int a;
+    union
+    {
+        byte b;
+        char c;
+    }
+}
+
+S s = S(1, 2);
+assert(s.a == 1);
+assert(s.b == 2);
+assert(s.c == 2); // overlaps with `b`
+---
+)
+
+    $(P Conversely, an anonymous struct is useful inside a union to
+    declare multiple fields that are stored sequentially.)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+union U
+{
+    int a;
+    struct
+    {
+        uint b;
+        bool c;
+    }
+}
+
+U u = U(1);
+assert(u.a == 1);
+assert(u.b == 1); // overlaps with `a`
+assert(u.c == false); // no overlap
+---
+)
 
 $(H2 $(LNAME2 struct_properties, Struct Properties))
 
