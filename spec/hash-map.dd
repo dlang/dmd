@@ -68,7 +68,7 @@ $(H2 $(LNAME2 testing_membership, Testing Membership))
         ---------
         int* p;
 
-        p = ("hello" $(CODE_HIGHLIGHT in) aa);
+        p = "hello" $(CODE_HIGHLIGHT in) aa;
         if (p !is null)
         {
             *p = 4;  // update value associated with key
@@ -198,15 +198,17 @@ $(H2 $(LNAME2 construction_assignment_entries, Construction or Assignment on Set
     operator, it is specially handled for setting an AA entry associated with
     the key.)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
         ---------
         string[int] aa;
         string s;
-        s = aa[1];          // throws RangeError in runtime
+
+        //s = aa[1];        // throws RangeError in runtime
         aa[1] = "hello";    // handled for setting AA entry
         s = aa[1];          // succeeds to lookup
         assert(s == "hello");
         ---------
-
+)
     $(P If the assigned value type is equivalent with the AA element type:)
 
       $(OL
@@ -216,6 +218,7 @@ $(H2 $(LNAME2 construction_assignment_entries, Construction or Assignment on Set
         assignment.)
       )
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
         ---------
         struct S
         {
@@ -229,6 +232,7 @@ $(H2 $(LNAME2 construction_assignment_entries, Construction or Assignment on Set
                         // operator-overloading rewrites it to member opAssign function.
         assert(aa[1].val == 20);
         ---------
+)
 
     $(P If the assigned value type is $(B not) equivalent with the AA element
     type, the expression could invoke operator overloading with normal indexing
@@ -249,6 +253,7 @@ $(H2 $(LNAME2 construction_assignment_entries, Construction or Assignment on Set
         implicit constructor call from the assigned value, implicit construction
         is used for setting the AA entry:)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
         ---------
         struct S
         {
@@ -257,7 +262,7 @@ $(H2 $(LNAME2 construction_assignment_entries, Construction or Assignment on Set
             void opAssign(int v) { this.val = v * 2; }
         }
         S s = 1;    // OK, rewritten to: S s = S(1);
-          s = 1;    // OK, rewritten to: s.opAssign(1);
+        s = 1;      // OK, rewritten to: s.opAssign(1);
 
         S[int] aa;
         aa[1] = 10; // first setting is rewritten to: aa[1] = S(10);
@@ -265,7 +270,7 @@ $(H2 $(LNAME2 construction_assignment_entries, Construction or Assignment on Set
         aa[1] = 10; // second setting is rewritten to: aa[1].opAssign(10);
         assert(aa[1].val == 20);
         ---------
-
+)
         This is designed for efficient memory reuse with some value-semantics
         structs, eg. $(REF BigInt, std,bigint).
 
@@ -298,6 +303,7 @@ $(H2 $(LNAME2 inserting_if_not_present, Inserting if not present))
         allows the construction via a function or delegate. This allows the use
         of any mechanism as demonstrated below.)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
         ---------
         class C{}
         C[string] aa;
@@ -310,6 +316,7 @@ $(H2 $(LNAME2 inserting_if_not_present, Inserting if not present))
         auto b = aa.require("b", { newc = new C; return newc;}());
         assert(b is newc);
         ---------
+)
 
 $(H2 $(LNAME2 advanced_updating, Advanced updating))
 
@@ -374,6 +381,7 @@ $(H2 $(LNAME2 runtime_initialization, Runtime Initialization of Immutable AAs))
         a constructor (static constructor depending on scope),
         a buffer associative array and $(D assumeUnique):)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
         ---------
         immutable long[string] aa;
 
@@ -383,7 +391,7 @@ $(H2 $(LNAME2 runtime_initialization, Runtime Initialization of Immutable AAs))
             import std.conv : to;
 
             long[string] temp; // mutable buffer
-            foreach(i; 0 .. 10)
+            foreach (i; 0 .. 10)
             {
                 temp[to!string(i)] = i;
             }
@@ -392,13 +400,14 @@ $(H2 $(LNAME2 runtime_initialization, Runtime Initialization of Immutable AAs))
             aa = assumeUnique(temp);
         }
 
-        unittest
+        void main()
         {
             assert(aa["1"] == 1);
             assert(aa["5"] == 5);
             assert(aa["9"] == 9);
         }
         ---------
+)
 
 $(H2 $(LNAME2 construction_and_ref_semantic, Construction and Reference Semantics))
 
@@ -407,15 +416,18 @@ $(H2 $(LNAME2 construction_and_ref_semantic, Construction and Reference Semantic
         assigning one array to another does not copy the data. This is especially important when attempting
         to create multiple references to the same array.)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
         ------
         int[int] aa;             // defaults to null
         int[int] aa2 = aa;       // copies the null reference
+
         aa[1] = 1;
         assert(aa2.length == 0); // aa2 still is null
         aa2 = aa;
         aa2[2] = 2;
         assert(aa[2] == 2);      // now both refer to the same instance
         ------
+)
 
 $(H2 $(LNAME2 properties, Properties))
 
