@@ -550,43 +550,43 @@ $(H3 $(LNAME2 aa_example, Associative Array Example: word count))
         }
         ---------
 
-$(H3 $(LNAME2 aa_example_iteration, Associative Array Example: counting Tuples))
+$(H3 $(LNAME2 aa_example_iteration, Associative Array Example: counting pairs))
 
     $(P An Associative Array can be iterated in key/value fashion using a
         $(DDSUBLINK spec/statement, ForeachStatement, foreach statement). As
         an example, the number of occurrences of all possible substrings of
         length 2 (aka 2-mers) in a string will be counted:)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
         ------
-        import std.range : dropOne, only, save, zip;
+        import std.range : slide;
         import std.stdio : writefln;
-        import std.typecons : Tuple;
         import std.utf : byCodeUnit; // avoids UTF-8 auto-decoding
 
-        int[Tuple!(immutable char, immutable char)] aa;
+        int[string] aa;
 
         // The string `arr` has a limited alphabet: {A, C, G, T}
         // Thus, for better performance, iteration can be done _without_ decoding
         auto arr = "AGATAGA".byCodeUnit;
 
-        // iterate over all pairs in the string and observe each pair
+        // iterate over all pairs in the string and count each pair
         // ('A', 'G'), ('G', 'A'), ('A', 'T'), ...
-        foreach (window; arr.zip(arr.save.dropOne))
-            aa[window]++;
+        foreach (window; arr.slide(2))
+            aa[window.source]++; // source unwraps the code unit range
 
         // iterate over all key/value pairs of the Associative Array
         foreach (key, value; aa)
         {
-            // the second parameter uses tuple-expansion
-            writefln("key: %s [%s], value: %d", key, key.expand.only, value);
+            writefln("key: %s, value: %d", key, value);
         }
         ------
+)
 $(CONSOLE
-% rdmd count.d
-key: Tuple!(immutable(char), immutable(char))('A', 'G') [AG], value: 2
-key: Tuple!(immutable(char), immutable(char))('G', 'A') [GA], value: 2
-key: Tuple!(immutable(char), immutable(char))('A', 'T') [AT], value: 1
-key: Tuple!(immutable(char), immutable(char))('T', 'A') [TA], value: 1
+$(GT) rdmd count.d
+key: AT, value: 1
+key: GA, value: 2
+key: TA, value: 1
+key: AG, value: 2
 )
 )
 
