@@ -329,24 +329,28 @@ $(H2 $(LNAME2 advanced_updating, Advanced updating))
         delegate. The $(D update) operation avoids the need to perform multiple
         key lookups.)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
         ---------
-        class C{}
-        C[string] aa;
+        int[string] aa;
 
-        C older;
-        C newer;
-        aa.update("a",
-        {
-            newer = new C;
-            return newer;
-        },
-        (ref C c)
-        {
-            older = c;
-            newer = new C;
-            return newer;
-        });
+        // create
+        aa.update("key",
+            () => 1,
+            (int) {} // not executed
+            );
+        assert(aa["key"] == 1);
+
+        // update value by ref
+        aa.update("key",
+            () => 0, // not executed
+            (ref int v) {
+                v += 1;
+            });
+        assert(aa["key"] == 2);
         ---------
+)
+
+    $(P For details, see $(REF1 update, object).)
 
 $(H2 $(LNAME2 static_initialization, Static Initialization of AAs))
 
