@@ -702,7 +702,7 @@ $(H2 $(LNAME2 auto-ref-functions, Auto Ref Functions))
 
 $(H2 $(LNAME2 inout-functions, Inout Functions))
 
-    $(P For extensive information read the $(LINK2 const3.hmtl#inout, $(D inout section of the type qualifiers documentation page)).)
+    $(P For extensive information see $(DDSUBLINK spec/const3, inout, $(D inout) type qualifier).)
 
 $(H2 $(LNAME2 optional-parenthesis, Optional Parentheses))
 
