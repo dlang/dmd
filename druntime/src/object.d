@@ -6,6 +6,7 @@
  * $(TR $(TD Arrays) $(TD
  *     $(MYREF assumeSafeAppend)
  *     $(MYREF capacity)
+ *     $(A dup, .dup.2)
  *     $(MYREF idup)
  *     $(MYREF reserve)
  * ))
@@ -14,6 +15,7 @@
  *     $(MYREF byKeyValue)
  *     $(MYREF byValue)
  *     $(MYREF clear)
+ *     $(MYREF dup)
  *     $(MYREF get)
  *     $(MYREF keys)
  *     $(MYREF rehash)
@@ -23,15 +25,15 @@
  * ))
  * $(TR $(TD General) $(TD
  *     $(MYREF destroy)
- *     $(MYREF dup)
  *     $(MYREF hashOf)
- *     $(MYREF opEquals)
+ *     $(MYREF imported)
+ *     $(MYREF noreturn)
  * ))
- * $(TR $(TD Types) $(TD
+ * $(TR $(TD Classes) $(TD
  *     $(MYREF Error)
  *     $(MYREF Exception)
- *     $(MYREF noreturn)
  *     $(MYREF Object)
+ *     $(MYREF opEquals)
  *     $(MYREF Throwable)
  * ))
  * $(TR $(TD Type info) $(TD
@@ -61,7 +63,11 @@ alias size_t = typeof(int.sizeof);
 alias ptrdiff_t = typeof(cast(void*)0 - cast(void*)0);
 
 alias sizediff_t = ptrdiff_t; // For backwards compatibility only.
-alias noreturn = typeof(*null);  /// bottom type
+/**
+ * Bottom type.
+ * See $(DDSUBLINK spec/type, noreturn).
+ */
+alias noreturn = typeof(*null);
 
 alias hash_t = size_t; // For backwards compatibility only.
 alias equals_t = bool; // For backwards compatibility only.
