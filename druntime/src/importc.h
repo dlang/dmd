@@ -26,6 +26,14 @@
  */
 #define __signed__ signed
 #define __asm__ asm
+#define __asm asm
+
+/********************
+ * Clang nullability extension used by macOS headers.
+ */
+#define _Nonnull
+#define _Nullable
+#define _Null_unspecified
 
 /********************
  * This is a Microsoft C function calling convention not supported by ImportC,
