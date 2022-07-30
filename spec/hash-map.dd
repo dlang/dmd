@@ -468,7 +468,8 @@ $(P Properties for associative arrays are:)
         else evaluates the $(D create) delegate and adds it to the associative array))
     )
 
-$(HR)
+$(H2 $(LNAME2 examples, Examples))
+
 $(H3 $(LNAME2 aa_example, Associative Array Example: word count))
 
         $(P Let's consider the file is ASCII encoded with LF EOL.
@@ -476,12 +477,14 @@ $(H3 $(LNAME2 aa_example, Associative Array Example: word count))
         over code points and functions from $(LINK2 $(ROOT_DIR)phobos/std_uni.html,std.uni).
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---------
+        import std.algorithm : sort;
         import std.file;         // D file I/O
         import std.stdio;
         import std.ascii;
 
-        void main (string[] args)
+        void main(string[] args)
         {
             ulong totalWords, totalLines, totalChars;
             ulong[string] dictionary;
@@ -491,7 +494,7 @@ $(H3 $(LNAME2 aa_example, Associative Array Example: word count))
             {
                 ulong wordCount, lineCount, charCount;
 
-                foreach(line; File(arg).byLine())
+                foreach (line; File(arg).byLine())
                 {
                     bool inWord;
                     size_t wordStart;
@@ -549,6 +552,7 @@ $(H3 $(LNAME2 aa_example, Associative Array Example: word count))
             }
         }
         ---------
+)
 
 $(H3 $(LNAME2 aa_example_iteration, Associative Array Example: counting Tuples))
 
