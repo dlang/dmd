@@ -2179,7 +2179,7 @@ extern (C++) class FuncDeclaration : Declaration
      * Returns:
      *      true if any errors occur.
      */
-    extern (D) final bool checkClosure()
+    extern (C++) final bool checkClosure()
     {
         //printf("checkClosure() %s\n", toChars());
         if (!needsClosure())

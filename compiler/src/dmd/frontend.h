@@ -2950,6 +2950,7 @@ public:
     const char* kind() const override;
     bool isUnique() const;
     bool needsClosure();
+    bool checkClosure();
     bool hasNestedFrameRefs();
     static bool needsFensure(FuncDeclaration* fd);
     void buildEnsureRequire();
