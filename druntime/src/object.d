@@ -6,7 +6,7 @@
  * $(TR $(TD Arrays) $(TD
  *     $(MYREF assumeSafeAppend)
  *     $(MYREF capacity)
- *     $(A dup, .dup.2)
+ *     $(A #.dup.2, $(TT dup))
  *     $(MYREF idup)
  *     $(MYREF reserve)
  * ))
