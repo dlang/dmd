@@ -1300,19 +1300,22 @@ extern (C++) final class Module : Package
     extern (D) static void addDeferredSemantic(Dsymbol s)
     {
         //printf("Module::addDeferredSemantic('%s')\n", s.toChars());
-        deferred.push(s);
+        if (!deferred.contains(s))
+            deferred.push(s);
     }
 
     extern (D) static void addDeferredSemantic2(Dsymbol s)
     {
         //printf("Module::addDeferredSemantic2('%s')\n", s.toChars());
-        deferred2.push(s);
+        if (!deferred2.contains(s))
+            deferred2.push(s);
     }
 
     extern (D) static void addDeferredSemantic3(Dsymbol s)
     {
         //printf("Module::addDeferredSemantic3('%s')\n", s.toChars());
-        deferred3.push(s);
+        if (!deferred.contains(s))
+            deferred3.push(s);
     }
 
     /******************************************
