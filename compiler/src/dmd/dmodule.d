@@ -1361,6 +1361,9 @@ extern (C++) final class Module : Package
             //printf("\tdeferred.dim = %d, len = %d, dprogress = %d\n", deferred.dim, len, dprogress);
             if (todoalloc)
                 free(todoalloc);
+            if (deferred.dim == len)
+                if (dprogress != 0)
+                    assert(0);
         }
         while (deferred.dim < len || dprogress); // while making progress
         nested--;
