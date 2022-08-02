@@ -325,7 +325,6 @@ extern (C++) final class Module : Package
     extern (C++) __gshared Dsymbols deferred;    // deferred Dsymbol's needing semantic() run on them
     extern (C++) __gshared Dsymbols deferred2;   // deferred Dsymbol's needing semantic2() run on them
     extern (C++) __gshared Dsymbols deferred3;   // deferred Dsymbol's needing semantic3() run on them
-    extern (C++) __gshared uint dprogress;       // progress resolving the deferred list
 
     static void _init()
     {
@@ -1323,19 +1322,15 @@ extern (C++) final class Module : Package
      */
     static void runDeferredSemantic()
     {
-        if (dprogress == 0)
-            return;
-
         __gshared int nested;
         if (nested)
             return;
-        //if (deferred.dim) printf("+Module::runDeferredSemantic(), len = %d\n", deferred.dim);
+        //if (deferred.dim) printf("+Module::runDeferredSemantic(), len = %ld\n", deferred.dim);
         nested++;
 
         size_t len;
         do
         {
-            dprogress = 0;
             len = deferred.dim;
             if (!len)
                 break;
@@ -1361,13 +1356,13 @@ extern (C++) final class Module : Package
                 s.dsymbolSemantic(null);
                 //printf("deferred: %s, parent = %s\n", s.toChars(), s.parent.toChars());
             }
-            //printf("\tdeferred.dim = %d, len = %d, dprogress = %d\n", deferred.dim, len, dprogress);
+            //printf("\tdeferred.dim = %ld, len = %ld\n", deferred.dim, len);
             if (todoalloc)
                 free(todoalloc);
         }
-        while (deferred.dim < len || dprogress); // while making progress
+        while (deferred.dim != len); // while making progress
         nested--;
-        //printf("-Module::runDeferredSemantic(), len = %d\n", deferred.dim);
+        //printf("-Module::runDeferredSemantic(), len = %ld\n", deferred.dim);
     }
 
     static void runDeferredSemantic2()
