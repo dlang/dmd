@@ -1364,7 +1364,7 @@ struct ASTBase
             this(Loc.initial, filename.toDString, ident, doDocComment, doHdrGen);
         }
 
-        bool isRoot() { return false; }
+        bool isRoot() { return true; }
 
         override void accept(Visitor v)
         {
