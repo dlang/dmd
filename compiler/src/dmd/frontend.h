@@ -6177,7 +6177,6 @@ public:
     static Array<Dsymbol* > deferred;
     static Array<Dsymbol* > deferred2;
     static Array<Dsymbol* > deferred3;
-    static uint32_t dprogress;
     static void _init();
     static void deinitialize();
     static AggregateDeclaration* moduleinfo;

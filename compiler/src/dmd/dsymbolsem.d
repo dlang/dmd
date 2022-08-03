@@ -2034,8 +2034,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             ed.semanticRun = PASS.semanticdone;
             return;
         }
-        uint dprogress_save = Module.dprogress;
-
         Scope* scx = null;
         if (ed._scope)
         {
@@ -2093,7 +2091,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     // memtype is forward referenced, so try again later
                     deferDsymbolSemantic(ed, scx);
-                    Module.dprogress = dprogress_save;
                     //printf("\tdeferring %s\n", toChars());
                     ed.semanticRun = PASS.initial;
                     return;
@@ -2133,8 +2130,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (!(sc.flags & SCOPE.Cfile))  // C enum remains incomplete until members are done
             ed.semanticRun = PASS.semanticdone;
-
-        Module.dprogress++;
 
         // @@@DEPRECATED_2.110@@@ https://dlang.org/deprecate.html#scope%20as%20a%20type%20constraint
         // Deprecated in 2.100
@@ -3945,7 +3940,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (funcdecl.canInferAttributes(sc))
             funcdecl.initInferAttributes();
 
-        Module.dprogress++;
         funcdecl.semanticRun = PASS.semanticdone;
 
         /* Save scope for possible later use (if we need the
@@ -4669,7 +4663,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         sd.inv = buildInv(sd, sc2);
 
-        Module.dprogress++;
         sd.semanticRun = PASS.semanticdone;
         //printf("-StructDeclaration::semantic(this=%p, '%s')\n", sd, sd.toChars());
 
@@ -5329,7 +5322,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         cldec.inv = buildInv(cldec, sc2);
 
-        Module.dprogress++;
         cldec.semanticRun = PASS.semanticdone;
         //printf("-ClassDeclaration.dsymbolSemantic(%s), type = %p\n", toChars(), type);
 
@@ -5676,7 +5668,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         idec.members.foreachDsymbol( s => s.dsymbolSemantic(sc2) );
 
-        Module.dprogress++;
         idec.semanticRun = PASS.semanticdone;
         //printf("-InterfaceDeclaration.dsymbolSemantic(%s), type = %p\n", toChars(), type);
 

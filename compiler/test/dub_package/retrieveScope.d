@@ -93,8 +93,6 @@ int main()
 
     // semantic
     m.dsymbolSemantic(null);
-
-    Module.dprogress = 1;
     Module.runDeferredSemantic();
 
     m.semantic2(null);

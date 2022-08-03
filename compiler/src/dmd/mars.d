@@ -441,7 +441,6 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     }
     //if (global.errors)
     //    fatal();
-    Module.dprogress = 1;
     Module.runDeferredSemantic();
     if (Module.deferred.dim)
     {
