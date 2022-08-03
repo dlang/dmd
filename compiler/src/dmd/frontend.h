@@ -361,13 +361,6 @@ enum class DiagnosticReporting : uint8_t
     off = 2u,
 };
 
-enum class FeatureState : int8_t
-{
-    default_ = -1,
-    disabled = 0,
-    enabled = 1,
-};
-
 enum class CppStdRevision : uint32_t
 {
     cpp98 = 199711u,
@@ -375,6 +368,13 @@ enum class CppStdRevision : uint32_t
     cpp14 = 201402u,
     cpp17 = 201703u,
     cpp20 = 202002u,
+};
+
+enum class FeatureState : int8_t
+{
+    default_ = -1,
+    disabled = 0,
+    enabled = 1,
 };
 
 enum class CHECKENABLE : uint8_t
@@ -490,10 +490,6 @@ struct Param final
     DiagnosticReporting useDeprecated;
     bool useUnitTests;
     bool useInline;
-    FeatureState useDIP25;
-    FeatureState useDIP1000;
-    bool fixImmutableConv;
-    bool useDIP1021;
     bool release;
     bool preservePaths;
     DiagnosticReporting warnings;
@@ -505,20 +501,10 @@ struct Param final
     bool useModuleInfo;
     bool useTypeInfo;
     bool useExceptions;
-    bool noSharedAccess;
-    bool previewIn;
-    bool shortenedMethods;
     bool betterC;
     bool addMain;
     bool allInst;
-    bool fix16997;
-    bool fixAliasThis;
-    bool inclusiveInContracts;
-    bool ehnogc;
-    FeatureState dtorFields;
-    bool fieldwise;
     bool bitfields;
-    FeatureState rvalueRefParam;
     CppStdRevision cplusplus;
     bool showGaggedErrors;
     bool printErrorContext;
@@ -533,6 +519,20 @@ struct Param final
     bool externStdUsage;
     bool hcUsage;
     bool logo;
+    FeatureState useDIP25;
+    FeatureState useDIP1000;
+    bool ehnogc;
+    bool useDIP1021;
+    bool fieldwise;
+    bool fixAliasThis;
+    FeatureState rvalueRefParam;
+    bool noSharedAccess;
+    bool previewIn;
+    bool inclusiveInContracts;
+    bool shortenedMethods;
+    bool fixImmutableConv;
+    bool fix16997;
+    FeatureState dtorFields;
     CHECKENABLE useInvariants;
     CHECKENABLE useIn;
     CHECKENABLE useOut;
@@ -592,8 +592,6 @@ struct Param final
         useDeprecated((DiagnosticReporting)1u),
         useUnitTests(),
         useInline(false),
-        fixImmutableConv(),
-        useDIP1021(),
         release(),
         preservePaths(),
         warnings((DiagnosticReporting)2u),
@@ -605,17 +603,9 @@ struct Param final
         useModuleInfo(true),
         useTypeInfo(true),
         useExceptions(true),
-        noSharedAccess(),
-        previewIn(),
-        shortenedMethods(),
         betterC(),
         addMain(),
         allInst(),
-        fix16997(true),
-        fixAliasThis(),
-        inclusiveInContracts(),
-        ehnogc(),
-        fieldwise(),
         bitfields(),
         cplusplus((CppStdRevision)201103u),
         showGaggedErrors(),
@@ -631,6 +621,16 @@ struct Param final
         externStdUsage(),
         hcUsage(),
         logo(),
+        ehnogc(),
+        useDIP1021(),
+        fieldwise(),
+        fixAliasThis(),
+        noSharedAccess(),
+        previewIn(),
+        inclusiveInContracts(),
+        shortenedMethods(),
+        fixImmutableConv(),
+        fix16997(true),
         useInvariants((CHECKENABLE)0u),
         useIn((CHECKENABLE)0u),
         useOut((CHECKENABLE)0u),
@@ -673,7 +673,7 @@ struct Param final
         mapfile()
     {
     }
-    Param(bool obj, bool multiobj = false, bool trace = false, bool tracegc = false, bool verbose = false, bool vcg_ast = false, bool showColumns = false, bool vtls = false, bool vtemplates = false, bool vtemplatesListInstances = false, bool vgc = false, bool vfield = false, bool vcomplex = true, bool vin = false, DiagnosticReporting useDeprecated = (DiagnosticReporting)1u, bool useUnitTests = false, bool useInline = false, FeatureState useDIP25 = (FeatureState)-1, FeatureState useDIP1000 = (FeatureState)-1, bool fixImmutableConv = false, bool useDIP1021 = false, bool release = false, bool preservePaths = false, DiagnosticReporting warnings = (DiagnosticReporting)2u, bool color = false, bool cov = false, uint8_t covPercent = 0u, bool ctfe_cov = false, bool ignoreUnsupportedPragmas = false, bool useModuleInfo = true, bool useTypeInfo = true, bool useExceptions = true, bool noSharedAccess = false, bool previewIn = false, bool shortenedMethods = false, bool betterC = false, bool addMain = false, bool allInst = false, bool fix16997 = true, bool fixAliasThis = false, bool inclusiveInContracts = false, bool ehnogc = false, FeatureState dtorFields = (FeatureState)-1, bool fieldwise = false, bool bitfields = false, FeatureState rvalueRefParam = (FeatureState)-1, CppStdRevision cplusplus = (CppStdRevision)201103u, bool showGaggedErrors = false, bool printErrorContext = false, bool manual = false, bool usage = false, bool mcpuUsage = false, bool transitionUsage = false, bool checkUsage = false, bool checkActionUsage = false, bool revertUsage = false, bool previewUsage = false, bool externStdUsage = false, bool hcUsage = false, bool logo = false, CHECKENABLE useInvariants = (CHECKENABLE)0u, CHECKENABLE useIn = (CHECKENABLE)0u, CHECKENABLE useOut = (CHECKENABLE)0u, CHECKENABLE useArrayBounds = (CHECKENABLE)0u, CHECKENABLE useAssert = (CHECKENABLE)0u, CHECKENABLE useSwitchError = (CHECKENABLE)0u, CHECKENABLE boundscheck = (CHECKENABLE)0u, CHECKACTION checkAction = (CHECKACTION)0u, uint32_t errorLimit = 20u, _d_dynamicArray< const char > argv0 = {}, Array<const char* > modFileAliasStrings = Array<const char* >(), Array<const char* >* imppath = nullptr, Array<const char* >* fileImppath = nullptr, _d_dynamicArray< const char > objdir = {}, _d_dynamicArray< const char > objname = {}, _d_dynamicArray< const char > libname = {}, Output ddoc = Output(), Output dihdr = Output(), Output cxxhdr = Output(), Output json = Output(), JsonFieldFlags jsonFieldFlags = (JsonFieldFlags)0u, Output makeDeps = Output(), Output mixinOut = Output(), Output moduleDeps = Output(), uint32_t debuglevel = 0u, Array<const char* >* debugids = nullptr, uint32_t versionlevel = 0u, Array<const char* >* versionids = nullptr, MessageStyle messageStyle = (MessageStyle)0u, bool run = false, Array<const char* > runargs = Array<const char* >(), Array<const char* > cppswitches = Array<const char* >(), Array<const char* > objfiles = Array<const char* >(), Array<const char* > linkswitches = Array<const char* >(), Array<bool > linkswitchIsForCC = Array<bool >(), Array<const char* > libfiles = Array<const char* >(), Array<const char* > dllfiles = Array<const char* >(), _d_dynamicArray< const char > deffile = {}, _d_dynamicArray< const char > resfile = {}, _d_dynamicArray< const char > exefile = {}, _d_dynamicArray< const char > mapfile = {}) :
+    Param(bool obj, bool multiobj = false, bool trace = false, bool tracegc = false, bool verbose = false, bool vcg_ast = false, bool showColumns = false, bool vtls = false, bool vtemplates = false, bool vtemplatesListInstances = false, bool vgc = false, bool vfield = false, bool vcomplex = true, bool vin = false, DiagnosticReporting useDeprecated = (DiagnosticReporting)1u, bool useUnitTests = false, bool useInline = false, bool release = false, bool preservePaths = false, DiagnosticReporting warnings = (DiagnosticReporting)2u, bool color = false, bool cov = false, uint8_t covPercent = 0u, bool ctfe_cov = false, bool ignoreUnsupportedPragmas = false, bool useModuleInfo = true, bool useTypeInfo = true, bool useExceptions = true, bool betterC = false, bool addMain = false, bool allInst = false, bool bitfields = false, CppStdRevision cplusplus = (CppStdRevision)201103u, bool showGaggedErrors = false, bool printErrorContext = false, bool manual = false, bool usage = false, bool mcpuUsage = false, bool transitionUsage = false, bool checkUsage = false, bool checkActionUsage = false, bool revertUsage = false, bool previewUsage = false, bool externStdUsage = false, bool hcUsage = false, bool logo = false, FeatureState useDIP25 = (FeatureState)-1, FeatureState useDIP1000 = (FeatureState)-1, bool ehnogc = false, bool useDIP1021 = false, bool fieldwise = false, bool fixAliasThis = false, FeatureState rvalueRefParam = (FeatureState)-1, bool noSharedAccess = false, bool previewIn = false, bool inclusiveInContracts = false, bool shortenedMethods = false, bool fixImmutableConv = false, bool fix16997 = true, FeatureState dtorFields = (FeatureState)-1, CHECKENABLE useInvariants = (CHECKENABLE)0u, CHECKENABLE useIn = (CHECKENABLE)0u, CHECKENABLE useOut = (CHECKENABLE)0u, CHECKENABLE useArrayBounds = (CHECKENABLE)0u, CHECKENABLE useAssert = (CHECKENABLE)0u, CHECKENABLE useSwitchError = (CHECKENABLE)0u, CHECKENABLE boundscheck = (CHECKENABLE)0u, CHECKACTION checkAction = (CHECKACTION)0u, uint32_t errorLimit = 20u, _d_dynamicArray< const char > argv0 = {}, Array<const char* > modFileAliasStrings = Array<const char* >(), Array<const char* >* imppath = nullptr, Array<const char* >* fileImppath = nullptr, _d_dynamicArray< const char > objdir = {}, _d_dynamicArray< const char > objname = {}, _d_dynamicArray< const char > libname = {}, Output ddoc = Output(), Output dihdr = Output(), Output cxxhdr = Output(), Output json = Output(), JsonFieldFlags jsonFieldFlags = (JsonFieldFlags)0u, Output makeDeps = Output(), Output mixinOut = Output(), Output moduleDeps = Output(), uint32_t debuglevel = 0u, Array<const char* >* debugids = nullptr, uint32_t versionlevel = 0u, Array<const char* >* versionids = nullptr, MessageStyle messageStyle = (MessageStyle)0u, bool run = false, Array<const char* > runargs = Array<const char* >(), Array<const char* > cppswitches = Array<const char* >(), Array<const char* > objfiles = Array<const char* >(), Array<const char* > linkswitches = Array<const char* >(), Array<bool > linkswitchIsForCC = Array<bool >(), Array<const char* > libfiles = Array<const char* >(), Array<const char* > dllfiles = Array<const char* >(), _d_dynamicArray< const char > deffile = {}, _d_dynamicArray< const char > resfile = {}, _d_dynamicArray< const char > exefile = {}, _d_dynamicArray< const char > mapfile = {}) :
         obj(obj),
         multiobj(multiobj),
         trace(trace),
@@ -691,10 +691,6 @@ struct Param final
         useDeprecated(useDeprecated),
         useUnitTests(useUnitTests),
         useInline(useInline),
-        useDIP25(useDIP25),
-        useDIP1000(useDIP1000),
-        fixImmutableConv(fixImmutableConv),
-        useDIP1021(useDIP1021),
         release(release),
         preservePaths(preservePaths),
         warnings(warnings),
@@ -706,20 +702,10 @@ struct Param final
         useModuleInfo(useModuleInfo),
         useTypeInfo(useTypeInfo),
         useExceptions(useExceptions),
-        noSharedAccess(noSharedAccess),
-        previewIn(previewIn),
-        shortenedMethods(shortenedMethods),
         betterC(betterC),
         addMain(addMain),
         allInst(allInst),
-        fix16997(fix16997),
-        fixAliasThis(fixAliasThis),
-        inclusiveInContracts(inclusiveInContracts),
-        ehnogc(ehnogc),
-        dtorFields(dtorFields),
-        fieldwise(fieldwise),
         bitfields(bitfields),
-        rvalueRefParam(rvalueRefParam),
         cplusplus(cplusplus),
         showGaggedErrors(showGaggedErrors),
         printErrorContext(printErrorContext),
@@ -734,6 +720,20 @@ struct Param final
         externStdUsage(externStdUsage),
         hcUsage(hcUsage),
         logo(logo),
+        useDIP25(useDIP25),
+        useDIP1000(useDIP1000),
+        ehnogc(ehnogc),
+        useDIP1021(useDIP1021),
+        fieldwise(fieldwise),
+        fixAliasThis(fixAliasThis),
+        rvalueRefParam(rvalueRefParam),
+        noSharedAccess(noSharedAccess),
+        previewIn(previewIn),
+        inclusiveInContracts(inclusiveInContracts),
+        shortenedMethods(shortenedMethods),
+        fixImmutableConv(fixImmutableConv),
+        fix16997(fix16997),
+        dtorFields(dtorFields),
         useInvariants(useInvariants),
         useIn(useIn),
         useOut(useOut),
