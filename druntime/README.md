@@ -51,7 +51,7 @@ The `rt` package contains implementations for compiler-inserted calls.
 You may not `import rt.xxx` outside of the `rt` package itself, since its source is not accessible once druntime is compiled;
 it isn't included in the `druntime/import` that ships with compiler releases.
 The compiler assumes these functions have a specific `extern(C)` signature, and expects them to be linked into the final binary.
-See for example: [https://github.com/dlang/dmd/blob/master/src/dmd/backend/drtlsym.d](dmd/backend/drtlsym.d)
+See for example: [https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/drtlsym.d](dmd/backend/drtlsym.d)
 
 The `core` package is shipped with the compiler and has a stable API.
 It contains implementations for D features, but also some D conversions of header files from external libraries:

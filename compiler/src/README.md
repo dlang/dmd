@@ -50,7 +50,7 @@ Runs all `unittest` blocks in the source code.
 
 ### cxx-unittest
 
-Runs the [C++ frontent test](tests/cxxfrontend.c) to verify the manually
+Runs the [C++ frontent test](tests/cxxfrontend.cc) to verify the manually
 created C++ headers in the source directory.
 
 Note: This is currently not supported on windows.
