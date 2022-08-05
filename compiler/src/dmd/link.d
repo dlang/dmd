@@ -1277,6 +1277,7 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
 
         if (target.os == Target.OS.OSX)
         {
+            argv.push("-fno-blocks");       // disable clang blocks extension
             argv.push("-E");                // run preprocessor only for clang
             argv.push("-include");          // OSX cpp has switch order dependencies
             argv.push(importc_h);
