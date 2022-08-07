@@ -1058,10 +1058,10 @@ $(P
     )
 
 $(P
-    $(B DDOC) is special in that it specifies the boilerplate into
+    $(D DDOC) is special in that it specifies the boilerplate into
     which the entire generated text is inserted (represented by the
-    Ddoc generated macro $(B BODY)). For example, in order
-    to use a style sheet, $(B DDOC) would be redefined as:
+    Ddoc generated macro $(D BODY)). For example, in order
+    to use a style sheet, $(D DDOC) would be redefined as:
 )
 
 $(DDOCCODE
