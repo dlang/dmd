@@ -431,27 +431,6 @@ $(DD The macros section follows the same syntax as the $(B Params:) section.
 ------------------------------------
 
 
-$(DT  $(B Escapes=))
-$(DD The escapes section is a series of substitutions which replace special
-     characters with a string. It's useful when the output format requires
-     escaping of certain characters, for example in HTML $(B $(AMP)) should be
-     escaped with $(B $(AMP)amp;).)
-$(DD The syntax is $(B /c/string/), where $(B c)
-     is either a single character, or multiple characters separated by
-     whitespace or commas, and $(B string) is the replacement text.)
-
-------------------------------------
-/**
- * ESCAPES = /&/AddressOf!/
- *           /!/Exclamation/
- *           /?/QuestionMark/
- *           /,/Comma/
- *           /{ }/Parens/
- *           /<,>/Arrows/
- */
-------------------------------------
-)
-
 $(H2 $(LNAME2 highlighting, Highlighting))
 
 $(H3 $(LNAME2 embedded_comments, Embedded Comments))
@@ -1096,6 +1075,25 @@ DDOC = $(LT)!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
     $(DOLLAR)(BODY)
     $(LT)/body$(GT)$(LT)/html$(GT)
 )
+
+$(DD The escapes section is a series of substitutions which replace special
+     characters with a string. It's useful when the output format requires
+     escaping of certain characters, for example in HTML $(B $(AMP)) should be
+     escaped with $(B $(AMP)amp;).)
+$(DD The syntax is $(B /c/string/), where $(B c)
+     is either a single character, or multiple characters separated by
+     whitespace or commas, and $(B string) is the replacement text.)
+
+------------------------------------
+/**
+ * ESCAPES = /&/AddressOf!/
+ *           /!/Exclamation/
+ *           /?/QuestionMark/
+ *           /,/Comma/
+ *           /{ }/Parens/
+ *           /<,>/Arrows/
+ */
+------------------------------------
 
 $(P
     Highlighting of D code is performed by the following macros:
