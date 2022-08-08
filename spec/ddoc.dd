@@ -429,6 +429,7 @@ $(DD The macros section follows the same syntax as the $(B Params:) section.
  *      MAGENTA =   <font color="magenta">$0</font>
  */
 ------------------------------------
+)
 
 
 $(H2 $(LNAME2 highlighting, Highlighting))
