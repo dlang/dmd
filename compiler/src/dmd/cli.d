@@ -657,13 +657,30 @@ dmd -cov -unittest myprog.d
             "list all upcoming language changes"
         ),
         Option("profile",
-            "profile runtime performance of generated code"
+            "profile runtime performance of generated code",
+            `Instrument the generated code so that runtime performance data is collected
+            when the generated program is run.
+            Upon completion of the generated program, the files $(TT trace.log) and $(TT trace.def)
+            are generated. $(TT trace.log) has two sections,
+            $(OL
+            $(LI Fan in and fan out for each profiled function. The name of the function is left-justified,
+            the functions immediately preceding it are the other functions that call it (fan in) and how many times
+            it is called. The functions immediately following are the functions that are called (fan out) and how
+            many times it calls that function. The function itself has 3 numbers appended: the aggregate of the fan in counts,
+            the tree time used by the function which is the function time plus the tree times of all the functions it calls,
+            and the time used excluding
+            the time used by fan out.
+            )
+            $(LI Timing data for each function, sorted from most used to least.)
+            )
+            The $(TT trace.def) file contains linker commands to associate functions which are strongly coupled
+            so they appear adjacent in the resulting executable file.
+            For more information see $(LINK2 https://www.digitalmars.com/ctg/trace.html, profile)
+            `,
         ),
         Option("profile=gc",
             "profile runtime allocations",
-            `$(LINK2 https://www.digitalmars.com/ctg/trace.html, profile)
-            the runtime performance of the generated code.
-            $(UL
+            `$(UL
                 $(LI $(B gc): Instrument calls to GC memory allocation and
                 write a report to the file $(TT profilegc.log) upon program
                 termination.  $(B Note:) Only instrumented calls will be
