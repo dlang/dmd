@@ -8642,7 +8642,7 @@ struct CTFloat final
     static bool isNaN(_d_real r);
     static bool isSNaN(_d_real r);
     static bool isInfinity(_d_real r);
-    static _d_real parse(const char* literal, bool* isOutOfRange = nullptr);
+    static _d_real parse(const char* literal, bool& isOutOfRange);
     static int32_t sprint(char* str, char fmt, _d_real x);
     static _d_real zero;
     static _d_real one;
