@@ -307,8 +307,9 @@ extern (C++) class Package : ScopeDsymbol
         for (Dsymbol s = this.parent; s; s = s.parent)
             packages ~= s.ident;
         reverse(packages);
-
-        if (FileManager.lookForSourceFile(getFilename(packages, ident), global.path ? (*global.path)[] : null))
+        bool ambiguousPkg;
+        if (FileManager.lookForSourceFile(
+            getFilename(packages, ident), global.path ? (*global.path)[] : null, ambiguousPkg))
             Module.load(Loc.initial, packages, this.ident);
         else
             isPkgMod = PKG.package_;
@@ -506,8 +507,15 @@ extern (C++) final class Module : Package
         //  foo\bar\baz
         const(char)[] filename = getFilename(packages, ident);
         // Look for the source file
-        if (const result = FileManager.lookForSourceFile(filename, global.path ? (*global.path)[] : null))
+        bool ambiguousPkg;
+        if (const result = FileManager.lookForSourceFile(filename, global.path ? (*global.path)[] : null, ambiguousPkg))
             filename = result; // leaks
+
+        if (ambiguousPkg)
+        {
+            .error(loc, "module `%s` is both a source file and folder with package.d", ident.toChars());
+            return null;
+        }
 
         auto m = new Module(loc, filename, ident, 0, 0);
 

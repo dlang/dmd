@@ -44,18 +44,25 @@ nothrow:
     * Params:
     *      filename = as supplied by the user
     *      path = path to look for filename
+    *      ambiguousPkg = set to true if both `filename` and `filename/package.d` exist
     * Returns:
     *      the found file name or
     *      `null` if it is not different from filename.
     */
-    static const(char)[] lookForSourceFile(const char[] filename, const char*[] path)
+    static const(char)[] lookForSourceFile(const char[] filename, const char*[] path, out bool ambiguousPkg)
     {
         //printf("lookForSourceFile(`%.*s`)\n", cast(int)filename.length, filename.ptr);
         /* Search along path[] for .di file, then .d file, then .i file, then .c file.
         */
         const sdi = FileName.forceExt(filename, hdr_ext);
         if (FileName.exists(sdi) == 1)
+        {
+            if (auto pd = FileManager.lookForPackageD(filename))
+            {
+                ambiguousPkg = true;
+            }
             return sdi;
+        }
         scope(exit) FileName.free(sdi.ptr);
 
         const sd = FileName.forceExt(filename, mars_ext);
@@ -63,7 +70,13 @@ nothrow:
         if (sd == "__stdin.d")
             return sd;
         if (FileName.exists(sd) == 1)
+        {
+            if (auto pd = FileManager.lookForPackageD(filename))
+            {
+                ambiguousPkg = true;
+            }
             return sd;
+        }
         scope(exit) FileName.free(sd.ptr);
 
         const si = FileName.forceExt(filename, i_ext);
@@ -76,22 +89,11 @@ nothrow:
             return sc;
         scope(exit) FileName.free(sc.ptr);
 
-        if (FileName.exists(filename) == 2)
+        if (auto pd = FileManager.lookForPackageD(filename))
         {
-            /* The filename exists and it's a directory.
-            * Therefore, the result should be: filename/package.d
-            * iff filename/package.d is a file
-            */
-            const ni = FileName.combine(filename, package_di);
-            if (FileName.exists(ni) == 1)
-                return ni;
-            FileName.free(ni.ptr);
-
-            const n = FileName.combine(filename, package_d);
-            if (FileName.exists(n) == 1)
-                return n;
-            FileName.free(n.ptr);
+            return pd;
         }
+
         if (FileName.absolute(filename))
             return null;
         if (!path.length)
@@ -101,13 +103,23 @@ nothrow:
             const p = entry.toDString();
 
             const(char)[] n = FileName.combine(p, sdi);
-            if (FileName.exists(n) == 1) {
+            if (FileName.exists(n) == 1)
+            {
+                if (auto pd = FileManager.lookForPackageD(FileName.removeExt(n)))
+                {
+                    ambiguousPkg = true;
+                }
                 return n;
             }
             FileName.free(n.ptr);
 
             n = FileName.combine(p, sd);
-            if (FileName.exists(n) == 1) {
+            if (FileName.exists(n) == 1)
+            {
+                if (auto pd = FileManager.lookForPackageD(FileName.removeExt(n)))
+                {
+                    ambiguousPkg = true;
+                }
                 return n;
             }
             FileName.free(n.ptr);
@@ -127,19 +139,36 @@ nothrow:
             const b = FileName.removeExt(filename);
             n = FileName.combine(p, b);
             FileName.free(b.ptr);
-            if (FileName.exists(n) == 2)
+            if (auto pd = FileManager.lookForPackageD(n))
             {
-                const n2i = FileName.combine(n, package_di);
-                if (FileName.exists(n2i) == 1)
-                    return n2i;
-                FileName.free(n2i.ptr);
-                const n2 = FileName.combine(n, package_d);
-                if (FileName.exists(n2) == 1) {
-                    return n2;
-                }
-                FileName.free(n2.ptr);
+                return pd;
             }
             FileName.free(n.ptr);
+        }
+        return null;
+    }
+
+    /**
+     * Check if `filename` is a directory containing a package.{d, di} file.
+     *
+     * Returns: filename/package.d or filename/package.d if it exists, otherwise `null`
+     */
+    static const(char)[] lookForPackageD(const char[] filename)
+    {
+        //printf("lookForPackageD(`%.*s`)\n", cast(int)filename.length, filename.ptr);
+
+        if (FileName.exists(filename) == 2)
+        {
+            const ni = FileName.combine(filename, package_di);
+            if (FileName.exists(ni) == 1)
+                return ni;
+            FileName.free(ni.ptr);
+
+            const n = FileName.combine(filename, package_d);
+            if (FileName.exists(n) == 1)
+                return n;
+            FileName.free(n.ptr);
+
         }
         return null;
     }
