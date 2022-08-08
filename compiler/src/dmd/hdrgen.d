@@ -2661,7 +2661,9 @@ void floatToBuffer(Type type, const real_t value, OutBuffer* buf, const bool all
     assert(strlen(buffer.ptr) < BUFFER_LEN);
     if (allowHex)
     {
-        real_t r = CTFloat.parse(buffer.ptr);
+        bool isOutOfRange;
+        real_t r = CTFloat.parse(buffer.ptr, isOutOfRange);
+        //assert(!isOutOfRange); // test/compilable/test22725.c asserts here
         if (r != value) // if exact duplication
             CTFloat.sprint(buffer.ptr, 'a', value);
     }
