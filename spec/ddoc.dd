@@ -429,28 +429,8 @@ $(DD The macros section follows the same syntax as the $(B Params:) section.
  *      MAGENTA =   <font color="magenta">$0</font>
  */
 ------------------------------------
-
-
-$(DT  $(B Escapes=))
-$(DD The escapes section is a series of substitutions which replace special
-     characters with a string. It's useful when the output format requires
-     escaping of certain characters, for example in HTML $(B $(AMP)) should be
-     escaped with $(B $(AMP)amp;).)
-$(DD The syntax is $(B /c/string/), where $(B c)
-     is either a single character, or multiple characters separated by
-     whitespace or commas, and $(B string) is the replacement text.)
-
-------------------------------------
-/**
- * ESCAPES = /&/AddressOf!/
- *           /!/Exclamation/
- *           /?/QuestionMark/
- *           /,/Comma/
- *           /{ }/Parens/
- *           /<,>/Arrows/
- */
-------------------------------------
 )
+
 
 $(H2 $(LNAME2 highlighting, Highlighting))
 
@@ -1075,13 +1055,14 @@ $(P
     $(TROW $(ARGS $(D BACKTICK)), $(ARGS Insert a backtick))
     $(TROW $(ARGS $(D DOLLAR)), $(ARGS Insert a dollar sign))
     $(TROW $(ARGS $(D DDOC)), $(ARGS overall template for output))
+    $(TROW $(ARGS $(D ESCAPES)), $(ARGS characters to substitute))
     )
 
 $(P
-    $(B DDOC) is special in that it specifies the boilerplate into
+    $(D DDOC) is special in that it specifies the boilerplate into
     which the entire generated text is inserted (represented by the
-    Ddoc generated macro $(B BODY)). For example, in order
-    to use a style sheet, $(B DDOC) would be redefined as:
+    Ddoc generated macro $(D BODY)). For example, in order
+    to use a style sheet, $(D DDOC) would be redefined as:
 )
 
 $(DDOCCODE
@@ -1096,6 +1077,24 @@ DDOC = $(LT)!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
     $(DOLLAR)(BODY)
     $(LT)/body$(GT)$(LT)/html$(GT)
 )
+
+$(P
+    $(D ESCAPES) defines a series of substitutions which replace special
+    characters with a string. It's useful when the output format requires
+    escaping of certain characters, for example in HTML $(D $(AMP)) should be
+    escaped with $(D $(AMP)amp;).
+    The syntax is $(D /c/string/), where $(D c)
+    is either a single character, or multiple characters separated by
+    whitespace or commas, and $(D string) is the replacement text.)
+
+------------------------------------
+ESCAPES = /&/AddressOf!/
+          /!/Exclamation/
+          /?/QuestionMark/
+          /,/Comma/
+          /{ }/Parens/
+          /<,>/Arrows/
+------------------------------------
 
 $(P
     Highlighting of D code is performed by the following macros:
