@@ -539,13 +539,14 @@ $(SPEC_RUNNABLE_EXAMPLE_COMPILE
                 totalChars += charCount;
             }
 
+            const char[37] hr = '-';
             if (args.length > 2)
             {
-                writefln("-------------------------------------\n%8s%8s%8s total",
-                         totalLines, totalWords, totalChars);
+                writeln(hr);
+                writefln("%8s%8s%8s total", totalLines, totalWords, totalChars);
             }
 
-            writeln("-------------------------------------");
+            writeln(hr);
             foreach (word; dictionary.keys.sort)
             {
                 writefln("%3s %s", dictionary[word], word);
