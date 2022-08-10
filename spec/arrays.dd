@@ -153,9 +153,9 @@ int[]* e;     // pointer to dynamic array of ints
 $(H2 $(LNAME2 literals, Array Literals))
 
 ---
-auto a1 = [1,2,3];  // type is int[], with elements 1, 2 and 3
+auto a1 = [1,2,3];  // type is int[], with elements 1, 2, and 3
 auto a2 = [1u,2,3]; // type is uint[], with elements 1u, 2u, and 3u
-int[2] = [1, 2];
+int[2] a3 = [1,2];  // type is int[2], with elements 1, and 2
 ---
     $(P `[]` is an empty array literal.)
 
