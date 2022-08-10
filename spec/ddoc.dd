@@ -985,7 +985,7 @@ $(UL
     be $(D $)`(DDOC_UNDEFINED_MACRO(NAME))`. This defaults to empty.
     )
     $(LI
-    If $(D $)`(NAME)` is desired to exist in the output without being
+    If $(D $)`(NAME)` is required to exist in the output without being
     macro expanded, the `$` can be $(RELATIVE_LINK2 punctuation_escapes,
     backslash-escaped): `\$`.
     )
