@@ -13172,7 +13172,10 @@ bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
             if (sc.func && sc.func.isSynchronized())
                 return false;
 
-            return sharedError(e);
+            if (!allowRef && e.type.isShared())
+                return sharedError(e);
+
+            return false;
         }
 
         bool visitDotVar(DotVarExp e)
