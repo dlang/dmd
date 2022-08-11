@@ -1999,7 +1999,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             }
         }
         check(TOK.rightParenthesis);
-        check(TOK.semicolon);
+        check(TOK.semicolon, "static assert");
         return new AST.StaticAssert(loc, exp, msg);
     }
 
@@ -2648,7 +2648,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     }
                 }
                 check(TOK.rightParenthesis);
-                check(TOK.semicolon);
+                check(TOK.semicolon, "invariant");
                 e = new AST.AssertExp(loc, e, msg);
                 auto fbody = new AST.ExpStatement(loc, e);
                 auto f = new AST.InvariantDeclaration(loc, token.loc, stc, null, fbody);
@@ -4738,7 +4738,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         nextToken();        // advance past =
         auto t = parseType();
         AST.Dsymbol s = new AST.AliasAssign(loc, ident, t, null);
-        check(TOK.semicolon);
+        check(TOK.semicolon, "alias reassignment");
         addComment(s, comment);
         auto a = new AST.Dsymbols();
         a.push(s);
@@ -4774,7 +4774,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             auto s = new AST.AliasThis(loc, token.ident);
             nextToken();
             check(TOK.this_);
-            check(TOK.semicolon);
+            check(TOK.semicolon, "`alias Identifier this`");
             auto a = new AST.Dsymbols();
             a.push(s);
             addComment(s, comment);
@@ -4791,7 +4791,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 check(TOK.assign);
                 auto s = new AliasThis(loc, token.ident);
                 nextToken();
-                check(TOK.semicolon);
+                check(TOK.semicolon, "`alias this = Identifier`");
                 auto a = new Dsymbols();
                 a.push(s);
                 addComment(s, comment);
@@ -5932,7 +5932,7 @@ LagainStc:
                 {
                     // mixin(string)
                     AST.Expression e = parseAssignExp();
-                    check(TOK.semicolon);
+                    check(TOK.semicolon, "mixin");
                     if (e.op == EXP.mixin_)
                     {
                         AST.MixinExp cpe = cast(AST.MixinExp)e;
@@ -6523,7 +6523,7 @@ LagainStc:
                 if (peekNext() == TOK.leftParenthesis)
                 {
                     AST.Expression e = parseExpression();
-                    check(TOK.semicolon);
+                    check(TOK.semicolon, "`import` Expression");
                     s = new AST.ExpStatement(loc, e);
                 }
                 else
