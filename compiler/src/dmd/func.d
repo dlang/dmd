@@ -2124,6 +2124,17 @@ extern (C++) class FuncDeclaration : Declaration
         }
         else
         {
+            foreach (v; closureVars)
+            {
+                if (v.isRef() &&
+                    (global.params.useDIP1000 == FeatureState.enabled && isSafe()))
+                {
+                    error("cannot close over `ref` variable `%s`", v.toChars());
+                    if (global.gag)     // need not report supplemental errors
+                        return true;
+                }
+            }
+
             printGCUsage(loc, "using closure causes GC allocation");
             return false;
         }
