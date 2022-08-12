@@ -2124,6 +2124,20 @@ extern (C++) class FuncDeclaration : Declaration
         }
         else
         {
+            foreach (v; closureVars)
+            {
+                notMaybeScope(v, null);
+                if (v.isScope())
+                {
+                    if (global.params.useDIP1000 == FeatureState.enabled && isSafe())
+                    {
+                        error("cannot close over `scope` variable `%s`", v.toChars());
+                        if (global.gag)
+                            return true;
+                    }
+                }
+            }
+
             printGCUsage(loc, "using closure causes GC allocation");
             return false;
         }

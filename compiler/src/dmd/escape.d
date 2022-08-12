@@ -2236,9 +2236,19 @@ public void findAllOuterAccessedVariables(FuncDeclaration fd, VarDeclarations* v
  *          - `VarDeclaration` of a non-scope parameter it was assigned to
  *          - `null` for no reason
  */
-private void notMaybeScope(VarDeclaration v, RootObject o)
+version (none)
 {
-    if (v.maybeScope)
+    void notMaybeScope(string file = __FILE__, int line = __LINE__)(VarDeclaration v, RootObject o)
+    {
+        printf("%.*s(%d): notMaybeScope('%s')\n", cast(int)file.length, file.ptr, line, v.toChars());
+        v.maybeScope = false;
+        if (o && v.isParameter())
+            EscapeState.scopeInferFailure[v.sequenceNumber] = o;
+    }
+}
+else
+{
+    void notMaybeScope(VarDeclaration v, RootObject o)
     {
         v.maybeScope = false;
         if (o && v.isParameter())
@@ -2257,7 +2267,7 @@ private void notMaybeScope(VarDeclaration v, RootObject o)
  *      v = variable
  *      o = reason for it being turned off
  */
-private void doNotInferScope(VarDeclaration v, RootObject o)
+void doNotInferScope(VarDeclaration v, RootObject o)
 {
     if (!v.isParameter)
         notMaybeScope(v, o);
@@ -2274,7 +2284,7 @@ private void doNotInferScope(VarDeclaration v, RootObject o)
  */
 void finishScopeParamInference(FuncDeclaration funcdecl, ref TypeFunction f)
 {
-
+    //printf("finishScopeParamInference() %s\n", funcdecl.toChars());
     if (funcdecl.returnInprocess)
     {
         funcdecl.returnInprocess = false;
