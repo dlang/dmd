@@ -2375,9 +2375,8 @@ $(GNAME TypeSpecialization):
     )
 
     $(P $(I IsExpression)s may be used in conjunction with $(D typeof) to check
-    whether an expression is semantically correct. For example, $(D is(typeof(foo)))
-    will return $(D true) if $(D foo) is a semantically correct expression with a valid
-    type.
+    whether an expression type checks correctly. For example, $(D is(typeof(foo)))
+    will return $(D true) if $(D foo) has a valid type.
     )
 
 $(H4 $(LNAME2 basic-forms, Basic Forms))
