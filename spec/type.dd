@@ -193,7 +193,7 @@ f = Foo.E;       // OK
 
     $(UL
     $(LI All types implicitly convert to $(RELATIVE_LINK2 noreturn, `noreturn`).)
-    $(LI Arrays implicitly convert to $(DDSUBLINK spec/arrays, void_arrays, `void[]`).)
+    $(LI Static and dynamic arrays implicitly convert to $(DDSUBLINK spec/arrays, void_arrays, `void[]`).)
     $(LI $(DDSUBLINK spec/function, function-pointers-delegates, Function pointers and delegates)
         can convert to covariant types.)
     )
