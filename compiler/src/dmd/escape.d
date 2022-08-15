@@ -366,7 +366,7 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, STC
              */
             if (log) printf("no infer for %s in %s loc %s, fdc %s, %d\n",
                 v.toChars(), sc.func.ident.toChars(), sc.func.loc.toChars(), fdc.ident.toChars(),  __LINE__);
-            v.doNotInferScope = true;
+            doNotInferScope(v);
         }
     }
 
@@ -659,7 +659,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
 
         if (va && !vaIsRef && !va.isScope() && !v.isScope() &&
             !v.isTypesafeVariadicParameter && !va.isTypesafeVariadicParameter &&
-            (va.storage_class & v.storage_class & STC.maybescope) &&
+            (va.isParameter() && va.maybeScope && v.isParameter() && v.maybeScope) &&
             p == fd)
         {
             /* Add v to va's list of dependencies
@@ -669,7 +669,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
         }
 
         if (vaIsFirstRef &&
-            (v.isScope() || (v.storage_class & STC.maybescope)) &&
+            (v.isScope() || v.maybeScope) &&
             !(v.storage_class & STC.return_) &&
             v.isParameter() &&
             fd.flags & FUNCFLAG.returnInprocess &&
@@ -691,7 +691,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
                 if (va.isScope())
                     continue;
 
-                if (!va.doNotInferScope)
+                if (va.maybeScope)
                 {
                     if (log) printf("inferring scope for lvalue %s\n", va.toChars());
                     va.storage_class |= STC.scope_ | STC.scopeinferred;
@@ -720,7 +720,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
                 }
             }
 
-            if (va && !va.isDataseg() && !va.doNotInferScope)
+            if (va && !va.isDataseg() && (va.isScope() || va.maybeScope))
             {
                 if (!va.isScope())
                 {   /* v is scope, and va is not scope, so va needs to
@@ -751,7 +751,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
             Type tb = v.type.toBasetype();
             if (tb.ty == Tarray || tb.ty == Tsarray)
             {
-                if (va && !va.isDataseg() && !va.doNotInferScope)
+                if (va && !va.isDataseg() && (va.isScope() || va.maybeScope))
                 {
                     if (!va.isScope())
                     {   //printf("inferring scope for %s\n", va.toChars());
@@ -768,7 +768,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
              * It may escape via that assignment, therefore, v can never be 'scope'.
              */
             //printf("no infer for %s in %s, %d\n", v.toChars(), fd.ident.toChars(), __LINE__);
-            v.doNotInferScope = true;
+            doNotInferScope(v);
         }
     }
 
@@ -826,7 +826,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
         if (p != sc.func)
             continue;
 
-        if (va && !va.isDataseg() && !va.doNotInferScope)
+        if (va && !va.isDataseg() && (va.isScope() || va.maybeScope))
         {
             if (!va.isScope())
             {   //printf("inferring scope for %s\n", va.toChars());
@@ -869,7 +869,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
             if (!(v.isReference() || v.isScope()) || p != fd)
                 continue;
 
-            if (va && !va.isDataseg() && !va.doNotInferScope)
+            if (va && !va.isDataseg() && (va.isScope() || va.maybeScope))
             {
                 /* Don't infer STC.scope_ for va, because then a closure
                  * won't be generated for fd.
@@ -919,7 +919,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
             }
         }
 
-        if (va && !va.isDataseg() && !va.doNotInferScope)
+        if (va && !va.isDataseg() && (va.isScope() || va.maybeScope))
         {
             if (!va.isScope())
             {   //printf("inferring scope for %s\n", va.toChars());
@@ -973,7 +973,7 @@ bool checkThrowEscape(Scope* sc, Expression e, bool gag)
         else
         {
             //printf("no infer for %s in %s, %d\n", v.toChars(), sc.func.ident.toChars(), __LINE__);
-            v.doNotInferScope = true;
+            notMaybeScope(v);
         }
     }
     return result;
@@ -1045,7 +1045,7 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
         else
         {
             //printf("no infer for %s in %s, %d\n", v.toChars(), sc.func.ident.toChars(), __LINE__);
-            v.doNotInferScope = true;
+            notMaybeScope(v);
         }
     }
 
@@ -1200,7 +1200,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
 
         Dsymbol p = v.toParent2();
 
-        if ((v.isScope() || (v.storage_class & STC.maybescope)) &&
+        if ((v.isScope() || v.maybeScope) &&
             !(v.storage_class & STC.return_) &&
             v.isParameter() &&
             !v.doNotInferReturn &&
@@ -1275,7 +1275,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
         else
         {
             //printf("no infer for %s in %s, %d\n", v.toChars(), sc.func.ident.toChars(), __LINE__);
-            v.doNotInferScope = true;
+            doNotInferScope(v);
         }
     }
 
@@ -2235,9 +2235,9 @@ public void findAllOuterAccessedVariables(FuncDeclaration fd, VarDeclarations* v
 }
 
 /***********************************
- * Turn off `STC.maybescope` for variable `v`.
+ * Turn off `maybeScope` for variable `v`.
  *
- * This exists in order to find where `STC.maybescope` is getting turned off.
+ * This exists in order to find where `maybeScope` is getting turned off.
  * Params:
  *      v = variable
  */
@@ -2246,15 +2246,31 @@ version (none)
     private void notMaybeScope(string file = __FILE__, int line = __LINE__)(VarDeclaration v)
     {
         printf("%.*s(%d): notMaybeScope('%s')\n", cast(int)file.length, file.ptr, line, v.toChars());
-        v.storage_class &= ~STC.maybescope;
+        v.maybeScope = false;
     }
 }
 else
 {
     private void notMaybeScope(VarDeclaration v)
     {
-        v.storage_class &= ~STC.maybescope;
+        v.maybeScope = false;
     }
+}
+
+/***********************************
+ * Turn off `maybeScope` for variable `v` if it's not a parameter.
+ *
+ * This is for compatibility with the old system with both `STC.maybescope` and `VarDeclaration.doNotInferScope`,
+ * which is now just `VarDeclaration.maybeScope`.
+ * This function should probably be removed in future refactors.
+ *
+ * Params:
+ *      v = variable
+ */
+private void doNotInferScope(VarDeclaration v)
+{
+    if (!v.isParameter)
+        v.maybeScope = false;
 }
 
 /***********************************
@@ -2268,6 +2284,7 @@ else
  */
 void finishScopeParamInference(FuncDeclaration funcdecl, ref TypeFunction f)
 {
+
     if (funcdecl.flags & FUNCFLAG.returnInprocess)
     {
         funcdecl.flags &= ~FUNCFLAG.returnInprocess;
@@ -2282,6 +2299,8 @@ void finishScopeParamInference(FuncDeclaration funcdecl, ref TypeFunction f)
         }
     }
 
+    if (!(funcdecl.flags & FUNCFLAG.inferScope))
+        return;
     funcdecl.flags &= ~FUNCFLAG.inferScope;
 
     // Eliminate maybescope's
@@ -2314,18 +2333,17 @@ void finishScopeParamInference(FuncDeclaration funcdecl, ref TypeFunction f)
         foreach (u, p; f.parameterList)
         {
             auto v = (*funcdecl.parameters)[u];
-            if (v.storage_class & STC.maybescope)
+            if (v.maybeScope)
             {
                 //printf("Inferring scope for %s\n", v.toChars());
                 notMaybeScope(v);
                 v.storage_class |= STC.scope_ | STC.scopeinferred;
                 p.storageClass |= STC.scope_ | STC.scopeinferred;
-                assert(!(p.storageClass & STC.maybescope));
             }
         }
     }
 
-    if (funcdecl.vthis && funcdecl.vthis.storage_class & STC.maybescope)
+    if (funcdecl.vthis && funcdecl.vthis.maybeScope)
     {
         notMaybeScope(funcdecl.vthis);
         funcdecl.vthis.storage_class |= STC.scope_ | STC.scopeinferred;
@@ -2367,14 +2385,14 @@ private void eliminateMaybeScopes(VarDeclaration[] array)
         foreach (va; array)
         {
             if (log) printf("  va = %s\n", va.toChars());
-            if (!(va.storage_class & (STC.maybescope | STC.scope_)))
+            if (!(va.maybeScope || va.isScope()))
             {
                 if (va.maybes)
                 {
                     foreach (v; *va.maybes)
                     {
                         if (log) printf("    v = %s\n", v.toChars());
-                        if (v.storage_class & STC.maybescope)
+                        if (v.maybeScope)
                         {
                             // v cannot be scope since it is assigned to a non-scope va
                             notMaybeScope(v);
@@ -2494,7 +2512,7 @@ private bool enclosesLifetimeOf(const VarDeclaration va, const VarDeclaration v)
  * analysis for the function is completed. Thus, we save the data
  * until then.
  * Params:
- *     v = an `STC.maybescope` variable that was assigned to `this`
+ *     v = a variable with `maybeScope == true` that was assigned to `this`
  */
 private void addMaybe(VarDeclaration va, VarDeclaration v)
 {
@@ -2579,8 +2597,7 @@ private bool checkScopeVarAddr(VarDeclaration v, Expression e, Scope* sc, bool g
 
     if (!v.isScope())
     {
-        v.storage_class &= ~STC.maybescope;
-        v.doNotInferScope = true;
+        notMaybeScope(v);
         return false;
     }
 

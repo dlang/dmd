@@ -1090,7 +1090,7 @@ extern (C++) class VarDeclaration : Declaration
     VarDeclaration lastVar;         // Linked list of variables for goto-skips-init detection
     Expression edtor;               // if !=null, does the destruction of the variable
     IntRange* range;                // if !=null, the variable is known to be within the range
-    VarDeclarations* maybes;        // STC.maybescope variables that are assigned to this STC.maybescope variable
+    VarDeclarations* maybes;        // maybeScope variables that are assigned to this maybeScope variable
 
     uint endlinnum;                 // line number of end of scope that this var lives in
     uint offset;
@@ -1119,7 +1119,7 @@ extern (C++) class VarDeclaration : Declaration
 
         bool overlapped;        /// if it is a field and has overlapping
         bool overlapUnsafe;     /// if it is an overlapping field and the overlaps are unsafe
-        bool doNotInferScope;   /// do not infer 'scope' for this variable
+        bool maybeScope;        /// allow inferring 'scope' for this variable
         bool doNotInferReturn;  /// do not infer 'return' for this variable
 
         bool isArgDtorVar;      /// temporary created to handle scope destruction of a function argument

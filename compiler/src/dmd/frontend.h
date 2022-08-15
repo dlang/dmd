@@ -4592,7 +4592,6 @@ enum class STC : uint64_t
     templateparameter = 131072LLU,
     ref_ = 262144LLU,
     scope_ = 524288LLU,
-    maybescope = 1048576LLU,
     scopeinferred = 2097152LLU,
     return_ = 4194304LLU,
     returnScope = 8388608LLU,
@@ -5865,8 +5864,8 @@ public:
     bool overlapped(bool v);
     bool overlapUnsafe() const;
     bool overlapUnsafe(bool v);
-    bool doNotInferScope() const;
-    bool doNotInferScope(bool v);
+    bool maybeScope() const;
+    bool maybeScope(bool v);
     bool doNotInferReturn() const;
     bool doNotInferReturn(bool v);
     bool isArgDtorVar() const;
