@@ -5757,7 +5757,25 @@ bool elemIsLvalue(elem* e)
         return elemIsLvalue(ec.EV.E1) && elemIsLvalue(ec.EV.E2);
     }
 
-    return e.Eoper == OPvar || e.Eoper == OPind;
+    if (e.Eoper == OPvar)
+        return true;
+
+    /* Match *(&__tmpfordtor+0) which is being destroyed
+     */
+    elem* ev;
+    if (e.Eoper == OPind &&
+        e.EV.E1.Eoper == OPadd &&
+        e.EV.E1.EV.E2.Eoper == OPconst &&
+        e.EV.E1.EV.E1.Eoper == OPaddr &&
+        (ev = e.EV.E1.EV.E1.EV.E1).Eoper == OPvar)
+    {
+        if (strncmp(ev.EV.Vsym.Sident.ptr, Id.__tmpfordtor.toChars(), 12) == 0)
+        {
+            return false; // don't make reference to object being destroyed
+        }
+    }
+
+    return e.Eoper == OPind && !OTcall(e.EV.E1.Eoper);
 }
 
 /*****************************************
@@ -6555,7 +6573,7 @@ elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
             }
             else
             {
-                elem *e = el_same(&erx);
+                elem *e = el_copytotmp(&erx);
                 erx = el_combine(erx, edtors);
                 *pe = el_combine(erx, e);
             }
