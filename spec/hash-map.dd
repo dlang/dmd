@@ -488,88 +488,49 @@ $(H2 $(LNAME2 examples, Examples))
 
 $(H3 $(LNAME2 aa_example, Associative Array Example: word count))
 
-        $(P Let's consider the file is ASCII encoded with LF EOL.
-        In general case we should use $(I dchar c) for iteration
-        over code points and functions from $(LINK2 $(ROOT_DIR)phobos/std_uni.html,std.uni).
-        )
-
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+$(RUNNABLE_EXAMPLE
+$(RUNNABLE_EXAMPLE_STDIN
+too many cooks
+too many ingredients
+)
         ---------
-        import std.algorithm : sort;
-        import std.file;         // D file I/O
+        import std.algorithm;
         import std.stdio;
-        import std.ascii;
 
-        void main(string[] args)
+        void main()
         {
-            ulong totalWords, totalLines, totalChars;
             ulong[string] dictionary;
+            ulong wordCount, lineCount, charCount;
 
-            writeln("   lines   words   bytes file");
-            foreach (arg; args[1 .. $]) // for each argument except the first one
+            foreach (line; stdin.byLine(KeepTerminator.yes))
             {
-                ulong wordCount, lineCount, charCount;
-
-                foreach (line; File(arg).byLine())
+                charCount += line.length;
+                foreach (word; splitter(line))
                 {
-                    bool inWord;
-                    size_t wordStart;
-
-                    void tryFinishWord(size_t wordEnd)
-                    {
-                        if (inWord)
-                        {
-                            auto word = line[wordStart .. wordEnd];
-                            ++dictionary[word.idup];   // increment count for word
-                            inWord = false;
-                        }
-                    }
-
-                    foreach (i, char c; line)
-                    {
-                        if (std.ascii.isDigit(c))
-                        {
-                            // c is a digit (0..9)
-                        }
-                        else if (std.ascii.isAlpha(c))
-                        {
-                            // c is an ASCII letter (A..Z, a..z)
-                            if (!inWord)
-                            {
-                                wordStart = i;
-                                inWord = true;
-                                ++wordCount;
-                            }
-                        }
-                        else
-                            tryFinishWord(i);
-                        ++charCount;
-                    }
-                    tryFinishWord(line.length);
-                    ++lineCount;
+                    wordCount += 1;
+                    if (auto count = word in dictionary)
+                        *count += 1;
+                    else
+                        dictionary[word.idup] = 1;
                 }
 
-                writefln("%8s%8s%8s %s", lineCount, wordCount, charCount, arg);
-                totalWords += wordCount;
-                totalLines += lineCount;
-                totalChars += charCount;
+                lineCount += 1;
             }
+
+            writeln("   lines   words   bytes");
+            writefln("%8s%8s%8s", lineCount, wordCount, charCount);
 
             const char[37] hr = '-';
-            if (args.length > 2)
-            {
-                writeln(hr);
-                writefln("%8s%8s%8s total", totalLines, totalWords, totalChars);
-            }
 
             writeln(hr);
-            foreach (word; dictionary.keys.sort)
+            foreach (word; sort(dictionary.keys))
             {
                 writefln("%3s %s", dictionary[word], word);
             }
         }
         ---------
 )
+    $(P See $(DDLINK wc, wc, wc) for the full version.)
 
 $(H3 $(LNAME2 aa_example_iteration, Associative Array Example: counting pairs))
 
