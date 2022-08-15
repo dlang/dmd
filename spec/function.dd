@@ -2943,8 +2943,8 @@ $(H3 $(LNAME2 function-delegate-init, Initialization))
         ---
         )
         $(P The last assignment uses a $(GLINK2 expression, FunctionLiteral), which
-        $(DDSUBLINK spec/expression, lambda-type-inference, implicitly converts)
-        to a delegate.)
+        $(DDSUBLINK spec/expression, lambda-type-inference, is inferred)
+        as a delegate.)
 
         $(NOTE Function pointers can be passed to functions taking a delegate argument by passing
         them through the $(REF toDelegate, std,functional) template, which converts any callable
