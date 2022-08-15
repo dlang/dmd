@@ -167,7 +167,7 @@ $(H3 $(LEGACY_LNAME2 Pointer Conversions, pointer-conversions, Pointer Conversio
 $(H3 $(LEGACY_LNAME2 Implicit Conversions, implicit-conversions, Implicit Conversions))
 
     $(P Implicit conversions are used to automatically convert
-    types as required.
+    types as required. The rules for integers are detailed in the next sections.
     )
 
     $(P An enum can be implicitly converted to its base
@@ -343,6 +343,34 @@ ulong  u4 = long(-1); // ok, -1 can be represented in a ulong
     cannot be implicitly converted to imaginary floating
     point types.
     )
+
+$(H3 $(LNAME2 vrp, Value Range Propagation))
+
+    $(P Besides type-based implicit conversions, D allows certain integer
+        expressions to implicitly convert to a narrower type after
+        integer promotion. This works by analysing the minimum and
+        maximum possible range of values for each expression.
+        If that range of values would fit inside a narrower type, implicit
+        conversion is allowed. If one of the values is known at compile-time,
+        that can further reduce the range of values.)
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    extern char c;
+    short s = c + 100; // promoted to int, but narrowed to `c.min + 100` ... `c.max + 100`
+
+    extern int i;
+    ubyte j = i & 0x3F;
+    //ubyte k = i & 0x14A; // error, 0x14A > ubyte.max
+    ushort k = i & 0x14A; // OK
+
+    extern ubyte b;
+    //ubyte p = b + b; // error, ubyte.max + ubyte.max > ubyte.max
+    short p = b + b; // OK
+    ---
+    )
+    $(P For more information, see $(LINK2 https://digitalmars.com/articles/b62.html, here).)
+
 
 $(H2 $(LNAME2 bool, $(D bool)))
 
