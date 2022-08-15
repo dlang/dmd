@@ -1204,6 +1204,41 @@ $(H4 $(LNAME2 cast_static_array, Static Arrays))
             ---
         )
 
+$(H4 $(LNAME2 cast_integers, Integers))
+
+    $(P Casting an integer to a smaller integral will truncate the
+        value towards the least significant bits.
+        If the target type is signed and the most significant bit is set
+        after truncation, that bit will be lost from the value and
+        the sign bit will be set.)
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+        ---
+        uint a = 260;
+        auto b = cast(ubyte) a;
+        assert(b == 4); // truncated like 260 & 0xff
+
+        int c = 128;
+        assert(cast(byte)c == -128); // reinterpreted
+        ---
+        )
+
+    $(P Casting between signed and unsigned types will reinterpret the
+        value if the destination type cannot represent the source
+        value.)
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+        ---
+        short c = -1;
+        auto d = cast(ushort) c;
+        assert(d == ushort.max);
+
+        ubyte e = 255;
+        auto f = cast(byte) e;
+        assert(f == -1);
+        ---
+        )
+
 $(H4 $(LNAME2 cast_floating, Floating Point))
 
     $(P Casting a floating point literal from one type to another
