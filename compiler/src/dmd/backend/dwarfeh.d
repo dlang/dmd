@@ -82,9 +82,6 @@ private __gshared DwEhTable dwehtable;
 
 void genDwarfEh(Funcsym *sfunc, int seg, OutBuffer *et, bool scancode, uint startoffset, uint retoffset)
 {
-    debug
-    unittest_dwarfeh();
-
     /* LPstart = encoding of LPbase
      * LPbase = landing pad base (normally omitted)
      * TType = encoding of TTbase
@@ -413,8 +410,7 @@ int actionTableInsert(OutBuffer *atbuf, int ttindex, int nextoffset)
     return offset;
 }
 
-debug
-void unittest_actionTableInsert()
+@("action table insert") unittest
 {
     OutBuffer atbuf;
     static immutable int[3] tt1 = [ 1,2,3 ];
@@ -547,8 +543,7 @@ uint uLEB128size(uint value)
     return size;
 }
 
-debug
-void unittest_LEB128()
+@("LEB128") unittest
 {
     OutBuffer buf;
 
@@ -558,7 +553,7 @@ void unittest_LEB128()
         -0, -1, -2, -3, -300, -4000, -50_000, -600_000,
     ];
 
-    for (size_t i = 0; i < values.length; ++i)
+    foreach (i; 0..values.length)
     {
         const int value = values[i];
 
@@ -578,17 +573,4 @@ void unittest_LEB128()
         assert(!p.length);
         assert(result == value);
     }
-}
-
-
-debug
-void unittest_dwarfeh()
-{
-    __gshared bool run = false;
-    if (run)
-        return;
-    run = true;
-
-    unittest_LEB128();
-    unittest_actionTableInsert();
 }
