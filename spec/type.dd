@@ -293,7 +293,7 @@ $(H3 $(LEGACY_LNAME2 Usual Arithmetic Conversions, usual-arithmetic-conversions,
     $(LI Else if either operand is `float`, the other operand is
     converted to `float`.)
 
-    $(LI Else the integer promotions are done on each operand,
+    $(LI Else the integer promotions above are done on each operand,
     followed by:
 
     $(OL
@@ -308,6 +308,24 @@ $(H3 $(LEGACY_LNAME2 Usual Arithmetic Conversions, usual-arithmetic-conversions,
         $(LI The signed type is converted to the unsigned type.)
     )
     )
+    )
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    byte a;
+    int b = a * a;
+    auto c = a + a;
+    static assert(is(typeof(c) == int));
+
+    ushort d;
+    static assert(is(typeof(b * d) == int));
+
+    uint e;
+    static assert(is(typeof(b + e) == uint));
+    static assert(is(typeof(d + e) == uint));
+    static assert(is(typeof(ulong() + b) == ulong));
+    static assert(is(typeof(long() - e) == long));
+    ---
     )
 
     $(P If one or both of the operand types is an enum  after
