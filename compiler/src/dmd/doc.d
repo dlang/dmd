@@ -456,7 +456,11 @@ extern(C++) void gendocfile(Module m)
     OutBuffer buf2;
     buf2.writestring("$(DDOC)");
     size_t end = buf2.length;
-    m.macrotable.expand(buf2, 0, end, null);
+
+    const success = m.macrotable.expand(buf2, 0, end, null, global.recursionLimit);
+    if (!success)
+        error(Loc.initial, "DDoc macro expansion limit exceeded; more than %d expansions.", global.recursionLimit);
+
     version (all)
     {
         /* Remove all the escape sequences from buf2,
@@ -5246,7 +5250,7 @@ private void highlightCode2(Scope* sc, Dsymbols* a, ref OutBuffer buf, size_t of
 /****************************************
  * Determine if p points to the start of a "..." parameter identifier.
  */
-private bool isCVariadicArg(const(char)[] p)
+private bool isCVariadicArg(const(char)[] p) @nogc nothrow pure @safe
 {
     return p.length >= 3 && p[0 .. 3] == "...";
 }
@@ -5254,7 +5258,7 @@ private bool isCVariadicArg(const(char)[] p)
 /****************************************
  * Determine if p points to the start of an identifier.
  */
-bool isIdStart(const(char)* p)
+bool isIdStart(const(char)* p) @nogc nothrow pure
 {
     dchar c = *p;
     if (isalpha(c) || c == '_')
@@ -5273,7 +5277,7 @@ bool isIdStart(const(char)* p)
 /****************************************
  * Determine if p points to the rest of an identifier.
  */
-bool isIdTail(const(char)* p)
+bool isIdTail(const(char)* p) @nogc nothrow pure
 {
     dchar c = *p;
     if (isalnum(c) || c == '_')
@@ -5292,7 +5296,7 @@ bool isIdTail(const(char)* p)
 /****************************************
  * Determine if p points to the indentation space.
  */
-private bool isIndentWS(const(char)* p)
+private bool isIndentWS(const(char)* p) @nogc nothrow pure @safe
 {
     return (*p == ' ') || (*p == '\t');
 }
@@ -5300,7 +5304,7 @@ private bool isIndentWS(const(char)* p)
 /*****************************************
  * Return number of bytes in UTF character.
  */
-int utfStride(const(char)* p)
+int utfStride(const(char)* p) @nogc nothrow pure
 {
     dchar c = *p;
     if (c < 0x80)
@@ -5310,7 +5314,7 @@ int utfStride(const(char)* p)
     return cast(int)i;
 }
 
-private inout(char)* stripLeadingNewlines(inout(char)* s)
+private inout(char)* stripLeadingNewlines(inout(char)* s) @nogc nothrow pure
 {
     while (s && *s == '\n' || *s == '\r')
         s++;
