@@ -272,7 +272,9 @@ class Object
     the typeinfo name string compare. This is because of dmd's dll implementation. However,
     it can infer to @safe if your class' opEquals is.
 +/
-bool opEquals(LHS, RHS)(LHS lhs, RHS rhs) if (is(LHS : const Object) && is(RHS : const Object))
+bool opEquals(LHS, RHS)(LHS lhs, RHS rhs)
+if ((is(LHS : const Object) || is(LHS : const shared Object)) &&
+    (is(RHS : const Object) || is(RHS : const shared Object)))
 {
     static if (__traits(compiles, lhs.opEquals(rhs)) && __traits(compiles, rhs.opEquals(lhs)))
     {
@@ -509,6 +511,16 @@ unittest
 
     assert(obj1 == obj1);
     assert(obj1 != obj2);
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=23291
+@system unittest
+{
+    static shared class C { bool opEquals(const(shared(C)) rhs) const shared  { return true;}}
+    const(C) c = new C();
+    const(C)[] a = [c];
+    const(C)[] b = [c];
+    assert(a[0] == b[0]);
 }
 
 private extern(C) void _d_setSameMutex(shared Object ownee, shared Object owner) nothrow;
