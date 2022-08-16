@@ -1623,7 +1623,7 @@ $(H3 $(LNAME2 super, super))
     $(P $(D super) is identical to $(D this), except that it is
         cast to $(D this)'s base class.
         It is an error if there is no base class.
-        It is an error to use $(D super) outside a class.
+        It is an error to use the $(D super) reference outside a non-static class member function.
         (Only class $(D Object) has no base class.)
         If a member function is called with an explicit reference
         to $(D super), a non-virtual call is made.
