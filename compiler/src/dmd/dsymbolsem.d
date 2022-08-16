@@ -359,6 +359,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             dsym.overlapped = true;
 
         dsym.sequenceNumber = global.varSequenceNumber++;
+        if (!dsym.isScope())
+            dsym.maybeScope = true;
 
         Scope* scx = null;
         if (dsym._scope)

@@ -10043,8 +10043,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             // `__assigntmp` will be destroyed together with the array `ae.e1`.
             // When `ae.e2` is a variadic arg array, it is also `scope`, so
             // `__assigntmp` may also be scope.
-            auto vd = copyToTemp(STC.rvalue | STC.nodtor | STC.maybescope,
-                "__assigntmp", ae.e2);
+            auto vd = copyToTemp(STC.rvalue | STC.nodtor | STC.scope_, "__assigntmp", ae.e2);
             eValue2 = new DeclarationExp(vd.loc, vd).expressionSemantic(sc);
             value2 = new VarExp(vd.loc, vd).expressionSemantic(sc);
         }
@@ -13265,8 +13264,7 @@ bool checkAddressVar(Scope* sc, Expression exp, VarDeclaration v)
     }
     if (sc.func && !sc.intypeof && !v.isDataseg())
     {
-        v.storage_class &= ~STC.maybescope;
-        v.doNotInferScope = true;
+        v.maybeScope = false;
         if (global.params.useDIP1000 != FeatureState.enabled &&
             !(v.storage_class & STC.temp) &&
             sc.setUnsafe(false, exp.loc, "cannot take address of local `%s` in `@safe` function `%s`", v, sc.func))
