@@ -343,7 +343,8 @@ $(H2 $(LNAME2 immutable_member_functions, Immutable Member Functions))
 
         $(P
         Immutable member functions are guaranteed that the object
-        and anything referred to by the $(CODE this) reference is immutable.
+        and anything referred to by the $(DDSUBLINK spec/expression, this, `this` reference)
+        is immutable.
         They are declared as:
         )
 
@@ -407,7 +408,7 @@ $(H2 $(LNAME2 const_member_functions, Const Member Functions))
         $(P
         Const member functions are functions that are not allowed to
         change any part of the object through the member function's
-        this reference.
+        $(DDSUBLINK spec/expression, this, `this` reference).
         )
 
 

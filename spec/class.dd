@@ -225,7 +225,7 @@ $(H2 $(LNAME2 super_class, Super Class))
 $(H2 $(LNAME2 member-functions, Member Functions (a.k.a. Methods)))
 
         $(P Non-static member functions have an extra hidden parameter
-        called $(I this) through which the class object's other members
+        called $(DDSUBLINK spec/expression, this, `this`) through which the class object's other members
         can be accessed.
         )
 

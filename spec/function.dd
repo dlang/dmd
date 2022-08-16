@@ -2382,17 +2382,21 @@ $(H4 $(LNAME2 lazy_variadic_functions, Lazy Variadic Functions))
         parameter. This will prevent a closure being generated for the delegate,
         as `scope` means the delegate will not escape the function.)
 
-$(H3 $(LNAME2 this-reference, `this` Reference))
+$(LEGACY_LNAME2 this-reference)
+$(H3 $(LNAME2 hidden-parameters, Hidden Parameters))
 
-        $(P
+        $(UL
+        $(LI
             Non-static member functions all have a hidden parameter called the
-            `this` reference, which refers to the object for which
+            $(DDSUBLINK spec/expression, this, `this` reference), which refers to the object for which
             the function is called.
         )
-
-        $(P
+        $(LI D-style variadic functions have
+            $(RELATIVE_LINK2 d_style_variadic_functions, hidden parameters).)
+        $(LI
             Functions with `Objective-C` linkage have an additional hidden,
             unnamed, parameter which is the selector it was called with.
+        )
         )
 
 
