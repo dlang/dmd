@@ -9934,7 +9934,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (isArrayCtor || isArraySetCtor)
             {
                 const ts = t1b.nextOf().baseElemOf().isTypeStruct();
-                if (!ts || (!ts.sym.postblit && !ts.sym.dtor))
+                if (!ts || (!ts.sym.postblit && !ts.sym.hasCopyCtor && !ts.sym.dtor))
                     return setResult(res);
 
                 auto func = isArrayCtor ? Id._d_arrayctor : Id._d_arraysetctor;
