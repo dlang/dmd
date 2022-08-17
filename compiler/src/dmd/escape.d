@@ -36,6 +36,21 @@ import dmd.tokens;
 import dmd.visitor;
 import dmd.arraytypes;
 
+/// Groups global state for escape checking together
+package(dmd) struct EscapeState
+{
+    // Maps `sequenceNumber` of a `VarDeclaration` to an object that contains the
+    // reason it failed to infer `scope`
+    // https://issues.dlang.org/show_bug.cgi?id=23295
+    private __gshared RootObject[int] scopeInferFailure;
+
+    /// Called by `initDMD` / `deinitializeDMD` to reset global state
+    static void reset()
+    {
+        scopeInferFailure = null;
+    }
+}
+
 /******************************************************
  * Checks memory objects passed to a function.
  * Checks that if a memory object is passed by ref or by pointer,
@@ -286,7 +301,7 @@ void printScopeFailure(E)(E printFunc, VarDeclaration v, int recursionLimit)
     if (recursionLimit < 0 || !v)
         return;
 
-    if (RootObject* o = v.sequenceNumber in scopeInferFailure)
+    if (RootObject* o = v.sequenceNumber in EscapeState.scopeInferFailure)
     {
         switch ((*o).dyncast())
         {
@@ -362,19 +377,21 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Var
         }
         else if (par)
         {
-            result |= sc.setUnsafeDIP1000(gag, arg.loc,
-                desc ~ " `%s` assigned to non-scope parameter `%s` calling `%s`", v, par, fdc);
-
-            if (result)
+            if (sc.setUnsafeDIP1000(gag, arg.loc,
+                desc ~ " `%s` assigned to non-scope parameter `%s` calling `%s`", v, par, fdc))
+            {
+                result = true;
                 printScopeFailure(previewSupplementalFunc(sc.isDeprecated(), global.params.useDIP1000), vPar, 10);
+            }
         }
         else
         {
-            result |= sc.setUnsafeDIP1000(gag, arg.loc,
-                desc ~ " `%s` assigned to non-scope parameter `this` calling `%s`", v, fdc);
-
-            if (result)
+            if (sc.setUnsafeDIP1000(gag, arg.loc,
+                desc ~ " `%s` assigned to non-scope parameter `this` calling `%s`", v, fdc))
+            {
+                result = true;
                 printScopeFailure(previewSupplementalFunc(sc.isDeprecated(), global.params.useDIP1000), fdc.vthis, 10);
+            }
         }
     }
 
@@ -2275,11 +2292,6 @@ public void findAllOuterAccessedVariables(FuncDeclaration fd, VarDeclarations* v
     }
 }
 
-// Maps `sequenceNumber` of a `VarDeclaration` to an object that contains the
-// reason it failed to infer `scope`
-// https://issues.dlang.org/show_bug.cgi?id=23295
-private __gshared RootObject[int] scopeInferFailure;
-
 /***********************************
  * Turn off `maybeScope` for variable `v`.
  *
@@ -2297,7 +2309,7 @@ private void notMaybeScope(VarDeclaration v, RootObject o)
     {
         v.maybeScope = false;
         if (o && v.isParameter())
-            scopeInferFailure[v.sequenceNumber] = o;
+            EscapeState.scopeInferFailure[v.sequenceNumber] = o;
     }
 }
 
