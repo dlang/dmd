@@ -173,7 +173,7 @@ struct Relocation
  * Returns offset into the specified string table.
  */
 
-IDXSTR MsCoffObj_addstr(OutBuffer *strtab, const(char)* str)
+IDXSTR MsCoffObj_addstr(OutBuffer *strtab, const(char)* str) @system
 {
     //printf("MsCoffObj_addstr(strtab = %p str = '%s')\n",strtab,str);
     IDXSTR idx = cast(IDXSTR)strtab.length();        // remember starting offset
