@@ -274,6 +274,28 @@ $(H3 $(LEGACY_LNAME2 Integer Promotions, integer-promotions, Integer Promotions)
     column.
     )
 
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    byte a;
+    auto b = a + a;
+    static assert(is(typeof(b) == int));
+    // error: can't implicitly convert expression of type int to byte:
+    //byte c = a + a;
+
+    ushort d;
+    // error: can't implicitly convert expression of type int to ushort:
+    //d = d * d;
+    int e = d * d; // OK
+    static assert(is(typeof(int() * d) == int));
+
+    dchar f;
+    static assert(is(typeof(f - f) == uint));
+    ---
+    )
+
+    $(RATIONALE 32-bit integer operations are often faster than smaller integers
+    for single variables on modern architectures.)
+
 $(H3 $(LEGACY_LNAME2 Usual Arithmetic Conversions, usual-arithmetic-conversions, Usual Arithmetic Conversions))
 
     $(P The usual arithmetic conversions convert operands of binary
@@ -310,21 +332,30 @@ $(H3 $(LEGACY_LNAME2 Usual Arithmetic Conversions, usual-arithmetic-conversions,
     )
     )
 
+    $(RATIONALE The above rules follow C99, which makes porting code from C easier.)
+
+    $(P $(B Example:) Signed and unsigned conversions:)
     $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
-    byte a;
-    int b = a * a;
-    auto c = a + a;
-    static assert(is(typeof(c) == int));
+    int i;
+    uint u;
+    static assert(is(typeof(i + u) == uint));
+    static assert(is(typeof(short() + u) == uint));
+    static assert(is(typeof(ulong() + i) == ulong));
+    static assert(is(typeof(long() - u) == long));
+    static assert(is(typeof(long() * ulong()) == ulong));
+    ---
+    )
 
-    ushort d;
-    static assert(is(typeof(b * d) == int));
+    $(P $(B Example:) Floating point:)
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    float f;
+    static assert(is(typeof(f + ulong()) == float));
 
-    uint e;
-    static assert(is(typeof(b + e) == uint));
-    static assert(is(typeof(d + e) == uint));
-    static assert(is(typeof(ulong() + b) == ulong));
-    static assert(is(typeof(long() - e) == long));
+    double d;
+    static assert(is(typeof(f * d) == double));
+    static assert(is(typeof(real() / d) == real));
     ---
     )
 
