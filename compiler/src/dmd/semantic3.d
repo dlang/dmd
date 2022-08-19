@@ -1133,6 +1133,19 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     {
                         if (v.isReference() || (v.storage_class & STC.lazy_))
                             continue;
+                        if (v.lastVarExpCanBeMoved)
+                        {
+                            if (VarExp ve = v.lastVarExp)
+                            {
+                                // message(ve.loc, "From: %s", ve.toChars());
+                                if (auto vtmp = ve.var.isVarDeclaration())
+                                {
+                                    // TODO: verify that opPostMove is called
+                                    vtmp.storage_class |= STC.nodtor;
+                                    continue; // TODO: only needed for clarity, maybe remove
+                                }
+                            }
+                        }
                         if (v.needsScopeDtor())
                         {
                             v.storage_class |= STC.nodtor;

@@ -1091,6 +1091,7 @@ extern (C++) class VarDeclaration : Declaration
     Expression edtor;               // if !=null, does the destruction of the variable
     IntRange* range;                // if !=null, the variable is known to be within the range
     VarDeclarations* maybes;        // maybeScope variables that are assigned to this maybeScope variable
+    VarExp lastVarExp;              // last reference of `this`
 
     uint endlinnum;                 // line number of end of scope that this var lives in
     uint offset;
@@ -1101,6 +1102,8 @@ extern (C++) class VarDeclaration : Declaration
     // The index of this variable on the CTFE stack, AdrOnStackNone if not allocated
     enum AdrOnStackNone = ~0u;
     uint ctfeAdrOnStack;
+
+    bool lastVarExpCanBeMoved; // TODO: true if `lastVarExp` can (and should be) moved
 
     // `bool` fields that are compacted into bit fields in a string mixin
     private extern (D) static struct BitFields

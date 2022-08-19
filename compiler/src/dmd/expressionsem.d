@@ -2519,6 +2519,15 @@ private Module loadStdMath()
     return impStdMath.mod;
 }
 
+private void setLastVarExpFlag(Expression e)
+{
+    if (VarExp ve = e.isVarExp)
+    {
+        if (auto vd = ve.var.isVarDeclaration)
+            vd.lastVarExpCanBeMoved = true;
+    }
+}
+
 private extern (C++) final class ExpressionSemanticVisitor : Visitor
 {
     alias visit = Visitor.visit;
@@ -4001,6 +4010,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (vd)
         {
+            if (vd.lastVarExp != e)
+                // TODO: visits of parenting nodes have
+                vd.lastVarExpCanBeMoved = false;
+            vd.lastVarExp = e;
             if (vd.checkNestedReference(sc, e.loc))
                 return setError();
 
@@ -4164,6 +4177,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             for (size_t k = 0; k < arguments.dim; k++)
             {
                 Expression checkarg = (*arguments)[k];
+                setLastVarExpFlag(checkarg);
                 if (checkarg.op == EXP.error)
                     return checkarg;
             }
@@ -9068,6 +9082,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             auto e1x = exp.e1;
             auto e2x = exp.e2;
             auto sd = (cast(TypeStruct)t1).sym;
+            setLastVarExpFlag(e2x);
 
             if (exp.op == EXP.construct)
             {
