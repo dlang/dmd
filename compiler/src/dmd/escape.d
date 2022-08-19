@@ -36,6 +36,21 @@ import dmd.tokens;
 import dmd.visitor;
 import dmd.arraytypes;
 
+/// Groups global state for escape checking together
+package(dmd) struct EscapeState
+{
+    // Maps `sequenceNumber` of a `VarDeclaration` to an object that contains the
+    // reason it failed to infer `scope`
+    // https://issues.dlang.org/show_bug.cgi?id=23295
+    private __gshared RootObject[int] scopeInferFailure;
+
+    /// Called by `initDMD` / `deinitializeDMD` to reset global state
+    static void reset()
+    {
+        scopeInferFailure = null;
+    }
+}
+
 /******************************************************
  * Checks memory objects passed to a function.
  * Checks that if a memory object is passed by ref or by pointer,
@@ -271,6 +286,40 @@ bool checkAssocArrayLiteralEscape(Scope *sc, AssocArrayLiteralExp ae, bool gag)
     return errors;
 }
 
+/**
+ * A `scope` variable was assigned to non-scope parameter `v`.
+ * If applicable, print why the parameter was not inferred `scope`.
+ *
+ * Params:
+ *    printFunc = error/deprecation print function to use
+ *    v = parameter that was not inferred
+ *    recursionLimit = recursion limit for printing the reason
+ */
+void printScopeFailure(E)(E printFunc, VarDeclaration v, int recursionLimit)
+{
+    recursionLimit--;
+    if (recursionLimit < 0 || !v)
+        return;
+
+    if (RootObject* o = v.sequenceNumber in EscapeState.scopeInferFailure)
+    {
+        switch ((*o).dyncast())
+        {
+            case DYNCAST.expression:
+                Expression e = cast(Expression) *o;
+                printFunc(e.loc, "which is not `scope` because of `%s`", e.toChars());
+                break;
+            case DYNCAST.dsymbol:
+                VarDeclaration v1 = cast(VarDeclaration) *o;
+                printFunc(v1.loc, "which is assigned to non-scope parameter `%s`", v1.toChars());
+                printScopeFailure(printFunc, v1, recursionLimit);
+                break;
+            default:
+                assert(0);
+        }
+    }
+}
+
 /****************************************
  * Function parameter `par` is being initialized to `arg`,
  * and `par` may escape.
@@ -280,6 +329,7 @@ bool checkAssocArrayLiteralEscape(Scope *sc, AssocArrayLiteralExp ae, bool gag)
  *      sc = used to determine current function and module
  *      fdc = function being called, `null` if called indirectly
  *      par = function parameter (`this` if null)
+ *      vPar = `VarDeclaration` corresponding to `par`
  *      parStc = storage classes of function parameter (may have added `scope` from `pure`)
  *      arg = initializer for param
  *      assertmsg = true if the parameter is the msg argument to assert(bool, msg).
@@ -287,7 +337,7 @@ bool checkAssocArrayLiteralEscape(Scope *sc, AssocArrayLiteralExp ae, bool gag)
  * Returns:
  *      `true` if pointers to the stack can escape via assignment
  */
-bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, STC parStc, Expression arg, bool assertmsg, bool gag)
+bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, VarDeclaration vPar, STC parStc, Expression arg, bool assertmsg, bool gag)
 {
     enum log = false;
     if (log) printf("checkParamArgumentEscape(arg: %s par: %s)\n",
@@ -327,13 +377,21 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, STC
         }
         else if (par)
         {
-            result |= sc.setUnsafeDIP1000(gag, arg.loc,
-                desc ~ " `%s` assigned to non-scope parameter `%s` calling `%s`", v, par, fdc);
+            if (sc.setUnsafeDIP1000(gag, arg.loc,
+                desc ~ " `%s` assigned to non-scope parameter `%s` calling `%s`", v, par, fdc))
+            {
+                result = true;
+                printScopeFailure(previewSupplementalFunc(sc.isDeprecated(), global.params.useDIP1000), vPar, 10);
+            }
         }
         else
         {
-            result |= sc.setUnsafeDIP1000(gag, arg.loc,
-                desc ~ " `%s` assigned to non-scope parameter `this` calling `%s`", v, fdc);
+            if (sc.setUnsafeDIP1000(gag, arg.loc,
+                desc ~ " `%s` assigned to non-scope parameter `this` calling `%s`", v, fdc))
+            {
+                result = true;
+                printScopeFailure(previewSupplementalFunc(sc.isDeprecated(), global.params.useDIP1000), fdc.vthis, 10);
+            }
         }
     }
 
@@ -345,7 +403,7 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, STC
 
         Dsymbol p = v.toParent2();
 
-        notMaybeScope(v);
+        notMaybeScope(v, vPar);
 
         if (v.isScope())
         {
@@ -366,7 +424,8 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, STC
              */
             if (log) printf("no infer for %s in %s loc %s, fdc %s, %d\n",
                 v.toChars(), sc.func.ident.toChars(), sc.func.loc.toChars(), fdc.ident.toChars(),  __LINE__);
-            doNotInferScope(v);
+
+            doNotInferScope(v, vPar);
         }
     }
 
@@ -378,7 +437,7 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, STC
 
         Dsymbol p = v.toParent2();
 
-        notMaybeScope(v);
+        notMaybeScope(v, arg);
         if (checkScopeVarAddr(v, arg, sc, gag))
         {
             result = true;
@@ -405,7 +464,7 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, STC
 
             Dsymbol p = v.toParent2();
 
-            notMaybeScope(v);
+            notMaybeScope(v, arg);
 
             if ((v.isReference() || v.isScope()) && p == sc.func)
             {
@@ -681,7 +740,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
         }
 
         if (!(va && va.isScope()) || vaIsRef)
-            notMaybeScope(v);
+            notMaybeScope(v, e);
 
         if (v.isScope())
         {
@@ -768,7 +827,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
              * It may escape via that assignment, therefore, v can never be 'scope'.
              */
             //printf("no infer for %s in %s, %d\n", v.toChars(), fd.ident.toChars(), __LINE__);
-            doNotInferScope(v);
+            doNotInferScope(v, e);
         }
     }
 
@@ -821,7 +880,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
         }
 
         if (!(va && va.isScope()))
-            notMaybeScope(v);
+            notMaybeScope(v, e);
 
         if (p != sc.func)
             continue;
@@ -864,7 +923,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
             Dsymbol p = v.toParent2();
 
             if (!(va && va.isScope()))
-                notMaybeScope(v);
+                notMaybeScope(v, e);
 
             if (!(v.isReference() || v.isScope()) || p != fd)
                 continue;
@@ -972,8 +1031,7 @@ bool checkThrowEscape(Scope* sc, Expression e, bool gag)
         }
         else
         {
-            //printf("no infer for %s in %s, %d\n", v.toChars(), sc.func.ident.toChars(), __LINE__);
-            notMaybeScope(v);
+            notMaybeScope(v, new ThrowExp(e.loc, e));
         }
     }
     return result;
@@ -1045,7 +1103,7 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
         else
         {
             //printf("no infer for %s in %s, %d\n", v.toChars(), sc.func.ident.toChars(), __LINE__);
-            notMaybeScope(v);
+            notMaybeScope(v, e);
         }
     }
 
@@ -1275,7 +1333,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
         else
         {
             //printf("no infer for %s in %s, %d\n", v.toChars(), sc.func.ident.toChars(), __LINE__);
-            doNotInferScope(v);
+            doNotInferScope(v, e);
         }
     }
 
@@ -1339,7 +1397,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
         if (!refs)
         {
             if (sc.func.vthis == v)
-                notMaybeScope(v);
+                notMaybeScope(v, e);
 
             if (checkScopeVarAddr(v, e, sc, gag))
             {
@@ -2240,20 +2298,18 @@ public void findAllOuterAccessedVariables(FuncDeclaration fd, VarDeclarations* v
  * This exists in order to find where `maybeScope` is getting turned off.
  * Params:
  *      v = variable
+ *      o = reason for it being turned off:
+ *          - `Expression` such as `throw e` or `&e`
+ *          - `VarDeclaration` of a non-scope parameter it was assigned to
+ *          - `null` for no reason
  */
-version (none)
+private void notMaybeScope(VarDeclaration v, RootObject o)
 {
-    private void notMaybeScope(string file = __FILE__, int line = __LINE__)(VarDeclaration v)
-    {
-        printf("%.*s(%d): notMaybeScope('%s')\n", cast(int)file.length, file.ptr, line, v.toChars());
-        v.maybeScope = false;
-    }
-}
-else
-{
-    private void notMaybeScope(VarDeclaration v)
+    if (v.maybeScope)
     {
         v.maybeScope = false;
+        if (o && v.isParameter())
+            EscapeState.scopeInferFailure[v.sequenceNumber] = o;
     }
 }
 
@@ -2266,11 +2322,12 @@ else
  *
  * Params:
  *      v = variable
+ *      o = reason for it being turned off
  */
-private void doNotInferScope(VarDeclaration v)
+private void doNotInferScope(VarDeclaration v, RootObject o)
 {
     if (!v.isParameter)
-        v.maybeScope = false;
+        notMaybeScope(v, o);
 }
 
 /***********************************
@@ -2336,7 +2393,7 @@ void finishScopeParamInference(FuncDeclaration funcdecl, ref TypeFunction f)
             if (v.maybeScope)
             {
                 //printf("Inferring scope for %s\n", v.toChars());
-                notMaybeScope(v);
+                notMaybeScope(v, null);
                 v.storage_class |= STC.scope_ | STC.scopeinferred;
                 p.storageClass |= STC.scope_ | STC.scopeinferred;
             }
@@ -2345,7 +2402,7 @@ void finishScopeParamInference(FuncDeclaration funcdecl, ref TypeFunction f)
 
     if (funcdecl.vthis && funcdecl.vthis.maybeScope)
     {
-        notMaybeScope(funcdecl.vthis);
+        notMaybeScope(funcdecl.vthis, null);
         funcdecl.vthis.storage_class |= STC.scope_ | STC.scopeinferred;
         f.isScopeQual = true;
         f.isscopeinferred = true;
@@ -2395,7 +2452,7 @@ private void eliminateMaybeScopes(VarDeclaration[] array)
                         if (v.maybeScope)
                         {
                             // v cannot be scope since it is assigned to a non-scope va
-                            notMaybeScope(v);
+                            notMaybeScope(v, va);
                             if (!v.isReference())
                                 v.storage_class &= ~(STC.return_ | STC.returninferred);
                             changes = true;
@@ -2597,7 +2654,7 @@ private bool checkScopeVarAddr(VarDeclaration v, Expression e, Scope* sc, bool g
 
     if (!v.isScope())
     {
-        notMaybeScope(v);
+        notMaybeScope(v, e);
         return false;
     }
 

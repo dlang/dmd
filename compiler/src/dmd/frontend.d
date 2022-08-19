@@ -117,6 +117,7 @@ void initDMD(
 
     import dmd.cond : VersionCondition;
     import dmd.dmodule : Module;
+    import dmd.escape : EscapeState;
     import dmd.expression : Expression;
     import dmd.globals : CHECKENABLE, global;
     import dmd.id : Id;
@@ -150,6 +151,7 @@ void initDMD(
     Module._init();
     Expression._init();
     Objc._init();
+    EscapeState.reset();
 
     addDefaultVersionIdentifiers(global.params, target);
 
@@ -170,6 +172,7 @@ void deinitializeDMD()
 {
     import dmd.dmodule : Module;
     import dmd.dsymbol : Dsymbol;
+    import dmd.escape : EscapeState;
     import dmd.expression : Expression;
     import dmd.globals : global;
     import dmd.id : Id;
@@ -189,6 +192,7 @@ void deinitializeDMD()
     Expression.deinitialize();
     Objc.deinitialize();
     Dsymbol.deinitialize();
+    EscapeState.reset();
 }
 
 /**

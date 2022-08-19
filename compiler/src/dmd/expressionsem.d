@@ -2044,7 +2044,8 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 /* Argument value can escape from the called function.
                  * Check arg to see if it matters.
                  */
-                err |= checkParamArgumentEscape(sc, fd, p, cast(STC) pStc, arg, false, false);
+                VarDeclaration vPar = fd ? (fd.parameters ? (*fd.parameters)[i] : null) : null;
+                err |= checkParamArgumentEscape(sc, fd, p, vPar, cast(STC) pStc, arg, false, false);
             }
 
             // Turning heap allocations into stack allocations is dangerous without dip1000, since `scope` inference
@@ -4726,7 +4727,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 tthis = ue.e1.type;
                 if (!(exp.f.type.ty == Tfunction && (cast(TypeFunction)exp.f.type).isScopeQual))
                 {
-                    if (checkParamArgumentEscape(sc, exp.f, null, STC.undefined_, ethis, false, false))
+                    if (checkParamArgumentEscape(sc, exp.f, null, null, STC.undefined_, ethis, false, false))
                         return setError();
                 }
             }
@@ -6388,7 +6389,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.msg = resolveProperties(sc, exp.msg);
             exp.msg = exp.msg.implicitCastTo(sc, Type.tchar.constOf().arrayOf());
             exp.msg = exp.msg.optimize(WANTvalue);
-            checkParamArgumentEscape(sc, null, null, STC.undefined_, exp.msg, true, false);
+            checkParamArgumentEscape(sc, null, null, null, STC.undefined_, exp.msg, true, false);
         }
 
         if (exp.msg && exp.msg.op == EXP.error)
@@ -13264,7 +13265,6 @@ bool checkAddressVar(Scope* sc, Expression exp, VarDeclaration v)
     }
     if (sc.func && !sc.intypeof && !v.isDataseg())
     {
-        v.maybeScope = false;
         if (global.params.useDIP1000 != FeatureState.enabled &&
             !(v.storage_class & STC.temp) &&
             sc.setUnsafe(false, exp.loc, "cannot take address of local `%s` in `@safe` function `%s`", v, sc.func))
