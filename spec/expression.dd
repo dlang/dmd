@@ -503,7 +503,7 @@ $(GNAME CmpExpression):
     $(GLINK ShiftExpression)
 )
 
-$(H2 $(LNAME2 equality_expressions, Equality Expressions))
+$(H3 $(LNAME2 equality_expressions, Equality Expressions))
 
 $(GRAMMAR
 $(GNAME EqualExpression):
@@ -530,7 +530,7 @@ $(GNAME EqualExpression):
     $(P For float, double, and real values, the $(USUAL_ARITHMETIC_CONVERSIONS) are applied
         to bring them to a common type before comparison.
         The values $(D -0) and $(D +0) are considered equal.
-        If either or both operands are NAN, then $(D ==) returns false and $(D !=) returns $(D true).
+        If either or both operands are NaN, then $(D ==) returns false and $(D !=) returns $(D true).
         Otherwise, the bit patterns of the common type are compared for equality.
     )
 
@@ -545,7 +545,7 @@ $(GNAME EqualExpression):
         x.re == y.re && x.im == y.im
         ---
 
-    $(H3 $(LNAME2 class_struct_equality, Class & Struct Equality))
+    $(H4 $(LNAME2 class_struct_equality, Class & Struct Equality))
 
     $(P For struct objects, equality means the result of the
         $(LINK2 https://dlang.org/spec/operatoroverloading.html#equals, `opEquals()` member function).
@@ -579,7 +579,7 @@ $(GNAME EqualExpression):
         operators are intended to compare the contents of the objects,
         however an appropriate $(D opEquals) override must be defined for this to work.
         The default $(D opEquals) provided by the root $(D Object) class is
-        equivalent to the $(D is) operator.
+        equivalent to the $(D is) operator (see below).
         Comparing against $(D null) is invalid, as $(D null) has no contents.
         Use the $(D is) and $(D !is) operators instead.)
 
@@ -621,6 +621,20 @@ $(GNAME IdentityExpression):
     of elements.
     )
 
+    $(SPEC_RUNNABLE_EXAMPLE_RUN
+    ---
+    Object o;
+    assert(o is null);
+
+    auto a = [1, 2];
+    assert(a is a[0..$]);
+    assert(a !is a[0..1]);
+
+    auto b = [1, 2];
+    assert(a !is b);
+    ---
+    )
+
     $(P For other operand types, identity is defined as being the same
         as equality.
     )
@@ -628,7 +642,7 @@ $(GNAME IdentityExpression):
     $(P The identity operator $(D is) cannot be overloaded.
     )
 
-$(H2 $(LNAME2 relation_expressions, Relational Expressions))
+$(H3 $(LNAME2 relation_expressions, Relational Expressions))
 
 $(GRAMMAR
 $(GNAME RelExpression):
@@ -642,16 +656,16 @@ $(GNAME RelExpression):
         The result type of a relational expression is $(D bool).
     )
 
-$(H3 $(LNAME2 array_comparisons, Array comparisons))
+$(H3 $(LNAME2 array_comparisons, Array Comparisons))
 
-    $(P For static and dynamic arrays, the result of the relational
-        op is the result of the operator applied to the first non-equal
+    $(P For static and dynamic arrays, the result of a *CmpExpression*
+        is the result of the operator applied to the first non-equal
         element of the array. If two arrays compare equal, but are of
         different lengths, the shorter array compares as "less" than the
         longer array.
     )
 
-$(H3 $(LNAME2 integer_comparisons, Integer comparisons))
+$(H3 $(LNAME2 integer_comparisons, Integer Comparisons))
 
     $(P Integer comparisons happen when both operands are integral
         types.
@@ -673,13 +687,13 @@ $(H3 $(LNAME2 integer_comparisons, Integer comparisons))
         Use casts to make both operands signed or both operands unsigned.
     )
 
-$(H3 $(LEGACY_LNAME2 floating_point_comparisons, floating-point-comparisons, Floating point comparisons))
+$(H3 $(LEGACY_LNAME2 floating_point_comparisons, floating-point-comparisons, Floating Point Comparisons))
 
     $(P If one or both operands are floating point, then a floating
         point comparison is performed.
     )
 
-    $(P A relational operator can have `NaN` operands.
+    $(P A *CmpExpression* can have `NaN` operands.
         If either or both operands is `NaN`, the floating point
         comparison operation returns as follows:)
 
@@ -693,11 +707,14 @@ $(H3 $(LEGACY_LNAME2 floating_point_comparisons, floating-point-comparisons, Flo
         $(TROW $(D !=),$(ARGS unordered, less, or greater), `true`)
         )
 
-$(H3 $(LEGACY_LNAME2 class_comparisons, class-comparisons, Class comparisons))
+    $(BEST_PRACTICE Although *IdentityExpression* can be used to check for `T.nan`,
+    there are other floating-point values for NaN produced at runtime.
+    Use $(REF isNaN, std,math,traits) to handle all of them.)
 
-    $(P For class objects, the relational
-        operators compare the
-        contents of the objects. Therefore, comparing against
+$(H3 $(LEGACY_LNAME2 class_comparisons, class-comparisons, Class Comparisons))
+
+    $(P For class objects, *EqualExpression* and *RelExpression* compare the
+        *contents* of the objects. Therefore, comparing against
         a $(CODE null) class reference is invalid, as $(CODE null) has no contents.)
 
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -711,12 +728,13 @@ $(H3 $(LEGACY_LNAME2 class_comparisons, class-comparisons, Class comparisons))
         )
 
     $(P For class objects, the result of `Object.opCmp()` forms the left
-        operand, and `0` forms the right operand. The result of the
-        relational expression `(o1 op o2)` is:)
+        operand, and `0` forms the right operand. The result of an
+        *EqualExpression* or *RelExpression* `(o1 op o2)` is:)
 
         ---
         (o1.opCmp(o2) op 0)
         ---
+
 
 $(H2 $(LNAME2 in_expressions, In Expressions))
 
