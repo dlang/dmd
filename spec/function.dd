@@ -1019,6 +1019,8 @@ void main()
 }
 ------
 )
+        $(P Base class methods can also be called through the
+        $(DDSUBLINK spec/expression, super, `super`) reference.)
 
         $(IMPLEMENTATION_DEFINED Normally calling a virtual function implies getting the
         address of the function at runtime by indexing into the class's `vtbl[]`.
