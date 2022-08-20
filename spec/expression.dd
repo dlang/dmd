@@ -670,7 +670,7 @@ $(H3 $(LNAME2 integer_comparisons, Integer comparisons))
     $(P It is an error to have one operand be signed and the other
         unsigned for a $(D <), $(D <)$(D =), $(D >) or
         $(D >)$(D =) expression.
-        Use casts to make both operands signed or both operands unsigned.
+        Use $(RELATIVE_LINK2 cast_integers, casts) to make both operands signed or both operands unsigned.
     )
 
 $(H3 $(LEGACY_LNAME2 floating_point_comparisons, floating-point-comparisons, Floating point comparisons))
