@@ -4,6 +4,8 @@ $(SPEC_S Types,
 
 $(HEADERNAV_TOC)
 
+$(H2 $(LNAME2 grammar, Grammar))
+
     $(P D is statically typed. Every expression has a type. Types constrain the values
     an expression can hold, and determine the semantics of operations on those values.
     )
@@ -87,11 +89,9 @@ $(GNAME QualifiedIdentifier):
     $(GLINK_LEX Identifier) $(D [) $(GLINK2 expression, AssignExpression) $(D] .) $(GSELF QualifiedIdentifier)
 )
 
-
-    $(P $(RELATIVE_LINK2 basic_data_types, Basic Data Types) are leaf types.
-    $(RELATIVE_LINK2 derived-data_types, Derived Data Types) build on leaf types.
-    $(RELATIVE_LINK2 user-defined-types, User-Defined Types) are aggregates of basic and derived types.
-    )
+    * $(RELATIVE_LINK2 basic-data-types, Basic Data Types) are leaf types.
+    * $(RELATIVE_LINK2 derived-data-types, Derived Data Types) build on leaf types.
+    * $(RELATIVE_LINK2 user-defined-types, User-Defined Types) are aggregates of basic and derived types.
 
 $(H2 $(LEGACY_LNAME2 Basic Data Types, basic-data-types, Basic Data Types))
 
