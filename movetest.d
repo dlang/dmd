@@ -10,12 +10,13 @@ struct S
 
 void moveOnAssign1(S s) @safe pure nothrow @nogc
 {
-    S t = s; // s is moved here and t i
+    S t = s;                    // s is moved
 }
 
 void moveOnAssign2(S s) @safe pure nothrow @nogc
 {
-    S t = s; // s is moved here and t i
+    S t = s;                    // s is moved
+    S u = t;                    // TODO: t should move here
 }
 
 void moveOff(S s) @safe pure nothrow @nogc
