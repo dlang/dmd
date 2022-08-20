@@ -579,7 +579,7 @@ $(GNAME EqualExpression):
         operators are intended to compare the contents of the objects,
         however an appropriate $(D opEquals) override must be defined for this to work.
         The default $(D opEquals) provided by the root $(D Object) class is
-        equivalent to the $(D is) operator.
+        equivalent to the $(D is) operator (see below).
         Comparing against $(D null) is invalid, as $(D null) has no contents.
         Use the $(D is) and $(D !is) operators instead.)
 
