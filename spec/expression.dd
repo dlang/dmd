@@ -1223,19 +1223,21 @@ $(H4 $(LNAME2 cast_integers, Integers))
         ---
         )
 
-    $(P Casting between signed and unsigned types will reinterpret the
+    $(P Converting between signed and unsigned types will reinterpret the
         value if the destination type cannot represent the source
         value.)
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
         short c = -1;
-        auto d = cast(ushort) c;
+        ushort d = c;
         assert(d == ushort.max);
+        assert(uint(c) == uint.max);
 
         ubyte e = 255;
-        auto f = cast(byte) e;
-        assert(f == -1);
+        byte f = e;
+        assert(f == -1); // reinterpreted
+        assert(short(e) == 255); // no change
         ---
         )
 
