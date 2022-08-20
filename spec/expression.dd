@@ -530,7 +530,7 @@ $(GNAME EqualExpression):
     $(P For float, double, and real values, the $(USUAL_ARITHMETIC_CONVERSIONS) are applied
         to bring them to a common type before comparison.
         The values $(D -0) and $(D +0) are considered equal.
-        If either or both operands are NAN, then $(D ==) returns false and $(D !=) returns $(D true).
+        If either or both operands are NaN, then $(D ==) returns false and $(D !=) returns $(D true).
         Otherwise, the bit patterns of the common type are compared for equality.
     )
 
@@ -620,7 +620,9 @@ $(GNAME IdentityExpression):
     ---
     Object o;
     assert(o is null);
-    static assert(float() is float.nan);
+
+    float f;
+    assert(f is float.nan);
     ---
     )
 
