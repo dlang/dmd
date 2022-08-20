@@ -274,6 +274,8 @@ $(H3 $(LEGACY_LNAME2 Integer Promotions, integer-promotions, Integer Promotions)
     column.
     )
 
+    $(P Integer promotion applies to each operand of a binary expression:)
+
     $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     byte a;
@@ -293,8 +295,11 @@ $(H3 $(LEGACY_LNAME2 Integer Promotions, integer-promotions, Integer Promotions)
     ---
     )
 
-    $(RATIONALE 32-bit integer operations are often faster than smaller integers
-    for single variables on modern architectures.)
+    $(RATIONALE
+    * 32-bit integer operations are often faster than smaller integer types
+      for single variables on modern architectures.
+    * Promotion helps avoid accidental overflow which is more common with small integer types.
+    )
 
 $(H3 $(LEGACY_LNAME2 Usual Arithmetic Conversions, usual-arithmetic-conversions, Usual Arithmetic Conversions))
 
