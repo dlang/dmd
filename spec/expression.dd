@@ -616,16 +616,6 @@ $(GNAME IdentityExpression):
         bits in the operands being identical.
     )
 
-    $(SPEC_RUNNABLE_EXAMPLE_RUN
-    ---
-    Object o;
-    assert(o is null);
-
-    float f;
-    assert(f is float.nan);
-    ---
-    )
-
     $(P For static and dynamic arrays, identity of two arrays is given when
     both arrays refer to the same memory location and contain the same number
     of elements.
@@ -633,9 +623,13 @@ $(GNAME IdentityExpression):
 
     $(SPEC_RUNNABLE_EXAMPLE_RUN
     ---
+    Object o;
+    assert(o is null);
+
     auto a = [1, 2];
     assert(a is a[0..$]);
     assert(a !is a[0..1]);
+
     auto b = [1, 2];
     assert(a !is b);
     ---
@@ -712,7 +706,10 @@ $(H3 $(LEGACY_LNAME2 floating_point_comparisons, floating-point-comparisons, Flo
         $(TROW $(D ==),equal, `false`)
         $(TROW $(D !=),$(ARGS unordered, less, or greater), `true`)
         )
-    $(P To check for `NaN`, use $(GLINK IdentityExpression).)
+
+    $(BEST_PRACTICE Although *IdentityExpression* can be used to check for `T.nan`,
+    there are other floating-point values for NaN produced at runtime.
+    Use $(REF isNaN, std,math,traits) to handle all of them.)
 
 $(H3 $(LEGACY_LNAME2 class_comparisons, class-comparisons, Class Comparisons))
 
