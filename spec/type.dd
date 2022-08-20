@@ -158,9 +158,12 @@ $(H2 $(LNAME2 type-conversions, Type Conversions))
 
 $(H3 $(LEGACY_LNAME2 Pointer Conversions, pointer-conversions, Pointer Conversions))
 
-    $(P Casting pointers to non-pointers and vice versa is allowed.)
+    $(P $(DDSUBLINK spec/arrays, pointers, Pointers) implicitly convert to `void*`.)
 
-    $(BEST_PRACTICE do not do this for any pointers that point to data
+    $(P Casting between pointers and non-pointers is allowed. Some pointer casts
+    are disallowed in $(DDLINK spec/memory-safe-d, Memory-Safe-D-Spec, `@safe` code).)
+
+    $(BEST_PRACTICE do not cast any pointer to a non-pointer type that points to data
     allocated by the garbage collector.
     )
 
@@ -187,6 +190,15 @@ f = 0;           // error
 f = Foo.E;       // OK
 -------------------
 )
+
+    $(UL
+    $(LI All types implicitly convert to $(RELATIVE_LINK2 noreturn, `noreturn`).)
+    $(LI Static and dynamic arrays implicitly convert to $(DDSUBLINK spec/arrays, void_arrays, `void[]`).)
+    $(LI $(DDSUBLINK spec/function, function-pointers-delegates, Function pointers and delegates)
+        can convert to covariant types.)
+    )
+
+$(H4 $(LNAME2 class-conversions, Class Conversions))
 
     $(P A derived class can be implicitly converted to its base class, but going
     the other way requires an explicit cast. For example:)
