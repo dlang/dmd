@@ -18,5 +18,5 @@ void moveOnDisabledPostblit(S2 s) @safe pure nothrow @nogc {
 
 void moveOff(S s) @safe pure nothrow @nogc {
     S t = s; // is not moved here because
-    s.x = 42; // it's reference here
+    s.x = 42; // it's referenced here
 }
