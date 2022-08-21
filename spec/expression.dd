@@ -991,6 +991,9 @@ $(TABLE
     $(TROW `!`, Logical NOT)
 )
 
+    $(P The usual $(INTEGER_PROMOTIONS) are performed prior to unary
+    `-` and `+` operations.)
+
 $(H3 $(LNAME2 complement_expressions, Complement Expressions))
 
 $(GRAMMAR
@@ -1000,9 +1003,7 @@ $(GNAME ComplementExpression):
 
     $(P $(I ComplementExpression)s work on integral types (except $(D bool)).
         All the bits in the value are complemented.
-    )
-
-    $(P $(B Note:) the usual $(INTEGER_PROMOTIONS) are not performed
+        The usual $(INTEGER_PROMOTIONS) are performed
         prior to the complement operation.
     )
 
