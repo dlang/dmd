@@ -2808,6 +2808,9 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
             TypeFunction tf = cast(TypeFunction)fd.type;
         assert(tf.ty == Tfunction);
 
+        if (rs.exp)             // TODO: check if this happens on nested functions
+            rs.exp = valueNoDtor(rs.exp);
+
         if (rs.exp && rs.exp.op == EXP.variable && (cast(VarExp)rs.exp).var == fd.vresult)
         {
             // return vresult;
