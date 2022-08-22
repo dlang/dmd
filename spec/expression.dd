@@ -100,14 +100,27 @@ The subexpression `h()` above has no smallest short-circuit expression.
 $(H2 $(LNAME2 order-of-evaluation, Order Of Evaluation))
 
 $(P Built-in prefix unary expressions `++` and `--` are evaluated as if lowered (rewritten) to
-assignments as follows: `++expr` becomes `((expr) += 1)`, and `--expr` becomes `((expr) -= 1)`.
+$(RELATIVE_LINK2 assignment_operator_expressions, assignments) as follows:)
+
+$(TABLE
+    $(THEAD Expression, Equivalent)
+    $(TROW `++expr`, `((expr) += 1)`)
+    $(TROW `--expr`, `((expr) -= 1)`)
+)
+$(P
 Therefore, the result of prefix `++` and `--` is the lvalue after the side effect has been
 effected.)
 
 $(P Built-in postfix unary expressions `++` and `--` are evaluated as if lowered (rewritten) to
 $(DDSUBLINK spec/expression, function_literals, lambda)
-invocations as follows: `expr++` becomes `(ref T x){auto t = x; ++x; return t;}(expr)`, and
-`expr--` becomes `(ref T x){auto t = x; --x; return t;}(expr)`. Therefore, the result of postfix
+invocations as follows:)
+
+$(TABLE
+    $(THEAD Expression, Equivalent)
+    $(TROW `expr++`, `(ref x){auto t = x; ++x; return t;}(expr)`)
+    $(TROW `expr--`, `(ref x){auto t = x; --x; return t;}(expr)`)
+)
+$(P Therefore, the result of postfix
 `++` and `--` is an rvalue just before the side effect has been effected.)
 
 $(P Binary expressions except for $(GLINK AssignExpression), $(GLINK OrOrExpression), and
