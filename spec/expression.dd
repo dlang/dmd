@@ -1346,6 +1346,13 @@ $(GNAME PostfixExpression):
 
 $(TABLE
     $(THEAD Operator, Description)
+    $(TROW `.`,
+        Either:
+        * Access a $(DDLINK spec/property, Properties, property) of a type or expression.
+        * Access a member of a module, package, aggregate type or instance, enum
+          or template instance.
+        * Call a free function using $(DDSUBLINK spec/function, pseudo-member, UFCS).
+    )
     $(TROW `++`, Increment after use - see $(RELATIVE_LINK2 order-of-evaluation, order of evaluation))
     $(TROW `--`, Decrement after use)
 )
