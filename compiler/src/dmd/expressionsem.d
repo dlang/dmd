@@ -2519,12 +2519,24 @@ private Module loadStdMath()
     return impStdMath.mod;
 }
 
-private void setLastVarExpFlag(Expression e)
+private void setLastVarExpFlag(Scope* sc, Expression e)
 {
     if (VarExp ve = e.isVarExp)
     {
         if (auto vd = ve.var.isVarDeclaration)
-            vd.lastVarExpCanBeMoved = true;
+        {
+            if (sc.func)
+            {
+                if (auto parameters = sc.func.parameters)
+                {
+                    foreach (p; *parameters)
+                    {
+                        if (p == vd)
+                            vd.lastVarExpCanBeMoved = true;
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -4177,7 +4189,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             for (size_t k = 0; k < arguments.dim; k++)
             {
                 Expression checkarg = (*arguments)[k];
-                setLastVarExpFlag(checkarg);
+                setLastVarExpFlag(sc, checkarg);
                 if (checkarg.op == EXP.error)
                     return checkarg;
             }
@@ -9082,7 +9094,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             auto e1x = exp.e1;
             auto e2x = exp.e2;
             auto sd = (cast(TypeStruct)t1).sym;
-            setLastVarExpFlag(e2x);
+            setLastVarExpFlag(sc, e2x);
 
             if (exp.op == EXP.construct)
             {
