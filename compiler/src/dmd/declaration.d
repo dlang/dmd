@@ -1414,9 +1414,11 @@ extern (C++) class VarDeclaration : Declaration
     /******************************************
      * Return true if variable needs to call the destructor.
      */
-    final bool needsScopeDtor()
+    extern(D) final bool needsScopeDtor(string file = __FILE__, uint line = __LINE__)
     {
         //printf("VarDeclaration::needsScopeDtor() %s\n", toChars());
+        if (type.toString == "SYZ")
+            printf("%.*s:%d: called needsScopeDtor\n", cast(int)file.length, file.ptr, line);
         return edtor && !(storage_class & STC.nodtor);
     }
 
