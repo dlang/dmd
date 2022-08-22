@@ -1,5 +1,6 @@
 struct S {
     int x;
+    this(int x) @safe pure nothrow @nogc { this.x = x; }
     ~this() @safe pure nothrow @nogc {}
 }
 
