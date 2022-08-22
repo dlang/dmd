@@ -5,13 +5,21 @@ struct SYZ {
     // TODO: enable when Errors are avoided @disable this(this);
 }
 
+SYZ moveOnReturn1(SYZ s) @safe pure nothrow @nogc {
+    return s;                   // TODO: should move
+}
+// SYZ moveOnReturn2(SYZ s) @safe pure nothrow @nogc {
+//     SYZ t = s;
+//     return t;                   // TODO: should move
+// }
+
 // void moveOnAssign0() @safe pure nothrow @nogc {
 //     SYZ s;
 //     SYZ t = s;                    // TODO: `s` should move here
 // }
-// void moveOnAssign1(SYZ s) @safe pure nothrow @nogc {
-//     SYZ t = s;                    // `s` is moved
-// }
+void moveOnAssign1(SYZ s) @safe pure nothrow @nogc {
+    SYZ t = s;                    // `s` is moved
+}
 // void moveOnAssign2(SYZ s) @safe pure nothrow @nogc {
 //     SYZ t = s;                    // `s` is moved
 //     SYZ u = t;                    // TODO: `t` should move here
@@ -31,13 +39,4 @@ struct SYZ {
 // void moveOff(SYZ s) @safe pure nothrow @nogc {
 //     SYZ t = s;                    // `s` is not moved here because
 //     s.x = 42;                   // `s` is referenced in another type of Expression here
-// }
-
-SYZ moveOnReturn1(SYZ s) @safe pure nothrow @nogc {
-    return s;                   // TODO: should move
-}
-
-// SYZ moveOnReturn2(SYZ s) @safe pure nothrow @nogc {
-//     SYZ t = s;
-//     return t;                   // TODO: should move
 // }

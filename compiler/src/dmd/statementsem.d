@@ -2808,19 +2808,6 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
             TypeFunction tf = cast(TypeFunction)fd.type;
         assert(tf.ty == Tfunction);
 
-        if (rs.exp)             // TODO: check if this happens on nested functions
-        {
-            if (auto ve = rs.exp.isVarExp)
-            {
-                if (auto vd = ve.var.isVarDeclaration)
-                {
-                    vd.lastVarExp = ve;
-                    vd.lastVarExpCanBeMoved = true;
-                    asm { int 3; }
-                }
-            }
-        }
-
         if (rs.exp && rs.exp.op == EXP.variable && (cast(VarExp)rs.exp).var == fd.vresult)
         {
             // return vresult;
@@ -2903,6 +2890,18 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
                 rs.exp = inferType(rs.exp, fld.treq.nextOf().nextOf());
 
             rs.exp = rs.exp.expressionSemantic(sc);
+            {
+                // TODO: check if this happens on nested functions
+                if (auto ve = rs.exp.isVarExp)
+                {
+                    if (auto vd = ve.var.isVarDeclaration)
+                    {
+                        vd.lastVarExp = ve;
+                        vd.lastVarExpCanBeMoved = true;
+                    }
+                }
+            }
+
             rs.exp = rs.exp.arrayFuncConv(sc);
             // If we're returning by ref, allow the expression to be `shared`
             const returnSharedRef = (tf.isref && (fd.inferRetType || tret.isShared()));
