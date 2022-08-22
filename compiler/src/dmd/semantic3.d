@@ -1129,7 +1129,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     // check if callee destroys arguments
                     const bool paramsNeedDtor = target.isCalleeDestroyingArgs(f);
 
-                    foreach (v; *funcdecl.parameters)
+                    foreach (VarDeclaration v; *funcdecl.parameters)
                     {
                         if (v.isReference() || (v.storage_class & STC.lazy_))
                             continue;

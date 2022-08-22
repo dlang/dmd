@@ -9,9 +9,9 @@ struct SYZ {
 //     SYZ s;
 //     SYZ t = s;                    // TODO: `s` should move here
 // }
-void moveOnAssign1(SYZ s) @safe pure nothrow @nogc {
-    SYZ t = s;                    // `s` is moved
-}
+// void moveOnAssign1(SYZ s) @safe pure nothrow @nogc {
+//     SYZ t = s;                    // `s` is moved
+// }
 // void moveOnAssign2(SYZ s) @safe pure nothrow @nogc {
 //     SYZ t = s;                    // `s` is moved
 //     SYZ u = t;                    // TODO: `t` should move here
@@ -33,9 +33,9 @@ void moveOnAssign1(SYZ s) @safe pure nothrow @nogc {
 //     s.x = 42;                   // `s` is referenced in another type of Expression here
 // }
 
-// SYZ moveOnReturn1(SYZ s) @safe pure nothrow @nogc {
-//     return s;                   // TODO: should move
-// }
+SYZ moveOnReturn1(SYZ s) @safe pure nothrow @nogc {
+    return s;                   // TODO: should move
+}
 
 // SYZ moveOnReturn2(SYZ s) @safe pure nothrow @nogc {
 //     SYZ t = s;

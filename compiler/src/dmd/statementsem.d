@@ -2809,7 +2809,17 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
         assert(tf.ty == Tfunction);
 
         if (rs.exp)             // TODO: check if this happens on nested functions
-            rs.exp = valueNoDtor(rs.exp);
+        {
+            if (auto ve = rs.exp.isVarExp)
+            {
+                if (auto vd = ve.var.isVarDeclaration)
+                {
+                    vd.lastVarExp = ve;
+                    vd.lastVarExpCanBeMoved = true;
+                    asm { int 3; }
+                }
+            }
+        }
 
         if (rs.exp && rs.exp.op == EXP.variable && (cast(VarExp)rs.exp).var == fd.vresult)
         {
@@ -4205,6 +4215,7 @@ Statement scopeCode(Statement statement, Scope* sc, out Statement sentry, out St
             {
                 if (v.needsScopeDtor())
                 {
+                    asm { int 3; }
                     sfinally = new DtorExpStatement(es.loc, v.edtor, v);
                     v.storage_class |= STC.nodtor; // don't add in dtor again
                 }
