@@ -2,6 +2,7 @@ struct S {
     int x;
     this(int x) @safe pure nothrow @nogc { this.x = x; }
     ~this() @safe pure nothrow @nogc {}
+    // TODO: enable when Errors are avoided @disable this(this);
 }
 
 void moveOnAssign1(S s) @safe pure nothrow @nogc {
