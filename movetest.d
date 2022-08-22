@@ -5,6 +5,10 @@ struct S {
     // TODO: enable when Errors are avoided @disable this(this);
 }
 
+void moveOnAssign0() @safe pure nothrow @nogc {
+    S s;
+    S t = s;                    // TODO: `s` should move here
+}
 void moveOnAssign1(S s) @safe pure nothrow @nogc {
     S t = s;                    // `s` is moved
 }
