@@ -2,7 +2,7 @@ struct SYZ {
     int x;
     this(int x) { this.x = x; }
     ~this() {}
-    // @disable this(this);
+    @disable this(this);
 }
 
 SYZ moveOnReturn1(SYZ s) {
@@ -17,8 +17,12 @@ SYZ moveOnReturn1(SYZ s) {
 //     SYZ s;
 //     SYZ t = s;                    // TODO: `s` should move here
 // }
-void moveOnAssign1(SYZ s) {
+void moveOnAssign1a(SYZ s) {
     SYZ t = s;                    // `s` is moved
+}
+void moveOnAssign1b(SYZ s) {
+    SYZ t = s;                    // `s` is moved
+    return t;                     // `t` is moved
 }
 // void moveOnAssign2(SYZ s) {
 //     SYZ t = s;                    // `s` is moved
