@@ -26,3 +26,12 @@ void moveOff(S s) @safe pure nothrow @nogc {
     S t = s;                    // `s` is not moved here because
     s.x = 42;                   // `s` is referenced in another type of Expression here
 }
+
+S moveOnReturn1(S s) @safe pure nothrow @nogc {
+    return s;                   // TODO: should move
+}
+
+S moveOnReturn2(S s) @safe pure nothrow @nogc {
+    S t = s;
+    return t;                   // TODO: should move
+}
