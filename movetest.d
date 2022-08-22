@@ -20,7 +20,7 @@ SYZ moveOnReturn1(SYZ s) {
 void moveOnAssign1a(SYZ s) {
     SYZ t = s;                    // `s` is moved
 }
-void moveOnAssign1b(SYZ s) {
+SYZ moveOnAssign1b(SYZ s) {
     SYZ t = s;                    // `s` is moved
     return t;                     // `t` is moved
 }
