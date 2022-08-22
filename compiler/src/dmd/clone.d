@@ -1223,6 +1223,8 @@ FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
  */
 FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
 {
+    if (sd.toString() == "SYZ")
+        asm { int 3; }
     //printf("buildPostBlit() %s\n", sd.toChars());
     if (sd.isUnionDeclaration())
         return null;

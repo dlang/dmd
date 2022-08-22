@@ -2,7 +2,7 @@ struct SYZ {
     int x;
     this(int x) { this.x = x; }
     ~this() {}
-    @disable this(this);
+    // @disable this(this);
 }
 
 SYZ moveOnReturn1(SYZ s) {

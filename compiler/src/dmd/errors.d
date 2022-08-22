@@ -431,6 +431,7 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
  */
 extern (C++) void verror(const ref Loc loc, const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null, const(char)* header = "Error: ")
 {
+    asm nothrow pure @nogc { int 3; }
     global.errors++;
     if (!global.gag)
     {
