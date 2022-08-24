@@ -533,6 +533,15 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
         }
     }
 
+    /* https://issues.dlang.org/show_bug.cgi?id=12652
+       Non-constant hash initializers should have a special-case diagnostic
+     */
+    void visitAssocArrayLiteral(AssocArrayLiteralExp e)
+    {
+        e.error("static initializations of associative arrays is not allowed.");
+        errorSupplemental(e.loc, "associative arrays must be initialized at runtime: https://dlang.org/spec/hash-map.html#runtime_initialization");
+    }
+
     void visitStructLiteral(StructLiteralExp sle)
     {
         //printf("StructLiteralExp.toDt() %s, ctfe = %d\n", sle.toChars(), sle.ownedByCtfe);
@@ -674,6 +683,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
         case EXP.typeid_:        return visitTypeid        (e.isTypeidExp());
         case EXP.assert_:        return visitNoreturn      (e);
         case EXP.slice:          return visitSlice         (e.isSliceExp());
+        case EXP.assocArrayLiteral:   return visitAssocArrayLiteral(e.isAssocArrayLiteralExp());
     }
 }
 
