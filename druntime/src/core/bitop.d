@@ -358,7 +358,7 @@ int bts(size_t* p, size_t bitnum) pure @system;
 }
 
 /**
- * Range over bit set. Each element is the bit number that is set.
+ * Bidirectional range over bit set. Each element is the bit number that is set.
  *
  * This is more efficient than testing each bit in a sparsely populated bit
  * set. Note that the first bit in the bit set would be bit 0.
@@ -370,9 +370,12 @@ struct BitRange
 
     private
     {
-        const(size_t)*bits; // points at next word of bits to check
-        size_t cur; // needed to allow searching bits using bsf
-        size_t idx; // index of current set bit
+        const(size_t)*startBits; // points at next word of bits to check from start
+        const(size_t)*endBits; // points at previous word of bits to check from end
+        size_t frontWord; // needed to allow searching bits using bsf
+        size_t backWord; // needed to allow searching bits using bsr
+        size_t startIdx; // index of current set bit
+        size_t endIdx; // index of current set bit
         size_t len; // number of bits in the bit set.
     }
     @nogc nothrow pure:
@@ -386,13 +389,18 @@ struct BitRange
      */
     this(const(size_t)* bitarr, size_t numBits) @system
     {
-        bits = bitarr;
+        startBits = bitarr;
+        endBits = bitarr + (numBits - 1) / bitsPerWord;
         len = numBits;
+        endIdx = numBits - 1;
         if (len)
         {
             // prime the first bit
-            cur = *bits++ ^ 1;
+            frontWord = *startBits++ ^ 1;
             popFront();
+            // prime the last bit
+            backWord = *endBits-- ^ (size_t(1) << endIdx);
+            popBack();
         }
     }
 
@@ -400,37 +408,75 @@ struct BitRange
     size_t front()
     {
         assert(!empty);
-        return idx;
+        return startIdx;
     }
 
     /// ditto
     bool empty() const
     {
-        return idx >= len;
+        return (startIdx >= len || endIdx >= len || startIdx > endIdx);
     }
 
     /// ditto
     void popFront() @system
     {
         // clear the current bit
-        auto curbit = idx % bitsPerWord;
-        cur ^= size_t(1) << curbit;
-        if (!cur)
+        auto curbit = startIdx % bitsPerWord;
+        frontWord ^= size_t(1) << curbit;
+        if (!frontWord)
         {
             // find next size_t with set bit
-            idx -= curbit;
-            while (!cur)
+            startIdx -= curbit;
+            while (!frontWord)
             {
-                if ((idx += bitsPerWord) >= len)
+                if ((startIdx += bitsPerWord) >= len)
                     // now empty
                     return;
-                cur = *bits++;
+                frontWord = *startBits++;
             }
-            idx += bsf(cur);
+            startIdx += bsf(frontWord);
         }
         else
         {
-            idx += bsf(cur) - curbit;
+            startIdx += bsf(frontWord) - curbit;
+        }
+    }
+
+    /// ditto
+    auto save()
+    {
+        return this; // Replying on the copy constructor
+    }
+
+    /// ditto
+    size_t back()
+    {
+        assert(!empty);
+        return endIdx;
+    }
+
+    /// ditto
+    void popBack()
+    {
+        // clear the current bit
+        auto curbit = endIdx % bitsPerWord;
+        backWord ^= size_t(1) << curbit;
+        if (!backWord)
+        {
+            // find next size_t with set bit
+            endIdx -= curbit;
+            while (!backWord)
+            {
+                if ((endIdx -= bitsPerWord) >= len) // WARN: Relying on size_t overflow!
+                    // now empty
+                    return;
+                backWord = *endBits--;
+            }
+            endIdx += bsr(backWord);
+        }
+        else
+        {
+            endIdx -= curbit - bsr(backWord);
         }
     }
 }
@@ -466,137 +512,11 @@ struct BitRange
 
     assert(testSum == sum);
     assert(nBits == 4);
-}
 
-@system unittest
-{
-    void testIt(size_t numBits, size_t[] bitsToTest...)
-    {
-        import core.stdc.stdlib : malloc, free;
-        import core.stdc.string : memset;
-        immutable numBytes = (numBits + size_t.sizeof * 8 - 1) / 8;
-        size_t* bitArr = cast(size_t *)malloc(numBytes);
-        scope(exit) free(bitArr);
-        memset(bitArr, 0, numBytes);
-        foreach (b; bitsToTest)
-            bts(bitArr, b);
-        auto br = BitRange(bitArr, numBits);
-        foreach (b; bitsToTest)
-        {
-            assert(!br.empty);
-            assert(b == br.front);
-            br.popFront();
-        }
-        assert(br.empty);
-    }
-
-    testIt(100, 0, 1, 31, 63, 85);
-    testIt(100, 6, 45, 89, 92, 99);
-}
-
-/**
- * Reverse range over bit set. Each element is the bit number that is set.
- *
- * This is more efficient than testing each bit in a sparsely populated bit
- * set. Note that the first bit in the bit set would be bit 0.
- */
-struct ReverseBitRange
-{
-    /// Number of bits in each size_t
-    enum bitsPerWord = size_t.sizeof * 8;
-
-    private
-    {
-        const(size_t)*bits; // points at next word of bits to check
-        size_t cur; // needed to allow searching bits using bsf
-        long idx; // index of current set bit
-        size_t len; // number of bits in the bit set.
-    }
-    @nogc nothrow pure:
-
-    /**
-     * Construct a BitRange.
-     *
-     * Params:
-     *   bitarr = The array of bits to iterate over
-     *   numBits = The total number of valid bits in the given bit array
-     */
-    this(const(size_t)* bitarr, size_t numBits) @system
-    {
-        bits = bitarr + (numBits - 1) / bitsPerWord;
-        len = numBits;
-        idx = numBits - 1;
-        if (len)
-        {
-            // prime the first bit
-            cur = *bits-- ^ (size_t(1) << idx);
-            popFront();
-        }
-    }
-
-    /// Range functions
-    size_t front()
-    {
-        assert(!empty);
-        return idx;
-    }
-
-    /// ditto
-    bool empty() const
-    {
-        return idx < 0;
-    }
-
-    /// ditto
-    void popFront() @system
-    {
-        // clear the current bit
-        auto curbit = idx % bitsPerWord;
-        cur ^= size_t(1) << curbit;
-        if (!cur)
-        {
-            // find next size_t with set bit
-            idx -= curbit;
-            while (!cur)
-            {
-                if ((idx -= bitsPerWord) < 0)
-                    // now empty
-                    return;
-                cur = *bits--;
-            }
-            idx += bsr(cur);
-        }
-        else
-        {
-            idx -= curbit - bsr(cur);
-        }
-    }
-}
-
-///
-@system unittest
-{
-    import core.stdc.stdlib : malloc, free;
-    import core.stdc.string : memset;
-
-    // initialize a bit array
-    enum nBytes = (100 + ReverseBitRange.bitsPerWord - 1) / 8;
-    size_t *bitArr = cast(size_t *)malloc(nBytes);
-    scope(exit) free(bitArr);
-    memset(bitArr, 0, nBytes);
-
-    // set some bits
-    bts(bitArr, 48);
-    bts(bitArr, 24);
-    bts(bitArr, 95);
-    bts(bitArr, 78);
-
-    enum sum = 48 + 24 + 95 + 78;
-
-    // iterate
-    size_t testSum;
-    size_t nBits;
-    foreach (b; ReverseBitRange(bitArr, 100))
+    // reverse iterate
+    testSum = 0;
+    nBits = 0;
+    foreach_reverse (b; BitRange(bitArr, 100))
     {
         testSum += b;
         ++nBits;
@@ -618,14 +538,22 @@ struct ReverseBitRange
         memset(bitArr, 0, numBytes);
         foreach (b; bitsToTest)
             bts(bitArr, b);
-        auto br = ReverseBitRange(bitArr, numBits);
-        foreach_reverse (b; bitsToTest)
+        auto br = BitRange(bitArr, numBits);
+        auto rbr = br.save();
+        foreach (b; bitsToTest)
         {
             assert(!br.empty);
             assert(b == br.front);
             br.popFront();
         }
         assert(br.empty);
+        foreach_reverse (b; bitsToTest)
+        {
+            assert(!rbr.empty);
+            assert(b == rbr.back);
+            rbr.popBack();
+        }
+        assert(rbr.empty);
     }
 
     testIt(100, 0, 1, 31, 63, 85);
