@@ -456,7 +456,7 @@ struct BitRange
     }
 
     /// ditto
-    void popBack()
+    void popBack() @system
     {
         // clear the current bit
         auto curbit = endIdx % bitsPerWord;
