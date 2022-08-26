@@ -6079,20 +6079,10 @@ Lagain:
             {
                 if (needsPostblit(tb) || needsDtor(tb))
                 {
-                    /* Need to do postblit/destructor.
-                     *   void *_d_arraysetassign(void *p, void *value, int dim, TypeInfo ti);
-                     */
                     if (op == EXP.construct)
-                    {
-                        assert(0, "Trying reference _d_arraysetctor, this should not happen!");
-                    }
-                    r = RTLSYM.ARRAYSETASSIGN;
-                    evalue = el_una(OPaddr, TYnptr, evalue);
-                    // This is a hack so we can call postblits on const/immutable objects.
-                    elem *eti = getTypeInfo(exp, tb.unSharedOf().mutableOf(), irs);
-                    elem *e = el_params(eti, edim, evalue, eptr, null);
-                    e = el_bin(OPcall,TYnptr,el_var(getRtlsym(r)),e);
-                    return e;
+                        assert(0, "Trying to reference _d_arraysetctor, this should not happen!");
+                    else
+                        assert(0, "Trying to reference _d_arraysetassign, this should not happen!");
                 }
             }
 

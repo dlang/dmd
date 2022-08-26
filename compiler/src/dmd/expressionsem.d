@@ -9990,15 +9990,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     }
 
     /***************************************
-     * Lower AssignExp to `_d_arrayassign_{l,r}` if needed.
+     * Lower AssignExp to `_d_array{setassign,assign_l,assign_r}` if needed.
      *
      * Params:
      *      ae = the AssignExp to be lowered
      *      fromCommaExp = indicates whether `ae` is part of a CommaExp or not,
      *                     so no unnecessary temporay variable is created.
      * Returns:
-     *      a CommaExp contiaining call a to `_d_arrayassign_{l,r}` if needed or
-     *      `ae` otherwise
+     *      a CommaExp contiaining call a to `_d_array{setassign,assign_l,assign_r}`
+     *      if needed or `ae` otherwise
      */
     private Expression lowerArrayAssign(AssignExp ae, bool fromCommaExp = false)
     {
@@ -10006,12 +10006,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (t1b.ty != Tsarray && t1b.ty != Tarray)
             return ae;
 
-        const isArrayAssign =
-            (ae.e1.isSliceExp || ae.e1.type.ty == Tsarray) &&
+        const isArrayAssign = (ae.e1.isSliceExp() || ae.e1.type.ty == Tsarray) &&
             (ae.e2.type.ty == Tsarray || ae.e2.type.ty == Tarray) &&
-            (ae.e1.type.nextOf && ae.e2.type.nextOf && ae.e1.type.nextOf.mutableOf.equals(ae.e2.type.nextOf.mutableOf));
+            (ae.e1.type.nextOf() && ae.e2.type.nextOf() && ae.e1.type.nextOf.mutableOf.equals(ae.e2.type.nextOf.mutableOf()));
 
-        if (!isArrayAssign)
+        const isArraySetAssign = (ae.e1.isSliceExp() || ae.e1.type.ty == Tsarray) &&
+            (ae.e1.type.nextOf() && ae.e2.type.implicitConvTo(ae.e1.type.nextOf()));
+
+        if (!isArrayAssign && !isArraySetAssign)
             return ae;
 
         const ts = t1b.nextOf().baseElemOf().isTypeStruct();
@@ -10019,9 +10021,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return ae;
 
         Expression res;
-        auto func = ae.e2.isLvalue || ae.e2.isSliceExp ? Id._d_arrayassign_l : Id._d_arrayassign_r;
+        Identifier func = isArraySetAssign ? Id._d_arraysetassign :
+            ae.e2.isLvalue() || ae.e2.isSliceExp() ? Id._d_arrayassign_l : Id._d_arrayassign_r;
 
-        // Lower to `.object._d_arrayassign_l{r}(e1, e2)``
+        // Lower to `.object._d_array{setassign,assign_l,assign_r}(e1, e2)``
         Expression id = new IdentifierExp(ae.loc, Id.empty);
         id = new DotIdExp(ae.loc, id, Id.object);
         id = new DotIdExp(ae.loc, id, func);
@@ -10031,10 +10034,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             .expressionSemantic(sc));
 
         Expression eValue2, value2 = ae.e2;
-        if (ae.e2.isLvalue)
-            value2 = new CastExp(ae.loc, ae.e2, ae.e2.type.nextOf.arrayOf)
+        if (isArrayAssign && value2.isLvalue())
+            value2 = new CastExp(ae.loc, ae.e2, ae.e2.type.nextOf.arrayOf())
                 .expressionSemantic(sc);
-        else if (!fromCommaExp)
+        else if (!fromCommaExp &&
+            (isArrayAssign || (isArraySetAssign && !value2.isLvalue())))
         {
             // Rvalues from CommaExps were introduced in `visit(AssignExp)`
             // and are temporary variables themselves. Rvalues from trivial
@@ -10043,7 +10047,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             // `__assigntmp` will be destroyed together with the array `ae.e1`.
             // When `ae.e2` is a variadic arg array, it is also `scope`, so
             // `__assigntmp` may also be scope.
-            auto vd = copyToTemp(STC.rvalue | STC.nodtor | STC.scope_, "__assigntmp", ae.e2);
+            StorageClass stc = STC.nodtor;
+            if (isArrayAssign)
+                stc |= STC.rvalue | STC.scope_;
+
+            auto vd = copyToTemp(stc, "__assigntmp", ae.e2);
             eValue2 = new DeclarationExp(vd.loc, vd).expressionSemantic(sc);
             value2 = new VarExp(vd.loc, vd).expressionSemantic(sc);
         }
@@ -10051,7 +10059,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         Expression ce = new CallExp(ae.loc, id, arguments);
         res = Expression.combine(eValue2, ce).expressionSemantic(sc);
-        res = Expression.combine(res, ae.e1).expressionSemantic(sc);
+        if (isArrayAssign)
+            res = Expression.combine(res, ae.e1).expressionSemantic(sc);
 
         if (global.params.verbose)
             message("lowered   %s =>\n          %s", ae.toChars(), res.toChars());

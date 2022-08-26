@@ -4617,6 +4617,7 @@ public import core.internal.array.construction : _d_arrayctor;
 public import core.internal.array.construction : _d_arraysetctor;
 public import core.internal.array.arrayassign : _d_arrayassign_l;
 public import core.internal.array.arrayassign : _d_arrayassign_r;
+public import core.internal.array.arrayassign : _d_arraysetassign;
 public import core.internal.array.capacity: _d_arraysetlengthTImpl;
 
 public import core.internal.dassert: _d_assert_fail;
