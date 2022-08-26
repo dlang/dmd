@@ -888,6 +888,9 @@ assert(a[2] == 4);
         is applied.
     )
 
+    $(P Producing a pointer through pointer arithmetic is not allowed in
+        $(DDLINK spec/memory-safe-d, Memory-Safe-D-Spec, `@safe`) code.)
+
     $(P If both operands are pointers, and the operator is $(D +),
         then it is illegal.
     )
@@ -907,6 +910,7 @@ ptrdiff_t d = &a[2] - a.ptr;
 assert(d == 2);
 ---
 )
+
 
 $(H2 $(LNAME2 cat_expressions, Cat Expressions))
 

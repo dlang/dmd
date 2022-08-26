@@ -191,6 +191,7 @@ assert(*p == 2);
 assert(i == 4);
 ---------
 )
+        $(P See also $(DDSUBLINK spec/expression, pointer_arithmetic, Pointer Arithmetic).)
 
 
 $(H2 $(LEGACY_LNAME2 User Defined Types, user-defined-types, User-Defined Types))
