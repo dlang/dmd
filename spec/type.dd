@@ -352,8 +352,8 @@ $(H3 $(LNAME2 vrp, Value Range Propagation))
         maximum possible range of values for each expression.
         If that range of values matches or is a subset of a narrower
         target type's value range, implicit
-        conversion is allowed. If one of the values is known at compile-time,
-        that can further reduce the range of values.)
+        conversion is allowed. If a subexpression is known at compile-time,
+        that can further narrow the range of values.)
 
     $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
