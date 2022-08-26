@@ -2145,6 +2145,8 @@ $(H3 $(LNAME2 uniform_construction_syntax, Uniform construction syntax for built
         auto b = wchar();   // same as: wchar.init
         ---
 
+    $(P See also: $(DDSUBLINK spec/type, usual-arithmetic-conversions, Usual Arithmetic Conversions).)
+
 
 $(H3 $(LNAME2 assert_expressions, Assert Expressions))
 
