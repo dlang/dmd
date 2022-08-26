@@ -350,23 +350,27 @@ $(H3 $(LNAME2 vrp, Value Range Propagation))
         expressions to implicitly convert to a narrower type after
         integer promotion. This works by analysing the minimum and
         maximum possible range of values for each expression.
-        If that range of values matches or is a subset of a narrower type's value range, implicit
+        If that range of values matches or is a subset of a narrower
+        target type's value range, implicit
         conversion is allowed. If one of the values is known at compile-time,
         that can further reduce the range of values.)
 
     $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     extern char c;
-    short s = c + 100; // promoted to int, but narrowed to `c.min + 100` ... `c.max + 100`
+    // min is c.min + 100 > short.min
+    // max is c.max + 100 < short.max
+    short s = c + 100; // OK
 
     extern int i;
-    ubyte j = i & 0x3F;
+    ubyte j = i & 0x3F; // OK, 0 ... 0x3F
     //ubyte k = i & 0x14A; // error, 0x14A > ubyte.max
     ushort k = i & 0x14A; // OK
 
     extern ubyte b;
-    //ubyte p = b + b; // error, ubyte.max + ubyte.max > ubyte.max
-    short p = b + b; // OK
+    k = i & b; // OK, 0 ... b.max
+    //b = b + b; // error, b.max + b.max > b.max
+    s = b + b; // OK, 0 ... b.max + b.max
     ---
     )
     $(P For more information, see $(LINK2 https://digitalmars.com/articles/b62.html, here).)
