@@ -70,6 +70,10 @@ int[] a;
 
 $(H3 $(LNAME2 pointers, Pointers to Data))
 
+---------
+int* p;
+---------
+
         $(P A $(DDSUBLINK spec/type, pointers, pointer)
         can manipulate a block of multiple contiguous values in memory.
         Accessing more than one value cannot be
