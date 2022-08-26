@@ -2524,6 +2524,271 @@ $(H3 $(LNAME2 this-reference, `this` Reference))
         )
 
 
+
+$(H2 $(LNAME2 refscopereturn, Ref Scope Return Cases))
+
+
+$(H3 $(LNAME2 rsr_definitions, Definitions))
+
+    $(DL
+    $(DT I) $(DD type that contains no indirections)
+    $(DT P) $(DD type that contains indirections)
+    $(DT X) $(DD type that may or may not contain indirections)
+    $(DT p) $(DD parameter of type P)
+    $(DT i) $(DD parameter of type I)
+    $(DT ref) $(DD `ref` or `out` parameter)
+
+    $(DT returned) $(DD returned via the `return` statement)
+    $(DT escaped) $(DD stored in a global or other memory not in the function$(RSQUO)s stack frame)
+    )
+
+$(H3 $(LNAME2 rsr_classification, Classification))
+
+$(P A parameter must be in one of the following states:)
+
+    $(TABLE2 Classification,
+    $(THEAD Term, Description)
+    $(TROW None,
+        `p` may be returned or escaped)
+
+    $(TROW ReturnScope,
+        `p` may be returned but not escaped)
+
+    $(TROW Scope,
+        `p` may be neither returned nor escaped)
+
+    $(TROW Ref,
+        `p` may be returned or escaped$(LF)
+        `ref` may not be returned nor escaped)
+
+    $(TROW ReturnRef,
+        `p` may be returned or escaped$(LF)
+        `ref` may be returned but not escaped)
+
+    $(TROW RefScope,
+        `p` may be neither returned nor escaped$(LF)
+        `ref` may not be returned nor escaped)
+
+    $(TROW ReturnRef-Scope,
+        `p` may be neither returned nor escaped$(LF)
+        `ref` may be returned but not escaped)
+
+    $(TROW Ref-ReturnScope,
+        `p` may be returned but not escaped$(LF)
+        `ref` may not be returned nor escaped)
+
+    $(TROW ReturnRef-ReturnScope,
+        `p` may be returned but not escaped$(LF)
+        `ref` may be returned but not escaped$(LF)
+        This isn't expressible with the current syntax
+        and so is not allowed.)
+    )
+
+$(H3 $(LNAME2 rsr_mapping, Mapping Syntax Onto Classification))
+
+    $(P The juxtaposition of `return` immediately preceding `scope` means ReturnScope.
+    Otherwise, `return` and `ref` in any position means ReturnRef.)
+
+    $(TABLE2 Mapping,
+    $(THEAD Example, Classification, Comments)
+    $(TROW `X foo(P p)`,
+            None,)
+
+    $(TROW `X foo(scope P p)`,
+        Scope,)
+
+    $(TROW `P foo(return scope P p)`,
+        ReturnScope,)
+
+    $(TROW `I foo(return scope P p)`,
+        Scope,
+        The `return` is dropped because the return type contains no pointers.)
+
+    $(TROW `P foo(return P p)`,
+        ReturnScope,
+        Makes no sense to have 'return' without 'scope'.)
+
+    $(TROW `I foo(return P p)`,
+        Scope,
+        The `return` is dropped because the return type contains no pointers.)
+
+
+    $(TROW `X foo(ref P p)`,
+        Ref,)
+
+    $(TROW `X foo(ref scope P p)`,
+        RefScope,)
+
+    $(TROW `P foo(ref return scope P p)`,
+        Ref-ReturnScope,)
+
+    $(TROW `P foo(return ref scope P p)`,
+        ReturnRef-Scope,)
+
+    $(TROW `I foo(ref return scope P p)`,
+        RefScope,)
+
+    $(TROW `P foo(ref return P p)`,
+        ReturnRef,)
+
+    $(TROW `I foo(ref return P p)`,
+        Ref,)
+
+
+    $(TROW `ref X foo(P p)`,
+        None,)
+
+    $(TROW `ref X foo(scope P p)`,
+        Scope,)
+
+    $(TROW `ref X foo(return scope P p)`,
+        ReturnScope,)
+
+    $(TROW `ref X foo(return P p)`,
+        ReturnScope,
+        Makes no sense to have 'return' without 'scope'.)
+
+
+    $(TROW `ref X foo(ref P p)`,
+        Ref,)
+
+    $(TROW `ref X foo(ref scope P p)`,
+        RefScope,)
+
+    $(TROW `ref X foo(ref return scope P p)`,
+        ReturnRef-Scope,)
+
+    $(TROW `ref X foo(ref return P p)`,
+        ReturnRef,)
+
+    $(TROW `X foo(I i)`,
+        None,)
+
+    $(TROW `X foo(scope I i)`,
+        None,)
+
+    $(TROW `X foo(return scope I i)`,
+        None,)
+
+    $(TROW `X foo(return I i)`,
+        None,)
+
+
+    $(TROW `X foo(ref I i)`,
+        Ref,)
+
+    $(TROW `X foo(ref scope I i)`,
+        Ref,)
+
+    $(TROW `X foo(ref return scope I i)`,
+        Ref,)
+
+    $(TROW `P foo(ref return I i)`,
+        ReturnRef,)
+
+    $(TROW `I foo(ref return I i)`,
+        Ref,)
+
+
+    $(TROW `ref X foo(I i)`,
+        None,)
+
+    $(TROW `ref X foo(scope I i)`,
+        None,)
+
+    $(TROW `ref X foo(return scope I i)`,
+        None,)
+
+    $(TROW `ref X foo(return I i)`,
+        None,)
+
+
+
+    $(TROW `ref X foo(ref I i)`,
+        Ref,)
+
+    $(TROW `ref X foo(ref scope I i)`,
+        Ref,)
+
+    $(TROW `ref X foo(ref return scope I i)`,
+        ReturnRef,)
+
+    $(TROW `ref X foo(ref return I i)`,
+        ReturnRef,)
+)
+
+$(H3 $(LNAME2 rsr_memberfunctions, Member Functions))
+
+    $(P Member functions are rewritten as if the `this` parameter is the first
+    parameter of a non-member function,
+    )
+
+---
+struct S {
+    X foo();
+}
+---
+
+    $(P is treated as:)
+
+---
+X foo(ref S);
+---
+
+    $(P and:)
+
+---
+class C {
+    X foo()
+}
+---
+
+    $(P is treated as:)
+
+---
+X foo(P)
+---
+
+$(H3 $(LNAME2 rsr_PandRef, P and ref))
+
+    $(P The rules account for switching between `ref` and P, such as:)
+
+---
+int* foo(return ref int i) { return &i; }
+ref int foo(int* p) { return *p; }
+---
+
+$(H3 $(LNAME2 rsr_covariance, Covariance))
+
+    $(P Covariance means a parameter with restrictions can be converted to a parameter with
+    fewer restrictions. This is deducible from the description of each state.
+    )
+
+    $(NOTE `ref` is not covariant with non-`ref`, so those entries are omitted from the
+    table for simplicity.
+    )
+
+    $(TABLE2 Covariance,
+    $(THEAD From\To,          None,     ReturnScope, Scope)
+    $(TROW None,              $(CHECK),            ,         )
+    $(TROW ReturnScope,       $(CHECK), $(CHECK)   ,         )
+    $(TROW Scope,             $(CHECK), $(CHECK)   , $(CHECK))
+    )
+
+    $(TABLE2 Ref Covariance,
+    $(THEAD From\To,          Ref     , ReturnRef, RefScope, ReturnRef-Scope, Ref-ReturnScope)
+    $(TROW Ref,               $(CHECK), $(CHECK) ,         ,                ,          )
+    $(TROW ReturnRef,                 , $(CHECK) ,         ,                ,          )
+    $(TROW RefScope,          $(CHECK), $(CHECK) , $(CHECK), $(CHECK)       ,  $(CHECK))
+    $(TROW ReturnRef-Scope,           , $(CHECK) ,         , $(CHECK)       ,          )
+    $(TROW Ref-ReturnScope,   $(CHECK), $(CHECK) ,         ,                ,  $(CHECK))
+    )
+
+    $(P For example, `scope` matches all non-ref parameters, and `ref scope` matches all
+    ref parameters.)
+
+
+
 $(H2 $(LEGACY_LNAME2 Local Variables, local-variables, Local Variables))
 
         $(P Local variables are declared within the scope of a function.
@@ -3969,3 +4234,4 @@ Macros:
         CHAPTER=19
         TITLE=Functions
         ASSIGNEXPRESSION=$(GLINK2 expression, AssignExpression)
+        CHECK=&#10004;
