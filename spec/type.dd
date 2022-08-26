@@ -134,13 +134,63 @@ $(H2 $(LEGACY_LNAME2 Basic Data Types, basic-data-types, Basic Data Types))
 $(H2 $(LEGACY_LNAME2 Derived Data Types, derived-data-types, Derived Data Types))
 
     $(UL
-    $(LI $(DDSUBLINK spec/arrays, pointers, Pointer))
-    $(LI $(DDSUBLINK spec/arrays, static-arrays, Static Array))
-    $(LI $(DDSUBLINK spec/arrays, dynamic-arrays, Dynamic Array))
-    $(LI $(DDLINK spec/hash-map, Associative Array, Associative Array))
+    $(LI Pointers)
+    $(LI $(DDSUBLINK spec/arrays, static-arrays, Static Arrays))
+    $(LI $(DDSUBLINK spec/arrays, dynamic-arrays, Dynamic Arrays))
+    $(LI $(DDLINK spec/hash-map, Associative Array, Associative Arrays))
     $(LI $(DDLINK spec/function, Functions, Functions))
     $(LI $(RELATIVE_LINK2 delegates, Delegates))
     )
+
+$(H3 $(LNAME2 pointers, Pointers))
+
+        $(P A pointer to type $(D T) has a value which is a reference (address) to another
+        object of type $(D T). It is commonly called a $(I pointer to T) and its type is
+        `T*`. To access the object value, use the `*` dereference operator:
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---------
+int* p;
+
+assert(p == null);
+p = new int(5);
+assert(p != null);
+
+assert(*p == 5);
+(*p)++;
+assert(*p == 6);
+---------
+)
+
+        $(P If a pointer contains a $(I null) value, it is not pointing to a valid object.)
+
+        $(P When a pointer to $(I T) is dereferenced, it must either contain a $(I null) value,
+        or point to a valid object of type $(I T).)
+
+        $(IMPLEMENTATION_DEFINED
+        $(OL
+        $(LI The behavior when a $(I null) pointer is dereferenced. Typically the program
+        will be aborted.)
+        ))
+
+        $(UNDEFINED_BEHAVIOR dereferencing a pointer that is not $(I null) and does not point
+        to a valid object of type $(I T).)
+
+        $(P To set a pointer to point at an existing object, use the
+        `&` *address of* operator:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---------
+int i = 2;
+int* p = &i;
+
+assert(p == &i);
+assert(*p == 2);
+*p = 4;
+assert(i == 4);
+---------
+)
 
 
 $(H2 $(LEGACY_LNAME2 User Defined Types, user-defined-types, User-Defined Types))
