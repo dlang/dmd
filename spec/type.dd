@@ -373,7 +373,17 @@ $(H3 $(LNAME2 vrp, Value Range Propagation))
     s = b + b; // OK, 0 ... b.max + b.max
     ---
     )
-    $(P For more information, see $(LINK2 https://digitalmars.com/articles/b62.html, here).)
+    $(P Note the implementation does not track the range of possible values for variables,
+    only expressions:)
+    ---
+    extern int i;
+    short s = i & 0xff; // OK
+    // s is now assumed to be s.min ... s.max, not 0 ... 0xff
+    //byte b = s; // error
+    byte b = s & 0xff; // OK
+    ---
+    * For more information, see $(LINK2 https://digitalmars.com/articles/b62.html, the dmc article).
+    * See also: $(LINK https://en.wikipedia.org/wiki/Value_range_analysis).
 
 
 $(H2 $(LNAME2 bool, $(D bool)))
