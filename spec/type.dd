@@ -350,7 +350,7 @@ $(H3 $(LNAME2 vrp, Value Range Propagation))
         expressions to implicitly convert to a narrower type after
         integer promotion. This works by analysing the minimum and
         maximum possible range of values for each expression.
-        If that range of values would fit inside a narrower type, implicit
+        If that range of values matches or is a subset of a narrower type's value range, implicit
         conversion is allowed. If one of the values is known at compile-time,
         that can further reduce the range of values.)
 
