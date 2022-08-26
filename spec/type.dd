@@ -208,7 +208,7 @@ $(H2 $(LNAME2 type-conversions, Type Conversions))
 
 $(H3 $(LEGACY_LNAME2 Pointer Conversions, pointer-conversions, Pointer Conversions))
 
-    $(P $(DDSUBLINK spec/arrays, pointers, Pointers) implicitly convert to `void*`.)
+    $(P $(RELATIVE_LINK2 pointers, Pointers) implicitly convert to `void*`.)
 
     $(P Casting between pointers and non-pointers is allowed. Some pointer casts
     are disallowed in $(DDLINK spec/memory-safe-d, Memory-Safe-D-Spec, `@safe` code).)

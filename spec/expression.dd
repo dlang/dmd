@@ -995,7 +995,7 @@ $(GNAME UnaryExpression):
 
 $(TABLE
     $(THEAD Operator, Description)
-    $(TROW `&`, Take memory address of an $(RELATIVE_LINK2 .define-lvalue, lvalue) - see $(DDSUBLINK spec/arrays, pointers, pointers))
+    $(TROW `&`, Take memory address of an $(RELATIVE_LINK2 .define-lvalue, lvalue) - see $(DDSUBLINK spec/type, pointers, pointers))
     $(TROW `++`, Increment before use - see $(RELATIVE_LINK2 order-of-evaluation, order of evaluation))
     $(TROW `--`, Decrement before use)
     $(TROW `*`, Dereference/indirection - typically for pointers)
