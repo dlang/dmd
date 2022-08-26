@@ -697,7 +697,7 @@ $(H3 $(LNAME2 integer_comparisons, Integer Comparisons))
     $(P It is an error to have one operand be signed and the other
         unsigned for a $(D <), $(D <)$(D =), $(D >) or
         $(D >)$(D =) expression.
-        Use casts to make both operands signed or both operands unsigned.
+        Use $(RELATIVE_LINK2 cast_integers, casts) to make both operands signed or both operands unsigned.
     )
 
 $(H3 $(LEGACY_LNAME2 floating_point_comparisons, floating-point-comparisons, Floating Point Comparisons))
@@ -1171,6 +1171,43 @@ $(H4 $(LNAME2 cast_static_array, Static Arrays))
                3030303
              */
             ---
+        )
+
+$(H4 $(LNAME2 cast_integers, Integers))
+
+    $(P Casting an integer to a smaller integral will truncate the
+        value towards the least significant bits.
+        If the target type is signed and the most significant bit is set
+        after truncation, that bit will be lost from the value and
+        the sign bit will be set.)
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+        ---
+        uint a = 260;
+        auto b = cast(ubyte) a;
+        assert(b == 4); // truncated like 260 & 0xff
+
+        int c = 128;
+        assert(cast(byte)c == -128); // reinterpreted
+        ---
+        )
+
+    $(P Converting between signed and unsigned types will reinterpret the
+        value if the destination type cannot represent the source
+        value.)
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+        ---
+        short c = -1;
+        ushort d = c;
+        assert(d == ushort.max);
+        assert(uint(c) == uint.max);
+
+        ubyte e = 255;
+        byte f = e;
+        assert(f == -1); // reinterpreted
+        assert(short(e) == 255); // no change
+        ---
         )
 
 $(H4 $(LNAME2 cast_floating, Floating Point))
