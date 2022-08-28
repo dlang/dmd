@@ -3216,11 +3216,12 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
         }
     }
 
-    if (tiargs && arrayObjectIsError(tiargs) ||
-        fargs && arrayObjectIsError(cast(Objects*)fargs))
-    {
+    if (tiargs && arrayObjectIsError(tiargs))
         return null;
-    }
+    if (fargs !is null)
+        foreach (arg; *fargs)
+            if (isError(arg))
+                return null;
 
     MatchAccumulator m;
     functionResolve(m, s, loc, sc, tiargs, tthis, fargs, null);
