@@ -119,9 +119,21 @@ jobs:
           - { os: windows-2019, target: g++-6 }
           - { os: windows-2019, target: g++-5 }
 
-          # TODO: Implement support for clang and MSVC on Windows
+          # TODO: Implement support for clang and MSVC2017 on Windows
           # Currently those are still being run by the auto-tester
-          - os: windows-2019
+          # We can hardly test below 2017 in the CI because there's
+          # no way to install it via command line
+          # (TODO: Test with 2015 as the blog post is slightly ambiguous)
+          # https://devblogs.microsoft.com/cppblog/introducing-the-visual-studio-build-tools/
+          - { os: windows-2019, target: msvc-2017 }
+          - { os: windows-2019, target: msvc-2015 }
+          - { os: windows-2019, target: msvc-2013 }
+          - { os: windows-2019, target: clang-13.0.0 }
+          - { os: windows-2019, target: clang-12.0.0 }
+          - { os: windows-2019, target: clang-11.0.0 }
+          - { os: windows-2019, target: clang-10.0.0 }
+          - { os: windows-2019, target: clang-9.0.0 }
+          - { os: windows-2019, target: clang-8.0.0 }
 
         # This sets the configuration for each jobs
         # There's a bit of duplication involved (e.g. breaking down g++-9.3 into 2 strings),
@@ -190,13 +202,6 @@ jobs:
       uses: actions/checkout@v2
       with:
         path: dmd
-        persist-credentials: false
-    - name: Checkout druntime
-      uses: actions/checkout@v2
-      with:
-        path: druntime
-        repository: dlang/druntime
-        ref: ${{ steps.base_branch.outputs.branch }}
         persist-credentials: false
     - name: Checkout Phobos
       uses: actions/checkout@v2
@@ -304,48 +309,115 @@ jobs:
             exit 1
         fi
 
+    # Restore or install dmc (and DM make)
+    - name: '[Windows] Restore dmc from cache'
+      id: cache-dmc
+      if: runner.os == 'Windows'
+      uses: actions/cache@v1
+      with:
+        path: ${{ github.workspace }}\tools\
+        key: ${{ matrix.os }}-dmc857
+
+    - name: '[Windows] Install dmc'
+      if: runner.os == 'Windows' && steps.cache-dmc.outputs.cache-hit != 'true'
+      shell: powershell
+      run: |
+        $url = "http://ftp.digitalmars.com/Digital_Mars_C++/Patch/dm857c.zip"
+        $sha256hash = "F51CDFEB45EAF4FFBF7ABF0FE9B3D548B202B4528401005C2C3192B00BC32367"
+        Write-Host ('Downloading {0} ...' -f $url)
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        $ProgressPreference = 'SilentlyContinue'
+        New-Item -ItemType directory -Path ${{ github.workspace }}\tools\
+        Invoke-WebRequest -Uri $url -OutFile '${{ github.workspace }}\tools\dmc.zip'
+        if ((Get-FileHash '${{ github.workspace }}\tools\dmc.zip' -Algorithm "SHA256").Hash -ne $sha256hash) {
+          exit 1
+        }
+        Expand-Archive '${{ github.workspace }}\tools\dmc.zip' -DestinationPath ${{ github.workspace }}\tools\
+
+    - name: '[Windows] Add VC toolset to PATH'
+      if: runner.os == 'Windows'
+      uses: ilammy/msvc-dev-cmd@v1
+
+    - name: '[Windows] Set environment variables'
+      if: runner.os == 'Windows'
+      shell: bash
+      run: |
+        echo "VISUAL_STUDIO_LIB_NOT_DM=$(which lib.exe)" >> $GITHUB_ENV
+        echo "HOST_DMD=${{ env.DC }}" >> $GITHUB_ENV
+        echo "${{ github.workspace }}/tools/dm/bin/" >> $GITHUB_PATH
+
     ########################################
     #    Building DMD, druntime, Phobos    #
     ########################################
     - name: '[Posix] Build compiler & standard library'
+      if: runner.os != 'Windows'
       # By default, VMs have 2 processors available, hence the `-j2`:
       # https://help.github.com/en/actions/reference/virtual-environments-for-github-hosted-runners#supported-runners-and-hardware-resources
       run: |
         # All hosts are 64 bits but let's be explicit
-        ./dmd/src/build.d -j2 MODEL=64
-        make -C druntime -f posix.mak -j2 MODEL=64
+        ./dmd/compiler/src/build.d -j2 MODEL=64
+        make -C dmd/druntime -f posix.mak -j2 MODEL=64
         make -C phobos   -f posix.mak -j2 MODEL=64
         # Both version can live side by side (they end up in a different directory)
         # However, since clang does not provide a multilib package, only test 32 bits with g++
         if [ ${{ matrix.compiler }} == "g++" ]; then
-          ./dmd/src/build.d install -j2 MODEL=32
-          make -C druntime -f posix.mak install -j2 MODEL=32
+          ./dmd/compiler/src/build.d install -j2 MODEL=32
+          make -C dmd/druntime -f posix.mak install -j2 MODEL=32
           make -C phobos   -f posix.mak install -j2 MODEL=32
         fi
+
+    - name: '[Windows] Build compiler & standard library'
+      if: runner.os == 'Windows'
+      shell: bash
+      run: |
+        dmd -run dmd/compiler/src/build.d -j2 MODEL=64
+        if [ $? -ne 0 ]; then return 1; fi
+        # Note: Only CC for druntime and AR for Phobos are required ATM,
+        # but providing all three to avoid surprise for future contributors
+        # Those should really be in the path, though.
+        cd dmd/druntime
+        make -f win64.mak
+        if [ $? -ne 0 ]; then return 1; fi
+        cd ../../phobos/
+        make -f win64.mak CC=cl.exe LD=link "AR=$VISUAL_STUDIO_LIB_NOT_DM"
+        if [ $? -ne 0 ]; then return 1; fi
+        cd ../
 
     ########################################
     #        Running the test suite        #
     ########################################
-    - name: Run C++ test suite
+    - name: '[Posix] Run C++ test suite'
+      if: runner.os != 'Windows'
       env:
         # Reset LD_LIBRARY_PATH when running the tests, so they use the newly built libphobos2.so.
         LD_LIBRARY_PATH: ''
       run: |
-        ./dmd/test/run.d --environment runnable_cxx dshell/dll_cxx.d MODEL=64
+        ./dmd/compiler/test/run.d --environment runnable_cxx dshell/dll_cxx.d MODEL=64
         if [ ${{ matrix.compiler }} == "g++" ]; then
-          ./dmd/test/run.d clean
-          ./dmd/test/run.d --environment runnable_cxx dshell/dll_cxx.d MODEL=32
+          ./dmd/compiler/test/run.d clean
+          ./dmd/compiler/test/run.d --environment runnable_cxx dshell/dll_cxx.d MODEL=32
         fi
+
+    - name: '[Windows] Run C++ test suite'
+      if: runner.os == 'Windows'
+      shell: bash
+      run: |
+        cd dmd/druntime
+        make -f win64.mak test_stdcpp CC=cl.exe LD=link "AR=$VISUAL_STUDIO_LIB_NOT_DM"
+        if [ $? -ne 0 ]; then return 1; fi
 
     ########################################
     #      Run C++ frontend unittests      #
     ########################################
     - name: Run C++ frontend unittests
+      if: matrix.compiler == 'g++'
       run: |
-        ./dmd/src/build.d cxx-unittest MODEL=64
-        if [ ${{ matrix.compiler }} == "g++" ]; then
-          ./dmd/src/build.d cxx-unittest MODEL=32
-        fi
+        ./dmd/compiler/src/build.d cxx-unittest MODEL=64
+
+    - name: Run C++ frontend unittests (32-bit)
+      if: matrix.compiler == 'g++'
+      run: |
+        ./dmd/compiler/src/build.d cxx-unittest MODEL=32
 
     ########################################
     #      Store generated artifacts       #

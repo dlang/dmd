@@ -1,0 +1,2 @@
+=== compilable/testcdefines.i.cg
+extern (C) enum int _ATFILE_SOURCE = 1;

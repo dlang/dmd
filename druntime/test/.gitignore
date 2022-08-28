@@ -1,0 +1,4 @@
+**/generated/
+**/obj/
+**/*.log
+**/*.output

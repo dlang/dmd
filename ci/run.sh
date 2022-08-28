@@ -59,9 +59,9 @@ clone() {
 # build dmd (incl. building and running the unittests), druntime, phobos
 build() {
     source ~/dlang/*/activate # activate host compiler, incl. setting `DMD`
-    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" BUILD=debug ENABLE_WARNINGS=1 unittest
-    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=1 ENABLE_WARNINGS=1 all
-    make -j$N -C ../druntime -f posix.mak MODEL=$MODEL
+    make -j$N -C compiler/src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" BUILD=debug ENABLE_WARNINGS=1 unittest
+    make -j$N -C compiler/src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=1 ENABLE_WARNINGS=1 all
+    make -j$N -C druntime -f posix.mak MODEL=$MODEL
     make -j$N -C ../phobos -f posix.mak MODEL=$MODEL
     deactivate # deactivate host compiler
 }
@@ -75,8 +75,8 @@ rebuild() {
     mkdir -p _${build_path}
     cp $build_path/dmd _${build_path}/host_dmd
     cp $build_path/dmd.conf _${build_path}
-    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=../_${build_path}/host_dmd clean
-    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=../_${build_path}/host_dmd DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=${ENABLE_RELEASE:-1} ENABLE_WARNINGS=1 all
+    make -j$N -C compiler/src -f posix.mak MODEL=$MODEL HOST_DMD=../../_${build_path}/host_dmd clean
+    make -j$N -C compiler/src -f posix.mak MODEL=$MODEL HOST_DMD=../../_${build_path}/host_dmd DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=${ENABLE_RELEASE:-1} ENABLE_WARNINGS=1 all
 
     # compare binaries to test reproducible build
     if [ $compare -eq 1 ]; then
@@ -102,15 +102,15 @@ test() {
 test_dmd() {
     # test fewer compiler argument permutations for PRs to reduce CI load
     if [ "$FULL_BUILD" == "true" ] && [ "$OS_NAME" == "linux"  ]; then
-        make -j1 -C test MODEL=$MODEL N=$N # all ARGS by default
+        make -j1 -C compiler/test MODEL=$MODEL N=$N # all ARGS by default
     else
-        make -j1 -C test MODEL=$MODEL N=$N ARGS="-O -inline -release"
+        make -j1 -C compiler/test MODEL=$MODEL N=$N ARGS="-O -inline -release"
     fi
 }
 
 # build and run druntime unit tests
 test_druntime() {
-    make -j$N -C ../druntime -f posix.mak MODEL=$MODEL unittest
+    make -j$N -C druntime -f posix.mak MODEL=$MODEL unittest
 }
 
 # build and run Phobos unit tests
@@ -145,10 +145,10 @@ test_dub_package() {
     deactivate
 }
 
-# clone druntime/phobos repos if not already available
+# clone phobos repos if not already available
 setup_repos() {
     local branch="$1"
-    for proj in druntime phobos; do
+    for proj in phobos; do
         if [ ! -d ../$proj ]; then
             if [ $branch != master ] && [ $branch != stable ] &&
                    ! git ls-remote --exit-code --heads https://github.com/dlang/$proj.git $branch > /dev/null; then

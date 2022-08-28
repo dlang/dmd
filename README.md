@@ -25,15 +25,17 @@ report a problem or browse the list of open bugs.
 This repository is structured into the following directories.
 Refer to their respective `README.md` for more in-depth information.
 
-| Directory              | Description                                      |
-|------------------------|--------------------------------------------------|
-| [src](src)             | source code, build system and build instructions |
-| [test](test)           | tests and testing infrastructure                 |
-| [changelog](changelog) | changelog entries for the upcoming release       |
-| [ci](ci)               | CI related scripts / utilities                   |
-| [docs](docs)           | man pages and internal documentation             |
-| [ini](ini)             | predefined `dmd.conf` files                      |
-| [samples](samples)     | Various code examples                            |
+| Directory                            | Description                                       |
+|--------------------------------------|---------------------------------------------------|
+| [changelog](changelog)               | changelog entries for the upcoming release        |
+| [ci](ci)                             | CI related scripts / utilities                    |
+| [compiler](compiler)                 | root of all compiler (DMD/frontend) related code  |
+| [compiler/src](compiler/src)         | source code, build system and build instructions  |
+| [compiler/test](compiler/test)       | tests and testing infrastructure                  |
+| [compiler/docs](compiler/docs)       | man pages and internal documentation              |
+| [compiler/ini](compiler/ini)         | predefined `dmd.conf` files                       |
+| [compiler/samples](compiler/samples) | Various code examples                             |
+| [druntime](druntime)                 | root of all runtime related code                  |
 
 For more general information regarding compiling, installing, and
 hacking on DMD, check the [contribution guide](CONTRIBUTING.md) and
@@ -41,5 +43,5 @@ visit the [D Wiki](https://wiki.dlang.org/DMD).
 
 ### Nightlies
 
-Nightly builds based of the current DMD / DRuntime / Phobos `master` branch
+Nightly builds based of the current DMD / Phobos `master` branch
 can be found [here](https://github.com/dlang/dmd/releases/tag/nightly).

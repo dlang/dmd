@@ -1,0 +1,4 @@
+object.Exception@src/line_trace.d(17): exception
+----------------
+src/line_trace.d:17 void line_trace.f1() [ADDR]
+src/line_trace.d:5 _Dmain [ADDR]
