@@ -2582,9 +2582,7 @@ class Lexer
         {
             /* C11 6.4.4.2 doesn't actually care if it is not representable if it is not hex
              */
-            const char* suffix = [TOK.float32Literal: "f".ptr,
-                                TOK.float64Literal: "".ptr,
-                                TOK.float80Literal: "L".ptr][result];
+            const char* suffix = result == TOK.float32Literal ? "f" : result == TOK.float80Literal ? "L" : "";
             const char* type = [TOK.float32Literal: "`float`".ptr,
                                 TOK.float64Literal: "`double`".ptr,
                                 TOK.float80Literal: "`real` for the current target".ptr][result];
