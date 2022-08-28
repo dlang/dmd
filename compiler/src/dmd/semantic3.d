@@ -985,6 +985,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 // BUG: verify that all in and ref parameters are read
                 freq = freq.statementSemantic(sc2);
 
+                // @@@DEPRECATED_2.111@@@ - pass `isnothrow` instead of `false` to print a more detailed error msg`
                 const blockExit = freq.blockExit(funcdecl, false);
                 if (blockExit & BE.throw_)
                 {
@@ -1031,6 +1032,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                 fens = fens.statementSemantic(sc2);
 
+                // @@@DEPRECATED_2.111@@@ - pass `isnothrow` instead of `false` to print a more detailed error msg`
                 const blockExit = fens.blockExit(funcdecl, false);
                 if (blockExit & BE.throw_)
                 {
