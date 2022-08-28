@@ -1327,7 +1327,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
         Loc instLoc = ti.loc;
         Objects* tiargs = ti.tiargs;
-        auto dedargs = new Objects();
+        auto dedargs = new Objects(parameters.dim);
         Objects* dedtypes = &ti.tdtypes; // for T:T*, the dedargs is the T*, dedtypes is the T
 
         version (none)
@@ -1346,7 +1346,6 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
         assert(_scope);
 
-        dedargs.setDim(parameters.dim);
         dedargs.zero();
 
         dedtypes.setDim(parameters.dim);

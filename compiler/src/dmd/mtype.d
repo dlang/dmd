@@ -6355,10 +6355,9 @@ extern (C++) final class TypeTuple : Type
     extern (D) this(Expressions* exps)
     {
         super(Ttuple);
-        auto arguments = new Parameters();
+        auto arguments = new Parameters(exps ? exps.dim : 0);
         if (exps)
         {
-            arguments.setDim(exps.dim);
             for (size_t i = 0; i < exps.dim; i++)
             {
                 Expression e = (*exps)[i];

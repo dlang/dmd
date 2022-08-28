@@ -967,8 +967,7 @@ struct ASTBase
             Objects* a = null;
             if (objs)
             {
-                a = new Objects();
-                a.setDim(objs.dim);
+                a = new Objects(objs.dim);
                 for (size_t i = 0; i < objs.dim; i++)
                     (*a)[i] = objectSyntaxCopy((*objs)[i]);
             }
@@ -1750,8 +1749,7 @@ struct ASTBase
             Parameters* params = null;
             if (parameters)
             {
-                params = new Parameters();
-                params.setDim(parameters.dim);
+                params = new Parameters(parameters.dim);
                 for (size_t i = 0; i < params.dim; i++)
                     (*params)[i] = (*parameters)[i].syntaxCopy();
             }
@@ -3618,10 +3616,9 @@ struct ASTBase
         extern (D) this(Expressions* exps)
         {
             super(Ttuple);
-            auto arguments = new Parameters();
+            auto arguments = new Parameters(exps ? exps.dim : 0);
             if (exps)
             {
-                arguments.setDim(exps.dim);
                 for (size_t i = 0; i < exps.dim; i++)
                 {
                     Expression e = (*exps)[i];
@@ -5389,20 +5386,16 @@ struct ASTBase
         extern (D) this(const ref Loc loc, Expression e, Expression earg1)
         {
             super(loc, EXP.call, __traits(classInstanceSize, CallExp), e);
-            auto arguments = new Expressions();
+            auto arguments = new Expressions(earg1 ? 1 : 0);
             if (earg1)
-            {
-                arguments.setDim(1);
                 (*arguments)[0] = earg1;
-            }
             this.arguments = arguments;
         }
 
         extern (D) this(const ref Loc loc, Expression e, Expression earg1, Expression earg2)
         {
             super(loc, EXP.call, __traits(classInstanceSize, CallExp), e);
-            auto arguments = new Expressions();
-            arguments.setDim(2);
+            auto arguments = new Expressions(2);
             (*arguments)[0] = earg1;
             (*arguments)[1] = earg2;
             this.arguments = arguments;
