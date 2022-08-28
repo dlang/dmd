@@ -62,6 +62,7 @@ import dmd.opover;
 import dmd.optimize;
 import dmd.parse;
 import dmd.printast;
+import dmd.root.array;
 import dmd.root.ctfloat;
 import dmd.root.file;
 import dmd.root.filename;
@@ -336,22 +337,18 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, IntervalExp ie, Expression* p
 /******************************
  * Perform semantic() on an array of Expressions.
  */
-bool arrayExpressionSemantic(Expressions* exps, Scope* sc, bool preserveErrors = false)
+extern(D) bool arrayExpressionSemantic(
+    Expression[] exps, Scope* sc, bool preserveErrors = false)
 {
     bool err = false;
-    if (exps)
+    foreach (ref e; exps)
     {
-        foreach (ref e; *exps)
-        {
-            if (e)
-            {
-                auto e2 = e.expressionSemantic(sc);
-                if (e2.op == EXP.error)
-                    err = true;
-                if (preserveErrors || e2.op != EXP.error)
-                    e = e2;
-            }
-        }
+        if (e is null) continue;
+        auto e2 = e.expressionSemantic(sc);
+        if (e2.op == EXP.error)
+            err = true;
+        if (preserveErrors || e2.op != EXP.error)
+            e = e2;
     }
     return err;
 }
@@ -550,7 +547,7 @@ private Expression resolveUFCS(Scope* sc, CallExp ce)
                     if (!global.endGagging(errors))
                         return e;
 
-                    if (arrayExpressionSemantic(originalArguments, sc))
+                    if (arrayExpressionSemantic(originalArguments.peekSlice(), sc))
                         return ErrorExp.get();
 
                     /* fall down to UFCS */
@@ -3111,7 +3108,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (e.basis)
             e.basis = e.basis.expressionSemantic(sc);
-        if (arrayExpressionSemantic(e.elements, sc) || (e.basis && e.basis.op == EXP.error))
+        if (arrayExpressionSemantic(e.elements.peekSlice(), sc) || (e.basis && e.basis.op == EXP.error))
             return setError();
 
         expandTuples(e.elements);
@@ -3154,8 +3151,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         // Run semantic() on each element
-        bool err_keys = arrayExpressionSemantic(e.keys, sc);
-        bool err_vals = arrayExpressionSemantic(e.values, sc);
+        bool err_keys = arrayExpressionSemantic(e.keys.peekSlice(), sc);
+        bool err_vals = arrayExpressionSemantic(e.values.peekSlice(), sc);
         if (err_keys || err_vals)
             return setError();
 
@@ -3201,7 +3198,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
 
         // run semantic() on each element
-        if (arrayExpressionSemantic(e.elements, sc))
+        if (arrayExpressionSemantic(e.elements.peekSlice(), sc))
             return setError();
 
         expandTuples(e.elements);
@@ -3524,7 +3521,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         exp.newtype = exp.type; // in case type gets cast to something else
         Type tb = exp.type.toBasetype();
         //printf("tb: %s, deco = %s\n", tb.toChars(), tb.deco);
-        if (arrayExpressionSemantic(exp.arguments, sc))
+        if (arrayExpressionSemantic(exp.arguments.peekSlice(), sc))
         {
             return setError();
         }
@@ -4259,7 +4256,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         if (FuncExp fe = exp.e1.isFuncExp())
         {
-            if (arrayExpressionSemantic(exp.arguments, sc) || preFunctionParameters(sc, exp.arguments))
+            if (arrayExpressionSemantic(exp.arguments.peekSlice(), sc) ||
+                preFunctionParameters(sc, exp.arguments))
                 return setError();
 
             // Run e1 semantic even if arguments have any errors
@@ -4497,7 +4495,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = exp.e1;
             return;
         }
-        if (arrayExpressionSemantic(exp.arguments, sc) || preFunctionParameters(sc, exp.arguments))
+        if (arrayExpressionSemantic(exp.arguments.peekSlice(), sc) ||
+            preFunctionParameters(sc, exp.arguments))
             return setError();
 
         // Check for call operator overload

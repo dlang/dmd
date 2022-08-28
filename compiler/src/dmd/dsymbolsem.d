@@ -58,6 +58,7 @@ import dmd.nspace;
 import dmd.objc;
 import dmd.opover;
 import dmd.parse;
+import dmd.root.array;
 import dmd.root.filename;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
@@ -1956,7 +1957,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         //printf("UserAttributeDeclaration::semantic() %p\n", this);
         if (uad.decl && !uad._scope)
             uad.Dsymbol.setScope(sc); // for function local symbols
-        arrayExpressionSemantic(uad.atts, sc, true);
+        arrayExpressionSemantic(uad.atts.peekSlice(), sc, true);
         return attribSemantic(uad);
     }
 
