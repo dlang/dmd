@@ -243,7 +243,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
 
             // Make a StructLiteralExp out of elements[]
             auto sle = new StructLiteralExp(i.loc, sd, elements, t);
-            if (!sd.fill(i.loc, elements, false))
+            if (!sd.fill(i.loc, *elements, false))
                 return err();
             sle.type = t;
             auto ie = new ExpInitializer(i.loc, sle);
@@ -746,7 +746,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
             // Make a StructLiteralExp out of elements[]
             Type tx = ts;
             auto sle = new StructLiteralExp(ci.loc, sd, elements, tx);
-            if (!sd.fill(ci.loc, elements, false))
+            if (!sd.fill(ci.loc, *elements, false))
                 return err();
             sle.type = tx;
             auto ie = new ExpInitializer(ci.loc, sle);
