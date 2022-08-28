@@ -7961,7 +7961,6 @@ public:
     void visit(ForeachRangeStatement* s) override;
     void visit(IfStatement* s) override;
     void visit(ConditionalStatement* s) override;
-    virtual void visitArgs(Array<Expression* >* expressions, Expression* basis = nullptr);
     void visit(PragmaStatement* s) override;
     void visit(StaticAssertStatement* s) override;
     void visit(SwitchStatement* s) override;
@@ -7981,7 +7980,6 @@ public:
     virtual void visit(Catch* c);
     virtual void visitType(Type* t);
     virtual void visitFunctionType(TypeFunction* t, TemplateDeclaration* td);
-    virtual void visitParameters(Array<Parameter* >* parameters);
     void visit(TypeVector* t) override;
     void visit(TypeSArray* t) override;
     void visit(TypeDArray* t) override;
