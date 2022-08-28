@@ -2603,7 +2603,6 @@ final class CParser(AST) : Parser!AST
     {
         //printf("cparseDeclarator(%d, %p)\n", declarator, t);
         AST.Types constTypes; // all the Types that will need `const` applied to them
-        constTypes.setDim(0);
 
         AST.Type parseDecl(AST.Type t)
         {

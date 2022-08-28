@@ -97,8 +97,7 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb, bool isC
         Type tn = tb.nextOf().toBasetype();
 
         //printf("\tdim = %d\n", ai.dim);
-        Dts dts;
-        dts.setDim(ai.dim);
+        Dts dts = Dts(ai.dim);
         dts.zero();
 
         uint size = cast(uint)tn.size();
