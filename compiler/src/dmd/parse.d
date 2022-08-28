@@ -2921,27 +2921,23 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         //if ((storageClass & STC.scope_) && (storageClass & (STC.ref_ | STC.out_)))
                             //error("scope cannot be ref or out");
 
-                        if (tpl && token.value == TOK.identifier)
+                        const tv = peekNext();
+                        if (tpl && token.value == TOK.identifier &&
+                            (tv == TOK.comma || tv == TOK.rightParenthesis || tv == TOK.dotDotDot))
                         {
-                            const tv = peekNext();
-                            if (tv == TOK.comma || tv == TOK.rightParenthesis || tv == TOK.dotDotDot)
-                            {
-                                Identifier id = Identifier.generateId("__T");
-                                const loc = token.loc;
-                                at = new AST.TypeIdentifier(loc, id);
-                                if (!*tpl)
-                                    *tpl = new AST.TemplateParameters();
-                                AST.TemplateParameter tp = new AST.TemplateTypeParameter(loc, id, null, null);
-                                (*tpl).push(tp);
+                            Identifier id = Identifier.generateId("__T");
+                            const loc = token.loc;
+                            at = new AST.TypeIdentifier(loc, id);
+                            if (!*tpl)
+                                *tpl = new AST.TemplateParameters();
+                            AST.TemplateParameter tp = new AST.TemplateTypeParameter(loc, id, null, null);
+                            (*tpl).push(tp);
 
-                                ai = token.ident;
-                                nextToken();
-                            }
-                            else goto _else;
+                            ai = token.ident;
+                            nextToken();
                         }
                         else
                         {
-                        _else:
                             at = parseType(&ai);
                         }
                         ae = null;
