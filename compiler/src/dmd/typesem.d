@@ -1388,6 +1388,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             // extended index), as we need to run semantic when `oidx` changes.
             size_t tupleOrigIdx = size_t.max;
             size_t tupleExtIdx = size_t.max;
+            bool hasDefault;
             foreach (oidx, oparam, eidx, eparam; tf.parameterList)
             {
                 // oparam (original param) will always have the default arg
@@ -1396,6 +1397,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                 // position to get the offset in it later on.
                 if (oparam.defaultArg)
                 {
+                    hasDefault = true;
                     // Get the obvious case out of the way
                     if (oparam is eparam)
                         errors |= !defaultArgSemantic(eparam, argsc);
@@ -1421,6 +1423,11 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                         if (te && te.exps && te.exps.length)
                             eparam.defaultArg = (*te.exps)[eidx - tupleExtIdx];
                     }
+                }
+                else if (hasDefault)
+                {
+                    .error(loc, "default argument expected for `%s`", oparam.toChars());
+                    errors = true;
                 }
 
                 // We need to know the default argument to resolve `auto ref`,

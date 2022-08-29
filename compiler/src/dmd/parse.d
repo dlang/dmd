@@ -2756,7 +2756,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     {
         auto parameters = new AST.Parameters();
         VarArg varargs = VarArg.none;
-        int hasdefault = 0;
         StorageClass varargsStc;
 
         // Attributes allowed for ...
@@ -2945,12 +2944,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         {
                             nextToken();
                             ae = parseDefaultInitExp();
-                            hasdefault = 1;
-                        }
-                        else
-                        {
-                            if (hasdefault)
-                                error("default argument expected for `%s`", ai ? ai.toChars() : at.toChars());
                         }
                         auto param = new AST.Parameter(storageClass | STC.parameter, at, ai, ae, null);
                         if (udas)
