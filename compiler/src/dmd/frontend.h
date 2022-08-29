@@ -5261,7 +5261,7 @@ public:
     bool determineSize(const Loc& loc);
     virtual void finalizeSize() = 0;
     uinteger_t size(const Loc& loc) final override;
-    bool fill(const Loc& loc, Array<Expression* >* elements, bool ctorinit);
+    bool fill(const Loc& loc, Array<Expression* >& elements, bool ctorinit);
     Type* getType() final override;
     bool isDeprecated() const final override;
     void setDeprecated();

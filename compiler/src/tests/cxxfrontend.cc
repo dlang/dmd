@@ -1292,7 +1292,7 @@ public:
             return;
         (void)d->sinit;
         StructLiteralExp *sle = StructLiteralExp::create(d->loc, d, NULL);
-        if (!d->fill(d->loc, sle->elements, true))
+        if (!d->fill(d->loc, *sle->elements, true))
             assert(0);
         sle->type = d->type;
         sle->accept(this);
