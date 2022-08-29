@@ -4656,7 +4656,7 @@ extern (C++) final class TypeFunction : TypeNext
                 // suppress early exit if an error message is wanted,
                 // so we can check any matching args are valid
                 if (!pMessage)
-                    goto Nomatch;
+                    return MATCH.nomatch;
             }
             // too many args; no match
             match = MATCH.convert; // match ... with a "conversion" match level
@@ -4669,7 +4669,7 @@ extern (C++) final class TypeFunction : TypeNext
             buf.printf("too few arguments, expected `%d`, got `%d`", cast(int)nparams, cast(int)nargs);
             if (pMessage)
                 *pMessage = buf.extractChars();
-            goto Nomatch;
+            return MATCH.nomatch;
         }
 
         foreach (u, p; parameterList)
@@ -4821,7 +4821,7 @@ extern (C++) final class TypeFunction : TypeNext
                                     *pMessage = buf.extractChars();
                                 }
                                 m = MATCH.nomatch;
-                                goto Nomatch;
+                                return MATCH.nomatch;
                             }
                         }
                         else
@@ -4847,7 +4847,7 @@ extern (C++) final class TypeFunction : TypeNext
                         if (p.storageClass & STC.out_)
                         {
                             if (pMessage) *pMessage = getParamError(arg, p);
-                            goto Nomatch;
+                            return MATCH.nomatch;
                         }
 
                         if (arg.op == EXP.string_ && tp.ty == Tsarray)
@@ -4887,7 +4887,7 @@ extern (C++) final class TypeFunction : TypeNext
                                  !arg.type.isCopyable())  // can't copy to temp for ref parameter
                         {
                             if (pMessage) *pMessage = getParamError(arg, p);
-                            goto Nomatch;
+                            return MATCH.nomatch;
                         }
                         else
                         {
@@ -4926,7 +4926,7 @@ extern (C++) final class TypeFunction : TypeNext
                     if (!ta.constConv(tp))
                     {
                         if (pMessage) *pMessage = getParamError(arg, p);
-                        goto Nomatch;
+                        return MATCH.nomatch;
                     }
                 }
             }
@@ -4964,7 +4964,7 @@ extern (C++) final class TypeFunction : TypeNext
                                 buf.printf(", not %zu", nargs - u);
                                 *pMessage = buf.extractChars();
                             }
-                            goto Nomatch;
+                            return MATCH.nomatch;
                         }
                         goto case Tarray;
                     case Tarray:
@@ -4997,7 +4997,7 @@ extern (C++) final class TypeFunction : TypeNext
                                 if (m == MATCH.nomatch)
                                 {
                                     if (pMessage) *pMessage = getParamError(arg, p);
-                                    goto Nomatch;
+                                    return MATCH.nomatch;
                                 }
                                 if (m < match)
                                     match = m;
@@ -5018,7 +5018,7 @@ extern (C++) final class TypeFunction : TypeNext
                 else if (pMessage)
                     *pMessage = getMatchError("missing argument for parameter #%d: `%s`",
                         u + 1, parameterToChars(p, this, false));
-                goto Nomatch;
+                return MATCH.nomatch;
             }
             if (m < match)
                 match = m; // pick worst match
@@ -5029,14 +5029,10 @@ extern (C++) final class TypeFunction : TypeNext
         {
             // all parameters had a match, but there are surplus args
             *pMessage = getMatchError("expected %d argument(s), not %d", nparams, nargs);
-            goto Nomatch;
+            return MATCH.nomatch;
         }
         //printf("match = %d\n", match);
         return match;
-
-    Nomatch:
-        //printf("no match\n");
-        return MATCH.nomatch;
     }
 
     /+
