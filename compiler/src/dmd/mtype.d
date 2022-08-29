@@ -4752,77 +4752,12 @@ extern (C++) final class TypeFunction : TypeNext
                         // check if the copy constructor may be called to copy the argument
                         if (argStruct && argStruct == prmStruct && argStruct.hasCopyCtor)
                         {
-                            /* this is done by seeing if a call to the copy constructor can be made:
-                             *
-                             * typeof(tprm) __copytmp;
-                             * copytmp.__copyCtor(arg);
-                             */
-                            auto tmp = new VarDeclaration(arg.loc, tprm, Identifier.generateId("__copytmp"), null);
-                            tmp.storage_class = STC.rvalue | STC.temp | STC.ctfe;
-                            tmp.dsymbolSemantic(sc);
-                            Expression ve = new VarExp(arg.loc, tmp);
-                            Expression e = new DotIdExp(arg.loc, ve, Id.ctor);
-                            e = new CallExp(arg.loc, e, arg);
-                            //printf("e = %s\n", e.toChars());
-                            if(.trySemantic(e, sc))
-                                m = MATCH.exact;
-                            else
+                            if (!isCopyConstructorCallable(argStruct, arg, tprm, sc, pMessage))
                             {
-                                if (pMessage)
-                                {
-                                    /* https://issues.dlang.org/show_bug.cgi?id=22202
-                                     *
-                                     * If a function was deduced by semantic on the CallExp,
-                                     * it means that resolveFuncCall completed succesfully.
-                                     * Therefore, there exists a callable copy constructor,
-                                     * however, it cannot be called because scope constraints
-                                     * such as purity, safety or nogc.
-                                     */
-                                    OutBuffer buf;
-                                    auto callExp = e.isCallExp();
-                                    if (auto f = callExp.f)
-                                    {
-                                        char[] s;
-                                        if (!f.isPure && sc.func.setImpure())
-                                            s ~= "pure ";
-                                        if (!f.isSafe() && !f.isTrusted() && sc.setUnsafe())
-                                            s ~= "@safe ";
-                                        if (!f.isNogc && sc.func.setGC())
-                                            s ~= "nogc ";
-                                        if (s)
-                                        {
-                                            s[$-1] = '\0';
-                                            buf.printf("`%s` copy constructor cannot be called from a `%s` context", f.type.toChars(), s.ptr);
-                                        }
-                                        else if (f.isGenerated() && f.isDisabled())
-                                        {
-                                            /* https://issues.dlang.org/show_bug.cgi?id=23097
-                                             * Compiler generated copy constructor failed.
-                                             */
-                                            buf.printf("generating a copy constructor for `struct %s` failed, therefore instances of it are uncopyable",
-                                                       argStruct.toChars());
-                                        }
-                                        else
-                                        {
-                                            /* Although a copy constructor may exist, no suitable match was found.
-                                             * i.e: `inout` constructor creates `const` object, not mutable.
-                                             * Fallback to using the original generic error before bugzilla 22202.
-                                             */
-                                            goto Lnocpctor;
-                                        }
-                                    }
-                                    else
-                                    {
-                                    Lnocpctor:
-                                        buf.printf("`struct %s` does not define a copy constructor for `%s` to `%s` copies",
-                                               argStruct.toChars(), targ.toChars(), tprm.toChars());
-                                    }
-
-                                    *pMessage = buf.extractChars();
-                                }
                                 m = MATCH.nomatch;
                                 return MATCH.nomatch;
                             }
+                            m = MATCH.exact;
                         }
                         else
                         {
@@ -7324,4 +7259,82 @@ const(char)* toChars(ScopeRef sr) pure nothrow @nogc @safe
         ];
         return names[sr];
     }
+}
+
+/**
+ * Used by `callMatch` to check if the copy constructor may be called to
+ * copy the argument
+ *
+ * This is done by seeing if a call to the copy constructor can be made:
+ * ```
+ * typeof(tprm) __copytmp;
+ * copytmp.__copyCtor(arg);
+ * ```
+ */
+private extern(D) bool isCopyConstructorCallable (StructDeclaration argStruct,
+    Expression arg, Type tprm, Scope* sc, const(char)** pMessage)
+{
+    auto tmp = new VarDeclaration(arg.loc, tprm, Identifier.generateId("__copytmp"), null);
+    tmp.storage_class = STC.rvalue | STC.temp | STC.ctfe;
+    tmp.dsymbolSemantic(sc);
+    Expression ve = new VarExp(arg.loc, tmp);
+    Expression e = new DotIdExp(arg.loc, ve, Id.ctor);
+    e = new CallExp(arg.loc, e, arg);
+    //printf("e = %s\n", e.toChars());
+    if (.trySemantic(e, sc))
+        return true;
+
+    if (pMessage)
+    {
+        /* https://issues.dlang.org/show_bug.cgi?id=22202
+         *
+         * If a function was deduced by semantic on the CallExp,
+         * it means that resolveFuncCall completed succesfully.
+         * Therefore, there exists a callable copy constructor,
+         * however, it cannot be called because scope constraints
+         * such as purity, safety or nogc.
+         */
+        OutBuffer buf;
+        auto callExp = e.isCallExp();
+        if (auto f = callExp.f)
+        {
+            char[] s;
+            if (!f.isPure && sc.func.setImpure())
+                s ~= "pure ";
+            if (!f.isSafe() && !f.isTrusted() && sc.setUnsafe())
+                s ~= "@safe ";
+            if (!f.isNogc && sc.func.setGC())
+                s ~= "nogc ";
+            if (s)
+            {
+                s[$-1] = '\0';
+                buf.printf("`%s` copy constructor cannot be called from a `%s` context", f.type.toChars(), s.ptr);
+            }
+            else if (f.isGenerated() && f.isDisabled())
+            {
+                /* https://issues.dlang.org/show_bug.cgi?id=23097
+                 * Compiler generated copy constructor failed.
+                 */
+                buf.printf("generating a copy constructor for `struct %s` failed, therefore instances of it are uncopyable",
+                           argStruct.toChars());
+            }
+            else
+            {
+                /* Although a copy constructor may exist, no suitable match was found.
+                 * i.e: `inout` constructor creates `const` object, not mutable.
+                 * Fallback to using the original generic error before bugzilla 22202.
+                 */
+                goto Lnocpctor;
+            }
+        }
+        else
+        {
+        Lnocpctor:
+            buf.printf("`struct %s` does not define a copy constructor for `%s` to `%s` copies",
+                       argStruct.toChars(), arg.type.toChars(), tprm.toChars());
+        }
+
+        *pMessage = buf.extractChars();
+    }
+    return false;
 }
