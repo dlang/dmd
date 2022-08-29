@@ -170,6 +170,9 @@ $(H2 $(LNAME2 assignment, Array Assignment))
         the handle for these types.
         )
 
+        $(P The `.ptr` property for static and dynamic arrays will give the address
+        of the first element in the array:)
+
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ---------
 int* p;
@@ -181,8 +184,11 @@ p = a.ptr; // p points to the first element of the array a.
 
 // error, since the length of the array pointed to by p is unknown
 //s = p;
-//s = a; // error, as a's length is not known at compile-time
+
+s = [1,2]; // OK
+assert(s == [1,2,0]);
 s = [1,2,3];
+//s = [1,2,3,4]; // error, too many elements
 
 //a = p;   // error, length unknown
 a = s;     // a points to the elements of s
@@ -195,9 +201,12 @@ assert(a.ptr == b.ptr);
 assert(a == []);
 ---------
 )
-    $(P Each of the three error lines above can be made to copy elements
-    using $(RELATIVE_LINK2 slicing, slicing), so that the number of elements
+    $(NOTE The two error lines above can be made to copy elements
+    using pointer $(RELATIVE_LINK2 slicing, slicing), so that the number of elements
     to copy is then known.)
+
+    $(P See also $(RELATIVE_LINK2 array-copying, Copying).)
+
 
 $(H2 $(LNAME2 indexing, Indexing))
 
@@ -248,7 +257,7 @@ $(H2 $(LNAME2 slicing, Slicing))
 
         $(P $(I Slicing) an array means to specify a subarray of it.
         An array slice does not copy the data, it is only another
-        reference to it.
+        reference to it. Slicing produces a dynamic array.
         For example:
         )
 
@@ -390,19 +399,28 @@ $(H2 $(LNAME2 array-setting, Array Setting))
         left-hand side are set to the right-hand side.
         )
 
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---------
 int[3] s;
+int[] a;
 int* p;
 
-s[] = 3;     // same as s[0] = 3, s[1] = 3, s[2] = 3
-p[0..2] = 3; // same as p[0] = 3, p[1] = 3
+s[] = 3;
+assert(s == [3, 3, 3]);
+
+a = s;
+a[] = 1;
+assert(s == [1, 1, 1]);
+
+p = s.ptr;
+p[0..2] = 2;
+assert(s == [2, 2, 1]);
 ---------
 )
 
 $(H2 $(LNAME2 array-concatenation, Array Concatenation))
 
-        $(P The binary operator ~ is the $(I cat) operator. It is used
+        $(P The binary operator `~` is the $(I cat) operator. It is used
         to concatenate arrays:
         )
 
@@ -416,7 +434,7 @@ assert(b == [1, 2, 3, 4]); // concatenate two arrays
 ---
 )
 
-        $(P Many languages overload the + operator for concatenation.
+        $(P Many languages overload the `+` operator for concatenation.
         This confusingly leads to a dilemma - does:
         )
 
@@ -424,11 +442,11 @@ assert(b == [1, 2, 3, 4]); // concatenate two arrays
 "10" + 3 + 4
 ---------
 
-        $(P produce the number 17, the string "1034" or the string "107" as the
+        $(P produce the number `17`, the string `"1034"` or the string `"107"` as the
         result? It isn't obvious, and the language designers wind up carefully
         writing rules to disambiguate it - rules that get incorrectly
         implemented, overlooked, forgotten, and ignored. It's much better to
-        have + mean addition, and a separate operator to be array
+        have `+` mean addition, and a separate operator to be array
         concatenation.
         )
 
@@ -452,7 +470,7 @@ assert(a == b);
 
 $(H2 $(LNAME2 array-appending, Array Appending))
 
-        $(P Similarly, the ~= operator means append, as in:
+        $(P Similarly, the `~=` operator means append, as in:
         )
 
 ---------
@@ -631,7 +649,7 @@ a.dup;    // creates an array of a.length elements, copies
 $(H3 $(LNAME2 resize, Setting Dynamic Array Length))
 
         $(P The $(D .length) property of a dynamic array can be set
-        as the left-hand side of an = operator:
+        as the left-hand side of an `=` operator:
         )
 
 ---------
@@ -854,7 +872,7 @@ $(H3 $(LNAME2 default-initialization, Default Initialization))
 $(H3 $(LNAME2 length-initialization, Length Initialization))
         $(P The $(D new) expression can be used to start a dynamic array
         with a specified length by specifying its type and then using the
-        () syntax:
+        `(size)` syntax:
         )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -873,7 +891,7 @@ $(H3 $(LNAME2 void-initialization, Void Initialization))
         Void initializations are an advanced technique and should only be used
         when profiling indicates that it matters.
         )
-        $(P to void initialise the elements of dynamic array use
+        $(P To void initialise the *elements* of a dynamic array use
         $(REF uninitializedArray, std,array).
         )
 
@@ -881,21 +899,23 @@ $(H3 $(LNAME2 void-initialization, Void Initialization))
 $(H3 $(LNAME2 static-init-static, Static Initialization of Statically Allocated Arrays))
 
         $(P Static initalizations are supplied by a list of array
-        element values enclosed in [ ]. The values can be optionally
-        preceded by an index and a :.
+        element values enclosed in `[ ]`. The values can be optionally
+        preceded by an index and a `:`.
         If an index is not supplied, it is set to the previous index
         plus 1, or 0 if it is the first value.
         )
 
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---------
 int[3] a = [ 1:2, 3 ]; // a[0] = 0, a[1] = 2, a[2] = 3
+
+assert(a == [0, 2, 3]);
 ---------
 )
 
-        $(P This is most handy when the array indices are given by enums:)
+        $(P This is most handy when the array indices are given by $(DDLINK spec/enum, Enums, enums):)
 
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---------
 enum Color { red, blue, green }
 
@@ -903,6 +923,8 @@ int[Color.max + 1] value =
   [ Color.blue :6,
     Color.green:2,
     Color.red  :5 ];
+
+assert(value == [5, 6, 2]);
 ---------
 )
 
