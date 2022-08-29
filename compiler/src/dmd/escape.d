@@ -1270,6 +1270,22 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
             continue;
         }
 
+        if (p != sc.func &&     // v is in the scope of an enclosing function
+            p.isFuncDeclaration() &&
+            v.isScope() &&
+            !sc.func.vthis.doNotInferReturn &&
+            sc.func.flags & FUNCFLAG.returnInprocess)
+        {
+            if (auto tf = sc.func.type.isTypeFunction())
+            {
+                sc.func.storage_class |= STC.return_ | STC.returninferred | STC.returnScope;
+                tf.isreturnscope = true;
+                tf.isreturn = true;
+                tf.isreturninferred = true;
+            }
+            continue;
+        }
+
         if (v.isScope())
         {
             /* If `return scope` applies to v.
