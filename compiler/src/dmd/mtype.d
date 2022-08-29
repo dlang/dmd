@@ -4727,45 +4727,39 @@ extern (C++) final class TypeFunction : TypeNext
 
                 if (p.isLazy() && tprm.ty == Tvoid && targ.ty != Tvoid)
                     m = MATCH.convert;
+                else if (flag)
+                {
+                    // for partial ordering, value is an irrelevant mockup, just look at the type
+                    m = targ.implicitConvTo(tprm);
+                }
                 else
                 {
-                    //printf("%s of type %s implicitConvTo %s\n", arg.toChars(), targ.toChars(), tprm.toChars());
-                    if (flag)
+                    const isRef = p.isReference();
+                    StructDeclaration argStruct, prmStruct;
+
+                    // first look for a copy constructor
+                    if (arg.isLvalue() && !isRef && targ.ty == Tstruct && tprm.ty == Tstruct)
                     {
-                        // for partial ordering, value is an irrelevant mockup, just look at the type
-                        m = targ.implicitConvTo(tprm);
+                        // if the argument and the parameter are of the same unqualified struct type
+                        argStruct = (cast(TypeStruct)targ).sym;
+                        prmStruct = (cast(TypeStruct)tprm).sym;
+                    }
+
+                    // check if the copy constructor may be called to copy the argument
+                    if (argStruct && argStruct == prmStruct && argStruct.hasCopyCtor)
+                    {
+                        if (!isCopyConstructorCallable(argStruct, arg, tprm, sc, pMessage))
+                        {
+                            m = MATCH.nomatch;
+                            return MATCH.nomatch;
+                        }
+                        m = MATCH.exact;
                     }
                     else
                     {
-                        const isRef = p.isReference();
-
-                        StructDeclaration argStruct, prmStruct;
-
-                        // first look for a copy constructor
-                        if (arg.isLvalue() && !isRef && targ.ty == Tstruct && tprm.ty == Tstruct)
-                        {
-                            // if the argument and the parameter are of the same unqualified struct type
-                            argStruct = (cast(TypeStruct)targ).sym;
-                            prmStruct = (cast(TypeStruct)tprm).sym;
-                        }
-
-                        // check if the copy constructor may be called to copy the argument
-                        if (argStruct && argStruct == prmStruct && argStruct.hasCopyCtor)
-                        {
-                            if (!isCopyConstructorCallable(argStruct, arg, tprm, sc, pMessage))
-                            {
-                                m = MATCH.nomatch;
-                                return MATCH.nomatch;
-                            }
-                            m = MATCH.exact;
-                        }
-                        else
-                        {
-                            import dmd.dcast : cimplicitConvTo;
-                            m = (sc && sc.flags & SCOPE.Cfile) ? arg.cimplicitConvTo(tprm) : arg.implicitConvTo(tprm);
-                        }
+                        import dmd.dcast : cimplicitConvTo;
+                        m = (sc && sc.flags & SCOPE.Cfile) ? arg.cimplicitConvTo(tprm) : arg.implicitConvTo(tprm);
                     }
-                    //printf("match %d\n", m);
                 }
 
                 // Non-lvalues do not match ref or out parameters
