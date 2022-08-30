@@ -2408,16 +2408,17 @@ $(H2 $(LNAME2 refscopereturn, Ref Scope Return Cases))
 
 $(H3 $(LNAME2 rsr_definitions, Definitions))
 
-    $(DL
-    $(DT I) $(DD type that contains no indirections)
-    $(DT P) $(DD type that contains indirections)
-    $(DT X) $(DD type that may or may not contain indirections)
-    $(DT p) $(DD parameter of type P)
-    $(DT i) $(DD parameter of type I)
-    $(DT ref) $(DD `ref` or `out` parameter)
+    $(TABLE2 Definitions,
+    $(THEAD Term, Description)
+    $(TROW I, type that contains no indirections)
+    $(TROW P, type that contains indirections)
+    $(TROW X, type that may or may not contain indirections)
+    $(TROW p, parameter of type P)
+    $(TROW i, parameter of type I)
+    $(TROW ref, `ref` or `out` parameter)
 
-    $(DT returned) $(DD returned via the `return` statement)
-    $(DT escaped) $(DD stored in a global or other memory not in the function$(RSQUO)s stack frame)
+    $(TROW returned,) $(DD returned via the `return` statement)
+    $(TROW escaped,) $(DD stored in a global or other memory not in the function$(RSQUO)s stack frame)
     )
 
 $(H3 $(LNAME2 rsr_classification, Classification))
@@ -2436,28 +2437,28 @@ $(P A parameter must be in one of the following states:)
         `p` may be neither returned nor escaped)
 
     $(TROW Ref,
-        `p` may be returned or escaped$(LF)
+        `p` may be returned or escaped$(COMMA)
         `ref` may not be returned nor escaped)
 
     $(TROW ReturnRef,
-        `p` may be returned or escaped$(LF)
+        `p` may be returned or escaped$(COMMA)
         `ref` may be returned but not escaped)
 
     $(TROW RefScope,
-        `p` may be neither returned nor escaped$(LF)
+        `p` may be neither returned nor escaped$(COMMA)
         `ref` may not be returned nor escaped)
 
     $(TROW ReturnRef-Scope,
-        `p` may be neither returned nor escaped$(LF)
+        `p` may be neither returned nor escaped$(COMMA)
         `ref` may be returned but not escaped)
 
     $(TROW Ref-ReturnScope,
-        `p` may be returned but not escaped$(LF)
+        `p` may be returned but not escaped$(COMMA)
         `ref` may not be returned nor escaped)
 
     $(TROW ReturnRef-ReturnScope,
-        `p` may be returned but not escaped$(LF)
-        `ref` may be returned but not escaped$(LF)
+        `p` may be returned but not escaped$(COMMA)
+        `ref` may be returned but not escaped$(COMMA)
         This isn't expressible with the current syntax
         and so is not allowed.)
     )
@@ -2480,15 +2481,15 @@ $(H3 $(LNAME2 rsr_mapping, Mapping Syntax Onto Classification))
 
     $(TROW `I foo(return scope P p)`,
         Scope,
-        The `return` is dropped because the return type contains no pointers.)
+        The `return` is dropped because the return type `I` contains no pointers.)
 
     $(TROW `P foo(return P p)`,
         ReturnScope,
-        Makes no sense to have 'return' without 'scope'.)
+        Makes no sense to have `return` without `scope`.)
 
     $(TROW `I foo(return P p)`,
         Scope,
-        The `return` is dropped because the return type contains no pointers.)
+        The `return` is dropped because the return type `I` contains no pointers.)
 
 
     $(TROW `X foo(ref P p)`,
@@ -2524,7 +2525,7 @@ $(H3 $(LNAME2 rsr_mapping, Mapping Syntax Onto Classification))
 
     $(TROW `ref X foo(return P p)`,
         ReturnScope,
-        Makes no sense to have 'return' without 'scope'.)
+        Makes no sense to have `return` without `scope`.)
 
 
     $(TROW `ref X foo(ref P p)`,
