@@ -3833,9 +3833,7 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
             {
                 Expression exp = s.exp;
                 if (exp && !exp.type.equals(tret))
-                {
-                    s.exp = exp.castTo(sc, tret);
-                }
+                    s.exp = exp.implicitCastTo(sc, tret);
             }
         }
 
