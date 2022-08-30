@@ -2534,6 +2534,9 @@ $(H3 $(LNAME2 rsr_mapping, Mapping Syntax Onto Classification))
         RefScope,)
 
     $(TROW `ref X foo(ref return scope P p)`,
+        Ref-ReturnScope,)
+
+    $(TROW `ref X foo(return ref scope P p)`,
         ReturnRef-Scope,)
 
     $(TROW `ref X foo(ref return P p)`,
