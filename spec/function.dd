@@ -2417,8 +2417,8 @@ $(H3 $(LNAME2 rsr_definitions, Definitions))
     $(TROW i, parameter of type I)
     $(TROW ref, `ref` or `out` parameter)
 
-    $(TROW returned,) $(DD returned via the `return` statement)
-    $(TROW escaped,) $(DD stored in a global or other memory not in the function$(RSQUO)s stack frame)
+    $(TROW returned, returned via the `return` statement)
+    $(TROW escaped, stored in a global or other memory not in the function$(RSQUO)s stack frame)
     )
 
 $(H3 $(LNAME2 rsr_classification, Classification))
@@ -2458,7 +2458,7 @@ $(P A parameter must be in one of the following states:)
 
     $(TROW ReturnRef-ReturnScope,
         `p` may be returned but not escaped$(COMMA)
-        `ref` may be returned but not escaped$(COMMA)
+        `ref` may be returned but not escaped.
         This isn't expressible with the current syntax
         and so is not allowed.)
     )
