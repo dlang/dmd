@@ -315,23 +315,30 @@ $(H3 $(LNAME2 simple_assignment_expressions, Simple Assignment Expression))
     $(P If the operator is $(D =) then it is simple assignment.
     )
 
-    * If the left operand is a struct that
-      $(DDSUBLINK spec/operatoroverloading, assignment, defines `opAssign`),
-      the behaviour is defined by the overloaded function.
+    $(UL
+    $(LI If the left operand is a struct that
+    $(DDSUBLINK spec/operatoroverloading, assignment, defines `opAssign`),
+    the behaviour is defined by the overloaded function.
+    )
 
-    * If the left and right operands are of the same struct type, and the struct
-      type has a $(GLINK2 struct, Postblit), then the copy operation is
-      as described in $(DDSUBLINK spec/struct, struct-postblit, Struct Postblit).
+    $(LI If the left and right operands are of the same struct type, and the struct
+    type has a $(GLINK2 struct, Postblit), then the copy operation is
+    as described in $(DDSUBLINK spec/struct, struct-postblit, Struct Postblit).
+    )
 
-    * If the lvalue is the `.length` property of a dynamic array, the behavior is
-      as described in $(DDSUBLINK spec/arrays, resize, Setting Dynamic Array Length).
+    $(LI If the lvalue is the `.length` property of a dynamic array, the behavior is
+    as described in $(DDSUBLINK spec/arrays, resize, Setting Dynamic Array Length).
+    )
 
-    * If the lvalue is a static array or a slice, the behavior is as
-      described in $(DDSUBLINK spec/arrays, array-copying, Array Copying) and
-      $(DDSUBLINK spec/arrays, array-setting, Array Setting).
+    $(LI If the lvalue is a static array or a slice, the behavior is as
+    described in $(DDSUBLINK spec/arrays, array-copying, Array Copying) and
+    $(DDSUBLINK spec/arrays, array-setting, Array Setting).
+    )
 
-    * If the lvalue is a user-defined property, the behavior is as
-      described in $(DDSUBLINK spec/function, property-functions, Property Functions).
+    $(LI If the lvalue is a user-defined property, the behavior is as
+    described in $(DDSUBLINK spec/function, property-functions, Property Functions).
+    )
+    )
 
     $(P Otherwise, the right operand is implicitly converted to the type of the
     left operand, and assigned to it.)
