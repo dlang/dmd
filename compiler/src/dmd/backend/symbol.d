@@ -105,7 +105,7 @@ version (COMPILE)
 {
     if (!s) return;
     printf("symbol %p '%s'\n ",s,s.Sident.ptr);
-    printf(" Sclass = %s ", class_str(cast(SC) s.Sclass));
+    printf(" Sclass = %s ", class_str(s.Sclass));
     printf(" Ssymnum = %d",cast(int)s.Ssymnum);
     printf(" Sfl = "); WRFL(cast(FL) s.Sfl);
     printf(" Sseg = %d\n",s.Sseg);
@@ -359,16 +359,16 @@ debug
  */
 
 @trusted
-Symbol * symbol_name(const(char)* name,int sclass,type *t)
+Symbol * symbol_name(const(char)* name, SC sclass,type *t)
 {
     return symbol_name(name, cast(uint)strlen(name), sclass, t);
 }
 
-Symbol * symbol_name(const(char)* name, uint len, int sclass, type *t)
+Symbol * symbol_name(const(char)* name, uint len, SC sclass, type *t)
 {
     type_debug(t);
     Symbol *s = symbol_calloc(name, len);
-    s.Sclass = cast(char) sclass;
+    s.Sclass = sclass;
     s.Stype = t;
     s.Stype.Tcount++;
 
@@ -404,7 +404,7 @@ version (SCPP_HTOD)
  */
 
 @trusted
-Symbol * symbol_generate(int sclass,type *t)
+Symbol * symbol_generate(SC sclass,type *t)
 {
     __gshared int tmpnum;
     char[4 + tmpnum.sizeof * 3 + 1] name;

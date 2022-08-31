@@ -131,7 +131,6 @@ enum IDOHD = 4+1+int.sizeof*3; // max amount of overhead to ID added by
 enum STRMAX = 65_000;           // max length of string (determined by
                                 // max ph size)
 
-//enum SC;
 struct Thunk
 {   Symbol *sfunc;
     Symbol *sthunk;
@@ -411,12 +410,6 @@ enum
 // (That is, it is allocated on the stack or has live variable analysis
 //  done on it, so it is stack and register variables.)
 //char symbol_isintab(Symbol *s) { return sytab[s.Sclass] & SCSS; }
-
-//version (Windows)
-    alias enum_SC = char;
-//else
-//    alias SC enum_SC;
-
 
 /******************************************
  * Basic blocks:
@@ -1402,7 +1395,7 @@ struct Symbol
     targ_size_t Slocalgotoffset;
 //#endif
 
-    enum_SC Sclass;             // storage class (SCxxxx)
+    SC Sclass;                  // storage class (SCxxxx)
     char Sfl;                   // flavor (FLxxxx)
     SYMFLGS Sflags;             // flag bits (SFLxxxx)
 

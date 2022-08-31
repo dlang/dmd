@@ -927,55 +927,98 @@ alias SYMFLGS = uint;
 /**********************************
  * Storage classes
  */
-
-alias SC = int;
-enum
+enum SC : ubyte
 {
-    SCunde,           // undefined
-    SCauto,           // automatic (stack)
-    SCstatic,         // statically allocated
-    SCthread,         // thread local
-    SCextern,         // external
-    SCregister,       // registered variable
-    SCpseudo,         // pseudo register variable
-    SCglobal,         // top level global definition
-    SCcomdat,         // initialized common block
-    SCparameter,      // function parameter
-    SCregpar,         // function register parameter
-    SCfastpar,        // function parameter passed in register
-    SCshadowreg,      // function parameter passed in register, shadowed on stack
-    SCtypedef,        // type definition
-    SCexplicit,       // explicit
-    SCmutable,        // mutable
-    SClabel,          // goto label
-    SCstruct,         // struct/class/union tag name
-    SCenum,           // enum tag name
-    SCfield,          // bit field of struct or union
-    SCconst,          // constant integer
-    SCmember,         // member of struct or union
-    SCanon,           // member of anonymous union
-    SCinline,         // for inline functions
-    SCsinline,        // for static inline functions
-    SCeinline,        // for extern inline functions
-    SCoverload,       // for overloaded function names
-    SCfriend,         // friend of a class
-    SCvirtual,        // virtual function
-    SClocstat,        // static, but local to a function
-    SCtemplate,       // class template
-    SCfunctempl,      // function template
-    SCftexpspec,      // function template explicit specialization
-    SClinkage,        // function linkage symbol
-    SCpublic,         // generate a pubdef for this
-    SCcomdef,         // uninitialized common block
-    SCbprel,          // variable at fixed offset from frame pointer
-    SCnamespace,      // namespace
-    SCalias,          // alias to another symbol
-    SCfuncalias,      // alias to another function symbol
-    SCmemalias,       // alias to base class member
-    SCstack,          // offset from stack pointer (not frame pointer)
-    SCadl,            // list of ADL symbols for overloading
-    SCMAX
+    unde,           /// undefined
+    auto_,          /// automatic (stack)
+    static_,        /// statically allocated
+    thread,         /// thread local
+    extern_,        /// external
+    register,       /// registered variable
+    pseudo,         /// pseudo register variable
+    global,         /// top level global definition
+    comdat,         /// initialized common block
+    parameter,      /// function parameter
+    regpar,         /// function register parameter
+    fastpar,        /// function parameter passed in register
+    shadowreg,      /// function parameter passed in register, shadowed on stack
+    typedef_,       /// type definition
+    explicit,       /// explicit
+    mutable,        /// mutable
+    label,          /// goto label
+    struct_,        /// struct/class/union tag name
+    enum_,          /// enum tag name
+    field,          /// bit field of struct or union
+    const_,         /// constant integer
+    member,         /// member of struct or union
+    anon,           /// member of anonymous union
+    inline,         /// for inline functions
+    sinline,        /// for static inline functions
+    einline,        /// for extern inline functions
+    overload,       /// for overloaded function names
+    friend,         /// friend of a class
+    virtual,        /// virtual function
+    locstat,        /// static, but local to a function
+    template_,      /// class template
+    functempl,      /// function template
+    ftexpspec,      /// function template explicit specialization
+    linkage,        /// function linkage symbol
+    public_,        /// generate a pubdef for this
+    comdef,         /// uninitialized common block
+    bprel,          /// variable at fixed offset from frame pointer
+    namespace,      /// namespace
+    alias_,         /// alias to another symbol
+    funcalias,      /// alias to another function symbol
+    memalias,       /// alias to base class member
+    stack,          /// offset from stack pointer (not frame pointer)
+    adl,            /// list of ADL symbols for overloading
 }
+
+enum SCunde = SC.unde;
+enum SCauto = SC.auto_;
+enum SCstatic = SC.static_;
+enum SCthread = SC.thread;
+enum SCextern = SC.extern_;
+enum SCregister = SC.register;
+enum SCpseudo = SC.pseudo;
+enum SCglobal = SC.global;
+enum SCcomdat = SC.comdat;
+enum SCparameter = SC.parameter;
+enum SCregpar = SC.regpar;
+enum SCfastpar = SC.fastpar;
+enum SCshadowreg = SC.shadowreg;
+enum SCtypedef = SC.typedef_;
+enum SCexplicit = SC.explicit;
+enum SCmutable = SC.mutable;
+enum SClabel = SC.label;
+enum SCstruct = SC.struct_;
+enum SCenum = SC.enum_;
+enum SCfield = SC.field;
+enum SCconst = SC.const_;
+enum SCmember = SC.member;
+enum SCanon = SC.anon;
+enum SCinline = SC.inline;
+enum SCsinline = SC.sinline;
+enum SCeinline = SC.einline;
+enum SCoverload = SC.overload;
+enum SCfriend = SC.friend;
+enum SCvirtual = SC.virtual;
+enum SClocstat = SC.locstat;
+enum SCtemplate = SC.template_;
+enum SCfunctempl = SC.functempl;
+enum SCftexpspec = SC.ftexpspec;
+enum SClinkage = SC.linkage;
+enum SCpublic = SC.public_;
+enum SCcomdef = SC.comdef;
+enum SCbprel = SC.bprel;
+enum SCnamespace = SC.namespace;
+enum SCalias = SC.alias_;
+enum SCfuncalias = SC.funcalias;
+enum SCmemalias = SC.memalias;
+enum SCstack = SC.stack;
+enum SCadl = SC.adl;
+
+enum SCMAX = SC.max + 1;
 
 int ClassInline(int c) { return c == SCinline || c == SCsinline || c == SCeinline; }
 int SymInline(Symbol* s) { return ClassInline(s.Sclass); }

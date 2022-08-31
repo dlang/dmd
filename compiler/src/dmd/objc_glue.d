@@ -518,7 +518,7 @@ static:
      *
      * Allows to pass the name of the symbol as a D string.
      */
-    Symbol* symbolName(const(char)[] name, int sclass, type* t)
+    Symbol* symbolName(const(char)[] name, SC sclass, type* t)
     {
         return symbol_name(name.ptr, cast(uint) name.length, sclass, t);
     }
