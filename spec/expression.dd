@@ -1914,8 +1914,7 @@ $(GNAME FunctionLiteralBody2):
     $(P $(I FunctionLiteral)s (also known as $(LNAME2 lambdas, $(I Lambdas))) enable embedding anonymous functions
         and anonymous delegates directly into expressions.
         $(I Type) is the return type of the function or delegate -
-        if omitted it is inferred from either the *AssignExpression*, or
-        any $(GLINK2 statement, ReturnStatement)s in the $(I BlockStatement).
+        if omitted it is $(RELATIVE_LINK2 lambda-return-type, inferred).
         $(I ParameterWithAttributes) or $(I ParameterWithMemberAttributes)
         can be used to specify the parameters for the function. If these are
         omitted, the function defaults to the empty parameter list $(D ( )).
@@ -1997,7 +1996,7 @@ $(GNAME FunctionLiteralBody2):
         function, a function literal cannot.
     )
 
-$(H4 $(LNAME2 lambda-type-inference, Type Inference))
+$(H4 $(LNAME2 lambda-type-inference, Delegate Inference))
 
     $(P If a literal omits $(D function) or $(D delegate) and there's no
         expected type from the context, then
@@ -2042,9 +2041,12 @@ $(H4 $(LNAME2 lambda-type-inference, Type Inference))
         -------------
         )
 
+$(H4 $(LNAME2 lambda-parameter-inference, Parameter Type Inference))
+
     $(P If the type of a function literal can be uniquely determined from its context,
         parameter type inference is possible.)
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         -------------
         void foo(int function(int) fp);
 
@@ -2057,7 +2059,7 @@ $(H4 $(LNAME2 lambda-type-inference, Type Inference))
             // The type of parameter n is inferred as int.
         }
         -------------
-
+        )
         ---
         auto fp = (i) { return 1; }; // error, cannot infer type of `i`
         ---
@@ -2080,6 +2082,25 @@ $(H4 $(LNAME2 lambda-type-inference, Type Inference))
         auto f = fp(0); // f is a float
         ---
         )
+
+$(H4 $(LNAME2 lambda-return-type, Return Type Inference))
+
+    $(P The return type of the $(GLINK FunctionLiteral) can be
+        inferred from either the *AssignExpression*, or
+        any $(GLINK2 statement, ReturnStatement)s in the $(I BlockStatement).
+        If there is a different expected type from the context, and the
+        initial inferred return type implicitly converts to the expected type,
+        then the return type is inferred as the expected type.)
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    auto fi = (int i) { return i; };
+    static assert(is(typeof(fi(5)) == int));
+
+    long function(int) fl = (int i) { return i; };
+    static assert(is(typeof(fl(5)) == long));
+    ---
+    )
 
 $(H4 $(LNAME2 lambda-short-syntax, Short Syntax))
 
