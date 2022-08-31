@@ -296,7 +296,7 @@ $(GNAME AssignExpression):
 
     $(P For all assign expressions, the left operand must be a modifiable
     lvalue. The type of the assign expression is the type of the left
-    operand, and the value is the value of the left operand after assignment
+    operand, and the result is the value of the left operand after assignment
     occurs. The resulting expression is a modifiable lvalue.
     )
 
@@ -317,26 +317,35 @@ $(GNAME AssignExpression):
 $(H3 $(LNAME2 simple_assignment_expressions, Simple Assignment Expression))
 
     $(P If the operator is $(D =) then it is simple assignment.
-    The right operand is implicitly converted to the type of the
-    left operand, and assigned to it.)
+    )
 
-    $(P If the left and right operands are of the same struct type, and the struct
+    $(UL
+    $(LI If the left operand is a struct that
+    $(DDSUBLINK spec/operatoroverloading, assignment, defines `opAssign`),
+    the behaviour is defined by the overloaded function.
+    )
+
+    $(LI If the left and right operands are of the same struct type, and the struct
     type has a $(GLINK2 struct, Postblit), then the copy operation is
     as described in $(DDSUBLINK spec/struct, struct-postblit, Struct Postblit).
     )
 
-    $(P If the lvalue is the `.length` property of a dynamic array, the behavior is
+    $(LI If the lvalue is the `.length` property of a dynamic array, the behavior is
     as described in $(DDSUBLINK spec/arrays, resize, Setting Dynamic Array Length).
     )
 
-    $(P If the lvalue is a static array or a slice, the behavior is as
+    $(LI If the lvalue is a static array or a slice, the behavior is as
     described in $(DDSUBLINK spec/arrays, array-copying, Array Copying) and
     $(DDSUBLINK spec/arrays, array-setting, Array Setting).
     )
 
-    $(P If the lvalue is a user-defined property, the behavior is as
+    $(LI If the lvalue is a user-defined property, the behavior is as
     described in $(DDSUBLINK spec/function, property-functions, Property Functions).
     )
+    )
+
+    $(P Otherwise, the right operand is implicitly converted to the type of the
+    left operand, and assigned to it.)
 
 $(H3 $(LNAME2 assignment_operator_expressions, Assignment Operator Expressions))
 
@@ -352,16 +361,17 @@ $(H3 $(LNAME2 assignment_operator_expressions, Assignment Operator Expressions))
         a = cast(typeof(a))(a op b)
         --------------
 
-    except that
+    except that:
 
     $(UL
         $(LI operand $(D a) is only evaluated once,)
-        $(LI overloading $(I op) uses a different function than overloading $(I op)= does, and)
+        $(LI overloading $(I op) uses a different function than overloading $(I op)`=` does, and)
         $(LI the left operand of $(D >>>=) does not undergo $(INTEGER_PROMOTIONS) before shifting.)
     )
 
-    $(P For user-defined types, assignment operator expressions are overloaded separately from
-        the binary operator. Still the left operand must be an lvalue.
+    $(P For user-defined types, assignment operator expressions are
+        $(DDSUBLINK spec/operatoroverloading, op-assign, overloaded separately) from
+        the binary operators. Still the left operand must be an lvalue.
     )
 
 $(H2 $(LNAME2 conditional_expressions, Conditional Expressions))
