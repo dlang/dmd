@@ -884,7 +884,7 @@ assert(a[2] == 4);
 )
 
     $(P $(GLINK IndexExpression) can also be used with a pointer and has
-    the same behaviour as adding an integer.)
+    the same behaviour as adding an integer, then dereferencing the result.)
 
     $(P If the second operand is a pointer, and the first is an integral type,
         and the operator is $(D +),
@@ -1400,6 +1400,8 @@ $(TABLE
     )
     $(TROW `++`, Increment after use - see $(RELATIVE_LINK2 order-of-evaluation, order of evaluation))
     $(TROW `--`, Decrement after use)
+    $(TROW *IndexExpression*, Select a single element)
+    $(TROW *SliceExpression*, Select a series of elements)
 )
 
 $(H2 $(LNAME2 index_expressions, Index Expressions))
@@ -1432,6 +1434,10 @@ $(GNAME IndexExpression):
         A new declaration scope is created for the evaluation of the
         $(I ArgumentList) and `$` appears in that scope only.
     )
+
+    $(P The index operator can be $(DDSUBLINK spec/operatoroverloading, array, overloaded).
+        Using multiple indices in *ArgumentList* is only supported for operator
+        overloading.)
 
 $(H2 $(LNAME2 slice_expressions, Slice Expressions))
 
@@ -1483,7 +1489,12 @@ $(GNAME Slice):
     )
 
     $(P If the $(D [ ]) form is used, the slice is of all the elements in $(I PostfixExpression).
+        The expression cannot be a pointer.
     )
+
+    $(P The slice operator can be $(DDSUBLINK spec/operatoroverloading, slice, overloaded).
+        Using more than one *Slice* is only supported for operator
+        overloading.)
 
     $(P A $(I SliceExpression) is not a modifiable lvalue.)
 
