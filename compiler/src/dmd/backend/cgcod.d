@@ -373,7 +373,7 @@ tryagain:
                     break;
 
                 const sz = type_alignsize(s.Stype);
-                if (sz > STACKALIGN && (I64 || config.exe == EX_OSX))
+                if (sz > STACKALIGN)
                 {
                     STACKALIGN = sz;
                     enforcealign = true;
