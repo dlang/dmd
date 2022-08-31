@@ -379,6 +379,24 @@ S t = s; // sets t.a to 3, S.opCall(S) is not called
 ----
 )
 
+$(H3 $(LNAME2 dynamic_union_init, Dynamic Initialization of Unions))
+
+        $(P The $(RELATIVE_LINK2 static_union_init, static initializer syntax)
+        can also be used to initialize non-static variables.
+        The initializer need not be evaluable at compile time.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+union U { int a; double b; }
+
+void test(int i)
+{
+    U u = { a : i };   // u.a = i
+    U v = { b : 5.0 }; // v.b = 5.0
+}
+---
+)
+
 $(H2 $(LEGACY_LNAME2 StructLiteral, struct-literal, Struct Literals))
 
         $(P A struct literal consists of the name of the struct followed
@@ -433,6 +451,12 @@ assert(u.b == [2, 0]);
 )
 
 $(H2 $(LNAME2 anonymous, Anonymous Structs and Unions))
+
+    $(P An anonymous struct or union can be declared as a member of a
+    parent class, struct or union by omitting the identifier after `struct` or `union`.
+    An anonymous struct declares sequentially stored fields in the
+    parent type. An anonymous union declares overlapping fields in
+    the parent type.)
 
     $(P An anonymous union is useful inside a class or struct to share
     memory for fields, without having to name a parent field with a
