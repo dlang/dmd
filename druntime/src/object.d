@@ -334,7 +334,7 @@ if ((is(LHS : const Object) || is(LHS : const shared Object)) &&
 /// This test passes `@safe` because it defines a new opEquals with `@safe`
 @safe unittest
 {
-    class F
+    static class F
     {
         int flag;
 

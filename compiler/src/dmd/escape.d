@@ -978,6 +978,11 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
             }
         }
 
+        if (ee.isNewExp())
+        {
+            continue;
+        }
+
         if (va && !va.isDataseg() && (va.isScope() || va.maybeScope))
         {
             if (!va.isScope())
@@ -1173,9 +1178,18 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
     foreach (Expression ee; er.byexp)
     {
         if (log) printf("byexp %s\n", ee.toChars());
-        if (!gag)
+        if (ee.isNewExp())
+        {
+            result |= sc.setUnsafeDIP1000(gag, ee.loc,
+                "storing reference to stack allocated value returned by `%s` into allocated memory causes it to escape",
+                ee);
+            return result;
+        }
+        else if (!gag)
+        {
             error(ee.loc, "storing reference to stack allocated value returned by `%s` into allocated memory causes it to escape",
                   ee.toChars());
+        }
         result = true;
     }
 
@@ -1478,6 +1492,11 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
             result |= sc.setUnsafeDIP1000(gag, ee.loc,
                 "escaping reference to stack allocated value returned by `%s`", ee);
         }
+        else if (ee.isNewExp())
+        {
+            result |= sc.setUnsafeDIP1000(gag, ee.loc,
+                "escaping reference to stack allocated value returned by `%s`", ee);
+        }
         else
         {
             if (!gag)
@@ -1661,6 +1680,14 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false, bool re
     void visitNew(NewExp e)
     {
         Type tb = e.newtype.toBasetype();
+        if (auto tc = tb.isTypeClass())
+        {
+            if (tc.sym.isNested())
+            {
+                if (!tc.sym.enclosing.isClassDeclaration())
+                    er.pushExp(e, retRefTransition);
+            }
+        }
         if (tb.ty == Tstruct && !e.member && e.arguments)
         {
             foreach (ex; *e.arguments)
