@@ -337,7 +337,10 @@
                         "kind": "destructor",
                         "line": 29,
                         "name": "~this",
-                        "protection": "public"
+                        "protection": "public",
+                        "storageClass": [
+                            "scope"
+                        ]
                     },
                     {
                         "char": 12,
