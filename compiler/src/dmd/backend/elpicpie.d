@@ -474,7 +474,7 @@ private elem *el_picvar_OSX(Symbol *s)
     elem *e;
     int x;
 
-    //printf("el_picvar(s = '%s') Sclass = %s\n", s.Sident.ptr, class_str(cast(SC) s.Sclass));
+    //printf("el_picvar(s = '%s') Sclass = %s\n", s.Sident.ptr, class_str(s.Sclass));
     //symbol_print(s);
     symbol_debug(s);
     type_debug(s.Stype);

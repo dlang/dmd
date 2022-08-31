@@ -913,7 +913,7 @@ version (SCPP)
 
             default:
                 symbol_print(s);
-                printf("%s\n", class_str(cast(SC) s.Sclass));
+                printf("%s\n", class_str(s.Sclass));
                 assert(0);
 }
 else
@@ -1164,7 +1164,7 @@ version (SCPP)
         {
             SC scvtbl;
 
-            scvtbl = cast(SC) ((config.flags2 & CFG2comdat) ? SCcomdat : SCglobal);
+            scvtbl = ((config.flags2 & CFG2comdat) ? SCcomdat : SCglobal);
             n2_genvtbl(stag,scvtbl,1);
             n2_genvbtbl(stag,scvtbl,1);
             if (config.exe & EX_windos)

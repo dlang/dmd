@@ -4675,7 +4675,7 @@ void cdrelconst(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         if (s.Sfl == FLdatseg)
         {   assert(0);
         }
-        sclass = cast(SC) s.Sclass;
+        sclass = s.Sclass;
         const ety = tybasic(s.ty());
         if ((tyfarfunc(ety) || ety == TYifunc) &&
             (sclass == SCextern || ClassInline(sclass) || config.wflags & WFthunk)

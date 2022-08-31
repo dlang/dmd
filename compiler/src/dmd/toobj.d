@@ -341,7 +341,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             assert(cd.semanticRun >= PASS.semantic3done);     // semantic() should have been run to completion
 
-            enum_SC scclass = SCcomdat;
+            SC scclass = SCcomdat;
 
             // Put out the members
             /* There might be static ctors in the members, and they cannot
@@ -697,7 +697,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             }
             else
             {
-                enum_SC scclass = SCglobal;
+                SC scclass = SCglobal;
                 if (ed.isInstantiated())
                     scclass = SCcomdat;
 
@@ -1197,7 +1197,7 @@ private size_t emitVtbl(ref DtBuilder dtb, BaseClass *b, ref FuncDeclarations bv
 private void genClassInfoForClass(ClassDeclaration cd, Symbol* sinit)
 {
     // Put out the ClassInfo, which will be the __ClassZ symbol in the object file
-    enum_SC scclass = SCcomdat;
+    SC scclass = SCcomdat;
     cd.csym.Sclass = scclass;
     cd.csym.Sfl = FLdata;
 
@@ -1438,7 +1438,7 @@ Louter:
  */
 private void genClassInfoForInterface(InterfaceDeclaration id)
 {
-    enum_SC scclass = SCcomdat;
+    SC scclass = SCcomdat;
 
     // Put out the ClassInfo
     id.csym.Sclass = scclass;
