@@ -10,77 +10,11 @@ $(H2 $(LNAME2 array-kinds, Kinds))
 
     $(TABLE2 Kinds of Arrays,
         $(THEAD Syntax, Description)
-        $(TROW $(ARGS $(I type)*), $(ARGS $(RELATIVE_LINK2 pointers, Pointers to data)))
         $(TROW $(ARGS $(I type)[$(I integer)]), $(ARGS $(RELATIVE_LINK2 static-arrays, Static arrays)))
         $(TROW $(ARGS $(I type)[]),  $(ARGS $(RELATIVE_LINK2 dynamic-arrays, Dynamic arrays)))
+        $(TROW $(ARGS $(I type)*), $(ARGS $(RELATIVE_LINK2 pointers, Pointer arrays)))
         $(TROW $(ARGS $(I type)[$(I type)]), $(ARGS $(DDLINK spec/hash-map, Associative Arrays, Associative arrays)))
     )
-
-$(H3 $(LNAME2 pointers, Pointers))
-
-        $(P A pointer to type $(D T) has a value which is a reference (address) to another
-        object of type $(D T). It is commonly called a $(I pointer to T) and its type is
-        `T*`. To access the object value, use the `*` dereference operator:
-        )
-
-$(SPEC_RUNNABLE_EXAMPLE_RUN
----------
-int* p;
-
-assert(p == null);
-p = new int(5);
-assert(p != null);
-
-assert(*p == 5);
-(*p)++;
-assert(*p == 6);
----------
-)
-
-        $(P If a pointer contains a $(I null) value, it is not pointing to a valid object.)
-
-        $(P When a pointer to $(I T) is dereferenced, it must either contain a $(I null) value,
-        or point to a valid object of type $(I T).)
-
-        $(IMPLEMENTATION_DEFINED
-        $(OL
-        $(LI The behavior when a $(I null) pointer is dereferenced. Typically the program
-        will be aborted.)
-        ))
-
-        $(UNDEFINED_BEHAVIOR dereferencing a pointer that is not $(I null) and does not point
-        to a valid object of type $(I T).)
-
-        $(P To set a pointer to point at an existing object, use the
-        `&` *address of* operator:)
-
-$(SPEC_RUNNABLE_EXAMPLE_RUN
----------
-int i = 2;
-int* p = &i;
-
-assert(p == &i);
-assert(*p == 2);
-*p = 4;
-assert(i == 4);
----------
-)
-
-        $(P These are simple pointers to data.
-        A pointer can manipulate a block of multiple values. Accessing more
-        than one value cannot be
-        $(DDLINK spec/memory-safe-d, Memory-Safe-D-Spec, `@safe`) as it
-        requires $(RELATIVE_LINK2 pointer-arithmetic, pointer arithmetic).
-        This is supported for interfacing with C and for
-        specialized systems work.
-        A pointer has no length associated with it, so there is no way for the
-        compiler or runtime to do bounds checking, etc., on it.
-        )
-
-        $(BEST_PRACTICE Most conventional uses for pointers can be replaced with
-        dynamic arrays, $(D ref) and $(D out) $(DDSUBLINK spec/function, parameters, parameters),
-        and reference types.
-        )
 
 $(H3 $(LNAME2 static-arrays, Static Arrays))
 
@@ -129,10 +63,33 @@ int[] a;
 
         $(BEST_PRACTICE
         $(OL
-        $(LI Use dynamic arrays instead of pointers to arrays as much as practical.
+        $(LI Use dynamic arrays instead of pointer arrays as much as practical.
         Indexing of dynamic arrays are bounds checked, avoiding buffer underflow and
         overflow problems.)
         ))
+
+$(H3 $(LNAME2 pointers, Pointer Arrays))
+
+---------
+int* p;
+---------
+
+        $(P A $(DDSUBLINK spec/type, pointers, pointer)
+        can manipulate a block of multiple contiguous values in memory.
+        Accessing more than one value cannot be
+        $(DDLINK spec/memory-safe-d, Memory-Safe-D-Spec, `@safe`) as it
+        requires $(RELATIVE_LINK2 pointer-arithmetic, pointer arithmetic).
+        This is supported for interfacing with C and for
+        specialized systems work.
+        A pointer has no length associated with it, so there is no way for the
+        compiler or runtime to do bounds checking, etc., on it.
+        )
+
+        $(BEST_PRACTICE Most conventional uses for pointers can be replaced with
+        dynamic arrays, $(D ref) and $(D out) $(DDSUBLINK spec/function, parameters, parameters),
+        and reference types.
+        )
+
 
 $(H2 $(LNAME2 declarations, Array Declarations))
 
