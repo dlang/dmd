@@ -280,12 +280,12 @@ tryagain:
             s.Sflags &= ~SFLread;
             switch (s.Sclass)
             {
-                case SCfastpar:
-                case SCshadowreg:
+                case SC.fastpar:
+                case SC.shadowreg:
                     regcon.params |= s.Spregm();
-                    goto case SCparameter;
+                    goto case SC.parameter;
 
-                case SCparameter:
+                case SC.parameter:
                     if (s.Sfl == FLreg)
                         noparams |= s.Sregm;
                     break;
@@ -366,9 +366,9 @@ tryagain:
 
         switch (s.Sclass)
         {
-            case SCregister:
-            case SCauto:
-            case SCfastpar:
+            case SC.register:
+            case SC.auto_:
+            case SC.fastpar:
                 if (s.Sfl == FLreg)
                     break;
 
@@ -1124,8 +1124,8 @@ else
          */
         if (config.flags & CFGtrace &&
             (!(config.flags4 & CFG4allcomdat) ||
-             funcsym_p.Sclass == SCcomdat ||
-             funcsym_p.Sclass == SCglobal ||
+             funcsym_p.Sclass == SC.comdat ||
+             funcsym_p.Sclass == SC.global ||
              (config.flags2 & CFG2comdat && SymInline(funcsym_p))
             )
            )
@@ -1295,12 +1295,12 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
          */
         switch (s.Sclass)
         {
-            case SCfastpar:
+            case SC.fastpar:
                 if (!(funcsym_p.Sfunc.Fflags3 & Ffakeeh))
                     goto Ldefault;   // don't need consistent stack frame
                 break;
 
-            case SCparameter:
+            case SC.parameter:
                 if (type_zeroSize(s.Stype, tybasic(funcsym_p.Stype.Tty)))
                 {
                     Para.offset = _align(REGSIZE,Para.offset); // align on word stack boundary
@@ -1309,7 +1309,7 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
                 }
                 break;          // allocate even if it's dead
 
-            case SCshadowreg:
+            case SC.shadowreg:
                 break;          // allocate even if it's dead
 
             default:
@@ -1332,7 +1332,7 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
 
         switch (s.Sclass)
         {
-            case SCfastpar:
+            case SC.fastpar:
                 /* Get these
                  * right next to the stack frame pointer, EBP.
                  * Needed so we can call nested contract functions
@@ -1355,8 +1355,8 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
                     Fast.alignment = alignsize;
                 break;
 
-            case SCregister:
-            case SCauto:
+            case SC.register:
+            case SC.auto_:
                 if (s.Sfl == FLreg)        // if allocated in register
                     break;
 
@@ -1374,15 +1374,15 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
                     Auto.alignment = alignsize;
                 break;
 
-            case SCstack:
+            case SC.stack:
                 EEStack.offset = _align(sz,EEStack.offset);
                 s.Soffset = EEStack.offset;
                 //printf("EEStack.offset =  x%lx\n",cast(long)s.Soffset);
                 EEStack.offset += sz;
                 break;
 
-            case SCshadowreg:
-            case SCparameter:
+            case SC.shadowreg:
+            case SC.parameter:
                 if (config.exe == EX_WIN64)
                 {
                     assert((Para.offset & 7) == 0);
@@ -1405,9 +1405,9 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
                             : type_size(s.Stype);
                 break;
 
-            case SCpseudo:
-            case SCstatic:
-            case SCbprel:
+            case SC.pseudo:
+            case SC.static_:
+            case SC.bprel:
                 break;
             default:
                 symbol_print(s);
@@ -1549,7 +1549,7 @@ private void blcodgen(block *bl)
                 if (vec_testbit(dfoidx,s.Srange))
                 {
                     regcon.mvar |= s.Sregm;
-                    if (s.Sclass == SCfastpar || s.Sclass == SCshadowreg)
+                    if (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg)
                         regcon.mpvar |= s.Sregm;
                 }
             }
@@ -1566,7 +1566,7 @@ private void blcodgen(block *bl)
                         regcon.cse.mval &= ~s.Sregm;
                         regcon.immed.mval &= ~s.Sregm;
                         regcon.params &= ~s.Sregm;
-                        if (s.Sclass == SCfastpar || s.Sclass == SCshadowreg)
+                        if (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg)
                             regcon.mpvar |= s.Sregm;
                     }
                 }
@@ -1945,7 +1945,7 @@ int isregvar(elem *e,regm_t *pregm,reg_t *preg)
         switch (s.Sfl)
         {
             case FLreg:
-                if (s.Sclass == SCparameter)
+                if (s.Sclass == SC.parameter)
                 {   refparam = true;
                     reflocal = true;
                 }

@@ -512,7 +512,7 @@ type *type_allocmemptr(Classsym *stag,type *tn)
 {   type *t;
 
     symbol_debug(stag);
-    assert(stag.Sclass == SCstruct || tybasic(stag.Stype.Tty) == TYident);
+    assert(stag.Sclass == SC.struct_ || tybasic(stag.Stype.Tty) == TYident);
     t = type_allocn(TYmemptr,tn);
     t.Ttag = stag;
     //printf("type_allocmemptr() = %p\n", t);
@@ -632,7 +632,7 @@ type *type_function(tym_t tyf, type*[] ptypes, bool variadic, type *tret)
 type *type_enum(const(char)* name, type *tbase)
 {
     Symbol *s = symbol_calloc(name);
-    s.Sclass = SCenum;
+    s.Sclass = SC.enum_;
     s.Senum = cast(enum_t *) MEM_PH_CALLOC(enum_t.sizeof);
     s.Senum.SEflags |= SENforward;        // forward reference
 
@@ -671,7 +671,7 @@ type *type_struct_class(const(char)* name, uint alignsize, uint structsize,
         }
     }
     Symbol *s = symbol_calloc(name);
-    s.Sclass = SCstruct;
+    s.Sclass = SC.struct_;
     s.Sstruct = struct_calloc();
     s.Sstruct.Salignsize = alignsize;
     s.Sstruct.Sstructalign = cast(ubyte)alignsize;
@@ -1693,7 +1693,7 @@ Symbol *param_search(const(char)* name, param_t **pp)
         if (!s)
         {
             s = symbol_calloc(p.Pident);
-            s.Sclass = SCparameter;
+            s.Sclass = SC.parameter;
             s.Stype = p.Ptype;
             s.Stype.Tcount++;
             p.Psym = s;

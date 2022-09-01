@@ -82,7 +82,7 @@ __gshared const   byte[8] regtorm   =   [ -1,-1,-1, 7,-1, 6, 4, 5 ];
 bool regParamInPreg(Symbol* s)
 {
     //printf("regPAramInPreg %s\n", s.Sident.ptr);
-    return (s.Sclass == SCfastpar || s.Sclass == SCshadowreg) &&
+    return (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg) &&
         (!(config.flags4 & CFG4optimized) || !(s.Sflags & GTregcand));
 }
 
@@ -972,7 +972,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                 {
                     if (s.Sfl == FLtlsdata || s.ty() & mTYthread)
                     {
-                        if (s.Sclass == SCglobal || s.Sclass == SCstatic || s.Sclass == SClocstat)
+                        if (s.Sclass == SC.global || s.Sclass == SC.static_ || s.Sclass == SC.locstat)
                             return false;
                     }
                     return true;
@@ -1384,7 +1384,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
             goto L2;
 
         case FLpara:
-            if (s.Sclass == SCshadowreg)
+            if (s.Sclass == SC.shadowreg)
                 goto case FLfast;
         Lpara:
             refparam = true;
@@ -1454,7 +1454,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                         regcon.params &= ~pregm;
                 }
             }
-            if (s.Sclass == SCshadowreg)
+            if (s.Sclass == SC.shadowreg)
                 goto Lpara;
             goto case FLbprel;
 
@@ -1524,8 +1524,8 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                     cgreg_unregister(s.Sregm);
 
                 if (
-                    s.Sclass == SCregpar ||
-                    s.Sclass == SCparameter)
+                    s.Sclass == SC.regpar ||
+                    s.Sclass == SC.parameter)
                 {   refparam = true;
                     reflocal = true;        // kludge to set up prolog
                 }
@@ -1570,7 +1570,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                 else if (I64)
                 {
                     if (config.flags3 & CFG3pie &&
-                        (s.Sclass == SCglobal || s.Sclass == SCstatic || s.Sclass == SClocstat))
+                        (s.Sclass == SC.global || s.Sclass == SC.static_ || s.Sclass == SC.locstat))
                     {
                         pcs.Iflags |= CFfs;
                         pcs.Irm = modregrm(0, 0, 4);
@@ -2110,7 +2110,7 @@ Symbol* symboly(const(char)* name, regm_t desregs)
 {
     Symbol *s = symbol_calloc(name);
     s.Stype = tsclib;
-    s.Sclass = SCextern;
+    s.Sclass = SC.extern_;
     s.Sfl = FLfunc;
     s.Ssymnum = 0;
     s.Sregsaved = ~desregs & (mBP | mES | ALLREGS);
@@ -4824,7 +4824,8 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                     (fl = s.Sfl) != FLfardata &&
                     /* not a function that CS might not be the segment of       */
                     (!((fl == FLfunc || s.ty() & mTYcs) &&
-                      (s.Sclass == SCcomdat || s.Sclass == SCextern || s.Sclass == SCinline || config.wflags & WFthunk)) ||
+                      (s.Sclass == SC.comdat || s.Sclass == SC.extern_ ||
+                       s.Sclass == SC.inline || config.wflags & WFthunk)) ||
                      (fl == FLfunc && config.exe == EX_DOSX)
                     )
                    )

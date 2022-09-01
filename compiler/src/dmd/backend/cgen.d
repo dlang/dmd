@@ -440,7 +440,7 @@ static if (TARGET_SEGMENTED)
 
     if (f.sym.Sxtrnnum == 0)
     {
-        if (f.sym.Sclass == SCstatic)
+        if (f.sym.Sclass == SC.static_)
         {
 version (SCPP)
 {
@@ -466,14 +466,14 @@ else // MARS
         else if (f.sym.Sflags & SFLwasstatic)
         {
             // Put it in BSS
-            f.sym.Sclass = SCstatic;
+            f.sym.Sclass = SC.static_;
             f.sym.Sfl = FLunde;
             f.sym.Sdt = dt_get_nzeros(cast(uint)type_size(f.sym.Stype));
             outdata(f.sym);
         }
-        else if (f.sym.Sclass != SCsinline)
+        else if (f.sym.Sclass != SC.sinline)
         {
-            f.sym.Sclass = SCextern;   /* make it external             */
+            f.sym.Sclass = SC.extern_;   /* make it external             */
             objmod.external(f.sym);
             if (f.sym.Sflags & SFLweak)
                 objmod.wkext(f.sym, null);

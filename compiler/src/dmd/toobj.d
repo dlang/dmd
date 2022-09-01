@@ -94,7 +94,7 @@ void genModuleInfo(Module m)
 
     //////////////////////////////////////////////
 
-    m.csym.Sclass = SCglobal;
+    m.csym.Sclass = SC.global;
     m.csym.Sfl = FLdata;
 
     auto dtb = DtBuilder(0);
@@ -341,7 +341,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             assert(cd.semanticRun >= PASS.semantic3done);     // semantic() should have been run to completion
 
-            SC scclass = SCcomdat;
+            SC scclass = SC.comdat;
 
             // Put out the members
             /* There might be static ctors in the members, and they cannot
@@ -512,10 +512,10 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
                 // Generate static initializer
                 auto sinit = toInitializer(sd);
-                if (sinit.Sclass == SCextern)
+                if (sinit.Sclass == SC.extern_)
                 {
                     if (sinit == bzeroSymbol) assert(0);
-                    sinit.Sclass = sd.isInstantiated() ? SCcomdat : SCglobal;
+                    sinit.Sclass = sd.isInstantiated() ? SC.comdat : SC.global;
                     sinit.Sfl = FLdata;
                     auto dtb = DtBuilder(0);
                     StructDeclaration_toDt(sd, dtb);
@@ -529,7 +529,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                     if (config.objfmt != OBJ_MACH &&
                         dtallzeros(sinit.Sdt))
                     {
-                        sinit.Sclass = SCglobal;
+                        sinit.Sclass = SC.global;
                         dt2common(&sinit.Sdt);
                     }
                     else
@@ -593,12 +593,12 @@ void toObjFile(Dsymbol ds, bool multiobj)
             uint sz = cast(uint)sz64;
 
             Dsymbol parent = vd.toParent();
-            s.Sclass = SCglobal;
+            s.Sclass = SC.global;
 
             /* Make C static functions SCstatic
              */
             if (vd.storage_class & STC.static_ && vd.isCsymbol())
-                s.Sclass = SCstatic;
+                s.Sclass = SC.static_;
 
             do
             {
@@ -608,7 +608,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                  */
                 if (parent.isTemplateInstance() && !parent.isTemplateMixin())
                 {
-                    s.Sclass = SCcomdat;
+                    s.Sclass = SC.comdat;
                     break;
                 }
                 parent = parent.parent;
@@ -649,16 +649,16 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             // See if we can convert a comdat to a comdef,
             // which saves on exe file space.
-            if (s.Sclass == SCcomdat &&
+            if (s.Sclass == SC.comdat &&
                 s.Sdt &&
                 dtallzeros(s.Sdt) &&
                 !vd.isThreadlocal())
             {
-                s.Sclass = SCglobal;
+                s.Sclass = SC.global;
                 dt2common(&s.Sdt);
             }
 
-            if (s.Sclass & SCglobal && s.Stype.Tty & mTYconst)
+            if (s.Sclass & SC.global && s.Stype.Tty & mTYconst)
                 out_readonly(s);
 
             outdata(s);
@@ -697,9 +697,9 @@ void toObjFile(Dsymbol ds, bool multiobj)
             }
             else
             {
-                SC scclass = SCglobal;
+                SC scclass = SC.global;
                 if (ed.isInstantiated())
-                    scclass = SCcomdat;
+                    scclass = SC.comdat;
 
                 // Generate static initializer
                 toInitializer(ed);
@@ -729,7 +729,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             }
 
             Symbol *s = toSymbol(tid);
-            s.Sclass = SCcomdat;
+            s.Sclass = SC.comdat;
             s.Sfl = FLdata;
 
             auto dtb = DtBuilder(0);
@@ -738,10 +738,10 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             // See if we can convert a comdat to a comdef,
             // which saves on exe file space.
-            if (s.Sclass == SCcomdat &&
+            if (s.Sclass == SC.comdat &&
                 dtallzeros(s.Sdt))
             {
-                s.Sclass = SCglobal;
+                s.Sclass = SC.global;
                 dt2common(&s.Sdt);
             }
 
@@ -948,7 +948,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             outdata(tlvInit);
 
             if (target.is64bit)
-                tlvInit.Sclass = SCextern;
+                tlvInit.Sclass = SC.extern_;
 
             Symbol* tlvBootstrap = objmod.tlv_bootstrap();
             dtb.xoff(tlvBootstrap, 0, TYnptr);
@@ -980,7 +980,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             type_setty(&t, t.Tty | mTYthreadData);
             type_setmangle(&t, mangle(vd));
 
-            Symbol *tlvInit = symbol_name(tlvInitName, SCstatic, t);
+            Symbol *tlvInit = symbol_name(tlvInitName, SC.static_, t);
             tlvInit.Sdt = null;
             tlvInit.Salignment = type_alignsize(s.Stype);
             if (vd._linkage == LINK.cpp)
@@ -1197,7 +1197,7 @@ private size_t emitVtbl(ref DtBuilder dtb, BaseClass *b, ref FuncDeclarations bv
 private void genClassInfoForClass(ClassDeclaration cd, Symbol* sinit)
 {
     // Put out the ClassInfo, which will be the __ClassZ symbol in the object file
-    SC scclass = SCcomdat;
+    SC scclass = SC.comdat;
     cd.csym.Sclass = scclass;
     cd.csym.Sfl = FLdata;
 
@@ -1438,7 +1438,7 @@ Louter:
  */
 private void genClassInfoForInterface(InterfaceDeclaration id)
 {
-    SC scclass = SCcomdat;
+    SC scclass = SC.comdat;
 
     // Put out the ClassInfo
     id.csym.Sclass = scclass;

@@ -194,7 +194,7 @@ int cv_namestring(ubyte *p, const(char)* name, int length = -1)
 private int cv_regnum(Symbol *s)
 {
     uint reg = s.Sreglsw;
-    if (s.Sclass == SCpseudo)
+    if (s.Sclass == SC.pseudo)
     {
 version (SCPP)
         reg = pseudoreg[reg];
@@ -813,7 +813,7 @@ private int cv4_methodlist(Symbol *sf,int *pcount)
     mlen = 2;
     for (s = sf; s; s = s.Sfunc.Foversym)
     {
-        if (s.Sclass == SCtypedef || s.Sclass == SCfunctempl)
+        if (s.Sclass == SC.typedef_ || s.Sclass == SC.functempl)
             continue;
         if (s.Sfunc.Fflags & Fnodebug)
             continue;
@@ -833,7 +833,7 @@ private int cv4_methodlist(Symbol *sf,int *pcount)
     p += 2;
     for (s = sf; s; s = s.Sfunc.Foversym)
     {
-        if (s.Sclass == SCtypedef || s.Sclass == SCfunctempl)
+        if (s.Sclass == SC.typedef_ || s.Sclass == SC.functempl)
             continue;
         if (s.Sfunc.Fflags & Fnodebug)
             continue;
@@ -1041,7 +1041,7 @@ version (SCPP)
     len += cv_namestring(d.data.ptr + len,id);
     switch (s.Sclass)
     {
-        case SCstruct:
+        case SC.struct_:
             leaf = LF_STRUCTURE;
             if (st.Sflags & STRunion)
             {   leaf = LF_UNION;
@@ -1203,7 +1203,7 @@ version (SCPP)
     {   Symbol *sf = list_symbol(sl);
 
         symbol_debug(sf);
-        if (sf.Sclass == SCfunctempl)
+        if (sf.Sclass == SC.functempl)
             continue;
         nfields++;
         fnamelen += ((config.fulltypes == CV4) ? 4 : 6) +
@@ -1220,8 +1220,8 @@ version (SCPP)
         const(char)* sfid = sf.Sident.ptr;
         switch (sf.Sclass)
         {
-            case SCmember:
-            case SCfield:
+            case SC.member:
+            case SC.field:
                 if (CPP && sf == s.Sstruct.Svptr)
                     fnamelen += ((config.fulltypes == CV4) ? 4 : 8);
                 else
@@ -1233,7 +1233,7 @@ version (SCPP)
 
 version (SCPP)
 {
-            case SCstruct:
+            case SC.struct_:
                 if (sf.Sstruct.Sflags & STRanonymous)
                     continue;
                 if (sf.Sstruct.Sflags & STRnotagname)
@@ -1241,25 +1241,25 @@ version (SCPP)
                 property |= 0x10;       // class contains nested classes
                 goto Lnest2;
 
-            case SCenum:
+            case SC.enum_:
                 if (sf.Senum.SEflags & SENnotagname)
                     sfid = cpp_name_none.ptr;
                 goto Lnest2;
 
-            case SCtypedef:
+            case SC.typedef_:
             Lnest2:
                 fnamelen += ((config.fulltypes == CV4) ? 4 : 8) +
                             cv_stringbytes(sfid);
                 break;
 
-            case SCextern:
-            case SCcomdef:
-            case SCglobal:
-            case SCstatic:
-            case SCinline:
-            case SCsinline:
-            case SCeinline:
-            case SCcomdat:
+            case SC.extern_:
+            case SC.comdef:
+            case SC.global:
+            case SC.static_:
+            case SC.inline:
+            case SC.sinline:
+            case SC.einline:
+            case SC.comdat:
                 if (tyfunc(sf.ty()))
                 {   Symbol *so;
                     int nfuncs;
@@ -1267,8 +1267,8 @@ version (SCPP)
                     nfuncs = 0;
                     for (so = sf; so; so = so.Sfunc.Foversym)
                     {
-                        if (so.Sclass == SCtypedef ||
-                            so.Sclass == SCfunctempl ||
+                        if (so.Sclass == SC.typedef_ ||
+                            so.Sclass == SC.functempl ||
                             so.Sfunc.Fflags & Fnodebug)       // if compiler generated
                             continue;                   // skip it
                         nfuncs++;
@@ -1423,7 +1423,7 @@ version (SCPP)
     {   Symbol *sf = list_symbol(sl);
 
         symbol_debug(sf);
-        if (sf.Sclass == SCfunctempl)
+        if (sf.Sclass == SC.functempl)
             continue;
         typidx = cv4_symtypidx(sf);
         TOWORD(p,LF_FRIENDFCN);
@@ -1447,7 +1447,7 @@ version (SCPP)
         const(char)* sfid = sf.Sident.ptr;
         switch (sf.Sclass)
         {
-            case SCfield:
+            case SC.field:
             {   debtyp_t *db;
 
                 if (config.fulltypes == CV4)
@@ -1468,7 +1468,7 @@ version (SCPP)
                 goto L3;
             }
 
-            case SCmember:
+            case SC.member:
                 typidx = cv4_symtypidx(sf);
             L3:
 version (SCPP)
@@ -1516,19 +1516,19 @@ else
 
 version (SCPP)
 {
-            case SCstruct:
+            case SC.struct_:
                 if (sf.Sstruct.Sflags & STRanonymous)
                     continue;
                 if (sf.Sstruct.Sflags & STRnotagname)
                     sfid = cpp_name_none.ptr;
                 goto Lnest;
 
-            case SCenum:
+            case SC.enum_:
                 if (sf.Senum.SEflags & SENnotagname)
                     sfid = cpp_name_none.ptr;
                 goto Lnest;
 
-            case SCtypedef:
+            case SC.typedef_:
             Lnest:
                 TOWORD(p,LF_NESTTYPE);
                 typidx = cv4_symtypidx(sf);
@@ -1544,14 +1544,14 @@ version (SCPP)
                 p += cv_namestring(p,sfid);
                 break;
 
-            case SCextern:
-            case SCcomdef:
-            case SCglobal:
-            case SCstatic:
-            case SCinline:
-            case SCsinline:
-            case SCeinline:
-            case SCcomdat:
+            case SC.extern_:
+            case SC.comdef:
+            case SC.global:
+            case SC.static_:
+            case SC.inline:
+            case SC.sinline:
+            case SC.einline:
+            case SC.comdat:
                 if (tyfunc(sf.ty()))
                 {   int count2;
 
@@ -2472,7 +2472,7 @@ version (MARS)
     t = s.Stype;
     type_debug(t);
     tym = tybasic(t.Tty);
-    if (tyfunc(tym) && s.Sclass != SCtypedef)
+    if (tyfunc(tym) && s.Sclass != SC.typedef_)
     {   int framedatum,targetdatum,fd;
         char idfree;
         idx_t typidx;
@@ -2510,7 +2510,7 @@ else
         memset(debsym,0,length + len);
 
         // Symbol type
-        u = (s.Sclass == SCstatic) ? S_LPROC16 : S_GPROC16;
+        u = (s.Sclass == SC.static_) ? S_LPROC16 : S_GPROC16;
         if (I32)
             u += S_GPROC32 - S_GPROC16;
         TOWORD(debsym + 2,u);
@@ -2588,8 +2588,8 @@ else
         assert(debsym);
         switch (s.Sclass)
         {
-            case SCparameter:
-            case SCregpar:
+            case SC.parameter:
+            case SC.regpar:
                 if (s.Sfl == FLreg)
                 {
                     s.Sfl = FLpara;
@@ -2600,7 +2600,7 @@ else
                 base = Para.size - BPoff;    // cancel out add of BPoff
                 goto L1;
 
-            case SCauto:
+            case SC.auto_:
                 if (s.Sfl == FLreg)
                     goto case_register;
             case_auto:
@@ -2622,23 +2622,23 @@ else
                 TOWORD(debsym,length - 2);
                 break;
 
-            case SCbprel:
+            case SC.bprel:
                 base = -BPoff;
                 goto L1;
 
-            case SCfastpar:
+            case SC.fastpar:
                 if (s.Sfl != FLreg)
                 {   base = Fast.size;
                     goto L1;
                 }
                 goto case_register;
 
-            case SCregister:
+            case SC.register:
                 if (s.Sfl != FLreg)
                     goto case_auto;
                 goto case_register;
 
-            case SCpseudo:
+            case SC.pseudo:
             case_register:
                 TOWORD(debsym + 2,S_REGISTER);
                 reg = cv_regnum(s);
@@ -2649,21 +2649,21 @@ else
                 TOWORD(debsym,length - 2);
                 break;
 
-            case SCextern:
-            case SCcomdef:
+            case SC.extern_:
+            case SC.comdef:
                 // Common blocks have a non-zero Sxtrnnum and an UNKNOWN seg
                 if (!(s.Sxtrnnum && s.Sseg == UNKNOWN)) // if it's not really a common block
                 {
                         goto Lret;
                 }
                 goto case;
-            case SCglobal:
-            case SCcomdat:
+            case SC.global:
+            case SC.comdat:
                 u = S_GDATA16;
                 goto L2;
 
-            case SCstatic:
-            case SClocstat:
+            case SC.static_:
+            case SC.locstat:
                 u = S_LDATA16;
             L2:
                 if (I32)
@@ -2690,7 +2690,7 @@ else
                 TOWORD(debsym,length - 2);
                 assert(length <= 40 + len);
 
-                if (s.Sseg == UNKNOWN || s.Sclass == SCcomdat) // if common block
+                if (s.Sseg == UNKNOWN || s.Sclass == SC.comdat) // if common block
                 {
                     if (config.exe & EX_flat)
                     {
@@ -2729,17 +2729,17 @@ else
 
 static if (1)
 {
-            case SCtypedef:
+            case SC.typedef_:
                 s.Stypidx = typidx;
                 reset_symbuf.write((&s)[0 .. 1]);
                 goto L4;
 
-            case SCstruct:
+            case SC.struct_:
                 if (s.Sstruct.Sflags & STRnotagname)
                     goto Lret;
                 goto L4;
 
-            case SCenum:
+            case SC.enum_:
 version (SCPP)
 {
                 if (CPP && s.Senum.SEflags & SENnotagname)
@@ -2755,7 +2755,7 @@ version (SCPP)
                 list_subtract(&cgcv.list,s);
                 break;
 
-            case SCconst:
+            case SC.const_:
                 // The only constants are enum members
                 value = cast(uint)el_tolongt(s.Svalue);
                 TOWORD(debsym + 2,S_CONST);

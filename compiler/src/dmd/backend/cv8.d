@@ -63,15 +63,15 @@ private bool symbol_iscomdat4(Symbol* s)
 {
     version (MARS)
     {
-        return s.Sclass == SCcomdat ||
-            config.flags2 & CFG2comdat && s.Sclass == SCinline ||
-            config.flags4 & CFG4allcomdat && s.Sclass == SCglobal;
+        return s.Sclass == SC.comdat ||
+            config.flags2 & CFG2comdat && s.Sclass == SC.inline ||
+            config.flags4 & CFG4allcomdat && s.Sclass == SC.global;
     }
     else
     {
-        return s.Sclass == SCcomdat ||
-            config.flags2 & CFG2comdat && s.Sclass == SCinline ||
-            config.flags4 & CFG4allcomdat && (s.Sclass == SCglobal || s.Sclass == SCstatic);
+        return s.Sclass == SC.comdat ||
+            config.flags2 & CFG2comdat && s.Sclass == SC.inline ||
+            config.flags4 & CFG4allcomdat && (s.Sclass == SC.global || s.Sclass == SC.static_);
     }
 }
 
@@ -442,7 +442,7 @@ void cv8_func_term(Symbol *sfunc)
     auto buf = currentfuncdata.f1buf;
     buf.reserve(cast(uint)(2 + 2 + 4 * 7 + 6 + 1 + len + 1));
     buf.write16n(cast(int)(2 + 4 * 7 + 6 + 1 + len + 1));
-    buf.write16n(sfunc.Sclass == SCstatic ? S_LPROC_V3 : S_GPROC_V3);
+    buf.write16n(sfunc.Sclass == SC.static_ ? S_LPROC_V3 : S_GPROC_V3);
     buf.write32(0);            // parent
     buf.write32(0);            // pend
     buf.write32(0);            // pnext
@@ -719,9 +719,9 @@ void cv8_outsym(Symbol *s)
     uint base;
     switch (s.Sclass)
     {
-        case SCparameter:
-        case SCregpar:
-        case SCshadowreg:
+        case SC.parameter:
+        case SC.regpar:
+        case SC.shadowreg:
             if (s.Sfl == FLreg)
             {
                 s.Sfl = FLpara;
@@ -732,7 +732,7 @@ void cv8_outsym(Symbol *s)
             base = cast(uint)(Para.size - BPoff);    // cancel out add of BPoff
             goto L1;
 
-        case SCauto:
+        case SC.auto_:
             if (s.Sfl == FLreg)
                 goto case_register;
         case_auto:
@@ -765,23 +765,23 @@ else
 }
             break;
 
-        case SCbprel:
+        case SC.bprel:
             base = -BPoff;
             goto L1;
 
-        case SCfastpar:
+        case SC.fastpar:
             if (s.Sfl != FLreg)
             {   base = cast(uint)Fast.size;
                 goto L1;
             }
             goto L2;
 
-        case SCregister:
+        case SC.register:
             if (s.Sfl != FLreg)
                 goto case_auto;
             goto case;
 
-        case SCpseudo:
+        case SC.pseudo:
         case_register:
         L2:
             buf.reserve(cast(uint)(2 + 2 + 4 + 2 + len + 1));
@@ -793,17 +793,17 @@ else
             buf.writeByte(0);
             break;
 
-        case SCextern:
+        case SC.extern_:
             break;
 
-        case SCstatic:
-        case SClocstat:
+        case SC.static_:
+        case SC.locstat:
             sr = S_LDATA_V3;
             goto Ldata;
 
-        case SCglobal:
-        case SCcomdat:
-        case SCcomdef:
+        case SC.global:
+        case SC.comdat:
+        case SC.comdef:
             sr = S_GDATA_V3;
         Ldata:
             /*

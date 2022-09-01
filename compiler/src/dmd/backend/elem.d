@@ -561,7 +561,7 @@ elem * el_alloctmp(tym_t ty)
         assert(!PARSER);
 
     Symbol *s;
-    s = symbol_generate(SCauto,type_fake(ty));
+    s = symbol_generate(SC.auto_,type_fake(ty));
     symbol_add(s);
     s.Sfl = FLauto;
     s.Sflags = SFLfree | SFLunambig | GTregcand;
@@ -1630,7 +1630,7 @@ elem *el_convstring(elem *e)
         (tyfv(e.Ety) && config.flags3 & CFG3strcod))
     {
         assert(config.objfmt == OBJ_OMF);         // option not done yet for others
-        s = symbol_generate(SCstatic, type_fake(mTYcs | e.Ety));
+        s = symbol_generate(SC.static_, type_fake(mTYcs | e.Ety));
         s.Sfl = FLcsdata;
         s.Soffset = Offset(cseg);
         s.Sseg = cseg;
@@ -1915,10 +1915,10 @@ elem *el_ctor_dtor(elem *ec, elem *ed, elem **pedtor)
          * Use volatile to prevent optimizer from messing them up, since optimizer doesn't know about
          * landing pads (the landing pad will be on the OPddtor's EV.ed.Eleft)
          */
-        Symbol *sflag = symbol_name("__flag", SCauto, type_fake(mTYvolatile | TYbool));
-        Symbol *sreg = symbol_name("__EAX", SCpseudo, type_fake(mTYvolatile | TYnptr));
+        Symbol *sflag = symbol_name("__flag", SC.auto_, type_fake(mTYvolatile | TYbool));
+        Symbol *sreg = symbol_name("__EAX", SC.pseudo, type_fake(mTYvolatile | TYnptr));
         sreg.Sreglsw = 0;          // EAX, RAX, whatevs
-        Symbol *seo = symbol_name("__exception_object", SCauto, tspvoid);
+        Symbol *seo = symbol_name("__exception_object", SC.auto_, tspvoid);
 
         symbol_add(sflag);
         symbol_add(sreg);

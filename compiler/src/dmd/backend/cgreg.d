@@ -125,7 +125,7 @@ void cgreg_init()
 
         switch (s.Sclass)
         {
-            case SCparameter:
+            case SC.parameter:
                 // Do not put parameters in registers if they are not used
                 // more than twice (otherwise we have a net loss).
                 if (s.Sweight <= 2 && !tyxmmreg(s.ty()))
@@ -300,7 +300,7 @@ static if (1) // causes assert failure in std.range(4488) from std.parallelism's
 {
       // (it works now - but keep an eye on it for the moment)
     // If s is passed in a register to the function, favor that register
-    if ((s.Sclass == SCfastpar || s.Sclass == SCshadowreg) && s.Spreg == reg)
+    if ((s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg) && s.Spreg == reg)
         ++benefit;
 }
 
@@ -575,7 +575,7 @@ void cgreg_spillreg_prolog(block *b,Symbol *s,ref CodeBuilder cdbstore,ref CodeB
     // If it's startblock, and it's a spilled parameter, we
     // need to load it
     if (live && s.Sflags & SFLspill && bi == 0 &&
-        (s.Sclass == SCparameter || s.Sclass == SCfastpar || s.Sclass == SCshadowreg))
+        (s.Sclass == SC.parameter || s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg))
     {
         return load();
     }
@@ -684,24 +684,24 @@ private void cgreg_map(Symbol *s, reg_t regmsw, reg_t reglsw)
         {
             switch (s.Sclass)
             {
-                case SCauto:
-                case SCregister:
+                case SC.auto_:
+                case SC.register:
                     s.Sfl = FLauto;
                     break;
-                case SCfastpar:
+                case SC.fastpar:
                     s.Sfl = FLfast;
                     break;
-                case SCbprel:
+                case SC.bprel:
                     s.Sfl = FLbprel;
                     break;
-                case SCshadowreg:
-                case SCparameter:
+                case SC.shadowreg:
+                case SC.parameter:
                     s.Sfl = FLpara;
                     break;
-                case SCpseudo:
+                case SC.pseudo:
                     s.Sfl = FLpseudo;
                     break;
-                case SCstack:
+                case SC.stack:
                     s.Sfl = FLstack;
                     break;
                 default:
@@ -812,24 +812,24 @@ int cgreg_assign(Symbol *retsym)
             {
                 switch (s.Sclass)
                 {
-                    case SCauto:
-                    case SCregister:
+                    case SC.auto_:
+                    case SC.register:
                         s.Sfl = FLauto;
                         break;
-                    case SCfastpar:
+                    case SC.fastpar:
                         s.Sfl = FLfast;
                         break;
-                    case SCbprel:
+                    case SC.bprel:
                         s.Sfl = FLbprel;
                         break;
-                    case SCshadowreg:
-                    case SCparameter:
+                    case SC.shadowreg:
+                    case SC.parameter:
                         s.Sfl = FLpara;
                         break;
-                    case SCpseudo:
+                    case SC.pseudo:
                         s.Sfl = FLpseudo;
                         break;
-                    case SCstack:
+                    case SC.stack:
                         s.Sfl = FLstack;
                         break;
                     default:
@@ -853,7 +853,7 @@ int cgreg_assign(Symbol *retsym)
     regm_t regparams = 0;
     for (size_t si = 0; si < globsym.length; si++)
     {   Symbol *s = globsym[si];
-        if (s.Sclass == SCfastpar || s.Sclass == SCshadowreg)
+        if (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg)
             regparams |= s.Spregm();
     }
 
@@ -942,7 +942,7 @@ static if (0 && TARGET_LINUX)
              */
             if (variadicPrologRegs & (1 << reg))
             {
-                if (s.Sclass == SCparameter || s.Sclass == SCfastpar)
+                if (s.Sclass == SC.parameter || s.Sclass == SC.fastpar)
                     continue;
                 /* Win64 doesn't use the Posix variadic scheme, so we can skip SCshadowreg
                  */
@@ -950,7 +950,7 @@ static if (0 && TARGET_LINUX)
 
             /* Don't assign register parameter to another register parameter
              */
-            if ((s.Sclass == SCfastpar || s.Sclass == SCshadowreg) &&
+            if ((s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg) &&
                 (1 << reg) & regparams &&
                 reg != s.Spreg)
                 continue;
@@ -981,7 +981,7 @@ static if (0 && TARGET_LINUX)
                             goto Ltried;                // tried and failed to assign MSW
                         if (regmsw == reg)              // can't assign msw and lsw to same reg
                             continue;
-                        if ((s.Sclass == SCfastpar || s.Sclass == SCshadowreg) &&
+                        if ((s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg) &&
                             (1 << regmsw) & regparams &&
                             regmsw != s.Spreg2)
                             continue;

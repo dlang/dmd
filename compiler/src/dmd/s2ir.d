@@ -969,15 +969,15 @@ private extern (C++) class S2irVisitor : Visitor
              *          HALT
              */
             // volatile so optimizer won't delete it
-            Symbol *seax = symbol_name("__EAX", SCpseudo, type_fake(mTYvolatile | TYnptr));
+            Symbol *seax = symbol_name("__EAX", SC.pseudo, type_fake(mTYvolatile | TYnptr));
             seax.Sreglsw = 0;          // EAX, RAX, whatevs
             symbol_add(seax);
-            Symbol *sedx = symbol_name("__EDX", SCpseudo, type_fake(mTYvolatile | TYint));
+            Symbol *sedx = symbol_name("__EDX", SC.pseudo, type_fake(mTYvolatile | TYint));
             sedx.Sreglsw = 2;          // EDX, RDX, whatevs
             symbol_add(sedx);
-            Symbol *shandler = symbol_name("__handler", SCauto, tstypes[TYint]);
+            Symbol *shandler = symbol_name("__handler", SC.auto_, tstypes[TYint]);
             symbol_add(shandler);
-            Symbol *seo = symbol_name("__exception_object", SCauto, tspvoid);
+            Symbol *seo = symbol_name("__exception_object", SC.auto_, tspvoid);
             symbol_add(seo);
 
             elem *e1 = el_bin(OPeq, TYvoid, el_var(shandler), el_var(sedx)); // __handler = __RDX
@@ -1253,7 +1253,7 @@ private extern (C++) class S2irVisitor : Visitor
 
             /* Declare flag variable
              */
-            Symbol *sflag = symbol_name("__flag", SCauto, tstypes[TYint]);
+            Symbol *sflag = symbol_name("__flag", SC.auto_, tstypes[TYint]);
             symbol_add(sflag);
             finallyblock.flag = sflag;
             finallyblock.b_ret = retblock;
@@ -1264,10 +1264,10 @@ private extern (C++) class S2irVisitor : Visitor
              *  _flag = 0;
              */
             // Make it volatile so optimizer won't delete it
-            Symbol *sreg = symbol_name("__EAX", SCpseudo, type_fake(mTYvolatile | TYnptr));
+            Symbol *sreg = symbol_name("__EAX", SC.pseudo, type_fake(mTYvolatile | TYnptr));
             sreg.Sreglsw = 0;          // EAX, RAX, whatevs
             symbol_add(sreg);
-            Symbol *seo = symbol_name("__exception_object", SCauto, tspvoid);
+            Symbol *seo = symbol_name("__exception_object", SC.auto_, tspvoid);
             symbol_add(seo);
             assert(!landingPad.Belem);
             elem *e = el_bin(OPeq, TYvoid, el_var(seo), el_var(sreg));
@@ -1337,7 +1337,7 @@ private extern (C++) class S2irVisitor : Visitor
 
             /* Declare flag variable
              */
-            Symbol *sflag = symbol_name("__flag", SCauto, tstypes[TYint]);
+            Symbol *sflag = symbol_name("__flag", SC.auto_, tstypes[TYint]);
             symbol_add(sflag);
             finallyblock.flag = sflag;
             finallyblock.b_ret = retblock;
@@ -1471,7 +1471,7 @@ private extern (C++) class S2irVisitor : Visitor
                 case FLdsymbol:
                 case FLfunc:
                     sym = toSymbol(cast(Dsymbol)c.IEV1.Vdsym);
-                    if (sym.Sclass == SCauto && sym.Ssymnum == SYMIDX.max)
+                    if (sym.Sclass == SC.auto_ && sym.Ssymnum == SYMIDX.max)
                         symbol_add(sym);
                     c.IEV1.Vsym = sym;
                     c.IFL1 = sym.Sfl ? sym.Sfl : FLauto;
@@ -1499,7 +1499,7 @@ private extern (C++) class S2irVisitor : Visitor
                 {
                     Declaration d = cast(Declaration)c.IEV2.Vdsym;
                     sym = toSymbol(cast(Dsymbol)d);
-                    if (sym.Sclass == SCauto && sym.Ssymnum == SYMIDX.max)
+                    if (sym.Sclass == SC.auto_ && sym.Ssymnum == SYMIDX.max)
                         symbol_add(sym);
                     c.IEV2.Vsym = sym;
                     c.IFL2 = sym.Sfl ? sym.Sfl : FLauto;

@@ -583,7 +583,7 @@ void build_syment_table(bool bigobj)
         sym.Value = 0;
         switch (s.Sclass)
         {
-            case SCextern:
+            case SC.extern_:
                 sym.SectionNumber = IMAGE_SYM_UNDEFINED;
                 break;
 
@@ -594,11 +594,11 @@ void build_syment_table(bool bigobj)
         sym.Type = tyfunc(s.Stype.Tty) ? 0x20 : 0;
         switch (s.Sclass)
         {
-            case SCstatic:
+            case SC.static_:
                 if (s.Sflags & SFLhidden)
                     goto default;
                 goto case;
-            case SClocstat:
+            case SC.locstat:
                 sym.StorageClass = IMAGE_SYM_CLASS_STATIC;
                 sym.Value = cast(uint)s.Soffset;
                 break;
@@ -1228,7 +1228,7 @@ private void emitSectionBrace(const(char)* segname, const(char)* symname, int at
     /* Create symbol sym_beg that sits just before the .seg$B section
      */
     strcat(strcpy(name.ptr, symname), "_beg");
-    Symbol *beg = symbol_name(name.ptr, SCglobal, tspvoid);
+    Symbol *beg = symbol_name(name.ptr, SC.global, tspvoid);
     beg.Sseg = seg_bg;
     beg.Soffset = 0;
     symbuf.write((&beg)[0 .. 1]);
@@ -1238,7 +1238,7 @@ private void emitSectionBrace(const(char)* segname, const(char)* symname, int at
     /* Create symbol sym_end that sits just after the .seg$B section
      */
     strcat(strcpy(name.ptr, symname), "_end");
-    Symbol *end = symbol_name(name.ptr, SCglobal, tspvoid);
+    Symbol *end = symbol_name(name.ptr, SC.global, tspvoid);
     end.Sseg = seg_en;
     end.Soffset = 0;
     symbuf.write((&end)[0 .. 1]);
@@ -1286,7 +1286,7 @@ static if (0)
 
     /* Create symbol _minfo_beg that sits just before the .tls$AAB section
      */
-    Symbol *minfo_beg = symbol_name("_tlsstart", SCglobal, tspvoid);
+    Symbol *minfo_beg = symbol_name("_tlsstart", SC.global, tspvoid);
     minfo_beg.Sseg = segbg;
     minfo_beg.Soffset = 0;
     symbuf.write((&minfo_beg)[0 .. 1]);
@@ -1294,7 +1294,7 @@ static if (0)
 
     /* Create symbol _minfo_end that sits just after the .tls$AAB section
      */
-    Symbol *minfo_end = symbol_name("_tlsend", SCglobal, tspvoid);
+    Symbol *minfo_end = symbol_name("_tlsend", SC.global, tspvoid);
     minfo_end.Sseg = segen;
     minfo_end.Soffset = 0;
     symbuf.write((&minfo_end)[0 .. 1]);
@@ -1917,12 +1917,12 @@ void MsCoffObj_pubdef(segidx_t seg, Symbol *s, targ_size_t offset)
     s.Sseg = seg;
     switch (s.Sclass)
     {
-        case SCglobal:
-        case SCinline:
+        case SC.global:
+        case SC.inline:
             symbuf.write((&s)[0 .. 1]);
             break;
-        case SCcomdat:
-        case SCcomdef:
+        case SC.comdat:
+        case SC.comdef:
             symbuf.write((&s)[0 .. 1]);
             break;
         default:
@@ -1953,7 +1953,7 @@ int MsCoffObj_external_def(const(char)* name)
 {
     //printf("MsCoffObj_external_def('%s')\n",name);
     assert(name);
-    Symbol *s = symbol_name(name, SCextern, tspvoid);
+    Symbol *s = symbol_name(name, SC.extern_, tspvoid);
     symbuf.write((&s)[0 .. 1]);
     return 0;
 }
@@ -2144,7 +2144,7 @@ void MsCoffObj_addrel(segidx_t seg, targ_size_t offset, Symbol *targsym,
     //printf("addrel()\n");
     if (!targsym)
     {   // Generate one
-        targsym = symbol_generate(SCstatic, tstypes[TYint]);
+        targsym = symbol_generate(SC.static_, tstypes[TYint]);
         targsym.Sseg = targseg;
         targsym.Soffset = val;
         symbuf.write((&targsym)[0 .. 1]);
@@ -2288,7 +2288,7 @@ static if (0)
     //symbol_print(s);
 }
     assert(seg > 0);
-    if (s.Sclass != SClocstat && !s.Sxtrnnum)
+    if (s.Sclass != SC.locstat && !s.Sxtrnnum)
     {   // It may get defined later as public or local, so defer
         size_t numbyteswritten = addtofixlist(s, offset, seg, val, flags);
         assert(numbyteswritten == refsize);
@@ -2329,7 +2329,8 @@ static if (0)
                 MsCoffObj_addrel(seg, offset, null, jumpTableSeg, RELrel, 0);
             }
             else if (SegData[seg].isCode() &&
-                    ((s.Sclass != SCextern && SegData[s.Sseg].isCode()) || s.Sclass == SClocstat || s.Sclass == SCstatic))
+                    ((s.Sclass != SC.extern_ && SegData[s.Sseg].isCode()) || s.Sclass == SC.locstat ||
+                     s.Sclass == SC.static_))
             {
                 val += s.Soffset;
                 MsCoffObj_addrel(seg, offset, null, s.Sseg, RELaddr, 0);

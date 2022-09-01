@@ -267,7 +267,7 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
             }
 
             si = symbol_calloc(buf.peekChars(), cast(uint)buf.length);
-            si.Sclass = SCcomdat;
+            si.Sclass = SC.comdat;
             si.Stype = type_static_array(cast(uint)(len * sz), tstypes[TYchar]);
             si.Stype.Tcount++;
             type_setmangle(&si.Stype, mTYman_c);
@@ -576,7 +576,7 @@ elem* toElem(Expression e, IRState *irs)
         if (nrvo)
             s = fd.shidden;
 
-        if (s.Sclass == SCauto || s.Sclass == SCparameter || s.Sclass == SCshadowreg)
+        if (s.Sclass == SC.auto_ || s.Sclass == SC.parameter || s.Sclass == SC.shadowreg)
         {
             if (fd && fd != irs.getFunc())
             {
@@ -672,7 +672,7 @@ elem* toElem(Expression e, IRState *irs)
             goto L1;
         }
 
-        if (s.Sclass == SCauto && s.Ssymnum == SYMIDX.max)
+        if (s.Sclass == SC.auto_ && s.Ssymnum == SYMIDX.max)
         {
             //printf("\tadding symbol %s\n", s.Sident);
             symbol_add(s);

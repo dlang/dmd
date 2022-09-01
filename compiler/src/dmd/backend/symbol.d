@@ -126,7 +126,7 @@ version (SCPP_HTOD)
         printf(" Sscope = '%s'\n",s.Sscope.Sident.ptr);
     if (s.Stype)
         type_print(s.Stype);
-    if (s.Sclass == SCmember || s.Sclass == SCfield)
+    if (s.Sclass == SC.member || s.Sclass == SC.field)
     {
         printf("  Smemoff =%5lld", cast(long)s.Smemoff);
         printf("  Sbit    =%3d",s.Sbit);
@@ -134,7 +134,7 @@ version (SCPP_HTOD)
     }
 version (SCPP_HTOD)
 {
-    if (s.Sclass == SCstruct)
+    if (s.Sclass == SC.struct_)
     {
         printf("  Svbptr = %p, Svptr = %p\n",s.Sstruct.Svbptr,s.Sstruct.Svptr);
     }
@@ -186,7 +186,7 @@ int Symbol_Salignsize(ref Symbol s)
      * are reinterpreted cast to other types with less alignment.
      */
     if (config.fpxmmregs && alignsize < 16 &&
-        s.Sclass == SCauto &&
+        s.Sclass == SC.auto_ &&
         type_size(s.Stype) == 16)
     {
         alignsize = 16;
@@ -237,7 +237,7 @@ int Symbol_needThis(const ref Symbol s)
 
     debug assert(isclassmember(&s));
 
-    if (s.Sclass == SCmember || s.Sclass == SCfield)
+    if (s.Sclass == SC.member || s.Sclass == SC.field)
         return 1;
     if (tyfunc(s.Stype.Tty) && !(s.Sfunc.Fflags & Fstatic))
         return 1;
@@ -293,13 +293,13 @@ version (SCPP_HTOD)
 {
     __gshared char* noname = cast(char*)"__unnamed".ptr;
     switch (s.Sclass)
-    {   case SCstruct:
+    {   case SC.struct_:
             if (s.Sstruct.Salias)
                 return s.Sstruct.Salias.Sident.ptr;
             else if (s.Sstruct.Sflags & STRnotagname)
                 return noname;
             break;
-        case SCenum:
+        case SC.enum_:
             if (CPP)
             {   if (s.Senum.SEalias)
                     return s.Senum.SEalias.Sident.ptr;
@@ -308,7 +308,7 @@ version (SCPP_HTOD)
             }
             break;
 
-        case SCnamespace:
+        case SC.namespace:
             if (s.Sident[0] == '?' && s.Sident.ptr[1] == '%')
                 return cast(char*)"unique".ptr;        // an unnamed namespace
             break;
@@ -388,9 +388,9 @@ Funcsym *symbol_funcalias(Funcsym *sf)
 
     symbol_debug(sf);
     assert(tyfunc(sf.Stype.Tty));
-    if (sf.Sclass == SCfuncalias)
+    if (sf.Sclass == SC.funcalias)
         sf = sf.Sfunc.Falias;
-    s = cast(Funcsym *)symbol_name(sf.Sident.ptr,SCfuncalias,sf.Stype);
+    s = cast(Funcsym *)symbol_name(sf.Sident.ptr,SC.funcalias,sf.Stype);
     s.Sfunc.Falias = sf;
 
 version (SCPP_HTOD)
@@ -427,7 +427,7 @@ version (MARS)
 Symbol * symbol_genauto(type *t)
 {   Symbol *s;
 
-    s = symbol_generate(SCauto,t);
+    s = symbol_generate(SC.auto_,t);
 version (SCPP_HTOD)
 {
     //printf("symbol_genauto(t) '%s'\n", s.Sident.ptr);
@@ -506,7 +506,7 @@ void symbol_func(Symbol *s)
 @trusted
 void symbol_struct_addField(Symbol *s, const(char)* name, type *t, uint offset)
 {
-    Symbol *s2 = symbol_name(name, SCmember, t);
+    Symbol *s2 = symbol_name(name, SC.member, t);
     s2.Smemoff = offset;
     list_append(&s.Sstruct.Sfldlst, s2);
 }
@@ -526,7 +526,7 @@ void symbol_struct_addField(Symbol *s, const(char)* name, type *t, uint offset)
 void symbol_struct_addBitField(Symbol *s, const(char)* name, type *t, uint offset, uint fieldWidth, uint bitOffset)
 {
     //printf("symbol_struct_addBitField() s: %s\n", s.Sident.ptr);
-    Symbol *s2 = symbol_name(name, SCfield, t);
+    Symbol *s2 = symbol_name(name, SC.field, t);
     s2.Smemoff = offset;
     s2.Swidth = cast(ubyte)fieldWidth;
     s2.Sbit = cast(ubyte)bitOffset;
@@ -649,7 +649,7 @@ debug
                 {   Symbol *s2;
 
                     switch (rover.Sclass)
-                    {   case SCstruct:
+                    {   case SC.struct_:
                             s2 = rover;
                             goto case_struct;
 
@@ -672,20 +672,20 @@ debug
                             rover.Sl = rover.Sr = null;
                             return;
 
-                        case SCenum:
+                        case SC.enum_:
                             s2 = rover;
                             goto case_cover;
 
-                        case SCtemplate:
+                        case SC.template_:
                             s2 = rover;
                             s2.Stemplate.TMflags |= STRnoctor;
                             goto case_cover;
 
-                        case SCalias:
+                        case SC.alias_:
                             s2 = rover.Smemalias;
-                            if (s2.Sclass == SCstruct)
+                            if (s2.Sclass == SC.struct_)
                                 goto case_struct;
-                            if (s2.Sclass == SCenum)
+                            if (s2.Sclass == SC.enum_)
                                 goto case_cover;
                             break;
 
@@ -918,7 +918,7 @@ debug
         if (debugy)
             printf("symbol_free('%s',%p)\n",s.Sident.ptr,s);
         symbol_debug(s);
-        assert(/*s.Sclass != SCunde &&*/ cast(int) s.Sclass < cast(int) SCMAX);
+        assert(/*s.Sclass != SC.unde &&*/ cast(int) s.Sclass < cast(int) SCMAX);
 }
         {   type *t = s.Stype;
 
@@ -990,12 +990,12 @@ version (SCPP_HTOD)
             {
 version (SCPP_HTOD)
 {
-                case SClabel:
+                case SC.label:
                     if (!s.Slabel)
                         synerr(EM_unknown_label,s.Sident.ptr);
                     break;
 }
-                case SCstruct:
+                case SC.struct_:
 version (SCPP_HTOD)
 {
                   if (CPP)
@@ -1051,7 +1051,7 @@ static if (0)       /* Don't complain anymore about these, ANSI C says  */
                         synerr(EM_unknown_tag,s.Sident.ptr);
 }
                     break;
-                case SCenum:
+                case SC.enum_:
                     /* The actual member symbols are either in a local  */
                     /* table or on the member list of a class, so we    */
                     /* don't free them here.                            */
@@ -1063,7 +1063,7 @@ static if (0)       /* Don't complain anymore about these, ANSI C says  */
 
 version (SCPP_HTOD)
 {
-                case SCtemplate:
+                case SC.template_:
                 {   template_t *tm = s.Stemplate;
 
                     list_free(&tm.TMinstances,FPNULL);
@@ -1079,28 +1079,28 @@ version (SCPP_HTOD)
                     MEM_PH_FREE(tm);
                     break;
                 }
-                case SCnamespace:
+                case SC.namespace:
                     symbol_free(s.Snameroot);
                     list_free(&s.Susing,FPNULL);
                     break;
 
-                case SCmemalias:
-                case SCfuncalias:
-                case SCadl:
+                case SC.memalias:
+                case SC.funcalias:
+                case SC.adl:
                     list_free(&s.Spath,FPNULL);
                     break;
 }
-                case SCparameter:
-                case SCregpar:
-                case SCfastpar:
-                case SCshadowreg:
-                case SCregister:
-                case SCauto:
+                case SC.parameter:
+                case SC.regpar:
+                case SC.fastpar:
+                case SC.shadowreg:
+                case SC.register:
+                case SC.auto_:
                     vec_free(s.Srange);
 static if (0)
 {
-                    goto case SCconst;
-                case SCconst:
+                    goto case SC.const_;
+                case SC.const_:
                     if (s.Sflags & (SFLvalue | SFLdtorexp))
                         el_free(s.Svalue);
 }
@@ -1139,7 +1139,7 @@ static if (0)
 {
 private void symbol_undef(Symbol *s)
 {
-  s.Sclass = SCunde;
+  s.Sclass = SC.unde;
   s.Ssymnum = SYMIDX.max;
   type_free(s.Stype);                  /* free type data               */
   s.Stype = null;
@@ -1447,7 +1447,7 @@ Symbol *symbol_hydrate(Symbol **ps)
             symbol_hydrate(&s.Sscope);
         switch (s.Sclass)
         {
-            case SCstruct:
+            case SC.struct_:
               if (CPP)
               {
                 st = cast(struct_t *) ph_hydrate(cast(void**)&s.Sstruct);
@@ -1498,7 +1498,7 @@ Symbol *symbol_hydrate(Symbol **ps)
               }
                 break;
 
-            case SCenum:
+            case SC.enum_:
                 assert(s.Senum);
                 ph_hydrate(cast(void**)&s.Senum);
                 if (CPP)
@@ -1507,7 +1507,7 @@ Symbol *symbol_hydrate(Symbol **ps)
                 }
                 break;
 
-            case SCtemplate:
+            case SC.template_:
             {   template_t *tm;
 
                 tm = cast(template_t *) ph_hydrate(cast(void**)&s.Stemplate);
@@ -1526,18 +1526,18 @@ Symbol *symbol_hydrate(Symbol **ps)
                 break;
             }
 
-            case SCnamespace:
+            case SC.namespace:
                 symbol_tree_hydrate(&s.Snameroot);
                 list_hydrate(&s.Susing,cast(list_free_fp)&symbol_hydrate);
                 break;
 
-            case SCmemalias:
-            case SCfuncalias:
-            case SCadl:
+            case SC.memalias:
+            case SC.funcalias:
+            case SC.adl:
                 list_hydrate(&s.Spath,cast(list_free_fp)&symbol_hydrate);
-                goto case SCalias;
+                goto case SC.alias_;
 
-            case SCalias:
+            case SC.alias_:
                 ph_hydrate(cast(void**)&s.Smemalias);
                 break;
 
@@ -1644,7 +1644,7 @@ else
             el_dehydrate(&f.Fbaseinit);
 version (DEBUG_XSYMGEN)
 {
-            if (xsym_gen && s.Sclass == SCfunctempl)
+            if (xsym_gen && s.Sclass == SC.functempl)
                 ph_dehydrate(&f.Fbody);
             else
                 token_dehydrate(&f.Fbody);
@@ -1673,7 +1673,7 @@ else
             ph_dehydrate(&s.Sscope);
         switch (s.Sclass)
         {
-            case SCstruct:
+            case SC.struct_:
               if (CPP)
               {
                 st = s.Sstruct;
@@ -1727,7 +1727,7 @@ else
               }
                 break;
 
-            case SCenum:
+            case SC.enum_:
                 assert(s.Senum);
                 if (!isdehydrated(s.Senum))
                 {
@@ -1739,7 +1739,7 @@ else
                 }
                 break;
 
-            case SCtemplate:
+            case SC.template_:
             {   template_t *tm;
 
                 tm = s.Stemplate;
@@ -1762,16 +1762,16 @@ else
                 break;
             }
 
-            case SCnamespace:
+            case SC.namespace_:
                 symbol_tree_dehydrate(&s.Snameroot);
                 list_dehydrate(&s.Susing,cast(list_free_fp)&symbol_dehydrate);
                 break;
 
-            case SCmemalias:
-            case SCfuncalias:
-            case SCadl:
+            case SC.memalias:
+            case SC.funcalias:
+            case SC.adl:
                 list_dehydrate(&s.Spath,cast(list_free_fp)&symbol_dehydrate);
-            case SCalias:
+            case SC.alias_:
                 ph_dehydrate(&s.Smemalias);
                 break;
 
@@ -1926,14 +1926,14 @@ else
                             } while (so);
                             //printf("overloading...\n");
                         }
-                        else if (s.Sclass == SCstruct)
+                        else if (s.Sclass == SC.struct_)
                         {
                             if (CPP && rover.Scover)
                             {   ps = &rover.Scover;
                                 rover = *ps;
                             }
                             else
-                            if (rover.Sclass == SCstruct)
+                            if (rover.Sclass == SC.struct_)
                             {
                                 if (!(s.Stype.Tflags & TFforward))
                                 {   // Replace rover with s in symbol table
@@ -1957,8 +1957,8 @@ else
                     &rover.Sr;
             }
             *ps = s;
-            if (s.Sclass == SCcomdef)
-            {   s.Sclass = SCglobal;
+            if (s.Sclass == SC.comdef)
+            {   s.Sclass = SC.global;
                 outcommon(s,type_size(s.Stype));
             }
         }
@@ -2223,7 +2223,7 @@ void symboltable_clean(Symbol *s)
             s.Sxtrnnum = 0;    // eliminate debug info type index
         switch (s.Sclass)
         {
-            case SCstruct:
+            case SC.struct_:
                 s.Stypidx = 0;
                 st = s.Sstruct;
                 assert(st);
@@ -2231,19 +2231,19 @@ void symboltable_clean(Symbol *s)
                 //list_apply(&st.Sfldlst,cast(list_free_fp)&symboltable_clean);
                 break;
 
-            case SCtypedef:
-            case SCenum:
+            case SC.typedef_:
+            case SC.enum_:
                 s.Stypidx = 0;
                 break;
 
-            case SCtemplate:
+            case SC.template_:
             {   template_t *tm = s.Stemplate;
 
                 list_apply(&tm.TMinstances,cast(list_free_fp)&symboltable_clean);
                 break;
             }
 
-            case SCnamespace:
+            case SC.namespace:
                 symboltable_clean(s.Snameroot);
                 break;
 
@@ -2305,11 +2305,11 @@ private void count_symbols(Symbol *s)
         balance.nsyms++;
         switch (s.Sclass)
         {
-            case SCnamespace:
+            case SC.namespace:
                 symboltable_balance(&s.Snameroot);
                 break;
 
-            case SCstruct:
+            case SC.struct_:
                 symboltable_balance(&s.Sstruct.Sroot);
                 break;
 
@@ -2425,12 +2425,12 @@ private void membersearchx(Paramblock *p,Symbol *s)
 
         switch (s.Sclass)
         {
-            case SCstruct:
+            case SC.struct_:
                 foreach (sl; ListRange(s.Sstruct.Sfldlst))
                 {
                     Symbol* sm = list_symbol(sl);
                     symbol_debug(sm);
-                    if ((sm.Sclass == SCmember || sm.Sclass == SCfield) &&
+                    if ((sm.Sclass == SC.member || sm.Sclass == SC.field) &&
                         strcmp(p.id,sm.Sident.ptr) == 0)
                     {
                         if (p.sm && p.sm.Smemoff != sm.Smemoff)
@@ -2482,15 +2482,15 @@ private void symbol_gendebuginfox(Symbol *s)
             symbol_gendebuginfox(s.Scover);
         switch (s.Sclass)
         {
-            case SCenum:
+            case SC.enum_:
                 if (CPP && s.Senum.SEflags & SENnotagname)
                     break;
                 goto Lout;
-            case SCstruct:
+            case SC.struct_:
                 if (s.Sstruct.Sflags & STRanonymous)
                     break;
                 goto Lout;
-            case SCtypedef:
+            case SC.typedef_:
             Lout:
                 if (!s.Stypidx)
                     cv_outsym(s);
@@ -2524,9 +2524,9 @@ void symbol_reset(Symbol *s)
     s.Stypidx = 0;
     s.Sflags &= ~(STRoutdef | SFLweak);
     s.Sdw_ref_idx = 0;
-    if (s.Sclass == SCglobal || s.Sclass == SCcomdat ||
-        s.Sfl == FLudata || s.Sclass == SCstatic)
-    {   s.Sclass = SCextern;
+    if (s.Sclass == SC.global || s.Sclass == SC.comdat ||
+        s.Sfl == FLudata || s.Sclass == SC.static_)
+    {   s.Sclass = SC.extern_;
         s.Sfl = FLextern;
     }
 }

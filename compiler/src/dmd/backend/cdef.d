@@ -974,51 +974,7 @@ enum SC : ubyte
     adl,            /// list of ADL symbols for overloading
 }
 
-enum SCunde = SC.unde;
-enum SCauto = SC.auto_;
-enum SCstatic = SC.static_;
-enum SCthread = SC.thread;
-enum SCextern = SC.extern_;
-enum SCregister = SC.register;
-enum SCpseudo = SC.pseudo;
-enum SCglobal = SC.global;
-enum SCcomdat = SC.comdat;
-enum SCparameter = SC.parameter;
-enum SCregpar = SC.regpar;
-enum SCfastpar = SC.fastpar;
-enum SCshadowreg = SC.shadowreg;
-enum SCtypedef = SC.typedef_;
-enum SCexplicit = SC.explicit;
-enum SCmutable = SC.mutable;
-enum SClabel = SC.label;
-enum SCstruct = SC.struct_;
-enum SCenum = SC.enum_;
-enum SCfield = SC.field;
-enum SCconst = SC.const_;
-enum SCmember = SC.member;
-enum SCanon = SC.anon;
-enum SCinline = SC.inline;
-enum SCsinline = SC.sinline;
-enum SCeinline = SC.einline;
-enum SCoverload = SC.overload;
-enum SCfriend = SC.friend;
-enum SCvirtual = SC.virtual;
-enum SClocstat = SC.locstat;
-enum SCtemplate = SC.template_;
-enum SCfunctempl = SC.functempl;
-enum SCftexpspec = SC.ftexpspec;
-enum SClinkage = SC.linkage;
-enum SCpublic = SC.public_;
-enum SCcomdef = SC.comdef;
-enum SCbprel = SC.bprel;
-enum SCnamespace = SC.namespace;
-enum SCalias = SC.alias_;
-enum SCfuncalias = SC.funcalias;
-enum SCmemalias = SC.memalias;
-enum SCstack = SC.stack;
-enum SCadl = SC.adl;
-
 enum SCMAX = SC.max + 1;
 
-int ClassInline(int c) { return c == SCinline || c == SCsinline || c == SCeinline; }
+int ClassInline(int c) { return c == SC.inline || c == SC.sinline || c == SC.einline; }
 int SymInline(Symbol* s) { return ClassInline(s.Sclass); }

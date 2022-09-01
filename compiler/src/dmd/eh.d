@@ -58,7 +58,7 @@ Symbol *except_gentables()
         __gshared int tmpnum;
         sprintf(name.ptr,"_HandlerTable%d",tmpnum++);
 
-        Symbol *s = symbol_name(name.ptr,SCstatic,tstypes[TYint]);
+        Symbol *s = symbol_name(name.ptr,SC.static_,tstypes[TYint]);
         symbol_keep(s);
         //symbol_debug(s);
 

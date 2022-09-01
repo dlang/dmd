@@ -739,7 +739,7 @@ debug
                         e = e.EV.Vsym.Svalue;
                         goto L2;
                     }
-                    else if (e.EV.Vsym.Sclass == SCconst /*&&
+                    else if (e.EV.Vsym.Sclass == SC.const_ /*&&
                              pstate.STintemplate*/)
                     {
                         CHAR('V');              // pretend to be a class name
@@ -1546,10 +1546,10 @@ version (SCPPorMARS)
         }
         else
         {
-            if (s.Sclass == SCstatic ||
+            if (s.Sclass == SC.static_ ||
                 (s.Sscope &&
-                 s.Sscope.Sclass != SCstruct &&
-                 s.Sscope.Sclass != SCnamespace))
+                 s.Sscope.Sclass != SC.struct_ &&
+                 s.Sscope.Sclass != SC.namespace))
             {
                 CHAR('4');
                 cpp_local_static_data_type(s);
@@ -1563,7 +1563,7 @@ version (SCPPorMARS)
 }
 else
 {
-        if (s.Sclass == SCstatic)
+        if (s.Sclass == SC.static_)
         {
             CHAR('4');
             cpp_local_static_data_type(s);
@@ -1591,11 +1591,11 @@ private void cpp_scope(Symbol *s)
         symbol_debug(s);
         switch (s.Sclass)
         {
-            case SCnamespace:
+            case SC.namespace:
                 cpp_zname(s.Sident.ptr);
                 break;
 
-            case SCstruct:
+            case SC.struct_:
                 cpp_zname(symbol_ident(s));
                 break;
 
@@ -1776,7 +1776,7 @@ else
     CHAR('@');
     *mangle.np = 0;                     // 0-terminate mangle.buf[]
     assert(strlen(mangle.buf.ptr) <= BUFIDMAX);
-    s = scope_define(mangle.buf.ptr,SCTglobal | SCTnspace | SCTlocal,SCunde);
+    s = scope_define(mangle.buf.ptr,SCTglobal | SCTnspace | SCTlocal,SC.unde);
     s.Stype = t;
     t.Tcount++;
     return s;
