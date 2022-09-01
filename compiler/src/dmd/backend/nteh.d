@@ -110,7 +110,7 @@ private Symbol *nteh_scopetable()
     if (!s_table)
     {
         t = type_alloc(TYint);
-        s = symbol_generate(SCstatic,t);
+        s = symbol_generate(SC.static_,t);
         s.Sseg = UNKNOWN;
         symbol_keep(s);
         s_table = s;
@@ -213,7 +213,7 @@ version (MARS)
 {
     if (!(bx.funcsym.Sfunc.Fflags3 & Fnteh)) // if haven't already done it
     {   bx.funcsym.Sfunc.Fflags3 |= Fnteh;
-        s = symbol_name(s_name_context,SCbprel,tstypes[TYint]);
+        s = symbol_name(s_name_context,SC.bprel,tstypes[TYint]);
         s.Soffset = -5 * 4;            // -6 * 4 for C __try, __except, __finally
         s.Sflags |= SFLfree | SFLnodebug;
         type_setty(&s.Stype,mTYvolatile | TYint);
@@ -229,13 +229,13 @@ else
             s_context = scope_search(s_name_context_tag, CPP ? SCTglobal : SCTglobaltag);
         symbol_debug(s_context);
 
-        s = symbol_name(s_name_context,SCbprel,s_context.Stype);
+        s = symbol_name(s_name_context,SC.bprel,s_context.Stype);
         s.Soffset = -6 * 4;            // -5 * 4 for C++
         s.Sflags |= SFLfree;
         symbol_add(s);
         type_setty(&s.Stype,mTYvolatile | TYstruct);
 
-        s = symbol_name(s_name_ecode,SCauto,type_alloc(mTYvolatile | TYint));
+        s = symbol_name(s_name_ecode,SC.auto_,type_alloc(mTYvolatile | TYint));
         s.Sflags |= SFLfree;
         symbol_add(s);
     }
@@ -847,7 +847,7 @@ void nteh_monitor_prolog(ref CodeBuilder cdb, Symbol *shandle)
 
     assert(config.exe == EX_WIN32);    // BUG: figure out how to implement for other EX's
 
-    if (shandle.Sclass == SCfastpar)
+    if (shandle.Sclass == SC.fastpar)
     {   assert(shandle.Spreg != DX);
         assert(shandle.Spreg2 == NOREG);
         cdbx.gen1(0x50 + shandle.Spreg);   // PUSH shandle

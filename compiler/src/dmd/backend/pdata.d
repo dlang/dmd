@@ -41,15 +41,15 @@ private bool symbol_iscomdat3(Symbol* s)
 {
     version (MARS)
     {
-        return s.Sclass == SCcomdat ||
-            config.flags2 & CFG2comdat && s.Sclass == SCinline ||
-            config.flags4 & CFG4allcomdat && s.Sclass == SCglobal;
+        return s.Sclass == SC.comdat ||
+            config.flags2 & CFG2comdat && s.Sclass == SC.inline ||
+            config.flags4 & CFG4allcomdat && s.Sclass == SC.global;
     }
     else
     {
-        return s.Sclass == SCcomdat ||
-            config.flags2 & CFG2comdat && s.Sclass == SCinline ||
-            config.flags4 & CFG4allcomdat && (s.Sclass == SCglobal || s.Sclass == SCstatic);
+        return s.Sclass == SC.comdat ||
+            config.flags2 & CFG2comdat && s.Sclass == SC.inline ||
+            config.flags4 & CFG4allcomdat && (s.Sclass == SC.global || s.Sclass == SC.static_);
     }
 }
 
@@ -78,7 +78,7 @@ public void win64_pdata(Symbol *sf)
     memcpy(pdata_name, "$pdata$".ptr, 7);
     memcpy(pdata_name + 7, sf.Sident.ptr, sflen + 1);      // include terminating 0
 
-    Symbol *spdata = symbol_name(pdata_name,SCstatic,tstypes[TYint]);
+    Symbol *spdata = symbol_name(pdata_name,SC.static_,tstypes[TYint]);
     symbol_keep(spdata);
     symbol_debug(spdata);
 
@@ -122,7 +122,7 @@ private Symbol *win64_unwind(Symbol *sf)
     memcpy(unwind_name, "$unwind$".ptr, 8);
     memcpy(unwind_name + 8, sf.Sident.ptr, sflen + 1);     // include terminating 0
 
-    Symbol *sunwind = symbol_name(unwind_name,SCstatic,tstypes[TYint]);
+    Symbol *sunwind = symbol_name(unwind_name,SC.static_,tstypes[TYint]);
     symbol_keep(sunwind);
     symbol_debug(sunwind);
 

@@ -1556,8 +1556,8 @@ Lnextlis:
                 // first block of the function. Unfortunately, the rd vector
                 // does not take this into account. Therefore, we assume the
                 // worst and reject assignments to function parameters.
-                if (v.Sclass == SCparameter || v.Sclass == SCregpar ||
-                    v.Sclass == SCfastpar || v.Sclass == SCshadowreg)
+                if (v.Sclass == SC.parameter || v.Sclass == SC.regpar ||
+                    v.Sclass == SC.fastpar || v.Sclass == SC.shadowreg)
                         goto L3;
 
                 if (el_sideeffect(n.EV.E2)) goto L3;              // case 5

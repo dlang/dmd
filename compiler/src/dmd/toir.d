@@ -656,7 +656,7 @@ elem *resolveLengthVar(VarDeclaration lengthVar, elem **pe, Type t1)
 
         L3:
             slength = toSymbol(lengthVar);
-            if (slength.Sclass == SCauto && slength.Ssymnum == SYMIDX.max)
+            if (slength.Sclass == SC.auto_ && slength.Ssymnum == SYMIDX.max)
                 symbol_add(slength);
 
             einit = el_bin(OPeq, TYsize_t, el_var(slength), elength);
@@ -823,7 +823,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
         symbol_struct_addField(Closstru.Ttag, "__chain", chaintype, 0);
 
         Symbol *sclosure;
-        sclosure = symbol_name("__closptr", SCauto, type_pointer(Closstru));
+        sclosure = symbol_name("__closptr", SC.auto_, type_pointer(Closstru));
         sclosure.Sflags |= SFLtrue | SFLfree;
         symbol_add(sclosure);
         irs.sclosure = sclosure;
@@ -985,7 +985,7 @@ void buildCapture(FuncDeclaration fd)
         }
 
         // generate pseudo symbol to put into functions' Sscope
-        Symbol *scapture = symbol_name("__captureptr", SCalias, type_pointer(capturestru));
+        Symbol *scapture = symbol_name("__captureptr", SC.alias_, type_pointer(capturestru));
         scapture.Sflags |= SFLtrue | SFLfree;
         //symbol_add(scapture);
         fd.csym.Sscope = scapture;

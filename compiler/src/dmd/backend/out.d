@@ -75,15 +75,15 @@ bool symbol_iscomdat2(Symbol* s)
 {
     version (MARS)
     {
-        return s.Sclass == SCcomdat ||
-            config.flags2 & CFG2comdat && s.Sclass == SCinline ||
-            config.flags4 & CFG4allcomdat && s.Sclass == SCglobal;
+        return s.Sclass == SC.comdat ||
+            config.flags2 & CFG2comdat && s.Sclass == SC.inline ||
+            config.flags4 & CFG4allcomdat && s.Sclass == SC.global;
     }
     else
     {
-        return s.Sclass == SCcomdat ||
-            config.flags2 & CFG2comdat && s.Sclass == SCinline ||
-            config.flags4 & CFG4allcomdat && (s.Sclass == SCglobal || s.Sclass == SCstatic);
+        return s.Sclass == SC.comdat ||
+            config.flags2 & CFG2comdat && s.Sclass == SC.inline ||
+            config.flags4 & CFG4allcomdat && (s.Sclass == SC.global || s.Sclass == SC.static_);
     }
 }
 
@@ -177,7 +177,7 @@ version (SCPP)
         goto Lret;                      // don't output any data
     }
 }
-    if (ty & mTYexport && config.wflags & WFexpdef && s.Sclass != SCstatic)
+    if (ty & mTYexport && config.wflags & WFexpdef && s.Sclass != SC.static_)
         objmod.export_symbol(s,0);        // export data definition
     for (dt_t *dt = dtstart; dt; dt = dt.DTnext)
     {
@@ -232,7 +232,7 @@ version (SCPP)
                  */
                 //printf("DT_azeros %d\n", dt.DTazeros);
                 datasize += dt.DTazeros;
-                if (dt == dtstart && !dt.DTnext && s.Sclass != SCcomdat &&
+                if (dt == dtstart && !dt.DTnext && s.Sclass != SC.comdat &&
                     (s.Sseg == UNKNOWN || s.Sseg <= UDATA))
                 {   /* first and only, so put in BSS segment
                      */
@@ -277,11 +277,11 @@ version (SCPP)
                             break;
                     }
                     assert(s.Sseg && s.Sseg != UNKNOWN);
-                    if (s.Sclass == SCglobal || (s.Sclass == SCstatic && config.objfmt != OBJ_OMF)) // if a pubdef to be done
+                    if (s.Sclass == SC.global || (s.Sclass == SC.static_ && config.objfmt != OBJ_OMF)) // if a pubdef to be done
                         objmod.pubdefsize(s.Sseg,s,s.Soffset,datasize);   // do the definition
                     searchfixlist(s);
                     if (config.fulltypes &&
-                        !(s.Sclass == SCstatic && funcsym_p)) // not local static
+                        !(s.Sclass == SC.static_ && funcsym_p)) // not local static
                     {
                         if (config.objfmt == OBJ_ELF || config.objfmt == OBJ_MACH)
                             dwarf_outsym(s);
@@ -327,7 +327,7 @@ version (SCPP)
         }
     }
 
-    if (s.Sclass == SCcomdat)          // if initialized common block
+    if (s.Sclass == SC.comdat)          // if initialized common block
     {
         seg = objmod.comdatsize(s, datasize);
         switch (ty & mTYLINK)
@@ -417,12 +417,12 @@ version (SCPP)
     else
         seg = s.Sseg;
 
-    if (s.Sclass == SCglobal || (s.Sclass == SCstatic && config.objfmt != OBJ_OMF))
+    if (s.Sclass == SC.global || (s.Sclass == SC.static_ && config.objfmt != OBJ_OMF))
         objmod.pubdefsize(seg,s,s.Soffset,datasize);    /* do the definition            */
 
     assert(s.Sseg != UNKNOWN);
     if (config.fulltypes &&
-        !(s.Sclass == SCstatic && funcsym_p)) // not local static
+        !(s.Sclass == SC.static_ && funcsym_p)) // not local static
     {
         if (config.objfmt == OBJ_ELF || config.objfmt == OBJ_MACH)
             dwarf_outsym(s);
@@ -559,7 +559,7 @@ void outcommon(Symbol *s,targ_size_t n)
     //printf("outcommon('%s',%d)\n",s.Sident.ptr,n);
     if (n != 0)
     {
-        assert(s.Sclass == SCglobal);
+        assert(s.Sclass == SC.global);
         if (s.ty() & mTYcs) // if store in code segment
         {
             /* COMDEFs not supported in code segment
@@ -578,7 +578,7 @@ version (SCPP)
         {
             if (config.objfmt == OBJ_ELF)
             {
-                s.Sclass = SCcomdef;
+                s.Sclass = SC.comdef;
                 objmod.common_block(s, 0, n, 1);
             }
             else
@@ -586,7 +586,7 @@ version (SCPP)
                 /* COMDEFs not supported in tls segment
                  * so put them out as COMDATs with initialized 0s
                  */
-                s.Sclass = SCcomdat;
+                s.Sclass = SC.comdat;
                 auto dtb = DtBuilder(0);
                 dtb.nzeros(cast(uint)n);
                 s.Sdt = dtb.finish();
@@ -600,7 +600,7 @@ version (SCPP)
         }
         else
         {
-            s.Sclass = SCcomdef;
+            s.Sclass = SC.comdef;
             if (config.objfmt == OBJ_OMF)
             {
                 s.Sxtrnnum = objmod.common_block(s,(s.ty() & mTYfar) == 0,n,1);
@@ -670,7 +670,7 @@ Symbol *out_string_literal(const(char)* str, uint len, uint sz)
         ty = TYchar16;
     else if (sz == 4)
         ty = TYdchar;
-    Symbol *s = symbol_generate(SCstatic,type_static_array(len, tstypes[ty]));
+    Symbol *s = symbol_generate(SC.static_,type_static_array(len, tstypes[ty]));
     switch (config.objfmt)
     {
         case OBJ_ELF:
@@ -852,9 +852,9 @@ else
         symbol_debug(s);
         switch (s.Sclass)
         {
-            case SCregpar:
-            case SCparameter:
-            case SCshadowreg:
+            case SC.regpar:
+            case SC.parameter:
+            case SC.shadowreg:
                 if (e.Eoper == OPrelconst)
                 {
                     if (I16)
@@ -864,22 +864,22 @@ else
                 }
                 break;
 
-            case SCstatic:
-            case SClocstat:
-            case SCextern:
-            case SCglobal:
-            case SCcomdat:
-            case SCcomdef:
-            case SCpseudo:
-            case SCinline:
-            case SCsinline:
-            case SCeinline:
+            case SC.static_:
+            case SC.locstat:
+            case SC.extern_:
+            case SC.global:
+            case SC.comdat:
+            case SC.comdef:
+            case SC.pseudo:
+            case SC.inline:
+            case SC.sinline:
+            case SC.einline:
                 s.Sflags |= SFLlivexit;
                 goto case;
-            case SCauto:
-            case SCregister:
-            case SCfastpar:
-            case SCbprel:
+            case SC.auto_:
+            case SC.register:
+            case SC.fastpar:
+            case SC.bprel:
                 if (e.Eoper == OPrelconst)
                 {
                     s.Sflags &= ~(SFLunambig | GTregcand);
@@ -889,25 +889,25 @@ else
                 break;
 version (SCPP)
 {
-            case SCmember:
+            case SC.member:
                 err_noinstance(s.Sscope,s);
                 goto L5;
 
-            case SCstruct:
+            case SC.struct_:
                 cpperr(EM_no_instance,s.Sident.ptr);       // no instance of class
             L5:
                 e.Eoper = OPconst;
                 e.Ety = TYint;
                 return;
 
-            case SCfuncalias:
+            case SC.funcalias:
                 e.EV.Vsym = s.Sfunc.Falias;
                 goto L6;
 
-            case SCstack:
+            case SC.stack:
                 break;
 
-            case SCfunctempl:
+            case SC.functempl:
                 cpperr(EM_no_template_instance, s.Sident.ptr);
                 break;
 
@@ -1005,8 +1005,8 @@ void out_regcand(symtab_t *psymtab)
         //assert(sytab[s.Sclass] & SCSS);      // only stack variables
         s.Ssymnum = si;                        // Ssymnum trashed by cpp_inlineexpand
         if (!(s.ty() & (mTYvolatile | mTYshared)) &&
-            !(ifunc && (s.Sclass == SCparameter || s.Sclass == SCregpar)) &&
-            s.Sclass != SCstatic)
+            !(ifunc && (s.Sclass == SC.parameter || s.Sclass == SC.regpar)) &&
+            s.Sclass != SC.static_)
             s.Sflags |= (GTregcand | SFLunambig);      // assume register candidate
         else
             s.Sflags &= ~(GTregcand | SFLunambig);
@@ -1029,7 +1029,7 @@ void out_regcand(symtab_t *psymtab)
     if (addressOfParam)                      // if took address of a parameter
     {
         for (SYMIDX si = 0; si < psymtab.length; si++)
-            if ((*psymtab)[si].Sclass == SCparameter || (*psymtab)[si].Sclass == SCshadowreg)
+            if ((*psymtab)[si].Sclass == SC.parameter || (*psymtab)[si].Sclass == SC.shadowreg)
                 (*psymtab)[si].Sflags &= ~(SFLunambig | GTregcand);
     }
 
@@ -1079,19 +1079,19 @@ private void out_regcand_walk(elem *e, ref bool addressOfParam)
                 symbol_debug(s);
                 switch (s.Sclass)
                 {
-                    case SCregpar:
-                    case SCparameter:
-                    case SCshadowreg:
+                    case SC.regpar:
+                    case SC.parameter:
+                    case SC.shadowreg:
                         if (I16)
                             addressOfParam = true;       // taking addr of param list
                         else
                             s.Sflags &= ~(SFLunambig | GTregcand);
                         break;
 
-                    case SCauto:
-                    case SCregister:
-                    case SCfastpar:
-                    case SCbprel:
+                    case SC.auto_:
+                    case SC.register:
+                    case SC.fastpar:
+                    case SC.bprel:
                         s.Sflags &= ~(SFLunambig | GTregcand);
                         break;
 
@@ -1164,7 +1164,7 @@ version (SCPP)
         {
             SC scvtbl;
 
-            scvtbl = ((config.flags2 & CFG2comdat) ? SCcomdat : SCglobal);
+            scvtbl = ((config.flags2 & CFG2comdat) ? SC.comdat : SC.global);
             n2_genvtbl(stag,scvtbl,1);
             n2_genvbtbl(stag,scvtbl,1);
             if (config.exe & EX_windos)
@@ -1255,40 +1255,40 @@ version (SCPP)
         s.Sflags &= ~(SFLunambig | GTregcand);
         switch (s.Sclass)
         {
-            case SCbprel:
+            case SC.bprel:
                 s.Sfl = FLbprel;
                 goto L3;
 
-            case SCauto:
-            case SCregister:
+            case SC.auto_:
+            case SC.register:
                 s.Sfl = FLauto;
                 goto L3;
 
 version (SCPP)
 {
-            case SCfastpar:
-            case SCregpar:
-            case SCparameter:
+            case SC.fastpar:
+            case SC.regpar:
+            case SC.parameter:
                 if (si == 0 && FuncParamRegs_alloc(fpr, s.Stype, s.Stype.Tty, &s.Spreg, &s.Spreg2))
                 {
                     assert(s.Spreg == ((tyf == TYmfunc) ? CX : AX));
                     assert(s.Spreg2 == NOREG);
                     assert(si == 0);
-                    s.Sclass = SCfastpar;
+                    s.Sclass = SC.fastpar;
                     s.Sfl = FLfast;
                     goto L3;
                 }
-                assert(s.Sclass != SCfastpar);
+                assert(s.Sclass != SC.fastpar);
 }
 else
 {
-            case SCfastpar:
+            case SC.fastpar:
                 s.Sfl = FLfast;
                 goto L3;
 
-            case SCregpar:
-            case SCparameter:
-            case SCshadowreg:
+            case SC.regpar:
+            case SC.parameter:
+            case SC.shadowreg:
 }
                 s.Sfl = FLpara;
                 if (tyf == TYifunc)
@@ -1300,14 +1300,14 @@ else
                     s.Sflags |= GTregcand | SFLunambig; // assume register candidate   */
                 break;
 
-            case SCpseudo:
+            case SC.pseudo:
                 s.Sfl = FLpseudo;
                 break;
 
-            case SCstatic:
+            case SC.static_:
                 break;                  // already taken care of by datadef()
 
-            case SCstack:
+            case SC.stack:
                 s.Sfl = FLstack;
                 break;
 
@@ -1363,7 +1363,7 @@ version (MARS)
     if (addressOfParam | anyasm)        // if took address of a parameter
     {
         for (SYMIDX si = 0; si < globsym.length; si++)
-            if (anyasm || globsym[si].Sclass == SCparameter)
+            if (anyasm || globsym[si].Sclass == SC.parameter)
                 globsym[si].Sflags &= ~(SFLunambig | GTregcand);
     }
 
@@ -1481,7 +1481,7 @@ version (HTOD) { } else
 }
     if (eecontext.EEcompile == 1)
         goto Ldone;
-    if (sfunc.Sclass == SCglobal)
+    if (sfunc.Sclass == SC.global)
     {
         if ((config.objfmt == OBJ_OMF || config.objfmt == OBJ_MSCOFF) && !(config.flags4 & CFG4allcomdat))
         {
@@ -1493,9 +1493,9 @@ version (HTOD) { } else
     }
 
     if (config.wflags & WFexpdef &&
-        sfunc.Sclass != SCstatic &&
-        sfunc.Sclass != SCsinline &&
-        !(sfunc.Sclass == SCinline && !(config.flags2 & CFG2comdat)) &&
+        sfunc.Sclass != SC.static_ &&
+        sfunc.Sclass != SC.sinline &&
+        !(sfunc.Sclass == SC.inline && !(config.flags2 & CFG2comdat)) &&
         sfunc.ty() & mTYexport)
         objmod.export_symbol(sfunc,cast(uint)Para.offset);      // export function definition
 
@@ -1515,8 +1515,8 @@ version (MARS)
         Symbol *s = globsym[si];
 
         switch (s.Sclass)
-        {   case SCfastpar:
-                s.Sclass = SCauto;
+        {   case SC.fastpar:
+                s.Sclass = SC.auto_;
                 break;
 
             default:

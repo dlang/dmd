@@ -52,7 +52,7 @@ void eecontext_convs(SYMIDX marksi)
 {
     symtab_t *ps;
 
-    // Change all generated SCauto's to SCstack's
+    // Change all generated SC.auto's to SC.stack's
     version (SCPP)
     {
         ps = &globsym;
@@ -72,9 +72,9 @@ void eecontext_convs(SYMIDX marksi)
         auto s = (*ps)[u];
         switch (s.Sclass)
         {
-            case SCauto:
-            case SCregister:
-                s.Sclass = SCstack;
+            case SC.auto_:
+            case SC.register:
+                s.Sclass = SC.stack;
                 s.Sfl = FLstack;
                 break;
             default:
@@ -119,7 +119,7 @@ void eecontext_parse()
         if (eecontext.EEtypedef && config.fulltypes)
         {   Symbol *s;
 
-            s = symbol_name(eecontext.EEtypedef,SCtypedef,t);
+            s = symbol_name(eecontext.EEtypedef,SC.typedef_,t);
             cv_outsym(s);
             symbol_free(s);
         }

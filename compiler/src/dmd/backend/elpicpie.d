@@ -90,10 +90,10 @@ elem * el_var(Symbol *s)
         {
             switch (s.Sclass)
             {
-                case SCcomdat:
-                case SCcomdef:
-                case SCglobal:
-                case SCextern:
+                case SC.comdat:
+                case SC.comdef:
+                case SC.global:
+                case SC.extern_:
                     el_alloc_localgot();
                     break;
 
@@ -155,7 +155,7 @@ else if (config.exe & EX_posix)
             Obj.refGOTsym();
         elem *e1 = el_calloc();
         e1.EV.Vsym = s;
-        if (s.Sclass == SCstatic || s.Sclass == SClocstat)
+        if (s.Sclass == SC.static_ || s.Sclass == SC.locstat)
         {
             e1.Eoper = OPrelconst;
             e1.Ety = TYnptr;
@@ -361,7 +361,8 @@ elem * el_ptr(Symbol *s)
 
         if (config.flags3 & CFG3pie &&
             tyfunc(s.ty()) &&
-            (s.Sclass == SCglobal || s.Sclass == SCcomdat || s.Sclass == SCcomdef || s.Sclass == SCextern))
+            (s.Sclass == SC.global || s.Sclass == SC.comdat ||
+             s.Sclass == SC.comdef || s.Sclass == SC.extern_))
         {
             elem* e = el_calloc();
             e.Eoper = OPvar;
@@ -445,7 +446,7 @@ private Symbol *el_alloc_localgot()
          * make it volatile.
          */
         type_setcv(&t, mTYvolatile);
-        localgot = symbol_name(name.ptr, SCauto, t);
+        localgot = symbol_name(name.ptr, SC.auto_, t);
         symbol_add(localgot);
         localgot.Sfl = FLauto;
         localgot.Sflags = SFLfree | SFLunambig | GTregcand;
@@ -485,22 +486,22 @@ private elem *el_picvar_OSX(Symbol *s)
 
     switch (s.Sclass)
     {
-        case SCstatic:
-        case SClocstat:
+        case SC.static_:
+        case SC.locstat:
             x = 0;
             goto case_got;
 
-        case SCcomdat:
-        case SCcomdef:
+        case SC.comdat:
+        case SC.comdef:
             if (0 && I64)
             {
                 x = 0;
                 goto case_got;
             }
-            goto case SCglobal;
+            goto case SC.global;
 
-        case SCglobal:
-        case SCextern:
+        case SC.global:
+        case SC.extern_:
             static if (0)
             {
                 if (s.Stype.Tty & mTYthread)
@@ -528,7 +529,7 @@ static if (1)
                     /* void *___tls_get_addr(void *ptr);
                      * Parameter ptr is passed in RDI, matching TYnfunc calling convention.
                      */
-                    tls_get_addr_sym = symbol_name("___tls_get_addr",SCglobal,type_fake(TYnfunc));
+                    tls_get_addr_sym = symbol_name("___tls_get_addr",SC.global,type_fake(TYnfunc));
                     symbol_keep(tls_get_addr_sym);
                 }
                 if (x == 1)
@@ -663,21 +664,21 @@ private elem *el_picvar_posix(Symbol *s)
     {
         switch (s.Sclass)
         {
-            case SCstatic:
-            case SClocstat:
+            case SC.static_:
+            case SC.locstat:
                 x = 0;
                 goto case_got64;
 
-            case SCglobal:
+            case SC.global:
                 if (config.flags3 & CFG3pie)
                     x = 0;
                 else
                     x = 1;
                 goto case_got64;
 
-            case SCcomdat:
-            case SCcomdef:
-            case SCextern:
+            case SC.comdat:
+            case SC.comdef:
+            case SC.extern_:
                 x = 1;
                 goto case_got64;
 
@@ -704,7 +705,7 @@ private elem *el_picvar_posix(Symbol *s)
                         /* void *__tls_get_addr(void *ptr);
                          * Parameter ptr is passed in RDI, matching TYnfunc calling convention.
                          */
-                        tls_get_addr_sym = symbol_name("__tls_get_addr",SCglobal,type_fake(TYnfunc));
+                        tls_get_addr_sym = symbol_name("__tls_get_addr",SC.global,type_fake(TYnfunc));
                         symbol_keep(tls_get_addr_sym);
                     }
                     e = el_bin(OPcall, TYnptr, el_var(tls_get_addr_sym), e);
@@ -742,12 +743,12 @@ private elem *el_picvar_posix(Symbol *s)
             /* local (and thread) symbols get only one level of indirection;
              * all globally known symbols get two.
              */
-            case SCstatic:
-            case SClocstat:
+            case SC.static_:
+            case SC.locstat:
                 x = 0;
                 goto case_got;
 
-            case SCglobal:
+            case SC.global:
                 if (config.flags3 & CFG3pie)
                     x = 0;
                 else if (s.Stype.Tty & mTYthread)
@@ -756,9 +757,9 @@ private elem *el_picvar_posix(Symbol *s)
                     x = 1;
                 goto case_got;
 
-            case SCcomdat:
-            case SCcomdef:
-            case SCextern:
+            case SC.comdat:
+            case SC.comdef:
+            case SC.extern_:
                 if (s.Stype.Tty & mTYthread)
                     x = 0;
                 else
@@ -786,7 +787,7 @@ private elem *el_picvar_posix(Symbol *s)
                         /* void *___tls_get_addr(void *ptr);
                          * Parameter ptr is passed in EAX, matching TYjfunc calling convention.
                          */
-                        tls_get_addr_sym = symbol_name("___tls_get_addr",SCglobal,type_fake(TYjfunc));
+                        tls_get_addr_sym = symbol_name("___tls_get_addr",SC.global,type_fake(TYjfunc));
                         symbol_keep(tls_get_addr_sym);
                     }
                     e = el_bin(OPcall, TYnptr, el_var(tls_get_addr_sym), e);
@@ -850,14 +851,14 @@ private elem *el_pievar(Symbol *s)
     {
         switch (s.Sclass)
         {
-            case SCstatic:
-            case SClocstat:
-            case SCglobal:
+            case SC.static_:
+            case SC.locstat:
+            case SC.global:
                 break;
 
-            case SCcomdat:
-            case SCcomdef:
-            case SCextern:
+            case SC.comdat:
+            case SC.comdef:
+            case SC.extern_:
             {
                 /* Generate:
                  *   mov RAX,extern_tls@GOTTPOFF[RIP]
@@ -878,14 +879,14 @@ private elem *el_pievar(Symbol *s)
     {
         switch (s.Sclass)
         {
-            case SCstatic:
-            case SClocstat:
-            case SCglobal:
+            case SC.static_:
+            case SC.locstat:
+            case SC.global:
                 break;
 
-            case SCcomdat:
-            case SCcomdef:
-            case SCextern:
+            case SC.comdat:
+            case SC.comdef:
+            case SC.extern_:
             {
                 /* Generate:
                  *   mov EAX,extern_tls@TLS_GOTIE[ECX]
@@ -936,9 +937,9 @@ private elem *el_pieptr(Symbol *s)
         Obj.refGOTsym();    // even though not used, generate reference to _GLOBAL_OFFSET_TABLE_
         switch (s.Sclass)
         {
-            case SCstatic:
-            case SClocstat:
-            case SCglobal:
+            case SC.static_:
+            case SC.locstat:
+            case SC.global:
             {
                 /* Generate:
                  *   mov RAX,FS:[0000]
@@ -948,9 +949,9 @@ private elem *el_pieptr(Symbol *s)
                 break;
             }
 
-            case SCcomdat:
-            case SCcomdef:
-            case SCextern:
+            case SC.comdat:
+            case SC.comdef:
+            case SC.extern_:
             {
                 /* Generate:
                  *   mov RAX,extern_tls@GOTTPOFF[RIP]
@@ -969,8 +970,8 @@ private elem *el_pieptr(Symbol *s)
     {
         switch (s.Sclass)
         {
-            case SCstatic:
-            case SClocstat:
+            case SC.static_:
+            case SC.locstat:
             {
                 /* Generate:
                  *   mov LEA,global_tls@TLS_LE[ECX]
@@ -982,7 +983,7 @@ private elem *el_pieptr(Symbol *s)
                 break;
             }
 
-            case SCglobal:
+            case SC.global:
             {
                 /* Generate:
                  *   mov EAX,global_tls@TLS_LE[ECX]
@@ -995,9 +996,9 @@ private elem *el_pieptr(Symbol *s)
                 break;
             }
 
-            case SCcomdat:
-            case SCcomdef:
-            case SCextern:
+            case SC.comdat:
+            case SC.comdef:
+            case SC.extern_:
             {
                 /* Generate:
                  *   mov EAX,extern_tls@TLS_GOTIE[ECX]

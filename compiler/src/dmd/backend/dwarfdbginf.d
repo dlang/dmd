@@ -196,7 +196,7 @@ static if (1)
                 type *t = tspvoid;
                 t.Tcount++;
                 type_setmangle(&t, mTYman_sys);         // no leading '_' for mangled name
-                eh_frame_sym = symbol_name("EH_frame0", SCstatic, t);
+                eh_frame_sym = symbol_name("EH_frame0", SC.static_, t);
                 Obj.pubdef(seg, eh_frame_sym, 0);
                 symbol_keep(eh_frame_sym);
             }
@@ -910,7 +910,7 @@ static if (1)
                 err_nomem();
             memcpy(name, getSymName(sfunc), len);
             memcpy(name + len, ".eh".ptr, 3 + 1);
-            fdesym = symbol_name(name, SCglobal, tspvoid);
+            fdesym = symbol_name(name, SC.global, tspvoid);
             Obj.pubdef(dfseg, fdesym, startsize);
             symbol_keep(fdesym);
             free(name);
@@ -1839,9 +1839,9 @@ static if (1)
 
             switch (sa.Sclass)
             {
-                case SCparameter:
-                case SCregpar:
-                case SCfastpar:
+                case SC.parameter:
+                case SC.regpar:
+                case SC.fastpar:
                     // discard index
                     cast(void)dwarf_typidx(sa.Stype);
                     if (!formalcode)
@@ -1852,10 +1852,10 @@ static if (1)
                     haveparameters = DW_CHILDREN_yes;
                     break;
 
-                case SCauto:
-                case SCbprel:
-                case SCregister:
-                case SCpseudo:
+                case SC.auto_:
+                case SC.bprel:
+                case SC.register:
+                case SC.pseudo:
                     // discard index
                     cast(void)dwarf_typidx(sa.Stype);
                     if (!variablecode)
@@ -1885,7 +1885,7 @@ static if (1)
         if (ret_type)
             dwarfabbrev.append(DW_AT_type, DW_FORM_ref4);
 
-        if (sfunc.Sclass == SCglobal)
+        if (sfunc.Sclass == SC.global)
             dwarfabbrev.append(DW_AT_external, DW_FORM_flag);
 
         if (sfunc.Sfunc.Fflags3 & Fmain)
@@ -1938,7 +1938,7 @@ static if (1)
         if (ret_type)
             debug_info.buf.write32(ret_type);                         // DW_AT_type
 
-        if (sfunc.Sclass == SCglobal)
+        if (sfunc.Sclass == SC.global)
             debug_info.buf.writeByte(1);                              // DW_AT_external
 
         if (config.dwarf < 4
@@ -1978,15 +1978,15 @@ static if (1)
 
                 switch (sa.Sclass)
                 {
-                    case SCparameter:
-                    case SCregpar:
-                    case SCfastpar:
+                    case SC.parameter:
+                    case SC.regpar:
+                    case SC.fastpar:
                         vcode = formalcode;
                         goto L1;
-                    case SCauto:
-                    case SCregister:
-                    case SCpseudo:
-                    case SCbprel:
+                    case SC.auto_:
+                    case SC.register:
+                    case SC.pseudo:
+                    case SC.bprel:
                         vcode = variablecode;
                     L1:
                     {
@@ -2002,7 +2002,7 @@ static if (1)
                         debug_info.buf.writeuLEB128(sa.lposscopestart.Scharnum);   // DW_AT_decl_column
                         soffset = cast(uint)debug_info.buf.length();
                         debug_info.buf.writeByte(2);                  // DW_FORM_block1
-                        if (sa.Sfl == FLreg || sa.Sclass == SCpseudo)
+                        if (sa.Sfl == FLreg || sa.Sclass == SC.pseudo)
                         {
                             // BUG: register pairs not supported in Dwarf?
                             debug_info.buf.writeByte(DW_OP_reg0 + sa.Sreglsw);
@@ -2017,7 +2017,7 @@ static if (1)
                             foreach (sl; ListRange(st.Sfldlst))
                             {
                                 Symbol *sf = list_symbol(sl);
-                                if (sf.Sclass == SCmember)
+                                if (sf.Sclass == SC.member)
                                 {
                                     if(strcmp(sa.Sident.ptr, sf.Sident.ptr) == 0)
                                     {
@@ -2040,12 +2040,12 @@ static if (1)
                         else
                         {
                             debug_info.buf.writeByte(DW_OP_fbreg);
-                            if (sa.Sclass == SCregpar ||
-                                sa.Sclass == SCparameter)
+                            if (sa.Sclass == SC.regpar ||
+                                sa.Sclass == SC.parameter)
                                 debug_info.buf.writesLEB128(cast(int)sa.Soffset);
-                            else if (sa.Sclass == SCfastpar)
+                            else if (sa.Sclass == SC.fastpar)
                                 debug_info.buf.writesLEB128(cast(int)(Fast.size + BPoff - Para.size + sa.Soffset));
-                            else if (sa.Sclass == SCbprel)
+                            else if (sa.Sclass == SC.bprel)
                                 debug_info.buf.writesLEB128(cast(int)(-Para.size + sa.Soffset));
                             else
                                 debug_info.buf.writesLEB128(cast(int)(Auto.size + BPoff - Para.size + sa.Soffset));
@@ -2146,7 +2146,7 @@ static if (1)
         type *t = s.Stype;
         type_debug(t);
         tym_t tym = tybasic(t.Tty);
-        if (tyfunc(tym) && s.Sclass != SCtypedef)
+        if (tyfunc(tym) && s.Sclass != SC.typedef_)
             return;
 
         uint code;
@@ -2154,7 +2154,7 @@ static if (1)
         uint soffset;
         switch (s.Sclass)
         {
-            case SCglobal:
+            case SC.global:
                 typidx = dwarf_typidx(t);
 
                 code = DWARFAbbrev.write!([
@@ -2863,7 +2863,7 @@ static if (1)
                     Symbol *sf = list_symbol(sl);
                     switch (sf.Sclass)
                     {
-                        case SCmember:
+                        case SC.member:
                             fieldidx.write32(dwarf_typidx(sf.Stype));
                             nfields++;
                             break;
@@ -2955,7 +2955,7 @@ static if (1)
 
                         switch (sf.Sclass)
                         {
-                            case SCmember:
+                            case SC.member:
                                 debug_info.buf.writeuLEB128(membercode);
                                 debug_info.buf.writeStringz(getSymName(sf));      // DW_AT_name
                                 //debug_info.buf.write32(dwarf_typidx(sf.Stype));
@@ -3239,7 +3239,7 @@ static if (1)
             type *t = tspvoid;
             t.Tcount++;
             type_setmangle(&t, mTYman_sys);         // no leading '_' for mangled name
-            Symbol *s = symbol_name(name.ptr, SCstatic, t);
+            Symbol *s = symbol_name(name.ptr, SC.static_, t);
             Obj.pubdef(seg, s, cast(uint)buf.length());
             symbol_keep(s);
 

@@ -106,7 +106,7 @@ Symbol* MachObj_getGOTsym()
     __gshared Symbol *GOTsym;
     if (!GOTsym)
     {
-        GOTsym = symbol_name("_GLOBAL_OFFSET_TABLE_",SCglobal,tspvoid);
+        GOTsym = symbol_name("_GLOBAL_OFFSET_TABLE_",SC.global,tspvoid);
     }
     return GOTsym;
 }
@@ -1066,17 +1066,18 @@ version (SCPP)
                             if (r.val == -4)
                                 rel.r_type = X86_64_RELOC_SIGNED_4;
 
-                            if (s.Sclass == SCextern ||
-                                s.Sclass == SCcomdef ||
-                                s.Sclass == SCcomdat ||
-                                s.Sclass == SCstatic ||
-                                s.Sclass == SCglobal)
+                            if (s.Sclass == SC.extern_ ||
+                                s.Sclass == SC.comdef  ||
+                                s.Sclass == SC.comdat  ||
+                                s.Sclass == SC.static_ ||
+                                s.Sclass == SC.global)
                             {
                                 if ((s.ty() & mTYLINK) == mTYthread && r.rtype == RELaddr)
                                     rel.r_type = X86_64_RELOC_TLV;
-                                else if (s.Sfl == FLfunc && s.Sclass == SCstatic && r.rtype == RELaddr)
+                                else if (s.Sfl == FLfunc && s.Sclass == SC.static_ && r.rtype == RELaddr)
                                     rel.r_type = X86_64_RELOC_SIGNED;
-                                else if ((s.Sfl == FLfunc || s.Sfl == FLextern || s.Sclass == SCglobal || s.Sclass == SCcomdat || s.Sclass == SCcomdef) && r.rtype == RELaddr)
+                                else if ((s.Sfl == FLfunc || s.Sfl == FLextern || s.Sclass == SC.global ||
+                                          s.Sclass == SC.comdat || s.Sclass == SC.comdef) && r.rtype == RELaddr)
                                 {
                                     rel.r_type = X86_64_RELOC_GOT_LOAD;
                                     if (seg == eh_frame_seg ||
@@ -1118,9 +1119,9 @@ version (SCPP)
                     }
                     else
                     {
-                        if (s.Sclass == SCextern ||
-                            s.Sclass == SCcomdef ||
-                            s.Sclass == SCcomdat)
+                        if (s.Sclass == SC.extern_ ||
+                            s.Sclass == SC.comdef ||
+                            s.Sclass == SC.comdat)
                         {
                             rel.r_address = cast(int)r.offset;
                             rel.r_symbolnum = s.Sxtrnnum;
@@ -1332,7 +1333,7 @@ version (SCPP)
         sym.n_strx = mach_addmangled(s);
         sym.n_type = N_SECT;
         sym.n_desc = 0;
-        if (s.Sclass == SCcomdat)
+        if (s.Sclass == SC.comdat)
             sym.n_desc = N_WEAK_DEF;
         sym.n_sect = cast(ubyte)s.Sseg;
         if (I64)
@@ -1361,7 +1362,7 @@ version (SCPP)
         if (s.Sflags & SFLhidden)
             sym.n_type |= N_PEXT; // private extern
         sym.n_desc = 0;
-        if (s.Sclass == SCcomdat)
+        if (s.Sclass == SC.comdat)
             sym.n_desc = N_WEAK_DEF;
         sym.n_sect = cast(ubyte)s.Sseg;
         if (I64)
@@ -2303,15 +2304,15 @@ void MachObj_pubdef(int seg, Symbol *s, targ_size_t offset)
     s.Sseg = seg;
     switch (s.Sclass)
     {
-        case SCglobal:
-        case SCinline:
+        case SC.global:
+        case SC.inline:
             public_symbuf.write((&s)[0 .. 1]);
             break;
-        case SCcomdat:
-        case SCcomdef:
+        case SC.comdat:
+        case SC.comdef:
             public_symbuf.write((&s)[0 .. 1]);
             break;
-        case SCstatic:
+        case SC.static_:
             if (s.Sflags & SFLhidden)
             {
                 public_symbuf.write((&s)[0 .. 1]);
@@ -2634,7 +2635,7 @@ static if (0)
     symbol_print(s);
 }
     assert(seg > 0);
-    if (s.Sclass != SClocstat && !s.Sxtrnnum)
+    if (s.Sclass != SC.locstat && !s.Sxtrnnum)
     {   // It may get defined later as public or local, so defer
         size_t numbyteswritten = addtofixlist(s, offset, seg, val, flags);
         assert(numbyteswritten == retsize);
@@ -2702,7 +2703,8 @@ static if (0)
             }
             else if (SegData[seg].isCode() &&
                      !(flags & CFindirect) &&
-                    ((s.Sclass != SCextern && SegData[s.Sseg].isCode()) || s.Sclass == SClocstat || s.Sclass == SCstatic))
+                    ((s.Sclass != SC.extern_ && SegData[s.Sseg].isCode()) || s.Sclass == SC.locstat ||
+                     s.Sclass == SC.static_))
             {
                 val += s.Soffset;
                 MachObj_addrel(seg, offset, null, s.Sseg, RELaddr);
@@ -2866,7 +2868,7 @@ static if (0)
     char *p = cast(char *)malloc(5 + strlen(scc.Sident.ptr) + 1);
     strcpy(p, "SUPER");
     strcpy(p + 5, scc.Sident.ptr);
-    Symbol *s_minfo_beg = symbol_name(p, SCglobal, t);
+    Symbol *s_minfo_beg = symbol_name(p, SC.global, t);
     MachObj_pubdef(seg, s_minfo_beg, 0);
 }
 
@@ -2885,15 +2887,15 @@ void MachObj_gotref(Symbol *s)
     //printf("MachObj_gotref(%x '%s', %d)\n",s,s.Sident.ptr, s.Sclass);
     switch(s.Sclass)
     {
-        case SCstatic:
-        case SClocstat:
+        case SC.static_:
+        case SC.locstat:
             s.Sfl = FLgotoff;
             break;
 
-        case SCextern:
-        case SCglobal:
-        case SCcomdat:
-        case SCcomdef:
+        case SC.extern_:
+        case SC.global:
+        case SC.comdat:
+        case SC.comdef:
             s.Sfl = FLgot;
             break;
 
@@ -2913,7 +2915,7 @@ Symbol* MachObj_tlv_bootstrap()
 {
     __gshared Symbol* tlv_bootstrap_sym;
     if (!tlv_bootstrap_sym)
-        tlv_bootstrap_sym = symbol_name("__tlv_bootstrap", SCextern, type_fake(TYnfunc));
+        tlv_bootstrap_sym = symbol_name("__tlv_bootstrap", SC.extern_, type_fake(TYnfunc));
     return tlv_bootstrap_sym;
 }
 

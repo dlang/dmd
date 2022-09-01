@@ -1456,7 +1456,7 @@ bool Symbol_Sisdead(const ref Symbol s, bool anyInlineAsm);
 int Symbol_needThis(const ref Symbol s);
 bool Symbol_isAffected(const ref Symbol s);
 
-bool isclassmember(const Symbol* s) { return s.Sscope && s.Sscope.Sclass == SCstruct; }
+bool isclassmember(const Symbol* s) { return s.Sscope && s.Sscope.Sclass == SC.struct_; }
 
 // Class, struct or union
 

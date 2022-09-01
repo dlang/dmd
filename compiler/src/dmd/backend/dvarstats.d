@@ -208,7 +208,7 @@ private symtab_t* calcLexicalScope(return ref symtab_t symtab) return
     for (argcnt = 0; argcnt < symtab.length; argcnt++)
     {
         Symbol* sa = symtab[argcnt];
-        if (sa.Sclass != SCparameter && sa.Sclass != SCregpar && sa.Sclass != SCfastpar && sa.Sclass != SCshadowreg)
+        if (sa.Sclass != SC.parameter && sa.Sclass != SC.regpar && sa.Sclass != SC.fastpar && sa.Sclass != SC.shadowreg)
             break;
         sortedSymtab[argcnt] = sa;
     }
@@ -286,10 +286,10 @@ public void writeSymbolTable(ref symtab_t symtab,
     {
         Symbol *sa = (*symtab2)[si];
         if (endarg == false &&
-            sa.Sclass != SCparameter &&
-            sa.Sclass != SCfastpar &&
-            sa.Sclass != SCregpar &&
-            sa.Sclass != SCshadowreg)
+            sa.Sclass != SC.parameter &&
+            sa.Sclass != SC.fastpar &&
+            sa.Sclass != SC.regpar &&
+            sa.Sclass != SC.shadowreg)
         {
             if(fnEndArgs)
                 (*fnEndArgs)();
