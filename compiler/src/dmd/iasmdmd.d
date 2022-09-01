@@ -123,7 +123,7 @@ version (none) // don't use bReturnax anymore, and will fail anyway if we use re
 
     switch (asmstate.tokValue)
     {
-        case cast(TOK)ASMTKnaked:
+        case cast(TOK)ASMTK.naked:
             import dmd.func : FUNCFLAG;
 
             s.naked = true;
@@ -131,7 +131,7 @@ version (none) // don't use bReturnax anymore, and will fail anyway if we use re
             asm_token();
             break;
 
-        case cast(TOK)ASMTKeven:
+        case cast(TOK)ASMTK.even:
             asm_token();
             s.asmalign = 2;
             break;
@@ -267,22 +267,22 @@ private:
 enum ADDFWAIT = false;
 
 
-// Additional tokens for the inline assembler
-alias ASMTK = int;
-enum
+/// Additional tokens for the inline assembler
+enum ASMTK
 {
-    ASMTKlocalsize = TOK.max + 1,
-    ASMTKdword,
-    ASMTKeven,
-    ASMTKfar,
-    ASMTKnaked,
-    ASMTKnear,
-    ASMTKptr,
-    ASMTKqword,
-    ASMTKseg,
-    ASMTKword,
-    ASMTKmax = ASMTKword - ASMTKlocalsize + 1
+    localsize = TOK.max + 1,
+    dword,
+    even,
+    far,
+    naked,
+    near,
+    ptr,
+    qword,
+    seg,
+    word,
 }
+
+enum ASMTKmax = ASMTK.max + 1 - ASMTK.min;
 
 immutable char*[ASMTKmax] apszAsmtk =
 [
@@ -3436,7 +3436,7 @@ void asm_token_trans(Token *tok)
             {
                 ASMTK asmtk = cast(ASMTK) binary(id.ptr, cast(const(char)**)apszAsmtk.ptr, ASMTKmax);
                 if (cast(int)asmtk >= 0)
-                    asmstate.tokValue = cast(TOK) (asmtk + ASMTKlocalsize);
+                    asmstate.tokValue = cast(TOK) (asmtk + ASMTK.min);
             }
         }
     }
@@ -4172,7 +4172,7 @@ void asm_una_exp(ref OPND o1)
             return;
         }
         // else: ptr <BasicType>
-        asm_chktok(cast(TOK) ASMTKptr, "ptr expected");
+        asm_chktok(cast(TOK) ASMTK.ptr, "ptr expected");
         asm_cond_exp(o1);
         o1.ptype = ptype;
         o1.bPtr = true;
@@ -4183,7 +4183,7 @@ void asm_una_exp(ref OPND o1)
         if (readPtr)
         {
             asm_token();
-            asm_chktok(cast(TOK) ASMTKptr, "ptr expected".ptr);
+            asm_chktok(cast(TOK) ASMTK.ptr, "ptr expected".ptr);
         }
         asm_cond_exp(o1);
         o1.ajt = ajt;
@@ -4264,7 +4264,7 @@ version (none)
                 asm_primary_exp(o1);
             break;
 
-        case ASMTKseg:
+        case ASMTK.seg:
             asm_token();
             asm_cond_exp(o1);
             o1.bSeg = true;
@@ -4278,10 +4278,10 @@ version (none)
             asm_token();
             return jump_ref(o1, ASM_JUMPTYPE_SHORT, false);
 
-        case ASMTKnear:
+        case ASMTK.near:
             return jump_ref(o1, ASM_JUMPTYPE_NEAR, true);
 
-        case ASMTKfar:
+        case ASMTK.far:
             return jump_ref(o1, ASM_JUMPTYPE_FAR, true);
 
         case TOK.void_:
@@ -4307,13 +4307,13 @@ version (none)
 
         case TOK.int8:
             return type_ref(o1, Type.tint8);
-        case ASMTKword:
+        case ASMTK.word:
             return type_ref(o1, Type.tint16);
         case TOK.int32:
-        case ASMTKdword:
+        case ASMTK.dword:
             return type_ref(o1, Type.tint32);
         case TOK.int64:
-        case ASMTKqword:
+        case ASMTK.qword:
             return type_ref(o1, Type.tint64);
 
         case TOK.float32:
@@ -4514,7 +4514,7 @@ void asm_primary_exp(out OPND o1)
             asm_token();
             break;
 
-        case cast(TOK)ASMTKlocalsize:
+        case cast(TOK)ASMTK.localsize:
             o1.s = asmstate.psLocalsize;
             o1.ptype = Type.tint32;
             asm_token();
