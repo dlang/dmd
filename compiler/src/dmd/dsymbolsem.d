@@ -984,7 +984,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 // possibilities.
                 if (fd && !(dsym.storage_class & (STC.manifest | STC.static_ | STC.gshared | STC.extern_)) && !dsym._init.isVoidInitializer())
                 {
-                    //printf("fd = '%s', var = '%s'\n", fd.toChars(), toChars());
+                    //printf("fd = '%s', var = '%s'\n", fd.toChars(), dsym.toChars());
                     if (!ei)
                     {
                         ArrayInitializer ai = dsym._init.isArrayInitializer();
@@ -1015,24 +1015,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         dsym._init = dsym._init.initializerSemantic(sc, dsym.type, INITinterpret);
                     }
 
-                    Expression exp = ei.exp;
-                    Expression e1 = new VarExp(dsym.loc, dsym);
-                    if (isBlit)
-                        exp = new BlitExp(dsym.loc, e1, exp);
-                    else
-                        exp = new ConstructExp(dsym.loc, e1, exp);
-                    dsym.canassign++;
-                    exp = exp.expressionSemantic(sc);
-                    dsym.canassign--;
-                    exp = exp.optimize(WANTvalue);
-                    if (exp.op == EXP.error)
-                    {
-                        dsym._init = new ErrorInitializer();
-                        ei = null;
-                    }
-                    else
-                        ei.exp = exp;
-
                     if (ei && dsym.isScope())
                     {
                         Expression ex = ei.exp.lastComma();
@@ -1055,6 +1037,24 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                                 f.tookAddressOf--;
                         }
                     }
+
+                    Expression exp = ei.exp;
+                    Expression e1 = new VarExp(dsym.loc, dsym);
+                    if (isBlit)
+                        exp = new BlitExp(dsym.loc, e1, exp);
+                    else
+                        exp = new ConstructExp(dsym.loc, e1, exp);
+                    dsym.canassign++;
+                    exp = exp.expressionSemantic(sc);
+                    dsym.canassign--;
+                    exp = exp.optimize(WANTvalue);
+                    if (exp.op == EXP.error)
+                    {
+                        dsym._init = new ErrorInitializer();
+                        ei = null;
+                    }
+                    else
+                        ei.exp = exp;
                 }
                 else
                 {
