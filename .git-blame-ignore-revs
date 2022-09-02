@@ -1,0 +1,3 @@
+# .git-blame-ignore-revs
+# Removed all SC Enum aliases, which touched a ton of backend/glue files
+98a842927e4905fc2ecc0e93ffd64b5da3ebbcf2
