@@ -622,7 +622,7 @@ a.length; // runtime value
 
 p.dup;    // error, length not known
 s.dup;    // creates an array of 3 elements, copies
-          // elements s into it
+          // elements of s into it
 a.dup;    // creates an array of a.length elements, copies
           // elements of a into it
 ---------
@@ -647,16 +647,22 @@ array.length = 7;
 array = array[0..7];
 ---------
 
-        $(P If the new array length is longer, the remainder is filled out with the
+        $(P If the new array length is longer, the array is reallocated if necessary,
+        preserving the existing elements. The new elements are filled out with the
         default initializer.
         )
 
-        $(P To maximize efficiency, the runtime always tries to resize the array
-        in place to avoid extra copying. It will always do a copy if the new
-        size is larger and the array was not allocated via the new operator or
-        resizing in place would overwrite valid data in the array. For example:)
+$(H4 $(LNAME2 growing, Growing an Array))
 
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        $(P To maximize efficiency, the runtime always tries to resize the array
+        in place to avoid extra copying. It will do a copy if the new size
+        is larger and either:)
+
+        * The array was not allocated via the `new` operator.
+        * There is no spare $(RELATIVE_LINK2 capacity-reserve, capacity) in the array.
+        * Resizing in place would overwrite valid data still accessible in another slice.
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---------
 char[] a = new char[20];
 char[] b = a[0..10];
@@ -666,10 +672,13 @@ char[] d = a;
 b.length = 15; // always reallocates because extending in place would
                // overwrite other data in a.
 b[11] = 'x';   // a[11] and c[1] are not affected
+assert(a[11] == char.init);
 
 d.length = 1;
-d.length = 20; // also reallocates, because doing this will overwrite a and
-               // c
+assert(d.ptr == a.ptr); // unchanged
+
+d.length = 20; // also reallocates, because doing this will overwrite a and c
+assert(d.ptr != a.ptr);
 
 c.length = 12; // may reallocate in place if space allows, because nothing
                // was allocated after c.
@@ -685,14 +694,13 @@ a[15] = 'z';   // does not affect c, because either a or c has reallocated.
 )
 
 
-        $(P To guarantee copying behavior, use the .dup property to ensure
-        a unique array that can be resized. Also, one may use the
-        $(D .capacity) property to determine how many elements can be appended
-        to the array without reallocating.
+        $(P To guarantee copying behavior, use the `.dup` property to ensure
+        a unique array that can be resized.
         )
 
-        $(P These issues also apply to appending arrays with the ~= operator.
-        Concatenation using the ~ operator is not affected since it always
+        $(NOTE These issues also apply to
+        $(RELATIVE_LINK2 array-appending, appending arrays) with the `~=` operator.
+        Concatenation using the `~` operator is not affected since it always
         reallocates.
         )
 
@@ -744,6 +752,10 @@ array.length = i;
         input from the console - it's unlikely to be longer than 80.
         )
 
+$(H3 $(LNAME2 capacity-reserve, `capacity` and `reserve`))
+
+        $(P The $(D capacity) property determines how many elements can be appended
+        to the array without reallocating.)
         $(P The $(D reserve)
         function expands an array's capacity for use by the append operator.)
 
