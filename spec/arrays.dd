@@ -185,15 +185,9 @@ p = a.ptr; // p points to the first element of the array a.
 // error, since the length of the array pointed to by p is unknown
 //s = p;
 
-s = [1,2]; // OK
-assert(s == [1,2,0]);
-s = [1,2,3];
-//s = [1,2,3,4]; // error, too many elements
-
 //a = p;   // error, length unknown
 a = s;     // a points to the elements of s
 assert(a.ptr == s.ptr);
-assert(a == [1,2,3]);
 
 int[] b;
 a = b;     // a points to the same array as b does
@@ -205,7 +199,29 @@ assert(a == []);
     using pointer $(RELATIVE_LINK2 slicing, slicing), so that the number of elements
     to copy is then known.)
 
-    $(P See also $(RELATIVE_LINK2 array-copying, Copying).)
+    $(P A static array can be assigned from a dynamic array. The lengths must match:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+int[3] s;
+int[] a;
+
+//s = [1, 2]; // error
+s = [1, 2, 3]; // OK
+//s = [1, 2, 3, 4]; // error
+
+a = [4, 5, 6];
+s = a; // OK
+a = [1, 2];
+//s = a; // RangeError
+
+a = s;
+//s = a; // RangeError, overlap
+---
+)
+    $(P The dynamic array data must not $(RELATIVE_LINK2 overlapping-copying, overlap)
+    with the static array memory.
+    See also $(RELATIVE_LINK2 array-copying, Copying).)
 
 
 $(H2 $(LNAME2 indexing, Indexing))
