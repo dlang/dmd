@@ -2715,14 +2715,27 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
         if (mfa == MATCH.nomatch)
             return 0;
 
-        if (mfa > m.last) goto LfIsBetter;
-        if (mfa < m.last) goto LlastIsBetter;
+        int firstIsBetter()
+        {
+            td_best = null;
+            ti_best = null;
+            ta_last = MATCH.exact;
+            m.last = mfa;
+            m.lastf = fd;
+            tthis_best = tthis_fd;
+            ov_index = 0;
+            m.count = 1;
+            return 0;
+        }
+
+        if (mfa > m.last) return firstIsBetter();
+        if (mfa < m.last) return 0;
 
         /* See if one of the matches overrides the other.
          */
         assert(m.lastf);
-        if (m.lastf.overrides(fd)) goto LlastIsBetter;
-        if (fd.overrides(m.lastf)) goto LfIsBetter;
+        if (m.lastf.overrides(fd)) return 0;
+        if (fd.overrides(m.lastf)) return firstIsBetter();
 
         /* Try to disambiguate using template-style partial ordering rules.
          * In essence, if f() and g() are ambiguous, if f() can call g(),
@@ -2733,8 +2746,8 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
             MATCH c1 = fd.leastAsSpecialized(m.lastf);
             MATCH c2 = m.lastf.leastAsSpecialized(fd);
             //printf("c1 = %d, c2 = %d\n", c1, c2);
-            if (c1 > c2) goto LfIsBetter;
-            if (c1 < c2) goto LlastIsBetter;
+            if (c1 > c2) return firstIsBetter();
+            if (c1 < c2) return 0;
         }
 
         /* The 'overrides' check above does covariant checking only
@@ -2755,12 +2768,12 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
             {
                 if (firstCovariant != Covariant.yes && firstCovariant != Covariant.no)
                 {
-                    goto LlastIsBetter;
+                    return 0;
                 }
             }
             else if (firstCovariant == Covariant.yes || firstCovariant == Covariant.no)
             {
-                goto LfIsBetter;
+                return firstIsBetter();
             }
         }
 
@@ -2779,37 +2792,22 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
             fd._linkage == m.lastf._linkage)
         {
             if (fd.fbody && !m.lastf.fbody)
-                goto LfIsBetter;
+                return firstIsBetter();
             if (!fd.fbody)
-                goto LlastIsBetter;
+                return 0;
         }
 
         // https://issues.dlang.org/show_bug.cgi?id=14450
         // Prefer exact qualified constructor for the creating object type
         if (isCtorCall && tf.mod != m.lastf.type.mod)
         {
-            if (tthis.mod == tf.mod) goto LfIsBetter;
-            if (tthis.mod == m.lastf.type.mod) goto LlastIsBetter;
+            if (tthis.mod == tf.mod) return firstIsBetter();
+            if (tthis.mod == m.lastf.type.mod) return 0;
         }
 
         m.nextf = fd;
         m.count++;
         return 0;
-
-    LlastIsBetter:
-        return 0;
-
-    LfIsBetter:
-        td_best = null;
-        ti_best = null;
-        ta_last = MATCH.exact;
-        m.last = mfa;
-        m.lastf = fd;
-        tthis_best = tthis_fd;
-        ov_index = 0;
-        m.count = 1;
-        return 0;
-
     }
 
     int applyTemplate(TemplateDeclaration td)
