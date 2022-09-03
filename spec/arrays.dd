@@ -359,18 +359,26 @@ $(H2 $(LNAME2 array-copying, Array Copying))
         right-hand side is an array of or pointer to the same type.
         )
 
-$(SPEC_RUNNABLE_EXAMPLE_FAIL
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---------
-int[3] s;
-int[3] t;
+int[3] s, t;
+int[] a;
 
 s = t;             // the 3 elements of t are copied into s
 s[] = t;           // the 3 elements of t are copied into s
 s[] = t[];         // the 3 elements of t are copied into s
 s[1..2] = t[0..1]; // same as s[1] = t[0]
 s[0..2] = t[1..3]; // same as s[0] = t[1], s[1] = t[2]
-s[0..4] = t[0..4]; // error, only 3 elements in s
-s[0..2] = t;       // error, operands have different lengths
+//s[0..4] = t[0..4]; // error, only 3 elements in s and t
+//s[0..2] = t;       // error, operands have different lengths
+
+a = [1, 2];
+s[0..2] = a;
+assert(s == [1, 2, 0]);
+
+//a[] = s; // RangeError, lengths don't match
+a[0..2] = s[1..3];
+assert(a == [2, 0]);
 ---------
 )
 
