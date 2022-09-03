@@ -754,8 +754,9 @@ array.length = i;
 
 $(H3 $(LNAME2 capacity-reserve, `capacity` and `reserve`))
 
-        $(P The $(D capacity) property determines how many elements can be appended
-        to the array without reallocating.)
+        $(P The $(D capacity) property gives the maximum length the array
+        can grow to without reallocating. The spare capacity for array *a*
+        is `a.capacity - a.length`.)
         $(P The $(D reserve)
         function expands an array's capacity for use by the append operator.)
 
@@ -763,9 +764,12 @@ $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
 int[] array;
 size_t cap = array.reserve(10); // request
-array ~= [1, 2, 3, 4, 5];
 assert(cap >= 10); // allocated may be more than request
+
+int[] copy = array;
+array ~= [1, 2, 3, 4, 5]; // grow in place
 assert(cap == array.capacity);
+assert(copy.ptr == array.ptr);
 ---------
 )
 
