@@ -658,7 +658,7 @@ $(H4 $(LNAME2 growing, Growing an Array))
         in place to avoid extra copying. It will do a copy if the new size
         is larger and either:)
 
-        * The array was not allocated via the `new` operator.
+        * The array was not $(DDSUBLINK spec/garbage, op_involving_gc, allocated by the GC).
         * There is no spare $(RELATIVE_LINK2 capacity-reserve, capacity) in the array.
         * Resizing in place would overwrite valid data still accessible in another slice.
 
