@@ -4873,14 +4873,12 @@ extern (C++) final class TypeFunction : TypeNext
                 if (parameterList.varargs == VarArg.typesafe && u + 1 == nparams) // if last varargs param
                 {
                     Type tb = p.type.toBasetype();
-                    TypeSArray tsa;
-                    dinteger_t sz;
 
                     switch (tb.ty)
                     {
                     case Tsarray:
-                        tsa = cast(TypeSArray)tb;
-                        sz = tsa.dim.toInteger();
+                        TypeSArray tsa = cast(TypeSArray)tb;
+                        dinteger_t sz = tsa.dim.toInteger();
                         if (sz != nargs - u)
                         {
                             if (pMessage)
