@@ -67,7 +67,7 @@ public:
             m_trace = trace(tracebuf[], skip, context);
     }
 
-    int opApply( scope int delegate(ref const(char[])) dg ) const
+    override int opApply( scope int delegate(ref const(char[])) dg ) const
     {
         return opApply( (ref size_t, ref const(char[]) buf)
                         {
@@ -76,7 +76,7 @@ public:
     }
 
 
-    int opApply( scope int delegate(ref size_t, ref const(char[])) dg ) const
+    override int opApply( scope int delegate(ref size_t, ref const(char[])) dg ) const
     {
         int result;
         foreach ( i, e; resolve(m_trace) )
