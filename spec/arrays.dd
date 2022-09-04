@@ -199,7 +199,8 @@ assert(a == []);
     using pointer $(RELATIVE_LINK2 slicing, slicing), so that the number of elements
     to copy is then known.)
 
-    $(P A static array can be assigned from a dynamic array. The lengths must match:)
+    $(P A static array can be assigned from a dynamic array - the data is copied.
+    The lengths must match:)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
@@ -212,10 +213,12 @@ s = [1, 2, 3]; // OK
 
 a = [4, 5, 6];
 s = a; // OK
+assert(s.ptr != a.ptr);
 a = [1, 2];
-//s = a; // RangeError
+//s = a; // RangeError, length mismatch
 
 a = s;
+assert(a.ptr == s.ptr);
 //s = a; // RangeError, overlap
 ---
 )
