@@ -4883,15 +4883,8 @@ extern (C++) final class TypeFunction : TypeNext
                         if (sz != trailingArgs.length)
                         {
                             if (pMessage)
-                                // Windows (Vista) OutBuffer.vprintf issue? 2nd argument always zero
-                                //*pMessage = getMatchError("expected %d variadic argument(s), not %d", sz, nargs - u);
-                            if (!global.gag || global.params.showGaggedErrors)
-                            {
-                                OutBuffer buf;
-                                buf.printf("expected %llu variadic argument(s)", sz);
-                                buf.printf(", not %zu", trailingArgs.length);
-                                *pMessage = buf.extractChars();
-                            }
+                                *pMessage = getMatchError("expected %llu variadic argument(s), not %zu",
+                                                          sz, trailingArgs.length);
                             return MATCH.nomatch;
                         }
                         goto case Tarray;
