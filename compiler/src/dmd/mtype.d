@@ -4873,13 +4873,14 @@ extern (C++) final class TypeFunction : TypeNext
                 if (parameterList.varargs == VarArg.typesafe && u + 1 == nparams) // if last varargs param
                 {
                     Type tb = p.type.toBasetype();
+                    auto trailingArgs = args[u .. $];
 
                     switch (tb.ty)
                     {
                     case Tsarray:
                         TypeSArray tsa = cast(TypeSArray)tb;
                         dinteger_t sz = tsa.dim.toInteger();
-                        if (sz != nargs - u)
+                        if (sz != trailingArgs.length)
                         {
                             if (pMessage)
                                 // Windows (Vista) OutBuffer.vprintf issue? 2nd argument always zero
@@ -4888,7 +4889,7 @@ extern (C++) final class TypeFunction : TypeNext
                             {
                                 OutBuffer buf;
                                 buf.printf("expected %llu variadic argument(s)", sz);
-                                buf.printf(", not %zu", nargs - u);
+                                buf.printf(", not %zu", trailingArgs.length);
                                 *pMessage = buf.extractChars();
                             }
                             return MATCH.nomatch;
@@ -4897,7 +4898,7 @@ extern (C++) final class TypeFunction : TypeNext
                     case Tarray:
                         {
                             TypeArray ta = cast(TypeArray)tb;
-                            foreach (arg; args[u .. nargs])
+                            foreach (arg; trailingArgs)
                             {
                                 assert(arg);
 
