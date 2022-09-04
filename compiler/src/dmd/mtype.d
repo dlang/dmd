@@ -4930,12 +4930,12 @@ extern (C++) final class TypeFunction : TypeNext
                                 if (m < match)
                                     match = m;
                             }
-                            goto Ldone;
+                            return match;
                         }
                     case Tclass:
                         // Should see if there's a constructor match?
                         // Or just leave it ambiguous?
-                        goto Ldone;
+                        return match;
 
                     default:
                         break;
@@ -4952,7 +4952,6 @@ extern (C++) final class TypeFunction : TypeNext
                 match = m; // pick worst match
         }
 
-    Ldone:
         if (pMessage && !parameterList.varargs && nargs > nparams)
         {
             // all parameters had a match, but there are surplus args
