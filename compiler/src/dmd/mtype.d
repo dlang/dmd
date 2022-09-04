@@ -4727,45 +4727,39 @@ extern (C++) final class TypeFunction : TypeNext
 
                 if (p.isLazy() && tprm.ty == Tvoid && targ.ty != Tvoid)
                     m = MATCH.convert;
+                else if (flag)
+                {
+                    // for partial ordering, value is an irrelevant mockup, just look at the type
+                    m = targ.implicitConvTo(tprm);
+                }
                 else
                 {
-                    //printf("%s of type %s implicitConvTo %s\n", arg.toChars(), targ.toChars(), tprm.toChars());
-                    if (flag)
+                    const isRef = p.isReference();
+                    StructDeclaration argStruct, prmStruct;
+
+                    // first look for a copy constructor
+                    if (arg.isLvalue() && !isRef && targ.ty == Tstruct && tprm.ty == Tstruct)
                     {
-                        // for partial ordering, value is an irrelevant mockup, just look at the type
-                        m = targ.implicitConvTo(tprm);
+                        // if the argument and the parameter are of the same unqualified struct type
+                        argStruct = (cast(TypeStruct)targ).sym;
+                        prmStruct = (cast(TypeStruct)tprm).sym;
+                    }
+
+                    // check if the copy constructor may be called to copy the argument
+                    if (argStruct && argStruct == prmStruct && argStruct.hasCopyCtor)
+                    {
+                        if (!isCopyConstructorCallable(argStruct, arg, tprm, sc, pMessage))
+                        {
+                            m = MATCH.nomatch;
+                            return MATCH.nomatch;
+                        }
+                        m = MATCH.exact;
                     }
                     else
                     {
-                        const isRef = p.isReference();
-
-                        StructDeclaration argStruct, prmStruct;
-
-                        // first look for a copy constructor
-                        if (arg.isLvalue() && !isRef && targ.ty == Tstruct && tprm.ty == Tstruct)
-                        {
-                            // if the argument and the parameter are of the same unqualified struct type
-                            argStruct = (cast(TypeStruct)targ).sym;
-                            prmStruct = (cast(TypeStruct)tprm).sym;
-                        }
-
-                        // check if the copy constructor may be called to copy the argument
-                        if (argStruct && argStruct == prmStruct && argStruct.hasCopyCtor)
-                        {
-                            if (!isCopyConstructorCallable(argStruct, arg, tprm, sc, pMessage))
-                            {
-                                m = MATCH.nomatch;
-                                return MATCH.nomatch;
-                            }
-                            m = MATCH.exact;
-                        }
-                        else
-                        {
-                            import dmd.dcast : cimplicitConvTo;
-                            m = (sc && sc.flags & SCOPE.Cfile) ? arg.cimplicitConvTo(tprm) : arg.implicitConvTo(tprm);
-                        }
+                        import dmd.dcast : cimplicitConvTo;
+                        m = (sc && sc.flags & SCOPE.Cfile) ? arg.cimplicitConvTo(tprm) : arg.implicitConvTo(tprm);
                     }
-                    //printf("match %d\n", m);
                 }
 
                 // Non-lvalues do not match ref or out parameters
@@ -4879,15 +4873,14 @@ extern (C++) final class TypeFunction : TypeNext
                 if (parameterList.varargs == VarArg.typesafe && u + 1 == nparams) // if last varargs param
                 {
                     Type tb = p.type.toBasetype();
-                    TypeSArray tsa;
-                    dinteger_t sz;
+                    auto trailingArgs = args[u .. $];
 
                     switch (tb.ty)
                     {
                     case Tsarray:
-                        tsa = cast(TypeSArray)tb;
-                        sz = tsa.dim.toInteger();
-                        if (sz != nargs - u)
+                        TypeSArray tsa = cast(TypeSArray)tb;
+                        dinteger_t sz = tsa.dim.toInteger();
+                        if (sz != trailingArgs.length)
                         {
                             if (pMessage)
                                 // Windows (Vista) OutBuffer.vprintf issue? 2nd argument always zero
@@ -4896,7 +4889,7 @@ extern (C++) final class TypeFunction : TypeNext
                             {
                                 OutBuffer buf;
                                 buf.printf("expected %llu variadic argument(s)", sz);
-                                buf.printf(", not %zu", nargs - u);
+                                buf.printf(", not %zu", trailingArgs.length);
                                 *pMessage = buf.extractChars();
                             }
                             return MATCH.nomatch;
@@ -4905,7 +4898,7 @@ extern (C++) final class TypeFunction : TypeNext
                     case Tarray:
                         {
                             TypeArray ta = cast(TypeArray)tb;
-                            foreach (arg; args[u .. nargs])
+                            foreach (arg; trailingArgs)
                             {
                                 assert(arg);
 
@@ -4937,12 +4930,12 @@ extern (C++) final class TypeFunction : TypeNext
                                 if (m < match)
                                     match = m;
                             }
-                            goto Ldone;
+                            return match;
                         }
                     case Tclass:
                         // Should see if there's a constructor match?
                         // Or just leave it ambiguous?
-                        goto Ldone;
+                        return match;
 
                     default:
                         break;
@@ -4959,7 +4952,6 @@ extern (C++) final class TypeFunction : TypeNext
                 match = m; // pick worst match
         }
 
-    Ldone:
         if (pMessage && !parameterList.varargs && nargs > nparams)
         {
             // all parameters had a match, but there are surplus args
