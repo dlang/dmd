@@ -2720,7 +2720,12 @@ unittest
 }
 
 /*
+ * Expand an OMF, DMD-generated compressed identifier into its full form
  *
+ * This function only has a visible effect for OMF binaries (Win32),
+ * as compression is otherwise not used.
+ *
+ * See_Also: `compiler/src/dmd/backend/compress.d`
  */
 string decodeDmdString( const(char)[] ln, ref size_t p ) nothrow pure @safe
 {

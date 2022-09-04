@@ -1,8 +1,8 @@
 /**
- * Identifier comperssion
+ * Identifier compression for 32 bits OMF builds
  *
- * Compiler implementation of the
- * $(LINK2 https://www.dlang.org, D programming language).
+ * On 32 bits OMF builds, we have a limit of 128 characters for identifiers.
+ * When this limit is reached, this code is called to attempt to compress the identifier.
  *
  * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
