@@ -112,7 +112,7 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb, bool isC
             assert(length < ai.dim);
             auto dtb = DtBuilder(0);
             Initializer_toDt(ai.value[i], dtb, isCfile);
-            if (dts[length])
+            if (dts[length] && !ai.isCarray)
                 error(ai.loc, "duplicate initializations for index `%d`", length);
             dts[length] = dtb.finish();
             length++;
@@ -202,52 +202,9 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb, bool isC
 
     void visitC(CInitializer ci)
     {
-        //printf("CInitializer.toDt() (%s) %s\n", ci.type.toChars(), ci.toChars());
-
-        /* append all initializers to dtb
+        /* Should have been rewritten to Exp/Struct/ArrayInitializer by semantic()
          */
-        auto dil = ci.initializerList[];
-        size_t i = 0;
-
-        /* Support recursion to handle un-braced array initializers
-         * Params:
-         *    t = element type
-         *    dim = number of elements
-         */
-        void array(Type t, size_t dim)
-        {
-            //printf(" type %s i %d dim %d dil.length = %d\n", t.toChars(), cast(int)i, cast(int)dim, cast(int)dil.length);
-            auto tn = t.nextOf().toBasetype();
-            auto tnsa = tn.isTypeSArray();
-            const nelems = tnsa ? cast(size_t)tnsa.dim.toInteger() : 0;
-
-            foreach (j; 0 .. dim)
-            {
-                if (i == dil.length)
-                {
-                    if (j < dim)
-                    {   // Not enough initializers, fill in with 0
-                        const size = cast(uint)tn.size();
-                        dtb.nzeros(cast(uint)(size * (dim - j)));
-                    }
-                    break;
-                }
-                auto di = dil[i];
-                assert(!di.designatorList);
-                if (tnsa && di.initializer.isExpInitializer())
-                {
-                    // no braces enclosing array initializer, so recurse
-                    array(tnsa, nelems);
-                }
-                else
-                {
-                    ++i;
-                    Initializer_toDt(di.initializer, dtb, isCfile);
-                }
-            }
-        }
-
-        array(ci.type, cast(size_t)ci.type.isTypeSArray().dim.toInteger());
+        assert(0);
     }
 
     final switch (init.kind)
