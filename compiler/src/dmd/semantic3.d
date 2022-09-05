@@ -167,11 +167,18 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
         sc = sc.push(tmix.argsym);
         sc = sc.push(tmix);
+
+        uint olderrors = global.errors;
+
         for (size_t i = 0; i < tmix.members.dim; i++)
         {
             Dsymbol s = (*tmix.members)[i];
             s.semantic3(sc);
         }
+
+        if (global.errors != olderrors)
+            errorSupplemental(tmix.loc, "parent scope from here: `mixin %s`", tmix.toChars());
+
         sc = sc.pop();
         sc.pop();
     }
