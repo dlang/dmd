@@ -4745,10 +4745,7 @@ extern (C++) final class TypeFunction : TypeNext
                     if (argStruct && argStruct == prmStruct && argStruct.hasCopyCtor)
                     {
                         if (!isCopyConstructorCallable(argStruct, arg, tprm, sc, pMessage))
-                        {
-                            m = MATCH.nomatch;
                             return MATCH.nomatch;
-                        }
                         m = MATCH.exact;
                     }
                     else
