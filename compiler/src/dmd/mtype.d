@@ -4857,8 +4857,6 @@ extern (C++) final class TypeFunction : TypeNext
             }
             else if (p.defaultArg)
                 continue;
-            else // try typesafe variadics
-                goto L1;
 
             /* prefer matching the element type rather than the array
              * type when more arguments are present with T[]...
