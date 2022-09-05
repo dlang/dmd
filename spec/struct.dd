@@ -1725,8 +1725,6 @@ $(GNAME Invariant):
     ---
     )
 
-    $(P Any invariants for fields are applied before the struct invariant.)
-
     $(P There may be multiple invariants in a struct. They are applied in lexical order.)
 
     $(P Struct $(I Invariant)s must hold at the exit of the struct constructor (if any),
