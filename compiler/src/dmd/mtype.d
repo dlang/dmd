@@ -4867,67 +4867,11 @@ extern (C++) final class TypeFunction : TypeNext
             L1:
                 if (parameterList.varargs == VarArg.typesafe && u + 1 == nparams) // if last varargs param
                 {
-                    Type tb = p.type.toBasetype();
                     auto trailingArgs = args[u .. $];
-
-                    switch (tb.ty)
-                    {
-                    case Tsarray:
-                        TypeSArray tsa = cast(TypeSArray)tb;
-                        dinteger_t sz = tsa.dim.toInteger();
-                        if (sz != trailingArgs.length)
-                        {
-                            if (pMessage)
-                                *pMessage = getMatchError("expected %llu variadic argument(s), not %zu",
-                                                          sz, trailingArgs.length);
-                            return MATCH.nomatch;
-                        }
-                        goto case Tarray;
-                    case Tarray:
-                        {
-                            TypeArray ta = cast(TypeArray)tb;
-                            foreach (arg; trailingArgs)
-                            {
-                                assert(arg);
-
-                                /* If lazy array of delegates,
-                                 * convert arg(s) to delegate(s)
-                                 */
-                                Type tret = p.isLazyArray();
-                                if (tret)
-                                {
-                                    if (ta.next.equals(arg.type))
-                                        m = MATCH.exact;
-                                    else if (tret.toBasetype().ty == Tvoid)
-                                        m = MATCH.convert;
-                                    else
-                                    {
-                                        m = arg.implicitConvTo(tret);
-                                        if (m == MATCH.nomatch)
-                                            m = arg.implicitConvTo(ta.next);
-                                    }
-                                }
-                                else
-                                    m = arg.implicitConvTo(ta.next);
-
-                                if (m == MATCH.nomatch)
-                                {
-                                    if (pMessage) *pMessage = getParamError(arg, p);
-                                    return MATCH.nomatch;
-                                }
-                                if (m < match)
-                                    match = m;
-                            }
-                            return match;
-                        }
-                    case Tclass:
-                        // Should see if there's a constructor match?
-                        // Or just leave it ambiguous?
-                        return match;
-
-                    default:
-                        break;
-                    }
+                    if (auto vmatch = matchTypeSafeVarArgs(this, p, trailingArgs, pMessage))
+                        return vmatch < match ? vmatch : match;
+                    // Error message was already generated in `matchTypeSafeVarArgs`
+                    return MATCH.nomatch;
                 }
                 if (pMessage && u < nargs)
                     *pMessage = getParamError(args[u], p);
@@ -7322,4 +7266,87 @@ private extern(D) bool isCopyConstructorCallable (StructDeclaration argStruct,
         *pMessage = buf.extractChars();
     }
     return false;
+}
+
+/**
+ * Match the remaining arguments `trailingArgs` with parameter `p`.
+ *
+ * Assume we already checked that `p` is the last parameter of `tf`,
+ * and we want to know whether the arguments would match `p`.
+ *
+ * Params:
+ *   tf = The `TypeFunction`, only used for error reporting
+ *   p = The last parameter of `tf` which is variadic
+ *   trailingArgs = The remaining arguments that should match `p`
+ *   pMessage = A buffer to write the error in, or `null`
+ *
+ * Returns: Whether `trailingArgs` match `p`.
+ */
+private extern(D) MATCH matchTypeSafeVarArgs(TypeFunction tf, Parameter p,
+    Expression[] trailingArgs, const(char)** pMessage)
+{
+    Type tb = p.type.toBasetype();
+
+    switch (tb.ty)
+    {
+    case Tsarray:
+        TypeSArray tsa = cast(TypeSArray)tb;
+        dinteger_t sz = tsa.dim.toInteger();
+        if (sz != trailingArgs.length)
+        {
+            if (pMessage)
+                *pMessage = tf.getMatchError("expected %llu variadic argument(s), not %zu",
+                    sz, trailingArgs.length);
+            return MATCH.nomatch;
+        }
+        goto case Tarray;
+    case Tarray:
+    {
+        MATCH match = MATCH.exact;
+        TypeArray ta = cast(TypeArray)tb;
+        foreach (arg; trailingArgs)
+        {
+            MATCH m;
+            assert(arg);
+
+            /* If lazy array of delegates,
+             * convert arg(s) to delegate(s)
+             */
+            Type tret = p.isLazyArray();
+            if (tret)
+            {
+                if (ta.next.equals(arg.type))
+                    m = MATCH.exact;
+                else if (tret.toBasetype().ty == Tvoid)
+                    m = MATCH.convert;
+                else
+                {
+                    m = arg.implicitConvTo(tret);
+                    if (m == MATCH.nomatch)
+                        m = arg.implicitConvTo(ta.next);
+                }
+            }
+            else
+                m = arg.implicitConvTo(ta.next);
+
+            if (m == MATCH.nomatch)
+            {
+                if (pMessage) *pMessage = tf.getParamError(arg, p);
+                return MATCH.nomatch;
+            }
+            if (m < match)
+                match = m;
+        }
+        return match;
+    }
+    case Tclass:
+        // We leave it up to the actual constructor call to do the matching.
+        return MATCH.exact;
+
+    default:
+        // We can have things as `foo(int[int] wat...)` but they only match
+        // with an associative array proper.
+        if (pMessage && trailingArgs.length) *pMessage = tf.getParamError(trailingArgs[0], p);
+        return MATCH.nomatch;
+    }
 }
