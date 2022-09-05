@@ -299,6 +299,16 @@ public int runLINK()
                 if (global.params.release)
                     cmdbuf.writestring(" /OPT:REF");
             }
+            if (global.params.disableLinkerStripDead)
+            {
+                cmdbuf.writeByte(' ');
+                cmdbuf.writestring("/OPT:NOREF");
+            }
+            else
+            {
+                cmdbuf.writestring(" /OPT:REF");
+                cmdbuf.writestring(driverParams.symdebug ? " /OPT:NOICF" : " /OPT:ICF");
+            }
             if (driverParams.dll)
             {
                 cmdbuf.writeByte(' ');
