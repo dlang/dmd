@@ -4716,141 +4716,7 @@ extern (C++) final class TypeFunction : TypeNext
             {
                 Expression arg = args[u];
                 assert(arg);
-                //printf("arg: %s, type: %s\n", arg.toChars(), arg.type.toChars());
-
-                Type targ = arg.type;
-                Type tprm = wildmatch ? p.type.substWildTo(wildmatch) : p.type;
-
-                if (p.isLazy() && tprm.ty == Tvoid && targ.ty != Tvoid)
-                    m = MATCH.convert;
-                else if (flag)
-                {
-                    // for partial ordering, value is an irrelevant mockup, just look at the type
-                    m = targ.implicitConvTo(tprm);
-                }
-                else
-                {
-                    const isRef = p.isReference();
-                    StructDeclaration argStruct, prmStruct;
-
-                    // first look for a copy constructor
-                    if (arg.isLvalue() && !isRef && targ.ty == Tstruct && tprm.ty == Tstruct)
-                    {
-                        // if the argument and the parameter are of the same unqualified struct type
-                        argStruct = (cast(TypeStruct)targ).sym;
-                        prmStruct = (cast(TypeStruct)tprm).sym;
-                    }
-
-                    // check if the copy constructor may be called to copy the argument
-                    if (argStruct && argStruct == prmStruct && argStruct.hasCopyCtor)
-                    {
-                        if (!isCopyConstructorCallable(argStruct, arg, tprm, sc, pMessage))
-                            return MATCH.nomatch;
-                        m = MATCH.exact;
-                    }
-                    else
-                    {
-                        import dmd.dcast : cimplicitConvTo;
-                        m = (sc && sc.flags & SCOPE.Cfile) ? arg.cimplicitConvTo(tprm) : arg.implicitConvTo(tprm);
-                    }
-                }
-
-                // Non-lvalues do not match ref or out parameters
-                if (p.isReference())
-                {
-                    // https://issues.dlang.org/show_bug.cgi?id=13783
-                    // Don't use toBasetype() to handle enum types.
-                    Type ta = targ;
-                    Type tp = tprm;
-                    //printf("fparam[%d] ta = %s, tp = %s\n", u, ta.toChars(), tp.toChars());
-
-                    if (m && !arg.isLvalue())
-                    {
-                        if (p.storageClass & STC.out_)
-                        {
-                            if (pMessage) *pMessage = getParamError(arg, p);
-                            return MATCH.nomatch;
-                        }
-
-                        if (arg.op == EXP.string_ && tp.ty == Tsarray)
-                        {
-                            if (ta.ty != Tsarray)
-                            {
-                                Type tn = tp.nextOf().castMod(ta.nextOf().mod);
-                                dinteger_t dim = (cast(StringExp)arg).len;
-                                ta = tn.sarrayOf(dim);
-                            }
-                        }
-                        else if (arg.op == EXP.slice && tp.ty == Tsarray)
-                        {
-                            // Allow conversion from T[lwr .. upr] to ref T[upr-lwr]
-                            if (ta.ty != Tsarray)
-                            {
-                                Type tn = ta.nextOf();
-                                dinteger_t dim = (cast(TypeSArray)tp).dim.toUInteger();
-                                ta = tn.sarrayOf(dim);
-                            }
-                        }
-                        else if ((p.storageClass & STC.in_) && global.params.previewIn)
-                        {
-                            // Allow converting a literal to an `in` which is `ref`
-                            if (arg.op == EXP.arrayLiteral && tp.ty == Tsarray)
-                            {
-                                Type tn = tp.nextOf();
-                                dinteger_t dim = (cast(TypeSArray)tp).dim.toUInteger();
-                                ta = tn.sarrayOf(dim);
-                            }
-
-                            // Need to make this a rvalue through a temporary
-                            m = MATCH.convert;
-                        }
-                        else if (global.params.rvalueRefParam != FeatureState.enabled ||
-                                 p.storageClass & STC.out_ ||
-                                 !arg.type.isCopyable())  // can't copy to temp for ref parameter
-                        {
-                            if (pMessage) *pMessage = getParamError(arg, p);
-                            return MATCH.nomatch;
-                        }
-                        else
-                        {
-                            /* in functionParameters() we'll convert this
-                             * rvalue into a temporary
-                             */
-                            m = MATCH.convert;
-                        }
-                    }
-
-                    /* If the match is not already perfect or if the arg
-                       is not a lvalue then try the `alias this` chain
-                       see  https://issues.dlang.org/show_bug.cgi?id=15674
-                       and https://issues.dlang.org/show_bug.cgi?id=21905
-                    */
-                    if (ta != tp || !arg.isLvalue())
-                    {
-                        Type firsttab = ta.toBasetype();
-                        while (1)
-                        {
-                            Type tab = ta.toBasetype();
-                            Type tat = tab.aliasthisOf();
-                            if (!tat || !tat.implicitConvTo(tprm))
-                                break;
-                            if (tat == tab || tat == firsttab)
-                                break;
-                            ta = tat;
-                        }
-                    }
-
-                    /* A ref variable should work like a head-const reference.
-                     * e.g. disallows:
-                     *  ref T      <- an lvalue of const(T) argument
-                     *  ref T[dim] <- an lvalue of const(T[dim]) argument
-                     */
-                    if (!ta.constConv(tp))
-                    {
-                        if (pMessage) *pMessage = getParamError(arg, p);
-                        return MATCH.nomatch;
-                    }
-                }
+                m = argumentMatchParameter(this, p, arg, wildmatch, flag, sc, pMessage);
             }
             else if (p.defaultArg)
                 continue;
@@ -4873,11 +4739,13 @@ extern (C++) final class TypeFunction : TypeNext
                     // Error message was already generated in `matchTypeSafeVarArgs`
                     return MATCH.nomatch;
                 }
-                if (pMessage && u < nargs)
-                    *pMessage = getParamError(args[u], p);
-                else if (pMessage)
+                if (pMessage && u >= nargs)
                     *pMessage = getMatchError("missing argument for parameter #%d: `%s`",
                         u + 1, parameterToChars(p, this, false));
+                // If an error happened previously, `pMessage` was already filled
+                else if (pMessage && !*pMessage)
+                    *pMessage = getParamError(args[u], p);
+
                 return MATCH.nomatch;
             }
             if (m < match)
@@ -7266,6 +7134,167 @@ private extern(D) bool isCopyConstructorCallable (StructDeclaration argStruct,
         *pMessage = buf.extractChars();
     }
     return false;
+}
+
+/**
+ * Match a single parameter to an argument.
+ *
+ * This function is called by `TypeFunction.callMatch` while iterating over
+ * the list of parameter. Here we check if `arg` is a match for `p`,
+ * which is mostly about checking if `arg.type` converts to `p`'s type
+ * and some check about value reference.
+ *
+ * Params:
+ *   tf = The `TypeFunction`, only used for error reporting
+ *   p = The parameter of `tf` being matched
+ *   arg = Argument being passed (bound) to `p`
+ *   wildmatch = Wild (`inout`) matching level, derived from the full argument list
+ *   flag = A non-zero value means we're doing a partial ordering check
+ *          (no value semantic check)
+ *   sc = Scope we are in
+ *   pMessage = A buffer to write the error in, or `null`
+ *
+ * Returns: Whether `trailingArgs` match `p`.
+ */
+private extern(D) MATCH argumentMatchParameter (TypeFunction tf, Parameter p,
+    Expression arg, ubyte wildmatch, int flag, Scope* sc, const(char)** pMessage)
+{
+    //printf("arg: %s, type: %s\n", arg.toChars(), arg.type.toChars());
+    MATCH m;
+    Type targ = arg.type;
+    Type tprm = wildmatch ? p.type.substWildTo(wildmatch) : p.type;
+
+    if (p.isLazy() && tprm.ty == Tvoid && targ.ty != Tvoid)
+        m = MATCH.convert;
+    else if (flag)
+    {
+        // for partial ordering, value is an irrelevant mockup, just look at the type
+        m = targ.implicitConvTo(tprm);
+    }
+    else
+    {
+        const isRef = p.isReference();
+        StructDeclaration argStruct, prmStruct;
+
+        // first look for a copy constructor
+        if (arg.isLvalue() && !isRef && targ.ty == Tstruct && tprm.ty == Tstruct)
+        {
+            // if the argument and the parameter are of the same unqualified struct type
+            argStruct = (cast(TypeStruct)targ).sym;
+            prmStruct = (cast(TypeStruct)tprm).sym;
+        }
+
+        // check if the copy constructor may be called to copy the argument
+        if (argStruct && argStruct == prmStruct && argStruct.hasCopyCtor)
+        {
+            if (!isCopyConstructorCallable(argStruct, arg, tprm, sc, pMessage))
+                return MATCH.nomatch;
+            m = MATCH.exact;
+        }
+        else
+        {
+            import dmd.dcast : cimplicitConvTo;
+            m = (sc && sc.flags & SCOPE.Cfile) ? arg.cimplicitConvTo(tprm) : arg.implicitConvTo(tprm);
+        }
+    }
+
+    // Non-lvalues do not match ref or out parameters
+    if (p.isReference())
+    {
+        // https://issues.dlang.org/show_bug.cgi?id=13783
+        // Don't use toBasetype() to handle enum types.
+        Type ta = targ;
+        Type tp = tprm;
+        //printf("fparam[%d] ta = %s, tp = %s\n", u, ta.toChars(), tp.toChars());
+
+        if (m && !arg.isLvalue())
+        {
+            if (p.storageClass & STC.out_)
+            {
+                if (pMessage) *pMessage = tf.getParamError(arg, p);
+                return MATCH.nomatch;
+            }
+
+            if (arg.op == EXP.string_ && tp.ty == Tsarray)
+            {
+                if (ta.ty != Tsarray)
+                {
+                    Type tn = tp.nextOf().castMod(ta.nextOf().mod);
+                    dinteger_t dim = (cast(StringExp)arg).len;
+                    ta = tn.sarrayOf(dim);
+                }
+            }
+            else if (arg.op == EXP.slice && tp.ty == Tsarray)
+            {
+                // Allow conversion from T[lwr .. upr] to ref T[upr-lwr]
+                if (ta.ty != Tsarray)
+                {
+                    Type tn = ta.nextOf();
+                    dinteger_t dim = (cast(TypeSArray)tp).dim.toUInteger();
+                    ta = tn.sarrayOf(dim);
+                }
+            }
+            else if ((p.storageClass & STC.in_) && global.params.previewIn)
+            {
+                // Allow converting a literal to an `in` which is `ref`
+                if (arg.op == EXP.arrayLiteral && tp.ty == Tsarray)
+                {
+                    Type tn = tp.nextOf();
+                    dinteger_t dim = (cast(TypeSArray)tp).dim.toUInteger();
+                    ta = tn.sarrayOf(dim);
+                }
+
+                // Need to make this a rvalue through a temporary
+                m = MATCH.convert;
+            }
+            else if (global.params.rvalueRefParam != FeatureState.enabled ||
+                     p.storageClass & STC.out_ ||
+                     !arg.type.isCopyable())  // can't copy to temp for ref parameter
+            {
+                if (pMessage) *pMessage = tf.getParamError(arg, p);
+                return MATCH.nomatch;
+            }
+            else
+            {
+                /* in functionParameters() we'll convert this
+                 * rvalue into a temporary
+                 */
+                m = MATCH.convert;
+            }
+        }
+
+        /* If the match is not already perfect or if the arg
+           is not a lvalue then try the `alias this` chain
+           see  https://issues.dlang.org/show_bug.cgi?id=15674
+           and https://issues.dlang.org/show_bug.cgi?id=21905
+        */
+        if (ta != tp || !arg.isLvalue())
+        {
+            Type firsttab = ta.toBasetype();
+            while (1)
+            {
+                Type tab = ta.toBasetype();
+                Type tat = tab.aliasthisOf();
+                if (!tat || !tat.implicitConvTo(tprm))
+                    break;
+                if (tat == tab || tat == firsttab)
+                    break;
+                ta = tat;
+            }
+        }
+
+        /* A ref variable should work like a head-const reference.
+         * e.g. disallows:
+         *  ref T      <- an lvalue of const(T) argument
+         *  ref T[dim] <- an lvalue of const(T[dim]) argument
+         */
+        if (!ta.constConv(tp))
+        {
+            if (pMessage) *pMessage = tf.getParamError(arg, p);
+            return MATCH.nomatch;
+        }
+    }
+    return m;
 }
 
 /**
