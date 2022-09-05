@@ -298,8 +298,7 @@ public int runLINK()
             }
             if (global.params.disableLinkerStripDead)
             {
-                cmdbuf.writeByte(' ');
-                cmdbuf.writestring("/OPT:NOREF");
+                cmdbuf.writestring(" /OPT:NOREF");
             }
             else
             {
