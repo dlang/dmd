@@ -176,6 +176,45 @@ void test13147()
     s.test();
 }
 
+// https://issues.dlang.org/show_bug.cgi?id=7337
+void test7337()
+{
+    class A
+    {
+        static uint invariantStatus;
+
+        public void foo()
+        in
+        {
+            assert(invariantStatus == 0);
+        }
+        out
+        {
+            assert(invariantStatus == 2);
+        }
+        do
+        {
+            assert(invariantStatus == 1);
+        }
+
+        invariant()
+        {
+            invariantStatus++;
+        }
+    }
+
+    class B : A
+    {
+        override public void foo() {}
+    }
+
+    A a = new A();
+    a.foo();
+    A.invariantStatus = 0;
+
+    B b = new B();
+    b.foo();
+}
 
 /***************************************************/
 
