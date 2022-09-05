@@ -2096,10 +2096,12 @@ extern (C++) Type merge(Type type)
  *  loc = the location where the property is encountered
  *  ident = the identifier of the property
  *  flag = if flag & 1, don't report "not a property" error and just return NULL.
+ *  src = expression for type `t` or null.
  * Returns:
  *      expression representing the property, or null if not a property and (flag & 1)
  */
-Expression getProperty(Type t, Scope* scope_, const ref Loc loc, Identifier ident, int flag)
+Expression getProperty(Type t, Scope* scope_, const ref Loc loc, Identifier ident, int flag,
+    Expression src = null)
 {
     Expression visitType(Type mt)
     {
@@ -2176,7 +2178,10 @@ Expression getProperty(Type t, Scope* scope_, const ref Loc loc, Identifier iden
                         error(loc, "no property `%s` for type `%s`, perhaps `import %.*s;` is needed?", ident.toChars(), mt.toChars(), cast(int)n.length, n.ptr);
                 else
                 {
-                    error(loc, "no property `%s` for type `%s`", ident.toChars(), mt.toPrettyChars(true));
+                    if (src)
+                        error(loc, "no property `%s` for `%s` of type `%s`", ident.toChars(), src.toChars(), mt.toPrettyChars(true));
+                    else
+                        error(loc, "no property `%s` for type `%s`", ident.toChars(), mt.toPrettyChars(true));
                     if (auto dsym = mt.toDsymbol(scope_))
                         if (auto sym = dsym.isAggregateDeclaration())
                         {

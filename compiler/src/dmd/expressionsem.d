@@ -440,7 +440,7 @@ private Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
     }
 
     if (!s)
-        return ue.e1.type.getProperty(sc, loc, ident, 0);
+        return ue.e1.type.getProperty(sc, loc, ident, 0, ue.e1);
 
     FuncDeclaration f = s.isFuncDeclaration();
     if (f)
