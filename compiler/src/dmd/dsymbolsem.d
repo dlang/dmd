@@ -4183,6 +4183,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             dd.errors = true;
             return;
         }
+
+        if (ad.isClassDeclaration() && ad.classKind == ClassKind.d)
+        {
+            // Class destructors are implicitly `scope`
+            dd.storage_class |= STC.scope_;
+        }
+
         if (dd.ident == Id.dtor && dd.semanticRun < PASS.semantic)
             ad.userDtors.push(dd);
         if (!dd.type)
