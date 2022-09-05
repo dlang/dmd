@@ -291,14 +291,6 @@ public int runLINK()
                 cmdbuf.writestring("/DEF:");
                 writeFilename(&cmdbuf, global.params.deffile);
             }
-            if (driverParams.symdebug)
-            {
-                cmdbuf.writeByte(' ');
-                cmdbuf.writestring("/DEBUG");
-                // in release mode we need to reactivate /OPT:REF after /DEBUG
-                if (global.params.release)
-                    cmdbuf.writestring(" /OPT:REF");
-            }
             if (global.params.disableLinkerStripDead)
             {
                 cmdbuf.writeByte(' ');
