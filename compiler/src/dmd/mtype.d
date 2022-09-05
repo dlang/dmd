@@ -4710,13 +4710,9 @@ extern (C++) final class TypeFunction : TypeNext
             MATCH m;
 
             assert(p);
-            if (u >= nargs)
-            {
-                if (p.defaultArg)
-                    continue;
-                // try typesafe variadics
-                goto L1;
-            }
+
+            // One or more arguments remain
+            if (u < nargs)
             {
                 Expression arg = args[u];
                 assert(arg);
@@ -4859,6 +4855,10 @@ extern (C++) final class TypeFunction : TypeNext
                     }
                 }
             }
+            else if (p.defaultArg)
+                continue;
+            else // try typesafe variadics
+                goto L1;
 
             /* prefer matching the element type rather than the array
              * type when more arguments are present with T[]...
