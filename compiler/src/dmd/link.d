@@ -291,6 +291,11 @@ public int runLINK()
                 cmdbuf.writestring("/DEF:");
                 writeFilename(&cmdbuf, global.params.deffile);
             }
+            if (driverParams.symdebug)
+            {
+                cmdbuf.writeByte(' ');
+                cmdbuf.writestring("/DEBUG");
+            }
             if (global.params.disableLinkerStripDead)
             {
                 cmdbuf.writeByte(' ');
