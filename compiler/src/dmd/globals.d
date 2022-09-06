@@ -222,7 +222,6 @@ extern (C++) struct Param
     const(char)[] resfile;
     const(char)[] exefile;
     const(char)[] mapfile;
-    bool disableLinkerStripDead; // do not try to remove unused symbols during linking
 }
 
 extern (C++) struct structalign_t
