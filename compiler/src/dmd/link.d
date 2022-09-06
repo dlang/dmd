@@ -244,7 +244,9 @@ public int runLINK()
         if (target.objectFormat() == Target.ObjectFormat.coff)
         {
             OutBuffer cmdbuf;
-            cmdbuf.writestring("/NOLOGO");
+            cmdbuf.writestring("/NOLOGO /OPT:REF");
+            cmdbuf.writestring(driverParams.symdebug ? " /OPT:NOICF" : " /OPT:ICF");
+
             for (size_t i = 0; i < global.params.objfiles.length; i++)
             {
                 cmdbuf.writeByte(' ');
@@ -295,15 +297,6 @@ public int runLINK()
             {
                 cmdbuf.writeByte(' ');
                 cmdbuf.writestring("/DEBUG");
-            }
-            if (global.params.disableLinkerStripDead)
-            {
-                cmdbuf.writestring(" /OPT:NOREF");
-            }
-            else
-            {
-                cmdbuf.writestring(" /OPT:REF");
-                cmdbuf.writestring(driverParams.symdebug ? " /OPT:NOICF" : " /OPT:ICF");
             }
             if (driverParams.dll)
             {
