@@ -2936,7 +2936,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
 
                     // If we previously assumed the function could be ref when
                     // checking for `shared`, make sure we were right
-                    if (global.params.noSharedAccess && rs.exp.type.isShared())
+                    if (global.params.noSharedAccess == FeatureState.enabled && rs.exp.type.isShared())
                     {
                         fd.error("function returns `shared` but cannot be inferred `ref`");
                         supplemental();
