@@ -160,7 +160,7 @@ extern (C++) struct Param
                                  // https://gist.github.com/andralex/e5405a5d773f07f73196c05f8339435a
                                  // https://digitalmars.com/d/archives/digitalmars/D/Binding_rvalues_to_ref_parameters_redux_325087.html
                                  // Implementation: https://github.com/dlang/dmd/pull/9817
-    bool noSharedAccess;         // read/write access to shared memory objects
+    FeatureState noSharedAccess; // read/write access to shared memory objects
     bool previewIn;              // `in` means `[ref] scope const`, accepts rvalues
     bool inclusiveInContracts;   // 'in' contracts of overridden methods must be a superset of parent contract
     bool shortenedMethods;       // allow => in normal function declarations

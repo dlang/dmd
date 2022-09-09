@@ -13142,7 +13142,7 @@ Lerr:
  */
 bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
 {
-    if (!global.params.noSharedAccess ||
+    if (global.params.noSharedAccess != FeatureState.enabled ||
         sc.intypeof ||
         sc.flags & SCOPE.ctfe)
     {
