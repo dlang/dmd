@@ -8025,6 +8025,7 @@ public:
     void visit(EnumDeclaration* d) override;
     void visit(Nspace* d) override;
     void visit(StructDeclaration* d) override;
+    void visit(UnionDeclaration* d) override;
     void visit(ClassDeclaration* d) override;
     void visit(AliasDeclaration* d) override;
     void visit(AliasAssign* d) override;
