@@ -236,6 +236,11 @@ struct ASTBase
             return null;
         }
 
+        inout(UnionDeclaration) isUnionDeclaration() inout
+        {
+            return null;
+        }
+
         inout(ClassDeclaration) isClassDeclaration() inout
         {
             return null;
@@ -1410,6 +1415,11 @@ struct ASTBase
         extern (D) this(const ref Loc loc, Identifier id)
         {
             super(loc, id, false);
+        }
+
+        override inout(UnionDeclaration) isUnionDeclaration() inout
+        {
+            return this;
         }
 
         override void accept(Visitor v)
