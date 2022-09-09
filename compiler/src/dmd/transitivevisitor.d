@@ -781,6 +781,15 @@ package mixin template ParseVisitMethods(AST)
             s.accept(this);
     }
 
+    override void visit(AST.UnionDeclaration d)
+    {
+        //printf("Visiting UnionDeclaration\n");
+        if (!d.members)
+            return;
+        foreach (s; *d.members)
+            s.accept(this);
+    }
+
     override void visit(AST.ClassDeclaration d)
     {
         //printf("Visiting ClassDeclaration\n");
