@@ -76,7 +76,7 @@ ifeq (solaris,$(OS))
 endif
 
 # Set DFLAGS
-UDFLAGS:=-conf= -Isrc -Iimport -w -de -preview=dip1000 -preview=fieldwise $(MODEL_FLAG) $(PIC) $(OPTIONAL_COVERAGE) -preview=dtorfields
+UDFLAGS:=-conf= -Isrc -Iimport -w -de -preview=dip1000 -preview=fieldwise $(MODEL_FLAG) $(PIC) $(OPTIONAL_COVERAGE) -preview=dtorfields -preview=rvaluerefparam
 ifeq ($(BUILD),debug)
 	UDFLAGS += -g -debug
 	DFLAGS:=$(UDFLAGS)
@@ -376,7 +376,7 @@ $(DRUNTIMESOLIB): $(OBJS) $(SRCS) $(DMD)
 
 ################### Library generation #########################
 
-$(DRUNTIME): $(OBJS) $(SRCS) $(DMD)
+$(DRUNTIME): $(OBJS) $(SRCS) $(DMD) $(MAKEFILE)
 	$(DMD) -lib -of$(DRUNTIME) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
 
 lib: $(DRUNTIME)
