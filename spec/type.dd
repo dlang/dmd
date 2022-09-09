@@ -223,7 +223,7 @@ $(H3 $(LEGACY_LNAME2 Pointer Conversions, pointer-conversions, Pointer Conversio
 $(H3 $(LEGACY_LNAME2 Implicit Conversions, implicit-conversions, Implicit Conversions))
 
     $(P Implicit conversions are used to automatically convert
-    types as required.
+    types as required. The rules for integers are detailed in the next sections.
     )
 
     $(P An enum can be implicitly converted to its base
@@ -462,6 +462,48 @@ ulong  u4 = long(-1); // ok, -1 can be represented in a ulong
     cannot be implicitly converted to imaginary floating
     point types.
     )
+
+$(H3 $(LNAME2 vrp, Value Range Propagation))
+
+    $(P Besides type-based implicit conversions, D allows certain integer
+        expressions to implicitly convert to a narrower type after
+        integer promotion. This works by analysing the minimum and
+        maximum possible range of values for each expression.
+        If that range of values matches or is a subset of a narrower
+        target type's value range, implicit
+        conversion is allowed. If a subexpression is known at compile-time,
+        that can further narrow the range of values.)
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    extern char c;
+    // min is c.min + 100 > short.min
+    // max is c.max + 100 < short.max
+    short s = c + 100; // OK
+
+    extern int i;
+    ubyte j = i & 0x3F; // OK, 0 ... 0x3F
+    //ubyte k = i & 0x14A; // error, 0x14A > ubyte.max
+    ushort k = i & 0x14A; // OK
+
+    extern ubyte b;
+    k = i & b; // OK, 0 ... b.max
+    //b = b + b; // error, b.max + b.max > b.max
+    s = b + b; // OK, 0 ... b.max + b.max
+    ---
+    )
+    $(P Note the implementation does not track the range of possible values for variables,
+    only expressions:)
+    ---
+    extern int i;
+    short s = i & 0xff; // OK
+    // s is now assumed to be s.min ... s.max, not 0 ... 0xff
+    //byte b = s; // error
+    byte b = s & 0xff; // OK
+    ---
+    * For more information, see $(LINK2 https://digitalmars.com/articles/b62.html, the dmc article).
+    * See also: $(LINK https://en.wikipedia.org/wiki/Value_range_analysis).
+
 
 $(H2 $(LNAME2 bool, $(D bool)))
 
