@@ -82,6 +82,24 @@ linux_task:
   << : *COMMON_STEPS_TEMPLATE
 
 # Mac
+macos13_task:
+  name: macOS 13.x x64, $TASK_NAME_SUFFIX
+  osx_instance:
+    image: macos-ventura-xcode
+  timeout_in: 60m
+  environment:
+    OS_NAME: darwin
+    # override Cirrus default OS (`darwin`)
+    OS: osx
+    # 12 CPU cores and 24 GB of memory are available
+    N: 12
+    # FIXME: Temporarily use LDC until a release with a fix for issue 22942 is available (probably 2.101)
+    HOST_DMD: ldc
+    matrix:
+      - TASK_NAME_SUFFIX: DMD (latest)
+      - TASK_NAME_SUFFIX: DMD (coverage)
+        << : *COVERAGE_ENVIRONMENT_TEMPLATE
+  << : *COMMON_STEPS_TEMPLATE
 macos12_task:
   name: macOS 12.x x64, $TASK_NAME_SUFFIX
   osx_instance:
