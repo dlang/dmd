@@ -1206,7 +1206,7 @@ opflag_t asm_determine_operand_flags(ref OPND popnd)
     else
     {
         auto ptype = (ds && ds.storage_class & (STC.out_ | STC.ref_)) ? popnd.ptype.pointerTo() : popnd.ptype;
-        sz = asm_type_size(ptype, popnd.bPtr);
+        sz = asm_type_size(ptype);
     }
 
     if (popnd.bRIP)
@@ -3443,11 +3443,11 @@ void asm_token_trans(Token *tok)
 /*******************************
  */
 
-OpndSize asm_type_size(Type ptype, bool bPtr)
+OpndSize asm_type_size(Type ptype)
 {
     OpndSize u;
 
-    //if (ptype) printf("asm_type_size('%s') = %d\n", ptype.toChars(), (int)ptype.size());
+    //if (ptype) printf("asm_type_size('%s') = %d\n", ptype.toChars(), cast(int)ptype.size());
     u = OpndSize._anysize;
     if (ptype && ptype.ty != Tfunction /*&& ptype.isscalar()*/)
     {
@@ -3459,8 +3459,8 @@ OpndSize asm_type_size(Type ptype, bool bPtr)
             case 4:     u = OpndSize._32;        break;
             case 6:     u = OpndSize._48;        break;
 
-            case 8:     if (target.is64bit || bPtr)
-                            u = OpndSize._64;
+            case 8:
+                        u = OpndSize._64;
                         break;
 
             case 16:    u = OpndSize._128;       break;
