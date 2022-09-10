@@ -2474,6 +2474,73 @@ public:
     virtual void visit(typename AST::CInitializer i);
 };
 
+template <typename AST>
+class VisitorTemplate : public ParseTimeVisitor<AST >
+{
+public:
+    typedef ParseTimeVisitor<AST > visit;
+    virtual void visit(typename AST::ErrorStatement s);
+    virtual void visit(typename AST::PeelStatement s);
+    virtual void visit(typename AST::UnrolledLoopStatement s);
+    virtual void visit(typename AST::SwitchErrorStatement s);
+    virtual void visit(typename AST::DebugStatement s);
+    virtual void visit(typename AST::DtorExpStatement s);
+    virtual void visit(typename AST::ForwardingStatement s);
+    virtual void visit(typename AST::OverloadSet s);
+    virtual void visit(typename AST::LabelDsymbol s);
+    virtual void visit(typename AST::WithScopeSymbol s);
+    virtual void visit(typename AST::ArrayScopeSymbol s);
+    virtual void visit(typename AST::OverDeclaration s);
+    virtual void visit(typename AST::SymbolDeclaration s);
+    virtual void visit(typename AST::ForwardingAttribDeclaration s);
+    virtual void visit(typename AST::ThisDeclaration s);
+    virtual void visit(typename AST::TypeInfoDeclaration s);
+    virtual void visit(typename AST::TypeInfoStructDeclaration s);
+    virtual void visit(typename AST::TypeInfoClassDeclaration s);
+    virtual void visit(typename AST::TypeInfoInterfaceDeclaration s);
+    virtual void visit(typename AST::TypeInfoPointerDeclaration s);
+    virtual void visit(typename AST::TypeInfoArrayDeclaration s);
+    virtual void visit(typename AST::TypeInfoStaticArrayDeclaration s);
+    virtual void visit(typename AST::TypeInfoAssociativeArrayDeclaration s);
+    virtual void visit(typename AST::TypeInfoEnumDeclaration s);
+    virtual void visit(typename AST::TypeInfoFunctionDeclaration s);
+    virtual void visit(typename AST::TypeInfoDelegateDeclaration s);
+    virtual void visit(typename AST::TypeInfoTupleDeclaration s);
+    virtual void visit(typename AST::TypeInfoConstDeclaration s);
+    virtual void visit(typename AST::TypeInfoInvariantDeclaration s);
+    virtual void visit(typename AST::TypeInfoSharedDeclaration s);
+    virtual void visit(typename AST::TypeInfoWildDeclaration s);
+    virtual void visit(typename AST::TypeInfoVectorDeclaration s);
+    virtual void visit(typename AST::FuncAliasDeclaration s);
+    virtual void visit(typename AST::ErrorInitializer i);
+    virtual void visit(typename AST::ErrorExp e);
+    virtual void visit(typename AST::ComplexExp e);
+    virtual void visit(typename AST::StructLiteralExp e);
+    virtual void visit(typename AST::CompoundLiteralExp e);
+    virtual void visit(typename AST::ObjcClassReferenceExp e);
+    virtual void visit(typename AST::SymOffExp e);
+    virtual void visit(typename AST::OverExp e);
+    virtual void visit(typename AST::HaltExp e);
+    virtual void visit(typename AST::DotTemplateExp e);
+    virtual void visit(typename AST::DotVarExp e);
+    virtual void visit(typename AST::DelegateExp e);
+    virtual void visit(typename AST::DotTypeExp e);
+    virtual void visit(typename AST::VectorExp e);
+    virtual void visit(typename AST::VectorArrayExp e);
+    virtual void visit(typename AST::SliceExp e);
+    virtual void visit(typename AST::ArrayLengthExp e);
+    virtual void visit(typename AST::DelegatePtrExp e);
+    virtual void visit(typename AST::DelegateFuncptrExp e);
+    virtual void visit(typename AST::DotExp e);
+    virtual void visit(typename AST::IndexExp e);
+    virtual void visit(typename AST::ConstructExp e);
+    virtual void visit(typename AST::BlitExp e);
+    virtual void visit(typename AST::RemoveExp e);
+    virtual void visit(typename AST::ClassReferenceExp e);
+    virtual void visit(typename AST::VoidInitExp e);
+    virtual void visit(typename AST::ThrownExceptionExp e);
+};
+
 struct MangleOverride final
 {
     Dsymbol* agg;
@@ -5018,76 +5085,8 @@ struct ASTCodegen final
     }
 };
 
-template <typename AST>
-class VisitorTemplate : public ParseTimeVisitor<AST >
-{
-public:
-    using ParseTimeVisitor<AST >::visit;
-    virtual void visit(ErrorStatement* s);
-    virtual void visit(PeelStatement* s);
-    virtual void visit(UnrolledLoopStatement* s);
-    virtual void visit(SwitchErrorStatement* s);
-    virtual void visit(DebugStatement* s);
-    virtual void visit(DtorExpStatement* s);
-    virtual void visit(ForwardingStatement* s);
-    virtual void visit(OverloadSet* s);
-    virtual void visit(LabelDsymbol* s);
-    virtual void visit(WithScopeSymbol* s);
-    virtual void visit(ArrayScopeSymbol* s);
-    virtual void visit(OverDeclaration* s);
-    virtual void visit(SymbolDeclaration* s);
-    virtual void visit(ForwardingAttribDeclaration* s);
-    virtual void visit(ThisDeclaration* s);
-    virtual void visit(TypeInfoDeclaration* s);
-    virtual void visit(TypeInfoStructDeclaration* s);
-    virtual void visit(TypeInfoClassDeclaration* s);
-    virtual void visit(TypeInfoInterfaceDeclaration* s);
-    virtual void visit(TypeInfoPointerDeclaration* s);
-    virtual void visit(TypeInfoArrayDeclaration* s);
-    virtual void visit(TypeInfoStaticArrayDeclaration* s);
-    virtual void visit(TypeInfoAssociativeArrayDeclaration* s);
-    virtual void visit(TypeInfoEnumDeclaration* s);
-    virtual void visit(TypeInfoFunctionDeclaration* s);
-    virtual void visit(TypeInfoDelegateDeclaration* s);
-    virtual void visit(TypeInfoTupleDeclaration* s);
-    virtual void visit(TypeInfoConstDeclaration* s);
-    virtual void visit(TypeInfoInvariantDeclaration* s);
-    virtual void visit(TypeInfoSharedDeclaration* s);
-    virtual void visit(TypeInfoWildDeclaration* s);
-    virtual void visit(TypeInfoVectorDeclaration* s);
-    virtual void visit(FuncAliasDeclaration* s);
-    virtual void visit(ErrorInitializer* i);
-    virtual void visit(ErrorExp* e);
-    virtual void visit(ComplexExp* e);
-    virtual void visit(StructLiteralExp* e);
-    virtual void visit(CompoundLiteralExp* e);
-    virtual void visit(ObjcClassReferenceExp* e);
-    virtual void visit(SymOffExp* e);
-    virtual void visit(OverExp* e);
-    virtual void visit(HaltExp* e);
-    virtual void visit(DotTemplateExp* e);
-    virtual void visit(DotVarExp* e);
-    virtual void visit(DelegateExp* e);
-    virtual void visit(DotTypeExp* e);
-    virtual void visit(VectorExp* e);
-    virtual void visit(VectorArrayExp* e);
-    virtual void visit(SliceExp* e);
-    virtual void visit(ArrayLengthExp* e);
-    virtual void visit(DelegatePtrExp* e);
-    virtual void visit(DelegateFuncptrExp* e);
-    virtual void visit(DotExp* e);
-    virtual void visit(IndexExp* e);
-    virtual void visit(ConstructExp* e);
-    virtual void visit(BlitExp* e);
-    virtual void visit(RemoveExp* e);
-    virtual void visit(ClassReferenceExp* e);
-    virtual void visit(VoidInitExp* e);
-    virtual void visit(ThrownExceptionExp* e);
-};
-
 class Visitor : public VisitorTemplate<ASTCodegen >
 {
-
 };
 
 class StoppableVisitor : public Visitor
