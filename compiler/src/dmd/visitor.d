@@ -27,7 +27,7 @@ import dmd.root.rootobject;
  */
 extern (C++) class VisitorTemplate(AST) : ParseTimeVisitor!AST
 {
-    alias visit = ParseTimeVisitor!ASTCodegen.visit;
+    alias visit = ParseTimeVisitor!AST.visit;
 public:
     void visit(AST.ErrorStatement s) { visit(cast(AST.Statement)s); }
     void visit(AST.PeelStatement s) { visit(cast(AST.Statement)s); }
@@ -91,7 +91,13 @@ public:
     void visit(AST.ThrownExceptionExp e) { visit(cast(AST.Expression)e); }
 }
 
-alias Visitor = VisitorTemplate!ASTCodegen;
+/**
+ * Classic Visitor using ASTCodegen family
+ */
+extern (C++) class Visitor : VisitorTemplate!ASTCodegen
+{
+
+}
 
 /**
  * The PermissiveVisitor overrides the root AST nodes with

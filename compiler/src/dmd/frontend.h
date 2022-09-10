@@ -5018,10 +5018,11 @@ struct ASTCodegen final
     }
 };
 
-class Visitor : public ParseTimeVisitor<ASTCodegen >
+template <typename AST>
+class VisitorTemplate : public ParseTimeVisitor<AST >
 {
 public:
-    using ParseTimeVisitor<ASTCodegen >::visit;
+    using ParseTimeVisitor<AST >::visit;
     virtual void visit(ErrorStatement* s);
     virtual void visit(PeelStatement* s);
     virtual void visit(UnrolledLoopStatement* s);
@@ -5082,6 +5083,11 @@ public:
     virtual void visit(ClassReferenceExp* e);
     virtual void visit(VoidInitExp* e);
     virtual void visit(ThrownExceptionExp* e);
+};
+
+class Visitor : public VisitorTemplate<ASTCodegen >
+{
+
 };
 
 class StoppableVisitor : public Visitor
