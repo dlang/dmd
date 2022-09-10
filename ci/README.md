@@ -167,9 +167,7 @@ These should be taken seriously, since untested code is likely to introduce bugs
 - Ubuntu 18.04 x86, DMD (bootstrap)
 - Ubuntu 18.04 x86, DMD (coverage)
 - Ubuntu 18.04 x86, DMD (latest)
-- macOS 10.15 x64, DMD (bootstrap)
-- macOS 11.x x64, DMD (coverage)
-- macOS 11.x x64, DMD (latest)
+- macOS 11.x x64, DMD (bootstrap)
 - macOS 12.x x64, DMD (coverage)
 - macOS 12.x x64, DMD (latest)
 
