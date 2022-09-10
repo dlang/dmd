@@ -2538,15 +2538,19 @@ public:
             ale.ownedByCtfe = OwnedBy.ctfe;
             result = ale;
         }
-        else if ((cast(TypeNext)e.type).next.mod & (MODFlags.const_ | MODFlags.immutable_))
-        {
-            // If it's immutable, we don't need to dup it
-            result = e;
-        }
         else
         {
-            *pue = copyLiteral(e);
-            result = pue.exp();
+            auto elemType = (cast(TypeNext)e.type).next;
+            if (elemType.mod & (MODFlags.const_ | MODFlags.immutable_) && elemType.hasPointers())
+            {
+                // If it's immutable and contains indirections, we don't need to dup it
+                result = e;
+            }
+            else
+            {
+                *pue = copyLiteral(e);
+                result = pue.exp();
+            }
         }
     }
 
