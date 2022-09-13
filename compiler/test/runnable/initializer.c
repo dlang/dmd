@@ -7,7 +7,7 @@ void assert(int b, int line)
 {
     if (!b)
     {
-        printf("failed test %d\n", line);
+        printf("failed test at line %d\n", line);
         exit(1);
     }
 }
@@ -383,6 +383,286 @@ void test20()
 
 /*******************************************/
 
+/* https://issues.dlang.org/show_bug.cgi?id=22994
+ */
+
+char cs1[1];
+double ds1[1];
+char cs[2] = {0};
+double ds[2] = {0.0};
+struct { char cs[2]; } css = { {0} };
+struct { double ds[2]; } dss = { {0} };
+union { char cs[2]; } csu = { {0} };
+union { double ds[2]; } dsu = { {0} };
+
+void test22994()
+{
+    if (0)
+    {
+        printf("%d\n", (int)cs1[0]);
+        printf("%lf\n", ds1[0]);
+        printf("%d\n", (int)cs[1]);
+        printf("%lf\n", ds[1]);
+        printf("%d\n", (int)css.cs[1]);
+        printf("%lf\n", dss.ds[1]);
+        printf("%d\n", (int)csu.cs[1]);
+        printf("%lf\n", dsu.ds[1]);
+        printf("%d\n", (int)((char[2]){0})[1]);
+        printf("%lf\n", ((double[2]){0})[1]);
+    }
+
+    assert(cs1[0]== 0, __LINE__);
+    assert(ds1[0]== 0, __LINE__);
+    assert(cs[1]== 0, __LINE__);
+    assert(ds[1]== 0, __LINE__);
+    assert(css.cs[1]== 0, __LINE__);
+    assert(dss.ds[1]== 0, __LINE__);
+    assert(csu.cs[1]== 0, __LINE__);
+    assert(dsu.ds[1]== 0, __LINE__);
+    assert(((char[2]){0})[1]== 0, __LINE__);
+    assert(((double[2]){0})[1]== 0, __LINE__);
+}
+
+/*******************************************/
+
+
+void test31()
+{
+    static int a[3] = {1, 2, 3};
+    if (a[0] != 1 ||
+        a[1] != 2 ||
+        a[2] != 3)
+    {
+        assert(0, __LINE__);
+    }
+}
+
+/*********************************/
+
+void test32()
+{
+    static int a[4] = {1, 2, 3};
+    if (a[0] != 1 ||
+        a[1] != 2 ||
+        a[2] != 3 ||
+        a[3] != 0)
+    {
+        assert(0, __LINE__);
+    }
+}
+
+/*********************************/
+
+void test33()
+{
+    static int a[] = {1, 2, 3};
+    if (sizeof(a) != 3 * sizeof(int) ||
+        a[0] != 1 ||
+        a[1] != 2 ||
+        a[2] != 3)
+    {
+        assert(0, __LINE__);
+    }
+}
+
+/*********************************/
+
+void test34()
+{
+    static int a[3] = {1, 2, 3};
+    int i;
+    for (i = 0; i < 3; ++i)
+    {
+        if (a[i] != i + 1)
+        {
+            assert(0, __LINE__);
+        }
+    }
+}
+
+/*********************************/
+
+void test35()
+{
+    static int b[3][2] = { 1,2,3,4,5,6 };
+    int i;
+    for (i = 0; i < 3; ++i)
+    {
+        int j;
+        for (j = 0; j < 2; ++j)
+        {
+            if (b[i][j] != i * 2 + j + 1)
+            {
+                assert(0, __LINE__);
+            }
+        }
+    }
+}
+
+/*********************************/
+
+void test36()
+{
+    static int c[3][2] = { {1,2},{3,4},{5,6} };
+    int i;
+    for (i = 0; i < 3; ++i)
+    {
+        int j;
+        for (j = 0; j < 2; ++j)
+        {
+            if (c[i][j] != i * 2 + j + 1)
+            {
+                assert(0, __LINE__);
+            }
+        }
+    }
+}
+
+/*********************************/
+
+void test37()
+{
+    static int d[3][2] = { {1,2},3,4,{5,6} };
+    int i;
+    for (i = 0; i < 3; ++i)
+    {
+        int j;
+        for (j = 0; j < 2; ++j)
+        {
+            if (d[i][j] != i * 2 + j + 1)
+            {
+                assert(0, __LINE__);
+            }
+        }
+    }
+}
+
+/*********************************/
+
+void test38()
+{
+    static int d[3][2] = { {1,2} };
+    int i;
+    for (i = 0; i < 3; ++i)
+    {
+        int j;
+        for (j = 0; j < 2; ++j)
+        {
+            if (i == 0)
+            {
+                if (d[i][j] != j + 1)
+                {
+                    assert(0, __LINE__);
+                }
+            }
+            else if (d[i][j] != 0)
+            {
+                assert(0, __LINE__);
+            }
+        }
+    }
+}
+
+/*********************************/
+
+void test38a()
+{
+    int i;
+    static int a[3] = { 1,2,3 };
+    // Casting to an array type is not allowed by C11, but
+    // CompoundLiterals are not there yet to test this
+    // grammar
+    i = ((int[3])a)[2];
+    assert(i == 3, __LINE__);
+}
+
+/*********************************/
+
+void test38b()
+{
+    struct S { int a, b; };
+    static struct S ax[3] = { 0x11,0x22,0x33,0 };
+    //printf("%x %x %x %x %x %x\n", ax[0].a, ax[0].b, ax[1].a, ax[1].b, ax[2].a, ax[2].b);
+    if (ax[0].a != 0x11 ||
+        ax[0].b != 0x22 ||
+        ax[1].a != 0x33 ||
+        ax[1].b != 0 ||
+        ax[2].a != 0 ||
+        ax[2].b != 0) { assert(0, __LINE__); }
+    static struct S ay[3] = { {0x11,0x22},0x33,0 };
+    //printf("%x %x %x %x %x %x\n", ay[0].a, ay[0].b, ay[1].a, ay[1].b, ay[2].a, ay[2].b);
+    if (ay[0].a != 0x11 ||
+        ay[0].b != 0x22 ||
+        ay[1].a != 0x33 ||
+        ay[1].b != 0 ||
+        ay[2].a != 0 ||
+        ay[2].b != 0) { assert(0, __LINE__); }
+    static struct S az[3] = { 0x11,0x22,{0x33,0} };
+    //printf("%x %x %x %x %x %x\n", az[0].a, az[0].b, az[1].a, az[1].b, az[2].a, az[2].b);
+    if (az[0].a != 0x11 ||
+        az[0].b != 0x22 ||
+        az[1].a != 0x33 ||
+        az[1].b != 0 ||
+        az[2].a != 0 ||
+        az[2].b != 0) { assert(0, __LINE__); }
+}
+
+/*********************************/
+
+void test39()
+{
+    int i = 1;            assert(i == 1, __LINE__);
+    int j = { 2 };        assert(j == 2, __LINE__);
+    int k = { 3,};        assert(k == 3, __LINE__);
+
+    static int l = 4;     assert(l == 4, __LINE__);
+    static int m = { 5 }; assert(m == 5, __LINE__);
+    static int n = { 6,}; assert(n == 6, __LINE__);
+}
+
+/*********************************/
+
+void test40()
+{
+    char s[6] = { "s" }; if (s[0] != 's')                     { assert(0, __LINE__); }
+    char t[7] = { "t" }; if (t[0] != 't' && t[1] != 0)        { assert(0, __LINE__); }
+    static char u[6] = { "u" }; if (u[0] != 'u')              { assert(0, __LINE__); }
+    static char v[7] = { "v" }; if (v[0] != 'v' && v[1] != 0) { assert(0, __LINE__); }
+}
+
+/*********************************/
+
+void test41()
+{
+    struct S { int a, b; };
+    struct S s = { 1, 2 };
+    if (s.a != 1 || s.b != 2) { assert(0, __LINE__); }
+    static struct S s2 = { 1, };
+    if (s2.a != 1 || s2.b != 0) { assert(0, __LINE__); }
+
+    struct T { int a; struct { int b, c; }; };
+    struct T t = { 1, 2, 3 };
+    if (t.a != 1 || t.b != 2 || t.c != 3) { assert(0, __LINE__); }
+
+    struct U { int a; union { int b, c; }; int d; };
+    struct U u = { 1, 2, 3 };
+    if (u.a != 1 ||
+        u.b != 2 ||
+        u.c != 2 ||
+        u.d != 3) { printf("%d %d %d %d\n", u.a, u.b, u.c, u.d); assert(0, __LINE__); }
+}
+
+/*********************************/
+
+void test42()
+{
+    int i;
+    i = (int) { 3 };
+    assert(i == 3, __LINE__);
+}
+
+/*******************************************/
+
 int main()
 {
     test1();
@@ -405,6 +685,21 @@ int main()
     test18();
     test19();
     test20();
+    test22994();
+    test31();
+    test32();
+    test33();
+    test34();
+    test35();
+    test36();
+    test37();
+    test38();
+    test38a();
+    test38b();
+    test39();
+    test40();
+    test41();
+    test42();
 
     return 0;
 }
