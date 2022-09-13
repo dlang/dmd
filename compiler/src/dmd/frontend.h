@@ -3279,6 +3279,7 @@ public:
     uint32_t dim;
     Type* type;
     bool sem;
+    bool isCarray;
     bool isAssociativeArray() const;
     void accept(Visitor* v) override;
 };

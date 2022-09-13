@@ -225,7 +225,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                 assert(sc);
                 auto tm = vd.type.addMod(t.mod);
                 auto iz = i.value[j].initializerSemantic(sc, tm, needInterpret);
-                auto ex = iz.initializerToExpression();
+                auto ex = iz.initializerToExpression(null, (sc.flags & SCOPE.Cfile) != 0);
                 if (ex.op == EXP.error)
                 {
                     errors = true;
@@ -272,7 +272,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
         uint length;
         const(uint) amax = 0x80000000;
         bool errors = false;
-        //printf("ArrayInitializer::semantic(%s)\n", t.toChars());
+        //printf("ArrayInitializer::semantic(%s), ai: %s %p\n", t.toChars(), i.toChars(), i);
         if (i.sem) // if semantic() already run
         {
             return i;
@@ -374,11 +374,22 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
         }
         if (auto tsa = t.isTypeSArray())
         {
-            uinteger_t edim = tsa.dim.toInteger();
-            if (i.dim > edim && !(tsa.isIncomplete() && (sc.flags & SCOPE.Cfile)))
+            if (sc.flags & SCOPE.Cfile && tsa.isIncomplete())
             {
-                error(i.loc, "array initializer has %u elements, but array length is %llu", i.dim, edim);
-                return err();
+                // Change to array of known length
+                auto tn = tsa.next.toBasetype();
+                tsa = new TypeSArray(tn, new IntegerExp(Loc.initial, i.dim, Type.tsize_t));
+                tx = tsa;      // rewrite caller's type
+                i.type = tsa;  // remember for later passes
+            }
+            else
+            {
+                uinteger_t edim = tsa.dim.toInteger();
+                if (i.dim > edim)
+                {
+                    error(i.loc, "array initializer has %u elements, but array length is %llu", i.dim, edim);
+                    return err();
+                }
             }
         }
         if (errors)
@@ -394,6 +405,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
             error(i.loc, "array dimension %llu exceeds max of %llu", ulong(i.dim), ulong(amax / sz));
             return err();
         }
+        //printf("returns ai: %s\n", i.toChars());
         return i;
     }
 
@@ -661,295 +673,306 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
 
     Initializer visitC(CInitializer ci)
     {
-        if (ci.sem) // if semantic() already run
-            return ci;
         //printf("CInitializer::semantic() (%s) %s\n", t.toChars(), ci.toChars());
-        ci.sem = true;
+        /* Rewrite CInitializer into ExpInitializer, ArrayInitializer, or StructInitializer
+         */
         t = t.toBasetype();
-        ci.type = t;    // later passes will need this
-
-        auto dil = ci.initializerList[];
-        size_t i = 0;   // index into dil[]
-        const uint amax = 0x8000_0000;
-        bool errors;
 
         /* If `{ expression }` return the expression initializer
          */
         ExpInitializer isBraceExpression()
         {
+            auto dil = ci.initializerList[];
             return (dil.length == 1 && !dil[0].designatorList)
                     ? dil[0].initializer.isExpInitializer()
                     : null;
         }
 
-        /* Convert struct initializer into ExpInitializer
+        /********************************
          */
-        Initializer structs(TypeStruct ts)
+        bool overlaps(VarDeclaration field, VarDeclaration[] fields, StructInitializer si)
         {
-            //printf("structs %s\n", ts.toChars());
-            StructDeclaration sd = ts.sym;
-            sd.size(ci.loc);
-            if (sd.sizeok != Sizeok.done)
+            foreach (fld; fields)
             {
-                errors = true;
-                return err();
-            }
-            const nfields = sd.nonHiddenFields();
-            auto elements = new Expressions(nfields);
-            auto elems = (*elements)[];
-            foreach (ref elem; elems)
-                elem = null;
-
-          FieldLoop:
-            for (size_t fieldi = 0; fieldi < nfields; ++fieldi)
-            {
-                if (i == dil.length)
-                    break;
-
-                auto di = dil[i];
-                if (di.designatorList)
+                if (field.isOverlappedWith(fld))
                 {
-                    error(ci.loc, "C designator-list not supported yet");
-                    errors = true;
-                    break;
-                }
-
-                VarDeclaration vd = sd.fields[fieldi];
-
-                // Check for overlapping initializations (can happen with unions)
-                foreach (k, v2; sd.fields[0 .. nfields])
-                {
-                    if (vd.isOverlappedWith(v2) && elems[k])
+                    // look for initializer corresponding with fld
+                    foreach (i, ident; si.field[])
                     {
-                        continue FieldLoop;     // skip it
+                        if (ident == fld.ident && si.value[i])
+                            return true;   // already an initializer for `field`
                     }
                 }
-
-                ++i;
-
-                // Convert initializer to Expression `ex`
-                assert(sc);
-                auto tm = vd.type.addMod(ts.mod);
-                auto iz = di.initializer.initializerSemantic(sc, tm, needInterpret);
-                auto ex = iz.initializerToExpression(null, true);
-                if (ex.op == EXP.error)
-                {
-                    errors = true;
-                    continue;
-                }
-
-                elems[fieldi] = ex;
             }
-            if (errors)
-                return err();
-
-            // Make a StructLiteralExp out of elements[]
-            Type tx = ts;
-            auto sle = new StructLiteralExp(ci.loc, sd, elements, tx);
-            if (!sd.fill(ci.loc, *elements, false))
-                return err();
-            sle.type = tx;
-            auto ie = new ExpInitializer(ci.loc, sle);
-            return ie.initializerSemantic(sc, tx, needInterpret);
+            return false;
         }
 
         if (auto ts = t.isTypeStruct())
         {
-            auto ei = structs(ts);
-            if (errors)
+            auto si = new StructInitializer(ci.loc);
+            StructDeclaration sd = ts.sym;
+            sd.size(ci.loc);            // run semantic() on sd to get fields
+            if (sd.sizeok != Sizeok.done)
+            {
                 return err();
-            if (i < dil.length)
-            {
-                error(ci.loc, "%d extra initializer(s) for `struct %s`", cast(int)(dil.length - i), ts.toChars());
-                return err();
             }
-            return ei;
-        }
+            const nfields = sd.fields.length;
 
-        auto tsa = t.isTypeSArray();
-        if (!tsa)
-        {
-            /* Not an array. See if it is `{ exp }` which can be
-             * converted to an ExpInitializer
-             */
-            if (ExpInitializer ei = isBraceExpression())
+            size_t fieldi = 0;
+
+            foreach (di; ci.initializerList[])
             {
-                return ei.initializerSemantic(sc, t, needInterpret);
-            }
-
-            error(ci.loc, "C non-array initializer (%s) %s not supported yet", t.toChars(), ci.toChars());
-            return err();
-        }
-
-        /* If it's an array of integral being initialized by `{ string }`
-         * replace with `string`
-         */
-        auto tn = t.nextOf();
-        if (tn.isintegral())
-        {
-            if (ExpInitializer ei = isBraceExpression())
-            {
-                if (ei.exp.isStringExp())
-                    return ei.initializerSemantic(sc, t, needInterpret);
-            }
-        }
-
-        /* Support recursion to handle un-braced array initializers
-         * Params:
-         *    t = element type
-         *    dim = max number of elements
-         *    simple = true if array of simple elements
-         * Returns:
-         *    # of elements in array
-         */
-        size_t array(Type t, size_t dim, ref bool simple)
-        {
-            //printf(" type %s i %d dim %d dil.length = %d\n", t.toChars(), cast(int)i, cast(int)dim, cast(int)dil.length);
-            auto tn = t.nextOf().toBasetype();
-            auto tnsa = tn.isTypeSArray();
-            if (tnsa && tnsa.isIncomplete())
-            {
-                // C11 6.2.5-20 "element type shall be complete whenever the array type is specified"
-                error(ci.loc, "incomplete element type `%s` not allowed", tnsa.toChars());
-                errors = true;
-                return 1;
-            }
-            if (i == dil.length)
-                return 0;
-            size_t n;
-            const nelems = tnsa ? cast(size_t)tnsa.dim.toInteger() : 0;
-
-            /* Run initializerSemantic on a single element.
-             */
-            Initializer elem(Initializer ie)
-            {
-                ++i;
-                auto tnx = tn; // in case initializerSemantic tries to change it
-                ie = ie.initializerSemantic(sc, tnx, needInterpret);
-                if (ie.isErrorInitializer())
-                    errors = true;
-                assert(tnx == tn); // sub-types should not be modified
-                return ie;
-            }
-
-            foreach (j; 0 .. dim)
-            {
-                auto di = dil[i];
-                if (di.designatorList)
-                {
-                    error(ci.loc, "C designator-list not supported yet");
-                    errors = true;
+                if (fieldi == nfields)
                     break;
-                }
-                if (tnsa && di.initializer.isExpInitializer())
+                auto dlist = di.designatorList;
+                if (dlist)
                 {
-                    // no braces enclosing array initializer, so recurse
-                    array(tnsa, nelems, simple);
-                }
-                else if (auto tns = tn.isTypeStruct())
-                {
-                    if (auto ei = di.initializer.isExpInitializer())
+                    const length = (*dlist).length;
+                    if (length == 0 || !(*dlist)[0].ident)
                     {
-                        // no braces enclosing struct initializer
+                        error(ci.loc, "`.identifier` expected for C struct field initializer `%s`", ci.toChars());
+                        return err();
+                    }
+                    if (length > 1)
+                    {
+                        error(ci.loc, "only 1 designator currently allowed for C struct field initializer `%s`", ci.toChars());
+                        return err();
+                    }
+                    auto id = (*dlist)[0].ident;
+                    foreach (k, f; sd.fields[])         // linear search for now
+                    {
+                        if (f.ident == id)
+                        {
+                            fieldi = k;
+                            si.addInit(id, di.initializer);
+                            ++fieldi;
+                            continue;
+                        }
+                    }
+                }
+                else
+                {
+                    VarDeclaration field;
+                    while (1)   // skip field if it overlaps with previously seen fields
+                    {
+                        field = sd.fields[fieldi];
+                        ++fieldi;
+                        if (!overlaps(field, sd.fields[], si))
+                            break;
+                        if (fieldi == nfields)
+                            break;
+                    }
+                    si.addInit(field.ident, di.initializer);
+                }
+            }
+            return initializerSemantic(si, sc, t, needInterpret);
+        }
+        else if (auto ta = t.isTypeSArray())
+        {
+            /* If { } are omitted from substructs, use recursion to reconstruct where
+             * brackets go
+             * Params:
+             *  ts = substruct to initialize
+             *  index = index into ci.initializer, updated
+             * Returns: struct initializer for this substruct
+             */
+            Initializer subStruct(TypeStruct ts, ref size_t index)
+            {
+                //printf("subStruct(ts: %s, index %d)\n", ts.toChars(), cast(int)index);
 
+                auto si = new StructInitializer(ci.loc);
+                StructDeclaration sd = ts.sym;
+                sd.size(ci.loc);
+                if (sd.sizeok != Sizeok.done)
+                {
+                    index = ci.initializerList.length;
+                    return err();
+                }
+                const nfields = sd.nonHiddenFields();
+
+                foreach (n; 0 .. nfields)
+                {
+                    if (index >= ci.initializerList.length)
+                        break;          // ran out of initializers
+                    auto di = ci.initializerList[index];
+                    if (di.designatorList && n != 0)
+                        break;          // back to top level
+                    else
+                    {
+                        si.addInit(null, di.initializer);
+                        ++index;
+                    }
+                }
+                //printf("subStruct() returns ai: %s, index: %d\n", si.toChars(), cast(int)index);
+                return si;
+            }
+
+            /* If { } are omitted from subarrays, use recursion to reconstruct where
+             * brackets go
+             * Params:
+             *  tsa = subarray to initialize
+             *  index = index into ci.initializer, updated
+             * Returns: array initializer for this subarray
+             */
+            Initializer subArray(TypeSArray tsa, ref size_t index)
+            {
+                //printf("array(tsa: %s, index %d)\n", tsa.toChars(), cast(int)index);
+                if (tsa.isIncomplete())
+                {
+                    // C11 6.2.5-20 "element type shall be complete whenever the array type is specified"
+                    assert(0); // should have been detected by parser
+                }
+
+                auto tnsa = tsa.nextOf().toBasetype().isTypeSArray();
+
+                auto ai = new ArrayInitializer(ci.loc);
+                ai.isCarray = true;
+
+                foreach (n; 0 .. cast(size_t)tsa.dim.toInteger())
+                {
+                    if (index >= ci.initializerList.length)
+                        break;          // ran out of initializers
+                    auto di = ci.initializerList[index];
+                    if (di.designatorList)
+                        break;          // back to top level
+                    else if (tnsa && di.initializer.isExpInitializer())
+                    {
+                        ExpInitializer ei = di.initializer.isExpInitializer();
+                        if (ei.exp.isStringExp() && tnsa.nextOf().isintegral())
+                        {
+                            ai.addInit(null, ei);
+                            ++index;
+                        }
+                        else
+                            ai.addInit(null, subArray(tnsa, index));
+                    }
+                    else
+                    {
+                        ai.addInit(null, di.initializer);
+                        ++index;
+                    }
+                }
+                //printf("array() returns ai: %s, index: %d\n", ai.toChars(), cast(int)index);
+                return ai;
+            }
+
+            auto tn = t.nextOf().toBasetype();  // element type of array
+
+            /* If it's an array of integral being initialized by `{ string }`
+             * replace with `string`
+             */
+            if (tn.isintegral())
+            {
+                if (ExpInitializer ei = isBraceExpression())
+                {
+                    if (ei.exp.isStringExp())
+                        return ei.initializerSemantic(sc, t, needInterpret);
+                }
+            }
+
+            auto tnsa = tn.isTypeSArray();      // array of array
+            auto tns = tn.isTypeStruct();       // array of struct
+
+            auto ai = new ArrayInitializer(ci.loc);
+            ai.isCarray = true;
+            for (size_t index = 0; index < ci.initializerList.length; )
+            {
+                auto di = ci.initializerList[index];
+                if (auto dlist = di.designatorList)
+                {
+                    const length = (*dlist).length;
+                    if (length == 0 || !(*dlist)[0].exp)
+                    {
+                        error(ci.loc, "`[ constant-expression ]` expected for C array element initializer `%s`", ci.toChars());
+                        return err();
+                    }
+                    if (length > 1)
+                    {
+                        error(ci.loc, "only 1 designator currently allowed for C array element initializer `%s`", ci.toChars());
+                        return err();
+                    }
+                    //printf("tn: %s, di.initializer: %s\n", tn.toChars(), di.initializer.toChars());
+                    auto ix = di.initializer;
+                    if (tnsa && ix.isExpInitializer())
+                    {
+                        // Wrap initializer in [ ]
+                        auto ain = new ArrayInitializer(ci.loc);
+                        ain.addInit(null, di.initializer);
+                        ix = ain;
+                        ai.addInit((*dlist)[0].exp, initializerSemantic(ix, sc, tn, needInterpret));
+                        ++index;
+                    }
+                    else if (tns && ix.isExpInitializer())
+                    {
                         /* Disambiguate between an exp representing the entire
                          * struct, and an exp representing the first field of the struct
-                        */
+                         */
                         if (needInterpret)
                             sc = sc.startCTFE();
+                        ExpInitializer ei = ix.isExpInitializer();
                         ei.exp = ei.exp.expressionSemantic(sc);
                         ei.exp = resolveProperties(sc, ei.exp);
                         if (needInterpret)
                             sc = sc.endCTFE();
-                        if (ei.exp.implicitConvTo(tn))
-                            di.initializer = elem(di.initializer); // the whole struct
-                        else
+                        if (ei.exp.implicitConvTo(tn))      // initializer represents the entire struct
                         {
-                            simple = false;
-                            dil[n].initializer = structs(tns); // the first field
+                            ai.addInit((*dlist)[0].exp, initializerSemantic(ix, sc, tn, needInterpret));
+                            ++index;
                         }
+                        else                                // field initializers for struct
+                            ai.addInit((*dlist)[0].exp, subStruct(tns, index)); // the first field
                     }
                     else
-                        dil[n].initializer = elem(di.initializer);
+                    {
+                        ai.addInit((*dlist)[0].exp, initializerSemantic(ix, sc, tn, needInterpret));
+                        ++index;
+                    }
+                }
+                else if (tnsa && di.initializer.isExpInitializer())
+                {
+                    ExpInitializer ei = di.initializer.isExpInitializer();
+                    if (ei.exp.isStringExp() && tnsa.nextOf().isintegral())
+                    {
+                        ai.addInit(null, ei);
+                        ++index;
+                    }
+                    else
+                        ai.addInit(null, subArray(tnsa, index));
+                }
+                else if (tns && di.initializer.isExpInitializer())
+                {
+                    /* Disambiguate between an exp representing the entire
+                     * struct, and an exp representing the first field of the struct
+                     */
+                    if (needInterpret)
+                        sc = sc.startCTFE();
+                    ExpInitializer ei = di.initializer.isExpInitializer();
+                    ei.exp = ei.exp.expressionSemantic(sc);
+                    ei.exp = resolveProperties(sc, ei.exp);
+                    if (needInterpret)
+                        sc = sc.endCTFE();
+                    if (ei.exp.implicitConvTo(tn))      // initializer represents the entire struct
+                    {
+                        ai.addInit(null, initializerSemantic(di.initializer, sc, tn, needInterpret));
+                        ++index;
+                    }
+                    else                                // field initializers for struct
+                        ai.addInit(null, subStruct(tns, index)); // the first field
                 }
                 else
                 {
-                    di.initializer = elem(di.initializer);
+                    ai.addInit(null, initializerSemantic(di.initializer, sc, tn, needInterpret));
+                    ++index;
                 }
-                ++n;
-                if (i == dil.length)
-                    break;
             }
-            //printf(" n: %d i: %d\n", cast(int)n, cast(int)i);
-            return n;
+            return initializerSemantic(ai, sc, tx, needInterpret);
         }
-
-        size_t dim = tsa.isIncomplete() ? dil.length : cast(size_t)tsa.dim.toInteger();
-        bool simple = true;
-        auto newdim = array(t, dim, simple);
-
-        if (errors)
-            return err();
-
-        if (tsa.isIncomplete()) // array of unknown length
+        else if (ExpInitializer ei = isBraceExpression())
+            return visitExp(ei);
+        else
         {
-            // Change to array of known length
-            tsa = new TypeSArray(tn, new IntegerExp(Loc.initial, newdim, Type.tsize_t));
-            tx = tsa;       // rewrite caller's type
-            ci.type = tsa;  // remember for later passes
+            assert(0);
         }
-        const uinteger_t edim = tsa.dim.toInteger();
-        if (i < dil.length)
-        {
-            error(ci.loc, "%d extra initializer(s) for static array length of %d", cast(int)(dil.length - i), cast(int)edim);
-            return err();
-        }
-
-        const sz = tn.size(); // element size
-        if (sz == SIZE_INVALID)
-            return err();
-        bool overflow;
-        const max = mulu(edim, sz, overflow);
-        if (overflow || max >= amax)
-        {
-            error(ci.loc, "array dimension %llu exceeds max of %llu", ulong(edim), ulong(amax / sz));
-            return err();
-        }
-
-        /* If an array of simple elements, replace with an ArrayInitializer
-         */
-        auto tnb = tn.toBasetype();
-        if (!tnb.isTypeSArray() && (!tnb.isTypeStruct() || simple))
-        {
-            auto ai = new ArrayInitializer(ci.loc);
-            ai.dim = cast(uint) dil.length;
-            ai.index.setDim(dil.length);
-            ai.value.setDim(dil.length);
-            foreach (const j; 0 .. dil.length)
-            {
-                ai.index[j] = null;
-                ai.value[j] = dil[j].initializer;
-            }
-            auto ty = tx;
-            return ai.initializerSemantic(sc, ty, needInterpret);
-        }
-
-        if (newdim < ci.initializerList.length && tnb.isTypeStruct())
-        {
-            // https://issues.dlang.org/show_bug.cgi?id=22375
-            // initializerList can be bigger than the number of actual elements
-            // to initialize for array of structs because it is not required
-            // for values to have proper bracing.
-            // i.e: These are all valid initializers for `struct{int a,b;}[3]`:
-            //      {1,2,3,4}, {{1,2},3,4}, {1,2,{3,4}}, {{1,2},{3,4}}
-            // In all examples above, the new length of the initializer list
-            // has been shortened from four elements to two. This is important,
-            // because `dil` is written back to directly, making the lowered
-            // initializer `{{1,2},{3,4}}` and not `{{1,2},{3,4},3,4}`.
-            ci.initializerList.length = newdim;
-        }
-
-        return ci;
     }
 
     final switch (init.kind)
