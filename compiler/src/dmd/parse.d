@@ -3220,9 +3220,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         const loc = token.loc;
         TOK tok = token.value;
 
-        aggregateDepth++;
-        scope (exit) aggregateDepth--;
-        
         //printf("Parser::parseAggregate()\n");
         nextToken();
         Identifier id;
@@ -3266,6 +3263,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             if (!tpl)
                 error("template constraints only allowed for templates");
         }
+
+        aggregateDepth++;
+        scope (exit) aggregateDepth--;
 
         AST.Dsymbols* members = null;
         if (token.value == TOK.leftCurly)
