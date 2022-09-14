@@ -43,6 +43,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         Loc endloc; // set to location of last right curly
         int inBrackets; // inside [] of array index or slice
         Loc lookingForElse; // location of lonely if looking for an else
+        int aggregateDepth;
     }
 
     /*********************
@@ -1581,6 +1582,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 }
                 else if (token.value == TOK.this_)
                 {
+                    if (!aggregateDepth)
+                    {
+                        error("cannot use `this` outside an aggregate type");
+                    }
                     // ThisParameter
                     nextToken();
                     if (token.value != TOK.identifier)
@@ -3211,6 +3216,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         const loc = token.loc;
         TOK tok = token.value;
 
+        aggregateDepth++;
+        scope (exit) aggregateDepth--;
         //printf("Parser::parseAggregate()\n");
         nextToken();
         Identifier id;
