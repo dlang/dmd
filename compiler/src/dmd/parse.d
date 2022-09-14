@@ -44,6 +44,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         int inBrackets; // inside [] of array index or slice
         Loc lookingForElse; // location of lonely if looking for an else
         int aggregateDepth;
+        int templateDepth;
     }
 
     /*********************
@@ -1449,15 +1450,18 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         if (token.value != TOK.identifier)
         {
             error("identifier expected following `template`");
-            goto Lerr;
+            return null;
         }
         id = token.ident;
         nextToken();
         tpl = parseTemplateParameterList();
         if (!tpl)
-            goto Lerr;
+            return null;
 
         constraint = parseConstraint();
+
+        templateDepth++;
+        scope (exit) templateDepth--;
 
         if (token.value != TOK.leftCurly)
         {
@@ -1582,9 +1586,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 }
                 else if (token.value == TOK.this_)
                 {
-                    if (!aggregateDepth)
+                    if (!aggregateDepth && !templateDepth)
                     {
-                        error("cannot use `this` outside an aggregate type");
+                        error("cannot use `this` outside an aggregate type or mixin template");
                     }
                     // ThisParameter
                     nextToken();
@@ -3218,6 +3222,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         aggregateDepth++;
         scope (exit) aggregateDepth--;
+        
         //printf("Parser::parseAggregate()\n");
         nextToken();
         Identifier id;
