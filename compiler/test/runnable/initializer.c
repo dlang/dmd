@@ -703,6 +703,20 @@ void test42()
 
 /*******************************************/
 
+void test43()
+{
+    static int a[2] = { [0] = 1, [1] = 2, };
+    assert(a[0] == 1, __LINE__);
+    assert(a[1] == 2, __LINE__);
+
+    typedef struct S { int x; } S;
+    S s = {.x = 3};
+    assert(s.x == 3, __LINE__);
+}
+
+
+/*******************************************/
+
 int main()
 {
     test1();
@@ -743,6 +757,7 @@ int main()
     test41();
     test23230();
     test42();
+    test43();
 
     return 0;
 }
