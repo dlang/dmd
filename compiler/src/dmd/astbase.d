@@ -231,6 +231,11 @@ struct ASTBase
             return null;
         }
 
+        inout(StructDeclaration) isStructDeclaration() inout
+        {
+            return null;
+        }
+
         inout(ClassDeclaration) isClassDeclaration() inout
         {
             return null;
@@ -1387,6 +1392,11 @@ struct ASTBase
                 if (id == Id.ModuleInfo && !Module.moduleinfo)
                     Module.moduleinfo = this;
             }
+        }
+
+        override final inout(StructDeclaration) isStructDeclaration() inout
+        {
+            return this;
         }
 
         override void accept(Visitor v)
