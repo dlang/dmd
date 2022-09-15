@@ -630,6 +630,21 @@ void test39()
 
 /*********************************/
 
+void test22610()
+{
+    struct S
+    {
+        unsigned char c[4];
+    };
+    static struct S c = { 255,255,255,255 };
+    assert(c.c[0] == 255, __LINE__);
+    assert(c.c[1] == 255, __LINE__);
+    assert(c.c[2] == 255, __LINE__);
+    assert(c.c[3] == 255, __LINE__);
+}
+
+/*********************************/
+
 void test40()
 {
     char s[6] = { "s" }; if (s[0] != 's')                     { assert(0, __LINE__); }
@@ -723,6 +738,7 @@ int main()
     test38b();
     test23006();
     test39();
+    test22610();
     test40();
     test41();
     test23230();
