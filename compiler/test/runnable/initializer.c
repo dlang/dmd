@@ -609,6 +609,14 @@ void test38b()
 
 /*********************************/
 
+void test23006()
+{
+    static struct { int x[1][1]; } y = { {{1}} };
+    assert(y.x[0][0] == 1, __LINE__);
+}
+
+/*********************************/
+
 void test39()
 {
     int i = 1;            assert(i == 1, __LINE__);
@@ -713,6 +721,7 @@ int main()
     test38();
     test38a();
     test38b();
+    test23006();
     test39();
     test40();
     test41();
