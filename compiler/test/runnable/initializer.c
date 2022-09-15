@@ -539,6 +539,14 @@ void test37()
 
 /*********************************/
 
+void test23007()
+{
+    static int x[1] = {{1}};
+    assert(x[0] == 1, __LINE__);
+}
+
+/*********************************/
+
 void test38()
 {
     static int d[3][2] = { {1,2} };
@@ -747,6 +755,7 @@ int main()
     test35();
     test36();
     test37();
+    test23007();
     test38();
     test38a();
     test38b();
