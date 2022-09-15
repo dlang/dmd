@@ -654,6 +654,23 @@ void test41()
 
 /*********************************/
 
+void test23230()
+{
+    static char scharkey[4][17] =
+    {
+        "define",
+        "list",
+        "if",
+        "lambda"
+    };
+    assert(scharkey[0][3] == 'i', __LINE__);
+    assert(scharkey[1][2] == 's', __LINE__);
+    assert(scharkey[2][1] == 'f', __LINE__);
+    assert(scharkey[3][0] == 'l', __LINE__);
+}
+
+/*********************************/
+
 void test42()
 {
     int i;
@@ -699,6 +716,7 @@ int main()
     test39();
     test40();
     test41();
+    test23230();
     test42();
 
     return 0;
