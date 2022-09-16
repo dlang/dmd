@@ -701,6 +701,28 @@ void test23230()
 }
 
 /*********************************/
+// https://issues.dlang.org/show_bug.cgi?id=22652
+
+void test22652()
+{
+    struct S1 {
+        int x, y;
+    };
+
+    struct S2 {
+        struct S1 s;
+    };
+
+    struct S2 c = {1};
+    struct S2 d = {1, 2};
+
+    assert(c.s.x == 1, __LINE__);
+    assert(c.s.y == 0, __LINE__);
+    assert(d.s.x == 1, __LINE__);
+    assert(d.s.y == 2, __LINE__);
+}
+
+/*********************************/
 
 void test42()
 {
@@ -779,6 +801,7 @@ int main()
     test40();
     test41();
     test23230();
+    test22652();
     test42();
     test43();
     test44();
