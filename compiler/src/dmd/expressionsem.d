@@ -1344,7 +1344,19 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
                     }
                     Expression e = new CallExp(loc, e1);
                     if (e2)
-                        e = new AssignExp(loc, e, e2);
+                    {
+                        /* https://issues.dlang.org/show_bug.cgi?id=23335
+                         *
+                         * If we have an assignment between FuncExps,
+                         * the type of e2 needs to be deduced from e1.
+                         * However, by this point e2 has already been
+                         * semantically evaluated.
+                         * To make sure that AssignExp semantic goes well
+                         * start from a clean slate with e2 by performing
+                         * a syntax copy.
+                         */
+                        e = new AssignExp(loc, e, e2.isFuncExp() ? e2.syntaxCopy() : e2);
+                    }
                     return e.expressionSemantic(sc);
                 }
             }
