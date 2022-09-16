@@ -1596,6 +1596,13 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         nextToken();
                         tp_spectype = parseType();
                     }
+                    else
+                    {
+                        // default to `const typeof(this)` to detect use outside a type
+                        // or an explicit type passed that isn't compatible
+                        tp_spectype = new AST.TypeTypeof(loc, new AST.ThisExp(loc));
+                        tp_spectype.addSTC(STC.const_);
+                    }
                     if (token.value == TOK.assign) // = Type
                     {
                         nextToken();
