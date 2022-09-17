@@ -760,6 +760,26 @@ void test44()
 }
 
 /*******************************************/
+// https://issues.dlang.org/show_bug.cgi?id=23338
+
+struct S45 {
+    char a, b[2];
+};
+
+struct S45 s45 = { 1, 2, 3 };
+struct S45 t45 = { 'a', "bc" };
+
+void test45()
+{
+    assert(s45.a    == 1, __LINE__);
+    assert(s45.b[0] == 2, __LINE__);
+    assert(s45.b[1] == 3, __LINE__);
+    assert(t45.a    == 'a', __LINE__);
+    assert(t45.b[0] == 'b', __LINE__);
+    assert(t45.b[1] == 'c', __LINE__);
+}
+
+/*******************************************/
 
 int main()
 {
@@ -805,6 +825,7 @@ int main()
     test42();
     test43();
     test44();
+    test45();
 
     return 0;
 }
