@@ -852,9 +852,21 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                             break;
                     }
                     auto tn = field.type.toBasetype();
+                    auto tnsa = tn.isTypeSArray();
                     auto tns = tn.isTypeStruct();
                     auto ix = di.initializer;
-                    if (tns && ix.isExpInitializer())
+                    if (tnsa && ix.isExpInitializer())
+                    {
+                        ExpInitializer ei = ix.isExpInitializer();
+                        if (ei.exp.isStringExp() && tnsa.nextOf().isintegral())
+                        {
+                            si.addInit(field.ident, ei);
+                            ++index;
+                        }
+                        else
+                            si.addInit(field.ident, subArray(tnsa, index));
+                    }
+                    else if (tns && ix.isExpInitializer())
                     {
                         /* Disambiguate between an exp representing the entire
                          * struct, and an exp representing the first field of the struct
