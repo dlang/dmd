@@ -1643,7 +1643,7 @@ $(H2 $(LEGACY_LNAME2 StructDestructor, struct-destructor, Struct Destructors))
         )
 
         $(P Unions may have fields that have destructors. However, a union itself never has
-        a destructor. When a union goes out of scope, destructors for it's fields are not called.
+        a destructor. When a union goes out of scope, destructors for its fields are not called.
         If those calls are desired, they must be inserted explicitly by the programmer:)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
