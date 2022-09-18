@@ -403,8 +403,7 @@ $(GNAME TokenStringToken):
 
         $(P String literals are read only.)
 
-        $(UNDEFINED_BEHAVIOR Writes to string literals
-        cannot always be detected, but cause undefined behavior.)
+        $(UNDEFINED_BEHAVIOR writing to a string literal. This is not allowed in `@safe` code.)
 
 $(H3 $(LNAME2 wysiwyg, Wysiwyg Strings))
 
@@ -846,10 +845,10 @@ $(GNAME Float):
 
 $(GNAME DecimalFloat):
     $(GLINK LeadingDecimal) $(B .)
-    $(GLINK LeadingDecimal) $(B .) $(GLINK DecimalDigits)
-    $(GLINK DecimalDigits) $(B .) $(GLINK DecimalDigitsNoStartingUS) $(GLINK DecimalExponent)
-    $(B .) $(GLINK DecimalInteger)
-    $(B .) $(GLINK DecimalInteger) $(GLINK DecimalExponent)
+    $(GLINK LeadingDecimal) $(B .) $(GLINK DecimalDigitsNoStartingUS)
+    $(GLINK LeadingDecimal) $(B .) $(GLINK DecimalDigitsNoStartingUS) $(GLINK DecimalExponent)
+    $(B .) $(GLINK DecimalDigitsNoStartingUS)
+    $(B .) $(GLINK DecimalDigitsNoStartingUS) $(GLINK DecimalExponent)
     $(GLINK LeadingDecimal) $(GLINK DecimalExponent)
 
 $(GNAME DecimalExponent):

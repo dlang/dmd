@@ -46,30 +46,26 @@ $(GNAME Interface):
     $(GLINK2 type, BasicType)
 )
 
-$(P Classes consist of:)
+$(P A class consists of:)
 
+$(COMMENT list of notable components, not exhaustive)
 $(UL
         $(LI a super class)
-        $(LI interfaces)
-        $(LI a nested anonymous metaclass for classes declared with `extern (Objective-C)`)
+        $(LI $(DDLINK spec/interface, Interfaces, interfaces)
         $(LI dynamic fields)
-        $(LI static fields)
-        $(LI types)
-        $(LI $(RELATIVE_LINK2 synchronized-classes, an optional synchronized attribute))
-        $(LI $(RELATIVE_LINK2 member-functions, member functions)
+        $(LI $(DDSUBLINK spec/attribute, static, static) fields)
+        $(LI $(RELATIVE_LINK2 nested, nested classes))
+        $(LI $(RELATIVE_LINK2 member-functions, member functions))
         $(UL
             $(LI static member functions)
             $(LI $(DDSUBLINK spec/function, virtual-functions, Virtual Functions))
             $(LI $(RELATIVE_LINK2 constructors, Constructors))
             $(LI $(RELATIVE_LINK2 destructors, Destructors))
-            $(LI $(RELATIVE_LINK2 static-constructor, Static Constructors))
-            $(LI $(RELATIVE_LINK2 static-destructor, Static Destructors))
-            $(LI $(GLINK SharedStaticConstructor)s)
-            $(LI $(GLINK SharedStaticDestructor)s)
             $(LI $(RELATIVE_LINK2 invariants, Class Invariants))
-            $(LI $(DDSUBLINK spec/unittest, unittest, Unit Tests))
-            $(LI $(RELATIVE_LINK2 alias-this, Alias This))
+            $(LI $(DDLINK spec/operatoroverloading, Operator Overloading, Operator Overloading))
         )
+        $(LI $(RELATIVE_LINK2 alias-this, Alias This))
+        $(LI other declarations (see $(GLINK2 module, DeclDef)))
         )
 )
 
@@ -177,6 +173,7 @@ $(H2 $(LNAME2 class_properties, Class Properties))
         $(DDSUBLINK spec/template, homogeneous_sequences, lvalue sequence)
         of all the non-static fields in the class, excluding the hidden fields and
         the fields in the base class.)
+        $(P The order of the fields in the tuple matches the order in which the fields are declared.)
         $(NOTE `.tupleof` is not available for `extern(Objective-C)` classes due to
         their fields having a dynamic offset.
         )
@@ -228,13 +225,13 @@ $(H2 $(LNAME2 super_class, Super Class))
 $(H2 $(LNAME2 member-functions, Member Functions (a.k.a. Methods)))
 
         $(P Non-static member functions have an extra hidden parameter
-        called $(I this) through which the class object's other members
+        called $(DDSUBLINK spec/expression, this, `this`) through which the class object's other members
         can be accessed.
         )
 
         $(P Non-static member functions can have, in addition to the usual
         $(GLINK2 function, FunctionAttribute)s, the attributes
-        $(D const), $(D immutable), $(D shared), or $(D inout).
+        $(D const), $(D immutable), $(D shared), $(D inout), $(D scope) or $(D return scope).
         These attributes apply to the hidden $(I this) parameter.
         )
 $(SPEC_RUNNABLE_EXAMPLE_FAIL
@@ -249,6 +246,10 @@ class C
     void foo() immutable
     {
         a = 3; // error, 'this' is immutable
+    }
+    C bar() @safe scope
+    {
+        return this; // error, 'this' is scope
     }
 }
 ---
@@ -267,7 +268,7 @@ $(H3 $(LNAME2 objc-member-functions, Objective-C linkage))
         )
 
         $(P Static member functions with Objective-C linkage are placed in
-        the hidden nested metaclass as non-static member functions.
+        a hidden nested metaclass as non-static member functions.
         )
 
 
@@ -937,30 +938,7 @@ $(GNAME Invariant):
     succeed.
     )
 
-    $(P If the invariant does not hold, then the program enters an invalid state.)
-
-    $(P Any class invariants for base classes are applied before the class invariant for the derived class.)
-
-    $(P There may be multiple invariants in a class. They are applied in lexical order.)
-
-    $(P Class $(I Invariant)s must hold at the exit of the class constructor (if any),
-    at the entry of the class destructor (if any).)
-
-    $(P Class $(I Invariant)s must hold
-    at the entry and exit of all public or exported non-static member functions.
-    The order of application of invariants is:
-    $(OL
-    $(LI preconditions)
-    $(LI invariant)
-    $(LI function body)
-    $(LI invariant)
-    $(LI postconditions)
-    )
-    )
-
-    $(P The invariant need not hold if the class instance is implicitly constructed using
-    the default $(D .init) value.)
-
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     class Date
     {
@@ -981,6 +959,38 @@ $(GNAME Invariant):
         int hour;
     }
     ---
+    )
+
+    $(P Any class invariants for base classes are applied before the class invariant for the derived class.)
+
+    $(P There may be multiple invariants in a class. They are applied in lexical order.)
+
+    $(P Class $(I Invariant)s must hold at the exit of the class constructor (if any), and
+    at the entry of the class destructor (if any).)
+
+    $(P Class $(I Invariant)s must hold
+    at the entry and exit of all public or exported non-static member functions.
+    The order of application of invariants is:)
+    $(OL
+    $(LI preconditions)
+    $(LI invariant)
+    $(LI function body)
+    $(LI invariant)
+    $(LI postconditions)
+    )
+
+    $(P If the invariant does not hold, then the program enters an invalid state.)
+
+    $(IMPLEMENTATION_DEFINED
+    $(OL
+    $(LI Whether the class $(I Invariant) is executed at runtime or not. This is typically
+    controlled with a compiler switch.)
+    $(LI The behavior when the invariant does not hold is typically the same as
+    for when $(GLINK2 expression, AssertExpression)s fail.)
+    )
+    )
+
+    $(UNDEFINED_BEHAVIOR happens if the invariant does not hold and execution continues.)
 
     $(P Public or exported non-static member functions cannot be called from within an invariant.)
 
@@ -997,17 +1007,6 @@ $(GNAME Invariant):
         }
     }
     ---
-
-    $(UNDEFINED_BEHAVIOR happens if the invariant does not hold and execution continues.)
-
-    $(IMPLEMENTATION_DEFINED
-    $(OL
-    $(LI Whether the class $(I Invariant) is executed at runtime or not. This is typically
-    controlled with a compiler switch.)
-    $(LI The behavior when the invariant does not hold is typically the same as
-    for when $(GLINK2 expression, AssertExpression)s fail.)
-    )
-    )
 
     $(BEST_PRACTICE
     $(OL
@@ -1036,6 +1035,7 @@ $(GNAME AliasThis):
         member.
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
 struct S
 {
@@ -1045,22 +1045,29 @@ struct S
 
 int foo(int i) { return i * 2; }
 
-void test()
+void main()
 {
     S s;
     s.x = 7;
-    int i = -s;  // i == -7
-    i = s + 8;   // i == 15
-    i = s + s;   // i == 14
-    i = 9 + s;   // i == 16
+    int i = -s;
+    assert(i == -7);
+    i = s + 8;
+    assert(i == 15);
+    i = s + s;
+    assert(i == 14);
+    i = 9 + s;
+    assert(i == 16);
     i = foo(s);  // implicit conversion to int
+    assert(i == 14);
 }
 ---
+)
 
         $(P If the member is a class or struct, undefined lookups will
         be forwarded to the $(I AliasThis) member.
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
 struct Foo
 {
@@ -1074,19 +1081,23 @@ class Bar
     alias foo this;
 }
 
-void test()
+void main()
 {
     auto bar = new Bar;
-    int i = bar.baz; // i == 4
-    i = bar.get(); // i == 7
+    int i = bar.baz;
+    assert(i == 4);
+    i = bar.get();
+    assert(i == 7);
 }
 ---
+)
 
         $(P If the $(I Identifier) refers to a property member
         function with no parameters, conversions and undefined
         lookups are forwarded to the return value of the function.
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
 struct S
 {
@@ -1098,13 +1109,16 @@ struct S
     alias get this;
 }
 
-void test()
+void main()
 {
     S s;
     s.x = 2;
-    int i = s; // i == 4
+    int i = s;
+    assert(i == 4);
 }
 ---
+)
+
         $(P If an aggregate declaration defines an $(D opCmp) or $(D opEquals)
         method, it will take precedence to that of the aliased this member. Note
         that, unlike an $(D opCmp) method, an $(D opEquals) method is implicitly
@@ -1112,6 +1126,7 @@ void test()
         this means that if the aliased this member $(D opEquals) is preferred it
         should be explicitly defined:
         )
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
 struct S
 {
@@ -1129,6 +1144,21 @@ struct T
     alias s this;
 }
 
+void main()
+{
+    S s1, s2;
+    T t1, t2;
+
+    assert(s1 == s2);      // calls S.opEquals
+    assert(t1 == t2);      // calls compiler generated T.opEquals that implements member-wise equality
+
+    assert(s1 == t1);      // calls s1.opEquals(t1.s);
+    assert(t1 == s1);      // calls t1.s.opEquals(s1);
+}
+---
+)
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
 struct U
 {
     int a;
@@ -1147,24 +1177,19 @@ struct V
 
 void main()
 {
-    S s1, s2;
-    T t1, t2;
     U u1, u2;
     V v1, v2;
 
-    assert(s1 == s2);      // calls S.opEquals
-    assert(t1 == t2);      // calls compiler generated T.opEquals that implements member-wise equality
     assert(!(u1 < u2));    // calls U.opCmp
     assert(!(v1 < v2));    // calls U.opCmp because V does not define an opCmp method
                            // so the alias this of v1 is employed; U.opCmp expects a
                            // paramter of type U, so alias this of v2 is used
 
-    assert(s1 == t1);      // calls s1.opEquals(t1.s);
-    assert(t1 == s1);      // calls t1.s.opEquals(s1);
     assert(!(u1 < v1));    // calls u1.opCmp(v1.u);
     assert(!(v1 < u1));    // calls v1.u.opCmp(v1);
 }
 ---
+)
         $(P $(GLINK2 attribute, Attribute)s are ignored for $(D AliasThis).
         )
 
@@ -1198,6 +1223,76 @@ void func()
 $(P When a scope class reference goes out of scope, the destructor (if any) for
 it is automatically called. This holds true even if the scope was exited via a
 thrown exception.)
+
+
+$(H2 $(LNAME2 abstract, Abstract Classes))
+
+$(P
+        An abstract member function must be overridden by a derived class.
+        Only virtual member functions may be declared abstract; non-virtual
+        member functions and free-standing functions cannot be declared
+        abstract.
+)
+
+$(P
+        A class is abstract if any of its virtual member functions
+        are declared abstract or if they are defined within an
+        abstract attribute.
+        Note that an abstract class may also contain non-virtual member functions.
+        Abstract classes cannot be instantiated directly.
+        They can only be instantiated as a base class of
+        another, non-abstract, class.
+)
+
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+---
+class C
+{
+    abstract void f();
+}
+
+auto c = new C; // error, C is abstract
+
+class D : C {}
+
+auto d = new D; // error, D is abstract
+
+class E : C
+{
+    override void f() {}
+}
+
+auto e = new E; // OK
+---
+)
+
+$(P
+        Member functions declared as abstract can still have function
+        bodies. This is so that even though they must be overridden,
+        they can still provide $(SINGLEQUOTE base class functionality),
+        e.g. through $(D super.foo()) in a derived class.
+        Note that the class is still abstract and cannot be instantiated directly.
+)
+
+$(P
+        A class can be declared abstract:
+)
+
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+---
+abstract class A
+{
+    // ...
+}
+
+auto a = new A; // error, A is abstract
+
+class B : A {}
+
+auto b = new B; // OK
+---
+)
+
 
 $(H2 $(LNAME2 final, Final Classes))
 
@@ -1452,16 +1547,20 @@ $(H3 $(LNAME2 anonymous, Anonymous Nested Classes))
 
 $(GRAMMAR
 $(GNAME NewAnonClassExpression):
-    $(D new) $(D class) $(GLINK ConstructorArgs)$(OPT) $(GLINK SuperClassOrInterface)$(OPT) $(GLINK Interfaces)$(OPT) $(GLINK2 struct, AggregateBody)
+    $(D new) $(D class) $(GLINK ConstructorArgs)$(OPT) $(GLINK AnonBaseClassList)$(OPT) $(GLINK2 struct, AggregateBody)
 
 $(GNAME ConstructorArgs):
     $(D $(LPAREN)) $(GLINK2 expression, ArgumentList)$(OPT) $(D $(RPAREN))
+
+$(GNAME AnonBaseClassList):
+    $(GLINK SuperClassOrInterface)
+    $(GLINK SuperClassOrInterface) $(D ,) $(GLINK Interfaces)
 )
 
 which is equivalent to:
 
 $(GRAMMAR_INFORMATIVE
-$(D class) $(GLINK_LEX Identifier) $(D :) $(I SuperClassOrInterface) $(I Interfaces) $(I AggregateBody)
+$(D class) $(GLINK_LEX Identifier) $(D :) $(I AnonBaseClassList) $(I AggregateBody)
 // ...
 $(D new) $(I Identifier) $(I ConstructorArgs)
 )

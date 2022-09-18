@@ -429,28 +429,8 @@ $(DD The macros section follows the same syntax as the $(B Params:) section.
  *      MAGENTA =   <font color="magenta">$0</font>
  */
 ------------------------------------
-
-
-$(DT  $(B Escapes=))
-$(DD The escapes section is a series of substitutions which replace special
-     characters with a string. It's useful when the output format requires
-     escaping of certain characters, for example in HTML $(B $(AMP)) should be
-     escaped with $(B $(AMP)amp;).)
-$(DD The syntax is $(B /c/string/), where $(B c)
-     is either a single character, or multiple characters separated by
-     whitespace or commas, and $(B string) is the replacement text.)
-
-------------------------------------
-/**
- * ESCAPES = /&/AddressOf!/
- *           /!/Exclamation/
- *           /?/QuestionMark/
- *           /,/Comma/
- *           /{ }/Parens/
- *           /<,>/Arrows/
- */
-------------------------------------
 )
+
 
 $(H2 $(LNAME2 highlighting, Highlighting))
 
@@ -515,9 +495,9 @@ $(P
 $(H3 $(LNAME2 inline_code, Inline Code))
 
 $(P
-    Inline code can be written between backtick characters ($(BACKTICK)), similarly
+    Inline code can be written between backtick characters (`$(BACKTICK)`), similarly
     to the syntax used on GitHub, Reddit, Stack Overflow, and other websites. Both
-    the opening and closing $(BACKTICK) character must appear on the same line to trigger this
+    the opening and closing `$(BACKTICK)` character must appear on the same line to trigger this
     behavior.
 )
 
@@ -528,7 +508,7 @@ $(P
 )
 
 $(P
-    A literal backtick character can be output either as a non-paired $(BACKTICK) on a single
+    A literal backtick character can be output either as a non-paired `$(BACKTICK)` on a single
     line or by using the `$(DOLLAR)(BACKTICK)` macro.
 )
 
@@ -933,9 +913,11 @@ $(H2 $(LNAME2 macros, Macros))
 $(P
     The documentation comment processor includes a simple macro
     text preprocessor.
-    When a $(DOLLAR)($(I NAME)) appears
-    in section text it is replaced with $(I NAME)s corresponding
-    replacement text.)
+    When $(D $)`(NAME)` appears
+    in section text it is replaced with the corresponding `NAME` macro's
+    replacement text.
+    Macros can take arguments: $(D $)`(NAME argument)`.
+)
 
     For example:
     ---------
@@ -954,10 +936,10 @@ $(P
     ---------
 
 $(P
-    The above would generate the following output:)
+    The above would generate output such as:)
 
     ------------------------------------
-    <h1>test</h1>
+    <h1>math</h1>
     <dl><dt><big><a name="sum"></a>int <u>sum</u>(int <i>a</i>, int <i>b</i>);
     </big></dt>
     <dd>This function returns the <u>sum</u> of <u><i>a</i></u> and <u><i>b</i></u>.
@@ -968,32 +950,64 @@ $(P
 
 $(P
     The replacement text is recursively scanned for more macros.
-    If a macro is recursively encountered, with no argument or with
+    If found, they are expanded in turn.
+    If a macro already expanded is recursively encountered, with no argument or with
     the same argument text as the enclosing macro, it is replaced
     with no text.
+)
+$(UL
+    $(LI
     Macro invocations that cut across replacement text boundaries are
     not expanded.
-    If the macro name is undefined, the replacement text has no characters
-    in it.
-    If a $(DOLLAR)(NAME) is desired to exist in the output without being
-    macro expanded, the $(DOLLAR) should be $(LINK2 #punctuation_escapes,
+    )
+    $(LI
+    If the macro name is undefined, the replacement text will
+    be $(D $)`(DDOC_UNDEFINED_MACRO(NAME))`. This defaults to empty.
+    )
+    $(LI
+    If $(D $)`(NAME)` is required to exist in the output without being
+    macro expanded, the `$` can be $(RELATIVE_LINK2 punctuation_escapes,
     backslash-escaped): `\$`.
+    )
 )
 
+$(H3 $(LNAME2 macro_arguments, Macro Arguments))
+
 $(P
-    Macros can have arguments. Any text from the end of the identifier
-    to the closing $(SINGLEQUOTE $(RPAREN)) is the $(DOLLAR)0 argument.
-    A $(DOLLAR)0 in the replacement text is
-    replaced with the argument text.
-    If there are commas in the argument text, $(DOLLAR)1 will represent the
-    argument text up to the first comma, $(DOLLAR)2 from the first comma to
-    the second comma, etc., up to $(DOLLAR)9.
-    $(DOLLAR)+ represents the text from the first comma to the closing $(SINGLEQUOTE $(RPAREN)).
-    The argument text can contain nested parentheses, "" or '' strings,
-    $(D <)$(D !--) $(D ...) $(D --)$(D >) comments, or tags.
-    If stray, unnested parentheses are used, they can be
-    $(LINK2 #punctuation_escapes, backslash-escaped): `\(` or `\)`.
+    When invoking a macro, any text from the end of the identifier
+    to the closing $(SINGLEQUOTE $(RPAREN)) is passed as arguments to
+    the macro, and can be referred to using the
+    $(D $)`0` parameter inside the macro definition.
+    A $(D $)`0` in the replacement text is
+    replaced with the text of each argument, separated by commas.
 )
+$(P
+    If there are commas in the argument text, this denotes multiple arguments.
+    Inside a macro definition, $(D $)`1` will represent the
+    argument text up to the first comma, $(D $)`2` from the first comma to
+    the second comma, etc., up to $(D $)`9`.
+    $(D $)`+` represents the text from the first comma to the closing $(SINGLEQUOTE $(RPAREN)).
+)
+$(UL
+    $(LI
+    The argument text can contain nested parentheses, `""` or `''` strings,
+    $(D <)$(D !--) $(D ...) $(D --)$(D >) comments, or tags.
+    )
+    $(LI
+    If stray, unnested parentheses are used, they can be
+    $(RELATIVE_LINK2 punctuation_escapes, backslash-escaped): `\(` or `\)`.
+    )
+    $(LI
+    Any literal commas not intended as an argument separator can be
+    escaped when invoking a macro expecting separate arguments.
+    Defining an `ARGS=`$(D $)`0` macro can be useful to handle commas -
+    these are equivalent:
+    * $(D $)`(FOO one, `$(D $)`(ARGS two, dwa, dos), three)`
+    * $(D $)`(FOO one, two\, dwa\, dos, three)`.
+    )
+)
+
+$(H3 $(LNAME2 macro_definitions, Macro Definitions))
 
 $(P
     Macro definitions come from the following sources,
@@ -1007,7 +1021,7 @@ $(P
     or $(DDSUBLINK dmd-linux, dmd_conf, dmd.conf) DDOCFILE setting.)
     $(LI Definitions from *.ddoc files specified on the command line.)
     $(LI Runtime definitions generated by Ddoc.)
-    $(LI Definitions from any Macros: sections.)
+    $(LI Definitions from any `Macros:` sections.)
     )
 
 $(P
@@ -1030,7 +1044,7 @@ $(P
 
 $(P The implementations of all predefined macros are implementation-defined. The
 reference implementation's macro definitions can be found $(HTTPS
-github.com/dlang/dmd/blob/master/res/default_ddoc_theme.ddoc, here).)
+github.com/dlang/dmd/blob/master/compiler/src/dmd/res/default_ddoc_theme.ddoc, here).)
 
 $(P
     Ddoc does not generate HTML code. It formats into the basic
@@ -1075,13 +1089,14 @@ $(P
     $(TROW $(ARGS $(D BACKTICK)), $(ARGS Insert a backtick))
     $(TROW $(ARGS $(D DOLLAR)), $(ARGS Insert a dollar sign))
     $(TROW $(ARGS $(D DDOC)), $(ARGS overall template for output))
+    $(TROW $(ARGS $(D ESCAPES)), $(ARGS characters to substitute))
     )
 
 $(P
-    $(B DDOC) is special in that it specifies the boilerplate into
+    $(D DDOC) is special in that it specifies the boilerplate into
     which the entire generated text is inserted (represented by the
-    Ddoc generated macro $(B BODY)). For example, in order
-    to use a style sheet, $(B DDOC) would be redefined as:
+    Ddoc generated macro $(D BODY)). For example, in order
+    to use a style sheet, $(D DDOC) would be redefined as:
 )
 
 $(DDOCCODE
@@ -1096,6 +1111,24 @@ DDOC = $(LT)!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
     $(DOLLAR)(BODY)
     $(LT)/body$(GT)$(LT)/html$(GT)
 )
+
+$(P
+    $(D ESCAPES) defines a series of substitutions which replace special
+    characters with a string. It's useful when the output format requires
+    escaping of certain characters, for example in HTML $(D $(AMP)) should be
+    escaped with $(D $(AMP)amp;).
+    The syntax is $(D /c/string/), where $(D c)
+    is either a single character, or multiple characters separated by
+    whitespace or commas, and $(D string) is the replacement text.)
+
+------------------------------------
+ESCAPES = /&/AddressOf!/
+          /!/Exclamation/
+          /?/QuestionMark/
+          /,/Comma/
+          /{ }/Parens/
+          /<,>/Arrows/
+------------------------------------
 
 $(P
     Highlighting of D code is performed by the following macros:

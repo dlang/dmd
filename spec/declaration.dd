@@ -590,8 +590,9 @@ $(GNAME VoidInitializer):
         $(P Normally, variables are initialized either with an explicit
         $(GLINK Initializer) or are set to the default value for the
         type of the variable. If the $(I Initializer) is $(D void),
-        however, the variable is not initialized. If its value is
-        used before it is set, undefined program behavior will result.
+        however, the variable is not initialized.
+        Void initializers for objects that contain indirections is not
+        allowed in `@safe` code.
         )
 
         $(IMPLEMENTATION_DEFINED If a void initialized variable's value is

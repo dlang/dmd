@@ -4,51 +4,94 @@ $(SPEC_S ImportC,
 
 $(HEADERNAV_TOC)
 
-    $(NOTE This document is under construction. Please excuse the dust and noise.)
-
     $(P ImportC is a C compiler embedded into the D implementation.
-    Its purpose is to enable direct importation of C files, without
+    It enables direct importation of C files, without
     needing to manually prepare a D file corresponding to the declarations
-    in the C file. It enables directly compiling C files into modules, and
-    linking them in with D code to form an executable. It can be used
+    in the C file. It directly compiles C files into modules that can be
+    linked in with D code to form an executable. It can be used
     as a C compiler to compile and link 100% C programs.
     )
 
-    $(P This is not a C reference manual nor programming tutorial.
-    It describes the specifics of the dialect of C that
-    ImportC is, and how to use it effectively.)
-
-    $(P ImportC and $(LINK2 https://dlang.org/spec/betterc.html, BetterC) are very different.
+    $(NOTE ImportC and $(LINK2 https://dlang.org/spec/betterc.html, BetterC) are very different.
     ImportC is an actual C compiler. BetterC is a subset of D that relies only on the
-    existence of the C Standard library.)
+    existence of the C Standard library. BetterC code can be linked with ImportC code, too.)
+
+$(H2 $(LNAME2 examples, Quick Examples))
+
+    $(P C code in file $(TT hello.c):)
+
+    $(CCODE
+    #include <stdio.h>
+    int main()
+    {
+        printf("hello world\n");
+        return 0;
+    }
+    )
+
+    $(P Compile and run:)
+
+    $(CONSOLE
+    dmd hello.c
+    ./hello
+    hello world
+    )
+
+    $(P C function in file $(TT square.c):)
+
+    $(CCODE
+    int square(int i)
+    {
+        return i * i;
+    }
+    )
+
+    $(P D program in file $(TT demo.d):)
+
+    ---
+    import std.stdio;
+    import square;
+    void main()
+    {
+        int i = 7;
+        writefln("The square of %s is %s", i, square(i));
+    }
+    ---
+
+    $(P Compile and run:)
+
+    $(CONSOLE
+    dmd demo.d square.c
+    ./demo
+    The square of 7 is 49
+    )
+
 
 $(H2 $(LNAME2 dialect, ImportC Dialect))
 
-    $(P There are many versions of C. ImportC is designed to be an
+    $(P There are many versions of C. ImportC is an
     implementation of $(LINK2 https://en.wikipedia.org/wiki/C11_(C_standard_revision), ISO/IEC 9899:2011),
-    which will hereafter be referred to as $(B C11).
+    which will be referred to as $(B C11).
     References to the C11 Standard will be C11 followed by the paragraph number.
     Prior versions, such as C99, C89, and K+R C, are not supported.
     )
 
-    $(P Adjustment to the ImportC dialect is made to match the
-    behavior of the C compiler that the D compiler is matched to
-    i.e. the $(I associated C compiler).
-    For example, on Win32 D is matched to the Digital Mars C compiler,
-    and can be matched to the Visual C compiler using the $(TT -m32mscoff)
-    switch. Win64 D is matched to the Visual C compiler.
-    On Posix targets, the matching C compiler is Gnu C or Clang C.
+    $(IMPLEMENTATION_DEFINED Adjustment to the ImportC dialect is made to match the
+    behavior of the C compiler that the D compiler is matched to,
+    i.e. the $(DDSUBLINK glossary, acc, Associated C Compiler).
     )
 
     $(P Further adjustment is made to take advantage of some of the D
     implementation's capabilities.)
 
-    $(P This is all covered in the rest of this document.)
+    $(NOTE This is not a C reference manual nor programming tutorial.
+    It describes the specifics of the dialect of C that
+    ImportC is, and how to use it effectively.)
 
 
 $(H2 $(LNAME2 command-line, Invoking ImportC))
 
-    $(P The ImportC compiler can be invoked in two ways:)
+    $(P The ImportC compiler can be invoked:)
 
     $(UL
     $(LI directly via the command line)
@@ -57,15 +100,75 @@ $(H2 $(LNAME2 command-line, Invoking ImportC))
 
     $(H3 $(LNAME2 command-line, ImportC Files on the Command Line))
 
-    $(H3 $(LNAME2 importing, Importing C Files))
+    $(P ImportC files have one of the extensions `.i`, or `.c`. If no
+    extension is given, `.i` is tried first, then `.c`.
+    )
 
+    $(CONSOLE
+    dmd hello.c
+    )
+
+    $(P will compile `hello.c` with ImportC and link it to create the executable
+    file `hello` (`hello.exe` on Windows) which can be run
+    )
+
+    $(BEST_PRACTICE explicitly use a `.i` or `.c` extension when
+    specifying C files on the command line.)
+
+    $(H3 $(LNAME2 importing, Importing C Files from D Code))
+
+    $(P Use the D $(GLINK2 module, ImportDeclaration):)
+
+    ---
+    import hello;
+    ---
+
+    $(P which will, if `hello` is not a D file, and has an extension `.i` or `.c`,
+    compile `hello` with ImportC.
+    )
 
 $(H2 $(LNAME2 preprocessor, Preprocessor))
 
     $(P ImportC does not have a preprocessor. It is designed to compile C
-    files after they have been first run through the C preprocessor.)
+    files after they have been first run through the C preprocessor.
+    ImportC can automatically run the C preprocessor associated with the
+    Associated C Compiler, or a preprocessor can be run manually.
+    )
 
-    $(H3 $(LNAME2 spp,Digital Mars C Preprocessor sppn.exe))
+    $(H3 $(LNAME2 auto-cpp, Running the Preprocessor Automatically))
+
+    $(P If the C file has a $(TT .c) extension, ImportC will run the preprocessor
+    for it automatically.)
+
+    $(OL
+    $(LI When compiling for Windows with the $(DDSUBLINK dmd, switch-m32omf, $(TT -m32omf)) switch,
+    $(TT sppn.exe) will be used as the preprocessor.)
+    $(LI When compiling for Windows with the $(DDSUBLINK dmd, switch-m32mscoff, $(TT -m32mscoff))
+    or the $(DDSUBLINK dmd, switch-m64, $(TT -m64)) switch, $(TT cl.exe /P /Zc:preprocessor) will be used
+    as the preprocessor.)
+    $(LI When compiling for OSX, the $(TT clang -E) preprocessor will be used.)
+    $(LI Otherwise the $(TT cpp) preprocessor will be used.)
+    )
+
+    $(P The druntime file $(TT src/importc.h) will automatically be $(TT #include)d.)
+
+    $(P The $(DDSUBLINK dmd, switch-v, $(TT -v)) switch can be used to observe the command
+    that invokes the preprocessor.
+    )
+
+    $(P The $(DDSUBLINK dmd, switch-P, $(TT -P$(I preprocessorflag))) switch passes $(TT $(I preprocessorflag))
+    to the preprocessor.
+    )
+
+
+    $(H3 $(LNAME2 manual-cpp, Running the Preprocessor Manually))
+
+    $(P If the C file has a $(TT .i) extension, the file
+    is presumed to be already preprocessed.
+    Preprocessing can be run manually:
+    )
+
+    $(H4 $(LNAME2 spp,Digital Mars C Preprocessor sppn.exe))
 
     $(P $(LINK2 https://www.digitalmars.com/ctg/sc.html, $(TT sppn.exe)) runs on Win32 and is invoked as:)
 
@@ -75,7 +178,7 @@ $(H2 $(LNAME2 preprocessor, Preprocessor))
 
     $(P and the preprocessed output is written to $(TT file.i).)
 
-    $(H3 $(LNAME2 gcc-preprocessor, Gnu C Preprocessor))
+    $(H4 $(LNAME2 gcc-preprocessor, Gnu C Preprocessor))
 
     $(P The $(LINK2 https://gcc.gnu.org/onlinedocs/gcc/Preprocessor-Options.html, Gnu C Preprocessor) can be invoked as:)
 
@@ -83,15 +186,26 @@ $(H2 $(LNAME2 preprocessor, Preprocessor))
     gcc -E file.c > file.i
     )
 
-    $(H3 $(LNAME2 clang-preprocessor, Clang C Preprocessor))
+    $(H4 $(LNAME2 clang-preprocessor, Clang C Preprocessor))
 
     $(P The $(LINK2 https://freecompilercamp.org/clang-basics/, Clang Preprocessor) can be invoked as:)
 
     $(CONSOLE
-    clang -E file.c > file.i
+    clang -E file.c -o file.i
     )
 
-    $(H3 $(LNAME2 dmpp, dmpp C Preprocessor))
+    $(H4 $(LNAME2 vc-preprocessor, Microsoft VC Preprocessor))
+
+    $(P The $(LINK2 https://docs.microsoft.com/en-us/cpp/preprocessor/c-cpp-preprocessor-reference?view=msvc-170,
+    VC Preprocessor) can be invoked as:)
+
+    $(CONSOLE
+    cl /P /Zc:preprocessor file.c -Fifile.i
+    )
+
+    $(P and the preprocessed output is written to $(TT file.i).)
+
+    $(H4 $(LNAME2 dmpp, dmpp C Preprocessor))
 
     $(P The $(LINK2 https://www.DigitalMars/dmpp, dmpp C Preprocessor) can be invoked as:)
 
@@ -101,17 +215,42 @@ $(H2 $(LNAME2 preprocessor, Preprocessor))
 
     $(P and the preprocessed output is written to $(TT file.i).)
 
+    $(H3 $(LNAME2 defines, Preprocessor Macros))
+
+    $(P ImportC collects all the $(TT #define) macros from the preprocessor run when it is run automatically.
+    The macros that look like manifest constants, such as:)
+
+    $(CCODE
+    #define COLOR 0x123456
+    )
+
+    $(P are interpreted as D manifest constant declarations of the form:)
+
+    ---
+    enum COLOR = 0x123456;
+    ---
+
+    $(P The variety of macros that can be interpreted as D declarations may be expanded,
+    but will never encompass all the metaprogramming uses of C macros.
+    )
+
 
 $(H2 $(LNAME2 predefined-macros, Predefined Macros))
 
     $(P ImportC does not predefine any macros.)
 
-    $(BEST_PRACTICE To distinguish an ImportC compile vs some other C compiler, define
-    `__IMPORTC__` to be `1` when the preprocessor is run.)
+    $(P To distinguish an ImportC compile vs some other C compiler, use:)
+
+$(CCODE
+#if __IMPORTC__
+)
+
+    $(P $(TT __IMPORTC__) is defined in $(TT src/importc.h) which is automatically
+    included when the preprocessor is run.)
 
 $(H2 $(LNAME2 preprocessor-directives, Preprocessor Directives))
 
-    $(P Nevertheless, ImportC supports these preprocessor directives:)
+    $(P ImportC supports these preprocessor directives:)
 
     $(H3 $(LNAME2 line-control, Line control))
 
@@ -124,7 +263,18 @@ $(H2 $(LNAME2 preprocessor-directives, Preprocessor Directives))
 
     $(H3 $(LNAME2 pragma, pragma))
 
-    $(P Pragma directives are ignored.)
+    $(P The following pragmas are supported:)
+
+    $(UL
+    $(LI $(TT #pragma pack ( )))
+    $(LI $(TT #pragma pack ( show )))
+    $(LI $(TT #pragma pack ( push )))
+    $(LI $(TT #pragma pack ( push , identifier )))
+    $(LI $(TT #pragma pack ( push , integer )))
+    $(LI $(TT #pragma pack ( push , identifier , integer )))
+    $(LI $(TT #pragma pack ( pop )))
+    $(LI $(TT #pragma pack ( pop PopList )))
+    )
 
 $(H2 $(LNAME2 implementation, Implementation))
 
@@ -287,6 +437,18 @@ _Static_assert(sizeof(A) == 1, "A should be size 1");
 
     $(P Arrays can have `register` storage class, and may be enregistered by the compiler. C11 6.3.2.1-3)
 
+
+    $(H3 $(LNAME2 typeof, typeof Operator))
+
+    $(P The `typeof` operator may be used as a type specifier:)
+$(GRAMMAR
+$(GNAME type-specifier):
+    $(GNAME typeof-specifier)
+
+$(GNAME typeof-specifier):
+    $(D typeof $(LPAREN)) $(GNAME expression) $(D $(RPAREN))
+    $(D typeof $(LPAREN)) $(GNAME type-name) $(D $(RPAREN))
+)
 
     $(H3 $(LNAME2 __import, Import Declarations))
 

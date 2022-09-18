@@ -50,9 +50,11 @@ $(H3 $(LNAME2 .define-lvalue, Lvalue))
 
 $(P The following expressions, and no others, are called *lvalue expressions* or *lvalues*:)
 $(OL
-$(LI `this` inside `struct` and `union` member functions;)
-$(LI a variable or the result of the $(I DotIdentifier) grammatical construct `.` (left side may be
-missing) when the rightmost side of the dot is a variable,
+$(LI $(RELATIVE_LINK2 this, `this`) inside `struct` and `union` member functions;)
+$(LI a variable, function name, or invocation of a function that returns by reference;)
+$(LI the result of the `.` $(GLINK PostfixExpression) or
+$(DDSUBLINK spec/module, module_scope_operators, Module Scope Operator)
+when the rightmost side of the dot is a variable,
 field (direct or `static`), function name, or invocation of a function that returns by reference;)
 $(LI the result of the following expressions:
 $(UL
@@ -66,9 +68,11 @@ $(OL
     $(LI $(I e$(SUBSCRIPT 1)) and $(I e$(SUBSCRIPT 2)) are lvalues of the same type; OR)
     $(LI One of $(I e$(SUBSCRIPT 1)) and $(I e$(SUBSCRIPT 2)) is an lvalue of type `T` and the other has
     and `alias this` converting it to `ref T`;))
-$(LI user-defined operators if and only if the function called as a result of lowering returns
+$(LI $(DDLINK spec/operatoroverloading, Operator Overloading, user-defined operators)
+if and only if the function called as a result of lowering returns
 by reference;)
-$(LI `mixin` expressions if and only if the compilation of the expression resulting from compiling
+$(LI $(RELATIVE_LINK2 mixin_expressions, `mixin` expressions) if and only if the
+compilation of the expression resulting from compiling
 the argument(s) to `mixin` is an lvalue;)
 $(LI `cast(U)` expressions applied to lvalues of type `T` when `T*` is implicitly convertible to `U*`;)
 $(LI `cast()` and `cast(`$(I qualifier list)`)` when applied to an lvalue.)
@@ -100,14 +104,27 @@ The subexpression `h()` above has no smallest short-circuit expression.
 $(H2 $(LNAME2 order-of-evaluation, Order Of Evaluation))
 
 $(P Built-in prefix unary expressions `++` and `--` are evaluated as if lowered (rewritten) to
-assignments as follows: `++expr` becomes `((expr) += 1)`, and `--expr` becomes `((expr) -= 1)`.
+$(RELATIVE_LINK2 assignment_operator_expressions, assignments) as follows:)
+
+$(TABLE
+    $(THEAD Expression, Equivalent)
+    $(TROW `++expr`, `((expr) += 1)`)
+    $(TROW `--expr`, `((expr) -= 1)`)
+)
+$(P
 Therefore, the result of prefix `++` and `--` is the lvalue after the side effect has been
 effected.)
 
 $(P Built-in postfix unary expressions `++` and `--` are evaluated as if lowered (rewritten) to
 $(DDSUBLINK spec/expression, function_literals, lambda)
-invocations as follows: `expr++` becomes `(ref T x){auto t = x; ++x; return t;}(expr)`, and
-`expr--` becomes `(ref T x){auto t = x; --x; return t;}(expr)`. Therefore, the result of postfix
+invocations as follows:)
+
+$(TABLE
+    $(THEAD Expression, Equivalent)
+    $(TROW `expr++`, `(ref x){auto t = x; ++x; return t;}(expr)`)
+    $(TROW `expr--`, `(ref x){auto t = x; --x; return t;}(expr)`)
+)
+$(P Therefore, the result of postfix
 `++` and `--` is an rvalue just before the side effect has been effected.)
 
 $(P Binary expressions except for $(GLINK AssignExpression), $(GLINK OrOrExpression), and
@@ -279,7 +296,7 @@ $(GNAME AssignExpression):
 
     $(P For all assign expressions, the left operand must be a modifiable
     lvalue. The type of the assign expression is the type of the left
-    operand, and the value is the value of the left operand after assignment
+    operand, and the result is the value of the left operand after assignment
     occurs. The resulting expression is a modifiable lvalue.
     )
 
@@ -300,26 +317,35 @@ $(GNAME AssignExpression):
 $(H3 $(LNAME2 simple_assignment_expressions, Simple Assignment Expression))
 
     $(P If the operator is $(D =) then it is simple assignment.
-    The right operand is implicitly converted to the type of the
-    left operand, and assigned to it.)
+    )
 
-    $(P If the left and right operands are of the same struct type, and the struct
+    $(UL
+    $(LI If the left operand is a struct that
+    $(DDSUBLINK spec/operatoroverloading, assignment, defines `opAssign`),
+    the behaviour is defined by the overloaded function.
+    )
+
+    $(LI If the left and right operands are of the same struct type, and the struct
     type has a $(GLINK2 struct, Postblit), then the copy operation is
     as described in $(DDSUBLINK spec/struct, struct-postblit, Struct Postblit).
     )
 
-    $(P If the lvalue is the `.length` property of a dynamic array, the behavior is
+    $(LI If the lvalue is the `.length` property of a dynamic array, the behavior is
     as described in $(DDSUBLINK spec/arrays, resize, Setting Dynamic Array Length).
     )
 
-    $(P If the lvalue is a static array or a slice, the behavior is as
+    $(LI If the lvalue is a static array or a slice, the behavior is as
     described in $(DDSUBLINK spec/arrays, array-copying, Array Copying) and
     $(DDSUBLINK spec/arrays, array-setting, Array Setting).
     )
 
-    $(P If the lvalue is a user-defined property, the behavior is as
+    $(LI If the lvalue is a user-defined property, the behavior is as
     described in $(DDSUBLINK spec/function, property-functions, Property Functions).
     )
+    )
+
+    $(P Otherwise, the right operand is implicitly converted to the type of the
+    left operand, and assigned to it.)
 
 $(H3 $(LNAME2 assignment_operator_expressions, Assignment Operator Expressions))
 
@@ -335,16 +361,17 @@ $(H3 $(LNAME2 assignment_operator_expressions, Assignment Operator Expressions))
         a = cast(typeof(a))(a op b)
         --------------
 
-    except that
+    except that:
 
     $(UL
         $(LI operand $(D a) is only evaluated once,)
-        $(LI overloading $(I op) uses a different function than overloading $(I op)= does, and)
+        $(LI overloading $(I op) uses a different function than overloading $(I op)`=` does, and)
         $(LI the left operand of $(D >>>=) does not undergo $(INTEGER_PROMOTIONS) before shifting.)
     )
 
-    $(P For user-defined types, assignment operator expressions are overloaded separately from
-        the binary operator. Still the left operand must be an lvalue.
+    $(P For user-defined types, assignment operator expressions are
+        $(DDSUBLINK spec/operatoroverloading, op-assign, overloaded separately) from
+        the binary operators. Still the left operand must be an lvalue.
     )
 
 $(H2 $(LNAME2 conditional_expressions, Conditional Expressions))
@@ -503,7 +530,7 @@ $(GNAME CmpExpression):
     $(GLINK ShiftExpression)
 )
 
-$(H2 $(LNAME2 equality_expressions, Equality Expressions))
+$(H3 $(LNAME2 equality_expressions, Equality Expressions))
 
 $(GRAMMAR
 $(GNAME EqualExpression):
@@ -530,7 +557,7 @@ $(GNAME EqualExpression):
     $(P For float, double, and real values, the $(USUAL_ARITHMETIC_CONVERSIONS) are applied
         to bring them to a common type before comparison.
         The values $(D -0) and $(D +0) are considered equal.
-        If either or both operands are NAN, then $(D ==) returns false and $(D !=) returns $(D true).
+        If either or both operands are NaN, then $(D ==) returns false and $(D !=) returns $(D true).
         Otherwise, the bit patterns of the common type are compared for equality.
     )
 
@@ -545,7 +572,7 @@ $(GNAME EqualExpression):
         x.re == y.re && x.im == y.im
         ---
 
-    $(H3 $(LNAME2 class_struct_equality, Class & Struct Equality))
+    $(H4 $(LNAME2 class_struct_equality, Class & Struct Equality))
 
     $(P For struct objects, equality means the result of the
         $(LINK2 https://dlang.org/spec/operatoroverloading.html#equals, `opEquals()` member function).
@@ -579,7 +606,7 @@ $(GNAME EqualExpression):
         operators are intended to compare the contents of the objects,
         however an appropriate $(D opEquals) override must be defined for this to work.
         The default $(D opEquals) provided by the root $(D Object) class is
-        equivalent to the $(D is) operator.
+        equivalent to the $(D is) operator (see below).
         Comparing against $(D null) is invalid, as $(D null) has no contents.
         Use the $(D is) and $(D !is) operators instead.)
 
@@ -616,8 +643,23 @@ $(GNAME IdentityExpression):
         bits in the operands being identical.
     )
 
-    $(P For static and dynamic arrays, identity is defined as referring
-        to the same array elements and the same number of elements.
+    $(P For static and dynamic arrays, identity of two arrays is given when
+    both arrays refer to the same memory location and contain the same number
+    of elements.
+    )
+
+    $(SPEC_RUNNABLE_EXAMPLE_RUN
+    ---
+    Object o;
+    assert(o is null);
+
+    auto a = [1, 2];
+    assert(a is a[0..$]);
+    assert(a !is a[0..1]);
+
+    auto b = [1, 2];
+    assert(a !is b);
+    ---
     )
 
     $(P For other operand types, identity is defined as being the same
@@ -627,7 +669,7 @@ $(GNAME IdentityExpression):
     $(P The identity operator $(D is) cannot be overloaded.
     )
 
-$(H2 $(LNAME2 relation_expressions, Relational Expressions))
+$(H3 $(LNAME2 relation_expressions, Relational Expressions))
 
 $(GRAMMAR
 $(GNAME RelExpression):
@@ -641,16 +683,16 @@ $(GNAME RelExpression):
         The result type of a relational expression is $(D bool).
     )
 
-$(H3 $(LNAME2 array_comparisons, Array comparisons))
+$(H3 $(LNAME2 array_comparisons, Array Comparisons))
 
-    $(P For static and dynamic arrays, the result of the relational
-        op is the result of the operator applied to the first non-equal
+    $(P For static and dynamic arrays, the result of a *CmpExpression*
+        is the result of the operator applied to the first non-equal
         element of the array. If two arrays compare equal, but are of
         different lengths, the shorter array compares as "less" than the
         longer array.
     )
 
-$(H3 $(LNAME2 integer_comparisons, Integer comparisons))
+$(H3 $(LNAME2 integer_comparisons, Integer Comparisons))
 
     $(P Integer comparisons happen when both operands are integral
         types.
@@ -669,16 +711,16 @@ $(H3 $(LNAME2 integer_comparisons, Integer comparisons))
     $(P It is an error to have one operand be signed and the other
         unsigned for a $(D <), $(D <)$(D =), $(D >) or
         $(D >)$(D =) expression.
-        Use casts to make both operands signed or both operands unsigned.
+        Use $(RELATIVE_LINK2 cast_integers, casts) to make both operands signed or both operands unsigned.
     )
 
-$(H3 $(LEGACY_LNAME2 floating_point_comparisons, floating-point-comparisons, Floating point comparisons))
+$(H3 $(LEGACY_LNAME2 floating_point_comparisons, floating-point-comparisons, Floating Point Comparisons))
 
     $(P If one or both operands are floating point, then a floating
         point comparison is performed.
     )
 
-    $(P A relational operator can have `NaN` operands.
+    $(P A *CmpExpression* can have `NaN` operands.
         If either or both operands is `NaN`, the floating point
         comparison operation returns as follows:)
 
@@ -692,11 +734,14 @@ $(H3 $(LEGACY_LNAME2 floating_point_comparisons, floating-point-comparisons, Flo
         $(TROW $(D !=),$(ARGS unordered, less, or greater), `true`)
         )
 
-$(H3 $(LEGACY_LNAME2 class_comparisons, class-comparisons, Class comparisons))
+    $(BEST_PRACTICE Although *IdentityExpression* can be used to check for `T.nan`,
+    there are other floating-point values for NaN produced at runtime.
+    Use $(REF isNaN, std,math,traits) to handle all of them.)
 
-    $(P For class objects, the relational
-        operators compare the
-        contents of the objects. Therefore, comparing against
+$(H3 $(LEGACY_LNAME2 class_comparisons, class-comparisons, Class Comparisons))
+
+    $(P For class objects, *EqualExpression* and *RelExpression* compare the
+        *contents* of the objects. Therefore, comparing against
         a $(CODE null) class reference is invalid, as $(CODE null) has no contents.)
 
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -710,12 +755,13 @@ $(H3 $(LEGACY_LNAME2 class_comparisons, class-comparisons, Class comparisons))
         )
 
     $(P For class objects, the result of `Object.opCmp()` forms the left
-        operand, and `0` forms the right operand. The result of the
-        relational expression `(o1 op o2)` is:)
+        operand, and `0` forms the right operand. The result of an
+        *EqualExpression* or *RelExpression* `(o1 op o2)` is:)
 
         ---
         (o1.opCmp(o2) op 0)
         ---
+
 
 $(H2 $(LNAME2 in_expressions, In Expressions))
 
@@ -779,13 +825,21 @@ $(GNAME ShiftExpression):
         $(LI $(D >)$(D >)$(D >) is an unsigned right shift.)
     )
 
-    $(P It's illegal to shift by the same or more bits than the size of the
-        quantity being shifted:)
+    $(IMPLEMENTATION_DEFINED
+    The result of a shift by a negative value or by the same or more bits
+    than the size of the quantity being shifted is undefined.
+    When the shift amount is known at compile time, doing this results in
+    a compile error.
 
         -------------
         int c;
-        auto x = c << 33;        // error
+
+        int s = -3;
+        auto y = c << s; // implementation defined value
+
+        auto x = c << 33;  // error, max shift count allowed is 31
         -------------
+    )
 
 $(H2 $(LNAME2 add_expressions, Add Expressions))
 
@@ -840,13 +894,16 @@ assert(a[2] == 4);
 )
 
     $(P $(GLINK IndexExpression) can also be used with a pointer and has
-    the same behaviour as adding an integer.)
+    the same behaviour as adding an integer, then dereferencing the result.)
 
     $(P If the second operand is a pointer, and the first is an integral type,
         and the operator is $(D +),
         the operands are reversed and the pointer arithmetic just described
         is applied.
     )
+
+    $(P Producing a pointer through pointer arithmetic is not allowed in
+        $(DDLINK spec/memory-safe-d, Memory-Safe-D-Spec, `@safe`) code.)
 
     $(P If both operands are pointers, and the operator is $(D +),
         then it is illegal.
@@ -867,6 +924,7 @@ ptrdiff_t d = &a[2] - a.ptr;
 assert(d == 2);
 ---
 )
+
 
 $(H2 $(LNAME2 cat_expressions, Cat Expressions))
 
@@ -955,7 +1013,7 @@ $(GNAME UnaryExpression):
 
 $(TABLE
     $(THEAD Operator, Description)
-    $(TROW `&`, Take memory address of an $(RELATIVE_LINK2 .define-lvalue, lvalue) - see $(DDSUBLINK spec/arrays, pointers, pointers))
+    $(TROW `&`, Take memory address of an $(RELATIVE_LINK2 .define-lvalue, lvalue) - see $(DDSUBLINK spec/type, pointers, pointers))
     $(TROW `++`, Increment before use - see $(RELATIVE_LINK2 order-of-evaluation, order of evaluation))
     $(TROW `--`, Decrement before use)
     $(TROW `*`, Dereference/indirection - typically for pointers)
@@ -963,6 +1021,9 @@ $(TABLE
     $(TROW `+`, Positive)
     $(TROW `!`, Logical NOT)
 )
+
+    $(P The usual $(INTEGER_PROMOTIONS) are performed prior to unary
+    `-` and `+` operations.)
 
 $(H3 $(LNAME2 complement_expressions, Complement Expressions))
 
@@ -973,74 +1034,9 @@ $(GNAME ComplementExpression):
 
     $(P $(I ComplementExpression)s work on integral types (except $(D bool)).
         All the bits in the value are complemented.
-    )
-
-    $(P $(B Note:) the usual $(INTEGER_PROMOTIONS) are not performed
+        The usual $(INTEGER_PROMOTIONS) are performed
         prior to the complement operation.
     )
-
-$(H3 $(LNAME2 new_expressions, New Expressions))
-
-$(GRAMMAR
-$(GNAME NewExpression):
-    $(D new) $(GLINK2 type, Type)
-    $(D new) $(GLINK2 type, Type) $(D [) $(GLINK AssignExpression) $(D ])
-    $(D new) $(GLINK2 type, Type) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
-    $(GLINK2 class, NewAnonClassExpression)
-
-$(GNAME ArgumentList):
-    $(GLINK AssignExpression)
-    $(GLINK AssignExpression) $(D ,)
-    $(GLINK AssignExpression) $(D ,) $(GSELF ArgumentList)
-)
-
-    $(P $(I NewExpression)s are used to allocate memory on the garbage
-        collected heap.
-    )
-
-    $(P If a $(I NewExpression) is used as an initializer for
-        a function local variable with $(D scope) storage class,
-        then the instance is allocated on the stack.
-    )
-
-$(H3 $(LNAME2 new_multidimensional, Multidimensional Arrays))
-
-    $(P To allocate multidimensional arrays, the declaration reads
-        in the same order as the prefix array declaration order.)
-
-        -------------
-        char[][] foo;   // dynamic array of strings
-        ...
-        foo = new char[][30]; // allocate array of 30 strings
-        -------------
-
-    $(P The above allocation can also be written as:)
-
-        -------------
-        foo = new char[][](30); // allocate array of 30 strings
-        -------------
-
-    $(P To allocate the nested arrays, multiple arguments can be used:)
-
-        ---------------
-        int[][][] bar;
-        ...
-        bar = new int[][][](5, 20, 30);
-        ---------------
-
-    The code above is equivalent to:
-
-        ----------
-        bar = new int[][][5];
-        foreach (ref a; bar)
-        {
-            a = new int[][20];
-            foreach (ref b; a)
-            {
-                b = new int[30];
-            }
-        }
-        -----------
 
 $(H3 $(LNAME2 delete_expressions, Delete Expressions))
 
@@ -1195,6 +1191,43 @@ $(H4 $(LNAME2 cast_static_array, Static Arrays))
             ---
         )
 
+$(H4 $(LNAME2 cast_integers, Integers))
+
+    $(P Casting an integer to a smaller integral will truncate the
+        value towards the least significant bits.
+        If the target type is signed and the most significant bit is set
+        after truncation, that bit will be lost from the value and
+        the sign bit will be set.)
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+        ---
+        uint a = 260;
+        auto b = cast(ubyte) a;
+        assert(b == 4); // truncated like 260 & 0xff
+
+        int c = 128;
+        assert(cast(byte)c == -128); // reinterpreted
+        ---
+        )
+
+    $(P Converting between signed and unsigned types will reinterpret the
+        value if the destination type cannot represent the source
+        value.)
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+        ---
+        short c = -1;
+        ushort d = c;
+        assert(d == ushort.max);
+        assert(uint(c) == uint.max);
+
+        ubyte e = 255;
+        byte f = e;
+        assert(f == -1); // reinterpreted
+        assert(short(e) == 255); // no change
+        ---
+        )
+
 $(H4 $(LNAME2 cast_floating, Floating Point))
 
     $(P Casting a floating point literal from one type to another
@@ -1304,7 +1337,7 @@ $(H2 $(LNAME2 throw_expression, Throw Expression))
 
 $(GRAMMAR
 $(GNAME ThrowExpression):
-    $(D throw) $(GLINK AssignExpression) $(D ;)
+    $(D throw) $(GLINK AssignExpression)
 )
 
 $(P
@@ -1331,6 +1364,7 @@ $(P
     }
     ---
 
+    $(P The type of a *ThrowExpression* is $(DDSUBLINK spec/type, noreturn, `noreturn`).)
 
 $(BEST_PRACTICE Use $(DDSUBLINK spec/expression, assert_expressions, Assert Expressions)
 rather than $(LINK2 $(ROOT_DIR)library/object#.Error, Error) to report program bugs
@@ -1367,8 +1401,17 @@ $(GNAME PostfixExpression):
 
 $(TABLE
     $(THEAD Operator, Description)
+    $(TROW `.`,
+        Either:
+        * Access a $(DDLINK spec/property, Properties, property) of a type or expression.
+        * Access a member of a module, package, aggregate type or instance, enum
+          or template instance.
+        * Call a free function using $(DDSUBLINK spec/function, pseudo-member, UFCS).
+    )
     $(TROW `++`, Increment after use - see $(RELATIVE_LINK2 order-of-evaluation, order of evaluation))
     $(TROW `--`, Decrement after use)
+    $(TROW *IndexExpression*, Select a single element)
+    $(TROW *SliceExpression*, Select a series of elements)
 )
 
 $(H2 $(LNAME2 index_expressions, Index Expressions))
@@ -1401,6 +1444,10 @@ $(GNAME IndexExpression):
         A new declaration scope is created for the evaluation of the
         $(I ArgumentList) and `$` appears in that scope only.
     )
+
+    $(P The index operator can be $(DDSUBLINK spec/operatoroverloading, array, overloaded).
+        Using multiple indices in *ArgumentList* is only supported for operator
+        overloading.)
 
 $(H2 $(LNAME2 slice_expressions, Slice Expressions))
 
@@ -1452,7 +1499,12 @@ $(GNAME Slice):
     )
 
     $(P If the $(D [ ]) form is used, the slice is of all the elements in $(I PostfixExpression).
+        The expression cannot be a pointer.
     )
+
+    $(P The slice operator can be $(DDSUBLINK spec/operatoroverloading, slice, overloaded).
+        Using more than one *Slice* is only supported for operator
+        overloading.)
 
     $(P A $(I SliceExpression) is not a modifiable lvalue.)
 
@@ -1577,9 +1629,10 @@ $(H3 $(LNAME2 this, this))
 
     $(P Within a non-static member function, $(D this) resolves to
         a reference to the object for which the function was called.
-        If the object is an instance of a struct, $(D this) will
-        be a pointer to that instance.
-        If a member function is called with an explicit reference
+    )
+    $(P `typeof(this)` is valid anywhere inside an aggregate type
+        definition.
+        If a class member function is called with an explicit reference
         to $(D typeof(this)), a non-virtual call is made:)
 
         -------------
@@ -1605,14 +1658,14 @@ $(H3 $(LNAME2 this, this))
         }
         -------------
 
-    $(P Assignment to $(D this) is not allowed.)
+    $(P Assignment to $(D this) is not allowed for classes.)
 
 $(H3 $(LNAME2 super, super))
 
     $(P $(D super) is identical to $(D this), except that it is
         cast to $(D this)'s base class.
         It is an error if there is no base class.
-        It is an error to use $(D super) within a struct member function.
+        It is an error to use the $(D super) reference outside a non-static class member function.
         (Only class $(D Object) has no base class.)
         If a member function is called with an explicit reference
         to $(D super), a non-virtual call is made.
@@ -1763,7 +1816,7 @@ $(GNAME ArrayMemberInitialization):
         ---
         )
 
-$(H3 $(LNAME2 cast_array_literal, Casting))
+$(H4 $(LNAME2 cast_array_literal, Casting))
 
     $(P When array literals are cast to another array type, each
         element of the array is cast to the new element type.
@@ -1841,10 +1894,10 @@ $(H3 $(LNAME2 function_literals, Function Literals))
 
 $(GRAMMAR
 $(GNAME FunctionLiteral):
-    $(D function) $(D ref)$(OPT) $(GLINK2 type, Type)$(OPT) $(GLINK ParameterWithAttributes) $(OPT) $(GLINK FunctionLiteralBody2)
-    $(D delegate) $(D ref)$(OPT) $(GLINK2 type, Type)$(OPT) $(GLINK ParameterWithMemberAttributes) $(OPT) $(GLINK FunctionLiteralBody2)
+    $(D function) $(D ref)$(OPT) $(GLINK2 type, Type)$(OPT) $(GLINK ParameterWithAttributes)$(OPT) $(GLINK FunctionLiteralBody2)
+    $(D delegate) $(D ref)$(OPT) $(GLINK2 type, Type)$(OPT) $(GLINK ParameterWithMemberAttributes)$(OPT) $(GLINK FunctionLiteralBody2)
     $(D ref)$(OPT) $(GLINK ParameterWithMemberAttributes) $(GLINK FunctionLiteralBody2)
-    $(GLINK2 function, FunctionLiteralBody)
+    $(GLINK2 statement, BlockStatement)
     $(IDENTIFIER) $(D =>) $(GLINK AssignExpression)
 
 $(GNAME ParameterWithAttributes):
@@ -1855,18 +1908,18 @@ $(GNAME ParameterWithMemberAttributes):
 
 $(GNAME FunctionLiteralBody2):
     $(D =>) $(GLINK AssignExpression)
-    $(GLINK2 function, FunctionLiteralBody)
+    $(GLINK2 function, SpecifiedFunctionBody)
 )
 
     $(P $(I FunctionLiteral)s (also known as $(LNAME2 lambdas, $(I Lambdas))) enable embedding anonymous functions
         and anonymous delegates directly into expressions.
-        $(I Type) is the return type of the function or delegate,
-        if omitted it is inferred from any $(I ReturnStatement)s
-        in the $(I FunctionLiteralBody).
-        $(GLINK ParameterWithAttributes) or $(GLINK ParameterWithMemberAttributes)
+        $(I Type) is the return type of the function or delegate -
+        if omitted it is $(RELATIVE_LINK2 lambda-return-type, inferred).
+        $(I ParameterWithAttributes) or $(I ParameterWithMemberAttributes)
         can be used to specify the parameters for the function. If these are
         omitted, the function defaults to the empty parameter list $(D ( )).
-        The type of a function literal is a delegate or a pointer to function.
+        The type of a function literal is a
+        $(DDSUBLINK spec/function, closures, delegate or a pointer to function).
     )
 
     $(P For example:)
@@ -1889,7 +1942,7 @@ $(GNAME FunctionLiteralBody2):
 
         void test()
         {
-            fp = function int(char c) { return 6;} ;
+            fp = function int(char c) { return 6; };
         }
         -------------
 
@@ -1923,110 +1976,176 @@ $(GNAME FunctionLiteralBody2):
 
     $(P The use of `ref` declares that the return value is returned by reference:)
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
         void main()
         {
             int x;
-            auto dg = delegate ref int() { return x; }
+            auto dg = delegate ref int() { return x; };
             x = 3;
-            assert(fp() == 3);
+            assert(dg() == 3);
         }
         ---
-
-    $(P If $(D function) or $(D delegate) is omitted,
-        it is inferred to be `delegate` if accessing
-        variables in enclosing functions, otherwise `function` is inferred.
         )
 
+    $(NOTE When comparing function literals with $(DDSUBLINK spec/function, nested, nested functions),
+        the $(D function) form is analogous to static
+        or non-nested functions, and the $(D delegate) form is
+        analogous to non-static nested functions. I.e.
+        a delegate literal can access non-static local variables in an enclosing
+        function, a function literal cannot.
+    )
+
+$(H4 $(LNAME2 lambda-type-inference, Delegate Inference))
+
+    $(P If a literal omits $(D function) or $(D delegate) and there's no
+        expected type from the context, then
+        it is inferred to be a delegate if it accesses a
+        variable in an enclosing function, otherwise it is a function pointer.
+        )
+
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         -------------
-        int abc(int delegate(int i));
-        int def(int function(int s));
+        void test()
+        {
+            int b = 3;
+
+            auto fp = (uint c) { return c * 2; }; // inferred as function pointer
+            auto dg = (int c) { return 6 + b; }; // inferred as delegate
+
+            static assert(!is(typeof(fp) == delegate));
+            static assert(is(typeof(dg) == delegate));
+        }
+        -------------
+        )
+    $(P If a delegate is expected, the literal will be inferred as a delegate
+        even if it accesses no variables from an enclosing function:)
+
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        -------------
+        void abc(int delegate(int i)) {}
+        void def(uint function(uint s)) {}
 
         void test()
         {
             int b = 3;
 
-            abc( int(int c) { return 6 + b; } );  // inferred to delegate
-            def( uint(uint c) { return c * 2; } ); // inferred to function
-          //def( int(int c) { return c * b; } );  // error!
-            // Because the FunctionLiteralBody accesses b, then the function literal type
-            // is inferred to delegate. But def cannot accept a delegate argument.
+            abc( (int c) { return 6 + b; } );  // inferred as delegate
+            abc( (int c) { return c * 2; } );  // inferred as delegate
+
+            def( (uint c) { return c * 2; } ); // inferred as function
+            //def( (uint c) { return c * b; } );  // error!
+            // Because the FunctionLiteral accesses b, its type
+            // is inferred as delegate. But def cannot accept a delegate argument.
         }
         -------------
+        )
+
+$(H4 $(LNAME2 lambda-parameter-inference, Parameter Type Inference))
 
     $(P If the type of a function literal can be uniquely determined from its context,
-        the parameter type inference is possible.)
+        parameter type inference is possible.)
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         -------------
         void foo(int function(int) fp);
 
         void test()
         {
             int function(int) fp = (n) { return n * 2; };
-            // The type of parameter n is inferred to int.
+            // The type of parameter n is inferred as int.
 
             foo((n) { return n * 2; });
-            // The type of parameter n is inferred to int.
+            // The type of parameter n is inferred as int.
         }
         -------------
-
+        )
         ---
-        auto fp1 = function (i) { return 1; } // error, cannot infer type of `i`
+        auto fp = (i) { return 1; }; // error, cannot infer type of `i`
         ---
 
-    $(P If the function literal is assigned to an alias, the inference
+    $(P If a function literal is
+        $(DDSUBLINK spec/declaration, alias, aliased), the inference
         of the parameter types is done when the types are needed, as
-        the function literal becomes a template.)
+        the function literal becomes a
+        $(DDSUBLINK spec/template, function-templates, template).)
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
-        alias fp3 = function (i) { return 1; };   // ok, infer type of `i` when used
-        int j = fp3(4);       // `i` is inferred as `int` here
-        double d = fp3(10.3); // `i` is inferred as `double` here
+        alias fpt = (i) { return i; }; // ok, infer type of `i` when used
+        //auto fpt(T)(T i) { return i; } // equivalent
+
+        auto v = fpt(4);    // `i` is inferred as int
+        auto d = fpt(10.3); // `i` is inferred as double
+
+        alias fp = fpt!float;
+        auto f = fp(0); // f is a float
         ---
+        )
+
+$(H4 $(LNAME2 lambda-return-type, Return Type Inference))
+
+    $(P The return type of the $(GLINK FunctionLiteral) can be
+        inferred from either the *AssignExpression*, or
+        any $(GLINK2 statement, ReturnStatement)s in the $(I BlockStatement).
+        If there is a different expected type from the context, and the
+        initial inferred return type implicitly converts to the expected type,
+        then the return type is inferred as the expected type.)
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    auto fi = (int i) { return i; };
+    static assert(is(typeof(fi(5)) == int));
+
+    long function(int) fl = (int i) { return i; };
+    static assert(is(typeof(fl(5)) == long));
+    ---
+    )
+
+$(H4 $(LNAME2 lambda-short-syntax, Short Syntax))
 
     $(P Anonymous delegates can behave like arbitrary statement literals.
         For example, here an arbitrary statement is executed by a loop:)
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         -------------
-        double test()
+        void loop(int n, void delegate() statement)
         {
-            double d = 7.6;
-            float f = 2.3;
-
-            void loop(int k, int j, void delegate() statement)
+            foreach (_; 0 .. n)
             {
-                foreach (i; k .. j)
-                {
-                    statement();
-                }
+                statement();
             }
-
-            loop(5, 100, { d += 1; });
-            loop(3, 10,  { f += 3; });
-
-            return d + f;
         }
-        -------------
-
-    $(P The syntax $(D => AssignExpression) is equivalent to $(D { return AssignExpression; }).)
-
-        ---
-        import std.stdio;
 
         void main()
         {
+            int n = 0;
+
+            loop(5, { n += 1; });
+            assert(n == 5);
+        }
+        -------------
+        )
+
+    $(P The syntax $(D => AssignExpression) is equivalent to $(D { return AssignExpression; }).)
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+        ---
+        void main()
+        {
             auto i = 3;
-            auto twice  = function (int x) => x * 2;
-            auto square = delegate (int x) => x * x;
+            auto twice = function (int x) => x * 2;
+            assert(twice(i) == 6);
+
+            auto square = delegate () => i * i;
+            assert(square() == 9);
 
             auto n = 5;
             auto mul_n = (int x) => x * n;
-
-            writeln(twice(i));   // prints 6
-            writeln(square(i));  // prints 9
-            writeln(mul_n(i));   // prints 15
+            assert(mul_n(i) == 15);
         }
         ---
+        )
 
     $(P The syntax $(D Identifier => AssignExpression) is equivalent to $(D (Identifier) { return AssignExpression; }).)
 
@@ -2056,13 +2175,6 @@ $(GNAME FunctionLiteralBody2):
         if the semicolons were accidentally omitted.
         )
 
-    $(NOTE When comparing function literals with $(DDSUBLINK spec/function, nested, nested functions),
-        the $(D function) form is analogous to static
-        or non-nested functions, and the $(D delegate) form is
-        analogous to non-static nested functions. I.e.
-        a delegate literal can access non-static local variables in an enclosing
-        function, a function literal cannot.
-    )
 
 $(H3 $(LNAME2 uniform_construction_syntax, Uniform construction syntax for built-in scalar types))
 
@@ -2082,6 +2194,8 @@ $(H3 $(LNAME2 uniform_construction_syntax, Uniform construction syntax for built
         auto a = ushort();  // same as: ushort.init
         auto b = wchar();   // same as: wchar.init
         ---
+
+    $(P See also: $(DDSUBLINK spec/type, usual-arithmetic-conversions, Usual Arithmetic Conversions).)
 
 
 $(H3 $(LNAME2 assert_expressions, Assert Expressions))
@@ -2224,6 +2338,73 @@ $(GNAME ImportExpression):
         }
         ---
 
+$(H3 $(LNAME2 new_expressions, New Expressions))
+
+$(GRAMMAR
+$(GNAME NewExpression):
+    $(D new) $(GLINK2 type, Type)
+    $(D new) $(GLINK2 type, Type) $(D [) $(GLINK AssignExpression) $(D ])
+    $(D new) $(GLINK2 type, Type) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
+    $(GLINK2 class, NewAnonClassExpression)
+
+$(GNAME ArgumentList):
+    $(GLINK AssignExpression)
+    $(GLINK AssignExpression) $(D ,)
+    $(GLINK AssignExpression) $(D ,) $(GSELF ArgumentList)
+)
+
+    $(P $(I NewExpression)s are used to allocate memory on the
+        $(DDLINK spec/garbage, Garbage Collection, garbage
+        collected) heap.
+    )
+
+    $(P If a $(I NewExpression) is used as an initializer for
+        a function local variable with $(DDSUBLINK spec/attribute, scope, `scope`) storage class,
+        then the instance is allocated on the stack.
+    )
+
+    $(P `new` can also be used to allocate a
+        $(DDSUBLINK spec/class, nested-explicit, nested class).)
+
+$(H4 $(LNAME2 new_multidimensional, Multidimensional Arrays))
+
+    $(P To allocate multidimensional arrays, the declaration reads
+        in the same order as the prefix array declaration order.)
+
+        -------------
+        char[][] foo;   // dynamic array of strings
+        ...
+        foo = new char[][30]; // allocate array of 30 strings
+        -------------
+
+    $(P The above allocation can also be written as:)
+
+        -------------
+        foo = new char[][](30); // allocate array of 30 strings
+        -------------
+
+    $(P To allocate the nested arrays, multiple arguments can be used:)
+
+        ---------------
+        int[][][] bar;
+        ...
+        bar = new int[][][](5, 20, 30);
+        ---------------
+
+    The code above is equivalent to:
+
+        ----------
+        bar = new int[][][5];
+        foreach (ref a; bar)
+        {
+            a = new int[][20];
+            foreach (ref b; a)
+            {
+                b = new int[30];
+            }
+        }
+        -----------
+
 $(H3 $(LNAME2 typeid_expressions, Typeid Expressions))
 
 $(GRAMMAR
@@ -2246,12 +2427,15 @@ $(GNAME TypeidExpression):
         of the dynamic type (i.e. the most derived type).
         The $(I Expression) is always executed.)
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         class A { }
         class B : A { }
 
         void main()
         {
+            import std.stdio;
+
             writeln(typeid(int));        // int
             uint i;
             writeln(typeid(i++));        // uint
@@ -2261,6 +2445,7 @@ $(GNAME TypeidExpression):
             writeln(typeid(typeof(a)));  // A
         }
         ---
+        )
 
 $(H3 $(LNAME2 is_expression, IsExpression))
 
@@ -2320,6 +2505,11 @@ $(GNAME TypeSpecialization):
 
     $(P $(I TypeSpecialization) is the type that $(I Type) is being
         compared against.
+    )
+
+    $(P $(I IsExpression)s may be used in conjunction with $(D typeof) to check
+    whether an expression type checks correctly. For example, $(D is(typeof(foo)))
+    will return $(D true) if $(D foo) has a valid type.
     )
 
 $(H4 $(LNAME2 basic-forms, Basic Forms))
@@ -2395,6 +2585,7 @@ void foo()
                 $(D delegate)
                 $(D const)
                 $(D immutable)
+                $(D inout)
                 $(D shared)
                 $(D module)
                 $(D package)
@@ -2463,6 +2654,7 @@ void foo()
         dependent on $(I Identifier), the deduced type.
         )
 
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     alias Bar = int;
 
@@ -2471,17 +2663,20 @@ void foo()
     else
         alias S = long;
 
-    writeln(typeid(S));  // prints "int"
+    static assert(is(S == int));
     ---
+    )
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     alias Abc = long*;
 
     static if (is(Abc U : U*))
     {
         U u;
-        writeln(typeid(typeof(u)));  // prints "long"
     }
+    static assert(is(U == long));
     ---
+    )
 
         $(P
         The way the type of $(I Identifier) is determined is analogous
@@ -2499,14 +2694,16 @@ void foo()
         dependent on $(I Identifier), the deduced type.
         )
 
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     alias Bar = short;
 
     static if (is(Bar T == int))   // not satisfied, short is not int
         alias S = T;
 
-    alias U = T;                   // error, T is not defined
+    static assert(!is(T)); // T is not defined
     ---
+    )
 
         $(P
         If $(I TypeSpecialization) is one of
@@ -2520,7 +2717,10 @@ void foo()
                 $(D delegate)
                 $(D const)
                 $(D immutable)
+                $(D inout)
                 $(D shared)
+                $(D module)
+                $(D package)
 
         then the condition is satisfied if $(I Type) is one of those.
         *TypeSpecialization* can also match the following keywords:
@@ -2556,25 +2756,23 @@ void foo()
         $(TROW $(CODE __parameters), $(ARGS the parameter sequence of a function, delegate, or function pointer.
          This includes the parameter types, names, and default values.))
         $(TROW $(D const), $(I Type))
-        $(TROW
-        $(D immutable),
-        $(I Type)
-        )
-        $(TROW
-        $(CODE shared),
-        $(I Type)
+        $(TROW $(D immutable), $(I Type))
+        $(TROW $(D inout), $(I Type))
+        $(TROW $(D shared), $(I Type))
+        $(TROW $(D module), the module)
+        $(TROW $(D package), the package)
         )
 
-        )
-
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     enum E : byte { Emember }
 
     static if (is(E V == enum))    // satisfied, E is an enum
         V v;                       // v is declared to be a byte
 
-    pragma(msg, V); // byte
+    static assert(is(V == byte));
     ---
+    )
 
 $(H4 $(LNAME2 is-parameter-list, Parameter List Forms))
 
@@ -2594,21 +2792,21 @@ $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D ==) $(I TypeSpecialization) $(D 
 
 $(P $(B Example:) Matching a Template Instantiation))
 
-$(SPEC_RUNNABLE_EXAMPLE_RUN
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     struct Tuple(T...)
     {
         // ...
     }
-    alias Tup = Tuple!(int, string);
+    alias Tup2 = Tuple!(int, string);
 
-    static if (is(Tup : Template!Args, alias Template, Args...))
+    static if (is(Tup2 : Template!Args, alias Template, Args...))
     {
-        writeln(__traits(isSame, Template, Tuple)); // true
-        writeln(is(Template!(int, string) == Tup));  // true, same struct
-        writeln(typeid(Args[0]));  // int
-        writeln(typeid(Args[1]));  // immutable(char)[]
+        static assert(__traits(isSame, Template, Tuple));
+        static assert(is(Template!(int, string) == Tup2)); // same struct
     }
+    static assert(is(Args[0] == int));
+    static assert(is(Args[1] == string));
     ---
 )
 
@@ -2631,13 +2829,13 @@ $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 
 $(P $(B Example:) Matching a Static Array)
 
-$(SPEC_RUNNABLE_EXAMPLE_RUN
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     static if (is(int[10] W : W[len], int len))
     {
-        writeln(typeid(W));  // int
-        writeln(len);        // 10
+        static assert(len == 10);
     }
+    static assert(is(W == int));
 
     // no match, len should be 10
     static assert(!is(int[10] X : X[len], int len : 5));
@@ -2645,7 +2843,7 @@ $(SPEC_RUNNABLE_EXAMPLE_RUN
 )
 
 
-$(H2 $(LNAME2 specialkeywords, Special Keywords))
+$(H3 $(LNAME2 specialkeywords, Special Keywords))
 
 $(GRAMMAR
 $(GNAME SpecialKeyword):
@@ -2677,6 +2875,7 @@ $(GNAME SpecialKeyword):
 
     $(P Example:)
 
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     module test;
     import std.stdio;
@@ -2697,6 +2896,7 @@ $(GNAME SpecialKeyword):
         return 0;
     }
     ---
+    )
 
     $(P Assuming the file was at /example/test.d, this will output:)
 

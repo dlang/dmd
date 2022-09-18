@@ -227,6 +227,7 @@ $(GNAME AlignAttribute):
         sets it to the default, which matches the default member alignment
         of the companion C compiler.)
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 --------
 struct S
 {
@@ -236,18 +237,20 @@ struct S
     long c;   // placed at offset 8
 }
 static assert(S.alignof == 8);
+static assert(S.c.offsetof == 8);
 static assert(S.sizeof == 16);
 --------
-
-        $(P $(I AssignExpression) specifies the alignment
+)
+        $(P The $(I AssignExpression) specifies the alignment
         which matches the behavior of the companion C compiler when non-default
-        alignments are used. It must be a positive power of 2.
+        alignments are used. It must be a non-negative power of 2.
         )
 
         $(P A value of 1 means that no alignment is done;
         fields are packed together.
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 --------
 struct S
 {
@@ -257,13 +260,15 @@ struct S
     long c;   // placed at offset 5
 }
 static assert(S.alignof == 1);
+static assert(S.c.offsetof == 5);
 static assert(S.sizeof == 13);
 --------
-
+)
         $(P The natural alignment of an aggregate is the maximum alignment of its
         fields. It can be overridden by setting the alignment outside of the
         aggregate.)
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 --------
 align (2) struct S
 {
@@ -273,12 +278,14 @@ align (2) struct S
     long c;   // placed at offset 5
 }
 static assert(S.alignof == 2);
+static assert(S.c.offsetof == 5);
 static assert(S.sizeof == 14);
 --------
-
+)
         $(P Setting the alignment of a field aligns it to that power of 2, regardless
         of the size of the field.)
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 --------
 struct S
 {
@@ -287,9 +294,19 @@ struct S
     align (16) short c; // placed at offset 16
 }
 static assert(S.alignof == 16);
+static assert(S.c.offsetof == 16);
 static assert(S.sizeof == 32);
 --------
+)
+        $(P The $(I AlignAttribute) is reset to the default when
+        entering a function scope or a non-anonymous struct, union, class, and restored
+        when exiting that scope.
+        It is not inherited from a base class.
+        )
 
+        $(P See also: $(DDSUBLINK spec/struct, struct_layout, Struct Layout).)
+
+$(H3 $(LNAME2 align_gc, GC Compatibility))
 
         $(P Do not align references or pointers that were allocated
         using $(GLINK2 expression, NewExpression) on boundaries that are not
@@ -298,15 +315,26 @@ static assert(S.sizeof == 32);
         byte boundaries.
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+---
+struct S
+{
+  align(1):
+    byte b;
+    int* p;
+}
+
+static assert(S.p.offsetof == 1);
+
+@safe void main()
+{
+    S s;
+    s.p = new int; // error: can't modify misaligned pointer in @safe code
+}
+---
+)
         $(UNDEFINED_BEHAVIOR If any pointers and references to GC
         allocated objects are not aligned on `size_t` byte boundaries.)
-
-        $(P The $(I AlignAttribute) is reset to the default when
-        entering a function scope or a non-anonymous struct, union, class, and restored
-        when exiting that scope.
-        It is not inherited from a base class.
-        )
-
 
 
 $(H2 $(LNAME2 deprecated, $(D deprecated) Attribute))
@@ -516,11 +544,11 @@ runtime error.)
 void main() { foo(); /* error, foo is disabled */ }
 ---
 
-        $(P $(DDSUBLINK spec/struct, Struct-Constructor, Disabling struct no-arg constructor)
-        disallows default construction of the struct.
+        $(P $(DDSUBLINK spec/struct, disable_default_construction, `@disable this();`)
+        inside a struct disallows default construction.
         )
 
-        $(P $(DDSUBLINK spec/struct, StructPostblit, Disabling struct postblit)
+        $(P $(DDSUBLINK spec/struct, disable-copy, Disabling a struct copy constructor)
         makes the struct not copyable.
         )
 
@@ -558,38 +586,52 @@ $(H2 $(LNAME2 override, $(D override) Attribute))
 
 $(H2 $(LNAME2 static, $(D static) Attribute))
 
-        $(P The $(D static) attribute applies to functions and data.
-        It means that the declaration does not apply to a particular
+        $(P The $(D static) attribute applies to types, functions and data.
+        $(D static) is ignored when applied to other declarations.)
+
+        $(P Inside an aggregate type, a `static`
+        declaration does not apply to a particular
         instance of an object, but to the type of the object. In
         other words, it means there is no $(D this) reference.
-        $(D static) is ignored when applied to other declarations.
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------------
 class Foo
 {
-    static int bar() { return 6; }
+    static int x;
+    static int bar() { return x; }
     int foobar() { return 7; }
 }
 
-...
+Foo.x = 6; // no instance needed
+assert(Foo.bar() == 6);
+//Foo.foobar(); // error, no instance of Foo
 
 Foo f = new Foo;
-Foo.bar();      // produces 6
-Foo.foobar();   // error, no instance of Foo
-f.bar();        // produces 6;
-f.foobar();     // produces 7;
+assert(f.bar() == 6);
+assert(f.foobar() == 7);
 ---------------
+)
 
 $(P
-        Static functions are never virtual.
+        Static methods are never $(DDSUBLINK spec/function, virtual-functions, virtual).
 )
 $(P
         Static data has one instance per thread, not one per object.
 )
+
+$(P A static $(DDSUBLINK spec/function, nested, nested function)
+or $(DDSUBLINK spec/struct, nested, type) cannot
+access variables in the parent scope.)
+
+$(P Inside a function, a $(DDSUBLINK spec/function, local-static-variables,
+static local variable) persists after the function returns.)
+
 $(P
         Static does not have the additional C meaning of being local
-        to a file. Use the $(D private) attribute in D to achieve that.
+        to a file. Use the $(RELATIVE_LINK2 VisibilityAttribute, `private`)
+        attribute in D to achieve that.
         For example:
 )
 
@@ -617,56 +659,195 @@ auto i = 6.8;   // declare i as a double
 $(H2 $(LNAME2 scope, $(D scope) Attribute))
 
 $(P
-        The $(D scope) attribute is used for local variables and implements the
-        RAII (Resource Acquisition Is Initialization) protocol.
+        The `scope` attribute signifies a variable's pointer values will not escape the scope that the variable is declared in.
+)
+
+$(P
+        If the variable has a type that does not contain any indirections, the `scope` attribute is ignored.
+)
+
+$(P
+        When applied to a global variable, `scope` is also ignored, since there is no scope larger than global scope that pointers could escape to.
+)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+scope int* x; // scope ignored, global variable
+
+void main()
+{
+    static int* x;  // scope ignored, global variable
+    scope float y;  // scope ignored, no indirections
+    scope int[2] z; // scope ignored, static array is value type
+    scope int[] w;  // scope dynamic array
+}
+---
+)
+
+$(P
+        When applied to a local variable with a type that has indirections,
+        its value may not be assigned to a variable with longer lifetime:
+)
+        $(UL
+            $(LI Variables outside the $(DDSUBLINK spec/statement, scope-statement, Scope Statement) that the variable is declared in)
+            $(LI Variables declared before the `scope` variable$(COMMA) since local variables are destructed in the reverse order that they are declared in)
+            $(LI `__gshared` or `static` variables)
+        )
+
+$(P
+        Other operations implicitly assigning them to variables with longer lifetime are also disallowed:
+)
+        $(UL
+            $(LI Returning a `scope` variable from a function)
+            $(LI Assigning a `scope` variable to a non-scope parameter by calling a function)
+            $(LI Putting a `scope` variable in an array literal)
+        )
+$(P
+        The `scope` attribute is part of the variable declaration, not of the type, and it only applies to the first level of indirection.
+        For example, it is impossible to declare a variable as a dynamic array of scope pointers, because `scope` only applies to the `.ptr`
+        of the array itself, not its elements. `scope` affects various types as follows:
+)
+
+        $(TABLE_2COLS ,
+        $(THEAD Type of local variable, What `scope` applies to)
+
+        $(TROW Any $(DDSUBLINK spec/type, basic-data-types, Basic Data Type), nothing)
+        $(TROW $(DDSUBLINK spec/type, pointers, Pointer) `T*`, the pointer value)
+        $(TROW $(DDSUBLINK spec/arrays, dynamic-arrays, Dynamic Array) `T[]`, the `.ptr` to the elements)
+        $(TROW $(DDSUBLINK spec/arrays, static-arrays, Static Array) `T[n]`, each element `T`)
+        $(TROW $(GLINK2 hash-map, Associative Array) `K[V]`, the pointer to the implementation defined structure)
+        $(TROW `struct` or `union`, each of its member variables)
+        $(TROW `function` pointer, the pointer value)
+        $(TROW $(DDSUBLINK spec/function, closures, delegate), both the `.funcptr` and `.ptr` (closure context) pointer values)
+        $(TROW `class` or `interface`, the class reference)
+        $(TROW $(GLINK2 enum, enum), the base type)
+        )
+
+---
+struct S
+{
+    string str; // note: string = immutable(char)[]
+    string* strPtr;
+}
+
+string escape(scope S s, scope S* sPtr, scope string[2] sarray, scope string[] darray)
+{
+    return s.str;        // invalid, scope applies to struct members
+    return *s.strPtr;    // valid, scope struct member is dereferenced
+    return sPtr.str;     // valid, struct pointer is dereferenced
+    return *sPtr.strPtr; // valid, two pointers are dereferenced
+    return sarray[0];    // invalid, scope applies to static array elements
+    return sarray[1];    // invalid, ditto
+    return darray[0];    // valid, scope applies to array pointer, not elements
+}
+---
+
+$(P
+    A "`scope` value" is the value of a `scope` variable, or a generated value pointing to stack allocated memory.
+    Such values are generated by $(DDSUBLINK spec/arrays, slicing, slicing) a static array
+    or creating $(DDSUBLINK spec/type, pointers, a pointer)
+    to a variable that is (or may be) allocated on the stack:
+)
+    $(UL
+        $(LI A function parameter)
+        $(LI A local variable)
+        $(LI A struct member accessed through the implicit `this` parameter)
+        $(LI The return value of a $(DDSUBLINK spec/function, ref-functions, Ref Function))
+    )
+
+$(P
+    The variadic parameter from $(DDSUBLINK spec/function, typesafe_variadic_functions, Typesafe Variadic Functions) is also a scope value,
+    since the arguments are passed on the stack.
+)
+
+$(P
+    When a local variable is assigned a `scope` value, it is inferred `scope`, even when the variable has an explicit type and does not use the `auto` keyword.
+)
+
+---
+@safe:
+ref int[2] identity(return ref int[2] x) {return x;}
+
+int* escape(int[2] y, scope int* z)
+{
+    int x;
+
+    auto  xPtr  = &x;            // inferred `scope int*`
+    int[] yArr  = identity(y)[]; // inferred `scope int[]`
+    int*  zCopy = z;             // inferred `scope int*`
+
+    return zCopy; // error
+}
+
+void variadic(int[] a...)
+{
+    int[] x = a; // inferred `scope int[]`
+}
+
+struct S
+{
+    int x;
+
+    // this method may be called on a stack-allocated instance of S
+    void f()
+    {
+        int* p = &x; // inferred `scope int* p`
+        int* q = &this.x; // equivalent
+    }
+}
+---
+
+$(P
+    $(DDSUBLINK spec/function, scope-parameters, Scope Parameters) are treated the same as scope local variables,
+    except that returning them is allowed when the function has $(DDSUBLINK spec/function, function-attribute-inference, Function Attribute Inference).
+    In that case, they are inferred as $(DDSUBLINK spec/function, return-scope-parameters, Return Scope Parameters).
+)
+
+$(H3 $(LNAME2 scope-class-var, $(D scope) variables with `class` type))
+$(P
+        When used on variables with a `class` type, `scope` signifies the RAII
+        (Resource Acquisition Is Initialization) protocol.
         This means that the destructor for an object is automatically called when the
         reference to it goes out of scope. The destructor is called even
         if the scope is exited via a thrown exception, thus $(D scope)
         is used to guarantee cleanup.
 )
 $(P
-        If there is more than one $(D scope) variable going out of scope
+        When a class is constructed with `new` and assigned to a local `scope` variable,
+        it may be allocated on the stack and permitted in a `@nogc` context.
+)
+$(P
+        If there is more than one `scope` class variable going out of scope
         at the same point, then the destructors are called in the reverse
         order that the variables were constructed.
 )
 $(P
-        $(D scope) cannot be applied to globals, statics, data members, ref
-        or out parameters. Arrays of $(D scope)s are not allowed, and $(D scope)
-        function return values are not allowed. Assignment to a $(D scope),
-        other than initialization, is not allowed.
-        $(D Rationale:) These restrictions may get relaxed in the future
-        if a compelling reason to appears.
+        Assignment to a $(D scope) variable with class type,
+        other than initialization, is not allowed, because that would complicate
+        proper destruction of the variable.
 )
+
+---
+class C {}
+
+void main() @nogc
+{
+    {
+        scope c0 = new C(); // allocated on the stack
+        scope c1 = new C();
+
+        c1 = c0; // not allowed
+
+        // destructor of `c1` and `c0` are called here in that order
+    }
+}
+---
 
 $(H2 $(LNAME2 abstract, $(D abstract) Attribute))
 
 $(P
-        An abstract member function must be overridden by a derived class.
-        Only virtual member functions may be declared abstract; non-virtual
-        member functions and free-standing functions cannot be declared
-        abstract.
-)
-
-$(P
-        Classes become abstract if any of its virtual member functions
-        are declared abstract or if they are defined within an
-        abstract attribute.
-        Note that an abstract class may also contain non-virtual member functions.
-)
-
-$(P
-        Classes defined within an abstract attribute or with abstract member
-        functions cannot be instantiated directly.
-        They can only be instantiated as a base class of
-        another, non-abstract, class.
-)
-
-$(P
-        Member functions declared as abstract can still have function
-        bodies. This is so that even though they must be overridden,
-        they can still provide $(SINGLEQUOTE base class functionality),
-        e.g. through $(D super.foo()) in a derived class.
-        Note that the class is still abstract and cannot be instantiated directly.
+        An $(DDSUBLINK spec/class, abstract, abstract class) must be overridden by a derived class.
+        Declaring an abstract member function makes the class abstract.
 )
 
 $(H2 $(LNAME2 final, `final` Attribute))
@@ -692,7 +873,6 @@ $(H2 $(LNAME2 mustuse-attribute, `@mustuse` Attribute))
         An expression is considered to be discarded if and only if either of the
         following is true:
     )
-
     $(UL
         $(LI
             it is the top-level $(GLINK2 expression, Expression) in an $(GLINK2

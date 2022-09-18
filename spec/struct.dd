@@ -6,7 +6,8 @@ $(HEADERNAV_TOC)
 
 $(H2 $(LNAME2 intro, Introduction))
 
-    $(P Whereas classes are reference types, structs are value types.
+    $(P Whereas $(DDLINK spec/class, Classes, classes) are reference types,
+    structs are value types.
     Structs and unions are simple aggregations of data and their
     associated operations on that data.
     )
@@ -33,6 +34,50 @@ $(GNAME AnonUnionDeclaration):
 $(GNAME AggregateBody):
     $(D {) $(GLINK2 module, DeclDefs)$(OPT) $(D })
 )
+
+    $(P The following example declares a struct type with a single integer field:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+struct S
+{
+    int i;
+}
+
+void main() {
+    S a;
+    a.i = 3;
+
+    S b = a; // copy a
+    a.i++;
+    assert(a.i == 4);
+    assert(b.i == 3);
+}
+---
+)
+
+    $(P For local variables, a struct instance is allocated on the stack
+    by default. To allocate on the heap, use `new`:)
+    ---
+    S* p = new S;
+    ---
+
+    $(P A struct definition can contain:)
+    $(UL
+        $(LI fields)
+        $(LI $(DDSUBLINK spec/attribute, static, static) fields)
+        $(LI $(DDSUBLINK spec/class, member-functions, member functions)
+        $(UL
+            $(LI static member functions)
+            $(LI $(RELATIVE_LINK2 struct-constructor, Constructors))
+            $(LI $(RELATIVE_LINK2 struct-destructor, Destructors))
+            $(LI $(RELATIVE_LINK2 Invariant, Invariants))
+            $(LI $(DDLINK spec/operatoroverloading, Operator Overloading, Operator Overloading))
+        )
+        $(LI $(DDSUBLINK spec/class, alias-this, Alias This))
+        $(LI other declarations (see $(GLINK2 module, DeclDef)))
+        )
+    )
 
     $(P A struct is defined to not have an identity; that is,
     the implementation is free to make bit copies of the struct
@@ -334,6 +379,24 @@ S t = s; // sets t.a to 3, S.opCall(S) is not called
 ----
 )
 
+$(H3 $(LNAME2 dynamic_union_init, Dynamic Initialization of Unions))
+
+        $(P The $(RELATIVE_LINK2 static_union_init, static initializer syntax)
+        can also be used to initialize non-static variables.
+        The initializer need not be evaluable at compile time.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+union U { int a; double b; }
+
+void test(int i)
+{
+    U u = { a : i };   // u.a = i
+    U v = { b : 5.0 }; // v.b = 5.0
+}
+---
+)
+
 $(H2 $(LEGACY_LNAME2 StructLiteral, struct-literal, Struct Literals))
 
         $(P A struct literal consists of the name of the struct followed
@@ -353,17 +416,92 @@ $(H2 $(LEGACY_LNAME2 StructLiteral, struct-literal, Struct Literals))
         If a struct has a member function named $(CODE opCall), then
         struct literals for that struct are not possible. See also
         $(DDSUBLINK spec/operatoroverloading, FunctionCall, opCall operator overloading)
-        for the issue workaround.
+        for the issue workaround.)
+        $(P
         It is an error if there are more arguments than fields of
         the struct.
         If there are fewer arguments than fields, the remaining
         fields are initialized with their respective default
-        initializers.
-        If there are anonymous unions in the struct, only the first
-        member of the anonymous union can be initialized with a
-        struct literal, and all subsequent non-overlapping fields are default
-        initialized.
+        initializers.)
+        $(P
+        If there is a union field in the struct, only the first
+        member of the union can be initialized inside a
+        struct literal. This matches the behaviour for union literals.
         )
+
+$(H2 $(LNAME2 union-literal, Union Literals))
+
+    $(P A union literal is like a struct literal, but only the first field can
+    be initialized with an initializer expression. Any field larger than the
+    first will have the remainder of its memory initialized to zero.
+    )
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+union U
+{
+    byte a;
+    char[2] b;
+}
+
+U u = U(2);
+assert(u.a == 2);
+assert(u.b == [2, 0]);
+---
+)
+
+$(H2 $(LNAME2 anonymous, Anonymous Structs and Unions))
+
+    $(P An anonymous struct or union can be declared as a member of a
+    parent class, struct or union by omitting the identifier after `struct` or `union`.
+    An anonymous struct declares sequentially stored fields in the
+    parent type. An anonymous union declares overlapping fields in
+    the parent type.)
+
+    $(P An anonymous union is useful inside a class or struct to share
+    memory for fields, without having to name a parent field with a
+    separate union type.)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+struct S
+{
+    int a;
+    union
+    {
+        byte b;
+        char c;
+    }
+}
+
+S s = S(1, 2);
+assert(s.a == 1);
+assert(s.b == 2);
+assert(s.c == 2); // overlaps with `b`
+---
+)
+
+    $(P Conversely, an anonymous struct is useful inside a union to
+    declare multiple fields that are stored sequentially.)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+union U
+{
+    int a;
+    struct
+    {
+        uint b;
+        bool c;
+    }
+}
+
+U u = U(1);
+assert(u.a == 1);
+assert(u.b == 1); // overlaps with `a`
+assert(u.c == false); // no overlap
+---
+)
 
 $(H2 $(LNAME2 struct_properties, Struct Properties))
 
@@ -934,6 +1072,7 @@ $(H3 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy
     ---
     )
 
+    $(LNAME2 disable-copy)
     $(P When a copy constructor is defined for a `struct` (or marked `@disable`), the compiler no
     longer implicitly generates default copy/blitting constructors for that `struct`:
     )
@@ -953,11 +1092,24 @@ $(H3 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy
     }
     ---
 
+    ---
+    struct A
+    {
+        @disable this(ref A);
+    }
+
+    void main()
+    {
+        A a;
+        A b = a; // error: copy constructor is disabled
+    }
+    ---
+
     $(P If a `union S` has fields that define a copy constructor, whenever an object of type `S`
     is initialized by copy, an error will be issued. The same rule applies to overlapped fields
     (anonymous unions).)
 
-    $(P A `struct` that defines a copy constructor is not a POD.)
+    $(P A `struct` that defines a copy constructor is not $(RELATIVE_LINK2 POD, POD).)
 
 $(H4 $(LNAME2 copy-constructor-attributes, Copy Constructor Attributes))
 
@@ -1491,7 +1643,7 @@ $(H2 $(LEGACY_LNAME2 StructDestructor, struct-destructor, Struct Destructors))
         )
 
         $(P Unions may have fields that have destructors. However, a union itself never has
-        a destructor. When a union goes out of scope, destructors for it's fields are not called.
+        a destructor. When a union goes out of scope, destructors for its fields are not called.
         If those calls are desired, they must be inserted explicitly by the programmer:)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -1550,30 +1702,6 @@ $(GNAME Invariant):
     succeed.
     )
 
-    $(P If the invariant does not hold, then the program enters an invalid state.)
-
-    $(P Any invariants for fields are applied before the struct invariant.)
-
-    $(P There may be multiple invariants in a struct. They are applied in lexical order.)
-
-    $(P Struct $(I Invariant)s must hold at the exit of the struct constructor (if any),
-    and at the entry of the struct destructor (if any).)
-
-    $(P Struct $(I Invariant)s must hold
-    at the entry and exit of all public or exported non-static member functions.
-    The order of application of invariants is:
-    )
-    $(OL
-    $(LI preconditions)
-    $(LI invariant)
-    $(LI function body)
-    $(LI invariant)
-    $(LI postconditions)
-    )
-
-    $(P The invariant need not hold if the struct instance is implicitly constructed using
-    the default $(D .init) value.)
-
     $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     struct Date
@@ -1597,6 +1725,39 @@ $(GNAME Invariant):
     ---
     )
 
+    $(P There may be multiple invariants in a struct. They are applied in lexical order.)
+
+    $(P Struct $(I Invariant)s must hold at the exit of the struct constructor (if any),
+    and at the entry of the struct destructor (if any).)
+
+    $(P Struct $(I Invariant)s must hold
+    at the entry and exit of all public or exported non-static member functions.
+    The order of application of invariants is:
+    )
+    $(OL
+    $(LI preconditions)
+    $(LI invariant)
+    $(LI function body)
+    $(LI invariant)
+    $(LI postconditions)
+    )
+
+    $(P The invariant need not hold if the struct instance is implicitly constructed using
+    the default $(D .init) value.)
+
+    $(P If the invariant does not hold, then the program enters an invalid state.)
+
+    $(IMPLEMENTATION_DEFINED
+    $(OL
+    $(LI Whether the struct $(I Invariant) is executed at runtime or not. This is typically
+    controlled with a compiler switch.)
+    $(LI The behavior when the invariant does not hold is typically the same as
+    for when $(GLINK2 expression, AssertExpression)s fail.)
+    )
+    )
+
+    $(UNDEFINED_BEHAVIOR happens if the invariant does not hold and execution continues.)
+
     $(P Public or exported non-static member functions cannot be called from within an invariant.)
 
     $(SPEC_RUNNABLE_EXAMPLE_FAIL
@@ -1613,17 +1774,6 @@ $(GNAME Invariant):
         }
     }
     ---
-    )
-
-    $(UNDEFINED_BEHAVIOR happens if the invariant does not hold and execution continues.)
-
-    $(IMPLEMENTATION_DEFINED
-    $(OL
-    $(LI Whether the struct $(I Invariant) is executed at runtime or not. This is typically
-    controlled with a compiler switch.)
-    $(LI The behavior when the invariant does not hold is typically the same as
-    for when $(GLINK2 expression, AssertExpression)s fail.)
-    )
     )
 
     $(BEST_PRACTICE

@@ -4,6 +4,8 @@ $(SPEC_S Types,
 
 $(HEADERNAV_TOC)
 
+$(H2 $(LNAME2 grammar, Grammar))
+
     $(P D is statically typed. Every expression has a type. Types constrain the values
     an expression can hold, and determine the semantics of operations on those values.
     )
@@ -87,11 +89,9 @@ $(GNAME QualifiedIdentifier):
     $(GLINK_LEX Identifier) $(D [) $(GLINK2 expression, AssignExpression) $(D] .) $(GSELF QualifiedIdentifier)
 )
 
-
-    $(P $(RELATIVE_LINK2 basic_data_types, Basic Data Types) are leaf types.
-    $(RELATIVE_LINK2 derived-data_types, Derived Data Types) build on leaf types.
-    $(RELATIVE_LINK2 user-defined-types, User-Defined Types) are aggregates of basic and derived types.
-    )
+    * $(RELATIVE_LINK2 basic-data-types, Basic Data Types) are leaf types.
+    * $(RELATIVE_LINK2 derived-data-types, Derived Data Types) build on leaf types.
+    * $(RELATIVE_LINK2 user-defined-types, User-Defined Types) are aggregates of basic and derived types.
 
 $(H2 $(LEGACY_LNAME2 Basic Data Types, basic-data-types, Basic Data Types))
 
@@ -123,6 +123,8 @@ $(H2 $(LEGACY_LNAME2 Basic Data Types, basic-data-types, Basic Data Types))
     $(TROW $(D dchar), $(D '\U0000FFFF'), unsigned 32 bit (UTF-32 code unit))
     )
 
+    $(P Endianness of basic types is part of the $(DDSUBLINK spec/abi, endianness, ABI))
+
     $(IMPLEMENTATION_DEFINED The real floating point type has at least the range and precision
     of the `double` type. On x86 CPUs it is often implemented as the 80 bit Extended Real
     type supported by the x86 FPU.
@@ -134,13 +136,64 @@ $(H2 $(LEGACY_LNAME2 Basic Data Types, basic-data-types, Basic Data Types))
 $(H2 $(LEGACY_LNAME2 Derived Data Types, derived-data-types, Derived Data Types))
 
     $(UL
-    $(LI $(DDSUBLINK spec/arrays, pointers, Pointer))
-    $(LI $(DDSUBLINK spec/arrays, static-arrays, Static Array))
-    $(LI $(DDSUBLINK spec/arrays, dynamic-arrays, Dynamic Array))
-    $(LI $(DDLINK spec/hash-map, Associative Array, Associative Array))
+    $(LI Pointers)
+    $(LI $(DDSUBLINK spec/arrays, static-arrays, Static Arrays))
+    $(LI $(DDSUBLINK spec/arrays, dynamic-arrays, Dynamic Arrays))
+    $(LI $(DDLINK spec/hash-map, Associative Array, Associative Arrays))
     $(LI $(DDLINK spec/function, Functions, Functions))
     $(LI $(RELATIVE_LINK2 delegates, Delegates))
     )
+
+$(H3 $(LNAME2 pointers, Pointers))
+
+        $(P A pointer to type $(D T) has a value which is a reference (address) to another
+        object of type $(D T). It is commonly called a $(I pointer to T) and its type is
+        `T*`. To access the object value, use the `*` dereference operator:
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---------
+int* p;
+
+assert(p == null);
+p = new int(5);
+assert(p != null);
+
+assert(*p == 5);
+(*p)++;
+assert(*p == 6);
+---------
+)
+
+        $(P If a pointer contains a $(I null) value, it is not pointing to a valid object.)
+
+        $(P When a pointer to $(I T) is dereferenced, it must either contain a $(I null) value,
+        or point to a valid object of type $(I T).)
+
+        $(IMPLEMENTATION_DEFINED
+        $(OL
+        $(LI The behavior when a $(I null) pointer is dereferenced. Typically the program
+        will be aborted.)
+        ))
+
+        $(UNDEFINED_BEHAVIOR dereferencing a pointer that is not $(I null) and does not point
+        to a valid object of type $(I T).)
+
+        $(P To set a pointer to point at an existing object, use the
+        `&` *address of* operator:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---------
+int i = 2;
+int* p = &i;
+
+assert(p == &i);
+assert(*p == 2);
+*p = 4;
+assert(i == 4);
+---------
+)
+        $(P See also $(DDSUBLINK spec/expression, pointer_arithmetic, Pointer Arithmetic).)
 
 
 $(H2 $(LEGACY_LNAME2 User Defined Types, user-defined-types, User-Defined Types))
@@ -158,16 +211,19 @@ $(H2 $(LNAME2 type-conversions, Type Conversions))
 
 $(H3 $(LEGACY_LNAME2 Pointer Conversions, pointer-conversions, Pointer Conversions))
 
-    $(P Casting pointers to non-pointers and vice versa is allowed.)
+    $(P $(RELATIVE_LINK2 pointers, Pointers) implicitly convert to `void*`.)
 
-    $(BEST_PRACTICE do not do this for any pointers that point to data
+    $(P Casting between pointers and non-pointers is allowed. Some pointer casts
+    are disallowed in $(DDLINK spec/memory-safe-d, Memory-Safe-D-Spec, `@safe` code).)
+
+    $(BEST_PRACTICE do not cast any pointer to a non-pointer type that points to data
     allocated by the garbage collector.
     )
 
 $(H3 $(LEGACY_LNAME2 Implicit Conversions, implicit-conversions, Implicit Conversions))
 
     $(P Implicit conversions are used to automatically convert
-    types as required.
+    types as required. The rules for integers are detailed in the next sections.
     )
 
     $(P An enum can be implicitly converted to its base
@@ -187,6 +243,15 @@ f = 0;           // error
 f = Foo.E;       // OK
 -------------------
 )
+
+    $(UL
+    $(LI All types implicitly convert to $(RELATIVE_LINK2 noreturn, `noreturn`).)
+    $(LI Static and dynamic arrays implicitly convert to $(DDSUBLINK spec/arrays, void_arrays, `void[]`).)
+    $(LI $(DDSUBLINK spec/function, function-pointers-delegates, Function pointers and delegates)
+        can convert to covariant types.)
+    )
+
+$(H4 $(LNAME2 class-conversions, Class Conversions))
 
     $(P A derived class can be implicitly converted to its base class, but going
     the other way requires an explicit cast. For example:)
@@ -274,6 +339,33 @@ $(H3 $(LEGACY_LNAME2 Integer Promotions, integer-promotions, Integer Promotions)
     column.
     )
 
+    $(P Integer promotion applies to each operand of a binary expression:)
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    byte a;
+    auto b = a + a;
+    static assert(is(typeof(b) == int));
+    // error: can't implicitly convert expression of type int to byte:
+    //byte c = a + a;
+
+    ushort d;
+    // error: can't implicitly convert expression of type int to ushort:
+    //d = d * d;
+    int e = d * d; // OK
+    static assert(is(typeof(int() * d) == int));
+
+    dchar f;
+    static assert(is(typeof(f - f) == uint));
+    ---
+    )
+
+    $(RATIONALE
+    * 32-bit integer operations are often faster than smaller integer types
+      for single variables on modern architectures.
+    * Promotion helps avoid accidental overflow which is more common with small integer types.
+    )
+
 $(H3 $(LEGACY_LNAME2 Usual Arithmetic Conversions, usual-arithmetic-conversions, Usual Arithmetic Conversions))
 
     $(P The usual arithmetic conversions convert operands of binary
@@ -293,7 +385,7 @@ $(H3 $(LEGACY_LNAME2 Usual Arithmetic Conversions, usual-arithmetic-conversions,
     $(LI Else if either operand is `float`, the other operand is
     converted to `float`.)
 
-    $(LI Else the integer promotions are done on each operand,
+    $(LI Else the integer promotions above are done on each operand,
     followed by:
 
     $(OL
@@ -308,6 +400,33 @@ $(H3 $(LEGACY_LNAME2 Usual Arithmetic Conversions, usual-arithmetic-conversions,
         $(LI The signed type is converted to the unsigned type.)
     )
     )
+    )
+
+    $(RATIONALE The above rules follow C99, which makes porting code from C easier.)
+
+    $(P $(B Example:) Signed and unsigned conversions:)
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    int i;
+    uint u;
+    static assert(is(typeof(i + u) == uint));
+    static assert(is(typeof(short() + u) == uint));
+    static assert(is(typeof(ulong() + i) == ulong));
+    static assert(is(typeof(long() - u) == long));
+    static assert(is(typeof(long() * ulong()) == ulong));
+    ---
+    )
+
+    $(P $(B Example:) Floating point:)
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    float f;
+    static assert(is(typeof(f + ulong()) == float));
+
+    double d;
+    static assert(is(typeof(f * d) == double));
+    static assert(is(typeof(real() / d) == real));
+    ---
     )
 
     $(P If one or both of the operand types is an enum  after
@@ -343,6 +462,48 @@ ulong  u4 = long(-1); // ok, -1 can be represented in a ulong
     cannot be implicitly converted to imaginary floating
     point types.
     )
+
+$(H3 $(LNAME2 vrp, Value Range Propagation))
+
+    $(P Besides type-based implicit conversions, D allows certain integer
+        expressions to implicitly convert to a narrower type after
+        integer promotion. This works by analysing the minimum and
+        maximum possible range of values for each expression.
+        If that range of values matches or is a subset of a narrower
+        target type's value range, implicit
+        conversion is allowed. If a subexpression is known at compile-time,
+        that can further narrow the range of values.)
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    extern char c;
+    // min is c.min + 100 > short.min
+    // max is c.max + 100 < short.max
+    short s = c + 100; // OK
+
+    extern int i;
+    ubyte j = i & 0x3F; // OK, 0 ... 0x3F
+    //ubyte k = i & 0x14A; // error, 0x14A > ubyte.max
+    ushort k = i & 0x14A; // OK
+
+    extern ubyte b;
+    k = i & b; // OK, 0 ... b.max
+    //b = b + b; // error, b.max + b.max > b.max
+    s = b + b; // OK, 0 ... b.max + b.max
+    ---
+    )
+    $(P Note the implementation does not track the range of possible values for variables,
+    only expressions:)
+    ---
+    extern int i;
+    short s = i & 0xff; // OK
+    // s is now assumed to be s.min ... s.max, not 0 ... 0xff
+    //byte b = s; // error
+    byte b = s & 0xff; // OK
+    ---
+    * For more information, see $(LINK2 https://digitalmars.com/articles/b62.html, the dmc article).
+    * See also: $(LINK https://en.wikipedia.org/wiki/Value_range_analysis).
+
 
 $(H2 $(LNAME2 bool, $(D bool)))
 
@@ -578,7 +739,8 @@ $(H3 $(LNAME2 noreturn, $(D noreturn)))
     A value of type `noreturn` will never be produced and the compiler can
     optimize such code accordingly.)
 
-    $(P A function that never returns has the return type `noreturn`. This can
+    $(P A function that $(DDSUBLINK spec/function, function-return-values, never returns)
+    has the return type `noreturn`. This can
     occur due to an infinite loop or always throwing an exception.)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
