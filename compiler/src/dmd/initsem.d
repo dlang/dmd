@@ -707,6 +707,19 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
             return false;
         }
 
+        /* Run semantic on ExpInitializer, see if it represents entire struct ts
+         */
+        bool representsStruct(ExpInitializer ei, TypeStruct ts)
+        {
+            if (needInterpret)
+                sc = sc.startCTFE();
+            ei.exp = ei.exp.expressionSemantic(sc);
+            ei.exp = resolveProperties(sc, ei.exp);
+            if (needInterpret)
+                sc = sc.endCTFE();
+            return ei.exp.implicitConvTo(ts) != MATCH.nomatch; // initializer represents the entire struct
+        }
+
         /* If { } are omitted from substructs, use recursion to reconstruct where
          * brackets go
          * Params:
@@ -871,14 +884,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                         /* Disambiguate between an exp representing the entire
                          * struct, and an exp representing the first field of the struct
                          */
-                        if (needInterpret)
-                            sc = sc.startCTFE();
-                        ExpInitializer ei = ix.isExpInitializer();
-                        ei.exp = ei.exp.expressionSemantic(sc);
-                        ei.exp = resolveProperties(sc, ei.exp);
-                        if (needInterpret)
-                            sc = sc.endCTFE();
-                        if (ei.exp.implicitConvTo(tn))      // initializer represents the entire struct
+                        if (representsStruct(ix.isExpInitializer(), tns)) // initializer represents the entire struct
                         {
                             si.addInit(field.ident, initializerSemantic(ix, sc, tn, needInterpret));
                             ++index;
@@ -948,14 +954,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                         /* Disambiguate between an exp representing the entire
                          * struct, and an exp representing the first field of the struct
                          */
-                        if (needInterpret)
-                            sc = sc.startCTFE();
-                        ExpInitializer ei = ix.isExpInitializer();
-                        ei.exp = ei.exp.expressionSemantic(sc);
-                        ei.exp = resolveProperties(sc, ei.exp);
-                        if (needInterpret)
-                            sc = sc.endCTFE();
-                        if (ei.exp.implicitConvTo(tn))      // initializer represents the entire struct
+                        if (representsStruct(ix.isExpInitializer(), tns)) // initializer represents the entire struct
                         {
                             ai.addInit((*dlist)[0].exp, initializerSemantic(ix, sc, tn, needInterpret));
                             ++index;
@@ -985,14 +984,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                     /* Disambiguate between an exp representing the entire
                      * struct, and an exp representing the first field of the struct
                      */
-                    if (needInterpret)
-                        sc = sc.startCTFE();
-                    ExpInitializer ei = di.initializer.isExpInitializer();
-                    ei.exp = ei.exp.expressionSemantic(sc);
-                    ei.exp = resolveProperties(sc, ei.exp);
-                    if (needInterpret)
-                        sc = sc.endCTFE();
-                    if (ei.exp.implicitConvTo(tn))      // initializer represents the entire struct
+                    if (representsStruct(di.initializer.isExpInitializer(), tns)) // initializer represents the entire struct
                     {
                         ai.addInit(null, initializerSemantic(di.initializer, sc, tn, needInterpret));
                         ++index;
