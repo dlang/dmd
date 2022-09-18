@@ -6055,6 +6055,9 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
             continue;
         Type t = isType((*tempinst.tiargs)[i]);
         assert(t);
+        if (t.ty != TY.Tclass || t.ty != TY.Tstruct)
+            tempinst.error("argument for template this parameter must be a class or struct");
+
         if (StorageClass stc = ModToStc(t.mod))
         {
             //printf("t = %s, stc = x%llx\n", t.toChars(), stc);
