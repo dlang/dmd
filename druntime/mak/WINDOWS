@@ -1,0 +1,28 @@
+$(mak\COPY)
+
+######################## Header file copy ##############################
+
+import: copy
+
+copydir: $(IMPDIR)
+
+copy: generated\windows\copyimports.exe
+	@~generated\windows\copyimports.exe $(COPY)
+
+generated\windows\copyimports.exe: mak\copyimports.d generated\windows\host_dmd.bat
+	generated\windows\host_dmd.bat -of=$@ -m$(MODEL) mak\copyimports.d
+
+# find a host dmd on the different CI systems
+# - auto-tester: 2.079 installed, but not exposed to the druntime build
+# - appveyor: found through PATH
+# - azure-make: set as $(HOST_DC)
+# - azure-vs: $(DMD_DIR)\dmd2\Windows\bin\dmd.exe
+ATCLIENT_DMD = ../../release-build/dmd-2.079.0/windows/bin/dmd.exe
+
+generated\windows\host_dmd.bat:
+	+if not exist generated md generated
+	+if not exist generated\windows md generated\windows
+	-+if exist "$(ATCLIENT_DMD)" (echo @"$(ATCLIENT_DMD)" %* >$@)
+	-+if not "$(DMD_DIR)"  == "" ("$(DMD_DIR)\dmd2\Windows\bin\dmd.exe" --version >nul 2>&1 && echo @"$(DMD_DIR)\dmd2\Windows\bin\dmd.exe" %* >$@)
+	-+if not "$(HOST_DC)"  == "" ("$(HOST_DC)"  --version >nul 2>&1 && echo @"$(HOST_DC)" %* >$@)
+	-+if not "$(HOST_DMD)" == "" ("$(HOST_DMD)" --version >nul 2>&1 && echo @"$(HOST_DMD)" %* >$@)

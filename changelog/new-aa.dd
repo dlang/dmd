@@ -1,0 +1,16 @@
+`new` can now allocate an associative array
+
+This allows two associative array references to point to the same
+associative array instance before any keys have been inserted.
+
+---
+int[string] a = new int[string];
+auto b = a;
+...
+a["seven"] = 7;
+assert(b["seven"] == 7);
+---
+
+Note: Calling `new` is not needed before inserting keys on a null
+associative array reference - the instance will be allocated if it
+doesn't exist.

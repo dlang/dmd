@@ -1,0 +1,5 @@
+`--DRT-oncycle=deprecate` is removed
+
+The option was [introduced in 2.072.2](https://dlang.org/changelog/2.072.2.html#drt-cycle-deprecated) to help transition code that relied on the old faulty cycle checker for module constructors.
+It now prints a warning and does the same as the default, `--DRT-oncycle=abort`.
+See also: $(DDSUBLINK spec/module, order_of_static_ctor, Order of Static Construction) in the specification.

@@ -1,59 +1,89 @@
-# DEPRECATED - use src\build.d
-#_ win64.mak
-#
-# Supports same targets as win32.mak.
+# Proxy Makefile for backwards compatibility after move to /compiler/src
 
 ############################### Configuration ################################
 
-MAKE=make
-HOST_DC=dmd
-MODEL=64
-BUILD=release
 OS=windows
+BUILD=release
+MODEL=64
+HOST_DC=dmd
+MAKE=make
+GEN=..\..\generated
+G=$(GEN)\$(OS)\$(BUILD)\$(MODEL)
 
-################################### Rules ####################################
-
-.d.exe:
-	$(HOST_DC) -g -of$@ $<
-
-D=dmd
-GEN = ..\generated
-G = $(GEN)\$(OS)\$(BUILD)\$(MODEL)
-DEPENDENCIES=vcbuild\msvc-lib.exe $G
-
-MAKE_WIN32=$(MAKE) -f win32.mak "OS=$(OS)" "BUILD=$(BUILD)" "MODEL=$(MODEL)" "HOST_DMD=$(HOST_DMD)" "HOST_DC=$(HOST_DC)" "MAKE=$(MAKE)" "VERBOSE=$(VERBOSE)" "ENABLE_RELEASE=$(ENABLE_RELEASE)" "ENABLE_DEBUG=$(ENABLE_DEBUG)" "ENABLE_ASSERTS=$(ENABLE_ASSERTS)" "ENABLE_LTO=$(ENABLE_LTO)" "ENABLE_UNITTEST=$(ENABLE_UNITTEST)" "ENABLE_PROFILE=$(ENABLE_PROFILE)" "ENABLE_COVERAGE=$(ENABLE_COVERAGE)" "DFLAGS=$(DFLAGS)" "GEN=$(GEN)" "G=$G" "LIB=vcbuild\msvc-lib"
+MAKE_WIN32=$(MAKE) -f win64.mak \
+	"OS=$(OS)" \
+	"BUILD=$(BUILD)" \
+	"MODEL=$(MODEL)" \
+	"HOST_DMD=$(HOST_DMD)" \
+	"HOST_DC=$(HOST_DC)" \
+	"MAKE=$(MAKE)" \
+	"VERBOSE=$(VERBOSE)" \
+	"ENABLE_RELEASE=$(ENABLE_RELEASE)" \
+	"ENABLE_DEBUG=$(ENABLE_DEBUG)" \
+	"ENABLE_ASSERTS=$(ENABLE_ASSERTS)" \
+	"ENABLE_LTO=$(ENABLE_LTO)" \
+	"ENABLE_UNITTEST=$(ENABLE_UNITTEST)" \
+	"ENABLE_PROFILE=$(ENABLE_PROFILE)" \
+	"ENABLE_COVERAGE=$(ENABLE_COVERAGE)" \
+	"DFLAGS=$(DFLAGS)" \
+	"GEN=$(GEN)" \
+	"G=$G"
 
 ################################## Targets ###################################
 
-defaulttarget : $(DEPENDENCIES)
+defaulttarget :
+	cd ..\compiler\src
 	$(MAKE_WIN32) $@
-release : $(DEPENDENCIES)
+	cd ..\..\src
+release :
+	cd ..\compiler\src
 	$(MAKE_WIN32) $@
-trace : $(DEPENDENCIES)
+	cd ..\..\src
+trace :
+	cd ..\compiler\src
 	$(MAKE_WIN32) $@
+	cd ..\..\src
 clean :
-	del /s /q $(DEPENDENCIES) dmd.pdb
+	cd ..\compiler\src
 	$(MAKE_WIN32) $@
-install : $(DEPENDENCIES)
+	cd ..\..\src
+install :
+	cd ..\compiler\src
 	$(MAKE_WIN32) $@
-install-clean : $(DEPENDENCIES)
+	cd ..\..\src
+install-clean :
+	cd ..\compiler\src
 	$(MAKE_WIN32) $@
-zip : $(DEPENDENCIES)
+	cd ..\..\src
+zip :
+	cd ..\compiler\src
 	$(MAKE_WIN32) $@
-dmd : $(DEPENDENCIES)
+	cd ..\..\src
+dmd :
+	cd ..\compiler\src
 	$(MAKE_WIN32) $@
-debdmd : $(DEPENDENCIES)
+	cd ..\..\src
+debdmd :
+	cd ..\compiler\src
 	$(MAKE_WIN32) $@
-reldmd : $(DEPENDENCIES)
+	cd ..\..\src
+reldmd :
+	cd ..\compiler\src
 	$(MAKE_WIN32) $@
-reldmd-asserts : $(DEPENDENCIES)
+	cd ..\..\src
+reldmd-asserts :
+	cd ..\compiler\src
 	$(MAKE_WIN32) $@
-unittest : $(DEPENDENCIES)
+	cd ..\..\src
+unittest :
+	cd ..\compiler\src
 	$(MAKE_WIN32) $@
-detab : $(DEPENDENCIES)
+	cd ..\..\src
+detab :
+	cd ..\compiler\src
 	$(MAKE_WIN32) $@
-tolf : $(DEPENDENCIES)
+	cd ..\..\src
+tolf :
+	cd ..\compiler\src
 	$(MAKE_WIN32) $@
-
-$G:
-	if not exist "$G" mkdir $G
+	cd ..\..\src

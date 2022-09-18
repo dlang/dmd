@@ -52,6 +52,8 @@ install_host_dmc() {
     if [ ! -f dm/README.TXT ]; then
         download "http://downloads.dlang.org/other/dm857c.zip" dmc.zip
         7z x dmc.zip > /dev/null
+        download "http://ftp.digitalmars.com/sppn.zip" sppn.zip
+        7z x -odm/bin sppn.zip > /dev/null
     fi
     dm/bin/dmc | head -n 1 || true
 }
@@ -87,7 +89,7 @@ clone_repos() {
         local REPO_BRANCH="$SYSTEM_PULLREQUEST_TARGETBRANCH"
     fi
 
-    for proj in druntime phobos; do
+    for proj in phobos; do
         if [ "$REPO_BRANCH" != master ] && [ "$REPO_BRANCH" != stable ] &&
                 ! git ls-remote --exit-code --heads "https://github.com/dlang/$proj.git" "$REPO_BRANCH" > /dev/null; then
             # use master as fallback for other repos to test feature branches

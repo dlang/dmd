@@ -1,0 +1,99 @@
+common_steps_template: &COMMON_STEPS_TEMPLATE
+  set_repo_branch_env_var_script: |
+    set -uexo pipefail
+    if [ -z ${CIRRUS_PR+x} ]; then
+      # not a PR
+      REPO_BRANCH="$CIRRUS_BRANCH"
+    elif [[ ! "$CIRRUS_BRANCH" =~ ^pull/ ]]; then
+      # PR originating from the official dlang repo
+      REPO_BRANCH="$CIRRUS_BRANCH"
+    else
+      # PR from a fork
+      REPO_BRANCH="$CIRRUS_BASE_BRANCH"
+    fi
+    echo "REPO_BRANCH=$REPO_BRANCH" >> $CIRRUS_ENV
+  clone_dmd_script: |
+    set -uexo pipefail
+    DMD_BRANCH="$REPO_BRANCH"
+    if [ "$DMD_BRANCH" != master ] && [ "$DMD_BRANCH" != stable ] &&
+       ! git ls-remote --exit-code --heads "https://github.com/dlang/dmd.git" "$DMD_BRANCH" > /dev/null; then
+      DMD_BRANCH="master"
+    fi
+    git clone --branch "$DMD_BRANCH" --depth 1 https://github.com/dlang/dmd.git ../dmd
+  install_prerequisites_script: cd ../dmd && ./ci/cirrusci.sh
+  install_host_compiler_script: cd ../dmd && ./ci/run.sh install_host_compiler
+  setup_repos_script: |
+    set -uexo pipefail
+    ln -s $CIRRUS_WORKING_DIR ../druntime
+    cd ../dmd && ./ci/run.sh setup_repos "$REPO_BRANCH"
+  build_script: cd ../dmd && ./ci/run.sh build
+  test_dmd_script: cd ../dmd && ./ci/run.sh test_dmd
+  test_druntime_script: cd ../dmd && ./ci/run.sh test_druntime
+  test_phobos_script: cd ../dmd && ./ci/run.sh test_phobos
+
+environment:
+  CIRRUS_CLONE_DEPTH: 1
+  # for ci/run.sh:
+  MODEL: 64
+  HOST_DMD: dmd
+  N: 4
+  OS_NAME: linux
+  FULL_BUILD: false
+
+# Linux
+task:
+  name: Ubuntu 18.04 $TASK_NAME_SUFFIX
+  container:
+    image: ubuntu:18.04
+    cpu: 4
+    memory: 8G
+  timeout_in: 60m
+  environment:
+    matrix:
+      - TASK_NAME_SUFFIX: x86
+        MODEL: 32
+      - TASK_NAME_SUFFIX: x64
+  install_git_and_valgrind_script: apt-get -q update && apt-get install -yq git-core valgrind
+  << : *COMMON_STEPS_TEMPLATE
+
+# Mac
+task:
+  name: macOS 11.x x64
+  osx_instance:
+    image: big-sur-xcode
+  timeout_in: 60m
+  environment:
+    OS_NAME: darwin
+    # override Cirrus default OS (`darwin`)
+    OS: osx
+  << : *COMMON_STEPS_TEMPLATE
+
+# FreeBSD
+task:
+  name: FreeBSD 12.2 x64
+  freebsd_instance:
+    image_family: freebsd-12-2
+    cpu: 4
+    memory: 8G
+  timeout_in: 60m
+  environment:
+    OS_NAME: freebsd
+    CI_DFLAGS: -version=TARGET_FREEBSD12
+  install_bash_and_git_script: pkg install -y bash git
+  << : *COMMON_STEPS_TEMPLATE
+
+task:
+  name: FreeBSD 11.4 x64
+  freebsd_instance:
+    image_family: freebsd-11-4
+    cpu: 4
+    memory: 8G
+  timeout_in: 60m
+  environment:
+    OS_NAME: freebsd
+    HOST_DMD: dmd-2.079.0
+    CI_DFLAGS: -version=TARGET_FREEBSD11
+  install_bash_and_git_script: |
+    sed -i '' -e 's|pkg.FreeBSD.org|mirrors.xtom.com/freebsd-pkg|' /etc/pkg/FreeBSD.conf
+    pkg install -y bash git
+  << : *COMMON_STEPS_TEMPLATE

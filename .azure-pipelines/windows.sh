@@ -32,6 +32,7 @@ DM_MAKE="$PWD/dm/bin/make.exe"
 if [ "$MODEL" == "32omf" ] ; then
     CC="$PWD/dm/bin/dmc.exe"
     AR="$PWD/dm/bin/lib.exe"
+    export CPPCMD="$PWD/dm/bin/sppn.exe"
 else
     CC="$(where cl.exe)"
     AR="$(where lib.exe)" # must be done before installing dmd
@@ -79,9 +80,9 @@ else
     DMD_BIN_PATH="$DMD_DIR/generated/windows/release/$MODEL/dmd"
 fi
 
-cd "$DMD_DIR/src"
+cd "$DMD_DIR/compiler/src"
 "$DM_MAKE" -f "$MAKE_FILE" MAKE="$DM_MAKE" BUILD=debug unittest
-DFLAGS="-L-LARGEADDRESSAWARE" "$DM_MAKE" -f "$MAKE_FILE" MAKE="$DM_MAKE" reldmd-asserts
+DFLAGS="-L-LARGEADDRESSAWARE" "$DM_MAKE" -f "$MAKE_FILE" MAKE="$DM_MAKE" GEN="$DMD_DIR\generated" reldmd-asserts
 
 ################################################################################
 # Build Druntime and Phobos
@@ -89,20 +90,19 @@ DFLAGS="-L-LARGEADDRESSAWARE" "$DM_MAKE" -f "$MAKE_FILE" MAKE="$DM_MAKE" reldmd-
 
 LIBS_MAKE_ARGS=(-f "$MAKE_FILE" MODEL=$MODEL DMD="$DMD_BIN_PATH" VCDIR=. CC="$CC" AR="$AR" MAKE="$DM_MAKE")
 
-for proj in druntime phobos; do
-    cd "$DMD_DIR/../$proj"
-    "$DM_MAKE" "${LIBS_MAKE_ARGS[@]}"
-done
+cd "$DMD_DIR/druntime"
+"$DM_MAKE" "${LIBS_MAKE_ARGS[@]}"
+
+cd "$DMD_DIR/../phobos"
+"$DM_MAKE" "${LIBS_MAKE_ARGS[@]}" DRUNTIME="$DMD_DIR\druntime"
 
 ################################################################################
 # Run DMD testsuite
 ################################################################################
 
-cd "$DMD_DIR/test"
+cd "$DMD_DIR/compiler/test"
 
 # build run.d testrunner and its tools while host compiler is untampered
-cd ../test
-
 if [ "$MODEL" == "32omf" ] ; then
     TOOL_MODEL=32;
 else
@@ -117,8 +117,8 @@ if [ "${DMD_TEST_COVERAGE:-0}" = "1" ] ; then
 
     # Recompile debug dmd + unittests
     rm -rf "$DMD_DIR/generated/windows"
-    DFLAGS="-L-LARGEADDRESSAWARE" ../generated/build.exe --jobs=$N ENABLE_DEBUG=1 ENABLE_COVERAGE=1 dmd
-    DFLAGS="-L-LARGEADDRESSAWARE" ../generated/build.exe --jobs=$N ENABLE_DEBUG=1 ENABLE_COVERAGE=1 unittest
+    DFLAGS="-L-LARGEADDRESSAWARE" ../../generated/build.exe --jobs=$N ENABLE_DEBUG=1 ENABLE_COVERAGE=1 dmd
+    DFLAGS="-L-LARGEADDRESSAWARE" ../../generated/build.exe --jobs=$N ENABLE_DEBUG=1 ENABLE_COVERAGE=1 unittest
 fi
 
 if [ "$MODEL" == "32omf" ] ; then
@@ -151,7 +151,7 @@ fi
 # Build and run druntime tests
 ################################################################################
 
-cd "$DMD_DIR/../druntime"
+cd "$DMD_DIR/druntime"
 "$DM_MAKE" "${LIBS_MAKE_ARGS[@]}" unittest test_all
 
 ################################################################################
@@ -167,7 +167,7 @@ else
     else
         cp "$DMD_DIR/tools/dmd2/windows/bin/libcurl.dll" .
     fi
-    "$DM_MAKE" "${LIBS_MAKE_ARGS[@]}" unittest
+    "$DM_MAKE" "${LIBS_MAKE_ARGS[@]}" DRUNTIME="$DMD_DIR\druntime" unittest
 fi
 
 ################################################################################
