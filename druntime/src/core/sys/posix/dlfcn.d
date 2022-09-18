@@ -377,7 +377,7 @@ else version (CRuntime_Musl)
 }
 else version (CRuntime_UClibc)
 {
-    version (X86_64)
+    version (X86_Any)
     {
         enum RTLD_LAZY              = 0x0001;
         enum RTLD_NOW               = 0x0002;

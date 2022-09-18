@@ -106,14 +106,7 @@ else version (CRuntime_Bionic)
 }
 else version (CRuntime_UClibc)
 {
-    version (X86)
-    {
-        ///
-        enum int FP_ILOGB0        = int.min;
-        ///
-        enum int FP_ILOGBNAN      = int.min;
-    }
-    else version (X86_64)
+    version (X86_Any)
     {
         ///
         enum int FP_ILOGB0        = int.min;
