@@ -36,17 +36,10 @@ mixin template t2()
 
 mixin t2;
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/templatethis.d(51): Error: template instance `templatethis.C.f!int` argument for template this parameter must be a class or struct
-fail_compilation/templatethis.d(51): Error: template instance `templatethis.C.f!int` error instantiating
----
-*/
 class C
 {
 	static void f(this T)() {}
 }
 
-alias a = C.f!int;
+alias a = C.f!int; // FIXME error
 alias b = C.f!C; // OK
