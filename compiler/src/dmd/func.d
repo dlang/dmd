@@ -3759,9 +3759,9 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
     // backend
     bool deferToObj;
 
-    extern (D) this(const ref Loc loc, const ref Loc endloc, Type type, TOK tok, ForeachStatement fes, Identifier id = null)
+    extern (D) this(const ref Loc loc, const ref Loc endloc, Type type, TOK tok, ForeachStatement fes, Identifier id = null, StorageClass storage_class = STC.undefined_)
     {
-        super(loc, endloc, null, STC.undefined_, type);
+        super(loc, endloc, null, storage_class, type);
         this.ident = id ? id : Id.empty;
         this.tok = tok;
         this.fes = fes;
@@ -3775,7 +3775,7 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
     {
         //printf("FuncLiteralDeclaration::syntaxCopy('%s')\n", toChars());
         assert(!s);
-        auto f = new FuncLiteralDeclaration(loc, endloc, type.syntaxCopy(), tok, fes, ident);
+        auto f = new FuncLiteralDeclaration(loc, endloc, type.syntaxCopy(), tok, fes, ident, storage_class & STC.auto_);
         f.treq = treq; // don't need to copy
         FuncDeclaration.syntaxCopy(f);
         return f;
