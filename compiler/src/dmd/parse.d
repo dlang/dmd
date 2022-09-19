@@ -4857,6 +4857,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     token.value == TOK.identifier && peekNext() == TOK.goesTo ||
                     token.value == TOK.ref_ && peekNext() == TOK.leftParenthesis &&
                         skipAttributes(peekPastParen(peek(&token)), &tk) &&
+                        (tk.value == TOK.goesTo || tk.value == TOK.leftCurly) ||
+                    token.value == TOK.auto_ && peekNext() == TOK.ref_ &&
+                        peekNext2() == TOK.leftParenthesis &&
+                        skipAttributes(peekPastParen(peek(peek(&token))), &tk) &&
                         (tk.value == TOK.goesTo || tk.value == TOK.leftCurly)
                    )
                 {
@@ -4868,6 +4872,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     // identifier => expression
                     // ref (parameters) { statements... }
                     // ref (parameters) => expression
+                    // auto ref (parameters) { statements... }
+                    // auto ref (parameters) => expression
 
                     s = parseFunctionLiteral();
 
@@ -4995,7 +5001,20 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         case TOK.delegate_:
             save = token.value;
             nextToken();
-            if (token.value == TOK.ref_)
+            if (token.value == TOK.auto_)
+            {
+                nextToken();
+                if (token.value == TOK.ref_)
+                {
+                    // function auto ref (parameters) { statements... }
+                    // delegate auto ref (parameters) { statements... }
+                    stc = STC.auto_ | STC.ref_;
+                    nextToken();
+                }
+                else
+                    error("`auto` can only be used as part of `auto ref` for function literal return values");
+            }
+            else if (token.value == TOK.ref_)
             {
                 // function ref (parameters) { statements... }
                 // delegate ref (parameters) { statements... }
@@ -5023,6 +5042,20 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             }
             goto case TOK.leftParenthesis;
 
+        case TOK.auto_:
+            {
+                nextToken();
+                if (token.value == TOK.ref_)
+                {
+                    // auto ref (parameters) => expression
+                    // auto ref (parameters) { statements... }
+                    stc = STC.auto_ | STC.ref_;
+                    nextToken();
+                }
+                else
+                    error("`auto` can only be used as part of `auto ref` for function literal return values");
+                goto case TOK.leftParenthesis;
+            }
         case TOK.ref_:
             {
                 // ref (parameters) => expression
@@ -5075,7 +5108,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         auto tf = new AST.TypeFunction(parameterList, tret, linkage, stc);
         tf = cast(AST.TypeFunction)tf.addSTC(stc);
-        auto fd = new AST.FuncLiteralDeclaration(loc, Loc.initial, tf, save, null);
+        auto fd = new AST.FuncLiteralDeclaration(loc, Loc.initial, tf, save, null, null, stc & STC.auto_);
 
         if (token.value == TOK.goesTo)
         {
@@ -8383,6 +8416,22 @@ LagainStc:
             e = parseNewExp(null);
             break;
 
+        case TOK.auto_:
+            {
+                if (peekNext() == TOK.ref_ && peekNext2() == TOK.leftParenthesis)
+                {
+                    Token* tk = peekPastParen(peek(peek(&token)));
+                    if (skipAttributes(tk, &tk) && (tk.value == TOK.goesTo || tk.value == TOK.leftCurly))
+                    {
+                        // auto ref (arguments) => expression
+                        // auto ref (arguments) { statements... }
+                        goto case_delegate;
+                    }
+                }
+                nextToken();
+                error("found `%s` when expecting `ref` and function literal following `auto`", token.toChars());
+                goto Lerr;
+            }
         case TOK.ref_:
             {
                 if (peekNext() == TOK.leftParenthesis)
