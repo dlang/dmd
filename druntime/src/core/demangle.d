@@ -82,7 +82,7 @@ pure @safe:
 
     static class ParseException : Exception
     {
-        @safe pure nothrow this( string msg )
+        this(string msg) @safe pure nothrow
         {
             super( msg );
         }
@@ -91,7 +91,7 @@ pure @safe:
 
     static class OverflowException : Exception
     {
-        @safe pure nothrow this( string msg )
+        this(string msg) @safe pure nothrow
         {
             super( msg );
         }
