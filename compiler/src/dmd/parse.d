@@ -4473,7 +4473,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
             const loc = token.loc;
             Identifier ident;
-
             auto t = parseDeclarator(ts, alt, &ident, &tpl, storage_class, &disable, &udas);
             assert(t);
             if (!tfirst)
@@ -5198,7 +5197,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             }
             else
             {
-                f.frequires.push(parseStatement(ParseStatementFlags.curly | ParseStatementFlags.scope_));
+                auto ret = parseStatement(ParseStatementFlags.curly | ParseStatementFlags.scope_);
+                assert(ret);
+                f.frequires.push(ret);
                 requireDo = true;
             }
             goto L1;
@@ -6539,7 +6540,7 @@ LagainStc:
                 nextToken();
             if (token.value == TOK.semicolon)
                 nextToken();
-            s = null;
+            s = new AST.ErrorStatement;
             break;
         }
         if (pEndloc)
@@ -8619,7 +8620,7 @@ LagainStc:
                     if (token.value != TOK.identifier)
                     {
                         error("identifier expected following `(type)`.");
-                        return null;
+                        return AST.ErrorExp.get();
                     }
                     e = new AST.DotIdExp(loc, new AST.TypeExp(loc, t), token.ident);
                     nextToken();
@@ -8738,7 +8739,8 @@ LagainStc:
                                     if (peekNext() != TOK.identifier && peekNext() != TOK.new_)
                                     {
                                         error("identifier or new keyword expected following `(...)`.");
-                                        return null;
+                                        nextToken();
+                                        return AST.ErrorExp.get();
                                     }
                                     e = new AST.TypeExp(loc, t);
                                     e.parens = true;
