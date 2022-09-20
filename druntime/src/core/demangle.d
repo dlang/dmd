@@ -253,23 +253,22 @@ pure @safe:
             put(", ");
     }
 
-    char[] put(char c) return scope
+    void put(char c) return scope
     {
         char[1] val = c;
-        return put(val[]);
+        put(val[]);
     }
 
-    char[] put( scope const(char)[] val ) return scope
+    void put(scope const(char)[] val) return scope
     {
         pragma(inline, false); // tame dmd inliner
 
-        if ( val.length )
-        {
-            if ( !contains( dst[0 .. len], val ) )
-                return append( val );
-            return shift( val );
-        }
-        return null;
+        if (!val.length) return;
+
+        if (!contains(dst[0 .. len], val))
+            append(val);
+        else
+            shift(val);
     }
 
 
