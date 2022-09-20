@@ -727,7 +727,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
          *  index = index into ci.initializer, updated
          * Returns: struct initializer for this substruct
          */
-        Initializer subStruct(TypeStruct ts, ref size_t index)
+        Initializer subStruct()(TypeStruct ts, ref size_t index)
         {
             //printf("subStruct(ts: %s, index %d)\n", ts.toChars(), cast(int)index);
 
@@ -739,19 +739,60 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                 index = ci.initializerList.length;
                 return err();
             }
-            const nfields = sd.nonHiddenFields();
+            const nfields = sd.fields.length;
 
-            foreach (n; 0 .. nfields)
+            foreach (fieldi; 0 .. nfields)
             {
                 if (index >= ci.initializerList.length)
                     break;          // ran out of initializers
                 auto di = ci.initializerList[index];
-                if (di.designatorList && n != 0)
+                if (di.designatorList && fieldi != 0)
                     break;          // back to top level
                 else
                 {
-                    si.addInit(null, di.initializer);
-                    ++index;
+                    VarDeclaration field;
+                    while (1)   // skip field if it overlaps with previously seen fields
+                    {
+                        field = sd.fields[fieldi];
+                        ++fieldi;
+                        if (!overlaps(field, sd.fields[], si))
+                            break;
+                        if (fieldi == nfields)
+                            break;
+                    }
+                    auto tn = field.type.toBasetype();
+                    auto tnsa = tn.isTypeSArray();
+                    auto tns = tn.isTypeStruct();
+                    auto ix = di.initializer;
+                    if (tnsa && ix.isExpInitializer())
+                    {
+                        ExpInitializer ei = ix.isExpInitializer();
+                        if (ei.exp.isStringExp() && tnsa.nextOf().isintegral())
+                        {
+                            si.addInit(field.ident, ei);
+                            ++index;
+                        }
+                        else
+                            si.addInit(field.ident, subArray(tnsa, index)); // fwd ref of subArray is why subStruct is a template
+                    }
+                    else if (tns && ix.isExpInitializer())
+                    {
+                        /* Disambiguate between an exp representing the entire
+                         * struct, and an exp representing the first field of the struct
+                         */
+                        if (representsStruct(ix.isExpInitializer(), tns)) // initializer represents the entire struct
+                        {
+                            si.addInit(field.ident, initializerSemantic(ix, sc, tn, needInterpret));
+                            ++index;
+                        }
+                        else                                // field initializers for struct
+                            si.addInit(field.ident, subStruct(tns, index)); // the first field
+                    }
+                    else
+                    {
+                        si.addInit(field.ident, ix);
+                        ++index;
+                    }
                 }
             }
             //printf("subStruct() returns ai: %s, index: %d\n", si.toChars(), cast(int)index);
