@@ -1,7 +1,6 @@
 /* TEST_OUTPUT:
 ---
 fail_compilation/enumtype.c(111): Error: enum member `enumtype.E2.A2` enum member value `549755813889L` does not fit in an `int`
-fail_compilation/enumtype.c(112): Error: circular reference to enum base type `int`
 ---
  */
 
@@ -18,4 +17,3 @@ _Static_assert(G1 == 0, "in");
 _Static_assert(sizeof(enum E1) == 4, "in");
 
 enum E2 { A2 = 0x8000000001LL };
-enum E3 { A3 = sizeof(enum E3) };
