@@ -512,6 +512,7 @@ immutable Msgtable[] msgtable =
     { "wchar_t" },
 
     // for C compiler
+    { "ImportC", "__C" },
     { "__tag" },
     { "dllimport" },
     { "dllexport" },

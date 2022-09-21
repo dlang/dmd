@@ -8522,6 +8522,7 @@ struct Id final
     static Identifier* udaMustUse;
     static Identifier* TRUE;
     static Identifier* FALSE;
+    static Identifier* ImportC;
     static Identifier* dllimport;
     static Identifier* dllexport;
     static Identifier* vector_size;
