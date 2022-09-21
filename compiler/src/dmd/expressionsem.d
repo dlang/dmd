@@ -4613,7 +4613,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 Expression e;
 
-                // Make sure to use the the enum type itself rather than its
+                // Make sure to use the enum type itself rather than its
                 // base type
                 // https://issues.dlang.org/show_bug.cgi?id=16346
                 if (exp.e1.type.ty == Tenum)

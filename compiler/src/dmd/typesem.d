@@ -4469,7 +4469,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
 
 
 /************************
- * Get the the default initialization expression for a type.
+ * Get the default initialization expression for a type.
  * Params:
  *  mt = the type for which the init expression is returned
  *  loc = the location where the expression needs to be evaluated

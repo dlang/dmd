@@ -454,7 +454,7 @@ public:
     * Params:
     *   x64 = target architecture (x86 if false)
     * Returns:
-    *   folder containing the the VC runtime libraries
+    *   folder containing the VC runtime libraries
     */
     const(char)* getVCLibDir(bool x64) const
     {
