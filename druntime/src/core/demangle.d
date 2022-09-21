@@ -98,7 +98,7 @@ pure @safe:
     }
 
 
-    static void error( string msg = "Invalid symbol" ) @trusted /* exception only used in module */
+    static noreturn error( string msg = "Invalid symbol" ) @trusted /* exception only used in module */
     {
         pragma(inline, false); // tame dmd inliner
 
@@ -110,7 +110,7 @@ pure @safe:
     }
 
 
-    static void overflow( string msg = "Buffer overflow" ) @trusted /* exception only used in module */
+    static noreturn overflow( string msg = "Buffer overflow" ) @trusted /* exception only used in module */
     {
         pragma(inline, false); // tame dmd inliner
 
@@ -156,7 +156,6 @@ pure @safe:
         if (val >= '0' && val <= '9')
             return cast(ubyte)(val - '0');
         error();
-        return 0;
     }
 
 
@@ -1008,7 +1007,6 @@ pure @safe:
                 }
             }
             error();
-            return null;
         }
     }
 
