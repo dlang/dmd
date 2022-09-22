@@ -45,12 +45,12 @@ $(GNAME Parameter):
     $(GLINK ParameterAttributes)$(OPT) $(GLINK2 type, Type) $(D =) $(ASSIGNEXPRESSION)
 
 $(GNAME ParameterAttributes):
-    $(GLINK InOut)
+    $(GLINK ParameterStorageClass)
     $(GLINK2 attribute, UserDefinedAttribute)
-    $(GSELF ParameterAttributes) $(GLINK InOut)
+    $(GSELF ParameterAttributes) $(GLINK ParameterStorageClass)
     $(GSELF ParameterAttributes) $(GLINK2 attribute, UserDefinedAttribute)
 
-$(GNAME InOut):
+$(GNAME ParameterStorageClass):
     $(D auto)
     $(GLINK2 type, TypeCtor)
     $(D final)
