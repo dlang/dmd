@@ -31,7 +31,7 @@ void f(){
 }
 
 // https://issues.dlang.org/show_bug.cgi?id=10488
-version(None)
+version(none)
 void g(){
     auto a = A.getInstance();
     auto b = B.getInstance();
