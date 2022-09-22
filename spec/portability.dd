@@ -55,7 +55,7 @@ static assert(int.sizeof == (int*).sizeof);
 
 $(H2 $(LNAME2 32_to_64bit, 32 to 64 Bit Portability))
 
-        $(P 64 bit processors and operating systems are here.
+        $(P 32 bit processors and operating systems are still out there.
         With that in mind:
         )
 
