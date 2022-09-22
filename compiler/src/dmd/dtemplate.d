@@ -3841,10 +3841,20 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                         tp = (*parameters)[i];
                     else
                     {
+                        Loc loc;
+                        // The "type" (it hasn't been resolved yet) of the function parameter
+                        // does not have a location but the parameter it is related to does,
+                        // so we use that for the resolution (better error message).
+                        if (inferStart < parameters.dim)
+                        {
+                            TemplateParameter loctp = (*parameters)[inferStart];
+                            loc = loctp.loc;
+                        }
+
                         Expression e;
                         Type tx;
                         Dsymbol s;
-                        taa.index.resolve(Loc.initial, sc, e, tx, s);
+                        taa.index.resolve(loc, sc, e, tx, s);
                         edim = s ? getValue(s) : getValue(e);
                     }
                 }
