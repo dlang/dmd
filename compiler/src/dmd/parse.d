@@ -1792,7 +1792,20 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         // Get TemplateArgumentList
         while (token.value != endtok)
         {
-            tiargs.push(parseTypeOrAssignExp());
+            if (peekNext() == TOK.colon)
+            {
+                // Named argument `name: exp`
+                auto loc = token.loc;
+                auto ident = token.ident;
+                check(TOK.identifier);
+                check(TOK.colon);
+                auto arg = parseTypeOrAssignExp();
+                tiargs.push(new AST.NamedArgExp(loc, ident, arg));
+            }
+            else
+            {
+                tiargs.push(parseTypeOrAssignExp());
+            }
             if (token.value != TOK.comma)
                 break;
             nextToken();
@@ -9323,8 +9336,23 @@ LagainStc:
 
         while (token.value != endtok && token.value != TOK.endOfFile)
         {
-            auto arg = parseAssignExp();
-            arguments.push(arg);
+            if (peekNext() == TOK.colon)
+            {
+                // Named argument `name: exp`
+                auto loc = token.loc;
+                auto ident = token.ident;
+                // nextToken();
+                check(TOK.identifier);
+                check(TOK.colon);
+                auto arg = parseAssignExp();
+                arguments.push(new AST.NamedArgExp(loc, ident, arg));
+            }
+            else
+            {
+                auto arg = parseAssignExp();
+                arguments.push(arg);
+            }
+
             if (token.value != TOK.comma)
                 break;
 
@@ -9614,6 +9642,7 @@ immutable PREC[EXP.max + 1] precedence =
     EXP.declaration : PREC.expr,
 
     EXP.interval : PREC.assign,
+    EXP.namedArg : PREC.assign,
 ];
 
 enum ParseStatementFlags : int

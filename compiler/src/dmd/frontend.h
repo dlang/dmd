@@ -224,6 +224,7 @@ class PrettyFuncInitExp;
 class ObjcClassReferenceExp;
 class ClassReferenceExp;
 class ThrownExceptionExp;
+class NamedArgExp;
 class UnaExp;
 class BinExp;
 class BinAssignExp;
@@ -1397,6 +1398,7 @@ enum class EXP : uint8_t
     compoundLiteral = 132u,
     _Generic = 133u,
     interval = 134u,
+    namedArg = 135u,
 };
 
 typedef uint64_t dinteger_t;
@@ -1587,6 +1589,7 @@ public:
     ObjcClassReferenceExp* isObjcClassReferenceExp();
     ClassReferenceExp* isClassReferenceExp();
     ThrownExceptionExp* isThrownExceptionExp();
+    NamedArgExp* isNamedArgExp();
     UnaExp* isUnaExp();
     BinExp* isBinExp();
     BinAssignExp* isBinAssignExp();
@@ -2467,6 +2470,7 @@ public:
     virtual void visit(typename AST::ArrayInitializer i);
     virtual void visit(typename AST::VoidInitializer i);
     virtual void visit(typename AST::CInitializer i);
+    virtual void visit(typename AST::NamedArgExp e);
 };
 
 struct MangleOverride final
@@ -4847,6 +4851,7 @@ struct ASTCodegen final
     using ModuleInitExp = ::ModuleInitExp;
     using MulAssignExp = ::MulAssignExp;
     using MulExp = ::MulExp;
+    using NamedArgExp = ::NamedArgExp;
     using NegExp = ::NegExp;
     using NewAnonClassExp = ::NewAnonClassExp;
     using NewExp = ::NewExp;
@@ -7717,6 +7722,14 @@ public:
     void accept(Visitor* v) override;
 };
 
+class NamedArgExp : public Expression
+{
+public:
+    Identifier* ident;
+    RootObject* arg;
+    void accept(Visitor* v) override;
+};
+
 class ObjcClassReferenceExp final : public Expression
 {
 public:
@@ -8104,6 +8117,7 @@ public:
     void visit(TemplateThisParameter* tp) override;
     void visit(TemplateAliasParameter* tp) override;
     void visit(TemplateValueParameter* tp) override;
+    void visit(NamedArgExp* e) override;
     void visit(StaticIfCondition* c) override;
     void visit(Parameter* p) override;
     void visit(Module* m) override;

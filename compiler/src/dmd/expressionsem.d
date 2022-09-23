@@ -1636,6 +1636,12 @@ private bool preFunctionParameters(Scope* sc, Expressions* exps, const bool repo
         for (size_t i = 0; i < exps.dim; i++)
         {
             Expression arg = (*exps)[i];
+            if (arg.isNamedArgExp())
+            {
+                arg.error("named arguments (`%s`) are not supported yet", arg.toChars());
+                err = true;
+                continue;
+            }
             arg = resolveProperties(sc, arg);
             arg = arg.arrayFuncConv(sc);
             if (arg.op == EXP.type)

@@ -236,6 +236,7 @@ public:
     PrettyFuncInitExp* isPrettyFuncInitExp();
     ClassReferenceExp* isClassReferenceExp();
     ThrownExceptionExp* isThrownExceptionExp();
+    NamedArgExp* isNamedArgExp();
     UnaExp* isUnaExp();
     BinExp* isBinExp();
     BinAssignExp* isBinAssignExp();
@@ -1350,6 +1351,14 @@ class PrettyFuncInitExp final : public DefaultInitExp
 public:
     Expression *resolveLoc(const Loc &loc, Scope *sc) override;
     void accept(Visitor *v) override { v->visit(this); }
+};
+
+class NamedArgExp : public Expression
+{
+public:
+    Identifier* ident;
+    RootObject* arg;
+    void accept(Visitor* v) override;
 };
 
 /****************************************************************/

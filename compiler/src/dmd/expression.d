@@ -1761,6 +1761,7 @@ extern (C++) abstract class Expression : ASTNode
         inout(ObjcClassReferenceExp) isObjcClassReferenceExp() { return op == EXP.objcClassReference ? cast(typeof(return))this : null; }
         inout(ClassReferenceExp) isClassReferenceExp() { return op == EXP.classReference ? cast(typeof(return))this : null; }
         inout(ThrownExceptionExp) isThrownExceptionExp() { return op == EXP.thrownException ? cast(typeof(return))this : null; }
+        inout(NamedArgExp) isNamedArgExp() { return op == EXP.namedArg ? cast(typeof(return))this : null; }
 
         inout(UnaExp) isUnaExp() pure inout nothrow @nogc
         {
@@ -6988,6 +6989,31 @@ extern (C++) final class PrettyFuncInitExp : DefaultInitExp
         e = e.expressionSemantic(sc);
         e.type = Type.tstring;
         return e;
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/***********************************************************
+ * Named argument in an argument list
+ *
+ * Examples: `f(x: 3)`, `g!(T: int)`
+ */
+extern (C++) class NamedArgExp : Expression
+{
+    /// Name of parameter to assign argument to
+    Identifier ident;
+    /// (template) argument to assign
+    RootObject arg;
+
+    extern (D) this(const ref Loc loc, Identifier ident, RootObject arg)
+    {
+        super(loc, EXP.namedArg, __traits(classInstanceSize, NamedArgExp));
+        this.ident = ident;
+        this.arg = arg;
     }
 
     override void accept(Visitor v)

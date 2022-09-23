@@ -1204,6 +1204,21 @@ package mixin template ParseVisitMethods(AST)
             tp.defaultValue.accept(this);
     }
 
+    override void visit(AST.NamedArgExp e)
+    {
+        switch(e.arg.dyncast())
+        {
+            case DYNCAST.expression:
+                (cast(AST.Expression)e.arg).accept(this);
+                break;
+            case DYNCAST.type:
+                (cast(AST.Type)e.arg).accept(this);
+                break;
+            default:
+                break;
+        }
+    }
+
 //===========================================================
 
     override void visit(AST.StaticIfCondition c)

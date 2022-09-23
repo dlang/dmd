@@ -436,6 +436,7 @@ enum class EXP : unsigned char
     compoundLiteral, // ( type-name ) { initializer-list }
     _Generic_,
     interval,
+    namedArg,
 
     MAX
 };

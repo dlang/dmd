@@ -6590,6 +6590,15 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             Expression ea = isExpression(o);
             Dsymbol sa = isDsymbol(o);
 
+            if (ea)
+            {
+                if (auto na = ea.isNamedArgExp())
+                {
+                    ea.error("named arguments (`%s`) are not supported yet", na.toChars());
+                    continue;
+                }
+            }
+
             //printf("1: (*tiargs)[%d] = %p, s=%p, v=%p, ea=%p, ta=%p\n", j, o, isDsymbol(o), isTuple(o), ea, ta);
             if (ta)
             {

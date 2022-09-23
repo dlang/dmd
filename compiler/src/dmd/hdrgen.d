@@ -2586,6 +2586,13 @@ private void expressionPrettyPrint(Expression e, OutBuffer* buf, HdrGenState* hg
         buf.writestring(e.value.toChars());
     }
 
+    void visitNamedArg(NamedArgExp e)
+    {
+        buf.writestring(e.ident.toChars());
+        buf.writestring(": ");
+        buf.writestring(e.arg.toChars());
+    }
+
     switch (e.op)
     {
         default:
@@ -2659,6 +2666,7 @@ private void expressionPrettyPrint(Expression e, OutBuffer* buf, HdrGenState* hg
         case EXP.remove:        return visitRemove(e.isRemoveExp());
         case EXP.question:      return visitCond(e.isCondExp());
         case EXP.classReference:        return visitClassReference(e.isClassReferenceExp());
+        case EXP.namedArg:      return visitNamedArg(e.isNamedArgExp());
     }
 }
 

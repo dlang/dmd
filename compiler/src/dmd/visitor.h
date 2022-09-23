@@ -293,6 +293,7 @@ class LineInitExp;
 class ModuleInitExp;
 class FuncInitExp;
 class PrettyFuncInitExp;
+class NamedArgExp;
 class ClassReferenceExp;
 class VoidInitExp;
 class ThrownExceptionExp;
@@ -590,6 +591,8 @@ public:
     virtual void visit(ArrayInitializer *i) { visit((Initializer *)i); }
     virtual void visit(VoidInitializer *i) { visit((Initializer *)i); }
     virtual void visit(CInitializer *i) { visit((Initializer *)i); }
+
+    virtual void visit(NamedArgExp *e) { visit((Expression *)e); }
 };
 
 class Visitor : public ParseTimeVisitor

@@ -6141,6 +6141,19 @@ struct ASTBase
         }
     }
 
+    extern (C++) class NamedArgExp : Expression
+    {
+        Identifier ident;
+        RootObject arg;
+
+        extern (D) this(const ref Loc loc, Identifier ident, RootObject arg)
+        {
+            super(loc, EXP.namedArg, __traits(classInstanceSize, NamedArgExp));
+            this.ident = ident;
+            this.arg = arg;
+        }
+    }
+
     extern (C++) final class GenericExp : Expression
     {
         Expression cntlExp;

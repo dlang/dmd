@@ -1756,6 +1756,12 @@ public:
         result = CTFEExp.cantexp;
     }
 
+    override void visit(NamedArgExp e)
+    {
+        e.error("cannot use named argument `%s` in `mixin` or `pragma`", e.toChars());
+        result = CTFEExp.cantexp;
+    }
+
     override void visit(TypeExp e)
     {
         debug (LOG)
