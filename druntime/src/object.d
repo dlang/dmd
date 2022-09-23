@@ -2700,7 +2700,7 @@ class Exception : Throwable
      * Creates a new instance of Exception. The nextInChain parameter is used
      * internally and should always be $(D null) when passed by user code.
      * This constructor does not automatically throw the newly-created
-     * Exception; the $(D throw) statement should be used for that purpose.
+     * Exception; the $(D throw) expression should be used for that purpose.
      */
     @nogc @safe pure nothrow this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable nextInChain = null)
     {
