@@ -7646,14 +7646,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         // Check for unsafe casts
         if (!isSafeCast(ex, t1b, tob))
         {
-            // This is an ad-hoc fix for https://issues.dlang.org/show_bug.cgi?id=19646
-            // Should be replaced by a more general @system variables implementation
-            if (!sc.func && sc.stc & STC.safe)
-            {
-                exp.error("cast from `%s` to `%s` not allowed in safe code", exp.e1.type.toChars(), exp.to.toChars());
-                return setError();
-            }
-
             if (sc.setUnsafe(false, exp.loc, "cast from `%s` to `%s` not allowed in safe code", exp.e1.type, exp.to))
             {
                 return setError();

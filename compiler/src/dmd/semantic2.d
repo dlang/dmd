@@ -230,6 +230,8 @@ private extern(C++) final class Semantic2Visitor : Visitor
             return;
 
         //printf("VarDeclaration::semantic2('%s')\n", toChars());
+        sc.varDecl = vd;
+        scope(exit) sc.varDecl = null;
 
         if (vd.aliassym)        // if it's a tuple
         {

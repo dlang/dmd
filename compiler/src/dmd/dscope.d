@@ -78,6 +78,7 @@ struct Scope
     Module _module;                 /// Root module
     ScopeDsymbol scopesym;          /// current symbol
     FuncDeclaration func;           /// function we are in
+    VarDeclaration varDecl;         /// variable we are in during semantic2
     Dsymbol parent;                 /// parent to use
     LabelStatement slabel;          /// enclosing labelled statement
     SwitchStatement sw;             /// enclosing switch statement

@@ -1401,14 +1401,32 @@ extern (C++) abstract class Expression : ASTNode
      */
     extern (D) final bool checkSafety(Scope* sc, FuncDeclaration f)
     {
-        if (!sc.func)
-            return false;
         if (sc.func == f)
             return false;
         if (sc.intypeof == 1)
             return false;
-        if (sc.flags & (SCOPE.ctfe | SCOPE.debug_))
+        if (sc.flags & SCOPE.debug_)
             return false;
+        if ((sc.flags & SCOPE.ctfe) && sc.func)
+            return false;
+
+        if (!sc.func)
+        {
+            if (sc.varDecl && !f.safetyInprocess && !f.isSafe() && !f.isTrusted())
+            {
+                if (sc.varDecl.storage_class & STC.safe)
+                {
+                    error("`@safe` variable `%s` cannot be initialized by calling `@system` function `%s`",
+                        sc.varDecl.toChars(), f.toChars());
+                    return true;
+                }
+                else
+                {
+                    sc.varDecl.storage_class |= STC.system;
+                }
+            }
+            return false;
+        }
 
         if (!f.isSafe() && !f.isTrusted())
         {
