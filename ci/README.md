@@ -113,12 +113,12 @@ The auto tester tests DMD on various Posix platforms.
 **Config**: [azure-pipelines.yml](https://github.com/dlang/dmd/blob/master/.github/workflows/runnable_cxx.yml)
 
 **Checks**:
-- C++ interop tests / Run (macOS-10.15, clang-13.0.0)
-- C++ interop tests / Run (macOS-10.15, clang-12.0.0)
-- C++ interop tests / Run (macOS-10.15, clang-11.0.0)
-- C++ interop tests / Run (macOS-10.15, clang-10.0.0)
-- C++ interop tests / Run (macOS-10.15, clang-9.0.0)
-- C++ interop tests / Run (macOS-10.15, clang-8.0.0)
+- C++ interop tests / Run (macos-11, clang-13.0.0)
+- C++ interop tests / Run (macos-11, clang-12.0.0)
+- C++ interop tests / Run (macos-11, clang-11.0.0)
+- C++ interop tests / Run (macos-11, clang-10.0.0)
+- C++ interop tests / Run (macos-11, clang-9.0.0)
+- C++ interop tests / Run (macos-11, clang-8.0.0)
 - C++ interop tests / Run (ubuntu-18.04, clang-10.0.0)
 - C++ interop tests / Run (ubuntu-18.04, clang-9.0.0)
 - C++ interop tests / Run (ubuntu-18.04, clang-8.0.0)

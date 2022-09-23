@@ -29,7 +29,7 @@ jobs:
       fail-fast: false
       # Matches the matrix in DMD to support the same platforms
       matrix:
-        os: [ macOS-10.15, ubuntu-18.04, windows-2019 ]
+        os: [ macos-11, ubuntu-18.04, windows-2019 ]
         target: [
           clang-9.0.0, clang-8.0.0,
           g++-9, g++-8, g++-7, g++-6, g++-5,
@@ -42,14 +42,14 @@ jobs:
           - { os: ubuntu-18.04, target: msvc-2017 }
           - { os: ubuntu-18.04, target: msvc-2015 }
           # OSX only supports clang
-          - { os: macOS-10.15, target: g++-9 }
-          - { os: macOS-10.15, target: g++-8 }
-          - { os: macOS-10.15, target: g++-7 }
-          - { os: macOS-10.15, target: g++-6 }
-          - { os: macOS-10.15, target: g++-5 }
-          - { os: macOS-10.15, target: msvc-2019 }
-          - { os: macOS-10.15, target: msvc-2017 }
-          - { os: macOS-10.15, target: msvc-2015 }
+          - { os: macos-11, target: g++-9 }
+          - { os: macos-11, target: g++-8 }
+          - { os: macos-11, target: g++-7 }
+          - { os: macos-11, target: g++-6 }
+          - { os: macos-11, target: g++-5 }
+          - { os: macos-11, target: msvc-2019 }
+          - { os: macos-11, target: msvc-2017 }
+          - { os: macos-11, target: msvc-2015 }
           # We don't test g++ on Windows as DMD only mangles for MSVC
           - { os: windows-2019, target: g++-9 }
           - { os: windows-2019, target: g++-8 }
@@ -80,9 +80,9 @@ jobs:
           - { target: g++-5, compiler: g++, cxx-version: 5.5.0 }
           # Platform boilerplate
           - { os: ubuntu-18.04, arch: x86_64-linux-gnu-ubuntu-18.04 }
-          - { os: macOS-10.15,  arch: x86_64-apple-darwin }
+          - { os: macos-11,  arch: x86_64-apple-darwin }
           # Clang 9.0.0 have a different arch for OSX
-          - { os: macOS-10.15, target: clang-9.0.0, arch: x86_64-darwin-apple }
+          - { os: macos-11, target: clang-9.0.0, arch: x86_64-darwin-apple }
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -146,7 +146,7 @@ jobs:
         # On OSX, the system header are installed via `xcode-select` and not distributed with clang
         # Since some part of the testsuite rely on CC being only a binary (not a command),
         # and config files where only introduced from 6.0.0, use a wrapper script.
-        if [ "${{ matrix.os }}" == "macOS-10.15" ]; then
+        if [ "${{ matrix.os }}" == "macos-11" ]; then
           # Note: heredoc shouldn't be indented
           cat <<EOF > ${TMP_CC}-wrapper
         #!/bin/bash
