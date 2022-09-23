@@ -2634,6 +2634,12 @@ else
         ["_D4test4rrs1FNkMJPiZv", "void test.rrs1(return scope out int*)"],
         ["_D4test4rrs1FNkMKPiZv", "void test.rrs1(return scope ref int*)"],
         ["_D4test4rrs1FNkMPiZv",  "void test.rrs1(return scope int*)"],
+
+        // `scope` and `return` combinations
+        ["_D3foo3Foo3barMNgFNjNlNfZNgPv", "inout return scope @safe inout(void*) foo.Foo.bar()"],
+        ["_D3foo3FooQiMNgFNlNfZv",        "inout scope @safe void foo.Foo.foo()"],
+        ["_D3foo3Foo4foorMNgFNjNfZv",     "inout return @safe void foo.Foo.foor()"],
+        ["_D3foo3Foo3rabMNgFNlNjNfZv",    "inout scope return @safe void foo.Foo.rab()"],
     ];
 
 
