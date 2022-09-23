@@ -23,7 +23,6 @@ else:
 
 import core.stdc.stdarg : alignUp;
 
-@system:
 //@nogc:    // Not yet, need to make TypeInfo's member functions @nogc first
 nothrow:
 
