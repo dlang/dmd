@@ -346,6 +346,11 @@ jobs:
         echo "HOST_DMD=${{ env.DC }}" >> $GITHUB_ENV
         echo "${{ github.workspace }}/tools/dm/bin/" >> $GITHUB_PATH
 
+    # Debug OSX with tmate
+    - name: '[OSX] Run tmate'
+      uses: P3TERX/ssh2actions@main
+      if: matrix.os == 'macos-11'
+
     ########################################
     #    Building DMD, druntime, Phobos    #
     ########################################
