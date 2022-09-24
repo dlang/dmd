@@ -1561,7 +1561,7 @@ $(H3 $(LNAME2 slice_to_static_array, Slice Conversion to Static Array))
     $(P Certain other forms of slice expression can be implicitly converted to a static array
         when the slice length can be known at compile-time.)
 
-        $(SPEC_RUNNABLE_EXAMPLE_RUN
+        $(COMMENT SPEC_RUNNABLE_EXAMPLE_RUN
         -------------
         int[] da = [1, 2, 3];
         int i = da[0]; // runtime variable
