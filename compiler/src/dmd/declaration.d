@@ -785,7 +785,17 @@ extern (C++) final class AliasDeclaration : Declaration
              * is not overloadable.
              */
             if (type)
-                return false;
+            {
+                /*
+                    If type has been resolved already we could
+                    still be inserting an alias from an import.
+
+                    If we are handling an alias then pretend
+                    it was inserting and return true, if not then
+                    false since we didn't even pretend to insert something.
+                */
+                return this._import && this.equals(s);
+            }
 
             /* When s is added in member scope by static if, mixin("code") or others,
              * aliassym is determined already. See the case in: test/compilable/test61.d
