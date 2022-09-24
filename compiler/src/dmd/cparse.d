@@ -1886,15 +1886,6 @@ final class CParser(AST) : Parser!AST
             }
             if (s !is null)
             {
-                s = applySpecifier(s, specifier);
-                if (level == LVL.local)
-                {
-                    // Wrap the declaration in `extern (C) { declaration }`
-                    // Necessary for function pointers, but harmless to apply to all.
-                    auto decls = new AST.Dsymbols(1);
-                    (*decls)[0] = s;
-                    s = new AST.LinkDeclaration(s.loc, linkage, decls);
-                }
                 // Saw `asm("name")` in the function, type, or variable definition.
                 // This is equivalent to `pragma(mangle, "name")` in D
                 if (asmName)
@@ -1916,6 +1907,15 @@ final class CParser(AST) : Parser!AST
                         auto str = asmName.peekString();
                         p.mangleOverride = str;
                     }
+                }
+                s = applySpecifier(s, specifier);
+                if (level == LVL.local)
+                {
+                    // Wrap the declaration in `extern (C) { declaration }`
+                    // Necessary for function pointers, but harmless to apply to all.
+                    auto decls = new AST.Dsymbols(1);
+                    (*decls)[0] = s;
+                    s = new AST.LinkDeclaration(s.loc, linkage, decls);
                 }
                 symbols.push(s);
             }
