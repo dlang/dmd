@@ -3086,8 +3086,38 @@ void main()
         )
 
         $(P Those referenced stack variables that make up the closure
-        are allocated on the GC heap. Closures are not allowed for
-        `@nogc` functions.)
+        are allocated on the GC heap, unless:)
+
+        * The closure is passed to a `scope` parameter.
+        * The closure is an initializer for a `scope` variable.
+        * The closure is assigned to a `scope` variable.
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+@nogc:
+void f(scope int delegate());
+void g(int delegate());
+
+void main()
+{
+    int i;
+    int h() { return i; }
+    h(); // OK
+    scope x = &h; // OK
+    x(); // OK
+    //auto y = &h; // error, can't allocate closure in @nogc function
+    f(&h); // OK
+    //g(&h); // error
+
+    // delegate literals
+    f(() => i); // OK
+    scope d = () => i; // OK
+    d = () => i + 1; // OK
+    f(d);
+    //g(() => i); // error, can't allocate closure in @nogc function
+}
+---
+)
 
         $(NOTE Returning addresses of stack variables, however, is not
         a closure and is an error.
@@ -3550,7 +3580,8 @@ $(H2 $(LNAME2 nogc-functions, No-GC Functions))
             void bar() { }
             ---
 
-        $(P No-GC functions cannot be closures.
+        $(P No-GC functions can only use a closure if it is `scope` -
+            see $(RELATIVE_LINK2 closures, Delegates & Closures).
         )
 
             ---
