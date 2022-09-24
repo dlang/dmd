@@ -1642,8 +1642,15 @@ public:
         if (exceptionOrCant(e))
             return;
 
-        assert(e.op == EXP.classReference);
-        result = ctfeEmplaceExp!ThrownExceptionExp(loc, e.isClassReferenceExp());
+        if (e.op == EXP.classReference)
+        {
+            result = ctfeEmplaceExp!ThrownExceptionExp(loc, e.isClassReferenceExp());
+        }
+        else
+        {
+            exp.error("to be thrown `%s` must be non-null", exp.toChars());
+            result = ErrorExp.get();
+        }
     }
 
     override void visit(ScopeGuardStatement s)
