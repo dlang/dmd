@@ -863,8 +863,6 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
 
             for (size_t index = 0; index < ci.initializerList.length; )
             {
-                if (fieldi == nfields)
-                    break;
                 auto di = ci.initializerList[index];
                 auto dlist = di.designatorList;
                 if (dlist)
@@ -889,12 +887,14 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                             si.addInit(id, di.initializer);
                             ++fieldi;
                             ++index;
-                            continue;
+                            break;
                         }
                     }
                 }
                 else
                 {
+                    if (fieldi == nfields)
+                        break;
                     VarDeclaration field;
                     while (1)   // skip field if it overlaps with previously seen fields
                     {

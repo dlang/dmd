@@ -816,6 +816,20 @@ void test22925()
 
 /*******************************************/
 
+// https://issues.dlang.org/show_bug.cgi?id=23345
+
+struct S47 { int a, b; };
+
+struct S47 s47 = { .b = 3, .a = 2 };
+
+void test47()
+{
+    assert(s47.b == 3, __LINE__);
+    assert(s47.a == 2, __LINE__);
+}
+
+/*******************************************/
+
 int main()
 {
     test1();
@@ -863,6 +877,7 @@ int main()
     test45();
     test46();
     test22925();
+    test47();
 
     return 0;
 }
