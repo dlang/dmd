@@ -318,6 +318,7 @@ struct ASTBase
         Type type;
         short inuse;
         ubyte adFlags;
+          enum nounderscore = 4;
 
         final extern (D) this(Identifier id)
         {

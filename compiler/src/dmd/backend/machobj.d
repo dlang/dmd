@@ -2174,6 +2174,9 @@ else
             break;
 
         case mTYman_c:
+            if (s.Sflags & SFLnounderscore)
+                goto case 0;
+            goto case;
         case mTYman_cpp:
         case mTYman_d:
             if (len >= DEST_LEN - 1)
