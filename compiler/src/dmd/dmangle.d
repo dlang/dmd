@@ -692,7 +692,7 @@ public:
     override void visit(Declaration d)
     {
         //printf("Declaration.mangle(this = %p, '%s', parent = '%s', linkage = %d)\n",
-        //        d, d.toChars(), d.parent ? d.parent.toChars() : "null", d.linkage);
+        //        d, d.toChars(), d.parent ? d.parent.toChars() : "null", d._linkage);
         if (const id = externallyMangledIdentifier(d))
         {
             buf.writestring(id);
@@ -794,9 +794,11 @@ public:
     void mangleExact(FuncDeclaration fd)
     {
         assert(!fd.isFuncAliasDeclaration());
-        if (fd.mangleOverride)
+        if (auto str = fd.mangleOverride)
         {
-            buf.writestring(fd.mangleOverride);
+            auto s = (str.length > 1 && str[0] == '*')
+                ? str[1 .. $] : str;
+            buf.writestring(s);
             return;
         }
         if (fd.isMain())
@@ -814,9 +816,11 @@ public:
 
     override void visit(VarDeclaration vd)
     {
-        if (vd.mangleOverride)
+        if (auto str = vd.mangleOverride)
         {
-            buf.writestring(vd.mangleOverride);
+            auto s = (str.length > 1 && str[0] == '*')
+                ? str[1 .. $] : str;
+            buf.writestring(s);
             return;
         }
         visit(cast(Declaration)vd);

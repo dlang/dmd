@@ -1914,7 +1914,7 @@ final class CParser(AST) : Parser!AST
                     if (auto p = s.isDeclaration())
                     {
                         auto str = asmName.peekString();
-                        p.mangleOverride = str;
+                        p.mangleOverride = '*' ~ str;
                     }
                 }
                 symbols.push(s);

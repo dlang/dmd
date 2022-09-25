@@ -2449,7 +2449,15 @@ size_t OmfObj_mangle(Symbol *s,char *dest)
 version (SCPP)
     name = CPP ? cpp_mangle(s) : &s.Sident[0];
 else version (MARS)
+{
     name = &s.Sident[0];
+    if (*name == '*')   // if name overrides any mangling
+    {
+        ++name;         // skip over '*'
+        len = strlen(name);
+        goto Lcase0;
+    }
+}
 else
     static assert(0);
 
@@ -2563,9 +2571,11 @@ else
             goto case;
 
         case mTYman_sys:
+        Lcase0:
             memcpy(dest + 1, name, len);        // no mangling
             dest[1 + len] = 0;
             break;
+
         default:
             symbol_print(s);
             assert(0);

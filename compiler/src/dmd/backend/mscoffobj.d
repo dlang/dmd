@@ -1734,6 +1734,12 @@ version (SCPP)
 else version (MARS)
     // C++ name mangling is handled by front end
     name = &s.Sident[0];
+    if (*name == '*')   // if name overrides any mangling
+    {
+        ++name;         // skip over '*'
+        len = strlen(name);
+        goto Lcase0;
+    }
 else
     name = &s.Sident[0];
 
@@ -1772,6 +1778,7 @@ else
         case mTYman_sys:
         case_mTYman_c64:
         case 0:
+        Lcase0:
             if (len >= DEST_LEN)
                 dest = cast(char *)mem_malloc(len + 1);
             memcpy(dest,name,len+1);// copy in name and trailing 0

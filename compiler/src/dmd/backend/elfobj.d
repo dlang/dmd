@@ -2158,15 +2158,22 @@ char *obj_mangle2(Symbol *s,char *dest, size_t *destlen)
     symbol_debug(s);
     assert(dest);
 
+    size_t len;
 version (SCPP)
     name = CPP ? cpp_mangle2(s) : s.Sident.ptr;
 else version (MARS)
     // C++ name mangling is handled by front end
     name = s.Sident.ptr;
+    if (*name == '*')   // if name overrides any mangling
+    {
+        ++name;         // skip over '*'
+        len = strlen(name);
+        goto Lcase0;
+    }
 else
     name = s.Sident.ptr;
 
-    size_t len = strlen(name);                 // # of bytes in name
+    len = strlen(name);                 // # of bytes in name
     //dbg_printf("len %d\n",len);
     switch (type_mangle(s.Stype))
     {
@@ -2208,6 +2215,7 @@ else
         case mTYman_d:
         case mTYman_sys:
         case 0:
+        Lcase0:
             if (len >= DEST_LEN)
                 dest = cast(char *)mem_malloc(len + 1);
             memcpy(dest,name,len+1);// copy in name and trailing 0

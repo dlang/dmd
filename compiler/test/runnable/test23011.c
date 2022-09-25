@@ -1,4 +1,4 @@
-/* DISABLED: win32 win32mscoff win64
+/* DISABLED: linux32 linux64 freebsd32 freebsd64
  */
 
 /* https://issues.dlang.org/show_bug.cgi?id=23011
