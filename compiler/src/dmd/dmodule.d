@@ -1229,8 +1229,7 @@ extern (C++) final class Module : Package
         return this.importedFrom == this;
     }
 
-    // true if the module source file is directly
-    // listed in command line.
+    /// Returns: Whether this module is in the `core` package and has name `ident`
     bool isCoreModule(Identifier ident) nothrow
     {
         return this.ident == ident && parent && parent.ident == Id.core && !parent.parent;
