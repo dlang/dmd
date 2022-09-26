@@ -2576,53 +2576,6 @@ private void addMaybe(VarDeclaration va, VarDeclaration v)
     va.maybes.push(v);
 }
 
-/***************************************
- * Like `FuncDeclaration.setUnsafe`, but modified for dip25 / dip1000 by default transitions
- *
- * With `-preview=dip1000` it actually sets the function as unsafe / prints an error, while
- * without it, it only prints a deprecation in a `@safe` function.
- * With `-revert=preview=dip1000`, it doesn't do anything.
- *
- * Params:
- *   sc = used for checking whether we are in a deprecated scope
- *   fs = command line setting of dip1000 / dip25
- *   gag = surpress error message
- *   loc = location of error
- *   fmt = printf-style format string
- *   arg0  = (optional) argument for first %s format specifier
- *   arg1  = (optional) argument for second %s format specifier
- *   arg2  = (optional) argument for third %s format specifier
- * Returns: whether an actual safe error (not deprecation) occured
- */
-private bool setUnsafePreview(Scope* sc, FeatureState fs, bool gag, Loc loc, const(char)* msg,
-    RootObject arg0 = null, RootObject arg1 = null, RootObject arg2 = null)
-{
-    if (fs == FeatureState.disabled)
-    {
-        return false;
-    }
-    else if (fs == FeatureState.enabled)
-    {
-        return sc.setUnsafe(gag, loc, msg, arg0, arg1, arg2);
-    }
-    else
-    {
-        if (sc.func.isSafeBypassingInference())
-        {
-            if (!gag)
-                previewErrorFunc(sc.isDeprecated(), fs)(
-                    loc, msg, arg0 ? arg0.toChars() : "", arg1 ? arg1.toChars() : "", arg2 ? arg2.toChars() : ""
-                );
-        }
-        else if (!sc.func.safetyViolation)
-        {
-            import dmd.func : AttributeViolation;
-            sc.func.safetyViolation = new AttributeViolation(loc, msg, arg0, arg1, arg2);
-        }
-        return false;
-    }
-}
-
 // `setUnsafePreview` partially evaluated for dip1000
 private bool setUnsafeDIP1000(Scope* sc, bool gag, Loc loc, const(char)* msg,
     RootObject arg0 = null, RootObject arg1 = null, RootObject arg2 = null)

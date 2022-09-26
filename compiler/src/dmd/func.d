@@ -4431,6 +4431,56 @@ bool setUnsafe(Scope* sc,
     return sc.func.setUnsafe(gag, loc, fmt, arg0, arg1, arg2);
 }
 
+/***************************************
+ * Like `setUnsafe`, but for safety errors still behind preview switches
+ *
+ * Given a `FeatureState fs`, for example dip1000 / dip25 / systemVariables,
+ * the behavior changes based on the setting:
+ *
+ * - In case of `-revert=fs`, it does nothing.
+ * - In case of `-preview=fs`, it's the same as `setUnsafe`
+ * - By default, print a deprecation in `@safe` functions, or store an attribute violation in inferred functions.
+ *
+ * Params:
+ *   sc = used to find affected function/variable, and for checking whether we are in a deprecated / speculative scope
+ *   fs = feature state from the preview flag
+ *   gag = surpress error message
+ *   loc = location of error
+ *   msg = printf-style format string
+ *   arg0  = (optional) argument for first %s format specifier
+ *   arg1  = (optional) argument for second %s format specifier
+ *   arg2  = (optional) argument for third %s format specifier
+ * Returns: whether an actual safe error (not deprecation) occured
+ */
+bool setUnsafePreview(Scope* sc, FeatureState fs, bool gag, Loc loc, const(char)* msg,
+    RootObject arg0 = null, RootObject arg1 = null, RootObject arg2 = null)
+{
+    if (fs == FeatureState.disabled)
+    {
+        return false;
+    }
+    else if (fs == FeatureState.enabled)
+    {
+        return sc.setUnsafe(gag, loc, msg, arg0, arg1, arg2);
+    }
+    else
+    {
+        if (sc.func.isSafeBypassingInference())
+        {
+            if (!gag)
+                previewErrorFunc(sc.isDeprecated(), fs)(
+                    loc, msg, arg0 ? arg0.toChars() : "", arg1 ? arg1.toChars() : "", arg2 ? arg2.toChars() : ""
+                );
+        }
+        else if (!sc.func.safetyViolation)
+        {
+            import dmd.func : AttributeViolation;
+            sc.func.safetyViolation = new AttributeViolation(loc, msg, arg0, arg1, arg2);
+        }
+        return false;
+    }
+}
+
 /// Stores a reason why a function failed to infer a function attribute like `@safe` or `pure`
 ///
 /// Has two modes:
