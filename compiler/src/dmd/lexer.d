@@ -1197,9 +1197,9 @@ class Lexer
     /*******************************************
      * Parse escape sequence.
      */
-    private uint escapeSequence()
+    private uint escapeSequence(scope dchar* c2)
     {
-        return Lexer.escapeSequence(token.loc, p, Ccompile);
+        return Lexer.escapeSequence(token.loc, p, Ccompile, c2);
     }
 
     /********
@@ -1211,10 +1211,11 @@ class Lexer
      *  sequence = pointer to string with escape sequence to parse. Updated to
      *             point past the end of the escape sequence
      *  Ccompile = true for compile C11 escape sequences
+     *  c2 = if not `null`, allows html entity with 2 code units, where the second `dchar` is assigned to c2
      * Returns:
      *  the escape sequence as a single character
      */
-    private dchar escapeSequence(const ref Loc loc, ref const(char)* sequence, bool Ccompile)
+    private dchar escapeSequence(const ref Loc loc, ref const(char)* sequence, bool Ccompile, scope dchar* c2)
     {
         const(char)* p = sequence; // cache sequence reference on stack
         scope(exit) sequence = p;
@@ -1326,11 +1327,22 @@ class Lexer
                 switch (*p)
                 {
                 case ';':
-                    c = HtmlNamedEntity(idstart[0 .. p - idstart]);
-                    if (c == ~0)
+                    auto entity = HtmlNamedEntity(idstart[0 .. p - idstart]);
+                    c = entity[0];
+                    if (entity == entity.init)
                     {
                         error(loc, "unnamed character entity &%.*s;", cast(int)(p - idstart), idstart);
                         c = '?';
+                    }
+                    if (entity[1] != 0)
+                    {
+                        if (c2 is null)
+                        {
+                            error(loc, "character entity &%.*s; requires 2 code units", cast(int)(p - idstart), idstart);
+                            c = '?';
+                        }
+                        else
+                            *c2 = entity[1];
                     }
                     p++;
                     break;
@@ -1673,15 +1685,20 @@ class Lexer
                 case '&':
                     if (Ccompile)
                         goto default;
-                    goto case;
 
+                    dchar c2 = 0;
+                    c = escapeSequence(&c2);
+                    stringbuffer.writeUTF8(c);
+                    if (c2)
+                        stringbuffer.writeUTF8(c2);
+                    continue;
                 case 'u':
                 case 'U':
-                    c = escapeSequence();
+                    c = escapeSequence(null);
                     stringbuffer.writeUTF8(c);
                     continue;
                 default:
-                    c = escapeSequence();
+                    c = escapeSequence(null);
                     break;
                 }
                 break;
@@ -1752,16 +1769,14 @@ class Lexer
             switch (*p)
             {
             case 'u':
-                t.unsvalue = escapeSequence();
                 tk = TOK.wcharLiteral;
-                break;
+                goto default;
             case 'U':
             case '&':
-                t.unsvalue = escapeSequence();
                 tk = TOK.dcharLiteral;
-                break;
+                goto default;
             default:
-                t.unsvalue = escapeSequence();
+                t.unsvalue = escapeSequence(null);
                 break;
             }
             break;
@@ -3186,7 +3201,7 @@ unittest
     {
         auto p = cast(const(char)*)sequence.ptr;
         Lexer lexer = new Lexer();
-        assert(expected == lexer.escapeSequence(Loc.initial, p, Ccompile));
+        assert(expected == lexer.escapeSequence(Loc.initial, p, Ccompile, null));
         assert(p == sequence.ptr + sequence.length);
     }
 
@@ -3253,7 +3268,7 @@ unittest
         expected = expectedError;
         auto p = cast(const(char)*)sequence.ptr;
         Lexer lexer = new Lexer();
-        auto actualReturnValue = lexer.escapeSequence(Loc.initial, p, Ccompile);
+        auto actualReturnValue = lexer.escapeSequence(Loc.initial, p, Ccompile, null);
         assert(gotError);
         assert(expectedReturnValue == actualReturnValue);
 
@@ -3291,6 +3306,7 @@ unittest
     test("&BAD;", `unnamed character entity &BAD;`  , '?', 5);
     test("&quot", `unterminated named entity &quot;`, '?', 5);
     test("&quot", `unterminated named entity &quot;`, '?', 5);
+    test("&acE;", `character entity &acE; requires 2 code units`, '?', 5);
 
     test("400", `escape octal sequence \400 is larger than \377`, 0x100, 3);
 
