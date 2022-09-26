@@ -1510,7 +1510,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             }
         }
 
-        if (toParent().isModule() || (_scope.stc & STC.static_))
+        if (toParent().isModule())
             tthis = null;
         if (tthis)
         {
@@ -1533,7 +1533,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             }
 
             // Match attributes of tthis against attributes of fd
-            if (fd.type && !fd.isCtorDeclaration())
+            if (fd.type && !fd.isCtorDeclaration() && !(_scope.stc & STC.static_))
             {
                 StorageClass stc = _scope.stc | fd.storage_class2;
                 // Propagate parent storage class, https://issues.dlang.org/show_bug.cgi?id=5504
