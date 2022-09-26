@@ -934,6 +934,8 @@ extern (C++) final class Module : Package
          * Ignore prevsc.
          */
         Scope* sc = Scope.createGlobal(this); // create root scope
+        if (global.params.previewIn || this.isStandardLibrary())
+            sc.flags |= SCOPE.previewIn;
 
         if (md && md.msg)
             md.msg = semanticString(sc, md.msg, "deprecation message");
@@ -1233,6 +1235,22 @@ extern (C++) final class Module : Package
     bool isCoreModule(Identifier ident) nothrow
     {
         return this.ident == ident && parent && parent.ident == Id.core && !parent.parent;
+    }
+
+    /// Returns: `true` if this module is in the standard library (druntime or Phobos)
+    final bool isStandardLibrary () const scope @trusted nothrow @nogc
+    {
+        if (this.parent is null)
+            return this.ident == Id.object;
+        const(Dsymbol)* rootPkg = &this.parent;
+        while (rootPkg.parent !is null)
+            rootPkg = &rootPkg.parent;
+
+        if (rootPkg.ident == Id.core)
+            return true;
+        if (rootPkg.ident == Id.etc)
+            return true;
+        return rootPkg.ident == Id.std;
     }
 
     // Back end

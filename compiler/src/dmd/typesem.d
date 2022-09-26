@@ -1084,7 +1084,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
 
             // default arg must be an lvalue
             if (isRefOrOut && !isAuto &&
-                !(global.params.previewIn && (fparam.storageClass & STC.in_)) &&
+                !((sc.flags & SCOPE.previewIn) && (fparam.storageClass & STC.in_)) &&
                 global.params.rvalueRefParam != FeatureState.enabled)
                 e = e.toLvalue(sc, e);
 
@@ -1185,7 +1185,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
 
                 // -preview=in: Always add `ref` when used with `extern(C++)` functions
                 // Done here to allow passing opaque types with `in`
-                if (global.params.previewIn && (fparam.storageClass & (STC.in_ | STC.ref_)) == STC.in_)
+                if ((sc.flags & SCOPE.previewIn) && (fparam.storageClass & (STC.in_ | STC.ref_)) == STC.in_)
                 {
                     switch (tf.linkage)
                     {
@@ -1214,7 +1214,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                     if (tb2.ty == Tstruct && !tb2.isTypeStruct().sym.members ||
                         tb2.ty == Tenum   && !tb2.isTypeEnum().sym.memtype)
                     {
-                        if (global.params.previewIn && (fparam.storageClass & STC.in_))
+                        if ((sc.flags & SCOPE.previewIn) && (fparam.storageClass & STC.in_))
                         {
                             .error(loc, "cannot infer `ref` for `in` parameter `%s` of opaque type `%s`",
                                    fparam.toChars(), fparam.type.toChars());
@@ -1318,7 +1318,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                 fparam.storageClass &= ~(STC.TYPECTOR);
 
                 // -preview=in: add `ref` storage class to suited `in` params
-                if (global.params.previewIn && (fparam.storageClass & (STC.in_ | STC.ref_)) == STC.in_)
+                if ((sc.flags & SCOPE.previewIn) && (fparam.storageClass & (STC.in_ | STC.ref_)) == STC.in_)
                 {
                     auto ts = t.baseElemOf().isTypeStruct();
                     const isPOD = !ts || ts.sym.isPOD();

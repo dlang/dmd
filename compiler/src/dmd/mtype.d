@@ -7381,7 +7381,7 @@ private extern(D) MATCH argumentMatchParameter (TypeFunction tf, Parameter p,
                     ta = tn.sarrayOf(dim);
                 }
             }
-            else if ((p.storageClass & STC.in_) && global.params.previewIn)
+            else if ((p.storageClass & STC.in_) && (sc.flags & SCOPE.previewIn))
             {
                 // Allow converting a literal to an `in` which is `ref`
                 if (arg.op == EXP.arrayLiteral && tp.ty == Tsarray)
