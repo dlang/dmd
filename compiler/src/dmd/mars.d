@@ -1742,7 +1742,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.mixinOut.name = mem.xstrdup(tmp).toDString;
         }
         else if (arg == "-g") // https://dlang.org/dmd.html#switch-g
-            driverParams.symdebug = 1;
+            driverParams.symdebug = true;
         else if (startsWith(p + 1, "gdwarf")) // https://dlang.org/dmd.html#switch-gdwarf
         {
             if (driverParams.dwarf)
@@ -1750,7 +1750,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 error("`-gdwarf=<version>` can only be provided once");
                 break;
             }
-            driverParams.symdebug = 1;
+            driverParams.symdebug = true;
 
             enum len = "-gdwarf=".length;
             // Parse:
@@ -1763,8 +1763,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (arg == "-gf")
         {
-            if (!driverParams.symdebug)
-                driverParams.symdebug = 1;
+            driverParams.symdebug = true;
             driverParams.symdebugref = true;
         }
         else if (arg == "-gs")  // https://dlang.org/dmd.html#switch-gs
