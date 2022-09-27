@@ -5164,12 +5164,26 @@ final class CParser(AST) : Parser!AST
         if (n.value == TOK.identifier && n.ident == Id.pop)
         {
             scan(&n);
+            size_t len = this.records.length;
+            if (n.value == TOK.rightParenthesis) // #pragma pack ( pop )
+            {
+                if (len == 0)   // nothing to pop
+                    return closingParen();
+
+                this.records.setDim(len - 1);
+                this.packs.setDim(len - 1);
+                if (len == 1)   // stack is now empty
+                    packalign.setDefault();
+                else
+                    packalign = (*this.packs)[len - 1];
+                return closingParen();
+            }
             while (n.value == TOK.comma)
             {
                 scan(&n);
                 if (n.value == TOK.identifier)
                 {
-                    for (size_t len = this.records.length; len; --len)
+                    for ( ; len; --len)
                     {
                         if ((*this.records)[len - 1] == n.ident)
                         {
