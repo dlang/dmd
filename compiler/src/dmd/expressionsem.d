@@ -9890,14 +9890,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         exp.type = exp.e1.type;
         assert(exp.type);
+        auto assignElem = exp.e2;
         auto res = exp.op == EXP.assign ? exp.reorderSettingAAElem(sc) : exp;
-        Expression tmp;
         /* https://issues.dlang.org/show_bug.cgi?id=22366
          *
          * `reorderSettingAAElem` creates a tree of comma expressions, however,
          * `checkAssignExp` expects only AssignExps.
          */
-        checkAssignEscape(sc, Expression.extractLast(res, tmp), false, false);
+        if (res == exp) // no `AA[k] = v` rewrite was performed
+            checkAssignEscape(sc, res, false, false);
+        else
+            checkNewEscape(sc, assignElem, false); // assigning to AA puts it on heap
 
         if (auto ae = res.isConstructExp())
         {
