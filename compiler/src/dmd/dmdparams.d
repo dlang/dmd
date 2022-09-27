@@ -38,7 +38,7 @@ struct DMDparams
     PIC pic = PIC.fixed;    // generate fixed, pic or pie code
     bool stackstomp;        // add stack stomping code
 
-    bool symdebug;         // insert debug symbolic information
+    bool symdebug;          // insert debug symbolic information
     bool symdebugref;       // insert debug information for all referenced types, too
 
     const(char)[] defaultlibname;   // default library for non-debug builds
