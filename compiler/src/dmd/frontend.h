@@ -5767,6 +5767,7 @@ public:
     bool isWild() const;
     bool isAuto() const;
     bool isScope() const;
+    bool isReturn() const;
     bool isSynchronized() const;
     bool isParameter() const;
     bool isDeprecated() const final override;

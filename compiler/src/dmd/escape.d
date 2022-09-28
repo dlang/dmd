@@ -718,8 +718,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
 
         if (vaIsFirstRef &&
             (v.isScope() || v.maybeScope) &&
-            !(v.storage_class & STC.return_) &&
-            v.isParameter() &&
+            !v.isReturn() && v.isParameter() &&
             fd.flags & FUNCFLAG.returnInprocess &&
             p == fd &&
             !v.isTypesafeVariadicParameter)
@@ -733,7 +732,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
 
         if (v.isScope())
         {
-            if (vaIsFirstRef && v.isParameter() && v.storage_class & STC.return_)
+            if (vaIsFirstRef && v.isParameter() && v.isReturn())
             {
                 // va=v, where v is `return scope`
                 if (va.isScope())
@@ -747,7 +746,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
                 }
             }
 
-            if (va && va.isScope() && va.storage_class & STC.return_ && !(v.storage_class & STC.return_))
+            if (va && va.isScope() && va.isReturn() && !v.isReturn())
             {
                 // va may return its value, but v does not allow that, so this is an error
                 if (sc.setUnsafeDIP1000(gag, ae.loc, "scope variable `%s` assigned to return scope `%s`", v, va))
@@ -779,8 +778,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
                     /* v returns, and va does not return, so va needs
                      * to infer return
                      */
-                    if (v.storage_class & STC.return_ &&
-                        !(va.storage_class & STC.return_))
+                    if (v.isReturn() && !va.isReturn())
                     {
                         if (log) printf("infer return for %s\n", va.toChars());
                         va.storage_class |= STC.return_ | STC.returninferred;
@@ -834,7 +832,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
 
         if (va && va.isScope() && !v.isReference())
         {
-            if (!(va.storage_class & STC.return_))
+            if (!va.isReturn())
             {
                 va.doNotInferReturn = true;
             }
@@ -847,8 +845,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
 
         Dsymbol p = v.toParent2();
 
-        if (vaIsFirstRef && v.isParameter() &&
-            !(v.storage_class & STC.return_) &&
+        if (vaIsFirstRef && v.isParameter() && !v.isReturn() &&
             fd.flags & FUNCFLAG.returnInprocess &&
             p == fd)
         {
@@ -858,7 +855,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
 
         // If va's lifetime encloses v's, then error
         if (va &&
-            !(vaIsFirstRef && (v.storage_class & STC.return_)) &&
+            !(vaIsFirstRef && v.isReturn()) &&
             (va.enclosesLifetimeOf(v) || (va.isReference() && !(va.storage_class & STC.temp)) || va.isDataseg()))
         {
             if (sc.setUnsafeDIP1000(gag, ae.loc, "address of variable `%s` assigned to `%s` with longer lifetime", v, va))
@@ -880,7 +877,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
             {   //printf("inferring scope for %s\n", va.toChars());
                 va.storage_class |= STC.scope_ | STC.scopeinferred;
             }
-            if (v.storage_class & STC.return_ && !(va.storage_class & STC.return_))
+            if (v.isReturn() && !va.isReturn())
                 va.storage_class |= STC.return_ | STC.returninferred;
             continue;
         }
@@ -901,7 +898,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
          * then uncount that address of. This is so it won't cause a
          * closure to be allocated.
          */
-        if (va && va.isScope() && !(va.storage_class & STC.return_) && func.tookAddressOf)
+        if (va && va.isScope() && !va.isReturn() && func.tookAddressOf)
             --func.tookAddressOf;
 
         foreach (v; vars)
@@ -1247,9 +1244,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
 
         Dsymbol p = v.toParent2();
 
-        if ((v.isScope() || v.maybeScope) &&
-            !(v.storage_class & STC.return_) &&
-            v.isParameter() &&
+        if ((v.isScope() || v.maybeScope) && !v.isReturn() && v.isParameter() &&
             !v.doNotInferReturn &&
             sc.func.flags & FUNCFLAG.returnInprocess &&
             p == sc.func &&
@@ -1289,7 +1284,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                 !(!refs && sc.func.isFuncDeclaration().getLevel(pfunc, sc.intypeof) > 0)
                )
             {
-                if (v.isParameter() && !(v.storage_class & STC.return_))
+                if (v.isParameter() && !v.isReturn())
                 {
                     // https://issues.dlang.org/show_bug.cgi?id=23191
                     if (!gag)
