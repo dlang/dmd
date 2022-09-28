@@ -663,9 +663,8 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
     FuncDeclaration fd = sc.func;
 
 
-    // Determine if va is a parameter that is an indirect reference
-    const bool vaIsRef = va && va.storage_class & STC.parameter &&
-        (va.isReference() || va.type.toBasetype().isTypeClass()); // ref, out, or class
+    // Determine if va is a `ref` parameter, so it has a lifetime exceding the function scope
+    const bool vaIsRef = va && va.isParameter() && va.isReference();
     if (log && vaIsRef) printf("va is ref `%s`\n", va.toChars());
 
     /* Determine if va is the first parameter, through which other 'return' parameters
