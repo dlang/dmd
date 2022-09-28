@@ -139,6 +139,7 @@ public:
     bool isWild() const         { return (storage_class & STCwild) != 0; }
     bool isAuto() const         { return (storage_class & STCauto) != 0; }
     bool isScope() const        { return (storage_class & STCscope) != 0; }
+    bool isReturn() const       { return (storage_class & STCreturn) != 0; }
     bool isSynchronized() const { return (storage_class & STCsynchronized) != 0; }
     bool isParameter() const    { return (storage_class & STCparameter) != 0; }
     bool isDeprecated() const override final { return (storage_class & STCdeprecated) != 0; }
