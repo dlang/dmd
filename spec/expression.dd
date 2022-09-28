@@ -2371,9 +2371,44 @@ $(GNAME ArgumentList):
         collected) heap.
     )
 
-    $(P If a $(I NewExpression) is used as an initializer for
+    $(P The *Type* form constructs an instance of a type and default-initializes it.)
+    $(P The *Type(ArgumentList)* form allows passing either a single initializer
+        of the same type, or multiple arguments for more complex types.
+        For class types, *ArgumentList* is passed to the class constructor.
+        For a dynamic array, the argument sets the initial array length.
+        For multidimensional dynamic arrays, each argument corresponds to
+        an initial length.)
+
+    $(SPEC_RUNNABLE_EXAMPLE_RUN
+    ---
+    int* i = new int;
+    assert(*i == 0);
+    i = new int(5);
+    assert(*i == 5);
+
+    Object o = new Object;
+    Exception e = new Exception("info");
+
+    auto a = new int[](2);
+    assert(a.length == 2);
+
+    int[][] m = new int[][](10, 5);
+    assert(m.length == 10);
+    assert(m[0].length == 5);
+    ---
+    )
+
+    $(P The *Type[AssignExpression]* form allocates a dynamic array with
+        length equal to *AssignExpression*.
+        It is preferred to use the *Type(ArgumentList)* form when allocating
+        dynamic arrays instead, as it is more general.)
+
+    $(NOTE It is not possible to allocate a static array directly with
+        `new` (only by using a type alias).)
+
+    $(P If a $(I NewExpression) is used with a class type as an initializer for
         a function local variable with $(DDSUBLINK spec/attribute, scope, `scope`) storage class,
-        then the instance is allocated on the stack.
+        then the instance is $(DDSUBLINK spec/attribute, scope-class-var, allocated on the stack).
     )
 
     $(P `new` can also be used to allocate a
