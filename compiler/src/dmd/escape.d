@@ -417,16 +417,6 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Var
                 unsafeAssign!"variadic variable"(v);
             }
         }
-        else
-        {
-            /* v is not 'scope', and is assigned to a parameter that may escape.
-             * Therefore, v can never be 'scope'.
-             */
-            if (log) printf("no infer for %s in %s loc %s, fdc %s, %d\n",
-                v.toChars(), sc.func.ident.toChars(), sc.func.loc.toChars(), fdc.ident.toChars(),  __LINE__);
-
-            doNotInferScope(v, vPar);
-        }
     }
 
     foreach (VarDeclaration v; er.byref)
