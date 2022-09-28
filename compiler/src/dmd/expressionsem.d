@@ -4628,8 +4628,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 else if (exp.arguments.dim == 1)
                 {
                     e = (*exp.arguments)[0];
-                    e = e.implicitCastTo(sc, t1);
-                    e = new CastExp(exp.loc, e, t1);
+                    if (!e.type.isTypeNoreturn())
+                        e = e.implicitCastTo(sc, t1);
                 }
                 else
                 {
@@ -7474,6 +7474,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
+        if (exp.e1.type.isTypeNoreturn() && (!exp.to || !exp.to.isTypeNoreturn()))
+        {
+            result = exp.e1;
+            return;
+        }
         if (exp.to && !exp.to.isTypeSArray() && !exp.to.isTypeFunction())
             exp.e1 = exp.e1.arrayFuncConv(sc);
 
