@@ -98,12 +98,12 @@ private const(char)[] getFilename(Identifier[] packages, Identifier ident) nothr
 {
     const(char)[] filename = ident.toString();
 
-    if (packages.length == 0)
-        return filename;
-
     OutBuffer buf;
     OutBuffer dotmods;
     auto modAliases = &global.params.modFileAliasStrings;
+
+    if (packages.length == 0 && modAliases.length == 0)
+        return filename;
 
     void checkModFileAlias(const(char)[] p)
     {
