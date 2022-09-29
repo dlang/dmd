@@ -909,35 +909,6 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
         return sc;
     }
 
-    PINLINE evalPragmaInline(Scope* sc)
-    {
-        if (!args || args.dim == 0)
-            return PINLINE.default_;
-
-        Expression e = (*args)[0];
-        if (!e.type)
-        {
-
-            sc = sc.startCTFE();
-            e = e.expressionSemantic(sc);
-            e = resolveProperties(sc, e);
-            sc = sc.endCTFE();
-            e = e.ctfeInterpret();
-            e = e.toBoolean(sc);
-            if (e.isErrorExp())
-                error("pragma(`inline`, `true` or `false`) expected, not `%s`", (*args)[0].toChars());
-            (*args)[0] = e;
-        }
-
-        const opt = e.toBool();
-        if (opt.isEmpty())
-            return PINLINE.default_;
-        else if (opt.get())
-            return PINLINE.always;
-        else
-            return PINLINE.never;
-    }
-
     override const(char)* kind() const
     {
         return "pragma";

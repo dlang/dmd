@@ -1197,13 +1197,6 @@ public:
         {}
 };
 
-enum class PINLINE : uint8_t
-{
-    default_ = 0u,
-    never = 1u,
-    always = 2u,
-};
-
 enum class BUILTIN : uint8_t
 {
     unknown = 255u,
@@ -2783,6 +2776,13 @@ enum class ILS : uint8_t
     uninitialized = 0u,
     no = 1u,
     yes = 2u,
+};
+
+enum class PINLINE : uint8_t
+{
+    default_ = 0u,
+    never = 1u,
+    always = 2u,
 };
 
 struct ObjcFuncDeclaration final
@@ -5422,7 +5422,6 @@ public:
     Array<Expression* >* args;
     PragmaDeclaration* syntaxCopy(Dsymbol* s) override;
     Scope* newScope(Scope* sc) override;
-    PINLINE evalPragmaInline(Scope* sc);
     const char* kind() const override;
     void accept(Visitor* v) override;
 };
