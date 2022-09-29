@@ -5178,18 +5178,26 @@ final class CParser(AST) : Parser!AST
                     packalign = (*this.packs)[len - 1];
                 return closingParen();
             }
-            while (n.value == TOK.comma)
+            while (n.value == TOK.comma)        // #pragma pack ( pop ,
             {
                 scan(&n);
                 if (n.value == TOK.identifier)
                 {
+                    /* pragma pack(pop, identifier
+                     * Pop until identifier is found, pop that one too, and set
+                     * alignment to the new top of the stack.
+                     * If identifier is not found, do nothing.
+                     */
                     for ( ; len; --len)
                     {
                         if ((*this.records)[len - 1] == n.ident)
                         {
-                            packalign = (*this.packs)[len - 1];
                             this.records.setDim(len - 1);
                             this.packs.setDim(len - 1);
+                            if (len > 1)
+                                packalign = (*this.packs)[len - 2];
+                            else
+                                packalign.setDefault(); // stack empty, use default
                             break;
                         }
                     }
@@ -5198,14 +5206,18 @@ final class CParser(AST) : Parser!AST
                 else if (n.value == TOK.int32Literal)
                 {
                     setPackAlign(n);
-                    this.records.push(null);
-                    this.packs.push(packalign);
+                    scan(&n);
+                }
+                else
+                {
+                    error(loc, "identifier or alignment value expected following `#pragma pack(pop,` not `%s`", n.toChars());
                     scan(&n);
                 }
             }
             return closingParen();
         }
         /* # pragma pack ( integer )
+         * Sets alignment to integer
          */
         if (n.value == TOK.int32Literal)
         {
@@ -5214,6 +5226,7 @@ final class CParser(AST) : Parser!AST
             return closingParen();
         }
         /* # pragma pack ( )
+         * Sets alignment to default
          */
         if (n.value == TOK.rightParenthesis)
         {
