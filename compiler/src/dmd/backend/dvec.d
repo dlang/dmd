@@ -18,13 +18,13 @@ import core.stdc.string;
 
 import core.bitop;
 
+import dmd.backend.global : err_nomem;
+
 extern (C):
 
 nothrow:
 @nogc:
 @safe:
-
-extern (C++) void err_nomem();
 
 alias vec_base_t = size_t;                     // base type of vector
 alias vec_t = vec_base_t*;

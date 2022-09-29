@@ -4527,13 +4527,16 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (sd.semanticRun == PASS.initial)
             sd.type = sd.type.addSTC(sc.stc | sd.storage_class);
         sd.type = sd.type.typeSemantic(sd.loc, sc);
-        if (auto ts = sd.type.isTypeStruct())
+        auto ts = sd.type.isTypeStruct();
+        if (ts)
+        {
             if (ts.sym != sd)
             {
                 auto ti = ts.sym.isInstantiated();
                 if (ti && isError(ti))
                     ts.sym = sd;
             }
+        }
 
         // Ungag errors when not speculative
         Ungag ungag = sd.ungagSpeculative();
@@ -4671,16 +4674,26 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
 
-        if (sd.type.ty == Tstruct && (cast(TypeStruct)sd.type).sym != sd)
+        if (ts && ts.sym != sd)
         {
-            // https://issues.dlang.org/show_bug.cgi?id=19024
-            StructDeclaration sym = (cast(TypeStruct)sd.type).sym;
-            version (none)
+            StructDeclaration sym = ts.sym;
+            if (sd.isCsymbol() && sym.isCsymbol())
             {
-                printf("this = %p %s\n", sd, sd.toChars());
-                printf("type = %d sym = %p, %s\n", sd.type.ty, sym, sym.toPrettyChars());
+                /* This is two structs imported from different C files.
+                 * Just ignore sd, the second one. The first one will always
+                 * be found when going through the type.
+                 */
             }
-            sd.error("already exists at %s. Perhaps in another function with the same name?", sym.loc.toChars());
+            else
+            {
+                version (none)
+                {
+                    printf("this = %p %s\n", sd, sd.toChars());
+                    printf("type = %d sym = %p, %s\n", sd.type.ty, sym, sym.toPrettyChars());
+                }
+                // https://issues.dlang.org/show_bug.cgi?id=19024
+                sd.error("already exists at %s. Perhaps in another function with the same name?", sym.loc.toChars());
+            }
         }
 
         if (global.errors != errors)
