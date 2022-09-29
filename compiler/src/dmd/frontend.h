@@ -8028,6 +8028,7 @@ public:
     void visit(StructDeclaration* d) override;
     void visit(UnionDeclaration* d) override;
     void visit(ClassDeclaration* d) override;
+    void visit(InterfaceDeclaration* d) override;
     void visit(AliasDeclaration* d) override;
     void visit(AliasAssign* d) override;
     void visit(VarDeclaration* d) override;
