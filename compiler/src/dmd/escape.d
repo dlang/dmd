@@ -735,15 +735,8 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
             if (vaIsFirstRef && v.isParameter() && v.isReturn())
             {
                 // va=v, where v is `return scope`
-                if (va.isScope())
+                if (inferScope(va))
                     continue;
-
-                if (va.maybeScope)
-                {
-                    if (log) printf("inferring scope for lvalue %s\n", va.toChars());
-                    va.storage_class |= STC.scope_ | STC.scopeinferred;
-                    continue;
-                }
             }
 
             if (va && va.isScope() && va.isReturn() && !v.isReturn())
@@ -767,26 +760,19 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
                 }
             }
 
-            if (va && !va.isDataseg() && (va.isScope() || va.maybeScope))
+            // v = scope, va should be scope as well
+            const vaWasScope = va && va.isScope();
+            if (inferScope(va))
             {
-                if (!va.isScope())
-                {   /* v is scope, and va is not scope, so va needs to
-                     * infer scope
-                     */
-                    if (log) printf("inferring scope for %s\n", va.toChars());
-                    va.storage_class |= STC.scope_ | STC.scopeinferred;
-                    /* v returns, and va does not return, so va needs
-                     * to infer return
-                     */
-                    if (v.isReturn() && !va.isReturn())
-                    {
-                        if (log) printf("infer return for %s\n", va.toChars());
-                        va.storage_class |= STC.return_ | STC.returninferred;
+                // In case of `scope local = returnScopeParam`, do not infer return scope for `x`
+                if (!vaWasScope && v.isReturn() && !va.isReturn())
+                {
+                    if (log) printf("infer return for %s\n", va.toChars());
+                    va.storage_class |= STC.return_ | STC.returninferred;
 
-                        // Added "return scope" so don't confuse it with "return ref"
-                        if (isRefReturnScope(va.storage_class))
-                            va.storage_class |= STC.returnScope;
-                    }
+                    // Added "return scope" so don't confuse it with "return ref"
+                    if (isRefReturnScope(va.storage_class))
+                        va.storage_class |= STC.returnScope;
                 }
                 continue;
             }
@@ -797,14 +783,8 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
             Type tb = v.type.toBasetype();
             if (tb.ty == Tarray || tb.ty == Tsarray)
             {
-                if (va && !va.isDataseg() && (va.isScope() || va.maybeScope))
-                {
-                    if (!va.isScope())
-                    {   //printf("inferring scope for %s\n", va.toChars());
-                        va.storage_class |= STC.scope_ | STC.scopeinferred;
-                    }
+                if (inferScope(va))
                     continue;
-                }
                 result |= sc.setUnsafeDIP1000(gag, ae.loc, "variadic variable `%s` assigned to non-scope `%s`", v, e1);
             }
         }
@@ -871,12 +851,8 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
         if (p != sc.func)
             continue;
 
-        if (va && !va.isDataseg() && (va.isScope() || va.maybeScope))
+        if (inferScope(va))
         {
-            if (!va.isScope())
-            {   //printf("inferring scope for %s\n", va.toChars());
-                va.storage_class |= STC.scope_ | STC.scopeinferred;
-            }
             if (v.isReturn() && !va.isReturn())
                 va.storage_class |= STC.return_ | STC.returninferred;
             continue;
@@ -964,14 +940,8 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
             }
         }
 
-        if (va && !va.isDataseg() && (va.isScope() || va.maybeScope))
-        {
-            if (!va.isScope())
-            {   //printf("inferring scope for %s\n", va.toChars());
-                va.storage_class |= STC.scope_ | STC.scopeinferred;
-            }
+        if (inferScope(va))
             continue;
-        }
 
         result |= sc.setUnsafeDIP1000(gag, ee.loc,
             "reference to stack allocated value returned by `%s` assigned to non-scope `%s`", ee, e1);
@@ -1472,6 +1442,26 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
     return result;
 }
 
+/***********************************
+ * Infer `scope` for a variable
+ *
+ * Params:
+ *      va = variable to infer scope for
+ * Returns: `true` if succesful or already `scope`
+ */
+bool inferScope(VarDeclaration va)
+{
+    if (!va)
+        return false;
+    if (!va.isDataseg() && va.maybeScope && !va.isScope())
+    {
+        //printf("inferring scope for %s\n", va.toChars());
+        va.maybeScope = false;
+        va.storage_class |= STC.scope_ | STC.scopeinferred;
+        return true;
+    }
+    return va.isScope();
+}
 
 /*************************************
  * Variable v needs to have 'return' inferred for it.
@@ -2371,22 +2361,19 @@ void finishScopeParamInference(FuncDeclaration funcdecl, ref TypeFunction f)
         foreach (u, p; f.parameterList)
         {
             auto v = (*funcdecl.parameters)[u];
-            if (v.maybeScope)
+            if (!v.isScope() && inferScope(v))
             {
                 //printf("Inferring scope for %s\n", v.toChars());
-                notMaybeScope(v, null);
-                v.storage_class |= STC.scope_ | STC.scopeinferred;
                 p.storageClass |= STC.scope_ | STC.scopeinferred;
             }
         }
     }
 
-    if (funcdecl.vthis && funcdecl.vthis.maybeScope)
+    if (funcdecl.vthis)
     {
-        notMaybeScope(funcdecl.vthis, null);
-        funcdecl.vthis.storage_class |= STC.scope_ | STC.scopeinferred;
-        f.isScopeQual = true;
-        f.isscopeinferred = true;
+        inferScope(funcdecl.vthis);
+        f.isScopeQual = funcdecl.vthis.isScope();
+        f.isscopeinferred = !!(funcdecl.vthis.storage_class & STC.scopeinferred);
     }
 }
 
