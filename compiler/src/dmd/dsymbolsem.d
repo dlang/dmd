@@ -1727,13 +1727,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
         else if (pd.ident == Id.Pinline)
         {
-            if (pd.args && pd.args.dim > 1)
-            {
-                pd.error("one boolean expression expected for `pragma(inline)`, not %llu", cast(ulong) pd.args.dim);
-                pd.args.setDim(1);
-                (*pd.args)[0] = ErrorExp.get();
-            }
-
             // this pragma now gets evaluated on demand in function semantic
 
             return declarations();
@@ -3069,7 +3062,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         // evaluate pragma(inline)
         if (auto pragmadecl = sc.inlining)
-            funcdecl.inlining = pragmadecl.evalPragmaInline(sc);
+            funcdecl.inlining = evalPragmaInline(pragmadecl.loc, sc, pragmadecl.args);
 
         funcdecl.visibility = sc.visibility;
         funcdecl.userAttribDecl = sc.userAttribDecl;
@@ -7098,4 +7091,48 @@ private CallExp doAtomicOp (string op, Identifier var, Expression arg)
         loc, sc, Id.atomicOp, tiargs);
 
     return CallExp.create(loc, dti, args);
+}
+
+/***************************************
+ * Interpret a `pragma(inline, x)`
+ *
+ * Params:
+ *   loc = location for error messages
+ *   sc = scope for evaluation of argument
+ *   args = pragma arguments
+ * Returns: corresponding `PINLINE` state
+ */
+PINLINE evalPragmaInline(Loc loc, Scope* sc, Expressions* args)
+{
+    if (!args || args.dim == 0)
+        return PINLINE.default_;
+
+    if (args && args.dim > 1)
+    {
+        .error(loc, "one boolean expression expected for `pragma(inline)`, not %llu", cast(ulong) args.dim);
+        args.setDim(1);
+        (*args)[0] = ErrorExp.get();
+    }
+
+    Expression e = (*args)[0];
+    if (!e.type)
+    {
+        sc = sc.startCTFE();
+        e = e.expressionSemantic(sc);
+        e = resolveProperties(sc, e);
+        sc = sc.endCTFE();
+        e = e.ctfeInterpret();
+        e = e.toBoolean(sc);
+        if (e.isErrorExp())
+            .error(loc, "pragma(`inline`, `true` or `false`) expected, not `%s`", (*args)[0].toChars());
+        (*args)[0] = e;
+    }
+
+    const opt = e.toBool();
+    if (opt.isEmpty())
+        return PINLINE.default_;
+    else if (opt.get())
+        return PINLINE.always;
+    else
+        return PINLINE.never;
 }

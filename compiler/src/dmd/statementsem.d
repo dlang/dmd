@@ -2108,42 +2108,14 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
         }
         else if (ps.ident == Id.Pinline)
         {
-            PINLINE inlining = PINLINE.default_;
-            if (!ps.args || ps.args.dim == 0)
-                inlining = PINLINE.default_;
-            else if (!ps.args || ps.args.dim != 1)
+            if (auto fd = sc.func)
             {
-                ps.error("boolean expression expected for `pragma(inline)`");
-                return setError();
+                fd.inlining = evalPragmaInline(ps.loc, sc, ps.args);
             }
             else
             {
-                Expression e = (*ps.args)[0];
-                sc = sc.startCTFE();
-                e = e.expressionSemantic(sc);
-                e = resolveProperties(sc, e);
-                sc = sc.endCTFE();
-                e = e.ctfeInterpret();
-                e = e.toBoolean(sc);
-                if (e.isErrorExp())
-                {
-                    ps.error("pragma(`inline`, `true` or `false`) expected, not `%s`", (*ps.args)[0].toChars());
-                    return setError();
-                }
-
-                const opt = e.toBool();
-                if (opt.hasValue(true))
-                    inlining = PINLINE.always;
-                else if (opt.hasValue(false))
-                    inlining = PINLINE.never;
-
-                    FuncDeclaration fd = sc.func;
-                if (!fd)
-                {
-                    ps.error("`pragma(inline)` is not inside a function");
-                    return setError();
-                }
-                fd.inlining = inlining;
+                ps.error("`pragma(inline)` is not inside a function");
+                return setError();
             }
         }
         else if (!global.params.ignoreUnsupportedPragmas)
