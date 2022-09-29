@@ -1574,13 +1574,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         agg = tc.sym;
                     else if (auto ts = e.type.isTypeStruct())
                         agg = ts.sym;
-                    ad.mangleOverride = new MangleOverride;
+                    ad.pMangleOverride = new MangleOverride;
                     void setString(ref Expression e)
                     {
                         if (auto se = verifyMangleString(e))
                         {
                             const name = (cast(const(char)[])se.peekData()).xarraydup;
-                            ad.mangleOverride.id = Identifier.idPool(name);
+                            ad.pMangleOverride.id = Identifier.idPool(name);
                             e = se;
                         }
                         else
@@ -1588,13 +1588,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     }
                     if (agg)
                     {
-                        ad.mangleOverride.agg = agg;
+                        ad.pMangleOverride.agg = agg;
                         if (pd.args.dim == 2)
                         {
                             setString((*pd.args)[1]);
                         }
                         else
-                            ad.mangleOverride.id = agg.ident;
+                            ad.pMangleOverride.id = agg.ident;
                     }
                     else
                         setString((*pd.args)[0]);

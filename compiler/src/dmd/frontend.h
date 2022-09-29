@@ -5237,7 +5237,7 @@ public:
     Dsymbol* deferred;
     ClassKind classKind;
     CPPMANGLE cppmangle;
-    MangleOverride* mangleOverride;
+    MangleOverride* pMangleOverride;
     Dsymbol* enclosing;
     VarDeclaration* vthis;
     VarDeclaration* vthis2;
