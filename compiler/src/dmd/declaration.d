@@ -1769,16 +1769,21 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
 
     override final void setFieldOffset(AggregateDeclaration ad, ref FieldState fieldState, bool isunion)
     {
-        //printf("BitFieldDeclaration::setFieldOffset(ad: %s, field: %s)\n", ad.toChars(), toChars());
-        static void print(const ref FieldState fieldState)
+        enum log = false;
+        static if (log)
         {
-            printf("FieldState.offset      = %d bytes\n",   fieldState.offset);
-            printf("          .fieldOffset = %d bytes\n",   fieldState.fieldOffset);
-            printf("          .bitOffset   = %d bits\n",    fieldState.bitOffset);
-            printf("          .fieldSize   = %d bytes\n",   fieldState.fieldSize);
-            printf("          .inFlight    = %d\n\n", fieldState.inFlight);
+            printf("BitFieldDeclaration::setFieldOffset(ad: %s, field: %s)\n", ad.toChars(), toChars());
+            void print(const ref FieldState fieldState)
+            {
+                printf("FieldState.offset      = %d bytes\n",   fieldState.offset);
+                printf("          .fieldOffset = %d bytes\n",   fieldState.fieldOffset);
+                printf("          .bitOffset   = %d bits\n",    fieldState.bitOffset);
+                printf("          .fieldSize   = %d bytes\n",   fieldState.fieldSize);
+                printf("          .inFlight    = %d\n",         fieldState.inFlight);
+                printf("          fieldWidth   = %d bits\n",    fieldWidth);
+            }
+            print(fieldState);
         }
-        //print(fieldState);
 
         Type t = type.toBasetype();
         const bool anon = isAnonymous();
@@ -1795,6 +1800,7 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
         assert(sz != SIZE_INVALID && sz < uint.max);
         uint memsize = cast(uint)sz;                // size of member
         uint memalignsize = target.fieldalign(t);   // size of member for alignment purposes
+        if (log) printf("          memsize: %u memalignsize: %u\n", memsize, memalignsize);
 
         if (fieldWidth == 0 && !anon)
             error(loc, "named bit fields cannot have 0 width");
@@ -1805,6 +1811,7 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
 
         void startNewField()
         {
+            if (log) printf("startNewField()\n");
             uint alignsize;
             if (style == TargetC.BitFieldStyle.Gcc_Clang)
             {
@@ -1896,15 +1903,15 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
 
         if (!fieldState.inFlight)
         {
+            //printf("not in flight\n");
             startNewField();
         }
         else if (style == TargetC.BitFieldStyle.Gcc_Clang)
         {
-            if (fieldState.bitOffset + fieldWidth > memsize * 8)
-            {
-                //printf("start1 fieldState.bitOffset:%u fieldWidth:%u memsize:%u\n", fieldState.bitOffset, fieldWidth, memsize);
-                startNewField();
-            }
+            // If the bit-field spans more units of alignment than its type,
+            // start a new field at the next alignment boundary.
+            if (fieldState.bitOffset == fieldState.fieldSize * 8)
+                startNewField();        // the bit field is full
             else
             {
                 // if alignment boundary is crossed
@@ -1924,6 +1931,7 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
             if (memsize != fieldState.fieldSize ||
                 fieldState.bitOffset + fieldWidth > fieldState.fieldSize * 8)
             {
+                //printf("new field\n");
                 startNewField();
             }
         }
