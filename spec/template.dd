@@ -1507,6 +1507,26 @@ $(H2 $(LNAME2 nested-templates, Nested Templates))
         of class $(D C), and $(D Bar!().bar) will work just the same as a nested
         function within function $(D main$(LPAREN)$(RPAREN)).)
 
+$(H3 $(LNAME2 limitations, Limitations))
+
+    $(P Templates cannot be used to add non-static fields or
+        virtual functions to classes or interfaces.
+        For example:)
+
+        ------
+        class Foo
+        {
+            template TBar(T)
+            {
+                T xx;               // becomes a static field of Foo
+                int func(T) { ... } // non-virtual
+
+                static T yy;                        // Ok
+                static int func(T t, int y) { ... } // Ok
+            }
+        }
+        ------
+
 $(H3 $(LNAME2 implicit-nesting, Implicit Nesting))
 
     $(P If a template has a $(RELATIVE_LINK2 aliasparameters, template alias parameter),
@@ -1729,26 +1749,6 @@ $(GNAME Constraint):
         auto x = Bar!int;       // OK, int is an integral type
         auto y = Bar!double;    // Error, double does not satisfy constraint
         ---
-
-$(H2 $(LNAME2 limitations, Limitations))
-
-    $(P Templates cannot be used to add non-static fields or
-        virtual functions to classes or interfaces.
-        For example:)
-
-        ------
-        class Foo
-        {
-            template TBar(T)
-            {
-                T xx;               // becomes a static field of Foo
-                int func(T) { ... } // non-virtual
-
-                static T yy;                        // Ok
-                static int func(T t, int y) { ... } // Ok
-            }
-        }
-        ------
 
 $(SPEC_SUBNAV_PREV_NEXT operatoroverloading, Operator Overloading, template-mixin, Template Mixins)
 )
