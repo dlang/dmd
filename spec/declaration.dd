@@ -243,7 +243,16 @@ $(GNAME AliasAssignment):
 
     $(P $(I AliasDeclaration)s create a symbol name that refers to another symbol.
         That symbol name can be used anywhere that the aliased symbol may appear.
+        The following symbols can be aliased:
     )
+    * $(RELATIVE_LINK2 alias-type, Types)
+    * $(RELATIVE_LINK2 alias-variable, Variables)
+    * Constants
+    * Modules
+    * Packages
+    * Function Literals
+    * Templates
+    * Template Instantiations
 
 $(H3 $(LNAME2 alias-type, Type Aliases))
 
@@ -294,6 +303,7 @@ $(H3 $(LNAME2 alias-symbol, Symbol Aliases))
         The following alias declarations are valid:
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 --------------------
 template Foo2(T) { alias t = T; }
 alias t1 = Foo2!(int);
@@ -306,6 +316,7 @@ t2 v2;    // v2 is type int
 t3 v3;    // v3 is type int
 t4 v4;    // v4 is type int
 ---
+)
 
         $(P
         Aliased symbols are useful as a shorthand for a long qualified
@@ -325,11 +336,13 @@ version (linux)
 --------------------
 
         $(P
-        Aliasing can be used to `import` a symbol from an import into the
-        current scope:
+        Aliasing can be used to $(DDSUBLINK spec/module, import-declaration, `import`)
+        a symbol from an import into the current scope:
         )
 
 --------------------
+static import string;
+...
 alias strlen = string.strlen;
 --------------------
 
@@ -563,7 +576,7 @@ storage within the module. They must be defined in some other object file with a
 matching name which is then linked in.)
 
 $(P An $(D extern) declaration can optionally be followed by an $(D extern)
-$(LINK2 attribute.html$(HASH)linkage, linkage attribute). If there is no linkage
+$(DDSUBLINK spec/attribute, linkage, linkage attribute). If there is no linkage
 attribute it defaults to $(D extern(D)):)
 
 ---------------
