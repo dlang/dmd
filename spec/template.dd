@@ -1322,6 +1322,66 @@ $(H3 $(LNAME2 return-deduction, Return Type Deduction))
         ---
     )
 
+$(H3 $(LNAME2 auto-ref-parameters, Auto Ref Parameters))
+
+    $(P Template functions can have auto ref parameters.
+        An auto ref parameter becomes a ref parameter
+        if its corresponding argument is an lvalue, otherwise it becomes
+        a value parameter:)
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+        ---
+        int countRefs(Args...)(auto ref Args args)
+        {
+            int result;
+
+            foreach (i, _; args)
+            {
+                if (__traits(isRef, args[i]))
+                    result++;
+            }
+            return result;
+        }
+
+        void main()
+        {
+            int y;
+            assert(countRefs(3, 4) == 0);
+            assert(countRefs(3, y, 4) == 1);
+            assert(countRefs(y, 6, y) == 2);
+        }
+        ---
+        )
+
+    $(P Auto ref parameters can be combined with auto ref return
+        attributes:)
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+        ---
+        auto ref min(T, U)(auto ref T lhs, auto ref U rhs)
+        {
+            return lhs > rhs ? rhs : lhs;
+        }
+
+        void main()
+        {
+            int i;
+            i = min(4, 3);
+            assert(i == 3);
+
+            int x = 7, y = 8;
+            i = min(x, y);
+            assert(i == 7);
+            // result is an lvalue
+            min(x, y) = 10;    // sets x to 10
+            assert(x == 10 && y == 8);
+
+            static assert(!__traits(compiles, min(3, y) = 10));
+            static assert(!__traits(compiles, min(y, 3) = 10));
+        }
+        ---
+        )
+
 $(H3 $(LNAME2 function-default, Default Arguments))
 
     $(P Template arguments not implicitly deduced can have default values:)
@@ -1408,62 +1468,6 @@ $(H2 $(LNAME2 alias-template, Alias Templates))
             alias Sequence = TL;
         }
         ------
-
-$(H3 $(LNAME2 auto-ref-parameters, Function Templates with Auto Ref Parameters))
-
-    $(P An auto ref function template parameter becomes a ref parameter
-        if its corresponding argument is an lvalue, otherwise it becomes
-        a value parameter:)
-
-        ---
-        int foo(Args...)(auto ref Args args)
-        {
-            int result;
-
-            foreach (i, v; args)
-            {
-                if (v == 10)
-                    assert(__traits(isRef, args[i]));
-                else
-                    assert(!__traits(isRef, args[i]));
-                result += v;
-            }
-            return result;
-        }
-
-        void main()
-        {
-            int y = 10;
-            int r;
-            r = foo(8);       // returns 8
-            r = foo(y);       // returns 10
-            r = foo(3, 4, y); // returns 17
-            r = foo(4, 5, y); // returns 19
-            r = foo(y, 6, y); // returns 26
-        }
-        ---
-
-    $(P Auto ref parameters can be combined with auto ref return
-        attributes:)
-
-        ---
-        auto ref min(T, U)(auto ref T lhs, auto ref U rhs)
-        {
-            return lhs > rhs ? rhs : lhs;
-        }
-
-        void main()
-        {
-            int x = 7, y = 8;
-            int i;
-
-            i = min(4, 3);     // returns 3
-            i = min(x, y);     // returns 7
-            min(x, y) = 10;    // sets x to 10
-            static assert(!__traits(compiles, min(3, y) = 10));
-            static assert(!__traits(compiles, min(y, 3) = 10));
-        }
-        ---
 
 $(H2 $(LNAME2 nested-templates, Nested Templates))
 
