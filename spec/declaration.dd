@@ -337,7 +337,7 @@ version (linux)
 
         $(P
         Aliasing can be used to $(DDSUBLINK spec/module, import-declaration, `import`)
-        a symbol from an import into the current scope:
+        a symbol from an imported module or package into the current scope:
         )
 
 --------------------
