@@ -3976,16 +3976,16 @@ $(H2 $(LNAME2 function-attribute-inference, Function Attribute Inference))
         $(RELATIVE_LINK2 nested, nested functions) and
         $(DDSUBLINK spec/template, function-templates, function templates),
         since their function bodies are always present, infer the
-        $(RELATIVE_LINK2 pure-functions, $(D pure)),
-        $(RELATIVE_LINK2 nothrow-functions, $(D nothrow)),
-        $(RELATIVE_LINK2 safe-functions, $(D @safe)),
-        $(RELATIVE_LINK2 nogc-functions, $(D @nogc)),
-        $(RELATIVE_LINK2 return-ref-parameters, return ref parameters),
-        $(RELATIVE_LINK2 scope-parameters, scope parameters),
-        $(RELATIVE_LINK2 return-scope-parameters, return scope parameters) and
-        $(RELATIVE_LINK2 ref-return-scope-parameters, ref return scope parameters)
-        attributes unless specifically overridden.
+        following attributes unless specifically overridden:
         )
+        * $(RELATIVE_LINK2 pure-functions, $(D pure))
+        * $(RELATIVE_LINK2 nothrow-functions, $(D nothrow))
+        * $(RELATIVE_LINK2 safe-functions, $(D @safe))
+        * $(RELATIVE_LINK2 nogc-functions, $(D @nogc))
+        * $(RELATIVE_LINK2 return-ref-parameters, return ref parameters)
+        * $(RELATIVE_LINK2 scope-parameters, scope parameters)
+        * $(RELATIVE_LINK2 return-scope-parameters, return scope parameters)
+        * $(RELATIVE_LINK2 ref-return-scope-parameters, ref return scope parameters)
 
         $(P Attribute inference is not done for other functions, even if the function
         body is present.
@@ -3996,7 +3996,7 @@ $(H2 $(LNAME2 function-attribute-inference, Function Attribute Inference))
         )
 
         $(P Cyclic functions (i.e. functions that wind up directly or indirectly
-        calling themselves) are inferred as being impure, throwing, and @system.
+        calling themselves) are inferred as being impure, throwing, and `@system`.
         )
 
         $(P If a function attempts to test itself for those attributes, then
