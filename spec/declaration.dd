@@ -250,6 +250,7 @@ $(GNAME AliasAssignment):
     * Constants
     * Modules
     * Packages
+    * Functions
     * Function Literals
     * Templates
     * Template Instantiations
