@@ -583,16 +583,17 @@ $(GNAME TemplateAliasParameterDefault):
 
     $(P Alias parameters enable templates to be parameterized with
         symbol names or values computed at compile-time.
-        Almost any kind of D symbol can be used, including user-defined type names,
+        Almost any kind of D symbol can be used, including type names,
         global names, local names, module names, template names, and
-        template instance names.
+        template instances.
     )
 
-    $(P $(B Symbol examples:))
+$(H4 $(LNAME2 alias_symbol, Symbol Aliases))
 
     $(UL
-        $(LI User-defined type names
+        $(LI Type names
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ------
         class Foo
         {
@@ -608,12 +609,15 @@ $(GNAME TemplateAliasParameterDefault):
         {
             alias bar = Bar!(Foo);
             bar.sym = 3;  // sets Foo.x to 3
+            assert(Foo.x == 3);
         }
         ------
+        )
         )
 
         $(LI Global names
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ------
         shared int x;
 
@@ -626,14 +630,19 @@ $(GNAME TemplateAliasParameterDefault):
         {
             alias bar = Foo!(x);
             *bar.ptr = 3;       // set x to 3
+            assert(x == 3);
+
             static shared int y;
             alias abc = Foo!(y);
             *abc.ptr = 3;       // set y to 3
+            assert(y == 3);
         }
         ------
         )
+        )
 
         $(LI Local names
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
         template Foo(alias var)
         {
@@ -648,11 +657,13 @@ $(GNAME TemplateAliasParameterDefault):
             assert(v == 5);
         }
         ---
+        )
         See also $(RELATIVE_LINK2 implicit-nesting, Implicit Template Nesting).
         )
 
         $(LI Module names
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ------
         import std.conv;
 
@@ -664,13 +675,16 @@ $(GNAME TemplateAliasParameterDefault):
         void main()
         {
             alias bar = Foo!(std.conv);
-            bar.sym(3);   // calls std.conv.text(3)
+            string s = bar.sym(3);   // calls std.conv.text(3)
+            assert(s == "3");
         }
         ------
+        )
         )
 
         $(LI Template names
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ------
         shared int x;
 
@@ -688,12 +702,15 @@ $(GNAME TemplateAliasParameterDefault):
         {
             alias bar = Bar!(Foo);
             *bar.instance.ptr = 3;  // sets x to 3
+            assert(x == 3);
         }
         ------
+        )
         )
 
         $(LI Template instance names
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ------
         shared int x;
 
@@ -712,12 +729,14 @@ $(GNAME TemplateAliasParameterDefault):
             alias foo = Foo!(x);
             alias bar = Bar!(foo);
             *bar.p = 3;  // sets x to 3
+            assert(x == 3);
         }
         ------
         )
+        )
     )
 
-    $(P $(B Value examples:))
+$(H4 $(LNAME2 alias_value, Value Aliases))
 
     $(UL
 
