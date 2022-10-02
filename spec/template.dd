@@ -277,7 +277,48 @@ $(GNAME TemplateParameter):
         $(I TemplateParameter) when a matching argument is not supplied.
     )
 
-$(H3 $(LNAME2 argument_deduction, Type Parameter Deduction))
+$(H3 $(LNAME2 template_type_parameters, Type Parameters))
+
+$(GRAMMAR
+$(GNAME TemplateTypeParameter):
+    $(GLINK_LEX Identifier)
+    $(GLINK_LEX Identifier) $(GLINK TemplateTypeParameterSpecialization)
+    $(GLINK_LEX Identifier) $(GLINK TemplateTypeParameterDefault)
+    $(GLINK_LEX Identifier) $(GLINK TemplateTypeParameterSpecialization) $(GLINK TemplateTypeParameterDefault)
+
+$(GNAME TemplateTypeParameterSpecialization):
+    $(D :) $(GLINK2 type, Type)
+
+$(GNAME TemplateTypeParameterDefault):
+    $(D =) $(GLINK2 type, Type)
+)
+
+$(H4 $(LNAME2 parameters_specialization, Specialization))
+
+    $(P Templates may be specialized for particular types of arguments
+        by following the template parameter identifier with a : and the
+        specialized type.
+        For example:)
+
+        ------
+        template TFoo(T)        { ... } // #1
+        template TFoo(T : T[])  { ... } // #2
+        template TFoo(T : char) { ... } // #3
+        template TFoo(T, U, V)  { ... } // #4
+
+        alias foo1 = TFoo!(int);            // instantiates #1
+        alias foo2 = TFoo!(double[]);       // instantiates #2 with T being double
+        alias foo3 = TFoo!(char);           // instantiates #3
+        alias fooe = TFoo!(char, int);      // error, number of arguments mismatch
+        alias foo4 = TFoo!(char, int, int); // instantiates #4
+        ------
+
+    $(P The template picked to instantiate is the one that is most specialized
+        that fits the types of the $(I TemplateArgumentList).
+        If the result is ambiguous, it is an error.
+    )
+
+$(H4 $(LNAME2 argument_deduction, Type Parameter Deduction))
 
     $(P The types of template parameters are deduced for a particular
         template instantiation by comparing the template argument with
@@ -350,47 +391,6 @@ $(H3 $(LNAME2 argument_deduction, Type Parameter Deduction))
         alias bar = TBar!(B*, B);  // (2) T is B*
                                    // (3) U is B
         ------
-
-$(H3 $(LNAME2 template_type_parameters, Type Parameters))
-
-$(GRAMMAR
-$(GNAME TemplateTypeParameter):
-    $(GLINK_LEX Identifier)
-    $(GLINK_LEX Identifier) $(GLINK TemplateTypeParameterSpecialization)
-    $(GLINK_LEX Identifier) $(GLINK TemplateTypeParameterDefault)
-    $(GLINK_LEX Identifier) $(GLINK TemplateTypeParameterSpecialization) $(GLINK TemplateTypeParameterDefault)
-
-$(GNAME TemplateTypeParameterSpecialization):
-    $(D :) $(GLINK2 type, Type)
-
-$(GNAME TemplateTypeParameterDefault):
-    $(D =) $(GLINK2 type, Type)
-)
-
-$(H4 $(LNAME2 parameters_specialization, Specialization))
-
-    $(P Templates may be specialized for particular types of arguments
-        by following the template parameter identifier with a : and the
-        specialized type.
-        For example:)
-
-        ------
-        template TFoo(T)        { ... } // #1
-        template TFoo(T : T[])  { ... } // #2
-        template TFoo(T : char) { ... } // #3
-        template TFoo(T, U, V)  { ... } // #4
-
-        alias foo1 = TFoo!(int);            // instantiates #1
-        alias foo2 = TFoo!(double[]);       // instantiates #2 with T being double
-        alias foo3 = TFoo!(char);           // instantiates #3
-        alias fooe = TFoo!(char, int);      // error, number of arguments mismatch
-        alias foo4 = TFoo!(char, int, int); // instantiates #4
-        ------
-
-    $(P The template picked to instantiate is the one that is most specialized
-        that fits the types of the $(I TemplateArgumentList).
-        If the result is ambiguous, it is an error.
-    )
 
 
 $(H3 $(LNAME2 template_this_parameter, This Parameters))
