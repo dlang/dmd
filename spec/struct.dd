@@ -994,9 +994,24 @@ $(H3 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy
     $(P Copy constructors are used to initialize a `struct` instance from
     another `struct` of the same type.)
 
-    $(P A constructor declaration is a copy constructor declaration if and only if it is a constructor
-    declaration that takes only one non-default parameter by reference that is
-    of the same type as `typeof(this)`, followed by any number of default parameters:)
+    $(P A constructor declaration is a copy constructor declaration if it meets
+    the following requirements:)
+
+    $(UL
+    $(LI It takes exactly one parameter without a
+    $(DDSUBLINK spec/function, function-default-args, default argument),
+    followed by any number of parameters with default arguments.)
+
+    $(LI Its first parameter is a
+    $(DDSUBLINK spec/function, ref-params, `ref` parameter).)
+
+    $(LI The type of its first parameter is the same type as
+    $(DDSUBLINK spec/type, typeof, `typeof(this)`), optionally with one or more
+    $(DDLINK spec/const3, Type Qualifiers, type qualifiers) applied to it.)
+
+    $(LI It is not a
+    $(DDSUBLINK spec/template, template_ctors, template constructor declaration).)
+    )
 
     ---
     struct A
