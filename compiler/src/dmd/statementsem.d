@@ -2051,36 +2051,8 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
         }
         else if (ps.ident == Id.startaddress)
         {
-            if (!ps.args || ps.args.dim != 1)
-                ps.error("function name expected for start address");
-            else
-            {
-                Expression e = (*ps.args)[0];
-                sc = sc.startCTFE();
-                e = e.expressionSemantic(sc);
-                e = resolveProperties(sc, e);
-                sc = sc.endCTFE();
-
-                e = e.ctfeInterpret();
-                (*ps.args)[0] = e;
-                Dsymbol sa = getDsymbol(e);
-                if (!sa || !sa.isFuncDeclaration())
-                {
-                    ps.error("function name expected for start address, not `%s`", e.toChars());
-                    return setError();
-                }
-                if (ps._body)
-                {
-                    ps._body = ps._body.statementSemantic(sc);
-                    if (ps._body.isErrorStatement())
-                    {
-                        result = ps._body;
-                        return;
-                    }
-                }
-                result = ps;
-                return;
-            }
+            if (!pragmaStartAddressSemantic(ps.loc, sc, ps.args))
+                return setError();
         }
         else if (ps.ident == Id.Pinline)
         {
@@ -4905,5 +4877,45 @@ bool pragmaMsgSemantic(Loc loc, Scope* sc, Expressions* args)
             fprintf(stderr, "%s", e.toChars());
     }
     fprintf(stderr, "\n");
+    return true;
+}
+
+/***********************************************************
+ * Evaluate `pragma(startAddress, func)` and store the resolved symbol in `args`
+ *
+ * Params:
+ *    loc = location for error messages
+ *    sc = scope for argument interpretation
+ *    args = pragma arguments
+ * Returns:
+ *    `true` on success
+ */
+bool pragmaStartAddressSemantic(Loc loc, Scope* sc, Expressions* args)
+{
+    if (!args || args.dim != 1)
+    {
+        .error(loc, "function name expected for start address");
+        return false;
+    }
+    else
+    {
+        /* https://issues.dlang.org/show_bug.cgi?id=11980
+         * resolveProperties and ctfeInterpret call are not necessary.
+         */
+        Expression e = (*args)[0];
+        sc = sc.startCTFE();
+        e = e.expressionSemantic(sc);
+        // e = resolveProperties(sc, e);
+        sc = sc.endCTFE();
+
+        // e = e.ctfeInterpret();
+        (*args)[0] = e;
+        Dsymbol sa = getDsymbol(e);
+        if (!sa || !sa.isFuncDeclaration())
+        {
+            .error(loc, "function name expected for start address, not `%s`", e.toChars());
+            return false;
+        }
+    }
     return true;
 }
