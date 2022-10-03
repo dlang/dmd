@@ -11,8 +11,9 @@ $(GNAME NamedCharacterEntity):
 
         $(P The full list of named character entities from the
         $(LINK2 https://w3.org/TR/html5/syntax.html#named-character-references, HTML 5 Spec)
-        is supported
-        except for the named entities which contain multiple code points.
+        is supported.
+        Named entities which contain multiple code points can only be used in string literals,
+        not in character literals, since they do not fit in any character type.
         Below is a $(I partial) list of the named character entities.
         )
 
