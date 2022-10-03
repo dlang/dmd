@@ -353,6 +353,37 @@ extern(D) bool arrayExpressionSemantic(
     return err;
 }
 
+/*
+Checks if `exp` contains a direct access to a `noreturn`
+variable. If that is the case, an `assert(0)` expression
+is generated and returned. This function should be called
+only after semantic analysis has been performed on `exp`.
+
+Params:
+    exp = expression that is checked
+
+Returns:
+    An `assert(0)` expression if `exp` contains a `noreturn`
+    variable access, `exp` otherwise.
+*/
+
+Expression checkNoreturnVarAccess(Expression exp)
+{
+    assert(exp.type);
+
+    Expression result = exp;
+    if (exp.type.isTypeNoreturn() && !exp.isAssertExp() &&
+        !exp.isThrowExp() && !exp.isCallExp())
+    {
+        auto msg = new StringExp(exp.loc, "Accessed expression of type `noreturn`");
+        msg.type = Type.tstring;
+        result = new AssertExp(exp.loc, IntegerExp.literal!0, msg);
+        result.type = exp.type;
+    }
+
+    return result;
+}
+
 /******************************
  * Check the tail CallExp is really property function call.
  * Bugs:
@@ -8923,14 +8954,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 e2x.checkSharedAccess(sc))
                 return setError();
 
-            if (e2x.type.isTypeNoreturn() && !e2x.isAssertExp() && !e2x.isThrowExp() && !e2x.isCallExp())
-            {
-                auto msg = new StringExp(e2x.loc, "Accessed expression of type `noreturn`");
-                msg.type = Type.tstring;
-                e2x = new AssertExp(e2x.loc, IntegerExp.literal!0, msg);
-                e2x.type = Type.tnoreturn;
-                return setResult(e2x);
-            }
+            auto etmp = checkNoreturnVarAccess(e2x);
+            if (etmp != e2x)
+                return setResult(etmp);
+
             exp.e2 = e2x;
         }
 
