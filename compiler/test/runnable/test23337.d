@@ -76,4 +76,107 @@ void main()
     }
     assert(destroyed == 4);
     reset();
+
+    // slice-exp left-hand-sides (*construction* only in ctors):
+
+    {
+        static struct T
+        {
+            S[3] ss;
+            this(int) { ss[] = globals; }
+        }
+        T fromLvalStaticArray = T(0);
+        assert(copies == 3);
+    }
+    assert(destroyed == 3);
+    reset();
+
+    {
+        static struct T
+        {
+            S[3] ss;
+            this(int) { ss[] = makeStaticArray(); }
+        }
+        T fromRvalStaticArray = T(0);
+        assert(copies == 0); // moved or emplaced
+    }
+    assert(destroyed == 3);
+    reset();
+
+    {
+        static struct T
+        {
+            S[3] ss;
+            this(int) { ss[] = [S(), S(), S()]; }
+        }
+        T fromArrayLiteral = T(0);
+        assert(copies == 0); // moved or emplaced
+    }
+    assert(destroyed == 3);
+    reset();
+
+    {
+        static struct T
+        {
+            S[3] ss;
+            this(int) { ss[] = globals[]; }
+        }
+        T fromSliceExp = T(0);
+        assert(copies == 3);
+    }
+    assert(destroyed == 3);
+    reset();
+
+    {
+        static struct T
+        {
+            S[3] ss;
+            this(int)
+            {
+                S[] slice = globals[];
+                ss[] = slice;
+            }
+        }
+        T fromLvalSlice = T(0);
+        assert(copies == 3);
+    }
+    assert(destroyed == 3);
+    reset();
+
+    {
+        static struct T
+        {
+            S[3] ss;
+            this(int) { ss[] = makeSlice(globals); }
+        }
+        T fromRvalSlice = T(0);
+        assert(copies == 3);
+    }
+    assert(destroyed == 3);
+    reset();
+
+    {
+        static struct T
+        {
+            S[3] ss;
+            this(int) { ss[] = globals[0]; }
+        }
+        T fromSingleLval = T(0);
+        assert(copies == 3);
+    }
+    assert(destroyed == 3);
+    reset();
+
+    {
+        static struct T
+        {
+            S[3] ss;
+            this(int) { ss[] = S(); }
+        }
+        T fromSingleRval = T(0);
+        assert(destroyed == 1); // temporary
+        assert(copies == 3);
+    }
+    assert(destroyed == 4);
+    reset();
 }

@@ -9954,9 +9954,24 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             // Construction from an equivalent other array?
             // Only lower with lvalue RHS elements; let the glue layer move rvalue elements.
             Type t2b = ae.e2.type.toBasetype();
+            // skip over a (possibly implicit) cast of a static array RHS to a slice
+            Expression rhs = ae.e2;
+            Type rhsType = t2b;
+            if (t2b.ty == Tarray)
+            {
+                if (auto ce = rhs.isCastExp())
+                {
+                    auto ct = ce.e1.type.toBasetype();
+                    if (ct.ty == Tsarray)
+                    {
+                        rhs = ce.e1;
+                        rhsType = ct;
+                    }
+                }
+            }
             const lowerToArrayCtor =
-                (t2b.ty == Tarray ||
-                    (t2b.ty == Tsarray && ae.e2.isLvalue)) &&
+                ( (rhsType.ty == Tarray && !rhs.isArrayLiteralExp) ||
+                  (rhsType.ty == Tsarray && rhs.isLvalue) ) &&
                 t1e.equivalent(t2b.nextOf);
 
             // Construction from a single element?
@@ -9976,10 +9991,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 id = new DotIdExp(exp.loc, id, func);
 
                 auto arguments = new Expressions();
-                arguments.push(new CastExp(ae.loc, ae.e1, ae.e1.type.nextOf.arrayOf).expressionSemantic(sc));
+                arguments.push(new CastExp(ae.loc, ae.e1, t1e.arrayOf).expressionSemantic(sc));
                 if (lowerToArrayCtor)
                 {
-                    arguments.push(new CastExp(ae.loc, ae.e2, ae.e2.type.nextOf.arrayOf).expressionSemantic(sc));
+                    arguments.push(new CastExp(ae.loc, rhs, t2b.nextOf.arrayOf).expressionSemantic(sc));
                     Expression ce = new CallExp(exp.loc, id, arguments);
                     res = ce.expressionSemantic(sc);
                 }
