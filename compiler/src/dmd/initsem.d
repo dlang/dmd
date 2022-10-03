@@ -645,6 +645,10 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                     if (Type tx = toStaticArrayType(se))
                         dim2 = tx.isTypeSArray().dim.toInteger();
                 }
+                else if (i.exp.op == EXP.null_ && i.exp.type.ty == Tarray)
+                {
+                    return i;
+                }
                 if (dim1 != dim2)
                 {
                     i.exp.error("mismatched array lengths, %d and %d", cast(int)dim1, cast(int)dim2);

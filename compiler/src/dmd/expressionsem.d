@@ -9491,6 +9491,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         if (tx)
                             dim2 = (cast(TypeSArray)tx).dim.toInteger();
                     }
+                    else if (e2x.op == EXP.null_)
+                    {
+                        dim2 = 0;
+                        if (e2x.type.ty != Tarray)
+                        {
+                            e2x.error("cannot implicitly convert expression `%s` of type `%s` to `%s`",
+                                e2x.toChars(), e2x.type.toChars(), t1.toChars());
+                            return setError();
+                        }
+                    }
                     if (dim1 != dim2)
                     {
                         exp.error("mismatched array lengths, %d and %d", cast(int)dim1, cast(int)dim2);
