@@ -21,7 +21,7 @@ DOCDIR=doc
 IMPDIR=import
 
 # Make program to use. Designed to be run with make.exe which can be obtained from
-# http://downloads.dlang.org/other/dm857c.zip
+# https://downloads.dlang.org/other/dm857c.zip
 MAKE=make
 
 HOST_DMD=dmd
