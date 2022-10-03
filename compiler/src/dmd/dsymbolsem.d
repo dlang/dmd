@@ -1649,29 +1649,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (!pd.args)
                 return noDeclarations();
 
-            for (size_t i = 0; i < pd.args.dim; i++)
-            {
-                Expression e = (*pd.args)[i];
-                sc = sc.startCTFE();
-                e = e.expressionSemantic(sc);
-                e = resolveProperties(sc, e);
-                sc = sc.endCTFE();
-                e = ctfeInterpretForPragmaMsg(e);
-                if (e.op == EXP.error)
-                {
-                    errorSupplemental(pd.loc, "while evaluating `pragma(msg, %s)`", (*pd.args)[i].toChars());
-                    return;
-                }
-                StringExp se = e.toStringExp();
-                if (se)
-                {
-                    se = se.toUTF8(sc);
-                    fprintf(stderr, "%.*s", cast(int)se.len, se.peekString().ptr);
-                }
-                else
-                    fprintf(stderr, "%s", e.toChars());
-            }
-            fprintf(stderr, "\n");
+            if (!pragmaMsgSemantic(pd.loc, sc, pd.args))
+                return;
 
             return noDeclarations();
         }
