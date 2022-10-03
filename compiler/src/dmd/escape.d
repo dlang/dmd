@@ -1346,7 +1346,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                 continue;
             }
             FuncDeclaration fd = p.isFuncDeclaration();
-            if (fd && sc.func.flags & FUNCFLAG.returnInprocess)
+            if (fd && sc.func.returnInprocess)
             {
                 /* Code like:
                  *   int x;
@@ -1458,7 +1458,7 @@ private bool inferReturn(FuncDeclaration fd, VarDeclaration v, bool returnScope)
     if (!v.isParameter() || v.isTypesafeVariadicArray || (returnScope && v.doNotInferReturn))
         return false;
 
-    if (!(fd.flags & FUNCFLAG.returnInprocess))
+    if (!fd.returnInprocess)
         return false;
 
     if (returnScope && !(v.isScope() || v.maybeScope))
@@ -2301,9 +2301,9 @@ private void doNotInferScope(VarDeclaration v, RootObject o)
 void finishScopeParamInference(FuncDeclaration funcdecl, ref TypeFunction f)
 {
 
-    if (funcdecl.flags & FUNCFLAG.returnInprocess)
+    if (funcdecl.returnInprocess)
     {
-        funcdecl.flags &= ~FUNCFLAG.returnInprocess;
+        funcdecl.returnInprocess = false;
         if (funcdecl.storage_class & STC.return_)
         {
             if (funcdecl.type == f)
@@ -2315,9 +2315,9 @@ void finishScopeParamInference(FuncDeclaration funcdecl, ref TypeFunction f)
         }
     }
 
-    if (!(funcdecl.flags & FUNCFLAG.inferScope))
+    if (!funcdecl.inferScope)
         return;
-    funcdecl.flags &= ~FUNCFLAG.inferScope;
+    funcdecl.inferScope = false;
 
     // Eliminate maybescope's
     {

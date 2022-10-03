@@ -691,7 +691,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         return;
 
     if (multiobj && !fd.isStaticDtorDeclaration() && !fd.isStaticCtorDeclaration()
-        && !(fd.flags & (FUNCFLAG.CRTCtor | FUNCFLAG.CRTDtor)))
+        && !(fd.isCrtCtor || fd.isCrtDtor))
     {
         obj_append(fd);
         return;
@@ -880,7 +880,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         // Register return style cannot make nrvo.
         // Auto functions keep the NRVO flag up to here,
         // so we should eliminate it before entering backend.
-        fd.flags &= ~FUNCFLAG.NRVO;
+        fd.isNRVO = false;
     }
 
     if (fd.vthis)
@@ -1193,10 +1193,10 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     if (fd.isExport())
         objmod.export_symbol(s, cast(uint)Para.offset);
 
-    if (fd.flags & FUNCFLAG.CRTCtor)
+    if (fd.isCrtCtor)
         objmod.setModuleCtorDtor(s, true);
 
-    if (fd.flags & FUNCFLAG.CRTDtor)
+    if (fd.isCrtDtor)
     {
         //See TargetC.initialize
         if(target.c.crtDestructorsSupported)

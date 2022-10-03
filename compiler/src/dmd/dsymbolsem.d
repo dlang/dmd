@@ -111,8 +111,8 @@ private void setPragmaPrintf(Dsymbol s, bool printf)
 {
     if (auto fd = s.isFuncDeclaration())
     {
-        fd.flags &= ~(FUNCFLAG.printf | FUNCFLAG.scanf);
-        fd.flags |= printf ? FUNCFLAG.printf : FUNCFLAG.scanf;
+        fd.printf = printf;
+        fd.scanf = !printf;
     }
 
     if (auto ad = s.isAttribDeclaration())
@@ -1760,7 +1760,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     }
                     else if (auto f = s.isFuncDeclaration())
                     {
-                        f.flags |= isCtor ? FUNCFLAG.CRTCtor : FUNCFLAG.CRTDtor;
+                        if (isCtor)
+                            f.isCrtCtor = true;
+                        else
+                            f.isCrtDtor = true;
+
                         return 1;
                     }
                     else
@@ -3034,7 +3038,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         //printf("function storage_class = x%llx, sc.stc = x%llx, %x\n", storage_class, sc.stc, Declaration.isFinal());
 
         if (sc.flags & SCOPE.compile)
-            funcdecl.flags |= FUNCFLAG.compileTimeOnly; // don't emit code for this function
+            funcdecl.isCompileTimeOnly = true; // don't emit code for this function
 
         funcdecl._linkage = sc.linkage;
         if (auto fld = funcdecl.isFuncLiteralDeclaration())
@@ -3255,9 +3259,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
 
         // check pragma(crt_constructor) signature
-        if (funcdecl.flags & (FUNCFLAG.CRTCtor | FUNCFLAG.CRTDtor))
+        if (funcdecl.isCrtCtor || funcdecl.isCrtDtor)
         {
-            const idStr = (funcdecl.flags & FUNCFLAG.CRTCtor) ? "crt_constructor" : "crt_destructor";
+            const idStr = funcdecl.isCrtCtor ? "crt_constructor" : "crt_destructor";
             if (f.nextOf().ty != Tvoid)
                 funcdecl.error("must return `void` for `pragma(%s)`", idStr.ptr);
             if (funcdecl._linkage != LINK.c && f.parameterList.length != 0)
@@ -3337,7 +3341,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
 
-        if (funcdecl.flags & (FUNCFLAG.printf | FUNCFLAG.scanf))
+        if (funcdecl.printf || funcdecl.scanf)
         {
             /* printf/scanf-like functions must be of the form:
              *    extern (C/C++) T printf([parameters...], const(char)* format, ...);
@@ -3377,7 +3381,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
             else
             {
-                const p = ((funcdecl.flags & FUNCFLAG.printf) ? Id.printf : Id.scanf).toChars();
+                const p = (funcdecl.printf ? Id.printf : Id.scanf).toChars();
                 if (f.parameterList.varargs == VarArg.variadic)
                 {
                     funcdecl.error("`pragma(%s)` functions must be `extern(C) %s %s([parameters...], const(char)*, ...)`"
@@ -3524,7 +3528,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 else
                 {
                     //printf("\tintroducing function %s\n", funcdecl.toChars());
-                    funcdecl.flags |= FUNCFLAG.introducing;
+                    funcdecl.isIntroducing = true;
                     if (cd.classKind == ClassKind.cpp && target.cpp.reverseOverloads)
                     {
                         /* Overloaded functions with same name are grouped and in reverse order.
@@ -5290,7 +5294,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
                 auto ctor = new CtorDeclaration(cldec.loc, Loc.initial, 0, tf);
                 ctor.storage_class |= STC.inference;
-                ctor.flags |= FUNCFLAG.generated;
+                ctor.isGenerated = true;
                 ctor.fbody = new CompoundStatement(Loc.initial, new Statements());
 
                 cldec.members.push(ctor);

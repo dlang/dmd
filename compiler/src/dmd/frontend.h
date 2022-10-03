@@ -2883,7 +2883,55 @@ public:
     Array<FuncDeclaration* > siblingCallers;
     Array<FuncDeclaration* >* inlinedNestedCallees;
     AttributeViolation* safetyViolation;
-    uint32_t flags;
+    bool purityInprocess() const;
+    bool purityInprocess(bool v);
+    bool safetyInprocess() const;
+    bool safetyInprocess(bool v);
+    bool nothrowInprocess() const;
+    bool nothrowInprocess(bool v);
+    bool nogcInprocess() const;
+    bool nogcInprocess(bool v);
+    bool returnInprocess() const;
+    bool returnInprocess(bool v);
+    bool inlineScanned() const;
+    bool inlineScanned(bool v);
+    bool inferScope() const;
+    bool inferScope(bool v);
+    bool hasCatches() const;
+    bool hasCatches(bool v);
+    bool isCompileTimeOnly() const;
+    bool isCompileTimeOnly(bool v);
+    bool printf() const;
+    bool printf(bool v);
+    bool scanf() const;
+    bool scanf(bool v);
+    bool noreturn() const;
+    bool noreturn(bool v);
+    bool isNRVO() const;
+    bool isNRVO(bool v);
+    bool isNaked() const;
+    bool isNaked(bool v);
+    bool isGenerated() const;
+    bool isGenerated(bool v);
+    bool isIntroducing() const;
+    bool isIntroducing(bool v);
+    bool hasSemantic3Errors() const;
+    bool hasSemantic3Errors(bool v);
+    bool hasNoEH() const;
+    bool hasNoEH(bool v);
+    bool inferRetType() const;
+    bool inferRetType(bool v);
+    bool hasDualContext() const;
+    bool hasDualContext(bool v);
+    bool hasAlwaysInlines() const;
+    bool hasAlwaysInlines(bool v);
+    bool isCrtCtor() const;
+    bool isCrtCtor(bool v);
+    bool isCrtDtor() const;
+    bool isCrtDtor(bool v);
+private:
+    uint32_t bitFields;
+public:
     ObjcFuncDeclaration objc;
     static FuncDeclaration* create(const Loc& loc, const Loc& endloc, Identifier* id, StorageClass storage_class, Type* type, bool noreturn = false);
     FuncDeclaration* syntaxCopy(Dsymbol* s) override;
@@ -2922,22 +2970,6 @@ public:
     bool isTrusted();
     bool isNogc();
     bool isNogcBypassingInference();
-    bool isNRVO() const;
-    void isNRVO(bool v);
-    bool isNaked() const;
-    void isNaked(bool v);
-    bool isGenerated() const;
-    void isGenerated(bool v);
-    bool isIntroducing() const;
-    bool hasSemantic3Errors() const;
-    bool hasNoEH() const;
-    bool inferRetType() const;
-    bool hasDualContext() const;
-    bool hasAlwaysInlines() const;
-    bool isCrtCtor() const;
-    void isCrtCtor(bool v);
-    bool isCrtDtor() const;
-    void isCrtDtor(bool v);
     virtual bool isNested() const;
     AggregateDeclaration* isThis() override;
     bool needThis() final override;
@@ -2988,33 +3020,6 @@ public:
     bool overloadInsert(Dsymbol* s) override;
     DtorDeclaration* isDtorDeclaration() override;
     void accept(Visitor* v) override;
-};
-
-enum class FUNCFLAG : uint32_t
-{
-    purityInprocess = 1u,
-    safetyInprocess = 2u,
-    nothrowInprocess = 4u,
-    nogcInprocess = 8u,
-    returnInprocess = 16u,
-    inlineScanned = 32u,
-    inferScope = 64u,
-    hasCatches = 128u,
-    compileTimeOnly = 256u,
-    printf = 512u,
-    scanf = 1024u,
-    noreturn = 2048u,
-    NRVO = 4096u,
-    naked = 8192u,
-    generated = 16384u,
-    introducing = 32768u,
-    semantic3Errors = 65536u,
-    noEH = 131072u,
-    inferRetType = 262144u,
-    dualContext = 524288u,
-    hasAlwaysInline = 1048576u,
-    CRTCtor = 2097152u,
-    CRTDtor = 4194304u,
 };
 
 class FuncAliasDeclaration final : public FuncDeclaration
@@ -4887,7 +4892,6 @@ struct ASTCodegen final
     using CtorDeclaration = ::CtorDeclaration;
     using DtorDeclaration = ::DtorDeclaration;
     using Ensure = ::Ensure;
-    using FUNCFLAG = ::FUNCFLAG;
     using FuncAliasDeclaration = ::FuncAliasDeclaration;
     using FuncDeclaration = ::FuncDeclaration;
     using FuncLiteralDeclaration = ::FuncLiteralDeclaration;

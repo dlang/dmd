@@ -1745,7 +1745,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
         if (sc._module)
             sc._module.hasAlwaysInlines = true;
         if (sc.func)
-            sc.func.flags |= FUNCFLAG.hasAlwaysInline;
+            sc.func.hasAlwaysInlines = true;
     }
 
     const isCtorCall = fd && fd.needThis() && fd.isCtorDeclaration();
@@ -2231,14 +2231,14 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
     /* If calling C scanf(), printf(), or any variants, check the format string against the arguments
      */
     const isVa_list = tf.parameterList.varargs == VarArg.none;
-    if (fd && fd.flags & FUNCFLAG.printf)
+    if (fd && fd.printf)
     {
         if (auto se = (*arguments)[nparams - 1 - isVa_list].isStringExp())
         {
             checkPrintfFormat(se.loc, se.peekString(), (*arguments)[nparams .. nargs], isVa_list);
         }
     }
-    else if (fd && fd.flags & FUNCFLAG.scanf)
+    else if (fd && fd.scanf)
     {
         if (auto se = (*arguments)[nparams - 1 - isVa_list].isStringExp())
         {
@@ -12533,8 +12533,7 @@ Expression semanticX(DotIdExp exp, Scope* sc)
                 if (f.checkForwardRef(loc))
                     return ErrorExp.get();
 
-                if (f.flags & (FUNCFLAG.purityInprocess | FUNCFLAG.safetyInprocess |
-                               FUNCFLAG.nothrowInprocess | FUNCFLAG.nogcInprocess))
+                if (f.purityInprocess || f.safetyInprocess || f.nothrowInprocess || f.nogcInprocess)
                 {
                     f.error(loc, "cannot retrieve its `.mangleof` while inferring attributes");
                     return ErrorExp.get();

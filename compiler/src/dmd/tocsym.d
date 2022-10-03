@@ -371,7 +371,7 @@ Symbol *toSymbol(Dsymbol s)
                     f.Fflags |= Finline;    // inline this function if possible
             }
 
-            if (fd.type.toBasetype().isTypeFunction().nextOf().isTypeNoreturn() || fd.flags & FUNCFLAG.noreturn)
+            if (fd.type.toBasetype().isTypeFunction().nextOf().isTypeNoreturn() || fd.noreturn)
                 s.Sflags |= SFLexit;    // the function never returns
 
             f.Fstartline = toSrcpos(fd.loc);
