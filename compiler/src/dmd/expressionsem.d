@@ -9491,9 +9491,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         if (tx)
                             dim2 = (cast(TypeSArray)tx).dim.toInteger();
                     }
-                    else if (e2x.op == EXP.null_)
+                    else if (e2x.op == EXP.null_ &&
+                        e2x.implicitConvTo(t1.nextOf()) == MATCH.nomatch)
+                       // ignore valid element type init from null
                     {
                         dim2 = 0;
+                        // allow T[].init
                         if (e2x.type.ty != Tarray)
                         {
                             // @@@DEPRECATED_2.111@@@
