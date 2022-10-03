@@ -6221,6 +6221,7 @@ public:
     size_t nameoffset;
     size_t namelen;
     static Module* create(const char* filename, Identifier* ident, int32_t doDocComment, int32_t doHdrGen);
+    static const char* find(const char* filename);
     static Module* load(const Loc& loc, Array<Identifier* >* packages, Identifier* ident);
     const char* kind() const override;
     bool read(const Loc& loc);
