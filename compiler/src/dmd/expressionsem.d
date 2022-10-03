@@ -9496,9 +9496,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         dim2 = 0;
                         if (e2x.type.ty != Tarray)
                         {
-                            e2x.error("cannot implicitly convert expression `%s` of type `%s` to `%s`",
+                            // @@@DEPRECATED_2.111@@@
+                            // When turning into error, uncomment the return statement
+                            e2x.deprecation("cannot implicitly convert expression `%s` of type `%s` to `%s`",
                                 e2x.toChars(), e2x.type.toChars(), t1.toChars());
-                            return setError();
+                            //return setError();
                         }
                     }
                     if (dim1 != dim2)

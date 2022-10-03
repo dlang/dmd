@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/sarrrtinit.d(11): Error: cannot implicitly convert expression `null` of type `typeof(null)` to `int[0]`
+fail_compilation/sarrrtinit.d(11): Deprecation: cannot implicitly convert expression `null` of type `typeof(null)` to `int[0]`
 fail_compilation/sarrrtinit.d(13): Error: mismatched array lengths, 1 and 0
 ---
 */
