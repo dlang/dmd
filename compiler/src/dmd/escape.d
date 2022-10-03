@@ -716,15 +716,9 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
             continue;
         }
 
-        if (vaIsFirstRef &&
-            (v.isScope() || v.maybeScope) &&
-            !v.isReturn() && v.isParameter() &&
-            fd.flags & FUNCFLAG.returnInprocess &&
-            p == fd &&
-            !v.isTypesafeVariadicParameter)
+        if (vaIsFirstRef && p == fd)
         {
-            if (log) printf("inferring 'return' for parameter %s in function %s\n", v.toChars(), fd.toChars());
-            inferReturn(fd, v, /*returnScope:*/ true); // infer addition of 'return' to make `return scope`
+            inferReturn(fd, v, /*returnScope:*/ true);
         }
 
         if (!(va && va.isScope()) || vaIsRef)
@@ -825,9 +819,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
 
         Dsymbol p = v.toParent2();
 
-        if (vaIsFirstRef && v.isParameter() && !v.isReturn() &&
-            fd.flags & FUNCFLAG.returnInprocess &&
-            p == fd)
+        if (vaIsFirstRef && p == fd)
         {
             //if (log) printf("inferring 'return' for parameter %s in function %s\n", v.toChars(), fd.toChars());
             inferReturn(fd, v, /*returnScope:*/ false);
@@ -1214,13 +1206,8 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
 
         Dsymbol p = v.toParent2();
 
-        if ((v.isScope() || v.maybeScope) && !v.isReturn() && v.isParameter() &&
-            !v.doNotInferReturn &&
-            sc.func.flags & FUNCFLAG.returnInprocess &&
-            p == sc.func &&
-            !v.isTypesafeVariadicParameter)
+        if (p == sc.func && inferReturn(sc.func, v, /*returnScope:*/ true))
         {
-            inferReturn(sc.func, v, /*returnScope:*/ true); // infer addition of 'return'
             continue;
         }
 
@@ -1389,10 +1376,10 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
              vsr == ScopeRef.Ref_ReturnScope) &&
             !(v.storage_class & STC.foreach_))
         {
-            if (sc.func.flags & FUNCFLAG.returnInprocess && p == sc.func &&
-                (vsr == ScopeRef.Ref || vsr == ScopeRef.RefScope))
+            if (p == sc.func && (vsr == ScopeRef.Ref || vsr == ScopeRef.RefScope) &&
+                inferReturn(sc.func, v, /*returnScope:*/ false))
             {
-                inferReturn(sc.func, v, /*returnScope:*/ false); // infer addition of 'return'
+                continue;
             }
             else
             {
@@ -1469,10 +1456,22 @@ bool inferScope(VarDeclaration va)
  *      fd = function that v is a parameter to
  *      v = parameter that needs to be STC.return_
  *      returnScope = infer `return scope` instead of `return ref`
+ *
+ * Returns: whether the inference on `v` was successful or `v` already was `return`
  */
-private void inferReturn(FuncDeclaration fd, VarDeclaration v, bool returnScope)
+private bool inferReturn(FuncDeclaration fd, VarDeclaration v, bool returnScope)
 {
-    // v is a local in the current function
+    if (v.isReturn())
+        return !!(v.storage_class & STC.returnScope) == returnScope;
+
+    if (!v.isParameter() || v.isTypesafeVariadicParameter || (returnScope && v.doNotInferReturn))
+        return false;
+
+    if (!(fd.flags & FUNCFLAG.returnInprocess))
+        return false;
+
+    if (returnScope && !(v.isScope() || v.maybeScope))
+        return false;
 
     //printf("for function '%s' inferring 'return' for variable '%s', returnScope: %d\n", fd.toChars(), v.toChars(), returnScope);
     auto newStcs = STC.return_ | STC.returninferred | (returnScope ? STC.returnScope : 0);
@@ -1506,6 +1505,7 @@ private void inferReturn(FuncDeclaration fd, VarDeclaration v, bool returnScope)
             }
         }
     }
+    return true;
 }
 
 
