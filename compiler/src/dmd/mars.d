@@ -2096,14 +2096,13 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.warnings = DiagnosticReporting.inform;
         else if (arg == "-O")   // https://dlang.org/dmd.html#switch-O
             driverParams.optimize = true;
+        else if (arg == "-o-")  // https://dlang.org/dmd.html#switch-o-
+            params.obj = false;
         else if (p[1] == 'o')
         {
             const(char)* path;
             switch (p[2])
             {
-            case '-':                       // https://dlang.org/dmd.html#switch-o-
-                params.obj = false;
-                break;
             case 'd':                       // https://dlang.org/dmd.html#switch-od
                 if (!p[3])
                     goto Lnoarg;
