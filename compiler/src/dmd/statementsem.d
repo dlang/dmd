@@ -2880,13 +2880,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
                 }
 
                 // https://issues.dlang.org/show_bug.cgi?id=23063
-                if (texp.isTypeNoreturn() && !rs.exp.isAssertExp() && !rs.exp.isThrowExp() && !rs.exp.isCallExp())
-                {
-                    auto msg = new StringExp(rs.exp.loc, "Accessed expression of type `noreturn`");
-                    msg.type = Type.tstring;
-                    rs.exp = new AssertExp(rs.loc, IntegerExp.literal!0, msg);
-                    rs.exp.type = texp;
-                }
+                rs.exp = checkNoreturnVarAccess(rs.exp);
 
                 // @@@DEPRECATED_2.111@@@
                 const olderrors = global.startGagging();
