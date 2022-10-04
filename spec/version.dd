@@ -349,6 +349,8 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
         $(TROW $(ARGS $(D D_ObjectiveC)) , $(ARGS The target supports interfacing with Objective-C))
         $(TROW $(ARGS $(D D_ProfileGC)) , $(ARGS GC allocations being profiled
                 (command line switch $(DDSUBLINK dmd, switch-profile, $(TT -profile=gc)))))
+        $(TROW $(ARGS $(D D_Optimized)) , $(ARGS Compiling with enabled optimizations
+                (command line switch $(DDSUBLINK dmd, switch-O, $(TT -O)))))
         $(TROW $(ARGS $(D Core)) , $(ARGS Defined when building the standard runtime))
         $(TROW $(ARGS $(D Std)) , $(ARGS Defined when building the standard library))
         $(TROW $(ARGS $(D unittest)) , $(ARGS $(DDLINK spec/unittest, Unit Tests, Unit tests) are enabled
