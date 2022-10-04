@@ -280,7 +280,8 @@ Obj MsCoffObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegna
     if (!string_table)
     {
         string_table = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        assert(string_table);
+        if (!string_table)
+            err_nomem();
         string_table.reserve(2048);
     }
     string_table.reset();
@@ -297,14 +298,16 @@ Obj MsCoffObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegna
     else
     {
         symbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        assert(symbuf);
+        if (!symbuf)
+            err_nomem();
         symbuf.reserve((Symbol *).sizeof * SYM_TAB_INIT);
     }
 
     if (!syment_buf)
     {
         syment_buf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        assert(syment_buf);
+        if (!syment_buf)
+            err_nomem();
         syment_buf.reserve(SymbolTable32.sizeof * SYM_TAB_INIT);
     }
     syment_buf.reset();
@@ -316,7 +319,8 @@ Obj MsCoffObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegna
     if (!ScnhdrBuf)
     {
         ScnhdrBuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        assert(ScnhdrBuf);
+        if (!ScnhdrBuf)
+            err_nomem();
         ScnhdrBuf.reserve(SCNHDR_TAB_INITSIZE * (IMAGE_SECTION_HEADER).sizeof);
     }
     ScnhdrBuf.reset();
@@ -1462,7 +1466,8 @@ segidx_t MsCoffObj_getsegment2(IDXSEC shtidx)
         else
         {
             b1 = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-            assert(b1);
+            if (!b1)
+                err_nomem();
             b1.reserve(4096);
         }
         if (b2)
@@ -1478,7 +1483,8 @@ segidx_t MsCoffObj_getsegment2(IDXSEC shtidx)
 
         {
             pseg.SDbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-            assert(pseg.SDbuf);
+            if (!pseg.SDbuf)
+                err_nomem();
             pseg.SDbuf.reserve(4096);
         }
     }
@@ -2161,7 +2167,8 @@ void MsCoffObj_addrel(segidx_t seg, targ_size_t offset, Symbol *targsym,
     if (!pseg.SDrel)
     {
         pseg.SDrel = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        assert(pseg.SDrel);
+        if (!pseg.SDrel)
+            err_nomem();
     }
     pseg.SDrel.write((&rel)[0 .. 1]);
 }
@@ -2342,7 +2349,8 @@ static if (0)
                 if (!indirectsymbuf2)
                 {
                     indirectsymbuf2 = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-                    assert(indirectsymbuf2);
+                    if (!indirectsymbuf2)
+                        err_nomem();
                 }
                 else
                 {   // Look through indirectsym to see if it is already there
@@ -2497,7 +2505,8 @@ void MsCoffObj_write_pointerRef(Symbol* s, uint soff)
     if (!ptrref_buf)
     {
         ptrref_buf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        assert(ptrref_buf);
+        if (!ptrref_buf)
+            err_nomem();
     }
 
     // defer writing pointer references until the symbols are written out

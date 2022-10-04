@@ -53,10 +53,22 @@ char symbol_isintab(const Symbol* s) { return sytab[s.Sclass] & SCSS; }
 void util_free(void* p) { if (p) free(p); }
 
 @trusted
-void *util_calloc(uint n, uint size) { void* p = calloc(n, size); assert(!(n * size) || p); return p; }
+void *util_calloc(uint n, uint size)
+{
+    void* p = calloc(n, size);
+    if (n * size && !p)
+        err_nomem();
+    return p;
+}
 
 @trusted
-void *util_realloc(void* p, size_t n, size_t size) { void* q = realloc(p, n * size); assert(!(n * size) || q); return q; }
+void *util_realloc(void* p, size_t n, size_t size)
+{
+    void* q = realloc(p, n * size);
+    if (n * size && !q)
+        err_nomem();
+    return q;
+}
 
 extern (C++):
 
