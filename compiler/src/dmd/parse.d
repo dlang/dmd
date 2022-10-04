@@ -3168,9 +3168,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
                 if (udas)
                 {
-                    auto s = new AST.Dsymbols();
-                    s.push(em);
-                    auto uad = new AST.UserAttributeDeclaration(udas, s);
+                    auto uad = new AST.UserAttributeDeclaration(udas, new AST.Dsymbols());
                     em.userAttribDecl = uad;
                 }
 
