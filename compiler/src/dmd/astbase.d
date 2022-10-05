@@ -6160,6 +6160,39 @@ struct ASTBase
         }
     }
 
+    extern (C++) final class ErrorExp : Expression
+    {
+        private extern (D) this()
+        {
+            super(Loc.initial, EXP.error, __traits(classInstanceSize, ErrorExp));
+            type = Type.terror;
+        }
+
+        static ErrorExp get ()
+        {
+            if (errorexp is null)
+                errorexp = new ErrorExp();
+
+            if (global.errors == 0 && global.gaggedErrors == 0)
+            {
+                /* Unfortunately, errors can still leak out of gagged errors,
+                * and we need to set the error count to prevent bogus code
+                * generation. At least give a message.
+                */
+                dmd.errors.error(Loc.initial, "unknown, please file report on issues.dlang.org");
+            }
+
+            return errorexp;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+
+        extern (C++) __gshared ErrorExp errorexp; // handy shared value
+    }
+
     extern (C++) class TemplateParameter : ASTNode
     {
         Loc loc;
