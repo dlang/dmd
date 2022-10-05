@@ -491,7 +491,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                  */
                 if (mod.isRoot() && (global.params.useUnitTests || global.params.ddoc.doOutput || global.params.dihdr.doOutput))
                 {
-                    if (pAttrs.comment && *pLastDecl && !pLastDecl.comment)
+                    // FIXME can't find previous non-unittest symbol to check
+                    if (pAttrs.comment && *pLastDecl && !pLastDecl.comment &&
+                        !pLastDecl.isUnitTestDeclaration())
                     {
                         error("Documented unittest found following undocumented symbol `%s`",
                             pLastDecl.toPrettyChars());
