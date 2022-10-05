@@ -2639,7 +2639,8 @@ static if (1)
                 if (!functypebuf)
                 {
                     functypebuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-                    assert(functypebuf);
+                    if (!functypebuf)
+                        err_nomem();
                 }
                 uint functypebufidx = cast(uint)functypebuf.length();
                 functypebuf.write(tmpbuf.buf, cast(uint)tmpbuf.length());

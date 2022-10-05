@@ -464,7 +464,8 @@ void cv_init()
     else
     {
         reset_symbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        assert(reset_symbuf);
+        if (!reset_symbuf)
+            err_nomem();
         reset_symbuf.reserve(10 * (Symbol*).sizeof);
     }
 
