@@ -2463,6 +2463,20 @@ struct ASTBase
         }
     }
 
+    extern (C++) final class ErrorStatement : Statement
+    {
+        extern (D) this()
+        {
+            super(Loc.initial, STMT.Error);
+            assert(global.gaggedErrors || global.errors);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
     extern (C++) final class CompoundDeclarationStatement : CompoundStatement
     {
         final extern (D) this(const ref Loc loc, Statements* statements)
