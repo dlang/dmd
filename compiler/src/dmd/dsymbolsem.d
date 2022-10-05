@@ -1200,7 +1200,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     override void visit(BitFieldDeclaration dsym)
     {
-        //printf("BitField::semantic('%s') %s\n", toPrettyChars(), id.toChars());
+        //printf("BitField::semantic('%s')\n", dsym.toChars());
         if (dsym.semanticRun >= PASS.semanticdone)
             return;
 
