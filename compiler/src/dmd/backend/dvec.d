@@ -24,6 +24,8 @@ nothrow:
 @nogc:
 @safe:
 
+extern (C++) void err_nomem();
+
 alias vec_base_t = size_t;                     // base type of vector
 alias vec_t = vec_base_t*;
 
@@ -106,8 +108,11 @@ struct VecGlobal
         }
         else
         {
+            if (dim >= size_t.max / vec_base_t.sizeof - 1024)
+                err_nomem(); // dim overflow
             v = cast(vec_t) calloc(dim + 2, vec_base_t.sizeof);
-            assert(v);
+            if (!v)
+                err_nomem();
         }
         if (v)
         {
@@ -129,6 +134,7 @@ struct VecGlobal
             return null;
 
         const dim = vec_dim(v);
+        // don't need to check overflow, assuming dim is already valid
         const nbytes = (dim + 2) * vec_base_t.sizeof;
         vec_t vc;
         vec_t result;
@@ -140,7 +146,8 @@ struct VecGlobal
         else
         {
             vc = cast(vec_t) calloc(nbytes, 1);
-            assert(vc);
+            if (!vc)
+                err_nomem();
         }
         if (vc)
         {
