@@ -50,8 +50,8 @@ else
     # dmd.2.095.0.osx.zip or dmd.2.095.0.linux.tar.xz
     HOST_DMD_BASENAME=dmd.${HOST_DMD_VER}.${OS}
 fi
-# http://downloads.dlang.org/releases/2.x/2.095.0/dmd.2.095.0.linux.tar.xz
-HOST_DMD_URL=http://downloads.dlang.org/releases/2.x/${HOST_DMD_VER}/${HOST_DMD_BASENAME}
+# https://downloads.dlang.org/releases/2.x/2.095.0/dmd.2.095.0.linux.tar.xz
+HOST_DMD_URL=https://downloads.dlang.org/releases/2.x/${HOST_DMD_VER}/${HOST_DMD_BASENAME}
 HOST_RDMD="${HOST_DMD_ROOT}/dmd2/${OS}/${MODEL_PATH}/rdmd"
 HOST_DMD="${HOST_DMD_ROOT}/dmd2/${OS}/${MODEL_PATH}/dmd" # required by build.d
 
