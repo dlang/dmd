@@ -4287,7 +4287,7 @@ extern (C++) final class InvariantDeclaration : FuncDeclaration
  */
 extern (C++) final class UnitTestDeclaration : FuncDeclaration
 {
-    char* codedoc;      // for documented unittest
+    char* codedoc;      // contents of documented unittest body
 
     // toObjFile() these nested functions after this one
     FuncDeclarations deferredNested;

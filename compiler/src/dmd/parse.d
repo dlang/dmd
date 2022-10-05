@@ -491,6 +491,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                  */
                 if (mod.isRoot() && (global.params.useUnitTests || global.params.ddoc.doOutput || global.params.dihdr.doOutput))
                 {
+                    if (pAttrs.comment && *pLastDecl && !pLastDecl.comment)
+                    {
+                        error("Documented unittest found following undocumented symbol `%s`",
+                            pLastDecl.toPrettyChars());
+                        errorSupplemental(pLastDecl.loc, "`%s` declared here", pLastDecl.toChars());
+                    }
                     s = parseUnitTest(pAttrs);
                     if (*pLastDecl)
                         (*pLastDecl).ddocUnittest = cast(AST.UnitTestDeclaration)s;
