@@ -1204,6 +1204,9 @@ void addDefaultVersionIdentifiers(const ref Param params, const ref Target tgt)
 
     if (params.tracegc)
         VersionCondition.addPredefinedGlobalIdent("D_ProfileGC");
+
+    if (driverParams.optimize)
+        VersionCondition.addPredefinedGlobalIdent("D_Optimized");
 }
 
 /**
