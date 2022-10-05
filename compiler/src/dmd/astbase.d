@@ -660,9 +660,9 @@ struct ASTBase
     {
         TOK tok;
 
-        extern (D) this(const ref Loc loc, Loc endloc, Type type, TOK tok, ForeachStatement fes, Identifier id = null)
+        extern (D) this(const ref Loc loc, Loc endloc, Type type, TOK tok, ForeachStatement fes, Identifier id = null, StorageClass storage_class = STC.undefined_)
         {
-            super(loc, endloc, null, STC.undefined_, type);
+            super(loc, endloc, null, storage_class, type);
             this.ident = id ? id : Id.empty;
             this.tok = tok;
             this.fes = fes;
