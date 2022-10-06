@@ -251,7 +251,9 @@ debtyp_t * debtyp_alloc(uint length)
         length += pad;
     }
 
-    length < 0x10000 || assert(0);
+    if (length > ushort.max)
+        err_nomem();
+
     const len = debtyp_t.sizeof - (d.data).sizeof + length;
 debug
 {
@@ -262,6 +264,8 @@ debug
 else
 {
     d = cast(debtyp_t *) malloc(debtyp_t.sizeof - (d.data).sizeof + length);
+    if (!d)
+        err_nomem();
 }
     d.length = cast(ushort)length;
     if (pad)
@@ -284,7 +288,7 @@ private void debtyp_free(debtyp_t *d)
     //fflush(stdout);
 debug
 {
-    assert(d.length < 0x10000);
+    assert(d.length <= ushort.max);
     uint len = debtyp_t.sizeof - (d.data).sizeof + d.length;
 //    assert((cast(char*)d)[len] == 0x2E);
     memset(d, 0x55, len);
@@ -325,56 +329,27 @@ void debtyp_check(debtyp_t* d) { }
 @trusted
 idx_t cv_debtyp(debtyp_t *d)
 {
-    ushort length;
     uint hashi;
 
     assert(d);
-    length = d.length;
+    const length = d.length;
     //printf("length = %3d\n",length);
 static if (SYMDEB_TDB)
 {
     if (config.fulltypes == CVTDB)
     {
-            idx_t result;
-
-static if (1)
-{
             assert(length);
             debtyp_check(d);
-            result = tdb_typidx(&d.length);
-}
-else
-{
-            ubyte *buf;
+            const result = tdb_typidx(&d.length);
 
-            // Allocate buffer
-            buf = malloc(6 + length);
-            if (!buf)
-                err_nomem();                    // out of memory
-
-            // Fill the buffer
-            TOLONG(buf,cgcv.signature);
-            memcpy(buf + 4,cast(char *)d + uint.sizeof,2 + length);
-
-static if (0)
-{
-{int i;
- for (i=0;i<length;i++)
- printf("%02x ",buf[6+i]);
- printf("\n");
-}
-}
-            result = tdb_typidx(buf,6 + length);
-}
             //printf("result = x%x\n",result);
             debtyp_free(d);
             return result;
     }
 }
     if (length)
-    {   uint hash;
-
-        hash = length;
+    {
+        uint hash = length;
         if (length >= uint.sizeof)
         {
             // Hash consists of the sum of the first 4 bytes with the last 4 bytes
@@ -607,7 +582,8 @@ static if (SYMDEB_TDB)
             pstate.STtdbtimestamp = tdb_gettimestamp();
             size_t len = cv_stringbytes(ftdbname);
             ubyte *ds = (8 + len <= buf.sizeof) ? buf : cast(ubyte *) malloc(8 + len);
-            assert(ds);
+            if (!ds)
+                err_nomem();
             TOWORD(ds,6 + len);
             TOWORD(ds + 2,S_TDBNAME);
             TOLONG(ds + 4,pstate.STtdbtimestamp);
@@ -2507,7 +2483,8 @@ else
         // Length of record
         length = 2 + 2 + 4 * 3 + _tysize[TYint] * 4 + 2 + cgcv.sz_idx + 1;
         debsym = (length + len <= (buf).sizeof) ? buf.ptr : cast(ubyte *) malloc(length + len);
-        assert(debsym);
+        if (!debsym)
+            err_nomem();
         memset(debsym,0,length + len);
 
         // Symbol type
@@ -2586,7 +2563,8 @@ else
 }
         len = cast(uint)strlen(id);
         debsym = (39 + IDOHD + len <= (buf).sizeof) ? buf.ptr : cast(ubyte *) malloc(39 + IDOHD + len);
-        assert(debsym);
+        if (!debsym)
+            err_nomem();
         switch (s.Sclass)
         {
             case SC.parameter:
