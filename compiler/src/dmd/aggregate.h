@@ -174,7 +174,7 @@ public:
     structalign_t alignment;    // alignment applied outside of the struct
     ThreeState ispod;           // if struct is POD
 private:
-    uint8_t bitFields;
+    uint16_t bitFields;
 public:
     static StructDeclaration *create(const Loc &loc, Identifier *id, bool inObject);
     StructDeclaration *syntaxCopy(Dsymbol *s) override;

@@ -5532,52 +5532,25 @@ extern (C++) final class TypeStruct : Type
 
     override bool hasPointers()
     {
-        // Probably should cache this information in sym rather than recompute
-        StructDeclaration s = sym;
-
         if (sym.members && !sym.determineFields() && sym.type != Type.terror)
             error(sym.loc, "no size because of forward references");
 
-        foreach (VarDeclaration v; s.fields)
-        {
-            if (v.storage_class & STC.ref_ || v.hasPointers())
-                return true;
-        }
-        return false;
+        sym.determineTypeProperties();
+        return sym.hasPointerField;
     }
 
     override bool hasVoidInitPointers()
     {
-        // Probably should cache this information in sym rather than recompute
-        StructDeclaration s = sym;
-
         sym.size(Loc.initial); // give error for forward references
-        foreach (VarDeclaration v; s.fields)
-        {
-            if (v._init && v._init.isVoidInitializer() && v.type.hasPointers())
-                return true;
-            if (!v._init && v.type.hasVoidInitPointers())
-                return true;
-        }
-        return false;
+        sym.determineTypeProperties();
+        return sym.hasVoidInitPointers;
     }
 
     override bool hasInvariant()
     {
-        // Probably should cache this information in sym rather than recompute
-        StructDeclaration s = sym;
-
         sym.size(Loc.initial); // give error for forward references
-
-        if (s.hasInvariant())
-            return true;
-
-        foreach (VarDeclaration v; s.fields)
-        {
-            if (v.type.hasInvariant())
-                return true;
-        }
-        return false;
+        sym.determineTypeProperties();
+        return sym.hasInvariant() || sym.hasFieldWithInvariant;
     }
 
     extern (D) MATCH implicitConvToWithoutAliasThis(Type to)
