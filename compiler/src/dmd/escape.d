@@ -729,21 +729,30 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
                     continue;
             }
 
-            if (va && va.isScope() && va.isReturn() && !v.isReturn())
-            {
-                // va may return its value, but v does not allow that, so this is an error
-                if (sc.setUnsafeDIP1000(gag, ae.loc, "scope variable `%s` assigned to return scope `%s`", v, va))
-                {
-                    result = true;
-                    continue;
-                }
-            }
-
             // If va's lifetime encloses v's, then error
-            if (va && !va.isDataseg() &&
-                ((va.enclosesLifetimeOf(v) && !(v.storage_class & STC.temp)) || vaIsRef))
+            if (EnclosedBy eb = va.enclosesLifetimeOf(v))
             {
-                if (sc.setUnsafeDIP1000(gag, ae.loc, "scope variable `%s` assigned to `%s` with longer lifetime", v, va))
+                const(char)* msg;
+                final switch (eb)
+                {
+                    case EnclosedBy.none: assert(0);
+                    case EnclosedBy.returnScope:
+                        msg = "scope variable `%s` assigned to return scope `%s`";
+                        break;
+                    case EnclosedBy.longerScope:
+                        if (v.storage_class & STC.temp)
+                            continue;
+                        msg = "scope variable `%s` assigned to `%s` with longer lifetime";
+                        break;
+                    case EnclosedBy.refVar:
+                        msg = "scope variable `%s` assigned to `ref` variable `%s` with longer lifetime";
+                        break;
+                    case EnclosedBy.global:
+                        msg = "scope variable `%s` assigned to global variable `%s`";
+                        break;
+                }
+
+                if (sc.setUnsafeDIP1000(gag, ae.loc, msg, v, va))
                 {
                     result = true;
                     continue;
@@ -818,9 +827,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
         }
 
         // If va's lifetime encloses v's, then error
-        if (va &&
-            !(vaIsFirstRef && v.isReturn()) &&
-            (va.enclosesLifetimeOf(v) || (va.isReference() && !(va.storage_class & STC.temp)) || va.isDataseg()))
+        if (va && !(vaIsFirstRef && v.isReturn()) && va.enclosesLifetimeOf(v))
         {
             if (sc.setUnsafeDIP1000(gag, ae.loc, "address of variable `%s` assigned to `%s` with longer lifetime", v, va))
             {
@@ -2494,20 +2501,45 @@ bool isReferenceToMutable(Parameter p, Type t)
     return isReferenceToMutable(p.type);
 }
 
-/**********************************
-* Determine if `va` has a lifetime that lasts past
-* the destruction of `v`
-* Params:
-*     va = variable assigned to
-*     v = variable being assigned
-* Returns:
-*     true if it does
-*/
-private bool enclosesLifetimeOf(const VarDeclaration va, const VarDeclaration v) pure
+/// When checking lifetime for assignment `va=v`, the way `va` encloses `v`
+private enum EnclosedBy
 {
+    none = 0,
+    refVar, // `va` is a `ref` variable, which may link to a global variable
+    global, // `va` is a global variable
+    returnScope, // `va` is a scope variable that may be returned
+    longerScope, // `va` is another scope variable declared earlier than `v`
+}
+
+/**********************************
+ * Determine if `va` has a lifetime that lasts past
+ * the destruction of `v`
+ * Params:
+ *     va = variable assigned to
+ *     v = variable being assigned
+ * Returns:
+ *     The way `va` encloses `v` (if any)
+ */
+private EnclosedBy enclosesLifetimeOf(VarDeclaration va, VarDeclaration v)
+{
+    if (!va)
+        return EnclosedBy.none;
+
+    if (va.isDataseg())
+        return EnclosedBy.global;
+
+    if (va.isScope() && va.isReturn() && !v.isReturn())
+        return EnclosedBy.returnScope;
+
+    if (va.isReference() && va.isParameter())
+        return EnclosedBy.refVar;
+
     assert(va.sequenceNumber != va.sequenceNumber.init);
     assert(v.sequenceNumber != v.sequenceNumber.init);
-    return va.sequenceNumber < v.sequenceNumber;
+    if (va.sequenceNumber < v.sequenceNumber)
+        return EnclosedBy.longerScope;
+
+    return EnclosedBy.none;
 }
 
 /***************************************
