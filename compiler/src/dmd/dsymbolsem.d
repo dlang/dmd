@@ -1686,22 +1686,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
         else if (pd.ident == Id.startaddress)
         {
-            if (!pd.args || pd.args.dim != 1)
-                pd.error("function name expected for start address");
-            else
-            {
-                /* https://issues.dlang.org/show_bug.cgi?id=11980
-                 * resolveProperties and ctfeInterpret call are not necessary.
-                 */
-                Expression e = (*pd.args)[0];
-                sc = sc.startCTFE();
-                e = e.expressionSemantic(sc);
-                sc = sc.endCTFE();
-                (*pd.args)[0] = e;
-                Dsymbol sa = getDsymbol(e);
-                if (!sa || !sa.isFuncDeclaration())
-                    pd.error("function name expected for start address, not `%s`", e.toChars());
-            }
+            pragmaStartAddressSemantic(pd.loc, sc, pd.args);
             return noDeclarations();
         }
         else if (pd.ident == Id.Pinline)
