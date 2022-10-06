@@ -2,25 +2,12 @@
 REQUIRED_ARGS: -D
 TEST_OUTPUT:
 ---
-fail_compilation/ddocunittest.d(27): Error: Documented unittest found following undocumented symbol `foo`
-fail_compilation/ddocunittest.d(24):        `foo` declared here
+fail_compilation/ddocunittest.d(14): Error: Documented unittest found following undocumented symbol `foo`
+fail_compilation/ddocunittest.d(11):        `foo` declared here
+fail_compilation/ddocunittest.d(27): Error: Documented unittest found following undocumented symbol `bar`
+fail_compilation/ddocunittest.d(19):        `bar` declared here
 ---
 */
-/// document foo
-void foo(int) {}
-
-///
-unittest
-{
-    foo(1);
-}
-
-// ignore
-unittest
-{
-    noo(1);
-}
-
 void foo(string) {}
 
 ///
@@ -29,14 +16,14 @@ unittest
     foo(1);
 }
 
-void foo(bool) {}
+void bar() {}
 
 unittest
 {
     noo(1);
 }
 
-/// FIXME not detected
+///
 unittest
 {
     foo(1);

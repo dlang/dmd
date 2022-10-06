@@ -1222,7 +1222,24 @@ private void emitComment(Dsymbol s, ref OutBuffer buf, Scope* sc)
     if (!s)
         v.emit(sc, null, null);
     else
+    {
         s.accept(v);
+        /* Sometimes an undocumented declaration is added after a (possibly undocumented)
+         * unittest that accidentally breaks a later documented unittest. Hence detect
+         * any possible orphan. */
+        if (!s.comment && !s.isUnitTestDeclaration())
+        {
+            for (auto ut = s.ddocUnittest; ut; ut = ut.ddocUnittest)
+            {
+                if (ut.comment)
+                {
+                    error(ut.loc, "Documented unittest found following undocumented symbol `%s`",
+                        s.toChars());
+                    errorSupplemental(s.loc, "`%s` declared here", s.toChars());
+                }
+            }
+        }
+    }
 }
 
 private void toDocBuffer(Dsymbol s, ref OutBuffer buf, Scope* sc)
