@@ -409,13 +409,9 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Var
         {
             unsafeAssign!"scope variable"(v);
         }
-        else if (v.isTypesafeVariadicParameter && p == sc.func)
+        else if (v.isTypesafeVariadicArray && p == sc.func)
         {
-            Type tb = v.type.toBasetype();
-            if (tb.ty == Tarray || tb.ty == Tsarray)
-            {
-                unsafeAssign!"variadic variable"(v);
-            }
+            unsafeAssign!"variadic variable"(v);
         }
     }
 
@@ -706,7 +702,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
         Dsymbol p = v.toParent2();
 
         if (va && !vaIsRef && !va.isScope() && !v.isScope() &&
-            !v.isTypesafeVariadicParameter && !va.isTypesafeVariadicParameter &&
+            !v.isTypesafeVariadicArray && !va.isTypesafeVariadicArray &&
             (va.isParameter() && va.maybeScope && v.isParameter() && v.maybeScope) &&
             p == fd)
         {
@@ -772,15 +768,11 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
             }
             result |= sc.setUnsafeDIP1000(gag, ae.loc, "scope variable `%s` assigned to non-scope `%s`", v, e1);
         }
-        else if (v.isTypesafeVariadicParameter && p == fd)
+        else if (v.isTypesafeVariadicArray && p == fd)
         {
-            Type tb = v.type.toBasetype();
-            if (tb.ty == Tarray || tb.ty == Tsarray)
-            {
-                if (inferScope(va))
-                    continue;
-                result |= sc.setUnsafeDIP1000(gag, ae.loc, "variadic variable `%s` assigned to non-scope `%s`", v, e1);
-            }
+            if (inferScope(va))
+                continue;
+            result |= sc.setUnsafeDIP1000(gag, ae.loc, "variadic variable `%s` assigned to non-scope `%s`", v, e1);
         }
         else
         {
@@ -1039,14 +1031,10 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
                 continue;
             }
         }
-        else if (v.isTypesafeVariadicParameter && p == sc.func)
+        else if (v.isTypesafeVariadicArray && p == sc.func)
         {
-            Type tb = v.type.toBasetype();
-            if (tb.ty == Tarray || tb.ty == Tsarray)
-            {
-                result |= sc.setUnsafeDIP1000(gag, e.loc,
-                    "copying `%s` into allocated memory escapes a reference to variadic parameter `%s`", e, v);
-            }
+            result |= sc.setUnsafeDIP1000(gag, e.loc,
+                "copying `%s` into allocated memory escapes a reference to variadic parameter `%s`", e, v);
         }
         else
         {
@@ -1261,15 +1249,11 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                 }
             }
         }
-        else if (v.isTypesafeVariadicParameter && p == sc.func)
+        else if (v.isTypesafeVariadicArray && p == sc.func)
         {
-            Type tb = v.type.toBasetype();
-            if (tb.ty == Tarray || tb.ty == Tsarray)
-            {
-                if (!gag)
-                    error(e.loc, "returning `%s` escapes a reference to variadic parameter `%s`", e.toChars(), v.toChars());
-                result = false;
-            }
+            if (!gag)
+                error(e.loc, "returning `%s` escapes a reference to variadic parameter `%s`", e.toChars(), v.toChars());
+            result = false;
         }
         else
         {
@@ -1464,7 +1448,7 @@ private bool inferReturn(FuncDeclaration fd, VarDeclaration v, bool returnScope)
     if (v.isReturn())
         return !!(v.storage_class & STC.returnScope) == returnScope;
 
-    if (!v.isParameter() || v.isTypesafeVariadicParameter || (returnScope && v.doNotInferReturn))
+    if (!v.isParameter() || v.isTypesafeVariadicArray || (returnScope && v.doNotInferReturn))
         return false;
 
     if (!(fd.flags & FUNCFLAG.returnInprocess))
@@ -1668,7 +1652,7 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false, bool re
             {
                 if (tb.ty == Tsarray)
                     return;
-                if (v.isTypesafeVariadicParameter)
+                if (v.isTypesafeVariadicArray)
                 {
                     er.byvalue.push(v);
                     return;
@@ -1982,13 +1966,10 @@ void escapeByRef(Expression e, EscapeByResults* er, bool live = false, bool retR
         if (auto ve = e.e1.isVarExp())
         {
             VarDeclaration v = ve.var.isVarDeclaration();
-            if (tb.ty == Tarray || tb.ty == Tsarray)
+            if (v && v.isTypesafeVariadicArray)
             {
-                if (v && v.isTypesafeVariadicParameter)
-                {
-                    er.pushRef(v, retRefTransition);
-                    return;
-                }
+                er.pushRef(v, retRefTransition);
+                return;
             }
         }
         if (tb.ty == Tsarray)
@@ -2595,13 +2576,19 @@ private bool checkScopeVarAddr(VarDeclaration v, Expression e, Scope* sc, bool g
 }
 
 /****************************
- * Determine if `v` is a typesafe variadic parameter.
+ * Determine if `v` is a typesafe variadic array, which is implicitly `scope`
  * Params:
  *      v = variable to check
  * Returns:
  *      true if `v` is a variadic parameter
  */
-bool isTypesafeVariadicParameter(VarDeclaration v)
+private bool isTypesafeVariadicArray(VarDeclaration v)
 {
-    return !!(v.storage_class & STC.variadic);
+    if (v.storage_class & STC.variadic)
+    {
+        Type tb = v.type.toBasetype();
+        if (tb.ty == Tarray || tb.ty == Tsarray)
+            return true;
+    }
+    return false;
 }
