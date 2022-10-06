@@ -3868,7 +3868,8 @@ elem* toElem(Expression e, IRState *irs)
         elem *e;
         if (dim > 0)
         {
-            if (tb.ty == Tsarray)
+            if (tb.ty == Tsarray ||
+                irs.Cfile && tb.ty == Tpointer)
             {
                 Symbol *stmp = null;
                 e = ExpressionsToStaticArray(irs, ale.loc, ale.elements, &stmp, 0, ale.basis);
