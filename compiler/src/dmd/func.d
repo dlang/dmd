@@ -3384,6 +3384,28 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
     // re-resolve to check for supplemental message
     if (!global.gag || global.params.showGaggedErrors)
     {
+        if (tthis)
+        {
+            if (auto classType = tthis.isTypeClass())
+            {
+                if (auto baseClass = classType.sym.baseClass)
+                {
+                    if (auto baseFunction = baseClass.search(baseClass.loc, fd.ident))
+                    {
+                        MatchAccumulator mErr;
+                        functionResolve(mErr, baseFunction, loc, sc, tiargs, baseClass.type, fargs, null);
+                        if (mErr.last > MATCH.nomatch && mErr.lastf)
+                        {
+                            errorSupplemental(loc, "%s `%s` hides base class function `%s`",
+                                    fd.kind, fd.toPrettyChars(), mErr.lastf.toPrettyChars());
+                            errorSupplemental(loc, "add `alias %s = %s` to `%s`'s body to merge the overload sets",
+                                    fd.toChars(), mErr.lastf.toPrettyChars(), tthis.toChars());
+                            return null;
+                        }
+                    }
+                }
+            }
+        }
         const(char)* failMessage;
         functionResolve(m, orig_s, loc, sc, tiargs, tthis, fargs, &failMessage);
         if (failMessage)
