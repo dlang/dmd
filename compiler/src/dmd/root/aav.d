@@ -272,6 +272,7 @@ unittest
     assert(v == cast(void*)3);
 }
 
+///
 struct AssocArray(K,V)
 {
     private AA* aa;
