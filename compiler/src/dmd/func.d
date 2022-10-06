@@ -3388,8 +3388,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
         {
             if (auto classType = tthis.isTypeClass())
             {
-                auto baseClass = classType.sym.baseClass;
-                if (baseClass)
+                if (auto baseClass = classType.sym.baseClass)
                 {
                     if (auto baseFunction = baseClass.search(baseClass.loc, fd.ident))
                     {
