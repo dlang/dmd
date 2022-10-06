@@ -9940,40 +9940,48 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (t1b.ty != Tsarray && t1b.ty != Tarray)
                 return setResult(res);
 
-            /* Do not lower Rvalues and references, as they need to be moved,
-             * not copied.
-             * Skip the lowering when the RHS is an array literal, as e2ir
-             * already handles such cases more elegantly.
-             */
-            const isArrayCtor =
-                (ae.e1.isSliceExp || ae.e1.type.ty == Tsarray) &&
-                ae.e2.isLvalue &&
-                !(ae.e1.isVarExp &&
-                    ae.e1.isVarExp.var.isVarDeclaration.isReference) &&
-                (ae.e2.isVarExp ||
-                    ae.e2.isSliceExp ||
-                    (ae.e2.type.ty == Tsarray && !ae.e2.isArrayLiteralExp)) &&
-                ae.e1.type.nextOf &&
-                ae.e2.type.nextOf &&
-                ae.e1.type.nextOf.mutableOf.equals(ae.e2.type.nextOf.mutableOf);
+            // only non-trivial array constructions may need to be lowered (non-POD elements basically)
+            Type t1e = t1b.nextOf();
+            TypeStruct ts = t1e.baseElemOf().isTypeStruct();
+            if (!ts || (!ts.sym.postblit && !ts.sym.hasCopyCtor && !ts.sym.dtor))
+                return setResult(res);
 
-            /* Unlike isArrayCtor above, lower all Rvalues. If the RHS is a literal,
-             * then we do want to make a temporary for it and call its destructor.
-             */
-            const isArraySetCtor =
-                (ae.e1.isSliceExp || ae.e1.type.ty == Tsarray) &&
-                (ae.e2.type.ty == Tstruct || ae.e2.type.ty == Tsarray) &&
-                ae.e1.type.nextOf &&
-                ae.e1.type.nextOf.equivalent(ae.e2.type);
+            // don't lower ref-constructions etc.
+            if (!(t1b.ty == Tsarray || ae.e1.isSliceExp) ||
+                (ae.e1.isVarExp && ae.e1.isVarExp.var.isVarDeclaration.isReference))
+                return setResult(res);
 
-            if (isArrayCtor || isArraySetCtor)
+            // Construction from an equivalent other array?
+            // Only lower with lvalue RHS elements; let the glue layer move rvalue elements.
+            Type t2b = ae.e2.type.toBasetype();
+            // skip over a (possibly implicit) cast of a static array RHS to a slice
+            Expression rhs = ae.e2;
+            Type rhsType = t2b;
+            if (t2b.ty == Tarray)
             {
-                const ts = t1b.nextOf().baseElemOf().isTypeStruct();
-                if (!ts || (!ts.sym.postblit && !ts.sym.hasCopyCtor && !ts.sym.dtor))
-                    return setResult(res);
+                if (auto ce = rhs.isCastExp())
+                {
+                    auto ct = ce.e1.type.toBasetype();
+                    if (ct.ty == Tsarray)
+                    {
+                        rhs = ce.e1;
+                        rhsType = ct;
+                    }
+                }
+            }
+            const lowerToArrayCtor =
+                ( (rhsType.ty == Tarray && !rhs.isArrayLiteralExp) ||
+                  (rhsType.ty == Tsarray && rhs.isLvalue) ) &&
+                t1e.equivalent(t2b.nextOf);
 
-                auto func = isArrayCtor ? Id._d_arrayctor : Id._d_arraysetctor;
-                const other = isArrayCtor ? "other array" : "value";
+            // Construction from a single element?
+            // If the RHS is an rvalue, then we'll need to make a temporary for it (copied multiple times).
+            const lowerToArraySetCtor = !lowerToArrayCtor && t1e.equivalent(t2b);
+
+            if (lowerToArrayCtor || lowerToArraySetCtor)
+            {
+                auto func = lowerToArrayCtor ? Id._d_arrayctor : Id._d_arraysetctor;
+                const other = lowerToArrayCtor ? "other array" : "value";
                 if (!verifyHookExist(exp.loc, *sc, func, "construct array with " ~ other, Id.object))
                     return setError();
 
@@ -9983,18 +9991,18 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 id = new DotIdExp(exp.loc, id, func);
 
                 auto arguments = new Expressions();
-                arguments.push(new CastExp(ae.loc, ae.e1, ae.e1.type.nextOf.arrayOf).expressionSemantic(sc));
-                if (isArrayCtor)
+                arguments.push(new CastExp(ae.loc, ae.e1, t1e.arrayOf).expressionSemantic(sc));
+                if (lowerToArrayCtor)
                 {
-                    arguments.push(new CastExp(ae.loc, ae.e2, ae.e2.type.nextOf.arrayOf).expressionSemantic(sc));
+                    arguments.push(new CastExp(ae.loc, rhs, t2b.nextOf.arrayOf).expressionSemantic(sc));
                     Expression ce = new CallExp(exp.loc, id, arguments);
                     res = ce.expressionSemantic(sc);
                 }
                 else
                 {
                     Expression e0;
-                    // If ae.e2 is not a variable, construct a temp variable, as _d_arraysetctor requires `ref` access
-                    if (!ae.e2.isVarExp)
+                    // promote an rvalue RHS element to a temporary, it's passed by ref to _d_arraysetctor
+                    if (!ae.e2.isLvalue)
                     {
                         auto vd = copyToTemp(STC.scope_, "__setctor", ae.e2);
                         e0 = new DeclarationExp(vd.loc, vd).expressionSemantic(sc);
