@@ -173,6 +173,13 @@ void gun()()
         else break;
 }
 
+// https://issues.dlang.org/show_bug.cgi?id=14690
+pragma(inline, true)
+int fun(int a, int b)
+{
+    return 3;
+}
+
 // https://issues.dlang.org/show_bug.cgi?id=16649
 void leFoo()()
 {
