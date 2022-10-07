@@ -1045,8 +1045,18 @@ public:
             buf.writestring(", ");
             argsToBuffer(d.args, buf, hgs);
         }
+
         buf.writeByte(')');
+
+        // https://issues.dlang.org/show_bug.cgi?id=14690
+        // Unconditionally perform a full output dump
+        // for `pragma(inline)` declarations.
+        bool savedFullDump = global.params.dihdr.fullOutput;
+        if (d.ident == Id.Pinline)
+            global.params.dihdr.fullOutput = true;
+
         visit(cast(AttribDeclaration)d);
+        global.params.dihdr.fullOutput = savedFullDump;
     }
 
     override void visit(ConditionalDeclaration d)

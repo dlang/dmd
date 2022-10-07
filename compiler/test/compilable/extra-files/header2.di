@@ -132,6 +132,10 @@ void gun()()
 	else
 		break;
 }
+pragma (inline, true)int fun(int a, int b)
+{
+	return 3;
+}
 void leFoo()()
 {
 	sign = a == 2 ? false : (y < 0) ^ sign;
