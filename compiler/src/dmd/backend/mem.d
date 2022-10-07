@@ -16,6 +16,8 @@ module dmd.backend.mem;
 import core.stdc.stdlib : malloc, calloc, realloc, free;
 import core.stdc.string : strdup;
 
+import dmd.backend.global : err_nomem;
+
 extern (C):
 
 nothrow:
@@ -23,19 +25,42 @@ nothrow:
 @safe:
 
 @trusted
-char* mem_strdup(const char* p) { return strdup(p); }
+char* mem_strdup(const char* s)
+{
+    auto p = strdup(s);
+    if (!p && s)
+        err_nomem();
+    return p;
+}
 
 @trusted
-void* mem_malloc(size_t u) { return malloc(u); }
+void* mem_malloc(size_t u)
+{
+    auto p = malloc(u);
+    if (!p && u)
+        err_nomem();
+    return p;
+}
+
+alias mem_fmalloc = mem_malloc;
 
 @trusted
-void* mem_fmalloc(size_t u) { return malloc(u); }
+void* mem_calloc(size_t u)
+{
+    auto p = calloc(u, 1);
+    if (!p && u)
+        err_nomem();
+    return p;
+}
 
 @trusted
-void* mem_calloc(size_t u) { return calloc(u, 1); }
-
-@trusted
-void* mem_realloc(void* p, size_t u) { return realloc(p, u); }
+void* mem_realloc(void* p, size_t u)
+{
+    p = realloc(p, u);
+    if (!p && u)
+        err_nomem();
+    return p;
+}
 
 @trusted
 void mem_free(void* p) { free(p); }
