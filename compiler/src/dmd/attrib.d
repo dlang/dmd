@@ -894,18 +894,6 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
             // then it's evaluated on demand in function semantic
             return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility, sc.aligndecl, this);
         }
-        if (ident == Id.printf || ident == Id.scanf)
-        {
-            auto sc2 = sc.push();
-
-            if (ident == Id.printf)
-                // Override previous setting, never let both be set
-                sc2.flags = (sc2.flags & ~SCOPE.scanf) | SCOPE.printf;
-            else
-                sc2.flags = (sc2.flags & ~SCOPE.printf) | SCOPE.scanf;
-
-            return sc2;
-        }
         return sc;
     }
 

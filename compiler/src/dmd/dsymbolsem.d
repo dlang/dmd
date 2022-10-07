@@ -98,6 +98,29 @@ private uint setMangleOverride(Dsymbol s, const(char)[] sym)
     return 0;
 }
 
+/**
+ * Apply pragma printf/scanf to FuncDeclarations under `s`,
+ * poking through attribute declarations such as `extern(C)`
+ * but not through aggregates or function bodies.
+ *
+ * Params:
+ *    s = symbol to apply
+ *    printf = `true` for printf, `false` for scanf
+ */
+private void setPragmaPrintf(Dsymbol s, bool printf)
+{
+    if (auto fd = s.isFuncDeclaration())
+    {
+        fd.flags &= ~(FUNCFLAG.printf | FUNCFLAG.scanf);
+        fd.flags |= printf ? FUNCFLAG.printf : FUNCFLAG.scanf;
+    }
+
+    if (auto ad = s.isAttribDeclaration())
+    {
+        ad.include(null).foreachDsymbol( (s) { setPragmaPrintf(s, printf); } );
+    }
+}
+
 /*************************************
  * Does semantic analysis on the public face of declarations.
  */
@@ -1558,6 +1581,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             foreach (s; (*pd.decl)[])
             {
+                if (pd.ident == Id.printf || pd.ident == Id.scanf)
+                {
+                    s.setPragmaPrintf(pd.ident == Id.printf);
+                    continue;
+                }
+
                 s.dsymbolSemantic(sc2);
                 if (pd.ident != Id.mangle)
                     continue;
@@ -3308,7 +3337,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
 
-        if (const pors = sc.flags & (SCOPE.printf | SCOPE.scanf))
+        if (funcdecl.flags & (FUNCFLAG.printf | FUNCFLAG.scanf))
         {
             /* printf/scanf-like functions must be of the form:
              *    extern (C/C++) T printf([parameters...], const(char)* format, ...);
@@ -3344,11 +3373,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 )
                )
             {
-                funcdecl.flags |= (pors == SCOPE.printf) ? FUNCFLAG.printf : FUNCFLAG.scanf;
+                // the signature is valid for printf/scanf, no error
             }
             else
             {
-                const p = (pors == SCOPE.printf ? Id.printf : Id.scanf).toChars();
+                const p = ((funcdecl.flags & FUNCFLAG.printf) ? Id.printf : Id.scanf).toChars();
                 if (f.parameterList.varargs == VarArg.variadic)
                 {
                     funcdecl.error("`pragma(%s)` functions must be `extern(C) %s %s([parameters...], const(char)*, ...)`"
