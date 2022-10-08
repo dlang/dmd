@@ -5751,6 +5751,8 @@ public:
 
     enum : int32_t { ignoreRead = 2 };
 
+    enum : int32_t { nounderscore = 4 };
+
     Symbol* isym;
     _d_dynamicArray< const char > mangleOverride;
     const char* kind() const override;

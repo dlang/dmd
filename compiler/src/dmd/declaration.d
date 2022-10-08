@@ -227,6 +227,7 @@ extern (C++) abstract class Declaration : Dsymbol
     ubyte adFlags;         // control re-assignment of AliasDeclaration (put here for packing reasons)
       enum wasRead    = 1; // set if AliasDeclaration was read
       enum ignoreRead = 2; // ignore any reads of AliasDeclaration
+      enum nounderscore = 4; // don't prepend _ to mangled name
 
     Symbol* isym;           // import version of csym
 
