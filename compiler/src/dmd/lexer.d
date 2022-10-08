@@ -2849,7 +2849,7 @@ class Lexer
      * Same as above, but the potential error message is stored to the
      * msg parameter instead of being issued.
      */
-    pragma(inline, true) private pure uint decodeUTFpure(out string msg)
+    private pure uint decodeUTFpure(out string msg)
     {
         const s = p;
         assert(*s & 0x80);
