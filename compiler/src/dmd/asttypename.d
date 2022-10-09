@@ -84,7 +84,13 @@ private template Parameters(alias func)
         static assert(0, "argument has no parameters");
 }
 
-private enum parentAST(T) = is(T S == super) && is(S[0] == ASTNode);
+private template parentAST(T)
+{
+    static if (is(T S == super) && is(S[0] == ASTNode))
+        enum parentAST = true;
+    else
+        enum parentAST = false;
+}
 
 static foreach (ov; __traits(getOverloads, Visitor, "visit"))
 {
