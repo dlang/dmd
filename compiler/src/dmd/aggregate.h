@@ -82,7 +82,7 @@ public:
     CPPMANGLE cppmangle;
 
     // overridden symbol with pragma(mangle, "...")
-    MangleOverride *mangleOverride;
+    MangleOverride *pMangleOverride;
     /* !=NULL if is nested
      * pointing to the dsymbol that directly enclosing it.
      * 1. The function that enclosing it (nested struct and class)

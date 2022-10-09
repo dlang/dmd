@@ -780,6 +780,55 @@ void test45()
 }
 
 /*******************************************/
+// https://issues.dlang.org/show_bug.cgi?id=23348
+
+struct SS46 {
+    char a, b[2];
+};
+
+struct S46 {
+    struct SS46 ss;
+    char d;
+};
+
+static struct S46 s46 = { 1, 2, 3, 4 };
+static struct S46 t46 = { 'a', "bc", 'd' };
+
+void test46()
+{
+    assert(s46.ss.a    == 1, __LINE__);
+    assert(s46.ss.b[0] == 2, __LINE__);
+    assert(s46.ss.b[1] == 3, __LINE__);
+    assert(s46.d       == 4, __LINE__);
+    assert(t46.ss.a    == 'a', __LINE__);
+    assert(t46.ss.b[0] == 'b', __LINE__);
+    assert(t46.ss.b[1] == 'c', __LINE__);
+    assert(t46.d       == 'd', __LINE__);
+}
+
+/*******************************************/
+
+void test22925()
+{
+    int arr[1][1] = { {1} };
+    assert(arr[0][0] == 1, __LINE__);
+}
+
+/*******************************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=23345
+
+struct S47 { int a, b; };
+
+struct S47 s47 = { .b = 3, .a = 2 };
+
+void test47()
+{
+    assert(s47.b == 3, __LINE__);
+    assert(s47.a == 2, __LINE__);
+}
+
+/*******************************************/
 
 int main()
 {
@@ -826,6 +875,9 @@ int main()
     test43();
     test44();
     test45();
+    test46();
+    test22925();
+    test47();
 
     return 0;
 }

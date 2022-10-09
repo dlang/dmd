@@ -88,7 +88,13 @@ else
 void struct_free(struct_t *st) { }
 
 @trusted
-func_t* func_calloc() { return cast(func_t *) calloc(1, func_t.sizeof); }
+func_t* func_calloc()
+{
+    func_t* f = cast(func_t *) calloc(1, func_t.sizeof);
+    if (!f)
+        err_nomem();
+    return f;
+}
 
 @trusted
 void func_free(func_t* f) { free(f); }

@@ -467,7 +467,8 @@ Obj MachObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname
     else
     {
         symtab_strings = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        assert(symtab_strings);
+        if (!symtab_strings)
+            err_nomem();
         symtab_strings.reserve(2048);
         symtab_strings.writeByte(0);
     }
@@ -475,7 +476,8 @@ Obj MachObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname
     if (!local_symbuf)
     {
         local_symbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        assert(local_symbuf);
+        if (!local_symbuf)
+            err_nomem();
         local_symbuf.reserve((Symbol *).sizeof * SYM_TAB_INIT);
     }
     local_symbuf.reset();
@@ -488,7 +490,8 @@ Obj MachObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname
     else
     {
         public_symbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        assert(public_symbuf);
+        if (!public_symbuf)
+            err_nomem();
         public_symbuf.reserve((Symbol *).sizeof * SYM_TAB_INIT);
     }
 
@@ -500,14 +503,16 @@ Obj MachObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname
     else
     {
         extern_symbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        assert(extern_symbuf);
+        if (!extern_symbuf)
+            err_nomem();
         extern_symbuf.reserve((Symbol *).sizeof * SYM_TAB_INIT);
     }
 
     if (!comdef_symbuf)
     {
         comdef_symbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        assert(comdef_symbuf);
+        if (!comdef_symbuf)
+            err_nomem();
         comdef_symbuf.reserve((Symbol *).sizeof * SYM_TAB_INIT);
     }
     comdef_symbuf.reset();
@@ -531,7 +536,8 @@ Obj MachObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname
     else
     {
         SECbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        assert(SECbuf);
+        if (!SECbuf)
+            err_nomem();
         SECbuf.reserve(cast(uint)(SEC_TAB_INIT * struct_section_size));
         // Ignore the first section - section numbers start at 1
         SECbuf.writezeros(cast(uint)struct_section_size);
@@ -1900,7 +1906,8 @@ int MachObj_getsegment(const(char)* sectname, const(char)* segname,
         if (flags != S_ZEROFILL && flags != S_THREAD_LOCAL_ZEROFILL)
         {
             pseg.SDbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-            assert(pseg.SDbuf);
+            if (!pseg.SDbuf)
+                err_nomem();
             pseg.SDbuf.reserve(4096);
         }
     }
@@ -2167,6 +2174,9 @@ else
             break;
 
         case mTYman_c:
+            if (s.Sflags & SFLnounderscore)
+                goto case 0;
+            goto case;
         case mTYman_cpp:
         case mTYman_d:
             if (len >= DEST_LEN - 1)
@@ -2528,7 +2538,8 @@ void MachObj_addrel(int seg, targ_size_t offset, Symbol *targsym,
     if (!pseg.SDrel)
     {
         pseg.SDrel = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        assert(pseg.SDrel);
+        if (!pseg.SDrel)
+            err_nomem();
     }
     pseg.SDrel.write(&rel, rel.sizeof);
 }
@@ -2676,7 +2687,8 @@ static if (0)
                 if (!indirectsymbuf1)
                 {
                     indirectsymbuf1 = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-                    assert(indirectsymbuf1);
+                    if (!indirectsymbuf1)
+                        err_nomem();
                 }
                 else
                 {   // Look through indirectsym to see if it is already there
@@ -2722,7 +2734,8 @@ static if (0)
                 if (!indirectsymbuf2)
                 {
                     indirectsymbuf2 = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-                    assert(indirectsymbuf2);
+                    if (!indirectsymbuf2)
+                        err_nomem();
                 }
                 else
                 {   // Look through indirectsym to see if it is already there
@@ -2759,7 +2772,8 @@ static if (0)
                     if (!pseg2.SDrel)
                     {
                         pseg2.SDrel = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-                        assert(pseg2.SDrel);
+                        if (!pseg2.SDrel)
+                            err_nomem();
                     }
                     pseg2.SDrel.write(&rel, rel.sizeof);
                 }
@@ -2866,6 +2880,8 @@ static if (0)
     type *t = type_fake(TYint);
     t.Tmangle = mTYman_c;
     char *p = cast(char *)malloc(5 + strlen(scc.Sident.ptr) + 1);
+    if (!p)
+        err_nomem();
     strcpy(p, "SUPER");
     strcpy(p + 5, scc.Sident.ptr);
     Symbol *s_minfo_beg = symbol_name(p, SC.global, t);
@@ -2992,7 +3008,8 @@ int dwarf_eh_frame_fixup(int dfseg, targ_size_t offset, Symbol *s, targ_size_t v
     if (!pseg.SDrel)
     {
         pseg.SDrel = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        assert(pseg.SDrel);
+        if (!pseg.SDrel)
+            err_nomem();
     }
     pseg.SDrel.write(&rel, rel.sizeof);
 

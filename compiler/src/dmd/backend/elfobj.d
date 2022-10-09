@@ -417,7 +417,8 @@ private IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, uint sz,
         if (!shndx_data)
         {
             shndx_data = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-            assert(shndx_data);
+            if (!shndx_data)
+                err_nomem();
             shndx_data.reserve(50 * (Elf64_Word).sizeof);
         }
         // fill with zeros up to symbol_idx
@@ -667,7 +668,8 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
     else
     {
         symtab_strings = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        assert(symtab_strings);
+        if (!symtab_strings)
+            err_nomem();
         symtab_strings.reserve(2048);
         symtab_strings.writeByte(0);
     }
@@ -704,7 +706,8 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
         else
         {
             section_names = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-            assert(section_names);
+            if (!section_names)
+                err_nomem();
             section_names.reserve(1024);
             section_names.writen(section_names_init64.ptr, section_names_init64.sizeof);
         }
@@ -746,7 +749,8 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
         else
         {
             section_names = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-            assert(section_names);
+            if (!section_names)
+                err_nomem();
             section_names.reserve(100*1024);
             section_names.writen(section_names_init.ptr, section_names_init.sizeof);
         }
@@ -1539,7 +1543,8 @@ void ElfObj_compiler()
 {
     //dbg_printf("ElfObj_compiler\n");
     comment_data = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-    assert(comment_data);
+    if (!comment_data)
+        err_nomem();
 
     enum maxVersionLength = 40;  // hope enough to store `git describe --dirty`
     enum compilerHeader = "\0Digital Mars C/C++ ";
@@ -1896,7 +1901,8 @@ private segidx_t elf_addsegment2(IDXSEC shtidx, IDXSYM symidx, IDXSEC relidx)
     {   if (SecHdrTab[shtidx].sh_type != SHT_NOBITS)
         {
             pseg.SDbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-            assert(pseg.SDbuf);
+            if (!pseg.SDbuf)
+                err_nomem();
             pseg.SDbuf.reserve(1024);
         }
     }
@@ -2674,7 +2680,8 @@ void ElfObj_addrel(int seg, targ_size_t offset, uint type,
     if (segdata.SDrel == null)
     {
         segdata.SDrel = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        assert(segdata.SDrel);
+        if (!segdata.SDrel)
+            err_nomem();
     }
 
     if (segdata.SDrel.length() == 0)

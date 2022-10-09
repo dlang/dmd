@@ -1204,6 +1204,9 @@ void addDefaultVersionIdentifiers(const ref Param params, const ref Target tgt)
 
     if (params.tracegc)
         VersionCondition.addPredefinedGlobalIdent("D_ProfileGC");
+
+    if (driverParams.optimize)
+        VersionCondition.addPredefinedGlobalIdent("D_Optimized");
 }
 
 /**
@@ -1742,7 +1745,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.mixinOut.name = mem.xstrdup(tmp).toDString;
         }
         else if (arg == "-g") // https://dlang.org/dmd.html#switch-g
-            driverParams.symdebug = 1;
+            driverParams.symdebug = true;
         else if (startsWith(p + 1, "gdwarf")) // https://dlang.org/dmd.html#switch-gdwarf
         {
             if (driverParams.dwarf)
@@ -1750,7 +1753,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 error("`-gdwarf=<version>` can only be provided once");
                 break;
             }
-            driverParams.symdebug = 1;
+            driverParams.symdebug = true;
 
             enum len = "-gdwarf=".length;
             // Parse:
@@ -1763,8 +1766,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (arg == "-gf")
         {
-            if (!driverParams.symdebug)
-                driverParams.symdebug = 1;
+            driverParams.symdebug = true;
             driverParams.symdebugref = true;
         }
         else if (arg == "-gs")  // https://dlang.org/dmd.html#switch-gs
@@ -2097,14 +2099,13 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.warnings = DiagnosticReporting.inform;
         else if (arg == "-O")   // https://dlang.org/dmd.html#switch-O
             driverParams.optimize = true;
+        else if (arg == "-o-")  // https://dlang.org/dmd.html#switch-o-
+            params.obj = false;
         else if (p[1] == 'o')
         {
             const(char)* path;
             switch (p[2])
             {
-            case '-':                       // https://dlang.org/dmd.html#switch-o-
-                params.obj = false;
-                break;
             case 'd':                       // https://dlang.org/dmd.html#switch-od
                 if (!p[3])
                     goto Lnoarg;

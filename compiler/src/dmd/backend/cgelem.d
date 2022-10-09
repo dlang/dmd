@@ -3218,6 +3218,7 @@ private elem * elbit(elem *e, goal_t goal)
     targ_ullong m = (cast(targ_ullong)1 << w) - 1;   // mask w bits wide
     uint b = wb & 0xFF;                      // bits to right of field
     uint c = 0;
+    //printf("w %u + b %u <= sz %u\n", w, b, sz);
     assert(w + b <= sz);
 
     if (tyuns(tym1))                      // if uint bit field

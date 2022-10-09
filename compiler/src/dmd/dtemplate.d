@@ -1173,7 +1173,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
                 fd = new FuncDeclaration(fd.loc, fd.endloc, fd.ident, fd.storage_class, tf);
                 fd.parent = ti;
-                fd.flags |= FUNCFLAG.inferRetType;
+                fd.inferRetType = true;
 
                 // Shouldn't run semantic on default arguments and return type.
                 foreach (ref param; *tf.parameterList.parameters)
@@ -1510,7 +1510,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             }
         }
 
-        if (toParent().isModule() || (_scope.stc & STC.static_))
+        if (toParent().isModule())
             tthis = null;
         if (tthis)
         {
@@ -1533,7 +1533,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             }
 
             // Match attributes of tthis against attributes of fd
-            if (fd.type && !fd.isCtorDeclaration())
+            if (fd.type && !fd.isCtorDeclaration() && !(_scope.stc & STC.static_))
             {
                 StorageClass stc = _scope.stc | fd.storage_class2;
                 // Propagate parent storage class, https://issues.dlang.org/show_bug.cgi?id=5504
@@ -3841,10 +3841,20 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                         tp = (*parameters)[i];
                     else
                     {
+                        Loc loc;
+                        // The "type" (it hasn't been resolved yet) of the function parameter
+                        // does not have a location but the parameter it is related to does,
+                        // so we use that for the resolution (better error message).
+                        if (inferStart < parameters.dim)
+                        {
+                            TemplateParameter loctp = (*parameters)[inferStart];
+                            loc = loctp.loc;
+                        }
+
                         Expression e;
                         Type tx;
                         Dsymbol s;
-                        taa.index.resolve(Loc.initial, sc, e, tx, s);
+                        taa.index.resolve(loc, sc, e, tx, s);
                         edim = s ? getValue(s) : getValue(e);
                     }
                 }

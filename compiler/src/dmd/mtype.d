@@ -936,7 +936,7 @@ extern (C++) abstract class Type : ASTNode
         else
         {
             // If `typeSemantic` succeeded, there may have been deprecations that
-            // were gagged due the the `startGagging` above.  Run again to display
+            // were gagged due the `startGagging` above.  Run again to display
             // those deprecations.  https://issues.dlang.org/show_bug.cgi?id=19107
             if (global.gaggedWarnings > 0)
                 typeSemantic(tcopy, loc, sc);

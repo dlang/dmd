@@ -158,6 +158,8 @@ Symbol *toSymbol(Dsymbol s)
                 s.Sflags |= SFLartifical;
             if (isNRVO)
                 s.Sflags |= SFLnodebug;
+            if (vd.adFlags & Declaration.nounderscore)
+                s.Sflags |= SFLnounderscore;
 
             TYPE *t;
             if (vd.storage_class & (STC.out_ | STC.ref_))
@@ -371,7 +373,7 @@ Symbol *toSymbol(Dsymbol s)
                     f.Fflags |= Finline;    // inline this function if possible
             }
 
-            if (fd.type.toBasetype().isTypeFunction().nextOf().isTypeNoreturn() || fd.flags & FUNCFLAG.noreturn)
+            if (fd.type.toBasetype().isTypeFunction().nextOf().isTypeNoreturn() || fd.noreturn)
                 s.Sflags |= SFLexit;    // the function never returns
 
             f.Fstartline = toSrcpos(fd.loc);
@@ -394,6 +396,9 @@ Symbol *toSymbol(Dsymbol s)
                         break;
 
                     case LINK.c:
+                        if (fd.adFlags & Declaration.nounderscore)
+                            s.Sflags |= SFLnounderscore;
+                        goto case;
                     case LINK.objc:
                         t.Tmangle = mTYman_c;
                         break;

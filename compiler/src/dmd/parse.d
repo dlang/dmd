@@ -888,6 +888,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                             error("redundant visibility attribute `%s`", AST.visibilityToChars(prot));
                     }
                     pAttrs.visibility.kind = prot;
+                    const attrloc = token.loc;
 
                     nextToken();
 
@@ -908,7 +909,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         }
                     }
 
-                    const attrloc = token.loc;
                     a = parseBlock(pLastDecl, pAttrs);
                     if (pAttrs.visibility.kind != AST.Visibility.Kind.undefined)
                     {
@@ -3168,9 +3168,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
                 if (udas)
                 {
-                    auto s = new AST.Dsymbols();
-                    s.push(em);
-                    auto uad = new AST.UserAttributeDeclaration(udas, s);
+                    auto uad = new AST.UserAttributeDeclaration(udas, new AST.Dsymbols());
                     em.userAttribDecl = uad;
                 }
 
@@ -4473,7 +4471,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
             const loc = token.loc;
             Identifier ident;
-
             auto t = parseDeclarator(ts, alt, &ident, &tpl, storage_class, &disable, &udas);
             assert(t);
             if (!tfirst)
@@ -4857,6 +4854,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     token.value == TOK.identifier && peekNext() == TOK.goesTo ||
                     token.value == TOK.ref_ && peekNext() == TOK.leftParenthesis &&
                         skipAttributes(peekPastParen(peek(&token)), &tk) &&
+                        (tk.value == TOK.goesTo || tk.value == TOK.leftCurly) ||
+                    token.value == TOK.auto_ && peekNext() == TOK.ref_ &&
+                        peekNext2() == TOK.leftParenthesis &&
+                        skipAttributes(peekPastParen(peek(peek(&token))), &tk) &&
                         (tk.value == TOK.goesTo || tk.value == TOK.leftCurly)
                    )
                 {
@@ -4868,6 +4869,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     // identifier => expression
                     // ref (parameters) { statements... }
                     // ref (parameters) => expression
+                    // auto ref (parameters) { statements... }
+                    // auto ref (parameters) => expression
 
                     s = parseFunctionLiteral();
 
@@ -4995,7 +4998,20 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         case TOK.delegate_:
             save = token.value;
             nextToken();
-            if (token.value == TOK.ref_)
+            if (token.value == TOK.auto_)
+            {
+                nextToken();
+                if (token.value == TOK.ref_)
+                {
+                    // function auto ref (parameters) { statements... }
+                    // delegate auto ref (parameters) { statements... }
+                    stc = STC.auto_ | STC.ref_;
+                    nextToken();
+                }
+                else
+                    error("`auto` can only be used as part of `auto ref` for function literal return values");
+            }
+            else if (token.value == TOK.ref_)
             {
                 // function ref (parameters) { statements... }
                 // delegate ref (parameters) { statements... }
@@ -5023,6 +5039,20 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             }
             goto case TOK.leftParenthesis;
 
+        case TOK.auto_:
+            {
+                nextToken();
+                if (token.value == TOK.ref_)
+                {
+                    // auto ref (parameters) => expression
+                    // auto ref (parameters) { statements... }
+                    stc = STC.auto_ | STC.ref_;
+                    nextToken();
+                }
+                else
+                    error("`auto` can only be used as part of `auto ref` for function literal return values");
+                goto case TOK.leftParenthesis;
+            }
         case TOK.ref_:
             {
                 // ref (parameters) => expression
@@ -5075,7 +5105,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         auto tf = new AST.TypeFunction(parameterList, tret, linkage, stc);
         tf = cast(AST.TypeFunction)tf.addSTC(stc);
-        auto fd = new AST.FuncLiteralDeclaration(loc, Loc.initial, tf, save, null);
+        auto fd = new AST.FuncLiteralDeclaration(loc, Loc.initial, tf, save, null, null, stc & STC.auto_);
 
         if (token.value == TOK.goesTo)
         {
@@ -5198,7 +5228,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             }
             else
             {
-                f.frequires.push(parseStatement(ParseStatementFlags.curly | ParseStatementFlags.scope_));
+                auto ret = parseStatement(ParseStatementFlags.curly | ParseStatementFlags.scope_);
+                assert(ret);
+                f.frequires.push(ret);
                 requireDo = true;
             }
             goto L1;
@@ -6539,7 +6571,7 @@ LagainStc:
                 nextToken();
             if (token.value == TOK.semicolon)
                 nextToken();
-            s = null;
+            s = new AST.ErrorStatement;
             break;
         }
         if (pEndloc)
@@ -8383,6 +8415,22 @@ LagainStc:
             e = parseNewExp(null);
             break;
 
+        case TOK.auto_:
+            {
+                if (peekNext() == TOK.ref_ && peekNext2() == TOK.leftParenthesis)
+                {
+                    Token* tk = peekPastParen(peek(peek(&token)));
+                    if (skipAttributes(tk, &tk) && (tk.value == TOK.goesTo || tk.value == TOK.leftCurly))
+                    {
+                        // auto ref (arguments) => expression
+                        // auto ref (arguments) { statements... }
+                        goto case_delegate;
+                    }
+                }
+                nextToken();
+                error("found `%s` when expecting `ref` and function literal following `auto`", token.toChars());
+                goto Lerr;
+            }
         case TOK.ref_:
             {
                 if (peekNext() == TOK.leftParenthesis)
@@ -8619,7 +8667,7 @@ LagainStc:
                     if (token.value != TOK.identifier)
                     {
                         error("identifier expected following `(type)`.");
-                        return null;
+                        return AST.ErrorExp.get();
                     }
                     e = new AST.DotIdExp(loc, new AST.TypeExp(loc, t), token.ident);
                     nextToken();
@@ -8738,7 +8786,8 @@ LagainStc:
                                     if (peekNext() != TOK.identifier && peekNext() != TOK.new_)
                                     {
                                         error("identifier or new keyword expected following `(...)`.");
-                                        return null;
+                                        nextToken();
+                                        return AST.ErrorExp.get();
                                     }
                                     e = new AST.TypeExp(loc, t);
                                     e.parens = true;

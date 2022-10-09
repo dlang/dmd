@@ -513,7 +513,7 @@ private void genObjFile(Module m, bool multiobj)
 
         outdata(m.cov);
 
-        m.covb = cast(uint *)calloc((m.numlines + 32) / 32, (*m.covb).sizeof);
+        m.covb = cast(uint *)Mem.check(calloc((m.numlines + 32) / 32, (*m.covb).sizeof));
     }
 
     for (int i = 0; i < m.members.dim; i++)
@@ -691,7 +691,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         return;
 
     if (multiobj && !fd.isStaticDtorDeclaration() && !fd.isStaticCtorDeclaration()
-        && !(fd.flags & (FUNCFLAG.CRTCtor | FUNCFLAG.CRTDtor)))
+        && !(fd.isCrtCtor || fd.isCrtDtor))
     {
         obj_append(fd);
         return;
@@ -880,7 +880,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         // Register return style cannot make nrvo.
         // Auto functions keep the NRVO flag up to here,
         // so we should eliminate it before entering backend.
-        fd.flags &= ~FUNCFLAG.NRVO;
+        fd.isNRVO = false;
     }
 
     if (fd.vthis)
@@ -1193,10 +1193,10 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     if (fd.isExport())
         objmod.export_symbol(s, cast(uint)Para.offset);
 
-    if (fd.flags & FUNCFLAG.CRTCtor)
+    if (fd.isCrtCtor)
         objmod.setModuleCtorDtor(s, true);
 
-    if (fd.flags & FUNCFLAG.CRTDtor)
+    if (fd.isCrtDtor)
     {
         //See TargetC.initialize
         if(target.c.crtDestructorsSupported)
@@ -1222,8 +1222,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
                 platform it, if needed.
             */
             __gshared uint nthDestructor = 0;
-            char* buf = cast(char*) calloc(50, 1);
-            assert(buf);
+            char* buf = cast(char*) Mem.check(calloc(50, 1));
             const ret = snprintf(buf, 100, "_dmd_crt_destructor_thunk.%u", nthDestructor++);
             assert(ret >= 0 && ret < 100, "snprintf either failed or overran buffer");
             //Function symbol

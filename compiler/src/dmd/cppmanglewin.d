@@ -911,9 +911,9 @@ extern(D):
         {
             if (auto ag = sym.isAggregateDeclaration())
             {
-                if (ag.mangleOverride)
+                if (ag.pMangleOverride)
                 {
-                    writeName(ag.mangleOverride.id);
+                    writeName(ag.pMangleOverride.id);
                     return;
                 }
             }
@@ -932,27 +932,27 @@ extern(D):
         bool needNamespaces;
         if (auto ag = ti.aliasdecl ? ti.aliasdecl.isAggregateDeclaration() : null)
         {
-            if (ag.mangleOverride)
+            if (ag.pMangleOverride)
             {
-                if (ag.mangleOverride.agg)
+                if (ag.pMangleOverride.agg)
                 {
-                    if (auto aggti = ag.mangleOverride.agg.isInstantiated())
+                    if (auto aggti = ag.pMangleOverride.agg.isInstantiated())
                         actualti = aggti;
                     else
                     {
-                        writeName(ag.mangleOverride.id);
+                        writeName(ag.pMangleOverride.id);
                         if (sym.parent && !sym.parent.needThis())
-                            for (auto ns = ag.mangleOverride.agg.toAlias().cppnamespace; ns !is null && ns.ident !is null; ns = ns.cppnamespace)
+                            for (auto ns = ag.pMangleOverride.agg.toAlias().cppnamespace; ns !is null && ns.ident !is null; ns = ns.cppnamespace)
                                 writeName(ns.ident);
                         return;
                     }
-                    id = ag.mangleOverride.id;
+                    id = ag.pMangleOverride.id;
                     symName = id.toString();
                     needNamespaces = true;
                 }
                 else
                 {
-                    writeName(ag.mangleOverride.id);
+                    writeName(ag.pMangleOverride.id);
                     for (auto ns = ti.toAlias().cppnamespace; ns !is null && ns.ident !is null; ns = ns.cppnamespace)
                         writeName(ns.ident);
                     return;
