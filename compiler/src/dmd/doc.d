@@ -451,8 +451,6 @@ extern(C++) void gendocfile(Module m)
         dc.writeSections(sc, &a, &buf);
         emitMemberComments(m, buf, sc);
     }
-    if (global.errors)
-        return;
 
     //printf("BODY= '%.*s'\n", cast(int)buf.length, buf.data);
     m.macrotable.define("BODY", buf[]);
@@ -463,6 +461,8 @@ extern(C++) void gendocfile(Module m)
     const success = m.macrotable.expand(buf2, 0, end, null, global.recursionLimit);
     if (!success)
         error(Loc.initial, "DDoc macro expansion limit exceeded; more than %d expansions.", global.recursionLimit);
+    if (global.errors)
+        return;
 
     version (all)
     {
