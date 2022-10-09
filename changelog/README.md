@@ -34,7 +34,7 @@ For more infos, see the [Ddoc spec](https://dlang.org/spec/ddoc.html).
 Preview changes
 ---------------
 
-If you have cloned the [tools](https://github.com/dlang/tools) and [dlang.org](https://github.com/dlang/dlang.org) repo),
+If you have cloned the [tools](https://github.com/dlang/tools) and [dlang.org](https://github.com/dlang/dlang.org) repo,
 you can preview the changelog with:
 
 ```
