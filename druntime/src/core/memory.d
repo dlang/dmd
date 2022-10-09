@@ -137,7 +137,7 @@ private
     extern (C) GC.ProfileStats gc_profileStats ( ) nothrow @nogc @safe;
 }
 
-version (CoreDoc)
+version (CoreDdoc)
 {
     /**
      * The minimum size of a system page in bytes.
