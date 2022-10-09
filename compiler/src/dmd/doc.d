@@ -451,6 +451,9 @@ extern(C++) void gendocfile(Module m)
         dc.writeSections(sc, &a, &buf);
         emitMemberComments(m, buf, sc);
     }
+    if (global.errors)
+        return;
+
     //printf("BODY= '%.*s'\n", cast(int)buf.length, buf.data);
     m.macrotable.define("BODY", buf[]);
     OutBuffer buf2;
