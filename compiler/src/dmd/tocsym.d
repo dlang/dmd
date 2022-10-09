@@ -657,7 +657,24 @@ Symbol *toInitializer(AggregateDeclaration ad)
         else
         {
             auto stag = fake_classsym(Id.ClassInfo);
-            auto s = toSymbolX(ad, "__init", SC.extern_, stag.Stype, "Z");
+
+            Symbol* s;
+
+            Module m = ad.getModule();
+            if (m.filetype == FileType.c)
+            {
+                /* For ImportC structs, the module names are stripped from the mangled name.
+                 * This leads to name collisions. Add the module name back in.
+                 */
+                import dmd.common.outbuffer : OutBuffer;
+                OutBuffer buf;
+                buf.writestring("__init");
+                buf.writestring(m.toChars());
+                s = toSymbolX(ad, buf.peekChars(), SC.extern_, stag.Stype, "Z");
+            }
+            else
+                s = toSymbolX(ad, "__init", SC.extern_, stag.Stype, "Z");
+
             s.Sfl = FLextern;
             s.Sflags |= SFLnodebug;
             if (sd)
