@@ -21,7 +21,7 @@ $(H2 $(LNAME2 examples, Quick Examples))
     $(P C code in file $(TT hello.c):)
 
     $(CCODE
-    #include <stdio.h>
+    #include &lt;stdio.h&gt;
     int main()
     {
         printf("hello world\n");

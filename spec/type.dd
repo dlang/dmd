@@ -492,15 +492,22 @@ $(H3 $(LNAME2 vrp, Value Range Propagation))
     s = b + b; // OK, 0 ... b.max + b.max
     ---
     )
-    $(P Note the implementation does not track the range of possible values for variables,
-    only expressions:)
+    $(P Note the implementation does not track the range of possible values for
+    mutable variables:)
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     extern int i;
-    short s = i & 0xff; // OK
+    ushort s = i & 0xff; // OK
     // s is now assumed to be s.min ... s.max, not 0 ... 0xff
-    //byte b = s; // error
-    byte b = s & 0xff; // OK
+    //ubyte b = s; // error
+    ubyte b = s & 0xff; // OK
+
+    const int c = i & 0xff;
+    // c's range is fixed and known
+    b = c; // OK
     ---
+    )
     * For more information, see $(LINK2 https://digitalmars.com/articles/b62.html, the dmc article).
     * See also: $(LINK https://en.wikipedia.org/wiki/Value_range_analysis).
 
