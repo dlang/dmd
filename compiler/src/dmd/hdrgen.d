@@ -64,6 +64,7 @@ struct HdrGenState
     int tpltMember;
     int autoMember;
     int forStmtInit;
+    int insideFuncBody;
 
     bool declstring; // set while declaring alias for string,wstring or dstring
     EnumDeclaration inEnumDecl;
@@ -1559,7 +1560,7 @@ public:
                 bodyToBuffer(f);
                 hgs.autoMember--;
             }
-            else if (hgs.tpltMember == 0 && global.params.dihdr.fullOutput == false)
+            else if (hgs.tpltMember == 0 && global.params.dihdr.fullOutput == false && !hgs.insideFuncBody)
             {
                 if (!f.fbody)
                 {
@@ -1644,7 +1645,7 @@ public:
 
     void bodyToBuffer(FuncDeclaration f)
     {
-        if (!f.fbody || (hgs.hdrgen && global.params.dihdr.fullOutput == false && !hgs.autoMember && !hgs.tpltMember))
+        if (!f.fbody || (hgs.hdrgen && global.params.dihdr.fullOutput == false && !hgs.autoMember && !hgs.tpltMember && !hgs.insideFuncBody))
         {
             if (!f.fbody && (f.fensures || f.frequires))
             {
@@ -1655,6 +1656,18 @@ public:
             buf.writenl();
             return;
         }
+
+        // there is no way to know if a function is nested
+        // or not after parsing. We need scope information
+        // for that, which is avaible during semantic
+        // analysis. To overcome that, a simple mechanism
+        // is implemented: everytime we print a function
+        // body (templated or not) we increment a counter.
+        // We decredement the counter when we stop
+        // printing the function body.
+        ++hgs.insideFuncBody;
+        scope(exit) { --hgs.insideFuncBody; }
+
         const savetlpt = hgs.tpltMember;
         const saveauto = hgs.autoMember;
         hgs.tpltMember = 0;

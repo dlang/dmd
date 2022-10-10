@@ -221,6 +221,21 @@ align (2) struct S12200_2
 {
 	align (1) {}
 }
+pure nothrow @trusted inout(T)[] overlap(T)(inout(T)[] r1, inout(T)[] r2)
+{
+	alias U = inout(T);
+	static nothrow U* max(U* a, U* b)
+	{
+		return a > b ? a : b;
+	}
+	static nothrow U* min(U* a, U* b)
+	{
+		return a < b ? a : b;
+	}
+	auto b = max(r1.ptr, r2.ptr);
+	auto e = min(r1.ptr + r1.length, r2.ptr + r2.length);
+	return b < e ? b[0..e - b] : null;
+}
 void gun()()
 {
 	int[] res;
