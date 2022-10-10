@@ -7872,6 +7872,7 @@ public:
 class CatExp final : public BinExp
 {
 public:
+    Expression lowering;
     Expression* resolveLoc(const Loc& loc, Scope* sc) override;
     void accept(Visitor* v) override;
 };
@@ -8731,6 +8732,8 @@ struct Id final
     static Identifier* _d_arrayappendcTXImpl;
     static Identifier* _d_arrayappendcTX;
     static Identifier* _d_arrayappendcTXTrace;
+    static Identifier* _d_arraycatnTX;
+    static Identifier* _d_arraycatnTXTrace;
     static Identifier* stdc;
     static Identifier* stdarg;
     static Identifier* va_start;

@@ -1542,7 +1542,7 @@ extern (C++) abstract class Expression : ASTNode
                 // so don't print anything to avoid double error messages.
                 if (!(f.ident == Id._d_HookTraceImpl || f.ident == Id._d_arraysetlengthT
                     || f.ident == Id._d_arrayappendT || f.ident == Id._d_arrayappendcTX
-                    || f.ident == Id._d_newclassT))
+                    || f.ident == Id._d_arraycatnTX || f.ident == Id._d_newclassT))
                 {
                     error("`@nogc` %s `%s` cannot call non-@nogc %s `%s`",
                         sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
@@ -6555,6 +6555,8 @@ extern (C++) final class MinExp : BinExp
  */
 extern (C++) final class CatExp : BinExp
 {
+    Expression lowering;  // call to druntime hook `_d_arraycatnTX`
+
     extern (D) this(const ref Loc loc, Expression e1, Expression e2) scope
     {
         super(loc, EXP.concatenate, e1, e2);

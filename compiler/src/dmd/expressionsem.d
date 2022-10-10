@@ -2176,7 +2176,11 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             }
             // Allow 'lazy' to imply 'scope' - lazy parameters can be passed along
             // as lazy parameters to the next function, but that isn't escaping.
-            else if (!(pStc & STC.lazy_))
+            // The arguments of `_d_arraycatnTX` are already handled in
+            // expressionsem.d, via `checkNewEscape`. Without `-dip1000`, the
+            // check does not return an error, so the lowering of `a ~ b` to
+            // `_d_arraycatnTX(a, b)` still occurs.
+            else if (!(pStc & STC.lazy_) && (!fd ||  fd.ident != Id._d_arraycatnTX))
             {
                 /* Argument value can escape from the called function.
                  * Check arg to see if it matters.
@@ -2207,6 +2211,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                     // allocate the array literal as temporary static array on the stack
                     ale.type = ale.type.nextOf().sarrayOf(ale.elements.length);
                     auto tmp = copyToTemp(0, "__arrayliteral_on_stack", ale);
+                    tmp.storage_class |= STC.exptemp;
                     auto declareTmp = new DeclarationExp(ale.loc, tmp);
                     auto castToSlice = new CastExp(ale.loc, new VarExp(ale.loc, tmp),
                         p.type.substWildTo(MODFlags.mutable));
@@ -10930,6 +10935,86 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         return;
     }
 
+    /**
+     * If the given expression is a `CatExp`, the function tries to lower it to
+     * `_d_arraycatnTX`.
+     *
+     * Params:
+     *      ee = the `CatExp` to lower
+     * Returns:
+     *      `_d_arraycatnTX(e1, e2, ..., en)` if `ee` is `e1 ~ e2 ~ ... en`
+     *      `ee` otherwise
+     */
+    private Expression lowerToArrayCat(CatExp exp)
+    {
+        // String literals are concatenated by the compiler. No lowering is needed.
+        if ((exp.e1.isStringExp() && (exp.e2.isIntegerExp() || exp.e2.isStringExp())) ||
+            (exp.e2.isStringExp() && (exp.e1.isIntegerExp() || exp.e1.isStringExp())))
+            return exp;
+
+        Identifier hook = global.params.tracegc ? Id._d_arraycatnTXTrace : Id._d_arraycatnTX;
+        if (!verifyHookExist(exp.loc, *sc, hook, "concatenating arrays"))
+        {
+            setError();
+            return result;
+        }
+
+        void handleCatArgument(Expressions *arguments, Expression e)
+        {
+            if (auto ce = e.isCatExp())
+            {
+                Expression lowering = ce.lowering;
+
+                /* Skip `file`, `line`, and `funcname` if the hook of the parent
+                 * `CatExp` is `_d_arraycatnTXTrace`.
+                 */
+                if (auto callExp = isRuntimeHook(lowering, hook))
+                {
+                    if (hook == Id._d_arraycatnTX)
+                        arguments.pushSlice((*callExp.arguments)[]);
+                    else
+                        arguments.pushSlice((*callExp.arguments)[3 .. $]);
+                }
+            }
+            else
+                arguments.push(e);
+        }
+
+        auto arguments = new Expressions();
+        if (global.params.tracegc)
+        {
+            auto funcname = (sc.callsc && sc.callsc.func) ?
+                sc.callsc.func.toPrettyChars() : sc.func.toPrettyChars();
+            arguments.push(new StringExp(exp.loc, exp.loc.filename.toDString()));
+            arguments.push(new IntegerExp(exp.loc, exp.loc.linnum, Type.tint32));
+            arguments.push(new StringExp(exp.loc, funcname.toDString()));
+        }
+
+        handleCatArgument(arguments, exp.e1);
+        handleCatArgument(arguments, exp.e2);
+
+        Expression id = new IdentifierExp(exp.loc, Id.empty);
+        id = new DotIdExp(exp.loc, id, Id.object);
+
+        auto tiargs = new Objects();
+        tiargs.push(exp.type);
+        id = new DotTemplateInstanceExp(exp.loc, id, hook, tiargs);
+        id = new CallExp(exp.loc, id, arguments);
+        return id.expressionSemantic(sc);
+    }
+
+    void trySetCatExpLowering(Expression exp)
+    {
+        /* `_d_arraycatnTX` canot be used with `-betterC`, but `CatExp`s may be
+         * used with `-betterC`, but only during CTFE.
+         */
+        if (global.params.betterC)
+            return;
+
+        if (auto ce = exp.isCatExp())
+            ce.lowering = lowerToArrayCat(ce);
+    }
+
     override void visit(CatExp exp)
     {
         // https://dlang.org/spec/expression.html#cat_expressions
@@ -11017,14 +11102,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 exp.e2 = exp.e2.implicitCastTo(sc, tb1next);
                 exp.type = tb1next.arrayOf();
             L2elem:
-                if (tb2.ty == Tarray || tb2.ty == Tsarray)
-                {
-                    // Make e2 into [e2]
-                    exp.e2 = new ArrayLiteralExp(exp.e2.loc, exp.type, exp.e2);
-                }
-                else if (checkNewEscape(sc, exp.e2, false))
+                if (checkNewEscape(sc, exp.e2, false))
                     return setError();
                 result = exp.optimize(WANTvalue);
+                trySetCatExpLowering(result);
                 return;
             }
         }
@@ -11055,14 +11136,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 exp.e1 = exp.e1.implicitCastTo(sc, tb2next);
                 exp.type = tb2next.arrayOf();
             L1elem:
-                if (tb1.ty == Tarray || tb1.ty == Tsarray)
-                {
-                    // Make e1 into [e1]
-                    exp.e1 = new ArrayLiteralExp(exp.e1.loc, exp.type, exp.e1);
-                }
-                else if (checkNewEscape(sc, exp.e1, false))
+                if (checkNewEscape(sc, exp.e1, false))
                     return setError();
                 result = exp.optimize(WANTvalue);
+                trySetCatExpLowering(result);
                 return;
             }
         }
@@ -11085,6 +11162,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (Expression ex = typeCombine(exp, sc))
         {
             result = ex;
+            trySetCatExpLowering(result);
             return;
         }
         exp.type = exp.type.toHeadMutable();
@@ -11117,6 +11195,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         result = e;
+        trySetCatExpLowering(result);
     }
 
     override void visit(MulExp exp)
