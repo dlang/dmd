@@ -20,6 +20,6 @@ repos:
   - id: no-commit-to-branch
     args: [--branch, master]
 - repo: https://github.com/sirosen/check-jsonschema
-  rev: 0.17.1
+  rev: 0.18.3
   hooks:
     - id: check-github-workflows
