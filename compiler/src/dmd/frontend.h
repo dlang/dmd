@@ -6309,10 +6309,18 @@ public:
     bool hasNoFields(bool v);
     bool hasCopyCtor() const;
     bool hasCopyCtor(bool v);
+    bool hasPointerField() const;
+    bool hasPointerField(bool v);
+    bool hasVoidInitPointers() const;
+    bool hasVoidInitPointers(bool v);
+    bool hasFieldWithInvariant() const;
+    bool hasFieldWithInvariant(bool v);
+    bool computedTypeProperties() const;
+    bool computedTypeProperties(bool v);
     bool requestTypeInfo() const;
     bool requestTypeInfo(bool v);
 private:
-    uint8_t bitFields;
+    uint16_t bitFields;
 public:
     static StructDeclaration* create(const Loc& loc, Identifier* id, bool inObject);
     StructDeclaration* syntaxCopy(Dsymbol* s) override;
