@@ -65,7 +65,7 @@ extern (C++):
  * Helper
  */
 
-Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, int sclass, type *t, const(char)* suffix)
+Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, SC sclass, type *t, const(char)* suffix)
 {
     //printf("Dsymbol::toSymbolX('%s')\n", prefix);
     import dmd.common.string : SmallBuffer;
@@ -158,6 +158,8 @@ Symbol *toSymbol(Dsymbol s)
                 s.Sflags |= SFLartifical;
             if (isNRVO)
                 s.Sflags |= SFLnodebug;
+            if (vd.adFlags & Declaration.nounderscore)
+                s.Sflags |= SFLnounderscore;
 
             TYPE *t;
             if (vd.storage_class & (STC.out_ | STC.ref_))
@@ -235,14 +237,14 @@ Symbol *toSymbol(Dsymbol s)
                         message(vd.loc, "`%s` is thread local", vd.toChars());
                     }
                 }
-                s.Sclass = SCextern;
+                s.Sclass = SC.extern_;
                 s.Sfl = FLextern;
 
                 /* Make C static variables SCstatic
                  */
                 if (vd.storage_class & STC.static_ && vd.isCsymbol())
                 {
-                    s.Sclass = SCstatic;
+                    s.Sclass = SC.static_;
                     s.Sfl = FLdata;
                 }
 
@@ -255,7 +257,7 @@ Symbol *toSymbol(Dsymbol s)
             }
             else
             {
-                s.Sclass = SCauto;
+                s.Sclass = SC.auto_;
                 s.Sfl = FLauto;
 
                 if (vd.nestedrefs.dim)
@@ -343,8 +345,8 @@ Symbol *toSymbol(Dsymbol s)
             /* Make C static functions SCstatic
              */
             s.Sclass = (fd.storage_class & STC.static_ && fd.isCsymbol())
-                ? SCstatic
-                : SCglobal;
+                ? SC.static_
+                : SC.global;
 
             symbol_func(s);
             func_t *f = s.Sfunc;
@@ -371,7 +373,7 @@ Symbol *toSymbol(Dsymbol s)
                     f.Fflags |= Finline;    // inline this function if possible
             }
 
-            if (fd.type.toBasetype().isTypeFunction().nextOf().isTypeNoreturn() || fd.flags & FUNCFLAG.noreturn)
+            if (fd.type.toBasetype().isTypeFunction().nextOf().isTypeNoreturn() || fd.noreturn)
                 s.Sflags |= SFLexit;    // the function never returns
 
             f.Fstartline = toSrcpos(fd.loc);
@@ -394,6 +396,9 @@ Symbol *toSymbol(Dsymbol s)
                         break;
 
                     case LINK.c:
+                        if (fd.adFlags & Declaration.nounderscore)
+                            s.Sflags |= SFLnounderscore;
+                        goto case;
                     case LINK.objc:
                         t.Tmangle = mTYman_c;
                         break;
@@ -449,7 +454,7 @@ Symbol *toSymbol(Dsymbol s)
 
         override void visit(ClassDeclaration cd)
         {
-            auto s = toSymbolX(cd, "__Class", SCextern, getClassInfoCType(), "Z");
+            auto s = toSymbolX(cd, "__Class", SC.extern_, getClassInfoCType(), "Z");
             s.Sfl = FLextern;
             s.Sflags |= SFLnodebug;
             result = s;
@@ -461,7 +466,7 @@ Symbol *toSymbol(Dsymbol s)
 
         override void visit(InterfaceDeclaration id)
         {
-            auto s = toSymbolX(id, "__Interface", SCextern, getClassInfoCType(), "Z");
+            auto s = toSymbolX(id, "__Interface", SC.extern_, getClassInfoCType(), "Z");
             s.Sfl = FLextern;
             s.Sflags |= SFLnodebug;
             result = s;
@@ -473,7 +478,7 @@ Symbol *toSymbol(Dsymbol s)
 
         override void visit(Module m)
         {
-            auto s = toSymbolX(m, "__ModuleInfo", SCextern, getClassInfoCType(), "Z");
+            auto s = toSymbolX(m, "__ModuleInfo", SC.extern_, getClassInfoCType(), "Z");
             s.Sfl = FLextern;
             s.Sflags |= SFLnodebug;
             result = s;
@@ -523,7 +528,7 @@ Symbol *toImport(Symbol *sym, Loc loc)
     t.Tcount++;
     auto s = symbol_calloc(id, idlen);
     s.Stype = t;
-    s.Sclass = SCextern;
+    s.Sclass = SC.extern_;
     s.Sfl = FLextern;
     return s;
 }
@@ -562,7 +567,7 @@ Symbol *toThunkSymbol(FuncDeclaration fd, int offset)
     char[6 + tmpnum.sizeof * 3 + 1] name = void;
 
     sprintf(name.ptr,"_THUNK%d",tmpnum++);
-    auto sthunk = symbol_name(name.ptr,SCstatic,fd.csym.Stype);
+    auto sthunk = symbol_name(name.ptr,SC.static_,fd.csym.Stype);
     sthunk.Sflags |= SFLnodebug | SFLartifical;
     sthunk.Sflags |= SFLimplem;
     outthunk(sthunk, fd.csym, 0, TYnptr, -offset, -1, 0);
@@ -601,7 +606,7 @@ Symbol *toVtblSymbol(ClassDeclaration cd, bool genCsymbol = true)
 
         auto t = type_allocn(TYnptr | mTYconst, tstypes[TYvoid]);
         t.Tmangle = mTYman_d;
-        auto s = toSymbolX(cd, "__vtbl", SCextern, t, "Z");
+        auto s = toSymbolX(cd, "__vtbl", SC.extern_, t, "Z");
         s.Sflags |= SFLnodebug;
         s.Sfl = FLextern;
 
@@ -650,7 +655,7 @@ Symbol *toInitializer(AggregateDeclaration ad)
         else
         {
             auto stag = fake_classsym(Id.ClassInfo);
-            auto s = toSymbolX(ad, "__init", SCextern, stag.Stype, "Z");
+            auto s = toSymbolX(ad, "__init", SC.extern_, stag.Stype, "Z");
             s.Sfl = FLextern;
             s.Sflags |= SFLnodebug;
             if (sd)
@@ -667,7 +672,7 @@ Symbol *toInitializer(EnumDeclaration ed)
     {
         auto stag = fake_classsym(Id.ClassInfo);
         assert(ed.ident);
-        auto s = toSymbolX(ed, "__init", SCextern, stag.Stype, "Z");
+        auto s = toSymbolX(ed, "__init", SC.extern_, stag.Stype, "Z");
         s.Sfl = FLextern;
         s.Sflags |= SFLnodebug;
         ed.sinit = s;
@@ -708,7 +713,7 @@ Symbol *aaGetSymbol(TypeAArray taa, const(char)* func, int flags)
     // Create new Symbol
 
     auto s = symbol_calloc(id, idlen);
-    s.Sclass = SCextern;
+    s.Sclass = SC.extern_;
     s.Ssymnum = SYMIDX.max;
     symbol_func(s);
 
@@ -732,7 +737,7 @@ Symbol* toSymbol(StructLiteralExp sle)
     auto t = type_alloc(TYint);
     t.Tcount++;
     auto s = symbol_calloc("internal", 8);
-    s.Sclass = SCstatic;
+    s.Sclass = SC.static_;
     s.Sfl = FLextern;
     s.Sflags |= SFLnodebug;
     s.Stype = t;
@@ -752,7 +757,7 @@ Symbol* toSymbol(ClassReferenceExp cre)
     auto t = type_alloc(TYint);
     t.Tcount++;
     auto s = symbol_calloc("internal", 8);
-    s.Sclass = SCstatic;
+    s.Sclass = SC.static_;
     s.Sfl = FLextern;
     s.Sflags |= SFLnodebug;
     s.Stype = t;
@@ -784,7 +789,7 @@ Symbol* toSymbolCpp(ClassDeclaration cd)
         __gshared Symbol *scpp;
         if (!scpp)
             scpp = fake_classsym(Id.cpp_type_info_ptr);
-        Symbol *s = toSymbolX(cd, "_cpp_type_info_ptr", SCcomdat, scpp.Stype, "");
+        Symbol *s = toSymbolX(cd, "_cpp_type_info_ptr", SC.comdat, scpp.Stype, "");
         s.Sfl = FLdata;
         s.Sflags |= SFLnodebug;
         auto dtb = DtBuilder(0);
@@ -807,7 +812,7 @@ Symbol *toSymbolCppTypeInfo(ClassDeclaration cd)
 {
     const id = target.cpp.typeInfoMangle(cd);
     auto s = symbol_calloc(id, cast(uint)strlen(id));
-    s.Sclass = SCextern;
+    s.Sclass = SC.extern_;
     s.Sfl = FLextern;          // C++ code will provide the definition
     s.Sflags |= SFLnodebug;
     auto t = type_fake(TYnptr);

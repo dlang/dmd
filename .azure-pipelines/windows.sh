@@ -15,7 +15,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 install_grep
 
 if [ "$HOST_DMD_VERSION" == "LATEST" ]; then
-    download "http://downloads.dlang.org/releases/LATEST" LATEST
+    download "https://downloads.dlang.org/releases/LATEST" LATEST
     HOST_DMD_VERSION="$(cat LATEST)"
 fi
 echo "D_VERSION: $HOST_DMD_VERSION"

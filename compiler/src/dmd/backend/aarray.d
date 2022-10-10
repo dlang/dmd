@@ -20,7 +20,10 @@ import core.stdc.string;
 alias hash_t = size_t;
 
 version (MARS)
+{
     import dmd.root.hash;
+    import dmd.backend.global : err_nomem;
+}
 
 nothrow:
 @safe:
@@ -104,7 +107,8 @@ nothrow:
             alias aaAp = aaA*;
             const len = prime_list[0];
             auto p = cast(aaAp*)calloc(len, aaAp.sizeof);
-            assert(p);
+            if (!p)
+                err_nomem();
             buckets = p[0 .. len];
         }
 
@@ -126,7 +130,8 @@ nothrow:
         // Not found, create new elem
         //printf("create new one\n");
         e = cast(aaA *) malloc(aaA.sizeof + aligned_keysize + Value.sizeof);
-        assert(e);
+        if (!e)
+            err_nomem();
         memcpy(e + 1, pkey, Key.sizeof);
         memset(cast(void *)(e + 1) + aligned_keysize, 0, Value.sizeof);
         e.hash = key_hash;
@@ -226,8 +231,11 @@ nothrow:
         if (!nodes)
             return null;
 
+        if (nodes >= size_t.max / Key.sizeof)
+            err_nomem();
         auto p = cast(Key *)malloc(nodes * Key.sizeof);
-        assert(p);
+        if (!p)
+            err_nomem();
         auto q = p;
         foreach (e; buckets)
         {
@@ -254,8 +262,11 @@ nothrow:
             return null;
 
         const aligned_keysize = aligntsize(Key.sizeof);
+        if (nodes >= size_t.max / Key.sizeof)
+            err_nomem();
         auto p = cast(Value *)malloc(nodes * Value.sizeof);
-        assert(p);
+        if (!p)
+            err_nomem();
         auto q = p;
         foreach (e; buckets)
         {
@@ -291,7 +302,8 @@ nothrow:
             }
         }
         auto newbuckets = cast(aaA**)calloc(newbuckets_length, (aaA*).sizeof);
-        assert(newbuckets);
+        if (!newbuckets)
+            err_nomem();
 
         foreach (e; buckets)
         {
@@ -452,7 +464,8 @@ nothrow:
     static AAchars* create()
     {
         auto a = cast(AAchars*)calloc(1, AAchars.sizeof);
-        assert(a);
+        if (!a)
+            err_nomem();
         return a;
     }
 
@@ -530,7 +543,8 @@ nothrow:
     static AApair* create(ubyte** pbase)
     {
         auto a = cast(AApair*)calloc(1, AApair.sizeof);
-        assert(a);
+        if (!a)
+            err_nomem();
         a.aa.tkey.pbase = pbase;
         return a;
     }
@@ -566,7 +580,8 @@ nothrow:
     static AApair2* create(ubyte** pbase)
     {
         auto a = cast(AApair2*)calloc(1, AApair2.sizeof);
-        assert(a);
+        if (!a)
+            err_nomem();
         a.aa.tkey.pbase = pbase;
         return a;
     }

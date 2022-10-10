@@ -535,7 +535,6 @@ DOCS=\
 	$(DOCDIR)\rt_aApplyR.html \
 	$(DOCDIR)\rt_adi.html \
 	$(DOCDIR)\rt_alloca.html \
-	$(DOCDIR)\rt_arrayassign.html \
 	$(DOCDIR)\rt_arraycat.html \
 	$(DOCDIR)\rt_cast_.html \
 	$(DOCDIR)\rt_config.html \

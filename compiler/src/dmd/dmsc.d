@@ -188,7 +188,7 @@ targ_size_t size(tym_t ty)
 
 Symbol *symboldata(targ_size_t offset,tym_t ty)
 {
-    Symbol *s = symbol_generate(SClocstat, type_fake(ty));
+    Symbol *s = symbol_generate(SC.locstat, type_fake(ty));
     s.Sfl = FLdata;
     s.Soffset = offset;
     s.Stype.Tmangle = mTYman_sys; // writes symbol unmodified in Obj::mangle

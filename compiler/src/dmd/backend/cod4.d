@@ -461,7 +461,7 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                )
             {
                 Symbol *s = e11.EV.E1.EV.Vsym;
-                if (s.Sclass == SCfastpar || s.Sclass == SCshadowreg)
+                if (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg)
                 {
                     regcon.params &= ~s.Spregm();
                 }
@@ -733,7 +733,7 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
        )
     {
         Symbol *s = e11.EV.E1.EV.Vsym;
-        if (s.Sclass == SCfastpar || s.Sclass == SCshadowreg)
+        if (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg)
         {
             regcon.params &= ~s.Spregm();
         }

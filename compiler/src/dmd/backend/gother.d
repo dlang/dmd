@@ -1836,7 +1836,7 @@ void deadvar()
             char *p;
             Symbol *s = globsym[i];
 
-            if (s.Sflags & SFLdead && s.Sclass != SCparameter && s.Sclass != SCregpar)
+            if (s.Sflags & SFLdead && s.Sclass != SC.parameter && s.Sclass != SC.regpar)
                 s.Sflags &= ~GTregcand;    // do not put dead variables in registers
             debug
             {

@@ -448,7 +448,7 @@ nothrow:
         type *t = type_alloc(TYint);
         t.Tcount++;
         Symbol *s = symbol_calloc("internal");
-        s.Sclass = SCstatic;
+        s.Sclass = SC.static_;
         s.Sfl = FLextern;
         s.Sflags |= SFLnodebug;
         s.Stype = t;

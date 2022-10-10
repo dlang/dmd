@@ -4094,7 +4094,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
     for (SYMIDX si = 0; si < globsym.length; si++)
     {
         Symbol *s = globsym[si];
-        if (debugr && (s.Sclass == SCfastpar || s.Sclass == SCshadowreg))
+        if (debugr && (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg))
         {
             printf("symbol '%s' is fastpar in register [l %s, m %s]\n", s.Sident.ptr,
                 regm_str(mask(s.Spreg)),
@@ -4115,7 +4115,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
         Symbol *s = globsym[si];
         uint sz = cast(uint)type_size(s.Stype);
 
-        if (!((s.Sclass == SCfastpar || s.Sclass == SCshadowreg) && s.Sfl != FLreg))
+        if (!((s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg) && s.Sfl != FLreg))
             continue;
         // Argument is passed in a register
 
@@ -4157,10 +4157,10 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
         }
 
         targ_size_t offset = Fast.size + BPoff;
-        if (s.Sclass == SCshadowreg)
+        if (s.Sclass == SC.shadowreg)
             offset = Para.size;
         offset += s.Soffset;
-        if (!hasframe || (enforcealign && s.Sclass != SCshadowreg))
+        if (!hasframe || (enforcealign && s.Sclass != SC.shadowreg))
             offset += EBPtoESP;
 
         reg_t preg = s.Spreg;
@@ -4176,9 +4176,9 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
             const opcode_t op = isXMMreg(preg)
                 ? xmmstore(type_arrayBase(t).Tty)
                 : 0x89;    // MOV x[EBP],preg
-            if (!(pushalloc && preg == pushallocreg) || s.Sclass == SCshadowreg)
+            if (!(pushalloc && preg == pushallocreg) || s.Sclass == SC.shadowreg)
             {
-                if (hasframe && (!enforcealign || s.Sclass == SCshadowreg))
+                if (hasframe && (!enforcealign || s.Sclass == SC.shadowreg))
                 {
                     // MOV x[EBP],preg
                     cdb.genc1(op,modregxrm(2,preg,BPRM),FLconst,offset);
@@ -4268,10 +4268,10 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
         Symbol *s = globsym[si];
         uint sz = cast(uint)type_size(s.Stype);
 
-        if (s.Sclass == SCfastpar || s.Sclass == SCshadowreg)
+        if (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg)
             namedargs |= s.Spregm();
 
-        if (!((s.Sclass == SCfastpar || s.Sclass == SCshadowreg) && s.Sfl == FLreg))
+        if (!((s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg) && s.Sfl == FLreg))
         {
             // Argument is passed in a register
             continue;
@@ -4329,7 +4329,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
         Symbol *s = globsym[si];
         uint sz = cast(uint)type_size(s.Stype);
 
-        if (!((s.Sclass == SCregpar || s.Sclass == SCparameter) &&
+        if (!((s.Sclass == SC.regpar || s.Sclass == SC.parameter) &&
             s.Sfl == FLreg &&
             (refparam
                 // This variable has been reference by a nested function
@@ -4434,8 +4434,8 @@ void epilog(block *b)
 
     if (config.flags & CFGtrace &&
         (!(config.flags4 & CFG4allcomdat) ||
-         funcsym_p.Sclass == SCcomdat ||
-         funcsym_p.Sclass == SCglobal ||
+         funcsym_p.Sclass == SC.comdat ||
+         funcsym_p.Sclass == SC.global ||
          (config.flags2 & CFG2comdat && SymInline(funcsym_p))
         )
        )
@@ -4927,7 +4927,7 @@ void makeitextern(Symbol *s)
 {
     if (s.Sxtrnnum == 0)
     {
-        s.Sclass = SCextern;           /* external             */
+        s.Sclass = SC.extern_;           /* external             */
         /*printf("makeitextern(x%x)\n",s);*/
         objmod.external(s);
     }
@@ -5167,9 +5167,9 @@ void cod3_adjSymOffsets()
 
         switch (s.Sclass)
         {
-            case SCparameter:
-            case SCregpar:
-            case SCshadowreg:
+            case SC.parameter:
+            case SC.regpar:
+            case SC.shadowreg:
 //printf("s = '%s', Soffset = x%x, Para.size = x%x, EBPtoESP = x%x\n", s.Sident, s.Soffset, Para.size, EBPtoESP);
                 s.Soffset += Para.size;
                 if (0 && !(funcsym_p.Sfunc.Fflags3 & Fmember))
@@ -5181,13 +5181,13 @@ void cod3_adjSymOffsets()
                 }
                 break;
 
-            case SCfastpar:
+            case SC.fastpar:
 //printf("\tfastpar %s %p Soffset %x Fast.size %x BPoff %x\n", s.Sident, s, cast(int)s.Soffset, cast(int)Fast.size, cast(int)BPoff);
                 s.Soffset += Fast.size + BPoff;
                 break;
 
-            case SCauto:
-            case SCregister:
+            case SC.auto_:
+            case SC.register:
                 if (s.Sfl == FLfast)
                     s.Soffset += Fast.size + BPoff;
                 else
@@ -5196,7 +5196,7 @@ void cod3_adjSymOffsets()
                     s.Soffset += Auto.size + BPoff;
                 break;
 
-            case SCbprel:
+            case SC.bprel:
                 break;
 
             default:
@@ -5348,7 +5348,7 @@ void assignaddrc(code *c)
         switch (c.IFL1)
         {
             case FLdata:
-                if (config.objfmt == OBJ_OMF && s.Sclass != SCcomdat && s.Sclass != SCextern)
+                if (config.objfmt == OBJ_OMF && s.Sclass != SC.comdat && s.Sclass != SC.extern_)
                 {
                     version (MARS)
                     {
@@ -5540,7 +5540,7 @@ void assignaddrc(code *c)
                 }
                 else
                 {
-                    if (s.Sclass == SCcomdat)
+                    if (s.Sclass == SC.comdat)
                     {   c.IFL2 = FLextern;
                         goto do2;
                     }
@@ -7648,7 +7648,7 @@ private void do32bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags, int val)
                 pbuf.write32(0);
             }
             else if (s.Sseg == pbuf.seg &&
-                     (s.Sclass == SCstatic || s.Sclass == SCglobal) &&
+                     (s.Sclass == SC.static_ || s.Sclass == SC.global) &&
                      s.Sxtrnnum == 0 && flags & CFselfrel)
             {   /* if we know it's relative address     */
                 ad = s.Soffset - pbuf.getOffset() - 4;
@@ -7733,7 +7733,7 @@ private void do16bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags)
                 pbuf.offset += objmod.reftoident(pbuf.seg,pbuf.offset,s,0,flags) - 2;
             }
             else if (s.Sseg == pbuf.seg &&
-                     (s.Sclass == SCstatic || s.Sclass == SCglobal) &&
+                     (s.Sclass == SC.static_ || s.Sclass == SC.global) &&
                      s.Sxtrnnum == 0 && flags & CFselfrel)
             {   /* if we know it's relative address     */
                 ad = s.Soffset - pbuf.getOffset() - 2;

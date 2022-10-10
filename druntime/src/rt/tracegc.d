@@ -29,7 +29,6 @@ extern (C) void _d_callfinalizer(void* p);
 extern (C) void _d_callinterfacefinalizer(void *p);
 extern (C) void _d_delclass(Object* p);
 extern (C) void _d_delinterface(void** p);
-extern (C) void _d_delarray_t(void[]* p, const TypeInfo_Struct _);
 extern (C) void _d_delmemory(void* *p);
 extern (C) byte[] _d_arraycatT(const TypeInfo ti, byte[] x, byte[] y);
 extern (C) void[] _d_arraycatnTX(const TypeInfo ti, scope byte[][] arrs);

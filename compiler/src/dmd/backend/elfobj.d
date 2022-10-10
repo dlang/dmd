@@ -134,7 +134,7 @@ private Symbol *ElfObj_getGOTsym()
 {
     if (!GOTsym)
     {
-        GOTsym = symbol_name("_GLOBAL_OFFSET_TABLE_",SCglobal,tspvoid);
+        GOTsym = symbol_name("_GLOBAL_OFFSET_TABLE_",SC.global,tspvoid);
     }
     return GOTsym;
 }
@@ -417,7 +417,8 @@ private IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, uint sz,
         if (!shndx_data)
         {
             shndx_data = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-            assert(shndx_data);
+            if (!shndx_data)
+                err_nomem();
             shndx_data.reserve(50 * (Elf64_Word).sizeof);
         }
         // fill with zeros up to symbol_idx
@@ -667,7 +668,8 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
     else
     {
         symtab_strings = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        assert(symtab_strings);
+        if (!symtab_strings)
+            err_nomem();
         symtab_strings.reserve(2048);
         symtab_strings.writeByte(0);
     }
@@ -704,7 +706,8 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
         else
         {
             section_names = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-            assert(section_names);
+            if (!section_names)
+                err_nomem();
             section_names.reserve(1024);
             section_names.writen(section_names_init64.ptr, section_names_init64.sizeof);
         }
@@ -746,7 +749,8 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
         else
         {
             section_names = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-            assert(section_names);
+            if (!section_names)
+                err_nomem();
             section_names.reserve(100*1024);
             section_names.writen(section_names_init.ptr, section_names_init.sizeof);
         }
@@ -1539,7 +1543,8 @@ void ElfObj_compiler()
 {
     //dbg_printf("ElfObj_compiler\n");
     comment_data = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-    assert(comment_data);
+    if (!comment_data)
+        err_nomem();
 
     enum maxVersionLength = 40;  // hope enough to store `git describe --dirty`
     enum compilerHeader = "\0Digital Mars C/C++ ";
@@ -1896,7 +1901,8 @@ private segidx_t elf_addsegment2(IDXSEC shtidx, IDXSYM symidx, IDXSEC relidx)
     {   if (SecHdrTab[shtidx].sh_type != SHT_NOBITS)
         {
             pseg.SDbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-            assert(pseg.SDbuf);
+            if (!pseg.SDbuf)
+                err_nomem();
             pseg.SDbuf.reserve(1024);
         }
     }
@@ -2285,7 +2291,7 @@ void ElfObj_func_start(Symbol *sfunc)
     //dbg_printf("ElfObj_func_start(%s)\n",sfunc.Sident.ptr);
     symbol_debug(sfunc);
 
-    if ((tybasic(sfunc.ty()) == TYmfunc) && (sfunc.Sclass == SCextern))
+    if ((tybasic(sfunc.ty()) == TYmfunc) && (sfunc.Sclass == SC.extern_))
     {                                   // create a new code segment
         sfunc.Sseg =
             ElfObj_getsegment(".gnu.linkonce.t.", cpp_mangle2(sfunc), SHT_PROGBITS, SHF_ALLOC|SHF_EXECINSTR,4);
@@ -2360,15 +2366,15 @@ void ElfObj_pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsi
     ubyte visibility = STV_DEFAULT;
     switch (s.Sclass)
     {
-        case SCglobal:
-        case SCinline:
+        case SC.global:
+        case SC.inline:
             bind = STB_GLOBAL;
             break;
-        case SCcomdat:
-        case SCcomdef:
+        case SC.comdat:
+        case SC.comdef:
             bind = STB_WEAK;
             break;
-        case SCstatic:
+        case SC.static_:
             if (s.Sflags & SFLhidden)
             {
                 visibility = STV_HIDDEN;
@@ -2674,7 +2680,8 @@ void ElfObj_addrel(int seg, targ_size_t offset, uint type,
     if (segdata.SDrel == null)
     {
         segdata.SDrel = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        assert(segdata.SDrel);
+        if (!segdata.SDrel)
+            err_nomem();
     }
 
     if (segdata.SDrel.length() == 0)
@@ -3039,7 +3046,7 @@ static if (0)
 
     switch (s.Sclass)
     {
-        case SClocstat:
+        case SC.locstat:
             if (I64)
             {
                 if (s.Sfl == FLtlsdata)
@@ -3076,9 +3083,9 @@ static if (0)
             val += s.Soffset;
             goto outrel;
 
-        case SCcomdat:
+        case SC.comdat:
         case_SCcomdat:
-        case SCstatic:
+        case SC.static_:
 static if (0)
 {
             if ((s.Sflags & SFLthunk) && s.Soffset)
@@ -3090,10 +3097,10 @@ static if (0)
 }
             goto case;
 
-        case SCextern:
-        case SCcomdef:
+        case SC.extern_:
+        case SC.comdef:
         case_extern:
-        case SCglobal:
+        case SC.global:
             if (!s.Sxtrnnum)
             {   // not in symbol table yet - class might change
                 //printf("\tadding %s to fixlist\n",s.Sident.ptr);
@@ -3110,7 +3117,7 @@ static if (0)
                     if (!external &&            // local definition found
                          s.Sseg == seg &&      // within same code segment
                           (!(config.flags3 & CFG3pic) ||        // not position indp code
-                           s.Sclass == SCstatic)) // or is pic, but declared static
+                           s.Sclass == SC.static_)) // or is pic, but declared static
                     {                   // Can use PC relative
                         //dbg_printf("\tdoing PC relative\n");
                         val = (s.Soffset+val) - (offset+4);
@@ -3118,7 +3125,7 @@ static if (0)
                     else
                     {
                         //dbg_printf("\tadding relocation\n");
-                        if (s.Sclass == SCglobal && config.flags3 & CFG3pie && tyfunc(s.ty()))
+                        if (s.Sclass == SC.global && config.flags3 & CFG3pie && tyfunc(s.ty()))
                             relinfo = I64 ? R_X86_64_PC32 : R_386_PC32;
                         else if (I64)
                             relinfo = config.flags3 & CFG3pic ?  R_X86_64_PLT32 : R_X86_64_PC32;
@@ -3129,7 +3136,7 @@ static if (0)
                 }
                 else
                 {       // code to code code to data, data to code, data to data refs
-                    if (s.Sclass == SCstatic)
+                    if (s.Sclass == SC.static_)
                     {                           // offset into .data or .bss seg
                         refseg = MAP_SEG2SYMIDX(s.Sseg);
                                                 // use segment symbol table entry
@@ -3161,7 +3168,7 @@ static if (0)
                     {                   // relocation from within CODE seg
                         if (I64)
                         {
-                            if (config.flags3 & CFG3pie && s.Sclass == SCglobal)
+                            if (config.flags3 & CFG3pie && s.Sclass == SC.global)
                                 relinfo = R_X86_64_PC32;
                             else if (config.flags3 & CFG3pic)
                                 relinfo = R_X86_64_GOTPCREL;
@@ -3170,7 +3177,7 @@ static if (0)
                         }
                         else
                         {
-                            if (config.flags3 & CFG3pie && s.Sclass == SCglobal)
+                            if (config.flags3 & CFG3pie && s.Sclass == SC.global)
                                 relinfo = R_386_GOTOFF;
                             else
                                 relinfo = config.flags3 & CFG3pic ? R_386_GOT32 : R_386_32;
@@ -3182,14 +3189,14 @@ static if (0)
                         {
                             if (config.flags3 & CFG3pie)
                             {
-                                if (s.Sclass == SCstatic || s.Sclass == SCglobal)
+                                if (s.Sclass == SC.static_ || s.Sclass == SC.global)
                                     relinfo = R_X86_64_TPOFF32;
                                 else
                                     relinfo = R_X86_64_GOTTPOFF;
                             }
                             else if (config.flags3 & CFG3pic)
                             {
-                                /+if (s.Sclass == SCstatic || s.Sclass == SClocstat)
+                                /+if (s.Sclass == SC.static_ || s.Sclass == SC.locstat)
                                     // Could use 'local dynamic (LD)' to optimize multiple local TLS reads
                                     relinfo = R_X86_64_TLSGD;
                                 else+/
@@ -3197,7 +3204,7 @@ static if (0)
                             }
                             else
                             {
-                                if (s.Sclass == SCstatic || s.Sclass == SClocstat)
+                                if (s.Sclass == SC.static_ || s.Sclass == SC.locstat)
                                     relinfo = R_X86_64_TPOFF32;
                                 else
                                     relinfo = R_X86_64_GOTTPOFF;
@@ -3207,14 +3214,14 @@ static if (0)
                         {
                             if (config.flags3 & CFG3pie)
                             {
-                                if (s.Sclass == SCstatic || s.Sclass == SCglobal)
+                                if (s.Sclass == SC.static_ || s.Sclass == SC.global)
                                     relinfo = R_386_TLS_LE;
                                 else
                                     relinfo = R_386_TLS_GOTIE;
                             }
                             else if (config.flags3 & CFG3pic)
                             {
-                                /+if (s.Sclass == SCstatic)
+                                /+if (s.Sclass == SC.static_)
                                     // Could use 'local dynamic (LD)' to optimize multiple local TLS reads
                                     relinfo = R_386_TLS_GD;
                                 else+/
@@ -3222,7 +3229,7 @@ static if (0)
                             }
                             else
                             {
-                                if (s.Sclass == SCstatic)
+                                if (s.Sclass == SC.static_)
                                     relinfo = R_386_TLS_LE;
                                 else
                                     relinfo = R_386_TLS_IE;
@@ -3249,16 +3256,16 @@ static if (0)
             }
             break;
 
-        case SCsinline:
-        case SCeinline:
+        case SC.sinline:
+        case SC.einline:
             printf ("Undefined inline value <<fixme>>\n");
             //warerr(WM_undefined_inline,s.Sident.ptr);
             goto  case;
 
-        case SCinline:
+        case SC.inline:
             if (tyfunc(ty))
             {
-                s.Sclass = SCextern;
+                s.Sclass = SC.extern_;
                 goto case_extern;
             }
             else if (config.flags2 & CFG2comdat)
@@ -3745,15 +3752,15 @@ void ElfObj_gotref(Symbol *s)
     //printf("ElfObj_gotref(%x '%s', %d)\n",s,s.Sident.ptr, s.Sclass);
     switch(s.Sclass)
     {
-        case SCstatic:
-        case SClocstat:
+        case SC.static_:
+        case SC.locstat:
             s.Sfl = FLgotoff;
             break;
 
-        case SCextern:
-        case SCglobal:
-        case SCcomdat:
-        case SCcomdef:
+        case SC.extern_:
+        case SC.global:
+        case SC.comdat:
+        case SC.comdef:
             s.Sfl = FLgot;
             break;
 

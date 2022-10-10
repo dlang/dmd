@@ -267,7 +267,7 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
             }
 
             si = symbol_calloc(buf.peekChars(), cast(uint)buf.length);
-            si.Sclass = SCcomdat;
+            si.Sclass = SC.comdat;
             si.Stype = type_static_array(cast(uint)(len * sz), tstypes[TYchar]);
             si.Stype.Tcount++;
             type_setmangle(&si.Stype, mTYman_c);
@@ -576,7 +576,7 @@ elem* toElem(Expression e, IRState *irs)
         if (nrvo)
             s = fd.shidden;
 
-        if (s.Sclass == SCauto || s.Sclass == SCparameter || s.Sclass == SCshadowreg)
+        if (s.Sclass == SC.auto_ || s.Sclass == SC.parameter || s.Sclass == SC.shadowreg)
         {
             if (fd && fd != irs.getFunc())
             {
@@ -672,7 +672,7 @@ elem* toElem(Expression e, IRState *irs)
             goto L1;
         }
 
-        if (s.Sclass == SCauto && s.Ssymnum == SYMIDX.max)
+        if (s.Sclass == SC.auto_ && s.Ssymnum == SYMIDX.max)
         {
             //printf("\tadding symbol %s\n", s.Sident);
             symbol_add(s);
@@ -3868,7 +3868,8 @@ elem* toElem(Expression e, IRState *irs)
         elem *e;
         if (dim > 0)
         {
-            if (tb.ty == Tsarray)
+            if (tb.ty == Tsarray ||
+                irs.Cfile && tb.ty == Tpointer)
             {
                 Symbol *stmp = null;
                 e = ExpressionsToStaticArray(irs, ale.loc, ale.elements, &stmp, 0, ale.basis);
@@ -6079,20 +6080,10 @@ Lagain:
             {
                 if (needsPostblit(tb) || needsDtor(tb))
                 {
-                    /* Need to do postblit/destructor.
-                     *   void *_d_arraysetassign(void *p, void *value, int dim, TypeInfo ti);
-                     */
                     if (op == EXP.construct)
-                    {
-                        assert(0, "Trying reference _d_arraysetctor, this should not happen!");
-                    }
-                    r = RTLSYM.ARRAYSETASSIGN;
-                    evalue = el_una(OPaddr, TYnptr, evalue);
-                    // This is a hack so we can call postblits on const/immutable objects.
-                    elem *eti = getTypeInfo(exp, tb.unSharedOf().mutableOf(), irs);
-                    elem *e = el_params(eti, edim, evalue, eptr, null);
-                    e = el_bin(OPcall,TYnptr,el_var(getRtlsym(r)),e);
-                    return e;
+                        assert(0, "Trying to reference _d_arraysetctor, this should not happen!");
+                    else
+                        assert(0, "Trying to reference _d_arraysetassign, this should not happen!");
                 }
             }
 

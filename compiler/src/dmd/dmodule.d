@@ -98,12 +98,12 @@ private const(char)[] getFilename(Identifier[] packages, Identifier ident) nothr
 {
     const(char)[] filename = ident.toString();
 
-    if (packages.length == 0)
-        return filename;
-
     OutBuffer buf;
     OutBuffer dotmods;
     auto modAliases = &global.params.modFileAliasStrings;
+
+    if (packages.length == 0 && modAliases.length == 0)
+        return filename;
 
     void checkModFileAlias(const(char)[] p)
     {
@@ -308,7 +308,7 @@ extern (C++) class Package : ScopeDsymbol
             packages ~= s.ident;
         reverse(packages);
 
-        if (FileManager.lookForSourceFile(getFilename(packages, ident), global.path ? (*global.path)[] : null))
+        if (Module.find(getFilename(packages, ident)))
             Module.load(Loc.initial, packages, this.ident);
         else
             isPkgMod = PKG.package_;
@@ -492,6 +492,16 @@ extern (C++) final class Module : Package
         return new Module(Loc.initial, filename, ident, doDocComment, doHdrGen);
     }
 
+    static const(char)* find(const(char)* filename)
+    {
+        return find(filename.toDString).ptr;
+    }
+
+    extern (D) static const(char)[] find(const(char)[] filename)
+    {
+        return FileManager.lookForSourceFile(filename, global.path ? (*global.path)[] : null);
+    }
+
     extern (C++) static Module load(const ref Loc loc, Identifiers* packages, Identifier ident)
     {
         return load(loc, packages ? (*packages)[] : null, ident);
@@ -506,7 +516,7 @@ extern (C++) final class Module : Package
         //  foo\bar\baz
         const(char)[] filename = getFilename(packages, ident);
         // Look for the source file
-        if (const result = FileManager.lookForSourceFile(filename, global.path ? (*global.path)[] : null))
+        if (const result = find(filename))
             filename = result; // leaks
 
         auto m = new Module(loc, filename, ident, 0, 0);

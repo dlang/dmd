@@ -92,8 +92,8 @@ bool movOnly(const elem *e)
     {
         const s = e.EV.Vsym;
         // Fixups for these can only be done with a MOV
-        if (s.Sclass == SCglobal || s.Sclass == SCextern ||
-            s.Sclass == SCcomdat || s.Sclass == SCcomdef)
+        if (s.Sclass == SC.global || s.Sclass == SC.extern_ ||
+            s.Sclass == SC.comdat || s.Sclass == SC.comdef)
             return true;
     }
     return false;
@@ -4675,12 +4675,12 @@ void cdrelconst(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         if (s.Sfl == FLdatseg)
         {   assert(0);
         }
-        sclass = cast(SC) s.Sclass;
+        sclass = s.Sclass;
         const ety = tybasic(s.ty());
         if ((tyfarfunc(ety) || ety == TYifunc) &&
-            (sclass == SCextern || ClassInline(sclass) || config.wflags & WFthunk)
+            (sclass == SC.extern_ || ClassInline(sclass) || config.wflags & WFthunk)
             || s.Sfl == FLfardata
-            || (s.ty() & mTYcs && s.Sseg != cseg && (LARGECODE || s.Sclass == SCcomdat))
+            || (s.ty() & mTYcs && s.Sseg != cseg && (LARGECODE || s.Sclass == SC.comdat))
            )
         {   // MOV mreg,seg of symbol
             cdb.gencs(0xB8 + mreg,0,FLextern,s);
@@ -4794,7 +4794,7 @@ void getoffset(ref CodeBuilder cdb,elem *e,reg_t reg)
             css.IEV1.Vuns = 0;
             cdb.gen(&css);               // MOV reg,GS:[00000000]
 
-            if (e.EV.Vsym.Sclass == SCstatic || e.EV.Vsym.Sclass == SClocstat)
+            if (e.EV.Vsym.Sclass == SC.static_ || e.EV.Vsym.Sclass == SC.locstat)
             {   // ADD reg, offset s
                 cs.Irex = rex;
                 cs.Iop = 0x81;

@@ -394,11 +394,11 @@ if (enable) // disable while we test the inliner
 
         switch (s.Sclass)
         {
-            case SCfastpar:
-            case SCregister:
-            case SCauto:
-            case SCshadowreg:
-            case SCparameter:
+            case SC.fastpar:
+            case SC.register:
+            case SC.auto_:
+            case SC.shadowreg:
+            case SC.parameter:
                 anySlice = true;
                 sia[si].canSlice = true;
                 sia[si].accessSlice = false;
@@ -411,10 +411,10 @@ if (enable) // disable while we test the inliner
                 }
                 break;
 
-            case SCstack:
-            case SCpseudo:
-            case SCstatic:
-            case SCbprel:
+            case SC.stack:
+            case SC.pseudo:
+            case SC.static_:
+            case SC.bprel:
                 if (log) printf(" can't because Sclass\n");
                 sia[si].canSlice = false;
                 break;
@@ -469,7 +469,7 @@ if (enable) // disable while we test the inliner
                 snew.Sclass = sold.Sclass;
                 snew.Sfl = sold.Sfl;
                 snew.Sflags = sold.Sflags;
-                if (snew.Sclass == SCfastpar || snew.Sclass == SCshadowreg)
+                if (snew.Sclass == SC.fastpar || snew.Sclass == SC.shadowreg)
                 {
                     snew.Spreg = sold.Spreg2;
                     snew.Spreg2 = NOREG;

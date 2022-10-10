@@ -296,7 +296,7 @@ private Symbol *callFuncsAndGates(Module m, Symbol*[] sctors, StaticDtorDeclarat
     }
 
     localgot = null;
-    sctor = toSymbolX(m, id, SCglobal, t, "FZv");
+    sctor = toSymbolX(m, id, SC.global, t, "FZv");
     cstate.CSpsymtab = &sctor.Sfunc.Flocsym;
     elem *ector = null;
 
@@ -456,7 +456,7 @@ private void genObjFile(Module m, bool multiobj)
 //#if 0 /* This should work, but causes optlink to fail in common/newlib.asm */
 //                objextdef(s.Sident);
 //#else
-                Symbol *sref = symbol_generate(SCstatic, type_fake(TYnptr));
+                Symbol *sref = symbol_generate(SC.static_, type_fake(TYnptr));
                 sref.Sfl = FLdata;
                 auto dtb = DtBuilder(0);
                 dtb.xoff(s, 0, TYnptr);
@@ -472,7 +472,7 @@ private void genObjFile(Module m, bool multiobj)
         /* Create coverage identifier:
          *  uint[numlines] __coverage;
          */
-        m.cov = toSymbolX(m, "__coverage", SCstatic, type_fake(TYint), "Z");
+        m.cov = toSymbolX(m, "__coverage", SC.static_, type_fake(TYint), "Z");
         m.cov.Sflags |= SFLhidden;
         m.cov.Stype.Tmangle = mTYman_d;
         m.cov.Sfl = FLdata;
@@ -513,7 +513,7 @@ private void genObjFile(Module m, bool multiobj)
 
         outdata(m.cov);
 
-        m.covb = cast(uint *)calloc((m.numlines + 32) / 32, (*m.covb).sizeof);
+        m.covb = cast(uint *)Mem.check(calloc((m.numlines + 32) / 32, (*m.covb).sizeof));
     }
 
     for (int i = 0; i < m.members.dim; i++)
@@ -531,7 +531,7 @@ private void genObjFile(Module m, bool multiobj)
         Symbol *bcov = symbol_calloc("__bcoverage");
         bcov.Stype = type_fake(TYuint);
         bcov.Stype.Tcount++;
-        bcov.Sclass = SCstatic;
+        bcov.Sclass = SC.static_;
         bcov.Sfl = FLdata;
 
         auto dtb = DtBuilder(0);
@@ -554,7 +554,7 @@ private void genObjFile(Module m, bool multiobj)
         type *t = type_function(TYnfunc, null, false, tstypes[TYvoid]);
         t.Tmangle = mTYman_c;
 
-        m.sictor = toSymbolX(m, "__modictor", SCglobal, t, "FZv");
+        m.sictor = toSymbolX(m, "__modictor", SC.global, t, "FZv");
         cstate.CSpsymtab = &m.sictor.Sfunc.Flocsym;
         localgot = glue.ictorlocalgot;
 
@@ -691,7 +691,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         return;
 
     if (multiobj && !fd.isStaticDtorDeclaration() && !fd.isStaticCtorDeclaration()
-        && !(fd.flags & (FUNCFLAG.CRTCtor | FUNCFLAG.CRTDtor)))
+        && !(fd.isCrtCtor || fd.isCrtDtor))
     {
         obj_append(fd);
         return;
@@ -760,12 +760,12 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         // Same as config.ehmethod==EH_NONE, but only for this function
         f.Fflags3 |= Feh_none;
 
-    s.Sclass = target.os == Target.OS.OSX ? SCcomdat : SCglobal;
+    s.Sclass = target.os == Target.OS.OSX ? SC.comdat : SC.global;
 
     /* Make C static functions SCstatic
      */
     if (fd.storage_class & STC.static_ && fd.isCsymbol())
-        s.Sclass = SCstatic;
+        s.Sclass = SC.static_;
 
     for (Dsymbol p = fd.parent; p; p = p.parent)
     {
@@ -780,11 +780,11 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
                 const q = p.toParent();
                 if (q && q.isModule())
                 {
-                    s.Sclass = SCglobal;
+                    s.Sclass = SC.global;
                     break;
                 }
             }
-            s.Sclass = SCcomdat;
+            s.Sclass = SC.comdat;
             break;
         }
     }
@@ -868,7 +868,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             sprintf(hiddenparam.ptr, "__HID%u", ++hiddenparami);
             name = hiddenparam.ptr;
         }
-        shidden = symbol_name(name, SCparameter, thidden);
+        shidden = symbol_name(name, SC.parameter, thidden);
         shidden.Sflags |= SFLtrue | SFLfree;
         if (fd.isNRVO() && fd.nrvo_var && fd.nrvo_var.nestedrefs.dim)
             type_setcv(&shidden.Stype, shidden.Stype.Tty | mTYvolatile);
@@ -880,7 +880,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         // Register return style cannot make nrvo.
         // Auto functions keep the NRVO flag up to here,
         // so we should eliminate it before entering backend.
-        fd.flags &= ~FUNCFLAG.NRVO;
+        fd.isNRVO = false;
     }
 
     if (fd.vthis)
@@ -972,7 +972,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
 
     foreach (sp; params[0 .. pi])
     {
-        sp.Sclass = SCparameter;
+        sp.Sclass = SC.parameter;
         sp.Sflags &= ~SFLspill;
         sp.Sfl = FLpara;
         symbol_add(sp);
@@ -987,8 +987,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         {
             if (fpr.alloc(sp.Stype, sp.Stype.Tty, &sp.Spreg, &sp.Spreg2))
             {
-                sp.Sclass = (target.os == Target.OS.Windows && target.is64bit) ? SCshadowreg : SCfastpar;
-                sp.Sfl = (sp.Sclass == SCshadowreg) ? FLpara : FLfast;
+                sp.Sclass = (target.os == Target.OS.Windows && target.is64bit) ? SC.shadowreg : SC.fastpar;
+                sp.Sfl = (sp.Sclass == SC.shadowreg) ? FLpara : FLfast;
             }
         }
     }
@@ -1021,7 +1021,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         {
             type *t = type_struct_class("__va_argsave_t", 16, 8 * 6 + 8 * 16 + 8 * 3, null, null, false, false, true, false);
             // The backend will pick this up by name
-            Symbol *sv = symbol_name("__va_argsave", SCauto, t);
+            Symbol *sv = symbol_name("__va_argsave", SC.auto_, t);
             sv.Stype.Tty |= mTYvolatile;
             symbol_add(sv);
         }
@@ -1193,10 +1193,10 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     if (fd.isExport())
         objmod.export_symbol(s, cast(uint)Para.offset);
 
-    if (fd.flags & FUNCFLAG.CRTCtor)
+    if (fd.isCrtCtor)
         objmod.setModuleCtorDtor(s, true);
 
-    if (fd.flags & FUNCFLAG.CRTDtor)
+    if (fd.isCrtDtor)
     {
         //See TargetC.initialize
         if(target.c.crtDestructorsSupported)
@@ -1222,8 +1222,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
                 platform it, if needed.
             */
             __gshared uint nthDestructor = 0;
-            char* buf = cast(char*) calloc(50, 1);
-            assert(buf);
+            char* buf = cast(char*) Mem.check(calloc(50, 1));
             const ret = snprintf(buf, 100, "_dmd_crt_destructor_thunk.%u", nthDestructor++);
             assert(ret >= 0 && ret < 100, "snprintf either failed or overran buffer");
             //Function symbol
@@ -1234,7 +1233,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             type_setmangle(&newConstructor.Stype, mTYman_c);
             symbol_func(newConstructor);
             //Global SC for now.
-            newConstructor.Sclass = SCstatic;
+            newConstructor.Sclass = SC.static_;
             func_t* funcState = newConstructor.Sfunc;
             //Init start block
             funcState.Fstartblock = block_calloc();
@@ -1246,7 +1245,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             //Try to get MacOS _ prefix-ism right.
             type_setmangle(&dso_handle.Stype, mTYman_c);
             dso_handle.Sfl = FLextern;
-            dso_handle.Sclass = SCextern;
+            dso_handle.Sclass = SC.extern_;
             dso_handle.Stype.Tcount++;
             auto handlePtr = el_ptr(dso_handle);
             //Build parameter pack - __cxa_atexit(&func, null, null)
@@ -1320,7 +1319,7 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
         }
         if (libname)
             obj_includelib(libname);
-        s.Sclass = SCglobal;
+        s.Sclass = SC.global;
         return;
     }
     else if (fd.isRtInit())
@@ -1363,14 +1362,14 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
     if (fd.isCMain())
     {
         includeWinLibs(true, "");
-        s.Sclass = SCglobal;
+        s.Sclass = SC.global;
     }
     else if (target.os == Target.OS.Windows && fd.isWinMain() && onlyOneMain(fd.loc))
     {
         includeWinLibs(false, "__acrtused");
         if (libname)
             obj_includelib(libname);
-        s.Sclass = SCglobal;
+        s.Sclass = SC.global;
     }
 
     // Pull in RTL startup code
@@ -1379,7 +1378,7 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
         includeWinLibs(false, "__acrtused_dll");
         if (libname)
             obj_includelib(libname);
-        s.Sclass = SCglobal;
+        s.Sclass = SC.global;
     }
 }
 
@@ -1582,7 +1581,7 @@ Symbol* getBzeroSymbol()
     s.Stype = type_static_array(128, type_fake(TYuchar));
     s.Stype.Tmangle = mTYman_c;
     s.Stype.Tcount++;
-    s.Sclass = SCglobal;
+    s.Sclass = SC.global;
     s.Sfl = FLdata;
     s.Sflags |= SFLnodebug;
     s.Salignment = 16;

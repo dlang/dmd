@@ -135,14 +135,14 @@ void doTest(const string code, const string symbol, const string member = "membe
 
     auto mod = cast() res.module_;
 
-    auto td = mod.find!TemplateDeclaration(symbol);
+    auto td = find!TemplateDeclaration(mod, symbol);
 
     // Search doesn't work on uninstantiated templates
     assert(td.members);
     assert(td.members.length == 1);
     auto cl = (*td.members)[0];
 
-    cl.find!VarDeclaration(member, true);
+    find!VarDeclaration(cl, member, true);
 }
 
 /**

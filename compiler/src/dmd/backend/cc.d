@@ -131,7 +131,6 @@ enum IDOHD = 4+1+int.sizeof*3; // max amount of overhead to ID added by
 enum STRMAX = 65_000;           // max length of string (determined by
                                 // max ph size)
 
-//enum SC;
 struct Thunk
 {   Symbol *sfunc;
     Symbol *sthunk;
@@ -411,12 +410,6 @@ enum
 // (That is, it is allocated on the stack or has live variable analysis
 //  done on it, so it is stack and register variables.)
 //char symbol_isintab(Symbol *s) { return sytab[s.Sclass] & SCSS; }
-
-//version (Windows)
-    alias enum_SC = char;
-//else
-//    alias SC enum_SC;
-
 
 /******************************************
  * Basic blocks:
@@ -1197,6 +1190,7 @@ enum
     SFLweak         = 0x1000000,   // resolve to NULL if not found
     SFLhidden       = 0x2000000,   // not visible outside of DSOs (-fvisibility=hidden)
     SFLartifical    = 0x4000000,   // compiler generated symbol
+    SFLnounderscore = 0x8000_0000, // don't prepend an _ to identifiers in object file
 
     // CPP
     SFLnodtor       = 0x10,        // set if destructor for Symbol is already called
@@ -1402,7 +1396,7 @@ struct Symbol
     targ_size_t Slocalgotoffset;
 //#endif
 
-    enum_SC Sclass;             // storage class (SCxxxx)
+    SC Sclass;                  // storage class (SCxxxx)
     char Sfl;                   // flavor (FLxxxx)
     SYMFLGS Sflags;             // flag bits (SFLxxxx)
 
@@ -1463,7 +1457,7 @@ bool Symbol_Sisdead(const ref Symbol s, bool anyInlineAsm);
 int Symbol_needThis(const ref Symbol s);
 bool Symbol_isAffected(const ref Symbol s);
 
-bool isclassmember(const Symbol* s) { return s.Sscope && s.Sscope.Sclass == SCstruct; }
+bool isclassmember(const Symbol* s) { return s.Sscope && s.Sscope.Sclass == SC.struct_; }
 
 // Class, struct or union
 

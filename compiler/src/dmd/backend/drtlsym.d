@@ -230,7 +230,7 @@ private void symbolz(Symbol** ps, int fl, regm_t regsaved, const(char)* name, SY
     Symbol *s = symbol_calloc(name);
     s.Stype = t;
     s.Ssymnum = SYMIDX.max;
-    s.Sclass = SCextern;
+    s.Sclass = SC.extern_;
     s.Sfl = cast(char)fl;
     s.Sregsaved = regsaved;
     s.Sflags = flags;

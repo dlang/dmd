@@ -1329,7 +1329,7 @@ private elem * elmin(elem *e, goal_t goal)
         {
             Symbol *s = symbol_calloc(LARGECODE ? "_aFahdiff".ptr : "_aNahdiff".ptr);
             s.Stype = tsclib;
-            s.Sclass = SCextern;
+            s.Sclass = SC.extern_;
             s.Sfl = FLfunc;
             s.Ssymnum = 0;
             s.Sregsaved = mBX|mCX|mSI|mDI|mBP|mES;
@@ -3218,6 +3218,7 @@ private elem * elbit(elem *e, goal_t goal)
     targ_ullong m = (cast(targ_ullong)1 << w) - 1;   // mask w bits wide
     uint b = wb & 0xFF;                      // bits to right of field
     uint c = 0;
+    //printf("w %u + b %u <= sz %u\n", w, b, sz);
     assert(w + b <= sz);
 
     if (tyuns(tym1))                      // if uint bit field
@@ -5315,7 +5316,7 @@ private elem * elshr(elem *e, goal_t goal)
         {
             Symbol *s = e1.EV.Vsym;
 
-            if (s.Sclass != SCfastpar && s.Sclass != SCshadowreg)
+            if (s.Sclass != SC.fastpar && s.Sclass != SC.shadowreg)
             {
                 e1.EV.Voffset += SHORTSIZE; // address high word in long
                 if (I32)
@@ -5527,7 +5528,7 @@ private elem * elvalist(elem *e, goal_t goal)
         {
             Symbol *s = globsym[si];
 
-            if (s.Sclass == SCparameter || s.Sclass == SCregpar)
+            if (s.Sclass == SC.parameter || s.Sclass == SC.regpar)
                 lastNamed = s;
             if (s.Sident[0] == '_' && strcmp(s.Sident.ptr, "_arguments_typeinfo") == 0)
                 arguments_typeinfo = s;
@@ -5564,7 +5565,7 @@ if (config.exe & EX_windos)
     {
         Symbol *s = globsym[si];
 
-        if (s.Sclass == SCfastpar || s.Sclass == SCshadowreg)
+        if (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg)
             lastNamed = s;
     }
 

@@ -231,6 +231,16 @@ struct ASTBase
             return null;
         }
 
+        inout(StructDeclaration) isStructDeclaration() inout
+        {
+            return null;
+        }
+
+        inout(UnionDeclaration) isUnionDeclaration() inout
+        {
+            return null;
+        }
+
         inout(ClassDeclaration) isClassDeclaration() inout
         {
             return null;
@@ -308,6 +318,7 @@ struct ASTBase
         Type type;
         short inuse;
         ubyte adFlags;
+          enum nounderscore = 4;
 
         final extern (D) this(Identifier id)
         {
@@ -650,9 +661,9 @@ struct ASTBase
     {
         TOK tok;
 
-        extern (D) this(const ref Loc loc, Loc endloc, Type type, TOK tok, ForeachStatement fes, Identifier id = null)
+        extern (D) this(const ref Loc loc, Loc endloc, Type type, TOK tok, ForeachStatement fes, Identifier id = null, StorageClass storage_class = STC.undefined_)
         {
-            super(loc, endloc, null, STC.undefined_, type);
+            super(loc, endloc, null, storage_class, type);
             this.ident = id ? id : Id.empty;
             this.tok = tok;
             this.fes = fes;
@@ -1389,6 +1400,11 @@ struct ASTBase
             }
         }
 
+        override final inout(StructDeclaration) isStructDeclaration() inout
+        {
+            return this;
+        }
+
         override void accept(Visitor v)
         {
             v.visit(this);
@@ -1400,6 +1416,11 @@ struct ASTBase
         extern (D) this(const ref Loc loc, Identifier id)
         {
             super(loc, id, false);
+        }
+
+        override inout(UnionDeclaration) isUnionDeclaration() inout
+        {
+            return this;
         }
 
         override void accept(Visitor v)
@@ -2435,6 +2456,20 @@ struct ASTBase
             statements.reserve(sts.length);
             foreach (s; sts)
                 statements.push(s);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class ErrorStatement : Statement
+    {
+        extern (D) this()
+        {
+            super(Loc.initial, STMT.Error);
+            assert(global.gaggedErrors || global.errors);
         }
 
         override void accept(Visitor v)
@@ -6124,6 +6159,39 @@ struct ASTBase
         {
             v.visit(this);
         }
+    }
+
+    extern (C++) final class ErrorExp : Expression
+    {
+        private extern (D) this()
+        {
+            super(Loc.initial, EXP.error, __traits(classInstanceSize, ErrorExp));
+            type = Type.terror;
+        }
+
+        static ErrorExp get ()
+        {
+            if (errorexp is null)
+                errorexp = new ErrorExp();
+
+            if (global.errors == 0 && global.gaggedErrors == 0)
+            {
+                /* Unfortunately, errors can still leak out of gagged errors,
+                * and we need to set the error count to prevent bogus code
+                * generation. At least give a message.
+                */
+                dmd.errors.error(Loc.initial, "unknown, please file report on issues.dlang.org");
+            }
+
+            return errorexp;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+
+        extern (C++) __gshared ErrorExp errorexp; // handy shared value
     }
 
     extern (C++) class TemplateParameter : ASTNode

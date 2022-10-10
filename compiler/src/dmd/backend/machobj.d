@@ -106,7 +106,7 @@ Symbol* MachObj_getGOTsym()
     __gshared Symbol *GOTsym;
     if (!GOTsym)
     {
-        GOTsym = symbol_name("_GLOBAL_OFFSET_TABLE_",SCglobal,tspvoid);
+        GOTsym = symbol_name("_GLOBAL_OFFSET_TABLE_",SC.global,tspvoid);
     }
     return GOTsym;
 }
@@ -467,7 +467,8 @@ Obj MachObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname
     else
     {
         symtab_strings = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        assert(symtab_strings);
+        if (!symtab_strings)
+            err_nomem();
         symtab_strings.reserve(2048);
         symtab_strings.writeByte(0);
     }
@@ -475,7 +476,8 @@ Obj MachObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname
     if (!local_symbuf)
     {
         local_symbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        assert(local_symbuf);
+        if (!local_symbuf)
+            err_nomem();
         local_symbuf.reserve((Symbol *).sizeof * SYM_TAB_INIT);
     }
     local_symbuf.reset();
@@ -488,7 +490,8 @@ Obj MachObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname
     else
     {
         public_symbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        assert(public_symbuf);
+        if (!public_symbuf)
+            err_nomem();
         public_symbuf.reserve((Symbol *).sizeof * SYM_TAB_INIT);
     }
 
@@ -500,14 +503,16 @@ Obj MachObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname
     else
     {
         extern_symbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        assert(extern_symbuf);
+        if (!extern_symbuf)
+            err_nomem();
         extern_symbuf.reserve((Symbol *).sizeof * SYM_TAB_INIT);
     }
 
     if (!comdef_symbuf)
     {
         comdef_symbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        assert(comdef_symbuf);
+        if (!comdef_symbuf)
+            err_nomem();
         comdef_symbuf.reserve((Symbol *).sizeof * SYM_TAB_INIT);
     }
     comdef_symbuf.reset();
@@ -531,7 +536,8 @@ Obj MachObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname
     else
     {
         SECbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        assert(SECbuf);
+        if (!SECbuf)
+            err_nomem();
         SECbuf.reserve(cast(uint)(SEC_TAB_INIT * struct_section_size));
         // Ignore the first section - section numbers start at 1
         SECbuf.writezeros(cast(uint)struct_section_size);
@@ -1066,17 +1072,18 @@ version (SCPP)
                             if (r.val == -4)
                                 rel.r_type = X86_64_RELOC_SIGNED_4;
 
-                            if (s.Sclass == SCextern ||
-                                s.Sclass == SCcomdef ||
-                                s.Sclass == SCcomdat ||
-                                s.Sclass == SCstatic ||
-                                s.Sclass == SCglobal)
+                            if (s.Sclass == SC.extern_ ||
+                                s.Sclass == SC.comdef  ||
+                                s.Sclass == SC.comdat  ||
+                                s.Sclass == SC.static_ ||
+                                s.Sclass == SC.global)
                             {
                                 if ((s.ty() & mTYLINK) == mTYthread && r.rtype == RELaddr)
                                     rel.r_type = X86_64_RELOC_TLV;
-                                else if (s.Sfl == FLfunc && s.Sclass == SCstatic && r.rtype == RELaddr)
+                                else if (s.Sfl == FLfunc && s.Sclass == SC.static_ && r.rtype == RELaddr)
                                     rel.r_type = X86_64_RELOC_SIGNED;
-                                else if ((s.Sfl == FLfunc || s.Sfl == FLextern || s.Sclass == SCglobal || s.Sclass == SCcomdat || s.Sclass == SCcomdef) && r.rtype == RELaddr)
+                                else if ((s.Sfl == FLfunc || s.Sfl == FLextern || s.Sclass == SC.global ||
+                                          s.Sclass == SC.comdat || s.Sclass == SC.comdef) && r.rtype == RELaddr)
                                 {
                                     rel.r_type = X86_64_RELOC_GOT_LOAD;
                                     if (seg == eh_frame_seg ||
@@ -1118,9 +1125,9 @@ version (SCPP)
                     }
                     else
                     {
-                        if (s.Sclass == SCextern ||
-                            s.Sclass == SCcomdef ||
-                            s.Sclass == SCcomdat)
+                        if (s.Sclass == SC.extern_ ||
+                            s.Sclass == SC.comdef ||
+                            s.Sclass == SC.comdat)
                         {
                             rel.r_address = cast(int)r.offset;
                             rel.r_symbolnum = s.Sxtrnnum;
@@ -1332,7 +1339,7 @@ version (SCPP)
         sym.n_strx = mach_addmangled(s);
         sym.n_type = N_SECT;
         sym.n_desc = 0;
-        if (s.Sclass == SCcomdat)
+        if (s.Sclass == SC.comdat)
             sym.n_desc = N_WEAK_DEF;
         sym.n_sect = cast(ubyte)s.Sseg;
         if (I64)
@@ -1361,7 +1368,7 @@ version (SCPP)
         if (s.Sflags & SFLhidden)
             sym.n_type |= N_PEXT; // private extern
         sym.n_desc = 0;
-        if (s.Sclass == SCcomdat)
+        if (s.Sclass == SC.comdat)
             sym.n_desc = N_WEAK_DEF;
         sym.n_sect = cast(ubyte)s.Sseg;
         if (I64)
@@ -1899,7 +1906,8 @@ int MachObj_getsegment(const(char)* sectname, const(char)* segname,
         if (flags != S_ZEROFILL && flags != S_THREAD_LOCAL_ZEROFILL)
         {
             pseg.SDbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-            assert(pseg.SDbuf);
+            if (!pseg.SDbuf)
+                err_nomem();
             pseg.SDbuf.reserve(4096);
         }
     }
@@ -2166,6 +2174,9 @@ else
             break;
 
         case mTYman_c:
+            if (s.Sflags & SFLnounderscore)
+                goto case 0;
+            goto case;
         case mTYman_cpp:
         case mTYman_d:
             if (len >= DEST_LEN - 1)
@@ -2303,15 +2314,15 @@ void MachObj_pubdef(int seg, Symbol *s, targ_size_t offset)
     s.Sseg = seg;
     switch (s.Sclass)
     {
-        case SCglobal:
-        case SCinline:
+        case SC.global:
+        case SC.inline:
             public_symbuf.write((&s)[0 .. 1]);
             break;
-        case SCcomdat:
-        case SCcomdef:
+        case SC.comdat:
+        case SC.comdef:
             public_symbuf.write((&s)[0 .. 1]);
             break;
-        case SCstatic:
+        case SC.static_:
             if (s.Sflags & SFLhidden)
             {
                 public_symbuf.write((&s)[0 .. 1]);
@@ -2527,7 +2538,8 @@ void MachObj_addrel(int seg, targ_size_t offset, Symbol *targsym,
     if (!pseg.SDrel)
     {
         pseg.SDrel = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        assert(pseg.SDrel);
+        if (!pseg.SDrel)
+            err_nomem();
     }
     pseg.SDrel.write(&rel, rel.sizeof);
 }
@@ -2634,7 +2646,7 @@ static if (0)
     symbol_print(s);
 }
     assert(seg > 0);
-    if (s.Sclass != SClocstat && !s.Sxtrnnum)
+    if (s.Sclass != SC.locstat && !s.Sxtrnnum)
     {   // It may get defined later as public or local, so defer
         size_t numbyteswritten = addtofixlist(s, offset, seg, val, flags);
         assert(numbyteswritten == retsize);
@@ -2675,7 +2687,8 @@ static if (0)
                 if (!indirectsymbuf1)
                 {
                     indirectsymbuf1 = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-                    assert(indirectsymbuf1);
+                    if (!indirectsymbuf1)
+                        err_nomem();
                 }
                 else
                 {   // Look through indirectsym to see if it is already there
@@ -2702,7 +2715,8 @@ static if (0)
             }
             else if (SegData[seg].isCode() &&
                      !(flags & CFindirect) &&
-                    ((s.Sclass != SCextern && SegData[s.Sseg].isCode()) || s.Sclass == SClocstat || s.Sclass == SCstatic))
+                    ((s.Sclass != SC.extern_ && SegData[s.Sseg].isCode()) || s.Sclass == SC.locstat ||
+                     s.Sclass == SC.static_))
             {
                 val += s.Soffset;
                 MachObj_addrel(seg, offset, null, s.Sseg, RELaddr);
@@ -2720,7 +2734,8 @@ static if (0)
                 if (!indirectsymbuf2)
                 {
                     indirectsymbuf2 = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-                    assert(indirectsymbuf2);
+                    if (!indirectsymbuf2)
+                        err_nomem();
                 }
                 else
                 {   // Look through indirectsym to see if it is already there
@@ -2757,7 +2772,8 @@ static if (0)
                     if (!pseg2.SDrel)
                     {
                         pseg2.SDrel = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-                        assert(pseg2.SDrel);
+                        if (!pseg2.SDrel)
+                            err_nomem();
                     }
                     pseg2.SDrel.write(&rel, rel.sizeof);
                 }
@@ -2864,9 +2880,11 @@ static if (0)
     type *t = type_fake(TYint);
     t.Tmangle = mTYman_c;
     char *p = cast(char *)malloc(5 + strlen(scc.Sident.ptr) + 1);
+    if (!p)
+        err_nomem();
     strcpy(p, "SUPER");
     strcpy(p + 5, scc.Sident.ptr);
-    Symbol *s_minfo_beg = symbol_name(p, SCglobal, t);
+    Symbol *s_minfo_beg = symbol_name(p, SC.global, t);
     MachObj_pubdef(seg, s_minfo_beg, 0);
 }
 
@@ -2885,15 +2903,15 @@ void MachObj_gotref(Symbol *s)
     //printf("MachObj_gotref(%x '%s', %d)\n",s,s.Sident.ptr, s.Sclass);
     switch(s.Sclass)
     {
-        case SCstatic:
-        case SClocstat:
+        case SC.static_:
+        case SC.locstat:
             s.Sfl = FLgotoff;
             break;
 
-        case SCextern:
-        case SCglobal:
-        case SCcomdat:
-        case SCcomdef:
+        case SC.extern_:
+        case SC.global:
+        case SC.comdat:
+        case SC.comdef:
             s.Sfl = FLgot;
             break;
 
@@ -2913,7 +2931,7 @@ Symbol* MachObj_tlv_bootstrap()
 {
     __gshared Symbol* tlv_bootstrap_sym;
     if (!tlv_bootstrap_sym)
-        tlv_bootstrap_sym = symbol_name("__tlv_bootstrap", SCextern, type_fake(TYnfunc));
+        tlv_bootstrap_sym = symbol_name("__tlv_bootstrap", SC.extern_, type_fake(TYnfunc));
     return tlv_bootstrap_sym;
 }
 
@@ -2990,7 +3008,8 @@ int dwarf_eh_frame_fixup(int dfseg, targ_size_t offset, Symbol *s, targ_size_t v
     if (!pseg.SDrel)
     {
         pseg.SDrel = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        assert(pseg.SDrel);
+        if (!pseg.SDrel)
+            err_nomem();
     }
     pseg.SDrel.write(&rel, rel.sizeof);
 

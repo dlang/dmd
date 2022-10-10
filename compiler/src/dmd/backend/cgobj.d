@@ -2069,7 +2069,7 @@ static int generate_comdat(Symbol *s, bool is_readonly_comdat)
 
     // Put out LNAME for name of Symbol
     lnamesize = OmfObj_mangle(s,lnames.ptr);
-    objrecord((s.Sclass == SCstatic ? LLNAMES : LNAMES),lnames.ptr,cast(uint)lnamesize);
+    objrecord((s.Sclass == SC.static_ ? LLNAMES : LNAMES),lnames.ptr,cast(uint)lnamesize);
 
     // Put out CEXTDEF for name of Symbol
     outextdata();
@@ -2090,7 +2090,7 @@ static int generate_comdat(Symbol *s, bool is_readonly_comdat)
     lr.pubnamidx = obj.lnameidx - 1;
     if (isfunc)
     {   lr.pubbase = SegData[cseg].segidx;
-        if (s.Sclass == SCcomdat || s.Sclass == SCinline)
+        if (s.Sclass == SC.comdat || s.Sclass == SC.inline)
             lr.alloctyp = 0x10 | 0x00; // pick any instance | explicit allocation
         if (is_readonly_comdat)
         {
@@ -2137,7 +2137,7 @@ else
         }
         lr.alloctyp = atyp;
     }
-    if (s.Sclass == SCstatic)
+    if (s.Sclass == SC.static_)
         lr.flags |= 0x04;      // local bit (make it an "LCOMDAT")
     s.Soffset = 0;
     s.Sseg = pseg.SDseg;
@@ -2373,7 +2373,7 @@ else
     elem_debug(e);
     if ((e.Eoper == OPvar || e.Eoper == OPrelconst) &&
         (s = e.EV.Vsym).ty() & mTYimport &&
-        (s.Sclass == SCextern || s.Sclass == SCinline)
+        (s.Sclass == SC.extern_ || s.Sclass == SC.inline)
        )
     {
         char* name;
@@ -2407,7 +2407,7 @@ else
         if (!simp)
         {   type *t;
 
-            simp = scope_define(p,SCTglobal,SCextern);
+            simp = scope_define(p,SCTglobal,SC.extern_);
             simp.Ssequence = 0;
             simp.Sfl = FLextern;
             simp.Simport = s;
@@ -2988,35 +2988,35 @@ private void obj_modend()
 
         switch (s.Sclass)
         {
-            case SCcomdat:
+            case SC.comdat:
             case_SCcomdat:
-            case SCextern:
-            case SCcomdef:
+            case SC.extern_:
+            case SC.comdef:
                 if (s.Sxtrnnum)                // identifier is defined somewhere else
                     external = s.Sxtrnnum;
                 else
                 {
                  Ladd:
-                    s.Sclass = SCextern;
+                    s.Sclass = SC.extern_;
                     external = objmod.external(s);
                     outextdata();
                 }
                 break;
-            case SCinline:
+            case SC.inline:
                 if (config.flags2 & CFG2comdat)
                     goto case_SCcomdat; // treat as initialized common block
                 goto case;
 
-            case SCsinline:
-            case SCstatic:
-            case SCglobal:
+            case SC.sinline:
+            case SC.static_:
+            case SC.global:
                 if (s.Sseg == UNKNOWN)
                     goto Ladd;
                 if (seg_is_comdat(SegData[s.Sseg].segidx))   // if in comdat
                     goto case_SCcomdat;
                 goto case;
 
-            case SClocstat:
+            case SC.locstat:
                 external = 0;           // identifier is static or global
                                             // and we know its offset
                 offset += s.Soffset;
@@ -3681,10 +3681,10 @@ static if (0)
 
     switch (s.Sclass)
     {
-        case SCcomdat:
+        case SC.comdat:
         case_SCcomdat:
-        case SCextern:
-        case SCcomdef:
+        case SC.extern_:
+        case SC.comdef:
             if (s.Sxtrnnum)            // identifier is defined somewhere else
             {
                 external = s.Sxtrnnum;
@@ -3707,21 +3707,21 @@ static if (0)
                 return numbytes;
             }
             break;
-        case SCinline:
+        case SC.inline:
             if (config.flags2 & CFG2comdat)
                 goto case_SCcomdat;     // treat as initialized common block
             goto case;
 
-        case SCsinline:
-        case SCstatic:
-        case SCglobal:
+        case SC.sinline:
+        case SC.static_:
+        case SC.global:
             if (s.Sseg == UNKNOWN)
                 goto Ladd;
             if (seg_is_comdat(SegData[s.Sseg].segidx))
                 goto case_SCcomdat;
             goto case;
 
-        case SClocstat:
+        case SC.locstat:
             external = 0;               // identifier is static or global
                                         // and we know its offset
             if (flags & CFoff)
@@ -3887,7 +3887,7 @@ void OmfObj_far16thunk(Symbol *s)
     targ_size_t L2offset;
     int idx;
 
-    s.Sclass = SCstatic;
+    s.Sclass = SC.static_;
     s.Sseg = cseg;             // identifier is defined in code segment
     s.Soffset = Offset(cseg);
 
