@@ -162,7 +162,14 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
                     {
                         if (blockExit(s, func, mustNotThrow) != BE.halt && s.hasCode() &&
                             s.loc != Loc.initial) // don't emit warning for generated code
-                            s.warning("statement is not reachable");
+                        {
+                            auto parent1 = func.toParent();
+                            if (parent1 && parent1.isTemplateInstance())
+                                s.warning("statement is not reachable in template instance %s", func.toPrettyChars());
+                            else
+                                s.warning("statement is not reachable");
+                        }
+
                     }
                     else
                     {
