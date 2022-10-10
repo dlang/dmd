@@ -8801,6 +8801,13 @@ LagainStc:
                                 }
                                 return e;
                             }
+                        case TOK.leftBracket:
+                            {
+                                error("an expression is expected between `()`, not a type");
+                                while(token.value != TOK.semicolon)
+                                    nextToken();
+                                return AST.ErrorExp.get();
+                            }
                         default:
                             break;
                         }
