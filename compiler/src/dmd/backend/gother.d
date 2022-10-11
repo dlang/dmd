@@ -358,7 +358,7 @@ private void conpropwalk(elem *n,vec_t IN)
             case OPne:
             case OPeqeq:
                 // Collect compare elems and their rd's in the rellist list
-                if (tyintegral(n.EV.E1.Ety))
+                if (tyintegral(n.EV.E1.Ety) && !tyvector(n.Ety))
                 {   //printf("appending to eqeqlist\n"); elem_print(n);
                     auto pdata = eqeqlist.push();
                     pdata.emplace(n,thisblock);

@@ -129,7 +129,7 @@ void test1()
     static assert(!__traits(compiles, v1 ^^ v2));
     static assert(!__traits(compiles, v1 is v2));
     static assert(!__traits(compiles, v1 !is v2));
-    static assert(!__traits(compiles, v1 == v2));
+    static assert( __traits(compiles, v1 == v2));
     static assert(!__traits(compiles, v1 != v2));
     static assert(!__traits(compiles, v1 < v2));
     static assert(!__traits(compiles, v1 > v2));
@@ -189,7 +189,7 @@ void test2()
     static assert(!__traits(compiles, v1 ^^ v2));
     static assert(!__traits(compiles, v1 is v2));
     static assert(!__traits(compiles, v1 !is v2));
-    static assert(!__traits(compiles, v1 == v2));
+    static assert( __traits(compiles, v1 == v2));
     static assert(!__traits(compiles, v1 != v2));
     static assert(!__traits(compiles, v1 < v2));
     static assert(!__traits(compiles, v1 > v2));
@@ -249,7 +249,7 @@ void test2b()
     static assert(!__traits(compiles, v1 ^^ v2));
     static assert(!__traits(compiles, v1 is v2));
     static assert(!__traits(compiles, v1 !is v2));
-    static assert(!__traits(compiles, v1 == v2));
+    static assert( __traits(compiles, v1 == v2));
     static assert(!__traits(compiles, v1 != v2));
     static assert(!__traits(compiles, v1 < v2));
     static assert(!__traits(compiles, v1 > v2));
@@ -309,7 +309,7 @@ void test2c()
     static assert(!__traits(compiles, v1 ^^ v2));
     static assert(!__traits(compiles, v1 is v2));
     static assert(!__traits(compiles, v1 !is v2));
-    static assert(!__traits(compiles, v1 == v2));
+    static assert( __traits(compiles, v1 == v2));
     static assert(!__traits(compiles, v1 != v2));
     static assert(!__traits(compiles, v1 < v2));
     static assert(!__traits(compiles, v1 > v2));
@@ -370,7 +370,7 @@ void test2d()
     static assert(!__traits(compiles, v1 ^^ v2));
     static assert(!__traits(compiles, v1 is v2));
     static assert(!__traits(compiles, v1 !is v2));
-    static assert(!__traits(compiles, v1 == v2));
+    static assert( __traits(compiles, v1 == v2));
     static assert(!__traits(compiles, v1 != v2));
     static assert(!__traits(compiles, v1 < v2));
     static assert(!__traits(compiles, v1 > v2));
@@ -433,7 +433,7 @@ void test2e()
     static assert(!__traits(compiles, v1 ^^ v2));
     static assert(!__traits(compiles, v1 is v2));
     static assert(!__traits(compiles, v1 !is v2));
-    static assert(!__traits(compiles, v1 == v2));
+    static assert( __traits(compiles, v1 == v2));
     static assert(!__traits(compiles, v1 != v2));
     static assert(!__traits(compiles, v1 < v2));
     static assert(!__traits(compiles, v1 > v2));
@@ -499,7 +499,7 @@ void test2f()
     static assert(!__traits(compiles, v1 ^^ v2));
     static assert(!__traits(compiles, v1 is v2));
     static assert(!__traits(compiles, v1 !is v2));
-    static assert(!__traits(compiles, v1 == v2));
+    static assert( __traits(compiles, v1 == v2));
     static assert(!__traits(compiles, v1 != v2));
     static assert(!__traits(compiles, v1 < v2));
     static assert(!__traits(compiles, v1 > v2));
@@ -562,7 +562,7 @@ void test2g()
     static assert(!__traits(compiles, v1 ^^ v2));
     static assert(!__traits(compiles, v1 is v2));
     static assert(!__traits(compiles, v1 !is v2));
-    static assert(!__traits(compiles, v1 == v2));
+    static assert( __traits(compiles, v1 == v2));
     static assert(!__traits(compiles, v1 != v2));
     static assert(!__traits(compiles, v1 < v2));
     static assert(!__traits(compiles, v1 > v2));
@@ -622,7 +622,7 @@ void test2h()
     static assert(!__traits(compiles, v1 ^^ v2));
     static assert(!__traits(compiles, v1 is v2));
     static assert(!__traits(compiles, v1 !is v2));
-    static assert(!__traits(compiles, v1 == v2));
+    static assert( __traits(compiles, v1 == v2));
     static assert(!__traits(compiles, v1 != v2));
     static assert(!__traits(compiles, v1 < v2));
     static assert(!__traits(compiles, v1 > v2));
@@ -682,7 +682,7 @@ void test2i()
     static assert(!__traits(compiles, v1 ^^ v2));
     static assert(!__traits(compiles, v1 is v2));
     static assert(!__traits(compiles, v1 !is v2));
-    static assert(!__traits(compiles, v1 == v2));
+    static assert( __traits(compiles, v1 == v2));
     static assert(!__traits(compiles, v1 != v2));
     static assert(!__traits(compiles, v1 < v2));
     static assert(!__traits(compiles, v1 > v2));
@@ -742,7 +742,7 @@ void test2j()
     static assert(!__traits(compiles, v1 ^^ v2));
     static assert(!__traits(compiles, v1 is v2));
     static assert(!__traits(compiles, v1 !is v2));
-    static assert(!__traits(compiles, v1 == v2));
+    static assert( __traits(compiles, v1 == v2));
     static assert(!__traits(compiles, v1 != v2));
     static assert(!__traits(compiles, v1 < v2));
     static assert(!__traits(compiles, v1 > v2));

@@ -12081,6 +12081,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
+        if (t1.isTypeVector())
+            exp.type = t1;
+
         result = exp;
     }
 
