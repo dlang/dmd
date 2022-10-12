@@ -3369,6 +3369,17 @@ extern (C++) final class StructLiteralExp : Expression
             return Expression.toLvalue(sc, e);
     }
 
+    override Expression resolveLoc(const ref Loc loc, Scope* sc)
+    {
+        for (int i = 0; i < (*elements).length; i++)
+        {
+            auto elem = (*elements)[i];
+            if (elem)
+                (*elements)[i] = elem.resolveLoc(loc, sc);
+        }
+        return this;
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -4282,7 +4293,7 @@ extern (C++) abstract class UnaExp : Expression
 
     }
 
-    override final Expression resolveLoc(const ref Loc loc, Scope* sc)
+    override Expression resolveLoc(const ref Loc loc, Scope* sc)
     {
         e1 = e1.resolveLoc(loc, sc);
         return this;
@@ -5164,6 +5175,16 @@ extern (C++) final class CallExp : UnaExp
         return this;
     }
 
+    override Expression resolveLoc(ref const Loc loc, Scope* sc)
+    {
+        for (int i = 0; i < arguments.length; i++)
+        {
+            auto arg = (*arguments)[i];
+            if (arg)
+                (*arguments)[i] = arg.resolveLoc(loc, sc);
+        }
+        return this;
+    }
     override void accept(Visitor v)
     {
         v.visit(this);

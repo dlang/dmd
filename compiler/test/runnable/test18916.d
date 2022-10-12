@@ -11,7 +11,7 @@ struct Line
 
 void foo(Line line1 = __LINE__, int line2 = __LINE__, int line3 = int(__LINE__))
 {
-    assert(line1 == 12);
+    assert(line1 == 21);
     assert(line2 == 21);
     assert(line3 == 12);
 }

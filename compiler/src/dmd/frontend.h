@@ -6937,6 +6937,7 @@ public:
     int32_t getFieldIndex(Type* type, uint32_t offset);
     Expression* addDtorHook(Scope* sc) override;
     Expression* toLvalue(Scope* sc, Expression* e) override;
+    Expression* resolveLoc(const Loc& loc, Scope* sc) override;
     void accept(Visitor* v) override;
 };
 
@@ -7108,7 +7109,7 @@ public:
     UnaExp* syntaxCopy() override;
     Expression* incompatibleTypes();
     void setNoderefOperand();
-    Expression* resolveLoc(const Loc& loc, Scope* sc) final override;
+    Expression* resolveLoc(const Loc& loc, Scope* sc) override;
     void accept(Visitor* v) override;
 };
 
@@ -7240,6 +7241,7 @@ public:
     bool isLvalue() override;
     Expression* toLvalue(Scope* sc, Expression* e) override;
     Expression* addDtorHook(Scope* sc) override;
+    Expression* resolveLoc(const Loc& loc, Scope* sc) override;
     void accept(Visitor* v) override;
 };
 
