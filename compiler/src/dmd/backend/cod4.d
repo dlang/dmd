@@ -2556,6 +2556,9 @@ void cdcmp(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         return;
     }
 
+    if (tyvector(tybasic(e1.Ety)))
+        return orthxmm(cdb,e,pretregs);
+
     uint jop = jmpopcode(e);        // must be computed before
                                         // leaves are free'd
     uint reverse = 0;

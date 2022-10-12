@@ -44,9 +44,30 @@ int4 cmpss_repro(float4 a)
 
 /*****************************************/
 
+void testeq()
+{
+    static int4 testeq(int4 x, int4 y)
+    {
+        return x == y;
+    }
+
+    int4 x = [1,2,3,4];
+    int4 y = [4,3,2,1];
+    int4 t = [-1, -1, -1, -1];
+    int4 f = [0,0,0,0];
+    int4 z = testeq(x, x);
+    assert(x[] == x[]);
+    assert(z[] == t[]);
+    z = testeq(x, y);
+    assert(z[] == f[]);
+}
+
+/*****************************************/
+
 int main()
 {
     test21474();
+    testeq();
 
     return 0;
 }
