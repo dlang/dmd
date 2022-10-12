@@ -583,11 +583,12 @@ extern (C++) struct Target
             }
             break;
 
-        case EXP.lessThan, EXP.greaterThan, EXP.lessOrEqual, EXP.greaterOrEqual, EXP.notEqual, EXP.identity, EXP.notIdentity:
+        case EXP.lessThan, EXP.greaterThan, EXP.lessOrEqual, EXP.greaterOrEqual, EXP.identity, EXP.notIdentity:
             supported = false;
             break;
 
         case EXP.equal:
+        case EXP.notEqual:
             supported = true;
             break;
 

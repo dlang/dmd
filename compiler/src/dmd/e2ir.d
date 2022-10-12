@@ -1960,8 +1960,23 @@ elem* toElem(Expression e, IRState *irs)
             elem_setLoc(e, ee.loc);
             return e;
         }
+        else if (eop == OPne && t1.ty == Tvector)
+        {
+            /* (e1 == e2) ^ ~0
+             */
+            elem* ex = toElemBin(ee, OPeqeq);
+
+            elem *ec = el_calloc();
+            ec.Eoper = OPconst;
+            ec.Ety = totym(t1);
+            ec.EV.Vcent.lo = ~0L;
+            ec.EV.Vcent.hi = ~0L;
+            e = el_bin(OPxor, ec.Ety, ex, ec);
+        }
         else
+        {
             e = toElemBin(ee, eop);
+        }
         return e;
     }
 

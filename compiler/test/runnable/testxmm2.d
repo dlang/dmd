@@ -44,11 +44,16 @@ int4 cmpss_repro(float4 a)
 
 /*****************************************/
 
-void testeq()
+void testeqne()
 {
     static int4 testeq(int4 x, int4 y)
     {
         return x == y;
+    }
+
+    static int4 testne(int4 x, int4 y)
+    {
+        return x != y;
     }
 
     int4 x = [1,2,3,4];
@@ -58,8 +63,12 @@ void testeq()
     int4 z = testeq(x, x);
     assert(x[] == x[]);
     assert(z[] == t[]);
+    z = testne(x, x);
+    assert(z[] == f[]);
     z = testeq(x, y);
     assert(z[] == f[]);
+    z = testne(x, y);
+    assert(z[] == t[]);
 }
 
 /*****************************************/
@@ -67,7 +76,7 @@ void testeq()
 int main()
 {
     test21474();
-    testeq();
+    testeqne();
 
     return 0;
 }
