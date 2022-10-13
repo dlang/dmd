@@ -138,6 +138,7 @@ class Lexer
                 case '\n':
                     break;
                 default:
+                    // Start of UTF-8 code point encountered.
                     // If the shebang line contains malformed UTF or
                     // bidirectional controls, we still have to error.
                     if (*p & 0x80)
