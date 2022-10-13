@@ -217,7 +217,7 @@ else
 
     while (low <= high)
     {
-        int mid = (low + high) >> 1;
+        int mid = low + ((high - low) >> 1);
         int cond = table[mid][0] - cp;
         if (cond == 0)
             cond = strcmp(table[mid] + 1,p);
@@ -245,7 +245,7 @@ int binary(const(char)* p, size_t len, const(char)** table, int high)
 
     while (low <= high)
     {
-        int mid = (low + high) >> 1;
+        int mid = low + ((high - low) >> 1);
         int cond = table[mid][0] - cp;
 
         if (cond == 0)
