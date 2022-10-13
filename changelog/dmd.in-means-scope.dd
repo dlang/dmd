@@ -1,0 +1,4 @@
+`scope` behavior is now enforced on `in` parameters when DIP1000 is enabled
+
+Previosuly, `in` on parameters meant `scope` only when both `-preview=in` and `-preview=dip1000` were used.
+From this release, only `-preview=dip1000` is required to enforce `scope` behavior on `in` parameter.

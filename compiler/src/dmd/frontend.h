@@ -3460,7 +3460,7 @@ public:
     static size_t dim(Array<Parameter* >* parameters);
     static Parameter* getNth(Array<Parameter* >* parameters, size_t nth);
     const char* toChars() const override;
-    bool isCovariant(bool returnByRef, const Parameter* const p, bool previewIn = global.params.previewIn) const;
+    bool isCovariant(bool returnByRef, const Parameter* const p) const;
 };
 
 enum class RET
