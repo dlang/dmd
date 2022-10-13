@@ -5391,6 +5391,16 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
         if (sz == 8)
             value = cast(targ_size_t)e.EV.Vullong;
 
+        if (tyvector(tym) && forregs & XMMREGS)
+        {
+            assert(!flags);
+            reg_t xreg;
+            allocreg(cdb, &forregs, &xreg, tym);     // allocate registers
+            movxmmconst(cdb, xreg, sz, value, flags);
+            fixresult(cdb, e, forregs, pretregs);
+            return;
+        }
+
         if (sz == REGSIZE && reghasvalue(forregs, value, &reg))
             forregs = mask(reg);
 

@@ -1576,11 +1576,8 @@ elem *el_convxmm(elem *e)
     ubyte[eve.sizeof] buffer = void;
 
     // Do not convert if the constants can be loaded with the special XMM instructions
-static if (0)
-{
-    if (loadconst(e))
+    if (loadxmmconst(e))
         return e;
-}
 
     go.changes++;
     tym_t ty = e.Ety;

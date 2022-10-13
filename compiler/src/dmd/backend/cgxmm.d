@@ -72,14 +72,22 @@ bool isXMMstore(opcode_t op)
  */
 
 @trusted
-private void movxmmconst(ref CodeBuilder cdb, reg_t xreg, uint sz, targ_size_t value, regm_t flags)
+void movxmmconst(ref CodeBuilder cdb, reg_t xreg, uint sz, targ_size_t value, regm_t flags)
 {
+    //printf("movxmmconst() %s sz: %u value: %lld\n", regm_str(mask(xreg)), sz, value);
+
+    assert(mask(xreg) & XMMREGS);
+    if (sz == 16)
+    {
+        assert(value == 0);
+        cdb.gen2(PXOR,modregxrmx(3,xreg-XMM0,xreg-XMM0));       // PXOR xreg,xreg
+        return;
+    }
+
     /* Generate:
      *    MOV reg,value
      *    MOV xreg,reg
-     * Not so efficient. We should at least do a PXOR for 0.
      */
-    assert(mask(xreg) & XMMREGS);
     assert(sz == 4 || sz == 8);
     if (I32 && sz == 8)
     {
@@ -1861,6 +1869,37 @@ void cloadxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 
     // See test/complex.d for cases winding up here
     cload87(cdb, e, pretregs);
+}
+
+/***********************************
+ * Determine if we can load a constant into an XMM register
+ * with instructions.
+ * Params:
+ *      e = constant
+ * Returns:
+ *      true if it can be done
+ */
+@trusted
+bool loadxmmconst(elem *e)
+{
+    //printf("loadxmmconst() "); elem_print_const(e); printf("\n");
+    const sz = tysize(e.Ety);
+    ubyte* p = cast(ubyte*)&e.EV;
+    assert(sz >= 1);
+
+    if (sz > 8)
+        return false;
+
+    // true only if all ones or all zeros
+    const b = p[0];
+    if (b != 0 /*&& b != 0xFF*/)
+        return false;
+    foreach (i; 1 .. sz)
+    {
+        if (p[i] != b)
+            return false;
+    }
+    return true;
 }
 
 }
