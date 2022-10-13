@@ -28,7 +28,7 @@ extern(C) nothrow
         cookie_seek_function_t seek;
         cookie_close_function_t close;
     }
-    FILE* fopencookie(in void* cookie, in char* mode, cookie_io_functions_t io_funcs);
+    FILE* fopencookie(void* cookie, const(char)* mode, cookie_io_functions_t io_funcs);
     void setbuffer(FILE *stream, char *buf, size_t size); // note: _DEFAULT_SOURCE
 }
 
