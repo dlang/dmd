@@ -1992,8 +1992,6 @@ class Lexer
                 break;
             case 'b':
             case 'B':
-                if (Ccompile)
-                    error("binary constants not allowed");
                 ++p;
                 base = 2;
                 break;
