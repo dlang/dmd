@@ -2600,7 +2600,7 @@ extern (C++) final class TypeDeduced : Type
 void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiargs,
     Type tthis, Expressions* fargs, const(char)** pMessage = null)
 {
-    Expression[] fargs_ = fargs.peekSlice();
+    alias fargs_ = fargs;
     version (none)
     {
         printf("functionResolve() dstart = %s\n", dstart.toChars());

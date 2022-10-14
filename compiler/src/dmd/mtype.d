@@ -4626,14 +4626,14 @@ extern (C++) final class TypeFunction : TypeNext
      * Determine match level.
      * Params:
      *      tthis = type of `this` pointer, null if not member function
-     *      args = array of function arguments
+     *      inArgs = array of function arguments. In case of a match, gets reordered based on named arguments.
      *      flag = 1: performing a partial ordering match
      *      pMessage = address to store error message, or null
      *      sc = context
      * Returns:
      *      MATCHxxxx
      */
-    extern (D) MATCH callMatch(Type tthis, Expression[] args, int flag = 0, const(char)** pMessage = null, Scope* sc = null)
+    extern (D) MATCH callMatch(Type tthis, Expressions* inArgs, int flag = 0, const(char)** pMessage = null, Scope* sc = null)
     {
         //printf("TypeFunction::callMatch() %s\n", toChars());
         MATCH match = MATCH.exact; // assume exact match
@@ -4669,8 +4669,9 @@ extern (C++) final class TypeFunction : TypeNext
         }
 
         const nparams = parameterList.length;
-        const nargs = args.length;
-        if (nargs > nparams)
+        Expression[] args = inArgs ? (*inArgs)[] : null;
+
+        if (args.length > nparams)
         {
             if (parameterList.varargs == VarArg.none)
             {
@@ -4684,22 +4685,33 @@ extern (C++) final class TypeFunction : TypeNext
         }
 
         // https://issues.dlang.org/show_bug.cgi?id=22997
-        if (parameterList.varargs == VarArg.none && nparams > nargs && !parameterList[nargs].defaultArg)
+        if (parameterList.varargs == VarArg.none && nparams > args.length && !parameterList[args.length].defaultArg)
         {
             OutBuffer buf;
-            buf.printf("too few arguments, expected %d, got %d", cast(int)nparams, cast(int)nargs);
+            buf.printf("too few arguments, expected `%d`, got `%d`", cast(int)nparams, cast(int)args.length);
             if (pMessage)
                 *pMessage = buf.extractChars();
             return MATCH.nomatch;
         }
 
+        if (!resolveNamedArgs(args, pMessage))
+        {
+            if (!pMessage || *pMessage)
+                return MATCH.nomatch;
+
+            // if no message was provided, it was because of overflow which will be diagnosed below
+            match = MATCH.nomatch;
+        }
+
         foreach (u, p; parameterList)
         {
-            if (u == nargs)
+            if (u >= args.length)
                 break;
 
             Expression arg = args[u];
-            assert(arg);
+            if (!arg)
+                continue; // default argument
+
             Type tprm = p.type;
             Type targ = arg.type;
 
@@ -4733,10 +4745,11 @@ extern (C++) final class TypeFunction : TypeNext
             assert(p);
 
             // One or more arguments remain
-            if (u < nargs)
+            if (u < args.length)
             {
                 Expression arg = args[u];
-                assert(arg);
+                if (!arg)
+                    continue; // default argument
                 m = argumentMatchParameter(this, p, arg, wildmatch, flag, sc, pMessage);
             }
             else if (p.defaultArg)
@@ -4745,7 +4758,7 @@ extern (C++) final class TypeFunction : TypeNext
             /* prefer matching the element type rather than the array
              * type when more arguments are present with T[]...
              */
-            if (parameterList.varargs == VarArg.typesafe && u + 1 == nparams && nargs > nparams)
+            if (parameterList.varargs == VarArg.typesafe && u + 1 == nparams && args.length > nparams)
                 goto L1;
 
             //printf("\tm = %d\n", m);
@@ -4760,7 +4773,7 @@ extern (C++) final class TypeFunction : TypeNext
                     // Error message was already generated in `matchTypeSafeVarArgs`
                     return MATCH.nomatch;
                 }
-                if (pMessage && u >= nargs)
+                if (pMessage && u >= args.length)
                     *pMessage = getMatchError("missing argument for parameter #%d: `%s`",
                         u + 1, parameterToChars(p, this, false));
                 // If an error happened previously, `pMessage` was already filled
@@ -4773,14 +4786,98 @@ extern (C++) final class TypeFunction : TypeNext
                 match = m; // pick worst match
         }
 
-        if (pMessage && !parameterList.varargs && nargs > nparams)
+        if (pMessage && !parameterList.varargs && args.length > nparams)
         {
             // all parameters had a match, but there are surplus args
-            *pMessage = getMatchError("expected %d argument(s), not %d", nparams, nargs);
+            *pMessage = getMatchError("expected %d argument(s), not %d", nparams, args.length);
             return MATCH.nomatch;
         }
         //printf("match = %d\n", match);
+        if (inArgs)
+        {
+            inArgs.setDim(0);
+            inArgs.pushSlice(args[]);
+        }
         return match;
+    }
+
+    /********************************
+     * Re-order `args` based on named arguments it contains
+     *
+     * Params:
+     *      args = array of function arguments.
+     *      pMessage = address to store error message, or null
+     * Returns: true on success, false on error
+     */
+    private extern(D) bool resolveNamedArgs(ref Expression[] args, const(char)** pMessage)
+    {
+        auto newArgs = new Expression[parameterList.length];
+        size_t ci = 0;
+        bool hasNamedArgs = false;
+        foreach (arg; args)
+        {
+            if (!arg)
+            {
+                ci++;
+                continue;
+            }
+            if (auto ne = arg.isNamedArgExp())
+            {
+                hasNamedArgs = true;
+                const pi = parameterIndex(ne.ident);
+                if (pi == -1)
+                {
+                    if (pMessage)
+                        *pMessage = getMatchError("no parameter named `%s`", ne.ident.toChars());
+                    return false;
+                }
+                ci = pi;
+                arg = cast(Expression) ne.arg;
+            }
+            if (ci >= newArgs.length)
+            {
+                newArgs.length = ci + 1;
+                if (!parameterList.varargs)
+                {
+                    // Without named args, let the caller diagnose argument overflow
+                    if (hasNamedArgs && pMessage)
+                        *pMessage = getMatchError("argument `%s` goes past end of parameter list", arg.toChars());
+                    return false;
+                }
+            }
+
+            if (newArgs[ci])
+            {
+                if (pMessage)
+                    *pMessage = getMatchError("parameter `%s` assigned twice", parameterList[ci].toChars());
+                return false;
+            }
+            newArgs[ci++] = arg;
+        }
+        foreach (i, arg; newArgs)
+        {
+            if (!arg)
+            {
+                if (parameterList[i].defaultArg)
+                    continue;
+
+                if (parameterList.varargs != VarArg.none && i + 1 == newArgs.length)
+                    continue;
+
+                if (pMessage)
+                    *pMessage = getMatchError("missing argument for parameter #%d: `%s`",
+                        i + 1, parameterToChars(parameterList[i], this, false));
+                return false;
+            }
+        }
+        // strip trailing nulls from default arguments
+        size_t e = newArgs.length;
+        while (e > 0 && newArgs[e - 1] is null) {
+            --e;
+        }
+
+        args = newArgs[0..e];
+        return true;
     }
 
     /+
@@ -4892,6 +4989,17 @@ extern (C++) final class TypeFunction : TypeNext
     override void accept(Visitor v)
     {
         v.visit(this);
+    }
+
+    /// Returns: index of parameter with name `ident` or -1 if not found
+    private extern(D) ptrdiff_t parameterIndex(Identifier ident)
+    {
+        foreach (i, p; this.parameterList)
+        {
+            if (p.ident == ident)
+                return i;
+        }
+        return -1;
     }
 }
 

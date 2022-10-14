@@ -1403,7 +1403,10 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
 
     if (!e1.type)
     {
-        error(loc, "cannot resolve type for %s", e1.toChars());
+        if (e1.isNamedArgExp())
+            error(loc, "named argument `%s` not allowed here", e1.toChars());
+        else
+            error(loc, "cannot resolve type for %s", e1.toChars());
         e1 = ErrorExp.get();
     }
     return e1;
@@ -1673,7 +1676,16 @@ private bool preFunctionParameters(Scope* sc, Identifiers* names, Expressions* e
                 arg = ErrorExp.get();
                 err = true;
             }
-            (*exps)[i] = arg;
+
+            if (ne)
+            {
+                ne.arg = arg;
+                (*exps)[i] = ne;
+            }
+            else
+            {
+                (*exps)[i] = arg;
+            }
         }
     }
     return err;
@@ -1804,8 +1816,13 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 arg = inlineCopy(arg, sc);
                 // __FILE__, __LINE__, __MODULE__, __FUNCTION__, and __PRETTY_FUNCTION__
                 arg = arg.resolveLoc(loc, sc);
-                arguments.push(arg);
-                nargs++;
+                if (i >= nargs)
+                {
+                    arguments.push(arg);
+                    nargs++;
+                }
+                else
+                    (*arguments)[i] = arg;
             }
             else
             {
@@ -5073,8 +5090,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
 
             const(char)* failMessage;
-            Expression[] fargs = exp.arguments ? (*exp.arguments)[] : null;
-            if (!tf.callMatch(null, fargs, 0, &failMessage, sc))
+            if (!tf.callMatch(null, exp.arguments, 0, &failMessage, sc))
             {
                 OutBuffer buf;
                 buf.writeByte('(');
@@ -5147,8 +5163,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 exp.f = exp.f.toAliasFunc();
                 TypeFunction tf = cast(TypeFunction)exp.f.type;
                 const(char)* failMessage;
-                Expression[] fargs = exp.arguments ? (*exp.arguments)[] : null;
-                if (!tf.callMatch(null, fargs, 0, &failMessage, sc))
+                if (!tf.callMatch(null, exp.arguments, 0, &failMessage, sc))
                 {
                     OutBuffer buf;
                     buf.writeByte('(');
@@ -12485,6 +12500,18 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             result = e.resolveLoc(Loc.initial, sc);
             return;
+        }
+
+        result = e;
+    }
+
+    override void visit(NamedArgExp e)
+    {
+        //printf("NamedArgExp::semantic('%s')\n", e.toChars());
+        if (e.arg.dyncast() == DYNCAST.expression)
+        {
+            e.arg = expressionSemantic(cast(Expression) e.arg, sc);
+            e.type = (cast(Expression) e.arg).type;
         }
 
         result = e;
