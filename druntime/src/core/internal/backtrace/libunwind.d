@@ -36,7 +36,6 @@ version (Posix):
 import core.stdc.inttypes;
 
 extern(C):
-@system:
 @nogc:
 nothrow:
 

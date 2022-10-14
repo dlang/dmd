@@ -4413,6 +4413,8 @@ bool setUnsafePreview(Scope* sc, FeatureState fs, bool gag, Loc loc, const(char)
     }
     else
     {
+        if (!sc.func)
+            return false;
         if (sc.func.isSafeBypassingInference())
         {
             if (!gag)

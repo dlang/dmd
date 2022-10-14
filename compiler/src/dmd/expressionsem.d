@@ -879,6 +879,18 @@ Lagain:
             if (d)
                 d.checkDisabled(loc, sc);
         }
+
+        if (auto sd = s.isDeclaration())
+        {
+            if (sd.isSystem())
+            {
+                if (sc.setUnsafePreview(global.params.systemVariables, false, loc,
+                    "cannot access `@system` variable `%s` in @safe code", sd))
+                {
+                    return ErrorExp.get();
+                }
+            }
+        }
     }
 
     if (auto em = s.isEnumMember())
