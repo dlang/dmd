@@ -30,4 +30,4 @@ jobs:
 
         git config --global diff.wsErrorHighlight "all"
     - uses: actions/setup-python@v3.0.0
-    - uses: pre-commit/action@v2.0.3
+    - uses: pre-commit/action@v3.0.0
