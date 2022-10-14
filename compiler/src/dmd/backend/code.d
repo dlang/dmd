@@ -617,6 +617,8 @@ void cod5_noprol();
 
 /* cgxmm.c */
 bool isXMMstore(opcode_t op);
+@trusted
+void movxmmconst(ref CodeBuilder cdb, reg_t xreg, uint sz, targ_size_t value, regm_t flags);
 void orthxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs);
 void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2, regm_t *pretregs);
 void xmmcnvt(ref CodeBuilder cdb,elem *e,regm_t *pretregs);

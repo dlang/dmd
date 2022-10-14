@@ -580,3 +580,4 @@ void getlvalue_msw(code *);
 void getlvalue_lsw(code *);
 void getlvalue(ref CodeBuilder cdb, code *pcs, elem *e, regm_t keepmsk);
 void loadea(ref CodeBuilder cdb, elem *e, code *cs, uint op, uint reg, targ_size_t offset, regm_t keepmsk, regm_t desmsk);
+bool loadxmmconst(elem* e);
