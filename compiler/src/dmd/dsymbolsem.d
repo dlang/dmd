@@ -878,7 +878,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
 
         // Calculate type size + safety checks
-        if (1)
+        if (sc && sc.func)
         {
             if (dsym._init && dsym._init.isVoidInitializer())
             {
