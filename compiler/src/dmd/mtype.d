@@ -2488,6 +2488,16 @@ extern (C++) abstract class Type : ASTNode
         return false;
     }
 
+    /*************************************
+     * Detect if this is an unsafe type because of the presence of `@system` members
+     * Returns:
+     *  true if so
+     */
+    bool hasSystemFields()
+    {
+        return false;
+    }
+
     /***************************************
      * Returns: true if type has any invariants
      */
@@ -3819,6 +3829,11 @@ extern (C++) final class TypeSArray : TypeArray
         }
         else
             return next.hasPointers();
+    }
+
+    override bool hasSystemFields()
+    {
+        return next.hasSystemFields();
     }
 
     override bool hasInvariant()
@@ -5546,6 +5561,13 @@ extern (C++) final class TypeStruct : Type
         return sym.hasVoidInitPointers;
     }
 
+    override bool hasSystemFields()
+    {
+        sym.size(Loc.initial); // give error for forward references
+        sym.determineTypeProperties();
+        return sym.hasSystemFields;
+    }
+
     override bool hasInvariant()
     {
         sym.size(Loc.initial); // give error for forward references
@@ -5828,6 +5850,11 @@ extern (C++) final class TypeEnum : Type
     override bool hasVoidInitPointers()
     {
         return memType().hasVoidInitPointers();
+    }
+
+    override bool hasSystemFields()
+    {
+        return memType().hasSystemFields();
     }
 
     override bool hasInvariant()

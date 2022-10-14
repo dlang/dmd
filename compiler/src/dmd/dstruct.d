@@ -218,6 +218,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         bool hasCopyCtor;           // copy constructor
         bool hasPointerField;       // members with indirections
         bool hasVoidInitPointers;   // void-initialized unsafe fields
+        bool hasSystemFields;      // @system members
         bool hasFieldWithInvariant; // invariants
         bool computedTypeProperties;// the above 3 fields are computed
         // Even if struct is defined as non-root symbol, some built-in operations
@@ -411,6 +412,9 @@ extern (C++) class StructDeclaration : AggregateDeclaration
 
             if (vd._init && vd._init.isVoidInitializer() && vd.type.hasPointers())
                 hasVoidInitPointers = true;
+
+            if (vd.storage_class & STC.system || vd.type.hasSystemFields())
+                hasSystemFields = true;
 
             if (!vd._init && vd.type.hasVoidInitPointers())
                 hasVoidInitPointers = true;
