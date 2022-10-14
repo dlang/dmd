@@ -3836,6 +3836,11 @@ extern (C++) final class TypeSArray : TypeArray
         return next.hasSystemFields();
     }
 
+    override bool hasVoidInitPointers()
+    {
+        return next.hasVoidInitPointers();
+    }
+
     override bool hasInvariant()
     {
         return next.hasInvariant();

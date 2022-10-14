@@ -3816,6 +3816,7 @@ public:
     Expression* defaultInitLiteral(const Loc& loc) override;
     bool hasPointers() override;
     bool hasSystemFields() override;
+    bool hasVoidInitPointers() override;
     bool hasInvariant() override;
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
