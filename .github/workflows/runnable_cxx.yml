@@ -152,12 +152,12 @@ jobs:
       run: |
         # For pull requests, base_ref will not be empty
         if [ ! -z ${{ github.base_ref }} ]; then
-            echo "::set-output name=branch::${{ github.base_ref }}"
+            echo "branch=${{ github.base_ref }}" >> $GITHUB_OUTPUT
         # Otherwise, use whatever ref we have:
         # For branches this in the format 'refs/heads/<branch_name>',
         # and for tags it is refs/tags/<tag_name>.
         else
-            echo "::set-output name=branch::${{ github.ref }}"
+            echo "branch=${{ github.ref }}" >> $GITHUB_OUTPUT
         fi
 
     #########################################
