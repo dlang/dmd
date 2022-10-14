@@ -879,6 +879,18 @@ Lagain:
             if (d)
                 d.checkDisabled(loc, sc);
         }
+
+        if (auto sd = s.isDeclaration())
+        {
+            if (sd.isSystem())
+            {
+                if (sc.setUnsafePreview(global.params.systemVariables, false, loc,
+                    "cannot access `@system` variable `%s` in @safe code", sd))
+                {
+                    return ErrorExp.get();
+                }
+            }
+        }
     }
 
     if (auto em = s.isEnumMember())
@@ -12080,6 +12092,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = exp.incompatibleTypes();
             return;
         }
+
+        if (t1.isTypeVector())
+            exp.type = t1;
 
         result = exp;
     }

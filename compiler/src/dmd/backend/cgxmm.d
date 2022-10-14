@@ -187,7 +187,7 @@ void orthxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     /* We should take advantage of mem addressing modes for OP XMM,MEM
      * but we do not at the moment.
      */
-    if (OTrel(e.Eoper))
+    if (OTrel(e.Eoper) && !tyvector(tybasic(e.Ety)))
     {
         cdb.gen2(op,modregxrmx(3,rreg-XMM0,reg-XMM0));
         checkSetVex(cdb.last(), e1.Ety);
@@ -1057,6 +1057,8 @@ private opcode_t xmmoperator(tym_t tym, OPER oper)
         case OPnue:
             switch (tym)
             {
+                case TYlong4:   op = PCMPEQD;  break;
+
                 case TYfloat:
                 case TYifloat:  op = UCOMISS;  break;
                 case TYdouble:

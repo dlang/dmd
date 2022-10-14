@@ -13,7 +13,6 @@ import core.sys.linux.config : __USE_FILE_OFFSET64;
 import core.stdc.stdio : FILE;
 import core.stdc.stddef : wchar_t;
 
-@system:
 
 extern(C) nothrow
 {
