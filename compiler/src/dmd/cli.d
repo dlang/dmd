@@ -792,7 +792,7 @@ dmd -cov -unittest myprog.d
             "list all aggregate field paddings"
         ),
         Option("vgc",
-               "list all gc allocations including hidden ones"
+            "list all gc allocations including hidden ones"
         ),
         Option("vtls",
             "list all variables going into thread local storage"
