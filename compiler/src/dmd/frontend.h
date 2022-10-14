@@ -1958,6 +1958,7 @@ public:
     virtual int32_t hasWild() const;
     virtual bool hasPointers();
     virtual bool hasVoidInitPointers();
+    virtual bool hasSystemFields();
     virtual bool hasInvariant();
     virtual Type* nextOf();
     Type* baseElemOf();
@@ -3559,6 +3560,7 @@ public:
     bool isZeroInit(const Loc& loc) override;
     bool hasPointers() override;
     bool hasVoidInitPointers() override;
+    bool hasSystemFields() override;
     bool hasInvariant() override;
     Type* nextOf() override;
     void accept(Visitor* v) override;
@@ -3813,6 +3815,7 @@ public:
     MATCH implicitConvTo(Type* to) override;
     Expression* defaultInitLiteral(const Loc& loc) override;
     bool hasPointers() override;
+    bool hasSystemFields() override;
     bool hasInvariant() override;
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
@@ -3852,6 +3855,7 @@ public:
     bool needsNested() override;
     bool hasPointers() override;
     bool hasVoidInitPointers() override;
+    bool hasSystemFields() override;
     bool hasInvariant() override;
     MATCH implicitConvTo(Type* to) override;
     MATCH constConv(Type* to) override;
@@ -6318,6 +6322,8 @@ public:
     bool hasPointerField(bool v);
     bool hasVoidInitPointers() const;
     bool hasVoidInitPointers(bool v);
+    bool hasSystemFields() const;
+    bool hasSystemFields(bool v);
     bool hasFieldWithInvariant() const;
     bool hasFieldWithInvariant(bool v);
     bool computedTypeProperties() const;
