@@ -18,7 +18,6 @@ module dmd.backend.util2;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
-import core.stdc.stdint : uint64_t;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
@@ -269,7 +268,7 @@ int binary(const(char)* p, size_t len, const(char)** table, int high)
  * If c is a power of 2, return that power else -1.
  */
 
-int ispow2(uint64_t c)
+int ispow2(ulong c)
 {       int i;
 
         if (c == 0 || (c & (c - 1)))

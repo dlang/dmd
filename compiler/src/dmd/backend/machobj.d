@@ -1026,7 +1026,7 @@ version (SCPP)
                             ++nreloc;
 
                             // patch with fdesym.Soffset - offset
-                            int64_t *p = cast(int64_t *)patchAddr64(seg, r.offset);
+                            long *p = cast(long *)patchAddr64(seg, r.offset);
                             *p += r.funcsym.Soffset - r.offset;
                             continue;
                         }
@@ -1274,7 +1274,7 @@ version (SCPP)
                     if (I64)
                     {
                         int32_t *p64 = patchAddr64(seg, r.offset);
-                        //int64_t before = *p64;
+                        //long before = *p64;
                         if (rel.r_pcrel)
                             // Relative address
                             patch(pseg, r.offset, r.targseg, 0);
