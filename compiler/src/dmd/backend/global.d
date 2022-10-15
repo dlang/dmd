@@ -135,7 +135,7 @@ void util_progress();
 void util_set16();
 void util_set32(exefmt_t);
 void util_set64(exefmt_t);
-int ispow2(uint64_t);
+int ispow2(ulong);
 
 version (Posix)
 {
