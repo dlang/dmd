@@ -2329,6 +2329,20 @@ L1:
                             return false;
                         break;
 
+                    case TYfloat8:
+                    case TYdouble4:
+                    case TYschar32:
+                    case TYuchar32:
+                    case TYshort16:
+                    case TYushort16:
+                    case TYlong8:
+                    case TYulong8:
+                    case TYllong4:
+                    case TYullong4:
+                        if (memcmp(&n1.EV,&n2.EV,32))   // 32 byte vector types (256 bit)
+                            return false;
+                        break;
+
                     case TYcldouble:
                         static if ((n1.EV.Vldouble).sizeof > 10)
                         {

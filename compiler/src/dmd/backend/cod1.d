@@ -5387,26 +5387,26 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
         forregs |= DOUBLEREGS;
     if (e.Eoper == OPconst)
     {
-        targ_size_t value = e.EV.Vint;
-        if (sz == 8)
-            value = cast(targ_size_t)e.EV.Vullong;
-
         if (tyvector(tym) && forregs & XMMREGS)
         {
             assert(!flags);
             reg_t xreg;
             allocreg(cdb, &forregs, &xreg, tym);     // allocate registers
-            movxmmconst(cdb, xreg, sz, value, flags);
+            movxmmconst(cdb, xreg, sz, &e.EV, flags);
             fixresult(cdb, e, forregs, pretregs);
             return;
         }
+
+        targ_size_t value = e.EV.Vint;
+        if (sz == 8)
+            value = cast(targ_size_t)e.EV.Vullong;
 
         if (sz == REGSIZE && reghasvalue(forregs, value, &reg))
             forregs = mask(reg);
 
         regm_t save = regcon.immed.mval;
         allocreg(cdb, &forregs, &reg, tym);        // allocate registers
-        regcon.immed.mval = save;               // KLUDGE!
+        regcon.immed.mval = save;               // allocreg could unnecessarily clear .mval
         if (sz <= REGSIZE)
         {
             if (sz == 1)
