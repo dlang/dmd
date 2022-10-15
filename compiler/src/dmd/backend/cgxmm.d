@@ -69,6 +69,12 @@ bool isXMMstore(opcode_t op)
 
 /*******************************************
  * Move constant value into xmm register xreg.
+ * Params:
+ *      cdb = generated code appends to this
+ *      xreg = XMM register to load
+ *      sz = number of bytes to load
+ *      pev = pointer to const value
+ *      flags = if set flags based on value
  */
 
 @trusted

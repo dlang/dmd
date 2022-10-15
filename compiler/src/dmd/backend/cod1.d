@@ -5421,22 +5421,9 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
             if (sz == 8)
                 flags |= 64;
             if (isXMMreg(reg))
-            {   /* This comes about because 0, 1, pi, etc., constants don't get stored
-                 * in the data segment, because they are x87 opcodes.
-                 * Not so efficient. We should at least do a PXOR for 0.
-                 */
-                reg_t r;
-                targ_size_t unsvalue = e.EV.Vuns;
-                if (sz == 8)
-                    unsvalue = cast(targ_size_t)e.EV.Vullong;
-                regwithvalue(cdb,ALLREGS, unsvalue,&r,flags);
-                flags = 0;                          // flags are already set
-                cdb.genfltreg(0x89, r, 0);            // MOV floatreg,r
-                if (sz == 8)
-                    code_orrex(cdb.last(), REX_W);
-                assert(sz == 4 || sz == 8);         // float or double
-                const opmv = xmmload(tym);
-                cdb.genxmmreg(opmv, reg, 0, tym);        // MOVSS/MOVSD XMMreg,floatreg
+            {
+                movxmmconst(cdb, reg, sz, &e.EV, 0);
+                flags = 0;
             }
             else
             {
