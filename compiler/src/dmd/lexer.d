@@ -126,22 +126,27 @@ class Lexer
         if (p && p[0] == '#' && p[1] == '!')
         {
             p += 2;
-            while (1)
+            for (;;p++)
             {
-                char c = *p++;
+                char c = *p;
                 switch (c)
                 {
+                case '\n':
+                    p++;
+                    goto case;
                 case 0:
                 case 0x1A:
-                    p--;
-                    goto case;
-                case '\n':
                     break;
+
                 default:
                     // Start of UTF-8 code point encountered.
-                    // If the shebang line contains malformed UTF or
-                    // bidirectional controls, we still have to error.
-                    if (*p & 0x80)
+                    // If the shebang line contains malformed UTF, we ignore it
+                    // presuming some other encoding, but for bidirectional
+                    // controls, we still have to error.
+                    // Note that this means someone using, say Windows-1252,
+                    // may randomly get this error but this is expected to be
+                    // rare.
+                    if (c & 0x80)
                     {
                         auto oldP = p;
                         string err;
@@ -149,12 +154,12 @@ class Lexer
                         // We can't error directly from here because printing
                         // an error is impure, so we terminate shebang
                         // skipping early instead. Lexing will then issue
-                        // errors for bad UTF.
+                        // errors for dangerous UTF.
                         // TODO: figure out a solution that does not lex
                         // the rest of shebang line as D.
-                        if (err)
+                        if (err.length >= 4 && err[0 .. 4] == "Bidi")
                         {
-                            p = oldP - 1;
+                            p = oldP;
                             return;
                         }
                     }
