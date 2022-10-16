@@ -5297,6 +5297,8 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
             /* Evaluate using XMM register and XMM instruction.
              * This affects jmpopcode()
              */
+            if (s.Sclass == SC.parameter)
+                refparam = true;
             tstresult(cdb,s.Sregm,e.Ety,true);
         }
         else if (sz <= REGSIZE)
