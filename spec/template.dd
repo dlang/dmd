@@ -1494,6 +1494,7 @@ $(H2 $(LNAME2 nested-templates, Nested Templates))
         instantiated functions will implicitly capture the context of the
         enclosing scope.)
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ----
         class C
         {
@@ -1525,10 +1526,45 @@ $(H2 $(LNAME2 nested-templates, Nested Templates))
             assert(c.num == 10);
         }
         ----
+        )
 
-    $(P Above, $(D Foo!().foo) will work just the same as a member function
+    $(P Above, $(D Foo!().foo) will work just the same as a `final` member function
         of class $(D C), and $(D Bar!().bar) will work just the same as a nested
         function within function $(D main$(LPAREN)$(RPAREN)).)
+
+$(H3 $(LNAME2 limitations, Aggregate Type Limitations))
+
+    $(P A nested template cannot add non-static fields to an aggregate type.
+        Fields declared in a nested template will be implicitly `static`.)
+    $(P A nested template cannot add virtual functions to a class or interface.
+        Methods inside a nested template will be implicitly `final`.)
+
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ------
+        class Foo
+        {
+            template TBar(T)
+            {
+                T xx;           // becomes a static field of Foo
+                void func(T) {} // implicitly final
+                //abstract void baz(); // error, final functions cannot be abstract
+
+                static T yy;                    // Ok
+                static void func(T t, int y) {} // Ok
+            }
+        }
+
+        void main()
+        {
+            alias bar = Foo.TBar!int;
+            bar.xx++;
+            //bar.func(1); // error, no this
+
+            auto o = new Foo;
+            o.TBar!int.func(1); // OK
+        }
+        ------
+        )
 
 $(H3 $(LNAME2 implicit-nesting, Implicit Nesting))
 
@@ -1752,26 +1788,6 @@ $(GNAME Constraint):
         auto x = Bar!int;       // OK, int is an integral type
         auto y = Bar!double;    // Error, double does not satisfy constraint
         ---
-
-$(H2 $(LNAME2 limitations, Limitations))
-
-    $(P Templates cannot be used to add non-static fields or
-        virtual functions to classes or interfaces.
-        For example:)
-
-        ------
-        class Foo
-        {
-            template TBar(T)
-            {
-                T xx;               // becomes a static field of Foo
-                int func(T) { ... } // non-virtual
-
-                static T yy;                        // Ok
-                static int func(T t, int y) { ... } // Ok
-            }
-        }
-        ------
 
 $(SPEC_SUBNAV_PREV_NEXT operatoroverloading, Operator Overloading, template-mixin, Template Mixins)
 )
