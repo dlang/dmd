@@ -293,7 +293,7 @@ void test8504()
 /***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=8751
 
-alias bool delegate(in int) pure Bar8751;
+alias bool delegate(const int) pure Bar8751;
 Bar8751 foo8751a(immutable int x) pure
 {
     return y => x > y; // OK
@@ -306,8 +306,8 @@ Bar8751 foo8751b(const int x) pure
 /***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=8793
 
-alias bool delegate(in int) pure Dg8793;
-alias bool function(in int) pure Fp8793;
+alias bool delegate(const int) pure Dg8793;
+alias bool function(const int) pure Fp8793;
 
 Dg8793 foo8793fp1(immutable Fp8793 f) pure { return x => (*f)(x); } // OK
 Dg8793 foo8793fp2(    const Fp8793 f) pure { return x => (*f)(x); } // OK
