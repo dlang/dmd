@@ -8944,7 +8944,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.e1 = e1x;
             assert(exp.e1.type);
         }
-        Type t1 = exp.e1.type.toBasetype();
+        Type t1 = exp.e1.type.isTypeEnum() ? exp.e1.type : exp.e1.type.toBasetype();
 
         /* Run this.e2 semantic.
          * Different from other binary expressions, the analysis of e2
