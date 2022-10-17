@@ -20,7 +20,7 @@ void main() @nogc
 }
 ---
 
-This only applies to array elements that are Plain Old Data though, because proper destruction cannot be ensured when the array is not managed by the GC.
+This only applies to array elements that are Plain Old Data, proper destruction cannot be ensured when the array is not managed by the GC.
 
 Note: checking that a `scope` variable actually doesn't escape is only done in `@safe` code.
 In a `@system` function, it's your own risk when you corrupt memory by returning a `scope int[]`.
