@@ -399,7 +399,7 @@ void utf_encode(int sz, void* s, dchar c)
  * Checks whether an Unicode code point is a bidirectional
  * control character.
  */
-@safe bool utf_is_bidi_control(dchar c)
+@safe bool isBidiControl(dchar c)
 {
     // Source: https://www.unicode.org/versions/Unicode15.0.0, table 23-3.
     switch(c)

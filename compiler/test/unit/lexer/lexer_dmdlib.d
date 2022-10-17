@@ -282,11 +282,7 @@ unittest
     immutable codes = [
         "enum myString = \"\u061C\";",
         "enum myString = `\u202E\u2066 \u2069\u2066`;",
-        "void test(){} // \u200E comment \u200F",
-        "#!usr/bin/env dmd # \u200E comment \u200F\nvoid test(){}",
-        // Make sure shebang being invalid UTF-8 does not stop vigilance with
-        // bidi chars in there.
-        "#!usr/\x80\x85\x8A/env dmd # \u200E comment \xFF\u200F\nvoid test(){}"
+        "void test(){} // \u200E comment \u200F"
     ];
 
     foreach (codeNum, code; codes)
@@ -308,19 +304,7 @@ unittest
         ["file1", bidiErrorMessage],
         ["file2", bidiErrorMessage],
         ["file2", bidiErrorMessage],
-        ["file3", bidiErrorMessage],
-        ["file3", "character 0x200e is not a valid token"],
-        ["file3", bidiErrorMessage],
-        ["file3", "character 0x200f is not a valid token"],
-        ["file4", bidiErrorMessage],
-        ["file4", "character 0x200e is not a valid token"],
-        ["file4", "Outside Unicode code space"],
-        ["file4", bidiErrorMessage],
-        ["file4", "char 0x200f not allowed in identifier"],
-        ["file4", bidiErrorMessage],
-        ["file4", "character 0x200f is not a valid token"]
     ];
 
-    //assert(0, diagnosticMessages.to!string);
     assert(diagnosticMessages == excepted);
 }

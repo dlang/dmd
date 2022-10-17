@@ -139,31 +139,13 @@ class Lexer
                     break;
 
                 default:
-                    // Start of UTF-8 code point encountered.
-                    // If the shebang line contains malformed UTF, we ignore it
-                    // presuming some other encoding, but for bidirectional
-                    // controls, we still have to error.
-                    // Note that this means someone using, say Windows-1252,
-                    // may randomly get this error but this is expected to be
-                    // rare.
-                    if (c & 0x80)
-                    {
-                        auto oldP = p;
-                        string err;
-                        decodeUTFpure(err);
-                        // We can't error directly from here because printing
-                        // an error is impure, so we terminate shebang
-                        // skipping early instead. Lexing will then issue
-                        // errors for dangerous UTF.
-                        // TODO: figure out a solution that does not lex
-                        // the rest of shebang line as D.
-                        if (err.length >= 4 && err[0 .. 4] == "Bidi")
-                        {
-                            p = oldP;
-                            return;
-                        }
-                    }
-
+                    // Note: We do allow malformed UTF-8 on shebang line.
+                    // It could have a meaning if the native system
+                    // encoding is not Unicode. See test compilable/test13512.d
+                    // for example encoded in KOI-8.
+                    // We also allow bidirectional control characters.
+                    // We do not execute the shebang line, so it can't be used
+                    // to conceal code. It is up to the shell to sanitize it.
                     continue;
                 }
                 break;
@@ -2868,7 +2850,7 @@ class Lexer
         dchar u;
         msg = utf_decodeChar(s[0 .. len], idx, u);
         p += idx - 1;
-        if (!msg && utf_is_bidi_control(u))
+        if (!msg && isBidiControl(u))
             msg = "Bidirectional control characters are disallowed for security reasons.";
         return u;
     }
