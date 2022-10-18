@@ -99,7 +99,7 @@ public:
 
     override void visit(ArrayLiteralExp e)
     {
-        if (e.type.ty != Tarray || !e.elements || !e.elements.dim)
+        if (e.type.ty != Tarray || !e.elements || !e.elements.dim || e.onstack)
             return;
         if (f.setGC())
         {

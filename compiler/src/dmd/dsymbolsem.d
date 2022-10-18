@@ -1062,6 +1062,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                             if (f.tookAddressOf)
                                 f.tookAddressOf--;
                         }
+                        else if (auto ale = ex.isArrayLiteralExp())
+                        {
+                            // or an array literal assigned to a `scope` variable
+                            if (!dsym.type.nextOf().needsDestruction())
+                                ale.onstack = true;
+                        }
                     }
 
                     Expression exp = ei.exp;

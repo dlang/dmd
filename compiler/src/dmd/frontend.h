@@ -6708,7 +6708,7 @@ private:
         char complexexp[80LLU];
         char symoffexp[72LLU];
         char stringexp[60LLU];
-        char arrayliteralexp[57LLU];
+        char arrayliteralexp[58LLU];
         char assocarrayliteralexp[57LLU];
         char structliteralexp[95LLU];
         char compoundliteralexp[48LLU];
@@ -6903,6 +6903,7 @@ public:
     Expression* basis;
     Array<Expression* >* elements;
     OwnedBy ownedByCtfe;
+    bool onstack;
     static ArrayLiteralExp* create(const Loc& loc, Array<Expression* >* elements);
     static void emplace(UnionExp* pue, const Loc& loc, Array<Expression* >* elements);
     ArrayLiteralExp* syntaxCopy() override;
