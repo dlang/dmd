@@ -293,11 +293,11 @@ $(GNAME TemplateTypeParameterDefault):
     $(D =) $(GLINK2 type, Type)
 )
 
-$(H4 $(LNAME2 parameters_specialization, Specialization))
+$(H4 $(LNAME2 parameters_specialization, Specialization and Pattern Matching))
 
     $(P Templates may be specialized for particular types of arguments
         by following the template parameter identifier with a : and the
-        specialized type.
+        pattern for the specialized type.
         For example:)
 
         ------
@@ -307,7 +307,7 @@ $(H4 $(LNAME2 parameters_specialization, Specialization))
         template TFoo(T, U, V)  { ... } // #4
 
         alias foo1 = TFoo!(int);            // instantiates #1
-        alias foo2 = TFoo!(double[]);       // instantiates #2 with T being double
+        alias foo2 = TFoo!(double[]);       // instantiates #2 matching pattern T[] with T being double
         alias foo3 = TFoo!(char);           // instantiates #3
         alias fooe = TFoo!(char, int);      // error, number of arguments mismatch
         alias foo4 = TFoo!(char, int, int); // instantiates #4
@@ -353,14 +353,14 @@ $(H4 $(LNAME2 argument_deduction, Type Parameter Deduction))
         alias foo1 = TFoo!(int);     // (1) T is deduced to be int
         alias foo2 = TFoo!(char*);   // (1) T is deduced to be char*
 
-        template TBar(T : T*) { }
+        template TBar(T : T*) { }    // match template argument against T* pattern
         alias bar = TBar!(char*);    // (2) T is deduced to be char
 
-        template TAbc(D, U : D[]) { }
+        template TAbc(D, U : D[]) { }    // D[] is pattern to be matched
         alias abc1 = TAbc!(int, int[]);  // (2) D is deduced to be int, U is int[]
         alias abc2 = TAbc!(char, int[]); // (4) error, D is both char and int
 
-        template TDef(D : E*, E) { }
+        template TDef(D : E*, E) { }   // E* is pattern to be matched
         alias def = TDef!(int*, int);  // (1) E is int
                                        // (3) D is int*
         ------
