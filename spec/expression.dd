@@ -578,7 +578,7 @@ $(GNAME EqualExpression):
         $(LINK2 https://dlang.org/spec/operatoroverloading.html#equals, `opEquals()` member function).
         If an `opEquals()` is not provided, equality is defined as
         the logical product of all equality
-        results of the corresponding object fields.)
+        results of the corresponding object fields.
     )
 
         $(IMPLEMENTATION_DEFINED The contents of any alignment gaps in the struct object.)
@@ -2495,7 +2495,7 @@ $(GNAME TypeidExpression):
         ---
         )
 
-$(H3 $(LNAME2 is_expression, IsExpression))
+$(H3 $(LNAME2 is_expression, Is Expressions))
 
 $(GRAMMAR
 $(GNAME IsExpression):
@@ -2538,7 +2538,7 @@ $(GNAME TypeSpecialization):
     $(LI checking for valid types)
     $(LI comparing types for equivalence)
     $(LI determining if one type can be implicitly converted to another)
-    $(LI deducing the subtypes of a type)
+    $(LI deducing the subtypes of a type using pattern matching)
     )
     $(P
         The result of an $(I IsExpression) is a boolean of value `true`
@@ -2552,7 +2552,7 @@ $(GNAME TypeSpecialization):
     )
 
     $(P $(I TypeSpecialization) is the type that $(I Type) is being
-        compared against.
+        pattern matched against.
     )
 
     $(P $(I IsExpression)s may be used in conjunction with $(D typeof) to check
@@ -2699,7 +2699,8 @@ void foo()
         $(I TypeSpecialization) is only allowed to be a $(I Type).
         The $(I Identifier) is declared to be either an alias of the
         $(I TypeSpecialization) or, if $(I TypeSpecialization) is
-        dependent on $(I Identifier), the deduced type.
+        dependent on $(I Identifier), the $(I TypeSpecialization) forms
+        a pattern from which the type of $(I Identifier) is deduced.
         )
 
     $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -2718,7 +2719,7 @@ void foo()
     ---
     alias Abc = long*;
 
-    static if (is(Abc U : U*))
+    static if (is(Abc U : U*)) // Abc is matched against the pattern U*
     {
         U u;
     }
@@ -2739,7 +2740,8 @@ void foo()
         correct and is the same as $(I TypeSpecialization).
         The $(I Identifier) is declared to be either an alias of the
         $(I TypeSpecialization) or, if $(I TypeSpecialization) is
-        dependent on $(I Identifier), the deduced type.
+        dependent on $(I Identifier), the $(I TypeSpecialization) forms
+        a pattern from which the type of $(I Identifier) is deduced.
         )
 
     $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -2864,7 +2866,7 @@ $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     alias AA = long[string];
 
-    static if (is(AA T : T[U], U : string))
+    static if (is(AA T : T[U], U : string)) // T[U] is the pattern
     {
         pragma(msg, T);  // long
         pragma(msg, U);  // string
@@ -2879,7 +2881,7 @@ $(P $(B Example:) Matching a Static Array)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
-    static if (is(int[10] W : W[len], int len))
+    static if (is(int[10] W : W[len], int len)) // W[len] is the pattern
     {
         static assert(len == 10);
     }
