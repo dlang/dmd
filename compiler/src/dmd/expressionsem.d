@@ -7937,7 +7937,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
             }
         }
-        else if (t1b.ty == Tvector)
+        else if (t1b.ty == Tvector && exp.e1.isLvalue())
         {
             // Convert e1 to corresponding static array
             TypeVector tv1 = cast(TypeVector)t1b;

@@ -2209,15 +2209,6 @@ void test19632()
 }
 
 /*****************************************/
-// https://issues.dlang.org/show_bug.cgi?id=19788
-
-void test19788()
-{
-    enum v = __vector(float[4]).init;
-    const(float)[] a = v[];
-}
-
-/*****************************************/
 // https://issues.dlang.org/show_bug.cgi?id=19443
 
 void test19443()
@@ -2471,7 +2462,6 @@ int main()
     test20041();
     test21364();
     test19632();
-    test19788();
     test19443();
     test22438();
     testsroa();
