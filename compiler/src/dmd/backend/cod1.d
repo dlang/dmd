@@ -3826,8 +3826,9 @@ void cdstrthis(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
 private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
                       regm_t* pretregs,regm_t keepmsk, bool usefuncarg)
 {
-    //printf("%s ", funcsym_p.Sident.ptr);
     //printf("funccall(e = %p, *pretregs = %s, numpara = %d, numalign = %d, usefuncarg=%d)\n",e,regm_str(*pretregs),numpara,numalign,usefuncarg);
+    //printf("  from %s\n", funcsym_p.Sident.ptr);
+    //elem_print(e);
     calledafunc = 1;
     // Determine if we need frame for function prolog/epilog
 
