@@ -499,7 +499,7 @@ extern (C++) final class Module : Package
 
     extern (D) static const(char)[] find(const(char)[] filename)
     {
-        return FileManager.lookForSourceFile(filename, global.path ? (*global.path)[] : null);
+        return global.fileManager.lookForSourceFile(filename, global.path ? (*global.path)[] : null);
     }
 
     extern (C++) static Module load(const ref Loc loc, Identifiers* packages, Identifier ident)
