@@ -39,13 +39,14 @@ struct _d_dynamicArray final
 
 class Visitor;
 class Identifier;
-class CPPNamespaceDeclaration;
 struct Symbol;
 struct OutBuffer;
 class FileManager;
 struct FileName;
 struct Scope;
+struct DsymbolAttributes;
 class DeprecatedDeclaration;
+class CPPNamespaceDeclaration;
 class UserAttributeDeclaration;
 class Module;
 class TemplateInstance;
@@ -954,18 +955,24 @@ class Dsymbol : public ASTNode
 public:
     Identifier* ident;
     Dsymbol* parent;
-    CPPNamespaceDeclaration* cppnamespace;
     Symbol* csym;
     const Loc loc;
     Scope* _scope;
     const char* prettystring;
+private:
+    DsymbolAttributes* atts;
+public:
     bool errors;
     PASS semanticRun;
     uint16_t localNum;
-    DeprecatedDeclaration* depdecl;
-    UserAttributeDeclaration* userAttribDecl;
     static Dsymbol* create(Identifier* ident);
     const char* toChars() const override;
+    DeprecatedDeclaration* depdecl();
+    CPPNamespaceDeclaration* cppnamespace();
+    UserAttributeDeclaration* userAttribDecl();
+    DeprecatedDeclaration* depdecl(DeprecatedDeclaration* dd);
+    CPPNamespaceDeclaration* cppnamespace(CPPNamespaceDeclaration* ns);
+    UserAttributeDeclaration* userAttribDecl(UserAttributeDeclaration* uad);
     virtual const char* toPrettyCharsHelper();
     const Loc getLoc();
     const char* locToChars();
