@@ -162,16 +162,16 @@ public:
     override void visit(IndexExp e)
     {
         Type t1b = e.e1.type.toBasetype();
-        if (t1b.ty == Taarray)
+        if (e.modifiable && t1b.ty == Taarray)
         {
             if (f.setGC())
             {
-                e.error("indexing an associative array in `@nogc` %s `%s` may cause a GC allocation",
+                e.error("assigning an associative array element in `@nogc` %s `%s` may cause a GC allocation",
                     f.kind(), f.toPrettyChars());
                 err = true;
                 return;
             }
-            f.printGCUsage(e.loc, "indexing an associative array may cause a GC allocation");
+            f.printGCUsage(e.loc, "assigning an associative array element may cause a GC allocation");
         }
     }
 
