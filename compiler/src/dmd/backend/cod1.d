@@ -5394,7 +5394,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
             assert(!flags);
             reg_t xreg;
             allocreg(cdb, &forregs, &xreg, tym);     // allocate registers
-            movxmmconst(cdb, xreg, sz, &e.EV, flags);
+            movxmmconst(cdb, xreg, tym, &e.EV, flags);
             fixresult(cdb, e, forregs, pretregs);
             return;
         }
@@ -5422,7 +5422,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
                 flags |= 64;
             if (isXMMreg(reg))
             {
-                movxmmconst(cdb, reg, sz, &e.EV, 0);
+                movxmmconst(cdb, reg, tym, &e.EV, 0);
                 flags = 0;
             }
             else

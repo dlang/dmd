@@ -78,10 +78,11 @@ bool isXMMstore(opcode_t op)
  */
 
 @trusted
-void movxmmconst(ref CodeBuilder cdb, reg_t xreg, uint sz, eve* pev, regm_t flags)
+void movxmmconst(ref CodeBuilder cdb, reg_t xreg, tym_t ty, eve* pev, regm_t flags)
 {
     //printf("movxmmconst() %s sz: %u value: %lld\n", regm_str(mask(xreg)), sz, value);
 
+    const sz = tysize(ty);
     assert(mask(xreg) & XMMREGS);
     if (sz == 16 || sz == 32)
     {
@@ -181,7 +182,7 @@ void orthxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
             signbit.Vint = 0x80000000;
             if (sz == 8)
                 signbit.Vllong = 0x8000_0000_0000_0000;
-            movxmmconst(cdb,sreg, sz, &signbit, 0);
+            movxmmconst(cdb,sreg, e1.Ety, &signbit, 0);
             getregs(cdb,nretregs);
             const opcode_t xop = (sz == 8) ? XORPD : XORPS;       // XORPD/S rreg,sreg
             cdb.gen2(xop,modregxrmx(3,rreg-XMM0,sreg-XMM0));
@@ -685,7 +686,7 @@ void xmmneg(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     if (sz == 8)
         signbit.Vllong = 0x8000_0000_0000_0000;
 
-    movxmmconst(cdb,rreg, sz, &signbit, 0);
+    movxmmconst(cdb,rreg, tyml, &signbit, 0);
 
     getregs(cdb,retregs);
     const op = (sz == 8) ? XORPD : XORPS;       // XORPD/S reg,rreg
@@ -726,7 +727,7 @@ void xmmabs(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     mask.Vint = 0x7FFF_FFFF;
     if (sz == 8)
         mask.Vllong = 0x7FFF_FFFF_FFFF_FFFFL;
-    movxmmconst(cdb, rreg, sz, &mask, 0);
+    movxmmconst(cdb, rreg, tyml, &mask, 0);
 
     getregs(cdb,retregs);
     const op = (sz == 8) ? ANDPD : ANDPS;       // ANDPD/S reg,rreg
