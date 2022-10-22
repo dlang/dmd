@@ -768,6 +768,9 @@ dmd -cov -unittest myprog.d
             $(DT gnu)$(DD 'file:line[:column]: message', conforming to the GNU standard used by gcc and clang.)
             )`,
         ),
+        Option("verror-supplements=<num>",
+            "limit the number of supplemental messages for each error (0 means unlimited)"
+        ),
         Option("verrors=<num>",
             "limit the number of error messages (0 means unlimited)"
         ),

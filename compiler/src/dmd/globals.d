@@ -176,6 +176,7 @@ extern (C++) struct Param
     CHECKACTION checkAction = CHECKACTION.D; // action to take when bounds, asserts or switch defaults are violated
 
     uint errorLimit = 20;
+    uint errorSupplementLimit = 6;      // Limit the number of supplemental messages for each error (0 means unlimited)
 
     const(char)[] argv0;                // program name
     Array!(const(char)*) modFileAliasStrings; // array of char*'s of -I module filename alias strings
