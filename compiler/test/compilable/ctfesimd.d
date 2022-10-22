@@ -18,10 +18,10 @@ version (D_SIMD)
     enum fail19628d = (cast(int[4])int4(0))[0];
 
     // https://issues.dlang.org/show_bug.cgi?id=19630
-    enum fail19630a = int4.init[1..2];
+//    enum fail19630a = int4.init[1..2];
     enum fail19630b = int4.init.array[1..2];
     enum fail19630c = (cast(int[4])int4.init.array)[1..2];
-    enum fail19630d = int4(0)[1..2];
+//    enum fail19630d = int4(0)[1..2];
     enum fail19630e = int4(0).array[1..2];
     enum fail19630f = (cast(int[4])int4(0).array)[1..2];
     enum fail19630g = (cast(int[4])int4.init)[1..2];
@@ -48,11 +48,11 @@ version (D_SIMD)
     enum I8 = V8[0];    static assert(I8 == 0);
 
     // CTFE slice tests
-    enum S1 = V1[1..2]; static assert(S1 == [0]);
+//    enum S1 = V1[1..2]; static assert(S1 == [0]);
     enum S2 = V2[1..2]; static assert(S2 == [0]);
     enum S3 = V3[1..2]; static assert(S3 == [0]);
     enum S4 = V4[1..2]; static assert(S4 == [0]);
-    enum S5 = V5[1..2]; static assert(S5 == [0]);
+//    enum S5 = V5[1..2]; static assert(S5 == [0]);
     enum S6 = V6[1..2]; static assert(S6 == [0]);
     enum S7 = V7[1..2]; static assert(S7 == [0]);
     enum S8 = V8[1..2]; static assert(S8 == [0]);

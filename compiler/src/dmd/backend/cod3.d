@@ -1368,7 +1368,7 @@ version (MARS)
 @trusted
 regm_t allocretregs(const tym_t ty, type* t, const tym_t tyf, out reg_t reg1, out reg_t reg2)
 {
-    //printf("allocretregs()\n");
+    //printf("allocretregs() ty: %s\n", tym_str(ty));
     reg1 = reg2 = NOREG;
 
     if (!(config.exe & EX_posix))
@@ -1506,6 +1506,10 @@ regm_t allocretregs(const tym_t ty, type* t, const tym_t tyf, out reg_t reg1, ou
             {
                 assert(tyfb == TYjfunc && I32);
                 return ST01;
+            }
+            else if (tysimd(tym))
+            {
+                return rralloc.xmm();
             }
             assert(I64 || tyfloating(tym));
             goto case 4;
