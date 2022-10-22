@@ -1819,6 +1819,57 @@ elem* toElem(Expression e, IRState *irs)
             // to object.__cmp in druntime.
             assert(0);
         }
+        else if (t1.ty == Tvector)
+        {
+            /* Rewrite in terms of < operator
+             */
+            bool swap;       // swap operands
+            bool comp;       // complement result
+            switch (eop)
+            {
+                case OPgt:                           break; //   x > y
+                case OPlt: swap = true;              break; //   y > x
+                case OPle:              comp = true; break; // !(x > y)
+                case OPge: swap = true; comp = true; break; // !(y > x)
+                default:   assert(0);
+            }
+
+            elem* e1 = toElem(ce.e1, irs);
+            elem* e2 = toElem(ce.e2, irs);
+
+            elem* ex;
+            if (swap)
+            {
+                // put side effects of e1 into ex
+                if (el_sideeffect(e1) && e2.Eoper != OPconst)
+                {
+                    ex = e1;
+                    e1 = el_same(&ex);
+                }
+
+                // swap
+                auto tmp = e2;
+                e2 = e1;
+                e1 = tmp;
+            }
+
+            tym_t tym = totym(ce.type);
+            e = el_bin(OPgt, tym, e1, e2);
+
+            if (comp)
+            {
+                // ex ^ ~0
+                elem *ec = el_calloc();
+                ec.Eoper = OPconst;
+                ec.Ety = totym(t1);
+                ec.EV.Vcent.lo = ~0L;
+                ec.EV.Vcent.hi = ~0L;
+                e = el_bin(OPxor, ec.Ety, e, ec);
+            }
+
+            elem_setLoc(e, ce.loc);
+            e = el_combine(ex, e);
+        }
         else
         {
             if (cast(int)eop <= 1)

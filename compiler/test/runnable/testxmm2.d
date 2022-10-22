@@ -44,6 +44,44 @@ int4 cmpss_repro(float4 a)
 
 /*****************************************/
 
+int4 testlt(int4 x, int4 y) { return x < y; }
+int4 testgt(int4 x, int4 y) { return x > y; }
+int4 testge(int4 x, int4 y) { return x >= y; }
+int4 testle(int4 x, int4 y) { return x <= y; }
+
+void testcmp()
+{
+    auto x = testgt([5,6,5,6], [4,6,8,7]);
+    assert(x.array == [-1,0,0,0]);
+    x = testlt([5,6,5,6], [4,6,8,7]);
+    assert(x.array == [0,0,-1,-1]);
+    x = testle([5,6,5,6], [4,6,8,7]);
+    assert(x.array == [0,-1,-1,-1]);
+    x = testge([5,6,5,6], [4,6,8,7]);
+    assert(x.array == [-1,-1,0,0]);
+}
+
+/*****************************************/
+
+void testside()
+{
+    int i;
+    int4 e1()
+    {
+        ++i;
+        return [5,6,5,6];
+    }
+    int4 e2()
+    {
+        i *= 10;
+        return [4,6,7,8];
+    }
+    assert((e1() < e2()).array == [0,0,-1,-1]);
+    assert(i == 10);
+}
+
+/*****************************************/
+
 void testeqne()
 {
     static int4 testeq(int4 x, int4 y)
@@ -76,6 +114,8 @@ void testeqne()
 int main()
 {
     test21474();
+    testcmp();
+    testside();
     testeqne();
 
     return 0;
