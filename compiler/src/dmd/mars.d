@@ -1876,6 +1876,14 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 return true;
             }
         }
+        else if (startsWith(p + 1, "verror-supplements"))
+        {
+            if (!params.errorSupplementLimit.parseDigits(p.toDString()[20 .. $]))
+            {
+                errorInvalidSwitch(p, "Only a number is allowed for `-verror-supplements`");
+                return true;
+            }
+        }
         else if (startsWith(p + 1, "verror-style="))
         {
             const(char)[] style = arg["verror-style=".length + 1 .. $];

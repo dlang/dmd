@@ -6010,7 +6010,10 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             return;
 
         // Print full trace for verbose mode, otherwise only short traces
-        const(uint) max_shown = !global.params.verbose ? 6 : uint.max;
+        const(uint) max_shown = !global.params.verbose ?
+                                    (global.params.errorSupplementLimit ? global.params.errorSupplementLimit : uint.max)
+                                    : uint.max;
+
         const(char)* format = "instantiated from here: `%s`";
 
         // This returns a function pointer

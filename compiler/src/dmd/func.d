@@ -3364,8 +3364,10 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
 private void printCandidates(Decl)(const ref Loc loc, Decl declaration, bool showDeprecated)
 if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
 {
-    // max num of overloads to print (-v overrides this).
-    enum int DisplayLimit = 5;
+    // max num of overloads to print (-v or -verror-supplements overrides this).
+    const int DisplayLimit = !global.params.verbose ?
+                                (global.params.errorSupplementLimit ? global.params.errorSupplementLimit : int.max)
+                                : int.max;
     const(char)* constraintsTip;
     // determine if the first candidate was printed
     int printed;
