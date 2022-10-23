@@ -686,9 +686,9 @@ public:
     }
     void visitUserAttributes(Dsymbol *sym)
     {
-        if (!sym->userAttribDecl)
+        if (!sym->userAttribDecl())
             return;
-        Expressions *attrs = sym->userAttribDecl->getAttributes();
+        Expressions *attrs = sym->userAttribDecl()->getAttributes();
         if (attrs)
         {
             expandTuples(attrs);
