@@ -111,12 +111,44 @@ void testeqne()
 
 /*****************************************/
 
+int4 testz4() { return [0,0,0,0]; }
+int4 testn4() { return [~0,~0,~0,~0]; }
+
+void test2()
+{
+    assert(testz4().array == [0,0,0,0]);
+    assert(testn4().array == [~0,~0,~0,~0]);
+}
+
+/*****************************************/
+
+version (D_AVX2)
+{
+int8 testz8() { return [0,0,0,0,0,0,0,0]; }
+int8 testn8() { return [~0,~0,~0,~0,~0,~0,~0,~0]; }
+
+void test3()
+{
+    assert(testz8().array == [0,0,0,0,0,0,0,0]);
+    assert(testn8().array == [~0,~0,~0,~0,~0,~0,~0,~0]);
+}
+}
+else
+{
+void test3() { }
+}
+
+/*****************************************/
+
 int main()
 {
     test21474();
     testcmp();
     testside();
     testeqne();
+    testz4();
+    test2();
+    test3();
 
     return 0;
 }

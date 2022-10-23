@@ -86,8 +86,24 @@ void movxmmconst(ref CodeBuilder cdb, reg_t xreg, tym_t ty, eve* pev, regm_t fla
     assert(mask(xreg) & XMMREGS);
     if (sz == 16 || sz == 32)
     {
-        assert(pev.Vllong == 0);
-        cdb.gen2(PXOR,modregxrmx(3,xreg-XMM0,xreg-XMM0));       // PXOR xreg,xreg
+        if (sz == 16 &&
+                 pev.Vllong2[0] == 0 && pev.Vllong2[1] == 0)
+            cdb.gen2(PXOR,modregxrmx(3,xreg-XMM0,xreg-XMM0));       // PXOR xreg,xreg
+        else if (sz == 32 &&
+                 pev.Vllong4[0] == 0 && pev.Vllong4[1] == 0 &&
+                 pev.Vllong4[2] == 0 && pev.Vllong4[3] == 0)
+            cdb.gen2(PXOR,modregxrmx(3,xreg-XMM0,xreg-XMM0));       // PXOR xreg,xreg
+        else if (sz == 16 &&
+                 pev.Vllong2[0] == ~0 && pev.Vllong2[1] == ~0)
+            cdb.gen2(PCMPEQD,modregxrmx(3,xreg-XMM0,xreg-XMM0));    // PCMPEQD xreg,xreg
+        else if (sz == 32 &&
+                 pev.Vllong4[0] == ~0 && pev.Vllong4[1] == ~0 &&
+                 pev.Vllong4[2] == ~0 && pev.Vllong4[3] == ~0)
+            cdb.gen2(PCMPEQQ,modregxrmx(3,xreg-XMM0,xreg-XMM0));    // PCMPEQQ xreg,xreg
+        else
+            assert(0);
+        tym_t tyx = sz == 16 ? TYllong2 : TYllong4;
+        checkSetVex(cdb.last(), tyx);
         return;
     }
 
@@ -1904,12 +1920,12 @@ bool loadxmmconst(elem *e)
     ubyte* p = cast(ubyte*)&e.EV;
     assert(sz >= 1);
 
-    if (sz > 8)
+    if (config.avx < 2 && sz >= 32)
         return false;
 
     // true only if all ones or all zeros
     const b = p[0];
-    if (b != 0 /*&& b != 0xFF*/)
+    if (b != 0 && b != 0xFF)
         return false;
     foreach (i; 1 .. sz)
     {

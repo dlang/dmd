@@ -3073,6 +3073,7 @@ case_tym:
             printf("%gL+%gLi ", cast(double)e.EV.Vcldouble.re, cast(double)e.EV.Vcldouble.im);
             break;
 
+        // SIMD 16 byte vector types        // D type
         case TYfloat4:
         case TYdouble2:
         case TYschar16:
@@ -3084,6 +3085,35 @@ case_tym:
         case TYllong2:
         case TYullong2:
             printf("%llxLL+%llxLL ", cast(long)e.EV.Vcent.hi, cast(long)e.EV.Vcent.lo);
+            break;
+
+        // SIMD 32 byte (256 bit) vector types
+        case TYfloat8:            // float[8]
+        case TYdouble4:           // double[4]
+        case TYschar32:           // byte[32]
+        case TYuchar32:           // ubyte[32]
+        case TYshort16:           // short[16]
+        case TYushort16:          // ushort[16]
+        case TYlong8:             // int[8]
+        case TYulong8:            // uint[8]
+        case TYllong4:            // long[4]
+        case TYullong4:           // ulong[4]
+             printf("x%llx,x%llx,x%llx,x%llx ",
+                e.EV.Vullong4[3],e.EV.Vullong4[2],e.EV.Vullong4[1],e.EV.Vullong4[0]);
+                break;
+
+        // SIMD 64 byte (512 bit) vector types
+        case TYfloat16:           // float[16]
+        case TYdouble8:           // double[8]
+        case TYschar64:           // byte[64]
+        case TYuchar64:           // ubyte[64]
+        case TYshort32:           // short[32]
+        case TYushort32:          // ushort[32]
+        case TYlong16:            // int[16]
+        case TYulong16:           // uint[16]
+        case TYllong8:            // long[8]
+        case TYullong8:           // ulong[8]
+            printf("512 bit vector ");  // not supported yet with union eve
             break;
 
 version (MARS) { } else
