@@ -374,7 +374,7 @@ $(H2 D $(LNAME2 op_involving_gc, Operations That Involve the Garbage Collector))
         $(LI Array concatenation)
         $(LI Array literals (except when used to initialize static data))
         $(LI Associative array literals)
-        $(LI Any insertion, removal, or lookups in an associative array)
+        $(LI Any insertion or removal in an associative array)
         $(LI Extracting keys or values from an associative array)
                 $(LI Taking the address of (i.e. making a delegate to) a nested function that
          accesses variables in an outer scope)
