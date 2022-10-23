@@ -576,8 +576,8 @@ Returns an array literal with each element of the literal being the $(D .init) p
         the number of bytes per array element.)
         $(TROW $(D .length), Returns the number of elements in the array.
         This is a fixed quantity for static arrays. It is of type $(D size_t).)
-        $(TROW $(D .capacity), Returns the number of elements that can be appended to the array without reallocating.
-        $(D .capacity) is always $(D 0) for static arrays because their size cannot be modified.)
+        $(TROW $(D .capacity), Always $(D 0) for static arrays because their size cannot be modified.
+            (This exists for generic code that handles both static and dynamic arrays.))
         $(TROW $(D .ptr), Returns a pointer to the first element of the array.)
         $(TROW $(D .dup), Create a dynamic array of the same size and copy the contents of the array into it. The copy will have any immutability or const stripped. If this conversion is invalid the call will not compile.)
         $(TROW $(D .idup), Create a dynamic array of the same size and copy the contents of the array into it. The copy is typed as being immutable. If this conversion is invalid the call will not compile.)
@@ -607,7 +607,8 @@ Returns an array literal with each element of the literal being the $(D .init) p
         which is 8 in 32-bit builds and 16 on 64-bit builds.))
         $(TROW $(D .length), Get/set number of elements in the
         array. It is of type $(D size_t).)
-        $(TROW $(D .capacity), Returns the number of elements that can be appended to the array without reallocating.)
+        $(TROW $(D .capacity), Returns the number of elements that can be appended to the array without reallocating.
+            See $(RELATIVE_LINK2 capacity-reserve, here) for details.)
         $(TROW $(D .ptr), Returns a pointer to the first element of the array.)
         $(TROW $(D .dup), Create a dynamic array of the same size and copy the contents of the array into it. The copy will have any immutability or const stripped. If this conversion is invalid the call will not compile.)
         $(TROW $(D .idup), Create a dynamic array of the same size and copy the contents of the array into it. The copy is typed as being immutable. If this conversion is invalid the call will not compile.)
@@ -664,7 +665,7 @@ $(H4 $(LNAME2 growing, Growing an Array))
         is larger and either:)
 
         * The array was not $(DDSUBLINK spec/garbage, op_involving_gc, allocated by the GC).
-        * There is no spare $(RELATIVE_LINK2 capacity-reserve, capacity) in the array.
+        * There is no spare $(RELATIVE_LINK2 capacity-reserve, capacity) for the array.
         * Resizing in place would overwrite valid data still accessible in another slice.
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
@@ -759,24 +760,63 @@ array.length = i;
 
 $(H3 $(LNAME2 capacity-reserve, `capacity` and `reserve`))
 
-        $(P The $(D capacity) property gives the maximum length the array
-        can grow to without reallocating. The spare capacity for array *a*
-        is `a.capacity - a.length`.)
-        $(P The $(D reserve)
-        function expands an array's capacity for use by the append operator.)
+        $(P The $(D capacity) property gives the maximum length a dynamic array
+        can grow to without reallocating. If the array does not point to
+        GC-allocated memory, the capacity will be zero.
+        The spare capacity for an array *a* is `a.capacity - a.length`.)
 
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        $(P The $(D reserve)
+        function expands an array's capacity for use by the
+        $(RELATIVE_LINK2 array-appending, append operator) or `.length` assignment.)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---------
 int[] array;
-size_t cap = array.reserve(10); // request
+assert(array.capacity == 0);
+const size_t cap = array.reserve(10); // request
 assert(cap >= 10); // allocated may be more than request
+assert(array.ptr != null);
 
 int[] copy = array;
+assert(copy.capacity == cap); // array and copy have same capacity
 array ~= [1, 2, 3, 4, 5]; // grow in place
-assert(cap == array.capacity);
+assert(cap == array.capacity); // array memory was not reallocated
 assert(copy.ptr == array.ptr);
+assert(copy.capacity == 0);
+copy ~= 0; // new allocation
+assert(copy.ptr != array.ptr);
 ---------
 )
+        $(P Above, `copy`'s length remains zero but it points to the same
+        memory allocated by the `reserve` call. Because `array` is then appended
+        to, `copy.ptr + 0` no longer points to unused memory - instead that
+        is the address of `array[0]`. So `copy.capacity` will be zero to
+        prevent any appending to `copy` from overwriting elements in `array`.)
+
+        $(NOTE The runtime uses the number of elements appended to track the
+        start of the spare capacity for the memory allocation.)
+
+        $(P When an array with spare capacity has its length reduced, or is
+        assigned a slice of itself that ends before the previous last element,
+        the capacity will be zero.)
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+        ---
+        int[] a = [1, 2, 3];
+        a.reserve(2);
+        a = a[];
+        assert(a.capacity > 0);
+        a = a[0..2];
+        assert(a.capacity == 0);
+        ---
+        )
+
+        $(NOTE Accessing `.capacity` requires the runtime to
+        acquire a global lock and perform a table lookup.)
+
+        $(BEST_PRACTICE Avoid intensive use of `.capacity` in performance-sensitive code.
+        Instead, track the capacity locally when building an array via a unique reference.)
+
 
 $(H3 $(LNAME2 func-as-property, Functions as Array Properties))
 
