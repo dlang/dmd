@@ -554,7 +554,7 @@ BE checkThrow(ref const Loc loc, Expression exp, const bool mustNotThrow)
     ClassDeclaration cd = t.isClassHandle();
     assert(cd);
 
-    if (cd == ClassDeclaration.errorException || ClassDeclaration.errorException.isBaseOf(cd, null))
+    if (cd.isErrorException())
     {
         return BE.errthrow;
     }

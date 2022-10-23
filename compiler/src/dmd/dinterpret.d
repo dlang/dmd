@@ -1521,11 +1521,6 @@ public:
         result = e;
     }
 
-    static bool isAnErrorException(ClassDeclaration cd)
-    {
-        return cd == ClassDeclaration.errorException || ClassDeclaration.errorException.isBaseOf(cd, null);
-    }
-
     static ThrownExceptionExp chainExceptions(ThrownExceptionExp oldest, ThrownExceptionExp newest)
     {
         debug (LOG)
@@ -1537,7 +1532,7 @@ public:
         const next = 4;                         // index of Throwable.next
         assert((*boss.value.elements)[next].type.ty == Tclass); // Throwable.next
         ClassReferenceExp collateral = newest.thrown;
-        if (isAnErrorException(collateral.originalClass()) && !isAnErrorException(boss.originalClass()))
+        if (collateral.originalClass().isErrorException() && !boss.originalClass().isErrorException())
         {
             /* Find the index of the Error.bypassException field
              */
