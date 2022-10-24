@@ -1854,6 +1854,26 @@ elem* toElem(Expression e, IRState *irs)
             }
 
             tym_t tym = totym(ce.type);
+
+            if (t1.isunsigned() || t2.isunsigned())
+            {
+                /* only signed compare is available. Bias
+                 * unsigned values by subtracting int.min
+                 */
+                elem* ec1 = el_calloc();
+                ec1.Eoper = OPconst;
+                ec1.Ety = totym(t1);
+                ec1.EV.Vlong4[0] = int.min;
+                ec1.EV.Vlong4[1] = int.min;
+                ec1.EV.Vlong4[2] = int.min;
+                ec1.EV.Vlong4[3] = int.min;
+                e1 = el_bin(OPmin, ec1.Ety, e1, ec1);
+
+                elem* ec2 = el_calloc();
+                el_copy(ec2, ec1);
+                e2 = el_bin(OPmin, ec2.Ety, e2, ec2);
+            }
+
             e = el_bin(OPgt, tym, e1, e2);
 
             if (comp)
