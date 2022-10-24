@@ -140,6 +140,16 @@ void test3() { }
 
 /*****************************************/
 
+void testunscmp()
+{
+    uint4 x = [uint.max,1, 0, uint.max];
+    uint4 y = [0,1,1,6];
+    uint4 z = x > y;
+    assert(z.array == [-1,0,0,-1]);
+}
+
+/*****************************************/
+
 int main()
 {
     test21474();
@@ -149,6 +159,7 @@ int main()
     testz4();
     test2();
     test3();
+    testunscmp();
 
     return 0;
 }

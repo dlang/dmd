@@ -1098,6 +1098,7 @@ private opcode_t xmmoperator(tym_t tym, OPER oper)
         case OPnue:
             switch (tym)
             {
+                case TYulong4:
                 case TYlong4:   op = (oper == OPeqeq) ? PCMPEQD : PCMPGTD;  break;
 
                 case TYfloat:
