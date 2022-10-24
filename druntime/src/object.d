@@ -3254,16 +3254,16 @@ auto byKeyValue(T : V[K], K, V)(T* aa) pure nothrow @nogc
  * Returns:
  *      A dynamic array containing a copy of the keys.
  */
-Key[] keys(T : Value[Key], Value, Key)(T aa) @property
+inout(Key)[] keys(T : Value[Key], Value, Key)(inout(T) aa) @property
 {
     // ensure we are dealing with a genuine AA.
     static if (is(const(Value[Key]) == const(T)))
         alias realAA = aa;
     else
         const(Value[Key]) realAA = aa;
-    auto res = () @trusted {
-        auto a = cast(void[])_aaKeys(*cast(inout(AA)*)&realAA, Key.sizeof, typeid(Key[]));
-        return *cast(Key[]*)&a;
+    auto res = () inout @trusted {
+        auto a = _aaKeys(*cast(inout(AA)*)&realAA, Key.sizeof, typeid(Key[]));
+        return *cast(inout(Key)[]*)&a;
     }();
     static if (__traits(hasPostblit, Key))
         _doPostblit(res);
@@ -3271,7 +3271,7 @@ Key[] keys(T : Value[Key], Value, Key)(T aa) @property
 }
 
 /** ditto */
-Key[] keys(T : Value[Key], Value, Key)(T *aa) @property
+inout(Key)[] keys(T : Value[Key], Value, Key)(inout(T) *aa) @property
 {
     return (*aa).keys;
 }
@@ -3338,16 +3338,16 @@ Key[] keys(T : Value[Key], Value, Key)(T *aa) @property
  * Returns:
  *      A dynamic array containing a copy of the values.
  */
-Value[] values(T : Value[Key], Value, Key)(T aa) @property
+inout(Value)[] values(T : Value[Key], Value, Key)(inout(T) aa) @property
 {
     // ensure we are dealing with a genuine AA.
     static if (is(const(Value[Key]) == const(T)))
         alias realAA = aa;
     else
         const(Value[Key]) realAA = aa;
-    auto res = () @trusted {
-        auto a = cast(void[])_aaValues(*cast(inout(AA)*)&realAA, Key.sizeof, Value.sizeof, typeid(Value[]));
-        return *cast(Value[]*)&a;
+    auto res = () inout @trusted {
+        auto a = _aaValues(*cast(inout(AA)*)&realAA, Key.sizeof, Value.sizeof, typeid(Value[]));
+        return *cast(inout(Value)[]*)&a;
     }();
     static if (__traits(hasPostblit, Value))
         _doPostblit(res);
@@ -3355,7 +3355,7 @@ Value[] values(T : Value[Key], Value, Key)(T aa) @property
 }
 
 /** ditto */
-Value[] values(T : Value[Key], Value, Key)(T *aa) @property
+inout(Value)[] values(T : Value[Key], Value, Key)(inout(T) *aa) @property
 {
     return (*aa).values;
 }
