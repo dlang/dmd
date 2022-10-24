@@ -809,8 +809,8 @@ assert(copy.ptr != array.ptr);
         ---
         )
 
-        $(NOTE Accessing `.capacity` requires the runtime to
-        acquire a global lock and perform a table lookup.)
+        $(NOTE Accessing `.capacity` may require the runtime to
+        acquire a global lock and perform a cache lookup.)
 
         $(BEST_PRACTICE Avoid intensive use of `.capacity` in performance-sensitive code.
         Instead, track the capacity locally when building an array via a unique reference.)
