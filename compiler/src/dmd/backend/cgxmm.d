@@ -80,7 +80,7 @@ bool isXMMstore(opcode_t op)
 @trusted
 void movxmmconst(ref CodeBuilder cdb, reg_t xreg, tym_t ty, eve* pev, regm_t flags)
 {
-    //printf("movxmmconst() %s sz: %u value: %lld\n", regm_str(mask(xreg)), sz, value);
+    //printf("movxmmconst() %s ty: %s value: %lld\n", regm_str(mask(xreg)), tym_str(ty), pev.Vllong);
 
     const sz = tysize(ty);
     assert(mask(xreg) & XMMREGS);
@@ -115,6 +115,21 @@ void movxmmconst(ref CodeBuilder cdb, reg_t xreg, tym_t ty, eve* pev, regm_t fla
     targ_size_t value = pev.Vint;
     if (sz == 8)
         value = cast(targ_size_t)pev.Vullong;
+
+    if (value == 0)
+    {
+        if (ty == TYfloat || ty == TYifloat)
+        {
+            cdb.gen2(XORPS,modregxrmx(3,xreg-XMM0,xreg-XMM0));       // XORPS xreg,xreg
+            return;
+        }
+        else if (ty == TYdouble || ty == TYidouble)
+        {
+            cdb.gen2(XORPD,modregxrmx(3,xreg-XMM0,xreg-XMM0));       // XORPD xreg,xreg
+            return;
+        }
+    }
+
 
     if (I32 && sz == 8)
     {
