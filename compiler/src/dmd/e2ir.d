@@ -1821,24 +1821,14 @@ elem* toElem(Expression e, IRState *irs)
         }
         else if (t1.ty == Tvector)
         {
-            /* Rewrite in terms of < operator
-             */
-            bool swap;       // swap operands
-            bool comp;       // complement result
-            switch (eop)
-            {
-                case OPgt:                           break; //   x > y
-                case OPlt: swap = true;              break; //   y > x
-                case OPle:              comp = true; break; // !(x > y)
-                case OPge: swap = true; comp = true; break; // !(y > x)
-                default:   assert(0);
-            }
-
             elem* e1 = toElem(ce.e1, irs);
             elem* e2 = toElem(ce.e2, irs);
 
-            elem* ex;
-            if (swap)
+            tym_t tym = totym(ce.type);
+            elem* ex;  // store side effects in ex
+
+            // swap operands
+            void swapOps()
             {
                 // put side effects of e1 into ex
                 if (el_sideeffect(e1) && e2.Eoper != OPconst)
@@ -1853,7 +1843,49 @@ elem* toElem(Expression e, IRState *irs)
                 e1 = tmp;
             }
 
-            tym_t tym = totym(ce.type);
+            if (t1.isfloating())
+            {
+                /* Rewrite in terms of < or <= operator
+                 */
+                OPER op;
+                switch (eop)
+                {
+                    case OPlt:   // x < y
+                    case OPle:   // x <= y
+                        op = eop;
+                        break;
+
+                    case OPgt: op = OPlt; goto Lswap; // y < x
+                    case OPge: op = OPle; goto Lswap; // y <= x
+                    Lswap:
+                        swapOps();
+                        break;
+
+                    default:
+                        assert(0);
+                }
+
+                e = el_bin(op, tym, e1, e2);
+                elem_setLoc(e, ce.loc);
+                e = el_combine(ex, e);
+                return e;
+            }
+
+            /* Rewrite in terms of > operator
+             */
+            bool swap;       // swap operands
+            bool comp;       // complement result
+            switch (eop)
+            {
+                case OPgt:                           break; //   x > y
+                case OPlt: swap = true;              break; //   y > x
+                case OPle:              comp = true; break; // !(x > y)
+                case OPge: swap = true; comp = true; break; // !(y > x)
+                default:   assert(0);
+            }
+
+            if (swap)
+                swapOps();
 
             if (t1.isunsigned() || t2.isunsigned())
             {
