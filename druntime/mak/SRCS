@@ -4,6 +4,7 @@ SRCS=\
 	src\core\atomic.d \
 	src\core\attribute.d \
 	src\core\bitop.d \
+	src\core\builtins.d \
 	src\core\checkedint.d \
 	src\core\cpuid.d \
 	src\core\demangle.d \
