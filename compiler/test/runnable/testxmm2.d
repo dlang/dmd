@@ -150,6 +150,42 @@ void testunscmp()
 
 /*****************************************/
 
+float4 testlt(float4 x, float4 y) { return x < y; }
+float4 testgt(float4 x, float4 y) { return x > y; }
+float4 testge(float4 x, float4 y) { return x >= y; }
+float4 testle(float4 x, float4 y) { return x <= y; }
+
+void testflt()
+{
+    auto x = testgt([5,6,5,6], [4,6,8,7]);
+    assert((cast(int4)x).array == [-1,0,0,0]);
+    x = testlt([5,6,5,6], [4,6,8,7]);
+    assert((cast(int4)x).array == [0,0,-1,-1]);
+    x = testle([5,6,5,6], [4,6,8,7]);
+    assert((cast(int4)x).array == [0,-1,-1,-1]);
+    x = testge([5,6,5,6], [4,6,8,7]);
+    assert((cast(int4)x).array == [-1,-1,0,0]);
+}
+
+double2 testlt(double2 x, double2 y) { return x < y; }
+double2 testgt(double2 x, double2 y) { return x > y; }
+double2 testge(double2 x, double2 y) { return x >= y; }
+double2 testle(double2 x, double2 y) { return x <= y; }
+
+void testdbl()
+{
+    auto x = testgt([5.0,6.0], [4.0,6.0]);
+    assert((cast(long2)x).array == [-1L,0]);
+    x = testlt([5.0,6.0], [4.0,6.0]);
+    assert((cast(long2)x).array == [0L,0]);
+    x = testle([5.0,6.0], [4.0,6.0]);
+    assert((cast(long2)x).array == [0L,-1]);
+    x = testge([5.0,6.0], [4.0,6.0]);
+    assert((cast(long2)x).array == [-1L,-1]);
+}
+
+/*****************************************/
+
 int main()
 {
     test21474();
@@ -160,6 +196,8 @@ int main()
     test2();
     test3();
     testunscmp();
+    testflt();
+    testdbl();
 
     return 0;
 }

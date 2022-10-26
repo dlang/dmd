@@ -232,6 +232,24 @@ void orthxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 
     getregs(cdb,retregs);
     cdb.gen2(op,modregxrmx(3,reg-XMM0,rreg-XMM0));
+    if (op == CMPPS || op == CMPPD)
+    {
+        // https://www.felixcloutier.com/x86/cmpps
+        ubyte imm8;
+        switch (e.Eoper)
+        {
+            case OPeqeq: imm8 = 0; break;
+            case OPlt:   imm8 = 1; break;
+            case OPle:   imm8 = 2; break;
+            case OPne:   imm8 = 4; break;
+            default:
+                elem_print(e);
+                assert(0);  // not doing the unordered compares
+        }
+        code* c = cdb.last();
+        c.IFL2 = FLconst;
+        c.IEV2.Vsize_t = imm8;
+    }
     checkSetVex(cdb.last(), e1.Ety);
     if (retregs != *pretregs)
         fixresult(cdb,e,retregs,pretregs);
@@ -1106,6 +1124,13 @@ private opcode_t xmmoperator(tym_t tym, OPER oper)
                 case TYdouble:
                 case TYidouble: op = UCOMISD;  break;
 
+                case TYfloat4:
+                case TYfloat8:
+                case TYfloat16: op = CMPPS;    break;
+
+                case TYdouble2:
+                case TYdouble4:
+                case TYdouble8: op = CMPPD;    break;
                 default:        assert(0);
             }
             break;
