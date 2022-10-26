@@ -1,0 +1,10 @@
+Source files may no longer contain Unicode directionality overrides
+
+[Trojan Source: Invisible Vulnerabilities](https://github.com/nickboucher/trojan-source) shows how they can be used to maliciously hide code in various programming languages.
+[D is also affected](https://github.com/nickboucher/trojan-source/pull/16).
+
+To prevent this, the compiler now raises an error when they appear in source files.
+If you need a string literal containing directionality overrides, use escape sequences instead:
+---
+string s = "\u202E\u2066";
+---
