@@ -1,4 +1,4 @@
-Array literals assigned to `scope` array variables are now allocated on the stack
+Array literals assigned to `scope` array variables can now be allocated on the stack
 
 Formerly, they were always allocated with the Garbage Collector, making it unavailable in `@nogc` or `-betterC` code.
 This led to frequent use of the following workaround:
@@ -20,7 +20,11 @@ void main() @nogc
 }
 ---
 
-This only applies to array elements that are Plain Old Data, proper destruction cannot be ensured when the array is not managed by the GC.
+With the following limitations:
+- The variable must be explicitly annotated `scope`, not just inferred `scope`
+- The `-preview=dip1000` must be passed, to prevent introducing memory corruption in legacy code.
+Note that in `@system` and `@trusted` code, the compiler doesn't verify that your `scope` variable doesn't escape.
+- The array literal must be initializing the variable. Subsequent array literals assignments still use the GC.
+- The array elements may not have a destructor
 
-Note: checking that a `scope` variable actually doesn't escape is only done in `@safe` code.
-In a `@system` function, it's your own risk when you corrupt memory by returning a `scope int[]`.
+Some of these limitations might get lifted in the future.
