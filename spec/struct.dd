@@ -199,8 +199,6 @@ $(H3 $(LNAME2 default_struct_init, Default Initialization of Structs))
 
         $(P The default initializers are evaluated at compile time.)
 
-        $(P The default initializers may not contain references to mutable data.)
-
 $(H3 $(LNAME2 static_struct_init, Static Initialization of Structs))
 
 $(GRAMMAR
