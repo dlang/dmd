@@ -1607,7 +1607,7 @@ $(GNAME PrimaryExpression):
     $(GLINK_LEX IntegerLiteral)
     $(GLINK_LEX FloatLiteral)
     $(LEGACY_LNAME2 CharacterLiteral)$(LEGACY_LNAME2 character-literal)$(GLINK_LEX CharacterLiteral)
-    $(GLINK StringLiterals)
+    $(GLINK_LEX StringLiteral)
     $(GLINK ArrayLiteral)
     $(GLINK AssocArrayLiteral)
     $(GLINK FunctionLiteral)
@@ -1699,9 +1699,12 @@ $(H3 $(LNAME2 null, null))
 $(H3 $(LNAME2 string_literals, String Literals))
 
 $(GRAMMAR
-$(GNAME StringLiterals):
-    $(GLINK_LEX StringLiteral)
-    $(GSELF StringLiterals) $(GLINK_LEX StringLiteral)
+$(GNAME StringLiteral):
+    $(GLINK_LEX WysiwygString)
+    $(GLINK_LEX AlternateWysiwygString)
+    $(GLINK_LEX DoubleQuotedString)
+    $(GLINK_LEX DelimitedString)
+    $(GLINK_LEX TokenString)
 )
 
     $(P String literals can implicitly convert to any
@@ -1747,6 +1750,11 @@ $(GNAME StringLiterals):
         The 0 is not included in the $(CODE .length) property of the
         string literal.
     )
+
+    $(P Concatenation of string literals requires the use of the
+        `~` operator, and is resolved at compile time.
+        C style implicit concatenation without an intervening operator is
+        error prone and not supported in D.)
 
 $(H3 $(LNAME2 array_literals, Array Literals))
 
