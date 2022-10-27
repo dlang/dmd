@@ -1227,15 +1227,18 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                  *        return s;     // s is inferred as 'scope' but incorrectly tested in foo()
                  *    return null; }
                  */
-                !(!refs && p.parent == sc.func && pfunc.fes) &&
+                !(!refs && p.parent == sc.func && pfunc.fes))
+	    {
                 /*
                  *  auto p(scope string s) {
                  *      string scfunc() { return s; }
                  *  }
                  */
-                !(!refs && sc.func.isFuncDeclaration().getLevel(pfunc, sc.intypeof) > 0)
-               )
-            {
+                if (sc.func.isFuncDeclaration().getLevel(pfunc, sc.intypeof) > 0 &&
+		    inferReturn(sc.func, sc.func.vthis, !refs))
+		{
+		    continue;
+		}
                 if (v.isParameter() && !v.isReturn())
                 {
                     // https://issues.dlang.org/show_bug.cgi?id=23191
