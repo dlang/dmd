@@ -4538,7 +4538,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = exp.e1;
             return;
         }
-
         if (arrayExpressionSemantic(exp.arguments.peekSlice(), sc) ||
             preFunctionParameters(sc, exp.arguments))
             return setError();
