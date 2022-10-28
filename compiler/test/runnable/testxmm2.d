@@ -44,12 +44,38 @@ int4 cmpss_repro(float4 a)
 
 /*****************************************/
 
+version (none)//(D_AVX2)
+{
+long2 testlt2(long2 x, long2 y) { return x < y; }
+long2 testgt2(long2 x, long2 y) { return x > y; }
+long2 testge2(long2 x, long2 y) { return x >= y; }
+long2 testle2(long2 x, long2 y) { return x <= y; }
+
+void testcmp2()
+{
+    auto x = testgt2([5L,6L], [4L,6L]);
+    assert(x.array == [-1L,0L]);
+    x = testlt2([5L,6L], [4L,6L]);
+    assert(x.array == [0L,0L]);
+    x = testle2([5L,6L], [4L,6L]);
+    assert(x.array == [0L,-1L]);
+    x = testge2([5L,6L], [4L,6L]);
+    assert(x.array == [-1L,-1L]);
+}
+}
+else
+{
+void testcmp2() { }
+}
+
+/*****************************************/
+
 int4 testlt(int4 x, int4 y) { return x < y; }
 int4 testgt(int4 x, int4 y) { return x > y; }
 int4 testge(int4 x, int4 y) { return x >= y; }
 int4 testle(int4 x, int4 y) { return x <= y; }
 
-void testcmp()
+void testcmp4()
 {
     auto x = testgt([5,6,5,6], [4,6,8,7]);
     assert(x.array == [-1,0,0,0]);
@@ -59,6 +85,44 @@ void testcmp()
     assert(x.array == [0,-1,-1,-1]);
     x = testge([5,6,5,6], [4,6,8,7]);
     assert(x.array == [-1,-1,0,0]);
+}
+
+/*****************************************/
+
+short8 testlt(short8 x, short8 y) { return x < y; }
+short8 testgt(short8 x, short8 y) { return x > y; }
+short8 testge(short8 x, short8 y) { return x >= y; }
+short8 testle(short8 x, short8 y) { return x <= y; }
+
+void testcmp8()
+{
+    auto x = testgt([5,6,5,6,5,6,5,6], [4,6,8,7,4,6,7,8]);
+    assert(x.array == [-1,0,0,0, -1,0,0,0]);
+    x = testlt([5,6,5,6,5,6,5,6], [4,6,8,7,4,6,7,8]);
+    assert(x.array == [0,0,-1,-1, 0,0,-1,-1]);
+    x = testle([5,6,5,6,5,6,5,6], [4,6,8,7,4,6,7,8]);
+    assert(x.array == [0,-1,-1,-1, 0,-1,-1,-1]);
+    x = testge([5,6,5,6,5,6,5,6], [4,6,8,7,4,6,7,8]);
+    assert(x.array == [-1,-1,0,0, -1,-1,0,0]);
+}
+
+/*****************************************/
+
+byte16 testlt16(byte16 x, byte16 y) { return x < y; }
+byte16 testgt16(byte16 x, byte16 y) { return x > y; }
+byte16 testge16(byte16 x, byte16 y) { return x >= y; }
+byte16 testle16(byte16 x, byte16 y) { return x <= y; }
+
+void testcmp16()
+{
+    auto x = testgt16([5,6,5,6,5,6,5,6], [4,6,8,7,4,6,7,8]);
+    assert(x.array == [-1,0,0,0, -1,0,0,0, 0,0,0,0, 0,0,0,0]);
+    x = testlt16([5,6,5,6,5,6,5,6], [4,6,8,7,4,6,7,8]);
+    assert(x.array == [0,0,-1,-1, 0,0,-1,-1, 0,0,0,0, 0,0,0,0]);
+    x = testle16([5,6,5,6,5,6,5,6], [4,6,8,7,4,6,7,8]);
+    assert(x.array == [0,-1,-1,-1, 0,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1]);
+    x = testge16([5,6,5,6,5,6,5,6], [4,6,8,7,4,6,7,8]);
+    assert(x.array == [-1,-1,0,0, -1,-1,0,0, -1,-1,-1,-1, -1,-1,-1,-1]);
 }
 
 /*****************************************/
@@ -189,7 +253,10 @@ void testdbl()
 int main()
 {
     test21474();
-    testcmp();
+    testcmp2();
+    testcmp4();
+    testcmp8();
+    testcmp16();
     testside();
     testeqne();
     testz4();

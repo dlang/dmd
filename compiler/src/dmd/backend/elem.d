@@ -1085,6 +1085,76 @@ elem * el_long(tym_t t,targ_llong val)
     }
     return e;
 }
+
+/******************************
+ * Create a const integer vector elem
+ * Params:
+ *      ty = type of the vector
+ *      val = value to broadcast to the vector elements
+ * Returns:
+ *      created OPconst elem
+ */
+@trusted
+elem* el_vectorConst(tym_t ty, ulong val)
+{
+    elem* e = el_calloc();
+    e.Eoper = OPconst;
+    e.Ety = ty;
+    const sz = tysize(ty);
+
+    if (val == 0 || !((val & 0xFF) + 1))
+    {
+        memset(&e.EV, cast(ubyte)val, sz);
+        return e;
+    }
+
+    switch (tybasic(ty))
+    {
+        case TYschar16:
+        case TYuchar16:
+        case TYschar32:
+        case TYuchar32:
+            foreach (i; 0 .. sz)
+            {
+                e.EV.Vuchar32[i] = cast(ubyte)val;
+            }
+            break;
+
+        case TYshort8:
+        case TYushort8:
+        case TYshort16:
+        case TYushort16:
+            foreach (i; 0 .. sz / 2)
+            {
+                e.EV.Vushort16[i] = cast(ushort)val;
+            }
+            break;
+
+        case TYlong4:
+        case TYulong4:
+        case TYlong8:
+        case TYulong8:
+            foreach (i; 0 .. sz / 4)
+            {
+                e.EV.Vulong8[i] = cast(uint)val;
+            }
+            break;
+
+        case TYllong2:
+        case TYullong2:
+        case TYllong4:
+        case TYullong4:
+            foreach (i; 0 .. sz / 8)
+            {
+                e.EV.Vullong4[i] = val;
+            }
+            break;
+
+        default:
+            assert(0);
+    }
+    return e;
+}
 }
 
 /*******************************

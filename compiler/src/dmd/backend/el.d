@@ -206,6 +206,7 @@ void el_replacesym(elem *,const Symbol *,Symbol *);
 elem *el_nelems(type *);
 
 extern (C) elem *el_long(tym_t,targ_llong);
+extern (C) elem* el_vectorConst(tym_t ty, ulong val);
 
 bool ERTOL(const elem *);
 bool el_returns(const(elem) *);

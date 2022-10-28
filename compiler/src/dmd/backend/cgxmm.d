@@ -1103,12 +1103,58 @@ private opcode_t xmmoperator(tym_t tym, OPER oper)
             }
             break;
 
+        case OPgt:
+            switch (tym)
+            {
+                case TYschar32:
+                case TYuchar32:
+                case TYschar16:
+                case TYuchar16: op = PCMPGTB;  break;
+                case TYshort16:
+                case TYushort16:
+                case TYshort8:
+                case TYushort8: op = PCMPGTW;  break;
+                case TYlong8:
+                case TYulong8:
+                case TYlong4:
+                case TYulong4:  op = PCMPGTD;  break;
+                case TYllong4:
+                case TYullong4:
+                case TYllong2:
+                case TYullong2: op = PCMPGTQ;  break;
+                default:
+                    goto Lfloatcmp;
+            }
+            break;
+
+        case OPeqeq:
+            switch (tym)
+            {
+                case TYschar32:
+                case TYuchar32:
+                case TYschar16:
+                case TYuchar16: op = PCMPEQB;  break;
+                case TYshort16:
+                case TYushort16:
+                case TYshort8:
+                case TYushort8: op = PCMPEQW;  break;
+                case TYlong8:
+                case TYulong8:
+                case TYlong4:
+                case TYulong4:  op = PCMPEQD;  break;
+                case TYllong4:
+                case TYullong4:
+                case TYllong2:
+                case TYullong2: op = PCMPEQQ;  break;
+                default:
+                    goto Lfloatcmp;
+            }
+            break;
+
         case OPlt:
         case OPle:
-        case OPgt:
         case OPge:
         case OPne:
-        case OPeqeq:
         case OPunord:        /* !<>=         */
         case OPlg:           /* <>           */
         case OPleg:          /* <>=          */
@@ -1129,11 +1175,9 @@ private opcode_t xmmoperator(tym_t tym, OPER oper)
         case OPnuge:
         case OPnug:
         case OPnue:
+        Lfloatcmp:
             switch (tym)
             {
-                case TYulong4:
-                case TYlong4:   op = (oper == OPeqeq) ? PCMPEQD : PCMPGTD;  break;
-
                 case TYfloat:
                 case TYifloat:  op = UCOMISS;  break;
                 case TYdouble:

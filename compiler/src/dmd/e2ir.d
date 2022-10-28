@@ -1892,13 +1892,19 @@ elem* toElem(Expression e, IRState *irs)
                 /* only signed compare is available. Bias
                  * unsigned values by subtracting int.min
                  */
-                elem* ec1 = el_calloc();
-                ec1.Eoper = OPconst;
-                ec1.Ety = totym(t1);
-                ec1.EV.Vlong4[0] = int.min;
-                ec1.EV.Vlong4[1] = int.min;
-                ec1.EV.Vlong4[2] = int.min;
-                ec1.EV.Vlong4[3] = int.min;
+                ulong val;
+                Type telement = t1.isTypeVector().basetype.nextOf().toBasetype();
+                tym_t ty = totym(telement);
+                switch (tysize(ty)) // vector element size
+                {
+                    case 1: val = byte.min;  break;
+                    case 2: val = short.min; break;
+                    case 4: val = int.min;   break;
+                    case 8: val = long.min;  break;
+                    default:
+                        assert(0);
+                }
+                elem* ec1 = el_vectorConst(totym(t1), val);
                 e1 = el_bin(OPmin, ec1.Ety, e1, ec1);
 
                 elem* ec2 = el_calloc();
@@ -1911,11 +1917,7 @@ elem* toElem(Expression e, IRState *irs)
             if (comp)
             {
                 // ex ^ ~0
-                elem *ec = el_calloc();
-                ec.Eoper = OPconst;
-                ec.Ety = totym(t1);
-                ec.EV.Vcent.lo = ~0L;
-                ec.EV.Vcent.hi = ~0L;
+                elem* ec = el_vectorConst(totym(t1), ~0L);
                 e = el_bin(OPxor, ec.Ety, e, ec);
             }
 
