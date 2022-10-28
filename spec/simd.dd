@@ -20,8 +20,12 @@ $(HEADERNAV_TOC)
 
         $(IMPLEMENTATION_DEFINED Which vector types are supported depends
         on the target. The implementation is expected to only support
-        the vector types that are implemented in the target's hardware.
+        the vector types and operations that are implemented in the target's hardware.
         )
+
+        $(RATIONALE Emulating unsupported vector types and operations can exhibit
+        such poor performance that the user is likely better off selecting a different
+        algorithm than relying on emulation.)
 
         $(BEST_PRACTICE Use the declarations in $(CORE_SIMD) instead of
         the language $(GLINK2 type, Vector) grammar.
@@ -37,17 +41,16 @@ import core.simd;
 ---
 
         $(IMPLEMENTATION_DEFINED
-
-        $(P These types and operations will be the ones defined for the architecture
+        These types and operations will be the ones defined for the architecture
         the compiler is targeting. If a particular CPU family has varying
         support for vector types, an additional runtime check may be necessary.
         The compiler does not emit runtime checks; those must be done by the
         programmer.
         )
 
-        $(P Depending on the architecture, compiler flags may be required to
+        $(IMPLEMENTATION_DEFINED Depending on the target architecture, compiler flags
+        may be required to
         activate support for SIMD types.
-        )
         )
 
         $(P The types defined will all follow the naming convention:)
@@ -92,7 +95,8 @@ $(H3 $(LNAME2 properties, Properties))
 
 $(H3 $(LNAME2 conversions, Conversions))
 
-        $(P Vector types of the same size can be implicitly converted among
+        $(P Vector types of the same size (number_of_elements * size_of_element)
+        can be implicitly converted among
         each other, this is done as a reinterpret cast (a type paint).
         Vector types can be cast to their $(GLINK2 type, VectorBaseType).)
 
@@ -142,7 +146,7 @@ else
 ---
 float4 a,b;
 static if (__traits(compiles, a+b))
-    ... yes, it is supported ...
+    ... yes, add is supported for float4 ...
 else
     ... nope, use workaround ...
 ---
@@ -152,7 +156,8 @@ else
         $(LINK2 $(ROOT_DIR)phobos/core_cpuid.html, core.cpuid).
         )
 
-        $(P A typical workaround would be to use array vector operations instead:)
+        $(P A typical workaround for unsupported vector operations would be to
+        use array operations instead:)
 
 ---
 float4 a,b;
@@ -201,7 +206,7 @@ $(H2 $(LNAME2 x86_64_vec, X86 And X86$(UNDERSCORE)64 Vector Extension Implementa
         $(TROW double4, 4 $(D double)s, $(D double __attribute__((vector_size(32)))))
         )
 
-        $(P Note: for 32 bit gcc, it's $(D long long) instead of $(D long).)
+        $(NOTE for 32 bit gcc and clang, it's $(D long long) instead of $(D long).)
 
         $(TABLE2 Supported 128-bit Vector Operators,
         $(THEAD Operator,void16,byte16,ubyte16,short8,ushort8,int4,uint4,long2,ulong2,float4,double2)
@@ -220,6 +225,12 @@ $(H2 $(LNAME2 x86_64_vec, X86 And X86$(UNDERSCORE)64 Vector Extension Implementa
         $(TROW $(CODE_AMP)=,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(N),$(N))
         $(TROW |=,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(N),$(N))
         $(TROW $(D ^=),$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(N),$(N))
+        $(TROW ==,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        $(TROW !=,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        $(TROW <, $(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        $(TROW <=,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        $(TROW >=,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        $(TROW >, $(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
         $(TROW $(I unary)$(D ~),$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(N),$(N))
         $(TROW $(I unary)+,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
         $(TROW $(I unary)-,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
@@ -242,6 +253,12 @@ $(H2 $(LNAME2 x86_64_vec, X86 And X86$(UNDERSCORE)64 Vector Extension Implementa
         $(TROW $(CODE_AMP)=,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(N),$(N))
         $(TROW |=,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(N),$(N))
         $(TROW $(D ^=),$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(N),$(N))
+        $(TROW ==,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        $(TROW !=,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        $(TROW <, $(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        $(TROW <=,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        $(TROW >=,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        $(TROW >, $(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
         $(TROW $(I unary)$(D ~),$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(N),$(N))
         $(TROW $(I unary)+,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
         $(TROW $(I unary)-,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
