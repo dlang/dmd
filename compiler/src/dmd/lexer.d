@@ -126,18 +126,26 @@ class Lexer
         if (p && p[0] == '#' && p[1] == '!')
         {
             p += 2;
-            while (1)
+            for (;;p++)
             {
-                char c = *p++;
+                char c = *p;
                 switch (c)
                 {
+                case '\n':
+                    p++;
+                    goto case;
                 case 0:
                 case 0x1A:
-                    p--;
-                    goto case;
-                case '\n':
                     break;
+
                 default:
+                    // Note: We do allow malformed UTF-8 on shebang line.
+                    // It could have a meaning if the native system
+                    // encoding is not Unicode. See test compilable/test13512.d
+                    // for example encoded in KOI-8.
+                    // We also allow bidirectional control characters.
+                    // We do not execute the shebang line, so it can't be used
+                    // to conceal code. It is up to the shell to sanitize it.
                     continue;
                 }
                 break;
@@ -2832,6 +2840,20 @@ class Lexer
      */
     private uint decodeUTF()
     {
+        string msg;
+        auto result = decodeUTFpure(msg);
+
+        if (msg)
+            error("%.*s", cast(int)msg.length, msg.ptr);
+        return result;
+    }
+
+    /********************************************
+     * Same as above, but the potential error message is stored to the
+     * msg parameter instead of being issued.
+     */
+    private pure uint decodeUTFpure(out string msg)
+    {
         const s = p;
         assert(*s & 0x80);
         // Check length of remaining string up to 4 UTF-8 characters
@@ -2841,12 +2863,10 @@ class Lexer
         }
         size_t idx = 0;
         dchar u;
-        const msg = utf_decodeChar(s[0 .. len], idx, u);
+        msg = utf_decodeChar(s[0 .. len], idx, u);
         p += idx - 1;
-        if (msg)
-        {
-            error("%.*s", cast(int)msg.length, msg.ptr);
-        }
+        if (!msg && isBidiControl(u))
+            msg = "Bidirectional control characters are disallowed for security reasons.";
         return u;
     }
 
