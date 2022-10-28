@@ -2829,7 +2829,8 @@ class Lexer
         string msg;
         auto result = decodeUTFpure(msg);
 
-        if (msg) error("%.*s", cast(int)msg.length, msg.ptr);
+        if (msg)
+            error("%.*s", cast(int)msg.length, msg.ptr);
         return result;
     }
 
