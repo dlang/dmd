@@ -340,6 +340,10 @@ extern (C++) class FuncDeclaration : Declaration
      */
     VarDeclarations outerVars;
 
+    /** Subset of outerVars that are returned by the nested function
+     */
+    VarDeclarations outerVarsReturnedByValue;
+
     /// Sibling nested functions which called this one
     FuncDeclarations siblingCallers;
 

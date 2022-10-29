@@ -1198,6 +1198,14 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
 
         if (v.isScope())
         {
+            auto pfunc = p.isFuncDeclaration();
+            if (pfunc && pfunc != sc.func)
+            {
+                if (!sc.func.outerVarsReturnedByValue.contains(v))
+                    sc.func.outerVarsReturnedByValue.push(v);
+                continue;
+            }
+
             /* If `return scope` applies to v.
              */
             if (vsr == ScopeRef.ReturnScope ||
@@ -1206,7 +1214,6 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                 continue;
             }
 
-            auto pfunc = p.isFuncDeclaration();
             if (pfunc &&
                 /* This case comes up when the ReturnStatement of a __foreachbody is
                  * checked for escapes by the caller of __foreachbody. Skip it.
@@ -1841,6 +1848,14 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false, bool re
             {
                 if (tf.isreturn && tf.isScopeQual)
                     er.pushExp(e, false);
+                foreach(v; fd.outerVarsReturnedByValue[])
+                {
+                    if (v.type.hasPointers() ||
+                        v.storage_class & STC.lazy_)
+                    {
+                        er.byvalue.push(v);
+                    }
+                }
             }
         }
     }
