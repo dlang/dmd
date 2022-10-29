@@ -4341,6 +4341,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         /* Declarations that start with `alias`
          */
         bool isAliasDeclaration = false;
+        auto aliasLoc = token.loc;
         if (token.value == TOK.alias_)
         {
             if (auto a = parseAliasDeclarations(comment))
@@ -4517,7 +4518,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     else
                         error("alias cannot have initializer");
                 }
-                v = new AST.AliasDeclaration(loc, ident, t);
+                v = new AST.AliasDeclaration(aliasLoc, ident, t);
 
                 v.storage_class = storage_class;
                 if (pAttrs)
