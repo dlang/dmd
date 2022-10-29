@@ -6897,7 +6897,7 @@ private enum EXPFLAGS : ubyte
     binaryAssign = 4,
 }
 
-private enum Eunary =
+private static immutable Eunary =
     [
         EXP.import_, EXP.assert_, EXP.throw_, EXP.dotIdentifier, EXP.dotTemplateDeclaration,
         EXP.dotVariable, EXP.dotTemplateInstance, EXP.delegate_, EXP.dotType, EXP.call,
@@ -6906,7 +6906,7 @@ private enum Eunary =
         EXP.delegateFunctionPointer, EXP.preMinusMinus, EXP.prePlusPlus,
     ];
 
-private enum Ebinary =
+private static immutable Ebinary =
     [
         EXP.dot, EXP.comma, EXP.index, EXP.minusMinus, EXP.plusPlus, EXP.assign,
         EXP.add, EXP.min, EXP.concatenate, EXP.mul, EXP.div, EXP.mod, EXP.pow, EXP.leftShift,
@@ -6917,7 +6917,7 @@ private enum Ebinary =
         EXP.construct, EXP.blit,
     ];
 
-private enum EbinaryAssign =
+private static immutable EbinaryAssign =
     [
         EXP.addAssign, EXP.minAssign, EXP.mulAssign, EXP.divAssign, EXP.modAssign,
         EXP.andAssign, EXP.orAssign, EXP.xorAssign, EXP.powAssign,
