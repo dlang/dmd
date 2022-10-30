@@ -7081,7 +7081,15 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 }
             }
             else
+            {
                 .error(loc, "%s `%s.%s` does not match any template declaration", tempdecl.kind(), tempdecl.parent.toPrettyChars(), tempdecl.ident.toChars());
+                if (tdecl)
+                    .errorSupplemental(loc, "Candidates are:");
+                for (; tdecl; tdecl = tdecl.overnext)
+                {
+                    .errorSupplemental(tdecl.loc, "%s", tdecl.toChars());
+                }
+            }
             return false;
         }
 
