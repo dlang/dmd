@@ -4685,7 +4685,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
 
-        static FuncDeclaration resolveOverloadSet(Loc loc, Scope* sc,
+        FuncDeclaration resolveOverloadSet(Loc loc, Scope* sc,
             OverloadSet os, Objects* tiargs, Type tthis, Expressions* arguments)
         {
             FuncDeclaration f = null;
@@ -4709,7 +4709,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
             }
             if (!f)
-                .error(loc, "no overload matches for `%s`", os.toChars());
+            {
+                .error(loc, "no overload matches for `%s`", exp.toChars());
+                errorSupplemental(loc, "Candidates are:");
+                foreach (ds; os.a)
+                {
+                    .errorSupplemental(ds.loc, "%s", ds.toChars());
+                }
+            }
             else if (f.errors)
                 f = null;
             return f;
