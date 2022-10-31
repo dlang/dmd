@@ -4712,9 +4712,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 .error(loc, "no overload matches for `%s`", exp.toChars());
                 errorSupplemental(loc, "Candidates are:");
-                foreach (ds; os.a)
+                foreach (s; os.a)
                 {
-                    .errorSupplemental(ds.loc, "%s", ds.toChars());
+                    overloadApply(s, (ds){
+                        if (auto fd = ds.isFuncDeclaration())
+                            .errorSupplemental(ds.loc, "%s%s", fd.toChars(),
+                                fd.type.toTypeFunction().parameterList.parametersTypeToChars());
+                        else
+                            .errorSupplemental(ds.loc, "%s", ds.toChars());
+                        return 0;
+                    });
                 }
             }
             else if (f.errors)
