@@ -1755,9 +1755,9 @@ public:
         }
         if (loc.isValid())
         {
-            .error(loc, "%s `%s` at %s conflicts with %s `%s` at %s",
-                s1.kind(), s1.toPrettyChars(), s1.locToChars(),
-                s2.kind(), s2.toPrettyChars(), s2.locToChars());
+            .error(loc, "`%s` matches conflicting symbols:", s1.ident.toChars());
+            errorSupplemental(s1.loc, "%s `%s`", s1.kind(), s1.toPrettyChars());
+            errorSupplemental(s2.loc, "%s `%s`", s2.kind(), s2.toPrettyChars());
 
             static if (0)
             {
