@@ -4093,7 +4093,7 @@ void prolog_gen_win64_varargs(ref CodeBuilder cdb)
 @trusted
 void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_t namedargs)
 {
-    //printf("prolog_loadparams()\n");
+    //printf("prolog_loadparams() %s\n", funcsym_p.Sident.ptr);
     debug
     for (SYMIDX si = 0; si < globsym.length; si++)
     {

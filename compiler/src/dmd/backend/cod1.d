@@ -1604,16 +1604,13 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                 debug if (debugr) printf("'%s' not reg cand due to offset or size\n", s.Sident.ptr);
                 s.Sflags &= ~GTregcand;
             }
-            else if (tyvector(s.Stype.Tty))
+            else if (tyvector(s.Stype.Tty) && sz < tysize(s.Stype.Tty))
             {
                 // https://issues.dlang.org/show_bug.cgi?id=21673
                 // https://issues.dlang.org/show_bug.cgi?id=21676
                 // https://issues.dlang.org/show_bug.cgi?id=23009
-                // Currently, when assigning to element [0] of a double2 and -O puts it in
-                // a register, this gets generated:
-                // movsd   XMM0,[RDI]
-                // This clears the rest of XMM0, setting element [1] to 0.
-                // Until this is fixed, keep vector variables on the stack
+                // PR: https://github.com/dlang/dmd/pull/13977
+                // cannot read or write to partial vector
                 debug if (debugr) printf("'%s' not reg cand due to vector type\n", s.Sident.ptr);
                 s.Sflags &= ~GTregcand;
             }
