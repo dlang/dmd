@@ -472,7 +472,7 @@ alias dmdExe = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule
 
     string[] platformArgs;
     version (Windows)
-        platformArgs = ["-L/STACK:8388608"];
+        platformArgs = ["-L/STACK:16777216"];
 
     auto lexer = lexer(targetSuffix, depFlags);
     auto backend = backend(targetSuffix, depFlags);
