@@ -4351,18 +4351,29 @@ bool setUnsafe(Scope* sc,
     bool gag = false, Loc loc = Loc.init, const(char)* fmt = null,
     RootObject arg0 = null, RootObject arg1 = null, RootObject arg2 = null)
 {
-    // TODO:
-    // For @system variables, unsafe initializers at global scope should mark
-    // the variable @system, see https://dlang.org/dips/1035
-
-    if (!sc.func)
-        return false;
-
     if (sc.intypeof)
         return false; // typeof(cast(int*)0) is safe
 
     if (sc.flags & SCOPE.debug_) // debug {} scopes are permissive
         return false;
+
+    if (!sc.func)
+    {
+        if (sc.varDecl)
+        {
+            if (sc.varDecl.storage_class & STC.safe)
+            {
+                .error(loc, fmt, arg0 ? arg0.toChars() : "", arg1 ? arg1.toChars() : "", arg2 ? arg2.toChars() : "");
+                return true;
+            }
+            else if (!(sc.varDecl.storage_class & STC.system))
+            {
+                sc.varDecl.storage_class |= STC.system;
+            }
+        }
+        return false;
+    }
+
 
     if (sc.flags & SCOPE.compile) // __traits(compiles, x)
     {
