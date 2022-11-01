@@ -4,9 +4,10 @@ merged into stable prior to a new release.
 How to add a new changelog entry to the pending changelog?
 ==========================================================
 
-Create a new file in the `changelog` folder. It should end with `.dd` and look
-similar to a git commit message. The first line represents the title of the change.
-After an empty line follows the long description:
+Create a new file in the `changelog` folder. It should begin with either `dmd.`
+or `druntime.` and end with `.dd`. The contents of the entry should look
+similar to a git commit message. The first line represents the title of the
+change.  After an empty line follows the long description:
 
 ```
 My fancy title of the new feature

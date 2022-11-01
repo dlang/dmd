@@ -31,3 +31,19 @@ jobs:
         git config --global diff.wsErrorHighlight "all"
     - uses: actions/setup-python@v3.0.0
     - uses: pre-commit/action@v3.0.0
+    - name: Check changelog entries
+      run: |
+        check_prefix="$(find changelog -type f -name '*\.dd' -a ! -name 'dmd\.*' -a ! -name 'druntime\.*')"
+        if [ ! -z "${check_prefix}" ]; then
+          echo 'All changelog entries must begin with either `dmd.` or `druntime.`'
+          echo 'Found:'
+          echo "${check_prefix}"
+          exit 1
+        fi
+        check_ext="$(find changelog -type f ! -name 'README\.md' -a ! -name '*\.dd')"
+        if [ ! -z "${check_ext}" ]; then
+          echo 'All changelog entries must end with `.dd`'
+          echo 'Found:'
+          echo "${check_ext}"
+          exit 1
+        fi

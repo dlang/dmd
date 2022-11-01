@@ -252,3 +252,59 @@ unittest
     assert(result == expected);
     assert(lexer.empty);
 }
+
+// Issue 22495
+unittest
+{
+    import std.conv : text, to;
+    import std.string : fromStringz;
+
+    import core.stdc.stdarg : va_list;
+
+    import dmd.frontend;
+    import dmd.globals : Loc;
+    import dmd.common.outbuffer;
+    import dmd.console : Color;
+
+    const(char)[][2][] diagnosticMessages;
+    nothrow bool diagnosticHandler(const ref Loc loc, Color headerColor, const(char)* header,
+                                   const(char)* format, va_list ap, const(char)* p1, const(char)* p2)
+    {
+        OutBuffer tmp;
+        tmp.vprintf(format, ap);
+        diagnosticMessages ~= [loc.filename.fromStringz, to!string(tmp.peekChars())];
+        return true;
+    }
+
+    initDMD(&diagnosticHandler);
+    scope(exit) deinitializeDMD();
+
+    immutable codes = [
+        "enum myString = \"\u061C\";",
+        "enum myString = `\u202E\u2066 \u2069\u2066`;",
+        "void test(){} // \u200E comment \u200F"
+    ];
+
+    foreach (codeNum, code; codes)
+    {
+        auto fileName = text("file", codeNum, '\0');
+        Lexer lexer = new Lexer(fileName.ptr, code.ptr, 0, code.length, false, false);
+        // Generate the errors
+        foreach(unused; lexer){}
+    }
+
+    string bidiErrorMessage =
+        "Bidirectional control characters are disallowed for security reasons.";
+
+    string[2][] excepted = [
+        ["file0", bidiErrorMessage],
+        ["file1", bidiErrorMessage],
+        ["file1", bidiErrorMessage],
+        ["file1", bidiErrorMessage],
+        ["file1", bidiErrorMessage],
+        ["file2", bidiErrorMessage],
+        ["file2", bidiErrorMessage],
+    ];
+
+    assert(diagnosticMessages == excepted);
+}
