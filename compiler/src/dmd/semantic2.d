@@ -128,7 +128,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 e = ctfeInterpretForPragmaMsg(e);
                 if (e.op == EXP.error)
                 {
-                    errorSupplemental(sa.loc, "while evaluating `static assert(%s)`", (*sa.msg)[i].toChars());
+                    errorSupplemental(sa.loc, "while evaluating `static assert` argument `%s`", (*sa.msg)[i].toChars());
                     return;
                 }
                 StringExp se = e.toStringExp();
