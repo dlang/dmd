@@ -613,6 +613,7 @@ public:
     TypeFunction *syntaxCopy() override;
     void purityLevel();
     bool hasLazyParameters();
+    bool hasReturnParameters();
     bool isDstyleVariadic() const;
     StorageClass parameterStorageClass(Parameter *p);
     Type *addStorageClass(StorageClass stc) override;

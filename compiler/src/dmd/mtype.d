@@ -4387,6 +4387,23 @@ extern (C++) final class TypeFunction : TypeNext
         return false;
     }
 
+    /********************************
+     * Returns: true if any of the parameters are marked `return`
+     */
+
+    bool hasReturnParameters()
+    {
+        if (isreturnscope)
+            return true;
+        foreach (i, fparam; parameterList)
+        {
+            const sr = buildScopeRef(fparam.storageClass);
+            if (buildScopeRef(sr == ScopeRef.ReturnScope || sr == ScopeRef.Ref_ReturnScope))
+                return true;
+        }
+        return false;
+    }
+
     /*******************************
      * Check for `extern (D) U func(T t, ...)` variadic function type,
      * which has `_arguments[]` added as the first argument.
