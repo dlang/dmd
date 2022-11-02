@@ -442,14 +442,15 @@ struct ASTBase
     extern (C++) final class StaticAssert : Dsymbol
     {
         Expression exp;
-        Expression msg;
+        Expressions* msg;
 
         extern (D) this(const ref Loc loc, Expression exp, Expression msg)
         {
             super(Id.empty);
             this.loc = loc;
             this.exp = exp;
-            this.msg = msg;
+            this.msg = new Expressions(1);
+            this.msg.push(msg);
         }
 
         override void accept(Visitor v)

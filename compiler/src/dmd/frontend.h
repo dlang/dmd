@@ -4566,7 +4566,7 @@ class StaticAssert final : public Dsymbol
 {
 public:
     Expression* exp;
-    Expression* msg;
+    Array<Expression*>* msg;
     StaticAssert* syntaxCopy(Dsymbol* s) override;
     void addMember(Scope* sc, ScopeDsymbol* sds) override;
     bool oneMember(Dsymbol** ps, Identifier* ident) override;
