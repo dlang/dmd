@@ -491,8 +491,8 @@ package mixin template ParseVisitMethods(AST)
         //printf("Visiting StaticAssert\n");
         s.exp.accept(this);
         if (s.msg)
-            foreach(m;(*s.msg)[])
-            m.accept(this);
+            foreach (m; (*s.msg)[])
+                m.accept(this);
     }
 
     override void visit(AST.EnumMember em)
@@ -769,7 +769,7 @@ package mixin template ParseVisitMethods(AST)
     override void visit(AST.Nspace d)
     {
         //printf("Visiting Nspace\n");
-        foreach(s; *d.members)
+        foreach (s; *d.members)
             s.accept(this);
     }
 

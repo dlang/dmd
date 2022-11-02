@@ -825,7 +825,7 @@ public:
         s.exp.expressionToBuffer(buf, hgs);
         if (s.msg)
         {
-            foreach(m;(*s.msg)[])
+            foreach (m; (*s.msg)[])
             {
                 buf.writestring(", ");
                 m.expressionToBuffer(buf, hgs);
@@ -3463,7 +3463,7 @@ private void dumpTemplateInstance(TemplateInstance ti, OutBuffer* buf, HdrGenSta
     }
     else if (ti.members)
     {
-        foreach(m;*ti.members)
+        foreach (m; *ti.members)
             m.dsymbolToBuffer(buf, hgs);
     }
 
