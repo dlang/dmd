@@ -4,7 +4,7 @@ $(SPEC_S Live Functions,
 
 $(HEADERNAV_TOC)
 
-$(B Experimental, Subject to Change)
+$(B Experimental, Subject to Change, use `-preview=dip1021` to activate)
 
 $(P If a memory object has only one pointer to it, that pointer is the $(I owner)
 of the memory object. With the single owner, it becomes straightforward to
