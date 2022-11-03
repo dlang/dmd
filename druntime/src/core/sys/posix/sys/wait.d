@@ -452,6 +452,7 @@ else version (NetBSD)
 }
 else version (OpenBSD)
 {
+    int waitid(idtype_t, id_t, siginfo_t*, int);
 }
 else version (DragonFlyBSD)
 {
