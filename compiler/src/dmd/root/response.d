@@ -56,7 +56,7 @@ const(char)* responseExpandFrom(alias lookup)(ref Strings args) nothrow
     bool recurse = false;
 
     // i is updated by insertArgumentsFromResponse, so no foreach
-    for (size_t i = 0; i < args.dim;)
+    for (size_t i = 0; i < args.length;)
     {
         cp = args[i];
         if (cp[0] != '@')

@@ -260,7 +260,7 @@ Symbol *toSymbol(Dsymbol s)
                 s.Sclass = SC.auto_;
                 s.Sfl = FLauto;
 
-                if (vd.nestedrefs.dim)
+                if (vd.nestedrefs.length)
                 {
                     /* Symbol is accessed by a nested function. Make sure
                      * it is not put in a register, and that the optimizer

@@ -314,7 +314,7 @@ extern (C++) final class ToClassesVisitor : Visitor
             return field.type;
         }
 
-        classifyFields(baseOffset, t.sym.fields.dim, &getNthField);
+        classifyFields(baseOffset, t.sym.fields.length, &getNthField);
     }
 
     void classifyStaticArrayElements(uint baseOffset, TypeSArray t)

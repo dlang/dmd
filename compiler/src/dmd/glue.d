@@ -261,7 +261,7 @@ private void obj_write_deferred(ref OutBuffer objbuf, Library library, ref Dsymb
         //printf("writing '%s'\n", fname);
         obj_end(objbuf, library, fname);
     }
-    glue.obj_symbols_towrite.dim = 0;
+    glue.obj_symbols_towrite.length = 0;
 }
 
 
@@ -516,7 +516,7 @@ private void genObjFile(Module m, bool multiobj)
         m.covb = cast(uint *)Mem.check(calloc((m.numlines + 32) / 32, (*m.covb).sizeof));
     }
 
-    for (int i = 0; i < m.members.dim; i++)
+    for (int i = 0; i < m.members.length; i++)
     {
         auto member = (*m.members)[i];
         //printf("toObjFile %s %s\n", member.kind(), member.toChars());
@@ -583,8 +583,8 @@ private void genObjFile(Module m, bool multiobj)
     }
 
     // If coverage / static constructor / destructor / unittest calls
-    if (glue.eictor || glue.sctors.dim || glue.ectorgates.dim || glue.sdtors.dim ||
-        glue.ssharedctors.dim || glue.esharedctorgates.dim || glue.sshareddtors.dim || glue.stests.dim)
+    if (glue.eictor || glue.sctors.length || glue.ectorgates.length || glue.sdtors.length ||
+        glue.ssharedctors.length || glue.esharedctorgates.length || glue.sshareddtors.length || glue.stests.length)
     {
         if (glue.eictor)
         {
@@ -870,7 +870,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         }
         shidden = symbol_name(name, SC.parameter, thidden);
         shidden.Sflags |= SFLtrue | SFLfree;
-        if (fd.isNRVO() && fd.nrvo_var && fd.nrvo_var.nestedrefs.dim)
+        if (fd.isNRVO() && fd.nrvo_var && fd.nrvo_var.nestedrefs.length)
             type_setcv(&shidden.Stype, shidden.Stype.Tty | mTYvolatile);
         irs.shidden = shidden;
         fd.shidden = shidden;
@@ -896,7 +896,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     // Estimate number of parameters, pi
     size_t pi = (fd.v_arguments !is null);
     if (fd.parameters)
-        pi += fd.parameters.dim;
+        pi += fd.parameters.length;
     if (fd.objc.selector)
         pi++; // Extra argument for Objective-C selector
     // Create a temporary buffer, params[], to hold function parameters
@@ -922,7 +922,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             assert(!v.csym);
             params[pi + i] = toSymbol(v);
         }
-        pi += fd.parameters.dim;
+        pi += fd.parameters.length;
     }
 
     if (reverse)

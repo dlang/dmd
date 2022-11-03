@@ -793,7 +793,7 @@ extern (C++) struct Target
                     return true;
                 if (!sd.isPOD() || sz > 8)
                     return true;
-                if (sd.fields.dim == 0)
+                if (sd.fields.length == 0)
                     return true;
             }
             if (sz <= 16 && !(sz & (sz - 1)))
@@ -815,7 +815,7 @@ extern (C++) struct Target
             if (!tt)
                 return false; // void
             else
-                return !tt.arguments.dim;
+                return !tt.arguments.length;
         }
 
     Lagain:
