@@ -4302,6 +4302,7 @@ private bool functionParameters(Loc loc, Scope* sc,
                         else
                             a = a.implicitCastTo(sc, tbn);
                         a = a.addDtorHook(sc);
+                        a = doCopyOrMove(sc, a, null, false);
                         (*elements)[u] = a;
                     }
                     // https://issues.dlang.org/show_bug.cgi?id=14395
