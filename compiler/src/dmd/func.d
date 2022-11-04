@@ -3354,8 +3354,7 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
     enum int DisplayLimit = 5;
     const(char)* constraintsTip;
     // determine if the first candidate was printed
-    int displayed;
-    bool printed = false;
+    int printed;
 
     bool matchSymbol(Dsymbol s, bool print, bool single_candidate = false)
     {
@@ -3377,7 +3376,6 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
                     single_candidate ? "Candidate is: `%s%s`" : "Candidates are: `%s%s`",
                     fd.toPrettyChars(),
                 parametersTypeToChars(tf.parameterList));
-            printed = true;
         }
         else if (auto td = s.isTemplateDeclaration())
         {
@@ -3397,7 +3395,6 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
                         printed ? "                `%s`\n%s" :
                         single_candidate ? "Candidate is: `%s`\n%s" : "Candidates are: `%s`\n%s",
                         tmsg, cmsg);
-                printed = true;
             }
             else
             {
@@ -3405,7 +3402,6 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
                         printed ? "                `%s`" :
                         single_candidate ? "Candidate is: `%s`" : "Candidates are: `%s`",
                         tmsg);
-                printed = true;
             }
         }
         return true;
@@ -3419,10 +3415,10 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
     });
     int skipped = 0;
     overloadApply(declaration, (s) {
-        if (global.params.verbose || displayed < DisplayLimit)
+        if (global.params.verbose || printed < DisplayLimit)
         {
             if (matchSymbol(s, true, count == 1))
-                displayed++;
+                printed++;
         }
         else
         {
@@ -3437,7 +3433,7 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
         .errorSupplemental(loc, "... (%d more, -v to show) ...", skipped);
 
     // Nothing was displayed, all overloads are either disabled or deprecated
-    if (!displayed)
+    if (!printed)
         .errorSupplemental(loc, "All possible candidates are marked as `deprecated` or `@disable`");
     // should be only in verbose mode
     if (constraintsTip)
