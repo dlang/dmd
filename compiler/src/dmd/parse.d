@@ -491,6 +491,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                  */
                 if (mod.isRoot() && (global.params.useUnitTests || global.params.ddoc.doOutput || global.params.dihdr.doOutput))
                 {
+                    linkage = LINK.d; // unittests have D linkage
                     s = parseUnitTest(pAttrs);
                     if (*pLastDecl)
                         (*pLastDecl).ddocUnittest = cast(AST.UnitTestDeclaration)s;
