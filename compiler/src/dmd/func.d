@@ -3357,10 +3357,16 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
 
     // determine if the first candidate was printed
     bool printed = false;
-
     int count;
     overloadApply(declaration, (Dsymbol s)
     {
+        if (auto fd = s.isFuncDeclaration())
+        {
+            if (fd.errors || fd.type.ty == Terror)
+                return 0;
+            if (fd.storage_class & STC.disable || (fd.isDeprecated() && !showDeprecated))
+                return 0;
+        }
         count++;
         return count > 1; // early exit
     });
