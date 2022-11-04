@@ -394,7 +394,7 @@ ulong getTypePointerBitmap(Loc loc, Type t, Array!(ulong)* data)
  */
 private Expression pointerBitmap(TraitsExp e)
 {
-    if (!e.args || e.args.dim != 1)
+    if (!e.args || e.args.length != 1)
     {
         error(e.loc, "a single type expected for trait pointerBitmap");
         return ErrorExp.get();
@@ -412,12 +412,12 @@ private Expression pointerBitmap(TraitsExp e)
     if (sz == ulong.max)
         return ErrorExp.get();
 
-    auto exps = new Expressions(data.dim + 1);
+    auto exps = new Expressions(data.length + 1);
     (*exps)[0] = new IntegerExp(e.loc, sz, Type.tsize_t);
-    foreach (size_t i; 1 .. exps.dim)
+    foreach (size_t i; 1 .. exps.length)
         (*exps)[i] = new IntegerExp(e.loc, data[cast(size_t) (i - 1)], Type.tsize_t);
 
-    auto ale = new ArrayLiteralExp(e.loc, Type.tsize_t.sarrayOf(data.dim + 1), exps);
+    auto ale = new ArrayLiteralExp(e.loc, Type.tsize_t.sarrayOf(data.length + 1), exps);
     return ale;
 }
 
@@ -446,7 +446,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         sc.stc = save;
     }
-    size_t dim = e.args ? e.args.dim : 0;
+    size_t dim = e.args ? e.args.length : 0;
 
     Expression dimError(int expected)
     {
@@ -1689,12 +1689,12 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
             void pushBaseMembersDg(ClassDeclaration cd)
             {
-                for (size_t i = 0; i < cd.baseclasses.dim; i++)
+                for (size_t i = 0; i < cd.baseclasses.length; i++)
                 {
                     auto cb = (*cd.baseclasses)[i].sym;
                     assert(cb);
                     ScopeDsymbol._foreach(null, cb.members, &pushIdentsDg);
-                    if (cb.baseclasses.dim)
+                    if (cb.baseclasses.length)
                         pushBaseMembersDg(cb);
                 }
             }
@@ -1801,9 +1801,9 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return ErrorExp.get();
         if (!TemplateInstance.semanticTiargs(e.loc, sc, &ob2, 0))
             return ErrorExp.get();
-        if (ob1.dim != ob2.dim)
+        if (ob1.length != ob2.length)
             return False();
-        foreach (immutable i; 0 .. ob1.dim)
+        foreach (immutable i; 0 .. ob1.length)
             if (!ob1[i].isSame(ob2[i], sc))
                 return False();
         return True();
@@ -2041,7 +2041,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 if (prependNamespaces(outer, pp.cppnamespace)) return ErrorExp.get();
 
                 size_t i = 0;
-                while(i < outer.dim && ((*inner)[i]) == (*outer)[i])
+                while(i < outer.length && ((*inner)[i]) == (*outer)[i])
                     i++;
 
                 foreach_reverse (ns; (*inner)[][i .. $])
@@ -2124,7 +2124,7 @@ private bool isSame(RootObject o1, RootObject o2, Scope* sc)
         {
             if (auto td = t.isTemplateDeclaration())
             {
-                if (td.members && td.members.dim == 1)
+                if (td.members && td.members.length == 1)
                 {
                     if (auto fd = (*td.members)[0].isFuncLiteralDeclaration())
                         return fd;
@@ -2221,7 +2221,7 @@ private bool isSame(RootObject o1, RootObject o2, Scope* sc)
     if (!overSet2)
         return false;
 
-    if (overSet1.a.dim != overSet2.a.dim)
+    if (overSet1.a.length != overSet2.a.length)
         return false;
 
     // OverloadSets contain array of Dsymbols => O(n*n)

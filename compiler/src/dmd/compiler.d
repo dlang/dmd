@@ -213,7 +213,7 @@ do
 {
     createMatchNodes();
     size_t nodeIndex = 0;
-    while (nodeIndex < matchNodes.dim)
+    while (nodeIndex < matchNodes.length)
     {
         //printf("matcher ");printMatcher(nodeIndex);printf("\n");
         auto info = matchNodes[nodeIndex++];
@@ -236,7 +236,7 @@ do
         }
         nodeIndex += info.depth;
     }
-    assert(nodeIndex == matchNodes.dim, "code bug");
+    assert(nodeIndex == matchNodes.length, "code bug");
     return includeByDefault;
 }
 
@@ -291,7 +291,7 @@ private void createMatchNodes()
     static size_t findSortedIndexToAddForDepth(size_t depth)
     {
         size_t index = 0;
-        while (index < matchNodes.dim)
+        while (index < matchNodes.length)
         {
             auto info = matchNodes[index];
             if (depth > info.depth)
@@ -301,7 +301,7 @@ private void createMatchNodes()
         return index;
     }
 
-    if (matchNodes.dim == 0)
+    if (matchNodes.length == 0)
     {
         foreach (modulePattern; includeModulePatterns)
         {

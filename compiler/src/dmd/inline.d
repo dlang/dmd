@@ -63,7 +63,7 @@ public void inlineScanModule(Module m)
 
     //printf("Module = %p\n", m.sc.scopesym);
 
-    foreach (i; 0 .. m.members.dim)
+    foreach (i; 0 .. m.members.length)
     {
         Dsymbol s = (*m.members)[i];
         //if (global.params.verbose)
@@ -197,11 +197,11 @@ public:
 
     override void visit(CompoundStatement s)
     {
-        //printf("CompoundStatement.doInlineAs!%s() %d\n", Result.stringof.ptr, s.statements.dim);
+        //printf("CompoundStatement.doInlineAs!%s() %d\n", Result.stringof.ptr, s.statements.length);
         static if (asStatements)
         {
             auto as = new Statements();
-            as.reserve(s.statements.dim);
+            as.reserve(s.statements.length);
         }
 
         foreach (i, sx; *s.statements)
@@ -225,7 +225,7 @@ public:
                     ifs.ifbody &&
                     ifs.ifbody.endsWithReturnStatement() &&
                     !ifs.elsebody &&
-                    i + 1 < s.statements.dim &&
+                    i + 1 < s.statements.length &&
                     (s3 = (*s.statements)[i + 1]) !is null &&
                     s3.endsWithReturnStatement()
                    )
@@ -266,11 +266,11 @@ public:
 
     override void visit(UnrolledLoopStatement s)
     {
-        //printf("UnrolledLoopStatement.doInlineAs!%s() %d\n", Result.stringof.ptr, s.statements.dim);
+        //printf("UnrolledLoopStatement.doInlineAs!%s() %d\n", Result.stringof.ptr, s.statements.length);
         static if (asStatements)
         {
             auto as = new Statements();
-            as.reserve(s.statements.dim);
+            as.reserve(s.statements.length);
         }
 
         foreach (sx; *s.statements)
@@ -293,7 +293,7 @@ public:
 
     override void visit(ScopeStatement s)
     {
-        //printf("ScopeStatement.doInlineAs!%s() %d\n", Result.stringof.ptr, s.statement.dim);
+        //printf("ScopeStatement.doInlineAs!%s() %d\n", Result.stringof.ptr, s.statement.length);
         auto r = doInlineAs!Result(s.statement, ids);
         static if (asStatements)
             result = new ScopeStatement(s.loc, r, s.endloc);
@@ -422,9 +422,9 @@ public:
             if (!a)
                 return null;
 
-            auto newa = new Expressions(a.dim);
+            auto newa = new Expressions(a.length);
 
-            foreach (i; 0 .. a.dim)
+            foreach (i; 0 .. a.length)
             {
                 (*newa)[i] = doInlineAs!Expression((*a)[i], ids);
             }
@@ -440,7 +440,7 @@ public:
         override void visit(SymOffExp e)
         {
             //printf("SymOffExp.doInlineAs!%s(%s)\n", Result.stringof.ptr, e.toChars());
-            foreach (i; 0 .. ids.from.dim)
+            foreach (i; 0 .. ids.from.length)
             {
                 if (e.var != ids.from[i])
                     continue;
@@ -455,7 +455,7 @@ public:
         override void visit(VarExp e)
         {
             //printf("VarExp.doInlineAs!%s(%s)\n", Result.stringof.ptr, e.toChars());
-            foreach (i; 0 .. ids.from.dim)
+            foreach (i; 0 .. ids.from.length)
             {
                 if (e.var != ids.from[i])
                     continue;
@@ -493,7 +493,7 @@ public:
              *      auto x = *(t.vthis.vthis + i.voffset) + *(t.vthis + g.voffset)
              */
             auto v = e.var.isVarDeclaration();
-            if (v && v.nestedrefs.dim && ids.vthis)
+            if (v && v.nestedrefs.length && ids.vthis)
             {
                 Dsymbol s = ids.fd;
                 auto fdv = v.toParent().isFuncDeclaration();
@@ -571,7 +571,7 @@ public:
                 //printf("\t==> result = %s, type = %s\n", result.toChars(), result.type.toChars());
                 return;
             }
-            else if (v && v.nestedrefs.dim)
+            else if (v && v.nestedrefs.length)
             {
                 auto ve = e.copy().isVarExp();
                 ve.originalScope = ids.fd;
@@ -634,7 +634,7 @@ public:
                     if (auto tup = vd.toAlias().isTupleDeclaration())
                     {
                         tup.foreachVar((s) { s; });
-                        result = st.objects.dim;
+                        result = st.objects.length;
                         return;
                     }
                 }
@@ -643,7 +643,7 @@ public:
 
                 if (ids.fd && vd == ids.fd.nrvo_var)
                 {
-                    foreach (i; 0 .. ids.from.dim)
+                    foreach (i; 0 .. ids.from.length)
                     {
                         if (vd != ids.from[i])
                             continue;
@@ -1020,7 +1020,7 @@ public:
 
     override void visit(CompoundStatement s)
     {
-        foreach (i; 0 .. s.statements.dim)
+        foreach (i; 0 .. s.statements.length)
         {
             inlineScan((*s.statements)[i]);
         }
@@ -1028,7 +1028,7 @@ public:
 
     override void visit(UnrolledLoopStatement s)
     {
-        foreach (i; 0 .. s.statements.dim)
+        foreach (i; 0 .. s.statements.length)
         {
             inlineScan((*s.statements)[i]);
         }
@@ -1089,7 +1089,7 @@ public:
         s.sdefault = cast(DefaultStatement)sdefault;
         if (s.cases)
         {
-            foreach (i; 0 .. s.cases.dim)
+            foreach (i; 0 .. s.cases.length)
             {
                 Statement scase = (*s.cases)[i];
                 inlineScan(scase);
@@ -1180,7 +1180,7 @@ public:
     {
         if (arguments)
         {
-            foreach (i; 0 .. arguments.dim)
+            foreach (i; 0 .. arguments.length)
             {
                 inlineScan((*arguments)[i]);
             }
@@ -1568,7 +1568,7 @@ public:
         Dsymbols* decls = d.include(null);
         if (decls)
         {
-            foreach (i; 0 .. decls.dim)
+            foreach (i; 0 .. decls.length)
             {
                 Dsymbol s = (*decls)[i];
                 //printf("AttribDeclaration.inlineScan %s\n", s.toChars());
@@ -1582,7 +1582,7 @@ public:
         //printf("AggregateDeclaration.inlineScan(%s)\n", toChars());
         if (ad.members)
         {
-            foreach (i; 0 .. ad.members.dim)
+            foreach (i; 0 .. ad.members.length)
             {
                 Dsymbol s = (*ad.members)[i];
                 //printf("inline scan aggregate symbol '%s'\n", s.toChars());
@@ -1599,7 +1599,7 @@ public:
         }
         if (!ti.errors && ti.members)
         {
-            foreach (i; 0 .. ti.members.dim)
+            foreach (i; 0 .. ti.members.length)
             {
                 Dsymbol s = (*ti.members)[i];
                 s.accept(this);
@@ -2005,10 +2005,10 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
 
     // Set up parameters
     Expression eparams;
-    if (arguments && arguments.dim)
+    if (arguments && arguments.length)
     {
-        assert(fd.parameters.dim == arguments.dim);
-        foreach (i; 0 .. arguments.dim)
+        assert(fd.parameters.length == arguments.length);
+        foreach (i; 0 .. arguments.length)
         {
             auto vfrom = (*fd.parameters)[i];
             auto arg = (*arguments)[i];

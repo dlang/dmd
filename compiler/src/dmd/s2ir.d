@@ -217,7 +217,7 @@ private extern (C++) class S2irVisitor : Visitor
         //printf("PragmaStatement.toIR()\n");
         if (s.ident == Id.startaddress)
         {
-            assert(s.args && s.args.dim == 1);
+            assert(s.args && s.args.length == 1);
             Expression e = (*s.args)[0];
             Dsymbol sa = getDsymbol(e);
             FuncDeclaration f = sa.isFuncDeclaration();
@@ -454,7 +454,7 @@ private extern (C++) class S2irVisitor : Visitor
          */
         mystate.defaultBlock = s.sdefault ? block_calloc(blx) : mystate.breakBlock;
 
-        const numcases = s.cases ? s.cases.dim : 0;
+        const numcases = s.cases ? s.cases.length : 0;
 
         /* allocate a block for each case
          */
@@ -1007,7 +1007,7 @@ private extern (C++) class S2irVisitor : Visitor
             bswitch.Belem = el_combine(el_combine(e1, e2),
                                         el_combine(e3, el_var(shandler)));
 
-            const numcases = s.catches.dim;
+            const numcases = s.catches.length;
             bswitch.Bswitch = cast(targ_llong *) Mem.check(.malloc((targ_llong).sizeof * (numcases + 1)));
             bswitch.Bswitch[0] = numcases;
             bswitch.appendSucc(defaultblock);

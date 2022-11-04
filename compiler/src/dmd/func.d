@@ -640,7 +640,7 @@ extern (C++) class FuncDeclaration : Declaration
     }
 
     /*************************************************
-     * Find index of function in vtbl[0..dim] that
+     * Find index of function in vtbl[0..length] that
      * this function overrides.
      * Prefer an exact match to a covariant one.
      * Params:
@@ -777,7 +777,7 @@ extern (C++) class FuncDeclaration : Declaration
         {
             foreach (b; cd.interfaces)
             {
-                auto v = findVtblIndex(&b.sym.vtbl, cast(int)b.sym.vtbl.dim);
+                auto v = findVtblIndex(&b.sym.vtbl, cast(int)b.sym.vtbl.length);
                 if (v >= 0)
                     return b;
             }
@@ -1810,7 +1810,7 @@ extern (C++) class FuncDeclaration : Declaration
         if (!isVirtual())
             return false;
         // If it's a final method, and does not override anything, then it is not virtual
-        if (isFinalFunc() && foverrides.dim == 0)
+        if (isFinalFunc() && foverrides.length == 0)
         {
             return false;
         }
@@ -1967,7 +1967,7 @@ extern (C++) class FuncDeclaration : Declaration
                 if (fdthis != this)
                 {
                     bool found = false;
-                    for (size_t i = 0; i < siblingCallers.dim; ++i)
+                    for (size_t i = 0; i < siblingCallers.length; ++i)
                     {
                         if (siblingCallers[i] == fdthis)
                             found = true;
@@ -2033,12 +2033,12 @@ extern (C++) class FuncDeclaration : Declaration
         if (requiresClosure)
             goto Lyes;
 
-        for (size_t i = 0; i < closureVars.dim; i++)
+        for (size_t i = 0; i < closureVars.length; i++)
         {
             VarDeclaration v = closureVars[i];
             //printf("\tv = %s\n", v.toChars());
 
-            for (size_t j = 0; j < v.nestedrefs.dim; j++)
+            for (size_t j = 0; j < v.nestedrefs.length; j++)
             {
                 FuncDeclaration f = v.nestedrefs[j];
                 assert(f != this);
@@ -2167,7 +2167,7 @@ extern (C++) class FuncDeclaration : Declaration
      */
     final bool hasNestedFrameRefs()
     {
-        if (closureVars.dim)
+        if (closureVars.length)
             return true;
 
         /* If a virtual function has contracts, assume its variables are referenced
@@ -2181,9 +2181,9 @@ extern (C++) class FuncDeclaration : Declaration
         if (fdrequire || fdensure)
             return true;
 
-        if (foverrides.dim && isVirtualMethod())
+        if (foverrides.length && isVirtualMethod())
         {
-            for (size_t i = 0; i < foverrides.dim; i++)
+            for (size_t i = 0; i < foverrides.length; i++)
             {
                 FuncDeclaration fdv = foverrides[i];
                 if (fdv.hasNestedFrameRefs())
@@ -2406,7 +2406,7 @@ extern (C++) class FuncDeclaration : Declaration
              * becomes:
              *   in { { statements1... } { statements2... } ... }
              */
-            assert(frequires.dim);
+            assert(frequires.length);
             auto loc = (*frequires)[0].loc;
             auto s = new Statements;
             foreach (r; *frequires)
@@ -2425,7 +2425,7 @@ extern (C++) class FuncDeclaration : Declaration
              *   out(__result) { { ref id1 = __result; { statements1... } }
              *                   { ref id2 = __result; { statements2... } } ... }
              */
-            assert(fensures.dim);
+            assert(fensures.length);
             auto loc = (*fensures)[0].ensure.loc;
             auto s = new Statements;
             foreach (r; *fensures)
@@ -3133,7 +3133,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
             printf("\tthis: %s\n", tthis.toChars());
         if (fargs)
         {
-            for (size_t i = 0; i < fargs.dim; i++)
+            for (size_t i = 0; i < fargs.length; i++)
             {
                 Expression arg = (*fargs)[i];
                 assert(arg.type);
@@ -3570,7 +3570,7 @@ private void markAsNeedingClosure(Dsymbol f, FuncDeclaration outerFunc)
     for (Dsymbol sx = f; sx && sx != outerFunc; sx = sx.toParentP(outerFunc))
     {
         FuncDeclaration fy = sx.isFuncDeclaration();
-        if (fy && fy.closureVars.dim)
+        if (fy && fy.closureVars.length)
         {
             /* fy needs a closure if it has closureVars[],
              * because the frame pointer in the closure will be accessed.
@@ -3608,7 +3608,7 @@ private bool checkEscapingSiblings(FuncDeclaration f, FuncDeclaration outerFunc,
 
     //printf("checkEscapingSiblings(f = %s, outerfunc = %s)\n", f.toChars(), outerFunc.toChars());
     bool bAnyClosures = false;
-    for (size_t i = 0; i < f.siblingCallers.dim; ++i)
+    for (size_t i = 0; i < f.siblingCallers.length; ++i)
     {
         FuncDeclaration g = f.siblingCallers[i];
         if (g.isThis() || g.tookAddressOf)

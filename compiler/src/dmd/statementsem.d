@@ -249,7 +249,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
             }
         }
 
-        for (size_t i = 0; i < cs.statements.dim;)
+        for (size_t i = 0; i < cs.statements.length;)
         {
             Statement s = (*cs.statements)[i];
             if (!s)
@@ -312,7 +312,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
                     return true;
                 }
 
-                if (!sfinally && isEmpty((*cs.statements)[i + 1 .. cs.statements.dim]))
+                if (!sfinally && isEmpty((*cs.statements)[i + 1 .. cs.statements.length]))
                 {
                 }
                 else
@@ -358,7 +358,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
             }
             else if (sfinally)
             {
-                if (0 && i + 1 == cs.statements.dim)
+                if (0 && i + 1 == cs.statements.length)
                 {
                     cs.statements.push(sfinally);
                 }
@@ -693,7 +693,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
         }
 
         const loc = fs.loc;
-        const dim = fs.parameters.dim;
+        const dim = fs.parameters.length;
 
         fs.func = sc.func;
         if (fs.func.fes)
@@ -791,7 +791,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
                 }
             }
 
-            //printf("dim = %d, parameters.dim = %d\n", dim, parameters.dim);
+            //printf("dim = %d, parameters.length = %d\n", dim, parameters.length);
             if (foundMismatch && dim != foreachParamCount)
             {
                 const(char)* plural = foreachParamCount > 1 ? "s" : "";
@@ -877,7 +877,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
                     tfld = cast(TypeFunction)tab.nextOf();
                 Lget:
                     //printf("tfld = %s\n", tfld.toChars());
-                    if (tfld.parameterList.parameters.dim == 1)
+                    if (tfld.parameterList.parameters.length == 1)
                     {
                         Parameter p = tfld.parameterList[0];
                         if (p.type && p.type.ty == Tdelegate)
@@ -902,7 +902,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
                 {
                     // 'Promote' it to this scope, and replace with a return
                     fs.cases.push(gs);
-                    ss.statement = new ReturnStatement(Loc.initial, new IntegerExp(fs.cases.dim + 1));
+                    ss.statement = new ReturnStatement(Loc.initial, new IntegerExp(fs.cases.length + 1));
                 }
             }
 
@@ -1075,7 +1075,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
                 if (fs.aggr.op == EXP.arrayLiteral && !valueIsRef)
                 {
                     auto ale = cast(ArrayLiteralExp)fs.aggr;
-                    size_t edim = ale.elements ? ale.elements.dim : 0;
+                    size_t edim = ale.elements ? ale.elements.length : 0;
                     auto telem = (*fs.parameters)[dim - 1].type;
 
                     // https://issues.dlang.org/show_bug.cgi?id=12936
@@ -1323,17 +1323,17 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
                     auto exps = new Expressions();
                     exps.push(ve);
                     int pos = 0;
-                    while (exps.dim < dim)
+                    while (exps.length < dim)
                     {
                         pos = expandAliasThisTuples(exps, pos);
                         if (pos == -1)
                             break;
                     }
-                    if (exps.dim != dim)
+                    if (exps.length != dim)
                     {
-                        const(char)* plural = exps.dim > 1 ? "s" : "";
+                        const(char)* plural = exps.length > 1 ? "s" : "";
                         fs.error("cannot infer argument types, expected %llu argument%s, not %llu",
-                            cast(ulong) exps.dim, plural, cast(ulong) dim);
+                            cast(ulong) exps.length, plural, cast(ulong) dim);
                         return retError();
                     }
 
@@ -1453,7 +1453,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
                                                    Scope* sc2, Type tn, Type tnv, TY tabty)
     {
         Expression ec;
-        const dim = fs.parameters.dim;
+        const dim = fs.parameters.length;
         const loc = fs.loc;
         /* Call:
          *      _aApply(aggr, flde)
@@ -1519,7 +1519,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
     private static extern(D) Expression applyAssocArray(ForeachStatement fs, Expression flde, TypeAArray taa)
     {
         Expression ec;
-        const dim = fs.parameters.dim;
+        const dim = fs.parameters.length;
         // Check types
         Parameter p = (*fs.parameters)[0];
         bool isRef = (p.storageClass & STC.ref_) != 0;
@@ -1593,7 +1593,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
 
     private static extern(D) Statement loopReturn(Expression e, Statements* cases, const ref Loc loc)
     {
-        if (!cases.dim)
+        if (!cases.length)
         {
             // Easy case, a clean exit from the loop
             e = new CastExp(loc, e, Type.tvoid); // https://issues.dlang.org/show_bug.cgi?id=13899
@@ -2024,7 +2024,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
             }
             else
             {
-                if (!ps.args || ps.args.dim != 1)
+                if (!ps.args || ps.args.length != 1)
                 {
                     ps.error("`string` expected for library name");
                     return setError();
@@ -2338,7 +2338,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
 
         size_t numcases = 0;
         if (ss.cases)
-            numcases = ss.cases.dim;
+            numcases = ss.cases.length;
 
         for (size_t i = 0; i < numcases; i++)
         {
@@ -2501,7 +2501,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
             sw.cases.push(cs);
 
             // Resolve any goto case's with no exp to this case statement
-            for (size_t i = 0; i < sw.gotoCases.dim;)
+            for (size_t i = 0; i < sw.gotoCases.length;)
             {
                 GotoCaseStatement gcs = sw.gotoCases[i];
                 if (!gcs.exp)
@@ -2735,7 +2735,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
             {
                 assert(rs.caseDim == 0);
                 sc.fes.cases.push(rs);
-                result = new ReturnStatement(Loc.initial, new IntegerExp(sc.fes.cases.dim + 1));
+                result = new ReturnStatement(Loc.initial, new IntegerExp(sc.fes.cases.length + 1));
                 return;
             }
             if (fd.returnLabel)
@@ -3053,8 +3053,8 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
                 sc.fes.cases.push(s);
 
                 // Immediately rewrite "this" return statement as:
-                //  return cases.dim+1;
-                rs.exp = new IntegerExp(sc.fes.cases.dim + 1);
+                //  return cases.length+1;
+                rs.exp = new IntegerExp(sc.fes.cases.length + 1);
                 if (e0)
                 {
                     result = new CompoundStatement(rs.loc, new ExpStatement(rs.loc, e0), rs);
@@ -3078,7 +3078,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
                 //  return exp;
                 // to:
                 //  vresult = exp; retrun caseDim;
-                rs.caseDim = sc.fes.cases.dim + 1;
+                rs.caseDim = sc.fes.cases.length + 1;
             }
         }
         if (rs.exp)
@@ -3136,7 +3136,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
                          * and 1 is break.
                          */
                         sc.fes.cases.push(bs);
-                        result = new ReturnStatement(Loc.initial, new IntegerExp(sc.fes.cases.dim + 1));
+                        result = new ReturnStatement(Loc.initial, new IntegerExp(sc.fes.cases.length + 1));
                         return;
                     }
                     break; // can't break to it
@@ -3224,7 +3224,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
                          * and 1 is break.
                          */
                         sc.fes.cases.push(cs);
-                        result = new ReturnStatement(Loc.initial, new IntegerExp(sc.fes.cases.dim + 1));
+                        result = new ReturnStatement(Loc.initial, new IntegerExp(sc.fes.cases.length + 1));
                         return;
                     }
                     break; // can't continue to it
@@ -3589,7 +3589,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
          */
         if (!(tcs._body.blockExit(sc.func, false) & BE.throw_) && ClassDeclaration.exception)
         {
-            foreach_reverse (i; 0 .. tcs.catches.dim)
+            foreach_reverse (i; 0 .. tcs.catches.length)
             {
                 Catch c = (*tcs.catches)[i];
 
@@ -3604,7 +3604,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
             }
         }
 
-        if (tcs.catches.dim == 0)
+        if (tcs.catches.length == 0)
         {
             result = tcs._body.hasCode() ? tcs._body : null;
             return;
@@ -3909,10 +3909,10 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
         /* https://dlang.org/spec/module.html#ImportDeclaration
          */
 
-        foreach (i; 0 .. imps.imports.dim)
+        foreach (i; 0 .. imps.imports.length)
         {
             Import s = (*imps.imports)[i].isImport();
-            assert(!s.aliasdecls.dim);
+            assert(!s.aliasdecls.length);
             foreach (j, name; s.names)
             {
                 Identifier _alias = s.aliases[j];
@@ -4217,7 +4217,7 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
     }
 
     auto loc = fs.loc;
-    size_t dim = fs.parameters.dim;
+    size_t dim = fs.parameters.length;
     const bool skipCheck = isStatic && needExpansion;
     if (!skipCheck && (dim < 1 || dim > 2))
     {
@@ -4251,7 +4251,7 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
     if (fs.aggr.op == EXP.tuple) // expression tuple
     {
         te = cast(TupleExp)fs.aggr;
-        n = te.exps.dim;
+        n = te.exps.length;
     }
     else if (fs.aggr.op == EXP.type) // type tuple
     {
@@ -4632,7 +4632,7 @@ private Statements* flatten(Statement statement, Scope* sc)
             {
                 return a;
             }
-            auto b = new Statements(a.dim);
+            auto b = new Statements(a.length);
             foreach (i, s; *a)
             {
                 (*b)[i] = s ? new ForwardingStatement(s.loc, fs.sym, s) : null;
@@ -4702,7 +4702,7 @@ private Statements* flatten(Statement statement, Scope* sc)
             if (!a)
                 return null;
 
-            if (!a.dim)
+            if (!a.length)
             {
                 a.push(new ExpStatement(ls.loc, cast(Expression)null));
             }
@@ -4892,7 +4892,7 @@ bool pragmaMsgSemantic(Loc loc, Scope* sc, Expressions* args)
  */
 bool pragmaStartAddressSemantic(Loc loc, Scope* sc, Expressions* args)
 {
-    if (!args || args.dim != 1)
+    if (!args || args.length != 1)
     {
         .error(loc, "function name expected for start address");
         return false;

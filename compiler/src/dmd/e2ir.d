@@ -402,9 +402,9 @@ elem *toElemDtor(Expression e, IRState *irs)
     if (irs.mayThrow && !canThrow(e, irs.getFunc(), false))
         irs.mayThrow = false;
 
-    const starti = irs.varsInScope.dim;
+    const starti = irs.varsInScope.length;
     elem* er = toElem(e, irs);
-    const endi = irs.varsInScope.dim;
+    const endi = irs.varsInScope.length;
 
     irs.mayThrow = mayThrowSave;
 
@@ -1233,8 +1233,8 @@ elem* toElem(Expression e, IRState *irs)
         {
             elem *ezprefix = ne.argprefix ? toElem(ne.argprefix, irs) : null;
 
-            assert(ne.arguments && ne.arguments.dim >= 1);
-            if (ne.arguments.dim == 1)
+            assert(ne.arguments && ne.arguments.length >= 1);
+            if (ne.arguments.length == 1)
             {
                 // Single dimension array allocations
                 Expression arg = (*ne.arguments)[0]; // gives array length
@@ -1249,7 +1249,7 @@ elem* toElem(Expression e, IRState *irs)
             else
             {
                 // Multidimensional array allocations
-                foreach (i; 0 .. ne.arguments.dim)
+                foreach (i; 0 .. ne.arguments.length)
                 {
                     assert(t.ty == Tarray);
                     t = t.nextOf();
@@ -1260,7 +1260,7 @@ elem* toElem(Expression e, IRState *irs)
                 Symbol *sdata = null;
                 elem *earray = ExpressionsToStaticArray(irs, ne.loc, ne.arguments, &sdata);
 
-                e = el_pair(TYdarray, el_long(TYsize_t, ne.arguments.dim), el_ptr(sdata));
+                e = el_pair(TYdarray, el_long(TYsize_t, ne.arguments.length), el_ptr(sdata));
                 if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
                     e = addressElem(e, Type.tsize_t.arrayOf());
                 e = el_param(e, getTypeInfo(ne, ne.type, irs));
@@ -1283,7 +1283,7 @@ elem* toElem(Expression e, IRState *irs)
             e = el_bin(OPcall,TYnptr,el_var(getRtlsym(rtl)),e);
             toTraceGC(irs, e, ne.loc);
 
-            if (ne.arguments && ne.arguments.dim == 1)
+            if (ne.arguments && ne.arguments.length == 1)
             {
                 /* ezprefix, ts=_d_newitemT(ti), *ts=arguments[0], ts
                  */
@@ -1731,7 +1731,7 @@ elem* toElem(Expression e, IRState *irs)
             Symbol *sdata;
             elem *earr = ElemsToStaticArray(ce.loc, ce.type, &elems, &sdata);
 
-            elem *ep = el_pair(TYdarray, el_long(TYsize_t, elems.dim), el_ptr(sdata));
+            elem *ep = el_pair(TYdarray, el_long(TYsize_t, elems.length), el_ptr(sdata));
             if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
                 ep = addressElem(ep, Type.tvoid.arrayOf());
             ep = el_param(ep, getTypeInfo(ce, ta, irs));
@@ -2110,7 +2110,7 @@ elem* toElem(Expression e, IRState *irs)
 
         const canSkipCompare = isTrivialExp(ie.e1) && isTrivialExp(ie.e2);
         elem *e;
-        if (t1.ty == Tstruct && (cast(TypeStruct)t1).sym.fields.dim == 0 && canSkipCompare)
+        if (t1.ty == Tstruct && (cast(TypeStruct)t1).sym.fields.length == 0 && canSkipCompare)
         {
             // we can skip the compare if the structs are empty
             e = el_long(TYbool, ie.op == EXP.identity);
@@ -2682,7 +2682,7 @@ elem* toElem(Expression e, IRState *irs)
             {
                 ArrayLiteralExp ale = cast(ArrayLiteralExp)ae.e2;
                 elem* e;
-                if (ale.elements.dim == 0)
+                if (ale.elements.length == 0)
                 {
                     e = e1;
                 }
@@ -3321,7 +3321,7 @@ elem* toElem(Expression e, IRState *irs)
             if (dctor)
             {
             }
-            else if (ce.arguments && ce.arguments.dim && ec.Eoper != OPvar)
+            else if (ce.arguments && ce.arguments.length && ec.Eoper != OPvar)
             {
                 if (ec.Eoper == OPind && el_sideeffect(ec.EV.E1))
                 {
@@ -3356,7 +3356,7 @@ elem* toElem(Expression e, IRState *irs)
                 // see issue 3822
                 if (fd && fd.ident == Id.__alloca &&
                     !fd.fbody && fd._linkage == LINK.c &&
-                    arguments && arguments.dim == 1)
+                    arguments && arguments.length == 1)
                 {   Expression arg = (*arguments)[0];
                     arg = arg.optimize(WANTvalue);
                     if (arg.isConst() && arg.type.isintegral())
@@ -3383,7 +3383,7 @@ elem* toElem(Expression e, IRState *irs)
         else
         {
             ec = toElem(ce.e1, irs);
-            if (ce.arguments && ce.arguments.dim)
+            if (ce.arguments && ce.arguments.length)
             {
                 /* The idea is to enforce expressions being evaluated left to right,
                  * even though call trees are evaluated parameters first.
@@ -3975,7 +3975,7 @@ elem* toElem(Expression e, IRState *irs)
 
     elem* visitArrayLiteral(ArrayLiteralExp ale)
     {
-        size_t dim = ale.elements ? ale.elements.dim : 0;
+        size_t dim = ale.elements ? ale.elements.length : 0;
 
         //printf("ArrayLiteralExp.toElem() %s, type = %s\n", ale.toChars(), ale.type.toChars());
         Type tb = ale.type.toBasetype();
@@ -4044,7 +4044,7 @@ elem* toElem(Expression e, IRState *irs)
 
         Type t = aale.type.toBasetype().mutableOf();
 
-        size_t dim = aale.keys.dim;
+        size_t dim = aale.keys.length;
         if (dim)
         {
             // call _d_assocarrayliteralTX(TypeInfo_AssociativeArray ti, void[] keys, void[] values)
@@ -4305,7 +4305,7 @@ elem *Dsymbol_toElem(Dsymbol s, IRState* irs)
 elem *ElemsToStaticArray(const ref Loc loc, Type telem, Elems *elems, Symbol **psym)
 {
     // Create a static array of type telem[dim]
-    const dim = elems.dim;
+    const dim = elems.length;
     assert(dim);
 
     Type tsarray = telem.sarrayOf(dim);
@@ -4337,7 +4337,7 @@ elem *ElemsToStaticArray(const ref Loc loc, Type telem, Elems *elems, Symbol **p
 elem *ExpressionsToStaticArray(IRState* irs, const ref Loc loc, Expressions *exps, Symbol **psym, size_t offset = 0, Expression basis = null)
 {
     // Create a static array of type telem[dim]
-    const dim = exps.dim;
+    const dim = exps.length;
     assert(dim);
 
     Type telem = ((*exps)[0] ? (*exps)[0] : basis).type;
@@ -4362,7 +4362,7 @@ elem *ExpressionsToStaticArray(IRState* irs, const ref Loc loc, Expressions *exp
             el.type.toBasetype().ty == Tsarray)
         {
             ArrayLiteralExp ale = cast(ArrayLiteralExp)el;
-            if (ale.elements && ale.elements.dim)
+            if (ale.elements && ale.elements.length)
             {
                 elem *ex = ExpressionsToStaticArray(irs,
                     ale.loc, ale.elements, &stmp, cast(uint)(offset + i * szelem), ale.basis);
@@ -5365,7 +5365,7 @@ elem *callfunc(const ref Loc loc,
         // Discard unreachable argument evaluation + function call
         return ec;
     }
-    if (arguments && arguments.dim)
+    if (arguments && arguments.length)
     {
         if (op == OPvector)
         {
@@ -5376,7 +5376,7 @@ elem *callfunc(const ref Loc loc,
 
         /* Convert arguments[] to elems[] in left-to-right order
          */
-        const n = arguments.dim;
+        const n = arguments.length;
         debug
             elem*[2] elems_array = void;
         else
@@ -6417,8 +6417,8 @@ elem *toElemStructLit(StructLiteralExp sle, IRState *irs, EXP op, Symbol *sym, b
      *  U u3 = U(1, 2);     // error
      *  U u4 = {x:1, y:2};  // error
      */
-    size_t dim = sle.elements ? sle.elements.dim : 0;
-    assert(dim <= sle.sd.fields.dim);
+    size_t dim = sle.elements ? sle.elements.length : 0;
+    assert(dim <= sle.sd.fields.length);
 
     if (fillHoles)
     {
@@ -6429,7 +6429,7 @@ elem *toElemStructLit(StructLiteralExp sle, IRState *irs, EXP op, Symbol *sym, b
         const size_t structsize = sle.sd.structsize;
         size_t offset = 0;
         //printf("-- %s - fillHoles, structsize = %d\n", sle.toChars(), structsize);
-        for (size_t i = 0; i < sle.sd.fields.dim && offset < structsize; )
+        for (size_t i = 0; i < sle.sd.fields.length && offset < structsize; )
         {
             VarDeclaration v = sle.sd.fields[i];
 
@@ -6461,7 +6461,7 @@ elem *toElemStructLit(StructLiteralExp sle, IRState *irs, EXP op, Symbol *sym, b
              *  }
              *  S s = {f2:x, f3:y};     // filled holes: 2..8 and 12..16
              */
-            size_t vend = sle.sd.fields.dim;
+            size_t vend = sle.sd.fields.length;
             size_t holeEnd = structsize;
             size_t offset2 = structsize;
             foreach (j; i + 1 .. vend)
@@ -6568,10 +6568,10 @@ elem *toElemStructLit(StructLiteralExp sle, IRState *irs, EXP op, Symbol *sym, b
         }
     }
 
-    if (sle.sd.isNested() && dim != sle.sd.fields.dim)
+    if (sle.sd.isNested() && dim != sle.sd.fields.length)
     {
         // Initialize the hidden 'this' pointer
-        assert(sle.sd.fields.dim);
+        assert(sle.sd.fields.length);
 
         elem* e1, e2;
         if (tybasic(stmp.Stype.Tty) == TYnptr)

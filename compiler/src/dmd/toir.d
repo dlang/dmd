@@ -227,7 +227,7 @@ elem *getEthis(const ref Loc loc, IRState *irs, Dsymbol fd, Dsymbol fdp = null, 
         FuncDeclaration fdthis = thisfd;
         for (size_t i = 0; ; )
         {
-            if (i == fdthis.foverrides.dim)
+            if (i == fdthis.foverrides.length)
             {
                 if (i == 0)
                     break;
@@ -828,7 +828,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
         symbol_add(sclosure);
         irs.sclosure = sclosure;
 
-        assert(fd.closureVars.dim);
+        assert(fd.closureVars.length);
         assert(fd.closureVars[0].offset >= target.ptrsize);
         foreach (v; fd.closureVars)
         {
@@ -863,7 +863,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
         }
 
         // Calculate the size of the closure
-        VarDeclaration  vlast = fd.closureVars[fd.closureVars.dim - 1];
+        VarDeclaration  vlast = fd.closureVars[fd.closureVars.length - 1];
         typeof(Type.size()) lastsize;
         if (vlast.storage_class & STC.lazy_)
             lastsize = target.ptrsize * 2;
@@ -959,7 +959,7 @@ void buildCapture(FuncDeclaration fd)
     if (target.objectFormat() != Target.ObjectFormat.coff)  // toDebugClosure only implemented for CodeView,
         return;                 //  but optlink crashes for negative field offsets
 
-    if (fd.closureVars.dim && !fd.needsClosure)
+    if (fd.closureVars.length && !fd.needsClosure)
     {
         /* Generate type name for struct with captured variables */
         const char *name1 = "CAPTURE.";

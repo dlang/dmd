@@ -2204,10 +2204,10 @@ private void asm_merge_opnds(ref OPND o1, ref OPND o2)
     {
         TupleDeclaration tup = o1.s.isTupleDeclaration();
         size_t index = cast(int)o2.disp;
-        if (index >= tup.objects.dim)
+        if (index >= tup.objects.length)
         {
             asmerr("tuple index `%llu` out of bounds `[0 .. %llu]`",
-                    cast(ulong) index, cast(ulong) tup.objects.dim);
+                    cast(ulong) index, cast(ulong) tup.objects.length);
         }
         else
         {

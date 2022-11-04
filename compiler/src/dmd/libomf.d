@@ -246,7 +246,7 @@ private:
                 len += 2; // Digital Mars long name extension
             symSize += (len + 4 + 1) & ~1;
         }
-        bucksForHash = cast(ushort)((objsymbols.dim + objmodules.dim + HASHMOD - 3) / (HASHMOD - 2));
+        bucksForHash = cast(ushort)((objsymbols.length + objmodules.length + HASHMOD - 3) / (HASHMOD - 2));
         bucksForSize = cast(ushort)((symSize + BUCKETSIZE - padding - padding - 1) / (BUCKETSIZE - padding));
         ndicpages = (bucksForHash > bucksForSize) ? bucksForHash : bucksForSize;
         //printf("ndicpages = %u\n",ndicpages);

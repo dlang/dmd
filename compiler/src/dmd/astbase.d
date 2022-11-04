@@ -108,7 +108,7 @@ struct ASTBase
         extern (D) static bool oneMembers(ref Dsymbols members, Dsymbol* ps, Identifier ident)
         {
             Dsymbol s = null;
-            for (size_t i = 0; i < members.dim; i++)
+            for (size_t i = 0; i < members.length; i++)
             {
                 Dsymbol sx = members[i];
                 bool x = sx.oneMember(ps, ident);
@@ -979,8 +979,8 @@ struct ASTBase
             Objects* a = null;
             if (objs)
             {
-                a = new Objects(objs.dim);
-                for (size_t i = 0; i < objs.dim; i++)
+                a = new Objects(objs.length);
+                for (size_t i = 0; i < objs.length; i++)
                     (*a)[i] = objectSyntaxCopy((*objs)[i]);
             }
             return a;
@@ -1081,9 +1081,9 @@ struct ASTBase
         extern (D) static Expressions* concat(Expressions* udas1, Expressions* udas2)
         {
             Expressions* udas;
-            if (!udas1 || udas1.dim == 0)
+            if (!udas1 || udas1.length == 0)
                 udas = udas2;
-            else if (!udas2 || udas2.dim == 0)
+            else if (!udas2 || udas2.length == 0)
                 udas = udas1;
             else
             {
@@ -1465,7 +1465,7 @@ struct ASTBase
 
             this.members = members;
 
-            //printf("ClassDeclaration(%s), dim = %d\n", id.toChars(), this.baseclasses.dim);
+            //printf("ClassDeclaration(%s), dim = %d\n", id.toChars(), this.baseclasses.length);
 
             // For forward references
             type = new TypeClass(this);
@@ -1649,7 +1649,7 @@ struct ASTBase
         extern (D) this(const ref Loc loc, Identifier ident, TypeQualified tqual, Objects *tiargs)
         {
             super(loc,
-                  tqual.idents.dim ? cast(Identifier)tqual.idents[tqual.idents.dim - 1] : (cast(TypeIdentifier)tqual).ident,
+                  tqual.idents.length ? cast(Identifier)tqual.idents[tqual.idents.length - 1] : (cast(TypeIdentifier)tqual).ident,
                   tiargs ? tiargs : new Objects());
             this.ident = ident;
             this.tqual = tqual;
@@ -1734,7 +1734,7 @@ struct ASTBase
 
             size_t n = pn ? *pn : 0; // take over index
             int result = 0;
-            foreach (i; 0 .. parameters.dim)
+            foreach (i; 0 .. parameters.length)
             {
                 Parameter p = (*parameters)[i];
                 Type t = p.type.toBasetype();
@@ -1771,8 +1771,8 @@ struct ASTBase
             Parameters* params = null;
             if (parameters)
             {
-                params = new Parameters(parameters.dim);
-                for (size_t i = 0; i < params.dim; i++)
+                params = new Parameters(parameters.length);
+                for (size_t i = 0; i < params.length; i++)
                     (*params)[i] = (*parameters)[i].syntaxCopy();
             }
             return params;
@@ -3652,10 +3652,10 @@ struct ASTBase
         extern (D) this(Expressions* exps)
         {
             super(Ttuple);
-            auto arguments = new Parameters(exps ? exps.dim : 0);
+            auto arguments = new Parameters(exps ? exps.length : 0);
             if (exps)
             {
-                for (size_t i = 0; i < exps.dim; i++)
+                for (size_t i = 0; i < exps.length; i++)
                 {
                     Expression e = (*exps)[i];
                     if (e.type.ty == Ttuple)
@@ -4258,8 +4258,8 @@ struct ASTBase
 
         final void syntaxCopyHelper(TypeQualified t)
         {
-            idents.setDim(t.idents.dim);
-            for (size_t i = 0; i < idents.dim; i++)
+            idents.setDim(t.idents.length);
+            for (size_t i = 0; i < idents.length; i++)
             {
                 RootObject id = t.idents[i];
                 switch (id.dyncast()) with (DYNCAST)
@@ -4288,7 +4288,7 @@ struct ASTBase
 
         final Expression toExpressionHelper(Expression e, size_t i = 0)
         {
-            for (; i < idents.dim; i++)
+            for (; i < idents.length; i++)
             {
                 RootObject id = idents[i];
 
@@ -4371,7 +4371,7 @@ struct ASTBase
                 Expressions* a = null;
                 if (exps)
                 {
-                    a = new Expressions(exps.dim);
+                    a = new Expressions(exps.length);
                     foreach (i, e; *exps)
                     {
                         (*a)[i] = e ? e.syntaxCopy() : null;
@@ -4984,7 +4984,7 @@ struct ASTBase
         extern (D) this(const ref Loc loc, Expressions* keys, Expressions* values)
         {
             super(loc, EXP.assocArrayLiteral, __traits(classInstanceSize, AssocArrayLiteralExp));
-            assert(keys.dim == values.dim);
+            assert(keys.length == values.length);
             this.keys = keys;
             this.values = values;
         }
@@ -5040,7 +5040,7 @@ struct ASTBase
             if (td)
             {
                 assert(td.literal);
-                assert(td.members && td.members.dim == 1);
+                assert(td.members && td.members.length == 1);
                 fd = (*td.members)[0].isFuncLiteralDeclaration();
             }
             tok = fd.tok; // save original kind of function/delegate/(infer)
@@ -5263,8 +5263,8 @@ struct ASTBase
             super(loc, EXP.tuple, __traits(classInstanceSize, TupleExp));
             this.exps = new Expressions();
 
-            this.exps.reserve(tup.objects.dim);
-            for (size_t i = 0; i < tup.objects.dim; i++)
+            this.exps.reserve(tup.objects.length);
+            for (size_t i = 0; i < tup.objects.length; i++)
             {
                 RootObject o = (*tup.objects)[i];
                 if (Dsymbol s = getDsymbol(o))

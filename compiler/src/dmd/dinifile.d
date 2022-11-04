@@ -286,7 +286,7 @@ void parseConfFile(ref StringTable!(char*) environment, const(char)[] filename, 
              */
             for (size_t j = 0; 1; ++j)
             {
-                if (j == sections.dim)
+                if (j == sections.length)
                 {
                     // Didn't find it
                     envsection = false;

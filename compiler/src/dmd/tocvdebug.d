@@ -155,7 +155,7 @@ uint cv4_Denum(EnumDeclaration e)
     CvFieldList mc = CvFieldList(0, 0);
     if (!property)
     {
-        for (size_t i = 0; i < e.members.dim; i++)
+        for (size_t i = 0; i < e.members.length; i++)
         {
             EnumMember sf = (*e.members)[i].isEnumMember();
             if (!sf)
@@ -212,7 +212,7 @@ uint cv4_Denum(EnumDeclaration e)
         mc.alloc();
 
         // And fill it in
-        for (size_t i = 0; i < e.members.dim; i++)
+        for (size_t i = 0; i < e.members.length; i++)
         {
             EnumMember sf = (*e.members)[i].isEnumMember();
             if (!sf)
@@ -557,7 +557,7 @@ void toDebug(StructDeclaration sd)
 
     // Compute the number of fields and the length of the fieldlist record
     CvFieldList mc = CvFieldList(0, 0);
-    for (size_t i = 0; i < sd.members.dim; i++)
+    for (size_t i = 0; i < sd.members.length; i++)
     {
         Dsymbol s = (*sd.members)[i];
         s.apply(&cv_mem_count, &mc);
@@ -568,7 +568,7 @@ void toDebug(StructDeclaration sd)
     mc.alloc();
     if (nfields)
     {
-        for (size_t i = 0; i < sd.members.dim; i++)
+        for (size_t i = 0; i < sd.members.length; i++)
         {
             Dsymbol s = (*sd.members)[i];
             s.apply(&cv_mem_p, &mc);
@@ -647,7 +647,7 @@ void toDebug(ClassDeclaration cd)
     idx_t vshapeidx = 0;
     if (1)
     {
-        const size_t dim = cd.vtbl.dim;              // number of virtual functions
+        const size_t dim = cd.vtbl.length;              // number of virtual functions
         if (dim)
         {   // 4 bits per descriptor
             debtyp_t *vshape = debtyp_alloc(cast(uint)(4 + (dim + 1) / 2));
@@ -656,7 +656,7 @@ void toDebug(ClassDeclaration cd)
 
             size_t n = 0;
             ubyte descriptor = 0;
-            for (size_t i = 0; i < cd.vtbl.dim; i++)
+            for (size_t i = 0; i < cd.vtbl.length; i++)
             {
                 //if (intsize == 4)
                     descriptor |= 5;
@@ -715,7 +715,7 @@ void toDebug(ClassDeclaration cd)
     if (addInBaseClasses)
     {
         // Add in base classes
-        for (size_t i = 0; i < cd.baseclasses.dim; i++)
+        for (size_t i = 0; i < cd.baseclasses.length; i++)
         {
             const bc = (*cd.baseclasses)[i];
             const uint elementlen = 4 + cgcv.sz_idx + cv4_numericbytes(bc.offset);
@@ -723,7 +723,7 @@ void toDebug(ClassDeclaration cd)
         }
     }
 
-    for (size_t i = 0; i < cd.members.dim; i++)
+    for (size_t i = 0; i < cd.members.length; i++)
     {
         Dsymbol s = (*cd.members)[i];
         s.apply(&cv_mem_count, &mc);
@@ -743,7 +743,7 @@ void toDebug(ClassDeclaration cd)
             ubyte* p = base;
 
             // Add in base classes
-            for (size_t i = 0; i < cd.baseclasses.dim; i++)
+            for (size_t i = 0; i < cd.baseclasses.length; i++)
             {
                 BaseClass *bc = (*cd.baseclasses)[i];
                 const idx_t typidx2 = cv4_typidx(Type_toCtype(bc.sym.type).Tnext);
