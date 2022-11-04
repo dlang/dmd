@@ -33,5 +33,5 @@ void bar()
 void main()
 {
     bar();
-    assert(result == "ABB");
+    assert(result == "AABB");
 }
