@@ -7083,12 +7083,14 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             else
             {
                 .error(loc, "%s `%s` does not match any template declaration", kind(), toPrettyChars());
-                if (tdecl)
-                    .errorSupplemental(loc, "Candidates are:");
-                for (; tdecl; tdecl = tdecl.overnext)
-                {
-                    .errorSupplemental(tdecl.loc, "%s", tdecl.toChars());
-                }
+                bool found;
+                overloadApply(tempdecl, (s){
+                    if (!found)
+                        errorSupplemental(loc, "Candidates are:");
+                    found = true;
+                    errorSupplemental(s.loc, "%s", s.toChars());
+                    return 0;
+                });
             }
             return false;
         }
