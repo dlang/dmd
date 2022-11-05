@@ -3352,53 +3352,37 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
 {
     // max num of overloads to print (-v overrides this).
     enum int DisplayLimit = 5;
-    int displayed;
     const(char)* constraintsTip;
-
     // determine if the first candidate was printed
-    bool printed = false;
-    int count;
-    overloadApply(declaration, (Dsymbol s)
-    {
-        if (auto fd = s.isFuncDeclaration())
-        {
-            if (fd.errors || fd.type.ty == Terror)
-                return 0;
-            if (fd.storage_class & STC.disable || (fd.isDeprecated() && !showDeprecated))
-                return 0;
-        }
-        count++;
-        return count > 1; // early exit
-    });
-    const single_candidate = count == 1;
-    overloadApply(declaration, (Dsymbol s)
-    {
-        Dsymbol nextOverload;
+    int printed;
 
+    bool matchSymbol(Dsymbol s, bool print, bool single_candidate = false)
+    {
         if (auto fd = s.isFuncDeclaration())
         {
             // Don't print overloads which have errors.
             // Not that if the whole overload set has errors, we'll never reach
             // this point so there's no risk of printing no candidate
             if (fd.errors || fd.type.ty == Terror)
-                return 0;
+                return false;
             // Don't print disabled functions, or `deprecated` outside of deprecated scope
             if (fd.storage_class & STC.disable || (fd.isDeprecated() && !showDeprecated))
-                return 0;
-
+                return false;
+            if (!print)
+                return true;
             auto tf = cast(TypeFunction) fd.type;
             .errorSupplemental(fd.loc,
                     printed ? "                `%s%s`" :
                     single_candidate ? "Candidate is: `%s%s`" : "Candidates are: `%s%s`",
                     fd.toPrettyChars(),
                 parametersTypeToChars(tf.parameterList));
-            printed = true;
-            nextOverload = fd.overnext;
         }
         else if (auto td = s.isTemplateDeclaration())
         {
             import dmd.staticcond;
 
+            if (!print)
+                return true;
             const tmsg = td.toCharsNoConstraints();
             const cmsg = td.getConstraintEvalError(constraintsTip);
 
@@ -3411,7 +3395,6 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
                         printed ? "                `%s`\n%s" :
                         single_candidate ? "Candidate is: `%s`\n%s" : "Candidates are: `%s`\n%s",
                         tmsg, cmsg);
-                printed = true;
             }
             else
             {
@@ -3419,26 +3402,38 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
                         printed ? "                `%s`" :
                         single_candidate ? "Candidate is: `%s`" : "Candidates are: `%s`",
                         tmsg);
-                printed = true;
             }
-            nextOverload = td.overnext;
         }
-
-        if (global.params.verbose || ++displayed < DisplayLimit)
-            return 0;
-
-        // Too many overloads to sensibly display.
-        // Just show count of remaining overloads.
-        int num = 0;
-        overloadApply(nextOverload, (s) { ++num; return 0; });
-
-        if (num > 0)
-            .errorSupplemental(loc, "... (%d more, -v to show) ...", num);
-        return 1;   // stop iterating
+        return true;
+    }
+    // determine if there's > 1 candidate
+    int count = 0;
+    overloadApply(declaration, (s) {
+        if (matchSymbol(s, false))
+            count++;
+        return count > 1;
     });
+    int skipped = 0;
+    overloadApply(declaration, (s) {
+        if (global.params.verbose || printed < DisplayLimit)
+        {
+            if (matchSymbol(s, true, count == 1))
+                printed++;
+        }
+        else
+        {
+            // Too many overloads to sensibly display.
+            // Just show count of remaining overloads.
+            if (matchSymbol(s, false))
+                skipped++;
+        }
+        return 0;
+    });
+    if (skipped > 0)
+        .errorSupplemental(loc, "... (%d more, -v to show) ...", skipped);
 
     // Nothing was displayed, all overloads are either disabled or deprecated
-    if (!displayed)
+    if (!printed)
         .errorSupplemental(loc, "All possible candidates are marked as `deprecated` or `@disable`");
     // should be only in verbose mode
     if (constraintsTip)
