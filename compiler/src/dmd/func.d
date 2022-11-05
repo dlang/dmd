@@ -3357,7 +3357,20 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
 
     // determine if the first candidate was printed
     bool printed = false;
-
+    int count;
+    overloadApply(declaration, (Dsymbol s)
+    {
+        if (auto fd = s.isFuncDeclaration())
+        {
+            if (fd.errors || fd.type.ty == Terror)
+                return 0;
+            if (fd.storage_class & STC.disable || (fd.isDeprecated() && !showDeprecated))
+                return 0;
+        }
+        count++;
+        return count > 1; // early exit
+    });
+    const single_candidate = count == 1;
     overloadApply(declaration, (Dsymbol s)
     {
         Dsymbol nextOverload;
@@ -3373,7 +3386,6 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
             if (fd.storage_class & STC.disable || (fd.isDeprecated() && !showDeprecated))
                 return 0;
 
-            const single_candidate = fd.overnext is null;
             auto tf = cast(TypeFunction) fd.type;
             .errorSupplemental(fd.loc,
                     printed ? "                `%s%s`" :
@@ -3389,8 +3401,6 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
 
             const tmsg = td.toCharsNoConstraints();
             const cmsg = td.getConstraintEvalError(constraintsTip);
-
-            const single_candidate = td.overnext is null;
 
             // add blank space if there are multiple candidates
             // the length of the blank space is `strlen("Candidates are: ")`

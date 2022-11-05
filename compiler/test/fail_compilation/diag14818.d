@@ -2,7 +2,7 @@
 TEST_OUTPUT:
 ---
 fail_compilation/diag14818.d(40): Error: none of the overloads of `func` are callable using argument types `(string)`
-fail_compilation/diag14818.d(18):        Candidate is: `diag14818.foo(int _param_0)`
+fail_compilation/diag14818.d(18):        Candidates are: `diag14818.foo(int _param_0)`
 fail_compilation/diag14818.d(19):                        `diag14818.bar(double _param_0)`
 fail_compilation/diag14818.d(41): Error: template instance `diag14818.X!string` does not match any template declaration
 fail_compilation/diag14818.d(41):        Candidates are:
