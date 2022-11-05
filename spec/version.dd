@@ -741,13 +741,18 @@ $(H2 $(LEGACY_LNAME2 StaticAssert, static-assert, Static Assert))
 
 $(GRAMMAR
 $(GNAME StaticAssert):
-    $(D static assert $(LPAREN)) $(GLINK2 expression, AssertArguments) $(D $(RPAREN) ;)
+    $(D static assert $(LPAREN)) $(GLINK2 expression, ArgumentList) $(D $(RPAREN) ;)
 )
 
         $(P The first $(ASSIGNEXPRESSION) is evaluated at compile time, and converted
         to a boolean value. If the value is true, the static assert
         is ignored. If the value is false, an error diagnostic is issued
         and the compile fails.
+        )
+
+        $(P On failure, any subsequent $(I AssignExpression)s will each be
+        converted to string and then concatenated. The resulting string will
+        be printed out along with the error diagnostic.
         )
 
         $(P Unlike $(GLINK2 expression, AssertExpression)s, $(I StaticAssert)s are always
@@ -777,10 +782,6 @@ void foo()
         configurations not supported in the code.
         )
 
-        $(P The optional second $(ASSIGNEXPRESSION) can be used to supply
-        additional information, such as a text string, that will be
-        printed out along with the error diagnostic.
-        )
 $(SPEC_SUBNAV_PREV_NEXT contracts, Contract Programming, traits, Traits)
 )
 
