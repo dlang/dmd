@@ -246,7 +246,6 @@ public int runLINK()
             OutBuffer cmdbuf;
             cmdbuf.writestring("/NOLOGO /OPT:REF");
             cmdbuf.writestring(driverParams.symdebug ? " /OPT:NOICF" : " /OPT:ICF");
-
             for (size_t i = 0; i < global.params.objfiles.length; i++)
             {
                 cmdbuf.writeByte(' ');
