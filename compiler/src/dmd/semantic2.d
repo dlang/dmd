@@ -113,7 +113,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
         if (sa.msg)
         {
             OutBuffer msgbuf;
-            for (size_t i = 0; i < sa.msg.dim; i++)
+            for (size_t i = 0; i < sa.msg.length; i++)
             {
                 Expression e = (*sa.msg)[i];
                 sc = sc.startCTFE();
@@ -135,8 +135,8 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 if (se)
                 {
                     const slice = se.toUTF8(sc).peekString();
-                    // Hack to keep old formatting to avoid changin error mesages everywhere
-                    if (sa.msg.dim == 1)
+                    // Hack to keep old formatting to avoid changing error messages everywhere
+                    if (sa.msg.length == 1)
                         msgbuf.printf("\"%.*s\"", cast(int)slice.length, slice.ptr);
                     else
                         msgbuf.printf("%.*s", cast(int)slice.length, slice.ptr);
