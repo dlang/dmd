@@ -62,3 +62,6 @@ void main()
     t_1();
     t_2();
 }
+
+// ignored
+deprecated void f_2(char);
