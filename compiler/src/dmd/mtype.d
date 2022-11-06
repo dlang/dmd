@@ -4686,7 +4686,7 @@ extern (C++) final class TypeFunction : TypeNext
         if (parameterList.varargs == VarArg.none && nparams > nargs && !parameterList[nargs].defaultArg)
         {
             OutBuffer buf;
-            buf.printf("too few arguments, expected `%d`, got `%d`", cast(int)nparams, cast(int)nargs);
+            buf.printf("too few arguments, expected %d, got %d", cast(int)nparams, cast(int)nargs);
             if (pMessage)
                 *pMessage = buf.extractChars();
             return MATCH.nomatch;

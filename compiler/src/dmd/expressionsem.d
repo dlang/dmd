@@ -4232,7 +4232,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 exp.error("function literal `%s%s` is not callable using argument types `(%s)`",
                           exp.fd.toChars(), parametersTypeToChars(tfl.parameterList),
                           buf.peekChars());
-                exp.errorSupplemental("too %s arguments, expected `%d`, got `%d`",
+                exp.errorSupplemental("too %s arguments, expected %d, got %d",
                                       arguments.length < dim ? "few".ptr : "many".ptr,
                                       cast(int)dim, cast(int)arguments.length);
                 return ErrorExp.get();
