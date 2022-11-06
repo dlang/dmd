@@ -380,7 +380,10 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
         fputs(tmp.peekChars(), stderr);
     fputc('\n', stderr);
 
+    static Loc old_loc;
     if (global.params.printErrorContext &&
+        // ignore supplemental messages with same loc
+        (loc != old_loc || strchr(header, ':')) &&
         // ignore invalid files
         loc != Loc.initial &&
         // ignore mixins for now
@@ -416,6 +419,7 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
             }
         }
     }
+    old_loc = loc;
     fflush(stderr);     // ensure it gets written out in case of compiler aborts
 }
 
@@ -475,6 +479,7 @@ private void _verrorSupplemental(const ref Loc loc, const(char)* format, va_list
     }
     else
         color = Classification.error;
+
     verrorPrint(loc, color, "       ", format, ap);
 }
 
