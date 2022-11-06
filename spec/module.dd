@@ -235,7 +235,6 @@ $(H3 $(LNAME2 name_lookup, Symbol Name Lookup))
 
 $(P The simplest form of importing is to just list the modules being imported:)
 
-$(RUNNABLE_EXAMPLE
 ---------
 module myapp.main;
 
@@ -251,7 +250,6 @@ class Foo : BaseClass
     }
 }
 ---------
-)
 
 $(P When a symbol name is used unqualified, a two-phase lookup is used.
 First, the module scope is searched, starting from the innermost scope.
@@ -408,7 +406,7 @@ $(H3 $(LNAME2 selective_imports, Selective Imports))
 $(P Specific symbols can be exclusively imported from a module and bound into
 the current namespace:)
 
-$(RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 ---
 import std.stdio : writeln, foo = write;
 
@@ -429,7 +427,7 @@ $(H3 $(LNAME2 renamed_selective_imports, Renamed and Selective Imports))
 
 $(P When renaming and selective importing are combined:)
 
-$(RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 ------------
 import io = std.stdio : foo = writeln;
 
