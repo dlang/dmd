@@ -4490,7 +4490,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             if (ident)
                 checkCstyleTypeSyntax(loc, t, alt, ident);
             else if (!isThis && (t != AST.Type.terror))
-                error("no identifier for declarator `%s`", t.toChars());
+                noIdentifierForDeclarator(t);
 
             if (isAliasDeclaration)
             {
@@ -4706,6 +4706,19 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             break;
         }
         return a;
+    }
+
+    /// Report an error that a declaration of type `t` is missing an identifier
+    /// The parser is expected to sit on the next token after the type.
+    private void noIdentifierForDeclarator(AST.Type t)
+    {
+        error("no identifier for declarator `%s`", t.toChars());
+        // A common mistake is to use a reserved keyword as an identifier, e.g. `in` or `out`
+        if (token.isKeyword)
+        {
+            errorSupplemental(token.loc, "`%s` is a keyword, perhaps append `_` to make it an identifier", token.toChars());
+            nextToken();
+        }
     }
 
     /********************************
@@ -5491,7 +5504,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             }
             at = parseType(&ai);
             if (!ai)
-                error("no identifier for declarator `%s`", at.toChars());
+                noIdentifierForDeclarator(at);
         Larg:
             auto p = new AST.Parameter(storageClass, at, ai, null, null);
             parameters.push(p);

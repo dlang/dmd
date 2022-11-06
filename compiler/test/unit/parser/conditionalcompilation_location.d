@@ -98,7 +98,7 @@ static foreach (test; tests)
     @(test.description)
     unittest
     {
-        auto t = parseModule("test.d", "first_token " ~ test.code);
+        auto t = parseModule("test.d", "            " ~ test.code);
 
         scope visitor = new Visitor;
         t.module_.accept(visitor);
