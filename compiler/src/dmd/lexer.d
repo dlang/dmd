@@ -1476,6 +1476,7 @@ class Lexer
         stringbuffer.setsize(0);
         while (1)
         {
+            const s = p;
             dchar c = *p++;
             //printf("c = '%c'\n", c);
             switch (c)
@@ -1535,7 +1536,7 @@ class Lexer
                 {
                     // Start of identifier; must be a heredoc
                     Token tok;
-                    p--;
+                    p = s;
                     scan(&tok); // read in heredoc identifier
                     if (tok.value != TOK.identifier)
                     {
@@ -1583,7 +1584,7 @@ class Lexer
                 {
                     Token tok;
                     auto psave = p;
-                    p--;
+                    p = s;
                     scan(&tok); // read in possible heredoc identifier
                     //printf("endid = '%s'\n", tok.ident.toChars());
                     if (tok.value == TOK.identifier && tok.ident is hereid)
