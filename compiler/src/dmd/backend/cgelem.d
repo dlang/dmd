@@ -4336,6 +4336,9 @@ private elem * elcmp(elem *e, goal_t goal)
 
     //printf("elcmp(%p)\n",e); elem_print(e);
 
+    if (tyvector(e1.Ety))       // vectors don't give boolean result
+        return e;
+
     if (OPTIMIZER)
     {
         auto op = e.Eoper;

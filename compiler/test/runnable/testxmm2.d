@@ -203,6 +203,20 @@ void test3() { }
 }
 
 /*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=23462
+
+int4 notMask(int4 a) { return a == 0; }
+
+void test23462()
+{
+    int4 x = [1,2,3,4];
+    x = notMask(x);
+    assert(x.array == [0,0,0,0]);
+    x = notMask(x);
+    assert(x.array == [~0,~0,~0,~0]);
+}
+
+/*****************************************/
 
 void testunscmp()
 {
@@ -262,6 +276,7 @@ int main()
     testz4();
     test2();
     test3();
+    test23462();
     testunscmp();
     testflt();
     testdbl();
