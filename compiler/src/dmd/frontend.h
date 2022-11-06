@@ -7422,6 +7422,7 @@ class CallExp final : public UnaExp
 {
 public:
     Array<Expression* >* arguments;
+    Array<Identifier* >* names;
     FuncDeclaration* f;
     bool directcall;
     bool inDebugStatement;

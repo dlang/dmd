@@ -1285,7 +1285,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             if (token.value == TOK.leftParenthesis)
             {
                 const loc = token.loc;
-                exp = new AST.CallExp(loc, exp, parseArguments());
+                AST.Expressions* args = new AST.Expressions();
+                AST.Identifiers* names = new AST.Identifiers();
+                parseNamedArguments(args, names);
+                exp = new AST.CallExp(loc, exp, args, names);
             }
 
             if (udas is null)
@@ -8912,7 +8915,10 @@ LagainStc:
                 break;
 
             case TOK.leftParenthesis:
-                e = new AST.CallExp(loc, e, parseArguments());
+                AST.Expressions* args = new AST.Expressions();
+                AST.Identifiers* names = new AST.Identifiers();
+                parseNamedArguments(args, names);
+                e = new AST.CallExp(loc, e, args, names);
                 continue;
 
             case TOK.leftBracket:
@@ -9347,26 +9353,52 @@ LagainStc:
     private AST.Expressions* parseArguments()
     {
         // function call
-        AST.Expressions* arguments;
+        AST.Expressions* arguments = new AST.Expressions();
+        parseNamedArguments(arguments, null);
+        return arguments;
+    }
 
-        arguments = new AST.Expressions();
+    /*************************
+     * Collect argument list.
+     * Assume current token is ',', '$(LPAREN)' or '['.
+     */
+    private void parseNamedArguments(AST.Expressions* arguments, AST.Identifiers* names)
+    {
+        assert(arguments);
+
         const endtok = token.value == TOK.leftBracket ? TOK.rightBracket : TOK.rightParenthesis;
 
         nextToken();
 
         while (token.value != endtok && token.value != TOK.endOfFile)
         {
+            if (peekNext() == TOK.colon)
+            {
+                // Named argument `name: exp`
+                auto loc = token.loc;
+                auto ident = token.ident;
+                check(TOK.identifier);
+                check(TOK.colon);
+                if (names)
+                    names.push(ident);
+                else
+                    error(loc, "named arguments not allowed here");
+            }
+            else
+            {
+                if (names)
+                    names.push(null);
+            }
+
             auto arg = parseAssignExp();
             arguments.push(arg);
+
             if (token.value != TOK.comma)
                 break;
 
             nextToken(); //comma
         }
-
         check(endtok);
-
-        return arguments;
     }
 
     /*******************************************

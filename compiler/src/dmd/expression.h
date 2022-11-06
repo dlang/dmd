@@ -826,6 +826,7 @@ class CallExp final : public UnaExp
 {
 public:
     Expressions *arguments;     // function arguments
+    Identifiers *names;
     FuncDeclaration *f;         // symbol to call
     bool directcall;            // true if a virtual call is devirtualized
     bool inDebugStatement;      // true if this was in a debug statement

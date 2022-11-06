@@ -5079,16 +5079,18 @@ extern (C++) final class DotTypeExp : UnaExp
 extern (C++) final class CallExp : UnaExp
 {
     Expressions* arguments; // function arguments
+    Identifiers* names;       // named argument identifiers
     FuncDeclaration f;      // symbol to call
     bool directcall;        // true if a virtual call is devirtualized
     bool inDebugStatement;  /// true if this was in a debug statement
     bool ignoreAttributes;  /// don't enforce attributes (e.g. call @gc function in @nogc code)
     VarDeclaration vthis2;  // container for multi-context
 
-    extern (D) this(const ref Loc loc, Expression e, Expressions* exps)
+    extern (D) this(const ref Loc loc, Expression e, Expressions* exps, Identifiers* names = null)
     {
         super(loc, EXP.call, __traits(classInstanceSize, CallExp), e);
         this.arguments = exps;
+        this.names = names;
     }
 
     extern (D) this(const ref Loc loc, Expression e)
@@ -5155,7 +5157,7 @@ extern (C++) final class CallExp : UnaExp
 
     override CallExp syntaxCopy()
     {
-        return new CallExp(loc, e1.syntaxCopy(), arraySyntaxCopy(arguments));
+        return new CallExp(loc, e1.syntaxCopy(), arraySyntaxCopy(arguments), names);
     }
 
     override bool isLvalue()
