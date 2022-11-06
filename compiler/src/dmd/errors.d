@@ -381,6 +381,8 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
     fputc('\n', stderr);
 
     if (global.params.printErrorContext &&
+        // ignore supplemental
+        strchr(header, ':') &&
         // ignore invalid files
         loc != Loc.initial &&
         // ignore mixins for now
@@ -475,6 +477,7 @@ private void _verrorSupplemental(const ref Loc loc, const(char)* format, va_list
     }
     else
         color = Classification.error;
+
     verrorPrint(loc, color, "       ", format, ap);
 }
 
