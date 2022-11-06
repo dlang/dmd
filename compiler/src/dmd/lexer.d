@@ -530,7 +530,7 @@ class Lexer
                             const u = decodeUTF();
                             if (isUniAlpha(u))
                                 continue;
-                            error("char 0x%04x not allowed in identifier", u);
+                            error(t.loc, "char 0x%04x not allowed in identifier", u);
                             p = s;
                         }
                         break;
@@ -628,7 +628,7 @@ class Lexer
                                 continue;
                             case 0:
                             case 0x1A:
-                                error("unterminated /* */ comment");
+                                error(t.loc, "unterminated /* */ comment");
                                 p = end;
                                 t.loc = loc();
                                 t.value = TOK.endOfFile;
@@ -764,7 +764,7 @@ class Lexer
                                 continue;
                             case 0:
                             case 0x1A:
-                                error("unterminated /+ +/ comment");
+                                error(t.loc, "unterminated /+ +/ comment");
                                 p = end;
                                 t.loc = loc();
                                 t.value = TOK.endOfFile;
@@ -1134,11 +1134,12 @@ class Lexer
                         }
                     }
                     if (c < 0x80 && isprint(c))
-                        error("character '%c' is not a valid token", c);
+                        error(t.loc, "character '%c' is not a valid token", c);
                     else
-                        error("character 0x%02x is not a valid token", c);
+                        error(t.loc, "character 0x%02x is not a valid token", c);
                     p++;
                     continue;
+                    // assert(0);
                 }
             }
         }
