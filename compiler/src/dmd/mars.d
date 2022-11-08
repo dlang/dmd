@@ -1575,7 +1575,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             {
                 foreach (i, cs; s)
                 {
-                    foreach (cp; "<=[]")
+                    foreach (cp; "<=[] ")
                         if (cs == cp)
                             return s[0..i];
                 }
