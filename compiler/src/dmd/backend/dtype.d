@@ -304,6 +304,10 @@ L1:
             case TYldouble:
                 assert(0);
 
+            case TYcdouble:
+                sz = 8;         // not 16
+                break;
+
             default:
             err1:                   // let type_size() handle error messages
                 sz = type_size(t);
