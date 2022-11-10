@@ -120,11 +120,6 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 e = e.expressionSemantic(sc);
                 e = resolveProperties(sc, e);
                 sc = sc.endCTFE();
-                if (e.type && e.type.ty == Tvoid)
-                {
-                    error(sa.loc, "cannot pass argument `%s` to `static assert` because it is `void`", e.toChars());
-                    return;
-                }
                 e = ctfeInterpretForPragmaMsg(e);
                 if (e.op == EXP.error)
                 {
