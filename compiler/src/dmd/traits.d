@@ -940,69 +940,90 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         e.ident == Id.getVirtualMethods ||
         e.ident == Id.getVirtualFunctions)
     {
-        if (dim != 2 && !(dim == 3 && e.ident == Id.getOverloads))
-            return dimError(2);
-
-        auto o = (*e.args)[0];
-        auto ex = isExpression((*e.args)[1]);
-        if (!ex)
+        if (e.ident == Id.getOverloads)
         {
-            e.error("expression expected as second argument of __traits `%s`", e.ident.toChars());
-            return ErrorExp.get();
-        }
-        ex = ex.ctfeInterpret();
-
-        bool includeTemplates = false;
-        if (dim == 3 && e.ident == Id.getOverloads)
-        {
-            auto b = isExpression((*e.args)[2]);
-            b = b.ctfeInterpret();
-            if (!b.type.equals(Type.tbool))
+            if (dim < 1 || 3 < dim)
             {
-                e.error("`bool` expected as third argument of `__traits(getOverloads)`, not `%s` of type `%s`", b.toChars(), b.type.toChars());
+                e.error("expected 1, 2 or 3 arguments for `__traits(getOverloads)` but had %d", cast(int)dim);
                 return ErrorExp.get();
             }
-            includeTemplates = b.toBool().get();
         }
+        else if (dim != 2)
+            return dimError(2);
 
-        StringExp se = ex.toStringExp();
-        if (!se || se.len == 0)
+        bool includeTemplates = false;
+        Expression ex = null;
+        Dsymbol sym = null;
+        Dsymbol f = null;
+        auto o = (*e.args)[0];
+        if (e.ident == Id.getOverloads && dim == 1)
         {
-            e.error("string expected as second argument of __traits `%s` instead of `%s`", e.ident.toChars(), ex.toChars());
-            return ErrorExp.get();
+            includeTemplates = true;
+            f = getDsymbol(o);
         }
-        se = se.toUTF8(sc);
-
-        if (se.sz != 1)
-        {
-            e.error("string must be chars");
-            return ErrorExp.get();
-        }
-        auto id = Identifier.idPool(se.peekString());
-
-        /* Prefer a Type, because getDsymbol(Type) can lose type modifiers.
-           Then a Dsymbol, because it might need some runtime contexts.
-         */
-
-        Dsymbol sym = getDsymbol(o);
-        if (auto t = isType(o))
-            ex = typeDotIdExp(e.loc, t, id);
-        else if (sym)
-        {
-            if (e.ident == Id.hasMember)
-            {
-                if (auto sm = sym.search(e.loc, id))
-                    return True();
-            }
-            ex = new DsymbolExp(e.loc, sym);
-            ex = new DotIdExp(e.loc, ex, id);
-        }
-        else if (auto ex2 = isExpression(o))
-            ex = new DotIdExp(e.loc, ex2, id);
         else
         {
-            e.error("invalid first argument");
-            return ErrorExp.get();
+            ex = isExpression((*e.args)[1]);
+            if (!ex)
+            {
+                e.error("expression expected as second argument of __traits `%s`", e.ident.toChars());
+                return ErrorExp.get();
+            }
+            ex = ex.ctfeInterpret();
+
+            if (dim == 3 && e.ident == Id.getOverloads)
+            {
+                auto b = isExpression((*e.args)[2]);
+                b = b.ctfeInterpret();
+                if (!b.type.equals(Type.tbool))
+                {
+                    e.error("`bool` expected as third argument of `__traits(getOverloads)`, not `%s` of type `%s`",
+                        b.toChars(), b.type.toChars());
+                    return ErrorExp.get();
+                }
+                includeTemplates = b.toBool().get();
+            }
+
+            StringExp se = ex.toStringExp();
+            if (!se || se.len == 0)
+            {
+                e.error("string expected as second argument of __traits `%s` instead of `%s`",
+                    e.ident.toChars(), ex.toChars());
+                return ErrorExp.get();
+            }
+            se = se.toUTF8(sc);
+
+            if (se.sz != 1)
+            {
+                e.error("string must be chars");
+                return ErrorExp.get();
+            }
+            auto id = Identifier.idPool(se.peekString());
+
+            /* Prefer a Type, because getDsymbol(Type) can lose type modifiers.
+            Then a Dsymbol, because it might need some runtime contexts.
+            */
+
+            sym = getDsymbol(o);
+            if (auto t = isType(o))
+                ex = typeDotIdExp(e.loc, t, id);
+            else if (sym)
+            {
+                if (e.ident == Id.hasMember)
+                {
+                    if (auto sm = sym.search(e.loc, id))
+                        return True();
+                }
+                ex = new DsymbolExp(e.loc, sym);
+                ex = new DotIdExp(e.loc, ex, id);
+            }
+            else if (auto ex2 = isExpression(o))
+                ex = new DotIdExp(e.loc, ex2, id);
+            else
+            {
+                e.error("invalid first argument");
+                return ErrorExp.get();
+            }
         }
 
         // ignore symbol visibility and disable access checks for these traits
@@ -1029,56 +1050,60 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                  e.ident == Id.getVirtualMethods ||
                  e.ident == Id.getOverloads)
         {
-            uint errors = global.errors;
-            Expression eorig = ex;
-            ex = ex.expressionSemantic(scx);
-            if (errors < global.errors)
-                e.error("`%s` cannot be resolved", eorig.toChars());
+            if (e.ident == Id.getVirtualFunctions || e.ident == Id.getVirtualMethods
+                || e.ident == Id.getOverloads && dim != 1)
+            {
+                uint errors = global.errors;
+                Expression eorig = ex;
+                ex = ex.expressionSemantic(scx);
+                if (errors < global.errors)
+                    e.error("`%s` cannot be resolved", eorig.toChars());
 
-            if (e.ident == Id.getVirtualFunctions)
-            {
-                // @@@DEPRECATED2.121@@@
-                // Deprecated in 2.101 - Can be removed from 2.121
-                e.deprecation("`traits(getVirtualFunctions)` is deprecated. Use `traits(getVirtualMethods)` instead");
-            }
+                if (e.ident == Id.getVirtualFunctions)
+                {
+                    // @@@DEPRECATED2.121@@@
+                    // Deprecated in 2.101 - Can be removed from 2.121
+                    e.deprecation(
+                        "`traits(getVirtualFunctions)` is deprecated. Use `traits(getVirtualMethods)` instead");
+                }
 
-            /* Create tuple of functions of ex
-             */
-            auto exps = new Expressions();
-            Dsymbol f;
-            if (auto ve = ex.isVarExp)
-            {
-                if (ve.var.isFuncDeclaration() || ve.var.isOverDeclaration())
-                    f = ve.var;
-                ex = null;
-            }
-            else if (auto dve = ex.isDotVarExp)
-            {
-                if (dve.var.isFuncDeclaration() || dve.var.isOverDeclaration())
-                    f = dve.var;
-                if (dve.e1.op == EXP.dotType || dve.e1.op == EXP.this_)
+                /* Create tuple of functions of ex
+                */
+                if (auto ve = ex.isVarExp)
+                {
+                    if (ve.var.isFuncDeclaration() || ve.var.isOverDeclaration())
+                        f = ve.var;
                     ex = null;
-                else
-                    ex = dve.e1;
+                }
+                else if (auto dve = ex.isDotVarExp)
+                {
+                    if (dve.var.isFuncDeclaration() || dve.var.isOverDeclaration())
+                        f = dve.var;
+                    if (dve.e1.op == EXP.dotType || dve.e1.op == EXP.this_)
+                        ex = null;
+                    else
+                        ex = dve.e1;
+                }
+                else if (auto te = ex.isTemplateExp)
+                {
+                    auto td = te.td;
+                    f = td;
+                    if (td && td.funcroot)
+                        f = td.funcroot;
+                    ex = null;
+                }
+                else if (auto dte = ex.isDotTemplateExp)
+                {
+                    auto td = dte.td;
+                    f = td;
+                    if (td && td.funcroot)
+                        f = td.funcroot;
+                    ex = null;
+                    if (dte.e1.op != EXP.dotType && dte.e1.op != EXP.this_)
+                        ex = dte.e1;
+                }
             }
-            else if (auto te = ex.isTemplateExp)
-            {
-                auto td = te.td;
-                f = td;
-                if (td && td.funcroot)
-                    f = td.funcroot;
-                ex = null;
-            }
-            else if (auto dte = ex.isDotTemplateExp)
-            {
-                auto td = dte.td;
-                f = td;
-                if (td && td.funcroot)
-                    f = td.funcroot;
-                ex = null;
-                if (dte.e1.op != EXP.dotType && dte.e1.op != EXP.this_)
-                    ex = dte.e1;
-            }
+            auto exps = new Expressions();
             bool[string] funcTypeHash;
 
             /* Compute the function signature and insert it in the
@@ -1095,7 +1120,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             void insertInterfaceInheritedFunction(FuncDeclaration fd, Expression e)
             {
                 auto signature = fd.type.toString();
-                //printf("%s - %s\n", fd.toChars, signature);
+                //printf("%s - %s\n", fd.toChars, signature.ptr);
                 if (signature !in funcTypeHash)
                 {
                     funcTypeHash[signature] = true;
@@ -1103,8 +1128,21 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 }
             }
 
+            /**
+             * I don't fully understand this.
+             * When resolving overloads on a symbol that is overloaded via pure import, we must
+             * recurse into `overnext` so that all leaves are found.
+             * However, this means that if hijack prevention is bypassed via `alias`, this symbol
+             * is found twice. I'm not sure how to prevent this, so use brute force:
+             */
+            Dsymbols visited;
+
             int dg(Dsymbol s)
             {
+                if (visited.contains(s))
+                    return 0;
+                visited.push(s);
+
                 auto fd = s.isFuncDeclaration();
                 if (!fd)
                 {
@@ -1159,6 +1197,10 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                     insertInterfaceInheritedFunction(fd, e);
                 else
                     exps.push(e);
+                // To avoid breaking compatibility, descend into
+                // overloads only in the single-argument form of getOverloads.
+                if (dim == 1 && fd.overnext)
+                    return dg(fd.overnext);
                 return 0;
             }
 
