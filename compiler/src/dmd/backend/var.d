@@ -938,7 +938,7 @@ __gshared byte[256] _tyalignsize =
     TYildouble : SET_ALIGN,
 
     TYcfloat   : 2*FLOATSIZE,
-    TYcdouble  : 2*DOUBLESIZE,
+    TYcdouble  : DOUBLESIZE,
     TYcldouble : SET_ALIGN,
 
     TYfloat4  : 16,
