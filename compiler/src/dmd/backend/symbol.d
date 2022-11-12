@@ -338,7 +338,10 @@ Symbol * symbol_calloc(const(char)* id)
 
 @trusted
 Symbol * symbol_calloc(const(char)* id, uint len)
-{   Symbol *s;
+{
+    return symbol_calloc2(id[0 .. len]);
+/+
+    Symbol *s;
 
     //printf("sizeof(symbol)=%d, sizeof(s.Sident)=%d, len=%d\n", symbol.sizeof, s.Sident.sizeof, cast(int)len);
     s = cast(Symbol *) mem_fmalloc(Symbol.sizeof - s.Sident.length + len + 1 + 5);
@@ -357,6 +360,29 @@ debug
 }
     memcpy(s.Sident.ptr,id,len + 1);
     s.Ssymnum = SYMIDX.max;
+    return s;
++/
+}
+
+@trusted
+extern (C)
+Symbol * symbol_calloc2(const(char)[] id)
+{
+    //printf("sizeof(symbol)=%d, sizeof(s.Sident)=%d, len=%d\n", symbol.sizeof, s.Sident.sizeof, cast(int)id.length);
+    Symbol* s = cast(Symbol *) mem_fmalloc(Symbol.sizeof - Symbol.Sident.length + id.length + 1 + 5);
+    memset(s,0,Symbol.sizeof - s.Sident.length);
+version (SCPP_HTOD)
+{
+    s.Ssequence = pstate.STsequence;
+    pstate.STsequence += 1;
+    //if (s.Ssequence == 0x21) *cast(char*)0=0;
+}
+    memcpy(s.Sident.ptr,id.ptr,id.length);
+    s.Sident.ptr[id.length] = 0;
+    s.Ssymnum = SYMIDX.max;
+    if (debugy)
+        printf("symbol_calloc('%s') = %p\n",s.Sident.ptr,s);
+    debug s.id = Symbol.IDsymbol;
     return s;
 }
 
