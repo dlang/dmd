@@ -439,14 +439,14 @@ private Symbol *el_alloc_localgot()
         //printf("el_alloc_localgot()\n");
         char[15] name = void;
         __gshared int tmpnum;
-        sprintf(name.ptr, "_LOCALGOT%d".ptr, tmpnum++);
+        const length = sprintf(name.ptr, "_LOCALGOT%d".ptr, tmpnum++);
         type *t = type_fake(TYnptr);
         /* Make it volatile because we need it for calling functions, but that isn't
          * noticed by the data flow analysis. Hence, it may get deleted if we don't
          * make it volatile.
          */
         type_setcv(&t, mTYvolatile);
-        localgot = symbol_name(name.ptr, SC.auto_, t);
+        localgot = symbol_name(name[0 .. length], SC.auto_, t);
         symbol_add(localgot);
         localgot.Sfl = FLauto;
         localgot.Sflags = SFLfree | SFLunambig | GTregcand;

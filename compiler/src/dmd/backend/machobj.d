@@ -2879,12 +2879,13 @@ static if (0)
 {
     type *t = type_fake(TYint);
     t.Tmangle = mTYman_c;
-    char *p = cast(char *)malloc(5 + strlen(scc.Sident.ptr) + 1);
+    const len = strlen(scc.Sident.ptr);
+    char *p = cast(char *)malloc(5 + len + 1);
     if (!p)
         err_nomem();
     strcpy(p, "SUPER");
-    strcpy(p + 5, scc.Sident.ptr);
-    Symbol *s_minfo_beg = symbol_name(p, SC.global, t);
+    memcpy(p + 5, scc.Sident.ptr, len);
+    Symbol *s_minfo_beg = symbol_name(p[0 .. len], SC.global, t);
     MachObj_pubdef(seg, s_minfo_beg, 0);
 }
 

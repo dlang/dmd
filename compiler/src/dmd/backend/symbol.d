@@ -361,19 +361,20 @@ debug
 }
 
 /****************************************
- * Create a symbol, given a name and type.
+ * Create a Symbol
+ * Params:
+ *      name = name to give the Symbol
+ *      type = type for the Symbol
+ * Returns:
+ *      created Symbol
  */
 
 @trusted
-Symbol * symbol_name(const(char)* name, SC sclass,type *t)
-{
-    return symbol_name(name, cast(uint)strlen(name), sclass, t);
-}
-
-Symbol * symbol_name(const(char)* name, uint len, SC sclass, type *t)
+extern (C)
+Symbol * symbol_name(const(char)[] name, SC sclass, type *t)
 {
     type_debug(t);
-    Symbol *s = symbol_calloc(name, len);
+    Symbol *s = symbol_calloc(name.ptr, cast(uint)name.length);
     s.Sclass = sclass;
     s.Stype = t;
     s.Stype.Tcount++;
@@ -390,13 +391,11 @@ Symbol * symbol_name(const(char)* name, uint len, SC sclass, type *t)
 @trusted
 Funcsym *symbol_funcalias(Funcsym *sf)
 {
-    Funcsym *s;
-
     symbol_debug(sf);
     assert(tyfunc(sf.Stype.Tty));
     if (sf.Sclass == SC.funcalias)
         sf = sf.Sfunc.Falias;
-    s = cast(Funcsym *)symbol_name(sf.Sident.ptr,SC.funcalias,sf.Stype);
+    auto s = cast(Funcsym *)symbol_name(sf.Sident.ptr[0 .. strlen(sf.Sident.ptr)],SC.funcalias,sf.Stype);
     s.Sfunc.Falias = sf;
 
 version (SCPP_HTOD)
@@ -416,8 +415,8 @@ Symbol * symbol_generate(SC sclass,type *t)
     char[4 + tmpnum.sizeof * 3 + 1] name;
 
     //printf("symbol_generate(_TMP%d)\n", tmpnum);
-    sprintf(name.ptr,"_TMP%d",tmpnum++);
-    Symbol *s = symbol_name(name.ptr,sclass,t);
+    const length = sprintf(name.ptr,"_TMP%d",tmpnum++);
+    Symbol *s = symbol_name(name.ptr[0 .. length],sclass,t);
     //symbol_print(s);
 
 version (MARS)
@@ -512,7 +511,7 @@ void symbol_func(Symbol *s)
 @trusted
 void symbol_struct_addField(Symbol *s, const(char)* name, type *t, uint offset)
 {
-    Symbol *s2 = symbol_name(name, SC.member, t);
+    Symbol *s2 = symbol_name(name[0 .. strlen(name)], SC.member, t);
     s2.Smemoff = offset;
     list_append(&s.Sstruct.Sfldlst, s2);
 }
@@ -532,7 +531,7 @@ void symbol_struct_addField(Symbol *s, const(char)* name, type *t, uint offset)
 void symbol_struct_addBitField(Symbol *s, const(char)* name, type *t, uint offset, uint fieldWidth, uint bitOffset)
 {
     //printf("symbol_struct_addBitField() s: %s\n", s.Sident.ptr);
-    Symbol *s2 = symbol_name(name, SC.field, t);
+    Symbol *s2 = symbol_name(name[0 .. strlen(name)], SC.field, t);
     s2.Smemoff = offset;
     s2.Swidth = cast(ubyte)fieldWidth;
     s2.Sbit = cast(ubyte)bitOffset;

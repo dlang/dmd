@@ -213,7 +213,7 @@ version (MARS)
 {
     if (!(bx.funcsym.Sfunc.Fflags3 & Fnteh)) // if haven't already done it
     {   bx.funcsym.Sfunc.Fflags3 |= Fnteh;
-        s = symbol_name(s_name_context,SC.bprel,tstypes[TYint]);
+        s = symbol_name(s_name_context[0 .. strlen(s_name_context)],SC.bprel,tstypes[TYint]);
         s.Soffset = -5 * 4;            // -6 * 4 for C __try, __except, __finally
         s.Sflags |= SFLfree | SFLnodebug;
         type_setty(&s.Stype,mTYvolatile | TYint);
@@ -229,13 +229,13 @@ else
             s_context = scope_search(s_name_context_tag, CPP ? SCTglobal : SCTglobaltag);
         symbol_debug(s_context);
 
-        s = symbol_name(s_name_context,SC.bprel,s_context.Stype);
+        s = symbol_name(s_name_context[0 .. strlen(s_name_context)],SC.bprel,s_context.Stype);
         s.Soffset = -6 * 4;            // -5 * 4 for C++
         s.Sflags |= SFLfree;
         symbol_add(s);
         type_setty(&s.Stype,mTYvolatile | TYstruct);
 
-        s = symbol_name(s_name_ecode,SC.auto_,type_alloc(mTYvolatile | TYint));
+        s = symbol_name(s_name_ecode[0 .. strlen(s_name_context)],SC.auto_,type_alloc(mTYvolatile | TYint));
         s.Sflags |= SFLfree;
         symbol_add(s);
     }
