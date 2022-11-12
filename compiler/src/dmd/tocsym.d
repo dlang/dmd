@@ -137,7 +137,7 @@ Symbol *toSymbol(Dsymbol s)
             if (vd.isDataseg())
             {
                 mangleToBuffer(vd, &buf);
-                id = buf.peekChars()[0..buf.length]; // symbol_calloc needs zero termination
+                id = buf[];
             }
             else
             {
@@ -147,12 +147,12 @@ Symbol *toSymbol(Dsymbol s)
                     {
                         buf.writestring("__nrvo_");
                         buf.writestring(id);
-                        id = buf.peekChars()[0..buf.length]; // symbol_calloc needs zero termination
+                        id = buf[];
                         isNRVO = true;
                     }
                 }
             }
-            Symbol *s = symbol_calloc(id.ptr, cast(uint)id.length);
+            Symbol *s = symbol_calloc(id);
             s.Salignment = vd.alignment.isDefault() ? -1 : vd.alignment.get();
             if (vd.storage_class & STC.temp)
                 s.Sflags |= SFLartifical;
@@ -338,7 +338,7 @@ Symbol *toSymbol(Dsymbol s)
             //printf("FuncDeclaration.toSymbol(%s %s)\n", fd.kind(), fd.toChars());
             //printf("\tid = '%s'\n", id);
             //printf("\ttype = %s\n", fd.type.toChars());
-            auto s = symbol_calloc(id, cast(uint)strlen(id));
+            auto s = symbol_calloc(id[0 .. strlen(id)]);
 
             s.prettyIdent = fd.toPrettyChars(true);
 
@@ -526,7 +526,7 @@ Symbol *toImport(Symbol *sym, Loc loc)
     t.Tnext.Tcount++;
     t.Tmangle = mTYman_c;
     t.Tcount++;
-    auto s = symbol_calloc(id, idlen);
+    auto s = symbol_calloc(id[0 .. idlen]);
     s.Stype = t;
     s.Sclass = SC.extern_;
     s.Sfl = FLextern;
@@ -712,7 +712,7 @@ Symbol *aaGetSymbol(TypeAArray taa, const(char)* func, int flags)
 
     // Create new Symbol
 
-    auto s = symbol_calloc(id, idlen);
+    auto s = symbol_calloc(id[0 .. idlen]);
     s.Sclass = SC.extern_;
     s.Ssymnum = SYMIDX.max;
     symbol_func(s);
@@ -736,7 +736,7 @@ Symbol* toSymbol(StructLiteralExp sle)
         return sle.sym;
     auto t = type_alloc(TYint);
     t.Tcount++;
-    auto s = symbol_calloc("internal", 8);
+    auto s = symbol_calloc("internal");
     s.Sclass = SC.static_;
     s.Sfl = FLextern;
     s.Sflags |= SFLnodebug;
@@ -756,7 +756,7 @@ Symbol* toSymbol(ClassReferenceExp cre)
         return cre.value.origin.sym;
     auto t = type_alloc(TYint);
     t.Tcount++;
-    auto s = symbol_calloc("internal", 8);
+    auto s = symbol_calloc("internal");
     s.Sclass = SC.static_;
     s.Sfl = FLextern;
     s.Sflags |= SFLnodebug;
@@ -811,7 +811,7 @@ Symbol* toSymbolCpp(ClassDeclaration cd)
 Symbol *toSymbolCppTypeInfo(ClassDeclaration cd)
 {
     const id = target.cpp.typeInfoMangle(cd);
-    auto s = symbol_calloc(id, cast(uint)strlen(id));
+    auto s = symbol_calloc(id[0 .. strlen(id)]);
     s.Sclass = SC.extern_;
     s.Sfl = FLextern;          // C++ code will provide the definition
     s.Sflags |= SFLnodebug;

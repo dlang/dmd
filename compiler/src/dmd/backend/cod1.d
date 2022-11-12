@@ -2105,7 +2105,7 @@ __gshared int clib_inited = false;          // true if initialized
 @trusted
 Symbol* symboly(const(char)* name, regm_t desregs)
 {
-    Symbol *s = symbol_calloc(name);
+    Symbol *s = symbol_calloc(name[0 .. strlen(name)]);
     s.Stype = tsclib;
     s.Sclass = SC.extern_;
     s.Sfl = FLfunc;
