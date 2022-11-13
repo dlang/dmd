@@ -317,9 +317,12 @@ class ScopeGuardStatement;
 class SwitchErrorStatement;
 struct Token;
 struct code;
+struct SymbolProfileEntry;
 class Object;
 class TypeInfo_Class;
 class TypeInfo;
+
+typedef uint64_t size_t;
 
 enum class DYNCAST
 {
@@ -339,6 +342,8 @@ enum class DYNCAST
 class RootObject
 {
 public:
+    size_t serial;
+    static size_t nextSerial;
     RootObject();
     virtual bool equals(const RootObject* const o) const;
     virtual const char* toChars() const;
@@ -393,8 +398,6 @@ enum class CHECKACTION : uint8_t
     halt = 2u,
     context = 3u,
 };
-
-typedef uint64_t size_t;
 
 template <typename T>
 struct Array final
@@ -548,6 +551,7 @@ struct Param final
     Array<const char* > modFileAliasStrings;
     Array<const char* >* imppath;
     Array<const char* >* fileImppath;
+    _d_dynamicArray< const char > traceFile;
     _d_dynamicArray< const char > objdir;
     _d_dynamicArray< const char > objname;
     _d_dynamicArray< const char > libname;
@@ -645,6 +649,7 @@ struct Param final
         modFileAliasStrings(),
         imppath(),
         fileImppath(),
+        traceFile(),
         objdir(),
         objname(),
         libname(),
@@ -674,7 +679,7 @@ struct Param final
         mapfile()
     {
     }
-    Param(bool obj, bool multiobj = false, bool trace = false, bool tracegc = false, bool verbose = false, bool vcg_ast = false, bool showColumns = false, bool vtls = false, bool vtemplates = false, bool vtemplatesListInstances = false, bool vgc = false, bool vfield = false, bool vcomplex = true, bool vin = false, DiagnosticReporting useDeprecated = (DiagnosticReporting)1u, bool useUnitTests = false, bool useInline = false, bool release = false, bool preservePaths = false, DiagnosticReporting warnings = (DiagnosticReporting)2u, bool color = false, bool cov = false, uint8_t covPercent = 0u, bool ctfe_cov = false, bool ignoreUnsupportedPragmas = false, bool useModuleInfo = true, bool useTypeInfo = true, bool useExceptions = true, bool betterC = false, bool addMain = false, bool allInst = false, bool bitfields = false, CppStdRevision cplusplus = (CppStdRevision)201103u, bool showGaggedErrors = false, bool printErrorContext = false, bool manual = false, bool usage = false, bool mcpuUsage = false, bool transitionUsage = false, bool checkUsage = false, bool checkActionUsage = false, bool revertUsage = false, bool previewUsage = false, bool externStdUsage = false, bool hcUsage = false, bool logo = false, FeatureState useDIP25 = (FeatureState)-1, FeatureState useDIP1000 = (FeatureState)-1, bool ehnogc = false, bool useDIP1021 = false, bool fieldwise = false, bool fixAliasThis = false, FeatureState rvalueRefParam = (FeatureState)-1, FeatureState noSharedAccess = (FeatureState)-1, bool previewIn = false, bool inclusiveInContracts = false, bool shortenedMethods = true, bool fixImmutableConv = false, bool fix16997 = true, FeatureState dtorFields = (FeatureState)-1, FeatureState systemVariables = (FeatureState)-1, CHECKENABLE useInvariants = (CHECKENABLE)0u, CHECKENABLE useIn = (CHECKENABLE)0u, CHECKENABLE useOut = (CHECKENABLE)0u, CHECKENABLE useArrayBounds = (CHECKENABLE)0u, CHECKENABLE useAssert = (CHECKENABLE)0u, CHECKENABLE useSwitchError = (CHECKENABLE)0u, CHECKENABLE boundscheck = (CHECKENABLE)0u, CHECKACTION checkAction = (CHECKACTION)0u, uint32_t errorLimit = 20u, _d_dynamicArray< const char > argv0 = {}, Array<const char* > modFileAliasStrings = Array<const char* >(), Array<const char* >* imppath = nullptr, Array<const char* >* fileImppath = nullptr, _d_dynamicArray< const char > objdir = {}, _d_dynamicArray< const char > objname = {}, _d_dynamicArray< const char > libname = {}, Output ddoc = Output(), Output dihdr = Output(), Output cxxhdr = Output(), Output json = Output(), JsonFieldFlags jsonFieldFlags = (JsonFieldFlags)0u, Output makeDeps = Output(), Output mixinOut = Output(), Output moduleDeps = Output(), uint32_t debuglevel = 0u, Array<const char* >* debugids = nullptr, uint32_t versionlevel = 0u, Array<const char* >* versionids = nullptr, MessageStyle messageStyle = (MessageStyle)0u, bool run = false, Array<const char* > runargs = Array<const char* >(), Array<const char* > cppswitches = Array<const char* >(), Array<const char* > objfiles = Array<const char* >(), Array<const char* > linkswitches = Array<const char* >(), Array<bool > linkswitchIsForCC = Array<bool >(), Array<const char* > libfiles = Array<const char* >(), Array<const char* > dllfiles = Array<const char* >(), _d_dynamicArray< const char > deffile = {}, _d_dynamicArray< const char > resfile = {}, _d_dynamicArray< const char > exefile = {}, _d_dynamicArray< const char > mapfile = {}) :
+    Param(bool obj, bool multiobj = false, bool trace = false, bool tracegc = false, bool verbose = false, bool vcg_ast = false, bool showColumns = false, bool vtls = false, bool vtemplates = false, bool vtemplatesListInstances = false, bool vgc = false, bool vfield = false, bool vcomplex = true, bool vin = false, DiagnosticReporting useDeprecated = (DiagnosticReporting)1u, bool useUnitTests = false, bool useInline = false, bool release = false, bool preservePaths = false, DiagnosticReporting warnings = (DiagnosticReporting)2u, bool color = false, bool cov = false, uint8_t covPercent = 0u, bool ctfe_cov = false, bool ignoreUnsupportedPragmas = false, bool useModuleInfo = true, bool useTypeInfo = true, bool useExceptions = true, bool betterC = false, bool addMain = false, bool allInst = false, bool bitfields = false, CppStdRevision cplusplus = (CppStdRevision)201103u, bool showGaggedErrors = false, bool printErrorContext = false, bool manual = false, bool usage = false, bool mcpuUsage = false, bool transitionUsage = false, bool checkUsage = false, bool checkActionUsage = false, bool revertUsage = false, bool previewUsage = false, bool externStdUsage = false, bool hcUsage = false, bool logo = false, FeatureState useDIP25 = (FeatureState)-1, FeatureState useDIP1000 = (FeatureState)-1, bool ehnogc = false, bool useDIP1021 = false, bool fieldwise = false, bool fixAliasThis = false, FeatureState rvalueRefParam = (FeatureState)-1, FeatureState noSharedAccess = (FeatureState)-1, bool previewIn = false, bool inclusiveInContracts = false, bool shortenedMethods = true, bool fixImmutableConv = false, bool fix16997 = true, FeatureState dtorFields = (FeatureState)-1, FeatureState systemVariables = (FeatureState)-1, CHECKENABLE useInvariants = (CHECKENABLE)0u, CHECKENABLE useIn = (CHECKENABLE)0u, CHECKENABLE useOut = (CHECKENABLE)0u, CHECKENABLE useArrayBounds = (CHECKENABLE)0u, CHECKENABLE useAssert = (CHECKENABLE)0u, CHECKENABLE useSwitchError = (CHECKENABLE)0u, CHECKENABLE boundscheck = (CHECKENABLE)0u, CHECKACTION checkAction = (CHECKACTION)0u, uint32_t errorLimit = 20u, _d_dynamicArray< const char > argv0 = {}, Array<const char* > modFileAliasStrings = Array<const char* >(), Array<const char* >* imppath = nullptr, Array<const char* >* fileImppath = nullptr, _d_dynamicArray< const char > traceFile = {}, _d_dynamicArray< const char > objdir = {}, _d_dynamicArray< const char > objname = {}, _d_dynamicArray< const char > libname = {}, Output ddoc = Output(), Output dihdr = Output(), Output cxxhdr = Output(), Output json = Output(), JsonFieldFlags jsonFieldFlags = (JsonFieldFlags)0u, Output makeDeps = Output(), Output mixinOut = Output(), Output moduleDeps = Output(), uint32_t debuglevel = 0u, Array<const char* >* debugids = nullptr, uint32_t versionlevel = 0u, Array<const char* >* versionids = nullptr, MessageStyle messageStyle = (MessageStyle)0u, bool run = false, Array<const char* > runargs = Array<const char* >(), Array<const char* > cppswitches = Array<const char* >(), Array<const char* > objfiles = Array<const char* >(), Array<const char* > linkswitches = Array<const char* >(), Array<bool > linkswitchIsForCC = Array<bool >(), Array<const char* > libfiles = Array<const char* >(), Array<const char* > dllfiles = Array<const char* >(), _d_dynamicArray< const char > deffile = {}, _d_dynamicArray< const char > resfile = {}, _d_dynamicArray< const char > exefile = {}, _d_dynamicArray< const char > mapfile = {}) :
         obj(obj),
         multiobj(multiobj),
         trace(trace),
@@ -749,6 +754,7 @@ struct Param final
         modFileAliasStrings(modFileAliasStrings),
         imppath(imppath),
         fileImppath(fileImppath),
+        traceFile(traceFile),
         objdir(objdir),
         objname(objname),
         libname(libname),
@@ -4069,6 +4075,7 @@ public:
     UnrolledLoopStatement* isUnrolledLoopStatement();
     ForeachRangeStatement* isForeachRangeStatement();
     CompoundDeclarationStatement* isCompoundDeclarationStatement();
+    PeelStatement* isPeelStatement();
 };
 
 class AsmStatement : public Statement
@@ -6708,23 +6715,23 @@ struct UnionExp final
 private:
     union __AnonStruct__u
     {
-        char exp[40LLU];
-        char integerexp[48LLU];
-        char errorexp[40LLU];
+        char exp[48LLU];
+        char integerexp[56LLU];
+        char errorexp[48LLU];
         char realexp[64LLU];
         char complexexp[80LLU];
-        char symoffexp[72LLU];
-        char stringexp[60LLU];
-        char arrayliteralexp[58LLU];
-        char assocarrayliteralexp[57LLU];
-        char structliteralexp[95LLU];
-        char compoundliteralexp[48LLU];
-        char nullexp[40LLU];
-        char dotvarexp[65LLU];
-        char addrexp[56LLU];
-        char indexexp[82LLU];
-        char sliceexp[83LLU];
-        char vectorexp[69LLU];
+        char symoffexp[80LLU];
+        char stringexp[68LLU];
+        char arrayliteralexp[66LLU];
+        char assocarrayliteralexp[65LLU];
+        char structliteralexp[103LLU];
+        char compoundliteralexp[56LLU];
+        char nullexp[48LLU];
+        char dotvarexp[73LLU];
+        char addrexp[64LLU];
+        char indexexp[90LLU];
+        char sliceexp[91LLU];
+        char vectorexp[77LLU];
     };
     #pragma pack(pop)
 
@@ -8136,6 +8143,10 @@ public:
     void visit(RemoveExp* e) override;
 };
 
+extern "C" uint32_t dsymbol_profile_array_count;
+
+extern "C" SymbolProfileEntry* dsymbol_profile_array;
+
 extern _d_real creall(complex_t x);
 
 extern _d_real cimagl(complex_t x);
@@ -8710,21 +8721,8 @@ struct Port final
 
 struct Mem final
 {
-    static char* xstrdup(const char* s);
-    static void xfree(void* p);
-    static void* xmalloc(size_t size);
-    static void* xmalloc_noscan(size_t size);
-    static void* xcalloc(size_t size, size_t n);
-    static void* xcalloc_noscan(size_t size, size_t n);
-    static void* xrealloc(void* p, size_t size);
-    static void* xrealloc_noscan(void* p, size_t size);
-    static void* error();
-    static void* check(void* p);
-    static bool _isGCEnabled;
-    static bool isGCEnabled();
-    static void disableGC();
-    static void addRange(const void* p, size_t size);
-    static void removeRange(const void* p);
+    extern "C" static bool _isGCEnabled;
+    extern "C" static uint64_t allocated;
     Mem()
     {
     }
