@@ -37,6 +37,9 @@ void main(string[] args) /* TODO: @safe */
 {
     import std.conv : to;
     import std.traits : EnumMembers;
+    import std.exception : enforce;
+    import std.format : format;
+
     enum modes = EnumMembers!Mode; // TODO: create array of strings
 
     if (args.length < 3)
@@ -55,11 +58,13 @@ void main(string[] args) /* TODO: @safe */
     auto symbolFile = originalFile.setExtension(symbolExtension);
 
     Mode mode;
-    try {
+    try
+    {
         mode = modeArg.to!Mode;
-    } catch (Exception e) {
-        writeln("Unknown mode", args[2]);
-        writeln("Supported modes are ", modes);
+    }
+    catch (Exception e)
+    {
+        enforce(0, format("Unknown mode %ssupported modes are %(%s, %)", args[2], [modes]));
     }
 
     if (mode != Mode.Header && !exists(traceFile))
