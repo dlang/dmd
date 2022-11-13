@@ -340,6 +340,7 @@ enum class DYNCAST
 class RootObject
 {
 public:
+    RootObject();
     virtual bool equals(const RootObject* const o) const;
     virtual const char* toChars() const;
 private:
@@ -352,6 +353,7 @@ class ASTNode : public RootObject
 {
 public:
     virtual void accept(Visitor* v) = 0;
+    ASTNode();
 };
 
 enum class DiagnosticReporting : uint8_t
@@ -6434,6 +6436,7 @@ public:
     Dsymbol* insert(Dsymbol* s);
     Dsymbol* insert(const Identifier* const ident, Dsymbol* s);
     size_t length() const;
+    DsymbolTable();
 };
 
 extern void dsymbolSemantic(Dsymbol* dsym, Scope* sc);
