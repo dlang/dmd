@@ -84,7 +84,7 @@ align(1):
     uint one_past_string_end;
 }
 
-static TraceFileHeader decodeHeader()(void[] data) @trusted /* TODO: @safe */
+static TraceFileHeader decodeHeader(void[] data) @trusted /* TODO: @safe */
 {
     TraceFileHeader header;
     if (data.length < header.sizeof)
@@ -99,7 +99,7 @@ static TraceFileHeader decodeHeader()(void[] data) @trusted /* TODO: @safe */
     return header;
 }
 
-static string[] decodeStrings()(const void[] data, uint offset_strings, uint n_strings) @trusted /* TODO: @safe */
+static string[] decodeStrings(const void[] data, uint offset_strings, uint n_strings) @trusted /* TODO: @safe */
 {
     const(char)[][] result;
     result.length = n_strings;
@@ -115,7 +115,7 @@ static string[] decodeStrings()(const void[] data, uint offset_strings, uint n_s
 /** The only reason this is a template is becuase D does not allow one to
     specify inline linkage.
 */
-static ProbeRecord[] decodeRecords()(const void[] data, const void[][] additionalFiles = null) @trusted /* TODO: @safe */
+static ProbeRecord[] decodeRecords(const void[] data, const void[][] additionalFiles = null) @trusted /* TODO: @safe */
 {
     ProbeRecord[] result;
 
@@ -151,7 +151,7 @@ static ProbeRecord[] decodeRecords()(const void[] data, const void[][] additiona
     return result;
 }
 
-static string getSymbolName()(const void[] data, uint id) @trusted /* TODO: @safe */
+static string getSymbolName(const void[] data, uint id) @trusted /* TODO: @safe */
 {
     if (id == uint.max)
         return "NullSymbol";
@@ -169,7 +169,7 @@ static string getSymbolName()(const void[] data, uint id) @trusted /* TODO: @saf
     return cast(string) name;
 }
 
-static string getSymbolName()(const void[] data, ProbeRecord r) @trusted /* TODO: @safe */
+static string getSymbolName(const void[] data, ProbeRecord r) @trusted /* TODO: @safe */
 {
     if (r.symbol_id == uint.max)
         return "NullSymbol";
@@ -187,7 +187,7 @@ static string getSymbolName()(const void[] data, ProbeRecord r) @trusted /* TODO
     return cast(string) name;
 }
 
-static string getSymbolLocation()(const void[] data, uint id) @trusted /* TODO: @safe */
+static string getSymbolLocation(const void[] data, uint id) @trusted /* TODO: @safe */
 {
     if (id == uint.max)
         return "NullSymbol";
@@ -205,7 +205,7 @@ static string getSymbolLocation()(const void[] data, uint id) @trusted /* TODO: 
     return cast(string) loc;
 }
 
-static string getSymbolLocation()(const void[] data, ProbeRecord r) @trusted /* TODO: @safe */
+static string getSymbolLocation(const void[] data, ProbeRecord r) @trusted /* TODO: @safe */
 {
     if (r.symbol_id == uint.max)
         return "NullSymbol";
