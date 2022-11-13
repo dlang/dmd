@@ -8719,8 +8719,14 @@ struct Port final
 
 struct Mem final
 {
-    extern "C" static bool _isGCEnabled;
-    extern "C" static uint64_t allocated;
+    static void* error();
+    static void* check(void* p);
+    static bool _isGCEnabled;
+    static bool isGCEnabled();
+    static void disableGC();
+    static void addRange(const void* p, size_t size);
+    static void removeRange(const void* p);
+    static uint64_t allocated;
     Mem()
     {
     }

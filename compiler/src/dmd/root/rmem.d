@@ -20,8 +20,6 @@ import core.memory : GC;
 
 extern (C++) struct Mem
 {
-    extern(C):
-
     pragma(mangle, "xstrdup_")
     static char* xstrdup (const(char)* s) pure nothrow;
     pragma(mangle, "xstrdup_")
