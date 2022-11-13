@@ -86,7 +86,7 @@ string traceIdentifierStringInScope(string vname, string fn = __PRETTY_FUNCTION_
     import dmd.statement;
     import dmd.globals : global;
 
-    import queryperf : QueryPerformanceCounter;
+    import dmd.queryperf : QueryPerformanceCounter;
     import dmd.root.rmem;
     ulong begin_sema_ticks;
     ulong end_sema_ticks;
