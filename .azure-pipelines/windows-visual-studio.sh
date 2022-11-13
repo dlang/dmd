@@ -45,7 +45,7 @@ visuald() {
 ################################################################################
 
 dm_make() {
-    download "http://downloads.dlang.org/other/dm857c.zip" dmc.zip
+    download "https://downloads.dlang.org/other/dm857c.zip" dmc.zip
     unzip dmc.zip > /dev/null
     export DMC="$PWD/dm/bin/dmc.exe"
     export DM_MAKE="$PWD/dm/bin/make.exe"
@@ -53,11 +53,12 @@ dm_make() {
     cp "$DMC" "$DM_MAKE" "dm/path"
 }
 
-echo "[STEP]: Downloading DMD"
-install_host_dmd
 if [ "$D_COMPILER" == "ldc" ]; then
     echo "[STEP]: Downloading LDC"
     ldc
+else
+    echo "[STEP]: Downloading DMD"
+    install_host_dmd
 fi
 
 echo "[STEP]: Downloading VisualD"

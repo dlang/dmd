@@ -1,0 +1,62 @@
+# See also:
+# - https://github.com/blog/2392-introducing-code-owners
+# - https://help.github.com/articles/about-codeowners/
+
+# Each line is a file pattern followed by one or more owners (sorted alphabetically).
+# Please feel free to add yourself to a module or create a new mapping.
+# Ideally each module should have two or more owners.
+
+# Code owners are automatically requested for review
+# when someone opens a pull request that modifies code that they own.
+# Later matches take precedence.
+
+# wildcard match (this will be used if no matching pattern is found)
+* @andralex @wilzbach @JackStouffer
+
+src/checkedint.d @redstar @andralex @JackStouffer
+
+src/core/atomic.d @WalterBright @ibuclaw @TurkeyMan
+src/core/attribute.d @jacob-carlborg
+src/core/bitop.d @schveiguy @tsbockman @Geod24
+src/core/cpuid.d @WalterBright @ibuclaw @JackStouffer
+src/core/demangle.d @WalterBright @MartinNowak @rainers @ibuclaw
+src/core/exception.d @MartinNowak @WalterBright @jmdavis @CyberShadow
+src/core/internal @MartinNowak @schveiguy
+src/core/int128.d @WalterBright
+src/core/math.d @ibuclaw @redstar
+src/core/runtime.d @MartinNowak @Abscissa
+src/core/simd.d @WalterBright @MartinNowak
+src/core/stdc/* @schveiguy @ibuclaw
+src/core/stdcpp/* @WalterBright @Darredevil @TurkeyMan
+src/core/sync/* @MartinNowak @Geod24 @WalterBright @PetarKirov
+src/core/sys/bionic/* @joakim-noah
+src/core/sys/darwin/* @jacob-carlborg @klickverbot @etcimon @MartinNowak
+src/core/sys/freebsd/* @redstar @MartinNowak @Calrama @jmdavis
+src/core/sys/linux/* @Burgos @redstar @MartinNowak
+src/core/sys/netbsd/* @nrTQgc @joakim-noah
+src/core/sys/dragonflybsd/* @dkgroot
+src/core/sys/openbsd/* @redstar @ibara
+src/core/sys/posix/* @CyberShadow @MartinNowak @joakim-noah @redstar
+src/core/sys/solaris/* @redstar
+src/core/sys/windows/* @CyberShadow
+src/core/thread.d @MartinNowak @Burgos @jpf91 @PetarKirov
+src/core/time.d @jmdavis @schveiguy @CyberShadow
+
+src/etc* @deadalnix @MartinNowak
+src/core/internal/gc/* @rainers @DmitryOlshansky @MartinNowak @llucax
+
+src/object.d @andralex @MartinNowak
+
+src/rt/deh_win32.d @WalterBright
+src/rt/dwarfeh.d @WalterBright
+src/rt/lifetime.d @rainers @schveiguy @Burgos
+src/rt/minfo.d @schveiguy
+src/rt/msvc* @rainers
+src/rt/sections_android.d @joakim-noah
+src/rt/sections_win* @rainers @CyberShadow
+src/rt/sections_osx* @jacob-carlborg @klickverbot
+src/rt/sections_elf_shared* @Burgos
+src/rt/typeinfo/* @Geod24 @WalterBright @redstar
+src/rt/util/* @MartinNowak @WalterBright @klickverbot
+
+src/test_runner.d @atilaneves @wilzbach @MartinNowak @andralex

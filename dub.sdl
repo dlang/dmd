@@ -10,28 +10,31 @@ dependency ":frontend" version="*"
 subPackage {
   name "root"
   targetType "library"
-  sourcePaths "src/dmd/root"
+  importPaths "compiler/src"
+  sourcePaths "compiler/src/dmd/common" "compiler/src/dmd/root"
 }
 
 subPackage {
   name "lexer"
   targetType "library"
+  importPaths "compiler/src"
   sourcePaths
 
   sourceFiles \
-    "src/dmd/console.d" \
-    "src/dmd/entity.d" \
-    "src/dmd/errors.d" \
-    "src/dmd/filecache.d" \
-    "src/dmd/globals.d" \
-    "src/dmd/id.d" \
-    "src/dmd/identifier.d" \
-    "src/dmd/lexer.d" \
-    "src/dmd/tokens.d" \
-    "src/dmd/utf.d" \
-    "src/dmd/utils.d"
+    "compiler/src/dmd/console.d" \
+    "compiler/src/dmd/entity.d" \
+    "compiler/src/dmd/errors.d" \
+    "compiler/src/dmd/file_manager.d" \
+    "compiler/src/dmd/globals.d" \
+    "compiler/src/dmd/id.d" \
+    "compiler/src/dmd/identifier.d" \
+    "compiler/src/dmd/lexer.d" \
+    "compiler/src/dmd/tokens.d" \
+    "compiler/src/dmd/utils.d"
 
-  versions "CallbackAPI"
+  versions \
+    "CallbackAPI" \
+    "DMDLIB"
 
   preGenerateCommands `
     "$${DUB_EXE}" \
@@ -45,7 +48,9 @@ subPackage {
 
   preGenerateCommands `"%DUB_EXE%" --arch=%DUB_ARCH% --compiler="%DC%" --single "%DUB_PACKAGE_DIR%config.d" -- "%DUB_PACKAGE_DIR%generated/dub" "%DUB_PACKAGE_DIR%VERSION"` platform="windows"
 
-  stringImportPaths "generated/dub"
+  stringImportPaths \
+    "compiler/src/dmd/res" \
+    "generated/dub"
 
   dependency "dmd:root" version="*"
 }
@@ -53,14 +58,15 @@ subPackage {
 subPackage {
   name "parser"
   targetType "library"
+  importPaths "compiler/src"
   sourcePaths
 
   sourceFiles \
-    "src/dmd/astbase.d" \
-    "src/dmd/parse.d" \
-    "src/dmd/transitivevisitor.d" \
-    "src/dmd/permissivevisitor.d" \
-    "src/dmd/strictvisitor.d"
+    "compiler/src/dmd/astbase.d" \
+    "compiler/src/dmd/parse.d" \
+    "compiler/src/dmd/transitivevisitor.d" \
+    "compiler/src/dmd/permissivevisitor.d" \
+    "compiler/src/dmd/strictvisitor.d"
 
   versions "CallbackAPI"
 
@@ -70,8 +76,9 @@ subPackage {
 subPackage {
   name "frontend"
   targetType "library"
-  sourcePaths "src/dmd"
-  stringImportPaths "src/dmd/res"
+  importPaths "compiler/src"
+  sourcePaths "compiler/src/dmd"
+  stringImportPaths "compiler/src/dmd/res"
 
   versions \
     "NoBackend" \
@@ -80,14 +87,15 @@ subPackage {
     "MARS" \
     "CallbackAPI"
 
-  excludedSourceFiles "src/dmd/backend/*"
-  excludedSourceFiles "src/dmd/root/*"
-  excludedSourceFiles "src/dmd/{\
+  excludedSourceFiles "compiler/src/dmd/backend/*"
+  excludedSourceFiles "compiler/src/dmd/root/*"
+  excludedSourceFiles "compiler/src/dmd/common/*"
+  excludedSourceFiles "compiler/src/dmd/{\
     astbase,\
     console,\
     entity,\
     errors,\
-    filecache,\
+    file_manager,\
     globals,\
     id,\
     identifier,\
@@ -100,7 +108,7 @@ subPackage {
     utf,\
     utils\
   }.d"
-  excludedSourceFiles "src/dmd/{\
+  excludedSourceFiles "compiler/src/dmd/{\
     dmsc,\
     e2ir,\
     eh,\

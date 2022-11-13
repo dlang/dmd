@@ -1,0 +1,45 @@
+Print deprecations for `scope` pointer errors
+
+The `scope` attribute has existed for a long time, but the compiler would only verify its semantics when the `-preview=dip1000` switch was passed, to avoid breaking code.
+Pointers or references stored in a scope variable are not allowed to escape the scope in which the variable is defined.
+
+Usually, it is not necessary to mark variables `scope`, since the [Garbage Collector](https://dlang.org/spec/garbage.html) (GC) takes care of freeing memory.
+However, D allows creating pointers / slices that point to local variables, which use [Stack-based memory allocation](https://en.wikipedia.org/wiki/Stack-based_memory_allocation) and are destructed at the end of their scope.
+It is important that in `@safe` code, creating such pointers is either disallowed, or has `scope` semantics enforced, but the compiler would formerly fail to do that:
+
+---
+@safe:
+int[] getSlice()
+{
+    int[4] stackBuffer;
+    int[] slice = stackBuffer[]; // slice points to local variable allocated on stack
+    return slice; // dangling pointer!
+}
+
+struct S
+{
+    int x;
+
+    int* get()
+    {
+        int* y = &this.x; // this struct instance could be a local variable
+        return y; // dangerous!
+    }
+}
+---
+
+Starting with this release, `scope` semantics are enforced in `@safe` code on pointers to stack memory, but only as deprecation warnings.
+Eventually, they will be turned into errors.
+To turn them into errors immediately, use `-preview=dip1000`.
+To disable the deprecations, use `-revert=dip1000`.
+
+Note that [the original DIP1000 text](https://dlang.org/dips/1000) is outdated, so please refer to the specification pages for documentation:
+
+$(UL
+    $(LI $(DDSUBLINK spec/memory-safe-d, scope-return-params, Scope and Return Parameters) )
+    $(LI $(DDSUBLINK spec/attribute, scope, scope Attribute) )
+    $(LI $(DDSUBLINK spec/function, scope-parameters, Scope Parameters) )
+    $(LI $(DDSUBLINK spec/function, return-scope-parameters, Return Scope Parameters) )
+    $(LI $(DDSUBLINK spec/function, return-ref-scope-parameters, Ref Return Scope Parameters) )
+    $(LI $(DDSUBLINK spec/function, pure-scope-inference, Inferred scope parameters in pure functions) )
+)

@@ -1,25 +1,25 @@
 # Contributing to DMD, the D programming language reference compiler
 
-First off, thanks for your interest in contributing !
+First off, thanks for your interest in contributing!
 
 ## Reporting bugs
 
 We exclusively use [bugzilla](https://issues.dlang.org/) for issue tracking, which is why Github issues are disabled on this repository.
-If you found a bug, please [check bugzilla](https://issues.dlang.org/query.cgi) to see if it's already reported.
-If it isn't, you can [create a new issue](https://issues.dlang.org/enter_bug.cgi).
+Before reporting a bug, please [check bugzilla](https://issues.dlang.org/query.cgi) to see if it's already reported.
+If it isn't, [create a new issue](https://issues.dlang.org/enter_bug.cgi).
 
-If you have question about a specific behavior, the [D.Learn](http://forum.dlang.org/group/learn) group is a good place to ask for clarification before reporting an issue.
+For questions about a specific behavior, the [D.Learn](https://forum.dlang.org/group/learn) group is a good place to ask for clarification before reporting an issue.
 
 ### Content
 
-When creating a new issue, make sure to include:
-- which version of DMD you are using (which can be found by running `dmd` with no argument).
+When creating a new issue, include:
+- the version of DMD being used (which can be found by running `dmd` with no argument).
 - A test case:
-  - Make it a [short, self contained and compilable example](http://sscce.org/).
-  - Avoid dependencies to foreign code (e.g. dub packages).
+  - Make it a [short, self-contained, and compilable example](http://sscce.org/).
+  - Avoid dependencies on foreign code (e.g. dub packages).
   - Avoid any imports from phobos / druntime if possible.
-You can try minimizing your test case using the [DustMite tool](https://github.com/CyberShadow/DustMite/wiki).
-DustMite  is also available from our [tools](https://github.com/dlang/tools) repository and is distributed with DMD.
+Minimize the test case using the [DustMite tool](https://github.com/CyberShadow/DustMite/wiki).
+DustMite is also available from our [tools](https://github.com/dlang/tools) repository and is distributed with DMD.
 
 ### Regressions
 
@@ -27,48 +27,73 @@ When finding a [regression](https://en.wikipedia.org/wiki/Software_regression), 
 - Set the field 'Severity' to 'Regression' (highest level of priority)
 - Prefix the issue title with `[REG 2.XXX.Y]` where `2.XXX.Y` is the first broken version whenever possible.
 
-To help track down the point where regressions were introduced down, you can use the excellent [Digger](https://github.com/CyberShadow/digger) tool.
-Digger will automatically bisect the history for you.
+To help track down the point where regressions were introduced, use the excellent [Digger](https://github.com/CyberShadow/digger) tool.
+Digger will automatically bisect the history and identify the Pull Request that introduced the problem.
 
 ### Changelog
 
-We use bugzilla to list fixed issues on a new release.  This list is then included in the changelog.
+We use Bugzilla to list fixed issues on a new release.  This list is then included in the changelog.
 For this list to be accurate then invalid or duplicated bugs must be closed with the appropriate resolution ('RESOLVED INVALID' and 'RESOLVED DUPLICATE', respectively - as opposed to e.g. 'RESOLVED FIXED').
 
+Changes that don't come with a bugzilla entry, such as new features, or enhancement on existing features, should come with their own changelog entry. Changelog entries should be written for everyday users, not compiler contributors.
+Additionally, for larger changes, you may want to add a specialized, detailed entry even if a bugzilla entry exists.
+See [changelog/README.md](changelog/README.md) for details on how to add a changelog entry.
+Note that after a version has entered the release window (there is a beta / the change is in stable), changes should be made directly [in the dlang.org repository](https://github.com/dlang/dlang.org/tree/master/changelog).
 
 ## Solving bugs / Submitting pull requests
 
-Before submitting a PR there are some things you can check which will hopefully make the pulling process run smoothly.
+Before submitting a PR, check the following to make the pulling process run smoothly are:
 
-- Make sure to target the right branch.  Regressions go to stable, and everything else to master, as outlined in [our release process](http://wiki.dlang.org/DIP75).
+- Make sure to target the right branch. Regressions go to stable, and everything else to master, as outlined in [our release process](https://wiki.dlang.org/DIP75).
 
-- When fixing a bugzilla issue, use the title : 'Fix issue XXXXX - Issue title'.  This is recognized by both bugzilla and our github bot (dlang-bot),
+- When fixing a Bugzilla issue, use the title: 'Fix issue XXXXX - Issue title'.  This is recognized by both Bugzilla and our GitHub bot (dlang-bot),
   and will automatically link the issue and the pull request together (by providing a link to the issue in Github, and automatically closing bugs when pull requests are merged).
 
 - Document the 'why' (the change is necessary and was done this way) rather than the 'how'.
 
 - Ensure newly introduced symbols are documented and that updates to existing symbols are reflected in the documentation.
 
-- Add a link to the PR to the bugzilla entry.
+- Add a link to the PR to the Bugzilla entry (if the dlang-bot failed to do it).
 
-- If your pull request affects the language specifications in any way (i.e. changing the grammar, deprecating a feature or adding a new one),
+- Confine a PR to addressing one Bugzilla entry, unless multiple entries are different aspects of the same bug.
+
+- If submitting a bug fix PR that does not have a Bugzilla entry, add a Bugzilla entry for it and then submit the PR
+that fixes it.
+
+- If the pull request affects the language specifications in any way (i.e. changing the grammar, deprecating a feature, or adding a new one),
   a pull request to [the website](https://github.com/dlang/dlang.org) should be submitted in parallel.
 
 - Follow the usual git good practice:
   - [Provide descriptive commit messages](https://chris.beams.io/posts/git-commit/)
   - Avoid changes not relevant to the issue (i.e. style issues)
   - Separate commit for separate concerns
-  - Keep pull requests focused on one single topic or bug.  For example, if your fix requires a refactoring, then the refactoring should be submitted as a separate pull request.
+  - Keep pull requests focused on one single topic or bug.  For example, if the fix requires a refactoring, then submit the refactoring as a separate pull request.
 
 ### Find bugs to work on
 
-For first-time contributers, we suggest to look for issues categorized as [trivial](https://issues.dlang.org/buglist.cgi?component=dmd&keywords=trivial&product=D). You may continue with issues categorized [bootcamp](https://issues.dlang.org/buglist.cgi?component=dmd&keywords=bootcamp&product=D).
+For first-time contributors, look for issues categorized as [trivial](https://issues.dlang.org/buglist.cgi?component=dmd&keywords=trivial&product=D).
+Continue with issues categorized [bootcamp](https://issues.dlang.org/buglist.cgi?component=dmd&keywords=bootcamp&product=D).
 
-If you want a hassle-free contribution look for issues categorized as [preapproved](https://issues.dlang.org/buglist.cgi?component=dmd&keywords=preapproved&product=D).
+For a hassle-free contribution look for issues categorized as [preapproved](https://issues.dlang.org/buglist.cgi?component=dmd&keywords=preapproved&product=D).
+
+## Refactoring
+
+The purpose of refactoring is to make the code easier to understand and extend. It is not to change the behavior of the
+program, add enhancements, or fix bugs.
+
+- Refactorings must come with a rationale as to why it makes the code better.
+
+- Large refactorings should be done in incremental steps that are easy to review.
+
+- When a refactoring is broken down into multiple PRs, it is acceptable to provide a rationale in the first PR and link to it in subsequent PR.
+
+- Pull requests that do non-trivial refactorings should not include other changes, such as new feature or bug fix.
+   While submitting multiple dependent pull requests can be done to help the reviewers judge of the need for a refactoring, any refactoring will be assessed on its own merit.
+
 
 ## DMD Best Practices
 
-Here is a short list of stylistic issues the core team will expect in
+Here is a shortlist of stylistic issues the core team will expect in
 pull requests. Much of the source code does not follow these, but
 we expect new code to, and PRs retrofitting the existing code to
 follow it is welcome.
@@ -83,7 +108,7 @@ are often overkill for nested functions and function literals; use ordinary
 comments for those. Follow the [D Style](https://dlang.org/dstyle.html#phobos_documentation)
 for comment blocks.
 
-3. Do not use `strlen`/`strcmp` and their ilk. Use D arrays instead.
+3. Do not use `strlen`/`strcmp` and their like. Use D arrays instead.
 If slicing from a `char*` is required then use `dmd.utils.toDString`
 or the member function `.toString` that is implemented in many classes.
 
@@ -115,14 +140,14 @@ around their uses.
 
 10. Similar to (8), use distinct variable names for non-overlapping uses.
 
-11. Avoid use of mutable globals as much as practical. Consider passing them
+11. Avoid the use of mutable globals as much as practical. Consider passing them
 in as parameters.
 
-12. Avoid use of default parameters. Spell them out.
+12. Avoid the use of default parameters. Spell them out.
 
-13. Minimize use of overloading.
+13. Minimize the use of overloading.
 
-14. Avoid clever code. Anybody can write clever code. It takes genius to write
+14. Avoid clever code. Anybody can write clever code. It takes a genius to write
 simple code.
 
 15. Try to reduce cyclomatic complexity, i.e. think about how to make the code work
@@ -151,6 +176,8 @@ Such functions should not be mutating the data nor issuing error messages.
 
 21. The more constrained the scope of a name is, the shorter it should be.
 
+22. Public declarations in modules should be "above the fold", i.e. first in the file, thus making the API of the module
+easily visible when opening the file. Private declarations should follow afterwards.
 
 ## The following will not be viewed with favor:
 
@@ -163,11 +190,22 @@ significant improvement.
 3. Reformatting into your personal style. Please stick with the existing style.
 Use the [D Style](https://dlang.org/dstyle.html#phobos_documentation) for new code.
 
-As always, treating the above as sacred writ is a huge mistake. Use
-your best judgement on a case-by-case basis. Blindly doing things just
+As always, treating the above as a sacred writ is a huge mistake. Use
+your best judgment on a case-by-case basis. Blindly doing things just
 adds more technical debt.
 
 
 ## dmd-internals mailing list
 
 For questions and discussions related to DMD development, a [mailing list](https://forum.dlang.org/group/dmd) is available.
+
+## Copyright
+
+All significant contributors to DMD source code, via GitHub, Bugzilla, email,
+wiki, the D forums, etc., please assign copyright to those
+DMD source code changes to the D Language Foundation. Please send
+an email to walter@digitalmars.com with the statement:
+
+> I hereby assign copyright in my contributions to DMD to the D Language Foundation
+
+and include your name and date.

@@ -1,0 +1,8 @@
+Posix (excl. Darwin): Switch default GC signals from SIGUSR1/2 to SIGRTMIN/SIGRTMIN+1
+
+As the SIGUSR ones might be used by 'system' libraries (e.g., Android
+Dalvik VM or LLVM libFuzzer), while the SIGRT ones are reserved for
+user-defined purposes and less likely to collide.
+
+The used signals can still be customized with an early call to
+`core.thread.osthread.thread_setGCSignals()`.

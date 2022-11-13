@@ -1,0 +1,5 @@
+EXPORTS
+	DllGetClassObject
+	DllCanUnloadNow
+	DllRegisterServer
+	DllUnregisterServer

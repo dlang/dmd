@@ -1,0 +1,16 @@
+LIBRARY version
+EXETYPE NT
+SUBSYSTEM WINDOWS
+EXPORTS
+_GetFileVersionInfoA@16 = GetFileVersionInfoA
+_GetFileVersionInfoSizeA@8 = GetFileVersionInfoSizeA
+_GetFileVersionInfoSizeW@8 = GetFileVersionInfoSizeW
+_GetFileVersionInfoW@16 = GetFileVersionInfoW
+_VerFindFileA@32 = VerFindFileA
+_VerFindFileW@32 = VerFindFileW
+_VerInstallFileA@32 = VerInstallFileA
+_VerInstallFileW@32 = VerInstallFileW
+_VerLanguageNameA@12 = VerLanguageNameA
+_VerLanguageNameW@12 = VerLanguageNameW
+_VerQueryValueA@16 = VerQueryValueA
+_VerQueryValueW@16 = VerQueryValueW

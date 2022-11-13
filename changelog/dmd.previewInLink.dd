@@ -1,0 +1,11 @@
+`-preview=in` can now be used with `extern(C++)`, disabled for other non-D linkage
+
+The intent of `-preview=in` is to make `in` the go-to storage class for input parameters in D.
+However, it is D centric, as it is an enhanced version of `scope const ref`.
+As non-`extern(D)` functions usually are expected to match a specific ABI,
+using `in` is hardly a good idea.
+
+As C++ also has a "go to" storage class for input parameters (`const T&`),
+`in` can also be applied on `extern(C++)` function in order to bind to `const T&` parameters.
+This also allows to expose a closer API for a function than via `const ref`,
+as `in` will allow to bind rvalues to `const T&`, as in C++.

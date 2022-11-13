@@ -1,0 +1,22 @@
+Using integers for `version` or `debug` conditions has been deprecated
+
+The problem is that it only provides a single number namespace without any meaning.
+It's better to use version identifiers describing the feature they enable.
+See also [this thread on the forum](https://forum.dlang.org/post/chtcuqdjzddlesdhablo@forum.dlang.org).
+
+---
+// now deprecated:
+version = 3;
+version (2) { }
+
+debug = 4;
+debug (5) { }
+
+// use identifiers instead:
+version = HasX;
+
+version (HasX)
+    void x() { /* ... */ }
+else
+    void x() {}
+---

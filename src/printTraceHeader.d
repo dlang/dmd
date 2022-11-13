@@ -1,6 +1,12 @@
+// Run: make -f posix.mak && ../generated/linux/release/64/dmd -trace=hello ~/hello.d -o-
+// Run: cd ~/Work/dmd/src; dmd -I../compiler/src -i -run printTraceHeader.d hello.trace Tree
+// Run: cd ~/Work/dmd/src; dmd -I../compiler/src -i -run printTraceHeader.d hello.trace TemplateInstances
+
 import dmd.trace_file;
 import std.stdio;
 import std.file;
+
+enum SEP = " | ";
 
 bool ArgOneToN(uint arg, uint N)
 {
@@ -14,18 +20,17 @@ bool ArgOneToN(uint arg, uint N)
 
 void main(string[] args)
 {
-
-    string[] supportedModes = [
+    string[] supportedModes = [ // TODO: enum
         "Tree", "MemToplist", "TimeToplist", "Header", "PhaseHist", "KindHist", "Symbol", "Kind",
         "Phase", "RandSample" ,"OutputSelfStats", "OutputParentTable", "Parent",
-        "ExpensiveTemplateInstances",
+        "TemplateInstances",
     ];
 
     if (args.length < 3)
     {
-        writeln("Invalid invocatoion: ", args);
+        writeln("Invalid invocation: ", args);
         writeln("Expected: ", args[0], " traceFile mode {args depending on mode}");
-        writeln("Modes are", supportedModes);
+        writeln("Modes: ", supportedModes);
         return;
     }
 
@@ -42,8 +47,6 @@ void main(string[] args)
         writeln(`TraceFile: "`, traceFile, `" does not exist.`);
         return;
     }
-
-
 
     TraceFileHeader header;
     void[] fileBytes = read(originalFile);
@@ -65,7 +68,7 @@ void main(string[] args)
 
     kinds = readStrings(fileBytes, header.offset_kinds, header.n_kinds);
     phases = readStrings(fileBytes, header.offset_phases, header.n_phases);
-     
+
     // writeln("phases:\n    ", phases);
     // writeln("kinds:\n    ", kinds);
 
@@ -128,7 +131,6 @@ void main(string[] args)
     uint[2][] selfMem = (cast(uint[2]*) calloc(records.length, uint.sizeof * 2))[0
         .. records.length];
 
-
     {
         ulong parentsFound = 0;
         uint currentDepth = 1;
@@ -188,22 +190,17 @@ void main(string[] args)
         }
     }
 
-
-
     if (mode == "Tree")
     {
-/+
         const char[4096 * 4] indent = '-';
         foreach (i; 0 .. records.length)
         {
             const r = records[i];
-
-            writeln(indent[0 .. depths[i]], ' ', r.end_ticks - r.begin_ticks, "|",
-                    selfTime[i], "|", phases[r.phase_id - 1], "|", getSymbolName(fileBytes,
-                        r), "|", getSymbolLocation(fileBytes, r), "|",);
+            writeln(indent[0 .. depths[i]], ' ', r.end_ticks - r.begin_ticks, SEP,
+                    selfTime[i], SEP, phases[r.phase_id - 1], SEP, getSymbolName(fileBytes,
+                        r), SEP, getSymbolLocation(fileBytes, r), SEP,);
 
         }
-+/
         import std.algorithm;
 
         auto sorted_selfTimes = selfTime.sort!((a, b) => a[1] > b[1]).release;
@@ -212,7 +209,7 @@ void main(string[] args)
         foreach (st; sorted_selfTimes[0 .. (header.n_records > 2000 ? 2000 : header.n_records)])
         {
             const r = records[st[0]];
-            writeln(st[1], "|", kinds[r.kind_id - 1], "|", /*getSymbolLocation(fileBytes, r)*/r.symbol_id);
+            writeln(st[1], SEP, kinds[r.kind_id - 1], SEP, /*getSymbolLocation(fileBytes, r)*/r.symbol_id);
         }
     }
     else if (mode == "MemToplist")
@@ -222,10 +219,10 @@ void main(string[] args)
         auto sorted_records = records.sort!((a,
                 b) => (a.end_mem - a.begin_mem > b.end_mem - b.begin_mem)).release;
         writeln("Toplist");
-        writeln("Memory (in Bytes),kind,phase,location,name");
+        writeln("Memory (in Bytes),kind,phase,file(line),ident_or_code");
         foreach (r; sorted_records)
         {
-            writeln(r.end_mem - r.begin_mem, "|", kinds[r.kind_id - 1], "|", phases[r.phase_id - 1], "|",
+            writeln(r.end_mem - r.begin_mem, SEP, kinds[r.kind_id - 1], SEP, phases[r.phase_id - 1], SEP,
                     getSymbolLocation(fileBytes, r), getSymbolName(fileBytes, r));
         }
     }
@@ -236,14 +233,13 @@ void main(string[] args)
         auto sorted_records = records.sort!((a,
                 b) => (a.end_ticks - a.begin_ticks > b.end_ticks - b.begin_ticks)).release;
         writeln("Toplist");
-        writeln("Time (in cycles),kind,phase,location,name");
+        writeln("Time [cy],kind,phase,file(line),ident_or_code");
         foreach (r; sorted_records)
         {
-            writeln(r.end_ticks - r.begin_ticks, "|", kinds[r.kind_id - 1], "|", phases[r.phase_id - 1], "|",
-                    getSymbolLocation(fileBytes, r), "|", getSymbolName(fileBytes, r));
+            writeln(r.end_ticks - r.begin_ticks, SEP, kinds[r.kind_id - 1], SEP, phases[r.phase_id - 1], SEP,
+                    getSymbolLocation(fileBytes, r), SEP, getSymbolName(fileBytes, r));
         }
     }
-
     else if (mode == "PhaseHist")
     {
         static struct SortRecord
@@ -271,7 +267,7 @@ void main(string[] args)
 
         sortRecords.sort!((a, b) => a.absTime > b.absTime);
         writeln(" === Phase Time Distribution : ===");
-        writefln(" %-90s %-10s %-13s %-7s ", "phase", "avgTime", "absTime", "freq");
+        writefln(" %-90s %-10s %-13s %-7s ", "phase", "avg [cy]", "abs [cy]", "count");
         foreach (sr; sortRecords)
         {
             writefln(" %-90s %-10.2f %-13.0f %-7d ", phases[sr.phaseId - 1],
@@ -305,7 +301,7 @@ void main(string[] args)
 
         sortRecords.sort!((a, b) => a.absTime > b.absTime);
         writeln(" === Kind Time Distribution ===");
-        writefln(" %-90s %-10s %-13s %-7s ", "kind", "avgTime", "absTime", "freq");
+        writefln(" %-90s %-10s %-13s %-7s ", "kind", "avg [cy]", "abs [cy]", "count");
         foreach (sr; sortRecords)
         {
             writefln(" %-90s %-10.2f %-13.0f %-7d ", kinds[sr.kindId - 1],
@@ -318,10 +314,9 @@ void main(string[] args)
         uint sNumber = to!uint(args[3]);
         if (sNumber.ArgOneToN(header.n_symbols))
         {
-            writeln("{name: ", getSymbolName(fileBytes, sNumber), 
+            writeln("{name: ", getSymbolName(fileBytes, sNumber),
                 "\nlocation: " ~ getSymbolLocation(fileBytes, sNumber) ~ "}");
         }
-
     }
     else if (mode == "Parent")
     {
@@ -331,7 +326,6 @@ void main(string[] args)
         {
             writeln("{parentId: ", parents[sNumber - 1], "}");
         }
-
     }
     else if (mode == "Phase")
     {
@@ -355,7 +349,6 @@ void main(string[] args)
     {
         import std.random : randomSample;
         import std.algorithm : map, each;
-
         randomSample(records, 24).map!(r => structToString(r)).each!writeln;
     }
     else if (mode == "OutputSelfStats")
@@ -370,23 +363,21 @@ void main(string[] args)
         void [] parentsMem = (cast(void*)parents)[0 .. (parents.length * parents[0].sizeof)];
         std.file.write(traceFile ~ ".pt", parentsMem);
     }
-    else if (mode == "ExpensiveTemplateInstances")
+    else if (mode == "TemplateInstances")
     {
         import std.algorithm;
         import std.range;
         auto template_instance_kind_idx = kinds.countUntil("TemplateInstance") + 1;
-        foreach(rec; 
+        foreach(rec;
             records
             .filter!((r) => r.kind_id == template_instance_kind_idx)
             .array
             .sort!((a, b) => a.end_ticks - a.begin_ticks > b.end_ticks - b.begin_ticks))
         {
-            writeln(rec.end_ticks - rec.begin_ticks, "|", phases[rec.phase_id - 1], "|",
-                getSymbolLocation(fileBytes, rec), "|", getSymbolName(fileBytes, rec));
+            writeln(rec.end_ticks - rec.begin_ticks, SEP, phases[rec.phase_id - 1], SEP,
+                    getSymbolLocation(fileBytes, rec), SEP, getSymbolName(fileBytes, rec));
         }
     }
-
-
     else
         writeln("Mode unsupported: ", mode, "\nsupported modes are: ", supportedModes);
 }
@@ -486,7 +477,7 @@ string itos64(const ulong val) pure @trusted nothrow
     auto lwString = itos(lw);
     auto hiString = itos(hi);
 
-    return cast(string) "((" ~ hiString ~ "<< 32)" ~ "|" ~ lwString ~ ")";
+    return cast(string) "((" ~ hiString ~ "<< 32)" ~ SEP ~ lwString ~ ")";
 }
 
 string enumToString(E)(E v)

@@ -1,0 +1,30 @@
+version: 2
+jobs:
+  build:
+    working_directory: ~/druntime
+    docker:
+      - image: circleci/buildpack-deps:18.04
+    parallelism: 1
+    steps:
+      - checkout
+      - run:
+          command: ./.circleci/run.sh setup-repos
+          name: Clone DMD
+      - run:
+          command: ./.circleci/run.sh install-deps
+          name: Install DMD
+      - run:
+          command: ./.circleci/run.sh style
+          name: Check code style
+      - run:
+          command: ./.circleci/run.sh coverage
+          name: Run DRuntime testsuite with -cov
+      - run:
+          command: ./.circleci/run.sh codecov
+          name: Upload coverage files to CodeCov
+      - run:
+          command: ./.circleci/run.sh betterc
+          name: Run @betterC tests
+      - run:
+          command: ./.circleci/run.sh publictests
+          name: Run public unittests

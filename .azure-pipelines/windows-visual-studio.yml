@@ -9,6 +9,7 @@ steps:
   - script: |
       bash --version
       sh --login .azure-pipelines/windows-visual-studio.sh
-    displayName: Download requires binaries
+    displayName: Download required binaries
   - script: |
       call .azure-pipelines/windows-msbuild.bat
+    displayName: Build and test

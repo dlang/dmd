@@ -1,2 +1,0 @@
-DW_TAG_shared_type
-

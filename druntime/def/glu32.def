@@ -1,0 +1,56 @@
+LIBRARY GLU32
+EXETYPE NT
+SUBSYSTEM WINDOWS
+EXPORTS
+    _gluBeginCurve@4                = gluBeginCurve                       ; gluBeginCurve
+    _gluBeginPolygon@4              = gluBeginPolygon                     ; gluBeginPolygon
+    _gluBeginSurface@4             = gluBeginSurface                     ; gluBeginSurface
+    _gluBeginTrim@4                 = gluBeginTrim                        ; gluBeginTrim
+    _gluBuild1DMipmaps@24            = gluBuild1DMipmaps                   ; gluBuild1DMipmaps
+    _gluBuild2DMipmaps@28            = gluBuild2DMipmaps                   ; gluBuild2DMipmaps
+    _gluCylinder@36                  = gluCylinder                         ; gluCylinder
+    _gluDeleteNurbsRenderer@4       = gluDeleteNurbsRenderer              ; gluDeleteNurbsRenderer
+    _gluDeleteQuadric@4             = gluDeleteQuadric                    ; gluDeleteQuadric
+    _gluDeleteTess@4                = gluDeleteTess                       ; gluDeleteTess
+    _gluDisk@28                      = gluDisk                             ; gluDisk
+    _gluEndCurve@4                  = gluEndCurve                         ; gluEndCurve
+    _gluEndPolygon@4                = gluEndPolygon                       ; gluEndPolygon
+    _gluEndSurface@4                = gluEndSurface                       ; gluEndSurface
+    _gluEndTrim@4                   = gluEndTrim                          ; gluEndTrim
+    _gluErrorString@4               = gluErrorString                      ; gluErrorString
+    _gluErrorUnicodeStringEXT@4     = gluErrorUnicodeStringEXT            ; gluErrorUnicodeStringEXT
+    _gluGetNurbsProperty@12          = gluGetNurbsProperty                 ; gluGetNurbsProperty
+    _gluGetString@4                 = gluGetString                        ; gluGetString
+    _gluGetTessProperty@12           = gluGetTessProperty                  ; gluGetTessProperty
+    _gluLoadSamplingMatrices@16      = gluLoadSamplingMatrices             ; gluLoadSamplingMatrices
+    _gluLookAt@72                    = gluLookAt                           ; gluLookAt
+    _gluNewNurbsRenderer@0          = gluNewNurbsRenderer                 ; gluNewNurbsRenderer
+    _gluNewQuadric@0                = gluNewQuadric                       ; gluNewQuadric
+    _gluNewTess@0                   = gluNewTess                          ; gluNewTess
+    _gluNextContour@8               = gluNextContour                      ; gluNextContour
+    _gluNurbsCallback@12             = gluNurbsCallback                    ; gluNurbsCallback
+    _gluNurbsCurve@28                = gluNurbsCurve                       ; gluNurbsCurve
+    _gluNurbsProperty@12             = gluNurbsProperty                    ; gluNurbsProperty
+    _gluNurbsSurface@44              = gluNurbsSurface                     ; gluNurbsSurface
+    _gluOrtho2D@32                   = gluOrtho2D                          ; gluOrtho2D
+    _gluPartialDisk@44               = gluPartialDisk                      ; gluPartialDisk
+    _gluPerspective@32               = gluPerspective                      ; gluPerspective
+    _gluPickMatrix@36                = gluPickMatrix                       ; gluPickMatrix
+    _gluProject@48                   = gluProject                          ; gluProject
+    _gluPwlCurve@20                  = gluPwlCurve                         ; gluPwlCurve
+    _gluQuadricCallback@12           = gluQuadricCallback                  ; gluQuadricCallback
+    _gluQuadricDrawStyle@8          = gluQuadricDrawStyle                 ; gluQuadricDrawStyle
+    _gluQuadricNormals@8            = gluQuadricNormals                   ; gluQuadricNormals
+    _gluQuadricOrientation@8        = gluQuadricOrientation               ; gluQuadricOrientation
+    _gluQuadricTexture@8            = gluQuadricTexture                   ; gluQuadricTexture
+    _gluScaleImage@36                = gluScaleImage                       ; gluScaleImage
+    _gluSphere@20                    = gluSphere                           ; gluSphere
+    _gluTessBeginContour@4          = gluTessBeginContour                 ; gluTessBeginContour
+    _gluTessBeginPolygon@8          = gluTessBeginPolygon                 ; gluTessBeginPolygon
+    _gluTessCallback@12              = gluTessCallback                     ; gluTessCallback
+    _gluTessEndContour@4            = gluTessEndContour                   ; gluTessEndContour
+    _gluTessEndPolygon@4            = gluTessEndPolygon                   ; gluTessEndPolygon
+    _gluTessNormal@28                = gluTessNormal                       ; gluTessNormal
+    _gluTessProperty@16              = gluTessProperty                     ; gluTessProperty
+    _gluTessVertex@12                = gluTessVertex                       ; gluTessVertex
+    _gluUnProject@48                 = gluUnProject                        ; gluUnProject
