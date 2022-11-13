@@ -8,4 +8,3 @@
 - Write the mangled names to save space
 - Filter on trace types during writing
 - Make the global pointer to array a normal array instead
-- Better packing of members
