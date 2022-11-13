@@ -26,8 +26,6 @@ enum COMPRESSED_TRACE = true;
 
 import dmd.trace_file;
 
-__gshared bool tracingEnabled = false;
-
 struct ProbeEntry
 {
     ProfileNodeType nodeType;
@@ -87,6 +85,7 @@ string traceIdentifierStringInScope(string vname, string fn = __PRETTY_FUNCTION_
     import dmd.expression;
     import dmd.mtype;
     import dmd.statement;
+    import dmd.globals : global;
 
     import queryperf : QueryPerformanceCounter;
     import dmd.root.rmem;
@@ -101,21 +100,21 @@ string traceIdentifierStringInScope(string vname, string fn = __PRETTY_FUNCTION_
     static if (asttypename_build && __traits(compiles, () { import dmd.asttypename; astTypeName(Dsymbol.init); }))
     {
         import dmd.asttypename;
-        string asttypename_v = (tracingEnabled && v_ !is null ? astTypeName(v_) : "");
+        string asttypename_v = (global.params.traceFile !is null && v_ !is null ? astTypeName(v_) : "");
     }
     else
     {
         string asttypename_v = v_type.stringof;
     }
 
-    if (tracingEnabled)
+    if (global.params.traceFile !is null)
     {
         assert(dsymbol_profile_array_count < dsymbol_profile_array_capacity,
             "Trying to push more then" ~ dsymbol_profile_array_capacity.stringof ~ " symbols");
         QueryPerformanceCounter(&begin_sema_ticks);
     }
 
-    scope(exit) if (tracingEnabled)
+    scope(exit) if (global.params.traceFile !is null)
     {
         QueryPerformanceCounter(&end_sema_ticks);
         if (v_ !is null)
@@ -551,6 +550,7 @@ void writeTrace(Strings* arguments, const (char)[] traceFile = null, uint fVersi
         import core.stdc.string;
         import core.stdc.stdio;
         import dmd.root.file;
+        import dmd.globals : global;
 
         // this is debug code we simply hope that we will not need more
         // then 2G of log-buffer;
@@ -584,8 +584,8 @@ void writeTrace(Strings* arguments, const (char)[] traceFile = null, uint fVersi
             }
         }
 
-        auto nameStringLength = (traceFile !is null ? traceFile.length : timeStringLength);
-        auto nameStringPointer = (traceFile !is null ? traceFile.ptr : timeString);
+        auto nameStringLength = (global.params.traceFile !is null ? global.params.traceFile.length : timeStringLength);
+        auto nameStringPointer = (global.params.traceFile !is null ? global.params.traceFile.ptr : timeString);
         enum split_file = false;
 
         static if (COMPRESSED_TRACE)
@@ -684,7 +684,7 @@ void writeTrace(Strings* arguments, const (char)[] traceFile = null, uint fVersi
         else
         {
             auto fileNameLength =
-                sprintf(&fileNameBuffer[0], "symbol-%s.1.csv".ptr, traceFile ? traceFile : timeString);
+                sprintf(&fileNameBuffer[0], "symbol-%s.1.csv".ptr, global.params.traceFile ? global.params.traceFile : timeString);
 
                         bufferPos += sprintf(cast(char*) bufferPos, "//");
                         if (arguments)
@@ -713,7 +713,7 @@ void writeTrace(Strings* arguments, const (char)[] traceFile = null, uint fVersi
             auto data = fileBuffer[0 .. bufferPos - fileBuffer];
             auto errorcode_write = File.write(fileNameBuffer[0 .. fileNameLength], data);
 
-            fileNameLength = sprintf(&fileNameBuffer[0], "symbol-%s.2.csv".ptr, traceFile ? traceFile : timeString);
+            fileNameLength = sprintf(&fileNameBuffer[0], "symbol-%s.2.csv".ptr, global.params.traceFile ? global.params.traceFile : timeString);
 
             auto f2 = File();
             bufferPos = fileBuffer;
