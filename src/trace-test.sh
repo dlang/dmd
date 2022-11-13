@@ -1,6 +1,6 @@
 #!/bin/bash
 
-TRACEFILE="hello.dmdtrace"
+TRACEFILE="hello"
 
 make -f posix.mak && ../generated/linux/release/64/dmd -trace="$TRACEFILE" ~/hello.d -o-
 
