@@ -1226,7 +1226,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             const ret = snprintf(buf, 100, "_dmd_crt_destructor_thunk.%u", nthDestructor++);
             assert(ret >= 0 && ret < 100, "snprintf either failed or overran buffer");
             //Function symbol
-            auto newConstructor = symbol_calloc(buf);
+            auto newConstructor = symbol_calloc(buf[0 .. strlen(buf)]);
             //Build type
             newConstructor.Stype = type_function(TYnfunc, [], false, type_alloc(TYvoid));
             //Tell it it's supposed to be a C function. Does it do anything? Not sure.

@@ -331,17 +331,11 @@ version (SCPP_HTOD)
  */
 
 @trusted
-Symbol * symbol_calloc(const(char)* id)
+extern (C)
+Symbol * symbol_calloc(const(char)[] id)
 {
-    return symbol_calloc(id, cast(uint)strlen(id));
-}
-
-@trusted
-Symbol * symbol_calloc(const(char)* id, uint len)
-{   Symbol *s;
-
-    //printf("sizeof(symbol)=%d, sizeof(s.Sident)=%d, len=%d\n", symbol.sizeof, s.Sident.sizeof, cast(int)len);
-    s = cast(Symbol *) mem_fmalloc(Symbol.sizeof - s.Sident.length + len + 1 + 5);
+    //printf("sizeof(symbol)=%d, sizeof(s.Sident)=%d, len=%d\n", symbol.sizeof, s.Sident.sizeof, cast(int)id.length);
+    Symbol* s = cast(Symbol *) mem_fmalloc(Symbol.sizeof - Symbol.Sident.length + id.length + 1 + 5);
     memset(s,0,Symbol.sizeof - s.Sident.length);
 version (SCPP_HTOD)
 {
@@ -349,14 +343,12 @@ version (SCPP_HTOD)
     pstate.STsequence += 1;
     //if (s.Ssequence == 0x21) *cast(char*)0=0;
 }
-debug
-{
-    if (debugy)
-        printf("symbol_calloc('%s') = %p\n",id,s);
-    s.id = Symbol.IDsymbol;
-}
-    memcpy(s.Sident.ptr,id,len + 1);
+    memcpy(s.Sident.ptr,id.ptr,id.length);
+    s.Sident.ptr[id.length] = 0;
     s.Ssymnum = SYMIDX.max;
+    if (debugy)
+        printf("symbol_calloc('%s') = %p\n",s.Sident.ptr,s);
+    debug s.id = Symbol.IDsymbol;
     return s;
 }
 
@@ -374,7 +366,7 @@ extern (C)
 Symbol * symbol_name(const(char)[] name, SC sclass, type *t)
 {
     type_debug(t);
-    Symbol *s = symbol_calloc(name.ptr, cast(uint)name.length);
+    Symbol *s = symbol_calloc(name);
     s.Sclass = sclass;
     s.Stype = t;
     s.Stype.Tcount++;
@@ -579,7 +571,7 @@ version (SCPP_HTOD)
 {
 Symbol * defsy(const(char)* p,Symbol **parent)
 {
-   Symbol *s = symbol_calloc(p);
+   Symbol *s = symbol_calloc(p[0 .. strlen(p)]);
    symbol_addtotree(parent,s);
    return s;
 }
@@ -1255,7 +1247,7 @@ Symbol * symbol_copy(Symbol *s)
 
     symbol_debug(s);
     /*printf("symbol_copy(%s)\n",s.Sident.ptr);*/
-    scopy = symbol_calloc(s.Sident.ptr);
+    scopy = symbol_calloc(s.Sident.ptr[0 .. strlen(s.Sident.ptr)]);
     memcpy(scopy,s,Symbol.sizeof - s.Sident.sizeof);
     scopy.Sl = scopy.Sr = scopy.Snext = null;
     scopy.Ssymnum = SYMIDX.max;

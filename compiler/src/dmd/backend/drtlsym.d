@@ -227,7 +227,7 @@ Symbol *getRtlsym(RTLSYM i)
  */
 private void symbolz(Symbol** ps, int fl, regm_t regsaved, const(char)* name, SYMFLGS flags, type *t)
 {
-    Symbol *s = symbol_calloc(name);
+    Symbol *s = symbol_calloc(name[0 .. strlen(name)]);
     s.Stype = t;
     s.Ssymnum = SYMIDX.max;
     s.Sclass = SC.extern_;

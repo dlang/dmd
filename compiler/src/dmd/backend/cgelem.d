@@ -1327,7 +1327,7 @@ private elem * elmin(elem *e, goal_t goal)
         __gshared Symbol *hdiff;
         if (!hdiff)
         {
-            Symbol *s = symbol_calloc(LARGECODE ? "_aFahdiff".ptr : "_aNahdiff".ptr);
+            Symbol *s = symbol_calloc(LARGECODE ? "_aFahdiff" : "_aNahdiff");
             s.Stype = tsclib;
             s.Sclass = SC.extern_;
             s.Sfl = FLfunc;
