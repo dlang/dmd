@@ -645,8 +645,11 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
             CommaExp.allow(fs.increment);
             fs.increment = fs.increment.expressionSemantic(sc);
             // allow r.popFront no op for infinite ranges
-            if (fs.increment.op != EXP.dotVariable)
+            if (fs.increment.op != EXP.dotVariable &&
+                fs.increment.op != EXP.dotTemplateDeclaration)
+            {
                 discardValue(fs.increment);
+            }
             fs.increment = resolveProperties(sc, fs.increment);
             if (checkNonAssignmentArrayOp(fs.increment))
                 fs.increment = ErrorExp.get();
