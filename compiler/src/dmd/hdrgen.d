@@ -2321,22 +2321,6 @@ private void expressionPrettyPrint(Expression e, OutBuffer* buf, HdrGenState* hg
         auto vd = ve.var.isVarDeclaration();
         assert(vd && vd._init);
 
-        // TODO:
-        // if (auto ei = vd._init.isExpInitializer())
-        // {
-        //     Expression commaExtract;
-        //     auto exp = ei.exp;
-        //     if (auto ce = exp.isConstructExp())
-        //         commaExtract = ce.e2;
-        //     else if (auto se = exp.isStructLiteralExp)
-        //         commaExtract = se;
-        //     if (commaExtract)
-        //     {
-        //         expToBuffer(commaExtract, precedence[exp.op], buf, hgs);
-        //         return ;
-        //     }
-        // }
-
         if (auto ei = vd._init.isExpInitializer())
         {
             Expression commaExtract;
