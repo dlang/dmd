@@ -107,7 +107,7 @@ void main(string[] args)
         return ;
     }
 
-    foreach (r; records)
+    foreach (const r; records)
     {
         if (r.begin_ticks <= lastBeginTicks)
         {
@@ -209,7 +209,7 @@ void main(string[] args)
         auto sorted_selfTimes = selfTime.sort!((a, b) => a[1] > b[1]).release;
         writeln("SelfTimes");
         writeln("selftime, kind, symbol_id");
-        foreach (st; sorted_selfTimes[0 .. (header.n_records > 2000 ? 2000 : header.n_records)])
+        foreach (const st; sorted_selfTimes[0 .. (header.n_records > 2000 ? 2000 : header.n_records)])
         {
             const r = records[st[0]];
             writeln(st[1], separator, kinds[r.kind_id - 1], separator, /*getSymbolLocation(fileBytes, r)*/r.symbol_id);
@@ -223,7 +223,7 @@ void main(string[] args)
                 b) => (a.end_mem - a.begin_mem > b.end_mem - b.begin_mem)).release;
         writeln("Toplist");
         writeln("Memory (in Bytes),kind,phase,file(line),ident_or_code");
-        foreach (r; sorted_records)
+        foreach (const r; sorted_records)
         {
             writeln(r.end_mem - r.begin_mem, separator, kinds[r.kind_id - 1], separator, phases[r.phase_id - 1], separator,
                     getSymbolLocation(fileBytes, r), getSymbolName(fileBytes, r));
@@ -237,7 +237,7 @@ void main(string[] args)
                 b) => (a.end_ticks - a.begin_ticks > b.end_ticks - b.begin_ticks)).release;
         writeln("Toplist");
         writeln("Time [cy],kind,phase,file(line),ident_or_code");
-        foreach (r; sorted_records)
+        foreach (const r; sorted_records)
         {
             writeln(r.end_ticks - r.begin_ticks, separator, kinds[r.kind_id - 1], separator, phases[r.phase_id - 1], separator,
                     getSymbolLocation(fileBytes, r), separator, getSymbolName(fileBytes, r));
@@ -271,7 +271,7 @@ void main(string[] args)
         sortRecords.sort!((a, b) => a.absTime > b.absTime);
         writeln(" === Phase Time Distribution : ===");
         writefln(" %-90s %-10s %-13s %-7s ", "phase", "avg [cy]", "abs [cy]", "count");
-        foreach (sr; sortRecords)
+        foreach (const sr; sortRecords)
         {
             writefln(" %-90s %-10.2f %-13.0f %-7d ", phases[sr.phaseId - 1],
                     sr.avgTime, sr.absTime, sr.freq);
@@ -290,7 +290,7 @@ void main(string[] args)
         SortRecord_Kind[] sortRecords;
         sortRecords.length = kinds.length;
 
-        foreach (const i, r; records)
+        foreach (const i, const r; records)
         {
             sortRecords[r.kind_id - 1].absTime += selfTime[i][1];
             sortRecords[r.kind_id - 1].freq++;
@@ -305,7 +305,7 @@ void main(string[] args)
         sortRecords.sort!((a, b) => a.absTime > b.absTime);
         writeln(" === Kind Time Distribution ===");
         writefln(" %-90s %-10s %-13s %-7s ", "kind", "avg [cy]", "abs [cy]", "count");
-        foreach (sr; sortRecords)
+        foreach (const sr; sortRecords)
         {
             writefln(" %-90s %-10.2f %-13.0f %-7d ", kinds[sr.kindId - 1],
                     sr.avgTime, sr.absTime, sr.freq);
@@ -371,11 +371,9 @@ void main(string[] args)
         import std.algorithm;
         import std.range;
         auto template_instance_kind_idx = kinds.countUntil("TemplateInstance") + 1;
-        foreach(rec;
-            records
-            .filter!((r) => r.kind_id == template_instance_kind_idx)
-            .array
-            .sort!((a, b) => a.end_ticks - a.begin_ticks > b.end_ticks - b.begin_ticks))
+        foreach (const rec; records.filter!((r) => r.kind_id == template_instance_kind_idx)
+                                   .array
+                                   .sort!((a, b) => a.end_ticks - a.begin_ticks > b.end_ticks - b.begin_ticks))
         {
             writeln(rec.end_ticks - rec.begin_ticks, separator, phases[rec.phase_id - 1], separator,
                     getSymbolLocation(fileBytes, rec), separator, getSymbolName(fileBytes, rec));
@@ -399,7 +397,7 @@ string structToString(T)(auto ref T _struct, int indent = 1)
     {
         bool skip = false;
 
-        foreach (attrib; __traits(getAttributes, _struct.tupleof[i]))
+        foreach (const attrib; __traits(getAttributes, _struct.tupleof[i]))
         {
             static if (is(attrib == NoPrint))
                 skip = true;
@@ -407,7 +405,7 @@ string structToString(T)(auto ref T _struct, int indent = 1)
 
         if (!skip)
         {
-            foreach(_;0 .. indent)
+            foreach (const _; 0 .. indent)
             {
                 result ~= "\t";
             }
@@ -491,7 +489,7 @@ string enumToString(E)(E v)
 Switch:
     switch (v)
     {
-        foreach (m; __traits(allMembers, E))
+        foreach (const m; __traits(allMembers, E))
         {
     case mixin("E." ~ m):
             result = m;
