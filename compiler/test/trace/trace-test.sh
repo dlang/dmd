@@ -2,11 +2,11 @@
 
 set -euo pipefail
 
-make -f posix.mak
+make -C ../../src -f posix.mak
 
 TRACEFILE="hello"
 
-../generated/linux/release/64/dmd -trace="$TRACEFILE" ~/hello.d -o-
+../../../generated/linux/release/64/dmd -trace="$TRACEFILE" ~/hello.d -o-
 
 # dmd -i -I../compiler/src -run printTraceHeader.d "$FILE".dmd_trace Tree
-dmd -i -I../compiler/src -run printTraceHeader.d "$TRACEFILE".dmd_trace TemplateInstances
+dmd -i -I../../src -run printTraceHeader.d "$TRACEFILE".dmd_trace TemplateInstances
