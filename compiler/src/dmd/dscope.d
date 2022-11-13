@@ -337,7 +337,7 @@ struct Scope
     extern (C++) Dsymbol search(const ref Loc loc, Identifier ident, Dsymbol* pscopesym, int flags = IgnoreNone)
     {
         auto scopesym_ = pscopesym ? *pscopesym : null;
-        import dmd.trace; mixin(traceString("scopesym_", __PRETTY_FUNCTION__));
+        import dmd.trace; mixin(traceString("scopesym_"));
         version (LOGSEARCH)
         {
             printf("Scope.search(%p, '%s' flags=x%x)\n", &this, ident.toChars(), flags);

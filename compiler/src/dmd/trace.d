@@ -82,7 +82,7 @@ void initTraceMemory()
     }
 }
 
-string traceString(string vname, string fn = null)
+string traceString(string vname, string fn = __PRETTY_FUNCTION__)
 {
     static if (SYMBOL_TRACE)
 {

@@ -424,7 +424,7 @@ private struct InterState
  */
 private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterState* istate, Expressions* arguments, Expression thisarg)
 {
-    import dmd.trace; mixin(traceString("fd", __PRETTY_FUNCTION__));
+    import dmd.trace; mixin(traceString("fd"));
 
     debug (LOG)
     {
