@@ -1,4 +1,11 @@
-// Run: make -f posix.mak && ../generated/linux/release/64/dmd -trace=hello ~/hello.d -o-
+// TODO: Merge this file, trace_file.d into trace.d
+// TODO: Adjusting symbol casings
+// TODO: Reduce data generated
+// TODO: Write the mangled names to save space
+// TODO: Filter on trace types during writing
+// TODO: Make the global pointer to array a normal array instead
+// TODO: Better packing of members
+// Build: make -f posix.mak && ../generated/linux/release/64/dmd -trace=hello ~/hello.d -o-
 // Run: cd ~/Work/dmd/src; dmd -I../compiler/src -i -run printTraceHeader.d hello.trace Tree
 // Run: cd ~/Work/dmd/src; dmd -I../compiler/src -i -run printTraceHeader.d hello.trace TemplateInstances
 
