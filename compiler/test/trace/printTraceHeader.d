@@ -347,7 +347,9 @@ void main(string[] args)
     }
     else if (mode == "TemplateInstances")
     {
-        import std.algorithm : filter, countUntil, sort;
+        import std.algorithm.iteration : filter;
+        import std.algorithm.searching : countUntil;
+        import std.algorithm.sorting : sort;
         import std.array : array;
         auto template_instance_kind_idx = kinds.countUntil("TemplateInstance") + 1;
         foreach (const rec; records.filter!((r) => r.kind_id == template_instance_kind_idx)
