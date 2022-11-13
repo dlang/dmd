@@ -8718,6 +8718,14 @@ struct Port final
 
 struct Mem final
 {
+    static char* xstrdup(const char* s);
+    static void xfree(void* p);
+    static void* xmalloc(size_t size);
+    static void* xmalloc_noscan(size_t size);
+    static void* xcalloc(size_t size, size_t n);
+    static void* xcalloc_noscan(size_t size, size_t n);
+    static void* xrealloc(void* p, size_t size);
+    static void* xrealloc_noscan(void* p, size_t size);
     static void* error();
     static void* check(void* p);
     static bool _isGCEnabled;

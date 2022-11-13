@@ -20,22 +20,15 @@ import core.memory : GC;
 
 extern (C++) struct Mem
 {
-    pragma(mangle, "xstrdup_")
-    static char* xstrdup (const(char)* s) pure nothrow;
-    pragma(mangle, "xstrdup_")
-    static char* xstrdup_(const(char)* s) nothrow
+    static char* xstrdup(const(char)* s) nothrow
     {
-        Mem.allocated += s ? strlen(s) + 1 : 0;
         if (isGCEnabled)
             return s ? s[0 .. strlen(s) + 1].dup.ptr : null;
 
         return s ? cast(char*)check(.strdup(s)) : null;
     }
 
-    pragma(mangle, "xfree_")
-    static void xfree (void* p) pure nothrow;
-    pragma(mangle, "xfree_")
-    static void xfree_(void* p)  nothrow
+    static void xfree(void* p) pure nothrow
     {
         if (isGCEnabled)
             return GC.free(p);
@@ -43,60 +36,40 @@ extern (C++) struct Mem
         pureFree(p);
     }
 
-    pragma(mangle, "xmalloc_")
-    static void* xmalloc (size_t size) pure nothrow;
-    pragma(mangle, "xmalloc_")
-    static void* xmalloc_(size_t size) nothrow
+    static void* xmalloc(size_t size) pure nothrow
     {
-        Mem.allocated += size;
         if (isGCEnabled)
             return size ? GC.malloc(size) : null;
 
         return size ? check(pureMalloc(size)) : null;
     }
 
-    pragma(mangle, "xmalloc_noscan_")
-    static void* xmalloc_noscan (size_t size) pure nothrow;
-    pragma(mangle, "xmalloc_noscan_")
-    static void* xmalloc_noscan_(size_t size) nothrow
+    static void* xmalloc_noscan(size_t size) pure nothrow
     {
-        Mem.allocated += size;
         if (isGCEnabled)
             return size ? GC.malloc(size, GC.BlkAttr.NO_SCAN) : null;
 
         return size ? check(pureMalloc(size)) : null;
     }
 
-    pragma(mangle, "xcalloc_")
-    static void* xcalloc (size_t size, size_t n) pure nothrow;
-    pragma(mangle, "xcalloc_")
-    static void* xcalloc_(size_t size, size_t n) nothrow
+    static void* xcalloc(size_t size, size_t n) pure nothrow
     {
-        Mem.allocated += (size * n);
         if (isGCEnabled)
             return size * n ? GC.calloc(size * n) : null;
 
         return (size && n) ? check(pureCalloc(size, n)) : null;
     }
 
-    pragma(mangle, "xcalloc_noscan_")
-    static void* xcalloc_noscan(size_t size, size_t n) pure nothrow;
-    pragma(mangle, "xcalloc_noscan_")
-    static void* xcalloc_noscan_(size_t size, size_t n) nothrow
+    static void* xcalloc_noscan(size_t size, size_t n) pure nothrow
     {
-        Mem.allocated += (size * n);
         if (isGCEnabled)
             return size * n ? GC.calloc(size * n, GC.BlkAttr.NO_SCAN) : null;
 
         return (size && n) ? check(pureCalloc(size, n)) : null;
     }
 
-    pragma(mangle, "xrealloc_")
-    static void* xrealloc (void* p, size_t size) pure nothrow;
-    pragma(mangle, "xrealloc_")
-    static void* xrealloc_(void* p, size_t size) nothrow
+    static void* xrealloc(void* p, size_t size) pure nothrow
     {
-        Mem.allocated += size;
         if (isGCEnabled)
             return GC.realloc(p, size);
 
@@ -109,12 +82,8 @@ extern (C++) struct Mem
         return check(pureRealloc(p, size));
     }
 
-    pragma(mangle, "xrealloc_noscan_")
-    static void* xrealloc_noscan (void* p, size_t size) pure nothrow;
-    pragma(mangle, "xrealloc_noscan_")
-    static void* xrealloc_noscan_(void* p, size_t size) nothrow
+    static void* xrealloc_noscan(void* p, size_t size) pure nothrow
     {
-        Mem.allocated += size;
         if (isGCEnabled)
             return GC.realloc(p, size, GC.BlkAttr.NO_SCAN);
 
