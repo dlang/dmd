@@ -1,4 +1,6 @@
-﻿module dmd.trace_file;
+/** Binary file format for trace file.
+ */
+module dmd.trace_file;
 
 enum bitmask_lower_48 = 0xFFFF_FFFF_FFFFUL;
 enum bitmask_lower_32 = 0xFFFF_FFFFUL;
