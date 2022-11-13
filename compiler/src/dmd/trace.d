@@ -27,7 +27,7 @@ enum COMPRESSED_TRACE = true;
 
 struct ProbeEntry
 {
-    ProfileNodeType nodeType;
+    NodeType nodeType;
 
     ulong begin_ticks;
     ulong end_ticks;
@@ -49,7 +49,7 @@ struct ProbeEntry
     }
 }
 
-enum ProfileNodeType
+enum NodeType
 {
     invalid,
     nullSymbol,
@@ -121,7 +121,7 @@ string traceIdentifierStringInScope(string vname, string fn = __PRETTY_FUNCTION_
             static if (is(v_type : Dsymbol))
             {
                 dsymbol_profile_array[insert_pos] =
-                    ProbeEntry(ProfileNodeType.dsymbol,
+                    ProbeEntry(NodeType.dsymbol,
                     begin_sema_ticks, end_sema_ticks,
                     begin_sema_mem, Mem.allocated,
                     asttypename_v, ` ~ (fn
@@ -130,7 +130,7 @@ string traceIdentifierStringInScope(string vname, string fn = __PRETTY_FUNCTION_
             } else static if (is(v_type : Expression))
             {
                 dsymbol_profile_array[insert_pos] =
-                    ProbeEntry(ProfileNodeType.expression,
+                    ProbeEntry(NodeType.expression,
                     begin_sema_ticks, end_sema_ticks,
                     begin_sema_mem, Mem.allocated,
                     asttypename_v, ` ~ (fn
@@ -139,7 +139,7 @@ string traceIdentifierStringInScope(string vname, string fn = __PRETTY_FUNCTION_
             } else static if (is(v_type : Statement))
             {
                 dsymbol_profile_array[insert_pos] =
-                    ProbeEntry(ProfileNodeType.statement,
+                    ProbeEntry(NodeType.statement,
                     begin_sema_ticks, end_sema_ticks,
                     begin_sema_mem, Mem.allocated,
                     asttypename_v, ` ~ (fn
@@ -148,7 +148,7 @@ string traceIdentifierStringInScope(string vname, string fn = __PRETTY_FUNCTION_
             } else static if (is(v_type : Type))
             {
                 dsymbol_profile_array[insert_pos] =
-                    ProbeEntry(ProfileNodeType.type,
+                    ProbeEntry(NodeType.type,
                     begin_sema_ticks, end_sema_ticks,
                     begin_sema_mem, Mem.allocated,
                     asttypename_v, ` ~ (fn
@@ -161,7 +161,7 @@ string traceIdentifierStringInScope(string vname, string fn = __PRETTY_FUNCTION_
         else
         {
             dsymbol_profile_array[insert_pos] =
-                    ProbeEntry(ProfileNodeType.nullSymbol,
+                    ProbeEntry(NodeType.nullSymbol,
                     begin_sema_ticks, end_sema_ticks,
                     begin_sema_mem, Mem.allocated,
                     "Dsymbol(Null)", ` ~ (fn
@@ -274,35 +274,35 @@ void writeRecord(ProbeEntry dp, ref char* bufferPos, uint FileVersion = 1)
 
         final switch(dp.nodeType)
         {
-            case ProfileNodeType.nullSymbol :
+            case NodeType.nullSymbol :
                 id = uint.max;
             break;
-            case ProfileNodeType.dsymbol :
+            case NodeType.dsymbol :
                 if (auto symInfo = (cast(void*)dp.sym) in symMap)
                 {
                     id = (**symInfo).id;
                 }
                 break;
-            case ProfileNodeType.expression :
+            case NodeType.expression :
                 if (auto symInfo = (cast(void*)dp.exp) in expMap)
                 {
                     id = (**symInfo).id;
                 }
                 break;
-            case ProfileNodeType.statement :
+            case NodeType.statement :
                 if (auto symInfo = (cast(void*)dp.stmt) in stmtMap)
                 {
                     id = (**symInfo).id;
                 }
                 break;
-            case ProfileNodeType.type :
+            case NodeType.type :
                 if (auto symInfo = (cast(void*)dp.type) in typeMap)
                 {
                     id = (**symInfo).id;
                 }
                 break;
                 // we should probably assert here.
-            case ProfileNodeType.invalid:
+            case NodeType.invalid:
                 numInvalidProfileNodes++;
                 return ;
         }
@@ -324,33 +324,33 @@ void writeRecord(ProbeEntry dp, ref char* bufferPos, uint FileVersion = 1)
 
             final switch(dp.nodeType)
             {
-                case ProfileNodeType.nullSymbol :
+                case NodeType.nullSymbol :
                     running_id--;
                 break;
-                case ProfileNodeType.dsymbol :
+                case NodeType.dsymbol :
                     symInfo.name = dp.sym.toChars();
                     symInfo.loc = dp.sym.loc.toChars();
 
                     symMap[cast(void*)dp.sym] = symInfo;
                 break;
-                case ProfileNodeType.expression :
+                case NodeType.expression :
                     symInfo.name = dp.exp.toChars();
                     symInfo.loc = dp.exp.loc.toChars();
 
                     expMap[cast(void*)dp.exp] = symInfo;
                 break;
-                case ProfileNodeType.statement:
+                case NodeType.statement:
                     symInfo.loc = dp.stmt.loc.toChars();
 
                     stmtMap[cast(void*)dp.stmt] = symInfo;
                 break;
-                case ProfileNodeType.type :
+                case NodeType.type :
                     symInfo.name = dp.type.toChars();
 
                     typeMap[cast(void*)dp.type] = symInfo;
                 break;
 
-                 case ProfileNodeType.invalid:
+                 case NodeType.invalid:
                      assert(0); // this cannot happen
             }
         Lend:
@@ -363,25 +363,25 @@ void writeRecord(ProbeEntry dp, ref char* bufferPos, uint FileVersion = 1)
 
         final switch(dp.nodeType)
         {
-            case ProfileNodeType.Dsymbol :
+            case NodeType.Dsymbol :
                 loc = dp.sym.loc;
                 name = dp.sym.toChars();
             break;
-            case ProfileNodeType.Expression :
+            case NodeType.Expression :
                 loc = dp.exp.loc;
                 name = dp.exp.toChars();
             break;
-            case ProfileNodeType.Statement :
+            case NodeType.Statement :
                 loc = dp.stmt.loc;
             break;
-            case ProfileNodeType.Type :
+            case NodeType.Type :
                 name = dp.type.toChars();
                 loc = dp.type.toDsymbol().loc;
             break;
             // we should probably assert here.
-            case ProfileNodeType.invalid:
+            case NodeType.invalid:
                 return ;
-            case ProfileNodeType.nullSymbol: break;
+            case NodeType.nullSymbol: break;
 
         }
     }
