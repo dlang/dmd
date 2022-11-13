@@ -80,7 +80,7 @@ nothrow:
     private const(char)[] str;
 
     ///
-    extern (D) this(const(char)[] str) pure
+    extern (D) this(const(char)[] str)
     {
         this.str = str.xarraydup;
     }
