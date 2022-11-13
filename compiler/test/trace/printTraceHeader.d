@@ -39,7 +39,7 @@ void main(string[] args)
     const mode = args[2];
     if (mode != "Header" && !exists(traceFile))
     {
-        writeln(`TraceFile: "`, traceFile, `" does not exist.`);
+        writeln(`Trace file "`, traceFile, `" is missing`);
         return;
     }
 
@@ -47,14 +47,13 @@ void main(string[] args)
     const void[] fileBytes = read(originalFile);
     if (fileBytes.length < header.sizeof)
     {
-        writeln("Tracefile truncated.");
+        writeln("Trace file was truncated from size ", header.sizeof, " ", fileBytes.length, " bytes");
     }
-
     (cast(void*)&header)[0 .. header.sizeof] = fileBytes[0 .. header.sizeof];
 
     if (header.magic_number != (*cast(ulong*) "DMDTRACE".ptr))
     {
-        writeln("Tracefile does not have the correct magic number.");
+        writeln(`Trace file "`, traceFile, `" contains incorrect magic number`);
         return;
     }
 
