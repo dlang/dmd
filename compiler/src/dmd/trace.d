@@ -189,7 +189,6 @@ static if (COMPRESSED_TRACE)
         const (char)* typename;
     }
 
-
     string[] phases;
     string[] kinds;
 
