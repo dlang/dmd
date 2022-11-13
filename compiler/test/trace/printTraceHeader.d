@@ -20,7 +20,7 @@ static immutable string[] supportedModes = [ // TODO: enum
     "TemplateInstances",
 ];
 
-void main(string[] args) @safe
+void main(string[] args) /* TODO: @safe */
 {
     if (args.length < 3)
     {
