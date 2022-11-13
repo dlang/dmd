@@ -495,7 +495,8 @@ Switch:
     return result;
 }
 
-enum hexString = (ulong value) {
+version(none)                   // disabled currently unused
+private enum hexString = (ulong value) {
     const wasZero = !value;
     static immutable NibbleRep = "0123456789abcdef";
     char[] resultBuffer;
