@@ -16,17 +16,12 @@ import dmd.expression;
 import dmd.mtype;
 import dmd.statement;
 import dmd.root.rootobject;
-
 import dmd.arraytypes : Strings;
 
 version (NO_TRACE)
-{
     enum SYMBOL_TRACE = false;
-}
 else
-{
     enum SYMBOL_TRACE = true;
-}
 enum COMPRESSED_TRACE = true;
 
 import dmd.trace_file;
