@@ -316,7 +316,7 @@ void writeRecord(ProbeEntry dp, ref char* bufferPos, uint FileVersion = 1)
 
             SymInfo *symInfo = &symInfos[n_symInfos++];
 
-            if (isStackAddress(dp.vp))
+            if (isLikelyOnStack(dp.vp))
             {
                 //running_id--;
                 goto Lend;
@@ -519,22 +519,17 @@ struct TraceFileTail
     string[] symbol_locations;
 }
 
-private bool isStackAddress(void* v)
+private bool isLikelyOnStack(in void* v) @safe pure nothrow @nogc
 {
+    pragma(inline, true);
     size_t vs = cast(size_t)v;
     size_t sp;
     version(D_InlineAsm_X86_64)
-    {
-        asm { mov sp, RSP; }
-    }
+        asm @trusted pure nothrow @nogc { mov sp, RSP; }
     else version(D_InlineAsm_X86)
-    {
-        asm { mov sp, ESP; }
-    }
+        asm @trusted pure nothrow @nogc { mov sp, ESP; }
     else
-    {
         static assert(0, "Inline asm not supported");
-    }
     // ignoring the first 24 bits of the adress
     // are they the same?
     return (sp & ~0x7FFFFF) == (vs & ~0x7FFFFF);
