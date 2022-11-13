@@ -37,7 +37,7 @@ struct Buffer
 
     this(this) @disable;
 
-    ~this() nothrow
+    ~this() pure nothrow
     {
         mem.xfree(data.ptr);
     }

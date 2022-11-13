@@ -80,7 +80,7 @@ nothrow:
     private const(char)[] str;
 
     ///
-    extern (D) this(const(char)[] str)
+    extern (D) this(const(char)[] str) pure
     {
         this.str = str.xarraydup;
     }
@@ -559,7 +559,7 @@ nothrow:
      * Returns:
      *   A newly allocated string (free with `FileName.free`)
      */
-    extern(D) static char[] addExt(const(char)[] name, const(char)[] ext)
+    extern(D) static char[] addExt(const(char)[] name, const(char)[] ext) pure
     {
         const len = name.length + ext.length + 2;
         auto s = cast(char*)mem.xmalloc(len);
@@ -1069,7 +1069,7 @@ nothrow:
     /********************************
      * Free memory allocated by FileName routines
      */
-    extern (C++) static void free(const(char)* str)
+    extern (C++) static void free(const(char)* str) pure
     {
         if (str)
         {
