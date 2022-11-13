@@ -7,7 +7,7 @@ import core.stdc.stdlib;
 
 void main(string[] args)
 {
-    import core.memory : GC; GC.disable();    
+    import core.memory : GC; GC.disable();
 
     if (args.length <= 1 || !exists(args[1]))
     {
@@ -62,6 +62,7 @@ void main(string[] args)
 
     printf("File written\n");
 }
+
 /+
 SymbolProfileRecordV2 toV2(SymbolProfileRecord v1, ulong timeBase = 0)
 {
@@ -97,7 +98,7 @@ SymbolProfileRecord toV1(SymbolProfileRecordV2 v2)
         kind_id : v2.kind_id_9_phase_id_7 & ((1 << 9) -1),
         phase_id : cast(ushort)(v2.kind_id_9_phase_id_7 >> 9)
     };
-    
+
     return v1;
 }
 enum u48_max = uint.max | (ulong(ushort.max) << 32UL);
