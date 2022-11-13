@@ -51,12 +51,12 @@ struct ProbeEntry
 
 enum ProfileNodeType
 {
-    Invalid,
-    NullSymbol,
-    Dsymbol,
-    Expression,
-    Statement,
-    Type,
+    invalid,
+    nullSymbol,
+    dsymbol,
+    expression,
+    statement,
+    type,
 }
 
 extern (C) __gshared uint dsymbol_profile_array_count;
@@ -121,7 +121,7 @@ string traceIdentifierStringInScope(string vname, string fn = __PRETTY_FUNCTION_
             static if (is(v_type : Dsymbol))
             {
                 dsymbol_profile_array[insert_pos] =
-                    ProbeEntry(ProfileNodeType.Dsymbol,
+                    ProbeEntry(ProfileNodeType.dsymbol,
                     begin_sema_ticks, end_sema_ticks,
                     begin_sema_mem, Mem.allocated,
                     asttypename_v, ` ~ (fn
@@ -130,7 +130,7 @@ string traceIdentifierStringInScope(string vname, string fn = __PRETTY_FUNCTION_
             } else static if (is(v_type : Expression))
             {
                 dsymbol_profile_array[insert_pos] =
-                    ProbeEntry(ProfileNodeType.Expression,
+                    ProbeEntry(ProfileNodeType.expression,
                     begin_sema_ticks, end_sema_ticks,
                     begin_sema_mem, Mem.allocated,
                     asttypename_v, ` ~ (fn
@@ -139,7 +139,7 @@ string traceIdentifierStringInScope(string vname, string fn = __PRETTY_FUNCTION_
             } else static if (is(v_type : Statement))
             {
                 dsymbol_profile_array[insert_pos] =
-                    ProbeEntry(ProfileNodeType.Statement,
+                    ProbeEntry(ProfileNodeType.statement,
                     begin_sema_ticks, end_sema_ticks,
                     begin_sema_mem, Mem.allocated,
                     asttypename_v, ` ~ (fn
@@ -148,7 +148,7 @@ string traceIdentifierStringInScope(string vname, string fn = __PRETTY_FUNCTION_
             } else static if (is(v_type : Type))
             {
                 dsymbol_profile_array[insert_pos] =
-                    ProbeEntry(ProfileNodeType.Type,
+                    ProbeEntry(ProfileNodeType.type,
                     begin_sema_ticks, end_sema_ticks,
                     begin_sema_mem, Mem.allocated,
                     asttypename_v, ` ~ (fn
@@ -161,7 +161,7 @@ string traceIdentifierStringInScope(string vname, string fn = __PRETTY_FUNCTION_
         else
         {
             dsymbol_profile_array[insert_pos] =
-                    ProbeEntry(ProfileNodeType.NullSymbol,
+                    ProbeEntry(ProfileNodeType.nullSymbol,
                     begin_sema_ticks, end_sema_ticks,
                     begin_sema_mem, Mem.allocated,
                     "Dsymbol(Null)", ` ~ (fn
@@ -274,35 +274,35 @@ void writeRecord(ProbeEntry dp, ref char* bufferPos, uint FileVersion = 1)
 
         final switch(dp.nodeType)
         {
-            case ProfileNodeType.NullSymbol :
+            case ProfileNodeType.nullSymbol :
                 id = uint.max;
             break;
-            case ProfileNodeType.Dsymbol :
+            case ProfileNodeType.dsymbol :
                 if (auto symInfo = (cast(void*)dp.sym) in symMap)
                 {
                     id = (**symInfo).id;
                 }
                 break;
-            case ProfileNodeType.Expression :
+            case ProfileNodeType.expression :
                 if (auto symInfo = (cast(void*)dp.exp) in expMap)
                 {
                     id = (**symInfo).id;
                 }
                 break;
-            case ProfileNodeType.Statement :
+            case ProfileNodeType.statement :
                 if (auto symInfo = (cast(void*)dp.stmt) in stmtMap)
                 {
                     id = (**symInfo).id;
                 }
                 break;
-            case ProfileNodeType.Type :
+            case ProfileNodeType.type :
                 if (auto symInfo = (cast(void*)dp.type) in typeMap)
                 {
                     id = (**symInfo).id;
                 }
                 break;
                 // we should probably assert here.
-            case ProfileNodeType.Invalid:
+            case ProfileNodeType.invalid:
                 numInvalidProfileNodes++;
                 return ;
         }
@@ -324,33 +324,33 @@ void writeRecord(ProbeEntry dp, ref char* bufferPos, uint FileVersion = 1)
 
             final switch(dp.nodeType)
             {
-                case ProfileNodeType.NullSymbol :
+                case ProfileNodeType.nullSymbol :
                     running_id--;
                 break;
-                case ProfileNodeType.Dsymbol :
+                case ProfileNodeType.dsymbol :
                     symInfo.name = dp.sym.toChars();
                     symInfo.loc = dp.sym.loc.toChars();
 
                     symMap[cast(void*)dp.sym] = symInfo;
                 break;
-                case ProfileNodeType.Expression :
+                case ProfileNodeType.expression :
                     symInfo.name = dp.exp.toChars();
                     symInfo.loc = dp.exp.loc.toChars();
 
                     expMap[cast(void*)dp.exp] = symInfo;
                 break;
-                case ProfileNodeType.Statement:
+                case ProfileNodeType.statement:
                     symInfo.loc = dp.stmt.loc.toChars();
 
                     stmtMap[cast(void*)dp.stmt] = symInfo;
                 break;
-                case ProfileNodeType.Type :
+                case ProfileNodeType.type :
                     symInfo.name = dp.type.toChars();
 
                     typeMap[cast(void*)dp.type] = symInfo;
                 break;
 
-                 case ProfileNodeType.Invalid:
+                 case ProfileNodeType.invalid:
                      assert(0); // this cannot happen
             }
         Lend:
@@ -379,9 +379,9 @@ void writeRecord(ProbeEntry dp, ref char* bufferPos, uint FileVersion = 1)
                 loc = dp.type.toDsymbol().loc;
             break;
             // we should probably assert here.
-            case ProfileNodeType.Invalid:
+            case ProfileNodeType.invalid:
                 return ;
-            case ProfileNodeType.NullSymbol: break;
+            case ProfileNodeType.nullSymbol: break;
 
         }
     }
