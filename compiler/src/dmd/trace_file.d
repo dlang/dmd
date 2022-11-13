@@ -9,6 +9,9 @@ enum bitmask_upper_16 = 0xFFFFUL << 32UL;
 enum bitmask_upper_32 = 0xFFFF_FFFFUL << 16UL;
 enum bitmask_upper_48 = 0xFFFF_FFFF_FFFFUL << 16UL;
 
+enum traceExtension = ".dmd_trace";
+enum symbolExtension = ".dmd_symbol";
+
 extern(C) struct SymbolProfileRecord
 {
     ulong begin_ticks;

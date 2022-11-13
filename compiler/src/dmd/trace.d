@@ -611,9 +611,7 @@ void writeTrace(Strings* arguments, const (char)[] traceFile = null, uint fVersi
 
         static if (COMPRESSED_TRACE)
         {
-
-            auto fileNameLength =
-                snprintf(&fileNameBuffer[0], fileNameBuffer.sizeof, "%.*s.trace".ptr, cast(int)nameStringLength, nameStringPointer);
+            auto fileNameLength = snprintf(&fileNameBuffer[0], fileNameBuffer.sizeof, "%.*s.dmd_trace".ptr, cast(int)nameStringLength, nameStringPointer);
 
             int currentOffset32()
             {
@@ -682,19 +680,14 @@ void writeTrace(Strings* arguments, const (char)[] traceFile = null, uint fVersi
 
             if (split_file)
             {
-
                 data = fileBuffer[0 .. bufferPos - fileBuffer];
                 errorcode_write = File.write(fileNameBuffer[0 .. fileNameLength], data);
-
             }
-
-
 
             // ----------------------------------------------------------------------------
             if (split_file)
             {
-                fileNameLength =
-                    snprintf(&fileNameBuffer[0], fileNameBuffer.sizeof, "%.*s.symbol".ptr, cast(int)nameStringLength, nameStringPointer);
+                fileNameLength = snprintf(&fileNameBuffer[0], fileNameBuffer.sizeof, "%.*s.dmd_symbol".ptr, cast(int)nameStringLength, nameStringPointer);
 
                 // reset buffer
                 bufferPos = fileBuffer;

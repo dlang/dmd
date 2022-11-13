@@ -7,9 +7,9 @@
 // TODO: Make the global pointer to array a normal array instead
 // TODO: Better packing of members
 
-import dmd.trace_file;
 import std.stdio;
 import std.file;
+import dmd.trace_file;
 
 enum separator = " | ";
 
@@ -42,8 +42,8 @@ void main(string[] args)
     import std.path : setExtension;
 
     auto originalFile = args[1];
-    auto traceFile = originalFile.setExtension(".trace");
-    auto symbolFile = originalFile.setExtension(".symbol");
+    auto traceFile = originalFile.setExtension(traceExtension);
+    auto symbolFile = originalFile.setExtension(symbolExtension);
 
     const mode = args[2];
     if (mode != "Header" && !exists(traceFile))
