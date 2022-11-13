@@ -1,3 +1,8 @@
+- Make behavior be controlled via the `-trace` flag because I believe this is
+  gonna be the most productive way of interaction. For instance
+  - `dmd -trace=sum:Function,Type;file:trace`
+  - `-trace=all:Template`
+  - `-trace=file:SOME_FILE`
 - Discuss traceFile naming. Shall we add automatically add a timestamp to the file name?
 - Can we merge this file, trace_file.d into trace.d?
 - Adjusting symbol casings
