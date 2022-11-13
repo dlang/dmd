@@ -21,12 +21,12 @@ enum Mode
     MemToplist,
     TimeToplist,
     Header,
-    PhaseHist,
-    KindHist,
+    PhaseHistogram,
+    KindHistogram,
     Symbol,
     Kind,
     Phase,
-    RandSample,
+    RandomSample,
     OutputSelfStats,
     OutputParentTable,
     Parent,
@@ -250,7 +250,7 @@ void main(string[] args) /* TODO: @safe */
                     getSymbolLocation(fileBytes, r), separator, getSymbolName(fileBytes, r));
         }
     }
-    else if (mode == Mode.PhaseHist)
+    else if (mode == Mode.PhaseHistogram)
     {
         static struct SortRecord
         {
@@ -284,7 +284,7 @@ void main(string[] args) /* TODO: @safe */
                     sr.avgTime, sr.absTime, sr.freq);
         }
     }
-    else if (mode == Mode.KindHist)
+    else if (mode == Mode.KindHistogram)
     {
         static struct SortRecord_Kind
         {
@@ -355,7 +355,7 @@ void main(string[] args) /* TODO: @safe */
             writeln("{kind: " ~ kinds[sNumber - 1] ~ "}");
         }
     }
-    else if (mode == Mode.RandSample)
+    else if (mode == Mode.RandomSample)
     {
         import std.random : randomSample;
         import std.algorithm : map, each;
