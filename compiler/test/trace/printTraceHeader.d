@@ -117,7 +117,7 @@ void main(string[] args) /* TODO: @safe */
         writeln("phases=", phases.join("#"));
         // a file with a correct header might not have a symbol table and we
         // don't want to scan for strange records just to show the header
-        return ;
+        return;
     }
 
     foreach (const r; records)
@@ -150,7 +150,6 @@ void main(string[] args) /* TODO: @safe */
     {
         ulong parentsFound = 0;
         uint currentDepth = 1;
-        stderr.writeln("Looking for parents");
         foreach (const i; 0 .. records.length)
         {
             const r = records[i];
@@ -198,7 +197,7 @@ void main(string[] args) /* TODO: @safe */
                 //assert(currentParent);
             }
         }
-        stderr.writeln("parentsFound: ", parentsFound, " out of ", header.n_records, " tracepoints");
+        writeln("Found ", parentsFound, " parents out of ", header.n_records, " tracepoints");
         if (!parentsFound && header.n_records)
         {
             stderr.writeln("No Parents? Something is fishy!");
@@ -206,6 +205,7 @@ void main(string[] args) /* TODO: @safe */
         }
     }
 
+    writeln("Mode: ", mode.to!string);
     if (mode == Mode.Tree)
     {
         const char[4096 * 4] indent = '-';
@@ -231,7 +231,7 @@ void main(string[] args) /* TODO: @safe */
     {
         import std.algorithm.sorting : sort;
         const sorted_records = records.sort!((a, b) => (a.end_mem - a.begin_mem > b.end_mem - b.begin_mem)).release;
-        writeln("Toplist");
+        writeln(mode.to!string);
         writeln("Memory (in Bytes),kind,phase,file(line),ident_or_code");
         foreach (const r; sorted_records)
         {
@@ -243,7 +243,6 @@ void main(string[] args) /* TODO: @safe */
     {
         import std.algorithm.sorting : sort;
         const auto sorted_records = records.sort!((a, b) => (a.end_ticks - a.begin_ticks > b.end_ticks - b.begin_ticks)).release;
-        writeln("Toplist");
         writeln("Time [cy],kind,phase,file(line),ident_or_code");
         foreach (const r; sorted_records)
         {
