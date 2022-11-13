@@ -33,22 +33,7 @@ extern(C) struct ProbeRecordV2
     ushort kind_id_9_phase_id_7;
 }
 
-extern (C) struct TraceFileHeader
-{
-    ulong magic_number;
-
-    uint FileVersion;
-
-    uint n_records;
-    uint n_phases;
-    uint n_kinds;
-    uint n_symbols;
-
-    uint offset_records;
-    uint offset_phases;
-    uint offset_kinds;
-    uint offset_symbol_info_descriptors;
-}
+alias TraceFileHeader = TraceFileHeaderV4;
 
 extern (C) struct TraceFileHeaderV4
 {

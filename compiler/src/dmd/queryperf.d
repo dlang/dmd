@@ -9,7 +9,7 @@
  * Authors:   Walter Bright, Sean Kelly
  */
 
-module queryperf;
+module dmd.queryperf;
 
 version (Windows)
 {
