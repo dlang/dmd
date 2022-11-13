@@ -538,8 +538,6 @@ struct TraceFileTail
 
 private bool isStackAddress(void* v)
 {
-    bool result = true;
-
     size_t vs = cast(size_t) v;
     size_t sp;
     version(D_InlineAsm_X86_64)
