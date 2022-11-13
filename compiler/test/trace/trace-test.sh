@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-make -C ../../src -f posix.mak
+make -C ../../.. -f posix.mak
 
 TRACEFILE="hello"
 
