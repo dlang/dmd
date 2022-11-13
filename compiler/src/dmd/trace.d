@@ -91,8 +91,6 @@ string traceIdentifierStringInScope(string vname, string fn = __PRETTY_FUNCTION_
     import dmd.expression;
     import dmd.mtype;
     import dmd.statement;
-    import core.stdc.stdio : fprintf;
-    // fprintf(stderr, "=================================\n");
 
     import queryperf : QueryPerformanceCounter;
     import dmd.root.rmem;
