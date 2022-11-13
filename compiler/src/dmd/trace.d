@@ -67,25 +67,21 @@ extern (C) __gshared SymbolProfileEntry* dsymbol_profile_array;
 
 enum dsymbol_profile_array_size = 128 * 1024 * 1024; // 128 million entries should do, no ?
 
-void initTraceMemory()
+void initTraceMemory() nothrow @nogc
 {
     static if (SYMBOL_TRACE)
     {
-        enum alloc_size = dsymbol_profile_array_size * SymbolProfileEntry.sizeof;
         import core.stdc.stdlib : malloc;
-
         if (!dsymbol_profile_array)
-        {
-            dsymbol_profile_array = cast(SymbolProfileEntry*) malloc(alloc_size);
-        }
-        assert(dsymbol_profile_array, "cannot allocate space for dsymbol_profile_array");
+            dsymbol_profile_array = cast(typeof(dsymbol_profile_array))malloc(dsymbol_profile_array_size * SymbolProfileEntry.sizeof);
+        assert(dsymbol_profile_array, "Failed to allocate trace data");
     }
 }
 
 string traceIdentifierStringInScope(string vname, string fn = __PRETTY_FUNCTION__)
 {
     static if (SYMBOL_TRACE)
-{
+    {
     return (`
     import dmd.dsymbol;
     import dmd.expression;
@@ -734,8 +730,6 @@ void writeTrace(Strings* arguments, const (char)[] traceFile = null, uint fVersi
             data = fileBuffer[0 .. bufferPos - fileBuffer];
             errorcode_write = File.write(fileNameBuffer[0 .. fileNameLength], data);
         }
-
         free(fileBuffer);
     }
 }
-
