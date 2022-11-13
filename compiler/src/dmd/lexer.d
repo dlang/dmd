@@ -2881,7 +2881,7 @@ class Lexer
      * If newParagraph is true, an extra newline will be
      * added between adjoining doc comments.
      */
-    private void getDocComment(Token* t, uint lineComment, bool newParagraph)
+    private void getDocComment(Token* t, uint lineComment, bool newParagraph) pure
     {
         /* ct tells us which kind of comment it is: '/', '*', or '+'
          */
@@ -3016,7 +3016,7 @@ class Lexer
      * Combine two document comments into one,
      * separated by an extra newline if newParagraph is true.
      */
-    static const(char)* combineComments(const(char)[] c1, const(char)[] c2, bool newParagraph)
+    static const(char)* combineComments(const(char)[] c1, const(char)[] c2, bool newParagraph) pure
     {
         //debug printf("Lexer::combineComments('%*.s', '%*.s', '%i')\n", cast(int) c1.length, c1.ptr, cast(int) c2.length, c2.ptr, newParagraph);
         const(int) newParagraphSize = newParagraph ? 1 : 0; // Size of the combining '\n'
