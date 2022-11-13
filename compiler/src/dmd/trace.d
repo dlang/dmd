@@ -65,7 +65,7 @@ enum ProfileNodeType
 extern (C) __gshared uint dsymbol_profile_array_count;
 extern (C) __gshared SymbolProfileEntry* dsymbol_profile_array;
 
-enum dsymbol_profile_array_size = 128 * 1024 * 1024; // 128 million entries should do, no ?
+enum dsymbol_profile_array_capacity = 128 * 1024 * 1024; // 128 million entries should do, no ?
 
 void initTraceMemory() nothrow @nogc
 {
@@ -73,7 +73,7 @@ void initTraceMemory() nothrow @nogc
     {
         import core.stdc.stdlib : malloc;
         if (!dsymbol_profile_array)
-            dsymbol_profile_array = cast(typeof(dsymbol_profile_array))malloc(dsymbol_profile_array_size * SymbolProfileEntry.sizeof);
+            dsymbol_profile_array = cast(typeof(dsymbol_profile_array))malloc(dsymbol_profile_array_capacity * SymbolProfileEntry.sizeof);
         assert(dsymbol_profile_array, "Failed to allocate trace data");
     }
 }
@@ -110,8 +110,8 @@ string traceIdentifierStringInScope(string vname, string fn = __PRETTY_FUNCTION_
 
     if (tracingEnabled)
     {
-        assert(dsymbol_profile_array_count < dsymbol_profile_array_size,
-            "Trying to push more then" ~ dsymbol_profile_array_size.stringof ~ " symbols");
+        assert(dsymbol_profile_array_count < dsymbol_profile_array_capacity,
+            "Trying to push more then" ~ dsymbol_profile_array_capacity.stringof ~ " symbols");
         QueryPerformanceCounter(&begin_sema_ticks);
     }
 
