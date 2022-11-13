@@ -64,7 +64,9 @@ enum ProfileNodeType
 
 extern (C) __gshared uint dsymbol_profile_array_count;
 extern (C) __gshared SymbolProfileEntry* dsymbol_profile_array;
+
 enum dsymbol_profile_array_size = 128 * 1024 * 1024; // 128 million entries should do, no ?
+
 void initTraceMemory()
 {
     static if (SYMBOL_TRACE)
@@ -210,6 +212,7 @@ static if (COMPRESSED_TRACE)
     SymInfo[] symInfos;
     uint n_symInfos;
 }
+
 const(size_t) align4(const size_t val) @safe pure @nogc
 {
     return ((val + 3) & ~3);
@@ -457,6 +460,7 @@ void writeRecord(SymbolProfileEntry dp, ref char* bufferPos, uint FileVersion = 
     }
 
 }
+
 /// Copies a string from src to dst
 /// Params:
 ///     dst = destination memory
@@ -535,7 +539,6 @@ struct TraceFileTail
     string[] symbol_locations;
 }
 
-
 private bool isStackAddress(void* v)
 {
     size_t vs = cast(size_t)v;
@@ -556,7 +559,6 @@ private bool isStackAddress(void* v)
     // are they the same?
     return (sp & ~0x7FFFFF) == (vs & ~0x7FFFFF);
 }
-
 
 pragma(inline, false)
 void writeTrace(Strings* arguments, const (char)[] traceFile = null, uint fVersion = 3)
