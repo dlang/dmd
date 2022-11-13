@@ -2,9 +2,9 @@
 
 set -euo pipefail
 
-TRACEFILE="hello"
-
 make -f posix.mak
+
+TRACEFILE="hello"
 
 ../generated/linux/release/64/dmd -trace="$TRACEFILE" ~/hello.d -o-
 
