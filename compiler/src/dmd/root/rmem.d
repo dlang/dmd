@@ -392,7 +392,7 @@ Params:
 
 Returns: A copy of the input array.
 */
-extern (D) T[] arraydup(T)(const scope T[] s)  nothrow
+extern (D) T[] arraydup(T)(const scope T[] s) pure nothrow
 {
     if (!s)
         return null;
