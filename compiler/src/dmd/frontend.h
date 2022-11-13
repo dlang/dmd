@@ -4073,7 +4073,6 @@ public:
     UnrolledLoopStatement* isUnrolledLoopStatement();
     ForeachRangeStatement* isForeachRangeStatement();
     CompoundDeclarationStatement* isCompoundDeclarationStatement();
-    PeelStatement* isPeelStatement();
 };
 
 class AsmStatement : public Statement
