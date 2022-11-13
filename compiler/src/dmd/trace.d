@@ -681,11 +681,7 @@ void writeTrace(Strings* arguments, const (char)[] traceFile = null, uint fVersi
             {
                 data = fileBuffer[0 .. bufferPos - fileBuffer];
                 errorcode_write = File.write(fileNameBuffer[0 .. fileNameLength], data);
-            }
 
-            // ----------------------------------------------------------------------------
-            if (split_file)
-            {
                 fileNameLength = snprintf(&fileNameBuffer[0], fileNameBuffer.sizeof, "%.*s.dmd_symbol".ptr, cast(int)nameStringLength, nameStringPointer);
 
                 // reset buffer
