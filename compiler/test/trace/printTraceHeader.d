@@ -37,7 +37,7 @@ void main(string[] args) /* TODO: @safe */
 {
     import std.conv : to;
     import std.traits : EnumMembers;
-    import std.exception : enforce;
+    import std.exception : enforce, assumeUnique;
     import std.format : format;
 
     enum modes = EnumMembers!Mode; // TODO: create array of strings
@@ -74,7 +74,7 @@ void main(string[] args) /* TODO: @safe */
     }
 
     TraceFileHeader header;
-    const void[] fileBytes = read(originalFile);
+    immutable(void)[] fileBytes = read(originalFile).assumeUnique;
     if (fileBytes.length < header.sizeof)
     {
         writeln("Trace file was truncated from size ", header.sizeof, " ", fileBytes.length, " bytes");
