@@ -98,16 +98,15 @@ void main(string[] args)
 
     if (mode == "Header")
     {
-	import std.array;
+        import std.array;
         writeln(structToString(header));
         writeln("kinds=", kinds.join("#"));
         writeln("phases=", phases.join("#"));
 
-        // a file with a correct header might not have a symbol table
-        // and we don't want to scan for strange records
-        // just to show the header
+        // a file with a correct header might not have a symbol table and we
+        // don't want to scan for strange records just to show the header
         return ;
-     }
+    }
 
     foreach (r; records)
     {
@@ -124,26 +123,23 @@ void main(string[] args)
         writeln(strange_record_count, " strange records encounterd");
         return;
     }
-    // if we get here records are sorted  by begin_ticks
-    // as they should be
+    // if we get here records are sorted by begin_ticks as they should be
 
-    //writeln("records are sorted that's good n_records: ", records.length);
+    // writeln("records are sorted that's good n_records: ", records.length);
 
     // now can start establishing parent child relationships;
     import core.stdc.stdlib;
 
     uint[] parents = (cast(uint*) calloc(records.length, uint.sizeof))[0 .. records.length];
     uint[] depths = (cast(uint*) calloc(records.length, uint.sizeof))[0 .. records.length];
-    uint[2][] selfTime = (cast(uint[2]*) calloc(records.length, uint.sizeof * 2))[0
-        .. records.length];
-    uint[2][] selfMem = (cast(uint[2]*) calloc(records.length, uint.sizeof * 2))[0
-        .. records.length];
+    uint[2][] selfTime = (cast(uint[2]*) calloc(records.length, uint.sizeof * 2))[0 .. records.length];
+    uint[2][] selfMem = (cast(uint[2]*) calloc(records.length, uint.sizeof * 2))[0 .. records.length];
 
     {
         ulong parentsFound = 0;
         uint currentDepth = 1;
         stderr.writeln("Looking for parents");
-        foreach (i; 0 .. records.length)
+        foreach (const i; 0 .. records.length)
         {
             const r = records[i];
             const time = cast(uint)(r.end_ticks - r.begin_ticks);
@@ -201,7 +197,7 @@ void main(string[] args)
     if (mode == "Tree")
     {
         const char[4096 * 4] indent = '-';
-        foreach (i; 0 .. records.length)
+        foreach (const i; 0 .. records.length)
         {
             const r = records[i];
             writeln(indent[0 .. depths[i]], ' ', r.end_ticks - r.begin_ticks, separator,
@@ -261,12 +257,12 @@ void main(string[] args)
         SortRecord[] sortRecords;
         sortRecords.length = phases.length;
 
-        foreach (i, r; records)
+        foreach (const i, r; records)
         {
             sortRecords[r.phase_id - 1].absTime += selfTime[i][1];
             sortRecords[r.phase_id - 1].freq++;
         }
-        foreach (i; 0 .. header.n_phases)
+        foreach (const i; 0 .. header.n_phases)
         {
             sortRecords[i].phaseId = i + 1;
             sortRecords[i].avgTime = sortRecords[i].absTime / double(sortRecords[i].freq);
@@ -295,12 +291,12 @@ void main(string[] args)
         SortRecord_Kind[] sortRecords;
         sortRecords.length = kinds.length;
 
-        foreach (i, r; records)
+        foreach (const i, r; records)
         {
             sortRecords[r.kind_id - 1].absTime += selfTime[i][1];
             sortRecords[r.kind_id - 1].freq++;
         }
-        foreach (i; 0 .. header.n_kinds)
+        foreach (const i; 0 .. header.n_kinds)
         {
             sortRecords[i].kindId = i + 1;
             sortRecords[i].avgTime = sortRecords[i].absTime / double(sortRecords[i].freq);
@@ -400,7 +396,7 @@ string structToString(T)(auto ref T _struct, int indent = 1)
 
     result ~= T.stringof ~ " (\n";
 
-    foreach (i, e; _struct.tupleof)
+    foreach (const i, e; _struct.tupleof)
     {
         bool skip = false;
 
@@ -463,7 +459,7 @@ string itos(const uint val) pure @trusted nothrow
     char[] result;
     result.length = length;
 
-    foreach (i; 0 .. length)
+    foreach (const i; 0 .. length)
     {
         immutable _val = val / fastPow10tbl[i];
         result[length - i - 1] = cast(char)((_val % 10) + '0');
