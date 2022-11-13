@@ -123,10 +123,11 @@ nothrow:
     const(char)[] lookForSourceFile(const char[] filename, const char*[] path)
     {
         //printf("lookForSourceFile(`%.*s`)\n", cast(int)filename.length, filename.ptr);
-        /* Search along path[] for .di file, then .d file, then .i file, then .c file.
+        /* Search along path[] for .di file, then .d file, then .i file, then.h file, then .c file.
         */
         // see if we should check for the module locally.
         bool checkLocal = packageExists(filename);
+
         const sdi = FileName.forceExt(filename, hdr_ext);
         if (checkLocal && FileName.exists(sdi) == 1)
             return sdi;
@@ -144,6 +145,11 @@ nothrow:
         if (checkLocal && FileName.exists(si) == 1)
             return si;
         scope(exit) FileName.free(si.ptr);
+
+        const sh = FileName.forceExt(filename, h_ext);
+        if (checkLocal && FileName.exists(sh) == 1)
+            return sh;
+        scope(exit) FileName.free(sh.ptr);
 
         const sc = FileName.forceExt(filename, c_ext);
         if (checkLocal && FileName.exists(sc) == 1)
@@ -181,37 +187,34 @@ nothrow:
         {
             const p = entry.toDString();
 
-            const(char)[] n = FileName.combine(p, sdi);
-
-            if (!packageExists(n)) {
+            {
+                const(char)[] n = FileName.combine(p, sdi);
+                if (!packageExists(n)) {
+                    FileName.free(n.ptr);
+                    continue; // no need to check for anything else.
+                }
+                if (FileName.exists(n) == 1) {
+                    return n;
+                }
                 FileName.free(n.ptr);
-                continue; // no need to check for anything else.
             }
-            if (FileName.exists(n) == 1) {
-                return n;
-            }
-            FileName.free(n.ptr);
 
-            n = FileName.combine(p, sd);
-            if (FileName.exists(n) == 1) {
-                return n;
+            static const(char)[] check(const(char)[] p, const(char)[] sx)
+            {
+                auto fn = FileName.combine(p, sx);
+                if (FileName.exists(fn))
+                    return fn;
+                FileName.free(fn.ptr);
+                return null;
             }
-            FileName.free(n.ptr);
 
-            n = FileName.combine(p, si);
-            if (FileName.exists(n) == 1) {
-                return n;
-            }
-            FileName.free(n.ptr);
+            if (auto fn = check(p, sd)) return fn;
+            if (auto fn = check(p, si)) return fn;
+            if (auto fn = check(p, sh)) return fn;
+            if (auto fn = check(p, sc)) return fn;
 
-            n = FileName.combine(p, sc);
-            if (FileName.exists(n) == 1) {
-                return n;
-            }
-            FileName.free(n.ptr);
-
-            const b = FileName.removeExt(filename);
-            n = FileName.combine(p, b);
+            const(char)[] b = FileName.removeExt(filename);
+            const(char)[] n = FileName.combine(p, b);
             FileName.free(b.ptr);
 
             scope(exit) FileName.free(n.ptr);
