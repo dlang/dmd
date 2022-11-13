@@ -39,6 +39,7 @@ void main(string[] args) /* TODO: @safe */
     import std.traits : EnumMembers;
     import std.exception : enforce, assumeUnique;
     import std.format : format;
+    import std.algorithm.sorting : sort;
 
     enum modes = EnumMembers!Mode; // TODO: create array of strings
 
@@ -217,7 +218,6 @@ void main(string[] args) /* TODO: @safe */
                         r), separator, getSymbolLocation(fileBytes, r), separator,);
 
         }
-        import std.algorithm.sorting : sort;
         const sorted_selfTimes = selfTime.sort!((a, b) => a[1] > b[1]).release;
         writeln("SelfTimes");
         writeln("selftime, kind, symbol_id");
@@ -229,7 +229,6 @@ void main(string[] args) /* TODO: @safe */
     }
     else if (mode == Mode.MemToplist)
     {
-        import std.algorithm.sorting : sort;
         const sorted_records = records.sort!((a, b) => (a.end_mem - a.begin_mem > b.end_mem - b.begin_mem)).release;
         writeln(mode.to!string);
         writeln("Memory (in Bytes),kind,phase,file(line),ident_or_code");
@@ -241,7 +240,6 @@ void main(string[] args) /* TODO: @safe */
     }
     else if (mode == Mode.TimeToplist)
     {
-        import std.algorithm.sorting : sort;
         const auto sorted_records = records.sort!((a, b) => (a.end_ticks - a.begin_ticks > b.end_ticks - b.begin_ticks)).release;
         writeln("Time [cy],kind,phase,file(line),ident_or_code");
         foreach (const r; sorted_records)
@@ -273,7 +271,6 @@ void main(string[] args) /* TODO: @safe */
             sortRecords[i].phaseId = i + 1;
             sortRecords[i].avgTime = sortRecords[i].absTime / double(sortRecords[i].freq);
         }
-        import std.algorithm.sorting : sort;
 
         sortRecords.sort!((a, b) => a.absTime > b.absTime);
         writeln(" === Phase Time Distribution : ===");
@@ -307,7 +304,6 @@ void main(string[] args) /* TODO: @safe */
             sortRecords[i].kindId = i + 1;
             sortRecords[i].avgTime = sortRecords[i].absTime / double(sortRecords[i].freq);
         }
-        import std.algorithm.sorting : sort;
 
         sortRecords.sort!((a, b) => a.absTime > b.absTime);
         writeln(" === Kind Time Distribution ===");
@@ -377,7 +373,6 @@ void main(string[] args) /* TODO: @safe */
     {
         import std.algorithm.iteration : filter;
         import std.algorithm.searching : countUntil;
-        import std.algorithm.sorting : sort;
         import std.array : array;
         auto template_instance_kind_idx = kinds.countUntil("TemplateInstance") + 1;
         foreach (const rec; records.filter!((r) => r.kind_id == template_instance_kind_idx)
