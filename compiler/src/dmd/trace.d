@@ -27,7 +27,17 @@ enum COMPRESSED_TRACE = true;
 
 struct ProbeEntry
 {
-    NodeType nodeType;
+    enum NodeType
+    {
+        invalid,
+        nullSymbol,
+        dsymbol,
+        expression,
+        statement,
+        type,
+    }
+
+    ProbeEntry.NodeType nodeType;
 
     ulong begin_ticks;
     ulong end_ticks;
@@ -47,16 +57,6 @@ struct ProbeEntry
         Type type;
         void* vp;
     }
-}
-
-enum NodeType
-{
-    invalid,
-    nullSymbol,
-    dsymbol,
-    expression,
-    statement,
-    type,
 }
 
 extern (C) __gshared uint dsymbol_profile_array_count;
@@ -121,7 +121,7 @@ string traceIdentifierStringInScope(string vname, string fn = __PRETTY_FUNCTION_
             static if (is(v_type : Dsymbol))
             {
                 dsymbol_profile_array[insert_pos] =
-                    ProbeEntry(NodeType.dsymbol,
+                    ProbeEntry(ProbeEntry.NodeType.dsymbol,
                     begin_sema_ticks, end_sema_ticks,
                     begin_sema_mem, Mem.allocated,
                     asttypename_v, ` ~ (fn
@@ -130,7 +130,7 @@ string traceIdentifierStringInScope(string vname, string fn = __PRETTY_FUNCTION_
             } else static if (is(v_type : Expression))
             {
                 dsymbol_profile_array[insert_pos] =
-                    ProbeEntry(NodeType.expression,
+                    ProbeEntry(ProbeEntry.NodeType.expression,
                     begin_sema_ticks, end_sema_ticks,
                     begin_sema_mem, Mem.allocated,
                     asttypename_v, ` ~ (fn
@@ -139,7 +139,7 @@ string traceIdentifierStringInScope(string vname, string fn = __PRETTY_FUNCTION_
             } else static if (is(v_type : Statement))
             {
                 dsymbol_profile_array[insert_pos] =
-                    ProbeEntry(NodeType.statement,
+                    ProbeEntry(ProbeEntry.NodeType.statement,
                     begin_sema_ticks, end_sema_ticks,
                     begin_sema_mem, Mem.allocated,
                     asttypename_v, ` ~ (fn
@@ -148,7 +148,7 @@ string traceIdentifierStringInScope(string vname, string fn = __PRETTY_FUNCTION_
             } else static if (is(v_type : Type))
             {
                 dsymbol_profile_array[insert_pos] =
-                    ProbeEntry(NodeType.type,
+                    ProbeEntry(ProbeEntry.NodeType.type,
                     begin_sema_ticks, end_sema_ticks,
                     begin_sema_mem, Mem.allocated,
                     asttypename_v, ` ~ (fn
@@ -161,7 +161,7 @@ string traceIdentifierStringInScope(string vname, string fn = __PRETTY_FUNCTION_
         else
         {
             dsymbol_profile_array[insert_pos] =
-                    ProbeEntry(NodeType.nullSymbol,
+                    ProbeEntry(ProbeEntry.NodeType.nullSymbol,
                     begin_sema_ticks, end_sema_ticks,
                     begin_sema_mem, Mem.allocated,
                     "Dsymbol(Null)", ` ~ (fn
@@ -274,35 +274,35 @@ void writeRecord(ProbeEntry dp, ref char* bufferPos, uint FileVersion = 1)
 
         final switch(dp.nodeType)
         {
-            case NodeType.nullSymbol :
+            case ProbeEntry.NodeType.nullSymbol :
                 id = uint.max;
             break;
-            case NodeType.dsymbol :
+            case ProbeEntry.NodeType.dsymbol :
                 if (auto symInfo = (cast(void*)dp.sym) in symMap)
                 {
                     id = (**symInfo).id;
                 }
                 break;
-            case NodeType.expression :
+            case ProbeEntry.NodeType.expression :
                 if (auto symInfo = (cast(void*)dp.exp) in expMap)
                 {
                     id = (**symInfo).id;
                 }
                 break;
-            case NodeType.statement :
+            case ProbeEntry.NodeType.statement :
                 if (auto symInfo = (cast(void*)dp.stmt) in stmtMap)
                 {
                     id = (**symInfo).id;
                 }
                 break;
-            case NodeType.type :
+            case ProbeEntry.NodeType.type :
                 if (auto symInfo = (cast(void*)dp.type) in typeMap)
                 {
                     id = (**symInfo).id;
                 }
                 break;
                 // we should probably assert here.
-            case NodeType.invalid:
+            case ProbeEntry.NodeType.invalid:
                 numInvalidProfileNodes++;
                 return ;
         }
@@ -324,33 +324,33 @@ void writeRecord(ProbeEntry dp, ref char* bufferPos, uint FileVersion = 1)
 
             final switch(dp.nodeType)
             {
-                case NodeType.nullSymbol :
+                case ProbeEntry.NodeType.nullSymbol :
                     running_id--;
                 break;
-                case NodeType.dsymbol :
+                case ProbeEntry.NodeType.dsymbol :
                     symInfo.name = dp.sym.toChars();
                     symInfo.loc = dp.sym.loc.toChars();
 
                     symMap[cast(void*)dp.sym] = symInfo;
                 break;
-                case NodeType.expression :
+                case ProbeEntry.NodeType.expression :
                     symInfo.name = dp.exp.toChars();
                     symInfo.loc = dp.exp.loc.toChars();
 
                     expMap[cast(void*)dp.exp] = symInfo;
                 break;
-                case NodeType.statement:
+                case ProbeEntry.NodeType.statement:
                     symInfo.loc = dp.stmt.loc.toChars();
 
                     stmtMap[cast(void*)dp.stmt] = symInfo;
                 break;
-                case NodeType.type :
+                case ProbeEntry.NodeType.type :
                     symInfo.name = dp.type.toChars();
 
                     typeMap[cast(void*)dp.type] = symInfo;
                 break;
 
-                 case NodeType.invalid:
+                 case ProbeEntry.NodeType.invalid:
                      assert(0); // this cannot happen
             }
         Lend:
@@ -363,25 +363,25 @@ void writeRecord(ProbeEntry dp, ref char* bufferPos, uint FileVersion = 1)
 
         final switch(dp.nodeType)
         {
-            case NodeType.Dsymbol :
+            case ProbeEntry.NodeType.Dsymbol :
                 loc = dp.sym.loc;
                 name = dp.sym.toChars();
             break;
-            case NodeType.Expression :
+            case ProbeEntry.NodeType.Expression :
                 loc = dp.exp.loc;
                 name = dp.exp.toChars();
             break;
-            case NodeType.Statement :
+            case ProbeEntry.NodeType.Statement :
                 loc = dp.stmt.loc;
             break;
-            case NodeType.Type :
+            case ProbeEntry.NodeType.Type :
                 name = dp.type.toChars();
                 loc = dp.type.toDsymbol().loc;
             break;
             // we should probably assert here.
-            case NodeType.invalid:
+            case ProbeEntry.NodeType.invalid:
                 return ;
-            case NodeType.nullSymbol: break;
+            case ProbeEntry.NodeType.nullSymbol: break;
 
         }
     }
