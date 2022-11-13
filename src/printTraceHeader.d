@@ -1,7 +1,3 @@
-// Build: make -f posix.mak && ../generated/linux/release/64/dmd -trace=hello ~/hello.d -o-
-// Run: cd ~/Work/dmd/src; dmd -I../compiler/src -i -run printTraceHeader.d hello.trace Tree
-// Run: cd ~/Work/dmd/src; dmd -I../compiler/src -i -run printTraceHeader.d hello.trace TemplateInstances
-
 // TODO: Discuss traceFile naming. Shall we add automatically add a timestamp to the file name?
 // TODO: Can we merge this file, trace_file.d into trace.d?
 // TODO: Adjusting symbol casings
