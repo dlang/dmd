@@ -84,30 +84,30 @@ align(1):
     uint one_past_string_end;
 }
 
-static TraceFileHeader readHeader()(void[] file)
+static TraceFileHeader decodeHeader()(void[] data) @trusted /* TODO: @safe */
 {
     TraceFileHeader header;
-    if (file.length < header.sizeof)
+    if (data.length < header.sizeof)
     {
         import std.stdio;
         writeln(stderr, "Tracefile truncated.");
     }
     else
     {
-        (cast(void*)&header)[0 .. header.sizeof] = file[0 .. header.sizeof];
+        (cast(void*)&header)[0 .. header.sizeof] = data[0 .. header.sizeof];
     }
     return header;
 }
 
-static string[] readStrings()(const void[] file, uint offset_strings, uint n_strings)
+static string[] decodeStrings()(const void[] data, uint offset_strings, uint n_strings) @trusted /* TODO: @safe */
 {
     const(char)[][] result;
     result.length = n_strings;
-    StringPointer* stringPointers = cast(StringPointer*)(file.ptr + offset_strings);
+    StringPointer* stringPointers = cast(StringPointer*)(data.ptr + offset_strings);
     foreach (const i; 0 .. n_strings)
     {
         const StringPointer p = *stringPointers++;
-        result[i] = (cast(char*)file.ptr)[p.string_start .. p.one_past_string_end];
+        result[i] = (cast(char*)data.ptr)[p.string_start .. p.one_past_string_end];
     }
     return (cast(string*)result.ptr)[0 .. result.length];
 }
@@ -115,21 +115,21 @@ static string[] readStrings()(const void[] file, uint offset_strings, uint n_str
 /** The only reason this is a template is becuase D does not allow one to
     specify inline linkage.
 */
-static ProbeRecord[] readRecords()(const void[] file, const void[][] additionalFiles = null)
+static ProbeRecord[] decodeRecords()(const void[] data, const void[][] additionalFiles = null) @trusted /* TODO: @safe */
 {
     ProbeRecord[] result;
 
     TraceFileHeader header;
-    (cast(void*)&header)[0 .. header.sizeof] = file[0 ..header.sizeof];
+    (cast(void*)&header)[0 .. header.sizeof] = data[0 ..header.sizeof];
 
     if (header.FileVersion == 1)
     {
-        result = (cast(ProbeRecord*)(file.ptr + header.offset_records))[0 .. header.n_records];
+        result = (cast(ProbeRecord*)(data.ptr + header.offset_records))[0 .. header.n_records];
     }
     else if (header.FileVersion == 2 || header.FileVersion == 3 || header.FileVersion == 4)
     {
         import core.stdc.stdlib;
-        auto source = (cast(ProbeRecordV2*)(file.ptr + header.offset_records))[0 .. header.n_records];
+        auto source = (cast(ProbeRecordV2*)(data.ptr + header.offset_records))[0 .. header.n_records];
         result = (cast(ProbeRecord*)calloc(result[0].sizeof, header.n_records))[0 .. header.n_records];
 
         foreach (const i; 0 .. header.n_records)
@@ -151,16 +151,16 @@ static ProbeRecord[] readRecords()(const void[] file, const void[][] additionalF
     return result;
 }
 
-static string getSymbolName()(const void[] file, uint id)
+static string getSymbolName()(const void[] data, uint id) @trusted /* TODO: @safe */
 {
     if (id == uint.max)
         return "NullSymbol";
 
-    TraceFileHeader* header = cast(TraceFileHeader*)file.ptr;
-    SymbolInfoPointers* symbolInfoPointers = cast(SymbolInfoPointers*) (file.ptr + header.offset_symbol_info_descriptors);
+    TraceFileHeader* header = cast(TraceFileHeader*)data.ptr;
+    SymbolInfoPointers* symbolInfoPointers = cast(SymbolInfoPointers*) (data.ptr + header.offset_symbol_info_descriptors);
 
     auto symp = symbolInfoPointers[id - 1];
-    auto name = (cast(char*)file.ptr)[symp.symbol_name_start .. symp.symobol_location_start];
+    auto name = (cast(char*)data.ptr)[symp.symbol_name_start .. symp.symobol_location_start];
     if (symp.symbol_name_start == symp.symobol_location_start)
     {
         name = null;
@@ -169,16 +169,16 @@ static string getSymbolName()(const void[] file, uint id)
     return cast(string) name;
 }
 
-static string getSymbolName()(const void[] file, ProbeRecord r)
+static string getSymbolName()(const void[] data, ProbeRecord r) @trusted /* TODO: @safe */
 {
     if (r.symbol_id == uint.max)
         return "NullSymbol";
 
-    TraceFileHeader* header = cast(TraceFileHeader*)file.ptr;
-    SymbolInfoPointers* symbolInfoPointers = cast(SymbolInfoPointers*) (file.ptr + header.offset_symbol_info_descriptors);
+    TraceFileHeader* header = cast(TraceFileHeader*)data.ptr;
+    SymbolInfoPointers* symbolInfoPointers = cast(SymbolInfoPointers*) (data.ptr + header.offset_symbol_info_descriptors);
 
     auto symp = symbolInfoPointers[r.symbol_id - 1];
-    auto name = (cast(char*)file.ptr)[symp.symbol_name_start .. symp.symobol_location_start];
+    auto name = (cast(char*)data.ptr)[symp.symbol_name_start .. symp.symobol_location_start];
     if (symp.symbol_name_start == symp.symobol_location_start)
     {
         name = null;
@@ -187,16 +187,16 @@ static string getSymbolName()(const void[] file, ProbeRecord r)
     return cast(string) name;
 }
 
-static string getSymbolLocation()(const void[] file, uint id)
+static string getSymbolLocation()(const void[] data, uint id) @trusted /* TODO: @safe */
 {
     if (id == uint.max)
         return "NullSymbol";
 
-    TraceFileHeader* header = cast(TraceFileHeader*)file.ptr;
-    SymbolInfoPointers* symbolInfoPointers = cast(SymbolInfoPointers*) (file.ptr + header.offset_symbol_info_descriptors);
+    TraceFileHeader* header = cast(TraceFileHeader*)data.ptr;
+    SymbolInfoPointers* symbolInfoPointers = cast(SymbolInfoPointers*) (data.ptr + header.offset_symbol_info_descriptors);
 
     auto symp = symbolInfoPointers[id - 1];
-    auto loc = (cast(char*)file.ptr)[symp.symobol_location_start .. symp.one_past_symbol_location_end];
+    auto loc = (cast(char*)data.ptr)[symp.symobol_location_start .. symp.one_past_symbol_location_end];
     if (symp.symobol_location_start == symp.one_past_symbol_location_end)
     {
         loc = null;
@@ -205,16 +205,16 @@ static string getSymbolLocation()(const void[] file, uint id)
     return cast(string) loc;
 }
 
-static string getSymbolLocation()(const void[] file, ProbeRecord r)
+static string getSymbolLocation()(const void[] data, ProbeRecord r) @trusted /* TODO: @safe */
 {
     if (r.symbol_id == uint.max)
         return "NullSymbol";
 
-    TraceFileHeader* header = cast(TraceFileHeader*)file.ptr;
-    SymbolInfoPointers* symbolInfoPointers = cast(SymbolInfoPointers*) (file.ptr + header.offset_symbol_info_descriptors);
+    TraceFileHeader* header = cast(TraceFileHeader*)data.ptr;
+    SymbolInfoPointers* symbolInfoPointers = cast(SymbolInfoPointers*) (data.ptr + header.offset_symbol_info_descriptors);
 
     auto symp = symbolInfoPointers[r.symbol_id - 1];
-    auto loc = (cast(char*)file.ptr)[symp.symobol_location_start .. symp.one_past_symbol_location_end];
+    auto loc = (cast(char*)data.ptr)[symp.symobol_location_start .. symp.one_past_symbol_location_end];
     if (symp.symobol_location_start == symp.one_past_symbol_location_end)
     {
         loc = null;

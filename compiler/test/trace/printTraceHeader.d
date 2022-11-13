@@ -87,13 +87,13 @@ void main(string[] args) /* TODO: @safe */
         return;
     }
 
-    const kinds = readStrings(fileBytes, header.offset_kinds, header.n_kinds);
-    const phases = readStrings(fileBytes, header.offset_phases, header.n_phases);
+    const kinds = decodeStrings(fileBytes, header.offset_kinds, header.n_kinds);
+    const phases = decodeStrings(fileBytes, header.offset_phases, header.n_phases);
 
     // writeln("phases:\n    ", phases);
     // writeln("kinds:\n    ", kinds);
 
-    ProbeRecord[] records = readRecords(fileBytes);
+    ProbeRecord[] records = decodeRecords(fileBytes);
 
     static ulong hashRecord(ProbeRecord r) pure
     {
