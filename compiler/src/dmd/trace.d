@@ -602,8 +602,6 @@ void writeTrace(Strings* arguments, const (char)[] traceFile = null, uint fVersi
             }
         }
 
-        fprintf(stderr, "traced symbols: %d\n", dsymbol_profile_array_count);
-
         auto nameStringLength = (traceFile !is null ? traceFile.length : timeStringLength);
         auto nameStringPointer = (traceFile !is null ? traceFile.ptr : timeString);
         enum split_file = false;
@@ -641,21 +639,15 @@ void writeTrace(Strings* arguments, const (char)[] traceFile = null, uint fVersi
 
             // the records follow
             header.offset_records = currentOffset32();
-            import std.datetime.stopwatch : StopWatch;
-            StopWatch sw;
-            sw.reset();
-            sw.start();
+
             foreach(dp;dsymbol_profile_array[0 .. dsymbol_profile_array_count])
             {
                 writeRecord(dp, bufferPos, header.FileVersion);
             }
-            sw.stop();
-            import std.stdio : writeln; writeln("writing out records took: ", sw.peek());
+
             assert(align4(currentOffset32()) == currentOffset32());
 
 
-            fprintf(stderr, "unique symbols: %d\n", n_symInfos);
-            fprintf(stderr, "profile_records size: %lluk\n", (bufferPos - fileBuffer) / 1024);
             // after writing the records we know how many symbols infos we have
 
             // write phases
@@ -673,9 +665,6 @@ void writeTrace(Strings* arguments, const (char)[] traceFile = null, uint fVersi
 
             char[] data;
             size_t errorcode_write;
-
-            sw.reset();
-            sw.start();
 
             if (split_file)
             {
@@ -712,9 +701,6 @@ void writeTrace(Strings* arguments, const (char)[] traceFile = null, uint fVersi
             writeSymInfos(bufferPos, fileBuffer);
             data = fileBuffer[0 .. bufferPos - fileBuffer];
             errorcode_write = File.write(fileNameBuffer[0 .. fileNameLength], data);
-
-            sw.stop();
-            import std.stdio : writeln; writeln("writing records to disk took: ", sw.peek());
         }
         else
         {
