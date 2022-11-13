@@ -116,13 +116,12 @@ code *cat(code *c1,code *c2)
  * Returns:
  *      pointer to start of code list
  */
-
-code *gen(code *c,code *cs)
+private
+code *gen(code *c, ref code cs)
 {
-    debug assert(cs);
     assert(I64 || cs.Irex == 0);
     code* ce = code_malloc();
-    *ce = *cs;
+    *ce = cs;
     //printf("ce = %p %02x\n", ce, ce.Iop);
     //ccheck(ce);
     simplify_code(ce);
@@ -173,29 +172,6 @@ code *gen2(code *c,opcode_t op,uint rm)
 }
 
 
-code *gen2sib(code *c,opcode_t op,uint rm,uint sib)
-{
-    code* ce;
-    code* cstart;
-
-  cstart = ce = code_calloc();
-  /*cxcalloc++;*/
-  ce.Iop = op;
-  ce.Irm = cast(ubyte)rm;
-  ce.Isib = cast(ubyte)sib;
-  ce.Irex = cast(ubyte)((rm | (sib & (REX_B << 16))) >> 16);
-  if (sib & (REX_R << 16))
-        ce.Irex |= REX_X;
-  //ccheck(ce);
-  if (c)
-  {     cstart = c;
-        while (code_next(c)) c = code_next(c);  /* find end of list     */
-        c.next = ce;                      /* link into list       */
-  }
-  return cstart;
-}
-
-
 code *genc2(code *c,opcode_t op,uint ea,targ_size_t EV2)
 {   code cs;
 
@@ -205,68 +181,7 @@ code *genc2(code *c,opcode_t op,uint ea,targ_size_t EV2)
     cs.Iflags = CFoff;
     cs.IFL2 = FLconst;
     cs.IEV2.Vsize_t = EV2;
-    return gen(c,&cs);
-}
-
-/*****************
- * Generate code.
- */
-
-code *genc(code *c,opcode_t op,uint ea,uint FL1,targ_size_t EV1,uint FL2,targ_size_t EV2)
-{   code cs;
-
-    assert(FL1 < FLMAX);
-    cs.Iop = op;
-    cs.Iea = ea;
-    //ccheck(&cs);
-    cs.Iflags = CFoff;
-    cs.IFL1 = cast(ubyte)FL1;
-    cs.IEV1.Vsize_t = EV1;
-    assert(FL2 < FLMAX);
-    cs.IFL2 = cast(ubyte)FL2;
-    cs.IEV2.Vsize_t = EV2;
-    return gen(c,&cs);
-}
-
-
-/********************************
- * Generate 'instruction' which is actually a line number.
- */
-
-code *genlinnum(code *c,Srcpos srcpos)
-{   code cs;
-
-    //srcpos.print("genlinnum");
-    cs.Iop = ESCAPE | ESClinnum;
-    cs.IEV1.Vsrcpos = srcpos;
-    return gen(c,&cs);
-}
-
-/*****************************
- * Prepend line number to existing code.
- */
-
-void cgen_prelinnum(code **pc,Srcpos srcpos)
-{
-    *pc = cat(genlinnum(null,srcpos),*pc);
-}
-
-/********************************
- * Generate 'instruction' which tells the scheduler that the fpu stack has
- * changed.
- */
-
-code *genadjfpu(code *c, int offset)
-{   code cs;
-
-    if (!I16 && offset)
-    {
-        cs.Iop = ESCAPE | ESCadjfpu;
-        cs.IEV1.Vint = offset;
-        return gen(c,&cs);
-    }
-    else
-        return c;
+    return gen(c,cs);
 }
 
 
