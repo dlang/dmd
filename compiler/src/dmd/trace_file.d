@@ -7,14 +7,14 @@ enum bitmask_upper_16 = 0xFFFFUL << 32UL;
 enum bitmask_upper_32 = 0xFFFF_FFFFUL << 16UL;
 enum bitmask_upper_48 = 0xFFFF_FFFF_FFFFUL << 16UL;
 
-extern(C) struct SymbolProfileRecord ///
+extern(C) struct SymbolProfileRecord
 {
     ulong begin_ticks;
     ulong end_ticks;
-    
+
     ulong begin_mem;
     ulong end_mem;
-    
+
     uint symbol_id;
     ushort kind_id;
     ushort phase_id;
@@ -24,11 +24,9 @@ extern(C) struct SymbolProfileRecordV2
 {
     ulong[3] begin_ticks_48_end_ticks_48_begin_memomry_48_end_memory_48; /// represents 4 48 bit values
 
-
     uint symbol_id;
     ushort kind_id_9_phase_id_7;
 }
-
 
 extern (C) struct TraceFileHeader
 {
@@ -40,7 +38,7 @@ extern (C) struct TraceFileHeader
     uint n_phases;
     uint n_kinds;
     uint n_symbols;
-    
+
     uint offset_records;
     uint offset_phases;
     uint offset_kinds;
@@ -50,14 +48,14 @@ extern (C) struct TraceFileHeader
 extern (C) struct TraceFileHeaderV4
 {
     ulong magic_number;
-    
+
     uint FileVersion;
-    
+
     uint n_records;
     uint n_phases;
     uint n_kinds;
     uint n_symbols;
-    
+
     uint offset_records;
     uint offset_phases;
     uint offset_kinds;
@@ -84,7 +82,6 @@ align(1):
 static TraceFileHeader readHeader()(void[] file)
 {
     TraceFileHeader header;
-
     if (file.length < header.sizeof)
     {
         import std.stdio;
@@ -94,7 +91,6 @@ static TraceFileHeader readHeader()(void[] file)
     {
         (cast(void*)&header)[0 .. header.sizeof] = file[0 .. header.sizeof];
     }
-
     return header;
 }
 
@@ -102,19 +98,18 @@ static string[] readStrings()(const void[] file, uint offset_strings, uint n_str
 {
     const (char)[][] result;
     result.length = n_strings;
-
     StringPointer* stringPointers = cast(StringPointer*)(file.ptr + offset_strings);
     foreach(i; 0 .. n_strings)
     {
         StringPointer p = *stringPointers++;
         result[i] = (cast(char*)file.ptr)[p.string_start .. p.one_past_string_end];
     }
-
     return (cast(string*)result.ptr)[0 .. result.length];
 }
 
-// the only reason this is a template is becuase d does not allow one to
-// specify inline linkage ... sigh
+/** The only reason this is a template is becuase D does not allow one to
+    specify inline linkage.
+*/
 static SymbolProfileRecord[] readRecords()(const void[] file, const void[][] additionalFiles = null)
 {
     SymbolProfileRecord[] result;
@@ -155,17 +150,17 @@ static string getSymbolName()(const void[] file, uint id)
 {
     if (id == uint.max)
         return "NullSymbol";
-    
+
     TraceFileHeader* header = cast(TraceFileHeader*)file.ptr;
     SymbolInfoPointers* symbolInfoPointers = cast(SymbolInfoPointers*) (file.ptr + header.offset_symbol_info_descriptors);
-    
+
     auto symp = symbolInfoPointers[id - 1];
     auto name = (cast(char*)file.ptr)[symp.symbol_name_start .. symp.symobol_location_start];
     if (symp.symbol_name_start == symp.symobol_location_start)
     {
         name = null;
     }
-    
+
     return cast(string) name;
 }
 
@@ -191,17 +186,17 @@ static string getSymbolLocation()(const void[] file, uint id)
 {
     if (id == uint.max)
         return "NullSymbol";
-    
+
     TraceFileHeader* header = cast(TraceFileHeader*)file.ptr;
     SymbolInfoPointers* symbolInfoPointers = cast(SymbolInfoPointers*) (file.ptr + header.offset_symbol_info_descriptors);
-    
+
     auto symp = symbolInfoPointers[id - 1];
     auto loc = (cast(char*)file.ptr)[symp.symobol_location_start .. symp.one_past_symbol_location_end];
     if (symp.symobol_location_start == symp.one_past_symbol_location_end)
     {
         loc = null;
     }
-    
+
     return cast(string) loc;
 }
 
@@ -219,6 +214,6 @@ static string getSymbolLocation()(const void[] file, SymbolProfileRecord r)
     {
         loc = null;
     }
-    
+
     return cast(string) loc;
 }
