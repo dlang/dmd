@@ -4,7 +4,7 @@ import dmd.trace_file;
 
 enum separator = " | ";
 
-bool ArgOneToN(uint arg, uint N)
+private bool argOneToN(uint arg, uint N) @safe
 {
     if (!arg || arg > N)
     {
@@ -20,7 +20,7 @@ static immutable string[] supportedModes = [ // TODO: enum
     "TemplateInstances",
 ];
 
-void main(string[] args)
+void main(string[] args) @safe
 {
     if (args.length < 3)
     {
@@ -51,7 +51,7 @@ void main(string[] args)
     }
     (cast(void*)&header)[0 .. header.sizeof] = fileBytes[0 .. header.sizeof];
 
-    if (header.magic_number != (*cast(ulong*) "DMDTRACE".ptr))
+    if (header.magic_number != (*cast(ulong*) &"DMDTRACE"[0]))
     {
         writeln(`Trace file "`, traceFile, `" contains incorrect magic number`);
         return;
@@ -293,7 +293,7 @@ void main(string[] args)
     {
         import std.conv : to;
         uint sNumber = to!uint(args[3]);
-        if (sNumber.ArgOneToN(header.n_symbols))
+        if (sNumber.argOneToN(header.n_symbols))
         {
             writeln("{name: ", getSymbolName(fileBytes, sNumber),
                 "\nlocation: " ~ getSymbolLocation(fileBytes, sNumber) ~ "}");
@@ -303,7 +303,7 @@ void main(string[] args)
     {
         import std.conv : to;
         uint sNumber = to!uint(args[3]);
-        if (sNumber.ArgOneToN(header.n_records))
+        if (sNumber.argOneToN(header.n_records))
         {
             writeln("{parentId: ", parents[sNumber - 1], "}");
         }
@@ -312,7 +312,7 @@ void main(string[] args)
     {
         import std.conv : to;
         uint sNumber = to!uint(args[3]);
-        if (sNumber.ArgOneToN(header.n_phases))
+        if (sNumber.argOneToN(header.n_phases))
         {
             writeln("{phase: " ~ phases[sNumber - 1] ~ "}");
         }
@@ -321,7 +321,7 @@ void main(string[] args)
     {
         import std.conv : to;
         uint sNumber = to!uint(args[3]);
-        if (sNumber.ArgOneToN(header.n_kinds))
+        if (sNumber.argOneToN(header.n_kinds))
         {
             writeln("{kind: " ~ kinds[sNumber - 1] ~ "}");
         }
