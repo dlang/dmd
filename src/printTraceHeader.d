@@ -26,18 +26,18 @@ bool ArgOneToN(uint arg, uint N)
     return true;
 }
 
+static immutable string[] supportedModes = [ // TODO: enum
+    "Tree", "MemToplist", "TimeToplist", "Header", "PhaseHist", "KindHist", "Symbol", "Kind",
+    "Phase", "RandSample" ,"OutputSelfStats", "OutputParentTable", "Parent",
+    "TemplateInstances",
+];
+
 void main(string[] args)
 {
-    string[] supportedModes = [ // TODO: enum
-        "Tree", "MemToplist", "TimeToplist", "Header", "PhaseHist", "KindHist", "Symbol", "Kind",
-        "Phase", "RandSample" ,"OutputSelfStats", "OutputParentTable", "Parent",
-        "TemplateInstances",
-    ];
-
     if (args.length < 3)
     {
-        writeln("Invalid invocation: ", args);
-        writeln("Expected: ", args[0], " traceFile mode {args depending on mode}");
+        writeln("Too few arguments: ", args);
+        writeln("Usage: ", args[0], " TRACEFILE MODE {args depending on mode}");
         writeln("Modes: ", supportedModes);
         return;
     }
