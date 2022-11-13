@@ -101,7 +101,7 @@ static TraceFileHeader readHeader()(void[] file)
 
 static string[] readStrings()(const void[] file, uint offset_strings, uint n_strings)
 {
-    const (char)[][] result;
+    const(char)[][] result;
     result.length = n_strings;
     StringPointer* stringPointers = cast(StringPointer*)(file.ptr + offset_strings);
     foreach (const i; 0 .. n_strings)
