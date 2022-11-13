@@ -629,7 +629,6 @@ void writeTrace(Strings* arguments, const (char)[] traceFile = null, uint fVersi
 
             assert(align4(currentOffset32()) == currentOffset32());
 
-
             // after writing the records we know how many symbols infos we have
 
             // write phases
@@ -643,7 +642,6 @@ void writeTrace(Strings* arguments, const (char)[] traceFile = null, uint fVersi
             assert(align4(currentOffset32()) == currentOffset32());
             writeStrings(bufferPos, fileBuffer, kinds);
             header.n_kinds = cast(uint) kinds.length;
-
 
             char[] data;
             size_t errorcode_write;
