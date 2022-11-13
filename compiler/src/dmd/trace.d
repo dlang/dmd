@@ -538,7 +538,7 @@ struct TraceFileTail
 
 private bool isStackAddress(void* v)
 {
-    size_t vs = cast(size_t) v;
+    size_t vs = cast(size_t)v;
     size_t sp;
     version(D_InlineAsm_X86_64)
     {
@@ -552,7 +552,6 @@ private bool isStackAddress(void* v)
     {
         static assert(0, "inline asm not supported");
     }
-
     // ignoring the first 24 bits of the adress
     // are they the same?
     return (sp & ~0x7FFFFF) == (vs & ~0x7FFFFF);
