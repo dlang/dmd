@@ -92,7 +92,7 @@ Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, SC sclass, type *t, const(cha
         cast(int)suffixlen, suffix);
     assert(cast(uint)nwritten < idlen);         // nwritten does not include the terminating 0 char
 
-    Symbol *s = symbol_name(id, nwritten, sclass, t);
+    Symbol *s = symbol_name(id[0 .. nwritten], sclass, t);
 
     //printf("-Dsymbol::toSymbolX() %s\n", id);
     return s;
@@ -566,8 +566,8 @@ Symbol *toThunkSymbol(FuncDeclaration fd, int offset)
     __gshared int tmpnum;
     char[6 + tmpnum.sizeof * 3 + 1] name = void;
 
-    sprintf(name.ptr,"_THUNK%d",tmpnum++);
-    auto sthunk = symbol_name(name.ptr,SC.static_,fd.csym.Stype);
+    const len = sprintf(name.ptr,"_THUNK%d",tmpnum++);
+    auto sthunk = symbol_name(name[0 .. len],SC.static_,fd.csym.Stype);
     sthunk.Sflags |= SFLnodebug | SFLartifical;
     sthunk.Sflags |= SFLimplem;
     outthunk(sthunk, fd.csym, 0, TYnptr, -offset, -1, 0);
