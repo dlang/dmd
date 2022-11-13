@@ -19,7 +19,6 @@ void main(string[] args)
     auto file_bytes = read(inFile);
     auto header = readHeader(file_bytes);
 
-
     enum DMDTRACE = 4990904633913527620UL;
     if (header.magic_number != DMDTRACE)
     {
