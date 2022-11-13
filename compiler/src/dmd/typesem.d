@@ -478,7 +478,7 @@ Expression typeToExpression(Type t)
  */
 extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
 {
-    import dmd.trace; mixin(traceString("type"));
+    import dmd.trace; mixin(traceIdentifierStringInScope("type"));
     static Type error()
     {
         return Type.terror;

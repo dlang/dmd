@@ -128,7 +128,7 @@ extern (C++) final class Import : Dsymbol
      */
     bool load(Scope* sc)
     {
-        //import dmd.trace; mixin(traceString("this"));
+        //import dmd.trace; mixin(traceIdentifierStringInScope("this"));
         //printf("Import::load('%s') %p\n", toPrettyChars(), this);
         // See if existing module
         const errors = global.errors;
