@@ -49,7 +49,6 @@ void main(string[] args)
     auto symbolFile = originalFile.setExtension(".symbol");
 
     const mode = args[2];
-
     if (mode != "Header" && !exists(traceFile))
     {
         writeln(`TraceFile: "`, traceFile, `" does not exist.`);
