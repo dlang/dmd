@@ -35,11 +35,12 @@ enum Mode
 
 void main(string[] args) /* TODO: @safe */
 {
-    import std.conv : to;
     import std.traits : EnumMembers;
     import std.exception : enforce, assumeUnique;
     import std.format : format;
     import std.algorithm.sorting : sort;
+    import std.path : setExtension;
+    import std.conv : to;
 
     enum modes = EnumMembers!Mode; // TODO: create array of strings
 
@@ -51,8 +52,6 @@ void main(string[] args) /* TODO: @safe */
         return;
     }
     const modeArg = args[2];
-
-    import std.path : setExtension;
 
     auto originalFile = args[1];
     auto traceFile = originalFile.setExtension(traceExtension);
@@ -316,7 +315,6 @@ void main(string[] args) /* TODO: @safe */
     }
     else if (mode == Mode.Symbol)
     {
-        import std.conv : to;
         uint sNumber = to!uint(args[3]);
         if (sNumber.argOneToN(header.n_symbols))
         {
@@ -326,7 +324,6 @@ void main(string[] args) /* TODO: @safe */
     }
     else if (mode == Mode.Parent)
     {
-        import std.conv : to;
         uint sNumber = to!uint(args[3]);
         if (sNumber.argOneToN(header.n_records))
         {
@@ -335,7 +332,6 @@ void main(string[] args) /* TODO: @safe */
     }
     else if (mode == Mode.Phase)
     {
-        import std.conv : to;
         uint sNumber = to!uint(args[3]);
         if (sNumber.argOneToN(header.n_phases))
         {
@@ -344,7 +340,6 @@ void main(string[] args) /* TODO: @safe */
     }
     else if (mode == Mode.Kind)
     {
-        import std.conv : to;
         uint sNumber = to!uint(args[3]);
         if (sNumber.argOneToN(header.n_kinds))
         {
@@ -429,7 +424,6 @@ string structToString(T)(auto ref T _struct, int indent = 1)
             else
             {
                 pragma(msg, type);
-                import std.conv : to;
                 result ~= to!string(e);
             }
             result ~= ",\n";
