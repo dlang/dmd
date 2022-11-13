@@ -106,7 +106,7 @@ static string[] readStrings()(const void[] file, uint offset_strings, uint n_str
     StringPointer* stringPointers = cast(StringPointer*)(file.ptr + offset_strings);
     foreach (const i; 0 .. n_strings)
     {
-        StringPointer p = *stringPointers++;
+        const StringPointer p = *stringPointers++;
         result[i] = (cast(char*)file.ptr)[p.string_start .. p.one_past_string_end];
     }
     return (cast(string*)result.ptr)[0 .. result.length];
