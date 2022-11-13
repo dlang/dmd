@@ -690,7 +690,6 @@ void writeTrace(Strings* arguments, const (char)[] traceFile = null, uint fVersi
 
                 // now attach the metadata
                 symHeader.offset_symbol_info_descriptors = currentOffset32();
-
             }
             else
             {
