@@ -527,13 +527,13 @@ private bool isStackAddress(void* v)
     {
         asm { mov sp, RSP; }
     }
-    else version (D_InlineAsm_X86)
+    else version(D_InlineAsm_X86)
     {
         asm { mov sp, ESP; }
     }
     else
     {
-        static assert(0, "inline asm not supported");
+        static assert(0, "Inline asm not supported");
     }
     // ignoring the first 24 bits of the adress
     // are they the same?
