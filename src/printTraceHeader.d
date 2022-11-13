@@ -56,7 +56,7 @@ void main(string[] args)
     }
 
     TraceFileHeader header;
-    void[] fileBytes = read(originalFile);
+    const void[] fileBytes = read(originalFile);
     if (fileBytes.length < header.sizeof)
     {
         writeln("Tracefile truncated.");
@@ -70,11 +70,8 @@ void main(string[] args)
         return;
     }
 
-    string[] kinds;
-    string[] phases;
-
-    kinds = readStrings(fileBytes, header.offset_kinds, header.n_kinds);
-    phases = readStrings(fileBytes, header.offset_phases, header.n_phases);
+    const kinds = readStrings(fileBytes, header.offset_kinds, header.n_kinds);
+    const phases = readStrings(fileBytes, header.offset_phases, header.n_phases);
 
     // writeln("phases:\n    ", phases);
     // writeln("kinds:\n    ", kinds);
@@ -101,7 +98,6 @@ void main(string[] args)
         writeln(structToString(header));
         writeln("kinds=", kinds.join("#"));
         writeln("phases=", phases.join("#"));
-
         // a file with a correct header might not have a symbol table and we
         // don't want to scan for strange records just to show the header
         return ;
@@ -206,7 +202,7 @@ void main(string[] args)
         }
         import std.algorithm;
 
-        auto sorted_selfTimes = selfTime.sort!((a, b) => a[1] > b[1]).release;
+        const sorted_selfTimes = selfTime.sort!((a, b) => a[1] > b[1]).release;
         writeln("SelfTimes");
         writeln("selftime, kind, symbol_id");
         foreach (const st; sorted_selfTimes[0 .. (header.n_records > 2000 ? 2000 : header.n_records)])
@@ -219,8 +215,7 @@ void main(string[] args)
     {
         import std.algorithm;
 
-        auto sorted_records = records.sort!((a,
-                b) => (a.end_mem - a.begin_mem > b.end_mem - b.begin_mem)).release;
+        const sorted_records = records.sort!((a, b) => (a.end_mem - a.begin_mem > b.end_mem - b.begin_mem)).release;
         writeln("Toplist");
         writeln("Memory (in Bytes),kind,phase,file(line),ident_or_code");
         foreach (const r; sorted_records)
@@ -233,8 +228,7 @@ void main(string[] args)
     {
         import std.algorithm;
 
-        auto sorted_records = records.sort!((a,
-                b) => (a.end_ticks - a.begin_ticks > b.end_ticks - b.begin_ticks)).release;
+        const auto sorted_records = records.sort!((a, b) => (a.end_ticks - a.begin_ticks > b.end_ticks - b.begin_ticks)).release;
         writeln("Toplist");
         writeln("Time [cy],kind,phase,file(line),ident_or_code");
         foreach (const r; sorted_records)
@@ -256,7 +250,7 @@ void main(string[] args)
         SortRecord[] sortRecords;
         sortRecords.length = phases.length;
 
-        foreach (const i, r; records)
+        foreach (const i, const r; records)
         {
             sortRecords[r.phase_id - 1].absTime += selfTime[i][1];
             sortRecords[r.phase_id - 1].freq++;
@@ -356,9 +350,9 @@ void main(string[] args)
     }
     else if (mode == "OutputSelfStats")
     {
-        void [] selfTimeMem = (cast(void*)selfTime)[0 .. (selfTime.length * selfTime[0].sizeof)];
+        const void[] selfTimeMem = (cast(void*)selfTime)[0 .. (selfTime.length * selfTime[0].sizeof)];
         std.file.write(traceFile ~ ".st", selfTimeMem);
-        void [] selfMemMem = (cast(void*)selfMem)[0 .. (selfMem.length * selfMem[0].sizeof)];
+        const void[] selfMemMem = (cast(void*)selfMem)[0 .. (selfMem.length * selfMem[0].sizeof)];
         std.file.write(traceFile ~ ".sm", selfMemMem);
     }
     else if (mode == "OutputParentTable")
