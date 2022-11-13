@@ -7,6 +7,7 @@ fail_compilation/misc1.d(115): Deprecation: `1 * 1` has no effect
 fail_compilation/misc1.d(116): Deprecation: `__lambda3` has no effect
 fail_compilation/misc1.d(122): Deprecation: `false` has no effect
 fail_compilation/misc1.d(125): Deprecation: `*sp++` has no effect
+fail_compilation/misc1.d(126): Deprecation: `j` has no effect
 ---
 */
 
@@ -27,7 +28,7 @@ void issue23480()
 {
     int j;
     for({} j; 1*1) {}
-    for({j=2; int d = 3; } j+d<7; {j++; d++; }) {}
+    for({j=2; int d = 3;} j+d<7; {j++; d++;}) {}
     for (
         if (true)        // (o_O)
             assert(78);
@@ -36,5 +37,6 @@ void issue23480()
         false; false
     ) {}
     // unnecessary deref
-    for (ubyte* sp;; *sp++) {}
+    for (ubyte* sp; 0; *sp++) {}
+    for (;; j) {}
 }
