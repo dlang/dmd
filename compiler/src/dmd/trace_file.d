@@ -127,7 +127,7 @@ static SymbolProfileRecord[] readRecords()(const void[] file, const void[][] add
         auto source = (cast(SymbolProfileRecordV2*)(file.ptr + header.offset_records))[0 .. header.n_records];
         result = (cast(SymbolProfileRecord*)calloc(result[0].sizeof, header.n_records))[0 .. header.n_records];
 
-        foreach(i;0 .. header.n_records)
+        foreach (const i; 0 .. header.n_records)
         {
             ulong[3] byteField = source[i].begin_ticks_48_end_ticks_48_begin_memomry_48_end_memory_48;
 
