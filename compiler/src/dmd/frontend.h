@@ -317,7 +317,7 @@ class ScopeGuardStatement;
 class SwitchErrorStatement;
 struct Token;
 struct code;
-struct SymbolProfileEntry;
+struct ProbeEntry;
 class Object;
 class TypeInfo_Class;
 class TypeInfo;
@@ -8142,7 +8142,7 @@ public:
 
 extern "C" uint32_t dsymbol_profile_array_count;
 
-extern "C" SymbolProfileEntry* dsymbol_profile_array;
+extern "C" ProbeEntry* dsymbol_profile_array;
 
 extern _d_real creall(complex_t x);
 

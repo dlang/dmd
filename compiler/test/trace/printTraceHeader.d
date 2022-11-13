@@ -64,9 +64,9 @@ void main(string[] args)
     // writeln("phases:\n    ", phases);
     // writeln("kinds:\n    ", kinds);
 
-    SymbolProfileRecord[] records = readRecords(fileBytes);
+    ProbeRecord[] records = readRecords(fileBytes);
 
-    static ulong hashRecord(SymbolProfileRecord r) pure
+    static ulong hashRecord(ProbeRecord r) pure
     {
         ulong hash;
         hash ^= r.begin_mem;

@@ -28,7 +28,7 @@ import dmd.trace_file;
 
 __gshared bool tracingEnabled = false;
 
-struct SymbolProfileEntry
+struct ProbeEntry
 {
     ProfileNodeType nodeType;
 
@@ -63,7 +63,7 @@ enum ProfileNodeType
 }
 
 extern (C) __gshared uint dsymbol_profile_array_count;
-extern (C) __gshared SymbolProfileEntry* dsymbol_profile_array;
+extern (C) __gshared ProbeEntry* dsymbol_profile_array;
 
 enum dsymbol_profile_array_capacity = 128 * 1024 * 1024; // 128 million entries should do, no ?
 
@@ -73,7 +73,7 @@ void initTraceMemory() nothrow @nogc
     {
         import core.stdc.stdlib : malloc;
         if (!dsymbol_profile_array)
-            dsymbol_profile_array = cast(typeof(dsymbol_profile_array))malloc(dsymbol_profile_array_capacity * SymbolProfileEntry.sizeof);
+            dsymbol_profile_array = cast(typeof(dsymbol_profile_array))malloc(dsymbol_profile_array_capacity * ProbeEntry.sizeof);
         assert(dsymbol_profile_array, "Failed to allocate trace data");
     }
 }
@@ -123,7 +123,7 @@ string traceIdentifierStringInScope(string vname, string fn = __PRETTY_FUNCTION_
             static if (is(v_type : Dsymbol))
             {
                 dsymbol_profile_array[insert_pos] =
-                    SymbolProfileEntry(ProfileNodeType.Dsymbol,
+                    ProbeEntry(ProfileNodeType.Dsymbol,
                     begin_sema_ticks, end_sema_ticks,
                     begin_sema_mem, Mem.allocated,
                     asttypename_v, ` ~ (fn
@@ -132,7 +132,7 @@ string traceIdentifierStringInScope(string vname, string fn = __PRETTY_FUNCTION_
             } else static if (is(v_type : Expression))
             {
                 dsymbol_profile_array[insert_pos] =
-                    SymbolProfileEntry(ProfileNodeType.Expression,
+                    ProbeEntry(ProfileNodeType.Expression,
                     begin_sema_ticks, end_sema_ticks,
                     begin_sema_mem, Mem.allocated,
                     asttypename_v, ` ~ (fn
@@ -141,7 +141,7 @@ string traceIdentifierStringInScope(string vname, string fn = __PRETTY_FUNCTION_
             } else static if (is(v_type : Statement))
             {
                 dsymbol_profile_array[insert_pos] =
-                    SymbolProfileEntry(ProfileNodeType.Statement,
+                    ProbeEntry(ProfileNodeType.Statement,
                     begin_sema_ticks, end_sema_ticks,
                     begin_sema_mem, Mem.allocated,
                     asttypename_v, ` ~ (fn
@@ -150,7 +150,7 @@ string traceIdentifierStringInScope(string vname, string fn = __PRETTY_FUNCTION_
             } else static if (is(v_type : Type))
             {
                 dsymbol_profile_array[insert_pos] =
-                    SymbolProfileEntry(ProfileNodeType.Type,
+                    ProbeEntry(ProfileNodeType.Type,
                     begin_sema_ticks, end_sema_ticks,
                     begin_sema_mem, Mem.allocated,
                     asttypename_v, ` ~ (fn
@@ -163,7 +163,7 @@ string traceIdentifierStringInScope(string vname, string fn = __PRETTY_FUNCTION_
         else
         {
             dsymbol_profile_array[insert_pos] =
-                    SymbolProfileEntry(ProfileNodeType.NullSymbol,
+                    ProbeEntry(ProfileNodeType.NullSymbol,
                     begin_sema_ticks, end_sema_ticks,
                     begin_sema_mem, Mem.allocated,
                     "Dsymbol(Null)", ` ~ (fn
@@ -213,7 +213,7 @@ const(size_t) align4(const size_t val) @safe pure @nogc
 
 ulong timeBase = 0;
 
-void writeRecord(SymbolProfileEntry dp, ref char* bufferPos, uint FileVersion = 1)
+void writeRecord(ProbeEntry dp, ref char* bufferPos, uint FileVersion = 1)
 {
     import core.stdc.stdio;
     import dmd.globals : Loc;
@@ -392,8 +392,8 @@ void writeRecord(SymbolProfileEntry dp, ref char* bufferPos, uint FileVersion = 
     {
         if (FileVersion == 2 || FileVersion == 3)
         {
-            SymbolProfileRecordV2* rp = cast(SymbolProfileRecordV2*) bufferPos;
-            bufferPos += SymbolProfileRecordV2.sizeof;
+            ProbeRecordV2* rp = cast(ProbeRecordV2*) bufferPos;
+            bufferPos += ProbeRecordV2.sizeof;
             //TODO test this works
 
             ulong[3] byteField;
@@ -405,7 +405,7 @@ void writeRecord(SymbolProfileEntry dp, ref char* bufferPos, uint FileVersion = 
             byteField[2] = (((dp.begin_mem            ) & bitmask_upper_16) >> 32UL);
             byteField[2] |= (((dp.end_mem             ) & bitmask_lower_48) << 16UL);
 
-            SymbolProfileRecordV2 r = {
+            ProbeRecordV2 r = {
                 begin_ticks_48_end_ticks_48_begin_memomry_48_end_memory_48 :
                     byteField,
                 kind_id_9_phase_id_7 : kindId | cast(ushort)(phaseId << 9),
@@ -415,10 +415,10 @@ void writeRecord(SymbolProfileEntry dp, ref char* bufferPos, uint FileVersion = 
         }
         else if (FileVersion == 1)
         {
-            SymbolProfileRecord* rp = cast(SymbolProfileRecord*) bufferPos;
-            bufferPos += SymbolProfileRecord.sizeof;
+            ProbeRecord* rp = cast(ProbeRecord*) bufferPos;
+            bufferPos += ProbeRecord.sizeof;
 
-            SymbolProfileRecord r = {
+            ProbeRecord r = {
                 begin_ticks : dp.begin_ticks,
                 end_ticks : dp.end_ticks,
                 begin_mem : dp.begin_mem,
@@ -513,7 +513,7 @@ extern (D) void writeStrings(ref char* bufferPos, const char* fileBuffer, string
 
 struct TraceFileTail
 {
-    SymbolProfileRecord[] records;
+    ProbeRecord[] records;
 
     string[] phases;
     string[] kinds;

@@ -12,7 +12,7 @@ enum bitmask_upper_48 = 0xFFFF_FFFF_FFFFUL << 16UL;
 enum traceExtension = ".dmd_trace";
 enum symbolExtension = ".dmd_symbol";
 
-extern(C) struct SymbolProfileRecord
+extern(C) struct ProbeRecord
 {
     ulong begin_ticks;
     ulong end_ticks;
@@ -25,7 +25,7 @@ extern(C) struct SymbolProfileRecord
     ushort phase_id;
 }
 
-extern(C) struct SymbolProfileRecordV2
+extern(C) struct ProbeRecordV2
 {
     ulong[3] begin_ticks_48_end_ticks_48_begin_memomry_48_end_memory_48; /// represents 4 48 bit values
 
@@ -115,22 +115,22 @@ static string[] readStrings()(const void[] file, uint offset_strings, uint n_str
 /** The only reason this is a template is becuase D does not allow one to
     specify inline linkage.
 */
-static SymbolProfileRecord[] readRecords()(const void[] file, const void[][] additionalFiles = null)
+static ProbeRecord[] readRecords()(const void[] file, const void[][] additionalFiles = null)
 {
-    SymbolProfileRecord[] result;
+    ProbeRecord[] result;
 
     TraceFileHeader header;
     (cast(void*)&header)[0 .. header.sizeof] = file[0 ..header.sizeof];
 
     if (header.FileVersion == 1)
     {
-        result = (cast(SymbolProfileRecord*)(file.ptr + header.offset_records))[0 .. header.n_records];
+        result = (cast(ProbeRecord*)(file.ptr + header.offset_records))[0 .. header.n_records];
     }
     else if (header.FileVersion == 2 || header.FileVersion == 3 || header.FileVersion == 4)
     {
         import core.stdc.stdlib;
-        auto source = (cast(SymbolProfileRecordV2*)(file.ptr + header.offset_records))[0 .. header.n_records];
-        result = (cast(SymbolProfileRecord*)calloc(result[0].sizeof, header.n_records))[0 .. header.n_records];
+        auto source = (cast(ProbeRecordV2*)(file.ptr + header.offset_records))[0 .. header.n_records];
+        result = (cast(ProbeRecord*)calloc(result[0].sizeof, header.n_records))[0 .. header.n_records];
 
         foreach (const i; 0 .. header.n_records)
         {
@@ -169,7 +169,7 @@ static string getSymbolName()(const void[] file, uint id)
     return cast(string) name;
 }
 
-static string getSymbolName()(const void[] file, SymbolProfileRecord r)
+static string getSymbolName()(const void[] file, ProbeRecord r)
 {
     if (r.symbol_id == uint.max)
         return "NullSymbol";
@@ -205,7 +205,7 @@ static string getSymbolLocation()(const void[] file, uint id)
     return cast(string) loc;
 }
 
-static string getSymbolLocation()(const void[] file, SymbolProfileRecord r)
+static string getSymbolLocation()(const void[] file, ProbeRecord r)
 {
     if (r.symbol_id == uint.max)
         return "NullSymbol";
