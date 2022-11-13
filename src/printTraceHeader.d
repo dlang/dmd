@@ -1,12 +1,3 @@
-// TODO: Discuss traceFile naming. Shall we add automatically add a timestamp to the file name?
-// TODO: Can we merge this file, trace_file.d into trace.d?
-// TODO: Adjusting symbol casings
-// TODO: Reduce data generated
-// TODO: Write the mangled names to save space
-// TODO: Filter on trace types during writing
-// TODO: Make the global pointer to array a normal array instead
-// TODO: Better packing of members
-
 import std.stdio;
 import std.file;
 import dmd.trace_file;
