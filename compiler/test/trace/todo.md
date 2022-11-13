@@ -4,9 +4,7 @@
   - `-trace=all:Template`
   - `-trace=file:SOME_FILE`
 - Discuss traceFile naming. Shall we add automatically add a timestamp to the file name?
-- Can we merge this file, trace_file.d into trace.d?
 - Adjusting symbol casings
-- Reduce data generated
 - Write the mangled names to save space
 - Filter on trace types during writing
 - Make the global pointer to array a normal array instead
