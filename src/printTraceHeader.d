@@ -94,7 +94,7 @@ void main(string[] args)
 
     if (mode == "Header")
     {
-        import std.array;
+        import std.array : join;
         writeln(structToString(header));
         writeln("kinds=", kinds.join("#"));
         writeln("phases=", phases.join("#"));
@@ -200,8 +200,7 @@ void main(string[] args)
                         r), separator, getSymbolLocation(fileBytes, r), separator,);
 
         }
-        import std.algorithm;
-
+        import std.algorithm : sort;
         const sorted_selfTimes = selfTime.sort!((a, b) => a[1] > b[1]).release;
         writeln("SelfTimes");
         writeln("selftime, kind, symbol_id");
@@ -213,8 +212,7 @@ void main(string[] args)
     }
     else if (mode == "MemToplist")
     {
-        import std.algorithm;
-
+        import std.algorithm : sort;
         const sorted_records = records.sort!((a, b) => (a.end_mem - a.begin_mem > b.end_mem - b.begin_mem)).release;
         writeln("Toplist");
         writeln("Memory (in Bytes),kind,phase,file(line),ident_or_code");
@@ -226,8 +224,7 @@ void main(string[] args)
     }
     else if (mode == "TimeToplist")
     {
-        import std.algorithm;
-
+        import std.algorithm : sort;
         const auto sorted_records = records.sort!((a, b) => (a.end_ticks - a.begin_ticks > b.end_ticks - b.begin_ticks)).release;
         writeln("Toplist");
         writeln("Time [cy],kind,phase,file(line),ident_or_code");
@@ -362,8 +359,8 @@ void main(string[] args)
     }
     else if (mode == "TemplateInstances")
     {
-        import std.algorithm;
-        import std.range;
+        import std.algorithm : filter, countUntil, sort;
+        import std.array : array;
         auto template_instance_kind_idx = kinds.countUntil("TemplateInstance") + 1;
         foreach (const rec; records.filter!((r) => r.kind_id == template_instance_kind_idx)
                                    .array
@@ -420,7 +417,6 @@ string structToString(T)(auto ref T _struct, int indent = 1)
             {
                 pragma(msg, type);
                 import std.conv : to;
-
                 result ~= to!string(e);
             }
             result ~= ",\n";
