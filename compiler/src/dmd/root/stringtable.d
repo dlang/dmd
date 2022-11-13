@@ -92,7 +92,7 @@ private:
     size_t countTrigger;   // amount which will trigger growing the table
 
 public:
-    void _init(size_t size = 0) nothrow
+    void _init(size_t size = 0) nothrow pure
     {
         size = nextpow2((size * loadFactorDenominator) / loadFactorNumerator);
         if (size < 32)
@@ -104,13 +104,13 @@ public:
         count = 0;
     }
 
-    void reset(size_t size = 0) nothrow
+    void reset(size_t size = 0) nothrow pure
     {
         freeMem();
         _init(size);
     }
 
-    ~this() nothrow
+    ~this() nothrow pure
     {
         freeMem();
     }
@@ -240,7 +240,7 @@ public:
 
 private:
     /// Free all memory in use by this StringTable
-    void freeMem() nothrow
+    void freeMem() nothrow pure
     {
         foreach (pool; pools)
             mem.xfree(pool);
@@ -295,7 +295,7 @@ private:
         }
     }
 
-    void grow() pure nothrow
+    void grow() nothrow pure
     {
         const odim = table.length;
         auto otab = table;

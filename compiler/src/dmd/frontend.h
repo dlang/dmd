@@ -322,8 +322,6 @@ class Object;
 class TypeInfo_Class;
 class TypeInfo;
 
-typedef uint64_t size_t;
-
 enum class DYNCAST
 {
     object = 0,
@@ -342,9 +340,6 @@ enum class DYNCAST
 class RootObject
 {
 public:
-    size_t serial;
-    static size_t nextSerial;
-    RootObject();
     virtual bool equals(const RootObject* const o) const;
     virtual const char* toChars() const;
 private:
@@ -357,7 +352,6 @@ class ASTNode : public RootObject
 {
 public:
     virtual void accept(Visitor* v) = 0;
-    ASTNode();
 };
 
 enum class DiagnosticReporting : uint8_t
@@ -398,6 +392,8 @@ enum class CHECKACTION : uint8_t
     halt = 2u,
     context = 3u,
 };
+
+typedef uint64_t size_t;
 
 template <typename T>
 struct Array final
@@ -6438,7 +6434,6 @@ public:
     Dsymbol* insert(Dsymbol* s);
     Dsymbol* insert(const Identifier* const ident, Dsymbol* s);
     size_t length() const;
-    DsymbolTable();
 };
 
 extern void dsymbolSemantic(Dsymbol* dsym, Scope* sc);
@@ -6715,23 +6710,23 @@ struct UnionExp final
 private:
     union __AnonStruct__u
     {
-        char exp[48LLU];
-        char integerexp[56LLU];
-        char errorexp[48LLU];
+        char exp[40LLU];
+        char integerexp[48LLU];
+        char errorexp[40LLU];
         char realexp[64LLU];
         char complexexp[80LLU];
-        char symoffexp[80LLU];
-        char stringexp[68LLU];
-        char arrayliteralexp[66LLU];
-        char assocarrayliteralexp[65LLU];
-        char structliteralexp[103LLU];
-        char compoundliteralexp[56LLU];
-        char nullexp[48LLU];
-        char dotvarexp[73LLU];
-        char addrexp[64LLU];
-        char indexexp[90LLU];
-        char sliceexp[91LLU];
-        char vectorexp[77LLU];
+        char symoffexp[72LLU];
+        char stringexp[60LLU];
+        char arrayliteralexp[58LLU];
+        char assocarrayliteralexp[57LLU];
+        char structliteralexp[95LLU];
+        char compoundliteralexp[48LLU];
+        char nullexp[40LLU];
+        char dotvarexp[65LLU];
+        char addrexp[56LLU];
+        char indexexp[82LLU];
+        char sliceexp[83LLU];
+        char vectorexp[69LLU];
     };
     #pragma pack(pop)
 

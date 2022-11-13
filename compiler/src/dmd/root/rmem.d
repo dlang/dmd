@@ -313,7 +313,7 @@ static if (OVERRIDE_MEMALLOC)
     // TypeInfo.initializer for compilers older than 2.070
     static if(!__traits(hasMember, TypeInfo, "initializer"))
     private const(void[]) initializer(T : TypeInfo)(const T t)
-    nothrow  @safe @nogc
+    nothrow pure @safe @nogc
     {
         return t.init;
     }
@@ -359,7 +359,7 @@ Params:
 
 Returns: A null-terminated copy of the input array.
 */
-extern (D) char[] xarraydup(const(char)[] s)  nothrow
+extern (D) char[] xarraydup(const(char)[] s) pure nothrow
 {
     if (!s)
         return null;
@@ -372,7 +372,7 @@ extern (D) char[] xarraydup(const(char)[] s)  nothrow
 }
 
 ///
- nothrow unittest
+pure nothrow unittest
 {
     auto s1 = "foo";
     auto s2 = s1.xarraydup;
@@ -404,7 +404,7 @@ extern (D) T[] arraydup(T)(const scope T[] s)  nothrow
 }
 
 ///
- nothrow unittest
+pure nothrow unittest
 {
     auto s1 = [0, 1, 2];
     auto s2 = s1.arraydup;

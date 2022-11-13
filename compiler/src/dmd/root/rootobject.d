@@ -38,6 +38,9 @@ enum DYNCAST : int
 
 extern (C++) class RootObject
 {
+    this() nothrow pure @nogc @safe
+    {
+    }
 
     bool equals(const RootObject o) const
     {
