@@ -48,7 +48,7 @@ void main(string[] args)
     auto traceFile = originalFile.setExtension(".trace");
     auto symbolFile = originalFile.setExtension(".symbol");
 
-    auto mode = args[2];
+    const mode = args[2];
 
     if (mode != "Header" && !exists(traceFile))
     {
