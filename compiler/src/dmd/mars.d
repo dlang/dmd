@@ -628,7 +628,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     if (params.traceFile !is null)
     {
-        import dmd.trace;
+        import dmd.trace : writeTrace;
         writeTrace(null, params.traceFile);
     }
 
