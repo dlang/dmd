@@ -14,21 +14,39 @@ private bool argOneToN(uint arg, uint N) @safe
     return true;
 }
 
-static immutable string[] supportedModes = [ // TODO: enum
-    "Tree", "MemToplist", "TimeToplist", "Header", "PhaseHist", "KindHist", "Symbol", "Kind",
-    "Phase", "RandSample" ,"OutputSelfStats", "OutputParentTable", "Parent",
-    "TemplateInstances",
-];
+/// Output mode.
+enum Mode
+{
+    Tree,
+    MemToplist,
+    TimeToplist,
+    Header,
+    PhaseHist,
+    KindHist,
+    Symbol,
+    Kind,
+    Phase,
+    RandSample,
+    OutputSelfStats,
+    OutputParentTable,
+    Parent,
+    TemplateInstances,
+}
 
 void main(string[] args) /* TODO: @safe */
 {
+    import std.conv : to;
+    import std.traits : EnumMembers;
+    enum modes = EnumMembers!Mode; // TODO: create array of strings
+
     if (args.length < 3)
     {
         writeln("Too few arguments: ", args);
-        writeln("Usage: ", args[0], " TRACEFILE MODE {args depending on mode}");
-        writeln("Modes: ", supportedModes);
+        writeln("Usage: ", __FILE__, " TRACEFILE MODE {args depending on mode}");
+        writeln("Modes: ", modes);
         return;
     }
+    const modeArg = args[2];
 
     import std.path : setExtension;
 
@@ -36,8 +54,15 @@ void main(string[] args) /* TODO: @safe */
     auto traceFile = originalFile.setExtension(traceExtension);
     auto symbolFile = originalFile.setExtension(symbolExtension);
 
-    const mode = args[2];
-    if (mode != "Header" && !exists(traceFile))
+    Mode mode;
+    try {
+        mode = modeArg.to!Mode;
+    } catch (Exception e) {
+        writeln("Unknown mode", args[2]);
+        writeln("Supported modes are ", modes);
+    }
+
+    if (mode != Mode.Header && !exists(traceFile))
     {
         writeln(`Trace file "`, traceFile, `" is missing`);
         return;
@@ -79,7 +104,7 @@ void main(string[] args) /* TODO: @safe */
     uint strange_record_count;
     ulong lastBeginTicks;
 
-    if (mode == "Header")
+    if (mode == Mode.Header)
     {
         import std.array : join;
         writeln(structToString(header));
@@ -176,7 +201,7 @@ void main(string[] args) /* TODO: @safe */
         }
     }
 
-    if (mode == "Tree")
+    if (mode == Mode.Tree)
     {
         const char[4096 * 4] indent = '-';
         foreach (const i; 0 .. records.length)
@@ -197,7 +222,7 @@ void main(string[] args) /* TODO: @safe */
             writeln(st[1], separator, kinds[r.kind_id - 1], separator, /*getSymbolLocation(fileBytes, r)*/r.symbol_id);
         }
     }
-    else if (mode == "MemToplist")
+    else if (mode == Mode.MemToplist)
     {
         import std.algorithm.sorting : sort;
         const sorted_records = records.sort!((a, b) => (a.end_mem - a.begin_mem > b.end_mem - b.begin_mem)).release;
@@ -209,7 +234,7 @@ void main(string[] args) /* TODO: @safe */
                     getSymbolLocation(fileBytes, r), getSymbolName(fileBytes, r));
         }
     }
-    else if (mode == "TimeToplist")
+    else if (mode == Mode.TimeToplist)
     {
         import std.algorithm.sorting : sort;
         const auto sorted_records = records.sort!((a, b) => (a.end_ticks - a.begin_ticks > b.end_ticks - b.begin_ticks)).release;
@@ -221,7 +246,7 @@ void main(string[] args) /* TODO: @safe */
                     getSymbolLocation(fileBytes, r), separator, getSymbolName(fileBytes, r));
         }
     }
-    else if (mode == "PhaseHist")
+    else if (mode == Mode.PhaseHist)
     {
         static struct SortRecord
         {
@@ -255,7 +280,7 @@ void main(string[] args) /* TODO: @safe */
                     sr.avgTime, sr.absTime, sr.freq);
         }
     }
-    else if (mode == "KindHist")
+    else if (mode == Mode.KindHist)
     {
         static struct SortRecord_Kind
         {
@@ -289,7 +314,7 @@ void main(string[] args) /* TODO: @safe */
                     sr.avgTime, sr.absTime, sr.freq);
         }
     }
-    else if (mode == "Symbol")
+    else if (mode == Mode.Symbol)
     {
         import std.conv : to;
         uint sNumber = to!uint(args[3]);
@@ -299,7 +324,7 @@ void main(string[] args) /* TODO: @safe */
                 "\nlocation: " ~ getSymbolLocation(fileBytes, sNumber) ~ "}");
         }
     }
-    else if (mode == "Parent")
+    else if (mode == Mode.Parent)
     {
         import std.conv : to;
         uint sNumber = to!uint(args[3]);
@@ -308,7 +333,7 @@ void main(string[] args) /* TODO: @safe */
             writeln("{parentId: ", parents[sNumber - 1], "}");
         }
     }
-    else if (mode == "Phase")
+    else if (mode == Mode.Phase)
     {
         import std.conv : to;
         uint sNumber = to!uint(args[3]);
@@ -317,7 +342,7 @@ void main(string[] args) /* TODO: @safe */
             writeln("{phase: " ~ phases[sNumber - 1] ~ "}");
         }
     }
-    else if (mode == "Kind")
+    else if (mode == Mode.Kind)
     {
         import std.conv : to;
         uint sNumber = to!uint(args[3]);
@@ -326,25 +351,25 @@ void main(string[] args) /* TODO: @safe */
             writeln("{kind: " ~ kinds[sNumber - 1] ~ "}");
         }
     }
-    else if (mode == "RandSample")
+    else if (mode == Mode.RandSample)
     {
         import std.random : randomSample;
         import std.algorithm : map, each;
         randomSample(records, 24).map!(r => structToString(r)).each!writeln;
     }
-    else if (mode == "OutputSelfStats")
+    else if (mode == Mode.OutputSelfStats)
     {
         const void[] selfTimeMem = (cast(void*)selfTime)[0 .. (selfTime.length * selfTime[0].sizeof)];
         std.file.write(traceFile ~ ".st", selfTimeMem);
         const void[] selfMemMem = (cast(void*)selfMem)[0 .. (selfMem.length * selfMem[0].sizeof)];
         std.file.write(traceFile ~ ".sm", selfMemMem);
     }
-    else if (mode == "OutputParentTable")
+    else if (mode == Mode.OutputParentTable)
     {
         void [] parentsMem = (cast(void*)parents)[0 .. (parents.length * parents[0].sizeof)];
         std.file.write(traceFile ~ ".pt", parentsMem);
     }
-    else if (mode == "TemplateInstances")
+    else if (mode == Mode.TemplateInstances)
     {
         import std.algorithm.iteration : filter;
         import std.algorithm.searching : countUntil;
@@ -360,7 +385,7 @@ void main(string[] args) /* TODO: @safe */
         }
     }
     else
-        writeln("Mode unsupported: ", mode, "\nsupported modes are: ", supportedModes);
+        writeln("Mode unsupported: ", mode, "\nsupported modes are: ", modes);
 }
 
 struct NoPrint
