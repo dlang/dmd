@@ -3,7 +3,7 @@
 // Run: cd ~/Work/dmd/src; dmd -I../compiler/src -i -run printTraceHeader.d hello.trace TemplateInstances
 
 // TODO: Discuss traceFile naming. Shall we add automatically add a timestamp to the file name?
-// TODO: Merge this file, trace_file.d into trace.d
+// TODO: Can we merge this file, trace_file.d into trace.d?
 // TODO: Adjusting symbol casings
 // TODO: Reduce data generated
 // TODO: Write the mangled names to save space
