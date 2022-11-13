@@ -1,4 +1,6 @@
-- What about ditching all but last file version (fVersion = 3)?
+- What about ditching all but last file version
+  - Specifically: `ProbeRecord`, `ProbeRecordV2`, `TraceFileHeader`, `TraceFileHeaderV4`,
+    `fVersion`, `(fVersion = 3)`?
 - Make behavior be controlled via the `-trace` flag because I believe this is
   gonna be the most productive way of interaction. For instance
   - `dmd -trace=sum:Function,Type;file:trace`
