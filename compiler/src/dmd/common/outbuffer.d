@@ -524,7 +524,7 @@ struct OutBuffer
      * Returns:
      *  slice of the allocated space to be filled in
      */
-    extern (D) char[] allocate(size_t nbytes) nothrow
+    extern (D) char[] allocate(size_t nbytes) pure nothrow
     {
         reserve(nbytes);
         offset += nbytes;
@@ -698,7 +698,7 @@ struct OutBuffer
     }
 
     // Append terminating null if necessary and get view of internal buffer
-    extern (C++) char* peekChars()  nothrow
+    extern (C++) char* peekChars() pure nothrow
     {
         if (!offset || data[offset - 1] != '\0')
         {
