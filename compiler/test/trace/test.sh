@@ -7,7 +7,10 @@ cd "$SCRIPT_DIR"
 
 make -C ../../.. -f posix.mak DFLAGS=-vcolumns clean
 make -C ../../.. -f posix.mak ENABLE_DEBUG=1 DFLAGS=-vcolumns
+
+# regenerate headers and stage potential changes
 ../../src/build.d cxx-headers-test AUTO_UPDATE=1
+git stage ../../src/dmd/frontend.h
 
 TRACEFILE="hello"
 
