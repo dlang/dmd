@@ -1,4 +1,4 @@
-import std.stdio;
+import std.stdio : writeln, writefln, stderr;
 import std.file;
 import dmd.trace_file;
 
