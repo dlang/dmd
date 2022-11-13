@@ -14,7 +14,7 @@ import dmd.trace_file;
 import std.stdio;
 import std.file;
 
-enum SEP = " | ";
+enum separator = " | ";
 
 bool ArgOneToN(uint arg, uint N)
 {
@@ -204,9 +204,9 @@ void main(string[] args)
         foreach (i; 0 .. records.length)
         {
             const r = records[i];
-            writeln(indent[0 .. depths[i]], ' ', r.end_ticks - r.begin_ticks, SEP,
-                    selfTime[i], SEP, phases[r.phase_id - 1], SEP, getSymbolName(fileBytes,
-                        r), SEP, getSymbolLocation(fileBytes, r), SEP,);
+            writeln(indent[0 .. depths[i]], ' ', r.end_ticks - r.begin_ticks, separator,
+                    selfTime[i], separator, phases[r.phase_id - 1], separator, getSymbolName(fileBytes,
+                        r), separator, getSymbolLocation(fileBytes, r), separator,);
 
         }
         import std.algorithm;
@@ -217,7 +217,7 @@ void main(string[] args)
         foreach (st; sorted_selfTimes[0 .. (header.n_records > 2000 ? 2000 : header.n_records)])
         {
             const r = records[st[0]];
-            writeln(st[1], SEP, kinds[r.kind_id - 1], SEP, /*getSymbolLocation(fileBytes, r)*/r.symbol_id);
+            writeln(st[1], separator, kinds[r.kind_id - 1], separator, /*getSymbolLocation(fileBytes, r)*/r.symbol_id);
         }
     }
     else if (mode == "MemToplist")
@@ -230,7 +230,7 @@ void main(string[] args)
         writeln("Memory (in Bytes),kind,phase,file(line),ident_or_code");
         foreach (r; sorted_records)
         {
-            writeln(r.end_mem - r.begin_mem, SEP, kinds[r.kind_id - 1], SEP, phases[r.phase_id - 1], SEP,
+            writeln(r.end_mem - r.begin_mem, separator, kinds[r.kind_id - 1], separator, phases[r.phase_id - 1], separator,
                     getSymbolLocation(fileBytes, r), getSymbolName(fileBytes, r));
         }
     }
@@ -244,8 +244,8 @@ void main(string[] args)
         writeln("Time [cy],kind,phase,file(line),ident_or_code");
         foreach (r; sorted_records)
         {
-            writeln(r.end_ticks - r.begin_ticks, SEP, kinds[r.kind_id - 1], SEP, phases[r.phase_id - 1], SEP,
-                    getSymbolLocation(fileBytes, r), SEP, getSymbolName(fileBytes, r));
+            writeln(r.end_ticks - r.begin_ticks, separator, kinds[r.kind_id - 1], separator, phases[r.phase_id - 1], separator,
+                    getSymbolLocation(fileBytes, r), separator, getSymbolName(fileBytes, r));
         }
     }
     else if (mode == "PhaseHist")
@@ -382,8 +382,8 @@ void main(string[] args)
             .array
             .sort!((a, b) => a.end_ticks - a.begin_ticks > b.end_ticks - b.begin_ticks))
         {
-            writeln(rec.end_ticks - rec.begin_ticks, SEP, phases[rec.phase_id - 1], SEP,
-                    getSymbolLocation(fileBytes, rec), SEP, getSymbolName(fileBytes, rec));
+            writeln(rec.end_ticks - rec.begin_ticks, separator, phases[rec.phase_id - 1], separator,
+                    getSymbolLocation(fileBytes, rec), separator, getSymbolName(fileBytes, rec));
         }
     }
     else
@@ -485,7 +485,7 @@ string itos64(const ulong val) pure @trusted nothrow
     auto lwString = itos(lw);
     auto hiString = itos(hi);
 
-    return cast(string) "((" ~ hiString ~ "<< 32)" ~ SEP ~ lwString ~ ")";
+    return cast(string) "((" ~ hiString ~ "<< 32)" ~ separator ~ lwString ~ ")";
 }
 
 string enumToString(E)(E v)
