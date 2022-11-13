@@ -86,7 +86,7 @@ align(1):
 
 static TraceFileHeader decodeHeader(immutable(void)[] data) @trusted /* TODO: @safe */
 {
-    TraceFileHeader header;
+    typeof(return) header;
     if (data.length < header.sizeof)
     {
         import std.stdio;
@@ -101,13 +101,13 @@ static TraceFileHeader decodeHeader(immutable(void)[] data) @trusted /* TODO: @s
 
 static string[] decodeStrings(immutable(void)[] data, uint offset_strings, uint n_strings) @trusted /* TODO: @safe */
 {
-    const(char)[][] result;
+    typeof(return) result;
     result.length = n_strings;
     StringPointer* stringPointers = cast(StringPointer*)(data.ptr + offset_strings);
     foreach (const i; 0 .. n_strings)
     {
         const StringPointer p = *stringPointers++;
-        result[i] = (cast(char*)data.ptr)[p.string_start .. p.one_past_string_end];
+        result[i] = (cast(immutable char*)data.ptr)[p.string_start .. p.one_past_string_end];
     }
     return (cast(string*)result.ptr)[0 .. result.length];
 }
@@ -117,7 +117,7 @@ static string[] decodeStrings(immutable(void)[] data, uint offset_strings, uint 
 */
 static ProbeRecord[] decodeRecords(immutable(void)[] data, immutable(void)[][] additionalFiles = null) @trusted /* TODO: @safe */
 {
-    ProbeRecord[] result;
+    typeof(return) result;
 
     TraceFileHeader header;
     (cast(void*)&header)[0 .. header.sizeof] = data[0 ..header.sizeof];
@@ -166,7 +166,7 @@ static string getSymbolName(immutable(void)[] data, uint id) @trusted /* TODO: @
         name = null;
     }
 
-    return cast(string) name;
+    return cast(typeof(return)) name;
 }
 
 static string getSymbolName(immutable(void)[] data, ProbeRecord r) @trusted /* TODO: @safe */
@@ -184,7 +184,7 @@ static string getSymbolName(immutable(void)[] data, ProbeRecord r) @trusted /* T
         name = null;
     }
 
-    return cast(string) name;
+    return cast(typeof(return)) name;
 }
 
 static string getSymbolLocation(immutable(void)[] data, uint id) @trusted /* TODO: @safe */
@@ -202,7 +202,7 @@ static string getSymbolLocation(immutable(void)[] data, uint id) @trusted /* TOD
         loc = null;
     }
 
-    return cast(string) loc;
+    return cast(typeof(return)) loc;
 }
 
 static string getSymbolLocation(immutable(void)[] data, ProbeRecord r) @trusted /* TODO: @safe */
@@ -220,5 +220,5 @@ static string getSymbolLocation(immutable(void)[] data, ProbeRecord r) @trusted 
         loc = null;
     }
 
-    return cast(string) loc;
+    return cast(typeof(return)) loc;
 }
