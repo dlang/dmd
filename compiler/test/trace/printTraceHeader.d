@@ -353,7 +353,7 @@ void main(string[] args)
         import std.array : array;
         auto template_instance_kind_idx = kinds.countUntil("TemplateInstance") + 1;
         foreach (const rec; records.filter!((r) => r.kind_id == template_instance_kind_idx)
-                                   .array
+                                   .array()
                                    .sort!((a, b) => a.end_ticks - a.begin_ticks > b.end_ticks - b.begin_ticks))
         {
             writeln(rec.end_ticks - rec.begin_ticks, separator, phases[rec.phase_id - 1], separator,
