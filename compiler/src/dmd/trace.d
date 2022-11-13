@@ -349,11 +349,6 @@ void writeRecord(SymbolProfileEntry dp, ref char* bufferPos, uint FileVersion = 
                     expMap[cast(void*)dp.exp] = symInfo;
                 break;
                 case ProfileNodeType.Statement:
-                    /* don't set name for statement because doesn't really have a name
-                     * symInfo.name = ((dp.stmt.isForwardingStatement() || dp.stmt.isPeelStatement()) ?
-                        "toChars() for statement not implemented" :
-                        dp.stmt.toChars());
-                    */
                     symInfo.loc = dp.stmt.loc.toChars();
 
                     stmtMap[cast(void*)dp.stmt] = symInfo;
@@ -387,12 +382,6 @@ void writeRecord(SymbolProfileEntry dp, ref char* bufferPos, uint FileVersion = 
             break;
             case ProfileNodeType.Statement :
                 loc = dp.stmt.loc;
-                /* don't set name for statement because doesn't really have a name
-                     * symInfo.name = ((dp.stmt.isForwardingStatement() || dp.stmt.isPeelStatement()) ?
-                        "toChars() for statement not implemented" :
-                        dp.stmt.toChars());
-                                );
-            */
             break;
             case ProfileNodeType.Type :
                 name = dp.type.toChars();

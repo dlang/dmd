@@ -401,7 +401,6 @@ extern (C++) abstract class Statement : ASTNode
     inout(UnrolledLoopStatement) isUnrolledLoopStatement() { return stmt == STMT.UnrolledLoop ? cast(typeof(return))this : null; }
     inout(ForeachRangeStatement) isForeachRangeStatement() { return stmt == STMT.ForeachRange ? cast(typeof(return))this : null; }
     inout(CompoundDeclarationStatement) isCompoundDeclarationStatement() { return stmt == STMT.CompoundDeclaration ? cast(typeof(return))this : null; }
-    inout(PeelStatement)        isPeelStatement()        { return stmt == STMT.Peel        ?  cast(typeof(return))this : null; }
 }
 
 /***********************************************************
