@@ -645,7 +645,13 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
             CommaExp.allow(fs.increment);
             fs.increment = fs.increment.expressionSemantic(sc);
             fs.increment = resolveProperties(sc, fs.increment);
+            // @@@DEPRECATED_2.112@@@
+            // remove gagging and deprecation() to turn deprecation into an error when
+            // deprecation cycle is over
+            const olderrors = global.startGagging();
             discardValue(fs.increment);
+            if (global.endGagging(olderrors))
+                fs.increment.deprecation("`%s` has no effect", fs.increment.toChars());
             if (checkNonAssignmentArrayOp(fs.increment))
                 fs.increment = ErrorExp.get();
             fs.increment = fs.increment.optimize(WANTvalue);
