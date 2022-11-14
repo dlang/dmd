@@ -143,7 +143,7 @@ extern(C++) Statement statementSemantic(Statement s, Scope* sc)
     version (CallbackAPI)
         Compiler.onStatementSemanticStart(s, sc);
 
-    import dmd.trace; mixin(traceIdentifierStringInScope("s"));
+    import dmd.trace; mixin(probeScope("s"));
     scope v = new StatementSemanticVisitor(sc);
     s.accept(v);
 

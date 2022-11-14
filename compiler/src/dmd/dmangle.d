@@ -21,7 +21,7 @@ import dmd.astenums;
  */
 extern (C++) const(char)* mangleExact(FuncDeclaration fd)
 {
-    import dmd.trace; mixin(traceIdentifierStringInScope("fd"));
+    import dmd.trace; mixin(probeScope("fd"));
     if (!fd.mangleString)
     {
         OutBuffer buf;
@@ -34,7 +34,7 @@ extern (C++) const(char)* mangleExact(FuncDeclaration fd)
 
 extern (C++) void mangleToBuffer(Type t, OutBuffer* buf)
 {
-    import dmd.trace; mixin(traceIdentifierStringInScope("t"));
+    import dmd.trace; mixin(probeScope("t"));
     if (t.deco)
         buf.writestring(t.deco);
     else
@@ -46,14 +46,14 @@ extern (C++) void mangleToBuffer(Type t, OutBuffer* buf)
 
 extern (C++) void mangleToBuffer(Expression e, OutBuffer* buf)
 {
-    import dmd.trace; mixin(traceIdentifierStringInScope("e"));
+    import dmd.trace; mixin(probeScope("e"));
     scope Mangler v = new Mangler(buf);
     e.accept(v);
 }
 
 extern (C++) void mangleToBuffer(Dsymbol s, OutBuffer* buf)
 {
-    import dmd.trace; mixin(traceIdentifierStringInScope("s"));
+    import dmd.trace; mixin(probeScope("s"));
     scope Mangler v = new Mangler(buf);
     s.accept(v);
 }
@@ -252,13 +252,13 @@ public:
 
     void mangleSymbol(Dsymbol s)
     {
-        import dmd.trace; mixin(traceIdentifierStringInScope("s"));
+        import dmd.trace; mixin(probeScope("s"));
         s.accept(this);
     }
 
     void mangleType(Type t)
     {
-        import dmd.trace; mixin(traceIdentifierStringInScope("t"));
+        import dmd.trace; mixin(probeScope("t"));
         if (!backref.addRefToType(buf, t))
             t.accept(this);
     }
@@ -1254,7 +1254,7 @@ void writeBackRef(OutBuffer* buf, size_t pos)
 private
 extern (D) void toBuffer(OutBuffer* buf, const(char)[] id, Dsymbol s)
 {
-    import dmd.trace; mixin(traceIdentifierStringInScope("s"));
+    import dmd.trace; mixin(probeScope("s"));
     const len = id.length;
     if (buf.length + len >= 8 * 1024 * 1024) // 8 megs ought be enough for anyone
         s.error("excessive length %llu for symbol, possible recursive expansion?", cast(ulong)(buf.length + len));

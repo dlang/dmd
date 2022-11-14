@@ -75,7 +75,7 @@ void enableTracing() nothrow @nogc
     }
 }
 
-string traceIdentifierStringInScope(string vname, string phaseName = null)
+string probeScope(string vname, string phaseName = null)
 {
     static if (SYMBOL_TRACE)
     {
