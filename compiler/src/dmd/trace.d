@@ -48,7 +48,7 @@ struct ProbeEntry
     string kind; // asttypename
     string fn; // which function is being traced
 
-    union
+    union                       // TODO: wrap this in an Algebraic
     {
         // RootObject ro;
         Dsymbol sym;
@@ -79,7 +79,7 @@ string traceIdentifierStringInScope(string vname, string phaseName = null)
 {
     static if (SYMBOL_TRACE)
     {
-    return (`
+        return (`
     import dmd.dsymbol;
     import dmd.expression;
     import dmd.mtype;
@@ -125,7 +125,7 @@ string traceIdentifierStringInScope(string vname, string phaseName = null)
                     begin_sema_ticks, end_sema_ticks,
                     begin_sema_mem, Mem.allocated,
                     asttypename_v, ` ~ (phaseName
-                        ? `"` ~ phaseName ~ `"` : `__FUNCTION__`) ~ `);
+                                        ? `"` ~ phaseName ~ `"` : `__FUNCTION__`) ~ `);
                 dsymbol_profile_array[insert_pos].sym = v_;
             } else static if (is(v_type : Expression))
             {
@@ -134,7 +134,7 @@ string traceIdentifierStringInScope(string vname, string phaseName = null)
                     begin_sema_ticks, end_sema_ticks,
                     begin_sema_mem, Mem.allocated,
                     asttypename_v, ` ~ (phaseName
-                        ? `"` ~ phaseName ~ `"` : `__FUNCTION__`) ~ `);
+                                        ? `"` ~ phaseName ~ `"` : `__FUNCTION__`) ~ `);
                 dsymbol_profile_array[insert_pos].exp = v_;
             } else static if (is(v_type : Statement))
             {
@@ -143,7 +143,7 @@ string traceIdentifierStringInScope(string vname, string phaseName = null)
                     begin_sema_ticks, end_sema_ticks,
                     begin_sema_mem, Mem.allocated,
                     asttypename_v, ` ~ (phaseName
-                        ? `"` ~ phaseName ~ `"` : `__FUNCTION__`) ~ `);
+                                        ? `"` ~ phaseName ~ `"` : `__FUNCTION__`) ~ `);
                 dsymbol_profile_array[insert_pos].stmt = v_;
             } else static if (is(v_type : Type))
             {
@@ -152,7 +152,7 @@ string traceIdentifierStringInScope(string vname, string phaseName = null)
                     begin_sema_ticks, end_sema_ticks,
                     begin_sema_mem, Mem.allocated,
                     asttypename_v, ` ~ (phaseName
-                        ? `"` ~ phaseName ~ `"` : `__FUNCTION__`) ~ `);
+                                        ? `"` ~ phaseName ~ `"` : `__FUNCTION__`) ~ `);
                 dsymbol_profile_array[insert_pos].type = v_;
             }
             else
@@ -165,10 +165,10 @@ string traceIdentifierStringInScope(string vname, string phaseName = null)
                     begin_sema_ticks, end_sema_ticks,
                     begin_sema_mem, Mem.allocated,
                     "Dsymbol(Null)", ` ~ (phaseName
-                        ? `"` ~ phaseName ~ `"` : `__FUNCTION__`) ~ `);
+                                          ? `"` ~ phaseName ~ `"` : `__FUNCTION__`) ~ `);
         }
     }`);
-}  else
+    }  else
         return "";
 }
 
@@ -274,37 +274,37 @@ void writeRecord(ProbeEntry dp, ref char* bufferPos, uint FileVersion = 1)
 
         final switch(dp.nodeType)
         {
-            case ProbeEntry.NodeType.nullSymbol :
-                id = uint.max;
+        case ProbeEntry.NodeType.nullSymbol :
+            id = uint.max;
             break;
-            case ProbeEntry.NodeType.dsymbol :
-                if (auto symInfo = (cast(void*)dp.sym) in symMap)
-                {
-                    id = (**symInfo).id;
-                }
-                break;
-            case ProbeEntry.NodeType.expression :
-                if (auto symInfo = (cast(void*)dp.exp) in expMap)
-                {
-                    id = (**symInfo).id;
-                }
-                break;
-            case ProbeEntry.NodeType.statement :
-                if (auto symInfo = (cast(void*)dp.stmt) in stmtMap)
-                {
-                    id = (**symInfo).id;
-                }
-                break;
-            case ProbeEntry.NodeType.type :
-                if (auto symInfo = (cast(void*)dp.type) in typeMap)
-                {
-                    id = (**symInfo).id;
-                }
-                break;
-                // we should probably assert here.
-            case ProbeEntry.NodeType.invalid:
-                numInvalidProfileNodes++;
-                return ;
+        case ProbeEntry.NodeType.dsymbol :
+            if (auto symInfo = (cast(void*)dp.sym) in symMap)
+            {
+                id = (**symInfo).id;
+            }
+            break;
+        case ProbeEntry.NodeType.expression :
+            if (auto symInfo = (cast(void*)dp.exp) in expMap)
+            {
+                id = (**symInfo).id;
+            }
+            break;
+        case ProbeEntry.NodeType.statement :
+            if (auto symInfo = (cast(void*)dp.stmt) in stmtMap)
+            {
+                id = (**symInfo).id;
+            }
+            break;
+        case ProbeEntry.NodeType.type :
+            if (auto symInfo = (cast(void*)dp.type) in typeMap)
+            {
+                id = (**symInfo).id;
+            }
+            break;
+            // we should probably assert here.
+        case ProbeEntry.NodeType.invalid:
+            numInvalidProfileNodes++;
+            return ;
         }
 
         if (!id) // we haven't haven't seen this symbol before
@@ -321,34 +321,34 @@ void writeRecord(ProbeEntry dp, ref char* bufferPos, uint FileVersion = 1)
 
             final switch(dp.nodeType)
             {
-                case ProbeEntry.NodeType.nullSymbol :
-                    running_id--;
+            case ProbeEntry.NodeType.nullSymbol :
+                running_id--;
                 break;
-                case ProbeEntry.NodeType.dsymbol :
-                    symInfo.name = dp.sym.toChars();
-                    symInfo.loc = dp.sym.loc.toChars();
+            case ProbeEntry.NodeType.dsymbol :
+                symInfo.name = dp.sym.toChars();
+                symInfo.loc = dp.sym.loc.toChars();
 
-                    symMap[cast(void*)dp.sym] = symInfo;
+                symMap[cast(void*)dp.sym] = symInfo;
                 break;
-                case ProbeEntry.NodeType.expression :
-                    symInfo.name = dp.exp.toChars();
-                    symInfo.loc = dp.exp.loc.toChars();
+            case ProbeEntry.NodeType.expression :
+                symInfo.name = dp.exp.toChars();
+                symInfo.loc = dp.exp.loc.toChars();
 
-                    expMap[cast(void*)dp.exp] = symInfo;
+                expMap[cast(void*)dp.exp] = symInfo;
                 break;
-                case ProbeEntry.NodeType.statement:
-                    symInfo.loc = dp.stmt.loc.toChars();
+            case ProbeEntry.NodeType.statement:
+                symInfo.loc = dp.stmt.loc.toChars();
 
-                    stmtMap[cast(void*)dp.stmt] = symInfo;
+                stmtMap[cast(void*)dp.stmt] = symInfo;
                 break;
-                case ProbeEntry.NodeType.type :
-                    symInfo.name = dp.type.toChars();
+            case ProbeEntry.NodeType.type :
+                symInfo.name = dp.type.toChars();
 
-                    typeMap[cast(void*)dp.type] = symInfo;
+                typeMap[cast(void*)dp.type] = symInfo;
                 break;
 
-                 case ProbeEntry.NodeType.invalid:
-                     assert(0); // this cannot happen
+            case ProbeEntry.NodeType.invalid:
+                assert(0); // this cannot happen
             }
         }
     }
@@ -359,25 +359,25 @@ void writeRecord(ProbeEntry dp, ref char* bufferPos, uint FileVersion = 1)
 
         final switch(dp.nodeType)
         {
-            case ProbeEntry.NodeType.Dsymbol :
-                loc = dp.sym.loc;
-                name = dp.sym.toChars();
+        case ProbeEntry.NodeType.Dsymbol :
+            loc = dp.sym.loc;
+            name = dp.sym.toChars();
             break;
-            case ProbeEntry.NodeType.Expression :
-                loc = dp.exp.loc;
-                name = dp.exp.toChars();
+        case ProbeEntry.NodeType.Expression :
+            loc = dp.exp.loc;
+            name = dp.exp.toChars();
             break;
-            case ProbeEntry.NodeType.Statement :
-                loc = dp.stmt.loc;
+        case ProbeEntry.NodeType.Statement :
+            loc = dp.stmt.loc;
             break;
-            case ProbeEntry.NodeType.Type :
-                name = dp.type.toChars();
-                loc = dp.type.toDsymbol().loc;
+        case ProbeEntry.NodeType.Type :
+            name = dp.type.toChars();
+            loc = dp.type.toDsymbol().loc;
             break;
             // we should probably assert here.
-            case ProbeEntry.NodeType.invalid:
-                return ;
-            case ProbeEntry.NodeType.nullSymbol: break;
+        case ProbeEntry.NodeType.invalid:
+            return ;
+        case ProbeEntry.NodeType.nullSymbol: break;
 
         }
     }
@@ -463,33 +463,33 @@ char* copyAndPointPastEnd(scope return char* dst, scope const(char)[] src) @trus
 }
 
 static if (COMPRESSED_TRACE)
-void writeSymInfos(ref char* bufferPos, const char* fileBuffer)
-{
-    // first we write 3 pointers each
-    // start of name_string
-    // start of location_string
-    // one past the end of location string
-
-    /// Returns:
-    ///     Current offset from the beginning of the file
-    uint currentOffset32() @safe pure nothrow @nogc
+    void writeSymInfos(ref char* bufferPos, const char* fileBuffer)
     {
-        return cast(uint)(bufferPos - fileBuffer); // TODO: remove cast
-    }
+        // first we write 3 pointers each
+        // start of name_string
+        // start of location_string
+        // one past the end of location string
 
-    SymbolInfoPointers* symInfoPtrs = cast(SymbolInfoPointers*)bufferPos;
-    bufferPos += SymbolInfoPointers.sizeof * n_symInfos;
+        /// Returns:
+        ///     Current offset from the beginning of the file
+        uint currentOffset32() @safe pure nothrow @nogc
+        {
+            return cast(uint)(bufferPos - fileBuffer); // TODO: remove cast
+        }
 
-    foreach (const symInfo; symInfos[0 .. n_symInfos])
-    {
-        auto p = symInfoPtrs++;
-        p.symbol_name_start = currentOffset32();
-        bufferPos = copyAndPointPastEnd(bufferPos, symInfo.name);
-        p.symobol_location_start = currentOffset32();
-        bufferPos = copyAndPointPastEnd(bufferPos, symInfo.loc);
-        p.one_past_symbol_location_end = currentOffset32();
+        SymbolInfoPointers* symInfoPtrs = cast(SymbolInfoPointers*)bufferPos;
+        bufferPos += SymbolInfoPointers.sizeof * n_symInfos;
+
+        foreach (const symInfo; symInfos[0 .. n_symInfos])
+        {
+            auto p = symInfoPtrs++;
+            p.symbol_name_start = currentOffset32();
+            bufferPos = copyAndPointPastEnd(bufferPos, symInfo.name);
+            p.symobol_location_start = currentOffset32();
+            bufferPos = copyAndPointPastEnd(bufferPos, symInfo.loc);
+            p.one_past_symbol_location_end = currentOffset32();
+        }
     }
-}
 
 extern (D) void writeStrings(ref char* bufferPos, const char* fileBuffer, string[] strings)
 {
@@ -678,17 +678,17 @@ void writeTrace(Strings* arguments, const (char)[] traceFile = null, uint fVersi
         else
         {
             auto fileNameLength =
-                sprintf(&fileNameBuffer[0], "symbol-%s.1.csv".ptr, global.params.traceFile ? global.params.traceFile : timeString);
+            sprintf(&fileNameBuffer[0], "symbol-%s.1.csv".ptr, global.params.traceFile ? global.params.traceFile : timeString);
 
-                        bufferPos += sprintf(cast(char*) bufferPos, "//");
-                        if (arguments)
-                        {
-                            foreach (const arg; arguments)
-                            {
-                                bufferPos += sprintf(bufferPos, "%s ", arg);
-                            }
-                        }
-                        bufferPos += sprintf(cast(char*) bufferPos, "\n");
+            bufferPos += sprintf(cast(char*) bufferPos, "//");
+            if (arguments)
+            {
+                foreach (const arg; arguments)
+                {
+                    bufferPos += sprintf(bufferPos, "%s ", arg);
+                }
+            }
+            bufferPos += sprintf(cast(char*) bufferPos, "\n");
 
             bufferPos += sprintf(cast(char*) bufferPos,
                 "%s|%s|%s|%s|%s|%s|%s|%s|%s|\n",
