@@ -64,7 +64,7 @@ extern (C) __gshared ProbeEntry* dsymbol_profile_array;
 
 enum dsymbol_profile_array_capacity = 128 * 1024 * 1024; // 128 million entries should do, no ?
 
-void initTraceMemory() nothrow @nogc
+void enableTracing() nothrow @nogc
 {
     static if (SYMBOL_TRACE)
     {

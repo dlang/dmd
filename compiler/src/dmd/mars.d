@@ -1840,8 +1840,8 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 params.traceFile = ""; // indicate that tracing is enabled
             else
                 goto Lerror;
-            import dmd.trace : initTraceMemory;
-            initTraceMemory();
+            import dmd.trace : enableTracing;
+            enableTracing();
         }
         else if (arg == "-v") // https://dlang.org/dmd.html#switch-v
             params.verbose = true;
