@@ -354,10 +354,8 @@ void main(string[] args) /* TODO: @safe */
     }
     else if (mode == Mode.OutputSelfStats)
     {
-        const void[] selfTimeMem = (cast(void*)selfTime)[0 .. (selfTime.length * selfTime[0].sizeof)];
-        std.file.write(traceFile ~ ".st", selfTimeMem);
-        const void[] selfMemMem = (cast(void*)selfMem)[0 .. (selfMem.length * selfMem[0].sizeof)];
-        std.file.write(traceFile ~ ".sm", selfMemMem);
+        std.file.write(traceFile ~ ".st", (cast(void*)selfTime)[0 .. (selfTime.length * selfTime[0].sizeof)]);
+        std.file.write(traceFile ~ ".sm", (cast(void*)selfMem)[0 .. (selfMem.length * selfMem[0].sizeof)]);
     }
     else if (mode == Mode.OutputParentTable)
     {
