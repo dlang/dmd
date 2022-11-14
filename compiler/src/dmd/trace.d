@@ -75,7 +75,7 @@ void enableTracing() nothrow @nogc
     }
 }
 
-string probeScope(in string vname, in string phaseName = null)
+string probeScope(in string identifierName, in string phaseName = null) // TODO: make phaseName an enum
 {
     static if (SYMBOL_TRACE)
     {
@@ -91,7 +91,7 @@ string probeScope(in string vname, in string phaseName = null)
     ulong begin_sema_ticks;
     ulong end_sema_ticks;
     ulong begin_sema_mem = Mem.allocated;
-    auto v_ = ` ~ vname ~ `;
+    auto v_ = ` ~ identifierName ~ `;
     alias v_type = typeof(v_);
     auto insert_pos = dsymbol_profile_array_count++;
 
