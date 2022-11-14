@@ -462,8 +462,8 @@ char* copyAndPointPastEnd(scope return char* dst, scope const(char)[] src) @trus
     if (src.length == 0)
         return dst;
     auto n = src.length;
-    dst[0..src.length] = src;
-    return dst+src.length;
+    dst[0 .. n] = src;
+    return dst + n;
 }
 
 static if (COMPRESSED_TRACE)
