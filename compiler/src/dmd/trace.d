@@ -124,8 +124,7 @@ string traceIdentifierStringInScope(string vname, string phaseName = null)
                     ProbeEntry(ProbeEntry.NodeType.dsymbol,
                     begin_sema_ticks, end_sema_ticks,
                     begin_sema_mem, Mem.allocated,
-                    asttypename_v, ` ~ (phaseName
-                                        ? `"` ~ phaseName ~ `"` : `__FUNCTION__`) ~ `);
+                    asttypename_v, ` ~ (phaseName ? `"` ~ phaseName ~ `"` : `__FUNCTION__`) ~ `);
                 dsymbol_profile_array[insert_pos].sym = v_;
             } else static if (is(v_type : Expression))
             {
@@ -133,8 +132,7 @@ string traceIdentifierStringInScope(string vname, string phaseName = null)
                     ProbeEntry(ProbeEntry.NodeType.expression,
                     begin_sema_ticks, end_sema_ticks,
                     begin_sema_mem, Mem.allocated,
-                    asttypename_v, ` ~ (phaseName
-                                        ? `"` ~ phaseName ~ `"` : `__FUNCTION__`) ~ `);
+                    asttypename_v, ` ~ (phaseName ? `"` ~ phaseName ~ `"` : `__FUNCTION__`) ~ `);
                 dsymbol_profile_array[insert_pos].exp = v_;
             } else static if (is(v_type : Statement))
             {
@@ -142,8 +140,7 @@ string traceIdentifierStringInScope(string vname, string phaseName = null)
                     ProbeEntry(ProbeEntry.NodeType.statement,
                     begin_sema_ticks, end_sema_ticks,
                     begin_sema_mem, Mem.allocated,
-                    asttypename_v, ` ~ (phaseName
-                                        ? `"` ~ phaseName ~ `"` : `__FUNCTION__`) ~ `);
+                    asttypename_v, ` ~ (phaseName ? `"` ~ phaseName ~ `"` : `__FUNCTION__`) ~ `);
                 dsymbol_profile_array[insert_pos].stmt = v_;
             } else static if (is(v_type : Type))
             {
@@ -151,8 +148,7 @@ string traceIdentifierStringInScope(string vname, string phaseName = null)
                     ProbeEntry(ProbeEntry.NodeType.type,
                     begin_sema_ticks, end_sema_ticks,
                     begin_sema_mem, Mem.allocated,
-                    asttypename_v, ` ~ (phaseName
-                                        ? `"` ~ phaseName ~ `"` : `__FUNCTION__`) ~ `);
+                    asttypename_v, ` ~ (phaseName ? `"` ~ phaseName ~ `"` : `__FUNCTION__`) ~ `);
                 dsymbol_profile_array[insert_pos].type = v_;
             }
             else
@@ -164,8 +160,7 @@ string traceIdentifierStringInScope(string vname, string phaseName = null)
                     ProbeEntry(ProbeEntry.NodeType.nullSymbol,
                     begin_sema_ticks, end_sema_ticks,
                     begin_sema_mem, Mem.allocated,
-                    "Dsymbol(Null)", ` ~ (phaseName
-                                          ? `"` ~ phaseName ~ `"` : `__FUNCTION__`) ~ `);
+                    "Dsymbol(Null)", ` ~ (phaseName ? `"` ~ phaseName ~ `"` : `__FUNCTION__`) ~ `);
         }
     }`);
     }  else
