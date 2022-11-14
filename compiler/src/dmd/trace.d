@@ -461,7 +461,7 @@ char* copyAndPointPastEnd(scope return char* dst, scope const(char)[] src) @trus
     // TODO: untested:
     if (src.length == 0)
         return dst;
-    auto n = src.length;
+    const n = src.length;
     dst[0 .. n] = src;
     return dst + n;
 }
