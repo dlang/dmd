@@ -447,14 +447,23 @@ void writeRecord(ProbeEntry dp, ref char* bufferPos, uint FileVersion = 1)
 ///     src = source string
 /// Returns:
 ///     a pointer to the end of dst;
-char* copyAndPointPastEnd(char* dst, const char * src)
+char* copyAndPointPastEnd(char* dst, const char * src) // TODO: remove
 {
-    // if we copy 0 bytes the dst is where we are at
-    if (!src) return dst;
-
-    import core.stdc.string;
+    if (!src)
+        return dst;
+    import core.stdc.string : strlen, memcpy;
     auto n = strlen(src); // len including the zero terminator
     return cast(char*)memcpy(dst, src, n) + n;
+}
+
+char* copyAndPointPastEnd(scope return char* dst, scope const(char)[] src) @trusted // TODO: make @safe use slices
+{
+    import core.stdc.string : memcpy;
+    if (src.length == 0)
+        return dst;
+    auto n = src.length;
+    dst[0..src.length] = src;
+    return dst+src.length;
 }
 
 static if (COMPRESSED_TRACE)
