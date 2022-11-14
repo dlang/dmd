@@ -1,4 +1,0 @@
-Added avx512f detection to `core.cpuid`
-
-The feature flag `core.cpuid.avx512f` has been added to allow detection at
-run-time CPUs with 512-bit vector support.

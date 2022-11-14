@@ -1,5 +1,0 @@
-Add predefined version `D_Optimized` when compiling with `-O`
-
-It allows code to distinguish whether it's being compiled with optimizations enabled (the `-O` flag was provided).
-This is orthogonal to whether `-release` mode is active - for that see the
-predefined versions `assert`, `D_NoBoundsChecks`, `D_Invariants`, etc.

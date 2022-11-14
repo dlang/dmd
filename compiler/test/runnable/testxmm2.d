@@ -43,6 +43,25 @@ int4 cmpss_repro(float4 a)
 }
 
 /*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=23461
+
+int4 and(int a) { return a && true; }
+int4 or(int a) { return a || false; }
+
+void test23461()
+{
+    int4 x = and(3);
+    assert(x.array == [1,1,1,1]);
+    x = and(0);
+    assert(x.array == [0,0,0,0]);
+
+    x = or(3);
+    assert(x.array == [1,1,1,1]);
+    x = or(0);
+    assert(x.array == [0,0,0,0]);
+}
+
+/*****************************************/
 
 version (none)//(D_AVX2)
 {
@@ -267,6 +286,7 @@ void testdbl()
 int main()
 {
     test21474();
+    test23461();
     testcmp2();
     testcmp4();
     testcmp8();
