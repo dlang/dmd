@@ -181,9 +181,10 @@ static if (COMPRESSED_TRACE)
         void* sym;
         uint id;
         uint pad;
-        const(char)[] name;     // Named, most often-mangled but sometimes not.
-        const(char)[] loc;      // Location
-        const(char)[] typename; // Name of type.
+
+        const (char)* name;
+        const (char)* loc;
+        const (char)* typename;
     }
 
     string[] phases;
@@ -318,43 +319,41 @@ void writeRecord(ProbeEntry dp, ref char* bufferPos, uint FileVersion = 1)
             if (isLikelyOnStack(dp.vp))
             {
                 //running_id--;
-                return;
+                goto Lend;
             }
 
-            import dmd.common.outbuffer : OutBuffer;
-            import dmd.dmangle : mangleExact, mangleToBuffer;
+            final switch(dp.nodeType)
             {
-                scope OutBuffer buf;
-                final switch(dp.nodeType)
-                {
                 case ProbeEntry.NodeType.nullSymbol :
                     running_id--;
-                    break;
+                break;
                 case ProbeEntry.NodeType.dsymbol :
-                    mangleToBuffer(dp.sym, &buf);
-                    symInfo.name = buf.extractSlice(true);
-                    symInfo.loc = dp.sym.loc.toChars().fromStringz;
+                    symInfo.name = dp.sym.toChars();
+                    symInfo.loc = dp.sym.loc.toChars();
+
                     symMap[cast(void*)dp.sym] = symInfo;
-                    break;
+                break;
                 case ProbeEntry.NodeType.expression :
-                    mangleToBuffer(dp.exp, &buf);
-                    symInfo.name = buf.extractSlice(true);
-                    symInfo.loc = dp.exp.loc.toChars().fromStringz;
+                    symInfo.name = dp.exp.toChars();
+                    symInfo.loc = dp.exp.loc.toChars();
+
                     expMap[cast(void*)dp.exp] = symInfo;
-                    break;
+                break;
                 case ProbeEntry.NodeType.statement:
-                    symInfo.loc = dp.stmt.loc.toChars().fromStringz;
+                    symInfo.loc = dp.stmt.loc.toChars();
+
                     stmtMap[cast(void*)dp.stmt] = symInfo;
-                    break;
+                break;
                 case ProbeEntry.NodeType.type :
-                    mangleToBuffer(dp.type, &buf);
-                    symInfo.name = dp.type.toChars().fromStringz;
+                    symInfo.name = dp.type.toChars();
+
                     typeMap[cast(void*)dp.type] = symInfo;
-                    break;
-                case ProbeEntry.NodeType.invalid:
-                    assert(0); // this cannot happen
-                }
+                break;
+
+                 case ProbeEntry.NodeType.invalid:
+                     assert(0); // this cannot happen
             }
+        Lend:
         }
     }
     else
@@ -448,14 +447,14 @@ void writeRecord(ProbeEntry dp, ref char* bufferPos, uint FileVersion = 1)
 ///     src = source string
 /// Returns:
 ///     a pointer to the end of dst;
-char* copyAndPointPastEnd(scope return char* dst, scope const(char)[] src) @trusted // TODO: make @safe use slices
+char* copyAndPointPastEnd(char* dst, const char * src)
 {
-    import core.stdc.string : memcpy;
-    if (src.length == 0)
-        return dst;
-    auto n = src.length;
-    dst[0..src.length] = src;
-    return dst;
+    // if we copy 0 bytes the dst is where we are at
+    if (!src) return dst;
+
+    import core.stdc.string;
+    auto n = strlen(src); // len including the zero terminator
+    return cast(char*)memcpy(dst, src, n) + n;
 }
 
 static if (COMPRESSED_TRACE)
@@ -476,7 +475,7 @@ void writeSymInfos(ref char* bufferPos, const char* fileBuffer)
     SymbolInfoPointers* symInfoPtrs = cast(SymbolInfoPointers*)bufferPos;
     bufferPos += SymbolInfoPointers.sizeof * n_symInfos;
 
-    foreach (const symInfo; symInfos[0 .. n_symInfos])
+    foreach(symInfo; symInfos[0 .. n_symInfos])
     {
         auto p = symInfoPtrs++;
         p.symbol_name_start = currentOffset32();
@@ -487,7 +486,7 @@ void writeSymInfos(ref char* bufferPos, const char* fileBuffer)
     }
 }
 
-extern (D) void writeStrings(ref char* bufferPos, const char* fileBuffer, scope string[] strings)
+extern (D) void writeStrings(ref char* bufferPos, const char* fileBuffer, string[] strings)
 {
     /// Returns:
     ///     Current offset from the beginning of the file
@@ -498,12 +497,12 @@ extern (D) void writeStrings(ref char* bufferPos, const char* fileBuffer, scope 
 
     StringPointer* stringPointers = cast(StringPointer*)bufferPos;
     bufferPos += align4(StringPointer.sizeof * strings.length);
-    foreach (const s; strings)
+    foreach(s;strings)
     {
         auto p = stringPointers++;
 
         p.string_start = currentOffset32();
-        bufferPos = copyAndPointPastEnd(bufferPos, s);
+        bufferPos = copyAndPointPastEnd(bufferPos, s.ptr);
         p.one_past_string_end = currentOffset32();
     }
     // align after writing the strings
@@ -595,16 +594,16 @@ void writeTrace(Strings* arguments, const (char)[] traceFile = null, uint fVersi
             // reserve space for the header
             TraceFileHeader* header = cast(TraceFileHeader*)bufferPos;
             bufferPos += TraceFileHeader.sizeof;
-            copyAndPointPastEnd(cast(char*)&header.magic_number, "DMDTRACE");
+            copyAndPointPastEnd(cast(char*)&header.magic_number, "DMDTRACE".ptr);
             header.FileVersion = fVersion;
 
             header.n_records = dsymbol_profile_array_count;
             // write arg string behind the header
             if (arguments)
             {
-                foreach (const arg; *arguments)
+                foreach(arg;*arguments)
                 {
-                    bufferPos = copyAndPointPastEnd(cast(char*)bufferPos, arg[0 .. strlen(arg)]); // TODO: avoid strlen
+                    bufferPos = copyAndPointPastEnd(cast(char*)bufferPos, arg);
                     *cast(char*)bufferPos++ = ' ';
                 }
             }
@@ -617,8 +616,10 @@ void writeTrace(Strings* arguments, const (char)[] traceFile = null, uint fVersi
             // the records follow
             header.offset_records = currentOffset32();
 
-            foreach (dp;dsymbol_profile_array[0 .. dsymbol_profile_array_count])
+            foreach(dp;dsymbol_profile_array[0 .. dsymbol_profile_array_count])
+            {
                 writeRecord(dp, bufferPos, header.FileVersion);
+            }
 
             assert(align4(currentOffset32()) == currentOffset32());
 
@@ -651,7 +652,7 @@ void writeTrace(Strings* arguments, const (char)[] traceFile = null, uint fVersi
                 auto symHeader = cast(TraceFileHeader*)bufferPos;
                 bufferPos += TraceFileHeader.sizeof;
 
-                copyAndPointPastEnd(cast(char*)&symHeader.magic_number, "DMDTRACE");
+                copyAndPointPastEnd(cast(char*)&symHeader.magic_number, "DMDTRACE".ptr);
                 symHeader.FileVersion = fVersion;
 
                 // we write a symbolInfo file only
@@ -681,8 +682,12 @@ void writeTrace(Strings* arguments, const (char)[] traceFile = null, uint fVersi
 
                         bufferPos += sprintf(cast(char*) bufferPos, "//");
                         if (arguments)
-                            foreach (arg;arguments)
+                        {
+                            foreach(arg;arguments)
+                            {
                                 bufferPos += sprintf(bufferPos, "%s ", arg);
+                            }
+                        }
                         bufferPos += sprintf(cast(char*) bufferPos, "\n");
 
             bufferPos += sprintf(cast(char*) bufferPos,
@@ -693,7 +698,7 @@ void writeTrace(Strings* arguments, const (char)[] traceFile = null, uint fVersi
                 "begin_mem".ptr, "end_mem".ptr
             );
 
-            foreach (const dp; dsymbol_profile_array[0 .. dsymbol_profile_array_count / 2])
+            foreach(dp;dsymbol_profile_array[0 .. dsymbol_profile_array_count / 2])
             {
                 writeRecord(dp, bufferPos);
             }
@@ -707,18 +712,15 @@ void writeTrace(Strings* arguments, const (char)[] traceFile = null, uint fVersi
             auto f2 = File();
             bufferPos = fileBuffer;
 
-            foreach (dp;dsymbol_profile_array[dsymbol_profile_array_count / 2 .. dsymbol_profile_array_count])
+            foreach(dp;dsymbol_profile_array[dsymbol_profile_array_count / 2
+                .. dsymbol_profile_array_count])
+            {
                 writeRecord(dp, bufferPos);
+            }
 
             data = fileBuffer[0 .. bufferPos - fileBuffer];
             errorcode_write = File.write(fileNameBuffer[0 .. fileNameLength], data);
         }
         free(fileBuffer);
     }
-}
-
-private inout(char)[] fromStringz(inout(char)* cString) @nogc @system pure nothrow
-{
-    import core.stdc.string : strlen;
-    return cString ? cString[0 .. strlen(cString)] : null;
 }
