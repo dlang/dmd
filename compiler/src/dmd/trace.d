@@ -484,7 +484,7 @@ void writeSymInfos(ref char* bufferPos, const char* fileBuffer)
     SymbolInfoPointers* symInfoPtrs = cast(SymbolInfoPointers*)bufferPos;
     bufferPos += SymbolInfoPointers.sizeof * n_symInfos;
 
-    foreach (symInfo; symInfos[0 .. n_symInfos])
+    foreach (const symInfo; symInfos[0 .. n_symInfos])
     {
         auto p = symInfoPtrs++;
         p.symbol_name_start = currentOffset32();
@@ -506,7 +506,7 @@ extern (D) void writeStrings(ref char* bufferPos, const char* fileBuffer, string
 
     StringPointer* stringPointers = cast(StringPointer*)bufferPos;
     bufferPos += align4(StringPointer.sizeof * strings.length);
-    foreach (s;strings)
+    foreach (const s; strings)
     {
         auto p = stringPointers++;
 
@@ -605,7 +605,7 @@ void writeTrace(Strings* arguments, const (char)[] traceFile = null, uint fVersi
             // write arg string behind the header
             if (arguments)
             {
-                foreach (arg;*arguments)
+                foreach (const arg; *arguments)
                 {
                     bufferPos = copyAndPointPastEnd(cast(char*)bufferPos, arg);
                     *cast(char*)bufferPos++ = ' ';
@@ -620,7 +620,7 @@ void writeTrace(Strings* arguments, const (char)[] traceFile = null, uint fVersi
             // the records follow
             header.offset_records = currentOffset32();
 
-            foreach (dp;dsymbol_profile_array[0 .. dsymbol_profile_array_count])
+            foreach (dp; dsymbol_profile_array[0 .. dsymbol_profile_array_count])
             {
                 writeRecord(dp, bufferPos, header.FileVersion);
             }
@@ -687,7 +687,7 @@ void writeTrace(Strings* arguments, const (char)[] traceFile = null, uint fVersi
                         bufferPos += sprintf(cast(char*) bufferPos, "//");
                         if (arguments)
                         {
-                            foreach (arg;arguments)
+                            foreach (const arg; arguments)
                             {
                                 bufferPos += sprintf(bufferPos, "%s ", arg);
                             }
@@ -702,7 +702,7 @@ void writeTrace(Strings* arguments, const (char)[] traceFile = null, uint fVersi
                 "begin_mem".ptr, "end_mem".ptr
             );
 
-            foreach (dp;dsymbol_profile_array[0 .. dsymbol_profile_array_count / 2])
+            foreach (const dp; dsymbol_profile_array[0 .. dsymbol_profile_array_count / 2])
             {
                 writeRecord(dp, bufferPos);
             }
@@ -716,7 +716,7 @@ void writeTrace(Strings* arguments, const (char)[] traceFile = null, uint fVersi
             auto f2 = File();
             bufferPos = fileBuffer;
 
-            foreach (dp;dsymbol_profile_array[dsymbol_profile_array_count / 2 .. dsymbol_profile_array_count])
+            foreach (const dp; dsymbol_profile_array[dsymbol_profile_array_count / 2 .. dsymbol_profile_array_count])
             {
                 writeRecord(dp, bufferPos);
             }
