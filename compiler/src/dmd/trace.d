@@ -459,7 +459,6 @@ char* copyAndPointPastEnd(char* dst, const char * src) // TODO: remove
 char* copyAndPointPastEnd(scope return char* dst, scope const(char)[] src) @trusted // TODO: make @safe use slices
 {
     // TODO: untested:
-    import core.stdc.string : memcpy;
     if (src.length == 0)
         return dst;
     auto n = src.length;
