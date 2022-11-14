@@ -315,7 +315,7 @@ void main(string[] args) /* TODO: @safe */
     }
     else if (mode == Mode.Symbol)
     {
-        uint sNumber = to!uint(args[3]);
+        const sNumber = to!uint(args[3]);
         if (sNumber.argOneToN(header.n_symbols))
         {
             writeln("{name: ", getSymbolName(fileBytes, sNumber),
@@ -324,7 +324,7 @@ void main(string[] args) /* TODO: @safe */
     }
     else if (mode == Mode.Parent)
     {
-        uint sNumber = to!uint(args[3]);
+        const sNumber = to!uint(args[3]);
         if (sNumber.argOneToN(header.n_records))
         {
             writeln("{parentId: ", parents[sNumber - 1], "}");
@@ -332,7 +332,7 @@ void main(string[] args) /* TODO: @safe */
     }
     else if (mode == Mode.Phase)
     {
-        uint sNumber = to!uint(args[3]);
+        const sNumber = to!uint(args[3]);
         if (sNumber.argOneToN(header.n_phases))
         {
             writeln("{phase: " ~ phases[sNumber - 1] ~ "}");
@@ -340,7 +340,7 @@ void main(string[] args) /* TODO: @safe */
     }
     else if (mode == Mode.Kind)
     {
-        uint sNumber = to!uint(args[3]);
+        const sNumber = to!uint(args[3]);
         if (sNumber.argOneToN(header.n_kinds))
         {
             writeln("{kind: " ~ kinds[sNumber - 1] ~ "}");
