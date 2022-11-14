@@ -3842,7 +3842,7 @@ void cdbyteint(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     regm_t retregs;
     char size;
 
-    if ((*pretregs & (ALLREGS | mBP)) == 0)     // if don't need result in regs
+    if ((*pretregs & (ALLREGS | mBP | XMMREGS)) == 0) // if don't need result in regs
     {
         codelem(cdb,e.EV.E1,pretregs,false);      // then conversion isn't necessary
         return;

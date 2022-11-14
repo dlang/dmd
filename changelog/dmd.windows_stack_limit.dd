@@ -1,6 +1,0 @@
-Windows: Double DMD stack limit to 16 MB
-
-The compilation of some projects require more stack space than previously available.
-Now DMD has the same limit as LDC, which
-$(LINK2 https://github.com/ldc-developers/ldc/pull/3921, increased its stack limit)
-in its 1.29.0 release.
