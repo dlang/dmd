@@ -311,15 +311,12 @@ void writeRecord(ProbeEntry dp, ref char* bufferPos, uint FileVersion = 1)
         {
             id = running_id++;
             // TODO ~= is too slow ... replace by manual memory allocation;
-
             symInfos ~= SymInfo(dp.vp, id);
-
             SymInfo *symInfo = &symInfos[n_symInfos++];
-
             if (isLikelyOnStack(dp.vp))
             {
                 //running_id--;
-                goto Lend;
+                return;
             }
 
             final switch(dp.nodeType)
@@ -353,7 +350,6 @@ void writeRecord(ProbeEntry dp, ref char* bufferPos, uint FileVersion = 1)
                  case ProbeEntry.NodeType.invalid:
                      assert(0); // this cannot happen
             }
-        Lend:
         }
     }
     else
