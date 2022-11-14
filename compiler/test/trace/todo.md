@@ -20,7 +20,9 @@
   - `-trace=all:Template`
   - `-trace=file:SOME_FILE`
 
-- Document why both `.dmd_trace` and `.dmd_symbol` are needed
+- Document why both `.dmd_trace` and `.dmd_symbol` are needed. .dmd_symbol
+  symbol table mapping a symbol to an index. The indexes are then used in the
+  .dmd_trace file for more compact representation.
 
 - Adjusting symbol casings
 
