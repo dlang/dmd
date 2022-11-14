@@ -30,7 +30,7 @@ else version (D_InlineAsm_X86)
                 mov       ECX,EAX       ;
                 rdtsc                   ;
                 mov   [ECX],EAX         ;
-                mov   4[ECX],EDX        ;
+                mov   [ECX+4],EDX        ;
                 ret                     ;
             }
         }
@@ -47,7 +47,7 @@ else version (D_InlineAsm_X86_64)
                 naked                   ;
                 rdtsc                   ;
                 mov   [RDI],EAX         ;
-                mov   4[RDI],EDX        ;
+                mov   [RDI+4],EDX        ;
                 ret                     ;
             }
         }
