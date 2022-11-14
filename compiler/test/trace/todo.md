@@ -1,5 +1,7 @@
 - Add test that exercise all modes for a small D file with no object.d
   file. Then move statistics calcs into trace.d.
+- Put back tracing memory usage by injecting a fakePureFunction in the
+  rmem.d. Look at commit in rmem.d and `Mem.allocated`.
 - What about ditching all but last file version
   - Specifically: `ProbeRecord`, `ProbeRecordV2`, `TraceFileHeader`, `TraceFileHeaderV4`,
     `fVersion`, `(fVersion = 3)`?
