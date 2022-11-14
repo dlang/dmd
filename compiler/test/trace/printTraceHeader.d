@@ -51,7 +51,7 @@ void main(string[] args) /* TODO: @safe */
         writeln("Modes: ", allModes);
         return;
     }
-    const requestedModes = args[2];
+    const requestedModeArgs = args[2];
 
     auto originalFile = args[1];
     auto traceFile = originalFile.setExtension(traceExtension);
@@ -60,7 +60,7 @@ void main(string[] args) /* TODO: @safe */
     Mode mode;
     try
     {
-        mode = requestedModes.to!Mode;
+        mode = requestedModeArgs.to!Mode;
     }
     catch (Exception e)
     {
