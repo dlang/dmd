@@ -557,7 +557,7 @@ void writeTrace(Strings* arguments, const (char)[] traceFile = null, uint fVersi
 
         // this is debug code we simply hope that we will not need more
         // then 2G of log-buffer;
-        char* fileBuffer = cast(char*)malloc(int.max);
+        char* fileBuffer = cast(char*)malloc(int.max); // TODO: remove and use output buffer instead
         char* bufferPos = fileBuffer;
 
         char[255] fileNameBuffer;
