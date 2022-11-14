@@ -1,3 +1,5 @@
+- Add test that exercise all modes for a small D file with no object.d
+  file. Then move statistics calcs into trace.d.
 - What about ditching all but last file version
   - Specifically: `ProbeRecord`, `ProbeRecordV2`, `TraceFileHeader`, `TraceFileHeaderV4`,
     `fVersion`, `(fVersion = 3)`?
