@@ -476,9 +476,9 @@ void writeSymInfos(ref char* bufferPos, const char* fileBuffer)
 
     /// Returns:
     ///     Current offset from the beginning of the file
-    uint currentOffset32()
+    uint currentOffset32() @safe pure nothrow @nogc
     {
-        return cast(uint)(bufferPos - fileBuffer);
+        return cast(uint)(bufferPos - fileBuffer); // TODO: remove cast
     }
 
     SymbolInfoPointers* symInfoPtrs = cast(SymbolInfoPointers*)bufferPos;
