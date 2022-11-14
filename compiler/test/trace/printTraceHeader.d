@@ -42,13 +42,13 @@ void main(string[] args) /* TODO: @safe */
     import std.path : setExtension;
     import std.conv : to;
 
-    enum modes = EnumMembers!Mode; // TODO: create array of strings
+    enum allModes = EnumMembers!Mode; // TODO: create array of strings
 
     if (args.length < 3)
     {
         writeln("Too few arguments: ", args);
         writeln("Usage: ", __FILE__, " TRACEFILE MODE {args depending on mode}");
-        writeln("Modes: ", modes);
+        writeln("Modes: ", allModes);
         return;
     }
     const modeArg = args[2];
@@ -64,7 +64,7 @@ void main(string[] args) /* TODO: @safe */
     }
     catch (Exception e)
     {
-        enforce(0, format("Unknown mode %ssupported modes are %(%s, %)", args[2], [modes]));
+        enforce(0, format("Unknown mode %ssupported modes are %(%s, %)", args[2], [allModes]));
     }
 
     if (mode != Mode.Header && !exists(traceFile))
@@ -377,7 +377,7 @@ void main(string[] args) /* TODO: @safe */
         }
     }
     else
-        writeln("Mode unsupported: ", mode, "\nsupported modes are: ", modes);
+        writeln("Mode unsupported: ", mode, "\nsupported modes are: ", allModes);
 }
 
 struct NoPrint
