@@ -524,7 +524,7 @@ private bool isLikelyOnStack(in void* v) @safe pure nothrow @nogc
     /* DMD seems cannot inline this function likely because of the asm
      * statement so only enforce inlining for LDC. */
     version(LDC) pragma(inline, true);
-    size_t vs = cast(size_t)v;
+    const vs = cast(size_t)v;
     size_t sp;
     version(D_InlineAsm_X86_64)
         asm @trusted pure nothrow @nogc { mov sp, RSP; }
