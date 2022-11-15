@@ -521,7 +521,9 @@ struct TraceFileTail
 
 private bool isLikelyOnStack(in void* v) @safe pure nothrow @nogc
 {
-    pragma(inline, true);
+    // dmd seems to be unable to inline this function
+    // which is plausable since it uses asm
+    // pragma(inline, true);
     size_t vs = cast(size_t)v;
     size_t sp;
     version(D_InlineAsm_X86_64)
