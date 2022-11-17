@@ -252,6 +252,16 @@ struct ASTBase
             return null;
         }
 
+        inout(CtorDeclaration) isCtorDeclaration() inout
+        {
+            return null;
+        }
+
+        inout(DtorDeclaration) isDtorDeclaration() inout
+        {
+            return null;
+        }
+
         Dsymbol syntaxCopy(Dsymbol s)
         {
             return null;
@@ -701,6 +711,11 @@ struct ASTBase
             super(loc, endloc, Id.ctor, stc, type);
         }
 
+        inout(CtorDeclaration) isCtorDeclaration() inout
+        {
+            return this;
+        }
+
         override void accept(Visitor v)
         {
             v.visit(this);
@@ -716,6 +731,11 @@ struct ASTBase
         extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc, Identifier id)
         {
             super(loc, endloc, id, stc, null);
+        }
+
+        inout(DtorDeclaration) isDtorDeclaration() inout
+        {
+            return this;
         }
 
         override void accept(Visitor v)
