@@ -854,7 +854,6 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
             result = s;
         }
 
-        TypeAArray taa = null;
         Type tn = null;
         Type tnv = null;
         Statement apply()
@@ -865,26 +864,25 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
             TypeFunction tfld = null;
             if (sapply)
             {
-                FuncDeclaration fdapply = sapply.isFuncDeclaration();
-                if (fdapply)
+                if (auto fdapply = sapply.isFuncDeclaration())
                 {
-                    assert(fdapply.type && fdapply.type.ty == Tfunction);
-                    tfld = cast(TypeFunction)fdapply.type.typeSemantic(loc, sc2);
+                    assert(fdapply.type && fdapply.type.isTypeFunction());
+                    tfld = fdapply.type.typeSemantic(loc, sc2).isTypeFunction();
                     goto Lget;
                 }
-                else if (tab.ty == Tdelegate)
+                else if (tab.isTypeDelegate())
                 {
-                    tfld = cast(TypeFunction)tab.nextOf();
+                    tfld = tab.nextOf().isTypeFunction();
                 Lget:
                     //printf("tfld = %s\n", tfld.toChars());
                     if (tfld.parameterList.parameters.length == 1)
                     {
                         Parameter p = tfld.parameterList[0];
-                        if (p.type && p.type.ty == Tdelegate)
+                        if (p.type && p.type.isTypeDelegate())
                         {
                             auto t = p.type.typeSemantic(loc, sc2);
                             assert(t.ty == Tdelegate);
-                            tfld = cast(TypeFunction)t.nextOf();
+                            tfld = t.nextOf().isTypeFunction();
                         }
                     }
                 }
@@ -907,7 +905,6 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
             }
 
             Expression e = null;
-            Expression ec;
             if (vinit)
             {
                 e = new DeclarationExp(loc, vinit);
@@ -916,19 +913,22 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
                     return null;
             }
 
-            if (taa)
-                ec = applyAssocArray(fs, flde, taa);
-            else if (tab.ty == Tarray || tab.ty == Tsarray)
-                ec = applyArray(fs, flde, sc2, tn, tnv, tab.ty);
-            else if (tab.ty == Tdelegate)
-                ec = applyDelegate(fs, flde, sc2, tab);
-            else
-                ec = applyOpApply(fs, tab, sapply, sc2, flde);
+            Expression ec;
+            switch (tab.ty)
+            {
+                case Tarray:
+                case Tsarray:   ec = applyArray     (fs, flde, tab, sc2, tn, tnv); break;
+                case Tdelegate: ec = applyDelegate  (fs, flde, tab, sc2);          break;
+                case Taarray:   ec = applyAssocArray(fs, flde, tab);               break;
+                default:        ec = applyOpApply   (fs, flde, tab, sc2, sapply);  break;
+            }
             if (!ec)
                 return null;
+
             e = Expression.combine(e, ec);
             return loopReturn(e, fs.cases, loc);
         }
+
         switch (tab.ty)
         {
         case Tarray:
@@ -966,7 +966,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
                      *  2. foreach body is lowered to _aApply (see special case below).
                      */
                     Type tv = (*fs.parameters)[1].type.toBasetype();
-                    if ((tab.ty == Tarray ||
+                    if ((tab.isTypeDArray() ||
                          (tn.ty != tv.ty && tn.ty.isSomeChar && tv.ty.isSomeChar)) &&
                         !Type.tsize_t.implicitConvTo(tindex))
                     {
@@ -1021,9 +1021,8 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
                             return retError();
                         }
                     }
-                    if (tab.ty == Tsarray)
+                    if (auto ta = tab.isTypeSArray())
                     {
-                        TypeSArray ta = cast(TypeSArray)tab;
                         IntRange dimrange = getIntRange(ta.dim);
                         // https://issues.dlang.org/show_bug.cgi?id=12504
                         dimrange.imax = SignExtendedNumber(dimrange.imax.value-1);
@@ -1072,9 +1071,9 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
                 auto ie = new ExpInitializer(loc, new SliceExp(loc, fs.aggr, null, null));
                 const valueIsRef = (*fs.parameters)[$ - 1].isReference();
                 VarDeclaration tmp;
-                if (fs.aggr.op == EXP.arrayLiteral && !valueIsRef)
+                if (fs.aggr.isArrayLiteralExp() && !valueIsRef)
                 {
-                    auto ale = cast(ArrayLiteralExp)fs.aggr;
+                    auto ale = fs.aggr.isArrayLiteralExp();
                     size_t edim = ale.elements ? ale.elements.length : 0;
                     auto telem = (*fs.parameters)[dim - 1].type;
 
@@ -1182,7 +1181,6 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
             if (checkForArgTypes(fs))
                 return retError();
 
-            taa = cast(TypeAArray)tab;
             if (dim < 1 || dim > 2)
             {
                 fs.error("only one or two arguments for associative array `foreach`");
@@ -1207,8 +1205,8 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
                  *    }
                  */
                 auto ad = (tab.ty == Tclass) ?
-                    cast(AggregateDeclaration)(cast(TypeClass)tab).sym :
-                    cast(AggregateDeclaration)(cast(TypeStruct)tab).sym;
+                    cast(AggregateDeclaration)tab.isTypeClass().sym :
+                    cast(AggregateDeclaration)tab.isTypeStruct().sym;
                 Identifier idfront;
                 Identifier idpopFront;
                 if (fs.op == TOK.foreach_)
@@ -1229,7 +1227,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
                  */
                 VarDeclaration r;
                 Statement _init;
-                if (vinit && fs.aggr.op == EXP.variable && (cast(VarExp)fs.aggr).var == vinit)
+                if (vinit && fs.aggr.isVarExp() && fs.aggr.isVarExp().var == vinit)
                 {
                     r = vinit;
                     _init = new ExpStatement(loc, vinit);
@@ -1279,9 +1277,8 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
                 }
                 if (!tfront || tfront.ty == Terror)
                     return rangeError();
-                if (tfront.toBasetype().ty == Tfunction)
+                if (auto ftt = tfront.toBasetype().isTypeFunction())
                 {
-                    auto ftt = cast(TypeFunction)tfront.toBasetype();
                     tfront = tfront.toBasetype().nextOf();
                     if (!ftt.isref)
                     {
@@ -1389,8 +1386,8 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
         }
     }
 
-    private static extern(D) Expression applyOpApply(ForeachStatement fs, Type tab, Dsymbol sapply,
-                                                     Scope* sc2, Expression flde)
+    private static extern(D) Expression applyOpApply(ForeachStatement fs, Expression flde,
+                Type tab, Scope* sc2, Dsymbol sapply)
     {
         version (none)
         {
@@ -1425,7 +1422,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
     }
 
     private static extern(D) Expression applyDelegate(ForeachStatement fs, Expression flde,
-                                                      Scope* sc2, Type tab)
+                                                      Type tab, Scope* sc2)
     {
         Expression ec;
         /* Call:
@@ -1450,7 +1447,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
     }
 
     private static extern(D) Expression applyArray(ForeachStatement fs, Expression flde,
-                                                   Scope* sc2, Type tn, Type tnv, TY tabty)
+                                                   Type tab, Scope* sc2, Type tn, Type tnv)
     {
         Expression ec;
         const dim = fs.parameters.length;
@@ -1501,7 +1498,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
         params.push(new Parameter(0, dgty, null, null, null));
         fdapply = FuncDeclaration.genCfunc(params, Type.tint32, fdname.ptr);
 
-        if (tabty == Tsarray)
+        if (tab.isTypeSArray())
             fs.aggr = fs.aggr.castTo(sc2, tn.arrayOf());
         // paint delegate argument to the type runtime expects
         Expression fexp = flde;
@@ -1516,8 +1513,9 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
         return ec;
     }
 
-    private static extern(D) Expression applyAssocArray(ForeachStatement fs, Expression flde, TypeAArray taa)
+    private static extern(D) Expression applyAssocArray(ForeachStatement fs, Expression flde, Type tab)
     {
+        auto taa = tab.isTypeAArray();
         Expression ec;
         const dim = fs.parameters.length;
         // Check types
