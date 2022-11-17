@@ -711,7 +711,7 @@ struct ASTBase
             super(loc, endloc, Id.ctor, stc, type);
         }
 
-        inout(CtorDeclaration) isCtorDeclaration() inout
+        override inout(CtorDeclaration) isCtorDeclaration() inout
         {
             return this;
         }
@@ -733,7 +733,7 @@ struct ASTBase
             super(loc, endloc, id, stc, null);
         }
 
-        inout(DtorDeclaration) isDtorDeclaration() inout
+        override inout(DtorDeclaration) isDtorDeclaration() inout
         {
             return this;
         }
