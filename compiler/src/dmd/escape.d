@@ -328,7 +328,7 @@ void printScopeFailure(E)(E printFunc, VarDeclaration v, int recursionLimit)
  * Params:
  *      sc = used to determine current function and module
  *      fdc = function being called, `null` if called indirectly
- *      par = function parameter (`this` if null)
+ *      parId = name of function parameter for error messages
  *      vPar = `VarDeclaration` corresponding to `par`
  *      parStc = storage classes of function parameter (may have added `scope` from `pure`)
  *      arg = initializer for param
@@ -337,12 +337,12 @@ void printScopeFailure(E)(E printFunc, VarDeclaration v, int recursionLimit)
  * Returns:
  *      `true` if pointers to the stack can escape via assignment
  */
-bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, VarDeclaration vPar, STC parStc, Expression arg, bool assertmsg, bool gag)
+bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier parId, VarDeclaration vPar, STC parStc, Expression arg, bool assertmsg, bool gag)
 {
     enum log = false;
     if (log) printf("checkParamArgumentEscape(arg: %s par: %s)\n",
         arg ? arg.toChars() : "null",
-        par ? par.toChars() : "this");
+        parId ? parId.toChars() : "null");
     //printf("type = %s, %d\n", arg.type.toChars(), arg.type.hasPointers());
 
     if (!arg.type.hasPointers())
@@ -374,24 +374,18 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Var
         {
             result |= sc.setUnsafeDIP1000(gag, arg.loc,
                 desc ~ " `%s` assigned to non-scope parameter calling `assert()`", v);
+            return;
         }
-        else if (par)
+        const(char)* msg =
+            (fdc &&  parId) ? (desc ~ " `%s` assigned to non-scope parameter `%s` calling `%s`") :
+            (fdc && !parId) ? (desc ~ " `%s` assigned to non-scope anonymous parameter calling `%s`") :
+            (!fdc && parId) ? (desc ~ " `%s` assigned to non-scope parameter `%s`") :
+            (desc ~ " `%s` assigned to non-scope anonymous parameter");
+
+        if (sc.setUnsafeDIP1000(gag, arg.loc, msg, v, parId ? parId : fdc, fdc))
         {
-            if (sc.setUnsafeDIP1000(gag, arg.loc,
-                desc ~ " `%s` assigned to non-scope parameter `%s` calling `%s`", v, par, fdc))
-            {
-                result = true;
-                printScopeFailure(previewSupplementalFunc(sc.isDeprecated(), global.params.useDIP1000), vPar, 10);
-            }
-        }
-        else
-        {
-            if (sc.setUnsafeDIP1000(gag, arg.loc,
-                desc ~ " `%s` assigned to non-scope parameter `this` calling `%s`", v, fdc))
-            {
-                result = true;
-                printScopeFailure(previewSupplementalFunc(sc.isDeprecated(), global.params.useDIP1000), fdc.vthis, 10);
-            }
+            result = true;
+            printScopeFailure(previewSupplementalFunc(sc.isDeprecated(), global.params.useDIP1000), vPar, 10);
         }
     }
 
@@ -465,16 +459,11 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Var
 
     foreach (Expression ee; er.byexp)
     {
-        if (!par)
-        {
-            result |= sc.setUnsafeDIP1000(gag, ee.loc,
-                "reference to stack allocated value returned by `%s` assigned to non-scope parameter `this`", ee);
-        }
-        else
-        {
-            result |= sc.setUnsafeDIP1000(gag, ee.loc,
-                "reference to stack allocated value returned by `%s` assigned to non-scope parameter `%s`", ee, par);
-        }
+        const(char)* msg = parId ?
+            "reference to stack allocated value returned by `%s` assigned to non-scope parameter `%s`" :
+            "reference to stack allocated value returned by `%s` assigned to non-scope anonymous parameter";
+
+        result |= sc.setUnsafeDIP1000(gag, ee.loc, msg, ee, parId);
     }
 
     return result;
