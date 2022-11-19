@@ -2427,8 +2427,8 @@ const:
             version(ModuleInfoNeedDereference)
             {
                 //auto dereferenced = new ModuleInfo*[](embeddedImportedModules.length);
-                import core.stdc.stdlib;
-                auto dereferenced = (cast(ModuleInfo**)malloc(ModuleInfo.sizeof * embeddedImportedModules.length))[0 .. embeddedImportedModules.length];
+                import core.memory : pureMalloc;
+                auto dereferenced = (cast(ModuleInfo**)pureMalloc(ModuleInfo.sizeof * embeddedImportedModules.length))[0 .. embeddedImportedModules.length];
                 foreach(offset, mod; cast(ModuleInfo**[])embeddedImportedModules)
                 {
                     if (mod !is null)
