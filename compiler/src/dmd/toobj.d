@@ -210,12 +210,15 @@ void genModuleInfo(Module m)
 
                 s = mod.isym;
             }
+            else
+            {
+                /* Weak references don't pull objects in from the library,
+                 * they resolve to 0 if not pulled in by something else.
+                 * Don't pull in a module just because it was imported.
+                 */
+                s.Sflags |= SFLweak;
+            }
 
-            /* Weak references don't pull objects in from the library,
-             * they resolve to 0 if not pulled in by something else.
-             * Don't pull in a module just because it was imported.
-             */
-            s.Sflags |= SFLweak;
             dtb.xoff(s, 0, TYnptr);
         }
     }
