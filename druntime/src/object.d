@@ -2431,7 +2431,7 @@ const:
                     if (mod !is null)
                         dereferenced[offset] = *mod;
                 }
-                return cast(typeof(return))dreferenced;
+                return cast(typeof(return))dereferenced;
             }
             else
             {
