@@ -769,7 +769,7 @@ package mixin template ParseVisitMethods(AST)
     override void visit(AST.Nspace d)
     {
         //printf("Visiting Nspace\n");
-        foreach (s; *d.members)
+        foreach(s; *d.members)
             s.accept(this);
     }
 

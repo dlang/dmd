@@ -3463,7 +3463,7 @@ private void dumpTemplateInstance(TemplateInstance ti, OutBuffer* buf, HdrGenSta
     }
     else if (ti.members)
     {
-        foreach (m; *ti.members)
+        foreach(m;*ti.members)
             m.dsymbolToBuffer(buf, hgs);
     }
 
