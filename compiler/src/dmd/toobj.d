@@ -188,6 +188,29 @@ void genModuleInfo(Module m)
 
             Symbol *s = toSymbol(mod);
 
+            if (target.os == Target.OS.Windows)
+            {
+                // For Windows we need to perform DllImport for symbols
+                //  accessed outside of the DLL.
+                // This also applies to the ModuleInfo importedModules member
+                //  which is very much required if you don't want segfaults.
+                // While it would seem like a good idea to do the work of
+                //  getting the DllImport symbol when we emit the ModuleInfo of
+                //  a dependency, it would be particularly bad and would result
+                //  in cyclic compilation cycles that would not be desirable to detect.
+
+                if (!mod.isym)
+                {
+                    mod.isym = s.toImport(mod.loc);
+
+                    // do we need to do this?
+                    out_readonly(mod.isym);
+                    outdata(mod.isym);
+                }
+
+                s = mod.isym;
+            }
+
             /* Weak references don't pull objects in from the library,
              * they resolve to 0 if not pulled in by something else.
              * Don't pull in a module just because it was imported.

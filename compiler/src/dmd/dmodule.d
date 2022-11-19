@@ -361,6 +361,7 @@ extern (C++) final class Module : Package
     int needmoduleinfo;
     int selfimports;            // 0: don't know, 1: does not, 2: does
     Dsymbol[void*] tagSymTab;   /// ImportC: tag symbols that conflict with other symbols used as the index
+    Symbol* isym;               /// Import version of csym used for DllImport on Windows
 
     private OutBuffer defines;  // collect all the #define lines here
 

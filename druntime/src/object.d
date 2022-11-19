@@ -2223,6 +2223,22 @@ class TypeInfo_Inout : TypeInfo_Const
     }
 }
 
+// On Windows it is necessary to use DllImport for symbols
+//  that may not be in the binary image.
+// What DllImport does, is it places a pointer to the thing
+//  you actually wanted, so you must dereference it.
+// In LDC this is done automatically by a patch function
+//  which will run after the system linker does its own patching.
+// For dmd the solution that is being used here is to
+//  dereference on the fly and allocate a new array as needed.
+version(Windows)
+{
+    version(DigitalMars)
+    {
+        version = ModuleInfoNeedDereference;
+    }
+}
+
 // Contents of Moduleinfo._flags
 enum
 {
@@ -2400,12 +2416,27 @@ const:
      * Returns:
      *  array of pointers to the ModuleInfo's of modules imported by this one
      */
-    @property immutable(ModuleInfo*)[] importedModules() return nothrow pure @nogc
+    @property immutable(ModuleInfo*)[] importedModules() return nothrow pure
     {
         if (flags & MIimportedModules)
         {
             auto p = cast(size_t*)addrOf(MIimportedModules);
-            return (cast(immutable(ModuleInfo*)*)(p + 1))[0 .. *p];
+            auto embeddedImportedModules = (cast(void**)(p + 1))[0 .. *p];
+
+            version(ModuleInfoNeedDereference)
+            {
+                auto dereferenced = new ModuleInfo*[](embeddedImportedModules.length);
+                foreach(offset, mod; cast(ModuleInfo**[])embeddedImportedModules)
+                {
+                    if (mod !is null)
+                        dereferenced[offset] = *mod;
+                }
+                return cast(typeof(return))dreferenced;
+            }
+            else
+            {
+                return cast(typeof(return))embeddedImportedModules;
+            }
         }
         return null;
     }
