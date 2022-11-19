@@ -2417,7 +2417,7 @@ const:
      * Returns:
      *  array of pointers to the ModuleInfo's of modules imported by this one
      */
-    @property immutable(ModuleInfo*)[] importedModules() return nothrow pure
+    @property immutable(ModuleInfo*)[] importedModules() return nothrow pure @nogc
     {
         if (flags & MIimportedModules)
         {
@@ -2426,7 +2426,9 @@ const:
 
             version(ModuleInfoNeedDereference)
             {
-                auto dereferenced = new ModuleInfo*[](embeddedImportedModules.length);
+                //auto dereferenced = new ModuleInfo*[](embeddedImportedModules.length);
+                import core.stdc.stdlib;
+                auto dereferenced = (cast(ModuleInfo**)malloc(ModuleInfo.sizeof * embeddedImportedModules.length))[0 .. embeddedImportedModules.length];
                 foreach(offset, mod; cast(ModuleInfo**[])embeddedImportedModules)
                 {
                     if (mod !is null)
