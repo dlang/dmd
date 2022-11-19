@@ -720,7 +720,7 @@ unittest
             version(ModuleInfoNeedDereference)
             {
                 imports = imports.dup;
-                ModuleInfo**[] into = (cast(ModuleInfo***)&pad[nfuncs + 1])[0 .. imports.length];
+                auto into = (cast(immutable(ModuleInfo)***)&pad[nfuncs + 1])[0 .. imports.length];
                 foreach(offset; 0 .. imports.length)
                     into[offset] = &imports[offset];
             }

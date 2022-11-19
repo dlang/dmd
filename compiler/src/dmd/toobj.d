@@ -90,7 +90,7 @@ void genModuleInfo(Module m)
         ObjectNotFound(Id.ModuleInfo);
     }
 
-    Symbol *msym = toSymbol(m);
+    toSymbol(m);
 
     //////////////////////////////////////////////
 
