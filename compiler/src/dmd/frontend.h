@@ -6219,6 +6219,7 @@ public:
     int32_t needmoduleinfo;
     int32_t selfimports;
     void* tagSymTab;
+    Symbol* isym;
 private:
     OutBuffer defines;
 public:
