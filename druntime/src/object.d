@@ -2231,6 +2231,7 @@ class TypeInfo_Inout : TypeInfo_Const
 //  which will run after the system linker does its own patching.
 // For dmd the solution that is being used here is to
 //  dereference on the fly and allocate a new array as needed.
+// You will need to update rt.minfo if you change this.
 version(Windows)
 {
     version(DigitalMars)

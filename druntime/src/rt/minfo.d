@@ -674,6 +674,15 @@ void runModuleFuncsRev(alias getfp)(const(immutable(ModuleInfo)*)[] modules)
     }
 }
 
+// Copied from object.d, if you modify this, modify that too.
+version(Windows)
+{
+    version(DigitalMars)
+    {
+        version = ModuleInfoNeedDereference;
+    }
+}
+
 unittest
 {
     static void assertThrown(T : Throwable, E)(lazy E expr, string msg)
@@ -707,7 +716,18 @@ unittest
             assert(size <= pad.sizeof);
 
             pad[nfuncs] = imports.length;
-            .memcpy(&pad[nfuncs+1], imports.ptr, imports.length * imports[0].sizeof);
+
+            version(ModuleInfoNeedDereference)
+            {
+                imports = imports.dup;
+                ModuleInfo**[] into = (cast(ModuleInfo***)&pad[nfuncs + 1])[0 .. imports.length];
+                foreach(offset; 0 .. imports.length)
+                    into[offset] = &imports[offset];
+            }
+            else
+            {
+                .memcpy(&pad[nfuncs+1], imports.ptr, imports.length * imports[0].sizeof);
+            }
         }
 
         immutable ModuleInfo mi;
