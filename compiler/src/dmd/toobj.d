@@ -243,9 +243,17 @@ void genModuleInfo(Module m)
     out_readonly(m.csym);
     outdata(m.csym);
 
+    if (!mod.isym)
+    {
+        m.isym = m.csym.toImport(m.loc);
+        out_readonly(m.isym);
+        outdata(m.isym);
+    }
+
     //////////////////////////////////////////////
 
-    objmod.moduleinfo(msym);
+    objmod.moduleinfo(m.csym);
+    objmod.export_symbol(m.csym, 0);
 }
 
 /*****************************************
