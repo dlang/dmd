@@ -246,12 +246,12 @@ void genModuleInfo(Module m)
     out_readonly(m.csym);
     outdata(m.csym);
 
-    if (target.os == Target.OS.Windows && !m.isym)
+    /+if (target.os == Target.OS.Windows && !m.isym)
     {
         m.isym = m.csym.toImport(m.loc);
         out_readonly(m.isym);
         outdata(m.isym);
-    }
+    }+/
 
     //////////////////////////////////////////////
 

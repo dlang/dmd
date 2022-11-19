@@ -336,5 +336,14 @@ string filterCompilerOutput(string output)
 {
     output = std.string.replace(output, "\r", "");
     output = std.regex.replaceAll(output, regex(`^DMD v2\.[0-9]+.*\n? DEBUG\n`, "m"), "");
+
+    version(Windows)
+    {
+        // For MSVC linker, when it generates a binary file with an export table (with the import generation) it will add a message
+        // this message is both linker specific and platform specific, which we do not want our tests checked against.
+        // so we'll remove it prior to doing anything with the output.
+        output = std.regex.replaceAll(output, std.regex.regex(r"\s*Creating library [\S\\/]+ and object [\S\\/]+\r?\n?", "s"), "");
+    }
+
     return output;
 }
