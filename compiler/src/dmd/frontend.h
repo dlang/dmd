@@ -225,6 +225,7 @@ class PrettyFuncInitExp;
 class ObjcClassReferenceExp;
 class ClassReferenceExp;
 class ThrownExceptionExp;
+class InferenceExp;
 class UnaExp;
 class BinExp;
 class BinAssignExp;
@@ -1404,6 +1405,7 @@ enum class EXP : uint8_t
     compoundLiteral = 132u,
     _Generic = 133u,
     interval = 134u,
+    inference = 135u,
 };
 
 typedef uint64_t dinteger_t;
@@ -1594,6 +1596,7 @@ public:
     ObjcClassReferenceExp* isObjcClassReferenceExp();
     ClassReferenceExp* isClassReferenceExp();
     ThrownExceptionExp* isThrownExceptionExp();
+    InferenceExp* isInferenceExp();
     UnaExp* isUnaExp();
     BinExp* isBinExp();
     BinAssignExp* isBinAssignExp();
@@ -4838,6 +4841,7 @@ struct ASTCodegen final
     using ImportExp = ::ImportExp;
     using InExp = ::InExp;
     using IndexExp = ::IndexExp;
+    using InferenceExp = ::InferenceExp;
     using IntegerExp = ::IntegerExp;
     using IntervalExp = ::IntervalExp;
     using IsExp = ::IsExp;
@@ -5103,6 +5107,7 @@ public:
     virtual void visit(ClassReferenceExp* e);
     virtual void visit(VoidInitExp* e);
     virtual void visit(ThrownExceptionExp* e);
+    virtual void visit(InferenceExp* e);
 };
 
 class StoppableVisitor : public Visitor
@@ -7190,6 +7195,13 @@ public:
     bool wantsym;
     bool arrow;
     static DotIdExp* create(const Loc& loc, Expression* e, Identifier* ident);
+    void accept(Visitor* v) override;
+};
+
+class InferenceExp final : public Expression
+{
+public:
+    Identifier* id;
     void accept(Visitor* v) override;
 };
 
