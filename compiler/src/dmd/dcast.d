@@ -2665,15 +2665,24 @@ Expression inferType(Expression e, Type t, int flag = 0)
             return ErrorExp.get();
         }
 
-        auto member = et.sym.symtab.lookup(infe.id).isEnumMember();
+        auto member = et.sym.symtab.lookup(infe.id);
 
-        if (!member)
+        if (!member || !member.isEnumMember)
         {
+            uint gag;
+            if (flag)
+            {
+                gag = global.startGagging();
+            }
             infe.error("Could not find %s in %s", infe.id.toChars(), infe.type.toPrettyChars());
+            scope(exit)
+            {
+                global.endGagging(gag);
+            }
             return ErrorExp.get();
         }
 
-        (*cast(Expression*)&infe) = member.value();
+        (*cast(Expression*)&infe) = member.isEnumMember.value();
 
         return infe;
     }

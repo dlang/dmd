@@ -9542,6 +9542,7 @@ immutable PREC[EXP.max + 1] precedence =
     EXP.delegateFunctionPointer : PREC.primary,
     EXP.remove : PREC.primary,
     EXP.tuple : PREC.primary,
+    EXP.inference : PREC.primary,
     EXP.traits : PREC.primary,
     EXP.default_ : PREC.primary,
     EXP.overloadSet : PREC.primary,
