@@ -7984,9 +7984,18 @@ LagainStc:
                 break;
             }
         case TOK.dollar:
-            if (!inBrackets)
-                error("`$` is valid only inside [] of index or slice");
-            e = new AST.DollarExp(loc);
+            if (peekNext() == TOK.identifier)
+            {
+                nextToken();
+                id = token.ident;
+                e = new AST.InferenceExp(loc, id);
+            }
+            else
+            {
+                if (!inBrackets)
+                    error("`$` is valid only inside [] of index or slice");
+                e = new AST.DollarExp(loc);
+            }
             nextToken();
             break;
 

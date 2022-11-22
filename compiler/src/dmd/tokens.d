@@ -386,6 +386,7 @@ enum EXP : ubyte
     halt,
     tuple,
     error,
+    inference, // $id
 
     // Basic types
     void_,
