@@ -200,6 +200,11 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
         return result;
     }
 
+    Expression visitInference(InferenceExp e)
+    {
+        return inferType(e, t);
+    }
+
     switch (e.op)
     {
         default              : return visit            (e);
@@ -208,6 +213,7 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
         case EXP.function_   : return visitFunc        (e.isFuncExp());
         case EXP.arrayLiteral: return visitArrayLiteral(e.isArrayLiteralExp());
         case EXP.slice       : return visitSlice       (e.isSliceExp());
+        case EXP.inference   : return visitInference   (e.isInferenceExp());
     }
 }
 
@@ -2649,6 +2655,29 @@ Expression inferType(Expression e, Type t, int flag = 0)
         return ale;
     }
 
+    Expression visitInfer(InferenceExp infe)
+    {
+        infe.type = t;
+        TypeEnum et = t.isTypeEnum();
+        if (!et)
+        {
+            infe.error("$id will only work for enums");
+            return ErrorExp.get();
+        }
+
+        auto member = et.sym.symtab.lookup(infe.id).isEnumMember();
+
+        if (!member)
+        {
+            infe.error("Could not find %s in %s", infe.id.toChars(), infe.type.toPrettyChars());
+            return ErrorExp.get();
+        }
+
+        (cast(Expression)infe) = member.value();
+
+        return infe;
+    }
+
     Expression visitAar(AssocArrayLiteralExp aale)
     {
         Type tb = t.toBasetype();
@@ -2700,6 +2729,7 @@ Expression inferType(Expression e, Type t, int flag = 0)
         case EXP.assocArrayLiteral: return visitAar(e.isAssocArrayLiteralExp());
         case EXP.function_:         return visitFun(e.isFuncExp());
         case EXP.question:          return visitTer(e.isCondExp());
+        case EXP.inference:         return visitInfer(e.isInferenceExp());
         default:
     }
     return e;

@@ -2210,6 +2210,12 @@ public:
         return e;
     }
 
+    override void visit(InferenceExp e)
+    {
+        result = e;
+        return ;
+    }
+
     override void visit(VarExp e)
     {
         debug (LOG)
