@@ -2673,7 +2673,7 @@ Expression inferType(Expression e, Type t, int flag = 0)
             return ErrorExp.get();
         }
 
-        (cast(Expression)infe) = member.value();
+        (*cast(Expression*)&infe) = member.value();
 
         return infe;
     }
