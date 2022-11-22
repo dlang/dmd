@@ -1612,12 +1612,11 @@ with (expression)
         is semantically equivalent to:
 
 --------------
+(auto ref tmp)
 {
-    Object tmp;
-    tmp = expression;
     ...
     tmp.ident;
-}
+}(expression);
 --------------
 
         $(P Note that *Expression* only gets evaluated once and is not copied.
