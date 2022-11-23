@@ -72,3 +72,13 @@ static assert(()
     int[A] myMap = [$a : 1, $b: 24];
     return myMap[$b];
 } () == 24);
+
+
+enum A{ a, b, e }
+int foo(A a) { return 1; }
+
+enum B { b, c }
+int foo(B b) { return 2; }
+
+static assert(foo($a) == 1, "inference overload resolution is broken");
+static assert(foo($c) == 2, "inference overload resolution is broken");
