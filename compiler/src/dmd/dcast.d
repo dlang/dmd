@@ -2657,8 +2657,8 @@ Expression inferType(Expression e, Type t, int flag = 0)
 
     Expression visitInfer(InferenceExp infe)
     {
-        infe.type = t;
         TypeEnum et = t.isTypeEnum();
+
         if (!et)
         {
             infe.error("$id will only work for enums");
@@ -2683,6 +2683,7 @@ Expression inferType(Expression e, Type t, int flag = 0)
         }
 
         (*cast(Expression*)&infe) = member.isEnumMember.value();
+        infe.type = t;
 
         return infe;
     }
@@ -2732,13 +2733,26 @@ Expression inferType(Expression e, Type t, int flag = 0)
         return ce;
     }
 
+    Expression visitBin(BinExp be)
+    {
+        if (!be) return e;
+        // the range we are dispatching on has things in it
+        // which are not binary exps
+        // so we need to early exit on null
+        Type tb = t.ty == TY.Tenum ? t : t.toBasetype();
+        be.e1 = inferType(be.e1, tb, flag);
+        be.e2 = inferType(be.e2, tb, flag);
+        return be;
+    }
+
     if (t) switch (e.op)
     {
-        case EXP.arrayLiteral:      return visitAle(e.isArrayLiteralExp());
-        case EXP.assocArrayLiteral: return visitAar(e.isAssocArrayLiteralExp());
-        case EXP.function_:         return visitFun(e.isFuncExp());
-        case EXP.question:          return visitTer(e.isCondExp());
-        case EXP.inference:         return visitInfer(e.isInferenceExp());
+        case EXP.arrayLiteral:                 return visitAle(e.isArrayLiteralExp());
+        case EXP.assocArrayLiteral:            return visitAar(e.isAssocArrayLiteralExp());
+        case EXP.function_:                    return visitFun(e.isFuncExp());
+        case EXP.question:                     return visitTer(e.isCondExp());
+        case EXP.inference:                    return visitInfer(e.isInferenceExp());
+        case EXP.lessThan: .. case EXP.assign: return visitBin(e.isBinExp());
         default:
     }
     return e;
