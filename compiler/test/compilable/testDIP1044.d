@@ -34,5 +34,41 @@ int XYZtoTint(XYZ xyz)
 
     return assert(0);
 }
-
 static assert(XYZtoTint(XYZ.z) == 3);
+
+enum E1 { a = 3 }
+enum E2 { a = 17 }
+enum E3 { a = 1 << 0,
+          b = 1 << 1,
+          c = 1 << 2 }
+
+struct S
+{
+    E1 a;
+    E2 b;
+}
+
+static assert(()
+{
+    S s = {a: $a, b: $a};
+    return s.a + s.b;
+} () == 20);
+
+static assert(()
+{
+    E3 e3 = $c | $b;
+    return e3;
+} () == (E3.c | E3.b));
+
+static assert(()
+{
+    E3[] e3 = [$c , $b];
+    return e3[0] + e3[1];
+} () == 6);
+
+static assert(()
+{
+    enum A{ a,b,c }
+    int[A] myMap = [$a : 1, $b: 24];
+    return myMap[$b];
+} () == 24);
