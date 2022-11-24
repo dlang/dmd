@@ -1,4 +1,4 @@
-enum E { a, b }
+enum E { a, b, c, d }
 static assert (() {
     E a = $a;
     E b = $b;
@@ -74,7 +74,7 @@ static assert(()
 } () == 24);
 
 
-enum A{ a, b, e }
+enum A { a, b, e }
 int foo(A a) { return 1; }
 
 enum B { b, c }
@@ -82,3 +82,47 @@ int foo(B b) { return 2; }
 
 static assert(foo($a) == 1, "inference overload resolution is broken");
 static assert(foo($c) == 2, "inference overload resolution is broken");
+
+static assert(()
+{
+    int[E] a;
+    a[$a] = 10;
+    return a[$a];
+} () == 10);
+
+static assert(()
+{
+    struct Ind{
+        int opIndex(E x, E y){ return cast(int)x; }
+    }
+    Ind a;
+    return a[$b,$a];
+} () == 1);
+
+bool testIndexing(){
+    enum AA{ a,b,c,d }
+    enum BB{ e,f,g,h }
+
+    struct SS{
+        int opIndex(AA param){ return cast(int)param; };
+    }
+
+    int[AA] myMap = [$a: 1, $b: 24, $c: -13, $d: 37];
+    assert(myMap[$b] == 24);
+    myMap[$b] += 1;
+    auto x = myMap[$b];
+    assert(x == 25);
+
+    SS myS;
+    auto y = myS[$d];
+    static assert(!__traits(compiles, mixin(q{
+        y = myS[$e];
+    })));
+
+    A[] myArr;
+    static assert(!__traits(compiles, mixin(q{
+        auto z = myArr[$c];
+    })));
+    return true;
+};
+static assert(testIndexing());
