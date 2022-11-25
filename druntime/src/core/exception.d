@@ -859,7 +859,7 @@ extern (C)
 private align(2 * size_t.sizeof) void[256] _store;
 
 // only Errors for now as those are rarely chained
-private T staticError(T, Args...)(auto ref Args args)
+package T staticError(T, Args...)(auto ref Args args)
     if (is(T : Error))
 {
     // pure hack, what we actually need is @noreturn and allow to call that in pure functions
