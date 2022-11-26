@@ -590,7 +590,39 @@ extern (C++) struct Target
         case EXP.lessThan, EXP.greaterThan, EXP.lessOrEqual, EXP.greaterOrEqual:
         case EXP.equal:
         case EXP.notEqual:
-            supported = true;
+            if (vecsize == 16)
+            {
+                // float[4] comparison needs SSE support (CMP{EQ,NEQ,LT,LE}PS)
+                if (elemty == TY.Tfloat32 && cpu >= CPU.sse)
+                    supported = true;
+                // double[2] comparison needs SSE2 support (CMP{EQ,NEQ,LT,LE}PD)
+                else if (elemty == TY.Tfloat64 && cpu >= CPU.sse2)
+                    supported = true;
+                else if (tvec.isintegral())
+                {
+                    if (elemty == TY.Tint64 || elemty == TY.Tuns64)
+                    {
+                        // (u)long[2] equality needs SSE4.1 support (PCMPEQQ)
+                       if ((op == EXP.equal || op == EXP.notEqual) && cpu >= CPU.sse4_1)
+                           supported = true;
+                       // (u)long[2] comparison needs SSE4.2 support (PCMPGTQ)
+                       else if (cpu >= CPU.sse4_2)
+                           supported = true;
+                    }
+                    // (u)byte[16]/short[8]/int[4] comparison needs SSE2 support (PCMP{EQ,GT}[BWD])
+                    else if (cpu >= CPU.sse2)
+                        supported = true;
+                }
+            }
+            else if (vecsize == 32)
+            {
+                // float[8]/double[4] comparison needs AVX support (VCMP{EQ,NEQ,LT,LE}P[SD])
+                if (tvec.isfloating() && cpu >= CPU.avx)
+                    supported = true;
+                // (u)byte[32]/short[16]/int[8]/long[4] comparison needs AVX2 support (VPCMP{EQ,GT}[BWDQ])
+                else if (tvec.isintegral() && cpu >= CPU.avx2)
+                    supported = true;
+            }
             break;
 
         case EXP.leftShift, EXP.leftShiftAssign, EXP.rightShift, EXP.rightShiftAssign, EXP.unsignedRightShift, EXP.unsignedRightShiftAssign:

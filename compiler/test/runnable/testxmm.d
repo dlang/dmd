@@ -129,12 +129,12 @@ void test1()
     static assert(!__traits(compiles, v1 ^^ v2));
     static assert(!__traits(compiles, v1 is v2));
     static assert(!__traits(compiles, v1 !is v2));
-    static assert( __traits(compiles, v1 == v2));
-    static assert( __traits(compiles, v1 != v2));
-    static assert( __traits(compiles, v1 < v2));
-    static assert( __traits(compiles, v1 > v2));
-    static assert( __traits(compiles, v1 <= v2));
-    static assert( __traits(compiles, v1 >= v2));
+    static assert(!__traits(compiles, v1 == v2));
+    static assert(!__traits(compiles, v1 != v2));
+    static assert(!__traits(compiles, v1 < v2));
+    static assert(!__traits(compiles, v1 > v2));
+    static assert(!__traits(compiles, v1 <= v2));
+    static assert(!__traits(compiles, v1 >= v2));
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -562,12 +562,30 @@ void test2g()
     static assert(!__traits(compiles, v1 ^^ v2));
     static assert(!__traits(compiles, v1 is v2));
     static assert(!__traits(compiles, v1 !is v2));
-    static assert( __traits(compiles, v1 == v2));
-    static assert( __traits(compiles, v1 != v2));
-    static assert( __traits(compiles, v1 < v2));
-    static assert( __traits(compiles, v1 > v2));
-    static assert( __traits(compiles, v1 <= v2));
-    static assert( __traits(compiles, v1 >= v2));
+    static if (__traits(compiles, v1 == v2)) // SSE4.1
+    {
+        v1 = v2 == v3;
+        v1 = v2 != v3;
+    }
+    else
+    {
+        static assert(!__traits(compiles, v1 == v2));
+        static assert(!__traits(compiles, v1 != v2));
+    }
+    static if (__traits(compiles, v1 < v2)) // SSE4.2
+    {
+        v1 = v2 < v3;
+        v1 = v2 > v3;
+        v1 = v2 <= v3;
+        v1 = v2 >= v3;
+    }
+    else
+    {
+        static assert(!__traits(compiles, v1 < v2));
+        static assert(!__traits(compiles, v1 > v2));
+        static assert(!__traits(compiles, v1 <= v2));
+        static assert(!__traits(compiles, v1 >= v2));
+    }
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -622,12 +640,30 @@ void test2h()
     static assert(!__traits(compiles, v1 ^^ v2));
     static assert(!__traits(compiles, v1 is v2));
     static assert(!__traits(compiles, v1 !is v2));
-    static assert( __traits(compiles, v1 == v2));
-    static assert( __traits(compiles, v1 != v2));
-    static assert( __traits(compiles, v1 < v2));
-    static assert( __traits(compiles, v1 > v2));
-    static assert( __traits(compiles, v1 <= v2));
-    static assert( __traits(compiles, v1 >= v2));
+    static if (__traits(compiles, v1 == v2)) // SSE4.1
+    {
+        v1 = v2 == v3;
+        v1 = v2 != v3;
+    }
+    else
+    {
+        static assert(!__traits(compiles, v1 == v2));
+        static assert(!__traits(compiles, v1 != v2));
+    }
+    static if (__traits(compiles, v1 < v2)) // SSE4.2
+    {
+        v1 = v2 < v3;
+        v1 = v2 > v3;
+        v1 = v2 <= v3;
+        v1 = v2 >= v3;
+    }
+    else
+    {
+        static assert(!__traits(compiles, v1 < v2));
+        static assert(!__traits(compiles, v1 > v2));
+        static assert(!__traits(compiles, v1 <= v2));
+        static assert(!__traits(compiles, v1 >= v2));
+    }
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
