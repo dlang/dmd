@@ -5568,7 +5568,7 @@ if (config.exe & EX_windos)
     {
         Symbol *s = globsym[si];
 
-        if (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg)
+        if (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg || s.Sclass == SC.parameter)
             lastNamed = s;
     }
 
@@ -5577,7 +5577,7 @@ if (config.exe & EX_windos)
     if (lastNamed)
     {
         e.EV.E2 = el_ptr(lastNamed);
-        e.EV.E2.EV.Voffset = REGSIZE;
+        e.EV.E2.EV.Voffset = 8;
     }
     else
         e.EV.E2 = el_long(TYnptr, 0);
