@@ -823,9 +823,9 @@ public:
         buf.writestring(s.kind());
         buf.writeByte('(');
         s.exp.expressionToBuffer(buf, hgs);
-        if (s.msg)
+        if (s.msgs)
         {
-            foreach (m; (*s.msg)[])
+            foreach (m; (*s.msgs)[])
             {
                 buf.writestring(", ");
                 m.expressionToBuffer(buf, hgs);

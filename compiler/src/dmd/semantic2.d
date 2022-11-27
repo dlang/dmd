@@ -110,12 +110,12 @@ private extern(C++) final class Semantic2Visitor : Visitor
         else if (result)
             return;
 
-        if (sa.msg)
+        if (sa.msgs)
         {
             OutBuffer msgbuf;
-            for (size_t i = 0; i < sa.msg.length; i++)
+            for (size_t i = 0; i < sa.msgs.length; i++)
             {
-                Expression e = (*sa.msg)[i];
+                Expression e = (*sa.msgs)[i];
                 sc = sc.startCTFE();
                 e = e.expressionSemantic(sc);
                 e = resolveProperties(sc, e);
@@ -123,7 +123,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 e = ctfeInterpretForPragmaMsg(e);
                 if (e.op == EXP.error)
                 {
-                    errorSupplemental(sa.loc, "while evaluating `static assert` argument `%s`", (*sa.msg)[i].toChars());
+                    errorSupplemental(sa.loc, "while evaluating `static assert` argument `%s`", (*sa.msgs)[i].toChars());
                     return;
                 }
                 StringExp se = e.toStringExp();
@@ -131,7 +131,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 {
                     const slice = se.toUTF8(sc).peekString();
                     // Hack to keep old formatting to avoid changing error messages everywhere
-                    if (sa.msg.length == 1)
+                    if (sa.msgs.length == 1)
                         msgbuf.printf("\"%.*s\"", cast(int)slice.length, slice.ptr);
                     else
                         msgbuf.printf("%.*s", cast(int)slice.length, slice.ptr);

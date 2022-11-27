@@ -28,27 +28,27 @@ import dmd.visitor;
 extern (C++) final class StaticAssert : Dsymbol
 {
     Expression exp;
-    Expressions* msg;
+    Expressions* msgs;
 
     extern (D) this(const ref Loc loc, Expression exp, Expression msg)
     {
         super(loc, Id.empty);
         this.exp = exp;
-        this.msg = new Expressions(1);
-        (*this.msg)[0] = msg;
+        this.msgs = new Expressions(1);
+        (*this.msgs)[0] = msg;
     }
 
-    extern (D) this(const ref Loc loc, Expression exp, Expressions* msg)
+    extern (D) this(const ref Loc loc, Expression exp, Expressions* msgs)
     {
         super(loc, Id.empty);
         this.exp = exp;
-        this.msg = msg;
+        this.msgs = msgs;
     }
 
     override StaticAssert syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        return new StaticAssert(loc, exp.syntaxCopy(), msg ? Expression.arraySyntaxCopy(msg) : null);
+        return new StaticAssert(loc, exp.syntaxCopy(), msgs ? Expression.arraySyntaxCopy(msgs) : null);
     }
 
     override void addMember(Scope* sc, ScopeDsymbol sds)
