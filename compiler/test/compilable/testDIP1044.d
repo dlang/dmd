@@ -73,15 +73,16 @@ static assert(()
     return myMap[$b];
 } () == 24);
 
+private {
+    enum A { a, b, e }
+    int foo(A a) { return 1; }
 
-enum A { a, b, e }
-int foo(A a) { return 1; }
+    enum B { b, c }
+    int foo(B b) { return 2; }
 
-enum B { b, c }
-int foo(B b) { return 2; }
-
-static assert(foo($a) == 1, "inference overload resolution is broken");
-static assert(foo($c) == 2, "inference overload resolution is broken");
+    static assert(foo($a) == 1, "inference overload resolution is broken");
+    static assert(foo($c) == 2, "inference overload resolution is broken");
+}
 
 static assert(()
 {
@@ -99,30 +100,75 @@ static assert(()
     return a[$b,$a];
 } () == 1);
 
-bool testIndexing(){
-    enum AA{ a,b,c,d }
-    enum BB{ e,f,g,h }
+    /* Examples from DIP1044... */
+static assert(()
+{// Initializers and assignments
+    enum A{ a,b,c,d }
 
-    struct SS{
-        int opIndex(AA param){ return cast(int)param; };
+    struct S{ A one, two; }
+
+    A    myA1 = $b;
+    A    myA2 = $b | $c;
+
+    S myS;
+    myS.one = $c;
+    myS.two = $d;
+
+    return true;
+} ());
+
+static assert(()
+{// Return statements
+    enum A{ a,b,c,d }
+
+    A myFn(){
+        return $c; //returns A.c
     }
 
-    int[AA] myMap = [$a: 1, $b: 24, $c: -13, $d: 37];
+    return true;
+} ());
+
+static assert(()
+{// Argument lists
+    enum A{ a,b,c,d }
+
+    struct S{ A one, two; }
+
+    void myFn(A param){}
+    void myDefaultFn(A param=$d){}
+    void myTempFn(T)(T param){}
+
+    S    myS1 = {one: $a, two: $b};
+    auto myS2 = S($a, $b);
+
+    myFn($a);
+    myFn($b + $b);
+
+    myDefaultFn();
+    myDefaultFn($c);
+
+    myTempFn!A($a);
+
+
+    return true;
+} ());
+
+
+
+static assert(()
+{// Indexing
+    enum A{ a,b,c,d }
+    enum B{ e,f,g,h }
+
+    struct S{
+        int opIndex(A param){ return cast(int)param; };
+    }
+
+    int[A] myMap = [$a: 1, $b: 24, $c: -13, $d: 37];
     assert(myMap[$b] == 24);
     myMap[$b] += 1;
     auto x = myMap[$b];
     assert(x == 25);
 
-    SS myS;
-    auto y = myS[$d];
-    static assert(!__traits(compiles, mixin(q{
-        y = myS[$e];
-    })));
-
-    A[] myArr;
-    static assert(!__traits(compiles, mixin(q{
-        auto z = myArr[$c];
-    })));
     return true;
-};
-static assert(testIndexing());
+} ());
