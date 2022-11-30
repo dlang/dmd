@@ -6756,7 +6756,7 @@ LagainStc:
         case TOK.leftBracket:
             /* Scan ahead to see if it is an array initializer or
              * an expression.
-             * If it ends with a ';' ',' or '}', it is an array initializer.
+             * If it ends with a ';' ',' or ']', it is an array initializer.
              */
             int brackets = 1;
             for (auto t = peek(&token); 1; t = peek(t))
