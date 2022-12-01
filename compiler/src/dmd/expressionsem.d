@@ -8473,6 +8473,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
 
                 semanticTypeInfo(sc, taa);
+                checkNewEscape(sc, exp.e2, false);
 
                 exp.type = taa.next;
                 break;
@@ -10365,9 +10366,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
 
         exp.type = exp.e1.type;
+        auto assignElem = exp.e2;
         auto res = exp.reorderSettingAAElem(sc);
-        if (exp.op == EXP.concatenateElemAssign || exp.op == EXP.concatenateDcharAssign)
+        if (res != exp) // `AA[k] = v` rewrite was performed
+            checkNewEscape(sc, assignElem, false);
+        else if (exp.op == EXP.concatenateElemAssign || exp.op == EXP.concatenateDcharAssign)
             checkAssignEscape(sc, res, false, false);
+
         result = res;
 
         if ((exp.op == EXP.concatenateAssign || exp.op == EXP.concatenateElemAssign) &&
