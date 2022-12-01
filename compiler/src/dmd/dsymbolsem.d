@@ -5153,6 +5153,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 }
 
                 // Copy vtbl[] from base class
+                assert(cldec.vtbl.dim == 0);
                 cldec.vtbl.setDim(cldec.baseClass.vtbl.dim);
                 memcpy(cldec.vtbl.tdata(), cldec.baseClass.vtbl.tdata(), (void*).sizeof * cldec.vtbl.dim);
 
