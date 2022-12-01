@@ -2539,7 +2539,12 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
 
         // Handle the cast from Tarray to Tsarray with CT-known slicing
 
-        TypeSArray tsa = toStaticArrayType(e).isTypeSArray();
+        TypeSArray tsa;
+        {
+            Type t = toStaticArrayType(e);
+            tsa = t ? t.isTypeSArray() : null;
+        }
+
         if (tsa && tsa.size(e.loc) == tb.size(e.loc))
         {
             /* Match if the sarray sizes are equal:
