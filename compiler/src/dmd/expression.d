@@ -1530,6 +1530,11 @@ extern (C++) abstract class Expression : ASTNode
             return false;
         if (sc.flags & (SCOPE.ctfe | SCOPE.debug_))
             return false;
+        /* The original expression (`new S(...)`) will be verified instead. This
+         * is to keep errors related to the original code and not the lowering.
+         */
+        if (f.ident == Id._d_newitemT)
+            return false;
 
         if (!f.isNogc())
         {
@@ -3672,7 +3677,7 @@ extern (C++) final class NewExp : Expression
     bool onstack;               // allocate on stack
     bool thrownew;              // this NewExp is the expression of a ThrowStatement
 
-    Expression lowering;        // lowered druntime hook: `_d_newclass`
+    Expression lowering;        // lowered druntime hook: `_d_new{class,itemT}`
 
     /// Puts the `arguments` and `names` into an `ArgumentList` for easily passing them around.
     /// The fields are still separate for backwards compatibility
