@@ -101,12 +101,15 @@ void genModuleInfo(Module m)
     ClassDeclarations aclasses;
 
     //printf("members.length = %d\n", members.length);
-    foreach (i; 0 .. m.members.length)
+    if (!global.params.betterC) // betterC cannot deal with TypeInfo
     {
-        Dsymbol member = (*m.members)[i];
+        foreach (i; 0 .. m.members.length)
+        {
+            Dsymbol member = (*m.members)[i];
 
-        //printf("\tmember '%s'\n", member.toChars());
-        member.addLocalClass(&aclasses);
+            //printf("\tmember '%s'\n", member.toChars());
+            member.addLocalClass(&aclasses);
+        }
     }
 
     // importedModules[]

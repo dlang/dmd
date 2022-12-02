@@ -5851,8 +5851,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             dedtypes.zero();
 
             MATCH m = deduceType(e.targ, sc, e.tspec, e.parameters, &dedtypes, null, 0, e.tok == TOK.equal);
-            //printf("targ: %s\n", targ.toChars());
-            //printf("tspec: %s\n", tspec.toChars());
+            //printf("targ: %s\n", e.targ.toChars());
+            //printf("tspec: %s\n", e.tspec.toChars());
             if (m == MATCH.nomatch || (m != MATCH.exact && e.tok == TOK.equal))
             {
                 return no();
