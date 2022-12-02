@@ -1943,7 +1943,12 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return ErrorExp.get();
         }
 
-        Type tb = t.baseElemOf();
+        // https://issues.dlang.org/show_bug.cgi?id=23534
+        //
+        // For enums, we need to get the enum initializer
+        // (the first enum member), not the initializer of the
+        // type of the enum members.
+        Type tb = t.isTypeEnum ? t : t.baseElemOf();
         return tb.isZeroInit(e.loc) ? True() : False();
     }
     if (e.ident == Id.getTargetInfo)
