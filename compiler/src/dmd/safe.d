@@ -130,6 +130,13 @@ bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
  */
 bool isSafeCast(Expression e, Type tfrom, Type tto)
 {
+    if (tto.equivalent(tfrom) &&
+        ((tto.isMutable() && tfrom.isImmutable()) ||
+         (tto.isImmutable() && tfrom.isMutable()) ||
+         (tto.isShared() && !tfrom.isShared())    ||
+         (!tto.isShared() && tfrom.isShared())))
+        return false;
+
     // Implicit conversions are always safe
     if (tfrom.implicitConvTo(tto))
         return true;
