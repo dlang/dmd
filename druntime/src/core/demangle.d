@@ -2218,7 +2218,7 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
             }
         }
 
-        bool parseLName(scope ref Remangle d) scope
+        bool parseLName(scope ref Remangle d) scope @trusted
         {
             flushPosition(d);
 
@@ -2269,7 +2269,7 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
                 }
                 else
                 {
-                    idpos[id] = refpos;
+                    idpos[id] = refpos; //! scope variable id used as AA key, makes this function @trusted
                     result ~= d.buf[refpos .. d.pos];
                 }
             }
