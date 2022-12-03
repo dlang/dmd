@@ -3276,6 +3276,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 funcdecl.error("must return `void` for `pragma(%s)`", idStr.ptr);
             if (funcdecl._linkage != LINK.c && f.parameterList.length != 0)
                 funcdecl.error("must be `extern(C)` for `pragma(%s)` when taking parameters", idStr.ptr);
+            if (funcdecl.isThis())
+                funcdecl.error("cannot be a non-static member function for `pragma(%s)`", idStr.ptr);
         }
 
         if (funcdecl.overnext && funcdecl.isCsymbol())
