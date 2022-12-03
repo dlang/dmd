@@ -7,8 +7,8 @@ $(HEADERNAV_TOC)
 $(H2 $(LNAME2 intro, Introduction))
 
     $(P Whereas $(DDLINK spec/class, Classes, classes) are reference types,
-    structs are value types.
-    Structs and unions are simple aggregations of data and their
+    structs and unions are value types.
+    Structs are simple aggregations of data and their
     associated operations on that data.
     )
 
@@ -21,7 +21,8 @@ $(GNAME StructDeclaration):
 
 $(GNAME AnonStructDeclaration):
     $(D struct) $(GLINK AggregateBody)
-
+)
+$(GRAMMAR
 $(GNAME UnionDeclaration):
     $(D union) $(GLINK_LEX Identifier) $(D ;)
     $(D union) $(GLINK_LEX Identifier) $(GLINK AggregateBody)
@@ -30,7 +31,8 @@ $(GNAME UnionDeclaration):
 
 $(GNAME AnonUnionDeclaration):
     $(D union) $(GLINK AggregateBody)
-
+)
+$(GRAMMAR
 $(GNAME AggregateBody):
     $(D {) $(GLINK2 module, DeclDefs)$(OPT) $(D })
 )
@@ -44,7 +46,8 @@ struct S
     int i;
 }
 
-void main() {
+void main()
+{
     S a;
     a.i = 3;
 
@@ -60,12 +63,40 @@ void main() {
     by default. To allocate on the heap, use `new`:)
     ---
     S* p = new S;
+    assert(p.i == 0);
     ---
+
+    $(P A struct can contain multiple fields which are stored sequentially.
+    Conversely, multiple fields in a union use overlapping storage.)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+union U
+{
+    ubyte i;
+    char c;
+}
+
+void main()
+{
+    U u;
+    u.i = 3;
+    assert(u.c == '\x03');
+    u.c++;
+    assert(u.i == 4);
+}
+---
+)
+
+$(H2 $(LNAME2 members, Members))
+
+$(H3 $(LNAME2 struct-members, Struct Members))
 
     $(P A struct definition can contain:)
     $(UL
-        $(LI fields)
-        $(LI $(DDSUBLINK spec/attribute, static, static) fields)
+        $(LI Fields)
+        $(LI $(DDSUBLINK spec/attribute, static, Static) fields)
+        $(LI $(RELATIVE_LINK2 anonymous, Anonymous Structs and Unions))
         $(LI $(DDSUBLINK spec/class, member-functions, member functions)
         $(UL
             $(LI static member functions)
@@ -75,7 +106,7 @@ void main() {
             $(LI $(DDLINK spec/operatoroverloading, Operator Overloading, Operator Overloading))
         )
         $(LI $(DDSUBLINK spec/class, alias-this, Alias This))
-        $(LI other declarations (see $(GLINK2 module, DeclDef)))
+        $(LI Other declarations (see $(GLINK2 module, DeclDef)))
         )
     )
 
@@ -83,15 +114,50 @@ void main() {
     the implementation is free to make bit copies of the struct
     as convenient.)
 
-    $(P Structs and unions may not contain an instance of themselves,
-    however, they may contain a pointer to the same type.
-    )
-
     $(BEST_PRACTICE
     $(OL
     $(LI Bit fields are supported with the
     $(LINK2 https://dlang.org/phobos/std_bitmanip.html#bitfields, bitfields) template.)
     ))
+
+$(H3 $(LNAME2 union-members, Union Members))
+
+    $(P A union definition can contain:)
+    $(UL
+        $(LI Fields)
+        $(LI $(DDSUBLINK spec/attribute, static, Static) fields)
+        $(LI $(RELATIVE_LINK2 anonymous, Anonymous Structs and Unions))
+        $(LI $(DDSUBLINK spec/class, member-functions, member functions)
+        $(UL
+            $(LI static member functions)
+            $(LI $(RELATIVE_LINK2 UnionConstructor, Constructors))
+            $(LI $(DDLINK spec/operatoroverloading, Operator Overloading, Operator Overloading))
+        )
+        $(LI $(DDSUBLINK spec/class, alias-this, Alias This))
+        $(LI Other declarations (see $(GLINK2 module, DeclDef)))
+        )
+    )
+
+$(H3 $(LNAME2 recursive-types, Recursive Structs and Unions))
+
+    $(P Structs and unions may not contain a non-static instance of themselves,
+    however, they may contain a pointer to the same type.
+    )
+
+    $(SPEC_RUNNABLE_EXAMPLE_FAIL
+    ---
+    struct S
+    {
+        S* ptr;     // OK
+        S[] slice;  // OK
+
+        S s;        // error
+        S[2] array; // error
+
+        static S global; // OK
+    }
+    ---
+    )
 
 
 $(H2 $(LNAME2 struct_layout, Struct Layout))
