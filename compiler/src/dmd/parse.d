@@ -8257,6 +8257,13 @@ LagainStc:
             t = AST.Type.tdchar;
             goto LabelX;
         LabelX:
+            const next = peekNext();
+            if (next != TOK.leftParenthesis && next != TOK.dot)
+            {
+                // defer error for better diagnostics
+                e = new AST.TypeExp(loc, parseType);
+                break;
+            }
             nextToken();
             if (token.value == TOK.leftParenthesis)
             {
@@ -8264,7 +8271,7 @@ LagainStc:
                 e = new AST.CallExp(loc, e, parseArguments());
                 break;
             }
-            check(TOK.dot, t.toChars());
+            check(TOK.dot);
             if (token.value != TOK.identifier)
             {
                 error("found `%s` when expecting identifier following `%s`.", token.toChars(), t.toChars());
