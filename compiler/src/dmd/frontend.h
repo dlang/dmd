@@ -236,6 +236,12 @@ struct ModuleDeclaration;
 template <typename Datum>
 struct FileMapping;
 struct Escape;
+class LabelStatement;
+class SwitchStatement;
+class Statement;
+class TryFinallyStatement;
+class ScopeGuardStatement;
+struct DocComment;
 class WithStatement;
 struct AA;
 class Tuple;
@@ -274,7 +280,6 @@ class TypeQualified;
 class CaseStatement;
 class Catch;
 struct Designator;
-class Statement;
 class GotoCaseStatement;
 class GotoStatement;
 class ReturnStatement;
@@ -288,14 +293,11 @@ class WhileStatement;
 class DoStatement;
 class ForStatement;
 class IfStatement;
-class SwitchStatement;
 class CaseRangeStatement;
 class DefaultStatement;
 class SynchronizedStatement;
 class TryCatchStatement;
-class TryFinallyStatement;
 class DebugStatement;
-class LabelStatement;
 class ErrorInitializer;
 class VoidInitializer;
 class StructInitializer;
@@ -313,7 +315,6 @@ class CompileStatement;
 class ForwardingStatement;
 class ContinueStatement;
 class ThrowStatement;
-class ScopeGuardStatement;
 class SwitchErrorStatement;
 struct Token;
 struct code;
@@ -1703,6 +1704,45 @@ public:
         level()
     {
     }
+};
+
+enum class CSX : uint16_t
+{
+    none = 0u,
+    this_ctor = 1u,
+    super_ctor = 2u,
+    label = 4u,
+    return_ = 8u,
+    any_ctor = 16u,
+    halt = 32u,
+};
+
+struct FieldInit final
+{
+    CSX csx;
+    Loc loc;
+    FieldInit() :
+        loc()
+    {
+    }
+    FieldInit(CSX csx, Loc loc = Loc()) :
+        csx(csx),
+        loc(loc)
+        {}
+};
+
+struct CtorFlow final
+{
+    CSX callSuper;
+    _d_dynamicArray< FieldInit > fieldinit;
+    CtorFlow() :
+        fieldinit()
+    {
+    }
+    CtorFlow(CSX callSuper, _d_dynamicArray< FieldInit > fieldinit = {}) :
+        callSuper(callSuper),
+        fieldinit(fieldinit)
+        {}
 };
 
 template <typename K, typename V>
@@ -6296,6 +6336,129 @@ struct ModuleDeclaration final
 };
 
 extern void gendocfile(Module* m);
+
+struct Scope final
+{
+    Scope* enclosing;
+    Module* _module;
+    ScopeDsymbol* scopesym;
+    FuncDeclaration* func;
+    VarDeclaration* varDecl;
+    Dsymbol* parent;
+    LabelStatement* slabel;
+    SwitchStatement* sw;
+    Statement* tryBody;
+    TryFinallyStatement* tf;
+    ScopeGuardStatement* os;
+    Statement* sbreak;
+    Statement* scontinue;
+    ForeachStatement* fes;
+    Scope* callsc;
+    Dsymbol* inunion;
+    bool nofree;
+    bool inLoop;
+    int32_t intypeof;
+    VarDeclaration* lastVar;
+    Module* minst;
+    TemplateInstance* tinst;
+    CtorFlow ctorflow;
+    AlignDeclaration* aligndecl;
+    CPPNamespaceDeclaration* namespace_;
+    LINK linkage;
+    CPPMANGLE cppmangle;
+    PragmaDeclaration* inlining;
+    Visibility visibility;
+    int32_t explicitVisibility;
+    StorageClass stc;
+    DeprecatedDeclaration* depdecl;
+    uint32_t flags;
+    UserAttributeDeclaration* userAttribDecl;
+    DocComment* lastdc;
+    void* anchorCounts;
+    Identifier* prevAnchor;
+    AliasDeclaration* aliasAsg;
+    Dsymbol* search(const Loc& loc, Identifier* ident, Dsymbol** pscopesym, int32_t flags = 0);
+    Scope() :
+        enclosing(),
+        _module(),
+        scopesym(),
+        func(),
+        varDecl(),
+        parent(),
+        slabel(),
+        sw(),
+        tryBody(),
+        tf(),
+        os(),
+        sbreak(),
+        scontinue(),
+        fes(),
+        callsc(),
+        inunion(),
+        nofree(),
+        inLoop(),
+        intypeof(),
+        lastVar(),
+        minst(),
+        tinst(),
+        ctorflow(),
+        aligndecl(),
+        namespace_(),
+        linkage((LINK)1u),
+        cppmangle((CPPMANGLE)0u),
+        inlining(),
+        visibility(Visibility((Visibility::Kind)5u, nullptr)),
+        explicitVisibility(),
+        stc(),
+        depdecl(),
+        flags(),
+        userAttribDecl(),
+        lastdc(),
+        prevAnchor(),
+        aliasAsg()
+    {
+    }
+    Scope(Scope* enclosing, Module* _module = nullptr, ScopeDsymbol* scopesym = nullptr, FuncDeclaration* func = nullptr, VarDeclaration* varDecl = nullptr, Dsymbol* parent = nullptr, LabelStatement* slabel = nullptr, SwitchStatement* sw = nullptr, Statement* tryBody = nullptr, TryFinallyStatement* tf = nullptr, ScopeGuardStatement* os = nullptr, Statement* sbreak = nullptr, Statement* scontinue = nullptr, ForeachStatement* fes = nullptr, Scope* callsc = nullptr, Dsymbol* inunion = nullptr, bool nofree = false, bool inLoop = false, int32_t intypeof = 0, VarDeclaration* lastVar = nullptr, Module* minst = nullptr, TemplateInstance* tinst = nullptr, CtorFlow ctorflow = CtorFlow(), AlignDeclaration* aligndecl = nullptr, CPPNamespaceDeclaration* namespace_ = nullptr, LINK linkage = (LINK)1u, CPPMANGLE cppmangle = (CPPMANGLE)0u, PragmaDeclaration* inlining = nullptr, Visibility visibility = Visibility((Visibility::Kind)5u, nullptr), int32_t explicitVisibility = 0, uint64_t stc = 0LLU, DeprecatedDeclaration* depdecl = nullptr, uint32_t flags = 0u, UserAttributeDeclaration* userAttribDecl = nullptr, DocComment* lastdc = nullptr, void* anchorCounts = nullptr, Identifier* prevAnchor = nullptr, AliasDeclaration* aliasAsg = nullptr) :
+        enclosing(enclosing),
+        _module(_module),
+        scopesym(scopesym),
+        func(func),
+        varDecl(varDecl),
+        parent(parent),
+        slabel(slabel),
+        sw(sw),
+        tryBody(tryBody),
+        tf(tf),
+        os(os),
+        sbreak(sbreak),
+        scontinue(scontinue),
+        fes(fes),
+        callsc(callsc),
+        inunion(inunion),
+        nofree(nofree),
+        inLoop(inLoop),
+        intypeof(intypeof),
+        lastVar(lastVar),
+        minst(minst),
+        tinst(tinst),
+        ctorflow(ctorflow),
+        aligndecl(aligndecl),
+        namespace_(namespace_),
+        linkage(linkage),
+        cppmangle(cppmangle),
+        inlining(inlining),
+        visibility(visibility),
+        explicitVisibility(explicitVisibility),
+        stc(stc),
+        depdecl(depdecl),
+        flags(flags),
+        userAttribDecl(userAttribDecl),
+        lastdc(lastdc),
+        anchorCounts(anchorCounts),
+        prevAnchor(prevAnchor),
+        aliasAsg(aliasAsg)
+        {}
+};
 
 extern FuncDeclaration* search_toString(StructDeclaration* sd);
 
