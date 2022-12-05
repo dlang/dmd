@@ -6516,13 +6516,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 result = expressionSemantic(e, sc);
                 return;
             }
-        }
 
-        if (exp.arrow) // ImportC only
-            exp.e1 = exp.e1.expressionSemantic(sc).arrayFuncConv(sc);
+            if (exp.arrow) // ImportC only
+                exp.e1 = exp.e1.expressionSemantic(sc).arrayFuncConv(sc);
 
-        if (sc.flags & SCOPE.Cfile)
-        {
             if (exp.ident == Id.__xalignof && exp.e1.isTypeExp())
             {
                 // C11 6.5.3 says _Alignof only applies to types
@@ -6552,12 +6549,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     assert(0);
                 return;
             }
-        }
 
-        if (sc.flags & SCOPE.Cfile && exp.ident != Id.__sizeof)
-        {
-            result = fieldLookup(exp.e1, sc, exp.ident);
-            return;
+            if (exp.ident != Id.__sizeof)
+            {
+                result = fieldLookup(exp.e1, sc, exp.ident);
+                return;
+            }
         }
 
         Expression e = exp.semanticY(sc, 1);
