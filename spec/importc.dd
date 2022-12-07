@@ -188,7 +188,7 @@ $(H2 $(LNAME2 preprocessor, Preprocessor))
 
     $(H4 $(LNAME2 clang-preprocessor, Clang C Preprocessor))
 
-    $(P The $(LINK2 https://freecompilercamp.org/clang-basics/, Clang Preprocessor) can be invoked as:)
+    $(P The Clang Preprocessor can be invoked as:)
 
     $(CONSOLE
     clang -E file.c -o file.i
@@ -207,7 +207,7 @@ $(H2 $(LNAME2 preprocessor, Preprocessor))
 
     $(H4 $(LNAME2 dmpp, dmpp C Preprocessor))
 
-    $(P The $(LINK2 https://www.DigitalMars/dmpp, dmpp C Preprocessor) can be invoked as:)
+    $(P The $(LINK2 https://github.com/DigitalMars/dmpp, dmpp C Preprocessor) can be invoked as:)
 
     $(CONSOLE
     dmpp file.c
