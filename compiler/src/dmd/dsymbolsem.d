@@ -2564,6 +2564,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (emprev.errors)
                 return errorReturn();
 
+            // display an introductory error before showing what actually failed
+            global.setErrorCallback({
+                try
+                error(em.loc, "cannot generate value for `%s`", em.toChars());
+                catch (Exception) {}
+            });
             Expression eprev = emprev.value;
             assert(eprev);
             // .toHeadMutable() due to https://issues.dlang.org/show_bug.cgi?id=18645
@@ -2576,30 +2582,14 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 this construct does do that and thus fixes the bug.
             */
             Expression emax = DotIdExp.create(em.ed.loc, new TypeExp(em.ed.loc, tprev), Id.max);
-            auto oldgag = global.startGagging();
             emax = emax.expressionSemantic(sc);
             emax = emax.ctfeInterpret();
-            if (global.endGagging(oldgag))
-            {
-                error(em.loc, "cannot generate value for `%s`", em.toChars());
-                errorSupplemental(eprev.loc, "Could not interpret `%s.max` for overflow check",
-                    eprev.type.toChars());
-                return errorReturn();
-            }
 
             // Set value to (eprev + 1).
             // But first check that (eprev != emax)
             Expression e = new EqualExp(EXP.equal, em.loc, eprev, emax);
-            oldgag = global.startGagging();
             e = e.expressionSemantic(sc);
             e = e.ctfeInterpret();
-            if (global.endGagging(oldgag))
-            {
-                error(em.loc, "cannot generate value for `%s`", em.toChars());
-                errorSupplemental(eprev.loc, "Could not interpret `%s == %s.max` for overflow check", 
-                    emprev.toChars(), eprev.type.toChars());
-                return errorReturn();
-            }
             if (e.toInteger())
             {
                 auto mt = em.ed.memtype;
