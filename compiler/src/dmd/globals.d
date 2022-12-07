@@ -326,12 +326,13 @@ extern (C++) struct Global
     }
 
     /**
+     * for now only one can be set at a time.
+     * Triggers on error or supplemental error.
      * Ignores gagged errors.
+     * Call with null to disable callack
      */
     extern(D) void setErrorCallback(void delegate() nothrow cb)
     {
-        // only one at a time
-        debug assert(!cb || !global.errorCallback);
         global.errorCallback = cb;
     }
 

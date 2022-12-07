@@ -2567,9 +2567,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             // display an introductory error before showing what actually failed
             global.setErrorCallback({
                 try
-                error(em.loc, "cannot generate value for `%s`", em.toChars());
+                error(em.loc, "cannot check `%s` value for overflow", em.toPrettyChars());
                 catch (Exception) {}
             });
+            scope (exit) global.setErrorCallback(null);
+
             Expression eprev = emprev.value;
             assert(eprev);
             // .toHeadMutable() due to https://issues.dlang.org/show_bug.cgi?id=18645
@@ -2585,11 +2587,16 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             emax = emax.expressionSemantic(sc);
             emax = emax.ctfeInterpret();
 
-            // Set value to (eprev + 1).
-            // But first check that (eprev != emax)
+            // check that (eprev != emax)
             Expression e = new EqualExp(EXP.equal, em.loc, eprev, emax);
             e = e.expressionSemantic(sc);
             e = e.ctfeInterpret();
+            // now any errors are for generating a value
+            global.setErrorCallback({
+                try
+                error(em.loc, "cannot generate value for `%s`", em.toPrettyChars());
+                catch (Exception) {}
+            });
             if (e.toInteger())
             {
                 auto mt = em.ed.memtype;

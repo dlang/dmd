@@ -1,12 +1,14 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag12063.d(18): Error: cannot generate value for `b`
-fail_compilation/diag12063.d(15): Error: no property `max` for type `Foo`, perhaps `import std.algorithm;` is needed?
-fail_compilation/diag12063.d(18): Error: incompatible types for `(Foo()) + (1)`: `Bar` and `int`
-fail_compilation/diag12063.d(27): Error: cannot generate value for `b`
-fail_compilation/diag12063.d(27): Error: incompatible types for `(S()) == (1)`: `S` and `int`
-fail_compilation/diag12063.d(27): Error: incompatible types for `(S()) + (1)`: `S` and `int`
+fail_compilation/diag12063.d(20): Error: cannot check `diag12063.Bar.b` value for overflow
+fail_compilation/diag12063.d(17): Error: no property `max` for type `Foo`, perhaps `import std.algorithm;` is needed?
+fail_compilation/diag12063.d(20): Error: cannot generate value for `diag12063.Bar.b`
+fail_compilation/diag12063.d(20): Error: incompatible types for `(Foo()) + (1)`: `Bar` and `int`
+fail_compilation/diag12063.d(30): Error: cannot check `diag12063.b` value for overflow
+fail_compilation/diag12063.d(30): Error: incompatible types for `(S()) == (1)`: `S` and `int`
+fail_compilation/diag12063.d(39): Error: cannot generate value for `diag12063.d`
+fail_compilation/diag12063.d(39): Error: enum member `diag12063.d` initialization with `__anonymous.c+1` causes overflow for type `Q`
 ---
 */
 
@@ -15,36 +17,36 @@ struct Foo {}
 enum Bar : Foo
 {
     a = Foo(),
-    b
+    b // no max, can't +1
 }
 
 struct S {
-    S opBinary(string s: "+")() => this;
+    S opBinary(string s: "+")(int) => this;
     enum max = 1; // wrong type
 }
 
 enum {
     a = S(),
-    b
+    b // can't do S() == 1
 }
 
 struct Q {
-    //~ Q opBinary(string s: "+")(int) => this;
     enum max = Q();
 }
 
 enum {
     c = Q(),
-    d
+    d // overflow detected
 }
 
 struct R {
+    int i;
     R opBinary(string s: "+")(int) => this;
-    enum max = 10;
+    enum max = R(1);
 }
 
 enum ER
 {
     e = R(),
-    f
+    f // OK
 }
