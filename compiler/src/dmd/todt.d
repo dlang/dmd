@@ -1485,13 +1485,6 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
             dtb.xoff(toSymbol(fd), 0);
             TypeFunction tf = cast(TypeFunction)fd.type;
             assert(tf.ty == Tfunction);
-            /* I'm a little unsure this is the right way to do it. Perhaps a better
-             * way would to automatically add these attributes to any struct member
-             * function with the name "toHash".
-             * So I'm leaving this here as an experiment for the moment.
-             */
-            if (!tf.isnothrow || tf.trust == TRUST.system /*|| tf.purity == PURE.impure*/)
-                warning(fd.loc, "toHash() must be declared as extern (D) size_t toHash() const nothrow @safe, not %s", tf.toChars());
         }
         else
             dtb.size(0);
