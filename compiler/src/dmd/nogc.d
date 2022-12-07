@@ -219,7 +219,7 @@ public:
 Expression checkGC(Scope* sc, Expression e)
 {
     FuncDeclaration f = sc.func;
-    if (e && e.op != EXP.error && f && sc.intypeof != 1 && !(sc.flags & SCOPE.ctfe) &&
+    if (e && e.op != EXP.error && f && sc.intypeof != 1 && !(sc.flags & SCOPE.ctfe) && !(sc.flags & SCOPE.ctfeonly) &&
            (f.type.ty == Tfunction &&
             (cast(TypeFunction)f.type).isnogc || f.nogcInprocess || global.params.vgc) &&
            !(sc.flags & SCOPE.debug_))

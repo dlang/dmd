@@ -4110,7 +4110,6 @@ elem* toElem(Expression e, IRState *irs)
         //printf("ClassReferenceExp.toElem() %p, value=%p, %s\n", e, e.value, e.toChars());
         return el_ptr(toSymbol(e));
     }
-
     switch (e.op)
     {
         default:                return visit(e);
@@ -6084,7 +6083,13 @@ private
 elem *getTypeInfo(Expression e, Type t, IRState* irs)
 {
     assert(t.ty != Terror);
-    genTypeInfo(e, e.loc, t, null);
+    Scope* sc;
+    if (irs && irs.ctfeOnly > 0)
+    {
+        sc = new Scope;
+        sc.flags |= SCOPE.ctfeonly;
+    }
+    genTypeInfo(e, e.loc, t, sc);
     elem* result = el_ptr(toSymbol(t.vtinfo));
     return result;
 }

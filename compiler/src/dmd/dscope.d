@@ -59,6 +59,7 @@ enum SCOPE
     compile       = 0x0100,   /// inside __traits(compile)
     ignoresymbolvisibility    = 0x0200,   /// ignore symbol visibility
                                           /// https://issues.dlang.org/show_bug.cgi?id=15907
+    ctfeonly      = 0x0400,
     Cfile         = 0x0800,   /// C semantics apply
     free          = 0x8000,   /// is on free list
 
@@ -68,7 +69,7 @@ enum SCOPE
 /// Flags that are carried along with a scope push()
 private enum PersistentFlags =
     SCOPE.contract | SCOPE.debug_ | SCOPE.ctfe | SCOPE.compile | SCOPE.constraint |
-    SCOPE.noaccesscheck | SCOPE.ignoresymbolvisibility |
+    SCOPE.noaccesscheck | SCOPE.ignoresymbolvisibility | SCOPE.ctfeonly |
     SCOPE.Cfile;
 
 extern (C++) struct Scope

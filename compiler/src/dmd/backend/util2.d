@@ -41,7 +41,7 @@ void file_progress()
 /****************************
  * Clean up and exit program.
  */
-
+@trusted
 void err_exit()
 {
     util_exit(EXIT_FAILURE);
