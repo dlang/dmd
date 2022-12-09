@@ -105,7 +105,7 @@ private
 }
 
 
-shared static this()
+pragma(crt_constructor) void runtimeInitializer()
 {
     // NOTE: Some module ctors will run before this handler is set, so it's
     //       still possible the app could exit without a stack trace.  If
