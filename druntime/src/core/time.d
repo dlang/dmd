@@ -2822,7 +2822,7 @@ struct TickDuration
     }
 
 
-    pragma(crt_constructor) void time_initializer()
+    static pragma(crt_constructor) void time_initializer()
     {
         version (Windows)
         {
