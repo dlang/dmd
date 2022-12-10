@@ -70,6 +70,7 @@ $(H2 $(LEGACY_LNAME2 Unary, unary, Unary Operator Overloading))
         $(P For example, in order to overload the $(D -) (negation) operator for struct S, and
         no other operator:)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
 struct S
 {
@@ -81,10 +82,17 @@ struct S
     }
 }
 
-int foo(S s)
+void main()
 {
-    return -s;
+    S s = {2};
+    assert(-s == -2);
 }
+---
+)
+
+$(NOTE *opUnary* above can also be declared using a template parameter specialization:)
+---
+    int opUnary(string s : "-")()
 ---
 
 $(H3 $(LNAME2 postincrement_postdecrement_operators, Postincrement $(I e)$(D ++) and Postdecrement $(I e)$(D --) Operators))
@@ -97,13 +105,17 @@ $(H3 $(LNAME2 postincrement_postdecrement_operators, Postincrement $(I e)$(D ++)
         $(THEAD $(I op), $(I rewrite))
         $(TROW
         $(ARGS $(I e)$(D --)),
-        $(ARGS $(D $(LPAREN)auto t =) $(I e)$(D , --)$(I e)$(D , t$(RPAREN))))
+        $(ARGS $(D $(LPAREN)auto t =) $(I e)$(D , )$(I e)`.opUnary!"--"`$(D , t$(RPAREN))))
         $(TROW
         $(ARGS $(I e)$(D ++)),
-        $(ARGS $(D $(LPAREN)auto t =) $(I e)$(D , ++)$(I e)$(D , t$(RPAREN))))
+        $(ARGS $(D $(LPAREN)auto t =) $(I e)$(D , )$(I e)`.opUnary!"++"`$(D , t$(RPAREN))))
         )
 
 $(H3 $(LNAME2 index_unary_operators, Overloading Index Unary Operators))
+
+        $(P Indexing can be $(RELATIVE_LINK2 array, overloaded).
+        A unary operation on an index expression can also be overloaded independently.
+        This works for multidimensional indexing.)
 
         $(TABLE2 Overloadable Index Unary Operators,
         $(THEAD $(I op), $(I rewrite))
@@ -132,7 +144,27 @@ $(H3 $(LNAME2 index_unary_operators, Overloading Index Unary Operators))
         )
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+struct S
+{
+    private int[] a;
+
+    void opIndexUnary(string s: "++")(size_t i) { ++a[i]; }
+}
+
+S s = {[4]};
+++s[0];
+assert(s.a[0] == 5);
+---
+)
+
 $(H3 $(LNAME2 slice_unary_operators, Overloading Slice Unary Operators))
+
+        $(P Slicing can be $(RELATIVE_LINK2 slice, overloaded).
+        A unary operation on a slice can also be overloaded independently.
+        `opIndexUnary` is defined either with no function arguments for a full slice,
+        or with two arguments for the start and end indices of the slice.)
 
         $(TABLE2 Overloadable Slice Unary Operators,
         $(THEAD $(I op), $(I rewrite))
@@ -197,7 +229,22 @@ $(H3 $(LNAME2 slice_unary_operators, Overloading Slice Unary Operators))
         )
         )
 
-        $(P For backward compatibility, if the above rewrites fail to compile and
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+struct S
+{
+    private int[] a;
+
+    void opIndexUnary(string s: "--")() { --a[]; }
+}
+
+S s = {[1, 2]};
+--s[];
+assert(s.a == [0, 1]);
+---
+)
+
+        $(NOTE For backward compatibility, if the above rewrites fail to compile and
         $(D opSliceUnary) is defined, then the rewrites
         $(D a.opSliceUnary!(op)(i, j)) and
         $(D a.opSliceUnary!(op)) are tried instead, respectively.)
@@ -216,7 +263,7 @@ $(H2 $(LEGACY_LNAME2 Cast, cast, Cast Operator Overloading))
 
     $(P Note that `opCast` is only ever used with an explicit `cast`
         expression, except in the case of boolean operations (see next
-        section))
+        section).)
 
 $(H3 $(LNAME2 boolean_operators, Boolean Operations))
 
