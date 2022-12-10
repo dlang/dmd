@@ -498,12 +498,18 @@ Symbol *toSymbol(Dsymbol s)
 
 
 /*************************************
+ * Create Windows import symbol from backend Symbol.
+ * Params:
+ *      sym = backend symbol
+ *      loc = location for error message purposes
+ * Returns:
+ *      import symbol
  */
 
-Symbol *toImport(Symbol *sym, Loc loc)
+private Symbol *createImport(Symbol *sym, Loc loc)
 {
-    //printf("Dsymbol.toImport('%s')\n", sym.Sident);
-    char *n = sym.Sident.ptr;
+    //printf("Dsymbol.createImport('%s')\n", sym.Sident.ptr);
+    const char* n = sym.Sident.ptr;
     import core.stdc.stdlib : alloca;
     char *id = cast(char *) alloca(6 + strlen(n) + 1 + type_paramsize(sym.Stype).sizeof*3 + 1);
     int idlen;
@@ -545,7 +551,7 @@ Symbol *toImport(Declaration ds)
     {
         if (!ds.csym)
             ds.csym = toSymbol(ds);
-        ds.isym = toImport(ds.csym, ds.loc);
+        ds.isym = createImport(ds.csym, ds.loc);
     }
     return ds.isym;
 }
