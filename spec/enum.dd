@@ -71,36 +71,37 @@ $(H2 $(LNAME2 named_enums, Named Enums))
 
 
         $(P If the $(I EnumBaseType) is not explicitly set, and the first
-        $(I EnumMember) has an $(ASSIGNEXPRESSION), it is set to the type of that
-        $(ASSIGNEXPRESSION). Otherwise, it defaults to
+        $(I EnumMember) has an *AssignExpression*, it is set to the type of that
+        *AssignExpression*. Otherwise, it defaults to
         type $(CODE int).)
 
         $(P Named enum members may not have individual $(I Type)s.
         )
-
 
         $(P A named enum member can be implicitly cast to its $(GLINK EnumBaseType),
         but $(I EnumBaseType) types
         cannot be implicitly cast to an enum type.
         )
 
-        $(P The value of an $(GLINK EnumMember) is given by its $(ASSIGNEXPRESSION).
-        If there is no $(ASSIGNEXPRESSION) and it is the first $(I EnumMember),
+        $(P The value of an $(GLINK EnumMember) is given by its *AssignExpression* if present.
+        If there is no *AssignExpression* and it is the first $(I EnumMember),
         its value is $(GLINK EnumBaseType)`.init`.
+        If there is no *AssignExpression* and it is not the first $(I EnumMember),
+        it is given the value of the previous $(I EnumMember)`+1`:)
+
+        * If the value of the previous $(I EnumMember) is $(GLINK EnumBaseType)`.max`,
+          it is an error. This prevents value overflow. It is an error if the previous
+          member cannot be compared with *EnumBaseType*`.max` at compile-time.
+        * It is an error if the base type does not define a compile-time
+          evaluable `+1` operation.
+        * If the value of the previous $(I EnumMember)`+1` is the same as the
+          value of the previous $(I EnumMember), it is an error. (This can happen
+          with floating point types).
+
+        $(P All $(I EnumMember)s are in scope for the *AssignExpression*s.
         )
 
-        $(P If there is no $(ASSIGNEXPRESSION) and it is not the first $(I EnumMember),
-        it is given the value of the previous $(I EnumMember)`+1`.
-        If the value of the previous $(I EnumMember) is $(GLINK EnumBaseType)`.max`,
-        it is an error.
-        If the value of the previous $(I EnumMember)`+1` is the same as the
-        value of the previous $(I EnumMember), it is an error. (This can happen
-        with floating point types.)
-        )
-
-        $(P All $(I EnumMember)s are in scope for the $(ASSIGNEXPRESSION)s.
-        )
-
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 ---
 enum A = 3;
 enum B
@@ -120,7 +121,7 @@ enum E : C
     E2      // error, C.D is C.max
 }
 ---
-
+)
 
         $(P An empty enum body (For example $(CODE enum E;)) signifies an opaque
         enum - the enum members are unknown.)
@@ -196,22 +197,23 @@ enum { A, B, C }  // anonymous enum
         $(P Enums must have at least one member.
         )
 
-        $(P The value of an $(I EnumMember) is given by its $(ASSIGNEXPRESSION).
-        If there is no $(ASSIGNEXPRESSION) and it is the first $(I EnumMember),
+        $(P The value of an $(I EnumMember) is given by its *AssignExpression* if present.
+        If there is no *AssignExpression* and it is the first $(I EnumMember),
         its value is the $(CODE .init) property of the $(I EnumMember)'s type.
-        )
+        If there is no *AssignExpression* and it is not the first $(I EnumMember),
+        it is given the value of the previous $(I EnumMember)`+1`:)
 
-        $(P If there is no $(ASSIGNEXPRESSION) and it is not the first $(I EnumMember),
-        it is given the value of the previous $(I EnumMember)`+1`.
-        If the value of the previous $(I EnumMember) is the `.max` property
-        if the previous $(I EnumMember)'s type,
-        it is an error.
-        If the value of the previous $(I EnumMember)`+1` is the same as the
-        value of the previous $(I EnumMember), it is an error. (This can happen
-        with floating point types.)
-        )
+        * If the value of the previous $(I EnumMember) is the `.max` property
+          of the previous $(I EnumMember)'s type, it is an error.
+          This prevents value overflow. It is an error if the previous
+          member cannot be compared with its `.max` property at compile-time.
+        * It is an error if the type of the previous member does not define a compile-time
+          evaluable `+1` operation.
+        * If the value of the previous $(I EnumMember)`+1` is the same as the
+          value of the previous $(I EnumMember), it is an error. (This can happen
+          with floating point types).
 
-        $(P All $(I EnumMember)s are in scope for the $(ASSIGNEXPRESSION)s.
+        $(P All $(I EnumMember)s are in scope for the *AssignExpression*s.
         )
 
 ------
