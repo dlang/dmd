@@ -246,7 +246,7 @@ class Object
      * }
      * ---
      */
-    static Object factory(string classname)
+    deprecated static Object factory(string classname)
     {
         auto ci = TypeInfo_Class.find(classname);
         if (ci)
@@ -256,7 +256,7 @@ class Object
         return null;
     }
 
-    @system unittest
+    deprecated @system unittest
     {
         Object valid_obj = Object.factory("object.Object");
         Object invalid_obj = Object.factory("object.__this_class_doesnt_exist__");
