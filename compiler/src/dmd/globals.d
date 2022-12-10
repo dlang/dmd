@@ -257,7 +257,6 @@ enum hdr_ext  = "di";       // for D 'header' import files
 enum json_ext = "json";     // for JSON files
 enum map_ext  = "map";      // for .map files
 enum c_ext    = "c";        // for C source files
-enum h_ext    = "h";        // for C header source files
 enum i_ext    = "i";        // for preprocessed C source file
 
 /**
