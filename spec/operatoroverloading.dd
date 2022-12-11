@@ -369,6 +369,7 @@ $(H2 $(LNAME2 eqcmp, Overloading the Comparison Operators))
         $(D opCmp).)
 
         $(P The equality and inequality operators are treated separately
+        from comparison operators
         because while practically all user-defined types can be compared for
         equality, only a subset of types have a meaningful ordering. For
         example, while it makes sense to determine if two RGB color vectors are
