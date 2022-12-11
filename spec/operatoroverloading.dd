@@ -785,100 +785,6 @@ $(H2 $(LEGACY_LNAME2 ArrayOps, array-ops, Array Indexing and Slicing Operators O
         These may be combined to implement multidimensional arrays.
         )
 
-        $(P The code example below shows a simple implementation of a
-        2-dimensional array with overloaded indexing and slicing operators. The
-        explanations of the various constructs employed are given in the
-        sections following.)
-
--------
-struct Array2D(E)
-{
-    E[] impl;
-    int stride;
-    int width, height;
-
-    this(int width, int height, E[] initialData = [])
-    {
-        impl = initialData;
-        this.stride = this.width = width;
-        this.height = height;
-        impl.length = width * height;
-    }
-
-    // Index a single element, e.g., arr[0, 1]
-    ref E opIndex(int i, int j) { return impl[i + stride*j]; }
-
-    // Array slicing, e.g., arr[1..2, 1..2], arr[2, 0..$], arr[0..$, 1].
-    Array2D opIndex(int[2] r1, int[2] r2)
-    {
-        Array2D result;
-
-        auto startOffset = r1[0] + r2[0]*stride;
-        auto endOffset = r1[1] + (r2[1] - 1)*stride;
-        result.impl = this.impl[startOffset .. endOffset];
-
-        result.stride = this.stride;
-        result.width = r1[1] - r1[0];
-        result.height = r2[1] - r2[0];
-
-        return result;
-    }
-    auto opIndex(int[2] r1, int j) { return opIndex(r1, [j, j+1]); }
-    auto opIndex(int i, int[2] r2) { return opIndex([i, i+1], r2); }
-
-    // Support for `x..y` notation in slicing operator for the given dimension.
-    int[2] opSlice(size_t dim)(int start, int end)
-        if (dim >= 0 && dim < 2)
-    in { assert(start >= 0 && end <= this.opDollar!dim); }
-    do
-    {
-        return [start, end];
-    }
-
-    // Support `$` in slicing notation, e.g., arr[1..$, 0..$-1].
-    @property int opDollar(size_t dim : 0)() { return width; }
-    @property int opDollar(size_t dim : 1)() { return height; }
-}
-
-unittest
-{
-    auto arr = Array2D!int(4, 3, [
-        0, 1, 2,  3,
-        4, 5, 6,  7,
-        8, 9, 10, 11
-    ]);
-
-    // Basic indexing
-    assert(arr[0, 0] == 0);
-    assert(arr[1, 0] == 1);
-    assert(arr[0, 1] == 4);
-
-    // Use of opDollar
-    assert(arr[$-1, 0] == 3);
-    assert(arr[0, $-1] == 8);   // Note the value of $ differs by dimension
-    assert(arr[$-1, $-1] == 11);
-
-    // Slicing
-    auto slice1 = arr[1..$, 0..$];
-    assert(slice1[0, 0] == 1 && slice1[1, 0] == 2  && slice1[2, 0] == 3 &&
-           slice1[0, 1] == 5 && slice1[1, 1] == 6  && slice1[2, 1] == 7 &&
-           slice1[0, 2] == 9 && slice1[1, 2] == 10 && slice1[2, 2] == 11);
-
-    auto slice2 = slice1[0..2, 1..$];
-    assert(slice2[0, 0] == 5 && slice2[1, 0] == 6 &&
-           slice2[0, 1] == 9 && slice2[1, 1] == 10);
-
-    // Thin slices
-    auto slice3 = arr[2, 0..$];
-    assert(slice3[0, 0] == 2 &&
-           slice3[0, 1] == 6 &&
-           slice3[0, 2] == 10);
-
-    auto slice4 = arr[0..3, 2];
-    assert(slice4[0, 0] == 8 && slice4[1, 0] == 9 && slice4[2, 0] == 10);
-}
--------
-
 $(H3 $(LEGACY_LNAME2 Array, array, Index Operator Overloading))
 
         $(P Expressions of the form $(D arr[)$(ARGUMENTS)$(D ]) are translated
@@ -1096,6 +1002,104 @@ arr.opIndex(__tmp1 - sqrt(__tmp1), 0, __tmp2 - 1);
         is illegal to use $(D $) inside an array indexing expression with more
         than one argument.
         )
+
+$(H3 $(LNAME2 index-slicing-example, Complete Example))
+
+        $(P The code example below shows a simple implementation of a
+        2-dimensional array with overloaded indexing and slicing operators. The
+        explanations of the various constructs employed are given in the
+        sections following.)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+-------
+struct Array2D(E)
+{
+    E[] impl;
+    int stride;
+    int width, height;
+
+    this(int width, int height, E[] initialData = [])
+    {
+        impl = initialData;
+        this.stride = this.width = width;
+        this.height = height;
+        impl.length = width * height;
+    }
+
+    // Index a single element, e.g., arr[0, 1]
+    ref E opIndex(int i, int j) { return impl[i + stride*j]; }
+
+    // Array slicing, e.g., arr[1..2, 1..2], arr[2, 0..$], arr[0..$, 1].
+    Array2D opIndex(int[2] r1, int[2] r2)
+    {
+        Array2D result;
+
+        auto startOffset = r1[0] + r2[0]*stride;
+        auto endOffset = r1[1] + (r2[1] - 1)*stride;
+        result.impl = this.impl[startOffset .. endOffset];
+
+        result.stride = this.stride;
+        result.width = r1[1] - r1[0];
+        result.height = r2[1] - r2[0];
+
+        return result;
+    }
+    auto opIndex(int[2] r1, int j) { return opIndex(r1, [j, j+1]); }
+    auto opIndex(int i, int[2] r2) { return opIndex([i, i+1], r2); }
+
+    // Support for `x..y` notation in slicing operator for the given dimension.
+    int[2] opSlice(size_t dim)(int start, int end)
+        if (dim >= 0 && dim < 2)
+    in { assert(start >= 0 && end <= this.opDollar!dim); }
+    do
+    {
+        return [start, end];
+    }
+
+    // Support `$` in slicing notation, e.g., arr[1..$, 0..$-1].
+    @property int opDollar(size_t dim : 0)() { return width; }
+    @property int opDollar(size_t dim : 1)() { return height; }
+}
+
+void main()
+{
+    auto arr = Array2D!int(4, 3, [
+        0, 1, 2,  3,
+        4, 5, 6,  7,
+        8, 9, 10, 11
+    ]);
+
+    // Basic indexing
+    assert(arr[0, 0] == 0);
+    assert(arr[1, 0] == 1);
+    assert(arr[0, 1] == 4);
+
+    // Use of opDollar
+    assert(arr[$-1, 0] == 3);
+    assert(arr[0, $-1] == 8);   // Note the value of $ differs by dimension
+    assert(arr[$-1, $-1] == 11);
+
+    // Slicing
+    auto slice1 = arr[1..$, 0..$];
+    assert(slice1[0, 0] == 1 && slice1[1, 0] == 2  && slice1[2, 0] == 3 &&
+           slice1[0, 1] == 5 && slice1[1, 1] == 6  && slice1[2, 1] == 7 &&
+           slice1[0, 2] == 9 && slice1[1, 2] == 10 && slice1[2, 2] == 11);
+
+    auto slice2 = slice1[0..2, 1..$];
+    assert(slice2[0, 0] == 5 && slice2[1, 0] == 6 &&
+           slice2[0, 1] == 9 && slice2[1, 1] == 10);
+
+    // Thin slices
+    auto slice3 = arr[2, 0..$];
+    assert(slice3[0, 0] == 2 &&
+           slice3[0, 1] == 6 &&
+           slice3[0, 2] == 10);
+
+    auto slice4 = arr[0..3, 2];
+    assert(slice4[0, 0] == 8 && slice4[1, 0] == 9 && slice4[2, 0] == 10);
+}
+-------
+)
 
 
 $(H2 $(LEGACY_LNAME2 Dispatch, dispatch, Forwarding))
