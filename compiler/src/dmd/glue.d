@@ -1314,7 +1314,6 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
                 break;
             case Target.ObjectFormat.omf:
                 objmod.external_def("_main");
-                objmod.external_def("__acrtused_con");
                 break;
         }
         if (libname)
