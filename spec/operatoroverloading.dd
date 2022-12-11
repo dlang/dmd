@@ -975,8 +975,8 @@ void main()
 
         $(P To overload array slicing of the form $(D a[)$(SLICE)$(D ]),
         two steps are needed.  First, the expressions of the form $(SLICE) are
-        translated via $(D opSlice!0) into user-defined objects that encapsulate
-        the endpoints $(I i) and $(I j). Then these user-defined objects are
+        translated via $(D opSlice!0) into objects that encapsulate
+        the endpoints $(I i) and $(I j). Then these objects are
         passed to $(D opIndex) to perform the actual slicing.)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
