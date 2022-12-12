@@ -3969,7 +3969,7 @@ void test2486()
     S s;
     s[];
     // opSlice should return rvalue
-    static assert(is(typeof(&S.opSlice) == int[] function() pure nothrow @nogc @safe));
+    static assert(is(typeof(&s.opSlice) == int[] delegate() pure nothrow @nogc @safe));
     static assert(__traits(compiles, foo(s[])));
 }
 
@@ -4963,20 +4963,23 @@ struct S5933b { auto x() { return 0; } }
 //static assert(is(typeof(S5933b.init.x) == FuncType5933));
 
 struct S5933c { auto x() { return 0; } }
-static assert(is(typeof(&S5933c.x) == int function()));
+S5933c stmp5933c;
+static assert(is(typeof(&stmp5933c.x) == int delegate() pure nothrow @nogc @safe));
 
 struct S5933d { auto x() { return 0; } }
 static assert(is(typeof(S5933d.x) == FuncType5933));
 
 
 class C5933a { auto x() { return 0; } }
-static assert(is(typeof(&(new C5933b()).x) == int delegate() pure nothrow @nogc @safe));
+C5933a tmp5933a;
+static assert(is(typeof(&tmp5933a.x) == int delegate() pure nothrow @nogc @safe));
 
 class C5933b { auto x() { return 0; } }
 //static assert(is(typeof((new C5933b()).x) == FuncType5933));
 
 class C5933c { auto x() { return 0; } }
-static assert(is(typeof(&C5933c.x) == int function()));
+C5933c tmp5933c;
+static assert(is(typeof(&tmp5933c.x) == int delegate() pure nothrow @nogc @safe));
 
 class C5933d { auto x() { return 0; } }
 static assert(is(typeof(C5933d.x) == FuncType5933));

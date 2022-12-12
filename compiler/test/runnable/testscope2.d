@@ -2,10 +2,10 @@
 /*
 TEST_OUTPUT:
 ---
-foo1 ulong function(return ref int* delegate() return p) ref return
-foo2 int function(return ref int delegate() p) ref
-foo3 int function(ref inout(int*) p) ref
-foo4 int function(return ref inout(int*) p) ref
+foo1 ulong delegate(return ref int* delegate() return p) ref return
+foo2 int delegate(return ref int delegate() p) ref
+foo3 int delegate(ref inout(int*) p) ref
+foo4 int delegate(return ref inout(int*) p) ref
 ---
 */
 
@@ -21,10 +21,12 @@ struct SS
     ref int foo4(return inout ref int* p);
 }
 
-pragma(msg, "foo1 ", typeof(&SS.foo1));
-pragma(msg, "foo2 ", typeof(&SS.foo2));
-pragma(msg, "foo3 ", typeof(&SS.foo3));
-pragma(msg, "foo4 ", typeof(&SS.foo4));
+SS tmp;
+
+pragma(msg, "foo1 ", typeof(&tmp.foo1));
+pragma(msg, "foo2 ", typeof(&tmp.foo2));
+pragma(msg, "foo3 ", typeof(&tmp.foo3));
+pragma(msg, "foo4 ", typeof(&tmp.foo4));
 
 
 void test3()

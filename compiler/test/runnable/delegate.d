@@ -356,11 +356,11 @@ void testAssign()
 
     auto dg = &x.funca;
     assert(dg() == 5);
-    dg.funcptr = &C.funcb;
+    dg.funcptr = cast(int function())&C.funcb;
     assert(dg() == 6);
     dg.ptr = cast(void*)y;
     assert(dg() == 8);
-    dg.funcptr = &C.funca;
+    dg.funcptr = cast(int function())&C.funca;
     assert(dg() == 7);
 }
 

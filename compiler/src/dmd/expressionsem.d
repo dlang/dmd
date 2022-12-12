@@ -7230,12 +7230,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         result = e;
                         return;
                     }
-                    if (sc.func && !sc.intypeof && !(sc.flags & SCOPE.debug_))
-                    {
-                        sc.setUnsafe(false, exp.loc,
-                            "`this` reference necessary to take address of member `%s` in `@safe` function `%s`",
-                            f, sc.func);
-                    }
+
+                    exp.type = (new TypePointer(Type.tvoid)).typeSemantic(exp.loc, sc);
                 }
             }
         }

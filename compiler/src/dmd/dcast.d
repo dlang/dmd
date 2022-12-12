@@ -2389,11 +2389,6 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                         result = new DelegateExp(e.loc, new ThisExp(e.loc), f, false);
                         result = result.expressionSemantic(sc);
                     }
-                    else if (f.needThis())
-                    {
-                        e.error("no `this` to create delegate for `%s`", f.toChars());
-                        return ErrorExp.get();
-                    }
                     else if (f.isNested())
                     {
                         result = new DelegateExp(e.loc, IntegerExp.literal!0, f, false);
