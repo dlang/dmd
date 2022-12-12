@@ -103,8 +103,8 @@ public:
             return;
         if (f.setGC())
         {
-            e.error("array literal in `@nogc` %s `%s` may cause a GC allocation",
-                f.kind(), f.toPrettyChars());
+            e.error("array literal `%s` in `@nogc` %s `%s` may cause a GC allocation",
+                e.toChars(), f.kind(), f.toPrettyChars());
             err = true;
             return;
         }

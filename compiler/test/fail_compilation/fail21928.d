@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail21928.d(18): Error: array literal in `@nogc` function `D main` may cause a GC allocation
+fail_compilation/fail21928.d(18): Error: array literal `[2LU]` in `@nogc` function `D main` may cause a GC allocation
 ---
 */
 

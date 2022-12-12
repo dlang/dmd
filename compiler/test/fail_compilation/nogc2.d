@@ -57,8 +57,8 @@ fail_compilation/nogc2.d(50): Error: cannot use operator `~=` in `@nogc` functio
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/nogc2.d(69): Error: array literal in `@nogc` function `nogc2.testArray` may cause a GC allocation
-fail_compilation/nogc2.d(70): Error: array literal in `@nogc` function `nogc2.testArray` may cause a GC allocation
+fail_compilation/nogc2.d(69): Error: array literal `[p, p, barA()]` in `@nogc` function `nogc2.testArray` may cause a GC allocation
+fail_compilation/nogc2.d(70): Error: array literal `[null, null]` in `@nogc` function `nogc2.testArray` may cause a GC allocation
 ---
 */
 @nogc void testArray()
