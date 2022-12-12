@@ -930,6 +930,7 @@ struct ASTBase
             this.parameters = parameters;
             this.origParameters = parameters;
             this.members = decldefs;
+            this.constraint = constraint;
             this.literal = literal;
             this.ismixin = ismixin;
             this.isstatic = true;
