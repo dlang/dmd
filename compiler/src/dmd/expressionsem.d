@@ -2621,6 +2621,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             Expression e;
 
+            scope(exit) {
+                /*
+                  If nothing else got there first, just syntax copy the identifier.
+                  Not a great default but a default it is.
+                */
+                if (e && !e.origin.isPresent())
+                    e.setOrigin(exp.syntaxCopy());
+            }
             /* See if the symbol was a member of an enclosing 'with'
              */
             WithScopeSymbol withsym = scopesym.isWithScopeSymbol();
@@ -2705,7 +2713,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
                 // Haven't done overload resolution yet, so pass 1
                 e = symbolToExp(s, exp.loc, sc, true);
+                e.setOrigin(s);
             }
+
             result = e;
             return;
         }
@@ -12514,6 +12524,7 @@ Expression binSemanticProp(BinExp e, Scope* sc)
 // entrypoint for semantic ExpressionSemanticVisitor
 extern (C++) Expression expressionSemantic(Expression e, Scope* sc)
 {
+
     scope v = new ExpressionSemanticVisitor(sc);
     e.accept(v);
     return v.result;

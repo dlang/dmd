@@ -685,6 +685,18 @@ extern (C++) abstract class Expression : ASTNode
     Type type;      // !=null means that semantic() has been run
     Loc loc;        // file location
 
+    import dmd.root.optional;
+
+    /** 
+        The idea is to try and saved where an expression was lowered from.
+        This is for better error messages.
+     */
+    Optional!ASTNode origin;
+
+    extern(D) void setOrigin(ASTNode e)
+    {
+        this.origin = typeof(origin)(e);
+    }
     extern (D) this(const ref Loc loc, EXP op, int size)
     {
         //printf("Expression::Expression(op = %d) this = %p\n", op, this);
