@@ -80,6 +80,11 @@ extern (C++) abstract class Condition : ASTNode
         return null;
     }
 
+    inout(StaticIfCondition) isStaticIfCondition() inout
+    {
+        return null;
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -951,6 +956,11 @@ extern (C++) final class StaticIfCondition : Condition
     override void accept(Visitor v)
     {
         v.visit(this);
+    }
+
+    override inout(StaticIfCondition) isStaticIfCondition() inout
+    {
+        return this;
     }
 
     override const(char)* toChars() const
