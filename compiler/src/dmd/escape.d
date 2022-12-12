@@ -1799,7 +1799,7 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false, bool re
                         if (tf.isreturn)
                             stc |= STC.return_;
                         if (tf.isreturnscope)
-                            stc |= STC.returnScope;
+                            stc |= STC.returnScope | STC.scope_;
                         auto ad = fd.isThis();
                         if (ad.isClassDeclaration() || tf.isScopeQual)
                             stc |= STC.scope_;
