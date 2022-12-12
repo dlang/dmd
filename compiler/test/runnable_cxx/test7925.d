@@ -76,19 +76,19 @@ extern(C++) C2 createC2()
     return new C2;
 }
 
-auto callMember(alias F, Params...)(__traits(parent, F) obj, Params params)
-{
-    static if(__traits(getFunctionVariadicStyle, F) == "stdarg")
-        enum varargSuffix = ", ...";
-    else
-        enum varargSuffix = "";
-
-    static if(is(typeof(&F) R == return) && is(typeof(F) P == __parameters))
-        mixin("extern(" ~ __traits(getLinkage, F) ~ ") R delegate(P" ~ varargSuffix ~ ") dg;");
-    dg.funcptr = &F;
-    dg.ptr = cast(void*)obj;
-    return dg(params);
-}
+//auto callMember(alias F, Params...)(__traits(parent, F) obj, Params params)
+//{
+//    static if(__traits(getFunctionVariadicStyle, F) == "stdarg")
+//        enum varargSuffix = ", ...";
+//    else
+//        enum varargSuffix = "";
+//
+//    static if(is(typeof(&F) R == return) && is(typeof(F) P == __parameters))
+//        mixin("extern(" ~ __traits(getLinkage, F) ~ ") R delegate(P" ~ varargSuffix ~ ") dg;");
+//    dg.funcptr = &F;
+//    dg.ptr = cast(void*)obj;
+//    return dg(params);
+//}
 
 extern(C++) void runCPPTests();
 
@@ -113,11 +113,11 @@ void main()
     assert(dg3(20, 3) == 123);
     assert(dg4(20, 3, 0) == 123);
 
-    assert(callMember!(C1.f0)(c1) == 100);
-    assert(callMember!(C1.f1)(c1, 1) == 101);
-    assert(callMember!(C1.f2)(c1, 20, 3) == 123);
-    assert(callMember!(C1.f3)(c1, 20, 3) == 123);
-    assert(callMember!(C1.f4)(c1, 20, 3, 0) == 123);
+    //assert(callMember!(c1.f0)(c1) == 100);
+    //assert(callMember!(c1.f1)(c1, 1) == 101);
+    //assert(callMember!(c1.f2)(c1, 20, 3) == 123);
+    //assert(callMember!(c1.f3)(c1, 20, 3) == 123);
+    //assert(callMember!(c1.f4)(c1, 20, 3, 0) == 123);
 
     int i;
     extern(C++) void delegate() lamdba1 = () {
