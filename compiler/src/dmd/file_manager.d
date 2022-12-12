@@ -123,7 +123,7 @@ nothrow:
     const(char)[] lookForSourceFile(const char[] filename, const char*[] path)
     {
         //printf("lookForSourceFile(`%.*s`)\n", cast(int)filename.length, filename.ptr);
-        /* Search along path[] for .di file, then .d file, then .i file, then .c file.
+        /* Search along path[] for .di file, then .d file.
         */
         // see if we should check for the module locally.
         bool checkLocal = packageExists(filename);
@@ -139,16 +139,6 @@ nothrow:
         if (checkLocal && FileName.exists(sd) == 1)
             return sd;
         scope(exit) FileName.free(sd.ptr);
-
-        const si = FileName.forceExt(filename, i_ext);
-        if (checkLocal && FileName.exists(si) == 1)
-            return si;
-        scope(exit) FileName.free(si.ptr);
-
-        const sc = FileName.forceExt(filename, c_ext);
-        if (checkLocal && FileName.exists(sc) == 1)
-            return sc;
-        scope(exit) FileName.free(sc.ptr);
 
         if (checkLocal)
         {
@@ -198,18 +188,6 @@ nothrow:
             }
             FileName.free(n.ptr);
 
-            n = FileName.combine(p, si);
-            if (FileName.exists(n) == 1) {
-                return n;
-            }
-            FileName.free(n.ptr);
-
-            n = FileName.combine(p, sc);
-            if (FileName.exists(n) == 1) {
-                return n;
-            }
-            FileName.free(n.ptr);
-
             const b = FileName.removeExt(filename);
             n = FileName.combine(p, b);
             FileName.free(b.ptr);
@@ -234,6 +212,34 @@ nothrow:
                 }
                 FileName.free(n2.ptr);
             }
+        }
+
+        /* ImportC: No D modules found, now search along path[] for .i file, then .c file.
+         */
+        const si = FileName.forceExt(filename, i_ext);
+        if (FileName.exists(si) == 1)
+            return si;
+        scope(exit) FileName.free(si.ptr);
+
+        const sc = FileName.forceExt(filename, c_ext);
+        if (FileName.exists(sc) == 1)
+            return sc;
+        scope(exit) FileName.free(sc.ptr);
+        foreach (entry; path)
+        {
+            const p = entry.toDString();
+
+            const(char)[] n = FileName.combine(p, si);
+            if (FileName.exists(n) == 1) {
+                return n;
+            }
+            FileName.free(n.ptr);
+
+            n = FileName.combine(p, sc);
+            if (FileName.exists(n) == 1) {
+                return n;
+            }
+            FileName.free(n.ptr);
         }
         return null;
     }
