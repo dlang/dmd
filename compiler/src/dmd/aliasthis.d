@@ -94,7 +94,7 @@ Expression resolveAliasThis(Scope* sc, Expression e, bool gag = false, bool find
             Type tthis = (e.op == EXP.type ? e.type : null);
             const flags = DotExpFlag.noAliasThis | (gag ? DotExpFlag.gag : 0);
             uint olderrors = gag ? global.startGagging() : 0;
-            e = dotExp(e.type, sc, e, ad.aliasthis.ident, flags);
+            e = dotExp(ad.type, sc, e, ad.aliasthis.ident, flags);
             if (!e || findOnly)
                 return gag && global.endGagging(olderrors) ? null : e;
 
