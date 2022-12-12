@@ -1284,6 +1284,59 @@ extern (C++) final class Module : Package
             _escapetable = new Escape();
         return _escapetable;
     }
+
+    /****************************
+     * A Singleton that loads core.atomic
+     * Returns:
+     *  Module of core.atomic, null if couldn't find it
+     */
+    extern (D) static Module loadCoreAtomic()
+    {
+        __gshared Module core_atomic;
+        return loadModuleFromLibrary(core_atomic, Id.core, Id.atomic);
+    }
+
+    /****************************
+     * A Singleton that loads std.math
+     * Returns:
+     *  Module of std.math, null if couldn't find it
+     */
+    extern (D) static Module loadStdMath()
+    {
+        __gshared Module std_math;
+        return loadModuleFromLibrary(std_math, Id.std, Id.math);
+    }
+
+    /**********************************
+     * Load a Module from the library.
+     * Params:
+     *  mod = cached return value of this call
+     *  pkgid = package id
+     *  modid = module id
+     * Returns:
+     *  Module loaded, null if cannot load it
+     */
+    private static Module loadModuleFromLibrary(ref Module mod, Identifier pkgid, Identifier modid)
+    {
+        if (mod)
+            return mod;
+
+        auto ids = new Identifier[1];
+        ids[0] = pkgid;
+        auto imp = new Import(Loc.initial, ids[], modid, null, true);
+        // Module.load will call fatal() if there's no module available.
+        // Gag the error here, pushing the error handling to the caller.
+        const errors = global.startGagging();
+        imp.load(null);
+        if (imp.mod)
+        {
+            imp.mod.importAll(null);
+            imp.mod.dsymbolSemantic(null);
+        }
+        global.endGagging(errors);
+        mod = imp.mod;
+        return mod;
+    }
 }
 
 /***********************************************************

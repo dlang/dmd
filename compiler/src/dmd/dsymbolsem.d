@@ -7073,33 +7073,13 @@ bool determineFields(AggregateDeclaration ad)
 /// Do an atomic operation (currently tailored to [shared] static ctors|dtors) needs
 private CallExp doAtomicOp (string op, Identifier var, Expression arg)
 {
-    __gshared Import imp = null;
-    __gshared Identifier[1] id;
-
     assert(op == "-=" || op == "+=");
 
-    const loc = Loc.initial;
+    Module mod = Module.loadCoreAtomic();
+    if (!mod)
+        return null;    // core.atomic couldn't be loaded
 
-    // Below code is similar to `loadStdMath` (used for `^^` operator)
-    if (!imp)
-    {
-        id[0] = Id.core;
-        auto s = new Import(Loc.initial, id[], Id.atomic, null, true);
-        // Module.load will call fatal() if there's no std.math available.
-        // Gag the error here, pushing the error handling to the caller.
-        uint errors = global.startGagging();
-        s.load(null);
-        if (s.mod)
-        {
-            s.mod.importAll(null);
-            s.mod.dsymbolSemantic(null);
-        }
-        global.endGagging(errors);
-        imp = s;
-    }
-    // Module couldn't be loaded
-    if (imp.mod is null)
-        return null;
+    const loc = Loc.initial;
 
     Objects* tiargs = new Objects(1);
     (*tiargs)[0] = new StringExp(loc, op);
@@ -7108,7 +7088,7 @@ private CallExp doAtomicOp (string op, Identifier var, Expression arg)
     (*args)[0] = new IdentifierExp(loc, var);
     (*args)[1] = arg;
 
-    auto sc = new ScopeExp(loc, imp.mod);
+    auto sc = new ScopeExp(loc, mod);
     auto dti = new DotTemplateInstanceExp(
         loc, sc, Id.atomicOp, tiargs);
 
