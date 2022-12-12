@@ -115,6 +115,9 @@ $(H3 $(LNAME2 crtctor, $(D pragma crt_constructor)))
     $(P Annotating a struct or class definition does not affect the members of
     the aggregate.)
 
+    $(P A function that is annotated with `pragma(crt_constructor)` may initialize
+    `const` or `immutable` variables.)
+
     $(BEST_PRACTICE Use for system programming and interfacing with C/C++,
         for example to allow for initialization of the runtime when loading a DSO,
         or as a simple replacement for `shared static this` in
