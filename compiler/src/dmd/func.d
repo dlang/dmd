@@ -406,6 +406,7 @@ extern (C++) class FuncDeclaration : Declaration
      */
     final bool functionSemantic()
     {
+        import dmd.trace; mixin(probeScope("this"));
         //printf("functionSemantic() %p %s\n", this, toChars());
         if (!_scope)
             return !errors;

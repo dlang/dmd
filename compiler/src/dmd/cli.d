@@ -570,6 +570,9 @@ dmd -cov -unittest myprog.d
         Option("mixin=<filename>",
             "expand and save mixins to file specified by <filename>"
         ),
+        Option("trace=<filename>",
+            "output compile time profiling traces"
+        ),
         Option("mscrtlib=<libname>",
             "MS C runtime library to reference from main/WinMain/DllMain",
             "If building MS-COFF object files when targeting Windows, embed a reference to

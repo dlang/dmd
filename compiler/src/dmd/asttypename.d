@@ -42,6 +42,7 @@ import dmd.statement;
 import dmd.staticassert;
 import dmd.nspace;
 import dmd.visitor;
+import dmd.ast_node;
 
 /// Returns: the typename of the dynamic ast-node-type
 /// (this is a development tool, do not use in actual code)

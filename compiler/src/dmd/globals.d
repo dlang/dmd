@@ -1,3 +1,4 @@
+
 /**
  * Stores command line options and contains other miscellaneous declarations.
  *
@@ -187,6 +188,7 @@ extern (C++) struct Param
     Array!(const(char)*) modFileAliasStrings; // array of char*'s of -I module filename alias strings
     Array!(const(char)*)* imppath;      // array of char*'s of where to look for import modules
     Array!(const(char)*)* fileImppath;  // array of char*'s of where to look for file import modules
+    const(char)[] traceFile;            // Path for file to write dmd internal profiling data
     const(char)[] objdir;                // .obj/.lib file output directory
     const(char)[] objname;               // .obj file output name
     const(char)[] libname;               // .lib file output name

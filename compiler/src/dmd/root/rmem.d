@@ -141,6 +141,8 @@ extern (C++) struct Mem
         if (isGCEnabled)
             GC.removeRange(p);
     }
+
+    __gshared ulong allocated = 0;
 }
 
 extern (C++) const __gshared Mem mem;
@@ -152,6 +154,8 @@ __gshared void* heapp;
 
 extern (D) void* allocmemoryNoFree(size_t m_size) nothrow @nogc
 {
+    Mem.allocated += m_size;
+
     // 16 byte alignment is better (and sometimes needed) for doubles
     m_size = (m_size + 15) & ~15;
 
@@ -214,6 +218,10 @@ static if (OVERRIDE_MEMALLOC)
 
     extern (C) void* _d_allocmemory(size_t m_size) nothrow
     {
+        version (GC)
+            if (mem.isGCEnabled)
+                return GC.malloc(m_size);
+
         return allocmemory(m_size);
     }
 

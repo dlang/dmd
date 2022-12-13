@@ -255,6 +255,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     {
         fatal();
     }
+
     if (files.length == 0)
     {
         if (params.jsonFieldFlags)
@@ -616,6 +617,12 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     if (global.errors || global.warnings)
         removeHdrFilesAndFail(params, modules);
+
+    if (params.traceFile !is null)
+    {
+        import dmd.trace : writeTrace;
+        writeTrace(null, params.traceFile);
+    }
 
     return status;
 }
@@ -1824,6 +1831,17 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 goto Lerror;
             else
                 params.trace = true;
+        }
+        else if (startsWith(p + 1, "trace")) // TODO: use skipOver
+        {
+            if (p["-trace".length] == '=') // TODO: use skipOver
+                params.traceFile = p["-trace=".length .. arg.length];
+            else if (!p[8])
+                params.traceFile = ""; // indicate that tracing is enabled
+            else
+                goto Lerror;
+            import dmd.trace : enableTracing;
+            enableTracing();
         }
         else if (arg == "-v") // https://dlang.org/dmd.html#switch-v
             params.verbose = true;

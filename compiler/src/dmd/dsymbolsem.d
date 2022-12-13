@@ -126,6 +126,7 @@ private void setPragmaPrintf(Dsymbol s, bool printf)
  */
 extern(C++) void dsymbolSemantic(Dsymbol dsym, Scope* sc)
 {
+    import dmd.trace; mixin(probeScope("dsym"));
     scope v = new DsymbolSemanticVisitor(sc);
     dsym.accept(v);
 }
@@ -5771,6 +5772,7 @@ void addEnumMembers(EnumDeclaration ed, Scope* sc, ScopeDsymbol sds)
 
 void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions* fargs)
 {
+    import dmd.trace; mixin(probeScope("tempinst"));
     //printf("[%s] TemplateInstance.dsymbolSemantic('%s', this=%p, gag = %d, sc = %p)\n", tempinst.loc.toChars(), tempinst.toChars(), tempinst, global.gag, sc);
     version (none)
     {

@@ -841,6 +841,7 @@ Expression resolvePropertiesOnly(Scope* sc, Expression e1)
  */
 Expression symbolToExp(Dsymbol s, const ref Loc loc, Scope *sc, bool hasOverloads)
 {
+    import dmd.trace; mixin(probeScope("s"));
     static if (LOGSEMANTIC)
     {
         printf("DsymbolExp::resolve(%s %s)\n", s.kind(), s.toChars());
@@ -12514,6 +12515,7 @@ Expression binSemanticProp(BinExp e, Scope* sc)
 // entrypoint for semantic ExpressionSemanticVisitor
 extern (C++) Expression expressionSemantic(Expression e, Scope* sc)
 {
+    import dmd.trace; mixin(probeScope("e"));
     scope v = new ExpressionSemanticVisitor(sc);
     e.accept(v);
     return v.result;
