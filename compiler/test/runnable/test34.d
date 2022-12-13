@@ -576,7 +576,9 @@ ulong foo32()
 
 void test32()
 {
-        assert(foo32()==1176576510);
+	//pragma(msg, foo32());
+        //assert(foo32()==1176576510); // round to real
+        assert(foo32()==1176576512); // round to float
 }
 
 /************************************************/
