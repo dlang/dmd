@@ -113,6 +113,7 @@ class StaticForeach;
 struct UnionExp;
 class DebugCondition;
 class VersionCondition;
+class StaticIfCondition;
 class ForeachStatement;
 class ForeachRangeStatement;
 class StringExp;
@@ -5606,6 +5607,7 @@ public:
     virtual int32_t include(Scope* sc) = 0;
     virtual DebugCondition* isDebugCondition();
     virtual VersionCondition* isVersionCondition();
+    virtual StaticIfCondition* isStaticIfCondition();
     void accept(Visitor* v) override;
 };
 
@@ -5657,6 +5659,7 @@ public:
     StaticIfCondition* syntaxCopy() override;
     int32_t include(Scope* sc) override;
     void accept(Visitor* v) override;
+    StaticIfCondition* isStaticIfCondition() override;
     const char* toChars() const override;
 };
 

@@ -6447,6 +6447,11 @@ struct ASTBase
         {
             v.visit(this);
         }
+
+        inout(StaticIfCondition) isStaticIfCondition() inout
+        {
+            return null;
+        }
     }
 
     extern (C++) final class StaticForeach : RootObject
@@ -6482,6 +6487,11 @@ struct ASTBase
         override void accept(Visitor v)
         {
             v.visit(this);
+        }
+
+        override inout(StaticIfCondition) isStaticIfCondition() inout
+        {
+            return this;
         }
     }
 
