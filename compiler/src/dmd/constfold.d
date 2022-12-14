@@ -133,89 +133,121 @@ UnionExp Add(const ref Loc loc, Type type, Expression e1, Expression e2)
     static if (LOG)
     {
         printf("Add(e1 = %s, e2 = %s)\n", e1.toChars(), e2.toChars());
+        printf("type %s t1 %s t2 %s\n", type.toChars(), e1.type.toChars(), e2.type.toChars());
     }
-    if (type.isreal())
+
+    real_t e1re() { return e1.toReal(); }
+    real_t e1im() { return e1.toImaginary(); }
+    real_t e2re() { return e2.toReal(); }
+    real_t e2im() { return e2.toImaginary(); }
+
+    static real_t addf(real_t x, real_t y) { return x + y; }
+    static real_t addd(real_t x, real_t y) { return x + y; }
+
+    switch (type.toBasetype().ty)
     {
-        emplaceExp!(RealExp)(&ue, loc, e1.toReal() + e2.toReal(), type);
-    }
-    else if (type.isimaginary())
-    {
-        emplaceExp!(RealExp)(&ue, loc, e1.toImaginary() + e2.toImaginary(), type);
-    }
-    else if (type.iscomplex())
-    {
-        // This rigamarole is necessary so that -0.0 doesn't get
-        // converted to +0.0 by doing an extraneous add with +0.0
-        auto c1 = complex_t(CTFloat.zero);
-        real_t r1 = CTFloat.zero;
-        real_t i1 = CTFloat.zero;
-        auto c2 = complex_t(CTFloat.zero);
-        real_t r2 = CTFloat.zero;
-        real_t i2 = CTFloat.zero;
-        auto v = complex_t(CTFloat.zero);
-        int x;
-        if (e1.type.isreal())
+        case Tfloat32:
+            emplaceExp!(RealExp)(&ue, loc, addf(e1re, e2re), type);
+            return ue;
+
+        case Timaginary32:
+            emplaceExp!(RealExp)(&ue, loc, addf(e1im, e2im), type);
+            return ue;
+
+        case Tfloat64:
+            emplaceExp!(RealExp)(&ue, loc, addd(e1re, e2re), type);
+            return ue;
+
+        case Timaginary64:
+            emplaceExp!(RealExp)(&ue, loc, addd(e1im, e2im), type);
+            return ue;
+
+        case Tfloat80:
+            emplaceExp!(RealExp)(&ue, loc, e1.toReal() + e2.toReal(), type);
+            return ue;
+
+        case Timaginary80:
+            emplaceExp!(RealExp)(&ue, loc, e1.toImaginary() + e2.toImaginary(), type);
+            return ue;
+
+        case Tcomplex32:
         {
-            r1 = e1.toReal();
-            x = 0;
+            alias add = addf;
+            auto v = complex_t(CTFloat.zero);
+            switch (e1.type.toBasetype().ty * TY.TMAX + e2.type.toBasetype().ty)
+            {
+                case Tfloat32     * TY.TMAX + Tfloat32:     v = complex_t(add(e1re, e2re)                 ); break;
+                case Tfloat32     * TY.TMAX + Timaginary32: v = complex_t(e1re,            e2im           ); break;
+                case Tfloat32     * TY.TMAX + Tcomplex32:   v = complex_t(add(e1re, e2re), e2im           ); break;
+                case Timaginary32 * TY.TMAX + Tfloat32:     v = complex_t(e2re,            e1im           ); break;
+                case Timaginary32 * TY.TMAX + Timaginary32: v = complex_t(CTFloat.zero,    add(e1im, e2im)); break;
+                case Timaginary32 * TY.TMAX + Tcomplex32:   v = complex_t(e2re,            add(e1im, e2im)); break;
+                case Tcomplex32   * TY.TMAX + Tfloat32:     v = complex_t(add(e1re, e2re), e1im           ); break;
+                case Tcomplex32   * TY.TMAX + Timaginary32: v = complex_t(e1re,            add(e1im, e2im)); break;
+                case Tcomplex32   * TY.TMAX + Tcomplex32:   v = complex_t(add(e1re, e2re), add(e1im, e2im)); break;
+
+                default:
+                    assert(0);
+            }
+            emplaceExp!(ComplexExp)(&ue, loc, v, type);
+            return ue;
         }
-        else if (e1.type.isimaginary())
+
+        case Tcomplex64:
         {
-            i1 = e1.toImaginary();
-            x = 3;
+            alias add = addd;
+            auto v = complex_t(CTFloat.zero);
+            switch (e1.type.toBasetype().ty * TY.TMAX + e2.type.toBasetype().ty)
+            {
+                case Tfloat64     * TY.TMAX + Tfloat64:     v = complex_t(add(e1re, e2re)                 ); break;
+                case Tfloat64     * TY.TMAX + Timaginary64: v = complex_t(e1re,            e2im           ); break;
+                case Tfloat64     * TY.TMAX + Tcomplex64:   v = complex_t(add(e1re, e2re), e2im           ); break;
+                case Timaginary64 * TY.TMAX + Tfloat64:     v = complex_t(e2re,            e1im           ); break;
+                case Timaginary64 * TY.TMAX + Timaginary64: v = complex_t(CTFloat.zero,    add(e1im, e2im)); break;
+                case Timaginary64 * TY.TMAX + Tcomplex64:   v = complex_t(e2re,            add(e1im, e2im)); break;
+                case Tcomplex64   * TY.TMAX + Tfloat64:     v = complex_t(add(e1re, e2re), e1im           ); break;
+                case Tcomplex64   * TY.TMAX + Timaginary64: v = complex_t(e1re,            add(e1im, e2im)); break;
+                case Tcomplex64   * TY.TMAX + Tcomplex64:   v = complex_t(add(e1re, e2re), add(e1im, e2im)); break;
+
+                default:
+                    assert(0);
+            }
+            //printf("%Lg %Lg\n", creall(v), cimagl(v));
+            emplaceExp!(ComplexExp)(&ue, loc, v, type);
+            return ue;
         }
-        else
+
+        case Tcomplex80:
         {
-            c1 = e1.toComplex();
-            x = 6;
+            static real_t add(real_t x, real_t y) { return x + y; } // add in real_t precision
+
+            auto v = complex_t(CTFloat.zero);
+            switch (e1.type.toBasetype().ty * TY.TMAX + e2.type.toBasetype().ty)
+            {
+                case Tfloat80     * TY.TMAX + Tfloat80:     v = complex_t(add(e1re, e2re)                 ); break;
+                case Tfloat80     * TY.TMAX + Timaginary80: v = complex_t(e1re,            e2im           ); break;
+                case Tfloat80     * TY.TMAX + Tcomplex80:   v = complex_t(add(e1re, e2re), e2im           ); break;
+                case Timaginary80 * TY.TMAX + Tfloat80:     v = complex_t(e2re,            e1im           ); break;
+                case Timaginary80 * TY.TMAX + Timaginary80: v = complex_t(CTFloat.zero,    add(e1im, e2im)); break;
+                case Timaginary80 * TY.TMAX + Tcomplex80:   v = complex_t(e2re,            add(e1im, e2im)); break;
+                case Tcomplex80   * TY.TMAX + Tfloat80:     v = complex_t(add(e1re, e2re), e1im           ); break;
+                case Tcomplex80   * TY.TMAX + Timaginary80: v = complex_t(e1re,            add(e1im, e2im)); break;
+                case Tcomplex80   * TY.TMAX + Tcomplex80:   v = complex_t(add(e1re, e2re), add(e1im, e2im)); break;
+
+                default:
+                    assert(0);
+            }
+            emplaceExp!(ComplexExp)(&ue, loc, v, type);
+            return ue;
         }
-        if (e2.type.isreal())
-        {
-            r2 = e2.toReal();
-        }
-        else if (e2.type.isimaginary())
-        {
-            i2 = e2.toImaginary();
-            x += 1;
-        }
-        else
-        {
-            c2 = e2.toComplex();
-            x += 2;
-        }
-        switch (x)
-        {
-        case 0 + 0:
-            v = complex_t(r1 + r2);
-            break;
-        case 0 + 1:
-            v = complex_t(r1, i2);
-            break;
-        case 0 + 2:
-            v = complex_t(r1 + creall(c2), cimagl(c2));
-            break;
-        case 3 + 0:
-            v = complex_t(r2, i1);
-            break;
-        case 3 + 1:
-            v = complex_t(CTFloat.zero, i1 + i2);
-            break;
-        case 3 + 2:
-            v = complex_t(creall(c2), i1 + cimagl(c2));
-            break;
-        case 6 + 0:
-            v = complex_t(creall(c1) + r2, cimagl(c2));
-            break;
-        case 6 + 1:
-            v = complex_t(creall(c1), cimagl(c1) + i2);
-            break;
-        case 6 + 2:
-            v = c1 + c2;
-            break;
+
         default:
-            assert(0);
-        }
-        emplaceExp!(ComplexExp)(&ue, loc, v, type);
+            break;
+    }
+
+    if (type.iscomplex())
+    {
+        assert(0);
     }
     else if (SymOffExp soe = e1.isSymOffExp())
     {
