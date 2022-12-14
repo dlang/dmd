@@ -321,7 +321,7 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
                 (command line switch $(DDSUBLINK dmd, switch-betterC, $(TT -betterC))) is being generated))
         $(TROW $(ARGS $(D D_Exceptions)) , $(ARGS Exception handling is supported.  Evaluates to `false` when compiling with
                 command line switch $(DDSUBLINK dmd, switch-betterC, $(TT -betterC))))
-        $(TROW $(ARGS $(D D_ModuleInfo)) , $(ARGS `ModuleInfo` is supported.  Evaluates to `false` when compiling with
+        $(TROW $(ARGS $(D D_ModuleInfo)) , $(ARGS $(DDSUBLINK abi, ModuleInfo, $(TT ModuleInfo)) is supported.  Evaluates to `false` when compiling with
                 command line switch $(DDSUBLINK dmd, switch-betterC, $(TT -betterC))))
         $(TROW $(ARGS $(D D_TypeInfo)) , $(ARGS Runtime type information (a.k.a `TypeInfo`) is supported.  Evaluates to `false` when compiling with
                 command line switch $(DDSUBLINK dmd, switch-betterC, $(TT -betterC))))
