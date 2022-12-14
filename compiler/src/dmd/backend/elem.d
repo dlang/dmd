@@ -1787,15 +1787,7 @@ void shrinkLongDoubleConstantIfPossible(elem *e)
         auto v = e.EV.Vldouble;
         double vDouble;
 
-        version (CRuntime_Microsoft)
-        {
-            static if (is(typeof(v) == real))
-                *(&vDouble) = v;
-            else
-                *(&vDouble) = cast(double)v;
-        }
-        else
-            *(&vDouble) = v;
+        *(&vDouble) = cast(double) v;
 
         if (v == vDouble)       // This will fail if compiler does NaN incorrectly!
         {
@@ -3105,17 +3097,21 @@ case_tym:
 
         case TYldouble:
         {
-            version (CRuntime_Microsoft)
+            version (all)
             {
+                import dmd.root.ctfloat;
+                /*
+                    We are now using longdouble_soft/CTFloat everywhere.
+                */
                 char[3 + 3 * (targ_ldouble).sizeof + 1] buffer = void;
                 static if (is(typeof(e.EV.Vldouble) == real))
-                    ld_sprint(buffer.ptr, 'g', longdouble_soft(e.EV.Vldouble));
+                    CTFloat.sprint(buffer.ptr, 'g', longdouble_soft(e.EV.Vldouble));
                 else
-                    ld_sprint(buffer.ptr, 'g', longdouble_soft(cast(real)e.EV.Vldouble));
+                    CTFloat.sprint(buffer.ptr, 'g', longdouble_soft(cast(real)e.EV.Vldouble));
                 printf("%s ", buffer.ptr);
             }
-            else
-                printf("%Lg ", e.EV.Vldouble);
+            // else
+                // printf("%Lg ", e.EV.Vldouble);
             break;
         }
 

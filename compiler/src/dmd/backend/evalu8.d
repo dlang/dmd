@@ -37,7 +37,7 @@ import dmd.backend.global;
 import dmd.backend.el;
 import dmd.backend.ty;
 import dmd.backend.type;
-
+import dmd.root.ctfloat;
 import dmd.common.int128;
 
 version (SCPP)
@@ -128,7 +128,8 @@ version (SCPP)
                 case TYdouble_alias:
                 case TYildouble:
                 case TYldouble:
-                {   targ_ldouble ld = el_toldoubled(e);
+                {
+                    targ_ldouble ld = el_toldoubled(e);
 
                     if (isnan(ld))
                         b = 1;

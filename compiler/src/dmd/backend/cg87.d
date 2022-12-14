@@ -660,10 +660,11 @@ ubyte loadconst(elem *e, int im)
     immutable double[7] dval =
         [0.0,1.0,PI,LOG2T,LOG2E,LOG2,LN2];
 
-    static if (real.sizeof < 10)
+    static if (true)
     {
         import dmd.root.longdouble;
-        immutable targ_ldouble[7] ldval =
+        // Static is to allow WorseD (betterC) compilation on 2.079.0
+        static immutable targ_ldouble[7] ldval =
         [ld_zero,ld_one,ld_pi,ld_log2t,ld_log2e,ld_log2,ld_ln2];
     }
     else
