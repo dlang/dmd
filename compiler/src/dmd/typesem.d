@@ -3959,7 +3959,14 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
         Dsymbol s = mt.sym.search(e.loc, ident);
         if (!s)
         {
-            if (ident == Id.max || ident == Id.min || ident == Id._init)
+            if (ident == Id._init)
+            {
+                return mt.getProperty(sc, e.loc, ident, flag & 1);
+            }
+
+            /* Allow special enums to not need a member list
+             */
+            if ((ident == Id.max || ident == Id.min) && (mt.sym.members || !mt.sym.isSpecial()))
             {
                 return mt.getProperty(sc, e.loc, ident, flag & 1);
             }
@@ -4880,13 +4887,6 @@ Expression getMaxMinValue(EnumDeclaration ed, const ref Loc loc, Identifier id)
         return errorReturn();
     if (!ed.members)
     {
-        if (ed.isSpecial())
-        {
-            /* Allow these special enums to not need a member list
-             */
-            return ed.memtype.getProperty(ed._scope, loc, id, 0);
-        }
-
         ed.error(loc, "is opaque and has no `.%s`", id.toChars());
         return errorReturn();
     }
