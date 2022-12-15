@@ -5197,7 +5197,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                             cldec.baseClass.toChars(),
                             cldec.baseClass.toParentLocal().toChars());
                     }
-                    cldec.enclosing = null;
                 }
                 if (cldec.vthis2)
                 {
