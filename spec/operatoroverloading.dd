@@ -534,7 +534,7 @@ assert(a != b);   // generated opEquals tests both i and j members
 )
 
 $(BEST_PRACTICE Using `(i > s.i) - (i < s.i)` instead of `i - s.i` to
-compare integers avoids overflow/underflow.)
+compare integers avoids overflow.)
 
 
 $(H2 $(LEGACY_LNAME2 FunctionCall, function-call, Function Call Operator Overloading $(D f())))
