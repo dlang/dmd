@@ -1529,7 +1529,7 @@ public:
         }
         // Little sanity check to make sure it's really a Throwable
         ClassReferenceExp boss = oldest.thrown;
-        const next = 4;                         // index of Throwable.next
+        const next = 5;                         // index of Throwable.next
         assert((*boss.value.elements)[next].type.ty == Tclass); // Throwable.next
         ClassReferenceExp collateral = newest.thrown;
         if (collateral.originalClass().isErrorException() && !boss.originalClass().isErrorException())
@@ -6178,7 +6178,7 @@ public:
     {
         debug (LOG)
         {
-            printf("%s ThrowExpression::interpret()\n", e.loc.toChars());
+            printf("%s ThrowExpression::interpret()\n", te.loc.toChars());
         }
         interpretThrow(te.e1, te.loc);
     }
