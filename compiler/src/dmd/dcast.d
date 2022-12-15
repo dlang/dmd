@@ -66,10 +66,14 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
 {
     Expression visit(Expression e)
     {
-        //printf("Expression.implicitCastTo(%s of type %s) => %s\n", e.toChars(), e.type.toChars(), t.toChars());
+        // printf("Expression.implicitCastTo(%s of type %s) => %s\n", e.toChars(), e.type.toChars(), t.toChars());
 
         if (const match = (sc && sc.flags & SCOPE.Cfile) ? e.cimplicitConvTo(t) : e.implicitConvTo(t))
         {
+            if (match == MATCH.convert && e.type.isTypeNoreturn())
+            {
+                return specialNoreturnCast(e, t);
+            }
             if (match == MATCH.constant && (e.type.constConv(t) || !e.isLvalue() && e.type.equivalent(t)))
             {
                 /* Do not emit CastExp for const conversions and
@@ -1525,6 +1529,10 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
         if (e.type.equals(t))
         {
             return e;
+        }
+        if (e.type.isTypeNoreturn())
+        {
+            return specialNoreturnCast(e, t);
         }
         if (auto ve = e.isVarExp())
         {
@@ -3862,4 +3870,22 @@ IntRange getIntRange(Expression e)
         case EXP.tilde              : return visitCom(e.isComExp());
         case EXP.negate             : return visitNeg(e.isNegExp());
     }
+}
+/**
+ * A helper function to "cast" from expressions of type noreturn to
+ * any other type - noreturn is implicitly convertible to any other type.
+ * However, the dmd backend does not like a naive cast from a noreturn expression
+ * (particularly an `assert(0)`) so this function generates:
+ *
+ * `(assert(0), value)` instead of `cast(to)(assert(0))`.
+ *
+ * `value` is currently `to.init` however it cannot be read so could be made simpler.
+ * Params:
+ *   toBeCasted = Expression of type noreturn to cast
+ *   to = Type to cast the expression to.
+ * Returns: A CommaExp, upon any failure ErrorExp will be returned.
+ */
+Expression specialNoreturnCast(Expression toBeCasted, Type to)
+{
+    return Expression.combine(toBeCasted, to.defaultInitLiteral(toBeCasted.loc));
 }

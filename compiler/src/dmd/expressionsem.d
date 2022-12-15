@@ -12217,10 +12217,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (t1.ty == Tnoreturn)
         {
             exp.type = t2;
+            exp.e1 = specialNoreturnCast(exp.e1, exp.type);
         }
         else if (t2.ty == Tnoreturn)
         {
             exp.type = t1;
+            exp.e2 = specialNoreturnCast(exp.e2, exp.type);
         }
         // If either operand is void the result is void, we have to cast both
         // the expression to void so that we explicitly discard the expression
