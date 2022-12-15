@@ -8708,6 +8708,7 @@ struct Id final
     static Identifier* getVisibility;
     static Identifier* parent;
     static Identifier* child;
+    static Identifier* getModuleClasses;
     static Identifier* getMember;
     static Identifier* getOverloads;
     static Identifier* getVirtualFunctions;
