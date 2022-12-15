@@ -987,7 +987,7 @@ $(H2 $(LNAME2 ModuleInfo, ModuleInfo Instance))
         $(NOTE this feature may be removed.))
         )
 
-        $(P `ModuleInfo` is defined in Druntime's $(DRUNTIMESRC object.d).)
+        $(P `ModuleInfo` is defined in Druntime's $(DRUNTIMESRC object.d), which must match the compiler's output in both the values of flags and layout of fields.)
 
         $(P Modules compiled with $(DDSUBLINK dmd, switch-betterC, $(TT -betterC))
         do not have a `ModuleInfo` instance generated, because such modules must work
