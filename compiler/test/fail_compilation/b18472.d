@@ -2,7 +2,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/b18472.d(7): Error: cannot use `new` in `@nogc` function `b18472.getFun.gcAlloc2`
+fail_compilation/b18472.d(14): Error: cannot use `new` in `@nogc` function `b18472.getFun.gcAlloc2`
 ---
 */
 @nogc:
