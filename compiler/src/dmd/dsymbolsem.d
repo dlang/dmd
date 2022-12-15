@@ -2464,8 +2464,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             e = e.ctfeInterpret();
             if (e.toInteger())
             {
+                auto mt = em.ed.memtype;
+                if (!mt)
+                    mt = eprev.type;
                 em.error("initialization with `%s.%s+1` causes overflow for type `%s`",
-                    emprev.ed.toChars(), emprev.toChars(), em.ed.memtype.toChars());
+                    emprev.ed.toChars(), emprev.toChars(), mt.toChars());
                 return errorReturn();
             }
 
@@ -5165,6 +5168,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 }
 
                 // Copy vtbl[] from base class
+                assert(cldec.vtbl.length == 0);
                 cldec.vtbl.setDim(cldec.baseClass.vtbl.length);
                 memcpy(cldec.vtbl.tdata(), cldec.baseClass.vtbl.tdata(), (void*).sizeof * cldec.vtbl.length);
 
