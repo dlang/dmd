@@ -459,7 +459,19 @@ alias directoryRule = makeRuleWithArgs!((MethodInitializer!BuildRule builder, Bu
    .msg("mkdirRecurse '%s'".format(dir))
    .commandFunction(() => mkdirRecurse(dir))
 );
+alias dmdSymlink = makeRule!((builder, rule) => builder
+    .commandFunction((){
+        import std.process;
+        version(Windows)
+        {
 
+        }
+        else
+        {
+            spawnProcess(["ln", "-sf", env["DMD_PATH"], "./dmd"]);
+        }
+    })
+);
 /**
 BuildRule for the DMD executable.
 
