@@ -671,7 +671,7 @@ alias runTests = makeRule!((testBuilder, testRule)
 
 /// BuildRule to run the DMD unittest executable.
 alias runDmdUnittest = makeRule!((builder, rule) {
-auto dmdUnittestExe = dmdExe("-unittest", ["-version=NoMain", "-unittest", "-main"], ["-unittest"]);
+auto dmdUnittestExe = dmdExe("-unittest", ["-version=NoMain", "-unittest", env["HOST_DMD_KIND"] == "gdc" ? "-fmain" : "-main"], ["-unittest"]);
     builder
         .name("unittest")
         .description("Run the dmd unittests")
