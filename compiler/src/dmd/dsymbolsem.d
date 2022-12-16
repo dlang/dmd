@@ -5382,10 +5382,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             cldec.error("already exists at %s. Perhaps in another function with the same name?", cd.loc.toChars());
         }
 
-        if (global.errors != errors)
+        if (global.errors != errors || (cldec.baseClass && cldec.baseClass.errors))
         {
-            // The type is no good.
-            cldec.type = Type.terror;
+            // The type is no good, but we should keep the
+            // the type so that we have more accurate error messages
+            // See: https://issues.dlang.org/show_bug.cgi?id=23552
             cldec.errors = true;
             if (cldec.deferred)
                 cldec.deferred.errors = true;
