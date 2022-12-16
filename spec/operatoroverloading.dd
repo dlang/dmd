@@ -369,6 +369,7 @@ $(H2 $(LNAME2 eqcmp, Overloading the Comparison Operators))
         $(D opCmp).)
 
         $(P The equality and inequality operators are treated separately
+        from comparison operators
         because while practically all user-defined types can be compared for
         equality, only a subset of types have a meaningful ordering. For
         example, while it makes sense to determine if two RGB color vectors are
@@ -514,6 +515,28 @@ struct S
         version of $(D opEquals).  Otherwise, inequalities like $(D a <= b)
         will behave inconsistently with equalities like $(D a == b).)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+struct S
+{
+    int i, j;
+    int opCmp(ref const S s) const { return (i > s.i) - (i < s.i); } // ignore j
+}
+
+S a = {2, 3};
+S b = {2, 1};
+S c = {3, 0};
+assert(a < c);
+assert(a <= b);
+assert(!(a < b)); // opCmp ignores j
+assert(a != b);   // generated opEquals tests both i and j members
+---
+)
+
+$(BEST_PRACTICE Using `(i > s.i) - (i < s.i)` instead of `i - s.i` to
+compare integers avoids overflow.)
+
+
 $(H2 $(LEGACY_LNAME2 FunctionCall, function-call, Function Call Operator Overloading $(D f())))
 
         $(P The function call operator, $(D ()), can be overloaded by
@@ -548,6 +571,7 @@ $(H2 $(LEGACY_LNAME2 FunctionCall, function-call, Function Call Operator Overloa
         so that it takes priority over $(D opCall) in $(D Type(...)) syntax.
         )
 
+    $(SPEC_RUNNABLE_EXAMPLE_RUN
     -------
     struct Multiplier
     {
@@ -555,13 +579,16 @@ $(H2 $(LEGACY_LNAME2 FunctionCall, function-call, Function Call Operator Overloa
         this(int num) { factor = num; }
         int opCall(int value) { return value * factor; }
     }
-    void test()
+
+    void main()
     {
         Multiplier m = Multiplier(10);  // invoke constructor
+        assert(m.factor == 10);
         int result = m(5);              // invoke opCall
         assert(result == 50);
     }
     -------
+    )
 
 $(H3 $(LNAME2 static-opcall, Static opCall))
 
@@ -729,6 +756,21 @@ a $(METACODE op)= b
 a.opOpAssign!($(METACODE "op"))(b)
 ---
 
+Example:
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+struct S
+{
+    int i;
+    void opOpAssign(string op: "+")(int rhs) { i += rhs; }
+}
+
+S s = {2};
+s += 3;
+assert(s.i == 5);
+---
+)
+
 $(H3 $(LNAME2 index_op_assignment, Index Op Assignment Operator Overloading))
 
         $(P If the left hand side of an $(I op)= is an index expression on
@@ -823,6 +865,7 @@ $(H3 $(LEGACY_LNAME2 Slice, slice, Slice Operator Overloading))
         $(P To overload $(D a[]), simply define $(D opIndex) with no parameters:
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 -----
 struct S
 {
@@ -832,25 +875,49 @@ struct S
         return impl[];
     }
 }
-void test()
+
+void main()
 {
     auto s = S([1,2,3]);
-    auto t = s[]; // calls s.opIndex()
+    int[] t = s[]; // calls s.opIndex()
     assert(t == [1,2,3]);
 }
 -----
+)
 
-        $(P To overload array indexing of the form $(D a[)$(SLICE)$(D ,) ...$(D ]),
+        $(P To overload array slicing of the form $(D a[)$(SLICE)$(D ]),
         two steps are needed.  First, the expressions of the form $(SLICE) are
-        translated via $(D opSlice) into user-defined objects that encapsulate
-        the endpoints $(I i) and $(I j). Then these user-defined objects are
-        passed to $(D opIndex) to perform the actual slicing. This design was
+        translated via $(D opSlice!0) into objects that encapsulate
+        the endpoints $(I i) and $(I j). Then these objects are
+        passed to $(D opIndex) to perform the actual slicing.)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+struct S
+{
+    int[] impl;
+
+    int[] opSlice(size_t dim: 0)(size_t i, size_t j)
+    {
+        return impl[i..j];
+    }
+    int[] opIndex()(int[] slice) { return slice; }
+}
+
+void main()
+{
+    auto s = S([1, 2, 3]);
+    int[] t = s[0..2]; // calls s.opIndex(s.opSlice(0, 2))
+    assert(t == [1, 2]);
+}
+---
+)
+
+        $(P This design was
         chosen in order to support mixed indexing and slicing in
         multidimensional arrays; for example, in translating expressions like
         $(D arr[1, 2..3, 4]).
-        )
-
-        $(P More precisely, an expression of the form $(D arr[)$(ARGUMENTS)$(D ])
+        More precisely, an expression of the form $(D arr[)$(ARGUMENTS)$(D ])
         is translated into $(D arr.opIndex$(LPAREN))$(ARGUMENTS2)$(D $(RPAREN)).
         Each argument $(I b)$(SUBSCRIPT i) can be either a single expression,
         in which case it is passed directly as the corresponding argument $(I
@@ -911,7 +978,7 @@ __tmp.opIndexAssign(c, 1, __tmp.opSlice!1(2,3), __tmp.opDollar!2 - 1);
         once.
         )
 
-        $(P For backward compatibility, $(D a[]) and $(D a[)$(SLICE)$(D ]) can
+        $(NOTE For backward compatibility, $(D a[]) and $(D a[)$(SLICE)$(D ]) can
         also be overloaded by implementing $(D opSlice()) with no arguments and
         $(D opSlice$(LPAREN))$(SLICE2)$(D $(RPAREN)) with two arguments,
         respectively.  This only applies for one-dimensional slicing, and dates
