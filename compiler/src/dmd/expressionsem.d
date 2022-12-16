@@ -3563,6 +3563,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (auto tc = tb.isTypeClass())
         {
             auto cd = tc.sym;
+            if (cd.errors)
+                return setError();
             cd.size(exp.loc);
             if (cd.sizeok != Sizeok.done)
                 return setError();

@@ -206,7 +206,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         //printf("AggregateDeclaration::determineSize() %s, sizeok = %d\n", toChars(), sizeok);
 
         // The previous instance size finalizing had:
-        if (type.ty == Terror)
+        if (type.ty == Terror || errors)
             return false;   // failed already
         if (sizeok == Sizeok.done)
             return true;    // succeeded
