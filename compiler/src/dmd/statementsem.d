@@ -4030,6 +4030,13 @@ void catchSemantic(Catch c, Scope* sc)
         // reference .object.Throwable
         c.type = getThrowable();
     }
+    else if (c.type.isImmutable())
+    {
+        // @@@DEPRECATED_2.112@@@
+        // Deprecated in 2.102, change into an error & uncomment in 2.112
+        deprecation(c.loc, "cannot catch immutable type `%s`", c.type.toChars());
+        //c.errors = true;
+    }
     c.type = c.type.typeSemantic(c.loc, sc);
     if (c.type == Type.terror)
     {
