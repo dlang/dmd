@@ -303,7 +303,7 @@ $(H3 $(LNAME2 vargs, Variadic Function Arguments))
 $(P Arguments to variadic functions (such as `printf`) are considered to be consumed.
 )
 
-$(SPEC_SUBNAV_PREV importc, ImportC)
+$(SPEC_SUBNAV_PREV_NEXT importc, ImportC, windows, Windows Programming)
 )
 
 Macros:
