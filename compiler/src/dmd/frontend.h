@@ -508,7 +508,6 @@ public:
     virtual void setFieldOffset(AggregateDeclaration* ad, FieldState& fieldState, bool isunion);
     virtual bool hasPointers();
     virtual bool hasStaticCtorOrDtor();
-    virtual void addLocalClass(Array<ClassDeclaration* >* _param_0);
     virtual void addObjcSymbols(Array<ClassDeclaration* >* classes, Array<ClassDeclaration* >* categories);
     virtual void checkCtorConstInit();
     virtual void addComment(const char* comment);
@@ -5389,7 +5388,6 @@ public:
     bool hasPointers() final override;
     bool hasStaticCtorOrDtor() final override;
     void checkCtorConstInit() final override;
-    void addLocalClass(Array<ClassDeclaration* >* aclasses) final override;
     void addObjcSymbols(Array<ClassDeclaration* >* classes, Array<ClassDeclaration* >* categories) final override;
     AttribDeclaration* isAttribDeclaration() override;
     void accept(Visitor* v) override;
@@ -5788,7 +5786,6 @@ public:
     bool isAbstract();
     virtual int32_t vtblOffset() const;
     const char* kind() const override;
-    void addLocalClass(Array<ClassDeclaration* >* aclasses) final override;
     void addObjcSymbols(Array<ClassDeclaration* >* classes, Array<ClassDeclaration* >* categories) final override;
     Dsymbol* vtblsym;
     Dsymbol* vtblSymbol();
@@ -6356,6 +6353,8 @@ struct ModuleDeclaration final
     {
     }
 };
+
+extern void getLocalClasses(Module* mod, Array<ClassDeclaration* >& aclasses);
 
 extern void gendocfile(Module* m);
 

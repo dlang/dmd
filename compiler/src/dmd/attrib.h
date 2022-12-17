@@ -36,7 +36,6 @@ public:
     bool hasPointers() override final;
     bool hasStaticCtorOrDtor() override final;
     void checkCtorConstInit() override final;
-    void addLocalClass(ClassDeclarations *) override final;
     AttribDeclaration *isAttribDeclaration() override { return this; }
 
     void accept(Visitor *v) override { v->visit(this); }

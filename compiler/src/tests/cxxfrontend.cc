@@ -1199,11 +1199,7 @@ public:
                 s->accept(this);
             }
             ClassDeclarations aclasses;
-            for (size_t i = 0; i < d->members->length; i++)
-            {
-                Dsymbol *member = (*d->members)[i];
-                member->addLocalClass(&aclasses);
-            }
+            getLocalClasses(d, aclasses);
             for (size_t i = 0; i < d->aimports.length; i++)
             {
                 Module *mi = d->aimports[i];

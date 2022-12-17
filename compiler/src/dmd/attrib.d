@@ -197,11 +197,6 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 
     /****************************************
      */
-    override final void addLocalClass(ClassDeclarations* aclasses)
-    {
-        include(null).foreachDsymbol( s => s.addLocalClass(aclasses) );
-    }
-
     override final void addObjcSymbols(ClassDeclarations* classes, ClassDeclarations* categories)
     {
         objc.addSymbols(this, classes, categories);
