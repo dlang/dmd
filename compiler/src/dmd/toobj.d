@@ -99,16 +99,9 @@ void genModuleInfo(Module m)
     m.csym.Sfl = FLdata;
 
     auto dtb = DtBuilder(0);
+
     ClassDeclarations aclasses;
-
-    //printf("members.length = %d\n", members.length);
-    foreach (i; 0 .. m.members.length)
-    {
-        Dsymbol member = (*m.members)[i];
-
-        //printf("\tmember '%s'\n", member.toChars());
-        member.addLocalClass(&aclasses);
-    }
+    getLocalClasses(m, aclasses);
 
     // importedModules[]
     size_t aimports_dim = m.aimports.length;

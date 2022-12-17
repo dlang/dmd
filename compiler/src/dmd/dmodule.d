@@ -1377,6 +1377,37 @@ extern (C++) struct ModuleDeclaration
     }
 }
 
+/****************************************
+ * Create array of the local classes in the Module, suitable
+ * for inclusion in ModuleInfo
+ * Params:
+ *      mod = the Module
+ *	aclasses = array to fill in
+ * Returns: array of local classes
+ */
+extern (C++) void getLocalClasses(Module mod, ref ClassDeclarations aclasses)
+{
+    //printf("members.length = %d\n", mod.members.length);
+    int pushAddClassDg(size_t n, Dsymbol sm)
+    {
+        if (!sm)
+            return 0;
+
+        if (auto cd = sm.isClassDeclaration())
+        {
+            // compatibility with previous algorithm
+            if (cd.parent && cd.parent.isTemplateMixin())
+                return 0;
+
+            if (cd.classKind != ClassKind.objc)
+                aclasses.push(cd);
+        }
+        return 0;
+    }
+
+    ScopeDsymbol._foreach(null, mod.members, &pushAddClassDg);
+}
+
 /**
  * Process the content of a source file
  *

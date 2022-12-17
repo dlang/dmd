@@ -1239,10 +1239,6 @@ extern (C++) class Dsymbol : ASTNode
         return false;
     }
 
-    void addLocalClass(ClassDeclarations*)
-    {
-    }
-
     void addObjcSymbols(ClassDeclarations* classes, ClassDeclarations* categories)
     {
     }

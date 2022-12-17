@@ -258,7 +258,6 @@ public:
     virtual void setFieldOffset(AggregateDeclaration *ad, FieldState& fieldState, bool isunion);
     virtual bool hasPointers();
     virtual bool hasStaticCtorOrDtor();
-    virtual void addLocalClass(ClassDeclarations *) { }
     virtual void addObjcSymbols(ClassDeclarations *, ClassDeclarations *) { }
     virtual void checkCtorConstInit() { }
 
