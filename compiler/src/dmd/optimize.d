@@ -586,7 +586,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                     Expression ex = new AddrExp(ae1.loc, ae1);  // &a[i]
                     ex.type = ae1.type.pointerTo();
 
-                    Expression add = new AddExp(ae.loc, ex, new IntegerExp(ae.loc, offset, e.type));
+                    Expression add = new AddExp(ae.loc, ex, new IntegerExp(ae.e2.loc, offset, ae.e2.type));
                     add.type = e.type;
                     ret = Expression_optimize(add, result, keepLvalue);
                     return;
