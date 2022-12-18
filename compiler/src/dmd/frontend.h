@@ -8692,6 +8692,7 @@ struct Id final
     static Identifier* isLazy;
     static Identifier* hasMember;
     static Identifier* identifier;
+    static Identifier* fullyQualifiedName;
     static Identifier* getProtection;
     static Identifier* getVisibility;
     static Identifier* parent;
