@@ -823,10 +823,13 @@ public:
         buf.writestring(s.kind());
         buf.writeByte('(');
         s.exp.expressionToBuffer(buf, hgs);
-        if (s.msg)
+        if (s.msgs)
         {
-            buf.writestring(", ");
-            s.msg.expressionToBuffer(buf, hgs);
+            foreach (m; (*s.msgs)[])
+            {
+                buf.writestring(", ");
+                m.expressionToBuffer(buf, hgs);
+            }
         }
         buf.writestring(");");
         buf.writenl();
