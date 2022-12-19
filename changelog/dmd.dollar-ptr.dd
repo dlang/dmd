@@ -1,0 +1,18 @@
+The `$` expression is now accepted in array accessed via `.ptr`
+
+The `.ptr` property can be used to bypass bounds checking in array accesses.
+The downside is that the indexes cannot use the `$` shortand.
+
+From this version the `$` will be accepted if the array is given by a variable.
+
+```
+void v(ref int[] a)
+in (a.length)
+do
+{
+    // previously
+    a.ptr[a.length - 1] = 0;
+    // now
+    a.ptr[$-1] = 0;
+}
+```

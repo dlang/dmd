@@ -1042,6 +1042,10 @@ Lagain:
         e = e.expressionSemantic(sc);
         return e;
     }
+    if (auto ed = s.isExpressionDsymbol())
+    {
+        return ed.exp;
+    }
 
     .error(loc, "%s `%s` is not a variable", s.kind(), s.toChars());
     return ErrorExp.get();
@@ -7944,6 +7948,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             sym.parent = sc.scopesym;
             sc = sc.push(sym);
         }
+        sc = tryPushScopeForPtrDollar(exp.e1, sc);
         if (exp.lwr)
         {
             if (t1b.ty == Ttuple)
@@ -8377,6 +8382,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             sym.parent = sc.scopesym;
             sc = sc.push(sym);
         }
+        sc = tryPushScopeForPtrDollar(exp.e1, sc);
         if (t1b.ty == Ttuple)
             sc = sc.startCTFE();
         exp.e2 = exp.e2.expressionSemantic(sc).arrayFuncConv(sc);
@@ -13789,4 +13795,24 @@ Expression toBoolean(Expression exp, Scope* sc)
             }
             return e;
     }
+}
+
+/* Push the necessary scope to solve `$` in `e1.ptr[$]` or `e1.ptr[0 .. $]` */
+private Scope* tryPushScopeForPtrDollar(Expression e1, Scope* sc)
+{
+    if (auto ce = e1.isCastExp())
+    {
+        if (auto tp = ce.type.isTypePointer())
+        {
+            const cty = ce.e1.type.ty;
+            const cop = ce.e1.op;
+            if ((cty == Tsarray || cty == Tarray) && (cop == EXP.variable || cop == EXP.dotVariable))
+            {
+                auto sym = new ArrayScopeSymbol(sc, ce.e1);
+                sym.parent = sc.scopesym;
+                sc = sc.push(sym);
+            }
+        }
+    }
+    return sc;
 }

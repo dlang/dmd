@@ -1987,7 +1987,8 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
     extern (D) this(Scope* sc, Expression exp) nothrow
     {
         super(exp.loc, null);
-        assert(exp.op == EXP.index || exp.op == EXP.slice || exp.op == EXP.array);
+        assert(exp.op == EXP.index || exp.op == EXP.slice || exp.op == EXP.array ||
+               exp.op == EXP.variable || exp.op == EXP.dotVariable);
         this.sc = sc;
         this.arrayContent = exp;
     }
@@ -2052,6 +2053,18 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
              */
             pvar = &ie.lengthVar;
             ce = ie.e1;
+        }
+        else if (auto ve = exp.isVarExp())
+        {
+            /* array.ptr[$] */
+            auto le = expressionSemantic(new ArrayLengthExp(loc, ve), sc);
+            return new ExpressionDsymbol(le);
+        }
+        else if (auto dve = exp.isDotVarExp())
+        {
+            /* e0.array.ptr[$] */
+            auto le = expressionSemantic(new ArrayLengthExp(loc, dve), sc);
+            return new ExpressionDsymbol(le);
         }
         else if (auto se = exp.isSliceExp())
         {
