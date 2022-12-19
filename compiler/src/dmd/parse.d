@@ -335,6 +335,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             linkage = linksave;
 
             Loc startloc;
+            Loc scdLoc;
 
             switch (token.value)
             {
@@ -696,6 +697,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 }
             Lstc:
                 pAttrs.storageClass = appendStorageClass(pAttrs.storageClass, stc);
+                scdLoc = token.loc;
                 nextToken();
 
             Lautodecl:
@@ -748,7 +750,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 auto stc2 = getStorageClass!AST(pAttrs);
                 if (stc2 != STC.undefined_)
                 {
-                    s = new AST.StorageClassDeclaration(stc2, a);
+                    s = new AST.StorageClassDeclaration(scdLoc, stc2, a);
                 }
                 if (pAttrs.udas)
                 {

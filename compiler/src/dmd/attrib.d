@@ -62,6 +62,12 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
         this.decl = decl;
     }
 
+    extern (D) this(const ref Loc loc, Dsymbols* decl)
+    {
+        super(loc, null);
+        this.decl = decl;
+    }
+
     extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* decl)
     {
         super(loc, ident);
@@ -225,6 +231,12 @@ extern (C++) class StorageClassDeclaration : AttribDeclaration
     extern (D) this(StorageClass stc, Dsymbols* decl)
     {
         super(decl);
+        this.stc = stc;
+    }
+
+    extern (D) this(const ref Loc loc, StorageClass stc, Dsymbols* decl)
+    {
+        super(loc, decl);
         this.stc = stc;
     }
 
