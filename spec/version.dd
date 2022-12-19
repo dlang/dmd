@@ -58,7 +58,6 @@ $(H2 $(LNAME2 version, Version Condition))
 
 $(GRAMMAR
 $(GNAME VersionCondition):
-    $(D version $(LPAREN)) $(GLINK_LEX IntegerLiteral) $(D $(RPAREN))
     $(D version $(LPAREN)) $(GLINK_LEX Identifier) $(D $(RPAREN))
     $(D version $(LPAREN)) $(D unittest) $(D $(RPAREN))
     $(D version $(LPAREN)) $(D assert) $(D $(RPAREN))
@@ -68,15 +67,14 @@ $(GNAME VersionCondition):
         with a single source file.
         )
 
-        $(P The $(I VersionCondition) is satisfied if the $(I IntegerLiteral)
-        is greater than or equal to the current $(I version level),
-        or if $(I Identifier) matches a $(I version identifier).
+        $(P The $(I VersionCondition) is satisfied if $(I Identifier)
+        matches a $(I version identifier).
         )
 
-        $(P The $(I version level) and $(I version identifier) can
-        be set on the command line by the $(D -version) switch
-        or in the module itself with a $(GLINK VersionSpecification),
-        or they can be predefined by the compiler.
+        $(P The $(I version identifier) can be set on the command line 
+        by the $(D -version) switch or in the module itself with a
+        $(GLINK VersionSpecification), or they can be predefined
+        by the compiler.
         )
 
         $(P Version identifiers are in their own unique name space, they do
@@ -118,7 +116,6 @@ $(H2 $(LEGACY_LNAME2 VersionSpecification, version-specification, Version Specif
 $(GRAMMAR
 $(GNAME VersionSpecification):
     $(D version =) $(GLINK_LEX Identifier) $(D ;)
-    $(D version =) $(GLINK_LEX IntegerLiteral) $(D ;)
 )
 
         $(P The version specification makes it straightforward to group
@@ -194,10 +191,6 @@ class Foo
         )
 
 ------
-version($(CODE_HIGHLIGHT n)) // add in version code if version level is >= n
-{
-    ... version code ...
-}
 
 version($(CODE_HIGHLIGHT identifier)) // add in version code if version
                          // keyword is identifier
@@ -206,8 +199,8 @@ version($(CODE_HIGHLIGHT identifier)) // add in version code if version
 }
 ------
 
-        $(P These are presumably set by the command line as
-        $(D -version=n) and $(D -version=identifier).
+        $(P This is presumably set by the command line as
+        $(D -version=identifier).
         )
 
 
