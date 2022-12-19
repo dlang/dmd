@@ -1249,7 +1249,14 @@ UnionExp Slice(Type type, Expression e1, Expression lwr, Expression upr)
         }
     }
 
-    if (e1.op == EXP.string_ && lwr.op == EXP.int64 && upr.op == EXP.int64)
+    if (!lwr)
+    {
+        if (e1.op == EXP.string_)
+            emplaceExp(&ue, e1);
+        else
+            cantExp(ue);
+    }
+    else if (e1.op == EXP.string_ && lwr.op == EXP.int64 && upr.op == EXP.int64)
     {
         StringExp es1 = e1.isStringExp();
         const uinteger_t ilwr = lwr.toInteger();
