@@ -7384,3 +7384,51 @@ private extern(D) MATCH matchTypeSafeVarArgs(TypeFunction tf, Parameter p,
         return MATCH.nomatch;
     }
 }
+
+/**
+ * Creates an appropriate vector type for `tv` that will hold one boolean
+ * result for each element of the vector type. The result of vector comparisons
+ * is a single or doubleword mask of all 1s (comparison true) or all 0s
+ * (comparison false). This SIMD mask type does not have an equivalent D type,
+ * however its closest equivalent would be an integer vector of the same unit
+ * size and length.
+ *
+ * Params:
+ *   tv = The `TypeVector` to build a vector from.
+ * Returns:
+ *   A vector type suitable for the result of a vector comparison operation.
+ */
+TypeVector toBooleanVector(TypeVector tv)
+{
+    Type telem = tv.elementType();
+    switch (telem.ty)
+    {
+        case Tvoid:
+        case Tint8:
+        case Tuns8:
+        case Tint16:
+        case Tuns16:
+        case Tint32:
+        case Tuns32:
+        case Tint64:
+        case Tuns64:
+            // No need to build an equivalent mask type.
+            return tv;
+
+        case Tfloat32:
+            telem = Type.tuns32;
+            break;
+
+        case Tfloat64:
+            telem = Type.tuns64;
+            break;
+
+        default:
+            assert(0);
+    }
+
+    TypeSArray tsa = tv.basetype.isTypeSArray();
+    assert(tsa !is null);
+
+    return new TypeVector(new TypeSArray(telem, tsa.dim));
+}

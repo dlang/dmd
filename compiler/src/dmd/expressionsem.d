@@ -11803,8 +11803,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        if (t1.isTypeVector())
-            exp.type = t1;
+        if (auto tv = t1.isTypeVector())
+            exp.type = tv.toBooleanVector();
 
         result = exp;
         return;
@@ -12085,8 +12085,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        if (t1.isTypeVector())
-            exp.type = t1;
+        if (auto tv = t1.isTypeVector())
+            exp.type = tv.toBooleanVector();
 
         result = exp;
     }
