@@ -71,7 +71,7 @@ $(GNAME VersionCondition):
         matches a $(I version identifier).
         )
 
-        $(P The $(I version identifier) can be set on the command line 
+        $(P The $(I version identifier) can be set on the command line
         by the $(D -version) switch or in the module itself with a
         $(GLINK VersionSpecification), or they can be predefined
         by the compiler.
