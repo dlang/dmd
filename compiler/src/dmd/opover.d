@@ -931,6 +931,12 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                     /* Rewrite as:
                      *      .object.opEquals(e1, e2)
                      */
+                    if (!ClassDeclaration.object)
+                    {
+                        e.error("cannot compare classes for equality because `object.Object` was not declared");
+                        return null;
+                    }
+
                     Expression e1x = e.e1;
                     Expression e2x = e.e2;
 
