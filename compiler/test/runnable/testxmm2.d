@@ -247,10 +247,10 @@ void testunscmp()
 
 /*****************************************/
 
-float4 testlt(float4 x, float4 y) { return x < y; }
-float4 testgt(float4 x, float4 y) { return x > y; }
-float4 testge(float4 x, float4 y) { return x >= y; }
-float4 testle(float4 x, float4 y) { return x <= y; }
+uint4 testlt(float4 x, float4 y) { return x < y; }
+uint4 testgt(float4 x, float4 y) { return x > y; }
+uint4 testge(float4 x, float4 y) { return x >= y; }
+uint4 testle(float4 x, float4 y) { return x <= y; }
 
 void testflt()
 {
@@ -264,10 +264,10 @@ void testflt()
     assert((cast(int4)x).array == [-1,-1,0,0]);
 }
 
-double2 testlt(double2 x, double2 y) { return x < y; }
-double2 testgt(double2 x, double2 y) { return x > y; }
-double2 testge(double2 x, double2 y) { return x >= y; }
-double2 testle(double2 x, double2 y) { return x <= y; }
+ulong2 testlt(double2 x, double2 y) { return x < y; }
+ulong2 testgt(double2 x, double2 y) { return x > y; }
+ulong2 testge(double2 x, double2 y) { return x >= y; }
+ulong2 testle(double2 x, double2 y) { return x <= y; }
 
 void testdbl()
 {
