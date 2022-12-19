@@ -3779,13 +3779,12 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
         exp = checkGC(sc, exp);
         if (exp.op == EXP.error)
             return false;
-        if (exp.type.mod & (MODFlags.const_ | MODFlags.immutable_))
+        if (!exp.type.isNaked() && exp.type.mod != MODFlags.shared_)
         {
             // @@@DEPRECATED_2.112@@@
             // Deprecated in 2.102, change into an error & return false in 2.112
             exp.loc.deprecation("cannot throw object of qualified type `%s`", exp.type.toChars());
             //return false;
-            return true;
         }
         checkThrowEscape(sc, exp, false);
 
