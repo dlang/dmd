@@ -58,7 +58,6 @@ $(H2 $(LNAME2 version, Version Condition))
 
 $(GRAMMAR
 $(GNAME VersionCondition):
-    $(D version $(LPAREN)) $(GLINK_LEX IntegerLiteral) $(D $(RPAREN))
     $(D version $(LPAREN)) $(GLINK_LEX Identifier) $(D $(RPAREN))
     $(D version $(LPAREN)) $(D unittest) $(D $(RPAREN))
     $(D version $(LPAREN)) $(D assert) $(D $(RPAREN))
@@ -68,15 +67,14 @@ $(GNAME VersionCondition):
         with a single source file.
         )
 
-        $(P The $(I VersionCondition) is satisfied if the $(I IntegerLiteral)
-        is greater than or equal to the current $(I version level),
-        or if $(I Identifier) matches a $(I version identifier).
+        $(P The $(I VersionCondition) is satisfied if $(I Identifier)
+        matches a $(I version identifier).
         )
 
-        $(P The $(I version level) and $(I version identifier) can
-        be set on the command line by the $(D -version) switch
-        or in the module itself with a $(GLINK VersionSpecification),
-        or they can be predefined by the compiler.
+        $(P The $(I version identifier) can be set on the command line
+        by the $(D -version) switch or in the module itself with a
+        $(GLINK VersionSpecification), or they can be predefined
+        by the compiler.
         )
 
         $(P Version identifiers are in their own unique name space, they do
@@ -118,7 +116,6 @@ $(H2 $(LEGACY_LNAME2 VersionSpecification, version-specification, Version Specif
 $(GRAMMAR
 $(GNAME VersionSpecification):
     $(D version =) $(GLINK_LEX Identifier) $(D ;)
-    $(D version =) $(GLINK_LEX IntegerLiteral) $(D ;)
 )
 
         $(P The version specification makes it straightforward to group
@@ -194,10 +191,6 @@ class Foo
         )
 
 ------
-version($(CODE_HIGHLIGHT n)) // add in version code if version level is >= n
-{
-    ... version code ...
-}
 
 version($(CODE_HIGHLIGHT identifier)) // add in version code if version
                          // keyword is identifier
@@ -206,8 +199,8 @@ version($(CODE_HIGHLIGHT identifier)) // add in version code if version
 }
 ------
 
-        $(P These are presumably set by the command line as
-        $(D -version=n) and $(D -version=identifier).
+        $(P This is presumably set by the command line as
+        $(D -version=identifier).
         )
 
 
@@ -414,7 +407,6 @@ $(H2 $(LNAME2 debug, Debug Condition))
 $(GRAMMAR
 $(GNAME DebugCondition):
     $(D debug)
-    $(D debug $(LPAREN)) $(GLINK_LEX IntegerLiteral) $(D $(RPAREN))
     $(D debug $(LPAREN)) $(GLINK_LEX Identifier) $(D $(RPAREN))
 )
 
@@ -429,12 +421,7 @@ $(GNAME DebugCondition):
         )
 
         $(P The $(D debug) condition is satisfied when the $(D -debug) switch is
-        passed to the compiler or when the debug level is >= 1.
-        )
-
-        $(P The $(D debug $(LPAREN)) $(I IntegerLiteral) $(D $(RPAREN)) condition is satisfied
-        when the debug
-        level is $(D >=) $(I IntegerLiteral).
+        passed to the compiler.
         )
 
         $(P The $(D debug $(LPAREN)) $(I Identifier) $(D $(RPAREN)) condition is satisfied
@@ -473,10 +460,9 @@ $(H2 $(LNAME2 debug_specification, Debug Specification))
 $(GRAMMAR
 $(GNAME DebugSpecification):
     $(D debug =) $(GLINK_LEX Identifier) $(D ;)
-    $(D debug =) $(GLINK_LEX IntegerLiteral) $(D ;)
 )
 
-        $(P Debug identifiers and levels are set either by the command line switch
+        $(P Debug identifiers are set either by the command line switch
         $(D -debug) or by a $(I DebugSpecification).
         )
 
@@ -501,12 +487,11 @@ debug = foo;    // error, foo used before set
         )
 
 ------
-debug(IntegerLiteral) { } // add in debug code if debug level is >= IntegerLiteral
 debug(identifier) { } // add in debug code if debug keyword is identifier
 ------
 
         $(P These are presumably set by the command line as
-        $(D -debug=)$(I n) and $(D -debug=)$(I identifier).
+        and $(D -debug=)$(I identifier).
         )
 
 $(H2 $(LNAME2 staticif, Static If Condition))
