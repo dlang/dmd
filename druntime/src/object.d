@@ -303,10 +303,16 @@ if ((is(LHS : const Object) || is(LHS : const shared Object)) &&
     {
         // this is a compatibility hack for the old const cast behavior
         // if none of the new overloads compile, we'll go back plain Object,
-        // including casting away const. It does this through the pointer
-        // to bypass any opCast that may be present on the original class.
-        return .opEquals!(Object, Object)(*cast(Object*) &lhs, *cast(Object*) &rhs);
-
+        // including casting away const.
+        if (__ctfe) {
+            const Object lhso = lhs;
+            const Object rhso = rhs;
+            return .opEquals!(Object, Object)(cast(Object)lhso, cast(Object)rhso);
+        }
+        else
+        {
+            return .opEquals!(Object, Object)(*cast(Object*) &lhs, *cast(Object*) &rhs);
+        }
     }
 }
 
@@ -522,6 +528,17 @@ unittest
     const(C)[] b = [c];
     assert(a[0] == b[0]);
 }
+
+// https://issues.dlang.org/show_bug.cgi?id=23272
+/+@system unittest
+{
+    static auto validate()
+    {
+        assert(typeid(int) != typeid(string));
+        return true;
+    }
+    static assert(validate);
+}+/
 
 private extern(C) void _d_setSameMutex(shared Object ownee, shared Object owner) nothrow;
 
