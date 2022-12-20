@@ -2932,6 +2932,7 @@ CXX_DEMANGLER getCXXDemangler() nothrow @trusted
         version (FreeBSD) import core.sys.freebsd.dlfcn : RTLD_DEFAULT;
         version (linux) import core.sys.linux.dlfcn : RTLD_DEFAULT;
         version (NetBSD) import core.sys.netbsd.dlfcn : RTLD_DEFAULT;
+        version (OpenBSD) import core.sys.openbsd.dlfcn : RTLD_DEFAULT;
         version (OSX) import core.sys.darwin.dlfcn : RTLD_DEFAULT;
         version (Solaris) import core.sys.solaris.dlfcn : RTLD_DEFAULT;
 
