@@ -1026,6 +1026,7 @@ public:
     Expression* optimize(int32_t result, bool keepLvalue = false);
     Expression* ctfeInterpret();
     int32_t isConst();
+    virtual bool isIdentical(const Expression* const e) const;
     virtual Optional<bool > toBool();
     virtual bool hasCode();
     IntegerExp* isIntegerExp();
@@ -6955,6 +6956,7 @@ public:
     static RealExp* create(const Loc& loc, _d_real value, Type* type);
     static void emplace(UnionExp* pue, const Loc& loc, _d_real value, Type* type);
     bool equals(const RootObject* const o) const override;
+    bool isIdentical(const Expression* const e) const override;
     dinteger_t toInteger() override;
     uinteger_t toUInteger() override;
     _d_real toReal() override;
@@ -6971,6 +6973,7 @@ public:
     static ComplexExp* create(const Loc& loc, complex_t value, Type* type);
     static void emplace(UnionExp* pue, const Loc& loc, complex_t value, Type* type);
     bool equals(const RootObject* const o) const override;
+    bool isIdentical(const Expression* const e) const override;
     dinteger_t toInteger() override;
     uinteger_t toUInteger() override;
     _d_real toReal() override;

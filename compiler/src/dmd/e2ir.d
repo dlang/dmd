@@ -4382,7 +4382,7 @@ elem *ExpressionsToStaticArray(IRState* irs, const ref Loc loc, Expressions *exp
                 Expression en = (*exps)[j];
                 if (!en)
                     en = basis;
-                if (!el.equals(en))
+                if (!el.isIdentical(en))
                     break;
                 j++;
             }

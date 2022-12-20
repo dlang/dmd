@@ -1647,6 +1647,15 @@ extern (C++) abstract class Expression : ASTNode
         return .isConst(this);
     }
 
+    /******
+     * Identical, not just equal. I.e. NaNs with different bit patterns are not identical
+     */
+    bool isIdentical(const Expression e) const
+    {
+        return equals(e);
+    }
+
+
     /// Statically evaluate this expression to a `bool` if possible
     /// Returns: an optional thath either contains the value or is empty
     Optional!bool toBool()
@@ -2137,6 +2146,13 @@ extern (C++) final class RealExp : Expression
         return false;
     }
 
+    override bool isIdentical(const Expression e) const
+    {
+        if (!equals(e))
+            return false;
+        return CTFloat.isIdentical(value, e.isRealExp().value);
+    }
+
     override dinteger_t toInteger()
     {
         return cast(sinteger_t)toReal();
@@ -2211,6 +2227,16 @@ extern (C++) final class ComplexExp : Expression
             }
         }
         return false;
+    }
+
+    override bool isIdentical(const Expression e) const
+    {
+        if (!equals(e))
+            return false;
+        // equals() regards different NaN values as 'equals'
+        auto c = e.isComplexExp();
+        return CTFloat.isIdentical(creall(value), creall(c.value)) &&
+               CTFloat.isIdentical(cimagl(value), cimagl(c.value));
     }
 
     override dinteger_t toInteger()
