@@ -6190,8 +6190,6 @@ public:
     void accept(Visitor* v) override;
 };
 
-extern Expression* getValue(VarDeclaration* vd);
-
 extern void printCtfePerformanceStats();
 
 struct MacroTable final

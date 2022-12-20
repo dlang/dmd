@@ -165,7 +165,7 @@ public Expression ctfeInterpretForPragmaMsg(Expression e)
     return e;
 }
 
-public extern (C++) Expression getValue(VarDeclaration vd)
+public Expression getValue(VarDeclaration vd)
 {
     return ctfeGlobals.stack.getValue(vd);
 }
@@ -280,25 +280,25 @@ private:
     Expression localThis;       // value of 'this', or NULL if none
 
 public:
-    extern (C++) size_t stackPointer()
+    size_t stackPointer()
     {
         return values.length;
     }
 
     // The current value of 'this', or NULL if none
-    extern (C++) Expression getThis()
+    Expression getThis()
     {
         return localThis;
     }
 
     // Largest number of stack positions we've used
-    extern (C++) size_t maxStackUsage()
+    size_t maxStackUsage()
     {
         return maxStackPointer;
     }
 
     // Start a new stack frame, using the provided 'this'.
-    extern (C++) void startFrame(Expression thisexp)
+    void startFrame(Expression thisexp)
     {
         frames.push(cast(void*)cast(size_t)framepointer);
         savedThis.push(localThis);
@@ -306,7 +306,7 @@ public:
         localThis = thisexp;
     }
 
-    extern (C++) void endFrame()
+    void endFrame()
     {
         size_t oldframe = cast(size_t)frames[frames.length - 1];
         localThis = savedThis[savedThis.length - 1];
@@ -316,14 +316,14 @@ public:
         savedThis.setDim(savedThis.length - 1);
     }
 
-    extern (C++) bool isInCurrentFrame(VarDeclaration v)
+    bool isInCurrentFrame(VarDeclaration v)
     {
         if (v.isDataseg() && !v.isCTFE())
             return false; // It's a global
         return v.ctfeAdrOnStack >= framepointer;
     }
 
-    extern (C++) Expression getValue(VarDeclaration v)
+    Expression getValue(VarDeclaration v)
     {
         //printf("getValue() %s\n", v.toChars());
         if ((v.isDataseg() || v.storage_class & STC.manifest) && !v.isCTFE())
@@ -335,7 +335,7 @@ public:
         return values[v.ctfeAdrOnStack];
     }
 
-    extern (C++) void setValue(VarDeclaration v, Expression e)
+    void setValue(VarDeclaration v, Expression e)
     {
         //printf("setValue() %s : %s\n", v.toChars(), e.toChars());
         assert(!v.isDataseg() || v.isCTFE());
@@ -343,7 +343,7 @@ public:
         values[v.ctfeAdrOnStack] = e;
     }
 
-    extern (C++) void push(VarDeclaration v)
+    void push(VarDeclaration v)
     {
         //printf("push() %s\n", v.toChars());
         assert(!v.isDataseg() || v.isCTFE());
@@ -359,7 +359,7 @@ public:
         values.push(null);
     }
 
-    extern (C++) void pop(VarDeclaration v)
+    void pop(VarDeclaration v)
     {
         assert(!v.isDataseg() || v.isCTFE());
         assert(!v.isReference());
@@ -373,7 +373,7 @@ public:
         }
     }
 
-    extern (C++) void popAll(size_t stackpointer)
+    void popAll(size_t stackpointer)
     {
         if (stackPointer() > maxStackPointer)
             maxStackPointer = stackPointer();
@@ -388,7 +388,7 @@ public:
         savedId.setDim(stackpointer);
     }
 
-    extern (C++) void saveGlobalConstant(VarDeclaration v, Expression e)
+    void saveGlobalConstant(VarDeclaration v, Expression e)
     {
         assert(v._init && (v.isConst() || v.isImmutable() || v.storage_class & STC.manifest) && !v.isCTFE());
         v.ctfeAdrOnStack = cast(uint)globalValues.length;
@@ -4287,12 +4287,12 @@ public:
                 bool needsPostblit;
                 bool needsDtor;
 
-                extern (C++) Expression assignTo(ArrayLiteralExp ae)
+                Expression assignTo(ArrayLiteralExp ae)
                 {
                     return assignTo(ae, 0, ae.elements.length);
                 }
 
-                extern (C++) Expression assignTo(ArrayLiteralExp ae, size_t lwr, size_t upr)
+                Expression assignTo(ArrayLiteralExp ae, size_t lwr, size_t upr)
                 {
                     Expressions* w = ae.elements;
                     assert(ae.type.ty == Tsarray || ae.type.ty == Tarray);
