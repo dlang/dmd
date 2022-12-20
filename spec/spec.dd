@@ -54,7 +54,7 @@ $(TOC Table of Contents,
                 $(A simd.html, Vector Extensions),
                 $(A betterc.html, Better C),
                 $(A importc.html, Import C),
-                $(A ob.html, Live Functions)
+                $(A ob.html, Live Functions),
                 $(A windows.html, Windows Programming)
         ))
 )
