@@ -2310,6 +2310,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             auto inneruda = em.userAttribDecl.userAttribDecl;
             em.userAttribDecl.setScope(sc);
             em.userAttribDecl.userAttribDecl = inneruda;
+            em.userAttribDecl.dsymbolSemantic(sc);
         }
 
         // The first enum member is special
