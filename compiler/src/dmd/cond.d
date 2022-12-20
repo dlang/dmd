@@ -218,12 +218,12 @@ extern (C++) final class StaticForeach : RootObject
     {
         if (aggrfe)
         {
-            return new ForeachStatement(loc, aggrfe.op, parameters, aggrfe.aggr.syntaxCopy(), s, loc);
+            return new ForeachStatement(loc, aggrfe.op, parameters, aggrfe.aggr, s, loc);
         }
         else
         {
             assert(rangefe && parameters.dim == 1);
-            return new ForeachRangeStatement(loc, rangefe.op, (*parameters)[0], rangefe.lwr.syntaxCopy(), rangefe.upr.syntaxCopy(), s, loc);
+            return new ForeachRangeStatement(loc, rangefe.op, (*parameters)[0], rangefe.lwr, rangefe.upr, s, loc);
         }
     }
 
