@@ -21,6 +21,14 @@ enum PIC : ubyte
     pie,                /// Position Independent Executable
 }
 
+/// export visibility
+enum ExpVis : ubyte
+{
+    default_,           /// hidden for Windows targets without -shared, otherwise public
+    hidden,             /// only export symbols marked with 'export'
+    public_,            /// export all symbols
+}
+
 struct DMDparams
 {
     bool alwaysframe;       // always emit standard stack frame
@@ -38,6 +46,7 @@ struct DMDparams
     bool ibt;               // generate indirect branch tracking
     PIC pic = PIC.fixed;    // generate fixed, pic or pie code
     bool stackstomp;        // add stack stomping code
+    ExpVis exportVisibility = ExpVis.hidden; // which symbols to "dllexport"
 
     bool symdebug;          // insert debug symbolic information
     bool symdebugref;       // insert debug information for all referenced types, too

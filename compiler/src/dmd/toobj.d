@@ -438,7 +438,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             cd.vtblsym.csym.Sfl = FLdata;
             out_readonly(cd.vtblsym.csym);
             outdata(cd.vtblsym.csym);
-            if (cd.isExport())
+            if (cd.isExport() || driverParams.exportVisibility == ExpVis.public_)
                 objmod.export_symbol(cd.vtblsym.csym,0);
         }
 
@@ -673,7 +673,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             outdata(s);
             if (vd.type.isMutable() || !vd._init)
                 write_pointers(vd.type, s, 0);
-            if (vd.isExport())
+            if (vd.isExport() || driverParams.exportVisibility == ExpVis.public_)
                 objmod.export_symbol(s, 0);
         }
 
@@ -755,7 +755,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             }
 
             outdata(s);
-            if (tid.isExport())
+            if (tid.isExport() || driverParams.exportVisibility == ExpVis.public_)
                 objmod.export_symbol(s, 0);
         }
 
@@ -1443,7 +1443,7 @@ Louter:
     cd.csym.Sdt = dtb.finish();
     // ClassInfo cannot be const data, because we use the monitor on it
     outdata(cd.csym);
-    if (cd.isExport())
+    if (cd.isExport() || driverParams.exportVisibility == ExpVis.public_)
         objmod.export_symbol(cd.csym, 0);
 }
 
@@ -1598,6 +1598,6 @@ private void genClassInfoForInterface(InterfaceDeclaration id)
     id.csym.Sdt = dtb.finish();
     out_readonly(id.csym);
     outdata(id.csym);
-    if (id.isExport())
+    if (id.isExport() || driverParams.exportVisibility == ExpVis.public_)
         objmod.export_symbol(id.csym, 0);
 }

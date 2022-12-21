@@ -789,6 +789,25 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (arg == "-shared")
             driverParams.dll = true;
+        else if (startsWith(p + 1, "visibility="))
+        {
+            const(char)[] vis = arg["-visibility=".length .. $];
+
+            switch (vis)
+            {
+                case "default":
+                    driverParams.exportVisibility = ExpVis.default_;
+                    break;
+                case "hidden":
+                    driverParams.exportVisibility = ExpVis.hidden;
+                    break;
+                case "public":
+                    driverParams.exportVisibility = ExpVis.public_;
+                    break;
+                default:
+                    error("unknown visibility '%.*s', must be 'dwfault', 'hidden' or 'public'", cast(int) vis.length, vis.ptr);
+            }
+        }
         else if (arg == "-fIBT")
         {
             driverParams.ibt = true;
