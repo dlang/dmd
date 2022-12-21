@@ -129,7 +129,7 @@ private template canBitwiseHash(T)
 }
 
 //enum hash. CTFE depends on base type
-size_t hashOf(T)(auto ref T val, size_t seed = 0)
+size_t hashOf(T)(scope auto ref T val, size_t seed = 0)
 if (is(T == enum) && !__traits(isScalar, T))
 {
     static if (is(T EType == enum)) {} //for EType
@@ -170,7 +170,7 @@ if (!is(T == enum) && __traits(isStaticArray, T) && canBitwiseHash!T)
 }
 
 //CTFE ready (depends on base type).
-size_t hashOf(T)(auto ref T val, size_t seed = 0)
+size_t hashOf(T)(scope auto ref T val, size_t seed = 0)
 if (!is(T == enum) && __traits(isStaticArray, T) && !canBitwiseHash!T)
 {
     // FIXME:
@@ -217,7 +217,7 @@ if (is(T == S[], S) && (__traits(isScalar, S) || canBitwiseHash!S)) // excludes 
 }
 
 //dynamic array hash
-size_t hashOf(T)(T val, size_t seed = 0)
+size_t hashOf(T)(scope T val, size_t seed = 0)
 if (is(T == S[], S) && !(__traits(isScalar, S) || canBitwiseHash!S)) // excludes enum types
 {
     size_t hash = seed;
@@ -544,7 +544,7 @@ if (!is(T == enum) && (is(T == struct) || is(T == union))
 }
 
 //struct or union hash
-size_t hashOf(T)(auto ref T val)
+size_t hashOf(T)(scope auto ref T val)
 if (!is(T == enum) && (is(T == struct) || is(T == union))
     && !canBitwiseHash!T)
 {
@@ -552,7 +552,7 @@ if (!is(T == enum) && (is(T == struct) || is(T == union))
 }
 
 //struct or union hash
-size_t hashOf(T)(auto ref T val, size_t seed)
+size_t hashOf(T)(scope auto ref T val, size_t seed)
 if (!is(T == enum) && (is(T == struct) || is(T == union))
     && !canBitwiseHash!T)
 {
@@ -601,7 +601,7 @@ if (!is(T == enum) && (is(T == interface) || is(T == class))
 }
 
 //class or interface hash. CTFE depends on toHash
-size_t hashOf(T)(T val)
+size_t hashOf(T)(scope T val)
 if (!is(T == enum) && (is(T == interface) || is(T == class))
     && !canBitwiseHash!T)
 {
@@ -618,7 +618,7 @@ if (!is(T == enum) && (is(T == interface) || is(T == class))
 }
 
 //class or interface hash. CTFE depends on toHash
-size_t hashOf(T)(T val, size_t seed)
+size_t hashOf(T)(scope T val, size_t seed)
 if (!is(T == enum) && (is(T == interface) || is(T == class))
     && !canBitwiseHash!T)
 {
@@ -636,7 +636,7 @@ if (!is(T == enum) && (is(T == interface) || is(T == class))
 }
 
 //associative array hash. CTFE depends on base types
-size_t hashOf(T)(T aa) if (!is(T == enum) && __traits(isAssociativeArray, T))
+size_t hashOf(T)(scope T aa) if (!is(T == enum) && __traits(isAssociativeArray, T))
 {
     static if (is(typeof(aa) : V[K], K, V)) {} // Put K & V in scope.
     static if (__traits(compiles, (ref K k, ref V v) nothrow => .hashOf(k) + .hashOf(v)))
@@ -652,7 +652,7 @@ size_t hashOf(T)(T aa) if (!is(T == enum) && __traits(isAssociativeArray, T))
 }
 
 //associative array hash. CTFE depends on base types
-size_t hashOf(T)(T aa, size_t seed) if (!is(T == enum) && __traits(isAssociativeArray, T))
+size_t hashOf(T)(scope T aa, size_t seed) if (!is(T == enum) && __traits(isAssociativeArray, T))
 {
     return hashOf(hashOf(aa), seed);
 }

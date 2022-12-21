@@ -3658,13 +3658,13 @@ version (CoreDdoc)
 
     Return: calculated hash value of `arg`
     */
-    size_t hashOf(T)(auto ref T arg, size_t seed)
+    size_t hashOf(T)(scope auto ref T arg, size_t seed)
     {
         static import core.internal.hash;
         return core.internal.hash.hashOf(arg, seed);
     }
     /// ditto
-    size_t hashOf(T)(auto ref T arg)
+    size_t hashOf(T)(scope auto ref T arg)
     {
         static import core.internal.hash;
         return core.internal.hash.hashOf(arg);
