@@ -881,6 +881,8 @@ void reconcileCommands(ref Param params, ref Target target)
             error(Loc.initial, "`-fPIC` and `-fPIE` cannot be used when targetting windows");
         if (driverParams.dwarf)
             error(Loc.initial, "`-gdwarf` cannot be used when targetting windows");
+        if (driverParams.exportVisibility == ExpVis.default_)
+            driverParams.exportVisibility = driverParams.dll ? ExpVis.public_ : ExpVis.hidden;
     }
     else if (target.os == Target.OS.DragonFlyBSD)
     {

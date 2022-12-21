@@ -1266,7 +1266,7 @@ public void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     // Restore symbol table
     cstate.CSpsymtab = symtabsave;
 
-    if (fd.isExport())
+    if (fd.isExport() || driverParams.exportVisibility == ExpVis.public_)
         objmod.export_symbol(s, cast(uint)Para.offset);
 
     if (fd.isCrtCtor)

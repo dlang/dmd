@@ -812,6 +812,14 @@ dmd -cov -unittest myprog.d
         Option("vgc",
             "list all gc allocations including hidden ones"
         ),
+        Option("visibility=<value>",
+            "default visibility of symbols (default/hidden/public)",
+            "$(UL
+               $(LI $(I default): Hidden for Windows targets without -shared, otherwise public)
+               $(LI $(I hidden):  Only export symbols marked with 'export')
+               $(LI $(I public):  Export all symbols)
+            )",
+        ),
         Option("vtls",
             "list all variables going into thread local storage"
         ),
