@@ -1613,6 +1613,8 @@ void insertFinallyBlockCalls(block *startblock)
                 // Rewrite into a BCgoto => BCretexp
                 elem *e = b.Belem;
                 tym_t ty = tybasic(e.Ety);
+                if (ty == TYvoid)
+                    goto case BCret;
                 if (!bcretexp)
                 {
                     bcretexp = dmd.backend.global.block_calloc();
