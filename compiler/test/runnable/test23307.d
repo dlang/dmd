@@ -1,10 +1,10 @@
 // REQUIRED_ARGS: -inline -O
 
 // https://issues.dlang.org/show_bug.cgi?id=23307
-
-version (D_SIMD)
-{
 import core.simd;
+
+static if(__traits(compiles, int4))
+{
 
 alias __m128i = int4;
 
