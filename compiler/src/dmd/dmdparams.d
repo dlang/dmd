@@ -119,7 +119,7 @@ struct Triple
     {
         import dmd.errors : error;
         import dmd.root.string : toCStringThen;
-        import dmd.globals : Loc;
+        import dmd.location;
         unk.toCStringThen!(p => error(Loc.initial,"unknown %s `%s` for `-target`", what, p.ptr));
     }
 
@@ -186,7 +186,7 @@ struct Triple
     Target.OS parseOS(const(char)[] _os, out ubyte osMajor)
     {
         import dmd.errors : error;
-        import dmd.globals : Loc;
+        import dmd.location;
 
         bool matches(const(char)[] str)
         {

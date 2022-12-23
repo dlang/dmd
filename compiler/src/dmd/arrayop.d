@@ -26,6 +26,7 @@ import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
+import dmd.location;
 import dmd.mtype;
 import dmd.common.outbuffer;
 import dmd.statement;

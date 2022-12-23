@@ -64,6 +64,7 @@ import dmd.identifier;
 import dmd.impcnvtab;
 import dmd.init;
 import dmd.initsem;
+import dmd.location;
 import dmd.mtype;
 import dmd.opover;
 import dmd.root.array;

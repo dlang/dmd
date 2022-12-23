@@ -21,6 +21,7 @@ import dmd.expression;
 import dmd.expressionsem;
 import dmd.identifier;
 import dmd.globals;
+import dmd.location;
 import dmd.parse;
 import dmd.tokens;
 import dmd.statement;

@@ -51,6 +51,7 @@ import dmd.init;
 import dmd.initsem;
 import dmd.intrange;
 import dmd.hdrgen;
+import dmd.location;
 import dmd.mtype;
 import dmd.mustuse;
 import dmd.nogc;

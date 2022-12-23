@@ -21,6 +21,7 @@ import dmd.errors;
 import dmd.expression;
 import dmd.globals;
 import dmd.gluelayer;
+import dmd.location;
 import dmd.mtype;
 import dmd.visitor;
 import core.stdc.stdio;

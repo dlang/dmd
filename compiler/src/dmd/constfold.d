@@ -25,6 +25,7 @@ import dmd.dstruct;
 import dmd.errors;
 import dmd.expression;
 import dmd.globals;
+import dmd.location;
 import dmd.mtype;
 import dmd.root.complex;
 import dmd.root.ctfloat;

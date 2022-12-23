@@ -100,7 +100,7 @@ extern (C++) struct Target
     import dmd.dscope : Scope;
     import dmd.expression : Expression;
     import dmd.func : FuncDeclaration;
-    import dmd.globals : Loc;
+    import dmd.location;
     import dmd.astenums : LINK, TY;
     import dmd.mtype : Type, TypeFunction, TypeTuple;
     import dmd.root.ctfloat : real_t;

@@ -16,6 +16,7 @@ import dmd.root.filename : FileName, isDirSeparator;
 import dmd.root.string : toDString;
 import dmd.globals;
 import dmd.identifier;
+import dmd.location;
 
 enum package_d  = "package." ~ mars_ext;
 enum package_di = "package." ~ hdr_ext;

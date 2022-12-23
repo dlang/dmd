@@ -119,7 +119,7 @@ mixin(mixin_string);
 ///
 unittest
 {
-    import dmd.globals : Loc;
+    import dmd.location;
     Expression e = new TypeidExp(Loc.initial, null);
     Tuple t = new Tuple();
     TemplateTypeParameter tp = new TemplateTypeParameter(Loc.initial, null, null, null);

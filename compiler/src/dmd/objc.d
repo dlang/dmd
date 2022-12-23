@@ -36,6 +36,7 @@ import dmd.gluelayer;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
+import dmd.location;
 import dmd.mtype;
 import dmd.root.array;
 import dmd.common.outbuffer;

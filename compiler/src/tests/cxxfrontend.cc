@@ -415,6 +415,12 @@ void test_location()
     assert(loc1.equals(Loc("test.d", 24, 42)));
     assert(strcmp(loc1.toChars(true, MESSAGESTYLEdigitalmars), "test.d(24,42)") == 0);
     assert(strcmp(loc1.toChars(true, MESSAGESTYLEgnu), "test.d:24:42") == 0);
+
+    assert(strcmp(loc1.toChars(), "test.d(24)") == 0);
+    Loc::set(true, MESSAGESTYLEdigitalmars);
+    assert(strcmp(loc1.toChars(), "test.d(24,42)") == 0);
+    Loc::set(false, MESSAGESTYLEgnu);
+    assert(strcmp(loc1.toChars(), "test.d:24") == 0);
 }
 
 /**********************************/

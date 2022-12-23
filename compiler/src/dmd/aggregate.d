@@ -34,6 +34,7 @@ import dmd.func;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
+import dmd.location;
 import dmd.mtype;
 import dmd.tokens;
 import dmd.typesem : defaultInit;

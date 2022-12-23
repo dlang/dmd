@@ -15,6 +15,7 @@ import core.stdc.string;
 import core.stdc.stdint;
 import dmd.globals;
 import dmd.errors;
+import dmd.location;
 
 //import core.sys.darwin.mach.loader;
 import dmd.backend.mach;

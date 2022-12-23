@@ -38,6 +38,7 @@ struct ASTBase
     import dmd.id;
     import dmd.errors;
     import dmd.lexer;
+    import dmd.location;
 
     import core.stdc.string;
     import core.stdc.stdarg;

@@ -342,6 +342,11 @@ struct Loc
     unsigned linnum;
     unsigned charnum;
 
+    static void set(bool showColumns, MessageStyle messageStyle);
+
+    static bool showColumns;
+    static MessageStyle messageStyle;
+
     Loc()
     {
         linnum = 0;
@@ -357,8 +362,8 @@ struct Loc
     }
 
     const char *toChars(
-        bool showColumns = global.params.showColumns,
-        MessageStyle messageStyle = global.params.messageStyle) const;
+        bool showColumns = Loc::showColumns,
+        MessageStyle messageStyle = Loc::messageStyle) const;
     bool equals(const Loc& loc) const;
 };
 

@@ -26,6 +26,7 @@ import dmd.errors;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
+import dmd.location;
 import dmd.root.array;
 import dmd.root.ctfloat;
 import dmd.common.outbuffer;

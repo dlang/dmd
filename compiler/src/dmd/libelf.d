@@ -27,6 +27,7 @@ version (Windows)
 
 import dmd.globals;
 import dmd.lib;
+import dmd.location;
 import dmd.utils;
 
 import dmd.root.array;

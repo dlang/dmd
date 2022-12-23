@@ -36,6 +36,7 @@ import dmd.func;
 import dmd.globals;
 import dmd.glue;
 import dmd.init;
+import dmd.location;
 import dmd.mtype;
 import dmd.target;
 import dmd.tokens;

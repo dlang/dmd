@@ -16,6 +16,7 @@ import core.stdc.stdio;
 import core.stdc.string;
 import dmd.globals;
 import dmd.id;
+import dmd.location;
 import dmd.common.outbuffer;
 import dmd.root.rootobject;
 import dmd.root.string;

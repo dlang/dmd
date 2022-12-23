@@ -16,6 +16,7 @@ import dmd.dsymbol;
 import dmd.dscope;
 import dmd.dtemplate;
 import dmd.globals;
+import dmd.location;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.root.rootobject;
