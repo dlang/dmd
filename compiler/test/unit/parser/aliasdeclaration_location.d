@@ -3,7 +3,7 @@ module parser.aliasdeclaration_location;
 import dmd.frontend : parseModule;
 import support : afterEach, beforeEach;
 import dmd.declaration : AliasDeclaration;
-import dmd.globals : Loc;
+import dmd.location;
 import dmd.visitor : SemanticTimeTransitiveVisitor;
 
 @beforeEach

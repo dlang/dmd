@@ -262,7 +262,7 @@ unittest
     import core.stdc.stdarg : va_list;
 
     import dmd.frontend;
-    import dmd.globals : Loc;
+    import dmd.location;
     import dmd.common.outbuffer;
     import dmd.console : Color;
 

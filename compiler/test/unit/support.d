@@ -6,7 +6,7 @@ import core.stdc.stdarg : va_list;
 
 import dmd.console : Color;
 import dmd.frontend : DiagnosticReporter;
-import dmd.globals : Loc;
+import dmd.location;
 
 /// UDA used to indicate a function should be run before each test.
 enum beforeEach;
@@ -110,7 +110,7 @@ CompilationResult compiles(string code, string filename = "test.d")
 class NoopDiagnosticReporter : DiagnosticReporter
 {
     import core.stdc.stdarg : va_list;
-    import dmd.globals : Loc;
+    import dmd.location;
 
     override int errorCount() { return 0; }
     override int warningCount() { return 0; }
