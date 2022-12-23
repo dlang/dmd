@@ -862,7 +862,8 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                 return returnE_e1();    // can always convert a class to Object
             // Need to determine correct offset before optimizing away the cast.
             // https://issues.dlang.org/show_bug.cgi?id=16980
-            cdfrom.size(e.loc);
+            if (cdfrom.size(e.loc) == SIZE_INVALID)
+                return error();
             assert(cdfrom.sizeok == Sizeok.done);
             assert(cdto.sizeok == Sizeok.done || !cdto.isBaseOf(cdfrom, null));
             int offset;
