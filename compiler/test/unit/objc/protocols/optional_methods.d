@@ -5,7 +5,7 @@ module objc.protocols.optional_methods;
 
 version (D_ObjectiveC):
 
-import dmd.globals : Loc;
+import dmd.location;
 
 import support : afterEach, beforeEach, compiles, stripDelimited, Diagnostic;
 

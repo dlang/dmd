@@ -5,7 +5,7 @@ module objc.protocols.diagnostic_messages;
 
 version (D_ObjectiveC):
 
-import dmd.globals : Loc;
+import dmd.location;
 
 import support : afterEach, beforeEach, compiles, stripDelimited, Diagnostic;
 

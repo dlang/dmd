@@ -28,8 +28,8 @@ unittest
         extern (C++) static final class InterfaceDeclaration : ClassDeclaration
         {
             import dmd.arraytypes : BaseClasses;
-            import dmd.globals : Loc;
             import dmd.identifier : Identifier;
+            import dmd.location;
 
             bool created = false;
 
@@ -109,8 +109,8 @@ unittest
     import dmd.frontend;
 
     import dmd.common.outbuffer;
-    import dmd.globals : Loc;
     import dmd.console : Color;
+    import dmd.location;
     import core.stdc.stdarg : va_list;
 
     string[] diagnosticMessages;
@@ -245,9 +245,9 @@ unittest
     import core.stdc.stdarg : va_list;
 
     import dmd.frontend;
-    import dmd.globals : Loc;
     import dmd.common.outbuffer;
     import dmd.console : Color;
+    import dmd.location;
 
     string[] diagnosticMessages;
 
@@ -361,9 +361,10 @@ unittest
     import core.stdc.stdarg : va_list;
 
     import dmd.frontend;
-    import dmd.globals : Loc, global;
+    import dmd.globals : global;
     import dmd.common.outbuffer;
     import dmd.console : Color;
+    import dmd.location;
 
     string[] diagnosticMessages;
 
