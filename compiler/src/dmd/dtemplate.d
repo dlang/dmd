@@ -3613,8 +3613,29 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 }
 
                 // Found the corresponding parameter tp
+                /+
+                    https://issues.dlang.org/show_bug.cgi?id=23578
+                    To pattern match:
+                    static if (is(S!int == S!av, alias av))
+
+                    We eventually need to deduce `int` (Tint32 [0]) and `av` (Tident).
+                    Previously this would not get pattern matched at all, but now we check if the
+                    template parameter `av` came from.
+
+                    This note has been left to serve as a hint for further explorers into
+                    how IsExp matching works.
+                +/
+                if (auto ta = tp.isTemplateAliasParameter())
+                {
+                    (*dedtypes)[i] = t;
+                    goto Lexact;
+                }
+                // (23578) - ensure previous behaviour for non-alias template params
                 if (!tp.isTemplateTypeParameter())
+                {
                     goto Lnomatch;
+                }
+
                 Type at = cast(Type)(*dedtypes)[i];
                 Type tt;
                 if (ubyte wx = wm ? deduceWildHelper(t, &tt, tparam) : 0)
@@ -4100,6 +4121,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                         }
                         goto Lnomatch;
                     }
+
                     TemplateParameter tpx = (*parameters)[i];
                     if (!tpx.matchArg(sc, tempdecl, i, parameters, dedtypes, null))
                         goto Lnomatch;
@@ -4110,7 +4132,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             L2:
                 for (size_t i = 0; 1; i++)
                 {
-                    //printf("\ttest: tempinst.tiargs[%d]\n", i);
+                    //printf("\ttest: tempinst.tiargs[%zu]\n", i);
                     RootObject o1 = null;
                     if (i < t.tempinst.tiargs.length)
                         o1 = (*t.tempinst.tiargs)[i];
@@ -4121,7 +4143,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     }
                     else if (i >= tp.tempinst.tiargs.length)
                         break;
-
+                    //printf("\ttest: o1 = %s\n", o1.toChars());
                     if (i >= tp.tempinst.tiargs.length)
                     {
                         size_t dim = tempdecl.parameters.length - (tempdecl.isVariadic() ? 1 : 0);
@@ -4136,7 +4158,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
 
                     RootObject o2 = (*tp.tempinst.tiargs)[i];
                     Type t2 = isType(o2);
-
+                    //printf("\ttest: o2 = %s\n", o2.toChars());
                     size_t j = (t2 && t2.ty == Tident && i == tp.tempinst.tiargs.length - 1)
                         ? templateParameterLookup(t2, parameters) : IDX_NOTFOUND;
                     if (j != IDX_NOTFOUND && j == parameters.length - 1 &&
