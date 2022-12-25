@@ -534,7 +534,22 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
          * otherwise the scope overrrides.
          */
         if (dsym.alignment.isDefault())
+        {
             dsym.alignment = dsym.type.alignment(); // use type's alignment
+        }
+
+        /* If the alignment of a stack local is greater than the stack alignment,
+         * note it in the enclosing function's alignSectionVars
+         */
+        if (!dsym.alignment.isDefault() &&
+            dsym.alignment.get() > target.stackAlign() &&
+            sc.func && !dsym.isDataseg() && !dsym.isParameter())
+        {
+            auto fd = sc.func;
+            if (!fd.alignSectionVars)
+                fd.alignSectionVars = new VarDeclarations();
+            fd.alignSectionVars.push(dsym);
+        }
 
         //printf("sc.stc = %x\n", sc.stc);
         //printf("storage_class = x%x\n", storage_class);

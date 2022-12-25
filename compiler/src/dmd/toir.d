@@ -843,6 +843,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
         foreach (v; fd.closureVars)
         {
             //printf("closure var %s\n", v.toChars());
+            v.inClosure = true;
 
             // Hack for the case fail_compilation/fail10666.d,
             // until proper issue 5730 fix will come.
@@ -965,6 +966,176 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
 
         block_appendexp(irs.blx.curblock, e);
     }
+}
+
+/**************************************
+ * Go through the variables in function fd that are
+ * to be allocated in an aligned section, and set the .offset fields
+ * for those variables to their positions relative to the start
+ * of the aligned section instance.
+ * Params:
+ *      fd = function
+ * Returns:
+ *      overall alignment of the align section
+ * Reference:
+ *      setClosureVarOffset
+ */
+uint setAlignSectionVarOffset(FuncDeclaration fd)
+{
+    // Nothing to do
+    if (!fd.alignSectionVars)
+        return 0;
+
+    uint offset = 0;
+    uint aggAlignment = offset;        // overall alignment for the closure
+
+    // first go through and find overall alignment for the entire section
+    foreach (v; (*fd.alignSectionVars)[])
+    {
+        if (v.inClosure)
+            continue;
+
+        /* Align and allocate space for v in the align closure
+         * just like AggregateDeclaration.addField() does.
+         */
+        const memsize = cast(uint)v.type.size();
+        const memalignsize = v.type.alignsize();
+        const xalign = v.alignment;
+
+        AggregateDeclaration.alignmember(xalign, memalignsize, &offset);
+        v.offset = offset;
+        //printf("align closure var %s, offset = %d\n", v.toChars(), offset);
+
+        offset += memsize;
+
+        uint actualAlignment = xalign.isDefault() ? memalignsize : xalign.get();
+        //printf("actualAlignment = x%x, x%x\n", actualAlignment, xalign.get());
+        if (aggAlignment < actualAlignment)
+            aggAlignment = actualAlignment;     // take the largest
+    }
+
+    return aggAlignment;
+}
+
+/*************************************
+ * Aligned sections are implemented by taking the local variables that
+ * need alignment that is larger than the stack alignment.
+ * They are allocated into a separate chunk of memory on the stack
+ * called an align section, which is aligned on function entry.
+ *
+ * buildAlignSection() inserts code just after the function prolog
+ * is complete. It allocates memory for the align closure by making
+ * a local stack variable to contain that memory, allocates
+ * a local variable (salignSection) to point to it.
+ * In VarExp::toElem and SymOffExp::toElem, when referring to a
+ * variable that is in an align closure, take the offset from salignSection rather
+ * than from the frame pointer.
+ * A variable cannot be in both a closure and an align section. They go in the closure
+ * and then that closure is aligned.
+ *
+ * getEthis() and NewExp::toElem need to use sclosure, if set, rather
+ * than the current frame pointer??
+ *
+ * Run after buildClosure, as buildClosure gets first dibs on inAlignSection variables
+ * Params:
+ *      fd = function in which all this occurs
+ *      irs = state of the intermediate code generation
+ * Reference:
+ *      buildClosure
+ */
+void buildAlignSection(FuncDeclaration fd, ref IRState irs)
+{
+    enum log = false;
+    if (log) printf("buildAlignSection(fd = %s)\n", fd.toChars());
+    if (!fd.alignSectionVars)
+        return;
+    auto alignSectionVars = (*fd.alignSectionVars)[];
+
+    /* If they're all in a closure, don't need to build an align section
+     */
+    foreach (v; alignSectionVars)
+    {
+        if (!v.inClosure)
+            goto L1;
+    }
+    return;
+  L1:
+
+    auto stackAlign = target.stackAlign();
+    auto aggAlignment = setAlignSectionVarOffset(fd);
+
+    /* Generate type name for align closure struct */
+    const char *name1 = "ALIGNSECTION.";
+    const char *name2 = fd.toPrettyChars();
+    size_t namesize = strlen(name1)+strlen(name2)+1;
+    char *closname = cast(char *)Mem.check(calloc(namesize, char.sizeof));
+    strcat(strcat(closname, name1), name2);
+
+    /* Build type for aligned section */
+    type *Closstru = type_struct_class(closname, stackAlign, 0, null, null, false, false, true, false);
+    free(closname);
+
+    Symbol *sclosure;
+    sclosure = symbol_name("__alignsecptr", SC.auto_, type_pointer(Closstru));
+    sclosure.Sflags |= SFLtrue | SFLfree;
+    symbol_add(sclosure);
+    fd.salignSection = sclosure;
+
+    foreach (v; alignSectionVars)
+    {
+        if (v.inClosure)
+            continue;
+
+        if (log) printf("align section var %s\n", v.toChars());
+        v.inAlignSection = true;
+
+        Symbol *vsym = toSymbol(v);
+        assert(vsym.Sscope == null);
+        vsym.Sscope = sclosure;
+
+        /* Add variable as align section type member */
+        symbol_struct_addField(Closstru.Ttag, &vsym.Sident[0], vsym.Stype, v.offset);
+        if (log) printf("align section field %s: offset: %i\n", &vsym.Sident[0], v.offset);
+    }
+
+    // Calculate the size of the align section
+    VarDeclaration  vlast = alignSectionVars[$ - 1];
+    typeof(Type.size()) lastsize;
+    lastsize = vlast.type.size();
+    bool overflow;
+    auto structsize = addu(vlast.offset, lastsize, overflow);
+    assert(!overflow && structsize <= uint.max);
+    if (log) printf("structsize = %d\n", cast(uint)structsize);
+
+    // Add extra size so we can align it
+    if (log) printf("aggAlignment: x%x, stackAlign: x%x\n", aggAlignment, stackAlign);
+    assert(aggAlignment > stackAlign);
+    structsize += aggAlignment - stackAlign;
+
+    Closstru.Ttag.Sstruct.Sstructsize = cast(uint)structsize;
+    fd.csym.Sscope = sclosure;
+
+    if (driverParams.symdebug)
+        toDebugClosure(Closstru.Ttag);
+
+    // Create Symbol that is an instance of the align closure
+    Symbol *salignSectionInstance = symbol_name("__alignsec", SC.auto_, Closstru);
+    salignSectionInstance.Sflags |= SFLtrue | SFLfree;
+    symbol_add(salignSectionInstance);
+
+    elem *e = el_ptr(salignSectionInstance);
+
+    /* Align it
+     * e + (aggAlignment - 1) & ~(aggAlignment - 1)
+     */
+    e = el_bin(OPadd, TYsize_t, e, el_long(TYsize_t, aggAlignment - 1));
+    e = el_bin(OPand, TYsize_t, e, el_long(TYsize_t, ~(aggAlignment - 1L)));
+
+    // Assign pointer to align section instance to sclosure
+    //    salignSection = allocmemory(sz);
+    e = el_bin(OPeq, TYvoid, el_var(sclosure), e);
+
+    block_appendexp(irs.blx.curblock, e);
 }
 
 /*************************************

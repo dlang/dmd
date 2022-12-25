@@ -324,6 +324,9 @@ extern (C++) class FuncDeclaration : Declaration
 
     GotoStatements* gotos;              /// Gotos with forward references
 
+    VarDeclarations* alignSectionVars;  /// local variables with alignment needs larger than stackAlign
+    Symbol* salignSection;              /// pointer to aligned section, if any
+
     /// set if this is a known, builtin function we can evaluate at compile time
     BUILTIN builtin = BUILTIN.unknown;
 

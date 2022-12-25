@@ -208,6 +208,7 @@ public:
     bool isCalleeDestroyingArgs(TypeFunction* tf);
     bool libraryObjectMonitors(FuncDeclaration *fd, Statement *fbody);
     bool supportsLinkerDirective() const;
+    unsigned stackAlign();
     void addPredefinedGlobalIdentifiers() const;
 };
 
