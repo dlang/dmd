@@ -378,6 +378,7 @@ private elem* inlineCall(elem *e,Symbol *sfunc)
             case SC.register:
             case SC.auto_:
             case SC.pseudo:
+            case SC.bprel:
             L1:
             {
                 //printf("  new symbol %s\n", s.Sident.ptr);
