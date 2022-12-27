@@ -359,7 +359,8 @@ extern (C++) final class Module : Package
     Package pkg;                // if isPackageFile is true, the Package that contains this package.d
     Strings contentImportedFiles; // array of files whose content was imported
     int needmoduleinfo;
-    int selfimports;            // 0: don't know, 1: does not, 2: does
+    private ThreeState selfimports;
+    private ThreeState rootimports;
     Dsymbol[void*] tagSymTab;   /// ImportC: tag symbols that conflict with other symbols used as the index
 
     private OutBuffer defines;  // collect all the #define lines here
@@ -371,18 +372,16 @@ extern (C++) final class Module : Package
     bool selfImports()
     {
         //printf("Module::selfImports() %s\n", toChars());
-        if (selfimports == 0)
+        if (selfimports == ThreeState.none)
         {
             foreach (Module m; amodules)
                 m.insearch = 0;
-            selfimports = imports(this) + 1;
+            selfimports = imports(this) ? ThreeState.yes : ThreeState.no;
             foreach (Module m; amodules)
                 m.insearch = 0;
         }
-        return selfimports == 2;
+        return selfimports == ThreeState.yes;
     }
-
-    int rootimports;            // 0: don't know, 1: does not, 2: does
 
     /*************************************
      * Return true if module imports root module.
@@ -390,23 +389,23 @@ extern (C++) final class Module : Package
     bool rootImports()
     {
         //printf("Module::rootImports() %s\n", toChars());
-        if (rootimports == 0)
+        if (rootimports == ThreeState.none)
         {
             foreach (Module m; amodules)
                 m.insearch = 0;
-            rootimports = 1;
+            rootimports = ThreeState.no;
             foreach (Module m; amodules)
             {
                 if (m.isRoot() && imports(m))
                 {
-                    rootimports = 2;
+                    rootimports = ThreeState.yes;
                     break;
                 }
             }
             foreach (Module m; amodules)
                 m.insearch = 0;
         }
-        return rootimports == 2;
+        return rootimports == ThreeState.yes;
     }
 
     int insearch;

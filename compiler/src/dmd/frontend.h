@@ -6258,13 +6258,15 @@ public:
     Package* pkg;
     Array<const char* > contentImportedFiles;
     int32_t needmoduleinfo;
-    int32_t selfimports;
+private:
+    ThreeState selfimports;
+    ThreeState rootimports;
+public:
     void* tagSymTab;
 private:
     OutBuffer defines;
 public:
     bool selfImports();
-    int32_t rootimports;
     bool rootImports();
     int32_t insearch;
     Identifier* searchCacheIdent;
