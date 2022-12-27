@@ -6268,10 +6268,12 @@ private:
 public:
     bool selfImports();
     bool rootImports();
-    int32_t insearch;
+private:
     Identifier* searchCacheIdent;
     Dsymbol* searchCacheSymbol;
     int32_t searchCacheFlags;
+    bool insearch;
+public:
     Module* importedFrom;
     Array<Dsymbol* >* decldefs;
     Array<Module* > aimports;

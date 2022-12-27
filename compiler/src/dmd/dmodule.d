@@ -375,10 +375,10 @@ extern (C++) final class Module : Package
         if (selfimports == ThreeState.none)
         {
             foreach (Module m; amodules)
-                m.insearch = 0;
+                m.insearch = false;
             selfimports = imports(this) ? ThreeState.yes : ThreeState.no;
             foreach (Module m; amodules)
-                m.insearch = 0;
+                m.insearch = false;
         }
         return selfimports == ThreeState.yes;
     }
@@ -392,7 +392,7 @@ extern (C++) final class Module : Package
         if (rootimports == ThreeState.none)
         {
             foreach (Module m; amodules)
-                m.insearch = 0;
+                m.insearch = false;
             rootimports = ThreeState.no;
             foreach (Module m; amodules)
             {
@@ -403,15 +403,15 @@ extern (C++) final class Module : Package
                 }
             }
             foreach (Module m; amodules)
-                m.insearch = 0;
+                m.insearch = false;
         }
         return rootimports == ThreeState.yes;
     }
 
-    int insearch;
-    Identifier searchCacheIdent;
-    Dsymbol searchCacheSymbol;  // cached value of search
-    int searchCacheFlags;       // cached flags
+    private Identifier searchCacheIdent;
+    private Dsymbol searchCacheSymbol;  // cached value of search
+    private int searchCacheFlags;       // cached flags
+    private bool insearch;
 
     /**
      * A root module is one that will be compiled all the way to
@@ -1040,9 +1040,9 @@ extern (C++) final class Module : Package
 
         uint errors = global.errors;
 
-        insearch = 1;
+        insearch = true;
         Dsymbol s = ScopeDsymbol.search(loc, ident, flags);
-        insearch = 0;
+        insearch = false;
 
         if (errors == global.errors)
         {
@@ -1213,7 +1213,7 @@ extern (C++) final class Module : Package
                 return true;
             if (!mi.insearch)
             {
-                mi.insearch = 1;
+                mi.insearch = true;
                 int r = mi.imports(m);
                 if (r)
                     return r;
