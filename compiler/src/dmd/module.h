@@ -87,10 +87,10 @@ public:
 
     bool rootImports();         // returns true if module imports root module
 
-    int insearch;
     Identifier *searchCacheIdent;
     Dsymbol *searchCacheSymbol; // cached value of search
     int searchCacheFlags;       // cached flags
+    bool insearch;
 
     // module from command line we're imported from,
     // i.e. a module that will be taken all the
