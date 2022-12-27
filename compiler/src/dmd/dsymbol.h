@@ -87,6 +87,13 @@ struct Ungag
     ~Ungag() { global.gag = oldgag; }
 };
 
+enum class ThreeState : uint8_t
+{
+    none,         // value not yet computed
+    no,           // value is false
+    yes,          // value is true
+};
+
 void dsymbolSemantic(Dsymbol *dsym, Scope *sc);
 void semantic2(Dsymbol *dsym, Scope *sc);
 void semantic3(Dsymbol *dsym, Scope* sc);

@@ -79,12 +79,12 @@ public:
     Package *pkg;       // if isPackageFile is true, the Package that contains this package.d
     Strings contentImportedFiles;  // array of files whose content was imported
     int needmoduleinfo;
-    int selfimports;            // 0: don't know, 1: does not, 2: does
+    ThreeState selfimports;
+    ThreeState rootimports;
     void* tagSymTab;            // ImportC: tag symbols that conflict with other symbols used as the index
     OutBuffer defines;          // collect all the #define lines here
     bool selfImports();         // returns true if module imports itself
 
-    int rootimports;            // 0: don't know, 1: does not, 2: does
     bool rootImports();         // returns true if module imports root module
 
     int insearch;
