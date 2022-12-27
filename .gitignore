@@ -55,4 +55,4 @@ dmd.iml
 untracked_files/
 
 # Just in case
-dmd
+/dmd
