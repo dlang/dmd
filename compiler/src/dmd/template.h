@@ -70,7 +70,6 @@ public:
     bool isTrivialAlias;        // matches pattern `template Alias(T) { alias Alias = qualifiers(T); }`
     bool deprecated_;           // this template declaration is deprecated
     Visibility visibility;
-    int inuse;                  // for recursive expansion detection
 
     TemplatePrevious *previous;         // threaded list of previous instantiation attempts on stack
 
