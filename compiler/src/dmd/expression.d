@@ -1291,12 +1291,16 @@ extern (C++) abstract class Expression : ASTNode
             return false; // ...or manifest constants
 
         // accessing empty structs is pure
+        // https://issues.dlang.org/show_bug.cgi?id=18694
+        // https://issues.dlang.org/show_bug.cgi?id=21464
+        // https://issues.dlang.org/show_bug.cgi?id=23589
         if (v.type.ty == Tstruct)
         {
             StructDeclaration sd = (cast(TypeStruct)v.type).sym;
             if (sd.members) // not opaque
             {
-                sd.determineSize(v.loc);
+                if (sd.semanticRun >= PASS.semanticdone)
+                    sd.determineSize(v.loc);
                 if (sd.hasNoFields)
                     return false;
             }
