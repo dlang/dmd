@@ -14,8 +14,6 @@ module dmd.location;
 import dmd.common.outbuffer;
 import dmd.root.filename;
 
-extern (C++):
-
 version (DMDLIB)
 {
     version = LocOffset;
@@ -43,11 +41,10 @@ struct Loc
     version (LocOffset)
         uint fileOffset; /// utf8 code unit index relative to start of file, starting from 0
 
-    __gshared Loc initial; /// use for default initialization of const ref Loc's
+    static immutable Loc initial; /// use for default initialization of const ref Loc's
 
-nothrow:
-    __gshared bool showColumns;
-    __gshared MessageStyle messageStyle;
+    extern (C++) __gshared bool showColumns;
+    extern (C++) __gshared MessageStyle messageStyle;
 
 nothrow:
 
@@ -72,7 +69,7 @@ nothrow:
 
     extern (C++) const(char)* toChars(
         bool showColumns = Loc.showColumns,
-        ubyte messageStyle = Loc.messageStyle) const pure nothrow
+        MessageStyle messageStyle = Loc.messageStyle) const pure nothrow
     {
         OutBuffer buf;
         if (filename)

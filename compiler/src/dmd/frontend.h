@@ -369,13 +369,11 @@ struct Loc final
     const char* filename;
     uint32_t linnum;
     uint32_t charnum;
-    static Loc initial;
     static bool showColumns;
     static MessageStyle messageStyle;
     static void set(bool showColumns, MessageStyle messageStyle);
-    const char* toChars(bool showColumns = showColumns, uint8_t messageStyle = messageStyle) const;
+    const char* toChars(bool showColumns = showColumns, MessageStyle messageStyle = messageStyle) const;
     bool equals(const Loc& loc) const;
-    bool isValid() const;
     Loc() :
         filename(),
         linnum(),

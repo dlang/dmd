@@ -30,11 +30,10 @@ enum
     DIAGNOSTICoff     // disable diagnostic
 };
 
-typedef unsigned char MessageStyle;
-enum
+enum class MessageStyle : unsigned char
 {
-    MESSAGESTYLEdigitalmars, // file(line,column): message
-    MESSAGESTYLEgnu          // file:line:column: message
+    digitalmars, // file(line,column): message
+    gnu          // file:line:column: message
 };
 
 // The state of array bounds checking
