@@ -788,6 +788,9 @@ dmd -cov -unittest myprog.d
             "compile in version code identified by ident",
             `Compile in $(LINK2 $(ROOT_DIR)spec/version.html#version, version identifier) $(I ident)`
         ),
+        Option("vpadding",
+            "list all aggregate field paddings"
+        ),
         Option("vgc",
             "list all gc allocations including hidden ones"
         ),
