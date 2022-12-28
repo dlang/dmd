@@ -5720,6 +5720,8 @@ LagainStc:
                         s = null;
                     else if (token.value == TOK.leftCurly)
                         s = parseStatement(ParseStatementFlags.curly | ParseStatementFlags.scope_);
+                    else if (flags & ParseStatementFlags.curlyScope)
+                        s = parseStatement(ParseStatementFlags.semiOk | ParseStatementFlags.curlyScope);
                     else
                         s = parseStatement(ParseStatementFlags.semiOk);
                     s = new AST.LabelStatement(loc, ident, s);
