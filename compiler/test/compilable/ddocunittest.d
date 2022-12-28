@@ -84,7 +84,7 @@ immutable pure nothrow class Foo
 {
     int x;
 
-    ///
+    //
     unittest
     {
         // another foo example

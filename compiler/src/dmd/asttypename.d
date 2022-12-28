@@ -75,6 +75,18 @@ string astTypeName(RootObject node)
     }
 }
 
+///
+unittest
+{
+    import dmd.globals : Loc;
+    Expression e = new TypeidExp(Loc.initial, null);
+    Tuple t = new Tuple();
+    TemplateTypeParameter tp = new TemplateTypeParameter(Loc.initial, null, null, null);
+    assert(e.astTypeName == "TypeidExp");
+    assert(t.astTypeName == "Tuple");
+    assert(tp.astTypeName == "TemplateTypeParameter");
+}
+
 extern(D) enum mixin_string =
 ({
     string astTypeNameFunctions;
@@ -116,14 +128,3 @@ public :
 
 // pragma(msg, mixin_string);
 mixin(mixin_string);
-///
-unittest
-{
-    import dmd.globals : Loc;
-    Expression e = new TypeidExp(Loc.initial, null);
-    Tuple t = new Tuple();
-    TemplateTypeParameter tp = new TemplateTypeParameter(Loc.initial, null, null, null);
-    assert(e.astTypeName == "TypeidExp");
-    assert(t.astTypeName == "Tuple");
-    assert(tp.astTypeName == "TemplateTypeParameter");
-}
