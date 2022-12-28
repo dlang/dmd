@@ -25,6 +25,7 @@ import dmd.expression;
 import dmd.expressionsem;
 import dmd.globals;
 import dmd.init;
+import dmd.location;
 import dmd.mtype;
 import dmd.printast;
 import dmd.root.ctfloat;

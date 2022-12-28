@@ -17,6 +17,7 @@ import core.checkedint;
 import dmd.astenums;
 import dmd.declaration;
 import dmd.globals;
+import dmd.location;
 import dmd.mtype;
 import dmd.target;
 import dmd.visitor;

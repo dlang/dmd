@@ -56,6 +56,7 @@ import dmd.globals;
 import dmd.identifier;
 import dmd.id;
 import dmd.lib;
+import dmd.location;
 import dmd.mtype;
 import dmd.objc_glue;
 import dmd.s2ir;

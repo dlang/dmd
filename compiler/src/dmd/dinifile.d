@@ -20,6 +20,7 @@ import core.sys.windows.windef;
 
 import dmd.errors;
 import dmd.globals;
+import dmd.location;
 import dmd.root.env;
 import dmd.root.rmem;
 import dmd.root.filename;

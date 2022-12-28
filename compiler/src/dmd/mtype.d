@@ -41,6 +41,7 @@ import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.init;
+import dmd.location;
 import dmd.opover;
 import dmd.root.ctfloat;
 import dmd.common.outbuffer;

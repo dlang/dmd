@@ -21,6 +21,7 @@ import dmd.astenums;
 import dmd.errors;
 import dmd.globals;
 import dmd.link;
+import dmd.location;
 import dmd.target;
 import dmd.vsoptions;
 

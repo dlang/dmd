@@ -26,6 +26,7 @@ import dmd.root.rmem;
 import dmd.root.string;
 
 import dmd.globals, dmd.errors;
+import dmd.location;
 
 private enum LOG = false;
 

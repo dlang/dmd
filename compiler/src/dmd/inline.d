@@ -36,6 +36,7 @@ import dmd.id;
 import dmd.identifier;
 import dmd.init;
 import dmd.initsem;
+import dmd.location;
 import dmd.mtype;
 import dmd.opover;
 import dmd.printast;

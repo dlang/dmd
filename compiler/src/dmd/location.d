@@ -13,11 +13,17 @@ module dmd.location;
 
 import dmd.common.outbuffer;
 import dmd.root.filename;
-import dmd.globals;
 
 version (DMDLIB)
 {
     version = LocOffset;
+}
+
+/// How code locations are formatted for diagnostic reporting
+enum MessageStyle : ubyte
+{
+    digitalmars,  /// filename.d(line): message
+    gnu,          /// filename.d:line: message, see https://www.gnu.org/prep/standards/html_node/Errors.html
 }
 
 /**
@@ -37,7 +43,23 @@ struct Loc
 
     static immutable Loc initial; /// use for default initialization of const ref Loc's
 
+    extern (C++) __gshared bool showColumns;
+    extern (C++) __gshared MessageStyle messageStyle;
+
 nothrow:
+
+    /*******************************
+     * Configure how display is done
+     * Params:
+     *  showColumns = when to display columns
+     *  messageStyle = digitalmars or gnu style messages
+     */
+    extern (C++) static void set(bool showColumns, MessageStyle messageStyle)
+    {
+        this.showColumns = showColumns;
+        this.messageStyle = messageStyle;
+    }
+
     extern (D) this(const(char)* filename, uint linnum, uint charnum) pure
     {
         this.linnum = linnum;
@@ -46,8 +68,8 @@ nothrow:
     }
 
     extern (C++) const(char)* toChars(
-        bool showColumns = global.params.showColumns,
-        ubyte messageStyle = global.params.messageStyle) const pure nothrow
+        bool showColumns = Loc.showColumns,
+        MessageStyle messageStyle = Loc.messageStyle) const pure nothrow
     {
         OutBuffer buf;
         if (filename)
@@ -87,11 +109,11 @@ nothrow:
      *
      * Note:
      *  - Uses case-insensitive comparison on Windows
-     *  - Ignores `charnum` if `global.params.showColumns` is false.
+     *  - Ignores `charnum` if `Columns` is false.
      */
     extern (C++) bool equals(ref const(Loc) loc) const
     {
-        return (!global.params.showColumns || charnum == loc.charnum) &&
+        return (!showColumns || charnum == loc.charnum) &&
                linnum == loc.linnum &&
                FileName.equals(filename, loc.filename);
     }

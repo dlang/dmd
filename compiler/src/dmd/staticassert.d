@@ -18,6 +18,7 @@ import dmd.dscope;
 import dmd.dsymbol;
 import dmd.expression;
 import dmd.globals;
+import dmd.location;
 import dmd.id;
 import dmd.identifier;
 import dmd.mtype;

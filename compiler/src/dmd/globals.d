@@ -17,7 +17,7 @@ import dmd.root.filename;
 import dmd.common.outbuffer;
 import dmd.file_manager;
 import dmd.identifier;
-public import dmd.location;
+import dmd.location;
 
 /// Defines a setting for how compiler warnings and deprecations are handled
 enum DiagnosticReporting : ubyte
@@ -25,13 +25,6 @@ enum DiagnosticReporting : ubyte
     error,        /// generate an error
     inform,       /// generate a warning
     off,          /// disable diagnostic
-}
-
-/// How code locations are formatted for diagnostic reporting
-enum MessageStyle : ubyte
-{
-    digitalmars,  /// filename.d(line): message
-    gnu,          /// filename.d:line: message, see https://www.gnu.org/prep/standards/html_node/Errors.html
 }
 
 /// In which context checks for assertions, contracts, bounds checks etc. are enabled

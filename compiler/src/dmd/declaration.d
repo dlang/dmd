@@ -35,6 +35,7 @@ import dmd.identifier;
 import dmd.init;
 import dmd.initsem;
 import dmd.intrange;
+import dmd.location;
 import dmd.mtype;
 import dmd.common.outbuffer;
 import dmd.root.rootobject;

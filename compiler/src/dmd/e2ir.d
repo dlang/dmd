@@ -44,6 +44,7 @@ import dmd.glue;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.init;
+import dmd.location;
 import dmd.mtype;
 import dmd.objc_glue;
 import dmd.printast;

@@ -42,6 +42,7 @@ import dmd.glue;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.init;
+import dmd.location;
 import dmd.mtype;
 import dmd.nspace;
 import dmd.objc_glue;

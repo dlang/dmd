@@ -47,6 +47,7 @@ import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.inline;
+import dmd.location;
 import dmd.json;
 version (NoMain) {} else
 {
@@ -250,6 +251,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         global.console = cast(void*) createConsole(core.stdc.stdio.stderr);
 
     target.setCPU();
+    Loc.set(params.showColumns, params.messageStyle);
 
     if (global.errors)
     {

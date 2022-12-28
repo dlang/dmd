@@ -22,6 +22,7 @@ import dmd.errors;
 import dmd.expression;
 import dmd.globals;
 import dmd.identifier;
+import dmd.location;
 import dmd.mtype;
 import dmd.visitor;
 

@@ -16,6 +16,7 @@ import core.stdc.stdio;
 import core.stdc.stdarg;
 
 import dmd.globals;
+import dmd.location;
 import dmd.errors;
 import dmd.target;
 import dmd.utils;

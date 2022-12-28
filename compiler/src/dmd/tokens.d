@@ -18,6 +18,7 @@ import core.stdc.stdio;
 import core.stdc.string;
 import dmd.globals;
 import dmd.identifier;
+import dmd.location;
 import dmd.root.ctfloat;
 import dmd.common.outbuffer;
 import dmd.root.rmem;

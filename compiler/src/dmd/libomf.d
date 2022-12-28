@@ -19,6 +19,7 @@ import core.bitop;
 import dmd.globals;
 import dmd.utils;
 import dmd.lib;
+import dmd.location;
 
 import dmd.root.array;
 import dmd.root.file;

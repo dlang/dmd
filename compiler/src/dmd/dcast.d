@@ -30,6 +30,7 @@ import dmd.expressionsem;
 import dmd.func;
 import dmd.globals;
 import dmd.hdrgen;
+import dmd.location;
 import dmd.impcnvtab;
 import dmd.id;
 import dmd.importc;

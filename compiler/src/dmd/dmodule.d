@@ -35,6 +35,7 @@ import dmd.file_manager;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
+import dmd.location;
 import dmd.parse;
 import dmd.cparse;
 import dmd.root.array;

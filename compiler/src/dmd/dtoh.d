@@ -24,6 +24,7 @@ import dmd.errors;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.identifier;
+import dmd.location;
 import dmd.root.filename;
 import dmd.visitor;
 import dmd.tokens;

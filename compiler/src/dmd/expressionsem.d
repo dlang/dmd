@@ -55,6 +55,7 @@ import dmd.init;
 import dmd.initsem;
 import dmd.inline;
 import dmd.intrange;
+import dmd.location;
 import dmd.mtype;
 import dmd.mustuse;
 import dmd.nspace;

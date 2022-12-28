@@ -46,6 +46,7 @@ import dmd.imphint;
 import dmd.importc;
 import dmd.init;
 import dmd.initsem;
+import dmd.location;
 import dmd.visitor;
 import dmd.mtype;
 import dmd.objc;

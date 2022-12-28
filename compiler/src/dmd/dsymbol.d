@@ -42,6 +42,7 @@ import dmd.id;
 import dmd.identifier;
 import dmd.init;
 import dmd.lexer;
+import dmd.location;
 import dmd.mtype;
 import dmd.nspace;
 import dmd.opover;

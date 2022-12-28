@@ -14,6 +14,7 @@ module dmd.scanomf;
 import core.stdc.string;
 import core.stdc.stdlib;
 import dmd.globals;
+import dmd.location;
 import dmd.root.rmem;
 import dmd.common.outbuffer;
 import dmd.root.string;

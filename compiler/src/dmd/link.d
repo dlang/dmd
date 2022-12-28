@@ -22,6 +22,7 @@ import core.sys.windows.windef;
 import dmd.dmdparams;
 import dmd.errors;
 import dmd.globals;
+import dmd.location;
 import dmd.root.array;
 import dmd.root.env;
 import dmd.root.file;

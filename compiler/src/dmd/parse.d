@@ -20,6 +20,7 @@ import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.lexer;
+import dmd.location;
 import dmd.errors;
 import dmd.root.filename;
 import dmd.common.outbuffer;

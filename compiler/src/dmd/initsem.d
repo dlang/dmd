@@ -33,6 +33,7 @@ import dmd.id;
 import dmd.identifier;
 import dmd.importc;
 import dmd.init;
+import dmd.location;
 import dmd.mtype;
 import dmd.opover;
 import dmd.statement;
