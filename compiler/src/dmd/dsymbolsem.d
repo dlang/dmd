@@ -487,7 +487,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
          * otherwise the scope overrrides.
          */
         if (dsym.alignment.isDefault())
-            dsym.alignment = dsym.type.alignment(); // use type's alignment
+            dsym.alignment.set(dsym.type.alignsize()); // use type's alignment
 
         //printf("sc.stc = %x\n", sc.stc);
         //printf("storage_class = x%x\n", storage_class);
