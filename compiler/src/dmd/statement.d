@@ -251,9 +251,27 @@ extern (C++) abstract class Statement : ASTNode
         extern (C++) final class ComeFrom : StoppableVisitor
         {
             alias visit = typeof(super).visit;
+            bool canComeFrom = true;
         public:
             override void visit(Statement s)
             {
+                // Cannot jump to the statement using 'goto'
+                canComeFrom = false;
+                stop = true;
+            }
+
+            override void visit(CompoundStatement s)
+            {
+                // Cannot jump into an empty statement list
+                if (!s.statements.length)
+                    visit(cast(Statement)s);
+            }
+
+            override void visit(ScopeStatement s)
+            {
+                // Cannot jump into an empty statement block
+                if (s.statement is null)
+                    visit(cast(Statement)s);
             }
 
             override void visit(CaseStatement s)
@@ -278,7 +296,8 @@ extern (C++) abstract class Statement : ASTNode
         }
 
         scope ComeFrom cf = new ComeFrom();
-        return walkPostorder(this, cf);
+        walkPreorder(this, cf);
+        return cf.canComeFrom;
     }
 
     /**********************************
