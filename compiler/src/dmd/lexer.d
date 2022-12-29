@@ -80,10 +80,7 @@ class Lexer
         bool commentToken;      // comments are TOK.comment's
         bool tokenizeNewlines;  // newlines are turned into TOK.endOfLine's
 
-        version (DMDLIB)
-        {
-            bool whitespaceToken;   // tokenize whitespaces
-        }
+        bool whitespaceToken;   // tokenize whitespaces (only for DMDLIB)
 
         int inTokenStringConstant; // can be larger than 1 when in nested q{} strings
         int lastDocLine;        // last line of previous doc comment
@@ -162,6 +159,16 @@ class Lexer
         }
     }
 
+    /***********************
+     * Alternative entry point for DMDLIB, adds `whitespaceToken`
+     */
+    this(const(char)* filename, const(char)* base, size_t begoffset, size_t endoffset,
+        bool doDocComment, bool commentToken, bool whitespaceToken)
+    {
+        this(filename, base, begoffset, endoffset, doDocComment, commentToken);
+        this.whitespaceToken = whitespaceToken;
+    }
+
     /******************
      * Used for unittests for a mock Lexer
      */
@@ -192,29 +199,23 @@ class Lexer
         tokenizeNewlines = true;
     }
 
-    version (DMDLIB)
+    /***************
+     * Range interface
+     */
+
+    final bool empty() const pure @property @nogc @safe
     {
-        this(const(char)* filename, const(char)* base, size_t begoffset, size_t endoffset,
-            bool doDocComment, bool commentToken, bool whitespaceToken)
-        {
-            this(filename, base, begoffset, endoffset, doDocComment, commentToken);
-            this.whitespaceToken = whitespaceToken;
-        }
+        return front() == TOK.endOfFile;
+    }
 
-        bool empty() const pure @property @nogc @safe
-        {
-            return front() == TOK.endOfFile;
-        }
+    final TOK front() const pure @property @nogc @safe
+    {
+        return token.value;
+    }
 
-        TOK front() const pure @property @nogc @safe
-        {
-            return token.value;
-        }
-
-        void popFront()
-        {
-            nextToken();
-        }
+    final void popFront()
+    {
+        nextToken();
     }
 
     /// Returns: a newly allocated `Token`.
