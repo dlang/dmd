@@ -235,7 +235,7 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
                 .error(loc, "`%s` is not visible from module `%s`", sm.toPrettyChars(), sc._module.toChars());
                 sm = null;
             }
-            // Same check as in Expression.semanticY(DotIdExp)
+            // Same check as in dotIdSemanticProp(DotIdExp)
             else if (sm.isPackage() && checkAccess(sc, sm.isPackage()))
             {
                 // @@@DEPRECATED_2.106@@@
@@ -3686,7 +3686,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                  *  template opDispatch(name) if (isValid!name) { ... }
                  */
                 uint errors = gagError ? global.startGagging() : 0;
-                e = dti.semanticY(sc, 0);
+                e = dti.dotTemplateSemanticProp(sc, 0);
                 if (gagError && global.endGagging(errors))
                     e = null;
                 return returnExp(e);
@@ -3704,7 +3704,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                 auto die = new DotIdExp(e.loc, alias_e, ident);
 
                 auto errors = gagError ? 0 : global.startGagging();
-                auto exp = die.semanticY(sc, gagError);
+                auto exp = die.dotIdSemanticProp(sc, gagError);
                 if (!gagError)
                 {
                     global.endGagging(errors);
