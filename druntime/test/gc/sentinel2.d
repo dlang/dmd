@@ -10,6 +10,10 @@ void main()
     // so that the pointer p will not be visible to the GC.
     auto t = new Thread({
         thread_detachThis();
+        // Keep reference to this thread object in a shared data address, because
+        // the thread-local pointer in druntime will not be visible to the GC either.
+        __gshared Thread threadobj;
+        threadobj = Thread.getThis();
 
         auto p = cast(ubyte*)GC.malloc(1);
         assert(p[-1] == 0xF4);
