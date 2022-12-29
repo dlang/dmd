@@ -13,7 +13,6 @@ module dmd.utils;
 
 import core.stdc.string;
 import dmd.errors;
-import dmd.globals;
 import dmd.location;
 import dmd.root.file;
 import dmd.root.filename;

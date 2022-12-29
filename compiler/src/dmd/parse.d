@@ -53,7 +53,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      */
     extern (D) this(const ref Loc loc, AST.Module _module, const(char)[] input, bool doDocComment)
     {
-        super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false);
+        super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false,
+                global.vendor, global.versionNumber());
 
         //printf("Parser::Parser()\n");
         scanloc = loc;
@@ -75,7 +76,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
     extern (D) this(AST.Module _module, const(char)[] input, bool doDocComment)
     {
-        super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false);
+        super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false,
+              global.vendor, global.versionNumber());
 
         //printf("Parser::Parser()\n");
         mod = _module;

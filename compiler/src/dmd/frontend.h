@@ -8780,7 +8780,7 @@ struct Token final
     union
     {
         int64_t intvalue;
-        uinteger_t unsvalue;
+        uint64_t unsvalue;
         _d_real floatvalue;
         struct
         {

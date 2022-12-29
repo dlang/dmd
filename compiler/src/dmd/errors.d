@@ -768,7 +768,7 @@ private void colorHighlightCode(ref OutBuffer buf)
     ++nested;
 
     auto gaggedErrorsSave = global.startGagging();
-    scope Lexer lex = new Lexer(null, cast(char*)buf[].ptr, 0, buf.length - 1, 0, 1);
+    scope Lexer lex = new Lexer(null, cast(char*)buf[].ptr, 0, buf.length - 1, 0, 1, global.vendor, global.versionNumber());
     OutBuffer res;
     const(char)* lastp = cast(char*)buf[].ptr;
     //printf("colorHighlightCode('%.*s')\n", cast(int)(buf.length - 1), buf[].ptr);
