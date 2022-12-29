@@ -15526,7 +15526,7 @@ Modifiable checkModifiable(Expression exp, Scope* sc, ModifyFlags flag = ModifyF
         case EXP.variable:
             auto varExp = cast(VarExp)exp;
 
-            //printf("VarExp::checkModifiable %s", varExp.toChars());
+            //printf("VarExp::checkModifiable %s, flag: %d", varExp.toChars(), flag);
             assert(varExp.type);
             return varExp.var.checkModify(varExp.loc, sc, null, flag);
 

@@ -336,8 +336,6 @@ Symbol *toSymbol(Dsymbol s)
 
         override void visit(FuncDeclaration fd)
         {
-            const(char)* id = mangleExact(fd);
-
             //printf("FuncDeclaration.toSymbol(%s %s)\n", fd.kind(), fd.toChars());
 
             /* MS-LINK cannot handle multiple COMDATs with the same name.
@@ -372,6 +370,7 @@ Symbol *toSymbol(Dsymbol s)
                 }
             }
 
+            const(char)* id = mangleExact(fd);
             //printf("\tid = '%s'\n", id);
             //printf("\ttype = %s\n", fd.type.toChars());
             auto s = symbol_calloc(id[0 .. strlen(id)]);
