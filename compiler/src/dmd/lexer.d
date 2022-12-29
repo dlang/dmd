@@ -89,6 +89,8 @@ class Lexer
         int lastDocLine;        // last line of previous doc comment
 
         Token* tokenFreelist;
+        uint versionNumber;
+        const(char)[] vendor;
     }
 
   nothrow:
@@ -104,9 +106,12 @@ class Lexer
      *  endoffset = the last offset to read into base[]
      *  doDocComment = handle documentation comments
      *  commentToken = comments become TOK.comment's
+     *  vendor = name of the vendor
+     *  versionNumber = version of the caller
      */
     this(const(char)* filename, const(char)* base, size_t begoffset,
-        size_t endoffset, bool doDocComment, bool commentToken) pure
+        size_t endoffset, bool doDocComment, bool commentToken,
+        const(char)[] vendor = "DLF", uint versionNumber = 1) pure
     {
         scanloc = Loc(filename, 1, 1);
         // debug printf("Lexer::Lexer(%p)\n", base);
@@ -121,6 +126,8 @@ class Lexer
         this.tokenizeNewlines = false;
         this.inTokenStringConstant = 0;
         this.lastDocLine = 0;
+        this.versionNumber = versionNumber;
+        this.vendor = vendor;
         //initKeywords();
         /* If first line starts with '#!', ignore the line
          */
@@ -571,7 +578,7 @@ class Lexer
                         }
                         else if (id == Id.VENDOR)
                         {
-                            t.ustring = global.vendor.xarraydup.ptr;
+                            t.ustring = vendor.xarraydup.ptr;
                             goto Lstr;
                         }
                         else if (id == Id.TIMESTAMP)
@@ -585,7 +592,7 @@ class Lexer
                         else if (id == Id.VERSIONX)
                         {
                             t.value = TOK.int64Literal;
-                            t.unsvalue = global.versionNumber();
+                            t.unsvalue = versionNumber;
                         }
                         else if (id == Id.EOFX)
                         {
@@ -1966,7 +1973,7 @@ class Lexer
     {
         int base = 10;
         const start = p;
-        uinteger_t n = 0; // unsigned >=64 bit integer type
+        ulong n = 0; // unsigned >=64 bit integer type
         int d;
         bool err = false;
         bool overflow = false;
@@ -2275,7 +2282,7 @@ class Lexer
      * Returns:
      *  token value
      */
-    private TOK cnumber(int base, uinteger_t n)
+    private TOK cnumber(int base, ulong n)
     {
         /* C11 6.4.4.1
          * Parse trailing suffixes:
