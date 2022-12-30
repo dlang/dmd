@@ -13,6 +13,7 @@
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
 
+extern (C) void onAssertErrorMsg( string file, size_t line, string msg ) nothrow;
 
 /**
  *
@@ -22,8 +23,14 @@ void _d_invariant(Object o)
 
     //printf("__d_invariant(%p)\n", o);
 
-    // BUG: needs to be filename/line of caller, not library routine
-    assert(o !is null); // just do null check, not invariant check
+
+    // check for null object or null vtable (as opposed to just segfaulting)
+    // Do this regardless of whether asserts are enabled or not. Since this is
+    // in druntime, it likely is compiled without asserts enabled, and clearly
+    // the user is OK with extra checks if they are using invariants.
+    if (o is null || *cast(void**)o is null)
+        // BUG: needs to be filename/line of caller, not library routine
+        onAssertErrorMsg(__FILE__, __LINE__, "object is null or has null vtbl");
 
     c = typeid(o);
     do
