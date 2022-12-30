@@ -6134,6 +6134,7 @@ StructDeclaration needsDtor(Type t)
  */
 elem *setArray(Expression exp, elem *eptr, elem *edim, Type tb, elem *evalue, IRState *irs, int op)
 {
+    //elem_print(evalue);
     assert(op == EXP.blit || op == EXP.assign || op == EXP.construct);
     const sz = cast(uint)tb.size();
     Type tb2 = tb;
@@ -6275,9 +6276,18 @@ Lagain:
             default:
                 assert(0);
         }
+        // do a cast to tym
         tym = tym | (evalue.Ety & ~mTYbasic);
-        evalue = addressElem(evalue, tb);
-        evalue = el_una(OPind, tym, evalue);
+        if (evalue.Eoper == OPconst)
+        {
+            evalue = el_copytree(evalue);
+            evalue.Ety = tym;
+        }
+        else
+        {
+            evalue = addressElem(evalue, tb);
+            evalue = el_una(OPind, tym, evalue);
+        }
     }
 
     evalue = useOPstrpar(evalue);
