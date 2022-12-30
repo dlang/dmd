@@ -2573,7 +2573,7 @@ elem* toElem(Expression e, IRState *irs)
 
                 elem *el = e1;
                 elem *enbytes = el_long(TYsize_t, sz);
-                elem *evalue = el_long(TYsize_t, 0);
+                elem *evalue = el_long(TYchar, 0);
 
                 el = el_una(OPaddr, TYnptr, el);
                 elem* e = el_param(enbytes, evalue);
@@ -2618,7 +2618,7 @@ elem* toElem(Expression e, IRState *irs)
                     ae.e2.type.isZeroInit(ae.e2.loc))
                 {
                     elem* enbytes = el_long(TYsize_t, ae.e1.type.size());
-                    elem* evalue = el_long(TYsize_t, 0);
+                    elem* evalue = el_long(TYchar, 0);
                     elem* el = el_una(OPaddr, TYnptr, e1);
                     elem* e = el_bin(OPmemset,TYnptr, el, el_param(enbytes, evalue));
                     return setResult2(e);
@@ -2647,7 +2647,7 @@ elem* toElem(Expression e, IRState *irs)
 
                 elem *el = e1;
                 elem *enbytes = el_long(TYsize_t, sz);
-                elem *evalue = el_long(TYsize_t, 0);
+                elem *evalue = el_long(TYchar, 0);
 
                 el = el_una(OPaddr, TYnptr, el);
                 elem* e = el_param(enbytes, evalue);
