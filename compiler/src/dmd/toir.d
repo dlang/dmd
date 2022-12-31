@@ -704,14 +704,17 @@ TYPE* getParentClosureType(Symbol* sthis, FuncDeclaration fd)
  * Also turns off nrvo for closure variables.
  * Params:
  *      fd = function
+ * Returns:
+ *      overall alignment of the closure
  */
-void setClosureVarOffset(FuncDeclaration fd)
+uint setClosureVarOffset(FuncDeclaration fd)
 {
     // Nothing to do
     if (!fd.needsClosure())
-        return;
+        return 0;
 
     uint offset = target.ptrsize;      // leave room for previous sthis
+    uint aggAlignment = offset;        // overall alignment for the closure
 
     foreach (v; fd.closureVars)
     {
@@ -749,11 +752,16 @@ void setClosureVarOffset(FuncDeclaration fd)
 
         offset += memsize;
 
+        uint actualAlignment = xalign.isDefault() ? memalignsize : xalign.get();
+        if (aggAlignment < actualAlignment)
+            aggAlignment = actualAlignment;     // take the largest
+
         /* Can't do nrvo if the variable is put in a closure, since
          * what the shidden points to may no longer exist.
          */
         assert(!fd.isNRVO() || fd.nrvo_var != v);
     }
+    return aggAlignment;
 }
 
 /*************************************
@@ -791,7 +799,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
             fd.checkClosure();   // give decent diagnostic
         }
 
-        setClosureVarOffset(fd);
+        auto aggAlignment = setClosureVarOffset(fd);
 
         // Generate closure on the heap
         // BUG: doesn't capture variadic arguments passed to this function
@@ -873,7 +881,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
         else
             lastsize = vlast.type.size();
         bool overflow;
-        const structsize = addu(vlast.offset, lastsize, overflow);
+        auto structsize = addu(vlast.offset, lastsize, overflow);
         assert(!overflow && structsize <= uint.max);
         //printf("structsize = %d\n", cast(uint)structsize);
 
@@ -883,10 +891,22 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
         if (driverParams.symdebug)
             toDebugClosure(Closstru.Ttag);
 
+        // Add extra size so we can align it
+        if (aggAlignment > 16)  // gc aligns on 16 bytes
+            structsize += aggAlignment - 16;
+
         // Allocate memory for the closure
         elem *e = el_long(TYsize_t, structsize);
         e = el_bin(OPcall, TYnptr, el_var(getRtlsym(RTLSYM.ALLOCMEMORY)), e);
         toTraceGC(irs, e, fd.loc);
+
+        // Align it
+        if (aggAlignment > 16)
+        {
+            // e + (aggAlignment - 1) & ~(aggAlignment - 1)
+            e = el_bin(OPadd, TYsize_t, e, el_long(TYsize_t, aggAlignment - 1));
+            e = el_bin(OPand, TYsize_t, e, el_long(TYsize_t, ~(aggAlignment - 1L)));
+        }
 
         // Assign block of memory to sclosure
         //    sclosure = allocmemory(sz);
