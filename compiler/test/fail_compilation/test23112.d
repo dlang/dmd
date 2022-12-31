@@ -3,6 +3,7 @@ TEST_OUTPUT:
 ---
 fail_compilation/test23112.d(106): Error: function `test23112.bar` is `@nogc` yet allocates closure for `bar()` with the GC
 fail_compilation/test23112.d(108):        `test23112.bar.f` closes over variable `a` at fail_compilation/test23112.d(106)
+fail_compilation/test23112.d(117): Error: template instance `test23112.bar.Forward!(f).Forward.call!()` error instantiating
 ---
 */
 
