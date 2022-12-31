@@ -894,8 +894,9 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
             toDebugClosure(Closstru.Ttag);
 
         // Add extra size so we can align it
-        if (aggAlignment > 16)  // gc aligns on 16 bytes
-            structsize += aggAlignment - 16;
+        enum GC_ALIGN = 16;     // gc aligns on 16 bytes
+        if (aggAlignment > GC_ALIGN)
+            structsize += aggAlignment - GC_ALIGN;
 
         // Allocate memory for the closure
         elem *e = el_long(TYsize_t, structsize);
@@ -903,7 +904,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
         toTraceGC(irs, e, fd.loc);
 
         // Align it
-        if (aggAlignment > 16)
+        if (aggAlignment > GC_ALIGN)
         {
             // e + (aggAlignment - 1) & ~(aggAlignment - 1)
             e = el_bin(OPadd, TYsize_t, e, el_long(TYsize_t, aggAlignment - 1));
@@ -1041,7 +1042,10 @@ uint setAlignSectionVarOffset(FuncDeclaration fd)
  *      fd = function in which all this occurs
  *      irs = state of the intermediate code generation
  * Reference:
- *      buildClosure
+ *      buildClosure() is very similar.
+ *
+ *      https://github.com/dlang/dmd/pull/9143 was an incomplete attempt to solve this problem
+ *      that was merged. It should probably be removed.
  */
 void buildAlignSection(FuncDeclaration fd, ref IRState irs)
 {
@@ -1076,7 +1080,9 @@ void buildAlignSection(FuncDeclaration fd, ref IRState irs)
     free(closname);
 
     Symbol *sclosure;
-    sclosure = symbol_name("__alignsecptr", SC.auto_, type_pointer(Closstru));
+    type* t = type_pointer(Closstru);
+    type_setcv(&t, t.Tty | mTYvolatile);        // so optimizer doesn't delete it
+    sclosure = symbol_name("__alignsecptr", SC.auto_, t);
     sclosure.Sflags |= SFLtrue | SFLfree;
     symbol_add(sclosure);
     fd.salignSection = sclosure;
