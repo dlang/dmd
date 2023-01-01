@@ -1850,10 +1850,27 @@ public:
         {
             printf("%s StringExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
-        /* Attempts to modify string literals are prevented
-         * in BinExp::interpretAssignCommon.
-         */
-        result = e;
+        if (e.ownedByCtfe >= OwnedBy.ctfe) // We've already interpreted the string
+        {
+            result = e;
+            return;
+        }
+
+        if (e.type.ty != Tsarray ||
+            (cast(TypeNext)e.type).next.mod & (MODFlags.const_ | MODFlags.immutable_))
+        {
+            // If it's immutable, we don't need to dup it. Attempts to modify
+            // string literals are prevented in BinExp::interpretAssignCommon.
+            result = e;
+        }
+        else
+        {
+            // https://issues.dlang.org/show_bug.cgi?id=20811
+            // Create a copy of mutable string literals, so that any change in
+            // value via an index or slice will not survive CTFE.
+            *pue = copyLiteral(e);
+            result = pue.exp();
+        }
     }
 
     override void visit(FuncExp e)

@@ -568,7 +568,6 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     bool isTrivialAlias;    /// matches pattern `template Alias(T) { alias Alias = qualifiers(T); }`
     bool deprecated_;       /// this template declaration is deprecated
     Visibility visibility;
-    int inuse;              /// for recursive expansion detection
 
     // threaded list of previous instantiation attempts on stack
     TemplatePrevious* previous;
@@ -1118,9 +1117,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     printf("\tparameter[%d] is %s : %s\n", i, tp.ident.toChars(), ttp.specType ? ttp.specType.toChars() : "");
             }
 
-            inuse++;
             m2 = tp.matchArg(ti.loc, paramscope, ti.tiargs, i, parameters, dedtypes, &sparam);
-            inuse--;
             //printf("\tm2 = %d\n", m2);
             if (m2 == MATCH.nomatch)
             {
@@ -1784,9 +1781,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                             }
                             else
                             {
-                                inuse++;
                                 oded = tparam.defaultArg(instLoc, paramscope);
-                                inuse--;
                                 if (oded)
                                     (*dedargs)[i] = declareParameter(paramscope, tparam, oded);
                             }
@@ -2167,9 +2162,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             }
             else
             {
-                inuse++;
                 oded = tparam.defaultArg(instLoc, paramscope);
-                inuse--;
                 if (!oded)
                 {
                     // if tuple parameter and
@@ -2814,11 +2807,6 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
     int applyTemplate(TemplateDeclaration td)
     {
         //printf("applyTemplate()\n");
-        if (td.inuse)
-        {
-            td.error(loc, "recursive template expansion");
-            return 1;
-        }
         if (td == td_best)   // skip duplicates
             return 0;
 
@@ -5594,15 +5582,25 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
         if (e)
         {
             e = e.syntaxCopy();
-            uint olderrs = global.errors;
             if ((e = e.expressionSemantic(sc)) is null)
                 return null;
+            if (auto te = e.isTemplateExp())
+            {
+                assert(sc && sc.tinst);
+                if (te.td == sc.tinst.tempdecl)
+                {
+                    // defaultValue is a reference to its template declaration
+                    // i.e: `template T(int arg = T)`
+                    // Raise error now before calling resolveProperties otherwise we'll
+                    // start looping on the expansion of the template instance.
+                    sc.tinst.tempdecl.error("recursive template expansion");
+                    return ErrorExp.get();
+                }
+            }
             if ((e = resolveProperties(sc, e)) is null)
                 return null;
             e = e.resolveLoc(instLoc, sc); // use the instantiated loc
             e = e.optimize(WANTvalue);
-            if (global.errors != olderrs)
-                e = ErrorExp.get();
         }
         return e;
     }
@@ -6933,11 +6931,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 auto td = s.isTemplateDeclaration();
                 if (!td)
                     return 0;
-                if (td.inuse)
-                {
-                    td.error(loc, "recursive template expansion");
-                    return 1;
-                }
                 if (td == td_best)   // skip duplicates
                     return 0;
 
@@ -7156,11 +7149,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 auto td = s.isTemplateDeclaration();
                 if (!td)
                     return 0;
-                if (td.inuse)
-                {
-                    td.error(loc, "recursive template expansion");
-                    return 1;
-                }
 
                 /* If any of the overloaded template declarations need inference,
                  * then return true

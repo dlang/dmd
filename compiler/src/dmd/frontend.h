@@ -6648,7 +6648,6 @@ public:
     bool isTrivialAlias;
     bool deprecated_;
     Visibility visibility;
-    int32_t inuse;
     TemplatePrevious* previous;
 private:
     Expression* lastConstraint;

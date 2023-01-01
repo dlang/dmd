@@ -106,6 +106,13 @@ bool canInlineFunction(Symbol *sfunc)
             default:
                 break;
         }
+
+        foreach (s; f.Flocsym[])
+        {
+            assert(s);
+            if (s.Sclass == SC.bprel)
+                return false;
+        }
     }
     if (!result)
         f.Fflags &= ~Finline;
