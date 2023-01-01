@@ -110,21 +110,36 @@ private extern(C++) final class Semantic2Visitor : Visitor
         else if (result)
             return;
 
-        if (sa.msg)
+        if (sa.msgs)
         {
-            sc = sc.startCTFE();
-            sa.msg = sa.msg.expressionSemantic(sc);
-            sa.msg = resolveProperties(sc, sa.msg);
-            sc = sc.endCTFE();
-            sa.msg = sa.msg.ctfeInterpret();
-            if (StringExp se = sa.msg.toStringExp())
+            OutBuffer msgbuf;
+            for (size_t i = 0; i < sa.msgs.length; i++)
             {
-                // same with pragma(msg)
-                const slice = se.toUTF8(sc).peekString();
-                error(sa.loc, "static assert:  \"%.*s\"", cast(int)slice.length, slice.ptr);
+                Expression e = (*sa.msgs)[i];
+                sc = sc.startCTFE();
+                e = e.expressionSemantic(sc);
+                e = resolveProperties(sc, e);
+                sc = sc.endCTFE();
+                e = ctfeInterpretForPragmaMsg(e);
+                if (e.op == EXP.error)
+                {
+                    errorSupplemental(sa.loc, "while evaluating `static assert` argument `%s`", (*sa.msgs)[i].toChars());
+                    return;
+                }
+                StringExp se = e.toStringExp();
+                if (se)
+                {
+                    const slice = se.toUTF8(sc).peekString();
+                    // Hack to keep old formatting to avoid changing error messages everywhere
+                    if (sa.msgs.length == 1)
+                        msgbuf.printf("\"%.*s\"", cast(int)slice.length, slice.ptr);
+                    else
+                        msgbuf.printf("%.*s", cast(int)slice.length, slice.ptr);
+                }
+                else
+                    msgbuf.printf("%s", e.toChars());
             }
-            else
-                error(sa.loc, "static assert:  %s", sa.msg.toChars());
+            error(sa.loc, "static assert:  %s", msgbuf.extractChars());
         }
         else
             error(sa.loc, "static assert:  `%s` is false", sa.exp.toChars());
@@ -163,7 +178,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
         if (needGagging)
             oldGaggedErrors = global.startGagging();
 
-        for (size_t i = 0; i < tempinst.members.dim; i++)
+        for (size_t i = 0; i < tempinst.members.length; i++)
         {
             Dsymbol s = (*tempinst.members)[i];
             static if (LOG)
@@ -211,7 +226,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
         sc = sc.push(tmix);
         sc.tinst = tmix;
         sc.minst = tmix.minst;
-        for (size_t i = 0; i < tmix.members.dim; i++)
+        for (size_t i = 0; i < tmix.members.length; i++)
         {
             Dsymbol s = (*tmix.members)[i];
             static if (LOG)
@@ -230,6 +245,8 @@ private extern(C++) final class Semantic2Visitor : Visitor
             return;
 
         //printf("VarDeclaration::semantic2('%s')\n", toChars());
+        sc.varDecl = vd;
+        scope(exit) sc.varDecl = null;
 
         if (vd.aliassym)        // if it's a tuple
         {
@@ -333,7 +350,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
         if (mod.members)
         {
             // Pass 2 semantic routines: do initializers and function bodies
-            for (size_t i = 0; i < mod.members.dim; i++)
+            for (size_t i = 0; i < mod.members.length; i++)
             {
                 Dsymbol s = (*mod.members)[i];
                 s.semantic2(sc);
@@ -520,7 +537,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
             return;
 
         Scope* sc2 = ad.newScope(sc);
-        for (size_t i = 0; i < d.dim; i++)
+        for (size_t i = 0; i < d.length; i++)
         {
             Dsymbol s = (*d)[i];
             s.semantic2(sc2);
@@ -559,7 +576,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
 
     override void visit(UserAttributeDeclaration uad)
     {
-        if (!uad.decl || !uad.atts || !uad.atts.dim || !uad._scope)
+        if (!uad.decl || !uad.atts || !uad.atts.length || !uad._scope)
             return visit(cast(AttribDeclaration)uad);
 
         Expression* lastTag;
@@ -609,7 +626,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
 
         ad.determineSize(ad.loc);
 
-        for (size_t i = 0; i < ad.members.dim; i++)
+        for (size_t i = 0; i < ad.members.length; i++)
         {
             Dsymbol s = (*ad.members)[i];
             //printf("\t[%d] %s\n", i, s.toChars());

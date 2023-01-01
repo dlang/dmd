@@ -56,6 +56,7 @@ import dmd.globals;
 import dmd.identifier;
 import dmd.id;
 import dmd.lib;
+import dmd.location;
 import dmd.mtype;
 import dmd.objc_glue;
 import dmd.s2ir;
@@ -261,7 +262,7 @@ private void obj_write_deferred(ref OutBuffer objbuf, Library library, ref Dsymb
         //printf("writing '%s'\n", fname);
         obj_end(objbuf, library, fname);
     }
-    glue.obj_symbols_towrite.dim = 0;
+    glue.obj_symbols_towrite.length = 0;
 }
 
 
@@ -516,7 +517,7 @@ private void genObjFile(Module m, bool multiobj)
         m.covb = cast(uint *)Mem.check(calloc((m.numlines + 32) / 32, (*m.covb).sizeof));
     }
 
-    for (int i = 0; i < m.members.dim; i++)
+    for (int i = 0; i < m.members.length; i++)
     {
         auto member = (*m.members)[i];
         //printf("toObjFile %s %s\n", member.kind(), member.toChars());
@@ -583,8 +584,8 @@ private void genObjFile(Module m, bool multiobj)
     }
 
     // If coverage / static constructor / destructor / unittest calls
-    if (glue.eictor || glue.sctors.dim || glue.ectorgates.dim || glue.sdtors.dim ||
-        glue.ssharedctors.dim || glue.esharedctorgates.dim || glue.sshareddtors.dim || glue.stests.dim)
+    if (glue.eictor || glue.sctors.length || glue.ectorgates.length || glue.sdtors.length ||
+        glue.ssharedctors.length || glue.esharedctorgates.length || glue.sshareddtors.length || glue.stests.length)
     {
         if (glue.eictor)
         {
@@ -868,9 +869,9 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             sprintf(hiddenparam.ptr, "__HID%u", ++hiddenparami);
             name = hiddenparam.ptr;
         }
-        shidden = symbol_name(name, SC.parameter, thidden);
+        shidden = symbol_name(name[0 .. strlen(name)], SC.parameter, thidden);
         shidden.Sflags |= SFLtrue | SFLfree;
-        if (fd.isNRVO() && fd.nrvo_var && fd.nrvo_var.nestedrefs.dim)
+        if (fd.isNRVO() && fd.nrvo_var && fd.nrvo_var.nestedrefs.length)
             type_setcv(&shidden.Stype, shidden.Stype.Tty | mTYvolatile);
         irs.shidden = shidden;
         fd.shidden = shidden;
@@ -896,7 +897,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     // Estimate number of parameters, pi
     size_t pi = (fd.v_arguments !is null);
     if (fd.parameters)
-        pi += fd.parameters.dim;
+        pi += fd.parameters.length;
     if (fd.objc.selector)
         pi++; // Extra argument for Objective-C selector
     // Create a temporary buffer, params[], to hold function parameters
@@ -922,7 +923,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             assert(!v.csym);
             params[pi + i] = toSymbol(v);
         }
-        pi += fd.parameters.dim;
+        pi += fd.parameters.length;
     }
 
     if (reverse)
@@ -1226,7 +1227,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             const ret = snprintf(buf, 100, "_dmd_crt_destructor_thunk.%u", nthDestructor++);
             assert(ret >= 0 && ret < 100, "snprintf either failed or overran buffer");
             //Function symbol
-            auto newConstructor = symbol_calloc(buf);
+            auto newConstructor = symbol_calloc(buf[0 .. strlen(buf)]);
             //Build type
             newConstructor.Stype = type_function(TYnfunc, [], false, type_alloc(TYvoid));
             //Tell it it's supposed to be a C function. Does it do anything? Not sure.
@@ -1314,7 +1315,6 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
                 break;
             case Target.ObjectFormat.omf:
                 objmod.external_def("_main");
-                objmod.external_def("__acrtused_con");
                 break;
         }
         if (libname)

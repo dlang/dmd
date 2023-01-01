@@ -23,6 +23,7 @@ import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
+import dmd.location;
 import dmd.mtype;
 import dmd.root.ctfloat;
 import dmd.root.stringtable;

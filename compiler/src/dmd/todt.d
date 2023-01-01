@@ -36,6 +36,7 @@ import dmd.func;
 import dmd.globals;
 import dmd.glue;
 import dmd.init;
+import dmd.location;
 import dmd.mtype;
 import dmd.target;
 import dmd.tokens;
@@ -458,7 +459,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
         //printf("ArrayLiteralExp.toDt() '%s', type = %s\n", e.toChars(), e.type.toChars());
 
         auto dtbarray = DtBuilder(0);
-        foreach (i; 0 .. e.elements.dim)
+        foreach (i; 0 .. e.elements.length)
         {
             Expression_toDt(e[i], dtbarray);
         }
@@ -471,7 +472,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
                 break;
 
             case Tarray:
-                dtb.size(e.elements.dim);
+                dtb.size(e.elements.length);
                 goto case Tpointer;
 
             case Tpointer:
@@ -501,7 +502,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
     void visitStructLiteral(StructLiteralExp sle)
     {
         //printf("StructLiteralExp.toDt() %s, ctfe = %d\n", sle.toChars(), sle.ownedByCtfe);
-        assert(sle.sd.nonHiddenFields() <= sle.elements.dim);
+        assert(sle.sd.nonHiddenFields() <= sle.elements.length);
         membersToDt(sle.sd, dtb, sle.elements, 0, null, null);
     }
 
@@ -763,14 +764,14 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
             // Insert { base class }
             size_t index = 0;
             for (ClassDeclaration c = cdb.baseClass; c; c = c.baseClass)
-                index += c.fields.dim;
+                index += c.fields.length;
             membersToDt(cdb, dtb, elements, index, concreteType, null);
             offset = cdb.structsize;
         }
         else if (InterfaceDeclaration id = cd.isInterfaceDeclaration())
         {
             offset = (**ppb).offset;
-            if (id.vtblInterfaces.dim == 0 && genclassinfo)
+            if (id.vtblInterfaces.length == 0 && genclassinfo)
             {
                 BaseClass* b = **ppb;
                 //printf("  Interface %s, b = %p\n", id.toChars(), b);
@@ -829,8 +830,8 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
     // `offset` now is where the fields start
 
     assert(!elements ||
-           firstFieldIndex <= elements.dim &&
-           firstFieldIndex + ad.fields.dim <= elements.dim);
+           firstFieldIndex <= elements.length &&
+           firstFieldIndex + ad.fields.length <= elements.length);
 
     uint bitByteOffset = 0;     // byte offset of bit field
     uint bitOffset = 0;         // starting bit number
@@ -1095,7 +1096,7 @@ private void toDtElem(TypeSArray tsa, ref DtBuilder dtb, Expression e, bool isCt
             if (auto se = e.isStringExp())
                 len /= se.numberOfCodeUnits();
             else if (auto ae = e.isArrayLiteralExp())
-                len /= ae.elements.dim;
+                len /= ae.elements.length;
         }
 
         auto dtb2 = DtBuilder(0);
@@ -1127,7 +1128,7 @@ extern (C++) void ClassReferenceExp_toInstanceDt(ClassReferenceExp ce, ref DtBui
     // Put in the rest
     size_t firstFieldIndex = 0;
     for (ClassDeclaration c = cd.baseClass; c; c = c.baseClass)
-        firstFieldIndex += c.fields.dim;
+        firstFieldIndex += c.fields.length;
     membersToDt(cd, dtb, ce.value.elements, firstFieldIndex, cd, null);
 }
 
@@ -1485,13 +1486,6 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
             dtb.xoff(toSymbol(fd), 0);
             TypeFunction tf = cast(TypeFunction)fd.type;
             assert(tf.ty == Tfunction);
-            /* I'm a little unsure this is the right way to do it. Perhaps a better
-             * way would to automatically add these attributes to any struct member
-             * function with the name "toHash".
-             * So I'm leaving this here as an experiment for the moment.
-             */
-            if (!tf.isnothrow || tf.trust == TRUST.system /*|| tf.purity == PURE.impure*/)
-                warning(fd.loc, "toHash() must be declared as extern (D) size_t toHash() const nothrow @safe, not %s", tf.toChars());
         }
         else
             dtb.size(0);
@@ -1606,7 +1600,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
 
         auto tu = d.tinfo.isTypeTuple();
 
-        const dim = tu.arguments.dim;
+        const dim = tu.arguments.length;
         dtb.size(dim);                       // elements.length
 
         auto dtbargs = DtBuilder(0);

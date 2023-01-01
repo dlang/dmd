@@ -33,6 +33,7 @@ import dmd.func;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
+import dmd.location;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.speller;
@@ -71,13 +72,14 @@ private enum PersistentFlags =
     SCOPE.noaccesscheck | SCOPE.ignoresymbolvisibility |
     SCOPE.Cfile;
 
-struct Scope
+extern (C++) struct Scope
 {
     Scope* enclosing;               /// enclosing Scope
 
     Module _module;                 /// Root module
     ScopeDsymbol scopesym;          /// current symbol
     FuncDeclaration func;           /// function we are in
+    VarDeclaration varDecl;         /// variable we are in during semantic2
     Dsymbol parent;                 /// parent to use
     LabelStatement slabel;          /// enclosing labelled statement
     SwitchStatement sw;             /// enclosing switch statement
@@ -177,7 +179,7 @@ struct Scope
         return sc;
     }
 
-    extern (C++) Scope* copy()
+    extern (D) Scope* copy()
     {
         Scope* sc = Scope.alloc();
         *sc = this;
@@ -188,7 +190,7 @@ struct Scope
         return sc;
     }
 
-    extern (C++) Scope* push()
+    extern (D) Scope* push()
     {
         Scope* s = copy();
         //printf("Scope::push(this = %p) new = %p\n", this, s);
@@ -214,7 +216,7 @@ struct Scope
         return s;
     }
 
-    extern (C++) Scope* push(ScopeDsymbol ss)
+    extern (D) Scope* push(ScopeDsymbol ss)
     {
         //printf("Scope::push(%s)\n", ss.toChars());
         Scope* s = push();
@@ -222,7 +224,7 @@ struct Scope
         return s;
     }
 
-    extern (C++) Scope* pop()
+    extern (D) Scope* pop()
     {
         //printf("Scope::pop() %p nofree = %d\n", this, nofree);
         if (enclosing)
@@ -252,7 +254,7 @@ struct Scope
         pop();
     }
 
-    extern (C++) Scope* startCTFE()
+    extern (D) Scope* startCTFE()
     {
         Scope* sc = this.push();
         sc.flags = this.flags | SCOPE.ctfe;
@@ -279,7 +281,7 @@ struct Scope
         return sc;
     }
 
-    extern (C++) Scope* endCTFE()
+    extern (D) Scope* endCTFE()
     {
         assert(flags & SCOPE.ctfe);
         return pop();
@@ -663,7 +665,7 @@ struct Scope
     /********************************************
      * Search enclosing scopes for ScopeDsymbol.
      */
-    ScopeDsymbol getScopesym()
+    extern (D) ScopeDsymbol getScopesym()
     {
         for (Scope* sc = &this; sc; sc = sc.enclosing)
         {
@@ -676,7 +678,7 @@ struct Scope
     /********************************************
      * Search enclosing scopes for ClassDeclaration.
      */
-    extern (C++) ClassDeclaration getClassScope()
+    extern (D) ClassDeclaration getClassScope()
     {
         for (Scope* sc = &this; sc; sc = sc.enclosing)
         {
@@ -691,7 +693,7 @@ struct Scope
     /********************************************
      * Search enclosing scopes for ClassDeclaration or StructDeclaration.
      */
-    extern (C++) AggregateDeclaration getStructClassScope()
+    extern (D) AggregateDeclaration getStructClassScope()
     {
         for (Scope* sc = &this; sc; sc = sc.enclosing)
         {
@@ -713,7 +715,7 @@ struct Scope
      *
      * Returns: the function or null
      */
-    inout(FuncDeclaration) getEnclosingFunction() inout
+    extern (D) inout(FuncDeclaration) getEnclosingFunction() inout
     {
         if (!this.func)
             return null;
@@ -752,7 +754,7 @@ struct Scope
     }
     /******************************
      */
-    structalign_t alignment()
+    extern (D) structalign_t alignment()
     {
         if (aligndecl)
         {
@@ -772,7 +774,7 @@ struct Scope
     *
     * Returns: `true` if this or any parent scope is deprecated, `false` otherwise`
     */
-    extern(C++) bool isDeprecated()
+    extern (D) bool isDeprecated()
     {
         for (const(Dsymbol)* sp = &(this.parent); *sp; sp = &(sp.parent))
         {
@@ -802,7 +804,7 @@ struct Scope
      *
      * Returns: `true` if this `Scope` is known to be from one of these speculative contexts
      */
-    extern(C++) bool isFromSpeculativeSemanticContext() scope
+    extern (D) bool isFromSpeculativeSemanticContext() scope
     {
         return this.intypeof || this.flags & SCOPE.compile;
     }

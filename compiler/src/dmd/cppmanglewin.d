@@ -29,6 +29,7 @@ import dmd.func;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
+import dmd.location;
 import dmd.mtype;
 import dmd.common.outbuffer;
 import dmd.root.rootobject;
@@ -695,7 +696,7 @@ extern(D):
         case CppOperator.OpAssign:
             TemplateDeclaration td = ti.tempdecl.isTemplateDeclaration();
             assert(td);
-            assert(ti.tiargs.dim >= 1);
+            assert(ti.tiargs.length >= 1);
             TemplateParameter tp = (*td.parameters)[0];
             TemplateValueParameter tv = tp.isTemplateValueParameter();
             if (!tv || !tv.valType.isString())
@@ -749,7 +750,7 @@ extern(D):
             }
         }
         continue_template:
-        if (ti.tiargs.dim == 1)
+        if (ti.tiargs.length == 1)
         {
             buf.writestring(symName);
             return true;
@@ -973,7 +974,7 @@ extern(D):
             is_dmc_template = true;
         }
         bool is_var_arg = false;
-        for (size_t i = firstTemplateArg; i < actualti.tiargs.dim; i++)
+        for (size_t i = firstTemplateArg; i < actualti.tiargs.length; i++)
         {
             RootObject o = (*actualti.tiargs)[i];
             TemplateParameter tp = null;
@@ -1250,7 +1251,7 @@ extern(D):
             rettype.accept(tmp);
             tmp.flags &= ~MANGLE_RETURN_TYPE;
         }
-        if (!type.parameterList.parameters || !type.parameterList.parameters.dim)
+        if (!type.parameterList.parameters || !type.parameterList.parameters.length)
         {
             if (type.parameterList.varargs == VarArg.variadic)
                 tmp.buf.writeByte('Z');

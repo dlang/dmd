@@ -75,3 +75,10 @@
  * C11 6.10.8.3 Conditional feature macros
  */
 #define __STDC_NO_VLA__ 1
+
+/*************************
+ * Ubuntu's assert.h uses this
+ */
+#if linux  // Microsoft won't allow the following macro
+#define __PRETTY_FUNCTION__ __func__
+#endif

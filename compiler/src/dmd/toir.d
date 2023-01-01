@@ -50,6 +50,7 @@ import dmd.globals;
 import dmd.glue;
 import dmd.identifier;
 import dmd.id;
+import dmd.location;
 import dmd.mtype;
 import dmd.target;
 import dmd.tocvdebug;
@@ -227,7 +228,7 @@ elem *getEthis(const ref Loc loc, IRState *irs, Dsymbol fd, Dsymbol fdp = null, 
         FuncDeclaration fdthis = thisfd;
         for (size_t i = 0; ; )
         {
-            if (i == fdthis.foverrides.dim)
+            if (i == fdthis.foverrides.length)
             {
                 if (i == 0)
                     break;
@@ -703,14 +704,17 @@ TYPE* getParentClosureType(Symbol* sthis, FuncDeclaration fd)
  * Also turns off nrvo for closure variables.
  * Params:
  *      fd = function
+ * Returns:
+ *      overall alignment of the closure
  */
-void setClosureVarOffset(FuncDeclaration fd)
+uint setClosureVarOffset(FuncDeclaration fd)
 {
     // Nothing to do
     if (!fd.needsClosure())
-        return;
+        return 0;
 
     uint offset = target.ptrsize;      // leave room for previous sthis
+    uint aggAlignment = offset;        // overall alignment for the closure
 
     foreach (v; fd.closureVars)
     {
@@ -748,11 +752,16 @@ void setClosureVarOffset(FuncDeclaration fd)
 
         offset += memsize;
 
+        uint actualAlignment = xalign.isDefault() ? memalignsize : xalign.get();
+        if (aggAlignment < actualAlignment)
+            aggAlignment = actualAlignment;     // take the largest
+
         /* Can't do nrvo if the variable is put in a closure, since
          * what the shidden points to may no longer exist.
          */
         assert(!fd.isNRVO() || fd.nrvo_var != v);
     }
+    return aggAlignment;
 }
 
 /*************************************
@@ -790,7 +799,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
             fd.checkClosure();   // give decent diagnostic
         }
 
-        setClosureVarOffset(fd);
+        auto aggAlignment = setClosureVarOffset(fd);
 
         // Generate closure on the heap
         // BUG: doesn't capture variadic arguments passed to this function
@@ -828,7 +837,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
         symbol_add(sclosure);
         irs.sclosure = sclosure;
 
-        assert(fd.closureVars.dim);
+        assert(fd.closureVars.length);
         assert(fd.closureVars[0].offset >= target.ptrsize);
         foreach (v; fd.closureVars)
         {
@@ -863,7 +872,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
         }
 
         // Calculate the size of the closure
-        VarDeclaration  vlast = fd.closureVars[fd.closureVars.dim - 1];
+        VarDeclaration  vlast = fd.closureVars[fd.closureVars.length - 1];
         typeof(Type.size()) lastsize;
         if (vlast.storage_class & STC.lazy_)
             lastsize = target.ptrsize * 2;
@@ -872,7 +881,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
         else
             lastsize = vlast.type.size();
         bool overflow;
-        const structsize = addu(vlast.offset, lastsize, overflow);
+        auto structsize = addu(vlast.offset, lastsize, overflow);
         assert(!overflow && structsize <= uint.max);
         //printf("structsize = %d\n", cast(uint)structsize);
 
@@ -882,10 +891,22 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
         if (driverParams.symdebug)
             toDebugClosure(Closstru.Ttag);
 
+        // Add extra size so we can align it
+        if (aggAlignment > 16)  // gc aligns on 16 bytes
+            structsize += aggAlignment - 16;
+
         // Allocate memory for the closure
         elem *e = el_long(TYsize_t, structsize);
         e = el_bin(OPcall, TYnptr, el_var(getRtlsym(RTLSYM.ALLOCMEMORY)), e);
         toTraceGC(irs, e, fd.loc);
+
+        // Align it
+        if (aggAlignment > 16)
+        {
+            // e + (aggAlignment - 1) & ~(aggAlignment - 1)
+            e = el_bin(OPadd, TYsize_t, e, el_long(TYsize_t, aggAlignment - 1));
+            e = el_bin(OPand, TYsize_t, e, el_long(TYsize_t, ~(aggAlignment - 1L)));
+        }
 
         // Assign block of memory to sclosure
         //    sclosure = allocmemory(sz);
@@ -959,7 +980,7 @@ void buildCapture(FuncDeclaration fd)
     if (target.objectFormat() != Target.ObjectFormat.coff)  // toDebugClosure only implemented for CodeView,
         return;                 //  but optlink crashes for negative field offsets
 
-    if (fd.closureVars.dim && !fd.needsClosure)
+    if (fd.closureVars.length && !fd.needsClosure)
     {
         /* Generate type name for struct with captured variables */
         const char *name1 = "CAPTURE.";

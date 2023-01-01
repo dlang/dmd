@@ -520,7 +520,7 @@ static:
      */
     Symbol* symbolName(const(char)[] name, SC sclass, type* t)
     {
-        return symbol_name(name.ptr, cast(uint) name.length, sclass, t);
+        return symbol_name(name, sclass, t);
     }
 
     /**
@@ -716,9 +716,9 @@ static:
 
             // create symbol
             __gshared size_t selectorCount = 0;
-            char[42] nameString;
-            sprintf(nameString.ptr, "L_OBJC_SELECTOR_REFERENCES_%llu", cast(ulong) selectorCount);
-            auto symbol = symbol_name(nameString.ptr, SC.static_, type_fake(TYnptr));
+            char[42] nameString = void;
+            const len = sprintf(nameString.ptr, "L_OBJC_SELECTOR_REFERENCES_%llu", cast(ulong) selectorCount);
+            auto symbol = symbol_name(nameString[0 .. len], SC.static_, type_fake(TYnptr));
 
             symbol.Sdt = dtb.finish();
             symbol.Sseg = seg;

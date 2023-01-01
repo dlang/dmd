@@ -30,7 +30,7 @@ jobs:
 
         git config --global diff.wsErrorHighlight "all"
     - uses: actions/setup-python@v3.0.0
-    - uses: pre-commit/action@v2.0.3
+    - uses: pre-commit/action@v3.0.0
     - name: Check changelog entries
       run: |
         check_prefix="$(find changelog -type f -name '*\.dd' -a ! -name 'dmd\.*' -a ! -name 'druntime\.*')"

@@ -35,6 +35,7 @@ import dmd.func;
 import dmd.globals;
 import dmd.identifier;
 import dmd.init;
+import dmd.location;
 import dmd.mtype;
 import dmd.printast;
 import dmd.statement;
@@ -565,7 +566,7 @@ void toObNodes(ref ObNodes obnodes, Statement s)
              */
             mystate.defaultBlock = s.sdefault ? newNode() : mystate.breakBlock;
 
-            const numcases = s.cases ? s.cases.dim : 0;
+            const numcases = s.cases ? s.cases.length : 0;
 
             /* allocate a block for each case
              */

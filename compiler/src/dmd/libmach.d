@@ -29,6 +29,7 @@ version (Windows)
 
 import dmd.globals;
 import dmd.lib;
+import dmd.location;
 import dmd.utils;
 
 import dmd.root.array;
@@ -125,7 +126,7 @@ final class LibMach : Library
             uint offset = 8;
             char* symtab = null;
             uint symtab_size = 0;
-            uint mstart = cast(uint)objmodules.dim;
+            uint mstart = cast(uint)objmodules.length;
             while (offset < buflen)
             {
                 if (offset + MachLibHeader.sizeof >= buflen)
@@ -192,7 +193,7 @@ final class LibMach : Library
                 //printf("symtab[%d] moff = x%x  x%x, name = %s\n", i, moff, moff + MachLibHeader.sizeof, name);
                 for (uint m = mstart; 1; m++)
                 {
-                    if (m == objmodules.dim)
+                    if (m == objmodules.length)
                         return corrupt(__LINE__);       // didn't find it
                     MachObjModule* om = objmodules[m];
                     //printf("\tom offset = x%x\n", cast(char *)om.base - cast(char *)buf);
@@ -339,7 +340,7 @@ private:
         }
         __gshared char* pad = [0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A];
         /************* Scan Object Modules for Symbols ******************/
-        for (size_t i = 0; i < objmodules.dim; i++)
+        for (size_t i = 0; i < objmodules.length; i++)
         {
             MachObjModule* om = objmodules[i];
             if (om.scan)
@@ -349,7 +350,7 @@ private:
         }
         /************* Determine module offsets ******************/
         uint moffset = 8 + MachLibHeader.sizeof + 4 + 4;
-        for (size_t i = 0; i < objsymbols.dim; i++)
+        for (size_t i = 0; i < objsymbols.length; i++)
         {
             MachObjSymbol* os = objsymbols[i];
             moffset += 8 + os.name.length + 1;
@@ -362,7 +363,7 @@ private:
         {
             printf("\tmoffset = x%x\n", moffset);
         }
-        for (size_t i = 0; i < objmodules.dim; i++)
+        for (size_t i = 0; i < objmodules.length; i++)
         {
             MachObjModule* om = objmodules[i];
             moffset += moffset & 1;
@@ -410,10 +411,10 @@ private:
         memset(h.file_size.ptr + len, ' ', 10 - len);
         libbuf.write((&h)[0 .. 1]);
         char[4] buf;
-        Port.writelongLE(cast(uint)(objsymbols.dim * 8), buf.ptr);
+        Port.writelongLE(cast(uint)(objsymbols.length * 8), buf.ptr);
         libbuf.write(buf[0 .. 4]);
         int stringoff = 0;
-        for (size_t i = 0; i < objsymbols.dim; i++)
+        for (size_t i = 0; i < objsymbols.length; i++)
         {
             MachObjSymbol* os = objsymbols[i];
             Port.writelongLE(stringoff, buf.ptr);
@@ -424,7 +425,7 @@ private:
         }
         Port.writelongLE(stringoff, buf.ptr);
         libbuf.write(buf[0 .. 4]);
-        for (size_t i = 0; i < objsymbols.dim; i++)
+        for (size_t i = 0; i < objsymbols.length; i++)
         {
             MachObjSymbol* os = objsymbols[i];
             libbuf.writestring(os.name);
@@ -441,7 +442,7 @@ private:
         assert(libbuf.length == hoffset);
         /* Write out each of the object modules
          */
-        for (size_t i = 0; i < objmodules.dim; i++)
+        for (size_t i = 0; i < objmodules.length; i++)
         {
             MachObjModule* om2 = objmodules[i];
             if (libbuf.length & 1)

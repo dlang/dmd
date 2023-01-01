@@ -20,6 +20,7 @@ import core.sys.windows.windef;
 
 import dmd.errors;
 import dmd.globals;
+import dmd.location;
 import dmd.root.env;
 import dmd.root.rmem;
 import dmd.root.filename;
@@ -286,7 +287,7 @@ void parseConfFile(ref StringTable!(char*) environment, const(char)[] filename, 
              */
             for (size_t j = 0; 1; ++j)
             {
-                if (j == sections.dim)
+                if (j == sections.length)
                 {
                     // Didn't find it
                     envsection = false;

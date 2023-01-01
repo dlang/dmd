@@ -18,7 +18,6 @@ fail_compilation/failcstuff2.c(126): Error: `makeS22067().field` is not an lvalu
 fail_compilation/failcstuff2.c(127): Error: `makeS22067().field` is not an lvalue and cannot be modified
 fail_compilation/failcstuff2.c(153): Error: `cast(short)var` is not an lvalue and cannot be modified
 fail_compilation/failcstuff2.c(154): Error: `cast(long)var` is not an lvalue and cannot be modified
-fail_compilation/failcstuff2.c(308): Error: cannot modify `const` expression `(*s).p`
 fail_compilation/failcstuff2.c(354): Error: variable `arr` cannot be read at compile time
 fail_compilation/failcstuff2.c(360): Error: variable `str` cannot be read at compile time
 fail_compilation/failcstuff2.c(352): Error: cannot take address of register variable `reg1`

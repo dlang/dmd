@@ -23,6 +23,7 @@ import dmd.func;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
+import dmd.location;
 import dmd.mtype;
 import dmd.statement;
 import dmd.tokens;
@@ -122,7 +123,7 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
 
         override void visit(CompoundStatement cs)
         {
-            //printf("CompoundStatement.blockExit(%p) %d result = x%X\n", cs, cs.statements.dim, result);
+            //printf("CompoundStatement.blockExit(%p) %d result = x%X\n", cs, cs.statements.length, result);
             result = BE.fallthru;
             Statement slast = null;
             foreach (s; *cs.statements)

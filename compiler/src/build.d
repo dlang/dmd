@@ -459,7 +459,19 @@ alias directoryRule = makeRuleWithArgs!((MethodInitializer!BuildRule builder, Bu
    .msg("mkdirRecurse '%s'".format(dir))
    .commandFunction(() => mkdirRecurse(dir))
 );
+alias dmdSymlink = makeRule!((builder, rule) => builder
+    .commandFunction((){
+        import std.process;
+        version(Windows)
+        {
 
+        }
+        else
+        {
+            spawnProcess(["ln", "-sf", env["DMD_PATH"], "./dmd"]);
+        }
+    })
+);
 /**
 BuildRule for the DMD executable.
 
@@ -659,7 +671,7 @@ alias runTests = makeRule!((testBuilder, testRule)
 
 /// BuildRule to run the DMD unittest executable.
 alias runDmdUnittest = makeRule!((builder, rule) {
-auto dmdUnittestExe = dmdExe("-unittest", ["-version=NoMain", "-unittest", "-main"], ["-unittest"]);
+auto dmdUnittestExe = dmdExe("-unittest", ["-version=NoMain", "-unittest", env["HOST_DMD_KIND"] == "gdc" ? "-fmain" : "-main"], ["-unittest"]);
     builder
         .name("unittest")
         .description("Run the dmd unittests")
@@ -1585,7 +1597,7 @@ auto sourceFiles()
             statement.h staticassert.h target.h template.h tokens.h version.h visitor.h
         "),
         lexer: fileArray(env["D"], "
-            console.d entity.d errors.d file_manager.d globals.d id.d identifier.d lexer.d tokens.d
+            console.d entity.d errors.d file_manager.d globals.d id.d identifier.d lexer.d location.d tokens.d
         ") ~ fileArray(env["ROOT"], "
             array.d bitarray.d ctfloat.d file.d filename.d hash.d port.d region.d rmem.d
             rootobject.d stringtable.d utf.d

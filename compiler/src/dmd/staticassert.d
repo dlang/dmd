@@ -13,10 +13,12 @@
 
 module dmd.staticassert;
 
+import dmd.arraytypes;
 import dmd.dscope;
 import dmd.dsymbol;
 import dmd.expression;
 import dmd.globals;
+import dmd.location;
 import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
@@ -27,19 +29,27 @@ import dmd.visitor;
 extern (C++) final class StaticAssert : Dsymbol
 {
     Expression exp;
-    Expression msg;
+    Expressions* msgs;
 
     extern (D) this(const ref Loc loc, Expression exp, Expression msg)
     {
         super(loc, Id.empty);
         this.exp = exp;
-        this.msg = msg;
+        this.msgs = new Expressions(1);
+        (*this.msgs)[0] = msg;
+    }
+
+    extern (D) this(const ref Loc loc, Expression exp, Expressions* msgs)
+    {
+        super(loc, Id.empty);
+        this.exp = exp;
+        this.msgs = msgs;
     }
 
     override StaticAssert syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        return new StaticAssert(loc, exp.syntaxCopy(), msg ? msg.syntaxCopy() : null);
+        return new StaticAssert(loc, exp.syntaxCopy(), msgs ? Expression.arraySyntaxCopy(msgs) : null);
     }
 
     override void addMember(Scope* sc, ScopeDsymbol sds)

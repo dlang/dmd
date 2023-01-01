@@ -11,8 +11,9 @@ import dmd.dsymbol;
 import dmd.dclass : ClassDeclaration;
 import dmd.declaration : VarDeclaration;
 import dmd.dtemplate : TemplateDeclaration;
-import dmd.globals : global, Loc;
+import dmd.globals : global;
 import dmd.identifier : Identifier;
+import dmd.location;
 
 @beforeEach initializeFrontend()
 {

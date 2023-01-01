@@ -16,6 +16,7 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 import dmd.globals;
+import dmd.location;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.string;
@@ -380,7 +381,10 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
         fputs(tmp.peekChars(), stderr);
     fputc('\n', stderr);
 
+    static Loc old_loc;
     if (global.params.printErrorContext &&
+        // ignore supplemental messages with same loc
+        (loc != old_loc || strchr(header, ':')) &&
         // ignore invalid files
         loc != Loc.initial &&
         // ignore mixins for now
@@ -416,6 +420,7 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
             }
         }
     }
+    old_loc = loc;
     fflush(stderr);     // ensure it gets written out in case of compiler aborts
 }
 
@@ -475,6 +480,7 @@ private void _verrorSupplemental(const ref Loc loc, const(char)* format, va_list
     }
     else
         color = Classification.error;
+
     verrorPrint(loc, color, "       ", format, ap);
 }
 
@@ -762,7 +768,7 @@ private void colorHighlightCode(ref OutBuffer buf)
     ++nested;
 
     auto gaggedErrorsSave = global.startGagging();
-    scope Lexer lex = new Lexer(null, cast(char*)buf[].ptr, 0, buf.length - 1, 0, 1);
+    scope Lexer lex = new Lexer(null, cast(char*)buf[].ptr, 0, buf.length - 1, 0, 1, global.vendor, global.versionNumber());
     OutBuffer res;
     const(char)* lastp = cast(char*)buf[].ptr;
     //printf("colorHighlightCode('%.*s')\n", cast(int)(buf.length - 1), buf[].ptr);

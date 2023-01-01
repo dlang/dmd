@@ -41,13 +41,6 @@ enum class Baseok : uint8_t
     semanticdone  // all base classes semantic done
 };
 
-enum class ThreeState : uint8_t
-{
-    none,         // value not yet computed
-    no,           // value is false
-    yes,          // value is true
-};
-
 FuncDeclaration *search_toString(StructDeclaration *sd);
 
 enum class ClassKind : uint8_t

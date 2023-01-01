@@ -16,8 +16,8 @@ module dmd.tokens;
 import core.stdc.ctype;
 import core.stdc.stdio;
 import core.stdc.string;
-import dmd.globals;
 import dmd.identifier;
+import dmd.location;
 import dmd.root.ctfloat;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
@@ -636,8 +636,8 @@ extern (C++) struct Token
     union
     {
         // Integers
-        sinteger_t intvalue;
-        uinteger_t unsvalue;
+        long intvalue;
+        ulong unsvalue;
         // Floats
         real_t floatvalue;
 

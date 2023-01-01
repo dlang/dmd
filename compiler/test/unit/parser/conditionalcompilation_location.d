@@ -3,7 +3,7 @@ module parser.conditionalcompilation_location;
 import dmd.frontend : parseModule;
 import support : afterEach, beforeEach;
 import dmd.attrib : ConditionalDeclaration, StaticIfDeclaration, StaticForeachDeclaration;
-import dmd.globals : Loc;
+import dmd.location;
 import dmd.visitor : SemanticTimeTransitiveVisitor;
 
 @beforeEach
@@ -98,7 +98,7 @@ static foreach (test; tests)
     @(test.description)
     unittest
     {
-        auto t = parseModule("test.d", "first_token " ~ test.code);
+        auto t = parseModule("test.d", "            " ~ test.code);
 
         scope visitor = new Visitor;
         t.module_.accept(visitor);

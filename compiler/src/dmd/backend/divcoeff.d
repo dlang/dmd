@@ -18,8 +18,7 @@ extern (C++):
 nothrow:
 @safe:
 
-import core.stdc.stdint : uint64_t;
-alias ullong = uint64_t;
+alias ullong = ulong;
 
 /* unsigned 128 bit math
  */

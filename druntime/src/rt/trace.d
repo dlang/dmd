@@ -905,7 +905,7 @@ else
                 mov       ECX,EAX       ;
                 rdtsc                   ;
                 mov   [ECX],EAX         ;
-                mov   4[ECX],EDX        ;
+                mov   [ECX+4],EDX        ;
                 ret                     ;
             }
         }
@@ -920,7 +920,7 @@ else
                 mfence                  ; // serialize rdtsc instruction.
                 rdtsc                   ;
                 mov   [RDI],EAX         ;
-                mov   4[RDI],EDX        ;
+                mov   [RDI+4],EDX        ;
                 ret                     ;
             }
         }

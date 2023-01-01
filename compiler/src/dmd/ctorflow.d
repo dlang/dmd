@@ -14,7 +14,7 @@ module dmd.ctorflow;
 import core.stdc.stdio;
 
 import dmd.root.rmem;
-import dmd.globals : Loc;
+import dmd.location;
 
 enum CSX : ushort
 {

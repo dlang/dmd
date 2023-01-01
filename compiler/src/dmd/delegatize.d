@@ -25,6 +25,7 @@ import dmd.func;
 import dmd.globals;
 import dmd.init;
 import dmd.initsem;
+import dmd.location;
 import dmd.mtype;
 import dmd.statement;
 import dmd.tokens;
@@ -96,7 +97,7 @@ private void lambdaSetParent(Expression e, FuncDeclaration fd)
             if (!vd || !pfd)
                 return;
             // move to fd's closure when applicable
-            foreach (i; 0 .. pfd.closureVars.dim)
+            foreach (i; 0 .. pfd.closureVars.length)
             {
                 if (vd == pfd.closureVars[i])
                 {

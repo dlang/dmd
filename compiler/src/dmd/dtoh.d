@@ -24,6 +24,7 @@ import dmd.errors;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.identifier;
+import dmd.location;
 import dmd.root.filename;
 import dmd.visitor;
 import dmd.tokens;
@@ -1945,7 +1946,7 @@ public:
         }
         if (tf.parameterList.varargs)
         {
-            if (tf.parameterList.parameters.dim && tf.parameterList.varargs == 1)
+            if (tf.parameterList.parameters.length && tf.parameterList.varargs == 1)
                 buf.writestring(", ");
             buf.writestring("...");
         }
@@ -2280,7 +2281,7 @@ public:
         }
         if (tf.parameterList.varargs)
         {
-            if (tf.parameterList.parameters.dim && tf.parameterList.varargs == 1)
+            if (tf.parameterList.parameters.length && tf.parameterList.varargs == 1)
                 buf.writestring(", ");
             buf.writestring("...");
         }

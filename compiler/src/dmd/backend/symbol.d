@@ -331,17 +331,11 @@ version (SCPP_HTOD)
  */
 
 @trusted
-Symbol * symbol_calloc(const(char)* id)
+extern (C)
+Symbol * symbol_calloc(const(char)[] id)
 {
-    return symbol_calloc(id, cast(uint)strlen(id));
-}
-
-@trusted
-Symbol * symbol_calloc(const(char)* id, uint len)
-{   Symbol *s;
-
-    //printf("sizeof(symbol)=%d, sizeof(s.Sident)=%d, len=%d\n", symbol.sizeof, s.Sident.sizeof, cast(int)len);
-    s = cast(Symbol *) mem_fmalloc(Symbol.sizeof - s.Sident.length + len + 1 + 5);
+    //printf("sizeof(symbol)=%d, sizeof(s.Sident)=%d, len=%d\n", symbol.sizeof, s.Sident.sizeof, cast(int)id.length);
+    Symbol* s = cast(Symbol *) mem_fmalloc(Symbol.sizeof - Symbol.Sident.length + id.length + 1 + 5);
     memset(s,0,Symbol.sizeof - s.Sident.length);
 version (SCPP_HTOD)
 {
@@ -349,31 +343,30 @@ version (SCPP_HTOD)
     pstate.STsequence += 1;
     //if (s.Ssequence == 0x21) *cast(char*)0=0;
 }
-debug
-{
-    if (debugy)
-        printf("symbol_calloc('%s') = %p\n",id,s);
-    s.id = Symbol.IDsymbol;
-}
-    memcpy(s.Sident.ptr,id,len + 1);
+    memcpy(s.Sident.ptr,id.ptr,id.length);
+    s.Sident.ptr[id.length] = 0;
     s.Ssymnum = SYMIDX.max;
+    if (debugy)
+        printf("symbol_calloc('%s') = %p\n",s.Sident.ptr,s);
+    debug s.id = Symbol.IDsymbol;
     return s;
 }
 
 /****************************************
- * Create a symbol, given a name and type.
+ * Create a Symbol
+ * Params:
+ *      name = name to give the Symbol
+ *      type = type for the Symbol
+ * Returns:
+ *      created Symbol
  */
 
 @trusted
-Symbol * symbol_name(const(char)* name, SC sclass,type *t)
-{
-    return symbol_name(name, cast(uint)strlen(name), sclass, t);
-}
-
-Symbol * symbol_name(const(char)* name, uint len, SC sclass, type *t)
+extern (C)
+Symbol * symbol_name(const(char)[] name, SC sclass, type *t)
 {
     type_debug(t);
-    Symbol *s = symbol_calloc(name, len);
+    Symbol *s = symbol_calloc(name);
     s.Sclass = sclass;
     s.Stype = t;
     s.Stype.Tcount++;
@@ -390,13 +383,11 @@ Symbol * symbol_name(const(char)* name, uint len, SC sclass, type *t)
 @trusted
 Funcsym *symbol_funcalias(Funcsym *sf)
 {
-    Funcsym *s;
-
     symbol_debug(sf);
     assert(tyfunc(sf.Stype.Tty));
     if (sf.Sclass == SC.funcalias)
         sf = sf.Sfunc.Falias;
-    s = cast(Funcsym *)symbol_name(sf.Sident.ptr,SC.funcalias,sf.Stype);
+    auto s = cast(Funcsym *)symbol_name(sf.Sident.ptr[0 .. strlen(sf.Sident.ptr)],SC.funcalias,sf.Stype);
     s.Sfunc.Falias = sf;
 
 version (SCPP_HTOD)
@@ -416,8 +407,8 @@ Symbol * symbol_generate(SC sclass,type *t)
     char[4 + tmpnum.sizeof * 3 + 1] name;
 
     //printf("symbol_generate(_TMP%d)\n", tmpnum);
-    sprintf(name.ptr,"_TMP%d",tmpnum++);
-    Symbol *s = symbol_name(name.ptr,sclass,t);
+    const length = sprintf(name.ptr,"_TMP%d",tmpnum++);
+    Symbol *s = symbol_name(name.ptr[0 .. length],sclass,t);
     //symbol_print(s);
 
 version (MARS)
@@ -512,7 +503,7 @@ void symbol_func(Symbol *s)
 @trusted
 void symbol_struct_addField(Symbol *s, const(char)* name, type *t, uint offset)
 {
-    Symbol *s2 = symbol_name(name, SC.member, t);
+    Symbol *s2 = symbol_name(name[0 .. strlen(name)], SC.member, t);
     s2.Smemoff = offset;
     list_append(&s.Sstruct.Sfldlst, s2);
 }
@@ -532,7 +523,7 @@ void symbol_struct_addField(Symbol *s, const(char)* name, type *t, uint offset)
 void symbol_struct_addBitField(Symbol *s, const(char)* name, type *t, uint offset, uint fieldWidth, uint bitOffset)
 {
     //printf("symbol_struct_addBitField() s: %s\n", s.Sident.ptr);
-    Symbol *s2 = symbol_name(name, SC.field, t);
+    Symbol *s2 = symbol_name(name[0 .. strlen(name)], SC.field, t);
     s2.Smemoff = offset;
     s2.Swidth = cast(ubyte)fieldWidth;
     s2.Sbit = cast(ubyte)bitOffset;
@@ -580,7 +571,7 @@ version (SCPP_HTOD)
 {
 Symbol * defsy(const(char)* p,Symbol **parent)
 {
-   Symbol *s = symbol_calloc(p);
+   Symbol *s = symbol_calloc(p[0 .. strlen(p)]);
    symbol_addtotree(parent,s);
    return s;
 }
@@ -1256,7 +1247,7 @@ Symbol * symbol_copy(Symbol *s)
 
     symbol_debug(s);
     /*printf("symbol_copy(%s)\n",s.Sident.ptr);*/
-    scopy = symbol_calloc(s.Sident.ptr);
+    scopy = symbol_calloc(s.Sident.ptr[0 .. strlen(s.Sident.ptr)]);
     memcpy(scopy,s,Symbol.sizeof - s.Sident.sizeof);
     scopy.Sl = scopy.Sr = scopy.Snext = null;
     scopy.Ssymnum = SYMIDX.max;

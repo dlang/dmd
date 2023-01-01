@@ -117,9 +117,8 @@ void eecontext_parse()
 
         // Generate the typedef
         if (eecontext.EEtypedef && config.fulltypes)
-        {   Symbol *s;
-
-            s = symbol_name(eecontext.EEtypedef,SC.typedef_,t);
+        {
+            const s = symbol_name(eecontext.EEtypedef[0 .. strlen(eecontext.EEtypedef)], SC.typedef_, t);
             cv_outsym(s);
             symbol_free(s);
         }

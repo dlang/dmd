@@ -1026,7 +1026,7 @@ version (SCPP)
                             ++nreloc;
 
                             // patch with fdesym.Soffset - offset
-                            int64_t *p = cast(int64_t *)patchAddr64(seg, r.offset);
+                            long *p = cast(long *)patchAddr64(seg, r.offset);
                             *p += r.funcsym.Soffset - r.offset;
                             continue;
                         }
@@ -1274,7 +1274,7 @@ version (SCPP)
                     if (I64)
                     {
                         int32_t *p64 = patchAddr64(seg, r.offset);
-                        //int64_t before = *p64;
+                        //long before = *p64;
                         if (rel.r_pcrel)
                             // Relative address
                             patch(pseg, r.offset, r.targseg, 0);
@@ -2879,12 +2879,13 @@ static if (0)
 {
     type *t = type_fake(TYint);
     t.Tmangle = mTYman_c;
-    char *p = cast(char *)malloc(5 + strlen(scc.Sident.ptr) + 1);
+    const len = strlen(scc.Sident.ptr);
+    char *p = cast(char *)malloc(5 + len + 1);
     if (!p)
         err_nomem();
     strcpy(p, "SUPER");
-    strcpy(p + 5, scc.Sident.ptr);
-    Symbol *s_minfo_beg = symbol_name(p, SC.global, t);
+    memcpy(p + 5, scc.Sident.ptr, len);
+    Symbol *s_minfo_beg = symbol_name(p[0 .. len], SC.global, t);
     MachObj_pubdef(seg, s_minfo_beg, 0);
 }
 

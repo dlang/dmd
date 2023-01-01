@@ -220,6 +220,9 @@ _Static_assert(L'\u1234' == 0x1234, "ok");
 void test__func__()
 {
     _Static_assert((sizeof __func__) == 13, "ok");
+#ifdef __PRETTY_FUNC__
+    _Static_assert((sizeof __PRETTY_FUNC__) == 13, "ok");
+#endif
 }
 
 void teststringtype()

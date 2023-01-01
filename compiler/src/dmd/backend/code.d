@@ -204,14 +204,12 @@ void code_orflag(code *c,uint flag);
 void code_orrex(code *c,uint rex);
 code *setOpcode(code *c, code *cs, opcode_t op);
 code *cat(code *c1, code *c2);
-code *gen (code *c , code *cs );
 code *gen1 (code *c , opcode_t op );
 code *gen2 (code *c , opcode_t op , uint rm );
 code *gen2sib(code *c,opcode_t op,uint rm,uint sib);
 code *genc2 (code *c , opcode_t op , uint rm , targ_size_t EV2 );
 code *genc (code *c , opcode_t op , uint rm , uint FL1 , targ_size_t EV1 , uint FL2 , targ_size_t EV2 );
 code *genlinnum(code *,Srcpos);
-void cgen_prelinnum(code **pc,Srcpos srcpos);
 code *gennop(code *);
 void gencodelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,bool constflag);
 bool reghasvalue (regm_t regm , targ_size_t value , reg_t *preg );
@@ -617,6 +615,8 @@ void cod5_noprol();
 
 /* cgxmm.c */
 bool isXMMstore(opcode_t op);
+@trusted
+void movxmmconst(ref CodeBuilder cdb, reg_t xreg, uint sz, eve* pvalue, regm_t flags);
 void orthxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs);
 void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2, regm_t *pretregs);
 void xmmcnvt(ref CodeBuilder cdb,elem *e,regm_t *pretregs);

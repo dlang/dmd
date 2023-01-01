@@ -12,6 +12,7 @@ module dmd.astbase;
 
 import dmd.astenums;
 import dmd.parsetimevisitor;
+import dmd.tokens : EXP;
 
 /** The ASTBase  family defines a family of AST nodes appropriate for parsing with
   * no semantic information. It defines all the AST nodes that the parser needs
@@ -37,6 +38,7 @@ struct ASTBase
     import dmd.id;
     import dmd.errors;
     import dmd.lexer;
+    import dmd.location;
 
     import core.stdc.string;
     import core.stdc.stdarg;
@@ -107,7 +109,7 @@ struct ASTBase
         extern (D) static bool oneMembers(ref Dsymbols members, Dsymbol* ps, Identifier ident)
         {
             Dsymbol s = null;
-            for (size_t i = 0; i < members.dim; i++)
+            for (size_t i = 0; i < members.length; i++)
             {
                 Dsymbol sx = members[i];
                 bool x = sx.oneMember(ps, ident);
@@ -247,6 +249,16 @@ struct ASTBase
         }
 
         inout(AggregateDeclaration) isAggregateDeclaration() inout
+        {
+            return null;
+        }
+
+        inout(CtorDeclaration) isCtorDeclaration() inout
+        {
+            return null;
+        }
+
+        inout(DtorDeclaration) isDtorDeclaration() inout
         {
             return null;
         }
@@ -441,12 +453,19 @@ struct ASTBase
     extern (C++) final class StaticAssert : Dsymbol
     {
         Expression exp;
-        Expression msg;
+        Expressions* msg;
 
         extern (D) this(const ref Loc loc, Expression exp, Expression msg)
         {
-            super(Id.empty);
-            this.loc = loc;
+            super(loc, Id.empty);
+            this.exp = exp;
+            this.msg = new Expressions(1);
+            (*this.msg)[0] = msg;
+        }
+
+        extern (D) this(const ref Loc loc, Expression exp, Expressions* msg)
+        {
+            super(loc, Id.empty);
             this.exp = exp;
             this.msg = msg;
         }
@@ -700,6 +719,11 @@ struct ASTBase
             super(loc, endloc, Id.ctor, stc, type);
         }
 
+        override inout(CtorDeclaration) isCtorDeclaration() inout
+        {
+            return this;
+        }
+
         override void accept(Visitor v)
         {
             v.visit(this);
@@ -715,6 +739,11 @@ struct ASTBase
         extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc, Identifier id)
         {
             super(loc, endloc, id, stc, null);
+        }
+
+        override inout(DtorDeclaration) isDtorDeclaration() inout
+        {
+            return this;
         }
 
         override void accept(Visitor v)
@@ -909,6 +938,7 @@ struct ASTBase
             this.parameters = parameters;
             this.origParameters = parameters;
             this.members = decldefs;
+            this.constraint = constraint;
             this.literal = literal;
             this.ismixin = ismixin;
             this.isstatic = true;
@@ -978,8 +1008,8 @@ struct ASTBase
             Objects* a = null;
             if (objs)
             {
-                a = new Objects(objs.dim);
-                for (size_t i = 0; i < objs.dim; i++)
+                a = new Objects(objs.length);
+                for (size_t i = 0; i < objs.length; i++)
                     (*a)[i] = objectSyntaxCopy((*objs)[i]);
             }
             return a;
@@ -1080,9 +1110,9 @@ struct ASTBase
         extern (D) static Expressions* concat(Expressions* udas1, Expressions* udas2)
         {
             Expressions* udas;
-            if (!udas1 || udas1.dim == 0)
+            if (!udas1 || udas1.length == 0)
                 udas = udas2;
-            else if (!udas2 || udas2.dim == 0)
+            else if (!udas2 || udas2.length == 0)
                 udas = udas1;
             else
             {
@@ -1464,7 +1494,7 @@ struct ASTBase
 
             this.members = members;
 
-            //printf("ClassDeclaration(%s), dim = %d\n", id.toChars(), this.baseclasses.dim);
+            //printf("ClassDeclaration(%s), dim = %d\n", id.toChars(), this.baseclasses.length);
 
             // For forward references
             type = new TypeClass(this);
@@ -1648,7 +1678,7 @@ struct ASTBase
         extern (D) this(const ref Loc loc, Identifier ident, TypeQualified tqual, Objects *tiargs)
         {
             super(loc,
-                  tqual.idents.dim ? cast(Identifier)tqual.idents[tqual.idents.dim - 1] : (cast(TypeIdentifier)tqual).ident,
+                  tqual.idents.length ? cast(Identifier)tqual.idents[tqual.idents.length - 1] : (cast(TypeIdentifier)tqual).ident,
                   tiargs ? tiargs : new Objects());
             this.ident = ident;
             this.tqual = tqual;
@@ -1733,7 +1763,7 @@ struct ASTBase
 
             size_t n = pn ? *pn : 0; // take over index
             int result = 0;
-            foreach (i; 0 .. parameters.dim)
+            foreach (i; 0 .. parameters.length)
             {
                 Parameter p = (*parameters)[i];
                 Type t = p.type.toBasetype();
@@ -1770,8 +1800,8 @@ struct ASTBase
             Parameters* params = null;
             if (parameters)
             {
-                params = new Parameters(parameters.dim);
-                for (size_t i = 0; i < params.dim; i++)
+                params = new Parameters(parameters.length);
+                for (size_t i = 0; i < params.length; i++)
                     (*params)[i] = (*parameters)[i].syntaxCopy();
             }
             return params;
@@ -3651,10 +3681,10 @@ struct ASTBase
         extern (D) this(Expressions* exps)
         {
             super(Ttuple);
-            auto arguments = new Parameters(exps ? exps.dim : 0);
+            auto arguments = new Parameters(exps ? exps.length : 0);
             if (exps)
             {
-                for (size_t i = 0; i < exps.dim; i++)
+                for (size_t i = 0; i < exps.length; i++)
                 {
                     Expression e = (*exps)[i];
                     if (e.type.ty == Ttuple)
@@ -4257,8 +4287,8 @@ struct ASTBase
 
         final void syntaxCopyHelper(TypeQualified t)
         {
-            idents.setDim(t.idents.dim);
-            for (size_t i = 0; i < idents.dim; i++)
+            idents.setDim(t.idents.length);
+            for (size_t i = 0; i < idents.length; i++)
             {
                 RootObject id = t.idents[i];
                 switch (id.dyncast()) with (DYNCAST)
@@ -4287,7 +4317,7 @@ struct ASTBase
 
         final Expression toExpressionHelper(Expression e, size_t i = 0)
         {
-            for (; i < idents.dim; i++)
+            for (; i < idents.length; i++)
             {
                 RootObject id = idents[i];
 
@@ -4370,7 +4400,7 @@ struct ASTBase
                 Expressions* a = null;
                 if (exps)
                 {
-                    a = new Expressions(exps.dim);
+                    a = new Expressions(exps.length);
                     foreach (i, e; *exps)
                     {
                         (*a)[i] = e ? e.syntaxCopy() : null;
@@ -4538,16 +4568,126 @@ struct ASTBase
             return DYNCAST.expression;
         }
 
+        final pure inout nothrow @nogc @safe
+        {
+            inout(IntegerExp)   isIntegerExp() { return op == EXP.int64 ? cast(typeof(return))this : null; }
+            inout(ErrorExp)     isErrorExp() { return op == EXP.error ? cast(typeof(return))this : null; }
+            inout(RealExp)      isRealExp() { return op == EXP.float64 ? cast(typeof(return))this : null; }
+            inout(IdentifierExp) isIdentifierExp() { return op == EXP.identifier ? cast(typeof(return))this : null; }
+            inout(DollarExp)    isDollarExp() { return op == EXP.dollar ? cast(typeof(return))this : null; }
+            inout(DsymbolExp)   isDsymbolExp() { return op == EXP.dSymbol ? cast(typeof(return))this : null; }
+            inout(ThisExp)      isThisExp() { return op == EXP.this_ ? cast(typeof(return))this : null; }
+            inout(SuperExp)     isSuperExp() { return op == EXP.super_ ? cast(typeof(return))this : null; }
+            inout(NullExp)      isNullExp() { return op == EXP.null_ ? cast(typeof(return))this : null; }
+            inout(StringExp)    isStringExp() { return op == EXP.string_ ? cast(typeof(return))this : null; }
+            inout(TupleExp)     isTupleExp() { return op == EXP.tuple ? cast(typeof(return))this : null; }
+            inout(ArrayLiteralExp) isArrayLiteralExp() { return op == EXP.arrayLiteral ? cast(typeof(return))this : null; }
+            inout(AssocArrayLiteralExp) isAssocArrayLiteralExp() { return op == EXP.assocArrayLiteral ? cast(typeof(return))this : null; }
+            inout(TypeExp)      isTypeExp() { return op == EXP.type ? cast(typeof(return))this : null; }
+            inout(ScopeExp)     isScopeExp() { return op == EXP.scope_ ? cast(typeof(return))this : null; }
+            inout(TemplateExp)  isTemplateExp() { return op == EXP.template_ ? cast(typeof(return))this : null; }
+            inout(NewExp) isNewExp() { return op == EXP.new_ ? cast(typeof(return))this : null; }
+            inout(NewAnonClassExp) isNewAnonClassExp() { return op == EXP.newAnonymousClass ? cast(typeof(return))this : null; }
+            inout(VarExp)       isVarExp() { return op == EXP.variable ? cast(typeof(return))this : null; }
+            inout(FuncExp)      isFuncExp() { return op == EXP.function_ ? cast(typeof(return))this : null; }
+            inout(DeclarationExp) isDeclarationExp() { return op == EXP.declaration ? cast(typeof(return))this : null; }
+            inout(TypeidExp)    isTypeidExp() { return op == EXP.typeid_ ? cast(typeof(return))this : null; }
+            inout(TraitsExp)    isTraitsExp() { return op == EXP.traits ? cast(typeof(return))this : null; }
+            inout(IsExp)        isExp() { return op == EXP.is_ ? cast(typeof(return))this : null; }
+            inout(MixinExp)     isMixinExp() { return op == EXP.mixin_ ? cast(typeof(return))this : null; }
+            inout(ImportExp)    isImportExp() { return op == EXP.import_ ? cast(typeof(return))this : null; }
+            inout(AssertExp)    isAssertExp() { return op == EXP.assert_ ? cast(typeof(return))this : null; }
+            inout(ThrowExp)     isThrowExp() { return op == EXP.throw_ ? cast(typeof(return))this : null; }
+            inout(DotIdExp)     isDotIdExp() { return op == EXP.dotIdentifier ? cast(typeof(return))this : null; }
+            inout(DotTemplateInstanceExp) isDotTemplateInstanceExp() { return op == EXP.dotTemplateInstance ? cast(typeof(return))this : null; }
+            inout(CallExp)      isCallExp() { return op == EXP.call ? cast(typeof(return))this : null; }
+            inout(AddrExp)      isAddrExp() { return op == EXP.address ? cast(typeof(return))this : null; }
+            inout(PtrExp)       isPtrExp() { return op == EXP.star ? cast(typeof(return))this : null; }
+            inout(NegExp)       isNegExp() { return op == EXP.negate ? cast(typeof(return))this : null; }
+            inout(UAddExp)      isUAddExp() { return op == EXP.uadd ? cast(typeof(return))this : null; }
+            inout(ComExp)       isComExp() { return op == EXP.tilde ? cast(typeof(return))this : null; }
+            inout(NotExp)       isNotExp() { return op == EXP.not ? cast(typeof(return))this : null; }
+            inout(DeleteExp)    isDeleteExp() { return op == EXP.delete_ ? cast(typeof(return))this : null; }
+            inout(CastExp)      isCastExp() { return op == EXP.cast_ ? cast(typeof(return))this : null; }
+            inout(ArrayExp)     isArrayExp() { return op == EXP.array ? cast(typeof(return))this : null; }
+            inout(CommaExp)     isCommaExp() { return op == EXP.comma ? cast(typeof(return))this : null; }
+            inout(IntervalExp)  isIntervalExp() { return op == EXP.interval ? cast(typeof(return))this : null; }
+            inout(PostExp)      isPostExp()  { return (op == EXP.plusPlus || op == EXP.minusMinus) ? cast(typeof(return))this : null; }
+            inout(PreExp)       isPreExp()   { return (op == EXP.prePlusPlus || op == EXP.preMinusMinus) ? cast(typeof(return))this : null; }
+            inout(AssignExp)    isAssignExp()    { return op == EXP.assign ? cast(typeof(return))this : null; }
+            inout(AddAssignExp) isAddAssignExp() { return op == EXP.addAssign ? cast(typeof(return))this : null; }
+            inout(MinAssignExp) isMinAssignExp() { return op == EXP.minAssign ? cast(typeof(return))this : null; }
+            inout(MulAssignExp) isMulAssignExp() { return op == EXP.mulAssign ? cast(typeof(return))this : null; }
+
+            inout(DivAssignExp) isDivAssignExp() { return op == EXP.divAssign ? cast(typeof(return))this : null; }
+            inout(ModAssignExp) isModAssignExp() { return op == EXP.modAssign ? cast(typeof(return))this : null; }
+            inout(AndAssignExp) isAndAssignExp() { return op == EXP.andAssign ? cast(typeof(return))this : null; }
+            inout(OrAssignExp)  isOrAssignExp()  { return op == EXP.orAssign ? cast(typeof(return))this : null; }
+            inout(XorAssignExp) isXorAssignExp() { return op == EXP.xorAssign ? cast(typeof(return))this : null; }
+            inout(PowAssignExp) isPowAssignExp() { return op == EXP.powAssign ? cast(typeof(return))this : null; }
+
+            inout(ShlAssignExp)  isShlAssignExp()  { return op == EXP.leftShiftAssign ? cast(typeof(return))this : null; }
+            inout(ShrAssignExp)  isShrAssignExp()  { return op == EXP.rightShiftAssign ? cast(typeof(return))this : null; }
+            inout(UshrAssignExp) isUshrAssignExp() { return op == EXP.unsignedRightShiftAssign ? cast(typeof(return))this : null; }
+
+            inout(CatAssignExp) isCatAssignExp() { return op == EXP.concatenateAssign
+                                                    ? cast(typeof(return))this
+                                                    : null; }
+
+            inout(CatElemAssignExp) isCatElemAssignExp() { return op == EXP.concatenateElemAssign
+                                                    ? cast(typeof(return))this
+                                                    : null; }
+
+            inout(CatDcharAssignExp) isCatDcharAssignExp() { return op == EXP.concatenateDcharAssign
+                                                    ? cast(typeof(return))this
+                                                    : null; }
+
+            inout(AddExp)      isAddExp() { return op == EXP.add ? cast(typeof(return))this : null; }
+            inout(MinExp)      isMinExp() { return op == EXP.min ? cast(typeof(return))this : null; }
+            inout(CatExp)      isCatExp() { return op == EXP.concatenate ? cast(typeof(return))this : null; }
+            inout(MulExp)      isMulExp() { return op == EXP.mul ? cast(typeof(return))this : null; }
+            inout(DivExp)      isDivExp() { return op == EXP.div ? cast(typeof(return))this : null; }
+            inout(ModExp)      isModExp() { return op == EXP.mod ? cast(typeof(return))this : null; }
+            inout(PowExp)      isPowExp() { return op == EXP.pow ? cast(typeof(return))this : null; }
+            inout(ShlExp)      isShlExp() { return op == EXP.leftShift ? cast(typeof(return))this : null; }
+            inout(ShrExp)      isShrExp() { return op == EXP.rightShift ? cast(typeof(return))this : null; }
+            inout(UshrExp)     isUshrExp() { return op == EXP.unsignedRightShift ? cast(typeof(return))this : null; }
+            inout(AndExp)      isAndExp() { return op == EXP.and ? cast(typeof(return))this : null; }
+            inout(OrExp)       isOrExp() { return op == EXP.or ? cast(typeof(return))this : null; }
+            inout(XorExp)      isXorExp() { return op == EXP.xor ? cast(typeof(return))this : null; }
+            inout(LogicalExp)  isLogicalExp() { return (op == EXP.andAnd || op == EXP.orOr) ? cast(typeof(return))this : null; }
+            inout(InExp)       isInExp() { return op == EXP.in_ ? cast(typeof(return))this : null; }
+            inout(EqualExp)    isEqualExp() { return (op == EXP.equal || op == EXP.notEqual) ? cast(typeof(return))this : null; }
+            inout(IdentityExp) isIdentityExp() { return (op == EXP.identity || op == EXP.notIdentity) ? cast(typeof(return))this : null; }
+            inout(CondExp)     isCondExp() { return op == EXP.question ? cast(typeof(return))this : null; }
+            inout(GenericExp)  isGenericExp() { return op == EXP._Generic ? cast(typeof(return))this : null; }
+            inout(FileInitExp)       isFileInitExp() { return (op == EXP.file || op == EXP.fileFullPath) ? cast(typeof(return))this : null; }
+            inout(LineInitExp)       isLineInitExp() { return op == EXP.line ? cast(typeof(return))this : null; }
+            inout(ModuleInitExp)     isModuleInitExp() { return op == EXP.moduleString ? cast(typeof(return))this : null; }
+            inout(FuncInitExp)       isFuncInitExp() { return op == EXP.functionString ? cast(typeof(return))this : null; }
+            inout(PrettyFuncInitExp) isPrettyFuncInitExp() { return op == EXP.prettyFunction ? cast(typeof(return))this : null; }
+            inout(AssignExp)         isConstructExp() { return op == EXP.construct ? cast(typeof(return))this : null; }
+            inout(AssignExp)         isBlitExp()      { return op == EXP.blit ? cast(typeof(return))this : null; }
+
+            inout(UnaExp) isUnaExp() pure inout nothrow @nogc
+            {
+                return exptab[op] & EXPFLAGS.unary ? cast(typeof(return))this : null;
+            }
+
+            inout(BinExp) isBinExp() pure inout nothrow @nogc
+            {
+                return exptab[op] & EXPFLAGS.binary ? cast(typeof(return))this : null;
+            }
+
+            inout(BinAssignExp) isBinAssignExp() pure inout nothrow @nogc
+            {
+                return exptab[op] & EXPFLAGS.binaryAssign ? cast(typeof(return))this : null;
+            }
+        }
+
         override void accept(Visitor v)
         {
             v.visit(this);
-        }
-
-        extern (C++) final pure inout nothrow @nogc @safe
-        {
-            inout(DeclarationExp) isDeclarationExp() { return op == EXP.declaration ? cast(typeof(return))this : null; }
-            inout(AssignExp) isConstructExp() { return op == EXP.construct ? cast(typeof(return))this : null; }
-            inout(AssignExp) isBlitExp()      { return op == EXP.blit ? cast(typeof(return))this : null; }
         }
     }
 
@@ -4873,7 +5013,7 @@ struct ASTBase
         extern (D) this(const ref Loc loc, Expressions* keys, Expressions* values)
         {
             super(loc, EXP.assocArrayLiteral, __traits(classInstanceSize, AssocArrayLiteralExp));
-            assert(keys.dim == values.dim);
+            assert(keys.length == values.length);
             this.keys = keys;
             this.values = values;
         }
@@ -4929,7 +5069,7 @@ struct ASTBase
             if (td)
             {
                 assert(td.literal);
-                assert(td.members && td.members.dim == 1);
+                assert(td.members && td.members.length == 1);
                 fd = (*td.members)[0].isFuncLiteralDeclaration();
             }
             tok = fd.tok; // save original kind of function/delegate/(infer)
@@ -5152,8 +5292,8 @@ struct ASTBase
             super(loc, EXP.tuple, __traits(classInstanceSize, TupleExp));
             this.exps = new Expressions();
 
-            this.exps.reserve(tup.objects.dim);
-            for (size_t i = 0; i < tup.objects.dim; i++)
+            this.exps.reserve(tup.objects.length);
+            for (size_t i = 0; i < tup.objects.length; i++)
             {
                 RootObject o = (*tup.objects)[i];
                 if (Dsymbol s = getDsymbol(o))
@@ -6315,6 +6455,11 @@ struct ASTBase
         {
             v.visit(this);
         }
+
+        inout(StaticIfCondition) isStaticIfCondition() inout
+        {
+            return null;
+        }
     }
 
     extern (C++) final class StaticForeach : RootObject
@@ -6350,6 +6495,11 @@ struct ASTBase
         override void accept(Visitor v)
         {
             v.visit(this);
+        }
+
+        override inout(StaticIfCondition) isStaticIfCondition() inout
+        {
+            return this;
         }
     }
 
@@ -6766,3 +6916,50 @@ struct ASTBase
         extern (C++) __gshared bool isLP64;
     }
 }
+
+private immutable ubyte[EXP.max + 1] exptab =
+() {
+    ubyte[EXP.max + 1] tab;
+    with (EXPFLAGS)
+    {
+        foreach (i; Eunary)  { tab[i] |= unary;  }
+        foreach (i; Ebinary) { tab[i] |= unary | binary; }
+        foreach (i; EbinaryAssign) { tab[i] |= unary | binary | binaryAssign; }
+    }
+    return tab;
+} ();
+
+private enum EXPFLAGS : ubyte
+{
+    unary = 1,
+    binary = 2,
+    binaryAssign = 4,
+}
+
+private static immutable Eunary =
+    [
+        EXP.import_, EXP.assert_, EXP.throw_, EXP.dotIdentifier, EXP.dotTemplateDeclaration,
+        EXP.dotVariable, EXP.dotTemplateInstance, EXP.delegate_, EXP.dotType, EXP.call,
+        EXP.address, EXP.star, EXP.negate, EXP.uadd, EXP.tilde, EXP.not, EXP.delete_, EXP.cast_,
+        EXP.vector, EXP.vectorArray, EXP.slice, EXP.arrayLength, EXP.array, EXP.delegatePointer,
+        EXP.delegateFunctionPointer, EXP.preMinusMinus, EXP.prePlusPlus,
+    ];
+
+private static immutable Ebinary =
+    [
+        EXP.dot, EXP.comma, EXP.index, EXP.minusMinus, EXP.plusPlus, EXP.assign,
+        EXP.add, EXP.min, EXP.concatenate, EXP.mul, EXP.div, EXP.mod, EXP.pow, EXP.leftShift,
+        EXP.rightShift, EXP.unsignedRightShift, EXP.and, EXP.or, EXP.xor, EXP.andAnd, EXP.orOr,
+        EXP.lessThan, EXP.lessOrEqual, EXP.greaterThan, EXP.greaterOrEqual,
+        EXP.in_, EXP.remove, EXP.equal, EXP.notEqual, EXP.identity, EXP.notIdentity,
+        EXP.question,
+        EXP.construct, EXP.blit,
+    ];
+
+private static immutable EbinaryAssign =
+    [
+        EXP.addAssign, EXP.minAssign, EXP.mulAssign, EXP.divAssign, EXP.modAssign,
+        EXP.andAssign, EXP.orAssign, EXP.xorAssign, EXP.powAssign,
+        EXP.leftShiftAssign, EXP.rightShiftAssign, EXP.unsignedRightShiftAssign,
+        EXP.concatenateAssign, EXP.concatenateElemAssign, EXP.concatenateDcharAssign,
+    ];

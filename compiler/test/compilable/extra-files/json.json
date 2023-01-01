@@ -184,7 +184,7 @@
                 "protection": "public"
             },
             {
-                "char": 11,
+                "char": 1,
                 "deco": "VALUE_REMOVED_FOR_TEST",
                 "kind": "alias",
                 "line": 18,

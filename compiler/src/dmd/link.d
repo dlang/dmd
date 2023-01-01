@@ -22,6 +22,7 @@ import core.sys.windows.windef;
 import dmd.dmdparams;
 import dmd.errors;
 import dmd.globals;
+import dmd.location;
 import dmd.root.array;
 import dmd.root.env;
 import dmd.root.file;
@@ -776,7 +777,7 @@ public int runLINK()
         {
             // Print it
             OutBuffer buf;
-            for (size_t i = 0; i < argv.dim; i++)
+            for (size_t i = 0; i < argv.length; i++)
             {
                 buf.writestring(argv[i]);
                 buf.writeByte(' ');
@@ -956,7 +957,7 @@ public int runProgram()
     {
         OutBuffer buf;
         buf.writestring(global.params.exefile);
-        for (size_t i = 0; i < global.params.runargs.dim; ++i)
+        for (size_t i = 0; i < global.params.runargs.length; ++i)
         {
             buf.writeByte(' ');
             buf.writestring(global.params.runargs[i]);
@@ -966,7 +967,7 @@ public int runProgram()
     // Build argv[]
     Strings argv;
     argv.push(global.params.exefile.xarraydup.ptr);
-    for (size_t i = 0; i < global.params.runargs.dim; ++i)
+    for (size_t i = 0; i < global.params.runargs.length; ++i)
     {
         const(char)* a = global.params.runargs[i];
         version (Windows)

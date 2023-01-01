@@ -5,22 +5,22 @@ TESTS=stderr_msg unittest_assert invalid_memory_operation unknown_gc static_dtor
 	  message_with_null
 
 ifeq ($(OS)-$(BUILD),linux-debug)
-	TESTS+=line_trace line_trace_21656 long_backtrace_trunc rt_trap_exceptions
+	TESTS+=line_trace line_trace_21656 long_backtrace_trunc rt_trap_exceptions cpp_demangle
 	LINE_TRACE_DFLAGS:=-L--export-dynamic
 endif
 ifeq ($(OS),linux)
-	TESTS+=rt_trap_exceptions_drt_gdb
+	TESTS+=rt_trap_exceptions_drt_gdb cpp_demangle
 endif
 ifeq ($(OS)-$(BUILD),freebsd-debug)
-	TESTS+=line_trace line_trace_21656 long_backtrace_trunc
+	TESTS+=line_trace line_trace_21656 long_backtrace_trunc cpp_demangle
 	LINE_TRACE_DFLAGS:=-L--export-dynamic
 endif
 ifeq ($(OS)-$(BUILD),dragonflybsd-debug)
-	TESTS+=line_trace line_trace_21656 long_backtrace_trunc
+	TESTS+=line_trace line_trace_21656 long_backtrace_trunc cpp_demangle
 	LINE_TRACE_DFLAGS:=-L--export-dynamic
 endif
 ifeq ($(OS)-$(BUILD),osx-debug)
-	TESTS+=line_trace line_trace_21656 long_backtrace_trunc
+	TESTS+=line_trace line_trace_21656 long_backtrace_trunc cpp_demangle
 	LINE_TRACE_DFLAGS:=
 endif
 
@@ -78,6 +78,7 @@ $(ROOT)/catch_in_finally.done: STDERR_EXP="success."
 $(ROOT)/rt_trap_exceptions.done: STDERR_EXP="object.Exception@src/rt_trap_exceptions.d(12): this will abort"
 $(ROOT)/rt_trap_exceptions.done: STDERR_EXP2="src/rt_trap_exceptions.d:8 main"
 $(ROOT)/assert_fail.done: STDERR_EXP="success."
+$(ROOT)/cpp_demangle.done: STDERR_EXP="thrower(int)"
 
 $(ROOT)/message_with_null.done: STDERR_EXP=" world"
 
@@ -109,7 +110,7 @@ $(ROOT)/rt_trap_exceptions_drt_gdb.done: $(ROOT)/rt_trap_exceptions_drt
 	$(QUIET)$(TIMELIMIT) $(GDB) -n -ex 'set confirm off' -ex run -ex 'bt full' -ex q --args $< --DRT-trapExceptions=0 \
 		> $(ROOT)/rt_trap_exceptions_drt_gdb.output 2>&1 || true
 	cat $(ROOT)/rt_trap_exceptions_drt_gdb.output
-	grep "in D main (args=...) at .*rt_trap_exceptions_drt.d:9" > /dev/null < $(ROOT)/rt_trap_exceptions_drt_gdb.output
+	grep "D main (args=...) at .*rt_trap_exceptions_drt.d:9" > /dev/null < $(ROOT)/rt_trap_exceptions_drt_gdb.output
 	grep 'myLocal' > /dev/null < $(ROOT)/rt_trap_exceptions_drt_gdb.output
 	! grep "No stack." > /dev/null < $(ROOT)/rt_trap_exceptions_drt_gdb.output
 	@touch $@
@@ -128,6 +129,7 @@ $(ROOT)/long_backtrace_trunc: DFLAGS+=$(LINE_TRACE_DFLAGS)
 $(ROOT)/rt_trap_exceptions: DFLAGS+=$(LINE_TRACE_DFLAGS)
 $(ROOT)/rt_trap_exceptions_drt: DFLAGS+=-g
 $(ROOT)/refcounted: DFLAGS+=-dip1008
+$(ROOT)/cpp_demangle: DFLAGS+=-L-lstdc++
 
 $(ROOT)/%: $(SRC)/%.d $(DMD) $(DRUNTIME)
 	$(QUIET)$(DMD) $(DFLAGS) -of$@ $<

@@ -19,6 +19,7 @@ import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.code_x86;
 
+import dmd.backend.barray : Barray;
 import dmd.backend.dwarf;
 import dmd.backend.dwarf2;
 
@@ -38,36 +39,9 @@ struct DwEhTableEntry
     int prev;           // index to enclosing entry (-1 for none)
 }
 
-struct DwEhTable
-{
-nothrow:
-    DwEhTableEntry *ptr;    // pointer to table
-    uint dim;               // current amount used
-    uint capacity;
+alias DwEhTable = Barray!DwEhTableEntry;
 
-    DwEhTableEntry *index(uint i)
-    {
-        if (i >= dim) printf("i = %d dim = %d\n", i, dim);
-        assert(i < dim);
-        return ptr + i;
-    }
-
-    uint push()
-    {
-        assert(dim <= capacity);
-        if (dim == capacity)
-        {
-            assert(capacity < uint.max / (3 * DwEhTableEntry.sizeof));  // conservative overflow check
-            capacity += capacity + 16;
-            ptr = cast(DwEhTableEntry *)realloc(ptr, capacity * DwEhTableEntry.sizeof);
-            assert(ptr);
-        }
-        memset(ptr + dim, 0, DwEhTableEntry.sizeof);
-        return dim++;
-    }
-}
-
-private __gshared DwEhTable dwehtable;
+package __gshared DwEhTable dwehtable;
 
 /****************************
  * Generate .gcc_except_table, aka LS
@@ -80,7 +54,7 @@ private __gshared DwEhTable dwehtable;
  *      retoffset = offset from start of function to epilog
  */
 
-void genDwarfEh(Funcsym *sfunc, int seg, OutBuffer *et, bool scancode, uint startoffset, uint retoffset)
+void genDwarfEh(Funcsym *sfunc, int seg, OutBuffer *et, bool scancode, uint startoffset, uint retoffset, ref DwEhTable deh)
 {
     /* LPstart = encoding of LPbase
      * LPbase = landing pad base (normally omitted)
@@ -113,8 +87,7 @@ static if (0)
     uint startsize = cast(uint)et.length();
     assert((startsize & 3) == 0);       // should be aligned
 
-    DwEhTable *deh = &dwehtable;
-    deh.dim = 0;
+    deh.reset();
     OutBuffer atbuf;
     OutBuffer cstbuf;
 
@@ -124,8 +97,8 @@ static if (0)
     block *bprev = null;
     // The first entry encompasses the entire function
     {
-        uint i = deh.push();
-        DwEhTableEntry *d = deh.index(i);
+        uint i = cast(uint) deh.length;
+        DwEhTableEntry *d = deh.push();
         d.start = cast(uint)(startblock.Boffset + startoffset);
         d.end = cast(uint)(startblock.Boffset + retoffset);
         d.lpad = 0;                    // no cleanup, no catches
@@ -135,7 +108,7 @@ static if (0)
     {
         if (index > 0 && b.Btry == bprev)
         {
-            DwEhTableEntry *d = deh.index(index);
+            DwEhTableEntry *d = &deh[index];
             d.end = cast(uint)b.Boffset;
             index = d.prev;
             if (bprev)
@@ -143,8 +116,8 @@ static if (0)
         }
         if (b.BC == BC_try)
         {
-            uint i = deh.push();
-            DwEhTableEntry *d = deh.index(i);
+            uint i = cast(uint) deh.length;
+            DwEhTableEntry *d = deh.push();
             d.start = cast(uint)b.Boffset;
 
             block *bf = b.nthSucc(1);
@@ -179,8 +152,8 @@ static if (0)
             {
                 if (c.Iop == (ESCAPE | ESCdctor))
                 {
-                    uint i = deh.push();
-                    DwEhTableEntry *d = deh.index(i);
+                    uint i = cast(uint) deh.length;
+                    DwEhTableEntry *d = deh.push();
                     d.start = coffset;
                     d.prev = index;
                     index = i;
@@ -191,7 +164,7 @@ static if (0)
                 {
                     assert(n > 0);
                     --n;
-                    DwEhTableEntry *d = deh.index(index);
+                    DwEhTableEntry *d = &deh[index];
                     d.end = coffset;
                     d.lpad = coffset;
                     index = d.prev;
@@ -209,11 +182,10 @@ static if (1)
      * Be sure to not generate empty entries,
      * and generate nested ranges reflecting the layout in the code.
      */
-    assert(deh.dim);
-    uint end = deh.index(0).start;
-    for (uint i = 0; i < deh.dim; ++i)
+    assert(deh.length > 0);
+    uint end = deh[0].start;
+    foreach (ref DwEhTableEntry d; deh[])
     {
-        DwEhTableEntry *d = deh.index(i);
         if (d.start < d.end)
         {
                 void WRITE(uint v)

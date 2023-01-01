@@ -304,6 +304,10 @@ L1:
             case TYldouble:
                 assert(0);
 
+            case TYcdouble:
+                sz = 8;         // not 16
+                break;
+
             default:
             err1:                   // let type_size() handle error messages
                 sz = type_size(t);
@@ -631,7 +635,7 @@ type *type_function(tym_t tyf, type*[] ptypes, bool variadic, type *tret)
 @trusted
 type *type_enum(const(char)* name, type *tbase)
 {
-    Symbol *s = symbol_calloc(name);
+    Symbol *s = symbol_calloc(name[0 .. strlen(name)]);
     s.Sclass = SC.enum_;
     s.Senum = cast(enum_t *) MEM_PH_CALLOC(enum_t.sizeof);
     s.Senum.SEflags |= SENforward;        // forward reference
@@ -670,7 +674,7 @@ type *type_struct_class(const(char)* name, uint alignsize, uint structsize,
             type_print(arg2type);
         }
     }
-    Symbol *s = symbol_calloc(name);
+    Symbol *s = symbol_calloc(name[0 .. strlen(name)]);
     s.Sclass = SC.struct_;
     s.Sstruct = struct_calloc();
     s.Sstruct.Salignsize = alignsize;
@@ -1692,7 +1696,7 @@ Symbol *param_search(const(char)* name, param_t **pp)
         s = p.Psym;
         if (!s)
         {
-            s = symbol_calloc(p.Pident);
+            s = symbol_calloc(p.Pident[0 .. strlen(p.Pident)]);
             s.Sclass = SC.parameter;
             s.Stype = p.Ptype;
             s.Stype.Tcount++;

@@ -135,7 +135,7 @@ void util_progress();
 void util_set16();
 void util_set32(exefmt_t);
 void util_set64(exefmt_t);
-int ispow2(uint64_t);
+int ispow2(ulong);
 
 version (Posix)
 {
@@ -323,10 +323,8 @@ void symbol_keep(Symbol *s) { }
 void symbol_print(const Symbol* s);
 void symbol_term();
 const(char)* symbol_ident(const Symbol *s);
-Symbol *symbol_calloc(const(char)* id);
-Symbol *symbol_calloc(const(char)* id, uint len);
-Symbol *symbol_name(const(char)* name, SC sclass, type *t);
-Symbol *symbol_name(const(char)* name, uint len, SC sclass, type *t);
+extern (C) Symbol *symbol_calloc(const(char)[] id);
+extern (C) Symbol *symbol_name(const(char)[] name, SC sclass, type *t);
 Symbol *symbol_generate(SC sclass, type *t);
 Symbol *symbol_genauto(type *t);
 Symbol *symbol_genauto(elem *e);

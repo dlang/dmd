@@ -1,0 +1,18 @@
+The default `Throwable.TraceInfo` generation now is `@nogc`.
+
+The way this works:
+
+1. The runtime now has 2 trace-related functions, one for allocating a traceinfo, and one for deallocating the traceinfo. Both are set via the same `Runtime.traceHandler` function. The second parameter that sets the deallocation function is optional (so existing code will not be affected).
+2. When a `Throwable` is thrown, if the trace info is not yet set, the runtime uses the designated function to allocate a trace info. If the deallocation function is non-null, the function pointer is copied into the `Throwable`, into the new member `infoDeallocator`.
+3. When the `Throwable` is destroyed, if the `infoDeallocator` member is set, it is called on the `info` member.
+
+The default allocator and deallocator now uses C malloc and free to allocate and deallocate the `TraceInfo`. Almost everything was already nogc, *except* for the allocation of the `TraceInfo` object itself.
+
+The benefits:
+
+1. Stack traces can now be generated when run inside the GC collection routine.
+2. InvalidMemoryOperationError now has a stack trace.
+3. Little known is that even inside `@nogc` functions, throwing a `Throwable` actually was using the GC, that is no longer the case (by default).
+4. Certain GC hangs have been fixed (see bug fixes listed below).
+
+One possible drawback is that the `TraceInfo` is deallocated upon `Throwable` being finalized, leading to a potential dangling pointer situation. If you do copy the `info` out of the `Throwable`, makes sure to not keep it beyond the lifetime of the `Throwable`, or make sure to set the `infoDeallocator` member to null.

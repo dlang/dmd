@@ -47,6 +47,7 @@ import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.inline;
+import dmd.location;
 import dmd.json;
 version (NoMain) {} else
 {
@@ -250,12 +251,13 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         global.console = cast(void*) createConsole(core.stdc.stdio.stderr);
 
     target.setCPU();
+    Loc.set(params.showColumns, params.messageStyle);
 
     if (global.errors)
     {
         fatal();
     }
-    if (files.dim == 0)
+    if (files.length == 0)
     {
         if (params.jsonFieldFlags)
         {
@@ -286,7 +288,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     Expression._init();
     Objc._init();
 
-    reconcileLinkRunLib(params, files.dim, target.obj_ext);
+    reconcileLinkRunLib(params, files.length, target.obj_ext);
     version(CRuntime_Microsoft)
     {
         import dmd.root.longdouble;
@@ -303,7 +305,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         stdout.printPredefinedVersions();
         stdout.printGlobalConfigs();
     }
-    //printf("%d source files\n", cast(int) files.dim);
+    //printf("%d source files\n", cast(int) files.length);
 
     // Build import search path
 
@@ -345,7 +347,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     // Parse files
     bool anydocfiles = false;
-    size_t filecount = modules.dim;
+    size_t filecount = modules.length;
     for (size_t filei = 0, modi = 0; filei < filecount; filei++, modi++)
     {
         Module m = modules[modi];
@@ -393,7 +395,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         }
     }
 
-    if (anydocfiles && modules.dim && (driverParams.oneobj || params.objname))
+    if (anydocfiles && modules.length && (driverParams.oneobj || params.objname))
     {
         error(Loc.initial, "conflicting Ddoc and obj generation options");
         fatal();
@@ -442,9 +444,9 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     //if (global.errors)
     //    fatal();
     Module.runDeferredSemantic();
-    if (Module.deferred.dim)
+    if (Module.deferred.length)
     {
-        for (size_t i = 0; i < Module.deferred.dim; i++)
+        for (size_t i = 0; i < Module.deferred.length; i++)
         {
             Dsymbol sd = Module.deferred[i];
             sd.error("unable to resolve forward reference in definition");
@@ -472,9 +474,9 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     }
     if (includeImports)
     {
-        // Note: DO NOT USE foreach here because Module.amodules.dim can
+        // Note: DO NOT USE foreach here because Module.amodules.length can
         //       change on each iteration of the loop
-        for (size_t i = 0; i < compiledImports.dim; i++)
+        for (size_t i = 0; i < compiledImports.length; i++)
         {
             auto m = compiledImports[i];
             assert(m.isRoot);
@@ -510,7 +512,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     // So deps file generation should be moved after the inlining stage.
     if (OutBuffer* ob = params.moduleDeps.buffer)
     {
-        foreach (i; 1 .. modules[0].aimports.dim)
+        foreach (i; 1 .. modules[0].aimports.length)
             semantic3OnDependencies(modules[0].aimports[i]);
         Module.runDeferredSemantic3();
 
@@ -652,8 +654,8 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
     }
     if (const(char)* missingFile = responseExpand(arguments)) // expand response files
         error(Loc.initial, "cannot open response file '%s'", missingFile);
-    //for (size_t i = 0; i < arguments.dim; ++i) printf("arguments[%d] = '%s'\n", i, arguments[i]);
-    files.reserve(arguments.dim - 1);
+    //for (size_t i = 0; i < arguments.length; ++i) printf("arguments[%d] = '%s'\n", i, arguments[i]);
+    files.reserve(arguments.length - 1);
     // Set default values
     params.argv0 = arguments[0].toDString;
 
@@ -1539,12 +1541,12 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
 
     version (none)
     {
-        for (size_t i = 0; i < arguments.dim; i++)
+        for (size_t i = 0; i < arguments.length; i++)
         {
             printf("arguments[%d] = '%s'\n", i, arguments[i]);
         }
     }
-    for (size_t i = 1; i < arguments.dim; i++)
+    for (size_t i = 1; i < arguments.length; i++)
     {
         const(char)* p = arguments[i];
         const(char)[] arg = p.toDString();
@@ -2911,7 +2913,7 @@ private
 Modules createModules(ref Strings files, ref Strings libmodules, const ref Target target)
 {
     Modules modules;
-    modules.reserve(files.dim);
+    modules.reserve(files.length);
     bool firstmodule = true;
     foreach(file; files)
     {

@@ -50,7 +50,7 @@ jobs:
         run: |
           set -euox pipefail
           ls -aul ~ ~/artifacts
-          echo "::set-output name=artifacts_directory::$HOME/artifacts"
+          echo "artifacts_directory=$HOME/artifacts" >> $GITHUB_OUTPUT
 
       #################################################################
       # Create the new release using the downloaded artifacts

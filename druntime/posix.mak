@@ -74,6 +74,11 @@ endif
 ifeq (solaris,$(OS))
 	CFLAGS+=-D_REENTRANT  # for thread-safe errno
 endif
+ifeq (osx,$(OS))
+	ifeq (64,$(MODEL))
+		CFLAGS+=--target=x86_64-darwin-apple  # ARM cpu is not supported by dmd
+	endif
+endif
 
 # Set DFLAGS
 UDFLAGS:=-conf= -Isrc -Iimport -w -de -preview=dip1000 -preview=fieldwise $(MODEL_FLAG) $(PIC) $(OPTIONAL_COVERAGE) -preview=dtorfields

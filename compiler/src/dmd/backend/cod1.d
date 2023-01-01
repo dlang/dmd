@@ -1604,16 +1604,13 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                 debug if (debugr) printf("'%s' not reg cand due to offset or size\n", s.Sident.ptr);
                 s.Sflags &= ~GTregcand;
             }
-            else if (tyvector(s.Stype.Tty))
+            else if (tyvector(s.Stype.Tty) && sz < tysize(s.Stype.Tty))
             {
                 // https://issues.dlang.org/show_bug.cgi?id=21673
                 // https://issues.dlang.org/show_bug.cgi?id=21676
                 // https://issues.dlang.org/show_bug.cgi?id=23009
-                // Currently, when assigning to element [0] of a double2 and -O puts it in
-                // a register, this gets generated:
-                // movsd   XMM0,[RDI]
-                // This clears the rest of XMM0, setting element [1] to 0.
-                // Until this is fixed, keep vector variables on the stack
+                // PR: https://github.com/dlang/dmd/pull/13977
+                // cannot read or write to partial vector
                 debug if (debugr) printf("'%s' not reg cand due to vector type\n", s.Sident.ptr);
                 s.Sflags &= ~GTregcand;
             }
@@ -2108,7 +2105,7 @@ __gshared int clib_inited = false;          // true if initialized
 @trusted
 Symbol* symboly(const(char)* name, regm_t desregs)
 {
-    Symbol *s = symbol_calloc(name);
+    Symbol *s = symbol_calloc(name[0 .. strlen(name)]);
     s.Stype = tsclib;
     s.Sclass = SC.extern_;
     s.Sfl = FLfunc;
@@ -3826,8 +3823,9 @@ void cdstrthis(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
 private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
                       regm_t* pretregs,regm_t keepmsk, bool usefuncarg)
 {
-    //printf("%s ", funcsym_p.Sident.ptr);
     //printf("funccall(e = %p, *pretregs = %s, numpara = %d, numalign = %d, usefuncarg=%d)\n",e,regm_str(*pretregs),numpara,numalign,usefuncarg);
+    //printf("  from %s\n", funcsym_p.Sident.ptr);
+    //elem_print(e);
     calledafunc = 1;
     // Determine if we need frame for function prolog/epilog
 
@@ -5297,6 +5295,8 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
             /* Evaluate using XMM register and XMM instruction.
              * This affects jmpopcode()
              */
+            if (s.Sclass == SC.parameter)
+                refparam = true;
             tstresult(cdb,s.Sregm,e.Ety,true);
         }
         else if (sz <= REGSIZE)
@@ -5387,6 +5387,16 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
         forregs |= DOUBLEREGS;
     if (e.Eoper == OPconst)
     {
+        if (tyvector(tym) && forregs & XMMREGS)
+        {
+            assert(!flags);
+            reg_t xreg;
+            allocreg(cdb, &forregs, &xreg, tym);     // allocate registers
+            movxmmconst(cdb, xreg, tym, &e.EV, flags);
+            fixresult(cdb, e, forregs, pretregs);
+            return;
+        }
+
         targ_size_t value = e.EV.Vint;
         if (sz == 8)
             value = cast(targ_size_t)e.EV.Vullong;
@@ -5396,7 +5406,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
 
         regm_t save = regcon.immed.mval;
         allocreg(cdb, &forregs, &reg, tym);        // allocate registers
-        regcon.immed.mval = save;               // KLUDGE!
+        regcon.immed.mval = save;               // allocreg could unnecessarily clear .mval
         if (sz <= REGSIZE)
         {
             if (sz == 1)
@@ -5409,22 +5419,9 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
             if (sz == 8)
                 flags |= 64;
             if (isXMMreg(reg))
-            {   /* This comes about because 0, 1, pi, etc., constants don't get stored
-                 * in the data segment, because they are x87 opcodes.
-                 * Not so efficient. We should at least do a PXOR for 0.
-                 */
-                reg_t r;
-                targ_size_t unsvalue = e.EV.Vuns;
-                if (sz == 8)
-                    unsvalue = cast(targ_size_t)e.EV.Vullong;
-                regwithvalue(cdb,ALLREGS, unsvalue,&r,flags);
-                flags = 0;                          // flags are already set
-                cdb.genfltreg(0x89, r, 0);            // MOV floatreg,r
-                if (sz == 8)
-                    code_orrex(cdb.last(), REX_W);
-                assert(sz == 4 || sz == 8);         // float or double
-                const opmv = xmmload(tym);
-                cdb.genxmmreg(opmv, reg, 0, tym);        // MOVSS/MOVSD XMMreg,floatreg
+            {
+                movxmmconst(cdb, reg, tym, &e.EV, 0);
+                flags = 0;
             }
             else
             {

@@ -1,0 +1,13 @@
+`static assert` now supports multiple message arguments
+
+When the condition evaluates to false, any subsequent expressions will
+each be converted to string and then concatenated. The resulting string
+will be printed out along with the error diagnostic.
+---
+enum e = 3;
+static assert(false, "a = ", e);
+---
+Will print:
+$(CONSOLE
+file.d(2): Error: static assert:  a = 3
+)

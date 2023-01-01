@@ -1085,6 +1085,76 @@ elem * el_long(tym_t t,targ_llong val)
     }
     return e;
 }
+
+/******************************
+ * Create a const integer vector elem
+ * Params:
+ *      ty = type of the vector
+ *      val = value to broadcast to the vector elements
+ * Returns:
+ *      created OPconst elem
+ */
+@trusted
+elem* el_vectorConst(tym_t ty, ulong val)
+{
+    elem* e = el_calloc();
+    e.Eoper = OPconst;
+    e.Ety = ty;
+    const sz = tysize(ty);
+
+    if (val == 0 || !((val & 0xFF) + 1))
+    {
+        memset(&e.EV, cast(ubyte)val, sz);
+        return e;
+    }
+
+    switch (tybasic(ty))
+    {
+        case TYschar16:
+        case TYuchar16:
+        case TYschar32:
+        case TYuchar32:
+            foreach (i; 0 .. sz)
+            {
+                e.EV.Vuchar32[i] = cast(ubyte)val;
+            }
+            break;
+
+        case TYshort8:
+        case TYushort8:
+        case TYshort16:
+        case TYushort16:
+            foreach (i; 0 .. sz / 2)
+            {
+                e.EV.Vushort16[i] = cast(ushort)val;
+            }
+            break;
+
+        case TYlong4:
+        case TYulong4:
+        case TYlong8:
+        case TYulong8:
+            foreach (i; 0 .. sz / 4)
+            {
+                e.EV.Vulong8[i] = cast(uint)val;
+            }
+            break;
+
+        case TYllong2:
+        case TYullong2:
+        case TYllong4:
+        case TYullong4:
+            foreach (i; 0 .. sz / 8)
+            {
+                e.EV.Vullong4[i] = val;
+            }
+            break;
+
+        default:
+            assert(0);
+    }
+    return e;
+}
 }
 
 /*******************************
@@ -1576,11 +1646,8 @@ elem *el_convxmm(elem *e)
     ubyte[eve.sizeof] buffer = void;
 
     // Do not convert if the constants can be loaded with the special XMM instructions
-static if (0)
-{
-    if (loadconst(e))
+    if (loadxmmconst(e))
         return e;
-}
 
     go.changes++;
     tym_t ty = e.Ety;
@@ -2332,6 +2399,20 @@ L1:
                             return false;
                         break;
 
+                    case TYfloat8:
+                    case TYdouble4:
+                    case TYschar32:
+                    case TYuchar32:
+                    case TYshort16:
+                    case TYushort16:
+                    case TYlong8:
+                    case TYulong8:
+                    case TYllong4:
+                    case TYullong4:
+                        if (memcmp(&n1.EV,&n2.EV,32))   // 32 byte vector types (256 bit)
+                            return false;
+                        break;
+
                     case TYcldouble:
                         static if ((n1.EV.Vldouble).sizeof > 10)
                         {
@@ -3062,6 +3143,7 @@ case_tym:
             printf("%gL+%gLi ", cast(double)e.EV.Vcldouble.re, cast(double)e.EV.Vcldouble.im);
             break;
 
+        // SIMD 16 byte vector types        // D type
         case TYfloat4:
         case TYdouble2:
         case TYschar16:
@@ -3073,6 +3155,35 @@ case_tym:
         case TYllong2:
         case TYullong2:
             printf("%llxLL+%llxLL ", cast(long)e.EV.Vcent.hi, cast(long)e.EV.Vcent.lo);
+            break;
+
+        // SIMD 32 byte (256 bit) vector types
+        case TYfloat8:            // float[8]
+        case TYdouble4:           // double[4]
+        case TYschar32:           // byte[32]
+        case TYuchar32:           // ubyte[32]
+        case TYshort16:           // short[16]
+        case TYushort16:          // ushort[16]
+        case TYlong8:             // int[8]
+        case TYulong8:            // uint[8]
+        case TYllong4:            // long[4]
+        case TYullong4:           // ulong[4]
+             printf("x%llx,x%llx,x%llx,x%llx ",
+                e.EV.Vullong4[3],e.EV.Vullong4[2],e.EV.Vullong4[1],e.EV.Vullong4[0]);
+                break;
+
+        // SIMD 64 byte (512 bit) vector types
+        case TYfloat16:           // float[16]
+        case TYdouble8:           // double[8]
+        case TYschar64:           // byte[64]
+        case TYuchar64:           // ubyte[64]
+        case TYshort32:           // short[32]
+        case TYushort32:          // ushort[32]
+        case TYlong16:            // int[16]
+        case TYulong16:           // uint[16]
+        case TYllong8:            // long[8]
+        case TYullong8:           // ulong[8]
+            printf("512 bit vector ");  // not supported yet with union eve
             break;
 
 version (MARS) { } else

@@ -35,6 +35,7 @@ import dmd.identifier;
 import dmd.init;
 import dmd.initsem;
 import dmd.intrange;
+import dmd.location;
 import dmd.mtype;
 import dmd.common.outbuffer;
 import dmd.root.rootobject;
@@ -66,7 +67,7 @@ bool checkFrameAccess(Loc loc, Scope* sc, AggregateDeclaration ad, size_t iStart
     }
 
     bool result = false;
-    for (size_t i = iStart; i < ad.fields.dim; i++)
+    for (size_t i = iStart; i < ad.fields.length; i++)
     {
         VarDeclaration vd = ad.fields[i];
         Type tb = vd.type.baseElemOf();
@@ -81,6 +82,9 @@ bool checkFrameAccess(Loc loc, Scope* sc, AggregateDeclaration ad, size_t iStart
 /***********************************************
  * Mark variable v as modified if it is inside a constructor that var
  * is a field in.
+ * Also used to allow immutable globals to be initialized inside a static constructor.
+ * Returns:
+ *    true if it's an initialization of v
  */
 bool modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1)
 {
@@ -93,7 +97,7 @@ bool modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1)
             fd = s.isFuncDeclaration();
         if (fd &&
             ((fd.isCtorDeclaration() && var.isField()) ||
-             (fd.isStaticCtorDeclaration() && !var.isField())) &&
+             ((fd.isStaticCtorDeclaration() || fd.isCrtCtor) && !var.isField())) &&
             fd.toParentDecl() == var.toParent2() &&
             (!e1 || e1.op == EXP.this_))
         {
@@ -297,7 +301,7 @@ extern (C++) abstract class Declaration : Dsymbol
                 {
                     auto sd = p.isStructDeclaration();
                     assert(sd);
-                    for (size_t i = 0; i < sd.fields.dim; i++)
+                    for (size_t i = 0; i < sd.fields.length; i++)
                     {
                         auto structField = sd.fields[i];
                         if (structField.overlapped)
@@ -548,6 +552,11 @@ extern (C++) abstract class Declaration : Dsymbol
         return (storage_class & STC.future) != 0;
     }
 
+    final extern(D) bool isSystem() const pure nothrow @nogc @safe
+    {
+        return (storage_class & STC.system) != 0;
+    }
+
     override final Visibility visible() pure nothrow @nogc @safe
     {
         return visibility;
@@ -601,7 +610,7 @@ extern (C++) final class TupleDeclaration : Declaration
         {
             /* It's only a type tuple if all the Object's are types
              */
-            for (size_t i = 0; i < objects.dim; i++)
+            for (size_t i = 0; i < objects.length; i++)
             {
                 RootObject o = (*objects)[i];
                 if (o.dyncast() != DYNCAST.type)
@@ -614,10 +623,10 @@ extern (C++) final class TupleDeclaration : Declaration
             /* We know it's a type tuple, so build the TypeTuple
              */
             Types* types = cast(Types*)objects;
-            auto args = new Parameters(objects.dim);
+            auto args = new Parameters(objects.length);
             OutBuffer buf;
             int hasdeco = 1;
-            for (size_t i = 0; i < types.dim; i++)
+            for (size_t i = 0; i < types.length; i++)
             {
                 Type t = (*types)[i];
                 //printf("type = %s\n", t.toChars());
@@ -648,7 +657,7 @@ extern (C++) final class TupleDeclaration : Declaration
     override Dsymbol toAlias2()
     {
         //printf("TupleDeclaration::toAlias2() '%s' objects = %s\n", toChars(), objects.toChars());
-        for (size_t i = 0; i < objects.dim; i++)
+        for (size_t i = 0; i < objects.length; i++)
         {
             RootObject o = (*objects)[i];
             if (Dsymbol s = isDsymbol(o))
@@ -1214,7 +1223,7 @@ extern (C++) class VarDeclaration : Declaration
             fieldState.offset = ad.structsize; // https://issues.dlang.org/show_bug.cgi?id=13613
             return;
         }
-        for (size_t i = 0; i < ad.fields.dim; i++)
+        for (size_t i = 0; i < ad.fields.length; i++)
         {
             if (ad.fields[i] == this)
             {

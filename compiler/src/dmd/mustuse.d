@@ -15,6 +15,7 @@ import dmd.dsymbol;
 import dmd.expression;
 import dmd.globals;
 import dmd.identifier;
+import dmd.location;
 
 // Used in isIncrementOrDecrement
 private static const StringExp plusPlus, minusMinus;
@@ -147,7 +148,7 @@ private bool isAssignmentOpId(Identifier id)
 private bool isIncrementOrDecrement(Expression e)
 {
     import dmd.dtemplate : isExpression;
-    import dmd.globals : Loc;
+    import dmd.location;
     import dmd.id : Id;
     import dmd.tokens : EXP;
 

@@ -17,6 +17,7 @@ import core.checkedint;
 
 import dmd.globals;
 import dmd.errors;
+import dmd.location;
 
 enum LOG = false;
 

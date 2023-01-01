@@ -12,8 +12,9 @@ module dmd.frontend;
 
 import dmd.astcodegen : ASTCodegen;
 import dmd.dmodule : Module;
-import dmd.globals : CHECKENABLE, Loc, DiagnosticReporting;
+import dmd.globals : CHECKENABLE, DiagnosticReporting;
 import dmd.errors;
+import dmd.location;
 
 import std.range.primitives : isInputRange, ElementType;
 import std.traits : isNarrowString;
@@ -388,7 +389,8 @@ Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(AST = ASTCodeg
 {
     import dmd.root.file : File, Buffer;
 
-    import dmd.globals : Loc, global;
+    import dmd.globals : global;
+    import dmd.location;
     import dmd.parse : Parser;
     import dmd.identifier : Identifier;
     import dmd.tokens : TOK;

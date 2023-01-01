@@ -87,6 +87,13 @@ struct Ungag
     ~Ungag() { global.gag = oldgag; }
 };
 
+enum class ThreeState : uint8_t
+{
+    none,         // value not yet computed
+    no,           // value is false
+    yes,          // value is true
+};
+
 void dsymbolSemantic(Dsymbol *dsym, Scope *sc);
 void semantic2(Dsymbol *dsym, Scope *sc);
 void semantic3(Dsymbol *dsym, Scope* sc);
@@ -167,25 +174,31 @@ struct FieldState
     bool inFlight;
 };
 
+struct DsymbolAttributes;
+
 class Dsymbol : public ASTNode
 {
 public:
     Identifier *ident;
     Dsymbol *parent;
-    /// C++ namespace this symbol belongs to
-    CPPNamespaceDeclaration *namespace_;
     Symbol *csym;               // symbol for code generator
     Loc loc;                    // where defined
     Scope *_scope;               // !=NULL means context to use for semantic()
     const utf8_t *prettystring;
+private:
+    DsymbolAttributes* atts;
+public:
     bool errors;                // this symbol failed to pass semantic()
     PASS semanticRun;
     unsigned short localNum;        // perturb mangled name to avoid collisions with those in FuncDeclaration.localsymtab
-    DeprecatedDeclaration *depdecl; // customized deprecation message
-    UserAttributeDeclaration *userAttribDecl;   // user defined attributes
-
     static Dsymbol *create(Identifier *);
     const char *toChars() const override;
+    DeprecatedDeclaration* depdecl();
+    CPPNamespaceDeclaration* cppnamespace();
+    UserAttributeDeclaration* userAttribDecl();
+    DeprecatedDeclaration* depdecl(DeprecatedDeclaration* dd);
+    CPPNamespaceDeclaration* cppnamespace(CPPNamespaceDeclaration* ns);
+    UserAttributeDeclaration* userAttribDecl(UserAttributeDeclaration* uad);
     virtual const char *toPrettyCharsHelper(); // helper to print fully qualified (template) arguments
     Loc getLoc();
     const char *locToChars();

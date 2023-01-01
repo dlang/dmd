@@ -4,7 +4,8 @@ module lexer.diagnostic_reporter;
 
 import core.stdc.stdarg;
 
-import dmd.globals : Loc, global, DiagnosticReporting;
+import dmd.globals : global, DiagnosticReporting;
+import dmd.location;
 
 import support : afterEach, NoopDiagnosticReporter;
 

@@ -5,14 +5,14 @@ Disassembly of section .text._D9cdvecfill4testFhZNhG16h:
 0000000000000000 <_D9cdvecfill4testFhZNhG16h>:
    0:	c5 f9 6e c7          	vmovd  xmm0,edi
    4:	c4 e2 79 78 c0       	vpbroadcastb xmm0,xmm0
-   9:	c3                   	ret    
+   9:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill4testFPhZNhG16h:
 
 0000000000000000 <_D9cdvecfill4testFPhZNhG16h>:
    0:	c4 e2 79 78 07       	vpbroadcastb xmm0,BYTE PTR [rdi]
-   5:	c3                   	ret    
+   5:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill4testFgZNhG16g:
@@ -20,14 +20,14 @@ Disassembly of section .text._D9cdvecfill4testFgZNhG16g:
 0000000000000000 <_D9cdvecfill4testFgZNhG16g>:
    0:	c5 f9 6e c7          	vmovd  xmm0,edi
    4:	c4 e2 79 78 c0       	vpbroadcastb xmm0,xmm0
-   9:	c3                   	ret    
+   9:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill4testFPgZNhG16g:
 
 0000000000000000 <_D9cdvecfill4testFPgZNhG16g>:
    0:	c4 e2 79 78 07       	vpbroadcastb xmm0,BYTE PTR [rdi]
-   5:	c3                   	ret    
+   5:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill4testFtZNhG8t:
@@ -35,14 +35,14 @@ Disassembly of section .text._D9cdvecfill4testFtZNhG8t:
 0000000000000000 <_D9cdvecfill4testFtZNhG8t>:
    0:	c5 f9 6e c7          	vmovd  xmm0,edi
    4:	c4 e2 79 79 c0       	vpbroadcastw xmm0,xmm0
-   9:	c3                   	ret    
+   9:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill4testFPtZNhG8t:
 
 0000000000000000 <_D9cdvecfill4testFPtZNhG8t>:
    0:	c4 e2 79 79 07       	vpbroadcastw xmm0,WORD PTR [rdi]
-   5:	c3                   	ret    
+   5:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill4testFsZNhG8s:
@@ -50,14 +50,14 @@ Disassembly of section .text._D9cdvecfill4testFsZNhG8s:
 0000000000000000 <_D9cdvecfill4testFsZNhG8s>:
    0:	c5 f9 6e c7          	vmovd  xmm0,edi
    4:	c4 e2 79 79 c0       	vpbroadcastw xmm0,xmm0
-   9:	c3                   	ret    
+   9:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill4testFPsZNhG8s:
 
 0000000000000000 <_D9cdvecfill4testFPsZNhG8s>:
    0:	c4 e2 79 79 07       	vpbroadcastw xmm0,WORD PTR [rdi]
-   5:	c3                   	ret    
+   5:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill4testFkZNhG4k:
@@ -65,14 +65,14 @@ Disassembly of section .text._D9cdvecfill4testFkZNhG4k:
 0000000000000000 <_D9cdvecfill4testFkZNhG4k>:
    0:	c5 f9 6e c7          	vmovd  xmm0,edi
    4:	c4 e2 79 58 c0       	vpbroadcastd xmm0,xmm0
-   9:	c3                   	ret    
+   9:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill4testFPkZNhG4k:
 
 0000000000000000 <_D9cdvecfill4testFPkZNhG4k>:
    0:	c4 e2 79 58 07       	vpbroadcastd xmm0,DWORD PTR [rdi]
-   5:	c3                   	ret    
+   5:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill4testFiZNhG4i:
@@ -80,14 +80,14 @@ Disassembly of section .text._D9cdvecfill4testFiZNhG4i:
 0000000000000000 <_D9cdvecfill4testFiZNhG4i>:
    0:	c5 f9 6e c7          	vmovd  xmm0,edi
    4:	c4 e2 79 58 c0       	vpbroadcastd xmm0,xmm0
-   9:	c3                   	ret    
+   9:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill4testFPiZNhG4i:
 
 0000000000000000 <_D9cdvecfill4testFPiZNhG4i>:
    0:	c4 e2 79 58 07       	vpbroadcastd xmm0,DWORD PTR [rdi]
-   5:	c3                   	ret    
+   5:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill4testFmZNhG2m:
@@ -95,14 +95,14 @@ Disassembly of section .text._D9cdvecfill4testFmZNhG2m:
 0000000000000000 <_D9cdvecfill4testFmZNhG2m>:
    0:	c4 e1 f9 6e c7       	vmovq  xmm0,rdi
    5:	c4 e2 79 59 c0       	vpbroadcastq xmm0,xmm0
-   a:	c3                   	ret    
+   a:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill4testFPmZNhG2m:
 
 0000000000000000 <_D9cdvecfill4testFPmZNhG2m>:
    0:	c4 e2 79 59 07       	vpbroadcastq xmm0,QWORD PTR [rdi]
-   5:	c3                   	ret    
+   5:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill4testFlZNhG2l:
@@ -110,14 +110,14 @@ Disassembly of section .text._D9cdvecfill4testFlZNhG2l:
 0000000000000000 <_D9cdvecfill4testFlZNhG2l>:
    0:	c4 e1 f9 6e c7       	vmovq  xmm0,rdi
    5:	c4 e2 79 59 c0       	vpbroadcastq xmm0,xmm0
-   a:	c3                   	ret    
+   a:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill4testFPlZNhG2l:
 
 0000000000000000 <_D9cdvecfill4testFPlZNhG2l>:
    0:	c4 e2 79 59 07       	vpbroadcastq xmm0,QWORD PTR [rdi]
-   5:	c3                   	ret    
+   5:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill4testFfZNhG4f:
@@ -128,14 +128,14 @@ Disassembly of section .text._D9cdvecfill4testFfZNhG4f:
    6:	c5 fa 10 04 24       	vmovss xmm0,DWORD PTR [rsp]
    b:	c4 e2 79 18 c0       	vbroadcastss xmm0,xmm0
   10:	59                   	pop    rcx
-  11:	c3                   	ret    
+  11:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill4testFPfZNhG4f:
 
 0000000000000000 <_D9cdvecfill4testFPfZNhG4f>:
    0:	c4 e2 79 18 07       	vbroadcastss xmm0,DWORD PTR [rdi]
-   5:	c3                   	ret    
+   5:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill4testFdZNhG2d:
@@ -146,7 +146,7 @@ Disassembly of section .text._D9cdvecfill4testFdZNhG2d:
    6:	c5 fb 10 04 24       	vmovsd xmm0,QWORD PTR [rsp]
    b:	c5 f9 14 c0          	vunpcklpd xmm0,xmm0,xmm0
    f:	59                   	pop    rcx
-  10:	c3                   	ret    
+  10:	c3                   	ret
   11:	00 00                	add    BYTE PTR [rax],al
 	...
 
@@ -155,7 +155,7 @@ Disassembly of section .text._D9cdvecfill4testFPdZNhG2d:
 0000000000000000 <_D9cdvecfill4testFPdZNhG2d>:
    0:	c5 fb 10 07          	vmovsd xmm0,QWORD PTR [rdi]
    4:	c5 f9 14 c0          	vunpcklpd xmm0,xmm0,xmm0
-   8:	c3                   	ret    
+   8:	c3                   	ret
    9:	00 00                	add    BYTE PTR [rax],al
 	...
 
@@ -164,14 +164,14 @@ Disassembly of section .text._D9cdvecfill5test2FhZNhG32h:
 0000000000000000 <_D9cdvecfill5test2FhZNhG32h>:
    0:	c5 f9 6e c7          	vmovd  xmm0,edi
    4:	c4 e2 7d 78 c0       	vpbroadcastb ymm0,xmm0
-   9:	c3                   	ret    
+   9:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill5test2FPhZNhG32h:
 
 0000000000000000 <_D9cdvecfill5test2FPhZNhG32h>:
    0:	c4 e2 7d 78 07       	vpbroadcastb ymm0,BYTE PTR [rdi]
-   5:	c3                   	ret    
+   5:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill5test2FgZNhG32g:
@@ -179,14 +179,14 @@ Disassembly of section .text._D9cdvecfill5test2FgZNhG32g:
 0000000000000000 <_D9cdvecfill5test2FgZNhG32g>:
    0:	c5 f9 6e c7          	vmovd  xmm0,edi
    4:	c4 e2 7d 78 c0       	vpbroadcastb ymm0,xmm0
-   9:	c3                   	ret    
+   9:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill5test2FPgZNhG32g:
 
 0000000000000000 <_D9cdvecfill5test2FPgZNhG32g>:
    0:	c4 e2 7d 78 07       	vpbroadcastb ymm0,BYTE PTR [rdi]
-   5:	c3                   	ret    
+   5:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill5test2FtZNhG16t:
@@ -194,14 +194,14 @@ Disassembly of section .text._D9cdvecfill5test2FtZNhG16t:
 0000000000000000 <_D9cdvecfill5test2FtZNhG16t>:
    0:	c5 f9 6e c7          	vmovd  xmm0,edi
    4:	c4 e2 7d 79 c0       	vpbroadcastw ymm0,xmm0
-   9:	c3                   	ret    
+   9:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill5test2FPtZNhG16t:
 
 0000000000000000 <_D9cdvecfill5test2FPtZNhG16t>:
    0:	c4 e2 7d 79 07       	vpbroadcastw ymm0,WORD PTR [rdi]
-   5:	c3                   	ret    
+   5:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill5test2FsZNhG16s:
@@ -209,14 +209,14 @@ Disassembly of section .text._D9cdvecfill5test2FsZNhG16s:
 0000000000000000 <_D9cdvecfill5test2FsZNhG16s>:
    0:	c5 f9 6e c7          	vmovd  xmm0,edi
    4:	c4 e2 7d 79 c0       	vpbroadcastw ymm0,xmm0
-   9:	c3                   	ret    
+   9:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill5test2FPsZNhG16s:
 
 0000000000000000 <_D9cdvecfill5test2FPsZNhG16s>:
    0:	c4 e2 7d 79 07       	vpbroadcastw ymm0,WORD PTR [rdi]
-   5:	c3                   	ret    
+   5:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill5test2FkZNhG8k:
@@ -224,14 +224,14 @@ Disassembly of section .text._D9cdvecfill5test2FkZNhG8k:
 0000000000000000 <_D9cdvecfill5test2FkZNhG8k>:
    0:	c5 f9 6e c7          	vmovd  xmm0,edi
    4:	c4 e2 7d 58 c0       	vpbroadcastd ymm0,xmm0
-   9:	c3                   	ret    
+   9:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill5test2FPkZNhG8k:
 
 0000000000000000 <_D9cdvecfill5test2FPkZNhG8k>:
    0:	c4 e2 7d 58 07       	vpbroadcastd ymm0,DWORD PTR [rdi]
-   5:	c3                   	ret    
+   5:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill5test2FiZNhG8i:
@@ -239,14 +239,14 @@ Disassembly of section .text._D9cdvecfill5test2FiZNhG8i:
 0000000000000000 <_D9cdvecfill5test2FiZNhG8i>:
    0:	c5 f9 6e c7          	vmovd  xmm0,edi
    4:	c4 e2 7d 58 c0       	vpbroadcastd ymm0,xmm0
-   9:	c3                   	ret    
+   9:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill5test2FPiZNhG8i:
 
 0000000000000000 <_D9cdvecfill5test2FPiZNhG8i>:
    0:	c4 e2 7d 58 07       	vpbroadcastd ymm0,DWORD PTR [rdi]
-   5:	c3                   	ret    
+   5:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill5test2FmZNhG4m:
@@ -254,14 +254,14 @@ Disassembly of section .text._D9cdvecfill5test2FmZNhG4m:
 0000000000000000 <_D9cdvecfill5test2FmZNhG4m>:
    0:	c4 e1 f9 6e c7       	vmovq  xmm0,rdi
    5:	c4 e2 7d 59 c0       	vpbroadcastq ymm0,xmm0
-   a:	c3                   	ret    
+   a:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill5test2FPmZNhG4m:
 
 0000000000000000 <_D9cdvecfill5test2FPmZNhG4m>:
    0:	c4 e2 7d 59 07       	vpbroadcastq ymm0,QWORD PTR [rdi]
-   5:	c3                   	ret    
+   5:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill5test2FlZNhG4l:
@@ -269,14 +269,14 @@ Disassembly of section .text._D9cdvecfill5test2FlZNhG4l:
 0000000000000000 <_D9cdvecfill5test2FlZNhG4l>:
    0:	c4 e1 f9 6e c7       	vmovq  xmm0,rdi
    5:	c4 e2 7d 59 c0       	vpbroadcastq ymm0,xmm0
-   a:	c3                   	ret    
+   a:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill5test2FPlZNhG4l:
 
 0000000000000000 <_D9cdvecfill5test2FPlZNhG4l>:
    0:	c4 e2 7d 59 07       	vpbroadcastq ymm0,QWORD PTR [rdi]
-   5:	c3                   	ret    
+   5:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill5test2FfZNhG8f:
@@ -287,14 +287,14 @@ Disassembly of section .text._D9cdvecfill5test2FfZNhG8f:
    6:	c5 fa 10 04 24       	vmovss xmm0,DWORD PTR [rsp]
    b:	c4 e2 7d 18 c0       	vbroadcastss ymm0,xmm0
   10:	59                   	pop    rcx
-  11:	c3                   	ret    
+  11:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill5test2FPfZNhG8f:
 
 0000000000000000 <_D9cdvecfill5test2FPfZNhG8f>:
    0:	c4 e2 7d 18 07       	vbroadcastss ymm0,DWORD PTR [rdi]
-   5:	c3                   	ret    
+   5:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill5test2FdZNhG4d:
@@ -305,12 +305,12 @@ Disassembly of section .text._D9cdvecfill5test2FdZNhG4d:
    6:	c5 fb 10 04 24       	vmovsd xmm0,QWORD PTR [rsp]
    b:	c4 e2 7d 19 c0       	vbroadcastsd ymm0,xmm0
   10:	59                   	pop    rcx
-  11:	c3                   	ret    
+  11:	c3                   	ret
 	...
 
 Disassembly of section .text._D9cdvecfill5test2FPdZNhG4d:
 
 0000000000000000 <_D9cdvecfill5test2FPdZNhG4d>:
    0:	c4 e2 7d 19 07       	vbroadcastsd ymm0,QWORD PTR [rdi]
-   5:	c3                   	ret    
+   5:	c3                   	ret
 	...
