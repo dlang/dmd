@@ -29,6 +29,14 @@ enum ExpVis : ubyte
     public_,            /// export all symbols
 }
 
+/// symbol dllimport
+enum SymImport : ubyte
+{
+    none,               /// no symbols
+    defaultLibsOnly,    /// only druntime/phobos symbols
+    all,                /// all non-root symbols
+}
+
 struct DMDparams
 {
     bool alwaysframe;       // always emit standard stack frame
@@ -47,6 +55,7 @@ struct DMDparams
     PIC pic = PIC.fixed;    // generate fixed, pic or pie code
     bool stackstomp;        // add stack stomping code
     ExpVis exportVisibility = ExpVis.hidden; // which symbols to "dllexport"
+    SymImport symImport;    // which symbols to "dllimport"
 
     bool symdebug;          // insert debug symbolic information
     bool symdebugref;       // insert debug information for all referenced types, too

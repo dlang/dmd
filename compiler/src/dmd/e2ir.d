@@ -31,6 +31,7 @@ import dmd.ctfeexpr;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.denum;
+import dmd.dmdparams;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
@@ -492,6 +493,45 @@ void clearStringTab()
 private __gshared StringTable!(Symbol*) *stringTab;
 
 /*********************************************
+* Figure out whether a data symbol should be dllimported
+* Params:
+*      var = declaration of the symbol
+* Returns:
+*      true if symbol should be imported from a DLL
+*/
+bool isDllImported(Dsymbol var)
+{
+    if (var.isImportedSymbol())
+        return true;
+    if (driverParams.symImport == SymImport.none)
+        return false;
+    if (auto vd = var.isDeclaration())
+        if (!vd.isStatic() || vd.isThreadlocal())
+            return false;
+    if (driverParams.symImport != SymImport.all)
+        return false;  // todo: check std/core
+    auto m = var.getModule();
+    if (m)
+        return !m.isRoot();
+    if (var.inNonRoot())
+        return true; // not instantiated, and defined in non-root
+    if (var.isInstantiated()) // && !defineOnDeclare(sym, false))
+        return true; // instantiated but potentially culled (needsCodegen())
+    if (auto vd = var.isVarDeclaration())
+        if (vd.storage_class & STC.extern_)
+            return true; // externally defined global variable
+    return false;
+}
+
+Symbol* toExtSymbol(Dsymbol s)
+{
+    if (isDllImported(s))
+        return toImport(s);
+    else
+        return toSymbol(s);
+}
+
+/*********************************************
  * Convert Expression to backend elem.
  * Params:
  *      e = expression tree
@@ -683,7 +723,7 @@ elem* toElem(Expression e, ref IRState irs)
             symbol_add(s);
         }
 
-        if (se.var.isImportedSymbol())
+        if (se.op == EXP.variable && isDllImported(se.var))
         {
             assert(se.op == EXP.variable);
             if (target.os & Target.OS.Posix)
@@ -4587,7 +4627,8 @@ elem *toElemCast(CastExp ce, elem *e, bool isLvalue, ref IRState irs)
             const rtl = cdfrom.isInterfaceDeclaration()
                         ? RTLSYM.INTERFACE_CAST
                         : RTLSYM.DYNAMIC_CAST;
-            elem *ep = el_param(el_ptr(toSymbol(cdto)), e);
+            Symbol* csym = toExtSymbol(cdto);
+            elem *ep = el_param(el_ptr(csym), e);
             e = el_bin(OPcall, TYnptr, el_var(getRtlsym(rtl)), ep);
         }
         return Lret(ce, e);
@@ -6067,7 +6108,7 @@ elem *getTypeInfo(Expression e, Type t, ref IRState irs)
 {
     assert(t.ty != Terror);
     TypeInfo_toObjFile(e, e.loc, t);
-    elem* result = el_ptr(toSymbol(t.vtinfo));
+    elem* result = el_ptr(toExtSymbol(t.vtinfo));
     return result;
 }
 

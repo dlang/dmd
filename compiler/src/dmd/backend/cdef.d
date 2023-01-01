@@ -485,6 +485,7 @@ enum
     CFG2stomp       = 0x8000,  // enable stack stomping code
     CFG2gms         = 0x10000, // optimize debug symbols for microsoft debuggers
     CFG2genmain     = 0x20000, // main entrypoint is generated
+    CFG2noreadonly  = 0x40000, // do not generate read-only symbols, dllimport might have to patch them
 }
 
 alias config_flags3_t = uint;

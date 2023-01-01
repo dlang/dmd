@@ -309,6 +309,13 @@ elem * el_ptr(Symbol *s)
         e = el_una(OPaddr, typtr, e);
         e = doptelem(e, GOALvalue | GOALflags);
     }
+    if (config.exe & EX_windos)
+    {
+        if (s.Sflags & SFLimported)
+        {
+            e = el_una(OPind, s.Stype.Tty, e);
+        }
+    }
     return e;
 }
 
