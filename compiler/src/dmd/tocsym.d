@@ -534,6 +534,10 @@ Symbol *toSymbol(Dsymbol s)
     scope ToSymbol v = new ToSymbol();
     s.accept(v);
     s.csym = v.result;
+
+    if (isDllImported(s))
+        s.csym.Sisym = createImport(s.csym, s.loc);
+
     return v.result;
 }
 
@@ -560,7 +564,12 @@ private Symbol *createImport(Symbol *sym, Loc loc)
         error(loc, "could not generate import symbol for this platform");
         fatal();
     }
-    else if (sym.Stype.Tmangle == mTYman_std && tyfunc(sym.Stype.Tty))
+    if (target.os & Target.OS.Windows && sym.Stype.Tty & mTYthread)
+    {
+        error(loc, "cannot generate import symbol for thread local symbol `%s`", n);
+        fatal();
+    }
+    if (sym.Stype.Tmangle == mTYman_std && tyfunc(sym.Stype.Tty))
     {
         if (target.os == Target.OS.Windows && target.isX86_64)
             idlen = snprintf(id, allocLen, "__imp_%s",n);
@@ -580,6 +589,8 @@ private Symbol *createImport(Symbol *sym, Loc loc)
     s.Stype = t;
     s.Sclass = SC.extern_;
     s.Sfl = FLextern;
+    s.Sflags |= SFLimported;
+
     return s;
 }
 
@@ -587,15 +598,11 @@ private Symbol *createImport(Symbol *sym, Loc loc)
  * Generate import symbol from symbol.
  */
 
-Symbol *toImport(Declaration ds)
+Symbol *toImport(Dsymbol ds)
 {
-    if (!ds.isym)
-    {
-        if (!ds.csym)
-            ds.csym = toSymbol(ds);
-        ds.isym = createImport(ds.csym, ds.loc);
-    }
-    return ds.isym;
+    if (!ds.csym)
+        toSymbol(ds);
+    return ds.csym.Sisym;
 }
 
 /*************************************

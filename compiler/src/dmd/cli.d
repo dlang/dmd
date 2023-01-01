@@ -336,6 +336,15 @@ dmd -cov -unittest myprog.d
             With $(I filename), write module dependencies as text to $(I filename)
             (only imports).`,
         ),
+        Option("dllimport=<value>",
+            "Windows only: select symbols to dllimport (none/defaultLibsOnly/all)",
+            `Which extern(D) global variables to dllimport implicitly if not defined in a root module
+            $(UL
+                $(LI $(I none): None (default with -link-defaultlib-shared=false)
+                $(LI $(I defaultLibsOnly): Only druntime/Phobos symbols (default with -link-defaultlib-shared and -fvisibility=hidden)
+                $(LI $(I all): All (default with -link-defaultlib-shared and -fvisibility=public)
+            )`,
+        ),
         Option("extern-std=<standard>",
             "set C++ name mangling compatibility with <standard>",
             "Standards supported are:

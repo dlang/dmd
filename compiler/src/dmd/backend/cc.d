@@ -1060,6 +1060,7 @@ enum
     SFLpmask        = 0x60,        // mask for the visibility bits
 
     SFLvtbl         = 0x2000,      // VEC_VTBL_LIST: Symbol is a vtable or vbtable
+    SFLimported     = 0x200000,    // symbol is in another DSO (D only, SFLdyninit unused)
 
     // OPTIMIZER and CODGEN
     GTregcand       = 0x100,       // if Symbol is a register candidate
@@ -1100,6 +1101,7 @@ struct Symbol
 
     Symbol* Sl, Sr;             // left, right child
     Symbol* Snext;              // next in threaded list
+    Symbol* Sisym;              // import version of this symbol
     dt_t* Sdt;                  // variables: initializer
     int Salignment;             // variables: alignment, 0 or -1 means default alignment
 

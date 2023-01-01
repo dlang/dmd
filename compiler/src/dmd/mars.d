@@ -805,7 +805,26 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                     driverParams.exportVisibility = ExpVis.public_;
                     break;
                 default:
-                    error("unknown visibility '%.*s', must be 'dwfault', 'hidden' or 'public'", cast(int) vis.length, vis.ptr);
+                    error("unknown visibility '%.*s', must be 'default', 'hidden' or 'public'", cast(int) vis.length, vis.ptr);
+            }
+        }
+        else if (startsWith(p + 1, "dllimport="))
+        {
+            const(char)[] imp = arg["-dllimport=".length .. $];
+
+            switch (imp)
+            {
+                case "none":
+                    driverParams.symImport = SymImport.none;
+                    break;
+                case "defaultLibsOnly":
+                    driverParams.symImport = SymImport.defaultLibsOnly;
+                    break;
+                case "all":
+                    driverParams.symImport = SymImport.all;
+                    break;
+                default:
+                    error("unknown dllimport '%.*s', must be 'none', 'defaultLibsOnly' or 'all'", cast(int) imp.length, imp.ptr);
             }
         }
         else if (arg == "-fIBT")
