@@ -1595,6 +1595,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (pd.ident == Id.printf || pd.ident == Id.scanf)
                 {
                     s.setPragmaPrintf(pd.ident == Id.printf);
+                    s.dsymbolSemantic(sc2);
                     continue;
                 }
 
@@ -5211,7 +5212,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                             cldec.baseClass.toChars(),
                             cldec.baseClass.toParentLocal().toChars());
                     }
-                    cldec.enclosing = null;
                 }
                 if (cldec.vthis2)
                 {

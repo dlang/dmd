@@ -587,7 +587,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                     Expression ex = new AddrExp(ae1.loc, ae1);  // &a[i]
                     ex.type = ae1.type.pointerTo();
 
-                    Expression add = new AddExp(ae.loc, ex, new IntegerExp(ae.loc, offset, e.type));
+                    Expression add = new AddExp(ae.loc, ex, new IntegerExp(ae.e2.loc, offset, ae.e2.type));
                     add.type = e.type;
                     ret = Expression_optimize(add, result, keepLvalue);
                     return;
@@ -863,7 +863,8 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                 return returnE_e1();    // can always convert a class to Object
             // Need to determine correct offset before optimizing away the cast.
             // https://issues.dlang.org/show_bug.cgi?id=16980
-            cdfrom.size(e.loc);
+            if (cdfrom.size(e.loc) == SIZE_INVALID)
+                return error();
             assert(cdfrom.sizeok == Sizeok.done);
             assert(cdto.sizeok == Sizeok.done || !cdto.isBaseOf(cdfrom, null));
             int offset;
