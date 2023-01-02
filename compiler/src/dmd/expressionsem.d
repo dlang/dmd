@@ -4632,7 +4632,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         (size_t i, Type t) => (*exp.arguments)[i],
                         i => (*exp.arguments)[i].loc
                     );
+                    if (!resolvedArgs)
+                    {
+                        result = ErrorExp.get();
+                        return;
+                    }
                 }
+
                 Expression e = new StructLiteralExp(exp.loc, sd, resolvedArgs, exp.e1.type);
                 e = e.expressionSemantic(sc);
                 result = e;
