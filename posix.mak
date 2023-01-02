@@ -8,29 +8,11 @@ all:
 	$(QUIET)$(MAKE) -C compiler/src -f posix.mak all
 	$(QUIET)$(MAKE) -C druntime -f posix.mak target
 
-ifneq (,$(findstring Darwin_64_32, $(PWD)))
 auto-tester-build:
-	echo "Darwin_64_32_disabled"
-else
-auto-tester-build:
-	$(QUIET)$(MAKE) -C compiler/src -f posix.mak auto-tester-build ENABLE_RELEASE=1 ENABLE_ASSERTS=1
-	$(QUIET)$(MAKE) -C druntime -f posix.mak auto-tester-build ENABLE_RELEASE=1 ENABLE_ASSERTS=1
-endif
+	echo "Auto-Tester has been disabled"
 
-ifneq (,$(findstring Darwin_64_32, $(PWD)))
 auto-tester-test:
-	echo "Darwin_64_32_disabled"
-else
-ifneq (,$(findstring windows, $(PWD)))
-auto-tester-test: test
-else # POSIX
-# Like test, but without runnable_cxx
-auto-tester-test:
-	$(QUIET)$(MAKE) -C compiler/src -f posix.mak auto-tester-test
-	$(QUIET)$(MAKE) -C compiler/test -f Makefile auto-tester-test
-	$(QUIET)$(MAKE) -C druntime -f posix.mak auto-tester-test
-endif
-endif
+	echo "Auto-Tester has been disabled"
 
 buildkite-test: test
 
