@@ -4624,7 +4624,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 /* It's a struct literal
                  */
             Lx:
-                Expression e = new StructLiteralExp(exp.loc, sd, exp.arguments, exp.e1.type);
+                Expressions* resolvedArgs = exp.arguments;
+                if (exp.names)
+                {
+                    resolvedArgs = resolveStructLiteralNamedArgs(sd, exp.e1.type, sc, exp.loc,
+                        (*exp.names)[],
+                        (size_t i, Type t) => (*exp.arguments)[i],
+                        i => (*exp.arguments)[i].loc
+                    );
+                }
+                Expression e = new StructLiteralExp(exp.loc, sd, resolvedArgs, exp.e1.type);
                 e = e.expressionSemantic(sc);
                 result = e;
                 return;
