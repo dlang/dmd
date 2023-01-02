@@ -135,8 +135,39 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
             sd.size(i.loc);
             if (sd.sizeok != Sizeok.done)
                 return err();
-            const nfields = sd.nonHiddenFields();
+
+        Expression getExp(size_t j, Type fieldType)
+        {
+            // Convert initializer to Expression `ex`
+            auto tm = fieldType.addMod(t.mod);
+            auto iz = i.value[j].initializerSemantic(sc, tm, needInterpret);
+            auto ex = iz.initializerToExpression(null, (sc.flags & SCOPE.Cfile) != 0);
+            if (ex.op != EXP.error)
+                i.value[j] = iz;
+            return ex;
+        }
+
+        /**
+        Given the names and values of a `StructInitializer` or `CallExp`,
+        resolve it to a list of expressions to construct a `StructLiteralExp`.
+
+        Params:
+            sd = struct
+            t = type of struct (potentially including qualifiers such as `const` `immutable`)
+            sc = scope of the expression initializing the struct
+            iloc = location of expression initializing the struct
+            names = identifiers passed in argument list, `null` entries for positional arguments
+            getExp = function that, given an index into `names` and destination type, returns the initializing expression
+            getLoc = function that, given an index into `names`, returns a location for error messages
+        Returns: list of expressions ordered to the struct's fields, or `null` on error
+        */
+        static Expressions* resolveStructLiteralNamedArgs(
+            StructDeclaration sd, Type t, Scope* sc, Loc iloc, Identifier[] names,
+            scope Expression delegate(size_t i, Type fieldType) getExp, scope Loc delegate(size_t i) getLoc
+        )
+        {
             //expandTuples for non-identity arguments?
+            const nfields = sd.nonHiddenFields();
             auto elements = new Expressions(nfields);
             auto elems = (*elements)[];
             foreach (ref elem; elems)
@@ -146,24 +177,24 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
             // TODO: this part is slightly different from StructLiteralExp::semantic.
             bool errors = false;
             size_t fieldi = 0;
-            foreach (j, id; i.field[])
+            foreach (j, id; names)
             {
+                const argLoc = getLoc(j);
                 if (id)
                 {
                     /* Determine `fieldi` that `id` matches
                      */
-                    Dsymbol s = sd.search(i.loc, id);
+                    Dsymbol s = sd.search(iloc, id);
                     if (!s)
                     {
                         s = sd.search_correct(id);
-                        const initLoc = i.value[j].loc;
                         if (s)
-                            error(initLoc, "`%s` is not a member of `%s`, did you mean %s `%s`?", id.toChars(), sd.toChars(), s.kind(), s.toChars());
+                            error(argLoc, "`%s` is not a member of `%s`, did you mean %s `%s`?", id.toChars(), sd.toChars(), s.kind(), s.toChars());
                         else
-                            error(initLoc, "`%s` is not a member of `%s`", id.toChars(), sd.toChars());
-                        return err();
+                            error(argLoc, "`%s` is not a member of `%s`", id.toChars(), sd.toChars());
+                        return null;
                     }
-                    s.checkDeprecated(i.loc, sc);
+                    s.checkDeprecated(iloc, sc);
                     s = s.toAlias();
 
                     // Find out which field index `s` is
@@ -171,8 +202,8 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                     {
                         if (fieldi >= nfields)
                         {
-                            error(i.loc, "`%s.%s` is not a per-instance initializable field", sd.toChars(), s.toChars());
-                            return err();
+                            error(iloc, "`%s.%s` is not a per-instance initializable field", sd.toChars(), s.toChars());
+                            return null;
                         }
                         if (s == sd.fields[fieldi])
                             break;
@@ -180,14 +211,14 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                 }
                 if (j >= nfields)
                 {
-                    error(i.value[j].loc, "too many initializers for `%s`", sd.toChars());
-                    return err();
+                    error(argLoc, "too many initializers for `%s`", sd.toChars());
+                    return null;
                 }
 
                 VarDeclaration vd = sd.fields[fieldi];
                 if (elems[fieldi])
                 {
-                    error(i.value[j].loc, "duplicate initializer for field `%s`", vd.toChars());
+                    error(argLoc, "duplicate initializer for field `%s`", vd.toChars());
                     errors = true;
                     elems[fieldi] = ErrorExp.get(); // for better diagnostics on multiple errors
                     ++fieldi;
@@ -200,7 +231,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                     if ((!t.alignment.isDefault() && t.alignment.get() < target.ptrsize ||
                          (vd.offset & (target.ptrsize - 1))))
                     {
-                        if (sc.setUnsafe(false, i.value[j].loc,
+                        if (sc.setUnsafe(false, argLoc,
                             "field `%s.%s` cannot assign to misaligned pointers in `@safe` code", sd, vd))
                         {
                             errors = true;
@@ -222,11 +253,10 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                     }
                 }
 
-                // Convert initializer to Expression `ex`
                 assert(sc);
-                auto tm = vd.type.addMod(t.mod);
-                auto iz = i.value[j].initializerSemantic(sc, tm, needInterpret);
-                auto ex = iz.initializerToExpression(null, (sc.flags & SCOPE.Cfile) != 0);
+
+                auto ex = getExp(j, vd.type);
+
                 if (ex.op == EXP.error)
                 {
                     errors = true;
@@ -235,11 +265,17 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                     continue;
                 }
 
-                i.value[j] = iz;
                 elems[fieldi] = doCopyOrMove(sc, ex);
                 ++fieldi;
             }
             if (errors)
+                return null;
+
+            return elements;
+        }
+
+            auto elements = resolveStructLiteralNamedArgs(sd, t, sc, i.loc, i.field[], &getExp, (size_t j) => i.value[j].loc);
+            if (!elements)
                 return err();
 
             // Make a StructLiteralExp out of elements[]
