@@ -142,6 +142,11 @@ ifneq ($(N),)
     EXECUTE_RUNNER:=$(EXECUTE_RUNNER) --jobs=$N
 endif
 
+# Workaround https://issues.dlang.org/show_bug.cgi?id=23517
+ifeq (osx,$(OS))
+    export MACOSX_DEPLOYMENT_TARGET=11
+endif
+
 ifeq (windows,$(OS))
 all:
 	echo "Windows builds have been disabled"
