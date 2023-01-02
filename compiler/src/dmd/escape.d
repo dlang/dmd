@@ -1768,67 +1768,51 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false, bool re
         {
             DotVarExp dve = e.e1.isDotVarExp();
             FuncDeclaration fd = dve.var.isFuncDeclaration();
-            if (1)
+            if (fd && fd.isThis())
             {
-                if (fd && fd.isThis())
+                /* Calling a non-static member function dve.var, which is returning `this`, and with dve.e1 representing `this`
+                 */
+
+                /*****************************
+                 * Concoct storage class for member function's implicit `this` parameter.
+                 * Params:
+                 *      fd = member function
+                 * Returns:
+                 *      storage class for fd's `this`
+                 */
+                StorageClass getThisStorageClass(FuncDeclaration fd)
                 {
-                    /* Calling a non-static member function dve.var, which is returning `this`, and with dve.e1 representing `this`
-                     */
-
-                    /*****************************
-                     * Concoct storage class for member function's implicit `this` parameter.
-                     * Params:
-                     *      fd = member function
-                     * Returns:
-                     *      storage class for fd's `this`
-                     */
-                    StorageClass getThisStorageClass(FuncDeclaration fd)
-                    {
-                        StorageClass stc;
-                        auto tf = fd.type.toBasetype().isTypeFunction();
-                        if (tf.isreturn)
-                            stc |= STC.return_;
-                        if (tf.isreturnscope)
-                            stc |= STC.returnScope | STC.scope_;
-                        auto ad = fd.isThis();
-                        if (ad.isClassDeclaration() || tf.isScopeQual)
-                            stc |= STC.scope_;
-                        if (ad.isStructDeclaration())
-                            stc |= STC.ref_;        // `this` for a struct member function is passed by `ref`
-                        return stc;
-                    }
-
-                    const psr = buildScopeRef(getThisStorageClass(fd));
-                    if (psr == ScopeRef.ReturnScope || psr == ScopeRef.Ref_ReturnScope)
-                        escapeByValue(dve.e1, er, live, retRefTransition);
-                    else if (psr == ScopeRef.ReturnRef || psr == ScopeRef.ReturnRef_Scope)
-                    {
-                        if (tf.isref)
-                        {
-                            /* Treat calling:
-                             *   struct S { ref S foo() return; }
-                             * as:
-                             *   this;
-                             */
-                            escapeByValue(dve.e1, er, live, retRefTransition);
-                        }
-                        else
-                            escapeByRef(dve.e1, er, live, psr == ScopeRef.ReturnRef_Scope);
-                    }
+                    StorageClass stc;
+                    auto tf = fd.type.toBasetype().isTypeFunction();
+                    if (tf.isreturn)
+                        stc |= STC.return_;
+                    if (tf.isreturnscope)
+                        stc |= STC.returnScope | STC.scope_;
+                    auto ad = fd.isThis();
+                    if (ad.isClassDeclaration() || tf.isScopeQual)
+                        stc |= STC.scope_;
+                    if (ad.isStructDeclaration())
+                        stc |= STC.ref_;        // `this` for a struct member function is passed by `ref`
+                    return stc;
                 }
-            }
-            else
-            {
-                // Calling member function before dip1000
-                StorageClass stc = dve.var.storage_class & (STC.return_ | STC.scope_ | STC.ref_);
-                if (tf.isreturn)
-                    stc |= STC.return_;
 
-                const psr = buildScopeRef(stc);
+                const psr = buildScopeRef(getThisStorageClass(fd));
                 if (psr == ScopeRef.ReturnScope || psr == ScopeRef.Ref_ReturnScope)
                     escapeByValue(dve.e1, er, live, retRefTransition);
                 else if (psr == ScopeRef.ReturnRef || psr == ScopeRef.ReturnRef_Scope)
-                    escapeByRef(dve.e1, er, live, retRefTransition);
+                {
+                    if (tf.isref)
+                    {
+                        /* Treat calling:
+                         *   struct S { ref S foo() return; }
+                         * as:
+                         *   this;
+                         */
+                        escapeByValue(dve.e1, er, live, retRefTransition);
+                    }
+                    else
+                        escapeByRef(dve.e1, er, live, psr == ScopeRef.ReturnRef_Scope);
+                }
             }
 
             // If it's also a nested function that is 'return scope'
