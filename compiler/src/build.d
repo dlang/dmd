@@ -39,7 +39,6 @@ __gshared TaskPool taskPool;
 immutable rootRules = [
     &dmdDefault,
     &dmdPGO,
-    &autoTesterBuild,
     &runDmdUnittest,
     &clean,
     &checkwhitespace,
@@ -252,24 +251,6 @@ This script is by default part of the sources and thus any change to the build s
 will trigger a full rebuild.
 
 */
-
-/// Returns: The rule that runs the autotester build
-alias autoTesterBuild = makeRule!((builder, rule) {
-    builder
-    .name("auto-tester-build")
-    .description("Run the autotester build")
-    .deps([toolchainInfo, dmdDefault, checkwhitespace, validateCommonBetterC]);
-
-    version (Posix)
-        rule.deps ~= runCxxUnittest;
-
-    // unittests are currently not executed as part of `auto-tester-test` on windows
-    // because changes to `win32.mak` require additional changes on the autotester
-    // (see https://github.com/dlang/dmd/pull/7414).
-    // This requires no further actions and avoids building druntime+phobos on unittest failure
-    version (Windows)
-        rule.deps ~= runDmdUnittest;
-});
 
 /// Returns: the rule that builds the lexer object file
 alias lexer = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule rule,
