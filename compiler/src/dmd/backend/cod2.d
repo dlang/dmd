@@ -4135,6 +4135,13 @@ void cdmemset(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     elem* evalue = e2.EV.E2;
     elem* enumbytes = e2.EV.E1;
 
+    const sz = tysize(evalue.Ety);
+    if (sz > 1)
+    {
+        cdmemsetn(cdb, e, pretregs);
+        return;
+    }
+
     const grex = I64 ? (REX_W << 16) : 0;
 
     bool valueIsConst = false;
@@ -4222,7 +4229,6 @@ void cdmemset(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         genmovreg(cdb,BX,DI);                   // MOV EBX,EDI
     }
 
-
     if (enumbytes.Eoper == OPconst)
     {
         getregs(cdb,mDI);
@@ -4309,6 +4315,79 @@ void cdmemset(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     fixresult(cdb,e,mES|mBX,pretregs);
 }
 
+/***********************************************
+ * Do memset for values larger than a byte
+ */
+@trusted
+private void cdmemsetn(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+{
+    //printf("cdmemsetn(*pretregs = %s)\n", regm_str(*pretregs));
+    elem *e2 = e.EV.E2;
+    assert(e2.Eoper == OPparam);
+
+    elem* evalue = e2.EV.E2;
+    elem* enelems = e2.EV.E1;
+
+    const sz = tysize(evalue.Ety);
+    const grex = I64 ? (REX_W << 16) : 0;
+
+    // get the count of elems into CX
+    regm_t retregs2 = mCX;
+    codelem(cdb,enelems,&retregs2,false);
+
+    // Get value into AX
+    regm_t retregs3 = mAX;
+    scodelem(cdb,evalue,&retregs3,retregs2,false);
+
+    freenode(e2);
+
+    // Get s into ES:DI
+    regm_t retregs1 = mDI;
+    tym_t ty1 = e.EV.E1.Ety;
+    if (!tyreg(ty1))
+        retregs1 |= mES;
+    scodelem(cdb,e.EV.E1,&retregs1,retregs2 | retregs3,false);
+    reg_t reg = DI; //findreg(retregs1);
+
+    // Make sure ES contains proper segment value
+    cdb.append(cod2_setES(ty1));
+
+    if (*pretregs)                              // if need return value
+    {
+        getregs(cdb,mBX);
+        genmovreg(cdb,BX,reg);                  // MOV BX,DI
+    }
+
+    getregs(cdb,mDI | mCX);                     // modify DI and CX
+
+    /* Generate:
+     *  JCXZ L1
+     * L2:
+     *  MOV [reg],AX
+     *  ADD reg,sz
+     *  LOOP L2
+     * L1:
+     *  NOP
+     */
+    code* c1 = gennop(null);
+    genjmp(cdb, JCXZ, FLcode, cast(block *)c1);
+    code cs;
+    buildEA(&cs,reg,-1,1,0);
+    cs.Iop = 0x89;
+    if (!I16 && sz == 2)
+        cs.Iflags |= CFopsize;
+    if (I64 && sz == 8)
+        cs.Irex |= REX_W;
+    cdb.gen(&cs);                                       // MOV [reg],AX
+    code* c2 = cdb.last();
+    cdb.genc2(0x81, grex | modregrmx(3,0,reg), sz);     // ADD reg,sz
+    genjmp(cdb, LOOP, FLcode, cast(block *)c2);
+    cdb.append(c1);
+
+    regimmed_set(CX, 0);                  // CX is now 0
+
+    fixresult(cdb,e,mES|mBX,pretregs);
+}
 
 /**********************
  * Do structure assignments.

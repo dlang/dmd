@@ -6293,7 +6293,9 @@ Lagain:
     evalue = useOPstrpar(evalue);
 
     // Be careful about parameter side effect ordering
-    if (r == RTLSYM.MEMSET8)
+    if (r == RTLSYM.MEMSET8 ||
+        r == RTLSYM.MEMSET16 ||
+        r == RTLSYM.MEMSET32)
     {
         elem *e = el_param(edim, evalue);
         return el_bin(OPmemset,TYnptr,eptr,e);
