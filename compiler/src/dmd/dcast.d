@@ -2637,6 +2637,17 @@ Expression inferType(Expression e, Type t, int flag = 0)
 {
     Expression visitAle(ArrayLiteralExp ale)
     {
+        // treat inference exps if there are any.
+        for (size_t i = 0; i < ale.elements.length; i++)
+        {
+            Expression e = (*ale.elements)[i];
+            if (e && e.isInferenceExp())
+            {
+                e = inferType(e, t, flag);
+                (*ale.elements)[i] = e;
+            }
+        }
+
         Type tb = t.toBasetype();
         if (tb.ty == Tarray || tb.ty == Tsarray)
         {

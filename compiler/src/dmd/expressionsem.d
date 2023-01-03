@@ -8957,7 +8957,23 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
          * depends on the result of e1 in assignments.
          */
         {
-            Expression e2x = inferType(exp.e2, t1.baseElemOf());
+            Type infType = t1;
+            if (auto tsa = t1.isTypeSArray())
+            {
+                infType = tsa.next;
+            }
+            else if (auto ta = t1.isTypeDArray())
+            {
+                infType = ta.next;
+            }
+
+            if (!infType.isTypeEnum())
+            {
+                infType = t1.baseElemOf();
+            }
+
+
+            Expression e2x = inferType(exp.e2, infType);
             e2x = e2x.expressionSemantic(sc);
             if (!t1.isTypeSArray())
                 e2x = e2x.arrayFuncConv(sc);
