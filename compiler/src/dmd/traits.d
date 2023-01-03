@@ -972,10 +972,22 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
         if (e.ident == Id.hasMember)
         {
-            /* Take any errors as meaning it wasn't found
-             */
-            ex = ex.trySemantic(scx);
-            return ex ? True() : False();
+            bool ungag;
+            // do not gag the sema of the parent, as the member is not requested yet
+            auto die = ex.isDotIdExp();
+            assert(die);
+            die.e1 = expressionSemantic(die.e1, scx.push());
+            // do not gag the member sema if the parent was already being analyzed because that can mean
+            // that it's a forward ref, and that this forward ref may contain sema errors,
+            // see https://issues.dlang.org/show_bug.cgi?id=23279
+            if (auto ds = getDsymbol(die.e1))
+                ungag = ds.semanticRun == PASS.semantic;
+            else if (auto t = getType(die.e1))
+                if (auto ds = getDsymbol(t))
+                    ungag = ds.semanticRun == PASS.semantic;
+            // Take any errors as meaning it wasn't found
+            ex = ungag ? ex.expressionSemantic(scx) : ex.trySemantic(scx);
+            return ex && ex.type.ty != Terror ? True() : False();
         }
         else if (e.ident == Id.getMember)
         {
