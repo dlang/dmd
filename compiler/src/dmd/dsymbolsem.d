@@ -509,10 +509,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             if (inferred)
             {
-                dsym.error("type `%s` is inferred from initializer `%s`, and variables cannot be of type `void`", dsym.type.toChars(), dsym._init.toChars());
+                dsym.error("- type `%s` is inferred from initializer `%s`, and variables cannot be of type `void`", dsym.type.toChars(), dsym._init.toChars());
             }
             else
-                dsym.error("variables cannot be of type `void`");
+                dsym.error("- variables cannot be of type `void`");
             dsym.type = Type.terror;
             tb = dsym.type;
         }
@@ -528,7 +528,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             // or when the variable is defined externally
             if (!ts.sym.members && !(dsym.storage_class & (STC.ref_ | STC.extern_)))
             {
-                dsym.error("no definition of struct `%s`", ts.toChars());
+                dsym.error("- no definition of struct `%s`", ts.toChars());
 
                 // Explain why the definition is required when it's part of another type
                 if (!dsym.type.isTypeStruct())
@@ -742,7 +742,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
             else if (dsym.isMember())
             {
-                dsym.error("field cannot be `scope`");
+                error(dsym.loc, "field `%s` cannot be `scope`", dsym.toChars());
             }
             else if (!dsym.type.hasPointers())
             {
@@ -780,11 +780,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             InterfaceDeclaration id = parent.isInterfaceDeclaration();
             if (id)
             {
-                dsym.error("field not allowed in interface");
+                error(dsym.loc, "field `%s` not allowed in interface", dsym.toChars());
             }
             else if (aad && aad.sizeok == Sizeok.done)
             {
-                dsym.error("cannot be further field because it will change the determined %s size", aad.toChars());
+                error(dsym.loc, "cannot declare field `%s` because it will change the determined size of `%s`", dsym.toChars(), aad.toChars());
             }
 
             /* Templates cannot add fields to aggregates
@@ -804,7 +804,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 AggregateDeclaration ad2 = ti.tempdecl.isMember();
                 if (ad2 && dsym.storage_class != STC.undefined_)
                 {
-                    dsym.error("cannot use template to add field to aggregate `%s`", ad2.toChars());
+                    dsym.error("- cannot use template to add field to aggregate `%s`", ad2.toChars());
                 }
             }
         }
