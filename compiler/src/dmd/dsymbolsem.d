@@ -1534,12 +1534,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             e = se;
             if (!se.len)
             {
-                pd.error("zero-length string not allowed for mangled name");
+                pd.error("- zero-length string not allowed for mangled name");
                 return null;
             }
             if (se.sz != 1)
             {
-                pd.error("mangled name characters can only be of type `char`");
+                pd.error("- mangled name characters can only be of type `char`");
                 return null;
             }
             version (all)
@@ -1742,7 +1742,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 pd.args = new Expressions();
             if (pd.args.length == 0 || pd.args.length > 2)
             {
-                pd.error(pd.args.length == 0 ? "string expected for mangled name"
+                pd.error(pd.args.length == 0 ? "- string expected for mangled name"
                                           : "expected 1 or 2 arguments");
                 pd.args.setDim(1);
                 (*pd.args)[0] = ErrorExp.get(); // error recovery
