@@ -856,7 +856,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                 }
                 else
-                    dsym.error("default construction is disabled for type `%s`", dsym.type.toChars());
+                    dsym.error("- default construction is disabled for type `%s`", dsym.type.toChars());
             }
         }
 
@@ -911,7 +911,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (dsym._init)
         { } // remember we had an explicit initializer
         else if (dsym.storage_class & STC.manifest)
-            dsym.error("manifest constants must have initializers");
+            dsym.error("- manifest constants must have initializers");
 
         // Don't allow non-extern, non-__gshared variables to be interfaced with C++
         if (dsym._linkage == LINK.cpp && !(dsym.storage_class & (STC.ctfe | STC.extern_ | STC.gshared)) && dsym.isDataseg())
@@ -939,7 +939,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             //printf("Providing default initializer for '%s'\n", dsym.toChars());
             if (sz == SIZE_INVALID && dsym.type.ty != Terror)
-                dsym.error("size of type `%s` is invalid", dsym.type.toChars());
+                dsym.error("- size of type `%s` is invalid", dsym.type.toChars());
 
             Type tv = dsym.type;
             while (tv.ty == Tsarray)    // Don't skip Tenum
