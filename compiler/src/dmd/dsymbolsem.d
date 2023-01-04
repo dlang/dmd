@@ -974,7 +974,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
             if (dsym.type.baseElemOf().ty == Tvoid)
             {
-                dsym.error("`%s` does not have a default initializer", dsym.type.toChars());
+                dsym.error("of type `%s` does not have a default initializer", dsym.type.toChars());
             }
             else if (auto e = dsym.type.defaultInit(dsym.loc))
             {
@@ -995,7 +995,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 dsym._init.isVoidInitializer() &&
                 !(dsym.storage_class & STC.field))
             {
-                dsym.error("incomplete array type must have initializer");
+                dsym.error("- incomplete array type must have initializer");
             }
 
             ExpInitializer ei = dsym._init.isExpInitializer();
@@ -1244,7 +1244,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (!dsym.parent.isStructDeclaration() && !dsym.parent.isClassDeclaration())
         {
-            dsym.error("bit-field must be member of struct, union, or class");
+            dsym.error("- bit-field must be member of struct, union, or class");
         }
 
         sc = sc.startCTFE();
