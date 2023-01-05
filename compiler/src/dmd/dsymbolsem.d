@@ -974,7 +974,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
             if (dsym.type.baseElemOf().ty == Tvoid)
             {
-                dsym.error("`%s` does not have a default initializer", dsym.type.toChars());
+                dsym.error("of type `%s` does not have a default initializer", dsym.type.toChars());
             }
             else if (auto e = dsym.type.defaultInit(dsym.loc))
             {
@@ -995,7 +995,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 dsym._init.isVoidInitializer() &&
                 !(dsym.storage_class & STC.field))
             {
-                dsym.error("incomplete array type must have initializer");
+                dsym.error("- incomplete array type must have initializer");
             }
 
             ExpInitializer ei = dsym._init.isExpInitializer();
@@ -1244,7 +1244,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (!dsym.parent.isStructDeclaration() && !dsym.parent.isClassDeclaration())
         {
-            dsym.error("bit-field must be member of struct, union, or class");
+            dsym.error("- bit-field must be member of struct, union, or class");
         }
 
         sc = sc.startCTFE();
@@ -1534,12 +1534,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             e = se;
             if (!se.len)
             {
-                pd.error("zero-length string not allowed for mangled name");
+                pd.error("- zero-length string not allowed for mangled name");
                 return null;
             }
             if (se.sz != 1)
             {
-                pd.error("mangled name characters can only be of type `char`");
+                pd.error("- mangled name characters can only be of type `char`");
                 return null;
             }
             version (all)
@@ -1742,7 +1742,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 pd.args = new Expressions();
             if (pd.args.length == 0 || pd.args.length > 2)
             {
-                pd.error(pd.args.length == 0 ? "string expected for mangled name"
+                pd.error(pd.args.length == 0 ? "- string expected for mangled name"
                                           : "expected 1 or 2 arguments");
                 pd.args.setDim(1);
                 (*pd.args)[0] = ErrorExp.get(); // error recovery

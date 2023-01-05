@@ -1,7 +1,7 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/fix22104.c(103): Error: variable `fix22104.test1.array1` incomplete array type must have initializer
-fail_compilation/fix22104.c(108): Error: variable `fix22104.test2.array2` incomplete array type must have initializer
+fail_compilation/fix22104.c(103): Error: variable `fix22104.test1.array1` - incomplete array type must have initializer
+fail_compilation/fix22104.c(108): Error: variable `fix22104.test2.array2` - incomplete array type must have initializer
 ---
  */
 
