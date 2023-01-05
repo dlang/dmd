@@ -142,7 +142,7 @@ extern (C++) struct Compiler
      */
     extern(C++) static bool onImport(Module m)
     {
-        if (includeImports)
+        if (includeImports && m.filetype == FileType.d)
         {
             if (includeImportedModuleCheck(ModuleComponentRange(
                 m.md ? m.md.packages : [], m.ident, m.isPackageFile)))
