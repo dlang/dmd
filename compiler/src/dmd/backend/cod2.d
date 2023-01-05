@@ -4316,7 +4316,9 @@ void cdmemset(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 }
 
 /***********************************************
- * Do memset for values larger than a byte
+ * Do memset for values larger than a byte.
+ * Has many similarities to cod4.cdeq().
+ * Doesn't work for 16 bit code.
  */
 @trusted
 private void cdmemsetn(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
@@ -4328,43 +4330,76 @@ private void cdmemsetn(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     elem* evalue = e2.EV.E2;
     elem* enelems = e2.EV.E1;
 
+    tym_t tymv = tybasic(evalue.Ety);
     const sz = tysize(evalue.Ety);
+    assert(cast(int)sz > 1);
+
+    if (tyxmmreg(tymv) && config.fpxmmregs)
+        assert(0);      // fix later
+    if (tyfloating(tymv) && config.inline8087)
+        assert(0);      // fix later
+
     const grex = I64 ? (REX_W << 16) : 0;
 
     // get the count of elems into CX
-    regm_t retregs2 = mCX;
-    codelem(cdb,enelems,&retregs2,false);
+    regm_t mregcx = mCX;
+    codelem(cdb,enelems,&mregcx,false);
 
     // Get value into AX
-    regm_t retregs3 = mAX;
-    scodelem(cdb,evalue,&retregs3,retregs2,false);
+    regm_t retregs3 = allregs & ~mregcx;
+    if (sz == 2 * REGSIZE)
+        retregs3 &= ~(mBP | IDXREGS);  // BP cannot be used for register pair,
+                                       // IDXREGS could deplete index regs - see sdtor.d test14815()
+    scodelem(cdb,evalue,&retregs3,mregcx,false);
+
+    /* Necessary because if evalue calls a function, and that function never returns,
+     * it doesn't affect registers. Which means those registers can be used for enregistering
+     * variables, and next pass fails because it can't use those registers, and so cannot
+     * allocate registers for retregs3. See ice11596.d
+     */
+    useregs(retregs3);
+
+    reg_t valreg = findreg(retregs3);
+    reg_t valreghi;
+    if (sz == 2 * REGSIZE)
+    {
+        valreg = findreglsw(retregs3);
+        valreghi = findregmsw(retregs3);
+    }
 
     freenode(e2);
 
     // Get s into ES:DI
-    regm_t retregs1 = mDI;
-    tym_t ty1 = e.EV.E1.Ety;
+    regm_t mregidx = IDXREGS & ~(mregcx | retregs3);
+    assert(mregidx);
+    tym_t ty1 = tybasic(e.EV.E1.Ety);
     if (!tyreg(ty1))
-        retregs1 |= mES;
-    scodelem(cdb,e.EV.E1,&retregs1,retregs2 | retregs3,false);
-    reg_t reg = DI; //findreg(retregs1);
+        mregidx |= mES;
+    scodelem(cdb,e.EV.E1,&mregidx,mregcx | retregs3,false);
+    reg_t idxreg = findreg(mregidx);
 
     // Make sure ES contains proper segment value
     cdb.append(cod2_setES(ty1));
 
+    regm_t mregbx = 0;
     if (*pretregs)                              // if need return value
     {
-        getregs(cdb,mBX);
-        genmovreg(cdb,BX,reg);                  // MOV BX,DI
+        mregbx = *pretregs & ~(mregidx | mregcx | retregs3);
+        if (!mregbx)
+            mregbx = allregs & ~(mregidx | mregcx | retregs3);
+        reg_t regbx;
+        allocreg(cdb, &mregbx, &regbx, TYnptr);
+        getregs(cdb, mregbx);
+        genmovreg(cdb,regbx,idxreg);            // MOV BX,DI
     }
 
-    getregs(cdb,mDI | mCX);                     // modify DI and CX
+    getregs(cdb,mask(idxreg) | mCX);            // modify DI and CX
 
     /* Generate:
      *  JCXZ L1
      * L2:
-     *  MOV [reg],AX
-     *  ADD reg,sz
+     *  MOV [idxreg],AX
+     *  ADD idxreg,sz
      *  LOOP L2
      * L1:
      *  NOP
@@ -4372,21 +4407,28 @@ private void cdmemsetn(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     code* c1 = gennop(null);
     genjmp(cdb, JCXZ, FLcode, cast(block *)c1);
     code cs;
-    buildEA(&cs,reg,-1,1,0);
+    buildEA(&cs,idxreg,-1,1,0);
     cs.Iop = 0x89;
     if (!I16 && sz == 2)
         cs.Iflags |= CFopsize;
     if (I64 && sz == 8)
         cs.Irex |= REX_W;
-    cdb.gen(&cs);                                       // MOV [reg],AX
+    code_newreg(&cs, valreg);
+    cdb.gen(&cs);                                       // MOV [idxreg],AX
     code* c2 = cdb.last();
-    cdb.genc2(0x81, grex | modregrmx(3,0,reg), sz);     // ADD reg,sz
-    genjmp(cdb, LOOP, FLcode, cast(block *)c2);
+    if (sz == REGSIZE * 2)
+    {
+        cs.IEV1.Vuns = REGSIZE;
+        code_newreg(&cs, valreghi);
+        cdb.gen(&cs);                                   // MOV REGSIZE[idxreg],DX
+    }
+    cdb.genc2(0x81, grex | modregrmx(3,0,idxreg), sz);  // ADD idxreg,sz
+    genjmp(cdb, LOOP, FLcode, cast(block *)c2);         // LOOP L2
     cdb.append(c1);
 
     regimmed_set(CX, 0);                  // CX is now 0
 
-    fixresult(cdb,e,mES|mBX,pretregs);
+    fixresult(cdb,e,mregbx,pretregs);
 }
 
 /**********************
