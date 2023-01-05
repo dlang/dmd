@@ -544,7 +544,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
         if ((dsym.storage_class & STC.auto_) && !inferred)
-            dsym.error("storage class `auto` has no effect if type is not inferred, did you mean `scope`?");
+            dsym.error("- storage class `auto` has no effect if type is not inferred, did you mean `scope`?");
 
         if (auto tt = tb.isTypeTuple())
         {
@@ -811,14 +811,14 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if ((dsym.storage_class & (STC.ref_ | STC.parameter | STC.foreach_ | STC.temp | STC.result)) == STC.ref_ && dsym.ident != Id.This)
         {
-            dsym.error("only parameters or `foreach` declarations can be `ref`");
+            dsym.error("- only parameters, functions and `foreach` declarations can be `ref`");
         }
 
         if (dsym.type.hasWild())
         {
             if (dsym.storage_class & (STC.static_ | STC.extern_ | STC.gshared | STC.manifest | STC.field) || dsym.isDataseg())
             {
-                dsym.error("only parameters or stack based variables can be `inout`");
+                dsym.error("- only parameters or stack-based variables can be `inout`");
             }
             FuncDeclaration func = sc.func;
             if (func)
@@ -836,7 +836,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 }
                 if (!isWild)
                 {
-                    dsym.error("`inout` variables can only be declared inside `inout` functions");
+                    dsym.error("- `inout` variables can only be declared inside `inout` functions");
                 }
             }
         }
