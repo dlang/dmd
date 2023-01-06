@@ -249,17 +249,50 @@ bool isDotOpDispatch(Expression e)
 }
 
 /****************************************
- * Expand tuples.
- * Input:
- *      exps    aray of Expressions
- * Output:
- *      exps    rewritten in place
+ * Expand tuples in-place.
+ *
+ * Params:
+ *     exps  = array of Expressions
+ *     names = optional array of names corresponding to Expressions
  */
-extern (C++) void expandTuples(Expressions* exps)
+extern (C++) void expandTuples(Expressions* exps, Identifiers* names = null)
 {
     //printf("expandTuples()\n");
     if (exps is null)
         return;
+
+    if (names)
+    {
+        if (exps.length != names.length)
+        {
+            names.setDim(exps.length); // REMOVE ME
+        }
+        if (exps.length != names.length)
+        {
+            printf("exps.length = %d, names.length = %d\n", cast(int) exps.length, cast(int) names.length);
+            printf("exps = %s, names = %s\n", exps.toChars(), names.toChars());
+            if (exps.length > 0)
+                printf("%s\n", (*exps)[0].loc.toChars());
+            assert(0);
+        }
+    }
+
+    // At `index`, a tuple of length `length` is expanded. Insert corresponding nulls in `names`.
+    void expandNames(size_t index, size_t length)
+    {
+        if (names)
+        {
+            if (length == 0)
+            {
+                names.remove(index);
+                return;
+            }
+            foreach (i; 1 .. length)
+            {
+                names.insert(index + i, cast(Identifier) null);
+            }
+        }
+    }
 
     for (size_t i = 0; i < exps.length; i++)
     {
@@ -275,6 +308,7 @@ extern (C++) void expandTuples(Expressions* exps)
                 if (!tt.arguments || tt.arguments.length == 0)
                 {
                     exps.remove(i);
+                    expandNames(i, 0);
                     if (i == exps.length)
                         return;
                 }
@@ -285,6 +319,7 @@ extern (C++) void expandTuples(Expressions* exps)
                     foreach (j, a; *tt.arguments)
                         (*texps)[j] = new TypeExp(e.loc, a.type);
                     exps.insert(i, texps);
+                    expandNames(i, texps.length);
                 }
                 i--;
                 continue;
@@ -297,6 +332,7 @@ extern (C++) void expandTuples(Expressions* exps)
             TupleExp te = cast(TupleExp)arg;
             exps.remove(i); // remove arg
             exps.insert(i, te.exps); // replace with tuple contents
+            expandNames(i, te.exps.length);
             if (i == exps.length)
                 return; // empty tuple, no more arguments
             (*exps)[i] = Expression.combine(te.e0, (*exps)[i]);

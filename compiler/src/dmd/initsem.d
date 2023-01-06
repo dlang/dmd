@@ -1458,8 +1458,7 @@ Expressions* resolveStructLiteralNamedArgs(
         const argLoc = getLoc(j);
         if (id)
         {
-            /* Determine `fieldi` that `id` matches
-                */
+            // Determine `fieldi` that `id` matches
             Dsymbol s = sd.search(iloc, id);
             if (!s)
             {
