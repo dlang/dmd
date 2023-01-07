@@ -105,6 +105,8 @@ bool expressionsToString(ref OutBuffer buf, Scope* sc, Expressions* exps)
         if (!ex)
             continue;
         auto sc2 = sc.startCTFE();
+        sc2.tinst = null;
+        sc2.minst = null;       // prevents emission of any instantiated templates to object file
         auto e2 = ex.expressionSemantic(sc2);
         auto e3 = resolveProperties(sc2, e2);
         sc2.endCTFE();

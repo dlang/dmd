@@ -281,7 +281,7 @@ void write_instance_pointers(Type type, Symbol *s, uint offset)
 
 void toObjFile(Dsymbol ds, bool multiobj)
 {
-    //printf("toObjFile(%s)\n", ds.toChars());
+    //printf("toObjFile(%s %s)\n", ds.kind(), ds.toChars());
 
     bool isCfile = ds.isCsymbol();
 

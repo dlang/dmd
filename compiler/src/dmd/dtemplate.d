@@ -6247,6 +6247,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
      */
     final bool needsCodegen()
     {
+        //printf("needsCodegen() %s\n", toChars());
+
         // minst is finalized after the 1st invocation.
         // tnext and tinst are only needed for the 1st invocation and
         // cleared for further invocations.

@@ -1676,7 +1676,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             uint errors = global.startGagging();
             Scope* sc2 = sc.push();
             sc2.tinst = null;
-            sc2.minst = null;
+            sc2.minst = null;   // this is why code for these are not emitted to object file
             sc2.flags = (sc.flags & ~(SCOPE.ctfe | SCOPE.condition)) | SCOPE.compile | SCOPE.fullinst;
 
             bool err = false;
