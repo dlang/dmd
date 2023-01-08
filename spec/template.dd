@@ -296,7 +296,7 @@ $(GNAME TemplateTypeParameterDefault):
 $(H4 $(LNAME2 parameters_specialization, Specialization and Pattern Matching))
 
     $(P Templates may be specialized for particular types of arguments
-        by following the template parameter identifier with a : and the
+        by following the template parameter identifier with a `:` and the
         pattern for the specialized type.
         For example:)
 
