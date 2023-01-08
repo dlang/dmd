@@ -1661,6 +1661,9 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
         assert(fd.semanticRun >= PASS.semantic3done);
     }
 
+    if (fd.skipCodegen)
+        return false;
+
     final switch (statementsToo ? fd.inlineStatusStmt : fd.inlineStatusExp)
     {
     case ILS.yes:

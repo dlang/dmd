@@ -362,6 +362,7 @@ Symbol *toSymbol(Dsymbol s)
                 // this is copied from inline.d
                 if (!fd.fbody ||
                     fd.ident == Id.ensure ||
+                    fd.skipCodegen ||
                     (fd.ident == Id.require &&
                      fd.toParent().isFuncDeclaration() &&
                      fd.toParent().isFuncDeclaration().needThis()) ||

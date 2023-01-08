@@ -2471,6 +2471,7 @@ public:
     BUILTIN builtin;
     int32_t tookAddressOf;
     bool requiresClosure;
+    bool skipCodegen;
     Array<VarDeclaration* > closureVars;
     Array<VarDeclaration* > outerVars;
     Array<FuncDeclaration* > siblingCallers;
@@ -7926,6 +7927,7 @@ class NOGCVisitor final : public StoppableVisitor
 public:
     using StoppableVisitor::visit;
     FuncDeclaration* f;
+    bool checkOnly;
     bool err;
     void doCond(Expression* exp);
     void visit(Expression* e) override;
