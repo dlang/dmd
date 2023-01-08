@@ -1656,7 +1656,6 @@ else version (CRuntime_Bionic)
 }
 else version (CRuntime_Musl)
 {
-    alias __mode_t = uint;
     enum {
         S_IRUSR    = 0x100, // octal 0400
         S_IWUSR    = 0x080, // octal 0200
