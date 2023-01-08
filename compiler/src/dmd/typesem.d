@@ -317,8 +317,13 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
             {
                 if (id.dyncast() == DYNCAST.dsymbol)
                 {
-                    // searchX already handles errors for template instances
-                    assert(global.errors);
+                    auto ti = (cast(Dsymbol)id).isTemplateInstance();
+                    assert(ti);
+                    sm = s.search_correct(ti.name);
+                    if (sm)
+                        .error(loc, "template identifier `%s` is not a member of %s `%s`, did you mean %s `%s`?", ti.name.toChars(), s.kind(), s.toPrettyChars(), sm.kind(), sm.toChars());
+                    else
+                        .error(loc, "template identifier `%s` is not a member of %s `%s`", ti.name.toChars(), s.kind(), s.toPrettyChars());
                 }
                 else
                 {
