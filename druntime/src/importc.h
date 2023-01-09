@@ -71,6 +71,8 @@
  */
 #define __builtin_offsetof(t,i) ((typeof(sizeof(0)))((char *)&((t *)0)->i - (char *)0))
 
+#define __builtin_bit_cast(t,e) (*(t*)(void*)&(e))
+
 /***************************
  * C11 6.10.8.3 Conditional feature macros
  */
