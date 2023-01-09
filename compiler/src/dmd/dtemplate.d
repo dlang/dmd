@@ -6303,10 +6303,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 else if (!minst && tnext.minst)
                 {
                     minst = tnext.minst; // cache result from non-speculative sibling
-                    return false;
+                    // continue searching
                 }
-                else if (needsCodegen != ThreeState.none)
-                    break;
             }
 
             // Elide codegen because there's no instantiation from any root modules.
@@ -6373,10 +6371,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     else if (!minst)
                     {
                         minst = tnext.minst; // cache result from non-speculative sibling
-                        return true;
+                        // continue searching
                     }
-                    else if (needsCodegen != ThreeState.none)
-                        break;
                 }
             }
 
