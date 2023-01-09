@@ -286,6 +286,7 @@ final class CParser(AST) : Parser!AST
         case TOK.int16:
         case TOK.int32:
         case TOK.int64:
+        case TOK.__int128:
         case TOK.float32:
         case TOK.float64:
         case TOK.signed:
@@ -2183,6 +2184,7 @@ final class CParser(AST) : Parser!AST
             ximaginary = 0x8000,
             xcomplex   = 0x10000,
             x_Atomic   = 0x20000,
+            xint128    = 0x40000,
         }
 
         AST.Type t;
@@ -2227,6 +2229,7 @@ final class CParser(AST) : Parser!AST
                 case TOK.int16:      tkwx = TKW.xshort;     break;
                 case TOK.int32:      tkwx = TKW.xint;       break;
                 case TOK.int64:      tkwx = TKW.xlong;      break;
+                case TOK.__int128:   tkwx = TKW.xint128;    break;
                 case TOK.float32:    tkwx = TKW.xfloat;     break;
                 case TOK.float64:    tkwx = TKW.xdouble;    break;
                 case TOK.void_:      tkwx = TKW.xvoid;      break;
@@ -2504,6 +2507,11 @@ final class CParser(AST) : Parser!AST
 
             case TKW.xunsigned | TKW.xllong | TKW.xint:
             case TKW.xunsigned | TKW.xllong:     t = unsignedTypeForSize(long_longsize); break;
+
+            case TKW.xint128:
+            case TKW.xsigned | TKW.xint128:     t = integerTypeForSize(16); break;
+
+            case TKW.xunsigned | TKW.xint128:   t = unsignedTypeForSize(16); break;
 
             case TKW.xvoid:                     t = AST.Type.tvoid; break;
             case TKW.xbool:                     t = boolsize == 1 ? AST.Type.tbool : integerTypeForSize(boolsize); break;
@@ -3270,6 +3278,7 @@ final class CParser(AST) : Parser!AST
             case TOK._Complex:
             case TOK._Thread_local:
             case TOK.int32:
+            case TOK.__int128:
             case TOK.char_:
             case TOK.float32:
             case TOK.float64:
@@ -3940,6 +3949,7 @@ final class CParser(AST) : Parser!AST
                 case TOK.int16:
                 case TOK.int32:
                 case TOK.int64:
+                case TOK.__int128:
                 case TOK.float32:
                 case TOK.float64:
                 case TOK.signed:
@@ -4304,6 +4314,7 @@ final class CParser(AST) : Parser!AST
                 case TOK.int16:
                 case TOK.int32:
                 case TOK.int64:
+                case TOK.__int128:
                 case TOK.float32:
                 case TOK.float64:
                 case TOK.void_:
@@ -4702,6 +4713,11 @@ final class CParser(AST) : Parser!AST
             return AST.Type.tint32;
         if (size <= 8)
             return AST.Type.tint64;
+        if (size == 16)
+        {
+            error("__int128 not supported");
+            return AST.Type.terror;
+        }
         error("unsupported integer type");
         return AST.Type.terror;
     }
@@ -4723,6 +4739,11 @@ final class CParser(AST) : Parser!AST
             return AST.Type.tuns32;
         if (size <= 8)
             return AST.Type.tuns64;
+        if (size == 16)
+        {
+            error("unsigned __int128 not supported");
+            return AST.Type.terror;
+        }
         error("unsupported integer type");
         return AST.Type.terror;
     }
