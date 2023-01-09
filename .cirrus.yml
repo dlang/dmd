@@ -91,6 +91,7 @@ macos13_task:
     OS_NAME: darwin
     # override Cirrus default OS (`darwin`)
     OS: osx
+    N: 8
     matrix:
       - TASK_NAME_SUFFIX: DMD (latest)
       - TASK_NAME_SUFFIX: DMD (coverage)
@@ -105,6 +106,7 @@ macos12_task:
     OS_NAME: darwin
     # override Cirrus default OS (`darwin`)
     OS: osx
+    N: 8
     # de-facto bootstrap version on OSX
     # See: https://github.com/dlang/dmd/pull/13890
     HOST_DMD: dmd-2.099.1
