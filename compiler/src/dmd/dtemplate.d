@@ -6261,6 +6261,9 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             return false;
         }
 
+        // This should only be called on the primary instantiation.
+        assert(this is inst || inst is null);
+
         if (global.params.allInst)
         {
             // Do codegen if there is an instantiation from a root module, to maximize link-ability.
@@ -6271,6 +6274,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     return ThreeState.yes;
 
                 // Do codegen if the ancestor needs it.
+                if (tinst && tinst.inst && tinst !is tinst.inst)
+                    tinst = tinst.inst;
                 if (tinst && tinst.needsCodegen())
                 {
                     tithis.minst = tinst.minst; // cache result
@@ -6333,6 +6338,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 // 2. elide codegen if the ancestor doesn't need it (non-root instantiation of ancestor incl. subtree)
                 if (tinst)
                 {
+                    if (tinst.inst && tinst !is tinst.inst)
+                        tinst = tinst.inst;
                     const needsCodegen = tinst.needsCodegen(); // sets tinst.minst
                     if (tinst.minst) // not speculative
                     {
