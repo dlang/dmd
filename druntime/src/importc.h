@@ -66,6 +66,18 @@
  */
 #define __extension__  /* ignore it, as ImportC doesn't do warnings */
 
+/********************************
+ * __has_extension is a clang thing:
+ *    https://clang.llvm.org/docs/LanguageExtensions.html
+ * ImportC doesn't has those extensions.
+ */
+#undef __has_feature
+#define __has_feature(x) 0
+
+#undef __has_extension
+#define __has_extension(x) 0
+
+
 /****************************
  * Define it to do what other C compilers do.
  */
