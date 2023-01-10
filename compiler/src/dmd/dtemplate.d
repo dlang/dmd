@@ -6305,6 +6305,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     minst = tnext.minst; // cache result from non-speculative sibling
                     // continue searching
                 }
+                else if (needsCodegen != ThreeState.none)
+                    break;
             }
 
             // Elide codegen because there's no instantiation from any root modules.
@@ -6373,6 +6375,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                         minst = tnext.minst; // cache result from non-speculative sibling
                         // continue searching
                     }
+                    else if (needsCodegen != ThreeState.none)
+                        break;
                 }
             }
 
