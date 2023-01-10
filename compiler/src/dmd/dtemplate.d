@@ -6255,14 +6255,17 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         this.tnext = null;
         this.tinst = null;
 
-        if (errors || (inst && inst.isDiscardable()))
+        // Don't do codegen if the instance has errors,
+        // is a dummy instance (see evaluateConstraint),
+        // or is determined to be discardable.
+        if (errors || inst is null || inst.isDiscardable())
         {
             minst = null; // mark as speculative
             return false;
         }
 
         // This should only be called on the primary instantiation.
-        assert(this is inst || inst is null);
+        assert(this is inst);
 
         if (global.params.allInst)
         {
@@ -6274,11 +6277,9 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     return ThreeState.yes;
 
                 // Do codegen if the ancestor needs it.
-                if (tinst && tinst.inst && tinst !is tinst.inst)
-                    tinst = tinst.inst;
-                if (tinst && tinst.needsCodegen())
+                if (tinst && tinst.inst && tinst.inst.needsCodegen())
                 {
-                    tithis.minst = tinst.minst; // cache result
+                    tithis.minst = tinst.inst.minst; // cache result
                     assert(tithis.minst);
                     assert(tithis.minst.isRoot());
                     return ThreeState.yes;
@@ -6336,10 +6337,9 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 // If the ancestor isn't speculative,
                 // 1. do codegen if the ancestor needs it
                 // 2. elide codegen if the ancestor doesn't need it (non-root instantiation of ancestor incl. subtree)
-                if (tinst)
+                if (tinst && tinst.inst)
                 {
-                    if (tinst.inst && tinst !is tinst.inst)
-                        tinst = tinst.inst;
+                    tinst = tinst.inst;
                     const needsCodegen = tinst.needsCodegen(); // sets tinst.minst
                     if (tinst.minst) // not speculative
                     {
