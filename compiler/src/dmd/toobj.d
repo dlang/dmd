@@ -716,7 +716,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
         override void visit(TypeInfoDeclaration tid)
         {
-            if (isSpeculativeType(tid.tinfo))
+            import dmd.globals : global;
+            if (isSpeculativeType(tid.tinfo) || global.params.betterC)
             {
                 //printf("-speculative '%s'\n", tid.toPrettyChars());
                 return;

@@ -198,13 +198,26 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
             result = s;
             return;
         }
-        //printf("ExpStatement::semantic() %s\n", exp.toChars());
+        //printf("ExpStatement::semantic() %s\n", s.exp.toChars());
 
         // Allow CommaExp in ExpStatement because return isn't used
         CommaExp.allow(s.exp);
 
         s.exp = s.exp.expressionSemantic(sc);
         s.exp = resolveProperties(sc, s.exp);
+
+        if (sc)
+        {
+            if (auto ae = s.exp.isAssertExp())
+            {
+                if (ae.e1 && ae.e1.isVarExp() && ae.e1.isVarExp().var
+                    && ae.e1.isVarExp().var.ident == Id.ctfe)
+                {
+                    sc.flags |= SCOPE.ctfeonly;
+                }
+            }
+        }
+
         s.exp = s.exp.addDtorHook(sc);
         if (checkNonAssignmentArrayOp(s.exp))
             s.exp = ErrorExp.get();
@@ -1889,7 +1902,6 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
     {
         /* https://dlang.org/spec/statement.html#IfStatement
          */
-
         // check in syntax level
         ifs.condition = checkAssignmentAsCondition(ifs.condition, sc);
 
@@ -1954,7 +1966,6 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
 
         // Save 'root' of two branches (then and else) at the point where it forks
         CtorFlow ctorflow_root = scd.ctorflow.clone();
-
         ifs.ifbody = ifs.ifbody.semanticNoScope(scd);
         scd.pop();
 

@@ -98,7 +98,11 @@ public Expression ctfeInterpret(Expression e)
 
     auto rgnpos = ctfeGlobals.region.savePos();
 
+    ctfeGlobals.active = true;
+
     Expression result = interpret(e, null);
+
+    ctfeGlobals.active = false;
 
     // Report an error if the expression contained a `ThrowException` and
     // hence generated an uncaught exception
@@ -207,6 +211,10 @@ void incArrayAllocs()
     ++ctfeGlobals.numArrayAllocs;
 }
 
+bool isInterpreting() {
+    return ctfeGlobals.active;
+}
+
 /* ================================================ Implementation ======================================= */
 
 private:
@@ -228,6 +236,7 @@ struct CtfeGlobals
     int maxCallDepth = 0;     // highest number of recursive calls
     int numArrayAllocs = 0;   // Number of allocated arrays
     int numAssignments = 0;   // total number of assignments executed
+    bool active;              // whether we are interpreting a ctfe function
 }
 
 __gshared CtfeGlobals ctfeGlobals;

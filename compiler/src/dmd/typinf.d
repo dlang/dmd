@@ -16,6 +16,7 @@ import dmd.declaration;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dclass;
+import dmd.dinterpret;
 import dmd.dstruct;
 import dmd.errors;
 import dmd.expression;
@@ -42,7 +43,7 @@ extern (C++) void genTypeInfo(Expression e, const ref Loc loc, Type torig, Scope
     // Even when compiling without `useTypeInfo` (e.g. -betterC) we should
     // still be able to evaluate `TypeInfo` at compile-time, just not at runtime.
     // https://issues.dlang.org/show_bug.cgi?id=18472
-    if (!sc || !(sc.flags & SCOPE.ctfe))
+    if (!sc || (!(sc.flags & (SCOPE.ctfe | SCOPE.ctfeonly)) && !isInterpreting()))
     {
         if (!global.params.useTypeInfo)
         {
@@ -82,13 +83,13 @@ extern (C++) void genTypeInfo(Expression e, const ref Loc loc, Type torig, Scope
         // druntime
         if (!isUnqualifiedClassInfo && !builtinTypeInfo(t))
         {
-            if (sc) // if in semantic() pass
+            if (sc && sc._module) // if in semantic() pass
             {
                 // Find module that will go all the way to an object file
                 Module m = sc._module.importedFrom;
                 m.members.push(t.vtinfo);
             }
-            else // if in obj generation pass
+            else if (!sc) // if in obj generation pass
             {
                 toObjFile(t.vtinfo, global.params.multiobj);
             }
