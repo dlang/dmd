@@ -687,6 +687,9 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     if (!fd.fbody)
         return;
 
+    if (fd.skipCodegen)
+        return;
+
     UnitTestDeclaration ud = fd.isUnitTestDeclaration();
     if (ud && !global.params.useUnitTests)
         return;

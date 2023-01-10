@@ -272,6 +272,10 @@ extern (C++) struct Scope
              *   // To call x.toString in runtime, compiler should unspeculative S!int.
              *   assert(x.toString() == "instantiated");
              * }
+             *
+             * This results in an undefined reference to `RTInfoImpl`:
+             *  class C {  int a,b,c;   int* p,q; }
+             *  void test() {    C c = new C(); }
              */
             // If a template is instantiated from CT evaluated expression,
             // compiler can elide its code generation.

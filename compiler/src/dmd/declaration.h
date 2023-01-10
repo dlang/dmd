@@ -600,6 +600,7 @@ public:
     // set if someone took the address of this function
     int tookAddressOf;
     bool requiresClosure;               // this function needs a closure
+    bool skipCodegen;                   // do not generate code for this function
 
     // local variables in this function which are referenced by nested functions
     VarDeclarations closureVars;

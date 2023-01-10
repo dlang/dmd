@@ -34,6 +34,7 @@ extern (C++) final class NOGCVisitor : StoppableVisitor
     alias visit = typeof(super).visit;
 public:
     FuncDeclaration f;
+    bool checkOnly;     // don't print errors
     bool err;
 
     extern (D) this(FuncDeclaration f)
@@ -75,6 +76,11 @@ public:
         auto fd = stripHookTraceImpl(e.f);
         if (fd.ident == Id._d_arraysetlengthT)
         {
+            if (checkOnly)
+            {
+                err = true;
+                return;
+            }
             if (f.setGC())
             {
                 e.error("setting `length` in `@nogc` %s `%s` may cause a GC allocation",
@@ -86,6 +92,11 @@ public:
         }
         else if (fd.ident == Id._d_arrayappendT || fd.ident == Id._d_arrayappendcTX)
         {
+            if (checkOnly)
+            {
+                err = true;
+                return;
+            }
             if (f.setGC())
             {
                 e.error("cannot use operator `~=` in `@nogc` %s `%s`",
@@ -101,6 +112,11 @@ public:
     {
         if (e.type.ty != Tarray || !e.elements || !e.elements.length || e.onstack)
             return;
+        if (checkOnly)
+        {
+            err = true;
+            return;
+        }
         if (f.setGC())
         {
             e.error("array literal in `@nogc` %s `%s` may cause a GC allocation",
@@ -115,6 +131,11 @@ public:
     {
         if (!e.keys.length)
             return;
+        if (checkOnly)
+        {
+            err = true;
+            return;
+        }
         if (f.setGC())
         {
             e.error("associative array literal in `@nogc` %s `%s` may cause a GC allocation",
@@ -136,6 +157,11 @@ public:
             return;
         if (global.params.ehnogc && e.thrownew)
             return;                     // separate allocator is called for this, not the GC
+        if (checkOnly)
+        {
+            err = true;
+            return;
+        }
         if (f.setGC())
         {
             e.error("cannot use `new` in `@nogc` %s `%s`",
@@ -164,6 +190,11 @@ public:
         Type t1b = e.e1.type.toBasetype();
         if (e.modifiable && t1b.ty == Taarray)
         {
+            if (checkOnly)
+            {
+                err = true;
+                return;
+            }
             if (f.setGC())
             {
                 e.error("assigning an associative array element in `@nogc` %s `%s` may cause a GC allocation",
@@ -179,6 +210,11 @@ public:
     {
         if (e.e1.op == EXP.arrayLength)
         {
+            if (checkOnly)
+            {
+                err = true;
+                return;
+            }
             if (f.setGC())
             {
                 e.error("setting `length` in `@nogc` %s `%s` may cause a GC allocation",
@@ -196,6 +232,11 @@ public:
          * The other branch will be `_d_arrayappendcTX(e1, 1), e1[$-1]=e2` which will generate the warning about
          * GC usage. See visit(CallExp).
          */
+        if (checkOnly)
+        {
+            err = true;
+            return;
+        }
         if (f.setGC())
         {
             err = true;
@@ -205,6 +246,11 @@ public:
 
     override void visit(CatExp e)
     {
+        if (checkOnly)
+        {
+            err = true;
+            return;
+        }
         if (f.setGC())
         {
             e.error("cannot use operator `~` in `@nogc` %s `%s`",
@@ -218,16 +264,32 @@ public:
 
 Expression checkGC(Scope* sc, Expression e)
 {
+    /* If betterC, allow GC to happen in non-CTFE code.
+     * Just don't generate code for it.
+     * Detect non-CTFE use of the GC in betterC code.
+     */
+    const betterC = global.params.betterC;
     FuncDeclaration f = sc.func;
-    if (e && e.op != EXP.error && f && sc.intypeof != 1 && !(sc.flags & SCOPE.ctfe) &&
+    if (e && e.op != EXP.error && f && sc.intypeof != 1 &&
+           (!(sc.flags & SCOPE.ctfe) || betterC) &&
            (f.type.ty == Tfunction &&
             (cast(TypeFunction)f.type).isnogc || f.nogcInprocess || global.params.vgc) &&
            !(sc.flags & SCOPE.debug_))
     {
         scope NOGCVisitor gcv = new NOGCVisitor(f);
+        gcv.checkOnly = betterC;
         walkPostorder(e, gcv);
         if (gcv.err)
-            return ErrorExp.get();
+        {
+            if (betterC)
+            {
+                /* Allow ctfe to use the gc code, but don't let it into the runtime
+                 */
+                f.skipCodegen = true;
+            }
+            else
+                return ErrorExp.get();
+        }
     }
     return e;
 }
