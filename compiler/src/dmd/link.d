@@ -1276,6 +1276,9 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
         // merge #define's with output
         argv.push("-dD");       // https://gcc.gnu.org/onlinedocs/cpp/Invocation.html#index-dD
 
+        // need to redefine some macros in importc.h
+        argv.push("-Wno-builtin-macro-redefined");
+
         if (target.os == Target.OS.OSX)
         {
             argv.push("-fno-blocks");       // disable clang blocks extension
