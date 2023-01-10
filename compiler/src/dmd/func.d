@@ -203,6 +203,8 @@ private struct FUNCFLAG
     bool inferScope;         /// infer 'scope' for parameters
     bool hasCatches;         /// function has try-catch statements
     bool isCompileTimeOnly;  /// is a compile time only function; no code will be generated for it
+    bool skipCodegen;        /// do not generate code for this function.
+                             // FIXME: redundant with `isCompileTimeOnly`, see https://github.com/dlang/dmd/pull/14791#discussion_r1065066099
     bool printf;             /// is a printf-like function
     bool scanf;              /// is a scanf-like function
     bool noreturn;           /// the function does not return
@@ -329,7 +331,6 @@ extern (C++) class FuncDeclaration : Declaration
     int tookAddressOf;
 
     bool requiresClosure;               // this function needs a closure
-    bool skipCodegen;                   // do not generate code for this function
 
     /** local variables in this function which are referenced by nested functions
      * (They'll get put into the "closure" for this function.)

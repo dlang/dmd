@@ -2472,7 +2472,6 @@ public:
     BUILTIN builtin;
     int32_t tookAddressOf;
     bool requiresClosure;
-    bool skipCodegen;
     Array<VarDeclaration* > closureVars;
     Array<VarDeclaration* > outerVars;
     Array<FuncDeclaration* > siblingCallers;
@@ -2496,6 +2495,8 @@ public:
     bool hasCatches(bool v);
     bool isCompileTimeOnly() const;
     bool isCompileTimeOnly(bool v);
+    bool skipCodegen() const;
+    bool skipCodegen(bool v);
     bool printf() const;
     bool printf(bool v);
     bool scanf() const;
