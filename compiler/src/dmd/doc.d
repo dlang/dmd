@@ -404,6 +404,7 @@ extern(C++) void gendocfile(Module m)
     sc.lastdc = dc;
     // Generate predefined macros
     // Set the title to be the name of the module
+    m.setDocfile(m.toPrettyChars(true).toDString);
     {
         const p = m.toPrettyChars().toDString;
         m.macrotable.define("TITLE", p);

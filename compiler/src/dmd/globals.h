@@ -130,7 +130,10 @@ struct Param
     bool addMain;       // add a default main() function
     bool allInst;       // generate code for all template instantiations
     bool bitfields;         // support C style bit fields
+    unsigned char docStructure; // where to put/how to name doc files based on their module names
+
     CppStdRevision cplusplus;  // version of C++ name mangling to support
+
     bool showGaggedErrors;  // print gagged errors anyway
     bool printErrorContext;  // print errors with the error context (the error line in the source file)
     bool manual;            // open browser on compiler manual

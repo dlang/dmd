@@ -281,6 +281,9 @@ dmd -cov -unittest myprog.d
         Option("Df<filename>",
             "write documentation file to filename"
         ),
+        Option("Dfs=[flat|name|path]",
+            "set documentation file structure: module names (default) or fully qualified module names separated by underscores or use package hierarchy"
+        ),
         Option("d",
             "silently allow deprecated features and symbols",
             `Silently allow $(DDLINK deprecate,deprecate,deprecated features) and use of symbols with
