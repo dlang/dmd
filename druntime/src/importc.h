@@ -69,7 +69,7 @@
 /********************************
  * __has_extension is a clang thing:
  *    https://clang.llvm.org/docs/LanguageExtensions.html
- * ImportC doesn't has those extensions.
+ * ImportC no has extensions.
  */
 #undef __has_feature
 #define __has_feature(x) 0
@@ -77,6 +77,26 @@
 #undef __has_extension
 #define __has_extension(x) 0
 
+#undef __has_builtin
+#define __has_builtin(x) 0
+
+/*************************************
+ * OS-specific macros
+ */
+#if __APPLE__
+#define __builtin___memmove_chk(dest, src, len, x) memmove(dest,src,len)  // put it back to memmove()
+#define __builtin___memcpy_chk(dest, src, len, x) memcpy(dest,src,len)
+#define __builtin___memset_chk(dest, val, len, x) memset(dest,val,len)
+#define __builtin___stpcpy_chk(dest, src, x) stpcpy(dest,src)
+#define __builtin___stpncpy_chk(dest, src, len, x) stpncpy(dest,src,len)
+#define __builtin___strcat_chk(dest, src, x) strcat(dest,src)
+#define __builtin___strcpy_chk(dest, src, x) strcpy(dest,src)
+#define __builtin___strncat_chk(dest, src, len, x) strncat(dest,src,len)
+#define __builtin___strncpy_chk(dest, src, len, x) strncpy(dest,src,len)
+#endif
+
+#if __FreeBSD__
+#endif
 
 /****************************
  * Define it to do what other C compilers do.
