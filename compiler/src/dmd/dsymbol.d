@@ -999,10 +999,7 @@ extern (C++) class Dsymbol : ASTNode
                 sm = sm.toAlias();
                 TemplateDeclaration td = sm.isTemplateDeclaration();
                 if (!td)
-                {
-                    .error(loc, "`%s.%s` is not a template, it is a %s", s.toPrettyChars(), ti.name.toChars(), sm.kind());
-                    return null;
-                }
+                    return null; // error but handled later
                 ti.tempdecl = td;
                 if (!ti.semanticRun)
                     ti.dsymbolSemantic(sc);
