@@ -536,6 +536,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
         {
             auto errors = global.errors;
             mtype.dim = semanticLength(sc, tbn, mtype.dim);
+            mtype.dim = mtype.dim.implicitCastTo(sc, Type.tsize_t);
             if (errors != global.errors)
                 return error();
 
