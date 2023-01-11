@@ -65,6 +65,30 @@ public:
         }
     }
 
+    /**
+     * Register that expression `e` requires the GC
+     * Params:
+     *   e = expression that uses GC
+     *   format = error message when `e` is used in a `@nogc` function.
+     *            Must contain format strings "`@nogc` %s `%s`" referring to the function.
+     * Returns: `true` if `err` was set, `false` if it's not in a `@nogc` and not checkonly (-betterC)
+     */
+    private bool setGC(Expression e, const(char)* format)
+    {
+        if (checkOnly)
+        {
+            err = true;
+            return true;
+        }
+        if (f.setGC())
+        {
+            e.error(format, f.kind(), f.toPrettyChars());
+            err = true;
+            return true;
+        }
+        return false;
+    }
+
     override void visit(CallExp e)
     {
         import dmd.id : Id;
@@ -76,34 +100,14 @@ public:
         auto fd = stripHookTraceImpl(e.f);
         if (fd.ident == Id._d_arraysetlengthT)
         {
-            if (checkOnly)
-            {
-                err = true;
+            if (setGC(e, "setting `length` in `@nogc` %s `%s` may cause a GC allocation"))
                 return;
-            }
-            if (f.setGC())
-            {
-                e.error("setting `length` in `@nogc` %s `%s` may cause a GC allocation",
-                    f.kind(), f.toPrettyChars());
-                err = true;
-                return;
-            }
             f.printGCUsage(e.loc, "setting `length` may cause a GC allocation");
         }
         else if (fd.ident == Id._d_arrayappendT || fd.ident == Id._d_arrayappendcTX)
         {
-            if (checkOnly)
-            {
-                err = true;
+            if (setGC(e, "cannot use operator `~=` in `@nogc` %s `%s`"))
                 return;
-            }
-            if (f.setGC())
-            {
-                e.error("cannot use operator `~=` in `@nogc` %s `%s`",
-                    f.kind(), f.toPrettyChars());
-                err = true;
-                return;
-            }
             f.printGCUsage(e.loc, "operator `~=` may cause a GC allocation");
         }
     }
@@ -112,18 +116,8 @@ public:
     {
         if (e.type.ty != Tarray || !e.elements || !e.elements.length || e.onstack)
             return;
-        if (checkOnly)
-        {
-            err = true;
+        if (setGC(e, "array literal in `@nogc` %s `%s` may cause a GC allocation"))
             return;
-        }
-        if (f.setGC())
-        {
-            e.error("array literal in `@nogc` %s `%s` may cause a GC allocation",
-                f.kind(), f.toPrettyChars());
-            err = true;
-            return;
-        }
         f.printGCUsage(e.loc, "array literal may cause a GC allocation");
     }
 
@@ -131,18 +125,8 @@ public:
     {
         if (!e.keys.length)
             return;
-        if (checkOnly)
-        {
-            err = true;
+        if (setGC(e, "associative array literal in `@nogc` %s `%s` may cause a GC allocation"))
             return;
-        }
-        if (f.setGC())
-        {
-            e.error("associative array literal in `@nogc` %s `%s` may cause a GC allocation",
-                f.kind(), f.toPrettyChars());
-            err = true;
-            return;
-        }
         f.printGCUsage(e.loc, "associative array literal may cause a GC allocation");
     }
 
@@ -157,18 +141,9 @@ public:
             return;
         if (global.params.ehnogc && e.thrownew)
             return;                     // separate allocator is called for this, not the GC
-        if (checkOnly)
-        {
-            err = true;
+
+        if (setGC(e, "cannot use `new` in `@nogc` %s `%s`"))
             return;
-        }
-        if (f.setGC())
-        {
-            e.error("cannot use `new` in `@nogc` %s `%s`",
-                f.kind(), f.toPrettyChars());
-            err = true;
-            return;
-        }
         f.printGCUsage(e.loc, "`new` causes a GC allocation");
     }
 
@@ -190,18 +165,8 @@ public:
         Type t1b = e.e1.type.toBasetype();
         if (e.modifiable && t1b.ty == Taarray)
         {
-            if (checkOnly)
-            {
-                err = true;
+            if (setGC(e, "assigning an associative array element in `@nogc` %s `%s` may cause a GC allocation"))
                 return;
-            }
-            if (f.setGC())
-            {
-                e.error("assigning an associative array element in `@nogc` %s `%s` may cause a GC allocation",
-                    f.kind(), f.toPrettyChars());
-                err = true;
-                return;
-            }
             f.printGCUsage(e.loc, "assigning an associative array element may cause a GC allocation");
         }
     }
@@ -210,18 +175,8 @@ public:
     {
         if (e.e1.op == EXP.arrayLength)
         {
-            if (checkOnly)
-            {
-                err = true;
+            if (setGC(e, "setting `length` in `@nogc` %s `%s` may cause a GC allocation"))
                 return;
-            }
-            if (f.setGC())
-            {
-                e.error("setting `length` in `@nogc` %s `%s` may cause a GC allocation",
-                    f.kind(), f.toPrettyChars());
-                err = true;
-                return;
-            }
             f.printGCUsage(e.loc, "setting `length` may cause a GC allocation");
         }
     }
@@ -246,18 +201,8 @@ public:
 
     override void visit(CatExp e)
     {
-        if (checkOnly)
-        {
-            err = true;
+        if (setGC(e, "cannot use operator `~` in `@nogc` %s `%s`"))
             return;
-        }
-        if (f.setGC())
-        {
-            e.error("cannot use operator `~` in `@nogc` %s `%s`",
-                f.kind(), f.toPrettyChars());
-            err = true;
-            return;
-        }
         f.printGCUsage(e.loc, "operator `~` may cause a GC allocation");
     }
 }
