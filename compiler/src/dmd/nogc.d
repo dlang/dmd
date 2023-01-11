@@ -119,8 +119,23 @@ public:
         }
         if (f.setGC())
         {
-            e.error("array literal in `@nogc` %s `%s` may cause a GC allocation",
-                f.kind(), f.toPrettyChars());
+            with(e.origin) 
+            {
+                e.error("array literal `%s` in `@nogc` %s `%s` may cause a GC allocation",
+                    (isPresent ? get : e).toChars(), f.kind(), f.toPrettyChars());
+                if (isPresent)
+                {
+                    import dmd.dtemplate : isDsymbol;
+                    import dmd.dsymbol;
+                    if (auto from = get().isDsymbol())
+                    {
+                        import dmd.errors;
+                        auto tmp = from.isVarDeclaration();
+                        if (tmp && tmp.storage_class & STC.manifest)
+                            errorSupplemental(from.loc, "Consider declaring the manifest constant `%s` `static immutable` to avoid the GC", from.toChars());
+                    }
+                }
+            }
             err = true;
             return;
         }

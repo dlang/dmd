@@ -73,10 +73,10 @@ fail_compilation/nogc3.d(67):        `nogc3.testClosure3.bar` closes over variab
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/nogc3.d(85): Error: array literal in `@nogc` function `nogc3.foo13702` may cause a GC allocation
-fail_compilation/nogc3.d(86): Error: array literal in `@nogc` function `nogc3.foo13702` may cause a GC allocation
-fail_compilation/nogc3.d(92): Error: array literal in `@nogc` function `nogc3.bar13702` may cause a GC allocation
-fail_compilation/nogc3.d(91): Error: array literal in `@nogc` function `nogc3.bar13702` may cause a GC allocation
+fail_compilation/nogc3.d(85): Error: array literal `[1]` in `@nogc` function `nogc3.foo13702` may cause a GC allocation
+fail_compilation/nogc3.d(86): Error: array literal `[1, 2]` in `@nogc` function `nogc3.foo13702` may cause a GC allocation
+fail_compilation/nogc3.d(92): Error: array literal `[1, 2]` in `@nogc` function `nogc3.bar13702` may cause a GC allocation
+fail_compilation/nogc3.d(91): Error: array literal `[1]` in `@nogc` function `nogc3.bar13702` may cause a GC allocation
 ---
 */
 int[] foo13702(bool b) @nogc
