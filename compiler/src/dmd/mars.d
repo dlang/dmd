@@ -1871,7 +1871,15 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 params.docStructure = DDocStructure.qualifiedPaths;
                 break;
             default:
-                error("unknown documentation file structure '%.*s', must be 'flat', 'name' or 'path'", cast(int) struc.length, struc.ptr);
+                if (struc.length >= 6 && struc[0 .. 5] == "name:")
+                {
+                    params.docStructure = DDocStructure.qualifiedNames;
+                    params.docSeparator = struc[5 .. $];
+                }
+                else
+                {
+                    error("unknown documentation file structure '%.*s', must be 'flat', 'name', 'name:<sep>' or 'path'", cast(int) struc.length, struc.ptr);
+                }
             }
         }
         else if (startsWith(p + 1, "verrors")) // https://dlang.org/dmd.html#switch-verrors

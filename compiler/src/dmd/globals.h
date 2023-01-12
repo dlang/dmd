@@ -130,7 +130,8 @@ struct Param
     bool addMain;       // add a default main() function
     bool allInst;       // generate code for all template instantiations
     bool bitfields;         // support C style bit fields
-    unsigned char docStructure; // where to put/how to name doc files based on their module names
+    unsigned char docStructure;       // where to put/how to name doc files based on their module names
+    Array<const char *> docSeparator; // what character to separate documentation file module names with
 
     CppStdRevision cplusplus;  // version of C++ name mangling to support
 

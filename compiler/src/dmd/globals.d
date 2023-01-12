@@ -72,7 +72,7 @@ enum CppStdRevision : uint
 enum DDocStructure : ubyte
 {
     flat,           /// `module a.b.c;` => c.html
-    qualifiedNames, /// `module a.b.c;` => a_b_c.html
+    qualifiedNames, /// `module a.b.c;` => a-b-c.html
     qualifiedPaths, /// `module a.b.c;` => a/b/c.html
 }
 
@@ -133,6 +133,7 @@ extern (C++) struct Param
     bool allInst;           // generate code for all template instantiations
     bool bitfields;         // support C style bit fields
     DDocStructure docStructure = DDocStructure.flat; // where to put/how to name doc files based on their module names
+    const(char)[] docSeparator = "-";                // what character to separate documentation file module names with
 
     CppStdRevision cplusplus = CppStdRevision.cpp11;    // version of C++ standard to support
 

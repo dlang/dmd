@@ -623,7 +623,7 @@ extern (C++) final class Module : Package
                 switch (ch)
                 {
                 case '.':
-                    buf.writeByte('_');
+                    buf.writestring(global.params.docSeparator);
                     break;
                 default:
                     buf.writeByte(ch);
