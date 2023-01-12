@@ -3912,8 +3912,15 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
             {
                 /* Rewrite as:
                  *  this.d
+                 *
+                 * only if the scope in which we are
+                 * has a `this` that matches the type
+                 * of the lhs of the dot expression.
+                 *
+                 * https://issues.dlang.org/show_bug.cgi?id=23617
                  */
-                if (hasThis(sc))
+                auto fd = hasThis(sc);
+                if (fd && fd.isThis() == mt.sym)
                 {
                     e = new DotVarExp(e.loc, new ThisExp(e.loc), d);
                     return e.expressionSemantic(sc);
