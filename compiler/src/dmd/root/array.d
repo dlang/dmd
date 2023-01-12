@@ -69,7 +69,18 @@ public:
             {
                 foreach (u; 0 .. a.length)
                 {
-                    buf[u] = toStringFunc(a.data[u]);
+                    static if (is(typeof(a.data[u] is null)))
+                    {
+                        if (a.data[u] is null)
+                            buf[u] = "null";
+                        else
+                            buf[u] = toStringFunc(a.data[u]);
+                    }
+                    else
+                    {
+                        buf[u] = toStringFunc(a.data[u]);
+                    }
+
                     len += buf[u].length + seplen;
                 }
             }
@@ -381,6 +392,19 @@ unittest
     assert(str == `["hello","world"]`);
     // Test presence of null terminator.
     assert(str.ptr[str.length] == '\0');
+
+    // Test printing an array of classes, which can be null
+    static class C
+    {
+        override string toString() const
+        {
+            return "x";
+        }
+    }
+    auto nullarray = Array!C(2);
+    nullarray[0] = new C();
+    nullarray[1] = null;
+    assert(nullarray.toString() == `[x,null]`);
 }
 
 unittest
