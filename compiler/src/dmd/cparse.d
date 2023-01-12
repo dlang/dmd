@@ -1641,6 +1641,23 @@ final class CParser(AST) : Parser!AST
         specifier.packalign = this.packalign;
         auto tspec = cparseDeclarationSpecifiers(level, specifier);
 
+        AST.Dsymbol declareTag(AST.TypeTag tt, ref Specifier specifier)
+        {
+            /* `struct tag;` and `struct tag { ... };`
+             * always result in a declaration in the current scope
+             */
+            auto stag = (tt.tok == TOK.struct_) ? new AST.StructDeclaration(tt.loc, tt.id, false) :
+                        (tt.tok == TOK.union_)  ? new AST.UnionDeclaration(tt.loc, tt.id) :
+                                                  new AST.EnumDeclaration(tt.loc, tt.id, tt.base);
+            stag.members = tt.members;
+            tt.members = null;
+            if (!symbols)
+                symbols = new AST.Dsymbols();
+            auto stags = applySpecifier(stag, specifier);
+            symbols.push(stags);
+            return stags;
+        }
+
         /* If a declarator does not follow, it is unnamed
          */
         if (token.value == TOK.semicolon)
@@ -1665,22 +1682,12 @@ final class CParser(AST) : Parser!AST
                 !tt.id && (tt.tok == TOK.struct_ || tt.tok == TOK.union_))
                 return; // legal but meaningless empty declaration, ignore it
 
-            /* `struct tag;` and `struct tag { ... };`
-             * always result in a declaration in the current scope
-             */
-            auto stag = (tt.tok == TOK.struct_) ? new AST.StructDeclaration(tt.loc, tt.id, false) :
-                        (tt.tok == TOK.union_)  ? new AST.UnionDeclaration(tt.loc, tt.id) :
-                                                  new AST.EnumDeclaration(tt.loc, tt.id, tt.base);
-            stag.members = tt.members;
-            if (!symbols)
-                symbols = new AST.Dsymbols();
-            auto stags = applySpecifier(stag, specifier);
-            symbols.push(stags);
+            auto stags = declareTag(tt, specifier);
 
             if (0 && tt.tok == TOK.enum_)    // C11 proscribes enums with no members, but we allow it
             {
                 if (!tt.members)
-                    error(tt.loc, "`enum %s` has no members", stag.toChars());
+                    error(tt.loc, "`enum %s` has no members", stags.toChars());
             }
             return;
         }
@@ -1824,17 +1831,8 @@ final class CParser(AST) : Parser!AST
                 {
                     if (tt.id || tt.tok == TOK.enum_)
                     {
-                        /* `struct tag;` and `struct tag { ... };`
-                         * always result in a declaration in the current scope
-                         */
-                        auto stag = (tt.tok == TOK.struct_) ? new AST.StructDeclaration(tt.loc, tt.id, false) :
-                                    (tt.tok == TOK.union_)  ? new AST.UnionDeclaration(tt.loc, tt.id) :
-                                                              new AST.EnumDeclaration(tt.loc, tt.id, tt.base);
-                        stag.members = tt.members;
-                        tt.members = null;
-                        if (!symbols)
-                            symbols = new AST.Dsymbols();
-                        symbols.push(stag);
+                        Specifier spec;
+                        auto stag = declareTag(tt, spec);
                         if (tt.tok == TOK.enum_)
                         {
                             isalias = false;
@@ -1848,6 +1846,15 @@ final class CParser(AST) : Parser!AST
             }
             else if (id)
             {
+                if (auto tt = dt.isTypeTag())
+                {
+                    if (tt.members && (tt.id || tt.tok == TOK.enum_))
+                    {
+                        Specifier spec;
+                        declareTag(tt, spec);
+                    }
+                }
+
                 if (level == LVL.prototype)
                     break;      // declared later as Parameter, not VarDeclaration
 
