@@ -82,3 +82,7 @@
 #if linux  // Microsoft won't allow the following macro
 #define __PRETTY_FUNCTION__ __func__
 #endif
+
+#if __APPLE__
+#undef __SIZEOF_INT128__
+#endif
