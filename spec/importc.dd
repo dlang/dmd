@@ -37,7 +37,7 @@ $(H2 $(LNAME2 examples, Quick Examples))
     hello world
     )
 
-    $(P C function in file $(TT square.c):)
+    $(P C function in file $(TT functions.c):)
 
     $(CCODE
     int square(int i)
@@ -50,7 +50,7 @@ $(H2 $(LNAME2 examples, Quick Examples))
 
     ---
     import std.stdio;
-    import square;
+    import functions;
     void main()
     {
         int i = 7;
@@ -61,7 +61,7 @@ $(H2 $(LNAME2 examples, Quick Examples))
     $(P Compile and run:)
 
     $(CONSOLE
-    dmd demo.d square.c
+    dmd demo.d functions.c
     ./demo
     The square of 7 is 49
     )
