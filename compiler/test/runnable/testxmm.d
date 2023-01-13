@@ -2451,6 +2451,19 @@ __vector(int[4]) test23084b(__vector(int[4]) a)
 
 /*****************************************/
 
+// https://issues.dlang.org/show_bug.cgi?id=23218
+
+int4 convtest(int[4] a)
+{   return cast(int4)a; }
+
+void test23218()
+{
+    static assert(convtest([1,2,3,4])[0] == 1);
+    assert(convtest([1,2,3,4])[0] == 1);
+}
+
+/*****************************************/
+
 int main()
 {
     test1();
@@ -2506,6 +2519,7 @@ int main()
     test21673();
     test21676();
     test23009();
+    test23218();
 
     return 0;
 }

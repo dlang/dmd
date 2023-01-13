@@ -8342,13 +8342,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         Type t1b = exp.e1.type.toBasetype();
 
-        if (t1b.ty == Tvector)
+        if (TypeVector tv1 = t1b.isTypeVector())
         {
             // Convert e1 to corresponding static array
-            TypeVector tv1 = cast(TypeVector)t1b;
             t1b = tv1.basetype;
             t1b = t1b.castMod(tv1.mod);
-            exp.e1.type = t1b;
+            exp.e1 = exp.e1.castTo(sc, t1b);
         }
         if (t1b.ty == Tsarray || t1b.ty == Tarray)
         {
