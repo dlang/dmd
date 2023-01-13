@@ -1148,6 +1148,7 @@ extern (C++) class VarDeclaration : Declaration
         bool doNotInferReturn;  /// do not infer 'return' for this variable
 
         bool isArgDtorVar;      /// temporary created to handle scope destruction of a function argument
+        bool isCmacro;          /// it is a C macro turned into a C declaration
     }
 
     import dmd.common.bitfields : generateBitFields;

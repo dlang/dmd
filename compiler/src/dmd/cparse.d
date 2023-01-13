@@ -5306,6 +5306,8 @@ final class CParser(AST) : Parser!AST
 
         void addVar(AST.VarDeclaration v)
         {
+            //printf("addVar() %s\n", v.toChars());
+            v.isCmacro(true);           // mark it as coming from a C #define
             /* If it's already defined, replace the earlier
              * definition
              */

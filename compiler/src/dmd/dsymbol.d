@@ -2620,6 +2620,12 @@ Dsymbol handleSymbolRedeclarations(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsy
 
     auto vd = s.isVarDeclaration(); // new declaration
     auto vd2 = s2.isVarDeclaration(); // existing declaration
+
+    if (vd && vd.isCmacro())
+        return vd2;
+
+    assert(!(vd2 && vd2.isCmacro()));
+
     if (vd && vd2)
     {
         /* if one is `static` and the other isn't, the result is undefined

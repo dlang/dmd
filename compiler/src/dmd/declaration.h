@@ -270,6 +270,8 @@ public:
     bool doNotInferReturn(bool v);
     bool isArgDtorVar() const; // temporary created to handle scope destruction of a function argument
     bool isArgDtorVar(bool v);
+    bool isCmacro() const; // if a C macro turned into a C variable
+    bool isCmacro(bool v);
     static VarDeclaration *create(const Loc &loc, Type *t, Identifier *id, Initializer *init, StorageClass storage_class = STCundefined);
     VarDeclaration *syntaxCopy(Dsymbol *) override;
     void setFieldOffset(AggregateDeclaration *ad, FieldState& fieldState, bool isunion) override final;
