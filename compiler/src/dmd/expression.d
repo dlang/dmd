@@ -265,7 +265,10 @@ extern (C++) void expandTuples(Expressions* exps, Identifiers* names = null)
     {
         if (exps.length != names.length)
         {
-            names.setDim(exps.length); // REMOVE ME
+            // Fixme: this branch should be removed when bugs are fixed.
+            names.setDim(exps.length);
+            foreach (i; 0..exps.length)
+                (*names)[i] = null;
         }
         if (exps.length != names.length)
         {
