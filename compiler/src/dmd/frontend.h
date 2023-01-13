@@ -5944,6 +5944,8 @@ public:
     bool doNotInferReturn(bool v);
     bool isArgDtorVar() const;
     bool isArgDtorVar(bool v);
+    bool isCmacro() const;
+    bool isCmacro(bool v);
 private:
     uint16_t bitFields;
 public:
