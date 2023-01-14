@@ -197,7 +197,7 @@ Options:
                             : "`unit` tests";
 
                 writeln(">>> TARGET FAILED: ", name);
-                failedTargets ~= name;
+                synchronized failedTargets ~= name;
             }
         }
         if (failedTargets.length > 0)
