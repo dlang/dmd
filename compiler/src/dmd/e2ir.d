@@ -2891,6 +2891,7 @@ elem* toElem(Expression e, IRState *irs)
 
     elem* visitUshrAssign(UshrAssignExp e)
     {
+        //printf("UShrAssignExp.toElem() %s, %s\n", e.e1.type.toChars(), e.e1.toChars());
         return toElemBinAssign(e, OPshrass);
     }
 
