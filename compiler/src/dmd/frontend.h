@@ -5326,6 +5326,7 @@ public:
     Sizeok sizeok;
     virtual Scope* newScope(Scope* sc);
     void setScope(Scope* sc) final override;
+    void importAll(Scope* sc) override;
     size_t nonHiddenFields();
     bool determineSize(const Loc& loc);
     virtual void finalizeSize() = 0;

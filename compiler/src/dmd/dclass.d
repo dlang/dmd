@@ -469,7 +469,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     {
         //printf("%s.ClassDeclaration.search('%s', flags=x%x)\n", toChars(), ident.toChars(), flags);
         //if (_scope) printf("%s baseok = %d\n", toChars(), baseok);
-        if (_scope && baseok < Baseok.semanticdone)
+        if (_scope && !symtab)
         {
             if (!inuse)
             {
