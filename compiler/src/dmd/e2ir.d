@@ -799,6 +799,18 @@ elem* toElem(Expression e, IRState *irs)
         }
         if (Expression ex = isExpression(e.obj))
         {
+            if (auto ev = ex.isVarExp())
+            {
+                if (auto em = ev.var.isEnumMember())
+                    ex = em.value;
+            }
+            if (auto ecr = ex.isClassReferenceExp())
+            {
+                Type t = ecr.type;
+                elem* result = getTypeInfo(ecr, t, irs);
+                return el_bin(OPadd, result.Ety, result, el_long(TYsize_t, t.vtinfo.offset));
+            }
+
             auto tc = ex.type.toBasetype().isTypeClass();
             assert(tc);
             // generate **classptr to get the classinfo
@@ -2891,6 +2903,7 @@ elem* toElem(Expression e, IRState *irs)
 
     elem* visitUshrAssign(UshrAssignExp e)
     {
+        //printf("UShrAssignExp.toElem() %s, %s\n", e.e1.type.toChars(), e.e1.toChars());
         return toElemBinAssign(e, OPshrass);
     }
 

@@ -483,8 +483,14 @@ private elem *fixconvop(elem *e)
              cop == OPu8_16 || cop == OPs8_16))
     {   if (e.Eoper != OPshlass && e.Eoper != OPshrass && e.Eoper != OPashrass)
             e.EV.E2 = el_una(icop,tym,e2);
-        //printf("after1\n");
-        //elem_print(e);
+
+        version (MARS)
+        {
+            // https://issues.dlang.org/show_bug.cgi?id=23618
+            if ((cop == OPu16_32 || cop == OPu8_16) && e.Eoper == OPashrass)
+                e.Eoper = OPshrass;     // always unsigned right shift for MARS
+        }
+
         return e;
     }
 
