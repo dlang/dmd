@@ -3740,7 +3740,6 @@ public:
     Type* substWildTo(uint32_t _param_0) override;
     MATCH constConv(Type* to) override;
     bool iswild() const;
-    bool attributesEqual(const TypeFunction* const other) const;
     void accept(Visitor* v) override;
 };
 
