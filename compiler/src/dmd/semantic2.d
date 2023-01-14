@@ -439,7 +439,11 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 if (tf1.mod != tf2.mod || ((f1.storage_class ^ f2.storage_class) & STC.static_))
                     return 0;
 
-                const sameAttr = tf1.attributesEqual(tf2);
+                // @@@DEPRECATED_2.112@@@
+                // This test doesn't catch identical functions that differ only
+                // in explicit/implicit `@system` - a deprecation has now been
+                // added below, remove `false` after deprecation period is over.
+                const sameAttr = tf1.attributesEqual(tf2, false);
                 const sameParams = tf1.parameterList == tf2.parameterList;
 
                 // Allow the hack to declare overloads with different parameters/STC's
@@ -467,7 +471,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
                     // Same as 2.104 deprecation, but also catching explicit/implicit `@system`
                     // At the end of deprecation period, fix Type.attributesEqual and remove
                     // this condition, as well as the error for extern(C) functions above.
-                    if (sameAttr != tf1.attributesEqual(tf2, true))
+                    if (sameAttr != tf1.attributesEqual(tf2))
                     {
                         f2.deprecation("cannot overload `extern(%s)` function at %s",
                                 linkageToChars(f1._linkage),

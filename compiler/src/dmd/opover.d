@@ -1746,7 +1746,10 @@ private FuncDeclaration findBestOpApplyMatch(Expression ethis, FuncDeclaration f
 
             // Found another overload with different attributes?
             // e.g. @system vs. @safe opApply
-            bool ambig = tf.attributesEqual(bestTf);
+            // @@@DEPRECATED_2.112@@@
+            // See semantic2.d Semantic2Visitor.visit(FuncDeclaration):
+            // Remove `false` after deprecation period is over.
+            bool ambig = tf.attributesEqual(bestTf, false);
 
             // opApplies with identical attributes could still accept
             // different function bodies as delegate
