@@ -1421,7 +1421,7 @@ elem* toElem(Expression e, IRState *irs)
     elem* visitAssert(AssertExp ae)
     {
         // https://dlang.org/spec/expression.html#assert_expressions
-        //printf("AssertExp.toElem() %s\n", toChars());
+        //printf("AssertExp.toElem() %s\n", ae.toChars());
         elem *e;
         if (irs.params.useAssert == CHECKENABLE.on)
         {
@@ -3557,7 +3557,7 @@ elem* toElem(Expression e, IRState *irs)
         version (none)
         {
             printf("VectorExp.toElem()\n");
-            ve.print();
+            printAST(ve);
             printf("\tfrom: %s\n", ve.e1.type.toChars());
             printf("\tto  : %s\n", ve.to.toChars());
         }
@@ -3610,6 +3610,11 @@ elem* toElem(Expression e, IRState *irs)
                         assert(0);
                 }
             }
+        }
+        else if (ve.type.size() == ve.e1.type.size())
+        {
+            e = toElem(ve.e1, irs);
+            e.Ety = totym(ve.type);  // paint vector type on it
         }
         else
         {

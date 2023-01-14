@@ -285,54 +285,10 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
                     return helper3();
             }
         }
+
         if (!sm)
-        {
-            if (!t)
-            {
-                if (s.isDeclaration()) // var, func, or tuple declaration?
-                {
-                    t = s.isDeclaration().type;
-                    if (!t && s.isTupleDeclaration()) // expression tuple?
-                        return helper3();
-                }
-                else if (s.isTemplateInstance() ||
-                         s.isImport() || s.isPackage() || s.isModule())
-                {
-                    return helper3();
-                }
-            }
-            if (t)
-            {
-                sm = t.toDsymbol(sc);
-                if (sm && id.dyncast() == DYNCAST.identifier)
-                {
-                    sm = sm.search(loc, cast(Identifier)id, IgnorePrivateImports);
-                    if (!sm)
-                        return helper3();
-                }
-                else
-                    return helper3();
-            }
-            else
-            {
-                if (id.dyncast() == DYNCAST.dsymbol)
-                {
-                    // searchX already handles errors for template instances
-                    assert(global.errors);
-                }
-                else
-                {
-                    assert(id.dyncast() == DYNCAST.identifier);
-                    sm = s.search_correct(cast(Identifier)id);
-                    if (sm)
-                        error(loc, "identifier `%s` of `%s` is not defined, did you mean %s `%s`?", id.toChars(), mt.toChars(), sm.kind(), sm.toChars());
-                    else
-                        error(loc, "identifier `%s` of `%s` is not defined", id.toChars(), mt.toChars());
-                }
-                pe = ErrorExp.get();
-                return;
-            }
-        }
+            return helper3();
+
         s = sm.toAlias();
     }
 
@@ -580,6 +536,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
         {
             auto errors = global.errors;
             mtype.dim = semanticLength(sc, tbn, mtype.dim);
+            mtype.dim = mtype.dim.implicitCastTo(sc, Type.tsize_t);
             if (errors != global.errors)
                 return error();
 

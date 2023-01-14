@@ -2420,7 +2420,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         tf = tf.addSTC(stc);
 
         auto f = new AST.CtorDeclaration(loc, Loc.initial, stc, tf);
-        AST.Dsymbol s = parseContracts(f);
+        AST.Dsymbol s = parseContracts(f, !!tpl);
         if (udas)
         {
             auto a = new AST.Dsymbols();
@@ -4571,7 +4571,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     pAttrs.storageClass = STC.undefined_;
                 if (tpl)
                     constraint = parseConstraint();
-                AST.Dsymbol s = parseContracts(f);
+                AST.Dsymbol s = parseContracts(f, !!tpl);
                 auto tplIdent = s.ident;
 
                 if (link != linkage)
@@ -5157,7 +5157,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     /*****************************************
      * Parse contracts following function declaration.
      */
-    private AST.FuncDeclaration parseContracts(AST.FuncDeclaration f)
+    private AST.FuncDeclaration parseContracts(AST.FuncDeclaration f, bool isTemplateFunction = false)
     {
         LINK linksave = linkage;
 
@@ -5329,7 +5329,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 else if (t == TOK.at)
                     error("attributes cannot be placed after a template constraint");
                 else if (t == TOK.if_)
-                    error("cannot use function constraints for non-template functions. Use `static if` instead");
+                {
+                    if (isTemplateFunction)
+                        error("template constraint must follow parameter lists and attributes");
+                    else
+                        error("cannot use function constraints for non-template functions. Use `static if` instead");
+                }
                 else
                     error("semicolon expected following function declaration");
             }
