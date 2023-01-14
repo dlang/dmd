@@ -4828,7 +4828,7 @@ extern (C++) final class TypeFunction : TypeNext
     override MATCH constConv(Type to)
     {
         // Attributes need to match exactly, otherwise it's an implicit conversion
-        if (this.ty != to.ty || !this.attributesEqual(cast(TypeFunction) to, true))
+        if (this.ty != to.ty || !this.attributesEqual(cast(TypeFunction) to))
             return MATCH.nomatch;
 
         return super.constConv(to);
@@ -4871,7 +4871,7 @@ extern (C++) final class TypeFunction : TypeNext
     }
 
     /// Returns: whether `this` function type has the same attributes (`@safe`,...) as `other`
-    extern (D) bool attributesEqual(const scope TypeFunction other, bool trustSystemEqualsDefault = false) const pure nothrow @safe @nogc
+    extern (D) bool attributesEqual(const scope TypeFunction other, bool trustSystemEqualsDefault = true) const pure nothrow @safe @nogc
     {
         // @@@DEPRECATED_2.112@@@
         // See semantic2.d Semantic2Visitor.visit(FuncDeclaration):
