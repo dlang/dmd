@@ -1,0 +1,19 @@
+A missed case of conflicting `extern (D) @system` function definitions has been deprecated
+
+Having multiple definitions of functions within a module had been turned
+$(LINK2 $(ROOT_DIR)/changelog/2.095.0.html#duplicate-implementations-deprecation,
+into an error in DMD 2.095.0).
+
+However, the compiler would not issue an error when two implementations
+differed by an explicit and inferred `@system` attribute, although they have
+the same mangling.
+
+---
+void foo() {}
+void foo() @system {} // no error
+---
+
+This bug has been fixed, and DMD will now issue a deprecation if there are such
+conflicting `@system` function implementations. Starting from DMD 2.112, it
+will produce a multiple definition error just like other kinds of conflicting
+functions within a module.

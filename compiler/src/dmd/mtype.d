@@ -4828,7 +4828,7 @@ extern (C++) final class TypeFunction : TypeNext
     override MATCH constConv(Type to)
     {
         // Attributes need to match exactly, otherwise it's an implicit conversion
-        if (this.ty != to.ty || !this.attributesEqual(cast(TypeFunction) to))
+        if (this.ty != to.ty || !this.attributesEqual(cast(TypeFunction) to, true))
             return MATCH.nomatch;
 
         return super.constConv(to);
@@ -4871,9 +4871,18 @@ extern (C++) final class TypeFunction : TypeNext
     }
 
     /// Returns: whether `this` function type has the same attributes (`@safe`,...) as `other`
-    bool attributesEqual(const scope TypeFunction other) const pure nothrow @safe @nogc
+    extern (D) bool attributesEqual(const scope TypeFunction other, bool trustSystemEqualsDefault = false) const pure nothrow @safe @nogc
     {
-        return this.trust == other.trust &&
+        // @@@DEPRECATED_2.112@@@
+        // See semantic2.d Semantic2Visitor.visit(FuncDeclaration):
+        // Two overloads that are identical except for one having an explicit `@system`
+        // attribute is currently in deprecation, and will become an error in 2.104 for
+        // `extern(C)`, and 2.112 for `extern(D)` code respectively. Once the deprecation
+        // period has passed, the trustSystemEqualsDefault=true behaviour should be made
+        // the default, then we can remove the `cannot overload extern(...) function`
+        // errors as they will become dead code as a result.
+        return (this.trust == other.trust ||
+                (trustSystemEqualsDefault && this.trust <= TRUST.system && other.trust <= TRUST.system)) &&
                 this.purity == other.purity &&
                 this.isnothrow == other.isnothrow &&
                 this.isnogc == other.isnogc &&

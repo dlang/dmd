@@ -462,7 +462,19 @@ private extern(C++) final class Semantic2Visitor : Visitor
 
                 // Different attributes don't conflict in extern(D)
                 if (!sameAttr && linkage1 == LINK.d)
+                {
+                    // @@@DEPRECATED_2.112@@@
+                    // Same as 2.104 deprecation, but also catching explicit/implicit `@system`
+                    // At the end of deprecation period, fix Type.attributesEqual and remove
+                    // this condition, as well as the error for extern(C) functions above.
+                    if (sameAttr != tf1.attributesEqual(tf2, true))
+                    {
+                        f2.deprecation("cannot overload `extern(%s)` function at %s",
+                                linkageToChars(f1._linkage),
+                                f1.loc.toChars());
+                    }
                     return 0;
+                }
 
                 error(f2.loc, "%s `%s%s` conflicts with previous declaration at %s",
                         f2.kind(),
