@@ -53,9 +53,9 @@ coverage_environment_template: &COVERAGE_ENVIRONMENT_TEMPLATE
 
 # Linux
 linux_task:
-  name: Ubuntu 18.04 $TASK_NAME_SUFFIX
+  name: Ubuntu 20.04 $TASK_NAME_SUFFIX
   container:
-    image: ubuntu:18.04
+    image: ubuntu:20.04
     cpu: 4
     memory: 8G
   timeout_in: 60m
