@@ -185,7 +185,7 @@ Options:
 
     if (targets.length > 0)
     {
-        string[] failedTargets;
+        shared string[] failedTargets;
         foreach (target; parallel(targets, 1))
         {
             log("run: %-(%s %)", target.args);
