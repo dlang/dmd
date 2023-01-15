@@ -6255,33 +6255,46 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         this.tnext = null;
         this.tinst = null;
 
-        if (errors || (inst && inst.isDiscardable()))
+        // Don't do codegen if the instance has errors,
+        // is a dummy instance (see evaluateConstraint),
+        // or is determined to be discardable.
+        if (errors || inst is null || inst.isDiscardable())
         {
             minst = null; // mark as speculative
             return false;
         }
 
+        // This should only be called on the primary instantiation.
+        assert(this is inst);
+
         if (global.params.allInst)
         {
             // Do codegen if there is an instantiation from a root module, to maximize link-ability.
-
-            // Do codegen if `this` is instantiated from a root module.
-            if (minst && minst.isRoot())
-                return true;
-
-            // Do codegen if the ancestor needs it.
-            if (tinst && tinst.needsCodegen())
+            static ThreeState needsCodegenAllInst(TemplateInstance tithis, TemplateInstance tinst)
             {
-                minst = tinst.minst; // cache result
-                assert(minst);
-                assert(minst.isRoot());
-                return true;
+                // Do codegen if `this` is instantiated from a root module.
+                if (tithis.minst && tithis.minst.isRoot())
+                    return ThreeState.yes;
+
+                // Do codegen if the ancestor needs it.
+                if (tinst && tinst.inst && tinst.inst.needsCodegen())
+                {
+                    tithis.minst = tinst.inst.minst; // cache result
+                    assert(tithis.minst);
+                    assert(tithis.minst.isRoot());
+                    return ThreeState.yes;
+                }
+                return ThreeState.none;
             }
 
+            if (const needsCodegen = needsCodegenAllInst(this, tinst))
+                return needsCodegen == ThreeState.yes ? true : false;
+
             // Do codegen if a sibling needs it.
-            if (tnext)
+            for (; tnext; tnext = tnext.tnext)
             {
-                if (tnext.needsCodegen())
+                const needsCodegen = needsCodegenAllInst(tnext, tnext.tinst);
+                if (needsCodegen == ThreeState.yes)
                 {
                     minst = tnext.minst; // cache result
                     assert(minst);
@@ -6291,8 +6304,10 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 else if (!minst && tnext.minst)
                 {
                     minst = tnext.minst; // cache result from non-speculative sibling
-                    return false;
+                    // continue searching
                 }
+                else if (needsCodegen != ThreeState.none)
+                    break;
             }
 
             // Elide codegen because there's no instantiation from any root modules.
@@ -6317,31 +6332,39 @@ extern (C++) class TemplateInstance : ScopeDsymbol
              * => Elide codegen if there is at least one instantiation from a non-root module
              *    which doesn't import any root modules.
              */
-
-            // If the ancestor isn't speculative,
-            // 1. do codegen if the ancestor needs it
-            // 2. elide codegen if the ancestor doesn't need it (non-root instantiation of ancestor incl. subtree)
-            if (tinst)
+            static ThreeState needsCodegenRootOnly(TemplateInstance tithis, TemplateInstance tinst)
             {
-                const needsCodegen = tinst.needsCodegen(); // sets tinst.minst
-                if (tinst.minst) // not speculative
+                // If the ancestor isn't speculative,
+                // 1. do codegen if the ancestor needs it
+                // 2. elide codegen if the ancestor doesn't need it (non-root instantiation of ancestor incl. subtree)
+                if (tinst && tinst.inst)
                 {
-                    minst = tinst.minst; // cache result
-                    return needsCodegen;
+                    tinst = tinst.inst;
+                    const needsCodegen = tinst.needsCodegen(); // sets tinst.minst
+                    if (tinst.minst) // not speculative
+                    {
+                        tithis.minst = tinst.minst; // cache result
+                        return needsCodegen ? ThreeState.yes : ThreeState.no;
+                    }
                 }
+
+                // Elide codegen if `this` doesn't need it.
+                if (tithis.minst && !tithis.minst.isRoot() && !tithis.minst.rootImports())
+                    return ThreeState.no;
+
+                return ThreeState.none;
             }
 
-            // Elide codegen if `this` doesn't need it.
-            if (minst && !minst.isRoot() && !minst.rootImports())
-                return false;
+            if (const needsCodegen = needsCodegenRootOnly(this, tinst))
+                return needsCodegen == ThreeState.yes ? true : false;
 
             // Elide codegen if a (non-speculative) sibling doesn't need it.
-            if (tnext)
+            for (; tnext; tnext = tnext.tnext)
             {
-                const needsCodegen = tnext.needsCodegen(); // sets tnext.minst
+                const needsCodegen = needsCodegenRootOnly(tnext, tnext.tinst); // sets tnext.minst
                 if (tnext.minst) // not speculative
                 {
-                    if (!needsCodegen)
+                    if (needsCodegen == ThreeState.no)
                     {
                         minst = tnext.minst; // cache result
                         assert(!minst.isRoot() && !minst.rootImports());
@@ -6350,8 +6373,10 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     else if (!minst)
                     {
                         minst = tnext.minst; // cache result from non-speculative sibling
-                        return true;
+                        // continue searching
                     }
+                    else if (needsCodegen != ThreeState.none)
+                        break;
                 }
             }
 
