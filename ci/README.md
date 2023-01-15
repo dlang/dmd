@@ -152,13 +152,13 @@ These should be taken seriously, since untested code is likely to introduce bugs
 - FreeBSD 12.3 x64, DMD (bootstrap)
 - FreeBSD 13.0 x64, DMD (coverage)
 - FreeBSD 13.0 x64, DMD (latest)
-- Ubuntu 20.04 x64, DMD (bootstrap)
-- Ubuntu 20.04 x64, DMD (latest)
-- Ubuntu 20.04 x64, GDC
-- Ubuntu 20.04 x64, LDC
-- Ubuntu 20.04 x86, DMD (bootstrap)
-- Ubuntu 20.04 x86, DMD (coverage)
-- Ubuntu 20.04 x86, DMD (latest)
+- Ubuntu 22.04 x64, DMD (bootstrap)
+- Ubuntu 22.04 x64, DMD (latest)
+- Ubuntu 22.04 x64, GDC
+- Ubuntu 22.04 x64, LDC
+- Ubuntu 22.04 x86, DMD (bootstrap)
+- Ubuntu 22.04 x86, DMD (coverage)
+- Ubuntu 22.04 x86, DMD (latest)
 - macOS 12.x x64 (M1), DMD (bootstrap)
 - macOS 13.x x64 (M1), DMD (coverage)
 - macOS 13.x x64 (M1), DMD (latest)
