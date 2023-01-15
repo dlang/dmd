@@ -444,57 +444,10 @@ void test13161()
 
 /****************************************/
 
-version (linux)
-{
-    static if (__traits(getTargetInfo, "cppStd") < 201703)
-    {
-        // See note on std::allocator below.
-        extern(C++, __gnu_cxx)
-        {
-            struct new_allocator(T)
-            {
-                alias size_type = size_t;
-                static if (is(T : char))
-                    void deallocate(T*, size_type) { }
-                else
-                    void deallocate(T*, size_type);
-            }
-        }
-    }
-}
-
 extern (C++, std)
 {
-    version (linux)
-    {
-        static if (__traits(getTargetInfo, "cppStd") >= 201703)
-        {
-            // std::allocator no longer derives from __gnu_cxx::new_allocator,
-            // it derives from std::__new_allocator instead.
-            struct __new_allocator(T)
-            {
-                alias size_type = size_t;
-                static if (is(T : char))
-                    void deallocate(T*, size_type) { }
-                else
-                    void deallocate(T*, size_type);
-            }
-        }
-    }
-
     extern (C++, class) struct allocator(T)
     {
-        version (linux)
-        {
-            alias size_type = size_t;
-            void deallocate(T* p, size_type sz)
-            {
-                static if (__traits(getTargetInfo, "cppStd") >= 201703)
-                    (cast(std.__new_allocator!T*)&this).deallocate(p, sz);
-                else
-                    (cast(__gnu_cxx.new_allocator!T*)&this).deallocate(p, sz);
-            }
-        }
     }
 
     class vector(T, A = allocator!T)
@@ -586,11 +539,6 @@ void test14()
 
 version (linux)
 {
-    void test14a(std.allocator!int * pa)
-    {
-    pa.deallocate(null, 0);
-    }
-
     void gun(std.vector!int pa)
     {
     int x = 42;
