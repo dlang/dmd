@@ -265,7 +265,8 @@ extern (C++) void expandTuples(Expressions* exps, Identifiers* names = null)
     {
         if (exps.length != names.length)
         {
-            // Fixme: this branch should be removed when bugs are fixed.
+            // Fixme: this branch should be removed when CallExp rewrites
+            // (UFCS/operator overloading) are fixed to take named arguments into account
             names.setDim(exps.length);
             foreach (i; 0..exps.length)
                 (*names)[i] = null;
