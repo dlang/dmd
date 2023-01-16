@@ -450,14 +450,12 @@ $(H2 $(LNAME2 const, $(D const) Attribute))
         where $(D T) is the type specified (or inferred) for the introduced symbol in the absence of $(D const).
         )
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---------------
         const int foo = 7;
         static assert(is(typeof(foo) == const(int)));
 
-        const
-        {
-            double bar = foo + 6;
-        }
+        const double bar = foo + 6;
         static assert(is(typeof(bar) == const(double)));
 
         class C
@@ -475,16 +473,19 @@ $(H2 $(LNAME2 const, $(D const) Attribute))
         static assert(is(typeof(C.foo) == typeof(C.bar)) &&
                       is(typeof(C.bar) == typeof(C.baz)));
         ---------------
+        )
 
 $(H2 $(LNAME2 immutable, $(D immutable) Attribute))
 
         $(P The $(D immutable) attribute modifies the type from $(D T) to $(D immutable(T)),
-        the same way as $(D const) does.
+        the same way as $(D const) does. See:
         )
+        * $(DDSUBLINK spec/const3, immutable_storage_class, `immutable` storage class)
+        * $(DDSUBLINK spec/const3, immutable_type, $(D immutable) type qualifier)
 
 $(H2 $(LNAME2 inout, $(D inout) Attribute))
 
-        $(P The $(D inout) attribute modifies the type from $(D T) to $(D inout(T)),
+        $(P The $(DDSUBLINK spec/const3, inout, $(D inout) attribute) modifies the type from $(D T) to $(D inout(T)),
         the same way as $(D const) does.
         )
 
