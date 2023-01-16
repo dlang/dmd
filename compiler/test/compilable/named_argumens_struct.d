@@ -1,8 +1,8 @@
 
 struct S
 {
-	string name;
-	int x;
+    string name;
+    int x;
     int y;
 }
 
@@ -15,8 +15,8 @@ static assert(s.name == "boo");
 
 union U
 {
-	float f;
-	int i;
+    float f;
+    int i;
 }
 
 immutable U u = U(i: 2);
