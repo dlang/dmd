@@ -193,15 +193,31 @@ private extern (C++) class S2irVisitor : Visitor
 
         bcond.appendSucc(blx.curblock);
         if (s.ifbody)
+        {
+            bool ctfe = false;
+            if (auto cv = s.condition.isVarExp())
+                ctfe = cv.var.ident == Id.ctfe;         // __ctfe is always false at runtime
+            const isFalse = s.condition.toBool().hasValue(false) || ctfe;
+
+            irs.falseBlock += isFalse;
             Statement_toIR(s.ifbody, irs, &mystate);
+            if (isFalse && irs.falseBlock)
+                --irs.falseBlock;
+        }
         blx.curblock.appendSucc(bexit);
 
         if (s.elsebody)
         {
+            const isFalse = s.condition.toBool().hasValue(true);
+            irs.falseBlock += isFalse;
+
             block_next(blx, BCgoto, null);
             bcond.appendSucc(blx.curblock);
             Statement_toIR(s.elsebody, irs, &mystate);
             blx.curblock.appendSucc(bexit);
+
+            if (isFalse && irs.falseBlock)
+                --irs.falseBlock;
         }
         else
             bcond.appendSucc(bexit);
@@ -420,6 +436,7 @@ private extern (C++) class S2irVisitor : Visitor
         block *bc = blx.curblock;
         StmtState mystate = StmtState(stmtstate, s);
         mystate.ident = s.ident;
+        irs.falseBlock = 0;
 
         block* bdest = cast(block*)s.extra;
         // At last, we know which try block this label is inside
@@ -542,6 +559,7 @@ private extern (C++) class S2irVisitor : Visitor
 
     override void visit(CaseStatement s)
     {
+        irs.falseBlock = 0;
         Blockx *blx = irs.blx;
         block *bcase = blx.curblock;
         block* cb = cast(block*)s.extra;
@@ -558,6 +576,7 @@ private extern (C++) class S2irVisitor : Visitor
 
     override void visit(DefaultStatement s)
     {
+        irs.falseBlock = 0;
         Blockx *blx = irs.blx;
         block *bcase = blx.curblock;
         block *bdefault = stmtstate.getDefaultBlock();
@@ -760,7 +779,7 @@ private extern (C++) class S2irVisitor : Visitor
         Blockx *blx = irs.blx;
 
         //printf("ExpStatement.toIR(), exp: %p %s\n", s.exp, s.exp ? s.exp.toChars() : "");
-        if (s.exp)
+        if (s.exp && !irs.falseBlock)
         {
             if (s.exp.hasCode &&
                 !(isAssertFalse(s.exp))) // `assert(0)` not meant to be covered
