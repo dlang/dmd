@@ -1435,11 +1435,12 @@ Params:
     names = identifiers passed in argument list, `null` entries for positional arguments
     getExp = function that, given an index into `names` and destination type, returns the initializing expression
     getLoc = function that, given an index into `names`, returns a location for error messages
+
 Returns: list of expressions ordered to the struct's fields, or `null` on error
 */
-Expressions* resolveStructLiteralNamedArgs(
-    StructDeclaration sd, Type t, Scope* sc, Loc iloc, Identifier[] names,
-    scope Expression delegate(size_t i, Type fieldType) getExp, scope Loc delegate(size_t i) getLoc
+Expressions* resolveStructLiteralNamedArgs(StructDeclaration sd, Type t, Scope* sc,
+    Loc iloc, Identifier[] names, scope Expression delegate(size_t i, Type fieldType) getExp,
+    scope Loc delegate(size_t i) getLoc
 )
 {
     //expandTuples for non-identity arguments?
