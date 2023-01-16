@@ -1,0 +1,44 @@
+Using run-time variables as switch cases has been deprecated
+
+It's a feature that's not commonly used, and it goes against normal expectations of a switch statement.
+When using run-time variables:
+
+- Case statements can contain duplicates
+- Case statements can be mutated through mutable aliasing of a `const ref`
+- There's no fast dispatch mechanism (such as a jump table)
+
+It's also only implemented for integers, on strings it gives a weird error message ([Issue 23635](https://issues.dlang.org/show_bug.cgi?id=23635)).
+See also the discussion in [Issue 16523](https://issues.dlang.org/show_bug.cgi?id=16523).
+
+---
+void f(const int x, const int y, const int z)
+{
+    // Deprecated:
+    switch(x)
+    {
+        case y:
+            // ...
+            break;
+        case z:
+            // ...
+            break;
+        default:
+            // ...
+            break;
+    }
+
+    // Corrective action:
+    if (x == y)
+    {
+        // case y
+    }
+    else if (x == z)
+    {
+        // case z
+    }
+    else
+    {
+        // default
+    }
+}
+---

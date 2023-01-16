@@ -78,7 +78,9 @@ void test4()
 /++
 TEST_OUTPUT:
 ---
+fail_compilation/test_switch_error.d(405): Deprecation: run-time `case` variables are deprecated, use if-else statements instead
 fail_compilation/test_switch_error.d(405): Error: `case` variables have to be `const` or `immutable`
+fail_compilation/test_switch_error.d(412): Deprecation: run-time `case` variables are deprecated, use if-else statements instead
 fail_compilation/test_switch_error.d(412): Error: `case` variables not allowed in `final switch` statements
 ---
 ++/
@@ -105,10 +107,13 @@ TEST_OUTPUT:
 ---
 fail_compilation/test_switch_error.d(513): Error: undefined identifier `undefinedFunc`
 fail_compilation/test_switch_error.d(517): Error: `case` expression must be a compile-time `string` or an integral constant, not `Strukt(1)`
+fail_compilation/test_switch_error.d(518): Deprecation: run-time `case` variables are deprecated, use if-else statements instead
 fail_compilation/test_switch_error.d(518): Error: `case` variables have to be `const` or `immutable`
 fail_compilation/test_switch_error.d(518): Error: `case` variables not allowed in `final switch` statements
+fail_compilation/test_switch_error.d(519): Deprecation: run-time `case` variables are deprecated, use if-else statements instead
 fail_compilation/test_switch_error.d(519): Error: `case` variables not allowed in `final switch` statements
 fail_compilation/test_switch_error.d(522): Error: undefined identifier `undefinedFunc2`
+fail_compilation/test_switch_error.d(524): Deprecation: run-time `case` variables are deprecated, use if-else statements instead
 ---
 ++/
 #line 500

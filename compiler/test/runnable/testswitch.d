@@ -1,4 +1,12 @@
 // PERMUTE_ARGS: -w
+/*
+TEST_OUTPUT:
+---
+runnable/testswitch.d(344): Deprecation: run-time `case` variables are deprecated, use if-else statements instead
+runnable/testswitch.d(350): Deprecation: run-time `case` variables are deprecated, use if-else statements instead
+runnable/testswitch.d(353): Deprecation: run-time `case` variables are deprecated, use if-else statements instead
+---
+*/
 
 extern(C) int printf(const char*, ...);
 

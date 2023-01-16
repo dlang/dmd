@@ -1,16 +1,21 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice17831.d(23): Error: `case` variables have to be `const` or `immutable`
-fail_compilation/ice17831.d(23): Error: `case` variable `i` declared at fail_compilation/ice17831.d(21) cannot be declared in `switch` body
-fail_compilation/ice17831.d(37): Error: `case` variables have to be `const` or `immutable`
-fail_compilation/ice17831.d(37): Error: `case` variable `i` declared at fail_compilation/ice17831.d(35) cannot be declared in `switch` body
-fail_compilation/ice17831.d(52): Error: `case` variables have to be `const` or `immutable`
-fail_compilation/ice17831.d(52): Error: `case` variable `i` declared at fail_compilation/ice17831.d(49) cannot be declared in `switch` body
-fail_compilation/ice17831.d(65): Error: `case` variables have to be `const` or `immutable`
-fail_compilation/ice17831.d(65): Error: `case` variable `i` declared at fail_compilation/ice17831.d(64) cannot be declared in `switch` body
-fail_compilation/ice17831.d(77): Error: `case` variables have to be `const` or `immutable`
-fail_compilation/ice17831.d(77): Error: `case` variable `i` declared at fail_compilation/ice17831.d(76) cannot be declared in `switch` body
+fail_compilation/ice17831.d(28): Deprecation: run-time `case` variables are deprecated, use if-else statements instead
+fail_compilation/ice17831.d(28): Error: `case` variables have to be `const` or `immutable`
+fail_compilation/ice17831.d(28): Error: `case` variable `i` declared at fail_compilation/ice17831.d(26) cannot be declared in `switch` body
+fail_compilation/ice17831.d(42): Deprecation: run-time `case` variables are deprecated, use if-else statements instead
+fail_compilation/ice17831.d(42): Error: `case` variables have to be `const` or `immutable`
+fail_compilation/ice17831.d(42): Error: `case` variable `i` declared at fail_compilation/ice17831.d(40) cannot be declared in `switch` body
+fail_compilation/ice17831.d(57): Deprecation: run-time `case` variables are deprecated, use if-else statements instead
+fail_compilation/ice17831.d(57): Error: `case` variables have to be `const` or `immutable`
+fail_compilation/ice17831.d(57): Error: `case` variable `i` declared at fail_compilation/ice17831.d(54) cannot be declared in `switch` body
+fail_compilation/ice17831.d(70): Deprecation: run-time `case` variables are deprecated, use if-else statements instead
+fail_compilation/ice17831.d(70): Error: `case` variables have to be `const` or `immutable`
+fail_compilation/ice17831.d(70): Error: `case` variable `i` declared at fail_compilation/ice17831.d(69) cannot be declared in `switch` body
+fail_compilation/ice17831.d(82): Deprecation: run-time `case` variables are deprecated, use if-else statements instead
+fail_compilation/ice17831.d(82): Error: `case` variables have to be `const` or `immutable`
+fail_compilation/ice17831.d(82): Error: `case` variable `i` declared at fail_compilation/ice17831.d(81) cannot be declared in `switch` body
 ---
  */
 

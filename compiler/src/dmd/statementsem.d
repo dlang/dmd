@@ -2166,6 +2166,11 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             */
             if (e.op == EXP.variable)
             {
+                // @@@DEPRECATION 2.113
+                // Turn into an error and remove this branch,
+                // as well as other branches on `SwitchStatement.hasVars == 1`
+                cs.deprecation("run-time `case` variables are deprecated, use if-else statements instead");
+
                 VarExp ve = cast(VarExp)e;
                 VarDeclaration v = ve.var.isVarDeclaration();
                 Type t = cs.exp.type.toBasetype();
