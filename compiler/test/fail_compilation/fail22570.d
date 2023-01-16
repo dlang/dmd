@@ -3,8 +3,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail22570.d(19): Error: too many initializers for `S`
-fail_compilation/fail22570.d(20): Error: too many initializers for `S`
+fail_compilation/fail22570.d(19): Error: too many initializers for `S` with 1 field
+fail_compilation/fail22570.d(20): Error: too many initializers for `S` with 1 field
 ---
 */
 

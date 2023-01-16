@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail158.d(17): Error: too many initializers for `S`
+fail_compilation/fail158.d(17): Error: too many initializers for `S` with 2 fields
 ---
 */
 

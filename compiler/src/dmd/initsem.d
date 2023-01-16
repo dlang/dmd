@@ -1485,9 +1485,15 @@ Expressions* resolveStructLiteralNamedArgs(StructDeclaration sd, Type t, Scope* 
                     break;
             }
         }
+        if (nfields == 0)
+        {
+            error(argLoc, "initializer provided for struct `%s` with no fields", sd.toChars());
+            return null;
+        }
         if (j >= nfields)
         {
-            error(argLoc, "too many initializers for `%s`", sd.toChars());
+            error(argLoc, "too many initializers for `%s` with %d field%s", sd.toChars(),
+                cast(int) nfields, nfields != 1 ? "s".ptr : "".ptr);
             return null;
         }
 

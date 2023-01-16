@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail299.d(14): Error: too many initializers for `Foo`
+fail_compilation/fail299.d(14): Error: initializer provided for struct `Foo` with no fields
 ---
 */
 
