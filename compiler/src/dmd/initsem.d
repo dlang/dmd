@@ -1524,6 +1524,11 @@ Expressions* resolveStructLiteralNamedArgs(StructDeclaration sd, Type t, Scope* 
             if (vd.isOverlappedWith(v2) && elems[k])
             {
                 error(elems[k].loc, "overlapping initialization for field `%s` and `%s`", v2.toChars(), vd.toChars());
+                enum errorMsg = "`struct` initializers that contain anonymous unions" ~
+                    " must initialize only the first member of a `union`. All subsequent" ~
+                    " non-overlapping fields are default initialized";
+                if (!sd.isUnionDeclaration())
+                    .errorSupplemental(elems[k].loc, errorMsg);
                 errors = true;
                 continue;
             }
