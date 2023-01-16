@@ -381,7 +381,7 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
         fputs(tmp.peekChars(), stderr);
     fputc('\n', stderr);
 
-    static Loc old_loc;
+    __gshared Loc old_loc;
     if (global.params.printErrorContext &&
         // ignore supplemental messages with same loc
         (loc != old_loc || strchr(header, ':')) &&
