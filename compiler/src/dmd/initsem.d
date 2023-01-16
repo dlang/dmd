@@ -1429,7 +1429,7 @@ resolve it to a list of expressions to construct a `StructLiteralExp`.
 
 Params:
     sd = struct
-    t = type of struct (potentially including qualifiers such as `const` `immutable`)
+    t = type of struct (potentially including qualifiers such as `const` or `immutable`)
     sc = scope of the expression initializing the struct
     iloc = location of expression initializing the struct
     names = identifiers passed in argument list, `null` entries for positional arguments
