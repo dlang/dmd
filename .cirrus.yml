@@ -58,6 +58,9 @@ linux_task:
     image: ubuntu:22.04
     cpu: 4
     memory: 8G
+    # Workaround GDB bug on 22.04 by requesting a privileged container
+    # See https://github.com/cirruslabs/cirrus-ci-docs/issues/1136
+    kvm: true
   timeout_in: 60m
   environment:
     matrix:
