@@ -579,16 +579,17 @@ $(P $(RED Warning:) An individual read or write operation on shared
 data is not an error yet by default. To detect these, use the
 `-preview=nosharedaccess` compiler option.)
 
-$(P For bulk operations or larger types, using manual synchronization
-may be more efficient. To do that, `shared` can be cast away for the
+$(P When working with larger types, manual synchronization
+can be used. To do that, `shared` can be cast away for the
 duration while mutual exclusion has been established:
 )
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
-shared int x;
+struct T;
+shared T* x;
 synchronized
 {
-    int* p = cast(int*)&x;
+    T* p = cast(T*)x;
     // operate on `*p`
 }
 ---
