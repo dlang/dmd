@@ -490,7 +490,7 @@ $(H2 $(LNAME2 inout, $(D inout) Attribute))
 
 $(H2 $(LNAME2 shared, $(D shared) Attribute))
 
-        $(P The $(D shared) attribute modifies the type from $(D T) to $(D shared(T)),
+        $(P The $(DDSUBLINK spec/const3, shared, $(D shared) attribute) modifies the type from $(D T) to $(D shared(T)),
         the same way as $(D const) does.
         )
 
@@ -523,12 +523,13 @@ $(H2 $(LNAME2 gshared, $(D __gshared) Attribute))
         }
         ---
 
-        $(P Unlike the $(D shared) attribute, $(D __gshared) provides no
-        safe-guards against data races or other multi-threaded synchronization
+        $(P Unlike the $(RELATIVE_LINK2 shared) attribute, $(D __gshared) provides no
+        safeguards against data races or other multi-threaded synchronization
         issues. It is the responsibility of the programmer to ensure that
         access to variables marked $(D __gshared) is synchronized correctly.)
 
-        $(P $(D __gshared) is disallowed in safe mode.)
+        $(P $(D __gshared) is disallowed in `@safe` code.)
+
 
 $(H2 $(LNAME2 disable, $(D @disable) Attribute))
 
