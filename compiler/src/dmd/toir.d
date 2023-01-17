@@ -86,6 +86,7 @@ struct IRState
     Label*[void*]* labels;          // table of labels used/declared in function
     const Param* params;            // command line parameters
     const Target* target;           // target
+    int falseBlock;                 // !=0 means do not generate code
     bool mayThrow;                  // the expression being evaluated may throw
     bool Cfile;                     // use C semantics
 
