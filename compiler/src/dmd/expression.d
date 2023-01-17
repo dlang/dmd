@@ -249,17 +249,62 @@ bool isDotOpDispatch(Expression e)
 }
 
 /****************************************
- * Expand tuples.
- * Input:
- *      exps    aray of Expressions
- * Output:
- *      exps    rewritten in place
+ * Expand tuples in-place.
+ *
+ * Example:
+ *     When there's a call `f(10, pair: AliasSeq!(20, 30), single: 40))`, the input is:
+ *         exps =  [10, (20, 30), 40]
+ *         names = [null, "pair", "single"]);
+ *     The arrays will be modified to:
+ *         exps =  [10, 20, 30, 40]
+ *         names = [null, "pair", null, "single"]);
+ *
+ * Params:
+ *     exps  = array of Expressions
+ *     names = optional array of names corresponding to Expressions
  */
-extern (C++) void expandTuples(Expressions* exps)
+extern (C++) void expandTuples(Expressions* exps, Identifiers* names = null)
 {
     //printf("expandTuples()\n");
     if (exps is null)
         return;
+
+    if (names)
+    {
+        if (exps.length != names.length)
+        {
+            // Fixme: this branch should be removed when CallExp rewrites
+            // (UFCS/operator overloading) are fixed to take named arguments into account
+            names.setDim(exps.length);
+            foreach (i; 0..exps.length)
+                (*names)[i] = null;
+        }
+        if (exps.length != names.length)
+        {
+            printf("exps.length = %d, names.length = %d\n", cast(int) exps.length, cast(int) names.length);
+            printf("exps = %s, names = %s\n", exps.toChars(), names.toChars());
+            if (exps.length > 0)
+                printf("%s\n", (*exps)[0].loc.toChars());
+            assert(0);
+        }
+    }
+
+    // At `index`, a tuple of length `length` is expanded. Insert corresponding nulls in `names`.
+    void expandNames(size_t index, size_t length)
+    {
+        if (names)
+        {
+            if (length == 0)
+            {
+                names.remove(index);
+                return;
+            }
+            foreach (i; 1 .. length)
+            {
+                names.insert(index + i, cast(Identifier) null);
+            }
+        }
+    }
 
     for (size_t i = 0; i < exps.length; i++)
     {
@@ -275,6 +320,7 @@ extern (C++) void expandTuples(Expressions* exps)
                 if (!tt.arguments || tt.arguments.length == 0)
                 {
                     exps.remove(i);
+                    expandNames(i, 0);
                     if (i == exps.length)
                         return;
                 }
@@ -285,6 +331,7 @@ extern (C++) void expandTuples(Expressions* exps)
                     foreach (j, a; *tt.arguments)
                         (*texps)[j] = new TypeExp(e.loc, a.type);
                     exps.insert(i, texps);
+                    expandNames(i, texps.length);
                 }
                 i--;
                 continue;
@@ -297,6 +344,7 @@ extern (C++) void expandTuples(Expressions* exps)
             TupleExp te = cast(TupleExp)arg;
             exps.remove(i); // remove arg
             exps.insert(i, te.exps); // replace with tuple contents
+            expandNames(i, te.exps.length);
             if (i == exps.length)
                 return; // empty tuple, no more arguments
             (*exps)[i] = Expression.combine(te.e0, (*exps)[i]);
@@ -5079,16 +5127,18 @@ extern (C++) final class DotTypeExp : UnaExp
 extern (C++) final class CallExp : UnaExp
 {
     Expressions* arguments; // function arguments
+    Identifiers* names;       // named argument identifiers
     FuncDeclaration f;      // symbol to call
     bool directcall;        // true if a virtual call is devirtualized
     bool inDebugStatement;  /// true if this was in a debug statement
     bool ignoreAttributes;  /// don't enforce attributes (e.g. call @gc function in @nogc code)
     VarDeclaration vthis2;  // container for multi-context
 
-    extern (D) this(const ref Loc loc, Expression e, Expressions* exps)
+    extern (D) this(const ref Loc loc, Expression e, Expressions* exps, Identifiers* names = null)
     {
         super(loc, EXP.call, __traits(classInstanceSize, CallExp), e);
         this.arguments = exps;
+        this.names = names;
     }
 
     extern (D) this(const ref Loc loc, Expression e)
@@ -5155,7 +5205,7 @@ extern (C++) final class CallExp : UnaExp
 
     override CallExp syntaxCopy()
     {
-        return new CallExp(loc, e1.syntaxCopy(), arraySyntaxCopy(arguments));
+        return new CallExp(loc, e1.syntaxCopy(), arraySyntaxCopy(arguments), names);
     }
 
     override bool isLvalue()

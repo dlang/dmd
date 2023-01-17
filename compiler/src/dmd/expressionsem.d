@@ -651,6 +651,9 @@ private Expression resolveUFCS(Scope* sc, CallExp ce)
     if (!ce.arguments)
         ce.arguments = new Expressions();
     ce.arguments.shift(eleft);
+    if (!ce.names)
+        ce.names = new Identifiers();
+    ce.names.shift(null);
 
     return null;
 }
@@ -1629,12 +1632,12 @@ private Expression rewriteOpAssign(BinExp exp)
  * Returns:
  *      true    a semantic error occurred
  */
-private bool preFunctionParameters(Scope* sc, Expressions* exps, const bool reportErrors = true)
+private bool preFunctionParameters(Scope* sc, Identifiers* names, Expressions* exps, const bool reportErrors = true)
 {
     bool err = false;
     if (exps)
     {
-        expandTuples(exps);
+        expandTuples(exps, names);
 
         for (size_t i = 0; i < exps.length; i++)
         {
@@ -3549,7 +3552,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             return setError();
         }
-        if (preFunctionParameters(sc, exp.arguments))
+        if (preFunctionParameters(sc, /*names*/ null, exp.arguments))
         {
             return setError();
         }
@@ -4287,7 +4290,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (FuncExp fe = exp.e1.isFuncExp())
         {
             if (arrayExpressionSemantic(exp.arguments.peekSlice(), sc) ||
-                preFunctionParameters(sc, exp.arguments))
+                preFunctionParameters(sc, exp.names, exp.arguments))
                 return setError();
 
             // Run e1 semantic even if arguments have any errors
@@ -4526,7 +4529,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
         if (arrayExpressionSemantic(exp.arguments.peekSlice(), sc) ||
-            preFunctionParameters(sc, exp.arguments))
+            preFunctionParameters(sc, exp.names, exp.arguments))
             return setError();
 
         // Check for call operator overload
@@ -4624,7 +4627,22 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 /* It's a struct literal
                  */
             Lx:
-                Expression e = new StructLiteralExp(exp.loc, sd, exp.arguments, exp.e1.type);
+                Expressions* resolvedArgs = exp.arguments;
+                if (exp.names)
+                {
+                    resolvedArgs = resolveStructLiteralNamedArgs(sd, exp.e1.type, sc, exp.loc,
+                        (*exp.names)[],
+                        (size_t i, Type t) => (*exp.arguments)[i],
+                        i => (*exp.arguments)[i].loc
+                    );
+                    if (!resolvedArgs)
+                    {
+                        result = ErrorExp.get();
+                        return;
+                    }
+                }
+
+                Expression e = new StructLiteralExp(exp.loc, sd, resolvedArgs, exp.e1.type);
                 e = e.expressionSemantic(sc);
                 result = e;
                 return;

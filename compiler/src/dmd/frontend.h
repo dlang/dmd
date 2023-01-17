@@ -6874,7 +6874,7 @@ public:
     void accept(Visitor* v) override;
 };
 
-extern void expandTuples(Array<Expression* >* exps);
+extern void expandTuples(Array<Expression* >* exps, Array<Identifier* >* names = nullptr);
 
 struct UnionExp final
 {
@@ -7422,6 +7422,7 @@ class CallExp final : public UnaExp
 {
 public:
     Array<Expression* >* arguments;
+    Array<Identifier* >* names;
     FuncDeclaration* f;
     bool directcall;
     bool inDebugStatement;

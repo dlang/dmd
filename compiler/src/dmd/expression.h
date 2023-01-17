@@ -45,7 +45,7 @@ typedef union tree_node Symbol;
 struct Symbol;          // back end symbol
 #endif
 
-void expandTuples(Expressions *exps);
+void expandTuples(Expressions *exps, Identifiers *names = nullptr);
 bool isTrivialExp(Expression *e);
 bool hasSideEffect(Expression *e, bool assumeImpureCalls = false);
 
@@ -826,6 +826,7 @@ class CallExp final : public UnaExp
 {
 public:
     Expressions *arguments;     // function arguments
+    Identifiers *names;
     FuncDeclaration *f;         // symbol to call
     bool directcall;            // true if a virtual call is devirtualized
     bool inDebugStatement;      // true if this was in a debug statement
