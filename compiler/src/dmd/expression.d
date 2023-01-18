@@ -252,7 +252,7 @@ bool isDotOpDispatch(Expression e)
  * Expand tuples in-place.
  *
  * Example:
- *     When there's a call `f(10, pair: AliasSeq!(20, 30), single: 40))`, the input is:
+ *     When there's a call `f(10, pair: AliasSeq!(20, 30), single: 40)`, the input is:
  *         `exps =  [10, (20, 30), 40]`
  *         `names = [null, "pair", "single"]`
  *     The arrays will be modified to:
