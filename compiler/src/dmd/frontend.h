@@ -7183,6 +7183,7 @@ public:
     CtorDeclaration* member;
     bool onstack;
     bool thrownew;
+    Expression* lowering;
     static NewExp* create(const Loc& loc, Expression* thisexp, Type* newtype, Array<Expression* >* arguments);
     NewExp* syntaxCopy() override;
     void accept(Visitor* v) override;
@@ -8573,6 +8574,8 @@ struct Id final
     static Identifier* criticalexit;
     static Identifier* _d_delThrowable;
     static Identifier* _d_newThrowable;
+    static Identifier* _d_newclassT;
+    static Identifier* _d_newclassTTrace;
     static Identifier* _d_assert_fail;
     static Identifier* dup;
     static Identifier* _aaApply;

@@ -3781,6 +3781,32 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 result = id.expressionSemantic(sc);
                 return;
             }
+            else if (!exp.onstack && !exp.type.isscope())
+            {
+                auto hook = global.params.tracegc ? Id._d_newclassTTrace : Id._d_newclassT;
+                if (!verifyHookExist(exp.loc, *sc, hook, "new class"))
+                    return setError();
+
+                Expression id = new IdentifierExp(exp.loc, Id.empty);
+                id = new DotIdExp(exp.loc, id, Id.object);
+
+                auto tiargs = new Objects();
+                auto t = exp.newtype.unqualify(MODFlags.wild);  // remove `inout`
+                tiargs.push(t);
+                id = new DotTemplateInstanceExp(exp.loc, id, hook, tiargs);
+                auto arguments = new Expressions();
+                if (global.params.tracegc)
+                {
+                    auto funcname = (sc.callsc && sc.callsc.func) ?
+                        sc.callsc.func.toPrettyChars() : sc.func.toPrettyChars();
+                    arguments.push(new StringExp(exp.loc, exp.loc.filename.toDString()));
+                    arguments.push(new IntegerExp(exp.loc, exp.loc.linnum, Type.tint32));
+                    arguments.push(new StringExp(exp.loc, funcname.toDString()));
+                }
+                id = new CallExp(exp.loc, id, arguments);
+
+                exp.lowering = id.expressionSemantic(sc);
+            }
         }
         else if (auto ts = tb.isTypeStruct())
         {
