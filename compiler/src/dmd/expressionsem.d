@@ -13185,7 +13185,9 @@ bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
         // Error by default
         bool visit(Expression e)
         {
-            if (e.type.isShared())
+            // https://issues.dlang.org/show_bug.cgi?id=23639
+            // Should be able to cast(shared)
+            if (!e.isCastExp() && e.type.isShared())
                 return sharedError(e);
             return false;
         }
