@@ -4990,6 +4990,7 @@ struct ASTBase
         Expression thisexp;         // if !=null, 'this' for class being allocated
         Type newtype;
         Expressions* arguments;     // Array of Expression's
+        Identifiers* names;         // Array of names corresponding to expressions
 
         extern (D) this(const ref Loc loc, Expression thisexp, Type newtype, Expressions* arguments)
         {

@@ -1039,12 +1039,13 @@ extern (C++) class FuncDeclaration : Declaration
      *      match   'this' is at least as specialized as g
      *      0       g is more specialized than 'this'
      */
-    final MATCH leastAsSpecialized(FuncDeclaration g)
+    final MATCH leastAsSpecialized(FuncDeclaration g, Identifiers* names)
     {
         enum LOG_LEASTAS = 0;
         static if (LOG_LEASTAS)
         {
-            printf("%s.leastAsSpecialized(%s)\n", toChars(), g.toChars());
+            import core.stdc.stdio : printf;
+            printf("%s.leastAsSpecialized(%s, %s)\n", toChars(), g.toChars(), names ? names.toChars() : "null");
             printf("%s, %s\n", type.toChars(), g.type.toChars());
         }
 
@@ -1089,7 +1090,7 @@ extern (C++) class FuncDeclaration : Declaration
             args.push(e);
         }
 
-        MATCH m = tg.callMatch(null, &args, 1);
+        MATCH m = tg.callMatch(null, &args, names, 1);
         if (m > MATCH.nomatch)
         {
             /* A variadic parameter list is less specialized than a
@@ -3134,7 +3135,7 @@ enum FuncResolveFlag : ubyte
  *      if match is found, then function symbol, else null
  */
 FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
-    Objects* tiargs, Type tthis, Expressions* fargs, FuncResolveFlag flags)
+    Objects* tiargs, Type tthis, Expressions* fargs, Identifiers* fnames, FuncResolveFlag flags)
 {
     if (!s)
         return null; // no match
@@ -3153,6 +3154,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
                 printf("\t%s: %s\n", arg.toChars(), arg.type.toChars());
             }
         }
+        printf("\tfnames: %s\n", fnames ? fnames.toChars() : "null");
     }
 
     if (tiargs && arrayObjectIsError(tiargs))
@@ -3163,7 +3165,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
                 return null;
 
     MatchAccumulator m;
-    functionResolve(m, s, loc, sc, tiargs, tthis, fargs, null);
+    functionResolve(m, s, loc, sc, tiargs, tthis, fargs, fnames);
     auto orig_s = s;
 
     if (m.last > MATCH.nomatch && m.lastf)
@@ -3286,7 +3288,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
         }
 
         const(char)* failMessage;
-        functionResolve(m, orig_s, loc, sc, tiargs, tthis, fargs, &failMessage);
+        functionResolve(m, orig_s, loc, sc, tiargs, tthis, fargs, fnames, &failMessage);
         if (failMessage)
         {
             .error(loc, "%s `%s%s%s` is not callable using argument types `%s`",
@@ -3332,7 +3334,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
                     if (auto baseFunction = baseClass.search(baseClass.loc, fd.ident))
                     {
                         MatchAccumulator mErr;
-                        functionResolve(mErr, baseFunction, loc, sc, tiargs, baseClass.type, fargs, null);
+                        functionResolve(mErr, baseFunction, loc, sc, tiargs, baseClass.type, fargs, fnames);
                         if (mErr.last > MATCH.nomatch && mErr.lastf)
                         {
                             errorSupplemental(loc, "%s `%s` hides base class function `%s`",
@@ -3346,7 +3348,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
             }
         }
         const(char)* failMessage;
-        functionResolve(m, orig_s, loc, sc, tiargs, tthis, fargs, &failMessage);
+        functionResolve(m, orig_s, loc, sc, tiargs, tthis, fargs, fnames, &failMessage);
         if (failMessage)
             errorSupplemental(loc, failMessage);
     }

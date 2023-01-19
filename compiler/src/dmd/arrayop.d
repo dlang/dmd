@@ -149,7 +149,7 @@ Expression arrayOp(BinExp e, Scope* sc)
             ObjectNotFound(idArrayOp);   // fatal error
     }
 
-    auto fd = resolveFuncCall(e.loc, sc, arrayOp, tiargs, null, args, FuncResolveFlag.standard);
+    auto fd = resolveFuncCall(e.loc, sc, arrayOp, tiargs, null, args, null, FuncResolveFlag.standard);
     if (!fd || fd.errors)
         return ErrorExp.get();
     return new CallExp(e.loc, new VarExp(e.loc, fd, false), args).expressionSemantic(sc);

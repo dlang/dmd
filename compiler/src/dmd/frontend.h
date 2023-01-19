@@ -2541,7 +2541,7 @@ public:
     BaseClass* overrideInterface();
     bool overloadInsert(Dsymbol* s) override;
     bool inUnittest();
-    MATCH leastAsSpecialized(FuncDeclaration* g);
+    MATCH leastAsSpecialized(FuncDeclaration* g, Array<Identifier* >* names);
     LabelDsymbol* searchLabel(Identifier* ident, const Loc& loc = Loc::initial);
     int32_t getLevel(FuncDeclaration* fd, int32_t intypeof);
     int32_t getLevelAndCheck(const Loc& loc, Scope* sc, FuncDeclaration* fd, Declaration* decl);
@@ -7188,6 +7188,7 @@ public:
     Expression* thisexp;
     Type* newtype;
     Array<Expression* >* arguments;
+    Array<Identifier* >* names;
     Expression* argprefix;
     CtorDeclaration* member;
     bool onstack;

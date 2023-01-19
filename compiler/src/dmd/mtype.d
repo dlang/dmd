@@ -2046,7 +2046,7 @@ extern (C++) abstract class Type : ASTNode
         }
         if (auto fd = s.isFuncDeclaration())
         {
-            fd = resolveFuncCall(Loc.initial, null, fd, null, this, null, FuncResolveFlag.quiet);
+            fd = resolveFuncCall(Loc.initial, null, fd, null, this, null, null, FuncResolveFlag.quiet);
             if (!fd || fd.errors || !fd.functionSemantic())
                 return Type.terror;
 
@@ -2068,7 +2068,7 @@ extern (C++) abstract class Type : ASTNode
         if (auto td = s.isTemplateDeclaration())
         {
             assert(td._scope);
-            auto fd = resolveFuncCall(Loc.initial, null, td, null, this, null, FuncResolveFlag.quiet);
+            auto fd = resolveFuncCall(Loc.initial, null, td, null, this, null, null, FuncResolveFlag.quiet);
             if (!fd || fd.errors || !fd.functionSemantic())
                 return Type.terror;
 
@@ -4633,9 +4633,10 @@ extern (C++) final class TypeFunction : TypeNext
      * Returns:
      *      MATCHxxxx
      */
-    extern (D) MATCH callMatch(Type tthis, Expressions* inArgs, int flag = 0, const(char)** pMessage = null, Scope* sc = null)
+    extern (D) MATCH callMatch(Type tthis, Expressions* inArgs, Identifiers* names, int flag = 0, const(char)** pMessage = null, Scope* sc = null)
     {
         //printf("TypeFunction::callMatch() %s\n", toChars());
+        //printf("inArgs: %s, names: %s\n", inArgs ? inArgs.toChars() : "null", names ? names.toChars() : "null");
         MATCH match = MATCH.exact; // assume exact match
         ubyte wildmatch = 0;
 
@@ -4670,6 +4671,7 @@ extern (C++) final class TypeFunction : TypeNext
 
         const nparams = parameterList.length;
         Expression[] args = inArgs ? (*inArgs)[] : null;
+        Identifier[] nnames = names ? (*names)[] : null;
 
         if (args.length > nparams)
         {
@@ -4688,13 +4690,13 @@ extern (C++) final class TypeFunction : TypeNext
         if (parameterList.varargs == VarArg.none && nparams > args.length && !parameterList[args.length].defaultArg)
         {
             OutBuffer buf;
-            buf.printf("too few arguments, expected `%d`, got `%d`", cast(int)nparams, cast(int)args.length);
+            buf.printf("too few arguments, expected %d, got %d", cast(int)nparams, cast(int)args.length);
             if (pMessage)
                 *pMessage = buf.extractChars();
             return MATCH.nomatch;
         }
 
-        if (!resolveNamedArgs(args, pMessage))
+        if (!resolveNamedArgs(args, nnames, pMessage))
         {
             if (!pMessage || *pMessage)
                 return MATCH.nomatch;
@@ -4809,30 +4811,30 @@ extern (C++) final class TypeFunction : TypeNext
      *      pMessage = address to store error message, or null
      * Returns: true on success, false on error
      */
-    private extern(D) bool resolveNamedArgs(ref Expression[] args, const(char)** pMessage)
+    private extern(D) bool resolveNamedArgs(ref Expression[] args, ref Identifier[] names, const(char)** pMessage)
     {
         auto newArgs = new Expression[parameterList.length];
         size_t ci = 0;
         bool hasNamedArgs = false;
-        foreach (arg; args)
+        foreach (i, arg; args)
         {
             if (!arg)
             {
                 ci++;
                 continue;
             }
-            if (auto ne = arg.isNamedArgExp())
+            auto name = i < names.length ? names[i] : null;
+            if (name)
             {
                 hasNamedArgs = true;
-                const pi = parameterIndex(ne.ident);
+                const pi = parameterIndex(name);
                 if (pi == -1)
                 {
                     if (pMessage)
-                        *pMessage = getMatchError("no parameter named `%s`", ne.ident.toChars());
+                        *pMessage = getMatchError("no parameter named `%s`", name.toChars());
                     return false;
                 }
                 ci = pi;
-                arg = cast(Expression) ne.arg;
             }
             if (ci >= newArgs.length)
             {
@@ -7092,7 +7094,7 @@ bool isCopyable(Type t)
             el.type = cast() ts;
             Expressions args;
             args.push(el);
-            FuncDeclaration f = resolveFuncCall(Loc.initial, null, ctor, null, cast()ts, &args, FuncResolveFlag.quiet);
+            FuncDeclaration f = resolveFuncCall(Loc.initial, null, ctor, null, cast()ts, &args, null, FuncResolveFlag.quiet);
             if (!f || f.storage_class & STC.disable)
                 return false;
         }

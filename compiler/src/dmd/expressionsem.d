@@ -262,7 +262,7 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, Expression* pe0)
 
             uint xerrors = global.startGagging();
             sc = sc.push();
-            FuncDeclaration fslice = resolveFuncCall(ae.loc, sc, slice, tiargs, ae.e1.type, fargs, FuncResolveFlag.quiet);
+            FuncDeclaration fslice = resolveFuncCall(ae.loc, sc, slice, tiargs, ae.e1.type, fargs, null, FuncResolveFlag.quiet);
             sc = sc.pop();
             global.endGagging(xerrors);
             if (!fslice)
@@ -1197,7 +1197,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
 
             for (size_t i = 0; i < os.a.length; i++)
             {
-                if (FuncDeclaration f = resolveFuncCall(loc, sc, os.a[i], tiargs, tthis, &a, FuncResolveFlag.quiet))
+                if (FuncDeclaration f = resolveFuncCall(loc, sc, os.a[i], tiargs, tthis, &a, null, FuncResolveFlag.quiet))
                 {
                     if (f.errors)
                         return ErrorExp.get();
@@ -1214,7 +1214,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
         {
             for (size_t i = 0; i < os.a.length; i++)
             {
-                if (FuncDeclaration f = resolveFuncCall(loc, sc, os.a[i], tiargs, tthis, null, FuncResolveFlag.quiet))
+                if (FuncDeclaration f = resolveFuncCall(loc, sc, os.a[i], tiargs, tthis, null, null, FuncResolveFlag.quiet))
                 {
                     if (f.errors)
                         return ErrorExp.get();
@@ -1312,7 +1312,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
             Expressions a;
             a.push(e2);
 
-            FuncDeclaration fd = resolveFuncCall(loc, sc, s, tiargs, tthis, &a, FuncResolveFlag.quiet);
+            FuncDeclaration fd = resolveFuncCall(loc, sc, s, tiargs, tthis, &a, null, FuncResolveFlag.quiet);
             if (fd && fd.type)
             {
                 if (fd.errors)
@@ -1332,7 +1332,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
             }
         }
         {
-            FuncDeclaration fd = resolveFuncCall(loc, sc, s, tiargs, tthis, null, FuncResolveFlag.quiet);
+            FuncDeclaration fd = resolveFuncCall(loc, sc, s, tiargs, tthis, null, null, FuncResolveFlag.quiet);
             if (fd && fd.type)
             {
                 if (fd.errors)
@@ -1403,10 +1403,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
 
     if (!e1.type)
     {
-        if (e1.isNamedArgExp())
-            error(loc, "named argument `%s` not allowed here", e1.toChars());
-        else
-            error(loc, "cannot resolve type for %s", e1.toChars());
+        error(loc, "cannot resolve type for %s", e1.toChars());
         e1 = ErrorExp.get();
     }
     return e1;
@@ -1677,15 +1674,7 @@ private bool preFunctionParameters(Scope* sc, Identifiers* names, Expressions* e
                 err = true;
             }
 
-            if (ne)
-            {
-                ne.arg = arg;
-                (*exps)[i] = ne;
-            }
-            else
-            {
-                (*exps)[i] = arg;
-            }
+            (*exps)[i] = arg;
         }
     }
     return err;
@@ -3728,7 +3717,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             if (cd.ctor)
             {
-                FuncDeclaration f = resolveFuncCall(exp.loc, sc, cd.ctor, null, tb, exp.arguments, FuncResolveFlag.standard);
+                FuncDeclaration f = resolveFuncCall(exp.loc, sc, cd.ctor, null, tb, exp.arguments, exp.names, FuncResolveFlag.standard);
                 if (!f || f.errors)
                     return setError();
 
@@ -3853,7 +3842,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             // is the same type as the struct
             if (nargs && (sd.hasRegularCtor() || (sd.ctor && (*exp.arguments)[0].type.mutableOf() == sd.type.mutableOf())))
             {
-                FuncDeclaration f = resolveFuncCall(exp.loc, sc, sd.ctor, null, tb, exp.arguments, FuncResolveFlag.standard);
+                FuncDeclaration f = resolveFuncCall(exp.loc, sc, sd.ctor, null, tb, exp.arguments, exp.names, FuncResolveFlag.standard);
                 if (!f || f.errors)
                     return setError();
 
@@ -4734,14 +4723,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         FuncDeclaration resolveOverloadSet(Loc loc, Scope* sc,
-            OverloadSet os, Objects* tiargs, Type tthis, Expressions* arguments)
+            OverloadSet os, Objects* tiargs, Type tthis, Expressions* arguments, Identifiers* names)
         {
             FuncDeclaration f = null;
             foreach (s; os.a)
             {
                 if (tiargs && s.isFuncDeclaration())
                     continue;
-                if (auto f2 = resolveFuncCall(loc, sc, s, tiargs, tthis, arguments, FuncResolveFlag.quiet))
+                if (auto f2 = resolveFuncCall(loc, sc, s, tiargs, tthis, arguments, names, FuncResolveFlag.quiet))
                 {
                     if (f2.errors)
                         return null;
@@ -4801,7 +4790,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
 
             // Do overload resolution
-            exp.f = resolveFuncCall(exp.loc, sc, s, tiargs, ue.e1.type, exp.arguments, FuncResolveFlag.standard);
+            exp.f = resolveFuncCall(exp.loc, sc, s, tiargs, ue.e1.type, exp.arguments, exp.names, FuncResolveFlag.standard);
             if (!exp.f || exp.f.errors || exp.f.type.ty == Terror)
                 return setError();
 
@@ -4964,9 +4953,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             tthis = ad.type.addMod(sc.func.type.mod);
             auto ctor = isSuper ? cd.baseClass.ctor : ad.ctor;
             if (auto os = ctor.isOverloadSet())
-                exp.f = resolveOverloadSet(exp.loc, sc, os, null, tthis, exp.arguments);
+                exp.f = resolveOverloadSet(exp.loc, sc, os, null, tthis, exp.arguments, exp.names);
             else
-                exp.f = resolveFuncCall(exp.loc, sc, ctor, null, tthis, exp.arguments, FuncResolveFlag.standard);
+                exp.f = resolveFuncCall(exp.loc, sc, ctor, null, tthis, exp.arguments, exp.names, FuncResolveFlag.standard);
 
             if (!exp.f || exp.f.errors)
                 return setError();
@@ -4991,7 +4980,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         else if (auto oe = exp.e1.isOverExp())
         {
-            exp.f = resolveOverloadSet(exp.loc, sc, oe.vars, tiargs, tthis, exp.arguments);
+            exp.f = resolveOverloadSet(exp.loc, sc, oe.vars, tiargs, tthis, exp.arguments, exp.names);
             if (!exp.f)
                 return setError();
             if (ethis)
@@ -5038,7 +5027,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             else if (exp.e1.op == EXP.dotVariable && (cast(DotVarExp)exp.e1).var.isOverDeclaration())
             {
                 DotVarExp dve = cast(DotVarExp)exp.e1;
-                exp.f = resolveFuncCall(exp.loc, sc, dve.var, tiargs, dve.e1.type, exp.arguments, FuncResolveFlag.overloadOnly);
+                exp.f = resolveFuncCall(exp.loc, sc, dve.var, tiargs, dve.e1.type, exp.arguments, exp.names, FuncResolveFlag.overloadOnly);
                 if (!exp.f)
                     return setError();
                 if (exp.f.needThis())
@@ -5062,7 +5051,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 s = (cast(TemplateExp)exp.e1).td;
             L2:
-                exp.f = resolveFuncCall(exp.loc, sc, s, tiargs, null, exp.arguments, FuncResolveFlag.standard);
+                exp.f = resolveFuncCall(exp.loc, sc, s, tiargs, null, exp.arguments, exp.names, FuncResolveFlag.standard);
                 if (!exp.f || exp.f.errors)
                     return setError();
                 if (exp.f.needThis())
@@ -5090,7 +5079,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
 
             const(char)* failMessage;
-            if (!tf.callMatch(null, exp.arguments, 0, &failMessage, sc))
+            if (!tf.callMatch(null, exp.arguments, exp.names, 0, &failMessage, sc))
             {
                 OutBuffer buf;
                 buf.writeByte('(');
@@ -5157,13 +5146,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             tiargs = null;
 
             if (exp.f.overnext)
-                exp.f = resolveFuncCall(exp.loc, sc, exp.f, tiargs, null, exp.arguments, FuncResolveFlag.overloadOnly);
+                exp.f = resolveFuncCall(exp.loc, sc, exp.f, tiargs, null, exp.arguments, exp.names, FuncResolveFlag.overloadOnly);
             else
             {
                 exp.f = exp.f.toAliasFunc();
                 TypeFunction tf = cast(TypeFunction)exp.f.type;
                 const(char)* failMessage;
-                if (!tf.callMatch(null, exp.arguments, 0, &failMessage, sc))
+                if (!tf.callMatch(null, exp.arguments, exp.names, 0, &failMessage, sc))
                 {
                     OutBuffer buf;
                     buf.writeByte('(');
@@ -5205,7 +5194,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     //
                     // https://issues.dlang.org/show_bug.cgi?id=22157
                     if (exp.f.overnext)
-                        exp.f = resolveFuncCall(exp.loc, sc, exp.f, tiargs, null, exp.arguments, FuncResolveFlag.standard);
+                        exp.f = resolveFuncCall(exp.loc, sc, exp.f, tiargs, null, exp.arguments, exp.names, FuncResolveFlag.standard);
 
                     if (!exp.f || exp.f.errors)
                         return setError();
@@ -12500,18 +12489,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             result = e.resolveLoc(Loc.initial, sc);
             return;
-        }
-
-        result = e;
-    }
-
-    override void visit(NamedArgExp e)
-    {
-        //printf("NamedArgExp::semantic('%s')\n", e.toChars());
-        if (e.arg.dyncast() == DYNCAST.expression)
-        {
-            e.arg = expressionSemantic(cast(Expression) e.arg, sc);
-            e.type = (cast(Expression) e.arg).type;
         }
 
         result = e;
