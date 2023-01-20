@@ -1413,6 +1413,7 @@ extern (C++) class Dsymbol : ASTNode
     inout(OverloadSet)                 isOverloadSet()                 inout { return null; }
     inout(CompileDeclaration)          isCompileDeclaration()          inout { return null; }
     inout(StaticAssert)                isStaticAssert()                inout { return null; }
+    inout(StaticIfDeclaration)         isStaticIfDeclaration()         inout { return null; }
 }
 
 /***********************************************************

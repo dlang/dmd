@@ -45,6 +45,7 @@ import dmd.aliasthis;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.ast_node;
+import dmd.attrib;
 import dmd.dcast;
 import dmd.dclass;
 import dmd.declaration;
@@ -1226,7 +1227,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         paramscope.pop();
         static if (LOGM)
         {
-            printf("-TemplateDeclaration.matchWithInstance(this = %p, ti = %p) = %d\n", this, ti, m);
+            printf("-TemplateDeclaration.matchWithInstance(this = %s, ti = %s) = %d\n", toChars(), ti.toChars(), m);
         }
         return m;
     }
@@ -7519,6 +7520,43 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         members.foreachDsymbol( (s) { s.setScope (sc2); } );
 
         members.foreachDsymbol( (s) { s.importAll(sc2); } );
+
+        if (!aliasdecl)
+        {
+            /* static if's are crucial to evaluating aliasdecl correctly. But
+             * evaluating the if/else bodies may require aliasdecl.
+             * So, evaluate the condition for static if's, but not their if/else bodies.
+             * Then try to set aliasdecl.
+             * Later do the if/else bodies.
+             * https://issues.dlang.org/show_bug.cgi?id=23598
+             * It might be better to do this by attaching a lambda to the StaticIfDeclaration
+             * to do the oneMembers call after the sid.include(sc2) is run as part of dsymbolSemantic().
+             */
+            bool done;
+            void staticIfDg(Dsymbol s)
+            {
+                if (done || aliasdecl)
+                    return;
+                //printf("\t staticIfDg on '%s %s' in '%s'\n",  s.kind(), s.toChars(), this.toChars());
+                if (!s.isStaticIfDeclaration())
+                {
+		    //s.dsymbolSemantic(sc2);
+                    done = true;
+                    return;
+                }
+                auto sid = s.isStaticIfDeclaration();
+                sid.include(sc2);
+                if (members.length)
+                {
+                    Dsymbol sa;
+                    if (Dsymbol.oneMembers(members, &sa, tempdecl.ident) && sa)
+                        aliasdecl = sa;
+                }
+                done = true;
+            }
+
+            members.foreachDsymbol(&staticIfDg);
+        }
 
         void symbolDg(Dsymbol s)
         {
