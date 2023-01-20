@@ -634,6 +634,10 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
     }
     if (e.ident == Id.isVirtualFunction)
     {
+        // @@@DEPRECATED2.121@@@
+        // Deprecated in 2.101 - Can be removed from 2.121
+        e.deprecation("`traits(isVirtualFunction)` is deprecated. Use `traits(isVirtualMethod)` instead");
+
         if (dim != 1)
             return dimError(1);
 
@@ -994,6 +998,13 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             ex = ex.expressionSemantic(scx);
             if (errors < global.errors)
                 e.error("`%s` cannot be resolved", eorig.toChars());
+
+            if (e.ident == Id.getVirtualFunctions)
+            {
+                // @@@DEPRECATED2.121@@@
+                // Deprecated in 2.101 - Can be removed from 2.121
+                e.deprecation("`traits(getVirtualFunctions)` is deprecated. Use `traits(getVirtualMethods)` instead");
+            }
 
             /* Create tuple of functions of ex
              */

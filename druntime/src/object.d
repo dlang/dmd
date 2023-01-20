@@ -1417,7 +1417,7 @@ class TypeInfo_Function : TypeInfo
        int func(int a, int b);
     }
 
-    alias functionTypes = typeof(__traits(getVirtualFunctions, C, "func"));
+    alias functionTypes = typeof(__traits(getVirtualMethods, C, "func"));
     assert(typeid(functionTypes[0]).toString() == "void function()");
     assert(typeid(functionTypes[1]).toString() == "void function(int)");
     assert(typeid(functionTypes[2]).toString() == "int function(int, int)");
@@ -1431,7 +1431,7 @@ class TypeInfo_Function : TypeInfo
        void func(int a);
     }
 
-    alias functionTypes = typeof(__traits(getVirtualFunctions, C, "func"));
+    alias functionTypes = typeof(__traits(getVirtualMethods, C, "func"));
 
     Object obj = typeid(functionTypes[0]);
     assert(obj.opEquals(typeid(functionTypes[0])));
