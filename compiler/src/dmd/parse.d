@@ -5455,6 +5455,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     stc = STC.out_;
                     goto Lagain;
 
+                case TOK.auto_:
+                    error("cannot declare `auto` loop variable, omit `auto` to still get type inference");
+                    stc = STC.auto_;
+                    goto Lagain;
+
                 case TOK.enum_:
                     stc = STC.manifest;
                     goto Lagain;
