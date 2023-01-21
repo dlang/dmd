@@ -2595,6 +2595,7 @@ extern (C++) final class TypeDeduced : Type
  *      tiargs      = initial list of template arguments
  *      tthis       = if !NULL, the 'this' pointer argument
  *      fargs       = arguments to function
+ *      fnames      = names corresponding to fargs
  *      pMessage    = address to store error message, or null
  */
 void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiargs,

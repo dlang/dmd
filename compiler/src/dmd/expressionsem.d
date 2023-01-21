@@ -1722,19 +1722,36 @@ private bool checkDefCtor(Loc loc, Type t)
  *      true    errors happened
  */
 private bool functionParameters(const ref Loc loc, Scope* sc,
-    TypeFunction tf, Expression ethis, Type tthis, Expressions* arguments, FuncDeclaration fd,
+    TypeFunction tf, Expression ethis, Type tthis, Expressions* arguments, Identifiers* names, FuncDeclaration fd,
     Type* prettype, Expression* peprefix)
 {
     //printf("functionParameters() %s\n", fd ? fd.toChars() : "");
     assert(arguments);
     assert(fd || tf.next);
-    size_t nargs = arguments ? arguments.length : 0;
     const size_t nparams = tf.parameterList.length;
     const olderrors = global.errors;
     bool err = false;
     *prettype = Type.terror;
     Expression eprefix = null;
     *peprefix = null;
+
+    if (names)
+    {
+        Expression[] newArgs = arguments.peekSlice();
+        const(char)* msg = null;
+        const result = tf.resolveNamedArgs(newArgs, names.peekSlice(), &msg);
+        if (!result)
+        {
+            // while errors are usually already caught by `tf.callMatch`,
+            // this can happen when calling `typeof(freefunc)`
+            if (msg)
+                error(loc, "%s", msg);
+            return true;
+        }
+        arguments.setDim(0);
+        arguments.pushSlice(newArgs);
+    }
+    size_t nargs = arguments ? arguments.length : 0;
 
     if (nargs > nparams && tf.parameterList.varargs == VarArg.none)
     {
@@ -3727,7 +3744,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 TypeFunction tf = f.type.isTypeFunction();
                 if (!exp.arguments)
                     exp.arguments = new Expressions();
-                if (functionParameters(exp.loc, sc, tf, null, exp.type, exp.arguments, f, &exp.type, &exp.argprefix))
+                if (functionParameters(exp.loc, sc, tf, null, exp.type, exp.arguments, exp.names, f, &exp.type, &exp.argprefix))
                     return setError();
 
                 exp.member = f.isCtorDeclaration();
@@ -3852,7 +3869,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 TypeFunction tf = f.type.isTypeFunction();
                 if (!exp.arguments)
                     exp.arguments = new Expressions();
-                if (functionParameters(exp.loc, sc, tf, null, exp.type, exp.arguments, f, &exp.type, &exp.argprefix))
+                if (functionParameters(exp.loc, sc, tf, null, exp.type, exp.arguments, exp.names, f, &exp.type, &exp.argprefix))
                     return setError();
 
                 exp.member = f.isCtorDeclaration();
@@ -5226,7 +5243,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Expression argprefix;
         if (!exp.arguments)
             exp.arguments = new Expressions();
-        if (functionParameters(exp.loc, sc, cast(TypeFunction)t1, ethis, tthis, exp.arguments, exp.f, &exp.type, &argprefix))
+        if (functionParameters(exp.loc, sc, cast(TypeFunction)t1, ethis, tthis, exp.arguments, exp.names, exp.f, &exp.type, &argprefix))
             return setError();
 
         if (!exp.type)

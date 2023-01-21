@@ -4795,11 +4795,6 @@ extern (C++) final class TypeFunction : TypeNext
             return MATCH.nomatch;
         }
         //printf("match = %d\n", match);
-        if (inArgs)
-        {
-            inArgs.setDim(0);
-            inArgs.pushSlice(args[]);
-        }
         return match;
     }
 
@@ -4811,7 +4806,7 @@ extern (C++) final class TypeFunction : TypeNext
      *      pMessage = address to store error message, or null
      * Returns: true on success, false on error
      */
-    private extern(D) bool resolveNamedArgs(ref Expression[] args, ref Identifier[] names, const(char)** pMessage)
+    extern(D) bool resolveNamedArgs(ref Expression[] args, Identifier[] names, const(char)** pMessage)
     {
         auto newArgs = new Expression[parameterList.length];
         size_t ci = 0;
@@ -4874,7 +4869,8 @@ extern (C++) final class TypeFunction : TypeNext
         }
         // strip trailing nulls from default arguments
         size_t e = newArgs.length;
-        while (e > 0 && newArgs[e - 1] is null) {
+        while (e > 0 && newArgs[e - 1] is null)
+        {
             --e;
         }
 

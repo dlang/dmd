@@ -3130,6 +3130,7 @@ enum FuncResolveFlag : ubyte
  *      tiargs =        initial list of template arguments
  *      tthis =         if !NULL, the `this` argument type
  *      fargs =         arguments to function
+ *      fnames =        names corresponding to fargs for named arguments
  *      flags =         see $(LREF FuncResolveFlag).
  * Returns:
  *      if match is found, then function symbol, else null
