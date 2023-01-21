@@ -2485,7 +2485,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
                 cs.exp = se;
             else if (!cs.exp.isIntegerExp() && !cs.exp.isErrorExp())
             {
-                cs.error("`case` must be a `string` or an integral constant, not `%s`", cs.exp.toChars());
+                cs.error("`case` expression must be a compile-time `string` or an integral constant, not `%s`", cs.exp.toChars());
                 errors = true;
             }
 
