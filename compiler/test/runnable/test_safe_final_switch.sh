@@ -21,8 +21,8 @@ die()
 # returns 1 (failure)
 $DMD -run ${src_file} 2> /dev/null && die 1
 
-# returns 0 (success)
-$DMD -release -run ${src_file} 2> /dev/null || die 2
+# returns 1 (failure)
+$DMD -release -run ${src_file} 2> /dev/null && die 2
 
 # returns 1 (failure)
 $DMD -version=Safe -run ${src_file} 2> /dev/null && die 3
