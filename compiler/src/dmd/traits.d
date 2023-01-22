@@ -743,6 +743,42 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto se = new StringExp(e.loc, id.toString());
         return se.expressionSemantic(sc);
     }
+    if (e.ident == Id.fullyQualifiedName) // https://dlang.org/spec/traits.html#fullyQualifiedName
+    {
+        if (dim != 1)
+            return dimError(1);
+
+        Scope* sc2 = sc.push();
+        sc2.flags = sc.flags | SCOPE.noaccesscheck | SCOPE.ignoresymbolvisibility;
+        bool ok = TemplateInstance.semanticTiargs(e.loc, sc2, e.args, 1);
+        sc2.pop();
+        if (!ok)
+            return ErrorExp.get();
+
+        const(char)[] fqn;
+        auto o = (*e.args)[0];
+        if (auto s = getDsymbolWithoutExpCtx(o))
+        {
+            if (s.semanticRun == PASS.initial)
+                s.dsymbolSemantic(null);
+
+            fqn = s.toPrettyChars().toDString();
+        }
+        else if (auto t = getType(o))
+        {
+            fqn = t.toPrettyChars(true).toDString();
+        }
+        else
+        {
+            if (!isError(o))
+                e.error("argument `%s` has no identifier", o.toChars());
+            return ErrorExp.get();
+        }
+        assert(fqn);
+        auto se = new StringExp(e.loc, fqn);
+        return se.expressionSemantic(sc);
+
+    }
     if (e.ident == Id.getProtection || e.ident == Id.getVisibility)
     {
         if (dim != 1)
@@ -2208,7 +2244,7 @@ private void traitNotFound(TraitsExp e)
         initialized = true;     // lazy initialization
 
         // All possible traits
-        __gshared Identifier*[58] idents =
+        __gshared Identifier*[59] idents =
         [
             &Id.isAbstractClass,
             &Id.isArithmetic,
@@ -2238,6 +2274,7 @@ private void traitNotFound(TraitsExp e)
             &Id.isReturnOnStack,
             &Id.hasMember,
             &Id.identifier,
+            &Id.fullyQualifiedName,
             &Id.getProtection,
             &Id.getVisibility,
             &Id.parent,

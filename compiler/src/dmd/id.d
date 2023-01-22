@@ -455,6 +455,7 @@ immutable Msgtable[] msgtable =
     { "isLazy" },
     { "hasMember" },
     { "identifier" },
+    { "fullyQualifiedName" },
     { "getProtection" },
     { "getVisibility" },
     { "parent" },
