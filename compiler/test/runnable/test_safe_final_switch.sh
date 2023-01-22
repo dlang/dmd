@@ -11,8 +11,6 @@ die()
     exit 1
 }
 
-$DMD -run ${src_file} 2> /dev/null
-
 # returns 1 (failure)
 $DMD -run ${src_file} 2> /dev/null && die 1
 
