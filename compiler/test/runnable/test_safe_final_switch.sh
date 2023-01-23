@@ -11,6 +11,9 @@ die()
     exit 1
 }
 
+# some tests cause a core dump rather than throwing an Error
+ulimit -c 0
+
 # returns 1 (failure)
 $DMD -run ${src_file} 2> /dev/null && die 1
 
