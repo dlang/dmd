@@ -338,12 +338,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
         assert(dsym.semanticRun <= PASS.semantic);
 
-        if (dsym._scope)
-        {
-            sc = dsym._scope;
-            dsym._scope = null;
-        }
-
         if (!sc)
             return;
 

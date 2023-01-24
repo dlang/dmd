@@ -6591,7 +6591,17 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         }
 
         TemplateInstance ti = s.parent ? s.parent.isTemplateInstance() : null;
-        if (ti && (ti.name == s.ident || ti.toAlias().ident == s.ident) && ti.tempdecl)
+
+        /* This avoids the VarDeclaration.toAlias() which runs semantic() too soon
+         */
+        static bool matchId(TemplateInstance ti, Identifier id)
+        {
+            if (ti.aliasdecl && ti.aliasdecl.isVarDeclaration())
+                return ti.aliasdecl.isVarDeclaration().ident == id;
+            return ti.toAlias().ident == id;
+        }
+
+        if (ti && (ti.name == s.ident || matchId(ti, s.ident)) && ti.tempdecl)
         {
             /* This is so that one can refer to the enclosing
              * template, even if it has the same name as a member
