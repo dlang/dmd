@@ -32,6 +32,8 @@ import dmd.identifier;
 import dmd.location;
 import dmd.mtype;
 import dmd.opover;
+import dmd.semantic2;
+import dmd.semantic3;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
