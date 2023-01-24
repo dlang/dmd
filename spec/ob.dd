@@ -66,8 +66,8 @@ $(H2 $(LNAME2 ob, Ownership/Borrowing))
 $(P Tracking the ownership status of a pointer can be safely extended by adding the
 capability of temporarilly $(I borrowing) ownership of a pointer from the $(I owner).
 The $(I owner) can no longer use the pointer as long as the $(I borrower) is still
-using the pointer value (i.e. is $(I live)). Once the $(I borrower) is no longer
-$(I live), the $(I owner) and resume using it. Only one $(I borrower) can be live
+using the pointer value (i.e. it is $(I live)). Once the $(I borrower) is no longer
+$(I live), the $(I owner) can resume using it. Only one $(I borrower) can be live
 at any point.
 )
 
@@ -76,7 +76,7 @@ pointers to read only (`const` or `immutable`) data, i.e. none of them can modif
 object(s) pointed to.
 )
 
-$(P This is collectively called an $(I Ownership/Borrowing) system. It can be state as:
+$(P This is collectively called an $(I Ownership/Borrowing) system. It can be stated as:
 )
 
 $(BLOCKQUOTE At any point in the program, for each memory object,
