@@ -2256,7 +2256,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
         }
 
         if (!sc.sw.sdefault &&
-            (!ss.isFinal || needswitcherror || global.params.useAssert == CHECKENABLE.on))
+            (!ss.isFinal || needswitcherror || global.params.useAssert == CHECKENABLE.on || sc.func.isSafe))
         {
             ss.hasNoDefault = 1;
 
