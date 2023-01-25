@@ -6,6 +6,8 @@ $(HEADERNAV_TOC)
 
 $(B Experimental, Subject to Change, use `-preview=dip1021` to activate)
 
+$(H2 $(LNAME2 ownership, Ownership))
+
 $(P If a memory object has only one pointer to it, that pointer is the $(I owner)
 of the memory object. With the single owner, it becomes straightforward to
 manage the memory for the object. It also becomes trivial to synchronize access
@@ -61,7 +63,8 @@ $(P Functions with the `@live` attribute enable diagnosing these sorts of errors
 tracking the status of owner pointers.
 )
 
-$(H2 $(LNAME2 ob, Ownership/Borrowing))
+
+$(H2 $(LNAME2 ob, Borrowing))
 
 $(P Tracking the ownership status of a pointer can be safely extended by adding the
 capability of temporarilly $(I borrowing) ownership of a pointer from the $(I owner).
@@ -82,6 +85,9 @@ $(P This is collectively called an $(I Ownership/Borrowing) system. It can be st
 $(BLOCKQUOTE At any point in the program, for each memory object,
 there is exactly one live mutable pointer to it or all the live pointers to
 it are read-only.)
+
+
+$(H2 $(LNAME2 live, `@live` attribute))
 
 $(P Function declarations annotated with the `@live` attribute are checked for compliance with
 the Ownership/Borrowing rules. The checks are run after other semantic processing is complete.
