@@ -875,7 +875,7 @@ public:
         // (we'll visit them later)
         if (vd.type && vd.type.isTypeTuple())
         {
-            assert(vd.aliassym);
+            assert(vd.aliasTuple);
             vd.toAlias().accept(this);
             return;
         }

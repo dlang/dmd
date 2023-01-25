@@ -1111,7 +1111,7 @@ extern (C++) class VarDeclaration : Declaration
 {
     Initializer _init;
     FuncDeclarations nestedrefs;    // referenced by these lexically nested functions
-    Dsymbol aliassym;               // if redone as alias to another symbol
+    TupleDeclaration aliasTuple;    // when `this` is really a tuple of declarations
     VarDeclaration lastVar;         // Linked list of variables for goto-skips-init detection
     Expression edtor;               // if !=null, does the destruction of the variable
     IntRange* range;                // if !=null, the variable is known to be within the range
@@ -1200,12 +1200,10 @@ extern (C++) class VarDeclaration : Declaration
     {
         //printf("VarDeclaration::setFieldOffset(ad = %s) %s\n", ad.toChars(), toChars());
 
-        if (aliassym)
+        if (aliasTuple)
         {
             // If this variable was really a tuple, set the offsets for the tuple fields
-            TupleDeclaration v2 = aliassym.isTupleDeclaration();
-            assert(v2);
-            v2.foreachVar((s) { s.setFieldOffset(ad, fieldState, isunion); });
+            aliasTuple.foreachVar((s) { s.setFieldOffset(ad, fieldState, isunion); });
             return;
         }
 
@@ -1698,8 +1696,8 @@ extern (C++) class VarDeclaration : Declaration
         if ((!type || !type.deco) && _scope)
             dsymbolSemantic(this, _scope);
 
-        assert(this != aliassym);
-        Dsymbol s = aliassym ? aliassym.toAlias() : this;
+        assert(this != aliasTuple);
+        Dsymbol s = aliasTuple ? aliasTuple.toAlias() : this;
         return s;
     }
 

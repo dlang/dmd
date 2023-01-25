@@ -565,7 +565,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 return;
             }
 
-            if (vd.aliassym)
+            if (vd.aliasTuple)
             {
                 vd.toAlias().accept(this);
                 return;
