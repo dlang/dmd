@@ -1658,8 +1658,7 @@ extern (C++) class VarDeclaration : Declaration
         // Add this VarDeclaration to fdv.closureVars[] if not already there
         if (!sc.intypeof && !(sc.flags & SCOPE.compile) &&
             // https://issues.dlang.org/show_bug.cgi?id=17605
-            (fdv.isCompileTimeOnly || !fdthis.isCompileTimeOnly)
-           )
+            (fdv.skipCodegen || !fdthis.skipCodegen))
         {
             if (!fdv.closureVars.contains(this))
                 fdv.closureVars.push(this);
