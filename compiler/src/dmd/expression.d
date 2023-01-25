@@ -1441,7 +1441,7 @@ extern (C++) abstract class Expression : ASTNode
     */
     private static bool checkImpure(Scope* sc)
     {
-        return sc.func && (sc.flags & SCOPE.compile
+        return sc.func && (isRootTraitsCompilesScope(sc)
                 ? sc.func.isPureBypassingInference() >= PURE.weak
                 : sc.func.setImpure());
     }
@@ -1483,7 +1483,7 @@ extern (C++) abstract class Expression : ASTNode
 
         if (!f.isSafe() && !f.isTrusted())
         {
-            if (sc.flags & SCOPE.compile ? sc.func.isSafeBypassingInference() : sc.func.setUnsafeCall(f))
+            if (isRootTraitsCompilesScope(sc) ? sc.func.isSafeBypassingInference() : sc.func.setUnsafeCall(f))
             {
                 if (!loc.isValid()) // e.g. implicitly generated dtor
                     loc = sc.func.loc;
@@ -1536,7 +1536,7 @@ extern (C++) abstract class Expression : ASTNode
 
         if (!f.isNogc())
         {
-            if (sc.flags & SCOPE.compile ? sc.func.isNogcBypassingInference() : sc.func.setGC())
+            if (isRootTraitsCompilesScope(sc) ? sc.func.isNogcBypassingInference() : sc.func.setGC())
             {
                 if (loc.linnum == 0) // e.g. implicitly generated dtor
                     loc = sc.func.loc;

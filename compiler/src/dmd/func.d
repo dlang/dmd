@@ -4355,6 +4355,26 @@ extern (C++) final class NewDeclaration : FuncDeclaration
 }
 
 /**************************************
+ * When a traits(compiles) is used on a function literal call
+ * we need to take into account if the body of the function
+ * violates any attributes, however, we must not affect the
+ * attribute inference on the outer function. The attributes
+ * of the function literal still need to be inferred, therefore
+ * we need a way to check for the scope that the traits compiles
+ * introduces.
+ *
+ * Params:
+ *   sc = scope to be checked for
+ *
+ * Returns: `true` if the provided scope is the root
+ * of the traits compiles list of scopes.
+ */
+bool isRootTraitsCompilesScope(Scope* sc)
+{
+    return (sc.flags & SCOPE.compile) && !(sc.func.flags & SCOPE.compile);
+}
+
+/**************************************
  * A statement / expression in this scope is not `@safe`,
  * so mark the enclosing function as `@system`
  *
@@ -4396,7 +4416,7 @@ bool setUnsafe(Scope* sc,
     }
 
 
-    if (sc.flags & SCOPE.compile) // __traits(compiles, x)
+    if (isRootTraitsCompilesScope(sc)) // __traits(compiles, x)
     {
         if (sc.func.isSafeBypassingInference())
         {
