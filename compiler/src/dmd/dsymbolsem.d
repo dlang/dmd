@@ -694,7 +694,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             auto v2 = new TupleDeclaration(dsym.loc, dsym.ident, exps);
             v2.parent = dsym.parent;
             v2.isexp = true;
-            dsym.aliassym = v2;
+            dsym.aliasTuple = v2;
             dsym.semanticRun = PASS.semanticdone;
             return;
         }
@@ -7027,12 +7027,10 @@ bool determineFields(AggregateDeclaration ad)
         if (ad.sizeok != Sizeok.none)
             return 1;
 
-        if (v.aliassym)
+        if (v.aliasTuple)
         {
             // If this variable was really a tuple, process each element.
-            if (auto tup = v.aliassym.isTupleDeclaration())
-                return tup.foreachVar(tv => tv.apply(&func, ad));
-            return 0;
+            return v.aliasTuple.foreachVar(tv => tv.apply(&func, ad));
         }
 
         if (v.storage_class & (STC.static_ | STC.extern_ | STC.tls | STC.gshared | STC.manifest | STC.ctfe | STC.templateparameter))

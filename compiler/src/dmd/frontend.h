@@ -5912,7 +5912,7 @@ class VarDeclaration : public Declaration
 public:
     Initializer* _init;
     Array<FuncDeclaration* > nestedrefs;
-    Dsymbol* aliassym;
+    TupleDeclaration* aliasTuple;
     VarDeclaration* lastVar;
     Expression* edtor;
     IntRange* range;

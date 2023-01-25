@@ -771,7 +771,7 @@ public:
                 if (VarDeclaration *var = sym->isVarDeclaration())
                 {
                     (void)var->csym;
-                    (void)var->aliassym;
+                    (void)var->aliasTuple;
                     (void)var->isField();
                     (void)var->ident->toChars();
                     continue;
@@ -833,7 +833,7 @@ public:
                 if (VarDeclaration *var = sym->isVarDeclaration())
                 {
                     (void)var->csym;
-                    (void)var->aliassym;
+                    (void)var->aliasTuple;
                     (void)var->isField();
                     (void)var->ident->toChars();
                     continue;
@@ -1545,7 +1545,7 @@ public:
             }
             return;
         }
-        if (d->aliassym)
+        if (d->aliasTuple)
         {
             d->toAlias()->accept(this);
             return;

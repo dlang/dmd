@@ -248,9 +248,9 @@ private extern(C++) final class Semantic2Visitor : Visitor
         sc.varDecl = vd;
         scope(exit) sc.varDecl = null;
 
-        if (vd.aliassym)        // if it's a tuple
+        if (vd.aliasTuple)        // if it's a tuple
         {
-            vd.aliassym.accept(this);
+            vd.aliasTuple.accept(this);
             vd.semanticRun = PASS.semantic2done;
             return;
         }

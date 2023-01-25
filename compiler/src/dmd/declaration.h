@@ -229,7 +229,7 @@ class VarDeclaration : public Declaration
 public:
     Initializer *_init;
     FuncDeclarations nestedrefs; // referenced by these lexically nested functions
-    Dsymbol *aliassym;          // if redone as alias to another symbol
+    TupleDeclaration *aliasTuple;  // if `this` is really a tuple of declarations
     VarDeclaration *lastVar;    // Linked list of variables for goto-skips-init detection
     Expression *edtor;          // if !=NULL, does the destruction of the variable
     IntRange *range;            // if !NULL, the variable is known to be within the range
