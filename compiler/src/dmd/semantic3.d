@@ -342,7 +342,6 @@ private extern(C++) final class Semantic3Visitor : Visitor
             sc2.aligndecl = null;
             if (funcdecl.ident != Id.require && funcdecl.ident != Id.ensure)
                 sc2.flags = sc.flags & ~SCOPE.contract;
-            sc2.flags &= ~SCOPE.compile;
             sc2.tf = null;
             sc2.os = null;
             sc2.inLoop = false;
