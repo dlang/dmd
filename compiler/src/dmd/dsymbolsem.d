@@ -338,6 +338,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
         assert(dsym.semanticRun <= PASS.semantic);
 
+        if (!sc)
+            return;
+
+        dsym.semanticRun = PASS.semantic;
+
         dsym.storage_class |= sc.stc & STC.deprecated_;
         dsym.visibility = sc.visibility;
         dsym.userAttribDecl = sc.userAttribDecl;
