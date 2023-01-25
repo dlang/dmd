@@ -3654,12 +3654,17 @@ extern (C++) final class NewExp : Expression
 
     Expression lowering;        // lowered druntime hook: `_d_newclass`
 
-    extern (D) this(const ref Loc loc, Expression thisexp, Type newtype, Expressions* arguments)
+    /// Puts the `arguments` and `names` into an `ArgumentList` for easily passing them around.
+    /// The fields are still separate for backwards compatibility
+    extern (D) ArgumentList argumentList() { return ArgumentList(arguments, names); }
+
+    extern (D) this(const ref Loc loc, Expression thisexp, Type newtype, Expressions* arguments, Identifiers* names = null)
     {
         super(loc, EXP.new_, __traits(classInstanceSize, NewExp));
         this.thisexp = thisexp;
         this.newtype = newtype;
         this.arguments = arguments;
+        this.names = names;
     }
 
     static NewExp create(const ref Loc loc, Expression thisexp, Type newtype, Expressions* arguments)
@@ -5126,17 +5131,33 @@ extern (C++) final class DotTypeExp : UnaExp
     }
 }
 
+/**
+ * The arguments of a function call
+ *
+ * Contains a list of expressions. If it is a named argument, the `names`
+ * list has a non-null entry at the same index.
+ */
+struct ArgumentList
+{
+    Expressions* arguments; // function arguments
+    Identifiers* names;     // named argument identifiers
+}
+
 /***********************************************************
  */
 extern (C++) final class CallExp : UnaExp
 {
     Expressions* arguments; // function arguments
-    Identifiers* names;       // named argument identifiers
+    Identifiers* names;     // named argument identifiers
     FuncDeclaration f;      // symbol to call
     bool directcall;        // true if a virtual call is devirtualized
     bool inDebugStatement;  /// true if this was in a debug statement
     bool ignoreAttributes;  /// don't enforce attributes (e.g. call @gc function in @nogc code)
     VarDeclaration vthis2;  // container for multi-context
+
+    /// Puts the `arguments` and `names` into an `ArgumentList` for easily passing them around.
+    /// The fields are still separate for backwards compatibility
+    extern (D) ArgumentList argumentList() { return ArgumentList(arguments, names); }
 
     extern (D) this(const ref Loc loc, Expression e, Expressions* exps, Identifiers* names = null)
     {

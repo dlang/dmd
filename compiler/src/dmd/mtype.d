@@ -2046,7 +2046,7 @@ extern (C++) abstract class Type : ASTNode
         }
         if (auto fd = s.isFuncDeclaration())
         {
-            fd = resolveFuncCall(Loc.initial, null, fd, null, this, null, null, FuncResolveFlag.quiet);
+            fd = resolveFuncCall(Loc.initial, null, fd, null, this, ArgumentList(), FuncResolveFlag.quiet);
             if (!fd || fd.errors || !fd.functionSemantic())
                 return Type.terror;
 
@@ -2068,7 +2068,7 @@ extern (C++) abstract class Type : ASTNode
         if (auto td = s.isTemplateDeclaration())
         {
             assert(td._scope);
-            auto fd = resolveFuncCall(Loc.initial, null, td, null, this, null, null, FuncResolveFlag.quiet);
+            auto fd = resolveFuncCall(Loc.initial, null, td, null, this, ArgumentList(), FuncResolveFlag.quiet);
             if (!fd || fd.errors || !fd.functionSemantic())
                 return Type.terror;
 
@@ -4626,17 +4626,16 @@ extern (C++) final class TypeFunction : TypeNext
      * Determine match level.
      * Params:
      *      tthis = type of `this` pointer, null if not member function
-     *      inArgs = array of function arguments. In case of a match, gets reordered based on named arguments.
+     *      arguments = arguments to function call
      *      flag = 1: performing a partial ordering match
      *      pMessage = address to store error message, or null
      *      sc = context
      * Returns:
      *      MATCHxxxx
      */
-    extern (D) MATCH callMatch(Type tthis, Expressions* inArgs, Identifiers* names, int flag = 0, const(char)** pMessage = null, Scope* sc = null)
+    extern (D) MATCH callMatch(Type tthis, ArgumentList argumentList, int flag = 0, const(char)** pMessage = null, Scope* sc = null)
     {
         //printf("TypeFunction::callMatch() %s\n", toChars());
-        //printf("inArgs: %s, names: %s\n", inArgs ? inArgs.toChars() : "null", names ? names.toChars() : "null");
         MATCH match = MATCH.exact; // assume exact match
         ubyte wildmatch = 0;
 
@@ -4670,8 +4669,8 @@ extern (C++) final class TypeFunction : TypeNext
         }
 
         const nparams = parameterList.length;
-        Expression[] args = inArgs ? (*inArgs)[] : null;
-        Identifier[] nnames = names ? (*names)[] : null;
+        Expression[] args = argumentList.arguments ? (*argumentList.arguments)[] : null;
+        Identifier[] nnames = argumentList.names ? (*argumentList.names)[] : null;
 
         if (args.length > nparams)
         {
@@ -7090,7 +7089,7 @@ bool isCopyable(Type t)
             el.type = cast() ts;
             Expressions args;
             args.push(el);
-            FuncDeclaration f = resolveFuncCall(Loc.initial, null, ctor, null, cast()ts, &args, null, FuncResolveFlag.quiet);
+            FuncDeclaration f = resolveFuncCall(Loc.initial, null, ctor, null, cast()ts, ArgumentList(&args), FuncResolveFlag.quiet);
             if (!f || f.storage_class & STC.disable)
                 return false;
         }

@@ -2308,6 +2308,21 @@ struct TemplateStats final
         {}
 };
 
+struct ArgumentList final
+{
+    Array<Expression* >* arguments;
+    Array<Identifier* >* names;
+    ArgumentList() :
+        arguments(),
+        names()
+    {
+    }
+    ArgumentList(Array<Expression* >* arguments, Array<Identifier* >* names = nullptr) :
+        arguments(arguments),
+        names(names)
+        {}
+};
+
 enum : bool { LOGSEMANTIC = false };
 
 enum class Modifiable
@@ -4842,6 +4857,7 @@ struct ASTCodegen final
     using AddrExp = ::AddrExp;
     using AndAssignExp = ::AndAssignExp;
     using AndExp = ::AndExp;
+    using ArgumentList = ::ArgumentList;
     using ArrayExp = ::ArrayExp;
     using ArrayLengthExp = ::ArrayLengthExp;
     using ArrayLiteralExp = ::ArrayLiteralExp;

@@ -2594,14 +2594,13 @@ extern (C++) final class TypeDeduced : Type
  *      sc          = instantiation scope
  *      tiargs      = initial list of template arguments
  *      tthis       = if !NULL, the 'this' pointer argument
- *      fargs       = arguments to function
- *      fnames      = names corresponding to fargs
+ *      argumentList= arguments to function
  *      pMessage    = address to store error message, or null
  */
 void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiargs,
-    Type tthis, Expressions* fargs, Identifiers* fnames, const(char)** pMessage = null)
+    Type tthis, ArgumentList argumentList, const(char)** pMessage = null)
 {
-    alias fargs_ = fargs;
+    Expressions* fargs = argumentList.arguments;
     version (none)
     {
         printf("functionResolve() dstart = %s\n", dstart.toChars());
@@ -2621,7 +2620,6 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
             printf("\t%s %s\n", arg.type.toChars(), arg.toChars());
             //printf("\tty = %d\n", arg.type.ty);
         }
-        printf("    fnames: %s\n", fnames ? fnames.toChars() : "null");
         //printf("stc = %llx\n", dstart._scope.stc);
         //printf("match:t/f = %d/%d\n", ta_last, m.last);
     }
@@ -2707,7 +2705,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
             else if (shared_this && !shared_dtor && tthis_fd !is null)
                 tf.mod = tthis_fd.mod;
         }
-        MATCH mfa = tf.callMatch(tthis_fd, fargs_, fnames, 0, pMessage, sc);
+        MATCH mfa = tf.callMatch(tthis_fd, argumentList, 0, pMessage, sc);
         //printf("test1: mfa = %d\n", mfa);
         if (mfa == MATCH.nomatch)
             return 0;
@@ -2740,8 +2738,8 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
          * This is because f() is "more specialized."
          */
         {
-            MATCH c1 = fd.leastAsSpecialized(m.lastf, fnames);
-            MATCH c2 = m.lastf.leastAsSpecialized(fd, fnames);
+            MATCH c1 = fd.leastAsSpecialized(m.lastf, argumentList.names);
+            MATCH c2 = m.lastf.leastAsSpecialized(fd, argumentList.names);
             //printf("c1 = %d, c2 = %d\n", c1, c2);
             if (c1 > c2) return firstIsBetter();
             if (c1 < c2) return 0;
@@ -2885,13 +2883,13 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
                 pr.dedargs = &dedtypesX;
                 tdx.previous = &pr;             // add this to threaded list
 
-                fd = resolveFuncCall(loc, sc, s, null, tthis, fargs, fnames, FuncResolveFlag.quiet);
+                fd = resolveFuncCall(loc, sc, s, null, tthis, argumentList, FuncResolveFlag.quiet);
 
                 tdx.previous = pr.prev;         // unlink from threaded list
             }
             else if (s.isFuncDeclaration())
             {
-                fd = resolveFuncCall(loc, sc, s, null, tthis, fargs, fnames, FuncResolveFlag.quiet);
+                fd = resolveFuncCall(loc, sc, s, null, tthis, argumentList, FuncResolveFlag.quiet);
             }
             else
                 goto Lerror;
@@ -2910,7 +2908,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
             Type tthis_fd = fd.needThis() && !fd.isCtorDeclaration() ? tthis : null;
 
             auto tf = cast(TypeFunction)fd.type;
-            MATCH mfa = tf.callMatch(tthis_fd, fargs_, fnames, 0, null, sc);
+            MATCH mfa = tf.callMatch(tthis_fd, argumentList, 0, null, sc);
             if (mfa < m.last)
                 return 0;
 
@@ -3012,16 +3010,16 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
                 // Disambiguate by tf.callMatch
                 auto tf1 = fd.type.isTypeFunction();
                 auto tf2 = m.lastf.type.isTypeFunction();
-                MATCH c1 = tf1.callMatch(tthis_fd, fargs_, fnames, 0, null, sc);
-                MATCH c2 = tf2.callMatch(tthis_best, fargs_, fnames, 0, null, sc);
+                MATCH c1 = tf1.callMatch(tthis_fd, argumentList, 0, null, sc);
+                MATCH c2 = tf2.callMatch(tthis_best, argumentList, 0, null, sc);
                 //printf("2: c1 = %d, c2 = %d\n", c1, c2);
                 if (c1 > c2) goto Ltd;
                 if (c1 < c2) goto Ltd_best;
             }
             {
                 // Disambiguate by picking the most specialized FunctionDeclaration
-                MATCH c1 = fd.leastAsSpecialized(m.lastf, fnames);
-                MATCH c2 = m.lastf.leastAsSpecialized(fd, fnames);
+                MATCH c1 = fd.leastAsSpecialized(m.lastf, argumentList.names);
+                MATCH c2 = m.lastf.leastAsSpecialized(fd, argumentList.names);
                 //printf("3: c1 = %d, c2 = %d\n", c1, c2);
                 if (c1 > c2) goto Ltd;
                 if (c1 < c2) goto Ltd_best;
@@ -3116,7 +3114,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
         if (m.lastf.type.ty == Terror)
             goto Lerror;
         auto tf = m.lastf.type.isTypeFunction();
-        if (!tf.callMatch(tthis_best, fargs_, fnames, 0, null, sc))
+        if (!tf.callMatch(tthis_best, argumentList, 0, null, sc))
             goto Lnomatch;
 
         /* As https://issues.dlang.org/show_bug.cgi?id=3682 shows,

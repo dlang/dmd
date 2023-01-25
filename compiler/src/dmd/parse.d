@@ -9415,13 +9415,17 @@ LagainStc:
 
         nextToken();
         AST.Expressions* arguments = null;
+        AST.Identifiers* names = new AST.Identifiers();
 
         // An anonymous nested class starts with "class"
         if (token.value == TOK.class_)
         {
             nextToken();
             if (token.value == TOK.leftParenthesis)
-                arguments = parseArguments();
+            {
+                arguments = new AST.Expressions();
+                parseNamedArguments(arguments, names);
+            }
 
             AST.BaseClasses* baseclasses = null;
             if (token.value != TOK.leftCurly)
@@ -9463,10 +9467,11 @@ LagainStc:
         }
         else if (token.value == TOK.leftParenthesis && t.ty != Tsarray)
         {
-            arguments = parseArguments();
+            arguments = new AST.Expressions();
+            parseNamedArguments(arguments, names);
         }
 
-        auto e = new AST.NewExp(loc, thisexp, t, arguments);
+        auto e = new AST.NewExp(loc, thisexp, t, arguments, names);
         return e;
     }
 
