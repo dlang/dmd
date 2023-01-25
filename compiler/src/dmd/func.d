@@ -202,9 +202,7 @@ private struct FUNCFLAG
     bool inlineScanned;      /// function has been scanned for inline possibilities
     bool inferScope;         /// infer 'scope' for parameters
     bool hasCatches;         /// function has try-catch statements
-    bool isCompileTimeOnly;  /// is a compile time only function; no code will be generated for it
     bool skipCodegen;        /// do not generate code for this function.
-                             // FIXME: redundant with `isCompileTimeOnly`, see https://github.com/dlang/dmd/pull/14791#discussion_r1065066099
     bool printf;             /// is a printf-like function
     bool scanf;              /// is a scanf-like function
     bool noreturn;           /// the function does not return

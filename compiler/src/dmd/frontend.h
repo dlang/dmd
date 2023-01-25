@@ -2494,8 +2494,6 @@ public:
     bool inferScope(bool v);
     bool hasCatches() const;
     bool hasCatches(bool v);
-    bool isCompileTimeOnly() const;
-    bool isCompileTimeOnly(bool v);
     bool skipCodegen() const;
     bool skipCodegen(bool v);
     bool printf() const;
