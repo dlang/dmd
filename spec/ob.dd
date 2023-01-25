@@ -148,6 +148,19 @@ If an Owner pointer is assigned to another Owner pointer, the
 former enters the Undefined state.
 )
 
+---
+int* produce();
+void consume(int*);
+
+@live void f()
+{
+    int* p = produce(); // p is owner
+    consume(p);
+    // p is now undefined
+    //writeln(*p); // error
+}
+---
+
 $(DT Borrowed)
 
 $(DD A Borrowed pointer is one that temporarily becomes the sole pointer
@@ -155,19 +168,48 @@ to a memory object graph. It enters that state via assignment
 from an owner pointer, and stays in that state
 until its last use.
 
-A Borrowed pointer must have the `scope` attribute and must
+A Borrowed pointer must be `scope` and must
 be a pointer to mutable.
 )
+
+---
+@live void g()
+{
+    int i;
+    // borrow &i
+    int* p = &i;
+    // using &i here would end p's lifetime
+    // borrow p
+    int* q = p; // q is inferred as scope
+    // using p here would end q's lifetime
+    writeln(*q);
+    // lifetime of q ends before p is used
+    writeln(*p); // OK
+}
+---
 
 $(DT Readonly)
 
 $(DD A Readonly pointer acquires its value from an Owner.
 While the Readonly pointer is live, only Readonly pointers can
 be acquired from that Owner.
-A Readonly pointer must have the `scope` attribute and also
+A Readonly pointer must be `scope` and also
 must not be a pointer to mutable.
 )
 )
+
+---
+@live void h(scope int* p)
+{
+    const q = p;
+    const r = q;
+    // q, r are read only
+    writeln(*q); // can read q and keep r live
+    writeln(*r);
+    // using p ends all its read only pointer lifetimes
+    writeln(*p);
+}
+---
 
 $(H3 $(LNAME2 lifetime, Lifetimes))
 
