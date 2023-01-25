@@ -114,6 +114,7 @@ public:
 
     virtual Scope *newScope(Scope *sc);
     void setScope(Scope *sc) override final;
+    void importAll(Scope *sc) override;
     size_t nonHiddenFields();
     bool determineSize(const Loc &loc);
     virtual void finalizeSize() = 0;

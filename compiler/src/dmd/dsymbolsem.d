@@ -3464,6 +3464,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (funcdecl.type.nextOf() == Type.terror)
                 goto Ldone;
 
+            // must semantic on base class/interfaces
+            if (cd._scope && cd.baseok < Baseok.semanticdone)
+                cd.dsymbolSemantic(null);
+
             bool may_override = false;
             for (size_t i = 0; i < cd.baseclasses.length; i++)
             {
@@ -5639,8 +5643,20 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
         }
         if (!idec.symtab)
+        {
             idec.symtab = new DsymbolTable();
 
+            idec.members.foreachDsymbol( s => s.addMember(sc, idec) );
+
+            auto sc2 = idec.newScope(sc);
+
+            /* Set scope so if there are forward references, we still might be able to
+             * resolve individual members like enums.
+             */
+            idec.members.foreachDsymbol( s => s.setScope(sc2) );
+
+            sc2.pop();
+        }
         for (size_t i = 0; i < idec.baseclasses.length; i++)
         {
             BaseClass* b = (*idec.baseclasses)[i];
@@ -5692,14 +5708,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
 
-        idec.members.foreachDsymbol( s => s.addMember(sc, idec) );
-
         auto sc2 = idec.newScope(sc);
-
-        /* Set scope so if there are forward references, we still might be able to
-         * resolve individual members like enums.
-         */
-        idec.members.foreachDsymbol( s => s.setScope(sc2) );
 
         idec.members.foreachDsymbol( s => s.importAll(sc2) );
 

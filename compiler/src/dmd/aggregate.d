@@ -188,6 +188,23 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             ScopeDsymbol.setScope(sc);
     }
 
+    override void importAll(Scope* sc)
+    {
+        if (!members || !members.length)
+            return;
+
+        if (!symtab)
+        {
+            symtab = new DsymbolTable();
+            members.foreachDsymbol( s => s.addMember(sc, this) );
+            // Set scope so if there are forward references, we still might be able to
+            // resolve individual members like enums.
+            auto sc2 = newScope(sc);
+            members.foreachDsymbol( s => s.setScope(sc2) );
+            sc2.pop();
+        }
+    }
+
     /***************************************
      * Returns:
      *      The total number of fields minus the number of hidden fields.
