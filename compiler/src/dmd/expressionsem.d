@@ -1737,10 +1737,9 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
 
     if (argumentList.names)
     {
-        Expression[] newArgs = arguments.peekSlice();
         const(char)* msg = null;
-        const result = tf.resolveNamedArgs(newArgs, argumentList.names.peekSlice(), &msg);
-        if (!result)
+        auto resolvedArgs = tf.resolveNamedArgs(argumentList, &msg);
+        if (!resolvedArgs)
         {
             // while errors are usually already caught by `tf.callMatch`,
             // this can happen when calling `typeof(freefunc)`
@@ -1748,8 +1747,10 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 error(loc, "%s", msg);
             return true;
         }
+        // note: the argument list should be mutated with named arguments / default arguments,
+        // so we can't simply change the pointer like `arguments = resolvedArgs;`
         arguments.setDim(0);
-        arguments.pushSlice(newArgs);
+        arguments.pushSlice((*resolvedArgs)[]);
     }
     size_t nargs = arguments ? arguments.length : 0;
 

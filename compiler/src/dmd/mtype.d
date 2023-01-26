@@ -4626,7 +4626,7 @@ extern (C++) final class TypeFunction : TypeNext
      * Determine match level.
      * Params:
      *      tthis = type of `this` pointer, null if not member function
-     *      arguments = arguments to function call
+     *      argumentList = arguments to function call
      *      flag = 1: performing a partial ordering match
      *      pMessage = address to store error message, or null
      *      sc = context
@@ -4669,10 +4669,7 @@ extern (C++) final class TypeFunction : TypeNext
         }
 
         const nparams = parameterList.length;
-        Expression[] args = argumentList.arguments ? (*argumentList.arguments)[] : null;
-        Identifier[] nnames = argumentList.names ? (*argumentList.names)[] : null;
-
-        if (args.length > nparams)
+        if (argumentList.length > nparams)
         {
             if (parameterList.varargs == VarArg.none)
             {
@@ -4686,22 +4683,28 @@ extern (C++) final class TypeFunction : TypeNext
         }
 
         // https://issues.dlang.org/show_bug.cgi?id=22997
-        if (parameterList.varargs == VarArg.none && nparams > args.length && !parameterList[args.length].defaultArg)
+        if (parameterList.varargs == VarArg.none && nparams > argumentList.length && !parameterList[argumentList.length].defaultArg)
         {
             OutBuffer buf;
-            buf.printf("too few arguments, expected %d, got %d", cast(int)nparams, cast(int)args.length);
+            buf.printf("too few arguments, expected %d, got %d", cast(int)nparams, cast(int)argumentList.length);
             if (pMessage)
                 *pMessage = buf.extractChars();
             return MATCH.nomatch;
         }
-
-        if (!resolveNamedArgs(args, nnames, pMessage))
+        auto resolvedArgs = resolveNamedArgs(argumentList, pMessage);
+        Expression[] args;
+        if (!resolvedArgs)
         {
             if (!pMessage || *pMessage)
                 return MATCH.nomatch;
 
             // if no message was provided, it was because of overflow which will be diagnosed below
             match = MATCH.nomatch;
+            args = argumentList.arguments ? (*argumentList.arguments)[] : null;
+        }
+        else
+        {
+            args = (*resolvedArgs)[];
         }
 
         foreach (u, p; parameterList)
@@ -4798,16 +4801,19 @@ extern (C++) final class TypeFunction : TypeNext
     }
 
     /********************************
-     * Re-order `args` based on named arguments it contains
+     * Re-order `argumentList` based on named arguments it contains
      *
      * Params:
-     *      args = array of function arguments.
-     *      pMessage = address to store error message, or null
-     * Returns: true on success, false on error
+     *      argumentList = array of function arguments
+     *      pMessage = address to store error message, or `null`
+     * Returns: re-ordered argument list, or `null` on error
      */
-    extern(D) bool resolveNamedArgs(ref Expression[] args, Identifier[] names, const(char)** pMessage)
+    extern(D) Expressions* resolveNamedArgs(ArgumentList argumentList, const(char)** pMessage)
     {
-        auto newArgs = new Expression[parameterList.length];
+        Expression[] args = argumentList.arguments ? (*argumentList.arguments)[] : null;
+        Identifier[] names = argumentList.names ? (*argumentList.names)[] : null;
+        auto newArgs = new Expressions(parameterList.length);
+        newArgs.zero();
         size_t ci = 0;
         bool hasNamedArgs = false;
         foreach (i, arg; args)
@@ -4826,55 +4832,52 @@ extern (C++) final class TypeFunction : TypeNext
                 {
                     if (pMessage)
                         *pMessage = getMatchError("no parameter named `%s`", name.toChars());
-                    return false;
+                    return null;
                 }
                 ci = pi;
             }
             if (ci >= newArgs.length)
             {
-                newArgs.length = ci + 1;
                 if (!parameterList.varargs)
                 {
                     // Without named args, let the caller diagnose argument overflow
                     if (hasNamedArgs && pMessage)
                         *pMessage = getMatchError("argument `%s` goes past end of parameter list", arg.toChars());
-                    return false;
+                    return null;
                 }
+                while (ci >= newArgs.length)
+                    newArgs.push(null);
             }
 
-            if (newArgs[ci])
+            if ((*newArgs)[ci])
             {
                 if (pMessage)
                     *pMessage = getMatchError("parameter `%s` assigned twice", parameterList[ci].toChars());
-                return false;
+                return null;
             }
-            newArgs[ci++] = arg;
+            (*newArgs)[ci++] = arg;
         }
-        foreach (i, arg; newArgs)
+        foreach (i, arg; (*newArgs)[])
         {
-            if (!arg)
-            {
-                if (parameterList[i].defaultArg)
-                    continue;
+            if (arg || parameterList[i].defaultArg)
+                continue;
 
-                if (parameterList.varargs != VarArg.none && i + 1 == newArgs.length)
-                    continue;
+            if (parameterList.varargs != VarArg.none && i + 1 == newArgs.length)
+                continue;
 
-                if (pMessage)
-                    *pMessage = getMatchError("missing argument for parameter #%d: `%s`",
-                        i + 1, parameterToChars(parameterList[i], this, false));
-                return false;
-            }
+            if (pMessage)
+                *pMessage = getMatchError("missing argument for parameter #%d: `%s`",
+                    i + 1, parameterToChars(parameterList[i], this, false));
+            return null;
         }
         // strip trailing nulls from default arguments
         size_t e = newArgs.length;
-        while (e > 0 && newArgs[e - 1] is null)
+        while (e > 0 && (*newArgs)[e - 1] is null)
         {
             --e;
         }
-
-        args = newArgs[0..e];
-        return true;
+        newArgs.setDim(e);
+        return newArgs;
     }
 
     /+

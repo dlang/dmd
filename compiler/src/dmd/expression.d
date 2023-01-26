@@ -5141,6 +5141,8 @@ struct ArgumentList
 {
     Expressions* arguments; // function arguments
     Identifiers* names;     // named argument identifiers
+
+    size_t length() const @nogc nothrow pure @safe { return arguments ? arguments.length : 0; }
 }
 
 /***********************************************************
