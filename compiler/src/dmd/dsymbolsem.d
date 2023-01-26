@@ -4539,7 +4539,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     override void visit(StructDeclaration sd)
     {
-        //printf("StructDeclaration::semantic(this=%p, '%s', sizeok = %d)\n", sd, sd.toPrettyChars(), sd.sizeok);
+        enum log = false;
+        if (log) printf("+StructDeclaration::semantic(this=%p, '%s', sizeok = %d)\n", sd, sd.toPrettyChars(), sd.sizeok);
 
         //static int count; if (++count == 20) assert(0);
 
@@ -4609,6 +4610,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (!sd.members) // if opaque declaration
         {
+            if (log) printf("\topaque declaration %s\n", sd.toChars());
             sd.semanticRun = PASS.semanticdone;
             return;
         }
@@ -4660,7 +4662,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             sc2.pop();
 
-            //printf("\tdeferring %s\n", toChars());
+            if (log) printf("\tdeferring %s\n", sd.toChars());
             return deferDsymbolSemantic(sd, scx);
         }
 
@@ -4690,7 +4692,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         sd.inv = buildInv(sd, sc2);
 
         sd.semanticRun = PASS.semanticdone;
-        //printf("-StructDeclaration::semantic(this=%p, '%s')\n", sd, sd.toChars());
+        if (log) printf("-StructDeclaration::semantic(this=%p, '%s', sizeok = %d)\n", sd, sd.toPrettyChars(), sd.sizeok);
 
         sc2.pop();
 
@@ -4757,6 +4759,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         // Make an error in 2.110
         if (sd.storage_class & STC.scope_)
             deprecation(sd.loc, "`scope` as a type constraint is deprecated.  Use `scope` at the usage site.");
+        //printf("-StructDeclaration::semantic(this=%p, '%s', sizeok = %d)\n", sd, sd.toPrettyChars(), sd.sizeok);
     }
 
     void interfaceSemantic(ClassDeclaration cd)
@@ -6147,7 +6150,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
         Dsymbol s;
         if (Dsymbol.oneMembers(tempinst.members, &s, tempdecl.ident) && s)
         {
-            //printf("tempdecl.ident = %s, s = '%s'\n", tempdecl.ident.toChars(), s.kind(), s.toPrettyChars());
+            //printf("tempdecl.ident = %s, s = `%s %s`\n", tempdecl.ident.toChars(), s.kind(), s.toPrettyChars());
             //printf("setting aliasdecl\n");
             tempinst.aliasdecl = s;
         }
@@ -6194,7 +6197,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
         {
             if (!tempinst.aliasdecl || tempinst.aliasdecl != s)
             {
-                //printf("tempdecl.ident = %s, s = '%s'\n", tempdecl.ident.toChars(), s.kind(), s.toPrettyChars());
+                //printf("tempdecl.ident = %s, s = `%s %s`\n", tempdecl.ident.toChars(), s.kind(), s.toPrettyChars());
                 //printf("setting aliasdecl 2\n");
                 tempinst.aliasdecl = s;
             }

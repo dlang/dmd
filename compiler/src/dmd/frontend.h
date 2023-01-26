@@ -102,6 +102,7 @@ class VisibilityDeclaration;
 class OverloadSet;
 class CompileDeclaration;
 class StaticAssert;
+class StaticIfDeclaration;
 class DsymbolTable;
 struct MangleOverride;
 class AliasThis;
@@ -571,6 +572,7 @@ public:
     virtual OverloadSet* isOverloadSet();
     virtual CompileDeclaration* isCompileDeclaration();
     virtual StaticAssert* isStaticAssert();
+    virtual StaticIfDeclaration* isStaticIfDeclaration();
 };
 
 typedef uint64_t size_t;
@@ -5387,7 +5389,7 @@ public:
     void checkCtorConstInit() final override;
     void addLocalClass(Array<ClassDeclaration* >* aclasses) final override;
     void addObjcSymbols(Array<ClassDeclaration* >* classes, Array<ClassDeclaration* >* categories) final override;
-    AttribDeclaration* isAttribDeclaration() final override;
+    AttribDeclaration* isAttribDeclaration() override;
     void accept(Visitor* v) override;
 };
 
@@ -5524,6 +5526,7 @@ public:
     void setScope(Scope* sc) override;
     void importAll(Scope* sc) override;
     const char* kind() const override;
+    StaticIfDeclaration* isStaticIfDeclaration() override;
     void accept(Visitor* v) override;
 };
 
