@@ -3127,7 +3127,7 @@ enum FuncResolveFlag : ubyte
  *      loc =           instantiation location
  *      sc =            instantiation scope
  *      s =             instantiation symbol
- *      tiargs =        initial list of template arguments
+ *      templateArgs =  initial list of template arguments
  *      tthis =         if !NULL, the `this` argument type
  *      argumentList =  arguments to function
  *      flags =         see $(LREF FuncResolveFlag).
@@ -3135,9 +3135,10 @@ enum FuncResolveFlag : ubyte
  *      if match is found, then function symbol, else null
  */
 FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
-    Objects* tiargs, Type tthis, ArgumentList argumentList, FuncResolveFlag flags)
+    TemplateArguments templateArgs, Type tthis, ArgumentList argumentList, FuncResolveFlag flags)
 {
     auto fargs = argumentList.arguments;
+    Objects* tiargs = templateArgs.tiargs;
     if (!s)
         return null; // no match
 

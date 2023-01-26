@@ -2278,6 +2278,21 @@ enum
 
 enum : int32_t { IDX_NOTFOUND = 305419896 };
 
+struct TemplateArguments final
+{
+    Array<RootObject* >* tiargs;
+    Array<Identifier* >* tinames;
+    TemplateArguments() :
+        tiargs(),
+        tinames()
+    {
+    }
+    TemplateArguments(Array<RootObject* >* tiargs, Array<Identifier* >* tinames = nullptr) :
+        tiargs(tiargs),
+        tinames(tinames)
+        {}
+};
+
 struct TemplateInstanceBox final
 {
     TemplateInstance* ti;
@@ -4837,6 +4852,7 @@ struct ASTCodegen final
     using Visibility = ::Visibility;
     using WithScopeSymbol = ::WithScopeSymbol;
     using TemplateAliasParameter = ::TemplateAliasParameter;
+    using TemplateArguments = ::TemplateArguments;
     using TemplateDeclaration = ::TemplateDeclaration;
     using TemplateInstance = ::TemplateInstance;
     using TemplateInstanceBox = ::TemplateInstanceBox;
@@ -6814,6 +6830,7 @@ class TemplateInstance : public ScopeDsymbol
 public:
     Identifier* name;
     Array<RootObject* >* tiargs;
+    Array<Identifier* >* tinames;
     Array<RootObject* > tdtypes;
     Array<Module* > importedModules;
     Dsymbol* tempdecl;

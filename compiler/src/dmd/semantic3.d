@@ -711,7 +711,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                         // Insert implicit super() at start of fbody
                         Type tthis = ad2.type.addMod(funcdecl.vthis.type.mod);
-                        FuncDeclaration fd = resolveFuncCall(Loc.initial, sc2, cd.baseClass.ctor, null, tthis, ArgumentList(), FuncResolveFlag.quiet);
+                        FuncDeclaration fd = resolveFuncCall(Loc.initial, sc2, cd.baseClass.ctor, TemplateArguments(), tthis, ArgumentList(), FuncResolveFlag.quiet);
                         if (!fd)
                         {
                             funcdecl.error("no match for implicit `super()` call in constructor");

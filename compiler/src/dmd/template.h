@@ -260,6 +260,8 @@ public:
     // instance arguments [int*, char, 10*10]
     Objects *tiargs;
 
+    Identifiers *tinames;
+
     // Array of Types/Expressions corresponding
     // to TemplateDeclaration.parameters
     // [int, char, 100]

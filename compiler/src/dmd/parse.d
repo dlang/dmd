@@ -1747,15 +1747,15 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      * Output:
      *      current token is one after closing '$(RPAREN)'
      */
-    private AST.Objects* parseTemplateArguments()
+    private AST.Objects* parseTemplateArguments(AST.Identifiers* names = null)
     {
-        AST.Objects* tiargs;
+        AST.Objects* tiargs = new AST.Objects();
 
         nextToken();
         if (token.value == TOK.leftParenthesis)
         {
             // ident!(template_arguments)
-            tiargs = parseTemplateArgumentList();
+            parseTemplateNamedArgumentList(tiargs, names);
         }
         else
         {
@@ -1781,6 +1781,13 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         return tiargs;
     }
 
+    private AST.Objects* parseTemplateArgumentList()
+    {
+        auto tiargs = new AST.Objects();
+        parseTemplateNamedArgumentList(tiargs, null);
+        return tiargs;
+    }
+
     /******************************************
      * Parse template argument list.
      * Input:
@@ -1789,10 +1796,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      * Output:
      *      current token is one after closing '$(RPAREN)'
      */
-    private AST.Objects* parseTemplateArgumentList()
+    private void parseTemplateNamedArgumentList(AST.Objects* tiargs, AST.Identifiers* names)
     {
         //printf("Parser::parseTemplateArgumentList()\n");
-        auto tiargs = new AST.Objects();
+
         TOK endtok = TOK.rightParenthesis;
         assert(token.value == TOK.leftParenthesis || token.value == TOK.comma);
         nextToken();
@@ -1800,13 +1807,13 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         // Get TemplateArgumentList
         while (token.value != endtok)
         {
+            parseArgumentName(names);
             tiargs.push(parseTypeOrAssignExp());
             if (token.value != TOK.comma)
                 break;
             nextToken();
         }
         check(endtok, "template argument list");
-        return tiargs;
     }
 
     /***************************************
@@ -3660,7 +3667,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             if (token.value == TOK.not)
             {
                 // ident!(template_arguments)
-                auto tempinst = new AST.TemplateInstance(loc, id, parseTemplateArguments());
+                auto names = new AST.Identifiers();
+                auto tempinst = new AST.TemplateInstance(loc, id, parseTemplateArguments(names), names);
                 t = parseBasicTypeStartingAt(new AST.TypeInstance(loc, tempinst), dontLookDotIdents);
             }
             else
@@ -3809,7 +3817,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     nextToken();
                     if (token.value == TOK.not)
                     {
-                        auto tempinst = new AST.TemplateInstance(loc, id, parseTemplateArguments());
+                        auto names = new AST.Identifiers();
+                        auto tempinst = new AST.TemplateInstance(loc, id, parseTemplateArguments(names), names);
                         tid.addInst(tempinst);
                     }
                     else
@@ -7996,7 +8005,8 @@ LagainStc:
                 if (token.value == TOK.not && (save = peekNext()) != TOK.is_ && save != TOK.in_)
                 {
                     // identifier!(template-argument-list)
-                    auto tempinst = new AST.TemplateInstance(loc, id, parseTemplateArguments());
+                    auto names = new AST.Identifiers();
+                    auto tempinst = new AST.TemplateInstance(loc, id, parseTemplateArguments(names), names);
                     e = new AST.ScopeExp(loc, tempinst);
                 }
                 else
@@ -9365,6 +9375,31 @@ LagainStc:
     }
 
     /*************************
+     * Optionally parse the `name:` part of a named argument
+     * Push the name into `names` if it exists. If the list is `null`, names are not allowed
+     */
+    private void parseArgumentName(AST.Identifiers* names)
+    {
+        if (peekNext() == TOK.colon)
+        {
+            // Named argument `name: exp`
+            auto loc = token.loc;
+            auto ident = token.ident;
+            check(TOK.identifier);
+            check(TOK.colon);
+            if (names)
+                names.push(ident);
+            else
+                error(loc, "named arguments not allowed here");
+        }
+        else
+        {
+            if (names)
+                names.push(null);
+        }
+    }
+
+    /*************************
      * Collect argument list.
      * Assume current token is ',', '$(LPAREN)' or '['.
      */
@@ -9378,24 +9413,7 @@ LagainStc:
 
         while (token.value != endtok && token.value != TOK.endOfFile)
         {
-            if (peekNext() == TOK.colon)
-            {
-                // Named argument `name: exp`
-                auto loc = token.loc;
-                auto ident = token.ident;
-                check(TOK.identifier);
-                check(TOK.colon);
-                if (names)
-                    names.push(ident);
-                else
-                    error(loc, "named arguments not allowed here");
-            }
-            else
-            {
-                if (names)
-                    names.push(null);
-            }
-
+            parseArgumentName(names);
             auto arg = parseAssignExp();
             arguments.push(arg);
 

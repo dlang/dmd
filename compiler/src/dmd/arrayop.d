@@ -19,6 +19,7 @@ import dmd.astenums;
 import dmd.declaration;
 import dmd.dscope;
 import dmd.dsymbol;
+import dmd.dtemplate : TemplateArguments;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
@@ -149,7 +150,7 @@ Expression arrayOp(BinExp e, Scope* sc)
             ObjectNotFound(idArrayOp);   // fatal error
     }
 
-    auto fd = resolveFuncCall(e.loc, sc, arrayOp, tiargs, null, ArgumentList(args), FuncResolveFlag.standard);
+    auto fd = resolveFuncCall(e.loc, sc, arrayOp, TemplateArguments(tiargs), null, ArgumentList(args), FuncResolveFlag.standard);
     if (!fd || fd.errors)
         return ErrorExp.get();
     return new CallExp(e.loc, new VarExp(e.loc, fd, false), args).expressionSemantic(sc);

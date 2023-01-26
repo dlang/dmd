@@ -4745,7 +4745,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 sc = sc.push();
                 sc.tinst = null;
                 sc.minst = null;
-                auto fcall = resolveFuncCall(sd.loc, sc, scall, null, null, ArgumentList(), FuncResolveFlag.quiet);
+                auto fcall = resolveFuncCall(sd.loc, sc, scall, TemplateArguments(), null, ArgumentList(), FuncResolveFlag.quiet);
                 sc = sc.pop();
                 global.endGagging(xerrors);
 
@@ -5345,9 +5345,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         //    this() { }
         if (!cldec.ctor && cldec.baseClass && cldec.baseClass.ctor)
         {
-            auto fd = resolveFuncCall(cldec.loc, sc2, cldec.baseClass.ctor, null, cldec.type, ArgumentList(), FuncResolveFlag.quiet);
+            auto fd = resolveFuncCall(cldec.loc, sc2, cldec.baseClass.ctor, TemplateArguments(), cldec.type, ArgumentList(), FuncResolveFlag.quiet);
             if (!fd) // try shared base ctor instead
-                fd = resolveFuncCall(cldec.loc, sc2, cldec.baseClass.ctor, null, cldec.type.sharedOf, ArgumentList(), FuncResolveFlag.quiet);
+                fd = resolveFuncCall(cldec.loc, sc2, cldec.baseClass.ctor, TemplateArguments(), cldec.type.sharedOf, ArgumentList(), FuncResolveFlag.quiet);
             if (fd && !fd.errors)
             {
                 //printf("Creating default this(){} for class %s\n", toChars());

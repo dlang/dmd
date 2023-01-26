@@ -2046,7 +2046,7 @@ extern (C++) abstract class Type : ASTNode
         }
         if (auto fd = s.isFuncDeclaration())
         {
-            fd = resolveFuncCall(Loc.initial, null, fd, null, this, ArgumentList(), FuncResolveFlag.quiet);
+            fd = resolveFuncCall(Loc.initial, null, fd, TemplateArguments(), this, ArgumentList(), FuncResolveFlag.quiet);
             if (!fd || fd.errors || !fd.functionSemantic())
                 return Type.terror;
 
@@ -2068,7 +2068,7 @@ extern (C++) abstract class Type : ASTNode
         if (auto td = s.isTemplateDeclaration())
         {
             assert(td._scope);
-            auto fd = resolveFuncCall(Loc.initial, null, td, null, this, ArgumentList(), FuncResolveFlag.quiet);
+            auto fd = resolveFuncCall(Loc.initial, null, td, TemplateArguments(), this, ArgumentList(), FuncResolveFlag.quiet);
             if (!fd || fd.errors || !fd.functionSemantic())
                 return Type.terror;
 
@@ -7099,7 +7099,7 @@ bool isCopyable(Type t)
             el.type = cast() ts;
             Expressions args;
             args.push(el);
-            FuncDeclaration f = resolveFuncCall(Loc.initial, null, ctor, null, cast()ts, ArgumentList(&args), FuncResolveFlag.quiet);
+            FuncDeclaration f = resolveFuncCall(Loc.initial, null, ctor, TemplateArguments(), cast()ts, ArgumentList(&args), FuncResolveFlag.quiet);
             if (!f || f.storage_class & STC.disable)
                 return false;
         }

@@ -2896,13 +2896,13 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
                 pr.dedargs = &dedtypesX;
                 tdx.previous = &pr;             // add this to threaded list
 
-                fd = resolveFuncCall(loc, sc, s, null, tthis, argumentList, FuncResolveFlag.quiet);
+                fd = resolveFuncCall(loc, sc, s, TemplateArguments(), tthis, argumentList, FuncResolveFlag.quiet);
 
                 tdx.previous = pr.prev;         // unlink from threaded list
             }
             else if (s.isFuncDeclaration())
             {
-                fd = resolveFuncCall(loc, sc, s, null, tthis, argumentList, FuncResolveFlag.quiet);
+                fd = resolveFuncCall(loc, sc, s, TemplateArguments(), tthis, argumentList, FuncResolveFlag.quiet);
             }
             else
                 goto Lerror;
@@ -5830,6 +5830,15 @@ extern (C++) final class TemplateTupleParameter : TemplateParameter
     }
 }
 
+/// List of template arguments, including named arguments
+struct TemplateArguments
+{
+    // Types/Expressions of template instance arguments
+    Objects* tiargs;
+    // Named template arguments with corresponding index in tiargs
+    Identifiers* tinames;
+}
+
 /***********************************************************
  * https://dlang.org/spec/template.html#explicit_tmp_instantiation
  * Given:
@@ -5844,6 +5853,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     // Array of Types/Expressions of template
     // instance arguments [int*, char, 10*10]
     Objects* tiargs;
+    // Named template arguments with corresponding index in tiargs
+    Identifiers* tinames;
 
     // Array of Types/Expressions corresponding
     // to TemplateDeclaration.parameters
@@ -5873,6 +5884,12 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
     private ushort _nest;       // for recursive pretty printing detection, 3 MSBs reserved for flags (below)
     ubyte inuse;                // for recursive expansion detection
+
+    /// Get the template arguments and associated names in a single object, for easily passing araound
+    final extern (D) TemplateArguments templateArgs() @safe pure nothrow @nogc
+    {
+        return TemplateArguments(tiargs, tinames);
+    }
 
     private enum Flag : uint
     {
@@ -5910,7 +5927,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         }
     }
 
-    extern (D) this(const ref Loc loc, Identifier ident, Objects* tiargs) scope
+    extern (D) this(const ref Loc loc, Identifier ident, Objects* tiargs, Identifiers* tinames = null) scope
     {
         super(loc, null);
         static if (LOG)
@@ -5919,13 +5936,14 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         }
         this.name = ident;
         this.tiargs = tiargs;
+        this.tinames = tinames;
     }
 
     /*****************
      * This constructor is only called when we figured out which function
      * template to instantiate.
      */
-    extern (D) this(const ref Loc loc, TemplateDeclaration td, Objects* tiargs) scope
+    extern (D) this(const ref Loc loc, TemplateDeclaration td, Objects* tiargs, Identifiers* tinames = null) scope
     {
         super(loc, null);
         static if (LOG)
@@ -5934,6 +5952,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         }
         this.name = td.ident;
         this.tiargs = tiargs;
+        this.tinames = tinames;
         this.tempdecl = td;
         this.semantictiargsdone = true;
         this.havetempdecl = true;
