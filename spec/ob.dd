@@ -163,30 +163,26 @@ void consume(int*);
 
 $(DT Borrowed)
 
-$(DD A Borrowed pointer is one that temporarily becomes the sole pointer
+$(DD A Borrowed pointer is one that temporarily becomes the sole live pointer
 to a memory object graph. It enters that state via assignment
-from an owner pointer, and stays in that state
+from an owner pointer or another borrowed pointer, and stays in that state
 until its last use.
 
 A Borrowed pointer must be `scope` and must
 be a pointer to mutable.
-)
 
 ---
-@live void g()
+@live void g(scope int* p) // p is borrowed
 {
-    int i;
-    // borrow &i
-    int* p = &i;
-    // using &i here would end p's lifetime
     // borrow p
     int* q = p; // q is inferred as scope
-    // using p here would end q's lifetime
+    // <-- using p here would end q's lifetime
     writeln(*q);
     // lifetime of q ends before p is used
     writeln(*p); // OK
 }
 ---
+)
 
 $(DT Readonly)
 
