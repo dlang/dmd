@@ -190,26 +190,30 @@ be a pointer to mutable.
 
 $(DT Readonly)
 
-$(DD A Readonly pointer acquires its value from an Owner.
+$(DD A Readonly pointer acquires its value from an Owner or Borrowed pointer.
 While the Readonly pointer is live, only Readonly pointers can
 be acquired from that Owner.
 A Readonly pointer must be `scope` and also
 must not be a pointer to mutable.
-)
-)
 
 ---
 @live void h(scope int* p)
 {
+    // acquire 2 read only pointers
     const q = p;
     const r = q;
-    // q, r are read only
-    writeln(*q); // can read q and keep r live
+    // <-- borrowing or using p here would end q and r's lifetime
+
+    // both q and r are live
+    writeln(*q);
     writeln(*r);
     // using p ends all its read only pointer lifetimes
     writeln(*p);
+    //writeln(*q); // error
 }
 ---
+)
+)
 
 $(H3 $(LNAME2 lifetime, Lifetimes))
 
