@@ -146,20 +146,28 @@ with an expression not derived from a tracked pointer, it is an Owner.
 
 If an Owner pointer is assigned to another Owner pointer, the
 former enters the Undefined state.
-)
 
 ---
-int* produce();
-void consume(int*);
+void consume(int* o); // o is owner
 
-@live void f()
+@live int* f(int* p) // p is owner
 {
-    int* p = produce(); // p is owner
+    writeln(*p);
+    // transfer ownership to `consume`
     consume(p);
     // p is now undefined
     //writeln(*p); // error
+
+    int* q = new int; // q is owner
+    writeln(*q);
+    p = q; // transfer ownership
+    // q is now undefined
+    //writeln(*q); // error
+    writeln(*p);
+    return p;
 }
 ---
+)
 
 $(DT Borrowed)
 
