@@ -39,4 +39,4 @@ struct S
 }
 
 static assert(new C(y: 3, x: 2).x == 2);
-// static assert(new S(y: 3, x: 2).x == 2); TODO
+static assert(new S(y: 3, x: 2).x == 2);

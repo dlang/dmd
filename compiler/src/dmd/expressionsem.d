@@ -1624,20 +1624,24 @@ private Expression rewriteOpAssign(BinExp exp)
 
 /****************************************
  * Preprocess arguments to function.
- * Input:
- *      reportErrors    whether or not to report errors here.  Some callers are not
+ *
+ * Tuples in argumentList get expanded, properties resolved, rewritten in place
+ *
+ * Params:
+ *     sc           =  scope
+ *     argumentList =  arguments to function
+ *     reportErrors =  whether or not to report errors here. Some callers are not
  *                      checking actual function params, so they'll do their own error reporting
- * Output:
- *      exps[]  tuples expanded, properties resolved, rewritten in place
  * Returns:
- *      true    a semantic error occurred
+ *     `true` when a semantic error occurred
  */
-private bool preFunctionParameters(Scope* sc, Identifiers* names, Expressions* exps, const bool reportErrors = true)
+private bool preFunctionParameters(Scope* sc, ArgumentList argumentList, const bool reportErrors = true)
 {
+    Expressions* exps = argumentList.arguments;
     bool err = false;
     if (exps)
     {
-        expandTuples(exps, names);
+        expandTuples(exps, argumentList.names);
 
         for (size_t i = 0; i < exps.length; i++)
         {
@@ -3576,7 +3580,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             return setError();
         }
-        if (preFunctionParameters(sc, /*names*/ null, exp.arguments))
+        if (preFunctionParameters(sc, exp.argumentList))
         {
             return setError();
         }
@@ -3881,8 +3885,20 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             else
             {
-                if (!exp.arguments)
+                if (exp.names)
+                {
+                    exp.arguments = resolveStructLiteralNamedArgs(sd, exp.type, sc, exp.loc,
+                        exp.names ? (*exp.names)[] : null,
+                        (size_t i, Type t) => (*exp.arguments)[i],
+                        i => (*exp.arguments)[i].loc
+                    );
+                    if (!exp.arguments)
+                        return setError();
+                }
+                else if (!exp.arguments)
+                {
                     exp.arguments = new Expressions();
+                }
 
                 if (!sd.fit(exp.loc, sc, exp.arguments, tb))
                     return setError();
@@ -3931,6 +3947,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
 
                 Expression arg = (*exp.arguments)[i];
+                if (exp.names && (*exp.names)[i])
+                {
+                    exp.error("no named argument `%s` allowed for array dimension", (*exp.names)[i].toChars());
+                    return setError();
+                }
+
                 arg = resolveProperties(sc, arg);
                 arg = arg.implicitCastTo(sc, Type.tsize_t);
                 if (arg.op == EXP.error)
@@ -3952,6 +3974,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             else if (nargs == 1)
             {
+                if (exp.names && (*exp.names)[0])
+                {
+                    exp.error("no named argument `%s` allowed for scalar", (*exp.names)[0].toChars());
+                    return setError();
+                }
                 Expression e = (*exp.arguments)[0];
                 e = e.implicitCastTo(sc, tb);
                 (*exp.arguments)[0] = e;
@@ -4340,7 +4367,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (FuncExp fe = exp.e1.isFuncExp())
         {
             if (arrayExpressionSemantic(exp.arguments.peekSlice(), sc) ||
-                preFunctionParameters(sc, exp.names, exp.arguments))
+                preFunctionParameters(sc, exp.argumentList))
                 return setError();
 
             // Run e1 semantic even if arguments have any errors
@@ -4579,7 +4606,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
         if (arrayExpressionSemantic(exp.arguments.peekSlice(), sc) ||
-            preFunctionParameters(sc, exp.names, exp.arguments))
+            preFunctionParameters(sc, exp.argumentList))
             return setError();
 
         // Check for call operator overload
