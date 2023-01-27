@@ -539,6 +539,8 @@ public:
     bool onstack;               // allocate on stack
     bool thrownew;              // this NewExp is the expression of a ThrowStatement
 
+    Expression lowering;        // lowered druntime hook: `_d_newclass`
+
     static NewExp *create(const Loc &loc, Expression *thisexp, Type *newtype, Expressions *arguments);
     NewExp *syntaxCopy() override;
 

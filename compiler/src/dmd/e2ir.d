@@ -1083,10 +1083,7 @@ elem* toElem(Expression e, IRState *irs)
                 assert(!(global.params.ehnogc && ne.thrownew),
                     "This should have been rewritten to `_d_newThrowable` in the semantic phase.");
 
-                Symbol *csym = toSymbol(cd);
-                const rtl = RTLSYM.NEWCLASS;
-                ex = el_bin(OPcall,TYnptr,el_var(getRtlsym(rtl)),el_ptr(csym));
-                toTraceGC(irs, ex, ne.loc);
+                ex = toElem(ne.lowering, irs);
                 ectype = null;
 
                 if (cd.isNested())

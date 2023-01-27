@@ -1544,7 +1544,8 @@ extern (C++) abstract class Expression : ASTNode
                 // Lowered non-@nogc'd hooks will print their own error message inside of nogc.d (NOGCVisitor.visit(CallExp e)),
                 // so don't print anything to avoid double error messages.
                 if (!(f.ident == Id._d_HookTraceImpl || f.ident == Id._d_arraysetlengthT
-                    || f.ident == Id._d_arrayappendT || f.ident == Id._d_arrayappendcTX))
+                    || f.ident == Id._d_arrayappendT || f.ident == Id._d_arrayappendcTX
+                    || f.ident == Id._d_newclassT))
                     error("`@nogc` %s `%s` cannot call non-@nogc %s `%s`",
                         sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
 
@@ -3649,6 +3650,8 @@ extern (C++) final class NewExp : Expression
     CtorDeclaration member;     // constructor function
     bool onstack;               // allocate on stack
     bool thrownew;              // this NewExp is the expression of a ThrowStatement
+
+    Expression lowering;        // lowered druntime hook: `_d_newclass`
 
     extern (D) this(const ref Loc loc, Expression thisexp, Type newtype, Expressions* arguments)
     {

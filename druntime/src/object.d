@@ -4648,6 +4648,8 @@ public import core.internal.switch_: __switch_error;
 
 public import core.lifetime : _d_delstructImpl;
 public import core.lifetime : _d_newThrowable;
+public import core.lifetime : _d_newclassT;
+public import core.lifetime : _d_newclassTTrace;
 
 public @trusted @nogc nothrow pure extern (C) void _d_delThrowable(scope Throwable);
 
