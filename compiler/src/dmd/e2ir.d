@@ -493,14 +493,16 @@ void clearStringTab()
 private __gshared StringTable!(Symbol*) *stringTab;
 
 /*********************************************
-* Figure out whether a data symbol should be dllimported
-* Params:
-*      var = declaration of the symbol
-* Returns:
-*      true if symbol should be imported from a DLL
-*/
+ * Figure out whether a data symbol should be dllimported
+ * Params:
+ *      var = declaration of the symbol
+ * Returns:
+ *      true if symbol should be imported from a DLL
+ */
 bool isDllImported(Dsymbol var)
 {
+    if (target.os & Target.OS.Posix)
+        return false;
     if (var.isImportedSymbol())
         return true;
     if (driverParams.symImport == SymImport.none)
@@ -523,6 +525,14 @@ bool isDllImported(Dsymbol var)
     return false;
 }
 
+/*********************************************
+ * Generate a backend symbol for a frontend symbol
+ * Params:
+ *      s = frontend symbol
+ * Returns:
+ *      the backend symbol or the associated symbol in the
+ *      import table if it is expected to be imported from a DLL
+ */
 Symbol* toExtSymbol(Dsymbol s)
 {
     if (isDllImported(s))
@@ -4627,8 +4637,7 @@ elem *toElemCast(CastExp ce, elem *e, bool isLvalue, ref IRState irs)
             const rtl = cdfrom.isInterfaceDeclaration()
                         ? RTLSYM.INTERFACE_CAST
                         : RTLSYM.DYNAMIC_CAST;
-            Symbol* csym = toExtSymbol(cdto);
-            elem *ep = el_param(el_ptr(csym), e);
+            elem *ep = el_param(el_ptr(toExtSymbol(cdto)), e);
             e = el_bin(OPcall, TYnptr, el_var(getRtlsym(rtl)), ep);
         }
         return Lret(ce, e);
