@@ -2812,6 +2812,7 @@ struct HdrGenState final
     int32_t autoMember;
     int32_t forStmtInit;
     int32_t insideFuncBody;
+    int32_t insideAggregate;
     bool declstring;
     EnumDeclaration* inEnumDecl;
     HdrGenState() :
@@ -2823,11 +2824,12 @@ struct HdrGenState final
         autoMember(),
         forStmtInit(),
         insideFuncBody(),
+        insideAggregate(),
         declstring(),
         inEnumDecl()
     {
     }
-    HdrGenState(bool hdrgen, bool ddoc = false, bool fullDump = false, bool fullQual = false, int32_t tpltMember = 0, int32_t autoMember = 0, int32_t forStmtInit = 0, int32_t insideFuncBody = 0, bool declstring = false, EnumDeclaration* inEnumDecl = nullptr) :
+    HdrGenState(bool hdrgen, bool ddoc = false, bool fullDump = false, bool fullQual = false, int32_t tpltMember = 0, int32_t autoMember = 0, int32_t forStmtInit = 0, int32_t insideFuncBody = 0, int32_t insideAggregate = 0, bool declstring = false, EnumDeclaration* inEnumDecl = nullptr) :
         hdrgen(hdrgen),
         ddoc(ddoc),
         fullDump(fullDump),
@@ -2836,6 +2838,7 @@ struct HdrGenState final
         autoMember(autoMember),
         forStmtInit(forStmtInit),
         insideFuncBody(insideFuncBody),
+        insideAggregate(insideAggregate),
         declstring(declstring),
         inEnumDecl(inEnumDecl)
         {}
