@@ -178,11 +178,18 @@ until its last use.
 
 A Borrowed pointer must be `scope` and must
 be a pointer to mutable.
+A mutable `scope` pointer function parameter is a Borrowed pointer.
 
 ---
+void consume(int* o); // o is owner
+void borrow(scope int* b); // b is borrowed
+
 @live void g(scope int* p) // p is borrowed
 {
-    // borrow p
+    //consume(p); // error, p is not owner
+    borrow(p);
+
+    // lend p to q
     int* q = p; // q is inferred as scope
     // <-- using p here would end q's lifetime
     writeln(*q);
