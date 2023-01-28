@@ -2569,7 +2569,7 @@ void checkObErrors(ref ObState obstate)
                 {
                     auto v = obstate.vars[i];
                     if (v.type.hasPointers())
-                        v.error(v.loc, "is left dangling at return");
+                        v.error(v.loc, "is not disposed of before return");
                 }
             }
         }
