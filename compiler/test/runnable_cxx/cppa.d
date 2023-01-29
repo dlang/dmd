@@ -5,8 +5,6 @@
 // CXXFLAGS(linux freebsd osx netbsd dragonflybsd): -std=c++11
 // druntime isn't linked, this prevents missing symbols '_d_arraybounds_slicep':
 // REQUIRED_ARGS: -checkaction=C
-// Filter a spurious warning on Semaphore:
-// TRANSFORM_OUTPUT: remove_lines("warning: relocation refers to discarded section")
 
 // N.B MSVC doesn't have a C++11 switch, but it defaults to the latest fully-supported standard
 
@@ -1063,83 +1061,99 @@ void test15576()
 /****************************************/
 // https://issues.dlang.org/show_bug.cgi?id=15579
 
-extern (C++)
+version (DigitalMars)
 {
-    class Base
+    version (linux)
     {
-        //~this() {}
-        void based() { }
-        ubyte x = 4;
+        // Test removed for DMD/linux-only.
+        // https://issues.dlang.org/show_bug.cgi?id=23660
     }
-
-    interface Interface
-    {
-        int MethodCPP();
-        int MethodD();
-    }
-
-    class Derived : Base, Interface
-    {
-        short y = 5;
-        int MethodCPP();
-        int MethodD() {
-            printf("Derived.MethodD(): this = %p, x = %d, y = %d\n", this, x, y);
-            Derived p = this;
-            //p = cast(Derived)(cast(void*)p - 16);
-            assert(p.x == 4 || p.x == 7);
-            assert(p.y == 5 || p.y == 8);
-            return 3;
-        }
-        int Method() { return 6; }
-    }
-
-    Derived cppfoo(Derived);
-    Interface cppfooi(Interface);
+    else
+        version = TEST15579;
 }
+else
+    version = TEST15579;
 
-void test15579()
+version (TEST15579)
 {
-    Derived d = new Derived();
-    printf("d = %p\n", d);
-    assert(d.x == 4);
-    assert(d.y == 5);
-    assert((cast(Interface)d).MethodCPP() == 30);
-    assert((cast(Interface)d).MethodD() == 3);
-    assert(d.MethodCPP() == 30);
-    assert(d.MethodD() == 3);
-    assert(d.Method() == 6);
-
-    d = cppfoo(d);
-    assert(d.x == 7);
-    assert(d.y == 8);
-
-    printf("d2 = %p\n", d);
-
-    /* Casting to an interface involves thunks in the vtbl[].
-     * g++ puts the thunks for MethodD in the same COMDAT as MethodD.
-     * But D doesn't, so when the linker "picks one" of the D generated MethodD
-     * or the g++ generated MethodD, it may wind up with a messed up thunk,
-     * resulting in a seg fault. The solution is to not expect objects of the same
-     * type to be constructed on both sides of the D/C++ divide if the same member
-     * function (in this case, MethodD) is also defined on both sides.
-     */
-    version (Windows)
+    extern (C++)
     {
+        class Base
+        {
+            //~this() {}
+            void based() { }
+            ubyte x = 4;
+        }
+
+        interface Interface
+        {
+            int MethodCPP();
+            int MethodD();
+        }
+
+        class Derived : Base, Interface
+        {
+            short y = 5;
+            int MethodCPP();
+            int MethodD() {
+                printf("Derived.MethodD(): this = %p, x = %d, y = %d\n", this, x, y);
+                Derived p = this;
+                //p = cast(Derived)(cast(void*)p - 16);
+                assert(p.x == 4 || p.x == 7);
+                assert(p.y == 5 || p.y == 8);
+                return 3;
+            }
+            int Method() { return 6; }
+        }
+
+        Derived cppfoo(Derived);
+        Interface cppfooi(Interface);
+    }
+
+    void test15579()
+    {
+        Derived d = new Derived();
+        printf("d = %p\n", d);
+        assert(d.x == 4);
+        assert(d.y == 5);
+        assert((cast(Interface)d).MethodCPP() == 30);
         assert((cast(Interface)d).MethodD() == 3);
-    }
-    assert((cast(Interface)d).MethodCPP() == 30);
+        assert(d.MethodCPP() == 30);
+        assert(d.MethodD() == 3);
+        assert(d.Method() == 6);
 
-    assert(d.Method() == 6);
+        d = cppfoo(d);
+        assert(d.x == 7);
+        assert(d.y == 8);
 
-    printf("d = %p, i = %p\n", d, cast(Interface)d);
-    version (Windows)
-    {
-        Interface i = cppfooi(d);
-        printf("i2: %p\n", i);
-        assert(i.MethodD() == 3);
-        assert(i.MethodCPP() == 30);
+        printf("d2 = %p\n", d);
+
+        /* Casting to an interface involves thunks in the vtbl[].
+         * g++ puts the thunks for MethodD in the same COMDAT as MethodD.
+         * But D doesn't, so when the linker "picks one" of the D generated MethodD
+         * or the g++ generated MethodD, it may wind up with a messed up thunk,
+         * resulting in a seg fault. The solution is to not expect objects of the same
+         * type to be constructed on both sides of the D/C++ divide if the same member
+         * function (in this case, MethodD) is also defined on both sides.
+         */
+        version (Windows)
+        {
+            assert((cast(Interface)d).MethodD() == 3);
+        }
+        assert((cast(Interface)d).MethodCPP() == 30);
+
+        assert(d.Method() == 6);
+
+        printf("d = %p, i = %p\n", d, cast(Interface)d);
+        version (Windows)
+        {
+            Interface i = cppfooi(d);
+            printf("i2: %p\n", i);
+            assert(i.MethodD() == 3);
+            assert(i.MethodCPP() == 30);
+        }
+        printf("test15579() done\n");
     }
-    printf("test15579() done\n");
 }
 
 /****************************************/
@@ -1647,7 +1661,7 @@ void main()
     testeh2();
     testeh3();
     test15576();
-    test15579();
+    version (TEST15579) test15579();
     test15610();
     test15455();
     test15372();
