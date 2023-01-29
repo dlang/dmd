@@ -990,6 +990,16 @@ assert(value == [5, 6, 2]);
 ---------
 )
 
+        $(P All elements of a static array can be initialized to a specific value with:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---------
+int[4] a = 42; // set all elements of a to 42
+
+assert(a == [42, 42, 42, 42]);
+---------
+)
+
         $(P These arrays are statically allocated when they appear in global scope.
         Otherwise, they need to be marked with $(D const) or $(D static)
         storage classes to make them statically allocated arrays.)
