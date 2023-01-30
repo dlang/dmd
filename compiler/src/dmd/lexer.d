@@ -3094,9 +3094,9 @@ private struct TimeStampInfo
             .time(&ct);
         const p = ctime(&ct);
         assert(p);
-        sprintf(&date[0], "%.6s %.4s", p + 4, p + 20);
-        sprintf(&time[0], "%.8s", p + 11);
-        sprintf(&timestamp[0], "%.24s", p);
+        snprintf(&date[0], date.length, "%.6s %.4s", p + 4, p + 20);
+        snprintf(&time[0], time.length, "%.8s", p + 11);
+        snprintf(&timestamp[0], timestamp.length, "%.24s", p);
     }
 }
 
@@ -3283,7 +3283,7 @@ unittest
 
         gotError = true;
         char[100] buffer = void;
-        auto actual = buffer[0 .. vsprintf(buffer.ptr, format, ap)];
+        auto actual = buffer[0 .. vsnprintf(buffer.ptr, buffer.length, format, ap)];
         assert(expected == actual);
         return true;
     }

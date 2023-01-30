@@ -1322,7 +1322,7 @@ void realToMangleBuffer(OutBuffer* buf, real_t value)
 
     char[36] buffer = void;
     // 'A' format yields [-]0xh.hhhhp+-d
-    const n = CTFloat.sprint(buffer.ptr, 'A', value);
+    const n = CTFloat.sprint(buffer.ptr, buffer.length, 'A', value);
     assert(n < buffer.length);
     foreach (const c; buffer[2 .. n])
     {

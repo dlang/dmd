@@ -2683,7 +2683,7 @@ void floatToBuffer(Type type, const real_t value, OutBuffer* buf, const bool all
         Plus one for rounding. */
     const(size_t) BUFFER_LEN = value.sizeof * 3 + 8 + 1 + 1;
     char[BUFFER_LEN] buffer = void;
-    CTFloat.sprint(buffer.ptr, 'g', value);
+    CTFloat.sprint(buffer.ptr, BUFFER_LEN, 'g', value);
     assert(strlen(buffer.ptr) < BUFFER_LEN);
     if (allowHex)
     {
@@ -2691,7 +2691,7 @@ void floatToBuffer(Type type, const real_t value, OutBuffer* buf, const bool all
         real_t r = CTFloat.parse(buffer.ptr, isOutOfRange);
         //assert(!isOutOfRange); // test/compilable/test22725.c asserts here
         if (r != value) // if exact duplication
-            CTFloat.sprint(buffer.ptr, 'a', value);
+            CTFloat.sprint(buffer.ptr, BUFFER_LEN, 'a', value);
     }
     buf.writestring(buffer.ptr);
     if (buffer.ptr[strlen(buffer.ptr) - 1] == '.')

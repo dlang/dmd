@@ -302,7 +302,7 @@ void printExtended(const(char) *fmt, FLOAT f)
 			printf("%lg", cast(double)f);
 		else
 		{
-			ld_sprint(str.ptr, 'A', longdouble_soft(f));
+			ld_sprint(str.ptr, str.length, 'A', longdouble_soft(f));
 			printf("%s", str.ptr);
 		}
 	}

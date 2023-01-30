@@ -712,7 +712,7 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
 
     // read from DFLAGS in [Environment{arch}] section
     char[80] envsection = void;
-    sprintf(envsection.ptr, "Environment%.*s", cast(int) arch.length, arch.ptr);
+    snprintf(envsection.ptr, envsection.length, "Environment%.*s", cast(int) arch.length, arch.ptr);
     sections.push(envsection.ptr);
     parseConfFile(environment, global.inifilename, inifilepath, inifileBuffer, &sections);
     getenv_setargv(readFromEnv(environment, "DFLAGS"), &arguments);

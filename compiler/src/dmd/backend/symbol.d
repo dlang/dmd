@@ -407,7 +407,7 @@ Symbol * symbol_generate(SC sclass,type *t)
     char[4 + tmpnum.sizeof * 3 + 1] name;
 
     //printf("symbol_generate(_TMP%d)\n", tmpnum);
-    const length = sprintf(name.ptr,"_TMP%d",tmpnum++);
+    const length = snprintf(name.ptr,name.length,"_TMP%d",tmpnum++);
     Symbol *s = symbol_name(name.ptr[0 .. length],sclass,t);
     //symbol_print(s);
 

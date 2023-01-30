@@ -3403,8 +3403,10 @@ const(char)* regm_str(regm_t rm)
         }
     }
     if (rm)
-    {   char *s = p + strlen(p);
-        sprintf(s,"x%02x",rm);
+    {
+        const pstrlen = strlen(p);
+        char *s = p + pstrlen;
+        snprintf(s, SMAX - pstrlen, "x%02x",rm);
     }
     assert(strlen(p) <= SMAX);
     return strdup(p);
