@@ -1907,6 +1907,16 @@ $(GNAME ValueExpression):
         are inserted as arguments in place of the sequence.
     )
 
+    $(P Associative array initializers may contain duplicate keys,
+        however, in that case, the last $(I KeyValuePair) lexicographically
+        encountered is stored.
+    )
+
+        ---
+        auto aa = [21: "he", 38: "ho", 2: "hi", 2:"bye"];
+        assert(aa[2] == "bye")
+        ---
+
 $(H3 $(LNAME2 function_literals, Function Literals))
 
 $(GRAMMAR
