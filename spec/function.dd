@@ -598,7 +598,7 @@ $(H2 $(LNAME2 nothrow-functions, Nothrow Functions))
 
 $(H2 $(LNAME2 ref-functions, Ref Functions))
 
-        $(P `ref` functions return by reference (instead of by value).
+        $(P A `ref` function returns by reference (instead of by value).
         The return value of a `ref` function must be an lvalue
         (whereas the return value of a non-`ref` function can be an rvalue, too).
         An expression formed by calling a `ref` function is an lvalue
