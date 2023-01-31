@@ -5551,7 +5551,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             // https://issues.dlang.org/show_bug.cgi?id=23650
             // We generate object code for typeinfo, required
             // by typeid, only if in non-speculative context
-            if (sc.flags & SCOPE.compile)
+            if (sc.flags & SCOPE.compile || (sc.func && sc.func.skipCodegen))
             {
                 genObjCode = false;
             }

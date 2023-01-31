@@ -6024,6 +6024,12 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
                     else
                         visit(cast(Dsymbol)cd);
                 }
+                override void visit(FuncDeclaration fd)
+                {
+                    if (fd.skipCodegen)
+                        fd.skipCodegen = false;
+                    visit(cast(Dsymbol)fd);
+                }
             }
             scope v = new InstMemberWalker(tempinst.inst);
             tempinst.inst.accept(v);
@@ -6183,6 +6189,8 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
     sc2.tinst = tempinst;
     sc2.minst = tempinst.minst;
     sc2.stc &= ~STC.deprecated_;
+    if (sc.flags & SCOPE.compile)
+        sc2.flags |= SCOPE.compile;
     tempinst.tryExpandMembers(sc2);
 
     tempinst.semanticRun = PASS.semanticdone;
