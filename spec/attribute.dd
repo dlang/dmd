@@ -405,6 +405,9 @@ $(P Visibility is an attribute that is one of $(D private), $(D package),
 `protected`, $(D public), or $(D export). They may be referred to as protection
 attributes in documents predating $(LINK2 http://wiki.dlang.org/DIP22, DIP22).)
 
+        $(P Visibility participates in $(DDSUBLINK spec/module, name_lookup, symbol name lookup).
+        )
+
         $(P Symbols with $(D private) visibility can only be accessed from
         within the same module.
         Private member functions are implicitly $(DDSUBLINK spec/function, final, `final`)
@@ -436,12 +439,26 @@ attributes in documents predating $(LINK2 http://wiki.dlang.org/DIP22, DIP22).)
         It is the default visibility attribute.
         )
 
-        $(P $(D export) means that any code outside the executable can access the
-        member. $(D export) is analogous to exporting definitions from a DLL.
-        )
+$(H3 $(LNAME2 export, $(D export) Attribute))
 
-        $(P Visibility participates in $(DDSUBLINK spec/module, name_lookup, symbol name lookup).
-        )
+        $(P $(D export) means that a symbol can be accessed from outside the executable,
+        shared library, or DLL. The symbol is said to be exported from where it is defined
+        in an executable, shared library, or DLL, and imported by another executable, shared library,
+        or DLL.)
+
+        $(P $(D export) applied to the definition of a symbol will export it. $(D export) applied to
+        a declaration of a symbol will import it.)
+
+        ---
+        export int x = 3;    // definition, exporting `x`
+        export int y;        // definition, exporting `y`
+        export extern int z; // declaration, importing `z`
+        export void f() { }  // definition, exporting `f`
+        export void g();     // declaration, importing `g`
+        ---
+
+        $(P In Windows terminology, $(I dllexport) means exporting a symbol from a DLL, and $(I dllimport) means
+        a DLL or executable is importing a symbol from a DLL.)
 
 
 $(H2 $(LNAME2 const, $(D const) Attribute))
