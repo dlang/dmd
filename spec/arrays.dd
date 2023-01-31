@@ -1017,11 +1017,12 @@ $(H3 $(LNAME2 strings, Strings))
 
 $(SPEC_RUNNABLE_EXAMPLE_FAIL
 ---------
-char[] str1 = "abc";                // error, "abc" is not mutable
-char[] str2 = "abc".dup;            // ok, make mutable copy
+char[] str1 = "abc";                // error, cannot implicitly convert expression `"abc"` of type `string` to `char[]`
+char[] str2 = "abc".dup;            // ok, makes mutable copy
 immutable(char)[] str3 = "abc";     // ok
-immutable(char)[] str4 = str1;      // error, str4 is not mutable
-immutable(char)[] str5 = str1.idup; // ok, make immutable copy
+immutable(char)[] str4 = str2;      // error, cannot implicitly convert expression `str2` of type `char[]` to `string`
+immutable(char)[] str5 = str3;      // ok, makes a mutable str5 with immutable aray contents
+immutable(char)[] str6 = str2.idup; // ok, makes immutable copy
 ---------
 )
 
@@ -1031,13 +1032,30 @@ immutable(char)[] str5 = str1.idup; // ok, make immutable copy
 
 $(SPEC_RUNNABLE_EXAMPLE_FAIL
 ---------
-char[] str1 = "abc";     // error, "abc" is not mutable
-char[] str2 = "abc".dup; // ok, make mutable copy
+char[] str1 = "abc";     // error, cannot implicitly convert expression `"abc"` of type `string` to `char[]`
+char[] str2 = "abc".dup; // ok, makes mutable copy
 string str3 = "abc";     // ok
-string str4 = str1;      // error, str4 is not mutable
-string str5 = str1.idup; // ok, make immutable copy
+string str4 = str2;      // error, cannot implicitly convert expression `str2` of type `char[]` to `string`
+string str5 = str3;      // ok, makes a mutable str5 with immutable aray contents
+string str6 = str2.idup; // ok, makes immutable copy
 ---------
 )
+
+        $(P
+        The type $(D immutable(char)[]) represents an array of $(D immutable char)s. However, the reference to the string is
+        mutable. If the the reference to the string needs to be immutable as well it can be declared $(D immutable char[])
+        or $(D immutable string):
+        )
+
+---
+immutable char[] s = "foo";
+s[0] = 'a';  // error, s refers to immutable data
+s = "bar";   // error, s is immutable
+
+immutable(char)[] s = "hello";
+s[0] = 'b';  // error, s[] is immutable
+s = null;    // ok, s itself is not immutable
+---
 
         $(P $(CODE char[]) strings are in UTF-8 format.
         $(CODE wchar[]) strings are in UTF-16 format.
