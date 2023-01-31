@@ -598,9 +598,11 @@ $(H2 $(LNAME2 nothrow-functions, Nothrow Functions))
 
 $(H2 $(LNAME2 ref-functions, Ref Functions))
 
-        $(P Ref functions allow functions to return by reference,
-        meaning that the return value must be an lvalue, and
-        the lvalue is returned, not the rvalue.
+        $(P `ref` functions return by reference (instead of by value).
+        The return value of a `ref` function must be an lvalue
+        (whereas the return value of a non-`ref` function can be an rvalue, too).
+        An expression formed by calling a `ref` function is an lvalue
+        (whereas an expression formed by calling a non-`ref` function is an rvalue).
         )
 
 ---
