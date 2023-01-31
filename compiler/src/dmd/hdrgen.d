@@ -65,6 +65,7 @@ struct HdrGenState
     int autoMember;
     int forStmtInit;
     int insideFuncBody;
+    int insideAggregate;
 
     bool declstring; // set while declaring alias for string,wstring or dstring
     EnumDeclaration inEnumDecl;
@@ -1406,8 +1407,10 @@ public:
         buf.writeByte('{');
         buf.writenl();
         buf.level++;
+        hgs.insideAggregate++;
         foreach (s; *d.members)
             s.accept(this);
+        hgs.insideAggregate--;
         buf.level--;
         buf.writeByte('}');
         buf.writenl();
@@ -1428,8 +1431,10 @@ public:
             buf.writeByte('{');
             buf.writenl();
             buf.level++;
+            hgs.insideAggregate++;
             foreach (s; *d.members)
                 s.accept(this);
+            hgs.insideAggregate--;
             buf.level--;
             buf.writeByte('}');
         }
@@ -1521,6 +1526,21 @@ public:
 
     void visitVarDecl(VarDeclaration v, bool anywritten)
     {
+        const bool isextern = hgs.hdrgen &&
+            !hgs.insideFuncBody &&
+            !hgs.tpltMember &&
+            !hgs.insideAggregate &&
+            !(v.storage_class & STC.manifest);
+
+        void vinit(VarDeclaration v)
+        {
+            auto ie = v._init.isExpInitializer();
+            if (ie && (ie.exp.op == EXP.construct || ie.exp.op == EXP.blit))
+                (cast(AssignExp)ie.exp).e2.expressionToBuffer(buf, hgs);
+            else
+                v._init.initializerToBuffer(buf, hgs);
+        }
+
         if (anywritten)
         {
             buf.writestring(", ");
@@ -1528,21 +1548,30 @@ public:
         }
         else
         {
-            if (stcToBuffer(buf, v.storage_class))
+            const bool useTypeof = isextern && v._init && !v.type;
+            auto stc = v.storage_class;
+            if (isextern)
+                stc |= STC.extern_;
+            if (useTypeof)
+                stc &= ~STC.auto_;
+            if (stcToBuffer(buf, stc))
                 buf.writeByte(' ');
             if (v.type)
                 typeToBuffer(v.type, v.ident, buf, hgs);
+            else if (useTypeof)
+            {
+                buf.writestring("typeof(");
+                vinit(v);
+                buf.writestring(") ");
+                buf.writestring(v.ident.toString());
+            }
             else
                 buf.writestring(v.ident.toString());
         }
-        if (v._init)
+        if (v._init && !isextern)
         {
             buf.writestring(" = ");
-            auto ie = v._init.isExpInitializer();
-            if (ie && (ie.exp.op == EXP.construct || ie.exp.op == EXP.blit))
-                (cast(AssignExp)ie.exp).e2.expressionToBuffer(buf, hgs);
-            else
-                v._init.initializerToBuffer(buf, hgs);
+            vinit(v);
         }
     }
 
