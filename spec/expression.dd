@@ -1100,6 +1100,60 @@ $(GNAME CastExpression):
         (foo) - p;      // subtract p from foo
         -------------
 
+$(H4 $(LNAME2 cast_basic_data_types, Basic Data Types))
+    $(P For situations where $(DDSUBLINK spec/type, implicit-conversions, implicit conversions)
+        on basic types cannot be performed, the type system may be forced to accept the
+        reinterpretation of a memory region by using a cast.
+    )
+
+    $(P An example of such a scenario is represented by trying to store a wider type
+        into a narrower one:
+    )
+
+    -------------
+    int a;
+    byte b = a; // cannot implicitly convert expression a of type int to byte
+    -------------
+
+    $(P When casting a source type that is wider than the destination type,
+        the value is truncated to the destination size.
+    )
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+            -------------
+            int a = 64389; // 00000000 00000000 11111011 10000101
+            byte b = cast(byte) a;       // 10000101
+            ubyte c = cast(ubyte) a;     // 10000101
+            short d = cast(short) a;     // 11111011 10000101
+            ushort e = cast(ushort) a;   // 11111011 10000101
+
+            writeln(b);
+            writeln(c);
+            writeln(d);
+            writeln(e);
+            -------------
+        )
+
+    $(P For integral types casting from a narrower type to a wider type
+        is done by performing sign extension.
+    )
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+            -------------
+            ubyte a = 133;  // 10000101
+            byte b = a;     // 10000101
+
+            writeln(a);
+            writeln(b);
+
+            ushort c = a;   // 00000000 10000101
+            short d = b;    // 11111111 10000101
+
+            writeln(c);
+            writeln(d);
+            -------------
+        )
+
 $(H4 $(LNAME2 cast_class, Class References))
 
     $(P Any casting of a class reference to a
@@ -1143,6 +1197,74 @@ $(H4 $(LNAME2 cast_class, Class References))
     $(P Casting a pointer type to and from a class type is done as a type paint
         (i.e. a reinterpret cast).
     )
+
+$(H4 $(LNAME2 cast_pointers, Pointers))
+    $(P Casting a pointer variable to another pointer type modifies the value that
+        will be obtained as a result of dereferencing, along with the number of bytes
+        on which pointer arithmetic is performed.
+    )
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+            -------------
+            int val = 25185; // 00000000 00000000 01100010 01100001
+            char *ch = cast(char*)(&val);
+
+            writeln(*ch);    // a
+            writeln(cast(int)(*ch)); // 97
+            writeln(*(ch + 1));  // b
+            writeln(cast(int)(*(ch + 1)));   // 98
+            -------------
+        )
+
+    $(P Similarly, when casting a dynamically allocated array to a type of smaller size,
+        the bytes of the initial array will be divided and regrouped according to the new
+        dimension.
+    )
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+            -------------
+            import core.stdc.stdlib;
+
+            int *p = cast(int*) malloc(5 * int.sizeof);
+            for (int i = 0; i < 5; i++) {
+                p[i] = i + 'a';
+            }
+            // p = [97, 98, 99, 100, 101]
+
+            char* c = cast(char*) p;     // c = [97, 0, 0, 0, 98, 0, 0, 0, 99 ...]
+            for (int i = 0; i < 5 * int.sizeof; i++) {
+                writeln(c[i]);
+            }
+            -------------
+        )
+
+    $(P When casting a pointer of type A to a pointer of type B and type B is wider than type A,
+        attempts at accessing the memory exceeding the size of A will result in undefined behaviour.
+    )
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+            -------------
+            char c = 'a';
+            int *p = cast(int*) (&c);
+            writeln(*p);
+            -------------
+        )
+
+    $(P It is also possible to cast pointers to basic data types.
+        A common practice could be to cast the pointer to an int value
+        and then print its address:
+    )
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+            -------------
+            import core.stdc.stdlib;
+
+            int *p = cast(int*) malloc(int.sizeof);
+            int a = cast(int) p;
+            writeln(a);
+            -------------
+        )
+
 
 $(H4 $(LNAME2 cast_array, Arrays))
 
