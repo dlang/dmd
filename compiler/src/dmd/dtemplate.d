@@ -2807,7 +2807,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
 
     int applyTemplate(TemplateDeclaration td)
     {
-        //printf("applyTemplate()\n");
+        //printf("applyTemplate(): td = %s\n", td.toChars());
         if (td == td_best)   // skip duplicates
             return 0;
 
@@ -2968,7 +2968,6 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
             if (isCtorCall)
             {
                 // Constructor call requires additional check.
-
                 auto tf = cast(TypeFunction)fd.type;
                 assert(tf.next);
                 if (MODimplicitConv(tf.mod, tthis_fd.mod) ||
@@ -2979,6 +2978,16 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
                 }
                 else
                     continue;   // MATCH.nomatch
+
+                // need to check here whether the constructor is the member of a struct
+                // declaration that defines a copy constructor. This is already checked
+                // in the semantic of CtorDeclaration, however, when matching functions,
+                // the template instance is not expanded.
+                // https://issues.dlang.org/show_bug.cgi?id=21613
+                auto ad = fd.isThis();
+                auto sd = ad.isStructDeclaration();
+                if (checkHasBothRvalueAndCpCtor(sd, fd.isCtorDeclaration(), ti))
+                    continue;
             }
 
             if (mta < ta_last) goto Ltd_best;

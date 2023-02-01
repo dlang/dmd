@@ -230,6 +230,42 @@ package bool allowsContractWithoutBody(FuncDeclaration funcdecl)
     return true;
 }
 
+/*
+Tests whether the `ctor` that is part of `ti` is an rvalue constructor
+(i.e. a constructor that receives a single parameter of the same type as
+`Unqual!typeof(this)`). If that is the case and `sd` contains a copy
+constructor, than an error is issued.
+
+Params:
+    sd = struct declaration that may contin both an rvalue and copy constructor
+    ctor = constructor that will be checked if it is an evalue constructor
+    ti = template instance the ctor is part of
+
+Return:
+    `false` if ctor is not an rvalue constructor or if `sd` does not contain a
+    copy constructor. `true` otherwise
+*/
+bool checkHasBothRvalueAndCpCtor(StructDeclaration sd, CtorDeclaration ctor, TemplateInstance ti)
+{
+    auto loc = ctor.loc;
+    auto tf = cast(TypeFunction)ctor.type;
+    auto dim = tf.parameterList.length;
+    if (sd && sd.hasCopyCtor && (dim == 1 || (dim > 1 && tf.parameterList[1].defaultArg)))
+    {
+        auto param = tf.parameterList[0];
+        if (!(param.storageClass & STC.ref_) && param.type.mutableOf().unSharedOf() == sd.type.mutableOf().unSharedOf())
+        {
+            .error(loc, "cannot define both an rvalue constructor and a copy constructor for `struct %s`", sd.toChars());
+            .errorSupplemental(ti.loc, "Template instance `%s` creates an rvalue constructor for `struct %s`",
+                    ti.toPrettyChars(), sd.toChars());
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
 private extern(C++) final class DsymbolSemanticVisitor : Visitor
 {
     alias visit = Visitor.visit;
@@ -4120,20 +4156,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         // https://issues.dlang.org/show_bug.cgi?id=22593
         else if (auto ti = ctd.parent.isTemplateInstance())
         {
-            if (!sd || !sd.hasCopyCtor || !(dim == 1 || (dim > 1 && tf.parameterList[1].defaultArg)))
-                return;
-
-            auto param = tf.parameterList[0];
-
-            // if the template instance introduces an rvalue constructor
-            // between the members of a struct declaration, we should check if a
-            // copy constructor exists and issue an error in that case.
-            if (!(param.storageClass & STC.ref_) && param.type.mutableOf().unSharedOf() == sd.type.mutableOf().unSharedOf())
-            {
-                .error(ctd.loc, "cannot define both an rvalue constructor and a copy constructor for `struct %s`", sd.toChars);
-                .errorSupplemental(ti.loc, "Template instance `%s` creates a rvalue constructor for `struct %s`",
-                        ti.toChars(), sd.toChars());
-            }
+            checkHasBothRvalueAndCpCtor(sd, ctd, ti);
         }
     }
 
