@@ -1010,20 +1010,26 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     /****************************************
      * Loops over all implemented interfaces of this class: interfaces
      * implemented by parent classes, interfaces implemented by this class, and all
-     * interfaces which are extended by other interfaces.
+     * base interfaces of those interfaces.
      * Params:
      *     callback = A callback which will be executed for each parent interface that is found.
+     *                It should return whether to continue iteration.
+     * Returns: Whether iteration completed.
      */
-    extern(D) final void forAllInterfaces(scope void delegate(BaseClass*) callback)
+    extern(D) final bool forAllInterfaces(scope bool delegate(BaseClass*) callback)
     {
         if (baseClass is null)
-            return;
-        baseClass.forAllInterfaces(callback);
+            return true;
+        if (!baseClass.forAllInterfaces(callback))
+            return false;
         foreach (base; interfaces)
         {
-            callback(base);
-            base.sym.forAllInterfaces(callback);
+            if (!callback(base))
+                return false;
+            if (!base.sym.forAllInterfaces(callback))
+                return false;
         }
+        return true;
     }
 }
 

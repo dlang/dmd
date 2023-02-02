@@ -717,6 +717,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
                         }
                     }
                 }
+                return true;
             });
         }
 
