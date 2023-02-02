@@ -1026,6 +1026,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         {
             if (!callback(base))
                 return false;
+            // recurse for inherited from interfaces
             if (!base.sym.forAllInterfaces(callback))
                 return false;
         }

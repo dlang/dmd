@@ -683,16 +683,17 @@ private extern(C++) final class Semantic2Visitor : Visitor
                         // Check that it is current
                         //printf("newinstance = %d fd.toParent() = %s ifd.toParent() = %s\n",
                             //newinstance, fd.toParent().toChars(), ifd.toParent().toChars());
-                        static bool isImplemented(FuncDeclaration fd, ClassDeclaration cd)
+                        const fdp = fd.toParent();
+                        bool isImplemented(ClassDeclaration cd)
                         {
-                            if (cd is null)
-                                return false;
-                            else if (fd.toParent() == cd)
+                            if (fdp == cd)
                                 return true;
+                            else if (!cd.baseClass)
+                                return false;
                             else
-                                return isImplemented(fd, cd.baseClass);
+                                return isImplemented(cd.baseClass);
                         }
-                        if (!isImplemented(fd, cd) && ifd.toParent() == base.sym)
+                        if (!isImplemented(cd) && ifd.toParent() == base.sym)
                             cd.error("interface function `%s` is not implemented", ifd.toFullSignature());
                     }
                     else
