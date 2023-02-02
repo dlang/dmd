@@ -702,6 +702,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
                         // BUG: should mark this class as abstract?
                         if (!cd.isAbstract())
                         {
+                            // detect whether to use deprecation
                             bool isDirectInterface = false;
                             foreach (directInterface; cd.interfaces)
                             {
