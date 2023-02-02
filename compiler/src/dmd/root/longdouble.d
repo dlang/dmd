@@ -11,19 +11,11 @@
 
 module dmd.root.longdouble;
 
-version (CRuntime_Microsoft)
-{
-    static if (real.sizeof > 8)
-        alias longdouble = real;
-    else
-        alias longdouble = longdouble_soft;
-}
-else
-    alias longdouble = real;
+alias longdouble = longdouble_soft;
 
 // longdouble_soft needed when building the backend with
 // Visual C or the frontend with LDC on Windows
-version (CRuntime_Microsoft):
+
 extern (C++):
 nothrow:
 @nogc:
@@ -67,11 +59,10 @@ bool initFPU()
             pop     EAX;
         }
     }
-
     return true;
 }
 
-version(unittest) version(CRuntime_Microsoft)
+version(unittest)
 extern(D) shared static this()
 {
     initFPU(); // otherwise not guaranteed to be run before pure unittest below
@@ -229,14 +220,20 @@ else version(D_InlineAsm_X86_64)
     private:
     string fld_arg(string arg)()
     {
-        return "asm nothrow @nogc pure @trusted { mov RAX, " ~ arg ~ "; fld real ptr [RAX]; }";
+        return "asm nothrow @nogc pure @trusted { lea RAX, " ~ arg ~ "; fld real ptr [RAX]; }";
     }
     string fstp_arg(string arg)()
     {
+        return "asm nothrow @nogc pure @trusted { lea RAX, " ~ arg ~ "; fstp real ptr [RAX]; }";
+    }
+    string fld_parg(string arg)()
+    {
+        return "asm nothrow @nogc pure @trusted { mov RAX, " ~ arg ~ "; fld real ptr [RAX]; }";
+    }
+    string fstp_parg(string arg)()
+    {
         return "asm nothrow @nogc pure @trusted { mov RAX, " ~ arg ~ "; fstp real ptr [RAX]; }";
     }
-    alias fld_parg = fld_arg;
-    alias fstp_parg = fstp_arg;
 }
 else version(D_InlineAsm_X86)
 {

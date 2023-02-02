@@ -26,7 +26,7 @@ private
 {
     version(CRuntime_DigitalMars) __gshared extern (C) extern const(char)* __locale_decpoint;
 
-    version(CRuntime_Microsoft) extern (C++)
+    extern (C++)
     {
         public import dmd.root.longdouble : longdouble_soft, ld_sprint;
         import dmd.root.strtold;
@@ -43,7 +43,7 @@ extern (C++) struct CTFloat
     version (GNU)
         enum yl2x_supported = false;
     else
-        enum yl2x_supported = __traits(compiles, core.math.yl2x(1.0L, 2.0L));
+        enum yl2x_supported = false;//__traits(compiles, core.math.yl2x(1.0L, 2.0L));
     enum yl2xp1_supported = yl2x_supported;
 
     static void yl2x(const real_t* x, const real_t* y, real_t* res) pure
@@ -184,21 +184,21 @@ extern (C++) struct CTFloat
             auto r = strtold(literal, null);
         version(CRuntime_DigitalMars) __locale_decpoint = save;
         isOutOfRange = (errno == ERANGE);
-        return r;
+        return real_t(r);
     }
 
     @system
     static int sprint(char* str, char fmt, real_t x)
     {
-        version(CRuntime_Microsoft)
-        {
-            auto len = cast(int) ld_sprint(str, fmt, longdouble_soft(x));
-        }
-        else
+        static if (is(real_t == real))
         {
             char[4] sfmt = "%Lg\0";
             sfmt[2] = fmt;
             auto len = sprintf(str, sfmt.ptr, x);
+        }
+        else
+        {
+            auto len = cast(int) ld_sprint(str, fmt, longdouble_soft(x));
         }
 
         if (fmt != 'a' && fmt != 'A')
@@ -236,9 +236,21 @@ extern (C++) struct CTFloat
     @trusted
     static void initialize()
     {
+        import dmd.root.longdouble;
+        initFPU();
         zero = real_t(0);
         one = real_t(1);
         minusone = real_t(-1);
         half = real_t(0.5);
     }
 }
+
+/*
+    Aliases to allow the backend to use
+    CTFloats real_t for everything without changing
+    backend code beyond importing moar stuff.
+*/
+///
+alias isnan = CTFloat.isNaN;
+/// l as-in long double
+alias fabsl = CTFloat.fabs;

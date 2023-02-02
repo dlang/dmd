@@ -156,9 +156,6 @@ void initDMD(
 
     addDefaultVersionIdentifiers(global.params, target);
 
-    version (CRuntime_Microsoft)
-        initFPU();
-
     CTFloat.initialize();
 }
 
