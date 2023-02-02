@@ -4,4 +4,3 @@ typedef enum {A} E;
 E func(E v) {
     return v;
 }
-

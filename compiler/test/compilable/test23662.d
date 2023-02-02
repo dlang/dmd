@@ -6,4 +6,3 @@ void main(string[] args) {
     auto r = func(A);
     assert(r == A);
 }
-

@@ -1823,6 +1823,8 @@ final class CParser(AST) : Parser!AST
                 {
                     if (tt.id || tt.tok == TOK.enum_)
                     {
+                        if (!tt.id && id)
+                            tt.id = id;
                         /* `struct tag;` and `struct tag { ... };`
                          * always result in a declaration in the current scope
                          */
