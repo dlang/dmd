@@ -31,6 +31,8 @@ class C
 		this.x = x;
 		this.y = y;
 	}
+
+	static C opCall(int x, int y) { return new C(x, y); }
 }
 
 struct S
@@ -39,4 +41,21 @@ struct S
 }
 
 static assert(new C(y: 3, x: 2).x == 2);
+static assert(    C(y: 3, x: 2).x == 2);
 static assert(new S(y: 3, x: 2).x == 2);
+static assert(    S(y: 3, x: 2).x == 2);
+
+// opCall
+struct Div
+{
+    static int opCall(int numer, int denom) { return numer / denom; }
+}
+static assert(Div(denom: 3, numer: 6) == 2);
+
+struct Concat
+{
+	string s = "s";
+    string opCall(string st0, string st1) { return s ~ st0 ~ st1; }
+}
+
+static assert(Concat.init("t0", "t1") == "st0t1");

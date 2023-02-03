@@ -4729,7 +4729,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             L1:
                 // Rewrite as e1.call(arguments)
                 Expression e = new DotIdExp(exp.loc, exp.e1, Id.call);
-                e = new CallExp(exp.loc, e, exp.arguments);
+                e = new CallExp(exp.loc, e, exp.arguments, exp.names);
                 e = e.expressionSemantic(sc);
                 result = e;
                 return;
