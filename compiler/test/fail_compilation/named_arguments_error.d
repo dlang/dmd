@@ -11,15 +11,15 @@ fail_compilation/named_arguments_error.d(29): Error: function `named_arguments_e
 fail_compilation/named_arguments_error.d(29):        missing argument for parameter #1: `int x`
 fail_compilation/named_arguments_error.d(31): Error: no named argument `element` allowed for array dimension
 fail_compilation/named_arguments_error.d(32): Error: no named argument `number` allowed for scalar
+fail_compilation/named_arguments_error.d(33): Error: cannot implicitly convert expression `g(x: 3, y: 4, z: 5)` of type `int` to `string`
 ---
 */
 
 
 
-
 void f(int x, int y, int z);
 
-void g(int x, int y, int z = 3);
+int g(int x, int y, int z = 3);
 
 void main()
 {
@@ -30,4 +30,5 @@ void main()
 
 	auto g0 = new int[](element: 3);
 	auto g1 = new int(number: 3);
+	string s = g(x: 3, y: 4, z: 5);
 }
