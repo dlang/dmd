@@ -296,7 +296,7 @@ $(GNAME TemplateTypeParameterDefault):
 $(H4 $(LNAME2 parameters_specialization, Specialization and Pattern Matching))
 
     $(P Templates may be specialized for particular types of arguments
-        by following the template parameter identifier with a : and the
+        by following the template parameter identifier with a `:` and the
         pattern for the specialized type.
         For example:)
 
@@ -892,7 +892,7 @@ $(H4 $(LNAME2 homogeneous_sequences, Homogeneous Sequences))
 
         template print(args...) // args must be a ValueSeq
         {
-            void f()
+            void print()
             {
                 writeln("args are ", args);
             }
@@ -900,7 +900,7 @@ $(H4 $(LNAME2 homogeneous_sequences, Homogeneous Sequences))
 
         void main()
         {
-            print!(1, 'a', 6.8).f(); // prints: args are 1a6.8
+            print!(1, 'a', 6.8)(); // prints: args are 1a6.8
         }
         ---
         )
@@ -913,7 +913,7 @@ $(H4 $(LNAME2 homogeneous_sequences, Homogeneous Sequences))
 
         template print(Types...) // Types must be a TypeSeq
         {
-            void f(Types args) // args is a ValueSeq
+            void print(Types args) // args is a ValueSeq
             {
                 writeln("args are ", args);
             }
@@ -921,7 +921,7 @@ $(H4 $(LNAME2 homogeneous_sequences, Homogeneous Sequences))
 
         void main()
         {
-            print!(int, char, double).f(1, 'a', 6.8); // prints: args are 1a6.8
+            print!(int, char, double)(1, 'a', 6.8); // prints: args are 1a6.8
         }
         ---
         )

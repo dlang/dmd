@@ -905,7 +905,7 @@ $(P
     $(LI Postblits)
     $(LI Destructors)
     $(LI Static constructors and static destructors)
-    $(LI Class info, type info, and module info)
+    $(LI Class info, type info, and $(DDSUBLINK abi, ModuleInfo, module info))
     )
 
 $(H2 $(LNAME2 macros, Macros))

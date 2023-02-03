@@ -598,9 +598,11 @@ $(H2 $(LNAME2 nothrow-functions, Nothrow Functions))
 
 $(H2 $(LNAME2 ref-functions, Ref Functions))
 
-        $(P Ref functions allow functions to return by reference,
-        meaning that the return value must be an lvalue, and
-        the lvalue is returned, not the rvalue.
+        $(P A `ref` function returns by reference (instead of by value).
+        The return value of a `ref` function must be an lvalue
+        (whereas the return value of a non-`ref` function can be an rvalue, too).
+        An expression formed by calling a `ref` function is an lvalue
+        (whereas an expression formed by calling a non-`ref` function is an rvalue).
         )
 
 ---
@@ -3556,7 +3558,9 @@ $(H2 $(LNAME2 nogc-functions, No-GC Functions))
         $(LI $(DDSUBLINK spec/expression, AssocArrayLiteral, constructing an associative array))
         $(LI $(DDSUBLINK spec/expression, IndexExpression, indexing) an associative array
             $(NOTE because it may throw $(D RangeError) if the specified key is not present))
-        $(LI $(DDSUBLINK spec/expression, NewExpression, allocating an object with `new`) on the heap)
+        $(LI $(DDSUBLINK spec/expression, NewExpression, allocating an object with `new`) on the heap
+            $(NOTE `new` declarations of $(D class types) in function scopes are compatible with
+            $(D @nogc) if used for $(D scope) variables, as they result in allocations on the stack))
         $(LI calling functions that are not `@nogc`, unless the call is
             in a $(GLINK2 version, ConditionalStatement)
             controlled by a $(GLINK2 version, DebugCondition))
@@ -3574,6 +3578,7 @@ $(H2 $(LNAME2 nogc-functions, No-GC Functions))
                 aa["abc"];         // (6) error, indexing may allocate and throws
 
                 auto p = new int;  // (7) error, operator new allocates
+                scope auto p = new GenericClass(); // (7) Ok
                 bar();             // (8) error, bar() may allocate
                 debug bar();       // (8) Ok
             }
