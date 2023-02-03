@@ -565,7 +565,7 @@ private:
         memset(&h, ' ', MSCoffLibHeader.sizeof);
         h.object_name[0] = '/';
         h.object_name[1] = '/';
-        size_t len = sprintf(h.file_size.ptr, "%u", noffset);
+        size_t len = snprintf(h.file_size.ptr, MSCOFF_FILE_SIZE_SIZE, "%u", noffset);
         assert(len < 10);
         h.file_size[len] = ' ';
         h.trailer[0] = '`';
@@ -627,16 +627,22 @@ struct MSCoffObjModule
 }
 
 enum MSCOFF_OBJECT_NAME_SIZE = 16;
+enum MSCOFF_FILE_TIME_SIZE = 12;
+enum MSCOFF_USER_ID_SIZE = 6;
+enum MSCOFF_GROUP_ID_SIZE = 6;
+enum MSCOFF_FILE_MODE_SIZE = 8;
+enum MSCOFF_FILE_SIZE_SIZE = 10;
+enum MSCOFF_TRAILER_SIZE = 2;
 
 struct MSCoffLibHeader
 {
     char[MSCOFF_OBJECT_NAME_SIZE] object_name;
-    char[12] file_time;
-    char[6] user_id;
-    char[6] group_id;
-    char[8] file_mode; // in octal
-    char[10] file_size;
-    char[2] trailer;
+    char[MSCOFF_FILE_TIME_SIZE] file_time;
+    char[MSCOFF_USER_ID_SIZE] user_id;
+    char[MSCOFF_GROUP_ID_SIZE] group_id;
+    char[MSCOFF_FILE_MODE_SIZE] file_mode; // in octal
+    char[MSCOFF_FILE_SIZE_SIZE] file_size;
+    char[MSCOFF_TRAILER_SIZE] trailer;
 }
 
 extern (C++) void MSCoffOmToHeader(MSCoffLibHeader* h, MSCoffObjModule* om)
@@ -650,26 +656,21 @@ extern (C++) void MSCoffOmToHeader(MSCoffLibHeader* h, MSCoffObjModule* om)
     }
     else
     {
-        len = sprintf(h.object_name.ptr, "/%d", om.name_offset);
+        len = snprintf(h.object_name.ptr, MSCOFF_OBJECT_NAME_SIZE, "/%d", om.name_offset);
         h.object_name[len] = ' ';
     }
     assert(len < MSCOFF_OBJECT_NAME_SIZE);
     memset(h.object_name.ptr + len + 1, ' ', MSCOFF_OBJECT_NAME_SIZE - (len + 1));
-    /* In the following sprintf's, don't worry if the trailing 0
-     * that sprintf writes goes off the end of the field. It will
-     * write into the next field, which we will promptly overwrite
-     * anyway. (So make sure to write the fields in ascending order.)
-     */
-    len = sprintf(h.file_time.ptr, "%llu", cast(long)om.file_time);
+    len = snprintf(h.file_time.ptr, MSCOFF_FILE_TIME_SIZE, "%llu", cast(long)om.file_time);
     assert(len <= 12);
     memset(h.file_time.ptr + len, ' ', 12 - len);
     // Match what MS tools do (set to all blanks)
     memset(h.user_id.ptr, ' ', (h.user_id).sizeof);
     memset(h.group_id.ptr, ' ', (h.group_id).sizeof);
-    len = sprintf(h.file_mode.ptr, "%o", om.file_mode);
+    len = snprintf(h.file_mode.ptr, MSCOFF_FILE_MODE_SIZE, "%o", om.file_mode);
     assert(len <= 8);
     memset(h.file_mode.ptr + len, ' ', 8 - len);
-    len = sprintf(h.file_size.ptr, "%u", om.length);
+    len = snprintf(h.file_size.ptr, MSCOFF_FILE_SIZE_SIZE, "%u", om.length);
     assert(len <= 10);
     memset(h.file_size.ptr + len, ' ', 10 - len);
     h.trailer[0] = '`';

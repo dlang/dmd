@@ -975,8 +975,9 @@ public int runProgram()
             // BUG: what about " appearing in the string?
             if (strchr(a, ' '))
             {
-                char* b = cast(char*)mem.xmalloc(3 + strlen(a));
-                sprintf(b, "\"%s\"", a);
+                const blen = 3 + strlen(a);
+                char* b = cast(char*)mem.xmalloc(blen);
+                snprintf(b, blen, "\"%s\"", a);
                 a = b;
             }
         }

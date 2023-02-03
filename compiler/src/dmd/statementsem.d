@@ -1491,7 +1491,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
                 assert(0);
         }
         const(char)* r = (fs.op == TOK.foreach_reverse_) ? "R" : "";
-        int j = sprintf(fdname.ptr, "_aApply%s%.*s%llu", r, 2, fntab[flag].ptr, cast(ulong)dim);
+        int j = snprintf(fdname.ptr, BUFFER_LEN,  "_aApply%s%.*s%llu", r, 2, fntab[flag].ptr, cast(ulong)dim);
         assert(j < BUFFER_LEN);
 
         FuncDeclaration fdapply;

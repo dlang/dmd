@@ -64,8 +64,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             /* Create a pseudo-filename for the mixin string, as it may not even exist
              * in the source file.
              */
-            char* filename = cast(char*)mem.xmalloc(strlen(loc.filename) + 7 + (loc.linnum).sizeof * 3 + 1);
-            sprintf(filename, "%s-mixin-%d", loc.filename, cast(int)loc.linnum);
+            auto len = strlen(loc.filename) + 7 + (loc.linnum).sizeof * 3 + 1;
+            char* filename = cast(char*)mem.xmalloc(len);
+            snprintf(filename, len, "%s-mixin-%d", loc.filename, cast(int)loc.linnum);
             scanloc.filename = filename;
         }
 

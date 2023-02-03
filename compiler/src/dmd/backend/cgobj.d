@@ -2313,7 +2313,7 @@ int OmfObj_fardata(char *name,targ_size_t size,targ_size_t *poffset)
     // Generate name for this far segment
     len = 1 + cast(int)strlen(name) + 3 + 5 + 1;
     buffer = cast(char *)alloca(len);
-    sprintf(buffer + 1,"%s%d_DATA",name,obj.segidx);
+    snprintf(buffer + 1,len-1,"%s%d_DATA",name,obj.segidx);
     len = cast(int)strlen(buffer + 1);
     buffer[0] = cast(char)len;
     assert(len <= 255);

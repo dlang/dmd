@@ -2447,7 +2447,7 @@ extern (C++) abstract class Type : ASTNode
         const namelen = 19 + size_t.sizeof * 3 + slice.length + 1;
         auto name = namelen <= namebuf.length ? namebuf.ptr : cast(char*)Mem.check(malloc(namelen));
 
-        const length = sprintf(name, "_D%lluTypeInfo_%.*s6__initZ",
+        const length = snprintf(name, namelen, "_D%lluTypeInfo_%.*s6__initZ",
                 cast(ulong)(9 + slice.length), cast(int)slice.length, slice.ptr);
         //printf("%p %s, deco = %s, name = %s\n", this, toChars(), deco, name);
         assert(0 < length && length < namelen); // don't overflow the buffer

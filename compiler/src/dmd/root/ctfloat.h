@@ -51,7 +51,7 @@ struct CTFloat
     static bool isInfinity(real_t r);
 
     static real_t parse(const char *literal, bool& isOutOfRange);
-    static int sprint(char *str, char fmt, real_t x);
+    static int sprint(char *str, size_t size, char fmt, real_t x);
 
     static size_t hash(real_t a);
 

@@ -946,16 +946,17 @@ nothrow:
 
     extern (C++) const(char)* toChars() const
     {
-        __gshared char[3 + 3 * floatvalue.sizeof + 1] buffer;
+        const bufflen = 3 + 3 * floatvalue.sizeof + 1;
+        __gshared char[bufflen] buffer;
         const(char)* p = &buffer[0];
         switch (value)
         {
         case TOK.int32Literal:
-            sprintf(&buffer[0], "%d", cast(int)intvalue);
+            snprintf(&buffer[0], bufflen, "%d", cast(int)intvalue);
             break;
         case TOK.uns32Literal:
         case TOK.wchar_tLiteral:
-            sprintf(&buffer[0], "%uU", cast(uint)unsvalue);
+            snprintf(&buffer[0], bufflen, "%uU", cast(uint)unsvalue);
             break;
         case TOK.wcharLiteral:
         case TOK.dcharLiteral:
@@ -968,32 +969,32 @@ nothrow:
             }
             break;
         case TOK.int64Literal:
-            sprintf(&buffer[0], "%lldL", cast(long)intvalue);
+            snprintf(&buffer[0], bufflen, "%lldL", cast(long)intvalue);
             break;
         case TOK.uns64Literal:
-            sprintf(&buffer[0], "%lluUL", cast(ulong)unsvalue);
+            snprintf(&buffer[0], bufflen, "%lluUL", cast(ulong)unsvalue);
             break;
         case TOK.float32Literal:
-            CTFloat.sprint(&buffer[0], 'g', floatvalue);
+            CTFloat.sprint(&buffer[0], bufflen, 'g', floatvalue);
             strcat(&buffer[0], "f");
             break;
         case TOK.float64Literal:
-            CTFloat.sprint(&buffer[0], 'g', floatvalue);
+            CTFloat.sprint(&buffer[0], bufflen, 'g', floatvalue);
             break;
         case TOK.float80Literal:
-            CTFloat.sprint(&buffer[0], 'g', floatvalue);
+            CTFloat.sprint(&buffer[0], bufflen, 'g', floatvalue);
             strcat(&buffer[0], "L");
             break;
         case TOK.imaginary32Literal:
-            CTFloat.sprint(&buffer[0], 'g', floatvalue);
+            CTFloat.sprint(&buffer[0], bufflen, 'g', floatvalue);
             strcat(&buffer[0], "fi");
             break;
         case TOK.imaginary64Literal:
-            CTFloat.sprint(&buffer[0], 'g', floatvalue);
+            CTFloat.sprint(&buffer[0], bufflen, 'g', floatvalue);
             strcat(&buffer[0], "i");
             break;
         case TOK.imaginary80Literal:
-            CTFloat.sprint(&buffer[0], 'g', floatvalue);
+            CTFloat.sprint(&buffer[0], bufflen, 'g', floatvalue);
             strcat(&buffer[0], "Li");
             break;
         case TOK.string_:

@@ -56,7 +56,7 @@ Symbol *except_gentables()
 
         char[13+5+1] name = void;
         __gshared int tmpnum;
-        const len = sprintf(name.ptr,"_HandlerTable%d",tmpnum++);
+        const len = snprintf(name.ptr, name.length, "_HandlerTable%d", tmpnum++);
 
         Symbol *s = symbol_name(name[0 .. len],SC.static_,tstypes[TYint]);
         symbol_keep(s);

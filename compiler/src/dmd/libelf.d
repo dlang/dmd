@@ -463,7 +463,7 @@ private:
             memset(&h, ' ', ElfLibHeader.sizeof);
             h.object_name[0] = '/';
             h.object_name[1] = '/';
-            size_t len = sprintf(h.file_size.ptr, "%u", noffset);
+            size_t len = snprintf(h.file_size.ptr, ELF_FILE_SIZE_SIZE, "%u", noffset);
             assert(len < 10);
             h.file_size[len] = ' ';
             h.trailer[0] = '`';
@@ -515,16 +515,22 @@ struct ElfObjModule
 }
 
 enum ELF_OBJECT_NAME_SIZE = 16;
+enum ELF_FILE_TIME_SIZE = 12;
+enum ELF_USER_ID_SIZE = 6;
+enum ELF_GROUP_ID_SIZE = 6;
+enum ELF_FILE_MODE_SIZE = 8;
+enum ELF_FILE_SIZE_SIZE = 10;
+enum ELF_TRAILER_SIZE = 2;
 
 struct ElfLibHeader
 {
     char[ELF_OBJECT_NAME_SIZE] object_name;
-    char[12] file_time;
-    char[6] user_id;
-    char[6] group_id;
-    char[8] file_mode; // in octal
-    char[10] file_size;
-    char[2] trailer;
+    char[ELF_FILE_TIME_SIZE] file_time;
+    char[ELF_USER_ID_SIZE] user_id;
+    char[ELF_GROUP_ID_SIZE] group_id;
+    char[ELF_FILE_MODE_SIZE] file_mode; // in octal
+    char[ELF_FILE_SIZE_SIZE] file_size;
+    char[ELF_TRAILER_SIZE] trailer;
 }
 
 extern (C++) void ElfOmToHeader(ElfLibHeader* h, ElfObjModule* om)

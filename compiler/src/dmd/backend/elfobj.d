@@ -2145,7 +2145,7 @@ private extern (D) char* unsstr(uint value)
 {
     __gshared char[64] buffer = void;
 
-    sprintf(buffer.ptr, "%d", value);
+    snprintf(buffer.ptr, buffer.length, "%d", value);
     return buffer.ptr;
 }
 

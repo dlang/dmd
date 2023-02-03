@@ -3236,7 +3236,7 @@ static if (1)
         if (config.objfmt == OBJ_MACH)
         {
             char[16 + (except_table_num).sizeof * 3 + 1] name = void;
-            const length = sprintf(name.ptr, "GCC_except_table%d", ++except_table_num);
+            const length = snprintf(name.ptr, name.length, "GCC_except_table%d", ++except_table_num);
             type *t = tspvoid;
             t.Tcount++;
             type_setmangle(&t, mTYman_sys);         // no leading '_' for mangled name

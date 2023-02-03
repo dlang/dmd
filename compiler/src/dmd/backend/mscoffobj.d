@@ -1517,7 +1517,7 @@ IDXSEC MsCoffObj_addScnhdr(const(char)* scnhdr_name, uint flags)
     if (len > 8)
     {   // Use /nnnn form
         IDXSTR idx = MsCoffObj_addstr(string_table, scnhdr_name);
-        sprintf(cast(char *)sec.Name, "/%d", idx);
+        snprintf(cast(char *)sec.Name, IMAGE_SIZEOF_SHORT_NAME, "/%d", idx);
     }
     else
         memcpy(sec.Name.ptr, scnhdr_name, len);
@@ -1714,7 +1714,7 @@ private extern (D) char* unsstr(uint value)
 {
     __gshared char[64] buffer;
 
-    sprintf (buffer.ptr, "%d", value);
+    snprintf (buffer.ptr, buffer.length, "%d", value);
     return buffer.ptr;
 }
 

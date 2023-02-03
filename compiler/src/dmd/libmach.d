@@ -406,7 +406,7 @@ private:
         MachLibHeader h;
         MachOmToHeader(&h, &om);
         memcpy(h.object_name.ptr, "__.SYMDEF".ptr, 9);
-        int len = sprintf(h.file_size.ptr, "%u", om.length);
+        int len = snprintf(h.file_size.ptr, MACH_FILE_SIZE_SIZE, "%u", om.length);
         assert(len <= 10);
         memset(h.file_size.ptr + len, ' ', 10 - len);
         libbuf.write((&h)[0 .. 1]);
@@ -494,16 +494,22 @@ struct MachObjModule
 }
 
 enum MACH_OBJECT_NAME_SIZE = 16;
+enum MACH_FILE_TIME_SIZE = 12;
+enum MACH_USER_ID_SIZE = 6;
+enum MACH_GROUP_ID_SIZE = 6;
+enum MACH_FILE_MODE_SIZE = 8;
+enum MACH_FILE_SIZE_SIZE = 10;
+enum MACH_TRAILER_SIZE = 2;
 
 struct MachLibHeader
 {
     char[MACH_OBJECT_NAME_SIZE] object_name;
-    char[12] file_time;
-    char[6] user_id;
-    char[6] group_id;
-    char[8] file_mode; // in octal
-    char[10] file_size;
-    char[2] trailer;
+    char[MACH_FILE_TIME_SIZE] file_time;
+    char[MACH_USER_ID_SIZE] user_id;
+    char[MACH_GROUP_ID_SIZE] group_id;
+    char[MACH_FILE_MODE_SIZE] file_mode; // in octal
+    char[MACH_FILE_SIZE_SIZE] file_size;
+    char[MACH_TRAILER_SIZE] trailer;
 }
 
 extern (C++) void MachOmToHeader(MachLibHeader* h, MachObjModule* om)
@@ -512,32 +518,27 @@ extern (C++) void MachOmToHeader(MachLibHeader* h, MachObjModule* om)
     int nzeros = 8 - ((slen + 4) & 7);
     if (nzeros < 4)
         nzeros += 8; // emulate mysterious behavior of ar
-    size_t len = sprintf(h.object_name.ptr, "#1/%lld", cast(long)(slen + nzeros));
+    size_t len = snprintf(h.object_name.ptr, MACH_OBJECT_NAME_SIZE, "#1/%lld", cast(long)(slen + nzeros));
     memset(h.object_name.ptr + len, ' ', MACH_OBJECT_NAME_SIZE - len);
-    /* In the following sprintf's, don't worry if the trailing 0
-     * that sprintf writes goes off the end of the field. It will
-     * write into the next field, which we will promptly overwrite
-     * anyway. (So make sure to write the fields in ascending order.)
-     */
-    len = sprintf(h.file_time.ptr, "%llu", cast(long)om.file_time);
+    len = snprintf(h.file_time.ptr, MACH_FILE_TIME_SIZE, "%llu", cast(long)om.file_time);
     assert(len <= 12);
     memset(h.file_time.ptr + len, ' ', 12 - len);
     if (om.user_id > 999_999) // yes, it happens
         om.user_id = 0; // don't really know what to do here
-    len = sprintf(h.user_id.ptr, "%u", om.user_id);
+    len = snprintf(h.user_id.ptr, MACH_USER_ID_SIZE, "%u", om.user_id);
     assert(len <= 6);
     memset(h.user_id.ptr + len, ' ', 6 - len);
     if (om.group_id > 999_999) // yes, it happens
         om.group_id = 0; // don't really know what to do here
-    len = sprintf(h.group_id.ptr, "%u", om.group_id);
+    len = snprintf(h.group_id.ptr, MACH_GROUP_ID_SIZE, "%u", om.group_id);
     assert(len <= 6);
     memset(h.group_id.ptr + len, ' ', 6 - len);
-    len = sprintf(h.file_mode.ptr, "%o", om.file_mode);
+    len = snprintf(h.file_mode.ptr, MACH_FILE_MODE_SIZE, "%o", om.file_mode);
     assert(len <= 8);
     memset(h.file_mode.ptr + len, ' ', 8 - len);
     int filesize = om.length;
     filesize = (filesize + 7) & ~7;
-    len = sprintf(h.file_size.ptr, "%llu", cast(ulong)(slen + nzeros + filesize));
+    len = snprintf(h.file_size.ptr, MACH_FILE_SIZE_SIZE, "%llu", cast(ulong)(slen + nzeros + filesize));
     assert(len <= 10);
     memset(h.file_size.ptr + len, ' ', 10 - len);
     h.trailer[0] = '`';
