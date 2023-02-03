@@ -5143,6 +5143,18 @@ struct ArgumentList
     Identifiers* names;     // named argument identifiers
 
     size_t length() const @nogc nothrow pure @safe { return arguments ? arguments.length : 0; }
+
+    /// Returns: whether this argument list contains any named arguments
+    bool hasNames() const @nogc nothrow pure @safe
+    {
+        if (names is null)
+            return false;
+        foreach (name; *names)
+            if (name !is null)
+                return true;
+
+        return false;
+    }
 }
 
 /***********************************************************

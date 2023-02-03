@@ -12,13 +12,13 @@ fail_compilation/named_arguments_error.d(29):        missing argument for parame
 fail_compilation/named_arguments_error.d(31): Error: no named argument `element` allowed for array dimension
 fail_compilation/named_arguments_error.d(32): Error: no named argument `number` allowed for scalar
 fail_compilation/named_arguments_error.d(33): Error: cannot implicitly convert expression `g(x: 3, y: 4, z: 5)` of type `int` to `string`
+fail_compilation/named_arguments_error.d(34): Error: named arguments with Implicit Function Template Instantiation are not supported yet
+fail_compilation/named_arguments_error.d(34): Error: none of the overloads of template `named_arguments_error.tempfun` are callable using argument types `!()(string, int)`
+fail_compilation/named_arguments_error.d(38):        Candidate is: `tempfun(T, U)(T t, U u)`
 ---
 */
 
-
-
 void f(int x, int y, int z);
-
 int g(int x, int y, int z = 3);
 
 void main()
@@ -31,4 +31,11 @@ void main()
 	auto g0 = new int[](element: 3);
 	auto g1 = new int(number: 3);
 	string s = g(x: 3, y: 4, z: 5);
+	enum x = tempfun(u: "u", t: 0);
+}
+
+// template arguments
+int tempfun(T, U)(T t, U u)
+{
+	return 3;
 }
