@@ -152,6 +152,8 @@ $(H2 $(LNAME2 data_type_compat, Data Type Compatibility))
 
         $(TROW3 core.stdc.config.c_long, long, long)
         $(TROW3 core.stdc.config.c_ulong, unsigned long, unsigned long)
+        $(TROW3 core.stdc.stdint.intptr_t, intptr_t, intptr_t)
+        $(TROW3 core.stdc.stdint.uintptr_t, uintptr_t, uintptr_t)
 
         $(TROW3PLUS long, long long, long, (or $(D long long)))
         $(TROW3PLUS ulong, unsigned long long, unsigned long, (or $(D unsigned long long)))
