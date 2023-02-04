@@ -533,7 +533,9 @@ $(H3 $(LNAME2 pure-factory-functions, Pure Factory Functions))
         The mutable
         references of the result similarly cannot refer to any object that
         existed before the function call.
-        This allows the result to be implicitly cast to any qualifier.
+        This allows the result to be implicitly cast
+        from anything to `immutable` or `const shared`,
+        and from `shared` and `const shared` to (unshared) `const`.
         For example:)
 
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
