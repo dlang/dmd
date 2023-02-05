@@ -566,6 +566,26 @@ void test_optional()
     assert(opt.hasValue(true));
 }
 
+void test_filename()
+{
+    const char *fname = "/a/nice/long/path/to/somefile.d";
+
+    const char *basename = FileName::name(fname);
+    assert(strcmp(basename, "somefile.d") == 0);
+
+    const char *name = FileName::removeExt(basename);
+    assert(strcmp(name, "somefile") == 0);
+
+    const char *jsonname = FileName::defaultExt(name, json_ext.ptr);
+    assert(strcmp(jsonname, "somefile.json") == 0);
+
+    FileName file = FileName::create("somefile.d");
+    assert(FileName::equals(basename, file.toChars()));
+
+    FileName::free(name);
+    FileName::free(jsonname);
+}
+
 /**********************************/
 
 class MiniGlueVisitor : public Visitor
@@ -1706,6 +1726,7 @@ int main(int argc, char **argv)
     test_cppmangle();
     test_module();
     test_optional();
+    test_filename();
 
     frontend_term();
 
