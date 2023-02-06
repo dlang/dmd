@@ -1611,9 +1611,9 @@ private Expression rewriteOpAssign(BinExp exp)
         /*    auto tmp = &array;
          *    (*tmp).length = (*tmp).length op e2
          */
-        auto tmp = copyToTemp(0, "__arraylength", new AddrExp(ale.loc, ale.e1));
+        auto tmp = copyToTemp(STC.ref_, "__arraylength", ale.e1);
 
-        Expression e1 = new ArrayLengthExp(ale.loc, new PtrExp(ale.loc, new VarExp(ale.loc, tmp)));
+        Expression e1 = new ArrayLengthExp(ale.loc, new VarExp(ale.loc, tmp));
         Expression elvalue = e1.syntaxCopy();
         Expression e = opAssignToOp(exp.loc, exp.op, e1, exp.e2);
         e = new AssignExp(exp.loc, elvalue, e);
