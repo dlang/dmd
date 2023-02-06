@@ -1591,28 +1591,21 @@ private Expression opAssignToOp(const ref Loc loc, EXP op, Expression e1, Expres
 /*********************
  * Rewrite:
  *    array.length op= e2
- * as:
- *    array.length = array.length op e2
- * or:
- *    auto tmp = &array;
- *    (*tmp).length = (*tmp).length op e2
  */
 private Expression rewriteOpAssign(BinExp exp)
 {
     ArrayLengthExp ale = exp.e1.isArrayLengthExp();
     if (ale.e1.isVarExp())
     {
+        // array.length = array.length op e2
         Expression e = opAssignToOp(exp.loc, exp.op, ale, exp.e2);
         e = new AssignExp(exp.loc, ale.syntaxCopy(), e);
         return e;
     }
     else
     {
-        /*    auto tmp = &array;
-         *    (*tmp).length = (*tmp).length op e2
-         */
+        // (ref tmp = array;), tmp.length = tmp.length op e2
         auto tmp = copyToTemp(STC.ref_, "__arraylength", ale.e1);
-
         Expression e1 = new ArrayLengthExp(ale.loc, new VarExp(ale.loc, tmp));
         Expression elvalue = e1.syntaxCopy();
         Expression e = opAssignToOp(exp.loc, exp.op, e1, exp.e2);
