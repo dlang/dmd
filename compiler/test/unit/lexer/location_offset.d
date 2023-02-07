@@ -536,6 +536,7 @@ enum ignoreTokens
     _Static_assert,
     _Thread_local,
 
+    _assert,
     _import,
     __cdecl,
     __declspec,

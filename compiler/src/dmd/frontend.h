@@ -1814,13 +1814,14 @@ enum class TOK : uint8_t
     _Noreturn = 212u,
     _Static_assert = 213u,
     _Thread_local = 214u,
-    _import = 215u,
-    __cdecl_ = 216u,
-    __declspec_ = 217u,
-    __stdcall_ = 218u,
-    __pragma_ = 219u,
-    __int128_ = 220u,
-    __attribute___ = 221u,
+    _assert = 215u,
+    _import = 216u,
+    __cdecl_ = 217u,
+    __declspec_ = 218u,
+    __stdcall_ = 219u,
+    __pragma_ = 220u,
+    __int128_ = 221u,
+    __attribute___ = 222u,
 };
 
 enum class MemorySet

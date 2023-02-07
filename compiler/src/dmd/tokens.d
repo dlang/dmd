@@ -269,6 +269,7 @@ enum TOK : ubyte
     _Thread_local,
 
     // C only extended keywords
+    _assert,
     _import,
     __cdecl,
     __declspec,
@@ -580,6 +581,7 @@ private immutable TOK[] keywords =
     TOK._Thread_local,
 
     // C only extended keywords
+    TOK._assert,
     TOK._import,
     TOK.__cdecl,
     TOK.__declspec,
@@ -615,7 +617,8 @@ static immutable TOK[TOK.max + 1] Ckeywords =
                        union_, unsigned, void_, volatile, while_, asm_, typeof_,
                        _Alignas, _Alignof, _Atomic, _Bool, _Complex, _Generic, _Imaginary, _Noreturn,
                        _Static_assert, _Thread_local,
-                       _import, __cdecl, __declspec, __stdcall, __pragma, __int128, __attribute__ ];
+                       _import, __cdecl, __declspec, __stdcall, __pragma, __int128, __attribute__,
+                       _assert ];
 
         foreach (kw; Ckwds)
             tab[kw] = cast(TOK) kw;
@@ -881,6 +884,7 @@ extern (C++) struct Token
         TOK._Thread_local  : "_Thread_local",
 
         // C only extended keywords
+        TOK._assert       : "__check",
         TOK._import       : "__import",
         TOK.__cdecl        : "__cdecl",
         TOK.__declspec     : "__declspec",
