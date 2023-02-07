@@ -108,7 +108,7 @@ class Lexer
      */
     this(const(char)* filename, const(char)* base, size_t begoffset,
         size_t endoffset, bool doDocComment, bool commentToken,
-        const(char)[] vendor = "DLF", uint versionNumber = 1) pure
+        const(char)[] vendor = "DLF", uint versionNumber = 1) pure scope
     {
         scanloc = Loc(filename, 1, 1);
         // debug printf("Lexer::Lexer(%p)\n", base);
@@ -172,7 +172,7 @@ class Lexer
     /******************
      * Used for unittests for a mock Lexer
      */
-    this() { }
+    this() scope { }
 
     /**************************************
      * Reset lexer to lex #define's

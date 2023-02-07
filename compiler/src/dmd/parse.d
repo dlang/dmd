@@ -51,7 +51,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      * Input:
      *      loc     location in source file of mixin
      */
-    extern (D) this(const ref Loc loc, AST.Module _module, const(char)[] input, bool doDocComment)
+    extern (D) this(const ref Loc loc, AST.Module _module, const(char)[] input, bool doDocComment) scope
     {
         super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false,
                 global.vendor, global.versionNumber());
@@ -75,7 +75,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         //nextToken();              // start up the scanner
     }
 
-    extern (D) this(AST.Module _module, const(char)[] input, bool doDocComment)
+    extern (D) this(AST.Module _module, const(char)[] input, bool doDocComment) scope
     {
         super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false,
               global.vendor, global.versionNumber());

@@ -69,7 +69,7 @@ final class CParser(AST) : Parser!AST
     OutBuffer* defines;
 
     extern (D) this(TARGET)(AST.Module _module, const(char)[] input, bool doDocComment,
-                            const ref TARGET target, OutBuffer* defines)
+                            const ref TARGET target, OutBuffer* defines) scope
     {
         super(_module, input, doDocComment);
 

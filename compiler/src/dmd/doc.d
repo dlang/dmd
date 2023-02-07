@@ -951,7 +951,7 @@ private void emitComment(Dsymbol s, ref OutBuffer buf, Scope* sc)
         OutBuffer* buf;
         Scope* sc;
 
-        extern (D) this(ref OutBuffer buf, Scope* sc)
+        extern (D) this(ref OutBuffer buf, Scope* sc) scope
         {
             this.buf = &buf;
             this.sc = sc;
@@ -1235,7 +1235,7 @@ private void toDocBuffer(Dsymbol s, ref OutBuffer buf, Scope* sc)
         OutBuffer* buf;
         Scope* sc;
 
-        extern (D) this(ref OutBuffer buf, Scope* sc)
+        extern (D) this(ref OutBuffer buf, Scope* sc) scope
         {
             this.buf = &buf;
             this.sc = sc;

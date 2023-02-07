@@ -293,7 +293,7 @@ public:
     Context context;
     alias context this;
 
-    this(OutBuffer* fwdbuf, OutBuffer* donebuf, OutBuffer* buf)
+    this(OutBuffer* fwdbuf, OutBuffer* donebuf, OutBuffer* buf) scope
     {
         this.fwdbuf = fwdbuf;
         this.donebuf = donebuf;

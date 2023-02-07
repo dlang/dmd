@@ -360,7 +360,7 @@ struct CvFieldList
 
     const bool canSplitList;
 
-    this(uint fields, uint len)
+    this(uint fields, uint len) scope
     {
         canSplitList = config.fulltypes == CV8; // optlink bails out with LF_INDEX
         fieldIndexLen = canSplitList ? (config.fulltypes == CV8 ? 2 + 2 + 4 : 2 + 2) : 0;

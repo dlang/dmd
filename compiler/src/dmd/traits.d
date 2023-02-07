@@ -122,7 +122,7 @@ ulong getTypePointerBitmap(Loc loc, Type t, Array!(ulong)* data)
     {
         alias visit = Visitor.visit;
     public:
-        extern (D) this(Array!(ulong)* _data, ulong _sz_size_t)
+        extern (D) this(Array!(ulong)* _data, ulong _sz_size_t) scope
         {
             this.data = _data;
             this.sz_size_t = _sz_size_t;

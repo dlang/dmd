@@ -456,7 +456,7 @@ extern (C++) abstract class Type : ASTNode
             return sizeTy;
         }();
 
-    final extern (D) this(TY ty)
+    final extern (D) this(TY ty) scope
     {
         this.ty = ty;
     }
@@ -3120,7 +3120,7 @@ extern (C++) final class TypeBasic : Type
     const(char)* dstring;
     uint flags;
 
-    extern (D) this(TY ty)
+    extern (D) this(TY ty) scope
     {
         super(ty);
         const(char)* d;
