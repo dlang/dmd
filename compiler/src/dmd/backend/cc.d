@@ -749,6 +749,7 @@ enum
     Fnothrow         = 0x10000, // function does not throw (even if not marked 'nothrow')
     Feh_none         = 0x20000, // ehmethod==EH_NONE for this function only
     F3hiddenPtr      = 0x40000, // function has hidden pointer to return value
+    F3safe           = 0x80000, // function is @safe
 }
 
 struct func_t

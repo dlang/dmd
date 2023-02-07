@@ -356,6 +356,9 @@ Symbol *toSymbol(Dsymbol s)
             else if (fd.isMember2() && fd.isStatic())
                 f.Fflags |= Fstatic;
 
+            if (fd.isSafe())
+                f.Fflags3 |= F3safe;
+
             if (fd.inlining == PINLINE.default_ && global.params.useInline ||
                 fd.inlining == PINLINE.always)
             {
