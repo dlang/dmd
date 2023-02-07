@@ -28,10 +28,12 @@ fail_compilation/fob2.d(103): Error: variable `fob2.foo1.p` is not disposed of b
 
 /* TEST_OUTPUT:
 ---
-fail_compilation/fob2.d(203): Error: variable `fob2.zoo2.p` is passed as Owner more than once
-fail_compilation/fob2.d(202): Error: variable `fob2.zoo2.p` is not disposed of before return
+fail_compilation/fob2.d(203): Error: more than one mutable reference of `p` in arguments to `fob2.foo2()`
 ---
 */
+
+//fail_compilation/fob2.d(203): Error: variable `fob2.zoo2.p` is passed as Owner more than once
+//fail_compilation/fob2.d(202): Error: variable `fob2.zoo2.p` is left dangling at return
 
 #line 200
 
@@ -141,6 +143,7 @@ fail_compilation/fob2.d(515): Error: variable `fob2.test52.p` has undefined stat
 /* TEST_OUTPUT:
 ---
 fail_compilation/fob2.d(603): Error: variable `fob2.test6.p` is not disposed of before return
+fail_compilation/fob2.d(612): Error: more than one mutable reference of `p` in arguments to `fob2.foo6b()`
 ---
 */
 

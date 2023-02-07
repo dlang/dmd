@@ -62,3 +62,20 @@ fail_compilation/fob1.d(405): Error: variable `fob1.foo4.bq` has undefined state
     *bq = 1;
     return p;
 }
+
+/* TEST_OUTPUT:
+---
+fail_compilation/fob1.d(503): Error: more than one mutable reference to `a` in arguments to `fob1.foo5()`
+---
+*/
+
+// https://issues.dlang.org/show_bug.cgi?id=20781
+
+#line 500
+
+void test5() {
+    int a;
+    foo5(a, a);
+}
+
+@live void foo5(ref int, ref int);
