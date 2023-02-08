@@ -1314,9 +1314,17 @@ extern (C++) class VarDeclaration : Declaration
 
     override final bool isImportedSymbol() const
     {
-        if (visibility.kind == Visibility.Kind.export_ && !_init && (storage_class & STC.static_ || parent.isModule()))
-            return true;
-        return false;
+        /* If global variable has `export` and `extern` then it is imported
+         *   export int sym1;            // definition:  exported
+         *   export extern int sym2;     // declaration: imported
+         *   export extern int sym3 = 0; // error, extern cannot have initializer
+         */
+        bool result =
+            visibility.kind == Visibility.Kind.export_ &&
+            storage_class & STC.extern_ &&
+            (storage_class & STC.static_ || parent.isModule());
+        //printf("isImportedSymbol() %s %d\n", toChars(), result);
+        return result;
     }
 
     final bool isCtorinit() const pure nothrow @nogc @safe
