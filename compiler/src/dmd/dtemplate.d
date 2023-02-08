@@ -6263,12 +6263,11 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         //printf("needsCodegen() %s\n", toChars());
 
         // minst is finalized after the 1st invocation.
-        // tnext and tinst are only needed for the 1st invocation and
+        // tnext is only needed for the 1st invocation and
         // cleared for further invocations.
         TemplateInstance tnext = this.tnext;
         TemplateInstance tinst = this.tinst;
         this.tnext = null;
-        this.tinst = null;
 
         // Don't do codegen if the instance has errors,
         // is a dummy instance (see evaluateConstraint),
