@@ -2320,6 +2320,7 @@ extern (C++) class FuncDeclaration : Declaration
          *    base.in();
          *    assert(false, "Logic error: " ~ thr.msg);
          *  }
+         * }
          */
 
         foreach (fdv; foverrides)
@@ -3861,7 +3862,7 @@ extern (C++) final class CtorDeclaration : FuncDeclaration
     {
         super(loc, endloc, Id.ctor, stc, type);
         this.isCpCtor = isCpCtor;
-        //printf("CtorDeclaration(loc = %s) %s\n", loc.toChars(), toChars());
+        //printf("CtorDeclaration(loc = %s) %s %p\n", loc.toChars(), toChars(), this);
     }
 
     override CtorDeclaration syntaxCopy(Dsymbol s)
