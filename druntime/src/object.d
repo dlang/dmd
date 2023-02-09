@@ -246,7 +246,8 @@ class Object
      * }
      * ---
      */
-    deprecated static Object factory(string classname)
+    deprecated("use __traits(getModuleClasses) instead")
+    static Object factory(string classname)
     {
         auto ci = TypeInfo_Class.find(classname);
         if (ci)
