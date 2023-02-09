@@ -6532,6 +6532,7 @@ public:
     const char* kind() const override;
     void finalizeSize() final override;
     bool isPOD();
+    bool hasCopyConstruction();
     StructDeclaration* isStructDeclaration() final override;
     void accept(Visitor* v) override;
     uint32_t numArgTypes() const;

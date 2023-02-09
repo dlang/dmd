@@ -113,9 +113,13 @@ bool ISX64REF(Declaration var)
     {
         if (target.os == Target.OS.Windows && target.is64bit)
         {
+            /* Use Microsoft C++ ABI
+             * https://docs.microsoft.com/en-us/cpp/build/x64-calling-convention?view=msvc-170#parameter-passing
+             * but watch out because the spec doesn't mention copy construction
+             */
             return var.type.size(Loc.initial) > REGSIZE
                 || (var.storage_class & STC.lazy_)
-                || (var.type.isTypeStruct() && !var.type.isTypeStruct().sym.isPOD());
+                || (var.type.isTypeStruct() && var.type.isTypeStruct().sym.hasCopyConstruction());
         }
         else if (target.os & Target.OS.Posix)
         {
@@ -133,7 +137,7 @@ bool ISX64REF(IRState* irs, Expression exp)
     if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
     {
         return exp.type.size(Loc.initial) > REGSIZE
-            || (exp.type.isTypeStruct() && !exp.type.isTypeStruct().sym.isPOD());
+               || (exp.type.isTypeStruct() && exp.type.isTypeStruct().sym.hasCopyConstruction());
     }
     else if (irs.target.os & Target.OS.Posix)
     {

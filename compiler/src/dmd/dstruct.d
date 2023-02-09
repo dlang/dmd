@@ -480,6 +480,16 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         return (ispod == ThreeState.yes);
     }
 
+    /***************************************
+     * Determine if struct has copy construction (copy constructor or postblit)
+     * Returns:
+     *     true if struct has copy construction
+     */
+    final bool hasCopyConstruction()
+    {
+        return postblit || hasCopyCtor;
+    }
+
     override final inout(StructDeclaration) isStructDeclaration() inout @nogc nothrow pure @safe
     {
         return this;
