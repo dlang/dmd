@@ -1983,6 +1983,37 @@ $(CONSOLE
         return; nor may it be entered with a goto. A $(D scope(failure))
         statement may not exit with a return.
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+--------------
+import std.stdio;
+
+int foo()
+{
+    scope(exit) writeln("Inside foo()");
+    return bar();
+}
+
+int bar()
+{
+    writeln("Inside bar()");
+    return 0;
+}
+
+int main()
+{
+    foo();
+    return 0;
+}
+--------------
+)
+
+        writes:
+
+$(CONSOLE
+Inside bar()
+Inside foo()
+)
+
 $(H3 $(LNAME2 catching_cpp_class_objects, Catching C++ Class Objects))
 
         $(P
