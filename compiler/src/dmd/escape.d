@@ -1744,7 +1744,27 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false, bool re
                     Parameter p = tf.parameterList[i - j];
                     const stc = tf.parameterStorageClass(null, p);
                     ScopeRef psr = buildScopeRef(stc);
-                    if (psr == ScopeRef.ReturnScope || psr == ScopeRef.Ref_ReturnScope)
+                    if (psr == ScopeRef.ReturnScope)
+                    {
+                        if (tf.isref)
+                        {
+                            /* ignore `ref` on struct constructor return because
+                             *   struct S { this(return scope int* q) { this.p = q; } int* p; }
+                             * is different from:
+                             *   ref char* front(return scope char** q) { return *q; }
+                             * https://github.com/dlang/dmd/pull/14869
+                             */
+                            if (auto dve = e.e1.isDotVarExp())
+                                if (auto fd = dve.var.isFuncDeclaration())
+                                    if (fd.isCtorDeclaration() && tf.next.toBasetype().isTypeStruct())
+                                    {
+                                        escapeByValue(arg, er, live, retRefTransition);
+                                    }
+                        }
+                        else
+                            escapeByValue(arg, er, live, retRefTransition);
+                    }
+                    else if (psr == ScopeRef.Ref_ReturnScope)
                         escapeByValue(arg, er, live, retRefTransition);
                     else if (psr == ScopeRef.ReturnRef || psr == ScopeRef.ReturnRef_Scope)
                     {
