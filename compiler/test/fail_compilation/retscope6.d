@@ -293,31 +293,3 @@ ref int escape23021() @safe
 }
 
 /******************************/
-
-// https://issues.dlang.org/show_bug.cgi?id=23682
-
-alias VErr = char*;
-
-@safe ref char* front_p(return scope char** p) { return *p; }
-
-char* g;
-
-@safe void test23862()
-{
-    char* _errors;
-    g = front_p(&_errors);   // should pass
-}
-
-/*******************************************/
-
-ref int* monitor(return scope Object h) pure nothrow @nogc
-{
-    return *cast(int**)&h.__monitor;
-}
-
-int* getMonitor(Object h) pure @nogc
-{
-    return monitor(h); // should pass
-}
-
-/*******************************************/

@@ -648,6 +648,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
     if (e1.isStructLiteralExp())
         return false;
 
+    VarDeclaration va = expToVariable(e1);
     EscapeByResults er;
 
     if (byRef)
@@ -658,7 +659,6 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
     if (!er.byref.length && !er.byvalue.length && !er.byfunc.length && !er.byexp.length)
         return false;
 
-    VarDeclaration va = expToVariable(e1);
 
     if (va && e.op == EXP.concatenateElemAssign)
     {
@@ -1777,7 +1777,7 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false, bool re
                     Parameter p = tf.parameterList[i - j];
                     const stc = tf.parameterStorageClass(null, p);
                     ScopeRef psr = buildScopeRef(stc);
-                    if (psr == ScopeRef.ReturnScope)
+                    if (psr == ScopeRef.ReturnScope || psr == ScopeRef.Ref_ReturnScope)
                     {
                         if (tf.isref)
                         {
@@ -1797,8 +1797,6 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false, bool re
                         else
                             escapeByValue(arg, er, live, retRefTransition);
                     }
-                    else if (psr == ScopeRef.Ref_ReturnScope)
-                        escapeByValue(arg, er, live, retRefTransition);
                     else if (psr == ScopeRef.ReturnRef || psr == ScopeRef.ReturnRef_Scope)
                     {
                         if (tf.isref)
@@ -1851,7 +1849,10 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false, bool re
 
                 const psr = buildScopeRef(getThisStorageClass(fd));
                 if (psr == ScopeRef.ReturnScope || psr == ScopeRef.Ref_ReturnScope)
-                    escapeByValue(dve.e1, er, live, retRefTransition);
+                {
+                    if (!tf.isref || tf.isctor)
+                        escapeByValue(dve.e1, er, live, retRefTransition);
+                }
                 else if (psr == ScopeRef.ReturnRef || psr == ScopeRef.ReturnRef_Scope)
                 {
                     if (tf.isref)
