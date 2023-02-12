@@ -141,13 +141,14 @@ void testarchie()
 
 /* TEST_OUTPUT:
 ---
-fail_compilation/retscope6.d(9022): Error: returning `fred(& i)` escapes a reference to local variable `i`
+fail_compilation/retscope6.d(9023): Error: returning `fred(& i)` escapes a reference to local variable `i`
 ---
 */
 
 #line 9000
 
-@safe:
+@safe
+{
 
 alias T9 = S9!(); struct S9()
 {
@@ -198,6 +199,7 @@ void hmac(scope ubyte[] secret)
 {
     ubyte[10] buffer;
     secret = buffer[];
+}
 }
 
 /* TEST_OUTPUT:
@@ -289,3 +291,33 @@ ref int escape23021() @safe
     // ensure we do not infer return ref
     return infer23021(nonScopePtr); // no error
 }
+
+/******************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=23682
+
+alias VErr = char*;
+
+@safe ref char* front_p(return scope char** p) { return *p; }
+
+char* g;
+
+@safe void test23862()
+{
+    char* _errors;
+    g = front_p(&_errors);   // should pass
+}
+
+/*******************************************/
+
+ref int* monitor(return scope Object h) pure nothrow @nogc
+{
+    return *cast(int**)&h.__monitor;
+}
+
+int* getMonitor(Object h) pure @nogc
+{
+    return monitor(h); // should pass
+}
+
+/*******************************************/
