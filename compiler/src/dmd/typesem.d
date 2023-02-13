@@ -593,7 +593,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                  * run on them for the size, since they may be forward referenced.
                  */
                 bool overflow = false;
-                if (mulu(tbn.size(loc), d2, overflow) >= target.maxStaticDataSize || overflow)
+                if (mulu(tbn.size(loc), d2, overflow) > target.maxStaticDataSize || overflow)
                     return overflowError();
             }
         }
