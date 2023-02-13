@@ -2714,7 +2714,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     override void visit(TemplateInstance ti)
     {
-        templateInstanceSemantic(ti, sc, null);
+        templateInstanceSemantic(ti, sc, ArgumentList());
     }
 
     override void visit(TemplateMixin tm)
@@ -2752,7 +2752,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         /* Run semantic on each argument, place results in tiargs[],
          * then find best match template with tiargs
          */
-        if (!tm.findTempDecl(sc) || !tm.semanticTiargs(sc) || !tm.findBestMatch(sc, null))
+        if (!tm.findTempDecl(sc) || !tm.semanticTiargs(sc) || !tm.findBestMatch(sc, ArgumentList()))
         {
             if (tm.semanticRun == PASS.initial) // forward reference had occurred
             {
@@ -4745,7 +4745,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 sc = sc.push();
                 sc.tinst = null;
                 sc.minst = null;
-                auto fcall = resolveFuncCall(sd.loc, sc, scall, null, null, null, FuncResolveFlag.quiet);
+                auto fcall = resolveFuncCall(sd.loc, sc, scall, null, null, ArgumentList(), FuncResolveFlag.quiet);
                 sc = sc.pop();
                 global.endGagging(xerrors);
 
@@ -5345,9 +5345,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         //    this() { }
         if (!cldec.ctor && cldec.baseClass && cldec.baseClass.ctor)
         {
-            auto fd = resolveFuncCall(cldec.loc, sc2, cldec.baseClass.ctor, null, cldec.type, null, FuncResolveFlag.quiet);
+            auto fd = resolveFuncCall(cldec.loc, sc2, cldec.baseClass.ctor, null, cldec.type, ArgumentList(), FuncResolveFlag.quiet);
             if (!fd) // try shared base ctor instead
-                fd = resolveFuncCall(cldec.loc, sc2, cldec.baseClass.ctor, null, cldec.type.sharedOf, null, FuncResolveFlag.quiet);
+                fd = resolveFuncCall(cldec.loc, sc2, cldec.baseClass.ctor, null, cldec.type.sharedOf, ArgumentList(), FuncResolveFlag.quiet);
             if (fd && !fd.errors)
             {
                 //printf("Creating default this(){} for class %s\n", toChars());
@@ -5824,7 +5824,7 @@ void addEnumMembers(EnumDeclaration ed, Scope* sc, ScopeDsymbol sds)
     });
 }
 
-void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions* fargs)
+void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList argumentList)
 {
     //printf("[%s] TemplateInstance.dsymbolSemantic('%s', this=%p, gag = %d, sc = %p)\n", tempinst.loc.toChars(), tempinst.toChars(), tempinst, global.gag, sc);
     version (none)
@@ -5896,7 +5896,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
      * then run semantic on each argument (place results in tiargs[]),
      * last find most specialized template from overload list/set.
      */
-    if (!tempinst.findTempDecl(sc, null) || !tempinst.semanticTiargs(sc) || !tempinst.findBestMatch(sc, fargs))
+    if (!tempinst.findTempDecl(sc, null) || !tempinst.semanticTiargs(sc) || !tempinst.findBestMatch(sc, argumentList))
     {
     Lerror:
         if (tempinst.gagged)
@@ -5948,6 +5948,8 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
         tempinst.inst = tempinst;
         return aliasInstanceSemantic(tempinst, sc, tempdecl);
     }
+
+    Expressions* fargs = argumentList.arguments; // TODO: resolve named args
 
     /* See if there is an existing TemplateInstantiation that already
      * implements the typeargs. If so, just refer to that one instead.

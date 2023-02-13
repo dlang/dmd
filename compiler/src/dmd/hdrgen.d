@@ -2165,7 +2165,7 @@ private void expressionPrettyPrint(Expression e, OutBuffer* buf, HdrGenState* hg
         if (e.arguments && e.arguments.length)
         {
             buf.writeByte('(');
-            argsToBuffer(e.arguments, buf, hgs);
+            argsToBuffer(e.arguments, buf, hgs, null, e.names);
             buf.writeByte(')');
         }
     }
@@ -2469,7 +2469,7 @@ private void expressionPrettyPrint(Expression e, OutBuffer* buf, HdrGenState* hg
         else
             expToBuffer(e.e1, precedence[e.op], buf, hgs);
         buf.writeByte('(');
-        argsToBuffer(e.arguments, buf, hgs);
+        argsToBuffer(e.arguments, buf, hgs, null, e.names);
         buf.writeByte(')');
     }
 
@@ -3310,8 +3310,14 @@ private void parameterToBuffer(Parameter p, OutBuffer* buf, HdrGenState* hgs)
 
 /**************************************************
  * Write out argument list to buf.
+ * Params:
+ *     expressions = argument list
+ *     buf = buffer to write to
+ *     hgs = context
+ *     basis = replace `null`s in argument list with this expression (for sparse array literals)
+ *     names = if non-null, use these as the names for the arguments
  */
-private void argsToBuffer(Expressions* expressions, OutBuffer* buf, HdrGenState* hgs, Expression basis = null)
+private void argsToBuffer(Expressions* expressions, OutBuffer* buf, HdrGenState* hgs, Expression basis = null, Identifiers* names = null)
 {
     if (!expressions || !expressions.length)
         return;
@@ -3321,6 +3327,12 @@ private void argsToBuffer(Expressions* expressions, OutBuffer* buf, HdrGenState*
         {
             if (i)
                 buf.writestring(", ");
+
+            if (names && i < names.length && (*names)[i])
+            {
+                buf.writestring((*names)[i].toString());
+                buf.writestring(": ");
+            }
             if (!el)
                 el = basis;
             if (el)

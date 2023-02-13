@@ -2046,7 +2046,7 @@ extern (C++) abstract class Type : ASTNode
         }
         if (auto fd = s.isFuncDeclaration())
         {
-            fd = resolveFuncCall(Loc.initial, null, fd, null, this, null, FuncResolveFlag.quiet);
+            fd = resolveFuncCall(Loc.initial, null, fd, null, this, ArgumentList(), FuncResolveFlag.quiet);
             if (!fd || fd.errors || !fd.functionSemantic())
                 return Type.terror;
 
@@ -2068,7 +2068,7 @@ extern (C++) abstract class Type : ASTNode
         if (auto td = s.isTemplateDeclaration())
         {
             assert(td._scope);
-            auto fd = resolveFuncCall(Loc.initial, null, td, null, this, null, FuncResolveFlag.quiet);
+            auto fd = resolveFuncCall(Loc.initial, null, td, null, this, ArgumentList(), FuncResolveFlag.quiet);
             if (!fd || fd.errors || !fd.functionSemantic())
                 return Type.terror;
 
@@ -4626,14 +4626,14 @@ extern (C++) final class TypeFunction : TypeNext
      * Determine match level.
      * Params:
      *      tthis = type of `this` pointer, null if not member function
-     *      args = array of function arguments
+     *      argumentList = arguments to function call
      *      flag = 1: performing a partial ordering match
      *      pMessage = address to store error message, or null
      *      sc = context
      * Returns:
      *      MATCHxxxx
      */
-    extern (D) MATCH callMatch(Type tthis, Expression[] args, int flag = 0, const(char)** pMessage = null, Scope* sc = null)
+    extern (D) MATCH callMatch(Type tthis, ArgumentList argumentList, int flag = 0, const(char)** pMessage = null, Scope* sc = null)
     {
         //printf("TypeFunction::callMatch() %s\n", toChars());
         MATCH match = MATCH.exact; // assume exact match
@@ -4669,8 +4669,7 @@ extern (C++) final class TypeFunction : TypeNext
         }
 
         const nparams = parameterList.length;
-        const nargs = args.length;
-        if (nargs > nparams)
+        if (argumentList.length > nparams)
         {
             if (parameterList.varargs == VarArg.none)
             {
@@ -4684,22 +4683,39 @@ extern (C++) final class TypeFunction : TypeNext
         }
 
         // https://issues.dlang.org/show_bug.cgi?id=22997
-        if (parameterList.varargs == VarArg.none && nparams > nargs && !parameterList[nargs].defaultArg)
+        if (parameterList.varargs == VarArg.none && nparams > argumentList.length && !parameterList[argumentList.length].defaultArg)
         {
             OutBuffer buf;
-            buf.printf("too few arguments, expected %d, got %d", cast(int)nparams, cast(int)nargs);
+            buf.printf("too few arguments, expected %d, got %d", cast(int)nparams, cast(int)argumentList.length);
             if (pMessage)
                 *pMessage = buf.extractChars();
             return MATCH.nomatch;
         }
+        auto resolvedArgs = resolveNamedArgs(argumentList, pMessage);
+        Expression[] args;
+        if (!resolvedArgs)
+        {
+            if (!pMessage || *pMessage)
+                return MATCH.nomatch;
+
+            // if no message was provided, it was because of overflow which will be diagnosed below
+            match = MATCH.nomatch;
+            args = argumentList.arguments ? (*argumentList.arguments)[] : null;
+        }
+        else
+        {
+            args = (*resolvedArgs)[];
+        }
 
         foreach (u, p; parameterList)
         {
-            if (u == nargs)
+            if (u >= args.length)
                 break;
 
             Expression arg = args[u];
-            assert(arg);
+            if (!arg)
+                continue; // default argument
+
             Type tprm = p.type;
             Type targ = arg.type;
 
@@ -4733,10 +4749,11 @@ extern (C++) final class TypeFunction : TypeNext
             assert(p);
 
             // One or more arguments remain
-            if (u < nargs)
+            if (u < args.length)
             {
                 Expression arg = args[u];
-                assert(arg);
+                if (!arg)
+                    continue; // default argument
                 m = argumentMatchParameter(this, p, arg, wildmatch, flag, sc, pMessage);
             }
             else if (p.defaultArg)
@@ -4745,7 +4762,7 @@ extern (C++) final class TypeFunction : TypeNext
             /* prefer matching the element type rather than the array
              * type when more arguments are present with T[]...
              */
-            if (parameterList.varargs == VarArg.typesafe && u + 1 == nparams && nargs > nparams)
+            if (parameterList.varargs == VarArg.typesafe && u + 1 == nparams && args.length > nparams)
                 goto L1;
 
             //printf("\tm = %d\n", m);
@@ -4760,7 +4777,7 @@ extern (C++) final class TypeFunction : TypeNext
                     // Error message was already generated in `matchTypeSafeVarArgs`
                     return MATCH.nomatch;
                 }
-                if (pMessage && u >= nargs)
+                if (pMessage && u >= args.length)
                     *pMessage = getMatchError("missing argument for parameter #%d: `%s`",
                         u + 1, parameterToChars(p, this, false));
                 // If an error happened previously, `pMessage` was already filled
@@ -4773,14 +4790,95 @@ extern (C++) final class TypeFunction : TypeNext
                 match = m; // pick worst match
         }
 
-        if (pMessage && !parameterList.varargs && nargs > nparams)
+        if (pMessage && !parameterList.varargs && args.length > nparams)
         {
             // all parameters had a match, but there are surplus args
-            *pMessage = getMatchError("expected %d argument(s), not %d", nparams, nargs);
+            *pMessage = getMatchError("expected %d argument(s), not %d", nparams, args.length);
             return MATCH.nomatch;
         }
         //printf("match = %d\n", match);
         return match;
+    }
+
+    /********************************
+     * Convert an `argumentList`, which may contain named arguments, into
+     * a list of arguments in the order of the parameter list.
+     *
+     * Params:
+     *      argumentList = array of function arguments
+     *      pMessage = address to store error message, or `null`
+     * Returns: re-ordered argument list, or `null` on error
+     */
+    extern(D) Expressions* resolveNamedArgs(ArgumentList argumentList, const(char)** pMessage)
+    {
+        Expression[] args = argumentList.arguments ? (*argumentList.arguments)[] : null;
+        Identifier[] names = argumentList.names ? (*argumentList.names)[] : null;
+        auto newArgs = new Expressions(parameterList.length);
+        newArgs.zero();
+        size_t ci = 0;
+        bool hasNamedArgs = false;
+        foreach (i, arg; args)
+        {
+            if (!arg)
+            {
+                ci++;
+                continue;
+            }
+            auto name = i < names.length ? names[i] : null;
+            if (name)
+            {
+                hasNamedArgs = true;
+                const pi = findParameterIndex(name);
+                if (pi == -1)
+                {
+                    if (pMessage)
+                        *pMessage = getMatchError("no parameter named `%s`", name.toChars());
+                    return null;
+                }
+                ci = pi;
+            }
+            if (ci >= newArgs.length)
+            {
+                if (!parameterList.varargs)
+                {
+                    // Without named args, let the caller diagnose argument overflow
+                    if (hasNamedArgs && pMessage)
+                        *pMessage = getMatchError("argument `%s` goes past end of parameter list", arg.toChars());
+                    return null;
+                }
+                while (ci >= newArgs.length)
+                    newArgs.push(null);
+            }
+
+            if ((*newArgs)[ci])
+            {
+                if (pMessage)
+                    *pMessage = getMatchError("parameter `%s` assigned twice", parameterList[ci].toChars());
+                return null;
+            }
+            (*newArgs)[ci++] = arg;
+        }
+        foreach (i, arg; (*newArgs)[])
+        {
+            if (arg || parameterList[i].defaultArg)
+                continue;
+
+            if (parameterList.varargs != VarArg.none && i + 1 == newArgs.length)
+                continue;
+
+            if (pMessage)
+                *pMessage = getMatchError("missing argument for parameter #%d: `%s`",
+                    i + 1, parameterToChars(parameterList[i], this, false));
+            return null;
+        }
+        // strip trailing nulls from default arguments
+        size_t e = newArgs.length;
+        while (e > 0 && (*newArgs)[e - 1] is null)
+        {
+            --e;
+        }
+        newArgs.setDim(e);
+        return newArgs;
     }
 
     /+
@@ -4892,6 +4990,23 @@ extern (C++) final class TypeFunction : TypeNext
     override void accept(Visitor v)
     {
         v.visit(this);
+    }
+
+    /**
+     * Look for the index of parameter `ident` in the parameter list
+     *
+     * Params:
+     *   ident = identifier of parameter to search for
+     * Returns: index of parameter with name `ident` or -1 if not found
+     */
+    private extern(D) ptrdiff_t findParameterIndex(Identifier ident)
+    {
+        foreach (i, p; this.parameterList)
+        {
+            if (p.ident == ident)
+                return i;
+        }
+        return -1;
     }
 }
 
@@ -6984,7 +7099,7 @@ bool isCopyable(Type t)
             el.type = cast() ts;
             Expressions args;
             args.push(el);
-            FuncDeclaration f = resolveFuncCall(Loc.initial, null, ctor, null, cast()ts, &args, FuncResolveFlag.quiet);
+            FuncDeclaration f = resolveFuncCall(Loc.initial, null, ctor, null, cast()ts, ArgumentList(&args), FuncResolveFlag.quiet);
             if (!f || f.storage_class & STC.disable)
                 return false;
         }

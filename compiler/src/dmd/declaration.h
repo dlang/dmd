@@ -682,7 +682,7 @@ public:
     BaseClass *overrideInterface();
     bool overloadInsert(Dsymbol *s) override;
     bool inUnittest();
-    MATCH leastAsSpecialized(FuncDeclaration *g);
+    MATCH leastAsSpecialized(FuncDeclaration *g, Identifiers *names = nullptr);
     LabelDsymbol *searchLabel(Identifier *ident, const Loc &loc);
     int getLevel(FuncDeclaration *fd, int intypeof); // lexical nesting level difference
     int getLevelAndCheck(const Loc &loc, Scope *sc, FuncDeclaration *fd);

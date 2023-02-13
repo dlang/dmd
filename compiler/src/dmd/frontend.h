@@ -1300,6 +1300,21 @@ struct AssocArray final
     }
 };
 
+struct ArgumentList final
+{
+    Array<Expression* >* arguments;
+    Array<Identifier* >* names;
+    ArgumentList() :
+        arguments(),
+        names()
+    {
+    }
+    ArgumentList(Array<Expression* >* arguments, Array<Identifier* >* names = nullptr) :
+        arguments(arguments),
+        names(names)
+        {}
+};
+
 enum class TY : uint8_t
 {
     Tarray = 0u,
@@ -2541,7 +2556,7 @@ public:
     BaseClass* overrideInterface();
     bool overloadInsert(Dsymbol* s) override;
     bool inUnittest();
-    MATCH leastAsSpecialized(FuncDeclaration* g);
+    MATCH leastAsSpecialized(FuncDeclaration* g, Array<Identifier* >* names);
     LabelDsymbol* searchLabel(Identifier* ident, const Loc& loc = Loc::initial);
     int32_t getLevel(FuncDeclaration* fd, int32_t intypeof);
     int32_t getLevelAndCheck(const Loc& loc, Scope* sc, FuncDeclaration* fd, Declaration* decl);
@@ -4842,6 +4857,7 @@ struct ASTCodegen final
     using AddrExp = ::AddrExp;
     using AndAssignExp = ::AndAssignExp;
     using AndExp = ::AndExp;
+    using ArgumentList = ::ArgumentList;
     using ArrayExp = ::ArrayExp;
     using ArrayLengthExp = ::ArrayLengthExp;
     using ArrayLiteralExp = ::ArrayLiteralExp;
@@ -6678,7 +6694,7 @@ public:
     Visibility visible() override;
     const char* getConstraintEvalError(const char*& tip);
     Scope* scopeForTemplateParameters(TemplateInstance* ti, Scope* sc);
-    MATCH leastAsSpecialized(Scope* sc, TemplateDeclaration* td2, Array<Expression* >* fargs);
+    MATCH leastAsSpecialized(Scope* sc, TemplateDeclaration* td2, ArgumentList argumentList);
     RootObject* declareParameter(Scope* sc, TemplateParameter* tp, RootObject* o);
     TemplateDeclaration* isTemplateDeclaration() override;
     TemplateTupleParameter* isVariadic();
@@ -7188,6 +7204,7 @@ public:
     Expression* thisexp;
     Type* newtype;
     Array<Expression* >* arguments;
+    Array<Identifier* >* names;
     Expression* argprefix;
     CtorDeclaration* member;
     bool onstack;

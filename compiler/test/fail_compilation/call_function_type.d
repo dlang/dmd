@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/call_function_type.d(18): Error: expected 1 function arguments, not 0
+fail_compilation/call_function_type.d(18): Error: missing argument for parameter #1: `int`
 fail_compilation/call_function_type.d(19): Error: cannot call `int(int)(3)` at compile time
 ---
 */
