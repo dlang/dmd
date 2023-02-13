@@ -4801,7 +4801,8 @@ extern (C++) final class TypeFunction : TypeNext
     }
 
     /********************************
-     * Re-order `argumentList` based on named arguments it contains
+     * Convert an `argumentList`, which may contain named arguments, into
+     * a list of arguments in the order of the parameter list.
      *
      * Params:
      *      argumentList = array of function arguments
@@ -4827,7 +4828,7 @@ extern (C++) final class TypeFunction : TypeNext
             if (name)
             {
                 hasNamedArgs = true;
-                const pi = parameterIndex(name);
+                const pi = findParameterIndex(name);
                 if (pi == -1)
                 {
                     if (pMessage)
@@ -4991,8 +4992,14 @@ extern (C++) final class TypeFunction : TypeNext
         v.visit(this);
     }
 
-    /// Returns: index of parameter with name `ident` or -1 if not found
-    private extern(D) ptrdiff_t parameterIndex(Identifier ident)
+    /**
+     * Look for the index of parameter `ident` in the parameter list
+     *
+     * Params:
+     *   ident = identifier of parameter to search for
+     * Returns: index of parameter with name `ident` or -1 if not found
+     */
+    private extern(D) ptrdiff_t findParameterIndex(Identifier ident)
     {
         foreach (i, p; this.parameterList)
         {

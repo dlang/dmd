@@ -10,6 +10,7 @@ static assert(fun(x: "x", y: "y", z: "z", w: "w") == "xyzw");
 static assert(fun(w: "w", z: "z", y: "y", x: "x") == "xyzw");
 static assert(fun(y: "y",    "z", x: "x") == "xyzW");
 static assert(fun(   "x",    "y", w: "w") == "xyZw");
+static assert(fun(x: "x",    "y", z: "z") == "xyzW");
 
 // UFCS
 static assert("x".fun("y", w: "w") == "xyZw");
