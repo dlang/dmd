@@ -2532,7 +2532,6 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                     FileName.equals(ext, mars_ext) == 0 &&
                     FileName.equals(ext, hdr_ext) == 0 &&
                     FileName.equals(ext, i_ext) == 0 &&
-                    FileName.equals(ext, h_ext) == 0 &&
                     FileName.equals(ext, c_ext) == 0)
                 {
                     error("-run must be followed by a source file, not '%s'", arguments[i + 1]);
@@ -2877,7 +2876,6 @@ Module createModule(const(char)* file, ref Strings libmodules, const ref Target 
     if (FileName.equals(ext, mars_ext) ||
         FileName.equals(ext, hdr_ext ) ||
         FileName.equals(ext, dd_ext  ) ||
-        FileName.equals(ext, h_ext   ) ||
         FileName.equals(ext, c_ext   ) ||
         FileName.equals(ext, i_ext   ))
     {

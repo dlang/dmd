@@ -141,15 +141,6 @@ nothrow:
             return sd;
         scope(exit) FileName.free(sd.ptr);
 
-        static const(char)[] check(const(char)[] p, const(char)[] sx)
-        {
-            auto fn = FileName.combine(p, sx);
-            if (FileName.exists(fn))
-                return fn;
-            FileName.free(fn.ptr);
-            return null;
-        }
-
         if (checkLocal)
         {
             auto cached = packageStatus.lookup(filename);
@@ -161,10 +152,15 @@ nothrow:
                  * Therefore, the result should be: filename/package.d
                  * iff filename/package.d is a file
                  */
-                if (auto fn = check(filename, package_di))
-                    return fn;
-                if (auto fn = check(filename, package_d))
-                    return fn;
+                const ni = FileName.combine(filename, package_di);
+                if (FileName.exists(ni) == 1)
+                    return ni;
+                FileName.free(ni.ptr);
+
+                const n = FileName.combine(filename, package_d);
+                if (FileName.exists(n) == 1)
+                    return n;
+                FileName.free(n.ptr);
             }
         }
 
@@ -172,28 +168,29 @@ nothrow:
             return null;
         if (!path.length)
             return null;
-
         foreach (entry; path)
         {
             const p = entry.toDString();
 
-            {
-                const(char)[] n = FileName.combine(p, sdi);
-                if (!packageExists(n)) {
-                    FileName.free(n.ptr);
-                    continue; // no need to check for anything else.
-                }
-                if (FileName.exists(n) == 1) {
-                    return n;
-                }
+            const(char)[] n = FileName.combine(p, sdi);
+
+            if (!packageExists(n)) {
                 FileName.free(n.ptr);
+                continue; // no need to check for anything else.
             }
+            if (FileName.exists(n) == 1) {
+                return n;
+            }
+            FileName.free(n.ptr);
 
-            if (auto fn = check(p, sd))
-                return fn;
+            n = FileName.combine(p, sd);
+            if (FileName.exists(n) == 1) {
+                return n;
+            }
+            FileName.free(n.ptr);
 
-            const(char)[] b = FileName.removeExt(filename);
-            const(char)[] n = FileName.combine(p, b);
+            const b = FileName.removeExt(filename);
+            n = FileName.combine(p, b);
             FileName.free(b.ptr);
 
             scope(exit) FileName.free(n.ptr);
@@ -218,17 +215,12 @@ nothrow:
             }
         }
 
-        /* ImportC: No D modules found, now search along path[] for .i file, then .h file, then .c file.
+        /* ImportC: No D modules found, now search along path[] for .i file, then .c file.
          */
         const si = FileName.forceExt(filename, i_ext);
         if (FileName.exists(si) == 1)
             return si;
         scope(exit) FileName.free(si.ptr);
-
-        const sh = FileName.forceExt(filename, h_ext);
-        if (FileName.exists(sh) == 1)
-            return sh;
-        scope(exit) FileName.free(sh.ptr);
 
         const sc = FileName.forceExt(filename, c_ext);
         if (FileName.exists(sc) == 1)
@@ -238,12 +230,17 @@ nothrow:
         {
             const p = entry.toDString();
 
-            if (auto fn = check(p, si))
-                return fn;
-            if (auto fn = check(p, sh))
-                return fn;
-            if (auto fn = check(p, sc))
-                return fn;
+            const(char)[] n = FileName.combine(p, si);
+            if (FileName.exists(n) == 1) {
+                return n;
+            }
+            FileName.free(n.ptr);
+
+            n = FileName.combine(p, sc);
+            if (FileName.exists(n) == 1) {
+                return n;
+            }
+            FileName.free(n.ptr);
         }
         return null;
     }
