@@ -2491,6 +2491,8 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     extern (D) void removeInstance(TemplateInstance ti)
     {
         //printf("removeInstance() %s\n", ti.toChars());
+        if (!ti)
+            return;
         auto tibox = TemplateInstanceBox(ti);
         debug (FindExistingInstance) ++nRemoved;
         instances.remove(tibox);
