@@ -2933,7 +2933,7 @@ CXX_DEMANGLER getCXXDemangler() nothrow @trusted
         version (linux) import core.sys.linux.dlfcn : RTLD_DEFAULT;
         version (NetBSD) import core.sys.netbsd.dlfcn : RTLD_DEFAULT;
         version (OpenBSD) import core.sys.openbsd.dlfcn : RTLD_DEFAULT;
-        version (OSX) import core.sys.darwin.dlfcn : RTLD_DEFAULT;
+        version (Darwin) import core.sys.darwin.dlfcn : RTLD_DEFAULT;
         version (Solaris) import core.sys.solaris.dlfcn : RTLD_DEFAULT;
 
         if (auto found = cast(CXX_DEMANGLER) dlsym(RTLD_DEFAULT, "__cxa_demangle"))
