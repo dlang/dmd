@@ -730,7 +730,7 @@ extern (C++) abstract class Expression : ASTNode
 {
     const EXP op;   // to minimize use of dynamic_cast
     ubyte size;     // # of bytes in Expression so we can copy() it
-    ubyte parens;   // if this is a parenthesized expression
+    bool parens;    // if this is a parenthesized expression
     Type type;      // !=null means that semantic() has been run
     Loc loc;        // file location
 
