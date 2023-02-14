@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail290.d(15): Error: cannot implicitly convert expression `& foo` of type `void*` to `void delegate(int)`
+fail_compilation/fail290.d(15): Error: cannot cast from function pointer to delegate
 ---
 */
 

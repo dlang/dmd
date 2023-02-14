@@ -7231,7 +7231,36 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         return;
                     }
 
-                    exp.type = (new TypePointer(Type.tvoid)).typeSemantic(exp.loc, sc);
+                    bool safeError;
+                    if (sc.func && !sc.intypeof && !(sc.flags & SCOPE.debug_))
+                    {
+                        safeError = sc.setUnsafe(false, exp.loc,
+                            "`this` reference necessary to take address of member `%s` in `@safe` function `%s`",
+                            f, sc.func);
+                    }
+
+                    /* https://issues.dlang.org/show_bug.cgi?id=3720
+                     *
+                     * If not in @safe code, we will extract the function
+                     * pointer but expect the user to pass a context if the
+                     * function is called.
+                     *
+                     * struct S { int a; void fun() { a = 1; }}
+                     * void main() { auto fp = &S.fun() }
+                     *
+                     * `fp` will be typed as void function(S*)
+                     */
+                    if (!safeError)
+                    {
+                        auto ad = f.isThis();
+                        assert(ad);
+                        auto newFunctionType = cast(TypeFunction)f.type.syntaxCopy();
+                        auto cd = ad.isClassDeclaration();
+                        Type paramType = cd ? new TypeClass(ad.isClassDeclaration) : new TypePointer(ad.type);
+                        auto param = new Parameter(STC.parameter, paramType, new Identifier("__ctxPtr"), null, null);
+                        newFunctionType.parameterList.parameters.push(param);
+                        exp.type = new TypePointer(newFunctionType).typeSemantic(exp.loc, sc);
+                    }
                 }
             }
         }
