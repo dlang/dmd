@@ -2883,43 +2883,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     storageClass = appendStorageClass(storageClass, stc);
                     continue;
 
-                    version (none)
-                    {
-                    case TOK.static_:
-                        stc = STC.static_;
-                        goto L2;
-
-                    case TOK.auto_:
-                        storageClass = STC.auto_;
-                        goto L4;
-
-                    case TOK.alias_:
-                        storageClass = STC.alias_;
-                        goto L4;
-                    L4:
-                        nextToken();
-                        ai = null;
-                        if (token.value == TOK.identifier)
-                        {
-                            ai = token.ident;
-                            nextToken();
-                        }
-
-                        at = null; // no type
-                        ae = null; // no default argument
-                        if (token.value == TOK.assign) // = defaultArg
-                        {
-                            nextToken();
-                            ae = parseDefaultInitExp();
-                            hasdefault = 1;
-                        }
-                        else
-                        {
-                            if (hasdefault)
-                                error("default argument expected for `alias %s`", ai ? ai.toChars() : "");
-                        }
-                        goto L3;
-                    }
                 default:
                     {
                         stc = storageClass & (STC.IOR | STC.lazy_);
@@ -7639,24 +7602,6 @@ LagainStc:
                 }
                 goto L1;
 
-                version (none)
-                {
-                case TOK.static_:
-                    continue;
-                case TOK.auto_:
-                case TOK.alias_:
-                    t = peek(t);
-                    if (t.value == TOK.identifier)
-                        t = peek(t);
-                    if (t.value == TOK.assign)
-                    {
-                        t = peek(t);
-                        if (!isExpression(&t))
-                            return false;
-                    }
-                    goto L3;
-                }
-
             default:
                 {
                     if (!isBasicType(&t))
@@ -8772,14 +8717,6 @@ LagainStc:
                         case TOK.wcharLiteral:
                         case TOK.dcharLiteral:
                         case TOK.string_:
-                            version (none)
-                            {
-                            case TOK.tilde:
-                            case TOK.and:
-                            case TOK.mul:
-                            case TOK.min:
-                            case TOK.add:
-                            }
                         case TOK.function_:
                         case TOK.delegate_:
                         case TOK.typeof_:
