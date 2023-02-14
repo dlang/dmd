@@ -4146,9 +4146,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             else if (dim == 0 && tf.parameterList.varargs != VarArg.none) // allow varargs only ctor
             {
             }
-            else if (dim && tf.parameterList[0].defaultArg)
+            else if (dim && !tf.parameterList.hasArgsWithoutDefault)
             {
-                // if the first parameter has a default argument, then the rest does as well
                 if (ctd.storage_class & STC.disable)
                 {
                     ctd.error("is marked `@disable`, so it cannot have default "~

@@ -12,6 +12,18 @@ static assert(fun(y: "y",    "z", x: "x") == "xyzW");
 static assert(fun(   "x",    "y", w: "w") == "xyZw");
 static assert(fun(x: "x",    "y", z: "z") == "xyzW");
 
+// Default arguments need not all be at the end anymore
+string fun2(string x = "x", string y, string z = "z")
+{
+	return x ~ y ~ z;
+}
+
+static assert(fun2(y: "y") == "xyz");
+
+// The assumption that first parameter having a default implies all parameters have a default is no longer valid,
+// so this struct constructor shouldn't be mistaken for a default constructor.
+struct SD { this(int x = 1, int y) { } }
+
 // UFCS
 static assert("x".fun("y", w: "w") == "xyZw");
 
