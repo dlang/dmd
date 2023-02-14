@@ -1316,12 +1316,38 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             return 0;
         }
 
+        AST.Expression templateArgToExp(RootObject o, const ref Loc loc)
+        {
+            switch (o.dyncast)
+            {
+                case DYNCAST.expression:
+                    return cast(AST.Expression) o;
+                case DYNCAST.type:
+                    return new AST.TypeExp(loc, cast(AST.Type)o);
+                default:
+                    assert(0);
+            }
+        }
+
         if (token.value == TOK.leftParenthesis)
         {
             // Multi-UDAs ( `@( ArgumentList )`) form, concatenate with existing
             if (peekNext() == TOK.rightParenthesis)
                 error("empty attribute list is not allowed");
-            udas = AST.UserAttributeDeclaration.concat(udas, parseArguments());
+
+            if (udas is null)
+                udas = new AST.Expressions();
+            auto args = parseTemplateArgumentList();
+            foreach (arg; *args)
+                udas.push(templateArgToExp(arg, token.loc));
+            return 0;
+        }
+
+        if (auto o = parseTemplateSingleArgument())
+        {
+            if (udas is null)
+                udas = new AST.Expressions();
+            udas.push(templateArgToExp(o, token.loc));
             return 0;
         }
 
@@ -1778,7 +1804,16 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         else
         {
             // ident!template_argument
-            tiargs = parseTemplateSingleArgument();
+            RootObject o = parseTemplateSingleArgument();
+            if (!o)
+            {
+                error("template argument expected following `!`");
+            }
+            else
+            {
+                tiargs = new AST.Objects();
+                tiargs.push(o);
+            }
         }
         if (token.value == TOK.not)
         {
@@ -1844,11 +1879,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      *      foo!arg
      * Input:
      *      current token is the arg
+     * Returns: An AST.Type, AST.Expression, or `null` on error
      */
-    private AST.Objects* parseTemplateSingleArgument()
+    private RootObject parseTemplateSingleArgument()
     {
         //printf("parseTemplateSingleArgument()\n");
-        auto tiargs = new AST.Objects();
         AST.Type ta;
         switch (token.value)
         {
@@ -1956,9 +1991,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             ta = AST.Type.tdchar;
             goto LabelX;
         LabelX:
-            tiargs.push(ta);
             nextToken();
-            break;
+            return ta;
 
         case TOK.int32Literal:
         case TOK.uns32Literal:
@@ -1988,15 +2022,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         case TOK.this_:
             {
                 // Template argument is an expression
-                AST.Expression ea = parsePrimaryExp();
-                tiargs.push(ea);
-                break;
+                return parsePrimaryExp();
             }
         default:
-            error("template argument expected following `!`");
-            break;
+            return null;
         }
-        return tiargs;
     }
 
     /**********************************
