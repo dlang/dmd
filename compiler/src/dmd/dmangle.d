@@ -405,6 +405,34 @@ public:
         foreach (idx, param; t.parameterList)
             mangleParameter(param);
         //if (buf.data[buf.length - 1] == '@') assert(0);
+        if (t.parameterList.varargs == VarArg.variadic && t.parameterList.stc)
+        {
+            /* M Nk TypeModifiers Y
+             */
+            const stc = t.parameterList.stc;
+            if (stc & STC.scope_ && !(stc & STC.scopeinferred))
+                buf.writeByte('M');
+            if ((stc & (STC.return_ | STC.wild)) == STC.return_ &&
+                !(stc & STC.returninferred))
+                buf.writestring("Nk");
+
+            /* Copied from addStorageClass()
+             */
+            MOD mod = 0;
+            if (stc & STC.immutable_)
+                mod = MODFlags.immutable_;
+            else
+            {
+                if (stc & (STC.const_ | STC.in_))
+                    mod |= MODFlags.const_;
+                if (stc & STC.wild)
+                    mod |= MODFlags.wild;
+                if (stc & STC.shared_)
+                    mod |= MODFlags.shared_;
+            }
+
+            MODtoDecoBuffer(buf, mod);
+        }
         buf.writeByte('Z' - t.parameterList.varargs); // mark end of arg list
         if (tret !is null)
             visitWithMask(tret, 0);
