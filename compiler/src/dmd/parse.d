@@ -7307,7 +7307,7 @@ LagainStc:
     {
         // This code parallels parseDeclarator()
         Token* t = *pt;
-        int parens;
+        bool parens;
 
         //printf("Parser::isDeclarator() %s\n", t.toChars());
         if (t.value == TOK.assign)
@@ -8447,7 +8447,7 @@ LagainStc:
                 // ( expression )
                 nextToken();
                 e = parseExpression();
-                e.parens = 1;
+                e.parens = true;
                 check(loc, TOK.rightParenthesis);
                 break;
             }

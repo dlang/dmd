@@ -81,7 +81,7 @@ class Expression : public ASTNode
 public:
     EXP op;                     // to minimize use of dynamic_cast
     unsigned char size;         // # of bytes in Expression so we can copy() it
-    unsigned char parens;       // if this is a parenthesized expression
+    bool parens;                // if this is a parenthesized expression
     Type *type;                 // !=NULL means that semantic() has been run
     Loc loc;                    // file location
 

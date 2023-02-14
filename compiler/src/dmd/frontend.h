@@ -993,7 +993,7 @@ class Expression : public ASTNode
 public:
     const EXP op;
     uint8_t size;
-    uint8_t parens;
+    bool parens;
     Type* type;
     Loc loc;
     static void _init();
