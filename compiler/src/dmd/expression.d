@@ -273,14 +273,6 @@ extern (C++) void expandTuples(Expressions* exps, Identifiers* names = null)
     {
         if (exps.length != names.length)
         {
-            // Fixme: this branch should be removed when CallExp rewrites
-            // (UFCS/operator overloading) are fixed to take named arguments into account
-            names.setDim(exps.length);
-            foreach (i; 0..exps.length)
-                (*names)[i] = null;
-        }
-        if (exps.length != names.length)
-        {
             printf("exps.length = %d, names.length = %d\n", cast(int) exps.length, cast(int) names.length);
             printf("exps = %s, names = %s\n", exps.toChars(), names.toChars());
             if (exps.length > 0)
@@ -3677,7 +3669,8 @@ extern (C++) final class NewExp : Expression
         return new NewExp(loc,
             thisexp ? thisexp.syntaxCopy() : null,
             newtype.syntaxCopy(),
-            arraySyntaxCopy(arguments));
+            arraySyntaxCopy(arguments),
+            names ? names.copy() : null);
     }
 
     override void accept(Visitor v)
@@ -5244,7 +5237,7 @@ extern (C++) final class CallExp : UnaExp
 
     override CallExp syntaxCopy()
     {
-        return new CallExp(loc, e1.syntaxCopy(), arraySyntaxCopy(arguments), names);
+        return new CallExp(loc, e1.syntaxCopy(), arraySyntaxCopy(arguments), names ? names.copy() : null);
     }
 
     override bool isLvalue()

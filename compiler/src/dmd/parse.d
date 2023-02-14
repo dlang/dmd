@@ -9352,7 +9352,7 @@ LagainStc:
 
         nextToken();
         AST.Expressions* arguments = null;
-        AST.Identifiers* names = new AST.Identifiers();
+        AST.Identifiers* names = null;
 
         // An anonymous nested class starts with "class"
         if (token.value == TOK.class_)
@@ -9361,6 +9361,7 @@ LagainStc:
             if (token.value == TOK.leftParenthesis)
             {
                 arguments = new AST.Expressions();
+                names = new AST.Identifiers();
                 parseNamedArguments(arguments, names);
             }
 
@@ -9405,6 +9406,7 @@ LagainStc:
         else if (token.value == TOK.leftParenthesis && t.ty != Tsarray)
         {
             arguments = new AST.Expressions();
+            names = new AST.Identifiers();
             parseNamedArguments(arguments, names);
         }
 
