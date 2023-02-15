@@ -3,7 +3,7 @@ TEST_OUTPUT:
 ---
 true
 g
-&Test109S(&Test109S(<recursion>))
+&Test109S(&Test109S(&Test109S(<recursion>)))
 tfoo
 tfoo
 Crash!

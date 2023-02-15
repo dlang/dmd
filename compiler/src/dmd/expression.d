@@ -739,6 +739,7 @@ extern (C++) abstract class Expression : ASTNode
         //printf("Expression::Expression(op = %d) this = %p\n", op, this);
         this.loc = loc;
         this.op = op;
+	assert(size < ubyte.max);
         this.size = cast(ubyte)size;
     }
 
@@ -3287,6 +3288,12 @@ extern (C++) final class StructLiteralExp : Expression
      * 'origin' pointer value of the original expression.
      */
     StructLiteralExp origin;
+
+    /** Used when moving an instance out of Region memory -
+     * this is where it is copied to.
+     * Need it because CTFE can have multiple parents to SLEs
+     */
+    StructLiteralExp copied;
 
     /// those fields need to prevent a infinite recursion when one field of struct initialized with 'this' pointer.
     StructLiteralExp inlinecopy;
