@@ -4683,7 +4683,7 @@ extern (C++) final class TypeFunction : TypeNext
         }
 
         // https://issues.dlang.org/show_bug.cgi?id=22997
-        if (parameterList.varargs == VarArg.none && nparams > argumentList.length && !parameterList[argumentList.length].defaultArg)
+        if (parameterList.varargs == VarArg.none && nparams > argumentList.length && !parameterList.hasDefaultArgs)
         {
             OutBuffer buf;
             buf.printf("too few arguments, expected %d, got %d", cast(int)nparams, cast(int)argumentList.length);
@@ -6630,6 +6630,28 @@ extern (C++) struct ParameterList
 
         // Ensure no remaining parameters in `other`
         return !diff && other[idx] is null;
+    }
+
+    /// Returns: `true` if any parameter has a default argument
+    extern(D) bool hasDefaultArgs()
+    {
+        foreach (oidx, oparam, eidx, eparam; this)
+        {
+            if (eparam.defaultArg)
+                return true;
+        }
+        return false;
+    }
+
+    // Returns: `true` if any parameter doesn't have a default argument
+    extern(D) bool hasArgsWithoutDefault()
+    {
+        foreach (oidx, oparam, eidx, eparam; this)
+        {
+            if (!eparam.defaultArg)
+                return true;
+        }
+        return false;
     }
 }
 
