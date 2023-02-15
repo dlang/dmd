@@ -390,6 +390,31 @@ $(H2 $(LNAME2 limitations, Limitations))
 
 $(H2 $(LNAME2 extensions, Extensions))
 
+    $(H3 $(LNAME2 asmstatements, Asm statement))
+
+    $(P For the D language, `asm` is a standard keyword, and its construct is
+    shared with ImportC. For the C language, `asm` is an extension (J.5.10),
+    and the recommendation is to instead use `__asm__`. All alternative
+    keywords for `asm` are translated by the druntime file $(TT src/importc.h)
+    during the preprocessing stage.)
+
+    $(P The `asm` keyword may be used to embed assembler instructions, its
+    syntax is implementation defined. The Digital Mars D compiler only supports
+    the dialect of inline assembly as described in the documentation of the
+    $(LINK2 https://dlang.org/spec/iasm.html, D x86 Inline Assembler).)
+
+    $(P `asm` in a function or variable declaration may be used to specify the
+    mangle name for a symbol. Its use is analogous to
+    $(LINK2 https://dlang.org/spec/pragma.html#mangle, pragma mangle).)
+
+$(CCODE
+char **myenviron asm("environ") = 0;
+
+int myprintf(char *, ...) asm("printf");
+)
+
+    $(P Using `asm` to associate registers with variables is ignored.)
+
     $(H3 $(LNAME2 forward-references, Forward References))
 
     $(P Any declarations in scope can be accessed, not just
