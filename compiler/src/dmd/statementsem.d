@@ -2818,7 +2818,10 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
             rs.exp = rs.exp.expressionSemantic(sc);
             rs.exp = rs.exp.arrayFuncConv(sc);
             // If we're returning by ref, allow the expression to be `shared`
-            const returnSharedRef = (tf.isref && (fd.inferRetType || tret.isShared()));
+
+            // https://issues.dlang.org/show_bug.cgi?id=23709
+            // Classes are reference types, therefore we can return shared instances
+            const returnSharedRef = ((tf.isref || (tbret && tbret.isTypeClass())) && (fd.inferRetType || tret.isShared()));
             rs.exp.checkSharedAccess(sc, returnSharedRef);
 
             // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
