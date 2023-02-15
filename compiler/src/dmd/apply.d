@@ -26,6 +26,13 @@ bool walkPostorder(Expression e, StoppableVisitor v)
     return v.stop;
 }
 
+bool walkPreorder(Expression e, StoppableVisitor v)
+{
+    scope PreorderExpressionVisitor pv = new PreorderExpressionVisitor(v);
+    e.accept(pv);
+    return v.stop;
+}
+
 /*********************************
  * Iterate this dsymbol or members of this scoped dsymbol, then
  * call `fp` with the found symbol and `params`.
@@ -60,8 +67,8 @@ int apply(FP, Params...)(Dsymbol symbol, FP fp, Params params)
 }
 
 /**************************************
- * An Expression tree walker that will visit each Expression e in the tree,
- * in depth-first evaluation order, and call fp(e,param) on it.
+ * A post-order Expression tree walker that will visit each Expression e in the
+ * tree, in depth-first evaluation order, and call fp(e,param) on it.
  * fp() signals whether the walking continues with its return value:
  * Returns:
  *      0       continue
@@ -184,5 +191,133 @@ public:
     override void visit(CondExp e)
     {
         doCond(e.econd) || doCond(e.e1) || doCond(e.e2) || applyTo(e);
+    }
+}
+
+/**************************************
+ * A pre-order Expression tree walker that will visit each Expression e in the
+ * tree, in depth-first evaluation order, and call fp(e,param) on it.
+ * fp() signals whether the walking continues with its return value:
+ * Returns:
+ *      0       continue
+ *      1       done
+ * It's a bit slower than using virtual functions, but more encapsulated and less brittle.
+ * Creating an iterator for this would be much more complex.
+ */
+private extern (C++) final class PreorderExpressionVisitor : StoppableVisitor
+{
+    alias visit = typeof(super).visit;
+public:
+    StoppableVisitor v;
+
+    extern (D) this(StoppableVisitor v) scope
+    {
+        this.v = v;
+    }
+
+    bool doCond(Expression e)
+    {
+        if (!stop && e)
+            e.accept(this);
+        return stop;
+    }
+
+    extern(D) bool doCond(Expression[] e)
+    {
+        for (size_t i = 0; i < e.length && !stop; i++)
+            doCond(e[i]);
+        return stop;
+    }
+
+    bool applyTo(Expression e)
+    {
+        e.accept(v);
+        stop = v.stop;
+        return stop;
+    }
+
+    override void visit(Expression e)
+    {
+        applyTo(e);
+    }
+
+    override void visit(NewExp e)
+    {
+        //printf("NewExp::apply(): %s\n", toChars());
+        applyTo(e) || doCond(e.thisexp) || doCond(e.arguments.peekSlice());
+    }
+
+    override void visit(NewAnonClassExp e)
+    {
+        //printf("NewAnonClassExp::apply(): %s\n", toChars());
+        applyTo(e) || doCond(e.thisexp) || doCond(e.arguments.peekSlice());
+    }
+
+    override void visit(TypeidExp e)
+    {
+        applyTo(e) || doCond(isExpression(e.obj));
+    }
+
+    override void visit(UnaExp e)
+    {
+        applyTo(e) || doCond(e.e1);
+    }
+
+    override void visit(BinExp e)
+    {
+        applyTo(e) || doCond(e.e1) || doCond(e.e2);
+    }
+
+    override void visit(AssertExp e)
+    {
+        //printf("CallExp::apply(apply_fp_t fp, void *param): %s\n", toChars());
+        applyTo(e) || doCond(e.e1) || doCond(e.msg);
+    }
+
+    override void visit(CallExp e)
+    {
+        //printf("CallExp::apply(apply_fp_t fp, void *param): %s\n", toChars());
+        applyTo(e) || doCond(e.e1) || doCond(e.arguments.peekSlice());
+    }
+
+    override void visit(ArrayExp e)
+    {
+        //printf("ArrayExp::apply(apply_fp_t fp, void *param): %s\n", toChars());
+        applyTo(e) || doCond(e.e1) || doCond(e.arguments.peekSlice());
+    }
+
+    override void visit(SliceExp e)
+    {
+        applyTo(e) || doCond(e.e1) || doCond(e.lwr) || doCond(e.upr);
+    }
+
+    override void visit(ArrayLiteralExp e)
+    {
+        applyTo(e) || doCond(e.basis) || doCond(e.elements.peekSlice());
+    }
+
+    override void visit(AssocArrayLiteralExp e)
+    {
+        applyTo(e) || doCond(e.keys.peekSlice()) || doCond(e.values.peekSlice());
+    }
+
+    override void visit(StructLiteralExp e)
+    {
+        if (e.stageflags & stageApply)
+            return;
+        int old = e.stageflags;
+        e.stageflags |= stageApply;
+        applyTo(e) || doCond(e.elements.peekSlice());
+        e.stageflags = old;
+    }
+
+    override void visit(TupleExp e)
+    {
+        applyTo(e) || doCond(e.e0) || doCond(e.exps.peekSlice());
+    }
+
+    override void visit(CondExp e)
+    {
+        applyTo(e) || doCond(e.econd) || doCond(e.e1) || doCond(e.e2);
     }
 }
