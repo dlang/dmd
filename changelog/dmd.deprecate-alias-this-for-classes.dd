@@ -1,0 +1,8 @@
+Alias this for classes is deprecated
+
+Using `alias this` for classes has not been clearly specified and the lookup rules in such circumstances are not defined. As a consequence, various failures or crashes may appear when `alias this` is used in conjunction with classes. Starting with this release, `alias this` for classes is being deprecated. As an alternative, getter/setter methods may be used to replace the `alias this`. This can be generically handled by:
+
+```d
+static foreach(member, __traits(allMembers, LeClass))
+    mixin("ref auto " ~ member() { return $field_name." ~ member ~ "; }");
+```

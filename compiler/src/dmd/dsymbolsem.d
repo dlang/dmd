@@ -317,6 +317,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
         }
 
+        // @@@DEPRECATED_2.121@@@
+        // Deprecated in 2.101 - Can be removed in 2.121
+        if (ad.isClassDeclaration() || ad.isInterfaceDeclaration())
+            deprecation(dsym.loc, "alias this for classes/interfaces is deprecated");
+
         assert(ad.members);
         Dsymbol s = ad.search(dsym.loc, dsym.ident);
         if (!s)

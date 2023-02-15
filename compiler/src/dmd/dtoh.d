@@ -291,7 +291,21 @@ public:
 
     /// Informations about the current context in the AST
     Context context;
-    alias context this;
+
+    // Generates getter-setter methods to replace the use of alias this
+    // This should be replaced by a `static foreach` once the gdc tester
+    // gets upgraded to version 10 (to support `static foreach`).
+    private extern(D) static string generateMembers()
+    {
+        string result = "";
+        foreach(member; __traits(allMembers, Context))
+        {
+            result ~= "ref auto " ~ member ~ "() { return context." ~ member ~ "; }\n";
+        }
+        return result;
+    }
+
+    mixin(generateMembers());
 
     this(OutBuffer* fwdbuf, OutBuffer* donebuf, OutBuffer* buf) scope
     {
