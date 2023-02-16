@@ -725,12 +725,12 @@ tryagain:
 @trusted
 targ_size_t alignsection(targ_size_t base, uint alignment, int bias)
 {
-    assert(cast(int)base <= 0);
+    assert(cast(long)base <= 0);
     if (alignment > STACKALIGN)
         alignment = STACKALIGN;
     if (alignment)
     {
-        int sz = cast(int)(-base + bias);
+        long sz = cast(long)(-base + bias);
         assert(sz >= 0);
         sz &= (alignment - 1);
         if (sz)
