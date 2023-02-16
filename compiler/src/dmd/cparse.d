@@ -602,7 +602,22 @@ final class CParser(AST) : Parser!AST
         }
 
         case TOK.asm_:
-            s = parseAsm();
+            switch (peekNext())
+            {
+                case TOK.goto_:
+                case TOK.inline:
+                case TOK.volatile:
+                case TOK.leftParenthesis:
+                    version (IN_GCC)
+                    {
+                        s = cparseAsm();
+                        break;
+                    }
+                default:
+                    // ImportC extensions: parse as a D asm block.
+                    s = parseAsm();
+                    break;
+            }
             break;
 
         default:
@@ -3157,6 +3172,83 @@ final class CParser(AST) : Parser!AST
         auto label = cparsePrimaryExp();
         check(TOK.rightParenthesis);
         return cast(AST.StringExp) label;
+    }
+
+    /********************
+     * Parse C inline assembler statement.
+     * gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html
+     * Returns:
+     *   inline assembler expression as a Statement
+     */
+    private AST.Statement cparseAsm()
+    {
+        // Defer parsing of AsmStatements until semantic processing.
+        const loc = token.loc;
+
+        nextToken();
+
+        // Consume all asm-qualifiers. As a future optimization, we could record
+        // the `inline` and `volatile` storage classes against the statement.
+        while (token.value == TOK.goto_ ||
+               token.value == TOK.inline ||
+               token.value == TOK.volatile)
+            nextToken();
+
+        check(TOK.leftParenthesis);
+        Token* toklist = null;
+        Token** ptoklist = &toklist;
+        Identifier label = null;
+        auto statements = new AST.Statements();
+        while (1)
+        {
+            switch (token.value)
+            {
+                case TOK.rightParenthesis:
+                    break;
+
+                case TOK.semicolon:
+                    error("matching `)` expected, not `;`");
+                    break;
+
+                case TOK.endOfFile:
+                    /* ( */
+                    error("matching `)` expected, not end of file");
+                    break;
+
+                case TOK.colonColon:  // treat as two separate : tokens for iasmgcc
+                    *ptoklist = allocateToken();
+                    memcpy(*ptoklist, &token, Token.sizeof);
+                    (*ptoklist).value = TOK.colon;
+                    ptoklist = &(*ptoklist).next;
+
+                    *ptoklist = allocateToken();
+                    memcpy(*ptoklist, &token, Token.sizeof);
+                    (*ptoklist).value = TOK.colon;
+                    ptoklist = &(*ptoklist).next;
+
+                    *ptoklist = null;
+                    nextToken();
+                    continue;
+
+                default:
+                    *ptoklist = allocateToken();
+                    memcpy(*ptoklist, &token, Token.sizeof);
+                    ptoklist = &(*ptoklist).next;
+                    *ptoklist = null;
+                    nextToken();
+                    continue;
+            }
+            if (toklist)
+            {
+                // Create AsmStatement from list of tokens we've saved
+                AST.Statement s = new AST.AsmStatement(token.loc, toklist);
+                statements.push(s);
+            }
+            break;
+        }
+        nextToken();
+        auto s = new AST.CompoundAsmStatement(loc, statements, 0);
+        return s;
     }
 
     /*************************
