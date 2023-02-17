@@ -2011,11 +2011,18 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             return errorInout(wildmatch);
     }
 
-    Expression firstArg = ((tf.next && tf.next.ty == Tvoid || isCtorCall) &&
-                           tthis &&
-                           tthis.isMutable() && tthis.toBasetype().ty == Tstruct &&
-                           tthis.hasPointers())
-                          ? ethis : null;
+    Expression firstArg = null;
+    final switch (returnParamDest(tf, tthis))
+    {
+        case ReturnParamDest.returnVal:
+            break;
+        case ReturnParamDest.firstArg:
+            firstArg = nargs > 0 ? (*arguments)[0] : null;
+            break;
+        case ReturnParamDest.this_:
+            firstArg = ethis;
+            break;
+    }
 
     assert(nargs >= nparams);
     foreach (const i, arg; (*arguments)[0 .. nargs])
@@ -2178,19 +2185,6 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 err |= arg.checkSharedAccess(sc);
 
             arg = arg.optimize(WANTvalue, p.isReference());
-
-            /* Determine if this parameter is the "first reference" parameter through which
-             * later "return" arguments can be stored.
-             */
-            if (i == 0 && !tthis && p.isReference() && p.type &&
-                (tf.next && tf.next.ty == Tvoid || isCtorCall))
-            {
-                Type tb = p.type.baseElemOf();
-                if (tb.isMutable() && tb.hasPointers())
-                {
-                    firstArg = arg;
-                }
-            }
         }
         else
         {

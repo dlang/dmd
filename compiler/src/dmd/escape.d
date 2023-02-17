@@ -558,6 +558,46 @@ bool checkConstructorEscape(Scope* sc, CallExp ce, bool gag)
     return false;
 }
 
+/// How a `return` parameter escapes its pointer value
+enum ReturnParamDest
+{
+    returnVal, /// through return statement: `return x`
+    this_,     /// assigned to a struct instance: `this.x = x`
+    firstArg,  /// assigned to first argument: `firstArg = x`
+}
+
+/****************************************
+ * Find out if instead of returning a `return` parameter via a return statement,
+ * it is returned via assignment to either `this` or the first parameter.
+ *
+ * This works the same as returning the value via a return statement.
+ * Although the first argument must be `ref`, it is not regarded as returning by `ref`.
+ *
+ * See_Also: https://dlang.org.spec/function.html#return-ref-parameters
+ *
+ * Params:
+ *   tf = function type
+ *   tthis = type of `this` parameter, or `null` if none
+ * Returns: What a `return` parameter should transfer the lifetime of the argument to
+ */
+ReturnParamDest returnParamDest(TypeFunction tf, Type tthis)
+{
+    assert(tf);
+    if (tf.isctor)
+        return ReturnParamDest.this_;
+
+    if (!tf.nextOf() || (tf.nextOf().ty != Tvoid))
+        return ReturnParamDest.returnVal;
+
+    if (tthis && tthis.toBasetype().ty == Tstruct) // class `this` is passed by value
+        return ReturnParamDest.this_;
+
+    if (tf.parameterList.length > 0 && tf.parameterList[0].isReference)
+        return ReturnParamDest.firstArg;
+
+    return ReturnParamDest.returnVal;
+}
+
 /****************************************
  * Given an `AssignExp`, determine if the lvalue will cause
  * the contents of the rvalue to escape.
@@ -653,30 +693,23 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
     const bool vaIsRef = va && va.isParameter() && va.isReference();
     if (log && vaIsRef) printf("va is ref `%s`\n", va.toChars());
 
-    /* Determine if va is the first parameter, through which other 'return' parameters
-     * can be assigned.
-     * This works the same as returning the value via a return statement.
-     * Although va is marked as `ref`, it is not regarded as returning by `ref`.
-     * https://dlang.org.spec/function.html#return-ref-parameters
-     */
-    bool isFirstRef()
+    // Determine if va is the first parameter, through which other 'return' parameters
+    // can be assigned.
+    bool vaIsFirstRef = false;
+    if (fd && fd.type)
     {
-        if (!vaIsRef)
-            return false;
-        Dsymbol p = va.toParent2();
-        if (p == fd && fd.type && fd.type.isTypeFunction())
+        final switch (returnParamDest(fd.type.isTypeFunction(), fd.vthis ? fd.vthis.type : null))
         {
-            TypeFunction tf = fd.type.isTypeFunction();
-            if (!tf.nextOf() || (tf.nextOf().ty != Tvoid && !fd.isCtorDeclaration()))
-                return false;
-            if (va == fd.vthis) // `this` of a non-static member function is considered to be the first parameter
-                return true;
-            if (!fd.vthis && fd.parameters && fd.parameters.length && (*fd.parameters)[0] == va) // va is first parameter
-                return true;
+            case ReturnParamDest.this_:
+                vaIsFirstRef = va == fd.vthis;
+                break;
+            case ReturnParamDest.firstArg:
+                vaIsFirstRef = (*fd.parameters)[0] == va;
+                break;
+            case ReturnParamDest.returnVal:
+                break;
         }
-        return false;
     }
-    const bool vaIsFirstRef = isFirstRef();
     if (log && vaIsFirstRef) printf("va is first ref `%s`\n", va.toChars());
 
     bool result = false;
