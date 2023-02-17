@@ -2293,7 +2293,11 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             }
         }
         else if (arg == "-dip25")       // https://dlang.org/dmd.html#switch-dip25
+        {
+            // @@@ DEPRECATION 2.112 @@@
+            deprecation(Loc.initial, "`-dip25` no longer has any effect");
             params.useDIP25 =  FeatureState.enabled;
+        }
         else if (arg == "-dip1000")
         {
             params.useDIP25 = FeatureState.enabled;
