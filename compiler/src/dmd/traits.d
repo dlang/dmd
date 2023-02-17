@@ -14,7 +14,6 @@
 module dmd.traits;
 
 import core.stdc.stdio;
-import core.stdc.string;
 
 import dmd.aggregate;
 import dmd.arraytypes;
@@ -744,7 +743,6 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto se = new StringExp(e.loc, id.toString());
         return se.expressionSemantic(sc);
     }
-
     if (e.ident == Id.fullyQualifiedName) // https://dlang.org/spec/traits.html#fullyQualifiedName
     {
         if (dim != 1)
@@ -781,56 +779,6 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         return se.expressionSemantic(sc);
 
     }
-
-    if (e.ident == Id.getModuleClasses)
-    {
-        /* https://dlang.org/spec/traits.html#getModuleClasses
-         */
-        Module m;
-        if (dim == 0)
-        {
-            m = sc._module;     // default to current module
-            if (!m)
-                return False();
-        }
-        else if (dim == 1)
-        {
-            auto o = (*e.args)[0];
-            auto s = getDsymbol(o);
-            if (s)
-            {
-                if (auto imp = s.isImport())
-                    m = imp.mod;
-                else
-                    m = s.isModule();
-            }
-            if (!m)
-            {
-                e.error("in expression `%s` `%s` must be a module", e.toChars(), o.toChars());
-                return ErrorExp.get();
-            }
-        }
-        else
-            return dimError(0);
-
-        ClassDeclarations aclasses;
-        getLocalClasses(m, aclasses);
-
-        auto exps = new Expressions(aclasses.length);
-        foreach (i, cd; aclasses)
-        {
-            const p = cd.toPrettyChars();
-            //printf("class %s\n", p);
-            const s = p[0 .. strlen(p)];
-            auto se = new StringExp(e.loc, s);
-            (*exps)[i] = se;
-        }
-
-        Expression ex = new TupleExp(e.loc, exps);
-        ex = ex.expressionSemantic(sc);
-        return ex;
-    }
-
     if (e.ident == Id.getProtection || e.ident == Id.getVisibility)
     {
         if (dim != 1)
@@ -2296,7 +2244,7 @@ private void traitNotFound(TraitsExp e)
         initialized = true;     // lazy initialization
 
         // All possible traits
-        __gshared Identifier*[60] idents =
+        __gshared Identifier*[59] idents =
         [
             &Id.isAbstractClass,
             &Id.isArithmetic,
@@ -2333,7 +2281,6 @@ private void traitNotFound(TraitsExp e)
             &Id.child,
             &Id.getLinkage,
             &Id.getMember,
-            &Id.getModuleClasses,
             &Id.getOverloads,
             &Id.getVirtualFunctions,
             &Id.getVirtualMethods,

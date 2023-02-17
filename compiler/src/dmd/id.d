@@ -462,7 +462,6 @@ immutable Msgtable[] msgtable =
     { "getVisibility" },
     { "parent" },
     { "child" },
-    { "getModuleClasses" },
     { "getMember" },
     { "getOverloads" },
     { "getVirtualFunctions" },
