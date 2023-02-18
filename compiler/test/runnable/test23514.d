@@ -5,5 +5,6 @@ enum offset = 0xFFFF_FFFF_0000_0000UL;
 
 void main()
 {
-    assert((cast(ulong)&main) != (cast(ulong)&main + offset));
+    size_t voffset = offset;
+    assert((cast(size_t)&main + voffset) == (cast(size_t)&main + offset));
 }
