@@ -4525,7 +4525,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     continue;
 
                 default:
-                    error("semicolon expected to close `alias` declaration");
+                    error("semicolon expected to close `alias` declaration, not `%s`", token.toChars());
                     break;
                 }
             }
@@ -4957,7 +4957,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     continue;
 
                 default:
-                    error("semicolon expected to close `alias` declaration");
+                    error("semicolon expected to close `alias` declaration, not `%s`", token.toChars());
                     break;
                 }
                 break;
