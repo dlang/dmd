@@ -585,6 +585,7 @@ dmd -cov -unittest myprog.d
             If $(I libname) is empty, no C runtime library is automatically linked in.",
             TargetOS.Windows,
         ),
+        Option("multiobj", "break one object file into multiple ones"),
         Option("mv=<package.module>=<filespec>",
             "use <filespec> as source file for <package.module>",
             `Use $(I path/filename) as the source file for $(I package.module).
@@ -597,6 +598,9 @@ dmd -cov -unittest myprog.d
             "no array bounds checking (deprecated, use -boundscheck=off)",
             `Turns off all array bounds checking, even for safe functions. $(RED Deprecated
             (use $(TT $(SWLINK -boundscheck)=off) instead).)`,
+        ),
+        Option("nofloat",
+            "do not pull in floating point code"
         ),
         Option("O",
             "optimize",
@@ -755,6 +759,9 @@ dmd -cov -unittest myprog.d
         ),
         Option("vasm",
             "list generated assembler for each function"
+        ),
+        Option("vcg-ast",
+            "write-out .cg codegen-ast file"
         ),
         Option("vcolumns",
             "print character (column) numbers in diagnostics"

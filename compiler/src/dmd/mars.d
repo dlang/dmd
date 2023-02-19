@@ -1570,15 +1570,44 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             continue;
         }
 
-        if (arg == "-allinst")               // https://dlang.org/dmd.html#switch-allinst
+        debug
+        {
+            bool[string] optionMap;
+            string stem(string s)
+            {
+                foreach (i, cs; s)
+                {
+                    foreach (cp; "<=[] ")
+                        if (cs == cp)
+                            return s[0..i];
+                }
+                return s;
+            }
+            foreach (o; Usage.options)
+                optionMap[stem(o.flag)] = true;
+            foreach (o; Usage.transitions)
+                optionMap[o.name] = true;
+            foreach (o; Usage.reverts)
+                optionMap[o.name] = true;
+            foreach (o; Usage.previews)
+                optionMap[o.name] = true;
+        }
+        // call this for all non-hidden options that don't have suffixes
+        bool gotOpt(string flag)
+        {
+            debug assert(flag[0] != '-' || flag[1..$] in optionMap,
+                "missing doc for " ~ flag ~ " in cli.d");
+            return arg == flag;
+        }
+        if (gotOpt("-allinst"))               // https://dlang.org/dmd.html#switch-allinst
             params.allInst = true;
-        else if (arg == "-de")               // https://dlang.org/dmd.html#switch-de
+        else if (gotOpt("-de"))               // https://dlang.org/dmd.html#switch-de
             params.useDeprecated = DiagnosticReporting.error;
-        else if (arg == "-d")                // https://dlang.org/dmd.html#switch-d
+        else if (gotOpt("-d"))                // https://dlang.org/dmd.html#switch-d
             params.useDeprecated = DiagnosticReporting.off;
-        else if (arg == "-dw")               // https://dlang.org/dmd.html#switch-dw
+        else if (gotOpt("-dw"))               // https://dlang.org/dmd.html#switch-dw
             params.useDeprecated = DiagnosticReporting.inform;
-        else if (arg == "-c")                // https://dlang.org/dmd.html#switch-c
+        else if (gotOpt("-c"))                // https://dlang.org/dmd.html#switch-c
             driverParams.link = false;
         else if (startsWith(p + 1, "checkaction")) // https://dlang.org/dmd.html#switch-checkaction
         {
@@ -1724,19 +1753,19 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             else if (p[4])
                 goto Lerror;
         }
-        else if (arg == "-shared")
+        else if (gotOpt("-shared"))
             driverParams.dll = true;
-        else if (arg == "-fPIC")
+        else if (gotOpt("-fPIC"))
         {
             driverParams.pic = PIC.pic;
         }
-        else if (arg == "-fPIE")
+        else if (gotOpt("-fPIE"))
         {
             driverParams.pic = PIC.pie;
         }
-        else if (arg == "-map") // https://dlang.org/dmd.html#switch-map
+        else if (gotOpt("-map")) // https://dlang.org/dmd.html#switch-map
             driverParams.map = true;
-        else if (arg == "-multiobj")
+        else if (gotOpt("-multiobj"))
             params.multiobj = true;
         else if (startsWith(p + 1, "mixin="))
         {
@@ -1746,7 +1775,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.mixinOut.doOutput = true;
             params.mixinOut.name = mem.xstrdup(tmp).toDString;
         }
-        else if (arg == "-g") // https://dlang.org/dmd.html#switch-g
+        else if (gotOpt("-g")) // https://dlang.org/dmd.html#switch-g
             driverParams.symdebug = true;
         else if (startsWith(p + 1, "gdwarf")) // https://dlang.org/dmd.html#switch-gdwarf
         {
@@ -1766,16 +1795,16 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 return false;
             }
         }
-        else if (arg == "-gf")
+        else if (gotOpt("-gf"))
         {
             driverParams.symdebug = true;
             driverParams.symdebugref = true;
         }
-        else if (arg == "-gs")  // https://dlang.org/dmd.html#switch-gs
+        else if (gotOpt("-gs"))  // https://dlang.org/dmd.html#switch-gs
             driverParams.alwaysframe = true;
-        else if (arg == "-gx")  // https://dlang.org/dmd.html#switch-gx
+        else if (gotOpt("-gx"))  // https://dlang.org/dmd.html#switch-gx
             driverParams.stackstomp = true;
-        else if (arg == "-lowmem") // https://dlang.org/dmd.html#switch-lowmem
+        else if (gotOpt("-lowmem")) // https://dlang.org/dmd.html#switch-lowmem
         {
             // ignore, already handled in C main
         }
@@ -1783,22 +1812,22 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         {
             continue; // skip druntime options, e.g. used to configure the GC
         }
-        else if (arg == "-m32") // https://dlang.org/dmd.html#switch-m32
+        else if (gotOpt("-m32")) // https://dlang.org/dmd.html#switch-m32
         {
             target.is64bit = false;
             target.omfobj = false;
         }
-        else if (arg == "-m64") // https://dlang.org/dmd.html#switch-m64
+        else if (gotOpt("-m64")) // https://dlang.org/dmd.html#switch-m64
         {
             target.is64bit = true;
             target.omfobj = false;
         }
-        else if (arg == "-m32mscoff") // https://dlang.org/dmd.html#switch-m32mscoff
+        else if (gotOpt("-m32mscoff")) // https://dlang.org/dmd.html#switch-m32mscoff
         {
             target.is64bit = false;
             target.omfobj = false;
         }
-        else if (arg == "-m32omf") // https://dlang.org/dmd.html#switch-m32omfobj
+        else if (gotOpt("-m32omf")) // https://dlang.org/dmd.html#switch-m32omfobj
         {
             target.is64bit = false;
             target.omfobj = true;
@@ -1827,13 +1856,13 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             else
                 params.trace = true;
         }
-        else if (arg == "-v") // https://dlang.org/dmd.html#switch-v
+        else if (gotOpt("-v")) // https://dlang.org/dmd.html#switch-v
             params.verbose = true;
-        else if (arg == "-vcg-ast")
+        else if (gotOpt("-vcg-ast"))
             params.vcg_ast = true;
-        else if (arg == "-vasm") // https://dlang.org/dmd.html#switch-vasm
+        else if (gotOpt("-vasm")) // https://dlang.org/dmd.html#switch-vasm
             driverParams.vasm = true;
-        else if (arg == "-vtls") // https://dlang.org/dmd.html#switch-vtls
+        else if (gotOpt("-vtls")) // https://dlang.org/dmd.html#switch-vtls
             params.vtls = true;
         else if (startsWith(p + 1, "vtemplates")) // https://dlang.org/dmd.html#switch-vtemplates
         {
@@ -1851,9 +1880,9 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 }
             }
         }
-        else if (arg == "-vcolumns") // https://dlang.org/dmd.html#switch-vcolumns
+        else if (gotOpt("-vcolumns")) // https://dlang.org/dmd.html#switch-vcolumns
             params.showColumns = true;
-        else if (arg == "-vgc") // https://dlang.org/dmd.html#switch-vgc
+        else if (gotOpt("-vgc")) // https://dlang.org/dmd.html#switch-vgc
             params.vgc = true;
         else if (startsWith(p + 1, "verrors")) // https://dlang.org/dmd.html#switch-verrors
         {
@@ -2103,13 +2132,13 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 return false;
             }
         }
-        else if (arg == "-w")   // https://dlang.org/dmd.html#switch-w
+        else if (gotOpt("-w"))   // https://dlang.org/dmd.html#switch-w
             params.warnings = DiagnosticReporting.error;
-        else if (arg == "-wi")  // https://dlang.org/dmd.html#switch-wi
+        else if (gotOpt("-wi"))  // https://dlang.org/dmd.html#switch-wi
             params.warnings = DiagnosticReporting.inform;
-        else if (arg == "-O")   // https://dlang.org/dmd.html#switch-O
+        else if (gotOpt("-O"))   // https://dlang.org/dmd.html#switch-O
             driverParams.optimize = true;
-        else if (arg == "-o-")  // https://dlang.org/dmd.html#switch-o-
+        else if (gotOpt("-o-"))  // https://dlang.org/dmd.html#switch-o-
             params.obj = false;
         else if (p[1] == 'o')
         {
@@ -2268,14 +2297,14 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 goto Lerror;
             }
         }
-        else if (arg == "-ignore")      // https://dlang.org/dmd.html#switch-ignore
+        else if (gotOpt("-ignore"))      // https://dlang.org/dmd.html#switch-ignore
             params.ignoreUnsupportedPragmas = true;
-        else if (arg == "-inline")      // https://dlang.org/dmd.html#switch-inline
+        else if (gotOpt("-inline"))      // https://dlang.org/dmd.html#switch-inline
         {
             params.useInline = true;
             params.dihdr.fullOutput = true;
         }
-        else if (arg == "-i")
+        else if (gotOpt("-i"))
             includeImports = true;
         else if (startsWith(p + 1, "i="))
         {
@@ -2292,30 +2321,30 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 includeModulePatterns.push(p + 3);
             }
         }
-        else if (arg == "-dip25")       // https://dlang.org/dmd.html#switch-dip25
+        else if (gotOpt("-dip25"))       // https://dlang.org/dmd.html#switch-dip25
             params.useDIP25 =  FeatureState.enabled;
-        else if (arg == "-dip1000")
+        else if (gotOpt("-dip1000"))
         {
             params.useDIP25 = FeatureState.enabled;
             params.useDIP1000 = FeatureState.enabled;
         }
-        else if (arg == "-dip1008")
+        else if (gotOpt("-dip1008"))
         {
             params.ehnogc = true;
         }
-        else if (arg == "-lib")         // https://dlang.org/dmd.html#switch-lib
+        else if (gotOpt("-lib"))         // https://dlang.org/dmd.html#switch-lib
             driverParams.lib = true;
-        else if (arg == "-nofloat")
+        else if (gotOpt("-nofloat"))
             driverParams.nofloat = true;
         else if (arg == "-quiet")
         {
             // Ignore
         }
-        else if (arg == "-release")     // https://dlang.org/dmd.html#switch-release
+        else if (gotOpt("-release"))     // https://dlang.org/dmd.html#switch-release
             params.release = true;
-        else if (arg == "-betterC")     // https://dlang.org/dmd.html#switch-betterC
+        else if (gotOpt("-betterC"))     // https://dlang.org/dmd.html#switch-betterC
             params.betterC = true;
-        else if (arg == "-noboundscheck") // https://dlang.org/dmd.html#switch-noboundscheck
+        else if (gotOpt("-noboundscheck")) // https://dlang.org/dmd.html#switch-noboundscheck
         {
             params.boundscheck = CHECKENABLE.off;
         }
@@ -2345,7 +2374,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             else
                 goto Lerror;
         }
-        else if (arg == "-unittest")
+        else if (gotOpt("-unittest"))
             params.useUnitTests = true;
         else if (p[1] == 'I')              // https://dlang.org/dmd.html#switch-I
         {
@@ -2442,7 +2471,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (arg == "--r")
             driverParams.debugr = true;
-        else if (arg == "--version")
+        else if (gotOpt("--version"))
         {
             params.logo = true;
             return false;
@@ -2511,7 +2540,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             // Else output to stdout.
             params.makeDeps.doOutput = true;
         }
-        else if (arg == "-main")             // https://dlang.org/dmd.html#switch-main
+        else if (gotOpt("-main"))             // https://dlang.org/dmd.html#switch-main
         {
             params.addMain = true;
         }
@@ -2520,7 +2549,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.manual = true;
             return false;
         }
-        else if (arg == "-run")              // https://dlang.org/dmd.html#switch-run
+        else if (gotOpt("-run"))              // https://dlang.org/dmd.html#switch-run
         {
             params.run = true;
             size_t length = argc - i - 1;
