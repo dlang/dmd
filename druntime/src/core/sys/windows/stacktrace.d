@@ -15,6 +15,7 @@ version (Windows):
 import core.demangle;
 import core.stdc.stdlib;
 import core.stdc.string;
+import core.sync.mutex;
 import core.sys.windows.dbghelp;
 import core.sys.windows.imagehlp /+: ADDRESS_MODE+/;
 import core.sys.windows.winbase;
@@ -30,7 +31,7 @@ extern(Windows) DWORD GetEnvironmentVariableA(LPCSTR lpName, LPSTR pBuffer, DWOR
 extern(Windows) alias USHORT function(ULONG FramesToSkip, ULONG FramesToCapture, PVOID *BackTrace, PULONG BackTraceHash) @nogc RtlCaptureStackBackTraceFunc;
 
 private __gshared RtlCaptureStackBackTraceFunc RtlCaptureStackBackTrace;
-private __gshared immutable bool initialized;
+private __gshared Mutex mutex;
 
 
 class StackTrace : Throwable.TraceInfo
@@ -63,7 +64,7 @@ public:
 
             skip += INTERNALFRAMES;
         }
-        if ( initialized )
+        if (mutex)
             m_trace = trace(tracebuf[], skip, context);
     }
 
@@ -118,7 +119,7 @@ public:
     /// ditto
     static ulong[] trace(ulong[] buffer, size_t skip = 0, CONTEXT* context = null) @nogc
     {
-        synchronized( typeid(StackTrace) )
+        synchronized (mutex)
         {
             return traceNoSync(buffer, skip, context);
         }
@@ -133,7 +134,12 @@ public:
      */
     @trusted static char[][] resolve(const(ulong)[] addresses)
     {
-        synchronized( typeid(StackTrace) )
+        // FIXME: make @nogc to avoid having to disable resolution within finalizers
+        import core.memory : GC;
+        if (GC.inFinalizer)
+            return null;
+
+        synchronized (mutex)
         {
             return resolveNoSync(addresses);
         }
@@ -421,5 +427,5 @@ shared static this()
 
     dbghelp.SymRegisterCallback64(hProcess, &FixupDebugHeader, 0);
 
-    initialized = true;
+    mutex = new Mutex;
 }
