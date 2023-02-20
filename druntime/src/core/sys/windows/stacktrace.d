@@ -15,7 +15,6 @@ version (Windows):
 import core.demangle;
 import core.stdc.stdlib;
 import core.stdc.string;
-import core.sync.mutex;
 import core.sys.windows.dbghelp;
 import core.sys.windows.imagehlp /+: ADDRESS_MODE+/;
 import core.sys.windows.winbase;
@@ -31,7 +30,8 @@ extern(Windows) DWORD GetEnvironmentVariableA(LPCSTR lpName, LPSTR pBuffer, DWOR
 extern(Windows) alias USHORT function(ULONG FramesToSkip, ULONG FramesToCapture, PVOID *BackTrace, PULONG BackTraceHash) @nogc RtlCaptureStackBackTraceFunc;
 
 private __gshared RtlCaptureStackBackTraceFunc RtlCaptureStackBackTrace;
-private __gshared Mutex mutex;
+private __gshared CRITICAL_SECTION mutex; // cannot use core.sync.mutex.Mutex unfortunately (cyclic dependency...)
+private __gshared immutable bool initialized;
 
 
 class StackTrace : Throwable.TraceInfo
@@ -64,7 +64,7 @@ public:
 
             skip += INTERNALFRAMES;
         }
-        if (mutex)
+        if (initialized)
             m_trace = trace(tracebuf[], skip, context);
     }
 
@@ -119,10 +119,10 @@ public:
     /// ditto
     static ulong[] trace(ulong[] buffer, size_t skip = 0, CONTEXT* context = null) @nogc
     {
-        synchronized (mutex)
-        {
-            return traceNoSync(buffer, skip, context);
-        }
+        EnterCriticalSection(&mutex);
+        scope(exit) LeaveCriticalSection(&mutex);
+
+        return traceNoSync(buffer, skip, context);
     }
 
     /**
@@ -139,10 +139,10 @@ public:
         if (GC.inFinalizer)
             return null;
 
-        synchronized (mutex)
-        {
-            return resolveNoSync(addresses);
-        }
+        EnterCriticalSection(&mutex);
+        scope(exit) LeaveCriticalSection(&mutex);
+
+        return resolveNoSync(addresses);
     }
 
 private:
@@ -427,5 +427,6 @@ shared static this()
 
     dbghelp.SymRegisterCallback64(hProcess, &FixupDebugHeader, 0);
 
-    mutex = new Mutex;
+    InitializeCriticalSection(&mutex);
+    initialized = true;
 }
