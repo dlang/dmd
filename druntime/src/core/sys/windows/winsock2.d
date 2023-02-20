@@ -721,6 +721,19 @@ struct tcp_keepalive
     uint keepaliveinterval;
 }
 
+enum short POLLRDNORM = 0x0100;
+enum short POLLRDBAND = 0x0200;
+enum short POLLIN = (POLLRDNORM | POLLRDBAND);
+enum short POLLPRI = 0x0400;
+
+enum short POLLWRNORM = 0x0010;
+enum short POLLOUT = (POLLWRNORM);
+enum short POLLWRBAND = 0x0020;
+
+enum short POLLERR = 0x0001;
+enum short POLLHUP = 0x0002;
+enum short POLLNVAL = 0x0004;
+
 struct pollfd
 {
     SOCKET fd;
