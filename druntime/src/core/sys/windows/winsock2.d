@@ -720,3 +720,15 @@ struct tcp_keepalive
     uint keepalivetime;
     uint keepaliveinterval;
 }
+
+struct pollfd
+{
+    SOCKET fd;
+    short events;
+    short revents;
+}
+alias WSAPOLLFD = pollfd;
+alias PWSAPOLLFD = pollfd*;
+alias LPWSAPOLLFD = pollfd*;
+
+extern(Windows) @nogc int WSAPoll(LPWSAPOLLFD fdArray, ulong fds, int timeout);
