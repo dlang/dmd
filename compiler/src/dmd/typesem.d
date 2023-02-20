@@ -4443,12 +4443,12 @@ extern (C++) Expression defaultInit(Type mt, const ref Loc loc, const bool isCfi
         switch (mt.ty)
         {
         case Tchar:
-            value = isCfile ? 0 : 0xFF;
+            value = (global.params.betterC || isCfile) ? 0 : 0xFF;
             break;
 
         case Twchar:
         case Tdchar:
-            value = isCfile ? 0 : 0xFFFF;
+            value = (global.params.betterC || isCfile) ? 0 : 0xFFFF;
             break;
 
         case Timaginary32:
@@ -4457,14 +4457,14 @@ extern (C++) Expression defaultInit(Type mt, const ref Loc loc, const bool isCfi
         case Tfloat32:
         case Tfloat64:
         case Tfloat80:
-            return new RealExp(loc, isCfile ? CTFloat.zero : target.RealProperties.nan, mt);
+            return new RealExp(loc, (global.params.betterC || isCfile) ? CTFloat.zero : target.RealProperties.nan, mt);
 
         case Tcomplex32:
         case Tcomplex64:
         case Tcomplex80:
             {
                 // Can't use fvalue + I*fvalue (the im part becomes a quiet NaN).
-                const cvalue = isCfile ? complex_t(CTFloat.zero, CTFloat.zero)
+                const cvalue = (global.params.betterC || isCfile) ? complex_t(CTFloat.zero, CTFloat.zero)
                                        : complex_t(target.RealProperties.nan, target.RealProperties.nan);
                 return new ComplexExp(loc, cvalue, mt);
             }
