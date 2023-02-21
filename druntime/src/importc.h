@@ -43,6 +43,13 @@
  */
 #define __fastcall
 
+#define __forceinline
+#undef _Check_return_
+//#define _Check_return_
+#define __pragma(x)
+
+#undef _GLIBCXX_USE_FLOAT128
+
 /* Microsoft builtin types */
 #define __int8 char
 #define __int16 short
@@ -95,6 +102,11 @@
 #if __FreeBSD__
 #endif
 
+#if _MSC_VER
+//#undef _Post_writable_size
+//#define _Post_writable_size(x) // consider #include <no_sal2.h>
+#endif
+
 /****************************
  * Define it to do what other C compilers do.
  */
@@ -107,11 +119,12 @@
  */
 #define __STDC_NO_VLA__ 1
 
-/*************************
- * Ubuntu's assert.h uses this
- */
 #if linux  // Microsoft won't allow the following macro
+// Ubuntu's assert.h uses this
 #define __PRETTY_FUNCTION__ __func__
+
+#define _Float128 long double
+#define __float128 long double
 #endif
 
 #if __APPLE__
