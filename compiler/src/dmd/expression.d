@@ -1219,11 +1219,14 @@ extern (C++) abstract class Expression : ASTNode
             return false;
 
         // If the call has a pure parent, then the called func must be pure.
-        if (!f.isPure() && checkImpure(sc))
+        if (!f.isPure() && checkImpure(sc, loc, null, f))
         {
             error("`pure` %s `%s` cannot call impure %s `%s`",
                 sc.func.kind(), sc.func.toPrettyChars(), f.kind(),
                 f.toPrettyChars());
+
+            if (!f.isDtorDeclaration())
+                errorSupplementalInferredAttr(f, /*max depth*/ 10, /*deprecation*/ false, STC.pure_);
 
             checkOverridenDtor(sc, f, dd => dd.type.toTypeFunction().purity != PURE.impure, "impure");
             return true;
@@ -1355,7 +1358,7 @@ extern (C++) abstract class Expression : ASTNode
             if (v.ident == Id.gate)
                 return false;
 
-            if (checkImpure(sc))
+            if (checkImpure(sc, loc, "`pure` %s `%s` cannot access mutable static data `%s`", v))
             {
                 error("`pure` %s `%s` cannot access mutable static data `%s`",
                     sc.func.kind(), sc.func.toPrettyChars(), v.toChars());
@@ -1431,11 +1434,11 @@ extern (C++) abstract class Expression : ASTNode
     Check if sc.func is impure or can be made impure.
     Returns true on error, i.e. if sc.func is pure and cannot be made impure.
     */
-    private static bool checkImpure(Scope* sc)
+    private static bool checkImpure(Scope* sc, Loc loc, const(char)* fmt, RootObject arg0)
     {
         return sc.func && (isRootTraitsCompilesScope(sc)
                 ? sc.func.isPureBypassingInference() >= PURE.weak
-                : sc.func.setImpure());
+                : sc.func.setImpure(loc, fmt, arg0));
     }
 
     /*********************************************
@@ -1484,7 +1487,8 @@ extern (C++) abstract class Expression : ASTNode
                 error("`@safe` %s `%s` cannot call `@system` %s `%s`",
                     sc.func.kind(), sc.func.toPrettyChars(), f.kind(),
                     prettyChars);
-                f.errorSupplementalInferredSafety(/*max depth*/ 10, /*deprecation*/ false);
+                if (!f.isDtorDeclaration)
+                    errorSupplementalInferredAttr(f, /*max depth*/ 10, /*deprecation*/ false, STC.safe);
                 .errorSupplemental(f.loc, "`%s` is declared here", prettyChars);
 
                 checkOverridenDtor(sc, f, dd => dd.type.toTypeFunction().trust > TRUST.system, "@system");
@@ -1498,7 +1502,7 @@ extern (C++) abstract class Expression : ASTNode
             if (sc.func.isSafeBypassingInference())
             {
                 .deprecation(this.loc, "`@safe` function `%s` calling `%s`", sc.func.toChars(), f.toChars());
-                errorSupplementalInferredSafety(f, 10, true);
+                errorSupplementalInferredAttr(f, 10, true, STC.safe);
             }
             else if (!sc.func.safetyViolation)
             {
@@ -1528,7 +1532,7 @@ extern (C++) abstract class Expression : ASTNode
 
         if (!f.isNogc())
         {
-            if (isRootTraitsCompilesScope(sc) ? sc.func.isNogcBypassingInference() : sc.func.setGC())
+            if (isRootTraitsCompilesScope(sc) ? sc.func.isNogcBypassingInference() : sc.func.setGCCall(f))
             {
                 if (loc.linnum == 0) // e.g. implicitly generated dtor
                     loc = sc.func.loc;
@@ -1538,8 +1542,13 @@ extern (C++) abstract class Expression : ASTNode
                 if (!(f.ident == Id._d_HookTraceImpl || f.ident == Id._d_arraysetlengthT
                     || f.ident == Id._d_arrayappendT || f.ident == Id._d_arrayappendcTX
                     || f.ident == Id._d_newclassT))
+                {
                     error("`@nogc` %s `%s` cannot call non-@nogc %s `%s`",
                         sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
+
+                    if (!f.isDtorDeclaration)
+                        f.errorSupplementalInferredAttr(/*max depth*/ 10, /*deprecation*/ false, STC.nogc);
+                }
 
                 checkOverridenDtor(sc, f, dd => dd.type.toTypeFunction().isnogc, "non-@nogc");
 

@@ -2499,6 +2499,9 @@ public:
     Array<FuncDeclaration* > siblingCallers;
     Array<FuncDeclaration* >* inlinedNestedCallees;
     AttributeViolation* safetyViolation;
+    AttributeViolation* nogcViolation;
+    AttributeViolation* pureViolation;
+    AttributeViolation* nothrowViolation;
     bool purityInprocess() const;
     bool purityInprocess(bool v);
     bool safetyInprocess() const;

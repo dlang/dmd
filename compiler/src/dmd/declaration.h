@@ -623,6 +623,9 @@ public:
     FuncDeclarations *inlinedNestedCallees;
 
     AttributeViolation* safetyViolation;
+    AttributeViolation* nogcViolation;
+    AttributeViolation* pureViolation;
+    AttributeViolation* nothrowViolation;
 
     // Formerly FUNCFLAGS
     uint32_t flags;
