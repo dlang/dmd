@@ -9,7 +9,7 @@ ifeq ($(OS)-$(BUILD),linux-debug)
 	LINE_TRACE_DFLAGS:=-L--export-dynamic
 endif
 ifeq ($(OS),linux)
-	TESTS+=rt_trap_exceptions_drt_gdb cpp_demangle
+	TESTS+=rt_trap_exceptions_drt_gdb
 endif
 ifeq ($(OS)-$(BUILD),freebsd-debug)
 	TESTS+=line_trace line_trace_21656 long_backtrace_trunc cpp_demangle
@@ -129,7 +129,7 @@ $(ROOT)/long_backtrace_trunc: DFLAGS+=$(LINE_TRACE_DFLAGS)
 $(ROOT)/rt_trap_exceptions: DFLAGS+=$(LINE_TRACE_DFLAGS)
 $(ROOT)/rt_trap_exceptions_drt: DFLAGS+=-g
 $(ROOT)/refcounted: DFLAGS+=-dip1008
-$(ROOT)/cpp_demangle: DFLAGS+=-L-lstdc++
+$(ROOT)/cpp_demangle: DFLAGS+=-L-lstdc++ $(LINE_TRACE_DFLAGS)
 
 $(ROOT)/%: $(SRC)/%.d $(DMD) $(DRUNTIME)
 	$(QUIET)$(DMD) $(DFLAGS) -of$@ $<
