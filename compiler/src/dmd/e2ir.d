@@ -514,7 +514,7 @@ elem* toElem(Expression e, IRState *irs)
     {
         elem *e;
         Type tb = (se.op == EXP.symbolOffset) ? se.var.type.toBasetype() : se.type.toBasetype();
-        int offset = (se.op == EXP.symbolOffset) ? cast(int)(cast(SymOffExp)se).offset : 0;
+        long offset = (se.op == EXP.symbolOffset) ? cast(long)(cast(SymOffExp)se).offset : 0;
         VarDeclaration v = se.var.isVarDeclaration();
 
         //printf("[%s] SymbolExp.toElem('%s') %p, %s\n", se.loc.toChars(), se.toChars(), se, se.type.toChars());
