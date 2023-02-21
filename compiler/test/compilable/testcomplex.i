@@ -19,4 +19,3 @@ _Complex long double testld()
     _Complex long double x = 1.0iL;
     return x;
 }
-
