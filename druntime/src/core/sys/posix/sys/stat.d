@@ -1889,8 +1889,11 @@ else version (CRuntime_Bionic)
 }
 else version (CRuntime_Musl)
 {
+    pragma(mangle, muslRedirTime64Mangle!("stat", "__stat_time64"))
     int stat(const scope char*, stat_t*);
+    pragma(mangle, muslRedirTime64Mangle!("fstat", "__fstat_time64"))
     int fstat(int, stat_t*);
+    pragma(mangle, muslRedirTime64Mangle!("lstat", "__lstat_time64"))
     int lstat(const scope char*, stat_t*);
 
     alias fstat fstat64;
