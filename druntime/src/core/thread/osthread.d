@@ -1788,7 +1788,7 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
  * Throws:
  *  ThreadError if the suspend operation fails for a running thread.
  */
-extern (C) void thread_suspendAll() nothrow
+extern (C) void thread_suspendAll(bool willNeverResume = false) nothrow
 {
     // NOTE: We've got an odd chicken & egg problem here, because while the GC
     //       is required to call thread_init before calling any other thread
@@ -1812,6 +1812,11 @@ extern (C) void thread_suspendAll() nothrow
     }
 
     Thread.slock.lock_nothrow();
+    scope(exit)
+    {
+        if (willNeverResume)
+            Thread.slock.unlock_nothrow();
+    }
     {
         if ( ++suspendDepth > 1 )
             return;

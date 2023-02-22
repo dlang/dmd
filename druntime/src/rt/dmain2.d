@@ -72,6 +72,7 @@ extern (C) void rt_moduleTlsCtor();
 extern (C) void rt_moduleDtor();
 extern (C) void rt_moduleTlsDtor();
 extern (C) void thread_joinAll();
+extern (C) void thread_suspendAll(bool willNeverResume = false) nothrow;
 extern (C) UnitTestResult runModuleUnitTests();
 extern (C) void _d_initMonoTime() @nogc nothrow;
 
@@ -156,6 +157,7 @@ extern (C) int rt_term()
     {
         rt_moduleTlsDtor();
         thread_joinAll();
+        thread_suspendAll(true); // for daemonThreads
         rt_moduleDtor();
         gc_term();
         thread_term();
