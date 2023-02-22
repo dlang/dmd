@@ -217,6 +217,8 @@ private struct FUNCFLAG
     bool hasAlwaysInlines;   /// Contains references to functions that must be inlined
     bool isCrtCtor;          /// Has attribute pragma(crt_constructor)
     bool isCrtDtor;          /// Has attribute pragma(crt_destructor)
+    bool hasEscapingSiblings;/// Has sibling functions that escape
+    bool computedEscapingSiblings; /// `hasEscapingSiblings` has been computed
 }
 
 /***********************************************************
@@ -1980,6 +1982,7 @@ extern (C++) class FuncDeclaration : Declaration
                         if (!sc.intypeof && !(sc.flags & SCOPE.compile))
                         {
                             siblingCallers.push(fdthis);
+                            computedEscapingSiblings = false;
                         }
                     }
                 }
@@ -2029,8 +2032,7 @@ extern (C++) class FuncDeclaration : Declaration
          * is already set to `true` upon entering this function when the
          * struct/class refers to a local variable and a closure is needed.
          */
-
-        //printf("FuncDeclaration::needsClosure() %s\n", toChars());
+        //printf("FuncDeclaration::needsClosure() %s\n", toPrettyChars());
 
         if (requiresClosure)
             goto Lyes;
@@ -2107,7 +2109,7 @@ extern (C++) class FuncDeclaration : Declaration
      */
     extern (C++) final bool checkClosure()
     {
-        //printf("checkClosure() %s\n", toChars());
+        //printf("checkClosure() %s\n", toPrettyChars());
         if (!needsClosure())
             return false;
 
@@ -3625,6 +3627,9 @@ private bool checkEscapingSiblings(FuncDeclaration f, FuncDeclaration outerFunc,
         FuncDeclaration f;
     }
 
+    if (f.computedEscapingSiblings)
+        return f.hasEscapingSiblings;
+
     PrevSibling ps;
     ps.p = cast(PrevSibling*)p;
     ps.f = f;
@@ -3666,6 +3671,8 @@ private bool checkEscapingSiblings(FuncDeclaration f, FuncDeclaration outerFunc,
             prev = prev.p;
         }
     }
+    f.hasEscapingSiblings = bAnyClosures;
+    f.computedEscapingSiblings = true;
     //printf("\t%d\n", bAnyClosures);
     return bAnyClosures;
 }

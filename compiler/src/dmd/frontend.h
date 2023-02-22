@@ -2542,6 +2542,10 @@ public:
     bool isCrtCtor(bool v);
     bool isCrtDtor() const;
     bool isCrtDtor(bool v);
+    bool hasEscapingSiblings() const;
+    bool hasEscapingSiblings(bool v);
+    bool computedEscapingSiblings() const;
+    bool computedEscapingSiblings(bool v);
 private:
     uint32_t bitFields;
 public:
