@@ -66,6 +66,9 @@ typedef unsigned short __uint16_t;
 typedef unsigned int __uint32_t;
 typedef unsigned long long __uint64_t;
 
+/* Digital Mars C */
+#define __imaginary 1.0i
+
 /*********************
  * Obsolete detritus
  */
