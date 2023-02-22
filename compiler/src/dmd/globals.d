@@ -15,6 +15,8 @@ import core.stdc.stdint;
 import dmd.root.array;
 import dmd.root.filename;
 import dmd.common.outbuffer;
+import dmd.errorsink;
+import dmd.errors;
 import dmd.file_manager;
 import dmd.identifier;
 import dmd.location;
@@ -292,6 +294,8 @@ extern (C++) struct Global
 
     enum recursionLimit = 500; /// number of recursive template expansions before abort
 
+    ErrorSink errorSink;       /// where the error messages go
+
     extern (C++) FileName function(FileName, ref const Loc, out bool, OutBuffer*) preprocess;
 
   nothrow:
@@ -346,6 +350,8 @@ extern (C++) struct Global
 
     extern (C++) void _init()
     {
+        global.errorSink = new ErrorSinkCompiler;
+
         this.fileManager = new FileManager();
         version (MARS)
         {

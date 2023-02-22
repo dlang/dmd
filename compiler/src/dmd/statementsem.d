@@ -39,6 +39,7 @@ import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.errors;
+import dmd.errorsink;
 import dmd.escape;
 import dmd.expression;
 import dmd.expressionsem;
@@ -4732,7 +4733,7 @@ private Statements* flatten(Statement statement, Scope* sc)
             const len = buf.length;
             buf.writeByte(0);
             const str = buf.extractSlice()[0 .. len];
-            scope p = new Parser!ASTCodegen(cs.loc, sc._module, str, false);
+            scope p = new Parser!ASTCodegen(cs.loc, sc._module, str, false, global.errorSink);
             p.nextToken();
 
             auto a = new Statements();

@@ -2,6 +2,7 @@ module lexer.lexer_dmdlib;
 
 import dmd.lexer : Lexer;
 import dmd.tokens : TOK;
+import dmd.errorsink;
 
 unittest
 {
@@ -16,7 +17,7 @@ unittest
         TOK.rightCurly,
     ];
 
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, false, false);
+    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, false, false, new ErrorSinkStderr);
     TOK[] result;
 
     while (lexer.nextToken != TOK.endOfFile)
@@ -39,7 +40,7 @@ unittest
         TOK.comment,
     ];
 
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, true, false);
+    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, true, false, new ErrorSinkStderr);
     TOK[] result;
 
     while (lexer.nextToken != TOK.endOfFile)
@@ -65,7 +66,7 @@ unittest
         TOK.comment,
     ];
 
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, true, true);
+    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, true, true, new ErrorSinkStderr);
     TOK[] result;
 
     while (lexer.nextToken != TOK.endOfFile)
@@ -92,7 +93,7 @@ unittest
         TOK.whitespace,
     ];
 
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, true, true);
+    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, true, true, new ErrorSinkStderr);
     TOK[] result;
 
     while (lexer.nextToken != TOK.endOfFile)
@@ -136,7 +137,7 @@ unittest
         TOK.whitespace,
     ];
 
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, true, true);
+    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, true, true, new ErrorSinkStderr);
     TOK[] result;
 
     while (lexer.nextToken != TOK.endOfFile)
@@ -171,7 +172,7 @@ unittest
         TOK.whitespace,
     ];
 
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, true, true);
+    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, true, true, new ErrorSinkStderr);
     TOK[] result;
 
     while (lexer.nextToken != TOK.endOfFile)
@@ -193,7 +194,7 @@ unittest
         TOK.rightCurly,
     ];
 
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, false);
+    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, false, new ErrorSinkStderr);
     lexer.nextToken;
 
     TOK[] result;
@@ -214,7 +215,7 @@ unittest
         TOK.comment,
     ];
 
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, true);
+    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, true, new ErrorSinkStderr);
     lexer.nextToken;
 
     TOK[] result;
@@ -240,7 +241,7 @@ unittest
         TOK.reserved,
     ];
 
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, false);
+    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, false, new ErrorSinkStderr);
 
     TOK[] result;
 
@@ -265,6 +266,7 @@ unittest
     import dmd.location;
     import dmd.common.outbuffer;
     import dmd.console : Color;
+    import dmd.errors;
 
     const(char)[][2][] diagnosticMessages;
     nothrow bool diagnosticHandler(const ref Loc loc, Color headerColor, const(char)* header,
@@ -288,7 +290,7 @@ unittest
     foreach (codeNum, code; codes)
     {
         auto fileName = text("file", codeNum, '\0');
-        Lexer lexer = new Lexer(fileName.ptr, code.ptr, 0, code.length, false, false);
+        Lexer lexer = new Lexer(fileName.ptr, code.ptr, 0, code.length, false, false, new ErrorSinkCompiler);
         // Generate the errors
         foreach(unused; lexer){}
     }

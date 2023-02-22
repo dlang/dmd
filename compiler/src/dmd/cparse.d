@@ -16,6 +16,7 @@ module dmd.cparse;
 import core.stdc.stdio;
 import core.stdc.string;
 import dmd.astenums;
+import dmd.errorsink;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
@@ -69,9 +70,10 @@ final class CParser(AST) : Parser!AST
     OutBuffer* defines;
 
     extern (D) this(TARGET)(AST.Module _module, const(char)[] input, bool doDocComment,
+                            ErrorSink errorSink,
                             const ref TARGET target, OutBuffer* defines) scope
     {
-        super(_module, input, doDocComment);
+        super(_module, input, doDocComment, errorSink);
 
         //printf("CParser.this()\n");
         mod = _module;
@@ -273,7 +275,7 @@ final class CParser(AST) : Parser!AST
             auto exp = cparseExpression();
             if (token.value == TOK.identifier && exp.op == EXP.identifier)
             {
-                error("found `%s` when expecting `;` or `=`, did you mean `%s %s = %s`?", peek(&token).toChars(), exp.toChars(), token.toChars(), peek(peek(&token)).toChars());
+                error(token.loc, "found `%s` when expecting `;` or `=`, did you mean `%s %s = %s`?", peek(&token).toChars(), exp.toChars(), token.toChars(), peek(peek(&token)).toChars());
                 nextToken();
             }
             else
@@ -754,7 +756,7 @@ final class CParser(AST) : Parser!AST
                     if (token.postfix)
                     {
                         if (token.postfix != postfix)
-                            error("mismatched string literal postfixes `'%c'` and `'%c'`", postfix, token.postfix);
+                            error(token.loc, "mismatched string literal postfixes `'%c'` and `'%c'`", postfix, token.postfix);
                         postfix = token.postfix;
                     }
 
@@ -1948,7 +1950,7 @@ final class CParser(AST) : Parser!AST
                 case TOK.identifier:
                     if (s)
                     {
-                        error("missing comma or semicolon after declaration of `%s`, found `%s` instead", s.toChars(), token.toChars());
+                        error(token.loc, "missing comma or semicolon after declaration of `%s`, found `%s` instead", s.toChars(), token.toChars());
                         goto Lend;
                     }
                     goto default;
@@ -2014,7 +2016,7 @@ final class CParser(AST) : Parser!AST
             importBuiltins = true;                              // will need __va_list_tag
             auto plLength = pl.length;
             if (symbols.length != plLength)
-                error("%d identifiers does not match %d declarations", cast(int)plLength, cast(int)symbols.length);
+                error(token.loc, "%d identifiers does not match %d declarations", cast(int)plLength, cast(int)symbols.length);
 
             /* Transfer the types and storage classes from symbols[] to pl[]
              */
@@ -5154,9 +5156,9 @@ final class CParser(AST) : Parser!AST
         if (n.value == TOK.identifier && n.ident == Id.show)
         {
             if (packalign.isDefault())
-                warning(startloc, "current pack attribute is default");
+                eSink.warning(startloc, "current pack attribute is default");
             else
-                warning(startloc, "current pack attribute is %d", packalign.get());
+                eSink.warning(startloc, "current pack attribute is %d", packalign.get());
             scan(&n);
             return closingParen();
         }

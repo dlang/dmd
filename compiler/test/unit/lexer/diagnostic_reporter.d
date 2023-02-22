@@ -6,6 +6,7 @@ import core.stdc.stdarg;
 
 import dmd.globals : global, DiagnosticReporting;
 import dmd.location;
+import dmd.errors;
 
 import support : afterEach, NoopDiagnosticReporter;
 
@@ -61,7 +62,9 @@ private void lexUntilEndOfFile(string code)
     import dmd.lexer : Lexer;
     import dmd.tokens : TOK;
 
-    scope lexer = new Lexer("test", code.ptr, 0, code.length, 0, 0);
+    if (!global.errorSink)
+	global.errorSink = new ErrorSinkCompiler;
+    scope lexer = new Lexer("test", code.ptr, 0, code.length, 0, 0, global.errorSink);
     lexer.nextToken;
 
     while (lexer.nextToken != TOK.endOfFile) {}

@@ -7561,7 +7561,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 //printf("\t staticIfDg on '%s %s' in '%s'\n",  s.kind(), s.toChars(), this.toChars());
                 if (!s.isStaticIfDeclaration())
                 {
-		    //s.dsymbolSemantic(sc2);
+                    //s.dsymbolSemantic(sc2);
                     done = true;
                     return;
                 }

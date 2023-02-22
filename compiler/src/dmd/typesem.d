@@ -35,6 +35,7 @@ import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.errors;
+import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
@@ -4917,7 +4918,7 @@ RootObject compileTypeMixin(TypeMixin tm, Loc loc, Scope* sc)
     const len = buf.length;
     buf.writeByte(0);
     const str = buf.extractSlice()[0 .. len];
-    scope p = new Parser!ASTCodegen(loc, sc._module, str, false);
+    scope p = new Parser!ASTCodegen(loc, sc._module, str, false, global.errorSink);
     p.nextToken();
     //printf("p.loc.linnum = %d\n", p.loc.linnum);
 

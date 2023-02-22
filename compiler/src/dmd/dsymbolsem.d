@@ -1917,7 +1917,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         const len = buf.length;
         buf.writeByte(0);
         const str = buf.extractSlice()[0 .. len];
-        scope p = new Parser!ASTCodegen(cd.loc, sc._module, str, false);
+        scope p = new Parser!ASTCodegen(cd.loc, sc._module, str, false, global.errorSink);
         p.nextToken();
 
         auto d = p.parseDeclDefs(0);
