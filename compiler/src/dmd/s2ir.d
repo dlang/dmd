@@ -761,6 +761,18 @@ private extern (C++) class S2irVisitor : Visitor
         //printf("ExpStatement.toIR(), exp: %p %s\n", s.exp, s.exp ? s.exp.toChars() : "");
         if (s.exp)
         {
+            if (stmtstate.prev)
+            {
+                if (auto ae = s.exp.isAssertExp())
+                {
+                    if (!stmtstate.prev.ctfeOnly && ae.e1 && ae.e1.isVarExp() && ae.e1.isVarExp().var
+                        && ae.e1.isVarExp().var.ident == Id.ctfe)
+                    {
+                        irs.ctfeOnly++;
+                        stmtstate.prev.ctfeOnly = true;
+                    }
+                }
+            }
             if (s.exp.hasCode &&
                 !(isAssertFalse(s.exp))) // `assert(0)` not meant to be covered
                 incUsage(irs, s.loc);
@@ -1536,6 +1548,8 @@ private extern (C++) class S2irVisitor : Visitor
     {
         scope v = new S2irVisitor(irs, stmtstate);
         s.accept(v);
+        if (irs && stmtstate && irs.ctfeOnly > 0 && stmtstate.ctfeOnly)
+            irs.ctfeOnly--;
     }
 }
 
@@ -1556,6 +1570,8 @@ void Statement_toIR(Statement s, IRState *irs)
     StmtState stmtstate;
     scope v = new S2irVisitor(irs, &stmtstate);
     s.accept(v);
+    if (irs && irs.ctfeOnly > 0 && stmtstate.ctfeOnly)
+        irs.ctfeOnly--;
 }
 
 /***************************************************

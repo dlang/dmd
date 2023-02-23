@@ -204,6 +204,21 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
 
         s.exp = s.exp.expressionSemantic(sc);
         s.exp = resolveProperties(sc, s.exp);
+
+        if (sc)
+        {
+            if (auto ae = s.exp.isAssertExp())
+            {
+                if (ae.e1 && ae.e1.isVarExp() && ae.e1.isVarExp().var
+                    && ae.e1.isVarExp().var.ident == Id.ctfe)
+                {
+                    //printf("ExpStatement::semantic() ctfeonly %s\n", s.exp.toChars());
+                    sc.flags |= SCOPE.ctfeonly;
+                    sc.func.skipretnogc = true;
+                }
+            }
+        }
+
         s.exp = s.exp.addDtorHook(sc);
         if (checkNonAssignmentArrayOp(s.exp))
             s.exp = ErrorExp.get();

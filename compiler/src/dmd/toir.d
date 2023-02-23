@@ -87,6 +87,7 @@ struct IRState
     const Target* target;           // target
     bool mayThrow;                  // the expression being evaluated may throw
     bool Cfile;                     // use C semantics
+    int ctfeOnly;                   // the expression will not generate TypeInfo if >0
 
     this(Module m, FuncDeclaration fd, Array!(elem*)* varsInScope, Dsymbols* deferToObj, Label*[void*]* labels,
         const Param* params, const Target* target)
@@ -102,6 +103,7 @@ struct IRState
             && ClassDeclaration.throwable
             && !(fd && fd.hasNoEH);
         this.Cfile = m.filetype == FileType.c;
+        this.ctfeOnly = 0;
     }
 
     FuncDeclaration getFunc()

@@ -6084,7 +6084,13 @@ private
 elem *getTypeInfo(Expression e, Type t, IRState* irs)
 {
     assert(t.ty != Terror);
-    genTypeInfo(e, e.loc, t, null);
+    Scope* sc;
+    if (irs && irs.ctfeOnly > 0)
+    {
+        sc = new Scope;
+        sc.flags |= SCOPE.ctfeonly;
+    }
+    genTypeInfo(e, e.loc, t, sc);
     elem* result = el_ptr(toSymbol(t.vtinfo));
     return result;
 }
