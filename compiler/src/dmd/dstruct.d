@@ -69,7 +69,7 @@ extern (C++) FuncDeclaration search_toString(StructDeclaration sd)
  *      sc = context
  *      t = type that TypeInfo is being generated for
  */
-extern (C++) void semanticTypeInfo(Scope* sc, Type t)
+extern (C++) void semanticTypeInfo(Scope* sc, Type t, const ref Loc loc)
 {
     if (sc)
     {
@@ -84,13 +84,13 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
 
     void visitVector(TypeVector t)
     {
-        semanticTypeInfo(sc, t.basetype);
+        semanticTypeInfo(sc, t.basetype, loc);
     }
 
     void visitAArray(TypeAArray t)
     {
-        semanticTypeInfo(sc, t.index);
-        semanticTypeInfo(sc, t.next);
+        semanticTypeInfo(sc, t.index, loc);
+        semanticTypeInfo(sc, t.next, loc);
     }
 
     void visitStruct(TypeStruct t)
@@ -104,7 +104,7 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
         {
             Scope scx;
             scx._module = sd.getModule();
-            getTypeInfoType(sd.loc, t, &scx);
+            getTypeInfoType(loc, t, &scx);
             sd.requestTypeInfo = true;
         }
         else if (!sc.minst)
@@ -114,7 +114,7 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
         }
         else
         {
-            getTypeInfoType(sd.loc, t, sc);
+            getTypeInfoType(loc, t, sc);
             sd.requestTypeInfo = true;
 
             // https://issues.dlang.org/show_bug.cgi?id=15149
@@ -159,7 +159,7 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
         {
             foreach (arg; *t.arguments)
             {
-                semanticTypeInfo(sc, arg.type);
+                semanticTypeInfo(sc, arg.type, loc);
             }
         }
     }
@@ -178,7 +178,7 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
         case Tclass:
         case Tenum:     break;
 
-        default:        semanticTypeInfo(sc, tb.nextOf()); break;
+        default:        semanticTypeInfo(sc, tb.nextOf(), loc); break;
     }
 }
 

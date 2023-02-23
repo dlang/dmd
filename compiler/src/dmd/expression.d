@@ -1561,7 +1561,7 @@ extern (C++) abstract class Expression : ASTNode
             {
                 // https://issues.dlang.org/show_bug.cgi?id=11395
                 // Require TypeInfo generation for array concatenation
-                semanticTypeInfo(sc, t);
+                semanticTypeInfo(sc, t, loc);
             }
 
             StructDeclaration sd = ts.sym;
