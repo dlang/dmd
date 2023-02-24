@@ -13157,11 +13157,6 @@ bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
 
     //printf("checkSharedAccess() `%s` returnRef: %d\n", e.toChars(), returnRef);
 
-    /* In case we don't know which expression triggered it,
-     * e.g. for `visit(Type)` overload
-     */
-    Expression original = e;
-
     bool check(Expression e, bool allowRef)
     {
         bool sharedError(Expression e)
@@ -13183,10 +13178,6 @@ bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
         {
             if (e.thisexp)
                 check(e.thisexp, false);
-            // Note: This handles things like `new shared(Throwable).msg`,
-            // where accessing `msg` would violate `shared`.
-            if (e.newtype.isShared())
-                return sharedError(original);
             return false;
         }
 
@@ -13224,33 +13215,32 @@ bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
             return check(e.e1, false);
         }
 
-        bool visitThis(ThisExp e)
-        {
-            if (sc.func && sc.func.isSynchronized())
-                return false;
-
-            if (!allowRef && e.type.isShared())
-                return sharedError(e);
-
-            return false;
-        }
-
         bool visitDotVar(DotVarExp e)
         {
             //printf("dotvarexp = %s\n", e.toChars());
-            auto fd = e.var.isFuncDeclaration();
-            const sharedFunc = fd && fd.type.isShared;
-            // Allow using `DotVarExp` within value types
-            if (!allowRef && e.type.isShared() && !sharedFunc && !(sc.func && sc.func.isSynchronized()))
-                return sharedError(e);
-            if (e.e1.type.isTypeSArray() || e.e1.type.isTypeStruct())
-                return check(e.e1, allowRef);
-
-            // If we end up with a single `VarExp`, it might be a `ref` param
-            // `shared ref T` param == `shared(T)*`.
-            if (auto ve = e.e1.isVarExp())
+            if (e.type.isShared())
             {
-                return check(e.e1, allowRef && (ve.var.storage_class & STC.ref_));
+                // / https://issues.dlang.org/show_bug.cgi?id=22626
+                if (e.e1.isThisExp() && sc.func && sc.func.isSynchronized())
+                    return false;
+
+                auto fd = e.var.isFuncDeclaration();
+                const sharedFunc = fd && fd.type.isShared;
+                if (!allowRef && !sharedFunc)
+                    return sharedError(e);
+
+                // Allow using `DotVarExp` within value types
+                if (e.e1.type.isTypeSArray() || e.e1.type.isTypeStruct())
+                    return check(e.e1, allowRef);
+
+                // If we end up with a single `VarExp`, it might be a `ref` param
+                // `shared ref T` param == `shared(T)*`.
+                if (auto ve = e.e1.isVarExp())
+                {
+                    return check(e.e1, allowRef && (ve.var.storage_class & STC.ref_));
+                }
+
+                return sharedError(e);
             }
 
             return check(e.e1, false);
@@ -13291,7 +13281,6 @@ bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
             case EXP.star:        return visitPtr(e.isPtrExp());
             case EXP.dotVariable: return visitDotVar(e.isDotVarExp());
             case EXP.index:       return visitIndex(e.isIndexExp());
-            case EXP.this_:       return visitThis(e.isThisExp());
         }
     }
 
