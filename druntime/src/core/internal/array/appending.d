@@ -69,7 +69,6 @@ ref Tarr _d_arrayappendT(Tarr : T[], T)(return ref scope Tarr x, scope Tarr y) @
 {
     pragma(inline, false);
 
-    import core.stdc.string : memcpy;
     import core.internal.traits : hasElaborateCopyConstructor, Unqual;
     import core.lifetime : copyEmplace;
 
@@ -121,6 +120,15 @@ ref Tarr _d_arrayappendTTrace(Tarr : T[], T)(string file, int line, string funcn
     }
     else
         assert(0, "Cannot append to array if compiling without support for runtime type information!");
+}
+
+pragma(inline, true);
+package private void *memcpy(void* dest, const(void)* src, size_t n) pure @nogc nothrow
+{
+    ubyte *d = cast(ubyte*) dest;
+    const (ubyte) *s = cast(const(ubyte)*)src;
+    for (; n; n--) *d++ = *s++;
+    return dest;
 }
 
 @safe unittest
