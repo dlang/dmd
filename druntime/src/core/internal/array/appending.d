@@ -122,7 +122,6 @@ ref Tarr _d_arrayappendTTrace(Tarr : T[], T)(string file, int line, string funcn
         assert(0, "Cannot append to array if compiling without support for runtime type information!");
 }
 
-pragma(inline, true);
 package private void *memcpy(void* dest, const(void)* src, size_t n) pure @nogc nothrow
 {
     ubyte *d = cast(ubyte*) dest;
