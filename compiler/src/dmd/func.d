@@ -324,6 +324,12 @@ extern (C++) class FuncDeclaration : Declaration
 
     GotoStatements* gotos;              /// Gotos with forward references
 
+    version (MARS)
+    {
+        VarDeclarations* alignSectionVars;  /// local variables with alignment needs larger than stackAlign
+        Symbol* salignSection;              /// pointer to aligned section, if any
+    }
+
     /// set if this is a known, builtin function we can evaluate at compile time
     BUILTIN builtin = BUILTIN.unknown;
 
@@ -2831,6 +2837,12 @@ extern (C++) class FuncDeclaration : Declaration
                         return false;
                     if (v.nestedrefs.length && needsClosure())
                         return false;
+                    // don't know if the return storage is aligned
+                    version (MARS)
+                    {
+                        if (alignSectionVars && (*alignSectionVars).contains(v))
+                            return false;
+                    }
                     // The variable type needs to be equivalent to the return type.
                     if (!v.type.equivalent(tf.next))
                         return false;

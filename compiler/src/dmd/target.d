@@ -1136,6 +1136,15 @@ extern (C++) struct Target
     {
         return (os & Target.OS.Posix) != 0;
     }
+
+    /*********************
+     * Returns:
+     *  alignment of the stack
+     */
+    extern (C++) uint stackAlign()
+    {
+        return isXmmSupported() ? 16 : (is64bit ? 8 : 4);
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////

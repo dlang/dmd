@@ -610,8 +610,14 @@ elem* toElem(Expression e, IRState *irs)
                 }
 
                 int soffset;
-                if (v && v.offset && !forceStackAccess)
+                if (v && v.inClosure && !forceStackAccess)
                     soffset = v.offset;
+                else if (v && v.inAlignSection)
+                {
+                    ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYnptr, fd.salignSection.Soffset));
+                    ethis = el_una(OPind, TYnptr, ethis);
+                    soffset = v.offset;
+                }
                 else
                 {
                     soffset = cast(int)s.Soffset;
@@ -646,12 +652,12 @@ elem* toElem(Expression e, IRState *irs)
             }
         }
 
-        /* If var is a member of a closure
+        /* If var is a member of a closure or aligned section
          */
-        if (v && v.offset)
+        if (v && (v.inClosure || v.inAlignSection))
         {
-            assert(irs.sclosure);
-            e = el_var(irs.sclosure);
+            assert(irs.sclosure || fd.salignSection);
+            e = el_var(v.inClosure ? irs.sclosure : fd.salignSection);
             e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, v.offset));
             if (se.op == EXP.variable)
             {

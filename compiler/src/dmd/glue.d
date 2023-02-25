@@ -1094,6 +1094,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     }
 
     buildClosure(fd, &irs);
+    buildAlignSection(fd, irs); // must be after buildClosure
 
     if (config.ehmethod == EHmethod.EH_WIN32 && fd.isSynchronized() && cd &&
         !fd.isStatic() && !sbody.usesEH() && !global.params.trace)

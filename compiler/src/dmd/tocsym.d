@@ -129,6 +129,8 @@ Symbol *toSymbol(Dsymbol s)
         override void visit(VarDeclaration vd)
         {
             //printf("VarDeclaration.toSymbol(%s)\n", vd.toChars());
+            if (vd.needThis())
+                fprintf(stderr, "VarDeclaration.toSymbol(%s) needThis kind: %s\n", vd.toPrettyChars(), vd.kind());
             assert(!vd.needThis());
 
             import dmd.common.outbuffer : OutBuffer;

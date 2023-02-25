@@ -1149,6 +1149,11 @@ extern (C++) class VarDeclaration : Declaration
 
         bool isArgDtorVar;      /// temporary created to handle scope destruction of a function argument
         bool isCmacro;          /// it is a C macro turned into a C declaration
+        version (MARS)
+        {
+            bool inClosure;         /// is inserted into a GC allocated closure
+            bool inAlignSection;    /// is inserted into an aligned section on stack
+        }
     }
 
     import dmd.common.bitfields : generateBitFields;

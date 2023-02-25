@@ -2488,6 +2488,8 @@ public:
     Symbol* shidden;
     Array<ReturnStatement* >* returns;
     Array<GotoStatement* >* gotos;
+    Array<VarDeclaration* >* alignSectionVars;
+    Symbol* salignSection;
     BUILTIN builtin;
     int32_t tookAddressOf;
     bool requiresClosure;
@@ -5972,6 +5974,10 @@ public:
     bool isArgDtorVar(bool v);
     bool isCmacro() const;
     bool isCmacro(bool v);
+    bool inClosure() const;
+    bool inClosure(bool v);
+    bool inAlignSection() const;
+    bool inAlignSection(bool v);
 private:
     uint16_t bitFields;
 public:
@@ -8124,6 +8130,7 @@ public:
     bool isCalleeDestroyingArgs(TypeFunction* tf);
     bool libraryObjectMonitors(FuncDeclaration* fd, Statement* fbody);
     bool supportsLinkerDirective() const;
+    uint32_t stackAlign();
     Target() :
         os((OS)1u),
         osMajor(0u),
