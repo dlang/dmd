@@ -1677,33 +1677,40 @@ void main()
 
 $(H3 $(GNAME isSame))
 
-        $(P Takes two arguments and returns bool $(D true) if they
-        are the same symbol, $(D false) if not.)
+        $(P Compares two arguments and evaluates to `bool`.)
+
+        $(P The result is `true` if the two arguments are the same symbol
+        (once aliases are resolved).)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
-import std.stdio;
-
 struct S { }
 
 int foo();
 int bar();
 
-void main()
-{
-    writeln(__traits(isSame, foo, foo)); // true
-    writeln(__traits(isSame, foo, bar)); // false
-    writeln(__traits(isSame, foo, S));   // false
-    writeln(__traits(isSame, S, S));     // true
-    writeln(__traits(isSame, std, S));   // false
-    writeln(__traits(isSame, std, std)); // true
-}
+static assert(__traits(isSame, foo, foo));
+static assert(!__traits(isSame, foo, bar));
+static assert(!__traits(isSame, foo, S));
+static assert(__traits(isSame, S, S));
+static assert(!__traits(isSame, object, S));
+static assert(__traits(isSame, object, object));
+
+alias daz = foo;
+static assert(__traits(isSame, foo, daz));
 ---
 )
 
-        $(P If the two arguments are expressions made up of literals
-        or enums that evaluate to the same value, true is returned.)
+        $(P The result is `true` if the two arguments are expressions
+        made up of literals or enums that evaluate to the same value.)
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+enum e = 3;
+static assert(__traits(isSame, (e), 3));
+static assert(__traits(isSame, 5, 2 + e));
+---
+)
         $(P If the two arguments are both
         $(DDSUBLINK spec/expression, function_literals, lambda functions) (or aliases
         to lambda functions), then they are compared for equality. For
@@ -1722,11 +1729,20 @@ void main()
         )
 
         $(P If these constraints aren't fulfilled, the function is considered
-        incomparable and `isSame` returns $(D false).)
+        incomparable and the result is $(D false).)
 
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    static assert(__traits(isSame, (a, b) => a + b, (c, d) => c + d));
+    static assert(__traits(isSame, a => ++a, b => ++b));
+    static assert(!__traits(isSame, (int a, int b) => a + b, (a, b) => a + b));
+    static assert(__traits(isSame, (a, b) => a + b + 10, (c, d) => c + d + 10));
+    ---
+    )
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 int f() { return 2; }
+
 void test(alias pred)()
 {
     // f() from main is a different function from top-level f()
@@ -1735,11 +1751,6 @@ void test(alias pred)()
 
 void main()
 {
-    static assert(__traits(isSame, (a, b) => a + b, (c, d) => c + d));
-    static assert(__traits(isSame, a => ++a, b => ++b));
-    static assert(!__traits(isSame, (int a, int b) => a + b, (a, b) => a + b));
-    static assert(__traits(isSame, (a, b) => a + b + 10, (c, d) => c + d + 10));
-
     // lambdas accessing local variables are considered incomparable
     int b;
     static assert(!__traits(isSame, a => a + b, a => a + b));
@@ -1748,7 +1759,11 @@ void main()
     int f() { return 3;}
     static assert(__traits(isSame, a => a + f(), a => a + f()));
     test!((int a) => a + f())();
-
+}
+---
+)
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
     class A
     {
         int a;
@@ -1771,30 +1786,25 @@ void main()
     // lambdas with different data types are considered incomparable,
     // even if the memory layout is the same
     static assert(!__traits(isSame, (A a) => ++a.a, (B a) => ++a.a));
-}
----
-)
+    ---
+    )
 
-        $(P If the two arguments are tuples then `isSame` returns `true` if the
+        $(P If the two arguments are tuples then the result is `true` if the
         two tuples, after expansion, have the same length and if each pair
         of nth argument respects the constraints previously specified.)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
-import std.stdio;
 import std.meta;
 
 struct S { }
 
-void main()
-{
-    // true, like __traits(isSame(0,0)) && __traits(isSame(1,1))
-    writeln(__traits(isSame, AliasSeq!(0,1), AliasSeq!(0,1)));
-    // false, like __traits(isSame(S,std.meta)) && __traits(isSame(1,1))
-    writeln(__traits(isSame, AliasSeq!(S,1), AliasSeq!(std.meta,1)));
-    // false, the length of the sequences is different
-    writeln(__traits(isSame, AliasSeq!(1), AliasSeq!(1,2)));
-}
+// like __traits(isSame,0,0) && __traits(isSame,1,1)
+static assert(__traits(isSame, AliasSeq!(0,1), AliasSeq!(0,1)));
+// like __traits(isSame,S,std.meta) && __traits(isSame,1,1)
+static assert(!__traits(isSame, AliasSeq!(S,1), AliasSeq!(std.meta,1)));
+// the length of the sequences is different
+static assert(!__traits(isSame, AliasSeq!(1), AliasSeq!(1,2)));
 ---
 )
 
