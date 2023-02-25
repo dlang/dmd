@@ -2799,7 +2799,8 @@ $(H4 $(LNAME2 is-identifier, Identifier Forms))
     $(P *Identifier* is declared to be an alias of the resulting
         type if the condition is satisfied. The *Identifier* forms
         can only be used if the $(I IsExpression) appears in a
-        $(GLINK2 version, StaticIfCondition) or $(GLINK2 version, StaticAssert).
+        $(GLINK2 version, StaticIfCondition) or the first argument of a
+        $(GLINK2 version, StaticAssert).
     )
 
         $(H5 $(LNAME2 is-type-identifier, $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D $(RPAREN))))
@@ -2811,8 +2812,18 @@ $(H4 $(LNAME2 is-identifier, Identifier Forms))
         )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct S
+{
+    int i, j;
+}
+static assert(is(typeof(S.i) T) && T.sizeof == 4);
+---
+)
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 -------------
 alias Bar = short;
+
 void foo()
 {
     static if (is(Bar T))
