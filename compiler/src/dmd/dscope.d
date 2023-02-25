@@ -64,13 +64,14 @@ enum SCOPE
     free          = 0x8000,   /// is on free list
 
     fullinst      = 0x10000,  /// fully instantiate templates
+    ctfeBlock     = 0x20000,  /// inside a `if (__ctfe)` block
 }
 
 /// Flags that are carried along with a scope push()
 private enum PersistentFlags =
     SCOPE.contract | SCOPE.debug_ | SCOPE.ctfe | SCOPE.compile | SCOPE.constraint |
     SCOPE.noaccesscheck | SCOPE.ignoresymbolvisibility |
-    SCOPE.Cfile;
+    SCOPE.Cfile | SCOPE.ctfeBlock;
 
 extern (C++) struct Scope
 {

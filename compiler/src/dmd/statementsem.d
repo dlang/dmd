@@ -1955,7 +1955,17 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
         // Save 'root' of two branches (then and else) at the point where it forks
         CtorFlow ctorflow_root = scd.ctorflow.clone();
 
-        ifs.ifbody = ifs.ifbody.semanticNoScope(scd);
+        /* Detect `if (__ctfe)`
+         */
+        if (ifs.isIfCtfeBlock())
+        {
+            Scope* scd2 = scd.push();
+            scd2.flags |= SCOPE.ctfeBlock;
+            ifs.ifbody = ifs.ifbody.semanticNoScope(scd2);
+            scd2.pop();
+        }
+        else
+            ifs.ifbody = ifs.ifbody.semanticNoScope(scd);
         scd.pop();
 
         CtorFlow ctorflow_then = sc.ctorflow;   // move flow results
@@ -3800,6 +3810,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
         gs.tf = sc.tf;
         gs.os = sc.os;
         gs.lastVar = sc.lastVar;
+        gs.inCtfeBlock = (sc.flags & SCOPE.ctfeBlock) != 0;
 
         if (!gs.label.statement && sc.fes)
         {
@@ -3839,6 +3850,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
         ls.tf = sc.tf;
         ls.os = sc.os;
         ls.lastVar = sc.lastVar;
+        ls.inCtfeBlock = (sc.flags & SCOPE.ctfeBlock) != 0;
 
         LabelDsymbol ls2 = fd.searchLabel(ls.ident, ls.loc);
         if (ls2.statement)

@@ -1382,7 +1382,7 @@ extern (C++) struct ModuleDeclaration
  * for inclusion in ModuleInfo
  * Params:
  *      mod = the Module
- *	aclasses = array to fill in
+ *      aclasses = array to fill in
  * Returns: array of local classes
  */
 extern (C++) void getLocalClasses(Module mod, ref ClassDeclarations aclasses)

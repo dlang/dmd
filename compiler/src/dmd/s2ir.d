@@ -152,9 +152,7 @@ private extern (C++) class S2irVisitor : Visitor
         bcond.appendSucc(blx.curblock);
         if (s.ifbody)
         {
-            bool ctfe = false;
-            if (auto cv = s.condition.isVarExp())
-                ctfe = cv.var.ident == Id.ctfe;         // __ctfe is always false at runtime
+            bool ctfe = s.isIfCtfeBlock();         // __ctfe is always false at runtime
             const isFalse = ctfe;
 
             irs.falseBlock += isFalse;
