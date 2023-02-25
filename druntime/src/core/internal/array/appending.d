@@ -17,8 +17,6 @@ private enum isCopyingNothrow(T) = __traits(compiles, (ref T rhs) nothrow { T lh
 /// Implementation of `_d_arrayappendcTX` and `_d_arrayappendcTXTrace`
 template _d_arrayappendcTXImpl(Tarr : T[], T)
 {
-    import core.internal.array.utils : _d_HookTraceImpl;
-
     private enum errorMessage = "Cannot append to array if compiling without support for runtime type information!";
 
     /**
@@ -51,11 +49,13 @@ template _d_arrayappendcTXImpl(Tarr : T[], T)
             return px;
         }
         else
-            assert(0, "Cannot append arrays if compiling without support for runtime type information!");
+            assert(0, errorMessage);
     }
 
     version (D_ProfileGC)
     {
+        import core.internal.array.utils : _d_HookTraceImpl;
+
         /**
          * TraceGC wrapper around $(REF _d_arrayappendcTX, rt,array,appending,_d_arrayappendcTXImpl).
          * Bugs:

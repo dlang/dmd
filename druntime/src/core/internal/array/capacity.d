@@ -22,8 +22,6 @@ private extern (C) void[] _d_arraysetlengthiT(const TypeInfo ti, size_t newlengt
 /// Implementation of `_d_arraysetlengthT` and `_d_arraysetlengthTTrace`
 template _d_arraysetlengthTImpl(Tarr : T[], T)
 {
-    import core.internal.array.utils : _d_HookTraceImpl;
-
     private enum errorMessage = "Cannot resize arrays if compiling without support for runtime type information!";
 
     /**
@@ -56,6 +54,8 @@ template _d_arraysetlengthTImpl(Tarr : T[], T)
 
     version (D_ProfileGC)
     {
+        import core.internal.array.utils : _d_HookTraceImpl;
+
         /**
          * TraceGC wrapper around $(REF _d_arraysetlengthT, core,internal,array,core.internal.array.capacity).
          * Bugs:

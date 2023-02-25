@@ -2385,21 +2385,24 @@ template _d_delstructImpl(T)
         }
     }
 
-    import core.internal.array.utils : _d_HookTraceImpl;
+    version (D_ProfileGC)
+    {
+        import core.internal.array.utils : _d_HookTraceImpl;
 
-    private enum errorMessage = "Cannot delete struct if compiling without support for runtime type information!";
+        private enum errorMessage = "Cannot delete struct if compiling without support for runtime type information!";
 
-    /**
-     * TraceGC wrapper around $(REF _d_delstruct, core,lifetime,_d_delstructImpl).
-     *
-     * Bugs:
-     *   This function template was ported from a much older runtime hook that
-     *   bypassed safety, purity, and throwabilty checks. To prevent breaking
-     *   existing code, this function template is temporarily declared
-     *   `@trusted` until the implementation can be brought up to modern D
-     *   expectations.
-     */
-    alias _d_delstructTrace = _d_HookTraceImpl!(T, _d_delstruct, errorMessage);
+        /**
+         * TraceGC wrapper around $(REF _d_delstruct, core,lifetime,_d_delstructImpl).
+         *
+         * Bugs:
+         *   This function template was ported from a much older runtime hook that
+         *   bypassed safety, purity, and throwabilty checks. To prevent breaking
+         *   existing code, this function template is temporarily declared
+         *   `@trusted` until the implementation can be brought up to modern D
+         *   expectations.
+         */
+        alias _d_delstructTrace = _d_HookTraceImpl!(T, _d_delstruct, errorMessage);
+    }
 }
 
 @system pure nothrow unittest
