@@ -19,6 +19,7 @@
 // Can't include arraytypes.h here, need to declare these directly.
 template <typename TYPE> struct Array;
 
+class ErrorSink;
 class FileManager;
 struct Loc;
 
@@ -278,6 +279,7 @@ struct Global
     unsigned varSequenceNumber;
 
     FileManager* fileManager;
+    ErrorSink* errorSink;       // where the error messages go
 
     FileName (*preprocess)(FileName, const Loc&, bool&, OutBuffer&);
 
