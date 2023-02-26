@@ -155,7 +155,7 @@ private extern (C++) class S2irVisitor : Visitor
             bool ctfe = false;
             if (auto cv = s.condition.isVarExp())
                 ctfe = cv.var.ident == Id.ctfe;         // __ctfe is always false at runtime
-            const isFalse = s.condition.toBool().hasValue(false) || ctfe;
+            const isFalse = ctfe;
 
             irs.falseBlock += isFalse;
             Statement_toIR(s.ifbody, irs, &mystate);
