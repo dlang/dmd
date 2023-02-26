@@ -104,7 +104,8 @@ $(GNAME ModuleFullyQualifiedName):
 
 $(GNAME ModuleName):
     $(GLINK_LEX Identifier)
-
+)
+$(GRAMMAR
 $(GNAME Packages):
     $(GLINK PackageName)
     $(GSELF Packages) $(D .) $(GLINK PackageName)

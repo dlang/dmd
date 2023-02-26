@@ -1141,7 +1141,7 @@ static assert(!__traits(isTemplate,"string"));
 $(H3 $(GNAME isModule))
 
         $(P Takes one argument. If that argument is a symbol that refers to a
-        $(DDLINK spec/module, module) then $(D true) is returned, otherwise $(D false).
+        $(DDLINK spec/module, Modules, module) then $(D true) is returned, otherwise $(D false).
         $(DDSUBLINK spec/module, package-module, Package modules) are considered to be
         modules even if they have not been directly imported as modules.
         )
@@ -1165,7 +1165,8 @@ static assert(__traits(isModule, std.algorithm.sorting));
 $(H3 $(GNAME isPackage))
 
         $(P Takes one argument. If that argument is a symbol that refers to a
-        $(DDLINK spec/module, package) then $(D true) is returned, otherwise $(D false).
+        $(DDSUBLINK spec/module, PackageName, package) then $(D true) is returned,
+        otherwise $(D false).
         )
 
 ---
