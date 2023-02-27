@@ -4,20 +4,10 @@ import dmd.lexer : Lexer;
 import dmd.tokens : TOK;
 import dmd.errorsink;
 
-unittest
+/// Test that lexing `code` generates the `expected` tokens
+private void test(string code, const TOK[] expected, bool keepComments = false, bool keepWhitespace = false)
 {
-    immutable code = "void test() {} // foobar";
-
-    immutable expected = [
-        TOK.void_,
-        TOK.identifier,
-        TOK.leftParenthesis,
-        TOK.rightParenthesis,
-        TOK.leftCurly,
-        TOK.rightCurly,
-    ];
-
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, false, false, new ErrorSinkStderr);
+    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, /*doDocComment*/ false, keepComments, keepWhitespace, new ErrorSinkStderr);
     TOK[] result;
 
     while (lexer.nextToken != TOK.endOfFile)
@@ -37,16 +27,26 @@ unittest
         TOK.rightParenthesis,
         TOK.leftCurly,
         TOK.rightCurly,
+    ];
+
+    test(code, expected, false, false);
+}
+
+unittest
+{
+    immutable code = "void test() {} // foobar";
+
+    immutable expected = [
+        TOK.void_,
+        TOK.identifier,
+        TOK.leftParenthesis,
+        TOK.rightParenthesis,
+        TOK.leftCurly,
+        TOK.rightCurly,
         TOK.comment,
     ];
 
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, true, false, new ErrorSinkStderr);
-    TOK[] result;
-
-    while (lexer.nextToken != TOK.endOfFile)
-        result ~= lexer.token.value;
-
-    assert(result == expected);
+    test(code, expected, true, false);
 }
 
 unittest
@@ -66,13 +66,7 @@ unittest
         TOK.comment,
     ];
 
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, true, true, new ErrorSinkStderr);
-    TOK[] result;
-
-    while (lexer.nextToken != TOK.endOfFile)
-        result ~= lexer.token.value;
-
-    assert(result == expected);
+    test(code, expected, true, true);
 }
 
 unittest
@@ -93,13 +87,7 @@ unittest
         TOK.whitespace,
     ];
 
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, true, true, new ErrorSinkStderr);
-    TOK[] result;
-
-    while (lexer.nextToken != TOK.endOfFile)
-        result ~= lexer.token.value;
-
-    assert(result == expected);
+    test(code, expected, true, true);
 }
 
 unittest
@@ -137,13 +125,7 @@ unittest
         TOK.whitespace,
     ];
 
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, true, true, new ErrorSinkStderr);
-    TOK[] result;
-
-    while (lexer.nextToken != TOK.endOfFile)
-        result ~= lexer.token.value;
-
-    assert(result == expected);
+    test(code, expected, true, true);
 }
 
 unittest
@@ -172,13 +154,7 @@ unittest
         TOK.whitespace,
     ];
 
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, true, true, new ErrorSinkStderr);
-    TOK[] result;
-
-    while (lexer.nextToken != TOK.endOfFile)
-        result ~= lexer.token.value;
-
-    assert(result == expected);
+    test(code, expected, true, true);
 }
 
 unittest
