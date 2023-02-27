@@ -22,9 +22,7 @@ import core.stdc.string;
 import core.stdc.time;
 
 import dmd.entity;
-import dmd.errors;
 import dmd.errorsink;
-import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
@@ -574,7 +572,7 @@ class Lexer
                     else if (*t.ptr == '_') // if special identifier token
                     {
                         // Lazy initialization
-                        TimeStampInfo.initialize(t.loc);
+                        TimeStampInfo.initialize(t.loc, eSink);
 
                         if (id == Id.DATE)
                         {
@@ -3082,7 +3080,7 @@ private struct TimeStampInfo
     __gshared char[8 + 1] time;
     __gshared char[24 + 1] timestamp;
 
-    public static void initialize(const ref Loc loc) nothrow
+    public static void initialize(const ref Loc loc, ErrorSink eSink) nothrow
     {
         if (initdone)
             return;
@@ -3093,7 +3091,7 @@ private struct TimeStampInfo
         if (auto p = getenv("SOURCE_DATE_EPOCH"))
         {
             if (!ct.parseDigits(p.toDString()))
-                error(loc, "value of environment variable `SOURCE_DATE_EPOCH` should be a valid UNIX timestamp, not: `%s`", p);
+                eSink.error(loc, "value of environment variable `SOURCE_DATE_EPOCH` should be a valid UNIX timestamp, not: `%s`", p);
         }
         else
             .time(&ct);
@@ -3223,13 +3221,6 @@ private bool c_isalnum(const int c) pure @nogc @safe
 unittest
 {
     fprintf(stderr, "Lexer.unittest %d\n", __LINE__);
-    import dmd.console;
-    nothrow bool assertDiagnosticHandler(const ref Loc loc, Color headerColor, const(char)* header,
-                                   const(char)* format, va_list ap, const(char)* p1, const(char)* p2)
-    {
-        assert(0);
-    }
-    diagnosticHandler = &assertDiagnosticHandler;
 
     ErrorSink errorSink = new ErrorSinkStderr;
 
@@ -3274,8 +3265,6 @@ unittest
     test(`&quot;`, '"');
     test(`&lt;`, '<');
     test(`&gt;`, '>');
-
-    diagnosticHandler = null;
 }
 
 unittest
@@ -3354,8 +3343,6 @@ unittest
     test("&quot", `unterminated named entity &quot;`, '?', 5);
 
     test("400", `escape octal sequence \400 is larger than \377`, 0x100, 3);
-
-    diagnosticHandler = null;
 }
 
 unittest
