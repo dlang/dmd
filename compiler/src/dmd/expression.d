@@ -4045,6 +4045,7 @@ extern (C++) final class FuncExp : Expression
                 Type t = pto.type;
                 if (t.ty == Terror)
                     return cannotInfer(this, to, flag);
+                tf.parameterList[u].storageClass = tof.parameterList[u].storageClass;
                 tiargs.push(t);
             }
 
