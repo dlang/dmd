@@ -1192,7 +1192,7 @@ printf("the string is '%s'\n", "string literal".ptr);
         The length comes first, followed by the pointer:)
 
 ---------
-printf("the string is '%.*s'\n", str.length, str.ptr);
+printf("the string is '%.*s'\n", cast(int)str.length, str.ptr);
 ---------
 
         $(P The best way is to use std.stdio.writefln, which can handle
