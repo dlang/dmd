@@ -3880,11 +3880,25 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
                         if (fd.ident == funcdecl.ident)
                             hgs.fullQual = true;
-                        functionToBufferFull(cast(TypeFunction)(fd.type), &buf1,
-                            new Identifier(fd.toPrettyChars()), &hgs, null);
 
-                        error(funcdecl.loc, "function `%s` does not override any function, did you mean to override `%s`?",
-                            funcdeclToChars, buf1.peekChars());
+                        // https://issues.dlang.org/show_bug.cgi?id=23745
+                        // If the potentially overriden function contains errors,
+                        // inform the user to fix that one first
+                        if (fd.errors)
+                        {
+                            error(funcdecl.loc, "function `%s` does not override any function, did you mean to override `%s`?",
+                                funcdecl.toChars(), fd.toPrettyChars());
+                            errorSupplemental(fd.loc, "Function `%s` contains errors in its declaration, therefore it cannot be correctly overriden",
+                                fd.toPrettyChars());
+                        }
+                        else
+                        {
+                            functionToBufferFull(cast(TypeFunction)(fd.type), &buf1,
+                                new Identifier(fd.toPrettyChars()), &hgs, null);
+
+                            error(funcdecl.loc, "function `%s` does not override any function, did you mean to override `%s`?",
+                                funcdeclToChars, buf1.peekChars());
+                       }
                     }
                     else
                     {
