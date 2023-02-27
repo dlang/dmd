@@ -62,13 +62,10 @@ enum ContractChecking : CHECKENABLE
     enabledInSafe = CHECKENABLE.safeonly
 }
 
-unittest
-{
-    static assert(
-        __traits(allMembers, ContractChecking).length ==
-        __traits(allMembers, CHECKENABLE).length
-    );
-}
+static assert(
+    __traits(allMembers, ContractChecking).length ==
+    __traits(allMembers, CHECKENABLE).length
+);
 
 /// Indicates which contracts should be checked or not.
 struct ContractChecks
