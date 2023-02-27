@@ -3231,14 +3231,13 @@ unittest
     }
     diagnosticHandler = &assertDiagnosticHandler;
 
-    if (!global.errorSink)
-        global.errorSink = new ErrorSinkCompiler;
+    ErrorSink errorSink = new ErrorSinkStderr;
 
-    static void test(T)(string sequence, T expected, bool Ccompile = false)
+    void test(T)(string sequence, T expected, bool Ccompile = false)
     {
         auto p = cast(const(char)*)sequence.ptr;
         dchar c2;
-        Lexer lexer = new Lexer(global.errorSink);
+        Lexer lexer = new Lexer(errorSink);
         assert(expected == lexer.escapeSequence(Loc.initial, p, Ccompile, c2));
         assert(p == sequence.ptr + sequence.length);
     }
@@ -3282,42 +3281,46 @@ unittest
 unittest
 {
     fprintf(stderr, "Lexer.unittest %d\n", __LINE__);
-    import dmd.console;
-    string expected;
-    bool gotError;
 
-    nothrow bool expectDiagnosticHandler(const ref Loc loc, Color headerColor, const(char)* header,
-                                         const(char)* format, va_list ap, const(char)* p1, const(char)* p2)
+    static class ErrorSinkTest : ErrorSinkNull
     {
-        assert(cast(Classification)headerColor == Classification.error);
+      nothrow:
+      extern (C++):
+      override:
 
-        gotError = true;
-        char[100] buffer = void;
-        auto actual = buffer[0 .. vsnprintf(buffer.ptr, buffer.length, format, ap)];
-        assert(expected == actual);
-        return true;
+        import core.stdc.stdio;
+        import core.stdc.stdarg;
+
+        string expected;
+        bool gotError;
+
+        void error(const ref Loc loc, const(char)* format, ...)
+        {
+            gotError = true;
+            char[100] buffer = void;
+            va_list ap;
+            va_start(ap, format);
+            auto actual = buffer[0 .. vsnprintf(buffer.ptr, buffer.length, format, ap)];
+            va_end(ap);
+            assert(expected == actual);
+        }
     }
 
-    diagnosticHandler = &expectDiagnosticHandler;
-
-    if (!global.errorSink)
-        global.errorSink = new ErrorSinkCompiler;
+    ErrorSinkTest errorSink = new ErrorSinkTest;
 
     void test(string sequence, string expectedError, dchar expectedReturnValue, uint expectedScanLength, bool Ccompile = false)
     {
-        uint errors = global.errors;
-        gotError = false;
-        expected = expectedError;
+        errorSink.expected = expectedError;
+        errorSink.gotError = false;
         auto p = cast(const(char)*)sequence.ptr;
-        Lexer lexer = new Lexer(global.errorSink);
+        Lexer lexer = new Lexer(errorSink);
         dchar c2;
         auto actualReturnValue = lexer.escapeSequence(Loc.initial, p, Ccompile, c2);
-        assert(gotError);
+        assert(errorSink.gotError);
         assert(expectedReturnValue == actualReturnValue);
 
         auto actualScanLength = p - sequence.ptr;
         assert(expectedScanLength == actualScanLength);
-        global.errors = errors;
     }
 
     test("c", `undefined escape sequence \c`, 'c', 1);
@@ -3361,9 +3364,8 @@ unittest
     /* Not much here, just trying things out.
      */
     string text = "int"; // We rely on the implicit null-terminator
-    if (!global.errorSink)
-        global.errorSink = new ErrorSinkCompiler;
-    scope Lexer lex1 = new Lexer(null, text.ptr, 0, text.length, false, false, global.errorSink);
+    ErrorSink errorSink = new ErrorSinkStderr;
+    scope Lexer lex1 = new Lexer(null, text.ptr, 0, text.length, false, false, errorSink);
     TOK tok;
     tok = lex1.nextToken();
     //printf("tok == %s, %d, %d\n", Token::toChars(tok), tok, TOK.int32);
@@ -3379,12 +3381,9 @@ unittest
 unittest
 {
     fprintf(stderr, "Lexer.unittest %d\n", __LINE__);
-    if (!global.errorSink)
-        global.errorSink = new ErrorSinkCompiler;
 
     // We don't want to see Lexer error output during these tests.
-    uint errors = global.startGagging();
-    scope(exit) global.endGagging(errors);
+    ErrorSink errorSink = new ErrorSinkNull;
 
     // Test malformed input: even malformed input should end in a TOK.endOfFile.
     static immutable char[][] testcases =
@@ -3402,7 +3401,7 @@ unittest
 
     foreach (testcase; testcases)
     {
-        scope Lexer lex2 = new Lexer(null, testcase.ptr, 0, testcase.length-1, false, false, global.errorSink);
+        scope Lexer lex2 = new Lexer(null, testcase.ptr, 0, testcase.length-1, false, false, errorSink);
         TOK tok = lex2.nextToken();
         size_t iterations = 1;
         while ((tok != TOK.endOfFile) && (iterations++ < testcase.length))
