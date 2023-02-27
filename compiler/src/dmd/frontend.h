@@ -4410,6 +4410,7 @@ public:
     TryFinallyStatement* tf;
     ScopeGuardStatement* os;
     VarDeclaration* lastVar;
+    bool inCtfeBlock;
     GotoStatement* syntaxCopy() override;
     void accept(Visitor* v) override;
 };
@@ -4425,6 +4426,7 @@ public:
     Loc endloc;
     IfStatement* syntaxCopy() override;
     void accept(Visitor* v) override;
+    bool isIfCtfeBlock();
 };
 
 class ImportStatement final : public Statement
@@ -4470,6 +4472,7 @@ public:
     Statement* gotoTarget;
     void* extra;
     bool breaks;
+    bool inCtfeBlock;
     LabelStatement* syntaxCopy() override;
     void accept(Visitor* v) override;
 };

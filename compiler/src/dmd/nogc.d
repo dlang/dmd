@@ -212,6 +212,9 @@ public:
 
 Expression checkGC(Scope* sc, Expression e)
 {
+    if (sc.flags & SCOPE.ctfeBlock)     // ignore GC in ctfe blocks
+        return e;
+
     /* If betterC, allow GC to happen in non-CTFE code.
      * Just don't generate code for it.
      * Detect non-CTFE use of the GC in betterC code.
