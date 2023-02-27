@@ -1612,6 +1612,33 @@ extern (C++) class FuncDeclaration : Declaration
         return setGC(loc, null, f);
     }
 
+    /**************************************
+     * The function is doing something that may throw an exception, register that in case nothrow is being inferred
+     *
+     * Params:
+     *     loc = location of action
+     *     fmt = format string for error message
+     *     arg0 = (optional) argument to format string
+     */
+    extern (D) final void setThrow(Loc loc, const(char)* fmt, RootObject arg0 = null)
+    {
+        if (nothrowInprocess && !nothrowViolation)
+        {
+            nothrowViolation = new AttributeViolation(loc, fmt, arg0); // action that requires GC
+        }
+    }
+
+    /**************************************
+     * The function calls non-`nothrow` function f, register that in case nothrow is being inferred
+     * Params:
+     *     loc = location of call
+     *     f = function being called
+     */
+    extern (D) final void setThrowCall(Loc loc, FuncDeclaration f)
+    {
+        return setThrow(loc, null, f);
+    }
+
     extern (D) final void printGCUsage(const ref Loc loc, const(char)* warn)
     {
         if (!global.params.vgc)
