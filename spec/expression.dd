@@ -2748,7 +2748,8 @@ void foo()
         $(H5 $(LNAME2 is-type-equal, $(D is $(LPAREN)) $(I Type) $(D ==) $(I TypeSpecialization) $(D $(RPAREN))))
 
         $(P
-        The condition is satisfied if $(I Type) is semantically correct and is
+        If *TypeSpecialization* is a type,
+        the condition is satisfied if $(I Type) is semantically correct and is
         the same type as $(I TypeSpecialization).
         )
 -------------
@@ -2764,7 +2765,6 @@ void foo()
 -------------
         $(P
         If $(I TypeSpecialization) is one of
-
                 $(D struct)
                 $(D union)
                 $(D class)
@@ -2773,26 +2773,62 @@ void foo()
                 $(D __vector)
                 $(D function)
                 $(D delegate)
+                $(D module)
+                $(D package)
+        then the condition is satisfied if $(I Type) is one of those.
+        )
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+static assert(is(Object == class));
+static assert(is(ModuleInfo == struct));
+---
+)
+        $(P The `module` and `package` forms are satisfied when *Type* is a symbol, not a *type*,
+        unlike the other forms. The $(DDSUBLINK spec/traits, isModule, isModule)
+        and $(DDSUBLINK spec/traits, isPackage, isPackage) `__traits` should be used instead.
+        $(DDSUBLINK spec/module, package-module, Package modules) are considered to be both
+        packages and modules.
+        )
+        $(P
+        *TypeSpecialization* can also be one of these keywords:
+        )
+        $(TABLE
+        $(THEAD keyword, condition)
+        $(TROW `super`, `true` if *Type* is a class or interface)
+        $(TROW `return`,
+            $(ARGS `true` if *Type* is a function, delegate or function pointer))
+        $(TROW `__parameters`,
+            $(ARGS `true` if *Type* is a function, delegate or function pointer))
+        )
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---
+        class C {}
+        static assert(is(C == super));
+
+        void foo(int i);
+        static assert(!is(foo == return));
+        static assert(is(typeof(foo) == return));
+        static assert(is(typeof(foo) == __parameters));
+        ---
+        )
+        $(P
+        If *TypeSpecialization* is a $(GLINK2 type, TypeCtor) keyword
                 $(D const)
                 $(D immutable)
                 $(D inout)
                 $(D shared)
-                $(D module)
-                $(D package)
-
-        then the condition is satisfied if $(I Type) is one of those.
+        then the condition is satisfied if *Type* is of that *TypeCtor*:
         )
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
-static assert(is(Object == class));
-
-int i;
-static assert(!is(i == const));
+static assert(is(const int == const));
+static assert(is(const int[] == const));
+static assert(!is(const(int)[] == const)); // head is mutable
+static assert(!is(immutable int == const));
 ---
-        $(P $(DDSUBLINK
-        spec/module, package-module, Package modules) are considered to be both
-        packages and modules.
-        )
+)
         $(P $(B See also:) $(DDLINK spec/traits, Traits, Traits).)
+
 
 $(H4 $(LNAME2 is-identifier, Identifier Forms))
 
@@ -2846,14 +2882,12 @@ void foo()
         )
 
         $(P
-        The condition is satisfied if $(I Type) is semantically
+        If *TypeSpecialization* is a type,
+        the condition is satisfied if $(I Type) is semantically
         correct and it is the same as
         or can be implicitly converted to $(I TypeSpecialization).
-        $(I TypeSpecialization) is only allowed to be a $(I Type).
-        The $(I Identifier) is declared to be either an alias of the
-        $(I TypeSpecialization) or, if $(I TypeSpecialization) is
-        dependent on $(I Identifier), the $(I TypeSpecialization) forms
-        a pattern from which the type of $(I Identifier) is deduced.
+        $(I Identifier) is declared to be an alias of the
+        $(I TypeSpecialization).
         )
 
     $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -2868,11 +2902,22 @@ void foo()
     static assert(is(S == int));
     ---
     )
+        $(P
+        If $(I TypeSpecialization) is a type pattern involving
+        $(I Identifier), type deduction of $(I Identifier) is attempted
+        based on either *Type* or a type that it implicitly converts to.
+        The condition is only satisfied if the type pattern is matched.
+        )
+
     $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
-    alias Abc = long*;
+    struct S
+    {
+        long* i;
+        alias i this; // S converts to long*
+    }
 
-    static if (is(Abc U : U*)) // Abc is matched against the pattern U*
+    static if (is(S U : U*)) // S is matched against the pattern U*
     {
         U u;
     }
@@ -2889,55 +2934,46 @@ void foo()
         $(H5 $(LNAME2 is-identifier-equal, $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D ==) $(I TypeSpecialization) $(D $(RPAREN))))
 
         $(P
-        The condition is satisfied if $(I Type) is semantically
-        correct and is the same as $(I TypeSpecialization).
-        The $(I Identifier) is declared to be either an alias of the
-        $(I TypeSpecialization) or, if $(I TypeSpecialization) is
-        dependent on $(I Identifier), the $(I TypeSpecialization) forms
-        a pattern from which the type of $(I Identifier) is deduced.
+        If *TypeSpecialization* is a type,
+        the condition is satisfied if $(I Type) is semantically correct and is
+        the same type as $(I TypeSpecialization).
+        $(I Identifier) is declared to be an alias of the
+        $(I TypeSpecialization).
         )
-
     $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
-    alias Bar = short;
+    const x = 5;
 
-    static if (is(Bar T == int))   // not satisfied, short is not int
+    static if (is(typeof(x) T == const int))   // satisfied, T is now defined
         alias S = T;
 
-    static assert(!is(T)); // T is not defined
+    static assert(is(T)); // T is in scope
+    pragma(msg, T); // const int
     ---
     )
 
         $(P
-        If $(I TypeSpecialization) is one of
-                $(D struct)
-                $(D union)
-                $(D class)
-                $(D interface)
-                $(D enum)
-                $(D __vector)
-                $(D function)
-                $(D delegate)
-                $(D const)
-                $(D immutable)
-                $(D inout)
-                $(D shared)
-                $(D module)
-                $(D package)
+        If $(I TypeSpecialization) is a type pattern involving
+        $(I Identifier), type deduction of $(I Identifier) is attempted
+        based on *Type*.
+        The condition is only satisfied if the type pattern is matched.
+        )
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    alias Foo = long*;
 
-        then the condition is satisfied if $(I Type) is one of those.
-        *TypeSpecialization* can also match the following keywords:
-        )
-        $(TABLE
-        $(THEAD keyword, condition)
-        $(TROW `super`, `true` if *Type* is a class or interface)
-        $(TROW `return`,
-            $(ARGS `true` is *Type* is a function, delegate or function pointer))
-        $(TROW `__parameters`,
-            $(ARGS `true` is *Type* is a function, delegate or function pointer))
-        )
+    static if (is(Foo U == U*)) // Foo is matched against the pattern U*
+    {
+        U u;
+    }
+    static assert(is(U == long));
+    ---
+    )
         $(P
-        Furthermore, $(I Identifier) is set to be an alias of the type:
+        If *TypeSpecialization* is a valid keyword for the
+        $(RELATIVE_LINK2 is-type-equal, `is(Type == Keyword)` form),
+        the condition is satisfied in the same manner.
+        $(I Identifier) is set as follows:
         )
 
         $(TABLE_2COLS ,
