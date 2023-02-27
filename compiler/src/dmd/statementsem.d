@@ -1349,7 +1349,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
                         auto exp = (*exps)[i];
                         version (none)
                         {
-                            printf("[%d] p = %s %s, exp = %s %s\n", i,
+                            printf("[%lu] p = %s %s, exp = %s %s\n", i,
                                 p.type ? p.type.toChars() : "?", p.ident.toChars(),
                                 exp.type.toChars(), exp.toChars());
                         }
@@ -1360,7 +1360,11 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
                         if (ignoreRef) sc &= ~STC.ref_;
                         p.type = p.type.addStorageClass(sc).typeSemantic(loc, sc2);
                         if (!exp.implicitConvTo(p.type))
-                            return rangeError();
+                        {
+                            fs.error("cannot implicilty convert range element of type `%s` to variable `%s` of type `%s`",
+                                exp.type.toChars(), p.toChars(), p.type.toChars());
+                            return retError();
+                        }
 
                         auto var = new VarDeclaration(loc, p.type, p.ident, new ExpInitializer(loc, exp));
                         var.storage_class |= STC.ctfe | STC.ref_ | STC.foreach_;
