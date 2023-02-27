@@ -969,7 +969,7 @@ nothrow:
                 OutBuffer buf;
                 buf.writeSingleCharLiteral(cast(dchar) intvalue);
                 buf.writeByte('\0');
-                p = buf.extractSlice().ptr;
+                p = buf.extractChars();
             }
             break;
         case TOK.int64Literal:
@@ -1015,7 +1015,7 @@ nothrow:
                 if (postfix)
                     buf.writeByte(postfix);
                 buf.writeByte(0);
-                p = buf.extractSlice().ptr;
+                p = buf.extractChars();
             }
             break;
         case TOK.identifier:
@@ -1125,7 +1125,7 @@ unittest
     {
         writeCharLiteral(buf, d);
     }
-    assert(buf.extractSlice() == `a\n\r\t\b\f\0\x11\u7233\U00017233`);
+    assert(buf[] == `a\n\r\t\b\f\0\x11\u7233\U00017233`);
 }
 
 /**
@@ -1156,11 +1156,11 @@ unittest
 {
     OutBuffer buf;
     writeSingleCharLiteral(buf, '\'');
-    assert(buf.extractSlice() == `'\''`);
+    assert(buf[] == `'\''`);
     buf.reset();
     writeSingleCharLiteral(buf, '"');
-    assert(buf.extractSlice() == `'"'`);
+    assert(buf[] == `'"'`);
     buf.reset();
     writeSingleCharLiteral(buf, '\n');
-    assert(buf.extractSlice() == `'\n'`);
+    assert(buf[] == `'\n'`);
 }
