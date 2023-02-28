@@ -258,7 +258,7 @@ $(GNAME ElseStatement):
         $(I ThenStatement) is transferred to, else the $(I ElseStatement)
         is transferred to.)
 
-        $(P The $(I ElseStatement)is associated with the innermost if
+        $(P The $(I ElseStatement) is associated with the innermost if
         statement which does not already have an associated $(I ElseStatement).)
 
         $(P If an $(D auto) $(I Identifier) is provided, it is declared and
