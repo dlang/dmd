@@ -477,7 +477,7 @@ $(H3 $(LNAME2 compare, Overloading $(D <), $(D <)$(D =), $(D >), and $(D >)$(D =
         $(D 0), $(ARGS $(D b.opCmp(a)) $(D >) $(D 0)))
         $(TROW $(D a) $(D <)$(D= b), $(ARGS $(D a.opCmp(b))
         $(D <)$(D= 0)), $(ARGS $(D b.opCmp(a)) $(D >)$(D = 0)))
-        $(TROW $(D a) $(D >)$(D b), $(ARGS $(D a.opCmp(b))
+        $(TROW $(D a) $(D >) $(D b), $(ARGS $(D a.opCmp(b))
         $(D >) $(D 0)), $(ARGS $(D b.opCmp(a)) $(D <) $(D 0)))
         $(TROW $(D a) $(D >)$(D = b), $(ARGS $(D a.opCmp(b))
         $(D >)$(D = 0)), $(ARGS $(D b.opCmp(a)) $(D <)$(D= 0)))
