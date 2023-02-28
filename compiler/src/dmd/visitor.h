@@ -16,7 +16,7 @@ class ErrorStatement;
 class PeelStatement;
 class ExpStatement;
 class DtorExpStatement;
-class CompileStatement;
+class MixinStatement;
 class CompoundStatement;
 class CompoundDeclarationStatement;
 class UnrolledLoopStatement;
@@ -395,7 +395,7 @@ public:
     virtual void visit(ReturnStatement *s) { visit((Statement *)s); }
     virtual void visit(LabelStatement *s) { visit((Statement *)s); }
     virtual void visit(StaticAssertStatement *s) { visit((Statement *)s); }
-    virtual void visit(CompileStatement *s) { visit((Statement *)s); }
+    virtual void visit(MixinStatement *s) { visit((Statement *)s); }
     virtual void visit(WhileStatement *s) { visit((Statement *)s); }
     virtual void visit(ForStatement *s) { visit((Statement *)s); }
     virtual void visit(DoStatement *s) { visit((Statement *)s); }

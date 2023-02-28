@@ -315,7 +315,7 @@ class StaticForeachStatement;
 class GotoDefaultStatement;
 class BreakStatement;
 class DtorExpStatement;
-class CompileStatement;
+class MixinStatement;
 class ForwardingStatement;
 class ContinueStatement;
 class ThrowStatement;
@@ -1916,7 +1916,7 @@ public:
     virtual void visit(typename AST::ReturnStatement s);
     virtual void visit(typename AST::LabelStatement s);
     virtual void visit(typename AST::StaticAssertStatement s);
-    virtual void visit(typename AST::CompileStatement s);
+    virtual void visit(typename AST::MixinStatement s);
     virtual void visit(typename AST::WhileStatement s);
     virtual void visit(typename AST::ForStatement s);
     virtual void visit(typename AST::DoStatement s);
@@ -4132,7 +4132,7 @@ public:
     GotoCaseStatement* isGotoCaseStatement();
     BreakStatement* isBreakStatement();
     DtorExpStatement* isDtorExpStatement();
-    CompileStatement* isCompileStatement();
+    MixinStatement* isCompileStatement();
     ForwardingStatement* isForwardingStatement();
     DoStatement* isDoStatement();
     WhileStatement* isWhileStatement();
@@ -4203,11 +4203,11 @@ public:
     Catch* syntaxCopy();
 };
 
-class CompileStatement final : public Statement
+class MixinStatement final : public Statement
 {
 public:
     Array<Expression* >* exps;
-    CompileStatement* syntaxCopy() override;
+    MixinStatement* syntaxCopy() override;
     void accept(Visitor* v) override;
 };
 
@@ -5060,7 +5060,7 @@ struct ASTCodegen final
     using CaseRangeStatement = ::CaseRangeStatement;
     using CaseStatement = ::CaseStatement;
     using Catch = ::Catch;
-    using CompileStatement = ::CompileStatement;
+    using MixinStatement = ::MixinStatement;
     using CompoundAsmStatement = ::CompoundAsmStatement;
     using CompoundDeclarationStatement = ::CompoundDeclarationStatement;
     using CompoundStatement = ::CompoundStatement;
@@ -8210,7 +8210,7 @@ class SemanticTimeTransitiveVisitor : public SemanticTimePermissiveVisitor
 public:
     using SemanticTimePermissiveVisitor::visit;
     void visit(ExpStatement* s) override;
-    void visit(CompileStatement* s) override;
+    void visit(MixinStatement* s) override;
     void visit(CompoundStatement* s) override;
     virtual void visitVarDecl(VarDeclaration* v);
     void visit(CompoundDeclarationStatement* s) override;

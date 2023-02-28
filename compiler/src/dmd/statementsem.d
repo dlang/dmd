@@ -226,12 +226,12 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
         result = s;
     }
 
-    override void visit(CompileStatement cs)
+    override void visit(MixinStatement cs)
     {
         /* https://dlang.org/spec/statement.html#mixin-statement
          */
 
-        //printf("CompileStatement::semantic() %s\n", exp.toChars());
+        //printf("MixinStatement::semantic() %s\n", exp.toChars());
         Statements* a = cs.flatten(sc);
         if (!a)
             return;

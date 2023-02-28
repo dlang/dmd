@@ -388,7 +388,7 @@ extern (C++) abstract class Statement : ASTNode
     inout(GotoCaseStatement)    isGotoCaseStatement()    { return stmt == STMT.GotoCase    ? cast(typeof(return))this : null; }
     inout(BreakStatement)       isBreakStatement()       { return stmt == STMT.Break       ? cast(typeof(return))this : null; }
     inout(DtorExpStatement)     isDtorExpStatement()     { return stmt == STMT.DtorExp     ? cast(typeof(return))this : null; }
-    inout(CompileStatement)     isCompileStatement()     { return stmt == STMT.Compile     ? cast(typeof(return))this : null; }
+    inout(MixinStatement)       isCompileStatement()     { return stmt == STMT.Compile     ? cast(typeof(return))this : null; }
     inout(ForwardingStatement)  isForwardingStatement()  { return stmt == STMT.Forwarding  ? cast(typeof(return))this : null; }
     inout(DoStatement)          isDoStatement()          { return stmt == STMT.Do          ? cast(typeof(return))this : null; }
     inout(WhileStatement)       isWhileStatement()       { return stmt == STMT.While       ? cast(typeof(return))this : null; }
@@ -518,7 +518,8 @@ extern (C++) final class DtorExpStatement : ExpStatement
 /***********************************************************
  * https://dlang.org/spec/statement.html#mixin-statement
  */
-extern (C++) final class CompileStatement : Statement
+// Note: was called CompileStatement
+extern (C++) final class MixinStatement : Statement
 {
     Expressions* exps;
 
@@ -535,9 +536,9 @@ extern (C++) final class CompileStatement : Statement
         this.exps = exps;
     }
 
-    override CompileStatement syntaxCopy()
+    override MixinStatement syntaxCopy()
     {
-        return new CompileStatement(loc, Expression.arraySyntaxCopy(exps));
+        return new MixinStatement(loc, Expression.arraySyntaxCopy(exps));
     }
 
     override void accept(Visitor v)

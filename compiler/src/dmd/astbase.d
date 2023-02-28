@@ -1922,7 +1922,7 @@ struct ASTBase
         }
     }
 
-    extern (C++) final class CompileStatement : Statement
+    extern (C++) final class MixinStatement : Statement
     {
         Expressions* exps;
 

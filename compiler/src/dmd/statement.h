@@ -143,7 +143,7 @@ public:
     GotoCaseStatement    *isGotoCaseStatement()    { return stmt == STMTgotoCase    ? (GotoCaseStatement*)this    : NULL; }
     BreakStatement       *isBreakStatement()       { return stmt == STMTbreak       ? (BreakStatement*)this       : NULL; }
     DtorExpStatement     *isDtorExpStatement()     { return stmt == STMTdtorExp     ? (DtorExpStatement*)this     : NULL; }
-    CompileStatement     *isCompileStatement()     { return stmt == STMTcompile     ? (CompileStatement*)this     : NULL; }
+    MixinStatement       *isCompileStatement()     { return stmt == STMTcompile     ? (MixinStatement*)this       : NULL; }
     ForwardingStatement  *isForwardingStatement()  { return stmt == STMTforwarding  ? (ForwardingStatement*)this  : NULL; }
     DoStatement          *isDoStatement()          { return stmt == STMTdo          ? (DoStatement*)this          : NULL; }
     ForStatement         *isForStatement()         { return stmt == STMTfor         ? (ForStatement*)this         : NULL; }
@@ -206,12 +206,12 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class CompileStatement final : public Statement
+class MixinStatement final : public Statement
 {
 public:
     Expressions *exps;
 
-    CompileStatement *syntaxCopy() override;
+    MixinStatement *syntaxCopy() override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 

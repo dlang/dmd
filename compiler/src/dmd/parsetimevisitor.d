@@ -99,7 +99,7 @@ public:
     void visit(AST.ReturnStatement s) { visit(cast(AST.Statement)s); }
     void visit(AST.LabelStatement s) { visit(cast(AST.Statement)s); }
     void visit(AST.StaticAssertStatement s) { visit(cast(AST.Statement)s); }
-    void visit(AST.CompileStatement s) { visit(cast(AST.Statement)s); }
+    void visit(AST.MixinStatement s) { visit(cast(AST.Statement)s); }
     void visit(AST.WhileStatement s) { visit(cast(AST.Statement)s); }
     void visit(AST.ForStatement s) { visit(cast(AST.Statement)s); }
     void visit(AST.DoStatement s) { visit(cast(AST.Statement)s); }
