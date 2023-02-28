@@ -164,16 +164,10 @@ private extern (C++) class S2irVisitor : Visitor
 
         if (s.elsebody)
         {
-            const isFalse = s.condition.toBool().hasValue(true);
-            irs.falseBlock += isFalse;
-
             block_next(blx, BCgoto, null);
             bcond.appendSucc(blx.curblock);
             Statement_toIR(s.elsebody, irs, &mystate);
             blx.curblock.appendSucc(bexit);
-
-            if (isFalse && irs.falseBlock)
-                --irs.falseBlock;
         }
         else
             bcond.appendSucc(bexit);
@@ -392,7 +386,6 @@ private extern (C++) class S2irVisitor : Visitor
         block *bc = blx.curblock;
         StmtState mystate = StmtState(stmtstate, s);
         mystate.ident = s.ident;
-        irs.falseBlock = 0;
 
         block* bdest = cast(block*)s.extra;
         // At last, we know which try block this label is inside
@@ -515,7 +508,6 @@ private extern (C++) class S2irVisitor : Visitor
 
     override void visit(CaseStatement s)
     {
-        irs.falseBlock = 0;
         Blockx *blx = irs.blx;
         block *bcase = blx.curblock;
         block* cb = cast(block*)s.extra;
@@ -532,7 +524,6 @@ private extern (C++) class S2irVisitor : Visitor
 
     override void visit(DefaultStatement s)
     {
-        irs.falseBlock = 0;
         Blockx *blx = irs.blx;
         block *bcase = blx.curblock;
         block *bdefault = stmtstate.getDefaultBlock();
