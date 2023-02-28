@@ -1221,8 +1221,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             return orig | added;
         }
 
-        const Redundant = (STC.const_ | STC.scope_ |
-                           (global.params.previewIn ? STC.ref_ : 0));
+        const Redundant = (STC.const_ | STC.scope_ | STC.ref_);
         orig |= added;
 
         if ((orig & STC.in_) && (added & Redundant))
@@ -1234,6 +1233,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 error("attribute `%s` is redundant with previously-applied `in`",
                       (orig & STC.scope_) ? "scope".ptr : "ref".ptr);
             }
+            else if (added & STC.ref_)
+                deprecation("using `in ref` is deprecated, use `-preview=in` and `in` instead");
             else
                 error("attribute `scope` cannot be applied with `in`, use `-preview=in` instead");
             return orig;
@@ -1250,6 +1251,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 error(token.loc, "attribute `in` cannot be added after `%s`: remove `%s`",
                       stc_str, stc_str);
             }
+            else if (orig & STC.ref_)
+                deprecation("using `ref in` is deprecated, use `-preview=in` and `in` instead");
             else
                 error("attribute `in` cannot be added after `scope`: remove `scope` and use `-preview=in`");
             return orig;
