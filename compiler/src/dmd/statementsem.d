@@ -4734,7 +4734,7 @@ private Statements* flatten(Statement statement, Scope* sc)
             return a;
 
         case STMT.Compile:
-            auto cs = statement.isCompileStatement();
+            auto cs = statement.isMixinStatement();
 
 
             OutBuffer buf;

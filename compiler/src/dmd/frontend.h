@@ -4132,7 +4132,7 @@ public:
     GotoCaseStatement* isGotoCaseStatement();
     BreakStatement* isBreakStatement();
     DtorExpStatement* isDtorExpStatement();
-    MixinStatement* isCompileStatement();
+    MixinStatement* isMixinStatement();
     ForwardingStatement* isForwardingStatement();
     DoStatement* isDoStatement();
     WhileStatement* isWhileStatement();
