@@ -339,7 +339,7 @@ enum STMT : ubyte
     Error,
     Peel,
     Exp, DtorExp,
-    Compile,
+    Mixin,
     Compound, CompoundDeclaration, CompoundAsm,
     UnrolledLoop,
     Scope,

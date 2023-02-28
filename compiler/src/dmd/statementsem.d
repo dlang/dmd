@@ -4733,7 +4733,7 @@ private Statements* flatten(Statement statement, Scope* sc)
             (*a)[0] = ls;
             return a;
 
-        case STMT.Compile:
+        case STMT.Mixin:
             auto cs = statement.isMixinStatement();
 
 

@@ -1928,7 +1928,7 @@ struct ASTBase
 
         final extern (D) this(const ref Loc loc, Expressions* exps)
         {
-            super(loc, STMT.Compile);
+            super(loc, STMT.Mixin);
             this.exps = exps;
         }
 

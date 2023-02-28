@@ -4053,7 +4053,7 @@ enum class STMT : uint8_t
     Peel = 1u,
     Exp = 2u,
     DtorExp = 3u,
-    Compile = 4u,
+    Mixin = 4u,
     Compound = 5u,
     CompoundDeclaration = 6u,
     CompoundAsm = 7u,
