@@ -53,11 +53,14 @@ coverage_environment_template: &COVERAGE_ENVIRONMENT_TEMPLATE
 
 # Linux
 linux_task:
-  name: Ubuntu 18.04 $TASK_NAME_SUFFIX
+  name: Ubuntu 22.04 $TASK_NAME_SUFFIX
   container:
-    image: ubuntu:18.04
+    image: ubuntu:22.04
     cpu: 4
     memory: 8G
+    # Workaround GDB bug on 22.04 by requesting a privileged container
+    # See https://github.com/cirruslabs/cirrus-ci-docs/issues/1136
+    kvm: true
   timeout_in: 60m
   environment:
     matrix:

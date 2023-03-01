@@ -5,7 +5,8 @@ bytes allocated, allocations, type, function, file:line
              64	              1	double[] profilegc.main src/profilegc.d:56
              48	              1	float[] D main src/profilegc.d:42
              48	              1	int[] D main src/profilegc.d:41
-             32	              1	profilegc.main.C D main src/profilegc.d:12
+             32	              1	C D main src/profilegc.d:12
+             32	              1	profilegc.main.C core.lifetime._d_newclassT!(C)._d_newclassT ../../src/core/lifetime.d:2755
              32	              1	void[] profilegc.main src/profilegc.d:55
              16	              1	char[] D main src/profilegc.d:34
              16	              1	char[] D main src/profilegc.d:36

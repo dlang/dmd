@@ -1,5 +1,5 @@
 template fullyQualifiedName(T...)
-{   
+{
     enum fullyQualifiedName = !T[0];
 }
 

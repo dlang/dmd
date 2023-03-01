@@ -80,73 +80,31 @@ void elem_setLoc(elem *e, const ref Loc loc) pure nothrow
     srcpos_setLoc(e.Esrcpos, loc);
 }
 
-private void block_setLoc(block *b, const ref Loc loc) pure nothrow
+void Statement_toIR(Statement s, IRState *irs)
 {
-    srcpos_setLoc(b.Bsrcpos, loc);
+    /* Generate a block for each label
+     */
+    FuncDeclaration fd = irs.getFunc();
+    if (auto labtab = fd.labtab)
+        foreach (keyValue; labtab.tab.asRange)
+        {
+            //printf("  KV: %s = %s\n", keyValue.key.toChars(), keyValue.value.toChars());
+            LabelDsymbol label = cast(LabelDsymbol)keyValue.value;
+            if (label.statement)
+                label.statement.extra = dmd.backend.global.block_calloc();
+        }
+
+    StmtState stmtstate;
+    scope v = new S2irVisitor(irs, &stmtstate);
+    s.accept(v);
 }
-
-private void srcpos_setLoc(ref Srcpos s, const ref Loc loc) pure nothrow
-{
-    s.set(loc.filename, loc.linnum, loc.charnum);
-}
-
-private bool isAssertFalse(const Expression e) nothrow
-{
-    return e ? e.type == Type.tnoreturn && (e.op == EXP.halt || e.op == EXP.assert_) : false;
-}
-
-private bool isAssertFalse(const Statement s) nothrow
-{
-    if (!s)
-        return false;
-    if (auto es = s.isExpStatement())
-        return isAssertFalse(es.exp);
-    else if (auto ss = s.isScopeStatement())
-        return isAssertFalse(ss.statement);
-    return false;
-}
-
-/***********************************************
- * Generate code to set index into scope table.
- */
-
-private void setScopeIndex(Blockx *blx, block *b, int scope_index)
-{
-    if (config.ehmethod == EHmethod.EH_WIN32 && !(blx.funcsym.Sfunc.Fflags3 & Feh_none))
-        block_appendexp(b, nteh_setScopeTableIndex(blx, scope_index));
-}
-
-/****************************************
- * Allocate a new block, and set the tryblock.
- */
-
-private block *block_calloc(Blockx *blx)
-{
-    block *b = dmd.backend.global.block_calloc();
-    b.Btry = blx.tryblock;
-    return b;
-}
-
-/**************************************
- * Add in code to increment usage count for linnum.
- */
-
-private void incUsage(IRState *irs, const ref Loc loc)
-{
-
-    if (irs.params.cov && loc.linnum)
-    {
-        block_appendexp(irs.blx.curblock, incUsageElem(irs, loc));
-    }
-}
-
 
 private extern (C++) class S2irVisitor : Visitor
 {
     IRState* irs;
     StmtState* stmtstate;
 
-    this(IRState *irs, StmtState* stmtstate)
+    this(IRState *irs, StmtState* stmtstate) scope
     {
         this.irs = irs;
         this.stmtstate = stmtstate;
@@ -193,7 +151,15 @@ private extern (C++) class S2irVisitor : Visitor
 
         bcond.appendSucc(blx.curblock);
         if (s.ifbody)
+        {
+            bool ctfe = s.isIfCtfeBlock();         // __ctfe is always false at runtime
+            const isFalse = ctfe;
+
+            irs.falseBlock += isFalse;
             Statement_toIR(s.ifbody, irs, &mystate);
+            if (isFalse && irs.falseBlock)
+                --irs.falseBlock;
+        }
         blx.curblock.appendSucc(bexit);
 
         if (s.elsebody)
@@ -760,7 +726,7 @@ private extern (C++) class S2irVisitor : Visitor
         Blockx *blx = irs.blx;
 
         //printf("ExpStatement.toIR(), exp: %p %s\n", s.exp, s.exp ? s.exp.toChars() : "");
-        if (s.exp)
+        if (s.exp && !irs.falseBlock)
         {
             if (s.exp.hasCode &&
                 !(isAssertFalse(s.exp))) // `assert(0)` not meant to be covered
@@ -1540,25 +1506,6 @@ private extern (C++) class S2irVisitor : Visitor
     }
 }
 
-void Statement_toIR(Statement s, IRState *irs)
-{
-    /* Generate a block for each label
-     */
-    FuncDeclaration fd = irs.getFunc();
-    if (auto labtab = fd.labtab)
-        foreach (keyValue; labtab.tab.asRange)
-        {
-            //printf("  KV: %s = %s\n", keyValue.key.toChars(), keyValue.value.toChars());
-            LabelDsymbol label = cast(LabelDsymbol)keyValue.value;
-            if (label.statement)
-                label.statement.extra = dmd.backend.global.block_calloc();
-        }
-
-    StmtState stmtstate;
-    scope v = new S2irVisitor(irs, &stmtstate);
-    s.accept(v);
-}
-
 /***************************************************
  * Insert finally block calls when doing a goto from
  * inside a try block to outside.
@@ -1798,5 +1745,65 @@ void insertFinallyBlockGotos(block *startblock)
         numberBlocks(startblock);
         foreach (b; BlockRange(startblock)) WRblock(b);
         printf("-------------------------\n");
+    }
+}
+
+private void block_setLoc(block *b, const ref Loc loc) pure nothrow
+{
+    srcpos_setLoc(b.Bsrcpos, loc);
+}
+
+private void srcpos_setLoc(ref Srcpos s, const ref Loc loc) pure nothrow
+{
+    s.set(loc.filename, loc.linnum, loc.charnum);
+}
+
+private bool isAssertFalse(const Expression e) nothrow
+{
+    return e ? e.type == Type.tnoreturn && (e.op == EXP.halt || e.op == EXP.assert_) : false;
+}
+
+private bool isAssertFalse(const Statement s) nothrow
+{
+    if (!s)
+        return false;
+    if (auto es = s.isExpStatement())
+        return isAssertFalse(es.exp);
+    else if (auto ss = s.isScopeStatement())
+        return isAssertFalse(ss.statement);
+    return false;
+}
+
+/***********************************************
+ * Generate code to set index into scope table.
+ */
+
+private void setScopeIndex(Blockx *blx, block *b, int scope_index)
+{
+    if (config.ehmethod == EHmethod.EH_WIN32 && !(blx.funcsym.Sfunc.Fflags3 & Feh_none))
+        block_appendexp(b, nteh_setScopeTableIndex(blx, scope_index));
+}
+
+/****************************************
+ * Allocate a new block, and set the tryblock.
+ */
+
+private block *block_calloc(Blockx *blx)
+{
+    block *b = dmd.backend.global.block_calloc();
+    b.Btry = blx.tryblock;
+    return b;
+}
+
+/**************************************
+ * Add in code to increment usage count for linnum.
+ */
+
+private void incUsage(IRState *irs, const ref Loc loc)
+{
+
+    if (irs.params.cov && loc.linnum)
+    {
+        block_appendexp(irs.blx.curblock, incUsageElem(irs, loc));
     }
 }

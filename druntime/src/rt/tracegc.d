@@ -17,7 +17,6 @@ module rt.tracegc;
 
 // version = tracegc;
 
-extern (C) Object _d_newclass(const ClassInfo ci);
 extern (C) void[] _d_newarrayT(const TypeInfo ti, size_t length);
 extern (C) void[] _d_newarrayU(const scope TypeInfo ti, size_t length);
 extern (C) void[] _d_newarrayiT(const TypeInfo ti, size_t length);

@@ -687,6 +687,9 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     if (!fd.fbody)
         return;
 
+    if (fd.skipCodegen)
+        return;
+
     UnitTestDeclaration ud = fd.isUnitTestDeclaration();
     if (ud && !global.params.useUnitTests)
         return;
@@ -858,7 +861,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         // If function returns a struct, put a pointer to that
         // as the first argument
         .type *thidden = Type_toCtype(tf.next.pointerTo());
-        char[5 + 10 + 1] hiddenparam = void;
+        const hiddenparamLen = 5 + 10 + 1;
+        char[hiddenparamLen] hiddenparam = void;
         __gshared uint hiddenparami;    // how many we've generated so far
 
         const(char)* name;
@@ -866,7 +870,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             name = fd.nrvo_var.ident.toChars();
         else
         {
-            sprintf(hiddenparam.ptr, "__HID%u", ++hiddenparami);
+            snprintf(hiddenparam.ptr, hiddenparamLen, "__HID%u", ++hiddenparami);
             name = hiddenparam.ptr;
         }
         shidden = symbol_name(name[0 .. strlen(name)], SC.parameter, thidden);
@@ -1090,6 +1094,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     }
 
     buildClosure(fd, &irs);
+    buildAlignSection(fd, irs); // must be after buildClosure
 
     if (config.ehmethod == EHmethod.EH_WIN32 && fd.isSynchronized() && cd &&
         !fd.isStatic() && !sbody.usesEH() && !global.params.trace)

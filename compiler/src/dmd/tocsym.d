@@ -87,7 +87,7 @@ Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, SC sclass, type *t, const(cha
     auto sb = SmallBuffer!(char)(idlen, idbuf[]);
     char *id = sb.ptr;
 
-    int nwritten = sprintf(id,"_D%.*s%d%.*s%.*s",
+    int nwritten = snprintf(id, idlen, "_D%.*s%d%.*s%.*s",
         cast(int)nlen, n,
         cast(int)prefixlen, cast(int)prefixlen, prefix,
         cast(int)suffixlen, suffix);
@@ -110,7 +110,7 @@ Symbol *toSymbol(Dsymbol s)
 
         Symbol *result;
 
-        this()
+        this() scope
         {
             result = null;
         }
@@ -129,6 +129,8 @@ Symbol *toSymbol(Dsymbol s)
         override void visit(VarDeclaration vd)
         {
             //printf("VarDeclaration.toSymbol(%s)\n", vd.toChars());
+            if (vd.needThis())
+                fprintf(stderr, "VarDeclaration.toSymbol(%s) needThis kind: %s\n", vd.toPrettyChars(), vd.kind());
             assert(!vd.needThis());
 
             import dmd.common.outbuffer : OutBuffer;
@@ -356,12 +358,16 @@ Symbol *toSymbol(Dsymbol s)
             else if (fd.isMember2() && fd.isStatic())
                 f.Fflags |= Fstatic;
 
+            if (fd.isSafe())
+                f.Fflags3 |= F3safe;
+
             if (fd.inlining == PINLINE.default_ && global.params.useInline ||
                 fd.inlining == PINLINE.always)
             {
                 // this is copied from inline.d
                 if (!fd.fbody ||
                     fd.ident == Id.ensure ||
+                    fd.skipCodegen ||
                     (fd.ident == Id.require &&
                      fd.toParent().isFuncDeclaration() &&
                      fd.toParent().isFuncDeclaration().needThis()) ||
@@ -497,14 +503,21 @@ Symbol *toSymbol(Dsymbol s)
 
 
 /*************************************
+ * Create Windows import symbol from backend Symbol.
+ * Params:
+ *      sym = backend symbol
+ *      loc = location for error message purposes
+ * Returns:
+ *      import symbol
  */
 
-Symbol *toImport(Symbol *sym, Loc loc)
+private Symbol *createImport(Symbol *sym, Loc loc)
 {
-    //printf("Dsymbol.toImport('%s')\n", sym.Sident);
-    char *n = sym.Sident.ptr;
+    //printf("Dsymbol.createImport('%s')\n", sym.Sident.ptr);
+    const char* n = sym.Sident.ptr;
     import core.stdc.stdlib : alloca;
-    char *id = cast(char *) alloca(6 + strlen(n) + 1 + type_paramsize(sym.Stype).sizeof*3 + 1);
+    const allocLen = 6 + strlen(n) + 1 + type_paramsize(sym.Stype).sizeof*3 + 1;
+    char *id = cast(char *) alloca(allocLen);
     int idlen;
     if (target.os & Target.OS.Posix)
     {
@@ -514,13 +527,13 @@ Symbol *toImport(Symbol *sym, Loc loc)
     else if (sym.Stype.Tmangle == mTYman_std && tyfunc(sym.Stype.Tty))
     {
         if (target.os == Target.OS.Windows && target.is64bit)
-            idlen = sprintf(id,"__imp_%s",n);
+            idlen = snprintf(id, allocLen, "__imp_%s",n);
         else
-            idlen = sprintf(id,"_imp__%s@%u",n,cast(uint)type_paramsize(sym.Stype));
+            idlen = snprintf(id, allocLen, "_imp__%s@%u",n,cast(uint)type_paramsize(sym.Stype));
     }
     else
     {
-        idlen = sprintf(id,(target.os == Target.OS.Windows && target.is64bit) ? "__imp_%s" : (sym.Stype.Tmangle == mTYman_cpp) ? "_imp_%s" : "_imp__%s",n);
+        idlen = snprintf(id, allocLen, (target.os == Target.OS.Windows && target.is64bit) ? "__imp_%s" : (sym.Stype.Tmangle == mTYman_cpp) ? "_imp_%s" : "_imp__%s",n);
     }
     auto t = type_alloc(TYnptr | mTYconst);
     t.Tnext = sym.Stype;
@@ -544,7 +557,7 @@ Symbol *toImport(Declaration ds)
     {
         if (!ds.csym)
             ds.csym = toSymbol(ds);
-        ds.isym = toImport(ds.csym, ds.loc);
+        ds.isym = createImport(ds.csym, ds.loc);
     }
     return ds.isym;
 }
@@ -565,9 +578,10 @@ Symbol *toThunkSymbol(FuncDeclaration fd, int offset)
     s.Sfunc.Fflags &= ~Finline;  // thunks are not real functions, don't inline them
 
     __gshared int tmpnum;
-    char[6 + tmpnum.sizeof * 3 + 1] name = void;
+    const nameLen = 6 + tmpnum.sizeof * 3 + 1;
+    char[nameLen] name = void;
 
-    const len = sprintf(name.ptr,"_THUNK%d",tmpnum++);
+    const len = snprintf(name.ptr,nameLen,"_THUNK%d",tmpnum++);
     auto sthunk = symbol_name(name[0 .. len],SC.static_,fd.csym.Stype);
     sthunk.Sflags |= SFLnodebug | SFLartifical;
     sthunk.Sflags |= SFLimplem;
@@ -656,7 +670,24 @@ Symbol *toInitializer(AggregateDeclaration ad)
         else
         {
             auto stag = fake_classsym(Id.ClassInfo);
-            auto s = toSymbolX(ad, "__init", SC.extern_, stag.Stype, "Z");
+
+            Symbol* s;
+
+            Module m = ad.getModule();
+            if (m.filetype == FileType.c)
+            {
+                /* For ImportC structs, the module names are stripped from the mangled name.
+                 * This leads to name collisions. Add the module name back in.
+                 */
+                import dmd.common.outbuffer : OutBuffer;
+                OutBuffer buf;
+                buf.writestring("__init");
+                buf.writestring(m.toChars());
+                s = toSymbolX(ad, buf.peekChars(), SC.extern_, stag.Stype, "Z");
+            }
+            else
+                s = toSymbolX(ad, "__init", SC.extern_, stag.Stype, "Z");
+
             s.Sfl = FLextern;
             s.Sflags |= SFLnodebug;
             if (sd)
@@ -699,8 +730,9 @@ Symbol *aaGetSymbol(TypeAArray taa, const(char)* func, int flags)
 
     //printf("aaGetSymbol(func = '%s', flags = %d, key = %p)\n", func, flags, key);
     import core.stdc.stdlib : alloca;
-    auto id = cast(char *)alloca(3 + strlen(func) + 1);
-    const idlen = sprintf(id, "_aa%s", func);
+    const allocLen = 3 + strlen(func) + 1;
+    auto id = cast(char *)alloca(allocLen);
+    const idlen = snprintf(id, allocLen, "_aa%s", func);
 
     // See if symbol is already in sarray
     foreach (s; sarray)

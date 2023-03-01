@@ -279,10 +279,17 @@ bool Symbol_isAffected(const ref Symbol s)
      * 4. Const can be mutated by a separate view.
      * Address this in a separate PR.
      */
-    if (0 &&
-        s.ty() & (mTYconst | mTYimmutable))
+    static if (0)
+    if (s.ty() & (mTYconst | mTYimmutable))
     {
-        return false;
+        /* Disabled for the moment because even @safe functions
+         * may have inlined unsafe code from other functions
+         */
+        if (funcsym_p.Sfunc.Fflags3 & F3safe &&
+            s.ty() & mTYimmutable)
+        {
+            return false;
+        }
     }
     return true;
 }
@@ -407,7 +414,7 @@ Symbol * symbol_generate(SC sclass,type *t)
     char[4 + tmpnum.sizeof * 3 + 1] name;
 
     //printf("symbol_generate(_TMP%d)\n", tmpnum);
-    const length = sprintf(name.ptr,"_TMP%d",tmpnum++);
+    const length = snprintf(name.ptr,name.length,"_TMP%d",tmpnum++);
     Symbol *s = symbol_name(name.ptr[0 .. length],sclass,t);
     //symbol_print(s);
 

@@ -717,7 +717,7 @@ static:
             // create symbol
             __gshared size_t selectorCount = 0;
             char[42] nameString = void;
-            const len = sprintf(nameString.ptr, "L_OBJC_SELECTOR_REFERENCES_%llu", cast(ulong) selectorCount);
+            const len = snprintf(nameString.ptr, nameString.length, "L_OBJC_SELECTOR_REFERENCES_%llu", cast(ulong) selectorCount);
             auto symbol = symbol_name(nameString[0 .. len], SC.static_, type_fake(TYnptr));
 
             symbol.Sdt = dtb.finish();

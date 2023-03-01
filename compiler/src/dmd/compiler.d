@@ -11,6 +11,8 @@
 
 module dmd.compiler;
 
+import core.stdc.string;
+
 import dmd.astcodegen;
 import dmd.astenums;
 import dmd.arraytypes;
@@ -142,7 +144,7 @@ extern (C++) struct Compiler
      */
     extern(C++) static bool onImport(Module m)
     {
-        if (includeImports)
+        if (includeImports && m.filetype == FileType.d)
         {
             if (includeImportedModuleCheck(ModuleComponentRange(
                 m.md ? m.md.packages : [], m.ident, m.isPackageFile)))
@@ -305,7 +307,7 @@ private void createMatchNodes()
     {
         foreach (modulePattern; includeModulePatterns)
         {
-            auto depth = parseModulePatternDepth(modulePattern);
+            auto depth = parseModulePatternDepth(modulePattern[0 .. strlen(modulePattern)]);
             auto entryIndex = findSortedIndexToAddForDepth(depth);
             matchNodes.split(entryIndex, depth + 1);
             parseModulePattern(modulePattern, &matchNodes[entryIndex], depth);
@@ -342,24 +344,20 @@ private void createMatchNodes()
  * Returns:
  *  The component depth of the given module pattern.
  */
-private ushort parseModulePatternDepth(const(char)* modulePattern)
+pure @safe
+private ushort parseModulePatternDepth(const char[] modulePattern)
 {
-    if (modulePattern[0] == '-')
-        modulePattern++;
+    const length = modulePattern.length;
+    size_t i = (length && modulePattern[0] == '-'); // skip past leading '-'
 
     // handle special case
-    if (modulePattern[0] == '.' && modulePattern[1] == '\0')
+    if (i + 1 == length && modulePattern[i] == '.')
         return 0;
 
-    ushort depth = 1;
-    for (;; modulePattern++)
-    {
-        auto c = *modulePattern;
-        if (c == '.')
-            depth++;
-        if (c == '\0')
-            return depth;
-    }
+    int depth = 1;
+    foreach (c; modulePattern[i .. length])
+        depth += c == '.';
+    return cast(ushort)depth;
 }
 unittest
 {

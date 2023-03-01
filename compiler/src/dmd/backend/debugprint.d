@@ -108,9 +108,9 @@ const(char)* class_str(SC c)
 
     static assert(sc.length == SCMAX);
     if (cast(uint) c < SCMAX)
-        sprintf(buffer.ptr,"SC%s",sc[c].ptr);
+        snprintf(buffer.ptr,buffer.length,"SC%s",sc[c].ptr);
     else
-        sprintf(buffer.ptr,"SC%u",cast(uint)c);
+        snprintf(buffer.ptr,buffer.length,"SC%u",cast(uint)c);
     assert(strlen(buffer.ptr) < buffer.length);
     return buffer.ptr;
 }

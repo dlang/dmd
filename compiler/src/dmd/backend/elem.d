@@ -74,7 +74,7 @@ version (CRuntime_Microsoft) extern (C++)
 {
     alias real_t = real;
     private struct longdouble_soft { real_t r; }
-    size_t ld_sprint(char* str, int fmt, longdouble_soft x);
+    size_t ld_sprint(char* str, size_t size, int fmt, longdouble_soft x);
 }
 +/
 
@@ -3107,11 +3107,12 @@ case_tym:
         {
             version (CRuntime_Microsoft)
             {
-                char[3 + 3 * (targ_ldouble).sizeof + 1] buffer = void;
+                const buffer_len = 3 + 3 * (targ_ldouble).sizeof + 1;
+                char[buffer_len] buffer = void;
                 static if (is(typeof(e.EV.Vldouble) == real))
-                    ld_sprint(buffer.ptr, 'g', longdouble_soft(e.EV.Vldouble));
+                    ld_sprint(buffer.ptr, buffer_len, 'g', longdouble_soft(e.EV.Vldouble));
                 else
-                    ld_sprint(buffer.ptr, 'g', longdouble_soft(cast(real)e.EV.Vldouble));
+                    ld_sprint(buffer.ptr, buffer_len, 'g', longdouble_soft(cast(real)e.EV.Vldouble));
                 printf("%s ", buffer.ptr);
             }
             else

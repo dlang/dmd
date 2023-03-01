@@ -142,7 +142,7 @@ private final class InlineDoState
     // inline result
     bool foundReturn;
 
-    this(Dsymbol parent, FuncDeclaration fd)
+    this(Dsymbol parent, FuncDeclaration fd) scope
     {
         this.parent = parent;
         this.fd = fd;
@@ -167,7 +167,7 @@ public:
 
     enum asStatements = is(Result == Statement);
 
-    extern (D) this(InlineDoState ids)
+    extern (D) this(InlineDoState ids) scope
     {
         this.ids = ids;
     }
@@ -943,7 +943,7 @@ public:
     Expression eresult;
     bool again;
 
-    extern (D) this()
+    extern (D) this() scope
     {
     }
 
@@ -1661,6 +1661,9 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
         assert(fd.semanticRun >= PASS.semantic3done);
     }
 
+    if (fd.skipCodegen)
+        return false;
+
     final switch (statementsToo ? fd.inlineStatusStmt : fd.inlineStatusExp)
     {
     case ILS.yes:
@@ -2295,7 +2298,7 @@ private bool expNeedsDtor(Expression exp)
         Expression exp;
 
     public:
-        extern (D) this(Expression exp)
+        extern (D) this(Expression exp) scope
         {
             this.exp = exp;
         }

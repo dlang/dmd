@@ -1366,8 +1366,6 @@ void processEnvironment()
         env.setDefault("ZIP", "zip");
 
     string[] dflags = ["-version=MARS", "-w", "-de", env["PIC_FLAG"], env["MODEL_FLAG"], "-J"~env["G"], "-I" ~ srcDir];
-    if (env["HOST_DMD_KIND"] != "gdc")
-        dflags ~= ["-dip25"]; // gdmd doesn't support -dip25
 
     // TODO: add support for dObjc
     auto dObjc = false;
@@ -1578,7 +1576,7 @@ auto sourceFiles()
             statement.h staticassert.h target.h template.h tokens.h version.h visitor.h
         "),
         lexer: fileArray(env["D"], "
-            console.d entity.d errors.d file_manager.d globals.d id.d identifier.d lexer.d location.d tokens.d
+            console.d entity.d errors.d errorsink.d file_manager.d globals.d id.d identifier.d lexer.d location.d tokens.d
         ") ~ fileArray(env["ROOT"], "
             array.d bitarray.d ctfloat.d file.d filename.d hash.d port.d region.d rmem.d
             rootobject.d stringtable.d utf.d

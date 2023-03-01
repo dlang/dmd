@@ -113,9 +113,13 @@ bool ISX64REF(Declaration var)
     {
         if (target.os == Target.OS.Windows && target.is64bit)
         {
+            /* Use Microsoft C++ ABI
+             * https://docs.microsoft.com/en-us/cpp/build/x64-calling-convention?view=msvc-170#parameter-passing
+             * but watch out because the spec doesn't mention copy construction
+             */
             return var.type.size(Loc.initial) > REGSIZE
                 || (var.storage_class & STC.lazy_)
-                || (var.type.isTypeStruct() && !var.type.isTypeStruct().sym.isPOD());
+                || (var.type.isTypeStruct() && var.type.isTypeStruct().sym.hasCopyConstruction());
         }
         else if (target.os & Target.OS.Posix)
         {
@@ -133,7 +137,7 @@ bool ISX64REF(IRState* irs, Expression exp)
     if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
     {
         return exp.type.size(Loc.initial) > REGSIZE
-            || (exp.type.isTypeStruct() && !exp.type.isTypeStruct().sym.isPOD());
+               || (exp.type.isTypeStruct() && exp.type.isTypeStruct().sym.hasCopyConstruction());
     }
     else if (irs.target.os & Target.OS.Posix)
     {
@@ -606,8 +610,14 @@ elem* toElem(Expression e, IRState *irs)
                 }
 
                 int soffset;
-                if (v && v.offset && !forceStackAccess)
+                if (v && v.inClosure && !forceStackAccess)
                     soffset = v.offset;
+                else if (v && v.inAlignSection)
+                {
+                    ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYnptr, fd.salignSection.Soffset));
+                    ethis = el_una(OPind, TYnptr, ethis);
+                    soffset = v.offset;
+                }
                 else
                 {
                     soffset = cast(int)s.Soffset;
@@ -642,12 +652,12 @@ elem* toElem(Expression e, IRState *irs)
             }
         }
 
-        /* If var is a member of a closure
+        /* If var is a member of a closure or aligned section
          */
-        if (v && v.offset)
+        if (v && (v.inClosure || v.inAlignSection))
         {
-            assert(irs.sclosure);
-            e = el_var(irs.sclosure);
+            assert(irs.sclosure || fd.salignSection);
+            e = el_var(v.inClosure ? irs.sclosure : fd.salignSection);
             e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, v.offset));
             if (se.op == EXP.variable)
             {
@@ -1083,10 +1093,7 @@ elem* toElem(Expression e, IRState *irs)
                 assert(!(global.params.ehnogc && ne.thrownew),
                     "This should have been rewritten to `_d_newThrowable` in the semantic phase.");
 
-                Symbol *csym = toSymbol(cd);
-                const rtl = RTLSYM.NEWCLASS;
-                ex = el_bin(OPcall,TYnptr,el_var(getRtlsym(rtl)),el_ptr(csym));
-                toTraceGC(irs, ex, ne.loc);
+                ex = toElem(ne.lowering, irs);
                 ectype = null;
 
                 if (cd.isNested())
@@ -4400,7 +4407,7 @@ elem *ExpressionsToStaticArray(IRState* irs, const ref Loc loc, Expressions *exp
                 Expression en = (*exps)[j];
                 if (!en)
                     en = basis;
-                if (!el.equals(en))
+                if (!el.isIdentical(en))
                     break;
                 j++;
             }
@@ -6102,6 +6109,13 @@ elem *sarray_toDarray(const ref Loc loc, Type tfrom, Type tto, elem *e)
 private
 elem *getTypeInfo(Expression e, Type t, IRState* irs)
 {
+    if (irs.falseBlock)
+    {
+        /* Return null so we do not trigger the error
+         * about no TypeInfo
+         */
+        return el_long(TYnptr, 0);
+    }
     assert(t.ty != Terror);
     genTypeInfo(e, e.loc, t, null);
     elem* result = el_ptr(toSymbol(t.vtinfo));
@@ -6311,7 +6325,10 @@ Lagain:
     evalue = useOPstrpar(evalue);
 
     // Be careful about parameter side effect ordering
-    if (r == RTLSYM.MEMSET8)
+    if (r == RTLSYM.MEMSET8 ||
+        r == RTLSYM.MEMSET16 ||
+        r == RTLSYM.MEMSET32 ||
+        r == RTLSYM.MEMSET64)
     {
         elem *e = el_param(edim, evalue);
         return el_bin(OPmemset,TYnptr,eptr,e);

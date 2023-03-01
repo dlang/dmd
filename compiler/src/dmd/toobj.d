@@ -99,16 +99,9 @@ void genModuleInfo(Module m)
     m.csym.Sfl = FLdata;
 
     auto dtb = DtBuilder(0);
+
     ClassDeclarations aclasses;
-
-    //printf("members.length = %d\n", members.length);
-    foreach (i; 0 .. m.members.length)
-    {
-        Dsymbol member = (*m.members)[i];
-
-        //printf("\tmember '%s'\n", member.toChars());
-        member.addLocalClass(&aclasses);
-    }
+    getLocalClasses(m, aclasses);
 
     // importedModules[]
     size_t aimports_dim = m.aimports.length;
@@ -281,7 +274,7 @@ void write_instance_pointers(Type type, Symbol *s, uint offset)
 
 void toObjFile(Dsymbol ds, bool multiobj)
 {
-    //printf("toObjFile(%s)\n", ds.toChars());
+    //printf("toObjFile(%s %s)\n", ds.kind(), ds.toChars());
 
     bool isCfile = ds.isCsymbol();
 
@@ -291,7 +284,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
     public:
         bool multiobj;
 
-        this(bool multiobj)
+        this(bool multiobj) scope
         {
             this.multiobj = multiobj;
         }
@@ -565,7 +558,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 return;
             }
 
-            if (vd.aliassym)
+            if (vd.aliasTuple)
             {
                 vd.toAlias().accept(this);
                 return;
@@ -1076,7 +1069,7 @@ private bool finishVtbl(ClassDeclaration cd)
                 continue;
             if (fd2.isFuture())
                 continue;
-            if (!fd.leastAsSpecialized(fd2) && !fd2.leastAsSpecialized(fd))
+            if (!fd.leastAsSpecialized(fd2, null) && !fd2.leastAsSpecialized(fd, null))
                 continue;
             // Hiding detected: same name, overlapping specializations
             TypeFunction tf = fd.type.toTypeFunction();

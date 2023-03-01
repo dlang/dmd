@@ -1,0 +1,14 @@
+Add __check(assign-expression) to ImportC
+
+C code normally relies on `#include <assert.h>` to add support for assert's. D has them builtin to the
+language, which is much more convenient and does not rely on a preprocessor. This extension adds
+
+---
+__check(assign-expression)
+---
+
+as an expression to ImportC. The compiler switch -checkaction=C gives it the same behavior
+as C's assert macro. If the compiler switch -release is thrown, the `__check`'s are ignored.
+The `__check` expressions are handy for writing C programs that are free of reliance on `#include`.
+
+`__assert` is not used due to conflicts with some C .h files.

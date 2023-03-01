@@ -156,7 +156,7 @@ extern (C++) final class ToClassesVisitor : Visitor
     int numEightbytes;
     Class[4] result = Class.noClass;
 
-    this(size_t size)
+    this(size_t size) scope
     {
         assert(size > 0);
         this.size = size;

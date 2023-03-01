@@ -768,6 +768,9 @@ dmd -cov -unittest myprog.d
             $(DT gnu)$(DD 'file:line[:column]: message', conforming to the GNU standard used by gcc and clang.)
             )`,
         ),
+        Option("verror-supplements=<num>",
+            "limit the number of supplemental messages for each error (0 means unlimited)"
+        ),
         Option("verrors=<num>",
             "limit the number of error messages (0 means unlimited)"
         ),
@@ -848,7 +851,7 @@ dmd -cov -unittest myprog.d
 
     /// Returns all available reverts
     static immutable reverts = [
-        Feature("dip25", "useDIP25", "revert DIP25 changes https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md"),
+        Feature("dip25", "useDIP25", "revert DIP25 changes https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md", true, true),
         Feature("dip1000", "useDIP1000",
                 "revert DIP1000 changes https://github.com/dlang/DIPs/blob/master/DIPs/other/DIP1000.md (Scoped Pointers)"),
         Feature("intpromote", "fix16997", "revert integral promotions for unary + - ~ operators"),
@@ -858,7 +861,7 @@ dmd -cov -unittest myprog.d
     /// Returns all available previews
     static immutable previews = [
         Feature("dip25", "useDIP25",
-            "implement https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md (Sealed references)"),
+            "implement https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md (Sealed references)", true, true),
         Feature("dip1000", "useDIP1000",
             "implement https://github.com/dlang/DIPs/blob/master/DIPs/other/DIP1000.md (Scoped Pointers)"),
         Feature("dip1008", "ehnogc",

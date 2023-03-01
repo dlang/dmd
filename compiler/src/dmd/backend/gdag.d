@@ -332,7 +332,7 @@ private void aewalk(elem **pn,vec_t ae)
         {
             assert(t.Eoper == OPvar);
             Symbol* s = t.EV.Vsym;
-            if (!(s.Sflags & SFLunambig))
+            if (Symbol_isAffected(*s))
                 vec_subass(ae,go.starkill);
             for (uint i = 0; (i = cast(uint) vec_index(i, ae)) < go.exptop; ++i) // for each ae elem
             {
@@ -821,7 +821,7 @@ private void abewalk(elem *n,vec_t ae,vec_t aeval)
 
             assert(t.Eoper == OPvar);
             s = t.EV.Vsym;
-            if (!(s.Sflags & SFLunambig))
+            if (Symbol_isAffected(*s))
                 vec_subass(ae,go.starkill);
             for (uint i = 0; (i = cast(uint) vec_index(i, ae)) < go.exptop; ++i) // for each ae elem
             {

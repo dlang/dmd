@@ -9,6 +9,7 @@ SRCS=\
 	src\core\cpuid.d \
 	src\core\demangle.d \
 	src\core\exception.d \
+	src\core\factory.d \
 	src\core\int128.d \
 	src\core\lifetime.d \
 	src\core\math.d \

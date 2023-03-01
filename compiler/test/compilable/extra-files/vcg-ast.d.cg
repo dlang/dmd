@@ -109,7 +109,7 @@ R!int
 }
 mixin _d_cmain!();
 {
-	extern (C) 
+	extern (C)
 	{
 		extern (C) int _d_run_main(int argc, char** argv, void* mainFunc);
 		extern (C) int _Dmain(char[][] args);

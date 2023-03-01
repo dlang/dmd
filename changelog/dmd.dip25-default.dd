@@ -1,0 +1,15 @@
+`-preview=dip25` has been enabled by default
+
+Deprecation warnings for [DIP25](http://dlang.org/dips/25) violations have been enabled since 2.092.
+Starting with this release, it will report errors, unless the `-revert=dip25` switch is used.
+Using the switch (or its short version `-dip25`) is now deprecated.
+
+---
+ref int escapeRef(ref int x) {return x;}
+
+// Formerly:
+// Deprecation: returning `x` escapes a reference to parameter `x`
+//        perhaps annotate the parameter with `return`
+//
+// Now it is an error, unless `-revert=dip25` is used
+---

@@ -76,7 +76,7 @@ template templateVariableBar(T) if (is(T == int))
 {
 	enum int templateVariableBar = T.stringof.length;
 }
-auto flit = 3 / 2.0;
+extern typeof(3 / 2.0) flit;
 void foo11217()(const int[] arr)
 {
 }
@@ -170,10 +170,10 @@ class LeClass
 		;
 	}
 }
-const levar = new class LeClass, LeInterface
+extern const typeof(new class LeClass, LeInterface
 {
 }
-;
+) levar;
 class CC
 {
 	@safe void fun()()

@@ -487,14 +487,14 @@ void test_outbuffer()
 
     buf.reserve(16);
     buf.writestring("hello");
-    buf.writeByte(' ');
+    buf.writeByte('!');
     buf.write(&buf);
     buf.writenl();
     assert(buf.length() == 13);
 
     const char *data = buf.extractChars();
     assert(buf.length() == 0);
-    assert(strcmp(data, "hello hello \n") == 0);
+    assert(strcmp(data, "hello!hello!\n") == 0);
 }
 
 void test_cppmangle()
@@ -564,6 +564,26 @@ void test_optional()
     assert(opt.isPresent());
     assert(opt.get() == true);
     assert(opt.hasValue(true));
+}
+
+void test_filename()
+{
+    const char *fname = "/a/nice/long/path/to/somefile.d";
+
+    const char *basename = FileName::name(fname);
+    assert(strcmp(basename, "somefile.d") == 0);
+
+    const char *name = FileName::removeExt(basename);
+    assert(strcmp(name, "somefile") == 0);
+
+    const char *jsonname = FileName::defaultExt(name, json_ext.ptr);
+    assert(strcmp(jsonname, "somefile.json") == 0);
+
+    FileName file = FileName::create("somefile.d");
+    assert(FileName::equals(basename, file.toChars()));
+
+    FileName::free(name);
+    FileName::free(jsonname);
 }
 
 /**********************************/
@@ -771,7 +791,7 @@ public:
                 if (VarDeclaration *var = sym->isVarDeclaration())
                 {
                     (void)var->csym;
-                    (void)var->aliassym;
+                    (void)var->aliasTuple;
                     (void)var->isField();
                     (void)var->ident->toChars();
                     continue;
@@ -833,7 +853,7 @@ public:
                 if (VarDeclaration *var = sym->isVarDeclaration())
                 {
                     (void)var->csym;
-                    (void)var->aliassym;
+                    (void)var->aliasTuple;
                     (void)var->isField();
                     (void)var->ident->toChars();
                     continue;
@@ -1179,11 +1199,7 @@ public:
                 s->accept(this);
             }
             ClassDeclarations aclasses;
-            for (size_t i = 0; i < d->members->length; i++)
-            {
-                Dsymbol *member = (*d->members)[i];
-                member->addLocalClass(&aclasses);
-            }
+            getLocalClasses(d, aclasses);
             for (size_t i = 0; i < d->aimports.length; i++)
             {
                 Module *mi = d->aimports[i];
@@ -1545,7 +1561,7 @@ public:
             }
             return;
         }
-        if (d->aliassym)
+        if (d->aliasTuple)
         {
             d->toAlias()->accept(this);
             return;
@@ -1706,6 +1722,7 @@ int main(int argc, char **argv)
     test_cppmangle();
     test_module();
     test_optional();
+    test_filename();
 
     frontend_term();
 

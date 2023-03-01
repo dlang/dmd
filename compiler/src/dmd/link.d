@@ -975,8 +975,9 @@ public int runProgram()
             // BUG: what about " appearing in the string?
             if (strchr(a, ' '))
             {
-                char* b = cast(char*)mem.xmalloc(3 + strlen(a));
-                sprintf(b, "\"%s\"", a);
+                const blen = 3 + strlen(a);
+                char* b = cast(char*)mem.xmalloc(blen);
+                snprintf(b, blen, "\"%s\"", a);
                 a = b;
             }
         }
@@ -1275,6 +1276,9 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
 
         // merge #define's with output
         argv.push("-dD");       // https://gcc.gnu.org/onlinedocs/cpp/Invocation.html#index-dD
+
+        // need to redefine some macros in importc.h
+        argv.push("-Wno-builtin-macro-redefined");
 
         if (target.os == Target.OS.OSX)
         {
