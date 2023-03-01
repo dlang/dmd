@@ -1357,6 +1357,7 @@ pure @safe:
         auto attributes = parseFuncAttr();
 
         auto argbeg = len;
+        put(IsDelegate.yes == isdg ? "delegate" : "function");
         put( '(' );
         parseFuncArguments();
         put( ')' );
@@ -1369,16 +1370,17 @@ pure @safe:
                 put(str);
             }
         }
-        auto retbeg = len;
-        parseType();
-        put( ' ' );
-        // append delegate/function
-        if (IsDelegate.yes == isdg)
-            put( "delegate" );
-        else
-            put( "function" );
-        // move arguments and attributes behind name
-        shift( dst[argbeg .. retbeg] );
+
+        // A function / delegate return type is located at the end of its mangling
+        // Write it in order, then shift it back to 'code order'
+        // e.g. `delegate(int) @safedouble ' => 'double delegate(int) @safe'
+        {
+            auto retbeg = len;
+            parseType();
+            put(' ');
+            shift(dst[argbeg .. retbeg]);
+        }
+
         return dst[beg..len];
     }
 
