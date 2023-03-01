@@ -4780,11 +4780,11 @@ struct ASTCodegen final
     using AttribDeclaration = ::AttribDeclaration;
     using CPPMangleDeclaration = ::CPPMangleDeclaration;
     using CPPNamespaceDeclaration = ::CPPNamespaceDeclaration;
-    using MixinDeclaration = ::MixinDeclaration;
     using ConditionalDeclaration = ::ConditionalDeclaration;
     using DeprecatedDeclaration = ::DeprecatedDeclaration;
     using ForwardingAttribDeclaration = ::ForwardingAttribDeclaration;
     using LinkDeclaration = ::LinkDeclaration;
+    using MixinDeclaration = ::MixinDeclaration;
     using PragmaDeclaration = ::PragmaDeclaration;
     using StaticForeachDeclaration = ::StaticForeachDeclaration;
     using StaticIfDeclaration = ::StaticIfDeclaration;
