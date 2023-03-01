@@ -2408,7 +2408,10 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             codelem(cdb,e1,&retregs,false);
             const reg = findreg(retregs);
 
-            if (v1 == 0 && v2 == ~cast(targ_size_t)0)
+            // https://issues.dlang.org/show_bug.cgi?id=23743
+            // Optimization has bugs where it negates the wrong register,
+            // disable for now
+            if (false && v1 == 0 && v2 == ~cast(targ_size_t)0)
             {
                 cdb.gen2(0xF6 + (opcode & 1),grex | modregrmx(3,2,reg));  // NOT reg
                 if (I64 && sz2 == REGSIZE)
