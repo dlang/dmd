@@ -1894,7 +1894,6 @@ pure @safe:
         auto prevlen = len;
         auto prevbrp = brp;
 
-        char[] attr;
         try
         {
             if ( 'M' == front )
@@ -1910,6 +1909,7 @@ pure @safe:
             }
             if ( isCallConvention( front ) )
             {
+                char[] attr;
                 // we don't want calling convention and attributes in the qualified name
                 parseCallConvention();
                 auto attributes = parseFuncAttr();
@@ -1925,6 +1925,7 @@ pure @safe:
                 put( '(' );
                 parseFuncArguments();
                 put( ')' );
+                return attr;
             }
         }
         catch ( ParseException )
@@ -1933,9 +1934,8 @@ pure @safe:
             pos = prevpos;
             len = prevlen;
             brp = prevbrp;
-            attr = null;
         }
-        return attr;
+        return null;
     }
 
     /*
