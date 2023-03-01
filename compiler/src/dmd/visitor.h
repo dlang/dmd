@@ -109,7 +109,7 @@ class AnonDeclaration;
 class PragmaDeclaration;
 class ConditionalDeclaration;
 class StaticIfDeclaration;
-class CompileDeclaration;
+class MixinDeclaration;
 class StaticForeachDeclaration;
 class UserAttributeDeclaration;
 class ForwardingAttribDeclaration;
@@ -364,7 +364,7 @@ public:
     virtual void visit(SharedStaticDtorDeclaration *s) { visit((StaticDtorDeclaration *)s); }
 
     // AttribDeclarations
-    virtual void visit(CompileDeclaration *s) { visit((AttribDeclaration *)s); }
+    virtual void visit(MixinDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(UserAttributeDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(LinkDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(AnonDeclaration *s) { visit((AttribDeclaration *)s); }

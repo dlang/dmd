@@ -1065,7 +1065,7 @@ struct ASTBase
         }
     }
 
-    extern (C++) final class CompileDeclaration : AttribDeclaration
+    extern (C++) final class MixinDeclaration : AttribDeclaration
     {
         Expressions* exps;
 
