@@ -2697,7 +2697,7 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
             {
                 void semanticOnMixin(Dsymbol member)
                 {
-                    if (auto compileDecl = member.isCompileDeclaration())
+                    if (auto compileDecl = member.isMixinDeclaration())
                         compileDecl.dsymbolSemantic(sc);
                     else if (auto mixinTempl = member.isTemplateMixin())
                         mixinTempl.dsymbolSemantic(sc);

@@ -570,7 +570,7 @@ public:
     virtual CPPNamespaceDeclaration* isCPPNamespaceDeclaration();
     virtual VisibilityDeclaration* isVisibilityDeclaration();
     virtual OverloadSet* isOverloadSet();
-    virtual MixinDeclaration* isCompileDeclaration();
+    virtual MixinDeclaration* isMixinDeclaration();
     virtual StaticAssert* isStaticAssert();
     virtual StaticIfDeclaration* isStaticIfDeclaration();
 };
@@ -5601,7 +5601,7 @@ public:
     void addMember(Scope* sc, ScopeDsymbol* sds) override;
     void setScope(Scope* sc) override;
     const char* kind() const override;
-    MixinDeclaration* isCompileDeclaration() override;
+    MixinDeclaration* isMixinDeclaration() override;
     void accept(Visitor* v) override;
 };
 

@@ -1315,7 +1315,7 @@ extern (C++) final class MixinDeclaration : AttribDeclaration
         return "mixin";
     }
 
-    override inout(MixinDeclaration) isCompileDeclaration() inout
+    override inout(MixinDeclaration) isMixinDeclaration() inout
     {
         return this;
     }
