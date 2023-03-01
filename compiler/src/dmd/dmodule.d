@@ -595,9 +595,48 @@ extern (C++) final class Module : Package
         return FileName(docfilename);
     }
 
-    extern (D) void setDocfile()
+    extern (D) void setDocfile(const(char)[] fullname = "")
     {
-        docfile = setOutfilename(global.params.ddoc.name, global.params.ddoc.dir, arg, doc_ext);
+        const(char)[] modpath = global.params.ddoc.dir;
+        if (fullname.length > 0 && global.params.docStructure == DDocStructure.qualifiedPaths)
+        {
+            size_t prevDot = 0;
+            foreach (i, ch; fullname)
+            {
+                if (ch == '.')
+                {
+                    modpath = FileName.combine(modpath, fullname[prevDot .. i]);
+                    prevDot = i + 1;
+                }
+            }
+            if (arg.length > 8 && arg[0 .. 9] == "package.")
+            {
+                modpath = FileName.combine(modpath, fullname[prevDot .. $]);
+            }
+        }
+        const(char)[] modname;
+        if (fullname.length > 0 && global.params.docStructure == DDocStructure.qualifiedNames)
+        {
+            OutBuffer buf;
+            buf.reserve(fullname.length);
+            foreach (ch; fullname)
+            {
+                switch (ch)
+                {
+                case '.':
+                    buf.writestring(global.params.docSeparator);
+                    break;
+                default:
+                    buf.writeByte(ch);
+                    break;
+                }
+            }
+            modname = buf.extractChars().toDString;
+        }
+        else
+            modname = arg;
+
+        docfile = setOutfilename(global.params.ddoc.name, modpath, modname, doc_ext);
     }
 
     /**

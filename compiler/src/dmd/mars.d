@@ -1855,6 +1855,33 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.showColumns = true;
         else if (arg == "-vgc") // https://dlang.org/dmd.html#switch-vgc
             params.vgc = true;
+        else if (startsWith(p + 1, "Dfs="))
+        {
+            const(char)[] struc = arg["Dfs=".length + 1 .. $];
+
+            switch (struc)
+            {
+            case "flat":
+                params.docStructure = DDocStructure.flat;
+                break;
+            case "name":
+                params.docStructure = DDocStructure.qualifiedNames;
+                break;
+            case "path":
+                params.docStructure = DDocStructure.qualifiedPaths;
+                break;
+            default:
+                if (struc.length >= 6 && struc[0 .. 5] == "name:")
+                {
+                    params.docStructure = DDocStructure.qualifiedNames;
+                    params.docSeparator = struc[5 .. $];
+                }
+                else
+                {
+                    error("unknown documentation file structure '%.*s', must be 'flat', 'name', 'name:<sep>' or 'path'", cast(int) struc.length, struc.ptr);
+                }
+            }
+        }
         else if (startsWith(p + 1, "verrors")) // https://dlang.org/dmd.html#switch-verrors
         {
             if (p[8] != '=')
