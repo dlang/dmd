@@ -128,6 +128,9 @@ unittest.obj: $(SRCS) win32.mak
 test_aa:
 	$(DMD) -m32omf -conf= -Isrc -defaultlib=$(DRUNTIME) -run test\aa\src\test_aa.d
 
+test_allocations:
+	"$(MAKE)" -f test\allocations\win64.mak "DMD=$(DMD)" MODEL=32omf "VCDIR=$(VCDIR)" DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
+
 test_cpuid:
 	"$(MAKE)" -f test\cpuid\win64.mak "DMD=$(DMD)" MODEL=32omf "VCDIR=$(VCDIR)" DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
 
@@ -146,7 +149,7 @@ custom_gc:
 test_shared:
 	$(MAKE) -f test\shared\win64.mak "DMD=$(DMD)" MODEL=32omf "VCDIR=$(VCDIR)" DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
 
-test_all: test_aa test_cpuid test_exceptions test_hash test_gc custom_gc test_shared
+test_all: test_aa test_allocations test_cpuid test_exceptions test_hash test_gc custom_gc test_shared
 
 ################### zip/install/clean ##########################
 
