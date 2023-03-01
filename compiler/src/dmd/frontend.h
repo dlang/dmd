@@ -4203,14 +4203,6 @@ public:
     Catch* syntaxCopy();
 };
 
-class MixinStatement final : public Statement
-{
-public:
-    Array<Expression* >* exps;
-    MixinStatement* syntaxCopy() override;
-    void accept(Visitor* v) override;
-};
-
 class CompoundStatement : public Statement
 {
 public:
@@ -4474,6 +4466,14 @@ public:
     bool breaks;
     bool inCtfeBlock;
     LabelStatement* syntaxCopy() override;
+    void accept(Visitor* v) override;
+};
+
+class MixinStatement final : public Statement
+{
+public:
+    Array<Expression* >* exps;
+    MixinStatement* syntaxCopy() override;
     void accept(Visitor* v) override;
 };
 
@@ -5060,7 +5060,6 @@ struct ASTCodegen final
     using CaseRangeStatement = ::CaseRangeStatement;
     using CaseStatement = ::CaseStatement;
     using Catch = ::Catch;
-    using MixinStatement = ::MixinStatement;
     using CompoundAsmStatement = ::CompoundAsmStatement;
     using CompoundDeclarationStatement = ::CompoundDeclarationStatement;
     using CompoundStatement = ::CompoundStatement;
@@ -5085,6 +5084,7 @@ struct ASTCodegen final
     using InlineAsmStatement = ::InlineAsmStatement;
     using LabelDsymbol = ::LabelDsymbol;
     using LabelStatement = ::LabelStatement;
+    using MixinStatement = ::MixinStatement;
     using PeelStatement = ::PeelStatement;
     using PragmaStatement = ::PragmaStatement;
     using ReturnStatement = ::ReturnStatement;
