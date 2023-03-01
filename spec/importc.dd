@@ -37,7 +37,7 @@ $(H2 $(LNAME2 examples, Quick Examples))
     hello world
     )
 
-    $(P C function in file $(TT square.c):)
+    $(P C function in file $(TT functions.c):)
 
     $(CCODE
     int square(int i)
@@ -50,7 +50,7 @@ $(H2 $(LNAME2 examples, Quick Examples))
 
     ---
     import std.stdio;
-    import square;
+    import functions;
     void main()
     {
         int i = 7;
@@ -61,7 +61,7 @@ $(H2 $(LNAME2 examples, Quick Examples))
     $(P Compile and run:)
 
     $(CONSOLE
-    dmd demo.d square.c
+    dmd demo.d functions.c
     ./demo
     The square of 7 is 49
     )
@@ -390,6 +390,31 @@ $(H2 $(LNAME2 limitations, Limitations))
 
 $(H2 $(LNAME2 extensions, Extensions))
 
+    $(H3 $(LNAME2 asmstatements, Asm statement))
+
+    $(P For the D language, `asm` is a standard keyword, and its construct is
+    shared with ImportC. For the C language, `asm` is an extension (J.5.10),
+    and the recommendation is to instead use `__asm__`. All alternative
+    keywords for `asm` are translated by the druntime file $(TT src/importc.h)
+    during the preprocessing stage.)
+
+    $(P The `asm` keyword may be used to embed assembler instructions, its
+    syntax is implementation defined. The Digital Mars D compiler only supports
+    the dialect of inline assembly as described in the documentation of the
+    $(LINK2 https://dlang.org/spec/iasm.html, D x86 Inline Assembler).)
+
+    $(P `asm` in a function or variable declaration may be used to specify the
+    mangle name for a symbol. Its use is analogous to
+    $(LINK2 https://dlang.org/spec/pragma.html#mangle, pragma mangle).)
+
+$(CCODE
+char **myenviron asm("environ") = 0;
+
+int myprintf(char *, ...) asm("printf");
+)
+
+    $(P Using `asm` to associate registers with variables is ignored.)
+
     $(H3 $(LNAME2 forward-references, Forward References))
 
     $(P Any declarations in scope can be accessed, not just
@@ -399,8 +424,20 @@ $(H2 $(LNAME2 extensions, Extensions))
     $(H3 $(LNAME2 ctfe, Compile Time Function Execution))
 
     $(P Evaluating constant expressions includes executing functions in the
-    same manner as D's CTFE can.)
+    same manner as D's CTFE can.
+    A $(I constant-expression) invokes CTFE.)
 
+    $(P Examples:)
+
+$(CCODE
+_Static_assert("\x1"[0] == 1, "failed");
+
+int mint1() { return -1; }
+_Static_assert(mint1() == -1, "failed");
+
+const int a = 7;
+int b = a; // sets b to 7
+)
 
     $(H3 $(LNAME2 inlining, Function Inlining))
 

@@ -296,7 +296,7 @@ $(GNAME TemplateTypeParameterDefault):
 $(H4 $(LNAME2 parameters_specialization, Specialization and Pattern Matching))
 
     $(P Templates may be specialized for particular types of arguments
-        by following the template parameter identifier with a : and the
+        by following the template parameter identifier with a `:` and the
         pattern for the specialized type.
         For example:)
 
@@ -803,14 +803,18 @@ $(H4 $(LNAME2 typed_alias_op, Typed Alias Parameters))
     $(P Alias parameters can also be typed.
         These parameters will accept symbols of that type:)
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ------
-        template Foo(alias int x) { }
-        int x;
-        float f;
+        template Foo(alias int p) { alias a = p; }
 
-        Foo!x;  // ok
-        Foo!f;  // fails to instantiate
+        int i = 0;
+        Foo!i.a++;  // ok
+        assert(i == 1);
+
+        float f;
+        //Foo!f;  // fails to instantiate
         ------
+        )
 
 $(H4 $(LNAME2 alias_parameter_specialization, Specialization))
 
@@ -892,7 +896,7 @@ $(H4 $(LNAME2 homogeneous_sequences, Homogeneous Sequences))
 
         template print(args...) // args must be a ValueSeq
         {
-            void f()
+            void print()
             {
                 writeln("args are ", args);
             }
@@ -900,7 +904,7 @@ $(H4 $(LNAME2 homogeneous_sequences, Homogeneous Sequences))
 
         void main()
         {
-            print!(1, 'a', 6.8).f(); // prints: args are 1a6.8
+            print!(1, 'a', 6.8)(); // prints: args are 1a6.8
         }
         ---
         )
@@ -913,7 +917,7 @@ $(H4 $(LNAME2 homogeneous_sequences, Homogeneous Sequences))
 
         template print(Types...) // Types must be a TypeSeq
         {
-            void f(Types args) // args is a ValueSeq
+            void print(Types args) // args is a ValueSeq
             {
                 writeln("args are ", args);
             }
@@ -921,7 +925,7 @@ $(H4 $(LNAME2 homogeneous_sequences, Homogeneous Sequences))
 
         void main()
         {
-            print!(int, char, double).f(1, 'a', 6.8); // prints: args are 1a6.8
+            print!(int, char, double)(1, 'a', 6.8); // prints: args are 1a6.8
         }
         ---
         )

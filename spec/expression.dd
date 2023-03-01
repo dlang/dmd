@@ -1100,6 +1100,60 @@ $(GNAME CastExpression):
         (foo) - p;      // subtract p from foo
         -------------
 
+$(H4 $(LNAME2 cast_basic_data_types, Basic Data Types))
+    $(P For situations where $(DDSUBLINK spec/type, implicit-conversions, implicit conversions)
+        on basic types cannot be performed, the type system may be forced to accept the
+        reinterpretation of a memory region by using a cast.
+    )
+
+    $(P An example of such a scenario is represented by trying to store a wider type
+        into a narrower one:
+    )
+
+    -------------
+    int a;
+    byte b = a; // cannot implicitly convert expression a of type int to byte
+    -------------
+
+    $(P When casting a source type that is wider than the destination type,
+        the value is truncated to the destination size.
+    )
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+            -------------
+            int a = 64389; // 00000000 00000000 11111011 10000101
+            byte b = cast(byte) a;       // 10000101
+            ubyte c = cast(ubyte) a;     // 10000101
+            short d = cast(short) a;     // 11111011 10000101
+            ushort e = cast(ushort) a;   // 11111011 10000101
+
+            writeln(b);
+            writeln(c);
+            writeln(d);
+            writeln(e);
+            -------------
+        )
+
+    $(P For integral types casting from a narrower type to a wider type
+        is done by performing sign extension.
+    )
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+            -------------
+            ubyte a = 133;  // 10000101
+            byte b = a;     // 10000101
+
+            writeln(a);
+            writeln(b);
+
+            ushort c = a;   // 00000000 10000101
+            short d = b;    // 11111111 10000101
+
+            writeln(c);
+            writeln(d);
+            -------------
+        )
+
 $(H4 $(LNAME2 cast_class, Class References))
 
     $(P Any casting of a class reference to a
@@ -1143,6 +1197,74 @@ $(H4 $(LNAME2 cast_class, Class References))
     $(P Casting a pointer type to and from a class type is done as a type paint
         (i.e. a reinterpret cast).
     )
+
+$(H4 $(LNAME2 cast_pointers, Pointers))
+    $(P Casting a pointer variable to another pointer type modifies the value that
+        will be obtained as a result of dereferencing, along with the number of bytes
+        on which pointer arithmetic is performed.
+    )
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+            -------------
+            int val = 25185; // 00000000 00000000 01100010 01100001
+            char *ch = cast(char*)(&val);
+
+            writeln(*ch);    // a
+            writeln(cast(int)(*ch)); // 97
+            writeln(*(ch + 1));  // b
+            writeln(cast(int)(*(ch + 1)));   // 98
+            -------------
+        )
+
+    $(P Similarly, when casting a dynamically allocated array to a type of smaller size,
+        the bytes of the initial array will be divided and regrouped according to the new
+        dimension.
+    )
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+            -------------
+            import core.stdc.stdlib;
+
+            int *p = cast(int*) malloc(5 * int.sizeof);
+            for (int i = 0; i < 5; i++) {
+                p[i] = i + 'a';
+            }
+            // p = [97, 98, 99, 100, 101]
+
+            char* c = cast(char*) p;     // c = [97, 0, 0, 0, 98, 0, 0, 0, 99 ...]
+            for (int i = 0; i < 5 * int.sizeof; i++) {
+                writeln(c[i]);
+            }
+            -------------
+        )
+
+    $(P When casting a pointer of type A to a pointer of type B and type B is wider than type A,
+        attempts at accessing the memory exceeding the size of A will result in undefined behaviour.
+    )
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+            -------------
+            char c = 'a';
+            int *p = cast(int*) (&c);
+            writeln(*p);
+            -------------
+        )
+
+    $(P It is also possible to cast pointers to basic data types.
+        A common practice could be to cast the pointer to an int value
+        and then print its address:
+    )
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+            -------------
+            import core.stdc.stdlib;
+
+            int *p = cast(int*) malloc(int.sizeof);
+            int a = cast(int) p;
+            writeln(a);
+            -------------
+        )
+
 
 $(H4 $(LNAME2 cast_array, Arrays))
 
@@ -1674,8 +1796,10 @@ $(H3 $(LNAME2 super, super))
     $(P $(D super) is identical to $(D this), except that it is
         cast to $(D this)'s base class.
         It is an error if there is no base class.
-        It is an error to use the $(D super) reference outside a non-static class member function.
-        (Only class $(D Object) has no base class.)
+        It is an error to use the $(D super) reference outside a non-static class member function,
+        or inside a member function of a class without a base class.
+        (The only `extern(D)` class without a base class is `Object`,
+        however, note that `extern(C++)` classes have no base class unless specified.)
         If a member function is called with an explicit reference
         to $(D super), a non-virtual call is made.
     )
@@ -1906,6 +2030,16 @@ $(GNAME ValueExpression):
         a $(I ValueSeq), then the elements of the $(I ValueSeq)
         are inserted as arguments in place of the sequence.
     )
+
+    $(P Associative array initializers may contain duplicate keys,
+        however, in that case, the last $(I KeyValuePair) lexicographically
+        encountered is stored.
+    )
+
+        ---
+        auto aa = [21: "he", 38: "ho", 2: "hi", 2:"bye"];
+        assert(aa[2] == "bye")
+        ---
 
 $(H3 $(LNAME2 function_literals, Function Literals))
 
@@ -2614,7 +2748,8 @@ void foo()
         $(H5 $(LNAME2 is-type-equal, $(D is $(LPAREN)) $(I Type) $(D ==) $(I TypeSpecialization) $(D $(RPAREN))))
 
         $(P
-        The condition is satisfied if $(I Type) is semantically correct and is
+        If *TypeSpecialization* is a type,
+        the condition is satisfied if $(I Type) is semantically correct and is
         the same type as $(I TypeSpecialization).
         )
 -------------
@@ -2630,7 +2765,6 @@ void foo()
 -------------
         $(P
         If $(I TypeSpecialization) is one of
-
                 $(D struct)
                 $(D union)
                 $(D class)
@@ -2639,33 +2773,70 @@ void foo()
                 $(D __vector)
                 $(D function)
                 $(D delegate)
+                $(D module)
+                $(D package)
+        then the condition is satisfied if $(I Type) is one of those.
+        )
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+static assert(is(Object == class));
+static assert(is(ModuleInfo == struct));
+---
+)
+        $(P The `module` and `package` forms are satisfied when *Type* is a symbol, not a *type*,
+        unlike the other forms. The $(DDSUBLINK spec/traits, isModule, isModule)
+        and $(DDSUBLINK spec/traits, isPackage, isPackage) `__traits` should be used instead.
+        $(DDSUBLINK spec/module, package-module, Package modules) are considered to be both
+        packages and modules.
+        )
+        $(P
+        *TypeSpecialization* can also be one of these keywords:
+        )
+        $(TABLE
+        $(THEAD keyword, condition)
+        $(TROW `super`, `true` if *Type* is a class or interface)
+        $(TROW `return`,
+            $(ARGS `true` if *Type* is a function, delegate or function pointer))
+        $(TROW `__parameters`,
+            $(ARGS `true` if *Type* is a function, delegate or function pointer))
+        )
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---
+        class C {}
+        static assert(is(C == super));
+
+        void foo(int i);
+        static assert(!is(foo == return));
+        static assert(is(typeof(foo) == return));
+        static assert(is(typeof(foo) == __parameters));
+        ---
+        )
+        $(P
+        If *TypeSpecialization* is a $(GLINK2 type, TypeCtor) keyword
                 $(D const)
                 $(D immutable)
                 $(D inout)
                 $(D shared)
-                $(D module)
-                $(D package)
-
-        then the condition is satisfied if $(I Type) is one of those.
+        then the condition is satisfied if *Type* is of that *TypeCtor*:
         )
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
-static assert(is(Object == class));
-
-int i;
-static assert(!is(i == const));
+static assert(is(const int == const));
+static assert(is(const int[] == const));
+static assert(!is(const(int)[] == const)); // head is mutable
+static assert(!is(immutable int == const));
 ---
-        $(P $(DDSUBLINK
-        spec/module, package-module, Package modules) are considered to be both
-        packages and modules.
-        )
+)
         $(P $(B See also:) $(DDLINK spec/traits, Traits, Traits).)
+
 
 $(H4 $(LNAME2 is-identifier, Identifier Forms))
 
     $(P *Identifier* is declared to be an alias of the resulting
         type if the condition is satisfied. The *Identifier* forms
         can only be used if the $(I IsExpression) appears in a
-        $(GLINK2 version, StaticIfCondition) or $(GLINK2 version, StaticAssert).
+        $(GLINK2 version, StaticIfCondition) or the first argument of a
+        $(GLINK2 version, StaticAssert).
     )
 
         $(H5 $(LNAME2 is-type-identifier, $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D $(RPAREN))))
@@ -2677,8 +2848,18 @@ $(H4 $(LNAME2 is-identifier, Identifier Forms))
         )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct S
+{
+    int i, j;
+}
+static assert(is(typeof(S.i) T) && T.sizeof == 4);
+---
+)
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 -------------
 alias Bar = short;
+
 void foo()
 {
     static if (is(Bar T))
@@ -2701,14 +2882,12 @@ void foo()
         )
 
         $(P
-        The condition is satisfied if $(I Type) is semantically
+        If *TypeSpecialization* is a type,
+        the condition is satisfied if $(I Type) is semantically
         correct and it is the same as
         or can be implicitly converted to $(I TypeSpecialization).
-        $(I TypeSpecialization) is only allowed to be a $(I Type).
-        The $(I Identifier) is declared to be either an alias of the
-        $(I TypeSpecialization) or, if $(I TypeSpecialization) is
-        dependent on $(I Identifier), the $(I TypeSpecialization) forms
-        a pattern from which the type of $(I Identifier) is deduced.
+        $(I Identifier) is declared to be an alias of the
+        $(I TypeSpecialization).
         )
 
     $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -2723,11 +2902,22 @@ void foo()
     static assert(is(S == int));
     ---
     )
+        $(P
+        If $(I TypeSpecialization) is a type pattern involving
+        $(I Identifier), type deduction of $(I Identifier) is attempted
+        based on either *Type* or a type that it implicitly converts to.
+        The condition is only satisfied if the type pattern is matched.
+        )
+
     $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
-    alias Abc = long*;
+    struct S
+    {
+        long* i;
+        alias i this; // S converts to long*
+    }
 
-    static if (is(Abc U : U*)) // Abc is matched against the pattern U*
+    static if (is(S U : U*)) // S is matched against the pattern U*
     {
         U u;
     }
@@ -2744,55 +2934,46 @@ void foo()
         $(H5 $(LNAME2 is-identifier-equal, $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D ==) $(I TypeSpecialization) $(D $(RPAREN))))
 
         $(P
-        The condition is satisfied if $(I Type) is semantically
-        correct and is the same as $(I TypeSpecialization).
-        The $(I Identifier) is declared to be either an alias of the
-        $(I TypeSpecialization) or, if $(I TypeSpecialization) is
-        dependent on $(I Identifier), the $(I TypeSpecialization) forms
-        a pattern from which the type of $(I Identifier) is deduced.
+        If *TypeSpecialization* is a type,
+        the condition is satisfied if $(I Type) is semantically correct and is
+        the same type as $(I TypeSpecialization).
+        $(I Identifier) is declared to be an alias of the
+        $(I TypeSpecialization).
         )
-
     $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
-    alias Bar = short;
+    const x = 5;
 
-    static if (is(Bar T == int))   // not satisfied, short is not int
+    static if (is(typeof(x) T == const int))   // satisfied, T is now defined
         alias S = T;
 
-    static assert(!is(T)); // T is not defined
+    static assert(is(T)); // T is in scope
+    pragma(msg, T); // const int
     ---
     )
 
         $(P
-        If $(I TypeSpecialization) is one of
-                $(D struct)
-                $(D union)
-                $(D class)
-                $(D interface)
-                $(D enum)
-                $(D __vector)
-                $(D function)
-                $(D delegate)
-                $(D const)
-                $(D immutable)
-                $(D inout)
-                $(D shared)
-                $(D module)
-                $(D package)
+        If $(I TypeSpecialization) is a type pattern involving
+        $(I Identifier), type deduction of $(I Identifier) is attempted
+        based on *Type*.
+        The condition is only satisfied if the type pattern is matched.
+        )
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    alias Foo = long*;
 
-        then the condition is satisfied if $(I Type) is one of those.
-        *TypeSpecialization* can also match the following keywords:
-        )
-        $(TABLE
-        $(THEAD keyword, condition)
-        $(TROW `super`, `true` if *Type* is a class or interface)
-        $(TROW `return`,
-            $(ARGS `true` is *Type* is a function, delegate or function pointer))
-        $(TROW `__parameters`,
-            $(ARGS `true` is *Type* is a function, delegate or function pointer))
-        )
+    static if (is(Foo U == U*)) // Foo is matched against the pattern U*
+    {
+        U u;
+    }
+    static assert(is(U == long));
+    ---
+    )
         $(P
-        Furthermore, $(I Identifier) is set to be an alias of the type:
+        If *TypeSpecialization* is a valid keyword for the
+        $(RELATIVE_LINK2 is-type-equal, `is(Type == Keyword)` form),
+        the condition is satisfied in the same manner.
+        $(I Identifier) is set as follows:
         )
 
         $(TABLE_2COLS ,

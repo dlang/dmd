@@ -258,7 +258,7 @@ $(GNAME ElseStatement):
         $(I ThenStatement) is transferred to, else the $(I ElseStatement)
         is transferred to.)
 
-        $(P The $(I ElseStatement)is associated with the innermost if
+        $(P The $(I ElseStatement) is associated with the innermost if
         statement which does not already have an associated $(I ElseStatement).)
 
         $(P If an $(D auto) $(I Identifier) is provided, it is declared and
@@ -1982,6 +1982,37 @@ $(CONSOLE
         may not exit with a throw, goto, break, continue, or
         return; nor may it be entered with a goto. A $(D scope(failure))
         statement may not exit with a return.
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+--------------
+import std.stdio;
+
+int foo()
+{
+    scope(exit) writeln("Inside foo()");
+    return bar();
+}
+
+int bar()
+{
+    writeln("Inside bar()");
+    return 0;
+}
+
+int main()
+{
+    foo();
+    return 0;
+}
+--------------
+)
+
+        writes:
+
+$(CONSOLE
+Inside bar()
+Inside foo()
+)
 
 $(H3 $(LNAME2 catching_cpp_class_objects, Catching C++ Class Objects))
 
