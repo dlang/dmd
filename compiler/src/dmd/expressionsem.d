@@ -3796,8 +3796,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 result = id.expressionSemantic(sc);
                 return;
             }
-            else if (!exp.onstack && !exp.type.isscope())
+            else if (!(sc.flags & (SCOPE.ctfe | SCOPE.ctfeBlock | SCOPE.compile)) && // interpreter can handle these
+                     !exp.onstack && !exp.type.isscope()) // these won't use the GC
             {
+                /* replace `new T(arguments)` with `core.lifetime._d_newclassT!T(arguments)`
+                 * or `_d_newclassTTrace`
+                 */
                 auto hook = global.params.tracegc ? Id._d_newclassTTrace : Id._d_newclassT;
                 if (!verifyHookExist(exp.loc, *sc, hook, "new class"))
                     return setError();
