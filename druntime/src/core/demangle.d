@@ -773,7 +773,6 @@ pure @safe:
                 return dst[beg .. $];
             default:
                 error();
-                assert( 0 );
             }
         case 'A': // TypeArray (A Type)
             popFront();
@@ -868,7 +867,6 @@ pure @safe:
                     return dst[beg .. $];
                 default:
                     error();
-                    assert( 0 );
                 }
             }
             error();
