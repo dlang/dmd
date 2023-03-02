@@ -265,14 +265,7 @@ pure @safe:
 
     void put(scope const(char)[] val) return scope
     {
-        pragma(inline, false); // tame dmd inliner
-
-        if (!val.length) return;
-
-        if (!contains(dst[0 .. len], val))
-            append(val);
-        else
-            shift(val);
+        append(val);
     }
 
 
@@ -924,7 +917,7 @@ pure @safe:
             auto tx = parseType();
             parseType();
             put( '[' );
-            put( tx );
+            shift(tx);
             put( ']' );
             return dst[beg .. len];
         case 'P': // TypePointer (P Type)
