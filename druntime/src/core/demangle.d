@@ -126,13 +126,6 @@ pure @safe:
         return dst.shift(val);
     }
 
-    char[] append(scope const(char)[] val) return scope
-    {
-        if (mute)
-            return null;
-        return dst.append(val);
-    }
-
     void putComma(size_t n)
     {
         pragma(inline, false);
@@ -148,7 +141,9 @@ pure @safe:
 
     void put(scope const(char)[] val) return scope
     {
-        append(val);
+        if (mute)
+            return;
+        dst.append(val);
     }
 
 
@@ -173,7 +168,7 @@ pure @safe:
     {
         if ( val.length )
         {
-            append( " " );
+            put(" ");
             put( val );
         }
     }
