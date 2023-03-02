@@ -74,7 +74,6 @@ pure @safe:
 
     const(char)[]   buf     = null;
     Buffer          dst;
-    private @property size_t len () const @safe pure nothrow @nogc { return dst.len; }
     size_t          pos     = 0;
     size_t          brp     = 0; // current back reference pos
     AddType         addType = AddType.yes;
@@ -178,7 +177,7 @@ pure @safe:
     {
         debug(trace) printf( "silent+\n" );
         debug(trace) scope(success) printf( "silent-\n" );
-        auto n = len; dg(); dst.len = n;
+        auto n = dst.length; dg(); dst.len = n;
     }
 
 
@@ -706,7 +705,7 @@ pure @safe:
 
         debug(trace) printf( "parseType+\n" );
         debug(trace) scope(success) printf( "parseType-\n" );
-        auto beg = len;
+        auto beg = dst.length;
         auto t = front;
 
         char[] parseBackrefType(scope char[] delegate() pure @safe parseDg) pure @safe
@@ -738,19 +737,19 @@ pure @safe:
             put( "shared(" );
             parseType();
             put( ')' );
-            return dst[beg .. len];
+            return dst[beg .. $];
         case 'x': // Const (x Type)
             popFront();
             put( "const(" );
             parseType();
             put( ')' );
-            return dst[beg .. len];
+            return dst[beg .. $];
         case 'y': // Immutable (y Type)
             popFront();
             put( "immutable(" );
             parseType();
             put( ')' );
-            return dst[beg .. len];
+            return dst[beg .. $];
         case 'N':
             popFront();
             switch ( front )
@@ -758,20 +757,20 @@ pure @safe:
             case 'n': // Noreturn
                 popFront();
                 put("noreturn");
-                return dst[beg .. len];
+                return dst[beg .. $];
             case 'g': // Wild (Ng Type)
                 popFront();
                 // TODO: Anything needed here?
                 put( "inout(" );
                 parseType();
                 put( ')' );
-                return dst[beg .. len];
+                return dst[beg .. $];
             case 'h': // TypeVector (Nh Type)
                 popFront();
                 put( "__vector(" );
                 parseType();
                 put( ')' );
-                return dst[beg .. len];
+                return dst[beg .. $];
             default:
                 error();
                 assert( 0 );
@@ -780,7 +779,7 @@ pure @safe:
             popFront();
             parseType();
             put( "[]" );
-            return dst[beg .. len];
+            return dst[beg .. $];
         case 'G': // TypeStaticArray (G Number Type)
             popFront();
             auto num = sliceNumber();
@@ -788,7 +787,7 @@ pure @safe:
             put( '[' );
             put( num );
             put( ']' );
-            return dst[beg .. len];
+            return dst[beg .. $];
         case 'H': // TypeAssocArray (H Type Type)
             popFront();
             // skip t1
@@ -797,12 +796,12 @@ pure @safe:
             put( '[' );
             shift(tx);
             put( ']' );
-            return dst[beg .. len];
+            return dst[beg .. $];
         case 'P': // TypePointer (P Type)
             popFront();
             parseType();
             put( '*' );
-            return dst[beg .. len];
+            return dst[beg .. $];
         case 'F': case 'U': case 'W': case 'V': case 'R': // TypeFunction
             return parseTypeFunction();
         case 'C': // TypeClass (C LName)
@@ -811,7 +810,7 @@ pure @safe:
         case 'T': // TypeTypedef (T LName)
             popFront();
             parseQualifiedName();
-            return dst[beg .. len];
+            return dst[beg .. $];
         case 'D': // TypeDelegate (D TypeFunction)
             popFront();
             auto modifiers = parseModifier();
@@ -828,15 +827,15 @@ pure @safe:
                     put(str);
                 }
             }
-            return dst[beg .. len];
+            return dst[beg .. $];
         case 'n': // TypeNone (n)
             popFront();
             // TODO: Anything needed here?
-            return dst[beg .. len];
+            return dst[beg .. $];
         case 'B': // TypeTuple (B Number Arguments)
             popFront();
             // TODO: Handle this.
-            return dst[beg .. len];
+            return dst[beg .. $];
         case 'Z': // Internal symbol
             // This 'type' is used for untyped internal symbols, i.e.:
             // __array
@@ -846,13 +845,13 @@ pure @safe:
             // __Interface
             // __ModuleInfo
             popFront();
-            return dst[beg .. len];
+            return dst[beg .. $];
         default:
             if (t >= 'a' && t <= 'w')
             {
                 popFront();
                 put( primitives[cast(size_t)(t - 'a')] );
-                return dst[beg .. len];
+                return dst[beg .. $];
             }
             else if (t == 'z')
             {
@@ -862,11 +861,11 @@ pure @safe:
                 case 'i':
                     popFront();
                     put( "cent" );
-                    return dst[beg .. len];
+                    return dst[beg .. $];
                 case 'k':
                     popFront();
                     put( "ucent" );
-                    return dst[beg .. len];
+                    return dst[beg .. $];
                 default:
                     error();
                     assert( 0 );
@@ -1222,12 +1221,12 @@ pure @safe:
     {
         debug(trace) printf( "parseTypeFunction+\n" );
         debug(trace) scope(success) printf( "parseTypeFunction-\n" );
-        auto beg = len;
+        auto beg = dst.length;
 
         parseCallConvention();
         auto attributes = parseFuncAttr();
 
-        auto argbeg = len;
+        auto argbeg = dst.length;
         put(IsDelegate.yes == isdg ? "delegate" : "function");
         put( '(' );
         parseFuncArguments();
@@ -1246,13 +1245,13 @@ pure @safe:
         // Write it in order, then shift it back to 'code order'
         // e.g. `delegate(int) @safedouble ' => 'double delegate(int) @safe'
         {
-            auto retbeg = len;
+            auto retbeg = dst.length;
             parseType();
             put(' ');
             shift(dst[argbeg .. retbeg]);
         }
 
-        return dst[beg..len];
+        return dst[beg .. $];
     }
 
     static bool isCallConvention( char ch )
@@ -1574,7 +1573,7 @@ pure @safe:
 
                 if ( mayBeMangledNameArg() )
                 {
-                    auto l = len;
+                    auto l = dst.length;
                     auto p = pos;
                     auto b = brp;
                     try
@@ -1597,7 +1596,7 @@ pure @safe:
                     // try all possible pairs of numbers
                     auto qlen = decodeNumber() / 10; // last digit needed for QualifiedName
                     pos--;
-                    auto l = len;
+                    auto l = dst.length;
                     auto p = pos;
                     auto b = brp;
                     while ( qlen > 0 )
@@ -1733,7 +1732,7 @@ pure @safe:
         case '0': .. case '9':
             if ( mayBeTemplateInstanceName() )
             {
-                auto t = len;
+                auto t = dst.length;
 
                 try
                 {
@@ -1762,7 +1761,7 @@ pure @safe:
     {
         // try to demangle a function, in case we are pointing to some function local
         auto prevpos = pos;
-        auto prevlen = len;
+        auto prevlen = dst.length;
         auto prevbrp = brp;
 
         try
@@ -1790,7 +1789,7 @@ pure @safe:
                         put(str);
                         put(' ');
                     }
-                    attr = dst[prevlen .. len];
+                    attr = dst[prevlen .. $];
                 }
 
                 put( '(' );
@@ -1818,7 +1817,7 @@ pure @safe:
     {
         debug(trace) printf( "parseQualifiedName+\n" );
         debug(trace) scope(success) printf( "parseQualifiedName-\n" );
-        size_t  beg = len;
+        size_t  beg = dst.length;
         size_t  n   = 0;
 
         do
@@ -1829,7 +1828,7 @@ pure @safe:
             parseFunctionTypeNoReturn();
 
         } while ( isSymbolNameFront() );
-        return dst[beg .. len];
+        return dst[beg .. $];
     }
 
 
@@ -1850,17 +1849,17 @@ pure @safe:
         match( 'D' );
         do
         {
-            size_t  beg = len;
-            size_t  nameEnd = len;
+            size_t  beg = dst.length;
+            size_t  nameEnd = dst.length;
             char[] attr;
             do
             {
                 if ( attr )
                     dst.remove(attr); // dump attributes of parent symbols
-                if ( beg != len )
+                if (beg != dst.length)
                     put( '.' );
                 parseSymbolName();
-                nameEnd = len;
+                nameEnd = dst.length;
                 attr = parseFunctionTypeNoReturn( displayType );
 
             } while ( isSymbolNameFront() );
@@ -1868,7 +1867,7 @@ pure @safe:
             if ( displayType )
             {
                 attr = shift( attr );
-                nameEnd = len - attr.length;  // name includes function arguments
+                nameEnd = dst.length - attr.length;  // name includes function arguments
             }
             name = dst[beg .. nameEnd];
 
@@ -1876,7 +1875,7 @@ pure @safe:
             if ( 'M' == front )
                 popFront(); // has 'this' pointer
 
-            auto lastlen = len;
+            auto lastlen = dst.length;
             auto type = parseType();
             if ( displayType )
             {
@@ -1921,7 +1920,7 @@ pure @safe:
             {
                 debug(info) printf( "demangle(%.*s)\n", cast(int) buf.length, buf.ptr );
                 FUNC();
-                return dst[0 .. len];
+                return dst[0 .. $];
             }
             catch ( OverflowException e )
             {
@@ -2885,6 +2884,13 @@ private struct Buffer
 
     private char[] dst;
     private size_t len;
+
+    public alias opDollar = len;
+
+    public size_t length () const scope @safe pure nothrow @nogc
+    {
+        return this.len;
+    }
 
     public inout(char)[] opSlice (size_t from, size_t to)
         inout return scope @safe pure nothrow @nogc
