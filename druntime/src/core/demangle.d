@@ -85,46 +85,6 @@ pure @safe:
     bool            mute    = false;
     Hooks           hooks;
 
-    static class ParseException : Exception
-    {
-        this(string msg) @safe pure nothrow
-        {
-            super( msg );
-        }
-    }
-
-
-    static class OverflowException : Exception
-    {
-        this(string msg) @safe pure nothrow
-        {
-            super( msg );
-        }
-    }
-
-
-    static noreturn error( string msg = "Invalid symbol" ) @trusted /* exception only used in module */
-    {
-        pragma(inline, false); // tame dmd inliner
-
-        //throw new ParseException( msg );
-        debug(info) printf( "error: %.*s\n", cast(int) msg.length, msg.ptr );
-        throw __ctfe ? new ParseException(msg)
-                     : cast(ParseException) __traits(initSymbol, ParseException).ptr;
-
-    }
-
-
-    static noreturn overflow( string msg = "Buffer overflow" ) @trusted /* exception only used in module */
-    {
-        pragma(inline, false); // tame dmd inliner
-
-        //throw new OverflowException( msg );
-        debug(info) printf( "overflow: %.*s\n", cast(int) msg.length, msg.ptr );
-        throw cast(OverflowException) __traits(initSymbol, OverflowException).ptr;
-    }
-
-
     //////////////////////////////////////////////////////////////////////////
     // Type Testing and Conversion
     //////////////////////////////////////////////////////////////////////////
@@ -2207,7 +2167,7 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
                     d.popFront();
                     size_t n = d.decodeBackref();
                     if (!n || n > refpos)
-                        d.error("invalid back reference");
+                        error("invalid back reference");
 
                     auto savepos = d.pos;
                     scope(exit) d.pos = savepos;
@@ -2215,11 +2175,11 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
 
                     auto idlen = d.decodeNumber();
                     if (d.pos + idlen > d.buf.length)
-                        d.error("invalid back reference");
+                        error("invalid back reference");
                     auto id = d.buf[d.pos .. d.pos + idlen];
                     auto pid = id in idpos;
                     if (!pid)
-                        d.error("invalid back reference");
+                        error("invalid back reference");
                     npos = positionInResult(*pid);
                 }
                 encodeBackref(reslen - npos);
@@ -2230,7 +2190,7 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
             {
                 auto n = d.decodeNumber();
                 if (!n || n > d.buf.length || n > d.buf.length - d.pos)
-                    d.error("LName too shot or too long");
+                    error("LName too shot or too long");
                 auto id = d.buf[d.pos .. d.pos + n];
                 d.pos += n;
                 if (auto pid = id in idpos)
@@ -2262,7 +2222,7 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
             d.popFront();
             auto n = d.decodeBackref();
             if (n == 0 || n > refPos)
-                d.error("invalid back reference");
+                error("invalid back reference");
 
             size_t npos = positionInResult(refPos - n);
             size_t reslen = result.length;
@@ -2961,4 +2921,50 @@ private char[] demangleCXX(return scope const(char)[] buf, CXX_DEMANGLER __cxa_d
     dst.length = buf.length;
     dst[] = buf[];
     return dst;
+}
+
+
+/**
+ * Error handling through Exceptions
+ *
+ * The following types / functions are only used in this module,
+ * hence why the functions are `@trusted`.
+ * To make things `@nogc`, default-initialized instances are thrown.
+ */
+private class ParseException : Exception
+{
+    public this(string msg) @safe pure nothrow
+    {
+        super(msg);
+    }
+}
+
+/// Ditto
+private class OverflowException : Exception
+{
+    public this(string msg) @safe pure nothrow
+    {
+        super(msg);
+    }
+}
+
+/// Ditto
+private noreturn error(string msg = "Invalid symbol") @trusted pure
+{
+    pragma(inline, false); // tame dmd inliner
+
+    //throw new ParseException( msg );
+    debug(info) printf( "error: %.*s\n", cast(int) msg.length, msg.ptr );
+    throw __ctfe ? new ParseException(msg)
+        : cast(ParseException) __traits(initSymbol, ParseException).ptr;
+}
+
+/// Ditto
+private noreturn overflow(string msg = "Buffer overflow") @trusted pure
+{
+    pragma(inline, false); // tame dmd inliner
+
+    //throw new OverflowException( msg );
+    debug(info) printf( "overflow: %.*s\n", cast(int) msg.length, msg.ptr );
+    throw cast(OverflowException) __traits(initSymbol, OverflowException).ptr;
 }
