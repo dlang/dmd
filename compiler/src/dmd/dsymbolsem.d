@@ -1922,9 +1922,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         attribSemantic(sfd);
     }
 
-    private Dsymbols* compileIt(CompileDeclaration cd)
+    private Dsymbols* compileIt(MixinDeclaration cd)
     {
-        //printf("CompileDeclaration::compileIt(loc = %d) %s\n", cd.loc.linnum, cd.exp.toChars());
+        //printf("MixinDeclaration::compileIt(loc = %d) %s\n", cd.loc.linnum, cd.exp.toChars());
         OutBuffer buf;
         if (expressionsToString(buf, sc, cd.exps))
             return null;
@@ -1951,9 +1951,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     /***********************************************************
      * https://dlang.org/spec/module.html#mixin-declaration
      */
-    override void visit(CompileDeclaration cd)
+    override void visit(MixinDeclaration cd)
     {
-        //printf("CompileDeclaration::semantic()\n");
+        //printf("MixinDeclaration::semantic()\n");
         if (!cd.compiled)
         {
             cd.decl = compileIt(cd);

@@ -100,7 +100,7 @@ class AttribDeclaration;
 class AnonDeclaration;
 class VisibilityDeclaration;
 class OverloadSet;
-class CompileDeclaration;
+class MixinDeclaration;
 class StaticAssert;
 class StaticIfDeclaration;
 class DsymbolTable;
@@ -570,7 +570,7 @@ public:
     virtual CPPNamespaceDeclaration* isCPPNamespaceDeclaration();
     virtual VisibilityDeclaration* isVisibilityDeclaration();
     virtual OverloadSet* isOverloadSet();
-    virtual CompileDeclaration* isCompileDeclaration();
+    virtual MixinDeclaration* isMixinDeclaration();
     virtual StaticAssert* isStaticAssert();
     virtual StaticIfDeclaration* isStaticIfDeclaration();
 };
@@ -1889,7 +1889,7 @@ public:
     virtual void visit(typename AST::StaticDtorDeclaration s);
     virtual void visit(typename AST::SharedStaticCtorDeclaration s);
     virtual void visit(typename AST::SharedStaticDtorDeclaration s);
-    virtual void visit(typename AST::CompileDeclaration s);
+    virtual void visit(typename AST::MixinDeclaration s);
     virtual void visit(typename AST::UserAttributeDeclaration s);
     virtual void visit(typename AST::LinkDeclaration s);
     virtual void visit(typename AST::AnonDeclaration s);
@@ -4780,11 +4780,11 @@ struct ASTCodegen final
     using AttribDeclaration = ::AttribDeclaration;
     using CPPMangleDeclaration = ::CPPMangleDeclaration;
     using CPPNamespaceDeclaration = ::CPPNamespaceDeclaration;
-    using CompileDeclaration = ::CompileDeclaration;
     using ConditionalDeclaration = ::ConditionalDeclaration;
     using DeprecatedDeclaration = ::DeprecatedDeclaration;
     using ForwardingAttribDeclaration = ::ForwardingAttribDeclaration;
     using LinkDeclaration = ::LinkDeclaration;
+    using MixinDeclaration = ::MixinDeclaration;
     using PragmaDeclaration = ::PragmaDeclaration;
     using StaticForeachDeclaration = ::StaticForeachDeclaration;
     using StaticIfDeclaration = ::StaticIfDeclaration;
@@ -5591,17 +5591,17 @@ public:
     void accept(Visitor* v) override;
 };
 
-class CompileDeclaration final : public AttribDeclaration
+class MixinDeclaration final : public AttribDeclaration
 {
 public:
     Array<Expression* >* exps;
     ScopeDsymbol* scopesym;
     bool compiled;
-    CompileDeclaration* syntaxCopy(Dsymbol* s) override;
+    MixinDeclaration* syntaxCopy(Dsymbol* s) override;
     void addMember(Scope* sc, ScopeDsymbol* sds) override;
     void setScope(Scope* sc) override;
     const char* kind() const override;
-    CompileDeclaration* isCompileDeclaration() override;
+    MixinDeclaration* isMixinDeclaration() override;
     void accept(Visitor* v) override;
 };
 
@@ -8271,7 +8271,7 @@ public:
     void visit(AnonDeclaration* d) override;
     void visit(PragmaDeclaration* d) override;
     void visit(ConditionalDeclaration* d) override;
-    void visit(CompileDeclaration* d) override;
+    void visit(MixinDeclaration* d) override;
     void visit(UserAttributeDeclaration* d) override;
     virtual void visitFuncBody(FuncDeclaration* f);
     virtual void visitBaseClasses(ClassDeclaration* d);

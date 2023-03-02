@@ -1279,7 +1279,8 @@ extern(C++) final class ForwardingAttribDeclaration : AttribDeclaration
  *      mixin("int x");
  * https://dlang.org/spec/module.html#mixin-declaration
  */
-extern (C++) final class CompileDeclaration : AttribDeclaration
+// Note: was CompileDeclaration
+extern (C++) final class MixinDeclaration : AttribDeclaration
 {
     Expressions* exps;
     ScopeDsymbol scopesym;
@@ -1288,19 +1289,19 @@ extern (C++) final class CompileDeclaration : AttribDeclaration
     extern (D) this(const ref Loc loc, Expressions* exps)
     {
         super(loc, null, null);
-        //printf("CompileDeclaration(loc = %d)\n", loc.linnum);
+        //printf("MixinDeclaration(loc = %d)\n", loc.linnum);
         this.exps = exps;
     }
 
-    override CompileDeclaration syntaxCopy(Dsymbol s)
+    override MixinDeclaration syntaxCopy(Dsymbol s)
     {
-        //printf("CompileDeclaration::syntaxCopy('%s')\n", toChars());
-        return new CompileDeclaration(loc, Expression.arraySyntaxCopy(exps));
+        //printf("MixinDeclaration::syntaxCopy('%s')\n", toChars());
+        return new MixinDeclaration(loc, Expression.arraySyntaxCopy(exps));
     }
 
     override void addMember(Scope* sc, ScopeDsymbol sds)
     {
-        //printf("CompileDeclaration::addMember(sc = %p, sds = %p, memnum = %d)\n", sc, sds, memnum);
+        //printf("MixinDeclaration::addMember(sc = %p, sds = %p, memnum = %d)\n", sc, sds, memnum);
         this.scopesym = sds;
     }
 
@@ -1314,7 +1315,7 @@ extern (C++) final class CompileDeclaration : AttribDeclaration
         return "mixin";
     }
 
-    override inout(CompileDeclaration) isCompileDeclaration() inout
+    override inout(MixinDeclaration) isMixinDeclaration() inout
     {
         return this;
     }

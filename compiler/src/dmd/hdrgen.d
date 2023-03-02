@@ -1160,7 +1160,7 @@ public:
 
     }
 
-    override void visit(CompileDeclaration d)
+    override void visit(MixinDeclaration d)
     {
         buf.writestring("mixin(");
         argsToBuffer(d.exps, buf, hgs, null);

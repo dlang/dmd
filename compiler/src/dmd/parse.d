@@ -381,7 +381,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                             nextToken();
                             auto exps = parseArguments();
                             check(TOK.semicolon);
-                            s = new AST.CompileDeclaration(loc, exps);
+                            s = new AST.MixinDeclaration(loc, exps);
                             break;
                         }
                     case TOK.template_:

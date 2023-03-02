@@ -66,7 +66,7 @@ public:
     void visit(AST.SharedStaticDtorDeclaration s) { visit(cast(AST.StaticDtorDeclaration)s); }
 
     // AttribDeclarations
-    void visit(AST.CompileDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
+    void visit(AST.MixinDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
     void visit(AST.UserAttributeDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
     void visit(AST.LinkDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
     void visit(AST.AnonDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
