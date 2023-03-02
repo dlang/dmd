@@ -315,7 +315,7 @@ class StaticForeachStatement;
 class GotoDefaultStatement;
 class BreakStatement;
 class DtorExpStatement;
-class CompileStatement;
+class MixinStatement;
 class ForwardingStatement;
 class ContinueStatement;
 class ThrowStatement;
@@ -1916,7 +1916,7 @@ public:
     virtual void visit(typename AST::ReturnStatement s);
     virtual void visit(typename AST::LabelStatement s);
     virtual void visit(typename AST::StaticAssertStatement s);
-    virtual void visit(typename AST::CompileStatement s);
+    virtual void visit(typename AST::MixinStatement s);
     virtual void visit(typename AST::WhileStatement s);
     virtual void visit(typename AST::ForStatement s);
     virtual void visit(typename AST::DoStatement s);
@@ -4053,7 +4053,7 @@ enum class STMT : uint8_t
     Peel = 1u,
     Exp = 2u,
     DtorExp = 3u,
-    Compile = 4u,
+    Mixin = 4u,
     Compound = 5u,
     CompoundDeclaration = 6u,
     CompoundAsm = 7u,
@@ -4132,7 +4132,7 @@ public:
     GotoCaseStatement* isGotoCaseStatement();
     BreakStatement* isBreakStatement();
     DtorExpStatement* isDtorExpStatement();
-    CompileStatement* isCompileStatement();
+    MixinStatement* isMixinStatement();
     ForwardingStatement* isForwardingStatement();
     DoStatement* isDoStatement();
     WhileStatement* isWhileStatement();
@@ -4201,14 +4201,6 @@ public:
     bool errors;
     bool internalCatch;
     Catch* syntaxCopy();
-};
-
-class CompileStatement final : public Statement
-{
-public:
-    Array<Expression* >* exps;
-    CompileStatement* syntaxCopy() override;
-    void accept(Visitor* v) override;
 };
 
 class CompoundStatement : public Statement
@@ -4474,6 +4466,14 @@ public:
     bool breaks;
     bool inCtfeBlock;
     LabelStatement* syntaxCopy() override;
+    void accept(Visitor* v) override;
+};
+
+class MixinStatement final : public Statement
+{
+public:
+    Array<Expression* >* exps;
+    MixinStatement* syntaxCopy() override;
     void accept(Visitor* v) override;
 };
 
@@ -5060,7 +5060,6 @@ struct ASTCodegen final
     using CaseRangeStatement = ::CaseRangeStatement;
     using CaseStatement = ::CaseStatement;
     using Catch = ::Catch;
-    using CompileStatement = ::CompileStatement;
     using CompoundAsmStatement = ::CompoundAsmStatement;
     using CompoundDeclarationStatement = ::CompoundDeclarationStatement;
     using CompoundStatement = ::CompoundStatement;
@@ -5085,6 +5084,7 @@ struct ASTCodegen final
     using InlineAsmStatement = ::InlineAsmStatement;
     using LabelDsymbol = ::LabelDsymbol;
     using LabelStatement = ::LabelStatement;
+    using MixinStatement = ::MixinStatement;
     using PeelStatement = ::PeelStatement;
     using PragmaStatement = ::PragmaStatement;
     using ReturnStatement = ::ReturnStatement;
@@ -8210,7 +8210,7 @@ class SemanticTimeTransitiveVisitor : public SemanticTimePermissiveVisitor
 public:
     using SemanticTimePermissiveVisitor::visit;
     void visit(ExpStatement* s) override;
-    void visit(CompileStatement* s) override;
+    void visit(MixinStatement* s) override;
     void visit(CompoundStatement* s) override;
     virtual void visitVarDecl(VarDeclaration* v);
     void visit(CompoundDeclarationStatement* s) override;

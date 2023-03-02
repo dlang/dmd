@@ -1922,13 +1922,13 @@ struct ASTBase
         }
     }
 
-    extern (C++) final class CompileStatement : Statement
+    extern (C++) final class MixinStatement : Statement
     {
         Expressions* exps;
 
         final extern (D) this(const ref Loc loc, Expressions* exps)
         {
-            super(loc, STMT.Compile);
+            super(loc, STMT.Mixin);
             this.exps = exps;
         }
 

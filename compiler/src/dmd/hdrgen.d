@@ -180,7 +180,7 @@ public:
             buf.writenl();
     }
 
-    override void visit(CompileStatement s)
+    override void visit(MixinStatement s)
     {
         buf.writestring("mixin(");
         argsToBuffer(s.exps, buf, hgs, null);

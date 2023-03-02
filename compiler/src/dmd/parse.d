@@ -5959,7 +5959,7 @@ LagainStc:
                     if (e.op == EXP.mixin_)
                     {
                         AST.MixinExp cpe = cast(AST.MixinExp)e;
-                        s = new AST.CompileStatement(loc, cpe.exps);
+                        s = new AST.MixinStatement(loc, cpe.exps);
                     }
                     else
                     {

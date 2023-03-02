@@ -44,9 +44,9 @@ package mixin template ParseVisitMethods(AST)
         }
     }
 
-    override void visit(AST.CompileStatement s)
+    override void visit(AST.MixinStatement s)
     {
-        //printf("Visiting CompileStatement\n");
+        //printf("Visiting MixinStatement\n");
         visitArgs(s.exps.peekSlice());
     }
 

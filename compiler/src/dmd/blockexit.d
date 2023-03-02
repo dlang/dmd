@@ -115,7 +115,7 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
             }
         }
 
-        override void visit(CompileStatement s)
+        override void visit(MixinStatement s)
         {
             assert(global.errors);
             result = BE.fallthru;
