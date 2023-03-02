@@ -69,17 +69,13 @@ pure @safe:
     {
         buf     = buf_;
         addType = addType_;
-        dst     = dst_;
+        dst.dst = dst_;
     }
 
-
-    enum size_t minBufSize = 4000;
-
-
     const(char)[]   buf     = null;
-    char[]          dst     = null;
+    Buffer          dst;
+    private @property size_t len () const @safe pure nothrow @nogc { return dst.len; }
     size_t          pos     = 0;
-    size_t          len     = 0;
     size_t          brp     = 0; // current back reference pos
     AddType         addType = AddType.yes;
     bool            mute    = false;
@@ -123,91 +119,18 @@ pure @safe:
         error();
     }
 
-
-    //////////////////////////////////////////////////////////////////////////
-    // Data Output
-    //////////////////////////////////////////////////////////////////////////
-
-
-    static bool contains( const(char)[] a, const(char)[] b ) @trusted
+    char[] shift(scope const(char)[] val) return scope
     {
-        if (a.length && b.length)
-        {
-            auto bend = b.ptr + b.length;
-            auto aend = a.ptr + a.length;
-            return a.ptr <= b.ptr && bend <= aend;
-        }
-        return false;
+        if (mute)
+            return null;
+        return dst.shift(val);
     }
 
-
-    // move val to the end of the dst buffer
-    char[] shift( const(char)[] val )
+    char[] append(scope const(char)[] val) return scope
     {
-        pragma(inline, false); // tame dmd inliner
-
-        if ( val.length && !mute )
-        {
-            assert( contains( dst[0 .. len], val ) );
-            debug(info) printf( "shifting (%.*s)\n", cast(int) val.length, val.ptr );
-
-            if (len + val.length > dst.length)
-                overflow();
-            size_t v = &val[0] - &dst[0];
-            dst[len .. len + val.length] = val[];
-            for (size_t p = v; p < len; p++)
-                dst[p] = dst[p + val.length];
-
-            return dst[len - val.length .. len];
-        }
-        return null;
-    }
-
-    // remove val from dst buffer
-    void remove( const(char)[] val )
-    {
-        pragma(inline, false); // tame dmd inliner
-
-        if ( val.length )
-        {
-            assert( contains( dst[0 .. len], val ) );
-            debug(info) printf( "removing (%.*s)\n", cast(int) val.length, val.ptr );
-            size_t v = &val[0] - &dst[0];
-            assert( len >= val.length && len <= dst.length );
-            len -= val.length;
-            for (size_t p = v; p < len; p++)
-                dst[p] = dst[p + val.length];
-        }
-    }
-
-    char[] append( const(char)[] val ) return scope
-    {
-        pragma(inline, false); // tame dmd inliner
-
-        if ( val.length && !mute )
-        {
-            if ( !dst.length )
-                dst.length = minBufSize;
-            assert( !contains( dst[0 .. len], val ) );
-            debug(info) printf( "appending (%.*s)\n", cast(int) val.length, val.ptr );
-
-            if ( dst.length - len >= val.length && &dst[len] == &val[0] )
-            {
-                // data is already in place
-                auto t = dst[len .. len + val.length];
-                len += val.length;
-                return t;
-            }
-            if ( dst.length - len >= val.length )
-            {
-                dst[len .. len + val.length] = val[];
-                auto t = dst[len .. len + val.length];
-                len += val.length;
-                return t;
-            }
-            overflow();
-        }
-        return null;
+        if (mute)
+            return null;
+        return dst.append(val);
     }
 
     void putComma(size_t n)
@@ -260,7 +183,7 @@ pure @safe:
     {
         debug(trace) printf( "silent+\n" );
         debug(trace) scope(success) printf( "silent-\n" );
-        auto n = len; dg(); len = n;
+        auto n = len; dg(); dst.len = n;
     }
 
 
@@ -1667,7 +1590,7 @@ pure @safe:
                     }
                     catch ( ParseException e )
                     {
-                        len = l;
+                        dst.len = l;
                         pos = p;
                         brp = b;
                         debug(trace) printf( "not a mangled name arg\n" );
@@ -1695,7 +1618,7 @@ pure @safe:
                         }
                         qlen /= 10; // retry with one digit less
                         pos = --p;
-                        len = l;
+                        dst.len = l;
                         brp = b;
                     }
                 }
@@ -1826,7 +1749,7 @@ pure @safe:
                 catch ( ParseException e )
                 {
                     debug(trace) printf( "not a template instance name\n" );
-                    len = t;
+                    dst.len = t;
                 }
             }
             goto case;
@@ -1885,7 +1808,7 @@ pure @safe:
         {
             // not part of a qualified name, so back up
             pos = prevpos;
-            len = prevlen;
+            dst.len = prevlen;
             brp = prevbrp;
         }
         return null;
@@ -1938,7 +1861,7 @@ pure @safe:
             do
             {
                 if ( attr )
-                    remove( attr ); // dump attributes of parent symbols
+                    dst.remove(attr); // dump attributes of parent symbols
                 if ( beg != len )
                     put( '.' );
                 parseSymbolName();
@@ -1971,7 +1894,7 @@ pure @safe:
             {
                 // remove type
                 assert( attr.length == 0 );
-                len = lastlen;
+                dst.len = lastlen;
             }
             if ( pos >= buf.length || (n != 0 && pos >= end) )
                 return;
@@ -1995,15 +1918,6 @@ pure @safe:
         parseMangledName( AddType.yes == addType );
     }
 
-    char[] copyInput() return scope
-    {
-        if (dst.length < buf.length)
-            dst.length = buf.length;
-        char[] r = dst[0 .. buf.length];
-        r[] = buf[];
-        return r;
-    }
-
     char[] doDemangle(alias FUNC)() return scope
     {
         while ( true )
@@ -2017,12 +1931,12 @@ pure @safe:
             catch ( OverflowException e )
             {
                 debug(trace) printf( "overflow... restarting\n" );
-                auto a = minBufSize;
-                auto b = 2 * dst.length;
+                auto a = Buffer.minSize;
+                auto b = 2 * dst.dst.length;
                 auto newsz = a < b ? b : a;
                 debug(info) printf( "growing dst to %lu bytes\n", newsz );
-                dst.length = newsz;
-                pos = len = brp = 0;
+                dst.dst.length = newsz;
+                pos = dst.len = brp = 0;
                 continue;
             }
             catch ( ParseException e )
@@ -2032,7 +1946,7 @@ pure @safe:
                     auto msg = e.toString();
                     printf( "error: %.*s\n", cast(int) msg.length, msg.ptr );
                 }
-                return copyInput();
+                return dst.copyInput(buf);
             }
             catch ( Exception e )
             {
@@ -2074,7 +1988,7 @@ char[] demangle(return scope const(char)[] buf, return scope char[] dst = null, 
     // fast path (avoiding throwing & catching exception) for obvious
     // non-D mangled names
     if (buf.length < 2 || !(buf[0] == 'D' || buf[0..2] == "_D"))
-        return d.copyInput();
+        return d.dst.copyInput(buf);
     return d.demangleName();
 }
 
@@ -2923,7 +2837,6 @@ private char[] demangleCXX(return scope const(char)[] buf, CXX_DEMANGLER __cxa_d
     return dst;
 }
 
-
 /**
  * Error handling through Exceptions
  *
@@ -2967,4 +2880,112 @@ private noreturn overflow(string msg = "Buffer overflow") @trusted pure
     //throw new OverflowException( msg );
     debug(info) printf( "overflow: %.*s\n", cast(int) msg.length, msg.ptr );
     throw cast(OverflowException) __traits(initSymbol, OverflowException).ptr;
+}
+
+private struct Buffer
+{
+    enum size_t minSize = 4000;
+
+    @safe pure:
+
+    private char[] dst;
+    private size_t len;
+
+    public inout(char)[] opSlice (size_t from, size_t to)
+        inout return scope @safe pure nothrow @nogc
+    {
+        assert(from <= to);
+        assert(to <= len);
+        return this.dst[from .. to];
+    }
+
+    static bool contains(scope const(char)[] a, scope const(char)[] b) @trusted
+    {
+        if (a.length && b.length)
+        {
+            auto bend = b.ptr + b.length;
+            auto aend = a.ptr + a.length;
+            return a.ptr <= b.ptr && bend <= aend;
+        }
+        return false;
+    }
+
+    char[] copyInput(scope const(char)[] buf)
+        return scope nothrow
+    {
+        if (dst.length < buf.length)
+            dst.length = buf.length;
+        char[] r = dst[0 .. buf.length];
+        r[] = buf[];
+        return r;
+    }
+
+    // move val to the end of the dst buffer
+    char[] shift(scope const(char)[] val) return scope
+    {
+        pragma(inline, false); // tame dmd inliner
+
+        if (val.length)
+        {
+            assert( contains( dst[0 .. len], val ) );
+            debug(info) printf( "shifting (%.*s)\n", cast(int) val.length, val.ptr );
+
+            if (len + val.length > dst.length)
+                overflow();
+            size_t v = &val[0] - &dst[0];
+            dst[len .. len + val.length] = val[];
+            for (size_t p = v; p < len; p++)
+                dst[p] = dst[p + val.length];
+
+            return dst[len - val.length .. len];
+        }
+        return null;
+    }
+
+    // remove val from dst buffer
+    void remove(scope const(char)[] val) scope
+    {
+        pragma(inline, false); // tame dmd inliner
+
+        if ( val.length )
+        {
+            assert( contains( dst[0 .. len], val ) );
+            debug(info) printf( "removing (%.*s)\n", cast(int) val.length, val.ptr );
+            size_t v = &val[0] - &dst[0];
+            assert( len >= val.length && len <= dst.length );
+            len -= val.length;
+            for (size_t p = v; p < len; p++)
+                dst[p] = dst[p + val.length];
+        }
+    }
+
+    char[] append(scope const(char)[] val) return scope
+    {
+        pragma(inline, false); // tame dmd inliner
+
+        if (val.length)
+        {
+            if ( !dst.length )
+                dst.length = minSize;
+            assert( !contains( dst[0 .. len], val ) );
+            debug(info) printf( "appending (%.*s)\n", cast(int) val.length, val.ptr );
+
+            if ( dst.length - len >= val.length && &dst[len] == &val[0] )
+            {
+                // data is already in place
+                auto t = dst[len .. len + val.length];
+                len += val.length;
+                return t;
+            }
+            if ( dst.length - len >= val.length )
+            {
+                dst[len .. len + val.length] = val[];
+                auto t = dst[len .. len + val.length];
+                len += val.length;
+                return t;
+            }
+            overflow();
+        }
+        return null;
+    }
 }
