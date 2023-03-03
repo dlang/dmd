@@ -532,6 +532,7 @@ public:
     Expression *thisexp;        // if !NULL, 'this' for class being allocated
     Type *newtype;
     Expressions *arguments;     // Array of Expression's
+    Identifiers *names;         // Array of names corresponding to expressions
 
     Expression *argprefix;      // expression to be evaluated just before arguments[]
 
