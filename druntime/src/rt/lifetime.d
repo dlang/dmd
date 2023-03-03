@@ -1197,7 +1197,7 @@ extern (C) void* _d_newitemU(scope const TypeInfo _ti) pure nothrow @weak
 }
 
 /// ditto
-extern (C) void* _d_newitemT(in TypeInfo _ti) pure nothrow @weak
+extern (C) void* _d_newitemT(const TypeInfo _ti) pure nothrow @weak
 {
     import core.stdc.string;
     auto p = _d_newitemU(_ti);
@@ -1206,7 +1206,7 @@ extern (C) void* _d_newitemT(in TypeInfo _ti) pure nothrow @weak
 }
 
 /// Same as above, for item with non-zero initializer.
-extern (C) void* _d_newitemiT(in TypeInfo _ti) pure nothrow @weak
+extern (C) void* _d_newitemiT(const TypeInfo _ti) pure nothrow @weak
 {
     import core.stdc.string;
     auto p = _d_newitemU(_ti);
@@ -1286,7 +1286,7 @@ extern (C) CollectHandler rt_getCollectHandler()
 /**
  *
  */
-extern (C) int rt_hasFinalizerInSegment(void* p, size_t size, uint attr, in void[] segment) nothrow
+extern (C) int rt_hasFinalizerInSegment(void* p, size_t size, uint attr, scope const(void)[] segment) nothrow
 {
     if (attr & BlkAttr.STRUCTFINAL)
     {
