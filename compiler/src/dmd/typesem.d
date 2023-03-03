@@ -1185,19 +1185,31 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
 
                 // -preview=in: Always add `ref` when used with `extern(C++)` functions
                 // Done here to allow passing opaque types with `in`
-                if (global.params.previewIn && (fparam.storageClass & (STC.in_ | STC.ref_)) == STC.in_)
+                if ((fparam.storageClass & (STC.in_ | STC.ref_)) == STC.in_)
                 {
                     switch (tf.linkage)
                     {
                     case LINK.cpp:
-                        fparam.storageClass |= STC.ref_;
+                        if (global.params.previewIn)
+                            fparam.storageClass |= STC.ref_;
                         break;
                     case LINK.default_, LINK.d:
                         break;
                     default:
-                        .error(loc, "cannot use `in` parameters with `extern(%s)` functions",
-                               linkageToChars(tf.linkage));
-                        .errorSupplemental(loc, "parameter `%s` declared as `in` here", fparam.toChars());
+                        if (global.params.previewIn)
+                        {
+                            .error(loc, "cannot use `in` parameters with `extern(%s)` functions",
+                                   linkageToChars(tf.linkage));
+                            .errorSupplemental(loc, "parameter `%s` declared as `in` here", fparam.toChars());
+                        }
+                        else
+                        {
+                            // Note that this deprecation will not trigger on `in ref` / `ref in`
+                            // parameters, however the parser will trigger a deprecation on them.
+                            .deprecation(loc, "using `in` parameters with `extern(%s)` functions is deprecated",
+                                         linkageToChars(tf.linkage));
+                            .deprecationSupplemental(loc, "parameter `%s` declared as `in` here", fparam.toChars());
+                        }
                         break;
                     }
                 }
