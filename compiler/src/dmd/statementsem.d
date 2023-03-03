@@ -2285,6 +2285,11 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
             {
                 s = new BreakStatement(ss.loc, null);   // default for C is `default: break;`
             }
+            else if (sc.flags & (SCOPE.ctfe | SCOPE.compile | SCOPE.ctfeBlock))
+            {
+                // something for the interpreter to deal with
+                s = new ExpStatement(ss.loc, new AssertExp(ss.loc, IntegerExp.literal!0));
+            }
             else if (global.params.useSwitchError == CHECKENABLE.on &&
                 global.params.checkAction != CHECKACTION.halt)
             {
