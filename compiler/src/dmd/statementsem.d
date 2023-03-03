@@ -2339,7 +2339,8 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
         }
 
 
-        if (!ss.condition.type.isString())
+        if (!ss.condition.type.isString() ||
+            sc.flags & (SCOPE.ctfe | SCOPE.compile | SCOPE.ctfeBlock))
         {
             sc.pop();
             result = ss;
