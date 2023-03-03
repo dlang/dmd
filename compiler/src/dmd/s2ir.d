@@ -152,13 +152,8 @@ private extern (C++) class S2irVisitor : Visitor
         bcond.appendSucc(blx.curblock);
         if (s.ifbody)
         {
-            bool ctfe = s.isIfCtfeBlock();         // __ctfe is always false at runtime
-            const isFalse = ctfe;
-
-            irs.falseBlock += isFalse;
-            Statement_toIR(s.ifbody, irs, &mystate);
-            if (isFalse && irs.falseBlock)
-                --irs.falseBlock;
+            if (!s.isIfCtfeBlock())         // __ctfe is always false at runtime
+                Statement_toIR(s.ifbody, irs, &mystate);
         }
         blx.curblock.appendSucc(bexit);
 
@@ -726,7 +721,7 @@ private extern (C++) class S2irVisitor : Visitor
         Blockx *blx = irs.blx;
 
         //printf("ExpStatement.toIR(), exp: %p %s\n", s.exp, s.exp ? s.exp.toChars() : "");
-        if (s.exp && !irs.falseBlock)
+        if (s.exp)
         {
             if (s.exp.hasCode &&
                 !(isAssertFalse(s.exp))) // `assert(0)` not meant to be covered
