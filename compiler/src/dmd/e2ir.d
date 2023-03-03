@@ -6109,13 +6109,6 @@ elem *sarray_toDarray(const ref Loc loc, Type tfrom, Type tto, elem *e)
 private
 elem *getTypeInfo(Expression e, Type t, IRState* irs)
 {
-    if (irs.falseBlock)
-    {
-        /* Return null so we do not trigger the error
-         * about no TypeInfo
-         */
-        return el_long(TYnptr, 0);
-    }
     assert(t.ty != Terror);
     genTypeInfo(e, e.loc, t, null);
     elem* result = el_ptr(toSymbol(t.vtinfo));
