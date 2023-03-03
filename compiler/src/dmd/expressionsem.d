@@ -1728,7 +1728,6 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
     const size_t nparams = tf.parameterList.length;
     const olderrors = global.errors;
     bool err = false;
-    *prettype = Type.terror;
     Expression eprefix = null;
     *peprefix = null;
 
@@ -1817,6 +1816,8 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                     return errorArgs();
                 }
                 arg = p.defaultArg;
+                if (!arg.type)
+                    arg = arg.expressionSemantic(sc);
                 arg = inlineCopy(arg, sc);
                 // __FILE__, __LINE__, __MODULE__, __FUNCTION__, and __PRETTY_FUNCTION__
                 arg = arg.resolveLoc(loc, sc);
