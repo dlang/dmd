@@ -836,7 +836,7 @@ alias style = makeRule!((builder, rule)
             // FIXME: Omitted --shallow-submodules because it requires a more recent
             //        git version which is not available on buildkite
             env["GIT"], "clone", "--depth=1", "--recurse-submodules",
-            "--branch=v0.11.0",
+            "--branch=v0.14.0",
             "https://github.com/dlang-community/D-Scanner", dscannerDir
         ])
     );
