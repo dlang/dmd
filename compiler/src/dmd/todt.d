@@ -208,15 +208,8 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb, bool isC
         assert(0);
     }
 
-    final switch (init.kind)
-    {
-        case InitKind.void_:   return visitVoid  (cast(  VoidInitializer)init);
-        case InitKind.error:   return visitError (cast( ErrorInitializer)init);
-        case InitKind.struct_: return visitStruct(cast(StructInitializer)init);
-        case InitKind.array:   return visitArray (cast( ArrayInitializer)init);
-        case InitKind.exp:     return visitExp   (cast(   ExpInitializer)init);
-        case InitKind.C_:      return visitC     (cast(     CInitializer)init);
-    }
+    mixin VisitInitializer!void visit;
+    visit.VisitInitializer(init);
 }
 
 /* ================================================================ */

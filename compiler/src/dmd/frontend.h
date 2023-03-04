@@ -5018,6 +5018,7 @@ struct ASTCodegen final
     using Initializer = ::Initializer;
     using NeedInterpret = ::NeedInterpret;
     using StructInitializer = ::StructInitializer;
+    using VisitInitializer = ::VisitInitializer;
     using VoidInitializer = ::VoidInitializer;
     using Covariant = ::Covariant;
     using DotExpFlag = ::DotExpFlag;

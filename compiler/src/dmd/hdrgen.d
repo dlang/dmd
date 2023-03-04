@@ -3814,15 +3814,8 @@ private void initializerToBuffer(Initializer inx, OutBuffer* buf, HdrGenState* h
         buf.writeByte('}');
     }
 
-    final switch (inx.kind)
-    {
-        case InitKind.error:   return visitError (inx.isErrorInitializer ());
-        case InitKind.void_:   return visitVoid  (inx.isVoidInitializer  ());
-        case InitKind.struct_: return visitStruct(inx.isStructInitializer());
-        case InitKind.array:   return visitArray (inx.isArrayInitializer ());
-        case InitKind.exp:     return visitExp   (inx.isExpInitializer   ());
-        case InitKind.C_:      return visitC     (inx.isCInitializer     ());
-    }
+    mixin VisitInitializer!void visit;
+    visit.VisitInitializer(inx);
 }
 
 
