@@ -3779,7 +3779,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
         exp = checkGC(sc, exp);
         if (exp.op == EXP.error)
             return false;
-        if (!exp.type.isNaked() && exp.type.mod != MODFlags.shared_)
+        if (!exp.type.isNaked())
         {
             // @@@DEPRECATED_2.112@@@
             // Deprecated in 2.102, change into an error & return false in 2.112
