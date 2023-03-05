@@ -68,7 +68,7 @@ static void frontend_init()
     gc_disable();
 
     global._init();
-    global.vendor = "Front-End Tester";
+    global.compileEnv.vendor = "Front-End Tester";
     global.params.objname = NULL;
 
     target.os = Target::OS_linux;

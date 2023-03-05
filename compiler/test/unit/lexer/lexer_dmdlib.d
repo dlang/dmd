@@ -170,7 +170,7 @@ unittest
         TOK.rightCurly,
     ];
 
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, false, new ErrorSinkStderr);
+    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, false, new ErrorSinkStderr, null);
     lexer.nextToken;
 
     TOK[] result;
@@ -191,7 +191,7 @@ unittest
         TOK.comment,
     ];
 
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, true, new ErrorSinkStderr);
+    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, true, new ErrorSinkStderr, null);
     lexer.nextToken;
 
     TOK[] result;
@@ -217,7 +217,7 @@ unittest
         TOK.reserved,
     ];
 
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, false, new ErrorSinkStderr);
+    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, false, new ErrorSinkStderr, null);
 
     TOK[] result;
 
@@ -266,7 +266,7 @@ unittest
     foreach (codeNum, code; codes)
     {
         auto fileName = text("file", codeNum, '\0');
-        Lexer lexer = new Lexer(fileName.ptr, code.ptr, 0, code.length, false, false, new ErrorSinkCompiler);
+        Lexer lexer = new Lexer(fileName.ptr, code.ptr, 0, code.length, false, false, new ErrorSinkCompiler, null);
         // Generate the errors
         foreach(unused; lexer){}
     }

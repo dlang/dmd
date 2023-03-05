@@ -64,7 +64,7 @@ private void lexUntilEndOfFile(string code)
 
     if (!global.errorSink)
 	global.errorSink = new ErrorSinkCompiler;
-    scope lexer = new Lexer("test", code.ptr, 0, code.length, 0, 0, global.errorSink);
+    scope lexer = new Lexer("test", code.ptr, 0, code.length, 0, 0, global.errorSink, null);
     lexer.nextToken;
 
     while (lexer.nextToken != TOK.endOfFile) {}

@@ -252,6 +252,15 @@ const DString hdr_ext  = "di";       // for D 'header' import files
 const DString json_ext = "json";     // for JSON files
 const DString map_ext  = "map";      // for .map files
 
+struct CompileEnv
+{
+    uint32_t versionNumber;
+    DString date;
+    DString time;
+    DString vendor;
+    DString timestamp;
+};
+
 struct Global
 {
     DString inifilename;
@@ -261,7 +270,7 @@ struct Global
     Array<const char *> *path;        // Array of char*'s which form the import lookup path
     Array<const char *> *filePath;    // Array of char*'s which form the file import lookup path
 
-    DString vendor;          // Compiler backend name
+    CompileEnv compileEnv;
 
     Param params;
     unsigned errors;         // number of errors reported so far

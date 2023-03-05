@@ -767,7 +767,7 @@ extern (C++) final class Module : Package
         {
             filetype = FileType.c;
 
-            scope p = new CParser!AST(this, buf, cast(bool) docfile, global.errorSink, target.c, &defines);
+            scope p = new CParser!AST(this, buf, cast(bool) docfile, global.errorSink, target.c, &defines, &global.compileEnv);
             p.nextToken();
             checkCompiledImport();
             members = p.parseModule();
@@ -776,7 +776,7 @@ extern (C++) final class Module : Package
         }
         else
         {
-            scope p = new Parser!AST(this, buf, cast(bool) docfile, global.errorSink);
+            scope p = new Parser!AST(this, buf, cast(bool) docfile, global.errorSink, &global.compileEnv);
             p.nextToken();
             p.parseModuleDeclaration();
             md = p.md;

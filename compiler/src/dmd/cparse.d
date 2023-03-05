@@ -71,9 +71,9 @@ final class CParser(AST) : Parser!AST
 
     extern (D) this(TARGET)(AST.Module _module, const(char)[] input, bool doDocComment,
                             ErrorSink errorSink,
-                            const ref TARGET target, OutBuffer* defines) scope
+                            const ref TARGET target, OutBuffer* defines, const CompileEnv* compileEnv) scope
     {
-        super(_module, input, doDocComment, errorSink);
+        super(_module, input, doDocComment, errorSink, compileEnv);
 
         //printf("CParser.this()\n");
         mod = _module;
