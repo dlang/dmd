@@ -30,6 +30,8 @@ import dmd.root.rootobject;
 import dmd.root.string;
 import dmd.tokens;
 
+alias CompileEnv = dmd.lexer.CompileEnv;
+
 /***********************************************************
  */
 class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
@@ -53,11 +55,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      *      loc     location in source file of mixin
      */
     extern (D) this(const ref Loc loc, AST.Module _module, const(char)[] input, bool doDocComment,
-        ErrorSink errorSink) scope
+        ErrorSink errorSink, const CompileEnv* compileEnv) scope
     {
         super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false,
                 errorSink,
-                global.vendor, global.versionNumber());
+                compileEnv);
 
         //printf("Parser::Parser()\n");
         scanloc = loc;
@@ -78,11 +80,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         //nextToken();              // start up the scanner
     }
 
-    extern (D) this(AST.Module _module, const(char)[] input, bool doDocComment, ErrorSink errorSink) scope
+    extern (D) this(AST.Module _module, const(char)[] input, bool doDocComment, ErrorSink errorSink,
+        const CompileEnv* compileEnv) scope
     {
         super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false,
               errorSink,
-              global.vendor, global.versionNumber());
+              compileEnv);
 
         //printf("Parser::Parser()\n");
         mod = _module;

@@ -823,7 +823,7 @@ private void colorHighlightCode(ref OutBuffer buf)
     if (!errorSinkNull)
         errorSinkNull = new ErrorSinkNull;
 
-    scope Lexer lex = new Lexer(null, cast(char*)buf[].ptr, 0, buf.length - 1, 0, 1, errorSinkNull, global.vendor, global.versionNumber());
+    scope Lexer lex = new Lexer(null, cast(char*)buf[].ptr, 0, buf.length - 1, 0, 1, errorSinkNull, &global.compileEnv);
     OutBuffer res;
     const(char)* lastp = cast(char*)buf[].ptr;
     //printf("colorHighlightCode('%.*s')\n", cast(int)(buf.length - 1), buf[].ptr);

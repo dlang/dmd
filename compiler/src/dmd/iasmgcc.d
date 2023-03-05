@@ -302,7 +302,7 @@ Ldone:
 extern (C++) public Statement gccAsmSemantic(GccAsmStatement s, Scope *sc)
 {
     //printf("GccAsmStatement.semantic()\n");
-    scope p = new Parser!ASTCodegen(sc._module, ";", false, global.errorSink);
+    scope p = new Parser!ASTCodegen(sc._module, ";", false, global.errorSink, &global.compileEnv);
 
     // Make a safe copy of the token list before parsing.
     Token *toklist = null;
@@ -410,7 +410,7 @@ unittest
     {
         const errors = global.errors;
         scope gas = new GccAsmStatement(Loc.initial, tokens);
-        scope p = new Parser!ASTCodegen(null, ";", false, global.errorSink);
+        scope p = new Parser!ASTCodegen(null, ";", false, global.errorSink, &global.compileEnv);
         p.token = *tokens;
         p.parseGccAsm(gas);
         return global.errors - errors;
@@ -420,7 +420,7 @@ unittest
     static void parseAsm(string input, bool expectError)
     {
         // Generate tokens from input test.
-        scope p = new Parser!ASTCodegen(null, input, false, global.errorSink);
+        scope p = new Parser!ASTCodegen(null, input, false, global.errorSink, &global.compileEnv);
         p.nextToken();
 
         Token* toklist = null;
