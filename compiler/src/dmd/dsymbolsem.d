@@ -1321,6 +1321,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (dsym.errors)
             return;
 
+        if (!(global.params.bitfields || sc.flags & SCOPE.Cfile))
+            dsym.error("use -preview=bitfields for bitfield support");
+
         if (!dsym.parent.isStructDeclaration() && !dsym.parent.isClassDeclaration())
         {
             dsym.error("- bit-field must be member of struct, union, or class");

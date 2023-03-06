@@ -1119,6 +1119,9 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
 
                 fparam.type = fparam.type.addStorageClass(fparam.storageClass);
 
+                if (global.params.vin && fparam.storageClass & STC.in_)
+                    message(loc, "Usage of 'in' on parameter");
+
                 if (fparam.storageClass & (STC.auto_ | STC.alias_ | STC.static_))
                 {
                     if (!fparam.type)

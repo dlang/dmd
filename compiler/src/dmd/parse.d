@@ -15,6 +15,7 @@ module dmd.parse;
 
 import core.stdc.stdio;
 import core.stdc.string;
+
 import dmd.astenums;
 import dmd.errorsink;
 import dmd.globals;
@@ -22,7 +23,6 @@ import dmd.id;
 import dmd.identifier;
 import dmd.lexer;
 import dmd.location;
-import dmd.errors;
 import dmd.root.filename;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
@@ -64,7 +64,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         //printf("Parser::Parser()\n");
         scanloc = loc;
 
-        if (!writeMixin(input, scanloc) && loc.filename)
+        if (!writeMixin(input, scanloc, global.params.mixinOut) && loc.filename)
         {
             /* Create a pseudo-filename for the mixin string, as it may not even exist
              * in the source file.
@@ -2854,8 +2854,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         // Don't call nextToken again.
                     }
                 case TOK.in_:
-                    if (global.params.vin)
-                        message(scanloc, "Usage of 'in' on parameter");
                     stc = STC.in_;
                     goto L2;
 
@@ -4615,8 +4613,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 AST.Dsymbol s;
                 if (width)
                 {
-                    if (!global.params.bitfields)
-                        error("use -preview=bitfields for bitfield support");
                     if (_init)
                         error("initializer not allowed for bit-field declaration");
                     if (storage_class)
@@ -9186,7 +9182,7 @@ LagainStc:
         void checkRequiredParens()
         {
             if (e.op == EXP.question && !e.parens)
-                dmd.errors.error(e.loc, "`%s` must be surrounded by parentheses when next to operator `%s`",
+                eSink.error(e.loc, "`%s` must be surrounded by parentheses when next to operator `%s`",
                     e.toChars(), Token.toChars(token.value));
         }
 
@@ -9717,20 +9713,20 @@ private StorageClass getStorageClass(AST)(PrefixAttributes!(AST)* pAttrs)
 /**************************************
  * dump mixin expansion to file for better debugging
  */
-private bool writeMixin(const(char)[] s, ref Loc loc)
+private bool writeMixin(const(char)[] s, ref Loc loc, ref Output output)
 {
-    if (!global.params.mixinOut.doOutput)
+    if (!output.doOutput)
         return false;
 
-    OutBuffer* ob = global.params.mixinOut.buffer;
+    OutBuffer* ob = output.buffer;
 
     ob.writestring("// expansion at ");
     ob.writestring(loc.toChars());
     ob.writenl();
 
-    global.params.mixinOut.bufferLines++;
+    output.bufferLines++;
 
-    loc = Loc(global.params.mixinOut.name.ptr, global.params.mixinOut.bufferLines + 1, loc.charnum);
+    loc = Loc(output.name.ptr, output.bufferLines + 1, loc.charnum);
 
     // write by line to create consistent line endings
     size_t lastpos = 0;
@@ -9742,7 +9738,7 @@ private bool writeMixin(const(char)[] s, ref Loc loc)
         {
             ob.writestring(s[lastpos .. i]);
             ob.writenl();
-            global.params.mixinOut.bufferLines++;
+            output.bufferLines++;
             if (c == '\r')
                 ++i;
             lastpos = i + 1;
@@ -9755,10 +9751,10 @@ private bool writeMixin(const(char)[] s, ref Loc loc)
     if (s.length == 0 || s[$-1] != '\n')
     {
         ob.writenl(); // ensure empty line after expansion
-        global.params.mixinOut.bufferLines++;
+        output.bufferLines++;
     }
     ob.writenl();
-    global.params.mixinOut.bufferLines++;
+    output.bufferLines++;
 
     return true;
 }
