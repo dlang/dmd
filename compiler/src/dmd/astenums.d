@@ -439,3 +439,22 @@ enum FileType : ubyte
     ddoc, /// Ddoc documentation file (.dd)
     c,    /// C source file
 }
+
+extern (C++) struct structalign_t
+{
+  private:
+    ushort value = 0;  // unknown
+    enum STRUCTALIGN_DEFAULT = 1234;   // default = match whatever the corresponding C compiler does
+    bool pack;         // use #pragma pack semantics
+
+  public:
+  pure @safe @nogc nothrow:
+    bool isDefault() const { return value == STRUCTALIGN_DEFAULT; }
+    void setDefault()      { value = STRUCTALIGN_DEFAULT; }
+    bool isUnknown() const { return value == 0; }  // value is not set
+    void setUnknown()      { value = 0; }
+    void set(uint value)   { this.value = cast(ushort)value; }
+    uint get() const       { return value; }
+    bool isPack() const    { return pack; }
+    void setPack(bool pack) { this.pack = pack; }
+}
