@@ -8,4 +8,4 @@ possible mutation of an immutable object in a `catch` clause.
 
 The runtime also modifies a thrown object (e.g. to contain a stack
 trace) which can violate `const` or `immutable` objects. Throwing
-qualified objects have been deprecated for this reason also.
+qualified objects has been deprecated for this reason also.
