@@ -694,31 +694,6 @@ enum class LINK : uint8_t
     system = 6u,
 };
 
-struct structalign_t final
-{
-private:
-    uint16_t value;
-    bool pack;
-public:
-    bool isDefault() const;
-    void setDefault();
-    bool isUnknown() const;
-    void setUnknown();
-    void set(uint32_t value);
-    uint32_t get() const;
-    bool isPack() const;
-    void setPack(bool pack);
-    structalign_t() :
-        value(0u),
-        pack()
-    {
-    }
-    structalign_t(uint16_t value, bool pack = false) :
-        value(value),
-        pack(pack)
-        {}
-};
-
 enum class BUILTIN : uint8_t
 {
     unknown = 255u,
@@ -5426,6 +5401,31 @@ extern TypeTuple* toArgTypes_sysv_x64(Type* t);
 extern TypeTuple* toArgTypes_aarch64(Type* t);
 
 extern bool isHFVA(Type* t, int32_t maxNumElements = 4, Type** rewriteType = nullptr);
+
+struct structalign_t final
+{
+private:
+    uint16_t value;
+    bool pack;
+public:
+    bool isDefault() const;
+    void setDefault();
+    bool isUnknown() const;
+    void setUnknown();
+    void set(uint32_t value);
+    uint32_t get() const;
+    bool isPack() const;
+    void setPack(bool pack);
+    structalign_t() :
+        value(0u),
+        pack()
+    {
+    }
+    structalign_t(uint16_t value, bool pack = false) :
+        value(value),
+        pack(pack)
+        {}
+};
 
 class AttribDeclaration : public Dsymbol
 {
