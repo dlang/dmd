@@ -6170,14 +6170,6 @@ static assert(!__traits(compiles, foo8220(typeof(0)))); // fail
 
 /***************************************************/
 
-void func8105(in ref int x) { }
-
-void test8105()
-{
-}
-
-/***************************************************/
-
 template ParameterTypeTuple159(alias foo)
 {
     static if (is(typeof(foo) P == __parameters))
@@ -8300,7 +8292,6 @@ int main()
     test12503();
     test8004();
     test8064();
-    test8105();
     test159();
     test12824();
     test8283();
