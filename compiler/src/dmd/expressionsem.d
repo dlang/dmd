@@ -10050,6 +10050,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     }
                 }
             }
+
+            if (sc.flags & (SCOPE.ctfe | SCOPE.ctfeBlock | SCOPE.compile)) // interpreter can handle these
+                return setResult(res);
+
             const lowerToArrayCtor =
                 ( (rhsType.ty == Tarray && !rhs.isArrayLiteralExp) ||
                   (rhsType.ty == Tsarray && rhs.isLvalue) ) &&
