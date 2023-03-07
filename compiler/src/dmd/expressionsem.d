@@ -9697,6 +9697,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setResult(res);
             }
 
+            if (sc.flags & (SCOPE.ctfe | SCOPE.ctfeBlock | SCOPE.compile))      // if compile time creature only
+            {
+                exp.type = Type.tsize_t;
+                return setResult(exp);
+            }
+
             // Lower to object._d_arraysetlengthTImpl!(typeof(e1))._d_arraysetlengthT{,Trace}(e1, e2)
             Expression id = new IdentifierExp(ale.loc, Id.empty);
             id = new DotIdExp(ale.loc, id, Id.object);
