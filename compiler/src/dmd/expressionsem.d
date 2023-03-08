@@ -1155,6 +1155,69 @@ L1:
     return e1;
 }
 
+/*
+ * Check whether `outerFunc` and `calledFunc` have the same `this`.
+ * If `calledFunc` is the member of a base class of the class that contains
+ * `outerFunc` we consider that they have the same this.
+ *
+ * This function is used to test whether `this` needs to be prepended to
+ * a function call or function symbol. For example:
+ *
+ * struct X
+ * {
+ *    void gun() {}
+ * }
+ * struct A
+ * {
+ *      void fun() {}
+ *      void sun()
+ *      {
+ *          fun();
+ *          X.gun();  // error
+ *      }
+ * }
+ *
+ * When `fun` is called, `outerfunc` = `sun` and `calledFunc = `fun`.
+ * `sun` is a member of `A` and `fun` is also a member of `A`, therefore
+ * `this` can be prepended to `fun`. When `gun` is called (it will result
+ * in an error, but that is not relevant here), which is a member of `X`,
+ * no `this` is needed because the outer function does not have the same
+ * `this` as `gun`.
+ *
+ * Returns:
+ *  `true` if outerFunc and calledFunc may use the same `this` pointer.
+ * `false` otherwise.
+ */
+private bool haveSameThis(FuncDeclaration outerFunc, FuncDeclaration calledFunc)
+{
+    auto thisAd = outerFunc.isMemberLocal();
+    if (!thisAd)
+        return false;
+
+    auto requiredAd = calledFunc.isMemberLocal();
+    if (!requiredAd)
+        return false;
+
+    if (thisAd == requiredAd)
+        return true;
+
+    // outerfunc is the member of a base class that contains calledFunc,
+    // then we consider that they have the same this.
+    auto cd = requiredAd.isClassDeclaration();
+    if (!cd)
+        return false;
+
+    if (cd.isBaseOf2(thisAd.isClassDeclaration()))
+        return true;
+
+    // if outerfunc is the member of a nested aggregate, then let
+    // getRightThis take care of this.
+    if (thisAd.isNested())
+        return true;
+
+    return false;
+}
+
 /***************************************
  * Pull out any properties.
  */
@@ -5209,7 +5272,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (exp.f.checkNestedReference(sc, exp.loc))
                     return setError();
 
-                if (hasThis(sc))
+                auto memberFunc = hasThis(sc);
+                if (memberFunc && haveSameThis(memberFunc, exp.f))
                 {
                     // Supply an implicit 'this', as in
                     //    this.ident
@@ -6892,8 +6956,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         AggregateDeclaration ad = f.isMemberLocal();
         if (f.needThis())
             e.e1 = getRightThis(e.loc, sc, ad, e.e1, f);
-        if (e.e1.op == EXP.error)
-            return setError();
 
         if (f.type.ty == Tfunction)
         {
@@ -7207,7 +7269,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
                 if (f.needThis())
                 {
-                    if (hasThis(sc))
+                    auto memberFunc = hasThis(sc);
+                    if (memberFunc && haveSameThis(memberFunc, f))
                     {
                         /* Should probably supply 'this' after overload resolution,
                          * not before.
