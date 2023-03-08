@@ -1288,7 +1288,7 @@ extern (C++) final class Module : Package
     /****************************
      * A Singleton that loads core.stdc.config
      * Returns:
-     *  Module of core.atomic, null if couldn't find it
+     *  Module of core.stdc.config, null if couldn't find it
      */
     extern (D) static Module loadCoreStdcConfig()
     {
