@@ -4756,6 +4756,7 @@ private Statements* flatten(Statement statement, Scope* sc)
             buf.writeByte(0);
             const str = buf.extractSlice()[0 .. len];
             scope p = new Parser!ASTCodegen(cs.loc, sc._module, str, false, global.errorSink, &global.compileEnv);
+            p.transitionIn = global.params.vin;
             p.nextToken();
 
             auto a = new Statements();

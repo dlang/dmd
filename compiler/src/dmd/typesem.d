@@ -1119,9 +1119,6 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
 
                 fparam.type = fparam.type.addStorageClass(fparam.storageClass);
 
-                if (global.params.vin && fparam.storageClass & STC.in_)
-                    message(loc, "Usage of 'in' on parameter");
-
                 if (fparam.storageClass & (STC.auto_ | STC.alias_ | STC.static_))
                 {
                     if (!fparam.type)
@@ -4934,6 +4931,7 @@ RootObject compileTypeMixin(TypeMixin tm, Loc loc, Scope* sc)
     buf.writeByte(0);
     const str = buf.extractSlice()[0 .. len];
     scope p = new Parser!ASTCodegen(loc, sc._module, str, false, global.errorSink, &global.compileEnv);
+    p.transitionIn = global.params.vin;
     p.nextToken();
     //printf("p.loc.linnum = %d\n", p.loc.linnum);
 
