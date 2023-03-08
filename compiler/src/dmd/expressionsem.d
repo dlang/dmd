@@ -2608,6 +2608,28 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     {
         if (!e.type)
             e.type = Type.tfloat64;
+        else if (e.type.isimaginary && sc.flags & SCOPE.Cfile)
+        {
+            /* Convert to core.stdc.config.complex
+             */
+            Module mConfig = Module.loadCoreStdcConfig();
+            if (!mConfig)
+            {
+                e.error("`%s` requires `core.stdc.config` for complex numbers", e.toChars());
+                return setError();
+            }
+
+            Dsymbol s = mConfig.searchX(e.loc, sc, Id.c_complex_double, IgnorePrivateImports);
+            s = s.toAlias();
+            AliasDeclaration ad = s.isAliasDeclaration();
+            TypeStruct ts = ad.getType().toBasetype().isTypeStruct();
+            Expressions* elements = new Expressions(2);
+            (*elements)[0] = new RealExp(e.loc, CTFloat.zero, Type.tfloat64);
+            (*elements)[1] = new RealExp(e.loc, e.toImaginary(), Type.tfloat64);
+            Expression sle = new StructLiteralExp(e.loc, ts.sym, elements);
+            result = sle.expressionSemantic(sc);
+            return;
+        }
         else
             e.type = e.type.typeSemantic(e.loc, sc);
         result = e;
