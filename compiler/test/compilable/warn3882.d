@@ -12,7 +12,7 @@ void test3882()
 /******************************************/
 // https://issues.dlang.org/show_bug.cgi?id=12619
 
-extern (C) @system nothrow pure void* memcpy(void* s1, in void* s2, size_t n);
+extern (C) @system nothrow pure void* memcpy(void* s1, const void* s2, size_t n);
 // -> weakly pure
 
 void test12619() pure

@@ -31,8 +31,8 @@ struct objc_method_description
     }
 }
 
-SEL sel_registerName(in char* str);
-Protocol* objc_getProtocol(in char* name);
+SEL sel_registerName(scope const char* str);
+Protocol* objc_getProtocol(scope const char* name);
 objc_method_description protocol_getMethodDescription(
     Protocol* proto, SEL aSel, bool isRequiredMethod, bool isInstanceMethod
 );
