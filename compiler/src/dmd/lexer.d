@@ -2570,6 +2570,14 @@ class Lexer
         TOK result;
         bool isOutOfRange = false;
         t.floatvalue = (isWellformedString ? CTFloat.parse(sbufptr, isOutOfRange) : CTFloat.zero);
+
+        bool imaginary = false;
+        if (*p == 'i' && Ccompile)
+        {
+            ++p;
+            imaginary = true;
+        }
+
         switch (*p)
         {
         case 'F':
@@ -2595,11 +2603,17 @@ class Lexer
             result = TOK.float80Literal;
             break;
         }
+
         if ((*p == 'i' || *p == 'I') && !Ccompile)
         {
             if (*p == 'I')
                 error("use 'i' suffix instead of 'I'");
             p++;
+            imaginary = true;
+        }
+
+        if (imaginary)
+        {
             switch (result)
             {
             case TOK.float32Literal:

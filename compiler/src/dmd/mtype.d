@@ -2645,6 +2645,8 @@ extern (C++) abstract class Type : ASTNode
 
         if (t.isimaginary() || t.iscomplex())
         {
+            if (sc.flags & SCOPE.Cfile)
+                return true;            // complex/imaginary not deprecated in C code
             Type rt;
             switch (t.ty)
             {
