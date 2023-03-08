@@ -5,7 +5,7 @@ TEST_OUTPUT:
 ---
 compilable/transition_in.d(3): Usage of 'in' on parameter
 compilable/transition_in.d(3): Usage of 'in' on parameter
-compilable/transition_in.d(8): Usage of 'in' on parameter
+compilable/transition_in.d(13): Usage of 'in' on parameter
 compilable/transition_in.d(13): Usage of 'in' on parameter
 ---
 */
