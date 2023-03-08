@@ -6107,6 +6107,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         const len = buf.length;
         const str = buf.extractChars()[0 .. len];
         scope p = new Parser!ASTCodegen(exp.loc, sc._module, str, false, global.errorSink, &global.compileEnv);
+        p.transitionIn = global.params.vin;
         p.nextToken();
         //printf("p.loc.linnum = %d\n", p.loc.linnum);
 

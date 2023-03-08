@@ -1937,6 +1937,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         buf.writeByte(0);
         const str = buf.extractSlice()[0 .. len];
         scope p = new Parser!ASTCodegen(cd.loc, sc._module, str, false, global.errorSink, &global.compileEnv);
+        p.transitionIn = global.params.vin;
         p.nextToken();
 
         auto d = p.parseDeclDefs(0);
