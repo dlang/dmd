@@ -65,13 +65,17 @@ enum SCOPE
 
     fullinst      = 0x10000,  /// fully instantiate templates
     ctfeBlock     = 0x20000,  /// inside a `if (__ctfe)` block
+
+    /// `-preview=in` changes the ABI, thus it is scope-specific to allow
+    /// enabling it by default on druntime / Phobos, which we distribute compiled
+    previewIn     = 0x10_0000,
 }
 
 /// Flags that are carried along with a scope push()
 private enum PersistentFlags =
     SCOPE.contract | SCOPE.debug_ | SCOPE.ctfe | SCOPE.compile | SCOPE.constraint |
     SCOPE.noaccesscheck | SCOPE.ignoresymbolvisibility |
-    SCOPE.Cfile | SCOPE.ctfeBlock;
+    SCOPE.Cfile | SCOPE.ctfeBlock | SCOPE.previewIn;
 
 extern (C++) struct Scope
 {

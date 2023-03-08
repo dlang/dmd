@@ -3268,6 +3268,7 @@ private void parameterToBuffer(Parameter p, OutBuffer* buf, HdrGenState* hgs)
     if (p.storageClass & STC.in_)
     {
         buf.writestring("in ");
+        // Note: This is not correct for standard library modules
         if (global.params.previewIn && p.storageClass & STC.ref_)
             stc &= ~STC.ref_;
     }
