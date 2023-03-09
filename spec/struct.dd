@@ -1952,6 +1952,183 @@ $(H2 $(LEGACY_LNAME2 AssignOverload, assign-overload, Identity Assignment Overlo
         will reuse the existing storage.
         )
 
+$(H2 $(LEGACY_LNAME2 AliasThis, alias-this, Alias This))
+
+$(GRAMMAR
+$(GNAME AliasThis):
+    $(D alias) $(GLINK_LEX Identifier) $(D this ;)
+)
+
+        $(P An $(I AliasThis) declaration names a member to subtype.
+        The $(I Identifier) names that member.
+        )
+
+        $(P A struct can be implicitly converted to the $(I AliasThis)
+        member.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+struct S
+{
+    int x;
+    alias x this;
+}
+
+int foo(int i) { return i * 2; }
+
+void main()
+{
+    S s;
+    s.x = 7;
+    int i = -s;
+    assert(i == -7);
+    i = s + 8;
+    assert(i == 15);
+    i = s + s;
+    assert(i == 14);
+    i = 9 + s;
+    assert(i == 16);
+    i = foo(s);  // implicit conversion to int
+    assert(i == 14);
+}
+---
+)
+
+        $(P If the member is a class or struct, undefined lookups will
+        be forwarded to the $(I AliasThis) member.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+class Foo
+{
+    int baz = 4;
+    int get() { return 7; }
+}
+
+struct Bar
+{
+    Foo foo;
+    alias foo this;
+}
+
+void main()
+{
+    Bar bar = Bar(new Foo());
+    int i = bar.baz;
+    assert(i == 4);
+    i = bar.get();
+    assert(i == 7);
+}
+---
+)
+
+        $(P If the $(I Identifier) refers to a property member
+        function with no parameters, conversions and undefined
+        lookups are forwarded to the return value of the function.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+struct S
+{
+    int x;
+    @property int get()
+    {
+        return x * 2;
+    }
+    alias get this;
+}
+
+void main()
+{
+    S s;
+    s.x = 2;
+    int i = s;
+    assert(i == 4);
+}
+---
+)
+
+        $(P If a struct declaration defines an $(D opCmp) or $(D opEquals)
+        method, it will take precedence to that of the aliased this member. Note
+        that, unlike an $(D opCmp) method, an $(D opEquals) method is implicitly
+        defined for a $(D struct) declaration if a user defined one isn't provided;
+        this means that if the aliased this member $(D opEquals) is preferred it
+        should be explicitly defined:
+        )
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+struct S
+{
+    int a;
+    bool opEquals(S rhs) const
+    {
+        return this.a == rhs.a;
+    }
+}
+
+struct T
+{
+    int b;
+    S s;
+    alias s this;
+}
+
+void main()
+{
+    S s1, s2;
+    T t1, t2;
+
+    assert(s1 == s2);      // calls S.opEquals
+    assert(t1 == t2);      // calls compiler generated T.opEquals that implements member-wise equality
+
+    assert(s1 == t1);      // calls s1.opEquals(t1.s);
+    assert(t1 == s1);      // calls t1.s.opEquals(s1);
+}
+---
+)
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+struct U
+{
+    int a;
+    bool opCmp(U rhs) const
+    {
+        return this.a < rhs.a;
+    }
+}
+
+struct V
+{
+    int b;
+    U u;
+    alias u this;
+}
+
+void main()
+{
+    U u1, u2;
+    V v1, v2;
+
+    assert(!(u1 < u2));    // calls U.opCmp
+    assert(!(v1 < v2));    // calls U.opCmp because V does not define an opCmp method
+                           // so the alias this of v1 is employed; U.opCmp expects a
+                           // paramter of type U, so alias this of v2 is used
+
+    assert(!(u1 < v1));    // calls u1.opCmp(v1.u);
+    assert(!(v1 < u1));    // calls v1.u.opCmp(v1);
+}
+---
+)
+        $(P $(GLINK2 attribute, Attribute)s are ignored for $(D AliasThis).
+        )
+
+        $(P A struct may have a single $(I AliasThis) member.)
+
+
+
 $(H2 $(LNAME2 nested, Nested Structs))
 
     $(P A struct is a $(I nested struct) if)
