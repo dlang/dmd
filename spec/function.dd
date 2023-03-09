@@ -1749,8 +1749,6 @@ $(H3 $(LNAME2 scope-parameters, Scope Parameters))
     (e.g. by being assigned to a global variable). It has no effect for non-reference types.
     `scope` escape analysis is only done for `@safe` functions. For other functions `scope`
     semantics must be manually enforced.)
-    $(NOTE `scope` escape analysis is currently only done by the `dmd` compiler
-    when the `-dip1000` switch is passed.)
 
 ---
 @safe:
