@@ -42,4 +42,3 @@ L1:
         int* p = new int;
     }
 }
-
