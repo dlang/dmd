@@ -776,7 +776,8 @@ extern (C++) final class Module : Package
         }
         else
         {
-            scope p = new Parser!AST(this, buf, cast(bool) docfile, global.errorSink, &global.compileEnv);
+            const bool doUnittests = global.params.useUnitTests || global.params.ddoc.doOutput || global.params.dihdr.doOutput;
+            scope p = new Parser!AST(this, buf, cast(bool) docfile, global.errorSink, &global.compileEnv, doUnittests);
             p.transitionIn = global.params.vin;
             p.nextToken();
             p.parseModuleDeclaration();

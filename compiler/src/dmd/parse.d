@@ -47,6 +47,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         Loc endloc; // set to location of last right curly
         int inBrackets; // inside [] of array index or slice
         Loc lookingForElse; // location of lonely if looking for an else
+        bool doUnittests; // parse unittest blocks
     }
 
     bool transitionIn = false; /// `-transition=in` is active, `in` parameters are listed
@@ -57,14 +58,15 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      *      loc     location in source file of mixin
      */
     extern (D) this(const ref Loc loc, AST.Module _module, const(char)[] input, bool doDocComment,
-        ErrorSink errorSink, const CompileEnv* compileEnv) scope
+        ErrorSink errorSink, const CompileEnv* compileEnv, const bool doUnittests) scope
     {
         super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false,
                 errorSink,
                 compileEnv);
 
-        //printf("Parser::Parser()\n");
+        //printf("Parser::Parser()1 %d\n", doUnittests);
         scanloc = loc;
+        this.doUnittests = doUnittests;
 
         if (!writeMixin(input, scanloc, global.params.mixinOut) && loc.filename)
         {
@@ -83,15 +85,16 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     }
 
     extern (D) this(AST.Module _module, const(char)[] input, bool doDocComment, ErrorSink errorSink,
-        const CompileEnv* compileEnv) scope
+        const CompileEnv* compileEnv, const bool doUnittests) scope
     {
         super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false,
               errorSink,
               compileEnv);
 
-        //printf("Parser::Parser()\n");
+        //printf("Parser::Parser()2 %d\n", doUnittests);
         mod = _module;
         linkage = LINK.d;
+        this.doUnittests = doUnittests;
         //nextToken();              // start up the scanner
     }
 
@@ -503,7 +506,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                  * template instantiations in these unittests as candidates for
                  * further codegen culling.
                  */
-                if (mod.isRoot() && (global.params.useUnitTests || global.params.ddoc.doOutput || global.params.dihdr.doOutput))
+                // The isRoot check is here because it can change after parsing begins (see dmodule.d)
+                if (doUnittests && mod.isRoot())
                 {
                     linkage = LINK.d; // unittests have D linkage
                     s = parseUnitTest(pAttrs);

@@ -69,7 +69,8 @@ final class CParser(AST) : Parser!AST
                             ErrorSink errorSink,
                             const ref TARGET target, OutBuffer* defines, const CompileEnv* compileEnv) scope
     {
-        super(_module, input, doDocComment, errorSink, compileEnv);
+        const bool doUnittests = false;
+        super(_module, input, doDocComment, errorSink, compileEnv, doUnittests);
 
         //printf("CParser.this()\n");
         mod = _module;
