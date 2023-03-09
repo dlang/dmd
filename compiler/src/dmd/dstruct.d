@@ -75,7 +75,7 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
     {
         if (sc.intypeof)
             return;
-        if (sc.flags & (SCOPE.ctfe | SCOPE.compile | SCOPE.ctfeBlock))
+        if (!sc.needsCodegen())
             return;
     }
 
