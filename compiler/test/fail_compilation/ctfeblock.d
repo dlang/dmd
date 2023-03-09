@@ -19,7 +19,7 @@ struct T { }
     {
 L1:
         new T();
-	a = 3;
+        a = 3;
     }
     goto L1;
 }
@@ -31,3 +31,15 @@ L1:
         new T();
     }
 }
+
+@nogc void test3()
+{
+    if (!__ctfe)
+    {
+    }
+    else
+    {
+        int* p = new int;
+    }
+}
+

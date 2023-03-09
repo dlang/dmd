@@ -1960,6 +1960,20 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
         // Save 'root' of two branches (then and else) at the point where it forks
         CtorFlow ctorflow_root = scd.ctorflow.clone();
 
+        /* Rewrite `if (!__ctfe) A else B` as `if (__ctfe) B else A`
+         */
+        NotExp notExp;
+        if (ifs.elsebody &&
+            (notExp = ifs.condition.isNotExp()) !is null &&
+            notExp.e1.isVarExp() &&
+            notExp.e1.isVarExp().var.ident == Id.ctfe)
+        {
+            ifs.condition = notExp.e1;
+            auto sbody = ifs.ifbody;
+            ifs.ifbody = ifs.elsebody;
+            ifs.elsebody = sbody;
+        }
+
         /* Detect `if (__ctfe)`
          */
         if (ifs.isIfCtfeBlock())
