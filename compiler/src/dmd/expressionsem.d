@@ -11844,7 +11844,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 exp.error("array comparison type mismatch, `%s` vs `%s`", t1next.toChars(), t2next.toChars());
                 return setError();
             }
-            if ((t1.ty == Tarray || t1.ty == Tsarray) && (t2.ty == Tarray || t2.ty == Tsarray))
+
+            if (sc.flags & (SCOPE.ctfe | SCOPE.ctfeBlock | SCOPE.compile)) // interpreter can handle these
+            { }
+            else if ((t1.ty == Tarray || t1.ty == Tsarray) && (t2.ty == Tarray || t2.ty == Tsarray))
             {
                 if (!verifyHookExist(exp.loc, *sc, Id.__cmp, "comparing arrays"))
                     return setError();
