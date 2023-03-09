@@ -526,7 +526,7 @@ $(H3 $(LNAME2 pure-special-cases, Special Cases))
 $(H3 $(LNAME2 pure-factory-functions, Pure Factory Functions))
 
         $(P A $(I pure factory function) is a strongly pure function
-        that returns a result that has mutable indirections.
+        that returns a result that has only mutable indirections.
         All mutable
         memory returned by the call cannot be referenced by any other part of the
         program, i.e. it is newly allocated by the function.
@@ -545,7 +545,7 @@ $(H3 $(LNAME2 pure-factory-functions, Pure Factory Functions))
         pure List* make(int a, int b)
         {
             auto result = new List(a, null);
-            result.next = new List(b, result);
+            result.next = new List(b, null);
             return result;
         }
 
