@@ -582,18 +582,46 @@ $(H3 $(LNAME2 pure-factory-functions, Pure Factory Functions))
 $(H3 $(LNAME2 pure-optimization, Optimization))
 
         $(IMPLEMENTATION_DEFINED An implementation may assume that a strongly pure
-        function that returns a result
+        function called with arguments that have only immutable indirections (or none)
+        that returns a result
         without mutable indirections will have the same effect for all invocations
         with equivalent arguments. It is allowed to memoize the result of the
-        function under the assumption that equivalent parameters always produce
+        function under the assumption that equivalent arguments always produce
         equivalent results.)
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---
+        int a(int) pure; // no mutable indirections
+        int b(const Object) pure; // depends on argument passed
+        immutable(Object) c(immutable Object) pure; // always memoizable
+
+        void g();
+
+        void f(int n, const Object co, immutable Object io)
+        {
+            const int x = a(n);
+            g(); // `n` does not change between calls to `a`
+            int i = a(n); // same as `i = x`
+
+            const int y = b(co);
+            // `co` may have mutable indirection
+            g(); // may change fields of `co` through another reference
+            i = b(co); // call is not memoizable, result may differ
+
+            const int z = b(io);
+            i = b(io); // same as `i = z`
+        }
+        ---
+        )
+
         $(P
-        A strongly pure function may still have behavior
+        Such a function may still have behavior
         inconsistent with memoization by e.g. using `cast`s or by changing behavior
         depending on the address of its parameters. An implementation is currently
         not required to enforce validity of memoization in all cases.
-        If a strongly pure function throws an *Exception* or an *Error*, the
+        )
+        $(P
+        If a function throws an *Exception* or an *Error*, the
         assumptions related to memoization do not carry to the thrown
         exception.)
 
