@@ -407,26 +407,28 @@ $(H2 $(LNAME2 pure-functions, Pure Functions))
         $(LI Modify the local state of the function.)
         $(LI Throw exceptions.)
         )
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         int x;
         immutable int y;
-        const int* pz;
 
         pure int foo(int i)
         {
             i++;     // ok, modifying local state
-            x = i;   // error, modifying global state
-            i = x;   // error, reading mutable global state
+            //x = i; // error, modifying global state
+            //i = x; // error, reading mutable global state
             i = y;   // ok, reading immutable global state
-            i = *pz; // error, reading const global state
             throw new Exception("failed"); // ok
         }
         ---
+        )
 
         $(P A pure function can override an impure function,
             but cannot be overridden by an impure function.
             I.e. it is covariant with an impure function.
         )
+
+$(H3 $(LNAME2 weak-purity, Strong vs Weak Purity))
 
         $(P A $(I weakly pure function) has parameters with mutable indirections.
             Program state can be modified transitively through the matching
@@ -450,17 +452,19 @@ $(H2 $(LNAME2 pure-functions, Pure Functions))
             and cannot modify any program state external to the function.
         )
 
+            $(SPEC_RUNNABLE_EXAMPLE_COMPILE
             ---
             struct S { double x; }
 
-            pure int foo(immutable(int)[] arr, int num, S val)
+            pure size_t foo(immutable(int)[] arr, int num, S val)
             {
                 //arr[num] = 1; // compile error
-                num = 2;        // has no side effect to the caller side
+                num = 2;        // has no side effect on the caller side
                 val.x = 3.14;   // ditto
                 return arr.length;
             }
             ---
+            )
 
         $(P A strongly pure function can call a weakly pure function.)
 
@@ -478,6 +482,8 @@ $(H3 $(LNAME2 pure-special-cases, Special Cases))
         initial state upon function exit. It is the programmer's responsibility
         to ensure this. Setting these flags is not allowed in `@safe` code.)
 
+$(H4 $(LNAME2 pure-debug, Debugging))
+
         $(P A pure function can perform impure operations in statements that are in a
         $(GLINK2 version, ConditionalStatement)
         controlled by a $(GLINK2 version, DebugCondition).
@@ -494,8 +500,11 @@ $(H3 $(LNAME2 pure-special-cases, Special Cases))
         }
         ---
 
+$(H4 $(LNAME2 pure-nested, Nested Functions))
+
         $(P $(RELATIVE_LINK2 nested, Nested functions) inside a pure function are implicitly marked as pure.)
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         pure int foo(int x, immutable int y)
         {
@@ -522,6 +531,7 @@ $(H3 $(LNAME2 pure-special-cases, Special Cases))
             return bar() + baz();
         }
         ---
+        )
 
 $(H3 $(LNAME2 pure-factory-functions, Pure Factory Functions))
 
