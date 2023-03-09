@@ -3797,7 +3797,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 result = id.expressionSemantic(sc);
                 return;
             }
-            else if (!(sc.flags & (SCOPE.ctfe | SCOPE.ctfeBlock | SCOPE.compile)) && // interpreter can handle these
+            else if (sc.needsCodegen() && // interpreter doesn't need this lowered
                      !exp.onstack && !exp.type.isscope()) // these won't use the GC
             {
                 /* replace `new T(arguments)` with `core.lifetime._d_newclassT!T(arguments)`
@@ -6262,10 +6262,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             printf("AssertExp::semantic('%s')\n", exp.toChars());
         }
 
-        const ctfe = (sc.flags & (SCOPE.ctfe | SCOPE.ctfeBlock | SCOPE.compile)) != 0;
-
         const generateMsg = !exp.msg &&
-                            !ctfe && // let ctfe interpreter handle the error message
+                            sc.needsCodegen() && // let ctfe interpreter handle the error message
                             global.params.checkAction == CHECKACTION.context &&
                             global.params.useAssert == CHECKENABLE.on;
         Expression temporariesPrefix;
@@ -9703,7 +9701,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setResult(res);
             }
 
-            if (sc.flags & (SCOPE.ctfe | SCOPE.ctfeBlock | SCOPE.compile))      // if compile time creature only
+            if (!sc.needsCodegen())      // if compile time creature only
             {
                 exp.type = Type.tsize_t;
                 return setResult(exp);
@@ -10063,7 +10061,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
             }
 
-            if (sc.flags & (SCOPE.ctfe | SCOPE.ctfeBlock | SCOPE.compile)) // interpreter can handle these
+            if (!sc.needsCodegen()) // interpreter can handle these
                 return setResult(res);
 
             const lowerToArrayCtor =
@@ -11845,9 +11843,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
             }
 
-            if (sc.flags & (SCOPE.ctfe | SCOPE.ctfeBlock | SCOPE.compile)) // interpreter can handle these
-            { }
-            else if ((t1.ty == Tarray || t1.ty == Tsarray) && (t2.ty == Tarray || t2.ty == Tsarray))
+            if (sc.needsCodegen() &&
+                (t1.ty == Tarray || t1.ty == Tsarray) &&
+                (t2.ty == Tarray || t2.ty == Tsarray))
             {
                 if (!verifyHookExist(exp.loc, *sc, Id.__cmp, "comparing arrays"))
                     return setError();

@@ -2289,7 +2289,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
             {
                 s = new BreakStatement(ss.loc, null);   // default for C is `default: break;`
             }
-            else if (sc.flags & (SCOPE.ctfe | SCOPE.compile | SCOPE.ctfeBlock))
+            else if (!sc.needsCodegen())
             {
                 // something for the interpreter to deal with
                 s = new ExpStatement(ss.loc, new AssertExp(ss.loc, IntegerExp.literal!0));
@@ -2343,8 +2343,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
         }
 
 
-        if (!ss.condition.type.isString() ||
-            sc.flags & (SCOPE.ctfe | SCOPE.compile | SCOPE.ctfeBlock))
+        if (!(ss.condition.type.isString() && sc.needsCodegen()))
         {
             sc.pop();
             result = ss;
