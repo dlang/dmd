@@ -373,6 +373,8 @@ $(GNAME Constructor):
         }
         ------
 
+$(H3 $(LNAME2 base-construction, Base Class Construction))
+
         $(P Base class construction is done by calling the base class
         constructor by the name $(D super):)
 
@@ -1094,7 +1096,7 @@ $(P
         Member functions declared as abstract can still have function
         bodies. This is so that even though they must be overridden,
         they can still provide $(SINGLEQUOTE base class functionality),
-        e.g. through $(D super.foo()) in a derived class.
+        e.g. through $(DDSUBLINK spec/expression, super, $(D super.foo())) in a derived class.
         Note that the class is still abstract and cannot be instantiated directly.
 )
 

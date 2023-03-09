@@ -1758,21 +1758,22 @@ $(H3 $(LNAME2 identifier, .Identifier))
 
 $(H3 $(LNAME2 this, this))
 
-    $(P Within a non-static member function, $(D this) resolves to
+    $(P Within a constructor or non-static member function, $(D this) resolves to
         a reference to the object for which the function was called.
     )
-    $(P `typeof(this)` is valid anywhere inside an aggregate type
-        definition.
+    $(P $(DDSUBLINK spec/type, typeof-this, `typeof(this)`) is valid anywhere
+        inside an aggregate type definition.
         If a class member function is called with an explicit reference
         to $(D typeof(this)), a non-virtual call is made:)
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         -------------
         class A
         {
             char get() { return 'A'; }
 
-            char foo() { return typeof(this).get(); }
-            char bar() { return this.get(); }
+            char foo() { return typeof(this).get(); } // calls `A.get`
+            char bar() { return this.get(); } // dynamic, same as just `get()`
         }
 
         class B : A
@@ -1788,16 +1789,18 @@ $(H3 $(LNAME2 this, this))
             assert(b.bar() == 'B');
         }
         -------------
+        )
 
     $(P Assignment to $(D this) is not allowed for classes.)
+    $(P See also:)
+    * $(DDSUBLINK spec/class, delegating-constructors, Delegating Constructors)
+    * $(DDSUBLINK spec/template, template_this_parameter, template `this` parameters)
 
 $(H3 $(LNAME2 super, super))
 
     $(P $(D super) is identical to $(D this), except that it is
         cast to $(D this)'s base class.
         It is an error if there is no base class.
-        It is an error to use the $(D super) reference outside a non-static class member function,
-        or inside a member function of a class without a base class.
         (The only `extern(D)` class without a base class is `Object`,
         however, note that `extern(C++)` classes have no base class unless specified.)
         If a member function is called with an explicit reference
@@ -1805,6 +1808,7 @@ $(H3 $(LNAME2 super, super))
     )
 
     $(P Assignment to $(D super) is not allowed.)
+    $(P See also: $(DDSUBLINK spec/class, base-construction, Base Class Construction).)
 
 $(H3 $(LNAME2 null, null))
 

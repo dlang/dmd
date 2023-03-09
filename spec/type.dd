@@ -642,17 +642,16 @@ $(GNAME Typeof):
 
         $(P Special cases: )
     $(OL
-        $(LI $(D typeof(this)) will generate the type of what $(D this)
+        $(LI $(D typeof(return)) will, when inside a function scope,
+        give the return type of that function.
+        )
+        $(LI $(LNAME2 typeof-this, $(D typeof(this))) will generate the type of what $(D this)
         would be in a non-static member function, even if not in a member
         function.
         )
         $(LI Analogously, $(D typeof(super)) will generate the type of what
         $(D super) would be in a non-static member function.
         )
-        $(LI $(D typeof(return)) will, when inside a function scope,
-        give the return type of that function.
-        )
-    )
 
         --------------------
         class A { }
@@ -672,6 +671,7 @@ $(GNAME Typeof):
 
         typeof(this) r;   // error, no enclosing struct or class
         --------------------
+    )
 
         $(P If the expression is a $(DDSUBLINK spec/function, property-functions,
         Property Function), $(D typeof) gives its return type.
