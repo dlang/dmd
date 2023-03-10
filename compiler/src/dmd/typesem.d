@@ -4952,7 +4952,8 @@ RootObject compileTypeMixin(TypeMixin tm, Loc loc, Scope* sc)
     const len = buf.length;
     buf.writeByte(0);
     const str = buf.extractSlice()[0 .. len];
-    scope p = new Parser!ASTCodegen(loc, sc._module, str, false, global.errorSink, &global.compileEnv);
+    const bool doUnittests = global.params.useUnitTests || global.params.ddoc.doOutput || global.params.dihdr.doOutput;
+    scope p = new Parser!ASTCodegen(loc, sc._module, str, false, global.errorSink, &global.compileEnv, doUnittests);
     p.transitionIn = global.params.vin;
     p.nextToken();
     //printf("p.loc.linnum = %d\n", p.loc.linnum);
