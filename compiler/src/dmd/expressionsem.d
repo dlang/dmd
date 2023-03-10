@@ -7309,6 +7309,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             goto case Terror;
         }
 
+        if (sc.flags & SCOPE.Cfile && exp.type && exp.type.toBasetype().ty == Tvoid)
+        {
+            // https://issues.dlang.org/show_bug.cgi?id=23752
+            // `&*((void*)(0))` is allowed in C
+            result = exp;
+            return;
+        }
+
         if (exp.checkValue())
             return setError();
 
