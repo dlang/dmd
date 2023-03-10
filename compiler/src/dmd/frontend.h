@@ -8685,6 +8685,10 @@ struct Id final
     static Identifier* va_start;
     static Identifier* std;
     static Identifier* core;
+    static Identifier* config;
+    static Identifier* c_complex_float;
+    static Identifier* c_complex_double;
+    static Identifier* c_complex_real;
     static Identifier* etc;
     static Identifier* attribute;
     static Identifier* atomic;

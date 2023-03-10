@@ -456,6 +456,27 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
         return t.merge();
     }
 
+    Type visitComplex64(TypeBasic t)
+    {
+        if (!(sc.flags & SCOPE.Cfile))
+            return visitType(t);
+
+        /* Convert to core.stdc.config.complex
+         */
+        Module mConfig = Module.loadCoreStdcConfig();
+        if (!mConfig)
+        {
+            .error(loc, "`%s` requires `core.stdc.config` for complex numbers", t.toChars());
+            return error();
+        }
+
+        Dsymbol s = mConfig.searchX(Loc.initial, sc, Id.c_complex_double, IgnorePrivateImports);
+        s = s.toAlias();
+        AliasDeclaration ad = s.isAliasDeclaration();
+        TypeStruct ts = ad.getType().toBasetype().isTypeStruct();
+        return ts.merge();
+    }
+
     Type visitVector(TypeVector mtype)
     {
         const errors = global.errors;
@@ -1940,6 +1961,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
     switch (type.ty)
     {
         default:         return visitType(type);
+        case Tcomplex64: return visitComplex64(type.isTypeBasic());
         case Tvector:    return visitVector(type.isTypeVector());
         case Tsarray:    return visitSArray(type.isTypeSArray());
         case Tarray:     return visitDArray(type.isTypeDArray());

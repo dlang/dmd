@@ -738,7 +738,7 @@ extern (C++) final class AliasDeclaration : Declaration
     extern (D) this(const ref Loc loc, Identifier ident, Type type)
     {
         super(loc, ident);
-        //printf("AliasDeclaration(id = '%s', type = %p)\n", id.toChars(), type);
+        //printf("AliasDeclaration(id = '%s', type = %p)\n", ident.toChars(), type);
         //printf("type = '%s'\n", type.toChars());
         this.type = type;
         assert(type);
@@ -747,7 +747,7 @@ extern (C++) final class AliasDeclaration : Declaration
     extern (D) this(const ref Loc loc, Identifier ident, Dsymbol s)
     {
         super(loc, ident);
-        //printf("AliasDeclaration(id = '%s', s = %p)\n", id.toChars(), s);
+        //printf("AliasDeclaration(id = '%s', s = %p)\n", ident.toChars(), s);
         assert(s != this);
         this.aliassym = s;
         assert(s);

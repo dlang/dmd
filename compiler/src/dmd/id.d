@@ -370,6 +370,10 @@ immutable Msgtable[] msgtable =
     // Builtin functions
     { "std" },
     { "core" },
+    { "config" },
+    { "c_complex_float" },
+    { "c_complex_double" },
+    { "c_complex_real" },
     { "etc" },
     { "attribute" },
     { "atomic" },
