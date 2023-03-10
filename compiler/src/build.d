@@ -255,28 +255,31 @@ will trigger a full rebuild.
 /// Returns: the rule that builds the lexer object file
 alias lexer = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule rule,
                                  string suffix, string[] extraFlags)
-    => builder
-    .name("lexer")
-    .target(env["G"].buildPath("lexer" ~ suffix).objName)
-    .sources(sources.lexer)
-    .deps([
-        versionFile,
-        sysconfDirFile,
-        common(suffix, extraFlags)
-    ])
-    .msg("(DC) LEXER" ~ suffix)
-    .command([env["HOST_DMD_RUN"],
-        "-c",
-        "-of" ~ rule.target,
-        "-vtls",
-        "-J" ~ env["RES"]]
-        .chain(flags["DFLAGS"],
-            extraFlags,
-            // source files need to have relative paths in order for the code coverage
-            // .lst files to be named properly for CodeCov to find them
-            rule.sources.map!(e => e.relativePath(compilerDir))
-        ).array
-    )
+    {
+        auto isDMD = env["HOST_DMD_KIND"] == "dmd";
+        return builder
+            .name("lexer")
+            .target(env["G"].buildPath("lexer" ~ suffix).objName)
+            .sources(sources.lexer)
+            .deps([
+                versionFile,
+                sysconfDirFile,
+                common(suffix, extraFlags)
+            ])
+            .msg("(DC) LEXER" ~ suffix)
+            .command([env["HOST_DMD_RUN"],
+                "-c",
+                "-of" ~ rule.target,
+                isDMD ? "-vtls" : "",
+                "-J" ~ env["RES"]]
+                .chain(flags["DFLAGS"],
+                    extraFlags,
+                    // source files need to have relative paths in order for the code coverage
+                    // .lst files to be named properly for CodeCov to find them
+                    rule.sources.map!(e => e.relativePath(compilerDir))
+                ).array
+            );
+    }
 );
 
 /// Returns: the rule that generates the dmd.conf/sc.ini file in the output folder
@@ -463,6 +466,7 @@ alias dmdExe = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule
                                   string targetSuffix, string[] extraFlags, string[] depFlags) {
     const dmdSources = sources.dmd.all.chain(sources.root).array;
 
+    auto isDMD = env["HOST_DMD_KIND"] == "dmd";
     string[] platformArgs;
     version (Windows)
         platformArgs = ["-L/STACK:16777216"];
@@ -479,7 +483,7 @@ alias dmdExe = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule
         .command([
             env["HOST_DMD_RUN"],
             "-of" ~ rule.target,
-            "-vtls",
+            isDMD ? "-vtls" : "",
             "-J" ~ env["RES"],
             ].chain(extraFlags, platformArgs, flags["DFLAGS"],
                 // source files need to have relative paths in order for the code coverage
@@ -756,7 +760,7 @@ alias runCxxUnittest = makeRule!((runCxxBuilder, runCxxRule) {
         .command([ env["CXX"], "-xc++", "-std=c++11",
                    "-c", frontendRule.sources[0], "-o" ~ frontendRule.target, "-I" ~ env["D"] ] ~ flags["CXXFLAGS"])
     );
-
+    auto isDMD = env["HOST_DMD_KIND"] == "dmd";
     alias cxxUnittestExe = methodInit!(BuildRule, (exeBuilder, exeRule) => exeBuilder
         .name("cxx-unittest")
         .description("Build the C++ unittests")
@@ -764,7 +768,7 @@ alias runCxxUnittest = makeRule!((runCxxBuilder, runCxxRule) {
         .deps([lexer(null, null), cxxFrontend])
         .sources(sources.dmd.driver ~ sources.dmd.frontend ~ sources.root ~ sources.common)
         .target(env["G"].buildPath("cxx-unittest").exeName)
-        .command([ env["HOST_DMD_RUN"], "-of=" ~ exeRule.target, "-vtls", "-J" ~ env["RES"],
+        .command([ env["HOST_DMD_RUN"], "-of=" ~ exeRule.target, isDMD ? "-vtls" : "", "-J" ~ env["RES"],
                     "-L-lstdc++", "-version=NoMain", "-version=NoBackend"
             ].chain(
                 flags["DFLAGS"], exeRule.sources, exeRule.deps.map!(d => d.target)
@@ -1365,7 +1369,20 @@ void processEnvironment()
     else
         env.setDefault("ZIP", "zip");
 
-    string[] dflags = ["-version=MARS", "-w", "-de", env["PIC_FLAG"], env["MODEL_FLAG"], "-J"~env["G"], "-I" ~ srcDir];
+    string[] dflags;
+    switch (env["HOST_DMD_KIND"])
+    {
+        case "dmd":
+                dflags = ["-version=MARS", "-w", "-de", env["PIC_FLAG"], env["MODEL_FLAG"], "-J"~env["G"], "-I" ~ srcDir];
+            break;
+        case "gdc":
+                dflags = ["-fversion=MARS", "-w", "-de", env["PIC_FLAG"], env["MODEL_FLAG"], "-J"~env["G"], "-I" ~ srcDir];
+            break;
+        case "ldc":
+                dflags = ["-d-version=MARS", "-w", "-de", env["PIC_FLAG"], env["MODEL_FLAG"], "-J"~env["G"], "-I" ~ srcDir];
+            break;
+        default: break;
+    }
 
     // TODO: add support for dObjc
     auto dObjc = false;
