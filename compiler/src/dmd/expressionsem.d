@@ -12370,7 +12370,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         // lower some array comparisons to object.__equals(e1, e2)
-        if (needsArrayLowering || (t1.ty == Tarray && t2.ty == Tarray))
+        if (sc.needsCodegen() &&
+            (needsArrayLowering || (t1.ty == Tarray && t2.ty == Tarray)))
         {
             //printf("Lowering to __equals %s %s\n", exp.e1.toChars(), exp.e2.toChars());
 
