@@ -2612,20 +2612,26 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             /* Convert to core.stdc.config.complex
              */
-            Module mConfig = Module.loadCoreStdcConfig();
-            if (!mConfig)
-            {
-                e.error("`%s` requires `core.stdc.config` for complex numbers", e.toChars());
+            Type t = getComplexLibraryType(e.loc, sc, e.type.ty);
+            if (t.ty == Terror)
                 return setError();
+
+            Type tf;
+            switch (e.type.ty)
+            {
+                case Timaginary32: tf = Type.tfloat32; break;
+                case Timaginary64: tf = Type.tfloat64; break;
+                case Timaginary80: tf = Type.tfloat80; break;
+                default:
+                    assert(0);
             }
 
-            Dsymbol s = mConfig.searchX(e.loc, sc, Id.c_complex_double, IgnorePrivateImports);
-            s = s.toAlias();
-            AliasDeclaration ad = s.isAliasDeclaration();
-            TypeStruct ts = ad.getType().toBasetype().isTypeStruct();
+            /* Construct ts{re : 0.0, im : e}
+             */
+            TypeStruct ts = t.isTypeStruct;
             Expressions* elements = new Expressions(2);
-            (*elements)[0] = new RealExp(e.loc, CTFloat.zero, Type.tfloat64);
-            (*elements)[1] = new RealExp(e.loc, e.toImaginary(), Type.tfloat64);
+            (*elements)[0] = new RealExp(e.loc,    CTFloat.zero, tf);
+            (*elements)[1] = new RealExp(e.loc, e.toImaginary(), tf);
             Expression sle = new StructLiteralExp(e.loc, ts.sym, elements);
             result = sle.expressionSemantic(sc);
             return;
