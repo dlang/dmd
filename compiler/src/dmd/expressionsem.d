@@ -10475,7 +10475,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         result = res;
 
         if ((exp.op == EXP.concatenateAssign || exp.op == EXP.concatenateElemAssign) &&
-            !(sc.flags & (SCOPE.ctfe | SCOPE.compile)))
+            sc.needsCodegen())
         {
             // if aa ordering is triggered, `res` will be a CommaExp
             // and `.e2` will be the rewritten original expression.
