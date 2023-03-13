@@ -456,25 +456,15 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
         return t.merge();
     }
 
-    Type visitComplex64(TypeBasic t)
+    Type visitComplex(TypeBasic t)
     {
         if (!(sc.flags & SCOPE.Cfile))
             return visitType(t);
 
-        /* Convert to core.stdc.config.complex
-         */
-        Module mConfig = Module.loadCoreStdcConfig();
-        if (!mConfig)
-        {
-            .error(loc, "`%s` requires `core.stdc.config` for complex numbers", t.toChars());
-            return error();
-        }
-
-        Dsymbol s = mConfig.searchX(Loc.initial, sc, Id.c_complex_double, IgnorePrivateImports);
-        s = s.toAlias();
-        AliasDeclaration ad = s.isAliasDeclaration();
-        TypeStruct ts = ad.getType().toBasetype().isTypeStruct();
-        return ts.merge();
+        auto tc = getComplexLibraryType(loc, sc, t.ty);
+        if (tc.ty == Terror)
+            return tc;
+        return tc.addMod(t.mod).merge();
     }
 
     Type visitVector(TypeVector mtype)
@@ -1961,7 +1951,9 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
     switch (type.ty)
     {
         default:         return visitType(type);
-        case Tcomplex64: return visitComplex64(type.isTypeBasic());
+        case Tcomplex32:
+        case Tcomplex64:
+        case Tcomplex80: return visitComplex(type.isTypeBasic());
         case Tvector:    return visitVector(type.isTypeVector());
         case Tsarray:    return visitSArray(type.isTypeSArray());
         case Tarray:     return visitDArray(type.isTypeDArray());
@@ -4630,6 +4622,74 @@ extern (C++) Expression defaultInit(Type mt, const ref Loc loc, const bool isCfi
                                 visitBasic(cast(TypeBasic)mt) :
                                 null;
     }
+}
+
+
+/**********************************************
+ * Extract complex type from core.stdc.config
+ * Params:
+ *      loc = for error messages
+ *      sc = context
+ *      ty = a complex or imaginary type
+ * Returns:
+ *      Complex!float, Complex!double, Complex!real or null for error
+ */
+
+Type getComplexLibraryType(const ref Loc loc, Scope* sc, TY ty)
+{
+    // singleton
+    __gshared Type complex_float;
+    __gshared Type complex_double;
+    __gshared Type complex_real;
+
+    Type* pt;
+    Identifier id;
+    switch (ty)
+    {
+        case Timaginary32:
+        case Tcomplex32:   id = Id.c_complex_float;  pt = &complex_float;  break;
+        case Timaginary64:
+        case Tcomplex64:   id = Id.c_complex_double; pt = &complex_double; break;
+        case Timaginary80:
+        case Tcomplex80:   id = Id.c_complex_real;   pt = &complex_real;   break;
+        default:
+             return Type.terror;
+    }
+
+    if (*pt)
+        return *pt;
+    *pt = Type.terror;
+
+    Module mConfig = Module.loadCoreStdcConfig();
+    if (!mConfig)
+    {
+        error(loc, "`core.stdc.config` is required for complex numbers");
+        return *pt;
+    }
+
+    Dsymbol s = mConfig.searchX(Loc.initial, sc, id, IgnorePrivateImports);
+    if (!s)
+    {
+        error(loc, "`%s` not found in core.stdc.config", id.toChars());
+        return *pt;
+    }
+    s = s.toAlias();
+    if (auto t = s.getType())
+    {
+        if (auto ts = t.toBasetype().isTypeStruct())
+        {
+            *pt = ts;
+            return ts;
+        }
+    }
+    if (auto sd = s.isStructDeclaration())
+    {
+        *pt = sd.type;
+        return sd.type;
+    }
+
+    error(loc, "`%s` must be an alias for a complex struct", s.toChars());
+    return *pt;
 }
 
 /******************************* Private *****************************************/
