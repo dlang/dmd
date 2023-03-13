@@ -12382,6 +12382,29 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         Type t1 = exp.e1.type;
         Type t2 = exp.e2.type;
+
+        // https://issues.dlang.org/show_bug.cgi?id=23767
+        // `cast(void*) 0` should be treated as `null` so the ternary expression
+        // gets the pointer type of the other branch
+        if (sc.flags & SCOPE.Cfile)
+        {
+            static void rewriteCNull(ref Expression e, ref Type t)
+            {
+                if (!t.isTypePointer())
+                    return;
+                if (auto ie = e.optimize(WANTvalue).isIntegerExp())
+                {
+                    if (ie.getInteger() == 0)
+                    {
+                        e = new NullExp(e.loc, Type.tnull);
+                        t = Type.tnull;
+                    }
+                }
+            }
+            rewriteCNull(exp.e1, t1);
+            rewriteCNull(exp.e2, t2);
+        }
+
         if (t1.ty == Tnoreturn)
         {
             exp.type = t2;
