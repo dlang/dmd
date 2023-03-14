@@ -9829,10 +9829,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             arguments.push(exp.e2);
 
             Expression ce = new CallExp(ale.loc, id, arguments);
-            auto res = ce.expressionSemantic(sc);
+            exp.lowering = ce.expressionSemantic(sc);
             // if (global.params.verbose)
             //     message("lowered   %s =>\n          %s", exp.toChars(), res.toChars());
-            return setResult(res);
+            exp.type = Type.tsize_t;
+            return setResult(exp);
         }
         else if (auto se = exp.e1.isSliceExp())
         {

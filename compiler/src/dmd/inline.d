@@ -765,13 +765,12 @@ public:
 
         override void visit(AssignExp e)
         {
-            visit(cast(BinExp)e);
-
-            if (auto ale = e.e1.isArrayLengthExp())
+            if (e.lowering)
             {
-                Type tn = ale.e1.type.toBasetype().nextOf();
-                semanticTypeInfo(null, tn);
+                result = doInlineAs!Expression(e.lowering, ids);
+                return;
             }
+            visit(cast(BinExp)e);
         }
 
         override void visit(EqualExp e)
@@ -1250,6 +1249,11 @@ public:
 
     override void visit(AssignExp e)
     {
+        if (e.lowering)
+        {
+            inlineScan(e.lowering);
+            return;
+        }
         // Look for NRVO, as inlining NRVO function returns require special handling
         if (e.op == EXP.construct && e.e2.op == EXP.call)
         {

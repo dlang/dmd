@@ -7715,6 +7715,7 @@ class AssignExp : public BinExp
 {
 public:
     MemorySet memset;
+    Expression* lowering;
     AssignExp(const Loc& loc, EXP tok, Expression* e1, Expression* e2);
     bool isLvalue() final override;
     Expression* toLvalue(Scope* sc, Expression* ex) final override;

@@ -2241,7 +2241,10 @@ elem* toElem(Expression e, IRState *irs)
         // Look for array.length = n
         if (auto ale = ae.e1.isArrayLengthExp())
         {
-            assert(0, "This case should have been rewritten to `_d_arraysetlengthT` in the semantic phase");
+            if (!ae.lowering)
+                assert(0, "This case should have been rewritten to `_d_arraysetlengthT` in the semantic phase");
+
+            return setResult(toElem(ae.lowering, irs));
         }
 
         // Look for array[]=n

@@ -1069,6 +1069,7 @@ class AssignExp : public BinExp
 {
 public:
     MemorySet memset;
+    Expression *lowering;
 
     bool isLvalue() override final;
     Expression *toLvalue(Scope *sc, Expression *ex) override final;

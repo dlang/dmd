@@ -6123,6 +6123,7 @@ enum MemorySet
 extern (C++) class AssignExp : BinExp
 {
     MemorySet memset;
+    Expression lowering;
 
     /************************************************************/
     /* op can be EXP.assign, EXP.construct, or EXP.blit */

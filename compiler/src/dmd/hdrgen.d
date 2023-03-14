@@ -2310,6 +2310,15 @@ private void expressionPrettyPrint(Expression e, OutBuffer* buf, HdrGenState* hg
 
     void visitBin(BinExp e)
     {
+        if (auto ae = e.isAssignExp())
+        {
+            if (ae.lowering && global.params.vcg_ast)
+            {
+                expressionToBuffer(ae.lowering, buf, hgs);
+                return;
+            }
+        }
+
         expToBuffer(e.e1, precedence[e.op], buf, hgs);
         buf.writeByte(' ');
         buf.writestring(EXPtoString(e.op));
