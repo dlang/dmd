@@ -4030,11 +4030,11 @@ void catchSemantic(Catch c, Scope* sc)
         // reference .object.Throwable
         c.type = getThrowable();
     }
-    else if (c.type.isImmutable())
+    else if (!c.type.isNaked() && !c.type.isConst())
     {
-        // @@@DEPRECATED_2.112@@@
-        // Deprecated in 2.102, change into an error & uncomment in 2.112
-        deprecation(c.loc, "cannot catch immutable type `%s`", c.type.toChars());
+        // @@@DEPRECATED_2.113@@@
+        // Deprecated in 2.103, change into an error & uncomment in 2.113
+        deprecation(c.loc, "can only catch mutable or const qualified types, not `%s`", c.type.toChars());
         //c.errors = true;
     }
     c.type = c.type.typeSemantic(c.loc, sc);

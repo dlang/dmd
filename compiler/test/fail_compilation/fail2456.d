@@ -112,7 +112,7 @@ void test2456b()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail2456.d(121): Deprecation: cannot catch immutable type `immutable(Exception)`
+fail_compilation/fail2456.d(121): Deprecation: can only catch mutable or const qualified types, not `immutable(Exception)`
 ---
 */
 void main() {
