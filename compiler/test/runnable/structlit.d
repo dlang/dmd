@@ -1369,7 +1369,7 @@ int foo11427() @safe
 struct S12011a
 {
     int f() { return i; }
-    enum e = this.init.f();
+    enum e = typeof(this).init.f();
     int i = 1, j = 2;
 }
 

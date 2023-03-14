@@ -127,7 +127,7 @@ int front10101(int);
 
 mixin template reflectRange10101()
 {
-    static if (is(typeof(this.front10101)))
+    static if (is(typeof(front10101)))
     {
         int x;
     }
@@ -457,7 +457,7 @@ class Frop14549
         int bar = 0;
     }
 
-    static if (!__traits(isVirtualMethod, this.bar)) {}
+    static if (!__traits(isVirtualMethod, Frop14549.bar)) {}
 }
 
 // ----

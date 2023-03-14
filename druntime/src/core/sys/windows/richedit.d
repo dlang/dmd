@@ -310,7 +310,7 @@ enum UID_CUT        = 4;
 enum UID_PASTE      = 5;
 
 struct CHARFORMATA {
-    UINT cbSize = this.sizeof;
+    UINT cbSize = typeof(this).sizeof;
     DWORD dwMask;
     DWORD dwEffects;
     LONG yHeight;
@@ -321,7 +321,7 @@ struct CHARFORMATA {
     char[LF_FACESIZE] szFaceName = 0;
 }
 struct CHARFORMATW {
-    UINT cbSize = this.sizeof;
+    UINT cbSize = typeof(this).sizeof;
     DWORD dwMask;
     DWORD dwEffects;
     LONG yHeight;
@@ -333,7 +333,7 @@ struct CHARFORMATW {
 }
 
 struct CHARFORMAT2A {
-    UINT cbSize = this.sizeof;
+    UINT cbSize = typeof(this).sizeof;
     DWORD dwMask;
     DWORD dwEffects;
     LONG yHeight;
@@ -355,7 +355,7 @@ struct CHARFORMAT2A {
 }
 
 struct CHARFORMAT2W {
-    UINT cbSize = this.sizeof;
+    UINT cbSize = typeof(this).sizeof;
     DWORD dwMask;
     DWORD dwEffects;
     LONG yHeight;
@@ -486,7 +486,7 @@ align(4):
 }
 
 struct PARAFORMAT {
-    UINT cbSize = this.sizeof;
+    UINT cbSize = typeof(this).sizeof;
     DWORD dwMask;
     WORD wNumbering;
     WORD wReserved;
@@ -499,7 +499,7 @@ struct PARAFORMAT {
 }
 
 struct PARAFORMAT2 {
-    UINT cbSize = this.sizeof;
+    UINT cbSize = typeof(this).sizeof;
     DWORD dwMask;
     WORD wNumbering;
     WORD wEffects;

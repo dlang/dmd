@@ -34,7 +34,7 @@ alias HRESULT function(DWORD, BYTE, DWORD, BYTE, IRAPIStream) RAPIEXT;
 
 struct RAPIINIT
 {
-    DWORD   cbSize = this.sizeof;
+    DWORD   cbSize = typeof(this).sizeof;
     HANDLE  heRapiInit;
     HRESULT hrRapiInit;
 }

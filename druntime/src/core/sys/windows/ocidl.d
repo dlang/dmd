@@ -93,7 +93,7 @@ enum QACONTAINERFLAGS {
 }
 
 struct QACONTAINER {
-    ULONG cbSize = this.sizeof;
+    ULONG cbSize = typeof(this).sizeof;
     IOleClientSite pClientSite;
     IAdviseSinkEx pAdviseSink;
     IPropertyNotifySink pPropertyNotifySink;
@@ -112,7 +112,7 @@ struct QACONTAINER {
 }
 
 struct QACONTROL {
-    ULONG cbSize = this.sizeof;
+    ULONG cbSize = typeof(this).sizeof;
     DWORD dwMiscStatus;
     DWORD dwViewStatus;
     DWORD dwEventCookie;

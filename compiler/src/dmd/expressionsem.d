@@ -13020,6 +13020,10 @@ Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, bool gag)
         {
             if (exp.e1.isThisExp())
             {
+                //@@@DEPRECATED2.113@@@
+                // Delete the outermost if when turning into an error
+                deprecation(exp.loc, "`this` is only defined in non-static member functions, not inside scope `%s`", sc.parent.toChars());
+                deprecationSupplemental(exp.loc, "Use `typeof(this)` or `%s.%s`", ad.toChars(), exp.ident.toChars());
                 exp.e1 = new TypeExp(exp.e1.loc, ad.type);
             }
             else
@@ -13027,7 +13031,12 @@ Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, bool gag)
                 if (auto cd = ad.isClassDeclaration())
                 {
                     if (cd.baseClass)
+                    {
+                        //@@@DEPRECATED2.113@@@
+                        deprecation(exp.loc, "`super` is only defined in non-static member functions, not inside scope `%s`", sc.parent.toChars());
+                        deprecationSupplemental(exp.loc, "Use `typeof(super)` or `%s.%s`", cd.baseClass.toChars(), exp.ident.toChars());
                         exp.e1 = new TypeExp(exp.e1.loc, cd.baseClass.type);
+                    }
                 }
             }
         }

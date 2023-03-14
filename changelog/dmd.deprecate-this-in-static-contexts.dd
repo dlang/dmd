@@ -1,0 +1,35 @@
+Deprecate `this` and `super` in static contexts
+
+Up until this release the compiler automatically replaced usages
+of `this` and `super` in static contexts with the outer aggregate name or
+the base class name, respectively. For example, this code compiled successfully:
+
+```d
+struct S
+{
+    size_t member;
+    static void foo(byte member)
+    {
+        auto t = this.member.sizeof;   // `this` used in static context
+    }
+}
+
+
+class A
+{
+    int a;
+}
+
+class B : A
+{
+    static void foo(byte member)
+    {
+        auto t = super.a.sizeof;       // `super` used in static context
+    }
+}
+```
+
+Starting with this release, such code will issue a deprecation warning.
+To fix the code, the name of the containing aggregate must be used (e.g
+`S.member` or `A.a` in the provided examples). An alternative is to simply
+use `typeof(this)` or `typeof(super)`.
