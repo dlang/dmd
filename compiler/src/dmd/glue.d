@@ -1464,13 +1464,13 @@ tym_t totym(Type tx)
             else if (id == Id.__c_ulong)
                 t = tb.ty == Tuns32 ? TYulong : TYullong;
             else if (id == Id.__c_long_double)
-                t = TYdouble;
+                t = tb.size() == 8 ? TYdouble : TYldouble;
             else if (id == Id.__c_complex_float)
                 t = TYcfloat;
             else if (id == Id.__c_complex_double)
                 t = TYcdouble;
             else if (id == Id.__c_complex_real)
-                t = TYcldouble;
+                t = tb.size() == 16 ? TYcdouble : TYcldouble;
             else
                 t = totym(tb);
             break;
