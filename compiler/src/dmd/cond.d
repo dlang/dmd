@@ -741,6 +741,7 @@ extern (C++) final class VersionCondition : DVCondition
             case "Windows":
             case "X86":
             case "X86_64":
+            case "Zephyr":
                 return true;
 
             default:

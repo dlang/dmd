@@ -25,6 +25,7 @@
 // REQUIRED_ARGS: -version=Android
 // REQUIRED_ARGS: -version=Cygwin
 // REQUIRED_ARGS: -version=MinGW
+// REQUIRED_ARGS: -version=Zephyr
 // REQUIRED_ARGS: -version=FreeStanding
 // REQUIRED_ARGS: -version=X86
 // REQUIRED_ARGS: -version=X86_64
@@ -133,6 +134,7 @@
 // REQUIRED_ARGS: -debug=Android
 // REQUIRED_ARGS: -debug=Cygwin
 // REQUIRED_ARGS: -debug=MinGW
+// REQUIRED_ARGS: -debug=Zephyr
 // REQUIRED_ARGS: -debug=FreeStanding
 // REQUIRED_ARGS: -debug=X86
 // REQUIRED_ARGS: -debug=X86_64
@@ -241,6 +243,7 @@ Error: version identifier `Hurd` is reserved and cannot be set
 Error: version identifier `Android` is reserved and cannot be set
 Error: version identifier `Cygwin` is reserved and cannot be set
 Error: version identifier `MinGW` is reserved and cannot be set
+Error: version identifier `Zephyr` is reserved and cannot be set
 Error: version identifier `FreeStanding` is reserved and cannot be set
 Error: version identifier `X86` is reserved and cannot be set
 Error: version identifier `X86_64` is reserved and cannot be set
