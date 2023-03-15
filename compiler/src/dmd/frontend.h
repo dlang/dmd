@@ -959,10 +959,10 @@ class Expression : public ASTNode
 {
 public:
     const EXP op;
-    uint8_t size;
     bool parens;
     Type* type;
     Loc loc;
+    size_t size() const;
     static void _init();
     static void deinitialize();
     Expression* copy();

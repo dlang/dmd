@@ -47,7 +47,7 @@ extern (C++) final class ClassReferenceExp : Expression
 
     extern (D) this(const ref Loc loc, StructLiteralExp lit, Type type)
     {
-        super(loc, EXP.classReference, __traits(classInstanceSize, ClassReferenceExp));
+        super(loc, EXP.classReference);
         assert(lit && lit.sd && lit.sd.isClassDeclaration());
         this.value = lit;
         this.type = type;
@@ -132,7 +132,7 @@ extern (C++) final class ThrownExceptionExp : Expression
 
     extern (D) this(const ref Loc loc, ClassReferenceExp victim)
     {
-        super(loc, EXP.thrownException, __traits(classInstanceSize, ThrownExceptionExp));
+        super(loc, EXP.thrownException);
         this.thrown = victim;
         this.type = victim.type;
     }
@@ -170,7 +170,7 @@ extern (C++) final class CTFEExp : Expression
 {
     extern (D) this(EXP tok)
     {
-        super(Loc.initial, tok, __traits(classInstanceSize, CTFEExp));
+        super(Loc.initial, tok);
         type = Type.tvoid;
     }
 
