@@ -2517,13 +2517,13 @@ $(GNAME ArgumentList):
         collected) heap.
     )
 
-    $(P The *Type* form constructs an instance of a type and default-initializes it.)
+    $(P The `new` *Type* form constructs an instance of a type and default-initializes it.)
     $(P The *Type(ArgumentList)* form allows passing either a single initializer
         of the same type, or multiple arguments for more complex types.
         For class types, *ArgumentList* is passed to the class constructor.
         For a dynamic array, the argument sets the initial array length.
         For multidimensional dynamic arrays, each argument corresponds to
-        an initial length.)
+        an initial length (see $(RELATIVE_LINK2 new_multidimensional, below)).)
 
     $(SPEC_RUNNABLE_EXAMPLE_RUN
     ---
@@ -2537,10 +2537,6 @@ $(GNAME ArgumentList):
 
     auto a = new int[](2);
     assert(a.length == 2);
-
-    int[][] m = new int[][](10, 5);
-    assert(m.length == 10);
-    assert(m[0].length == 5);
     ---
     )
 
@@ -2551,6 +2547,15 @@ $(GNAME ArgumentList):
 
     $(NOTE It is not possible to allocate a static array directly with
         `new` (only by using a type alias).)
+
+    $(P The result is a $(DDSUBLINK const3, unique-expressions, unique expression)
+    which can implicitly convert to other qualifiers:)
+
+    ---
+    immutable o = new Object;
+    ---
+
+$(H4 $(LNAME2 new_class, Class Instantiation))
 
     $(P If a $(I NewExpression) is used with a class type as an initializer for
         a function local variable with $(DDSUBLINK spec/attribute, scope, `scope`) storage class,
@@ -2579,13 +2584,18 @@ $(H4 $(LNAME2 new_multidimensional, Multidimensional Arrays))
 
     $(P To allocate the nested arrays, multiple arguments can be used:)
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---------------
         int[][][] bar;
-        ...
         bar = new int[][][](5, 20, 30);
-        ---------------
 
-    The code above is equivalent to:
+        assert(bar.length == 5);
+        assert(bar[0].length == 20);
+        assert(bar[0][0].length == 30);
+        ---------------
+        )
+
+    The assignment above is equivalent to:
 
         ----------
         bar = new int[][][5];
