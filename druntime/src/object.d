@@ -284,7 +284,14 @@ if ((is(LHS : const Object) || is(LHS : const shared Object)) &&
         // If either is null => non-equal
         if (lhs is null || rhs is null) return false;
 
-        if (!lhs.opEquals(rhs)) return false;
+        static if (__traits(isSame, LHS.opEquals, Object.opEquals))
+        {
+            if (!(() @trusted => lhs.opEquals(rhs))()) return false;
+        }
+        else
+        {
+            if (!lhs.opEquals(rhs)) return false;
+        }
 
         // If same exact type => one call to method opEquals
         if (typeid(lhs) is typeid(rhs) ||
@@ -297,7 +304,10 @@ if ((is(LHS : const Object) || is(LHS : const shared Object)) &&
         }
 
         // General case => symmetric calls to method opEquals
-        return rhs.opEquals(lhs);
+        static if (__traits(isSame, RHS.opEquals, Object.opEquals))
+            return (() @trusted => rhs.opEquals(lhs))();
+        else
+            return rhs.opEquals(lhs);
     }
     else
     {
@@ -305,8 +315,9 @@ if ((is(LHS : const Object) || is(LHS : const shared Object)) &&
         // if none of the new overloads compile, we'll go back plain Object,
         // including casting away const. It does this through the pointer
         // to bypass any opCast that may be present on the original class.
-        return .opEquals!(Object, Object)(*cast(Object*) &lhs, *cast(Object*) &rhs);
-
+        auto l = (() @trusted => *cast(Object*) &lhs)();
+        auto r = (() @trusted => *cast(Object*) &rhs)();
+        return .opEquals!(Object, Object)(l, r);
     }
 }
 
@@ -501,6 +512,21 @@ unittest
     }
 
     static assert(testThroughChild());
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=22159
+@safe unittest
+{
+    class C
+    {
+        int a;
+        this(int) @safe {}
+    }
+
+    C c = new C(1);
+    C[] a = [c, c, c];
+    assert(c == c);
+    assert(a == [c, c, c]);
 }
 
 // To cover const Object opEquals
