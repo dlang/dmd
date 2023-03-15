@@ -289,8 +289,6 @@ enum EXP : ubyte
     cast_,
     null_,
     assert_,
-    true_,
-    false_,
     array,
     call,
     address,
@@ -307,13 +305,10 @@ enum EXP : ubyte
     dotType,
     slice,
     arrayLength,
-    version_,
     dollar,
     template_,
     dotTemplateDeclaration,
     declaration,
-    typeof_,
-    pragma_,
     dSymbol,
     typeid_,
     uadd,
@@ -394,13 +389,11 @@ enum EXP : ubyte
     int64,
     float64,
     complex80,
-    char_,
     import_,
     delegate_,
     function_,
     mixin_,
     in_,
-    default_,
     break_,
     continue_,
     goto_,
@@ -414,7 +407,6 @@ enum EXP : ubyte
     moduleString,   // __MODULE__
     functionString, // __FUNCTION__
     prettyFunction, // __PRETTY_FUNCTION__
-    shared_,
     pow,
     powAssign,
     vector,
@@ -424,7 +416,6 @@ enum EXP : ubyte
     showCtfeContext,
     objcClassReference,
     vectorArray,
-    arrow,      // ->
     compoundLiteral, // ( type-name ) { initializer-list }
     _Generic,
     interval,

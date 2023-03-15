@@ -575,7 +575,6 @@ private bool _isZeroInit(Expression exp)
             return exp.toInteger() == 0;
 
         case EXP.null_:
-        case EXP.false_:
             return true;
 
         case EXP.structLiteral:

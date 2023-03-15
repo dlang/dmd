@@ -369,7 +369,6 @@ UnionExp copyLiteral(Expression e)
     case EXP.dotVariable:
     case EXP.int64:
     case EXP.float64:
-    case EXP.char_:
     case EXP.complex80:
     case EXP.void_:
     case EXP.vector:
@@ -1837,7 +1836,6 @@ bool isCtfeValueValid(Expression newval)
     {
         case EXP.int64:
         case EXP.float64:
-        case EXP.char_:
         case EXP.complex80:
             return tb.isscalar();
 

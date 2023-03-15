@@ -4091,7 +4091,6 @@ string EXPtoString(EXP op)
         EXP.error : "error",
         EXP.objcClassReference : "class",
 
-        EXP.typeof_ : "typeof",
         EXP.mixin_ : "mixin",
 
         EXP.import_ : "import",
@@ -4131,7 +4130,6 @@ string EXPtoString(EXP op)
         EXP.remove : "remove",
         EXP.tuple : "tuple",
         EXP.traits : "__traits",
-        EXP.default_ : "default",
         EXP.overloadSet : "__overloadset",
         EXP.void_ : "void",
         EXP.vectorArray : "vectorarray",
