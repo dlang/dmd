@@ -2036,7 +2036,7 @@ public:
         }
         auto er = interpret(e.e1, istate, CTFEGoal.LValue);
         if (auto ve = er.isVarExp())
-            if (ve.var == istate.fd.vthis)
+            if (istate && ve.var == istate.fd.vthis)
                 er = interpret(er, istate);
 
         if (exceptionOrCant(er))
