@@ -4,6 +4,7 @@ void main ()
 {
     testWithAllAttributes();
     testForeach();
+    testSideEffect();
 }
 
 void testWithAllAttributes() @safe pure nothrow @nogc
@@ -149,6 +150,30 @@ struct WithDtor
 {
     bool* value;
     ~this() scope @safe pure nothrow @nogc {  assert(*value); }
+}
+
+void testSideEffect()
+{
+    static struct Struct
+    {
+        int value;
+        // Need a dtor, but the throw is just to avoid `nothrow` inference
+        ~this() { if (value == -1) throw new Exception(""); }
+    }
+
+    static void foo (Struct a, in Struct b)
+    {
+        assert(a.value == 0);
+        assert(b.value == 1);
+    }
+
+    static Struct sideEffect ()
+    {
+        static int count;
+        return Struct(count++);
+    }
+
+    foo(sideEffect(), sideEffect());
 }
 
 @safe pure nothrow @nogc:
