@@ -8137,7 +8137,6 @@ public:
     bool isCalleeDestroyingArgs(TypeFunction* tf);
     bool libraryObjectMonitors(FuncDeclaration* fd, Statement* fbody);
     bool supportsLinkerDirective() const;
-    uint32_t stackAlign();
     Target() :
         os((OS)1u),
         osMajor(0u),
