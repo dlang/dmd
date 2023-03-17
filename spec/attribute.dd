@@ -183,14 +183,19 @@ $(H3 C++ $(LNAME2 namespace, Namespaces))
 
         $(P Namespaces create a new named scope that is imported into its enclosing scope.)
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         extern (C++, N) { void foo(); void bar(); }
         extern (C++, M) { void foo(); }
 
-        bar();   // ok
-        foo();   // error - N.foo() or M.foo() ?
-        M.foo(); // ok
+        void main()
+        {
+            bar();   // ok
+            //foo(); // error - N.foo() or M.foo() ?
+            M.foo(); // ok
+        }
         ---
+        )
 
         $(P Multiple identifiers in the $(I QualifiedIdentifier) create nested namespaces:)
 
@@ -373,16 +378,23 @@ $(GNAME DeprecatedAttribute):
         $(P Calling CTFE-able functions or using manifest constants is also possible.
         )
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---------------
         import std.format;
-        enum Message = format("%s and all its members are obsolete", Foobar.stringof);
-        deprecated(Message) class Foobar {}
-        auto f = new Foobar();   // Deprecated: class test.Foobar is deprecated - Foobar
-             // and all its members are obsolete
+
+        enum message = format("%s and all its members are obsolete", Foobar.stringof);
+        deprecated(message) class Foobar {}
         deprecated(format("%s is also obsolete", "This class")) class BarFoo {}
-        auto bf = new BarFoo();  // Deprecated: class test.BarFoo is deprecated - This
-             // class is also obsolete
+
+        void main()
+        {
+            auto fb = new Foobar();   // Deprecated: class test.Foobar is deprecated - Foobar
+                                     // and all its members are obsolete
+            auto bf = new BarFoo();  // Deprecated: class test.BarFoo is deprecated - This
+                                     // class is also obsolete
+        }
         ---------------
+        )
 
         $(P $(D Implementation Note:) The compiler should have a switch
         specifying if $(D deprecated) should be ignored, cause a warning, or cause an error during compilation.
@@ -733,7 +745,7 @@ $(P
             $(LI Putting a `scope` variable in an array literal)
         )
 $(P
-        The `scope` attribute is part of the variable declaration, not of the type, and it only applies to the first level of indirection.
+        The `scope` attribute is part of the variable declaration, not the type, and it only applies to the first level of indirection.
         For example, it is impossible to declare a variable as a dynamic array of scope pointers, because `scope` only applies to the `.ptr`
         of the array itself, not its elements. `scope` affects various types as follows:
 )
@@ -771,6 +783,8 @@ string escape(scope S s, scope S* sPtr, scope string[2] sarray, scope string[] d
     return darray[0];    // valid, scope applies to array pointer, not elements
 }
 ---
+
+$(H3 $(LNAME2 scope-values, Scope Values))
 
 $(P
     A "`scope` value" is the value of a `scope` variable, or a generated value pointing to stack allocated memory.
@@ -814,6 +828,14 @@ void variadic(int[] a...)
     int[] x = a; // inferred `scope int[]`
 }
 
+void main()
+{
+    variadic(1, 2, 3);
+}
+---
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
 struct S
 {
     int x;
@@ -826,6 +848,7 @@ struct S
     }
 }
 ---
+)
 
 $(P
     $(DDSUBLINK spec/function, scope-parameters, Scope Parameters) are treated the same as scope local variables,
@@ -857,8 +880,14 @@ $(P
         proper destruction of the variable.
 )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
-class C {}
+import core.stdc.stdio : puts;
+
+class C
+{
+    ~this() @nogc { puts(__FUNCTION__); }
+}
 
 void main() @nogc
 {
@@ -866,12 +895,14 @@ void main() @nogc
         scope c0 = new C(); // allocated on the stack
         scope c1 = new C();
 
-        c1 = c0; // not allowed
+        //c1 = c0; // Error: cannot rebind scope variables
 
         // destructor of `c1` and `c0` are called here in that order
     }
+    puts("bye");
 }
 ---
+)
 
 
 $(H2 $(LNAME2 class-attributes, Class Attributes))
@@ -1025,6 +1056,7 @@ pragma(msg, __traits(getAttributes, s)); // prints tuple('c')
             The expression tuple can be turned into a manipulatable tuple:
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 enum EEE = 7;
 @("hello") struct SSS { }
@@ -1034,7 +1066,10 @@ alias TP = __traits(getAttributes, foo);
 
 pragma(msg, TP); // prints tuple(3, 4, 7, (SSS))
 pragma(msg, TP[2]); // prints 7
+
+void main() {}
 ---
+)
 
         $(P
             Of course the tuple types can be used to declare things:
@@ -1065,12 +1100,15 @@ pragma(msg, __traits(getAttributes, typeof(a))); // prints tuple("hello")
             interprets them.
         )
 
+$(H3 $(LNAME2 uda-templates, Templates))
+
         $(P
             If a UDA is attached to a template declaration, then it will be automatically
             attached to all direct members of instances of that template. If any of those
             members are templates themselves, this rule applies recursively:
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 @("foo") template Outer(T)
 {
@@ -1098,7 +1136,10 @@ pragma(msg, __traits(getAttributes, Outer!int.Inner));
 // prints tuple("foo", "bar")
 pragma(msg, __traits(getAttributes, Outer!int.Inner!int.z));
 // prints tuple("foo", "bar")
+
+void main() {}
 ---
+)
 
         $(P
             UDAs cannot be attached to template parameters.
