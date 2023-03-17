@@ -2,7 +2,7 @@
  * The atomic module provides basic support for lock-free
  * concurrent programming.
  *
- * $(WARNING Use the `-preview=nosharedaccess` compiler flag to detect
+ * $(NOTE Use the `-preview=nosharedaccess` compiler flag to detect
  * unsafe individual read or write operations on shared data.)
  *
  * Copyright: Copyright Sean Kelly 2005 - 2016.
