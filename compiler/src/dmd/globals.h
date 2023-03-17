@@ -151,7 +151,7 @@ struct Param
     FeatureState useDIP1000;     // implement https://dlang.org/spec/memory-safe-d.html#scope-return-params
     d_bool ehnogc;                 // use @nogc exception handling
     d_bool useDIP1021;             // implement https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1021.md
-    d_bool fieldwise;              // do struct equality testing field-wise rather than by memcmp()
+    FeatureState fieldwise;      // do struct equality testing field-wise rather than by memcmp()
     d_bool fixAliasThis;           // if the current scope has an alias this, check it before searching upper scopes
     FeatureState rvalueRefParam; // allow rvalues to be arguments to ref parameters
                                  // https://dconf.org/2019/talks/alexandrescu.html
