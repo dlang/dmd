@@ -520,9 +520,7 @@ $(H2 $(LNAME2 shared-storage, Shared Storage Attributes))
 
 $(H3 $(LNAME2 shared, $(D shared) Attribute))
 
-        $(P The $(DDSUBLINK spec/const3, shared, $(D shared) attribute) modifies the type from $(D T) to $(D shared(T)),
-        the same way as $(D const) does.
-        )
+        $(P See $(DDSUBLINK spec/const3, shared, $(D shared)).)
 
 $(H3 $(LNAME2 gshared, $(D __gshared) Attribute))
 

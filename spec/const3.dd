@@ -577,16 +577,36 @@ x.atomicOp!"+="(1);
 )
 $(P $(RED Warning:) An individual read or write operation on shared
 data is not an error yet by default. To detect these, use the
-`-preview=nosharedaccess` compiler option.)
+`-preview=nosharedaccess` compiler option. Normal initialization is
+allowed without an error.)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+import core.atomic;
+
+int y;
+shared int x = y; // OK
+
+//x = 5; // write error with preview flag
+x.atomicStore(5); // OK
+//y = x; // read error with preview flag
+y = x.atomicLoad(); // OK
+assert(y == 5);
+---
+)
+
+$(H3 $(LNAME2 shared_cast, Casting))
 
 $(P When working with larger types, manual synchronization
 can be used. To do that, `shared` can be cast away for the
 duration while mutual exclusion has been established:
 )
+
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 struct T;
 shared T* x;
+
 synchronized
 {
     T* p = cast(T*)x;
@@ -594,7 +614,30 @@ synchronized
 }
 ---
 )
-$(P Lastly, to declare global/static data to be implicitly shared across
+
+$(P An unshared reference can be cast to shared only if the source data
+will not be accessed for the lifetime of the cast result.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+class C {}
+
+@trusted shared(C) create()
+{
+    auto c = new C;
+    // work with c without it escaping
+    return cast(shared)c; // OK
+}
+---
+)
+
+$(H3 $(LNAME2 shared_global, Shared Global Variables))
+
+$(P Global (or static) shared variables are stored in common storage which
+is accessible across threads. Global mutable variables are stored in
+thread-local storage by default.)
+
+$(P To declare global/static data to be implicitly shared across
 multiple threads without any compiler checks, see $(DDSUBLINK
 spec/attribute, gshared, `__gshared`).
 )
