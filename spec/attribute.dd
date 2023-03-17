@@ -31,7 +31,7 @@ $(GNAME Attribute):
     $(RELATIVE_LINK2 scope, $(D scope))
     $(RELATIVE_LINK2 shared, $(D shared))
     $(RELATIVE_LINK2 static, $(D static))
-    $(D synchronized)
+    $(DDSUBLINK spec/class, synchronized-classes, `synchronized`)
 
 $(GNAME FunctionAttributeKwd):
     $(RELATIVE_LINK2 nothrow, $(D nothrow))
@@ -463,7 +463,8 @@ $(H3 $(LNAME2 export, $(D export) Attribute))
 
 $(H2 $(LNAME2 const, $(D const) Attribute))
 
-        $(P The $(D const) attribute changes the type of the declared symbol from $(D T) to $(D const(T)),
+        $(P The $(DDLINK spec/const3, Type Qualifiers, $(D const) type qualifier)
+        changes the type of the declared symbol from $(D T) to $(D const(T)),
         where $(D T) is the type specified (or inferred) for the introduced symbol in the absence of $(D const).
         )
 
@@ -474,7 +475,10 @@ $(H2 $(LNAME2 const, $(D const) Attribute))
 
         const double bar = foo + 6;
         static assert(is(typeof(bar) == const(double)));
-
+        ---
+        )
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---
         class C
         {
             const void foo();
@@ -487,10 +491,13 @@ $(H2 $(LNAME2 const, $(D const) Attribute))
         pragma(msg, typeof(C.foo)); // const void()
         pragma(msg, typeof(C.bar)); // const void()
         pragma(msg, typeof(C.baz)); // const void()
+
         static assert(is(typeof(C.foo) == typeof(C.bar)) &&
                       is(typeof(C.bar) == typeof(C.baz)));
         ---------------
         )
+
+        $(P See also: $(DDSUBLINK spec/declaration, methods-returning-qualified, Methods Returning a Qualified Type).)
 
 $(H2 $(LNAME2 immutable, $(D immutable) Attribute))
 
@@ -593,11 +600,12 @@ $(H2 $(LNAME2 pure, $(D pure) Attribute))
 
 $(H2 $(LNAME2 ref, $(D ref) Attribute))
 
-    $(P See $(DDSUBLINK spec/function, ref-functions, Ref Functions).)
+    $(P See $(DDSUBLINK spec/declaration, ref-storage, `ref` Storage Class).)
 
 $(H2 $(LNAME2 return, $(D return) Attribute))
 
-    $(P See $(DDSUBLINK spec/function, return-ref-parameters, Return Ref Parameters).)
+    * $(DDSUBLINK spec/function, return-ref-parameters, Return Ref Parameters).
+    * $(DDSUBLINK spec/function, return-scope-parameters, Return Scope Parameters).
 
 $(H2 $(LNAME2 override, $(D override) Attribute))
 
