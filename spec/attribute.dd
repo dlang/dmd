@@ -461,7 +461,9 @@ $(H3 $(LNAME2 export, $(D export) Attribute))
         a DLL or executable is importing a symbol from a DLL.)
 
 
-$(H2 $(LNAME2 const, $(D const) Attribute))
+$(H2 $(LNAME2 mutability, Mutability Attributes))
+
+$(H3 $(LNAME2 const, $(D const) Attribute))
 
         $(P The $(DDLINK spec/const3, Type Qualifiers, $(D const) type qualifier)
         changes the type of the declared symbol from $(D T) to $(D const(T)),
@@ -499,7 +501,7 @@ $(H2 $(LNAME2 const, $(D const) Attribute))
 
         $(P See also: $(DDSUBLINK spec/declaration, methods-returning-qualified, Methods Returning a Qualified Type).)
 
-$(H2 $(LNAME2 immutable, $(D immutable) Attribute))
+$(H3 $(LNAME2 immutable, $(D immutable) Attribute))
 
         $(P The $(D immutable) attribute modifies the type from $(D T) to $(D immutable(T)),
         the same way as $(D const) does. See:
@@ -507,19 +509,22 @@ $(H2 $(LNAME2 immutable, $(D immutable) Attribute))
         * $(DDSUBLINK spec/const3, immutable_storage_class, `immutable` storage class)
         * $(DDSUBLINK spec/const3, immutable_type, $(D immutable) type qualifier)
 
-$(H2 $(LNAME2 inout, $(D inout) Attribute))
+$(H3 $(LNAME2 inout, $(D inout) Attribute))
 
         $(P The $(DDSUBLINK spec/const3, inout, $(D inout) attribute) modifies the type from $(D T) to $(D inout(T)),
         the same way as $(D const) does.
         )
 
-$(H2 $(LNAME2 shared, $(D shared) Attribute))
+
+$(H2 $(LNAME2 shared-storage, Shared Storage Attributes))
+
+$(H3 $(LNAME2 shared, $(D shared) Attribute))
 
         $(P The $(DDSUBLINK spec/const3, shared, $(D shared) attribute) modifies the type from $(D T) to $(D shared(T)),
         the same way as $(D const) does.
         )
 
-$(H2 $(LNAME2 gshared, $(D __gshared) Attribute))
+$(H3 $(LNAME2 gshared, $(D __gshared) Attribute))
 
         $(P By default, non-immutable global declarations reside in thread local
         storage. When a global variable is marked with the $(D __gshared)
@@ -578,38 +583,38 @@ void main() { foo(); /* error, foo is disabled */ }
         makes the struct not copyable.
         )
 
+
 $(H2 $(LNAME2 safe, $(D @safe), $(D @trusted), and $(D @system) Attribute))
 
     $(P See $(DDSUBLINK spec/function, function-safety, Function Safety).)
 
-$(H2 $(LNAME2 nogc, $(D @nogc) Attribute))
+
+$(H2 $(LNAME2 function-attributes, Function Attributes))
+
+$(H3 $(LNAME2 nogc, $(D @nogc) Attribute))
 
     $(P See $(DDSUBLINK spec/function, nogc-functions, No-GC Functions).)
 
-$(H2 $(LNAME2 property, $(D @property) Attribute))
+$(H3 $(LNAME2 property, $(D @property) Attribute))
 
     $(P See $(DDSUBLINK spec/function, property-functions, Property Functions).)
 
-$(H2 $(LNAME2 nothrow, $(D nothrow) Attribute))
+$(H3 $(LNAME2 nothrow, $(D nothrow) Attribute))
 
     $(P See $(DDSUBLINK spec/function, nothrow-functions, Nothrow Functions).)
 
-$(H2 $(LNAME2 pure, $(D pure) Attribute))
+$(H3 $(LNAME2 pure, $(D pure) Attribute))
 
     $(P See $(DDSUBLINK spec/function, pure-functions, Pure Functions).)
 
-$(H2 $(LNAME2 ref, $(D ref) Attribute))
+$(H3 $(LNAME2 ref, $(D ref) Attribute))
 
     $(P See $(DDSUBLINK spec/declaration, ref-storage, `ref` Storage Class).)
 
-$(H2 $(LNAME2 return, $(D return) Attribute))
+$(H3 $(LNAME2 return, $(D return) Attribute))
 
     * $(DDSUBLINK spec/function, return-ref-parameters, Return Ref Parameters).
     * $(DDSUBLINK spec/function, return-scope-parameters, Return Scope Parameters).
-
-$(H2 $(LNAME2 override, $(D override) Attribute))
-
-    $(P See $(DDSUBLINK spec/function, virtual-functions, Virtual Functions).)
 
 $(H2 $(LNAME2 static, $(D static) Attribute))
 
@@ -672,7 +677,7 @@ private int y = 4; // y is local to module foo
 $(H2 $(LNAME2 auto, $(D auto) Attribute))
 
         $(P The $(D auto) attribute is used when there are no other attributes
-        and type inference is desired.
+        and $(DDSUBLINK spec/declaration, auto-declaration, type inference) is desired.
         )
 
 ---
@@ -870,14 +875,17 @@ void main() @nogc
 }
 ---
 
-$(H2 $(LNAME2 abstract, $(D abstract) Attribute))
+
+$(H2 $(LNAME2 class-attributes, Class Attributes))
+
+$(H3 $(LNAME2 abstract, $(D abstract) Attribute))
 
 $(P
         An $(DDSUBLINK spec/class, abstract, abstract class) must be overridden by a derived class.
         Declaring an abstract member function makes the class abstract.
 )
 
-$(H2 $(LNAME2 final, `final` Attribute))
+$(H3 $(LNAME2 final, `final` Attribute))
 
 $(UL
 $(LI A class can be declared $(DDSUBLINK spec/class, final, `final`) to prevent
@@ -886,6 +894,11 @@ $(LI A class method can be declared $(DDSUBLINK spec/function, final, `final`)
     to prevent a derived class overriding it.)
 $(LI Interfaces can define $(DDSUBLINK spec/interface, method-bodies, `final` methods).)
 )
+
+$(H3 $(LNAME2 override, $(D override) Attribute))
+
+    $(P See $(DDSUBLINK spec/function, virtual-functions, Virtual Functions).)
+
 
 $(H2 $(LNAME2 mustuse-attribute, `@mustuse` Attribute))
 
