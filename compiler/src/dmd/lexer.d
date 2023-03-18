@@ -2692,13 +2692,13 @@ class Lexer
                 poundLine(n, false);
                 return true;
             }
-            else
+            else if (!inTokenStringConstant)
             {
                 const locx = loc();
                 eSink.warning(locx, "C preprocessor directive `#%s` is not supported", n.ident.toChars());
             }
         }
-        else if (n.value == TOK.if_)
+        else if (n.value == TOK.if_ && !inTokenStringConstant)
         {
             error("C preprocessor directive `#if` is not supported, use `version` or `static if`");
         }
