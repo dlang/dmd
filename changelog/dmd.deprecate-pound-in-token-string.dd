@@ -1,0 +1,12 @@
+Deprecate invalid special token sequences inside token strings
+
+A token string is specified to contain valid D tokens, but the compiler formerly allowed `#identifier` tokens in them.
+
+---
+enum s = q{
+#endif x
+}
+
+---
+
+This will now issue a deprecation warning. It will become an error in dmd 2.113.
