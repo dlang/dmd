@@ -1756,7 +1756,7 @@ final class CParser(AST) : Parser!AST
                 case TOK.asm_:
                 case TOK.__attribute__:
                     if (token.value == TOK.asm_)
-                        asmName = cparseSimpleAsmExpr();
+                        asmName = cparseGnuAsmLabel();
                     if (token.value == TOK.__attribute__)
                     {
                         cparseGnuAttributes(specifier);
@@ -3139,7 +3139,8 @@ final class CParser(AST) : Parser!AST
     }
 
     /*************************
-     * Simple asm parser
+     * Parser for asm label. It appears after the declarator, and has apparently
+     * nothing to do with inline assembler.
      * https://gcc.gnu.org/onlinedocs/gcc/Asm-Labels.html
      * simple-asm-expr:
      *   asm ( asm-string-literal )
@@ -3147,12 +3148,12 @@ final class CParser(AST) : Parser!AST
      * asm-string-literal:
      *   string-literal
      */
-    private AST.StringExp cparseSimpleAsmExpr()
+    private AST.StringExp cparseGnuAsmLabel()
     {
         nextToken();     // move past asm
         check(TOK.leftParenthesis);
         if (token.value != TOK.string_)
-            error("string literal expected");
+            error("string literal expected for Asm Label, not `%s`", token.toChars());
         auto label = cparsePrimaryExp();
         check(TOK.rightParenthesis);
         return cast(AST.StringExp) label;
