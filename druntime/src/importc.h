@@ -100,6 +100,7 @@
 #endif
 
 #if __FreeBSD__
+#define __volatile
 #endif
 
 #if _MSC_VER

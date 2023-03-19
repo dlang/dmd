@@ -713,3 +713,13 @@ enum E2 {
     m1,
     m2 = m1
 };
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=23725
+
+#if __FreeBSD__
+void test23725()
+{
+    __asm __volatile("fldcw %0" : : "m" (*(addr)))
+}
+#endif
