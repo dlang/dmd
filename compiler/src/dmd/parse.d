@@ -6903,6 +6903,15 @@ LagainStc:
 
     /********************
      * Parse inline assembler block.
+     * Enters with token on the `asm`.
+     * https://dlang.org/spec/iasm.html
+     *
+     * AsmStatement:
+     *   asm FunctionAttributes(opt) { AsmInstructionListopt }
+     * AsmInstructionList:
+     *   AsmInstruction ;
+     *   AsmInstruction ; AsmInstruction
+     *
      * Returns:
      *   inline assembler block as a Statement
      */
@@ -6917,7 +6926,7 @@ LagainStc:
         Loc labelloc;
 
         nextToken();
-        StorageClass stc = parsePostfix(STC.undefined_, null);
+        StorageClass stc = parsePostfix(STC.undefined_, null);  // optional FunctionAttributes
         if (stc & (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild))
             error("`const`/`immutable`/`shared`/`inout` attributes are not allowed on `asm` blocks");
 
