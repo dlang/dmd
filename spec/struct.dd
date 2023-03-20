@@ -1096,17 +1096,23 @@ $(H2 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy
     $(OL
     $(LI When a variable is explicitly initialized:)
 
-    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    $(SPEC_RUNNABLE_EXAMPLE_RUN
     ---
     struct A
     {
-        this(ref return scope A rhs) {}
+        int[] arr;
+        this(ref return scope A rhs) { arr = rhs.arr.dup; }
     }
 
     void main()
     {
         A a;
+        a.arr = [1, 2];
+
         A b = a; // copy constructor gets called
+        b.arr[] += 1;
+        assert(a.arr == [1, 2]); // a is unchanged
+        assert(b.arr == [2, 3]);
     }
     ---
     )
