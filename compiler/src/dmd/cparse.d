@@ -601,7 +601,12 @@ final class CParser(AST) : Parser!AST
         }
 
         case TOK.asm_:
-            s = parseAsm();
+            const peek = peekNext();
+            if (peek == TOK.volatile || peek == TOK.inline || peek == TOK.goto_ ||
+                peek == TOK.leftParenthesis)
+                s = cparseGnuAsm();
+            else
+                s = parseAsm();
             break;
 
         default:
@@ -3157,6 +3162,58 @@ final class CParser(AST) : Parser!AST
         auto label = cparsePrimaryExp();
         check(TOK.rightParenthesis);
         return cast(AST.StringExp) label;
+    }
+
+    /***************************************
+     * Parser for Gnu inline assembler statements.
+     * https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html#Extended-Asm
+     *   asm asm-qualifiers (AssemblerTemplate : OutputOperands : InputOperands : Clobbers : GotoLabels)
+     * Current token is on the `asm`.
+     * Returns:
+     *   Statement representing it
+     */
+    private AST.Statement cparseGnuAsm()
+    {
+        const loc = token.loc;
+
+        do
+        {
+            nextToken();
+        } while (token.value == TOK.volatile || token.value == TOK.inline || token.value == TOK.goto_);
+        check(TOK.leftParenthesis);
+        if (token.value != TOK.string_)
+            error("string literal expected for Assembler Template, not `%s`", token.toChars());
+
+        // skipParens since we haven't implemented a gnu assembler
+        int parens;
+        loop: while (1)
+        {
+            switch(token.value)
+            {
+                case TOK.leftParenthesis:
+                    parens++;
+                    break;
+                case TOK.rightParenthesis:
+                    parens--;
+                    if (parens < 0)
+                        goto case;
+                    break;
+                case TOK.endOfFile:
+                    break loop;
+                default:
+            }
+            nextToken();
+        }
+
+        /* Replace the asm statement with an assert(0, msg) that trips at runtime.
+         */
+        auto e = new AST.IntegerExp(loc, 0, AST.Type.tint32);
+        auto msg = new AST.StringExp(loc, "Gnu Asm not supported - compile this function with gcc or clang");
+        auto ae = new AST.AssertExp(loc, e, msg);
+        auto s = new AST.ExpStatement(loc, ae);
+
+        check(TOK.rightParenthesis);
+        return s;
     }
 
     /*************************
