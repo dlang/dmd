@@ -277,6 +277,13 @@ struct _Complex(T)
 
     this(T re) { this.re = re; this.im = 0; }
 +/
+    // Cast
+    R opCast(R)()
+        if (is(R == _Complex!float) || is(R == _Complex!double) || is(R == _Complex!c_long_double))
+    {
+        return R(this.re, this.im);
+    }
+
     // Assignment
 
     ref _Complex opAssign(_Complex!float  c) { re = c.re; im = c.im; return this; }
