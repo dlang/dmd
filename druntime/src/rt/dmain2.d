@@ -101,6 +101,11 @@ alias void delegate(Throwable) ExceptionHandler;
  */
 shared size_t _initCount;
 
+/****
+ * Boolean flag set to true while the runtime is first initialized.
+ */
+package __gshared bool _isRuntimeFirstInitialized;
+
 /**********************************************
  * Initialize druntime.
  * If a C program wishes to call D code, and there's no D main(), then it
@@ -124,9 +129,15 @@ extern (C) int rt_init()
     try
     {
         initSections();
-        // this initializes mono time before anything else to allow usage
-        // in other druntime systems.
-        _d_initMonoTime();
+
+        if (!_isRuntimeFirstInitialized)
+        {
+            // this initializes mono time before anything else to allow usage
+            // in other druntime systems.
+            _d_initMonoTime();
+            _isRuntimeFirstInitialized = true;
+        }
+
         thread_init();
         // TODO: fixme - calls GC.addRange -> Initializes GC
         initStaticDataGC();
