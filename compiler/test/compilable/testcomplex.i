@@ -19,3 +19,9 @@ _Complex long double testld()
     _Complex long double x = 1.0iL;
     return x;
 }
+
+_Complex float testcast()
+{
+    _Complex double y = 1.0i;
+    return (_Complex float)y;
+}
