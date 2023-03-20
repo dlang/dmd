@@ -3197,7 +3197,7 @@ final class CParser(AST) : Parser!AST
         check(TOK.leftParenthesis);
         Token* toklist = null;
         Token** ptoklist = &toklist;
-        Identifier label = null;
+        //Identifier label = null;
         auto statements = new AST.Statements();
         while (1)
         {
