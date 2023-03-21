@@ -12087,6 +12087,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (!needsArrayLowering)
         {
+            // https://issues.dlang.org/show_bug.cgi?id=23783
+            if (exp.e1.checkSharedAccess(sc) || exp.e2.checkSharedAccess(sc))
+                return setError();
             if (auto e = typeCombine(exp, sc))
             {
                 result = e;
