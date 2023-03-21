@@ -419,10 +419,10 @@ public:
 class ArrayLiteralExp final : public Expression
 {
 public:
-    Expression *basis;
-    Expressions *elements;
     OwnedBy ownedByCtfe;
     d_bool onstack;
+    Expression *basis;
+    Expressions *elements;
 
     static ArrayLiteralExp *create(const Loc &loc, Expressions *elements);
     static void emplace(UnionExp *pue, const Loc &loc, Expressions *elements);

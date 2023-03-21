@@ -6952,7 +6952,7 @@ private:
         char complexexp[80LLU];
         char symoffexp[72LLU];
         char stringexp[60LLU];
-        char arrayliteralexp[58LLU];
+        char arrayliteralexp[56LLU];
         char assocarrayliteralexp[57LLU];
         char structliteralexp[92LLU];
         char compoundliteralexp[48LLU];
@@ -7146,10 +7146,10 @@ public:
 class ArrayLiteralExp final : public Expression
 {
 public:
-    Expression* basis;
-    Array<Expression* >* elements;
     OwnedBy ownedByCtfe;
     bool onstack;
+    Expression* basis;
+    Array<Expression* >* elements;
     static ArrayLiteralExp* create(const Loc& loc, Array<Expression* >* elements);
     static void emplace(UnionExp* pue, const Loc& loc, Array<Expression* >* elements);
     ArrayLiteralExp* syntaxCopy() override;

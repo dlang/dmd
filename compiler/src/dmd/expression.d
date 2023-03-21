@@ -3051,6 +3051,9 @@ extern (C++) final class TupleExp : Expression
  */
 extern (C++) final class ArrayLiteralExp : Expression
 {
+    OwnedBy ownedByCtfe = OwnedBy.code;
+    bool onstack = false;
+
     /** If !is null, elements[] can be sparse and basis is used for the
      * "default" element value. In other words, non-null elements[i] overrides
      * this 'basis' value.
@@ -3058,8 +3061,6 @@ extern (C++) final class ArrayLiteralExp : Expression
     Expression basis;
 
     Expressions* elements;
-    OwnedBy ownedByCtfe = OwnedBy.code;
-    bool onstack = false;
 
     extern (D) this(const ref Loc loc, Type type, Expressions* elements)
     {
