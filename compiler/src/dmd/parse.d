@@ -9519,7 +9519,6 @@ immutable PREC[EXP.max + 1] precedence =
     EXP.error : PREC.expr,
     EXP.objcClassReference : PREC.expr, // Objective-C class reference, same as EXP.type
 
-    EXP.typeof_ : PREC.primary,
     EXP.mixin_ : PREC.primary,
 
     EXP.import_ : PREC.primary,
@@ -9559,7 +9558,6 @@ immutable PREC[EXP.max + 1] precedence =
     EXP.remove : PREC.primary,
     EXP.tuple : PREC.primary,
     EXP.traits : PREC.primary,
-    EXP.default_ : PREC.primary,
     EXP.overloadSet : PREC.primary,
     EXP.void_ : PREC.primary,
     EXP.vectorArray : PREC.primary,

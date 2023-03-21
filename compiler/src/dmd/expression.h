@@ -80,11 +80,11 @@ class Expression : public ASTNode
 {
 public:
     EXP op;                     // to minimize use of dynamic_cast
-    unsigned char size;         // # of bytes in Expression so we can copy() it
     d_bool parens;                // if this is a parenthesized expression
     Type *type;                 // !=NULL means that semantic() has been run
     Loc loc;                    // file location
 
+    size_t size() const;
     static void _init();
     Expression *copy();
     virtual Expression *syntaxCopy();
@@ -1372,7 +1372,7 @@ struct UnionExp
 
     UnionExp(Expression *e)
     {
-        memcpy(this, (void *)e, e->size);
+        memcpy(this, (void *)e, e->size());
     }
 
     /* Extract pointer to Expression

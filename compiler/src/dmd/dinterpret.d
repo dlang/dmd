@@ -6978,7 +6978,6 @@ private Expression copyRegionExp(Expression e)
         case EXP.null_:
         case EXP.void_:
         case EXP.symbolOffset:
-        case EXP.char_:
             break;
 
         case EXP.cantExpression:
