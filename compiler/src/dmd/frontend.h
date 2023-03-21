@@ -320,6 +320,13 @@ class ForwardingStatement;
 class ContinueStatement;
 class ThrowStatement;
 class SwitchErrorStatement;
+class CompoundAsmStatement;
+class PragmaStatement;
+class StaticAssertStatement;
+class AsmStatement;
+class InlineAsmStatement;
+class GccAsmStatement;
+class ImportStatement;
 struct Token;
 struct code;
 class Object;
@@ -4109,6 +4116,7 @@ public:
     void accept(Visitor* v) override;
     virtual ReturnStatement* endsWithReturnStatement();
     ErrorStatement* isErrorStatement();
+    PeelStatement* isPeelStatement();
     ScopeStatement* isScopeStatement();
     ExpStatement* isExpStatement();
     CompoundStatement* isCompoundStatement();
@@ -4142,6 +4150,15 @@ public:
     UnrolledLoopStatement* isUnrolledLoopStatement();
     ForeachRangeStatement* isForeachRangeStatement();
     CompoundDeclarationStatement* isCompoundDeclarationStatement();
+    CompoundAsmStatement* isCompoundAsmStatement();
+    PragmaStatement* isPragmaStatement();
+    StaticAssertStatement* isStaticAssertStatement();
+    CaseRangeStatement* isCaseRangeStatement();
+    SynchronizedStatement* isSynchronizedStatement();
+    AsmStatement* isAsmStatement();
+    InlineAsmStatement* isInlineAsmStatement();
+    GccAsmStatement* isGccAsmStatement();
+    ImportStatement* isImportStatement();
 };
 
 class AsmStatement : public Statement
@@ -5093,6 +5110,7 @@ struct ASTCodegen final
     using TryCatchStatement = ::TryCatchStatement;
     using TryFinallyStatement = ::TryFinallyStatement;
     using UnrolledLoopStatement = ::UnrolledLoopStatement;
+    using VisitStatement = ::VisitStatement;
     using WhileStatement = ::WhileStatement;
     using WithStatement = ::WithStatement;
     using StaticAssert = ::StaticAssert;
