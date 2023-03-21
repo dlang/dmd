@@ -486,7 +486,7 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
                 return;
             }
 
-            result = checkThrow(s.loc, s.exp, mustNotThrow);
+            result = checkThrow(s.loc, s.exp, mustNotThrow, func);
         }
 
         override void visit(GotoStatement s)
@@ -509,8 +509,10 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
             result = BE.fallthru | BE.return_ | BE.goto_ | BE.halt;
             if (!(s.stc & STC.nothrow_))
             {
-                if (mustNotThrow && !(s.stc & STC.nothrow_))
-                    s.error("`asm` statement is assumed to throw - mark it with `nothrow` if it does not");
+                if(func)
+                    func.setThrow(s.loc, "`asm` statement is assumed to throw - mark it with `nothrow` if it does not");
+                if (mustNotThrow)
+                    s.error("`asm` statement is assumed to throw - mark it with `nothrow` if it does not"); // TODO
                 else
                     result |= BE.throw_;
             }
@@ -537,10 +539,11 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
  +   loc          = location of the `throw`
  +   exp          = expression yielding the throwable
  +   mustNotThrow = inside of a `nothrow` scope?
+ +   func         = function containing the `throw`
  +
  + Returns: `BE.[err]throw` depending on the type of `exp`
  +/
-BE checkThrow(ref const Loc loc, Expression exp, const bool mustNotThrow)
+BE checkThrow(ref const Loc loc, Expression exp, const bool mustNotThrow, FuncDeclaration func)
 {
     import dmd.errors : error;
 
@@ -554,6 +557,8 @@ BE checkThrow(ref const Loc loc, Expression exp, const bool mustNotThrow)
     }
     if (mustNotThrow)
         loc.error("`%s` is thrown but not caught", exp.type.toChars());
+    else if (func)
+        func.setThrow(loc, "`%s` is thrown but not caught", exp.type);
 
     return BE.throw_;
 }

@@ -7254,7 +7254,7 @@ private extern(D) bool isCopyConstructorCallable (StructDeclaration argStruct,
                 s ~= "pure ";
             if (!f.isSafe() && !f.isTrusted() && sc.setUnsafe())
                 s ~= "@safe ";
-            if (!f.isNogc && sc.func.setGC())
+            if (!f.isNogc && sc.func.setGC(arg.loc, null))
                 s ~= "nogc ";
             if (s)
             {
