@@ -2539,6 +2539,8 @@ extern (C++) final class NullExp : Expression
  */
 extern (C++) final class StringExp : Expression
 {
+    char postfix = NoPostfix;   // 'c', 'w', 'd'
+    OwnedBy ownedByCtfe = OwnedBy.code;
     private union
     {
         char* string;   // if sz == 1
@@ -2559,8 +2561,6 @@ extern (C++) final class StringExp : Expression
     bool committed;
 
     enum char NoPostfix = 0;
-    char postfix = NoPostfix;   // 'c', 'w', 'd'
-    OwnedBy ownedByCtfe = OwnedBy.code;
 
     extern (D) this(const ref Loc loc, const(void)[] string) scope
     {

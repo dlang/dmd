@@ -6951,7 +6951,7 @@ private:
         char realexp[64LLU];
         char complexexp[80LLU];
         char symoffexp[72LLU];
-        char stringexp[60LLU];
+        char stringexp[58LLU];
         char arrayliteralexp[56LLU];
         char assocarrayliteralexp[56LLU];
         char structliteralexp[92LLU];
@@ -7100,20 +7100,20 @@ public:
 
 class StringExp final : public Expression
 {
+public:
+    char postfix;
+    OwnedBy ownedByCtfe;
     union
     {
         char* string;
         char16_t* wstring;
         char32_t* dstring;
     };
-public:
     size_t len;
     uint8_t sz;
     bool committed;
     enum : char { NoPostfix = 0u };
 
-    char postfix;
-    OwnedBy ownedByCtfe;
     static StringExp* create(const Loc& loc, const char* s);
     static StringExp* create(const Loc& loc, const void* string, size_t len);
     static void emplace(UnionExp* pue, const Loc& loc, const char* s);

@@ -370,12 +370,12 @@ public:
 class StringExp final : public Expression
 {
 public:
+    utf8_t postfix;      // 'c', 'w', 'd'
+    OwnedBy ownedByCtfe;
     void *string;       // char, wchar, or dchar data
     size_t len;         // number of chars, wchars, or dchars
     unsigned char sz;   // 1: char, 2: wchar, 4: dchar
     bool committed;     // if type is committed
-    utf8_t postfix;      // 'c', 'w', 'd'
-    OwnedBy ownedByCtfe;
 
     static StringExp *create(const Loc &loc, const char *s);
     static StringExp *create(const Loc &loc, const void *s, d_size_t len);
