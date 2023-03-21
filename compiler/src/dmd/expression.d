@@ -2538,7 +2538,17 @@ extern (C++) final class StringExp : Expression
     }                   // (const if ownedByCtfe == OwnedBy.code)
     size_t len;         // number of code units
     ubyte sz = 1;       // 1: char, 2: wchar, 4: dchar
-    ubyte committed;    // !=0 if type is committed
+
+    /**
+     *  Whether the string literal's type is fixed
+     *  Example:
+     *  ---
+     *  wstring x = "abc"; // OK, string literal is flexible
+     *  wstring y = cast(string) "abc"; // Error: type was committed after cast
+     *  ---
+     */
+    bool committed;
+
     enum char NoPostfix = 0;
     char postfix = NoPostfix;   // 'c', 'w', 'd'
     OwnedBy ownedByCtfe = OwnedBy.code;
@@ -2751,7 +2761,7 @@ extern (C++) final class StringExp : Expression
         if (sz != 1)
         {
             // Convert to UTF-8 string
-            committed = 0;
+            committed = false;
             Expression e = castTo(sc, Type.tchar.arrayOf());
             e = e.optimize(WANTvalue);
             auto se = e.isStringExp();

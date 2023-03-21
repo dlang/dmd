@@ -3137,7 +3137,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 e.type = Type.tuns32.sarrayOf(e.len + 1);
             else
                 e.type = Type.tdchar.immutableOf().arrayOf();
-            e.committed = 1;
+            e.committed = true;
             break;
 
         case 'w':
@@ -3162,11 +3162,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 e.type = Type.tuns16.sarrayOf(e.len + 1);
             else
                 e.type = Type.twchar.immutableOf().arrayOf();
-            e.committed = 1;
+            e.committed = true;
             break;
 
         case 'c':
-            e.committed = 1;
+            e.committed = true;
             goto default;
 
         default:

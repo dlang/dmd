@@ -1467,7 +1467,7 @@ UnionExp ctfeCat(const ref Loc loc, Type type, Expression e1, Expression e2)
         memset(cast(char*)s + len * sz, 0, sz);
         emplaceExp!(StringExp)(&ue, loc, s[0 .. len * sz], len, sz);
         StringExp es = ue.exp().isStringExp();
-        es.committed = 0;
+        es.committed = false;
         es.type = type;
         return ue;
     }
@@ -1498,7 +1498,7 @@ UnionExp ctfeCat(const ref Loc loc, Type type, Expression e1, Expression e2)
         emplaceExp!(StringExp)(&ue, loc, s[0 .. len * sz], len, sz);
         StringExp es = ue.exp().isStringExp();
         es.sz = sz;
-        es.committed = 0; //es1.committed;
+        es.committed = false; //es1.committed;
         es.type = type;
         return ue;
     }
