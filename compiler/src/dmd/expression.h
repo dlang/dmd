@@ -373,7 +373,7 @@ public:
     void *string;       // char, wchar, or dchar data
     size_t len;         // number of chars, wchars, or dchars
     unsigned char sz;   // 1: char, 2: wchar, 4: dchar
-    unsigned char committed;    // !=0 if type is committed
+    bool committed;     // if type is committed
     utf8_t postfix;      // 'c', 'w', 'd'
     OwnedBy ownedByCtfe;
 

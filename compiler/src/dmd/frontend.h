@@ -7106,7 +7106,7 @@ class StringExp final : public Expression
 public:
     size_t len;
     uint8_t sz;
-    uint8_t committed;
+    bool committed;
     enum : char { NoPostfix = 0u };
 
     char postfix;
