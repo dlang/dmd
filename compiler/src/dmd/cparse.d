@@ -607,11 +607,9 @@ final class CParser(AST) : Parser!AST
                 case TOK.inline:
                 case TOK.volatile:
                 case TOK.leftParenthesis:
-                    version (IN_GCC)
-                    {
-                        s = cparseAsm();
-                        break;
-                    }
+                    s = cparseGnuAsm();
+                    break;
+
                 default:
                     // ImportC extensions: parse as a D asm block.
                     s = parseAsm();
@@ -3175,12 +3173,14 @@ final class CParser(AST) : Parser!AST
     }
 
     /********************
-     * Parse C inline assembler statement.
-     * gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html
+     * Parse C inline assembler statement in Gnu format.
+     * https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html
+     *   asm asm-qualifiers ( AssemblerTemplate : OutputOperands : InputOperands : Clobbers : GotoLabels )
+     * Current token is on the `asm`.
      * Returns:
      *   inline assembler expression as a Statement
      */
-    private AST.Statement cparseAsm()
+    private AST.Statement cparseGnuAsm()
     {
         // Defer parsing of AsmStatements until semantic processing.
         const loc = token.loc;
