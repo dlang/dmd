@@ -6953,7 +6953,7 @@ private:
         char symoffexp[72LLU];
         char stringexp[60LLU];
         char arrayliteralexp[56LLU];
-        char assocarrayliteralexp[57LLU];
+        char assocarrayliteralexp[56LLU];
         char structliteralexp[92LLU];
         char compoundliteralexp[48LLU];
         char nullexp[34LLU];
@@ -7164,9 +7164,9 @@ public:
 class AssocArrayLiteralExp final : public Expression
 {
 public:
+    OwnedBy ownedByCtfe;
     Array<Expression* >* keys;
     Array<Expression* >* values;
-    OwnedBy ownedByCtfe;
     bool equals(const RootObject* const o) const override;
     AssocArrayLiteralExp* syntaxCopy() override;
     Optional<bool > toBool() override;

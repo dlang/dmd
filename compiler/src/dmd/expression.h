@@ -439,9 +439,9 @@ public:
 class AssocArrayLiteralExp final : public Expression
 {
 public:
+    OwnedBy ownedByCtfe;
     Expressions *keys;
     Expressions *values;
-    OwnedBy ownedByCtfe;
 
     bool equals(const RootObject * const o) const override;
     AssocArrayLiteralExp *syntaxCopy() override;

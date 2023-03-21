@@ -3217,10 +3217,10 @@ extern (C++) final class ArrayLiteralExp : Expression
  */
 extern (C++) final class AssocArrayLiteralExp : Expression
 {
+    OwnedBy ownedByCtfe = OwnedBy.code;
+
     Expressions* keys;
     Expressions* values;
-
-    OwnedBy ownedByCtfe = OwnedBy.code;
 
     extern (D) this(const ref Loc loc, Expressions* keys, Expressions* values)
     {
