@@ -5662,9 +5662,15 @@ extern (C++) final class SliceExp : UnaExp
     Expression lwr;             // null if implicit [length - 1]
 
     VarDeclaration lengthVar;
-    bool upperIsInBounds;       // true if upr <= e1.length
-    bool lowerIsLessThanUpper;  // true if lwr <= upr
-    bool arrayop;               // an array operation, rather than a slice
+
+    private extern(D) static struct BitFields
+    {
+        bool upperIsInBounds;       // true if upr <= e1.length
+        bool lowerIsLessThanUpper;  // true if lwr <= upr
+        bool arrayop;               // an array operation, rather than a slice
+    }
+    import dmd.common.bitfields : generateBitFields;
+    mixin(generateBitFields!(BitFields, ubyte));
 
     /************************************************************/
     extern (D) this(const ref Loc loc, Expression e1, IntervalExp ie)

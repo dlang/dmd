@@ -6960,7 +6960,7 @@ private:
         char dotvarexp[65LLU];
         char addrexp[56LLU];
         char indexexp[82LLU];
-        char sliceexp[83LLU];
+        char sliceexp[81LLU];
         char vectorexp[69LLU];
     };
     #pragma pack(pop)
@@ -7586,9 +7586,15 @@ public:
     Expression* upr;
     Expression* lwr;
     VarDeclaration* lengthVar;
-    bool upperIsInBounds;
-    bool lowerIsLessThanUpper;
-    bool arrayop;
+    bool upperIsInBounds() const;
+    bool upperIsInBounds(bool v);
+    bool lowerIsLessThanUpper() const;
+    bool lowerIsLessThanUpper(bool v);
+    bool arrayop() const;
+    bool arrayop(bool v);
+private:
+    uint8_t bitFields;
+public:
     SliceExp* syntaxCopy() override;
     bool isLvalue() override;
     Expression* toLvalue(Scope* sc, Expression* e) override;

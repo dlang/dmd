@@ -937,9 +937,15 @@ public:
     Expression *upr;            // NULL if implicit 0
     Expression *lwr;            // NULL if implicit [length - 1]
     VarDeclaration *lengthVar;
-    d_bool upperIsInBounds;       // true if upr <= e1.length
-    d_bool lowerIsLessThanUpper;  // true if lwr <= upr
-    d_bool arrayop;               // an array operation, rather than a slice
+
+    bool upperIsInBounds() const; // true if upr <= e1.length
+    bool upperIsInBounds(bool v);
+    bool lowerIsLessThanUpper() const; // true if lwr <= upr
+    bool lowerIsLessThanUpper(bool v);
+    bool arrayop() const; // an array operation, rather than a slice
+    bool arrayop(bool v);
+private:
+    uint8_t bitFields;
 
     SliceExp *syntaxCopy() override;
     bool isLvalue() override;
