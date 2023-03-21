@@ -152,7 +152,7 @@ extern (C++) class SemanticTimeTransitiveVisitor : SemanticTimePermissiveVisitor
         // need to avoid infinite recursion.
         if (!(e.stageflags & stageToCBuffer))
         {
-            int old = e.stageflags;
+            const old = e.stageflags;
             e.stageflags |= stageToCBuffer;
             foreach (el; *e.elements)
                 if (el)

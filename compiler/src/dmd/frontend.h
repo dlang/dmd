@@ -958,10 +958,10 @@ struct Optional final
 class Expression : public ASTNode
 {
 public:
-    const EXP op;
-    bool parens;
     Type* type;
     Loc loc;
+    const EXP op;
+    bool parens;
     size_t size() const;
     static void _init();
     static void deinitialize();
@@ -6945,22 +6945,22 @@ struct UnionExp final
 private:
     union __AnonStruct__u
     {
-        char exp[40LLU];
+        char exp[34LLU];
         char integerexp[48LLU];
-        char errorexp[40LLU];
+        char errorexp[34LLU];
         char realexp[64LLU];
         char complexexp[80LLU];
         char symoffexp[72LLU];
-        char stringexp[60LLU];
-        char arrayliteralexp[58LLU];
-        char assocarrayliteralexp[57LLU];
-        char structliteralexp[95LLU];
+        char stringexp[58LLU];
+        char arrayliteralexp[56LLU];
+        char assocarrayliteralexp[56LLU];
+        char structliteralexp[92LLU];
         char compoundliteralexp[48LLU];
-        char nullexp[40LLU];
+        char nullexp[34LLU];
         char dotvarexp[65LLU];
         char addrexp[56LLU];
         char indexexp[82LLU];
-        char sliceexp[83LLU];
+        char sliceexp[81LLU];
         char vectorexp[69LLU];
     };
     #pragma pack(pop)
@@ -7100,20 +7100,20 @@ public:
 
 class StringExp final : public Expression
 {
+public:
+    char postfix;
+    OwnedBy ownedByCtfe;
     union
     {
         char* string;
         char16_t* wstring;
         char32_t* dstring;
     };
-public:
     size_t len;
     uint8_t sz;
     bool committed;
     enum : char { NoPostfix = 0u };
 
-    char postfix;
-    OwnedBy ownedByCtfe;
     static StringExp* create(const Loc& loc, const char* s);
     static StringExp* create(const Loc& loc, const void* string, size_t len);
     static void emplace(UnionExp* pue, const Loc& loc, const char* s);
@@ -7146,10 +7146,10 @@ public:
 class ArrayLiteralExp final : public Expression
 {
 public:
-    Expression* basis;
-    Array<Expression* >* elements;
     OwnedBy ownedByCtfe;
     bool onstack;
+    Expression* basis;
+    Array<Expression* >* elements;
     static ArrayLiteralExp* create(const Loc& loc, Array<Expression* >* elements);
     static void emplace(UnionExp* pue, const Loc& loc, Array<Expression* >* elements);
     ArrayLiteralExp* syntaxCopy() override;
@@ -7164,9 +7164,9 @@ public:
 class AssocArrayLiteralExp final : public Expression
 {
 public:
+    OwnedBy ownedByCtfe;
     Array<Expression* >* keys;
     Array<Expression* >* values;
-    OwnedBy ownedByCtfe;
     bool equals(const RootObject* const o) const override;
     AssocArrayLiteralExp* syntaxCopy() override;
     Optional<bool > toBool() override;
@@ -7182,7 +7182,7 @@ public:
     Symbol* sym;
     StructLiteralExp* origin;
     StructLiteralExp* inlinecopy;
-    int32_t stageflags;
+    uint8_t stageflags;
     bool useStaticInit;
     bool isOriginal;
     OwnedBy ownedByCtfe;
@@ -7586,9 +7586,15 @@ public:
     Expression* upr;
     Expression* lwr;
     VarDeclaration* lengthVar;
-    bool upperIsInBounds;
-    bool lowerIsLessThanUpper;
-    bool arrayop;
+    bool upperIsInBounds() const;
+    bool upperIsInBounds(bool v);
+    bool lowerIsLessThanUpper() const;
+    bool lowerIsLessThanUpper(bool v);
+    bool arrayop() const;
+    bool arrayop(bool v);
+private:
+    uint8_t bitFields;
+public:
     SliceExp* syntaxCopy() override;
     bool isLvalue() override;
     Expression* toLvalue(Scope* sc, Expression* e) override;

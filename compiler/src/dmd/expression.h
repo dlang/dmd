@@ -79,10 +79,10 @@ enum class ModifyFlags
 class Expression : public ASTNode
 {
 public:
-    EXP op;                     // to minimize use of dynamic_cast
-    d_bool parens;                // if this is a parenthesized expression
     Type *type;                 // !=NULL means that semantic() has been run
     Loc loc;                    // file location
+    EXP op;                     // to minimize use of dynamic_cast
+    d_bool parens;              // if this is a parenthesized expression
 
     size_t size() const;
     static void _init();
@@ -370,12 +370,12 @@ public:
 class StringExp final : public Expression
 {
 public:
+    utf8_t postfix;      // 'c', 'w', 'd'
+    OwnedBy ownedByCtfe;
     void *string;       // char, wchar, or dchar data
     size_t len;         // number of chars, wchars, or dchars
     unsigned char sz;   // 1: char, 2: wchar, 4: dchar
     bool committed;     // if type is committed
-    utf8_t postfix;      // 'c', 'w', 'd'
-    OwnedBy ownedByCtfe;
 
     static StringExp *create(const Loc &loc, const char *s);
     static StringExp *create(const Loc &loc, const void *s, d_size_t len);
@@ -419,10 +419,10 @@ public:
 class ArrayLiteralExp final : public Expression
 {
 public:
-    Expression *basis;
-    Expressions *elements;
     OwnedBy ownedByCtfe;
     d_bool onstack;
+    Expression *basis;
+    Expressions *elements;
 
     static ArrayLiteralExp *create(const Loc &loc, Expressions *elements);
     static void emplace(UnionExp *pue, const Loc &loc, Expressions *elements);
@@ -439,9 +439,9 @@ public:
 class AssocArrayLiteralExp final : public Expression
 {
 public:
+    OwnedBy ownedByCtfe;
     Expressions *keys;
     Expressions *values;
-    OwnedBy ownedByCtfe;
 
     bool equals(const RootObject * const o) const override;
     AssocArrayLiteralExp *syntaxCopy() override;
@@ -474,7 +474,7 @@ public:
      * 'inlinecopy' uses similar 'stageflags' and from multiple evaluation 'doInline'
      * (with infinite recursion) of this expression.
      */
-    int stageflags;
+    uint8_t stageflags;
 
     d_bool useStaticInit;         // if this is true, use the StructDeclaration's init symbol
     d_bool isOriginal;            // used when moving instances to indicate `this is this.origin`
@@ -937,9 +937,15 @@ public:
     Expression *upr;            // NULL if implicit 0
     Expression *lwr;            // NULL if implicit [length - 1]
     VarDeclaration *lengthVar;
-    d_bool upperIsInBounds;       // true if upr <= e1.length
-    d_bool lowerIsLessThanUpper;  // true if lwr <= upr
-    d_bool arrayop;               // an array operation, rather than a slice
+
+    bool upperIsInBounds() const; // true if upr <= e1.length
+    bool upperIsInBounds(bool v);
+    bool lowerIsLessThanUpper() const; // true if lwr <= upr
+    bool lowerIsLessThanUpper(bool v);
+    bool arrayop() const; // an array operation, rather than a slice
+    bool arrayop(bool v);
+private:
+    uint8_t bitFields;
 
     SliceExp *syntaxCopy() override;
     bool isLvalue() override;

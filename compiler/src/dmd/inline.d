@@ -1488,7 +1488,7 @@ public:
         //printf("StructLiteralExp.inlineScan()\n");
         if (e.stageflags & stageInlineScan)
             return;
-        int old = e.stageflags;
+        const old = e.stageflags;
         e.stageflags |= stageInlineScan;
         arrayInlineScan(e.elements);
         e.stageflags = old;

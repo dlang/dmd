@@ -720,10 +720,10 @@ enum WANTexpand = 1;    // expand const/immutable variables if possible
  */
 extern (C++) abstract class Expression : ASTNode
 {
-    const EXP op;   // to minimize use of dynamic_cast
-    bool parens;    // if this is a parenthesized expression
     Type type;      // !=null means that semantic() has been run
     Loc loc;        // file location
+    const EXP op;   // to minimize use of dynamic_cast
+    bool parens;    // if this is a parenthesized expression
 
     extern (D) this(const ref Loc loc, EXP op) scope
     {
@@ -2539,6 +2539,8 @@ extern (C++) final class NullExp : Expression
  */
 extern (C++) final class StringExp : Expression
 {
+    char postfix = NoPostfix;   // 'c', 'w', 'd'
+    OwnedBy ownedByCtfe = OwnedBy.code;
     private union
     {
         char* string;   // if sz == 1
@@ -2559,8 +2561,6 @@ extern (C++) final class StringExp : Expression
     bool committed;
 
     enum char NoPostfix = 0;
-    char postfix = NoPostfix;   // 'c', 'w', 'd'
-    OwnedBy ownedByCtfe = OwnedBy.code;
 
     extern (D) this(const ref Loc loc, const(void)[] string) scope
     {
@@ -3051,6 +3051,9 @@ extern (C++) final class TupleExp : Expression
  */
 extern (C++) final class ArrayLiteralExp : Expression
 {
+    OwnedBy ownedByCtfe = OwnedBy.code;
+    bool onstack = false;
+
     /** If !is null, elements[] can be sparse and basis is used for the
      * "default" element value. In other words, non-null elements[i] overrides
      * this 'basis' value.
@@ -3058,8 +3061,6 @@ extern (C++) final class ArrayLiteralExp : Expression
     Expression basis;
 
     Expressions* elements;
-    OwnedBy ownedByCtfe = OwnedBy.code;
-    bool onstack = false;
 
     extern (D) this(const ref Loc loc, Type type, Expressions* elements)
     {
@@ -3216,10 +3217,10 @@ extern (C++) final class ArrayLiteralExp : Expression
  */
 extern (C++) final class AssocArrayLiteralExp : Expression
 {
+    OwnedBy ownedByCtfe = OwnedBy.code;
+
     Expressions* keys;
     Expressions* values;
-
-    OwnedBy ownedByCtfe = OwnedBy.code;
 
     extern (D) this(const ref Loc loc, Expressions* keys, Expressions* values)
     {
@@ -3308,7 +3309,7 @@ extern (C++) final class StructLiteralExp : Expression
      * 'inlinecopy' uses similar 'stageflags' and from multiple evaluation 'doInline'
      * (with infinite recursion) of this expression.
      */
-    int stageflags;
+    ubyte stageflags;
 
     bool useStaticInit;     /// if this is true, use the StructDeclaration's init symbol
     bool isOriginal = false; /// used when moving instances to indicate `this is this.origin`
@@ -5661,9 +5662,15 @@ extern (C++) final class SliceExp : UnaExp
     Expression lwr;             // null if implicit [length - 1]
 
     VarDeclaration lengthVar;
-    bool upperIsInBounds;       // true if upr <= e1.length
-    bool lowerIsLessThanUpper;  // true if lwr <= upr
-    bool arrayop;               // an array operation, rather than a slice
+
+    private extern(D) static struct BitFields
+    {
+        bool upperIsInBounds;       // true if upr <= e1.length
+        bool lowerIsLessThanUpper;  // true if lwr <= upr
+        bool arrayop;               // an array operation, rather than a slice
+    }
+    import dmd.common.bitfields : generateBitFields;
+    mixin(generateBitFields!(BitFields, ubyte));
 
     /************************************************************/
     extern (D) this(const ref Loc loc, Expression e1, IntervalExp ie)
