@@ -474,7 +474,7 @@ public:
      * 'inlinecopy' uses similar 'stageflags' and from multiple evaluation 'doInline'
      * (with infinite recursion) of this expression.
      */
-    int stageflags;
+    uint8_t stageflags;
 
     d_bool useStaticInit;         // if this is true, use the StructDeclaration's init symbol
     d_bool isOriginal;            // used when moving instances to indicate `this is this.origin`

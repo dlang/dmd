@@ -3308,7 +3308,7 @@ extern (C++) final class StructLiteralExp : Expression
      * 'inlinecopy' uses similar 'stageflags' and from multiple evaluation 'doInline'
      * (with infinite recursion) of this expression.
      */
-    int stageflags;
+    ubyte stageflags;
 
     bool useStaticInit;     /// if this is true, use the StructDeclaration's init symbol
     bool isOriginal = false; /// used when moving instances to indicate `this is this.origin`

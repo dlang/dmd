@@ -6954,7 +6954,7 @@ private:
         char stringexp[60LLU];
         char arrayliteralexp[58LLU];
         char assocarrayliteralexp[57LLU];
-        char structliteralexp[95LLU];
+        char structliteralexp[92LLU];
         char compoundliteralexp[48LLU];
         char nullexp[34LLU];
         char dotvarexp[65LLU];
@@ -7182,7 +7182,7 @@ public:
     Symbol* sym;
     StructLiteralExp* origin;
     StructLiteralExp* inlinecopy;
-    int32_t stageflags;
+    uint8_t stageflags;
     bool useStaticInit;
     bool isOriginal;
     OwnedBy ownedByCtfe;
