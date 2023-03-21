@@ -720,10 +720,10 @@ enum WANTexpand = 1;    // expand const/immutable variables if possible
  */
 extern (C++) abstract class Expression : ASTNode
 {
-    const EXP op;   // to minimize use of dynamic_cast
-    bool parens;    // if this is a parenthesized expression
     Type type;      // !=null means that semantic() has been run
     Loc loc;        // file location
+    const EXP op;   // to minimize use of dynamic_cast
+    bool parens;    // if this is a parenthesized expression
 
     extern (D) this(const ref Loc loc, EXP op) scope
     {

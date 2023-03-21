@@ -958,10 +958,10 @@ struct Optional final
 class Expression : public ASTNode
 {
 public:
-    const EXP op;
-    bool parens;
     Type* type;
     Loc loc;
+    const EXP op;
+    bool parens;
     size_t size() const;
     static void _init();
     static void deinitialize();
@@ -6945,9 +6945,9 @@ struct UnionExp final
 private:
     union __AnonStruct__u
     {
-        char exp[40LLU];
+        char exp[34LLU];
         char integerexp[48LLU];
-        char errorexp[40LLU];
+        char errorexp[34LLU];
         char realexp[64LLU];
         char complexexp[80LLU];
         char symoffexp[72LLU];
@@ -6956,7 +6956,7 @@ private:
         char assocarrayliteralexp[57LLU];
         char structliteralexp[95LLU];
         char compoundliteralexp[48LLU];
-        char nullexp[40LLU];
+        char nullexp[34LLU];
         char dotvarexp[65LLU];
         char addrexp[56LLU];
         char indexexp[82LLU];
