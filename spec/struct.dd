@@ -1055,10 +1055,11 @@ $(H3 $(LNAME2 field-init, Field initialization inside a constructor))
         ---
         )
 
-$(H3 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy Constructors))
+$(H2 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy Constructors))
 
     $(P Copy constructors are used to initialize a `struct` instance from
-    another `struct` of the same type.)
+    another instance of the same type. A `struct` that defines a copy constructor
+    is not $(RELATIVE_LINK2 POD, POD).)
 
     $(P A constructor declaration is a copy constructor declaration if it meets
     the following requirements:)
@@ -1094,20 +1095,31 @@ $(H3 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy
 
     $(OL
     $(LI When a variable is explicitly initialized:)
+
+    $(SPEC_RUNNABLE_EXAMPLE_RUN
     ---
     struct A
     {
-        this(ref return scope A rhs) {}
+        int[] arr;
+        this(ref return scope A rhs) { arr = rhs.arr.dup; }
     }
 
     void main()
     {
         A a;
+        a.arr = [1, 2];
+
         A b = a; // copy constructor gets called
+        b.arr[] += 1;
+        assert(a.arr == [1, 2]); // a is unchanged
+        assert(b.arr == [2, 3]);
     }
     ---
+    )
 
     $(LI When a parameter is passed by value to a function:)
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     struct A
     {
@@ -1122,9 +1134,12 @@ $(H3 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy
         fun(a);    // copy constructor gets called
     }
     ---
+    )
 
-    $(LI When a parameter is returned by value from a function and Named Returned Value Optiomization (NRVO)
+    $(LI When a parameter is returned by value from a function and Named Returned Value Optimization (NRVO)
     cannot be performed:)
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     struct A
     {
@@ -1150,11 +1165,15 @@ $(H3 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy
     }
     ---
     )
+    )
 
-    $(LNAME2 disable-copy)
+$(H3 $(LNAME2 disable-copy, Disabled Copying))
+
     $(P When a copy constructor is defined for a `struct` (or marked `@disable`), the compiler no
     longer implicitly generates default copy/blitting constructors for that `struct`:
     )
+
+    $(SPEC_RUNNABLE_EXAMPLE_FAIL
     ---
     struct A
     {
@@ -1170,7 +1189,9 @@ $(H3 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy
         fun(a);        // error: copy constructor cannot be called with types (immutable) immutable
     }
     ---
+    )
 
+    $(SPEC_RUNNABLE_EXAMPLE_FAIL
     ---
     struct A
     {
@@ -1183,19 +1204,40 @@ $(H3 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy
         A b = a; // error: copy constructor is disabled
     }
     ---
+    )
 
-    $(P If a `union S` has fields that define a copy constructor, whenever an object of type `S`
+    $(P If a `union U` has fields that define a copy constructor, whenever an object of type `U`
     is initialized by copy, an error will be issued. The same rule applies to overlapped fields
     (anonymous unions).)
 
-    $(P A `struct` that defines a copy constructor is not $(RELATIVE_LINK2 POD, POD).)
+    $(SPEC_RUNNABLE_EXAMPLE_FAIL
+    ---
+    struct S
+    {
+        this(ref S);
+    }
 
-$(H4 $(LNAME2 copy-constructor-attributes, Copy Constructor Attributes))
+    union U
+    {
+        S s;
+    }
+
+    void main()
+    {
+        U a;
+        U b = a; // error, could not generate copy constructor for U
+    }
+    ---
+    )
+
+$(H3 $(LNAME2 copy-constructor-attributes, Copy Constructor Attributes))
 
     $(P The copy constructor can be overloaded with different qualifiers applied
     to the parameter (copying from a qualified source) or to the copy constructor
     itself (copying to a qualified destination):
     )
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     struct A
     {
@@ -1216,10 +1258,13 @@ $(H4 $(LNAME2 copy-constructor-attributes, Copy Constructor Attributes))
         immutable A a5 = ia;    // calls 4
     }
     ---
+    )
 
     $(P The `inout` qualifier may be applied to the copy constructor parameter in
     order to specify that mutable, `const`, or `immutable` types are treated the same:
     )
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     struct A
     {
@@ -1238,8 +1283,9 @@ $(H4 $(LNAME2 copy-constructor-attributes, Copy Constructor Attributes))
         immutable(A) c = r3;
     }
     ---
+    )
 
-$(H4 $(LNAME2 implicit-copy-constructors, Implicit Copy Constructors))
+$(H3 $(LNAME2 implicit-copy-constructors, Implicit Copy Constructors))
 
     $(P A copy constructor is generated implicitly by the compiler for a `struct S`
     if all of the following conditions are met:)
@@ -1251,6 +1297,7 @@ $(H4 $(LNAME2 implicit-copy-constructors, Implicit Copy Constructors))
     )
 
     $(P If the restrictions above are met, the following copy constructor is generated:)
+
     ---
     this(ref return scope inout(S) src) inout
     {
@@ -1270,7 +1317,7 @@ $(GNAME Postblit):
     $(D this $(LPAREN) this $(RPAREN)) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, FunctionBody)
 )
 
-    $(P WARNING: The postblit is considered legacy and is not recommended for new code.
+    $(P $(RED Warning): The postblit is considered legacy and is not recommended for new code.
     Code should use $(RELATIVE_LINK2 struct-copy-constructor, copy constructors)
     defined in the previous section. For backward compatibility reasons, a `struct` that
     explicitly defines both a copy constructor and a postblit will only use the postblit
@@ -1280,7 +1327,7 @@ $(GNAME Postblit):
     will have priority over the copy constructor.)
 
         $(P $(I Copy construction) is defined as initializing
-         a struct instance from another struct of the same type.
+         a struct instance from another instance of the same type.
          Copy construction is divided into two parts:)
 
         $(OL
@@ -1298,7 +1345,7 @@ $(GNAME Postblit):
         etc. For example:
         )
 
-        $(SPEC_RUNNABLE_EXAMPLE_RUN
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         struct S
         {
