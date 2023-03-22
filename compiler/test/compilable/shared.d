@@ -130,3 +130,15 @@ void main()
 {
     auto b = new shared Class();
 }
+
+// https://issues.dlang.org/show_bug.cgi?id=23790
+bool cas(shared bool*, bool, bool) { return true; }
+
+struct Argh
+{
+    bool locked;
+    void lock() shared
+    {
+        while(!cas(&locked, false, true)) {}
+    }
+}

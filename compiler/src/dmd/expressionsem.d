@@ -13412,9 +13412,16 @@ bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
             //printf("dotvarexp = %s\n", e.toChars());
             if (e.type.isShared())
             {
-                // / https://issues.dlang.org/show_bug.cgi?id=22626
-                if (e.e1.isThisExp() && sc.func && sc.func.isSynchronized())
-                    return false;
+                if (e.e1.isThisExp())
+                {
+                    // https://issues.dlang.org/show_bug.cgi?id=22626
+                    if (sc.func && sc.func.isSynchronized())
+                        return false;
+
+                    // https://issues.dlang.org/show_bug.cgi?id=23790
+                    if (e.e1.type.isTypeStruct())
+                        return false;
+                }
 
                 auto fd = e.var.isFuncDeclaration();
                 const sharedFunc = fd && fd.type.isShared;
