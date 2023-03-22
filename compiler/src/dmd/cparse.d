@@ -3195,15 +3195,26 @@ final class CParser(AST) : Parser!AST
             nextToken();
 
         check(TOK.leftParenthesis);
+        if (token.value != TOK.string_)
+            error("string literal expected for Assembler Template, not `%s`", token.toChars());
         Token* toklist = null;
         Token** ptoklist = &toklist;
         //Identifier label = null;
         auto statements = new AST.Statements();
+
+        int parens;
         while (1)
         {
             switch (token.value)
             {
+                case TOK.leftParenthesis:
+                    ++parens;
+                    goto default;
+
                 case TOK.rightParenthesis:
+                    --parens;
+                    if (parens >= 0)
+                        goto default;
                     break;
 
                 case TOK.semicolon:

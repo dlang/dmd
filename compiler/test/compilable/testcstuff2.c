@@ -713,3 +713,20 @@ enum E2 {
     m1,
     m2 = m1
 };
+
+/************************************************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=23725
+
+#define	__fldcw(addr)	asm volatile("fldcw %0" : : "m" (*(addr)))
+
+static __inline void
+__fnldcw(unsigned short _cw, unsigned short _newcw)
+{
+    __fldcw(&_newcw);
+}
+
+void test23725()
+{
+    __fnldcw(1, 2);
+}
