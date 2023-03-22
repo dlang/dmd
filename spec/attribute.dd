@@ -40,7 +40,7 @@ $(GNAME FunctionAttributeKwd):
 $(GNAME AtAttribute):
     $(D @) $(RELATIVE_LINK2 disable, $(D disable))
     $(D @) $(RELATIVE_LINK2 nogc, $(D nogc))
-    $(D @) $(D live)
+    $(D @) $(DDLINK spec/ob, Live Functions, `live`)
     $(GLINK Property)
     $(D @) $(RELATIVE_LINK2 safe, $(D safe))
     $(D @) $(RELATIVE_LINK2 safe, $(D system))
@@ -103,7 +103,7 @@ $(GNAME NamespaceList):
         $(P D provides an easy way to call C functions and operating
         system API functions, as compatibility with both is essential.
         The $(I LinkageType) is case sensitive, and is meant to be
-        extensible by the implementation ($(D they are not keywords)).
+        extensible by the implementation ($(I they are not keywords)).
         $(D C) and $(D D) must be supplied, the others are what
         makes sense for the implementation.
         $(D C++) offers limited compatibility with C++, see the
@@ -114,7 +114,8 @@ $(GNAME NamespaceList):
         documentation for more information.
         $(D System) is the same as $(D Windows) on Windows platforms,
         and $(D C) on other platforms.
-        $(D Implementation Note:)
+        )
+        $(P $(B Implementation Note:)
         for Win32 platforms, $(D Windows) should exist.
         )
 
@@ -156,8 +157,8 @@ extern (Windows):
         where it is equivalent to the
         $(LINK2 https://en.wikipedia.org/wiki/X86_calling_conventions, stdcall) convention.)
 
-        $(P Note that a lone $(D extern) declaration is used as a
-        $(DDSUBLINK spec/declaration, extern, storage class).)
+        $(P Note that a $(DDSUBLINK spec/declaration, extern, lone $(D extern) keyword)
+        is used as a storage class.)
 
 $(H3 C++ $(LNAME2 namespace, Namespaces))
 
@@ -197,7 +198,7 @@ $(H3 C++ $(LNAME2 namespace, Namespaces))
         ---
         )
 
-        $(P Multiple identifiers in the $(I QualifiedIdentifier) create nested namespaces:)
+        $(P Multiple dotted identifiers in the $(I QualifiedIdentifier) create nested namespaces:)
 
         ---
         extern (C++, N.M) { extern (C++) { extern (C++, R) { void foo(); } } }
@@ -563,7 +564,8 @@ $(H3 $(LNAME2 gshared, $(D __gshared) Attribute))
         }
         ---
 
-        $(P Unlike the $(RELATIVE_LINK2 shared) attribute, $(D __gshared) provides no
+        $(P $(RED Warning:)
+        Unlike the $(RELATIVE_LINK2 shared, `shared`) attribute, $(D __gshared) provides no
         safeguards against data races or other multi-threaded synchronization
         issues. It is the responsibility of the programmer to ensure that
         access to variables marked $(D __gshared) is synchronized correctly.)
@@ -971,9 +973,9 @@ $(H2 $(LNAME2 mustuse-attribute, `@mustuse` Attribute))
     )
 
     $(P
-        "Assignment expression" means either a $(DDSUBLINK spec/expression,
-        simple_assignment_expressions, simple assignment expression) or an
-        $(DDSUBLINK spec/expression, assignment_operator_expression, assignment
+        "Assignment expression" means either a $(DDSUBLINK spec/expression, simple_assignment_expressions,
+        simple assignment expression) or an
+        $(DDSUBLINK spec/expression, assignment_operator_expressions, assignment
         operator expression).
     )
 
