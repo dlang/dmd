@@ -13278,6 +13278,12 @@ bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
 
         bool visitVar(VarExp e)
         {
+            // https://issues.dlang.org/show_bug.cgi?id=20908
+            // direct access to init symbols is ok as they
+            // cannot be modified.
+            if (e.var.isSymbolDeclaration())
+                return false;
+
             // https://issues.dlang.org/show_bug.cgi?id=22626
             // Synchronized functions don't need to use core.atomic
             // when accessing `this`.
