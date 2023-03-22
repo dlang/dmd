@@ -69,10 +69,15 @@ public void inlineScanModule(Module m)
         Dsymbol s = (*m.members)[i];
         //if (global.params.verbose)
         //    message("inline scan symbol %s", s.toChars());
-        scope InlineScanVisitor v = new InlineScanVisitor();
-        s.accept(v);
+        inlineScanDsymbol(s);
     }
     m.semanticRun = PASS.inlinedone;
+}
+
+private void inlineScanDsymbol(Dsymbol s)
+{
+    scope InlineScanVisitorDsymbol v = new InlineScanVisitorDsymbol();
+    s.accept(v);
 }
 
 /***********************************************************
@@ -1216,7 +1221,7 @@ public:
         }
         else
         {
-            s.accept(this);
+            inlineScanDsymbol(s);
         }
     }
 
@@ -1526,6 +1531,20 @@ public:
             eresult = null;
         }
     }
+}
+
+/***********************************************************
+ * Walk the trees, looking for functions to inline.
+ * Inline any that can be.
+ */
+private extern (C++) final class InlineScanVisitorDsymbol : Visitor
+{
+    alias visit = Visitor.visit;
+public:
+
+    extern (D) this() scope
+    {
+    }
 
     /*************************************
      * Look for function inlining possibilities.
@@ -1547,20 +1566,20 @@ public:
             return;
         if (fd.fbody && !fd.isNaked())
         {
-            auto againsave = again;
-            auto parentsave = parent;
-            parent = fd;
-            do
+            while (1)
             {
-                again = false;
                 fd.inlineNest++;
                 fd.inlineScanned = true;
-                inlineScan(fd.fbody);
+
+                scope InlineScanVisitor v = new InlineScanVisitor();
+                v.parent = fd;
+                v.inlineScan(fd.fbody);
+                bool again = v.again;
+
                 fd.inlineNest--;
+                if (!again)
+                    break;
             }
-            while (again);
-            again = againsave;
-            parent = parentsave;
         }
     }
 
@@ -1806,8 +1825,7 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
         else
             fd.inlineStatusExp = ILS.yes;
 
-        scope InlineScanVisitor v = new InlineScanVisitor();
-        fd.accept(v); // Don't scan recursively for header content scan
+        inlineScanDsymbol(fd); // Don't scan recursively for header content scan
 
         if (fd.inlineStatusExp == ILS.uninitialized)
         {
