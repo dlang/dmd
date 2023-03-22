@@ -2688,18 +2688,19 @@ $(GNAME TypeSpecialization):
     $(D package)
 )
 
-    $(P $(I IsExpression)s are evaluated at compile time and are
-        used for:)
+    $(P An $(I IsExpression) is evaluated at compile time and is
+        used to check if an expression is a valid type. In addition,
+        there are forms which can also:)
     $(UL
-    $(LI checking for valid types)
-    $(LI comparing types for equivalence)
-    $(LI determining if one type can be implicitly converted to another)
-    $(LI deducing the subtypes of a type using pattern matching)
+    $(LI compare types for equivalence)
+    $(LI determine if one type can be implicitly converted to another)
+    $(LI deduce the subtypes of a type using
+        $(RELATIVE_LINK2 is-parameter-list, pattern matching))
+    $(LI deduce the template arguments of a type template instance)
     )
     $(P
-        The result of an $(I IsExpression) is a boolean of value `true`
-        if the condition is satisfied. If the condition is not satisfied,
-        the result is a boolean of value `false`.
+        The result of an $(I IsExpression) is a boolean which is `true`
+        if the condition is satisfied and `false` if not.
     )
 
     $(P $(I Type) is the type being tested. It must be syntactically
@@ -2711,7 +2712,8 @@ $(GNAME TypeSpecialization):
         pattern matched against.
     )
 
-    $(P $(I IsExpression)s may be used in conjunction with $(D typeof) to check
+    $(P $(I IsExpression)s may be used in conjunction with
+    $(DDSUBLINK spec/type, typeof, `typeof`) to check
     whether an expression type checks correctly. For example, $(D is(typeof(foo)))
     will return $(D true) if $(D foo) has a valid type.
     )
@@ -2721,24 +2723,31 @@ $(H4 $(LNAME2 basic-forms, Basic Forms))
         $(H5 $(LNAME2 is-type, $(D is $(LPAREN)) $(I Type) $(D $(RPAREN))))
 
         $(P
-        The condition is satisfied if $(D Type) is semantically
-        correct (it must be syntactically correct regardless).
+        The condition is satisfied if $(I Type) is semantically
+        correct. *Type* must be syntactically correct regardless.
         )
--------------
-alias int Func(int);    // Func is a alias to a function type
-void foo()
-{
-    if (is(Func[]))     // not satisfied because arrays of
-                        // functions are not allowed
-        writeln("satisfied");
-    else
-        writeln("not satisfied");
 
-    if (is([][]))       // error, [][] is not a syntactically valid type
-        ...
-}
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+---
+pragma(msg, is(5)); // error
+pragma(msg, is([][])); // error
+---
+)
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 -------------
+int i;
+static assert(is(int));
+static assert(is(typeof(i))); // same
 
+static assert(!is(Undefined));
+static assert(!is(typeof(int))); // int is not an expression
+static assert(!is(i)); // i is a value
+
+alias Func = int(int); // function type
+static assert(is(Func));
+static assert(!is(Func[])); // fails as an array of functions is not allowed
+-------------
+)
         $(H5 $(LNAME2 is-type-convert, $(D is $(LPAREN)) $(I Type) $(D :) $(I TypeSpecialization) $(D $(RPAREN))))
 
         $(P
@@ -2747,18 +2756,14 @@ void foo()
         or can be implicitly converted to $(I TypeSpecialization).
         $(I TypeSpecialization) is only allowed to be a $(I Type).
         )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 -------------
 alias Bar = short;
-void foo()
-{
-    if (is(Bar : int))   // satisfied because short can be
-                         // implicitly converted to int
-        writeln("satisfied");
-    else
-        writeln("not satisfied");
-}
+static assert(is(Bar : int)); // short implicitly converts to int
+static assert(!is(Bar : string));
 -------------
-
+)
         $(H5 $(LNAME2 is-type-equal, $(D is $(LPAREN)) $(I Type) $(D ==) $(I TypeSpecialization) $(D $(RPAREN))))
 
         $(P
@@ -2766,17 +2771,14 @@ void foo()
         the condition is satisfied if $(I Type) is semantically correct and is
         the same type as $(I TypeSpecialization).
         )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 -------------
 alias Bar = short;
-void foo()
-{
-    if (is(Bar == int))   // not satisfied because short is not
-                          // the same type as int
-        writeln("satisfied");
-    else
-        writeln("not satisfied");
-}
+static assert(is(Bar == short));
+static assert(!is(Bar == int));
 -------------
+)
         $(P
         If $(I TypeSpecialization) is one of
                 $(D struct)
@@ -2795,6 +2797,7 @@ $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 static assert(is(Object == class));
 static assert(is(ModuleInfo == struct));
+static assert(!is(int == class));
 ---
 )
         $(P The `module` and `package` forms are satisfied when *Type* is a symbol, not a *type*,
