@@ -1785,6 +1785,7 @@ extern (C++) abstract class Expression : ASTNode
         inout(PostExp)      isPostExp()  { return (op == EXP.plusPlus || op == EXP.minusMinus) ? cast(typeof(return))this : null; }
         inout(PreExp)       isPreExp()   { return (op == EXP.prePlusPlus || op == EXP.preMinusMinus) ? cast(typeof(return))this : null; }
         inout(AssignExp)    isAssignExp()    { return op == EXP.assign ? cast(typeof(return))this : null; }
+        inout(LoweredAssignExp)    isLoweredAssignExp()    { return op == EXP.loweredAssignExp ? cast(typeof(return))this : null; }
         inout(ConstructExp) isConstructExp() { return op == EXP.construct ? cast(typeof(return))this : null; }
         inout(BlitExp)      isBlitExp()      { return op == EXP.blit ? cast(typeof(return))this : null; }
         inout(AddAssignExp) isAddAssignExp() { return op == EXP.addAssign ? cast(typeof(return))this : null; }
@@ -6123,7 +6124,6 @@ enum MemorySet
 extern (C++) class AssignExp : BinExp
 {
     MemorySet memset;
-    Expression lowering;
 
     /************************************************************/
     /* op can be EXP.assign, EXP.construct, or EXP.blit */
@@ -6162,6 +6162,32 @@ extern (C++) class AssignExp : BinExp
         return this;
     }
 
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/***********************************************************
+ * When an assignment expression is lowered to a druntime call
+ * this class is used to store the lowering.
+ * It essentially behaves the same as an AssignExp, but it is
+ * used to not waste space for other AssignExp that are not
+ * lowered to anything.
+ */
+extern (C++) final class LoweredAssignExp : AssignExp
+{
+    Expression lowering;
+    extern (D) this(AssignExp exp, Expression lowering)
+    {
+        super(exp.loc, EXP.loweredAssignExp, exp.e1, exp.e2);
+        this.lowering = lowering;
+    }
+
+    override const(char)* toChars() const
+    {
+        return lowering.toChars();
+    }
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -7555,4 +7581,5 @@ private immutable ubyte[EXP.max+1] expSize = [
     EXP.compoundLiteral: __traits(classInstanceSize, CompoundLiteralExp),
     EXP._Generic: __traits(classInstanceSize, GenericExp),
     EXP.interval: __traits(classInstanceSize, IntervalExp),
+    EXP.loweredAssignExp : __traits(classInstanceSize, LoweredAssignExp),
 ];

@@ -9828,12 +9828,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             arguments.push(ale.e1);
             arguments.push(exp.e2);
 
-            Expression ce = new CallExp(ale.loc, id, arguments);
-            exp.lowering = ce.expressionSemantic(sc);
+            Expression ce = new CallExp(ale.loc, id, arguments).expressionSemantic(sc);
+            auto res = new LoweredAssignExp(exp, ce);
             // if (global.params.verbose)
             //     message("lowered   %s =>\n          %s", exp.toChars(), res.toChars());
-            exp.type = Type.tsize_t;
-            return setResult(exp);
+            res.type = Type.tsize_t;
+            return setResult(res);
         }
         else if (auto se = exp.e1.isSliceExp())
         {
@@ -13940,6 +13940,7 @@ Expression toBoolean(Expression exp, Scope* sc)
         case EXP.assign:
         case EXP.construct:
         case EXP.blit:
+        case EXP.loweredAssignExp:
             if (sc.flags & SCOPE.Cfile)
                 return exp;
             // Things like:

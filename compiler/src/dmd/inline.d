@@ -765,12 +765,12 @@ public:
 
         override void visit(AssignExp e)
         {
-            if (e.lowering)
-            {
-                result = doInlineAs!Expression(e.lowering, ids);
-                return;
-            }
             visit(cast(BinExp)e);
+        }
+
+        override void visit(LoweredAssignExp e)
+        {
+            result = doInlineAs!Expression(e.lowering, ids);
         }
 
         override void visit(EqualExp e)
@@ -1249,11 +1249,6 @@ public:
 
     override void visit(AssignExp e)
     {
-        if (e.lowering)
-        {
-            inlineScan(e.lowering);
-            return;
-        }
         // Look for NRVO, as inlining NRVO function returns require special handling
         if (e.op == EXP.construct && e.e2.op == EXP.call)
         {
@@ -1288,6 +1283,11 @@ public:
         }
     L1:
         visit(cast(BinExp)e);
+    }
+
+    override void visit(LoweredAssignExp e)
+    {
+        inlineScan(e.lowering);
     }
 
     override void visit(CallExp e)

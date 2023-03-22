@@ -89,6 +89,7 @@ public:
     void visit(ASTCodegen.ClassReferenceExp e) { visit(cast(ASTCodegen.Expression)e); }
     void visit(ASTCodegen.VoidInitExp e) { visit(cast(ASTCodegen.Expression)e); }
     void visit(ASTCodegen.ThrownExceptionExp e) { visit(cast(ASTCodegen.Expression)e); }
+    void visit(ASTCodegen.LoweredAssignExp e) { visit(cast(ASTCodegen.AssignExp)e); }
 }
 
 /**
@@ -239,6 +240,12 @@ extern (C++) class SemanticTimeTransitiveVisitor : SemanticTimePermissiveVisitor
     {
         e.e1.accept(this);
         e.e2.accept(this);
+    }
+
+    override void visit(ASTCodegen.LoweredAssignExp e)
+    {
+        e.lowering.accept(this);
+        visit(cast(AssignExp)e);
     }
 }
 

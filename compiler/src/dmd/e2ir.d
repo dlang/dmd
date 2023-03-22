@@ -2241,10 +2241,7 @@ elem* toElem(Expression e, IRState *irs)
         // Look for array.length = n
         if (auto ale = ae.e1.isArrayLengthExp())
         {
-            if (!ae.lowering)
-                assert(0, "This case should have been rewritten to `_d_arraysetlengthT` in the semantic phase");
-
-            return setResult(toElem(ae.lowering, irs));
+            assert(0, "This case should have been rewritten to `_d_arraysetlengthT` in the semantic phase");
         }
 
         // Look for array[]=n
@@ -2776,6 +2773,11 @@ elem* toElem(Expression e, IRState *irs)
             return setResult2(e);
         }
         assert(0);
+    }
+
+    elem* visitLoweredAssign(LoweredAssignExp e)
+    {
+        return toElem(e.lowering, irs);
     }
 
     /***************************************
@@ -4167,6 +4169,7 @@ elem* toElem(Expression e, IRState *irs)
         case EXP.assign:        return visitAssign(e.isAssignExp());
         case EXP.construct:     return visitAssign(e.isConstructExp());
         case EXP.blit:          return visitAssign(e.isBlitExp());
+        case EXP.loweredAssignExp: return visitLoweredAssign(e.isLoweredAssignExp());
         case EXP.addAssign:     return visitAddAssign(e.isAddAssignExp());
         case EXP.minAssign:     return visitMinAssign(e.isMinAssignExp());
         case EXP.concatenateDcharAssign: return visitCatAssign(e.isCatDcharAssignExp());
