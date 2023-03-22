@@ -767,19 +767,6 @@ public:
         return false;
     }
 
-    static Expressions* copyArrayOnWrite(Expressions* exps, Expressions* original)
-    {
-        if (exps is original)
-        {
-            if (!original)
-                exps = new Expressions();
-            else
-                exps = original.copy();
-            ++ctfeGlobals.numArrayAllocs;
-        }
-        return exps;
-    }
-
     /******************************** Statement ***************************/
 
     override void visit(Statement s)
@@ -936,74 +923,6 @@ public:
         result = interpret(pue, s.statement, istate);
     }
 
-    /**
-     Given an expression e which is about to be returned from the current
-     function, generate an error if it contains pointers to local variables.
-
-     Only checks expressions passed by value (pointers to local variables
-     may already be stored in members of classes, arrays, or AAs which
-     were passed as mutable function parameters).
-     Returns:
-        true if it is safe to return, false if an error was generated.
-     */
-    static bool stopPointersEscaping(const ref Loc loc, Expression e)
-    {
-        if (!e.type.hasPointers())
-            return true;
-        if (isPointer(e.type))
-        {
-            Expression x = e;
-            if (auto eaddr = e.isAddrExp())
-                x = eaddr.e1;
-            VarDeclaration v;
-            while (x.op == EXP.variable && (v = x.isVarExp().var.isVarDeclaration()) !is null)
-            {
-                if (v.storage_class & STC.ref_)
-                {
-                    x = getValue(v);
-                    if (auto eaddr = e.isAddrExp())
-                        eaddr.e1 = x;
-                    continue;
-                }
-                if (ctfeGlobals.stack.isInCurrentFrame(v))
-                {
-                    error(loc, "returning a pointer to a local stack variable");
-                    return false;
-                }
-                else
-                    break;
-            }
-            // TODO: If it is a EXP.dotVariable or EXP.index, we should check that it is not
-            // pointing to a local struct or static array.
-        }
-        if (auto se = e.isStructLiteralExp())
-        {
-            return stopPointersEscapingFromArray(loc, se.elements);
-        }
-        if (auto ale = e.isArrayLiteralExp())
-        {
-            return stopPointersEscapingFromArray(loc, ale.elements);
-        }
-        if (auto aae = e.isAssocArrayLiteralExp())
-        {
-            if (!stopPointersEscapingFromArray(loc, aae.keys))
-                return false;
-            return stopPointersEscapingFromArray(loc, aae.values);
-        }
-        return true;
-    }
-
-    // Check all elements of an array for escaping local variables. Return false if error
-    static bool stopPointersEscapingFromArray(const ref Loc loc, Expressions* elems)
-    {
-        foreach (e; *elems)
-        {
-            if (e && !stopPointersEscaping(loc, e))
-                return false;
-        }
-        return true;
-    }
-
     override void visit(ReturnStatement s)
     {
         debug (LOG)
@@ -1080,19 +999,6 @@ public:
             showCtfeExpr(e);
         }
         result = e;
-    }
-
-    static Statement findGotoTarget(InterState* istate, Identifier ident)
-    {
-        Statement target = null;
-        if (ident)
-        {
-            LabelDsymbol label = istate.fd.searchLabel(ident);
-            assert(label && label.statement);
-            LabelStatement ls = label.statement;
-            target = ls.gotoTarget ? ls.gotoTarget : ls.statement;
-        }
-        return target;
     }
 
     override void visit(BreakStatement s)
@@ -1520,38 +1426,6 @@ public:
             }
         }
         result = e;
-    }
-
-    static ThrownExceptionExp chainExceptions(ThrownExceptionExp oldest, ThrownExceptionExp newest)
-    {
-        debug (LOG)
-        {
-            printf("Collided exceptions %s %s\n", oldest.thrown.toChars(), newest.thrown.toChars());
-        }
-        // Little sanity check to make sure it's really a Throwable
-        ClassReferenceExp boss = oldest.thrown;
-        const next = 5;                         // index of Throwable.next
-        assert((*boss.value.elements)[next].type.ty == Tclass); // Throwable.next
-        ClassReferenceExp collateral = newest.thrown;
-        if (collateral.originalClass().isErrorException() && !boss.originalClass().isErrorException())
-        {
-            /* Find the index of the Error.bypassException field
-             */
-            auto bypass = next + 1;
-            if ((*collateral.value.elements)[bypass].type.ty == Tuns32)
-                bypass += 1;  // skip over _refcount field
-            assert((*collateral.value.elements)[bypass].type.ty == Tclass);
-
-            // The new exception bypass the existing chain
-            (*collateral.value.elements)[bypass] = boss;
-            return newest;
-        }
-        while ((*boss.value.elements)[next].op == EXP.classReference)
-        {
-            boss = (*boss.value.elements)[next].isClassReferenceExp();
-        }
-        (*boss.value.elements)[next] = collateral;
-        return oldest;
     }
 
     override void visit(TryFinallyStatement s)
@@ -6636,6 +6510,137 @@ Expression interpret(Statement s, InterState* istate)
     if (result == ue.exp())
         result = ue.copy();
     return result;
+}
+
+private
+Expressions* copyArrayOnWrite(Expressions* exps, Expressions* original)
+{
+    if (exps is original)
+    {
+        if (!original)
+            exps = new Expressions();
+        else
+            exps = original.copy();
+        ++ctfeGlobals.numArrayAllocs;
+    }
+    return exps;
+}
+
+/**
+ Given an expression e which is about to be returned from the current
+ function, generate an error if it contains pointers to local variables.
+
+ Only checks expressions passed by value (pointers to local variables
+ may already be stored in members of classes, arrays, or AAs which
+ were passed as mutable function parameters).
+ Returns:
+    true if it is safe to return, false if an error was generated.
+ */
+private
+bool stopPointersEscaping(const ref Loc loc, Expression e)
+{
+    if (!e.type.hasPointers())
+        return true;
+    if (isPointer(e.type))
+    {
+        Expression x = e;
+        if (auto eaddr = e.isAddrExp())
+            x = eaddr.e1;
+        VarDeclaration v;
+        while (x.op == EXP.variable && (v = x.isVarExp().var.isVarDeclaration()) !is null)
+        {
+            if (v.storage_class & STC.ref_)
+            {
+                x = getValue(v);
+                if (auto eaddr = e.isAddrExp())
+                    eaddr.e1 = x;
+                continue;
+            }
+            if (ctfeGlobals.stack.isInCurrentFrame(v))
+            {
+                error(loc, "returning a pointer to a local stack variable");
+                return false;
+            }
+            else
+                break;
+        }
+        // TODO: If it is a EXP.dotVariable or EXP.index, we should check that it is not
+        // pointing to a local struct or static array.
+    }
+    if (auto se = e.isStructLiteralExp())
+    {
+        return stopPointersEscapingFromArray(loc, se.elements);
+    }
+    if (auto ale = e.isArrayLiteralExp())
+    {
+        return stopPointersEscapingFromArray(loc, ale.elements);
+    }
+    if (auto aae = e.isAssocArrayLiteralExp())
+    {
+        if (!stopPointersEscapingFromArray(loc, aae.keys))
+            return false;
+        return stopPointersEscapingFromArray(loc, aae.values);
+    }
+    return true;
+}
+
+// Check all elements of an array for escaping local variables. Return false if error
+private
+bool stopPointersEscapingFromArray(const ref Loc loc, Expressions* elems)
+{
+    foreach (e; *elems)
+    {
+        if (e && !stopPointersEscaping(loc, e))
+            return false;
+    }
+    return true;
+}
+
+private
+Statement findGotoTarget(InterState* istate, Identifier ident)
+{
+    Statement target = null;
+    if (ident)
+    {
+        LabelDsymbol label = istate.fd.searchLabel(ident);
+        assert(label && label.statement);
+        LabelStatement ls = label.statement;
+        target = ls.gotoTarget ? ls.gotoTarget : ls.statement;
+    }
+    return target;
+}
+
+private
+ThrownExceptionExp chainExceptions(ThrownExceptionExp oldest, ThrownExceptionExp newest)
+{
+    debug (LOG)
+    {
+        printf("Collided exceptions %s %s\n", oldest.thrown.toChars(), newest.thrown.toChars());
+    }
+    // Little sanity check to make sure it's really a Throwable
+    ClassReferenceExp boss = oldest.thrown;
+    const next = 5;                         // index of Throwable.next
+    assert((*boss.value.elements)[next].type.ty == Tclass); // Throwable.next
+    ClassReferenceExp collateral = newest.thrown;
+    if (collateral.originalClass().isErrorException() && !boss.originalClass().isErrorException())
+    {
+        /* Find the index of the Error.bypassException field
+         */
+        auto bypass = next + 1;
+        if ((*collateral.value.elements)[bypass].type.ty == Tuns32)
+            bypass += 1;  // skip over _refcount field
+        assert((*collateral.value.elements)[bypass].type.ty == Tclass);
+
+        // The new exception bypass the existing chain
+        (*collateral.value.elements)[bypass] = boss;
+        return newest;
+    }
+    while ((*boss.value.elements)[next].op == EXP.classReference)
+    {
+        boss = (*boss.value.elements)[next].isClassReferenceExp();
+    }
+    (*boss.value.elements)[next] = collateral;
+    return oldest;
 }
 
 /**
