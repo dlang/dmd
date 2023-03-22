@@ -29,6 +29,7 @@
 #define __asm asm
 #define __inline__ inline
 #define __inline inline
+#define __volatile__ volatile
 
 /********************
  * Clang nullability extension used by macOS headers.
