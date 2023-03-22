@@ -645,16 +645,26 @@ $(H2 $(LNAME2 ref-functions, Ref Functions))
         (whereas an expression formed by calling a non-`ref` function is an rvalue).
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
+int *p;
+
 ref int foo()
 {
-    auto p = new int(2);
+    p = new int(2);
     return *p;
 }
-...
-int i = foo(); // i is set to 2
-foo() = 3;     // reference returns can be lvalues
+
+void main()
+{
+    int i = foo();
+    assert(i == 2);
+
+    foo() = 3;     // reference returns can be lvalues
+    assert(*p == 3);
+}
 ---
+)
 
         $(P Returning a reference to an expired function context is not allowed.
         This includes local variables, temporaries and parameters that are part
@@ -669,7 +679,8 @@ ref int sun()
 }
 ---
 
-        $(P A `ref` parameter may not be returned by `ref`.)
+        $(P A `ref` parameter may not be returned by `ref`, unless it is
+        $(RELATIVE_LINK2 return-ref-parameters, `return ref`).)
 ---
 ref int moon(ref int i)
 {
@@ -685,8 +696,7 @@ $(H2 $(LNAME2 auto-functions, Auto Functions))
     )
 
     $(P An auto function is declared without a return type.
-        If it does not already have a storage class, use the
-        $(D_KEYWORD auto) storage class.
+        Auto functions can use any valid $(GLINK2 declaration, StorageClass), not just `auto`.
     )
 
     $(P If there are multiple $(I ReturnStatement)s, the types
@@ -697,17 +707,25 @@ $(H2 $(LNAME2 auto-functions, Auto Functions))
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         auto foo(int x) { return x + 3; }          // inferred to be int
-        auto bar(int x) { return x; return 2.5; }  // inferred to be double
+        pure bar(int x) { return x; return 2.5; }  // inferred to be double
         ---
         )
 
+    $(NOTE Return type inference also triggers
+    $(RELATIVE_LINK2 function-attribute-inference, attribute inference).)
+
+
 $(H2 $(LNAME2 auto-ref-functions, Auto Ref Functions))
 
-    $(P Auto ref functions infer their return type just as
+    $(P Auto ref functions can infer their return type just as
         $(RELATIVE_LINK2 auto-functions, auto functions) do.
         In addition, they become $(RELATIVE_LINK2 ref-functions, ref functions)
-        if all return expressions are lvalues,
-        and it would not be a reference to a local or a parameter.)
+        if all of these apply:)
+
+    * All expressions returned from the function are lvalues
+    * No local variables are returned
+    * Any parameters returned are reference parameters
+    * Each returned expression must implicitly convert to an lvalue of the deduced return type
 
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
@@ -715,7 +733,11 @@ $(H2 $(LNAME2 auto-ref-functions, Auto Ref Functions))
         auto ref f2()          { return 3; }  // value return
         auto ref f3(ref int x) { return x; }  // ref return
         auto ref f4(out int x) { return x; }  // ref return
-        auto ref f5() { static int x; return x; }  // ref return
+        auto ref f5()
+        {
+            static int x;
+            return x; // ref return
+        }
         ---
         )
 
@@ -729,16 +751,16 @@ $(H2 $(LNAME2 auto-ref-functions, Auto Ref Functions))
         auto ref f3(ref int x, ref double y)
         {
             return x; return y;
-            // The return type is deduced to double, but cast(double)x is not an lvalue,
-            // then become a value return.
+            // The return type is deduced to be double, but cast(double)x is not an lvalue,
+            // so f3 has a value return.
         }
         ---
         )
 
-    $(P Auto ref function can have explicit return type.)
+    $(P Auto ref functions can have an explicit return type.)
 
         ---
-        auto ref int (ref int x) { return x; }  // ok, ref return
+        auto ref int bar(ref int x) { return x; }  // ok, ref return
         auto ref int foo(double x) { return x; }   // error, cannot convert double to int
         ---
 
