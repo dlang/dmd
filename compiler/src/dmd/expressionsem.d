@@ -6671,7 +6671,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     {
         import dmd.statementsem;
 
-        if (StatementSemanticVisitor.throwSemantic(te.loc, te.e1, sc))
+        if (throwSemantic(te.loc, te.e1, sc))
             result = te;
         else
             setError();
