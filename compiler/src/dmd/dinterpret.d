@@ -738,21 +738,30 @@ void incUsageCtfe(InterState* istate, const ref Loc loc)
     }
 }
 
-private extern (C++) final class Interpreter : Visitor
-{
-    alias visit = Visitor.visit;
-public:
-    InterState* istate;
-    CTFEGoal goal;
-    Expression result;
-    UnionExp* pue;              // storage for `result`
+/***********************************
+ * Interpret the statement.
+ * Params:
+ *    s = Statement to interpret
+ *    istate = context
+ * Returns:
+ *      NULL    continue to next statement
+ *      EXP.cantExpression      cannot interpret statement at compile time
+ *      !NULL   expression from return statement, or thrown exception
+ */
 
-    extern (D) this(UnionExp* pue, InterState* istate, CTFEGoal goal) scope
-    {
-        this.pue = pue;
-        this.istate = istate;
-        this.goal = goal;
-    }
+Expression interpretStatement(Statement s, InterState* istate)
+{
+    UnionExp ue = void;
+    auto result = interpretStatement(&ue, s, istate);
+    if (result == ue.exp())
+        result = ue.copy();
+    return result;
+}
+
+///
+Expression interpretStatement(UnionExp* pue, Statement s, InterState* istate)
+{
+    Expression result;
 
     // If e is EXP.throw_exception or EXP.cantExpression,
     // set it to 'result' and returns true.
@@ -769,11 +778,11 @@ public:
 
     /******************************** Statement ***************************/
 
-    override void visit(Statement s)
+    void visitDefaultCase(Statement s)
     {
         debug (LOG)
         {
-            printf("%s Statement::interpret()\n", s.loc.toChars());
+            printf("%s Statement::interpret() %s\n", s.loc.toChars(), s.toChars());
         }
         if (istate.start)
         {
@@ -786,7 +795,7 @@ public:
         result = CTFEExp.cantexp;
     }
 
-    override void visit(ExpStatement s)
+    void visitExp(ExpStatement s)
     {
         debug (LOG)
         {
@@ -806,7 +815,12 @@ public:
             return;
     }
 
-    override void visit(CompoundStatement s)
+    void visitDtorExp(DtorExpStatement s)
+    {
+        visitExp(s);
+    }
+
+    void visitCompound(CompoundStatement s)
     {
         debug (LOG)
         {
@@ -829,7 +843,12 @@ public:
         }
     }
 
-    override void visit(UnrolledLoopStatement s)
+    void visitCompoundAsm(CompoundAsmStatement s)
+    {
+        visitCompound(s);
+    }
+
+    void visitUnrolledLoop(UnrolledLoopStatement s)
     {
         debug (LOG)
         {
@@ -875,7 +894,7 @@ public:
         }
     }
 
-    override void visit(IfStatement s)
+    void visitIf(IfStatement s)
     {
         debug (LOG)
         {
@@ -911,7 +930,7 @@ public:
         }
     }
 
-    override void visit(ScopeStatement s)
+    void visitScope(ScopeStatement s)
     {
         debug (LOG)
         {
@@ -923,7 +942,7 @@ public:
         result = interpretStatement(pue, s.statement, istate);
     }
 
-    override void visit(ReturnStatement s)
+    void visitReturn(ReturnStatement s)
     {
         debug (LOG)
         {
@@ -980,7 +999,7 @@ public:
         if (isRuntimeHook(s.exp, Id._d_arrayappendT) || isRuntimeHook(s.exp, Id._d_arrayappendTTrace))
         {
             auto rs = new ReturnStatement(s.loc, e);
-            rs.accept(this);
+            visitReturn(rs);
             return;
         }
 
@@ -1001,7 +1020,7 @@ public:
         result = e;
     }
 
-    override void visit(BreakStatement s)
+    void visitBreak(BreakStatement s)
     {
         debug (LOG)
         {
@@ -1019,7 +1038,7 @@ public:
         result = CTFEExp.breakexp;
     }
 
-    override void visit(ContinueStatement s)
+    void visitContinue(ContinueStatement s)
     {
         debug (LOG)
         {
@@ -1037,7 +1056,7 @@ public:
         result = CTFEExp.continueexp;
     }
 
-    override void visit(WhileStatement s)
+    void visitWhile(WhileStatement s)
     {
         debug (LOG)
         {
@@ -1046,7 +1065,7 @@ public:
         assert(0); // rewritten to ForStatement
     }
 
-    override void visit(DoStatement s)
+    void visitDo(DoStatement s)
     {
         debug (LOG)
         {
@@ -1107,7 +1126,7 @@ public:
         assert(result is null);
     }
 
-    override void visit(ForStatement s)
+    void visitFor(ForStatement s)
     {
         debug (LOG)
         {
@@ -1179,17 +1198,17 @@ public:
         assert(result is null);
     }
 
-    override void visit(ForeachStatement s)
+    void visitForeach(ForeachStatement s)
     {
         assert(0); // rewritten to ForStatement
     }
 
-    override void visit(ForeachRangeStatement s)
+    void visitForeachRange(ForeachRangeStatement s)
     {
         assert(0); // rewritten to ForStatement
     }
 
-    override void visit(SwitchStatement s)
+    void visitSwitch(SwitchStatement s)
     {
         debug (LOG)
         {
@@ -1265,7 +1284,7 @@ public:
         result = e;
     }
 
-    override void visit(CaseStatement s)
+    void visitCase(CaseStatement s)
     {
         debug (LOG)
         {
@@ -1278,7 +1297,7 @@ public:
         result = interpretStatement(pue, s.statement, istate);
     }
 
-    override void visit(DefaultStatement s)
+    void visitDefault(DefaultStatement s)
     {
         debug (LOG)
         {
@@ -1291,7 +1310,7 @@ public:
         result = interpretStatement(pue, s.statement, istate);
     }
 
-    override void visit(GotoStatement s)
+    void visitGoto(GotoStatement s)
     {
         debug (LOG)
         {
@@ -1310,7 +1329,7 @@ public:
         result = CTFEExp.gotoexp;
     }
 
-    override void visit(GotoCaseStatement s)
+    void visitGotoCase(GotoCaseStatement s)
     {
         debug (LOG)
         {
@@ -1329,7 +1348,7 @@ public:
         result = CTFEExp.gotoexp;
     }
 
-    override void visit(GotoDefaultStatement s)
+    void visitGotoDefault(GotoDefaultStatement s)
     {
         debug (LOG)
         {
@@ -1348,7 +1367,7 @@ public:
         result = CTFEExp.gotoexp;
     }
 
-    override void visit(LabelStatement s)
+    void visitLabel(LabelStatement s)
     {
         debug (LOG)
         {
@@ -1360,7 +1379,7 @@ public:
         result = interpretStatement(pue, s.statement, istate);
     }
 
-    override void visit(TryCatchStatement s)
+    void visitTryCatch(TryCatchStatement s)
     {
         debug (LOG)
         {
@@ -1428,7 +1447,7 @@ public:
         result = e;
     }
 
-    override void visit(TryFinallyStatement s)
+    void visitTryFinally(TryFinallyStatement s)
     {
         debug (LOG)
         {
@@ -1492,7 +1511,7 @@ public:
         result = ex;
     }
 
-    override void visit(ThrowStatement s)
+    void visitThrow(ThrowStatement s)
     {
         debug (LOG)
         {
@@ -1508,12 +1527,12 @@ public:
         interpretThrow(result, s.exp, s.loc, istate);
     }
 
-    override void visit(ScopeGuardStatement s)
+    void visitScopeGuard(ScopeGuardStatement s)
     {
         assert(0);
     }
 
-    override void visit(WithStatement s)
+    void visitWith(WithStatement s)
     {
         debug (LOG)
         {
@@ -1569,7 +1588,7 @@ public:
         result = e;
     }
 
-    override void visit(AsmStatement s)
+    void visitAsm(AsmStatement s)
     {
         debug (LOG)
         {
@@ -1585,7 +1604,17 @@ public:
         result = CTFEExp.cantexp;
     }
 
-    override void visit(ImportStatement s)
+    void visitInlineAsm(InlineAsmStatement s)
+    {
+        visitAsm(s);
+    }
+
+    void visitGccAsm(GccAsmStatement s)
+    {
+        visitAsm(s);
+    }
+
+    void visitImport(ImportStatement s)
     {
         debug (LOG)
         {
@@ -1597,6 +1626,45 @@ public:
                 return;
             istate.start = null;
         }
+    }
+
+    if (!s)
+        return null;
+
+    mixin VisitStatement!void visit;
+    visit.VisitStatement(s);
+    return result;
+}
+
+///
+
+private extern (C++) final class Interpreter : Visitor
+{
+    alias visit = Visitor.visit;
+public:
+    InterState* istate;
+    CTFEGoal goal;
+    Expression result;
+    UnionExp* pue;              // storage for `result`
+
+    extern (D) this(UnionExp* pue, InterState* istate, CTFEGoal goal) scope
+    {
+        this.pue = pue;
+        this.istate = istate;
+        this.goal = goal;
+    }
+
+    // If e is EXP.throw_exception or EXP.cantExpression,
+    // set it to 'result' and returns true.
+    bool exceptionOrCant(Expression e)
+    {
+        if (exceptionOrCantInterpret(e))
+        {
+            // Make sure e is not pointing to a stack temporary
+            result = (e.op == EXP.cantExpression) ? CTFEExp.cantexp : e;
+            return true;
+        }
+        return false;
     }
 
     /******************************** Expression ***************************/
@@ -6368,6 +6436,30 @@ public:
     {
         assert(0); // This should never be interpreted
     }
+}
+
+/// Interpret `throw <exp>` found at the specified location `loc`
+private
+void interpretThrow(ref Expression result, Expression exp, const ref Loc loc, InterState* istate)
+{
+    incUsageCtfe(istate, loc);
+
+    Expression e = interpretRegion(exp, istate);
+    if (exceptionOrCantInterpret(e))
+    {
+        // Make sure e is not pointing to a stack temporary
+        result = (e.op == EXP.cantExpression) ? CTFEExp.cantexp : e;
+    }
+    else if (e.op == EXP.classReference)
+    {
+        result = ctfeEmplaceExp!ThrownExceptionExp(loc, e.isClassReferenceExp());
+    }
+    else
+    {
+        exp.error("to be thrown `%s` must be non-null", exp.toChars());
+        result = ErrorExp.get();
+    }
+}
 
     /*********************************************
      * Checks if the given expresion is a call to the runtime hook `id`.
@@ -6395,30 +6487,6 @@ public:
 
         return null;
     }
-}
-
-/// Interpret `throw <exp>` found at the specified location `loc`
-private void interpretThrow(ref Expression result, Expression exp, const ref Loc loc, InterState* istate)
-{
-    incUsageCtfe(istate, loc);
-
-    Expression e = interpretRegion(exp, istate);
-    if (exceptionOrCantInterpret(e))
-    {
-        // Make sure e is not pointing to a stack temporary
-        result = (e.op == EXP.cantExpression) ? CTFEExp.cantexp : e;
-    }
-    else if (e.op == EXP.classReference)
-    {
-        result = ctfeEmplaceExp!ThrownExceptionExp(loc, e.isClassReferenceExp());
-    }
-    else
-    {
-        exp.error("to be thrown `%s` must be non-null", exp.toChars());
-        result = ErrorExp.get();
-    }
-}
-
 
 /********************************************
  * Interpret the expression.
@@ -6483,36 +6551,6 @@ Expression interpretRegion(Expression e, InterState* istate, CTFEGoal goal = CTF
     }
     auto p = ctfeGlobals.region.malloc(uexp.size);
     return cast(Expression)memcpy(p, cast(void*)uexp, uexp.size);
-}
-
-/***********************************
- * Interpret the statement.
- * Params:
- *    pue = non-null pointer to temporary storage that can be used to store the return value
- *    s = Statement to interpret
- *    istate = context
- * Returns:
- *      NULL    continue to next statement
- *      EXP.cantExpression      cannot interpret statement at compile time
- *      !NULL   expression from return statement, or thrown exception
- */
-Expression interpretStatement(UnionExp* pue, Statement s, InterState* istate)
-{
-    if (!s)
-        return null;
-    scope Interpreter v = new Interpreter(pue, istate, CTFEGoal.Nothing);
-    s.accept(v);
-    return v.result;
-}
-
-///
-Expression interpretStatement(Statement s, InterState* istate)
-{
-    UnionExp ue = void;
-    auto result = interpretStatement(&ue, s, istate);
-    if (result == ue.exp())
-        result = ue.copy();
-    return result;
 }
 
 private
