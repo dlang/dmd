@@ -784,7 +784,7 @@ $(H4 $(LNAME2 alias_value, Value Aliases))
         ------
         ))
 
-        $(LI Lambdas
+        $(LI Function Literals
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ------
         template Foo(alias fun)

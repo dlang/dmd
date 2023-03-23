@@ -2083,16 +2083,18 @@ $(GNAME RefOrAutoRef):
     $(D auto ref)
 )
 
-    $(P $(I FunctionLiteral)s (also known as $(LNAME2 lambdas, $(I Lambdas))) enable embedding anonymous functions
+    $(P $(I FunctionLiteral)s enable embedding anonymous functions
         and anonymous delegates directly into expressions.
-        $(I Type) is the return type of the function or delegate -
+        Short function literals are known as $(LNAME2 lambdas, $(I lambdas)).
+    )
+      * $(I Type) is the return type of the function or delegate -
         if omitted it is $(RELATIVE_LINK2 lambda-return-type, inferred).
-        $(I ParameterWithAttributes) or $(I ParameterWithMemberAttributes)
+      * $(I ParameterWithAttributes) or $(I ParameterWithMemberAttributes)
         can be used to specify the parameters for the function. If these are
         omitted, the function defaults to the empty parameter list $(D ( )).
-        The type of a function literal is a
+      * Parameter types can be $(RELATIVE_LINK2 lambda-parameter-inference, omitted).
+      * The type of a function literal is a
         $(DDSUBLINK spec/function, closures, delegate or a pointer to function).
-    )
 
     $(P For example:)
 
