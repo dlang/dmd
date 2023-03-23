@@ -1,0 +1,32 @@
+Named arguments have been implemented
+
+In a function call expression, an argument can new be prefixed by the identifier of the parameter it binds to.
+
+---
+struct S{}
+struct T{}
+
+string f(T t, int i,     S s) => "A";
+string f(S s, int i = 0, T t) => "B";
+
+void main() 
+{
+    S s;  T t;  int i;
+    
+    // positional
+    assert(f(t, i, s) == "A");
+    assert(f(s, i, t) == "B");
+    // f(s, t); // error, neither A nor B match
+    // f(t, s); // error, neither A nor B match
+    
+    // named arguments
+    // f(s: s, t: t, i: i); // error, ambiguous
+    assert(f(s: s, t: t) == "B");
+    assert(f(t: t, s: s) == "B");
+    assert(f(t: t, i, s: s) == "A");
+    assert(f(s: s, t: t, i) == "A");
+    
+    // mixed
+    assert(f(s, t: t, i: i) == "B");
+}
+---
