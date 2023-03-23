@@ -5,9 +5,7 @@
 #include <assert.h>
 
 #ifndef __DMC__ // D:\a\1\s\tools\dm\include\complex.h(105): Deprecation: use of complex type `cdouble` is deprecated, use `std.complex.Complex!(double)` instead
-#ifndef __FreeBSD__ // defines _COMPLEX_I with use of `i` postfix
 #include <complex.h>
-#endif
 #endif
 
 #include <ctype.h>
