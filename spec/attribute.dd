@@ -31,7 +31,7 @@ $(GNAME Attribute):
     $(RELATIVE_LINK2 scope, $(D scope))
     $(RELATIVE_LINK2 shared, $(D shared))
     $(RELATIVE_LINK2 static, $(D static))
-    $(DDSUBLINK spec/class, synchronized-classes, `synchronized`)
+    $(RELATIVE_LINK2 synchronized, `synchronized`)
 
 $(GNAME FunctionAttributeKwd):
     $(RELATIVE_LINK2 nothrow, $(D nothrow))
@@ -572,6 +572,10 @@ $(H3 $(LNAME2 gshared, $(D __gshared) Attribute))
 
         $(P $(D __gshared) is disallowed in `@safe` code.)
 
+$(H3 $(LNAME2 synchronized, $(D @synchronized) Attribute))
+
+        $(P See $(DDSUBLINK spec/class, synchronized-classes, Synchronized Classes).)
+
 
 $(H2 $(LNAME2 disable, $(D @disable) Attribute))
 
@@ -907,7 +911,7 @@ void main() @nogc
 )
 
 
-$(H2 $(LNAME2 class-attributes, Class Attributes))
+$(H2 $(LNAME2 class-attributes, OOP Attributes))
 
 $(H3 $(LNAME2 abstract, $(D abstract) Attribute))
 
