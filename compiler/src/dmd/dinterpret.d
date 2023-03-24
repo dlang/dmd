@@ -642,7 +642,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
             e = CTFEExp.cantexp;
             break;
         }
-        e = interpret(pue, fd.fbody, &istatex);
+        e = interpretStatement(pue, fd.fbody, &istatex);
         if (CTFEExp.isCantExp(e))
         {
             debug (LOG)
@@ -819,7 +819,7 @@ public:
         foreach (i; 0 .. dim)
         {
             Statement sx = (*s.statements)[i];
-            result = interpret(pue, sx, istate);
+            result = interpretStatement(pue, sx, istate);
             if (result)
                 break;
         }
@@ -842,7 +842,7 @@ public:
         foreach (i; 0 .. dim)
         {
             Statement sx = (*s.statements)[i];
-            Expression e = interpret(pue, sx, istate);
+            Expression e = interpretStatement(pue, sx, istate);
             if (!e) // succeeds to interpret, or goto target was not found
                 continue;
             if (exceptionOrCant(e))
@@ -887,9 +887,9 @@ public:
         if (istate.start)
         {
             Expression e = null;
-            e = interpret(s.ifbody, istate);
+            e = interpretStatement(s.ifbody, istate);
             if (!e && istate.start)
-                e = interpret(s.elsebody, istate);
+                e = interpretStatement(s.elsebody, istate);
             result = e;
             return;
         }
@@ -901,9 +901,9 @@ public:
             return;
 
         if (isTrueBool(e))
-            result = interpret(pue, s.ifbody, istate);
+            result = interpretStatement(pue, s.ifbody, istate);
         else if (e.toBool().hasValue(false))
-            result = interpret(pue, s.elsebody, istate);
+            result = interpretStatement(pue, s.elsebody, istate);
         else
         {
             // no error, or assert(0)?
@@ -920,7 +920,7 @@ public:
         if (istate.start == s)
             istate.start = null;
 
-        result = interpret(pue, s.statement, istate);
+        result = interpretStatement(pue, s.statement, istate);
     }
 
     override void visit(ReturnStatement s)
@@ -1057,7 +1057,7 @@ public:
 
         while (1)
         {
-            Expression e = interpret(s._body, istate);
+            Expression e = interpretStatement(s._body, istate);
             if (!e && istate.start) // goto target was not found
                 return;
             assert(!istate.start);
@@ -1117,7 +1117,7 @@ public:
             istate.start = null;
 
         UnionExp ueinit = void;
-        Expression ei = interpret(&ueinit, s._init, istate);
+        Expression ei = interpretStatement(&ueinit, s._init, istate);
         if (exceptionOrCant(ei))
             return;
         assert(!ei); // s.init never returns from function, or jumps out from it
@@ -1136,7 +1136,7 @@ public:
                 assert(isTrueBool(e));
             }
 
-            Expression e = interpret(pue, s._body, istate);
+            Expression e = interpretStatement(pue, s._body, istate);
             if (!e && istate.start) // goto target was not found
                 return;
             assert(!istate.start);
@@ -1200,7 +1200,7 @@ public:
             istate.start = null;
         if (istate.start)
         {
-            Expression e = interpret(s._body, istate);
+            Expression e = interpretStatement(s._body, istate);
             if (istate.start) // goto target was not found
                 return;
             if (exceptionOrCant(e))
@@ -1250,7 +1250,7 @@ public:
         /* Jump to scase
          */
         istate.start = scase;
-        Expression e = interpret(pue, s._body, istate);
+        Expression e = interpretStatement(pue, s._body, istate);
         assert(!istate.start); // jump must not fail
         if (e && e.op == EXP.break_)
         {
@@ -1275,7 +1275,7 @@ public:
         if (istate.start == s)
             istate.start = null;
 
-        result = interpret(pue, s.statement, istate);
+        result = interpretStatement(pue, s.statement, istate);
     }
 
     override void visit(DefaultStatement s)
@@ -1288,7 +1288,7 @@ public:
         if (istate.start == s)
             istate.start = null;
 
-        result = interpret(pue, s.statement, istate);
+        result = interpretStatement(pue, s.statement, istate);
     }
 
     override void visit(GotoStatement s)
@@ -1357,7 +1357,7 @@ public:
         if (istate.start == s)
             istate.start = null;
 
-        result = interpret(pue, s.statement, istate);
+        result = interpretStatement(pue, s.statement, istate);
     }
 
     override void visit(TryCatchStatement s)
@@ -1371,18 +1371,18 @@ public:
         if (istate.start)
         {
             Expression e = null;
-            e = interpret(pue, s._body, istate);
+            e = interpretStatement(pue, s._body, istate);
             foreach (ca; *s.catches)
             {
                 if (e || !istate.start) // goto target was found
                     break;
-                e = interpret(pue, ca.handler, istate);
+                e = interpretStatement(pue, ca.handler, istate);
             }
             result = e;
             return;
         }
 
-        Expression e = interpret(s._body, istate);
+        Expression e = interpretStatement(s._body, istate);
 
         // An exception was thrown
         if (e && e.isThrownExceptionExp())
@@ -1403,7 +1403,7 @@ public:
                     ctfeGlobals.stack.push(ca.var);
                     setValue(ca.var, ex.thrown);
                 }
-                e = interpret(ca.handler, istate);
+                e = interpretStatement(ca.handler, istate);
                 if (CTFEExp.isGotoExp(e))
                 {
                     /* This is an optimization that relies on the locality of the jump target.
@@ -1415,7 +1415,7 @@ public:
                     InterState istatex = *istate;
                     istatex.start = istate.gotoTarget; // set starting statement
                     istatex.gotoTarget = null;
-                    Expression eh = interpret(ca.handler, &istatex);
+                    Expression eh = interpretStatement(ca.handler, &istatex);
                     if (!istatex.start)
                     {
                         istate.gotoTarget = null;
@@ -1439,14 +1439,14 @@ public:
         if (istate.start)
         {
             Expression e = null;
-            e = interpret(pue, s._body, istate);
+            e = interpretStatement(pue, s._body, istate);
             // Jump into/out from finalbody is disabled in semantic analysis.
             // and jump inside will be handled by the ScopeStatement == finalbody.
             result = e;
             return;
         }
 
-        Expression ex = interpret(s._body, istate);
+        Expression ex = interpretStatement(s._body, istate);
         if (CTFEExp.isCantExp(ex))
         {
             result = ex;
@@ -1459,7 +1459,7 @@ public:
             InterState istatex = *istate;
             istatex.start = istate.gotoTarget; // set starting statement
             istatex.gotoTarget = null;
-            Expression bex = interpret(s._body, &istatex);
+            Expression bex = interpretStatement(s._body, &istatex);
             if (istatex.start)
             {
                 // The goto target is outside the current scope.
@@ -1475,7 +1475,7 @@ public:
             ex = bex;
         }
 
-        Expression ey = interpret(s.finalbody, istate);
+        Expression ey = interpretStatement(s.finalbody, istate);
         if (CTFEExp.isCantExp(ey))
         {
             result = ey;
@@ -1505,27 +1505,7 @@ public:
             istate.start = null;
         }
 
-        interpretThrow(s.exp, s.loc);
-    }
-
-    /// Interpret `throw <exp>` found at the specified location `loc`
-    private void interpretThrow(Expression exp, const ref Loc loc)
-    {
-        incUsageCtfe(istate, loc);
-
-        Expression e = interpretRegion(exp, istate);
-        if (exceptionOrCant(e))
-            return;
-
-        if (e.op == EXP.classReference)
-        {
-            result = ctfeEmplaceExp!ThrownExceptionExp(loc, e.isClassReferenceExp());
-        }
-        else
-        {
-            exp.error("to be thrown `%s` must be non-null", exp.toChars());
-            result = ErrorExp.get();
-        }
+        interpretThrow(result, s.exp, s.loc, istate);
     }
 
     override void visit(ScopeGuardStatement s)
@@ -1543,14 +1523,14 @@ public:
             istate.start = null;
         if (istate.start)
         {
-            result = s._body ? interpret(s._body, istate) : null;
+            result = s._body ? interpretStatement(s._body, istate) : null;
             return;
         }
 
         // If it is with(Enum) {...}, just execute the body.
         if (s.exp.op == EXP.scope_ || s.exp.op == EXP.type)
         {
-            result = interpret(pue, s._body, istate);
+            result = interpretStatement(pue, s._body, istate);
             return;
         }
 
@@ -1566,7 +1546,7 @@ public:
         }
         ctfeGlobals.stack.push(s.wthis);
         setValue(s.wthis, e);
-        e = interpret(s._body, istate);
+        e = interpretStatement(s._body, istate);
         if (CTFEExp.isGotoExp(e))
         {
             /* This is an optimization that relies on the locality of the jump target.
@@ -1578,7 +1558,7 @@ public:
             InterState istatex = *istate;
             istatex.start = istate.gotoTarget; // set starting statement
             istatex.gotoTarget = null;
-            Expression ex = interpret(s._body, &istatex);
+            Expression ex = interpretStatement(s._body, &istatex);
             if (!istatex.start)
             {
                 istate.gotoTarget = null;
@@ -6082,7 +6062,7 @@ public:
         {
             printf("%s ThrowExpression::interpret()\n", te.loc.toChars());
         }
-        interpretThrow(te.e1, te.loc);
+        interpretThrow(result, te.e1, te.loc, istate);
     }
 
     override void visit(PtrExp e)
@@ -6417,6 +6397,29 @@ public:
     }
 }
 
+/// Interpret `throw <exp>` found at the specified location `loc`
+private void interpretThrow(ref Expression result, Expression exp, const ref Loc loc, InterState* istate)
+{
+    incUsageCtfe(istate, loc);
+
+    Expression e = interpretRegion(exp, istate);
+    if (exceptionOrCantInterpret(e))
+    {
+        // Make sure e is not pointing to a stack temporary
+        result = (e.op == EXP.cantExpression) ? CTFEExp.cantexp : e;
+    }
+    else if (e.op == EXP.classReference)
+    {
+        result = ctfeEmplaceExp!ThrownExceptionExp(loc, e.isClassReferenceExp());
+    }
+    else
+    {
+        exp.error("to be thrown `%s` must be non-null", exp.toChars());
+        result = ErrorExp.get();
+    }
+}
+
+
 /********************************************
  * Interpret the expression.
  * Params:
@@ -6493,7 +6496,7 @@ Expression interpretRegion(Expression e, InterState* istate, CTFEGoal goal = CTF
  *      EXP.cantExpression      cannot interpret statement at compile time
  *      !NULL   expression from return statement, or thrown exception
  */
-Expression interpret(UnionExp* pue, Statement s, InterState* istate)
+Expression interpretStatement(UnionExp* pue, Statement s, InterState* istate)
 {
     if (!s)
         return null;
@@ -6503,10 +6506,10 @@ Expression interpret(UnionExp* pue, Statement s, InterState* istate)
 }
 
 ///
-Expression interpret(Statement s, InterState* istate)
+Expression interpretStatement(Statement s, InterState* istate)
 {
     UnionExp ue = void;
-    auto result = interpret(&ue, s, istate);
+    auto result = interpretStatement(&ue, s, istate);
     if (result == ue.exp())
         result = ue.copy();
     return result;
