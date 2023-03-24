@@ -136,8 +136,8 @@ private void statementToBuffer(Statement s, OutBuffer* buf, HdrGenState* hgs)
 {
     void visitDefaultCase(Statement s)
     {
-        s.error("visitDefaultCase() %d for %s", s.stmt, s.toChars());
-        assert(0);
+        printf("Statement::toCBuffer() %d\n", s.stmt);
+        assert(0, "unrecognized statement in statementToBuffer()");
     }
 
     void visitError(ErrorStatement s)
@@ -769,6 +769,16 @@ private void statementToBuffer(Statement s, OutBuffer* buf, HdrGenState* hgs)
         buf.level--;
         buf.writestring("; }");
         buf.writenl();
+    }
+
+    void visitInlineAsm(InlineAsmStatement s)
+    {
+        visitAsm(s);
+    }
+
+    void visitGccAsm(GccAsmStatement s)
+    {
+        visitAsm(s);
     }
 
     void visitImport(ImportStatement s)
