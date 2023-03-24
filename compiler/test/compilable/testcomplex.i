@@ -8,6 +8,12 @@ _Complex float testf()
     return x;
 }
 
+_Complex float testf2()
+{
+    _Complex float x = (float _Complex)1.0i;
+    return x;
+}
+
 _Complex double testd()
 {
     _Complex double x = 1.0i;
@@ -25,3 +31,5 @@ _Complex float testcast()
     _Complex double y = 1.0i;
     return (_Complex float)y;
 }
+
+_Static_assert((float _Complex)1.0i == 1.0i, "1");
