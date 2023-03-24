@@ -107,6 +107,8 @@
 #if _MSC_VER
 //#undef _Post_writable_size
 //#define _Post_writable_size(x) // consider #include <no_sal2.h>
+#define __ptr32
+#define __ptr64
 #endif
 
 /****************************
