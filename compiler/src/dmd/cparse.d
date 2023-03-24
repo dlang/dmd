@@ -3094,6 +3094,7 @@ final class CParser(AST) : Parser!AST
      *    extended-decl-modifier extended-decl-modifier-seq
      *
      * extended-decl-modifier:
+     *    align(number)
      *    dllimport
      *    dllexport
      *    noreturn
@@ -3136,6 +3137,25 @@ final class CParser(AST) : Parser!AST
                     specifier.noreturn = true;
                     nextToken();
                 }
+		else if (token.ident == Id._align)
+		{
+		    // Microsoft spec is very imprecise as to how this actually works
+		    nextToken();
+		    check(TOK.leftParenthesis);
+		    if (token.value == TOK.int32Literal)
+		    {
+			const n = token.unsvalue;
+			if (n < 1 || n & (n - 1) || ushort.max < n)
+			    error("__decspec(align(%lld)) must be an integer positive power of 2", cast(ulong)n);
+			specifier.packalign.set(cast(uint)n);
+			specifier.packalign.setPack(true);
+			nextToken();
+	            }
+		    else
+			error("alignment value expected, not `%s`", token.toChars());
+
+		    check(TOK.rightParenthesis);
+		}
                 else
                 {
                     nextToken();
@@ -5216,7 +5236,7 @@ final class CParser(AST) : Parser!AST
         }
 
         Token n;
-        scan(&n);
+Ma³aM#³a        scan(&n);
         if (n.value != TOK.leftParenthesis)
         {
             error(loc, "left parenthesis expected to follow `#pragma pack`");
