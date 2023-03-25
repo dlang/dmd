@@ -12,9 +12,7 @@
 #include <errno.h>
 
 #ifndef _MSC_VER // C:\Program Files (x86)\Windows Kits\10\include\10.0.22621.0\ucrt\fenv.h(68): Error: variable `stdcheaders._Fenv1` extern symbols cannot have initializers
-#ifndef __FreeBSD__ // cannot turn off __GNUCLIKE_ASM in machine/ieeefp.h
 #include <fenv.h>
-#endif
 #endif
 
 #include <float.h>
