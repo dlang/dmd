@@ -201,6 +201,13 @@ _Static_assert(testexpinit() == 1 + 2 + 3, "ok");
 
 /********************************/
 
+__declspec(restrict) void* testrestrictdeclspec()
+{
+    return 0;
+}
+
+/********************************/
+
 // Character literals
 _Static_assert(sizeof('a') == 4, "ok");
 _Static_assert(sizeof(u'a') == 4, "ok");
