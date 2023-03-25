@@ -388,6 +388,9 @@ __attribute__((static, unsigned, long, const, extern, register, typedef, short,
                _Thread_local, int, char, float, double, void, _Bool, _Atomic))
 int test22196();
 
+_Atomic(_Bool) atomicbool;
+
+
 /***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=22245
 
