@@ -109,6 +109,7 @@
 //#define _Post_writable_size(x) // consider #include <no_sal2.h>
 #define __ptr32
 #define __ptr64
+#define __unaligned
 #endif
 
 /****************************
