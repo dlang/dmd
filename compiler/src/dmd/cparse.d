@@ -2048,6 +2048,10 @@ final class CParser(AST) : Parser!AST
                     error("storage class and type are not allowed in identifier-list");
                 foreach (s; (*symbols)[]) // yes, quadratic
                 {
+                    auto ad = s.isAttribDeclaration();
+                    if (ad)
+                        s = (*ad.decl)[0];      // AlignDeclaration wrapping the declaration
+
                     auto d = s.isDeclaration();
                     if (d && p.ident == d.ident && d.type)
                     {
@@ -2286,6 +2290,9 @@ final class CParser(AST) : Parser!AST
                      */
                     if (token.value == TOK.__attribute__)
                         cparseGnuAttributes(specifier);
+
+                    if (token.value == TOK.__declspec)
+                        cparseDeclspec(specifier);
 
                     t = cparseStruct(sloc, structOrUnion, symbols);
                     tkwx = TKW.xtag;
@@ -3137,25 +3144,28 @@ final class CParser(AST) : Parser!AST
                     specifier.noreturn = true;
                     nextToken();
                 }
-		else if (token.ident == Id._align)
-		{
-		    // Microsoft spec is very imprecise as to how this actually works
-		    nextToken();
-		    check(TOK.leftParenthesis);
-		    if (token.value == TOK.int32Literal)
-		    {
-			const n = token.unsvalue;
-			if (n < 1 || n & (n - 1) || ushort.max < n)
-			    error("__decspec(align(%lld)) must be an integer positive power of 2", cast(ulong)n);
-			specifier.packalign.set(cast(uint)n);
-			specifier.packalign.setPack(true);
-			nextToken();
-	            }
-		    else
-			error("alignment value expected, not `%s`", token.toChars());
+                else if (token.ident == Id._align)
+                {
+                    // Microsoft spec is very imprecise as to how this actually works
+                    nextToken();
+                    check(TOK.leftParenthesis);
+                    if (token.value == TOK.int32Literal)
+                    {
+                        const n = token.unsvalue;
+                        if (n < 1 || n & (n - 1) || ushort.max < n)
+                            error("__decspec(align(%lld)) must be an integer positive power of 2", cast(ulong)n);
+                        specifier.packalign.set(cast(uint)n);
+                        specifier.packalign.setPack(true);
+                        nextToken();
+                    }
+                    else
+                    {
+                        error("alignment value expected, not `%s`", token.toChars());
+                        nextToken();
+                    }
 
-		    check(TOK.rightParenthesis);
-		}
+                    check(TOK.rightParenthesis);
+                }
                 else
                 {
                     nextToken();
@@ -4117,6 +4127,13 @@ final class CParser(AST) : Parser!AST
                 case TOK.union_:
                 case TOK.enum_:
                     t = peek(t);
+                    if (t.value == TOK.__attribute__ ||
+                        t.value == TOK.__declspec)
+                    {
+                        t = peek(t);
+                        if (!skipParens(t, &t))
+                            return false;
+                    }
                     if (t.value == TOK.identifier)
                     {
                         t = peek(t);
@@ -5236,7 +5253,7 @@ final class CParser(AST) : Parser!AST
         }
 
         Token n;
-Ma³aM#³a        scan(&n);
+        scan(&n);
         if (n.value != TOK.leftParenthesis)
         {
             error(loc, "left parenthesis expected to follow `#pragma pack`");
