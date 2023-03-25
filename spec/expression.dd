@@ -152,9 +152,8 @@ the default linkage) are evaluated in the following order: first, if necessary, 
 function to call is evaluated (e.g. in the case of a computed function pointer or delegate). Then,
 arguments are evaluated left to right. Finally, transfer is passed to the function. Example:)
 
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
-import std.stdio;
 void function(int a, int b, int c) fun()
 {
     writeln("fun() called");
@@ -165,6 +164,7 @@ int f1() { writeln("f1() called"); return 1; }
 int f2() { writeln("f2() called"); return 2; }
 int f3(int x) { writeln("f3() called"); return x + 3; }
 int f4() { writeln("f4() called"); return 4; }
+
 // evaluates fun() then f1() then f2() then f3() then f4()
 // after which control is transferred to the callee
 fun()(f1(), f3(f2()), f4());
@@ -223,13 +223,18 @@ $(P Example:)
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 import std.stdio;
+
 struct S
 {
     int x;
     this(int n) { x = n; writefln("S(%s)", x); }
     ~this() { writefln("~S(%s)", x); }
 }
-bool b = (S(1) == S(2) || S(3) != S(4)) && S(5) == S(6);
+
+void main()
+{
+    bool b = (S(1) == S(2) || S(3) != S(4)) && S(5) == S(6);
+}
 ---
 )
 
@@ -747,10 +752,14 @@ $(H3 $(LEGACY_LNAME2 class_comparisons, class-comparisons, Class Comparisons))
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         class C {}
-        C c;
-        //if (c < null) {}  // compile-time error
-        assert(c is null);
-        if (c > new C) {}  // runtime error
+
+        void fun()
+        {
+            C c;
+            //if (c < null) {}  // compile-time error
+            assert(c is null);
+            if (c > new C) {}  // runtime error
+        }
         ---
         )
 
@@ -1649,14 +1658,18 @@ $(H3 $(LNAME2 slice_to_static_array, Slice Conversion to Static Array))
 
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
-        void f(int[2] sa);
+        void f(int[2] sa) {}
 
         int[] arr = [1, 2, 3];
-        //f(arr); // error, can't convert
-        f(arr[1 .. 3]); // OK
-        //f(arr[0 .. 3]); // error
 
-        int[2] g() { return arr[0 .. 2]; }
+        void test()
+        {
+            //f(arr); // error, can't convert
+            f(arr[1 .. 3]); // OK
+            //f(arr[0 .. 3]); // error
+
+            int[2] g() { return arr[0 .. 2]; }
+        }
         ---
         )
 
@@ -1949,7 +1962,7 @@ $(GNAME ArrayMemberInitialization):
         be parsed as an
         $(RELATIVE_LINK2 associative_array_literals, associative array).)
 
-        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
         int n = 4;
         auto aa = [0:1, 3:n]; // associative array `int[int]`

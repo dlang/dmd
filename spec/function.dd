@@ -2793,6 +2793,8 @@ $(H3 $(LEGACY_LNAME2 Local Static Variables, local-static-variables, Local Stati
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
+import std.stdio : writeln;
+
 void foo()
 {
     static int n;
@@ -3111,8 +3113,6 @@ int function(int)   fp1 = &abc;
 uint function(uint) fp2 = &def;
 // Do not rely on fp1 and fp2 being different values; the compiler may merge
 // them.
-
-void main() {}
 ------
 )
 
@@ -3962,14 +3962,18 @@ $(H3 $(LNAME2 safe-values, Safe Values))
         $(P Examples:)
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
-        struct S { int* p; }
-        S s1 = S(new int); /* s1 is safe. */
-        S s2 = S(cast(int*) 0xDEADBEEF); /* s2 is unsafe, because s2.p is
-            unsafe. */
 
-        union U { int* p; size_t x; }
-        U u = U(new int); /* Even though both u.p and u.x are safe, u is unsafe
-            because of unsafe aliasing. */
+        void fun()
+        {
+            struct S { int* p; }
+            S s1 = S(new int); /* s1 is safe. */
+            S s2 = S(cast(int*) 0xDEADBEEF); /* s2 is unsafe, because s2.p is
+                unsafe. */
+
+            union U { int* p; size_t x; }
+            U u = U(new int); /* Even though both u.p and u.x are safe, u is unsafe
+                because of unsafe aliasing. */
+        }
         ---
         )
 
@@ -4019,17 +4023,26 @@ $(H3 $(LNAME2 safe-aliasing, Safe Aliasing))
     Those must examined separately for safety.)
 
     $(P Examples:)
+
     $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     void f1(ref ubyte x, ref float y) @safe { x = 0; y = float.init; }
     union U1 { ubyte x; float y; } // safe aliasing
-    U1 u1;
-    f1(u1.x, u1.y); // Ok
+
+    void test1()
+    {
+        U1 u1;
+        f1(u1.x, u1.y); // Ok
+    }
 
     void f2(ref int* x, ref int y) @trusted { x = new int; y = 0xDEADBEEF; }
     union U2 { int* x; int y; } // unsafe aliasing
-    U2 u2;
-    version (none) f1(u2.x, u2.y); // not safe
+
+    void test2()
+    {
+        U2 u2;
+        version (none) f1(u2.x, u2.y); // not safe
+    }
     ---
     )
 

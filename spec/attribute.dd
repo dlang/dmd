@@ -643,7 +643,7 @@ $(H2 $(LNAME2 static, $(D static) Attribute))
         other words, it means there is no $(D this) reference.
         )
 
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---------------
 class Foo
 {
@@ -1072,8 +1072,6 @@ alias TP = __traits(getAttributes, foo);
 
 pragma(msg, TP); // prints tuple(3, 4, 7, (SSS))
 pragma(msg, TP[2]); // prints 7
-
-void main() {}
 ---
 )
 
@@ -1142,8 +1140,6 @@ pragma(msg, __traits(getAttributes, Outer!int.Inner));
 // prints tuple("foo", "bar")
 pragma(msg, __traits(getAttributes, Outer!int.Inner!int.z));
 // prints tuple("foo", "bar")
-
-void main() {}
 ---
 )
 

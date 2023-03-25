@@ -816,6 +816,7 @@ $(H3 $(LNAME2 constructor-attributes, Constructor Attributes))
         )
 
         $(P Constructors can be overloaded with different attributes.)
+
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         struct S
@@ -825,9 +826,12 @@ $(H3 $(LNAME2 constructor-attributes, Constructor Attributes))
             this(int) immutable; // immutable constructor
         }
 
-        S m = S(1);
-        shared s = shared S(2);
-        immutable i = immutable S(3);
+        void fun()
+        {
+            S m = S(1);
+            shared s = shared S(2);
+            immutable i = immutable S(3);
+        }
         ---
         )
 
@@ -853,9 +857,12 @@ $(H4 $(LNAME2 pure-constructors, Pure Constructors))
             // Therefore the created object is unique.
         }
 
-        immutable i = immutable S(1); // this(int) pure is called
-        shared s = shared S(1);       // this(int) pure is called
-        S m = S([1,2,3]);             // this(int[]) immutable pure is called
+        void fun()
+        {
+            immutable i = immutable S(1); // this(int) pure is called
+            shared s = shared S(1);       // this(int) pure is called
+            S m = S([1,2,3]);             // this(int[]) immutable pure is called
+        }
         ---
         )
 

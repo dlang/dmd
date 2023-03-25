@@ -645,18 +645,21 @@ pragma(msg, x0, " ", x1," ", x2); // 0 1 2
 ------
 )
 
-        $(P If a new scope is desired for each expansion, use another
-        set of braces:)
+        $(P Inside a function, if a new scope is desired for each expansion,
+        use another set of braces:)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
-static foreach(s; ["hi", "hey", "hello"])
-{{
-    enum len = s.length;    // local to each iteration
-    static assert(len <= 5);
-}}
+void fun()
+{
+    static foreach(s; ["hi", "hey", "hello"])
+    {{
+        enum len = s.length;    // local to each iteration
+        static assert(len <= 5);
+    }}
 
-static assert(!is(typeof(len)));
+    static assert(!is(typeof(len)));
+}
 ---
 )
 

@@ -571,8 +571,12 @@ $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 import core.atomic;
 
 shared int x;
-//x++; // error, use atomicOp instead
-x.atomicOp!"+="(1);
+
+void fun()
+{
+    //x++; // error, use atomicOp instead
+    x.atomicOp!"+="(1);
+}
 ---
 )
 $(P $(RED Warning:) An individual read or write operation on shared
@@ -607,10 +611,13 @@ $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 struct T;
 shared T* x;
 
-synchronized
+void fun()
 {
-    T* p = cast(T*)x;
-    // operate on `*p`
+    synchronized
+    {
+        T* p = cast(T*)x;
+        // operate on `*p`
+    }
 }
 ---
 )

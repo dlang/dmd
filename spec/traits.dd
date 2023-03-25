@@ -945,8 +945,6 @@ struct S
 }
 
 pragma(msg, __traits(getFunctionAttributes, S.test));
-
-void main(){}
 ---
 )
 
@@ -962,8 +960,6 @@ tuple("const", "@system")
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 pragma(msg, __traits(getFunctionAttributes, (int x) @trusted { return x * 2; }));
-
-void main(){}
 ---
 )
 
@@ -1212,10 +1208,8 @@ $(H3 $(GNAME identifier))
         $(P Takes one argument, a symbol. Returns the identifier
         for that symbol as a string literal.
         )
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
-import std.stdio;
-
 int var = 123;
 pragma(msg, typeof(var));                       // int
 pragma(msg, typeof(__traits(identifier, var))); // string

@@ -237,21 +237,16 @@ $(H2 $(LNAME2 slicing, Slicing))
         For example:
         )
 
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---------
-void foo(int value)
-{
-  writeln("value=", value);
-}
-
 int[10] a;   // declare array of 10 ints
 int[] b;
 
 b = a[1..3]; // a[1..3] is a 2 element array consisting of
              // a[1] and a[2]
-foo(b[1]);   // equivalent to foo(0)
+assert(b[1] == 0);
 a[2] = 3;
-foo(b[1]);   // equivalent to foo(3)
+assert(b[1] == 3);
 ---------
 )
 
@@ -348,10 +343,13 @@ $(H3 $(LNAME2 overlapping-copying, Overlapping Copying))
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
-int[3] s;
+void main()
+{
+    int[3] s;
 
-s[0..2] = s[1..3]; // error, overlapping copy
-s[1..3] = s[0..2]; // error, overlapping copy
+    s[0..2] = s[1..3]; // error, overlapping copy
+    s[1..3] = s[0..2]; // error, overlapping copy
+}
 ---------
 )
 
@@ -542,8 +540,14 @@ double[][] matrix;
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
+import std.stdio : writeln;
+
 double[6][3] matrix = 0; // Sets all elements to 0.
-writeln(matrix); // [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]]
+
+void main()
+{
+    writeln(matrix); // [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]]
+}
 ---------
 )
 
@@ -554,11 +558,16 @@ writeln(matrix); // [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]]
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
-double[6][3] matrix = 0;
-matrix[2][5] = 3.14; // Assignment to bottom right element.
-writeln(matrix); // [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 3.14]]
+import std.stdio : writeln;
 
-static assert(!__traits(compiles, matrix[5][2])); // Array index out of bounds.
+void main()
+{
+    double[6][3] matrix = 0;
+    matrix[2][5] = 3.14; // Assignment to bottom right element.
+    writeln(matrix); // [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 3.14]]
+
+    static assert(!__traits(compiles, matrix[5][2])); // Array index out of bounds.
+}
 ---------
 )
 
@@ -714,15 +723,18 @@ a[15] = 'z';   // does not affect c, because either a or c has reallocated.
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
-int[] array;
-while (1)
+void fun()
 {
-    import core.stdc.stdio : getchar;
-    auto c = getchar;
-    if (!c)
-        break;
-    ++array.length;
-    array[array.length - 1] = c;
+    int[] array;
+    while (1)
+    {
+        import core.stdc.stdio : getchar;
+        auto c = getchar;
+        if (!c)
+            break;
+        ++array.length;
+        array[array.length - 1] = c;
+    }
 }
 ---------
 )
@@ -732,20 +744,23 @@ while (1)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
-int[] array;
-array.length = 100;        // guess
-int i;
-for (i = 0; ; i++)
+void fun()
 {
-    import core.stdc.stdio : getchar;
-    auto c = getchar;
-    if (!c)
-        break;
-    if (i == array.length)
-        array.length *= 2;
-    array[i] = c;
+    int[] array;
+    array.length = 100;        // guess
+    int i;
+    for (i = 0; ; i++)
+    {
+        import core.stdc.stdio : getchar;
+        auto c = getchar;
+        if (!c)
+            break;
+        if (i == array.length)
+            array.length *= 2;
+        array[i] = c;
+    }
+    array.length = i;
 }
-array.length = i;
 ---------
 )
 
@@ -853,18 +868,21 @@ $(H2 $(LNAME2 bounds, Array Bounds Checking))
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
-import core.exception;
-try
+void main()
 {
-    auto array = [1, 2];
-    for (auto i = 0; ; i++)
+    import core.exception;
+    try
     {
-        array[i] = 5;
+        auto array = [1, 2];
+        for (auto i = 0; ; i++)
+        {
+            array[i] = 5;
+        }
     }
-}
-catch (ArrayIndexError)
-{
-    // terminate loop
+    catch (ArrayIndexError)
+    {
+        // terminate loop
+    }
 }
 ---------
 )
@@ -873,10 +891,13 @@ catch (ArrayIndexError)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
-auto array = [1, 2];
-for (auto i = 0; i < array.length; i++)
+void main()
 {
-    array[i] = 5;
+    auto array = [1, 2];
+    for (auto i = 0; i < array.length; i++)
+    {
+        array[i] = 5;
+    }
 }
 ---------
 )
@@ -1118,16 +1139,19 @@ cast(immutable(wchar) [])"abc" // this is an array of wchar characters
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
-char c;
-wchar w;
-dchar d;
+void fun()
+{
+    char c;
+    wchar w;
+    dchar d;
 
-c = 'b';     // c is assigned the character 'b'
-w = 'b';     // w is assigned the wchar character 'b'
-//w = 'bc';  // error - only one wchar character at a time
-w = "b"[0];  // w is assigned the wchar character 'b'
-w = "\r"[0]; // w is assigned the carriage return wchar character
-d = 'd';     // d is assigned the character 'd'
+    c = 'b';     // c is assigned the character 'b'
+    w = 'b';     // w is assigned the wchar character 'b'
+    //w = 'bc';  // error - only one wchar character at a time
+    w = "b"[0];  // w is assigned the wchar character 'b'
+    w = "\r"[0]; // w is assigned the carriage return wchar character
+    d = 'd';     // d is assigned the character 'd'
+}
 ---------
 )
 

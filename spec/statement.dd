@@ -1053,7 +1053,9 @@ $(CONSOLE
         $(P Example:)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
-    -----
+-----
+void fun()
+{
     import std.meta : AliasSeq;
 
     alias values = AliasSeq!(7.4, "hi", [2,5]);
@@ -1062,7 +1064,8 @@ $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     {
         pragma(msg, sym, " has type ", typeof(sym));
     }
-    -----
+}
+-----
 )
 
         $(P Output:)
