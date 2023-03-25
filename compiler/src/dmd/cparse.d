@@ -3143,6 +3143,8 @@ final class CParser(AST) : Parser!AST
                         cparseParens();
                 }
             }
+            else if (token.value == TOK.restrict) // ImportC assigns no semantics to `restrict`, so just ignore the keyword.
+                nextToken();
             else
             {
                 error("extended-decl-modifier expected");
