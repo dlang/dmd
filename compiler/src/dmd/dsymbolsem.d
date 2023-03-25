@@ -2256,32 +2256,39 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             /* C11 6.7.2.2
              */
-            assert(ed.memtype);
-            int nextValue = 0;        // C11 6.7.2.2-3 first member value defaults to 0
+            Type commonType = ed.memtype;
+            if (!commonType)
+                commonType = Type.tint32;
+            ulong nextValue = 0;        // C11 6.7.2.2-3 first member value defaults to 0
 
             // C11 6.7.2.2-2 value must be representable as an int.
             // The sizemask represents all values that int will fit into,
             // from 0..uint.max.  We want to cover int.min..uint.max.
-            const mask = Type.tint32.sizemask();
-            IntRange ir = IntRange(SignExtendedNumber(~(mask >> 1), true),
-                                   SignExtendedNumber(mask));
+            IntRange ir = IntRange.fromType(commonType);
 
-            void emSemantic(EnumMember em, ref int nextValue)
+            void emSemantic(EnumMember em, ref ulong nextValue)
             {
                 static void errorReturn(EnumMember em)
                 {
+                    em.value = ErrorExp.get();
                     em.errors = true;
                     em.semanticRun = PASS.semanticdone;
                 }
 
                 em.semanticRun = PASS.semantic;
-                em.type = Type.tint32;
+                em.type = commonType;
                 em._linkage = LINK.c;
                 em.storage_class |= STC.manifest;
                 if (em.value)
                 {
                     Expression e = em.value;
                     assert(e.dyncast() == DYNCAST.expression);
+
+                    /* To merge the type of e with commonType, add 0 of type commonType
+                     */
+                    if (!ed.memtype)
+                        e = new AddExp(em.loc, e, new IntegerExp(em.loc, 0, commonType));
+
                     e = e.expressionSemantic(sc);
                     e = resolveProperties(sc, e);
                     e = e.integralPromotions(sc);
@@ -2295,14 +2302,16 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         em.error("enum member must be an integral constant expression, not `%s` of type `%s`", e.toChars(), e.type.toChars());
                         return errorReturn(em);
                     }
-                    if (!ir.contains(getIntRange(ie)))
+                    if (ed.memtype && !ir.contains(getIntRange(ie)))
                     {
                         // C11 6.7.2.2-2
-                        em.error("enum member value `%s` does not fit in an `int`", e.toChars());
+                        em.error("enum member value `%s` does not fit in `%s`", e.toChars(), commonType.toChars());
                         return errorReturn(em);
                     }
-                    nextValue = cast(int)ie.toInteger();
-                    em.value = new IntegerExp(em.loc, nextValue, Type.tint32);
+                    nextValue = ie.toInteger();
+                    if (!ed.memtype)
+                        commonType = e.type;
+                    em.value = new IntegerExp(em.loc, nextValue, commonType);
                 }
                 else
                 {
@@ -2310,17 +2319,17 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     bool first = (em == (*em.ed.members)[0]);
                     if (!first)
                     {
-                        import core.checkedint : adds;
-                        bool overflow;
-                        nextValue = adds(nextValue, 1, overflow);
-                        if (overflow)
+                        Expression max = getProperty(commonType, null, em.loc, Id.max, 0);
+                        if (nextValue == max.toInteger())
                         {
-                            em.error("initialization with `%d+1` causes overflow for type `int`", nextValue - 1);
+                            em.error("initialization with `%s+1` causes overflow for type `%s`", max.toChars(), commonType.toChars());
                             return errorReturn(em);
                         }
+                        nextValue += 1;
                     }
-                    em.value = new IntegerExp(em.loc, nextValue, Type.tint32);
+                    em.value = new IntegerExp(em.loc, nextValue, commonType);
                 }
+                em.type = commonType;
                 em.semanticRun = PASS.semanticdone;
             }
 
@@ -2329,6 +2338,21 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (EnumMember em = s.isEnumMember())
                     emSemantic(em, nextValue);
             });
+
+            if (!ed.memtype)
+            {
+                // cast all members to commonType
+                ed.members.foreachDsymbol( (s)
+                {
+                    if (EnumMember em = s.isEnumMember())
+                    {
+                        em.type = commonType;
+                        em.value = em.value.castTo(sc, commonType);
+                    }
+                });
+            }
+
+            ed.memtype = commonType;
             ed.semanticRun = PASS.semanticdone;
             return;
         }
