@@ -2223,11 +2223,13 @@ $(H4 $(LNAME2 lambda-parameter-inference, Parameter Type Inference))
         auto fp = (i) { return 1; }; // error, cannot infer type of `i`
         ---
 
+$(H5 $(LNAME2 function-literal-alias, Function Literal Aliasing))
+
     $(P If a function literal is
         $(DDSUBLINK spec/declaration, alias, aliased), the inference
         of the parameter types is done when the types are needed, as
         the function literal becomes a
-        $(DDSUBLINK spec/template, function-templates, template).)
+        $(DDSUBLINK spec/template, function-templates, function template).)
 
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---

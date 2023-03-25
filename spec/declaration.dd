@@ -243,19 +243,22 @@ $(GNAME AliasAssignment):
     $(GLINK_LEX Identifier) $(GLINK2 template, TemplateParameters)$(OPT) $(D =) $(GLINK StorageClasses)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT)
 )
 
-    $(P $(I AliasDeclaration)s create a symbol name that refers to another symbol.
-        That symbol name can be used anywhere that the aliased symbol may appear.
-        The following symbols can be aliased:
+    $(P An $(I AliasDeclaration) creates a symbol name that refers to a type or another symbol.
+        That name can then be used anywhere that the target may appear.
+        The following can be aliased:
     )
     * $(RELATIVE_LINK2 alias-type, Types)
+        * $(RELATIVE_LINK2 alias-function, Function Types) (with default arguments)
     * $(RELATIVE_LINK2 alias-variable, Variables)
-    * Constants
+    * Manifest Constants
     * Modules
     * Packages
     * Functions
-    * Function Literals
+    * $(RELATIVE_LINK2 alias-overload, Overload Sets)
+    * $(DDSUBLINK spec/expression, function-literal-alias, Function Literals)
     * Templates
     * Template Instantiations
+    * Other Alias Declarations
 
 $(H3 $(LNAME2 alias-type, Type Aliases))
 
@@ -339,8 +342,9 @@ version (linux)
 --------------------
 
         $(P
-        Aliasing can be used to $(DDSUBLINK spec/module, import-declaration, `import`)
-        a symbol from an imported module or package into the current scope:
+        Aliasing can be used to 'import' a symbol from an
+        $(DDSUBLINK spec/module, import-declaration,
+        imported module or package) into the current scope:
         )
 
 --------------------
@@ -352,7 +356,7 @@ alias strlen = string.strlen;
 $(H3 $(LNAME2 alias-overload, Aliasing an Overload Set))
 
         $(P
-        Aliases can also `import` a set of overloaded functions, that can
+        Aliases can also 'import' a set of overloaded functions, that can
         be overloaded with functions in the current scope:
         )
 
