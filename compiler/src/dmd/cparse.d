@@ -2308,8 +2308,8 @@ final class CParser(AST) : Parser!AST
                         if (isTypeName(tk) && tk.value == TOK.rightParenthesis)
                         {
                             nextToken();
+                            nextToken();
                             t = cparseTypeName();
-                            // TODO - implement the "atomic" part of t
                             tkwx = TKW.x_Atomic;
                             break;
                         }
@@ -2578,6 +2578,7 @@ final class CParser(AST) : Parser!AST
             }
 
             case TKW.xtag:
+            case TKW.x_Atomic:  // no atomics for you
                 break;          // t is already set
 
             default:

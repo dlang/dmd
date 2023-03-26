@@ -102,6 +102,8 @@
 
 #if __FreeBSD__
 #define __volatile volatile
+#define __sync_synchronize()
+#define __sync_swap(A, B) 1
 #endif
 
 #if _MSC_VER

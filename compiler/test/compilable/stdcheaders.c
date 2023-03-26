@@ -41,9 +41,7 @@
 #ifndef __linux__
 #ifndef _MSC_VER
 #ifndef __APPLE__ // /Applications/Xcode-14.2.0.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/14.0.0/include/stdatomic.h(80): Error: type-specifier is missing
-#ifndef __FreeBSD__ // /stdatomic.h(162): Error: found `volatile` when expecting `{`
 #include <stdatomic.h>
-#endif
 #endif
 #endif
 #endif
