@@ -65,9 +65,7 @@
 #ifndef __DMC__ // no tgmath.h
 #ifndef _MSC_VER // C:\Program Files (x86)\Windows Kits\10\include\10.0.22621.0\ucrt\tgmath.h(33): Error: no type for declarator before `)`
 #ifndef __APPLE__ // /Applications/Xcode-14.2.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/tgmath.h(39): Error: named parameter required before `...`
-#ifndef __FreeBSD__  // #includes complex.h
 #include <tgmath.h>
-#endif
 #endif
 #endif
 #endif
