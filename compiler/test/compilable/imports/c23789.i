@@ -4,7 +4,7 @@ struct __declspec(align(64)) M128A {
     char c;
 };
 
-typedef struct __declspec(align(16)) _M128B {
+typedef struct __declspec(align(32)) _M128B {
     int x;
 } M128B, *PM128A;
 

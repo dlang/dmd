@@ -3957,6 +3957,7 @@ class TypeTag final : public Type
 public:
     Loc loc;
     TOK tok;
+    structalign_t packalign;
     Identifier* id;
     Type* base;
     Array<Dsymbol* >* members;

@@ -1809,12 +1809,14 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
 
                 case TOK.struct_:
                     auto sd = new StructDeclaration(mtype.loc, mtype.id, false);
+                    sd.alignment = mtype.packalign;
                     declare(sd);
                     mtype.resolved = visitStruct(new TypeStruct(sd));
                     break;
 
                 case TOK.union_:
                     auto ud = new UnionDeclaration(mtype.loc, mtype.id);
+                    ud.alignment = mtype.packalign;
                     declare(ud);
                     mtype.resolved = visitStruct(new TypeStruct(ud));
                     break;
