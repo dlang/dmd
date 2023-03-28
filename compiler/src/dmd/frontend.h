@@ -8836,6 +8836,8 @@ struct Id final
     static Identifier* ImportC;
     static Identifier* dllimport;
     static Identifier* dllexport;
+    static Identifier* naked;
+    static Identifier* thread;
     static Identifier* vector_size;
     static Identifier* noreturn;
     static Identifier* _align;

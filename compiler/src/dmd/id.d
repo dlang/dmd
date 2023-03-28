@@ -523,6 +523,8 @@ immutable Msgtable[] msgtable =
     { "__tag" },
     { "dllimport" },
     { "dllexport" },
+    { "naked" },
+    { "thread" },
     { "vector_size" },
     { "__func__" },
     { "noreturn" },

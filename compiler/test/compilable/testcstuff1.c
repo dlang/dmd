@@ -278,6 +278,7 @@ void test2()
     //extern int ei;
     static int si;
     _Thread_local int tli;
+    int __declspec(thread) tlj;
     auto int ai;
     register int reg;
     const int ci;

@@ -3105,7 +3105,9 @@ final class CParser(AST) : Parser!AST
      *    align(number)
      *    dllimport
      *    dllexport
+     *    naked
      *    noreturn
+     *    thread
      * Params:
      *  specifier = filled in with the attribute(s)
      */
@@ -3117,6 +3119,7 @@ final class CParser(AST) : Parser!AST
          */
         bool dllimport;  // TODO implement
         bool dllexport;  // TODO implement
+        bool naked;      // TODO implement
         nextToken();     // move past __declspec
         check(TOK.leftParenthesis);
         while (1)
@@ -3140,9 +3143,19 @@ final class CParser(AST) : Parser!AST
                     dllexport = true;
                     nextToken();
                 }
+                else if (token.ident == Id.naked)
+                {
+                    naked = true;
+                    nextToken();
+                }
                 else if (token.ident == Id.noreturn)
                 {
                     specifier.noreturn = true;
+                    nextToken();
+                }
+                else if (token.ident == Id.thread)
+                {
+                    specifier.scw |= SCW.x_Thread_local;
                     nextToken();
                 }
                 else if (token.ident == Id._align)
