@@ -1670,6 +1670,12 @@ final class CParser(AST) : Parser!AST
             auto stag = (tt.tok == TOK.struct_) ? new AST.StructDeclaration(tt.loc, tt.id, false) :
                         (tt.tok == TOK.union_)  ? new AST.UnionDeclaration(tt.loc, tt.id) :
                                                   new AST.EnumDeclaration(tt.loc, tt.id, tt.base);
+            if (!tt.packalign.isUnknown())
+            {
+                // saw `struct __declspec(align(N)) Tag ...`
+                auto st = stag.isStructDeclaration();
+                st.alignment = tt.packalign;
+            }
             stag.members = tt.members;
             tt.members = null;
             if (!symbols)
@@ -2283,18 +2289,20 @@ final class CParser(AST) : Parser!AST
                     const sloc = token.loc;
                     nextToken();
 
+                    Specifier tagSpecifier;
+
                     /* GNU Extensions
                      * struct-or-union-specifier:
                      *    struct-or-union gnu-attributes (opt) identifier (opt) { struct-declaration-list } gnu-attributes (opt)
                      *    struct-or-union gnu-attribute (opt) identifier
                      */
                     if (token.value == TOK.__attribute__)
-                        cparseGnuAttributes(specifier);
+                        cparseGnuAttributes(tagSpecifier);
 
                     if (token.value == TOK.__declspec)
-                        cparseDeclspec(specifier);
+                        cparseDeclspec(tagSpecifier);
 
-                    t = cparseStruct(sloc, structOrUnion, symbols);
+                    t = cparseStruct(sloc, structOrUnion, tagSpecifier.packalign, symbols);
                     tkwx = TKW.xtag;
                     break;
                 }
@@ -3622,7 +3630,7 @@ final class CParser(AST) : Parser!AST
          * redeclaration, or reference to existing declaration.
          * Defer to the semantic() pass with a TypeTag.
          */
-        return new AST.TypeTag(loc, TOK.enum_, tag, base, members);
+        return new AST.TypeTag(loc, TOK.enum_, tag, structalign_t.init, base, members);
     }
 
     /*************************************
@@ -3644,11 +3652,12 @@ final class CParser(AST) : Parser!AST
      * Params:
      *  loc = location of `struct` or `union`
      *  structOrUnion = TOK.struct_ or TOK.union_
+     *  packalign = alignment to use for struct members
      *  symbols = symbols to add struct-or-union declaration to
      * Returns:
      *  type of the struct
      */
-    private AST.Type cparseStruct(Loc loc, TOK structOrUnion, ref AST.Dsymbols* symbols)
+    private AST.Type cparseStruct(Loc loc, TOK structOrUnion, structalign_t packalign, ref AST.Dsymbols* symbols)
     {
         Identifier tag;
 
@@ -3687,7 +3696,7 @@ final class CParser(AST) : Parser!AST
          * redeclaration, or reference to existing declaration.
          * Defer to the semantic() pass with a TypeTag.
          */
-        return new AST.TypeTag(loc, structOrUnion, tag, null, members);
+        return new AST.TypeTag(loc, structOrUnion, tag, packalign, null, members);
     }
 
     /*************************************

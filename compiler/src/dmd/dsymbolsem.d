@@ -4666,7 +4666,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             sd.visibility = sc.visibility;
 
-            sd.alignment = sc.alignment();
+            if (sd.alignment.isUnknown())       // can be set already by `struct __declspec(align(N)) Tag { ... }`
+                sd.alignment = sc.alignment();
 
             sd.storage_class |= sc.stc;
             if (sd.storage_class & STC.abstract_)

@@ -3767,18 +3767,22 @@ struct ASTBase
         Loc loc;
         TOK tok;
         Identifier id;
+        structalign_t packalign;
         Dsymbols* members;
+        Type base;
 
         Type resolved;
         MOD mod;
 
-        extern (D) this(const ref Loc loc, TOK tok, Identifier id, Dsymbols* members)
+        extern (D) this(const ref Loc loc, TOK tok, Identifier id, structalign_t packalign, Type base, Dsymbols* members)
         {
             //printf("TypeTag %p\n", this);
             super(Ttag);
             this.loc = loc;
             this.tok = tok;
             this.id = id;
+            this.packalign = packalign;
+            this.base = base;
             this.members = members;
             this.mod = 0;
         }
