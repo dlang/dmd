@@ -2093,11 +2093,14 @@ Expression getProperty(Type t, Scope* scope_, const ref Loc loc, Identifier iden
         }
         else if (ident == Id._init)
         {
-            Type tb = mt.toBasetype();
+            auto tarr = mt.isTypeSArray();
+            Type tb = tarr ? tarr.next.toBasetype() : mt.toBasetype();
             e = mt.defaultInitLiteral(loc);
             if (tb.ty == Tstruct && tb.needsNested())
             {
-                e.isStructLiteralExp().useStaticInit = true;
+                // https://issues.dlang.org/show_bug.cgi?id=23805
+                if(checkFrameAccess(loc, scope_, tb.isTypeStruct().sym))
+                    e = ErrorExp.get();
             }
         }
         else if (ident == Id._mangleof)
@@ -3191,11 +3194,14 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
             }
             else if (ident == Id._init)
             {
-                Type tb = mt.toBasetype();
+                auto tarr = mt.isTypeSArray();
+                Type tb = tarr ? tarr.next.toBasetype() : mt.toBasetype();
                 e = mt.defaultInitLiteral(e.loc);
                 if (tb.ty == Tstruct && tb.needsNested())
                 {
-                    e.isStructLiteralExp().useStaticInit = true;
+                    // https://issues.dlang.org/show_bug.cgi?id=23805
+                    if(checkFrameAccess(e.loc, sc, tb.isTypeStruct().sym))
+                        e = ErrorExp.get();
                 }
                 goto Lreturn;
             }

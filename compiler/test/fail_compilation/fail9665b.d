@@ -43,13 +43,15 @@ struct S1
 /+
 TEST_OUTPUT:
 ---
-fail_compilation/fail9665b.d(65): Error: one path skips field `x2`
-fail_compilation/fail9665b.d(66): Error: one path skips field `x3`
-fail_compilation/fail9665b.d(68): Error: one path skips field `x5`
-fail_compilation/fail9665b.d(69): Error: one path skips field `x6`
-fail_compilation/fail9665b.d(63): Error: field `x1` must be initialized in constructor, because it is nested struct
-fail_compilation/fail9665b.d(63): Error: field `x4` must be initialized in constructor, because it is nested struct
-fail_compilation/fail9665b.d(76): Error: template instance `fail9665b.S2!(X)` error instantiating
+fail_compilation/fail9665b.d(67): Error: one path skips field `x2`
+fail_compilation/fail9665b.d(68): Error: cannot implicitly initialize frame pointer for `fail9665b.test2.X`
+fail_compilation/fail9665b.d(68): Error: one path skips field `x3`
+fail_compilation/fail9665b.d(70): Error: one path skips field `x5`
+fail_compilation/fail9665b.d(71): Error: cannot implicitly initialize frame pointer for `fail9665b.test2.X`
+fail_compilation/fail9665b.d(71): Error: one path skips field `x6`
+fail_compilation/fail9665b.d(65): Error: field `x1` must be initialized in constructor, because it is nested struct
+fail_compilation/fail9665b.d(65): Error: field `x4` must be initialized in constructor, because it is nested struct
+fail_compilation/fail9665b.d(78): Error: template instance `fail9665b.S2!(X)` error instantiating
 ---
 +/
 struct S2(X)

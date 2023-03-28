@@ -61,7 +61,7 @@ bool checkFrameAccess(Loc loc, Scope* sc, AggregateDeclaration ad, size_t iStart
         //printf("sparent2 = %p %s [%s], parent: %s\n", sparent2, sparent2.toChars(), sparent2.loc.toChars(), sparent2.parent,toChars());
         if (!ensureStaticLinkTo(s, sparent) || sparent != sparent2 && !ensureStaticLinkTo(s, sparent2))
         {
-            error(loc, "cannot access frame pointer of `%s`", ad.toPrettyChars());
+            error(loc, "cannot implicitly initialize frame pointer for `%s`", ad.toPrettyChars());
             return true;
         }
     }
