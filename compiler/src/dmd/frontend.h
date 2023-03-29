@@ -8840,6 +8840,7 @@ struct Id final
     static Identifier* vector_size;
     static Identifier* noreturn;
     static Identifier* _align;
+    static Identifier* aligned;
     static Identifier* builtins;
     static Identifier* builtin_va_list;
     static Identifier* builtin_va_arg;
