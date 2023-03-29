@@ -3125,9 +3125,6 @@ final class CParser(AST) : Parser!AST
         /* Check for dllexport, dllimport
          * Ignore the rest
          */
-        bool dllimport;  // TODO implement
-        bool dllexport;  // TODO implement
-        bool naked;      // TODO implement
         nextToken();     // move past __declspec
         check(TOK.leftParenthesis);
         while (1)
@@ -3143,12 +3140,12 @@ final class CParser(AST) : Parser!AST
             {
                 if (token.ident == Id.dllimport)
                 {
-                    dllimport = true;
+                    specifier.dllimport = true;
                     nextToken();
                 }
                 else if (token.ident == Id.dllexport)
                 {
-                    dllexport = true;
+                    specifier.dllexport = true;
                     nextToken();
                 }
                 else if (token.ident == Id.naked)
@@ -3380,9 +3377,6 @@ final class CParser(AST) : Parser!AST
         /* Check for dllimport, dllexport, vector_size(bytes)
          * Ignore the rest
          */
-        bool dllimport;  // TODO implement
-        bool dllexport;  // TODO implement
-
         if (!isGnuAttributeName())
             return;
 
@@ -3390,12 +3384,12 @@ final class CParser(AST) : Parser!AST
         {
             if (token.ident == Id.dllimport)
             {
-                dllimport = true;
+                specifier.dllimport = true;
                 nextToken();
             }
             else if (token.ident == Id.dllexport)
             {
-                dllexport = true;
+                specifier.dllexport = true;
                 nextToken();
             }
             else if (token.ident == Id.noreturn)
@@ -4803,6 +4797,9 @@ final class CParser(AST) : Parser!AST
     struct Specifier
     {
         bool noreturn;  /// noreturn attribute
+	bool naked;	/// naked attribute
+	bool dllimport;	/// dllimport attribute
+	bool dllexport;	/// dllexport attribute
         SCW scw;        /// storage-class specifiers
         MOD mod;        /// type qualifiers
         AST.Expressions*  alignExps;  /// alignment
@@ -4878,6 +4875,19 @@ final class CParser(AST) : Parser!AST
             }
         }
         return stc;
+    }
+
+    /***********************
+     * Add attributes from Specifier to function
+     * Params:
+     *  fd = function to apply them to
+     *  specifier = specifiers
+     */
+    void specifiersToFuncDeclaration(FuncDeclaration fd, const ref Specifier specifier)
+    {
+	fd.isNaked = specifier.naked;
+	fd.isDllImport = specifier.dllimport;
+	fd.isDllExport = specifier.dllexport;
     }
 
     /***********************

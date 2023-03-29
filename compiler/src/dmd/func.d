@@ -204,6 +204,7 @@ private struct FUNCFLAG
     bool hasCatches;         /// function has try-catch statements
     bool skipCodegen;        /// do not generate code for this function.
     bool printf;             /// is a printf-like function
+
     bool scanf;              /// is a scanf-like function
     bool noreturn;           /// the function does not return
     bool isNRVO = true;      /// Support for named return value optimization
@@ -214,11 +215,14 @@ private struct FUNCFLAG
     bool hasNoEH;            /// No exception unwinding is needed
     bool inferRetType;       /// Return type is to be inferred
     bool hasDualContext;     /// has a dual-context 'this' parameter
+
     bool hasAlwaysInlines;   /// Contains references to functions that must be inlined
     bool isCrtCtor;          /// Has attribute pragma(crt_constructor)
     bool isCrtDtor;          /// Has attribute pragma(crt_destructor)
     bool hasEscapingSiblings;/// Has sibling functions that escape
     bool computedEscapingSiblings; /// `hasEscapingSiblings` has been computed
+    bool dllImport;	     /// generate dllimport
+    bool dllExport;	     /// generate dllexport
 }
 
 /***********************************************************
