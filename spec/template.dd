@@ -1250,19 +1250,25 @@ $(H4 $(LNAME2 ifti-restrictions, Restrictions))
     $(P Function template type parameters that are to be implicitly
         deduced must appear in the type of at least one function parameter:)
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ------
-        void foo(T : U*, U)(U t) { ... }
+        void foo(T : U*, U)(U t) {}
 
-        int x;
-        foo!(int*)(x);   // ok, U is deduced and T is specified explicitly
-        foo(x);         // error, only U can be deduced, not T
+        void main()
+        {
+            int x;
+            foo!(int*)(x);   // ok, U is deduced and T is specified explicitly
+            //foo(x);        // error, only U can be deduced, not T
+        }
         ------
+        )
 
         $(P When the template parameters must be deduced, the
         $(RELATIVE_LINK2 implicit_template_properties, eponymous members)
         can't rely on a $(LINK2 version.html#StaticIfCondition, `static if`)
         condition since the deduction relies on how the members are used:)
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ------
         template foo(T)
         {
@@ -1272,10 +1278,30 @@ $(H4 $(LNAME2 ifti-restrictions, Restrictions))
 
         void main()
         {
-            foo(0); // Error: cannot deduce function from argument types
+            //foo(0); // Error: cannot deduce function from argument types
             foo!int(0); // Ok since no deduction necessary
         }
         ------
+        )
+
+        $(P IFTI does not work when the parameter type is an
+        $(RELATIVE_LINK2 alias-template, alias template) instance:
+        )
+
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---
+        struct S(T) {}
+        alias A(T) = S!T;
+        void f(T)(A!T) {}
+
+        void main()
+        {
+            A!int v;
+            //f(v); // error
+            f!int(v); // OK
+        }
+        ---
+        )
 
 $(H4 $(LNAME2 ifti-conversions, Type Conversions))
 
@@ -1489,12 +1515,17 @@ $(H2 $(LNAME2 alias-template, Alias Templates))
         parameters:)
 
         ------
+        alias ElementType(T : T[]) = T;
         alias Sequence(TL...) = TL;
         ------
 
     It is lowered to:
 
         ------
+        template ElementType(T : T[])
+        {
+            alias ElementType = T;
+        }
         template Sequence(TL...)
         {
             alias Sequence = TL;

@@ -3055,10 +3055,11 @@ $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D ==) $(I TypeSpecialization) $(D 
 )
 
         $(P
-        More complex types can be pattern matched; the
+        More complex types can be pattern matched. The
         $(I TemplateParameterList) declares symbols based on the
         parts of the pattern that are matched, analogously to the
-        way implied template parameters are matched.
+        way $(DDSUBLINK spec/template, parameters_specialization,
+        implied template parameters) are matched.
         )
 
 $(P $(B Example:) Matching a Template Instantiation))
@@ -3080,6 +3081,20 @@ $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     static assert(is(Args[1] == string));
     ---
 )
+
+        $(P *Type* cannot be matched when *TypeSpecialization* is an
+        $(DDSUBLINK spec/template, alias-template, alias template) instance:
+        )
+
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---
+        struct S(T) {}
+        alias A(T) = S!T;
+
+        static assert(is(A!int : S!T, T));
+        static assert(!is(A!int : A!T, T));
+        ---
+        )
 
 $(P $(B Example:) Matching an Associative Array)
 
