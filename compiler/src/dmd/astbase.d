@@ -975,17 +975,19 @@ struct ASTBase
     {
         Identifier name;
         Objects* tiargs;
+        Identifiers* tinames;
         Dsymbol tempdecl;
         bool semantictiargsdone;
         bool havetempdecl;
         TemplateInstance inst;
 
-        final extern (D) this(const ref Loc loc, Identifier ident, Objects* tiargs)
+        final extern (D) this(const ref Loc loc, Identifier ident, Objects* tiargs, Identifiers* tinames = null)
         {
             super(null);
             this.loc = loc;
             this.name = ident;
             this.tiargs = tiargs;
+            this.tinames = tinames;
         }
 
         final extern (D) this(const ref Loc loc, TemplateDeclaration td, Objects* tiargs)
