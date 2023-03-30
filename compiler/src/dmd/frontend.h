@@ -2525,6 +2525,10 @@ public:
     bool hasEscapingSiblings(bool v);
     bool computedEscapingSiblings() const;
     bool computedEscapingSiblings(bool v);
+    bool dllImport() const;
+    bool dllImport(bool v);
+    bool dllExport() const;
+    bool dllExport(bool v);
 private:
     uint32_t bitFields;
 public:
@@ -6018,6 +6022,10 @@ public:
     bool isArgDtorVar(bool v);
     bool isCmacro() const;
     bool isCmacro(bool v);
+    bool dllImport() const;
+    bool dllImport(bool v);
+    bool dllExport() const;
+    bool dllExport(bool v);
     bool inClosure() const;
     bool inClosure(bool v);
     bool inAlignSection() const;

@@ -1908,6 +1908,7 @@ final class CParser(AST) : Parser!AST
                     if (specifier.scw & SCW.x_Thread_local)
                         error("functions cannot be `_Thread_local`"); // C11 6.7.1-4
                     auto fd = new AST.FuncDeclaration(token.loc, Loc.initial, id, specifiersToSTC(level, specifier), dt, specifier.noreturn);
+                    specifiersToFuncDeclaration(fd, specifier);
                     s = fd;
                 }
                 else
@@ -1917,7 +1918,9 @@ final class CParser(AST) : Parser!AST
                     if (!hasInitializer &&
                         !(specifier.scw & (SCW.xextern | SCW.xstatic | SCW.x_Thread_local) || level == LVL.global))
                         initializer = new AST.VoidInitializer(token.loc);
-                    s = new AST.VarDeclaration(token.loc, dt, id, initializer, specifiersToSTC(level, specifier));
+                    auto vd = new AST.VarDeclaration(token.loc, dt, id, initializer, specifiersToSTC(level, specifier));
+                    specifiersToVarDeclaration(vd, specifier);
+                    s = vd;
                 }
                 if (level != LVL.global)
                     insertIdToTypedefTab(id);   // non-typedef declarations can hide typedefs in outer scopes
@@ -2082,6 +2085,7 @@ final class CParser(AST) : Parser!AST
         typedefTab.pop();                                        // end of function scope
 
         auto fd = new AST.FuncDeclaration(locFunc, prevloc, id, specifiersToSTC(LVL.global, specifier), ft, specifier.noreturn);
+        specifiersToFuncDeclaration(fd, specifier);
 
         if (addFuncName)
         {
@@ -3150,7 +3154,7 @@ final class CParser(AST) : Parser!AST
                 }
                 else if (token.ident == Id.naked)
                 {
-                    naked = true;
+                    specifier.naked = true;
                     nextToken();
                 }
                 else if (token.ident == Id.noreturn)
@@ -3374,7 +3378,7 @@ final class CParser(AST) : Parser!AST
      */
     private void cparseGnuAttribute(ref Specifier specifier)
     {
-        /* Check for dllimport, dllexport, vector_size(bytes)
+        /* Check for dllimport, dllexport, naked, noreturn, vector_size(bytes)
          * Ignore the rest
          */
         if (!isGnuAttributeName())
@@ -3390,6 +3394,11 @@ final class CParser(AST) : Parser!AST
             else if (token.ident == Id.dllexport)
             {
                 specifier.dllexport = true;
+                nextToken();
+            }
+            else if (token.ident == Id.naked)
+            {
+                specifier.naked = true;
                 nextToken();
             }
             else if (token.ident == Id.noreturn)
@@ -3558,7 +3567,7 @@ final class CParser(AST) : Parser!AST
          *   enum Identifier : Type
          */
         //AST.Type base = AST.Type.tint32;  // C11 6.7.2.2-4 implementation defined default base type
-        AST.Type base = null;		    // C23 says base type is determined by enum member values
+        AST.Type base = null;               // C23 says base type is determined by enum member values
         if (token.value == TOK.colon)
         {
             nextToken();
@@ -4797,9 +4806,9 @@ final class CParser(AST) : Parser!AST
     struct Specifier
     {
         bool noreturn;  /// noreturn attribute
-	bool naked;	/// naked attribute
-	bool dllimport;	/// dllimport attribute
-	bool dllexport;	/// dllexport attribute
+        bool naked;     /// naked attribute
+        bool dllimport; /// dllimport attribute
+        bool dllexport; /// dllexport attribute
         SCW scw;        /// storage-class specifiers
         MOD mod;        /// type qualifiers
         AST.Expressions*  alignExps;  /// alignment
@@ -4883,11 +4892,23 @@ final class CParser(AST) : Parser!AST
      *  fd = function to apply them to
      *  specifier = specifiers
      */
-    void specifiersToFuncDeclaration(FuncDeclaration fd, const ref Specifier specifier)
+    void specifiersToFuncDeclaration(AST.FuncDeclaration fd, const ref Specifier specifier)
     {
-	fd.isNaked = specifier.naked;
-	fd.isDllImport = specifier.dllimport;
-	fd.isDllExport = specifier.dllexport;
+        fd.isNaked = specifier.naked;
+        fd.dllImport = specifier.dllimport;
+        fd.dllExport = specifier.dllexport;
+    }
+
+    /***********************
+     * Add attributes from Specifier to variable
+     * Params:
+     *  vd = function to apply them to
+     *  specifier = specifiers
+     */
+    void specifiersToVarDeclaration(AST.VarDeclaration vd, const ref Specifier specifier)
+    {
+        vd.dllImport = specifier.dllimport;
+        vd.dllExport = specifier.dllexport;
     }
 
     /***********************
