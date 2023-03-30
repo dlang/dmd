@@ -729,7 +729,7 @@ public:
             ne.arguments = arrayExpressionDoInline(e.arguments);
             result = ne;
 
-            semanticTypeInfo(null, e.type);
+            semanticTypeInfo(null, e.type, e.loc);
         }
 
         override void visit(UnaExp e)
@@ -770,7 +770,7 @@ public:
             if (auto ale = e.e1.isArrayLengthExp())
             {
                 Type tn = ale.e1.type.toBasetype().nextOf();
-                semanticTypeInfo(null, tn);
+                semanticTypeInfo(null, tn, e.loc);
             }
         }
 
@@ -785,11 +785,11 @@ public:
                 while (t.toBasetype().nextOf())
                     t = t.nextOf().toBasetype();
                 if (t.ty == Tstruct)
-                    semanticTypeInfo(null, t);
+                    semanticTypeInfo(null, t, e.loc);
             }
             else if (t1.ty == Taarray)
             {
-                semanticTypeInfo(null, t1);
+                semanticTypeInfo(null, t1, e.loc);
             }
         }
 
@@ -868,7 +868,7 @@ public:
             ce.elements = arrayExpressionDoInline(e.elements);
             result = ce;
 
-            semanticTypeInfo(null, e.type);
+            semanticTypeInfo(null, e.type, e.loc);
         }
 
         override void visit(AssocArrayLiteralExp e)
@@ -878,7 +878,7 @@ public:
             ce.values = arrayExpressionDoInline(e.values);
             result = ce;
 
-            semanticTypeInfo(null, e.type);
+            semanticTypeInfo(null, e.type, e.loc);
         }
 
         override void visit(StructLiteralExp e)

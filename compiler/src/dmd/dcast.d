@@ -184,7 +184,7 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
         Type tb = result.type.toBasetype();
         if (auto ta = tb.isTypeDArray())
             if (global.params.useTypeInfo && Type.dtypeinfo)
-                semanticTypeInfo(sc, ta.next);
+                semanticTypeInfo(sc, ta.next, e.loc);
         return result;
     }
 

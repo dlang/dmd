@@ -557,7 +557,7 @@ private Expression resolveUFCS(Scope* sc, CallExp ce)
                 if (key.checkValue() || key.checkSharedAccess(sc))
                     return ErrorExp.get();
 
-                semanticTypeInfo(sc, taa.index);
+                semanticTypeInfo(sc, taa.index, loc);
 
                 return new RemoveExp(loc, eleft, key);
             }
@@ -3267,7 +3267,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         if (global.params.useTypeInfo && Type.dtypeinfo)
-            semanticTypeInfo(sc, e.type);
+            semanticTypeInfo(sc, e.type, e.loc);
 
         result = e;
     }
@@ -3307,7 +3307,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         e.type = new TypeAArray(tvalue, tkey);
         e.type = e.type.typeSemantic(e.loc, sc);
 
-        semanticTypeInfo(sc, e.type);
+        semanticTypeInfo(sc, e.type, e.loc);
 
         if (checkAssocArrayLiteralEscape(sc, e, false))
             return setError();
@@ -4091,7 +4091,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         //printf("NewExp: '%s'\n", toChars());
         //printf("NewExp:type '%s'\n", type.toChars());
-        semanticTypeInfo(sc, exp.type);
+        semanticTypeInfo(sc, exp.type, exp.loc);
 
         if (newprefix)
         {
@@ -5690,7 +5690,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
 
             e.type = getTypeInfoType(exp.loc, ta, sc, genObjCode);
-            semanticTypeInfo(sc, ta);
+            semanticTypeInfo(sc, ta, exp.loc);
 
             if (ea)
             {
@@ -8638,7 +8638,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         return setError();
                 }
 
-                semanticTypeInfo(sc, taa);
+                semanticTypeInfo(sc, taa, exp.loc);
                 checkNewEscape(sc, exp.e2, false);
 
                 exp.type = taa.next;
@@ -12046,7 +12046,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     exp.e1 = exp.e1.implicitCastTo(sc, ta.index);
                 }
 
-                semanticTypeInfo(sc, ta.index);
+                semanticTypeInfo(sc, ta.index, exp.loc);
 
                 // Return type is pointer to value
                 exp.type = ta.nextOf().pointerTo();
@@ -12168,7 +12168,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         // Indicates whether the comparison of the 2 specified array types
         // requires an object.__equals() lowering.
-        static bool needsDirectEq(Type t1, Type t2, Scope* sc)
+        static bool needsDirectEq(Type t1, Type t2, Scope* sc, const ref Loc loc)
         {
             Type t1n = t1.nextOf().toBasetype();
             Type t2n = t2.nextOf().toBasetype();
@@ -12187,7 +12187,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 // semanticTypeInfo() makes sure hasIdentityEquals has been computed
                 if (global.params.useTypeInfo && Type.dtypeinfo)
-                    semanticTypeInfo(sc, ts);
+                    semanticTypeInfo(sc, ts, loc);
 
                 return ts.sym.hasIdentityEquals; // has custom opEquals
             }
@@ -12204,7 +12204,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         const isArrayComparison = (t1.ty == Tarray || t1.ty == Tsarray) &&
                                   (t2.ty == Tarray || t2.ty == Tsarray);
-        const needsArrayLowering = isArrayComparison && needsDirectEq(t1, t2, sc);
+        const needsArrayLowering = isArrayComparison && needsDirectEq(t1, t2, sc, exp.loc);
 
         if (!needsArrayLowering)
         {
@@ -12287,7 +12287,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         if (exp.e1.type.toBasetype().ty == Taarray)
-            semanticTypeInfo(sc, exp.e1.type.toBasetype());
+            semanticTypeInfo(sc, exp.e1.type.toBasetype(), exp.loc);
 
 
         if (!target.isVectorOpSupported(t1, exp.op, t2))
