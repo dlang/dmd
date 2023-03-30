@@ -1,0 +1,37 @@
+Better error message when attribute inference fails down the call stack
+
+When a function fails to infer a function attribute, all callers of that function also fail to infer the attribute.
+The resulting error message only points to the top most function with the explicit attribute:
+
+---
+void main() @nogc
+{
+    fun();
+}
+
+auto fun()
+{
+    funImpl();
+}
+
+auto funImpl()
+{
+    int[] a = [1, 2, 3];
+}
+---
+
+$(CONSOLE
+app.d(4): Error: `@nogc` function `D main` cannot call non-@nogc function `app.fun`
+)
+
+This doesn't tell the underlying reason why `fun` wasn't inferred `@nogc`, and led to use of [workarounds to get better information](https://www.schveiguy.com/blog/2023/02/spelunking-attribute-inference-in-d/).
+The new error message will point to the function which failed to infer the attribute:
+
+$(CONSOLE
+app.d(4): Error: `@nogc` function `D main` cannot call non-@nogc function `app.fun`
+app.d(7):        which calls `app.funImpl`
+app.d(14):        which wasn't inferred `@nogc` because of:
+app.d(14):        array literal in `@nogc` function `app.funImpl` may cause a GC allocation
+)
+
+Note: this was already implemented for `@safe` since 2.101, but it has now been extended to `@nogc`, `nothrow`, and `pure`.

@@ -12,9 +12,12 @@ fail_compilation/attributediagnostic_nogc.d(32):        cannot use `new` in `@no
 fail_compilation/attributediagnostic_nogc.d(44): Error: `@nogc` function `D main` cannot call non-@nogc function `attributediagnostic_nogc.gc2`
 fail_compilation/attributediagnostic_nogc.d(38):        which wasn't inferred `@nogc` because of:
 fail_compilation/attributediagnostic_nogc.d(38):        `@nogc` function `attributediagnostic_nogc.gc2` cannot call non-@nogc `fgc`
+fail_compilation/attributediagnostic_nogc.d(45): Error: `@nogc` function `D main` cannot call non-@nogc function `attributediagnostic_nogc.gcClosure`
+fail_compilation/attributediagnostic_nogc.d(48):        which wasn't inferred `@nogc` because of:
+fail_compilation/attributediagnostic_nogc.d(48):        function `attributediagnostic_nogc.gcClosure` is `@nogc` yet allocates closure for `gcClosure()` with the GC
 ---
 */
-
+#line 18
 // Issue 17374 - Improve inferred attribute error message
 // https://issues.dlang.org/show_bug.cgi?id=17374
 
@@ -42,4 +45,12 @@ void main() @nogc
 {
     gc1();
     gc2();
+    gcClosure();
+}
+
+auto gcClosure()
+{
+    int x;
+    int bar() { return x; }
+    return &bar;
 }
