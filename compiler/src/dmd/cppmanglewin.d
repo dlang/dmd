@@ -522,22 +522,6 @@ public:
 private:
 extern(D):
 
-    void mangleVisibility(Declaration d, string privProtDef)
-    {
-        switch (d.visibility.kind)
-        {
-            case Visibility.Kind.private_:
-                buf.writeByte(privProtDef[0]);
-                break;
-            case Visibility.Kind.protected_:
-                buf.writeByte(privProtDef[1]);
-                break;
-            default:
-                buf.writeByte(privProtDef[2]);
-                break;
-        }
-    }
-
     void mangleFunction(FuncDeclaration d)
     {
         // <function mangle> ? <qualified name> <flags> <return type> <arg list>
@@ -551,11 +535,11 @@ extern(D):
                 //d.toChars(), d.isVirtualMethod(), d.isVirtual(), cast(int)d.vtblIndex, d.interfaceVirtual);
             if ((d.isVirtual() && (d.vtblIndex != -1 || d.interfaceVirtual || d.overrideInterface())) || (d.isDtorDeclaration() && d.parent.isClassDeclaration() && !d.isFinal()))
             {
-                mangleVisibility(d, "EMU");
+                mangleVisibility(buf, d, "EMU");
             }
             else
             {
-                mangleVisibility(d, "AIQ");
+                mangleVisibility(buf, d, "AIQ");
             }
             if (target.isLP64)
                 buf.writeByte('E');
@@ -571,7 +555,7 @@ extern(D):
         else if (d.isMember2()) // static function
         {
             // <flags> ::= <virtual/protection flag> <calling convention flag>
-            mangleVisibility(d, "CKS");
+            mangleVisibility(buf, d, "CKS");
         }
         else // top-level function
         {
@@ -606,7 +590,7 @@ extern(D):
         }
         else
         {
-            mangleVisibility(d, "012");
+            mangleVisibility(buf, d, "012");
         }
         Type t = d.type;
 
@@ -622,141 +606,6 @@ extern(D):
             buf.writeByte('E');
         }
         buf.writeByte(cv_mod);
-    }
-
-    /**
-     * Computes mangling for symbols with special mangling.
-     * Params:
-     *      sym = symbol to mangle
-     * Returns:
-     *      mangling for special symbols,
-     *      null if not a special symbol
-     */
-    static string mangleSpecialName(Dsymbol sym)
-    {
-        string mangle;
-        if (sym.isCtorDeclaration())
-            mangle = "?0";
-        else if (sym.isAggregateDtor())
-            mangle = "?1";
-        else if (!sym.ident)
-            return null;
-        else if (sym.ident == Id.assign)
-            mangle = "?4";
-        else if (sym.ident == Id.eq)
-            mangle = "?8";
-        else if (sym.ident == Id.index)
-            mangle = "?A";
-        else if (sym.ident == Id.call)
-            mangle = "?R";
-        else if (sym.ident == Id.cppdtor)
-            mangle = "?_G";
-        else
-            return null;
-
-        return mangle;
-    }
-
-    /**
-     * Mangles an operator, if any
-     *
-     * Params:
-     *      ti                  = associated template instance of the operator
-     *      symName             = symbol name
-     *      firstTemplateArg    = index if the first argument of the template (because the corresponding c++ operator is not a template)
-     * Returns:
-     *      true if sym has no further mangling needed
-     *      false otherwise
-     */
-    bool mangleOperator(TemplateInstance ti, ref const(char)[] symName, ref int firstTemplateArg)
-    {
-        auto whichOp = isCppOperator(ti.name);
-        final switch (whichOp)
-        {
-        case CppOperator.Unknown:
-            return false;
-        case CppOperator.Cast:
-            buf.writestring("?B");
-            return true;
-        case CppOperator.Assign:
-            symName = "?4";
-            return false;
-        case CppOperator.Eq:
-            symName = "?8";
-            return false;
-        case CppOperator.Index:
-            symName = "?A";
-            return false;
-        case CppOperator.Call:
-            symName = "?R";
-            return false;
-
-        case CppOperator.Unary:
-        case CppOperator.Binary:
-        case CppOperator.OpAssign:
-            TemplateDeclaration td = ti.tempdecl.isTemplateDeclaration();
-            assert(td);
-            assert(ti.tiargs.length >= 1);
-            TemplateParameter tp = (*td.parameters)[0];
-            TemplateValueParameter tv = tp.isTemplateValueParameter();
-            if (!tv || !tv.valType.isString())
-                return false; // expecting a string argument to operators!
-            Expression exp = (*ti.tiargs)[0].isExpression();
-            StringExp str = exp.toStringExp();
-            switch (whichOp)
-            {
-            case CppOperator.Unary:
-                switch (str.peekString())
-                {
-                    case "*":   symName = "?D";     goto continue_template;
-                    case "++":  symName = "?E";     goto continue_template;
-                    case "--":  symName = "?F";     goto continue_template;
-                    case "-":   symName = "?G";     goto continue_template;
-                    case "+":   symName = "?H";     goto continue_template;
-                    case "~":   symName = "?S";     goto continue_template;
-                    default:    return false;
-                }
-            case CppOperator.Binary:
-                switch (str.peekString())
-                {
-                    case ">>":  symName = "?5";     goto continue_template;
-                    case "<<":  symName = "?6";     goto continue_template;
-                    case "*":   symName = "?D";     goto continue_template;
-                    case "-":   symName = "?G";     goto continue_template;
-                    case "+":   symName = "?H";     goto continue_template;
-                    case "&":   symName = "?I";     goto continue_template;
-                    case "/":   symName = "?K";     goto continue_template;
-                    case "%":   symName = "?L";     goto continue_template;
-                    case "^":   symName = "?T";     goto continue_template;
-                    case "|":   symName = "?U";     goto continue_template;
-                    default:    return false;
-                    }
-            case CppOperator.OpAssign:
-                switch (str.peekString())
-                {
-                    case "*":   symName = "?X";     goto continue_template;
-                    case "+":   symName = "?Y";     goto continue_template;
-                    case "-":   symName = "?Z";     goto continue_template;
-                    case "/":   symName = "?_0";    goto continue_template;
-                    case "%":   symName = "?_1";    goto continue_template;
-                    case ">>":  symName = "?_2";    goto continue_template;
-                    case "<<":  symName = "?_3";    goto continue_template;
-                    case "&":   symName = "?_4";    goto continue_template;
-                    case "|":   symName = "?_5";    goto continue_template;
-                    case "^":   symName = "?_6";    goto continue_template;
-                    default:    return false;
-                }
-            default: assert(0);
-            }
-        }
-        continue_template:
-        if (ti.tiargs.length == 1)
-        {
-            buf.writestring(symName);
-            return true;
-        }
-        firstTemplateArg = 1;
-        return false;
     }
 
     /**
@@ -781,13 +630,13 @@ extern(D):
         assert(e);
         if (tv.valType.isunsigned())
         {
-            mangleNumber(e.toUInteger());
+            mangleNumber(buf, e.toUInteger());
         }
         else if (is_dmc_template)
         {
             // NOTE: DMC mangles everything based on
             // unsigned int
-            mangleNumber(e.toInteger());
+            mangleNumber(buf, e.toInteger());
         }
         else
         {
@@ -797,7 +646,7 @@ extern(D):
                 val = -val;
                 buf.writeByte('?');
             }
-            mangleNumber(val);
+            mangleNumber(buf, val);
         }
     }
 
@@ -927,7 +776,7 @@ extern(D):
         int firstTemplateArg = 0;
 
         // test for special symbols
-        if (mangleOperator(ti,symName,firstTemplateArg))
+        if (mangleOperator(buf, ti,symName,firstTemplateArg))
             return;
         TemplateInstance actualti = ti;
         bool needNamespaces;
@@ -1092,32 +941,6 @@ extern(D):
             buf.writeByte('@');
     }
 
-    void mangleNumber(dinteger_t num)
-    {
-        if (!num) // 0 encoded as "A@"
-        {
-            buf.writeByte('A');
-            buf.writeByte('@');
-            return;
-        }
-        if (num <= 10) // 5 encoded as "4"
-        {
-            buf.writeByte(cast(char)(num - 1 + '0'));
-            return;
-        }
-        char[17] buff;
-        buff[16] = 0;
-        size_t i = 16;
-        while (num)
-        {
-            --i;
-            buff[i] = num % 16 + 'A';
-            num /= 16;
-        }
-        buf.writestring(&buff[i]);
-        buf.writeByte('@');
-    }
-
     bool checkTypeSaved(Type type)
     {
         if (flags & IS_NOT_TOP_TYPE)
@@ -1177,12 +1000,12 @@ extern(D):
             cur = cur.nextOf();
         }
         buf.writeByte('Y');
-        mangleNumber(i); // count of dimensions
+        mangleNumber(buf, i); // count of dimensions
         cur = type;
         while (cur && cur.ty == Tsarray) // sizes of dimensions
         {
             TypeSArray sa = cast(TypeSArray)cur;
-            mangleNumber(sa.dim ? sa.dim.toInteger() : 0);
+            mangleNumber(buf, sa.dim ? sa.dim.toInteger() : 0);
             cur = cur.nextOf();
         }
         flags |= IGNORE_CONST;
@@ -1299,5 +1122,190 @@ extern(D):
         saved_idents[] = tmp.saved_idents[];
         saved_types[] = tmp.saved_types[];
         return ret;
+    }
+}
+
+private:
+extern(D):
+
+/**
+ * Computes mangling for symbols with special mangling.
+ * Params:
+ *      sym = symbol to mangle
+ * Returns:
+ *      mangling for special symbols,
+ *      null if not a special symbol
+ */
+string mangleSpecialName(Dsymbol sym)
+{
+    string mangle;
+    if (sym.isCtorDeclaration())
+        mangle = "?0";
+    else if (sym.isAggregateDtor())
+        mangle = "?1";
+    else if (!sym.ident)
+        return null;
+    else if (sym.ident == Id.assign)
+        mangle = "?4";
+    else if (sym.ident == Id.eq)
+        mangle = "?8";
+    else if (sym.ident == Id.index)
+        mangle = "?A";
+    else if (sym.ident == Id.call)
+        mangle = "?R";
+    else if (sym.ident == Id.cppdtor)
+        mangle = "?_G";
+    else
+        return null;
+
+    return mangle;
+}
+
+/**
+ * Mangles an operator, if any
+ *
+ * Params:
+ *      buf                 = buffer to write mangling to
+ *      ti                  = associated template instance of the operator
+ *      symName             = symbol name
+ *      firstTemplateArg    = index if the first argument of the template (because the corresponding c++ operator is not a template)
+ * Returns:
+ *      true if sym has no further mangling needed
+ *      false otherwise
+ */
+bool mangleOperator(ref OutBuffer buf, TemplateInstance ti, ref const(char)[] symName, ref int firstTemplateArg)
+{
+    auto whichOp = isCppOperator(ti.name);
+    final switch (whichOp)
+    {
+    case CppOperator.Unknown:
+        return false;
+    case CppOperator.Cast:
+        buf.writestring("?B");
+        return true;
+    case CppOperator.Assign:
+        symName = "?4";
+        return false;
+    case CppOperator.Eq:
+        symName = "?8";
+        return false;
+    case CppOperator.Index:
+        symName = "?A";
+        return false;
+    case CppOperator.Call:
+        symName = "?R";
+        return false;
+
+    case CppOperator.Unary:
+    case CppOperator.Binary:
+    case CppOperator.OpAssign:
+        TemplateDeclaration td = ti.tempdecl.isTemplateDeclaration();
+        assert(td);
+        assert(ti.tiargs.length >= 1);
+        TemplateParameter tp = (*td.parameters)[0];
+        TemplateValueParameter tv = tp.isTemplateValueParameter();
+        if (!tv || !tv.valType.isString())
+            return false; // expecting a string argument to operators!
+        Expression exp = (*ti.tiargs)[0].isExpression();
+        StringExp str = exp.toStringExp();
+        switch (whichOp)
+        {
+        case CppOperator.Unary:
+            switch (str.peekString())
+            {
+                case "*":   symName = "?D";     goto continue_template;
+                case "++":  symName = "?E";     goto continue_template;
+                case "--":  symName = "?F";     goto continue_template;
+                case "-":   symName = "?G";     goto continue_template;
+                case "+":   symName = "?H";     goto continue_template;
+                case "~":   symName = "?S";     goto continue_template;
+                default:    return false;
+            }
+        case CppOperator.Binary:
+            switch (str.peekString())
+            {
+                case ">>":  symName = "?5";     goto continue_template;
+                case "<<":  symName = "?6";     goto continue_template;
+                case "*":   symName = "?D";     goto continue_template;
+                case "-":   symName = "?G";     goto continue_template;
+                case "+":   symName = "?H";     goto continue_template;
+                case "&":   symName = "?I";     goto continue_template;
+                case "/":   symName = "?K";     goto continue_template;
+                case "%":   symName = "?L";     goto continue_template;
+                case "^":   symName = "?T";     goto continue_template;
+                case "|":   symName = "?U";     goto continue_template;
+                default:    return false;
+                }
+        case CppOperator.OpAssign:
+            switch (str.peekString())
+            {
+                case "*":   symName = "?X";     goto continue_template;
+                case "+":   symName = "?Y";     goto continue_template;
+                case "-":   symName = "?Z";     goto continue_template;
+                case "/":   symName = "?_0";    goto continue_template;
+                case "%":   symName = "?_1";    goto continue_template;
+                case ">>":  symName = "?_2";    goto continue_template;
+                case "<<":  symName = "?_3";    goto continue_template;
+                case "&":   symName = "?_4";    goto continue_template;
+                case "|":   symName = "?_5";    goto continue_template;
+                case "^":   symName = "?_6";    goto continue_template;
+                default:    return false;
+            }
+        default: assert(0);
+        }
+    }
+    continue_template:
+    if (ti.tiargs.length == 1)
+    {
+        buf.writestring(symName);
+        return true;
+    }
+    firstTemplateArg = 1;
+    return false;
+}
+
+/**********************************'
+ */
+void mangleNumber(ref OutBuffer buf, dinteger_t num)
+{
+    if (!num) // 0 encoded as "A@"
+    {
+        buf.writeByte('A');
+        buf.writeByte('@');
+        return;
+    }
+    if (num <= 10) // 5 encoded as "4"
+    {
+        buf.writeByte(cast(char)(num - 1 + '0'));
+        return;
+    }
+    char[17] buff = void;
+    buff[16] = 0;
+    size_t i = 16;
+    while (num)
+    {
+        --i;
+        buff[i] = num % 16 + 'A';
+        num /= 16;
+    }
+    buf.writestring(&buff[i]);
+    buf.writeByte('@');
+}
+
+/*************************************
+ */
+void mangleVisibility(ref OutBuffer buf, Declaration d, string privProtDef)
+{
+    switch (d.visibility.kind)
+    {
+        case Visibility.Kind.private_:
+            buf.writeByte(privProtDef[0]);
+            break;
+        case Visibility.Kind.protected_:
+            buf.writeByte(privProtDef[1]);
+            break;
+        default:
+            buf.writeByte(privProtDef[2]);
+            break;
     }
 }

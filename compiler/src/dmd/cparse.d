@@ -3564,7 +3564,7 @@ final class CParser(AST) : Parser!AST
          *   enum Identifier : Type
          */
         //AST.Type base = AST.Type.tint32;  // C11 6.7.2.2-4 implementation defined default base type
-        AST.Type base = null;		    // C23 says base type is determined by enum member values
+        AST.Type base = null;               // C23 says base type is determined by enum member values
         if (token.value == TOK.colon)
         {
             nextToken();
