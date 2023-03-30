@@ -1,0 +1,27 @@
+User Defined Attributes now parse Template Arguments
+
+It was already allowed to put types in UDAs, but the parser would reject basic types written directly, requiring the use of an alias.
+
+---
+alias Tint = int;
+
+@Tint void f();
+---
+
+Also, simple literals that can appear in template instantiations without brackets (example: `foo!"arg"`) require parentheses when used as an attribute:
+---
+@("my test") unittest
+{
+
+}
+---
+
+Now, arguments that can appear after a template instantiation `foo!` can also appear after an `@` attribute.
+---
+@int void f();
+
+@"my test" unittest
+{
+
+}
+---
