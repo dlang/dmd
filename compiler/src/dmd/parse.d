@@ -5843,7 +5843,11 @@ LagainStc:
                     if (token.value != TOK.semicolon && peek(&token).value == TOK.semicolon)
                         error("found `%s` when expecting `;` following statement", token.toChars());
                     else
-                        check(TOK.semicolon, "statement");
+                    {
+                        if (token.value != TOK.semicolon)
+                            error("found `%s` when expecting `;` following statement `%s` on line %s", token.toChars(), exp.toChars(), exp.loc.toChars());
+                        nextToken();
+                    }
                 }
                 s = new AST.ExpStatement(loc, exp);
                 break;
