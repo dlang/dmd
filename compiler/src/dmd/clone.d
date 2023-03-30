@@ -1458,7 +1458,7 @@ FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         auto dd = new PostBlitDeclaration(declLoc, Loc.initial, stc, Id.__aggrPostblit);
         dd.isGenerated = true;
         dd.storage_class |= STC.inference;
-        dd.fbody = new ExpStatement(loc, e);
+        dd.fbody = (stc & STC.disable) ? null : new ExpStatement(loc, e);
         sd.members.push(dd);
         dd.dsymbolSemantic(sc);
         xpostblit = dd;
