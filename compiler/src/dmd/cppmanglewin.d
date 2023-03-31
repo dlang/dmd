@@ -109,22 +109,21 @@ private final class VisualCPPMangler : Visitor
         IS_NOT_TOP_TYPE = 0x1,
         MANGLE_RETURN_TYPE = 0x2,
         IGNORE_CONST = 0x4,
-        IS_DMC = 0x8,
         ESCAPE = 0x10,
     }
 
     alias IS_NOT_TOP_TYPE = Flags.IS_NOT_TOP_TYPE;
     alias MANGLE_RETURN_TYPE = Flags.MANGLE_RETURN_TYPE;
     alias IGNORE_CONST = Flags.IGNORE_CONST;
-    alias IS_DMC = Flags.IS_DMC;
     alias ESCAPE = Flags.ESCAPE;
 
+    bool IS_DMC;        // Digital Mars C++ mangling
     int flags;
     OutBuffer buf;
 
     extern (D) this(VisualCPPMangler rvl) scope
     {
-        flags |= (rvl.flags & IS_DMC);
+        IS_DMC = rvl.IS_DMC;
         saved_idents[] = rvl.saved_idents[];
         saved_types[] = rvl.saved_types[];
         loc = rvl.loc;
@@ -133,10 +132,7 @@ private final class VisualCPPMangler : Visitor
 public:
     extern (D) this(bool isdmc, Loc loc) scope
     {
-        if (isdmc)
-        {
-            flags |= IS_DMC;
-        }
+        IS_DMC = isdmc;
         saved_idents[] = null;
         saved_types[] = null;
         this.loc = loc;
@@ -181,7 +177,7 @@ public:
         if (checkImmutableShared(type, loc))
             return;
 
-        if (type.isConst() && ((flags & IS_NOT_TOP_TYPE) || (flags & IS_DMC)))
+        if (type.isConst() && ((flags & IS_NOT_TOP_TYPE) || IS_DMC))
         {
             if (checkTypeSaved(type))
                 return;
@@ -190,7 +186,7 @@ public:
         {
             return;
         }
-        if (!(flags & IS_DMC))
+        if (!IS_DMC)
         {
             switch (type.ty)
             {
@@ -251,7 +247,7 @@ public:
             buf.writeByte('N');
             break;
         case Tfloat80:
-            if (flags & IS_DMC)
+            if (IS_DMC)
                 buf.writestring("_Z"); // DigitalMars long double
             else
                 buf.writestring("_T"); // Intel long double
@@ -294,7 +290,7 @@ public:
         if (checkTypeSaved(type))
             return;
         // first dimension always mangled as const pointer
-        if (flags & IS_DMC)
+        if (IS_DMC)
             buf.writeByte('Q');
         else
             buf.writeByte('P');
@@ -343,7 +339,7 @@ public:
             if (checkTypeSaved(type))
                 return;
             mangleModifier(type);
-            if (type.isConst() || !(flags & IS_DMC))
+            if (type.isConst() || !IS_DMC)
                 buf.writeByte('Q'); // const
             else
                 buf.writeByte('P'); // mutable
@@ -400,7 +396,7 @@ public:
     override void visit(TypeFunction type)
     {
         const(char)* arg = mangleFunctionType(type);
-        if ((flags & IS_DMC))
+        if (IS_DMC)
         {
             if (checkTypeSaved(type))
                 return;
@@ -448,7 +444,7 @@ public:
             c = "D";  // VC++ char
         else if (id == Id.__c_wchar_t)
         {
-            c = (flags & IS_DMC) ? "_Y" : "_W";
+            c = IS_DMC ? "_Y" : "_W";
         }
 
         if (c.length)
@@ -456,7 +452,7 @@ public:
             if (checkImmutableShared(type, loc))
                 return;
 
-            if (type.isConst() && ((flags & IS_NOT_TOP_TYPE) || (flags & IS_DMC)))
+            if (type.isConst() && ((flags & IS_NOT_TOP_TYPE) || IS_DMC))
             {
                 if (checkTypeSaved(type))
                     return;
@@ -670,7 +666,7 @@ extern(D):
         else if (e && e.op == EXP.variable && (cast(VarExp)e).var.isVarDeclaration())
         {
             buf.writeByte('$');
-            if (flags & IS_DMC)
+            if (IS_DMC)
                 buf.writeByte('1');
             else
                 buf.writeByte('E');
@@ -679,7 +675,7 @@ extern(D):
         else if (d && d.isTemplateDeclaration() && d.isTemplateDeclaration().onemember)
         {
             Dsymbol ds = d.isTemplateDeclaration().onemember;
-            if (flags & IS_DMC)
+            if (IS_DMC)
             {
                 buf.writeByte('V');
             }
@@ -810,14 +806,14 @@ extern(D):
             }
         }
 
-        scope VisualCPPMangler tmp = new VisualCPPMangler((flags & IS_DMC) ? true : false, loc);
+        scope VisualCPPMangler tmp = new VisualCPPMangler(IS_DMC ? true : false, loc);
         tmp.buf.writeByte('?');
         tmp.buf.writeByte('$');
         tmp.buf.writestring(symName);
         tmp.saved_idents[0] = id;
         if (symName == id.toString())
             tmp.buf.writeByte('@');
-        if (flags & IS_DMC)
+        if (IS_DMC)
         {
             tmp.mangleIdent(sym.parent, true);
             is_dmc_template = true;
@@ -980,7 +976,7 @@ extern(D):
                 buf.writestring("$$CB");
             else if (flags & IS_NOT_TOP_TYPE)
                 buf.writeByte('B'); // const
-            else if ((flags & IS_DMC) && type.ty != Tpointer)
+            else if (IS_DMC && type.ty != Tpointer)
                 buf.writestring("_O");
         }
         else if (flags & IS_NOT_TOP_TYPE)
