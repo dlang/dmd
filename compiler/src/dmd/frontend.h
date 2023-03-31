@@ -1339,7 +1339,6 @@ enum class TY : uint8_t
     Tmixin = 45u,
     Tnoreturn = 46u,
     Ttag = 47u,
-    TMAX = 48u,
 };
 
 enum class Covariant
@@ -5065,6 +5064,7 @@ struct ASTCodegen final
     using TypeTuple = ::TypeTuple;
     using TypeTypeof = ::TypeTypeof;
     using TypeVector = ::TypeVector;
+    using VisitType = ::VisitType;
     using Nspace = ::Nspace;
     using AsmStatement = ::AsmStatement;
     using BreakStatement = ::BreakStatement;
