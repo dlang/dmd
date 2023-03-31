@@ -7583,3 +7583,113 @@ TypeVector toBooleanVector(TypeVector tv)
 
     return new TypeVector(new TypeSArray(telem, tsa.dim));
 }
+
+/*************************************************
+ * Dispatch to function based on static type of Type.
+ */
+mixin template VisitType(Result)
+{
+    Result VisitType(Type t)
+    {
+        final switch (t.ty)
+        {
+            case TY.Tvoid:
+            case TY.Tint8:
+            case TY.Tuns8:
+            case TY.Tint16:
+            case TY.Tuns16:
+            case TY.Tint32:
+            case TY.Tuns32:
+            case TY.Tint64:
+            case TY.Tuns64:
+            case TY.Tfloat32:
+            case TY.Tfloat64:
+            case TY.Tfloat80:
+            case TY.Timaginary32:
+            case TY.Timaginary64:
+            case TY.Timaginary80:
+            case TY.Tcomplex32:
+            case TY.Tcomplex64:
+            case TY.Tcomplex80:
+            case TY.Tbool:
+            case TY.Tchar:
+            case TY.Twchar:
+            case TY.Tdchar:
+            case TY.Tint128:
+            case TY.Tuns128:    mixin(visitTYCase("Basic"));
+            case TY.Tarray:     mixin(visitTYCase("DArray"));
+            case TY.Tsarray:    mixin(visitTYCase("SArray"));
+            case TY.Taarray:    mixin(visitTYCase("AArray"));
+            case TY.Tpointer:   mixin(visitTYCase("Pointer"));
+            case TY.Treference: mixin(visitTYCase("Reference"));
+            case TY.Tfunction:  mixin(visitTYCase("Function"));
+            case TY.Tident:     mixin(visitTYCase("Identifier"));
+            case TY.Tclass:     mixin(visitTYCase("Class"));
+            case TY.Tstruct:    mixin(visitTYCase("Struct"));
+            case TY.Tenum:      mixin(visitTYCase("Enum"));
+            case TY.Tdelegate:  mixin(visitTYCase("Delegate"));
+            case TY.Terror:     mixin(visitTYCase("Error"));
+            case TY.Tinstance:  mixin(visitTYCase("Instance"));
+            case TY.Ttypeof:    mixin(visitTYCase("Typeof"));
+            case TY.Ttuple:     mixin(visitTYCase("Tuple"));
+            case TY.Tslice:     mixin(visitTYCase("Slice"));
+            case TY.Treturn:    mixin(visitTYCase("Return"));
+            case TY.Tnull:      mixin(visitTYCase("Null"));
+            case TY.Tvector:    mixin(visitTYCase("Vector"));
+            case TY.Ttraits:    mixin(visitTYCase("Traits"));
+            case TY.Tmixin:     mixin(visitTYCase("Mixin"));
+            case TY.Tnoreturn:  mixin(visitTYCase("Noreturn"));
+            case TY.Ttag:       mixin(visitTYCase("Tag"));
+            case TY.Tnone:      assert(0);
+        }
+    }
+}
+
+/****************************************
+ * CTFE-only helper function for VisitInitializer.
+ * Params:
+ *      handler = string for the name of the visit handler
+ * Returns: boilerplate code for a case
+ */
+pure string visitTYCase(string handler)
+{
+    if (__ctfe)
+    {
+        return
+            "
+            enum isVoid = is(Result == void);
+            auto tx = t.isType"~handler~"();
+            static if (__traits(compiles, visit"~handler~"(tx)))
+            {
+                static if (isVoid)
+                {
+                    visit"~handler~"(tx);
+                    return;
+                }
+                else
+                {
+                    if (Result r = visit"~handler~"(tx))
+                        return r;
+                    return Result.init;
+                }
+            }
+            else static if (__traits(compiles, visitDefaultCase(t)))
+            {
+                static if (isVoid)
+                {
+                    visitDefaultCase(tx);
+                    return;
+                }
+                else
+                {
+                    if (Result r = visitDefaultCase(t))
+                        return r;
+                    return Result.init;
+                }
+            }
+            else
+                static assert(0, "~handler~");
+            ";
+    }
+    assert(0);
+}

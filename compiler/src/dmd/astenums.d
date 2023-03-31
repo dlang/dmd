@@ -214,8 +214,8 @@ enum TY : ubyte
     Tmixin,
     Tnoreturn,
     Ttag,
-    TMAX
 }
+enum TMAX = TY.max + 1;
 
 alias Tarray = TY.Tarray;
 alias Tsarray = TY.Tsarray;
@@ -265,7 +265,6 @@ alias Ttraits = TY.Ttraits;
 alias Tmixin = TY.Tmixin;
 alias Tnoreturn = TY.Tnoreturn;
 alias Ttag = TY.Ttag;
-alias TMAX = TY.TMAX;
 
 enum TFlags
 {
