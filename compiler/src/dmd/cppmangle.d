@@ -342,14 +342,14 @@ private final class CppMangleVisitor : Visitor
      *
      * Params:
      *   off  = Offset to insert at
-     *   fd   = Type of the function to mangle the return type of
+     *   tf   = Type of the function to mangle the return type of
      */
     void writeRemainingTags(size_t off, TypeFunction tf)
     {
-        scope remainingVisitor = new LeftoverVisitor(&this.abiTags.written);
-        tf.next.accept(remainingVisitor);
+        Array!StringExp toWrite;
+        leftOver(tf, &this.abiTags.written, &toWrite);
         OutBuffer b2;
-        foreach (se; remainingVisitor.toWrite)
+        foreach (se; toWrite)
         {
             auto tag = se.peekString();
             // We can only insert a slice, and each insert is a memmove,
@@ -2522,58 +2522,70 @@ unittest
     assert(closestIndex([s1, s2, s4], s5, match) == 3 && !match);
 }
 
-/**
+/***
  * Visits the return type of a function and writes leftover ABI tags
+ * Params:
+ *   tf = Type of the function to mangle the return type of
+ *   previous = already written ones
+ *   toWrite = where to put StringExp's to be written
  */
-extern(C++) private final class LeftoverVisitor : Visitor
+private
+void leftOver(TypeFunction tf, const(Array!StringExp)* previous, Array!StringExp* toWrite)
 {
-    /// List of tags to write
-    private Array!StringExp toWrite;
-    /// List of tags to ignore
-    private const(Array!StringExp)* ignore;
-
-    ///
-    public this(const(Array!StringExp)* previous)
+    extern(C++) final class LeftoverVisitor : Visitor
     {
-        this.ignore = previous;
-    }
+        /// List of tags to write
+        private Array!StringExp* toWrite;
+        /// List of tags to ignore
+        private const(Array!StringExp)* ignore;
 
-    /// Reintroduce base class overloads
-    public alias visit = Visitor.visit;
-
-    /// Least specialized overload of each direct child of `RootObject`
-    public override void visit(Dsymbol o)
-    {
-        auto ale = ABITagContainer.forSymbol(o);
-        if (!ale) return;
-
-        bool match;
-        foreach (elem; *ale.elements)
+        ///
+        public this(const(Array!StringExp)* previous, Array!StringExp* toWrite)
         {
-            auto se = elem.toStringExp();
-            closestIndex((*this.ignore)[], se, match);
-            if (match) continue;
-            auto idx = closestIndex(this.toWrite[], se, match);
-            if (!match)
-                this.toWrite.insert(idx, se);
+            this.ignore = previous;
+            this.toWrite = toWrite;
+        }
+
+        /// Reintroduce base class overloads
+        public alias visit = Visitor.visit;
+
+        /// Least specialized overload of each direct child of `RootObject`
+        public override void visit(Dsymbol o)
+        {
+            auto ale = ABITagContainer.forSymbol(o);
+            if (!ale) return;
+
+            bool match;
+            foreach (elem; *ale.elements)
+            {
+                auto se = elem.toStringExp();
+                closestIndex((*this.ignore)[], se, match);
+                if (match) continue;
+                auto idx = closestIndex((*this.toWrite)[], se, match);
+                if (!match)
+                    (*this.toWrite).insert(idx, se);
+            }
+        }
+
+        /// Ditto
+        public override void visit(Type o)
+        {
+            if (auto sym = o.toDsymbol(null))
+                sym.accept(this);
+        }
+
+        /// Composite type
+        public override void visit(TypePointer o)
+        {
+            o.next.accept(this);
+        }
+
+        public override void visit(TypeReference o)
+        {
+            o.next.accept(this);
         }
     }
 
-    /// Ditto
-    public override void visit(Type o)
-    {
-        if (auto sym = o.toDsymbol(null))
-            sym.accept(this);
-    }
-
-    /// Composite type
-    public override void visit(TypePointer o)
-    {
-        o.next.accept(this);
-    }
-
-    public override void visit(TypeReference o)
-    {
-        o.next.accept(this);
-    }
+    scope remainingVisitor = new LeftoverVisitor(previous, toWrite);
+    tf.next.accept(remainingVisitor);
 }
