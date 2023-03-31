@@ -4889,7 +4889,7 @@ void cod3_thunk(Symbol *sthunk,Symbol *sfunc,uint p,tym_t thisty,
     }
     else
     {
-        if (config.flags3 & CFG3pic)
+        if (0 && config.flags3 & CFG3pic)
         {
             localgot = null;                // no local variables
             CodeBuilder cdbgot; cdbgot.ctor();
