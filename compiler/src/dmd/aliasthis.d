@@ -78,7 +78,7 @@ extern (C++) final class AliasThis : Dsymbol
  * Params:
  *      sc = context
  *      e = expression forming the `this`
- *      gag = if true do not print errors, return null instead
+ *      gag = do not print errors, return `null` instead
  *      findOnly = don't do further processing like resolving properties,
  *                 i.e. just return plain dotExp() result.
  * Returns:
@@ -93,7 +93,7 @@ Expression resolveAliasThis(Scope* sc, Expression e, bool gag = false, bool find
         {
             Loc loc = e.loc;
             Type tthis = (e.op == EXP.type ? e.type : null);
-            const flags = DotExpFlag.noAliasThis | (gag ? DotExpFlag.gag : 0);
+            const flags = cast(DotExpFlag) (DotExpFlag.noAliasThis | (gag * DotExpFlag.gag));
             uint olderrors = gag ? global.startGagging() : 0;
             e = dotExp(ad.type, sc, e, ad.aliasthis.ident, flags);
             if (!e || findOnly)

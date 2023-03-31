@@ -634,7 +634,7 @@ private Expression resolveUFCS(Scope* sc, CallExp ce)
     }
     else if (auto dti = ce.e1.isDotTemplateInstanceExp())
     {
-        if (Expression ey = dti.dotTemplateSemanticProp(sc, 1))
+        if (Expression ey = dti.dotTemplateSemanticProp(sc, DotExpFlag.gag))
         {
             ce.e1 = ey;
             return null;
@@ -6967,7 +6967,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
         // Indicate we need to resolve by UFCS.
-        Expression e = exp.dotTemplateSemanticProp(sc, 1);
+        Expression e = exp.dotTemplateSemanticProp(sc, DotExpFlag.gag);
         if (!e)
             e = resolveUFCSProperties(sc, exp);
         if (e is exp)
@@ -9057,7 +9057,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
              */
             if (auto dti = e1x.isDotTemplateInstanceExp())
             {
-                Expression e = dti.dotTemplateSemanticProp(sc, 1);
+                Expression e = dti.dotTemplateSemanticProp(sc, DotExpFlag.gag);
                 if (!e)
                 {
                     return setResult(resolveUFCSProperties(sc, e1x, exp.e2));
@@ -12891,7 +12891,7 @@ private Expression dotIdSemanticPropX(DotIdExp exp, Scope* sc)
     if (exp.e1.isVarExp() && exp.e1.type.toBasetype().isTypeSArray() && exp.ident == Id.length)
     {
         // bypass checkPurity
-        return exp.e1.type.dotExp(sc, exp.e1, exp.ident, exp.noderef ? DotExpFlag.noDeref : 0);
+        return exp.e1.type.dotExp(sc, exp.e1, exp.ident, cast(DotExpFlag) (exp.noderef * DotExpFlag.noDeref));
     }
 
     if (!exp.e1.isDotExp())
@@ -12943,11 +12943,11 @@ private Expression dotIdSemanticPropX(DotIdExp exp, Scope* sc)
  * Params:
  *      exp = expression to resolve
  *      sc = context
- *      flag = if 1 then do not emit error messages, just return null
+ *      gag = do not emit error messages, just return `null`
  * Returns:
  *      resolved expression, null if error
  */
-Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, int flag)
+Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, bool gag)
 {
     //printf("DotIdExp::semanticY(this = %p, '%s')\n", exp, exp.toChars());
 
@@ -13190,9 +13190,9 @@ Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, int flag)
         }
         if (ie.sds.isPackage() || ie.sds.isImport() || ie.sds.isModule())
         {
-            flag = 0;
+            gag = false;
         }
-        if (flag)
+        if (gag)
             return null;
         s = ie.sds.search_correct(exp.ident);
         if (s && symbolIsVisible(sc, s))
@@ -13218,7 +13218,7 @@ Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, int flag)
               ))
     {
         Type t1bn = t1b.nextOf();
-        if (flag)
+        if (gag)
         {
             if (AggregateDeclaration ad = isAggregate(t1bn))
             {
@@ -13232,11 +13232,12 @@ Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, int flag)
          * as:
          *   (*p).ident
          */
-        if (flag && t1bn.ty == Tvoid)
+        if (gag && t1bn.ty == Tvoid)
             return null;
         Expression e = new PtrExp(exp.loc, exp.e1);
         e = e.expressionSemantic(sc);
-        return e.type.dotExp(sc, e, exp.ident, flag | (exp.noderef ? DotExpFlag.noDeref : 0));
+        const newFlag = cast(DotExpFlag) (gag * DotExpFlag.gag | exp.noderef * DotExpFlag.noDeref);
+        return e.type.dotExp(sc, e, exp.ident, newFlag);
     }
     else if (exp.ident == Id.__xalignof &&
              exp.e1.isVarExp() &&
@@ -13269,8 +13270,11 @@ Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, int flag)
     else
     {
         if (exp.e1.isTypeExp() || exp.e1.isTemplateExp())
-            flag = 0;
-        Expression e = exp.e1.type.dotExp(sc, exp.e1, exp.ident, flag | (exp.noderef ? DotExpFlag.noDeref : 0));
+            gag = false;
+
+        const flag = cast(DotExpFlag) (exp.noderef * DotExpFlag.noDeref | gag * DotExpFlag.gag);
+
+        Expression e = exp.e1.type.dotExp(sc, exp.e1, exp.ident, flag);
         if (e)
         {
             e = e.expressionSemantic(sc);
@@ -13279,9 +13283,16 @@ Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, int flag)
     }
 }
 
-// Resolve e1.ident!tiargs without seeing UFCS.
-// If flag == 1, stop "not a property" error and return NULL.
-Expression dotTemplateSemanticProp(DotTemplateInstanceExp exp, Scope* sc, int flag)
+/**
+ * Resolve `e1.ident!tiargs` without seeing UFCS.
+ * Params:
+ *     exp = the `DotTemplateInstanceExp` to resolve
+ *     sc = the semantic scope
+ *     gag = stop "not a property" error and return `null`.
+ * Returns:
+ *     `null` if error or not found, or the resolved expression.
+ */
+Expression dotTemplateSemanticProp(DotTemplateInstanceExp exp, Scope* sc, bool gag)
 {
     static if (LOGSEMANTIC)
     {
@@ -13315,11 +13326,11 @@ Expression dotTemplateSemanticProp(DotTemplateInstanceExp exp, Scope* sc, int fl
             /* No built-in type has templatized properties, so do shortcut.
              * It is necessary in: 1024.max!"a < b"
              */
-            if (flag)
+            if (gag)
                 return null;
         }
-        e = die.dotIdSemanticProp(sc, flag);
-        if (flag)
+        e = die.dotIdSemanticProp(sc, gag);
+        if (gag)
         {
             if (!e ||
                 isDotOpDispatch(e))
