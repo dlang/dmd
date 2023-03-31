@@ -2044,9 +2044,11 @@ extern (C++) abstract class Type : ASTNode
                 t = t.addMod(this.mod);
             return t;
         }
-        if (auto fd = s.isFuncDeclaration())
+        Dsymbol callable = s.isFuncDeclaration();
+        callable = callable ? callable : s.isTemplateDeclaration();
+        if (callable)
         {
-            fd = resolveFuncCall(Loc.initial, null, fd, null, this, ArgumentList(), FuncResolveFlag.quiet);
+            auto fd = resolveFuncCall(Loc.initial, null, callable, null, this, ArgumentList(), FuncResolveFlag.quiet);
             if (!fd || fd.errors || !fd.functionSemantic())
                 return Type.terror;
 
@@ -2064,19 +2066,6 @@ extern (C++) abstract class Type : ASTNode
         if (auto ed = s.isEnumDeclaration())
         {
             return ed.type;
-        }
-        if (auto td = s.isTemplateDeclaration())
-        {
-            assert(td._scope);
-            auto fd = resolveFuncCall(Loc.initial, null, td, null, this, ArgumentList(), FuncResolveFlag.quiet);
-            if (!fd || fd.errors || !fd.functionSemantic())
-                return Type.terror;
-
-            auto t = fd.type.nextOf();
-            if (!t)
-                return Type.terror;
-            t = t.substWildTo(mod == 0 ? MODFlags.mutable : mod);
-            return t;
         }
 
         //printf("%s\n", s.kind());
