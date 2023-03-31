@@ -4565,6 +4565,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
 
+        Type att = null;
     Lagain:
         //printf("Lagain: %s\n", toChars());
         exp.f = null;
@@ -4775,7 +4776,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 // overload of opCall, therefore it's a call
                 if (exp.e1.op != EXP.type)
                 {
-                    if (sd.aliasthis && !isRecursiveAliasThis(exp.att1, exp.e1.type))
+                    if (sd.aliasthis && !isRecursiveAliasThis(att, exp.e1.type))
                     {
                         exp.e1 = resolveAliasThis(sc, exp.e1);
                         goto Lagain;
@@ -8951,6 +8952,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 assert((*ae.arguments)[0].op == EXP.interval);
                 ie = cast(IntervalExp)(*ae.arguments)[0];
             }
+            Type att = null; // first cyclic `alias this` type
             while (true)
             {
                 if (ae.e1.op == EXP.error)
@@ -9025,7 +9027,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                 // No operator overloading member function found yet, but
                 // there might be an alias this to try.
-                if (ad.aliasthis && !isRecursiveAliasThis(ae.att1, ae.e1.type))
+                if (ad.aliasthis && !isRecursiveAliasThis(att, ae.e1.type))
                 {
                     /* Rewrite (a[arguments] op e2) as:
                      *      a.aliasthis[arguments] op e2
