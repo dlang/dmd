@@ -3293,7 +3293,15 @@ extern (C++) final class StructLiteralExp : Expression
     Expressions* elements;  /// parallels sd.fields[] with null entries for fields to skip
     Type stype;             /// final type of result (can be different from sd's type)
 
-    Symbol* sym;            /// back end symbol to initialize with literal
+    // `inlineCopy` is only used temporarily in the `inline.d` pass,
+    // while `sym` is only used in `e2ir/s2ir/tocsym` which comes after
+    union
+    {
+        Symbol* sym;            /// back end symbol to initialize with literal
+
+        /// those fields need to prevent a infinite recursion when one field of struct initialized with 'this' pointer.
+        StructLiteralExp inlinecopy;
+    }
 
     /** pointer to the origin instance of the expression.
      * once a new expression is created, origin is set to 'this'.
@@ -3302,8 +3310,6 @@ extern (C++) final class StructLiteralExp : Expression
      */
     StructLiteralExp origin;
 
-    /// those fields need to prevent a infinite recursion when one field of struct initialized with 'this' pointer.
-    StructLiteralExp inlinecopy;
 
     /** anytime when recursive function is calling, 'stageflags' marks with bit flag of
      * current stage and unmarks before return from this function.

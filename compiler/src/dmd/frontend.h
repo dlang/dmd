@@ -6978,7 +6978,7 @@ private:
         char stringexp[58LLU];
         char arrayliteralexp[56LLU];
         char assocarrayliteralexp[56LLU];
-        char structliteralexp[92LLU];
+        char structliteralexp[84LLU];
         char compoundliteralexp[48LLU];
         char nullexp[34LLU];
         char dotvarexp[65LLU];
@@ -7203,9 +7203,12 @@ public:
     StructDeclaration* sd;
     Array<Expression* >* elements;
     Type* stype;
-    Symbol* sym;
+    union
+    {
+        Symbol* sym;
+        StructLiteralExp* inlinecopy;
+    };
     StructLiteralExp* origin;
-    StructLiteralExp* inlinecopy;
     uint8_t stageflags;
     bool useStaticInit;
     bool isOriginal;
