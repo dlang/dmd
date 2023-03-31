@@ -38,6 +38,7 @@ class TemplateDeclaration;
 class ClassDeclaration;
 class OverloadSet;
 class StringExp;
+class LoweredAssignExp;
 struct UnionExp;
 #ifdef IN_GCC
 typedef union tree_node Symbol;
@@ -240,6 +241,7 @@ public:
     UnaExp* isUnaExp();
     BinExp* isBinExp();
     BinAssignExp* isBinAssignExp();
+    LoweredAssignExp* isLoweredAssignExp();
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -1079,6 +1081,15 @@ public:
 class ConstructExp final : public AssignExp
 {
 public:
+    void accept(Visitor *v) override { v->visit(this); }
+};
+
+class LoweredAssignExp final : public AssignExp
+{
+public:
+    Expression *lowering;
+
+    const char *toChars() const override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 

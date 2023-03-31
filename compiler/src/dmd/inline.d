@@ -766,12 +766,11 @@ public:
         override void visit(AssignExp e)
         {
             visit(cast(BinExp)e);
+        }
 
-            if (auto ale = e.e1.isArrayLengthExp())
-            {
-                Type tn = ale.e1.type.toBasetype().nextOf();
-                semanticTypeInfo(null, tn);
-            }
+        override void visit(LoweredAssignExp e)
+        {
+            result = doInlineAs!Expression(e.lowering, ids);
         }
 
         override void visit(EqualExp e)
@@ -1284,6 +1283,11 @@ public:
         }
     L1:
         visit(cast(BinExp)e);
+    }
+
+    override void visit(LoweredAssignExp e)
+    {
+        inlineScan(e.lowering);
     }
 
     override void visit(CallExp e)

@@ -2775,6 +2775,11 @@ elem* toElem(Expression e, IRState *irs)
         assert(0);
     }
 
+    elem* visitLoweredAssign(LoweredAssignExp e)
+    {
+        return toElem(e.lowering, irs);
+    }
+
     /***************************************
      */
 
@@ -4164,6 +4169,7 @@ elem* toElem(Expression e, IRState *irs)
         case EXP.assign:        return visitAssign(e.isAssignExp());
         case EXP.construct:     return visitAssign(e.isConstructExp());
         case EXP.blit:          return visitAssign(e.isBlitExp());
+        case EXP.loweredAssignExp: return visitLoweredAssign(e.isLoweredAssignExp());
         case EXP.addAssign:     return visitAddAssign(e.isAddAssignExp());
         case EXP.minAssign:     return visitMinAssign(e.isMinAssignExp());
         case EXP.concatenateDcharAssign: return visitCatAssign(e.isCatDcharAssignExp());

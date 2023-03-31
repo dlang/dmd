@@ -181,6 +181,7 @@ class IndexExp;
 class PostExp;
 class PreExp;
 class AssignExp;
+class LoweredAssignExp;
 class ConstructExp;
 class BlitExp;
 class AddAssignExp;
@@ -924,6 +925,7 @@ enum class EXP : uint8_t
     compoundLiteral = 123u,
     _Generic = 124u,
     interval = 125u,
+    loweredAssignExp = 126u,
 };
 
 typedef uint64_t dinteger_t;
@@ -1069,6 +1071,7 @@ public:
     PostExp* isPostExp();
     PreExp* isPreExp();
     AssignExp* isAssignExp();
+    LoweredAssignExp* isLoweredAssignExp();
     ConstructExp* isConstructExp();
     BlitExp* isBlitExp();
     AddAssignExp* isAddAssignExp();
@@ -4937,6 +4940,7 @@ struct ASTCodegen final
     using IsExp = ::IsExp;
     using LineInitExp = ::LineInitExp;
     using LogicalExp = ::LogicalExp;
+    using LoweredAssignExp = ::LoweredAssignExp;
     using MemorySet = ::MemorySet;
     using MinAssignExp = ::MinAssignExp;
     using MinExp = ::MinExp;
@@ -5200,6 +5204,7 @@ public:
     virtual void visit(ClassReferenceExp* e);
     virtual void visit(VoidInitExp* e);
     virtual void visit(ThrownExceptionExp* e);
+    virtual void visit(LoweredAssignExp* e);
 };
 
 class StoppableVisitor : public Visitor
@@ -7722,6 +7727,14 @@ public:
     void accept(Visitor* v) override;
 };
 
+class LoweredAssignExp final : public AssignExp
+{
+public:
+    Expression* lowering;
+    const char* toChars() const override;
+    void accept(Visitor* v) override;
+};
+
 class ConstructExp final : public AssignExp
 {
 public:
@@ -8403,6 +8416,7 @@ public:
     void visit(DotExp* e) override;
     void visit(IndexExp* e) override;
     void visit(RemoveExp* e) override;
+    void visit(LoweredAssignExp* e) override;
 };
 
 extern _d_real creall(complex_t x);

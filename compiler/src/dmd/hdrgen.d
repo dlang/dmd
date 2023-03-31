@@ -2318,6 +2318,16 @@ private void expressionPrettyPrint(Expression e, OutBuffer* buf, HdrGenState* hg
         expToBuffer(e.e1, precedence[e.op], buf, hgs);
     }
 
+    void visitLoweredAssignExp(LoweredAssignExp e)
+    {
+        if (global.params.vcg_ast)
+        {
+            expressionToBuffer(e.lowering, buf, hgs);
+            return;
+        }
+
+        visit(cast(BinExp)e);
+    }
     void visitBin(BinExp e)
     {
         expToBuffer(e.e1, precedence[e.op], buf, hgs);
@@ -2691,6 +2701,7 @@ private void expressionPrettyPrint(Expression e, OutBuffer* buf, HdrGenState* hg
         case EXP.remove:        return visitRemove(e.isRemoveExp());
         case EXP.question:      return visitCond(e.isCondExp());
         case EXP.classReference:        return visitClassReference(e.isClassReferenceExp());
+        case EXP.loweredAssignExp:      return visitLoweredAssignExp(e.isLoweredAssignExp());
     }
 }
 
@@ -4219,6 +4230,7 @@ string EXPtoString(EXP op)
         EXP.declaration : "declaration",
 
         EXP.interval : "interval",
+        EXP.loweredAssignExp : "="
     ];
     const p = strings[op];
     if (!p)

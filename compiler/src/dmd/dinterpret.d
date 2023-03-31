@@ -4770,25 +4770,6 @@ public:
                     result = CTFEExp.voidexp;
                 return;
             }
-            else if (fd.ident == Id._d_arraysetlengthT)
-            {
-                // In expressionsem.d `ea.length = eb;` got lowered to `_d_arraysetlengthT(ea, eb);`.
-                // The following code will rewrite it back to `ea.length = eb` and then interpret that expression.
-                assert(e.arguments.length == 2);
-
-                Expression ea = (*e.arguments)[0];
-                Expression eb = (*e.arguments)[1];
-
-                auto ale = ctfeEmplaceExp!ArrayLengthExp(e.loc, ea);
-                ale.type = Type.tsize_t;
-                AssignExp ae = ctfeEmplaceExp!AssignExp(e.loc, ale, eb);
-                ae.type = ea.type;
-
-                // if (global.params.verbose)
-                //     message("interpret  %s =>\n          %s", e.toChars(), ae.toChars());
-                result = interpretRegion(ae, istate);
-                return;
-            }
             else if (isArrayConstructionOrAssign(fd.ident))
             {
                 // In expressionsem.d, the following lowerings were performed:
