@@ -1227,15 +1227,6 @@ $(GNAME SwitchStatement):
 $(GNAME CaseStatement):
     $(D case) $(GLINK2 expression, ArgumentList) $(D :) $(PSSEMI_PSCURLYSCOPE_LIST)$(OPT)
 
-$(GNAME CaseRangeStatement):
-    $(D case) $(GLINK FirstExp) $(D : .. case) $(GLINK LastExp) $(D :) $(PSSEMI_PSCURLYSCOPE_LIST)$(OPT)
-
-$(GNAME FirstExp):
-    $(ASSIGNEXPRESSION)
-
-$(GNAME LastExp):
-    $(ASSIGNEXPRESSION)
-
 $(GNAME DefaultStatement):
     $(D default :) $(PSSEMI_PSCURLYSCOPE_LIST)$(OPT)
 
@@ -1267,28 +1258,15 @@ $(GNAME StatementNoCaseNoDefault):
         )
 
         $(P The case expressions in $(I ArgumentList)
-        are a comma separated list of expressions.)
-
-        ---
-        case 1, 2, 3:
-        ---
-
-        $(P A $(I CaseRangeStatement) is a shorthand for listing a series
-        of case statements from $(I FirstExp) to $(I LastExp), inclusive.)
-
-        ---
-        case 1: .. case 3:
-        ---
-
-        $(P The two examples above are equivalent.)
-
-        $(P The case expressions must all evaluate to a constant value or array,
+        are a comma separated list of expressions.
+        Each expression must evaluate to a compile-time value or array,
         or a runtime initialized const or immutable variable of integral type.
-        They must be implicitly convertible to the type of the switch
-        *Expression*. )
+        Each expression must be implicitly convertible to the type of the switch
+        *Expression*.)
 
-        $(P Case expressions must all evaluate to distinct values. Const or
-        immutable variables must all have different names. If they share a
+        $(P Compile-time case values must all be distinct. Const or
+        immutable runtime variables must all have different names.
+        If two case expressions share a
         value, the first case statement with that value gets control.)
 
         $(P The $(GLINK ScopeStatementList) introduces a new scope.
@@ -1301,6 +1279,27 @@ $(GNAME StatementNoCaseNoDefault):
         to the default statement.
         )
 
+        $(RATIONALE This makes it clear that all possible cases are intentionally handled.
+        See also: $(RELATIVE_LINK2 final-switch-statement, `final switch`).)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+--------------
+foreach (i; 2 .. 10)
+{
+    bool prime;
+
+    switch (i)
+    {
+        case 2, 3, 5, 7:
+            prime = true;
+            break;
+        default:
+            prime = false;
+    }
+    writeln(i, ": ", prime);
+}
+--------------
+)
         $(P Case statements and default statements associated with the switch
         can be nested within block statements; they do not have to be in
         the outermost block. For example, this is allowed:
@@ -1318,6 +1317,32 @@ switch (i)
     default:
 }
 --------------
+
+$(H3 $(LNAME2 case-range, Case Range Statement))
+
+$(GRAMMAR
+$(GNAME CaseRangeStatement):
+    $(D case) $(GLINK FirstExp) $(D : .. case) $(GLINK LastExp) $(D :) $(PSSEMI_PSCURLYSCOPE_LIST)$(OPT)
+
+$(GNAME FirstExp):
+    $(ASSIGNEXPRESSION)
+
+$(GNAME LastExp):
+    $(ASSIGNEXPRESSION)
+)
+
+        $(P A $(I CaseRangeStatement) is a shorthand for listing a series
+        of case statements from $(I FirstExp) to $(I LastExp), inclusive.)
+
+        ---
+        case 1: .. case 3:
+        ---
+
+        $(P The above is equivalent to:)
+
+        ---
+        case 1, 2, 3:
+        ---
 
 $(H3 $(LNAME2 no-implicit-fallthrough, No Implicit Fall-Through))
 
@@ -1345,6 +1370,7 @@ switch (i)
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 --------------
 string message;
+
 foreach (i; 1..5)
 {
     switch (i)
@@ -1372,6 +1398,8 @@ foreach (i; 1..5)
 writeln(message);
 --------------
 )
+        $(P $(RELATIVE_LINK2 goto-statement, `goto`) also supports jumping to
+        a specific case or the default case statement.)
 
 $(H3 $(LNAME2 string-switch, String Switch))
 
@@ -1392,10 +1420,10 @@ switch (name)
 
         $(P For applications like command line switch processing, this
         can lead to much more straightforward code, being clearer and
-        less error prone. char, wchar and dchar strings are allowed.
+        less error prone. `char`, `wchar` and `dchar` strings are allowed.
         )
 
-        $(P $(D Implementation Note:) The compiler's code generator may
+        $(P $(B Implementation Note:) The compiler's code generator may
         assume that the case
         statements are sorted by frequency of use, with the most frequent
         appearing first and the least frequent last. Although this is
