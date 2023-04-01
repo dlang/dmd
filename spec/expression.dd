@@ -2383,31 +2383,26 @@ $(GNAME AssertArguments):
     $(GLINK AssignExpression) $(D ,) $(GLINK AssignExpression) $(D ,)$(OPT)
 )
 
-    $(P The first $(I AssignExpression) must evaluate to true. If it does not, an $(I Assert Failure)
+    $(P The first $(I AssignExpression) must evaluate to `true`. If it does not, an $(I Assert Failure)
     has occurred and the program enters an $(I Invalid State).
     )
 
-    $(P If the first $(I AssignExpression) consists entirely of compile time constants,
-    and evaluates to false, it is a special case; it
-    signifies that it is unreachable code.
-    Compile Time Function Execution (CTFE) is not attempted.
-    )
+    ---
+    int i = fun();
+    assert(i > 0);
+    ---
 
     $(P $(I AssertExpression) has different semantics if it is in a
     $(DDLINK spec/unittest, Unit Tests, $(D unittest)) or
-    $(DDLINK spec/contracts, Contract Programming, $(D in) contract).
-    )
-
-    $(P The second $(I AssignExpression), if present, must be implicitly
-        convertible to type $(D const(char)[]).
+    $(DDSUBLINK spec/function, preconditions, $(D in) contract).
     )
 
     $(P If the first $(I AssignExpression) is a reference to a class instance for
-    which a $(DDSUBLINK spec/class, invariants, class Invariant) exists, the class $(I Invariant) must hold.
+    which a $(DDSUBLINK spec/class, invariants, class *Invariant*) exists, the class $(I Invariant) must hold.
     )
 
     $(P If the first $(I AssignExpression) is a pointer to a struct instance for
-    which a struct $(I Invariant) exists, the struct $(I Invariant) must hold.
+    which a $(DDSUBLINK spec/struct, Invariant, struct $(I Invariant)) exists, the struct $(I Invariant) must hold.
     )
 
     $(P The type of an $(I AssertExpression) is $(D void).
@@ -2417,21 +2412,51 @@ $(GNAME AssertArguments):
     of the program is undefined.)
 
     $(IMPLEMENTATION_DEFINED Whether the first $(I AssertExpression) is evaluated
-    or not at runtime is typically set with a compiler switch. If it is not evaluated,
+    or not (at runtime) is typically set with a compiler switch. If it is not evaluated,
     any side effects specified by the $(I AssertExpression) may not occur.
-    The behavior if the first $(I AssertExpression) is evaluated and is false
-    is also typically set with a compiler switch and may include these options:
+    The behavior when the first $(I AssertExpression) evaluates to `false`
+    is also typically set with a compiler switch, and may include these options:
     $(OL
-        $(LI continuing execution)
-        $(LI immediately halting via execution of a special CPU instruction)
-        $(LI aborting the program)
-        $(LI calling the assert failure function in the corresponding C
+        $(LI Immediately halting via execution of a special CPU instruction)
+        $(LI Aborting the program)
+        $(LI Calling the assert failure function in the corresponding C
         runtime library)
-        $(LI throwing the $(D AssertError) exception in the D runtime library)
+        $(LI Throwing the $(D AssertError) exception in the D runtime library)
     )
-    If the optional second $(I AssignExpression) is provided, the implementation may
-    evaluate it and print the resulting message upon assert failure:
+    )
 
+    $(BEST_PRACTICE
+    $(OL
+        $(LI Do not have side effects in either $(I AssignExpression) that subsequent code
+        depends on.)
+        $(LI $(I AssertExpression)s are intended to detect bugs in the program.
+        Do not use them for detecting input or environmental errors.)
+        $(LI Do not attempt to resume normal execution after an $(I Assert Failure).)
+    )
+    )
+
+$(H4 $(LNAME2 assert-ct, Compile-time Evaluation))
+
+    $(P If the first $(I AssignExpression) consists entirely of compile time constants,
+    and evaluates to `false`, it is a special case - it
+    signifies that subsequent statements are unreachable code.
+    Compile Time Function Execution (CTFE) is not attempted.
+    )
+
+    $(P The implementation may handle the case of the first $(I AssignExpression) evaluating to `false`
+    at compile time differently - even when other `assert`s are ignored,
+    it may still generate a $(D HLT) instruction or equivalent.
+    )
+
+    $(P See also: $(DDSUBLINK spec/version, static-assert, `static assert`).)
+
+$(H4 $(LNAME2 assert-message, Assert Message))
+
+    $(P The second $(I AssignExpression), if present, must be implicitly
+        convertible to type $(D const(char)[]).
+        When present, the implementation may evaluate it and print the
+        resulting message upon assert failure:
+    )
         ----
         void main()
         {
@@ -2443,21 +2468,6 @@ $(GNAME AssertArguments):
 
     $(CONSOLE core.exception.AssertError@test.d(3) an error message)
 
-    $(P The implementation may handle the case of the first $(I AssignExpression) evaluating at compile
-    time to false differently in that in release mode
-    it may simply generate a $(D HLT) instruction or equivalent.
-    )
-    )
-
-    $(BEST_PRACTICE
-    $(OL
-        $(LI Do not have side effects in either $(I AssignExpression) that subsequent code
-        depends on.)
-        $(LI $(I AssertExpressions) are intended to detect bugs in the program, do
-        not use for detecting input or environmental errors.)
-        $(LI Do not attempt to resume normal execution after an $(I Assert Failure).)
-    )
-    )
 
 $(H3 $(LNAME2 mixin_expressions, Mixin Expressions))
 

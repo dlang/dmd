@@ -30,7 +30,10 @@ $(H2 $(LNAME2 assert_contracts, Assert Contract))
 
 $(H2 $(LNAME2 pre_post_contracts, Pre and Post Contracts))
 
-        $(P See $(LINK2 function, contracts). )
+        $(P See:)
+        * $(DDSUBLINK spec/function, preconditions, $(D in) contracts).
+        * $(DDSUBLINK spec/function, postconditions, $(D out) contracts).
+
 
 $(H2 $(LNAME2 Invariants, Invariants))
 
