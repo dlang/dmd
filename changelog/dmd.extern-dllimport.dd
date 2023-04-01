@@ -1,7 +1,0 @@
-export int a; now generates dllexport instead of dllimport
-
-In order to make it dllimport, use:
-
----
-export extern int a;
----
