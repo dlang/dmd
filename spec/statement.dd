@@ -1398,6 +1398,8 @@ foreach (i; 1..5)
 writeln(message);
 --------------
 )
+        $(P $(RELATIVE_LINK2 goto-statement, `goto`) also supports jumping to
+        a specific case or the default case statement.)
 
 $(H3 $(LNAME2 string-switch, String Switch))
 
