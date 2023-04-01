@@ -211,7 +211,7 @@ private final class CppMangleVisitor : Visitor
      */
     void mangleReturnType(TypeFunction preSemantic)
     {
-        auto tf = cast(TypeFunction)this.context.res.asFuncDecl().type;
+        auto tf = this.context.res.asFuncDecl().type.isTypeFunction();
         Type rt = preSemantic.nextOf();
         if (tf.isref)
             rt = rt.referenceTo();
@@ -491,9 +491,9 @@ private final class CppMangleVisitor : Visitor
                 mangle_function(d.isFuncDeclaration());
                 buf.writestring("EE");
             }
-            else if (e && e.op == EXP.variable && (cast(VarExp)e).var.isVarDeclaration())
+            else if (e && e.isVarExp() && e.isVarExp().var.isVarDeclaration())
             {
-                VarDeclaration vd = (cast(VarExp)e).var.isVarDeclaration();
+                VarDeclaration vd = e.isVarExp().var.isVarDeclaration();
                 buf.writeByte('L');
                 mangle_variable(vd, true);
                 buf.writeByte('E');
@@ -748,9 +748,9 @@ private final class CppMangleVisitor : Visitor
     bool isIdent_char(Identifier ident, RootObject o)
     {
         Type t = isType(o);
-        if (!t || t.ty != Tstruct)
+        if (!t || !t.isTypeStruct())
             return false;
-        Dsymbol s = (cast(TypeStruct)t).toDsymbol(null);
+        Dsymbol s = t.toDsymbol(null);
         if (s.ident != ident)
             return false;
         Dsymbol p = s.toParent();
@@ -1050,7 +1050,7 @@ private final class CppMangleVisitor : Visitor
          *            ::= <data name>
          *            ::= <special-name>
          */
-        TypeFunction tf = cast(TypeFunction)d.type;
+        TypeFunction tf = d.type.isTypeFunction();
 
         if (TemplateDeclaration ftd = getFuncTemplateDecl(d))
         {
@@ -1164,7 +1164,7 @@ private final class CppMangleVisitor : Visitor
             this.context.ti = ti;
             this.context.fd = d;
             this.context.res = d;
-            TypeFunction preSemantic = cast(TypeFunction)d.originalType;
+            TypeFunction preSemantic = d.originalType.isTypeFunction();
             auto nspace = ti.toParent();
             if (nspace && nspace.isNspace())
                 this.writeChained(ti.toParent(), () => source_name(ti, true));
@@ -1338,7 +1338,7 @@ private final class CppMangleVisitor : Visitor
             auto prev = this.context.push({
                     TypeFunction tf;
                     if (isDsymbol(this.context.res))
-                        tf = cast(TypeFunction)this.context.res.asFuncDecl().type;
+                        tf = this.context.res.asFuncDecl().type.isTypeFunction();
                     else
                         tf = this.context.res.asType().isTypeFunction();
                     assert(tf);
@@ -1382,9 +1382,9 @@ private final class CppMangleVisitor : Visitor
      */
     void headOfType(Type t)
     {
-        if (t.ty == Tclass)
+        if (auto tc = t.isTypeClass())
         {
-            mangleTypeClass(cast(TypeClass)t, true);
+            mangleTypeClass(tc, true);
         }
         else
         {
@@ -1951,7 +1951,7 @@ extern(C++):
      */
     override void visit(TypeIdentifier t)
     {
-        auto decl = cast(TemplateDeclaration)this.context.ti.tempdecl;
+        auto decl = this.context.ti.tempdecl.isTemplateDeclaration();
         assert(decl.parameters !is null);
         auto idx = templateParamIndex(t.ident, decl.parameters);
         // If not found, default to the post-semantic type
@@ -2010,7 +2010,7 @@ extern(C++):
             {
                 // If the resolved AST has more args than the parse one,
                 // we have default arguments
-                auto oparams = (cast(TemplateDeclaration)analyzed_ti.tempdecl).origParameters;
+                auto oparams = analyzed_ti.tempdecl.isTemplateDeclaration().origParameters;
                 foreach (idx, arg; (*oparams)[t.tiargs.length .. $])
                 {
                     this.context.res = (*analyzed_ti.tiargs)[idx + t.tiargs.length];
@@ -2035,7 +2035,7 @@ extern(C++):
         assert(t.tiargs !is null);
 
         bool needsTa;
-        auto decl = cast(TemplateDeclaration)this.context.ti.tempdecl;
+        auto decl = this.context.ti.tempdecl.isTemplateDeclaration();
         // Attempt to substitute the template itself
         auto idx = templateParamIndex(t.name, decl.parameters);
         if (idx < decl.parameters.length)
@@ -2116,12 +2116,13 @@ private void visitObject(V : Visitor)(RootObject o, V this_)
 /// Helper function to safely get a type out of a `RootObject`
 private Type asType(RootObject o)
 {
-    Type ta = isType(o);
+    if (Type ta = isType(o))
+        return ta;
+
     // When called with context.res as argument, it can be `FuncDeclaration`
-    if (!ta && o.asFuncDecl())
-        ta = (cast(FuncDeclaration)o).type;
-    assert(ta !is null, o.toString());
-    return ta;
+    if (auto fd = o.asFuncDecl())
+        return fd.type;
+    assert(0);
 }
 
 /// Helper function to safely get a `FuncDeclaration` out of a `RootObject`
@@ -2174,12 +2175,12 @@ private extern(C++) final class ComponentVisitor : Visitor
 
         case DYNCAST.type:
             auto t = cast(Type)base;
-            if (t.ty == Tpointer)
-                this.tpointer = cast(TypePointer)t;
-            else if (t.ty == Treference)
-                this.tref = cast(TypeReference)t;
-            else if (t.ty == Tident)
-                this.tident = cast(TypeIdentifier)t;
+            if (auto tp = t.isTypePointer())
+                this.tpointer = tp;
+            else if (auto tr = t.isTypeReference())
+                this.tref = tr;
+            else if (auto ti = t.isTypeIdentifier())
+                this.tident = ti;
             else
                 goto default;
             break;
