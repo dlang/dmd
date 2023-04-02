@@ -105,7 +105,7 @@ $(H3 $(LNAME2 struct-members, Struct Members))
             $(LI $(RELATIVE_LINK2 Invariant, Invariants))
             $(LI $(DDLINK spec/operatoroverloading, Operator Overloading, Operator Overloading))
         )
-        $(LI $(DDSUBLINK spec/class, alias-this, Alias This))
+        $(LI $(RELATIVE_LINK2 alias-this, Alias This))
         $(LI Other declarations (see $(GLINK2 module, DeclDef)))
         )
     )
@@ -133,7 +133,7 @@ $(H3 $(LNAME2 union-members, Union Members))
             $(LI $(RELATIVE_LINK2 UnionConstructor, Constructors))
             $(LI $(DDLINK spec/operatoroverloading, Operator Overloading, Operator Overloading))
         )
-        $(LI $(DDSUBLINK spec/class, alias-this, Alias This))
+        $(LI $(RELATIVE_LINK2 alias-this, Alias This))
         $(LI Other declarations (see $(GLINK2 module, DeclDef)))
         )
     )
@@ -2017,7 +2017,7 @@ $(GNAME AliasThis):
         The $(I Identifier) names that member.
         )
 
-        $(P A struct can be implicitly converted to the $(I AliasThis)
+        $(P A struct or union instance can be implicitly converted to the $(I AliasThis)
         member.
         )
 
@@ -2079,7 +2079,7 @@ void main()
 )
 
         $(P If the $(I Identifier) refers to a property member
-        function with no parameters, conversions and undefined
+        function with no parameters then conversions and undefined
         lookups are forwarded to the return value of the function.
         )
 
@@ -2106,11 +2106,11 @@ void main()
 )
 
         $(P If a struct declaration defines an $(D opCmp) or $(D opEquals)
-        method, it will take precedence to that of the aliased this member. Note
+        method, it will take precedence to that of the *AliasThis* member. Note
         that, unlike an $(D opCmp) method, an $(D opEquals) method is implicitly
-        defined for a $(D struct) declaration if a user defined one isn't provided;
-        this means that if the aliased this member $(D opEquals) is preferred it
-        should be explicitly defined:
+        defined for a $(D struct) declaration if a user-defined one isn't provided.
+        This means that if the *AliasThis* member's $(D opEquals) should be used, it
+        must be explicitly defined:
         )
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
@@ -2179,7 +2179,7 @@ void main()
         $(P $(GLINK2 attribute, Attribute)s are ignored for $(D AliasThis).
         )
 
-        $(P A struct may have a single $(I AliasThis) member.)
+        $(P A struct/union may only have a single $(I AliasThis) member.)
 
 
 
