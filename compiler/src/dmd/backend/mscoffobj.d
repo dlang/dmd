@@ -1561,6 +1561,7 @@ seg_data *MsCoffObj_tlsseg()
     if (seg_tlsseg == UNKNOWN)
     {
         seg_tlsseg = MsCoffObj_getsegment(".tls$AAB", IMAGE_SCN_CNT_INITIALIZED_DATA |
+                                              IMAGE_SCN_LNK_COMDAT |
                                               IMAGE_SCN_ALIGN_16BYTES |
                                               IMAGE_SCN_MEM_READ |
                                               IMAGE_SCN_MEM_WRITE);

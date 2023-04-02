@@ -3138,8 +3138,10 @@ static if (0)
                 {       // code to code code to data, data to code, data to data refs
                     if (s.Sclass == SC.static_)
                     {                           // offset into .data or .bss seg
-                        refseg = MAP_SEG2SYMIDX(s.Sseg);
-                                                // use segment symbol table entry
+                        if ((s.ty() & mTYLINK) & mTYthread && config.exe & (EX_FREEBSD | EX_FREEBSD64))
+                        { }
+                        else
+                            refseg = MAP_SEG2SYMIDX(s.Sseg);    // use segment symbol table entry
                         val += s.Soffset;
                         if (!(config.flags3 & CFG3pic) ||       // all static refs from normal code
                              segtyp == DATA)    // or refs from data from posi indp
