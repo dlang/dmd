@@ -4,7 +4,7 @@
  * Includes:
  * - generating a function prolog (pushing return address, loading paramters)
  * - generating a function epilog (restoring registers, returning)
- * - generation / peeph(0 &&ole optimizations of jump / branch instructions
+ * - generation / peephole optimizations of jump / branch instructions
  *
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
