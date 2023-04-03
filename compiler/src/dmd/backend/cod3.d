@@ -4,7 +4,7 @@
  * Includes:
  * - generating a function prolog (pushing return address, loading paramters)
  * - generating a function epilog (restoring registers, returning)
- * - generation / peephole optimizations of jump / branch instructions
+ * - generation / peeph(0 &&ole optimizations of jump / branch instructions
  *
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
@@ -4843,18 +4843,6 @@ void cod3_thunk(Symbol *sthunk,Symbol *sfunc,uint p,tym_t thisty,
     }
     else
     {
-        if (0 && config.flags3 & CFG3pic)
-        {
-            localgot = null;                // no local variables
-            CodeBuilder cdbgot; cdbgot.ctor();
-            load_localgot(cdbgot);          // load GOT in EBX
-            code *c1 = cdbgot.finish();
-            if (c1)
-            {
-                assignaddrc(c1);
-                cdb.append(c1);
-            }
-        }
         cdb.gencs((LARGECODE ? 0xEA : 0xE9),0,FLfunc,sfunc); // JMP sfunc
         cdb.last().Iflags |= LARGECODE ? (CFseg | CFoff) : (CFselfrel | CFoff);
     }
