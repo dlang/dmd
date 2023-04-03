@@ -6981,11 +6981,11 @@ private:
         char structliteralexp[84LLU];
         char compoundliteralexp[48LLU];
         char nullexp[34LLU];
-        char dotvarexp[57LLU];
-        char addrexp[48LLU];
+        char dotvarexp[65LLU];
+        char addrexp[56LLU];
         char indexexp[82LLU];
-        char sliceexp[73LLU];
-        char vectorexp[61LLU];
+        char sliceexp[81LLU];
+        char vectorexp[69LLU];
     };
     #pragma pack(pop)
 
@@ -7389,6 +7389,7 @@ class UnaExp : public Expression
 {
 public:
     Expression* e1;
+    Type* att1;
     UnaExp* syntaxCopy() override;
     Expression* incompatibleTypes();
     void setNoderefOperand();

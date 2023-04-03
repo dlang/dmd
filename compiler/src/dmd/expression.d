@@ -4360,6 +4360,7 @@ extern (C++) final class IsExp : Expression
 extern (C++) abstract class UnaExp : Expression
 {
     Expression e1;
+    Type att1;      // Save alias this type to detect recursion
 
     extern (D) this(const ref Loc loc, EXP op, Expression e1) scope
     {
