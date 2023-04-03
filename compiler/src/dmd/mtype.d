@@ -2072,6 +2072,12 @@ extern (C++) abstract class Type : ASTNode
         return null;
     }
 
+    /**
+     * Check whether this type has endless `alias this` recursion.
+     * Returns:
+     *   `true` if this type has an `alias this` that can be implicitly
+     *    converted back to this type itself.
+     */
     extern (D) final bool checkAliasThisRec()
     {
         Type tb = toBasetype();

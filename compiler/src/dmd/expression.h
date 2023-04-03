@@ -699,7 +699,6 @@ class UnaExp : public Expression
 {
 public:
     Expression *e1;
-    Type *att1; // Save alias this type to detect recursion
 
     UnaExp *syntaxCopy() override;
     Expression *incompatibleTypes();
