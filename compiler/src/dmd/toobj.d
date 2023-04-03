@@ -652,7 +652,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 dt2common(&s.Sdt);
             }
 
-            if (s.Sclass & SC.global && s.Stype.Tty & mTYconst)
+            if (s.Sclass == SC.global && s.Stype.Tty & mTYconst)
                 out_readonly(s);
 
             outdata(s);
