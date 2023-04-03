@@ -4788,7 +4788,7 @@ private Statements* flatten(Statement statement, Scope* sc)
             auto a = new Statements();
             while (p.token.value != TOK.endOfFile)
             {
-                Statement s = p.parseStatement(ParseStatementFlags.semi | ParseStatementFlags.curlyScope);
+                Statement s = p.parseStatement(ParseStatementFlags.curlyScope);
                 if (!s || global.errors != errors)
                     return errorStatements();
                 a.push(s);

@@ -1,0 +1,21 @@
+Using `;` as an empty statement has been turned into an error
+
+This has been deprecated since 2.075.0 because it's error prone:
+
+---
+void main()
+{
+    foreach (i; 0 .. 8);
+    {
+        // Because of the accidental semicolon above,
+        // this block statement is executed once.
+        // It's not the loop body
+    }
+}
+---
+
+It will now result in an error.
+
+$(CONSOLE
+app.d(3): Error: use `{ }` for an empty statement, not `;`
+)

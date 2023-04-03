@@ -199,7 +199,7 @@ final class CParser(AST) : Parser!AST
                     else if (token.value == TOK.leftCurly)
                         s = cparseStatement(ParseStatementFlags.curly | ParseStatementFlags.scope_);
                     else
-                        s = cparseStatement(ParseStatementFlags.semiOk);
+                        s = cparseStatement(0);
                     s = new AST.LabelStatement(loc, ident, s);
                     break;
                 }
@@ -373,7 +373,7 @@ final class CParser(AST) : Parser!AST
             auto statements = new AST.Statements();
             while (token.value != TOK.rightCurly && token.value != TOK.endOfFile)
             {
-                statements.push(cparseStatement(ParseStatementFlags.semi | ParseStatementFlags.curlyScope));
+                statements.push(cparseStatement(ParseStatementFlags.curlyScope));
             }
             if (endPtr)
                 *endPtr = token.ptr;
@@ -514,7 +514,7 @@ final class CParser(AST) : Parser!AST
                 auto statements = new AST.Statements();
                 while (token.value != TOK.case_ && token.value != TOK.default_ && token.value != TOK.endOfFile && token.value != TOK.rightCurly)
                 {
-                    auto cur = cparseStatement(ParseStatementFlags.semi | ParseStatementFlags.curlyScope);
+                    auto cur = cparseStatement(ParseStatementFlags.curlyScope);
                     statements.push(cur);
 
                     // https://issues.dlang.org/show_bug.cgi?id=21739
@@ -529,7 +529,7 @@ final class CParser(AST) : Parser!AST
             }
             else
             {
-                s = cparseStatement(ParseStatementFlags.semi);
+                s = cparseStatement(0);
             }
             s = new AST.ScopeStatement(loc, s, token.loc);
             s = new AST.CaseStatement(loc, exp, s);
@@ -546,12 +546,12 @@ final class CParser(AST) : Parser!AST
                 auto statements = new AST.Statements();
                 while (token.value != TOK.case_ && token.value != TOK.default_ && token.value != TOK.endOfFile && token.value != TOK.rightCurly)
                 {
-                    statements.push(cparseStatement(ParseStatementFlags.semi | ParseStatementFlags.curlyScope));
+                    statements.push(cparseStatement(ParseStatementFlags.curlyScope));
                 }
                 s = new AST.CompoundStatement(loc, statements);
             }
             else
-                s = cparseStatement(ParseStatementFlags.semi);
+                s = cparseStatement(0);
             s = new AST.ScopeStatement(loc, s, token.loc);
             s = new AST.DefaultStatement(loc, s);
             break;
