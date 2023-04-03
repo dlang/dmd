@@ -410,6 +410,7 @@ Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(AST = ASTCodeg
         m.src = fb;
     }
 
+    m.importedFrom = m;
     m = m.parseModule!AST();
 
     Diagnostics diagnostics = {
