@@ -120,10 +120,9 @@ void initDMD(
     import dmd.globals : CHECKENABLE, global;
     import dmd.id : Id;
     import dmd.identifier : Identifier;
-    import dmd.mars : addDefaultVersionIdentifiers;
     import dmd.mtype : Type;
     import dmd.objc : Objc;
-    import dmd.target : target, defaultTargetOS;
+    import dmd.target : target, defaultTargetOS, addDefaultVersionIdentifiers;
 
     .diagnosticHandler = diagnosticHandler;
     .fatalErrorHandler = fatalErrorHandler;
