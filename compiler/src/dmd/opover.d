@@ -1023,12 +1023,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                  * also compare the parent class's equality. Otherwise, compares
                  * the identity of parent context through void*.
                  */
-                if (e.att1 && t1.equivalent(e.att1)) return null;
-                if (e.att2 && t2.equivalent(e.att2)) return null;
-
                 e = e.copy().isEqualExp();
-                if (!e.att1) e.att1 = t1;
-                if (!e.att2) e.att2 = t2;
                 e.e1 = new DotIdExp(e.loc, e.e1, Id._tupleof);
                 e.e2 = new DotIdExp(e.loc, e.e2, Id._tupleof);
 
@@ -1036,18 +1031,6 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                 sc2.flags |= SCOPE.noaccesscheck;
                 Expression r = e.expressionSemantic(sc2);
                 sc2.pop();
-
-                /* https://issues.dlang.org/show_bug.cgi?id=15292
-                 * if the rewrite result is same with the original,
-                 * the equality is unresolvable because it has recursive definition.
-                 */
-                if (r.op == e.op &&
-                    r.isEqualExp().e1.type.toBasetype() == t1)
-                {
-                    e.error("cannot compare `%s` because its auto generated member-wise equality has recursive definition",
-                        t1.toChars());
-                    return ErrorExp.get();
-                }
                 return r;
             }
 
@@ -1078,8 +1061,6 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                         auto ex1 = (*tup1.exps)[i];
                         auto ex2 = (*tup2.exps)[i];
                         auto eeq = new EqualExp(e.op, e.loc, ex1, ex2);
-                        eeq.att1 = e.att1;
-                        eeq.att2 = e.att2;
 
                         if (!result)
                             result = eeq;
