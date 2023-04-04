@@ -1,6 +1,7 @@
 // EXTRA_CPP_SOURCES: cpp23814.cpp
 // CXXFLAGS: -O -m32
 // REQUIRED_ARGS: -m32
+// DISABLED: win64 linux64 osx64 freebsd64 dragonflybsd64 netbsd64
 
 extern(C++) interface BaseInterface1
 {
