@@ -542,6 +542,7 @@ enum ignoreTokens
     __cdecl,
     __declspec,
     __stdcall,
+    __thread,
     __pragma,
     __int128,
     __attribute__,

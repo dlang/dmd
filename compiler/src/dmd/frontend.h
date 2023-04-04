@@ -1810,9 +1810,10 @@ enum class TOK : uint8_t
     __cdecl_ = 217u,
     __declspec_ = 218u,
     __stdcall_ = 219u,
-    __pragma_ = 220u,
-    __int128_ = 221u,
-    __attribute___ = 222u,
+    __thread_ = 220u,
+    __pragma_ = 221u,
+    __int128_ = 222u,
+    __attribute___ = 223u,
 };
 
 enum class MemorySet

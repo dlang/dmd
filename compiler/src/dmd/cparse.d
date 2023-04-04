@@ -304,6 +304,7 @@ final class CParser(AST) : Parser!AST
         case TOK.extern_:
         case TOK.static_:
         case TOK._Thread_local:
+        case TOK.__thread:
         case TOK.auto_:
         case TOK.register:
 
@@ -2254,6 +2255,7 @@ final class CParser(AST) : Parser!AST
                 case TOK.typedef_:   scwx = SCW.xtypedef;   break;
                 case TOK.inline:     scwx = SCW.xinline;    break;
                 case TOK._Noreturn:  scwx = SCW.x_Noreturn; break;
+                case TOK.__thread:
                 case TOK._Thread_local: scwx = SCW.x_Thread_local; break;
 
                 // Type qualifiers
@@ -4183,6 +4185,7 @@ final class CParser(AST) : Parser!AST
                 case TOK.typedef_:
                 case TOK.extern_:
                 case TOK.static_:
+                case TOK.__thread:
                 case TOK._Thread_local:
                 case TOK.auto_:
                 case TOK.register:
@@ -4826,6 +4829,8 @@ final class CParser(AST) : Parser!AST
             {
                 if (specifier.scw & SCW.xextern)
                     stc = AST.STC.extern_;
+                else if (specifier.scw & SCW.xstatic)
+                    stc = AST.STC.static_;
             }
             else if (level == LVL.local)
             {
