@@ -508,6 +508,14 @@ final class CParser(AST) : Parser!AST
 
             nextToken();
             auto exp = cparseAssignExp();
+            AST.Expression expHigh;
+            if (token.value == TOK.dotDotDot)
+            {
+                /* Case Ranges https://gcc.gnu.org/onlinedocs/gcc/Case-Ranges.html
+                 */
+                nextToken();
+                expHigh = cparseAssignExp();
+            }
             check(TOK.colon);
 
             if (flags & ParseStatementFlags.curlyScope)
@@ -533,7 +541,10 @@ final class CParser(AST) : Parser!AST
                 s = cparseStatement(0);
             }
             s = new AST.ScopeStatement(loc, s, token.loc);
-            s = new AST.CaseStatement(loc, exp, s);
+            if (expHigh)
+                s = new AST.CaseRangeStatement(loc, exp, expHigh, s);
+            else
+                s = new AST.CaseStatement(loc, exp, s);
             break;
         }
 
