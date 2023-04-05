@@ -290,6 +290,8 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
         if (!sm)
             return helper3();
 
+        if (sm.isAliasDeclaration)
+            sm.checkDeprecated(loc, sc);
         s = sm.toAlias();
     }
 
