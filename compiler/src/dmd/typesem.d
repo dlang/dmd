@@ -3758,6 +3758,9 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
         {
             return noMember(mt, sc, e, ident, flag);
         }
+        // check before alias resolution; the alias itself might be deprecated!
+        if (s.isAliasDeclaration)
+            e.checkDeprecated(sc, s);
         s = s.toAlias();
 
         if (auto em = s.isEnumMember())
