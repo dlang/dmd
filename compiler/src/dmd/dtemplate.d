@@ -4118,8 +4118,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                         if (s)
                         {
                             s = s.toAlias();
-                            TemplateDeclaration td = s.isTemplateDeclaration();
-                            if (td)
+                            if (TemplateDeclaration td = s.isTemplateDeclaration())
                             {
                                 if (td.overroot)
                                     td = td.overroot;
@@ -4127,6 +4126,137 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                                 {
                                     if (td == tempdecl)
                                         goto L2;
+                                }
+                            }
+                            if (TemplateDeclaration td = s.isTemplateDeclaration())
+                            {
+                                // for alias decl without overloads
+                                if (!td.overroot && td.onemember && td.onemember.isAliasDeclaration())
+                                {
+                                    AliasDeclaration atd = td.onemember.isAliasDeclaration();
+                                    if (TypeInstance atdi = atd.getType().isTypeInstance())
+                                    {
+                                        Objects* adedtypes = new Objects(td.parameters.length);
+                                        adedtypes.zero();
+                                        // alias SomeAlias(<td.parameters>) = SomeTempOrAlias!(<adedtypes>>);
+                                        MATCH am = deduceType(t, s._scope, atdi, td.parameters, adedtypes);
+                                        if (am != MATCH.exact)
+                                            goto Lnomatch;
+                                        // flatten adedtypes
+                                        if ((*adedtypes)[$ - 1].isTuple())
+                                        {
+                                            auto ptp = (*adedtypes)[$ - 1].isTuple();
+                                            adedtypes.pop();
+                                            adedtypes.reserve(adedtypes.length + ptp.objects.length);
+                                            for (int j = 0; j < ptp.objects.length; j++)
+                                            {
+                                                adedtypes.push(ptp.objects[j]);
+                                            }
+                                        }
+                                        // yet to deduce
+                                        // <parameters> (SomeAlias<adedtypes>);
+                                        // a simplistic matcher
+                                        // dedtypes           -- output
+                                        // parameters         -- corresponding to dedtypes
+                                        // tp.tempinst.tiargs -- alias inst tiargs
+                                        // adedtypes          -- alias decl params deduced
+                                        for (size_t j = 0; 1; j++)
+                                        {
+                                            RootObject o1 = null;
+                                            RootObject o2 = null;
+                                            if (j < adedtypes.length)
+                                                o1 = (*adedtypes)[j];
+                                            else
+                                                break;
+                                            if (j < tp.tempinst.tiargs.length)
+                                            {
+                                                o2 = (*tp.tempinst.tiargs)[j];
+                                            }
+                                            else if (j < td.parameters.length)
+                                            {
+                                                if ((*td.parameters)[j].hasDefaultArg())
+                                                {
+                                                    break;
+                                                }
+                                            }
+                                            Type t2 = isType(o2);
+                                            size_t k = (t2 && t2.ty == Tident && j == tp.tempinst.tiargs.length - 1)
+                                                ? templateParameterLookup(t2, parameters) : IDX_NOTFOUND;
+                                            if (k != IDX_NOTFOUND && k == parameters.length - 1 &&
+                                                (*parameters)[j].isTemplateTupleParameter())
+                                            {
+                                                size_t vtdim = adedtypes.length - j;
+                                                auto vt = new Tuple(vtdim);
+                                                for (size_t l = 0; l < vtdim; l ++)
+                                                {
+                                                    vt.objects[l] = (*adedtypes)[l];
+                                                }
+                                                if (Tuple v = cast(Tuple)(*dedtypes)[j])
+                                                {
+                                                    if (!match(v, vt))
+                                                        goto Lnomatch;
+                                                }
+                                                else
+                                                {
+                                                    (*dedtypes)[k] = vt;
+                                                }
+                                                break;
+                                            }
+                                            else if (!o1)
+                                                break;
+                                            Type t1 = o1.isType();
+                                            Dsymbol s1 = o1.isDsymbol();
+                                            Dsymbol s2 = isDsymbol(o2);
+                                            Expression e1 = s1 ? s1.getValue() : o1.isExpression().getValue();
+                                            Expression e2 = o2.isExpression();
+                                            if (t1 && t2)
+                                            {
+                                                if (!deduceType(t1, sc, t2, parameters, dedtypes))
+                                                    goto Lnomatch;
+                                            }
+                                            else if (e1 && e2)
+                                            {
+                                                e1 = e1.ctfeInterpret();
+                                                e2 = e2.expressionSemantic(sc);
+                                                e2 = e2.ctfeInterpret();
+                                                if (!e1.equals(e2))
+                                                {
+                                                    if (!e2.implicitConvTo(e1.type))
+                                                        goto Lnomatch;
+
+                                                    e2 = e2.implicitCastTo(sc, e1.type);
+                                                    e2 = e2.ctfeInterpret();
+                                                    if (!e1.equals(e2))
+                                                        goto Lnomatch;
+                                                }
+                                            }
+                                            else if (e1 && t2 && t2.ty == Tident)
+                                            {
+                                                k = templateParameterLookup(t2, parameters);
+                                                if (k == IDX_NOTFOUND)
+                                                    goto Lnomatch;
+                                                if (!(*parameters)[j].matchArg(sc, e1, j, parameters, dedtypes, null))
+                                                    goto Lnomatch;
+                                            }
+                                            else if (s1 && s2)
+                                            {
+                                                if (s1.equals(s2))
+                                                    goto Lnomatch;
+                                            }
+                                            else if (s1 && t2 && t2.ty == Tident)
+                                            {
+                                                j = templateParameterLookup(t2, parameters);
+                                                if (j == IDX_NOTFOUND)
+                                                    goto Lnomatch;
+                                                if (!(*parameters)[j].matchArg(sc, s1, j, parameters, dedtypes, null))
+                                                    goto Lnomatch;
+                                            }
+                                            else
+                                                goto Lnomatch;
+                                        }
+                                        visit(cast(Type) t);
+                                        return;
+                                    }
                                 }
                             }
                         }
