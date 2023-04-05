@@ -4183,7 +4183,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                                             size_t k = (t2 && t2.ty == Tident && j == tp.tempinst.tiargs.length - 1)
                                                 ? templateParameterLookup(t2, parameters) : IDX_NOTFOUND;
                                             if (k != IDX_NOTFOUND && k == parameters.length - 1 &&
-                                                (*parameters)[j].isTemplateTupleParameter())
+                                                (*parameters)[k].isTemplateTupleParameter())
                                             {
                                                 size_t vtdim = adedtypes.length - j;
                                                 auto vt = new Tuple(vtdim);
