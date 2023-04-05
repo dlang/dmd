@@ -149,9 +149,10 @@ $(GNAME LabeledStatement):
 
 $(P
         Any statement can be labeled, including empty statements,
-        and so can serve as the target
-        of a goto statement. Labeled statements can also serve as the
-        target of a break or continue statement.
+        and so can serve as the target of a $(RELATIVE_LINK2 goto-statement, goto statement).
+        Labeled statements can also serve as the
+        target of a $(RELATIVE_LINK2 break-statement, break) or
+        $(RELATIVE_LINK2 continue-statement, continue) statement.
 )
 $(P
         A label can appear without a following statement at the end of
@@ -1462,32 +1463,58 @@ $(GNAME ContinueStatement):
     $(D continue) $(GLINK_LEX Identifier)$(OPT) $(D ;)
 )
 
-$(P `continue` aborts the current iteration of its enclosing loop statement, and
-starts the next iteration.)
+        $(P `continue` aborts the current iteration of its innermost enclosing
+        loop statement, and starts the next iteration.
+        If the enclosing loop is a `for` statement,
+        its $(GLINK Increment) clause is executed.)
 
-        $(P continue executes the next iteration of its innermost enclosing
-        while, for, foreach, or do loop. The increment clause is executed.)
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+string[] words = ["OK", "just", "longer", "words", "now"];
 
-        $(P If continue is followed by $(I Identifier), the $(I Identifier)
-        must be the label of an enclosing while, for, or do
-        loop, and the next iteration of that loop is executed.
+foreach (w; words)
+{
+    if (w.length < 4)
+        continue; // skip writeln
+
+    writeln(w);
+}
+---
+)
+        $(P Output:)
+
+$(CONSOLE
+just
+longer
+words
+)
+
+        $(P If `continue` is followed by $(I Identifier), the $(I Identifier)
+        must be the label of an enclosing loop statement,
+        and the next iteration of that loop is executed.
         It is an error if
         there is no such statement.)
 
-        $(P Any intervening finally clauses are executed, and any intervening
-        synchronization objects are released.)
-
-        $(P $(D Note:) If a finally clause executes a throw out of the finally
-        clause, the continue target is never reached.)
-
 ---
-for (i = 0; i < 10; i++)
+outer:
+foreach (item; list)
 {
-    if (foo(i))
-        continue;
-    bar();
+    // try 3 times
+    foreach (i; 0 .. 3)
+    {
+        if (item.buy())
+            continue outer; // skip to next item
+
+        log("attempt failed");
+    }
 }
 ---
+
+        $(P Any intervening $(RELATIVE_LINK2 try-statement, `finally`) clauses are executed,
+        and any intervening synchronization objects are released.)
+
+        $(P $(D Note:) If a `finally` clause executes a `throw` out of the finally
+        clause, the continue target is never reached.)
 
 $(H2 $(LEGACY_LNAME2 BreakStatement, break-statement, Break Statement))
 
@@ -1496,27 +1523,63 @@ $(GNAME BreakStatement):
     $(D break) $(GLINK_LEX Identifier)$(OPT) $(D ;)
 )
 
-$(P `break` exits the innermost enclosing while, for, foreach, do, or switch
+$(P `break` exits the innermost enclosing loop or $(RELATIVE_LINK2 switch-statement, `switch`)
 statement, resuming execution at the statement following it.)
 
-        $(P If break is followed by $(I Identifier), the $(I Identifier)
-        must be the label of an enclosing while, for, do or switch
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+const n = 55;
+
+// find the smallest factor of n
+foreach (i; 2 .. n)
+{
+    writeln("Trying: ", i);
+    if (n % i == 0)
+    {
+        writeln("smallest factor is ", i);
+        break; // stop looking
+    }
+}
+writeln("finished");
+---
+)
+        $(P Output:)
+
+$(CONSOLE
+Trying: 2
+Trying: 3
+Trying: 4
+Trying: 5
+smallest factor is 5
+finished
+)
+
+        $(P If `break` is followed by $(I Identifier), the $(I Identifier)
+        must be the label of an enclosing loop or `switch`
         statement, and that statement is exited. It is an error if
         there is no such statement.)
 
-        $(P Any intervening finally clauses are executed, and any intervening
-        synchronization objects are released.)
-
-        $(P $(D Note:) If a finally clause executes a throw out of the finally
-        clause, the break target is never reached.)
-
 ---
-for (i = 0; i < 10; i++)
+// display messages cyclically until the shop is closed
+outer:
+while (true)
 {
-    if (foo(i))
-        break;
+    foreach (msg; messages)
+    {
+        if (shop.isClosed())
+            break outer; // end the while loop
+
+        display(msg);
+    }
 }
+display("opens at 9am");
 ---
+
+        $(P Any intervening $(RELATIVE_LINK2 try-statement, `finally`) clauses are executed,
+        and any intervening synchronization objects are released.)
+
+        $(P $(D Note:) If a `finally` clause executes a `throw` out of the finally
+        clause, the break target is never reached.)
 
 $(H2 $(LEGACY_LNAME2 ReturnStatement, return-statement, Return Statement))
 
