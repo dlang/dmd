@@ -4134,12 +4134,37 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                                 if (!td.overroot && td.onemember && td.onemember.isAliasDeclaration())
                                 {
                                     AliasDeclaration atd = td.onemember.isAliasDeclaration();
-                                    if (TypeInstance atdi = atd.getType().isTypeInstance())
+                                    TypeInstance atdi = null;
+                                    Scope *asc;
+                                    switch(atd.getType().ty)
+                                    {
+                                    case TY.Tident:
+                                        TypeIdentifier adtif = cast(TypeIdentifier) atd.getType();
+                                        if (auto inst = cast(TemplateInstance) (adtif.idents.length? adtif.idents[$ - 1]: null))
+                                        {
+                                            auto adtifp = adtif.syntaxCopy();
+                                            adtifp.idents.pop();
+                                            adtifp.idents.push(inst.name);
+                                            if (auto temp = adtifp.toDsymbol(s._scope))
+                                            {
+                                                atdi = new TypeInstance(inst.loc, inst);
+                                                asc = temp._scope;
+                                            }
+                                        }
+                                        break;
+                                    case TY.Tinstance:
+                                        atdi = cast(TypeInstance) atd.getType();
+                                        asc = s._scope;
+                                        break;
+                                    default:
+                                        break;
+                                    }
+                                    if (atdi && asc)
                                     {
                                         Objects* adedtypes = new Objects(td.parameters.length);
                                         adedtypes.zero();
                                         // alias SomeAlias(<td.parameters>) = SomeTempOrAlias!(<adedtypes>>);
-                                        MATCH am = deduceType(t, s._scope, atdi, td.parameters, adedtypes);
+                                        MATCH am = deduceType(t, asc, atdi, td.parameters, adedtypes);
                                         if (am != MATCH.exact)
                                             goto Lnomatch;
                                         // flatten adedtypes
