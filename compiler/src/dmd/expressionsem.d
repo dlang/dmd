@@ -65,7 +65,6 @@ import dmd.parse;
 import dmd.printast;
 import dmd.root.array;
 import dmd.root.ctfloat;
-import dmd.root.file;
 import dmd.root.filename;
 import dmd.common.outbuffer;
 import dmd.root.rootobject;
@@ -6318,19 +6317,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             else
             {
-                auto readResult = File.read(resolvedNamez);
-                if (!readResult.success)
-                {
-                    e.error("cannot read file `%s`", resolvedNamez.ptr);
-                    return setError();
-                }
-                else
-                {
-                    // take ownership of buffer (probably leaking)
-                    auto data = readResult.extractSlice();
-                    se = new StringExp(e.loc, data);
-                    global.fileManager.add(fileName, data);
-                }
+                e.error("cannot read file `%s`", resolvedNamez.ptr);
+                return setError();
             }
         }
         result = se.expressionSemantic(sc);
