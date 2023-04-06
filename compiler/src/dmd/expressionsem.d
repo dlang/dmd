@@ -2348,29 +2348,17 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
     }
 
     /* Remaining problems:
-     * 1. order of evaluation - some function push L-to-R, others R-to-L. Until we resolve what array assignment does (which is
-     *    implemented by calling a function) we'll defer this for now.
-     * 2. value structs (or static arrays of them) that need to be copy constructed
-     * 3. value structs (or static arrays of them) that have destructors, and subsequent arguments that may throw before the
+     * 1. value structs (or static arrays of them) that need to be copy constructed
+     * 2. value structs (or static arrays of them) that have destructors, and subsequent arguments that may throw before the
      *    function gets called.
-     * 4. value structs need to be destructed after the function call for platforms where the caller destroys the arguments.
-     * 2, 3 and 4 are handled by doing the argument construction in 'eprefix' so that if a later argument throws, they are cleaned
+     * 3. value structs need to be destructed after the function call for platforms where the caller destroys the arguments.
+     * Those are handled by doing the argument construction in 'eprefix' so that if a later argument throws, they are cleaned
      * up properly. Pushing arguments on the stack then cannot fail.
      */
      {
-        /* TODO: tackle problem 1)
-         */
-        const bool leftToRight = true; // TODO: Any cases that need rightToLeft?
-        if (!leftToRight)
-            assert(nargs == nparams); // no variadics for RTL order, as they would probably be evaluated LTR and so add complexity
-
-        /* Does Problem (4) apply?
+        /* Does Problem (3) apply?
          */
         const bool callerDestroysArgs = !target.isCalleeDestroyingArgs(tf);
-
-        const ptrdiff_t start = (leftToRight ? 0 : cast(ptrdiff_t)nargs - 1);
-        const ptrdiff_t end   = (leftToRight ? cast(ptrdiff_t)nargs : -1);
-        const ptrdiff_t step  = (leftToRight ? 1 : -1);
 
         /* Compute indices of last throwing argument and first arg needing destruction.
          * Used to not set up destructors unless an arg needs destruction on a throw
@@ -2379,7 +2367,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
         ptrdiff_t lastthrow = -1;   // last argument that may throw
         ptrdiff_t firstdtor = -1;   // first argument that needs destruction
         ptrdiff_t lastdtor  = -1;   // last argument that needs destruction
-        for (ptrdiff_t i = start; i != end; i += step)
+        for (ptrdiff_t i = 0; i != nargs; i++)
         {
             Expression arg = (*arguments)[i];
             if (canThrow(arg, sc.func, false))
@@ -2396,12 +2384,12 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             }
         }
 
-        /* Do we need 'eprefix' for problems 3 or 4?
+        /* Do we need 'eprefix' for problems 2 or 3?
          */
         const bool needsPrefix = callerDestroysArgs
             ? firstdtor >= 0 // true if any argument needs destruction
             : firstdtor >= 0 && lastthrow >= 0 &&
-              (lastthrow - firstdtor) * step > 0; // last throw after first destruction
+              (lastthrow - firstdtor) > 0; // last throw after first destruction
         const ptrdiff_t lastPrefix = callerDestroysArgs
             ? lastdtor   // up to last argument requiring destruction
             : lastthrow; // up to last potentially throwing argument
@@ -2421,7 +2409,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             eprefix = ae.expressionSemantic(sc);
         }
 
-        for (ptrdiff_t i = start; i != end; i += step)
+        for (ptrdiff_t i = 0; i != nargs; i++)
         {
             Expression arg = (*arguments)[i];
             //printf("arg[%d]: %s\n", cast(int)i, arg.toChars());
@@ -2437,12 +2425,12 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
 
             /* Do we have 'eprefix' and aren't past 'lastPrefix' yet?
              * Then declare a temporary variable for this arg and append that declaration
-             * to 'eprefix', which will implicitly take care of potential problem 2) for
+             * to 'eprefix', which will implicitly take care of potential problem 1) for
              * this arg.
              * 'eprefix' will therefore finally contain all args up to and including 'lastPrefix',
              * excluding all lazy parameters.
              */
-            if (needsPrefix && (lastPrefix - i) * step >= 0)
+            if (needsPrefix && (lastPrefix - i) >= 0)
             {
                 const bool needsDtor = !isRef && arg.type.needsDestruction() &&
                                        // Problem 3: last throwing arg doesn't require dtor patching
@@ -2465,7 +2453,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 }
                 else
                 {
-                    /* Problem 3: Modify the destructor so it only runs if gate==false,
+                    /* Problem 2: Modify the destructor so it only runs if gate==false,
                      * i.e., only if there was a throw while constructing the args
                      */
                     if (!needsDtor)
@@ -2500,7 +2488,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                     arg = arg.expressionSemantic(sc);
                 }
 
-                /* Problem 3: Last throwing arg?
+                /* Problem 2: Last throwing arg?
                  * Then finalize eprefix => (eprefix, gate = true), i.e., disable the
                  * dtors right after constructing the last throwing arg.
                  * From now on, the callee will take care of destructing the args because
@@ -2514,7 +2502,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             }
             else // not part of 'eprefix'
             {
-                /* Handle problem 2) by calling the copy constructor for value structs
+                /* Handle problem 1) by calling the copy constructor for value structs
                  * (or static arrays of them) if appropriate.
                  */
                 Type tv = arg.type.baseElemOf();
