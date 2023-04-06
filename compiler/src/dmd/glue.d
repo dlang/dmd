@@ -1348,7 +1348,10 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
             if (!cmain)
                 objmod.includelib("uuid");
             if (driverParams.mscrtlib.length && driverParams.mscrtlib[0])
+            {
                 obj_includelib(driverParams.mscrtlib);
+                objmod.includelib("LIBCMT");
+            }
             objmod.includelib("OLDNAMES");
         }
         else if (target.objectFormat() == Target.ObjectFormat.omf)

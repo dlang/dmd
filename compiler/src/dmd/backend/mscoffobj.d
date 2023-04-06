@@ -1335,11 +1335,14 @@ int MsCoffObj_comdat(Symbol *s)
     {
         s.Sfl = FLtlsdata;
         align_ = 16;
-        s.Sseg = MsCoffObj_getsegment(".tls$AAB", IMAGE_SCN_CNT_INITIALIZED_DATA |
-                                            IMAGE_SCN_LNK_COMDAT |
-                                            IMAGE_SCN_ALIGN_16BYTES |
-                                            IMAGE_SCN_MEM_READ |
-                                            IMAGE_SCN_MEM_WRITE);
+        auto scn = IMAGE_SCN_CNT_INITIALIZED_DATA |
+                   IMAGE_SCN_ALIGN_16BYTES |
+                   IMAGE_SCN_MEM_READ |
+                   IMAGE_SCN_MEM_WRITE;
+        if (!(s.Sclass == SC.static_ || s.Sclass == SC.locstat))
+            scn |= IMAGE_SCN_LNK_COMDAT;
+
+        s.Sseg = MsCoffObj_getsegment(".tls$AAB", scn);
         MsCoffObj_data_start(s, align_, s.Sseg);
     }
     else

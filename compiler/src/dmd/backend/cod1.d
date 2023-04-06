@@ -1464,6 +1464,8 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                         pcs.Isib = modregrm(0, 4, 5);  // don't use [RIP] addressing
                         pcs.IFL1 = FLconst;
                         pcs.IEV1.Vuns = 88;
+                        //pcs.IEV1.Vsym = s;
+                        //pcs.IEV1.Voffset = e.EV.Voffset;
                         pcs.Iflags = CFgs;
                         pcs.Irex |= REX_W;
                         break;
