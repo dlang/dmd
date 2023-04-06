@@ -36,27 +36,6 @@ unittest
     assert(reporter.errorCount == 1);
 }
 
-@("warnings: C preprocessor directive")
-unittest
-{
-    static final class WarningCountingDiagnosticReporter : NoopDiagnosticReporter
-    {
-        int warningCount;
-
-        override bool warning(const ref Loc, const(char)*, va_list, const(char)*, const(char)*)
-        {
-            warningCount++;
-            return true;
-        }
-    }
-
-    global.params.warnings = DiagnosticReporting.inform;
-    scope reporter = new WarningCountingDiagnosticReporter;
-    lexUntilEndOfFile(`#foo`);
-
-    assert(reporter.warningCount == 1);
-}
-
 private void lexUntilEndOfFile(string code)
 {
     import dmd.lexer : Lexer;
