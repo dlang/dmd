@@ -4260,7 +4260,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                                                 k = templateParameterLookup(t2, parameters);
                                                 if (k == IDX_NOTFOUND)
                                                     goto Lnomatch;
-                                                if (!(*parameters)[j].matchArg(sc, e1, j, parameters, dedtypes, null))
+                                                if (!(*parameters)[k].matchArg(sc, e1, k, parameters, dedtypes, null))
                                                     goto Lnomatch;
                                             }
                                             else if (s1 && s2)
@@ -4270,10 +4270,10 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                                             }
                                             else if (s1 && t2 && t2.ty == Tident)
                                             {
-                                                j = templateParameterLookup(t2, parameters);
-                                                if (j == IDX_NOTFOUND)
+                                                k = templateParameterLookup(t2, parameters);
+                                                if (k == IDX_NOTFOUND)
                                                     goto Lnomatch;
-                                                if (!(*parameters)[j].matchArg(sc, s1, j, parameters, dedtypes, null))
+                                                if (!(*parameters)[k].matchArg(sc, s1, k, parameters, dedtypes, null))
                                                     goto Lnomatch;
                                             }
                                             else

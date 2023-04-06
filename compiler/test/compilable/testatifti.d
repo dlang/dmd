@@ -92,7 +92,8 @@ void main()
     fooAliasVar(AliasVar!(float, int, char, string)());
     fooAliasDiverse(AliasDiverse!(char, string, 1, 12)());
 
-    static assert(is(Vector3!float == Vector3!U, U)); // !!! 
+    static assert(is(Vector3!float == Vector3!U, U)); // !!!
+    static assert(is(Vector!(float, 3) == Vector!(U, N), U, size_t N));
 
     Vector!(float, 10) v;
     normalize(v);
