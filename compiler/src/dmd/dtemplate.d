@@ -3843,63 +3843,65 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
         override void visit(TypeSArray t)
         {
             // Extra check that array dimensions must match
-            if (tparam)
+            if (!tparam)
+                return visit(cast(Type)t);
+
+            if (tparam.ty == Tarray)
             {
-                if (tparam.ty == Tarray)
-                {
-                    MATCH m = deduceType(t.next, sc, tparam.nextOf(), parameters, dedtypes, wm);
-                    result = (m >= MATCH.constant) ? MATCH.convert : MATCH.nomatch;
-                    return;
-                }
+                MATCH m = deduceType(t.next, sc, tparam.nextOf(), parameters, dedtypes, wm);
+                result = (m >= MATCH.constant) ? MATCH.convert : MATCH.nomatch;
+                return;
+            }
 
-                TemplateParameter tp = null;
-                Expression edim = null;
-                size_t i;
-                if (tparam.ty == Tsarray)
+            TemplateParameter tp = null;
+            Expression edim = null;
+            size_t i;
+            if (tparam.ty == Tsarray)
+            {
+                TypeSArray tsa = cast(TypeSArray)tparam;
+                if (tsa.dim.isVarExp() && tsa.dim.isVarExp().var.storage_class & STC.templateparameter)
                 {
-                    TypeSArray tsa = cast(TypeSArray)tparam;
-                    if (tsa.dim.isVarExp() && tsa.dim.isVarExp().var.storage_class & STC.templateparameter)
-                    {
-                        Identifier id = tsa.dim.isVarExp().var.ident;
-                        i = templateIdentifierLookup(id, parameters);
-                        assert(i != IDX_NOTFOUND);
-                        tp = (*parameters)[i];
-                    }
-                    else
-                        edim = tsa.dim;
+                    Identifier id = tsa.dim.isVarExp().var.ident;
+                    i = templateIdentifierLookup(id, parameters);
+                    assert(i != IDX_NOTFOUND);
+                    tp = (*parameters)[i];
                 }
-                else if (tparam.ty == Taarray)
+                else
+                    edim = tsa.dim;
+            }
+            else if (tparam.ty == Taarray)
+            {
+                TypeAArray taa = cast(TypeAArray)tparam;
+                i = templateParameterLookup(taa.index, parameters);
+                if (i != IDX_NOTFOUND)
+                    tp = (*parameters)[i];
+                else
                 {
-                    TypeAArray taa = cast(TypeAArray)tparam;
-                    i = templateParameterLookup(taa.index, parameters);
-                    if (i != IDX_NOTFOUND)
-                        tp = (*parameters)[i];
-                    else
+                    Loc loc;
+                    // The "type" (it hasn't been resolved yet) of the function parameter
+                    // does not have a location but the parameter it is related to does,
+                    // so we use that for the resolution (better error message).
+                    if (inferStart < parameters.length)
                     {
-                        Loc loc;
-                        // The "type" (it hasn't been resolved yet) of the function parameter
-                        // does not have a location but the parameter it is related to does,
-                        // so we use that for the resolution (better error message).
-                        if (inferStart < parameters.length)
-                        {
-                            TemplateParameter loctp = (*parameters)[inferStart];
-                            loc = loctp.loc;
-                        }
+                        TemplateParameter loctp = (*parameters)[inferStart];
+                        loc = loctp.loc;
+                    }
 
-                        Expression e;
-                        Type tx;
-                        Dsymbol s;
-                        taa.index.resolve(loc, sc, e, tx, s);
-                        edim = s ? getValue(s) : getValue(e);
-                    }
-                }
-                if (tp && tp.matchArg(sc, t.dim, i, parameters, dedtypes, null) || edim && edim.toInteger() == t.dim.toInteger())
-                {
-                    result = deduceType(t.next, sc, tparam.nextOf(), parameters, dedtypes, wm);
-                    return;
+                    Expression e;
+                    Type tx;
+                    Dsymbol s;
+                    taa.index.resolve(loc, sc, e, tx, s);
+                    edim = s ? getValue(s) : getValue(e);
                 }
             }
-            visit(cast(Type)t);
+            if (tp && tp.matchArg(sc, t.dim, i, parameters, dedtypes, null) || edim && edim.toInteger() == t.dim.toInteger())
+            {
+                result = deduceType(t.next, sc, tparam.nextOf(), parameters, dedtypes, wm);
+            }
+            else
+            {
+                return visit(cast(Type)t);
+            }
         }
 
         override void visit(TypeAArray t)
@@ -3923,133 +3925,134 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             if (!tparam)
                 return visit(cast(Type)t);
 
-            if (auto tp = tparam.isTypeFunction())
+            auto tp = tparam.isTypeFunction();
+            if (!tp)
+                return visit(cast(Type)t);
+
+            if (t.parameterList.varargs != tp.parameterList.varargs || t.linkage != tp.linkage)
             {
-                if (t.parameterList.varargs != tp.parameterList.varargs || t.linkage != tp.linkage)
+                result = MATCH.nomatch;
+                return;
+            }
+
+            foreach (fparam; *tp.parameterList.parameters)
+            {
+                // https://issues.dlang.org/show_bug.cgi?id=2579
+                // Apply function parameter storage classes to parameter types
+                fparam.type = fparam.type.addStorageClass(fparam.storageClass);
+                fparam.storageClass &= ~STC.TYPECTOR;
+
+                // https://issues.dlang.org/show_bug.cgi?id=15243
+                // Resolve parameter type if it's not related with template parameters
+                if (!reliesOnTemplateParameters(fparam.type, (*parameters)[inferStart .. parameters.length]))
                 {
-                    result = MATCH.nomatch;
-                    return;
-                }
-
-                foreach (fparam; *tp.parameterList.parameters)
-                {
-                    // https://issues.dlang.org/show_bug.cgi?id=2579
-                    // Apply function parameter storage classes to parameter types
-                    fparam.type = fparam.type.addStorageClass(fparam.storageClass);
-                    fparam.storageClass &= ~STC.TYPECTOR;
-
-                    // https://issues.dlang.org/show_bug.cgi?id=15243
-                    // Resolve parameter type if it's not related with template parameters
-                    if (!reliesOnTemplateParameters(fparam.type, (*parameters)[inferStart .. parameters.length]))
-                    {
-                        auto tx = fparam.type.typeSemantic(Loc.initial, sc);
-                        if (tx.ty == Terror)
-                        {
-                            result = MATCH.nomatch;
-                            return;
-                        }
-                        fparam.type = tx;
-                    }
-                }
-
-                size_t nfargs = t.parameterList.length;
-                size_t nfparams = tp.parameterList.length;
-
-                /* See if tuple match
-                 */
-                if (nfparams > 0 && nfargs >= nfparams - 1)
-                {
-                    /* See if 'A' of the template parameter matches 'A'
-                     * of the type of the last function parameter.
-                     */
-                    Parameter fparam = tp.parameterList[nfparams - 1];
-                    assert(fparam);
-                    assert(fparam.type);
-                    if (fparam.type.ty != Tident)
-                        goto L1;
-                    TypeIdentifier tid = cast(TypeIdentifier)fparam.type;
-                    if (tid.idents.length)
-                        goto L1;
-
-                    /* Look through parameters to find tuple matching tid.ident
-                     */
-                    size_t tupi = 0;
-                    for (; 1; tupi++)
-                    {
-                        if (tupi == parameters.length)
-                            goto L1;
-                        TemplateParameter tx = (*parameters)[tupi];
-                        TemplateTupleParameter tup = tx.isTemplateTupleParameter();
-                        if (tup && tup.ident.equals(tid.ident))
-                            break;
-                    }
-
-                    /* The types of the function arguments [nfparams - 1 .. nfargs]
-                     * now form the tuple argument.
-                     */
-                    size_t tuple_dim = nfargs - (nfparams - 1);
-
-                    /* See if existing tuple, and whether it matches or not
-                     */
-                    RootObject o = (*dedtypes)[tupi];
-                    if (o)
-                    {
-                        // Existing deduced argument must be a tuple, and must match
-                        Tuple tup = isTuple(o);
-                        if (!tup || tup.objects.length != tuple_dim)
-                        {
-                            result = MATCH.nomatch;
-                            return;
-                        }
-                        for (size_t i = 0; i < tuple_dim; i++)
-                        {
-                            Parameter arg = t.parameterList[nfparams - 1 + i];
-                            if (!arg.type.equals(tup.objects[i]))
-                            {
-                                result = MATCH.nomatch;
-                                return;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        // Create new tuple
-                        auto tup = new Tuple(tuple_dim);
-                        for (size_t i = 0; i < tuple_dim; i++)
-                        {
-                            Parameter arg = t.parameterList[nfparams - 1 + i];
-                            tup.objects[i] = arg.type;
-                        }
-                        (*dedtypes)[tupi] = tup;
-                    }
-                    nfparams--; // don't consider the last parameter for type deduction
-                    goto L2;
-                }
-
-            L1:
-                if (nfargs != nfparams)
-                {
-                    result = MATCH.nomatch;
-                    return;
-                }
-            L2:
-                assert(nfparams <= tp.parameterList.length);
-                foreach (i, ap; tp.parameterList)
-                {
-                    if (i == nfparams)
-                        break;
-
-                    Parameter a = t.parameterList[i];
-
-                    if (!a.isCovariant(t.isref, ap) ||
-                        !deduceType(a.type, sc, ap.type, parameters, dedtypes))
+                    auto tx = fparam.type.typeSemantic(Loc.initial, sc);
+                    if (tx.ty == Terror)
                     {
                         result = MATCH.nomatch;
                         return;
                     }
+                    fparam.type = tx;
                 }
             }
-            visit(cast(Type)t);
+
+            size_t nfargs = t.parameterList.length;
+            size_t nfparams = tp.parameterList.length;
+
+            /* See if tuple match
+             */
+            if (nfparams > 0 && nfargs >= nfparams - 1)
+            {
+                /* See if 'A' of the template parameter matches 'A'
+                 * of the type of the last function parameter.
+                 */
+                Parameter fparam = tp.parameterList[nfparams - 1];
+                assert(fparam);
+                assert(fparam.type);
+                if (fparam.type.ty != Tident)
+                    goto L1;
+                TypeIdentifier tid = cast(TypeIdentifier)fparam.type;
+                if (tid.idents.length)
+                    goto L1;
+
+                /* Look through parameters to find tuple matching tid.ident
+                 */
+                size_t tupi = 0;
+                for (; 1; tupi++)
+                {
+                    if (tupi == parameters.length)
+                        goto L1;
+                    TemplateParameter tx = (*parameters)[tupi];
+                    TemplateTupleParameter tup = tx.isTemplateTupleParameter();
+                    if (tup && tup.ident.equals(tid.ident))
+                        break;
+                }
+
+                /* The types of the function arguments [nfparams - 1 .. nfargs]
+                 * now form the tuple argument.
+                 */
+                size_t tuple_dim = nfargs - (nfparams - 1);
+
+                /* See if existing tuple, and whether it matches or not
+                 */
+                RootObject o = (*dedtypes)[tupi];
+                if (o)
+                {
+                    // Existing deduced argument must be a tuple, and must match
+                    Tuple tup = isTuple(o);
+                    if (!tup || tup.objects.length != tuple_dim)
+                    {
+                        result = MATCH.nomatch;
+                        return;
+                    }
+                    for (size_t i = 0; i < tuple_dim; i++)
+                    {
+                        Parameter arg = t.parameterList[nfparams - 1 + i];
+                        if (!arg.type.equals(tup.objects[i]))
+                        {
+                            result = MATCH.nomatch;
+                            return;
+                        }
+                    }
+                }
+                else
+                {
+                    // Create new tuple
+                    auto tup = new Tuple(tuple_dim);
+                    for (size_t i = 0; i < tuple_dim; i++)
+                    {
+                        Parameter arg = t.parameterList[nfparams - 1 + i];
+                        tup.objects[i] = arg.type;
+                    }
+                    (*dedtypes)[tupi] = tup;
+                }
+                nfparams--; // don't consider the last parameter for type deduction
+                goto L2;
+            }
+
+        L1:
+            if (nfargs != nfparams)
+            {
+                result = MATCH.nomatch;
+                return;
+            }
+        L2:
+            assert(nfparams <= tp.parameterList.length);
+            foreach (i, ap; tp.parameterList)
+            {
+                if (i == nfparams)
+                    break;
+
+                Parameter a = t.parameterList[i];
+
+                if (!a.isCovariant(t.isref, ap) ||
+                    !deduceType(a.type, sc, ap.type, parameters, dedtypes))
+                {
+                    result = MATCH.nomatch;
+                    return;
+                }
+            }
+            return visit(cast(Type)t);
         }
 
         override void visit(TypeIdentifier t)
@@ -4074,255 +4077,254 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
 
         override void visit(TypeInstance t)
         {
-            // Extra check
-            if (tparam && tparam.ty == Tinstance && t.tempinst.tempdecl)
+            void nomatch()
             {
-                TemplateDeclaration tempdecl = t.tempinst.tempdecl.isTemplateDeclaration();
-                assert(tempdecl);
+                //printf("no match\n");
+                result = MATCH.nomatch;
+            }
+            // Extra check
+            if (!tparam || tparam.ty != Tinstance || !t.tempinst.tempdecl)
+                visit(cast(Type)t);
 
-                TypeInstance tp = cast(TypeInstance)tparam;
+            TemplateDeclaration tempdecl = t.tempinst.tempdecl.isTemplateDeclaration();
+            assert(tempdecl);
 
-                //printf("tempinst.tempdecl = %p\n", tempdecl);
-                //printf("tp.tempinst.tempdecl = %p\n", tp.tempinst.tempdecl);
-                if (!tp.tempinst.tempdecl)
+            TypeInstance tp = cast(TypeInstance)tparam;
+
+            //printf("tempinst.tempdecl = %p\n", tempdecl);
+            //printf("tp.tempinst.tempdecl = %p\n", tp.tempinst.tempdecl);
+            if (!tp.tempinst.tempdecl)
+            {
+                //printf("tp.tempinst.name = '%s'\n", tp.tempinst.name.toChars());
+
+                /* Handle case of:
+                    *  template Foo(T : sa!(T), alias sa)
+                    */
+                size_t i = templateIdentifierLookup(tp.tempinst.name, parameters);
+                if (i == IDX_NOTFOUND)
                 {
-                    //printf("tp.tempinst.name = '%s'\n", tp.tempinst.name.toChars());
-
-                    /* Handle case of:
-                     *  template Foo(T : sa!(T), alias sa)
-                     */
-                    size_t i = templateIdentifierLookup(tp.tempinst.name, parameters);
-                    if (i == IDX_NOTFOUND)
+                    /* Didn't find it as a parameter identifier. Try looking
+                        * it up and seeing if is an alias.
+                        * https://issues.dlang.org/show_bug.cgi?id=1454
+                        */
+                    auto tid = new TypeIdentifier(tp.loc, tp.tempinst.name);
+                    Type tx;
+                    Expression e;
+                    Dsymbol s;
+                    tid.resolve(tp.loc, sc, e, tx, s);
+                    if (tx)
                     {
-                        /* Didn't find it as a parameter identifier. Try looking
-                         * it up and seeing if is an alias.
-                         * https://issues.dlang.org/show_bug.cgi?id=1454
-                         */
-                        auto tid = new TypeIdentifier(tp.loc, tp.tempinst.name);
-                        Type tx;
-                        Expression e;
-                        Dsymbol s;
-                        tid.resolve(tp.loc, sc, e, tx, s);
-                        if (tx)
+                        s = tx.toDsymbol(sc);
+                        if (TemplateInstance ti = s ? s.parent.isTemplateInstance() :null)
                         {
-                            s = tx.toDsymbol(sc);
-                            if (TemplateInstance ti = s ? s.parent.isTemplateInstance() : null)
-                            {
-                                // https://issues.dlang.org/show_bug.cgi?id=14290
-                                // Try to match with ti.tempecl,
-                                // only when ti is an enclosing instance.
-                                Dsymbol p = sc.parent;
-                                while (p && p != ti)
-                                    p = p.parent;
-                                if (p)
-                                    s = ti.tempdecl;
-                            }
+                            // https://issues.dlang.org/show_bug.cgi?id=14290
+                            // Try to match with ti.tempecl,
+                            // only when ti is an enclosing instance.
+                            Dsymbol p = sc.parent;
+                            while (p && p != ti)
+                                p = p.parent;
+                            if (p)
+                                s = ti.tempdecl;
                         }
-                        if (s)
-                        {
-                            s = s.toAlias();
-                            TemplateDeclaration td = s.isTemplateDeclaration();
-                            if (td)
-                            {
-                                if (td.overroot)
-                                    td = td.overroot;
-                                for (; td; td = td.overnext)
-                                {
-                                    if (td == tempdecl)
-                                        goto L2;
-                                }
-                            }
-                        }
-                        goto Lnomatch;
                     }
-
-                    TemplateParameter tpx = (*parameters)[i];
-                    if (!tpx.matchArg(sc, tempdecl, i, parameters, dedtypes, null))
-                        goto Lnomatch;
+                    if (s)
+                    {
+                        s = s.toAlias();
+                        TemplateDeclaration td = s.isTemplateDeclaration();
+                        if (td)
+                        {
+                            if (td.overroot)
+                                td = td.overroot;
+                            for (; td; td = td.overnext)
+                            {
+                                if (td == tempdecl)
+                                    goto L2;
+                            }
+                        }
+                    }
+                    return nomatch();
                 }
-                else if (tempdecl != tp.tempinst.tempdecl)
-                    goto Lnomatch;
+                TemplateParameter tpx = (*parameters)[i];
+                if (!tpx.matchArg(sc, tempdecl, i, parameters, dedtypes, null))
+                    return nomatch();
+            }
+            else if (tempdecl != tp.tempinst.tempdecl)
+                return nomatch();
 
-            L2:
-                for (size_t i = 0; 1; i++)
+        L2:
+            for (size_t i = 0; 1; i++)
+            {
+                //printf("\ttest: tempinst.tiargs[%zu]\n", i);
+                RootObject o1 = null;
+                if (i < t.tempinst.tiargs.length)
+                    o1 = (*t.tempinst.tiargs)[i];
+                else if (i < t.tempinst.tdtypes.length && i < tp.tempinst.tiargs.length)
                 {
-                    //printf("\ttest: tempinst.tiargs[%zu]\n", i);
-                    RootObject o1 = null;
-                    if (i < t.tempinst.tiargs.length)
-                        o1 = (*t.tempinst.tiargs)[i];
-                    else if (i < t.tempinst.tdtypes.length && i < tp.tempinst.tiargs.length)
+                    // Pick up default arg
+                    o1 = t.tempinst.tdtypes[i];
+                }
+                else if (i >= tp.tempinst.tiargs.length)
+                    break;
+                //printf("\ttest: o1 = %s\n", o1.toChars());
+                if (i >= tp.tempinst.tiargs.length)
+                {
+                    size_t dim = tempdecl.parameters.length - (tempdecl.isVariadic() ?1 : 0);
+                    while (i < dim && ((*tempdecl.parameters)[i].dependent ||(*tempdecl.parameters)[i].hasDefaultArg()))
                     {
-                        // Pick up default arg
-                        o1 = t.tempinst.tdtypes[i];
+                        i++;
                     }
-                    else if (i >= tp.tempinst.tiargs.length)
-                        break;
-                    //printf("\ttest: o1 = %s\n", o1.toChars());
-                    if (i >= tp.tempinst.tiargs.length)
+                    if (i >= dim)
+                        break; // match if all remained parameters are dependent
+                    return nomatch();
+                }
+
+                RootObject o2 = (*tp.tempinst.tiargs)[i];
+                Type t2 = isType(o2);
+                //printf("\ttest: o2 = %s\n", o2.toChars());
+                size_t j = (t2 && t2.ty == Tident && i == tp.tempinst.tiargs.length - 1)
+                    ? templateParameterLookup(t2, parameters) : IDX_NOTFOUND;
+                if (j != IDX_NOTFOUND && j == parameters.length - 1 &&
+                    (*parameters)[j].isTemplateTupleParameter())
+                {
+                    /* Given:
+                        *  struct A(B...) {}
+                        *  alias A!(int, float) X;
+                        *  static if (is(X Y == A!(Z), Z...)) {}
+                        * deduce that Z is a tuple(int, float)
+                        */
+
+                    /* Create tuple from remaining args
+                        */
+                    size_t vtdim = (tempdecl.isVariadic() ? t.tempinst.tiargs.length :t.tempinst.tdtypes.length) - i;
+                    auto vt = new Tuple(vtdim);
+                    for (size_t k = 0; k < vtdim; k++)
                     {
-                        size_t dim = tempdecl.parameters.length - (tempdecl.isVariadic() ? 1 : 0);
-                        while (i < dim && ((*tempdecl.parameters)[i].dependent || (*tempdecl.parameters)[i].hasDefaultArg()))
-                        {
-                            i++;
-                        }
-                        if (i >= dim)
-                            break; // match if all remained parameters are dependent
-                        goto Lnomatch;
-                    }
-
-                    RootObject o2 = (*tp.tempinst.tiargs)[i];
-                    Type t2 = isType(o2);
-                    //printf("\ttest: o2 = %s\n", o2.toChars());
-                    size_t j = (t2 && t2.ty == Tident && i == tp.tempinst.tiargs.length - 1)
-                        ? templateParameterLookup(t2, parameters) : IDX_NOTFOUND;
-                    if (j != IDX_NOTFOUND && j == parameters.length - 1 &&
-                        (*parameters)[j].isTemplateTupleParameter())
-                    {
-                        /* Given:
-                         *  struct A(B...) {}
-                         *  alias A!(int, float) X;
-                         *  static if (is(X Y == A!(Z), Z...)) {}
-                         * deduce that Z is a tuple(int, float)
-                         */
-
-                        /* Create tuple from remaining args
-                         */
-                        size_t vtdim = (tempdecl.isVariadic() ? t.tempinst.tiargs.length : t.tempinst.tdtypes.length) - i;
-                        auto vt = new Tuple(vtdim);
-                        for (size_t k = 0; k < vtdim; k++)
-                        {
-                            RootObject o;
-                            if (k < t.tempinst.tiargs.length)
-                                o = (*t.tempinst.tiargs)[i + k];
-                            else // Pick up default arg
-                                o = t.tempinst.tdtypes[i + k];
-                            vt.objects[k] = o;
-                        }
-
-                        Tuple v = cast(Tuple)(*dedtypes)[j];
-                        if (v)
-                        {
-                            if (!match(v, vt))
-                                goto Lnomatch;
-                        }
-                        else
-                            (*dedtypes)[j] = vt;
-                        break;
-                    }
-                    else if (!o1)
-                        break;
-
-                    Type t1 = isType(o1);
-                    Dsymbol s1 = isDsymbol(o1);
-                    Dsymbol s2 = isDsymbol(o2);
-                    Expression e1 = s1 ? getValue(s1) : getValue(isExpression(o1));
-                    Expression e2 = isExpression(o2);
-                    version (none)
-                    {
-                        Tuple v1 = isTuple(o1);
-                        Tuple v2 = isTuple(o2);
-                        if (t1)
-                            printf("t1 = %s\n", t1.toChars());
-                        if (t2)
-                            printf("t2 = %s\n", t2.toChars());
-                        if (e1)
-                            printf("e1 = %s\n", e1.toChars());
-                        if (e2)
-                            printf("e2 = %s\n", e2.toChars());
-                        if (s1)
-                            printf("s1 = %s\n", s1.toChars());
-                        if (s2)
-                            printf("s2 = %s\n", s2.toChars());
-                        if (v1)
-                            printf("v1 = %s\n", v1.toChars());
-                        if (v2)
-                            printf("v2 = %s\n", v2.toChars());
+                        RootObject o;
+                        if (k < t.tempinst.tiargs.length)
+                            o = (*t.tempinst.tiargs)[i + k];
+                        else // Pick up default arg
+                            o = t.tempinst.tdtypes[i + k];
+                        vt.objects[k] = o;
                     }
 
-                    if (t1 && t2)
+                    Tuple v = cast(Tuple)(*dedtypes)[j];
+                    if (v)
                     {
-                        if (!deduceType(t1, sc, t2, parameters, dedtypes))
-                            goto Lnomatch;
-                    }
-                    else if (e1 && e2)
-                    {
-                    Le:
-                        e1 = e1.ctfeInterpret();
-
-                        /* If it is one of the template parameters for this template,
-                         * we should not attempt to interpret it. It already has a value.
-                         */
-                        if (e2.op == EXP.variable && (e2.isVarExp().var.storage_class & STC.templateparameter))
-                        {
-                            /*
-                             * (T:Number!(e2), int e2)
-                             */
-                            j = templateIdentifierLookup(e2.isVarExp().var.ident, parameters);
-                            if (j != IDX_NOTFOUND)
-                                goto L1;
-                            // The template parameter was not from this template
-                            // (it may be from a parent template, for example)
-                        }
-
-                        e2 = e2.expressionSemantic(sc); // https://issues.dlang.org/show_bug.cgi?id=13417
-                        e2 = e2.ctfeInterpret();
-
-                        //printf("e1 = %s, type = %s %d\n", e1.toChars(), e1.type.toChars(), e1.type.ty);
-                        //printf("e2 = %s, type = %s %d\n", e2.toChars(), e2.type.toChars(), e2.type.ty);
-                        if (!e1.equals(e2))
-                        {
-                            if (!e2.implicitConvTo(e1.type))
-                                goto Lnomatch;
-
-                            e2 = e2.implicitCastTo(sc, e1.type);
-                            e2 = e2.ctfeInterpret();
-                            if (!e1.equals(e2))
-                                goto Lnomatch;
-                        }
-                    }
-                    else if (e1 && t2 && t2.ty == Tident)
-                    {
-                        j = templateParameterLookup(t2, parameters);
-                    L1:
-                        if (j == IDX_NOTFOUND)
-                        {
-                            t2.resolve((cast(TypeIdentifier)t2).loc, sc, e2, t2, s2);
-                            if (e2)
-                                goto Le;
-                            goto Lnomatch;
-                        }
-                        if (!(*parameters)[j].matchArg(sc, e1, j, parameters, dedtypes, null))
-                            goto Lnomatch;
-                    }
-                    else if (s1 && s2)
-                    {
-                    Ls:
-                        if (!s1.equals(s2))
-                            goto Lnomatch;
-                    }
-                    else if (s1 && t2 && t2.ty == Tident)
-                    {
-                        j = templateParameterLookup(t2, parameters);
-                        if (j == IDX_NOTFOUND)
-                        {
-                            t2.resolve((cast(TypeIdentifier)t2).loc, sc, e2, t2, s2);
-                            if (s2)
-                                goto Ls;
-                            goto Lnomatch;
-                        }
-                        if (!(*parameters)[j].matchArg(sc, s1, j, parameters, dedtypes, null))
-                            goto Lnomatch;
+                        if (!match(v, vt))
+                            return nomatch();
                     }
                     else
-                        goto Lnomatch;
+                        (*dedtypes)[j] = vt;
+                    break;
                 }
+                else if (!o1)
+                    break;
+
+                Type t1 = isType(o1);
+                Dsymbol s1 = isDsymbol(o1);
+                Dsymbol s2 = isDsymbol(o2);
+                Expression e1 = s1 ? getValue(s1) : getValue(isExpression(o1));
+                Expression e2 = isExpression(o2);
+                version (none)
+                {
+                    Tuple v1 = isTuple(o1);
+                    Tuple v2 = isTuple(o2);
+                    if (t1)
+                        printf("t1 = %s\n", t1.toChars());
+                    if (t2)
+                        printf("t2 = %s\n", t2.toChars());
+                    if (e1)
+                        printf("e1 = %s\n", e1.toChars());
+                    if (e2)
+                        printf("e2 = %s\n", e2.toChars());
+                    if (s1)
+                        printf("s1 = %s\n", s1.toChars());
+                    if (s2)
+                        printf("s2 = %s\n", s2.toChars());
+                    if (v1)
+                        printf("v1 = %s\n", v1.toChars());
+                    if (v2)
+                        printf("v2 = %s\n", v2.toChars());
+                }
+
+                if (t1 && t2)
+                {
+                    if (!deduceType(t1, sc, t2, parameters, dedtypes))
+                        return nomatch();
+                }
+                else if (e1 && e2)
+                {
+                Le:
+                    e1 = e1.ctfeInterpret();
+
+                    /* If it is one of the template parameters for this template,
+                        * we should not attempt to interpret it. It already has a value.
+                        */
+                    if (e2.op == EXP.variable && (e2.isVarExp().var.storage_class &STC.templateparameter))
+                    {
+                        /*
+                            * (T:Number!(e2), int e2)
+                            */
+                        j = templateIdentifierLookup(e2.isVarExp().var.ident,parameters);
+                        if (j != IDX_NOTFOUND)
+                            goto L1;
+                        // The template parameter was not from this template
+                        // (it may be from a parent template, for example)
+                    }
+
+                    e2 = e2.expressionSemantic(sc); //https://issues.dlang.org/show_bug.cgi?id=13417
+                    e2 = e2.ctfeInterpret();
+
+                    //printf("e1 = %s, type = %s %d\n", e1.toChars(),e1.type.toChars(), e1.type.ty);
+                    //printf("e2 = %s, type = %s %d\n", e2.toChars(),e2.type.toChars(), e2.type.ty);
+                    if (!e1.equals(e2))
+                    {
+                        if (!e2.implicitConvTo(e1.type))
+                            return nomatch();
+                        e2 = e2.implicitCastTo(sc, e1.type);
+                        e2 = e2.ctfeInterpret();
+                        if (!e1.equals(e2))
+                            return nomatch();
+                    }
+                }
+                else if (e1 && t2 && t2.ty == Tident)
+                {
+                    j = templateParameterLookup(t2, parameters);
+                L1:
+                    if (j == IDX_NOTFOUND)
+                    {
+                        t2.resolve((cast(TypeIdentifier)t2).loc, sc, e2, t2, s2);
+                        if (e2)
+                            goto Le;
+                        return nomatch();
+                    }
+                    if (!(*parameters)[j].matchArg(sc, e1, j, parameters, dedtypes,null))
+                        return nomatch();
+                }
+                else if (s1 && s2)
+                {
+                Ls:
+                    if (!s1.equals(s2))
+                    return nomatch();
+                }
+                else if (s1 && t2 && t2.ty == Tident)
+                {
+                    j = templateParameterLookup(t2, parameters);
+                    if (j == IDX_NOTFOUND)
+                    {
+                        t2.resolve((cast(TypeIdentifier)t2).loc, sc, e2, t2, s2);
+                        if (s2)
+                            goto Ls;
+                        return nomatch();
+                    }
+                    if (!(*parameters)[j].matchArg(sc, s1, j, parameters, dedtypes,null))
+                        return nomatch();
+                }
+                else
+                    return nomatch();
             }
             visit(cast(Type)t);
-            return;
 
-        Lnomatch:
-            //printf("no match\n");
-            result = MATCH.nomatch;
         }
 
         override void visit(TypeStruct t)
