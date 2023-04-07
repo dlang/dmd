@@ -56,6 +56,11 @@ void fooAliasDiverse(A, B, alias C, size_t D)(AliasDiverse!(B, A, C, D) v)
     static assert(is(typeof(v) == TempDiverse!(string, char, 12, 1)));
 }
 
+void fooAliasDiverse2(U)(AliasDiverse!(U, U, 1, 1) v)
+{
+    static assert(is(U == float));
+}
+
 struct Matrix(U, size_t M, size_t N)
 {
 
@@ -91,13 +96,13 @@ void main()
     pfooAliasPT(AliasPT!(float*)());
     fooAliasVar(AliasVar!(float, int, char, string)());
     fooAliasDiverse(AliasDiverse!(char, string, 1, 12)());
-
+    fooAliasDiverse2(AliasDiverse!(float, float, 1, 1)());
     static assert(is(Vector3!float == Vector3!U, U)); // !!!
     static assert(is(Vector!(float, 3) == Vector!(U, N), U, size_t N));
 
     Vector!(float, 10) v;
     normalize(v);
-    auto vv = cross(Vector3!float(), Vector3!float());
 
+    Vector3!float vv = cross(Vector3!float(), Vector3!float());
     test(TestAlias!(float, char)());
 }
