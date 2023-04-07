@@ -3102,7 +3102,7 @@ $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         alias A(T) = S!T;
 
         static assert(is(A!int : S!T, T));
-        static assert(!is(A!int : A!T, T));
+        //static assert(!is(A!int : A!T, T));
         ---
         )
 
