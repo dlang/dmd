@@ -1237,7 +1237,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         {
             if (added & STC.const_)
                 error("attribute `const` is redundant with previously-applied `in`");
-            else if (global.params.previewIn)
+            else if (compileEnv.previewIn)
             {
                 error("attribute `%s` is redundant with previously-applied `in`",
                       (orig & STC.scope_) ? "scope".ptr : "ref".ptr);
@@ -1253,7 +1253,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         {
             if (orig & STC.const_)
                 error("attribute `in` cannot be added after `const`: remove `const`");
-            else if (global.params.previewIn)
+            else if (compileEnv.previewIn)
             {
                 // Windows `printf` does not support `%1$s`
                 const(char*) stc_str = (orig & STC.scope_) ? "scope".ptr : "ref".ptr;
@@ -2738,7 +2738,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         /** Extract unittest body as a string. Must be done eagerly since memory
          will be released by the lexer before doc gen. */
         char* docline = null;
-        if (global.params.ddoc.doOutput && endPtr > begPtr)
+        if (compileEnv.ddocOutput && endPtr > begPtr)
         {
             /* Remove trailing whitespaces */
             for (const(char)* p = endPtr - 1; begPtr <= p && (*p == ' ' || *p == '\r' || *p == '\n' || *p == '\t'); --p)
@@ -5186,7 +5186,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         case TOK.goesTo:
             if (requireDo)
                 error("missing `do { ... }` after `in` or `out`");
-            if (!global.params.shortenedMethods)
+            if (!compileEnv.shortenedMethods)
                 error("=> shortened method not enabled, compile with compiler switch `-preview=shortenedMethods`");
             const returnloc = token.loc;
             nextToken();

@@ -47,6 +47,10 @@ struct CompileEnv
     const(char)[] time;      /// __TIME__
     const(char)[] vendor;    /// __VENDOR__
     const(char)[] timestamp; /// __TIMESTAMP__
+
+    bool previewIn;          /// `in` means `[ref] scope const`, accepts rvalues
+    bool ddocOutput;	     /// collect embedded documentation comments
+    bool shortenedMethods = true;   /// allow => in normal function declarations
 }
 
 /***********************************************************
@@ -75,6 +79,7 @@ class Lexer
     ubyte wchar_tsize;          /// size of C wchar_t, 2 or 4
 
     ErrorSink eSink;            /// send error messages through this interface
+    CompileEnv compileEnv;      /// environment
 
     private
     {
@@ -93,8 +98,6 @@ class Lexer
         int lastDocLine;        // last line of previous doc comment
 
         Token* tokenFreelist;
-
-        CompileEnv compileEnv;  // environment
     }
 
   nothrow:
