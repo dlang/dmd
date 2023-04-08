@@ -49,7 +49,7 @@ struct CompileEnv
     const(char)[] timestamp; /// __TIMESTAMP__
 
     bool previewIn;          /// `in` means `[ref] scope const`, accepts rvalues
-    bool ddocOutput;	     /// collect embedded documentation comments
+    bool ddocOutput;         /// collect embedded documentation comments
     bool shortenedMethods = true;   /// allow => in normal function declarations
 }
 
