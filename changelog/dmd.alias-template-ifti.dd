@@ -1,0 +1,29 @@
+IFTI works with alias template parameters.
+
+The alias declaration should contain and end with one `TemplateInstance`.
+
+---
+struct S(T) {}
+alias A(T) = S!T;
+void f(T)(A!T) {}
+
+struct C(T)
+{
+    struct D(U)
+    {
+    }
+}
+
+alias E(T, U) = C!T.D!U;
+
+void f(T, U)(E!(T, U)) {}
+void main()
+{
+    A!int a;
+    f(a); // OK
+    static assert(is(A!int == A!U, U)); // OK
+
+    C!int.D!char cd;
+    // f(cd); // error
+}
+---
