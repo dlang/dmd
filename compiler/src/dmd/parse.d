@@ -60,13 +60,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     extern (D) this(const ref Loc loc, AST.Module _module, const(char)[] input, bool doDocComment,
         ErrorSink errorSink, const CompileEnv* compileEnv, const bool doUnittests) scope
     {
-        super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false,
-                errorSink,
-                compileEnv);
-
         //printf("Parser::Parser()1 %d\n", doUnittests);
+        this(_module, input, doDocComment, errorSink, compileEnv, doUnittests);
+
         scanloc = loc;
-        this.doUnittests = doUnittests;
 
         if (!writeMixin(input, scanloc, global.params.mixinOut) && loc.filename)
         {
@@ -78,12 +75,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             snprintf(filename, len, "%s-mixin-%d", loc.filename, cast(int)loc.linnum);
             scanloc.filename = filename;
         }
-
-        mod = _module;
-        linkage = LINK.d;
-        //nextToken();              // start up the scanner
     }
 
+    /**************************************************
+     * Main Parser constructor.
+     */
     extern (D) this(AST.Module _module, const(char)[] input, bool doDocComment, ErrorSink errorSink,
         const CompileEnv* compileEnv, const bool doUnittests) scope
     {
@@ -92,10 +88,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
               compileEnv);
 
         //printf("Parser::Parser()2 %d\n", doUnittests);
-        mod = _module;
-        linkage = LINK.d;
+        this.mod = _module;
+        this.linkage = LINK.d;
         this.doUnittests = doUnittests;
-        //nextToken();              // start up the scanner
     }
 
     /++
