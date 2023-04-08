@@ -4074,6 +4074,20 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             // Extra check
             if (tparam && tparam.ty == Tinstance && t.tempinst.tempdecl)
             {
+                void flattenDedTypes(Objects* dedtypes)
+                {
+                    if ((*dedtypes)[$ - 1].isTuple())
+                    {
+                        auto ptp = (*dedtypes)[$ - 1].isTuple();
+                        dedtypes.pop();
+                        dedtypes.reserve(dedtypes.length + ptp.objects.length);
+                        for (int j = 0; j < ptp.objects.length; j++)
+                        {
+                            dedtypes.push(ptp.objects[j]);
+                        }
+                    }
+                }
+
                 TemplateDeclaration tempdecl = t.tempinst.tempdecl.isTemplateDeclaration();
                 assert(tempdecl);
 
@@ -4167,17 +4181,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                                         MATCH am = deduceType(t, asc, atdi, td.parameters, adedtypes);
                                         if (am != MATCH.exact)
                                             goto Lnomatch;
-                                        // flatten adedtypes
-                                        if ((*adedtypes)[$ - 1].isTuple())
-                                        {
-                                            auto ptp = (*adedtypes)[$ - 1].isTuple();
-                                            adedtypes.pop();
-                                            adedtypes.reserve(adedtypes.length + ptp.objects.length);
-                                            for (int j = 0; j < ptp.objects.length; j++)
-                                            {
-                                                adedtypes.push(ptp.objects[j]);
-                                            }
-                                        }
+                                        flattenDedTypes(adedtypes);
                                         // yet to deduce
                                         // <parameters> (SomeAlias<adedtypes>);
                                         // a simplistic matcher

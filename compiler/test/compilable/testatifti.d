@@ -1,6 +1,14 @@
 // https://issues.dlang.org/show_bug.cgi?id=16486
+// EXTRA_FILES: imports/imptestatifti.d
 // Alias Template IFTI
 module testatifti;
+static import imports.imptestatifti;
+
+alias Alias1(U) = imports.imptestatifti.Temp2!U;
+
+void foo1(U)(Alias1!U v)
+{
+}
 
 struct TempT(T)
 {
@@ -107,4 +115,6 @@ void main()
 
     Vector3!float vv = cross(Vector3!float(), Vector3!float());
     test(TestAlias!(float, char)());
+
+    foo1(Alias1!float());
 }
