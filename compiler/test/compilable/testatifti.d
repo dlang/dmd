@@ -1,3 +1,5 @@
+// https://issues.dlang.org/show_bug.cgi?id=16486
+// Alias Template IFTI
 module testatifti;
 
 struct TempT(T)
