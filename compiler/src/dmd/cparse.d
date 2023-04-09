@@ -3187,8 +3187,8 @@ final class CParser(AST) : Parser!AST
                     if (token.value == TOK.int32Literal)
                     {
                         const n = token.unsvalue;
-                        if (n < 1 || n & (n - 1) || ushort.max < n)
-                            error("__decspec(align(%lld)) must be an integer positive power of 2", cast(ulong)n);
+                        if (n < 1 || n & (n - 1) || 8192 < n)
+                            error("__decspec(align(%lld)) must be an integer positive power of 2 and be <= 8,192", cast(ulong)n);
                         specifier.packalign.set(cast(uint)n);
                         specifier.packalign.setPack(true);
                         nextToken();
@@ -3401,7 +3401,34 @@ final class CParser(AST) : Parser!AST
 
         if (token.value == TOK.identifier)
         {
-            if (token.ident == Id.dllimport)
+            if (token.ident == Id.aligned)
+            {
+                nextToken();
+                if (token.value == TOK.leftParenthesis)
+                {
+                    nextToken();
+                    if (token.value == TOK.int32Literal)
+                    {
+                        const n = token.unsvalue;
+                        if (n < 1 || n & (n - 1) || ushort.max < n)
+                            error("__attribute__((aligned(%lld))) must be an integer positive power of 2 and be <= 32,768", cast(ulong)n);
+                        specifier.packalign.set(cast(uint)n);
+                        specifier.packalign.setPack(true);
+                        nextToken();
+                    }
+                    else
+                    {
+                        error("alignment value expected, not `%s`", token.toChars());
+                        nextToken();
+                    }
+
+                    check(TOK.rightParenthesis);
+                }
+                /* ignore __attribute__((aligned)), which sets the alignment to the largest value for any data
+                 * type on the target machine. It's the opposite of __attribute__((packed))
+                 */
+            }
+            else if (token.ident == Id.dllimport)
             {
                 dllimport = true;
                 nextToken();

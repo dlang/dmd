@@ -1,6 +1,6 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/test23789.c(101): Error: __decspec(align(3)) must be an integer positive power of 2
+fail_compilation/test23789.c(101): Error: __decspec(align(3)) must be an integer positive power of 2 and be <= 8,192
 fail_compilation/test23789.c(103): Error: alignment value expected, not `"a"`
 ---
  */

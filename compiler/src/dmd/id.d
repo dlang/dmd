@@ -529,6 +529,7 @@ immutable Msgtable[] msgtable =
     { "__func__" },
     { "noreturn" },
     { "_align", "align" },
+    { "aligned" },
     { "__pragma", "pragma" },
     { "builtins", "__builtins" },
     { "builtin_va_list", "__builtin_va_list" },
