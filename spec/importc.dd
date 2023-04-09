@@ -558,6 +558,10 @@ enum E { A = 3; }
     Rewrite function-style preprocessor macros as inline functions.
     )
 
+    $(H3 $(LNAME2 controlZ, Control Z is End Of File))
+
+    $(P A control-Z character `\x1A` in the source text means End Of File.)
+
 $(H2 $(LNAME2 gnu-clang-extensions, Gnu and Clang Extensions))
 
     $(P `gcc` and `clang` are presumed to have the same behavior w.r.t. extensions,
