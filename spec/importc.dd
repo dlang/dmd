@@ -740,6 +740,13 @@ $(H2 $(LNAME2 warnings, Warnings))
     code developed using another C compiler, and it is written as intended.
     If C11 says it is legal, ImportC accepts it.)
 
+
+$(H2 $(LNAME2 builtins, $(TT __builtins.di)))
+
+    $(P ImportC uses D to implement several features. These are implemented in the file
+    $(LINK2 https://github.com/dlang/dmd/blob/master/druntime/src/__builtins.di, $(TT __builtins.di))
+    which is automatically imported for every ImportC compilation.)
+
 $(H2 $(LNAME2 importcpp, ImportC++))
 
     $(P ImportC will not compile C++ code. For that, use $(TT dpp).)
