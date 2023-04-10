@@ -799,7 +799,10 @@ final class CParser(AST) : Parser!AST
 
         case TOK.leftParenthesis:
             nextToken();
-            e = cparseExpression();
+            if (token.value == TOK.leftCurly)
+                e = cparseStatementExpression();        // gcc extension
+            else
+                e = cparseExpression();
             check(TOK.rightParenthesis);
             break;
 
@@ -1619,6 +1622,41 @@ final class CParser(AST) : Parser!AST
         AST.Expression e = new AST.CallExp(loc, tie, arguments);
 
         check(TOK.rightParenthesis);
+        return e;
+    }
+
+    /*****************************
+     * gcc extension: https://gcc.gnu.org/onlinedocs/gcc/Statement-Exprs.html
+     * Represent as a function literal, then call the function literal.
+     * Parser is on opening curly brace.
+     */
+    private AST.Expression cparseStatementExpression()
+    {
+        AST.ParameterList parameterList;
+        StorageClass stc = 0;
+        const loc = token.loc;
+        typedefTab.push(null);
+        auto fbody = cparseStatement(ParseStatementFlags.scope_);
+        typedefTab.pop();                                        // end of function scope
+
+        // Rewrite last ExpStatement (if there is one) as a ReturnStatement
+        auto ss = fbody.isScopeStatement();
+        auto cs = ss.statement.isCompoundStatement();
+        assert(cs);
+        if (const len = (*cs.statements).length)
+        {
+            auto s = (*cs.statements)[len - 1];
+            if (auto es = s.isExpStatement())
+                (*cs.statements)[len - 1] = new AST.ReturnStatement(es.loc, es.exp);
+        }
+
+        auto tf = new AST.TypeFunction(parameterList, null, LINK.d, stc);
+        auto fd = new AST.FuncLiteralDeclaration(loc, token.loc, tf, TOK.delegate_, null, null, 0);
+        fd.fbody = fbody;
+
+        auto fe = new AST.FuncExp(loc, fd);
+        auto args = new AST.Expressions();
+        auto e = new AST.CallExp(loc, fe, args);   // call the function literal
         return e;
     }
 
