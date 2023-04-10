@@ -2506,6 +2506,12 @@ final class CParser(AST) : Parser!AST
                     error("`inline` and `_Noreturn` function specifiers not allowed for `_Thread_local`");
                     scw &= ~scwx;
                 }
+                if (level == LVL.local &&
+                    scw & (SCW.x_Thread_local) && !(scw & (SCW.xstatic | SCW.xextern)))
+                {
+                    error("`_Thread_local` in block scope must be accompanied with `static` or `extern`"); // C11 6.7.1-3
+                    scw &= ~scwx;
+                }
                 if (level & (LVL.parameter | LVL.prototype) &&
                     scw & ~SCW.xregister)
                 {
