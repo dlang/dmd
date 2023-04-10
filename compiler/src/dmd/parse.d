@@ -18,7 +18,6 @@ import core.stdc.string;
 
 import dmd.astenums;
 import dmd.errorsink;
-import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.lexer;
@@ -55,26 +54,14 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     /*********************
      * Use this constructor for string mixins.
      * Input:
-     *      loc     location in source file of mixin
+     *      loc = location in source file of mixin
      */
     extern (D) this(const ref Loc loc, AST.Module _module, const(char)[] input, bool doDocComment,
         ErrorSink errorSink, const CompileEnv* compileEnv, const bool doUnittests) scope
     {
         //printf("Parser::Parser()1 %d\n", doUnittests);
         this(_module, input, doDocComment, errorSink, compileEnv, doUnittests);
-
         scanloc = loc;
-
-        if (!writeMixin(input, scanloc, global.params.mixinOut) && loc.filename)
-        {
-            /* Create a pseudo-filename for the mixin string, as it may not even exist
-             * in the source file.
-             */
-            auto len = strlen(loc.filename) + 7 + (loc.linnum).sizeof * 3 + 1;
-            char* filename = cast(char*)mem.xmalloc(len);
-            snprintf(filename, len, "%s-mixin-%d", loc.filename, cast(int)loc.linnum);
-            scanloc.filename = filename;
-        }
     }
 
     /**************************************************
@@ -9751,53 +9738,4 @@ private StorageClass getStorageClass(AST)(PrefixAttributes!(AST)* pAttrs)
         pAttrs.storageClass = STC.undefined_;
     }
     return stc;
-}
-
-/**************************************
- * dump mixin expansion to file for better debugging
- */
-private bool writeMixin(const(char)[] s, ref Loc loc, ref Output output)
-{
-    if (!output.doOutput)
-        return false;
-
-    OutBuffer* ob = output.buffer;
-
-    ob.writestring("// expansion at ");
-    ob.writestring(loc.toChars());
-    ob.writenl();
-
-    output.bufferLines++;
-
-    loc = Loc(output.name.ptr, output.bufferLines + 1, loc.charnum);
-
-    // write by line to create consistent line endings
-    size_t lastpos = 0;
-    for (size_t i = 0; i < s.length; ++i)
-    {
-        // detect LF and CRLF
-        const c = s[i];
-        if (c == '\n' || (c == '\r' && i+1 < s.length && s[i+1] == '\n'))
-        {
-            ob.writestring(s[lastpos .. i]);
-            ob.writenl();
-            output.bufferLines++;
-            if (c == '\r')
-                ++i;
-            lastpos = i + 1;
-        }
-    }
-
-    if(lastpos < s.length)
-        ob.writestring(s[lastpos .. $]);
-
-    if (s.length == 0 || s[$-1] != '\n')
-    {
-        ob.writenl(); // ensure empty line after expansion
-        output.bufferLines++;
-    }
-    ob.writenl();
-    output.bufferLines++;
-
-    return true;
 }

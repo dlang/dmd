@@ -5010,7 +5010,7 @@ Expression getMaxMinValue(EnumDeclaration ed, const ref Loc loc, Identifier id)
  * Return:
  *      null if error, else RootObject AST as parsed
  */
-RootObject compileTypeMixin(TypeMixin tm, Loc loc, Scope* sc)
+RootObject compileTypeMixin(TypeMixin tm, ref const Loc loc, Scope* sc)
 {
     OutBuffer buf;
     if (expressionsToString(buf, sc, tm.exps))
@@ -5021,7 +5021,8 @@ RootObject compileTypeMixin(TypeMixin tm, Loc loc, Scope* sc)
     buf.writeByte(0);
     const str = buf.extractSlice()[0 .. len];
     const bool doUnittests = global.params.useUnitTests || global.params.ddoc.doOutput || global.params.dihdr.doOutput;
-    scope p = new Parser!ASTCodegen(loc, sc._module, str, false, global.errorSink, &global.compileEnv, doUnittests);
+    auto locm = adjustLocForMixin(str, loc, global.params.mixinOut);
+    scope p = new Parser!ASTCodegen(locm, sc._module, str, false, global.errorSink, &global.compileEnv, doUnittests);
     p.transitionIn = global.params.vin;
     p.nextToken();
     //printf("p.loc.linnum = %d\n", p.loc.linnum);
