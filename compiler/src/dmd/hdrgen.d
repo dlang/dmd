@@ -196,10 +196,9 @@ private void statementToBuffer(Statement s, OutBuffer* buf, HdrGenState* hgs)
         foreach (sx; *s.statements)
         {
             auto ds = sx ? sx.isExpStatement() : null;
-            if (ds && ds.exp.op == EXP.declaration)
+            if (ds && ds.exp.isDeclarationExp())
             {
-                auto d = (cast(DeclarationExp)ds.exp).declaration;
-                assert(d.isDeclaration());
+                auto d = ds.exp.isDeclarationExp().declaration;
                 if (auto v = d.isVarDeclaration())
                 {
                     scope ppv = new DsymbolPrettyPrintVisitor(buf, hgs);
