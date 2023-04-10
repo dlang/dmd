@@ -245,8 +245,11 @@ $(CCODE
 #if __IMPORTC__
 )
 
-    $(P $(TT __IMPORTC__) is defined in $(TT src/importc.h) which is automatically
-    included when the preprocessor is run.)
+    $(P $(TT __IMPORTC__) is defined in
+    $(LINK2 https://github.com/dlang/dmd/blob/master/druntime/src/importc.h, $(TT src/importc.h))
+    which is automatically
+    included when the preprocessor is run. $(TT importc.h) contains many macro
+    definitions that are used to adapt various C source code vagaries to ImportC.)
 
 $(H2 $(LNAME2 preprocessor-directives, Preprocessor Directives))
 
