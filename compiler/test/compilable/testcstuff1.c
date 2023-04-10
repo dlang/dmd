@@ -277,7 +277,7 @@ void test2()
     typedef int TI;
     //extern int ei;
     static int si;
-    _Thread_local int tli;
+    static _Thread_local int tli;
     int __declspec(thread) tlj;
     auto int ai;
     register int reg;
