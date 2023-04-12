@@ -528,6 +528,7 @@ immutable Msgtable[] msgtable =
     { "vector_size" },
     { "__func__" },
     { "noreturn" },
+    { "_deprecated", "deprecated" },
     { "_align", "align" },
     { "aligned" },
     { "__pragma", "pragma" },
