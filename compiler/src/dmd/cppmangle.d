@@ -213,6 +213,11 @@ private final class CppMangleVisitor : Visitor
     {
         auto tf = cast(TypeFunction)this.context.res.asFuncDecl().type;
         Type rt = preSemantic.nextOf();
+        // https://issues.dlang.org/show_bug.cgi?id=22739
+        // auto return type means that rt is null.
+        // if so, just pick up the type from the instance
+        if (!rt)
+            rt = tf.nextOf();
         if (tf.isref)
             rt = rt.referenceTo();
         auto prev = this.context.push(tf.nextOf());
