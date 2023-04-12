@@ -28,12 +28,9 @@ T trustedCast(T, U)(auto ref U u) @trusted pure nothrow
 alias Unconst(T : const U, U) = U;
 
 /// taken from std.traits.Unqual
-template Unqual(T : const U, U)
+template Unqual(T)
 {
-    static if (is(U == shared V, V))
-        alias Unqual = V;
-    else
-        alias Unqual = U;
+    alias Unqual = cast()T;
 }
 
 template BaseElemOf(T)
