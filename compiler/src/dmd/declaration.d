@@ -1149,6 +1149,8 @@ extern (C++) class VarDeclaration : Declaration
 
         bool isArgDtorVar;      /// temporary created to handle scope destruction of a function argument
         bool isCmacro;          /// it is a C macro turned into a C declaration
+        bool dllImport;         /// __declspec(dllimport)
+        bool dllExport;         /// __declspec(dllexport)
         version (MARS)
         {
             bool inClosure;         /// is inserted into a GC allocated closure
@@ -1314,7 +1316,7 @@ extern (C++) class VarDeclaration : Declaration
 
     override final bool isExport() const
     {
-        return visibility.kind == Visibility.Kind.export_;
+        return visibility.kind == Visibility.Kind.export_ || dllExport;
     }
 
     override final bool isImportedSymbol() const
@@ -1325,6 +1327,7 @@ extern (C++) class VarDeclaration : Declaration
          *   export extern int sym3 = 0; // error, extern cannot have initializer
          */
         bool result =
+            dllImport ||
             visibility.kind == Visibility.Kind.export_ &&
             storage_class & STC.extern_ &&
             (storage_class & STC.static_ || parent.isModule());

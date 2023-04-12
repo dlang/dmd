@@ -387,6 +387,9 @@ Symbol *toSymbol(Dsymbol s)
             f.Fendline = fd.endloc.linnum ? toSrcpos(fd.endloc) : f.Fstartline;
 
             auto t = Type_toCtype(fd.type);
+            if (fd.isNaked)
+                type_setty(&t, t.Tty | mTYnaked);
+
             const msave = t.Tmangle;
             if (fd.isMain())
             {
