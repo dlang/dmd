@@ -565,7 +565,11 @@ private final class CppMangleVisitor : Visitor
                 foreach (j; i .. (*ti.tiargs).length)
                 {
                     Type t = isType((*ti.tiargs)[j]);
-                    assert(t);
+                    if (t is null)
+                    {
+                        ti.error("internal compiler error: C++ `%s` template value parameter is not supported", (*ti.tiargs)[j].toChars());
+                        fatal();
+                    }
                     t.accept(this);
                 }
 
