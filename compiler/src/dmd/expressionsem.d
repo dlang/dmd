@@ -2948,7 +2948,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (!s)
                 {
                     e.error("`%s` is not in a class or struct scope", e.toChars());
-                    goto Lerr;
+                    return setError();
                 }
                 ClassDeclaration cd = s.isClassDeclaration();
                 if (cd)
@@ -2967,7 +2967,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
         if (!fd)
-            goto Lerr;
+        {
+            e.error("`this` is only defined in non-static member functions, not `%s`", sc.parent.toChars());
+            return setError();
+        }
 
         assert(fd.vthis);
         e.var = fd.vthis;
@@ -2982,11 +2985,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
 
         result = e;
-        return;
-
-    Lerr:
-        e.error("`this` is only defined in non-static member functions, not `%s`", sc.parent.toChars());
-        result = ErrorExp.get();
     }
 
     override void visit(SuperExp e)
@@ -3016,7 +3014,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (!s)
                 {
                     e.error("`%s` is not in a class scope", e.toChars());
-                    goto Lerr;
+                    return setError();
                 }
                 cd = s.isClassDeclaration();
                 if (cd)
@@ -3025,7 +3023,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     if (!cd)
                     {
                         e.error("class `%s` has no `super`", s.toChars());
-                        goto Lerr;
+                        return setError();
                     }
                     e.type = cd.type;
                     result = e;
