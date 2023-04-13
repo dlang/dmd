@@ -3172,6 +3172,7 @@ final class CParser(AST) : Parser!AST
      *
      * extended-decl-modifier:
      *    align(number)
+     *    deprecated(depMsg)
      *    dllimport
      *    dllexport
      *    naked
@@ -3251,6 +3252,17 @@ final class CParser(AST) : Parser!AST
                     }
 
                     check(TOK.rightParenthesis);
+                }
+                else if (token.ident == Id._deprecated)
+                {
+                    specifier._deprecated = true;
+                    nextToken();
+                    if (token.value == TOK.leftParenthesis)  // optional deprecation message
+                    {
+                        nextToken();
+                        specifier.depMsg = cparseExpression();
+                        check(TOK.rightParenthesis);
+                    }
                 }
                 else
                 {
@@ -3475,6 +3487,17 @@ final class CParser(AST) : Parser!AST
                 /* ignore __attribute__((aligned)), which sets the alignment to the largest value for any data
                  * type on the target machine. It's the opposite of __attribute__((packed))
                  */
+            }
+            else if (token.ident == Id._deprecated)
+            {
+                specifier._deprecated = true;
+                nextToken();
+                if (token.value == TOK.leftParenthesis)  // optional deprecation message
+                {
+                    nextToken();
+                    specifier.depMsg = cparseExpression();
+                    check(TOK.rightParenthesis);
+                }
             }
             else if (token.ident == Id.dllimport)
             {
@@ -4907,6 +4930,9 @@ final class CParser(AST) : Parser!AST
         bool naked;     /// naked attribute
         bool dllimport; /// dllimport attribute
         bool dllexport; /// dllexport attribute
+        bool _deprecated;       /// deprecated attribute
+        AST.Expression depMsg;  /// deprecated message
+
         SCW scw;        /// storage-class specifiers
         MOD mod;        /// type qualifiers
         AST.Expressions*  alignExps;  /// alignment
@@ -4983,6 +5009,8 @@ final class CParser(AST) : Parser!AST
                     stc = AST.STC.gshared;
             }
         }
+        if (specifier._deprecated && !specifier.depMsg)
+            stc |= AST.STC.deprecated_;
         return stc;
     }
 
@@ -5179,6 +5207,17 @@ final class CParser(AST) : Parser!AST
     private AST.Dsymbol applySpecifier(AST.Dsymbol s, ref Specifier specifier)
     {
         //printf("applySpecifier() %s\n", s.toChars());
+        if (specifier._deprecated)
+        {
+            if (specifier.depMsg)
+            {
+                // Wrap declaration in a DeprecatedDeclaration
+                auto decls = new AST.Dsymbols(1);
+                (*decls)[0] = s;
+                s = new AST.DeprecatedDeclaration(specifier.depMsg, decls);
+            }
+        }
+
         if (specifier.alignExps)
         {
             //printf("  applying _Alignas %s, packalign %d\n", (*specifier.alignExps)[0].toChars(), cast(int)specifier.packalign);
