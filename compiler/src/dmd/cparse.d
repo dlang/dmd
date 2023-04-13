@@ -3175,6 +3175,7 @@ final class CParser(AST) : Parser!AST
      *    dllimport
      *    dllexport
      *    naked
+     *    noinline
      *    noreturn
      *    thread
      * Params:
@@ -3212,6 +3213,11 @@ final class CParser(AST) : Parser!AST
                 else if (token.ident == Id.naked)
                 {
                     specifier.naked = true;
+                    nextToken();
+                }
+                else if (token.ident == Id.noinline)
+                {
+                    specifier.scw |= SCW.xnoinline;
                     nextToken();
                 }
                 else if (token.ident == Id.noreturn)
@@ -3483,6 +3489,11 @@ final class CParser(AST) : Parser!AST
             else if (token.ident == Id.naked)
             {
                 specifier.naked = true;
+                nextToken();
+            }
+            else if (token.ident == Id.noinline)
+            {
+                specifier.scw |= SCW.xnoinline;
                 nextToken();
             }
             else if (token.ident == Id.noreturn)
@@ -4872,6 +4883,8 @@ final class CParser(AST) : Parser!AST
         // C11 6.7.4 Function specifiers
         xinline    = 0x40,
         x_Noreturn = 0x80,
+
+        xnoinline  = 0x100,
     }
 
     /// C11 6.7.3 Type qualifiers
@@ -4984,6 +4997,11 @@ final class CParser(AST) : Parser!AST
         fd.isNaked = specifier.naked;
         fd.dllImport = specifier.dllimport;
         fd.dllExport = specifier.dllexport;
+
+        if (specifier.scw & SCW.xnoinline)
+            fd.inlining = PINLINE.never;
+        else if (specifier.scw & SCW.xinline)
+            fd.inlining = PINLINE.always;
     }
 
     /***********************
