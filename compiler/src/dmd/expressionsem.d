@@ -4850,10 +4850,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         return null;
                     if (f)
                     {
-                        /* Error if match in more than one overload set,
+                        /* Match in more than one overload set,
                          * even if one is a 'better' match than the other.
                          */
-                        ScopeDsymbol.multiplyDefined(loc, f, f2);
+                        if (f.isCsymbol() && f2.isCsymbol())
+                        {
+                            /* C has global name space, so just pick one, such as f.
+                             * If f and f2 are not compatible, that's how C rolls.
+                             */
+                        }
+                        else
+                            ScopeDsymbol.multiplyDefined(loc, f, f2); // issue error
                     }
                     else
                         f = f2;
