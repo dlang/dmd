@@ -112,6 +112,7 @@
 #define __ptr32
 #define __ptr64
 #define __unaligned
+#define _NO_CRT_STDIO_INLINE 1
 #endif
 
 /****************************
