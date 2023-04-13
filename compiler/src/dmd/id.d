@@ -527,6 +527,7 @@ immutable Msgtable[] msgtable =
     { "thread" },
     { "vector_size" },
     { "__func__" },
+    { "noinline" },
     { "noreturn" },
     { "_align", "align" },
     { "aligned" },
