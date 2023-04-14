@@ -1687,17 +1687,28 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
             hasthis, statementsToo, fd.toPrettyChars());
     }
 
-    if (fd.needThis() && !hasthis)
-        return false;
-
-    if (fd.inlineNest)
+    bool no(const(char)* reason)
     {
-        static if (CANINLINE_LOG)
+        if (fd.inlining == PINLINE.always && global.params.warnings == DiagnosticReporting.inform)
+            warning(ErrorKind.message, fd.loc, "cannot inline function `%s` because %s", fd.toPrettyChars(), reason);
+
+        if (!hdrscan) // Don't modify inlineStatus for header content scan
         {
-            printf("\t1: no, inlineNest = %d, semanticRun = %d\n", fd.inlineNest, fd.semanticRun);
+            if (statementsToo)
+                fd.inlineStatusStmt = ILS.no;
+            else
+                fd.inlineStatusExp = ILS.no;
         }
+        if (CANINLINE_LOG)
+            printf("\tno: %s\n", reason);
         return false;
     }
+
+    if (fd.needThis() && !hasthis)
+        return no("no `this`");
+
+    if (fd.inlineNest)
+        return no("nesting");
 
     if (fd.semanticRun < PASS.semantic3 && !hdrscan)
     {
@@ -1717,15 +1728,13 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
     final switch (statementsToo ? fd.inlineStatusStmt : fd.inlineStatusExp)
     {
     case ILS.yes:
-        static if (CANINLINE_LOG)
-        {
-            printf("\t1: yes %s\n", fd.toChars());
-        }
+        if (CANINLINE_LOG)
+            printf("\t%d: yes\n", __LINE__);
         return true;
     case ILS.no:
         static if (CANINLINE_LOG)
         {
-            printf("\t1: no %s\n", fd.toChars());
+            printf("\t%d: no\n", __LINE__);
         }
         return false;
     case ILS.uninitialized:
@@ -1751,7 +1760,7 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
         // no variadic parameter lists
         if (tf.parameterList.varargs == VarArg.variadic ||
             tf.parameterList.varargs == VarArg.KRvariadic)
-            goto Lno;
+            return no("variadic");
 
         /* No lazy parameters when inlining by statement, as the inliner tries to
          * operate on the created delegate itself rather than the return value.
@@ -1762,7 +1771,7 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
             foreach (param; *fd.parameters)
             {
                 if (param.storage_class & STC.lazy_)
-                    goto Lno;
+                    return no("lazy");
             }
         }
 
@@ -1786,11 +1795,7 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
              statementsToo && hasDtor(tf.next)) &&
             !hdrscan)
         {
-            static if (CANINLINE_LOG)
-            {
-                printf("\t3: no %s\n", fd.toChars());
-            }
-            goto Lno;
+            return no("various");
         }
 
         /* https://issues.dlang.org/show_bug.cgi?id=14560
@@ -1818,23 +1823,13 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
                      fd.hasNestedFrameRefs() ||
                      (fd.isVirtual() && !fd.isFinalFunc())))
     {
-        static if (CANINLINE_LOG)
-        {
-            printf("\t4: no %s\n", fd.toChars());
-        }
-        goto Lno;
+        return no("special function");
     }
 
     // cannot inline functions as statement if they have multiple
     //  return statements
     if ((fd.hasReturnExp & 16) && statementsToo)
-    {
-        static if (CANINLINE_LOG)
-        {
-            printf("\t5: no %s\n", fd.toChars());
-        }
-        goto Lno;
-    }
+        return no("multiple returns");
 
     {
         cost = inlineCostFunction(fd, hasthis, hdrscan);
@@ -1845,9 +1840,10 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
     }
 
     if (tooCostly(cost))
-        goto Lno;
+        return no("too costly");
+
     if (!statementsToo && cost > COST_MAX)
-        goto Lno;
+        return no("too costly");
 
     if (!hdrscan)
     {
@@ -1869,9 +1865,9 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
             }
 
             if (tooCostly(cost))
-                goto Lno;
+                return no("too costly");
             if (!statementsToo && cost > COST_MAX)
-                goto Lno;
+                return no("too costly");
 
             if (statementsToo)
                 fd.inlineStatusStmt = ILS.yes;
@@ -1884,23 +1880,6 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
         printf("\t2: yes %s\n", fd.toChars());
     }
     return true;
-
-Lno:
-    if (fd.inlining == PINLINE.always && global.params.warnings == DiagnosticReporting.inform)
-        warning(DiagnosticFlag.inline_, fd.loc, "cannot inline function `%s`", fd.toPrettyChars());
-
-    if (!hdrscan) // Don't modify inlineStatus for header content scan
-    {
-        if (statementsToo)
-            fd.inlineStatusStmt = ILS.no;
-        else
-            fd.inlineStatusExp = ILS.no;
-    }
-    static if (CANINLINE_LOG)
-    {
-        printf("\t2: no %s\n", fd.toChars());
-    }
-    return false;
 }
 
 /***********************************************************
