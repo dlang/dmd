@@ -4267,7 +4267,7 @@ extern (C++) final class TypeFunction : TypeNext
         super(Tfunction, treturn);
         //if (!treturn) *(char*)0=0;
         //    assert(treturn);
-        assert(VarArg.none <= pl.varargs && pl.varargs <= VarArg.typesafe);
+        assert(VarArg.none <= pl.varargs && pl.varargs <= VarArg.max);
         this.parameterList = pl;
         this.linkage = linkage;
 

@@ -3229,6 +3229,7 @@ private void parametersToBuffer(ParameterList pl, OutBuffer* buf, HdrGenState* h
     final switch (pl.varargs)
     {
         case VarArg.none:
+        case VarArg.KRvariadic:
             break;
 
         case VarArg.variadic:

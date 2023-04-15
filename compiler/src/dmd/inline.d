@@ -1722,7 +1722,8 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
         TypeFunction tf = fd.type.isTypeFunction();
 
         // no variadic parameter lists
-        if (tf.parameterList.varargs == VarArg.variadic)
+        if (tf.parameterList.varargs == VarArg.variadic ||
+            tf.parameterList.varargs == VarArg.KRvariadic)
             goto Lno;
 
         /* No lazy parameters when inlining by statement, as the inliner tries to
