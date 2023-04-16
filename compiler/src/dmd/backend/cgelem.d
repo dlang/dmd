@@ -3215,7 +3215,6 @@ L1:
 @trusted
 private elem * elbit(elem *e, goal_t goal)
 {
-
     tym_t tym1 = e.EV.E1.Ety;
     uint sz = tysize(tym1) * 8;
     elem *e2 = e.EV.E2;
