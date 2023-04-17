@@ -1317,28 +1317,6 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                     //    error(loc, "inout on parameter means inout must be on return type as well (if from D1 code, replace with `ref`)");
                 }
 
-                /* Scope attribute is not necessary if the parameter type does not have pointers
-                 */
-                const sr = buildScopeRef(fparam.storageClass);
-                switch (sr)
-                {
-                    case ScopeRef.Scope:
-                    case ScopeRef.RefScope:
-                    case ScopeRef.ReturnRef_Scope:
-                        if (!fparam.type.hasPointers())
-                            fparam.storageClass &= ~STC.scope_;
-                        break;
-
-                    case ScopeRef.ReturnScope:
-                    case ScopeRef.Ref_ReturnScope:
-                        if (!fparam.type.hasPointers())
-                            fparam.storageClass &= ~(STC.return_ | STC.scope_ | STC.returnScope);
-                        break;
-
-                    default:
-                        break;
-                }
-
                 // Remove redundant storage classes for type, they are already applied
                 fparam.storageClass &= ~(STC.TYPECTOR);
 
