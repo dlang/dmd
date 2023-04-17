@@ -1934,8 +1934,12 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
         {
             // If the bit-field spans more units of alignment than its type,
             // start a new field at the next alignment boundary.
-            if (fieldState.bitOffset == fieldState.fieldSize * 8)
+            if (fieldState.bitOffset == fieldState.fieldSize * 8 &&
+                fieldState.bitOffset + fieldWidth > memalignsize * 8)
+            {
+                if (log) printf("more units of alignment than its type\n");
                 startNewField();        // the bit field is full
+            }
             else
             {
                 // if alignment boundary is crossed
@@ -1944,7 +1948,7 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
                 //printf("%s start: %d end: %d memalignsize: %d\n", ad.toChars(), start, end, memalignsize);
                 if (start / (memalignsize * 8) != (end - 1) / (memalignsize * 8))
                 {
-                    //printf("alignment is crossed\n");
+                    if (log) printf("alignment is crossed\n");
                     startNewField();
                 }
             }
@@ -1984,6 +1988,7 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
             fieldState.bitOffset = pastField;
         }
 
+        //printf("\t%s: offset = %d bitOffset = %d fieldWidth = %d memsize = %d\n", toChars(), offset, bitOffset, fieldWidth, memsize);
         //printf("\t%s: memalignsize = %d\n", toChars(), memalignsize);
         //printf(" addField '%s' to '%s' at offset %d, size = %d\n", toChars(), ad.toChars(), offset, memsize);
     }
