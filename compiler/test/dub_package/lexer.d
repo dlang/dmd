@@ -1,12 +1,13 @@
 #!/usr/bin/env dub
 /+dub.sdl:
-dependency "dmd" path="../.."
+dependency "dmd" path="../../.."
 +/
 void main()
 {
     import dmd.globals;
     import dmd.lexer;
     import dmd.tokens;
+    import dmd.errorsink;
 
     immutable expected = [
         TOK.void_,
@@ -18,7 +19,7 @@ void main()
     ];
 
     immutable sourceCode = "void test() {} // foobar";
-    scope lexer = new Lexer("test", sourceCode.ptr, 0, sourceCode.length, 0, 0);
+    scope lexer = new Lexer("test", sourceCode.ptr, 0, sourceCode.length, 0, 0, 0, new ErrorSinkStderr);
     lexer.nextToken;
 
     TOK[] result;
