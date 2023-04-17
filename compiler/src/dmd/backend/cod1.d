@@ -51,8 +51,6 @@ extern (C++):
 nothrow:
 @safe:
 
-int REGSIZE();
-
 extern __gshared CGstate cgstate;
 extern __gshared ubyte[FLMAX] segfl;
 extern __gshared bool[FLMAX] stackfl;

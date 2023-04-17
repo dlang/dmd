@@ -28,6 +28,7 @@ import core.stdc.stdlib;
 import core.stdc.string;
 
 // qsort is only nothrow in newer versions of druntime (since 2.081.0)
+alias _compare_fp_t = extern(C) nothrow int function(const void*, const void*);
 private extern(C) void qsort(scope void* base, size_t nmemb, size_t size, _compare_fp_t compar) nothrow @nogc;
 
 import dmd.backend.barray;

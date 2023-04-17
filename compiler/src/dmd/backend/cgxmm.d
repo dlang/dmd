@@ -47,8 +47,6 @@ extern (C++):
 nothrow:
 @safe:
 
-int REGSIZE();
-
 uint mask(uint m);
 
 /*******************************************
@@ -794,7 +792,7 @@ void xmmabs(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-opcode_t xmmload(tym_t tym, bool aligned)
+opcode_t xmmload(tym_t tym, bool aligned = true)
 {
     opcode_t op;
     if (tysize(tym) == 32)
@@ -847,7 +845,7 @@ opcode_t xmmload(tym_t tym, bool aligned)
  */
 
 @trusted
-opcode_t xmmstore(tym_t tym, bool aligned)
+opcode_t xmmstore(tym_t tym, bool aligned = true)
 {
     opcode_t op;
     switch (tybasic(tym))

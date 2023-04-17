@@ -72,8 +72,6 @@ version (MARS)
 else
     enum MARS = false;
 
-int REGSIZE();
-
 extern __gshared CGstate cgstate;
 extern __gshared ubyte[FLMAX] segfl;
 extern __gshared bool[FLMAX] stackfl, flinsymtab;
@@ -1547,7 +1545,7 @@ regm_t allocretregs(const tym_t ty, type* t, const tym_t tyf, out reg_t reg1, ou
  * Struct necessary for sorting switch cases.
  */
 
-alias _compare_fp_t = extern(C) nothrow int function(const void*, const void*);
+private alias _compare_fp_t = extern(C) nothrow int function(const void*, const void*);
 extern(C) void qsort(void* base, size_t nmemb, size_t size, _compare_fp_t compar);
 
 extern (C)  // qsort cmp functions need to be "C"
