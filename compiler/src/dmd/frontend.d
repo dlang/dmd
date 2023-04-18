@@ -396,7 +396,7 @@ Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(AST = ASTCodeg
     import std.typecons : tuple;
 
     auto id = Identifier.idPool(fileName.baseName.stripExtension);
-    auto m = new Module(fileName, id, 0, 0);
+    auto m = new Module(fileName, id, 1, 0);
 
     if (code is null)
         m.read(Loc.initial);
