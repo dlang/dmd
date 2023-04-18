@@ -212,6 +212,7 @@ struct Param
     Strings runargs;    // arguments for executable
 
     Array<const char *> cppswitches; // preprocessor switches
+    const char *cpp;                 // if not null, then this specifies the C preprocessor
 
     // Linker stuff
     Array<const char *> objfiles;
