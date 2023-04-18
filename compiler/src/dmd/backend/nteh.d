@@ -54,7 +54,6 @@ extern (C++):
 nothrow:
 @safe:
 
-int REGSIZE();
 Symbol* except_gensym();
 void except_fillInEHTable(Symbol *s);
 

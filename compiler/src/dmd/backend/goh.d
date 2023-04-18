@@ -14,11 +14,6 @@
 
 module dmd.backend.goh;
 
-import core.stdc.stdio;
-import core.stdc.stdlib;
-import core.stdc.string;
-import core.stdc.time;
-
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.oper;
@@ -71,9 +66,6 @@ struct DefNode
     vec_t    DNunambig;     // vector of unambiguous definitions
 }
 
-/* Global Variables */
-//extern __gshared uint[] optab;
-
 /* Global Optimizer variables
  */
 struct GlobalOptimizer
@@ -96,42 +88,11 @@ struct GlobalOptimizer
     vec_t vptrkill;     // vector of AEs killed by an access
 }
 
-extern __gshared GlobalOptimizer go;
+public import dmd.backend.var : go;
+public import dmd.backend.gdag : builddags, boolopt;
+public import dmd.backend.gflow : flowrd, flowlv, flowvbe, flowcp, flowae, genkillae;
+public import dmd.backend.glocal : localize;
+public import dmd.backend.gloop : blockinit, compdom, loopopt, updaterd;
 
-/* gdag.c */
-void builddags();
-void boolopt();
-void opt_arraybounds();
-
-/* gflow.c */
-void flowrd();
-void flowlv();
-void flowvbe();
-void flowcp();
-void flowae();
-void genkillae();
-void flowarraybounds();
-int ae_field_affect(elem *lvalue,elem *e);
-
-/* glocal.c */
-void localize();
-
-/* gloop.c */
-bool blockinit();
-void compdom();
-void loopopt();
-extern (C) void updaterd(elem *n,vec_t GEN,vec_t KILL);
-
-/* gother.c */
-void rd_arraybounds();
-void rd_free();
-void constprop();
-void copyprop();
-void rmdeadass();
-void elimass(elem *);
-void deadvar();
-void verybusyexp();
-void listrds(vec_t, elem *, vec_t, Barray!(elem*)*);
-
-/* gslice.c */
-void sliceStructs(ref symtab_t symtab, block* startblock);
+public import dmd.backend.gother;
+public import dmd.backend.gsroa : sliceStructs;

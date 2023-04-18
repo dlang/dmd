@@ -23,6 +23,7 @@ import dmd.backend.dt;
 import dmd.backend.el;
 import dmd.backend.symtab;
 import dmd.backend.type;
+import dmd.backend.var : pstate;
 
 extern (C++):
 @nogc:
@@ -376,8 +377,6 @@ stflags_t preprocessor() { return pstate.STflags & PFLpreprocessor; }
 @trusted
 stflags_t inline_asm()   { return pstate.STflags & (PFLmasm | PFLbasm); }
 
-extern __gshared Pstate pstate;
-
 /****************************
  * Global variables.
  */
@@ -393,8 +392,6 @@ struct Cstate
 //#endif
     char* modname;              // module unique identifier
 }
-
-extern __gshared Cstate cstate;
 
 /* Bits for sytab[] that give characteristics of storage classes        */
 enum

@@ -65,37 +65,9 @@ enum LF = '\n';             // \n into \r and \r into \n.  The translator versio
 enum CR_STR = "\r";
 enum LF_STR = "\n";
 
-extern __gshared
-{
-    const uint[32] mask;            // bit masks
-    const uint[32] maskl;           // bit masks
-
-    char* argv0;
-    char* finname, foutname, foutdir;
-
-    char OPTIMIZER,PARSER;
-    symtab_t globsym;
-
-//    Config config;                  // precompiled part of configuration
-    char[SCMAX] sytab;
-
-    extern (C) /*volatile*/ int controlc_saw;    // a control C was seen
-    block* startblock;              // beginning block of function
-
-    Barray!(block*) dfo;            // array of depth first order
-
-    block* curblock;                // current block being read in
-    block* block_last;
-
-    int errcnt;
-    regm_t fregsaved;
-
-    tym_t pointertype;              // default data pointer type
-
-    // cg.c
-    Symbol* localgot;
-    Symbol* tls_get_addr_sym;
-}
+public import dmd.backend.cg;
+public import dmd.backend.var;
+public import dmd.backend.blockopt;
 
 version (MARS)
     __gshared Configv configv;                // non-ph part of configuration
@@ -254,17 +226,7 @@ targ_size_t alignmember(const type *,targ_size_t,targ_size_t);
 targ_size_t _align(targ_size_t,targ_size_t);
 
 /* nteh.c */
-ubyte *nteh_context_string();
-void nteh_declarvars(Blockx *bx);
-elem *nteh_setScopeTableIndex(Blockx *blx, int scope_index);
-Symbol *nteh_contextsym();
-uint nteh_contextsym_size();
-Symbol *nteh_ecodesym();
-code *nteh_unwind(regm_t retregs,uint index);
-code *linux_unwind(regm_t retregs,uint index);
-int nteh_offset_sindex();
-int nteh_offset_sindex_seh();
-int nteh_offset_info();
+public import dmd.backend.nteh;
 
 /* os.c */
 void *globalrealloc(void *oldp,size_t nbytes);

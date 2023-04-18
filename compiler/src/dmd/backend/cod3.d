@@ -38,6 +38,7 @@ import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcse;
+import dmd.backend.cgreg;
 import dmd.backend.code;
 import dmd.backend.code_x86;
 import dmd.backend.codebuilder;
@@ -45,6 +46,7 @@ import dmd.backend.dlist;
 import dmd.backend.dvec;
 import dmd.backend.melf;
 import dmd.backend.mem;
+import dmd.backend.nteh;
 import dmd.backend.el;
 import dmd.backend.exh;
 import dmd.backend.global;
@@ -79,8 +81,6 @@ extern __gshared bool[FLMAX] stackfl, flinsymtab;
 private extern (D) uint mask(uint m) { return 1 << m; }
 
 //private void genorreg(ref CodeBuilder c, uint t, uint f) { genregs(c, 0x09, f, t); }
-
-extern __gshared targ_size_t retsize;
 
 enum JMPJMPTABLE = false;               // benchmarking shows it's slower
 

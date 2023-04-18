@@ -71,8 +71,6 @@ else
     @trusted
     struct_t* struct_calloc() { return cast(struct_t*) mem_calloc(struct_t.sizeof); }
 
-int REGSIZE();
-
 private __gshared
 {
     type *type_list;          // free list of types
@@ -150,7 +148,7 @@ targ_size_t type_size(type* t)
  * Returns:
  *      size
  */
-@trusted
+@trusted @nogc
 targ_size_t type_size(const type *t)
 {   targ_size_t s;
     tym_t tyb;
@@ -405,7 +403,7 @@ uint type_paramsize(type *t)
  *      pointer to newly created type.
  */
 
-@trusted
+@trusted @nogc
 type *type_alloc(tym_t ty)
 {   type *t;
 

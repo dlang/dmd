@@ -31,27 +31,9 @@ struct Aobject
     Symbol *AOfunc;             // cleanup function
 }
 
-
-/* except.c */
-void  except_init();
-void  except_term();
-elem *except_obj_ctor(elem *e,Symbol *s,targ_size_t offset,Symbol *sdtor);
-elem *except_obj_dtor(elem *e,Symbol *s,targ_size_t offset);
-elem *except_throw_expression();
-type *except_declaration(Symbol *cv);
-void  except_exception_spec(type *t);
-void  except_index_set(int index);
-int   except_index_get();
-void  except_pair_setoffset(void *p,targ_size_t offset);
-void  except_pair_append(void *p, int index);
-void  except_push(void *p,elem *e,block *b);
-void  except_pop(void *p,elem *e,block *b);
-void  except_mark();
-void  except_release();
-Symbol *except_gensym();
+// FIXME: this is implemented in the frontend, dmd/eh.d,
+// importing it results in linker errors for dmd.backend.*__ModuleInfoZ
+// because the backend is built with betterC while the frontend is not
 Symbol *except_gentables();
-void except_fillInEHTable(Symbol *s);
-void  except_reset();
 
-/* pdata.c */
-void win64_pdata(Symbol *sf);
+public import dmd.backend.pdata : win64_pdata;

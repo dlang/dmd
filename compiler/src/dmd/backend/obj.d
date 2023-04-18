@@ -678,9 +678,6 @@ else
     }
 }
 
-
-extern __gshared Obj objmod;
-
 /*****************************************
  * Use to generate 4 function declarations, one for
  * each object file format supported.

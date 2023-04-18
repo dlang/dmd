@@ -295,7 +295,7 @@ extern (D) private enum tytab_init =
     return tab;
 } ();
 
-
+/// Give an ascii string for a type
 extern (C) __gshared const(char)*[TYMAX] tystring =
 () {
     const(char)*[TYMAX] ret = [
