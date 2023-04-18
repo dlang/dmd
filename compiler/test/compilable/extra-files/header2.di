@@ -162,13 +162,7 @@ interface LeInterface
 }
 class LeClass
 {
-	this()
-	{
-		auto foo = new class LeInterface
-		{
-		}
-		;
-	}
+	this();
 }
 extern const typeof(new class LeClass, LeInterface
 {
