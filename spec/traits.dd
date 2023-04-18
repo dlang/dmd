@@ -1601,7 +1601,7 @@ $(CONSOLE
 $(H3 $(GNAME allMembers))
 
         $(P Takes a single argument, which must evaluate to either
-        a module, a struct, a union, a class, an interface, or a
+        a module, a struct, a union, a class, an interface, an enum, or a
         template instantiation.
 
         A sequence of string literals is returned, each of which
