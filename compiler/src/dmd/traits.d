@@ -1316,6 +1316,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
          *  "argptr"    extern(D) void dstyle(...), use `__argptr` and `__arguments`
          *  "stdarg"    extern(C) void cstyle(int, ...), use core.stdc.stdarg
          *  "typesafe"  void typesafe(T[] ...)
+         *  "KR"        old K+R style
          */
         // get symbol linkage as a string
         if (dim != 1)
@@ -1350,6 +1351,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             case VarArg.variadic: style = (link == LINK.d)
                                              ? "argptr"
                                              : "stdarg";    break;
+            case VarArg.KRvariadic: style = "KR";           break;
             case VarArg.typesafe: style = "typesafe";       break;
         }
         auto se = new StringExp(e.loc, style);

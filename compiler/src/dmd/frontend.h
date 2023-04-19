@@ -2405,6 +2405,7 @@ enum class VarArg : uint8_t
     none = 0u,
     variadic = 1u,
     typesafe = 2u,
+    KRvariadic = 3u,
 };
 
 struct ParameterList final
@@ -8873,7 +8874,9 @@ struct Id final
     static Identifier* naked;
     static Identifier* thread;
     static Identifier* vector_size;
+    static Identifier* noinline;
     static Identifier* noreturn;
+    static Identifier* _deprecated;
     static Identifier* _align;
     static Identifier* aligned;
     static Identifier* builtins;

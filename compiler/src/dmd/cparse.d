@@ -2081,8 +2081,7 @@ final class CParser(AST) : Parser!AST
             auto pl = ft.parameterList;
             if (pl.varargs != AST.VarArg.none && pl.length)
                 error("function identifier-list cannot end with `...`");
-            ft.parameterList.varargs = AST.VarArg.variadic;     // but C11 allows extra arguments
-            importBuiltins = true;                              // will need __va_list_tag
+            ft.parameterList.varargs = AST.VarArg.KRvariadic;   // but C11 allows extra arguments
             auto plLength = pl.length;
             if (symbols.length != plLength)
                 error(token.loc, "%d identifiers does not match %d declarations", cast(int)plLength, cast(int)symbols.length);
@@ -3046,8 +3045,7 @@ final class CParser(AST) : Parser!AST
         if (token.value == TOK.rightParenthesis)        // func()
         {
             nextToken();
-            importBuiltins = true;                              // will need __va_list_tag
-            return AST.ParameterList(parameters, AST.VarArg.variadic, varargsStc);
+            return AST.ParameterList(parameters, AST.VarArg.KRvariadic, varargsStc);
         }
 
         /* Create function prototype scope

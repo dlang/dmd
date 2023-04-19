@@ -2265,7 +2265,8 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 default:
                     break;
                 }
-                if (tf.parameterList.varargs == VarArg.variadic)
+                if (tf.parameterList.varargs == VarArg.variadic ||
+                    tf.parameterList.varargs == VarArg.KRvariadic)
                 {
                     const(char)* p = tf.linkage == LINK.c ? "extern(C)" : "extern(C++)";
                     if (arg.type.ty == Tarray)

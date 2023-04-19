@@ -3951,7 +3951,7 @@ struct ASTBase
         extern (D) this(ParameterList pl, Type treturn, LINK linkage, StorageClass stc = 0)
         {
             super(Tfunction, treturn);
-            assert(VarArg.none <= pl.varargs && pl.varargs <= VarArg.typesafe);
+            assert(VarArg.none <= pl.varargs && pl.varargs <= VarArg.max);
             this.parameterList = pl;
             this.linkage = linkage;
 

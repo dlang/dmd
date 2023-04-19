@@ -327,6 +327,7 @@ enum VarArg : ubyte
     variadic = 1,  /// (T t, ...)  can be C-style (core.stdc.stdarg) or D-style (core.vararg)
     typesafe = 2,  /// (T t ...) typesafe https://dlang.org/spec/function.html#typesafe_variadic_functions
                    ///   or https://dlang.org/spec/function.html#typesafe_variadic_functions
+    KRvariadic = 3, /// K+R C style variadics (no function prototype)
 }
 
 /*************************
