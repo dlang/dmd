@@ -1395,6 +1395,18 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
 
         if (arg == "-allinst")               // https://dlang.org/dmd.html#switch-allinst
             params.allInst = true;
+        else if (startsWith(p + 1, "cpp="))  // https://dlang.org/dmd.html#switch-cpp
+        {
+            if (p[5])
+            {
+                params.cpp = p + 5;
+            }
+            else
+            {
+                errorInvalidSwitch(p, "it must be followed by the filename of the desired C preprocessor");
+                return false;
+            }
+        }
         else if (arg == "-de")               // https://dlang.org/dmd.html#switch-de
             params.useDeprecated = DiagnosticReporting.error;
         else if (arg == "-d")                // https://dlang.org/dmd.html#switch-d

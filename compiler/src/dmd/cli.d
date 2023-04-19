@@ -266,6 +266,12 @@ dmd -cov -unittest myprog.d
 ---
             `,
         ),
+        Option("cpp=<filename>",
+            "use filename as the name of the C preprocessor to use for ImportC files",
+            `Normally the C preprocessor used by the associated C compiler is used to
+            preprocess ImportC files,
+            this is overridden by the $(TT -cpp) switch.`
+        ),
         Option("D",
             "generate documentation",
             `$(P Generate $(LINK2 $(ROOT_DIR)spec/ddoc.html, documentation) from source.)
