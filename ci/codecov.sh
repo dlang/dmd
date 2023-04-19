@@ -70,6 +70,6 @@ rm $UPLOADER.*
 
 # Upload the sources
 chmod +x "$UPLOADER"
-"./$UPLOADER" -p . -Z $UPLOADER_ARGS
+"./$UPLOADER" -C $CIRCLE_SHA1 -p . -Z $UPLOADER_ARGS
 
 rm "$UPLOADER"
