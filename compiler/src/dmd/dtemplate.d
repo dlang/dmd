@@ -741,9 +741,6 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
     const(char)* toCharsMaybeConstraints(bool includeConstraints) const
     {
-        if (literal)
-            return Dsymbol.toChars();
-
         OutBuffer buf;
         HdrGenState hgs;
 
