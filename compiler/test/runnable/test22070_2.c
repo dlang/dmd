@@ -51,5 +51,23 @@ int main()
         return 1;
     if (test4() != '5')
         return 1;
-    return 0;
+    return test23055();
+}
+
+// https://issues.dlang.org/show_bug?id=23055
+
+int *px = (int[1]){0};
+
+int fn()
+{
+    int *p = (int[1]){0};
+    *p = 7;
+    return *p;
+}
+
+_Static_assert(fn() == 7, "");
+
+int test23055()
+{
+    return (fn() != 7);
 }

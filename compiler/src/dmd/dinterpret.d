@@ -2441,7 +2441,7 @@ public:
     {
         debug (LOG)
         {
-            printf("%s ArrayLiteralExp::interpret() %s\n", e.loc.toChars(), e.toChars());
+            printf("%s ArrayLiteralExp::interpret() %s, %s\n", e.loc.toChars(), e.type.toChars(), e.toChars());
         }
         if (e.ownedByCtfe >= OwnedBy.ctfe) // We've already interpreted all the elements
         {
@@ -2449,7 +2449,8 @@ public:
             return;
         }
 
-        Type tn = e.type.toBasetype().nextOf().toBasetype();
+        Type tb = e.type.toBasetype();
+        Type tn = tb.nextOf().toBasetype();
         bool wantCopy = (tn.ty == Tsarray || tn.ty == Tstruct);
 
         auto basis = interpretRegion(e.basis, istate);
@@ -2458,6 +2459,7 @@ public:
 
         auto expsx = e.elements;
         size_t dim = expsx ? expsx.length : 0;
+
         for (size_t i = 0; i < dim; i++)
         {
             Expression exp = (*expsx)[i];
@@ -3971,6 +3973,8 @@ public:
      */
     private Expression interpretAssignToSlice(UnionExp* pue, BinExp e, Expression e1, Expression newval, bool isBlockAssignment)
     {
+        //printf("interpretAssignToSlice(e: %s e1: %s newval: %s\n", e.toChars(), e1.toChars(), newval.toChars());
+
         dinteger_t lowerbound;
         dinteger_t upperbound;
         dinteger_t firstIndex;
@@ -4030,7 +4034,7 @@ public:
             return newval;
 
         // For slice assignment, we check that the lengths match.
-        if (!isBlockAssignment)
+        if (!isBlockAssignment && e1.type.ty != Tpointer)
         {
             const srclen = resolveArrayLength(newval);
             if (srclen != (upperbound - lowerbound))
@@ -4245,8 +4249,8 @@ public:
                 Expression assignTo(ArrayLiteralExp ae, size_t lwr, size_t upr)
                 {
                     Expressions* w = ae.elements;
-                    assert(ae.type.ty == Tsarray || ae.type.ty == Tarray);
-                    bool directblk = (cast(TypeArray)ae.type).next.equivalent(newval.type);
+                    assert(ae.type.ty == Tsarray || ae.type.ty == Tarray || ae.type.ty == Tpointer);
+                    bool directblk = (cast(TypeNext)ae.type).next.equivalent(newval.type);
                     for (size_t k = lwr; k < upr; k++)
                     {
                         if (!directblk && (*w)[k].op == EXP.arrayLiteral)
@@ -6116,10 +6120,13 @@ public:
 
     override void visit(PtrExp e)
     {
+        // Called for both lvalues and rvalues
+        const lvalue = goal == CTFEGoal.LValue;
         debug (LOG)
         {
-            printf("%s PtrExp::interpret() %s\n", e.loc.toChars(), e.toChars());
+            printf("%s PtrExp::interpret(%d) %s, %s\n", e.loc.toChars(), lvalue, e.type.toChars(), e.toChars());
         }
+
         // Check for int<->float and long<->double casts.
         if (auto soe1 = e.e1.isSymOffExp())
             if (soe1.offset == 0 && soe1.var.isVarDeclaration() && isFloatIntPaint(e.type, soe1.var.type))
@@ -6177,6 +6184,20 @@ public:
             return;
         }
 
+        if (!lvalue && result.isArrayLiteralExp() &&
+            result.type.isTypePointer())
+        {
+            /* A pointer variable can point to an array literal like `[3]`.
+             * Dereferencing it means accessing the first element value.
+             * Dereference it only if result should be an rvalue
+             */
+            auto ae = result.isArrayLiteralExp();
+            if (ae.elements.length == 1)
+            {
+                result = (*ae.elements)[0];
+                return;
+            }
+        }
         if (result.isStringExp() || result.isArrayLiteralExp())
             return;
 
@@ -6484,11 +6505,12 @@ Expression interpret(UnionExp* pue, Expression e, InterState* istate, CTFEGoal g
 {
     if (!e)
         return null;
-    //printf("interpret %s\n", e.toChars());
+    //printf("+interpret() e : %s, %s\n", e.type.toChars(), e.toChars());
     scope Interpreter v = new Interpreter(pue, istate, goal);
     e.accept(v);
     Expression ex = v.result;
     assert(goal == CTFEGoal.Nothing || ex !is null);
+    //if (ex) printf("-interpret() ex: %s, %s\n", ex.type.toChars(), ex.toChars()); else printf("-interpret()\n");
     return ex;
 }
 
