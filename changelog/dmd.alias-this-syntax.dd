@@ -1,0 +1,14 @@
+Assignment-style syntax is now allowed for `alias this`
+
+`alias this` declarations can now be written using the same `alias new = old;`
+syntax as other `alias` declarations.
+
+---
+struct S
+{
+    int n;
+    alias this = n;
+    // Equivalent to:
+    //alias n this;
+}
+---
