@@ -2011,6 +2011,7 @@ $(H2 $(LEGACY_LNAME2 AliasThis, alias-this, Alias This))
 $(GRAMMAR
 $(GNAME AliasThis):
     $(D alias) $(GLINK_LEX Identifier) $(D this ;)
+    $(D alias) $(D this) $(D =) $(GLINK_LEX Identifier) $(D ;)
 )
 
         $(P An $(I AliasThis) declaration names a member to subtype.
