@@ -371,11 +371,6 @@ alias backend = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRul
         "-of" ~ rule.target,
         ]
         .chain(
-            (
-                // Only use -betterC when it doesn't break other features
-                extraFlags.canFind("-unittest", env["COVERAGE_FLAG"]) ||
-                flags["DFLAGS"].canFind("-unittest", env["COVERAGE_FLAG"])
-            ) ? [] : ["-betterC"],
             flags["DFLAGS"], extraFlags,
 
             // source files need to have relative paths in order for the code coverage
