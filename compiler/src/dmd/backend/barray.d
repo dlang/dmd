@@ -20,7 +20,9 @@ import core.stdc.string;
 nothrow:
 @safe:
 
-extern (C++): private void err_nomem();
+extern (C++):
+
+import dmd.backend.global : err_nomem;
 
 /*************************************
  * A reusable array that ratchets up in capacity.

@@ -72,7 +72,6 @@ else
     enum MARS = false;
 
 void dwarf_except_gentables(Funcsym *sfunc, uint startoffset, uint retoffset);
-int REGSIZE();
 
 private extern (D) uint mask(uint m) { return 1 << m; }
 

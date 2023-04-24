@@ -47,10 +47,6 @@ nothrow:
 //       a multi-threaded version of the backend
 __gshared Globals87 global87;
 
-private:
-
-int REGSIZE();
-
 private extern (D) uint mask(uint m) { return 1 << m; }
 void callcdxxx(ref CodeBuilder cdb, elem *e, regm_t *pretregs, OPER op);
 
@@ -528,7 +524,7 @@ void comsub87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  * Decide if we need to gen an FWAIT.
  */
 
-void genfwait(ref CodeBuilder cdb)
+public void genfwait(ref CodeBuilder cdb)
 {
     if (ADDFWAIT())
         cdb.gen1(FWAIT);
@@ -2268,7 +2264,7 @@ private void cnvteq87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void opass87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+public void opass87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     code cs;
     uint op;

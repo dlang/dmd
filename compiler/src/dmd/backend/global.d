@@ -119,18 +119,6 @@ void exp2_setstrthis(elem *e,Symbol *s,targ_size_t offset,type *t);
 Symbol *exp2_qualified_lookup(Classsym *sclass, int flags, int *pflags);
 elem *exp2_copytotemp(elem *e);
 
-/* util.c */
-//#if __clang__
-//void util_exit(int) __attribute__((noreturn));
-//#elif _MSC_VER
-//__declspec(noreturn) void util_exit(int);
-//#else
-void util_exit(int);
-//#if __DMC__
-//#pragma ZTC noreturn(util_exit)
-//#endif
-//#endif
-
 void util_progress();
 void util_set16();
 void util_set32(exefmt_t);
@@ -204,7 +192,7 @@ void preerr(uint,...);
 //void err_fatal(uint,...) __attribute__((analyzer_noreturn));
 //#else
 void err_exit();
-void err_nomem();
+public import dmd.backend.ph2 : err_nomem;
 void err_fatal(uint,...);
 //#if __DMC__
 //#pragma ZTC noreturn(err_exit)
@@ -354,9 +342,7 @@ void symbol_reset(Symbol *s);
 tym_t symbol_pointerType(const Symbol* s);
 
 // cg87.c
-void cg87_reset();
-
-ubyte loadconst(elem *e, int im);
+public import dmd.backend.cg87 : loadconst, cg87_reset;
 
 /* From cgopt.c */
 void opt();
@@ -369,8 +355,7 @@ void objfile_delete();
 void objfile_term();
 
 /* cod3.c */
-void cod3_thunk(Symbol *sthunk,Symbol *sfunc,uint p,tym_t thisty,
-        uint d,int i,uint d2);
+public import dmd.backend.cod3 : cod3_thunk;
 
 /* out.c */
 void outfilename(char *name,int linnum);
