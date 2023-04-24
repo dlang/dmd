@@ -406,12 +406,12 @@ $(H2 $(LNAME2 visibility_attributes, Visibility Attribute))
 
 $(GRAMMAR
 $(GNAME VisibilityAttribute):
-    $(D private)
+    $(D export)
     $(D package)
     $(D package) $(D $(LPAREN)) $(GLINK2 type, QualifiedIdentifier) $(D $(RPAREN))
+    $(D private)
     $(D protected)
     $(D public)
-    $(D export)
 )
 
 $(P Visibility is an attribute that is one of $(D private), $(D package),
@@ -419,37 +419,6 @@ $(P Visibility is an attribute that is one of $(D private), $(D package),
 attributes in documents predating $(LINK2 http://wiki.dlang.org/DIP22, DIP22).)
 
         $(P Visibility participates in $(DDSUBLINK spec/module, name_lookup, symbol name lookup).
-        )
-
-        $(P Symbols with $(D private) visibility can only be accessed from
-        within the same module.
-        Private member functions are implicitly $(DDSUBLINK spec/function, final, `final`)
-        and cannot be overridden.
-        )
-
-        $(P $(D package) extends private so that package members can be accessed
-        from code in other modules that are in the same package.
-        If no identifier is provided, this applies to the innermost package only,
-        or defaults to $(D private) if a module is not nested in a package.
-        )
-
-        $(P $(D package) may have an optional parameter in the form of a dot-separated identifier
-        list which is resolved as the qualified package name. The package must be either the module's
-        parent package or one of its anscestors. If this optional parameter is present, the symbol
-        will be visible in the specified package and all of its descendants.
-        )
-
-        $(P $(D protected) only applies inside classes (and templates as they can be mixed in)
-        and means that a symbol can only be seen by members of the same module,
-        or by a derived class.
-        If accessing a protected instance member through a derived class member
-        function, that member can only be accessed for the object instance
-        which can be implicitly cast to the same type as $(SINGLEQUOTE this).
-        $(D protected) module members are illegal.
-        )
-
-        $(P $(D public) means that any code within the executable can see the member.
-        It is the default visibility attribute.
         )
 
 $(H3 $(LNAME2 export, $(D export) Attribute))
@@ -472,6 +441,45 @@ $(H3 $(LNAME2 export, $(D export) Attribute))
 
         $(P In Windows terminology, $(I dllexport) means exporting a symbol from a DLL, and $(I dllimport) means
         a DLL or executable is importing a symbol from a DLL.)
+
+$(H3 $(LNAME2 package, $(D package) Attribute))
+
+        $(P $(D package) extends $(D private) so that package members can be accessed
+        from code in other modules that are in the same package.
+        If no identifier is provided, this applies to the innermost package only,
+        or defaults to $(D private) if a module is not nested in a package.
+        )
+
+        $(P $(D package) may have an optional parameter in the form of a dot-separated identifier
+        list which is resolved as the qualified package name. The package must be either the module's
+        parent package or one of its anscestors. If this parameter is present, the symbol
+        will be visible in the specified package and all of its descendants.
+        )
+
+$(H3 $(LNAME2 private, $(D private) Attribute))
+
+        $(P Symbols with $(D private) visibility can only be accessed from
+        within the same module.
+        Private member functions are implicitly $(DDSUBLINK spec/function, final, `final`)
+        and cannot be overridden.
+        )
+
+$(H3 $(LNAME2 protected, $(D protected) Attribute))
+
+        $(P $(D protected) only applies inside classes (and templates as they can be mixed in)
+        and means that a symbol can only be seen by members of the same module,
+        or by a derived class.
+        If accessing a protected instance member through a derived class member
+        function, that member can only be accessed for the object instance
+        which can be implicitly cast to the same type as $(SINGLEQUOTE this).
+        $(D protected) module members are illegal.
+        )
+
+$(H3 $(LNAME2 public, $(D public) Attribute))
+
+        $(P $(D public) means that any code within the executable can see the member.
+        It is the default visibility attribute.
+        )
 
 
 $(H2 $(LNAME2 mutability, Mutability Attributes))
