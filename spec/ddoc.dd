@@ -499,6 +499,8 @@ $(P
     to the syntax used on GitHub, Reddit, Stack Overflow, and other websites. Both
     the opening and closing `$(BACKTICK)` character must appear on the same line to trigger this
     behavior.
+    Note that macros are still expanded inside backticks. See also
+    $(RELATIVE_LINK2 punctuation_escapes, escaping).
 )
 
 $(P
