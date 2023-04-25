@@ -2604,15 +2604,6 @@ elem* toElem(Expression e, IRState *irs)
 
             if (auto sle = ae.e2.isStructLiteralExp())
             {
-                auto ex = e1.Eoper == OPind ? e1.EV.E1 : e1;
-                if (ex.Eoper == OPvar && ex.EV.Voffset == 0 &&
-                    (ae.op == EXP.construct || ae.op == EXP.blit))
-                {
-                    elem* e = toElemStructLit(sle, irs, ae.op, ex.EV.Vsym, true);
-                    el_free(e1);
-                    return setResult2(e);
-                }
-
                 static bool allZeroBits(ref Expressions exps)
                 {
                     foreach (e; exps[])
@@ -2633,13 +2624,22 @@ elem* toElem(Expression e, IRState *irs)
                 /* Use a memset to 0
                  */
                 if ((sle.useStaticInit ||
-                     sle.elements && allZeroBits(*sle.elements) && !sle.sd.isNested()) &&
+                     sle.elements && _isZeroInit(sle) && !sle.sd.isNested()) &&
                     ae.e2.type.isZeroInit(ae.e2.loc))
                 {
                     elem* enbytes = el_long(TYsize_t, ae.e1.type.size());
                     elem* evalue = el_long(TYchar, 0);
                     elem* el = el_una(OPaddr, TYnptr, e1);
                     elem* e = el_bin(OPmemset,TYnptr, el, el_param(enbytes, evalue));
+                    return setResult2(e);
+                }
+
+                auto ex = e1.Eoper == OPind ? e1.EV.E1 : e1;
+                if (ex.Eoper == OPvar && ex.EV.Voffset == 0 &&
+                    (ae.op == EXP.construct || ae.op == EXP.blit))
+                {
+                    elem* e = toElemStructLit(sle, irs, ae.op, ex.EV.Vsym, true);
+                    el_free(e1);
                     return setResult2(e);
                 }
             }
