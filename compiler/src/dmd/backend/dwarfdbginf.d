@@ -97,9 +97,6 @@ static if (1)
         uint CIE_offset_unwind;     // CIE offset for unwind data
         uint CIE_offset_no_unwind;  // CIE offset for no unwind data
 
-        IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, uint sz,
-                uint typ, uint bind, IDXSEC sec,
-                ubyte visibility = STV_DEFAULT);
         void addSegmentToComdat(segidx_t seg, segidx_t comdatseg);
 
         int getsegment2(ref int seg, const(char)* sectname, const(char)* segname,

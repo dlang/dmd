@@ -73,8 +73,6 @@ else
     enum MARS = false;
 
 extern __gshared CGstate cgstate;
-extern __gshared ubyte[FLMAX] segfl;
-extern __gshared bool[FLMAX] stackfl, flinsymtab;
 
 private extern (D) uint mask(uint m) { return 1 << m; }
 
