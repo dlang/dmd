@@ -207,7 +207,9 @@ case $1 in
         check_d_builder;
         coverage;
         check_clean_git;
-        codecov;
+        # codecov is disabled due to:
+        # https://community.codecov.com/t/commit-sha-does-not-match-circle-build/4266
+        # codecov;
         check_run_individual;
         test_cxx;
     ;;
