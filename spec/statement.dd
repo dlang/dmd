@@ -1688,20 +1688,43 @@ $(GNAME WithStatement):
     $(D with) $(D $(LPAREN)) $(GLINK2 template, TemplateInstance) $(D $(RPAREN)) $(PSSCOPE)
 )
 
-        where *Expression* evaluates to a class reference or struct
-        instance.
+        where *Expression* evaluates to one of:
+
+        $(UL
+        $(LI a class reference)
+        $(LI a struct instance)
+        $(LI an enum instance)
+        $(LI a pointer to one of the above)
+        )
+
         Within the with body the referenced object is searched first for
         identifier symbols.
 
+---
+enum E { A, B }
+
+void test(E e)
+{
+    with (e)       // affects the switch statement
+    switch (e)
+    {
+        case A:    // no need for E.A
+        case B:
+        default:
+            break;
+    }
+}
+---
+
 $(P Below, if `ident` is a member of the type of `expression`, the $(I WithStatement):)
 
---------------
+---
 with (expression)
 {
     ...
     ident;
 }
---------------
+---
 
         is semantically equivalent to:
 
