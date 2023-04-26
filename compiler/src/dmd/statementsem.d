@@ -3166,14 +3166,16 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         }
         else
         {
-            Type t = ws.exp.type.toBasetype();
+            Type texp = ws.exp.type;
+            Type t = texp.toBasetype();
 
             Expression olde = ws.exp;
             if (t.ty == Tpointer)
             {
                 ws.exp = new PtrExp(ws.loc, ws.exp);
                 ws.exp = ws.exp.expressionSemantic(sc);
-                t = ws.exp.type.toBasetype();
+                texp = ws.exp.type;
+                t = texp.toBasetype();
             }
 
             assert(t);
@@ -3221,9 +3223,16 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 sym.parent = sc.scopesym;
                 sym.endlinnum = ws.endloc.linnum;
             }
+            else if (auto tenum = texp.isTypeEnum())
+            {
+                ws.exp = new TypeExp(ws.exp.loc, tenum);
+                sym = new WithScopeSymbol(ws);
+                sym.parent = sc.scopesym;
+                sym.endlinnum = ws.endloc.linnum;
+            }
             else
             {
-                ws.error("`with` expressions must be aggregate types or pointers to them, not `%s`", olde.type.toChars());
+                ws.error("`with` expression types must be enums or aggregates or pointers to them, not `%s`", olde.type.toChars());
                 return setError();
             }
         }
