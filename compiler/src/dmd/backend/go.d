@@ -56,7 +56,6 @@ nothrow:
 import dmd.backend.os : os_clock;
 /***************************************************************************/
 
-extern (C) void mem_free(void* p);
 
 @trusted
 void go_term()

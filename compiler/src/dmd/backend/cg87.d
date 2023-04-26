@@ -48,7 +48,6 @@ nothrow:
 __gshared Globals87 global87;
 
 private extern (D) uint mask(uint m) { return 1 << m; }
-void callcdxxx(ref CodeBuilder cdb, elem *e, regm_t *pretregs, OPER op);
 
 
 // Constants that the 8087 supports directly

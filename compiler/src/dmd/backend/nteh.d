@@ -55,7 +55,6 @@ nothrow:
 @safe:
 
 int REGSIZE();
-Symbol* except_gensym();
 void except_fillInEHTable(Symbol *s);
 
 private __gshared

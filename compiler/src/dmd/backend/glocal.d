@@ -46,7 +46,6 @@ extern (C++):
 nothrow:
 @safe:
 
-int REGSIZE();
 
 
 enum

@@ -101,7 +101,6 @@ extern __gshared GlobalOptimizer go;
 /* gdag.c */
 void builddags();
 void boolopt();
-void opt_arraybounds();
 
 /* gflow.c */
 void flowrd();
@@ -110,8 +109,6 @@ void flowvbe();
 void flowcp();
 void flowae();
 void genkillae();
-void flowarraybounds();
-int ae_field_affect(elem *lvalue,elem *e);
 
 /* glocal.c */
 void localize();
@@ -123,8 +120,6 @@ void loopopt();
 extern (C) void updaterd(elem *n,vec_t GEN,vec_t KILL);
 
 /* gother.c */
-void rd_arraybounds();
-void rd_free();
 void constprop();
 void copyprop();
 void rmdeadass();
