@@ -1220,7 +1220,7 @@ private bool haveSameThis(FuncDeclaration outerFunc, FuncDeclaration calledFunc)
 /***************************************
  * Pull out any properties.
  */
-private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = null)
+private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = null, BinExp saveAtts = null)
 {
     //printf("resolvePropertiesX, e1 = %s %s, e2 = %s\n", EXPtoString(e1.op).ptr, e1.toChars(), e2 ? e2.toChars() : null);
     Loc loc = e1.loc;
@@ -1294,7 +1294,14 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
             {
                 Expression e = new CallExp(loc, e1);
                 if (e2)
+                {
                     e = new AssignExp(loc, e, e2);
+                    if (saveAtts)
+                    {
+                        (cast(BinExp)e).att1 = saveAtts.att1;
+                        (cast(BinExp)e).att2 = saveAtts.att2;
+                    }
+                }
                 return e.expressionSemantic(sc);
             }
         }
@@ -1412,7 +1419,14 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
                     }
                     Expression e = new CallExp(loc, e1);
                     if (e2)
+                    {
                         e = new AssignExp(loc, e, e2);
+                        if (saveAtts)
+                        {
+                            (cast(BinExp)e).att1 = saveAtts.att1;
+                            (cast(BinExp)e).att2 = saveAtts.att2;
+                        }
+                    }
                     return e.expressionSemantic(sc);
                 }
             }
@@ -9092,7 +9106,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
              * or:
              *      f() = value
              */
-            if (Expression e = resolvePropertiesX(sc, e1x, exp.e2))
+            if (Expression e = resolvePropertiesX(sc, e1x, exp.e2, exp))
                 return setResult(e);
 
             if (e1x.checkRightThis(sc))
