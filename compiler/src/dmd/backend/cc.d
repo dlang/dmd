@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cc.d, backend/_cc.d)
@@ -749,6 +749,7 @@ enum
     Fnothrow         = 0x10000, // function does not throw (even if not marked 'nothrow')
     Feh_none         = 0x20000, // ehmethod==EH_NONE for this function only
     F3hiddenPtr      = 0x40000, // function has hidden pointer to return value
+    F3safe           = 0x80000, // function is @safe
 }
 
 struct func_t

@@ -14,7 +14,7 @@
  * - Protection (`private`, `public`)
  * - Deprecated declarations (`@deprecated`)
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/attrib.d, _attrib.d)
@@ -40,6 +40,7 @@ import dmd.globals;
 import dmd.hdrgen : visibilityToBuffer;
 import dmd.id;
 import dmd.identifier;
+import dmd.location;
 import dmd.mtype;
 import dmd.objc; // for objc.addSymbols
 import dmd.common.outbuffer;
@@ -58,6 +59,12 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 
     extern (D) this(Dsymbols* decl)
     {
+        this.decl = decl;
+    }
+
+    extern (D) this(const ref Loc loc, Dsymbols* decl)
+    {
+        super(loc, null);
         this.decl = decl;
     }
 
@@ -196,17 +203,12 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 
     /****************************************
      */
-    override final void addLocalClass(ClassDeclarations* aclasses)
-    {
-        include(null).foreachDsymbol( s => s.addLocalClass(aclasses) );
-    }
-
     override final void addObjcSymbols(ClassDeclarations* classes, ClassDeclarations* categories)
     {
         objc.addSymbols(this, classes, categories);
     }
 
-    override final inout(AttribDeclaration) isAttribDeclaration() inout pure @safe
+    override inout(AttribDeclaration) isAttribDeclaration() inout pure @safe
     {
         return this;
     }
@@ -229,6 +231,12 @@ extern (C++) class StorageClassDeclaration : AttribDeclaration
     extern (D) this(StorageClass stc, Dsymbols* decl)
     {
         super(decl);
+        this.stc = stc;
+    }
+
+    extern (D) this(const ref Loc loc, StorageClass stc, Dsymbols* decl)
+    {
+        super(loc, decl);
         this.stc = stc;
     }
 
@@ -1079,6 +1087,11 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
         return "static if";
     }
 
+    override inout(StaticIfDeclaration) isStaticIfDeclaration() inout pure @safe
+    {
+        return this;
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1278,7 +1291,8 @@ extern(C++) final class ForwardingAttribDeclaration : AttribDeclaration
  *      mixin("int x");
  * https://dlang.org/spec/module.html#mixin-declaration
  */
-extern (C++) final class CompileDeclaration : AttribDeclaration
+// Note: was CompileDeclaration
+extern (C++) final class MixinDeclaration : AttribDeclaration
 {
     Expressions* exps;
     ScopeDsymbol scopesym;
@@ -1287,19 +1301,19 @@ extern (C++) final class CompileDeclaration : AttribDeclaration
     extern (D) this(const ref Loc loc, Expressions* exps)
     {
         super(loc, null, null);
-        //printf("CompileDeclaration(loc = %d)\n", loc.linnum);
+        //printf("MixinDeclaration(loc = %d)\n", loc.linnum);
         this.exps = exps;
     }
 
-    override CompileDeclaration syntaxCopy(Dsymbol s)
+    override MixinDeclaration syntaxCopy(Dsymbol s)
     {
-        //printf("CompileDeclaration::syntaxCopy('%s')\n", toChars());
-        return new CompileDeclaration(loc, Expression.arraySyntaxCopy(exps));
+        //printf("MixinDeclaration::syntaxCopy('%s')\n", toChars());
+        return new MixinDeclaration(loc, Expression.arraySyntaxCopy(exps));
     }
 
     override void addMember(Scope* sc, ScopeDsymbol sds)
     {
-        //printf("CompileDeclaration::addMember(sc = %p, sds = %p, memnum = %d)\n", sc, sds, memnum);
+        //printf("MixinDeclaration::addMember(sc = %p, sds = %p, memnum = %d)\n", sc, sds, memnum);
         this.scopesym = sds;
     }
 
@@ -1313,7 +1327,7 @@ extern (C++) final class CompileDeclaration : AttribDeclaration
         return "mixin";
     }
 
-    override inout(CompileDeclaration) isCompileDeclaration() inout
+    override inout(MixinDeclaration) isMixinDeclaration() inout
     {
         return this;
     }

@@ -1,6 +1,6 @@
 #!/usr/bin/env dub
 /+dub.sdl:
-dependency "dmd" path="../.."
+dependency "dmd" path="../../.."
 +/
 import std.stdio;
 import std.string : replace;

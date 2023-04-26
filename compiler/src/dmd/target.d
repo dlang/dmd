@@ -15,7 +15,7 @@
  * - $(LINK2 https://github.com/ldc-developers/ldc, LDC repository)
  * - $(LINK2 https://github.com/D-Programming-GDC/gcc, GDC repository)
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/target.d, _target.d)
@@ -25,7 +25,7 @@
 
 module dmd.target;
 
-import dmd.globals : Param;
+import dmd.globals : Param, CHECKENABLE;
 
 enum CPU : ubyte
 {
@@ -85,6 +85,190 @@ ubyte defaultTargetOSMajor()
         return 0;
 }
 
+/**
+ * Add default `version` identifier for dmd, and set the
+ * target platform in `params`.
+ * https://dlang.org/spec/version.html#predefined-versions
+ *
+ * Needs to be run after all arguments parsing (command line, DFLAGS environment
+ * variable and config file) in order to add final flags (such as `X86_64` or
+ * the `CRuntime` used).
+ *
+ * Params:
+ *      params = which target to compile for (set by `setTarget()`)
+ *      tgt    = target
+ */
+public
+void addDefaultVersionIdentifiers(const ref Param params, const ref Target tgt)
+{
+    import dmd.cond : VersionCondition;
+    import dmd.dmdparams : driverParams, PIC;
+
+    VersionCondition.addPredefinedGlobalIdent("DigitalMars");
+    VersionCondition.addPredefinedGlobalIdent("LittleEndian");
+    VersionCondition.addPredefinedGlobalIdent("D_Version2");
+    VersionCondition.addPredefinedGlobalIdent("all");
+
+    addPredefinedGlobalIdentifiers(tgt);
+
+    if (params.ddoc.doOutput)
+        VersionCondition.addPredefinedGlobalIdent("D_Ddoc");
+    if (params.cov)
+        VersionCondition.addPredefinedGlobalIdent("D_Coverage");
+    if (driverParams.pic != PIC.fixed)
+        VersionCondition.addPredefinedGlobalIdent(driverParams.pic == PIC.pic ? "D_PIC" : "D_PIE");
+    if (params.useUnitTests)
+        VersionCondition.addPredefinedGlobalIdent("unittest");
+    if (params.useAssert == CHECKENABLE.on)
+        VersionCondition.addPredefinedGlobalIdent("assert");
+    if (params.useIn == CHECKENABLE.on)
+        VersionCondition.addPredefinedGlobalIdent("D_PreConditions");
+    if (params.useOut == CHECKENABLE.on)
+        VersionCondition.addPredefinedGlobalIdent("D_PostConditions");
+    if (params.useInvariants == CHECKENABLE.on)
+        VersionCondition.addPredefinedGlobalIdent("D_Invariants");
+    if (params.useArrayBounds == CHECKENABLE.off)
+        VersionCondition.addPredefinedGlobalIdent("D_NoBoundsChecks");
+    if (params.betterC)
+    {
+        VersionCondition.addPredefinedGlobalIdent("D_BetterC");
+    }
+    else
+    {
+        VersionCondition.addPredefinedGlobalIdent("D_ModuleInfo");
+        VersionCondition.addPredefinedGlobalIdent("D_Exceptions");
+        VersionCondition.addPredefinedGlobalIdent("D_TypeInfo");
+    }
+
+    VersionCondition.addPredefinedGlobalIdent("D_HardFloat");
+
+    if (params.tracegc)
+        VersionCondition.addPredefinedGlobalIdent("D_ProfileGC");
+
+    if (driverParams.optimize)
+        VersionCondition.addPredefinedGlobalIdent("D_Optimized");
+}
+
+// /**
+//  * Add predefined global identifiers that are determied by the target
+//  */
+private
+void addPredefinedGlobalIdentifiers(const ref Target tgt)
+{
+    import dmd.cond : VersionCondition;
+
+    alias predef = VersionCondition.addPredefinedGlobalIdent;
+    if (tgt.cpu >= CPU.sse2)
+    {
+        predef("D_SIMD");
+        if (tgt.cpu >= CPU.avx)
+            predef("D_AVX");
+        if (tgt.cpu >= CPU.avx2)
+            predef("D_AVX2");
+    }
+
+    with (Target)
+    {
+        if (tgt.os & OS.Posix)
+            predef("Posix");
+        if (tgt.os & (OS.linux | OS.FreeBSD | OS.OpenBSD | OS.DragonFlyBSD | OS.Solaris))
+            predef("ELFv1");
+        switch (tgt.os)
+        {
+            case OS.none:         { predef("FreeStanding"); break; }
+            case OS.linux:        { predef("linux");        break; }
+            case OS.OpenBSD:      { predef("OpenBSD");      break; }
+            case OS.DragonFlyBSD: { predef("DragonFlyBSD"); break; }
+            case OS.Solaris:      { predef("Solaris");      break; }
+            case OS.Windows:
+            {
+                 predef("Windows");
+                 VersionCondition.addPredefinedGlobalIdent(tgt.is64bit ? "Win64" : "Win32");
+                 break;
+            }
+            case OS.OSX:
+            {
+                predef("OSX");
+                // For legacy compatibility
+                predef("darwin");
+                break;
+            }
+            case OS.FreeBSD:
+            {
+                predef("FreeBSD");
+                switch (tgt.osMajor)
+                {
+                    case 10: predef("FreeBSD_10");  break;
+                    case 11: predef("FreeBSD_11"); break;
+                    case 12: predef("FreeBSD_12"); break;
+                    case 13: predef("FreeBSD_13"); break;
+                    default: predef("FreeBSD_11"); break;
+                }
+                break;
+            }
+            default: assert(0);
+        }
+    }
+
+    addCRuntimePredefinedGlobalIdent(tgt.c);
+    addCppRuntimePredefinedGlobalIdent(tgt.cpp);
+
+    if (tgt.is64bit)
+    {
+        VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86_64");
+        VersionCondition.addPredefinedGlobalIdent("X86_64");
+    }
+    else
+    {
+        VersionCondition.addPredefinedGlobalIdent("D_InlineAsm"); //legacy
+        VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86");
+        VersionCondition.addPredefinedGlobalIdent("X86");
+    }
+    if (tgt.isLP64)
+        VersionCondition.addPredefinedGlobalIdent("D_LP64");
+    else if (tgt.is64bit)
+        VersionCondition.addPredefinedGlobalIdent("X32");
+}
+
+private
+void addCRuntimePredefinedGlobalIdent(const ref TargetC c)
+{
+    import dmd.cond : VersionCondition;
+
+    alias predef = VersionCondition.addPredefinedGlobalIdent;
+    with (TargetC.Runtime) switch (c.runtime)
+    {
+    default:
+    case Unspecified: return;
+    case Bionic:      return predef("CRuntime_Bionic");
+    case DigitalMars: return predef("CRuntime_DigitalMars");
+    case Glibc:       return predef("CRuntime_Glibc");
+    case Microsoft:   return predef("CRuntime_Microsoft");
+    case Musl:        return predef("CRuntime_Musl");
+    case Newlib:      return predef("CRuntime_Newlib");
+    case UClibc:      return predef("CRuntime_UClibc");
+    case WASI:        return predef("CRuntime_WASI");
+    }
+}
+
+private
+void addCppRuntimePredefinedGlobalIdent(const ref TargetCPP cpp)
+{
+    import dmd.cond : VersionCondition;
+
+    alias predef = VersionCondition.addPredefinedGlobalIdent;
+    with (TargetCPP.Runtime) switch (cpp.runtime)
+    {
+    default:
+    case Unspecified: return;
+    case Clang:       return predef("CppRuntime_Clang");
+    case DigitalMars: return predef("CppRuntime_DigitalMars");
+    case Gcc:         return predef("CppRuntime_Gcc");
+    case Microsoft:   return predef("CppRuntime_Microsoft");
+    case Sun:         return predef("CppRuntime_Sun");
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 /**
  * Describes a back-end target. At present it is incomplete, but in the future
@@ -100,7 +284,7 @@ extern (C++) struct Target
     import dmd.dscope : Scope;
     import dmd.expression : Expression;
     import dmd.func : FuncDeclaration;
-    import dmd.globals : Loc;
+    import dmd.location;
     import dmd.astenums : LINK, TY;
     import dmd.mtype : Type, TypeFunction, TypeTuple;
     import dmd.root.ctfloat : real_t;
@@ -590,7 +774,39 @@ extern (C++) struct Target
         case EXP.lessThan, EXP.greaterThan, EXP.lessOrEqual, EXP.greaterOrEqual:
         case EXP.equal:
         case EXP.notEqual:
-            supported = true;
+            if (vecsize == 16)
+            {
+                // float[4] comparison needs SSE support (CMP{EQ,NEQ,LT,LE}PS)
+                if (elemty == TY.Tfloat32 && cpu >= CPU.sse)
+                    supported = true;
+                // double[2] comparison needs SSE2 support (CMP{EQ,NEQ,LT,LE}PD)
+                else if (elemty == TY.Tfloat64 && cpu >= CPU.sse2)
+                    supported = true;
+                else if (tvec.isintegral())
+                {
+                    if (elemty == TY.Tint64 || elemty == TY.Tuns64)
+                    {
+                        // (u)long[2] equality needs SSE4.1 support (PCMPEQQ)
+                       if ((op == EXP.equal || op == EXP.notEqual) && cpu >= CPU.sse4_1)
+                           supported = true;
+                       // (u)long[2] comparison needs SSE4.2 support (PCMPGTQ)
+                       else if (cpu >= CPU.sse4_2)
+                           supported = true;
+                    }
+                    // (u)byte[16]/short[8]/int[4] comparison needs SSE2 support (PCMP{EQ,GT}[BWD])
+                    else if (cpu >= CPU.sse2)
+                        supported = true;
+                }
+            }
+            else if (vecsize == 32)
+            {
+                // float[8]/double[4] comparison needs AVX support (VCMP{EQ,NEQ,LT,LE}P[SD])
+                if (tvec.isfloating() && cpu >= CPU.avx)
+                    supported = true;
+                // (u)byte[32]/short[16]/int[8]/long[4] comparison needs AVX2 support (VPCMP{EQ,GT}[BWDQ])
+                else if (tvec.isintegral() && cpu >= CPU.avx2)
+                    supported = true;
+            }
             break;
 
         case EXP.leftShift, EXP.leftShiftAssign, EXP.rightShift, EXP.rightShiftAssign, EXP.unsignedRightShift, EXP.unsignedRightShiftAssign:
@@ -1103,6 +1319,15 @@ extern (C++) struct Target
     do
     {
         return (os & Target.OS.Posix) != 0;
+    }
+
+    /*********************
+     * Returns:
+     *  alignment of the stack
+     */
+    extern (D) uint stackAlign()
+    {
+        return isXmmSupported() ? 16 : (is64bit ? 8 : 4);
     }
 }
 

@@ -3,7 +3,7 @@
  *
  * Not to be confused with the `scope` storage class.
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dscope.d, _dscope.d)
@@ -33,6 +33,7 @@ import dmd.func;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
+import dmd.location;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.speller;
@@ -63,15 +64,16 @@ enum SCOPE
     free          = 0x8000,   /// is on free list
 
     fullinst      = 0x10000,  /// fully instantiate templates
+    ctfeBlock     = 0x20000,  /// inside a `if (__ctfe)` block
 }
 
 /// Flags that are carried along with a scope push()
 private enum PersistentFlags =
     SCOPE.contract | SCOPE.debug_ | SCOPE.ctfe | SCOPE.compile | SCOPE.constraint |
     SCOPE.noaccesscheck | SCOPE.ignoresymbolvisibility |
-    SCOPE.Cfile;
+    SCOPE.Cfile | SCOPE.ctfeBlock;
 
-struct Scope
+extern (C++) struct Scope
 {
     Scope* enclosing;               /// enclosing Scope
 
@@ -178,7 +180,7 @@ struct Scope
         return sc;
     }
 
-    extern (C++) Scope* copy()
+    extern (D) Scope* copy()
     {
         Scope* sc = Scope.alloc();
         *sc = this;
@@ -189,7 +191,7 @@ struct Scope
         return sc;
     }
 
-    extern (C++) Scope* push()
+    extern (D) Scope* push()
     {
         Scope* s = copy();
         //printf("Scope::push(this = %p) new = %p\n", this, s);
@@ -215,7 +217,7 @@ struct Scope
         return s;
     }
 
-    extern (C++) Scope* push(ScopeDsymbol ss)
+    extern (D) Scope* push(ScopeDsymbol ss)
     {
         //printf("Scope::push(%s)\n", ss.toChars());
         Scope* s = push();
@@ -223,7 +225,7 @@ struct Scope
         return s;
     }
 
-    extern (C++) Scope* pop()
+    extern (D) Scope* pop()
     {
         //printf("Scope::pop() %p nofree = %d\n", this, nofree);
         if (enclosing)
@@ -253,7 +255,7 @@ struct Scope
         pop();
     }
 
-    extern (C++) Scope* startCTFE()
+    extern (D) Scope* startCTFE()
     {
         Scope* sc = this.push();
         sc.flags = this.flags | SCOPE.ctfe;
@@ -271,6 +273,10 @@ struct Scope
              *   // To call x.toString in runtime, compiler should unspeculative S!int.
              *   assert(x.toString() == "instantiated");
              * }
+             *
+             * This results in an undefined reference to `RTInfoImpl`:
+             *  class C {  int a,b,c;   int* p,q; }
+             *  void test() {    C c = new C(); }
              */
             // If a template is instantiated from CT evaluated expression,
             // compiler can elide its code generation.
@@ -280,7 +286,7 @@ struct Scope
         return sc;
     }
 
-    extern (C++) Scope* endCTFE()
+    extern (D) Scope* endCTFE()
     {
         assert(flags & SCOPE.ctfe);
         return pop();
@@ -664,7 +670,7 @@ struct Scope
     /********************************************
      * Search enclosing scopes for ScopeDsymbol.
      */
-    ScopeDsymbol getScopesym()
+    extern (D) ScopeDsymbol getScopesym()
     {
         for (Scope* sc = &this; sc; sc = sc.enclosing)
         {
@@ -677,7 +683,7 @@ struct Scope
     /********************************************
      * Search enclosing scopes for ClassDeclaration.
      */
-    extern (C++) ClassDeclaration getClassScope()
+    extern (D) ClassDeclaration getClassScope()
     {
         for (Scope* sc = &this; sc; sc = sc.enclosing)
         {
@@ -692,7 +698,7 @@ struct Scope
     /********************************************
      * Search enclosing scopes for ClassDeclaration or StructDeclaration.
      */
-    extern (C++) AggregateDeclaration getStructClassScope()
+    extern (D) AggregateDeclaration getStructClassScope()
     {
         for (Scope* sc = &this; sc; sc = sc.enclosing)
         {
@@ -714,7 +720,7 @@ struct Scope
      *
      * Returns: the function or null
      */
-    inout(FuncDeclaration) getEnclosingFunction() inout
+    extern (D) inout(FuncDeclaration) getEnclosingFunction() inout
     {
         if (!this.func)
             return null;
@@ -753,7 +759,7 @@ struct Scope
     }
     /******************************
      */
-    structalign_t alignment()
+    extern (D) structalign_t alignment()
     {
         if (aligndecl)
         {
@@ -773,7 +779,7 @@ struct Scope
     *
     * Returns: `true` if this or any parent scope is deprecated, `false` otherwise`
     */
-    extern(C++) bool isDeprecated()
+    extern (D) bool isDeprecated()
     {
         for (const(Dsymbol)* sp = &(this.parent); *sp; sp = &(sp.parent))
         {
@@ -803,8 +809,18 @@ struct Scope
      *
      * Returns: `true` if this `Scope` is known to be from one of these speculative contexts
      */
-    extern(C++) bool isFromSpeculativeSemanticContext() scope
+    extern (D) bool isFromSpeculativeSemanticContext() scope
     {
         return this.intypeof || this.flags & SCOPE.compile;
+    }
+
+
+    /**
+     * Returns: true if the code needs to go all the way through to code generation.
+     * This implies things like needing lowering to simpler forms.
+     */
+    extern (D) bool needsCodegen()
+    {
+        return (flags & (SCOPE.ctfe | SCOPE.ctfeBlock | SCOPE.compile)) == 0;
     }
 }

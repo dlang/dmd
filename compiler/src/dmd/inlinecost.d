@@ -1,7 +1,7 @@
 /**
  * Compute the cost of inlining a function call by counting expressions.
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/inlinecost.d, _inlinecost.d)
@@ -156,11 +156,11 @@ public:
     FuncDeclaration fd;
     int cost;           // zero start for subsequent AST
 
-    extern (D) this()
+    extern (D) this() scope
     {
     }
 
-    extern (D) this(bool hasthis, bool hdrscan, bool allowAlloca, FuncDeclaration fd)
+    extern (D) this(bool hasthis, bool hdrscan, bool allowAlloca, FuncDeclaration fd) scope
     {
         this.hasthis = hasthis;
         this.hdrscan = hdrscan;
@@ -168,7 +168,7 @@ public:
         this.fd = fd;
     }
 
-    extern (D) this(InlineCostVisitor icv)
+    extern (D) this(InlineCostVisitor icv) scope
     {
         nested = icv.nested;
         hasthis = icv.hasthis;
@@ -264,6 +264,13 @@ public:
             return;
         }
         expressionInlineCost(s.condition);
+
+        if (s.isIfCtfeBlock())
+        {
+            cost = COST_MAX;
+            return;
+        }
+
         /* Specifically allow:
          *  if (condition)
          *      return exp1;

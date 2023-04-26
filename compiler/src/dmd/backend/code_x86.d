@@ -2,7 +2,7 @@
  * Constants and data structures specific to the x86 platform.
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/code_x86.d, backend/code_x86.d)
@@ -137,9 +137,6 @@ enum
 // Flags for getlvalue (must fit in regm_t)
 enum RMload  = (1 << 30);
 enum RMstore = (1 << 31);
-
-extern (C++) extern __gshared regm_t ALLREGS;
-extern (C++) extern __gshared regm_t BYTEREGS;
 
     // To support positional independent code,
     // must be able to remove BX from available registers
@@ -573,11 +570,3 @@ struct Globals87
 
     Barray!NDP save;           // 8087 values spilled to memory
 }
-
-extern (C++) extern __gshared Globals87 global87;
-
-void getlvalue_msw(code *);
-void getlvalue_lsw(code *);
-void getlvalue(ref CodeBuilder cdb, code *pcs, elem *e, regm_t keepmsk);
-void loadea(ref CodeBuilder cdb, elem *e, code *cs, uint op, uint reg, targ_size_t offset, regm_t keepmsk, regm_t desmsk);
-bool loadxmmconst(elem* e);

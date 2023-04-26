@@ -2,7 +2,7 @@
  * Top level code for the code generator.
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgcod.d, backend/cgcod.d)
@@ -72,7 +72,6 @@ else
     enum MARS = false;
 
 void dwarf_except_gentables(Funcsym *sfunc, uint startoffset, uint retoffset);
-int REGSIZE();
 
 private extern (D) uint mask(uint m) { return 1 << m; }
 
@@ -725,12 +724,12 @@ tryagain:
 @trusted
 targ_size_t alignsection(targ_size_t base, uint alignment, int bias)
 {
-    assert(cast(int)base <= 0);
+    assert(cast(long)base <= 0);
     if (alignment > STACKALIGN)
         alignment = STACKALIGN;
     if (alignment)
     {
-        int sz = cast(int)(-base + bias);
+        long sz = cast(long)(-base + bias);
         assert(sz >= 0);
         sz &= (alignment - 1);
         if (sz)
@@ -3403,8 +3402,10 @@ const(char)* regm_str(regm_t rm)
         }
     }
     if (rm)
-    {   char *s = p + strlen(p);
-        sprintf(s,"x%02x",rm);
+    {
+        const pstrlen = strlen(p);
+        char *s = p + pstrlen;
+        snprintf(s, SMAX - pstrlen, "x%02x",rm);
     }
     assert(strlen(p) <= SMAX);
     return strdup(p);

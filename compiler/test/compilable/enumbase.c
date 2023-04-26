@@ -23,3 +23,14 @@ enum U2: unsigned {
 enum U3: unsigned long {
     U3_A = 1,
 };
+
+// https://issues.dlang.org/show_bug.cgi?id=23801
+
+enum
+{
+    X = ~1ull,
+    Y,
+};
+
+_Static_assert(X == ~1ull, "3");
+_Static_assert(Y == ~1ull + 1, "4");

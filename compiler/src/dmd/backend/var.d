@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/var.d, backend/var.d)
@@ -316,20 +316,20 @@ extern (C) __gshared const(char)*[TYMAX] tystring =
         TYdouble  : "double",
         TYdouble_alias : "double alias",
 
-        TYfloat4  : "float[4]",
-        TYdouble2 : "double[2]",
-        TYshort8  : "short[8]",
-        TYlong4   : "long[4]",
+        TYfloat4  : "float4",
+        TYdouble2 : "double2",
+        TYshort8  : "short8",
+        TYlong4   : "int4",
 
-        TYfloat8  : "float[8]",
-        TYdouble4 : "double[4]",
-        TYshort16 : "short[16]",
-        TYlong8   : "long[8]",
+        TYfloat8  : "float8",
+        TYdouble4 : "double4",
+        TYshort16 : "short16",
+        TYlong8   : "int8",
 
-        TYfloat16 : "float[16]",
-        TYdouble8 : "double[8]",
-        TYshort32 : "short[32]",
-        TYlong16  : "long[16]",
+        TYfloat16 : "float16",
+        TYdouble8 : "double8",
+        TYshort32 : "short32",
+        TYlong16  : "int16",
 
         TYnptr    : "*",
         TYref     : "&",

@@ -4,12 +4,6 @@
 all:
 	$(QUIET)$(MAKE) -C ../compiler/src -f posix.mak $@
 
-auto-tester-build:
-	$(QUIET)$(MAKE) -C ../compiler/src -f posix.mak $@
-
-auto-tester-test:
-	$(QUIET)$(MAKE) -C ../compiler/src -f posix.mak $@
-
 buildkite-test:
 	$(QUIET)$(MAKE) -C ../compiler/src -f posix.mak $@
 

@@ -39,7 +39,6 @@ __gshared TaskPool taskPool;
 immutable rootRules = [
     &dmdDefault,
     &dmdPGO,
-    &autoTesterBuild,
     &runDmdUnittest,
     &clean,
     &checkwhitespace,
@@ -253,24 +252,6 @@ will trigger a full rebuild.
 
 */
 
-/// Returns: The rule that runs the autotester build
-alias autoTesterBuild = makeRule!((builder, rule) {
-    builder
-    .name("auto-tester-build")
-    .description("Run the autotester build")
-    .deps([toolchainInfo, dmdDefault, checkwhitespace, validateCommonBetterC]);
-
-    version (Posix)
-        rule.deps ~= runCxxUnittest;
-
-    // unittests are currently not executed as part of `auto-tester-test` on windows
-    // because changes to `win32.mak` require additional changes on the autotester
-    // (see https://github.com/dlang/dmd/pull/7414).
-    // This requires no further actions and avoids building druntime+phobos on unittest failure
-    version (Windows)
-        rule.deps ~= runDmdUnittest;
-});
-
 /// Returns: the rule that builds the lexer object file
 alias lexer = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule rule,
                                  string suffix, string[] extraFlags)
@@ -390,11 +371,6 @@ alias backend = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRul
         "-of" ~ rule.target,
         ]
         .chain(
-            (
-                // Only use -betterC when it doesn't break other features
-                extraFlags.canFind("-unittest", env["COVERAGE_FLAG"]) ||
-                flags["DFLAGS"].canFind("-unittest", env["COVERAGE_FLAG"])
-            ) ? [] : ["-betterC"],
             flags["DFLAGS"], extraFlags,
 
             // source files need to have relative paths in order for the code coverage
@@ -459,7 +435,19 @@ alias directoryRule = makeRuleWithArgs!((MethodInitializer!BuildRule builder, Bu
    .msg("mkdirRecurse '%s'".format(dir))
    .commandFunction(() => mkdirRecurse(dir))
 );
+alias dmdSymlink = makeRule!((builder, rule) => builder
+    .commandFunction((){
+        import std.process;
+        version(Windows)
+        {
 
+        }
+        else
+        {
+            spawnProcess(["ln", "-sf", env["DMD_PATH"], "./dmd"]);
+        }
+    })
+);
 /**
 BuildRule for the DMD executable.
 
@@ -659,7 +647,7 @@ alias runTests = makeRule!((testBuilder, testRule)
 
 /// BuildRule to run the DMD unittest executable.
 alias runDmdUnittest = makeRule!((builder, rule) {
-auto dmdUnittestExe = dmdExe("-unittest", ["-version=NoMain", "-unittest", "-main"], ["-unittest"]);
+auto dmdUnittestExe = dmdExe("-unittest", ["-version=NoMain", "-unittest", env["HOST_DMD_KIND"] == "gdc" ? "-fmain" : "-main"], ["-unittest"]);
     builder
         .name("unittest")
         .description("Run the dmd unittests")
@@ -843,7 +831,7 @@ alias style = makeRule!((builder, rule)
             // FIXME: Omitted --shallow-submodules because it requires a more recent
             //        git version which is not available on buildkite
             env["GIT"], "clone", "--depth=1", "--recurse-submodules",
-            "--branch=v0.11.0",
+            "--branch=v0.14.0",
             "https://github.com/dlang-community/D-Scanner", dscannerDir
         ])
     );
@@ -1373,8 +1361,6 @@ void processEnvironment()
         env.setDefault("ZIP", "zip");
 
     string[] dflags = ["-version=MARS", "-w", "-de", env["PIC_FLAG"], env["MODEL_FLAG"], "-J"~env["G"], "-I" ~ srcDir];
-    if (env["HOST_DMD_KIND"] != "gdc")
-        dflags ~= ["-dip25"]; // gdmd doesn't support -dip25
 
     // TODO: add support for dObjc
     auto dObjc = false;
@@ -1585,7 +1571,7 @@ auto sourceFiles()
             statement.h staticassert.h target.h template.h tokens.h version.h visitor.h
         "),
         lexer: fileArray(env["D"], "
-            console.d entity.d errors.d file_manager.d globals.d id.d identifier.d lexer.d tokens.d
+            console.d entity.d errors.d errorsink.d file_manager.d globals.d id.d identifier.d lexer.d location.d tokens.d
         ") ~ fileArray(env["ROOT"], "
             array.d bitarray.d ctfloat.d file.d filename.d hash.d port.d region.d rmem.d
             rootobject.d stringtable.d utf.d

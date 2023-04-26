@@ -1,7 +1,7 @@
 /**
  * Converts expressions to Intermediate Representation (IR) for the backend.
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/e2ir.d, _e2ir.d)
@@ -44,6 +44,7 @@ import dmd.glue;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.init;
+import dmd.location;
 import dmd.mtype;
 import dmd.objc_glue;
 import dmd.printast;
@@ -112,9 +113,13 @@ bool ISX64REF(Declaration var)
     {
         if (target.os == Target.OS.Windows && target.is64bit)
         {
+            /* Use Microsoft C++ ABI
+             * https://docs.microsoft.com/en-us/cpp/build/x64-calling-convention?view=msvc-170#parameter-passing
+             * but watch out because the spec doesn't mention copy construction
+             */
             return var.type.size(Loc.initial) > REGSIZE
                 || (var.storage_class & STC.lazy_)
-                || (var.type.isTypeStruct() && !var.type.isTypeStruct().sym.isPOD());
+                || (var.type.isTypeStruct() && var.type.isTypeStruct().sym.hasCopyConstruction());
         }
         else if (target.os & Target.OS.Posix)
         {
@@ -132,7 +137,7 @@ bool ISX64REF(IRState* irs, Expression exp)
     if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
     {
         return exp.type.size(Loc.initial) > REGSIZE
-            || (exp.type.isTypeStruct() && !exp.type.isTypeStruct().sym.isPOD());
+               || (exp.type.isTypeStruct() && exp.type.isTypeStruct().sym.hasCopyConstruction());
     }
     else if (irs.target.os & Target.OS.Posix)
     {
@@ -513,7 +518,7 @@ elem* toElem(Expression e, IRState *irs)
     {
         elem *e;
         Type tb = (se.op == EXP.symbolOffset) ? se.var.type.toBasetype() : se.type.toBasetype();
-        int offset = (se.op == EXP.symbolOffset) ? cast(int)(cast(SymOffExp)se).offset : 0;
+        long offset = (se.op == EXP.symbolOffset) ? cast(long)(cast(SymOffExp)se).offset : 0;
         VarDeclaration v = se.var.isVarDeclaration();
 
         //printf("[%s] SymbolExp.toElem('%s') %p, %s\n", se.loc.toChars(), se.toChars(), se, se.type.toChars());
@@ -605,8 +610,14 @@ elem* toElem(Expression e, IRState *irs)
                 }
 
                 int soffset;
-                if (v && v.offset && !forceStackAccess)
+                if (v && v.inClosure && !forceStackAccess)
                     soffset = v.offset;
+                else if (v && v.inAlignSection)
+                {
+                    ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYnptr, fd.salignSection.Soffset));
+                    ethis = el_una(OPind, TYnptr, ethis);
+                    soffset = v.offset;
+                }
                 else
                 {
                     soffset = cast(int)s.Soffset;
@@ -641,12 +652,12 @@ elem* toElem(Expression e, IRState *irs)
             }
         }
 
-        /* If var is a member of a closure
+        /* If var is a member of a closure or aligned section
          */
-        if (v && v.offset)
+        if (v && (v.inClosure || v.inAlignSection))
         {
-            assert(irs.sclosure);
-            e = el_var(irs.sclosure);
+            assert(irs.sclosure || fd.salignSection);
+            e = el_var(v.inClosure ? irs.sclosure : fd.salignSection);
             e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, v.offset));
             if (se.op == EXP.variable)
             {
@@ -798,6 +809,18 @@ elem* toElem(Expression e, IRState *irs)
         }
         if (Expression ex = isExpression(e.obj))
         {
+            if (auto ev = ex.isVarExp())
+            {
+                if (auto em = ev.var.isEnumMember())
+                    ex = em.value;
+            }
+            if (auto ecr = ex.isClassReferenceExp())
+            {
+                Type t = ecr.type;
+                elem* result = getTypeInfo(ecr, t, irs);
+                return el_bin(OPadd, result.Ety, result, el_long(TYsize_t, t.vtinfo.offset));
+            }
+
             auto tc = ex.type.toBasetype().isTypeClass();
             assert(tc);
             // generate **classptr to get the classinfo
@@ -1070,10 +1093,7 @@ elem* toElem(Expression e, IRState *irs)
                 assert(!(global.params.ehnogc && ne.thrownew),
                     "This should have been rewritten to `_d_newThrowable` in the semantic phase.");
 
-                Symbol *csym = toSymbol(cd);
-                const rtl = RTLSYM.NEWCLASS;
-                ex = el_bin(OPcall,TYnptr,el_var(getRtlsym(rtl)),el_ptr(csym));
-                toTraceGC(irs, ex, ne.loc);
+                ex = toElem(ne.lowering, irs);
                 ectype = null;
 
                 if (cd.isNested())
@@ -1420,7 +1440,7 @@ elem* toElem(Expression e, IRState *irs)
     elem* visitAssert(AssertExp ae)
     {
         // https://dlang.org/spec/expression.html#assert_expressions
-        //printf("AssertExp.toElem() %s\n", toChars());
+        //printf("AssertExp.toElem() %s\n", ae.toChars());
         elem *e;
         if (irs.params.useAssert == CHECKENABLE.on)
         {
@@ -2572,7 +2592,7 @@ elem* toElem(Expression e, IRState *irs)
 
                 elem *el = e1;
                 elem *enbytes = el_long(TYsize_t, sz);
-                elem *evalue = el_long(TYsize_t, 0);
+                elem *evalue = el_long(TYchar, 0);
 
                 el = el_una(OPaddr, TYnptr, el);
                 elem* e = el_param(enbytes, evalue);
@@ -2617,7 +2637,7 @@ elem* toElem(Expression e, IRState *irs)
                     ae.e2.type.isZeroInit(ae.e2.loc))
                 {
                     elem* enbytes = el_long(TYsize_t, ae.e1.type.size());
-                    elem* evalue = el_long(TYsize_t, 0);
+                    elem* evalue = el_long(TYchar, 0);
                     elem* el = el_una(OPaddr, TYnptr, e1);
                     elem* e = el_bin(OPmemset,TYnptr, el, el_param(enbytes, evalue));
                     return setResult2(e);
@@ -2646,7 +2666,7 @@ elem* toElem(Expression e, IRState *irs)
 
                 elem *el = e1;
                 elem *enbytes = el_long(TYsize_t, sz);
-                elem *evalue = el_long(TYsize_t, 0);
+                elem *evalue = el_long(TYchar, 0);
 
                 el = el_una(OPaddr, TYnptr, el);
                 elem* e = el_param(enbytes, evalue);
@@ -2753,6 +2773,11 @@ elem* toElem(Expression e, IRState *irs)
             return setResult2(e);
         }
         assert(0);
+    }
+
+    elem* visitLoweredAssign(LoweredAssignExp e)
+    {
+        return toElem(e.lowering, irs);
     }
 
     /***************************************
@@ -2890,6 +2915,7 @@ elem* toElem(Expression e, IRState *irs)
 
     elem* visitUshrAssign(UshrAssignExp e)
     {
+        //printf("UShrAssignExp.toElem() %s, %s\n", e.e1.type.toChars(), e.e1.toChars());
         return toElemBinAssign(e, OPshrass);
     }
 
@@ -3556,7 +3582,7 @@ elem* toElem(Expression e, IRState *irs)
         version (none)
         {
             printf("VectorExp.toElem()\n");
-            ve.print();
+            printAST(ve);
             printf("\tfrom: %s\n", ve.e1.type.toChars());
             printf("\tto  : %s\n", ve.to.toChars());
         }
@@ -3609,6 +3635,11 @@ elem* toElem(Expression e, IRState *irs)
                         assert(0);
                 }
             }
+        }
+        else if (ve.type.size() == ve.e1.type.size())
+        {
+            e = toElem(ve.e1, irs);
+            e.Ety = totym(ve.type);  // paint vector type on it
         }
         else
         {
@@ -4138,6 +4169,7 @@ elem* toElem(Expression e, IRState *irs)
         case EXP.assign:        return visitAssign(e.isAssignExp());
         case EXP.construct:     return visitAssign(e.isConstructExp());
         case EXP.blit:          return visitAssign(e.isBlitExp());
+        case EXP.loweredAssignExp: return visitLoweredAssign(e.isLoweredAssignExp());
         case EXP.addAssign:     return visitAddAssign(e.isAddAssignExp());
         case EXP.minAssign:     return visitMinAssign(e.isMinAssignExp());
         case EXP.concatenateDcharAssign: return visitCatAssign(e.isCatDcharAssignExp());
@@ -4381,7 +4413,7 @@ elem *ExpressionsToStaticArray(IRState* irs, const ref Loc loc, Expressions *exp
                 Expression en = (*exps)[j];
                 if (!en)
                     en = basis;
-                if (!el.equals(en))
+                if (!el.isIdentical(en))
                     break;
                 j++;
             }
@@ -6133,6 +6165,7 @@ StructDeclaration needsDtor(Type t)
  */
 elem *setArray(Expression exp, elem *eptr, elem *edim, Type tb, elem *evalue, IRState *irs, int op)
 {
+    //elem_print(evalue);
     assert(op == EXP.blit || op == EXP.assign || op == EXP.construct);
     const sz = cast(uint)tb.size();
     Type tb2 = tb;
@@ -6274,15 +6307,27 @@ Lagain:
             default:
                 assert(0);
         }
+        // do a cast to tym
         tym = tym | (evalue.Ety & ~mTYbasic);
-        evalue = addressElem(evalue, tb);
-        evalue = el_una(OPind, tym, evalue);
+        if (evalue.Eoper == OPconst)
+        {
+            evalue = el_copytree(evalue);
+            evalue.Ety = tym;
+        }
+        else
+        {
+            evalue = addressElem(evalue, tb);
+            evalue = el_una(OPind, tym, evalue);
+        }
     }
 
     evalue = useOPstrpar(evalue);
 
     // Be careful about parameter side effect ordering
-    if (r == RTLSYM.MEMSET8)
+    if (r == RTLSYM.MEMSET8 ||
+        r == RTLSYM.MEMSET16 ||
+        r == RTLSYM.MEMSET32 ||
+        r == RTLSYM.MEMSET64)
     {
         elem *e = el_param(edim, evalue);
         return el_bin(OPmemset,TYnptr,eptr,e);

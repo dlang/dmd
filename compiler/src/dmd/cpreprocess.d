@@ -3,7 +3,7 @@
  *
  * Specification: C11
  *
- * Copyright:   Copyright (C) 2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2022-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/cpreprocess.d, _cpreprocess.d)
@@ -21,6 +21,7 @@ import dmd.astenums;
 import dmd.errors;
 import dmd.globals;
 import dmd.link;
+import dmd.location;
 import dmd.target;
 import dmd.vsoptions;
 
@@ -89,7 +90,7 @@ FileName preprocess(FileName csrcfile, ref const Loc loc, out bool ifile, OutBuf
         const ext = FileName.ext(name);
         assert(ext);
         const ifilename = FileName.addExt(name[0 .. name.length - (ext.length + 1)], i_ext);
-        const command = cppCommand();
+        const command = global.params.cpp ? toDString(global.params.cpp) : cppCommand();
         auto status = runPreprocessor(command, csrcfile.toString(), importc_h, global.params.cppswitches, ifilename, defines);
         if (status)
         {

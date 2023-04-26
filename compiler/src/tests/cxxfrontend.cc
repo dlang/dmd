@@ -2,7 +2,7 @@
  * Test the C++ compiler interface of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2017-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2017-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     Iain Buclaw
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tests/cxxfrontend.c, _cxxfrontend.c)
@@ -68,7 +68,7 @@ static void frontend_init()
     gc_disable();
 
     global._init();
-    global.vendor = "Front-End Tester";
+    global.compileEnv.vendor = "Front-End Tester";
     global.params.objname = NULL;
 
     target.os = Target::OS_linux;
@@ -413,8 +413,14 @@ void test_location()
 {
     Loc loc1 = Loc("test.d", 24, 42);
     assert(loc1.equals(Loc("test.d", 24, 42)));
-    assert(strcmp(loc1.toChars(true, MESSAGESTYLEdigitalmars), "test.d(24,42)") == 0);
-    assert(strcmp(loc1.toChars(true, MESSAGESTYLEgnu), "test.d:24:42") == 0);
+    assert(strcmp(loc1.toChars(true, MessageStyle::digitalmars), "test.d(24,42)") == 0);
+    assert(strcmp(loc1.toChars(true, MessageStyle::gnu), "test.d:24:42") == 0);
+
+    assert(strcmp(loc1.toChars(), "test.d(24)") == 0);
+    Loc::set(true, MessageStyle::digitalmars);
+    assert(strcmp(loc1.toChars(), "test.d(24,42)") == 0);
+    Loc::set(false, MessageStyle::gnu);
+    assert(strcmp(loc1.toChars(), "test.d:24") == 0);
 }
 
 /**********************************/
@@ -481,14 +487,14 @@ void test_outbuffer()
 
     buf.reserve(16);
     buf.writestring("hello");
-    buf.writeByte(' ');
+    buf.writeByte('!');
     buf.write(&buf);
     buf.writenl();
     assert(buf.length() == 13);
 
     const char *data = buf.extractChars();
     assert(buf.length() == 0);
-    assert(strcmp(data, "hello hello \n") == 0);
+    assert(strcmp(data, "hello!hello!\n") == 0);
 }
 
 void test_cppmangle()
@@ -558,6 +564,26 @@ void test_optional()
     assert(opt.isPresent());
     assert(opt.get() == true);
     assert(opt.hasValue(true));
+}
+
+void test_filename()
+{
+    const char *fname = "/a/nice/long/path/to/somefile.d";
+
+    const char *basename = FileName::name(fname);
+    assert(strcmp(basename, "somefile.d") == 0);
+
+    const char *name = FileName::removeExt(basename);
+    assert(strcmp(name, "somefile") == 0);
+
+    const char *jsonname = FileName::defaultExt(name, json_ext.ptr);
+    assert(strcmp(jsonname, "somefile.json") == 0);
+
+    FileName file = FileName::create("somefile.d");
+    assert(FileName::equals(basename, file.toChars()));
+
+    FileName::free(name);
+    FileName::free(jsonname);
 }
 
 /**********************************/
@@ -765,7 +791,7 @@ public:
                 if (VarDeclaration *var = sym->isVarDeclaration())
                 {
                     (void)var->csym;
-                    (void)var->aliassym;
+                    (void)var->aliasTuple;
                     (void)var->isField();
                     (void)var->ident->toChars();
                     continue;
@@ -827,7 +853,7 @@ public:
                 if (VarDeclaration *var = sym->isVarDeclaration())
                 {
                     (void)var->csym;
-                    (void)var->aliassym;
+                    (void)var->aliasTuple;
                     (void)var->isField();
                     (void)var->ident->toChars();
                     continue;
@@ -1173,11 +1199,7 @@ public:
                 s->accept(this);
             }
             ClassDeclarations aclasses;
-            for (size_t i = 0; i < d->members->length; i++)
-            {
-                Dsymbol *member = (*d->members)[i];
-                member->addLocalClass(&aclasses);
-            }
+            getLocalClasses(d, aclasses);
             for (size_t i = 0; i < d->aimports.length; i++)
             {
                 Module *mi = d->aimports[i];
@@ -1334,8 +1356,8 @@ public:
                     continue;
                 if (fd2->isFuture())
                     continue;
-                if (fd->leastAsSpecialized(fd2) != MATCH::nomatch ||
-                    fd2->leastAsSpecialized(fd) != MATCH::nomatch)
+                if (fd->leastAsSpecialized(fd2, NULL) != MATCH::nomatch ||
+                    fd2->leastAsSpecialized(fd, NULL) != MATCH::nomatch)
                 {
                     return;
                 }
@@ -1539,7 +1561,7 @@ public:
             }
             return;
         }
-        if (d->aliassym)
+        if (d->aliasTuple)
         {
             d->toAlias()->accept(this);
             return;
@@ -1700,6 +1722,7 @@ int main(int argc, char **argv)
     test_cppmangle();
     test_module();
     test_optional();
+    test_filename();
 
     frontend_term();
 

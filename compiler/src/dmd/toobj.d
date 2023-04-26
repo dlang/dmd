@@ -1,7 +1,7 @@
 /**
  * Convert an AST that went through all semantic phases into an object file.
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _toobj.d)
@@ -42,6 +42,7 @@ import dmd.glue;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.init;
+import dmd.location;
 import dmd.mtype;
 import dmd.nspace;
 import dmd.objc_glue;
@@ -98,16 +99,9 @@ void genModuleInfo(Module m)
     m.csym.Sfl = FLdata;
 
     auto dtb = DtBuilder(0);
+
     ClassDeclarations aclasses;
-
-    //printf("members.length = %d\n", members.length);
-    foreach (i; 0 .. m.members.length)
-    {
-        Dsymbol member = (*m.members)[i];
-
-        //printf("\tmember '%s'\n", member.toChars());
-        member.addLocalClass(&aclasses);
-    }
+    getLocalClasses(m, aclasses);
 
     // importedModules[]
     size_t aimports_dim = m.aimports.length;
@@ -280,7 +274,7 @@ void write_instance_pointers(Type type, Symbol *s, uint offset)
 
 void toObjFile(Dsymbol ds, bool multiobj)
 {
-    //printf("toObjFile(%s)\n", ds.toChars());
+    //printf("toObjFile(%s %s)\n", ds.kind(), ds.toChars());
 
     bool isCfile = ds.isCsymbol();
 
@@ -290,7 +284,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
     public:
         bool multiobj;
 
-        this(bool multiobj)
+        this(bool multiobj) scope
         {
             this.multiobj = multiobj;
         }
@@ -564,7 +558,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 return;
             }
 
-            if (vd.aliassym)
+            if (vd.aliasTuple)
             {
                 vd.toAlias().accept(this);
                 return;
@@ -586,7 +580,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 vd.error("size overflow");
                 return;
             }
-            if (sz64 >= target.maxStaticDataSize)
+            if (sz64 > target.maxStaticDataSize)
             {
                 vd.error("size of 0x%llx exceeds max allowed size 0x%llx", sz64, target.maxStaticDataSize);
             }
@@ -658,7 +652,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 dt2common(&s.Sdt);
             }
 
-            if (s.Sclass & SC.global && s.Stype.Tty & mTYconst)
+            if (s.Sclass == SC.global && s.Stype.Tty & mTYconst)
                 out_readonly(s);
 
             outdata(s);
@@ -971,7 +965,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             // Compute identifier for tlv symbol
             OutBuffer buffer;
-            buffer.writestring(s.Sident);
+            buffer.writestring(s.Sident.ptr);
             buffer.writestring("$tlv$init");
             const(char)[] tlvInitName = buffer[];
 
@@ -1075,7 +1069,7 @@ private bool finishVtbl(ClassDeclaration cd)
                 continue;
             if (fd2.isFuture())
                 continue;
-            if (!fd.leastAsSpecialized(fd2) && !fd2.leastAsSpecialized(fd))
+            if (!fd.leastAsSpecialized(fd2, null) && !fd2.leastAsSpecialized(fd, null))
                 continue;
             // Hiding detected: same name, overlapping specializations
             TypeFunction tf = fd.type.toTypeFunction();

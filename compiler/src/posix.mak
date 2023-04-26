@@ -110,11 +110,6 @@ dmd: $(GENERATED)/build
 $(GENERATED)/build: build.d $(HOST_DMD_PATH)
 	$(HOST_DMD_RUN) -of$@ -g build.d
 
-auto-tester-build: $(GENERATED)/build
-	$(RUN_BUILD) $@
-
-.PHONY: auto-tester-build
-
 toolchain-info: $(GENERATED)/build
 	$(RUN_BUILD) $@
 
@@ -122,9 +117,6 @@ toolchain-info: $(GENERATED)/build
 ifeq ($(OS)$(MODEL),linux64)
   HEADER_TEST=cxx-headers-test
 endif
-
-auto-tester-test: $(GENERATED)/build
-	$(RUN_BUILD) unittest $(HEADER_TEST)
 
 unittest: $(GENERATED)/build
 	$(RUN_BUILD) $@

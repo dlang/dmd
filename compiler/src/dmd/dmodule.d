@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/module.html, Modules)
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dmodule.d, _dmodule.d)
@@ -29,12 +29,14 @@ import dmd.dscope;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.errors;
+import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.file_manager;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
+import dmd.location;
 import dmd.parse;
 import dmd.cparse;
 import dmd.root.array;
@@ -359,7 +361,8 @@ extern (C++) final class Module : Package
     Package pkg;                // if isPackageFile is true, the Package that contains this package.d
     Strings contentImportedFiles; // array of files whose content was imported
     int needmoduleinfo;
-    int selfimports;            // 0: don't know, 1: does not, 2: does
+    private ThreeState selfimports;
+    private ThreeState rootimports;
     Dsymbol[void*] tagSymTab;   /// ImportC: tag symbols that conflict with other symbols used as the index
 
     private OutBuffer defines;  // collect all the #define lines here
@@ -371,18 +374,16 @@ extern (C++) final class Module : Package
     bool selfImports()
     {
         //printf("Module::selfImports() %s\n", toChars());
-        if (selfimports == 0)
+        if (selfimports == ThreeState.none)
         {
             foreach (Module m; amodules)
-                m.insearch = 0;
-            selfimports = imports(this) + 1;
+                m.insearch = false;
+            selfimports = imports(this) ? ThreeState.yes : ThreeState.no;
             foreach (Module m; amodules)
-                m.insearch = 0;
+                m.insearch = false;
         }
-        return selfimports == 2;
+        return selfimports == ThreeState.yes;
     }
-
-    int rootimports;            // 0: don't know, 1: does not, 2: does
 
     /*************************************
      * Return true if module imports root module.
@@ -390,29 +391,29 @@ extern (C++) final class Module : Package
     bool rootImports()
     {
         //printf("Module::rootImports() %s\n", toChars());
-        if (rootimports == 0)
+        if (rootimports == ThreeState.none)
         {
             foreach (Module m; amodules)
-                m.insearch = 0;
-            rootimports = 1;
+                m.insearch = false;
+            rootimports = ThreeState.no;
             foreach (Module m; amodules)
             {
                 if (m.isRoot() && imports(m))
                 {
-                    rootimports = 2;
+                    rootimports = ThreeState.yes;
                     break;
                 }
             }
             foreach (Module m; amodules)
-                m.insearch = 0;
+                m.insearch = false;
         }
-        return rootimports == 2;
+        return rootimports == ThreeState.yes;
     }
 
-    int insearch;
-    Identifier searchCacheIdent;
-    Dsymbol searchCacheSymbol;  // cached value of search
-    int searchCacheFlags;       // cached flags
+    private Identifier searchCacheIdent;
+    private Dsymbol searchCacheSymbol;  // cached value of search
+    private int searchCacheFlags;       // cached flags
+    private bool insearch;
 
     /**
      * A root module is one that will be compiled all the way to
@@ -458,7 +459,6 @@ extern (C++) final class Module : Package
         }
         else if (!FileName.equalsExt(srcfilename, mars_ext) &&
                  !FileName.equalsExt(srcfilename, hdr_ext) &&
-                 !FileName.equalsExt(srcfilename, h_ext) &&
                  !FileName.equalsExt(srcfilename, c_ext) &&
                  !FileName.equalsExt(srcfilename, i_ext) &&
                  !FileName.equalsExt(srcfilename, dd_ext))
@@ -687,8 +687,7 @@ extern (C++) final class Module : Package
         }
 
         if (global.preprocess &&
-            (FileName.equalsExt(srcfile.toString(), c_ext) ||
-             FileName.equalsExt(srcfile.toString(), h_ext)) &&
+            FileName.equalsExt(srcfile.toString(), c_ext) &&
             FileName.exists(srcfile.toString()))
         {
             filename = global.preprocess(srcfile, loc, ifile, &defines);  // run C preprocessor
@@ -761,16 +760,14 @@ extern (C++) final class Module : Package
         DsymbolTable dst;
         Package ppack = null;
 
-        /* If it has the extension ".c" or ".h", it is a "C" file.
+        /* If it has the extension ".c", it is a "C" file.
          * If it has the extension ".i", it is a preprocessed "C" file.
          */
-        if (FileName.equalsExt(arg, c_ext) ||
-            FileName.equalsExt(arg, h_ext) ||
-            FileName.equalsExt(arg, i_ext))
+        if (FileName.equalsExt(arg, c_ext) || FileName.equalsExt(arg, i_ext))
         {
             filetype = FileType.c;
 
-            scope p = new CParser!AST(this, buf, cast(bool) docfile, target.c, &defines);
+            scope p = new CParser!AST(this, buf, cast(bool) docfile, global.errorSink, target.c, &defines, &global.compileEnv);
             p.nextToken();
             checkCompiledImport();
             members = p.parseModule();
@@ -779,7 +776,9 @@ extern (C++) final class Module : Package
         }
         else
         {
-            scope p = new Parser!AST(this, buf, cast(bool) docfile);
+            const bool doUnittests = global.params.useUnitTests || global.params.ddoc.doOutput || global.params.dihdr.doOutput;
+            scope p = new Parser!AST(this, buf, cast(bool) docfile, global.errorSink, &global.compileEnv, doUnittests);
+            p.transitionIn = global.params.vin;
             p.nextToken();
             p.parseModuleDeclaration();
             md = p.md;
@@ -1045,9 +1044,9 @@ extern (C++) final class Module : Package
 
         uint errors = global.errors;
 
-        insearch = 1;
+        insearch = true;
         Dsymbol s = ScopeDsymbol.search(loc, ident, flags);
-        insearch = 0;
+        insearch = false;
 
         if (errors == global.errors)
         {
@@ -1218,7 +1217,7 @@ extern (C++) final class Module : Package
                 return true;
             if (!mi.insearch)
             {
-                mi.insearch = 1;
+                mi.insearch = true;
                 int r = mi.imports(m);
                 if (r)
                     return r;
@@ -1232,8 +1231,7 @@ extern (C++) final class Module : Package
         return this.importedFrom == this;
     }
 
-    // true if the module source file is directly
-    // listed in command line.
+    /// Returns: Whether this module is in the `core` package and has name `ident`
     bool isCoreModule(Identifier ident) nothrow
     {
         return this.ident == ident && parent && parent.ident == Id.core && !parent.parent;
@@ -1288,6 +1286,75 @@ extern (C++) final class Module : Package
             _escapetable = new Escape();
         return _escapetable;
     }
+
+    /****************************
+     * A Singleton that loads core.stdc.config
+     * Returns:
+     *  Module of core.stdc.config, null if couldn't find it
+     */
+    extern (D) static Module loadCoreStdcConfig()
+    {
+        __gshared Module core_stdc_config;
+        auto pkgids = new Identifier[2];
+        pkgids[0] = Id.core;
+        pkgids[1] = Id.stdc;
+        return loadModuleFromLibrary(core_stdc_config, pkgids, Id.config);
+    }
+
+    /****************************
+     * A Singleton that loads core.atomic
+     * Returns:
+     *  Module of core.atomic, null if couldn't find it
+     */
+    extern (D) static Module loadCoreAtomic()
+    {
+        __gshared Module core_atomic;
+        auto pkgids = new Identifier[1];
+        pkgids[0] = Id.core;
+        return loadModuleFromLibrary(core_atomic, pkgids, Id.atomic);
+    }
+
+    /****************************
+     * A Singleton that loads std.math
+     * Returns:
+     *  Module of std.math, null if couldn't find it
+     */
+    extern (D) static Module loadStdMath()
+    {
+        __gshared Module std_math;
+        auto pkgids = new Identifier[1];
+        pkgids[0] = Id.std;
+        return loadModuleFromLibrary(std_math, pkgids, Id.math);
+    }
+
+    /**********************************
+     * Load a Module from the library.
+     * Params:
+     *  mod = cached return value of this call
+     *  pkgids = package identifiers
+     *  modid = module id
+     * Returns:
+     *  Module loaded, null if cannot load it
+     */
+    extern (D) private static Module loadModuleFromLibrary(ref Module mod, Identifier[] pkgids, Identifier modid)
+    {
+        if (mod)
+            return mod;
+
+        auto imp = new Import(Loc.initial, pkgids[], modid, null, true);
+        // Module.load will call fatal() if there's no module available.
+        // Gag the error here, pushing the error handling to the caller.
+        const errors = global.startGagging();
+        imp.load(null);
+        if (imp.mod)
+        {
+            imp.mod.importAll(null);
+            imp.mod.dsymbolSemantic(null);
+        }
+        global.endGagging(errors);
+        mod = imp.mod;
+        return mod;
+    }
 }
 
 /***********************************************************
@@ -1326,6 +1393,37 @@ extern (C++) struct ModuleDeclaration
     {
         return this.toChars().toDString;
     }
+}
+
+/****************************************
+ * Create array of the local classes in the Module, suitable
+ * for inclusion in ModuleInfo
+ * Params:
+ *      mod = the Module
+ *      aclasses = array to fill in
+ * Returns: array of local classes
+ */
+extern (C++) void getLocalClasses(Module mod, ref ClassDeclarations aclasses)
+{
+    //printf("members.length = %d\n", mod.members.length);
+    int pushAddClassDg(size_t n, Dsymbol sm)
+    {
+        if (!sm)
+            return 0;
+
+        if (auto cd = sm.isClassDeclaration())
+        {
+            // compatibility with previous algorithm
+            if (cd.parent && cd.parent.isTemplateMixin())
+                return 0;
+
+            if (cd.classKind != ClassKind.objc)
+                aclasses.push(cd);
+        }
+        return 0;
+    }
+
+    ScopeDsymbol._foreach(null, mod.members, &pushAddClassDg);
 }
 
 /**

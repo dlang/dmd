@@ -129,12 +129,12 @@ void test1()
     static assert(!__traits(compiles, v1 ^^ v2));
     static assert(!__traits(compiles, v1 is v2));
     static assert(!__traits(compiles, v1 !is v2));
-    static assert( __traits(compiles, v1 == v2));
-    static assert( __traits(compiles, v1 != v2));
-    static assert( __traits(compiles, v1 < v2));
-    static assert( __traits(compiles, v1 > v2));
-    static assert( __traits(compiles, v1 <= v2));
-    static assert( __traits(compiles, v1 >= v2));
+    static assert(!__traits(compiles, v1 == v2));
+    static assert(!__traits(compiles, v1 != v2));
+    static assert(!__traits(compiles, v1 < v2));
+    static assert(!__traits(compiles, v1 > v2));
+    static assert(!__traits(compiles, v1 <= v2));
+    static assert(!__traits(compiles, v1 >= v2));
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -562,12 +562,30 @@ void test2g()
     static assert(!__traits(compiles, v1 ^^ v2));
     static assert(!__traits(compiles, v1 is v2));
     static assert(!__traits(compiles, v1 !is v2));
-    static assert( __traits(compiles, v1 == v2));
-    static assert( __traits(compiles, v1 != v2));
-    static assert( __traits(compiles, v1 < v2));
-    static assert( __traits(compiles, v1 > v2));
-    static assert( __traits(compiles, v1 <= v2));
-    static assert( __traits(compiles, v1 >= v2));
+    static if (__traits(compiles, v1 == v2)) // SSE4.1
+    {
+        v1 = v2 == v3;
+        v1 = v2 != v3;
+    }
+    else
+    {
+        static assert(!__traits(compiles, v1 == v2));
+        static assert(!__traits(compiles, v1 != v2));
+    }
+    static if (__traits(compiles, v1 < v2)) // SSE4.2
+    {
+        v1 = v2 < v3;
+        v1 = v2 > v3;
+        v1 = v2 <= v3;
+        v1 = v2 >= v3;
+    }
+    else
+    {
+        static assert(!__traits(compiles, v1 < v2));
+        static assert(!__traits(compiles, v1 > v2));
+        static assert(!__traits(compiles, v1 <= v2));
+        static assert(!__traits(compiles, v1 >= v2));
+    }
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -622,12 +640,30 @@ void test2h()
     static assert(!__traits(compiles, v1 ^^ v2));
     static assert(!__traits(compiles, v1 is v2));
     static assert(!__traits(compiles, v1 !is v2));
-    static assert( __traits(compiles, v1 == v2));
-    static assert( __traits(compiles, v1 != v2));
-    static assert( __traits(compiles, v1 < v2));
-    static assert( __traits(compiles, v1 > v2));
-    static assert( __traits(compiles, v1 <= v2));
-    static assert( __traits(compiles, v1 >= v2));
+    static if (__traits(compiles, v1 == v2)) // SSE4.1
+    {
+        v1 = v2 == v3;
+        v1 = v2 != v3;
+    }
+    else
+    {
+        static assert(!__traits(compiles, v1 == v2));
+        static assert(!__traits(compiles, v1 != v2));
+    }
+    static if (__traits(compiles, v1 < v2)) // SSE4.2
+    {
+        v1 = v2 < v3;
+        v1 = v2 > v3;
+        v1 = v2 <= v3;
+        v1 = v2 >= v3;
+    }
+    else
+    {
+        static assert(!__traits(compiles, v1 < v2));
+        static assert(!__traits(compiles, v1 > v2));
+        static assert(!__traits(compiles, v1 <= v2));
+        static assert(!__traits(compiles, v1 >= v2));
+    }
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -2415,6 +2451,19 @@ __vector(int[4]) test23084b(__vector(int[4]) a)
 
 /*****************************************/
 
+// https://issues.dlang.org/show_bug.cgi?id=23218
+
+int4 convtest(int[4] a)
+{   return cast(int4)a; }
+
+void test23218()
+{
+    static assert(convtest([1,2,3,4])[0] == 1);
+    assert(convtest([1,2,3,4])[0] == 1);
+}
+
+/*****************************************/
+
 int main()
 {
     test1();
@@ -2470,6 +2519,7 @@ int main()
     test21673();
     test21676();
     test23009();
+    test23218();
 
     return 0;
 }

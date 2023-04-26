@@ -113,20 +113,12 @@ The auto tester tests DMD on various Posix platforms.
 **Config**: [azure-pipelines.yml](https://github.com/dlang/dmd/blob/master/.github/workflows/runnable_cxx.yml)
 
 **Checks**:
-- C++ interop tests / Run (macOS-10.15, clang-13.0.0)
-- C++ interop tests / Run (macOS-10.15, clang-12.0.0)
-- C++ interop tests / Run (macOS-10.15, clang-11.0.0)
-- C++ interop tests / Run (macOS-10.15, clang-10.0.0)
-- C++ interop tests / Run (macOS-10.15, clang-9.0.0)
-- C++ interop tests / Run (macOS-10.15, clang-8.0.0)
-- C++ interop tests / Run (ubuntu-18.04, clang-10.0.0)
-- C++ interop tests / Run (ubuntu-18.04, clang-9.0.0)
-- C++ interop tests / Run (ubuntu-18.04, clang-8.0.0)
-- C++ interop tests / Run (ubuntu-18.04, g++-9)
-- C++ interop tests / Run (ubuntu-18.04, g++-8)
-- C++ interop tests / Run (ubuntu-18.04, g++-7)
-- C++ interop tests / Run (ubuntu-18.04, g++-6)
-- C++ interop tests / Run (ubuntu-18.04, g++-5)
+- C++ interop tests / Run (macOS-11, clang-13.0.0)
+- C++ interop tests / Run (macOS-11, clang-12.0.0)
+- C++ interop tests / Run (macOS-11, clang-11.0.0)
+- C++ interop tests / Run (macOS-11, clang-10.0.0)
+- C++ interop tests / Run (macOS-11, clang-9.0.0)
+- C++ interop tests / Run (macOS-11, clang-8.0.0)
 - C++ interop tests / Run (ubuntu-20.04, clang-13.0.0)
 - C++ interop tests / Run (ubuntu-20.04, clang-12.0.0)
 - C++ interop tests / Run (ubuntu-20.04, clang-11.0.0)
@@ -157,19 +149,19 @@ These should be taken seriously, since untested code is likely to introduce bugs
 **Config**: [.cirrus.yml](https://github.com/dlang/dmd/blob/master/.cirrus.yml)
 
 **Checks**:
-- FreeBSD 11.4 x64, DMD (bootstrap)
-- FreeBSD 12.2 x64, DMD (coverage)
-- FreeBSD 12.2 x64, DMD (latest)
-- Ubuntu 18.04 x64, DMD (bootstrap)
-- Ubuntu 18.04 x64, DMD (latest)
-- Ubuntu 18.04 x64, GDC
-- Ubuntu 18.04 x64, LDC
-- Ubuntu 18.04 x86, DMD (bootstrap)
-- Ubuntu 18.04 x86, DMD (coverage)
-- Ubuntu 18.04 x86, DMD (latest)
-- macOS 11.x x64, DMD (bootstrap)
-- macOS 12.x x64, DMD (coverage)
-- macOS 12.x x64, DMD (latest)
+- FreeBSD 12.3 x64, DMD (bootstrap)
+- FreeBSD 13.0 x64, DMD (coverage)
+- FreeBSD 13.0 x64, DMD (latest)
+- Ubuntu 22.04 x64, DMD (bootstrap)
+- Ubuntu 22.04 x64, DMD (latest)
+- Ubuntu 22.04 x64, GDC
+- Ubuntu 22.04 x64, LDC
+- Ubuntu 22.04 x86, DMD (bootstrap)
+- Ubuntu 22.04 x86, DMD (coverage)
+- Ubuntu 22.04 x86, DMD (latest)
+- macOS 12.x x64 (M1), DMD (bootstrap)
+- macOS 13.x x64 (M1), DMD (coverage)
+- macOS 13.x x64 (M1), DMD (latest)
 
 Cirrus tests DMD on Posix platforms.
 

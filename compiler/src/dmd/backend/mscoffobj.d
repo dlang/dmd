@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2009-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2009-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/mscoffobj.d, backend/mscoffobj.d)
@@ -1517,7 +1517,7 @@ IDXSEC MsCoffObj_addScnhdr(const(char)* scnhdr_name, uint flags)
     if (len > 8)
     {   // Use /nnnn form
         IDXSTR idx = MsCoffObj_addstr(string_table, scnhdr_name);
-        sprintf(cast(char *)sec.Name, "/%d", idx);
+        snprintf(cast(char *)sec.Name, IMAGE_SIZEOF_SHORT_NAME, "/%d", idx);
     }
     else
         memcpy(sec.Name.ptr, scnhdr_name, len);
@@ -1561,6 +1561,7 @@ seg_data *MsCoffObj_tlsseg()
     if (seg_tlsseg == UNKNOWN)
     {
         seg_tlsseg = MsCoffObj_getsegment(".tls$AAB", IMAGE_SCN_CNT_INITIALIZED_DATA |
+                                              IMAGE_SCN_LNK_COMDAT |
                                               IMAGE_SCN_ALIGN_16BYTES |
                                               IMAGE_SCN_MEM_READ |
                                               IMAGE_SCN_MEM_WRITE);
@@ -1714,7 +1715,7 @@ private extern (D) char* unsstr(uint value)
 {
     __gshared char[64] buffer;
 
-    sprintf (buffer.ptr, "%d", value);
+    snprintf (buffer.ptr, buffer.length, "%d", value);
     return buffer.ptr;
 }
 

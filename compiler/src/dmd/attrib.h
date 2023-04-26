@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -36,8 +36,7 @@ public:
     bool hasPointers() override final;
     bool hasStaticCtorOrDtor() override final;
     void checkCtorConstInit() override final;
-    void addLocalClass(ClassDeclarations *) override final;
-    AttribDeclaration *isAttribDeclaration() override final { return this; }
+    AttribDeclaration *isAttribDeclaration() override { return this; }
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -133,7 +132,7 @@ public:
 class AnonDeclaration final : public AttribDeclaration
 {
 public:
-    bool isunion;
+    d_bool isunion;
     int sem;                    // 1 if successful semantic()
     unsigned anonoffset;        // offset of anonymous struct
     unsigned anonstructsize;    // size of anonymous struct
@@ -176,14 +175,15 @@ class StaticIfDeclaration final : public ConditionalDeclaration
 {
 public:
     ScopeDsymbol *scopesym;
-    bool addisdone;
-    bool onStack;
+    d_bool addisdone;
+    d_bool onStack;
 
     StaticIfDeclaration *syntaxCopy(Dsymbol *s) override;
     Dsymbols *include(Scope *sc) override;
     void addMember(Scope *sc, ScopeDsymbol *sds) override;
     void setScope(Scope *sc) override;
     void importAll(Scope *sc) override;
+    StaticIfDeclaration *isStaticIfDeclaration() override { return this; }
     const char *kind() const override;
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -193,8 +193,8 @@ class StaticForeachDeclaration final : public AttribDeclaration
 public:
     StaticForeach *sfe;
     ScopeDsymbol *scopesym;
-    bool onStack;
-    bool cached;
+    d_bool onStack;
+    d_bool cached;
     Dsymbols *cache;
 
     StaticForeachDeclaration *syntaxCopy(Dsymbol *s) override;
@@ -221,15 +221,15 @@ public:
 
 // Mixin declarations
 
-class CompileDeclaration final : public AttribDeclaration
+class MixinDeclaration final : public AttribDeclaration
 {
 public:
     Expressions *exps;
 
     ScopeDsymbol *scopesym;
-    bool compiled;
+    d_bool compiled;
 
-    CompileDeclaration *syntaxCopy(Dsymbol *s) override;
+    MixinDeclaration *syntaxCopy(Dsymbol *s) override;
     void addMember(Scope *sc, ScopeDsymbol *sds) override;
     void setScope(Scope *sc) override;
     const char *kind() const override;

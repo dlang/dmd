@@ -2,7 +2,7 @@
  * Put initializers and objects created from CTFE into a `dt_t` data structure
  * so the backend puts them into the data segment.
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/todt.d, _todt.d)
@@ -36,6 +36,7 @@ import dmd.func;
 import dmd.globals;
 import dmd.glue;
 import dmd.init;
+import dmd.location;
 import dmd.mtype;
 import dmd.target;
 import dmd.tokens;
@@ -207,15 +208,8 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb, bool isC
         assert(0);
     }
 
-    final switch (init.kind)
-    {
-        case InitKind.void_:   return visitVoid  (cast(  VoidInitializer)init);
-        case InitKind.error:   return visitError (cast( ErrorInitializer)init);
-        case InitKind.struct_: return visitStruct(cast(StructInitializer)init);
-        case InitKind.array:   return visitArray (cast( ArrayInitializer)init);
-        case InitKind.exp:     return visitExp   (cast(   ExpInitializer)init);
-        case InitKind.C_:      return visitC     (cast(     CInitializer)init);
-    }
+    mixin VisitInitializer!void visit;
+    visit.VisitInitializer(init);
 }
 
 /* ================================================================ */
@@ -1155,7 +1149,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         }
     }
 
-    this(ref DtBuilder dtb)
+    this(ref DtBuilder dtb) scope
     {
         this.dtb = &dtb;
     }
@@ -1485,13 +1479,6 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
             dtb.xoff(toSymbol(fd), 0);
             TypeFunction tf = cast(TypeFunction)fd.type;
             assert(tf.ty == Tfunction);
-            /* I'm a little unsure this is the right way to do it. Perhaps a better
-             * way would to automatically add these attributes to any struct member
-             * function with the name "toHash".
-             * So I'm leaving this here as an experiment for the moment.
-             */
-            if (!tf.isnothrow || tf.trust == TRUST.system /*|| tf.purity == PURE.impure*/)
-                warning(fd.loc, "toHash() must be declared as extern (D) size_t toHash() const nothrow @safe, not %s", tf.toChars());
         }
         else
             dtb.size(0);

@@ -8,7 +8,7 @@
  * i.e. rewriting trees to less expensive trees.
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgelem.d, backend/cgelem.d)
@@ -483,8 +483,14 @@ private elem *fixconvop(elem *e)
              cop == OPu8_16 || cop == OPs8_16))
     {   if (e.Eoper != OPshlass && e.Eoper != OPshrass && e.Eoper != OPashrass)
             e.EV.E2 = el_una(icop,tym,e2);
-        //printf("after1\n");
-        //elem_print(e);
+
+        version (MARS)
+        {
+            // https://issues.dlang.org/show_bug.cgi?id=23618
+            if ((cop == OPu16_32 || cop == OPu8_16) && e.Eoper == OPashrass)
+                e.Eoper = OPshrass;     // always unsigned right shift for MARS
+        }
+
         return e;
     }
 
@@ -762,92 +768,93 @@ private elem * elmemcmp(elem *e, goal_t goal)
 @trusted
 private elem * elmemset(elem *e, goal_t goal)
 {
+    //printf("elmemset()\n");
     elem_debug(e);
-    if (OPTIMIZER)
+
+    elem *ex = e.EV.E1;
+    if (ex.Eoper == OPnp_fp)
     {
-        elem *ex = e.EV.E1;
-        if (ex.Eoper == OPnp_fp)
-            eltonear(&ex);
-        else
-        {
-            // lvalue OPmemset (nbytes param value)
-            elem *enbytes = e.EV.E2.EV.E1;
-            elem *evalue = e.EV.E2.EV.E2;
-
-            version (MARS)
-            if (enbytes.Eoper == OPconst && evalue.Eoper == OPconst)
-            {
-                int nbytes = cast(int)el_tolong(enbytes);
-                targ_llong value = el_tolong(evalue);
-                elem *e1 = e.EV.E1;
-
-                if (e1.Eoper == OPcomma || OTassign(e1.Eoper))
-                    return cgel_lvalue(e);    // replace (e,v)op=e2 with e,(v op= e2)
-
-                tym_t tym;
-                switch (nbytes)
-                {
-                    case CHARSIZE:      tym = TYchar;   goto L1;
-                    case SHORTSIZE:     tym = TYshort;  goto L1;
-                    case LONGSIZE:      tym = TYlong;   goto L1;
-                    case LLONGSIZE:     if (_tysize[TYint] == 2)
-                                            goto default;
-                                        tym = TYllong;  goto L1;
-
-                    case 16:            if (REGSIZE == 8 && e1.Eoper == OPrelconst)
-                                            goto L1;
-                                        goto default;
-                    L1:
-                    {
-                        tym_t ety = e.Ety;
-                        memset(&value, value & 0xFF, value.sizeof);
-                        if (nbytes == 2 * REGSIZE && e1.Eoper == OPrelconst)
-                        {
-                            /* Rewrite as:
-                             * (*e1.0 = value),(*e1.4 = value),(e1)
-                             */
-                            tym = REGSIZE == 8 ? TYllong : TYint;
-
-                            auto e1a = el_copytree(e1);
-                            e1a.Eoper = OPvar;
-                            e1a.Ety = tym;
-                            auto ea = el_bin(OPeq,TYint,e1a,el_long(tym,value));
-
-                            auto e1b = el_copytree(e1);
-                            e1b.Eoper = OPvar;
-                            e1b.Ety = tym;
-                            e1b.EV.Voffset += REGSIZE;
-                            auto eb = el_bin(OPeq,tym,e1b,el_long(tym,value));
-
-                            e.EV.E1 = null;
-                            el_free(e);
-                            e = el_combine(el_combine(ea, eb), e1);
-                            e = optelem(e, GOALvalue);
-                            return e;
-                        }
-                        evalue.EV.Vullong = value;
-                        evalue.Ety = tym;
-                        e.Eoper = OPeq;
-                        e.Ety = (e.Ety & ~mTYbasic) | tym;
-                        if (tybasic(e1.Ety) == TYstruct)
-                            e1.Ety = tym;
-                        else
-                            e.EV.E1 = el_una(OPind, tym, e1);
-                        elem *tmp = el_same(&e.EV.E1);
-                        tmp = el_una(OPaddr, ety, tmp);
-                        e.EV.E2.Ety = tym;
-                        e.EV.E2 = el_selecte2(e.EV.E2);
-                        e = el_combine(e, tmp);
-                        e = optelem(e,GOALvalue);
-                    }
-                        break;
-
-                    default:
-                        break;
-                }
-            }
-        }
+        eltonear(&ex);
+        return e;
     }
+
+    // lvalue OPmemset (nelems param value)
+    elem *enelems = e.EV.E2.EV.E1;
+    elem *evalue = e.EV.E2.EV.E2;
+
+    if (!(enelems.Eoper == OPconst && evalue.Eoper == OPconst && REGSIZE >= 4))
+        return e;
+
+    elem *e1 = e.EV.E1;
+
+    if (e1.Eoper == OPcomma || OTassign(e1.Eoper))
+        return cgel_lvalue(e);    // replace ((e,v) memset e2) with (e,(v memset e2))
+
+    /* Attempt to replace OPmemset with a sequence of ordinary assignments,
+     * so cdmemset() will have fewer cases to deal with
+     */
+
+    const sz = tysize(evalue.Ety);
+    int nelems = cast(int)el_tolong(enelems);
+    ulong value = el_tolong(evalue);
+
+    if (sz * nelems > REGSIZE * 4)
+        return e;
+
+    switch (sz)
+    {
+        case 1:  value = 0x0101_0101_0101_0101 * (value & 0xFF);       break;
+        case 2:  value = 0x0001_0001_0001_0001 * (value & 0xFFFF);     break;
+        case 4:  value = 0x0000_0001_0000_0001 * (value & 0xFFFFFFFF); break;
+        case 8:  break;
+        default:
+            return e;
+    }
+
+    ulong valuexor = 0;
+    if (sz == 8 && REGSIZE == 4)
+        valuexor = (value ^ (value >> 32)) & 0xFFFF_FFFF;
+
+    elem* ey = null;
+    if (e1.Eoper != OPrelconst)
+    {
+        ey = e1;
+        e1 = el_same(&ey);
+    }
+    e.EV.E1 = null;             // so we can free e later
+
+    for (int offset = 0; offset < sz * nelems; )
+    {
+        int left = sz * nelems - offset;
+        if (left > REGSIZE)
+            left = REGSIZE;
+        tym_t tyv;
+        switch (left)
+        {
+            case 0: assert(0);
+            case 1: tyv = TYchar;  left = 1; break;
+            case 2:
+            case 3: tyv = TYshort; left = 2; break;
+            case 4:
+            case 5:
+            case 6:
+            case 7: tyv = TYlong;  left = 4; break;
+            default:
+            case 8: tyv = TYllong; left = 8; break;
+        }
+        auto e1a = el_copytree(e1);
+        assert(tybasic(e1a.Ety) != TYstruct);
+        e1a = el_bin(OPadd, TYnptr, e1a, el_long(TYsize_t, offset));
+        e1a = el_una(OPind, tyv, e1a);
+        auto ea = el_bin(OPeq, tyv, e1a, el_long(tyv, value));
+        if (sz * nelems - offset >= REGSIZE)
+            value ^= valuexor;          // flip between low and high 32 bits of 8 byte value
+        offset += left;
+        ey = el_combine(ey, ea);
+    }
+    ey = el_combine(ey, e1);
+    el_free(e);
+    e = optelem(ey,GOALvalue);
     return e;
 }
 
@@ -3208,7 +3215,6 @@ L1:
 @trusted
 private elem * elbit(elem *e, goal_t goal)
 {
-
     tym_t tym1 = e.EV.E1.Ety;
     uint sz = tysize(tym1) * 8;
     elem *e2 = e.EV.E2;
@@ -5568,7 +5574,7 @@ if (config.exe & EX_windos)
     {
         Symbol *s = globsym[si];
 
-        if (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg)
+        if (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg || s.Sclass == SC.parameter)
             lastNamed = s;
     }
 
@@ -5577,7 +5583,7 @@ if (config.exe & EX_windos)
     if (lastNamed)
     {
         e.EV.E2 = el_ptr(lastNamed);
-        e.EV.E2.EV.Voffset = REGSIZE;
+        e.EV.E2.EV.Voffset = 8;
     }
     else
         e.EV.E2 = el_long(TYnptr, 0);

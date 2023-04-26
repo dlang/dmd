@@ -9,7 +9,7 @@ ifeq ($(OS)-$(BUILD),linux-debug)
 	LINE_TRACE_DFLAGS:=-L--export-dynamic
 endif
 ifeq ($(OS),linux)
-	TESTS+=rt_trap_exceptions_drt_gdb cpp_demangle
+	TESTS+=rt_trap_exceptions_drt_gdb
 endif
 ifeq ($(OS)-$(BUILD),freebsd-debug)
 	TESTS+=line_trace line_trace_21656 long_backtrace_trunc cpp_demangle
@@ -110,7 +110,7 @@ $(ROOT)/rt_trap_exceptions_drt_gdb.done: $(ROOT)/rt_trap_exceptions_drt
 	$(QUIET)$(TIMELIMIT) $(GDB) -n -ex 'set confirm off' -ex run -ex 'bt full' -ex q --args $< --DRT-trapExceptions=0 \
 		> $(ROOT)/rt_trap_exceptions_drt_gdb.output 2>&1 || true
 	cat $(ROOT)/rt_trap_exceptions_drt_gdb.output
-	grep "D main (args=...) at .*rt_trap_exceptions_drt.d:9" > /dev/null < $(ROOT)/rt_trap_exceptions_drt_gdb.output
+	grep "\(D main\|_Dmain\) (args=...) at .*rt_trap_exceptions_drt.d:9" > /dev/null < $(ROOT)/rt_trap_exceptions_drt_gdb.output
 	grep 'myLocal' > /dev/null < $(ROOT)/rt_trap_exceptions_drt_gdb.output
 	! grep "No stack." > /dev/null < $(ROOT)/rt_trap_exceptions_drt_gdb.output
 	@touch $@
@@ -129,7 +129,7 @@ $(ROOT)/long_backtrace_trunc: DFLAGS+=$(LINE_TRACE_DFLAGS)
 $(ROOT)/rt_trap_exceptions: DFLAGS+=$(LINE_TRACE_DFLAGS)
 $(ROOT)/rt_trap_exceptions_drt: DFLAGS+=-g
 $(ROOT)/refcounted: DFLAGS+=-dip1008
-$(ROOT)/cpp_demangle: DFLAGS+=-L-lstdc++
+$(ROOT)/cpp_demangle: DFLAGS+=-L-lstdc++ $(LINE_TRACE_DFLAGS)
 
 $(ROOT)/%: $(SRC)/%.d $(DMD) $(DRUNTIME)
 	$(QUIET)$(DMD) $(DFLAGS) -of$@ $<

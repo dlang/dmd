@@ -1,7 +1,7 @@
 /**
  * Collects functions for compile-time floating-point calculations.
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/root/ctfloat.d, root/_ctfloat.d)
@@ -188,17 +188,17 @@ extern (C++) struct CTFloat
     }
 
     @system
-    static int sprint(char* str, char fmt, real_t x)
+    static int sprint(char* str, size_t size, char fmt, real_t x)
     {
         version(CRuntime_Microsoft)
         {
-            auto len = cast(int) ld_sprint(str, fmt, longdouble_soft(x));
+            auto len = cast(int) ld_sprint(str, size, fmt, longdouble_soft(x));
         }
         else
         {
             char[4] sfmt = "%Lg\0";
             sfmt[2] = fmt;
-            auto len = sprintf(str, sfmt.ptr, x);
+            auto len = snprintf(str, size, sfmt.ptr, x);
         }
 
         if (fmt != 'a' && fmt != 'A')

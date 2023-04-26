@@ -2,11 +2,14 @@
 //
 /* TEST_OUTPUT:
 ---
+runnable/xtest46.d(165): Deprecation: alias this for classes/interfaces is deprecated
 Boo!double
 Boo!int
 true
 int
 !! immutable(int)[]
+runnable/xtest46.d(2932): Deprecation: alias this for classes/interfaces is deprecated
+runnable/xtest46.d(2964): Deprecation: alias this for classes/interfaces is deprecated
 int(int i, long j = 7L)
 long
 C10390(C10390(C10390(<recursion>)))
@@ -19,6 +22,7 @@ string[]
 double[]
 double[]
 {}
+runnable/xtest46.d(4670): Deprecation: alias this for classes/interfaces is deprecated
 tuple("m")
 true
 TFunction1: extern (C) void function()
@@ -6166,14 +6170,6 @@ static assert(!__traits(compiles, foo8220(typeof(0)))); // fail
 
 /***************************************************/
 
-void func8105(in ref int x) { }
-
-void test8105()
-{
-}
-
-/***************************************************/
-
 template ParameterTypeTuple159(alias foo)
 {
     static if (is(typeof(foo) P == __parameters))
@@ -8296,7 +8292,6 @@ int main()
     test12503();
     test8004();
     test8064();
-    test8105();
     test159();
     test12824();
     test8283();

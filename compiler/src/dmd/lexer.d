@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/lex.html, Lexical)
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/lexer.d, _lexer.d)
@@ -14,33 +14,43 @@
 module dmd.lexer;
 
 import core.stdc.ctype;
-import core.stdc.errno;
-import core.stdc.stdarg;
 import core.stdc.stdio;
-import core.stdc.stdlib : getenv;
 import core.stdc.string;
-import core.stdc.time;
 
 import dmd.entity;
-import dmd.errors;
-import dmd.globals;
+import dmd.errorsink;
 import dmd.id;
 import dmd.identifier;
+import dmd.location;
 import dmd.root.array;
 import dmd.root.ctfloat;
 import dmd.common.outbuffer;
 import dmd.root.port;
 import dmd.root.rmem;
-import dmd.root.string;
 import dmd.root.utf;
 import dmd.tokens;
-import dmd.utils;
 
 nothrow:
 
 version (DMDLIB)
 {
     version = LocOffset;
+}
+
+/***********************************************************
+ * Values to use for various magic identifiers
+ */
+struct CompileEnv
+{
+    uint versionNumber;      /// __VERSION__
+    const(char)[] date;      /// __DATE__
+    const(char)[] time;      /// __TIME__
+    const(char)[] vendor;    /// __VENDOR__
+    const(char)[] timestamp; /// __TIMESTAMP__
+
+    bool previewIn;          /// `in` means `[ref] scope const`, accepts rvalues
+    bool ddocOutput;         /// collect embedded documentation comments
+    bool shortenedMethods = true;   /// allow => in normal function declarations
 }
 
 /***********************************************************
@@ -68,6 +78,9 @@ class Lexer
     ubyte long_doublesize;      /// size of C long double, 8 or D real.sizeof
     ubyte wchar_tsize;          /// size of C wchar_t, 2 or 4
 
+    ErrorSink eSink;            /// send error messages through this interface
+    CompileEnv compileEnv;      /// environment
+
     private
     {
         const(char)* base;      // pointer to start of buffer
@@ -79,10 +92,7 @@ class Lexer
         bool commentToken;      // comments are TOK.comment's
         bool tokenizeNewlines;  // newlines are turned into TOK.endOfLine's
 
-        version (DMDLIB)
-        {
-            bool whitespaceToken;   // tokenize whitespaces
-        }
+        bool whitespaceToken;   // tokenize whitespaces (only for DMDLIB)
 
         int inTokenStringConstant; // can be larger than 1 when in nested q{} strings
         int lastDocLine;        // last line of previous doc comment
@@ -103,9 +113,13 @@ class Lexer
      *  endoffset = the last offset to read into base[]
      *  doDocComment = handle documentation comments
      *  commentToken = comments become TOK.comment's
+     *  errorSink = where error messages go, must not be null
+     *  compileEnv = version, vendor, date, time, etc.
      */
     this(const(char)* filename, const(char)* base, size_t begoffset,
-        size_t endoffset, bool doDocComment, bool commentToken) pure
+        size_t endoffset, bool doDocComment, bool commentToken,
+        ErrorSink errorSink,
+        const CompileEnv* compileEnv) pure scope
     {
         scanloc = Loc(filename, 1, 1);
         // debug printf("Lexer::Lexer(%p)\n", base);
@@ -120,6 +134,15 @@ class Lexer
         this.tokenizeNewlines = false;
         this.inTokenStringConstant = 0;
         this.lastDocLine = 0;
+        this.eSink = errorSink;
+        assert(errorSink);
+        if (compileEnv)
+            this.compileEnv = *compileEnv;
+        else
+        {
+            this.compileEnv.versionNumber = 1;
+            this.compileEnv.vendor = "DLF";
+        }
         //initKeywords();
         /* If first line starts with '#!', ignore the line
          */
@@ -154,10 +177,22 @@ class Lexer
         }
     }
 
+    /***********************
+     * Alternative entry point for DMDLIB, adds `whitespaceToken`
+     */
+    this(const(char)* filename, const(char)* base, size_t begoffset, size_t endoffset,
+        bool doDocComment, bool commentToken, bool whitespaceToken,
+        ErrorSink errorSink, const CompileEnv* compileEnv = null
+        )
+    {
+        this(filename, base, begoffset, endoffset, doDocComment, commentToken, errorSink, compileEnv);
+        this.whitespaceToken = whitespaceToken;
+    }
+
     /******************
      * Used for unittests for a mock Lexer
      */
-    this() { }
+    this(ErrorSink errorSink) scope { assert(errorSink); this.eSink = errorSink; }
 
     /**************************************
      * Reset lexer to lex #define's
@@ -184,29 +219,23 @@ class Lexer
         tokenizeNewlines = true;
     }
 
-    version (DMDLIB)
+    /***************
+     * Range interface
+     */
+
+    final bool empty() const pure @property @nogc @safe
     {
-        this(const(char)* filename, const(char)* base, size_t begoffset, size_t endoffset,
-            bool doDocComment, bool commentToken, bool whitespaceToken)
-        {
-            this(filename, base, begoffset, endoffset, doDocComment, commentToken);
-            this.whitespaceToken = whitespaceToken;
-        }
+        return front() == TOK.endOfFile;
+    }
 
-        bool empty() const pure @property @nogc @safe
-        {
-            return front() == TOK.endOfFile;
-        }
+    final TOK front() const pure @property @nogc @safe
+    {
+        return token.value;
+    }
 
-        TOK front() const pure @property @nogc @safe
-        {
-            return token.value;
-        }
-
-        void popFront()
-        {
-            nextToken();
-        }
+    final void popFront()
+    {
+        nextToken();
     }
 
     /// Returns: a newly allocated `Token`.
@@ -555,36 +584,26 @@ class Lexer
 
                     else if (*t.ptr == '_') // if special identifier token
                     {
-                        // Lazy initialization
-                        TimeStampInfo.initialize(t.loc);
+                        void toToken(const(char)[] s)
+                        {
+                            t.value = TOK.string_;
+                            t.ustring = s.ptr;
+                            t.len = cast(uint)s.length;
+                            t.postfix = 0;
+                        }
 
                         if (id == Id.DATE)
-                        {
-                            t.ustring = TimeStampInfo.date.ptr;
-                            goto Lstr;
-                        }
+                            toToken(compileEnv.date);
                         else if (id == Id.TIME)
-                        {
-                            t.ustring = TimeStampInfo.time.ptr;
-                            goto Lstr;
-                        }
+                            toToken(compileEnv.time);
                         else if (id == Id.VENDOR)
-                        {
-                            t.ustring = global.vendor.xarraydup.ptr;
-                            goto Lstr;
-                        }
+                            toToken(compileEnv.vendor);
                         else if (id == Id.TIMESTAMP)
-                        {
-                            t.ustring = TimeStampInfo.timestamp.ptr;
-                        Lstr:
-                            t.value = TOK.string_;
-                            t.postfix = 0;
-                            t.len = cast(uint)strlen(t.ustring);
-                        }
+                            toToken(compileEnv.timestamp);
                         else if (id == Id.VERSIONX)
                         {
                             t.value = TOK.int64Literal;
-                            t.unsvalue = global.versionNumber();
+                            t.unsvalue = compileEnv.versionNumber;
                         }
                         else if (id == Id.EOFX)
                         {
@@ -1607,7 +1626,7 @@ class Lexer
         else if (isspace(delimright))
             error("delimited string must end in `\"`");
         else
-            error("delimited string must end in `%c\"`", delimright);
+            error(token.loc, "delimited string must end in `%c\"`", delimright);
         result.setString(stringbuffer);
         stringPostfix(result);
     }
@@ -1900,10 +1919,10 @@ class Lexer
                 if (idx < n && !msg)
                     msg = utf_decodeChar(str, idx, d2);
                 if (msg)
-                    error(loc, "%s", msg);
+                    error(loc, "%.*s", cast(int)msg.length, msg.ptr);
                 else if (idx < n)
                     error(loc, "max number of chars in 16 bit character literal is 2, had %d",
-                        (n + 1) >> 1);
+                        cast(int)((n + 1) >> 1));
                 else if (d1 > 0x1_0000)
                     error(loc, "%d does not fit in 16 bits", d1);
                 else if (d2 > 0x1_0000)
@@ -1918,10 +1937,10 @@ class Lexer
                 size_t idx;
                 auto msg = utf_decodeChar(str, idx, d);
                 if (msg)
-                    error(loc, "%s", msg);
+                    error(loc, "%.*s", cast(int)msg.length, msg.ptr);
                 else if (idx < n)
                     error(loc, "max number of chars in 32 bit character literal is 1, had %d",
-                        (n + 3) >> 2);
+                        cast(int)((n + 3) >> 2));
                 u = d;
                 break;
 
@@ -1965,7 +1984,7 @@ class Lexer
     {
         int base = 10;
         const start = p;
-        uinteger_t n = 0; // unsigned >=64 bit integer type
+        ulong n = 0; // unsigned >=64 bit integer type
         int d;
         bool err = false;
         bool overflow = false;
@@ -2128,7 +2147,7 @@ class Lexer
     Ldone:
         if (errorDigit)
         {
-            error("%s digit expected, not `%c`", base == 2 ? "binary".ptr :
+            error(token.loc, "%s digit expected, not `%c`", base == 2 ? "binary".ptr :
                                                  base == 8 ? "octal".ptr :
                                                  "decimal".ptr, errorDigit);
             err = true;
@@ -2140,7 +2159,7 @@ class Lexer
         }
         if ((base == 2 && !anyBinaryDigitsNoSingleUS) ||
             (base == 16 && !anyHexDigitsNoSingleUS))
-            error("`%.*s` isn't a valid integer literal, use `%.*s0` instead", cast(int)(p - start), start, 2, start);
+            error(token.loc, "`%.*s` isn't a valid integer literal, use `%.*s0` instead", cast(int)(p - start), start, 2, start);
 
         t.unsvalue = n;
 
@@ -2193,7 +2212,7 @@ class Lexer
                 // can't translate invalid octal value, just show a generic message
                 error("octal literals larger than 7 are no longer supported");
             else
-                error("octal literals `0%llo%.*s` are no longer supported, use `std.conv.octal!\"%llo%.*s\"` instead",
+                error(token.loc, "octal literals `0%llo%.*s` are no longer supported, use `std.conv.octal!\"%llo%.*s\"` instead",
                     n, cast(int)(p - psuffix), psuffix, n, cast(int)(p - psuffix), psuffix);
         }
         TOK result;
@@ -2274,7 +2293,7 @@ class Lexer
      * Returns:
      *  token value
      */
-    private TOK cnumber(int base, uinteger_t n)
+    private TOK cnumber(int base, ulong n)
     {
         /* C11 6.4.4.1
          * Parse trailing suffixes:
@@ -2554,6 +2573,14 @@ class Lexer
         TOK result;
         bool isOutOfRange = false;
         t.floatvalue = (isWellformedString ? CTFloat.parse(sbufptr, isOutOfRange) : CTFloat.zero);
+
+        bool imaginary = false;
+        if (*p == 'i' && Ccompile)
+        {
+            ++p;
+            imaginary = true;
+        }
+
         switch (*p)
         {
         case 'F':
@@ -2579,11 +2606,17 @@ class Lexer
             result = TOK.float80Literal;
             break;
         }
+
         if ((*p == 'i' || *p == 'I') && !Ccompile)
         {
             if (*p == 'I')
                 error("use 'i' suffix instead of 'I'");
             p++;
+            imaginary = true;
+        }
+
+        if (imaginary)
+        {
             switch (result)
             {
             case TOK.float32Literal:
@@ -2610,7 +2643,7 @@ class Lexer
                                 TOK.float80Literal: "`real` for the current target".ptr][result];
             error(scanloc, "number `%s%s` is not representable as a %s", sbufptr, suffix, type);
             const char* extra = result == TOK.float64Literal ? "`real` literals can be written using the `L` suffix. " : "";
-            errorSupplemental(scanloc, "%shttps://dlang.org/spec/lex.html#floatliteral", extra);
+            eSink.errorSupplemental(scanloc, "%shttps://dlang.org/spec/lex.html#floatliteral", extra);
         }
         debug
         {
@@ -2638,28 +2671,24 @@ class Lexer
         return scanloc;
     }
 
-    final void error(const(char)* format, ...)
+    void error(T...)(const(char)* format, T args)
     {
-        va_list args;
-        va_start(args, format);
-        .verror(token.loc, format, args);
-        va_end(args);
+        eSink.error(token.loc, format, args);
     }
 
-    final void error(const ref Loc loc, const(char)* format, ...)
+    void error(T...)(const ref Loc loc, const(char)* format, T args)
     {
-        va_list args;
-        va_start(args, format);
-        .verror(loc, format, args);
-        va_end(args);
+        eSink.error(loc, format, args);
     }
 
-    final void deprecation(const(char)* format, ...)
+    final void deprecation(const(char)* format)
     {
-        va_list args;
-        va_start(args, format);
-        .vdeprecation(token.loc, format, args);
-        va_end(args);
+        eSink.deprecation(token.loc, format);
+    }
+
+    final void deprecationSupplemental(const(char)* format)
+    {
+        eSink.deprecationSupplemental(token.loc, format);
     }
 
     /***************************************
@@ -2680,13 +2709,13 @@ class Lexer
                 poundLine(n, false);
                 return true;
             }
-            else
+            else if (!inTokenStringConstant)
             {
                 const locx = loc();
-                warning(locx, "C preprocessor directive `#%s` is not supported", n.ident.toChars());
+                eSink.warning(locx, "C preprocessor directive `#%s` is not supported", n.ident.toChars());
             }
         }
-        else if (n.value == TOK.if_)
+        else if (n.value == TOK.if_ && !inTokenStringConstant)
         {
             error("C preprocessor directive `#if` is not supported, use `version` or `static if`");
         }
@@ -2844,7 +2873,7 @@ class Lexer
         auto result = decodeUTFpure(msg);
 
         if (msg)
-            error("%.*s", cast(int)msg.length, msg.ptr);
+            error(token.loc, "%.*s", cast(int)msg.length, msg.ptr);
         return result;
     }
 
@@ -3007,7 +3036,10 @@ class Lexer
         auto dc = (lineComment && anyToken) ? &t.lineComment : &t.blockComment;
         // Combine with previous doc comment, if any
         if (*dc)
-            *dc = combineComments(*dc, buf[], newParagraph).toDString();
+        {
+            auto p = combineComments(*dc, buf[], newParagraph);
+            *dc = p ? p[0 .. strlen(p)] : null;
+        }
         else
             *dc = buf.extractSlice(true);
     }
@@ -3054,42 +3086,6 @@ class Lexer
 /******************************* Private *****************************************/
 
 private:
-
-/// Support for `__DATE__`, `__TIME__`, and `__TIMESTAMP__`
-private struct TimeStampInfo
-{
-    private __gshared bool initdone = false;
-
-    // Note: Those properties need to be guarded by a call to `init`
-    // The API isn't safe, and quite brittle, but it was left this way
-    // over performance concerns.
-    // This is currently only called once, from the lexer.
-    __gshared char[11 + 1] date;
-    __gshared char[8 + 1] time;
-    __gshared char[24 + 1] timestamp;
-
-    public static void initialize(const ref Loc loc) nothrow
-    {
-        if (initdone)
-            return;
-
-        initdone = true;
-        time_t ct;
-        // https://issues.dlang.org/show_bug.cgi?id=20444
-        if (auto p = getenv("SOURCE_DATE_EPOCH"))
-        {
-            if (!ct.parseDigits(p.toDString()))
-                error(loc, "value of environment variable `SOURCE_DATE_EPOCH` should be a valid UNIX timestamp, not: `%s`", p);
-        }
-        else
-            .time(&ct);
-        const p = ctime(&ct);
-        assert(p);
-        sprintf(&date[0], "%.6s %.4s", p + 4, p + 20);
-        sprintf(&time[0], "%.8s", p + 11);
-        sprintf(&timestamp[0], "%.24s", p);
-    }
-}
 
 private enum LS = 0x2028;       // UTF line separator
 private enum PS = 0x2029;       // UTF paragraph separator
@@ -3208,19 +3204,15 @@ private bool c_isalnum(const int c) pure @nogc @safe
 
 unittest
 {
-    import dmd.console;
-    nothrow bool assertDiagnosticHandler(const ref Loc loc, Color headerColor, const(char)* header,
-                                   const(char)* format, va_list ap, const(char)* p1, const(char)* p2)
-    {
-        assert(0);
-    }
-    diagnosticHandler = &assertDiagnosticHandler;
+    fprintf(stderr, "Lexer.unittest %d\n", __LINE__);
 
-    static void test(T)(string sequence, T expected, bool Ccompile = false)
+    ErrorSink errorSink = new ErrorSinkStderr;
+
+    void test(T)(string sequence, T expected, bool Ccompile = false)
     {
         auto p = cast(const(char)*)sequence.ptr;
         dchar c2;
-        Lexer lexer = new Lexer();
+        Lexer lexer = new Lexer(errorSink);
         assert(expected == lexer.escapeSequence(Loc.initial, p, Ccompile, c2));
         assert(p == sequence.ptr + sequence.length);
     }
@@ -3257,45 +3249,51 @@ unittest
     test(`&quot;`, '"');
     test(`&lt;`, '<');
     test(`&gt;`, '>');
-
-    diagnosticHandler = null;
 }
 
 unittest
 {
-    import dmd.console;
-    string expected;
-    bool gotError;
+    fprintf(stderr, "Lexer.unittest %d\n", __LINE__);
 
-    nothrow bool expectDiagnosticHandler(const ref Loc loc, Color headerColor, const(char)* header,
-                                         const(char)* format, va_list ap, const(char)* p1, const(char)* p2)
+    static class ErrorSinkTest : ErrorSinkNull
     {
-        assert(cast(Classification)headerColor == Classification.error);
+      nothrow:
+      extern (C++):
+      override:
 
-        gotError = true;
-        char[100] buffer = void;
-        auto actual = buffer[0 .. vsprintf(buffer.ptr, format, ap)];
-        assert(expected == actual);
-        return true;
+        import core.stdc.stdio;
+        import core.stdc.stdarg;
+
+        string expected;
+        bool gotError;
+
+        void error(const ref Loc loc, const(char)* format, ...)
+        {
+            gotError = true;
+            char[100] buffer = void;
+            va_list ap;
+            va_start(ap, format);
+            auto actual = buffer[0 .. vsnprintf(buffer.ptr, buffer.length, format, ap)];
+            va_end(ap);
+            assert(expected == actual);
+        }
     }
 
-    diagnosticHandler = &expectDiagnosticHandler;
+    ErrorSinkTest errorSink = new ErrorSinkTest;
 
     void test(string sequence, string expectedError, dchar expectedReturnValue, uint expectedScanLength, bool Ccompile = false)
     {
-        uint errors = global.errors;
-        gotError = false;
-        expected = expectedError;
+        errorSink.expected = expectedError;
+        errorSink.gotError = false;
         auto p = cast(const(char)*)sequence.ptr;
-        Lexer lexer = new Lexer();
+        Lexer lexer = new Lexer(errorSink);
         dchar c2;
         auto actualReturnValue = lexer.escapeSequence(Loc.initial, p, Ccompile, c2);
-        assert(gotError);
+        assert(errorSink.gotError);
         assert(expectedReturnValue == actualReturnValue);
 
         auto actualScanLength = p - sequence.ptr;
         assert(expectedScanLength == actualScanLength);
-        global.errors = errors;
     }
 
     test("c", `undefined escape sequence \c`, 'c', 1);
@@ -3329,17 +3327,16 @@ unittest
     test("&quot", `unterminated named entity &quot;`, '?', 5);
 
     test("400", `escape octal sequence \400 is larger than \377`, 0x100, 3);
-
-    diagnosticHandler = null;
 }
 
 unittest
 {
-    //printf("lexer.unittest\n");
+    fprintf(stderr, "Lexer.unittest %d\n", __LINE__);
     /* Not much here, just trying things out.
      */
     string text = "int"; // We rely on the implicit null-terminator
-    scope Lexer lex1 = new Lexer(null, text.ptr, 0, text.length, 0, 0);
+    ErrorSink errorSink = new ErrorSinkStderr;
+    scope Lexer lex1 = new Lexer(null, text.ptr, 0, text.length, false, false, errorSink, null);
     TOK tok;
     tok = lex1.nextToken();
     //printf("tok == %s, %d, %d\n", Token::toChars(tok), tok, TOK.int32);
@@ -3354,9 +3351,10 @@ unittest
 
 unittest
 {
+    fprintf(stderr, "Lexer.unittest %d\n", __LINE__);
+
     // We don't want to see Lexer error output during these tests.
-    uint errors = global.startGagging();
-    scope(exit) global.endGagging(errors);
+    ErrorSink errorSink = new ErrorSinkNull;
 
     // Test malformed input: even malformed input should end in a TOK.endOfFile.
     static immutable char[][] testcases =
@@ -3374,7 +3372,7 @@ unittest
 
     foreach (testcase; testcases)
     {
-        scope Lexer lex2 = new Lexer(null, testcase.ptr, 0, testcase.length-1, 0, 0);
+        scope Lexer lex2 = new Lexer(null, testcase.ptr, 0, testcase.length-1, false, false, errorSink, null);
         TOK tok = lex2.nextToken();
         size_t iterations = 1;
         while ((tok != TOK.endOfFile) && (iterations++ < testcase.length))

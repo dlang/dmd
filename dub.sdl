@@ -29,8 +29,10 @@ subPackage {
     "compiler/src/dmd/id.d" \
     "compiler/src/dmd/identifier.d" \
     "compiler/src/dmd/lexer.d" \
+    "compiler/src/dmd/location.d" \
     "compiler/src/dmd/tokens.d" \
-    "compiler/src/dmd/utils.d"
+    "compiler/src/dmd/utils.d" \
+    "compiler/src/dmd/errorsink.d"
 
   versions \
     "CallbackAPI" \

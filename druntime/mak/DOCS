@@ -12,6 +12,7 @@ DOCS=\
 	$(DOCDIR)\core_attribute.html \
 	$(DOCDIR)\core_cpuid.html \
 	$(DOCDIR)\core_demangle.html \
+	$(DOCDIR)\core_factory.html \
 	$(DOCDIR)\core_lifetime.html \
 	$(DOCDIR)\core_memory.html \
 	$(DOCDIR)\core_runtime.html \

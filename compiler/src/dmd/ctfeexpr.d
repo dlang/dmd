@@ -1,7 +1,7 @@
 /**
  * CTFE for expressions involving pointers, slices, array concatenation etc.
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/ctfeexpr.d, _ctfeexpr.d)
@@ -27,6 +27,7 @@ import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
+import dmd.location;
 import dmd.mtype;
 import dmd.root.complex;
 import dmd.root.ctfloat;
@@ -46,7 +47,7 @@ extern (C++) final class ClassReferenceExp : Expression
 
     extern (D) this(const ref Loc loc, StructLiteralExp lit, Type type)
     {
-        super(loc, EXP.classReference, __traits(classInstanceSize, ClassReferenceExp));
+        super(loc, EXP.classReference);
         assert(lit && lit.sd && lit.sd.isClassDeclaration());
         this.value = lit;
         this.type = type;
@@ -131,7 +132,7 @@ extern (C++) final class ThrownExceptionExp : Expression
 
     extern (D) this(const ref Loc loc, ClassReferenceExp victim)
     {
-        super(loc, EXP.thrownException, __traits(classInstanceSize, ThrownExceptionExp));
+        super(loc, EXP.thrownException);
         this.thrown = victim;
         this.type = victim.type;
     }
@@ -169,7 +170,7 @@ extern (C++) final class CTFEExp : Expression
 {
     extern (D) this(EXP tok)
     {
-        super(Loc.initial, tok, __traits(classInstanceSize, CTFEExp));
+        super(Loc.initial, tok);
         type = Type.tvoid;
     }
 
@@ -368,7 +369,6 @@ UnionExp copyLiteral(Expression e)
     case EXP.dotVariable:
     case EXP.int64:
     case EXP.float64:
-    case EXP.char_:
     case EXP.complex80:
     case EXP.void_:
     case EXP.vector:
@@ -1280,12 +1280,12 @@ private int ctfeRawCmp(const ref Loc loc, Expression e1, Expression e2, bool ide
     {
         return e1.toInteger() != e2.toInteger();
     }
+    if (identity && e1.type.isfloating())
+        return !e1.isIdentical(e2);
     if (e1.type.isreal() || e1.type.isimaginary())
     {
         real_t r1 = e1.type.isreal() ? e1.toReal() : e1.toImaginary();
         real_t r2 = e1.type.isreal() ? e2.toReal() : e2.toImaginary();
-        if (identity)
-            return !CTFloat.isIdentical(r1, r2);
         if (CTFloat.isNaN(r1) || CTFloat.isNaN(r2)) // if unordered
         {
             return 1;   // they are not equal
@@ -1297,13 +1297,7 @@ private int ctfeRawCmp(const ref Loc loc, Expression e1, Expression e2, bool ide
     }
     else if (e1.type.iscomplex())
     {
-        auto c1 = e1.toComplex();
-        auto c2 = e2.toComplex();
-        if (identity)
-        {
-            return !RealIdentical(c1.re, c2.re) && !RealIdentical(c1.im, c2.im);
-        }
-        return c1 != c2;
+        return e1.toComplex() != e2.toComplex();
     }
     if (e1.op == EXP.structLiteral && e2.op == EXP.structLiteral)
     {
@@ -1414,16 +1408,8 @@ bool ctfeIdentity(const ref Loc loc, EXP op, Expression e1, Expression e2)
         SymOffExp es2 = e2.isSymOffExp();
         cmp = (es1.var == es2.var && es1.offset == es2.offset);
     }
-    else if (e1.type.isreal())
-        cmp = CTFloat.isIdentical(e1.toReal(), e2.toReal());
-    else if (e1.type.isimaginary())
-        cmp = RealIdentical(e1.toImaginary(), e2.toImaginary());
-    else if (e1.type.iscomplex())
-    {
-        complex_t v1 = e1.toComplex();
-        complex_t v2 = e2.toComplex();
-        cmp = RealIdentical(creall(v1), creall(v2)) && RealIdentical(cimagl(v1), cimagl(v1));
-    }
+    else if (e1.type.isfloating())
+        cmp = e1.isIdentical(e2);
     else
     {
         cmp = !ctfeRawCmp(loc, e1, e2, true);
@@ -1481,7 +1467,7 @@ UnionExp ctfeCat(const ref Loc loc, Type type, Expression e1, Expression e2)
         memset(cast(char*)s + len * sz, 0, sz);
         emplaceExp!(StringExp)(&ue, loc, s[0 .. len * sz], len, sz);
         StringExp es = ue.exp().isStringExp();
-        es.committed = 0;
+        es.committed = false;
         es.type = type;
         return ue;
     }
@@ -1512,7 +1498,7 @@ UnionExp ctfeCat(const ref Loc loc, Type type, Expression e1, Expression e2)
         emplaceExp!(StringExp)(&ue, loc, s[0 .. len * sz], len, sz);
         StringExp es = ue.exp().isStringExp();
         es.sz = sz;
-        es.committed = 0; //es1.committed;
+        es.committed = false; //es1.committed;
         es.type = type;
         return ue;
     }
@@ -1850,7 +1836,6 @@ bool isCtfeValueValid(Expression newval)
     {
         case EXP.int64:
         case EXP.float64:
-        case EXP.char_:
         case EXP.complex80:
             return tb.isscalar();
 

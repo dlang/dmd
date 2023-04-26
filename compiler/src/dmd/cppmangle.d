@@ -4,7 +4,7 @@
  * This is the POSIX side of the implementation.
  * It exports two functions to C++, `toCppMangleItanium` and `cppTypeInfoMangleItanium`.
  *
- * Copyright: Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors: Walter Bright, https://www.digitalmars.com
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/cppmangle.d, _cppmangle.d)
@@ -38,6 +38,7 @@ import dmd.func;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
+import dmd.location;
 import dmd.mtype;
 import dmd.nspace;
 import dmd.root.array;
@@ -172,7 +173,7 @@ private final class CppMangleVisitor : Visitor
      *   buf = `OutBuffer` to write the mangling to
      *   loc = `Loc` of the symbol being mangled
      */
-    this(OutBuffer* buf, Loc loc)
+    this(OutBuffer* buf, Loc loc) scope
     {
         this.buf = buf;
         this.loc = loc;
@@ -210,7 +211,7 @@ private final class CppMangleVisitor : Visitor
      */
     void mangleReturnType(TypeFunction preSemantic)
     {
-        auto tf = cast(TypeFunction)this.context.res.asFuncDecl().type;
+        auto tf = this.context.res.asFuncDecl().type.isTypeFunction();
         Type rt = preSemantic.nextOf();
         if (tf.isref)
             rt = rt.referenceTo();
@@ -341,14 +342,14 @@ private final class CppMangleVisitor : Visitor
      *
      * Params:
      *   off  = Offset to insert at
-     *   fd   = Type of the function to mangle the return type of
+     *   tf   = Type of the function to mangle the return type of
      */
     void writeRemainingTags(size_t off, TypeFunction tf)
     {
-        scope remainingVisitor = new LeftoverVisitor(&this.abiTags.written);
-        tf.next.accept(remainingVisitor);
+        Array!StringExp toWrite;
+        leftOver(tf, &this.abiTags.written, &toWrite);
         OutBuffer b2;
-        foreach (se; remainingVisitor.toWrite)
+        foreach (se; toWrite)
         {
             auto tag = se.peekString();
             // We can only insert a slice, and each insert is a memmove,
@@ -490,9 +491,9 @@ private final class CppMangleVisitor : Visitor
                 mangle_function(d.isFuncDeclaration());
                 buf.writestring("EE");
             }
-            else if (e && e.op == EXP.variable && (cast(VarExp)e).var.isVarDeclaration())
+            else if (e && e.isVarExp() && e.isVarExp().var.isVarDeclaration())
             {
-                VarDeclaration vd = (cast(VarExp)e).var.isVarDeclaration();
+                VarDeclaration vd = e.isVarExp().var.isVarDeclaration();
                 buf.writeByte('L');
                 mangle_variable(vd, true);
                 buf.writeByte('E');
@@ -747,9 +748,9 @@ private final class CppMangleVisitor : Visitor
     bool isIdent_char(Identifier ident, RootObject o)
     {
         Type t = isType(o);
-        if (!t || t.ty != Tstruct)
+        if (!t || !t.isTypeStruct())
             return false;
-        Dsymbol s = (cast(TypeStruct)t).toDsymbol(null);
+        Dsymbol s = t.toDsymbol(null);
         if (s.ident != ident)
             return false;
         Dsymbol p = s.toParent();
@@ -1049,7 +1050,7 @@ private final class CppMangleVisitor : Visitor
          *            ::= <data name>
          *            ::= <special-name>
          */
-        TypeFunction tf = cast(TypeFunction)d.type;
+        TypeFunction tf = d.type.isTypeFunction();
 
         if (TemplateDeclaration ftd = getFuncTemplateDecl(d))
         {
@@ -1163,7 +1164,7 @@ private final class CppMangleVisitor : Visitor
             this.context.ti = ti;
             this.context.fd = d;
             this.context.res = d;
-            TypeFunction preSemantic = cast(TypeFunction)d.originalType;
+            TypeFunction preSemantic = d.originalType.isTypeFunction();
             auto nspace = ti.toParent();
             if (nspace && nspace.isNspace())
                 this.writeChained(ti.toParent(), () => source_name(ti, true));
@@ -1337,7 +1338,7 @@ private final class CppMangleVisitor : Visitor
             auto prev = this.context.push({
                     TypeFunction tf;
                     if (isDsymbol(this.context.res))
-                        tf = cast(TypeFunction)this.context.res.asFuncDecl().type;
+                        tf = this.context.res.asFuncDecl().type.isTypeFunction();
                     else
                         tf = this.context.res.asType().isTypeFunction();
                     assert(tf);
@@ -1381,9 +1382,9 @@ private final class CppMangleVisitor : Visitor
      */
     void headOfType(Type t)
     {
-        if (t.ty == Tclass)
+        if (auto tc = t.isTypeClass())
         {
-            mangleTypeClass(cast(TypeClass)t, true);
+            mangleTypeClass(tc, true);
         }
         else
         {
@@ -1950,7 +1951,7 @@ extern(C++):
      */
     override void visit(TypeIdentifier t)
     {
-        auto decl = cast(TemplateDeclaration)this.context.ti.tempdecl;
+        auto decl = this.context.ti.tempdecl.isTemplateDeclaration();
         assert(decl.parameters !is null);
         auto idx = templateParamIndex(t.ident, decl.parameters);
         // If not found, default to the post-semantic type
@@ -2009,7 +2010,7 @@ extern(C++):
             {
                 // If the resolved AST has more args than the parse one,
                 // we have default arguments
-                auto oparams = (cast(TemplateDeclaration)analyzed_ti.tempdecl).origParameters;
+                auto oparams = analyzed_ti.tempdecl.isTemplateDeclaration().origParameters;
                 foreach (idx, arg; (*oparams)[t.tiargs.length .. $])
                 {
                     this.context.res = (*analyzed_ti.tiargs)[idx + t.tiargs.length];
@@ -2034,7 +2035,7 @@ extern(C++):
         assert(t.tiargs !is null);
 
         bool needsTa;
-        auto decl = cast(TemplateDeclaration)this.context.ti.tempdecl;
+        auto decl = this.context.ti.tempdecl.isTemplateDeclaration();
         // Attempt to substitute the template itself
         auto idx = templateParamIndex(t.name, decl.parameters);
         if (idx < decl.parameters.length)
@@ -2115,12 +2116,13 @@ private void visitObject(V : Visitor)(RootObject o, V this_)
 /// Helper function to safely get a type out of a `RootObject`
 private Type asType(RootObject o)
 {
-    Type ta = isType(o);
+    if (Type ta = isType(o))
+        return ta;
+
     // When called with context.res as argument, it can be `FuncDeclaration`
-    if (!ta && o.asFuncDecl())
-        ta = (cast(FuncDeclaration)o).type;
-    assert(ta !is null, o.toString());
-    return ta;
+    if (auto fd = o.asFuncDecl())
+        return fd.type;
+    assert(0);
 }
 
 /// Helper function to safely get a `FuncDeclaration` out of a `RootObject`
@@ -2173,12 +2175,12 @@ private extern(C++) final class ComponentVisitor : Visitor
 
         case DYNCAST.type:
             auto t = cast(Type)base;
-            if (t.ty == Tpointer)
-                this.tpointer = cast(TypePointer)t;
-            else if (t.ty == Treference)
-                this.tref = cast(TypeReference)t;
-            else if (t.ty == Tident)
-                this.tident = cast(TypeIdentifier)t;
+            if (auto tp = t.isTypePointer())
+                this.tpointer = tp;
+            else if (auto tr = t.isTypeReference())
+                this.tref = tr;
+            else if (auto ti = t.isTypeIdentifier())
+                this.tident = ti;
             else
                 goto default;
             break;
@@ -2521,58 +2523,70 @@ unittest
     assert(closestIndex([s1, s2, s4], s5, match) == 3 && !match);
 }
 
-/**
+/***
  * Visits the return type of a function and writes leftover ABI tags
+ * Params:
+ *   tf = Type of the function to mangle the return type of
+ *   previous = already written ones
+ *   toWrite = where to put StringExp's to be written
  */
-extern(C++) private final class LeftoverVisitor : Visitor
+private
+void leftOver(TypeFunction tf, const(Array!StringExp)* previous, Array!StringExp* toWrite)
 {
-    /// List of tags to write
-    private Array!StringExp toWrite;
-    /// List of tags to ignore
-    private const(Array!StringExp)* ignore;
-
-    ///
-    public this(const(Array!StringExp)* previous)
+    extern(C++) final class LeftoverVisitor : Visitor
     {
-        this.ignore = previous;
-    }
+        /// List of tags to write
+        private Array!StringExp* toWrite;
+        /// List of tags to ignore
+        private const(Array!StringExp)* ignore;
 
-    /// Reintroduce base class overloads
-    public alias visit = Visitor.visit;
-
-    /// Least specialized overload of each direct child of `RootObject`
-    public override void visit(Dsymbol o)
-    {
-        auto ale = ABITagContainer.forSymbol(o);
-        if (!ale) return;
-
-        bool match;
-        foreach (elem; *ale.elements)
+        ///
+        public this(const(Array!StringExp)* previous, Array!StringExp* toWrite)
         {
-            auto se = elem.toStringExp();
-            closestIndex((*this.ignore)[], se, match);
-            if (match) continue;
-            auto idx = closestIndex(this.toWrite[], se, match);
-            if (!match)
-                this.toWrite.insert(idx, se);
+            this.ignore = previous;
+            this.toWrite = toWrite;
+        }
+
+        /// Reintroduce base class overloads
+        public alias visit = Visitor.visit;
+
+        /// Least specialized overload of each direct child of `RootObject`
+        public override void visit(Dsymbol o)
+        {
+            auto ale = ABITagContainer.forSymbol(o);
+            if (!ale) return;
+
+            bool match;
+            foreach (elem; *ale.elements)
+            {
+                auto se = elem.toStringExp();
+                closestIndex((*this.ignore)[], se, match);
+                if (match) continue;
+                auto idx = closestIndex((*this.toWrite)[], se, match);
+                if (!match)
+                    (*this.toWrite).insert(idx, se);
+            }
+        }
+
+        /// Ditto
+        public override void visit(Type o)
+        {
+            if (auto sym = o.toDsymbol(null))
+                sym.accept(this);
+        }
+
+        /// Composite type
+        public override void visit(TypePointer o)
+        {
+            o.next.accept(this);
+        }
+
+        public override void visit(TypeReference o)
+        {
+            o.next.accept(this);
         }
     }
 
-    /// Ditto
-    public override void visit(Type o)
-    {
-        if (auto sym = o.toDsymbol(null))
-            sym.accept(this);
-    }
-
-    /// Composite type
-    public override void visit(TypePointer o)
-    {
-        o.next.accept(this);
-    }
-
-    public override void visit(TypeReference o)
-    {
-        o.next.accept(this);
-    }
+    scope remainingVisitor = new LeftoverVisitor(previous, toWrite);
+    tf.next.accept(remainingVisitor);
 }

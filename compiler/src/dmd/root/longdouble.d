@@ -1,7 +1,7 @@
 /**
  * 80-bit floating point value implementation if the C/D compiler does not support them natively.
  *
- * Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * All Rights Reserved, written by Rainer Schuetze
  * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -732,19 +732,19 @@ int ld_type(longdouble_soft x)
     return LD_TYPE_QNAN;         // qnan, indefinite, pseudo-nan
 }
 
-// consider sprintf pure
-private extern(C) int sprintf(scope char* s, scope const char* format, ...) pure @nogc nothrow;
+// consider snprintf pure
+private extern(C) int snprintf(scope char* s, size_t size, scope const char* format, ...) pure @nogc nothrow;
 
-size_t ld_sprint(char* str, int fmt, longdouble_soft x) @system
+size_t ld_sprint(char* str, size_t size, int fmt, longdouble_soft x) @system
 {
     // ensure dmc compatible strings for nan and inf
     switch(ld_type(x))
     {
         case LD_TYPE_QNAN:
         case LD_TYPE_SNAN:
-            return sprintf(str, "nan");
+            return snprintf(str, size, "nan");
         case LD_TYPE_INFINITE:
-            return sprintf(str, x.sign ? "-inf" : "inf");
+            return snprintf(str, size, x.sign ? "-inf" : "inf");
         default:
             break;
     }
@@ -753,14 +753,14 @@ size_t ld_sprint(char* str, int fmt, longdouble_soft x) @system
     if(fmt != 'a' && fmt != 'A')
     {
         char[3] format = ['%', cast(char)fmt, 0];
-        return sprintf(str, format.ptr, ld_read(&x));
+        return snprintf(str, size, format.ptr, ld_read(&x));
     }
 
     ushort exp = x.exponent;
     ulong mantissa = x.mantissa;
 
     if(ld_type(x) == LD_TYPE_ZERO)
-        return sprintf(str, fmt == 'a' ? "0x0.0L" : "0X0.0L");
+        return snprintf(str, size, fmt == 'a' ? "0x0.0L" : "0X0.0L");
 
     size_t len = 0;
     if(x.sign)
@@ -806,20 +806,21 @@ size_t ld_sprint(char* str, int fmt, longdouble_soft x) @system
     import core.stdc.string;
     import core.stdc.stdio;
 
-    char[32] buffer;
-    ld_sprint(buffer.ptr, 'a', ld_pi);
+    const bufflen = 32;
+    char[bufflen] buffer;
+    ld_sprint(buffer.ptr, bufflen, 'a', ld_pi);
     assert(strcmp(buffer.ptr, "0x1.921fb54442d1846ap+1") == 0);
 
-    auto len = ld_sprint(buffer.ptr, 'g', longdouble_soft(2.0));
+    auto len = ld_sprint(buffer.ptr, bufflen, 'g', longdouble_soft(2.0));
     assert(buffer[0 .. len] == "2.00000" || buffer[0 .. len] == "2"); // Win10 - 64bit
 
-    ld_sprint(buffer.ptr, 'g', longdouble_soft(1_234_567.89));
+    ld_sprint(buffer.ptr, bufflen, 'g', longdouble_soft(1_234_567.89));
     assert(strcmp(buffer.ptr, "1.23457e+06") == 0);
 
-    ld_sprint(buffer.ptr, 'g', ld_inf);
+    ld_sprint(buffer.ptr, bufflen, 'g', ld_inf);
     assert(strcmp(buffer.ptr, "inf") == 0);
 
-    ld_sprint(buffer.ptr, 'g', ld_qnan);
+    ld_sprint(buffer.ptr, bufflen, 'g', ld_qnan);
     assert(strcmp(buffer.ptr, "nan") == 0);
 
     longdouble_soft ldb = longdouble_soft(0.4);

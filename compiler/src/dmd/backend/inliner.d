@@ -15,7 +15,7 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2022-2023 by The D Language Foundation, All Rights Reserved
  *              Some parts based on an inliner from the Digital Mars C compiler.
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
@@ -105,6 +105,13 @@ bool canInlineFunction(Symbol *sfunc)
 
             default:
                 break;
+        }
+
+        foreach (s; f.Flocsym[])
+        {
+            assert(s);
+            if (s.Sclass == SC.bprel)
+                return false;
         }
     }
     if (!result)

@@ -3,7 +3,7 @@ module parser.visibilitydeclaration_location;
 import dmd.frontend : parseModule;
 import support : afterEach, beforeEach;
 import dmd.attrib : VisibilityDeclaration;
-import dmd.globals : Loc;
+import dmd.location;
 import dmd.visitor : SemanticTimeTransitiveVisitor;
 
 @beforeEach

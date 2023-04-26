@@ -1,6 +1,6 @@
 #!/usr/bin/env dub
 /+dub.sdl:
-dependency "dmd" path="../.."
+dependency "dmd" path="../../.."
 versions "CallbackAPI"
 +/
 /*
@@ -20,13 +20,13 @@ import std.path : dirName;
 
 import dmd.errors;
 import dmd.frontend;
-import dmd.mars;
 import dmd.console;
 import dmd.arraytypes;
 import dmd.compiler;
 import dmd.dmodule;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
+import dmd.location;
 import dmd.semantic2;
 import dmd.semantic3;
 import dmd.statement;
@@ -77,13 +77,8 @@ int main()
     global.gag = 1;
     initDMD(diagnosticHandler);
 
-    Strings libmodules;
-    Module m = createModule((dirName(__FILE_FULL_PATH__) ~ "/testfiles/correct.d").ptr,
-                                libmodules);
+    Module m = parseModule(__FILE_FULL_PATH__ ~ "/testfiles/correct.d").module_;
     m.importedFrom = m; // m.isRoot() == true
-
-    m.read(Loc.initial);
-    m.parse();
 
     CallbackHelper.cursorLoc = Loc(to!string(m.srcfile).ptr, 22, 10);
 

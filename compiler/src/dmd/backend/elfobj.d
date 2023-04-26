@@ -7,7 +7,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) ?-1998 by Symantec
- *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/elfobj.d, backend/elfobj.d)
@@ -28,6 +28,7 @@ import core.stdc.stdlib;
 import core.stdc.string;
 
 // qsort is only nothrow in newer versions of druntime (since 2.081.0)
+alias _compare_fp_t = extern(C) nothrow int function(const void*, const void*);
 private extern(C) void qsort(scope void* base, size_t nmemb, size_t size, _compare_fp_t compar) nothrow @nogc;
 
 import dmd.backend.barray;
@@ -2145,7 +2146,7 @@ private extern (D) char* unsstr(uint value)
 {
     __gshared char[64] buffer = void;
 
-    sprintf(buffer.ptr, "%d", value);
+    snprintf(buffer.ptr, buffer.length, "%d", value);
     return buffer.ptr;
 }
 
@@ -3138,8 +3139,10 @@ static if (0)
                 {       // code to code code to data, data to code, data to data refs
                     if (s.Sclass == SC.static_)
                     {                           // offset into .data or .bss seg
-                        refseg = MAP_SEG2SYMIDX(s.Sseg);
-                                                // use segment symbol table entry
+                        if ((s.ty() & mTYLINK) & mTYthread)
+                        { }
+                        else
+                            refseg = MAP_SEG2SYMIDX(s.Sseg);    // use segment symbol table entry
                         val += s.Soffset;
                         if (!(config.flags3 & CFG3pic) ||       // all static refs from normal code
                              segtyp == DATA)    // or refs from data from posi indp

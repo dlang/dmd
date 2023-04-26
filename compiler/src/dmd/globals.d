@@ -1,7 +1,7 @@
 /**
  * Stores command line options and contains other miscellaneous declarations.
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/globals.d, _globals.d)
@@ -11,12 +11,20 @@
 
 module dmd.globals;
 
+import core.stdc.stdio;
 import core.stdc.stdint;
+import core.stdc.string;
+
 import dmd.root.array;
 import dmd.root.filename;
 import dmd.common.outbuffer;
+import dmd.errorsink;
+import dmd.errors;
 import dmd.file_manager;
 import dmd.identifier;
+import dmd.location;
+import dmd.lexer : CompileEnv;
+import dmd.utils;
 
 /// Defines a setting for how compiler warnings and deprecations are handled
 enum DiagnosticReporting : ubyte
@@ -24,13 +32,6 @@ enum DiagnosticReporting : ubyte
     error,        /// generate an error
     inform,       /// generate a warning
     off,          /// disable diagnostic
-}
-
-/// How code locations are formatted for diagnostic reporting
-enum MessageStyle : ubyte
-{
-    digitalmars,  /// filename.d(line): message
-    gnu,          /// filename.d:line: message, see https://www.gnu.org/prep/standards/html_node/Errors.html
 }
 
 /// In which context checks for assertions, contracts, bounds checks etc. are enabled
@@ -149,11 +150,11 @@ extern (C++) struct Param
     bool logo;              // print compiler logo
 
     // Options for `-preview=/-revert=`
-    FeatureState useDIP25;       // implement https://wiki.dlang.org/DIP25
+    FeatureState useDIP25 = FeatureState.enabled; // implement https://wiki.dlang.org/DIP25
     FeatureState useDIP1000;     // implement https://dlang.org/spec/memory-safe-d.html#scope-return-params
     bool ehnogc;                 // use @nogc exception handling
     bool useDIP1021;             // implement https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1021.md
-    bool fieldwise;              // do struct equality testing field-wise rather than by memcmp()
+    FeatureState fieldwise;      // do struct equality testing field-wise rather than by memcmp()
     bool fixAliasThis;           // if the current scope has an alias this, check it before searching upper scopes
     FeatureState rvalueRefParam; // allow rvalues to be arguments to ref parameters
                                  // https://dconf.org/2019/talks/alexandrescu.html
@@ -182,6 +183,7 @@ extern (C++) struct Param
     CHECKACTION checkAction = CHECKACTION.D; // action to take when bounds, asserts or switch defaults are violated
 
     uint errorLimit = 20;
+    uint errorSupplementLimit = 6;      // Limit the number of supplemental messages for each error (0 means unlimited)
 
     const(char)[] argv0;                // program name
     Array!(const(char)*) modFileAliasStrings; // array of char*'s of -I module filename alias strings
@@ -212,6 +214,7 @@ extern (C++) struct Param
     bool run; // run resulting executable
     Strings runargs; // arguments for executable
     Array!(const(char)*) cppswitches;   // C preprocessor switches
+    const(char)* cpp;                   // if not null, then this specifies the C preprocessor
 
     // Linker stuff
     Array!(const(char)*) objfiles;
@@ -225,30 +228,6 @@ extern (C++) struct Param
     const(char)[] mapfile;
 }
 
-extern (C++) struct structalign_t
-{
-  private:
-    ushort value = 0;  // unknown
-    enum STRUCTALIGN_DEFAULT = 1234;   // default = match whatever the corresponding C compiler does
-    bool pack;         // use #pragma pack semantics
-
-  public:
-  pure @safe @nogc nothrow:
-    bool isDefault() const { return value == STRUCTALIGN_DEFAULT; }
-    void setDefault()      { value = STRUCTALIGN_DEFAULT; }
-    bool isUnknown() const { return value == 0; }  // value is not set
-    void setUnknown()      { value = 0; }
-    void set(uint value)   { this.value = cast(ushort)value; }
-    uint get() const       { return value; }
-    bool isPack() const    { return pack; }
-    void setPack(bool pack) { this.pack = pack; }
-}
-//alias structalign_t = uint;
-
-// magic value means "match whatever the underlying C compiler does"
-// other values are all powers of 2
-//enum STRUCTALIGN_DEFAULT = (cast(structalign_t)~0);
-
 enum mars_ext = "d";        // for D source files
 enum doc_ext  = "html";     // for Ddoc generated files
 enum ddoc_ext = "ddoc";     // for Ddoc macro include files
@@ -257,7 +236,6 @@ enum hdr_ext  = "di";       // for D 'header' import files
 enum json_ext = "json";     // for JSON files
 enum map_ext  = "map";      // for .map files
 enum c_ext    = "c";        // for C source files
-enum h_ext    = "h";        // for C header source files
 enum i_ext    = "i";        // for preprocessed C source file
 
 /**
@@ -267,16 +245,14 @@ extern (C++) struct Global
 {
     const(char)[] inifilename; /// filename of configuration file as given by `-conf=`, or default value
 
-    string copyright = "Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved";
+    string copyright = "Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved";
     string written = "written by Walter Bright";
 
     Array!(const(char)*)* path;         /// Array of char*'s which form the import lookup path
     Array!(const(char)*)* filePath;     /// Array of char*'s which form the file import lookup path
 
     private enum string _version = import("VERSION");
-    private enum uint _versionNumber = parseVersionNumber(_version);
-
-    const(char)[] vendor;   /// Compiler backend name
+    CompileEnv compileEnv;
 
     Param params;           /// command line parameters
     uint errors;            /// number of errors reported so far
@@ -297,6 +273,8 @@ extern (C++) struct Global
     FileManager fileManager;
 
     enum recursionLimit = 500; /// number of recursive template expansions before abort
+
+    ErrorSink errorSink;       /// where the error messages go
 
     extern (C++) FileName function(FileName, ref const Loc, out bool, OutBuffer*) preprocess;
 
@@ -352,10 +330,12 @@ extern (C++) struct Global
 
     extern (C++) void _init()
     {
+        errorSink = new ErrorSinkCompiler;
+
         this.fileManager = new FileManager();
         version (MARS)
         {
-            vendor = "Digital Mars D";
+            compileEnv.vendor = "Digital Mars D";
 
             // -color=auto is the default value
             import dmd.console : detectTerminal;
@@ -363,8 +343,38 @@ extern (C++) struct Global
         }
         else version (IN_GCC)
         {
-            vendor = "GNU D";
+            compileEnv.vendor = "GNU D";
         }
+        compileEnv.versionNumber = parseVersionNumber(_version);
+
+        /* Initialize date, time, and timestamp
+         */
+        import core.stdc.time;
+        import core.stdc.stdlib : getenv;
+
+        time_t ct;
+        // https://issues.dlang.org/show_bug.cgi?id=20444
+        if (auto p = getenv("SOURCE_DATE_EPOCH"))
+        {
+            if (!ct.parseDigits(p[0 .. strlen(p)]))
+                errorSink.error(Loc.initial, "value of environment variable `SOURCE_DATE_EPOCH` should be a valid UNIX timestamp, not: `%s`", p);
+        }
+        else
+            core.stdc.time.time(&ct);
+        const p = ctime(&ct);
+        assert(p);
+
+        __gshared char[11 + 1] date = 0;        // put in BSS segment
+        __gshared char[8  + 1] time = 0;
+        __gshared char[24 + 1] timestamp = 0;
+
+        const dsz = snprintf(&date[0], date.length, "%.6s %.4s", p + 4, p + 20);
+        const tsz = snprintf(&time[0], time.length, "%.8s", p + 11);
+        const tssz = snprintf(&timestamp[0], timestamp.length, "%.24s", p);
+        assert(dsz > 0 && tsz > 0 && tssz > 0);
+        compileEnv.time = time[0 .. tsz];
+        compileEnv.date = date[0 .. dsz];
+        compileEnv.timestamp = timestamp[0 .. tssz];
     }
 
     /**
@@ -415,7 +425,7 @@ extern (C++) struct Global
     */
     extern(C++) uint versionNumber()
     {
-        return _versionNumber;
+        return compileEnv.versionNumber;
     }
 
     /**
@@ -446,126 +456,6 @@ alias dinteger_t = ulong;
 // Signed and unsigned variants
 alias sinteger_t = long;
 alias uinteger_t = ulong;
-
-version (DMDLIB)
-{
-    version = LocOffset;
-}
-
-/**
-A source code location
-
-Used for error messages, `__FILE__` and `__LINE__` tokens, `__traits(getLocation, XXX)`,
-debug info etc.
-*/
-struct Loc
-{
-    /// zero-terminated filename string, either absolute or relative to cwd
-    const(char)* filename;
-    uint linnum; /// line number, starting from 1
-    uint charnum; /// utf8 code unit index relative to start of line, starting from 1
-    version (LocOffset)
-        uint fileOffset; /// utf8 code unit index relative to start of file, starting from 0
-
-    static immutable Loc initial; /// use for default initialization of const ref Loc's
-
-nothrow:
-    extern (D) this(const(char)* filename, uint linnum, uint charnum) pure
-    {
-        this.linnum = linnum;
-        this.charnum = charnum;
-        this.filename = filename;
-    }
-
-    extern (C++) const(char)* toChars(
-        bool showColumns = global.params.showColumns,
-        ubyte messageStyle = global.params.messageStyle) const pure nothrow
-    {
-        OutBuffer buf;
-        if (filename)
-        {
-            buf.writestring(filename);
-        }
-        if (linnum)
-        {
-            final switch (messageStyle)
-            {
-                case MessageStyle.digitalmars:
-                    buf.writeByte('(');
-                    buf.print(linnum);
-                    if (showColumns && charnum)
-                    {
-                        buf.writeByte(',');
-                        buf.print(charnum);
-                    }
-                    buf.writeByte(')');
-                    break;
-                case MessageStyle.gnu: // https://www.gnu.org/prep/standards/html_node/Errors.html
-                    buf.writeByte(':');
-                    buf.print(linnum);
-                    if (showColumns && charnum)
-                    {
-                        buf.writeByte(':');
-                        buf.print(charnum);
-                    }
-                    break;
-            }
-        }
-        return buf.extractChars();
-    }
-
-    /**
-     * Checks for equivalence by comparing the filename contents (not the pointer) and character location.
-     *
-     * Note:
-     *  - Uses case-insensitive comparison on Windows
-     *  - Ignores `charnum` if `global.params.showColumns` is false.
-     */
-    extern (C++) bool equals(ref const(Loc) loc) const
-    {
-        return (!global.params.showColumns || charnum == loc.charnum) &&
-               linnum == loc.linnum &&
-               FileName.equals(filename, loc.filename);
-    }
-
-    /**
-     * `opEquals()` / `toHash()` for AA key usage
-     *
-     * Compare filename contents (case-sensitively on Windows too), not
-     * the pointer - a static foreach loop repeatedly mixing in a mixin
-     * may lead to multiple equivalent filenames (`foo.d-mixin-<line>`),
-     * e.g., for test/runnable/test18880.d.
-     */
-    extern (D) bool opEquals(ref const(Loc) loc) const @trusted pure nothrow @nogc
-    {
-        import core.stdc.string : strcmp;
-
-        return charnum == loc.charnum &&
-               linnum == loc.linnum &&
-               (filename == loc.filename ||
-                (filename && loc.filename && strcmp(filename, loc.filename) == 0));
-    }
-
-    /// ditto
-    extern (D) size_t toHash() const @trusted pure nothrow
-    {
-        import dmd.root.string : toDString;
-
-        auto hash = hashOf(linnum);
-        hash = hashOf(charnum, hash);
-        hash = hashOf(filename.toDString, hash);
-        return hash;
-    }
-
-    /******************
-     * Returns:
-     *   true if Loc has been set to other than the default initialization
-     */
-    bool isValid() const pure
-    {
-        return filename !is null;
-    }
-}
 
 /// Collection of global state
 extern (C++) __gshared Global global;

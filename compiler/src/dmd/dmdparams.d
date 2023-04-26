@@ -1,7 +1,7 @@
 /**
  * DMD-specific parameters.
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dmdparams.d, _dmdparams.d)
@@ -119,7 +119,7 @@ struct Triple
     {
         import dmd.errors : error;
         import dmd.root.string : toCStringThen;
-        import dmd.globals : Loc;
+        import dmd.location;
         unk.toCStringThen!(p => error(Loc.initial,"unknown %s `%s` for `-target`", what, p.ptr));
     }
 
@@ -186,7 +186,7 @@ struct Triple
     Target.OS parseOS(const(char)[] _os, out ubyte osMajor)
     {
         import dmd.errors : error;
-        import dmd.globals : Loc;
+        import dmd.location;
 
         bool matches(const(char)[] str)
         {

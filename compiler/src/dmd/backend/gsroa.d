@@ -8,7 +8,7 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2016-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2016-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/gsroa.c, backend/gsroa.d)
@@ -461,7 +461,7 @@ if (enable) // disable while we test the inliner
                 char *id = cast(char *)malloc(idlen + 1);
                 if (!id)
                     err_nomem();
-                const len = sprintf(id, "__%s_%d", sold.Sident.ptr, SLICESIZE);
+                const len = snprintf(id, idlen + 1, "__%s_%d", sold.Sident.ptr, SLICESIZE);
                 assert(len == idlen);
                 if (log) printf("retyping slice symbol %s %s\n", sold.Sident.ptr, tym_str(sia[si].ty[0]));
                 if (log) printf("creating slice symbol %s %s\n", id, tym_str(sia[si].ty[1]));

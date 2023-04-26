@@ -12,7 +12,7 @@
  */
 module interfaces.check_implementations_20861;
 
-import dmd.globals : Loc;
+import dmd.location;
 
 import support : afterEach, beforeEach, compiles, stripDelimited, Diagnostic;
 

@@ -223,7 +223,7 @@ class Foo3
 	}
 }
 alias myint = int;
-static notquit = 1;
+static extern typeof(1) notquit;
 class Test
 {
 	void a();
@@ -277,7 +277,7 @@ void templ(T)(T val)
 {
 	pragma (msg, "Invalid destination type.");
 }
-static char[] charArray = ['"', '\''];
+static extern char[] charArray;
 class Point
 {
 	auto x = 10;

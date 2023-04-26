@@ -1,7 +1,7 @@
 /**
  * Generate the object file for function declarations and critical sections.
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/glue.d, _glue.d)
@@ -56,6 +56,7 @@ import dmd.globals;
 import dmd.identifier;
 import dmd.id;
 import dmd.lib;
+import dmd.location;
 import dmd.mtype;
 import dmd.objc_glue;
 import dmd.s2ir;
@@ -686,6 +687,9 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     if (!fd.fbody)
         return;
 
+    if (fd.skipCodegen)
+        return;
+
     UnitTestDeclaration ud = fd.isUnitTestDeclaration();
     if (ud && !global.params.useUnitTests)
         return;
@@ -857,7 +861,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         // If function returns a struct, put a pointer to that
         // as the first argument
         .type *thidden = Type_toCtype(tf.next.pointerTo());
-        char[5 + 10 + 1] hiddenparam = void;
+        const hiddenparamLen = 5 + 10 + 1;
+        char[hiddenparamLen] hiddenparam = void;
         __gshared uint hiddenparami;    // how many we've generated so far
 
         const(char)* name;
@@ -865,7 +870,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             name = fd.nrvo_var.ident.toChars();
         else
         {
-            sprintf(hiddenparam.ptr, "__HID%u", ++hiddenparami);
+            snprintf(hiddenparam.ptr, hiddenparamLen, "__HID%u", ++hiddenparami);
             name = hiddenparam.ptr;
         }
         shidden = symbol_name(name[0 .. strlen(name)], SC.parameter, thidden);
@@ -1089,6 +1094,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     }
 
     buildClosure(fd, &irs);
+    buildAlignSection(fd, irs); // must be after buildClosure
 
     if (config.ehmethod == EHmethod.EH_WIN32 && fd.isSynchronized() && cd &&
         !fd.isStatic() && !sbody.usesEH() && !global.params.trace)
@@ -1314,7 +1320,6 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
                 break;
             case Target.ObjectFormat.omf:
                 objmod.external_def("_main");
-                objmod.external_def("__acrtused_con");
                 break;
         }
         if (libname)
@@ -1459,13 +1464,13 @@ tym_t totym(Type tx)
             else if (id == Id.__c_ulong)
                 t = tb.ty == Tuns32 ? TYulong : TYullong;
             else if (id == Id.__c_long_double)
-                t = TYdouble;
+                t = tb.size() == 8 ? TYdouble : TYldouble;
             else if (id == Id.__c_complex_float)
                 t = TYcfloat;
             else if (id == Id.__c_complex_double)
                 t = TYcdouble;
             else if (id == Id.__c_complex_real)
-                t = TYcldouble;
+                t = tb.size() == 16 ? TYcdouble : TYcldouble;
             else
                 t = totym(tb);
             break;
@@ -1515,7 +1520,8 @@ tym_t totym(Type tx)
                 case LINK.windows:
                     if (target.is64bit)
                         goto case LINK.c;
-                    t = (tf.parameterList.varargs == VarArg.variadic) ? TYnfunc : TYnsfunc;
+                    t = (tf.parameterList.varargs == VarArg.variadic ||
+                         tf.parameterList.varargs == VarArg.KRvariadic) ? TYnfunc : TYnsfunc;
                     break;
 
                 case LINK.c:

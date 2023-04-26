@@ -1,7 +1,7 @@
 /**
  * Read a file from disk and store it in memory.
  *
- * Copyright: Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/file_manager.d, _file_manager.d)
  * Documentation:  https://dlang.org/phobos/dmd_file_manager.html
@@ -16,6 +16,7 @@ import dmd.root.filename : FileName, isDirSeparator;
 import dmd.root.string : toDString;
 import dmd.globals;
 import dmd.identifier;
+import dmd.location;
 
 enum package_d  = "package." ~ mars_ext;
 enum package_di = "package." ~ hdr_ext;
@@ -123,11 +124,10 @@ nothrow:
     const(char)[] lookForSourceFile(const char[] filename, const char*[] path)
     {
         //printf("lookForSourceFile(`%.*s`)\n", cast(int)filename.length, filename.ptr);
-        /* Search along path[] for .di file, then .d file, then .i file, then.h file, then .c file.
+        /* Search along path[] for .di file, then .d file.
         */
         // see if we should check for the module locally.
         bool checkLocal = packageExists(filename);
-
         const sdi = FileName.forceExt(filename, hdr_ext);
         if (checkLocal && FileName.exists(sdi) == 1)
             return sdi;
@@ -140,21 +140,6 @@ nothrow:
         if (checkLocal && FileName.exists(sd) == 1)
             return sd;
         scope(exit) FileName.free(sd.ptr);
-
-        const si = FileName.forceExt(filename, i_ext);
-        if (checkLocal && FileName.exists(si) == 1)
-            return si;
-        scope(exit) FileName.free(si.ptr);
-
-        const sh = FileName.forceExt(filename, h_ext);
-        if (checkLocal && FileName.exists(sh) == 1)
-            return sh;
-        scope(exit) FileName.free(sh.ptr);
-
-        const sc = FileName.forceExt(filename, c_ext);
-        if (checkLocal && FileName.exists(sc) == 1)
-            return sc;
-        scope(exit) FileName.free(sc.ptr);
 
         if (checkLocal)
         {
@@ -187,34 +172,25 @@ nothrow:
         {
             const p = entry.toDString();
 
-            {
-                const(char)[] n = FileName.combine(p, sdi);
-                if (!packageExists(n)) {
-                    FileName.free(n.ptr);
-                    continue; // no need to check for anything else.
-                }
-                if (FileName.exists(n) == 1) {
-                    return n;
-                }
+            const(char)[] n = FileName.combine(p, sdi);
+
+            if (!packageExists(n)) {
                 FileName.free(n.ptr);
+                continue; // no need to check for anything else.
             }
-
-            static const(char)[] check(const(char)[] p, const(char)[] sx)
-            {
-                auto fn = FileName.combine(p, sx);
-                if (FileName.exists(fn))
-                    return fn;
-                FileName.free(fn.ptr);
-                return null;
+            if (FileName.exists(n) == 1) {
+                return n;
             }
+            FileName.free(n.ptr);
 
-            if (auto fn = check(p, sd)) return fn;
-            if (auto fn = check(p, si)) return fn;
-            if (auto fn = check(p, sh)) return fn;
-            if (auto fn = check(p, sc)) return fn;
+            n = FileName.combine(p, sd);
+            if (FileName.exists(n) == 1) {
+                return n;
+            }
+            FileName.free(n.ptr);
 
-            const(char)[] b = FileName.removeExt(filename);
-            const(char)[] n = FileName.combine(p, b);
+            const b = FileName.removeExt(filename);
+            n = FileName.combine(p, b);
             FileName.free(b.ptr);
 
             scope(exit) FileName.free(n.ptr);
@@ -237,6 +213,34 @@ nothrow:
                 }
                 FileName.free(n2.ptr);
             }
+        }
+
+        /* ImportC: No D modules found, now search along path[] for .i file, then .c file.
+         */
+        const si = FileName.forceExt(filename, i_ext);
+        if (FileName.exists(si) == 1)
+            return si;
+        scope(exit) FileName.free(si.ptr);
+
+        const sc = FileName.forceExt(filename, c_ext);
+        if (FileName.exists(sc) == 1)
+            return sc;
+        scope(exit) FileName.free(sc.ptr);
+        foreach (entry; path)
+        {
+            const p = entry.toDString();
+
+            const(char)[] n = FileName.combine(p, si);
+            if (FileName.exists(n) == 1) {
+                return n;
+            }
+            FileName.free(n.ptr);
+
+            n = FileName.combine(p, sc);
+            if (FileName.exists(n) == 1) {
+                return n;
+            }
+            FileName.free(n.ptr);
         }
         return null;
     }

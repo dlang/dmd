@@ -1,6 +1,7 @@
 *.[oa]
 *.deps
 .B*
+*~
 /compiler/test/test_results
 /compiler/test/trace.def
 /compiler/test/trace.log
@@ -53,3 +54,6 @@ dmd.iml
 
 # Deliberately ignored files
 untracked_files/
+
+# Just in case
+/dmd

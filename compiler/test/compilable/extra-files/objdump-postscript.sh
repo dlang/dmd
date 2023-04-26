@@ -10,7 +10,7 @@ objdump --disassemble --disassembler-options=intel-mnemonic "${obj_file}" > "${o
 
 echo SANITIZING Objdump...
 < "${obj_file}.dump" \
-    tail -n+3 > "${obj_file}.dump.sanitized"
+    tail -n+3 | sed 's/[ \t]\s*$//' > "${obj_file}.dump.sanitized"
 
 diff -up --strip-trailing-cr "${expect_file}" "${obj_file}.dump.sanitized"
 

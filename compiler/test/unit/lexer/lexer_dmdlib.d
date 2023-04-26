@@ -2,21 +2,12 @@ module lexer.lexer_dmdlib;
 
 import dmd.lexer : Lexer;
 import dmd.tokens : TOK;
+import dmd.errorsink;
 
-unittest
+/// Test that lexing `code` generates the `expected` tokens
+private void test(string code, const TOK[] expected, bool keepComments = false, bool keepWhitespace = false)
 {
-    immutable code = "void test() {} // foobar";
-
-    immutable expected = [
-        TOK.void_,
-        TOK.identifier,
-        TOK.leftParenthesis,
-        TOK.rightParenthesis,
-        TOK.leftCurly,
-        TOK.rightCurly,
-    ];
-
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, false, false);
+    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, /*doDocComment*/ false, keepComments, keepWhitespace, new ErrorSinkStderr);
     TOK[] result;
 
     while (lexer.nextToken != TOK.endOfFile)
@@ -36,16 +27,26 @@ unittest
         TOK.rightParenthesis,
         TOK.leftCurly,
         TOK.rightCurly,
+    ];
+
+    test(code, expected, false, false);
+}
+
+unittest
+{
+    immutable code = "void test() {} // foobar";
+
+    immutable expected = [
+        TOK.void_,
+        TOK.identifier,
+        TOK.leftParenthesis,
+        TOK.rightParenthesis,
+        TOK.leftCurly,
+        TOK.rightCurly,
         TOK.comment,
     ];
 
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, true, false);
-    TOK[] result;
-
-    while (lexer.nextToken != TOK.endOfFile)
-        result ~= lexer.token.value;
-
-    assert(result == expected);
+    test(code, expected, true, false);
 }
 
 unittest
@@ -65,13 +66,7 @@ unittest
         TOK.comment,
     ];
 
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, true, true);
-    TOK[] result;
-
-    while (lexer.nextToken != TOK.endOfFile)
-        result ~= lexer.token.value;
-
-    assert(result == expected);
+    test(code, expected, true, true);
 }
 
 unittest
@@ -92,13 +87,7 @@ unittest
         TOK.whitespace,
     ];
 
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, true, true);
-    TOK[] result;
-
-    while (lexer.nextToken != TOK.endOfFile)
-        result ~= lexer.token.value;
-
-    assert(result == expected);
+    test(code, expected, true, true);
 }
 
 unittest
@@ -136,13 +125,7 @@ unittest
         TOK.whitespace,
     ];
 
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, true, true);
-    TOK[] result;
-
-    while (lexer.nextToken != TOK.endOfFile)
-        result ~= lexer.token.value;
-
-    assert(result == expected);
+    test(code, expected, true, true);
 }
 
 unittest
@@ -171,13 +154,7 @@ unittest
         TOK.whitespace,
     ];
 
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, true, true);
-    TOK[] result;
-
-    while (lexer.nextToken != TOK.endOfFile)
-        result ~= lexer.token.value;
-
-    assert(result == expected);
+    test(code, expected, true, true);
 }
 
 unittest
@@ -193,7 +170,7 @@ unittest
         TOK.rightCurly,
     ];
 
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, false);
+    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, false, new ErrorSinkStderr, null);
     lexer.nextToken;
 
     TOK[] result;
@@ -214,7 +191,7 @@ unittest
         TOK.comment,
     ];
 
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, true);
+    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, true, new ErrorSinkStderr, null);
     lexer.nextToken;
 
     TOK[] result;
@@ -240,7 +217,7 @@ unittest
         TOK.reserved,
     ];
 
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, false);
+    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, false, new ErrorSinkStderr, null);
 
     TOK[] result;
 
@@ -262,9 +239,10 @@ unittest
     import core.stdc.stdarg : va_list;
 
     import dmd.frontend;
-    import dmd.globals : Loc;
+    import dmd.location;
     import dmd.common.outbuffer;
     import dmd.console : Color;
+    import dmd.errors;
 
     const(char)[][2][] diagnosticMessages;
     nothrow bool diagnosticHandler(const ref Loc loc, Color headerColor, const(char)* header,
@@ -288,7 +266,7 @@ unittest
     foreach (codeNum, code; codes)
     {
         auto fileName = text("file", codeNum, '\0');
-        Lexer lexer = new Lexer(fileName.ptr, code.ptr, 0, code.length, false, false);
+        Lexer lexer = new Lexer(fileName.ptr, code.ptr, 0, code.length, false, false, new ErrorSinkCompiler, null);
         // Generate the errors
         foreach(unused; lexer){}
     }

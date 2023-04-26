@@ -4,7 +4,7 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dwarfdbginf.d, backend/dwarfdbginf.d)
@@ -3236,7 +3236,7 @@ static if (1)
         if (config.objfmt == OBJ_MACH)
         {
             char[16 + (except_table_num).sizeof * 3 + 1] name = void;
-            const length = sprintf(name.ptr, "GCC_except_table%d", ++except_table_num);
+            const length = snprintf(name.ptr, name.length, "GCC_except_table%d", ++except_table_num);
             type *t = tspvoid;
             t.Tcount++;
             type_setmangle(&t, mTYman_sys);         // no leading '_' for mangled name

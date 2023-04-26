@@ -85,6 +85,9 @@ test_uuid:
 test_aa:
 	"$(DMD)" -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIME) -run test\aa\src\test_aa.d
 
+test_allocations:
+	"$(MAKE)" -f test\allocations\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) DRUNTIMELIB=$(DRUNTIME) test
+
 test_betterc:
 	"$(MAKE)" -f test\betterc\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) DRUNTIMELIB=$(DRUNTIME) test
 
@@ -113,7 +116,7 @@ custom_gc:
 test_shared:
 	$(MAKE) -f test\shared\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) DRUNTIMELIB=$(DRUNTIME) test
 
-test_common: test_shared test_aa test_cpuid test_exceptions test_hash test_gc custom_gc
+test_common: test_shared test_aa test_allocations test_cpuid test_exceptions test_hash test_gc custom_gc
 
 test_mingw: test_common test_betterc_mingw
 
@@ -135,9 +138,3 @@ install: druntime.zip
 clean:
 	del $(DRUNTIME) $(OBJS_TO_DELETE)
 	rmdir /S /Q $(DOCDIR) $(IMPDIR)
-
-auto-tester-build:
-	echo "Windows builds have been disabled on auto-tester"
-
-auto-tester-test:
-	echo "Windows builds have been disabled on auto-tester"

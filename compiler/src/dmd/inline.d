@@ -4,7 +4,7 @@
  * The AST is traversed, and every function call is considered for inlining using `inlinecost.d`.
  * The function call is then inlined if this cost is below a threshold.
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/inline.d, _inline.d)
@@ -36,6 +36,7 @@ import dmd.id;
 import dmd.identifier;
 import dmd.init;
 import dmd.initsem;
+import dmd.location;
 import dmd.mtype;
 import dmd.opover;
 import dmd.printast;
@@ -68,10 +69,15 @@ public void inlineScanModule(Module m)
         Dsymbol s = (*m.members)[i];
         //if (global.params.verbose)
         //    message("inline scan symbol %s", s.toChars());
-        scope InlineScanVisitor v = new InlineScanVisitor();
-        s.accept(v);
+        inlineScanDsymbol(s);
     }
     m.semanticRun = PASS.inlinedone;
+}
+
+private void inlineScanDsymbol(Dsymbol s)
+{
+    scope InlineScanVisitorDsymbol v = new InlineScanVisitorDsymbol();
+    s.accept(v);
 }
 
 /***********************************************************
@@ -141,7 +147,7 @@ private final class InlineDoState
     // inline result
     bool foundReturn;
 
-    this(Dsymbol parent, FuncDeclaration fd)
+    this(Dsymbol parent, FuncDeclaration fd) scope
     {
         this.parent = parent;
         this.fd = fd;
@@ -166,7 +172,7 @@ public:
 
     enum asStatements = is(Result == Statement);
 
-    extern (D) this(InlineDoState ids)
+    extern (D) this(InlineDoState ids) scope
     {
         this.ids = ids;
     }
@@ -760,12 +766,11 @@ public:
         override void visit(AssignExp e)
         {
             visit(cast(BinExp)e);
+        }
 
-            if (auto ale = e.e1.isArrayLengthExp())
-            {
-                Type tn = ale.e1.type.toBasetype().nextOf();
-                semanticTypeInfo(null, tn);
-            }
+        override void visit(LoweredAssignExp e)
+        {
+            result = doInlineAs!Expression(e.lowering, ids);
         }
 
         override void visit(EqualExp e)
@@ -942,7 +947,7 @@ public:
     Expression eresult;
     bool again;
 
-    extern (D) this()
+    extern (D) this() scope
     {
     }
 
@@ -1215,7 +1220,7 @@ public:
         }
         else
         {
-            s.accept(this);
+            inlineScanDsymbol(s);
         }
     }
 
@@ -1278,6 +1283,11 @@ public:
         }
     L1:
         visit(cast(BinExp)e);
+    }
+
+    override void visit(LoweredAssignExp e)
+    {
+        inlineScan(e.lowering);
     }
 
     override void visit(CallExp e)
@@ -1487,7 +1497,7 @@ public:
         //printf("StructLiteralExp.inlineScan()\n");
         if (e.stageflags & stageInlineScan)
             return;
-        int old = e.stageflags;
+        const old = e.stageflags;
         e.stageflags |= stageInlineScan;
         arrayInlineScan(e.elements);
         e.stageflags = old;
@@ -1525,6 +1535,20 @@ public:
             eresult = null;
         }
     }
+}
+
+/***********************************************************
+ * Walk the trees, looking for functions to inline.
+ * Inline any that can be.
+ */
+private extern (C++) final class InlineScanVisitorDsymbol : Visitor
+{
+    alias visit = Visitor.visit;
+public:
+
+    extern (D) this() scope
+    {
+    }
 
     /*************************************
      * Look for function inlining possibilities.
@@ -1546,20 +1570,20 @@ public:
             return;
         if (fd.fbody && !fd.isNaked())
         {
-            auto againsave = again;
-            auto parentsave = parent;
-            parent = fd;
-            do
+            while (1)
             {
-                again = false;
                 fd.inlineNest++;
                 fd.inlineScanned = true;
-                inlineScan(fd.fbody);
+
+                scope InlineScanVisitor v = new InlineScanVisitor();
+                v.parent = fd;
+                v.inlineScan(fd.fbody);
+                bool again = v.again;
+
                 fd.inlineNest--;
+                if (!again)
+                    break;
             }
-            while (again);
-            again = againsave;
-            parent = parentsave;
         }
     }
 
@@ -1660,6 +1684,9 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
         assert(fd.semanticRun >= PASS.semantic3done);
     }
 
+    if (fd.skipCodegen)
+        return false;
+
     final switch (statementsToo ? fd.inlineStatusStmt : fd.inlineStatusExp)
     {
     case ILS.yes:
@@ -1695,7 +1722,8 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
         TypeFunction tf = fd.type.isTypeFunction();
 
         // no variadic parameter lists
-        if (tf.parameterList.varargs == VarArg.variadic)
+        if (tf.parameterList.varargs == VarArg.variadic ||
+            tf.parameterList.varargs == VarArg.KRvariadic)
             goto Lno;
 
         /* No lazy parameters when inlining by statement, as the inliner tries to
@@ -1802,8 +1830,7 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
         else
             fd.inlineStatusExp = ILS.yes;
 
-        scope InlineScanVisitor v = new InlineScanVisitor();
-        fd.accept(v); // Don't scan recursively for header content scan
+        inlineScanDsymbol(fd); // Don't scan recursively for header content scan
 
         if (fd.inlineStatusExp == ILS.uninitialized)
         {
@@ -2294,7 +2321,7 @@ private bool expNeedsDtor(Expression exp)
         Expression exp;
 
     public:
-        extern (D) this(Expression exp)
+        extern (D) this(Expression exp) scope
         {
             this.exp = exp;
         }

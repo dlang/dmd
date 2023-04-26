@@ -1,7 +1,7 @@
 /**
  * Defines AST nodes for the parsing stage.
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/astbase.d, _astbase.d)
  * Documentation:  https://dlang.org/phobos/dmd_astbase.html
@@ -38,6 +38,7 @@ struct ASTBase
     import dmd.id;
     import dmd.errors;
     import dmd.lexer;
+    import dmd.location;
 
     import core.stdc.string;
     import core.stdc.stdarg;
@@ -452,14 +453,21 @@ struct ASTBase
     extern (C++) final class StaticAssert : Dsymbol
     {
         Expression exp;
-        Expression msg;
+        Expressions* msgs;
 
         extern (D) this(const ref Loc loc, Expression exp, Expression msg)
         {
-            super(Id.empty);
-            this.loc = loc;
+            super(loc, Id.empty);
             this.exp = exp;
-            this.msg = msg;
+            this.msgs = new Expressions(1);
+            (*this.msgs)[0] = msg;
+        }
+
+        extern (D) this(const ref Loc loc, Expression exp, Expressions* msgs)
+        {
+            super(loc, Id.empty);
+            this.exp = exp;
+            this.msgs = msgs;
         }
 
         override void accept(Visitor v)
@@ -930,6 +938,7 @@ struct ASTBase
             this.parameters = parameters;
             this.origParameters = parameters;
             this.members = decldefs;
+            this.constraint = constraint;
             this.literal = literal;
             this.ismixin = ismixin;
             this.isstatic = true;
@@ -1056,7 +1065,7 @@ struct ASTBase
         }
     }
 
-    extern (C++) final class CompileDeclaration : AttribDeclaration
+    extern (C++) final class MixinDeclaration : AttribDeclaration
     {
         Expressions* exps;
 
@@ -1270,6 +1279,13 @@ struct ASTBase
         final extern (D) this(StorageClass stc, Dsymbols* decl)
         {
             super(decl);
+            this.stc = stc;
+        }
+
+        final extern (D) this(const ref Loc loc, StorageClass stc, Dsymbols* decl)
+        {
+            super(decl);
+            this.loc = loc;
             this.stc = stc;
         }
 
@@ -1913,13 +1929,13 @@ struct ASTBase
         }
     }
 
-    extern (C++) final class CompileStatement : Statement
+    extern (C++) final class MixinStatement : Statement
     {
         Expressions* exps;
 
         final extern (D) this(const ref Loc loc, Expressions* exps)
         {
-            super(loc, STMT.Compile);
+            super(loc, STMT.Mixin);
             this.exps = exps;
         }
 
@@ -3751,18 +3767,22 @@ struct ASTBase
         Loc loc;
         TOK tok;
         Identifier id;
+        structalign_t packalign;
         Dsymbols* members;
+        Type base;
 
         Type resolved;
         MOD mod;
 
-        extern (D) this(const ref Loc loc, TOK tok, Identifier id, Dsymbols* members)
+        extern (D) this(const ref Loc loc, TOK tok, Identifier id, structalign_t packalign, Type base, Dsymbols* members)
         {
             //printf("TypeTag %p\n", this);
             super(Ttag);
             this.loc = loc;
             this.tok = tok;
             this.id = id;
+            this.packalign = packalign;
+            this.base = base;
             this.members = members;
             this.mod = 0;
         }
@@ -3931,7 +3951,7 @@ struct ASTBase
         extern (D) this(ParameterList pl, Type treturn, LINK linkage, StorageClass stc = 0)
         {
             super(Tfunction, treturn);
-            assert(VarArg.none <= pl.varargs && pl.varargs <= VarArg.typesafe);
+            assert(VarArg.none <= pl.varargs && pl.varargs <= VarArg.max);
             this.parameterList = pl;
             this.linkage = linkage;
 
@@ -4981,13 +5001,15 @@ struct ASTBase
         Expression thisexp;         // if !=null, 'this' for class being allocated
         Type newtype;
         Expressions* arguments;     // Array of Expression's
+        Identifiers* names;         // Array of names corresponding to expressions
 
-        extern (D) this(const ref Loc loc, Expression thisexp, Type newtype, Expressions* arguments)
+        extern (D) this(const ref Loc loc, Expression thisexp, Type newtype, Expressions* arguments, Identifiers* names = null)
         {
             super(loc, EXP.new_, __traits(classInstanceSize, NewExp));
             this.thisexp = thisexp;
             this.newtype = newtype;
             this.arguments = arguments;
+            this.names = names;
         }
 
         override void accept(Visitor v)
@@ -5537,11 +5559,13 @@ struct ASTBase
     extern (C++) final class CallExp : UnaExp
     {
         Expressions* arguments;
+        Identifiers* names;
 
-        extern (D) this(const ref Loc loc, Expression e, Expressions* exps)
+        extern (D) this(const ref Loc loc, Expression e, Expressions* exps, Identifiers* names = null)
         {
             super(loc, EXP.call, __traits(classInstanceSize, CallExp), e);
             this.arguments = exps;
+            this.names = names;
         }
 
         extern (D) this(const ref Loc loc, Expression e)
@@ -6446,6 +6470,11 @@ struct ASTBase
         {
             v.visit(this);
         }
+
+        inout(StaticIfCondition) isStaticIfCondition() inout
+        {
+            return null;
+        }
     }
 
     extern (C++) final class StaticForeach : RootObject
@@ -6481,6 +6510,11 @@ struct ASTBase
         override void accept(Visitor v)
         {
             v.visit(this);
+        }
+
+        override inout(StaticIfCondition) isStaticIfCondition() inout
+        {
+            return this;
         }
     }
 

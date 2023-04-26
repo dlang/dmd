@@ -1,7 +1,7 @@
 /**
  * Contains the `Id` struct with a list of predefined symbols the compiler knows about.
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/id.d, _id.d)
@@ -313,6 +313,8 @@ immutable Msgtable[] msgtable =
     { "__ArrayDtor" },
     { "_d_delThrowable" },
     { "_d_newThrowable" },
+    { "_d_newclassT" },
+    { "_d_newclassTTrace" },
     { "_d_assert_fail" },
     { "dup" },
     { "_aaApply" },
@@ -368,6 +370,10 @@ immutable Msgtable[] msgtable =
     // Builtin functions
     { "std" },
     { "core" },
+    { "config" },
+    { "c_complex_float" },
+    { "c_complex_double" },
+    { "c_complex_real" },
     { "etc" },
     { "attribute" },
     { "atomic" },
@@ -455,6 +461,7 @@ immutable Msgtable[] msgtable =
     { "isLazy" },
     { "hasMember" },
     { "identifier" },
+    { "fullyQualifiedName" },
     { "getProtection" },
     { "getVisibility" },
     { "parent" },
@@ -516,9 +523,15 @@ immutable Msgtable[] msgtable =
     { "__tag" },
     { "dllimport" },
     { "dllexport" },
+    { "naked" },
+    { "thread" },
     { "vector_size" },
     { "__func__" },
+    { "noinline" },
     { "noreturn" },
+    { "_deprecated", "deprecated" },
+    { "_align", "align" },
+    { "aligned" },
     { "__pragma", "pragma" },
     { "builtins", "__builtins" },
     { "builtin_va_list", "__builtin_va_list" },

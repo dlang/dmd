@@ -2,7 +2,7 @@
  * Symbol table array.
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/symtab.d, backend/_symtab.d)
@@ -33,9 +33,7 @@ alias MEM_PH_FREEFP = mem_freefp;
 alias MEM_PH_STRDUP = mem_strdup;
 alias MEM_PH_REALLOC = mem_realloc;
 
-void stackoffsets(ref symtab_t, bool);
-
-private void err_nomem();
+import dmd.backend.global : err_nomem;
 
 struct symtab_t
 {

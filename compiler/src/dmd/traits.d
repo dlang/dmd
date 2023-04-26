@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/traits.html, Traits)
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/traits.d, _traits.d)
@@ -38,6 +38,7 @@ import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
+import dmd.location;
 import dmd.mtype;
 import dmd.nogc;
 import dmd.parse;
@@ -88,82 +89,6 @@ private Dsymbol getDsymbolWithoutExpCtx(RootObject oarg)
     return getDsymbol(oarg);
 }
 
-private const StringTable!bool traitsStringTable;
-
-shared static this()
-{
-    static immutable string[] names =
-    [
-        "isAbstractClass",
-        "isArithmetic",
-        "isAssociativeArray",
-        "isDisabled",
-        "isDeprecated",
-        "isFuture",
-        "isFinalClass",
-        "isPOD",
-        "isNested",
-        "isFloating",
-        "isIntegral",
-        "isScalar",
-        "isStaticArray",
-        "isUnsigned",
-        "isVirtualFunction",
-        "isVirtualMethod",
-        "isAbstractFunction",
-        "isFinalFunction",
-        "isOverrideFunction",
-        "isStaticFunction",
-        "isModule",
-        "isPackage",
-        "isRef",
-        "isOut",
-        "isLazy",
-        "isReturnOnStack",
-        "hasMember",
-        "identifier",
-        "getProtection",
-        "getVisibility",
-        "parent",
-        "child",
-        "getLinkage",
-        "getMember",
-        "getOverloads",
-        "getVirtualFunctions",
-        "getVirtualMethods",
-        "classInstanceSize",
-        "classInstanceAlignment",
-        "allMembers",
-        "derivedMembers",
-        "isSame",
-        "compiles",
-        "getAliasThis",
-        "getAttributes",
-        "getFunctionAttributes",
-        "getFunctionVariadicStyle",
-        "getParameterStorageClasses",
-        "getUnitTests",
-        "getVirtualIndex",
-        "getPointerBitmap",
-        "isZeroInit",
-        "getTargetInfo",
-        "getLocation",
-        "hasPostblit",
-        "hasCopyConstructor",
-        "isCopyable",
-        "parameters"
-    ];
-
-    StringTable!(bool)* stringTable = cast(StringTable!(bool)*) &traitsStringTable;
-    stringTable._init(names.length);
-
-    foreach (s; names)
-    {
-        auto sv = stringTable.insert(s, true);
-        assert(sv);
-    }
-}
-
 /**
  * get an array of size_t values that indicate possible pointer words in memory
  *  if interpreted as the type given as argument
@@ -193,55 +118,40 @@ ulong getTypePointerBitmap(Loc loc, Type t, Array!(ulong)* data)
     data.setDim(cast(size_t)cntdata);
     data.zero();
 
-    extern (C++) final class PointerBitmapVisitor : Visitor
-    {
-        alias visit = Visitor.visit;
-    public:
-        extern (D) this(Array!(ulong)* _data, ulong _sz_size_t)
-        {
-            this.data = _data;
-            this.sz_size_t = _sz_size_t;
-        }
+    ulong offset;
+    bool error;
 
+    void visit(Type t)
+    {
         void setpointer(ulong off)
         {
             ulong ptroff = off / sz_size_t;
             (*data)[cast(size_t)(ptroff / (8 * sz_size_t))] |= 1L << (ptroff % (8 * sz_size_t));
         }
 
-        override void visit(Type t)
+        void visitType(Type t)
         {
             Type tb = t.toBasetype();
             if (tb != t)
-                tb.accept(this);
+                visit(tb);
         }
 
-        override void visit(TypeError t)
+        void visitError(TypeError t)
         {
-            visit(cast(Type)t);
+            visitType(t);
         }
 
-        override void visit(TypeNext t)
-        {
-            assert(0);
-        }
-
-        override void visit(TypeBasic t)
+        void visitBasic(TypeBasic t)
         {
             if (t.ty == Tvoid)
                 setpointer(offset);
         }
 
-        override void visit(TypeVector t)
+        void visitVector(TypeVector t)
         {
         }
 
-        override void visit(TypeArray t)
-        {
-            assert(0);
-        }
-
-        override void visit(TypeSArray t)
+        void visitSArray(TypeSArray t)
         {
             ulong arrayoff = offset;
             ulong nextsize = t.next.size();
@@ -251,95 +161,67 @@ ulong getTypePointerBitmap(Loc loc, Type t, Array!(ulong)* data)
             for (ulong i = 0; i < dim; i++)
             {
                 offset = arrayoff + i * nextsize;
-                t.next.accept(this);
+                visit(t.next);
             }
             offset = arrayoff;
         }
 
-        override void visit(TypeDArray t)
+        void visitDArray(TypeDArray t)
         {
             setpointer(offset + sz_size_t);
         }
 
         // dynamic array is {length,ptr}
-        override void visit(TypeAArray t)
+        void visitAArray(TypeAArray t)
         {
             setpointer(offset);
         }
 
-        override void visit(TypePointer t)
+        void visitPointer(TypePointer t)
         {
             if (t.nextOf().ty != Tfunction) // don't mark function pointers
                 setpointer(offset);
         }
 
-        override void visit(TypeReference t)
+        void visitReference(TypeReference t)
         {
             setpointer(offset);
         }
 
-        override void visit(TypeClass t)
+        void visitClass(TypeClass t)
         {
             setpointer(offset);
         }
 
-        override void visit(TypeFunction t)
+        void visitFunction(TypeFunction t)
         {
         }
 
-        override void visit(TypeDelegate t)
+        void visitDelegate(TypeDelegate t)
         {
             setpointer(offset);
         }
 
-        // delegate is {context, function}
-        override void visit(TypeQualified t)
+        void visitEnum(TypeEnum t)
         {
-            assert(0);
+            visitType(t);
         }
 
-        // assume resolved
-        override void visit(TypeIdentifier t)
+        void visitTuple(TypeTuple t)
         {
-            assert(0);
+            visitType(t);
         }
 
-        override void visit(TypeInstance t)
-        {
-            assert(0);
-        }
-
-        override void visit(TypeTypeof t)
-        {
-            assert(0);
-        }
-
-        override void visit(TypeReturn t)
-        {
-            assert(0);
-        }
-
-        override void visit(TypeEnum t)
-        {
-            visit(cast(Type)t);
-        }
-
-        override void visit(TypeTuple t)
-        {
-            visit(cast(Type)t);
-        }
-
-        override void visit(TypeSlice t)
-        {
-            assert(0);
-        }
-
-        override void visit(TypeNull t)
+        void visitNull(TypeNull t)
         {
             // always a null pointer
         }
 
-        override void visit(TypeStruct t)
+        void visitNoreturn(TypeNoreturn t)
+        {
+        }
+
+        void visitStruct(TypeStruct t)
         {
             ulong structoff = offset;
             foreach (v; t.sym.fields)
@@ -348,38 +230,43 @@ ulong getTypePointerBitmap(Loc loc, Type t, Array!(ulong)* data)
                 if (v.type.ty == Tclass)
                     setpointer(offset);
                 else
-                    v.type.accept(this);
+                    visit(v.type);
             }
             offset = structoff;
         }
 
+        void visitDefaultCase(Type t)
+        {
+            //printf("ty = %d\n", t.ty);
+            assert(0);
+        }
+
+        mixin VisitType!void visit;
+        visit.VisitType(t);
+    }
+
+    if (auto tc = t.isTypeClass())
+    {
         // a "toplevel" class is treated as an instance, while TypeClass fields are treated as references
-        void visitClass(TypeClass t)
+        void visitTopLevelClass(TypeClass t)
         {
             ulong classoff = offset;
             // skip vtable-ptr and monitor
             if (t.sym.baseClass)
-                visitClass(cast(TypeClass)t.sym.baseClass.type);
+                visitTopLevelClass(t.sym.baseClass.type.isTypeClass());
             foreach (v; t.sym.fields)
             {
                 offset = classoff + v.offset;
-                v.type.accept(this);
+                visit(v.type);
             }
             offset = classoff;
         }
 
-        Array!(ulong)* data;
-        ulong offset;
-        ulong sz_size_t;
-        bool error;
+        visitTopLevelClass(tc);
     }
-
-    scope PointerBitmapVisitor pbv = new PointerBitmapVisitor(data, sz_size_t);
-    if (t.ty == Tclass)
-        pbv.visitClass(cast(TypeClass)t);
     else
-        t.accept(pbv);
-    return pbv.error ? ulong.max : sz;
+        visit(t);
+    return error ? ulong.max : sz;
 }
 
 /**
@@ -709,6 +596,10 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
     }
     if (e.ident == Id.isVirtualFunction)
     {
+        // @@@DEPRECATED2.121@@@
+        // Deprecated in 2.101 - Can be removed from 2.121
+        e.deprecation("`traits(isVirtualFunction)` is deprecated. Use `traits(isVirtualMethod)` instead");
+
         if (dim != 1)
             return dimError(1);
 
@@ -813,6 +704,42 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
         auto se = new StringExp(e.loc, id.toString());
         return se.expressionSemantic(sc);
+    }
+    if (e.ident == Id.fullyQualifiedName) // https://dlang.org/spec/traits.html#fullyQualifiedName
+    {
+        if (dim != 1)
+            return dimError(1);
+
+        Scope* sc2 = sc.push();
+        sc2.flags = sc.flags | SCOPE.noaccesscheck | SCOPE.ignoresymbolvisibility;
+        bool ok = TemplateInstance.semanticTiargs(e.loc, sc2, e.args, 1);
+        sc2.pop();
+        if (!ok)
+            return ErrorExp.get();
+
+        const(char)[] fqn;
+        auto o = (*e.args)[0];
+        if (auto s = getDsymbolWithoutExpCtx(o))
+        {
+            if (s.semanticRun == PASS.initial)
+                s.dsymbolSemantic(null);
+
+            fqn = s.toPrettyChars().toDString();
+        }
+        else if (auto t = getType(o))
+        {
+            fqn = t.toPrettyChars(true).toDString();
+        }
+        else
+        {
+            if (!isError(o))
+                e.error("argument `%s` has no identifier", o.toChars());
+            return ErrorExp.get();
+        }
+        assert(fqn);
+        auto se = new StringExp(e.loc, fqn);
+        return se.expressionSemantic(sc);
+
     }
     if (e.ident == Id.getProtection || e.ident == Id.getVisibility)
     {
@@ -1070,6 +997,13 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             if (errors < global.errors)
                 e.error("`%s` cannot be resolved", eorig.toChars());
 
+            if (e.ident == Id.getVirtualFunctions)
+            {
+                // @@@DEPRECATED2.121@@@
+                // Deprecated in 2.101 - Can be removed from 2.121
+                e.deprecation("`traits(getVirtualFunctions)` is deprecated. Use `traits(getVirtualMethods)` instead");
+            }
+
             /* Create tuple of functions of ex
              */
             auto exps = new Expressions();
@@ -1276,6 +1210,25 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         else if (s)
         {
+            // @@@DEPRECATION 2.100.2
+            if (auto fd = s.isFuncDeclaration())
+            {
+                if (fd.overnext)
+                {
+                    deprecation(e.loc, "`__traits(getAttributes)` may only be used for individual functions, not overload sets such as: `%s`", fd.toChars());
+                    deprecationSupplemental(e.loc, "the result of `__traits(getOverloads)` may be used to select the desired function to extract attributes from");
+                }
+            }
+
+            // @@@DEPRECATION 2.100.2
+            if (auto td = s.isTemplateDeclaration())
+            {
+                if (td.overnext || td.funcroot)
+                {
+                    deprecation(e.loc, "`__traits(getAttributes)` may only be used for individual functions, not overload sets such as: `%s`", td.ident.toChars());
+                    deprecationSupplemental(e.loc, "the result of `__traits(getOverloads)` may be used to select the desired function to extract attributes from");
+                }
+            }
             if (s.isImport())
             {
                 s = s.isImport().mod;
@@ -1363,6 +1316,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
          *  "argptr"    extern(D) void dstyle(...), use `__argptr` and `__arguments`
          *  "stdarg"    extern(C) void cstyle(int, ...), use core.stdc.stdarg
          *  "typesafe"  void typesafe(T[] ...)
+         *  "KR"        old K+R style
          */
         // get symbol linkage as a string
         if (dim != 1)
@@ -1397,6 +1351,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             case VarArg.variadic: style = (link == LINK.d)
                                              ? "argptr"
                                              : "stdarg";    break;
+            case VarArg.KRvariadic: style = "KR";           break;
             case VarArg.typesafe: style = "typesafe";       break;
         }
         auto se = new StringExp(e.loc, style);
@@ -1732,7 +1687,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             uint errors = global.startGagging();
             Scope* sc2 = sc.push();
             sc2.tinst = null;
-            sc2.minst = null;
+            sc2.minst = null;   // this is why code for these are not emitted to object file
             sc2.flags = (sc.flags & ~(SCOPE.ctfe | SCOPE.condition)) | SCOPE.compile | SCOPE.fullinst;
 
             bool err = false;
@@ -1924,7 +1879,12 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return ErrorExp.get();
         }
 
-        Type tb = t.baseElemOf();
+        // https://issues.dlang.org/show_bug.cgi?id=23534
+        //
+        // For enums, we need to get the enum initializer
+        // (the first enum member), not the initializer of the
+        // type of the enum members.
+        Type tb = t.isTypeEnum ? t : t.baseElemOf();
         return tb.isZeroInit(e.loc) ? True() : False();
     }
     if (e.ident == Id.getTargetInfo)
@@ -2098,20 +2058,11 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto tup = new TupleExp(e.loc, exps);
         return tup.expressionSemantic(sc);
     }
-    static const(char)[] trait_search_fp(const(char)[] seed, out int cost)
-    {
-        //printf("trait_search_fp('%s')\n", seed);
-        if (!seed.length)
-            return null;
-        cost = 0;       // all the same cost
-        const sv = traitsStringTable.lookup(seed);
-        return sv ? sv.toString() : null;
-    }
 
-    if (auto sub = speller!trait_search_fp(e.ident.toString()))
-        e.error("unrecognized trait `%s`, did you mean `%.*s`?", e.ident.toChars(), cast(int) sub.length, sub.ptr);
-    else
-        e.error("unrecognized trait `%s`", e.ident.toChars());
+    /* Can't find the identifier. Try a spell check for a better error message
+     */
+    traitNotFound(e);
+
     return ErrorExp.get();
 }
 
@@ -2238,4 +2189,110 @@ Lnext:
         return false;
     }
     return true;
+}
+
+
+/***********************************
+ * A trait was not found. Give a decent error message
+ * by trying a spell check.
+ * Params:
+ *      e = the offending trait
+ */
+private void traitNotFound(TraitsExp e)
+{
+    __gshared const StringTable!bool traitsStringTable;
+    __gshared bool initialized;
+
+    if (!initialized)
+    {
+        initialized = true;     // lazy initialization
+
+        // All possible traits
+        __gshared Identifier*[59] idents =
+        [
+            &Id.allMembers,
+            &Id.child,
+            &Id.classInstanceAlignment,
+            &Id.classInstanceSize,
+            &Id.compiles,
+            &Id.derivedMembers,
+            &Id.fullyQualifiedName,
+            &Id.getAliasThis,
+            &Id.getAttributes,
+            &Id.getFunctionAttributes,
+            &Id.getFunctionVariadicStyle,
+            &Id.getLinkage,
+            &Id.getLocation,
+            &Id.getMember,
+            &Id.getOverloads,
+            &Id.getParameterStorageClasses,
+            &Id.getPointerBitmap,
+            &Id.getProtection,
+            &Id.getTargetInfo,
+            &Id.getUnitTests,
+            &Id.getVirtualFunctions,
+            &Id.getVirtualIndex,
+            &Id.getVirtualMethods,
+            &Id.getVisibility,
+            &Id.hasCopyConstructor,
+            &Id.hasMember,
+            &Id.hasPostblit,
+            &Id.identifier,
+            &Id.isAbstractClass,
+            &Id.isAbstractFunction,
+            &Id.isArithmetic,
+            &Id.isAssociativeArray,
+            &Id.isCopyable,
+            &Id.isDeprecated,
+            &Id.isDisabled,
+            &Id.isFinalClass,
+            &Id.isFinalFunction,
+            &Id.isFloating,
+            &Id.isFuture,
+            &Id.isIntegral,
+            &Id.isLazy,
+            &Id.isModule,
+            &Id.isNested,
+            &Id.isOut,
+            &Id.isOverrideFunction,
+            &Id.isPackage,
+            &Id.isPOD,
+            &Id.isRef,
+            &Id.isReturnOnStack,
+            &Id.isSame,
+            &Id.isScalar,
+            &Id.isStaticArray,
+            &Id.isStaticFunction,
+            &Id.isUnsigned,
+            &Id.isVirtualFunction,
+            &Id.isVirtualMethod,
+            &Id.isZeroInit,
+            &Id.parameters,
+            &Id.parent,
+        ];
+
+        StringTable!(bool)* stringTable = cast(StringTable!(bool)*) &traitsStringTable;
+        stringTable._init(idents.length);
+
+        foreach (id; idents)
+        {
+            auto sv = stringTable.insert((*id).toString(), true);
+            assert(sv);
+        }
+    }
+
+    static const(char)[] trait_search_fp(const(char)[] seed, out int cost)
+    {
+        //printf("trait_search_fp('%s')\n", seed);
+        if (!seed.length)
+            return null;
+        cost = 0;       // all the same cost
+        const sv = traitsStringTable.lookup(seed);
+        return sv ? sv.toString() : null;
+    }
+
+    if (auto sub = speller!trait_search_fp(e.ident.toString()))
+        e.error("unrecognized trait `%s`, did you mean `%.*s`?", e.ident.toChars(), cast(int) sub.length, sub.ptr);
+    else
+        e.error("unrecognized trait `%s`", e.ident.toChars());
 }

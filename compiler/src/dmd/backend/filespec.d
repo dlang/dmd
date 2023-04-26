@@ -164,8 +164,9 @@ else
             else if (strcmp(p, ".") != 0) // not current directory
             {
                 cwd_t = cwd;
-                cwd = cast(char *)mem_calloc(strlen(cwd_t) + 1 + strlen(p) + 1);
-                sprintf(cwd, "%s%c%s", cwd_t, DIRCHAR, p);  // add relative directory
+                const cwdlen = strlen(cwd_t) + 1 + strlen(p) + 1;
+                cwd = cast(char *)mem_calloc(cwdlen);
+                snprintf(cwd, cwdlen, "%s%c%s", cwd_t, DIRCHAR, p);  // add relative directory
                 mem_free(cwd_t);
             }
             // else if ".", then ignore - it means current directory
@@ -180,8 +181,9 @@ else
         else if (strcmp(p,".") != 0) // no more subdirectories ...
         {   // ... save remaining string
             cwd_t = cwd;
-            cwd = cast(char *)mem_calloc(strlen(cwd_t) + 1 + strlen(p) + 1);
-            sprintf(cwd, "%s%c%s", cwd_t, DIRCHAR, p);  // add relative directory
+            const cwdlen = strlen(cwd_t) + 1 + strlen(p) + 1;
+            cwd = cast(char *)mem_calloc(cwdlen);
+            snprintf(cwd, cwdlen, "%s%c%s", cwd_t, DIRCHAR, p);  // add relative directory
             mem_free(cwd_t);
         }
         p = p2;

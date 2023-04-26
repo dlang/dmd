@@ -61,7 +61,7 @@ if [ ! -e "${HOST_RDMD}" ] ; then
 
     # prefer xz if available
     if command -v xz &> /dev/null ; then
-        echo "[boostrap] Downloading compiler ${HOST_DMD_URL}.tar.xz"
+        echo "[bootstrap] Downloading compiler ${HOST_DMD_URL}.tar.xz"
         curl "${CURL_FLAGS[@]}" "${HOST_DMD_URL}.tar.xz" | tar -C "${HOST_DMD_ROOT}" -Jxf - || rm -rf "${HOST_DMD_ROOT}"
     else
         echo "[bootstrap] Downloading compiler ${HOST_DMD_URL}.zip"

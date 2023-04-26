@@ -1,7 +1,7 @@
 /**
  * Invoke the linker as a separate process.
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/link.d, _link.d)
@@ -22,6 +22,7 @@ import core.sys.windows.windef;
 import dmd.dmdparams;
 import dmd.errors;
 import dmd.globals;
+import dmd.location;
 import dmd.root.array;
 import dmd.root.env;
 import dmd.root.file;
@@ -974,8 +975,9 @@ public int runProgram()
             // BUG: what about " appearing in the string?
             if (strchr(a, ' '))
             {
-                char* b = cast(char*)mem.xmalloc(3 + strlen(a));
-                sprintf(b, "\"%s\"", a);
+                const blen = 3 + strlen(a);
+                char* b = cast(char*)mem.xmalloc(blen);
+                snprintf(b, blen, "\"%s\"", a);
                 a = b;
             }
         }
@@ -1274,6 +1276,9 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
 
         // merge #define's with output
         argv.push("-dD");       // https://gcc.gnu.org/onlinedocs/cpp/Invocation.html#index-dD
+
+        // need to redefine some macros in importc.h
+        argv.push("-Wno-builtin-macro-redefined");
 
         if (target.os == Target.OS.OSX)
         {

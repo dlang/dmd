@@ -2,7 +2,7 @@
  * Other global optimizations
  *
  * Copyright:   Copyright (C) 1986-1998 by Symantec
- *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              https://www.boost.org/LICENSE_1_0.txt
@@ -1255,7 +1255,7 @@ private bool copyPropWalk(elem *n,vec_t IN)
                 v = go.expnod[i].EV.E1.EV.Vsym;
                 if (ambig)
                 {
-                    if (!(v.Sflags & SFLunambig))
+                    if (Symbol_isAffected(*v))
                         goto clr;
                 }
                 else
@@ -1263,10 +1263,11 @@ private bool copyPropWalk(elem *n,vec_t IN)
                     if (v == t.EV.Vsym)
                         goto clr;
                 }
+
                 v = go.expnod[i].EV.E2.EV.Vsym;
                 if (ambig)
                 {
-                    if (!(v.Sflags & SFLunambig))
+                    if (Symbol_isAffected(*v))
                         goto clr;
                 }
                 else

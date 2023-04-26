@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1986-1998 by Symantec
- *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              https://www.boost.org/LICENSE_1_0.txt
@@ -53,47 +53,7 @@ extern (C++):
 nothrow:
 @safe:
 
-int os_clock();
-
-/* gdag.c */
-void builddags();
-void boolopt();
-void opt_arraybounds();
-
-/* gflow.c */
-void flowrd();
-void flowlv();
-void flowae();
-void flowvbe();
-void flowcp();
-void genkillae();
-void flowarraybounds();
-int ae_field_affect(elem *lvalue,elem *e);
-
-/* glocal.c */
-void localize();
-
-/* gloop.c */
-bool blockinit();
-void compdom();
-void loopopt();
-void fillInDNunambig(vec_t v, elem *e);
-void updaterd(elem *n,vec_t GEN,vec_t KILL);
-
-/* gother.c */
-void rd_arraybounds();
-void rd_free();
-void constprop();
-void copyprop();
-void rmdeadass();
-void elimass(elem *);
-void deadvar();
-void verybusyexp();
-void listrds(vec_t, elem *, vec_t, Barray!(elem*)*);
-
-/* gslice.c */
-void sliceStructs(ref symtab_t, block*);
-
+import dmd.backend.os : os_clock;
 /***************************************************************************/
 
 extern (C) void mem_free(void* p);

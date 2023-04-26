@@ -44,9 +44,9 @@ package mixin template ParseVisitMethods(AST)
         }
     }
 
-    override void visit(AST.CompileStatement s)
+    override void visit(AST.MixinStatement s)
     {
-        //printf("Visiting CompileStatement\n");
+        //printf("Visiting MixinStatement\n");
         visitArgs(s.exps.peekSlice());
     }
 
@@ -490,8 +490,9 @@ package mixin template ParseVisitMethods(AST)
     {
         //printf("Visiting StaticAssert\n");
         s.exp.accept(this);
-        if (s.msg)
-            s.msg.accept(this);
+        if (s.msgs)
+            foreach (m; (*s.msgs)[])
+                m.accept(this);
     }
 
     override void visit(AST.EnumMember em)
@@ -578,7 +579,7 @@ package mixin template ParseVisitMethods(AST)
             de.accept(this);
     }
 
-    override void visit(AST.CompileDeclaration d)
+    override void visit(AST.MixinDeclaration d)
     {
         //printf("Visiting compileDeclaration\n");
         visitArgs(d.exps.peekSlice());
