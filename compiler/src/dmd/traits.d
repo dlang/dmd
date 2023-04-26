@@ -1276,6 +1276,19 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return ErrorExp.get();
         }
 
+        // https://issues.dlang.org/show_bug.cgi?id=19706
+        // When getting the attributes of the instance of a
+        // templated member function semantic tiargs does
+        // not perform semantic3 on the instance.
+        // For more information see FuncDeclaration.functionSemantic.
+        // For getFunctionAttributes it is mandatory to do
+        // attribute inference.
+        if (fd && fd.parent && fd.parent.isTemplateInstance)
+        {
+            fd.functionSemantic3();
+            tf = cast(TypeFunction)fd.type;
+        }
+
         auto mods = new Expressions();
 
         void addToMods(string str)
