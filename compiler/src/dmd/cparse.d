@@ -3486,6 +3486,11 @@ final class CParser(AST) : Parser!AST
                  * type on the target machine. It's the opposite of __attribute__((packed))
                  */
             }
+            else if (token.ident == Id.always_inline) // https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html
+            {
+                specifier.scw |= SCW.xinline;
+                nextToken();
+            }
             else if (token.ident == Id._deprecated)
             {
                 specifier._deprecated = true;
