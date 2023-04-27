@@ -1319,6 +1319,14 @@ switch (i)
 }
 --------------
 
+        $(P $(B Implementation Note:) The compiler's code generator may
+        assume that the case
+        statements are sorted by frequency of use, with the most frequent
+        appearing first and the least frequent last. Although this is
+        irrelevant as far as program correctness is concerned, it is of
+        performance interest.
+        )
+
 $(H3 $(LNAME2 case-range, Case Range Statement))
 
 $(GRAMMAR
@@ -1424,13 +1432,6 @@ switch (name)
         less error prone. `char`, `wchar` and `dchar` strings are allowed.
         )
 
-        $(P $(B Implementation Note:) The compiler's code generator may
-        assume that the case
-        statements are sorted by frequency of use, with the most frequent
-        appearing first and the least frequent last. Although this is
-        irrelevant as far as program correctness is concerned, it is of
-        performance interest.
-        )
 
 $(H2 $(LEGACY_LNAME2 FinalSwitchStatement, final-switch-statement, Final Switch Statement))
 
