@@ -397,7 +397,7 @@ $(GNAME DeprecatedAttribute):
         ---------------
         )
 
-        $(P $(D Implementation Note:) The compiler should have a switch
+        $(P $(B Implementation Note:) The compiler should have a switch
         specifying if $(D deprecated) should be ignored, cause a warning, or cause an error during compilation.
         )
 

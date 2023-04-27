@@ -902,7 +902,7 @@ void main()
 ---------
 )
 
-        $(P $(D Implementation Note:) Compilers should attempt to detect
+        $(P $(B Implementation Note:) Compilers should attempt to detect
         array bounds errors at compile time, for example:
         )
 
