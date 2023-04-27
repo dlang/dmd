@@ -8877,6 +8877,7 @@ struct Id final
     static Identifier* naked;
     static Identifier* thread;
     static Identifier* vector_size;
+    static Identifier* always_inline;
     static Identifier* noinline;
     static Identifier* noreturn;
     static Identifier* _deprecated;
