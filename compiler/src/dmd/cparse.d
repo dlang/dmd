@@ -2892,7 +2892,8 @@ final class CParser(AST) : Parser!AST
 
                         auto parameterList = cparseParameterList();
                         const lkg = specifier.mod & MOD.x__stdcall ? LINK.windows : linkage;
-                        AST.Type tf = new AST.TypeFunction(parameterList, t, lkg, 0);
+                        StorageClass stc = specifier._nothrow ? STC.nothrow_ : 0;
+                        AST.Type tf = new AST.TypeFunction(parameterList, t, lkg, stc);
     //                  tf = tf.addSTC(storageClass);  // TODO
                         insertTx(ts, tf, t);  // ts -> ... -> tf -> t
 
@@ -3176,6 +3177,7 @@ final class CParser(AST) : Parser!AST
      *    naked
      *    noinline
      *    noreturn
+     *    nothrow
      *    thread
      * Params:
      *  specifier = filled in with the attribute(s)
@@ -3222,6 +3224,11 @@ final class CParser(AST) : Parser!AST
                 else if (token.ident == Id.noreturn)
                 {
                     specifier.noreturn = true;
+                    nextToken();
+                }
+                else if (token.ident == Id._nothrow)
+                {
+                    specifier._nothrow = true;
                     nextToken();
                 }
                 else if (token.ident == Id.thread)
@@ -3520,6 +3527,11 @@ final class CParser(AST) : Parser!AST
             else if (token.ident == Id.noreturn)
             {
                 specifier.noreturn = true;
+                nextToken();
+            }
+            else if (token.ident == Id._nothrow)
+            {
+                specifier._nothrow = true;
                 nextToken();
             }
             else if (token.ident == Id.vector_size)
@@ -4926,6 +4938,7 @@ final class CParser(AST) : Parser!AST
     {
         bool noreturn;  /// noreturn attribute
         bool naked;     /// naked attribute
+        bool _nothrow;  /// nothrow attribute
         bool dllimport; /// dllimport attribute
         bool dllexport; /// dllexport attribute
         bool _deprecated;       /// deprecated attribute

@@ -529,6 +529,7 @@ immutable Msgtable[] msgtable =
     { "__func__" },
     { "noinline" },
     { "noreturn" },
+    { "_nothrow", "nothrow" },
     { "_deprecated", "deprecated" },
     { "_align", "align" },
     { "aligned" },

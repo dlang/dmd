@@ -8879,6 +8879,7 @@ struct Id final
     static Identifier* vector_size;
     static Identifier* noinline;
     static Identifier* noreturn;
+    static Identifier* _nothrow;
     static Identifier* _deprecated;
     static Identifier* _align;
     static Identifier* aligned;
