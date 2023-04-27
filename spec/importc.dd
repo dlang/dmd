@@ -600,6 +600,23 @@ $(H2 $(LNAME2 gnu-clang-extensions, Gnu and Clang Extensions))
     $(P `gcc` and `clang` are presumed to have the same behavior w.r.t. extensions,
     so `gcc` as used here refers to both.)
 
+
+    $(H3 $(LNAME2 __attribute__, `__attribute__` Extensions))
+
+    $(P The following $(LINK2 https://gcc.gnu.org/onlinedocs/gcc/Function-Attributes.html, `__attribute__` extensions):)
+
+    $(OL
+    $(LI `__attribute__((aligned(N)))`)
+    $(LI `__attribute__((always_inline))`)
+    $(LI `__attribute__((deprecated))`)
+    $(LI `__attribute__((dllexport))`)
+    $(LI `__attribute__((dllimport))`)
+    $(LI `__attribute__((naked))`)
+    $(LI `__attribute__((noinline))`)
+    $(LI $(RELATIVE_LINK2 noreturn, `__attribute__((noreturn))`))
+    $(LI others are ignored)
+    )
+
     $(H3 $(LNAME2 noreturn, `__attribute__((noreturn))`))
 
     $(P `__attribute__((noreturn))` marks a function as never returning.
@@ -628,15 +645,45 @@ $(H2 $(LNAME2 visualc-extensions, Visual C Extensions))
 
     $(P All the $(RELATIVE_LINK2 digital-mars-extensions, Digital Mars C Extensions).)
 
-$(H2 $(LNAME2 digital-mars-extensions, Digital Mars C Extensions))
-
     $(H3 $(LNAME2 __stdcall, `__stdcall` Function Calling Convention))
 
-    $(P This sets the calling convention for a function to the Windows API calling convention.)
+    $(P `__stdcall` sets the calling convention for a function to the Windows API calling convention.)
 
     ---
     int __stdcall foo(int x);
     ---
+
+    $(H3 $(LNAME2 __declspec, `__declspec` Attribute Extensions))
+
+    $(P The following $(LINK2 https://learn.microsoft.com/en-us/cpp/cpp/declspec?view=msvc-170, `__declspec` extensions):)
+
+    $(OL
+    $(LI `__declspec(align(N))`)
+    $(LI `__declspec(deprecated)`)
+    $(LI `__declspec(dllexport)`)
+    $(LI `__declspec(dllimport)`)
+    $(LI `__declspec(naked)`)
+    $(LI `__declspec(noinline)`)
+    $(LI `__declspec(noreturn)`)
+    $(LI `__declspec(thread)`)
+    $(LI others are ignored)
+    )
+
+$(H2 $(LNAME2 digital-mars-extensions, Digital Mars C Extensions))
+
+    $(H3 $(LNAME2 __stdcall, `__stdcall` Function Calling Convention))
+
+    $(H3 $(LNAME2 __declspec, `__declspec` Attribute Extensions))
+
+    $(P The following $(LINK2 https://digitalmars.com/ctg/ctgLanguageImplementation.html#declspec, `__declspec` extensions):)
+
+    $(OL
+    $(LI `__declspec(dllexport)`)
+    $(LI `__declspec(dllimport)`)
+    $(LI `__declspec(naked)`)
+    $(LI `__declspec(thread)`)
+    )
+
 
 $(H2 $(LNAME2 d-side, ImportC from D's Point of View))
 
