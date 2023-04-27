@@ -2764,6 +2764,7 @@ private shared CXX_DEMANGLER __cxa_demangle;
 
 CXX_DEMANGLER getCXXDemangler() nothrow @trusted
 {
+    import core.atomic : atomicLoad, atomicStore;
     if (__cxa_demangle is null)
     version (Posix)
     {
@@ -2777,17 +2778,21 @@ CXX_DEMANGLER getCXXDemangler() nothrow @trusted
         version (Solaris) import core.sys.solaris.dlfcn : RTLD_DEFAULT;
 
         if (auto found = cast(CXX_DEMANGLER) dlsym(RTLD_DEFAULT, "__cxa_demangle"))
-            __cxa_demangle = found;
+            atomicStore(__cxa_demangle, found);
     }
 
     if (__cxa_demangle is null)
-        __cxa_demangle = (const char* mangled_name, char* output_buffer,
-                            size_t* length, int* status) nothrow pure @trusted {
-                                *status = -1;
-                                return null;
-                            };
+    {
+        static extern(C) char* _(const char* mangled_name, char* output_buffer,
+             size_t* length, int* status) nothrow pure @trusted
+        {
+            *status = -1;
+            return null;
+        }
+        atomicStore(__cxa_demangle, &_);
+    }
 
-    return __cxa_demangle;
+    return atomicLoad(__cxa_demangle);
 }
 
 /**
