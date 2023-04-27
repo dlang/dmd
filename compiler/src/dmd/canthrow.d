@@ -53,7 +53,7 @@ enum CT : BE
  */
 extern (C++) /* CT */ BE canThrow(Expression e, FuncDeclaration func, bool mustNotThrow)
 {
-    //printf("Expression::canThrow(%d) %s\n", mustNotThrow, toChars());
+    //printf("Expression::canThrow(%d) %s\n", mustNotThrow, e.toChars());
     // stop walking if we determine this expression can throw
     extern (C++) final class CanThrow : StoppableVisitor
     {

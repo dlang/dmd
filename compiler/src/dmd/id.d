@@ -530,6 +530,7 @@ immutable Msgtable[] msgtable =
     { "always_inline" },
     { "noinline" },
     { "noreturn" },
+    { "_nothrow", "nothrow" },
     { "_deprecated", "deprecated" },
     { "_align", "align" },
     { "aligned" },
