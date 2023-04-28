@@ -92,6 +92,8 @@ extern (C++) struct Port
         {
             auto save = __locale_decpoint;
             __locale_decpoint = ".";
+            scope(exit)
+                __locale_decpoint = save;
         }
         version (CRuntime_Microsoft)
         {
@@ -99,7 +101,6 @@ extern (C++) struct Port
             int res = _atoflt(&r, s);
             if (res == _UNDERFLOW || res == _OVERFLOW)
                 errno = ERANGE;
-            version (CRuntime_DigitalMars) __locale_decpoint = save;
             return errno == ERANGE;
         }
         else
@@ -116,6 +117,8 @@ extern (C++) struct Port
         {
             auto save = __locale_decpoint;
             __locale_decpoint = ".";
+            scope(exit)
+                __locale_decpoint = save;
         }
         version (CRuntime_Microsoft)
         {
@@ -123,7 +126,6 @@ extern (C++) struct Port
             int res = _atodbl(&r, s);
             if (res == _UNDERFLOW || res == _OVERFLOW)
                 errno = ERANGE;
-            version (CRuntime_DigitalMars) __locale_decpoint = save;
             return errno == ERANGE;
         }
         else
