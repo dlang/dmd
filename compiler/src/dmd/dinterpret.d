@@ -5754,7 +5754,25 @@ public:
                 e2 = ue2.copy();
         }
 
-        *pue = ctfeCat(e.loc, e.type, e1, e2);
+        Expression prepareCatOperand(Expression exp)
+        {
+            /* Convert `elem ~ array` to `[elem] ~ array` if `elem` is itself an
+             * array. This is needed because interpreting the `CatExp` calls
+             * `Cat()`, which cannot handle concatenations between different
+             * types, except for strings and chars.
+             */
+            auto tb = e.type.toBasetype();
+            auto tbNext = tb.nextOf();
+            auto expTb = exp.type.toBasetype();
+
+            if (exp.type.implicitConvTo(tbNext) >= MATCH.convert &&
+                (tb.ty == Tarray || tb.ty == Tsarray) &&
+                (expTb.ty == Tarray || expTb.ty == Tsarray))
+                return new ArrayLiteralExp(exp.loc, e.type, exp);
+            return exp;
+        }
+
+        *pue = ctfeCat(e.loc, e.type, prepareCatOperand(e1), prepareCatOperand(e2));
         result = pue.exp();
 
         if (CTFEExp.isCantExp(result))
@@ -6463,32 +6481,33 @@ void interpretThrow(ref Expression result, Expression exp, const ref Loc loc, In
     }
 }
 
-    /*********************************************
-     * Checks if the given expresion is a call to the runtime hook `id`.
-     * Params:
-     *    e = the expression to check
-     *    id = the identifier of the runtime hook
-     * Returns:
-     *    `e` cast to `CallExp` if it's the hook, `null` otherwise
-     */
-    private CallExp isRuntimeHook(Expression e, Identifier id)
+/*********************************************
+ * Checks if the given expresion is a call to the runtime hook `id`.
+ *
+ * Params:
+ *    e = the expression to check
+ *    id = the identifier of the runtime hook
+ * Returns:
+ *    `e` cast to `CallExp` if it's the hook, `null` otherwise
+ */
+public CallExp isRuntimeHook(Expression e, Identifier id)
+{
+    if (auto ce = e.isCallExp())
     {
-        if (auto ce = e.isCallExp())
+        if (auto ve = ce.e1.isVarExp())
         {
-            if (auto ve = ce.e1.isVarExp())
+            if (auto fd = ve.var.isFuncDeclaration())
             {
-                if (auto fd = ve.var.isFuncDeclaration())
-                {
-                    // If `_d_HookTraceImpl` is found, resolve the underlying
-                    // hook and replace `e` and `fd` with it.
-                    removeHookTraceImpl(ce, fd);
-                    return fd.ident == id ? ce : null;
-                }
+                // If `_d_HookTraceImpl` is found, resolve the underlying hook
+                // and replace `e` and `fd` with it.
+                removeHookTraceImpl(ce, fd);
+                return fd.ident == id ? ce : null;
             }
         }
-
-        return null;
     }
+
+    return null;
+}
 
 /********************************************
  * Interpret the expression.

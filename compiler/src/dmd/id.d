@@ -361,6 +361,8 @@ immutable Msgtable[] msgtable =
     { "_d_arrayappendcTXImpl" },
     { "_d_arrayappendcTX" },
     { "_d_arrayappendcTXTrace" },
+    { "_d_arraycatnTX" },
+    { "_d_arraycatnTXTrace" },
 
     // varargs implementation
     { "stdc" },

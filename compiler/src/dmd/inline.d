@@ -747,6 +747,21 @@ public:
             result = ae;
         }
 
+        override void visit(CatExp e)
+        {
+            auto ce = e.copy().isCatExp();
+
+            if (auto lowering = ce.lowering)
+                ce.lowering = doInlineAs!Expression(lowering, ids);
+            else
+            {
+                ce.e1 = doInlineAs!Expression(e.e1, ids);
+                ce.e2 = doInlineAs!Expression(e.e2, ids);
+            }
+
+            result = ce;
+        }
+
         override void visit(BinExp e)
         {
             auto be = cast(BinExp)e.copy();
@@ -1239,6 +1254,18 @@ public:
     {
         inlineScan(e.e1);
         inlineScan(e.msg);
+    }
+
+    override void visit(CatExp e)
+    {
+        if (auto lowering = e.lowering)
+        {
+            inlineScan(lowering);
+            return;
+        }
+
+        inlineScan(e.e1);
+        inlineScan(e.e2);
     }
 
     override void visit(BinExp e)

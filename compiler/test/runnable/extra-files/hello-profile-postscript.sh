@@ -3,7 +3,9 @@
 source tools/common_funcs.sh
 
 # strip out Dmain since it's symbol differs between windows and non-windows
-grep -v Dmain ${OUTPUT_BASE}.d.trace.def > ${OUTPUT_BASE}.d.trace.def2
+# strip out _d_arraycatnTX and _d_arraysetlengthT since they are part of the
+# lowering of the array concatenation operator
+grep -v 'Dmain\|_d_arraycatnTX\|_d_arraysetlengthT' ${OUTPUT_BASE}.d.trace.def > ${OUTPUT_BASE}.d.trace.def2
 
 diff -up --strip-trailing-cr ${EXTRA_FILES}/${TEST_NAME}.d.trace.def ${OUTPUT_BASE}.d.trace.def2
 

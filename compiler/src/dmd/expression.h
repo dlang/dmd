@@ -1207,6 +1207,8 @@ public:
 class CatExp final : public BinExp
 {
 public:
+    Expression *lowering;  // call to druntime hook `_d_arraycatnTX`
+
     void accept(Visitor *v) override { v->visit(this); }
 };
 
