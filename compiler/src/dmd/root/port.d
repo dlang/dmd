@@ -70,7 +70,7 @@ extern (C++) struct Port
 
         return t;
     }
-    static bool resultOutOfRange(FloatingType)(const FloatingType x, const int errnoValue)
+    private extern (D) static bool resultOutOfRange(FloatingType)(const FloatingType x, const int errnoValue)
     {
         import core.stdc.math : HUGE_VAL, HUGE_VALF;
         static if (is(FloatingType == double))
