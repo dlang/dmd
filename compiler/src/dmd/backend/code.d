@@ -104,8 +104,6 @@ code *code_malloc()
     return c;
 }
 
-extern __gshared con_t regcon;
-
 /************************************
  * Register save state.
  */
@@ -123,11 +121,6 @@ struct REGSAVE
     void save(ref CodeBuilder cdb, reg_t reg, uint *pidx) { REGSAVE_save(this, cdb, reg, *pidx); }
     void restore(ref CodeBuilder cdb, reg_t reg, uint idx) { REGSAVE_restore(this, cdb, reg, idx); }
 }
-
-void REGSAVE_save(ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, out uint idx);
-void REGSAVE_restore(const ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, uint idx);
-
-extern __gshared REGSAVE regsave;
 
 /************************************
  * Local sections on the stack
@@ -327,9 +320,6 @@ struct FuncParamRegs
     const(ubyte)* floatregs;    // map to fp register
 }
 
-extern FuncParamRegs FuncParamRegs_create(tym_t tyf) @system;
-extern int FuncParamRegs_alloc(ref FuncParamRegs fpr, type *t, tym_t ty, reg_t *preg1, reg_t *preg2) @system;
-
 extern __gshared
 {
     regm_t msavereg,mfuncreg,allregs;
@@ -355,7 +345,6 @@ extern __gshared
 
 /* cgcod.c */
 public import dmd.backend.cgcod;
-extern __gshared BackendPass pass;
 enum BackendPass
 {
     initial,    /// initial pass through code generator
@@ -363,21 +352,7 @@ enum BackendPass
     final_,     /// final pass
 }
 
-extern __gshared int dfoidx;
-extern __gshared bool floatreg;
-extern __gshared targ_size_t prolog_allocoffset;
-extern __gshared targ_size_t startoffset;
-extern __gshared targ_size_t retoffset;
-extern __gshared targ_size_t retsize;
-extern __gshared uint stackpush;
-extern __gshared int stackchanged;
-extern __gshared int refparam;
-extern __gshared int reflocal;
-extern __gshared bool anyiasm;
-extern __gshared char calledafunc;
-extern __gshared bool calledFinally;
-
-void codgen(Symbol *);
+public import dmd.backend.cgcod : retsize;
 
 debug
 {
@@ -393,24 +368,6 @@ else
 
 reg_t findregmsw(uint regm) { return findreg(regm & mMSW); }
 reg_t findreglsw(uint regm) { return findreg(regm & (mLSW | mBP)); }
-void freenode(elem *e);
-int isregvar(elem *e, regm_t *pregm, reg_t *preg);
-void allocreg(ref CodeBuilder cdb, regm_t *pretregs, reg_t *preg, tym_t tym, int line, const(char)* file);
-void allocreg(ref CodeBuilder cdb, regm_t *pretregs, reg_t *preg, tym_t tym);
-reg_t allocScratchReg(ref CodeBuilder cdb, regm_t regm);
-regm_t lpadregs();
-void useregs (regm_t regm);
-void getregs(ref CodeBuilder cdb, regm_t r);
-void getregsNoSave(regm_t r);
-void getregs_imm(ref CodeBuilder cdb, regm_t r);
-void cse_flush(ref CodeBuilder, int);
-bool cse_simple(code *c, elem *e);
-bool cssave (elem *e , regm_t regm , uint opsflag );
-bool evalinregister(elem *e);
-regm_t getscratch();
-void codelem(ref CodeBuilder cdb, elem *e, regm_t *pretregs, uint constflag);
-void scodelem(ref CodeBuilder cdb, elem *e, regm_t *pretregs, regm_t keepmsk, bool constflag);
-const(char)* regm_str(regm_t rm);
 
 /* cdxxx.c: functions that go into cdxxx[] table */
 void cdabs(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
@@ -487,34 +444,6 @@ public import dmd.backend.cod5;
 public import dmd.backend.cgen : outfixlist, addtofixlist;
 
 void searchfixlist(Symbol *s) {}
-
-extern __gshared
-{
-    int hasframe;            /* !=0 if this function has a stack frame */
-    bool enforcealign;       /* enforced stack alignment */
-    targ_size_t spoff;
-    targ_size_t Foff;        // BP offset of floating register
-    targ_size_t CSoff;       // offset of common sub expressions
-    targ_size_t NDPoff;      // offset of saved 8087 registers
-    targ_size_t pushoff;     // offset of saved registers
-    bool pushoffuse;         // using pushoff
-    int BPoff;               // offset from BP
-    int EBPtoESP;            // add to EBP offset to get ESP offset
-}
-
-void prolog_ifunc(ref CodeBuilder cdb, tym_t* tyf);
-void prolog_ifunc2(ref CodeBuilder cdb, tym_t tyf, tym_t tym, bool pushds);
-void prolog_16bit_windows_farfunc(ref CodeBuilder cdb, tym_t* tyf, bool* pushds);
-void prolog_frame(ref CodeBuilder cdb, bool farfunc, ref uint xlocalsize, out bool enter, out int cfa_offset);
-void prolog_frameadj(ref CodeBuilder cdb, tym_t tyf, uint xlocalsize, bool enter, bool* pushalloc);
-void prolog_frameadj2(ref CodeBuilder cdb, tym_t tyf, uint xlocalsize, bool* pushalloc);
-void prolog_setupalloca(ref CodeBuilder cdb);
-void prolog_saveregs(ref CodeBuilder cdb, regm_t topush, int cfa_offset);
-void prolog_stackalign(ref CodeBuilder cdb);
-void prolog_trace(ref CodeBuilder cdb, bool farfunc, uint* regsaved);
-void prolog_gen_win64_varargs(ref CodeBuilder cdb);
-void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv, regm_t namedargs);
-void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_t namedargs);
 
 public import dmd.backend.cgxmm;
 public import dmd.backend.cg87;
