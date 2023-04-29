@@ -2804,8 +2804,10 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
         }
         mt.exp = exp2;
 
-        if (mt.exp.op == EXP.type ||
-            mt.exp.op == EXP.scope_)
+        if ((mt.exp.op == EXP.type || mt.exp.op == EXP.scope_) &&
+            // https://issues.dlang.org/show_bug.cgi?id=23863
+            // compile time sequences are valid types
+            !mt.exp.type.isTypeTuple())
         {
             if (!(sc.flags & SCOPE.Cfile) && // in (extended) C typeof may be used on types as with sizeof
                 mt.exp.checkType())
