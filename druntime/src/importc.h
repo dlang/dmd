@@ -74,6 +74,9 @@
  */
 #define __extension__  /* ignore it, as ImportC doesn't do warnings */
 
+#define __builtin_isnan(x) isnan(x)
+#define __builtin_isfinite(x) finite(x)
+
 /********************************
  * __has_extension is a clang thing:
  *    https://clang.llvm.org/docs/LanguageExtensions.html
