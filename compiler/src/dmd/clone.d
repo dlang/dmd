@@ -312,26 +312,10 @@ FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
      */
     else if (sd.dtor)
     {
-        //printf("\tswap copy\n");
-        TypeFunction tdtor = cast(TypeFunction)sd.dtor.type;
-        assert(tdtor.ty == Tfunction);
+        auto e1 = new CallExp(loc, new DotVarExp(loc, new ThisExp(loc), sd.dtor, false));
+        auto e2 = new BlitExp(loc, new ThisExp(loc), new IdentifierExp(loc, Id.p));
 
-        auto idswap = Identifier.generateId("__swap");
-        auto swap = new VarDeclaration(loc, sd.type, idswap, new VoidInitializer(loc));
-        swap.storage_class |= STC.nodtor | STC.temp | STC.ctfe;
-        if (tdtor.isScopeQual)
-            swap.storage_class |= STC.scope_;
-        auto e1 = new DeclarationExp(loc, swap);
-
-        auto e2 = new BlitExp(loc, new VarExp(loc, swap), new ThisExp(loc));
-        auto e3 = new BlitExp(loc, new ThisExp(loc), new IdentifierExp(loc, Id.p));
-
-        /* Instead of running the destructor on s, run it
-         * on swap. This avoids needing to copy swap back in to s.
-         */
-        auto e4 = new CallExp(loc, new DotVarExp(loc, new VarExp(loc, swap), sd.dtor, false));
-
-        e = Expression.combine(e1, e2, e3, e4);
+        e = Expression.combine(e1, e2);
     }
     /* postblit was called when the value was passed to opAssign, we just need to blit the result */
     else if (sd.postblit)
