@@ -2893,6 +2893,8 @@ final class CParser(AST) : Parser!AST
                         auto parameterList = cparseParameterList();
                         const lkg = specifier.mod & MOD.x__stdcall ? LINK.windows : linkage;
                         StorageClass stc = specifier._nothrow ? STC.nothrow_ : 0;
+                        if (specifier._pure)
+                            stc |= STC.pure_;
                         AST.Type tf = new AST.TypeFunction(parameterList, t, lkg, stc);
     //                  tf = tf.addSTC(storageClass);  // TODO
                         insertTx(ts, tf, t);  // ts -> ... -> tf -> t
@@ -3537,6 +3539,11 @@ final class CParser(AST) : Parser!AST
             else if (token.ident == Id._nothrow)
             {
                 specifier._nothrow = true;
+                nextToken();
+            }
+            else if (token.ident == Id._pure)
+            {
+                specifier._pure = true;
                 nextToken();
             }
             else if (token.ident == Id.vector_size)
@@ -4944,6 +4951,7 @@ final class CParser(AST) : Parser!AST
         bool noreturn;  /// noreturn attribute
         bool naked;     /// naked attribute
         bool _nothrow;  /// nothrow attribute
+        bool _pure;     /// pure attribute
         bool dllimport; /// dllimport attribute
         bool dllexport; /// dllexport attribute
         bool _deprecated;       /// deprecated attribute
