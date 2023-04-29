@@ -546,6 +546,7 @@ immutable Msgtable[] msgtable =
     { "show" },
     { "push" },
     { "pop" },
+    { "_pure", "pure" },
     { "define" },
     { "undef" },
 ];
