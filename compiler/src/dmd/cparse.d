@@ -2350,12 +2350,15 @@ final class CParser(AST) : Parser!AST
                      *    struct-or-union gnu-attributes (opt) identifier (opt) { struct-declaration-list } gnu-attributes (opt)
                      *    struct-or-union gnu-attribute (opt) identifier
                      */
-                    if (token.value == TOK.__attribute__)
-                        cparseGnuAttributes(tagSpecifier);
-
-                    if (token.value == TOK.__declspec)
-                        cparseDeclspec(tagSpecifier);
-
+                    while (1)
+                    {
+                        if (token.value == TOK.__attribute__)
+                            cparseGnuAttributes(tagSpecifier);
+                        else if (token.value == TOK.__declspec)
+                            cparseDeclspec(tagSpecifier);
+                        else
+                            break;
+                    }
                     t = cparseStruct(sloc, structOrUnion, tagSpecifier.packalign, symbols);
                     tkwx = TKW.xtag;
                     break;
