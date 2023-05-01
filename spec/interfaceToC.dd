@@ -259,13 +259,16 @@ printf("hello %.*s\n", cast(int) s.length, s.ptr);
 
 $(H3 `size_t` and `ptrdiff_t`)
 
-        $(P These use the `zd` and `dt` format specifiers respectively:
+        $(P These use the `zu` and `td` format specifiers respectively:
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
-int* p, q;
-printf("size of an int is %zt, pointer difference is %td\n", int.sizeof, p - q);
+import core.stdc.stdio : printf;
+int* p = new int, q = new int;
+printf("size of an int is %zu, pointer difference is %td\n", int.sizeof, p - q);
 ---
+)
 
 $(H3 Non-Standard Format Specifiers)
 
