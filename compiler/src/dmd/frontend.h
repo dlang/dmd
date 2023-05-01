@@ -2690,14 +2690,14 @@ class SemanticTimePermissiveVisitor : public Visitor
 {
 public:
     using Visitor::visit;
-    void visit(Dsymbol* _param_0) override;
-    void visit(Parameter* _param_0) override;
-    void visit(Statement* _param_0) override;
-    void visit(Type* _param_0) override;
-    void visit(Expression* _param_0) override;
-    void visit(TemplateParameter* _param_0) override;
-    void visit(Condition* _param_0) override;
-    void visit(Initializer* _param_0) override;
+    void visit(Dsymbol* __param_0_) override;
+    void visit(Parameter* __param_0_) override;
+    void visit(Statement* __param_0_) override;
+    void visit(Type* __param_0_) override;
+    void visit(Expression* __param_0_) override;
+    void visit(TemplateParameter* __param_0_) override;
+    void visit(Condition* __param_0_) override;
+    void visit(Initializer* __param_0_) override;
 };
 
 class StatementRewriteWalker : public SemanticTimePermissiveVisitor
@@ -3794,7 +3794,7 @@ public:
     bool isDstyleVariadic() const;
     StorageClass parameterStorageClass(Type* tthis, Parameter* p);
     Type* addStorageClass(StorageClass stc) override;
-    Type* substWildTo(uint32_t _param_0) override;
+    Type* substWildTo(uint32_t __param_0_) override;
     MATCH constConv(Type* to) override;
     bool iswild() const;
     void accept(Visitor* v) override;
@@ -5550,7 +5550,7 @@ public:
     Scope* newScope(Scope* sc) override;
     void addMember(Scope* sc, ScopeDsymbol* sds) override;
     const char* kind() const override;
-    const char* toPrettyChars(bool _param_0) override;
+    const char* toPrettyChars(bool __param_0_) override;
     VisibilityDeclaration* isVisibilityDeclaration() override;
     void accept(Visitor* v) override;
 };
@@ -6767,7 +6767,7 @@ private:
     Array<Expression* > lastConstraintNegs;
     Array<RootObject* >* lastConstraintTiargs;
 public:
-    TemplateDeclaration* syntaxCopy(Dsymbol* _param_0) override;
+    TemplateDeclaration* syntaxCopy(Dsymbol* __param_0_) override;
     bool overloadInsert(Dsymbol* s) override;
     bool hasStaticCtorOrDtor() override;
     const char* kind() const override;
