@@ -892,7 +892,7 @@ extern (C++) class Dsymbol : ASTNode
             if (ident == Id._init)
             {
                 // @@@DEPRECATED_2.100@@@
-                // Should be an error in 2.110.
+                // Should be an error in 2.113.
                 auto ad = sds.isAggregateDeclaration();
                 // Limit to D classes / structs, Objective-C classes have a standard `init` method
                 if (!ad || ad.classKind == ClassKind.d)
