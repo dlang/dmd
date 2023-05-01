@@ -2948,6 +2948,7 @@ extern Expression* initializerToExpression(Initializer* init, Type* itype = null
 
 enum class DotExpFlag
 {
+    none = 0,
     gag = 1,
     noDeref = 2,
     noAliasThis = 4,

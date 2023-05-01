@@ -3136,7 +3136,7 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
  * Returns:
  *  resulting expression with e.ident resolved
  */
-Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
+Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag flag)
 {
     Expression visitType(Type mt)
     {
@@ -3634,7 +3634,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                  *  template opDispatch(name) if (isValid!name) { ... }
                  */
                 uint errors = gagError ? global.startGagging() : 0;
-                e = dti.dotTemplateSemanticProp(sc, 0);
+                e = dti.dotTemplateSemanticProp(sc, DotExpFlag.none);
                 if (gagError && global.endGagging(errors))
                     e = null;
                 return returnExp(e);
@@ -3930,7 +3930,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                 return mt.getProperty(sc, e.loc, ident, flag & 1);
             }
 
-            Expression res = mt.sym.getMemtype(Loc.initial).dotExp(sc, e, ident, 1);
+            Expression res = mt.sym.getMemtype(Loc.initial).dotExp(sc, e, ident, DotExpFlag.gag);
             if (!(flag & 1) && !res)
             {
                 if (auto ns = mt.sym.search_correct(ident))
