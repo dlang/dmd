@@ -964,8 +964,8 @@ public:
         else
             sym = func->searchLabel(s->ident, s->loc);
         sym->statement->accept(this);
-        if (sym == func->returnLabel && func->fensure != NULL)
-            func->fensure->accept(this);
+        if (sym == func->returnLabel && func->fensure() != NULL)
+            func->fensure()->accept(this);
         else if (s->statement)
             s->statement->accept(this);
     }
