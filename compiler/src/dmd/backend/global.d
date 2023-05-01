@@ -482,13 +482,6 @@ version (HTOD)
     void srcpos_dehydrate(Srcpos *);
 }
 
-// tdb.c
-uint tdb_gettimestamp();
-void tdb_write(void *buf,uint size,uint numindices);
-uint tdb_typidx(void *buf);
-//uint tdb_typidx(ubyte *buf,uint length);
-void tdb_term();
-
 // rtlsym.c
 void rtlsym_init();
 void rtlsym_reset();
