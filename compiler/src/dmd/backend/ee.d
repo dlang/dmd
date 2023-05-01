@@ -12,9 +12,6 @@
  */
 module dmd.backend.ee;
 
-version (SPP) {} else
-{
-
 import core.stdc.stdio;
 import core.stdc.string;
 import core.stdc.time;
@@ -125,5 +122,4 @@ void eecontext_parse()
     }
 }
 
-}
 }

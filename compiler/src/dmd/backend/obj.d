@@ -27,9 +27,7 @@ extern (C++):
 
 nothrow:
 
-version (SPP)
-    version = STUB;
-else version (HTOD)
+version (HTOD)
     version = STUB;
 else version (Windows)
 {

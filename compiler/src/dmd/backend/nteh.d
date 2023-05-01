@@ -14,12 +14,6 @@
 
 module dmd.backend.nteh;
 
-version (SPP)
-{
-}
-else
-{
-
 import core.stdc.stdio;
 import core.stdc.string;
 
@@ -938,5 +932,4 @@ void nteh_monitor_epilog(ref CodeBuilder cdb,regm_t retregs)
 
 }
 
-}
 }

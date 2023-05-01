@@ -81,12 +81,7 @@ else
     bool LARGECODE() { return (config.memmodel & 5) != 0; }
 }
 
-version (SPP)
-{
-    enum COMPILER = "Preprocessor";
-    enum ACTIVITY = "preprocessing...";
-}
-else version (HTOD)
+version (HTOD)
 {
     enum COMPILER = ".h to D Migration Tool";
     enum ACTIVITY = "migrating...";
@@ -184,11 +179,6 @@ nothrow:
         Sfile **Sfilptr;            // file
         short Sfilnum;              // file number
     }
-    version (SPP)
-    {
-        Sfile **Sfilptr;            // file
-        short Sfilnum;              // file number
-    }
     version (HTOD)
     {
         Sfile **Sfilptr;            // file
@@ -230,11 +220,6 @@ nothrow:
 }
 
 version (SCPP)
-{
-    static Sfile srcpos_sfile(Srcpos p) { return **(p).Sfilptr; }
-    static char* srcpos_name(Srcpos p)   { return srcpos_sfile(p).SFname; }
-}
-version (SPP)
 {
     static Sfile srcpos_sfile(Srcpos p) { return **(p).Sfilptr; }
     static char* srcpos_name(Srcpos p)   { return srcpos_sfile(p).SFname; }
@@ -805,12 +790,9 @@ struct func_t
 
     char *Fredirect;            // redirect function name to this name in object
 
-version (SPP) { } else
-{
     version (MARS)
         // Array of catch types for EH_DWARF Types Table generation
         Barray!(Symbol*) typesTable;
-}
 
     union
     {
@@ -1491,12 +1473,6 @@ version (SCPP)
     const(char)* prettyident(const Symbol *s) { return CPP ? cpp_prettyident(s) : &s.Sident[0]; }
 }
 
-version (SPP)
-{
-    const(char)* cpp_prettyident (const Symbol *s);
-    const(char)* prettyident(const Symbol *s) { return &s.Sident[0]; }
-}
-
 version (HTOD)
 {
     const(char)* cpp_prettyident (const Symbol *s);
@@ -1704,14 +1680,7 @@ void sfile_debug(const Sfile* sf)
 // means that pfiles[] cannot be reallocated to larger numbers, its size is
 // fixed at SRCFILES_MAX.
 
-version (SPP)
-{
-    enum SRCFILES_MAX = (2*512*4);      // no precompiled headers for SPP
-}
-else
-{
-    enum SRCFILES_MAX = (2*512);
-}
+enum SRCFILES_MAX = (2*512);
 
 struct Srcfiles
 {

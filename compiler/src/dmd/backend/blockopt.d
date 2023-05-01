@@ -12,9 +12,6 @@
 
 module dmd.backend.blockopt;
 
-version (SPP) {} else
-{
-
 version (SCPP)
     version = COMPILE;
 else version (HTOD)
@@ -2518,5 +2515,3 @@ private void blexit()
 
     bexits.dtor();
 }
-
-} //!SPP

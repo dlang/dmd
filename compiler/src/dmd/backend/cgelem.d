@@ -19,12 +19,6 @@
 
 module dmd.backend.cgelem;
 
-version (SPP)
-{
-}
-else
-{
-
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -6608,5 +6602,3 @@ private extern (D) immutable elfp_t[OPMAX] elxxx =
     OPva_start: &elvalist,
     OPprefetch: &elzot,
 ];
-
-}

@@ -13,12 +13,6 @@
 
 module dmd.backend.evalu8;
 
-version (SPP)
-{
-}
-else
-{
-
 import core.stdc.math;
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -2074,5 +2068,4 @@ version (CRuntime_Microsoft)
 else
 {
     targ_ldouble _modulo(targ_ldouble x, targ_ldouble y);
-}
 }
