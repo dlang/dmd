@@ -371,11 +371,6 @@ alias backend = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRul
         "-of" ~ rule.target,
         ]
         .chain(
-            (
-                // Only use -betterC when it doesn't break other features
-                extraFlags.canFind("-unittest", env["COVERAGE_FLAG"]) ||
-                flags["DFLAGS"].canFind("-unittest", env["COVERAGE_FLAG"])
-            ) ? [] : ["-betterC"],
             flags["DFLAGS"], extraFlags,
 
             // source files need to have relative paths in order for the code coverage
@@ -836,7 +831,7 @@ alias style = makeRule!((builder, rule)
             // FIXME: Omitted --shallow-submodules because it requires a more recent
             //        git version which is not available on buildkite
             env["GIT"], "clone", "--depth=1", "--recurse-submodules",
-            "--branch=v0.11.0",
+            "--branch=v0.14.0",
             "https://github.com/dlang-community/D-Scanner", dscannerDir
         ])
     );

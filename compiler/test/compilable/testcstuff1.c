@@ -201,6 +201,13 @@ _Static_assert(testexpinit() == 1 + 2 + 3, "ok");
 
 /********************************/
 
+__declspec(restrict) void* testrestrictdeclspec()
+{
+    return 0;
+}
+
+/********************************/
+
 // Character literals
 _Static_assert(sizeof('a') == 4, "ok");
 _Static_assert(sizeof(u'a') == 4, "ok");
@@ -270,7 +277,8 @@ void test2()
     typedef int TI;
     //extern int ei;
     static int si;
-    _Thread_local int tli;
+    static _Thread_local int tli;
+    int __declspec(thread) tlj;
     auto int ai;
     register int reg;
     const int ci;

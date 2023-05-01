@@ -14,12 +14,6 @@
 
 module dmd.backend.go;
 
-version (SPP)
-{
-}
-else
-{
-
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -53,50 +47,9 @@ extern (C++):
 nothrow:
 @safe:
 
-int os_clock();
-
-/* gdag.c */
-void builddags();
-void boolopt();
-void opt_arraybounds();
-
-/* gflow.c */
-void flowrd();
-void flowlv();
-void flowae();
-void flowvbe();
-void flowcp();
-void genkillae();
-void flowarraybounds();
-int ae_field_affect(elem *lvalue,elem *e);
-
-/* glocal.c */
-void localize();
-
-/* gloop.c */
-bool blockinit();
-void compdom();
-void loopopt();
-void fillInDNunambig(vec_t v, elem *e);
-void updaterd(elem *n,vec_t GEN,vec_t KILL);
-
-/* gother.c */
-void rd_arraybounds();
-void rd_free();
-void constprop();
-void copyprop();
-void rmdeadass();
-void elimass(elem *);
-void deadvar();
-void verybusyexp();
-void listrds(vec_t, elem *, vec_t, Barray!(elem*)*);
-
-/* gslice.c */
-void sliceStructs(ref symtab_t, block*);
-
+import dmd.backend.os : os_clock;
 /***************************************************************************/
 
-extern (C) void mem_free(void* p);
 
 @trusted
 void go_term()
@@ -430,6 +383,4 @@ else
         block_optimizer_free(b);
     }
 }
-}
-
 }

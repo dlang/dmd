@@ -652,7 +652,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 dt2common(&s.Sdt);
             }
 
-            if (s.Sclass & SC.global && s.Stype.Tty & mTYconst)
+            if (s.Sclass == SC.global && s.Stype.Tty & mTYconst)
                 out_readonly(s);
 
             outdata(s);
@@ -965,7 +965,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             // Compute identifier for tlv symbol
             OutBuffer buffer;
-            buffer.writestring(s.Sident);
+            buffer.writestring(s.Sident.ptr);
             buffer.writestring("$tlv$init");
             const(char)[] tlvInitName = buffer[];
 

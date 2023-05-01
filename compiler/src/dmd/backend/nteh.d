@@ -14,12 +14,6 @@
 
 module dmd.backend.nteh;
 
-version (SPP)
-{
-}
-else
-{
-
 import core.stdc.stdio;
 import core.stdc.string;
 
@@ -55,7 +49,6 @@ nothrow:
 @safe:
 
 int REGSIZE();
-Symbol* except_gensym();
 void except_fillInEHTable(Symbol *s);
 
 private __gshared
@@ -939,5 +932,4 @@ void nteh_monitor_epilog(ref CodeBuilder cdb,regm_t retregs)
 
 }
 
-}
 }

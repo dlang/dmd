@@ -95,7 +95,6 @@ alias MEM_PARF_REALLOC = mem_realloc;
 alias MEM_PARF_FREE = mem_free;
 alias MEM_PARF_STRDUP = mem_strdup;
 
-int REGSIZE();
 
 version (STATS)
 {

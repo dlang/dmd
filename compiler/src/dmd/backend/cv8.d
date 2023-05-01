@@ -55,7 +55,6 @@ nothrow:
 static if (1)
 {
 
-int REGSIZE();
 
 // Determine if this Symbol is stored in a COMDAT
 @trusted

@@ -62,8 +62,6 @@ extern (C++):
 nothrow:
 @safe:
 
-enum SYMDEB_TDB = false;
-
 @trusted
 extern (C) void TOOFFSET(void* p, targ_size_t value)
 {
@@ -334,19 +332,6 @@ idx_t cv_debtyp(debtyp_t *d)
     assert(d);
     const length = d.length;
     //printf("length = %3d\n",length);
-static if (SYMDEB_TDB)
-{
-    if (config.fulltypes == CVTDB)
-    {
-            assert(length);
-            debtyp_check(d);
-            const result = tdb_typidx(&d.length);
-
-            //printf("result = x%x\n",result);
-            debtyp_free(d);
-            return result;
-    }
-}
     if (length)
     {
         uint hash = length;
@@ -572,27 +557,6 @@ void cv_init()
         TOWORD(debsym.ptr,6 + (version_).sizeof);
         objmod.write_bytes(SegData[DEBSYM],8 + (version_).sizeof,debsym.ptr);
 
-static if (SYMDEB_TDB)
-{
-        // Put out S_TDBNAME record
-        if (config.fulltypes == CVTDB)
-        {
-            ubyte[50] buf = void;
-
-            pstate.STtdbtimestamp = tdb_gettimestamp();
-            size_t len = cv_stringbytes(ftdbname);
-            ubyte *ds = (8 + len <= buf.sizeof) ? buf : cast(ubyte *) malloc(8 + len);
-            if (!ds)
-                err_nomem();
-            TOWORD(ds,6 + len);
-            TOWORD(ds + 2,S_TDBNAME);
-            TOLONG(ds + 4,pstate.STtdbtimestamp);
-            cv_namestring(ds + 8,ftdbname);
-            objmod.write_bytes(SegData[DEBSYM],8 + len,ds);
-            if (ds != buf)
-                free(ds);
-        }
-}
     }
     else
     {
@@ -1097,24 +1061,6 @@ version (SCPP)
     // references the same struct.
     if (config.fulltypes == CVTDB)
     {
-static if (SYMDEB_TDB)
-{
-        TOWORD(d.data.ptr + 2,0);          // number of fields
-        TOLONG(d.data.ptr + 6,0);          // field list is 0
-        TOWORD(d.data.ptr + 4,property | 0x80);    // set fwd ref bit
-static if (0)
-{
-printf("fwd struct ref\n");
-{int i;
- printf("len = %d, length = %d\n",len,d.length);
- for (i=0;i<d.length;i++)
- printf("%02x ",d.data.ptr[i]);
- printf("\n");
-}
-}
-        debtyp_check(d);
-        s.Stypidx = tdb_typidx(&d.length);    // forward reference it
-}
     }
     else
     {
@@ -1574,14 +1520,6 @@ version (SCPP)
     else
         TOLONG(d.data.ptr + 6,cv_debtyp(dt));
 
-static if (SYMDEB_TDB)
-{
-    if (config.fulltypes == CVTDB)
-    {
-        s.Stypidx = cv_debtyp(d);
-        reset_symbuf.write(&s, (s).sizeof);
-    }
-}
 version (SCPP)
 {
     if (CPP)
@@ -3054,49 +2992,6 @@ void cv_term()
             }
             break;
 
-static if (SYMDEB_TDB)
-{
-        case CVTDB:
-            cv_outlist();
-static if (1)
-{
-            tdb_term();
-}
-else
-{
-        {   ubyte *buf;
-            ubyte *p;
-            size_t len;
-
-            // Calculate size of buffer
-            len = 4;
-            for (uint u = 0; u < debtyp.length; u++)
-            {   debtyp_t *d = debtyp[u];
-
-                len += 2 + d.length;
-            }
-
-            // Allocate buffer
-            buf = malloc(len);
-            if (!buf)
-                err_nomem();                    // out of memory
-
-            // Fill the buffer
-            TOLONG(buf,cgcv.signature);
-            p = buf + 4;
-            for (uint u = 0; u < debtyp.length; u++)
-            {   debtyp_t *d = debtyp[u];
-
-                len = 2 + d.length;
-                memcpy(p,cast(char *)d + uint.sizeof,len);
-                p += len;
-            }
-
-            tdb_write(buf,len,debtyp.length);
-        }
-}
-            break;
-}
 
         default:
             assert(0);

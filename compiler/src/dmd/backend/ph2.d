@@ -24,7 +24,7 @@ import dmd.backend.global;
 
 extern (C++):
 
-nothrow:
+nothrow: @nogc:
 
 /**********************************************
  * Do our own storage allocator, a replacement

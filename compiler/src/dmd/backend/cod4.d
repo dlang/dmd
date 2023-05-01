@@ -53,8 +53,6 @@ extern (C++):
 nothrow:
 @safe:
 
-int REGSIZE();
-
 extern __gshared CGstate cgstate;
 extern __gshared bool[FLMAX] datafl;
 

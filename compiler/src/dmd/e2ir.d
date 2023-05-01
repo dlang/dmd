@@ -1725,50 +1725,10 @@ elem* toElem(Expression e, IRState *irs)
             return el_long(TYint, 0);
         }
 
-        Type tb1 = ce.e1.type.toBasetype();
-        Type tb2 = ce.e2.type.toBasetype();
+        if (auto lowering = ce.lowering)
+            return toElem(lowering, irs);
 
-        Type ta = (tb1.ty == Tarray || tb1.ty == Tsarray) ? tb1 : tb2;
-
-        elem *e;
-        if (ce.e1.op == EXP.concatenate)
-        {
-            CatExp ex = ce;
-
-            // Flatten ((a ~ b) ~ c) to [a, b, c]
-            Elems elems;
-            elems.shift(array_toDarray(ex.e2.type, toElem(ex.e2, irs)));
-            do
-            {
-                ex = cast(CatExp)ex.e1;
-                elems.shift(array_toDarray(ex.e2.type, toElem(ex.e2, irs)));
-            } while (ex.e1.op == EXP.concatenate);
-            elems.shift(array_toDarray(ex.e1.type, toElem(ex.e1, irs)));
-
-            // We can't use ExpressionsToStaticArray because each exp needs
-            // to have array_toDarray called on it first, as some might be
-            // single elements instead of arrays.
-            Symbol *sdata;
-            elem *earr = ElemsToStaticArray(ce.loc, ce.type, &elems, &sdata);
-
-            elem *ep = el_pair(TYdarray, el_long(TYsize_t, elems.length), el_ptr(sdata));
-            if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
-                ep = addressElem(ep, Type.tvoid.arrayOf());
-            ep = el_param(ep, getTypeInfo(ce, ta, irs));
-            e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM.ARRAYCATNTX)), ep);
-            toTraceGC(irs, e, ce.loc);
-            e = el_combine(earr, e);
-        }
-        else
-        {
-            elem *e1 = eval_Darray(ce.e1);
-            elem *e2 = eval_Darray(ce.e2);
-            elem *ep = el_params(e2, e1, getTypeInfo(ce, ta, irs), null);
-            e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM.ARRAYCATT)), ep);
-            toTraceGC(irs, e, ce.loc);
-        }
-        elem_setLoc(e,ce.loc);
-        return e;
+        assert(0, "This case should have been rewritten to `_d_arraycatnTX` in the semantic phase");
     }
 
     /***************************************
@@ -2604,15 +2564,6 @@ elem* toElem(Expression e, IRState *irs)
 
             if (auto sle = ae.e2.isStructLiteralExp())
             {
-                auto ex = e1.Eoper == OPind ? e1.EV.E1 : e1;
-                if (ex.Eoper == OPvar && ex.EV.Voffset == 0 &&
-                    (ae.op == EXP.construct || ae.op == EXP.blit))
-                {
-                    elem* e = toElemStructLit(sle, irs, ae.op, ex.EV.Vsym, true);
-                    el_free(e1);
-                    return setResult2(e);
-                }
-
                 static bool allZeroBits(ref Expressions exps)
                 {
                     foreach (e; exps[])
@@ -2633,13 +2584,22 @@ elem* toElem(Expression e, IRState *irs)
                 /* Use a memset to 0
                  */
                 if ((sle.useStaticInit ||
-                     sle.elements && allZeroBits(*sle.elements) && !sle.sd.isNested()) &&
+                     sle.elements && _isZeroInit(sle) && !sle.sd.isNested()) &&
                     ae.e2.type.isZeroInit(ae.e2.loc))
                 {
                     elem* enbytes = el_long(TYsize_t, ae.e1.type.size());
                     elem* evalue = el_long(TYchar, 0);
                     elem* el = el_una(OPaddr, TYnptr, e1);
                     elem* e = el_bin(OPmemset,TYnptr, el, el_param(enbytes, evalue));
+                    return setResult2(e);
+                }
+
+                auto ex = e1.Eoper == OPind ? e1.EV.E1 : e1;
+                if (ex.Eoper == OPvar && ex.EV.Voffset == 0 &&
+                    (ae.op == EXP.construct || ae.op == EXP.blit))
+                {
+                    elem* e = toElemStructLit(sle, irs, ae.op, ex.EV.Vsym, true);
+                    el_free(e1);
                     return setResult2(e);
                 }
             }
@@ -2773,6 +2733,11 @@ elem* toElem(Expression e, IRState *irs)
             return setResult2(e);
         }
         assert(0);
+    }
+
+    elem* visitLoweredAssign(LoweredAssignExp e)
+    {
+        return toElem(e.lowering, irs);
     }
 
     /***************************************
@@ -4164,6 +4129,7 @@ elem* toElem(Expression e, IRState *irs)
         case EXP.assign:        return visitAssign(e.isAssignExp());
         case EXP.construct:     return visitAssign(e.isConstructExp());
         case EXP.blit:          return visitAssign(e.isBlitExp());
+        case EXP.loweredAssignExp: return visitLoweredAssign(e.isLoweredAssignExp());
         case EXP.addAssign:     return visitAddAssign(e.isAddAssignExp());
         case EXP.minAssign:     return visitMinAssign(e.isMinAssignExp());
         case EXP.concatenateDcharAssign: return visitCatAssign(e.isCatDcharAssignExp());

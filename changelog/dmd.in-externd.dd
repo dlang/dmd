@@ -1,0 +1,7 @@
+Using `in` parameters with non `extern(D)`/`extern(C++)` functions is deprecated
+
+In preparation for enabling `-preview=in` by default,
+using `in` parameters on function that have neither D nor C++ linkage is deprecated.
+Users can replace instances of `in` with either `const` or `scope const`.
+Refer to [v2.101.0 changelog's](https://dlang.org/changelog/2.101.0.html#dmd.previewInLink)
+for a full rationale.

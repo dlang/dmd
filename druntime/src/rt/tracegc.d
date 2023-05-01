@@ -22,15 +22,13 @@ extern (C) void[] _d_newarrayU(const scope TypeInfo ti, size_t length);
 extern (C) void[] _d_newarrayiT(const TypeInfo ti, size_t length);
 extern (C) void[] _d_newarraymTX(const TypeInfo ti, size_t[] dims);
 extern (C) void[] _d_newarraymiTX(const TypeInfo ti, size_t[] dims);
-extern (C) void* _d_newitemT(in TypeInfo ti);
-extern (C) void* _d_newitemiT(in TypeInfo ti);
+extern (C) void* _d_newitemT(const TypeInfo ti);
+extern (C) void* _d_newitemiT(const TypeInfo ti);
 extern (C) void _d_callfinalizer(void* p);
 extern (C) void _d_callinterfacefinalizer(void *p);
 extern (C) void _d_delclass(Object* p);
 extern (C) void _d_delinterface(void** p);
 extern (C) void _d_delmemory(void* *p);
-extern (C) byte[] _d_arraycatT(const TypeInfo ti, byte[] x, byte[] y);
-extern (C) void[] _d_arraycatnTX(const TypeInfo ti, scope byte[][] arrs);
 extern (C) void* _d_arrayliteralTX(const TypeInfo ti, size_t length);
 extern (C) void* _d_assocarrayliteralTX(const TypeInfo_AssociativeArray ti,
     void[] keys, void[] vals);

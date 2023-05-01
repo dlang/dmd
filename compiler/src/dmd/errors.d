@@ -73,6 +73,14 @@ class ErrorSinkCompiler : ErrorSink
         vdeprecationSupplemental(loc, format, ap);
         va_end(ap);
     }
+
+    void message(const ref Loc loc, const(char)* format, ...)
+    {
+        va_list ap;
+        va_start(ap, format);
+        vmessage(loc, format, ap);
+        va_end(ap);
+    }
 }
 
 
@@ -819,8 +827,11 @@ private void colorHighlightCode(ref OutBuffer buf)
     }
     ++nested;
 
-    auto gaggedErrorsSave = global.startGagging();
-    scope Lexer lex = new Lexer(null, cast(char*)buf[].ptr, 0, buf.length - 1, 0, 1, global.errorSink, global.vendor, global.versionNumber());
+    __gshared ErrorSinkNull errorSinkNull;
+    if (!errorSinkNull)
+        errorSinkNull = new ErrorSinkNull;
+
+    scope Lexer lex = new Lexer(null, cast(char*)buf[].ptr, 0, buf.length - 1, 0, 1, errorSinkNull, &global.compileEnv);
     OutBuffer res;
     const(char)* lastp = cast(char*)buf[].ptr;
     //printf("colorHighlightCode('%.*s')\n", cast(int)(buf.length - 1), buf[].ptr);
@@ -871,7 +882,6 @@ private void colorHighlightCode(ref OutBuffer buf)
     //printf("res = '%.*s'\n", cast(int)buf.length, buf[].ptr);
     buf.setsize(0);
     buf.write(&res);
-    global.endGagging(gaggedErrorsSave);
     --nested;
 }
 

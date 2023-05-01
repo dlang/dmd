@@ -29,6 +29,7 @@
 #define __asm asm
 #define __inline__ inline
 #define __inline inline
+#define __volatile__ volatile
 
 /********************
  * Clang nullability extension used by macOS headers.
@@ -73,6 +74,9 @@
  */
 #define __extension__  /* ignore it, as ImportC doesn't do warnings */
 
+#define __builtin_isnan(x) isnan(x)
+#define __builtin_isfinite(x) finite(x)
+
 /********************************
  * __has_extension is a clang thing:
  *    https://clang.llvm.org/docs/LanguageExtensions.html
@@ -100,11 +104,21 @@
 #endif
 
 #if __FreeBSD__
+#define __volatile volatile
+#define __sync_synchronize()
+#define __sync_swap(A, B) 1
 #endif
 
 #if _MSC_VER
 //#undef _Post_writable_size
 //#define _Post_writable_size(x) // consider #include <no_sal2.h>
+#define _CRT_INSECURE_DEPRECATE(x)
+#define _CRT_NONSTDC_NO_DEPRECATE 1
+#define _CRT_SECURE_NO_WARNINGS 1
+#define __ptr32
+#define __ptr64
+#define __unaligned
+#define _NO_CRT_STDIO_INLINE 1
 #endif
 
 /****************************

@@ -119,18 +119,6 @@ void exp2_setstrthis(elem *e,Symbol *s,targ_size_t offset,type *t);
 Symbol *exp2_qualified_lookup(Classsym *sclass, int flags, int *pflags);
 elem *exp2_copytotemp(elem *e);
 
-/* util.c */
-//#if __clang__
-//void util_exit(int) __attribute__((noreturn));
-//#elif _MSC_VER
-//__declspec(noreturn) void util_exit(int);
-//#else
-void util_exit(int);
-//#if __DMC__
-//#pragma ZTC noreturn(util_exit)
-//#endif
-//#endif
-
 void util_progress();
 void util_set16();
 void util_set32(exefmt_t);
@@ -204,7 +192,7 @@ void preerr(uint,...);
 //void err_fatal(uint,...) __attribute__((analyzer_noreturn));
 //#else
 void err_exit();
-void err_nomem();
+public import dmd.backend.ph2 : err_nomem;
 void err_fatal(uint,...);
 //#if __DMC__
 //#pragma ZTC noreturn(err_exit)
@@ -228,12 +216,6 @@ void err_noinstance(Symbol *s1,Symbol *s2);
 void err_redeclar(Symbol *s,type *t1,type *t2);
 void err_override(Symbol *sfbase,Symbol *sfder);
 void err_notamember(const(char)* id, Classsym *s, Symbol *alternate = null);
-
-/* exp.c */
-elem *expression();
-elem *const_exp();
-elem *assign_exp();
-elem *exp_simplecast(type *);
 
 /* file.c */
 char *file_getsource(const(char)* iname);
@@ -278,7 +260,6 @@ int nteh_offset_sindex();
 int nteh_offset_sindex_seh();
 int nteh_offset_info();
 
-/* os.c */
 void *globalrealloc(void *oldp,size_t nbytes);
 void *vmem_baseaddr();
 void vmem_reservesize(uint *psize);
@@ -353,24 +334,10 @@ Symbol *symbol_searchlist(symlist_t sl, const(char)* vident);
 void symbol_reset(Symbol *s);
 tym_t symbol_pointerType(const Symbol* s);
 
-// cg87.c
-void cg87_reset();
-
-ubyte loadconst(elem *e, int im);
-
-/* From cgopt.c */
-void opt();
-
-
-// objrecor.c
-void objfile_open(const(char)*);
-void objfile_close(void *data, uint len);
-void objfile_delete();
-void objfile_term();
+public import dmd.backend.cg87 : loadconst, cg87_reset;
 
 /* cod3.c */
-void cod3_thunk(Symbol *sthunk,Symbol *sfunc,uint p,tym_t thisty,
-        uint d,int i,uint d2);
+public import dmd.backend.cod3 : cod3_thunk;
 
 /* out.c */
 void outfilename(char *name,int linnum);
@@ -387,8 +354,7 @@ void out_reset();
 Symbol *out_readonly_sym(tym_t ty, void *p, int len);
 Symbol *out_string_literal(const(char)* str, uint len, uint sz);
 
-/* blockopt.c */
-extern __gshared uint[BCMAX] bc_goal;
+public import dmd.backend.blockopt : bc_goal;
 
 block* block_calloc();
 void block_init();
@@ -472,15 +438,6 @@ version (SCPP)
     void srcpos_hydrate(Srcpos *);
     void srcpos_dehydrate(Srcpos *);
 }
-version (SPP)
-{
-    extern __gshared Srcfiles srcfiles;
-    Sfile **filename_indirect(Sfile *sf);
-    Sfile  *filename_search(const(char)* name);
-    Sfile *filename_add(const(char)* name);
-    int filename_cmp(const(char)* f1,const(char)* f2);
-    void filename_translate(Srcpos *);
-}
 version (HTOD)
 {
     extern __gshared Srcfiles srcfiles;
@@ -497,17 +454,7 @@ version (HTOD)
     void srcpos_dehydrate(Srcpos *);
 }
 
-// tdb.c
-uint tdb_gettimestamp();
-void tdb_write(void *buf,uint size,uint numindices);
-uint tdb_typidx(void *buf);
-//uint tdb_typidx(ubyte *buf,uint length);
-void tdb_term();
-
-// rtlsym.c
-void rtlsym_init();
-void rtlsym_reset();
-void rtlsym_term();
+public import dmd.backend.drtlsym : rtlsym_init, rtlsym_reset, rtlsym_term;
 
 // compress.c
 extern(C) char *id_compress(const char *id, int idlen, size_t *plen);
@@ -517,10 +464,3 @@ void dwarf_CFA_set_loc(uint location);
 void dwarf_CFA_set_reg_offset(int reg, int offset);
 void dwarf_CFA_offset(int reg, int offset);
 void dwarf_CFA_args_size(size_t sz);
-
-// Posix
-elem *exp_isconst();
-elem *lnx_builtin_next_arg(elem *efunc,list_t arglist);
-char *lnx_redirect_funcname(const(char)*);
-void  lnx_funcdecl(Symbol*, SC, SC, int);
-int  lnx_attributes(int hinttype,const void *hint, type **ptyp, tym_t *ptym,int *pattrtype);

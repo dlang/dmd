@@ -1520,7 +1520,8 @@ tym_t totym(Type tx)
                 case LINK.windows:
                     if (target.is64bit)
                         goto case LINK.c;
-                    t = (tf.parameterList.varargs == VarArg.variadic) ? TYnfunc : TYnsfunc;
+                    t = (tf.parameterList.varargs == VarArg.variadic ||
+                         tf.parameterList.varargs == VarArg.KRvariadic) ? TYnfunc : TYnsfunc;
                     break;
 
                 case LINK.c:

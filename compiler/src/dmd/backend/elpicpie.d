@@ -68,7 +68,7 @@ version (MARS)
 elem * el_var(Symbol *s)
 {
     elem *e;
-    //printf("el_var(s = '%s')\n", s.Sident);
+    //printf("el_var(s = '%s')\n", s.Sident.ptr);
     //printf("%x\n", s.Stype.Tty);
     if (config.exe & EX_posix)
     {
@@ -111,7 +111,7 @@ elem * el_var(Symbol *s)
     e.Ety = s.ty();
     if (s.Stype.Tty & mTYthread)
     {
-        //printf("thread local %s\n", s.Sident);
+        //printf("thread local %s\n", s.Sident.ptr);
 if (config.exe & (EX_OSX | EX_OSX64))
 {
 }
@@ -488,7 +488,10 @@ private elem *el_picvar_OSX(Symbol *s)
     {
         case SC.static_:
         case SC.locstat:
-            x = 0;
+            if (s.Stype.Tty & mTYthread)
+                x = 1;
+            else
+                x = 0;
             goto case_got;
 
         case SC.comdat:
@@ -666,7 +669,12 @@ private elem *el_picvar_posix(Symbol *s)
         {
             case SC.static_:
             case SC.locstat:
-                x = 0;
+                if (config.flags3 & CFG3pie)
+                    x = 0;
+                else if (s.Stype.Tty & mTYthread)
+                    x = 1;
+                else
+                    x = 0;
                 goto case_got64;
 
             case SC.global:

@@ -95,43 +95,32 @@ void Statement_toIR(Statement s, IRState *irs)
         }
 
     StmtState stmtstate;
-    scope v = new S2irVisitor(irs, &stmtstate);
-    s.accept(v);
+    Statement_toIR(s, irs, &stmtstate);
 }
 
-private extern (C++) class S2irVisitor : Visitor
+void Statement_toIR(Statement s, IRState *irs, StmtState* stmtstate)
 {
-    IRState* irs;
-    StmtState* stmtstate;
-
-    this(IRState *irs, StmtState* stmtstate) scope
-    {
-        this.irs = irs;
-        this.stmtstate = stmtstate;
-    }
-
-    alias visit = Visitor.visit;
-
     /****************************************
      * This should be overridden by each statement class.
      */
 
-    override void visit(Statement s)
+    void visitDefaultCase(Statement s)
     {
+        error(s.loc, "visitDefaultCase() %d for %s\n", s.stmt, s.toChars());
         assert(0);
     }
 
     /*************************************
      */
 
-    override void visit(ScopeGuardStatement s)
+    void visitScopeGuard(ScopeGuardStatement s)
     {
     }
 
     /****************************************
      */
 
-    override void visit(IfStatement s)
+    void visitIf(IfStatement s)
     {
         elem *e;
         Blockx *blx = irs.blx;
@@ -174,7 +163,7 @@ private extern (C++) class S2irVisitor : Visitor
     /**************************************
      */
 
-    override void visit(PragmaStatement s)
+    void visitPragma(PragmaStatement s)
     {
         //printf("PragmaStatement.toIR()\n");
         if (s.ident == Id.startaddress)
@@ -189,18 +178,10 @@ private extern (C++) class S2irVisitor : Visitor
         }
     }
 
-    /***********************
-     */
-
-    override void visit(WhileStatement s)
-    {
-        assert(0); // was "lowered"
-    }
-
     /******************************************
      */
 
-    override void visit(DoStatement s)
+    void visitDo(DoStatement s)
     {
         Blockx *blx = irs.blx;
 
@@ -229,7 +210,7 @@ private extern (C++) class S2irVisitor : Visitor
     /*****************************************
      */
 
-    override void visit(ForStatement s)
+    void visitFor(ForStatement s)
     {
         //printf("visit(ForStatement)) %u..%u\n", s.loc.linnum, s.endloc.linnum);
         Blockx *blx = irs.blx;
@@ -279,30 +260,10 @@ private extern (C++) class S2irVisitor : Visitor
         block_next(blx,BCgoto, mystate.breakBlock);
     }
 
-
-    /**************************************
-     */
-
-    override void visit(ForeachStatement s)
-    {
-        printf("ForeachStatement.toIR() %s\n", s.toChars());
-        assert(0);  // done by "lowering" in the front end
-    }
-
-
-    /**************************************
-     */
-
-    override void visit(ForeachRangeStatement s)
-    {
-        assert(0);
-    }
-
-
     /****************************************
      */
 
-    override void visit(BreakStatement s)
+    void visitBreak(BreakStatement s)
     {
         block *bbreak;
         block *b;
@@ -329,7 +290,7 @@ private extern (C++) class S2irVisitor : Visitor
     /************************************
      */
 
-    override void visit(ContinueStatement s)
+    void visitContinue(ContinueStatement s)
     {
         block *bcont;
         block *b;
@@ -358,7 +319,7 @@ private extern (C++) class S2irVisitor : Visitor
     /**************************************
      */
 
-    override void visit(GotoStatement s)
+    void visitGoto(GotoStatement s)
     {
         Blockx *blx = irs.blx;
 
@@ -374,7 +335,7 @@ private extern (C++) class S2irVisitor : Visitor
         block_next(blx,BCgoto,null);
     }
 
-    override void visit(LabelStatement s)
+    void visitLabel(LabelStatement s)
     {
         //printf("LabelStatement.toIR() %p, statement: `%s`\n", this, s.statement.toChars());
         Blockx *blx = irs.blx;
@@ -395,7 +356,7 @@ private extern (C++) class S2irVisitor : Visitor
     /**************************************
      */
 
-    override void visit(SwitchStatement s)
+    void visitSwitch(SwitchStatement s)
     {
         Blockx *blx = irs.blx;
 
@@ -501,7 +462,7 @@ private extern (C++) class S2irVisitor : Visitor
         block_goto(blx, BCgoto, mystate.breakBlock);
     }
 
-    override void visit(CaseStatement s)
+    void visitCase(CaseStatement s)
     {
         Blockx *blx = irs.blx;
         block *bcase = blx.curblock;
@@ -517,7 +478,7 @@ private extern (C++) class S2irVisitor : Visitor
             Statement_toIR(s.statement, irs, stmtstate);
     }
 
-    override void visit(DefaultStatement s)
+    void visitDefault(DefaultStatement s)
     {
         Blockx *blx = irs.blx;
         block *bcase = blx.curblock;
@@ -530,7 +491,7 @@ private extern (C++) class S2irVisitor : Visitor
             Statement_toIR(s.statement, irs, stmtstate);
     }
 
-    override void visit(GotoDefaultStatement s)
+    void visitGotoDefault(GotoDefaultStatement s)
     {
         block *b;
         Blockx *blx = irs.blx;
@@ -545,7 +506,7 @@ private extern (C++) class S2irVisitor : Visitor
         block_next(blx,BCgoto,null);
     }
 
-    override void visit(GotoCaseStatement s)
+    void visitGotoCase(GotoCaseStatement s)
     {
         Blockx *blx = irs.blx;
         block *bdest = cast(block*)s.cs.extra;
@@ -558,7 +519,7 @@ private extern (C++) class S2irVisitor : Visitor
         block_next(blx,BCgoto,null);
     }
 
-    override void visit(SwitchErrorStatement s)
+    void visitSwitchError(SwitchErrorStatement s)
     {
         // SwitchErrors are lowered to a CallExpression to object.__switch_error() in druntime
         // We still need the call wrapped in SwitchErrorStatement to pass compiler error checks.
@@ -574,7 +535,7 @@ private extern (C++) class S2irVisitor : Visitor
     /**************************************
      */
 
-    override void visit(ReturnStatement s)
+    void visitReturn(ReturnStatement s)
     {
         //printf("s2ir.ReturnStatement: %s\n", s.toChars());
         Blockx *blx = irs.blx;
@@ -716,7 +677,7 @@ private extern (C++) class S2irVisitor : Visitor
     /**************************************
      */
 
-    override void visit(ExpStatement s)
+    void visitExp(ExpStatement s)
     {
         Blockx *blx = irs.blx;
 
@@ -739,7 +700,15 @@ private extern (C++) class S2irVisitor : Visitor
     /**************************************
      */
 
-    override void visit(CompoundStatement s)
+    void visitDtorExp(DtorExpStatement s)
+    {
+        return visitExp(s);
+    }
+
+    /**************************************
+     */
+
+    void visitCompound(CompoundStatement s)
     {
         if (s.statements)
         {
@@ -751,11 +720,18 @@ private extern (C++) class S2irVisitor : Visitor
         }
     }
 
+    /**************************************
+     */
+
+    void visitCompoundAsm(CompoundAsmStatement s)
+    {
+        return visitCompound(s);
+    }
 
     /**************************************
      */
 
-    override void visit(UnrolledLoopStatement s)
+    void visitUnrolledLoop(UnrolledLoopStatement s)
     {
         Blockx *blx = irs.blx;
 
@@ -793,7 +769,7 @@ private extern (C++) class S2irVisitor : Visitor
     /**************************************
      */
 
-    override void visit(ScopeStatement s)
+    void visitScope(ScopeStatement s)
     {
         if (s.statement)
         {
@@ -813,7 +789,7 @@ private extern (C++) class S2irVisitor : Visitor
     /***************************************
      */
 
-    override void visit(WithStatement s)
+    void visitWith(WithStatement s)
     {
         //printf("WithStatement.toIR()\n");
         if (s.exp.op == EXP.scope_ || s.exp.op == EXP.type)
@@ -844,7 +820,7 @@ private extern (C++) class S2irVisitor : Visitor
     /***************************************
      */
 
-    override void visit(ThrowStatement s)
+    void visitThrow(ThrowStatement s)
     {
         // throw(exp)
 
@@ -867,7 +843,7 @@ private extern (C++) class S2irVisitor : Visitor
      * A try-catch statement.
      */
 
-    override void visit(TryCatchStatement s)
+    void visitTryCatch(TryCatchStatement s)
     {
         Blockx *blx = irs.blx;
 
@@ -1147,7 +1123,7 @@ private extern (C++) class S2irVisitor : Visitor
      *      _ret
      */
 
-    override void visit(TryFinallyStatement s)
+    void visitTryFinally(TryFinallyStatement s)
     {
         //printf("TryFinallyStatement.toIR()\n");
 
@@ -1389,16 +1365,7 @@ private extern (C++) class S2irVisitor : Visitor
     /****************************************
      */
 
-    override void visit(SynchronizedStatement s)
-    {
-        assert(0);
-    }
-
-
-    /****************************************
-     */
-
-    override void visit(InlineAsmStatement s)
+    void visitInlineAsm(InlineAsmStatement s)
 //    { .visit(irs, s); }
     {
         block *bpre;
@@ -1490,15 +1457,12 @@ private extern (C++) class S2irVisitor : Visitor
     /****************************************
      */
 
-    override void visit(ImportStatement s)
+    void visitImport(ImportStatement s)
     {
     }
 
-    static void Statement_toIR(Statement s, IRState *irs, StmtState* stmtstate)
-    {
-        scope v = new S2irVisitor(irs, stmtstate);
-        s.accept(v);
-    }
+    mixin VisitStatement!void visit;
+    visit.VisitStatement(s);
 }
 
 /***************************************************

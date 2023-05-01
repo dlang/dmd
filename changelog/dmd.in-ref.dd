@@ -1,0 +1,8 @@
+`in ref` on parameters has been deprecated in favor of `-preview=in`
+
+Using `in ref` (or `ref in`) on function parameters will now yield a deprecation.
+Users are encouraged to remove the `ref` and compile with `-preview=in`,
+which will infer whether the parameter should be passed by reference or value.
+Users wanting a specific ABI are encouraged to use `scope const ref` instead.
+Note that this also applies to `auto ref in`, which is equivalent to `in` with `-preview=in`,
+but the latter doesn't require the function to be templated.

@@ -51,8 +51,6 @@ extern (C++):
 nothrow:
 @safe:
 
-int REGSIZE();
-
 extern __gshared CGstate cgstate;
 extern __gshared ubyte[FLMAX] segfl;
 extern __gshared bool[FLMAX] stackfl;
@@ -1578,7 +1576,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                     }
                     else
                     {
-                        pcs.Iflags |= CFopsize;
+                        //pcs.Iflags |= CFopsize; //I don't know what this was for
                         pcs.Irex = 0x48;
                     }
                 }

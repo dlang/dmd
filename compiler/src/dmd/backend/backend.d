@@ -27,7 +27,4 @@ extern (C++):
 
 nothrow:
 
-extern __gshared { int stackused; }
-extern __gshared NDP[8] _8087elems;
-
 }

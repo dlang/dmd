@@ -19,12 +19,6 @@
 
 module dmd.backend.cgelem;
 
-version (SPP)
-{
-}
-else
-{
-
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -3215,7 +3209,6 @@ L1:
 @trusted
 private elem * elbit(elem *e, goal_t goal)
 {
-
     tym_t tym1 = e.EV.E1.Ety;
     uint sz = tysize(tym1) * 8;
     elem *e2 = e.EV.E2;
@@ -6609,5 +6602,3 @@ private extern (D) immutable elfp_t[OPMAX] elxxx =
     OPva_start: &elvalist,
     OPprefetch: &elzot,
 ];
-
-}

@@ -1,0 +1,11 @@
+Throwing qualified objects is now deprecated
+
+Previously, an `immutable`, `const`, `inout` or `shared` exception could be
+thrown and then caught in an unqualified `catch (Exception e)` clause.
+That breaks type safety.
+Throwing a qualified object is now deprecated. This helps to prevent
+possible mutation of an immutable object in a `catch` clause.
+
+The runtime also modifies a thrown object (e.g. to contain a stack
+trace) which can violate `const` or `immutable` objects. Throwing
+qualified objects has been deprecated for this reason also.

@@ -28,6 +28,7 @@ import core.stdc.stdlib;
 import core.stdc.string;
 
 // qsort is only nothrow in newer versions of druntime (since 2.081.0)
+alias _compare_fp_t = extern(C) nothrow int function(const void*, const void*);
 private extern(C) void qsort(scope void* base, size_t nmemb, size_t size, _compare_fp_t compar) nothrow @nogc;
 
 import dmd.backend.barray;
@@ -3138,8 +3139,10 @@ static if (0)
                 {       // code to code code to data, data to code, data to data refs
                     if (s.Sclass == SC.static_)
                     {                           // offset into .data or .bss seg
-                        refseg = MAP_SEG2SYMIDX(s.Sseg);
-                                                // use segment symbol table entry
+                        if ((s.ty() & mTYLINK) & mTYthread)
+                        { }
+                        else
+                            refseg = MAP_SEG2SYMIDX(s.Sseg);    // use segment symbol table entry
                         val += s.Soffset;
                         if (!(config.flags3 & CFG3pic) ||       // all static refs from normal code
                              segtyp == DATA)    // or refs from data from posi indp

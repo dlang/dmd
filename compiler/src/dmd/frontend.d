@@ -120,10 +120,9 @@ void initDMD(
     import dmd.globals : CHECKENABLE, global;
     import dmd.id : Id;
     import dmd.identifier : Identifier;
-    import dmd.mars : addDefaultVersionIdentifiers;
     import dmd.mtype : Type;
     import dmd.objc : Objc;
-    import dmd.target : target, defaultTargetOS;
+    import dmd.target : target, defaultTargetOS, addDefaultVersionIdentifiers;
 
     .diagnosticHandler = diagnosticHandler;
     .fatalErrorHandler = fatalErrorHandler;
@@ -397,7 +396,7 @@ Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(AST = ASTCodeg
     import std.typecons : tuple;
 
     auto id = Identifier.idPool(fileName.baseName.stripExtension);
-    auto m = new Module(fileName, id, 0, 0);
+    auto m = new Module(fileName, id, 1, 0);
 
     if (code is null)
         m.read(Loc.initial);
@@ -410,6 +409,7 @@ Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(AST = ASTCodeg
         m.src = fb;
     }
 
+    m.importedFrom = m;
     m = m.parseModule!AST();
 
     Diagnostics diagnostics = {

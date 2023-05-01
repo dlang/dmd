@@ -69,10 +69,15 @@ public void inlineScanModule(Module m)
         Dsymbol s = (*m.members)[i];
         //if (global.params.verbose)
         //    message("inline scan symbol %s", s.toChars());
-        scope InlineScanVisitor v = new InlineScanVisitor();
-        s.accept(v);
+        inlineScanDsymbol(s);
     }
     m.semanticRun = PASS.inlinedone;
+}
+
+private void inlineScanDsymbol(Dsymbol s)
+{
+    scope InlineScanVisitorDsymbol v = new InlineScanVisitorDsymbol();
+    s.accept(v);
 }
 
 /***********************************************************
@@ -742,6 +747,21 @@ public:
             result = ae;
         }
 
+        override void visit(CatExp e)
+        {
+            auto ce = e.copy().isCatExp();
+
+            if (auto lowering = ce.lowering)
+                ce.lowering = doInlineAs!Expression(lowering, ids);
+            else
+            {
+                ce.e1 = doInlineAs!Expression(e.e1, ids);
+                ce.e2 = doInlineAs!Expression(e.e2, ids);
+            }
+
+            result = ce;
+        }
+
         override void visit(BinExp e)
         {
             auto be = cast(BinExp)e.copy();
@@ -761,12 +781,11 @@ public:
         override void visit(AssignExp e)
         {
             visit(cast(BinExp)e);
+        }
 
-            if (auto ale = e.e1.isArrayLengthExp())
-            {
-                Type tn = ale.e1.type.toBasetype().nextOf();
-                semanticTypeInfo(null, tn);
-            }
+        override void visit(LoweredAssignExp e)
+        {
+            result = doInlineAs!Expression(e.lowering, ids);
         }
 
         override void visit(EqualExp e)
@@ -1216,7 +1235,7 @@ public:
         }
         else
         {
-            s.accept(this);
+            inlineScanDsymbol(s);
         }
     }
 
@@ -1235,6 +1254,18 @@ public:
     {
         inlineScan(e.e1);
         inlineScan(e.msg);
+    }
+
+    override void visit(CatExp e)
+    {
+        if (auto lowering = e.lowering)
+        {
+            inlineScan(lowering);
+            return;
+        }
+
+        inlineScan(e.e1);
+        inlineScan(e.e2);
     }
 
     override void visit(BinExp e)
@@ -1279,6 +1310,11 @@ public:
         }
     L1:
         visit(cast(BinExp)e);
+    }
+
+    override void visit(LoweredAssignExp e)
+    {
+        inlineScan(e.lowering);
     }
 
     override void visit(CallExp e)
@@ -1488,7 +1524,7 @@ public:
         //printf("StructLiteralExp.inlineScan()\n");
         if (e.stageflags & stageInlineScan)
             return;
-        int old = e.stageflags;
+        const old = e.stageflags;
         e.stageflags |= stageInlineScan;
         arrayInlineScan(e.elements);
         e.stageflags = old;
@@ -1526,6 +1562,20 @@ public:
             eresult = null;
         }
     }
+}
+
+/***********************************************************
+ * Walk the trees, looking for functions to inline.
+ * Inline any that can be.
+ */
+private extern (C++) final class InlineScanVisitorDsymbol : Visitor
+{
+    alias visit = Visitor.visit;
+public:
+
+    extern (D) this() scope
+    {
+    }
 
     /*************************************
      * Look for function inlining possibilities.
@@ -1547,20 +1597,20 @@ public:
             return;
         if (fd.fbody && !fd.isNaked())
         {
-            auto againsave = again;
-            auto parentsave = parent;
-            parent = fd;
-            do
+            while (1)
             {
-                again = false;
                 fd.inlineNest++;
                 fd.inlineScanned = true;
-                inlineScan(fd.fbody);
+
+                scope InlineScanVisitor v = new InlineScanVisitor();
+                v.parent = fd;
+                v.inlineScan(fd.fbody);
+                bool again = v.again;
+
                 fd.inlineNest--;
+                if (!again)
+                    break;
             }
-            while (again);
-            again = againsave;
-            parent = parentsave;
         }
     }
 
@@ -1699,7 +1749,8 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
         TypeFunction tf = fd.type.isTypeFunction();
 
         // no variadic parameter lists
-        if (tf.parameterList.varargs == VarArg.variadic)
+        if (tf.parameterList.varargs == VarArg.variadic ||
+            tf.parameterList.varargs == VarArg.KRvariadic)
             goto Lno;
 
         /* No lazy parameters when inlining by statement, as the inliner tries to
@@ -1806,8 +1857,7 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
         else
             fd.inlineStatusExp = ILS.yes;
 
-        scope InlineScanVisitor v = new InlineScanVisitor();
-        fd.accept(v); // Don't scan recursively for header content scan
+        inlineScanDsymbol(fd); // Don't scan recursively for header content scan
 
         if (fd.inlineStatusExp == ILS.uninitialized)
         {
