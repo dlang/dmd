@@ -13,9 +13,6 @@
 
 module dmd.backend.dout;
 
-version (SPP) { } else
-{
-
 import core.stdc.stdio;
 import core.stdc.string;
 
@@ -1826,7 +1823,4 @@ version (SCPP) version (Win32)
         }
     }
 }
-}
-
-
 }

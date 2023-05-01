@@ -10,38 +10,35 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/fp.d
  */
 
- module dmd.backend.fp;
+module dmd.backend.fp;
 
-version (SPP) {} else
+import core.stdc.math;
+import core.stdc.fenv;
+import dmd.root.longdouble;
+import dmd.backend.cdef;
+
+extern (C++):
+
+nothrow:
+
+int statusFE()
 {
-    import core.stdc.math;
-    import core.stdc.fenv;
-    import dmd.root.longdouble;
-    import dmd.backend.cdef;
+    return 0;
+}
 
-    extern (C++):
+int testFE()
+{
+    return fetestexcept(FE_ALL_EXCEPT);
+}
 
-    nothrow:
+void clearFE()
+{
+    feclearexcept(FE_ALL_EXCEPT);
+}
 
-    int statusFE()
-    {
-        return 0;
-    }
+bool have_float_except() { return true; }
 
-    int testFE()
-    {
-        return fetestexcept(FE_ALL_EXCEPT);
-    }
-
-    void clearFE()
-    {
-        feclearexcept(FE_ALL_EXCEPT);
-    }
-
-    bool have_float_except() { return true; }
-
-    longdouble _modulo(longdouble x, longdouble y)
-    {
-        return fmodl(x, y);
-    }
+longdouble _modulo(longdouble x, longdouble y)
+{
+    return fmodl(x, y);
 }

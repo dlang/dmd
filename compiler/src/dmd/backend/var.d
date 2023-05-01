@@ -26,11 +26,6 @@ import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-version (SPP)
-{
-    import parser;
-    import phstring;
-}
 version (SCPP)
 {
     import parser;
@@ -127,10 +122,6 @@ extern (C)
 FILE *fdep = null;              // dependency file stream pointer
 FILE *flst = null;              // list file stream pointer
 FILE *fin = null;               // input file
-version (SPP)
-{
-FILE *fout;
-}
 }
 
 // htod
@@ -146,11 +137,6 @@ char*   foutdir = null,       // directory to place output files in
         fdepname = null,
         flstname = null;       /* the filename strings                 */
 
-version (SPP)
-{
-    phstring_t fdeplist;
-    phstring_t pathlist;            // include paths
-}
 version (SCPP)
 {
     phstring_t fdeplist;
@@ -191,9 +177,6 @@ tym_t pointertype = TYnptr;     /* default data pointer type            */
 /*****************************
  * SCxxxx types.
  */
-
-version (SPP) { } else
-{
 
 char[SCMAX] sytab =
 [
@@ -241,8 +224,6 @@ char[SCMAX] sytab =
     /* stack */    SCEXP|SCSS       ,      /* offset from stack pointer (not frame pointer) */
     /* adl */      0                ,      /* list of ADL symbols for overloading  */
 ];
-
-}
 
 extern (C) int controlc_saw = 0;              /* a control C was seen         */
 symtab_t globsym;               /* global symbol table                  */
