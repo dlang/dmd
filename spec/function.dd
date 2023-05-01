@@ -407,26 +407,28 @@ $(H2 $(LNAME2 pure-functions, Pure Functions))
         $(LI Modify the local state of the function.)
         $(LI Throw exceptions.)
         )
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         int x;
         immutable int y;
-        const int* pz;
 
         pure int foo(int i)
         {
             i++;     // ok, modifying local state
-            x = i;   // error, modifying global state
-            i = x;   // error, reading mutable global state
+            //x = i; // error, modifying global state
+            //i = x; // error, reading mutable global state
             i = y;   // ok, reading immutable global state
-            i = *pz; // error, reading const global state
             throw new Exception("failed"); // ok
         }
         ---
+        )
 
         $(P A pure function can override an impure function,
             but cannot be overridden by an impure function.
             I.e. it is covariant with an impure function.
         )
+
+$(H3 $(LNAME2 weak-purity, Strong vs Weak Purity))
 
         $(P A $(I weakly pure function) has parameters with mutable indirections.
             Program state can be modified transitively through the matching
@@ -450,17 +452,19 @@ $(H2 $(LNAME2 pure-functions, Pure Functions))
             and cannot modify any program state external to the function.
         )
 
+            $(SPEC_RUNNABLE_EXAMPLE_COMPILE
             ---
             struct S { double x; }
 
-            pure int foo(immutable(int)[] arr, int num, S val)
+            pure size_t foo(immutable(int)[] arr, int num, S val)
             {
                 //arr[num] = 1; // compile error
-                num = 2;        // has no side effect to the caller side
+                num = 2;        // has no side effect on the caller side
                 val.x = 3.14;   // ditto
                 return arr.length;
             }
             ---
+            )
 
         $(P A strongly pure function can call a weakly pure function.)
 
@@ -478,6 +482,8 @@ $(H3 $(LNAME2 pure-special-cases, Special Cases))
         initial state upon function exit. It is the programmer's responsibility
         to ensure this. Setting these flags is not allowed in `@safe` code.)
 
+$(H4 $(LNAME2 pure-debug, Debugging))
+
         $(P A pure function can perform impure operations in statements that are in a
         $(GLINK2 version, ConditionalStatement)
         controlled by a $(GLINK2 version, DebugCondition).
@@ -494,8 +500,11 @@ $(H3 $(LNAME2 pure-special-cases, Special Cases))
         }
         ---
 
+$(H4 $(LNAME2 pure-nested, Nested Functions))
+
         $(P $(RELATIVE_LINK2 nested, Nested functions) inside a pure function are implicitly marked as pure.)
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         pure int foo(int x, immutable int y)
         {
@@ -522,11 +531,12 @@ $(H3 $(LNAME2 pure-special-cases, Special Cases))
             return bar() + baz();
         }
         ---
+        )
 
 $(H3 $(LNAME2 pure-factory-functions, Pure Factory Functions))
 
         $(P A $(I pure factory function) is a strongly pure function
-        that returns a result that has mutable indirections.
+        that returns a result that has only mutable indirections.
         All mutable
         memory returned by the call cannot be referenced by any other part of the
         program, i.e. it is newly allocated by the function.
@@ -545,7 +555,7 @@ $(H3 $(LNAME2 pure-factory-functions, Pure Factory Functions))
         pure List* make(int a, int b)
         {
             auto result = new List(a, null);
-            result.next = new List(b, result);
+            result.next = new List(b, null);
             return result;
         }
 
@@ -572,18 +582,46 @@ $(H3 $(LNAME2 pure-factory-functions, Pure Factory Functions))
 $(H3 $(LNAME2 pure-optimization, Optimization))
 
         $(IMPLEMENTATION_DEFINED An implementation may assume that a strongly pure
-        function that returns a result
+        function called with arguments that have only immutable indirections (or none)
+        that returns a result
         without mutable indirections will have the same effect for all invocations
         with equivalent arguments. It is allowed to memoize the result of the
-        function under the assumption that equivalent parameters always produce
+        function under the assumption that equivalent arguments always produce
         equivalent results.)
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---
+        int a(int) pure; // no mutable indirections
+        int b(const Object) pure; // depends on argument passed
+        immutable(Object) c(immutable Object) pure; // always memoizable
+
+        void g();
+
+        void f(int n, const Object co, immutable Object io)
+        {
+            const int x = a(n);
+            g(); // `n` does not change between calls to `a`
+            int i = a(n); // same as `i = x`
+
+            const int y = b(co);
+            // `co` may have mutable indirection
+            g(); // may change fields of `co` through another reference
+            i = b(co); // call is not memoizable, result may differ
+
+            const int z = b(io);
+            i = b(io); // same as `i = z`
+        }
+        ---
+        )
+
         $(P
-        A strongly pure function may still have behavior
+        Such a function may still have behavior
         inconsistent with memoization by e.g. using `cast`s or by changing behavior
         depending on the address of its parameters. An implementation is currently
         not required to enforce validity of memoization in all cases.
-        If a strongly pure function throws an *Exception* or an *Error*, the
+        )
+        $(P
+        If a function throws an *Exception* or an *Error*, the
         assumptions related to memoization do not carry to the thrown
         exception.)
 
@@ -607,16 +645,26 @@ $(H2 $(LNAME2 ref-functions, Ref Functions))
         (whereas an expression formed by calling a non-`ref` function is an rvalue).
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
+int *p;
+
 ref int foo()
 {
-    auto p = new int(2);
+    p = new int(2);
     return *p;
 }
-...
-int i = foo(); // i is set to 2
-foo() = 3;     // reference returns can be lvalues
+
+void main()
+{
+    int i = foo();
+    assert(i == 2);
+
+    foo() = 3;     // reference returns can be lvalues
+    assert(*p == 3);
+}
 ---
+)
 
         $(P Returning a reference to an expired function context is not allowed.
         This includes local variables, temporaries and parameters that are part
@@ -631,7 +679,8 @@ ref int sun()
 }
 ---
 
-        $(P A `ref` parameter may not be returned by `ref`.)
+        $(P A `ref` parameter may not be returned by `ref`, unless it is
+        $(RELATIVE_LINK2 return-ref-parameters, `return ref`).)
 ---
 ref int moon(ref int i)
 {
@@ -647,8 +696,7 @@ $(H2 $(LNAME2 auto-functions, Auto Functions))
     )
 
     $(P An auto function is declared without a return type.
-        If it does not already have a storage class, use the
-        $(D_KEYWORD auto) storage class.
+        Auto functions can use any valid $(GLINK2 declaration, StorageClass), not just `auto`.
     )
 
     $(P If there are multiple $(I ReturnStatement)s, the types
@@ -659,17 +707,25 @@ $(H2 $(LNAME2 auto-functions, Auto Functions))
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         auto foo(int x) { return x + 3; }          // inferred to be int
-        auto bar(int x) { return x; return 2.5; }  // inferred to be double
+        pure bar(int x) { return x; return 2.5; }  // inferred to be double
         ---
         )
 
+    $(NOTE Return type inference also triggers
+    $(RELATIVE_LINK2 function-attribute-inference, attribute inference).)
+
+
 $(H2 $(LNAME2 auto-ref-functions, Auto Ref Functions))
 
-    $(P Auto ref functions infer their return type just as
+    $(P Auto ref functions can infer their return type just as
         $(RELATIVE_LINK2 auto-functions, auto functions) do.
         In addition, they become $(RELATIVE_LINK2 ref-functions, ref functions)
-        if all return expressions are lvalues,
-        and it would not be a reference to a local or a parameter.)
+        if all of these apply:)
+
+    * All expressions returned from the function are lvalues
+    * No local variables are returned
+    * Any parameters returned are reference parameters
+    * Each returned expression must implicitly convert to an lvalue of the deduced return type
 
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
@@ -677,7 +733,11 @@ $(H2 $(LNAME2 auto-ref-functions, Auto Ref Functions))
         auto ref f2()          { return 3; }  // value return
         auto ref f3(ref int x) { return x; }  // ref return
         auto ref f4(out int x) { return x; }  // ref return
-        auto ref f5() { static int x; return x; }  // ref return
+        auto ref f5()
+        {
+            static int x;
+            return x; // ref return
+        }
         ---
         )
 
@@ -691,16 +751,16 @@ $(H2 $(LNAME2 auto-ref-functions, Auto Ref Functions))
         auto ref f3(ref int x, ref double y)
         {
             return x; return y;
-            // The return type is deduced to double, but cast(double)x is not an lvalue,
-            // then become a value return.
+            // The return type is deduced to be double, but cast(double)x is not an lvalue,
+            // so f3 has a value return.
         }
         ---
         )
 
-    $(P Auto ref function can have explicit return type.)
+    $(P Auto ref functions can have an explicit return type.)
 
         ---
-        auto ref int (ref int x) { return x; }  // ok, ref return
+        auto ref int bar(ref int x) { return x; }  // ok, ref return
         auto ref int foo(double x) { return x; }   // error, cannot convert double to int
         ---
 
@@ -1749,8 +1809,6 @@ $(H3 $(LNAME2 scope-parameters, Scope Parameters))
     (e.g. by being assigned to a global variable). It has no effect for non-reference types.
     `scope` escape analysis is only done for `@safe` functions. For other functions `scope`
     semantics must be manually enforced.)
-    $(NOTE `scope` escape analysis is currently only done by the `dmd` compiler
-    when the `-dip1000` switch is passed.)
 
 ---
 @safe:
@@ -2735,6 +2793,8 @@ $(H3 $(LEGACY_LNAME2 Local Static Variables, local-static-variables, Local Stati
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
+import std.stdio : writeln;
+
 void foo()
 {
     static int n;
@@ -3053,8 +3113,6 @@ int function(int)   fp1 = &abc;
 uint function(uint) fp2 = &def;
 // Do not rely on fp1 and fp2 being different values; the compiler may merge
 // them.
-
-void main() {}
 ------
 )
 
@@ -3904,14 +3962,18 @@ $(H3 $(LNAME2 safe-values, Safe Values))
         $(P Examples:)
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
-        struct S { int* p; }
-        S s1 = S(new int); /* s1 is safe. */
-        S s2 = S(cast(int*) 0xDEADBEEF); /* s2 is unsafe, because s2.p is
-            unsafe. */
 
-        union U { int* p; size_t x; }
-        U u = U(new int); /* Even though both u.p and u.x are safe, u is unsafe
-            because of unsafe aliasing. */
+        void fun()
+        {
+            struct S { int* p; }
+            S s1 = S(new int); /* s1 is safe. */
+            S s2 = S(cast(int*) 0xDEADBEEF); /* s2 is unsafe, because s2.p is
+                unsafe. */
+
+            union U { int* p; size_t x; }
+            U u = U(new int); /* Even though both u.p and u.x are safe, u is unsafe
+                because of unsafe aliasing. */
+        }
         ---
         )
 
@@ -3961,17 +4023,26 @@ $(H3 $(LNAME2 safe-aliasing, Safe Aliasing))
     Those must examined separately for safety.)
 
     $(P Examples:)
+
     $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     void f1(ref ubyte x, ref float y) @safe { x = 0; y = float.init; }
     union U1 { ubyte x; float y; } // safe aliasing
-    U1 u1;
-    f1(u1.x, u1.y); // Ok
+
+    void test1()
+    {
+        U1 u1;
+        f1(u1.x, u1.y); // Ok
+    }
 
     void f2(ref int* x, ref int y) @trusted { x = new int; y = 0xDEADBEEF; }
     union U2 { int* x; int y; } // unsafe aliasing
-    U2 u2;
-    version (none) f1(u2.x, u2.y); // not safe
+
+    void test2()
+    {
+        U2 u2;
+        version (none) f1(u2.x, u2.y); // not safe
+    }
     ---
     )
 

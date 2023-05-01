@@ -65,34 +65,36 @@ $(GNAME VarDeclarator):
 
 $(H3 $(LNAME2 storage-classes, Storage Classes))
 
+    $(P See $(RELATIVE_LINK2 typequal_vs_storageclass, Type Classes vs. Storage Classes).)
+
 $(GRAMMAR
 $(GNAME StorageClasses):
     $(GLINK StorageClass)
     $(GLINK StorageClass) $(GSELF StorageClasses)
 
 $(GNAME StorageClass):
-$(MULTICOLS 5,     $(GLINK2 attribute, LinkageAttribute)
+    $(GLINK2 attribute, LinkageAttribute)
     $(GLINK2 attribute, AlignAttribute)
     $(GLINK2 attribute, AtAttribute)
-    $(D deprecated)
-    $(D enum)
-    $(D static)
+    $(DDSUBLINK spec/attribute, deprecated, `deprecated`)
+    $(DDSUBLINK spec/enum, manifest_constants, `enum`)
+    $(DDSUBLINK spec/attribute, static, `static`)
     $(RELATIVE_LINK2 extern, $(D extern))
-    $(D abstract)
-    $(D final)
-    $(D override)
-    $(D synchronized)
-    $(D auto)
-    $(D scope)
-    $(D const)
-    $(D immutable)
-    $(D inout)
-    $(D shared)
-    $(D __gshared)
+    $(DDSUBLINK spec/class, abstract, `abstract`)
+    $(DDSUBLINK spec/class, final, `final`)
+    $(DDSUBLINK spec/function, virtual-functions, `override`)
+    $(DDSUBLINK spec/class, synchronized-classes, `synchronized`)
+    $(RELATIVE_LINK2 auto-declaration, `auto`)
+    $(DDSUBLINK spec/attribute, scope, `scope`)
+    $(DDLINK spec/const3, Type Qualifiers, `const`)
+    $(DDLINK spec/const3, Type Qualifiers, `immutable`)
+    $(DDSUBLINK spec/const3, inout, `inout`)
+    $(DDSUBLINK spec/const3, shared, `shared`)
+    $(DDSUBLINK spec/attribute, gshared, `__gshared`)
     $(GLINK2 attribute, Property)
-    $(D nothrow)
-    $(D pure)
-    $(D ref))
+    $(DDSUBLINK spec/function, nothrow-functions, `nothrow`)
+    $(DDSUBLINK spec/function, pure-functions, `pure`)
+    $(RELATIVE_LINK2 ref-storage, `ref`)
 )
 
 $(H3 $(LNAME2 initializers, Initializers))
@@ -241,19 +243,22 @@ $(GNAME AliasAssignment):
     $(GLINK_LEX Identifier) $(GLINK2 template, TemplateParameters)$(OPT) $(D =) $(GLINK StorageClasses)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT)
 )
 
-    $(P $(I AliasDeclaration)s create a symbol name that refers to another symbol.
-        That symbol name can be used anywhere that the aliased symbol may appear.
-        The following symbols can be aliased:
+    $(P An $(I AliasDeclaration) creates a symbol name that refers to a type or another symbol.
+        That name can then be used anywhere that the target may appear.
+        The following can be aliased:
     )
     * $(RELATIVE_LINK2 alias-type, Types)
+        * $(RELATIVE_LINK2 alias-function, Function Types) (with default arguments)
     * $(RELATIVE_LINK2 alias-variable, Variables)
-    * Constants
+    * Manifest Constants
     * Modules
     * Packages
     * Functions
-    * Function Literals
+    * $(RELATIVE_LINK2 alias-overload, Overload Sets)
+    * $(DDSUBLINK spec/expression, function-literal-alias, Function Literals)
     * Templates
     * Template Instantiations
+    * Other Alias Declarations
 
 $(H3 $(LNAME2 alias-type, Type Aliases))
 
@@ -337,8 +342,9 @@ version (linux)
 --------------------
 
         $(P
-        Aliasing can be used to $(DDSUBLINK spec/module, import-declaration, `import`)
-        a symbol from an imported module or package into the current scope:
+        Aliasing can be used to 'import' a symbol from an
+        $(DDSUBLINK spec/module, import-declaration,
+        imported module or package) into the current scope:
         )
 
 --------------------
@@ -350,7 +356,7 @@ alias strlen = string.strlen;
 $(H3 $(LNAME2 alias-overload, Aliasing an Overload Set))
 
         $(P
-        Aliases can also `import` a set of overloaded functions, that can
+        Aliases can also 'import' a set of overloaded functions, that can
         be overloaded with functions in the current scope:
         )
 
@@ -664,7 +670,8 @@ $(H2 $(LNAME2 global_static_init, Global and Static Initializers))
 
 $(H2 $(LNAME2 typequal_vs_storageclass, Type Qualifiers vs. Storage Classes))
 
-        $(P Type qualifer and storage classes are distinct.)
+        $(P $(DDLINK spec/const3, Type Qualifiers, Type qualifers) and
+        $(RELATIVE_LINK2 storage-classes, storage classes) are distinct concepts.)
 
         $(P A $(I type qualifier) creates a derived type from an existing base
         type, and the resulting type may be used to create multiple instances
@@ -689,6 +696,7 @@ ImmutableInt z;     // typeof(z) == immutable(int)
         with the $(D const) storage class to indicate that it does not modify
         its implicit $(D this) argument:)
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 --------
 struct S
 {
@@ -700,16 +708,22 @@ struct S
     }
 }
 --------
-
-        $(P Although some keywords can be used both as a type qualifier and a
+)
+        $(P Although some keywords can be
+        $(RELATIVE_LINK2 methods-returning-qualified, used as both) a type qualifier and a
         storage class, there are some storage classes that cannot be used to
-        construct new types, such as $(D ref):)
+        construct new types, such as $(D ref).)
 
+$(H3 $(LNAME2 ref-storage, `ref` Storage Class))
+
+        $(P A parameter $(DDSUBLINK spec/function, ref-params, declared with `ref`)
+        is passed by reference:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 --------
-// ref declares the parameter x to be passed by reference
-void func(ref int x)
+void func(ref int i)
 {
-    x++; // so modifications to x will be visible in the caller
+    i++; // modifications to i will be visible in the caller
 }
 
 void main()
@@ -719,12 +733,14 @@ void main()
     assert(x == 2);
 
     // However, ref is not a type qualifier, so the following is illegal:
-    ref(int) y; // Error: ref is not a type qualifier.
+    //ref(int) y; // Error: ref is not a type qualifier.
 }
 --------
+)
+        $(P Functions can also be $(DDSUBLINK spec/function, ref-functions, declared as `ref`),
+        meaning their return value is passed by reference:)
 
-        $(P Functions can also be declared as `ref`, meaning their return value is
-        passed by reference:)
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 --------
 ref int func2()
 {
@@ -749,11 +765,14 @@ void main()
                           // does not inherit the ref storage class from func2().
 }
 --------
+)
+$(H3 $(LNAME2 methods-returning-qualified, Methods Returning a Qualified Type))
 
         $(P Some keywords, such as $(D const), can be used
         both as a type qualifier and a storage class.
         The distinction is determined by the syntax where it appears.)
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         struct S
         {
@@ -763,8 +782,9 @@ void main()
              */
             const int* func() // a const function
             {
-                ++p;          // error, this.p is const
-                return p;     // error, cannot convert const(int)* to int*
+                //++p;          // error, this.p is const
+                //return p;     // error, cannot convert const(int)* to int*
+                return null;
             }
 
             const(int)* func() // a function returning a pointer to a const int
@@ -776,6 +796,7 @@ void main()
             int* p;
         }
         ---
+        )
 
         $(BEST_PRACTICE To avoid confusion, the type qualifier
         syntax with parentheses should be used for return types,

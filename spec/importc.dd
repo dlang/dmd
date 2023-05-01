@@ -245,8 +245,11 @@ $(CCODE
 #if __IMPORTC__
 )
 
-    $(P $(TT __IMPORTC__) is defined in $(TT src/importc.h) which is automatically
-    included when the preprocessor is run.)
+    $(P $(TT __IMPORTC__) is defined in
+    $(LINK2 https://github.com/dlang/dmd/blob/master/druntime/src/importc.h, $(TT src/importc.h))
+    which is automatically
+    included when the preprocessor is run. $(TT importc.h) contains many macro
+    definitions that are used to adapt various C source code vagaries to ImportC.)
 
 $(H2 $(LNAME2 preprocessor-directives, Preprocessor Directives))
 
@@ -420,6 +423,36 @@ int myprintf(char *, ...) asm("printf");
     $(P Any declarations in scope can be accessed, not just
     declarations that lexically precede a reference.)
 
+    $(H3 $(LNAME2 cpp-tag-symbols, C++ Style Tag Symbols))
+
+    $(P In C++, `struct`, `union` or `enum` tag symbols can be accessed without needing
+    to be prefixed with the `struct`, `union` or `enum` keywords, as long
+    as there is no other declaration with the same name at the same scope.
+    ImportC behaves the same way.)
+
+    $(P For example, the following code is accepted by both C++ and ImportC:)
+
+$(CCODE
+struct s { int a; };
+
+void g(int s)
+{
+    struct s* p = (struct s*)malloc(sizeof(struct s));
+    p->a = s;
+}
+)
+
+    $(P Whereas this is rejected by both C++ and ImportC, for the same reason.)
+
+$(CCODE
+struct s { int a; };
+
+void g(int s)
+{
+    s* p = (s*)malloc(sizeof(s));
+    p->a = s;
+}
+)
 
     $(H3 $(LNAME2 ctfe, Compile Time Function Execution))
 
@@ -558,10 +591,31 @@ enum E { A = 3; }
     Rewrite function-style preprocessor macros as inline functions.
     )
 
+    $(H3 $(LNAME2 controlZ, Control Z is End Of File))
+
+    $(P A control-Z character `\x1A` in the source text means End Of File.)
+
 $(H2 $(LNAME2 gnu-clang-extensions, Gnu and Clang Extensions))
 
     $(P `gcc` and `clang` are presumed to have the same behavior w.r.t. extensions,
     so `gcc` as used here refers to both.)
+
+
+    $(H3 $(LNAME2 __attribute__, `__attribute__` Extensions))
+
+    $(P The following $(LINK2 https://gcc.gnu.org/onlinedocs/gcc/Function-Attributes.html, `__attribute__` extensions):)
+
+    $(OL
+    $(LI `__attribute__((aligned(N)))`)
+    $(LI `__attribute__((always_inline))`)
+    $(LI `__attribute__((deprecated))`)
+    $(LI `__attribute__((dllexport))`)
+    $(LI `__attribute__((dllimport))`)
+    $(LI `__attribute__((naked))`)
+    $(LI `__attribute__((noinline))`)
+    $(LI $(RELATIVE_LINK2 noreturn, `__attribute__((noreturn))`))
+    $(LI others are ignored)
+    )
 
     $(H3 $(LNAME2 noreturn, `__attribute__((noreturn))`))
 
@@ -589,8 +643,46 @@ $(H2 $(LNAME2 gnu-clang-extensions, Gnu and Clang Extensions))
 
 $(H2 $(LNAME2 visualc-extensions, Visual C Extensions))
 
+    $(P All the $(RELATIVE_LINK2 digital-mars-extensions, Digital Mars C Extensions).)
+
+    $(H3 $(LNAME2 __stdcall, `__stdcall` Function Calling Convention))
+
+    $(P `__stdcall` sets the calling convention for a function to the Windows API calling convention.)
+
+    ---
+    int __stdcall foo(int x);
+    ---
+
+    $(H3 $(LNAME2 __declspec, `__declspec` Attribute Extensions))
+
+    $(P The following $(LINK2 https://learn.microsoft.com/en-us/cpp/cpp/declspec?view=msvc-170, `__declspec` extensions):)
+
+    $(OL
+    $(LI `__declspec(align(N))`)
+    $(LI `__declspec(deprecated)`)
+    $(LI `__declspec(dllexport)`)
+    $(LI `__declspec(dllimport)`)
+    $(LI `__declspec(naked)`)
+    $(LI `__declspec(noinline)`)
+    $(LI `__declspec(noreturn)`)
+    $(LI `__declspec(thread)`)
+    $(LI others are ignored)
+    )
 
 $(H2 $(LNAME2 digital-mars-extensions, Digital Mars C Extensions))
+
+    $(H3 $(LNAME2 __stdcall, `__stdcall` Function Calling Convention))
+
+    $(H3 $(LNAME2 __declspec, `__declspec` Attribute Extensions))
+
+    $(P The following $(LINK2 https://digitalmars.com/ctg/ctgLanguageImplementation.html#declspec, `__declspec` extensions):)
+
+    $(OL
+    $(LI `__declspec(dllexport)`)
+    $(LI `__declspec(dllimport)`)
+    $(LI `__declspec(naked)`)
+    $(LI `__declspec(thread)`)
+    )
 
 
 $(H2 $(LNAME2 d-side, ImportC from D's Point of View))
@@ -705,6 +797,13 @@ $(H2 $(LNAME2 warnings, Warnings))
     $(P ImportC does not emit warnings. The presumption is the user will be importing existing C
     code developed using another C compiler, and it is written as intended.
     If C11 says it is legal, ImportC accepts it.)
+
+
+$(H2 $(LNAME2 builtins, $(TT __builtins.di)))
+
+    $(P ImportC uses D to implement several features. These are implemented in the file
+    $(LINK2 https://github.com/dlang/dmd/blob/master/druntime/src/__builtins.di, $(TT __builtins.di))
+    which is automatically imported for every ImportC compilation.)
 
 $(H2 $(LNAME2 importcpp, ImportC++))
 

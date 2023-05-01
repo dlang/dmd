@@ -43,6 +43,27 @@ $(HEADERNAV_TOC)
         `Objective-C` linkage.
     )
 
+    $(SECTION3 $(LNAME2 external-class, Binding to a @property (Accessor Methods)))
+
+    ---
+    import core.attribute : selector;
+
+    extern (Objective-C)
+    extern class MTLRenderPipelineDescriptor : NSObject
+    {
+        NSString label() @selector("label");
+        NSString label(NSString) @selector("setLabel:");
+    }
+    ---
+
+    $(P
+        Whenever needing to bind to Objective-C classes `@property`, one must be aware
+        that it generates both a getter and setter. The method to get its value (getter)
+        is the same name as the property's name. The method to set its value (setter)
+        starts with the word "set" and then uses the capitalized property name.
+        The setter for the property `label` is `setLabel:`.
+    )
+
     $(SECTION3 $(LNAME2 defining-class, Defining a Class))
 
     ---

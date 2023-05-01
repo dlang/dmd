@@ -105,7 +105,7 @@ $(H3 $(LNAME2 struct-members, Struct Members))
             $(LI $(RELATIVE_LINK2 Invariant, Invariants))
             $(LI $(DDLINK spec/operatoroverloading, Operator Overloading, Operator Overloading))
         )
-        $(LI $(DDSUBLINK spec/class, alias-this, Alias This))
+        $(LI $(RELATIVE_LINK2 alias-this, Alias This))
         $(LI Other declarations (see $(GLINK2 module, DeclDef)))
         )
     )
@@ -133,7 +133,7 @@ $(H3 $(LNAME2 union-members, Union Members))
             $(LI $(RELATIVE_LINK2 UnionConstructor, Constructors))
             $(LI $(DDLINK spec/operatoroverloading, Operator Overloading, Operator Overloading))
         )
-        $(LI $(DDSUBLINK spec/class, alias-this, Alias This))
+        $(LI $(RELATIVE_LINK2 alias-this, Alias This))
         $(LI Other declarations (see $(GLINK2 module, DeclDef)))
         )
     )
@@ -816,6 +816,7 @@ $(H3 $(LNAME2 constructor-attributes, Constructor Attributes))
         )
 
         $(P Constructors can be overloaded with different attributes.)
+
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         struct S
@@ -825,9 +826,12 @@ $(H3 $(LNAME2 constructor-attributes, Constructor Attributes))
             this(int) immutable; // immutable constructor
         }
 
-        S m = S(1);
-        shared s = shared S(2);
-        immutable i = immutable S(3);
+        void fun()
+        {
+            S m = S(1);
+            shared s = shared S(2);
+            immutable i = immutable S(3);
+        }
         ---
         )
 
@@ -853,9 +857,12 @@ $(H4 $(LNAME2 pure-constructors, Pure Constructors))
             // Therefore the created object is unique.
         }
 
-        immutable i = immutable S(1); // this(int) pure is called
-        shared s = shared S(1);       // this(int) pure is called
-        S m = S([1,2,3]);             // this(int[]) immutable pure is called
+        void fun()
+        {
+            immutable i = immutable S(1); // this(int) pure is called
+            shared s = shared S(1);       // this(int) pure is called
+            S m = S([1,2,3]);             // this(int[]) immutable pure is called
+        }
         ---
         )
 
@@ -1055,10 +1062,11 @@ $(H3 $(LNAME2 field-init, Field initialization inside a constructor))
         ---
         )
 
-$(H3 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy Constructors))
+$(H2 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy Constructors))
 
     $(P Copy constructors are used to initialize a `struct` instance from
-    another `struct` of the same type.)
+    another instance of the same type. A `struct` that defines a copy constructor
+    is not $(RELATIVE_LINK2 POD, POD).)
 
     $(P A constructor declaration is a copy constructor declaration if it meets
     the following requirements:)
@@ -1094,20 +1102,31 @@ $(H3 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy
 
     $(OL
     $(LI When a variable is explicitly initialized:)
+
+    $(SPEC_RUNNABLE_EXAMPLE_RUN
     ---
     struct A
     {
-        this(ref return scope A rhs) {}
+        int[] arr;
+        this(ref return scope A rhs) { arr = rhs.arr.dup; }
     }
 
     void main()
     {
         A a;
+        a.arr = [1, 2];
+
         A b = a; // copy constructor gets called
+        b.arr[] += 1;
+        assert(a.arr == [1, 2]); // a is unchanged
+        assert(b.arr == [2, 3]);
     }
     ---
+    )
 
     $(LI When a parameter is passed by value to a function:)
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     struct A
     {
@@ -1122,9 +1141,12 @@ $(H3 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy
         fun(a);    // copy constructor gets called
     }
     ---
+    )
 
-    $(LI When a parameter is returned by value from a function and Named Returned Value Optiomization (NRVO)
+    $(LI When a parameter is returned by value from a function and Named Returned Value Optimization (NRVO)
     cannot be performed:)
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     struct A
     {
@@ -1150,11 +1172,15 @@ $(H3 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy
     }
     ---
     )
+    )
 
-    $(LNAME2 disable-copy)
+$(H3 $(LNAME2 disable-copy, Disabled Copying))
+
     $(P When a copy constructor is defined for a `struct` (or marked `@disable`), the compiler no
     longer implicitly generates default copy/blitting constructors for that `struct`:
     )
+
+    $(SPEC_RUNNABLE_EXAMPLE_FAIL
     ---
     struct A
     {
@@ -1170,7 +1196,9 @@ $(H3 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy
         fun(a);        // error: copy constructor cannot be called with types (immutable) immutable
     }
     ---
+    )
 
+    $(SPEC_RUNNABLE_EXAMPLE_FAIL
     ---
     struct A
     {
@@ -1183,19 +1211,40 @@ $(H3 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy
         A b = a; // error: copy constructor is disabled
     }
     ---
+    )
 
-    $(P If a `union S` has fields that define a copy constructor, whenever an object of type `S`
+    $(P If a `union U` has fields that define a copy constructor, whenever an object of type `U`
     is initialized by copy, an error will be issued. The same rule applies to overlapped fields
     (anonymous unions).)
 
-    $(P A `struct` that defines a copy constructor is not $(RELATIVE_LINK2 POD, POD).)
+    $(SPEC_RUNNABLE_EXAMPLE_FAIL
+    ---
+    struct S
+    {
+        this(ref S);
+    }
 
-$(H4 $(LNAME2 copy-constructor-attributes, Copy Constructor Attributes))
+    union U
+    {
+        S s;
+    }
+
+    void main()
+    {
+        U a;
+        U b = a; // error, could not generate copy constructor for U
+    }
+    ---
+    )
+
+$(H3 $(LNAME2 copy-constructor-attributes, Copy Constructor Attributes))
 
     $(P The copy constructor can be overloaded with different qualifiers applied
     to the parameter (copying from a qualified source) or to the copy constructor
     itself (copying to a qualified destination):
     )
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     struct A
     {
@@ -1216,10 +1265,13 @@ $(H4 $(LNAME2 copy-constructor-attributes, Copy Constructor Attributes))
         immutable A a5 = ia;    // calls 4
     }
     ---
+    )
 
     $(P The `inout` qualifier may be applied to the copy constructor parameter in
     order to specify that mutable, `const`, or `immutable` types are treated the same:
     )
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     struct A
     {
@@ -1238,8 +1290,9 @@ $(H4 $(LNAME2 copy-constructor-attributes, Copy Constructor Attributes))
         immutable(A) c = r3;
     }
     ---
+    )
 
-$(H4 $(LNAME2 implicit-copy-constructors, Implicit Copy Constructors))
+$(H3 $(LNAME2 implicit-copy-constructors, Implicit Copy Constructors))
 
     $(P A copy constructor is generated implicitly by the compiler for a `struct S`
     if all of the following conditions are met:)
@@ -1251,6 +1304,7 @@ $(H4 $(LNAME2 implicit-copy-constructors, Implicit Copy Constructors))
     )
 
     $(P If the restrictions above are met, the following copy constructor is generated:)
+
     ---
     this(ref return scope inout(S) src) inout
     {
@@ -1270,7 +1324,7 @@ $(GNAME Postblit):
     $(D this $(LPAREN) this $(RPAREN)) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, FunctionBody)
 )
 
-    $(P WARNING: The postblit is considered legacy and is not recommended for new code.
+    $(P $(RED Warning): The postblit is considered legacy and is not recommended for new code.
     Code should use $(RELATIVE_LINK2 struct-copy-constructor, copy constructors)
     defined in the previous section. For backward compatibility reasons, a `struct` that
     explicitly defines both a copy constructor and a postblit will only use the postblit
@@ -1280,7 +1334,7 @@ $(GNAME Postblit):
     will have priority over the copy constructor.)
 
         $(P $(I Copy construction) is defined as initializing
-         a struct instance from another struct of the same type.
+         a struct instance from another instance of the same type.
          Copy construction is divided into two parts:)
 
         $(OL
@@ -1298,7 +1352,7 @@ $(GNAME Postblit):
         etc. For example:
         )
 
-        $(SPEC_RUNNABLE_EXAMPLE_RUN
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         struct S
         {
@@ -1951,6 +2005,183 @@ $(H2 $(LEGACY_LNAME2 AssignOverload, assign-overload, Identity Assignment Overlo
         will pointlessly free and reallocate it. The custom $(CODE opAssign)
         will reuse the existing storage.
         )
+
+$(H2 $(LEGACY_LNAME2 AliasThis, alias-this, Alias This))
+
+$(GRAMMAR
+$(GNAME AliasThis):
+    $(D alias) $(GLINK_LEX Identifier) $(D this ;)
+)
+
+        $(P An $(I AliasThis) declaration names a member to subtype.
+        The $(I Identifier) names that member.
+        )
+
+        $(P A struct or union instance can be implicitly converted to the $(I AliasThis)
+        member.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+struct S
+{
+    int x;
+    alias x this;
+}
+
+int foo(int i) { return i * 2; }
+
+void main()
+{
+    S s;
+    s.x = 7;
+    int i = -s;
+    assert(i == -7);
+    i = s + 8;
+    assert(i == 15);
+    i = s + s;
+    assert(i == 14);
+    i = 9 + s;
+    assert(i == 16);
+    i = foo(s);  // implicit conversion to int
+    assert(i == 14);
+}
+---
+)
+
+        $(P If the member is a class or struct, undefined lookups will
+        be forwarded to the $(I AliasThis) member.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+class Foo
+{
+    int baz = 4;
+    int get() { return 7; }
+}
+
+struct Bar
+{
+    Foo foo;
+    alias foo this;
+}
+
+void main()
+{
+    Bar bar = Bar(new Foo());
+    int i = bar.baz;
+    assert(i == 4);
+    i = bar.get();
+    assert(i == 7);
+}
+---
+)
+
+        $(P If the $(I Identifier) refers to a property member
+        function with no parameters then conversions and undefined
+        lookups are forwarded to the return value of the function.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+struct S
+{
+    int x;
+    @property int get()
+    {
+        return x * 2;
+    }
+    alias get this;
+}
+
+void main()
+{
+    S s;
+    s.x = 2;
+    int i = s;
+    assert(i == 4);
+}
+---
+)
+
+        $(P If a struct declaration defines an $(D opCmp) or $(D opEquals)
+        method, it will take precedence to that of the *AliasThis* member. Note
+        that, unlike an $(D opCmp) method, an $(D opEquals) method is implicitly
+        defined for a $(D struct) declaration if a user-defined one isn't provided.
+        This means that if the *AliasThis* member's $(D opEquals) should be used, it
+        must be explicitly defined:
+        )
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+struct S
+{
+    int a;
+    bool opEquals(S rhs) const
+    {
+        return this.a == rhs.a;
+    }
+}
+
+struct T
+{
+    int b;
+    S s;
+    alias s this;
+}
+
+void main()
+{
+    S s1, s2;
+    T t1, t2;
+
+    assert(s1 == s2);      // calls S.opEquals
+    assert(t1 == t2);      // calls compiler generated T.opEquals that implements member-wise equality
+
+    assert(s1 == t1);      // calls s1.opEquals(t1.s);
+    assert(t1 == s1);      // calls t1.s.opEquals(s1);
+}
+---
+)
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+struct U
+{
+    int a;
+    bool opCmp(U rhs) const
+    {
+        return this.a < rhs.a;
+    }
+}
+
+struct V
+{
+    int b;
+    U u;
+    alias u this;
+}
+
+void main()
+{
+    U u1, u2;
+    V v1, v2;
+
+    assert(!(u1 < u2));    // calls U.opCmp
+    assert(!(v1 < v2));    // calls U.opCmp because V does not define an opCmp method
+                           // so the alias this of v1 is employed; U.opCmp expects a
+                           // paramter of type U, so alias this of v2 is used
+
+    assert(!(u1 < v1));    // calls u1.opCmp(v1.u);
+    assert(!(v1 < u1));    // calls v1.u.opCmp(v1);
+}
+---
+)
+        $(P $(GLINK2 attribute, Attribute)s are ignored for $(D AliasThis).
+        )
+
+        $(P A struct/union may only have a single $(I AliasThis) member.)
+
+
 
 $(H2 $(LNAME2 nested, Nested Structs))
 

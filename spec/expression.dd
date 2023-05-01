@@ -152,9 +152,8 @@ the default linkage) are evaluated in the following order: first, if necessary, 
 function to call is evaluated (e.g. in the case of a computed function pointer or delegate). Then,
 arguments are evaluated left to right. Finally, transfer is passed to the function. Example:)
 
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
-import std.stdio;
 void function(int a, int b, int c) fun()
 {
     writeln("fun() called");
@@ -165,6 +164,7 @@ int f1() { writeln("f1() called"); return 1; }
 int f2() { writeln("f2() called"); return 2; }
 int f3(int x) { writeln("f3() called"); return x + 3; }
 int f4() { writeln("f4() called"); return 4; }
+
 // evaluates fun() then f1() then f2() then f3() then f4()
 // after which control is transferred to the callee
 fun()(f1(), f3(f2()), f4());
@@ -223,13 +223,18 @@ $(P Example:)
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 import std.stdio;
+
 struct S
 {
     int x;
     this(int n) { x = n; writefln("S(%s)", x); }
     ~this() { writefln("~S(%s)", x); }
 }
-bool b = (S(1) == S(2) || S(3) != S(4)) && S(5) == S(6);
+
+void main()
+{
+    bool b = (S(1) == S(2) || S(3) != S(4)) && S(5) == S(6);
+}
 ---
 )
 
@@ -747,10 +752,14 @@ $(H3 $(LEGACY_LNAME2 class_comparisons, class-comparisons, Class Comparisons))
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         class C {}
-        C c;
-        //if (c < null) {}  // compile-time error
-        assert(c is null);
-        if (c > new C) {}  // runtime error
+
+        void fun()
+        {
+            C c;
+            //if (c < null) {}  // compile-time error
+            assert(c is null);
+            if (c > new C) {}  // runtime error
+        }
         ---
         )
 
@@ -1649,14 +1658,18 @@ $(H3 $(LNAME2 slice_to_static_array, Slice Conversion to Static Array))
 
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
-        void f(int[2] sa);
+        void f(int[2] sa) {}
 
         int[] arr = [1, 2, 3];
-        //f(arr); // error, can't convert
-        f(arr[1 .. 3]); // OK
-        //f(arr[0 .. 3]); // error
 
-        int[2] g() { return arr[0 .. 2]; }
+        void test()
+        {
+            //f(arr); // error, can't convert
+            f(arr[1 .. 3]); // OK
+            //f(arr[0 .. 3]); // error
+
+            int[2] g() { return arr[0 .. 2]; }
+        }
         ---
         )
 
@@ -1758,21 +1771,22 @@ $(H3 $(LNAME2 identifier, .Identifier))
 
 $(H3 $(LNAME2 this, this))
 
-    $(P Within a non-static member function, $(D this) resolves to
+    $(P Within a constructor or non-static member function, $(D this) resolves to
         a reference to the object for which the function was called.
     )
-    $(P `typeof(this)` is valid anywhere inside an aggregate type
-        definition.
+    $(P $(DDSUBLINK spec/type, typeof-this, `typeof(this)`) is valid anywhere
+        inside an aggregate type definition.
         If a class member function is called with an explicit reference
         to $(D typeof(this)), a non-virtual call is made:)
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         -------------
         class A
         {
             char get() { return 'A'; }
 
-            char foo() { return typeof(this).get(); }
-            char bar() { return this.get(); }
+            char foo() { return typeof(this).get(); } // calls `A.get`
+            char bar() { return this.get(); } // dynamic, same as just `get()`
         }
 
         class B : A
@@ -1788,16 +1802,18 @@ $(H3 $(LNAME2 this, this))
             assert(b.bar() == 'B');
         }
         -------------
+        )
 
     $(P Assignment to $(D this) is not allowed for classes.)
+    $(P See also:)
+    * $(DDSUBLINK spec/class, delegating-constructors, Delegating Constructors)
+    * $(DDSUBLINK spec/template, template_this_parameter, template `this` parameters)
 
 $(H3 $(LNAME2 super, super))
 
     $(P $(D super) is identical to $(D this), except that it is
         cast to $(D this)'s base class.
         It is an error if there is no base class.
-        It is an error to use the $(D super) reference outside a non-static class member function,
-        or inside a member function of a class without a base class.
         (The only `extern(D)` class without a base class is `Object`,
         however, note that `extern(C++)` classes have no base class unless specified.)
         If a member function is called with an explicit reference
@@ -1805,6 +1821,7 @@ $(H3 $(LNAME2 super, super))
     )
 
     $(P Assignment to $(D super) is not allowed.)
+    $(P See also: $(DDSUBLINK spec/class, base-construction, Base Class Construction).)
 
 $(H3 $(LNAME2 null, null))
 
@@ -1945,7 +1962,7 @@ $(GNAME ArrayMemberInitialization):
         be parsed as an
         $(RELATIVE_LINK2 associative_array_literals, associative array).)
 
-        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
         int n = 4;
         auto aa = [0:1, 3:n]; // associative array `int[int]`
@@ -2219,11 +2236,13 @@ $(H4 $(LNAME2 lambda-parameter-inference, Parameter Type Inference))
         auto fp = (i) { return 1; }; // error, cannot infer type of `i`
         ---
 
+$(H5 $(LNAME2 function-literal-alias, Function Literal Aliasing))
+
     $(P If a function literal is
         $(DDSUBLINK spec/declaration, alias, aliased), the inference
         of the parameter types is done when the types are needed, as
         the function literal becomes a
-        $(DDSUBLINK spec/template, function-templates, template).)
+        $(DDSUBLINK spec/template, function-templates, function template).)
 
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
@@ -2364,31 +2383,26 @@ $(GNAME AssertArguments):
     $(GLINK AssignExpression) $(D ,) $(GLINK AssignExpression) $(D ,)$(OPT)
 )
 
-    $(P The first $(I AssignExpression) must evaluate to true. If it does not, an $(I Assert Failure)
+    $(P The first $(I AssignExpression) must evaluate to `true`. If it does not, an $(I Assert Failure)
     has occurred and the program enters an $(I Invalid State).
     )
 
-    $(P If the first $(I AssignExpression) consists entirely of compile time constants,
-    and evaluates to false, it is a special case; it
-    signifies that it is unreachable code.
-    Compile Time Function Execution (CTFE) is not attempted.
-    )
+    ---
+    int i = fun();
+    assert(i > 0);
+    ---
 
     $(P $(I AssertExpression) has different semantics if it is in a
     $(DDLINK spec/unittest, Unit Tests, $(D unittest)) or
-    $(DDLINK spec/contracts, Contract Programming, $(D in) contract).
-    )
-
-    $(P The second $(I AssignExpression), if present, must be implicitly
-        convertible to type $(D const(char)[]).
+    $(DDSUBLINK spec/function, preconditions, $(D in) contract).
     )
 
     $(P If the first $(I AssignExpression) is a reference to a class instance for
-    which a $(DDSUBLINK spec/class, invariants, class Invariant) exists, the class $(I Invariant) must hold.
+    which a $(DDSUBLINK spec/class, invariants, class *Invariant*) exists, the class $(I Invariant) must hold.
     )
 
     $(P If the first $(I AssignExpression) is a pointer to a struct instance for
-    which a struct $(I Invariant) exists, the struct $(I Invariant) must hold.
+    which a $(DDSUBLINK spec/struct, Invariant, struct $(I Invariant)) exists, the struct $(I Invariant) must hold.
     )
 
     $(P The type of an $(I AssertExpression) is $(D void).
@@ -2398,21 +2412,51 @@ $(GNAME AssertArguments):
     of the program is undefined.)
 
     $(IMPLEMENTATION_DEFINED Whether the first $(I AssertExpression) is evaluated
-    or not at runtime is typically set with a compiler switch. If it is not evaluated,
+    or not (at runtime) is typically set with a compiler switch. If it is not evaluated,
     any side effects specified by the $(I AssertExpression) may not occur.
-    The behavior if the first $(I AssertExpression) is evaluated and is false
-    is also typically set with a compiler switch and may include these options:
+    The behavior when the first $(I AssertExpression) evaluates to `false`
+    is also typically set with a compiler switch, and may include these options:
     $(OL
-        $(LI continuing execution)
-        $(LI immediately halting via execution of a special CPU instruction)
-        $(LI aborting the program)
-        $(LI calling the assert failure function in the corresponding C
+        $(LI Immediately halting via execution of a special CPU instruction)
+        $(LI Aborting the program)
+        $(LI Calling the assert failure function in the corresponding C
         runtime library)
-        $(LI throwing the $(D AssertError) exception in the D runtime library)
+        $(LI Throwing the $(D AssertError) exception in the D runtime library)
     )
-    If the optional second $(I AssignExpression) is provided, the implementation may
-    evaluate it and print the resulting message upon assert failure:
+    )
 
+    $(BEST_PRACTICE
+    $(OL
+        $(LI Do not have side effects in either $(I AssignExpression) that subsequent code
+        depends on.)
+        $(LI $(I AssertExpression)s are intended to detect bugs in the program.
+        Do not use them for detecting input or environmental errors.)
+        $(LI Do not attempt to resume normal execution after an $(I Assert Failure).)
+    )
+    )
+
+$(H4 $(LNAME2 assert-ct, Compile-time Evaluation))
+
+    $(P If the first $(I AssignExpression) consists entirely of compile time constants,
+    and evaluates to `false`, it is a special case - it
+    signifies that subsequent statements are unreachable code.
+    Compile Time Function Execution (CTFE) is not attempted.
+    )
+
+    $(P The implementation may handle the case of the first $(I AssignExpression) evaluating to `false`
+    at compile time differently - even when other `assert`s are ignored,
+    it may still generate a $(D HLT) instruction or equivalent.
+    )
+
+    $(P See also: $(DDSUBLINK spec/version, static-assert, `static assert`).)
+
+$(H4 $(LNAME2 assert-message, Assert Message))
+
+    $(P The second $(I AssignExpression), if present, must be implicitly
+        convertible to type $(D const(char)[]).
+        When present, the implementation may evaluate it and print the
+        resulting message upon assert failure:
+    )
         ----
         void main()
         {
@@ -2424,21 +2468,6 @@ $(GNAME AssertArguments):
 
     $(CONSOLE core.exception.AssertError@test.d(3) an error message)
 
-    $(P The implementation may handle the case of the first $(I AssignExpression) evaluating at compile
-    time to false differently in that in release mode
-    it may simply generate a $(D HLT) instruction or equivalent.
-    )
-    )
-
-    $(BEST_PRACTICE
-    $(OL
-        $(LI Do not have side effects in either $(I AssignExpression) that subsequent code
-        depends on.)
-        $(LI $(I AssertExpressions) are intended to detect bugs in the program, do
-        not use for detecting input or environmental errors.)
-        $(LI Do not attempt to resume normal execution after an $(I Assert Failure).)
-    )
-    )
 
 $(H3 $(LNAME2 mixin_expressions, Mixin Expressions))
 
@@ -2513,13 +2542,13 @@ $(GNAME ArgumentList):
         collected) heap.
     )
 
-    $(P The *Type* form constructs an instance of a type and default-initializes it.)
+    $(P The `new` *Type* form constructs an instance of a type and default-initializes it.)
     $(P The *Type(ArgumentList)* form allows passing either a single initializer
         of the same type, or multiple arguments for more complex types.
         For class types, *ArgumentList* is passed to the class constructor.
         For a dynamic array, the argument sets the initial array length.
         For multidimensional dynamic arrays, each argument corresponds to
-        an initial length.)
+        an initial length (see $(RELATIVE_LINK2 new_multidimensional, below)).)
 
     $(SPEC_RUNNABLE_EXAMPLE_RUN
     ---
@@ -2533,10 +2562,6 @@ $(GNAME ArgumentList):
 
     auto a = new int[](2);
     assert(a.length == 2);
-
-    int[][] m = new int[][](10, 5);
-    assert(m.length == 10);
-    assert(m[0].length == 5);
     ---
     )
 
@@ -2547,6 +2572,15 @@ $(GNAME ArgumentList):
 
     $(NOTE It is not possible to allocate a static array directly with
         `new` (only by using a type alias).)
+
+    $(P The result is a $(DDSUBLINK const3, unique-expressions, unique expression)
+    which can implicitly convert to other qualifiers:)
+
+    ---
+    immutable o = new Object;
+    ---
+
+$(H4 $(LNAME2 new_class, Class Instantiation))
 
     $(P If a $(I NewExpression) is used with a class type as an initializer for
         a function local variable with $(DDSUBLINK spec/attribute, scope, `scope`) storage class,
@@ -2575,13 +2609,18 @@ $(H4 $(LNAME2 new_multidimensional, Multidimensional Arrays))
 
     $(P To allocate the nested arrays, multiple arguments can be used:)
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---------------
         int[][][] bar;
-        ...
         bar = new int[][][](5, 20, 30);
-        ---------------
 
-    The code above is equivalent to:
+        assert(bar.length == 5);
+        assert(bar[0].length == 20);
+        assert(bar[0][0].length == 30);
+        ---------------
+        )
+
+    The assignment above is equivalent to:
 
         ----------
         bar = new int[][][5];
@@ -2674,18 +2713,19 @@ $(GNAME TypeSpecialization):
     $(D package)
 )
 
-    $(P $(I IsExpression)s are evaluated at compile time and are
-        used for:)
+    $(P An $(I IsExpression) is evaluated at compile time and is
+        used to check if an expression is a valid type. In addition,
+        there are forms which can also:)
     $(UL
-    $(LI checking for valid types)
-    $(LI comparing types for equivalence)
-    $(LI determining if one type can be implicitly converted to another)
-    $(LI deducing the subtypes of a type using pattern matching)
+    $(LI compare types for equivalence)
+    $(LI determine if one type can be implicitly converted to another)
+    $(LI deduce the subtypes of a type using
+        $(RELATIVE_LINK2 is-parameter-list, pattern matching))
+    $(LI deduce the template arguments of a type template instance)
     )
     $(P
-        The result of an $(I IsExpression) is a boolean of value `true`
-        if the condition is satisfied. If the condition is not satisfied,
-        the result is a boolean of value `false`.
+        The result of an $(I IsExpression) is a boolean which is `true`
+        if the condition is satisfied and `false` if not.
     )
 
     $(P $(I Type) is the type being tested. It must be syntactically
@@ -2697,7 +2737,8 @@ $(GNAME TypeSpecialization):
         pattern matched against.
     )
 
-    $(P $(I IsExpression)s may be used in conjunction with $(D typeof) to check
+    $(P $(I IsExpression)s may be used in conjunction with
+    $(DDSUBLINK spec/type, typeof, `typeof`) to check
     whether an expression type checks correctly. For example, $(D is(typeof(foo)))
     will return $(D true) if $(D foo) has a valid type.
     )
@@ -2707,24 +2748,31 @@ $(H4 $(LNAME2 basic-forms, Basic Forms))
         $(H5 $(LNAME2 is-type, $(D is $(LPAREN)) $(I Type) $(D $(RPAREN))))
 
         $(P
-        The condition is satisfied if $(D Type) is semantically
-        correct (it must be syntactically correct regardless).
+        The condition is satisfied if $(I Type) is semantically
+        correct. *Type* must be syntactically correct regardless.
         )
--------------
-alias int Func(int);    // Func is a alias to a function type
-void foo()
-{
-    if (is(Func[]))     // not satisfied because arrays of
-                        // functions are not allowed
-        writeln("satisfied");
-    else
-        writeln("not satisfied");
 
-    if (is([][]))       // error, [][] is not a syntactically valid type
-        ...
-}
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+---
+pragma(msg, is(5)); // error
+pragma(msg, is([][])); // error
+---
+)
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 -------------
+int i;
+static assert(is(int));
+static assert(is(typeof(i))); // same
 
+static assert(!is(Undefined));
+static assert(!is(typeof(int))); // int is not an expression
+static assert(!is(i)); // i is a value
+
+alias Func = int(int); // function type
+static assert(is(Func));
+static assert(!is(Func[])); // fails as an array of functions is not allowed
+-------------
+)
         $(H5 $(LNAME2 is-type-convert, $(D is $(LPAREN)) $(I Type) $(D :) $(I TypeSpecialization) $(D $(RPAREN))))
 
         $(P
@@ -2733,18 +2781,14 @@ void foo()
         or can be implicitly converted to $(I TypeSpecialization).
         $(I TypeSpecialization) is only allowed to be a $(I Type).
         )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 -------------
 alias Bar = short;
-void foo()
-{
-    if (is(Bar : int))   // satisfied because short can be
-                         // implicitly converted to int
-        writeln("satisfied");
-    else
-        writeln("not satisfied");
-}
+static assert(is(Bar : int)); // short implicitly converts to int
+static assert(!is(Bar : string));
 -------------
-
+)
         $(H5 $(LNAME2 is-type-equal, $(D is $(LPAREN)) $(I Type) $(D ==) $(I TypeSpecialization) $(D $(RPAREN))))
 
         $(P
@@ -2752,17 +2796,14 @@ void foo()
         the condition is satisfied if $(I Type) is semantically correct and is
         the same type as $(I TypeSpecialization).
         )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 -------------
 alias Bar = short;
-void foo()
-{
-    if (is(Bar == int))   // not satisfied because short is not
-                          // the same type as int
-        writeln("satisfied");
-    else
-        writeln("not satisfied");
-}
+static assert(is(Bar == short));
+static assert(!is(Bar == int));
 -------------
+)
         $(P
         If $(I TypeSpecialization) is one of
                 $(D struct)
@@ -2781,6 +2822,7 @@ $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 static assert(is(Object == class));
 static assert(is(ModuleInfo == struct));
+static assert(!is(int == class));
 ---
 )
         $(P The `module` and `package` forms are satisfied when *Type* is a symbol, not a *type*,
@@ -3023,10 +3065,11 @@ $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D ==) $(I TypeSpecialization) $(D 
 )
 
         $(P
-        More complex types can be pattern matched; the
+        More complex types can be pattern matched. The
         $(I TemplateParameterList) declares symbols based on the
         parts of the pattern that are matched, analogously to the
-        way implied template parameters are matched.
+        way $(DDSUBLINK spec/template, parameters_specialization,
+        implied template parameters) are matched.
         )
 
 $(P $(B Example:) Matching a Template Instantiation))
@@ -3048,6 +3091,20 @@ $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     static assert(is(Args[1] == string));
     ---
 )
+
+        $(P *Type* cannot be matched when *TypeSpecialization* is an
+        $(DDSUBLINK spec/template, alias-template, alias template) instance:
+        )
+
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---
+        struct S(T) {}
+        alias A(T) = S!T;
+
+        static assert(is(A!int : S!T, T));
+        //static assert(!is(A!int : A!T, T));
+        ---
+        )
 
 $(P $(B Example:) Matching an Associative Array)
 

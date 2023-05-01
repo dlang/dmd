@@ -431,7 +431,7 @@ $(OL
         $(LI Otherwise, an error results.)
 )
 
-        $(P If overridding $(D Object.opEquals()) for classes, the class member
+        $(P If overriding $(D Object.opEquals()) for classes, the class member
         function signature should look like:)
     ---
     class C

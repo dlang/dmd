@@ -343,20 +343,23 @@ $(H3 $(LEGACY_LNAME2 Integer Promotions, integer-promotions, Integer Promotions)
 
     $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
-    byte a;
-    auto b = a + a;
-    static assert(is(typeof(b) == int));
-    // error: can't implicitly convert expression of type int to byte:
-    //byte c = a + a;
+    void fun()
+    {
+        byte a;
+        auto b = a + a;
+        static assert(is(typeof(b) == int));
+        // error: can't implicitly convert expression of type int to byte:
+        //byte c = a + a;
 
-    ushort d;
-    // error: can't implicitly convert expression of type int to ushort:
-    //d = d * d;
-    int e = d * d; // OK
-    static assert(is(typeof(int() * d) == int));
+        ushort d;
+        // error: can't implicitly convert expression of type int to ushort:
+        //d = d * d;
+        int e = d * d; // OK
+        static assert(is(typeof(int() * d) == int));
 
-    dchar f;
-    static assert(is(typeof(f - f) == uint));
+        dchar f;
+        static assert(is(typeof(f - f) == uint));
+    }
     ---
     )
 
@@ -476,20 +479,20 @@ $(H3 $(LNAME2 vrp, Value Range Propagation))
 
     $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
-    extern char c;
-    // min is c.min + 100 > short.min
-    // max is c.max + 100 < short.max
-    short s = c + 100; // OK
+    void fun(char c, int i, ubyte b)
+    {
+        // min is c.min + 100 > short.min
+        // max is c.max + 100 < short.max
+        short s = c + 100; // OK
 
-    extern int i;
-    ubyte j = i & 0x3F; // OK, 0 ... 0x3F
-    //ubyte k = i & 0x14A; // error, 0x14A > ubyte.max
-    ushort k = i & 0x14A; // OK
+        ubyte j = i & 0x3F; // OK, 0 ... 0x3F
+        //ubyte k = i & 0x14A; // error, 0x14A > ubyte.max
+        ushort k = i & 0x14A; // OK
 
-    extern ubyte b;
-    k = i & b; // OK, 0 ... b.max
-    //b = b + b; // error, b.max + b.max > b.max
-    s = b + b; // OK, 0 ... b.max + b.max
+        k = i & b; // OK, 0 ... b.max
+        //b = b + b; // error, b.max + b.max > b.max
+        s = b + b; // OK, 0 ... b.max + b.max
+    }
     ---
     )
     $(P Note the implementation does not track the range of possible values for
@@ -497,15 +500,17 @@ $(H3 $(LNAME2 vrp, Value Range Propagation))
 
     $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
-    extern int i;
-    ushort s = i & 0xff; // OK
-    // s is now assumed to be s.min ... s.max, not 0 ... 0xff
-    //ubyte b = s; // error
-    ubyte b = s & 0xff; // OK
+    void fun(int i)
+    {
+        ushort s = i & 0xff; // OK
+        // s is now assumed to be s.min ... s.max, not 0 ... 0xff
+        //ubyte b = s; // error
+        ubyte b = s & 0xff; // OK
 
-    const int c = i & 0xff;
-    // c's range is fixed and known
-    b = c; // OK
+        const int c = i & 0xff;
+        // c's range is fixed and known
+        b = c; // OK
+    }
     ---
     )
     * For more information, see $(LINK2 https://digitalmars.com/articles/b62.html, the dmc article).
@@ -642,17 +647,16 @@ $(GNAME Typeof):
 
         $(P Special cases: )
     $(OL
-        $(LI $(D typeof(this)) will generate the type of what $(D this)
+        $(LI $(D typeof(return)) will, when inside a function scope,
+        give the return type of that function.
+        )
+        $(LI $(LNAME2 typeof-this, $(D typeof(this))) will generate the type of what $(D this)
         would be in a non-static member function, even if not in a member
         function.
         )
         $(LI Analogously, $(D typeof(super)) will generate the type of what
         $(D super) would be in a non-static member function.
         )
-        $(LI $(D typeof(return)) will, when inside a function scope,
-        give the return type of that function.
-        )
-    )
 
         --------------------
         class A { }
@@ -672,6 +676,7 @@ $(GNAME Typeof):
 
         typeof(this) r;   // error, no enclosing struct or class
         --------------------
+    )
 
         $(P If the expression is a $(DDSUBLINK spec/function, property-functions,
         Property Function), $(D typeof) gives its return type.

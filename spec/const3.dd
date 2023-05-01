@@ -571,30 +571,80 @@ $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 import core.atomic;
 
 shared int x;
-//x++; // error, use atomicOp instead
-x.atomicOp!"+="(1);
+
+void fun()
+{
+    //x++; // error, use atomicOp instead
+    x.atomicOp!"+="(1);
+}
 ---
 )
 $(P $(RED Warning:) An individual read or write operation on shared
 data is not an error yet by default. To detect these, use the
-`-preview=nosharedaccess` compiler option.)
+`-preview=nosharedaccess` compiler option. Normal initialization is
+allowed without an error.)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+import core.atomic;
+
+int y;
+shared int x = y; // OK
+
+//x = 5; // write error with preview flag
+x.atomicStore(5); // OK
+//y = x; // read error with preview flag
+y = x.atomicLoad(); // OK
+assert(y == 5);
+---
+)
+
+$(H3 $(LNAME2 shared_cast, Casting))
 
 $(P When working with larger types, manual synchronization
 can be used. To do that, `shared` can be cast away for the
 duration while mutual exclusion has been established:
 )
+
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 struct T;
 shared T* x;
-synchronized
+
+void fun()
 {
-    T* p = cast(T*)x;
-    // operate on `*p`
+    synchronized
+    {
+        T* p = cast(T*)x;
+        // operate on `*p`
+    }
 }
 ---
 )
-$(P Lastly, to declare global/static data to be implicitly shared across
+
+$(P An unshared reference can be cast to shared only if the source data
+will not be accessed for the lifetime of the cast result.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+class C {}
+
+@trusted shared(C) create()
+{
+    auto c = new C;
+    // work with c without it escaping
+    return cast(shared)c; // OK
+}
+---
+)
+
+$(H3 $(LNAME2 shared_global, Shared Global Variables))
+
+$(P Global (or static) shared variables are stored in common storage which
+is accessible across threads. Global mutable variables are stored in
+thread-local storage by default.)
+
+$(P To declare global/static data to be implicitly shared across
 multiple threads without any compiler checks, see $(DDSUBLINK
 spec/attribute, gshared, `__gshared`).
 )
@@ -676,42 +726,44 @@ format:)
     $(TROW $(D inout shared),       $(NO),  $(NO),  $(NO),  $(YES), $(NO),  $(NO),  $(YES), $(YES), $(NO) )
     )
 
-        $(P If an implicit conversion is disallowed by the table, an $(GLINK2 expression, Expression)
-        may be converted if:
-        )
+$(H3 $(LNAME2 unique-expressions, Unique Expressions))
 
-        $(P An expression may be converted from mutable or shared to immutable if the expression
+        $(P If an implicit conversion is disallowed by the table, an $(GLINK2 expression, Expression)
+        may be implicitly converted as follows:
+        )
+        $(UL
+        $(LI From mutable or shared to immutable if the expression
         is unique and all expressions it transitively refers to are either unique or immutable.
         )
-
-        $(P An expression may be converted from mutable to shared if the expression
+        $(LI From mutable to shared if the expression
         is unique and all expressions it transitively refers to are either unique, immutable,
         or shared.
         )
-
-        $(P An expression may be converted from immutable to mutable if the expression
-        is unique.
+        $(LI From immutable to mutable if the expression is unique.
         )
-
-        $(P An expression may be converted from shared to mutable if the expression
-        is unique.
+        $(LI From shared to mutable if the expression is unique.
+        )
         )
 
         $(P A $(I Unique Expression) is one for which there are no other references to the
         value of the expression and all expressions it transitively refers to are either
         also unique or are immutable. For example:)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 void main()
 {
     immutable int** p = new int*(null); // ok, unique
 
     int x;
-    immutable int** q = new int*(&x); // error, there may be other references to x
+    //immutable int** q = new int*(&x); // error, there may be other references to x
 
     immutable int y;
     immutable int** r = new immutable(int)*(&y); // ok, y is immutable
 }
 ---
+)
+        $(P See also: $(DDSUBLINK spec/function, pure-factory-functions, Pure Factory Functions).)
 
         $(P Otherwise, a $(GLINK2 expression, CastExpression) can be used to force a conversion
         when an implicit version is disallowed, but this cannot be done in $(D @safe) code,

@@ -361,9 +361,13 @@ $(SPEC_RUNNABLE_EXAMPLE_RUN
 
 $(H2 $(LNAME2 static_initialization, Static Initialization of AAs))
 
-        NOTE: Not yet implemented.
+        NOTE: Static initialization, e.g. assigning an AA value to a global or
+        static variable, isn't implemented yet. AAs can be constructed and used
+        at runtime and at compile time as usual. Pre-computed AA values embedded
+        into the executable are however not yet possible.
 
         ---------
+        // in global scope
         immutable long[string] aa = [
           "foo": 5,
           "bar": 10,
@@ -377,6 +381,11 @@ $(H2 $(LNAME2 static_initialization, Static Initialization of AAs))
             assert(aa["baz"] == 2000);
         }
         ---------
+
+        As a workaround you can use
+        $(LINK2 spec/module.html#staticorder, static constructors) or
+        $(LINK2 spec/pragma.html#crtctor, CRT constructors) to initialize global
+        AAs immediately at program startup.
 
 $(H2 $(LNAME2 runtime_initialization, Runtime Initialization of Immutable AAs))
 
