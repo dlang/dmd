@@ -393,6 +393,15 @@ class Lexer
                     }
                 }
                 continue; // skip white space
+
+            case '\\':
+                if (Ccompile && (p[1] == '\r' || p[1] == '\n'))
+                {
+                    ++p; // ignore \ followed by new line, like VC does
+                    continue;
+                }
+                goto default;
+
             case '0':
                 if (!isZeroSecond(p[1]))        // if numeric literal does not continue
                 {
