@@ -217,12 +217,6 @@ void err_redeclar(Symbol *s,type *t1,type *t2);
 void err_override(Symbol *sfbase,Symbol *sfder);
 void err_notamember(const(char)* id, Classsym *s, Symbol *alternate = null);
 
-/* exp.c */
-elem *expression();
-elem *const_exp();
-elem *assign_exp();
-elem *exp_simplecast(type *);
-
 /* file.c */
 char *file_getsource(const(char)* iname);
 int file_isdir(const(char)* fname);
@@ -266,7 +260,6 @@ int nteh_offset_sindex();
 int nteh_offset_sindex_seh();
 int nteh_offset_info();
 
-/* os.c */
 void *globalrealloc(void *oldp,size_t nbytes);
 void *vmem_baseaddr();
 void vmem_reservesize(uint *psize);
@@ -341,18 +334,7 @@ Symbol *symbol_searchlist(symlist_t sl, const(char)* vident);
 void symbol_reset(Symbol *s);
 tym_t symbol_pointerType(const Symbol* s);
 
-// cg87.c
 public import dmd.backend.cg87 : loadconst, cg87_reset;
-
-/* From cgopt.c */
-void opt();
-
-
-// objrecor.c
-void objfile_open(const(char)*);
-void objfile_close(void *data, uint len);
-void objfile_delete();
-void objfile_term();
 
 /* cod3.c */
 public import dmd.backend.cod3 : cod3_thunk;
@@ -372,8 +354,7 @@ void out_reset();
 Symbol *out_readonly_sym(tym_t ty, void *p, int len);
 Symbol *out_string_literal(const(char)* str, uint len, uint sz);
 
-/* blockopt.c */
-extern __gshared uint[BCMAX] bc_goal;
+public import dmd.backend.blockopt : bc_goal;
 
 block* block_calloc();
 void block_init();
@@ -482,10 +463,7 @@ version (HTOD)
     void srcpos_dehydrate(Srcpos *);
 }
 
-// rtlsym.c
-void rtlsym_init();
-void rtlsym_reset();
-void rtlsym_term();
+public import dmd.backend.drtlsym : rtlsym_init, rtlsym_reset, rtlsym_term;
 
 // compress.c
 extern(C) char *id_compress(const char *id, int idlen, size_t *plen);
@@ -495,10 +473,3 @@ void dwarf_CFA_set_loc(uint location);
 void dwarf_CFA_set_reg_offset(int reg, int offset);
 void dwarf_CFA_offset(int reg, int offset);
 void dwarf_CFA_args_size(size_t sz);
-
-// Posix
-elem *exp_isconst();
-elem *lnx_builtin_next_arg(elem *efunc,list_t arglist);
-char *lnx_redirect_funcname(const(char)*);
-void  lnx_funcdecl(Symbol*, SC, SC, int);
-int  lnx_attributes(int hinttype,const void *hint, type **ptyp, tym_t *ptym,int *pattrtype);
