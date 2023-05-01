@@ -5833,9 +5833,9 @@ extern (C++) OP *asm_op_lookup(const(char)* s)
 @trusted
 private int binary(const(char)* p, const OP[] table)
 {
-    uint low = 0;
+    int low = 0;
     char cp = *p;
-    uint high = cast(uint)(table.length) - 1;
+    int high = cast(int)(table.length) - 1;
     p++;
 
     while (low <= high)

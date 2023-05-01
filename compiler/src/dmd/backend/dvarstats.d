@@ -374,12 +374,12 @@ private targ_size_t getLineOffset(int linnum)
 // return the first record index in the lineOffsets array with linnum >= line
 private int findLineIndex(uint line)
 {
-    uint low = 0;
-    uint high = cast(uint)lineOffsets.length;
+    int low = 0;
+    int high = cast(int)lineOffsets.length;
     while (low < high)
     {
-        uint mid = low + ((high - low) >> 1);
-        uint ln = lineOffsets[mid].linnum;
+        int mid = low + ((high - low) >> 1);
+        int ln = lineOffsets[mid].linnum;
         if (line < ln)
             high = mid;
         else if (line > ln)

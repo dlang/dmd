@@ -827,9 +827,14 @@ extern(D):
             {
                 tmp.mangleTemplateValue(o, tv, actualti, is_dmc_template);
             }
-            else
-            if (!tp || tp.isTemplateTypeParameter())
+            else if (!tp || tp.isTemplateTypeParameter())
             {
+                Type t = isType(o);
+                if (t is null)
+                {
+                    actualti.error("internal compiler error: C++ `%s` template value parameter is not supported", o.toChars());
+                    fatal();
+                }
                 tmp.mangleTemplateType(o);
             }
             else if (tp.isTemplateAliasParameter())

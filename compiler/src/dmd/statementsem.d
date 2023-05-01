@@ -4569,8 +4569,7 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
             decls.append(Dsymbol.arraySyntaxCopy(dbody));
         else
         {
-            if (fs._body) // https://issues.dlang.org/show_bug.cgi?id=17646
-                stmts.push(fs._body.syntaxCopy());
+            stmts.push(fs._body.syntaxCopy());
             s = new CompoundStatement(loc, stmts);
         }
 
