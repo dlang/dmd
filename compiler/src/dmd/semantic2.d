@@ -104,12 +104,14 @@ private extern(C++) final class Semantic2Visitor : Visitor
         sc = sc.pop();
         if (errors)
         {
+            sa.errors = true;
             errorSupplemental(sa.loc, "while evaluating: `static assert(%s)`", sa.exp.toChars());
             return;
         }
         else if (result)
             return;
 
+        sa.errors = true;
         if (sa.msgs)
         {
             OutBuffer msgbuf;

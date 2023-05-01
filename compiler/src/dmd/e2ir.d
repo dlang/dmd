@@ -5320,6 +5320,12 @@ elem *callfunc(const ref Loc loc,
         {   printf("ehidden: "); elem_print(ehidden); }
     }
 
+    /* This can come about with an error in a circular definition of fd
+     * https://issues.dlang.org/show_bug.cgi?id=19091
+     */
+    if (fd && fd.errors)
+        fd.error(loc, "has errors and cannot be called");
+
     t = t.toBasetype();
     TypeFunction tf = t.isTypeFunction();
     if (!tf)
