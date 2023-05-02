@@ -30,6 +30,7 @@
 #define __inline__ inline
 #define __inline inline
 #define __volatile__ volatile
+#define __attribute __attribute__
 
 /********************
  * Clang nullability extension used by macOS headers.
