@@ -412,21 +412,6 @@ version (SCPP)
     void srcpos_hydrate(Srcpos *);
     void srcpos_dehydrate(Srcpos *);
 }
-version (HTOD)
-{
-    extern __gshared Srcfiles srcfiles;
-    Sfile **filename_indirect(Sfile *sf);
-    Sfile  *filename_search(const(char)* name);
-    Sfile *filename_add(const(char)* name);
-    void filename_hydrate(Srcfiles *fn);
-    void filename_dehydrate(Srcfiles *fn);
-    void filename_merge(Srcfiles *fn);
-    void filename_mergefl(Sfile *sf);
-    int filename_cmp(const(char)* f1,const(char)* f2);
-    void filename_translate(Srcpos *);
-    void srcpos_hydrate(Srcpos *);
-    void srcpos_dehydrate(Srcpos *);
-}
 
 public import dmd.backend.drtlsym : rtlsym_init, rtlsym_reset, rtlsym_term;
 

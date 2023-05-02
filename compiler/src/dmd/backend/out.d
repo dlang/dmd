@@ -44,12 +44,6 @@ version (SCPP)
     import msgs2;
     import parser;
 }
-version (HTOD)
-{
-    import cpp;
-    import msgs2;
-    import parser;
-}
 
 version (Windows)
 {
@@ -110,11 +104,6 @@ void outcsegname(char *csegname)
 
 }
 
-version (HTOD)
-{
-    void outcsegname(char *csegname) { }
-}
-
 /***********************************
  * Output function thunk.
  */
@@ -122,13 +111,10 @@ version (HTOD)
 extern (C) void outthunk(Symbol *sthunk,Symbol *sfunc,uint p,tym_t thisty,
         targ_size_t d,int i,targ_size_t d2)
 {
-version (HTOD) { } else
-{
     sthunk.Sseg = cseg;
     cod3_thunk(sthunk,sfunc,p,thisty,cast(uint)d,i,cast(uint)d2);
     sthunk.Sfunc.Fflags &= ~Fpending;
     sthunk.Sfunc.Fflags |= Foutput;   /* mark it as having been output */
-}
 }
 
 
@@ -140,11 +126,6 @@ version (HTOD) { } else
 @trusted
 void outdata(Symbol *s)
 {
-version (HTOD)
-{
-    return;
-}
-
     int seg;
     targ_size_t offset;
     int flags;
@@ -1120,11 +1101,7 @@ private void out_regcand_walk(elem *e, ref bool addressOfParam)
 @trusted
 void writefunc(Symbol *sfunc)
 {
-version (HTOD)
-{
-    return;
-}
-else version (SCPP)
+version (SCPP)
 {
     writefunc2(sfunc);
 }
@@ -1437,10 +1414,7 @@ version (SCPP)
                                         // generate new code segment
         }
         cod3_align(cseg);               // align start of function
-version (HTOD) { } else
-{
         objmod.func_start(sfunc);
-}
         searchfixlist(sfunc);           // backpatch any refs to this function
     }
 
@@ -1471,10 +1445,7 @@ version (SCPP)
 {
     PARSER = 1;
 }
-version (HTOD) { } else
-{
     objmod.func_term(sfunc);
-}
     if (eecontext.EEcompile == 1)
         goto Ldone;
     if (sfunc.Sclass == SC.global)
@@ -1624,12 +1595,6 @@ void out_reset()
 @trusted
 Symbol *out_readonly_sym(tym_t ty, void *p, int len)
 {
-version (HTOD)
-{
-    return null;
-}
-else
-{
 static if (0)
 {
     printf("out_readonly_sym(ty = x%x)\n", ty);
@@ -1693,7 +1658,6 @@ else
         memcpy(r.p.ptr, p, len);
     }
     return s;
-}
 }
 
 /*************************************

@@ -217,11 +217,6 @@ void dbg_optprint(char *title)
 @trusted
 void optfunc()
 {
-version (HTOD)
-{
-}
-else
-{
     if (debugc) printf("optfunc()\n");
     dbg_optprint("optfunc\n");
 
@@ -381,5 +376,4 @@ else
     {
         block_optimizer_free(b);
     }
-}
 }

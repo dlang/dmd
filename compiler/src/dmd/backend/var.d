@@ -31,11 +31,6 @@ version (SCPP)
     import parser;
     import phstring;
 }
-version (HTOD)
-{
-    import parser;
-    import phstring;
-}
 
 extern (C++):
 
@@ -139,11 +134,6 @@ char*   foutdir = null,       // directory to place output files in
         flstname = null;       /* the filename strings                 */
 
 version (SCPP)
-{
-    phstring_t fdeplist;
-    phstring_t pathlist;            // include paths
-}
-version (HTOD)
 {
     phstring_t fdeplist;
     phstring_t pathlist;            // include paths

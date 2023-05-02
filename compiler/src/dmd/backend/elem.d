@@ -17,10 +17,6 @@ version (SCPP)
 {
     version = SCPP_HTOD;
 }
-version (HTOD)
-{
-    version = SCPP_HTOD;
-}
 version (MARS)
 {
     enum HYDRATE = false;
@@ -1537,9 +1533,6 @@ int el_countCommas(const(elem)* e)
  * Convert floating point constant to a read-only symbol.
  * Needed iff floating point code can't load immediate constants.
  */
-
-version (HTOD) { } else
-{
 @trusted
 elem *el_convfloat(elem *e)
 {
@@ -1625,7 +1618,6 @@ elem *el_convfloat(elem *e)
         e.Ety |= mTYconst;
     //printf("s: %s %d:x%x\n", s.Sident, s.Sseg, s.Soffset);
     return e;
-}
 }
 
 /************************************
@@ -1804,9 +1796,6 @@ void shrinkLongDoubleConstantIfPossible(elem *e)
 /*************************
  * Run through a tree converting it to CODGEN.
  */
-
-version (HTOD) { } else
-{
 @trusted
 elem *el_convert(elem *e)
 {
@@ -1872,7 +1861,6 @@ elem *el_convert(elem *e)
             break;
     }
     return e;
-}
 }
 
 

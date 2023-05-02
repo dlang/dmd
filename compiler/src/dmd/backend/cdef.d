@@ -34,8 +34,6 @@ enum VERSIONINT = 0x900;        // for precompiled headers and DLL version
 
 version (SCPP)
     version = XVERSION;
-version (HTOD)
-    version = XVERSION;
 version (MARS)
     version = XVERSION;
 
