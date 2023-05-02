@@ -15,10 +15,6 @@ version (SCPP)
 {
     version = SCPP_HTOD;
 }
-version (HTOD)
-{
-    version = SCPP_HTOD;
-}
 
 import core.stdc.stdio;
 import core.stdc.stdlib;

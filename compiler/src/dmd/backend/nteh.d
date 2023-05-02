@@ -35,10 +35,6 @@ version (SCPP)
 {
     import scopeh;
 }
-else version (HTOD)
-{
-    import scopeh;
-}
 
 static if (NTEXCEPTIONS)
 {
@@ -286,10 +282,6 @@ version (MARS)
         sz = 5 * 4;
 }
 else version (SCPP)
-{
-        sz = 6 * 4;
-}
-else version (HTOD)
 {
         sz = 6 * 4;
 }

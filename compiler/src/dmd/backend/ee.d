@@ -54,10 +54,6 @@ void eecontext_convs(SYMIDX marksi)
     {
         ps = &globsym;
     }
-    else version (HTOD)
-    {
-        ps = &globsym;
-    }
     else
     {
         ps = cstate.CSpsymtab;

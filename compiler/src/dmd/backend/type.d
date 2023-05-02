@@ -155,8 +155,6 @@ void type_dehydrate(type **);
 
 version (SCPP)
     targ_size_t type_size(type *);
-version (HTOD)
-    targ_size_t type_size(type *);
 
 targ_size_t type_size(const type *);
 uint type_alignsize(type *);

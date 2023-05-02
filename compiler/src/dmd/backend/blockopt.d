@@ -62,10 +62,7 @@ extern (C) void mem_free(void*); // tk/mem.c
 
 alias MEM_PH_FREE = mem_free;
 
-version (HTOD)
-    void *util_realloc(void* p, size_t n, size_t size);
-else
-    import dmd.backend.gflow : util_realloc;
+import dmd.backend.gflow : util_realloc;
 
 __gshared
 {
@@ -389,10 +386,7 @@ void block_free(block *b)
         }
 
         case BCasm:
-            version (HTOD) {} else
-            {
-                code_free(b.Bcode);
-            }
+            code_free(b.Bcode);
             break;
 
         default:
@@ -447,10 +441,7 @@ void blocklist_hydrate(block **pb)
                 break;
 
             case BCasm:
-                version (HTOD) {} else
-                {
-                    code_hydrate(&b.Bcode);
-                }
+                code_hydrate(&b.Bcode);
                 break;
 
             default:

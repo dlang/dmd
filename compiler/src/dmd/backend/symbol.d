@@ -17,10 +17,6 @@ version (SCPP)
 {
     version = SCPP_HTOD;
 }
-version (HTOD)
-{
-    version = SCPP_HTOD;
-}
 version (MARS)
 {
     enum HYDRATE = false;

@@ -89,8 +89,6 @@ struct elem
         {
             version (SCPP)
                 Symbol* Emember;       // if PEFmember, this is the member
-            version (HTOD)
-                Symbol* Emember;       // if PEFmember, this is the member
             pef_flags_t PEFflags;
         }
 

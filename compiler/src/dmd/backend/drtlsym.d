@@ -31,9 +31,6 @@ extern (C++):
 
 nothrow:
 
-version (HTOD)
-    __gshared uint ALLREGS;
-
 private __gshared Symbol*[RTLSYM.max + 1] rtlsym;
 
 version (MARS)
