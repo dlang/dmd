@@ -22,7 +22,6 @@ import dmd.backend.symtab;
 import dmd.backend.type;
 import dmd.backend.oper;
 import dmd.backend.el;
-import dmd.backend.exh;
 import dmd.backend.cgcv;
 import dmd.backend.symtab;
 version (SCPP)

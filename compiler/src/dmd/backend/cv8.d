@@ -28,7 +28,6 @@ import dmd.backend.code_x86;
 import dmd.backend.cv4;
 import dmd.backend.mem;
 import dmd.backend.el;
-import dmd.backend.exh;
 import dmd.backend.global;
 import dmd.backend.obj;
 import dmd.backend.oper;

@@ -26,7 +26,6 @@ import dmd.backend.dt;
 import dmd.backend.dlist;
 import dmd.backend.mem;
 import dmd.backend.el;
-import dmd.backend.exh;
 import dmd.backend.global;
 import dmd.backend.goh;
 import dmd.backend.inliner;

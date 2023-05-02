@@ -56,7 +56,6 @@ Object File Generation
 Exception Handling
 ------------------
 
-* **exh.d**           interface for exception handling support
 * **nteh.d**          Windows structured exception handling support
 
 Miscellaneous

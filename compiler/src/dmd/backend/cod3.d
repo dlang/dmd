@@ -38,7 +38,6 @@ import dmd.backend.dvec;
 import dmd.backend.melf;
 import dmd.backend.mem;
 import dmd.backend.el;
-import dmd.backend.exh;
 import dmd.backend.global;
 import dmd.backend.obj;
 import dmd.backend.oper;
