@@ -11023,7 +11023,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         /* `_d_arraycatnTX` canot be used with `-betterC`, but `CatExp`s may be
          * used with `-betterC`, but only during CTFE.
          */
-        if (global.params.betterC)
+        if (global.params.betterC || !sc.needsCodegen())
             return;
 
         if (auto ce = exp.isCatExp())
