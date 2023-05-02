@@ -1384,6 +1384,9 @@ extern (C++) class VarDeclaration : Declaration
      */
     override final bool isThreadlocal()
     {
+        // https://issues.dlang.org/show_bug.cgi?id=20737
+        if (global.params.betterC) return false;
+
         //printf("VarDeclaration::isThreadlocal(%p, '%s')\n", this, toChars());
         /* Data defaults to being thread-local. It is not thread-local
          * if it is immutable, const or shared.
