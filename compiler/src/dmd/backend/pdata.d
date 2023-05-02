@@ -25,7 +25,6 @@ import dmd.backend.code;
 import dmd.backend.code_x86;
 import dmd.backend.dt;
 import dmd.backend.el;
-import dmd.backend.exh;
 import dmd.backend.global;
 import dmd.backend.obj;
 import dmd.backend.rtlsym;

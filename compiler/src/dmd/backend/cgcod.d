@@ -40,10 +40,10 @@ import dmd.backend.dvec;
 import dmd.backend.melf;
 import dmd.backend.mem;
 import dmd.backend.el;
-import dmd.backend.exh;
 import dmd.backend.global;
 import dmd.backend.obj;
 import dmd.backend.oper;
+import dmd.backend.pdata : win64_pdata;
 import dmd.backend.rtlsym;
 import dmd.backend.symtab;
 import dmd.backend.ty;
@@ -62,6 +62,10 @@ extern (C++):
 
 nothrow:
 @safe:
+
+// FIXME: backend can't import front end because missing -J flag
+// import dmd.eh : except_gentables;
+Symbol* except_gentables();
 
 alias _compare_fp_t = extern(C) nothrow int function(const void*, const void*);
 extern(C) void qsort(void* base, size_t nmemb, size_t size, _compare_fp_t compar);

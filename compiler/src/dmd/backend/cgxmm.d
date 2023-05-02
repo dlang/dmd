@@ -36,8 +36,6 @@ import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.xmm;
 
-version (SCPP)
-    import dmd.backend.exh;
 version (MARS)
     import dmd.backend.errors;
 
