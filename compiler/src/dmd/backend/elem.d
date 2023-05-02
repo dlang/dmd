@@ -1374,10 +1374,6 @@ int el_depends(const(elem)* ea, const elem *eb)
         case OPconst:
         case OPrelconst:
         case OPstring:
-
-    version (SCPP_HTOD)
-        case OPsizeof:
-
             goto Lnodep;
 
         case OPvar:
@@ -2426,9 +2422,6 @@ L1:
                 break;
             case OPrelconst:
             case OPvar:
-version (SCPP_HTOD)
-            case OPsizeof:
-
                 symbol_debug(n1.EV.Vsym);
                 symbol_debug(n2.EV.Vsym);
                 if (n1.EV.Voffset != n2.EV.Voffset)
