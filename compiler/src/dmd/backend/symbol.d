@@ -15,23 +15,18 @@ module dmd.backend.symbol;
 
 version (SCPP)
 {
-    version = COMPILE;
     version = SCPP_HTOD;
 }
 version (HTOD)
 {
-    version = COMPILE;
     version = SCPP_HTOD;
 }
 version (MARS)
 {
-    version = COMPILE;
     enum HYDRATE = false;
     enum DEHYDRATE = false;
 }
 
-version (COMPILE)
-{
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -107,8 +102,6 @@ void symbol_print(const Symbol *s)
 {
 debug
 {
-version (COMPILE)
-{
     if (!s) return;
     printf("symbol %p '%s'\n ",s,s.Sident.ptr);
     printf(" Sclass = %s ", class_str(s.Sclass));
@@ -144,7 +137,6 @@ version (SCPP_HTOD)
     {
         printf("  Svbptr = %p, Svptr = %p\n",s.Sstruct.Svbptr,s.Sstruct.Svptr);
     }
-}
 }
 }
 }
@@ -2547,6 +2539,4 @@ void symbol_reset(Symbol *s)
 tym_t symbol_pointerType(const Symbol* s)
 {
     return s.Stype.Tty & mTYimmutable ? TYimmutPtr : TYnptr;
-}
-
 }

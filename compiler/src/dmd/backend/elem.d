@@ -15,23 +15,17 @@ module dmd.backend.elem;
 
 version (SCPP)
 {
-    version = COMPILE;
     version = SCPP_HTOD;
 }
 version (HTOD)
 {
-    version = COMPILE;
     version = SCPP_HTOD;
 }
 version (MARS)
 {
-    version = COMPILE;
     enum HYDRATE = false;
     enum DEHYDRATE = false;
 }
-
-version (COMPILE)
-{
 
 import core.stdc.stdarg;
 import core.stdc.stdio;
@@ -3328,6 +3322,4 @@ void el_dehydrate(elem **pe)
         }
     }
 }
-}
-
 }

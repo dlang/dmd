@@ -12,14 +12,6 @@
 
 module dmd.backend.machobj;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.ctype;
 import core.stdc.stdint;
 import core.stdc.stdio;
@@ -3015,6 +3007,4 @@ int dwarf_eh_frame_fixup(int dfseg, targ_size_t offset, Symbol *s, targ_size_t v
     pseg.SDrel.write(&rel, rel.sizeof);
 
     return I64 ? 8 : 4;
-}
-
 }

@@ -14,14 +14,6 @@
 
 module dmd.backend.dcgcv;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -3098,6 +3090,4 @@ uint cv_typidx(type *t)
             assert(0);
     }
     return ti;
-}
-
 }

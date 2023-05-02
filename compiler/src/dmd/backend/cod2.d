@@ -20,14 +20,6 @@
 
 module dmd.backend.cod2;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -5867,6 +5859,4 @@ void cdhalt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     assert(*pretregs == 0);
     cdb.gen1(config.target_cpu >= TARGET_80286 ? UD2 : INT3);
-}
-
 }

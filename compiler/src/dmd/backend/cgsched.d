@@ -13,14 +13,6 @@
 
 module dmd.backend.cgsched;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -3293,6 +3285,4 @@ code *simpleops(code *c,regm_t scratch)
         }
     }
     return cstart;
-}
-
 }

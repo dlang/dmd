@@ -23,14 +23,6 @@
 
 module dmd.backend.cod4;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -4889,7 +4881,4 @@ void opAssStorePair(ref CodeBuilder cdb, ref code cs, elem* e, reg_t rhi, reg_t 
         cssave(e1,retregs,!OTleaf(e1.Eoper));
     freenode(e1);
     fixresult(cdb,e,retregs,pretregs);
-}
-
-
 }

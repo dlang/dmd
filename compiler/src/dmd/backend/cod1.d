@@ -16,14 +16,6 @@
 
 module dmd.backend.cod1;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.bitop;
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -5671,6 +5663,4 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
         fixresult(cdb, e, forregs, pretregs);
         return;
     }
-}
-
 }

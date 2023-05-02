@@ -11,14 +11,6 @@
 
 module dmd.backend.ptrntab;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.stdio;
 import core.stdc.string;
 
@@ -5852,7 +5844,4 @@ private int binary(const(char)* p, const OP[] table)
             return cast(int)mid;                 /* match index                  */
     }
     return -1;
-}
-
-
 }

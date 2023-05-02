@@ -12,14 +12,6 @@
 
 module dmd.backend.cgxmm;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -2016,6 +2008,4 @@ bool loadxmmconst(elem *e)
             return false;
     }
     return true;
-}
-
 }

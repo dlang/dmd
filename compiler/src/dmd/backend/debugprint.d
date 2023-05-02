@@ -14,16 +14,6 @@
 
 module dmd.backend.debugprint;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-version (HTOD)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -520,6 +510,4 @@ void WRfunc(const char* msg, Symbol* sfunc, block* startblock)
     numberBlocks(startblock);
     for (block *b = startblock; b; b = b.Bnext)
         WRblock(b);
-}
-
 }

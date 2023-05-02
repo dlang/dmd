@@ -10,14 +10,6 @@
 
 module dmd.backend.mscoffobj;
 
-version (MARS)
-    version = COMPILE;
-version (SCPP)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.ctype;
 import core.stdc.stdio;
 import core.stdc.stdint;
@@ -2559,6 +2551,4 @@ extern (D) private void objflush_pointerRefs()
         objflush_pointerRef(s, soff);
     }
     ptrref_buf.reset();
-}
-
 }
