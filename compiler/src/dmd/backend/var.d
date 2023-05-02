@@ -52,6 +52,7 @@ char OPTIMIZER = 0;                 // indicate we're in the optimizer
 int structalign;                /* alignment for members of structures  */
 char dbcs = 0;                      // current double byte character set
 
+// These change depending on memory model
 int TYptrdiff = TYint;
 int TYsize = TYuint;
 int TYsize_t = TYuint;
@@ -276,7 +277,7 @@ extern (D) private enum tytab_init =
     return tab;
 } ();
 
-
+/// Give an ascii string for a type
 extern (C) __gshared const(char)*[TYMAX] tystring =
 () {
     const(char)*[TYMAX] ret = [
@@ -772,6 +773,7 @@ __gshared ushort[TYMAX] dttab4 =
 ];
 
 /// Size of a type
+/// -1 means error
 __gshared byte[256] _tysize =
 [
     TYbool    : 1,
@@ -886,6 +888,7 @@ __gshared byte[256] _tysize =
 enum SET_ALIGN = -1;
 
 /// Size of a type to use for alignment
+/// -1 means error
 __gshared byte[256] _tyalignsize =
 [
     TYbool    : 1,
