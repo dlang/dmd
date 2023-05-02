@@ -13,11 +13,6 @@
 
 module dmd.backend.elpicpie;
 
-version (SCPP)
-{
-    version = SCPP_HTOD;
-}
-
 import core.stdc.stdarg;
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -34,11 +29,6 @@ import dmd.backend.oper;
 import dmd.backend.rtlsym;
 import dmd.backend.ty;
 import dmd.backend.type;
-
-version (SCPP_HTOD)
-{
-    import msgs2;
-}
 
 extern (C++):
 
@@ -215,92 +205,6 @@ else if (config.exe & EX_windos)
 }
 }
 
-version (SCPP_HTOD)
-{
-elem * el_var(Symbol *s)
-{
-    elem *e;
-
-    //printf("el_var(s = '%s')\n", s.Sident);
-    if (config.exe & EX_posix)
-    {
-        if (config.flags3 & CFG3pic && !tyfunc(s.ty()))
-            return el_picvar(s);
-    }
-    symbol_debug(s);
-    type_debug(s.Stype);
-    e = el_calloc();
-    e.Eoper = OPvar;
-    e.EV.Vsym = s;
-
-    version (SCPP_HTOD)
-        enum scpp = true;
-    else
-        enum scpp = false;
-
-    if (scpp && PARSER)
-    {
-        type *t = s.Stype;
-        type_debug(t);
-        e.ET = t;
-        t.Tcount++;
-if (config.exe & EX_windos)
-{
-        switch (t.Tty & (mTYimport | mTYthread))
-        {
-            case mTYimport:
-                Obj._import(e);
-                break;
-
-            case mTYthread:
-        /*
-                mov     EAX,FS:__tls_array
-                mov     ECX,__tls_index
-                mov     EAX,[ECX*4][EAX]
-                inc     dword ptr _t[EAX]
-
-                e => *(&s + *(FS:_tls_array + _tls_index * 4))
-         */
-        version (MARS)
-                assert(0);
-        else
-        {
-            {
-                elem* e1,e2,ea;
-                e1 = el_calloc();
-                e1.Eoper = OPrelconst;
-                e1.EV.Vsym = s;
-                e1.ET = newpointer(s.Stype);
-                e1.ET.Tcount++;
-
-                e2 = el_bint(OPmul,tstypes[TYint],el_var(getRtlsym(RTLSYM.TLS_INDEX)),el_longt(tstypes[TYint],4));
-                ea = el_var(getRtlsym(RTLSYM.TLS_ARRAY));
-                e2 = el_bint(OPadd,ea.ET,ea,e2);
-                e2 = el_unat(OPind,tstypes[TYint],e2);
-
-                e.Eoper = OPind;
-                e.EV.E1 = el_bint(OPadd,e1.ET,e1,e2);
-                e.EV.E2 = null;
-            }
-        }
-                break;
-
-            case mTYthread | mTYimport:
-                version (SCPP_HTOD) { } else assert(0);
-                tx86err(EM_thread_and_dllimport,s.Sident.ptr);     // can't be both thread and import
-                break;
-
-            default:
-                break;
-        }
-}
-    }
-    else
-        e.Ety = s.ty();
-    return e;
-}
-}
-
 /**************************
  * Make a pointer to a `Symbol`.
  * Params: s = symbol
@@ -383,15 +287,6 @@ elem * el_ptr(Symbol *s)
     }
     else
         e = el_var(s);
-
-    version (SCPP_HTOD)
-    {
-        if (PARSER)
-        {   type_debug(e.ET);
-            e = el_unat(OPaddr,type_ptr(e,e.ET),e);
-            return e;
-        }
-    }
 
     if (e.Eoper == OPvar)
     {
