@@ -13,20 +13,13 @@ module dmd.backend.dtype;
 
 version (SCPP)
 {
-    version = COMPILE;
     version = SCPP_HTOD;
 }
 version (HTOD)
 {
-    version = COMPILE;
     version = SCPP_HTOD;
 }
-version (MARS)
-    version = COMPILE;
 
-
-version (COMPILE)
-{
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -1835,8 +1828,6 @@ int typematch(type *t1,type *t2,int relax)
              ((t1.Tflags & TFfixed) == (t2.Tflags & TFfixed) &&
                  paramlstmatch(t1.Tparamtypes,t2.Tparamtypes) ))
          ;
-}
-
 }
 
 }

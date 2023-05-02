@@ -15,14 +15,6 @@
 
 module dmd.backend.cv8;
 
-version (MARS)
-    version = COMPILE;
-version (SCPP)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -1221,8 +1213,6 @@ else
 
 }
     return cv_debtyp(d);
-}
-
 }
 
 }

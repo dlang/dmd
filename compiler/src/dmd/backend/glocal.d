@@ -14,14 +14,6 @@
 
 module dmd.backend.glocal;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -743,6 +735,4 @@ private bool local_preserveAssignmentTo(tym_t ty)
         }
     }
     return false;
-}
-
 }

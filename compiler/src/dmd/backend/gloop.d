@@ -14,14 +14,6 @@
 
 module dmd.backend.gloop;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -3917,7 +3909,4 @@ private int el_length(elem *e)
             break;
     }
     return n;
-}
-
-
 }

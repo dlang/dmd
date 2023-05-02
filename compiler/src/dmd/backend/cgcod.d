@@ -14,14 +14,6 @@ module dmd.backend.cgcod;
 
 version = FRAMEPTR;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.bitop;
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -3501,6 +3493,4 @@ void disassemble(ubyte[] code)
         printf("\n");
         i += sz;
     }
-}
-
 }

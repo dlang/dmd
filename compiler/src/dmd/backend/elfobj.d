@@ -15,14 +15,6 @@
 
 module dmd.backend.elfobj;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -3827,8 +3819,6 @@ int elf_dwarf_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val
         //et.write32(s.Soffset);
     }
     return 4;
-}
-
 }
 
 }

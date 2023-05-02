@@ -13,16 +13,6 @@
 
 module dmd.backend.drtlsym;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-version (HTOD)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -271,6 +261,4 @@ void rtlsym_reset()
 
 void rtlsym_term()
 {
-}
-
 }

@@ -10,14 +10,6 @@
  */
 module dmd.backend.cgobj;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.ctype;
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -4076,6 +4068,4 @@ version (MARS)
         objflush_pointerRef(pr.sym, pr.offset);
     obj.ptrrefs.reset();
 }
-}
-
 }

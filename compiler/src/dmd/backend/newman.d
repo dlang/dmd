@@ -15,24 +15,18 @@ module dmd.backend.newman;
 
 version (SCPP)
 {
-    version = COMPILE;
     version = SCPPorMARS;
     version = SCPPorHTOD;
 }
 version (HTOD)
 {
-    version = COMPILE;
     version = SCPPorMARS;
     version = SCPPorHTOD;
 }
 version (MARS)
 {
-    version = COMPILE;
     version = SCPPorMARS;
 }
-
-version (COMPILE)
-{
 
 import core.stdc.ctype;
 import core.stdc.stdio;
@@ -1780,8 +1774,6 @@ else
     s.Stype = t;
     t.Tcount++;
     return s;
-}
-
 }
 
 }

@@ -13,14 +13,6 @@
 
 module dmd.backend.cg87;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -3951,6 +3943,4 @@ void cdtoprec(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
         cdb.genfltreg(ESC(mf,1),0,0);   // FLD float/double ptr fltreg
     }
     fixresult87(cdb, e, retregs, pretregs);
-}
-
 }

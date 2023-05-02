@@ -15,21 +15,12 @@ module dmd.backend.elpicpie;
 
 version (SCPP)
 {
-    version = COMPILE;
     version = SCPP_HTOD;
 }
 version (HTOD)
 {
-    version = COMPILE;
     version = SCPP_HTOD;
 }
-version (MARS)
-{
-    version = COMPILE;
-}
-
-version (COMPILE)
-{
 
 import core.stdc.stdarg;
 import core.stdc.stdio;
@@ -1023,7 +1014,4 @@ private elem *el_pieptr(Symbol *s)
         }
     }
     return e;
-}
-
-
 }

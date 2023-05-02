@@ -12,14 +12,6 @@
 
 module dmd.backend.cgen;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -417,6 +409,4 @@ void outfixlist()
     foreach (ref f; fixups)
         outfixup(f);
     fixups.reset();
-}
-
 }

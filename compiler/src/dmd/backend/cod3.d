@@ -20,14 +20,6 @@
 
 module dmd.backend.cod3;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.bitop;
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -8393,6 +8385,4 @@ extern (C) void CF_print(uint cf)
     print(CFtarg, "CFtarg");
     print(CFjmp16, "CFjmp16");
     printf("\n");
-}
-
 }

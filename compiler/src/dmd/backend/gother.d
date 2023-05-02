@@ -13,14 +13,6 @@
 
 module dmd.backend.gother;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.time;
@@ -2119,6 +2111,4 @@ private int ispath(uint j,block *bp,block *b)
             return true;
 
     return false;           /* j is used along all paths            */
-}
-
 }

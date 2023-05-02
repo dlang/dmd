@@ -29,13 +29,6 @@ application if debug info is needed when the application is deployed.
 
 module dmd.backend.dwarfdbginf;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE):
-
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
