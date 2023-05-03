@@ -3198,7 +3198,7 @@ $(H4 $(LNAME2 method-delegates, Method Delegates))
         Both forms of delegates are indistinguishable, and are
         the same type.
         )
-        $(P A delegate can be set to a particular object and method using `&obj.method`:
+        $(P A delegate can be set to a particular object and method using `&obj.method`:)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ------
