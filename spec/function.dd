@@ -3144,7 +3144,9 @@ void main()
 
         $(P The stack variables referenced by a nested function are
         still valid even after the function exits (NOTE this is different
-        from D 1.0.) This is called a $(I closure).
+        from D 1.0).
+        This combining of the environment and the function is called
+        a $(I dynamic closure).
         )
 
         $(P Those referenced stack variables that make up the closure
@@ -3185,6 +3187,8 @@ void main()
         a closure and is an error.
         )
 
+$(H4 $(LNAME2 method-delegates, Method Delegates))
+
         $(P Delegates to non-static nested functions contain two pieces of
         data: the pointer to the stack frame of the lexically enclosing
         function (called the $(I context pointer)) and the address of the
@@ -3194,38 +3198,39 @@ void main()
         Both forms of delegates are indistinguishable, and are
         the same type.
         )
+        $(P A delegate can be set to a particular object and method using `&obj.method`:
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ------
 struct Foo
 {
-    int a = 7;
-    int bar() { return a; }
+    int a;
+    int get() { return a; }
 }
 
-int foo(int delegate() dg)
+int add1(int delegate() dg)
 {
     return dg() + 1;
 }
 
 void main()
 {
-    Foo f;
-    int i = foo(&f.bar);
+    Foo f = {7};
+    int delegate() dg = &f.get; // bind to an instance of Foo and a method
+    assert(dg.ptr == &f);
+    assert(dg.funcptr == &Foo.get);
+
+    int i = add1(dg);
     assert(i == 8);
 
     int x = 27;
     int abc() { return x; }
 
-    i = foo(&abc);
+    i = add1(&abc);
     assert(i == 28);
 }
 ------
 )
-
-        $(P This combining of the environment and the function is called
-        a $(I dynamic closure).
-        )
 
         $(P The $(D .ptr) property of a delegate will return the
         $(I context pointer) value as a $(D void*).
