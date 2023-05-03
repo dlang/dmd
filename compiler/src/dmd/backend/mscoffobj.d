@@ -107,6 +107,8 @@ IMAGE_SECTION_HEADER* ScnhdrTab() { return cast(IMAGE_SECTION_HEADER *)ScnhdrBuf
 //      into SegData[]
 //      New compiler segments are added to end.
 
+public:
+
 /******************************
  * Returns !=0 if this segment is a code segment.
  */
@@ -117,7 +119,6 @@ int mscoff_seg_data_isCode(const ref seg_data sd)
     return (ScnhdrTab[sd.SDshtidx].Characteristics & IMAGE_SCN_CNT_CODE) != 0;
 }
 
-public:
 
 // already in cgobj.c (should be part of objmod?):
 // seg_data **SegData;

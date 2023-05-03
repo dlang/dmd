@@ -85,14 +85,9 @@ union evc
 
 /********************** PUBLIC FUNCTIONS *******************/
 
-code *code_calloc();
-void code_free(code *);
-void code_term();
+public import dmd.backend.dcode : code_calloc, code_free, code_term, code_chunk_alloc, code_list;
 
 code *code_next(code *c) { return c.next; }
-
-code *code_chunk_alloc();
-extern __gshared code *code_list;
 
 @trusted
 code *code_malloc()
@@ -144,8 +139,6 @@ struct LocalSection
  * what parts of NT exception handling we need.
  */
 
-extern __gshared uint usednteh;
-
 enum
 {
     NTEH_try        = 1,      // used _try statement
@@ -191,35 +184,11 @@ void nteh_monitor_epilog(ref CodeBuilder cdb,regm_t retregs);
 code *nteh_patchindex(code* c, int index);
 void nteh_unwind(ref CodeBuilder cdb,regm_t retregs,uint index);
 
-// cgen.c
-code *code_last(code *c);
-void code_orflag(code *c,uint flag);
-void code_orrex(code *c,uint rex);
-code *setOpcode(code *c, code *cs, opcode_t op);
-code *cat(code *c1, code *c2);
-code *gen1 (code *c , opcode_t op );
-code *gen2 (code *c , opcode_t op , uint rm );
-code *gen2sib(code *c,opcode_t op,uint rm,uint sib);
-code *genc2 (code *c , opcode_t op , uint rm , targ_size_t EV2 );
-code *genc (code *c , opcode_t op , uint rm , uint FL1 , targ_size_t EV1 , uint FL2 , targ_size_t EV2 );
-code *genlinnum(code *,Srcpos);
-code *gennop(code *);
-void gencodelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,bool constflag);
-bool reghasvalue (regm_t regm , targ_size_t value , reg_t *preg );
-void regwithvalue(ref CodeBuilder cdb, regm_t regm, targ_size_t value, reg_t *preg, regm_t flags);
+public import dmd.backend.cgen;
+public import dmd.backend.cgreg : cgreg_init, cgreg_term, cgreg_reset, cgreg_used,
+    cgreg_spillreg_prolog, cgreg_spillreg_epilog, cgreg_assign, cgreg_unregister;
 
-// cgreg.c
-void cgreg_init();
-void cgreg_term();
-void cgreg_reset();
-void cgreg_used(uint bi,regm_t used);
-void cgreg_spillreg_prolog(block *b,Symbol *s,ref CodeBuilder cdbstore,ref CodeBuilder cdbload);
-void cgreg_spillreg_epilog(block *b,Symbol *s,ref CodeBuilder cdbstore,ref CodeBuilder cdbload);
-int cgreg_assign(Symbol *retsym);
-void cgreg_unregister(regm_t conflict);
-
-// cgsched.c
-void cgsched_block(block *b);
+public import dmd.backend.cgsched : cgsched_block;
 
 alias IDXSTR = uint;
 alias IDXSEC = uint;
@@ -265,8 +234,8 @@ struct seg_data
     int isCode() { return config.objfmt == OBJ_MACH ? mach_seg_data_isCode(this) : mscoff_seg_data_isCode(this); }
 }
 
-extern int mach_seg_data_isCode(const ref seg_data sd) @system;
-extern int mscoff_seg_data_isCode(const ref seg_data sd) @system;
+public import dmd.backend.machobj : mach_seg_data_isCode;
+public import dmd.backend.mscoffobj : mscoff_seg_data_isCode;
 
 struct linnum_data
 {
@@ -282,7 +251,7 @@ struct LinOff
     uint offset;
 }
 
-extern __gshared Rarray!(seg_data*) SegData;
+public import dmd.backend.cgobj : SegData;
 
 @trusted
 ref targ_size_t Offset(int seg) { return SegData[seg].SDoffset; }
@@ -320,30 +289,9 @@ struct FuncParamRegs
     const(ubyte)* floatregs;    // map to fp register
 }
 
-extern __gshared
-{
-    regm_t msavereg,mfuncreg,allregs;
+public import dmd.backend.cg : BPRM, FLOATREGS, FLOATREGS2, DOUBLEREGS,
+    localsize, framehandleroffset, cseg, STACKALIGN, TARGET_STACKALIGN;
 
-    int BPRM;
-    regm_t FLOATREGS;
-    regm_t FLOATREGS2;
-    regm_t DOUBLEREGS;
-    //const char datafl[],stackfl[],segfl[],flinsymtab[];
-    char needframe,gotref;
-    targ_size_t localsize,
-        funcoffset,
-        framehandleroffset;
-    segidx_t cseg;
-    int STACKALIGN;
-    int TARGET_STACKALIGN;
-    LocalSection Para;
-    LocalSection Fast;
-    LocalSection Auto;
-    LocalSection EEStack;
-    LocalSection Alloca;
-}
-
-/* cgcod.c */
 public import dmd.backend.cgcod;
 enum BackendPass
 {
