@@ -24,10 +24,6 @@ import dmd.backend.oper;
 import dmd.backend.el;
 import dmd.backend.cgcv;
 import dmd.backend.symtab;
-version (SCPP)
-{
-import parser;
-}
 
 import dmd.backend.iasm;
 

@@ -32,27 +32,18 @@ enum VERSION = "9.00.0";        // for banner and imbedding in .OBJ file
 enum VERSIONHEX = "0x900";      // for __DMC__ macro
 enum VERSIONINT = 0x900;        // for precompiled headers and DLL version
 
-version (SCPP)
-    version = XVERSION;
-version (MARS)
-    version = XVERSION;
-
-version (XVERSION)
+extern (D) template xversion(string s)
 {
-    extern (D) template xversion(string s)
-    {
-        enum xversion = mixin(`{ version (` ~ s ~ `) return true; else return false; }`)();
-    }
-
-    enum TARGET_LINUX   = xversion!`linux`;
-    enum TARGET_OSX     = xversion!`OSX`;
-    enum TARGET_FREEBSD = xversion!`FreeBSD`;
-    enum TARGET_OPENBSD = xversion!`OpenBSD`;
-    enum TARGET_SOLARIS = xversion!`Solaris`;
-    enum TARGET_WINDOS  = xversion!`Windows`;
-    enum TARGET_DRAGONFLYBSD  = xversion!`DragonFlyBSD`;
+    enum xversion = mixin(`{ version (` ~ s ~ `) return true; else return false; }`)();
 }
 
+enum TARGET_LINUX   = xversion!`linux`;
+enum TARGET_OSX     = xversion!`OSX`;
+enum TARGET_FREEBSD = xversion!`FreeBSD`;
+enum TARGET_OPENBSD = xversion!`OpenBSD`;
+enum TARGET_SOLARIS = xversion!`Solaris`;
+enum TARGET_WINDOS  = xversion!`Windows`;
+enum TARGET_DRAGONFLYBSD  = xversion!`DragonFlyBSD`;
 
 //
 //      Attributes

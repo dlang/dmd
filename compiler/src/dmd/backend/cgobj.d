@@ -40,15 +40,6 @@ extern (C++):
 nothrow:
 @safe:
 
-version (SCPP)
-{
-    import filespec;
-    import msgs2;
-    import scopeh;
-
-    extern(C) char* getcwd(char*,size_t);
-}
-
 version (MARS)
 {
     import dmd.backend.dvarstats;

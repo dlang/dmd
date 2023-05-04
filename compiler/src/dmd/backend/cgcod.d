@@ -44,12 +44,6 @@ import dmd.backend.xmm;
 
 import dmd.backend.barray;
 
-version (SCPP)
-{
-    import parser;
-    import precomp;
-}
-
 extern (C++):
 
 nothrow:

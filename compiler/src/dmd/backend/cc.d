@@ -129,29 +129,11 @@ struct Thunk
     int i;
 }
 
+struct token_t;
 
-version (MARS)
-    struct token_t;
-else
-    import dtoken : token_t;
-
-//struct param_t;
-//struct block;
-//struct Classsym;
-//struct Nspacesym;
-//struct Aliassym;
-//struct dt_t;
-//typedef struct TYPE type;
-//typedef struct Symbol symbol;
 alias Funcsym = Symbol;
-//#if !MARS
-//typedef struct MACRO macro_t;
-version (MARS)
-    struct blklst;
-else
-    import parser : blklst;
-//#endif
-//typedef list_t symlist_t;       /* list of pointers to Symbols          */
+struct blklst;
+
 alias symlist_t = list_t;
 alias vec_t = size_t*;
 alias enum_TK = ubyte;

@@ -47,12 +47,6 @@ import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.xmm;
 
-version (SCPP)
-{
-    import parser;
-    import precomp;
-}
-
 extern (C++):
 
 nothrow:

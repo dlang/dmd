@@ -39,14 +39,10 @@ import dmd.backend.type;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
 
-version (SCPP)
-    import tk.mem;
-else
+
+extern (C)
 {
-    extern (C)
-    {
-        nothrow void *mem_calloc(size_t);
-    }
+    nothrow void *mem_calloc(size_t);
 }
 
 extern (C++):

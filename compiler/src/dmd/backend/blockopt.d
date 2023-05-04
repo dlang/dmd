@@ -12,11 +12,6 @@
 
 module dmd.backend.blockopt;
 
-version (SCPP)
-    version = COMPILE;
-else version (HTOD)
-    version = COMPILE;
-
 import core.stdc.stdio;
 import core.stdc.string;
 import core.stdc.time;
@@ -37,17 +32,7 @@ import dmd.backend.ty;
 
 import dmd.backend.barray;
 
-version (COMPILE)
-{
-    import parser;
-    import iasm;
-    import precomp;
-}
-
-
-version (SCPP)
-    enum SCPP_OR_NTEXCEPTIONS = true;
-else static if (NTEXCEPTIONS)
+static if (NTEXCEPTIONS)
     enum SCPP_OR_NTEXCEPTIONS = true;
 else
     enum SCPP_OR_NTEXCEPTIONS = false;

@@ -13,15 +13,8 @@
 
 module dmd.backend.elem;
 
-version (SCPP)
-{
-    version = SCPP_HTOD;
-}
-version (MARS)
-{
-    enum HYDRATE = false;
-    enum DEHYDRATE = false;
-}
+enum HYDRATE = false;
+enum DEHYDRATE = false;
 
 import core.stdc.stdarg;
 import core.stdc.stdio;

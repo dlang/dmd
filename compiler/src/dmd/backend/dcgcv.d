@@ -38,16 +38,7 @@ import dmd.backend.barray;
 
 import dmd.common.outbuffer;
 
-version (SCPP)
-{
-    import cpp;
-    import msgs2;
-    import parser;
-}
-version (MARS)
-{
-    import dmd.backend.dvarstats;
-}
+import dmd.backend.dvarstats;
 
 extern (C++):
 
