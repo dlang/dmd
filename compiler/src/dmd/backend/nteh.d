@@ -275,10 +275,6 @@ version (MARS)
 {
         sz = 5 * 4;
 }
-else version (SCPP)
-{
-        sz = 6 * 4;
-}
 else
         static assert(0);
     }
@@ -320,20 +316,9 @@ Symbol *nteh_ecodesym()
 
 void nteh_usevars()
 {
-version (SCPP)
-{
-    // Turn off SFLdead and SFLunambig in Sflags
-    nteh_contextsym().Sflags &= ~(SFLdead | SFLunambig);
-    nteh_contextsym().Sflags |= SFLread;
-    nteh_ecodesym().Sflags   &= ~(SFLdead | SFLunambig);
-    nteh_ecodesym().Sflags   |= SFLread;
-}
-else
-{
     // Turn off SFLdead and SFLunambig in Sflags
     nteh_contextsym().Sflags &= ~SFLdead;
     nteh_contextsym().Sflags |= SFLread;
-}
 }
 
 /*********************************
@@ -618,51 +603,6 @@ void cdsetjmp(ref CodeBuilder cdb, elem *e,regm_t *pretregs)
     uint flag;
 
     stackpushsave = stackpush;
-version (SCPP)
-{
-    if (CPP && (funcsym_p.Sfunc.Fflags3 & Fcppeh || usednteh & NTEHcpp))
-    {
-        /*  If in C++ try block
-            If the frame that is calling setjmp has a try,catch block then
-            the call to setjmp3 is as follows:
-              __setjmp3(environment,3,__cpp_longjmp_unwind,trylevel,funcdata);
-
-            __cpp_longjmp_unwind is a routine in the RTL. This is a
-            stdcall routine that will deal with unwinding for CPP Frames.
-            trylevel is the value that gets incremented at each catch,
-            constructor invocation.
-            funcdata is the same value that you put into EAX prior to
-            cppframehandler getting called.
-         */
-        Symbol *s;
-
-        s = except_gensym();
-        if (!s)
-            goto L1;
-
-        cdb.gencs(0x68,0,FLextern,s);                 // PUSH &scope_table
-        stackpush += 4;
-        cdb.genadjesp(4);
-
-        cdb.genc1(0xFF,modregrm(1,6,BP),FLconst,cast(targ_uns)-4);
-                                                // PUSH trylevel
-        stackpush += 4;
-        cdb.genadjesp(4);
-
-        cs.Iop = 0x68;
-        cs.Iflags = CFoff;
-        cs.Irex = 0;
-        cs.IFL2 = FLextern;
-        cs.IEV2.Vsym = getRtlsym(RTLSYM.CPP_LONGJMP);
-        cs.IEV2.Voffset = 0;
-        cdb.gen(&cs);                         // PUSH &_cpp_longjmp_unwind
-        stackpush += 4;
-        cdb.genadjesp(4);
-
-        flag = 3;
-        goto L2;
-    }
-}
     if (funcsym_p.Sfunc.Fflags3 & Fnteh)
     {
         /*  If in NT SEH try block
@@ -747,9 +687,6 @@ L2:
 void nteh_unwind(ref CodeBuilder cdb,regm_t saveregs,uint stop_index)
 {
     // Shouldn't this always be CX?
-version (SCPP)
-    const reg_t reg = AX;
-else
     const reg_t reg = CX;
 
 version (MARS)
@@ -781,12 +718,6 @@ else
     cdbx.gen(&cs);                             // LEA  ECX,contextsym
 
     int nargs = 0;
-version (SCPP)
-{
-    const int take_addr = 1;
-    cdbx.genc2(0x68,0,take_addr);                  // PUSH take_addr
-    ++nargs;
-}
 
     cdbx.genc2(0x68,0,stop_index);                 // PUSH stop_index
     cdbx.gen1(0x50 + reg);                         // PUSH ECX            ; DEstablisherFrame

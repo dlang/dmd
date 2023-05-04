@@ -141,12 +141,6 @@ char*   foutdir = null,       // directory to place output files in
         fdepname = null,
         flstname = null;       /* the filename strings                 */
 
-version (SCPP)
-{
-    phstring_t fdeplist;
-    phstring_t pathlist;            // include paths
-}
-
 int pathsysi;                   // -isystem= index
 list_t headers;                 /* pre-include files                    */
 
@@ -351,52 +345,7 @@ extern (C) __gshared const(char)*[TYMAX] tystring =
         TYvtshape  : "vtshape",
     ];
 
-    version(SCPP)
-    {
-        ret[TYschar] = "signed char";
-        ret[TYuchar] = "unsigned char";
-        ret[TYwchar_t] = "wchar_t";
-
-        ret[TYnullptr] = "nullptr_t";
-
-        ret[TYushort] = "unsigned short";
-        ret[TYuint] = "unsigned int";
-        ret[TYulong] = "unsigned long";
-
-        ret[TYldouble] = "long double";
-
-        ret[TYifloat] = "imaginary float";
-        ret[TYidouble] = "imaginary double";
-        ret[TYildouble] = "imaginary long double";
-
-        ret[TYcfloat] = "complex float";
-        ret[TYcdouble] = "complex double";
-        ret[TYcldouble] = "complex long double";
-
-        ret[TYllong] = "long long";
-        ret[TYullong] = "unsigned long long";
-
-        ret[TYschar16] = "signed char[16]";
-        ret[TYuchar16] = "unsigned char[16]";
-        ret[TYushort8] = "unsigned short[8]";
-        ret[TYulong4] = "unsigned long[4]";
-        ret[TYllong2] = "long long[2]";
-        ret[TYullong2] = "unsigned long long[2]";
-
-        ret[TYschar32] = "signed char[32]";
-        ret[TYuchar32] = "unsigned char[32]";
-        ret[TYushort16] = "unsigned short[16]";
-        ret[TYulong8] = "unsigned long[8]";
-        ret[TYllong4] = "long long[4]";
-        ret[TYullong4] = "unsigned long long[4]";
-
-        ret[TYschar64] = "signed char[64]";
-        ret[TYuchar64] = "unsigned char[64]";
-        ret[TYushort32] = "unsigned short[32]";
-        ret[TYulong16] = "unsigned long[16]";
-        ret[TYllong8] = "long long[8]";
-        ret[TYullong8] = "unsigned long long[8]";
-    } else version(MARS)
+    version(MARS)
     {
         ret[TYschar] = "byte";
         ret[TYuchar] = "ubyte";

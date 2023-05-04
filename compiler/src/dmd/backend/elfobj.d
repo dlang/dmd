@@ -1034,12 +1034,6 @@ void ElfObj_termfile()
 void ElfObj_term(const(char)* objfilename)
 {
     //printf("ElfObj_term()\n");
-    version (SCPP)
-    {
-        if (errcnt)
-            return;
-    }
-
     outfixlist();           // backpatches
 
     if (configv.addlinenumbers)
@@ -1416,13 +1410,6 @@ version (MARS)
     if (!srcpos.Sfilename)
         return;
 }
-version (SCPP)
-{
-    if (!srcpos.Sfilptr)
-        return;
-    sfile_debug(&srcpos_sfile(srcpos));
-    Sfile *sf = *srcpos.Sfilptr;
-}
 
     size_t i;
     seg_data *pseg = SegData[seg];
@@ -1434,18 +1421,11 @@ version (SCPP)
         {   // Create new entry
             version (MARS)
                 pseg.SDlinnum_data.push(linnum_data(srcpos.Sfilename));
-            version (SCPP)
-                pseg.SDlinnum_data.push(linnum_data(sf));
             break;
         }
 version (MARS)
 {
         if (pseg.SDlinnum_data[i].filename == srcpos.Sfilename)
-            break;
-}
-version (SCPP)
-{
-        if (pseg.SDlinnum_data[i].filptr == sf)
             break;
 }
     }
@@ -2160,9 +2140,7 @@ char *obj_mangle2(Symbol *s,char *dest, size_t *destlen)
     symbol_debug(s);
     assert(dest);
 
-version (SCPP)
-    name = CPP ? cpp_mangle2(s) : s.Sident.ptr;
-else version (MARS)
+version (MARS)
     // C++ name mangling is handled by front end
     name = s.Sident.ptr;
 else
@@ -2444,27 +2422,9 @@ int ElfObj_external(Symbol *s)
     elfobj.resetSyms.push(s);
     const namidx = elf_addmangled(s);
 
-version (SCPP)
-{
-    if (s.Sscope && !tyfunc(s.ty()))
-    {
-        symtype = STT_OBJECT;
-        sectype = SHN_COMMON;
-        size = type_size(s.Stype);
-    }
-    else
-    {
-        symtype = STT_NOTYPE;
-        sectype = SHN_UNDEF;
-        size = 0;
-    }
-}
-else
-{
     symtype = STT_NOTYPE;
     sectype = SHN_UNDEF;
     size = 0;
-}
     if (s.ty() & mTYthread)
     {
         //printf("ElfObj_external('%s') %x TLS\n",s.Sident.ptr,s.Svalue);

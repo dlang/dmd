@@ -222,16 +222,6 @@ tryagain:
             config.exe & EX_windos)
             usednteh |= NTEHjmonitor;
     }
-    else version (SCPP)
-    {
-        if (CPP)
-        {
-            if (config.exe == EX_WIN32 &&
-                (sfunc.Stype.Tflags & TFemptyexc || sfunc.Stype.Texcspec))
-                usednteh |= NTEHexcspec;
-            except_reset();
-        }
-    }
 
     // Set on a trial basis, turning it off if anything might throw
     sfunc.Sfunc.Fflags3 |= Fnothrow;
@@ -338,12 +328,6 @@ tryagain:
         goto tryagain;
     }
     cgreg_term();
-
-    version (SCPP)
-    {
-        if (CPP)
-            cgcod_eh();
-    }
 
     // See if we need to enforce a particular stack alignment
     foreach (i; 0 .. globsym.length)
@@ -499,10 +483,6 @@ tryagain:
     {
         codout(sfunc.Sseg,eecontext.EEcode,null);
         code_free(eecontext.EEcode);
-        version (SCPP)
-        {
-            el_free(eecontext.EEelem);
-        }
     }
     else
     {
@@ -540,26 +520,6 @@ tryagain:
                 cod3_align_bytes(sfunc.Sseg, nalign);
             }
             assert(b.Boffset == Offset(sfunc.Sseg));
-
-            version (SCPP)
-            {
-                if (CPP && !(config.exe == EX_WIN32))
-                {
-                    //printf("b = %p, index = %d\n",b,b.Bindex);
-                    //except_index_set(b.Bindex);
-
-                    if (btry != b.Btry)
-                    {
-                        btry = b.Btry;
-                        except_pair_setoffset(b,Offset(sfunc.Sseg) - funcoffset);
-                    }
-                    if (b.BC == BCtry)
-                    {
-                        btry = b;
-                        except_pair_setoffset(b,Offset(sfunc.Sseg) - funcoffset);
-                    }
-                }
-            }
 
             codout(sfunc.Sseg,b.Bcode,configv.vasm ? &disasmBuf : null);   // output code
         }
@@ -658,27 +618,6 @@ tryagain:
                 sfunc.Sfunc.Fstartblock = startblock;
                 dwarf_except_gentables(sfunc, cast(uint)startoffset, cast(uint)retoffset);
                 sfunc.Sfunc.Fstartblock = null;
-            }
-        }
-
-        version (SCPP)
-        {
-            // Write out frame handler
-            if (NTEXCEPTIONS && usednteh & NTEHcpp)
-            {
-                nteh_framehandler(sfunc, except_gentables());
-            }
-            else
-            {
-                if (NTEXCEPTIONS && usednteh & NTEH_try)
-                {
-                    nteh_gentables(sfunc);
-                }
-                else
-                {
-                    if (CPP)
-                        except_gentables();
-                }
             }
         }
 
@@ -1102,50 +1041,6 @@ else
         code *c = cdbx.peek();
         pinholeopt(c, null);
         prolog_allocoffset = calcblksize(c);
-    }
-
-    version (SCPP)
-    {
-        /*  The idea is to generate trace for all functions if -Nc is not thrown.
-         *  If -Nc is thrown, generate trace only for global COMDATs, because those
-         *  are relevant to the FUNCTIONS statement in the linker .DEF file.
-         *  This same logic should be in epilog().
-         */
-        if (config.flags & CFGtrace &&
-            (!(config.flags4 & CFG4allcomdat) ||
-             funcsym_p.Sclass == SC.comdat ||
-             funcsym_p.Sclass == SC.global ||
-             (config.flags2 & CFG2comdat && SymInline(funcsym_p))
-            )
-           )
-        {
-            uint spalign = 0;
-            int sz = cast(int)localsize;
-            if (!enforcealign)
-            {
-                version (FRAMEPTR)
-                    sz += Para.size;
-                else
-                    sz += Para.size + (needframe ? 0 : -REGSIZE);
-            }
-            if (STACKALIGN >= 16 && (sz & (STACKALIGN - 1)))
-                spalign = STACKALIGN - (sz & (STACKALIGN - 1));
-
-            if (spalign)
-            {   /* This could be avoided by moving the function call to after the
-                 * registers are saved. But I don't remember why the call is here
-                 * and not there.
-                 */
-                cod3_stackadj(cdbx, spalign);
-            }
-
-            uint regsaved;
-            prolog_trace(cdbx, farfunc, &regsaved);
-
-            if (spalign)
-                cod3_stackadj(cdbx, -spalign);
-            useregs((ALLREGS | mBP | mES) & ~regsaved);
-        }
     }
 
     version (MARS)
@@ -1606,214 +1501,6 @@ private void blcodgen(block *bl)
 
     debug
     debugw && printf("code gen complete\n");
-}
-
-/*****************************************
- * Add in exception handling code.
- */
-
-version (SCPP)
-{
-
-private void cgcod_eh()
-{
-    list_t stack;
-    int idx;
-    int tryidx;
-
-    if (!(usednteh & (EHtry | EHcleanup)))
-        return;
-
-    // Compute Bindex for each block
-    for (block *b = startblock; b; b = b.Bnext)
-    {
-        b.Bindex = -1;
-        b.Bflags &= ~BFLvisited;               /* mark as unvisited    */
-    }
-    block *btry = null;
-    int lastidx = 0;
-    startblock.Bindex = 0;
-    for (block *b = startblock; b; b = b.Bnext)
-    {
-        if (btry == b.Btry && b.BC == BCcatch)  // if don't need to pop try block
-        {
-            block *br = list_block(b.Bpred);          // find corresponding try block
-            assert(br.BC == BCtry);
-            b.Bindex = br.Bindex;
-        }
-        else if (btry != b.Btry && b.BC != BCcatch ||
-                 !(b.Bflags & BFLvisited))
-            b.Bindex = lastidx;
-        b.Bflags |= BFLvisited;
-
-        debug
-        if (debuge)
-        {
-            printf("%s block (%p) Btry=%p Bindex=%d\n",bc_str(b.BC),b,b.Btry,b.Bindex);
-        }
-
-        except_index_set(b.Bindex);
-        if (btry != b.Btry)                    // exited previous try block
-        {
-            except_pop(b,null,btry);
-            btry = b.Btry;
-        }
-        if (b.BC == BCtry)
-        {
-            except_push(b,null,b);
-            btry = b;
-            tryidx = except_index_get();
-            CodeBuilder cdb; cdb.ctor();
-            nteh_gensindex(cdb,tryidx - 1);
-            cdb.append(b.Bcode);
-            b.Bcode = cdb.finish();
-        }
-
-        stack = null;
-        for (code *c = b.Bcode; c; c = code_next(c))
-        {
-            if ((c.Iop & ESCAPEmask) == ESCAPE)
-            {
-                code *c1 = null;
-                switch (c.Iop & 0xFFFF00)
-                {
-                    case ESCctor:
-                        //printf("ESCctor\n");
-                        except_push(c,c.IEV1.Vtor,null);
-                        goto L1;
-
-                    case ESCdtor:
-                        //printf("ESCdtor\n");
-                        except_pop(c,c.IEV1.Vtor,null);
-                    L1: if (config.exe == EX_WIN32)
-                        {
-                            CodeBuilder cdb; cdb.ctor();
-                            nteh_gensindex(cdb,except_index_get() - 1);
-                            c1 = cdb.finish();
-                            c1.next = code_next(c);
-                            c.next = c1;
-                        }
-                        break;
-
-                    case ESCmark:
-                        //printf("ESCmark\n");
-                        idx = except_index_get();
-                        list_prependdata(&stack,idx);
-                        except_mark();
-                        break;
-
-                    case ESCrelease:
-                        //printf("ESCrelease\n");
-                        version (SCPP)
-                        {
-                            idx = list_data(stack);
-                            list_pop(&stack);
-                            if (idx != except_index_get())
-                            {
-                                if (config.exe == EX_WIN32)
-                                {
-                                    CodeBuilder cdb; cdb.ctor();
-                                    nteh_gensindex(cdb,idx - 1);
-                                    c1 = cdb.finish();
-                                    c1.next = code_next(c);
-                                    c.next = c1;
-                                }
-                                else
-                                {   except_pair_append(c,idx - 1);
-                                    c.Iop = ESCAPE | ESCoffset;
-                                }
-                            }
-                            except_release();
-                        }
-                        break;
-
-                    case ESCmark2:
-                        //printf("ESCmark2\n");
-                        except_mark();
-                        break;
-
-                    case ESCrelease2:
-                        //printf("ESCrelease2\n");
-                        version (SCPP)
-                        {
-                            except_release();
-                        }
-                        break;
-
-                    default:
-                        break;
-                }
-            }
-        }
-        assert(stack == null);
-        b.Bendindex = except_index_get();
-
-        if (b.BC != BCret && b.BC != BCretexp)
-            lastidx = b.Bendindex;
-
-        // Set starting index for each of the successors
-        int i = 0;
-        foreach (bl; ListRange(b.Bsucc))
-        {
-            block *bs = list_block(bl);
-            if (b.BC == BCtry)
-            {
-                switch (i)
-                {
-                    case 0:                             // block after catches
-                        bs.Bindex = b.Bendindex;
-                        break;
-
-                    case 1:                             // 1st catch block
-                        bs.Bindex = tryidx;
-                        break;
-
-                    default:                            // subsequent catch blocks
-                        bs.Bindex = b.Bindex;
-                        break;
-                }
-
-                debug
-                if (debuge)
-                {
-                    printf(" 1setting %p to %d\n",bs,bs.Bindex);
-                }
-            }
-            else if (!(bs.Bflags & BFLvisited))
-            {
-                bs.Bindex = b.Bendindex;
-
-                debug
-                if (debuge)
-                {
-                    printf(" 2setting %p to %d\n",bs,bs.Bindex);
-                }
-            }
-            bs.Bflags |= BFLvisited;
-            i++;
-        }
-    }
-
-    if (config.exe == EX_WIN32)
-        for (block *b = startblock; b; b = b.Bnext)
-        {
-            if (/*!b.Bcount ||*/ b.BC == BCtry)
-                continue;
-            foreach (bl; ListRange(b.Bpred))
-            {
-                int pi = list_block(bl).Bendindex;
-                if (b.Bindex != pi)
-                {
-                    CodeBuilder cdb; cdb.ctor();
-                    nteh_gensindex(cdb,b.Bindex - 1);
-                    cdb.append(b.Bcode);
-                    b.Bcode = cdb.finish();
-                    break;
-                }
-            }
-        }
-}
-
 }
 
 /******************************

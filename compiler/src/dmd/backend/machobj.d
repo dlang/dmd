@@ -559,23 +559,6 @@ Obj MachObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname
 void MachObj_initfile(const(char)* filename, const(char)* csegname, const(char)* modname)
 {
     //dbg_printf("MachObj_initfile(filename = %s, modname = %s)\n",filename,modname);
-version (SCPP)
-{
-    if (csegname && *csegname && strcmp(csegname,".text"))
-    {   // Define new section and make it the default for cseg segment
-        // NOTE: cseg is initialized to CODE
-        IDXSEC newsecidx;
-        Elf32_Shdr *newtextsec;
-        IDXSYM newsymidx;
-        assert(!I64);      // fix later
-        SegData[cseg].SDshtidx = newsecidx =
-            elf_newsection(csegname,0,SHT_PROGDEF,SHF_ALLOC|SHF_EXECINSTR);
-        newtextsec = &SecHdrTab[newsecidx];
-        newtextsec.sh_addralign = 4;
-        SegData[cseg].SDsymidx =
-            elf_addsym(0, 0, 0, STT_SECTION, STB_LOCAL, newsecidx);
-    }
-}
     if (config.fulltypes)
         dwarf_initmodule(filename, modname);
 }
@@ -694,28 +677,13 @@ void MachObj_termfile()
 void MachObj_term(const(char)* objfilename)
 {
     //printf("MachObj_term()\n");
-version (SCPP)
-{
-    if (!errcnt)
-    {
-        outfixlist();           // backpatches
-    }
-}
-else
-{
     outfixlist();           // backpatches
-}
 
     if (configv.addlinenumbers)
     {
         dwarf_termfile();
     }
 
-version (SCPP)
-{
-    if (errcnt)
-        return;
-}
 
     /* Write out the object file in the following order:
      *  header
@@ -1532,13 +1500,6 @@ version (MARS)
     if (!srcpos.Sfilename)
         return;
 }
-version (SCPP)
-{
-    if (!srcpos.Sfilptr)
-        return;
-    sfile_debug(&srcpos_sfile(srcpos));
-    Sfile *sf = *srcpos.Sfilptr;
-}
 
     size_t i;
     seg_data *pseg = SegData[seg];
@@ -1550,18 +1511,11 @@ version (SCPP)
         {   // Create new entry
             version (MARS)
                 pseg.SDlinnum_data.push(linnum_data(srcpos.Sfilename));
-            version (SCPP)
-                pseg.SDlinnum_data.push(linnum_data(sf));
             break;
         }
 version (MARS)
 {
         if (pseg.SDlinnum_data[i].filename == srcpos.Sfilename)
-            break;
-}
-version (SCPP)
-{
-        if (pseg.SDlinnum_data[i].filptr == sf)
             break;
 }
     }
@@ -2114,11 +2068,7 @@ char *obj_mangle2(Symbol *s,char *dest)
     //printf("MachObj_mangle(s = %p, '%s'), mangle = x%x\n",s,s.Sident.ptr,type_mangle(s.Stype));
     symbol_debug(s);
     assert(dest);
-version (SCPP)
-{
-    name = CPP ? cpp_mangle(s) : &s.Sident[0];
-}
-else version (MARS)
+version (MARS)
 {
     // C++ name mangling is handled by front end
     name = &s.Sident[0];

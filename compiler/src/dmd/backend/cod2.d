@@ -2751,13 +2751,6 @@ void cdshift(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     OPER oper = e.Eoper;
     uint grex = ((I64 && sz == 8) ? REX_W : 0) << 16;
 
-version (SCPP)
-{
-    // Do this until the rest of the compiler does OPshr/OPashr correctly
-    if (oper == OPshr)
-        oper = (tyuns(tyml)) ? OPshr : OPashr;
-}
-
     uint s1,s2;
     switch (oper)
     {
@@ -5622,43 +5615,6 @@ version (MARS)
             codelem(cdb,e.EV.E1,&retregs,false);
             break;
 }
-version (SCPP)
-{
-        case OPdtor:
-            cdcomma(cdb,e,pretregs);
-            break;
-        case OPctor:
-            codelem(cdb,e.EV.E2,pretregs,false);
-            regm_t retregs = 0;
-            codelem(cdb,e.EV.E1,&retregs,false);
-            break;
-        case OPmark:
-            if (0 && config.exe == EX_WIN32)
-            {
-                const idx = except_index_get();
-                except_mark();
-                codelem(cdb,e.EV.E2,pretregs,false);
-                if (config.exe == EX_WIN32 && idx != except_index_get())
-                {   usednteh |= NTEHcleanup;
-                    nteh_gensindex(cdb,idx - 1);
-                }
-                except_release();
-                assert(idx == except_index_get());
-            }
-            else
-            {
-                code cs = void;
-                cs.Iop = ESCAPE | ESCmark;
-                cs.Iflags = 0;
-                cs.Irex = 0;
-                cdb.gen(&cs);
-                codelem(cdb,e.EV.E2,pretregs,false);
-                cs.Iop = ESCAPE | ESCrelease;
-                cdb.gen(&cs);
-            }
-            freenode(e.EV.E1);
-            break;
-}
         default:
             assert(0);
     }
@@ -5787,21 +5743,6 @@ void cdddtor(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 @trusted
 void cdctor(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
-version (SCPP)
-{
-    usednteh |= EHcleanup;
-    if (config.exe == EX_WIN32)
-        usednteh |= NTEHcleanup;
-    assert(*pretregs == 0);
-
-    code cs = void;
-    cs.Iop = ESCAPE | ESCctor;
-    cs.Iflags = 0;
-    cs.Irex = 0;
-    cs.IFL1 = FLctor;
-    cs.IEV1.Vtor = e;
-    cdb.gen(&cs);
-}
 }
 
 /******
@@ -5809,21 +5750,6 @@ version (SCPP)
  */
 void cddtor(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
-version (SCPP)
-{
-    usednteh |= EHcleanup;
-    if (config.exe == EX_WIN32)
-        usednteh |= NTEHcleanup;
-    assert(*pretregs == 0);
-
-    code cs = void;
-    cs.Iop = ESCAPE | ESCdtor;
-    cs.Iflags = 0;
-    cs.Irex = 0;
-    cs.IFL1 = FLdtor;
-    cs.IEV1.Vtor = e;
-    cdb.gen(&cs);
-}
 }
 
 void cdmark(ref CodeBuilder cdb,elem *e,regm_t *pretregs)

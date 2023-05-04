@@ -343,17 +343,6 @@ static if (TARGET_SEGMENTED)
     {
         if (f.sym.Sclass == SC.static_)
         {
-version (SCPP)
-{
-            if (f.sym.Sdt)
-            {
-                outdata(f.sym);
-            }
-            else if (f.sym.Sseg == UNKNOWN)
-                synerr(EM_no_static_def,prettyident(f.sym)); // no definition found for static
-}
-else // MARS
-{
             // OBJ_OMF does not set Sxtrnnum for static Symbols, so check
             // whether the Symbol was assigned to a segment instead, compare
             // outdata(Symbol *s)
@@ -362,7 +351,6 @@ else // MARS
                 printf("Error: no definition for static %s\n", prettyident(f.sym)); // no definition found for static
                 err_exit(); // BUG: do better
             }
-}
         }
         else if (f.sym.Sflags & SFLwasstatic)
         {

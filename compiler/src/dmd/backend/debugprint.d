@@ -394,11 +394,6 @@ void WRblock(block *b)
         if (b.Bcode)
             b.Bcode.print();
         }
-        version (SCPP)
-        {
-        if (b.Bcode)
-            b.Bcode.print();
-        }
         ferr("\n");
     }
     else

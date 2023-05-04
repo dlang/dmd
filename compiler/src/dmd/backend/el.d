@@ -87,8 +87,6 @@ struct elem
         // PARSER
         struct
         {
-            version (SCPP)
-                Symbol* Emember;       // if PEFmember, this is the member
             pef_flags_t PEFflags;
         }
 

@@ -60,14 +60,6 @@ int boolres(elem *e)
         case OPstring:
             return true;
 
-version (SCPP)
-{
-        case OPvar:
-            assert(CPP && PARSER);
-            el_toconst(e);
-            assert(e.Eoper == OPconst);
-            goto case OPconst;
-}
         case OPconst:
             switch (tybasic(typemask(e)))
             {   case TYchar:
@@ -138,12 +130,6 @@ version (SCPP)
                     break;
 
                 case TYstruct:  // happens on syntax error of (struct x)0
-                version (SCPP)
-                {
-                    assert(errcnt);
-                    goto case TYvoid;
-                }
-                else
                     assert(0);
 
                 case TYvoid:    /* happens if we get syntax errors or
@@ -1132,8 +1118,6 @@ else
             {
                 div0:
                 overflow:
-                    version (SCPP)
-                        synerr(EM_divby0);
                     break;
             }
         }
@@ -1295,17 +1279,6 @@ else
         }
         if (cast(targ_ullong) i2 > targ_ullong.sizeof * 8)
             i2 = targ_ullong.sizeof * 8;
-version (SCPP)
-{
-        if (tyuns(tym))
-        {   //printf("unsigned\n");
-            e.EV.Vullong = (cast(targ_ullong) l1) >> i2;
-        }
-        else
-        {   //printf("signed\n");
-            e.EV.Vllong = l1 >> i2;
-        }
-}
 version (MARS)
 {
         // Always unsigned
@@ -1977,17 +1950,6 @@ static if (0) // && MARS
     }
     else
     {
-version (SCPP)
-{
-        if ((flags = statusFE()) & 0x3F)
-        {   // Should also give diagnostic warning for:
-            // overflow, underflow, denormal, invalid
-            if (flags & 0x04)
-                warerr(WM.WM_divby0);
-    //      else if (flags & 0x08)          // overflow
-    //          warerr(WM.WM_badnumber);
-        }
-}
     }
 
   /*debug printf("result = x%lx\n",e.EV.Vlong);*/

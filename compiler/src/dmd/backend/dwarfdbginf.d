@@ -1264,12 +1264,6 @@ static if (1)
                     language = DW_LANG_C89;
                 debug_info.buf.writeByte(language);
             }
-            else version (SCPP)
-            {
-                debug_info.buf.write("Digital Mars C ");
-                debug_info.buf.writeStringz(global._version);      // DW_AT_producer
-                debug_info.buf.writeByte(DW_LANG_C89);            // DW_AT_language
-            }
             else
                 static assert(0);
 

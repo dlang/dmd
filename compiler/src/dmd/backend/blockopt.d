@@ -344,13 +344,6 @@ void block_free(block *b)
             free(b.Bswitch);
             break;
 
-        version (SCPP)
-        {
-            case BCcatch:
-                type_free(b.Bcatchtype);
-                break;
-        }
-
         version (MARS)
         {
             case BCjcatch:
@@ -1047,15 +1040,7 @@ private void brrear()
             /* loops which we avoid by putting a lid on     */
             /* the number of iterations.                    */
 
-            version (SCPP)
-            {
-                static if (NTEXCEPTIONS)
-                    enum additionalAnd = "b.Btry == bt.Btry &&
-                                      bt.Btry == bt.nthSucc(0).Btry";
-                else
-                    enum additionalAnd = "b.Btry == bt.Btry";
-            }
-            else static if (NTEXCEPTIONS)
+            static if (NTEXCEPTIONS)
                 enum additionalAnd = "b.Btry == bt.Btry &&
                                   bt.Btry == bt.nthSucc(0).Btry";
             else
@@ -1265,15 +1250,6 @@ private int mergeblks()
                     bL2.BC == BC_try ||
                     b.Btry != bL2.Btry)
                     continue;
-                version (SCPP)
-                {
-                    // If any predecessors of b are BCasm, don't merge.
-                    foreach (bl; ListRange(b.Bpred))
-                    {
-                        if (list_block(bl).BC == BCasm)
-                            goto Lcontinue;
-                    }
-                }
 
                 /* JOIN the elems               */
                 elem *e = el_combine(b.Belem,bL2.Belem);
@@ -1336,19 +1312,6 @@ private void blident()
 {
     debug if (debugc) printf("blident()\n");
     assert(startblock);
-
-    version (SCPP)
-    {
-        // Determine if any asm blocks
-        int anyasm = 0;
-        for (block *bn = startblock; bn; bn = bn.Bnext)
-        {
-            if (bn.BC == BCasm)
-            {   anyasm = 1;
-                break;
-            }
-        }
-    }
 
     block *bnext;
     for (block *bn = startblock; bn; bn = bnext)
@@ -1439,25 +1402,6 @@ private void blident()
                     //b = startblock;             /* swap b and bn        */
                 }
 
-                version (SCPP)
-                {
-                    // Don't do it if any predecessors are ASM blocks, since
-                    // we'd have to walk the code list to fix up any jmps.
-                    if (anyasm)
-                    {
-                        foreach (bl; ListRange(bn.Bpred))
-                        {
-                            block *bp = list_block(bl);
-                            if (bp.BC == BCasm)
-                                goto Lcontinue;
-                            foreach (bls; ListRange(bp.Bsucc))
-                                if (list_block(bls) == bn &&
-                                    list_block(bls).BC == BCasm)
-                                    goto Lcontinue;
-                        }
-                    }
-                }
-
                 /* Change successors to predecessors of bn to point to  */
                 /* b instead of bn                                      */
                 foreach (bl; ListRange(bn.Bpred))
@@ -1521,14 +1465,7 @@ private void blreturn()
             static if (SCPP_OR_NTEXCEPTIONS)
             {
                 // If no other blocks with the same Btry, don't split
-                version (SCPP)
-                {
-                    auto ifCondition = config.flags3 & CFG3eh;
-                }
-                else
-                {
-                    enum ifCondition = true;
-                }
+                enum ifCondition = true;
                 if (ifCondition)
                 {
                     for (block *b2 = startblock; b2; b2 = b2.Bnext)
@@ -1782,13 +1719,6 @@ private void bltailmerge()
 @trusted
 private void brmin()
 {
-    version (SCPP)
-    {
-        // Dunno how this may mess up generating EH tables.
-        if (config.flags3 & CFG3eh)         // if EH turned on
-            return;
-    }
-
     debug if (debugc) printf("brmin()\n");
     debug assert(startblock);
     for (block *b = startblock.Bnext; b; b = b.Bnext)
@@ -1890,12 +1820,6 @@ private void block_check()
 @trusted
 private void brtailrecursion()
 {
-    version (SCPP)
-    {
-    //    if (tyvariadic(funcsym_p.Stype))
-            return;
-        return;             // haven't dealt with struct params, and ctors/dtors
-    }
     if (funcsym_p.Sfunc.Fflags3 & Fnotailrecursion)
         return;
     if (localgot)
