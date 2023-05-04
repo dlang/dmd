@@ -39,24 +39,8 @@ import dmd.backend.barray;
 nothrow:
 @safe:
 
-extern __gshared
-{
-    char debuga;            // cg - watch assignaddr()
-    char debugb;            // watch block optimization
-    char debugc;            // watch code generated
-    char debugd;            // watch debug information generated
-    char debuge;            // dump eh info
-    char debugf;            // trees after dooptim
-    char debugg;            // trees for code generator
-    char debugo;            // watch optimizer
-    char debugr;            // watch register allocation
-    char debugs;            // watch common subexp eliminator
-    char debugt;            // do test points
-    char debugu;
-    char debugw;            // watch progress
-    char debugx;            // suppress predefined CPP stuff
-    char debugy;            // watch output to il buffer
-}
+public import dmd.backend.var : debuga, debugb, debugc, debugd, debuge, debugf,
+    debugr, debugs, debugt, debugu, debugw, debugx, debugy;
 
 enum CR = '\r';             // Used because the MPW version of the compiler warps
 enum LF = '\n';             // \n into \r and \r into \n.  The translator version
@@ -65,59 +49,15 @@ enum LF = '\n';             // \n into \r and \r into \n.  The translator versio
 enum CR_STR = "\r";
 enum LF_STR = "\n";
 
-extern __gshared
-{
-    const uint[32] mask;            // bit masks
-    const uint[32] maskl;           // bit masks
+public import dmd.backend.cgxmm : mask;
+public import dmd.backend.var : OPTIMIZER, PARSER, globsym, controlc_saw, pointertype, sytab;
+public import dmd.backend.cg : fregsaved, localgot, tls_get_addr_sym;
+public import dmd.backend.blockopt : startblock, dfo, curblock, block_last;
 
-    char* argv0;
-    char* finname, foutname, foutdir;
+__gshared Configv configv;                // non-ph part of configuration
 
-    char OPTIMIZER,PARSER;
-    symtab_t globsym;
-
-//    Config config;                  // precompiled part of configuration
-    char[SCMAX] sytab;
-
-    extern (C) /*volatile*/ int controlc_saw;    // a control C was seen
-    block* startblock;              // beginning block of function
-
-    Barray!(block*) dfo;            // array of depth first order
-
-    block* curblock;                // current block being read in
-    block* block_last;
-
-    int errcnt;
-    regm_t fregsaved;
-
-    tym_t pointertype;              // default data pointer type
-
-    // cg.c
-    Symbol* localgot;
-    Symbol* tls_get_addr_sym;
-}
-
-version (MARS)
-    __gshared Configv configv;                // non-ph part of configuration
-else
-    extern __gshared Configv configv;                // non-ph part of configuration
-
-// iasm.c
-Symbol *asm_define_label(const(char)* id);
-
-// cpp.c
-const(char)* cpp_mangle(Symbol* s);
-
-// ee.c
-void eecontext_convs(SYMIDX marksi);
-void eecontext_parse();
-
-// exp2.c
-//#define REP_THRESHOLD (REGSIZE * (6+ (REGSIZE == 4)))
-        /* doesn't belong here, but func to OPxxx is in exp2 */
-void exp2_setstrthis(elem *e,Symbol *s,targ_size_t offset,type *t);
-Symbol *exp2_qualified_lookup(Classsym *sclass, int flags, int *pflags);
-elem *exp2_copytotemp(elem *e);
+public import dmd.backend.ee : eecontext_convs;
+public import dmd.backend.elem : exp2_copytotemp;
 
 void util_progress();
 void util_set16();
