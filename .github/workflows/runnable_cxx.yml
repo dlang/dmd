@@ -62,8 +62,9 @@ jobs:
         target: [
           # Versions of clang earlier than 11 are not available on 20.04, but are on macOS-11
           clang-13.0.0, clang-12.0.0, clang-11.0.0, clang-10.0.0, clang-9.0.0, clang-8.0.0,
-        # For g++, we test the oldest compiler on Ubuntu 20.04, which is GCC-9
-          g++-11, g++-10, g++-9,
+          # For g++, we test the oldest compiler on Ubuntu 20.04, which is GCC-9
+          # Disabled because of https://issues.dlang.org/show_bug.cgi?id=23885
+          # g++-11, g++-10, g++-9,
           # Finally, we test MSVC 2013 - 2019
           msvc-2019, msvc-2017, msvc-2015, msvc-2013
         ]
@@ -85,9 +86,9 @@ jobs:
           - { os: macOS-11, target: msvc-2015 }
           - { os: macOS-11, target: msvc-2013 }
           # We don't test g++ on Windows as DMD only mangles for MSVC
-          - { os: windows-2019, target: g++-11 }
-          - { os: windows-2019, target: g++-10 }
-          - { os: windows-2019, target: g++-9 }
+          # - { os: windows-2019, target: g++-11 }
+          # - { os: windows-2019, target: g++-10 }
+          # - { os: windows-2019, target: g++-9 }
 
           # TODO: Implement support for clang and MSVC2017 on Windows
           # Currently those are still being run by the auto-tester
@@ -117,9 +118,9 @@ jobs:
           - { target: clang-9.0.0, compiler: clang, cxx-version: 9.0.0 }
           - { target: clang-8.0.0, compiler: clang, cxx-version: 8.0.0 }
           # g++ boilerplace
-          - { target: g++-11, compiler: g++, cxx-version: 11.2.0, major: 11 }
-          - { target: g++-10, compiler: g++, cxx-version: 10.3.0, major: 10 }
-          - { target: g++-9, compiler: g++, cxx-version: 9.4.0, major: 9 }
+          # - { target: g++-11, compiler: g++, cxx-version: 11.2.0, major: 11 }
+          # - { target: g++-10, compiler: g++, cxx-version: 10.3.0, major: 10 }
+          # - { target: g++-9, compiler: g++, cxx-version: 9.4.0, major: 9 }
           # Platform boilerplate
           - { os: ubuntu-20.04, arch: x86_64-linux-gnu-ubuntu-20.04 }
           - { os: macOS-11,  arch: x86_64-apple-darwin }
