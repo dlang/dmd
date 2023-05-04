@@ -763,7 +763,6 @@ type *type_copy(type *t)
             default:
                 if (tyfunc(tn.Tty))
                 {
-                L1:
                     tn.Tparamtypes = null;
                     for (p = t.Tparamtypes; p; p = p.Pnext)
                     {   param_t *pn;
