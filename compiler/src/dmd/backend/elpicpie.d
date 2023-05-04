@@ -206,7 +206,7 @@ else if (config.exe & EX_windos)
         e1.EV.Vsym = s;
         e1.Ety = TYnptr;
 
-        if (config.wflags & WFexe)
+        if (false && config.wflags & WFexe) // disabled to work with betterC/importC
         {
             // e => *(&s + *(FS:_tls_array))
             e2 = el_var(getRtlsym(RTLSYM.TLS_ARRAY));

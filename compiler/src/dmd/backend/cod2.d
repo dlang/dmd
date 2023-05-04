@@ -2238,7 +2238,7 @@ void cdbswap(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
     const tym = tybasic(e.Ety);
     const sz = _tysize[tym];
-    const posregs = (sz == 2) ? BYTEREGS : allregs;
+    const posregs = (sz == 2) ? mAX|mBX|mCX|mDX : allregs;
     regm_t retregs = *pretregs & posregs;
     if (retregs == 0)
         retregs = posregs;
