@@ -5331,7 +5331,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         error("cannot use function constraints for non-template functions. Use `static if` instead");
                 }
                 else
-                    error("semicolon expected following function declaration");
+                    error("semicolon expected following function declaration, not `%s`", token.toChars());
             }
             break;
         }
