@@ -41,19 +41,6 @@ import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-version (SCPP_HTOD)
-{
-    import cpp;
-    import dtoken;
-    import scopeh;
-    import msgs2;
-    import parser;
-    import precomp;
-
-    extern (C++) void baseclass_free(baseclass_t *b);
-}
-
-
 extern (C++):
 
 nothrow:
@@ -71,10 +58,7 @@ alias MEM_PARF_REALLOC = mem_realloc;
 alias MEM_PARF_FREE = mem_free;
 alias MEM_PARF_STRDUP = mem_strdup;
 
-version (SCPP_HTOD)
-    enum mBP = 0x20;
-else
-    import dmd.backend.code_x86;
+import dmd.backend.code_x86;
 
 void struct_free(struct_t *st) { }
 
@@ -110,11 +94,6 @@ debug
     printf(" Sflags = x%04x",cast(uint)s.Sflags);
     printf(" Sxtrnnum = %d\n",s.Sxtrnnum);
     printf("  Stype   = %p",s.Stype);
-version (SCPP_HTOD)
-{
-    printf(" Ssequence = %x", s.Ssequence);
-    printf(" Scover  = %p", s.Scover);
-}
     printf(" Sl      = %p",s.Sl);
     printf(" Sr      = %p\n",s.Sr);
     if (s.Sscope)
@@ -127,13 +106,6 @@ version (SCPP_HTOD)
         printf("  Sbit    =%3d",s.Sbit);
         printf("  Swidth  =%3d\n",s.Swidth);
     }
-version (SCPP_HTOD)
-{
-    if (s.Sclass == SC.struct_)
-    {
-        printf("  Svbptr = %p, Svptr = %p\n",s.Sstruct.Svbptr,s.Sstruct.Svptr);
-    }
-}
 }
 }
 
@@ -290,34 +262,6 @@ bool Symbol_isAffected(const ref Symbol s)
 @trusted
 const(char)* symbol_ident(const Symbol *s)
 {
-version (SCPP_HTOD)
-{
-    __gshared char* noname = cast(char*)"__unnamed".ptr;
-    switch (s.Sclass)
-    {   case SC.struct_:
-            if (s.Sstruct.Salias)
-                return s.Sstruct.Salias.Sident.ptr;
-            else if (s.Sstruct.Sflags & STRnotagname)
-                return noname;
-            break;
-        case SC.enum_:
-            if (CPP)
-            {   if (s.Senum.SEalias)
-                    return s.Senum.SEalias.Sident.ptr;
-                else if (s.Senum.SEflags & SENnotagname)
-                    return noname;
-            }
-            break;
-
-        case SC.namespace:
-            if (s.Sident[0] == '?' && s.Sident.ptr[1] == '%')
-                return cast(char*)"unique".ptr;        // an unnamed namespace
-            break;
-
-        default:
-            break;
-    }
-}
     return s.Sident.ptr;
 }
 
@@ -332,12 +276,6 @@ Symbol * symbol_calloc(const(char)[] id)
     //printf("sizeof(symbol)=%d, sizeof(s.Sident)=%d, len=%d\n", symbol.sizeof, s.Sident.sizeof, cast(int)id.length);
     Symbol* s = cast(Symbol *) mem_fmalloc(Symbol.sizeof - Symbol.Sident.length + id.length + 1 + 5);
     memset(s,0,Symbol.sizeof - s.Sident.length);
-version (SCPP_HTOD)
-{
-    s.Ssequence = pstate.STsequence;
-    pstate.STsequence += 1;
-    //if (s.Ssequence == 0x21) *cast(char*)0=0;
-}
     memcpy(s.Sident.ptr,id.ptr,id.length);
     s.Sident.ptr[id.length] = 0;
     s.Ssymnum = SYMIDX.max;
@@ -385,9 +323,6 @@ Funcsym *symbol_funcalias(Funcsym *sf)
     auto s = cast(Funcsym *)symbol_name(sf.Sident.ptr[0 .. strlen(sf.Sident.ptr)],SC.funcalias,sf.Stype);
     s.Sfunc.Falias = sf;
 
-version (SCPP_HTOD)
-    s.Scover = sf.Scover;
-
     return s;
 }
 
@@ -420,32 +355,8 @@ Symbol * symbol_genauto(type *t)
 {   Symbol *s;
 
     s = symbol_generate(SC.auto_,t);
-version (SCPP_HTOD)
-{
-    //printf("symbol_genauto(t) '%s'\n", s.Sident.ptr);
-    if (pstate.STdefertemps)
-    {   symbol_keep(s);
-        s.Ssymnum = SYMIDX.max;
-    }
-    else
-    {   s.Sflags |= SFLfree;
-        if (init_staticctor)
-        {   // variable goes into _STI_xxxx
-            s.Ssymnum = SYMIDX.max;            // deferred allocation
-//printf("test2\n");
-//if (s.Sident[4] == '2') *(char*)0=0;
-        }
-        else
-        {
-            symbol_add(s);
-        }
-    }
-}
-else
-{
     s.Sflags |= SFLfree;
     symbol_add(s);
-}
     return s;
 }
 
@@ -557,22 +468,6 @@ void symbol_struct_addBaseClass(Symbol *s, type *t, uint offset)
 }
 
 /********************************
- * Define symbol in specified symbol table.
- * Returns:
- *      pointer to symbol
- */
-
-version (SCPP_HTOD)
-{
-Symbol * defsy(const(char)* p,Symbol **parent)
-{
-   Symbol *s = symbol_calloc(p[0 .. strlen(p)]);
-   symbol_addtotree(parent,s);
-   return s;
-}
-}
-
-/********************************
  * Check integrity of symbol data structure.
  */
 
@@ -585,13 +480,6 @@ void symbol_check(const Symbol *s)
     symbol_debug(s);
     if (s.Stype) type_debug(s.Stype);
     assert(cast(uint)s.Sclass < cast(uint)SCMAX);
-version (SCPP_HTOD)
-{
-    if (s.Sscope)
-        symbol_check(s.Sscope);
-    if (s.Scover)
-        symbol_check(s.Scover);
-}
 }
 
 void symbol_tree_check(const(Symbol)* s)
@@ -603,101 +491,6 @@ void symbol_tree_check(const(Symbol)* s)
     }
 }
 
-}
-
-/********************************
- * Insert symbol in specified symbol table.
- */
-
-version (SCPP_HTOD)
-{
-
-void symbol_addtotree(Symbol **parent,Symbol *s)
-{  Symbol *rover;
-   byte cmp;
-   size_t len;
-   const(char)* p;
-   char c;
-
-   //printf("symbol_addtotree('%s',%p)\n",s.Sident.ptr,*parent);
-debug
-{
-   symbol_tree_check(*parent);
-   assert(!s.Sl && !s.Sr);
-}
-   symbol_debug(s);
-   p = s.Sident.ptr;
-   c = *p;
-   len = strlen(p);
-   p++;
-   rover = *parent;
-   while (rover != null)                // while we haven't run out of tree
-   {    symbol_debug(rover);
-        if ((cmp = cast(byte)(c - rover.Sident[0])) == 0)
-        {   cmp = cast(byte)memcmp(p,rover.Sident.ptr + 1,len); // compare identifier strings
-            if (cmp == 0)               // found it if strings match
-            {
-                if (CPP)
-                {   Symbol *s2;
-
-                    switch (rover.Sclass)
-                    {   case SC.struct_:
-                            s2 = rover;
-                            goto case_struct;
-
-                        case_struct:
-                            if (s2.Sstruct.Sctor &&
-                                !(s2.Sstruct.Sctor.Sfunc.Fflags & Fgen))
-                                cpperr(EM_ctor_disallowed,p);   // no ctor allowed for class rover
-                            s2.Sstruct.Sflags |= STRnoctor;
-                            goto case_cover;
-
-                        case_cover:
-                            // Replace rover with the new symbol s, and
-                            // have s 'cover' the tag symbol s2.
-                            // BUG: memory leak on rover if s2!=rover
-                            assert(!s2.Scover);
-                            s.Sl = rover.Sl;
-                            s.Sr = rover.Sr;
-                            s.Scover = s2;
-                            *parent = s;
-                            rover.Sl = rover.Sr = null;
-                            return;
-
-                        case SC.enum_:
-                            s2 = rover;
-                            goto case_cover;
-
-                        case SC.template_:
-                            s2 = rover;
-                            s2.Stemplate.TMflags |= STRnoctor;
-                            goto case_cover;
-
-                        case SC.alias_:
-                            s2 = rover.Smemalias;
-                            if (s2.Sclass == SC.struct_)
-                                goto case_struct;
-                            if (s2.Sclass == SC.enum_)
-                                goto case_cover;
-                            break;
-
-                        default:
-                            break;
-                    }
-                }
-                synerr(EM_multiple_def,p - 1);  // symbol is already defined
-                //symbol_undef(s);              // undefine the symbol
-                return;
-            }
-        }
-        parent = (cmp < 0) ?            /* if we go down left side      */
-            &(rover.Sl) :              /* then get left child          */
-            &(rover.Sr);               /* else get right child         */
-        rover = *parent;                /* get child                    */
-   }
-   /* not in table, so insert into table        */
-   *parent = s;                         /* link new symbol into tree    */
-}
 }
 
 /*************************************
@@ -716,172 +509,6 @@ Symbol * lookupsym(const(char)* p)
 {
     return scope_search(p,SCTglobal | SCTlocal);
 }
-}
-
-/*************************************
- * Search for symbol in symbol table.
- * Input:
- *      p .    identifier string
- *      rover . where to start looking
- * Returns:
- *      pointer to symbol (null if not found)
- */
-
-version (SCPP_HTOD)
-{
-
-Symbol * findsy(const(char)* p,Symbol *rover)
-{
-/+
-#if TX86 && __DMC__
-    volatile int len;
-    __asm
-    {
-#if !_WIN32
-        push    DS
-        pop     ES
-#endif
-        mov     EDI,p
-        xor     AL,AL
-
-        mov     BL,[EDI]
-        mov     ECX,-1
-
-        repne   scasb
-
-        not     ECX
-        mov     EDX,p
-
-        dec     ECX
-        inc     EDX
-
-        mov     len,ECX
-        mov     AL,BL
-
-        mov     EBX,rover
-        mov     ESI,EDX
-
-        test    EBX,EBX
-        je      L6
-
-        cmp     AL,symbol.Sident[EBX]
-        js      L2
-
-        lea     EDI,symbol.Sident+1[EBX]
-        je      L5
-
-        mov     EBX,symbol.Sr[EBX]
-        jmp     L3
-
-L1:             mov     ECX,len
-L2:             mov     EBX,symbol.Sl[EBX]
-
-L3:             test    EBX,EBX
-                je      L6
-
-L4:             cmp     AL,symbol.Sident[EBX]
-                js      L2
-
-                lea     EDI,symbol.Sident+1[EBX]
-                je      L5
-
-                mov     EBX,symbol.Sr[EBX]
-                jmp     L3
-
-L5:             rep     cmpsb
-
-                mov     ESI,EDX
-                js      L1
-
-                je      L6
-
-                mov     EBX,symbol.Sr[EBX]
-                mov     ECX,len
-
-                test    EBX,EBX
-                jne     L4
-
-L6:     mov     EAX,EBX
-    }
-#else
-+/
-    size_t len;
-    byte cmp;                           /* set to value of strcmp       */
-    char c = *p;
-
-    len = strlen(p);
-    p++;                                // will pick up 0 on memcmp
-    while (rover != null)               // while we haven't run out of tree
-    {   symbol_debug(rover);
-        if ((cmp = cast(byte)(c - rover.Sident[0])) == 0)
-        {   cmp = cast(byte)memcmp(p,rover.Sident.ptr + 1,len); /* compare identifier strings */
-            if (cmp == 0)
-                return rover;           /* found it if strings match    */
-        }
-        rover = (cmp < 0) ? rover.Sl : rover.Sr;
-    }
-    return rover;                       // failed to find it
-//#endif
-}
-
-}
-
-/***********************************
- * Create a new symbol table.
- */
-
-version (SCPP_HTOD)
-{
-
-void createglobalsymtab()
-{
-    assert(!scope_end);
-    if (CPP)
-        scope_push(null,cast(scope_fp)&findsy, SCTcglobal);
-    else
-        scope_push(null,cast(scope_fp)&findsy, SCTglobaltag);
-    scope_push(null,cast(scope_fp)&findsy, SCTglobal);
-}
-
-
-void createlocalsymtab()
-{
-    assert(scope_end);
-    if (!CPP)
-        scope_push(null,cast(scope_fp)&findsy, SCTtag);
-    scope_push(null,cast(scope_fp)&findsy, SCTlocal);
-}
-
-
-/***********************************
- * Delete current symbol table and back up one.
- */
-
-void deletesymtab()
-{   Symbol *root;
-
-    root = cast(Symbol *)scope_pop();
-    if (root)
-    {
-        if (funcsym_p)
-            list_prepend(&funcsym_p.Sfunc.Fsymtree,root);
-        else
-            symbol_free(root);  // free symbol table
-    }
-
-    if (!CPP)
-    {
-        root = cast(Symbol *)scope_pop();
-        if (root)
-        {
-            if (funcsym_p)
-                list_prepend(&funcsym_p.Sfunc.Fsymtree,root);
-            else
-                symbol_free(root);      // free symbol table
-        }
-    }
-}
-
 }
 
 /*********************************
@@ -965,8 +592,6 @@ debug
                 param_free(&f.Fptal);
                 list_free(&f.Fexcspec,cast(list_free_fp)&type_free);
 
-version (SCPP_HTOD)
-                token_free(f.Fbody);
 
                 el_free(f.Fbaseinit);
                 if (f.Fthunk && !(f.Fflags & Finstance))
@@ -980,53 +605,7 @@ version (SCPP_HTOD)
             }
             switch (s.Sclass)
             {
-version (SCPP_HTOD)
-{
-                case SC.label:
-                    if (!s.Slabel)
-                        synerr(EM_unknown_label,s.Sident.ptr);
-                    break;
-}
                 case SC.struct_:
-version (SCPP_HTOD)
-{
-                  if (CPP)
-                  {
-                    struct_t *st = s.Sstruct;
-                    assert(st);
-                    list_free(&st.Sclassfriends,FPNULL);
-                    list_free(&st.Sfriendclass,FPNULL);
-                    list_free(&st.Sfriendfuncs,FPNULL);
-                    list_free(&st.Scastoverload,FPNULL);
-                    list_free(&st.Sopoverload,FPNULL);
-                    list_free(&st.Svirtual,&MEM_PH_FREEFP);
-                    list_free(&st.Sfldlst,FPNULL);
-                    symbol_free(st.Sroot);
-                    baseclass_t* b,bn;
-
-                    for (b = st.Sbase; b; b = bn)
-                    {   bn = b.BCnext;
-                        list_free(&b.BCpublics,FPNULL);
-                        baseclass_free(b);
-                    }
-                    for (b = st.Svirtbase; b; b = bn)
-                    {   bn = b.BCnext;
-                        baseclass_free(b);
-                    }
-                    for (b = st.Smptrbase; b; b = bn)
-                    {   bn = b.BCnext;
-                        list_free(&b.BCmptrlist,&MEM_PH_FREEFP);
-                        baseclass_free(b);
-                    }
-                    for (b = st.Svbptrbase; b; b = bn)
-                    {   bn = b.BCnext;
-                        baseclass_free(b);
-                    }
-                    param_free(&st.Sarglist);
-                    param_free(&st.Spr_arglist);
-                    struct_free(st);
-                  }
-}
                   if (!CPP)
                   {
                     debug if (debugy)
@@ -1053,35 +632,6 @@ static if (0)       /* Don't complain anymore about these, ANSI C says  */
                     s.Senum = null;
                     break;
 
-version (SCPP_HTOD)
-{
-                case SC.template_:
-                {   template_t *tm = s.Stemplate;
-
-                    list_free(&tm.TMinstances,FPNULL);
-                    list_free(&tm.TMmemberfuncs,cast(list_free_fp)&tmf_free);
-                    list_free(&tm.TMexplicit,cast(list_free_fp)&tme_free);
-                    list_free(&tm.TMnestedexplicit,cast(list_free_fp)&tmne_free);
-                    list_free(&tm.TMnestedfriends,cast(list_free_fp)&tmnf_free);
-                    param_free(&tm.TMptpl);
-                    param_free(&tm.TMptal);
-                    token_free(tm.TMbody);
-                    symbol_free(tm.TMpartial);
-                    list_free(&tm.TMfriends,FPNULL);
-                    MEM_PH_FREE(tm);
-                    break;
-                }
-                case SC.namespace:
-                    symbol_free(s.Snameroot);
-                    list_free(&s.Susing,FPNULL);
-                    break;
-
-                case SC.memalias:
-                case SC.funcalias:
-                case SC.adl:
-                    list_free(&s.Spath,FPNULL);
-                    break;
-}
                 case SC.parameter:
                 case SC.regpar:
                 case SC.fastpar:
@@ -1106,11 +656,6 @@ static if (0)
                 dt_free(s.Sdt);
             type_free(t);
             symbol_free(s.Sl);
-version (SCPP_HTOD)
-{
-            if (s.Scover)
-                symbol_free(s.Scover);
-}
             sr = s.Sr;
 debug
 {
@@ -1261,58 +806,6 @@ Symbol * symbol_copy(Symbol *s)
     }
     return scopy;
 }
-
-/*******************************
- * Search list for a symbol with an identifier that matches.
- * Returns:
- *      pointer to matching symbol
- *      null if not found
- */
-
-version (SCPP_HTOD)
-{
-
-Symbol * symbol_searchlist(symlist_t sl,const(char)* vident)
-{
-    debug
-    int count = 0;
-
-    //printf("searchlist(%s)\n",vident);
-    foreach (sln; ListRange(sl))
-    {
-        Symbol* s = list_symbol(sln);
-        symbol_debug(s);
-        /*printf("\tcomparing with %s\n",s.Sident.ptr);*/
-        if (strcmp(vident,s.Sident.ptr) == 0)
-            return s;
-
-        debug assert(++count < 300);          /* prevent infinite loops       */
-    }
-    return null;
-}
-
-/***************************************
- * Search for symbol in sequence of symbol tables.
- * Input:
- *      glbl    !=0 if global symbol table only
- */
-
-Symbol *symbol_search(const(char)* id)
-{
-    Scope *sc;
-    if (CPP)
-    {   uint sct;
-
-        sct = pstate.STclasssym ? SCTclass : 0;
-        sct |= SCTmfunc | SCTlocal | SCTwith | SCTglobal | SCTnspace | SCTtemparg | SCTtempsym;
-        return scope_searchx(id,sct,&sc);
-    }
-    else
-        return scope_searchx(id,SCTglobal | SCTlocal,&sc);
-}
-
-}
-
 
 /*******************************************
  * Hydrate a symbol tree.
@@ -1819,152 +1312,6 @@ void symbol_symdefs_dehydrate(Symbol **ps)
 }
 
 
-/***************************
- * Hydrate threaded list of symbols.
- * Input:
- *      *psx    start of threaded list
- *      *parent root of symbol table to add symbol into
- *      flag    !=0 means add onto existing stuff
- *              0 means hydrate in place
- */
-
-version (SCPP_HTOD)
-{
-
-@trusted
-void symbol_symdefs_hydrate(Symbol **psx,Symbol **parent,int flag)
-{   Symbol *s;
-
-    //printf("symbol_symdefs_hydrate(flag = %d)\n",flag);
-debug
-{
-    int count = 0;
-
-    if (flag) symbol_tree_check(*parent);
-}
-    for (; *psx; psx = &s.Snext)
-    {
-        //printf("%p ",*psx);
-debug
-        count++;
-
-        s = dohydrate ? symbol_hydrate(psx) : *psx;
-
-        //if (s.Sclass == SCstruct)
-        //printf("symbol_symdefs_hydrate(%p, '%s')\n",s,s.Sident.ptr);
-        symbol_debug(s);
-static if (0)
-{
-        if (tyfunc(s.Stype.Tty))
-        {   OutBuffer buf;
-            char *p1;
-
-            p1 = param_tostring(&buf,s.Stype);
-            printf("'%s%s'\n",cpp_prettyident(s),p1);
-        }
-}
-        type_debug(s.Stype);
-        if (flag)
-        {   char *p;
-            Symbol **ps;
-            Symbol *rover;
-            char c;
-            size_t len;
-
-            p = s.Sident.ptr;
-            c = *p;
-
-            // Put symbol s into symbol table
-
-static if (MMFIO)
-{
-            if (s.Sl || s.Sr)         // avoid writing to page if possible
-                s.Sl = s.Sr = null;
-}
-else
-                s.Sl = s.Sr = null;
-
-            len = strlen(p);
-            p++;
-            ps = parent;
-            while ((rover = *ps) != null)
-            {   byte cmp;
-
-                if ((cmp = cast(byte)(c - rover.Sident[0])) == 0)
-                {   cmp = cast(byte)memcmp(p,rover.Sident.ptr + 1,len); // compare identifier strings
-                    if (cmp == 0)
-                    {
-                        if (CPP && tyfunc(s.Stype.Tty) && tyfunc(rover.Stype.Tty))
-                        {   Symbol **psym;
-                            Symbol *sn;
-                            Symbol *so;
-
-                            so = s;
-                            do
-                            {
-                                // Tack onto end of overloaded function list
-                                for (psym = &rover; *psym; psym = &(*psym).Sfunc.Foversym)
-                                {   if (cpp_funccmp(so, *psym))
-                                    {   //printf("function '%s' already in list\n",so.Sident.ptr);
-                                        goto L2;
-                                    }
-                                }
-                                //printf("appending '%s' to rover\n",so.Sident.ptr);
-                                *psym = so;
-                            L2:
-                                sn = so.Sfunc.Foversym;
-                                so.Sfunc.Foversym = null;
-                                so = sn;
-                            } while (so);
-                            //printf("overloading...\n");
-                        }
-                        else if (s.Sclass == SC.struct_)
-                        {
-                            if (CPP && rover.Scover)
-                            {   ps = &rover.Scover;
-                                rover = *ps;
-                            }
-                            else
-                            if (rover.Sclass == SC.struct_)
-                            {
-                                if (!(s.Stype.Tflags & TFforward))
-                                {   // Replace rover with s in symbol table
-                                    //printf("Replacing '%s'\n",s.Sident.ptr);
-                                    *ps = s;
-                                    s.Sl = rover.Sl;
-                                    s.Sr = rover.Sr;
-                                    rover.Sl = rover.Sr = null;
-                                    rover.Stype.Ttag = cast(Classsym *)s;
-                                    symbol_keep(rover);
-                                }
-                                else
-                                    s.Stype.Ttag = cast(Classsym *)rover;
-                            }
-                        }
-                        goto L1;
-                    }
-                }
-                ps = (cmp < 0) ?        /* if we go down left side      */
-                    &rover.Sl :
-                    &rover.Sr;
-            }
-            *ps = s;
-            if (s.Sclass == SC.comdef)
-            {   s.Sclass = SC.global;
-                outcommon(s,type_size(s.Stype));
-            }
-        }
-  L1:
-    } // for
-debug
-{
-    if (flag) symbol_tree_check(*parent);
-    printf("%d symbols hydrated\n",count);
-}
-}
-
-}
-
 static if (0)
 {
 
@@ -2192,318 +1539,6 @@ int baseclass_nitems(baseclass_t *b)
     for (i = 0; b; b = b.BCnext)
         i++;
     return i;
-}
-
-
-/*****************************
- * Go through symbol table preparing it to be written to a precompiled
- * header. That means removing references to things in the .OBJ file.
- */
-
-version (SCPP_HTOD)
-{
-
-@trusted
-void symboltable_clean(Symbol *s)
-{
-    while (s)
-    {
-        struct_t *st;
-
-        //printf("clean('%s')\n",s.Sident.ptr);
-        if (config.fulltypes != CVTDB && s.Sxtrnnum && s.Sfl != FLreg)
-            s.Sxtrnnum = 0;    // eliminate debug info type index
-        switch (s.Sclass)
-        {
-            case SC.struct_:
-                s.Stypidx = 0;
-                st = s.Sstruct;
-                assert(st);
-                symboltable_clean(st.Sroot);
-                //list_apply(&st.Sfldlst,cast(list_free_fp)&symboltable_clean);
-                break;
-
-            case SC.typedef_:
-            case SC.enum_:
-                s.Stypidx = 0;
-                break;
-
-            case SC.template_:
-            {   template_t *tm = s.Stemplate;
-
-                list_apply(&tm.TMinstances,cast(list_free_fp)&symboltable_clean);
-                break;
-            }
-
-            case SC.namespace:
-                symboltable_clean(s.Snameroot);
-                break;
-
-            default:
-                if (s.Sxtrnnum && s.Sfl != FLreg)
-                    s.Sxtrnnum = 0;    // eliminate external symbol index
-                if (tyfunc(s.Stype.Tty))
-                {
-                    func_t *f = s.Sfunc;
-                    SYMIDX si;
-
-                    debug assert(f);
-
-                    list_apply(&f.Fsymtree,cast(list_free_fp)&symboltable_clean);
-                    for (si = 0; si < f.Flocsym.length; si++)
-                        symboltable_clean(f.Flocsym[si]);
-                    if (f.Foversym)
-                        symboltable_clean(f.Foversym);
-                    if (f.Fexplicitspec)
-                        symboltable_clean(f.Fexplicitspec);
-                }
-                break;
-        }
-        if (s.Sl)
-            symboltable_clean(s.Sl);
-        if (s.Scover)
-            symboltable_clean(s.Scover);
-        s = s.Sr;
-    }
-}
-
-}
-
-version (SCPP_HTOD)
-{
-
-/*
- * Balance our symbol tree in place. This is nice for precompiled headers, since they
- * will typically be written out once, but read in many times. We balance the tree in
- * place by traversing the tree inorder and writing the pointers out to an ordered
- * list. Once we have a list of symbol pointers, we can create a tree by recursively
- * dividing the list, using the midpoint of each division as the new root for that
- * subtree.
- */
-
-struct Balance
-{
-    uint nsyms;
-    Symbol **array;
-    uint index;
-}
-
-private __gshared Balance balance;
-
-private void count_symbols(Symbol *s)
-{
-    while (s)
-    {
-        balance.nsyms++;
-        switch (s.Sclass)
-        {
-            case SC.namespace:
-                symboltable_balance(&s.Snameroot);
-                break;
-
-            case SC.struct_:
-                symboltable_balance(&s.Sstruct.Sroot);
-                break;
-
-            default:
-                break;
-        }
-        count_symbols(s.Sl);
-        s = s.Sr;
-    }
-}
-
-private void place_in_array(Symbol *s)
-{
-    while (s)
-    {
-        place_in_array(s.Sl);
-        balance.array[balance.index++] = s;
-        s = s.Sr;
-    }
-}
-
-/*
- * Create a tree in place by subdividing between lo and hi inclusive, using i
- * as the root for the tree. When the lo-hi interval is one, we've either
- * reached a leaf or an empty node. We subdivide below i by halving the interval
- * between i and lo, and using i-1 as our new hi point. A similar subdivision
- * is created above i.
- */
-private Symbol * create_tree(int i, int lo, int hi)
-{
-    Symbol *s = balance.array[i];
-
-    if (i < lo || i > hi)               /* empty node ? */
-        return null;
-
-    assert(cast(uint) i < balance.nsyms);
-    if (i == lo && i == hi) {           /* leaf node ? */
-        s.Sl = null;
-        s.Sr = null;
-        return s;
-    }
-
-    s.Sl = create_tree((i + lo) / 2, lo, i - 1);
-    s.Sr = create_tree((i + hi + 1) / 2, i + 1, hi);
-
-    return s;
-}
-
-enum METRICS = false;
-
-void symboltable_balance(Symbol **ps)
-{
-    Balance balancesave;
-static if (METRICS)
-{
-    clock_t ticks;
-
-    printf("symbol table before balance:\n");
-    symbol_table_metrics();
-    ticks = clock();
-}
-    balancesave = balance;              // so we can nest
-    balance.nsyms = 0;
-    count_symbols(*ps);
-    //printf("Number of global symbols = %d\n",balance.nsyms);
-
-    // Use malloc instead of mem because of pagesize limits
-    balance.array = cast(Symbol **) malloc(balance.nsyms * (Symbol *).sizeof);
-    if (!balance.array)
-        goto Lret;                      // no error, just don't balance
-
-    balance.index = 0;
-    place_in_array(*ps);
-
-    *ps = create_tree(balance.nsyms / 2, 0, balance.nsyms - 1);
-
-    free(balance.array);
-static if (METRICS)
-{
-    printf("time to balance: %ld\n", clock() - ticks);
-    printf("symbol table after balance:\n");
-    symbol_table_metrics();
-}
-Lret:
-    balance = balancesave;
-}
-
-}
-
-/*****************************************
- * Symbol table search routine for members of structs, given that
- * we don't know which struct it is in.
- * Give error message if it appears more than once.
- * Returns:
- *      null            member not found
- *      symbol*         symbol matching member
- */
-
-version (SCPP_HTOD)
-{
-
-struct Paramblock       // to minimize stack usage in helper function
-{   const(char)* id;     // identifier we are looking for
-    Symbol *sm;         // where to put result
-    Symbol *s;
-}
-
-private void membersearchx(Paramblock *p,Symbol *s)
-{
-    while (s)
-    {
-        symbol_debug(s);
-
-        switch (s.Sclass)
-        {
-            case SC.struct_:
-                foreach (sl; ListRange(s.Sstruct.Sfldlst))
-                {
-                    Symbol* sm = list_symbol(sl);
-                    symbol_debug(sm);
-                    if ((sm.Sclass == SC.member || sm.Sclass == SC.field) &&
-                        strcmp(p.id,sm.Sident.ptr) == 0)
-                    {
-                        if (p.sm && p.sm.Smemoff != sm.Smemoff)
-                            synerr(EM_ambig_member,p.id,s.Sident.ptr,p.s.Sident.ptr);       // ambiguous reference to id
-                        p.s = s;
-                        p.sm = sm;
-                        break;
-                    }
-                }
-                break;
-
-            default:
-                break;
-        }
-
-        if (s.Sl)
-            membersearchx(p,s.Sl);
-        s = s.Sr;
-    }
-}
-
-Symbol *symbol_membersearch(const(char)* id)
-{
-    list_t sl;
-    Paramblock pb;
-    Scope *sc;
-
-    pb.id = id;
-    pb.sm = null;
-    for (sc = scope_end; sc; sc = sc.next)
-    {
-        if (sc.sctype & (CPP ? (SCTglobal | SCTlocal) : (SCTglobaltag | SCTtag)))
-            membersearchx(cast(Paramblock *)&pb,cast(Symbol *)sc.root);
-    }
-    return pb.sm;
-}
-
-/*******************************************
- * Generate debug info for global struct tag symbols.
- */
-
-private void symbol_gendebuginfox(Symbol *s)
-{
-    for (; s; s = s.Sr)
-    {
-        if (s.Sl)
-            symbol_gendebuginfox(s.Sl);
-        if (s.Scover)
-            symbol_gendebuginfox(s.Scover);
-        switch (s.Sclass)
-        {
-            case SC.enum_:
-                if (CPP && s.Senum.SEflags & SENnotagname)
-                    break;
-                goto Lout;
-            case SC.struct_:
-                if (s.Sstruct.Sflags & STRanonymous)
-                    break;
-                goto Lout;
-            case SC.typedef_:
-            Lout:
-                if (!s.Stypidx)
-                    cv_outsym(s);
-                break;
-
-            default:
-                break;
-        }
-    }
-}
-
-void symbol_gendebuginfo()
-{   Scope *sc;
-
-    for (sc = scope_end; sc; sc = sc.next)
-    {
-        if (sc.sctype & (SCTglobaltag | SCTglobal))
-            symbol_gendebuginfox(cast(Symbol *)sc.root);
-    }
-}
-
 }
 
 /*************************************
