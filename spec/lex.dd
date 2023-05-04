@@ -1141,7 +1141,7 @@ $(GNAME Filespec):
         $(P There is currently only one special token sequence, $(D #line).
         )
 
-        $(P This sets the current source line number to $(GLINK IntegerLiteral),
+        $(P This sets the line number of the next source line to $(GLINK IntegerLiteral),
         and optionally the current source file name to $(GLINK Filespec),
         beginning with the next line of source text.
         )
