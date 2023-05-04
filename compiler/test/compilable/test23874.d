@@ -7,3 +7,4 @@ string myToString()
 }
 
 enum x = myToString ~ "";
+immutable x2 = myToString ~ "";
