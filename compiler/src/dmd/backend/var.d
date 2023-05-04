@@ -55,7 +55,21 @@ int TYaarray = TYnptr;
 int TYdelegate = TYllong;
 int TYdarray = TYullong;
 
-char debuga=0,debugb=0,debugc=0,debugd=0,debuge=0,debugf=0,debugr=0,debugs=0,debugt=0,debugu=0,debugw=0,debugx=0,debugy=0;
+char debuga = 0; /// cg - watch assignaddr()
+char debugb = 0; /// watch block optimization
+char debugc = 0; /// watch code generated
+char debugd = 0; /// watch debug information generated
+char debuge = 0; /// dump eh info
+char debugf = 0; /// trees after dooptim
+char debugg = 0; /// trees for code generator
+char debugo = 0; /// watch optimizer
+char debugr = 0; /// watch register allocation
+char debugs = 0; /// watch common subexp eliminator
+char debugt = 0; /// do test points
+char debugu = 0;
+char debugw = 0; /// watch progress
+char debugx = 0; /// suppress predefined CPP stuff
+char debugy = 0; /// watch output to il buffer
 
 version (MARS) { } else
 {
