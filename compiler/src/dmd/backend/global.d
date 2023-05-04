@@ -268,49 +268,15 @@ extern __gshared
     regm_t[24] pseudomask;
 }
 
-/* Symbol.c */
-//#if TERMCODE
-//void symbol_keep(Symbol *s);
-//#else
-//#define symbol_keep(s) (()(s))
-//#endif
 void symbol_keep(Symbol *s) { }
-void symbol_print(const Symbol* s);
-void symbol_term();
-const(char)* symbol_ident(const Symbol *s);
-extern (C) Symbol *symbol_calloc(const(char)[] id);
-extern (C) Symbol *symbol_name(const(char)[] name, SC sclass, type *t);
-Symbol *symbol_generate(SC sclass, type *t);
-Symbol *symbol_genauto(type *t);
-Symbol *symbol_genauto(elem *e);
-Symbol *symbol_genauto(tym_t ty);
-void symbol_func(Symbol *);
-//void symbol_struct_addField(Symbol *s, const(char)* name, type *t, uint offset);
-Funcsym *symbol_funcalias(Funcsym *sf);
-Symbol *defsy(const(char)* p, Symbol **parent);
-void symbol_addtotree(Symbol **parent,Symbol *s);
-//Symbol *lookupsym(const(char)* p);
-Symbol *findsy(const(char)* p, Symbol *rover);
-void createglobalsymtab();
-void createlocalsymtab();
-void deletesymtab();
-void meminit_free(meminit_t *m);
-baseclass_t *baseclass_find(baseclass_t *bm,Classsym *sbase);
-baseclass_t *baseclass_find_nest(baseclass_t *bm,Classsym *sbase);
-int baseclass_nitems(baseclass_t *b);
-void symbol_free(Symbol *s);
-SYMIDX symbol_add(Symbol *s);
-SYMIDX symbol_add(ref symtab_t, Symbol *s);
-SYMIDX symbol_insert(ref symtab_t, Symbol *s, SYMIDX n);
-void freesymtab(Symbol **stab, SYMIDX n1, SYMIDX n2);
-Symbol *symbol_copy(Symbol *s);
-Symbol *symbol_searchlist(symlist_t sl, const(char)* vident);
-void symbol_reset(Symbol *s);
-tym_t symbol_pointerType(const Symbol* s);
+public import dmd.backend.symbol : symbol_print, symbol_term, symbol_ident, symbol_calloc,
+    symbol_name, symbol_generate, symbol_genauto, symbol_genauto, symbol_genauto,
+    symbol_func, symbol_funcalias, meminit_free, baseclass_find, baseclass_find_nest,
+    baseclass_nitems, symbol_free, symbol_add, symbol_add, symbol_insert, freesymtab,
+    symbol_copy, symbol_reset, symbol_pointerType;
 
 public import dmd.backend.cg87 : loadconst, cg87_reset;
 
-/* cod3.c */
 public import dmd.backend.cod3 : cod3_thunk;
 
 /* out.c */
@@ -328,34 +294,10 @@ void out_reset();
 Symbol *out_readonly_sym(tym_t ty, void *p, int len);
 Symbol *out_string_literal(const(char)* str, uint len, uint sz);
 
-public import dmd.backend.blockopt : bc_goal;
-
-block* block_calloc();
-void block_init();
-void block_term();
-void block_next(int,block *);
-void block_next(Blockx *bctx,int bc,block *bn);
-block *block_goto(Blockx *bctx,BC bc,block *bn);
-void block_setlabel(uint lbl);
-void block_goto();
-void block_goto(block *);
-void block_goto(block *bgoto, block *bnew);
-void block_ptr();
-void block_pred();
-void block_clearvisit();
-void block_visit(block *b);
-void block_compbcount();
-void blocklist_free(block **pb);
-void block_optimizer_free(block *b);
-void block_free(block *b);
-void blocklist_hydrate(block **pb);
-void blocklist_dehydrate(block **pb);
-void block_appendexp(block *b, elem *e);
-void block_initvar(Symbol *s);
-void block_endfunc(int flag);
-void brcombine();
-void blockopt(int);
-void compdfo(ref Barray!(block*) dfo, block* startblock);
+public import dmd.backend.blockopt : bc_goal, block_calloc, block_init, block_term, block_next,
+    block_next, block_goto, block_goto, block_goto, block_goto, block_ptr, block_pred,
+    block_clearvisit, block_visit, block_compbcount, blocklist_free, block_optimizer_free,
+    block_free, block_appendexp, block_endfunc, brcombine, blockopt, compdfo;
 
 //#define block_initvar(s) (curblock->Binitvar = (s))
 

@@ -269,7 +269,7 @@ const(char)* symbol_ident(const Symbol *s)
  * Create a new symbol.
  */
 
-@trusted
+@trusted @nogc
 extern (C)
 Symbol * symbol_calloc(const(char)[] id)
 {
