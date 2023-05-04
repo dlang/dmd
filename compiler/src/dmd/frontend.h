@@ -287,6 +287,7 @@ class GotoCaseStatement;
 class GotoStatement;
 class ReturnStatement;
 class ScopeStatement;
+struct ContractInfo;
 struct ObjcSelector;
 class PeelStatement;
 class CompoundStatement;
@@ -2429,16 +2430,11 @@ struct ParameterList final
 class FuncDeclaration : public Declaration
 {
 public:
-    Array<Statement* >* frequires;
-    Array<Ensure >* fensures;
-    Statement* frequire;
-    Statement* fensure;
     Statement* fbody;
     Array<FuncDeclaration* > foverrides;
-    FuncDeclaration* fdrequire;
-    FuncDeclaration* fdensure;
-    Array<Expression* >* fdrequireParams;
-    Array<Expression* >* fdensureParams;
+private:
+    ContractInfo* contracts;
+public:
     const char* mangleString;
     VarDeclaration* vresult;
     LabelDsymbol* returnLabel;
@@ -2538,6 +2534,22 @@ private:
 public:
     ObjcFuncDeclaration objc;
     static FuncDeclaration* create(const Loc& loc, const Loc& endloc, Identifier* id, StorageClass storage_class, Type* type, bool noreturn = false);
+    Array<Statement* >* frequires();
+    Array<Ensure >* fensures();
+    Statement* frequire();
+    Statement* fensure();
+    FuncDeclaration* fdrequire();
+    FuncDeclaration* fdensure();
+    Array<Expression* >* fdrequireParams();
+    Array<Expression* >* fdensureParams();
+    Array<Statement* >* frequires(Array<Statement* >* param);
+    Array<Ensure >* fensures(Array<Ensure >* param);
+    Statement* frequire(Statement* param);
+    Statement* fensure(Statement* param);
+    FuncDeclaration* fdrequire(FuncDeclaration* param);
+    FuncDeclaration* fdensure(FuncDeclaration* param);
+    Array<Expression* >* fdrequireParams(Array<Expression* >* param);
+    Array<Expression* >* fdensureParams(Array<Expression* >* param);
     FuncDeclaration* syntaxCopy(Dsymbol* s) override;
     bool functionSemantic();
     bool functionSemantic3();
