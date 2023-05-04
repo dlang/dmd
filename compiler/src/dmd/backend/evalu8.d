@@ -34,13 +34,6 @@ import dmd.backend.type;
 
 import dmd.common.int128;
 
-version (SCPP)
-{
-import msgs2;
-import parser;
-import scopeh;
-}
-
 extern (C++):
 
 nothrow:

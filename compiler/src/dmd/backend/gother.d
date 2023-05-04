@@ -40,11 +40,7 @@ char symbol_isintab(const Symbol *s) { return sytab[s.Sclass] & SCSS; }
 
 extern (C++):
 
-version (SCPP)
-    import parser;
-
-version (MARS)
-    import dmd.backend.errors;
+import dmd.backend.errors;
 
 /**********************************************************************/
 

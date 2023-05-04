@@ -38,13 +38,6 @@ import dmd.backend.type;
 
 import dmd.backend.barray;
 
-version (SCPP)
-{
-    import cpp;
-    import msgs2;
-    import parser;
-}
-
 version (Windows)
 {
     extern (C)

@@ -29,11 +29,6 @@ import dmd.backend.obj;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-version (SCPP)
-{
-    import msgs2;
-}
-
 extern (C++):
 
 nothrow:

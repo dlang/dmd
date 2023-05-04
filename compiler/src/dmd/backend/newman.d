@@ -13,21 +13,6 @@
 
 module dmd.backend.newman;
 
-version (SCPP)
-{
-    version = SCPPorMARS;
-    version = SCPPorHTOD;
-}
-version (HTOD)
-{
-    version = SCPPorMARS;
-    version = SCPPorHTOD;
-}
-version (MARS)
-{
-    version = SCPPorMARS;
-}
-
 import core.stdc.ctype;
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -47,17 +32,7 @@ import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.xmm;
 
-version (SCPPorHTOD)
-{
-    import cpp;
-    import dtoken;
-    import msgs2;
-    import parser;
-    import scopeh;
-}
-
-version (MARS)
-    struct token_t;
+struct token_t;
 
 extern (C++):
 
@@ -1325,9 +1300,6 @@ private void cpp_vcall_model_type()
 {
 }
 
-version (SCPPorMARS)
-{
-
 private void cpp_this_type(type *tfunc,Classsym *stag)
 {   type *t;
 
@@ -1342,8 +1314,6 @@ else
     //cpp_data_indirect_type(t);
     cpp_ecsu_data_indirect_type(t);
     type_free(t);
-}
-
 }
 
 private void cpp_storage_convention(Symbol *s)
@@ -1388,11 +1358,8 @@ private void cpp_ecsu_name(Symbol *s)
 {
     //printf("cpp_ecsu_name(%s)\n", symbol_ident(s));
     cpp_zname(symbol_ident(s));
-version (SCPPorMARS)
-{
     if (s.Sscope)
         cpp_scope(s.Sscope);
-}
     CHAR('@');
 }
 
@@ -1449,8 +1416,6 @@ private void cpp_static_member_function_type(Symbol *s)
     cpp_function_type(s.Stype);
 }
 
-version (SCPPorMARS)
-{
 private void cpp_member_function_type(Symbol *s)
 {
     assert(tyfunc(s.Stype.Tty));
@@ -1465,7 +1430,6 @@ private void cpp_member_function_type(Symbol *s)
     }
     else
         cpp_static_member_function_type(s);
-}
 }
 
 private void cpp_external_data_type(Symbol *s)
@@ -1487,8 +1451,6 @@ private void cpp_type_encoding(Symbol *s)
     {   int farfunc;
 
         farfunc = tyfarfunc(s.Stype.Tty) != 0;
-version (SCPPorMARS)
-{
         if (isclassmember(s))
         {   // Member function
             int visibility;
@@ -1519,18 +1481,9 @@ version (SCPPorMARS)
             CHAR('Y' + farfunc);
             cpp_external_function_type(s);
         }
-}
-else
-{
-        // Non-member function
-        CHAR('Y' + farfunc);
-        cpp_external_function_type(s);
-}
     }
     else
     {
-version (SCPPorMARS)
-{
         if (isclassmember(s))
         {
             // Static data member
@@ -1553,20 +1506,6 @@ version (SCPPorMARS)
                 cpp_external_data_type(s);
             }
         }
-}
-else
-{
-        if (s.Sclass == SC.static_)
-        {
-            CHAR('4');
-            cpp_local_static_data_type(s);
-        }
-        else
-        {
-            CHAR('3');
-            cpp_external_data_type(s);
-        }
-}
     }
 }
 
@@ -1598,11 +1537,7 @@ private void cpp_scope(Symbol *s)
                 break;
         }
 
-version (SCPPorMARS)
         s = s.Sscope;
-else
-        break;
-
     }
 }
 
@@ -1700,11 +1635,8 @@ private void cpp_decorated_name(Symbol *s)
 
     CHAR('?');
     cpp_symbol_name(s);
-version (SCPPorMARS)
-{
     if (s.Sscope)
         cpp_scope(s.Sscope);
-}
     CHAR('@');
     cpp_type_encoding(s);
 }

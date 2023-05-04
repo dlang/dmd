@@ -26,12 +26,6 @@ import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-version (SCPP)
-{
-    import parser;
-    import phstring;
-}
-
 extern (C++):
 
 nothrow:

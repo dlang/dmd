@@ -31,11 +31,6 @@ import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-version (SCPP)
-{
-    import scopeh;
-}
-
 static if (NTEXCEPTIONS)
 {
 
