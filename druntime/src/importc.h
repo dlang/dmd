@@ -31,6 +31,7 @@
 #define __inline inline
 #define __volatile__ volatile
 #define __attribute __attribute__
+#define __alignof _Alignof
 
 /********************
  * Clang nullability extension used by macOS headers.
