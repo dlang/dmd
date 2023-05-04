@@ -5329,6 +5329,26 @@ extern (C++) final class CallExp : UnaExp
     }
 }
 
+/**
+ * Get the called function type from a call expression
+ * Params:
+ *   ce = function call expression. Must have had semantic analysis done.
+ * Returns: called function type, or `null` if error / no semantic analysis done
+ */
+TypeFunction calledFunctionType(CallExp ce)
+{
+    Type t = ce.e1.type;
+    if (!t)
+        return null;
+    t = t.toBasetype();
+    if (auto tf = t.isTypeFunction())
+        return tf;
+    else if (auto td = t.isTypeDelegate())
+        return td.nextOf().isTypeFunction();
+    else
+        return null;
+}
+
 FuncDeclaration isFuncAddress(Expression e, bool* hasOverloads = null)
 {
     if (auto ae = e.isAddrExp())
