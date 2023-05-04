@@ -59,7 +59,7 @@ code *code_last(code *c)
  * Set flag bits on last code in list.
  */
 
-void code_orflag(code *c,uint flag)
+void code_orflag(code *c,uint flag) @safe
 {
     if (flag && c)
     {   while (c.next)
@@ -72,7 +72,7 @@ void code_orflag(code *c,uint flag)
  * Set rex bits on last code in list.
  */
 
-void code_orrex(code *c,uint rex)
+void code_orrex(code *c,uint rex) @safe
 {
     if (rex && c)
     {   while (c.next)
