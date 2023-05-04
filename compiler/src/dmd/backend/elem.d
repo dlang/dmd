@@ -1384,11 +1384,13 @@ int el_depends(const(elem)* ea, const elem *eb)
         case OPconst:
         case OPrelconst:
         case OPstring:
+            goto Lnodep;
 
     version (SCPP_HTOD)
+    {
         case OPsizeof:
-
             goto Lnodep;
+    }
 
         case OPvar:
             if (ea.Eoper == OPvar && ea.EV.Vsym != eb.EV.Vsym)
