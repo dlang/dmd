@@ -2264,7 +2264,7 @@ targ_llong el_tolong(elem *e)
         elem_print(e);
     assert(e.Eoper == OPconst);
     auto ty = tybasic(typemask(e));
-L1:
+
     targ_llong result;
     switch (ty)
     {
