@@ -106,5 +106,5 @@ Code Generation
 * **code_x86.d**      x86 specific declarations
 * **dcode.d**         aloocate and free code blocks
 * **drtlsym.d**       compiler runtime function symbols
-* **out.d**           transition from intermediate representation to code generator
+* **dout.d**           transition from intermediate representation to code generator
 * **xmm.d**           xmm opcodes
