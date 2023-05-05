@@ -484,7 +484,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             // Infering the type requires running semantic,
             // so mark the scope as ctfe if required
-            bool needctfe = (dsym.storage_class & (STC.manifest | STC.static_)) != 0;
+            bool needctfe = (dsym.storage_class & (STC.manifest | STC.static_)) != 0 || !sc.func;
             if (needctfe)
             {
                 sc.flags |= SCOPE.condition;
