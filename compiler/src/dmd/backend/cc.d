@@ -81,41 +81,6 @@ else
     bool LARGECODE() { return (config.memmodel & 5) != 0; }
 }
 
-version (SCPP)
-{
-    enum COMPILER = "C/C++ Compiler";
-    enum ACTIVITY = "compiling...";
-}
-
-//#ifdef DEBUG
-//#   define debug(a)     (a)
-//#   define debugx(a)    (a)
-//#   define debug_assert assert
-//#else
-//#   define debug(a)
-//#   define debugx(a)
-//#   define debug_assert(e)
-//#endif
-
-/***************************
- * Print out debugging information.
- */
-
-//#ifdef DEBUG
-//#define debugmes(s)     (debugw && dbg_printf(s))
-//#define cmes(s)         (debugc && dbg_printf(s))
-//#define cmes2(s,b)      (debugc && dbg_printf((s),(b)))
-//#define cmes3(s,b,c)    (debugc && dbg_printf((s),(b),(c)))
-//#else
-//#define debugmes(s)
-//#define cmes(s)
-//#define cmes2(s,b)
-//#define cmes3(s,b,c)
-//#endif
-
-
-//#define arraysize(array)        (sizeof(array) / sizeof(array[0]))
-
 enum IDMAX = 900;              // identifier max (excluding terminating 0)
 enum IDOHD = 4+1+int.sizeof*3; // max amount of overhead to ID added by
 enum STRMAX = 65_000;           // max length of string (determined by
@@ -189,12 +154,6 @@ nothrow:
     }
 
     void print(const(char)* func) const { Srcpos_print(this, func); }
-}
-
-version (SCPP)
-{
-    static Sfile srcpos_sfile(Srcpos p) { return **(p).Sfilptr; }
-    static char* srcpos_name(Srcpos p)   { return srcpos_sfile(p).SFname; }
 }
 
 void Srcpos_print(ref const Srcpos srcpos, const(char)* func);
@@ -328,7 +287,7 @@ stflags_t preprocessor() { return pstate.STflags & PFLpreprocessor; }
 @trusted
 stflags_t inline_asm()   { return pstate.STflags & (PFLmasm | PFLbasm); }
 
-extern __gshared Pstate pstate;
+public import dmd.backend.var : pstate, cstate;
 
 /****************************
  * Global variables.
@@ -345,8 +304,6 @@ struct Cstate
 //#endif
     char* modname;              // module unique identifier
 }
-
-extern __gshared Cstate cstate;
 
 /* Bits for sytab[] that give characteristics of storage classes        */
 enum
@@ -1388,12 +1345,6 @@ alias Aliassym = Symbol;
 //#endif
 
 /* Format the identifier for presentation to the user   */
-version (SCPP)
-{
-    const(char)* cpp_prettyident (const Symbol *s);
-    const(char)* prettyident(const Symbol *s) { return CPP ? cpp_prettyident(s) : &s.Sident[0]; }
-}
-
 version (MARS)
     const(char)* prettyident(const Symbol *s) { return &s.Sident[0]; }
 
@@ -1725,42 +1676,3 @@ enum
     DT_coff   = 5,
     DT_ibytes = 6,
 }
-
-// An efficient way to clear aligned memory
-//#define MEMCLEAR(p,sz)                  \
-//    if ((sz) == 10 * sizeof(size_t))    \
-//    {                                   \
-//        ((size_t *)(p))[0] = 0;         \
-//        ((size_t *)(p))[1] = 0;         \
-//        ((size_t *)(p))[2] = 0;         \
-//        ((size_t *)(p))[3] = 0;         \
-//        ((size_t *)(p))[4] = 0;         \
-//        ((size_t *)(p))[5] = 0;         \
-//        ((size_t *)(p))[6] = 0;         \
-//        ((size_t *)(p))[7] = 0;         \
-//        ((size_t *)(p))[8] = 0;         \
-//        ((size_t *)(p))[9] = 0;         \
-//    }                                   \
-//    else if ((sz) == 14 * sizeof(size_t))       \
-//    {                                   \
-//        ((size_t *)(p))[0] = 0;         \
-//        ((size_t *)(p))[1] = 0;         \
-//        ((size_t *)(p))[2] = 0;         \
-//        ((size_t *)(p))[3] = 0;         \
-//        ((size_t *)(p))[4] = 0;         \
-//        ((size_t *)(p))[5] = 0;         \
-//        ((size_t *)(p))[6] = 0;         \
-//        ((size_t *)(p))[7] = 0;         \
-//        ((size_t *)(p))[8] = 0;         \
-//        ((size_t *)(p))[9] = 0;         \
-//        ((size_t *)(p))[10] = 0;        \
-//        ((size_t *)(p))[11] = 0;        \
-//        ((size_t *)(p))[12] = 0;        \
-//        ((size_t *)(p))[13] = 0;        \
-//    }                                   \
-//    else                                \
-//    {                                   \
-//        /*printf("%s(%d) sz = %d\n",__FILE__,__LINE__,(sz));fflush(stdout);*(char*)0=0;*/  \
-//        for (size_t i = 0; i < sz / sizeof(size_t); ++i)        \
-//            ((size_t *)(p))[i] = 0;                             \
-//    }
