@@ -158,33 +158,9 @@ void err_override(Symbol *sfbase,Symbol *sfder);
 void err_notamember(const(char)* id, Classsym *s, Symbol *alternate = null);
 
 /* file.c */
-char *file_getsource(const(char)* iname);
-int file_isdir(const(char)* fname);
 void file_progress();
-void file_remove(char *fname);
-int file_exists(const(char)* fname);
-int file_size(const(char)* fname);
-void file_term();
-char *file_unique();
 
 /* from msc.c */
-type *newpointer(type *);
-type *newpointer_share(type *);
-type *reftoptr(type *t);
-type *newref(type *);
-type *topointer(type *);
-type *type_ptr(elem *, type *);
-int type_chksize(uint);
-tym_t tym_conv(const type *);
-inout(type)* type_arrayroot(inout type *);
-void chklvalue(elem *);
-int tolvalue(elem **);
-void chkassign(elem *);
-void chknosu(const elem *);
-void chkunass(const elem *);
-void chknoabstract(const type *);
-targ_llong msc_getnum();
-targ_size_t alignmember(const type *,targ_size_t,targ_size_t);
 targ_size_t _align(targ_size_t,targ_size_t);
 
 /* nteh.c */
@@ -200,14 +176,6 @@ int nteh_offset_sindex();
 int nteh_offset_sindex_seh();
 int nteh_offset_info();
 
-/* pseudo.c */
-Symbol *pseudo_declar(char *);
-extern __gshared
-{
-    ubyte[24] pseudoreg;
-    regm_t[24] pseudomask;
-}
-
 void symbol_keep(Symbol *s) { }
 public import dmd.backend.symbol : symbol_print, symbol_term, symbol_ident, symbol_calloc,
     symbol_name, symbol_generate, symbol_genauto, symbol_genauto, symbol_genauto,
@@ -219,89 +187,27 @@ public import dmd.backend.cg87 : loadconst, cg87_reset;
 
 public import dmd.backend.cod3 : cod3_thunk;
 
-/* out.c */
-void outfilename(char *name,int linnum);
-void outcsegname(char *csegname);
-extern (C) void outthunk(Symbol *sthunk, Symbol *sfunc, uint p, tym_t thisty, targ_size_t d, int i, targ_size_t d2);
+public import dmd.backend.dout : outthunk, out_readonly, out_readonly_comdat,
+    out_regcand, writefunc, alignOffset, out_reset, out_readonly_sym, out_string_literal;
+
 void outdata(Symbol *s);
-void outcommon(Symbol *s, targ_size_t n);
-void out_readonly(Symbol *s);
-void out_readonly_comdat(Symbol *s, const(void)* p, uint len, uint nzeros);
-void out_regcand(symtab_t *);
-void writefunc(Symbol *sfunc);
-@trusted void alignOffset(int seg,targ_size_t datasize);
-void out_reset();
-Symbol *out_readonly_sym(tym_t ty, void *p, int len);
-Symbol *out_string_literal(const(char)* str, uint len, uint sz);
 
 public import dmd.backend.blockopt : bc_goal, block_calloc, block_init, block_term, block_next,
     block_next, block_goto, block_goto, block_goto, block_goto, block_ptr, block_pred,
     block_clearvisit, block_visit, block_compbcount, blocklist_free, block_optimizer_free,
     block_free, block_appendexp, block_endfunc, brcombine, blockopt, compdfo;
 
-//#define block_initvar(s) (curblock->Binitvar = (s))
-
-/* debug.c */
-extern __gshared const(char)*[32] regstring;
-
-@trusted const(char)* class_str(SC c);
-@trusted const(char)* tym_str(tym_t ty);
-@trusted const(char)* oper_str(uint oper);
-@trusted const(char)* bc_str(uint bc);
-void WRarglst(list_t a);
-void WRblock(block *b);
-void WRblocklist(list_t bl);
-void WReqn(elem *e);
-void numberBlocks(block* startblock);
-void WRfunc(const char* msg, Symbol* sfunc, block* startblock);
-void WRdefnod();
-void WRFL(FL);
-char *sym_ident(SYMIDX si);
-
-/* cgelem.c     */
-elem *doptelem(elem *, goal_t);
-void postoptelem(elem *);
-int elemisone(elem *);
-
+public import dmd.backend.var : regstring;
+public import dmd.backend.debugprint;
+public import dmd.backend.cgelem : doptelem, postoptelem, elemisone;
+public import dmd.backend.gloop : dom;
+public import dmd.backend.util2 : binary;
 /* msc.c */
-targ_size_t size(tym_t);
 @trusted Symbol *symboldata(targ_size_t offset,tym_t ty);
-bool dom(const block* A, const block* B);
-uint revop(uint op);
-uint invrel(uint op);
-int binary(const(char)* p, const(char)** tab, int high);
-int binary(const(char)* p, size_t len, const(char)** tab, int high);
+targ_size_t size(tym_t);
 
-/* go.c */
-void go_term();
-int go_flag(char *cp);
-void optfunc();
-
-/* filename.c */
-version (SCPP)
-{
-    extern __gshared Srcfiles srcfiles;
-    Sfile **filename_indirect(Sfile *sf);
-    Sfile  *filename_search(const(char)* name);
-    Sfile *filename_add(const(char)* name);
-    void filename_hydrate(Srcfiles *fn);
-    void filename_dehydrate(Srcfiles *fn);
-    void filename_merge(Srcfiles *fn);
-    void filename_mergefl(Sfile *sf);
-    void filename_translate(Srcpos *);
-    void filename_free();
-    int filename_cmp(const(char)* f1,const(char)* f2);
-    void srcpos_hydrate(Srcpos *);
-    void srcpos_dehydrate(Srcpos *);
-}
-
+public import dmd.backend.go : go_flag, optfunc;
 public import dmd.backend.drtlsym : rtlsym_init, rtlsym_reset, rtlsym_term;
-
-// compress.c
-extern(C) char *id_compress(const char *id, int idlen, size_t *plen);
-
-// Dwarf
-void dwarf_CFA_set_loc(uint location);
-void dwarf_CFA_set_reg_offset(int reg, int offset);
-void dwarf_CFA_offset(int reg, int offset);
-void dwarf_CFA_args_size(size_t sz);
+public import dmd.backend.compress : id_compress;
+public import dmd.backend.dwarfdbginf : dwarf_CFA_set_loc, dwarf_CFA_set_reg_offset,
+    dwarf_CFA_offset, dwarf_CFA_args_size;
