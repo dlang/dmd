@@ -3593,7 +3593,9 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             cas.error("`asm` statement is assumed to be impure - mark it with `pure` if it is not");
         if (!(cas.stc & STC.nogc) && sc.func.setGC(cas.loc, "`asm` statement in %s `%s` is assumed to use the GC - mark it with `@nogc` if it does not"))
             cas.error("`asm` statement is assumed to use the GC - mark it with `@nogc` if it does not");
-        if (!(cas.stc & (STC.trusted | STC.safe)))
+        if (cas.stc & STC.safe)
+            cas.error("`asm` statement cannot be marked `@safe`, use `@system` or `@trusted` instead");
+        else if (!(cas.stc & (STC.trusted)))
         {
             sc.setUnsafe(false, cas.loc, "`asm` statement is assumed to be `@system` - mark it with `@trusted` if it is not");
         }
