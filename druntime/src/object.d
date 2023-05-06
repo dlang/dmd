@@ -104,6 +104,12 @@ else version (AArch64)
     else version = WithArgTypes;
 }
 
+enum IsBetterC()
+{
+    version (D_BetterC) return true;
+    else return false;
+}
+
 /**
  * All D class objects inherit from Object.
  */
@@ -3420,14 +3426,14 @@ Value[] values(T : Value[Key], Value, Key)(T *aa) @property
  * Returns:
  *      The value.
  */
-inout(V) get(K, V)(inout(V[K]) aa, K key, lazy inout(V) defaultValue)
+static if (!IsBetterC) inout(V) get(K, V)(inout(V[K]) aa, K key, lazy inout(V) defaultValue)
 {
     auto p = key in aa;
     return p ? *p : defaultValue;
 }
 
 /** ditto */
-inout(V) get(K, V)(inout(V[K])* aa, K key, lazy inout(V) defaultValue)
+static if (!IsBetterC) inout(V) get(K, V)(inout(V[K])* aa, K key, lazy inout(V) defaultValue)
 {
     return (*aa).get(key, defaultValue);
 }
@@ -3450,7 +3456,7 @@ inout(V) get(K, V)(inout(V[K])* aa, K key, lazy inout(V) defaultValue)
  * Returns:
  *      The value.
  */
-ref V require(K, V)(ref V[K] aa, K key, lazy V value = V.init)
+static if (!IsBetterC) ref V require(K, V)(ref V[K] aa, K key, lazy V value = V.init)
 {
     bool found;
     // if key is @safe-ly copyable, `require` can infer @safe
@@ -3500,7 +3506,7 @@ private enum bool isSafeCopyable(T) = is(typeof(() @safe { union U { T x; } T *x
  *      update = The callable to call if `key` exists.
  *               Takes a K argument, returns a V or void.
  */
-void update(K, V, C, U)(ref V[K] aa, K key, scope C create, scope U update)
+static if (!IsBetterC) void update(K, V, C, U)(ref V[K] aa, K key, scope C create, scope U update)
 if (is(typeof(create()) : V) && (is(typeof(update(aa[K.init])) : V) || is(typeof(update(aa[K.init])) == void)))
 {
     bool found;
@@ -3796,7 +3802,7 @@ private size_t getArrayHash(const scope TypeInfo element, const scope void* ptr,
 }
 
 /// Provide the .dup array property.
-@property auto dup(T)(T[] a)
+static if (!IsBetterC) @property auto dup(T)(T[] a)
     if (!is(const(T) : T))
 {
     import core.internal.traits : Unconst;
@@ -3819,7 +3825,7 @@ private size_t getArrayHash(const scope TypeInfo element, const scope void* ptr,
 
 /// ditto
 // const overload to support implicit conversion to immutable (unique result, see DIP29)
-@property T[] dup(T)(const(T)[] a)
+static if (!IsBetterC) @property T[] dup(T)(const(T)[] a)
     if (is(const(T) : T))
 {
     import core.internal.array.duplication : _dup;
@@ -3828,7 +3834,7 @@ private size_t getArrayHash(const scope TypeInfo element, const scope void* ptr,
 
 
 /// Provide the .idup array property.
-@property immutable(T)[] idup(T)(T[] a)
+static if (!IsBetterC) @property immutable(T)[] idup(T)(T[] a)
 {
     import core.internal.array.duplication : _dup;
     static assert(is(T : immutable(T)), "Cannot implicitly convert type "~T.stringof~
@@ -3837,7 +3843,7 @@ private size_t getArrayHash(const scope TypeInfo element, const scope void* ptr,
 }
 
 /// ditto
-@property immutable(T)[] idup(T:void)(const(T)[] a)
+static if (!IsBetterC) @property immutable(T)[] idup(T:void)(const(T)[] a)
 {
     return a.dup;
 }
@@ -3902,7 +3908,7 @@ reallocated or extended.
 Returns: The new capacity of the array (which may be larger than
 the requested capacity).
 */
-size_t reserve(T)(ref T[] arr, size_t newcapacity) pure nothrow @trusted
+static if (!IsBetterC) size_t reserve(T)(ref T[] arr, size_t newcapacity) pure nothrow @trusted
 {
     if (__ctfe)
         return newcapacity;
@@ -3969,7 +3975,7 @@ given array results in undefined behavior.
 Returns:
   The input is returned.
 */
-auto ref inout(T[]) assumeSafeAppend(T)(auto ref inout(T[]) arr) nothrow @system
+static if (!IsBetterC) auto ref inout(T[]) assumeSafeAppend(T)(auto ref inout(T[]) arr) nothrow @system
 {
     _d_arrayshrinkfit(typeid(T[]), *(cast(void[]*)&arr));
     return arr;
