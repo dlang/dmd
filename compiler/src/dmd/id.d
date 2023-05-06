@@ -549,6 +549,7 @@ immutable Msgtable[] msgtable =
     { "_pure", "pure" },
     { "define" },
     { "undef" },
+    { "ident" },
 ];
 
 
