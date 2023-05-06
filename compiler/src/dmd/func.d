@@ -3321,7 +3321,10 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
         // all of overloads are templates
         if (td)
         {
-            .error(loc, "none of the overloads of %s `%s.%s` are callable using argument types `!(%s)%s`",
+            const(char)* msg = "none of the overloads of %s `%s.%s` are callable using argument types `!(%s)%s`";
+            if (!od && !td.overnext)
+                msg = "%s `%s.%s` is not callable using argument types `!(%s)%s`";
+            .error(loc, msg,
                    td.kind(), td.parent.toPrettyChars(), td.ident.toChars(),
                    tiargsBuf.peekChars(), fargsBuf.peekChars());
 
