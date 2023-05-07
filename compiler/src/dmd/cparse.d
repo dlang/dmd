@@ -324,8 +324,6 @@ final class CParser(AST) : Parser!AST
         // atomic-type-specifier or type_qualifier
         case TOK._Atomic:
 
-        case TOK.__attribute__:
-
         Ldeclaration:
         {
             cparseDeclaration(LVL.local);
@@ -2712,7 +2710,7 @@ final class CParser(AST) : Parser!AST
      *
      * Params:
      *  declarator   = declarator kind
-     *  tbase        = base type to start with
+     *  t            = base type to start with
      *  pident       = set to Identifier if there is one, null if not
      *  specifier    = specifiers in and out
      * Returns:
@@ -2720,25 +2718,11 @@ final class CParser(AST) : Parser!AST
      *  symbol table for the parameter-type-list, which will contain any
      *  declared struct, union or enum tags.
      */
-    private AST.Type cparseDeclarator(DTR declarator, AST.Type tbase,
+    private AST.Type cparseDeclarator(DTR declarator, AST.Type t,
         out Identifier pident, ref Specifier specifier)
     {
         //printf("cparseDeclarator(%d, %p)\n", declarator, t);
         AST.Types constTypes; // all the Types that will need `const` applied to them
-
-        /* Insert tx -> t into
-         *   ts -> ... -> t
-         * so that
-         *   ts -> ... -> tx -> t
-         */
-        static void insertTx(ref AST.Type ts, AST.Type tx, AST.Type t)
-        {
-            AST.Type* pt;
-            for (pt = &ts; *pt != t; pt = &(cast(AST.TypeNext)*pt).next)
-            {
-            }
-            *pt = tx;
-        }
 
         AST.Type parseDecl(AST.Type t)
         {
@@ -2805,6 +2789,20 @@ final class CParser(AST) : Parser!AST
             // parse DeclaratorSuffixes
             while (1)
             {
+                /* Insert tx -> t into
+                 *   ts -> ... -> t
+                 * so that
+                 *   ts -> ... -> tx -> t
+                 */
+                static void insertTx(ref AST.Type ts, AST.Type tx, AST.Type t)
+                {
+                    AST.Type* pt;
+                    for (pt = &ts; *pt != t; pt = &(cast(AST.TypeNext)*pt).next)
+                    {
+                    }
+                    *pt = tx;
+                }
+
                 switch (token.value)
                 {
                     case TOK.leftBracket:
@@ -2917,17 +2915,7 @@ final class CParser(AST) : Parser!AST
             return ts;
         }
 
-        auto t = parseDecl(tbase);
-
-        if (specifier.vector_size)
-        {
-            auto length = new AST.IntegerExp(token.loc, specifier.vector_size / tbase.size(), AST.Type.tuns32);
-            auto tsa = new AST.TypeSArray(tbase, length);
-            AST.Type tv = new AST.TypeVector(tsa);
-            specifier.vector_size = 0;          // used it up
-
-            insertTx(t, tv, tbase);     // replace tbase with tv
-        }
+        t = parseDecl(t);
 
         /* Because const is transitive, cannot assemble types from
          * fragments. Instead, types to be annotated with const are put
@@ -3565,19 +3553,7 @@ final class CParser(AST) : Parser!AST
             {
                 nextToken();
                 check(TOK.leftParenthesis);
-                if (token.value == TOK.int32Literal)
-                {
-                    const n = token.unsvalue;
-                    if (n < 1 || n & (n - 1) || ushort.max < n)
-                        error("__attribute__((vector_size(%lld))) must be an integer positive power of 2 and be <= 32,768", cast(ulong)n);
-                    specifier.vector_size = cast(uint) n;
-                    nextToken();
-                }
-                else
-                {
-                    error("value for vector_size expected, not `%s`", token.toChars());
-                    nextToken();
-                }
+                cparseConstantExp();  // TODO implement
                 check(TOK.rightParenthesis);
             }
             else
@@ -4718,7 +4694,6 @@ final class CParser(AST) : Parser!AST
                 // atomic-type-specifier
                 case TOK._Atomic:
                 case TOK.typeof_:
-                case TOK.__attribute__:
                     t = peek(t);
                     if (t.value != TOK.leftParenthesis ||
                         !skipParens(t, &t))
@@ -4984,7 +4959,6 @@ final class CParser(AST) : Parser!AST
         bool dllexport; /// dllexport attribute
         bool _deprecated;       /// deprecated attribute
         AST.Expression depMsg;  /// deprecated message
-        uint vector_size;       /// positive power of 2 multipe of base type size
 
         SCW scw;        /// storage-class specifiers
         MOD mod;        /// type qualifiers

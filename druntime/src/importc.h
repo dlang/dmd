@@ -32,7 +32,6 @@
 #define __volatile__ volatile
 #define __attribute __attribute__
 #define __alignof _Alignof
-#define __vector_size__ vector_size
 
 /********************
  * Clang nullability extension used by macOS headers.
