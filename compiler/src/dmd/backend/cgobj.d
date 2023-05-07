@@ -1473,13 +1473,9 @@ void OmfObj_theadr(const(char)* modname)
  */
 
 @trusted
-void OmfObj_compiler()
+void OmfObj_compiler(const(char)* p)
 {
-    const(char)* compiler = "\0\xDB" ~ "Digital Mars C/C++"
-        ~ VERSION
-        ;       // compiled by ...
-
-    objrecord(COMENT,compiler,cast(uint)strlen(compiler));
+    obj_comment(0xDB, p, strlen(p));
 }
 
 /*******************************

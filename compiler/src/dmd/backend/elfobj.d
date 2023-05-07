@@ -784,6 +784,13 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
 
     if (shndx_data)
         shndx_data.reset();
+
+    if (note_data)
+        note_data.reset();
+
+    if (comment_data)
+        comment_data.reset();
+
     symbol_idx = 0;
     local_cnt = 0;
     // The symbols that every object file has
@@ -1502,7 +1509,17 @@ void ElfObj_exestr(const(char)* p)
 
 void ElfObj_user(const(char)* p)
 {
-    //dbg_printf("ElfObj_user(char *%s)\n",p);
+    //printf("ElfObj_user(char *%s)\n",p);
+    if (!comment_data)
+    {
+        comment_data = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
+        if (!comment_data)
+            err_nomem();
+        comment_data.writeByte(0);
+    }
+
+    comment_data.writestring(p);
+    comment_data.writeByte(0);
 }
 
 /*******************************
@@ -1532,24 +1549,10 @@ void ElfObj_filename(const(char)* modname)
  * Embed compiler version in .obj file.
  */
 
-void ElfObj_compiler()
+void ElfObj_compiler(const(char)* p)
 {
     //dbg_printf("ElfObj_compiler\n");
-    comment_data = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-    if (!comment_data)
-        err_nomem();
-
-    enum maxVersionLength = 40;  // hope enough to store `git describe --dirty`
-    enum compilerHeader = "\0Digital Mars C/C++ ";
-    enum n = compilerHeader.length;
-    char[n + maxVersionLength] compiler = compilerHeader;
-
-    assert(config._version.length + 1  < maxVersionLength);
-    const newLength = n + config._version.length;
-    compiler[n .. newLength] = config._version;
-    compiler[newLength] = 0;
-    comment_data.write(compiler[0 .. newLength + 1]);
-    //dbg_printf("Comment data size %d\n",comment_data.length());
+    ElfObj_user(p);
 }
 
 

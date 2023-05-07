@@ -356,6 +356,11 @@ private void obj_start(ref OutBuffer objbuf, const(char)* srcfile)
         objmod = Obj.initialize(&objbuf, srcfile, null);
     }
 
+    OutBuffer buf;
+    buf.write("DMD ");
+    buf.write(global.versionString());
+    Obj.compiler(buf.peekChars());
+
     el_reset();
     cg87_reset();
     out_reset();
