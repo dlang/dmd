@@ -74,6 +74,13 @@ enum CppStdRevision
     CppStdRevisionCpp20 = 202002
 };
 
+enum ErrorVerbosity
+{
+    normal,
+    verbose,
+    detailed,
+};
+
 /// Trivalent boolean to represent the state of a `revert`able change
 enum class FeatureState : signed char
 {
@@ -181,6 +188,7 @@ struct Param
 
     unsigned errorLimit;
     unsigned errorSupplementLimit; // Limit the number of supplemental messages for each error (0 means unlimited)
+    ErrorVerbosity errorVerbosity; 
 
     DString  argv0;    // program name
     Array<const char *> modFileAliasStrings; // array of char*'s of -I module filename alias strings

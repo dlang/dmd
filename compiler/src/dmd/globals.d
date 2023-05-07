@@ -84,6 +84,13 @@ enum FeatureState : byte
     enabled = 1    /// Specified as `-preview=`
 }
 
+enum ErrorVerbosity
+{
+    normal,
+    verbose,
+    detailed,
+}
+
 extern(C++) struct Output
 {
     bool doOutput;      // Output is enabled
@@ -184,6 +191,7 @@ extern (C++) struct Param
 
     uint errorLimit = 20;
     uint errorSupplementLimit = 6;      // Limit the number of supplemental messages for each error (0 means unlimited)
+    ErrorVerbosity errorVerbosity;      // How verbose the error message should be
 
     const(char)[] argv0;                // program name
     Array!(const(char)*) modFileAliasStrings; // array of char*'s of -I module filename alias strings

@@ -777,6 +777,9 @@ dmd -cov -unittest myprog.d
         Option("verror-supplements=<num>",
             "limit the number of supplemental messages for each error (0 means unlimited)"
         ),
+        Option("verror-verbosity=[normal|verbose|detailed]",
+            "verbose compilation errors"
+        ),
         Option("verrors=<num>",
             "limit the number of error messages (0 means unlimited)"
         ),

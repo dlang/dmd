@@ -1735,6 +1735,25 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 error("unknown error style '%.*s', must be 'digitalmars' or 'gnu'", cast(int) style.length, style.ptr);
             }
         }
+        else if (startsWith(p + 1, "verror-verbosity="))
+        {
+            const(char)[] level = arg["verror-verbosity=".length + 1 .. $];
+
+            switch (level)
+            {
+            case "normal":
+                params.errorVerbosity = ErrorVerbosity.normal;
+                break;
+            case "verbose":
+                params.errorVerbosity = ErrorVerbosity.verbose;
+                break;
+            case "detailed":
+                params.errorVerbosity = ErrorVerbosity.detailed;
+                break;
+            default:
+                error("unknown error verbosity '%.*s', must be 'normal', 'verbose', or 'detailed'", cast(int) level.length, level.ptr);
+            }
+        }
         else if (startsWith(p + 1, "target"))
         {
             enum len = "-target=".length;
