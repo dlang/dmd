@@ -5607,14 +5607,11 @@ void cdinfo(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     switch (e.EV.E1.Eoper)
     {
-version (MARS)
-{
         case OPdctor:
             codelem(cdb,e.EV.E2,pretregs,false);
             regm_t retregs = 0;
             codelem(cdb,e.EV.E1,&retregs,false);
             break;
-}
         default:
             assert(0);
     }

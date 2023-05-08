@@ -117,35 +117,32 @@ nothrow:
     uint Slinnum;           // 0 means no info available
     uint Scharnum;          // 0 means no info available
 
-    version (MARS)
+    const(char)* Sfilename;
+
+    const(char*) name() const { return Sfilename; }
+
+    static Srcpos create(const(char)* filename, uint linnum, uint charnum)
     {
-        const(char)* Sfilename;
+        // Cannot have constructor because Srcpos is used in a union
+        Srcpos sp;
+        sp.Sfilename = filename;
+        sp.Slinnum = linnum;
+        sp.Scharnum = charnum;
+        return sp;
+    }
 
-        const(char*) name() const { return Sfilename; }
-
-        static Srcpos create(const(char)* filename, uint linnum, uint charnum)
-        {
-            // Cannot have constructor because Srcpos is used in a union
-            Srcpos sp;
-            sp.Sfilename = filename;
-            sp.Slinnum = linnum;
-            sp.Scharnum = charnum;
-            return sp;
-        }
-
-        /*******
-         * Set fields of Srcpos
-         * Params:
-         *      filename = file name
-         *      linnum = line number
-         *      charnum = character number
-         */
-        void set(const(char)* filename, uint linnum, int charnum) pure
-        {
-            Sfilename = filename;
-            Slinnum = linnum;
-            Scharnum = charnum;
-        }
+    /*******
+     * Set fields of Srcpos
+     * Params:
+     *      filename = file name
+     *      linnum = line number
+     *      charnum = character number
+     */
+    void set(const(char)* filename, uint linnum, int charnum) pure
+    {
+        Sfilename = filename;
+        Slinnum = linnum;
+        Scharnum = charnum;
     }
 
     void print(const(char)* func) const { Srcpos_print(this, func); }
@@ -217,29 +214,10 @@ struct Pstate
         block *STbfilter;       // current exception filter
     }
 
-    version (MARS)
-    {
-    }
-    else
-    {
-        int STinitseg;          // segment for static constructor function pointer
-    }
     Funcsym *STfuncsym_p;       // if inside a function, then this is the
                                 // function Symbol.
 
     stflags_t STflags;
-
-    version (MARS)
-    {
-    }
-    else
-    {
-        int STinparamlist;      // if != 0, then parser is in
-                                // function parameter list
-        int STingargs;          // in template argument list
-        list_t STincalias;      // list of include aliases
-        list_t STsysincalias;   // list of system include aliases
-    }
 
     // should probably be inside #if HYDRATE, but unclear for the dmc source
     sthflags_t SThflag;         // FLAG_XXXX: hydration flag
@@ -325,8 +303,6 @@ alias Module_ = void*;
 
 struct Blockx
 {
-  version (MARS)
-  {
     block* startblock;
     block* curblock;
     Funcsym* funcsym;
@@ -338,7 +314,6 @@ struct Blockx
     ClassDeclaration_ classdec;
     Declaration_ member;        // member we're compiling for
     Module_ _module;            // module we're in
-  }
 }
 
 alias bflags_t = ushort;
@@ -398,21 +373,15 @@ nothrow:
             Symbol* catchvar;           // __throw() fills in this
         }                               // BCtry
 
-        version (MARS)
+        struct
         {
-            struct
-            {
-                Symbol* Bcatchtype;     // one type for each catch block
-                uint* actionTable;      // EH_DWARF: indices into typeTable, first is # of entries
-            }                           // BCjcatch
-        }
+            Symbol* Bcatchtype;     // one type for each catch block
+            uint* actionTable;      // EH_DWARF: indices into typeTable, first is # of entries
+        }                           // BCjcatch
 
         struct
         {
-            version (MARS)
-            {
-                Symbol *jcatchvar;      // __d_throw() fills in this
-            }
+            Symbol *jcatchvar;      // __d_throw() fills in this
             int Bscope_index;           // index into scope table
             int Blast_index;            // enclosing index into scope table
         }                               // BC_try
@@ -424,7 +393,7 @@ nothrow:
         }                               // finally
 
         // add member mimicking the largest of the other elements of this union, so it can be copied
-        struct _BS { version (MARS) { Symbol *jcvar; } int Bscope_idx, Blast_idx; }
+        struct _BS { Symbol *jcvar; int Bscope_idx, Blast_idx; }
         _BS BS;
     }
     Srcpos      Bsrcpos;        // line number (0 if not known)
@@ -691,9 +660,8 @@ struct func_t
 
     char *Fredirect;            // redirect function name to this name in object
 
-    version (MARS)
-        // Array of catch types for EH_DWARF Types Table generation
-        Barray!(Symbol*) typesTable;
+    // Array of catch types for EH_DWARF Types Table generation
+    Barray!(Symbol*) typesTable;
 
     union
     {
@@ -1194,10 +1162,7 @@ struct Symbol
                                 // or namespace)
 //#endif
 
-    version (MARS)
-    {
-        const(char)* prettyIdent;   // the symbol identifier as the user sees it
-    }
+    const(char)* prettyIdent;   // the symbol identifier as the user sees it
 
 //#if TARGET_OSX
     targ_size_t Slocalgotoffset;
@@ -1288,8 +1253,7 @@ alias Aliassym = Symbol;
 //#endif
 
 /* Format the identifier for presentation to the user   */
-version (MARS)
-    const(char)* prettyident(const Symbol *s) { return &s.Sident[0]; }
+const(char)* prettyident(const Symbol *s) { return &s.Sident[0]; }
 
 
 /**********************************
@@ -1441,72 +1405,6 @@ enum
 
 ////////// Srcfiles
 
-version (MARS)
-{
-}
-else
-{
-// Collect information about a source file.
-alias sfile_flags_t = uint;
-enum
-{
-    SFonce    = 1,      // file is to be #include'd only once
-    SFhx      = 2,      // file is in an HX file and has not been loaded
-    SFtop     = 4,      // file is a top level source file
-    SFloaded  = 8,      // read from PH file
-}
-
-private import parser : macro_t;
-
-struct Sfile
-{
-    debug ushort      id;
-    enum IDsfile = (('f' << 8) | 's');
-
-    char     *SFname;           // name of file
-    sfile_flags_t  SFflags;
-    list_t    SFfillist;        // file pointers of Sfile's that this Sfile is
-                                //     dependent on (i.e. they were #include'd).
-                                //     Does not include nested #include's
-    macro_t  *SFmacdefs;        // threaded list of macros #defined by this file
-    macro_t **SFpmacdefs;       // end of macdefs list
-    Symbol   *SFsymdefs;        // threaded list of global symbols declared by this file
-    symlist_t SFcomdefs;        // comdefs defined in PH
-    symlist_t SFtemp_ft;        // template_ftlist
-    symlist_t SFtemp_class;     // template_class_list
-    Symbol   *SFtagsymdefs;     // list of tag names (C only)
-    char     *SFinc_once_id;    // macro include guard identifier
-    uint SFhashval;             // hash of file name
-}
-
-void sfile_debug(const Sfile* sf)
-{
-    debug assert(sf.id == Sfile.IDsfile);
-}
-
-// Source files are referred to by a pointer into pfiles[]. This is so that
-// when PH files are hydrated, only pfiles[] needs updating. Of course, this
-// means that pfiles[] cannot be reallocated to larger numbers, its size is
-// fixed at SRCFILES_MAX.
-
-enum SRCFILES_MAX = (2*512);
-
-struct Srcfiles
-{
-//  Sfile *arr;         // array of Sfiles
-    Sfile **pfiles;     // parallel array of pointers into arr[]
-    uint dim;       // dimension of array
-    uint idx;       // # used in array
-}
-
-Sfile* sfile(uint fi)
-{
-    import dmd.backend.global : srcfiles;
-    return srcfiles.pfiles[fi];
-}
-
-char* srcfiles_name(uint fi) { return sfile(fi).SFname; }
-}
 
 /**************************************************
  * This is to support compiling expressions within the context of a function.

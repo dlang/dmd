@@ -95,17 +95,10 @@ enum LCFD32offset     =      (LOCATsegrel | 0x2404);
 enum LCFD32pointer    =      (LOCATsegrel | 0x2C00);
 enum LCFD16pointer    =      (LOCATsegrel | 0x0C00);
 
-version (MARS)
-    extern Cgcv cgcv; // already declared in cgcv.d
-else
-    Cgcv cgcv;
-
+extern Cgcv cgcv; // already declared in cgcv.d
 }
 
-version (MARS)
-    enum MARS = true;
-else
-    enum MARS = false;
+enum MARS = true;
 
 /******************************************
  * Return number of bytes consumed in OBJ file by a name.
@@ -860,10 +853,7 @@ idx_t cv4_struct(Classsym *s,int flags)
         return s.Stypidx;
     }
 
-version (MARS)
     util_progress();
-else
-    file_progress();
 
     // Compute the number of fields, and the length of the fieldlist record
     nfields = 0;
@@ -1039,15 +1029,9 @@ ubyte cv4_callconv(type *t)
 /**********************************************
  * Return type index for the type of a symbol.
  */
-
-version (MARS)
-{
-
 private uint cv4_symtypidx(Symbol *s)
 {
     return cv4_typidx(s.Stype);
-}
-
 }
 
 /***********************************
@@ -1130,11 +1114,8 @@ L1:
         case TYimmutPtr:
         case TYsharePtr:
         case TYrestrictPtr:
-version (MARS)
-{
             if (t.Tkey)
                 goto Laarray;
-}
             goto Lptr;
         case TYsptr:
         case TYcptr:
@@ -1207,14 +1188,11 @@ version (MARS)
         Ldarray:
             switch (config.fulltypes)
             {
-version (MARS)
-{
                 case CV8:
                 {
                     typidx = cv8_darray(t, next);
                     break;
                 }
-}
                 case CV4:
 static if (1)
 {

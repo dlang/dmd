@@ -197,8 +197,6 @@ extern (C++) struct CodeBuilder
         pTail = &ce.next;
     }
 
-version (MARS)
-{
     @trusted
     void genasm(_LabelDsymbol *label)
     {
@@ -211,7 +209,6 @@ version (MARS)
         *pTail = ce;
         pTail = &ce.next;
     }
-}
 
     @trusted
     void genasm(block *label)

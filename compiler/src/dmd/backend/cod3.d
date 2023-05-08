@@ -52,10 +52,7 @@ extern (C++):
 nothrow:
 @safe:
 
-version (MARS)
-    enum MARS = true;
-else
-    enum MARS = false;
+enum MARS = true;
 
 private extern (D) uint mask(uint m) { return 1 << m; }
 
@@ -880,8 +877,6 @@ void outblkexitcode(ref CodeBuilder cdb, block *bl, ref int anyspill, const(char
             doswitch(cdb,bl);               // hide messy details
             break;
         }
-version (MARS)
-{
         case BCjcatch:          // D catch clause of try-catch
             assert(ehmethod(funcsym_p) != EHmethod.EH_NONE);
             // Mark all registers as destroyed. This will prevent
@@ -899,7 +894,6 @@ version (MARS)
                 cdb.gen1(ESCAPE | ESCfixesp);
             }
             goto case_goto;
-}
         case BCgoto:
             nextb = bl.nthSucc(0);
             if ((MARS ||
@@ -913,8 +907,6 @@ version (MARS)
                 int toindex = nextb.Btry ? nextb.Btry.Bscope_index : -1;
                 assert(bl.Btry);
                 int fromindex = bl.Btry.Bscope_index;
-version (MARS)
-{
                 if (toindex + 1 == fromindex)
                 {   // Simply call __finally
                     if (bl.Btry &&
@@ -923,7 +915,6 @@ version (MARS)
                         goto L5;        // it's a try-catch, not a try-finally
                     }
                 }
-}
                 if (config.ehmethod == EHmethod.EH_WIN32 && !(funcsym_p.Sfunc.Fflags3 & Feh_none) ||
                     config.ehmethod == EHmethod.EH_SEH)
                 {
@@ -931,8 +922,6 @@ version (MARS)
                 }
                 else
                 {
-version (MARS)
-{
                 if (toindex + 1 <= fromindex)
                 {
                     //c = cat(c, linux_unwind(0, toindex));
@@ -961,7 +950,6 @@ version (MARS)
                         cdb.append(callFinallyBlock(bf.nthSucc(0), retregsx));
                     }
                 }
-}
                 }
                 goto L5;
             }
@@ -1226,14 +1214,11 @@ static if (NTEXCEPTIONS)
                 while ((bt = bt.Btry) != null)
                 {
                     block *bf = bt.nthSucc(1);
-version (MARS)
-{
                     // Only look at try-finally blocks
                     if (bf.BC == BCjcatch)
                     {
                         continue;
                     }
-}
                     if (config.ehmethod == EHmethod.EH_WIN32 && !(funcsym_p.Sfunc.Fflags3 & Feh_none) ||
                         config.ehmethod == EHmethod.EH_SEH)
                     {
@@ -4378,16 +4363,13 @@ void epilog(block *b)
     topop = fregsaved & ~mfuncreg;
     epilog_restoreregs(cdbx, topop);
 
-    version (MARS)
+    if (usednteh & NTEHjmonitor)
     {
-        if (usednteh & NTEHjmonitor)
-        {
-            regm_t retregs = 0;
-            if (b.BC == BCretexp)
-                retregs = regmask(b.Belem.Ety, tym);
-            nteh_monitor_epilog(cdbx,retregs);
-            xlocalsize += 8;
-        }
+        regm_t retregs = 0;
+        if (b.BC == BCretexp)
+            retregs = regmask(b.Belem.Ety, tym);
+        nteh_monitor_epilog(cdbx,retregs);
+        xlocalsize += 8;
     }
 
     if (config.wflags & WFwindows && farfunc)
@@ -5063,8 +5045,6 @@ L3:
  * are all relative to the frame pointer.
  */
 
-version (MARS)
-{
 @trusted
 void cod3_adjSymOffsets()
 {
@@ -5119,8 +5099,6 @@ void cod3_adjSymOffsets()
                 s.Soffset += EBPtoESP;
         }
     }
-}
-
 }
 
 /*******************************
@@ -5261,14 +5239,7 @@ void assignaddrc(code *c)
             case FLdata:
                 if (config.objfmt == OBJ_OMF && s.Sclass != SC.comdat && s.Sclass != SC.extern_)
                 {
-                    version (MARS)
-                    {
-                        c.IEV1.Vseg = s.Sseg;
-                    }
-                    else
-                    {
-                        c.IEV1.Vseg = DATA;
-                    }
+                    c.IEV1.Vseg = s.Sseg;
                     c.IEV1.Vpointer += s.Soffset;
                     c.IFL1 = FLdatseg;
                 }
@@ -5279,14 +5250,7 @@ void assignaddrc(code *c)
             case FLudata:
                 if (config.objfmt == OBJ_OMF)
                 {
-                    version (MARS)
-                    {
-                        c.IEV1.Vseg = s.Sseg;
-                    }
-                    else
-                    {
-                        c.IEV1.Vseg = UDATA;
-                    }
+                    c.IEV1.Vseg = s.Sseg;
                     c.IEV1.Vpointer += s.Soffset;
                     c.IFL1 = FLdatseg;
                 }
@@ -5417,10 +5381,7 @@ void assignaddrc(code *c)
                 goto L2;
 
             case FLndp:
-                version (MARS)
-                {
-                    assert(c.IEV1.Vuns < global87.save.length);
-                }
+                assert(c.IEV1.Vuns < global87.save.length);
                 c.IEV1.Vpointer = c.IEV1.Vuns * tysize(TYldouble) + NDPoff + BPoff;
                 c.Iflags |= CFunambig;
                 goto L2;
@@ -7663,11 +7624,8 @@ private void do8bit(MiniCodeBuf *pbuf, FL fl, evc *uev)
             delta = uev.Vblock.Boffset - pbuf.getOffset() - 1;
             if (cast(byte)delta != delta)
             {
-                version (MARS)
-                {
-                    if (uev.Vblock.Bsrcpos.Slinnum)
-                        printf("%s(%d): ", uev.Vblock.Bsrcpos.Sfilename, uev.Vblock.Bsrcpos.Slinnum);
-                }
+                if (uev.Vblock.Bsrcpos.Slinnum)
+                    printf("%s(%d): ", uev.Vblock.Bsrcpos.Sfilename, uev.Vblock.Bsrcpos.Slinnum);
                 printf("block displacement of %lld exceeds the maximum offset of -128 to 127.\n", cast(long)delta);
                 err_exit();
             }

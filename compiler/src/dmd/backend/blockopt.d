@@ -116,8 +116,6 @@ void block_term()
  * Finish up this block and start the next one.
  */
 
-version (MARS)
-{
 @trusted
 void block_next(Blockx *bctx,int bc,block *bn)
 {
@@ -130,35 +128,11 @@ void block_next(Blockx *bctx,int bc,block *bn)
     bctx.curblock.Btry = bctx.tryblock;
     bctx.curblock.Bflags |= bctx.flags;
 }
-}
-else
-{
-@trusted
-void block_next(int bc,block *bn)
-{
-    curblock.BC = cast(ubyte) bc;
-    curblock.Bsymend = globsym.length;
-    block_last = curblock;
-    if (!bn)
-        bn = block_calloc_i();
-    curblock.Bnext = bn;                     // next block
-    curblock = curblock.Bnext;               // new current block
-    curblock.Bsymstart = globsym.length;
-    curblock.Btry = pstate.STbtry;
-}
-
-void block_next()
-{
-    block_next(cast(BC)curblock.BC,null);
-}
-}
 
 /**************************
  * Finish up this block and start the next one.
  */
 
-version (MARS)
-{
 block *block_goto(Blockx *bx,int bc,block *bn)
 {
     block *b;
@@ -167,7 +141,6 @@ block *block_goto(Blockx *bx,int bc,block *bn)
     block_next(bx,bc,bn);
     b.appendSucc(bx.curblock);
     return bx.curblock;
-}
 }
 
 /****************************
@@ -344,12 +317,9 @@ void block_free(block *b)
             free(b.Bswitch);
             break;
 
-        version (MARS)
-        {
-            case BCjcatch:
-                free(b.actionTable);
-                break;
-        }
+        case BCjcatch:
+            free(b.actionTable);
+            break;
 
         case BCasm:
             code_free(b.Bcode);
@@ -492,9 +462,6 @@ void blocklist_dehydrate(block **pb)
 @trusted
 void block_appendexp(block *b,elem *e)
 {
-    version (MARS) {}
-    else assert(PARSER);
-
     if (e)
     {
         assert(b);
@@ -508,33 +475,19 @@ void block_appendexp(block *b,elem *e)
             if (t)
                 type_debug(t);
             elem_debug(e);
-            version (MARS)
-            {
-                tym_t ty = e.Ety;
+            tym_t ty = e.Ety;
 
-                elem_debug(e);
-                /* Build tree such that (a,b) => (a,(b,e))  */
-                while (ec.Eoper == OPcomma)
-                {
-                    ec.Ety = ty;
-                    ec.ET = t;
-                    pe = &(ec.EV.E2);
-                    ec = *pe;
-                }
-                e = el_bin(OPcomma,ty,ec,e);
-                e.ET = t;
-            }
-            else
+            elem_debug(e);
+            /* Build tree such that (a,b) => (a,(b,e))  */
+            while (ec.Eoper == OPcomma)
             {
-                /* Build tree such that (a,b) => (a,(b,e))  */
-                while (ec.Eoper == OPcomma)
-                {
-                    el_settype(ec,t);
-                    pe = &(ec.EV.E2);
-                    ec = *pe;
-                }
-                e = el_bint(OPcomma,t,ec,e);
+                ec.Ety = ty;
+                ec.ET = t;
+                pe = &(ec.EV.E2);
+                ec = *pe;
             }
+            e = el_bin(OPcomma,ty,ec,e);
+            e.ET = t;
         }
         *pe = e;
     }
@@ -610,11 +563,9 @@ void blockopt(int iter)
             blexit();
             if (iter >= 2)
                 brmin();                // minimize branching
-            version (MARS)
-                // Switched to one block per Statement, do not undo it
-                enum merge = false;
-            else
-                enum merge = true;
+
+            // Switched to one block per Statement, do not undo it
+            enum merge = false;
 
             do
             {
@@ -2099,24 +2050,18 @@ private void emptyloops()
 @trusted
 private void funcsideeffects()
 {
-    version (MARS)
+    //printf("funcsideeffects('%s')\n",funcsym_p.Sident);
+    for (block *b = startblock; b; b = b.Bnext)
     {
-        //printf("funcsideeffects('%s')\n",funcsym_p.Sident);
-        for (block *b = startblock; b; b = b.Bnext)
+        if (b.Belem && funcsideeffect_walk(b.Belem))
         {
-            if (b.Belem && funcsideeffect_walk(b.Belem))
-            {
-                //printf("  function '%s' has side effects\n",funcsym_p.Sident);
-                return;
-            }
+            //printf("  function '%s' has side effects\n",funcsym_p.Sident);
+            return;
         }
-        funcsym_p.Sfunc.Fflags3 |= Fnosideeff;
-        //printf("  function '%s' has no side effects\n",funcsym_p.Sident);
     }
+    funcsym_p.Sfunc.Fflags3 |= Fnosideeff;
+    //printf("  function '%s' has no side effects\n",funcsym_p.Sident);
 }
-
-version (MARS)
-{
 
 @trusted
 private int funcsideeffect_walk(elem *e)
@@ -2152,8 +2097,6 @@ private int funcsideeffect_walk(elem *e)
 
   Lside:
     return 1;
-}
-
 }
 
 /*******************************

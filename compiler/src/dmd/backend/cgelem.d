@@ -463,12 +463,9 @@ private elem *fixconvop(elem *e)
     {   if (e.Eoper != OPshlass && e.Eoper != OPshrass && e.Eoper != OPashrass)
             e.EV.E2 = el_una(icop,tym,e2);
 
-        version (MARS)
-        {
-            // https://issues.dlang.org/show_bug.cgi?id=23618
-            if ((cop == OPu16_32 || cop == OPu8_16) && e.Eoper == OPashrass)
-                e.Eoper = OPshrass;     // always unsigned right shift for MARS
-        }
+        // https://issues.dlang.org/show_bug.cgi?id=23618
+        if ((cop == OPu16_32 || cop == OPu8_16) && e.Eoper == OPashrass)
+            e.Eoper = OPshrass;     // always unsigned right shift for MARS
 
         return e;
     }
@@ -3242,11 +3239,8 @@ private elem * elbit(elem *e, goal_t goal)
     e2.Ety = e.Ety;
 
     OPER shift = OPshr;
-    version (MARS)
-    {
-        if (!tyuns(tym1))
-            shift = OPashr;
-    }
+    if (!tyuns(tym1))
+        shift = OPashr;
     e.EV.E1 = el_bin(shift,tym1,
                 el_bin(OPshl,tym1,e.EV.E1,el_long(TYint,c)),
                 el_long(TYint,b));
@@ -4058,10 +4052,7 @@ static if (0)
         else                            /* signed bit field             */
         {
             OPER shift = OPshr;
-            version (MARS)
-            {
-                shift = OPashr;
-            }
+            shift = OPashr;
             c = sz - w;                 /* e2 = (r << c) >> c           */
             e2 = el_bin(shift,t,el_bin(OPshl,tyl,r,el_long(TYint,c)),el_long(TYint,c));
             pe = &e2.EV.E1.EV.E1;
@@ -6001,7 +5992,7 @@ beg:
         if (OTcommut(op))                // if commutative
         {
               /* see if we should swap the leaves       */
-              version (MARS) { enum MARS = true; } else { enum MARS = false; }
+              enum MARS = true;
               if (
                 MARS ? (
                 cost(e2) > cost(e1) &&
@@ -6215,13 +6206,11 @@ void postoptelem(elem *e)
         {
             /* This is necessary as the optimizer tends to lose this information
              */
-            version (MARS)
             if (e.Esrcpos.Slinnum > pos.Slinnum)
                 pos = e.Esrcpos;
 
             if (e.Eoper == OPind)
             {
-                version (MARS)
                 if (e.EV.E1.Eoper == OPconst &&
                     /* Allow TYfgptr to reference GS:[0000] etc.
                      */
@@ -6244,7 +6233,6 @@ void postoptelem(elem *e)
         {
             /* This is necessary as the optimizer tends to lose this information
              */
-            version (MARS)
             if (e.Esrcpos.Slinnum > pos.Slinnum)
                 pos = e.Esrcpos;
 

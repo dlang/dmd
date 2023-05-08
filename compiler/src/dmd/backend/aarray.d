@@ -19,11 +19,8 @@ import core.stdc.string;
 
 alias hash_t = size_t;
 
-version (MARS)
-{
-    import dmd.root.hash;
-    import dmd.backend.global : err_nomem;
-}
+import dmd.root.hash;
+import dmd.backend.global : err_nomem;
 
 nothrow:
 @safe:
@@ -428,19 +425,8 @@ nothrow:
 
     static hash_t getHash(Key* pk)
     {
-        version (MARS)
-        {
-            auto buf = *pk;
-            return calcHash(cast(const(ubyte[]))buf);
-        }
-        else
-        {
-            auto buf = *pk;
-            hash_t hash = 0;
-            foreach (v; buf)
-                hash = hash * 11 + v;
-            return hash;
-        }
+        auto buf = *pk;
+        return calcHash(cast(const(ubyte[]))buf);
     }
 
     @trusted
@@ -504,19 +490,8 @@ nothrow:
     @trusted
     hash_t getHash(Key* pk)
     {
-        version (MARS)
-        {
-            auto buf = (*pbase)[pk.start .. pk.end];
-            return calcHash(buf);
-        }
-        else
-        {
-            auto buf = (*pbase)[pk.start .. pk.end];
-            hash_t hash = 0;
-            foreach (v; buf)
-                hash = hash * 11 + v;
-            return hash;
-        }
+        auto buf = (*pbase)[pk.start .. pk.end];
+        return calcHash(buf);
     }
 
     @trusted

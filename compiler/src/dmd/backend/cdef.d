@@ -102,10 +102,7 @@ enum SIXTEENBIT = false;
  * This is not quite the same as !SIXTEENBIT, as one could
  * have near/far with 32 bit code.
  */
-version (MARS)
-    enum TARGET_SEGMENTED = false;
-else
-    enum TARGET_SEGMENTED = TARGET_WINDOS;
+enum TARGET_SEGMENTED = false;
 
 
 @trusted
@@ -260,10 +257,7 @@ enum
     Vmodel = 4,        // large code, large data, vcm
 }
 
-version (MARS)
-    enum MEMMODELS = 1; // number of memory models
-else
-    enum MEMMODELS = 5;
+enum MEMMODELS = 1; // number of memory models
 
 /* Segments     */
 enum
