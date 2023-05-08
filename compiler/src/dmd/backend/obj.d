@@ -52,7 +52,7 @@ mixin(ObjMemDecl("bool $Obj_linkerdirective(const(char)* )"));
 mixin(ObjMemDecl("bool $Obj_allowZeroSize()"));
 mixin(ObjMemDecl("void $Obj_exestr(const(char)* p)"));
 mixin(ObjMemDecl("void $Obj_user(const(char)* p)"));
-mixin(ObjMemDecl("void $Obj_compiler()"));
+mixin(ObjMemDecl("void $Obj_compiler(const(char)* p)"));
 mixin(ObjMemDecl("void $Obj_wkext(Symbol *,Symbol *)"));
 mixin(ObjMemDecl("void $Obj_alias(const(char)* n1,const(char)* n2)"));
 mixin(ObjMemDecl("void $Obj_staticctor(Symbol *s,int dtor,int seg)"));
@@ -265,9 +265,9 @@ else
             mixin(genRetVal("user(p)"));
         }
 
-        void compiler()
+        void compiler(const(char)* p)
         {
-            mixin(genRetVal("compiler()"));
+            mixin(genRetVal("compiler(p)"));
         }
 
         void wkext(Symbol* s1, Symbol* s2)

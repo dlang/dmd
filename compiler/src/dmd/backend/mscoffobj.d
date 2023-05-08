@@ -1114,9 +1114,10 @@ void MsCoffObj_filename(const(char)* modname)
  * Embed compiler version in .obj file.
  */
 
-void MsCoffObj_compiler()
+void MsCoffObj_compiler(const(char)* p)
 {
     //dbg_printf("MsCoffObj_compiler\n");
+    MsCoffObj_user(p);
 }
 
 /**************************************

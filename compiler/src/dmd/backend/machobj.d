@@ -1654,9 +1654,10 @@ void MachObj_filename(const(char)* modname)
  * Embed compiler version in .obj file.
  */
 
-void MachObj_compiler()
+void MachObj_compiler(const(char)* p)
 {
     //dbg_printf("MachObj_compiler\n");
+    MachObj_user(p);
 }
 
 
