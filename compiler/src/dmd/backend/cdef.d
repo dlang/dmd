@@ -322,46 +322,6 @@ enum REGMAX = 29;      // registers are numbered 0..10
 
 alias tym_t = uint;    // data type big enough for type masks
 
-
-version (MARS)
-{
-}
-else
-{
-version (_WINDLL)
-{
-/* We reference the required Windows-1252 encoding of the copyright symbol
-   by escaping its character code (0xA9) rather than directly embedding it in
-   the source text. The character code is invalid in UTF-8, which causes some
-   of our source-code preprocessing tools (e.g. tolf) to choke.
- */
-    enum COPYRIGHT_SYMBOL = "\xA9";
-    enum COPYRIGHT = "Copyright " ~ COPYRIGHT_SYMBOL ~ " 2001 Digital Mars";
-}
-else
-{
-    debug
-    {
-        enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2019.  All Rights Reserved.
-Written by Walter Bright
-*****BETA TEST VERSION*****";
-    }
-    else
-    {
-        version (linux)
-        {
-            enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2019.  All Rights Reserved.
-Written by Walter Bright, Linux version by Pat Nelson";
-        }
-        else
-        {
-            enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2019.  All Rights Reserved.
-Written by Walter Bright";
-        }
-    }
-}
-}
-
 /**********************************
  * Configuration
  */
