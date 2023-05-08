@@ -5400,6 +5400,24 @@ final class CParser(AST) : Parser!AST
                 pragmaDirective(scanloc);
                 return true;
             }
+            else if (n.ident == Id.ident) // #ident "string"
+            {
+                scan(&n);
+                if (n.value == TOK.string_ && n.ptr[0] == '"' && n.postfix == 0)
+                {
+                    /* gcc inserts string into the .comment section in the object file.
+                     * Just ignore it for now, but can support it later by writing
+                     * the string to obj_exestr()
+                     */
+                    //auto comment = n.ustring;
+
+                    scan(&n);
+                    if (n.value == TOK.endOfFile || n.value == TOK.endOfLine)
+                        return true;
+                }
+                error("\"string\" expected after `#ident`");
+                return false;
+            }
         }
         if (n.ident != Id.undef)
             error("C preprocessor directive `#%s` is not supported", n.toChars());
