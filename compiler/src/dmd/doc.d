@@ -429,9 +429,9 @@ extern(C++) void gendocfile(Module m)
     if (m.filetype == FileType.ddoc)
     {
         const ploc = m.md ? &m.md.loc : &m.loc;
-        const loc = Loc(ploc.filename ? ploc.filename : srcfilename.ptr,
-                        ploc.linnum,
-                        ploc.charnum);
+        Loc loc = *ploc;
+        if (!loc.fileIndex)
+            loc.filename = srcfilename.ptr;
 
         size_t commentlen = strlen(cast(char*)m.comment);
         Dsymbols a;

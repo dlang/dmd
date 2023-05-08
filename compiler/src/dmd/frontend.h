@@ -377,18 +377,20 @@ enum class MessageStyle : uint8_t
 
 struct Loc final
 {
-    const char* filename;
     uint32_t linnum;
-    uint32_t charnum;
+    uint16_t charnum;
+    uint16_t fileIndex;
     static bool showColumns;
     static MessageStyle messageStyle;
     static void set(bool showColumns, MessageStyle messageStyle);
+    const char* filename() const;
+    void filename(const char* name);
     const char* toChars(bool showColumns = showColumns, MessageStyle messageStyle = messageStyle) const;
     bool equals(const Loc& loc) const;
     Loc() :
-        filename(),
         linnum(),
-        charnum()
+        charnum(),
+        fileIndex()
     {
     }
 };
@@ -2345,7 +2347,7 @@ struct AttributeViolation final
     RootObject* arg1;
     RootObject* arg2;
     AttributeViolation() :
-        loc(Loc(nullptr, 0u, 0u)),
+        loc(Loc(0u, 0u, 0u)),
         fmtStr(nullptr),
         arg0(nullptr),
         arg1(nullptr),
@@ -7004,23 +7006,23 @@ struct UnionExp final
 private:
     union __AnonStruct__u
     {
-        char exp[34LLU];
-        char integerexp[48LLU];
-        char errorexp[34LLU];
-        char realexp[64LLU];
-        char complexexp[80LLU];
-        char symoffexp[72LLU];
-        char stringexp[58LLU];
-        char arrayliteralexp[56LLU];
-        char assocarrayliteralexp[56LLU];
-        char structliteralexp[84LLU];
-        char compoundliteralexp[48LLU];
-        char nullexp[34LLU];
-        char dotvarexp[57LLU];
-        char addrexp[48LLU];
-        char indexexp[82LLU];
-        char sliceexp[73LLU];
-        char vectorexp[61LLU];
+        char exp[26LLU];
+        char integerexp[40LLU];
+        char errorexp[26LLU];
+        char realexp[48LLU];
+        char complexexp[64LLU];
+        char symoffexp[64LLU];
+        char stringexp[50LLU];
+        char arrayliteralexp[48LLU];
+        char assocarrayliteralexp[48LLU];
+        char structliteralexp[76LLU];
+        char compoundliteralexp[40LLU];
+        char nullexp[26LLU];
+        char dotvarexp[49LLU];
+        char addrexp[40LLU];
+        char indexexp[74LLU];
+        char sliceexp[65LLU];
+        char vectorexp[53LLU];
     };
     #pragma pack(pop)
 

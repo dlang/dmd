@@ -119,7 +119,7 @@ class Lexer
     this(const(char)* filename, const(char)* base, size_t begoffset,
         size_t endoffset, bool doDocComment, bool commentToken,
         ErrorSink errorSink,
-        const CompileEnv* compileEnv) pure scope
+        const CompileEnv* compileEnv) scope
     {
         scanloc = Loc(filename, 1, 1);
         // debug printf("Lexer::Lexer(%p)\n", base);
@@ -2674,7 +2674,7 @@ class Lexer
 
     final Loc loc() pure @nogc
     {
-        scanloc.charnum = cast(uint)(1 + p - line);
+        scanloc.charnum = cast(ushort)(1 + p - line);
         version (LocOffset)
             scanloc.fileOffset = cast(uint)(p - base);
         return scanloc;
