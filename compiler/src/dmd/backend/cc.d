@@ -1583,8 +1583,7 @@ struct EEcontext
     code *EEcode;               // generated code
 }
 
-extern __gshared EEcontext eecontext;
-
+public import dmd.backend.ee : eecontext;
 
 // Different goals for el_optimize()
 alias goal_t = uint;
@@ -1612,8 +1611,6 @@ struct Declar
     bool explicitSpecialization;
     int hasExcSpec;             // has exception specification
 }
-
-extern __gshared Declar gdeclar;
 
 /**********************************
  * Data definitions

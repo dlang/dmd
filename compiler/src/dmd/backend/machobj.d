@@ -85,9 +85,7 @@ private extern (D) __gshared OutBuffer *fobjbuf;
 
 enum DEST_LEN = (IDMAX + IDOHD + 1);
 
-extern __gshared int except_table_seg;        // segment of __gcc_except_tab
-extern __gshared int eh_frame_seg;            // segment of __eh_frame
-
+public import dmd.backend.dwarfdbginf : except_table_seg, eh_frame_seg;
 
 /******************************************
  */
