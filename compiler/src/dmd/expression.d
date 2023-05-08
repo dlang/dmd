@@ -5188,6 +5188,7 @@ extern (C++) final class CallExp : UnaExp
     bool directcall;        // true if a virtual call is devirtualized
     bool inDebugStatement;  /// true if this was in a debug statement
     bool ignoreAttributes;  /// don't enforce attributes (e.g. call @gc function in @nogc code)
+    bool isUfcsRewrite;     /// the first argument was pushed in here by a UFCS rewrite
     VarDeclaration vthis2;  // container for multi-context
 
     /// Puts the `arguments` and `names` into an `ArgumentList` for easily passing them around.

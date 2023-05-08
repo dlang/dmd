@@ -653,7 +653,7 @@ private Expression resolveUFCS(Scope* sc, CallExp ce)
     if (!ce.names)
         ce.names = new Identifiers();
     ce.names.shift(null);
-
+    ce.isUfcsRewrite = true;
     return null;
 }
 
@@ -5192,7 +5192,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 s = (cast(TemplateExp)exp.e1).td;
             L2:
-                exp.f = resolveFuncCall(exp.loc, sc, s, tiargs, null, exp.argumentList, FuncResolveFlag.standard);
+                exp.f = resolveFuncCall(exp.loc, sc, s, tiargs, null, exp.argumentList,
+                    exp.isUfcsRewrite ? FuncResolveFlag.ufcs : FuncResolveFlag.standard);
                 if (!exp.f || exp.f.errors)
                     return setError();
                 if (exp.f.needThis())
@@ -5301,6 +5302,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     buf.writeByte(')');
 
                     //printf("tf = %s, args = %s\n", tf.deco, (*arguments)[0].type.deco);
+                    if (exp.isUfcsRewrite)
+                    {
+                        const arg = (*exp.argumentList.arguments)[0];
+                        .error(exp.loc, "no property `%s` for `%s` of type `%s`", exp.f.ident.toChars(), arg.toChars(), arg.type.toChars());
+                        .errorSupplemental(exp.loc, "the following error occured while looking for a UFCS match");
+                    }
+
                     .error(exp.loc, "%s `%s%s` is not callable using argument types `%s`",
                         exp.f.kind(), exp.f.toPrettyChars(), parametersTypeToChars(tf.parameterList), buf.peekChars());
                     if (failMessage)
