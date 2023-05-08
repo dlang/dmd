@@ -81,35 +81,6 @@ private extern (C) void controlc_handler()
     controlc_saw = 1;
 }
 
-/*********************************
- * Trap control C interrupts.
- */
-
-version (MARS) { } else
-{
-
-extern (C)
-{
-void controlc_open();
-void controlc_close();
-alias _controlc_handler_t = void function();
-extern __gshared _controlc_handler_t _controlc_handler;
-
-void _STI_controlc()
-{
-    //printf("_STI_controlc()\n");
-    _controlc_handler = &controlc_handler;
-    controlc_open();                    /* trap control C               */
-}
-
-void _STD_controlc()
-{
-    //printf("_STD_controlc()\n");
-    controlc_close();
-}
-}
-
-}
 }
 
 /***********************************

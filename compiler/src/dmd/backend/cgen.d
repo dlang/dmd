@@ -33,9 +33,8 @@ extern (C++):
 
 nothrow:
 
-dt_t *dt_get_nzeros(uint n);
-
-extern __gshared CGstate cgstate;
+public import dmd.backend.dt : dt_get_nzeros;
+public import dmd.backend.cgcod : cgstate;
 
 /*****************************
  * Find last code in list.

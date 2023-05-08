@@ -674,8 +674,7 @@ else
     }
 }
 
-
-extern __gshared Obj objmod;
+public import dmd.backend.var : objmod;
 
 /*****************************************
  * Use to generate 4 function declarations, one for

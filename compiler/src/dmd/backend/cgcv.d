@@ -28,8 +28,6 @@ nothrow:
 
 alias symlist_t = LIST*;
 
-extern __gshared char* ftdbname;
-
 void cv_init();
 uint cv_typidx(type* t);
 void cv_outsym(Symbol* s);
