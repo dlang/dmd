@@ -1383,6 +1383,14 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                         (*mtype.fargs)[eidx] : eparam.defaultArg;
                     if (farg && (eparam.storageClass & STC.ref_))
                     {
+                        // https://issues.dlang.org/show_bug.cgi?id=18151
+                        // deduce `auto ref` on the aliased this member
+                        // if no match on the original argument.
+                        if (auto ts = farg.type.isTypeStruct())
+                        {
+                            if (ts.sym.aliasthis && !ts.implicitConvToWithoutAliasThis(eparam.type))
+                                farg = resolveAliasThis(sc, farg);
+                        }
                         if (!farg.isLvalue())
                             eparam.storageClass &= ~STC.ref_; // value parameter
                         eparam.storageClass &= ~STC.auto_;    // https://issues.dlang.org/show_bug.cgi?id=14656

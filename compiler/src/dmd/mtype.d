@@ -7346,7 +7346,12 @@ private extern(D) MATCH argumentMatchParameter (TypeFunction tf, Parameter p,
         else
         {
             import dmd.dcast : cimplicitConvTo;
+            import dmd.aliasthis : resolveAliasThis;
             m = (sc && sc.flags & SCOPE.Cfile) ? arg.cimplicitConvTo(tprm) : arg.implicitConvTo(tprm);
+            argStruct = targ.ty == Tstruct ? (cast(TypeStruct)targ).sym : null;
+            // if the matching was done on alias this, then do ref checking on the alias this
+            if (argStruct && argStruct.aliasthis && !(cast(TypeStruct)targ).implicitConvToWithoutAliasThis(tprm))
+                arg = resolveAliasThis(sc, arg);
         }
     }
 
