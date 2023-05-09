@@ -39,6 +39,8 @@ import dmd.backend.barray;
 nothrow:
 @safe:
 
+int REGSIZE(); // implementation in e2ir.d
+
 public import dmd.backend.var : debuga, debugb, debugc, debugd, debuge, debugf,
     debugr, debugs, debugt, debugu, debugw, debugx, debugy;
 

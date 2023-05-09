@@ -71,12 +71,8 @@ private __gshared
 }
 
 private bool cnst(const elem* e) { return e.Eoper == OPconst; }
-int REGSIZE();
 
-version (MARS)
-{
-    import dmd.backend.errors;
-}
+import dmd.backend.errors;
 
 /*****************************
  */

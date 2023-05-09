@@ -45,8 +45,7 @@ extern (C++):
 nothrow:
 @safe:
 
-extern __gshared CGstate cgstate;
-extern __gshared bool[FLMAX] datafl;
+import dmd.backend.cg : datafl;
 
 private extern (D) uint mask(uint m) { return 1 << m; }
 

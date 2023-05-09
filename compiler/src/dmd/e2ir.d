@@ -86,7 +86,7 @@ alias toSymbol = dmd.glue.toSymbol;
 void* mem_malloc2(uint);
 
 
-@property int REGSIZE() { return _tysize[TYnptr]; }
+int REGSIZE() { return _tysize[TYnptr]; }
 
 /* If variable var is a reference
  */

@@ -77,8 +77,6 @@ static if (1)
 
     nothrow:
 
-    int REGSIZE();
-
     __gshared
     {
         //static if (MACHOBJ)

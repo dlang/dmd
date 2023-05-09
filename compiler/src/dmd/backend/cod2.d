@@ -43,9 +43,7 @@ extern (C++):
 nothrow:
 @safe:
 
-extern __gshared CGstate cgstate;
-extern __gshared ubyte[FLMAX] segfl;
-extern __gshared bool[FLMAX] stackfl;
+import dmd.backend.cg : segfl, stackfl;
 
 __gshared int cdcmp_flag;
 

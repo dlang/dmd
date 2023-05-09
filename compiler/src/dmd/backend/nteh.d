@@ -39,7 +39,6 @@ extern (C++):
 nothrow:
 @safe:
 
-int REGSIZE();
 void except_fillInEHTable(Symbol *s);
 
 private __gshared

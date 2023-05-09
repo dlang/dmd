@@ -43,8 +43,6 @@ alias MEM_PARF_STRDUP = mem_strdup;
 @trusted
 struct_t* struct_calloc() { return cast(struct_t*) mem_calloc(struct_t.sizeof); }
 
-int REGSIZE();
-
 private __gshared
 {
     type *type_list;          // free list of types
