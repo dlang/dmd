@@ -58,12 +58,7 @@ __gshared Configv configv;                // non-ph part of configuration
 
 public import dmd.backend.ee : eecontext_convs;
 public import dmd.backend.elem : exp2_copytotemp;
-
-void util_progress();
-void util_set16();
-void util_set32(exefmt_t);
-void util_set64(exefmt_t);
-int ispow2(ulong);
+public import dmd.backend.util2 : err_exit, file_progress, util_progress, ispow2;
 
 version (Posix)
 {
@@ -71,11 +66,6 @@ void* util_malloc(uint n,uint size) { return mem_malloc(n * size); }
 void* util_calloc(uint n,uint size) { return mem_calloc(n * size); }
 void util_free(void *p) { mem_free(p); }
 void *util_realloc(void *oldp,size_t n,size_t size) { return mem_realloc(oldp, n * size); }
-//#define parc_malloc     mem_malloc
-//#define parc_calloc     mem_calloc
-//#define parc_realloc    mem_realloc
-//#define parc_strdup     mem_strdup
-//#define parc_free       mem_free
 }
 else
 {
@@ -83,82 +73,11 @@ void *util_malloc(uint n,uint size);
 void *util_calloc(uint n,uint size);
 void util_free(void *p);
 void *util_realloc(void *oldp,size_t n,size_t size);
-void *parc_malloc(size_t len);
-void *parc_calloc(size_t len);
-void *parc_realloc(void *oldp,size_t len);
-char *parc_strdup(const(char)* s);
-void parc_free(void *p);
 }
 
-void swap(int *, int *);
-//void crlf(FILE *);
-int isignore(int);
-int isillegal(int);
-
-//#if !defined(__DMC__) && !defined(_MSC_VER)
-int ishex(int);
-//#endif
-
-/* from cgcs.c */
-void comsubs();
-void cgcs_term();
-
-/* errmsgs.c */
-char *dlcmsgs(int);
-void errmsgs_term();
-
-/* from evalu8.c */
-int boolres(elem *);
-int iftrue(elem *);
-int iffalse(elem *);
-elem *poptelem(elem *);
-elem *poptelem2(elem *);
-elem *poptelem3(elem *);
-elem *poptelem4(elem *);
-elem *selecte1(elem *, type *);
-
-//extern       type *declar(type *,char *,int);
-
-/* from err.c */
-void err_message(const(char)* format,...);
-void dll_printf(const(char)* format,...);
-void cmderr(uint,...);
-int synerr(uint,...);
-void preerr(uint,...);
-
-//#if __clang__
-//void err_exit() __attribute__((analyzer_noreturn));
-//void err_nomem() __attribute__((analyzer_noreturn));
-//void err_fatal(uint,...) __attribute__((analyzer_noreturn));
-//#else
-void err_exit();
+public import dmd.backend.cgcs : comsubs, cgcs_term;
+public import dmd.backend.evalu8;
 public import dmd.backend.ph2 : err_nomem;
-void err_fatal(uint,...);
-//#if __DMC__
-//#pragma ZTC noreturn(err_exit)
-//#pragma ZTC noreturn(err_nomem)
-//#pragma ZTC noreturn(err_fatal)
-//#endif
-//#endif
-
-int cpperr(uint,...);
-int tx86err(uint,...);
-extern __gshared int errmsgs_tx86idx;
-void warerr(uint,...);
-void err_warning_enable(uint warnum, int on);
-void lexerr(uint,...);
-
-int typerr(int,type *,type *, ...);
-void err_noctor(Classsym *stag,list_t arglist);
-void err_nomatch(const(char)*, list_t);
-void err_ambiguous(Symbol *,Symbol *);
-void err_noinstance(Symbol *s1,Symbol *s2);
-void err_redeclar(Symbol *s,type *t1,type *t2);
-void err_override(Symbol *sfbase,Symbol *sfder);
-void err_notamember(const(char)* id, Classsym *s, Symbol *alternate = null);
-
-/* file.c */
-void file_progress();
 
 /* from msc.c */
 targ_size_t _align(targ_size_t,targ_size_t);
