@@ -353,9 +353,9 @@ typedef unsigned long long uinteger_t;
 // file location
 struct Loc
 {
-    const char *filename; // either absolute or relative to cwd
     unsigned linnum;
-    unsigned charnum;
+    unsigned short charnum;
+    unsigned short fileIndex;
 
     static void set(bool showColumns, MessageStyle messageStyle);
 
@@ -366,15 +366,18 @@ struct Loc
     {
         linnum = 0;
         charnum = 0;
-        filename = NULL;
+        fileIndex = 0;
     }
 
     Loc(const char *filename, unsigned linnum, unsigned charnum)
     {
         this->linnum = linnum;
         this->charnum = charnum;
-        this->filename = filename;
+        this->filename(filename);
     }
+
+    const char *filename() const;
+    void filename(const char *name);
 
     const char *toChars(
         bool showColumns = Loc::showColumns,
