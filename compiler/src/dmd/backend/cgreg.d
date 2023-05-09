@@ -38,8 +38,6 @@ extern (C++):
 nothrow:
 @safe:
 
-int REGSIZE();
-
 private __gshared
 {
     int nretblocks;

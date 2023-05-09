@@ -58,7 +58,7 @@ extern (C) void TOOFFSET(void* p, targ_size_t value)
     }
 }
 
-extern __gshared char* ftdbname;
+import dmd.backend.var : ftdbname;
 
 // Convert from SFL visibilities to CV4 protections
 uint SFLtoATTR(uint sfl) { return 4 - ((sfl & SFLpmask) >> 5); }

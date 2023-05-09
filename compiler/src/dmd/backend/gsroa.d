@@ -42,8 +42,6 @@ nothrow:
 private enum log = false;       // print logging info
 private enum enable = true;     // enable SROA
 
-int REGSIZE();
-
 alias SLICESIZE = REGSIZE;  // slices are all register-sized
 enum MAXSLICES = 2;         // max # of pieces we can slice an aggregate into
 

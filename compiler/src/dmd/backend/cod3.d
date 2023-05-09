@@ -57,13 +57,9 @@ version (MARS)
 else
     enum MARS = false;
 
-extern __gshared CGstate cgstate;
-
 private extern (D) uint mask(uint m) { return 1 << m; }
 
 //private void genorreg(ref CodeBuilder c, uint t, uint f) { genregs(c, 0x09, f, t); }
-
-extern __gshared targ_size_t retsize;
 
 enum JMPJMPTABLE = false;               // benchmarking shows it's slower
 

@@ -20,6 +20,7 @@ import dmd.common.int128;
 import dmd.backend.cc: Classsym, Symbol, param_t, config;
 import dmd.backend.el;
 import dmd.backend.ty : I32;
+import dmd.backend.global : REGSIZE;
 
 import dmd.backend.dlist;
 
@@ -248,7 +249,6 @@ alias targ_double = double;
 public import dmd.root.longdouble : targ_ldouble = longdouble;
 
 // Extract most significant register from constant
-int REGSIZE();
 ulong MSREG(ulong p) { return (REGSIZE == 2) ? p >> 16 : ((targ_llong.sizeof == 8) ? p >> 32 : 0); }
 
 alias targ_int = int;

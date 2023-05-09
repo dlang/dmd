@@ -19,6 +19,7 @@ import core.stdc.string;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
+import dmd.backend.cgen : gen1, gen2;
 import dmd.backend.code;
 import dmd.backend.code_x86;
 import dmd.backend.dlist;
@@ -32,9 +33,6 @@ extern (C++):
 nothrow:
 @safe:
 
-int REGSIZE();
-code *gen1(code *c, uint op);
-code *gen2(code *c, uint op, uint rm);
 
 private uint mask(uint m) { return 1 << m; }
 

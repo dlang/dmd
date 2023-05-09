@@ -39,12 +39,10 @@ import dmd.backend.xmm;
 
 extern (C++):
 
+import dmd.backend.cg : segfl, stackfl;
+
 nothrow:
 @safe:
-
-extern __gshared CGstate cgstate;
-extern __gshared ubyte[FLMAX] segfl;
-extern __gshared bool[FLMAX] stackfl;
 
 private extern (D) uint mask(uint m) { return 1 << m; }
 
