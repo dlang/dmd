@@ -1020,29 +1020,40 @@ $(GNAME UserDefinedAttribute):
 )
 
     $(P
-        User-Defined Attributes (UDA) are compile-time expressions that can be attached
+        User-Defined Attributes (UDA) are compile-time annotations that can be attached
         to a declaration. These attributes can then be queried, extracted, and manipulated
         at compile time. There is no runtime component to them.
     )
 
-A user-defined attribute looks like:
+A user-defined attribute is defined using:
+* Compile-time expressions
+* A named manifest constant
+* A type name
+* A type to instantiate using a compile-time argument list
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
-@(3) int a;
----
----
-@("string", 7) int b;
+@(3) int a; // value argument
+@("string", 7) int b; // multiple values
+
+// using compile-time constant
+enum val = 3;
+@val int a2; // has same attribute as `a`
 
 enum Foo;
-@Foo int c;
+@Foo int c; // type name attribute
 
 struct Bar
 {
     int x;
 }
-
-@Bar(3) int d;
+@Bar() int d; // type instance
+@Bar(3) int e; // type instance using initializer
 ---
+)
+        $(P For `e`, the attribute is an instance of struct `Bar` which is
+        $(DDSUBLINK spec/struct, static_struct_init, statically initialized)
+        using its argument.)
 
         $(P
             If there are multiple UDAs in scope for a declaration, they are concatenated:
@@ -1056,8 +1067,16 @@ struct Bar
 }
 ---
 
+        $(P A function parameter can have a UDA:)
+---
+void f(@(3) int p);
+---
+
+$(H3 $(LNAME2 getAttributes, `__traits(getAttributes)`))
+
         $(P
-            UDAs can be extracted into an expression tuple using $(D __traits):
+            UDAs can be extracted into a
+            $(DDSUBLINK spec/template, variadic-templates, compile-time sequence) using $(D __traits):
         )
 
 ---
@@ -1066,15 +1085,19 @@ pragma(msg, __traits(getAttributes, s)); // prints tuple('c')
 ---
 
         $(P
-            If there are no user-defined attributes for the symbol, an empty tuple is returned.
-            The expression tuple can be turned into a manipulatable tuple:
+            If there are no user-defined attributes for the symbol, an empty sequence is returned.
+            The result can be used just like any compile-time sequence - it can be indexed,
+            passed as template parameters, etc.
         )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
-enum EEE = 7;
+enum e = 7;
 @("hello") struct SSS { }
-@(3) { @(4) @EEE @SSS int foo; }
+@(3)
+{
+    @(4) @e @SSS int foo;
+}
 
 alias TP = __traits(getAttributes, foo);
 
@@ -1084,7 +1107,7 @@ pragma(msg, TP[2]); // prints 7
 )
 
         $(P
-            Of course the tuple types can be used to declare things:
+            Any types in the sequence can be used to declare things:
         )
 
 ---
@@ -1096,14 +1119,15 @@ TP[3] a; // a is declared as an SSS
         )
 
 ---
+pragma(msg, __traits(getAttributes, a)); // prints tuple()
 pragma(msg, __traits(getAttributes, typeof(a))); // prints tuple("hello")
 ---
+
+$(H3 $(LNAME2 uda-usage, Usage))
 
         $(P
             Of course, the real value of UDAs is to be able to create user-defined types with
             specific values. Having attribute values of basic types does not scale.
-            The attribute tuples can be manipulated like any other tuple, and can be passed as
-            the argument list to a template.
         )
 
         $(P
