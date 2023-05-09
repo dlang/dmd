@@ -2672,7 +2672,7 @@ class Lexer
         return result;
     }
 
-    final Loc loc() pure @nogc
+    final Loc loc() @nogc
     {
         scanloc.charnum = cast(ushort)(1 + p - line);
         version (LocOffset)
@@ -3098,9 +3098,9 @@ class Lexer
     /**************************
      * `p` should be at start of next line
      */
-    private void endOfLine() pure @nogc @safe
+    private void endOfLine() @nogc @safe
     {
-        scanloc.linnum++;
+        scanloc.linnum = scanloc.linnum + 1;
         line = p;
     }
 }
