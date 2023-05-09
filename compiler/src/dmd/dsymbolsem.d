@@ -1463,7 +1463,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 else
                 {
                     Dsymbol s = imp.mod.search_correct(imp.names[i]);
-                    if (s)
+                    // https://issues.dlang.org/show_bug.cgi?id=23908
+                    // Don't suggest symbols from the importer's module
+                    if (s && s.parent != importer)
                         imp.mod.error(imp.loc, "import `%s` not found, did you mean %s `%s`?", imp.names[i].toChars(), s.kind(), s.toPrettyChars());
                     else
                         imp.mod.error(imp.loc, "import `%s` not found", imp.names[i].toChars());
