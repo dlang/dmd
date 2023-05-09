@@ -401,7 +401,7 @@ private void parseModulePattern(const(char)* modulePattern, MatcherNode* dst, us
                 if (*modulePattern == '.')
                 {
                     assert(modulePattern > idStart, "empty module pattern");
-                    *dst = MatcherNode(Identifier.idPool(idStart, cast(uint)(modulePattern - idStart)));
+                    *dst = MatcherNode(Identifier.idPool(idStart[0 .. modulePattern - idStart]));
                     modulePattern++;
                     idStart = modulePattern;
                     break;
@@ -413,7 +413,7 @@ private void parseModulePattern(const(char)* modulePattern, MatcherNode* dst, us
             if (*modulePattern == '\0')
             {
                 assert(modulePattern > idStart, "empty module pattern");
-                *lastNode = MatcherNode(Identifier.idPool(idStart, cast(uint)(modulePattern - idStart)));
+                *lastNode = MatcherNode(Identifier.idPool(idStart[0 .. modulePattern - idStart]));
                 break;
             }
         }
