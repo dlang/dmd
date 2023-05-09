@@ -1273,8 +1273,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 }
                 else if (auto td = sfront.isTemplateDeclaration())
                 {
-                    Expressions a;
-                    if (auto f = resolveFuncCall(loc, sc, td, null, tab, ArgumentList(&a), FuncResolveFlag.quiet))
+                    if (auto f = resolveFuncCall(loc, sc, td, null, tab, ArgumentList(), FuncResolveFlag.quiet))
                         tfront = f.type;
                 }
                 else if (auto d = sfront.toAlias().isDeclaration())
