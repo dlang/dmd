@@ -2448,7 +2448,7 @@ extern (C++) abstract class Type : ASTNode
         //printf("%p %s, deco = %s, name = %s\n", this, toChars(), deco, name);
         assert(0 < length && length < namelen); // don't overflow the buffer
 
-        auto id = Identifier.idPool(name, length);
+        auto id = Identifier.idPool(name[0 .. length]);
 
         if (name != namebuf.ptr)
             free(name);
