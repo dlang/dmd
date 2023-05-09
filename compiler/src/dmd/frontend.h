@@ -377,19 +377,25 @@ enum class MessageStyle : uint8_t
 
 struct Loc final
 {
-    uint32_t linnum;
-    uint16_t charnum;
+private:
+    uint32_t _linnum;
+    uint16_t _charnum;
     uint16_t fileIndex;
+public:
     static bool showColumns;
     static MessageStyle messageStyle;
     static void set(bool showColumns, MessageStyle messageStyle);
+    uint32_t charnum() const;
+    uint32_t charnum(uint32_t num);
+    uint32_t linnum() const;
+    uint32_t linnum(uint32_t num);
     const char* filename() const;
     void filename(const char* name);
     const char* toChars(bool showColumns = showColumns, MessageStyle messageStyle = messageStyle) const;
     bool equals(const Loc& loc) const;
     Loc() :
-        linnum(),
-        charnum(),
+        _linnum(),
+        _charnum(),
         fileIndex()
     {
     }

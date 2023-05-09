@@ -37,9 +37,9 @@ debug info etc.
 */
 struct Loc
 {
-    uint linnum; /// line number, starting from 1
-    ushort charnum; /// utf8 code unit index relative to start of line, starting from 1
-    ushort fileIndex; // index into filenames[], starting from 1 (0 means no filename)
+    private uint _linnum;
+    private ushort _charnum;
+    private ushort fileIndex; // index into filenames[], starting from 1 (0 means no filename)
     version (LocOffset)
         uint fileOffset; /// utf8 code unit index relative to start of file, starting from 0
 
@@ -66,9 +66,33 @@ nothrow:
 
     extern (D) this(const(char)* filename, uint linnum, uint charnum)
     {
-        this.linnum = linnum;
-        this.charnum = cast(ushort)charnum;
+        this._linnum = linnum;
+        this._charnum = cast(ushort) charnum;
         this.filename = filename;
+    }
+
+    /// utf8 code unit index relative to start of line, starting from 1
+    extern (C++) uint charnum() const @nogc @safe
+    {
+        return _charnum;
+    }
+
+    /// ditto
+    extern (C++) uint charnum(uint num) @nogc @safe
+    {
+        return _charnum = cast(ushort) num;
+    }
+
+    /// line number, starting from 1
+    extern (C++) uint linnum() const @nogc @safe
+    {
+        return _linnum;
+    }
+
+    /// ditto
+    extern (C++) uint linnum(uint num) @nogc @safe
+    {
+        return _linnum = num;
     }
 
     /***
