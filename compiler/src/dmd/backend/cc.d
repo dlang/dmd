@@ -156,9 +156,7 @@ nothrow:
     void print(const(char)* func) const { Srcpos_print(this, func); }
 }
 
-void Srcpos_print(ref const Srcpos srcpos, const(char)* func);
-
-//#include "token.h"
+import dmd.backend.dout : Srcpos_print;
 
 alias stflags_t = uint;
 enum
@@ -1313,10 +1311,7 @@ void symbol_debug(const Symbol* s)
     debug assert(s.id == s.IDsymbol);
 }
 
-int Symbol_Salignsize(ref Symbol s);
-bool Symbol_Sisdead(const ref Symbol s, bool anyInlineAsm);
-int Symbol_needThis(const ref Symbol s);
-bool Symbol_isAffected(const ref Symbol s);
+public import dmd.backend.symbol : Symbol_Salignsize, Symbol_Sisdead, Symbol_needThis, Symbol_isAffected;
 
 bool isclassmember(const Symbol* s) { return s.Sscope && s.Sscope.Sclass == SC.struct_; }
 
