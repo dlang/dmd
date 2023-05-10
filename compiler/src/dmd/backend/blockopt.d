@@ -42,9 +42,6 @@ extern(C++):
 nothrow:
 @safe:
 
-extern (C) void *mem_fcalloc(size_t numbytes); // tk/mem.c
-extern (C) void mem_free(void*); // tk/mem.c
-
 alias MEM_PH_FREE = mem_free;
 
 import dmd.backend.gflow : util_realloc;

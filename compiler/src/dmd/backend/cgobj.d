@@ -98,15 +98,13 @@ version (Posix)
     }
 }
 
-int obj_namestring(char *p,const(char)* name);
-
 enum MULTISCOPE = 1;            /* account for bug in MultiScope debugger
                                    where it cannot handle a line number
                                    with multiple offsets. We use a bit vector
                                    to filter out the extra offsets.
                                  */
 
-extern (C) void TOOFFSET(void* p, targ_size_t value);
+import dmd.backend.dcgcv : TOOFFSET;
 
 @trusted
 void TOWORD(void* a, uint b)

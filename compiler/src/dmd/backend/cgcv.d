@@ -28,16 +28,12 @@ nothrow:
 
 alias symlist_t = LIST*;
 
-void cv_init();
-uint cv_typidx(type* t);
-void cv_outsym(Symbol* s);
-void cv_func(Symbol* s);
-void cv_term();
+public import dmd.backend.dcgcv : cv_init, cv_typidx, cv_outsym, cv_func, cv_term, cv4_struct,
+    cv_stringbytes, cv4_numericbytes, cv4_storenumeric, cv4_signednumericbytes,
+    cv4_storesignednumeric, cv_debtyp, cv_namestring, cv4_typidx, cv4_arglist, cv4_callconv,
+    cv_numdebtypes, debtyp_alloc;
 
-void dwarf_outsym(Symbol* s);
-
-uint cv4_struct(Classsym*, int);
-
+public import dmd.backend.dwarfdbginf : dwarf_outsym;
 
 /* =================== Added for MARS compiler ========================= */
 
@@ -66,19 +62,6 @@ struct Cgcv
 
 __gshared Cgcv cgcv;
 
-debtyp_t* debtyp_alloc(uint length);
-int cv_stringbytes(const(char)* name);
-uint cv4_numericbytes(uint value);
-void cv4_storenumeric(ubyte* p, uint value);
-uint cv4_signednumericbytes(int value);
-void cv4_storesignednumeric(ubyte* p, int value);
-idx_t cv_debtyp(debtyp_t* d);
-int cv_namestring(ubyte* p, const(char)* name, int length = -1);
-uint cv4_typidx(type* t);
-idx_t cv4_arglist(type* t, uint* pnparam);
-ubyte cv4_callconv(type* t);
-idx_t cv_numdebtypes();
-
 @trusted
 void TOWORD(ubyte* a, uint b)
 {
@@ -105,17 +88,4 @@ enum DEBTYP = 6;               // segment of type info
 
 /* ======================== Added for Codeview 8 =========================== */
 
-void cv8_initfile(const(char)* filename);
-void cv8_termfile(const(char)* objfilename);
-void cv8_initmodule(const(char)* filename, const(char)* modulename);
-void cv8_termmodule();
-void cv8_func_start(Symbol* sfunc);
-void cv8_func_term(Symbol* sfunc);
-//void cv8_linnum(Srcpos srcpos, uint offset);  // Srcpos isn't available yet
-void cv8_outsym(Symbol* s);
-void cv8_udt(const(char)* id, idx_t typidx);
-int cv8_regnum(Symbol* s);
-idx_t cv8_fwdref(Symbol* s);
-idx_t cv8_darray(type* tnext, idx_t etypidx);
-idx_t cv8_ddelegate(type* t, idx_t functypidx);
-idx_t cv8_daarray(type* t, idx_t keyidx, idx_t validx);
+public import dmd.backend.cv8;
