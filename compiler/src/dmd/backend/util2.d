@@ -29,8 +29,6 @@ extern (C++):
 nothrow: @nogc:
 @safe:
 
-import dmd.backend.ph2 : ph_malloc, ph_calloc, ph_free, ph_realloc;
-
 /****************************
  * Clean up and exit program.
  */
@@ -197,123 +195,6 @@ int ispow2(ulong c)
             for (i = 0; c >>= 1; i++)
             { }
         return i;
-}
-
-/***************************
- */
-
-enum UTIL_PH = true;
-
-version (MEM_DEBUG)
-    enum MEM_DEBUG = false; //true;
-else
-    enum MEM_DEBUG = false;
-
-version (Windows)
-{
-void *util_malloc(uint n,uint size) @trusted
-{
-static if (MEM_DEBUG)
-{
-    void *p;
-
-    p = mem_malloc(n * size);
-    //dbg_printf("util_calloc(%d) = %p\n",n * size,p);
-    return p;
-}
-else static if (UTIL_PH)
-{
-    return ph_malloc(n * size);
-}
-else
-{
-    size_t nbytes = cast(size_t)n * cast(size_t)size;
-    void *p = malloc(nbytes);
-    if (!p && nbytes)
-        err_nomem();
-    return p;
-}
-}
-}
-
-/***************************
- */
-
-version (Windows)
-{
-void *util_calloc(uint n,uint size) @trusted
-{
-static if (MEM_DEBUG)
-{
-    void *p;
-
-    p = mem_calloc(n * size);
-    //dbg_printf("util_calloc(%d) = %p\n",n * size,p);
-    return p;
-}
-else static if (UTIL_PH)
-{
-    return ph_calloc(n * size);
-}
-else
-{
-    size_t nbytes = cast(size_t) n * cast(size_t) size;
-    void *p = calloc(n,size);
-    if (!p && nbytes)
-        err_nomem();
-    return p;
-}
-}
-}
-
-/***************************
- */
-
-version (Windows)
-{
-void util_free(void *p) @trusted
-{
-    //dbg_printf("util_free(%p)\n",p);
-static if (MEM_DEBUG)
-{
-    mem_free(p);
-}
-else static if (UTIL_PH)
-{
-    ph_free(p);
-}
-else
-{
-    free(p);
-}
-}
-}
-
-/***************************
- */
-
-version (Windows)
-{
-void *util_realloc(void *oldp,size_t n,size_t size) @trusted
-{
-static if (MEM_DEBUG)
-{
-    //dbg_printf("util_realloc(%p,%d)\n",oldp,n * size);
-    return mem_realloc(oldp,n * size);
-}
-else static if (UTIL_PH)
-{
-    return ph_realloc(oldp,n * size);
-}
-else
-{
-    const nbytes = n * size;
-    void *p = realloc(oldp,nbytes);
-    if (!p && nbytes)
-        err_nomem();
-    return p;
-}
-}
 }
 
 /*****************************

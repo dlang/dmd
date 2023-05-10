@@ -73,24 +73,19 @@ public import dmd.backend.ee : eecontext_convs;
 public import dmd.backend.elem : exp2_copytotemp;
 public import dmd.backend.util2 : err_exit, ispow2;
 
-version (Posix)
-{
 void* util_malloc(uint n,uint size) { return mem_malloc(n * size); }
 void* util_calloc(uint n,uint size) { return mem_calloc(n * size); }
 void util_free(void *p) { mem_free(p); }
 void *util_realloc(void *oldp,size_t n,size_t size) { return mem_realloc(oldp, n * size); }
-}
-else
-{
-void *util_malloc(uint n,uint size);
-void *util_calloc(uint n,uint size);
-void util_free(void *p);
-void *util_realloc(void *oldp,size_t n,size_t size);
-}
 
 public import dmd.backend.cgcs : comsubs, cgcs_term;
 public import dmd.backend.evalu8;
-public import dmd.backend.ph2 : err_nomem;
+
+void err_nomem() @nogc nothrow @trusted
+{
+    printf("Error: out of memory\n");
+    err_exit();
+}
 
 void symbol_keep(Symbol *s) { }
 public import dmd.backend.symbol : symbol_print, symbol_term, symbol_ident, symbol_calloc,
