@@ -42,8 +42,6 @@ extern(C++):
 nothrow:
 @safe:
 
-alias MEM_PH_FREE = mem_free;
-
 import dmd.backend.gflow : util_realloc;
 
 __gshared
@@ -343,14 +341,7 @@ void block_free(block *b)
         case BCswitch:
         case BCifthen:
         case BCjmptab:
-            version (MARS)
-            {
-                free(b.Bswitch);
-            }
-            else
-            {
-                MEM_PH_FREE(b.Bswitch);
-            }
+            free(b.Bswitch);
             break;
 
         version (SCPP)
