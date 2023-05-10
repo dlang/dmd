@@ -39,19 +39,12 @@ import dmd.backend.type;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
 
-
-extern (C)
-{
-    nothrow void *mem_calloc(size_t);
-}
-
 extern (C++):
 
 nothrow:
 @safe:
 
-elem * evalu8(elem *e, goal_t goal);
-
+import dmd.backend.evalu8 : evalu8;
 
 /* Masks so we can easily check size */
 enum CHARMASK  = 0xFF;

@@ -43,7 +43,7 @@ char symbol_isintab(const Symbol *s) { return sytab[s.Sclass] & SCSS; }
 
 extern (C++):
 
-bool findloopparameters(elem* erel, ref elem* rdeq, ref elem* rdinc);
+import dmd.backend.gother : findloopparameters;
 
 alias Loops = Rarray!Loop;
 
