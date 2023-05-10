@@ -27,11 +27,6 @@ extern (C++):
 nothrow:
 @safe:
 
-version (MARS)
-{
-    void ph_init();
-}
-
 /**************************************
  * Initialize configuration for backend.
  * Params:
@@ -355,7 +350,6 @@ static if (0)
     cfg.useTypeInfo = useTypeInfo;
     cfg.useExceptions = useExceptions;
 
-    ph_init();
     block_init();
 
     cod3_setdefault();

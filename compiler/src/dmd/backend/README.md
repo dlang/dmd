@@ -77,7 +77,6 @@ Miscellaneous
 * **oper.d**          operators for expression tree
 * **optabgen.d**      generate tables for back end
 * **ty.d**            type masks
-* **ph2.d**           leaking allocator
 * **symbol.d**        symbols for the back end
 * **type.d**          types for the back end
 * **var.d**           global variables

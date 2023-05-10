@@ -79,7 +79,12 @@ void *util_realloc(void *oldp,size_t n,size_t size);
 
 public import dmd.backend.cgcs : comsubs, cgcs_term;
 public import dmd.backend.evalu8;
-public import dmd.backend.ph2 : err_nomem;
+
+void err_nomem() @nogc nothrow @trusted
+{
+    printf("Error: out of memory\n");
+    err_exit();
+}
 
 /* from msc.c */
 targ_size_t _align(targ_size_t,targ_size_t);
