@@ -3246,6 +3246,7 @@ enum FuncResolveFlag : ubyte
     quiet = 1,          /// do not issue error message on no match, just return `null`.
     overloadOnly = 2,   /// only resolve overloads, i.e. do not issue error on ambiguous
                         /// matches and need explicit this.
+    ufcs = 4,           /// trying to resolve UFCS call
 }
 
 /*******************************************
@@ -3363,6 +3364,13 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
     }
 
     // no match, generate an error messages
+    if (flags & FuncResolveFlag.ufcs)
+    {
+        auto arg = (*fargs)[0];
+        .error(loc, "no property `%s` for `%s` of type `%s`", s.ident.toChars(), arg.toChars(), arg.type.toChars());
+        .errorSupplemental(loc, "the following error occured while looking for a UFCS match");
+    }
+
     if (!fd)
     {
         // all of overloads are templates

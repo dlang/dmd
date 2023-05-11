@@ -2681,6 +2681,7 @@ enum class FuncResolveFlag : uint8_t
     standard = 0u,
     quiet = 1u,
     overloadOnly = 2u,
+    ufcs = 4u,
 };
 
 class InvariantDeclaration final : public FuncDeclaration
@@ -7559,6 +7560,7 @@ public:
     bool directcall;
     bool inDebugStatement;
     bool ignoreAttributes;
+    bool isUfcsRewrite;
     VarDeclaration* vthis2;
     static CallExp* create(const Loc& loc, Expression* e, Array<Expression* >* exps);
     static CallExp* create(const Loc& loc, Expression* e);
