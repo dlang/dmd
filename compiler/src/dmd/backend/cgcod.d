@@ -49,10 +49,6 @@ extern (C++):
 nothrow:
 @safe:
 
-// FIXME: backend can't import front end because missing -J flag
-// import dmd.eh : except_gentables;
-Symbol* except_gentables();
-
 alias _compare_fp_t = extern(C) nothrow int function(const void*, const void*);
 extern(C) void qsort(void* base, size_t nmemb, size_t size, _compare_fp_t compar);
 

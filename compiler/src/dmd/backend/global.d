@@ -39,7 +39,18 @@ import dmd.backend.barray;
 nothrow:
 @safe:
 
-int REGSIZE(); // implementation in e2ir.d
+// FIXME: backend can't import front end modules because missing -J flag
+
+// import dmd.dmsc : _align, symboldata, size;
+targ_size_t _align(targ_size_t,targ_size_t);
+@trusted Symbol *symboldata(targ_size_t offset,tym_t ty);
+targ_size_t size(tym_t);
+
+// import dmd.e2ir : REGSIZE;
+int REGSIZE();
+
+// import dmd.eh : except_gentables;
+Symbol* except_gentables();
 
 public import dmd.backend.var : debuga, debugb, debugc, debugd, debuge, debugf,
     debugr, debugs, debugt, debugu, debugw, debugx, debugy;
@@ -81,9 +92,6 @@ public import dmd.backend.cgcs : comsubs, cgcs_term;
 public import dmd.backend.evalu8;
 public import dmd.backend.ph2 : err_nomem;
 
-/* from msc.c */
-targ_size_t _align(targ_size_t,targ_size_t);
-
 void symbol_keep(Symbol *s) { }
 public import dmd.backend.symbol : symbol_print, symbol_term, symbol_ident, symbol_calloc,
     symbol_name, symbol_generate, symbol_genauto, symbol_genauto, symbol_genauto,
@@ -110,9 +118,6 @@ public import dmd.backend.debugprint;
 public import dmd.backend.cgelem : doptelem, postoptelem, elemisone;
 public import dmd.backend.gloop : dom;
 public import dmd.backend.util2 : binary;
-/* msc.c */
-@trusted Symbol *symboldata(targ_size_t offset,tym_t ty);
-targ_size_t size(tym_t);
 
 public import dmd.backend.go : go_flag, optfunc;
 public import dmd.backend.drtlsym : rtlsym_init, rtlsym_reset, rtlsym_term;
