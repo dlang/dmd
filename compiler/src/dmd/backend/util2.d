@@ -29,10 +29,7 @@ extern (C++):
 nothrow: @nogc:
 @safe:
 
-void *ph_malloc(size_t nbytes);
-void *ph_calloc(size_t nbytes);
-void ph_free(void *p);
-void *ph_realloc(void *p , size_t nbytes);
+import dmd.backend.ph2 : ph_malloc, ph_calloc, ph_free, ph_realloc;
 
 void file_progress()
 {
@@ -262,7 +259,7 @@ else
 
 version (Windows)
 {
-void *util_malloc(uint n,uint size)
+void *util_malloc(uint n,uint size) @trusted
 {
 static if (MEM_DEBUG)
 {
@@ -292,7 +289,7 @@ else
 
 version (Windows)
 {
-void *util_calloc(uint n,uint size)
+void *util_calloc(uint n,uint size) @trusted
 {
 static if (MEM_DEBUG)
 {
@@ -322,7 +319,7 @@ else
 
 version (Windows)
 {
-void util_free(void *p)
+void util_free(void *p) @trusted
 {
     //dbg_printf("util_free(%p)\n",p);
 static if (MEM_DEBUG)
@@ -345,7 +342,7 @@ else
 
 version (Windows)
 {
-void *util_realloc(void *oldp,size_t n,size_t size)
+void *util_realloc(void *oldp,size_t n,size_t size) @trusted
 {
 static if (MEM_DEBUG)
 {

@@ -21,7 +21,7 @@ extern (C++):
 
 nothrow:
 
-int statusFE()
+int statusFE() @safe
 {
     return 0;
 }

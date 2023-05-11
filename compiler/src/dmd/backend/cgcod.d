@@ -61,7 +61,7 @@ version (MARS)
 else
     enum MARS = false;
 
-void dwarf_except_gentables(Funcsym *sfunc, uint startoffset, uint retoffset);
+import dmd.backend.dwarfdbginf : dwarf_except_gentables;
 
 private extern (D) uint mask(uint m) { return 1 << m; }
 

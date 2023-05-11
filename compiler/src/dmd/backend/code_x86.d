@@ -304,9 +304,6 @@ enum
     CFPREFIX    = CFSEG | CFopsize | CFaddrsize,
 }
 
-@trusted
-extern (C) void CF_print(uint cf);
-
 struct code
 {
     code *next;
@@ -398,8 +395,6 @@ struct code
         code_print(&this);
     }
 }
-
-extern (C) void code_print(scope code*);
 
 /*******************
  * Some instructions.

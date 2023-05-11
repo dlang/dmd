@@ -2923,8 +2923,6 @@ void callclib(ref CodeBuilder cdb, elem* e, uint clib, regm_t* pretregs, regm_t 
  */
 struct Parameter { elem* e; reg_t reg; reg_t reg2; uint numalign; }
 
-//void fillParameters(elem* e, Parameter* parameters, int* pi);
-
 @trusted
 void fillParameters(elem* e, Parameter* parameters, int* pi)
 {
@@ -3007,8 +3005,6 @@ FuncParamRegs FuncParamRegs_create(tym_t tyf)
  *      false       not allocated to any register
  *      true        *preg1, *preg2 set to allocated register pair
  */
-
-//bool type_jparam2(type* t, tym_t ty);
 
 @trusted
 private bool type_jparam2(type* t, tym_t ty)

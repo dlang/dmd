@@ -438,16 +438,6 @@ void objrecord(uint rectyp, const(char)* record, uint reclen)
     o.writeByten(0);           // use 0 for checksum
 }
 
-
-/**************************
- * Insert an index number.
- * Input:
- *      p . where to put the 1 or 2 byte index
- *      index = the 15 bit index
- * Returns:
- *      # of bytes stored
- */
-
 void error(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...);
 void fatal();
 

@@ -39,15 +39,9 @@ extern (C++):
 nothrow:
 @safe:
 
-version (MARS)
-    import dmd.backend.errors;
+import dmd.backend.errors;
 
-// fp.c
-int testFE();
-void clearFE();
-int statusFE();
-bool have_float_except();
-
+import dmd.backend.fp : testFE, clearFE, statusFE, have_float_except;
 
 /**********************
  * Return boolean result of constant elem.
