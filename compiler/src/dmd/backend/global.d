@@ -84,19 +84,6 @@ public import dmd.backend.ph2 : err_nomem;
 /* from msc.c */
 targ_size_t _align(targ_size_t,targ_size_t);
 
-/* nteh.c */
-ubyte *nteh_context_string();
-void nteh_declarvars(Blockx *bx);
-elem *nteh_setScopeTableIndex(Blockx *blx, int scope_index);
-Symbol *nteh_contextsym();
-uint nteh_contextsym_size();
-Symbol *nteh_ecodesym();
-code *nteh_unwind(regm_t retregs,uint index);
-code *linux_unwind(regm_t retregs,uint index);
-int nteh_offset_sindex();
-int nteh_offset_sindex_seh();
-int nteh_offset_info();
-
 void symbol_keep(Symbol *s) { }
 public import dmd.backend.symbol : symbol_print, symbol_term, symbol_ident, symbol_calloc,
     symbol_name, symbol_generate, symbol_genauto, symbol_genauto, symbol_genauto,
