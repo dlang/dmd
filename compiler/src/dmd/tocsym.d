@@ -52,6 +52,7 @@ import dmd.dmangle;
 import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.dt;
+import dmd.backend.dtype;
 import dmd.backend.type;
 import dmd.backend.global;
 import dmd.backend.oper;

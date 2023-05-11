@@ -30,6 +30,7 @@ import dmd.backend.el;
 import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
+import dmd.backend.dtype;
 
 import dmd.backend.dlist;
 import dmd.backend.dvec;

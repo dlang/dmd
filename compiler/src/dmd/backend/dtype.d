@@ -18,12 +18,14 @@ import core.stdc.string;
 import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.dlist;
+import dmd.backend.dtype;
 import dmd.backend.el;
 import dmd.backend.global;
 import dmd.backend.mem;
 import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
+import dmd.backend.var : chartype;
 
 extern (C++):
 
@@ -59,7 +61,7 @@ __gshared
  * Returns:
  *      size
  */
-@trusted
+@trusted @nogc
 targ_size_t type_size(const type *t)
 {   targ_size_t s;
     tym_t tyb;
@@ -259,7 +261,7 @@ uint type_paramsize(type *t)
  *      pointer to newly created type.
  */
 
-@trusted
+@trusted @nogc
 type *type_alloc(tym_t ty)
 {   type *t;
 

@@ -23,6 +23,7 @@ import dmd.root.rmem;
 import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.dt;
+import dmd.backend.dtype;
 import dmd.backend.el;
 import dmd.backend.global;
 import dmd.backend.oper;

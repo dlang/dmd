@@ -67,6 +67,7 @@ import dmd.backend.code;
 import dmd.backend.code_x86;
 import dmd.backend.cv4;
 import dmd.backend.dt;
+import dmd.backend.dtype;
 import dmd.backend.el;
 import dmd.backend.global;
 import dmd.backend.obj;

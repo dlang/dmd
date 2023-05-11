@@ -20,6 +20,7 @@ import core.stdc.string;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
+import dmd.backend.dtype;
 import dmd.backend.global;
 import dmd.backend.mem;
 import dmd.backend.ty;

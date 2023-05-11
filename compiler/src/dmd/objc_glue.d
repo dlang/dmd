@@ -36,6 +36,7 @@ import dmd.root.array;
 import dmd.backend.dt;
 import dmd.backend.cc;
 import dmd.backend.cdef;
+import dmd.backend.dtype;
 import dmd.backend.el;
 import dmd.backend.global;
 import dmd.backend.oper;

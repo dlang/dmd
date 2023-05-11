@@ -31,6 +31,7 @@ import dmd.backend.ty;
 import dmd.backend.type;
 
 import dmd.backend.dlist;
+import dmd.backend.dtype;
 import dmd.backend.dvec;
 
 extern (C++):

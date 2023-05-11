@@ -17,6 +17,7 @@ import core.stdc.stdio;
 import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.code;
+import dmd.backend.dtype;
 import dmd.backend.global;
 import dmd.backend.ty;
 import dmd.backend.type;

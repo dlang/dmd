@@ -21,6 +21,7 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.oper;
 import dmd.backend.dlist;
+import dmd.backend.dtype;
 import dmd.backend.dvec;
 import dmd.backend.el;
 import dmd.backend.mem;

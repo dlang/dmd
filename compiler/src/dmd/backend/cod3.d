@@ -34,6 +34,7 @@ import dmd.backend.code;
 import dmd.backend.code_x86;
 import dmd.backend.codebuilder;
 import dmd.backend.dlist;
+import dmd.backend.dtype;
 import dmd.backend.dvec;
 import dmd.backend.melf;
 import dmd.backend.mem;

@@ -19,6 +19,7 @@ import core.stdc.string;
 
 import dmd.backend.cdef;
 import dmd.backend.cc;
+import dmd.backend.dtype;
 import dmd.backend.el;
 import dmd.backend.global;
 import dmd.backend.code;

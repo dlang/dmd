@@ -28,6 +28,7 @@ import dmd.root.filename;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
+import dmd.backend.dtype;
 import dmd.backend.global;
 import dmd.backend.ty;
 import dmd.backend.type;
