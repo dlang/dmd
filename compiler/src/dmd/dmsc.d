@@ -31,43 +31,7 @@ import dmd.backend.cdef;
 import dmd.backend.global;
 import dmd.backend.ty;
 import dmd.backend.type;
-
-extern (C) void out_config_init(
-        int model,      // 32: 32 bit code
-                        // 64: 64 bit code
-                        // Windows: bit 0 set to generate MS-COFF instead of OMF
-        bool exe,       // true: exe file
-                        // false: dll or shared library (generate PIC code)
-        bool trace,     // add profiling code
-        bool nofloat,   // do not pull in floating point code
-        bool vasm,      // print generated assembler for each function
-        bool verbose,   // verbose compile
-        bool optimize,  // optimize code
-        int symdebug,   // add symbolic debug information
-                        // 1: D
-                        // 2: fake it with C symbolic debug info
-        bool alwaysframe,       // always create standard function frame
-        bool stackstomp,        // add stack stomping code
-        ubyte avx,              // use AVX instruction set (0, 1, 2)
-        PIC pic,                // kind of position independent code
-        bool useModuleInfo,     // implement ModuleInfo
-        bool useTypeInfo,       // implement TypeInfo
-        bool useExceptions,     // implement exception handling
-        ubyte dwarf,            // DWARF version used
-        string _version,        // Compiler version
-        exefmt_t exefmt,        // Executable file format
-        bool generatedMain      // a main entrypoint is generated
-        );
-
-void out_config_debug(
-        bool debugb,
-        bool debugc,
-        bool debugf,
-        bool debugr,
-        bool debugw,
-        bool debugx,
-        bool debugy
-    );
+import dmd.backend.backconfig;
 
 /**************************************
  * Initialize config variables.

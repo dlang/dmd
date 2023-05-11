@@ -52,12 +52,7 @@ private extern (D) uint mask(uint m) { return 1 << m; }
                         /*   AX,CX,DX,BX                */
 __gshared const reg_t[4] dblreg = [ BX,DX,NOREG,CX ];
 
-// from divcoeff.c
-extern (C)
-{
-    bool choose_multiplier(int N, ulong d, int prec, ulong *pm, int *pshpost);
-    bool udiv_coefficients(int N, ulong d, int *pshpre, ulong *pm, int *pshpost);
-}
+import dmd.backend.divcoeff : choose_multiplier, udiv_coefficients;
 
 /*******************************
  * Return number of times symbol s appears in tree e.

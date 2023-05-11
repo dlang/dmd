@@ -168,22 +168,7 @@ struct CGstate
     bool accessedTLS;           // set if accessed Thread Local Storage (TLS)
 }
 
-// nteh.c
-void nteh_prolog(ref CodeBuilder cdb);
-void nteh_epilog(ref CodeBuilder cdb);
-void nteh_usevars();
-void nteh_filltables();
-void nteh_gentables(Symbol *sfunc);
-void nteh_setsp(ref CodeBuilder cdb, opcode_t op);
-void nteh_filter(ref CodeBuilder cdb, block *b);
-void nteh_framehandler(Symbol *, Symbol *);
-void nteh_gensindex(ref CodeBuilder, int);
-enum GENSINDEXSIZE = 7;
-void nteh_monitor_prolog(ref CodeBuilder cdb,Symbol *shandle);
-void nteh_monitor_epilog(ref CodeBuilder cdb,regm_t retregs);
-code *nteh_patchindex(code* c, int index);
-void nteh_unwind(ref CodeBuilder cdb,regm_t retregs,uint index);
-
+public import dmd.backend.nteh;
 public import dmd.backend.cgen;
 public import dmd.backend.cgreg : cgreg_init, cgreg_term, cgreg_reset, cgreg_used,
     cgreg_spillreg_prolog, cgreg_spillreg_epilog, cgreg_assign, cgreg_unregister;
