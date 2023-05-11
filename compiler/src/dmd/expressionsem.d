@@ -1254,12 +1254,12 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
                 return ErrorExp.get();
             e2 = resolveProperties(sc, e2);
 
-            Expressions a;
+            Expressions* a = new Expressions();
             a.push(e2);
 
             for (size_t i = 0; i < os.a.length; i++)
             {
-                if (FuncDeclaration f = resolveFuncCall(loc, sc, os.a[i], tiargs, tthis, ArgumentList(&a), FuncResolveFlag.quiet))
+                if (FuncDeclaration f = resolveFuncCall(loc, sc, os.a[i], tiargs, tthis, ArgumentList(a), FuncResolveFlag.quiet))
                 {
                     if (f.errors)
                         return ErrorExp.get();
@@ -1378,10 +1378,10 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
                 return ErrorExp.get();
             e2 = resolveProperties(sc, e2);
 
-            Expressions a;
+            Expressions* a = new Expressions();
             a.push(e2);
 
-            FuncDeclaration fd = resolveFuncCall(loc, sc, s, tiargs, tthis, ArgumentList(&a), FuncResolveFlag.quiet);
+            FuncDeclaration fd = resolveFuncCall(loc, sc, s, tiargs, tthis, ArgumentList(a), FuncResolveFlag.quiet);
             if (fd && fd.type)
             {
                 if (fd.errors)

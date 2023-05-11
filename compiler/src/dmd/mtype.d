@@ -7119,9 +7119,9 @@ bool isCopyable(Type t)
             assert(ctor);
             scope el = new IdentifierExp(Loc.initial, Id.p); // dummy lvalue
             el.type = cast() ts;
-            Expressions args;
+            Expressions* args = new Expressions();
             args.push(el);
-            FuncDeclaration f = resolveFuncCall(Loc.initial, null, ctor, null, cast()ts, ArgumentList(&args), FuncResolveFlag.quiet);
+            FuncDeclaration f = resolveFuncCall(Loc.initial, null, ctor, null, cast()ts, ArgumentList(args), FuncResolveFlag.quiet);
             if (!f || f.storage_class & STC.disable)
                 return false;
         }
