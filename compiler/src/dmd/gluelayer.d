@@ -54,18 +54,9 @@ else version (MARS)
     public import dmd.backend.type : type;
     public import dmd.backend.el : elem;
     public import dmd.backend.code_x86 : code;
-
-    extern (C++)
-    {
-        Statement asmSemantic(AsmStatement s, Scope* sc);
-
-        void toObjFile(Dsymbol ds, bool multiobj);
-
-        extern(C++) abstract class ObjcGlue
-        {
-            static void initialize();
-        }
-    }
+    public import dmd.iasm : asmSemantic;
+    public import dmd.objc_glue : ObjcGlue;
+    public import dmd.toobj : toObjFile;
 }
 else version (IN_GCC)
 {
