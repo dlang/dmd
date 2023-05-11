@@ -1237,7 +1237,6 @@ private int mergeblks()
 
             if (b == bL2)
             {
-        Lcontinue:
                 continue;
             }
             assert(bL2.Bpred);

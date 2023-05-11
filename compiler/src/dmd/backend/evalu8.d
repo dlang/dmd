@@ -1937,8 +1937,6 @@ static if (0) // && MARS
         return e;
   }
 
-    int flags;
-
     if (!(goal & GOALignore_exceptions) &&
         (config.flags4 & CFG4fastfloat) == 0 && testFE() &&
         (have_float_except() || tyfloating(tym) || tyfloating(tybasic(typemask(e))))

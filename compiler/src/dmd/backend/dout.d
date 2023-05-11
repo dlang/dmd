@@ -675,7 +675,6 @@ debug
 
     case OPrelconst:
     case OPvar:
-    L6:
         s = e.EV.Vsym;
         assert(s);
         symbol_debug(s);

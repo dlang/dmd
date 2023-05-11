@@ -648,10 +648,8 @@ void cdsetjmp(ref CodeBuilder cdb, elem *e,regm_t *pretregs)
             try..catch, then call setjmp3 as follows:
             _setjmp3(environment,0)
          */
-    L1:
         flag = 0;
     }
-L2:
     cs.Iop = 0x68;
     cs.Iflags = 0;
     cs.Irex = 0;
