@@ -30,16 +30,6 @@ extern (C++):
 nothrow:
 @safe:
 
-alias MEM_PH_MALLOC = mem_malloc;
-alias MEM_PH_CALLOC = mem_calloc;
-alias MEM_PH_FREE = mem_free;
-alias MEM_PH_STRDUP = mem_strdup;
-alias MEM_PARF_MALLOC = mem_malloc;
-alias MEM_PARF_CALLOC = mem_calloc;
-alias MEM_PARF_REALLOC = mem_realloc;
-alias MEM_PARF_FREE = mem_free;
-alias MEM_PARF_STRDUP = mem_strdup;
-
 @trusted
 struct_t* struct_calloc() { return cast(struct_t*) mem_calloc(struct_t.sizeof); }
 
@@ -460,7 +450,7 @@ type *type_enum(const(char)* name, type *tbase)
 {
     Symbol *s = symbol_calloc(name[0 .. strlen(name)]);
     s.Sclass = SC.enum_;
-    s.Senum = cast(enum_t *) MEM_PH_CALLOC(enum_t.sizeof);
+    s.Senum = cast(enum_t *) mem_calloc(enum_t.sizeof);
     s.Senum.SEflags |= SENforward;        // forward reference
 
     type *t = type_allocn(TYenum, tbase);
@@ -768,7 +758,7 @@ type *type_copy(type *t)
                         pn = param_append_type(&tn.Tparamtypes,p.Ptype);
                         if (p.Pident)
                         {
-                            pn.Pident = cast(char *)MEM_PH_STRDUP(p.Pident);
+                            pn.Pident = cast(char *)mem_strdup(p.Pident);
                         }
                         assert(!p.Pelem);
                     }
@@ -1233,7 +1223,7 @@ param_t* param_t_createTal(scope param_t* p, param_t *ptali)
         if (p.Pident)
         {
             // Should find a way to just point rather than dup
-            (*pp).Pident = cast(char *)MEM_PH_STRDUP(p.Pident);
+            (*pp).Pident = cast(char *)mem_strdup(p.Pident);
         }
         if (ptali)
         {

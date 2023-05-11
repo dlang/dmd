@@ -151,44 +151,6 @@ enum NTEXCEPTIONS = 2;
 // BEF          back end, function
 // BEC          back end, compilation
 
-//#define MEM_PH_FREE      mem_free
-//#define MEM_PARF_FREE    mem_free
-//#define MEM_PARC_FREE    mem_free
-//#define MEM_BEF_FREE     mem_free
-//#define MEM_BEC_FREE     mem_free
-
-//#define MEM_PH_CALLOC    mem_calloc
-//#define MEM_PARC_CALLOC  mem_calloc
-//#define MEM_PARF_CALLOC  mem_calloc
-//#define MEM_BEF_CALLOC   mem_calloc
-//#define MEM_BEC_CALLOC   mem_calloc
-
-//#define MEM_PH_MALLOC    mem_malloc
-//#define MEM_PARC_MALLOC  mem_malloc
-//#define MEM_PARF_MALLOC  mem_malloc
-//#define MEM_BEF_MALLOC   mem_malloc
-//#define MEM_BEC_MALLOC   mem_malloc
-
-//#define MEM_PH_STRDUP    mem_strdup
-//#define MEM_PARC_STRDUP  mem_strdup
-//#define MEM_PARF_STRDUP  mem_strdup
-//#define MEM_BEF_STRDUP   mem_strdup
-//#define MEM_BEC_STRDUP   mem_strdup
-
-//#define MEM_PH_REALLOC   mem_realloc
-//#define MEM_PARC_REALLOC mem_realloc
-//#define MEM_PARF_REALLOC mem_realloc
-//#define MEM_PERM_REALLOC mem_realloc
-//#define MEM_BEF_REALLOC  mem_realloc
-//#define MEM_BEC_REALLOC  mem_realloc
-
-//#define MEM_PH_FREEFP    mem_freefp
-//#define MEM_PARC_FREEFP  mem_freefp
-//#define MEM_PARF_FREEFP  mem_freefp
-//#define MEM_BEF_FREEFP   mem_freefp
-//#define MEM_BEC_FREEFP   mem_freefp
-
-
 // If we can use 386 instruction set (possible in 16 bit code)
 //#define I386 (config.target_cpu >= TARGET_80386)
 

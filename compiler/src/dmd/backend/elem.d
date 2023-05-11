@@ -59,19 +59,6 @@ extern (C++):
 nothrow:
 @safe:
 
-alias MEM_PH_MALLOC = mem_malloc;
-alias MEM_PH_CALLOC = mem_calloc;
-alias MEM_PH_FREE = mem_free;
-alias MEM_PH_FREEFP = mem_freefp;
-alias MEM_PH_STRDUP = mem_strdup;
-alias MEM_PH_REALLOC = mem_realloc;
-alias MEM_PARF_MALLOC = mem_malloc;
-alias MEM_PARF_CALLOC = mem_calloc;
-alias MEM_PARF_REALLOC = mem_realloc;
-alias MEM_PARF_FREE = mem_free;
-alias MEM_PARF_STRDUP = mem_strdup;
-
-
 version (STATS)
 {
 private __gshared
@@ -1485,7 +1472,7 @@ elem *el_convstring(elem *e)
             memcmp(stable[i].str.ptr,p,len) == 0)
         {
             // Replace e with that symbol
-            MEM_PH_FREE(p);
+            mem_free(p);
             s = stable[i].sym;
             goto L1;
         }

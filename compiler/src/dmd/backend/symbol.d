@@ -46,18 +46,6 @@ extern (C++):
 nothrow:
 @safe:
 
-alias MEM_PH_MALLOC = mem_malloc;
-alias MEM_PH_CALLOC = mem_calloc;
-alias MEM_PH_FREE = mem_free;
-alias MEM_PH_FREEFP = mem_freefp;
-alias MEM_PH_STRDUP = mem_strdup;
-alias MEM_PH_REALLOC = mem_realloc;
-alias MEM_PARF_MALLOC = mem_malloc;
-alias MEM_PARF_CALLOC = mem_calloc;
-alias MEM_PARF_REALLOC = mem_realloc;
-alias MEM_PARF_FREE = mem_free;
-alias MEM_PARF_STRDUP = mem_strdup;
-
 import dmd.backend.code_x86;
 
 void struct_free(struct_t *st) { }
@@ -523,7 +511,7 @@ Symbol * lookupsym(const(char)* p)
 void meminit_free(meminit_t *m)         /* helper for symbol_free()     */
 {
     list_free(&m.MIelemlist,cast(list_free_fp)&el_free);
-    MEM_PARF_FREE(m);
+    mem_free(m);
 }
 
 @trusted
@@ -595,7 +583,7 @@ debug
 
                 el_free(f.Fbaseinit);
                 if (f.Fthunk && !(f.Fflags & Finstance))
-                    MEM_PH_FREE(f.Fthunk);
+                    mem_free(f.Fthunk);
                 list_free(&f.Fthunks,cast(list_free_fp)&symbol_free);
               }
                 list_free(&f.Fsymtree,cast(list_free_fp)&symbol_free);
@@ -628,7 +616,7 @@ static if (0)       /* Don't complain anymore about these, ANSI C says  */
                     /* don't free them here.                            */
                     assert(s.Senum);
                     list_free(&s.Senum.SEenumlist,FPNULL);
-                    MEM_PH_FREE(s.Senum);
+                    mem_free(s.Senum);
                     s.Senum = null;
                     break;
 
