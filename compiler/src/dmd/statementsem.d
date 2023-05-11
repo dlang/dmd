@@ -3593,6 +3593,11 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             cas.error("`asm` statement is assumed to be impure - mark it with `pure` if it is not");
         if (!(cas.stc & STC.nogc) && sc.func.setGC(cas.loc, "`asm` statement in %s `%s` is assumed to use the GC - mark it with `@nogc` if it does not"))
             cas.error("`asm` statement is assumed to use the GC - mark it with `@nogc` if it does not");
+        // @@@DEPRECATED_2.114@@@
+        // change deprecation() to error(), add `else` and remove `| STC.safe`
+        // to turn deprecation into an error when deprecation cycle is over
+        if (cas.stc & STC.safe)
+            cas.deprecation("`asm` statement cannot be marked `@safe`, use `@system` or `@trusted` instead");
         if (!(cas.stc & (STC.trusted | STC.safe)))
         {
             sc.setUnsafe(false, cas.loc, "`asm` statement is assumed to be `@system` - mark it with `@trusted` if it is not");
