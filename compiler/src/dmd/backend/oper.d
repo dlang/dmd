@@ -591,61 +591,30 @@ immutable ubyte[RELMAX] _rel_integral =
  *
  * Used for reordering elem trees to minimize register usage.
  */
+immutable ubyte[OPMAX] opcost = () {
+    ubyte[OPMAX] tab = 0;
+    foreach (o; Eunary)
+        tab[o] += 2;
 
-immutable ubyte[OPMAX] opcost =
-() {
-    ubyte[OPMAX] tab;
-    foreach (op; 0 .. OPMAX)
-    {
-        ubyte c = 0;        // default cost
-        foreach (o; Eunary)
-        {
-            if (o == op)
-            {
-                c += 2;
-                break;
-            }
-        }
+    foreach (o; Ebinary)
+        tab[o] += 7;
 
-        foreach (o; Ebinary)
-        {
-            if (o == op)
-            {
-                c += 7;
-                break;
-            }
-        }
+    foreach (o; Elogical)
+        tab[o] += 3;
 
-        foreach (o; Elogical)
-        {
-            if (o == op)
-            {
-                c += 3;
-                break;
-            }
-        }
-
-        switch (op)
-        {
-            case OPvar: c += 1; break;
-            case OPmul: c += 3; break;
-            case OPdiv:
-            case OPmod: c += 4; break;
-            case OProl:
-            case OPror:
-            case OPshl:
-            case OPashr:
-            case OPshr: c += 2; break;
-            case OPcall:
-            case OPucall:
-            case OPcallns:
-            case OPucallns:
-                        c += 10; break; // very high cost for function calls
-            default:
-                break;
-        }
-        tab[op] = c;
-    }
+    tab[OPvar] += 1;
+    tab[OPmul] += 3;
+    tab[OPdiv] += 4;
+    tab[OPmod] += 4;
+    tab[OProl] += 2;
+    tab[OPror] += 2;
+    tab[OPshl] += 2;
+    tab[OPashr] += 2;
+    tab[OPshr]  += 2;
+    tab[OPcall] += 10; // very high cost for function calls
+    tab[OPucall] += 10;
+    tab[OPcallns] += 10;
+    tab[OPucallns] += 10;
     return tab;
 } ();
 
