@@ -2897,18 +2897,6 @@ void callclib(ref CodeBuilder cdb, elem* e, uint clib, regm_t* pretregs, regm_t 
         if (nalign)
             cod3_stackadj(cdb, -nalign);
         calledafunc = 1;
-
-        version (SCPP)
-        {
-            if (I16 &&                                   // bug in Optlink for weak references
-                config.flags3 & CFG3wkfloat &&
-                (cinfo.flags & (INFfloat | INFwkdone)) == INFfloat)
-            {
-                cinfo.flags |= INFwkdone;
-                makeitextern(getRtlsym(RTLSYM.INTONLY));
-                objmod.wkext(s, getRtlsym(RTLSYM.INTONLY));
-            }
-        }
     }
     if (I16)
         stackpush -= cinfo.pop;
@@ -4448,53 +4436,6 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
 
     switch (e.Eoper)
     {
-    version (SCPP)
-    {
-        case OPstrctor:
-        {
-            elem* e1 = e.EV.E1;
-            docommas(cdb,&e1);              // skip over any comma expressions
-
-            cod3_stackadj(cdb, sz);
-            stackpush += sz;
-            cdb.genadjesp(sz);
-
-            // Find OPstrthis and set it to stackpush
-            exp2_setstrthis(e1, null, stackpush, null);
-
-            regm_t retregs = 0;
-            codelem(cdb, e1, &retregs, true);
-            freenode(e);
-            return;
-        }
-        case OPstrthis:
-            // This is the parameter for the 'this' pointer corresponding to
-            // OPstrctor. We push a pointer to an object that was already
-            // allocated on the stack by OPstrctor.
-        {
-            regm_t retregs = allregs;
-            reg_t reg;
-            allocreg(cdb, &retregs, &reg, TYoffset);
-            genregs(cdb, 0x89, SP, reg);        // MOV reg,SP
-            if (I64)
-                code_orrex(cdb.last(), REX_W);
-            uint np = stackpush - e.EV.Vuns;         // stack delta to parameter
-            cdb.genc2(0x81, grex | modregrmx(3, 0, reg), np); // ADD reg,np
-            if (sz > REGSIZE)
-            {
-                cdb.gen1(0x16);                     // PUSH SS
-                stackpush += REGSIZE;
-            }
-            cdb.gen1(0x50 + (reg & 7));             // PUSH reg
-            if (reg & 8)
-                code_orrex(cdb.last(), REX_B);
-            stackpush += REGSIZE;
-            cdb.genadjesp(sz);
-            freenode(e);
-            return;
-        }
-    }
-
         case OPstrpar:
         {
             uint rm;

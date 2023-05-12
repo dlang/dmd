@@ -70,33 +70,6 @@ bool symbol_iscomdat2(Symbol* s)
     }
 }
 
-version (SCPP)
-{
-
-/**********************************
- * We put out an external definition.
- */
-void out_extdef(Symbol *s)
-{
-    pstate.STflags |= PFLextdef;
-    if (//config.flags2 & CFG2phgen ||
-        (config.flags2 & (CFG2phauto | CFG2phautoy) &&
-            !(pstate.STflags & (PFLhxwrote | PFLhxdone)))
-       )
-
-        synerr(EM_data_in_pch,prettyident(s));          // data or code in precompiled header
-}
-
-/********************************
- * Put out code segment name record.
- */
-void outcsegname(char *csegname)
-{
-    Obj.codeseg(csegname,0);
-}
-
-}
-
 /***********************************
  * Output function thunk.
  */
@@ -139,14 +112,6 @@ void outdata(Symbol *s)
     s.Sdt = null;                      // it will be free'd
     targ_size_t datasize = 0;
     tym_t ty = s.ty();
-version (SCPP)
-{
-    if (eecontext.EEcompile)
-    {   s.Sfl = (s.ty() & mTYfar) ? FLfardata : FLextern;
-        s.Sseg = UNKNOWN;
-        goto Lret;                      // don't output any data
-    }
-}
     if (ty & mTYexport && config.wflags & WFexpdef && s.Sclass != SC.static_)
         objmod.export_symbol(s,0);        // export data definition
     for (dt_t *dt = dtstart; dt; dt = dt.DTnext)
@@ -165,22 +130,12 @@ version (SCPP)
                 else if (tybasic(dt.Dty) == TYfptr &&
                          dt.DTnbytes > config.threshold)
                 {
-version (SCPP)
-{
-                    {
-                    targ_size_t foffset;
-                    dt.DTseg = objmod.fardata(s.Sident.ptr,dt.DTnbytes,&foffset);
-                    dt.DTabytes += foffset;
-                    }
-}
                 L1:
                     objmod.write_bytes(SegData[dt.DTseg],dt.DTnbytes,dt.DTpbytes);
                     break;
                 }
                 else
                 {
-                    version (SCPP)
-                        alignOffset(DATA, 2 << dt.DTalign);
                     version (MARS)
                         alignOffset(CDATA, 2 << dt.DTalign);
                     dt.DTabytes += objmod.data_readonly(cast(char*)dt.DTpbytes,dt.DTnbytes,&dt.DTseg);
@@ -208,14 +163,6 @@ version (SCPP)
                      */
                     switch (ty & mTYLINK)
                     {
-version (SCPP)
-{
-                        case mTYfar:                    // if far data
-                            s.Sseg = objmod.fardata(s.Sident.ptr,datasize,&s.Soffset);
-                            s.Sfl = FLfardata;
-                            break;
-}
-
                         case mTYcs:
                             s.Sseg = codeseg;
                             Offset(codeseg) = _align(datasize,Offset(codeseg));
@@ -258,10 +205,6 @@ version (SCPP)
                         else
                             cv_outsym(s);
                     }
-version (SCPP)
-{
-                    out_extdef(s);
-}
                     goto Lret;
                 }
                 break;
@@ -276,10 +219,6 @@ version (SCPP)
 
                 if (tyfunc(sb.ty()))
                 {
-version (SCPP)
-{
-                    nwc_mustwrite(sb);
-}
                 }
                 else if (sb.Sdt)               // if initializer for symbol
 { if (!s.Sseg) s.Sseg = DATA;
@@ -331,14 +270,6 @@ version (SCPP)
     {
       switch (ty & mTYLINK)
       {
-version (SCPP)
-{
-        case mTYfar:                    // if far data
-            seg = objmod.fardata(s.Sident.ptr,datasize,&s.Soffset);
-            s.Sfl = FLfardata;
-            break;
-}
-
         case mTYcs:
             seg = codeseg;
             Offset(codeseg) = _align(datasize,Offset(codeseg));
@@ -408,10 +339,6 @@ version (SCPP)
 
     dt_writeToObj(objmod, dtstart, seg, offset);
     Offset(seg) = offset;
-version (SCPP)
-{
-    out_extdef(s);
-}
 Lret:
     dt_free(dtstart);
 }
@@ -539,10 +466,6 @@ void outcommon(Symbol *s,targ_size_t n)
             dtb.nzeros(cast(uint)n);
             s.Sdt = dtb.finish();
             outdata(s);
-version (SCPP)
-{
-            out_extdef(s);
-}
         }
         else if (s.ty() & mTYthread) // if store in thread local segment
         {
@@ -561,11 +484,6 @@ version (SCPP)
                 dtb.nzeros(cast(uint)n);
                 s.Sdt = dtb.finish();
                 outdata(s);
-version (SCPP)
-{
-                if (config.objfmt == OBJ_OMF)
-                    out_extdef(s);
-}
             }
         }
         else
@@ -580,10 +498,6 @@ version (SCPP)
                     s.Sfl = FLextern;
                 s.Sseg = UNKNOWN;
                 pstate.STflags |= PFLcomdef;
-version (SCPP)
-{
-                ph_comdef(s);               // notify PH that a COMDEF went out
-}
             }
             else
                 objmod.common_block(s, 0, n, 1);
@@ -714,10 +628,6 @@ Symbol *out_string_literal(const(char)* str, uint len, uint sz)
     Symbol *s;
     tym_t tym;
     elem *e1;
-version (SCPP)
-{
-    type *t;
-}
 
 again:
     assert(e);
@@ -729,45 +639,6 @@ debug
         assert(e.EV.E1 && e.EV.E2);
 //    else if (OTunary(e.Eoper))
 //      assert(e.EV.E1 && !e.EV.E2);
-}
-
-version (SCPP)
-{
-    t = e.ET;
-    assert(t);
-    type_debug(t);
-    tym = t.Tty;
-    switch (tybasic(tym))
-    {
-        case TYstruct:
-            t.Tcount++;
-            break;
-
-        case TYarray:
-            t.Tcount++;
-            break;
-
-        case TYbool:
-        case TYwchar_t:
-        case TYchar16:
-        case TYmemptr:
-        case TYvtshape:
-        case TYnullptr:
-            tym = tym_conv(t);
-            e.ET = null;
-            break;
-
-        case TYenum:
-            tym = tym_conv(t.Tnext);
-            e.ET = null;
-            break;
-
-        default:
-            e.ET = null;
-            break;
-    }
-    e.Nflags = 0;
-    e.Ety = tym;
 }
 
     switch (e.Eoper)
@@ -788,26 +659,14 @@ debug
         }
         else
             break;
-version (SCPP)
-{
-        type_free(t);
-}
         goto again;                     /* iterate instead of recurse   */
     case OPaddr:
         e1 = e.EV.E1;
         if (e1.Eoper == OPvar)
         {   // Fold into an OPrelconst
-version (SCPP)
-{
-            el_copy(e,e1);
-            e.ET = t;
-}
-else
-{
             tym = e.Ety;
             el_copy(e,e1);
             e.Ety = tym;
-}
             e.Eoper = OPrelconst;
             el_free(e1);
             goto again;
@@ -816,7 +675,6 @@ else
 
     case OPrelconst:
     case OPvar:
-    L6:
         s = e.EV.Vsym;
         assert(s);
         symbol_debug(s);
@@ -857,54 +715,9 @@ else
                 else if (s.ty() & mTYfar)
                     e.Ety |= mTYfar;
                 break;
-version (SCPP)
-{
-            case SC.member:
-                err_noinstance(s.Sscope,s);
-                goto L5;
-
-            case SC.struct_:
-                cpperr(EM_no_instance,s.Sident.ptr);       // no instance of class
-            L5:
-                e.Eoper = OPconst;
-                e.Ety = TYint;
-                return;
-
-            case SC.funcalias:
-                e.EV.Vsym = s.Sfunc.Falias;
-                goto L6;
-
-            case SC.stack:
-                break;
-
-            case SC.functempl:
-                cpperr(EM_no_template_instance, s.Sident.ptr);
-                break;
-
-            default:
-                symbol_print(s);
-                printf("%s\n", class_str(s.Sclass));
-                assert(0);
-}
-else
-{
             default:
                 break;
-}
         }
-version (SCPP)
-{
-        if (tyfunc(s.ty()))
-        {
-            nwc_mustwrite(s);           /* must write out function      */
-        }
-        else if (s.Sdt)                /* if initializer for symbol    */
-            outdata(s);                 // write out data for symbol
-        if (config.flags3 & CFG3pic)
-        {
-            objmod.gotref(s);
-        }
-}
         break;
 
     case OPstring:
@@ -913,50 +726,9 @@ version (SCPP)
         break;
 
     case OPsizeof:
-version (SCPP)
-{
-        e.Eoper = OPconst;
-        e.EV.Vlong = type_size(e.EV.Vsym.Stype);
-        break;
-}
-else
-{
         assert(0);
-}
 
-version (SCPP)
-{
-    case OPstreq:
-    case OPstrpar:
-    case OPstrctor:
-        type_size(e.EV.E1.ET);
-        goto Lop;
-
-    case OPasm:
-        break;
-
-    case OPctor:
-        nwc_mustwrite(e.EV.Edtor);
-        goto case;
-    case OPdtor:
-        // Don't put 'this' pointers in registers if we need
-        // them for EH stack cleanup.
-        e1 = e.EV.E1;
-        elem_debug(e1);
-        if (e1.Eoper == OPadd)
-            e1 = e1.EV.E1;
-        if (e1.Eoper == OPvar)
-            e1.EV.Vsym.Sflags &= ~GTregcand;
-        goto Lop;
-
-    case OPmark:
-        break;
-}
     }
-version (SCPP)
-{
-    type_free(t);
-}
 }
 
 /*************************************
@@ -1094,16 +866,9 @@ private void out_regcand_walk(elem *e, ref bool addressOfParam)
 @trusted
 void writefunc(Symbol *sfunc)
 {
-version (SCPP)
-{
-    writefunc2(sfunc);
-}
-else
-{
     cstate.CSpsymtab = &globsym;
     writefunc2(sfunc);
     cstate.CSpsymtab = null;
-}
 }
 
 @trusted
@@ -1114,45 +879,11 @@ private void writefunc2(Symbol *sfunc)
     //printf("writefunc(%s)\n",sfunc.Sident.ptr);
     //symbol_print(sfunc);
     debug debugy && printf("writefunc(%s)\n",sfunc.Sident.ptr);
-version (SCPP)
-{
-    if (CPP)
-    {
-
-    // If constructor or destructor, make sure it has been fixed.
-    if (f.Fflags & (Fctor | Fdtor))
-        assert(errcnt || f.Fflags & Ffixed);
-
-    // If this function is the 'trigger' to output the vtbl[], do so
-    if (f.Fflags3 & Fvtblgen && !eecontext.EEcompile)
-    {
-        Classsym *stag = cast(Classsym *) sfunc.Sscope;
-        {
-            SC scvtbl;
-
-            scvtbl = ((config.flags2 & CFG2comdat) ? SC.comdat : SC.global);
-            n2_genvtbl(stag,scvtbl,1);
-            n2_genvbtbl(stag,scvtbl,1);
-            if (config.exe & EX_windos)
-            {
-                if (config.fulltypes == CV4)
-                    cv4_struct(stag,2);
-            }
-        }
-    }
-    }
-}
 
     /* Signify that function has been output                    */
     /* (before inline_do() to prevent infinite recursion!)      */
     f.Fflags &= ~Fpending;
     f.Fflags |= Foutput;
-
-version (SCPP)
-{
-    if (errcnt)
-        return;
-}
 
     if (eecontext.EEcompile && eecontext.EEfunc != sfunc)
         return;
@@ -1171,43 +902,12 @@ version (SCPP)
     sfunc.Sfunc.Fstartblock = null;
     assert(startblock);
 
-    /* Do any in-line expansion of function calls inside sfunc  */
-version (SCPP)
-{
-    inline_do(sfunc);
-}
-
-version (SCPP)
-{
-    /* If function is _STIxxxx, add in the auto destructors             */
-    if (cpp_stidtors && memcmp("__SI".ptr,sfunc.Sident.ptr,4) == 0)
-    {
-        assert(startblock.Bnext == null);
-        list_t el = cpp_stidtors;
-        do
-        {
-            startblock.Belem = el_combine(startblock.Belem,list_elem(el));
-            el = list_next(el);
-        } while (el);
-        list_free(&cpp_stidtors,FPNULL);
-    }
-}
     assert(funcsym_p == null);
     funcsym_p = sfunc;
     tym_t tyf = tybasic(sfunc.ty());
 
-version (SCPP)
-{
-    out_extdef(sfunc);
-}
-
     // TX86 computes parameter offsets in stackoffsets()
     //printf("globsym.length = %d\n", globsym.length);
-
-version (SCPP)
-{
-    FuncParamRegs fpr = FuncParamRegs_create(tyf);
-}
 
     for (SYMIDX si = 0; si < globsym.length; si++)
     {   Symbol *s = globsym[si];
@@ -1230,24 +930,6 @@ version (SCPP)
                 s.Sfl = FLauto;
                 goto L3;
 
-version (SCPP)
-{
-            case SC.fastpar:
-            case SC.regpar:
-            case SC.parameter:
-                if (si == 0 && FuncParamRegs_alloc(fpr, s.Stype, s.Stype.Tty, &s.Spreg, &s.Spreg2))
-                {
-                    assert(s.Spreg == ((tyf == TYmfunc) ? CX : AX));
-                    assert(s.Spreg2 == NOREG);
-                    assert(si == 0);
-                    s.Sclass = SC.fastpar;
-                    s.Sfl = FLfast;
-                    goto L3;
-                }
-                assert(s.Sclass != SC.fastpar);
-}
-else
-{
             case SC.fastpar:
                 s.Sfl = FLfast;
                 goto L3;
@@ -1255,7 +937,6 @@ else
             case SC.regpar:
             case SC.parameter:
             case SC.shadowreg:
-}
                 s.Sfl = FLpara;
                 if (tyf == TYifunc)
                 {   s.Sflags |= SFLlivexit;
@@ -1290,13 +971,6 @@ else
         memset(&b._BLU,0,block.sizeof - block._BLU.offsetof);
         if (b.Belem)
         {   outelem(b.Belem, addressOfParam);
-version (SCPP)
-{
-            if (!el_returns(b.Belem) && !(config.flags3 & CFG3eh))
-            {   b.BC = BCexit;
-                list_free(&b.Bsucc,FPNULL);
-            }
-}
 version (MARS)
 {
             if (b.Belem.Eoper == OPhalt)
@@ -1355,38 +1029,6 @@ version (MARS)
         blockopt(0);                    /* optimize                     */
     }
 
-version (SCPP)
-{
-    if (CPP)
-    {
-        version (DEBUG_XSYMGEN)
-        {
-            /* the internal dataview function is allowed to lie about its return value */
-            enum noret = compile_state != kDataView;
-        }
-        else
-            enum noret = true;
-
-        // Look for any blocks that return nothing.
-        // Do it after optimization to eliminate any spurious
-        // messages like the implicit return on { while(1) { ... } }
-        if (tybasic(funcsym_p.Stype.Tnext.Tty) != TYvoid &&
-            !(funcsym_p.Sfunc.Fflags & (Fctor | Fdtor | Finvariant))
-            && noret
-           )
-        {
-            char err = 0;
-            for (block *b = startblock; b; b = b.Bnext)
-            {   if (b.BC == BCasm)     // no errors if any asm blocks
-                    err |= 2;
-                else if (b.BC == BCret)
-                    err |= 1;
-            }
-            if (err == 1)
-                func_noreturnvalue();
-        }
-    }
-}
     assert(funcsym_p == sfunc);
     const int CSEGSAVE_DEFAULT = -10_000;        // some unlikely number
     int csegsave = CSEGSAVE_DEFAULT;
@@ -1400,10 +1042,7 @@ version (SCPP)
         }
         else if (config.flags & CFGsegs) // if user set switch for this
         {
-            version (SCPP)
-                objmod.codeseg(cpp_mangle(funcsym_p),1);
-            else
-                objmod.codeseg(&funcsym_p.Sident[0], 1);
+            objmod.codeseg(&funcsym_p.Sident[0], 1);
                                         // generate new code segment
         }
         cod3_align(cseg);               // align start of function
@@ -1412,15 +1051,7 @@ version (SCPP)
     }
 
     //printf("codgen()\n");
-version (SCPP)
-{
-    if (!errcnt)
-        codgen(sfunc);                  // generate code
-}
-else
-{
     codgen(sfunc);                  // generate code
-}
     //printf("after codgen for %s Coffset %x\n",sfunc.Sident.ptr,Offset(cseg));
     sfunc.Sfunc.Fstartblock = startblock;
     bool saveForInlining = canInlineFunction(sfunc);
@@ -1434,10 +1065,6 @@ else
         blocklist_free(&startblock);
     }
 
-version (SCPP)
-{
-    PARSER = 1;
-}
     objmod.func_term(sfunc);
     if (eecontext.EEcompile == 1)
         goto Ldone;
@@ -1528,11 +1155,6 @@ Ldone:
     }
     else
     {
-        version (SCPP)
-        {
-            // Free any added symbols
-            freesymtab(globsym[].ptr,nsymbols,globsym.length);
-        }
     }
     globsym.setLength(0);
 
@@ -1696,87 +1318,4 @@ private
 @trusted
 void addStartupReference(Symbol* sfunc)
 {
-version (SCPP) version (Win32)
-{
-    // Determine which startup code to reference
-    if (!CPP || !isclassmember(sfunc))              // if not member function
-    {
-        __gshared const(char)*[6] startup =
-        [   "__acrtused","__acrtused_winc","__acrtused_dll",
-            "__acrtused_con","__wacrtused","__wacrtused_con",
-        ];
-        int i;
-
-        const(char)* id = sfunc.Sident.ptr;
-        switch (id[0])
-        {
-            case 'D':
-                if (strcmp(id,"DllMain"))
-                    break;
-                if (config.exe == EX_WIN32)
-                {
-                    i = 2;
-                    goto L2;
-                }
-                break;
-
-            case 'm':
-                if (strcmp(id,"main"))
-                    break;
-                if (config.exe == EX_WIN32)
-                    i = 3;
-                else if (config.wflags & WFwindows)
-                    i = 1;
-                else
-                    i = 0;
-                goto L2;
-
-            case 'w':
-                if (strcmp(id,"wmain") == 0)
-                {
-                    if (config.exe == EX_WIN32)
-                    {
-                        i = 5;
-                        goto L2;
-                    }
-                    break;
-                }
-                goto case;
-
-            case 'W':
-                if (stricmp(id,"WinMain") == 0)
-                {
-                    i = 0;
-                    goto L2;
-                }
-                if (stricmp(id,"wWinMain") == 0)
-                {
-                    if (config.exe == EX_WIN32)
-                    {
-                        i = 4;
-                        goto L2;
-                    }
-                }
-                break;
-
-            case 'L':
-            case 'l':
-                if (stricmp(id,"LibMain"))
-                    break;
-                if (config.exe != EX_WIN32 && config.wflags & WFwindows)
-                {
-                    i = 2;
-                    goto L2;
-                }
-                break;
-
-            L2:
-                objmod.external_def(startup[i]);          // pull in startup code
-                break;
-
-            default:
-                break;
-        }
-    }
-}
 }

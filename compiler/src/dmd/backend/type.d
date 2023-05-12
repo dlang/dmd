@@ -153,9 +153,6 @@ int type_isdependent(type *t);
 void type_hydrate(type **);
 void type_dehydrate(type **);
 
-version (SCPP)
-    targ_size_t type_size(type *);
-
 targ_size_t type_size(const type *);
 uint type_alignsize(type *);
 bool type_zeroSize(type *t, tym_t tyf);

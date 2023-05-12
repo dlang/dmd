@@ -96,10 +96,7 @@ enum IMPLIED_PRAGMA_ONCE = 1;       // include guards count as #pragma once
 enum bool HEADER_LIST = true;
 
 // Support generating code for 16 bit memory models
-version (SCPP)
-    enum SIXTEENBIT = TARGET_WINDOS != 0;
-else
-    enum SIXTEENBIT = false;
+enum SIXTEENBIT = false;
 
 /* Set for supporting the FLAT memory model.
  * This is not quite the same as !SIXTEENBIT, as one could

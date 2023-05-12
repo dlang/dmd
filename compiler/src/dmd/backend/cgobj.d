@@ -443,13 +443,8 @@ void fatal();
 
 void too_many_symbols()
 {
-version (SCPP)
-    err_fatal(EM_too_many_symbols, 0x7FFF);
-else // MARS
-{
     error(null, 0, 0, "more than %d symbols in object file", 0x7FFF);
     fatal();
-}
 }
 
 version (X86) version (DigitalMars)
@@ -791,21 +786,9 @@ void OmfObj_term(const(char)* objfilename)
         list_t dl;
         uint size;
 
-version (SCPP)
-{
-        if (!errcnt)
-        {
-            obj_defaultlib();
-            objflush_pointerRefs();
-            outfixlist();               // backpatches
-        }
-}
-else
-{
         obj_defaultlib();
         objflush_pointerRefs();
         outfixlist();               // backpatches
-}
         if (config.fulltypes)
             cv_term();                  // write out final debug info
         outextdata();                   // finish writing EXTDEFs
@@ -962,8 +945,6 @@ else
         {
             version (MARS)
                 bool cond2 = rln.filename == srcpos.Sfilename;
-            else version (SCPP)
-                bool cond2 = rln.filptr == *srcpos.Sfilptr;
 
             if (cond2 &&
                 rln.cseg == seg)
@@ -1129,9 +1110,6 @@ static if (MULTISCOPE)
 @trusted
 private void linnum_term()
 {
-version (SCPP)
-    Sfile *lastfilptr = null;
-
 version (MARS)
     const(char)* lastfilename = null;
 
@@ -1142,16 +1120,6 @@ version (MARS)
 
     foreach (ref ln; obj.linnum_list)
     {
-        version (SCPP)
-        {
-            Sfile *filptr = ln.filptr;
-            if (filptr != lastfilptr)
-            {
-                if (lastfilptr == null && strcmp(filptr.SFname,obj.modname))
-                    OmfObj_theadr(filptr.SFname);
-                lastfilptr = filptr;
-            }
-        }
         version (MARS)
         {
             const(char)* filename = ln.filename;
@@ -1847,9 +1815,6 @@ void OmfObj_setModuleCtorDtor(Symbol *s, bool isCtor)
 
     symbol_debug(s);
 
-version (SCPP)
-    debug assert(memcmp(s.Sident.ptr,"_ST".ptr,3) == 0);
-
     // Determine if constructor or destructor
     // _STI... is a constructor, _STD... is a destructor
     int i = !isCtor;
@@ -2413,9 +2378,7 @@ size_t OmfObj_mangle(Symbol *s,char *dest)
     char *name2 = null;
 
     //printf("OmfObj_mangle('%s'), mangle = x%x\n",s.Sident.ptr,type_mangle(s.Stype));
-version (SCPP)
-    name = CPP ? cpp_mangle(s) : &s.Sident[0];
-else version (MARS)
+version (MARS)
     name = &s.Sident[0];
 else
     static assert(0);
@@ -2469,9 +2432,7 @@ else
 {
         if (len2 > IDMAX)               // still too long
         {
-version (SCPP)
-            synerr(EM_identifier_too_long, name, len - IDMAX, IDMAX);
-else version (MARS)
+version (MARS)
 {
 //          error(Loc(), "identifier %s is too long by %d characters", name, len - IDMAX);
 }

@@ -202,22 +202,11 @@ Symbol * MsCoffObj_sym_cdata(tym_t ty,char *p,int len)
 int MsCoffObj_data_readonly(char *p, int len, segidx_t *pseg)
 {
     int oldoff;
-version (SCPP)
-{
-    oldoff = Offset(DATA);
-    SegData[DATA].SDbuf.reserve(len);
-    SegData[DATA].SDbuf.writen(p,len);
-    Offset(DATA) += len;
-    *pseg = DATA;
-}
-else
-{
     oldoff = cast(int)Offset(CDATA);
     SegData[CDATA].SDbuf.reserve(len);
     SegData[CDATA].SDbuf.writen(p,len);
     Offset(CDATA) += len;
     *pseg = CDATA;
-}
     return oldoff;
 }
 
@@ -383,26 +372,6 @@ Obj MsCoffObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegna
 void MsCoffObj_initfile(const(char)* filename, const(char)* csegname, const(char)* modname)
 {
     //dbg_printf("MsCoffObj_initfile(filename = %s, modname = %s)\n",filename,modname);
-version (SCPP)
-{
-    static if (TARGET_LINUX)
-    {
-    if (csegname && *csegname && strcmp(csegname,".text"))
-    {   // Define new section and make it the default for cseg segment
-        // NOTE: cseg is initialized to CODE
-        IDXSEC newsecidx;
-        Elf32_Shdr *newtextsec;
-        IDXSYM newsymidx;
-        assert(!I64);      // fix later
-        SegData[cseg].SDshtidx = newsecidx =
-            elf_newsection(csegname,0,SHT_PROGDEF,SHF_ALLOC|SHF_EXECINSTR);
-        newtextsec = &ScnhdrTab[newsecidx];
-        newtextsec.sh_addralign = 4;
-        SegData[cseg].SDsymidx =
-            elf_addsym(0, 0, 0, STT_SECTION, STB_LOCAL, newsecidx);
-    }
-    }
-}
     if (config.fulltypes)
         cv8_initmodule(filename, modname);
 }
@@ -636,30 +605,14 @@ void MsCoffObj_term(const(char)* objfilename)
 {
     //printf("MsCoffObj_term()\n");
     assert(fobjbuf.length() == 0);
-version (SCPP)
-{
-    if (!errcnt)
-    {
-        objflush_pointerRefs();
-        outfixlist();           // backpatches
-    }
-}
-else
-{
+
     objflush_pointerRefs();
     outfixlist();           // backpatches
-}
 
     if (configv.addlinenumbers)
     {
         cv8_termfile(objfilename);
     }
-
-version (SCPP)
-{
-    if (errcnt)
-        return;
-}
 
     // To allow tooling support for most output files
     // switch to new object file format (similar to C++ with /bigobj)
@@ -1730,9 +1683,7 @@ char *obj_mangle2(Symbol *s,char *dest)
     symbol_debug(s);
     assert(dest);
 
-version (SCPP)
-    name = CPP ? cpp_mangle(s) : &s.Sident[0];
-else version (MARS)
+version (MARS)
     // C++ name mangling is handled by front end
     name = &s.Sident[0];
 else

@@ -450,19 +450,6 @@ private void chkrd(elem *n, Barray!(elem*) rdlist)
         }
     }
 
-    version (SCPP)
-    {
-        {   OutBuffer buf;
-            char *p2;
-
-            type_tostring(&buf, sv.Stype);
-            buf.writeByte(' ');
-            buf.write(sv.Sident.ptr);
-            p2 = buf.toString();
-            warerr(WM.WM_used_b4_set, p2);     // variable used before set
-        }
-    }
-
     //version (MARS)
     version(none)
     {

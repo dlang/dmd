@@ -14,8 +14,6 @@ module dmd.backend.ptrntab;
 import core.stdc.stdio;
 import core.stdc.string;
 
-version (SCPP) extern (C) char* strlwr(return char* s);
-
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code_x86;
@@ -5814,9 +5812,6 @@ extern (C++) OP *asm_op_lookup(const(char)* s)
     if (strlen(s) >= szBuf.length)
         return null;
     strcpy(szBuf.ptr,s);
-
-    version (SCPP)
-        strlwr(szBuf.ptr);
 
     i = binary(szBuf.ptr,optab);
     return (i == -1) ? null : cast(OP*)&optab[i];

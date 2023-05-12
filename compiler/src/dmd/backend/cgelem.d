@@ -5464,19 +5464,6 @@ elem *elddtor(elem *e, goal_t goal)
 private elem * elinfo(elem *e, goal_t goal)
 {
     //printf("elinfo()\n");
-    version (SCPP)
-    static if (NTEXCEPTIONS)
-    {
-        if (funcsym_p.Sfunc.Fflags3 & Fnteh)
-        {   // Eliminate cleanup info if using NT structured EH
-            if (e.Eoper == OPinfo)
-                e = el_selecte2(e);
-            else
-            {   el_free(e);
-                e = el_long(TYint,0);
-            }
-        }
-    }
     return e;
 }
 

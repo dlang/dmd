@@ -13,10 +13,6 @@
 
 module dmd.backend.symbol;
 
-version (SCPP)
-{
-    version = SCPP_HTOD;
-}
 version (MARS)
 {
     enum HYDRATE = false;
