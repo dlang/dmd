@@ -1195,12 +1195,11 @@ elem* toElem(Expression e, IRState *irs)
             elem *ezprefix = null;
             elem *ez = null;
 
-            // call _d_newitemT(ti)
-            e = getTypeInfo(ne, ne.newtype, irs);
-
-            const rtl = t.isZeroInit(Loc.initial) ? RTLSYM.NEWITEMT : RTLSYM.NEWITEMIT;
-            ex = el_bin(OPcall,TYnptr,el_var(getRtlsym(rtl)),e);
-            toTraceGC(irs, ex, ne.loc);
+            // Call _d_newitemT()
+            if (auto lowering = ne.lowering)
+                ex = toElem(ne.lowering, irs);
+            else
+                assert(0, "This case should have been rewritten to `_d_newitemT` in the semantic phase");
 
             ectype = null;
 
@@ -1296,12 +1295,8 @@ elem* toElem(Expression e, IRState *irs)
         {
             elem *ezprefix = ne.argprefix ? toElem(ne.argprefix, irs) : null;
 
-            // call _d_newitemT(ti)
-            e = getTypeInfo(ne, ne.newtype, irs);
-
-            const rtl = tp.next.isZeroInit(Loc.initial) ? RTLSYM.NEWITEMT : RTLSYM.NEWITEMIT;
-            e = el_bin(OPcall,TYnptr,el_var(getRtlsym(rtl)),e);
-            toTraceGC(irs, e, ne.loc);
+            // call _d_newitemT()
+            e = toElem(ne.lowering, irs);
 
             if (ne.arguments && ne.arguments.length == 1)
             {

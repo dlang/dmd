@@ -3,3 +3,6 @@ FUNCTIONS
 	_Dmain
 	_D4both3fooFkZPSQo3Num
 	_D4both3Num6__ctorMFNckZSQxQu
+	_D4core8internal8lifetime__T18emplaceInitializerTS4both3NumZQBgFNaNbNiNeMKQzZv
+	_D4core8lifetime__T11_d_newitemTTS4both3NumZQzFNaNbNeZPQw
+	_D4core8lifetime__T16_d_newitemTTraceTS4both3NumZQBeFNaNbNeAyaiQeZPQBd

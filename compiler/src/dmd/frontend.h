@@ -8725,6 +8725,8 @@ struct Id final
     static Identifier* _d_newThrowable;
     static Identifier* _d_newclassT;
     static Identifier* _d_newclassTTrace;
+    static Identifier* _d_newitemT;
+    static Identifier* _d_newitemTTrace;
     static Identifier* _d_assert_fail;
     static Identifier* dup;
     static Identifier* _aaApply;
