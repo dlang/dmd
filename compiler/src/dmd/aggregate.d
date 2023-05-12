@@ -18,7 +18,6 @@ import core.stdc.stdio;
 import core.checkedint;
 
 import dmd.aliasthis;
-import dmd.apply;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.attrib;

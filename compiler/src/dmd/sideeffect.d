@@ -11,7 +11,6 @@
 
 module dmd.sideeffect;
 
-import dmd.apply;
 import dmd.astenums;
 import dmd.declaration;
 import dmd.dscope;
@@ -22,6 +21,7 @@ import dmd.globals;
 import dmd.identifier;
 import dmd.init;
 import dmd.mtype;
+import dmd.postordervisitor;
 import dmd.tokens;
 import dmd.visitor;
 
