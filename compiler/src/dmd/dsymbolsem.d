@@ -17,7 +17,6 @@ import core.stdc.string;
 
 import dmd.aggregate;
 import dmd.aliasthis;
-import dmd.apply;
 import dmd.arraytypes;
 import dmd.astcodegen;
 import dmd.astenums;

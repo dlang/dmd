@@ -21,7 +21,6 @@ import dmd.root.array;
 import dmd.root.rmem;
 
 import dmd.aggregate;
-import dmd.apply;
 import dmd.astenums;
 import dmd.dclass;
 import dmd.declaration;

@@ -14,7 +14,6 @@
 module dmd.canthrow;
 
 import dmd.aggregate;
-import dmd.apply;
 import dmd.arraytypes;
 import dmd.attrib;
 import dmd.astenums;
@@ -26,6 +25,7 @@ import dmd.func;
 import dmd.globals;
 import dmd.init;
 import dmd.mtype;
+import dmd.postordervisitor;
 import dmd.root.rootobject;
 import dmd.tokens;
 import dmd.visitor;

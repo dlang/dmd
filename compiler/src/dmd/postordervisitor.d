@@ -9,7 +9,7 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/apply.d
  */
 
-module dmd.apply;
+module dmd.postordervisitor;
 
 import dmd.arraytypes;
 import dmd.dtemplate;
