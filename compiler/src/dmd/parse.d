@@ -3644,6 +3644,30 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             nextToken();
             break;
 
+        case TOK.function_:
+        case TOK.delegate_:
+            // function ref type (parameters) attributes
+            const save = token.value;
+            nextToken();
+            STC stc;
+            if (token.value == TOK.ref_)
+            {
+                stc = STC.ref_;
+                nextToken();
+            }
+            auto tret = parseBasicType();
+            tret = parseTypeSuffixes(tret); // function return type
+            auto parameterList = parseParameterList(null);
+            parsePostfix(stc, null);
+            auto tf = new AST.TypeFunction(parameterList, tret, linkage, stc);
+            if (stc & (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild | STC.return_))
+            {
+                if (save == TOK.function_)
+                    error("`const`/`immutable`/`shared`/`inout`/`return` attributes are only valid for non-static member functions");
+            }
+            t = save == TOK.delegate_ ? new AST.TypeDelegate(tf) : new AST.TypePointer(tf); // pointer to function
+            break;
+
         case TOK.this_:
         case TOK.super_:
         case TOK.identifier:
