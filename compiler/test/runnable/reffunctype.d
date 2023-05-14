@@ -9,3 +9,6 @@ void main()
     f(ref() => i);
     assert(i == 2);
 }
+
+alias Func = function ref int();
+static assert(is(Func == typeof(&h)));

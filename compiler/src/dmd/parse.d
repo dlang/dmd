@@ -4833,6 +4833,21 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     tpl = parseTemplateParameterList();
                 check(TOK.assign);
 
+                // function ref type (parameters) attributes
+                bool isLeadingFunctionType = {
+                    if (token.value != TOK.function_ && token.value != TOK.delegate_)
+                        return false;
+                    Token* tk = peek(&token);
+                    if (tk.value == TOK.ref_)
+                        tk = peek(tk);
+                    if (!isBasicType(&tk))
+                        return false;
+                    if (!skipParens(tk, &tk))
+                        return false;
+                    if (!skipAttributes(tk, &tk))
+                        return false;
+                    return tk.value == TOK.semicolon || tk.value == TOK.comma;
+                }();
                 bool hasParsedAttributes;
                 void parseAttributes()
                 {
@@ -4860,9 +4875,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 const StorageClass funcStc = parseTypeCtor();
                 Token* tlu = &token;
                 Token* tk;
-                if (token.value != TOK.function_ &&
-                    token.value != TOK.delegate_ &&
-                    isBasicType(&tlu) && tlu &&
+                if (isLeadingFunctionType)
+                {
+                    AST.Type tf = parseBasicType();
+                    v = new AST.AliasDeclaration(loc, ident, tf);
+                }
+                else if (isBasicType(&tlu) && tlu &&
                     tlu.value == TOK.leftParenthesis)
                 {
                     AST.Type tret = parseBasicType();
@@ -7169,6 +7187,8 @@ LagainStc:
         return false;
     }
 
+    /* Returns: Whether **pt is the start token for a type
+     * When true, sets pt to the following token. */
     private bool isBasicType(Token** pt)
     {
         // This code parallels parseBasicType()
