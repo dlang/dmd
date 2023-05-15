@@ -7075,7 +7075,7 @@ LagainStc:
 
     private void checkParens(TOK value, AST.Expression e)
     {
-        if (precedence[e.op] == PREC.rel && !e.parens)
+        if (precedence[e.op] == PREC.rel)
             error(e.loc, "`%s` must be surrounded by parentheses when next to operator `%s`", e.toChars(), Token.toChars(value));
     }
 
@@ -9109,14 +9109,18 @@ LagainStc:
     private AST.Expression parseAndExp()
     {
         Loc loc = token.loc;
+        bool parens = token.value == TOK.leftParenthesis;
         auto e = parseCmpExp();
         while (token.value == TOK.and)
         {
-            checkParens(TOK.and, e);
-            nextToken();
+            if (!parens)
+                checkParens(TOK.and, e);
+            parens = nextToken() == TOK.leftParenthesis;
             auto e2 = parseCmpExp();
-            checkParens(TOK.and, e2);
+            if (!parens)
+                checkParens(TOK.and, e2);
             e = new AST.AndExp(loc, e, e2);
+            parens = true;              // don't call checkParens() for And
             loc = token.loc;
         }
         return e;
@@ -9124,32 +9128,42 @@ LagainStc:
 
     private AST.Expression parseXorExp()
     {
-        const loc = token.loc;
+        Loc loc = token.loc;
 
+        bool parens = token.value == TOK.leftParenthesis;
         auto e = parseAndExp();
         while (token.value == TOK.xor)
         {
-            checkParens(TOK.xor, e);
-            nextToken();
+            if (!parens)
+                checkParens(TOK.xor, e);
+            parens = nextToken() == TOK.leftParenthesis;
             auto e2 = parseAndExp();
-            checkParens(TOK.xor, e2);
+            if (!parens)
+                checkParens(TOK.xor, e2);
             e = new AST.XorExp(loc, e, e2);
+            parens = true;
+            loc = token.loc;
         }
         return e;
     }
 
     private AST.Expression parseOrExp()
     {
-        const loc = token.loc;
+        Loc loc = token.loc;
 
+        bool parens = token.value == TOK.leftParenthesis;
         auto e = parseXorExp();
         while (token.value == TOK.or)
         {
-            checkParens(TOK.or, e);
-            nextToken();
+            if (!parens)
+                checkParens(TOK.or, e);
+            parens = nextToken() == TOK.leftParenthesis;
             auto e2 = parseXorExp();
-            checkParens(TOK.or, e2);
+            if (!parens)
+                checkParens(TOK.or, e2);
             e = new AST.OrExp(loc, e, e2);
+            parens = true;
+            loc = token.loc;
         }
         return e;
     }
