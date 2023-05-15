@@ -32,3 +32,6 @@ unittest
     d()++;
     assert(s.i == 1);
 }
+
+alias Del = delegate ref int();
+static assert(is(Del == typeof(&S().get)));
