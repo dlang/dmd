@@ -5769,6 +5769,12 @@ LagainStc:
                 goto Ldeclaration;
             goto Lexp;
 
+        case TOK.delegate_:
+        case TOK.function_:
+            if (isLeadingFunctionType(&token))
+                goto Ldeclaration;
+            goto case;
+
         case TOK.assert_:
         case TOK.this_:
         case TOK.super_:
@@ -5802,8 +5808,6 @@ LagainStc:
         case TOK.minusMinus:
         case TOK.new_:
         case TOK.delete_:
-        case TOK.delegate_:
-        case TOK.function_:
         case TOK.typeid_:
         case TOK.is_:
         case TOK.leftBracket:
@@ -7467,6 +7471,8 @@ LagainStc:
 
             case TOK.delegate_:
             case TOK.function_:
+                if (isLeadingFunctionType(&token))
+                    return true;
                 t = peek(t);
                 if (!isParameters(&t))
                     return false;
@@ -7698,6 +7704,7 @@ LagainStc:
     }
 
     // function ref type (parameters) attributes
+    // Warning: does not work for expressions
     private bool isLeadingFunctionType(Token *tk)
     {
         if (tk.value != TOK.function_ && tk.value != TOK.delegate_)
@@ -7711,7 +7718,20 @@ LagainStc:
             return false;
         if (!skipAttributes(tk, &tk))
             return false;
-        return tk.value == TOK.semicolon || tk.value == TOK.comma;
+        switch (tk.value)
+        {
+            // FunctionType identifier;
+            case TOK.identifier:
+            // alias id = FunctionType;
+            case TOK.comma:
+            case TOK.semicolon:
+                // Note: a function literal expression can end with semicolon
+                // but `FunctionLiteral;` is not a valid statement
+                return true;
+            // function literal
+            default:
+                return false;
+        }
     }
 
     private bool isExpression(Token** pt)
