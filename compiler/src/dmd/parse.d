@@ -4833,21 +4833,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     tpl = parseTemplateParameterList();
                 check(TOK.assign);
 
-                // function ref type (parameters) attributes
-                bool isLeadingFunctionType = {
-                    if (token.value != TOK.function_ && token.value != TOK.delegate_)
-                        return false;
-                    Token* tk = peek(&token);
-                    if (tk.value == TOK.ref_)
-                        tk = peek(tk);
-                    if (!isBasicType(&tk))
-                        return false;
-                    if (!skipParens(tk, &tk))
-                        return false;
-                    if (!skipAttributes(tk, &tk))
-                        return false;
-                    return tk.value == TOK.semicolon || tk.value == TOK.comma;
-                }();
                 bool hasParsedAttributes;
                 void parseAttributes()
                 {
@@ -4875,7 +4860,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 const StorageClass funcStc = parseTypeCtor();
                 Token* tlu = &token;
                 Token* tk;
-                if (isLeadingFunctionType)
+                if (isLeadingFunctionType(&token))
                 {
                     AST.Type tf = parseBasicType();
                     v = new AST.AliasDeclaration(loc, ident, tf);
@@ -7711,6 +7696,23 @@ LagainStc:
         t = peek(t);
         *pt = t;
         return true;
+    }
+
+    // function ref type (parameters) attributes
+    private bool isLeadingFunctionType(Token *tk)
+    {
+        if (tk.value != TOK.function_ && tk.value != TOK.delegate_)
+            return false;
+        tk = peek(tk);
+        if (tk.value == TOK.ref_)
+            tk = peek(tk);
+        if (!isBasicType(&tk))
+            return false;
+        if (!skipParens(tk, &tk))
+            return false;
+        if (!skipAttributes(tk, &tk))
+            return false;
+        return tk.value == TOK.semicolon || tk.value == TOK.comma;
     }
 
     private bool isExpression(Token** pt)
