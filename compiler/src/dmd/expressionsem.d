@@ -13175,10 +13175,20 @@ Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, bool gag)
                 Expression se = new ScopeExp(exp.loc, imp.pkg);
                 return se.expressionSemantic(sc);
             }
+
+            if (auto attr = s.isAttribDeclaration())
+            {
+                if (auto sm = ie.sds.search(exp.loc, exp.ident, flags))
+                {
+                    auto es = new DsymbolExp(exp.loc, sm);
+                    return es;
+                }
+            }
+
             // BUG: handle other cases like in IdentifierExp::semantic()
             debug
             {
-                printf("s = '%s', kind = '%s'\n", s.toChars(), s.kind());
+                printf("s = %p '%s', kind = '%s'\n", s, s.toChars(), s.kind());
             }
             assert(0);
         }
