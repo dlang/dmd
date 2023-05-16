@@ -9214,6 +9214,7 @@ LagainStc:
 
     AST.Expression parseAssignExp()
     {
+        bool parens = token.value == TOK.leftParenthesis;
         AST.Expression e;
         e = parseCondExp();
         if (e is null)
@@ -9222,7 +9223,7 @@ LagainStc:
         // require parens for e.g. `t ? a = 1 : b = 2`
         void checkRequiredParens()
         {
-            if (e.op == EXP.question && !e.parens)
+            if (e.op == EXP.question && !parens)
                 eSink.error(e.loc, "`%s` must be surrounded by parentheses when next to operator `%s`",
                     e.toChars(), Token.toChars(token.value));
         }
