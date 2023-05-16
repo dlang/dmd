@@ -699,6 +699,20 @@ VarDeclaration expToVariable(Expression e)
             case EXP.super_:
                 return (cast(ThisExp)e).var.isVarDeclaration();
 
+            // Temporaries for rvalues that need destruction
+            // are of form: (T s = rvalue, s). For these cases
+            // we can just return var declaration of `s`. However,
+            // this is intentionally not calling `Expression.extractLast`
+            // because at this point we cannot infer the var declaration
+            // of more complex generated comma expressions such as the
+            // one for the array append hook.
+            case EXP.comma:
+            {
+                if (auto ve = e.isCommaExp().e2.isVarExp())
+                    return ve.var.isVarDeclaration();
+
+                return null;
+            }
             default:
                 return null;
         }
