@@ -483,7 +483,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             // Infering the type requires running semantic,
             // so mark the scope as ctfe if required
-            bool needctfe = (dsym.storage_class & (STC.manifest | STC.static_)) != 0;
+            bool needctfe = (dsym.storage_class & (STC.manifest | STC.static_)) != 0 || !sc.func;
             if (needctfe)
             {
                 sc.flags |= SCOPE.condition;
@@ -1365,9 +1365,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     {
         static if (LOG)
         {
-            printf("Import::semantic('%s') %s\n", toPrettyChars(), id.toChars());
+            printf("Import::semantic('%s') %s\n", imp.toPrettyChars(), imp.id.toChars());
             scope(exit)
-                printf("-Import::semantic('%s'), pkg = %p\n", toChars(), pkg);
+                printf("-Import::semantic('%s'), pkg = %p\n", imp.toChars(), imp.pkg);
         }
         if (imp.semanticRun > PASS.initial)
             return;
@@ -1433,7 +1433,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 imp.addPackageAccess(scopesym);
             }
 
-            imp.mod.dsymbolSemantic(null);
+            // if a module has errors it means that parsing has failed.
+            if (!imp.mod.errors)
+                imp.mod.dsymbolSemantic(null);
 
             if (imp.mod.needmoduleinfo)
             {
