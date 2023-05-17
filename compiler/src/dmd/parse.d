@@ -3462,6 +3462,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
     AST.Type parseType(Identifier* pident = null, AST.TemplateParameters** ptpl = null)
     {
+        // Handle `ref` TypeCtors(opt) BasicType CallableSuffix TypeSuffixes(opt)
+        const bool isRef = token.value == TOK.ref_;
+        if (isRef) nextToken();
+
         /* Take care of the storage class prefixes that
          * serve as type attributes:
          *               const type
@@ -3516,6 +3520,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         AST.Type t;
         t = parseBasicType();
+        if (isRef)
+        {
+            t = t.addSTC(stc);
+            t = parseTypeSuffixes(t, true);
+            return t;
+        }
 
         int alt = 0;
         t = parseDeclarator(t, alt, pident, ptpl);
@@ -3728,6 +3738,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             check(TOK.rightParenthesis);
             break;
 
+        case TOK.leftParenthesis:
+            // (type)
+            t = parseType();
+            check(TOK.rightParenthesis);
+            break;
+
         default:
             error("basic type expected, not `%s`", token.toChars());
             if (token.value == TOK.else_)
@@ -3888,8 +3904,13 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      * See_Also:
      *      https://dlang.org/spec/declaration.html#TypeSuffixes
      */
-    private AST.Type parseTypeSuffixes(AST.Type t)
+    private AST.Type parseTypeSuffixes(AST.Type t, bool isRefCallable = false)
     {
+        // ref TypeCtors(opt) BasicType CallableSuffix TypeSuffixes(opt)
+        if (isRefCallable && token.value != TOK.delegate_ && token.value != TOK.function_)
+        {
+            error("`ref` is only valid for `function` and `delegate` types");
+        }
         //printf("parseTypeSuffixes()\n");
         while (1)
         {
@@ -3948,14 +3969,23 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             case TOK.function_:
                 {
                     // Handle delegate declaration:
-                    //      t delegate(parameter list) nothrow pure
-                    //      t function(parameter list) nothrow pure
+                    //      ref(opt) type delegate(parameter list) nothrow pure
+                    //      ref(opt) type function(parameter list) nothrow pure
                     const save = token.value;
                     nextToken();
 
                     auto parameterList = parseParameterList(null);
 
-                    StorageClass stc = parsePostfix(STC.undefined_, null);
+                    StorageClass stc;
+                    if (isRefCallable)
+                    {
+                        stc = parsePostfix(STC.ref_, null);
+                        isRefCallable = false; // ref applies to the innermost
+                    }
+                    else
+                    {
+                        stc = parsePostfix(STC.undefined_, null);
+                    }
                     auto tf = new AST.TypeFunction(parameterList, t, linkage, stc);
                     if (stc & (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild | STC.return_))
                     {
