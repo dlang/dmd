@@ -4,7 +4,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice19762.d(13): Error: struct `ice19762.X` had semantic errors when compiling
+fail_compilation/ice19762.d(16): Error: undefined identifier `Err`, did you mean variable `err`?
 ---
 */
 
