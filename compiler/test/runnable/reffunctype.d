@@ -10,7 +10,7 @@ unittest
     f(&h);
     f(ref() => i);
     assert(i == 2);
-    
+
     function ref int() fp = &h;
     fp()++;
     assert(i == 3);
