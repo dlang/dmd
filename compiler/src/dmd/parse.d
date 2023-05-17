@@ -3523,12 +3523,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         if (isRef)
         {
             t = t.addSTC(stc);
-            t = parseTypeSuffixes(t, true);
-            return t;
+            stc = STC.undefined_;
         }
 
         int alt = 0;
-        t = parseDeclarator(t, alt, pident, ptpl);
+        t = parseDeclarator(t, alt, pident, ptpl, 0, null, null, isRef);
         checkCstyleTypeSyntax(typeLoc, t, alt, pident ? *pident : null);
 
         t = t.addSTC(stc);
@@ -4022,10 +4021,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      */
     private AST.Type parseDeclarator(AST.Type t, ref int palt, Identifier* pident,
         AST.TemplateParameters** tpl = null, StorageClass storageClass = 0,
-        bool* pdisable = null, AST.Expressions** pudas = null)
+        bool* pdisable = null, AST.Expressions** pudas = null, bool isRefCallable = false)
     {
         //printf("parseDeclarator(tpl = %p)\n", tpl);
-        t = parseTypeSuffixes(t);
+        t = parseTypeSuffixes(t, isRefCallable);
         AST.Type ts;
         switch (token.value)
         {
