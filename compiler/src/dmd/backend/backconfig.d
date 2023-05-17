@@ -27,10 +27,7 @@ extern (C++):
 nothrow:
 @safe:
 
-version (MARS)
-{
-    void ph_init();
-}
+void ph_init();
 
 /**************************************
  * Initialize configuration for backend.
@@ -83,8 +80,6 @@ extern (C) void out_config_init(
         exefmt_t exefmt,
         bool generatedMain      // a main entrypoint is generated
         )
-{
-version (MARS)
 {
     //printf("out_config_init()\n");
 
@@ -377,7 +372,6 @@ static if (0)
     else if (cfg.objfmt == OBJ_ELF)
         elfDebugSectionsInit();
     rtlsym_init(); // uses fregsaved, so must be after it's set inside cod3_set*
-}
 }
 
 /****************************

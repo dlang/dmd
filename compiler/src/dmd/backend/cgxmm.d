@@ -28,8 +28,7 @@ import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.xmm;
 
-version (MARS)
-    import dmd.backend.errors;
+import dmd.backend.errors;
 
 
 extern (C++):
@@ -1362,9 +1361,8 @@ static if (0)
             case SHUFPD:  case SHUFPS:
                 if (n == 3)
                 {
-                    version (MARS)
-                        if (pass == BackendPass.final_)
-                            error(e.Esrcpos.Sfilename, e.Esrcpos.Slinnum, e.Esrcpos.Scharnum, "missing 4th parameter to `__simd()`");
+                    if (pass == BackendPass.final_)
+                        error(e.Esrcpos.Sfilename, e.Esrcpos.Slinnum, e.Esrcpos.Scharnum, "missing 4th parameter to `__simd()`");
                     cs.IFL2 = FLconst;
                     cs.IEV2.Vsize_t = 0;
                 }
@@ -1377,8 +1375,6 @@ static if (0)
         {
             elem *imm8 = params[3];
             cs.IFL2 = FLconst;
-version (MARS)
-{
             if (imm8.Eoper != OPconst)
             {
                 error(imm8.Esrcpos.Sfilename, imm8.Esrcpos.Slinnum, imm8.Esrcpos.Scharnum, "last parameter to `__simd()` must be a constant");
@@ -1386,11 +1382,6 @@ version (MARS)
             }
             else
                 cs.IEV2.Vsize_t = cast(targ_size_t)el_tolong(imm8);
-}
-else
-{
-            cs.IEV2.Vsize_t = cast(targ_size_t)el_tolong(imm8);
-}
         }
         code_newreg(&cs, reg - XMM0);
         cs.Iop = op;

@@ -299,10 +299,7 @@ enum
 
 struct Linnum
 {
-version (MARS)
         const(char)* filename;  // source file name
-else
-        Sfile *filptr;          // file pointer
 
         int cseg;               // our internal segment number
         int seg;                // segment/public index
@@ -374,12 +371,9 @@ static if (MULTISCOPE)
 
     int fisegi;                 // SegData[] index of FI segment
 
-version (MARS)
-{
     int fmsegi;                 // SegData[] of FM segment
     int datrefsegi;             // SegData[] of DATA pointer ref segment
     int tlsrefsegi;             // SegData[] of TLS pointer ref segment
-}
 
     int tlssegi;                // SegData[] of tls segment
     int fardataidx;
@@ -404,10 +398,7 @@ version (MARS)
     Rarray!(Linnum) linnum_list;
     Barray!(char*) linreclist;  // array of line records
 
-version (MARS)
-{
     Barray!PtrRef ptrrefs;      // buffer for pointer references
-}
 }
 
 __gshared

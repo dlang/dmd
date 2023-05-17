@@ -1614,34 +1614,22 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
             break;
 
         case FLpseudo:
-            version (MARS)
             {
-                {
-                    getregs(cdb, mask(s.Sreglsw));
-                    pcs.Irm = modregrm(3, 0, s.Sreglsw & 7);
-                    if (s.Sreglsw & 8)
-                        pcs.Irex |= REX_B;
-                    if (e.EV.Voffset == 1 && sz == 1)
-                    {   assert(s.Sregm & BYTEREGS);
-                        assert(s.Sreglsw < 4);
-                        pcs.Irm |= 4;                  // use 2nd byte of register
-                    }
-                    else
-                    {   assert(!e.EV.Voffset);
-                        if (I64 && sz == 1 && s.Sreglsw >= 4)
-                            pcs.Irex |= REX;
-                    }
-                    break;
+                getregs(cdb, mask(s.Sreglsw));
+                pcs.Irm = modregrm(3, 0, s.Sreglsw & 7);
+                if (s.Sreglsw & 8)
+                    pcs.Irex |= REX_B;
+                if (e.EV.Voffset == 1 && sz == 1)
+                {   assert(s.Sregm & BYTEREGS);
+                    assert(s.Sreglsw < 4);
+                    pcs.Irm |= 4;                  // use 2nd byte of register
                 }
-            }
-            else
-            {
-                {
-                    uint u = s.Sreglsw;
-                    getregs(cdb, pseudomask[u]);
-                    pcs.Irm = modregrm(3, 0, pseudoreg[u] & 7);
-                    break;
+                else
+                {   assert(!e.EV.Voffset);
+                    if (I64 && sz == 1 && s.Sreglsw >= 4)
+                        pcs.Irex |= REX;
                 }
+                break;
             }
 
         case FLfardata:

@@ -52,10 +52,7 @@ nothrow:
 alias _compare_fp_t = extern(C) nothrow int function(const void*, const void*);
 extern(C) void qsort(void* base, size_t nmemb, size_t size, _compare_fp_t compar);
 
-version (MARS)
-    enum MARS = true;
-else
-    enum MARS = false;
+enum MARS = true;
 
 import dmd.backend.dwarfdbginf : dwarf_except_gentables;
 
@@ -212,12 +209,9 @@ tryagain:
     calledFinally = false;
     usednteh = 0;
 
-    static if (MARS)
-    {
-        if (sfunc.Sfunc.Fflags3 & Fjmonitor &&
-            config.exe & EX_windos)
-            usednteh |= NTEHjmonitor;
-    }
+    if (sfunc.Sfunc.Fflags3 & Fjmonitor &&
+        config.exe & EX_windos)
+        usednteh |= NTEHjmonitor;
 
     // Set on a trial basis, turning it off if anything might throw
     sfunc.Sfunc.Fflags3 |= Fnothrow;
@@ -456,13 +450,10 @@ tryagain:
     debug
     debugw && printf("code jump optimization complete\n");
 
-    version (MARS)
+    if (usednteh & NTEH_try)
     {
-        if (usednteh & NTEH_try)
-        {
-            // Do this before code is emitted because we patch some instructions
-            nteh_filltables();
-        }
+        // Do this before code is emitted because we patch some instructions
+        nteh_filltables();
     }
 
     // Compute starting offset for switch tables
@@ -531,14 +522,9 @@ tryagain:
         if (configv.vasm)
             disassemble(disasmBuf[]);                   // disassemble the code
 
-        static if (NTEXCEPTIONS || MARS)
+        static if (1)
         {
-            version (MARS)
-                const nteh = usednteh & NTEH_try;
-            else static if (NTEXCEPTIONS)
-                const nteh = usednteh & NTEHcpp;
-            else
-                enum nteh = true;
+            const nteh = usednteh & NTEH_try;
             if (nteh)
             {
                 assert(!(config.flags & CFGromable));
@@ -565,15 +551,13 @@ tryagain:
                 case BCretexp:
                     /* Compute offset to return code from start of function */
                     retoffset = b.Boffset + b.Bsize - retsize - funcoffset;
-                    version (MARS)
-                    {
-                        /* Add 3 bytes to retoffset in case we have an exception
-                         * handler. THIS PROBABLY NEEDS TO BE IN ANOTHER SPOT BUT
-                         * IT FIXES THE PROBLEM HERE AS WELL.
-                         */
-                        if (usednteh & NTEH_try)
-                            retoffset += 3;
-                    }
+
+                    /* Add 3 bytes to retoffset in case we have an exception
+                     * handler. THIS PROBABLY NEEDS TO BE IN ANOTHER SPOT BUT
+                     * IT FIXES THE PROBLEM HERE AS WELL.
+                     */
+                    if (usednteh & NTEH_try)
+                        retoffset += 3;
                     flag = true;
                     break;
 
@@ -786,13 +770,10 @@ Lagain:
     static if (NTEXCEPTIONS == 2)
     {
         Fast.size -= nteh_contextsym_size();
-        version (MARS)
+        if (config.exe & EX_windos)
         {
-            if (config.exe & EX_windos)
-            {
-                if (funcsym_p.Sfunc.Fflags3 & Ffakeeh && nteh_contextsym_size() == 0)
-                    Fast.size -= 5 * 4;
-            }
+            if (funcsym_p.Sfunc.Fflags3 & Ffakeeh && nteh_contextsym_size() == 0)
+                Fast.size -= 5 * 4;
         }
     }
 
@@ -1039,20 +1020,17 @@ else
         prolog_allocoffset = calcblksize(c);
     }
 
-    version (MARS)
-    {
-        if (usednteh & NTEHjmonitor)
-        {   Symbol *sthis;
+    if (usednteh & NTEHjmonitor)
+    {   Symbol *sthis;
 
-            for (SYMIDX si = 0; 1; si++)
-            {   assert(si < globsym.length);
-                sthis = globsym[si];
-                if (strcmp(sthis.Sident.ptr,"this".ptr) == 0)
-                    break;
-            }
-            nteh_monitor_prolog(cdbx,sthis);
-            EBPtoESP += 3 * 4;
+        for (SYMIDX si = 0; 1; si++)
+        {   assert(si < globsym.length);
+            sthis = globsym[si];
+            if (strcmp(sthis.Sident.ptr,"this".ptr) == 0)
+                break;
         }
+        nteh_monitor_prolog(cdbx,sthis);
+        EBPtoESP += 3 * 4;
     }
 
     cdb.append(cdbx);
@@ -1644,27 +1622,13 @@ static if (0)
                 goto Lreg;
 
             case FLpseudo:
-                version (MARS)
+                u = s.Sreglsw;
+                m = mask(u);
+                if (m & ALLREGS && (u & ~3) != 4) // if not BP,SP,EBP,ESP,or ?H
                 {
-                    u = s.Sreglsw;
-                    m = mask(u);
-                    if (m & ALLREGS && (u & ~3) != 4) // if not BP,SP,EBP,ESP,or ?H
-                    {
-                        reg = u & 7;
-                        regm = m;
-                        goto Lreg;
-                    }
-                }
-                else
-                {
-                    u = s.Sreglsw;
-                    m = pseudomask[u];
-                    if (m & ALLREGS && (u & ~3) != 4) // if not BP,SP,EBP,ESP,or ?H
-                    {
-                        reg = pseudoreg[u] & 7;
-                        regm = m;
-                        goto Lreg;
-                    }
+                    reg = u & 7;
+                    regm = m;
+                    goto Lreg;
                 }
                 break;
 
