@@ -422,6 +422,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             case TOK.class_:
             case TOK.interface_:
             case TOK.traits:
+            case TOK.function_:
+            case TOK.delegate_:
             Ldeclaration:
                 a = parseDeclarations(false, pAttrs, pAttrs.comment);
                 if (a && a.length)

@@ -4,6 +4,7 @@ void f(function ref int() g) { g()++; }
 
 int i;
 ref int h() => i;
+function ref int() mfp = &h;
 
 unittest
 {
@@ -14,6 +15,9 @@ unittest
     function ref int() fp = &h;
     fp()++;
     assert(i == 3);
+
+    mfp()++;
+    assert(i == 4);
 }
 
 alias Func = function ref int();
