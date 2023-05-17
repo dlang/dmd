@@ -237,15 +237,16 @@ Expression castCallAmbiguity(Expression e, Scope* sc)
 
             case EXP.call:
                 auto ce = (*pe).isCallExp();
-                if (ce.e1.parens)
+                auto ie = ce.e1.isIdentifierExp();
+                if (ie && ie.parens)
                 {
-                    ce.e1 = expressionSemantic(ce.e1, sc);
+                    ce.e1 = expressionSemantic(ie, sc);
                     if (ce.e1.op == EXP.type)
                     {
                         const numArgs = ce.arguments ? ce.arguments.length : 0;
                         if (numArgs >= 1)
                         {
-                            ce.e1.parens = false;
+                            ie.parens = false;
                             Expression arg;
                             foreach (a; (*ce.arguments)[])
                             {
