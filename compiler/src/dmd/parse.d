@@ -8479,7 +8479,6 @@ LagainStc:
                 // ( expression )
                 nextToken();
                 e = parseExpression();
-                e.parens = true;
                 check(loc, TOK.rightParenthesis);
                 break;
             }
@@ -8800,9 +8799,9 @@ LagainStc:
                                         nextToken();
                                         return AST.ErrorExp.get();
                                     }
-                                    e = new AST.TypeExp(loc, t);
-                                    e.parens = true;
-                                    e = parsePostExp(e);
+                                    auto te = new AST.TypeExp(loc, t);
+                                    te.parens = true;
+                                    e = parsePostExp(te);
                                 }
                                 else
                                 {
