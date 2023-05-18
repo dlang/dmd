@@ -1221,8 +1221,6 @@ else
             break;
 
         Laarray:
-version (MARS)
-{
             key = cv4_typidx(t.Tkey);
             switch (config.fulltypes)
             {
@@ -1254,18 +1252,14 @@ else
                 default:
                     assert(0);
             }
-}
             break;
 
         Ldelegate:
             switch (config.fulltypes)
             {
-version (MARS)
-{
                 case CV8:
                     typidx = cv8_ddelegate(t, next);
                     break;
-}
 
                 case CV4:
                     tv = type_fake(TYnptr);
@@ -1418,10 +1412,7 @@ else
         {
             if (config.fulltypes == CV8)
             {
-version (MARS)
-{
                 typidx = cv8_fwdref(t.Ttag);
-}
             }
             else
             {
@@ -1440,14 +1431,11 @@ version (MARS)
                 typidx = cv4_fwdenum(t);
             break;
 
-version (MARS)
-{
         case TYref:
         case TYnref:
             attribute |= 0x20;          // indicate reference pointer
             tym = TYnptr;               // convert to C data type
             goto L1;                    // and try again
-}
 
         case TYnullptr:
             tym = TYnptr;
@@ -1550,11 +1538,8 @@ private void cv4_outsym(Symbol *s)
 
     //printf("cv4_outsym(%s)\n",s.Sident.ptr);
     symbol_debug(s);
-version (MARS)
-{
     if (s.Sflags & SFLnodebug)
         return;
-}
     t = s.Stype;
     type_debug(t);
     tym = tybasic(t.Tty);
@@ -1641,14 +1626,7 @@ version (MARS)
         idx_t typidx;
 
         typidx = cv4_typidx(t);
-version (MARS)
-{
         id = s.prettyIdent ? s.prettyIdent : prettyident(s);
-}
-else
-{
-        id = prettyident(s);
-}
         len = cast(uint)strlen(id);
         debsym = (39 + IDOHD + len <= (buf).sizeof) ? buf.ptr : cast(ubyte *) malloc(39 + IDOHD + len);
         if (!debsym)
@@ -1861,8 +1839,6 @@ private void cv4_func(Funcsym *s, ref symtab_t symtab)
     int endarg;
 
     cv4_outsym(s);              // put out function symbol
-version (MARS)
-{
     __gshared Funcsym* sfunc;
     __gshared int cntOpenBlocks;
     sfunc = s;
@@ -1914,16 +1890,6 @@ version (MARS)
     }
 
     varStats_writeSymbolTable(symtab, &cv4_outsym, &cv4.endArgs, &cv4.beginBlock, &cv4.endBlock);
-}
-else
-{
-    // Put out local symbols
-    endarg = 0;
-    foreach (sa; symtab[])
-    {   //printf("symtab[%d] = %p\n",si,symtab[si]);
-        cv4_outsym(sa);
-    }
-}
 
     // Put out function return record
     if (1)
@@ -2156,16 +2122,9 @@ void cv_func(Funcsym *s)
 {
 
     //printf("cv_func('%s')\n",s.Sident.ptr);
-version (MARS)
-{
     if (s.Sflags & SFLnodebug)
         return;
-}
-else
-{
-    if (CPP && s.Sfunc.Fflags & Fnodebug)     // if don't generate debug info
-        return;
-}
+
     switch (config.fulltypes)
     {
         case CV4:
@@ -2188,11 +2147,8 @@ void cv_outsym(Symbol *s)
 {
     //printf("cv_outsym('%s')\n",s.Sident.ptr);
     symbol_debug(s);
-version (MARS)
-{
     if (s.Sflags & SFLnodebug)
         return;
-}
     switch (config.fulltypes)
     {
         case CV4:
@@ -2201,12 +2157,9 @@ version (MARS)
             cv4_outsym(s);
             break;
 
-version (MARS)
-{
         case CV8:
             cv8_outsym(s);
             break;
-}
 
         default:
             assert(0);
