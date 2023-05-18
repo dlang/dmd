@@ -1250,22 +1250,17 @@ static if (1)
 
             debug_info.buf.writeuLEB128(1);                   // abbreviation code
 
-            version (MARS)
-            {
-                debug_info.buf.write("Digital Mars D ");
-                debug_info.buf.writeStringz(config._version);     // DW_AT_producer
-                // DW_AT_language
-                auto language = (config.fulltypes == CVDWARF_D) ? DW_LANG_D : DW_LANG_C89;
-                /* if source file has .c or .i extension, emit C debug info
-                 */
-                if (filename.length >= 2 &&
-                    filename[$ - 2] == '.' &&
-                    (filename[$ - 1] == 'c' || filename[$ - 1] == 'i'))
-                    language = DW_LANG_C89;
-                debug_info.buf.writeByte(language);
-            }
-            else
-                static assert(0);
+            debug_info.buf.write("Digital Mars D ");
+            debug_info.buf.writeStringz(config._version);     // DW_AT_producer
+            // DW_AT_language
+            auto language = (config.fulltypes == CVDWARF_D) ? DW_LANG_D : DW_LANG_C89;
+            /* if source file has .c or .i extension, emit C debug info
+             */
+            if (filename.length >= 2 &&
+                filename[$ - 2] == '.' &&
+                (filename[$ - 1] == 'c' || filename[$ - 1] == 'i'))
+                language = DW_LANG_C89;
+            debug_info.buf.writeByte(language);
 
             debug_info.buf.writeStringz(filename);             // DW_AT_name
 
@@ -1459,16 +1454,7 @@ static if (1)
                     linnum_data *ld = &SegData[seg].SDlinnum_data[i];
                     const(char)* filename;
 
-                    version (MARS)
-                        filename = ld.filename;
-                    else
-                    {
-                        Sfile *sf = ld.filptr;
-                        if (sf)
-                            filename = sf.SFname;
-                        else
-                            filename = .filename;
-                    }
+                    filename = ld.filename;
 
                     if (last_filename == filename)
                     {
@@ -1759,14 +1745,11 @@ static if (1)
         if (!config.fulltypes)
             return;
 
-        version (MARS)
-        {
-            if (sfunc.Sflags & SFLnodebug)
-                return;
-            const(char)* filename = sfunc.Sfunc.Fstartline.Sfilename;
-            if (!filename)
-                return;
-        }
+        if (sfunc.Sflags & SFLnodebug)
+            return;
+        const(char)* filename = sfunc.Sfunc.Fstartline.Sfilename;
+        if (!filename)
+            return;
 
         uint funcabbrevcode;
 
@@ -1785,10 +1768,7 @@ static if (1)
         IDXSEC seg = sfunc.Sseg;
         seg_data *sd = SegData[seg];
 
-        version (MARS)
-            int filenum = dwarf_line_addfile(filename);
-        else
-            int filenum = 1;
+        int filenum = dwarf_line_addfile(filename);
 
         uint ret_type = dwarf_typidx(sfunc.Stype.Tnext);
         if (tybasic(sfunc.Stype.Tnext.Tty) == TYvoid)
@@ -1805,8 +1785,7 @@ static if (1)
         {
             Symbol *sa = globsym[si];
 
-            version (MARS)
-                if (sa.Sflags & SFLnodebug) continue;
+            if (sa.Sflags & SFLnodebug) continue;
 
             static immutable uint[14] formal_var_abbrev_suffix =
             [
@@ -1952,9 +1931,8 @@ static if (1)
             {
                 Symbol *sa = globsym[si];
 
-                version (MARS)
-                    if (sa.Sflags & SFLnodebug)
-                        continue;
+                if (sa.Sflags & SFLnodebug)
+                    continue;
 
                 uint vcode;
 
@@ -2119,11 +2097,8 @@ static if (1)
 
         symbol_debug(s);
 
-        version (MARS)
-        {
-            if (s.Sflags & SFLnodebug)
-                return;
-        }
+        if (s.Sflags & SFLnodebug)
+            return;
 
         type *t = s.Stype;
         type_debug(t);
@@ -3071,10 +3046,7 @@ static if (1)
      */
     const(char)* getSymName(Symbol* sym)
     {
-        version (MARS)
-            return sym.prettyIdent ? sym.prettyIdent : sym.Sident.ptr;
-        else
-            return sym.Sident.ptr;
+        return sym.prettyIdent ? sym.prettyIdent : sym.Sident.ptr;
     }
 
     /* ======================= Abbreviation Codes ====================== */

@@ -38,9 +38,6 @@ nothrow:
 /**************************
  * Make an elem out of a symbol.
  */
-
-version (MARS)
-{
 @trusted
 elem * el_var(Symbol *s)
 {
@@ -202,7 +199,6 @@ else if (config.exe & EX_windos)
 }
     }
     return e;
-}
 }
 
 /**************************

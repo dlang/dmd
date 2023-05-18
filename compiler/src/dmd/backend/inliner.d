@@ -26,9 +26,6 @@
 
 module dmd.backend.inliner;
 
-version (MARS)
-{
-
 import core.stdc.stdio;
 import core.stdc.ctype;
 import core.stdc.string;
@@ -682,6 +679,4 @@ private int getSize(const(elem)* e)
     if (sz == -1 && e.ET && (tybasic(e.Ety) == TYstruct || tybasic(e.Ety) == TYarray))
         sz = cast(int)type_size(e.ET);
     return sz;
-}
-
 }

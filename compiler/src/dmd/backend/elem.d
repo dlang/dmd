@@ -484,11 +484,6 @@ void el_copy(elem *to, const elem *from)
 @trusted
 elem * el_alloctmp(tym_t ty)
 {
-    version (MARS)
-    { }
-    else
-        assert(!PARSER);
-
     Symbol *s;
     s = symbol_generate(SC.auto_,type_fake(ty));
     symbol_add(s);
@@ -520,11 +515,8 @@ elem * el_selecte1(elem *e)
     e1.Ety = e.Ety;
     //if (tyaggregate(e1.Ety))
     //    e1.Enumbytes = e.Enumbytes;
-    version (MARS)
-    {
-        if (!e1.Ejty)
-            e1.Ejty = e.Ejty;
-    }
+    if (!e1.Ejty)
+        e1.Ejty = e.Ejty;
     el_free(e);
     return e1;
 }
@@ -624,9 +616,6 @@ static if (0)
 /*******************************
  * Replace (e) with ((stmp = e),stmp)
  */
-
-version (MARS)
-{
 @trusted
 elem *exp2_copytotemp(elem *e)
 {
@@ -634,13 +623,8 @@ elem *exp2_copytotemp(elem *e)
     elem_debug(e);
     tym_t ty = tybasic(e.Ety);
     type *t;
-    version (MARS)
-    {
-        if ((ty == TYstruct || ty == TYarray) && e.ET)
-            t = e.ET;
-        else
-            t = type_fake(ty);
-    }
+    if ((ty == TYstruct || ty == TYarray) && e.ET)
+        t = e.ET;
     else
         t = type_fake(ty);
 
@@ -656,7 +640,6 @@ elem *exp2_copytotemp(elem *e)
         er.EV.E2.ET = e.ET;
     }
     return er;
-}
 }
 
 /*************************
@@ -731,9 +714,6 @@ int el_appears(const(elem)* e, const Symbol *s)
     }
     return 0;
 }
-
-version (MARS)
-{
 
 /*****************************************
  * Look for symbol that is a base of addressing mode e.
@@ -813,8 +793,6 @@ bool el_anydef(const elem *ed, const(elem)* e)
     return false;
 }
 
-}
-
 /************************
  * Make a binary operator node.
  */
@@ -851,7 +829,6 @@ static if (0)
         *cast(char *)0=0;
 }
     assert(op < OPMAX && OTbinary(op) && e1 && e2);
-    version (MARS) { } else assert(!PARSER);
     elem_debug(e1);
     elem_debug(e2);
     elem* e = el_calloc();
@@ -896,7 +873,6 @@ elem* el_una(OPER op,tym_t ty,elem *e1)
         printf("op = x%x, e1 = %p\n",op,e1);
 
     assert(op < OPMAX && OTunary(op) && e1);
-    version (MARS) { } else assert(!PARSER);
     elem_debug(e1);
     elem* e = el_calloc();
     e.Ety = ty;
@@ -929,11 +905,6 @@ extern (C) // necessary because D <=> C++ mangling of "long long" is not consist
 {
 elem * el_long(tym_t t,targ_llong val)
 {
-    version (MARS)
-    { }
-    else
-        assert(!PARSER);
-
     elem* e = el_calloc();
     e.Eoper = OPconst;
     e.Ety = t;
@@ -1043,16 +1014,7 @@ elem* el_vectorConst(tym_t ty, ulong val)
 
 elem * el_settype(elem *e,type *t)
 {
-    version (MARS)
-        assert(0);
-    else
-    {
-        assert(PARSER);
-        elem_debug(e);
-        type_debug(t);
-        type_settype(&e.ET,t);
-        return e;
-    }
+    assert(0);
 }
 
 /*******************************
@@ -1061,46 +1023,12 @@ elem * el_settype(elem *e,type *t)
 
 elem * el_typesize(type *t)
 {
-version (MARS)
-{
     assert(0);
-}
-else
-{
-    assert(PARSER);
-    type_debug(t);
-    if (CPP && tybasic(t.Tty) == TYstruct && t.Tflags & TFsizeunknown)
-    {
-        elem *e;
-        symbol_debug(t.Ttag);
-        e = el_calloc();
-        e.Eoper = OPsizeof;
-        e.EV.Vsym = t.Ttag;
-        e.ET = tssize;
-        e.ET.Tcount++;
-        type_debug(tssize);
-        elem_debug(e);
-        return e;
-    }
-    else if (tybasic(t.Tty) == TYarray && type_isvla(t))
-    {
-        type *troot = type_arrayroot(t);
-        elem *en;
-
-        en = el_nelems(t);
-        return el_bint(OPmul, en.ET, en, el_typesize(troot));
-    }
-    else
-        return el_longt(tssize,type_size(t));
-}
 }
 
 /************************************
  * Returns: true if function has any side effects.
  */
-
-version (MARS)
-{
 
 @trusted
 bool el_funcsideeff(const elem *e)
@@ -1112,8 +1040,6 @@ bool el_funcsideeff(const elem *e)
        )
         return false;
     return true;                   // assume it does have side effects
-}
-
 }
 
 /****************************
@@ -1636,9 +1562,6 @@ elem *el_convert(elem *e)
 elem * el_const(tym_t ty, eve *pconst)
 {
     elem *e;
-
-    version (MARS) { }
-    else assert(!PARSER);
 
     e = el_calloc();
     e.Eoper = OPconst;
@@ -2559,13 +2482,8 @@ void elem_print(const elem* e, int nestlevel = 0)
     elem_debug(e);
     if (configv.addlinenumbers)
     {
-        version (MARS)
-        {
-            if (e.Esrcpos.Sfilename)
-                printf("%s(%u) ", e.Esrcpos.Sfilename, e.Esrcpos.Slinnum);
-        }
-        else
-            e.Esrcpos.print("elem_print");
+        if (e.Esrcpos.Sfilename)
+            printf("%s(%u) ", e.Esrcpos.Sfilename, e.Esrcpos.Slinnum);
     }
     if (!PARSER)
     {
@@ -2809,13 +2727,6 @@ case_tym:
         case TYullong8:           // ulong[8]
             printf("512 bit vector ");  // not supported yet with union eve
             break;
-
-version (MARS) { } else
-{
-        case TYident:
-            printf("'%s' ", e.ET.Tident);
-            break;
-}
 
         default:
             printf("Invalid type ");

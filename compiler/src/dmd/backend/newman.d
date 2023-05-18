@@ -100,16 +100,12 @@ char[4] cpp_name_priminv = "?_R";
 
 /****************************
  */
-
-version (MARS)
-{
 struct OPTABLE
 {
     ubyte tokn;
     ubyte oper;
     const(char)* string;
     const(char)* pretty;
-}
 }
 
 version (SCPPorHTOD)
@@ -473,47 +469,6 @@ char *cpp_typetostring(type *t,char *prefix)
     return mangle.buf.ptr;
 }
 
-version (MARS) { } else
-{
-
-/********************************
- * 'Mangle' a name for output.
- * Returns:
- *      pointer to mangled name (a static buffer)
- */
-
-char *cpp_mangle(Symbol *s)
-{
-    symbol_debug(s);
-    //printf("cpp_mangle(s = %p, '%s')\n", s, s.Sident);
-    //type_print(s.Stype);
-
-version (SCPPorHTOD)
-{
-    if (!CPP)
-        return symbol_ident(s);
-}
-
-    if (type_mangle(s.Stype) != mTYman_cpp)
-        return symbol_ident(s);
-    else
-    {
-        MangleInuse m;
-
-        mangle.znamei = 0;
-        mangle.argi = 0;
-        mangle.np = mangle.buf.ptr;
-        mangle.buf[BUFIDMAX + 1] = 0x55;
-        cpp_decorated_name(s);
-        *mangle.np = 0;                 // 0-terminate cpp_name[]
-        //dbg_printf("cpp_mangle() = '%s'\n", mangle.buf);
-        assert(strlen(mangle.buf.ptr) <= BUFIDMAX);
-        assert(mangle.buf[BUFIDMAX + 1] == 0x55);
-        return mangle.buf.ptr;
-    }
-}
-
-}
 ///////////////////////////////////////////////////////
 
 /*********************************
@@ -1306,10 +1261,7 @@ private void cpp_this_type(type *tfunc,Classsym *stag)
     type_debug(tfunc);
     symbol_debug(stag);
 
-version (MARS)
     t = type_pointer(stag.Stype);
-else
-    t = cpp_thistype(tfunc,stag);
 
     //cpp_data_indirect_type(t);
     cpp_ecsu_data_indirect_type(t);
@@ -1547,8 +1499,6 @@ private void cpp_zname(const(char)* p)
     if (*p != '?' ||                            // if not operator_name
         (NEWTEMPMANGLE && p[1] == '$'))         // ?$ is a template name
     {
-version (MARS)
-{
         /* Scan forward past any dots
          */
         for (const(char)* q = p; *q; q++)
@@ -1556,7 +1506,6 @@ version (MARS)
             if (*q == '.')
                 p = q + 1;
         }
-}
 
         for (int i = 0; i < mangle.znamei; i++)
         {

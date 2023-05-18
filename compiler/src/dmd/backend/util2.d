@@ -86,24 +86,12 @@ private extern (C) void controlc_handler()
 
 void util_progress()
 {
-    version (MARS) { } else {
-    version (CRuntime_DigitalMars)
-    {
-        if (controlc_saw)
-            err_break();
-    }
-    }
+
 }
 
 void util_progress(int linnum)
 {
-    version (MARS) { } else {
-    version (CRuntime_DigitalMars)
-    {
-        if (controlc_saw)
-            err_break();
-    }
-    }
+
 }
 
 

@@ -12,9 +12,6 @@
 
 module dmd.backend.pdata;
 
-version (MARS)
-{
-
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -38,18 +35,9 @@ nothrow:
 // Determine if this Symbol is stored in a COMDAT
 private bool symbol_iscomdat3(Symbol* s)
 {
-    version (MARS)
-    {
-        return s.Sclass == SC.comdat ||
-            config.flags2 & CFG2comdat && s.Sclass == SC.inline ||
-            config.flags4 & CFG4allcomdat && s.Sclass == SC.global;
-    }
-    else
-    {
-        return s.Sclass == SC.comdat ||
-            config.flags2 & CFG2comdat && s.Sclass == SC.inline ||
-            config.flags4 & CFG4allcomdat && (s.Sclass == SC.global || s.Sclass == SC.static_);
-    }
+    return s.Sclass == SC.comdat ||
+        config.flags2 & CFG2comdat && s.Sclass == SC.inline ||
+        config.flags4 & CFG4allcomdat && s.Sclass == SC.global;
 }
 
 enum ALLOCA_LIMIT = 0x10000;
@@ -283,5 +271,4 @@ static if (1)
     auto dtb = DtBuilder(0);
     dtb.nbytes(4 + ((ui.CountOfCodes + 1) & ~1) * 2,cast(char *)&ui);
     return dtb.finish();
-}
 }
