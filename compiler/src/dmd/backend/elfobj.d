@@ -61,13 +61,8 @@ enum MATCH_SECTION = 1;
 
 enum DEST_LEN = (IDMAX + IDOHD + 1);
 
-version (MARS)
-{
-    // C++ name mangling is handled by front end
-    const(char)* cpp_mangle2(Symbol* s) { return &s.Sident[0]; }
-}
-else
-    const(char)* cpp_mangle2(Symbol* s) { return cpp_mangle(s); }
+// C++ name mangling is handled by front end
+const(char)* cpp_mangle2(Symbol* s) { return &s.Sident[0]; }
 
 void addSegmentToComdat(segidx_t seg, segidx_t comdatseg);
 
@@ -1039,11 +1034,8 @@ void ElfObj_term(const(char)* objfilename)
     if (configv.addlinenumbers)
         dwarf_termfile();
 
-    version (MARS)
-    {
-        if (config.useModuleInfo)
-            obj_rtinit();
-    }
+    if (config.useModuleInfo)
+        obj_rtinit();
 
     int foffset;
     Elf32_Shdr *sechdr;
@@ -1405,11 +1397,8 @@ static if (0)
     srcpos.print("");
 }
 
-version (MARS)
-{
     if (!srcpos.Sfilename)
         return;
-}
 
     size_t i;
     seg_data *pseg = SegData[seg];
@@ -1419,15 +1408,11 @@ version (MARS)
     {
         if (i == pseg.SDlinnum_data.length)
         {   // Create new entry
-            version (MARS)
-                pseg.SDlinnum_data.push(linnum_data(srcpos.Sfilename));
+            pseg.SDlinnum_data.push(linnum_data(srcpos.Sfilename));
             break;
         }
-version (MARS)
-{
         if (pseg.SDlinnum_data[i].filename == srcpos.Sfilename)
             break;
-}
     }
 
     linnum_data *ld = &pseg.SDlinnum_data[i];
@@ -2140,10 +2125,7 @@ char *obj_mangle2(Symbol *s,char *dest, size_t *destlen)
     symbol_debug(s);
     assert(dest);
 
-version (MARS)
     // C++ name mangling is handled by front end
-    name = s.Sident.ptr;
-else
     name = s.Sident.ptr;
 
     size_t len = strlen(name);                 // # of bytes in name
@@ -3304,9 +3286,6 @@ int elf_align(targ_size_t size,int foffset)
  * Stuff pointer to ModuleInfo into its own section (minfo).
  */
 
-version (MARS)
-{
-
 void ElfObj_moduleinfo(Symbol *scc)
 {
     const CFflags = I64 ? (CFoffset64 | CFoff) : CFoff;
@@ -3698,8 +3677,6 @@ else
     p.sh_info    = dso_rec; // set the dso_rec as group symbol
     p.sh_entsize = IDXSYM.sizeof;
     p.sh_size    = cast(uint)Offset(groupseg);
-}
-
 }
 
 /*************************************

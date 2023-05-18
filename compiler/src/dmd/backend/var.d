@@ -65,59 +65,6 @@ char debugw = 0; /// watch progress
 char debugx = 0; /// suppress predefined CPP stuff
 char debugy = 0; /// watch output to il buffer
 
-version (MARS) { } else
-{
-linkage_t linkage;
-int linkage_spec = 0;           /* using the default                    */
-
-/* Function types       */
-/* LINK_MAXDIM = C,C++,Pascal,FORTRAN,syscall,stdcall,Mars */
-static if (MEMMODELS == 1)
-{
-tym_t[LINK_MAXDIM] functypetab =
-[
-    TYnfunc,
-    TYnpfunc,
-    TYnpfunc,
-    TYnfunc,
-];
-}
-else
-{
-tym_t[MEMMODELS][LINK_MAXDIM] functypetab =
-[
-    [ TYnfunc,  TYffunc,  TYnfunc,  TYffunc,  TYffunc  ],
-    [ TYnfunc,  TYffunc,  TYnfunc,  TYffunc,  TYffunc  ],
-    [ TYnpfunc, TYfpfunc, TYnpfunc, TYfpfunc, TYfpfunc ],
-    [ TYnpfunc, TYfpfunc, TYnpfunc, TYfpfunc, TYfpfunc ],
-    [ TYnfunc,  TYffunc,  TYnfunc,  TYffunc,  TYffunc  ],
-    [ TYnsfunc, TYfsfunc, TYnsfunc, TYfsfunc, TYfsfunc ],
-    [ TYjfunc,  TYfpfunc, TYnpfunc, TYfpfunc, TYfpfunc ],
-];
-}
-
-/* Function mangling    */
-/* LINK_MAXDIM = C,C++,Pascal,FORTRAN,syscall,stdcall */
-mangle_t[LINK_MAXDIM] funcmangletab =
-[
-    mTYman_c,
-    mTYman_cpp,
-    mTYman_pas,
-    mTYman_for,
-    mTYman_sys,
-    mTYman_std,
-    mTYman_d,
-];
-
-/* Name mangling for global variables   */
-mangle_t[LINK_MAXDIM] varmangletab =
-[
-    mTYman_c,
-    mTYman_cpp,
-    mTYman_pas,mTYman_for,mTYman_sys,mTYman_std,mTYman_d
-];
-}
-
 /* File variables: */
 
 char *argv0;                    // argv[0] (program name)

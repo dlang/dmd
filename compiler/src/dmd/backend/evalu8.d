@@ -1094,8 +1094,6 @@ static if (0)
         }
         break;
     case OPmod:
-version (MARS)
-{
         if (!tyfloating(tym))
         {
             if (!boolres(e2))
@@ -1109,19 +1107,6 @@ version (MARS)
                     break;
             }
         }
-}
-else
-{
-        if (1)
-        {
-            if (!boolres(e2))
-            {
-                div0:
-                overflow:
-                    break;
-            }
-        }
-}
         if (uns)
         {
             if (tym == TYucent)
@@ -1279,11 +1264,8 @@ else
         }
         if (cast(targ_ullong) i2 > targ_ullong.sizeof * 8)
             i2 = targ_ullong.sizeof * 8;
-version (MARS)
-{
         // Always unsigned
         e.EV.Vullong = (cast(targ_ullong) l1) >> i2;
-}
         break;
 
     case OPbtst:
@@ -1292,8 +1274,6 @@ version (MARS)
         e.EV.Vullong = ((cast(targ_ullong) l1) >> i2) & 1;
         break;
 
-version (MARS)
-{
     case OPashr:
         if (tym == TYcent || tym == TYucent)
         {
@@ -1305,7 +1285,6 @@ version (MARS)
         // Always signed
         e.EV.Vllong = l1 >> i2;
         break;
-}
 
     case OPpair:
         switch (tysize(e.Ety))

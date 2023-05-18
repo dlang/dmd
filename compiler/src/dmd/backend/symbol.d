@@ -13,11 +13,8 @@
 
 module dmd.backend.symbol;
 
-version (MARS)
-{
-    enum HYDRATE = false;
-    enum DEHYDRATE = false;
-}
+enum HYDRATE = false;
+enum DEHYDRATE = false;
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -156,10 +153,7 @@ int Symbol_Salignsize(ref Symbol s)
 @trusted
 bool Symbol_Sisdead(const ref Symbol s, bool anyInlineAsm)
 {
-    version (MARS)
-        enum vol = false;
-    else
-        enum vol = true;
+    enum vol = false;
     return s.Sflags & SFLdead ||
            /* SFLdead means the optimizer found no references to it.
             * The rest deals with variables that the compiler never needed
@@ -325,7 +319,6 @@ Symbol * symbol_generate(SC sclass,type *t)
     Symbol *s = symbol_name(name.ptr[0 .. length],sclass,t);
     //symbol_print(s);
 
-version (MARS)
     s.Sflags |= SFLnodebug | SFLartifical;
 
     return s;
@@ -583,8 +576,7 @@ debug
                 list_free(&f.Fthunks,cast(list_free_fp)&symbol_free);
               }
                 list_free(&f.Fsymtree,cast(list_free_fp)&symbol_free);
-                version (MARS)
-                    f.typesTable.dtor();
+                f.typesTable.dtor();
                 func_free(f);
             }
             switch (s.Sclass)

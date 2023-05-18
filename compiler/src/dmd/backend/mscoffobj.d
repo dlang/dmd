@@ -960,16 +960,8 @@ void MsCoffObj_term(const(char)* objfilename)
 @trusted
 void MsCoffObj_linnum(Srcpos srcpos, int seg, targ_size_t offset)
 {
-    version (MARS)
-    {
-        if (srcpos.Slinnum == 0 || !srcpos.Sfilename)
-            return;
-    }
-    else
-    {
-        if (srcpos.Slinnum == 0 || !srcpos.srcpos_name())
-            return;
-    }
+    if (srcpos.Slinnum == 0 || !srcpos.Sfilename)
+        return;
 
     cv8_linnum(srcpos, cast(uint)offset);
 }
@@ -1683,10 +1675,7 @@ char *obj_mangle2(Symbol *s,char *dest)
     symbol_debug(s);
     assert(dest);
 
-version (MARS)
     // C++ name mangling is handled by front end
-    name = &s.Sident[0];
-else
     name = &s.Sident[0];
 
     len = strlen(name);                 // # of bytes in name
@@ -2396,10 +2385,6 @@ int elf_align(int size, int foffset)
  * Input:
  *      scc     symbol for ModuleInfo
  */
-
-version (MARS)
-{
-
 @trusted
 void MsCoffObj_moduleinfo(Symbol *scc)
 {
@@ -2417,8 +2402,6 @@ void MsCoffObj_moduleinfo(Symbol *scc)
     if (I64)
         flags |= CFoffset64;
     SegData[seg].SDoffset += MsCoffObj_reftoident(seg, Offset(seg), scc, 0, flags);
-}
-
 }
 
 /**********************************

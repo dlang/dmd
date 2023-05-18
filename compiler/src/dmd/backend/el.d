@@ -128,10 +128,7 @@ void elem_debug(const elem* e)
 
 @trusted tym_t typemask(const elem* e)
 {
-    version (MARS)
-        return e.Ety;
-    else
-        return PARSER ? e.ET.Tty : e.Ety;
+    return e.Ety;
 }
 
 @trusted

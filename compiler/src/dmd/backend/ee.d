@@ -31,10 +31,7 @@ extern(C++):
 
 nothrow:
 
-version (MARS)
-{
 __gshared EEcontext eecontext;
-}
 
 //////////////////////////////////////
 // Convert any symbols generated for the debugger expression to SCstack

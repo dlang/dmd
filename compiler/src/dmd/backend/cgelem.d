@@ -2527,7 +2527,7 @@ Lret:
 
 private elem * elremquo(elem *e, goal_t goal)
 {
-    static if (0) version (MARS)
+    static if (0)
     if (cnst(e.EV.E2) && !boolres(e.EV.E2))
         error(e.Esrcpos.Sfilename, e.Esrcpos.Slinnum, e.Esrcpos.Scharnum, "divide by zero\n");
 
@@ -2560,7 +2560,7 @@ private elem * eldiv(elem *e, goal_t goal)
     int uns = tyuns(tym) | tyuns(e2.Ety);
     if (cnst(e2))
     {
-        static if (0) version (MARS)
+        static if (0)
         if (!boolres(e2))
             error(e.Esrcpos.Sfilename, e.Esrcpos.Slinnum, e.Esrcpos.Scharnum, "divide by zero\n");
 
@@ -3804,11 +3804,8 @@ static if (0)  // Doesn't work too well, removed
         {
             tym_t ty;
 
-            version (MARS)
-                enum side = false; // don't allow side effects in e2.EV.E2 because of
-                                   // D order-of-evaluation rules
-            else
-                enum side = true;  // ok in C and C++
+            enum side = false; // don't allow side effects in e2.EV.E2 because of
+                               // D order-of-evaluation rules
 
             // Replace (e1 = e1 op e) with (e1 op= e)
             if (el_match(e1,e2.EV.E1) &&

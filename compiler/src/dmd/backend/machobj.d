@@ -1495,11 +1495,8 @@ static if (0)
     srcpos.print("");
 }
 
-version (MARS)
-{
     if (!srcpos.Sfilename)
         return;
-}
 
     size_t i;
     seg_data *pseg = SegData[seg];
@@ -1509,15 +1506,11 @@ version (MARS)
     {
         if (i == pseg.SDlinnum_data.length)
         {   // Create new entry
-            version (MARS)
-                pseg.SDlinnum_data.push(linnum_data(srcpos.Sfilename));
+            pseg.SDlinnum_data.push(linnum_data(srcpos.Sfilename));
             break;
         }
-version (MARS)
-{
         if (pseg.SDlinnum_data[i].filename == srcpos.Sfilename)
             break;
-}
     }
 
     linnum_data *ld = &pseg.SDlinnum_data[i];
@@ -2068,15 +2061,8 @@ char *obj_mangle2(Symbol *s,char *dest)
     //printf("MachObj_mangle(s = %p, '%s'), mangle = x%x\n",s,s.Sident.ptr,type_mangle(s.Stype));
     symbol_debug(s);
     assert(dest);
-version (MARS)
-{
     // C++ name mangling is handled by front end
     name = &s.Sident[0];
-}
-else
-{
-    name = &s.Sident[0];
-}
     len = strlen(name);                 // # of bytes in name
     //dbg_printf("len %d\n",len);
     switch (type_mangle(s.Stype))
@@ -2806,9 +2792,6 @@ int elf_align(targ_size_t size, int foffset)
 /***************************************
  * Stuff pointer to ModuleInfo in its own segment.
  */
-
-version (MARS)
-{
 void MachObj_moduleinfo(Symbol *scc)
 {
     int align_ = I64 ? 3 : 2; // align to _tysize[TYnptr]
@@ -2834,7 +2817,6 @@ static if (0)
     if (I64)
         flags |= CFoffset64;
     SegData[seg].SDoffset += MachObj_reftoident(seg, Offset(seg), scc, 0, flags);
-}
 }
 
 /*************************************
