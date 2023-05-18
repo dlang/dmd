@@ -249,7 +249,6 @@ $(MULTICOLS 4,     $(GLINK Identifier)
     $(D ~=)
     $(D @)
     $(D =>)
-    $(D #)
 )
 )
 
