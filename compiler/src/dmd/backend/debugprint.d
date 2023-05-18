@@ -389,11 +389,8 @@ void WRblock(block *b)
                         printf(";\n");
                 }
         }
-        version (MARS)
-        {
         if (b.Bcode)
             b.Bcode.print();
-        }
         ferr("\n");
     }
     else
@@ -409,11 +406,8 @@ void WRblock(block *b)
             printf(" Bindex=%d",b.Bindex);
         if (b.BC == BC_finally)
             printf(" b_ret=B%d", b.b_ret ? b.b_ret.Bnumber : 0);
-version (MARS)
-{
         if (b.Bsrcpos.Sfilename)
             printf(" %s(%u)", b.Bsrcpos.Sfilename, b.Bsrcpos.Slinnum);
-}
         printf("\n");
         if (b.Belem)
         {

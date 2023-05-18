@@ -392,10 +392,7 @@ private int findLineIndex(uint line)
 
 public void recordLineOffset(Srcpos src, targ_size_t off)
 {
-    version (MARS)
-        const sfilename = src.Sfilename;
-    else
-        const sfilename = srcpos_name(src);
+    const sfilename = src.Sfilename;
 
     // only record line numbers from one file, symbol info does not include source file
     if (!sfilename || !src.Slinnum)
