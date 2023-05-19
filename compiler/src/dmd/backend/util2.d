@@ -31,10 +31,6 @@ nothrow: @nogc:
 
 import dmd.backend.ph2 : ph_malloc, ph_calloc, ph_free, ph_realloc;
 
-void file_progress()
-{
-}
-
 /****************************
  * Clean up and exit program.
  */
@@ -62,38 +58,6 @@ void util_exit(int exitcode)
 {
     exit(exitcode);                     /* terminate abnormally         */
 }
-
-version (CRuntime_DigitalMars)
-{
-
-extern (C) extern __gshared int controlc_saw;
-
-/********************************
- * Control C interrupts go here.
- */
-@trusted
-private extern (C) void controlc_handler()
-{
-    //printf("saw controlc\n");
-    controlc_saw = 1;
-}
-
-}
-
-/***********************************
- * Send progress report.
- */
-
-void util_progress()
-{
-
-}
-
-void util_progress(int linnum)
-{
-
-}
-
 
 /**********************************
  * Binary string search.

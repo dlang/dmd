@@ -71,7 +71,7 @@ __gshared Configv configv;                // non-ph part of configuration
 
 public import dmd.backend.ee : eecontext_convs;
 public import dmd.backend.elem : exp2_copytotemp;
-public import dmd.backend.util2 : err_exit, file_progress, util_progress, ispow2;
+public import dmd.backend.util2 : err_exit, ispow2;
 
 version (Posix)
 {

@@ -696,7 +696,6 @@ void loopopt()
 
     if (debugc) printf("loopopt()\n");
 restart:
-    file_progress();
     if (blockinit())                    // init block data
     {
         findloops(dfo[], startloop);    // Compute Bweights
@@ -832,7 +831,6 @@ restart:
     {
         //if (debugc) l.print();
 
-        file_progress();
         assert(l.Lpreheader);
         if (doflow)
         {

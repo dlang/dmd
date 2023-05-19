@@ -259,7 +259,6 @@ void optfunc()
         {   assert(iter < iterationLimit);      // infinite loop check
             break;
         }
-        util_progress();
 
         //printf("optelem\n");
         /* canonicalize the trees        */
