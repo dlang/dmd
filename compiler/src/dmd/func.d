@@ -59,6 +59,10 @@ import dmd.statementsem;
 import dmd.tokens;
 import dmd.visitor;
 
+version (IN_GCC) {}
+else version (IN_LLVM) {}
+else version = MARS;
+
 /// Inline Status
 enum ILS : ubyte
 {
