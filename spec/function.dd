@@ -3826,7 +3826,7 @@ $(H3 $(LNAME2 safe-interfaces, Safe Interfaces))
         function has a safe interface when:)
         $(OL
             $(LI it cannot exhibit
-                $(DDSUBLINK glossary, undefined_behavior, undefined behavior),
+                $(DDSUBLINK spec/glossary, undefined_behavior, undefined behavior),
                 and)
             $(LI it cannot create unsafe values that are accessible from other
                 parts of the program (e.g., via return values, global variables,
