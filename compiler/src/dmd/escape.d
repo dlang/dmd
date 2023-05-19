@@ -377,13 +377,18 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier parId, 
                 desc ~ " `%s` assigned to non-scope parameter calling `assert()`", v);
             return;
         }
+
+        bool isThis = fdc && fdc.needThis() && fdc.vthis == vPar; // implicit `this` parameter to member function
+
         const(char)* msg =
+            (isThis)        ? (desc ~ " `%s` calling non-scope member function `%s.%s()`") :
             (fdc &&  parId) ? (desc ~ " `%s` assigned to non-scope parameter `%s` calling `%s`") :
             (fdc && !parId) ? (desc ~ " `%s` assigned to non-scope anonymous parameter calling `%s`") :
             (!fdc && parId) ? (desc ~ " `%s` assigned to non-scope parameter `%s`") :
             (desc ~ " `%s` assigned to non-scope anonymous parameter");
 
-        if (sc.setUnsafeDIP1000(gag, arg.loc, msg, v, parId ? parId : fdc, fdc))
+        auto param = isThis ? v : (parId ? parId : fdc);
+        if (sc.setUnsafeDIP1000(gag, arg.loc, msg, v, param, fdc))
         {
             result = true;
             printScopeFailure(previewSupplementalFunc(sc.isDeprecated(), global.params.useDIP1000), vPar, 10);
