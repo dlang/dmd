@@ -2732,7 +2732,8 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 tbret = tret.toBasetype();
             }
 
-            if (inferRef) // deduce 'auto ref'
+            // https://issues.dlang.org/show_bug.cgi?id=23914
+            if (inferRef && !resType.isTypeNoreturn()) // deduce 'auto ref'
                 tf.isref = false;
 
             if (tbret.ty != Tvoid && !resType.isTypeNoreturn()) // if non-void return
