@@ -290,55 +290,51 @@ extern (C) __gshared const(char)*[TYMAX] tystring =
         TYident    : "ident",
         TYtemplate : "template",
         TYvtshape  : "vtshape",
+
+        TYschar     : "byte",
+        TYuchar     : "ubyte",
+        TYwchar_t   : "wchar",
+
+        TYnullptr   : "typeof(null)",
+
+        TYushort    : "ushort",
+        TYuint      : "uint",
+        TYulong     : "ulong",
+
+        TYldouble   : "real",
+
+        TYifloat    : "ifloat",
+        TYidouble   : "idouble",
+        TYildouble  : "ireal",
+
+        TYcfloat    : "cfloat",
+        TYcdouble   : "cdouble",
+        TYcldouble  : "creal",
+
+        TYschar16   : "byte[16]",
+        TYuchar16   : "ubyte[16]",
+        TYushort8   : "ushort[8]",
+        TYulong4    : "ulong[4]", // c_ulong
+        TYllong2    : "long[2]",
+        TYullong2   : "ulong[2]",
+
+        TYschar32   : "byte[32]",
+        TYuchar32   : "ubyte[32]",
+        TYushort16  : "ushort[16]",
+        TYulong8    : "ulong[8]", // c_ulong
+        TYllong4    : "long[4]",
+        TYullong4   : "ulong[4]",
+
+        TYschar64   : "byte[64]",
+        TYuchar64   : "ubyte[64]",
+        TYushort32  : "ushort[32]",
+        TYulong16   : "ulong[16]", // c_ulong
+        TYllong8    : "long[8]",
+        TYullong8   : "ulong[8]",
     ];
 
-    version(MARS)
-    {
-        ret[TYschar] = "byte";
-        ret[TYuchar] = "ubyte";
-        ret[TYwchar_t] = "wchar";
-
-        ret[TYnullptr] = "typeof(null)";
-
-        ret[TYushort] = "ushort";
-        ret[TYuint] = "uint";
-        ret[TYulong] = "ulong";
-
-        ret[TYldouble] = "real";
-
-        ret[TYifloat] = "ifloat";
-        ret[TYidouble] = "idouble";
-        ret[TYildouble] = "ireal";
-
-        ret[TYcfloat] = "cfloat";
-        ret[TYcdouble] = "cdouble";
-        ret[TYcldouble] = "creal";
-
-        ret[TYullong] = ret[TYulong]; // c_ulong
-        ret[TYllong] = ret[TYlong]; // c_long
-
-        ret[TYschar16] = "byte[16]";
-        ret[TYuchar16] = "ubyte[16]";
-        ret[TYushort8] = "ushort[8]";
-        ret[TYulong4] = "ulong[4]"; // c_ulong
-        ret[TYllong2] = "long[2]";
-        ret[TYullong2] = "ulong[2]";
-
-        ret[TYschar32] = "byte[32]";
-        ret[TYuchar32] = "ubyte[32]";
-        ret[TYushort16] = "ushort[16]";
-        ret[TYulong8] = "ulong[8]"; // c_ulong
-        ret[TYllong4] = "long[4]";
-        ret[TYullong4] = "ulong[4]";
-
-        ret[TYschar64] = "byte[64]";
-        ret[TYuchar64] = "ubyte[64]";
-        ret[TYushort32] = "ushort[32]";
-        ret[TYulong16] = "ulong[16]"; // c_ulong
-        ret[TYllong8] = "long[8]";
-        ret[TYullong8] = "ulong[8]";
-    } else
-        static assert(0, "Unsupported compiler backend!");
+    ret[TYullong] = ret[TYulong]; // c_ulong
+    ret[TYllong] = ret[TYlong]; // c_long
 
     return ret;
 } ();
