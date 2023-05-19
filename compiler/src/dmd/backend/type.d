@@ -140,8 +140,9 @@ extern __gshared
     type* tstrace;
 }
 
+public import dmd.backend.dtype : type_print;
+
 /* Functions    */
-void type_print(const type* t);
 void type_free(type *);
 void type_init();
 void type_term();
