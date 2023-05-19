@@ -853,8 +853,6 @@ idx_t cv4_struct(Classsym *s,int flags)
         return s.Stypidx;
     }
 
-    util_progress();
-
     // Compute the number of fields, and the length of the fieldlist record
     nfields = 0;
     fnamelen = 2;
