@@ -44,6 +44,10 @@ import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
 
+version (IN_GCC) {}
+else version (IN_LLVM) {}
+else version = MARS;
+
 /************************************
  * Check to see the aggregate type is nested and its context pointer is
  * accessible from the current scope.

@@ -77,6 +77,10 @@ import dmd.templateparamsem;
 import dmd.typesem;
 import dmd.visitor;
 
+version (IN_GCC) {}
+else version (IN_LLVM) {}
+else version = MARS;
+
 enum LOG = false;
 
 private uint setMangleOverride(Dsymbol s, const(char)[] sym)
