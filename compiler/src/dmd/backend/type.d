@@ -62,13 +62,7 @@ enum
 
 alias type = TYPE;
 
-void type_incCount(type* t);
-void type_setIdent(type* t, char* ident);
-
-void symbol_struct_addField(Symbol* s, const(char)* name, type* t, uint offset);
-void symbol_struct_addBitField(Symbol* s, const(char)* name, type* t, uint offset, uint fieldWidth, uint bitOffset);
-void symbol_struct_hasBitFields(Symbol* s);
-void symbol_struct_addBaseClass(Symbol* s, type* t, uint offset);
+public import dmd.backend.symbol : symbol_struct_addField, symbol_struct_addBitField, symbol_struct_hasBitFields, symbol_struct_addBaseClass;
 
 // Return true if type is a struct, class or union
 bool type_struct(const type* t) { return tybasic(t.Tty) == TYstruct; }
@@ -124,21 +118,7 @@ mangle_t type_mangle(const type *t) { return t.Tmangle; }
 // Return true if function type has a variable number of arguments
 bool variadic(const type *t) { return (t.Tflags & (TFprototype | TFfixed)) == TFprototype; }
 
-extern __gshared type*[TYMAX] tstypes;
-extern __gshared type*[TYMAX] tsptr2types;
-
-extern __gshared
-{
-    type* tslogical;
-    type* chartype;
-    type* tsclib;
-    type* tsdlib;
-    type* tspvoid;
-    type* tspcvoid;
-    type* tsptrdiff;
-    type* tssize;
-    type* tstrace;
-}
+public import dmd.backend.var : chartype;
 
 public import dmd.backend.dtype : type_print, type_free, type_init, type_term, type_copy,
     type_setdim, type_setdependent, type_isdependent, type_size, type_alignsize, type_zeroSize,
@@ -146,4 +126,5 @@ public import dmd.backend.dtype : type_print, type_free, type_init, type_term, t
     type_settype, type_setmangle, type_setcv, type_embed, type_isvla, param_calloc,
     param_append_type, param_free_l, param_free, param_search, typematch, type_pointer,
     type_dyn_array, type_static_array, type_assoc_array, type_delegate, type_function,
-    type_enum, type_struct_class;
+    type_enum, type_struct_class, tstypes, tsptr2types, tslogical, tsclib, tsdlib,
+    tspvoid, tspcvoid, tsptrdiff, tssize, tstrace;
