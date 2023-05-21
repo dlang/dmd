@@ -141,26 +141,11 @@ extern __gshared
 }
 
 public import dmd.backend.dtype : type_print, type_free, type_init, type_term, type_copy,
-    type_setdim, type_setdependent, type_isdependent;
+    type_setdim, type_setdependent, type_isdependent, type_size, type_alignsize, type_zeroSize,
+    type_parameterSize, type_paramsize, type_alloc, type_allocn, type_fake, type_setty,
+    type_settype, type_setmangle, type_setcv, type_embed, type_isvla;
 
 /* Functions    */
-targ_size_t type_size(const type *);
-uint type_alignsize(type *);
-bool type_zeroSize(type *t, tym_t tyf);
-uint type_parameterSize(type *t, tym_t tyf);
-uint type_paramsize(type *t);
-type *type_alloc(tym_t);
-type *type_alloc_template(Symbol *s);
-type *type_allocn(tym_t,type *tn);
-type *type_allocmemptr(Classsym *stag,type *tn);
-type *type_fake(tym_t);
-type *type_setty(type **,uint);
-type *type_settype(type **pt, type *t);
-type *type_setmangle(type **pt,mangle_t mangle);
-type *type_setcv(type **pt,tym_t cv);
-int type_embed(type *t,type *u);
-int type_isvla(type *t);
-
 param_t *param_calloc();
 param_t *param_append_type(param_t **,type *);
 void param_free_l(param_t *);
