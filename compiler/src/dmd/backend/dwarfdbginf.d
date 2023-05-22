@@ -55,12 +55,15 @@ static if (1)
     import dmd.backend.barray;
     import dmd.backend.code;
     import dmd.backend.code_x86;
+    import dmd.backend.drtlsym : getRtlsymPersonality;
     import dmd.backend.dwarf;
     import dmd.backend.dwarf2;
     import dmd.backend.mem;
     import dmd.backend.dlist;
     import dmd.backend.el;
+    import dmd.backend.elfobj : addSegmentToComdat;
     import dmd.backend.filespec;
+    import dmd.backend.machobj : getsegment2;
     import dmd.backend.global;
     import dmd.backend.obj;
     import dmd.backend.oper;
@@ -88,12 +91,6 @@ static if (1)
         uint CIE_offset_unwind;     // CIE offset for unwind data
         uint CIE_offset_no_unwind;  // CIE offset for no unwind data
 
-        void addSegmentToComdat(segidx_t seg, segidx_t comdatseg);
-
-        int getsegment2(ref int seg, const(char)* sectname, const(char)* segname,
-            int align_, int flags);
-
-        Symbol* getRtlsymPersonality();
 
         private Barray!(Symbol*) resetSyms;        // Keep pointers to reset symbols
     }
