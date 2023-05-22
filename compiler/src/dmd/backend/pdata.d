@@ -23,6 +23,7 @@ import dmd.backend.code_x86;
 import dmd.backend.dt;
 import dmd.backend.el;
 import dmd.backend.global;
+import dmd.backend.mscoffobj;
 import dmd.backend.obj;
 import dmd.backend.rtlsym;
 import dmd.backend.ty;
