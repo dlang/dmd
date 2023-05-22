@@ -120,9 +120,6 @@ int mscoff_seg_data_isCode(const ref seg_data sd)
 }
 
 
-// already in cgobj.c (should be part of objmod?):
-// seg_data **SegData;
-extern Rarray!(seg_data*) SegData;
 
 private extern (D) segidx_t seg_tlsseg = UNKNOWN;
 private extern (D) segidx_t seg_tlsseg_bss = UNKNOWN;

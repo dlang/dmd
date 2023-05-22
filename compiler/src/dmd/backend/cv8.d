@@ -29,6 +29,7 @@ import dmd.backend.cv4;
 import dmd.backend.mem;
 import dmd.backend.el;
 import dmd.backend.global;
+import dmd.backend.mscoffobj;
 import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.common.outbuffer;

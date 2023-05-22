@@ -118,7 +118,7 @@ alias reltype_t = uint;
 
 private __gshared Symbol *GOTsym; // global offset table reference
 
-private Symbol *ElfObj_getGOTsym()
+Symbol *ElfObj_getGOTsym()
 {
     if (!GOTsym)
     {
