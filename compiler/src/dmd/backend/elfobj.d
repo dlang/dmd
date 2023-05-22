@@ -28,6 +28,7 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.code_x86;
+import dmd.backend.dout : symbol_iscomdat2;
 import dmd.backend.mem;
 import dmd.backend.aarray;
 import dmd.backend.dlist;
@@ -45,15 +46,8 @@ extern (C++):
 
 nothrow:
 
-static if (1)
-{
-
 import dmd.backend.dwarf;
 import dmd.backend.melf;
-
-extern bool symbol_iscomdat2(Symbol* s) @system;
-
-//#define DEBSYM 0x7E
 
 private __gshared OutBuffer *fobjbuf;
 
@@ -3759,6 +3753,4 @@ int elf_dwarf_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val
         //et.write32(s.Soffset);
     }
     return 4;
-}
-
 }

@@ -1320,8 +1320,6 @@ nothrow:
     param_t* search(char* id) return // look for Pident matching id
     { return param_t_search(&this, id); }
 
-    int searchn(char* id);      // look for Pident matching id, return index
-
     uint length()               // number of parameters in list
     { return param_t_length(&this); }
 
