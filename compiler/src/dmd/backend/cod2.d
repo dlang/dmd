@@ -49,12 +49,7 @@ __gshared int cdcmp_flag;
 
 private extern (D) uint mask(uint m) { return 1 << m; }
 
-// from divcoeff.c
-extern (C)
-{
-    bool choose_multiplier(int N, ulong d, int prec, ulong *pm, int *pshpost);
-    bool udiv_coefficients(int N, ulong d, int *pshpre, ulong *pm, int *pshpost);
-}
+import dmd.backend.divcoeff : choose_multiplier, udiv_coefficients;
 
 /*******************************
  * Swap two registers.

@@ -42,10 +42,7 @@ nothrow:
 
 import dmd.backend.dvarstats;
 
-//import dmd.backend.filespec;
-char *filespecdotext(const(char)* filespec);
-char *filespecgetroot(const(char)* name);
-char *filespecname(const(char)* filespec);
+import dmd.backend.filespec : filespecdotext, filespecgetroot, filespecname;
 
 version (Windows)
 {
