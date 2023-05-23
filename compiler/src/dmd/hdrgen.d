@@ -3646,6 +3646,8 @@ private void visitFuncIdentWithPostfix(TypeFunction t, const char[] ident, OutBu
         buf.write("static ");
     if (t.next)
     {
+        if (t.isref)
+            buf.write("(ref ");
         typeToBuffer(t.next, null, buf, hgs);
         if (ident)
             buf.writeByte(' ');
@@ -3663,13 +3665,15 @@ private void visitFuncIdentWithPostfix(TypeFunction t, const char[] ident, OutBu
         MODtoBuffer(buf, t.mod);
     }
 
-    void dg(string str)
+    void writeAttribute(string str)
     {
+        if (str == "ref") return; // 'ref' is handeld above
         buf.writeByte(' ');
         buf.writestring(str);
     }
-    t.attributesApply(&dg);
-
+    t.attributesApply(&writeAttribute);
+    if (t.isref)
+        buf.writeByte(')');
     t.inuse--;
 }
 

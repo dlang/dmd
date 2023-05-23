@@ -422,6 +422,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             case TOK.class_:
             case TOK.interface_:
             case TOK.traits:
+            case TOK.leftParenthesis:
             Ldeclaration:
                 a = parseDeclarations(false, pAttrs, pAttrs.comment);
                 if (a && a.length)
@@ -3739,6 +3740,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         case TOK.leftParenthesis:
             // (type)
+            nextToken();
             t = parseType();
             check(TOK.rightParenthesis);
             break;
@@ -3907,9 +3909,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     {
         // ref TypeCtors(opt) BasicType CallableSuffix TypeSuffixes(opt)
         if (isRefCallable && token.value != TOK.delegate_ && token.value != TOK.function_)
-        {
             error("`ref` is only valid for `function` and `delegate` types");
-        }
+
         //printf("parseTypeSuffixes()\n");
         while (1)
         {
@@ -5794,7 +5795,6 @@ LagainStc:
         case TOK.true_:
         case TOK.false_:
         case TOK.string_:
-        case TOK.leftParenthesis:
         case TOK.cast_:
         case TOK.mul:
         case TOK.min:
@@ -5996,6 +5996,12 @@ LagainStc:
                 if (flags & ParseStatementFlags.scope_)
                     s = new AST.ScopeStatement(loc, s, token.loc);
                 break;
+            }
+        case TOK.leftParenthesis:
+            {
+                if (isDeclaration(&token, NeedDeclaratorId.mustIfDstyle, TOK.reserved, null))
+                    goto Ldeclaration;
+                goto Lexp;
             }
         case TOK.mixin_:
             {
@@ -7344,12 +7350,31 @@ LagainStc:
             t = peek(t);
             if (t.value != TOK.leftParenthesis)
                 goto Lfalse;
+            goto case;
+
+        case TOK.leftParenthesis:
+            // (type)
             t = peek(t);
-            if (!isDeclaration(t, NeedDeclaratorId.no, TOK.rightParenthesis, &t))
-            {
+            const bool isRef = t.value == TOK.ref_;
+            if (isRef) t = peek(t);
+            while (t.value == TOK.const_ || t.value == TOK.immutable_ || t.value == TOK.inout_ || t.value == TOK.shared_)
+                t = peek(t);
+            if (!isBasicType(&t))
                 goto Lfalse;
-            }
+            if (isRef && t.value != TOK.function_ && t.value != TOK.delegate_)
+                goto Lfalse;
+            int haveId = 1;
+            int haveTpl = 0;
+            if (!isDeclarator(&t, &haveId, &haveTpl, TOK.rightParenthesis))
+                goto Lfalse;
+            if (t.value != TOK.rightParenthesis)
+                goto Lfalse;
             t = peek(t);
+
+            // `(x) { }` in a template argument list is a problem; `(x)` is not a type, but read as if.
+            if (t.value == TOK.leftCurly)
+                goto Lfalse;
+
             break;
 
         default:
