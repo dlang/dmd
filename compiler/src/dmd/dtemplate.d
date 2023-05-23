@@ -4153,18 +4153,19 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
         }
 
         /********************
-         * Example
+         * Match template `parameters` to the target template instance.
+         * Example:
          *    struct Temp(U, int Z) {}
          *    void foo(T)(Temp!(T, 3));
          *    foo(Temp!(int, 3)());
          * Input:
-         *    this.parameters  [T]
-         *    tiargs           <Temp!(int, 3)>.tiargs  -> [int, 3]
-         *    tdtypes          <Temp!(int, 3)>.tdtypes -> [int, 3]
-         *    tempdecl         <struct Temp!(T, int Z)>
-         *    tp               <Temp!(T, 3)>
+         *    this.parameters  = template params of foo -> [T]
+         *    tiargs           = <Temp!(int, 3)>.tiargs  -> [int, 3]
+         *    tdtypes          = <Temp!(int, 3)>.tdtypes -> [int, 3]
+         *    tempdecl         = <struct Temp!(T, int Z)> -> [T, Z]
+         *    tp               = <Temp!(T, 3)>
          * Output:
-         *    dedtypes  [int]
+         *    dedtypes         = deduced params of `foo(Temp!(int, 3)())` -> [int]
          */
         private bool resolveTemplateInstantiation(Objects* tiargs, Objects* tdtypes, TemplateDeclaration tempdecl, TypeInstance tp, Objects* dedtypes)
         {
