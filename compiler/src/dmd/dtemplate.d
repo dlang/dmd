@@ -4130,61 +4130,33 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                             }
                             if (TemplateDeclaration td = s.isTemplateDeclaration())
                             {
-                                // for alias decl without overloads
-                                if (!td.overroot && td.onemember && td.onemember.isAliasDeclaration())
+                                TypeInstance atdi;
+                                Scope *asc;
+                                if (resolveAliasTemplateType(td, s._scope, atdi, asc))
                                 {
-                                    AliasDeclaration atd = td.onemember.isAliasDeclaration();
-                                    TypeInstance atdi = null;
-                                    Scope *asc;
-                                    switch(atd.getType().ty)
+                                    Objects* atiargs = new Objects();
+                                    Objects* adedtypes = new Objects(td.parameters.length);
+                                    adedtypes.zero();
+                                    // alias SomeAlias(<td.parameters>) = SomeTempOrAlias!(<adedtypes>>);
+                                    MATCH am = deduceType(t, asc, atdi, td.parameters, adedtypes);
+                                    if (am != MATCH.exact)
+                                        goto Lnomatch;
+                                    if ((*adedtypes)[$ - 1].isTuple())
                                     {
-                                    case TY.Tident:
-                                        TypeIdentifier adtif = cast(TypeIdentifier) atd.getType();
-                                        if (auto inst = cast(TemplateInstance) (adtif.idents.length? adtif.idents[$ - 1]: null))
-                                        {
-                                            auto adtifp = adtif.syntaxCopy();
-                                            adtifp.idents.pop();
-                                            adtifp.idents.push(inst.name);
-                                            if (auto temp = adtifp.toDsymbol(s._scope))
-                                            {
-                                                atdi = new TypeInstance(inst.loc, inst);
-                                                asc = temp._scope;
-                                            }
-                                        }
-                                        break;
-                                    case TY.Tinstance:
-                                        atdi = cast(TypeInstance) atd.getType();
-                                        asc = s._scope;
-                                        break;
-                                    default:
-                                        break;
+                                        auto ptp = (*adedtypes)[$ - 1].isTuple();
+                                        atiargs.reserve(adedtypes.length + ptp.objects.length - 1);
+                                        atiargs.pushSlice((*adedtypes)[0 .. $ - 1]);
+                                        atiargs.pushSlice(ptp.objects[]);
                                     }
-                                    if (atdi && asc)
+                                    else
                                     {
-                                        Objects* atiargs = new Objects();
-                                        Objects* adedtypes = new Objects(td.parameters.length);
-                                        adedtypes.zero();
-                                        // alias SomeAlias(<td.parameters>) = SomeTempOrAlias!(<adedtypes>>);
-                                        MATCH am = deduceType(t, asc, atdi, td.parameters, adedtypes);
-                                        if (am != MATCH.exact)
-                                            goto Lnomatch;
-                                        if ((*adedtypes)[$ - 1].isTuple())
-                                        {
-                                            auto ptp = (*adedtypes)[$ - 1].isTuple();
-                                            atiargs.reserve(adedtypes.length + ptp.objects.length - 1);
-                                            atiargs.pushSlice((*adedtypes)[0 .. $ - 1]);
-                                            atiargs.pushSlice(ptp.objects[]);
-                                        }
-                                        else
-                                        {
-                                            atiargs.pushSlice((*adedtypes)[]);
-                                        }
-                                        // deduce <parameters> (SomeAlias<adedtypes>);
-                                        if (!resolveTemplateInstantiation(atiargs, adedtypes, td, tp, dedtypes))
-                                            goto Lnomatch;
-                                        visit(cast(Type) t);
-                                        return;
+                                        atiargs.pushSlice((*adedtypes)[]);
                                     }
+                                    // deduce <parameters> (SomeAlias<adedtypes>);
+                                    if (!resolveTemplateInstantiation(atiargs, adedtypes, td, tp, dedtypes))
+                                        goto Lnomatch;
+                                    visit(cast(Type) t);
+                                    return;
                                 }
                             }
                         }
@@ -4208,6 +4180,56 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
         Lnomatch:
             //printf("no match\n");
             result = MATCH.nomatch;
+        }
+
+        /**************************
+         * Resolve alias template type from template declaration.
+         * Example:
+         *     alias SomeAlias(T) = somename1.SomeName!T;
+         * Input:
+         *     td   = template declaration
+         *     sc   = scope where the template declaration is located
+         * Output:
+         *     atdi = alias template type -> SomeName!T
+         *     asc  = scope where SomeName is supposed to be located
+         * Return:
+         *     true if all outputs are valid (non-null)
+         */
+        private bool resolveAliasTemplateType(TemplateDeclaration td, Scope* sc, out TypeInstance atdi, out Scope *asc)
+        {
+            atdi = null;
+            asc = null;
+            // seeks to resolve only alias decl without overloads
+            if (!td.overroot && td.onemember && td.onemember.isAliasDeclaration())
+            {
+                AliasDeclaration atd = td.onemember.isAliasDeclaration();
+                switch (atd.getType().ty)
+                {
+                case TY.Tident:
+                    TypeIdentifier adtif = cast(TypeIdentifier) atd.getType();
+                    // if the rightmost of the idents is a TemplateInstance
+                    if (auto inst = cast(TemplateInstance)(adtif.idents.length ? adtif.idents[$ - 1] : null))
+                    {
+                        auto adtifp = adtif.syntaxCopy();
+                        adtifp.idents.pop();
+                        adtifp.idents.push(inst.name);
+                        // get parent scope
+                        if (auto parent = adtifp.toDsymbol(sc))
+                        {
+                            atdi = new TypeInstance(inst.loc, inst);
+                            asc = parent._scope;
+                        }
+                    }
+                    break;
+                case TY.Tinstance:
+                    atdi = cast(TypeInstance) atd.getType();
+                    asc = sc;
+                    break;
+                default:
+                    break;
+                }
+            }
+            return atdi && asc;
         }
 
         /********************
