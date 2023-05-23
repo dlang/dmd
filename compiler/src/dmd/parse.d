@@ -8516,9 +8516,9 @@ LagainStc:
                         goto case_delegate;
                     }
                 }
-                nextToken();
-                error("found `%s` when expecting function literal following `ref`", token.toChars());
-                goto Lerr;
+                t = parseType();
+                e = new AST.TypeExp(loc, t);
+                break;
             }
         case TOK.leftParenthesis:
             {

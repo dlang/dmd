@@ -83,7 +83,8 @@ static assert(is(typeof(&S().get) == ref int delegate() @safe return));
     static int x = 1;
     assert(x == 1);
     auto f = function ref int() => x;
-    static assert(is( typeof(f) : ref int function() @safe ));
+    static assert( is( typeof(f) : ref const     int function() @safe ));
+    static assert(!is( typeof(f) : ref immutable int function() @safe ));
     f() = 2;
     assert(x == 2);
     takesFP(f);
@@ -100,6 +101,7 @@ void takesFPFP(typeof(&returnsFP) function( typeof(&returnsFP) )) { }
 // pretty print and actual D syntax coincide even in convoluted cases
 static assert(   typeof(&takesFPFP).stringof == "void function((ref (ref int function() @safe) function() @safe) function((ref (ref int function() @safe) function() @safe)))");
 static assert(is(typeof(&takesFPFP)          ==  void function((ref (ref int function() @safe) function() @safe) function((ref (ref int function() @safe) function() @safe))) ));
+static assert((ref int function()).stringof == "(ref int function())");
 
 // as an artifact of the type grammar, these should hold:
 static assert(is( (int) == int ));
