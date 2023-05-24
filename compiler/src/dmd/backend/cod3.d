@@ -3839,10 +3839,9 @@ private void epilog_restoreregs(ref CodeBuilder cdb, regm_t topop)
  * Params:
  *      cdb = sink for generated code
  *      sv = symbol for __va_argsave
- *      namedargs = registers that named parameters (not ... arguments) were passed in.
  */
 @trusted
-void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv, regm_t namedargs)
+void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv)
 {
     /* Generate code to move any arguments passed in registers into
      * the stack variable __va_argsave,
@@ -3898,6 +3897,7 @@ void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv, regm_t namedargs)
     if (!hasframe || enforcealign)
         voff += EBPtoESP;
 
+    regm_t namedargs = prolog_namedArgs();
     for (int i = 0; i < vregnum; i++)
     {
         uint r = regs[i];
@@ -3991,14 +3991,29 @@ void prolog_gen_win64_varargs(ref CodeBuilder cdb)
 }
 
 /************************************
+ * Get mask of registers that named parameters (not ... variadic arguments) were passed in.
+ * Returns:
+ *      the mask
+ */
+@trusted regm_t prolog_namedArgs()
+{
+    regm_t namedargs;
+    foreach (s; globsym[])
+    {
+        if (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg)
+            namedargs |= s.Spregm();
+    }
+    return namedargs;
+}
+
+/************************************
  * Params:
  *      cdb = generated code sink
  *      tf = what's the type of the function
  *      pushalloc = use PUSH to allocate on the stack rather than subtracting from SP
- *      namedargs = set to the registers that named parameters were passed in
  */
 @trusted
-void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_t namedargs)
+void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
 {
     //printf("prolog_loadparams() %s\n", funcsym_p.Sident.ptr);
     debug
@@ -4178,9 +4193,6 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
     {
         Symbol *s = globsym[si];
         uint sz = cast(uint)type_size(s.Stype);
-
-        if (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg)
-            namedargs |= s.Spregm();
 
         if (!((s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg) && s.Sfl == FLreg))
         {
