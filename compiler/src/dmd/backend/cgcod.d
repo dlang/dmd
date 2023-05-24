@@ -1042,8 +1042,7 @@ Lcont:
     {
         if (variadic(funcsym_p.Stype))
             prolog_gen_win64_varargs(cdb);
-        regm_t namedargs;
-        prolog_loadparams(cdb, tyf, pushalloc, namedargs);
+        prolog_loadparams(cdb, tyf, pushalloc);
         return;
     }
 
@@ -1058,11 +1057,10 @@ Lcont:
     // Load register parameters off of the stack. Do not use
     // assignaddr(), as it will replace the stack reference with
     // the register!
-    regm_t namedargs;
-    prolog_loadparams(cdb, tyf, pushalloc, namedargs);
+    prolog_loadparams(cdb, tyf, pushalloc);
 
     if (sv64)
-        prolog_genvarargs(cdb, sv64, namedargs);
+        prolog_genvarargs(cdb, sv64);
 
     /* Alignment checks
      */
