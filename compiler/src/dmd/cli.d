@@ -332,6 +332,11 @@ dmd -cov -unittest myprog.d
             With $(I filename), write module dependencies as text to $(I filename)
             (only imports).`,
         ),
+        Option("define:<name>=<value>",
+            "define a cmdline constant",
+            `This option is used to define constants from cmdline which
+            will then be obtained in the code via __traits(getCmdlineConstant)`,
+        ),
         Option("extern-std=<standard>",
             "set C++ name mangling compatibility with <standard>",
             "Standards supported are:

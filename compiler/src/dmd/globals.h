@@ -205,6 +205,8 @@ struct Param
     unsigned versionlevel; // version level
     Array<const char *> *versionids;   // version identifiers
 
+    Array<const char *> *cmdlineConstants;   // Cmdline constats
+
 
     MessageStyle messageStyle;  // style of file/line annotations on messages
 
