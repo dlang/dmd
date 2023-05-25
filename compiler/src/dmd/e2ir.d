@@ -6983,9 +6983,6 @@ elem* constructVa_start(elem* e)
     {
         // (OPparam &va &arg)
         // call as (OPva_start &va)
-        auto earg = e.EV.E2;
-        e.EV.E2 = null;
-        return el_combine(earg, e);
     }
     else // 32 bit
     {
@@ -6993,7 +6990,7 @@ elem* constructVa_start(elem* e)
         // call as (OPva_start &va)
         auto earg = e.EV.E1;
         e.EV.E1 = e.EV.E2;
-        e.EV.E2 = null;
-        return el_combine(earg, e);
+        e.EV.E2 = earg;
     }
+    return e;
 }

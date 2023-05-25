@@ -3860,12 +3860,8 @@ void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv)
         MOVAPS  -0x6F[RAX],XMM1
         MOVAPS  -0x7F[RAX],XMM0
       L2:
-        MOV     1[RAX],offset_regs          // set __va_argsave.offset_regs
-        MOV     5[RAX],offset_fpregs        // set __va_argsave.offset_fpregs
         LEA     R11, Para.size+Para.offset[RBP]
-        MOV     9[RAX],R11                  // set __va_argsave.stack_args
-        SUB     RAX,6*8+0x7F                // point to start of __va_argsave
-        MOV     6*8+8*16+4+4+8[RAX],RAX     // set __va_argsave.reg_args
+        MOV     9+16[RAX],R11                // set __va_argsave.stack_args
     * RAX and R11 are destroyed.
     */
 
@@ -3916,10 +3912,59 @@ void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv)
         cdb.genc1(0x0F29,modregrm(0,XMM7-i,0),FLconst,-15-16*i);
     }
 
+    // LEA R11, Para.size+Para.offset[RBP]
+    ea = modregxrm(2,R11,BPRM);
+    if (!hasframe)
+        ea = (modregrm(0,4,SP) << 8) | modregrm(2,DX,4);
+    Para.offset = (Para.offset + (REGSIZE - 1)) & ~(REGSIZE - 1);
+    cdb.genc1(LEA,(REX_W << 16) | ea,FLconst,Para.size + Para.offset);
+
+    // MOV 9+16[RAX],R11
+    cdb.genc1(0x89,(REX_W << 16) | modregxrm(2,R11,AX),FLconst,9 + 16);   // into stack_args_save
+
+    pinholeopt(cdb.peek(), null);
+    useregs(mAX|mR11);
+}
+
+/********************************
+ * Generate elems for va_start()
+ * Params:
+ *      sv = symbol for __va_argsave
+ *      parmn = last named parameter
+ */
+@trusted
+elem* prolog_genva_start(Symbol* sv, Symbol* parmn)
+{
+    enum Vregnum = 6;
+
+    /* the stack variable __va_argsave points to an instance of:
+     *   struct __va_argsave_t {
+     *     size_t[Vregnum] regs;
+     *     real[8] fpregs;
+     *     struct __va_list_tag {
+     *         uint offset_regs;
+     *         uint offset_fpregs;
+     *         void* stack_args;
+     *         void* reg_args;
+     *     }
+     *     void* stack_args_save;
+     *   }
+     */
+
+    enum OFF // offsets into __va_argsave_t
+    {
+        Offset_regs   = Vregnum*8 + 8*16,
+        Offset_fpregs = Offset_regs + 4,
+        Stack_args    = Offset_fpregs + 4,
+        Reg_args      = Stack_args + 8,
+        Stack_args_save = Reg_args + 8,
+    }
+
     /* Compute offset_regs and offset_fpregs
      */
+    regm_t namedargs = prolog_namedArgs();
     uint offset_regs = 0;
-    uint offset_fpregs = vregnum * 8;
+    uint offset_fpregs = Vregnum * 8;
     for (int i = AX; i <= XMM7; i++)
     {
         regm_t m = mask(i);
@@ -3934,31 +3979,52 @@ void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv)
                 break;
         }
     }
-    // MOV 1[RAX],offset_regs
-    cdb.genc(0xC7,modregrm(2,0,AX),FLconst,1,FLconst,offset_regs);
 
-    // MOV 5[RAX],offset_fpregs
-    cdb.genc(0xC7,modregrm(2,0,AX),FLconst,5,FLconst,offset_fpregs);
+    // set offset_regs
+    elem* e1 = el_bin(OPeq, TYint, el_var(sv), el_long(TYint, offset_regs));
+    e1.EV.E1.Ety = TYint;
+    e1.EV.E1.EV.Voffset = OFF.Offset_regs;
 
-    // LEA R11, Para.size+Para.offset[RBP]
-    ea = modregxrm(2,R11,BPRM);
-    if (!hasframe)
-        ea = (modregrm(0,4,SP) << 8) | modregrm(2,DX,4);
-    Para.offset = (Para.offset + (REGSIZE - 1)) & ~(REGSIZE - 1);
-    cdb.genc1(LEA,(REX_W << 16) | ea,FLconst,Para.size + Para.offset);
+    // set offset_fpregs
+    elem* e2 = el_bin(OPeq, TYint, el_var(sv), el_long(TYint, offset_fpregs));
+    e2.EV.E1.Ety = TYint;
+    e2.EV.E1.EV.Voffset = OFF.Offset_fpregs;
 
-    // MOV 9[RAX],R11
-    cdb.genc1(0x89,(REX_W << 16) | modregxrm(2,R11,AX),FLconst,9);
+    // set reg_args
+    elem* e4 = el_bin(OPeq, TYnptr, el_var(sv), el_ptr(sv));
+    e4.EV.E1.Ety = TYnptr;
+    e4.EV.E1.EV.Voffset = OFF.Reg_args;
 
-    // SUB RAX,6*8+0x7F             // point to start of __va_argsave
-    cdb.genc2(0x2D,0,6*8+0x7F);
-    code_orrex(cdb.last(), REX_W);
+    // set stack_args
+    /* which is a pointer to the first variadic argument on the stack.
+     * Normally, we could set it by taking the address of the last named parameter
+     * (parmn) and then skipping past it. The trouble, though, is it fails
+     * when all the named parameters get passed in a register.
+     *    elem* e3 = el_bin(OPeq, TYnptr, el_var(sv), el_ptr(parmn));
+     *    e3.EV.E1.Ety = TYnptr;
+     *    e3.EV.E1.EV.Voffset = OFF.Stack_args;
+     *    auto sz = type_size(parmn.Stype);
+     *    sz = (sz + (REGSIZE - 1)) & ~(REGSIZE - 1);
+     *    e3.EV.E2.EV.Voffset += sz;
+     * The next possibility is to do it the way prolog_genvarargs() does:
+     *    LEA R11, Para.size+Para.offset[RBP]
+     * The trouble there is Para.size and Para.offset is not available when
+     * this function is called. It might be possible to compute this earlier.(1)
+     * Another possibility is creating a special operand type that gets filled
+     * in after the prolog_genvarargs() is called.
+     * Or do it this simpler way - compute the needed value in prolog_genvarargs(),
+     * and save it in a slot just after va_argsave, called `stack_args_save`.
+     * Then, just copy from `stack_args_save` to `stack_args`.
+     * Although, doing (1) might be optimal.
+     */
+    elem* e3 = el_bin(OPeq, TYnptr, el_var(sv), el_var(sv));
+    e3.EV.E1.Ety = TYnptr;
+    e3.EV.E1.EV.Voffset = OFF.Stack_args;
+    e3.EV.E2.Ety = TYnptr;
+    e3.EV.E2.EV.Voffset = OFF.Stack_args_save;
 
-    // MOV 6*8+8*16+4+4+8[RAX],RAX  // set __va_argsave.reg_args
-    cdb.genc1(0x89,(REX_W << 16) | modregrm(2,AX,AX),FLconst,6*8+8*16+4+4+8);
-
-    pinholeopt(cdb.peek(), null);
-    useregs(mAX|mR11);
+    elem* e = el_combine(e1, el_combine(e2, el_combine(e3, e4)));
+    return e;
 }
 
 void prolog_gen_win64_varargs(ref CodeBuilder cdb)

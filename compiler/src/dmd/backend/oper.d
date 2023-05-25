@@ -832,6 +832,7 @@ static immutable Ebinary =
         OPbt,OPbtc,OPbtr,OPbts,OPror,OProl,OPbtst,
         OPremquo,OPcmpxchg,
         OPoutp,OPscale,OPyl2x,OPyl2xp1,
+        OPva_start,
         OPvecsto,OPprefetch
     ];
 
@@ -854,7 +855,6 @@ static immutable Eunary =
         OPbsf,OPbsr,OPbswap,OPpopcnt,
         OPddtor,
         OPvector,OPvecfill,
-        OPva_start,
         OPsqrt,OPsin,OPcos,OPinp,
         OPvp_fp,OPcvp_fp,OPnp_fp,OPnp_f16p,OPf16p_np,OPoffset,
     ];
