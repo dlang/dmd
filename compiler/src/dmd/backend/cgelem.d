@@ -5478,6 +5478,9 @@ private elem * elvalist(elem *e, goal_t goal)
         return e;
     }
 
+    elem* ap = e.EV.E1;         // pointer to va_list
+    elem* parmn = e.EV.E2;      // address of last named parameter
+
     if (I32)
     {
         // (OPva_start &va)
@@ -5501,7 +5504,7 @@ private elem * elvalist(elem *e, goal_t goal)
             lastNamed = arguments_typeinfo;
 
         e.Eoper = OPeq;
-        e.EV.E1 = el_una(OPind, TYnptr, e.EV.E1);
+        e.EV.E1 = el_una(OPind, TYnptr, ap);
         if (lastNamed)
         {
             e.EV.E2 = el_ptr(lastNamed);
@@ -5533,7 +5536,7 @@ if (config.exe & EX_windos)
     }
 
     e.Eoper = OPeq;
-    e.EV.E1 = el_una(OPind, TYnptr, e.EV.E1);
+    e.EV.E1 = el_una(OPind, TYnptr, ap);
     if (lastNamed)
     {
         e.EV.E2 = el_ptr(lastNamed);
@@ -5565,11 +5568,12 @@ if (config.exe & EX_posix)
     }
 
     e.Eoper = OPeq;
-    e.EV.E1 = el_una(OPind, TYnptr, e.EV.E1);
+    e.EV.E1 = el_una(OPind, TYnptr, ap);
     if (va_argsave)
     {
         e.EV.E2 = el_ptr(va_argsave);
-        e.EV.E2.EV.Voffset = 6 * 8 + 8 * 16;
+        e.EV.E2.EV.Voffset = 6 * 8 + 8 * 16; // offset to struct __va_list_tag defined in sysv_x64.d
+        return el_combine(prolog_genva_start(va_argsave, parmn.EV.Vsym), e);
     }
     else
         e.EV.E2 = el_long(TYnptr, 0);

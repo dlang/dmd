@@ -924,13 +924,15 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         params[pi] = toSymbol(fd.v_arguments);
         pi += 1;
     }
+    Symbol* lastParam;
     if (fd.parameters)
     {
         foreach (i, v; *fd.parameters)
         {
-            //printf("param[%d] = %p, %s\n", i, v, v.toChars());
+            //printf("param[%d] = %p, %s\n", cast(int)i, v, v.toChars());
             assert(!v.csym);
-            params[pi + i] = toSymbol(v);
+            lastParam = toSymbol(v);
+            params[pi + i] = lastParam;
         }
         pi += fd.parameters.length;
     }
@@ -1029,7 +1031,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         if (target.is64bit &&
             target.os & Target.OS.Posix)
         {
-            type *t = type_struct_class("__va_argsave_t", 16, 8 * 6 + 8 * 16 + 8 * 3, null, null, false, false, true, false);
+            type *t = type_struct_class("__va_argsave_t", 16, 8 * 6 + 8 * 16 + 8 * 3 + 8, null, null, false, false, true, false);
             // The backend will pick this up by name
             Symbol *sv = symbol_name("__va_argsave", SC.auto_, t);
             sv.Stype.Tty |= mTYvolatile;
@@ -1041,7 +1043,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         {
             Symbol *sa = toSymbol(fd.v_argptr);
             symbol_add(sa);
-            elem *e = el_una(OPva_start, TYnptr, el_ptr(sa));
+            elem *e = el_bin(OPva_start, TYnptr, el_ptr(sa), lastParam ? el_ptr(lastParam) : el_long(TYnptr, 0));
             block_appendexp(irs.blx.curblock, e);
         }
     }
