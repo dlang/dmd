@@ -8324,6 +8324,7 @@ public:
     void visit(ForStatement* s) override;
     void visit(ForeachStatement* s) override;
     void visit(ForeachRangeStatement* s) override;
+    void visit(StaticForeachStatement* s) override;
     void visit(IfStatement* s) override;
     void visit(ConditionalStatement* s) override;
     void visit(PragmaStatement* s) override;
