@@ -211,7 +211,7 @@ $(H2 $(LNAME2 POD, Plain Old Data))
     $(P A struct or union is $(I Plain Old Data) (POD) if it meets the following criteria:)
 
     $(OL
-    $(LI it is not nested or static)
+    $(LI it is static, or not nested)
     $(LI it has no postblits, copy constructors, destructors, or assignment operators)
     $(LI it has no fields that are themselves non-POD)
     )
