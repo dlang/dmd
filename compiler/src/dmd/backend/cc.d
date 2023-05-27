@@ -375,9 +375,9 @@ nothrow:
 
         struct
         {
-            Symbol* Bcatchtype;     // one type for each catch block
-            uint* actionTable;      // EH_DWARF: indices into typeTable, first is # of entries
-        }                           // BCjcatch
+            Symbol* Bcatchtype;       // one type for each catch block
+            Barray!uint* actionTable; // EH_DWARF: indices into typeTable
+        }                             // BCjcatch
 
         struct
         {

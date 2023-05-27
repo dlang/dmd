@@ -318,7 +318,11 @@ void block_free(block *b)
             break;
 
         case BCjcatch:
-            free(b.actionTable);
+            if (b.actionTable)
+            {
+                b.actionTable.dtor();
+                free(b.actionTable);
+            }
             break;
 
         case BCasm:
