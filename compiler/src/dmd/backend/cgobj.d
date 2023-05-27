@@ -3054,7 +3054,7 @@ L1:     { }
  * Append bytes to segment.
  */
 
-void OmfObj_write_bytes(seg_data *pseg, uint nbytes, void *p)
+void OmfObj_write_bytes(seg_data *pseg, uint nbytes, const(void)* p)
 {
     OmfObj_bytes(pseg.SDseg, pseg.SDoffset, nbytes, p);
     pseg.SDoffset += nbytes;
@@ -3067,7 +3067,7 @@ void OmfObj_write_bytes(seg_data *pseg, uint nbytes, void *p)
  */
 
 @trusted
-uint OmfObj_bytes(int seg, targ_size_t offset, uint nbytes, void* p)
+uint OmfObj_bytes(int seg, targ_size_t offset, uint nbytes, const(void)* p)
 {
     uint n = nbytes;
 
@@ -3086,7 +3086,7 @@ uint OmfObj_bytes(int seg, targ_size_t offset, uint nbytes, void* p)
         {
             OmfObj_byte(seg, offset, *cast(char*)p);
             offset++;
-            p = (cast(char *)p) + 1;
+            ++p;
             nbytes--;
             lr = cast(Ledatarec*)SegData[seg].ledata;
             if (lr.i + nbytes <= LEDATAMAX)
@@ -3097,7 +3097,7 @@ uint OmfObj_bytes(int seg, targ_size_t offset, uint nbytes, void* p)
                 {
                     lr = ledata_new(seg, offset);
                     memcpy(lr.data.ptr, p, LEDATAMAX);
-                    p = (cast(char *)p) + LEDATAMAX;
+                    p += LEDATAMAX;
                     nbytes -= LEDATAMAX;
                     offset += LEDATAMAX;
                     lr.i = LEDATAMAX;

@@ -2026,7 +2026,7 @@ void MsCoffObj_byte(segidx_t seg,targ_size_t offset,uint byte_)
  * Append bytes to segment.
  */
 
-void MsCoffObj_write_bytes(seg_data *pseg, uint nbytes, void *p)
+void MsCoffObj_write_bytes(seg_data *pseg, uint nbytes, const(void)* p)
 {
     MsCoffObj_bytes(pseg.SDseg, pseg.SDoffset, nbytes, p);
 }
@@ -2038,7 +2038,7 @@ void MsCoffObj_write_bytes(seg_data *pseg, uint nbytes, void *p)
  */
 
 @trusted
-uint MsCoffObj_bytes(segidx_t seg, targ_size_t offset, uint nbytes, void *p)
+uint MsCoffObj_bytes(segidx_t seg, targ_size_t offset, uint nbytes, const(void)* p)
 {
 static if (0)
 {

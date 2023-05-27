@@ -2402,7 +2402,7 @@ void MachObj_byte(int seg,targ_size_t offset,uint byte_)
  * Append bytes to segment.
  */
 
-void MachObj_write_bytes(seg_data *pseg, uint nbytes, void *p)
+void MachObj_write_bytes(seg_data *pseg, uint nbytes, const(void)* p)
 {
     MachObj_bytes(pseg.SDseg, pseg.SDoffset, nbytes, p);
 }
@@ -2413,7 +2413,7 @@ void MachObj_write_bytes(seg_data *pseg, uint nbytes, void *p)
  *      nbytes
  */
 
-uint MachObj_bytes(int seg, targ_size_t offset, uint nbytes, void *p)
+uint MachObj_bytes(int seg, targ_size_t offset, uint nbytes, const(void)* p)
 {
 static if (0)
 {
