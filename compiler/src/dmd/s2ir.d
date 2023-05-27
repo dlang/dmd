@@ -50,6 +50,7 @@ import dmd.toir;
 import dmd.tokens;
 import dmd.visitor;
 
+import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcv;
@@ -1052,11 +1053,11 @@ void Statement_toIR(Statement s, IRState *irs, StmtState* stmtstate)
             /* Make a copy of the switch case table, which will later become the Action Table.
              * Need a copy since the bswitch may get rewritten by the optimizer.
              */
-            alias TAction = typeof(bcatch.actionTable[0]);
-            bcatch.actionTable = cast(TAction*)Mem.check(.malloc(TAction.sizeof * (numcases + 1)));
-            foreach (i; 0 .. numcases + 1)
-                bcatch.actionTable[i] = cast(TAction)bswitch.Bswitch[i];
-
+            alias TAction = typeof((*bcatch.actionTable)[0]);
+            bcatch.actionTable = cast(Barray!TAction*)Mem.check(.calloc(Barray!TAction.sizeof, 1));
+            bcatch.actionTable.setLength(numcases);
+            foreach (i; 0 .. numcases)
+                (*bcatch.actionTable)[i] = cast(TAction)bswitch.Bswitch[i + 1];
         }
         else
         {
