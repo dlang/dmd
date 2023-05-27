@@ -2536,7 +2536,7 @@ void ElfObj_byte(int seg,targ_size_t offset,uint byte_)
  * Append bytes to segment.
  */
 
-void ElfObj_write_bytes(seg_data *pseg, uint nbytes, void *p)
+void ElfObj_write_bytes(seg_data *pseg, uint nbytes, const(void)* p)
 {
     ElfObj_bytes(pseg.SDseg, pseg.SDoffset, nbytes, p);
 }
@@ -2547,7 +2547,7 @@ void ElfObj_write_bytes(seg_data *pseg, uint nbytes, void *p)
  *      nbytes
  */
 
-uint ElfObj_bytes(int seg, targ_size_t offset, uint nbytes, void *p)
+uint ElfObj_bytes(int seg, targ_size_t offset, uint nbytes, const(void)* p)
 {
 static if (0)
 {

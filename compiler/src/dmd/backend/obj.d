@@ -79,9 +79,9 @@ mixin(ObjMemDecl("int  $Obj_common_block(Symbol *s, int flag, targ_size_t size, 
 mixin(ObjMemDecl("void $Obj_lidata(int seg, targ_size_t offset, targ_size_t count)"));
 mixin(ObjMemDecl("void $Obj_write_zeros(seg_data *pseg, targ_size_t count)"));
 mixin(ObjMemDecl("void $Obj_write_byte(seg_data *pseg, uint _byte)"));
-mixin(ObjMemDecl("void $Obj_write_bytes(seg_data *pseg, uint nbytes, void *p)"));
+mixin(ObjMemDecl("void $Obj_write_bytes(seg_data *pseg, uint nbytes, const(void)* p)"));
 mixin(ObjMemDecl("void $Obj_byte(int seg, targ_size_t offset, uint _byte)"));
-mixin(ObjMemDecl("uint $Obj_bytes(int seg, targ_size_t offset, uint nbytes, void *p)"));
+mixin(ObjMemDecl("uint $Obj_bytes(int seg, targ_size_t offset, uint nbytes, const(void)* p)"));
 mixin(ObjMemDecl("void $Obj_reftodatseg(int seg, targ_size_t offset, targ_size_t val, uint targetdatum, int flags)"));
 mixin(ObjMemDecl("void $Obj_reftocodeseg(int seg, targ_size_t offset, targ_size_t val)"));
 mixin(ObjMemDecl("int  $Obj_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val, int flags)"));
@@ -363,7 +363,7 @@ else
             mixin(genRetVal("write_byte(pseg, _byte)"));
         }
 
-        void write_bytes(seg_data *pseg, uint nbytes, void *p)
+        void write_bytes(seg_data *pseg, uint nbytes, const(void)* p)
         {
             mixin(genRetVal("write_bytes(pseg, nbytes, p)"));
         }
@@ -373,7 +373,7 @@ else
             mixin(genRetVal("byte(seg, offset, _byte)"));
         }
 
-        uint bytes(int seg, targ_size_t offset, uint nbytes, void *p)
+        uint bytes(int seg, targ_size_t offset, uint nbytes, const(void)* p)
         {
             mixin(genRetVal("bytes(seg, offset, nbytes, p)"));
         }
