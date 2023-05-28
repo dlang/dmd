@@ -3088,7 +3088,7 @@ private code *peephole(code *cstart,regm_t scratch)
         mod = rmn & 0xC0;
         reg = rmn & modregrm(0,7,0);
         rm =  rmn & 7;
-        if (cod3_EA(c1))
+        if (c1.hasModregrm())
             repEA(c1,r1,r2);
         switch (c1.Iop)
         {

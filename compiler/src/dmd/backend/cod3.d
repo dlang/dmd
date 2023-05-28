@@ -297,13 +297,17 @@ ubyte vex_inssize(code *c)
 }
 
 /************************************
- * Determine if there is a modregrm byte for code.
+ * Determine if there is a modregrm byte for instruction.
+ * Params:
+ *      c = instruction
+ * Returns:
+ *      true if has modregrm byte
  */
 
 @trusted
-int cod3_EA(code *c)
-{   uint ins;
-
+bool hasModregrm(scope const code* c)
+{
+    uint ins;
     opcode_t op1 = c.Iop & 0xFF;
     if (op1 == ESCAPE)
         ins = 0;
@@ -313,7 +317,7 @@ int cod3_EA(code *c)
         ins = inssize2[op1];
     else
         ins = inssize[op1];
-    return ins & M;
+    return (ins & M) != 0;
 }
 
 /********************************
