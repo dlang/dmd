@@ -1608,8 +1608,6 @@ private void ifthen(ref CodeBuilder cdb, CaseVal *casevals, size_t ncases,
 @trusted
 void doswitch(ref CodeBuilder cdb, block *b)
 {
-    targ_ulong msw;
-
     // If switch tables are in code segment and we need a CS: override to get at them
     bool csseg = cast(bool)(config.flags & CFGromable);
 
@@ -1621,17 +1619,13 @@ void doswitch(ref CodeBuilder cdb, block *b)
     tym_t tys = tybasic(e.Ety);
     int sz = _tysize[tys];
     bool dword = (sz == 2 * REGSIZE);
+    targ_ulong msw;
     bool mswsame = true;                // assume all msw's are the same
-    const p = b.Bswitch;                // pointer to case data
-    assert(p);
-    uint ncases = cast(uint)*p;       // number of cases
-    const long[] cases = (p + 1)[0 .. ncases];
 
     targ_llong vmax = long.min;         // smallest possible llong
     targ_llong vmin = long.max;         // largest possible llong
-    foreach (n; 0 .. ncases)            // find max and min case values
+    foreach (n, val; b.Bswitch)         // find max and min case values
     {
-        targ_llong val = cases[n];
         if (val > vmax) vmax = val;
         if (val < vmin) vmin = val;
         if (REGSIZE == 2)
@@ -1655,6 +1649,7 @@ void doswitch(ref CodeBuilder cdb, block *b)
 
     /* Three kinds of switch strategies - pick one
      */
+    const ncases = b.Bswitch.length;
     if (ncases <= 3)
         goto Lifthen;
     else if (I16 && cast(targ_ullong)(vmax - vmin) <= ncases * 2)
@@ -1697,14 +1692,14 @@ void doswitch(ref CodeBuilder cdb, block *b)
         assert(ncases < size_t.max / (2 * CaseVal.sizeof));
         CaseVal *casevals = cast(CaseVal *)malloc(ncases * CaseVal.sizeof);
         assert(casevals);
-        foreach (n; 0 .. ncases)
+        foreach (n, val; b.Bswitch)
         {
-            casevals[n].val = cases[n];
+            casevals[n].val = val;
             bl = list_next(bl);
             casevals[n].target = list_block(bl);
 
             // See if we need a scratch register
-            if (sreg == NOREG && I64 && sz == 8 && cases[n] != cast(int)cases[n])
+            if (sreg == NOREG && I64 && sz == 8 && val != cast(int)val)
             {   regm_t regm = ALLREGS & ~mask(reg);
                 allocreg(cdb,&regm, &sreg, TYint);
             }
@@ -1836,9 +1831,9 @@ static if (JMPJMPTABLE)
             targ_llong u;
             for (u = vmin; ; u++)
             {   block *targ = bdef;
-                foreach (n; 0 .. ncases)
+                foreach (n, val; b.Bswitch)
                 {
-                    if (cases[n] == u)
+                    if (val == u)
                     {   targ = b.nthSucc(n + 1);
                         break;
                     }
@@ -2058,16 +2053,14 @@ void outjmptab(block *b)
     if (JMPJMPTABLE && I32)
         return;
 
-    auto p = b.Bswitch;                     // pointer to case data
-    const ncases = cast(size_t)*p++;        // number of cases
-    const long[] cases = p[0 .. ncases];
+    const ncases = b.Bswitch.length;        // number of cases
 
     /* Find vmin and vmax, the range of the table will be [vmin .. vmax + 1]
      * Must be same computation as used in doswitch().
      */
     targ_llong vmax = long.min;              // smallest possible llong
     targ_llong vmin = long.max;              // largest possible llong
-    foreach (val; cases)                     // find min case value
+    foreach (val; b.Bswitch)                 // find min case value
     {
         if (val > vmax) vmax = val;
         if (val < vmin) vmin = val;
@@ -2093,7 +2086,7 @@ void outjmptab(block *b)
     {   targ_size_t targ = def;                     // default
         foreach (n; 0 .. ncases)
         {
-            if (cases[n] == u)
+            if (b.Bswitch[n] == u)
             {
                 targ = b.nthSucc(cast(int)(n + 1)).Boffset;
                 break;
@@ -2165,9 +2158,7 @@ void outjmptab(block *b)
 void outswitab(block *b)
 {
     //printf("outswitab()\n");
-    targ_llong *p = b.Bswitch;        // pointer to case data
-    uint ncases = cast(uint)*p++;     // number of cases
-    long[] cases = p[0 .. ncases];
+    const ncases = b.Bswitch.length;     // number of cases
 
     const int seg = objmod.jmpTableSegment(funcsym_p);
     targ_size_t *poffset = &Offset(seg);
@@ -2178,7 +2169,7 @@ void outswitab(block *b)
 
     uint sz = _tysize[TYint];
     assert(SegData[seg].SDseg == seg);
-    foreach (val; cases)          // send out value table
+    foreach (val; b.Bswitch)          // send out value table
     {
         //printf("\tcase %d, offset = x%x\n", n, *poffset);
         objmod.write_bytes(SegData[seg],sz,&val);
@@ -2189,7 +2180,7 @@ void outswitab(block *b)
     if (b.Btablesize == ncases * (REGSIZE * 2 + tysize(TYnptr)))
     {
         // Send out MSW table
-        foreach (val; cases)
+        foreach (val; b.Bswitch)
         {
             auto msval = cast(targ_size_t)MSREG(val);
             objmod.write_bytes(SegData[seg],REGSIZE,&msval);

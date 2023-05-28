@@ -361,7 +361,8 @@ nothrow:
                                 // the same function.
     union
     {
-        targ_llong*      Bswitch;      // BCswitch: pointer to switch data
+        long[] Bswitch;                // BCswitch: case expression values
+
         struct
         {
             regm_t usIasmregs;         // Registers modified

@@ -314,7 +314,7 @@ void block_free(block *b)
         case BCswitch:
         case BCifthen:
         case BCjmptab:
-            free(b.Bswitch);
+            free(b.Bswitch.ptr);
             break;
 
         case BCjcatch:
@@ -369,7 +369,7 @@ void blocklist_hydrate(block **pb)
                 break;
 
             case BCswitch:
-                ph_hydrate(cast(void**)&b.Bswitch);
+                ph_hydrate(cast(void**)&b.Bswitch.ptr);
                 break;
 
             case BC_finally:
@@ -429,7 +429,7 @@ void blocklist_dehydrate(block **pb)
                 break;
 
             case BCswitch:
-                ph_dehydrate(&b.Bswitch);
+                ph_dehydrate(&b.Bswitch.ptr);
                 break;
 
             case BC_finally:
@@ -935,30 +935,27 @@ private void bropt()
                 continue;
             assert(tyintegral(n.Ety));
             targ_llong value = el_tolong(n);
-            targ_llong* pv = b.Bswitch;      // ptr to switch data
-            assert(pv);
-            uint ncases = cast(uint) *pv++;  // # of cases
-            uint i = 1;                      // first case
-            while (1)
+
+            int i = 0;          // 0 means the default case
+            foreach (j, val; b.Bswitch)
             {
-                if (i > ncases)
+                if (val == value)
                 {
-                    i = 0;      // select default
+                    i = cast(int)j + 1;
                     break;
                 }
-                if (*pv++ == value)
-                    break;      // found it
-                i++;            // next case
             }
-            /* the ith entry in Bsucc is the one we want    */
-            block *db = b.nthSucc(i);
+            block* db = b.nthSucc(i);
+
             /* delete predecessors of successors (!)        */
             foreach (bl; ListRange(b.Bsucc))
-                if (i--)            // if not ith successor
+            {
+                if (i--)            // but not the db successor
                 {
                     void *p = list_subtract(&(list_block(bl).Bpred),b);
                     assert(p == b);
                 }
+            }
 
             /* dump old successor list and create a new one */
             list_free(&b.Bsucc,FPNULL);
@@ -1297,7 +1294,7 @@ private void blident()
                 switch (b.BC)
                 {
                     case BCswitch:
-                        if (memcmp(b.Bswitch,bn.Bswitch,list_nitems(bn.Bsucc) * (*bn.Bswitch).sizeof))
+                        if (b.Bswitch[] != bn.Bswitch[])
                             continue;
                         break;
 
@@ -1574,7 +1571,7 @@ private void bltailmerge()
                     switch (b.BC)
                     {
                         case BCswitch:
-                            if (memcmp(b.Bswitch,bn.Bswitch,list_nitems(bn.Bsucc) * (*bn.Bswitch).sizeof))
+                            if (b.Bswitch[] != bn.Bswitch[])
                                 continue;
                             break;
 
