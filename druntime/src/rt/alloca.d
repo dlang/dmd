@@ -25,14 +25,6 @@ else version (CRuntime_Microsoft)
 version (alloca)
 {
 
-/+
-#if DOS386
-extern size_t _x386_break;
-#else
-extern size_t _pastdata;
-#endif
-+/
-
 /*******************************************
  * Allocate data from the caller's stack frame.
  * This is a 'magic' function that needs help from the compiler to
@@ -82,23 +74,6 @@ extern (C) void* __alloca(int nbytes)
         sub     EBX,0x1000      ; // next 4K page down
         jae     L1              ; // if more pages
         test    [ECX],EBX       ; // bring in last page
-    }
-    }
-    version (DOS386)
-    {
-    asm
-    {
-        // is ESP off bottom?
-        cmp     EAX,_x386_break ;
-        jbe     Aoverflow       ;
-    }
-    }
-    version (Unix)
-    {
-    asm
-    {
-        cmp     EAX,_pastdata   ;
-        jbe     Aoverflow       ; // Unlikely - ~2 Gbytes under UNIX
     }
     }
     asm
@@ -212,17 +187,7 @@ extern (C) void* __alloca(int nbytes)
         neg     RAX             ;
         add     RAX,RSP         ; // RAX is now what the new RSP will be.
         jae     Aoverflow       ;
-    }
-    version (Unix)
-    {
-    asm
-    {
-        cmp     RAX,_pastdata   ;
-        jbe     Aoverflow       ; // Unlikely - ~2 Gbytes under UNIX
-    }
-    }
-    asm
-    {
+
         // Copy down to [RSP] the temps on the stack.
         // The number of temps is (RBP - RSP - locals).
         mov     RCX,RBP         ;
