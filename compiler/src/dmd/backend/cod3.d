@@ -3845,12 +3845,10 @@ void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv)
         MOV     voff+3*8[RBP],RCX
         MOV     voff+4*8[RBP],R8
         MOV     voff+5*8[RBP],R9
-        MOVZX   EAX,AL                      // AL = 0..8, # of XMM registers used
-        SHL     EAX,2                       // 4 bytes for each MOVAPS
-        LEA     R11,offset L2[RIP]
-        SUB     R11,RAX
+        TEST    AL,AL
         LEA     RAX,voff+6*8+0x7F[RBP]
-        JMP     R11d
+        JE      L2
+
         MOVAPS  -0x0F[RAX],XMM7             // only save XMM registers if actually used
         MOVAPS  -0x1F[RAX],XMM6
         MOVAPS  -0x2F[RAX],XMM5
@@ -3859,6 +3857,7 @@ void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv)
         MOVAPS  -0x5F[RAX],XMM2
         MOVAPS  -0x6F[RAX],XMM1
         MOVAPS  -0x7F[RAX],XMM0
+
       L2:
         LEA     R11, Para.size+Para.offset[RBP]
         MOV     9+16[RAX],R11                // set __va_argsave.stack_args
@@ -3871,53 +3870,48 @@ void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv)
     const int vregnum = 6;
     const uint vsize = vregnum * 8 + 8 * 16;
 
-    static immutable ubyte[vregnum] regs = [ DI,SI,DX,CX,R8,R9 ];
+    static immutable reg_t[vregnum] regs = [ DI,SI,DX,CX,R8,R9 ];
 
     if (!hasframe || enforcealign)
         voff += EBPtoESP;
 
     regm_t namedargs = prolog_namedArgs();
-    for (int i = 0; i < vregnum; i++)
+    foreach (i, r; regs)
     {
-        uint r = regs[i];
         if (!(mask(r) & namedargs))  // unnamed arguments would be the ... ones
         {
             uint ea = (REX_W << 16) | modregxrm(2,r,BPRM);
             if (!hasframe || enforcealign)
                 ea = (REX_W << 16) | (modregrm(0,4,SP) << 8) | modregxrm(2,r,4);
-            cdb.genc1(0x89,ea,FLconst,voff + i*8);
+            cdb.genc1(0x89,ea,FLconst,voff + i*8);  // MOV voff+i*8[RBP],r
         }
     }
 
-    genregs(cdb,MOVZXb,AX,AX);                 // MOVZX EAX,AL
-    cdb.genc2(0xC1,modregrm(3,4,AX),2);                     // SHL EAX,2
-    int raxoff = cast(int)(voff+6*8+0x7F);
-    uint L2offset = (raxoff < -0x7F) ? 0x2D : 0x2A;
-    if (!hasframe || enforcealign)
-        L2offset += 1;                                      // +1 for sib byte
-    // LEA R11,offset L2[RIP]
-    cdb.genc1(LEA,(REX_W << 16) | modregxrm(0,R11,5),FLconst,L2offset);
-    genregs(cdb,0x29,AX,R11);                  // SUB R11,RAX
-    code_orrex(cdb.last(), REX_W);
-    // LEA RAX,voff+vsize-6*8-16+0x7F[RBP]
+    code* cnop = gennop(null);
+    genregs(cdb,0x84,AX,AX);                   // TEST AL,AL
+
     uint ea = (REX_W << 16) | modregrm(2,AX,BPRM);
     if (!hasframe || enforcealign)
         // add sib byte for [RSP] addressing
         ea = (REX_W << 16) | (modregrm(0,4,SP) << 8) | modregxrm(2,AX,4);
-    cdb.genc1(LEA,ea,FLconst,raxoff);
-    cdb.gen2(0xFF,modregrmx(3,4,R11));                      // JMP R11d
-    for (int i = 0; i < 8; i++)
+    int raxoff = cast(int)(voff+6*8+0x7F);
+    cdb.genc1(LEA,ea,FLconst,raxoff);          // LEA RAX,voff+vsize-6*8-16+0x7F[RBP]
+
+    genjmp(cdb,JE,FLcode, cast(block *)cnop);  // JE L2
+
+    foreach (i; 0 .. 8)
     {
         // MOVAPS -15-16*i[RAX],XMM7-i
         cdb.genc1(0x0F29,modregrm(0,XMM7-i,0),FLconst,-15-16*i);
     }
+    cdb.append(cnop);
 
     // LEA R11, Para.size+Para.offset[RBP]
-    ea = modregxrm(2,R11,BPRM);
+    uint ea2 = modregxrm(2,R11,BPRM);
     if (!hasframe)
-        ea = (modregrm(0,4,SP) << 8) | modregrm(2,DX,4);
+        ea2 = (modregrm(0,4,SP) << 8) | modregrm(2,DX,4);
     Para.offset = (Para.offset + (REGSIZE - 1)) & ~(REGSIZE - 1);
-    cdb.genc1(LEA,(REX_W << 16) | ea,FLconst,Para.size + Para.offset);
+    cdb.genc1(LEA,(REX_W << 16) | ea2,FLconst,Para.size + Para.offset);
 
     // MOV 9+16[RAX],R11
     cdb.genc1(0x89,(REX_W << 16) | modregxrm(2,R11,AX),FLconst,9 + 16);   // into stack_args_save
