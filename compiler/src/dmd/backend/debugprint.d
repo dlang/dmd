@@ -395,9 +395,6 @@ void WRblock(block *b)
     }
     else
     {
-        targ_llong *pu;
-        int ncases;
-
         assert(b);
         printf("%2d: %s", b.Bnumber, bc_str(b.BC));
         if (b.Btry)
@@ -427,20 +424,20 @@ void WRblock(block *b)
                 printf(" B%d",list_block(bl).Bnumber);
             printf("\n");
         }
-        list_t bl = b.Bsucc;
+
         switch (b.BC)
         {
             case BCswitch:
-                pu = b.Bswitch;
-                assert(pu);
-                ncases = cast(int)*pu;
-                printf("\tncases = %d\n",ncases);
+                printf("\tncases = %d\n", cast(int)b.Bswitch.length);
+                list_t bl = b.Bsucc;
                 printf("\tdefault: B%d\n",list_block(bl) ? list_block(bl).Bnumber : 0);
-                while (ncases--)
-                {   bl = list_next(bl);
-                    printf("\tcase %lld: B%d\n", cast(long)*++pu,list_block(bl).Bnumber);
+                foreach (val; b.Bswitch)
+                {
+                    bl = list_next(bl);
+                    printf("\tcase %lld: B%d\n", cast(long)val, list_block(bl).Bnumber);
                 }
                 break;
+
             case BCiftrue:
             case BCgoto:
             case BCasm:
@@ -453,8 +450,7 @@ void WRblock(block *b)
             case BC_lpad:
             case BC_ret:
             case BC_except:
-
-                if (bl)
+                if (list_t bl = b.Bsucc)
                 {
                     printf("\tBsucc:");
                     for ( ; bl; bl = list_next(bl))
@@ -462,10 +458,12 @@ void WRblock(block *b)
                     printf("\n");
                 }
                 break;
+
             case BCret:
             case BCretexp:
             case BCexit:
                 break;
+
             default:
                 printf("bc = %d\n", b.BC);
                 assert(0);

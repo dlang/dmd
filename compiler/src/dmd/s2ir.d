@@ -438,22 +438,24 @@ void Statement_toIR(Statement s, IRState *irs, StmtState* stmtstate)
         block_appendexp(mystate.switchBlock, econd);
         block_next(blx,BCswitch,null);
 
-        // Corresponding free is in block_free
-        alias TCase = typeof(mystate.switchBlock.Bswitch[0]);
-        auto pu = cast(TCase *)Mem.check(.malloc(TCase.sizeof * (numcases + 1)));
-        mystate.switchBlock.Bswitch = pu;
-        /* First pair is the number of cases, and the default block
+        /* First successor is the default block
          */
-        *pu++ = numcases;
         mystate.switchBlock.appendSucc(mystate.defaultBlock);
 
-        /* Fill in the first entry for each pair, which is the case value.
-         * CaseStatement.toIR() will fill in
-         * the second entry for each pair with the block.
-         */
         if (numcases)
-            foreach (cs; *s.cases)
-                *pu++ = cs.exp.toInteger();
+        {
+            // Corresponding free is in block_free
+            alias TCase = typeof(mystate.switchBlock.Bswitch[0]);
+            auto pu = cast(TCase *)Mem.check(.malloc(TCase.sizeof * numcases));
+            mystate.switchBlock.Bswitch = pu[0 .. numcases];
+
+            /* Fill in the first entry for each pair, which is the case value.
+             * CaseStatement.toIR() will fill in
+             * the second entry for each pair with the block.
+             */
+            foreach (i, cs; *s.cases)
+                mystate.switchBlock.Bswitch[i] = cs.exp.toInteger();
+        }
 
         Statement_toIR(s._body, irs, &mystate);
 
@@ -947,14 +949,17 @@ void Statement_toIR(Statement s, IRState *irs, StmtState* stmtstate)
                                         el_combine(e3, el_var(shandler)));
 
             const numcases = s.catches.length;
-            bswitch.Bswitch = cast(targ_llong *) Mem.check(.malloc((targ_llong).sizeof * (numcases + 1)));
-            bswitch.Bswitch[0] = numcases;
+            if (numcases)
+            {
+                long* pu = cast(long*) Mem.check(.malloc(long.sizeof * numcases));
+                bswitch.Bswitch = pu[0 .. numcases];
+            }
             bswitch.appendSucc(defaultblock);
             block_next(blx, BCswitch, null);
 
             foreach (i, cs; *s.catches)
             {
-                bswitch.Bswitch[1 + i] = 1 + i;
+                bswitch.Bswitch[i] = i;
 
                 if (cs.var)
                     cs.var.csym = tryblock.jcatchvar;
@@ -992,12 +997,12 @@ void Statement_toIR(Statement s, IRState *irs, StmtState* stmtstate)
                 {
                     if (ct == catchtype)
                     {
-                        bswitch.Bswitch[1 + i] = 1 + j;  // index starts at 1
+                        bswitch.Bswitch[i] = 1 + j;  // index starts at 1
                         goto L1;
                     }
                 }
                 f.typesTable.push(catchtype);
-                bswitch.Bswitch[1 + i] = f.typesTable.length;  // index starts at 1
+                bswitch.Bswitch[i] = f.typesTable.length;  // index starts at 1
            L1:
                 block *bcase = blx.curblock;
                 bswitch.appendSucc(bcase);
@@ -1057,7 +1062,7 @@ void Statement_toIR(Statement s, IRState *irs, StmtState* stmtstate)
             bcatch.actionTable = cast(Barray!TAction*)Mem.check(.calloc(Barray!TAction.sizeof, 1));
             bcatch.actionTable.setLength(numcases);
             foreach (i; 0 .. numcases)
-                (*bcatch.actionTable)[i] = cast(TAction)bswitch.Bswitch[i + 1];
+                (*bcatch.actionTable)[i] = cast(TAction)bswitch.Bswitch[i];
         }
         else
         {
