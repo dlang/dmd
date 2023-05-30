@@ -527,7 +527,8 @@ private extern(C) void _d_setSameMutex(shared Object ownee, shared Object owner)
 
 void setSameMutex(shared Object ownee, shared Object owner)
 {
-    _d_setSameMutex(ownee, owner);
+    import core.atomic : atomicLoad;
+    _d_setSameMutex(atomicLoad(ownee), atomicLoad(owner));
 }
 
 @system unittest
