@@ -3876,6 +3876,10 @@ final class CParser(AST) : Parser!AST
         else if (!tag)
             error("missing tag `identifier` after `%s`", Token.toChars(structOrUnion));
 
+        // many ways and places to declare alignment
+        if (packalign.isUnknown() && !this.packalign.isUnknown())
+            packalign.set(this.packalign.get());
+
         /* Need semantic information to determine if this is a declaration,
          * redeclaration, or reference to existing declaration.
          * Defer to the semantic() pass with a TypeTag.
