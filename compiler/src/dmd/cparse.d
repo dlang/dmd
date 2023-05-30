@@ -2358,6 +2358,8 @@ final class CParser(AST) : Parser!AST
                             cparseGnuAttributes(tagSpecifier);
                         else if (token.value == TOK.__declspec)
                             cparseDeclspec(tagSpecifier);
+                        else if (token.value == TOK.__pragma)
+                            uupragmaDirective(sloc);
                         else
                             break;
                     }
@@ -5464,20 +5466,39 @@ final class CParser(AST) : Parser!AST
     private void uupragmaDirective(const ref Loc startloc)
     {
         const loc = startloc;
-        nextToken();
+        nextToken();    // move past __pragma
         if (token.value != TOK.leftParenthesis)
         {
-            error(loc, "left parenthesis expected to follow `__pragma`");
+            error(loc, "left parenthesis expected to follow `__pragma` instead of `%s`", token.toChars());
+            nextToken();
             return;
         }
         nextToken();
-        if (token.value == TOK.identifier && token.ident == Id.pack)
-            pragmaPack(startloc, false);
+
+        if (token.value == TOK.identifier)
+        {
+            if (token.ident == Id.pack)
+                pragmaPack(startloc, false);
+            else
+            {
+                nextToken();
+                if (token.value == TOK.leftParenthesis)
+                    cparseParens();
+            }
+
+        }
+        else if (token.value == TOK.endOfFile)
+        {
+        }
+        else if (token.value == TOK.rightParenthesis)
+        {
+        }
         else
-            error(loc, "unrecognized __pragma");
+            error(loc, "unrecognized `__pragma(%s)`", token.toChars());
+
         if (token.value != TOK.rightParenthesis)
         {
-            error(loc, "right parenthesis expected to close `__pragma(...)`");
+            error(loc, "right parenthesis expected to close `__pragma(...)` instead of `%s`", token.toChars());
             return;
         }
         nextToken();
