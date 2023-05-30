@@ -101,9 +101,11 @@ extern (C++) bool hasSideEffect(Expression e, bool assumeImpureCalls = false)
 int callSideEffectLevel(FuncDeclaration f)
 {
     /* https://issues.dlang.org/show_bug.cgi?id=12760
-     * ctor call always has side effects.
+     * https://issues.dlang.org/show_bug.cgi?id=16384
+     *
+     * ctor calls and invariant calls always have side effects
      */
-    if (f.isCtorDeclaration())
+    if (f.isCtorDeclaration() || f.isInvariantDeclaration())
         return 0;
     assert(f.type.ty == Tfunction);
     TypeFunction tf = cast(TypeFunction)f.type;
