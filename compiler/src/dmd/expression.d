@@ -7100,9 +7100,7 @@ extern (C++) final class FileInitExp : DefaultInitExp
             s = loc.isValid() ? loc.filename : sc._module.ident.toChars();
 
         Expression e = new StringExp(loc, s.toDString());
-        e = e.expressionSemantic(sc);
-        e = e.castTo(sc, type);
-        return e;
+        return e.expressionSemantic(sc);
     }
 
     override void accept(Visitor v)
@@ -7124,8 +7122,7 @@ extern (C++) final class LineInitExp : DefaultInitExp
     override Expression resolveLoc(const ref Loc loc, Scope* sc)
     {
         Expression e = new IntegerExp(loc, loc.linnum, Type.tint32);
-        e = e.castTo(sc, type);
-        return e;
+        return e.expressionSemantic(sc);
     }
 
     override void accept(Visitor v)
@@ -7148,9 +7145,7 @@ extern (C++) final class ModuleInitExp : DefaultInitExp
     {
         const auto s = (sc.callsc ? sc.callsc : sc)._module.toPrettyChars().toDString();
         Expression e = new StringExp(loc, s);
-        e = e.expressionSemantic(sc);
-        e = e.castTo(sc, type);
-        return e;
+        return e.expressionSemantic(sc);
     }
 
     override void accept(Visitor v)
@@ -7179,9 +7174,7 @@ extern (C++) final class FuncInitExp : DefaultInitExp
         else
             s = "";
         Expression e = new StringExp(loc, s.toDString());
-        e = e.expressionSemantic(sc);
-        e.type = Type.tstring;
-        return e;
+        return e.expressionSemantic(sc);
     }
 
     override void accept(Visitor v)
