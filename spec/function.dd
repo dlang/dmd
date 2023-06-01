@@ -1646,7 +1646,7 @@ void main()
 
         $(P See Also: $(RELATIVE_LINK2 lazy_variadic_functions, Lazy Variadic Functions))
 
-$(H3 $(LNAME2 function-default-args, Function Default Arguments))
+$(H3 $(LNAME2 function-default-args, Default Arguments))
 
         $(P Function parameter declarations can have default values:)
 
@@ -1664,14 +1664,14 @@ foo(4);   // same as foo(4, 3);
 ---
 module m;
 private immutable int b;
-pure void g(int a=b){}
+pure void g(int a = b) {}
 ---
 ---
 import m;
 int b;
 pure void f()
 {
-  g();  // ok, uses m.b
+    g();  // ok, uses m.b
 }
 ---
 
@@ -1680,20 +1680,24 @@ pure void f()
 ---
 module m;
 int b;
-pure void g(int a=b){}
+pure void g(int a = b) {}
 ---
 ---
 import m;
 enum int b = 3;
 pure void f()
 {
-  g();  // error, cannot access mutable global `m.b` in pure function
+    g();  // error, cannot access mutable global `m.b` in pure function
 }
 ---
 
         $(P If the default value for a parameter is given, all following
         parameters must also have default values.
         )
+
+        $(P See also: function type aliases
+        $(DDSUBLINK spec/declaration, alias-function, with default values).)
+
 
 $(H3 $(LNAME2 return-ref-parameters, Return Ref Parameters))
 
