@@ -423,6 +423,19 @@ int myprintf(char *, ...) asm("printf");
     $(P Any declarations in scope can be accessed, not just
     declarations that lexically precede a reference.)
 
+$(CCODE
+Ta *p;  // Ta is forward referenced
+struct Sa { int x; };
+typedef struct Sa Ta; // Ta is defined
+)
+
+$(CCODE
+struct S s;
+int* p = &s.t.x;  // struct S definition is forward referenced
+struct S { int a; struct T t; }; // T still forward referenced
+struct T { int b; int x; }; // definition of struct T
+)
+
     $(H3 $(LNAME2 cpp-tag-symbols, C++ Style Tag Symbols))
 
     $(P In C++, `struct`, `union` or `enum` tag symbols can be accessed without needing
