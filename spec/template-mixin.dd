@@ -27,15 +27,15 @@ $(GNAME MixinQualifiedIdentifier):
 )
 
         $(P A $(I TemplateMixin) can occur in declaration lists of modules,
-        classes, structs, unions, and as a statement.
-        The $(I MixinTemplateName) refers to a $(I TemplateDeclaration) or
+        classes, structs, unions, or as a statement.
+        $(I MixinTemplateName) must refer to a $(I TemplateDeclaration) or
         $(I TemplateMixinDeclaration).
-        If the $(I TemplateDeclaration) has no parameters, the mixin
-        form that has no !($(I TemplateArgumentList))
-        can be used.
+        If the $(I TemplateDeclaration) requires no parameters, $(I TemplateArguments)
+        can be omitted.
         )
 
-        $(P Unlike a template instantiation, a template mixin's body is evaluated
+        $(P Unlike a $(DDSUBLINK spec/template, instantiation_scope, template instantiation),
+        a template mixin's body is evaluated
         within the scope where the mixin appears, not where the template declaration
         is defined. It is analogous to cutting and pasting the body of
         the template into the location of the mixin into a $(LINK2 #mixin_scope, nested scope). It is useful for injecting
@@ -43,6 +43,24 @@ $(GNAME MixinQualifiedIdentifier):
         templated nested functions, which is not always possible with
         template instantiations.
         )
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+------
+int y = 3;
+
+mixin template Foo()
+{
+    int abc() { return y; }
+}
+
+void test()
+{
+    int y = 8;
+    mixin Foo; // local y is picked up, not global y
+    assert(abc() == 8);
+}
+------
+)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ------
@@ -81,8 +99,11 @@ void main()
 }
 ------
 )
+
+$(H2 $(LNAME2 parameters, Mixin Parameters))
+
         $(P Mixins can be
-        $(DDSUBLINK spec/template, template_type_parameters, parameterized):)
+        $(DDSUBLINK spec/template, parameters, parameterized):)
 
 ------
 mixin template Foo(T)
@@ -91,57 +112,6 @@ mixin template Foo(T)
 }
 
 mixin Foo!(int);           // create x of type int
-------
-
-        $(P Mixins can add virtual functions to a class:)
-
-$(SPEC_RUNNABLE_EXAMPLE_RUN
-------
-import std.stdio : writeln;
-
-mixin template Foo()
-{
-    void func() { writeln("Foo.func()"); }
-}
-
-class Bar
-{
-    mixin Foo;
-}
-
-class Code : Bar
-{
-    override void func() { writeln("Code.func()"); }
-}
-
-void main()
-{
-    Bar b = new Bar();
-    b.func();      // calls Foo.func()
-
-    b = new Code();
-    b.func();      // calls Code.func()
-}
-------
-)
-
-        $(P Mixins are evaluated in the scope of where they appear, not the scope
-        of the template declaration:)
-
-------
-int y = 3;
-
-mixin template Foo()
-{
-    int abc() { return y; }
-}
-
-void test()
-{
-    int y = 8;
-    mixin Foo; // local y is picked up, not global y
-    assert(abc() == 8);
-}
 ------
 
         $(P Mixins can parameterize symbols using
@@ -160,6 +130,8 @@ void test()
     assert(abc() == 8);
 }
 ------
+
+$(H3 $(LNAME2 example, Example))
 
         $(P This example uses a mixin to implement a generic Duff's device
         for an arbitrary statement (in this case, the arbitrary statement
@@ -236,6 +208,31 @@ void main()
 ------
 )
 
+        $(P A mixin has its own scope, even if a declaration is overridden
+        by the enclosing one:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+------
+import std.stdio : writeln;
+
+int x = 4;
+
+mixin template Foo()
+{
+    int x = 5;
+    int bar() { return x; }
+}
+
+mixin Foo;
+
+void main()
+{
+    writeln("x = ", x);         // prints 4
+    writeln("bar() = ", bar()); // prints 5
+}
+------
+)
+
         $(P If two different mixins are put in the same scope, and each
         define a declaration with the same name, there is an ambiguity
         error when the declaration is referenced:)
@@ -267,8 +264,10 @@ void main()
 ------
 )
         $(P The call to $(D func()) is ambiguous because
-        Foo.func and Bar.func are in different scopes.
+        `Foo.func` and `Bar.func` are in different scopes.
         )
+
+$(H3 $(LNAME2 resolving_ambiguities, Resolving Ambiguities))
 
         $(P If a mixin has an $(I Identifier), it can be used to
         disambiguate between conflicting symbols:
@@ -307,7 +306,8 @@ void main()
 }
 ------
 )
-        $(P Alias declarations can be used to overload together
+        $(P Alias declarations can be used to form an
+        $(DDSUBLINK spec/function, overload-sets, overload set) of
         functions declared in different mixins:)
 
 -----
@@ -334,31 +334,40 @@ void main()
 }
 -----
 
+$(H2 $(LNAME2 virtual_functions, Mixins and Virtual Functions))
 
-        $(P A mixin has its own scope, even if a declaration is overridden
-        by the enclosing one:)
+        $(P Mixins can add virtual functions to a class:)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ------
 import std.stdio : writeln;
 
-int x = 4;
-
 mixin template Foo()
 {
-    int x = 5;
-    int bar() { return x; }
+    void func() { writeln("Foo.func()"); }
 }
 
-mixin Foo;
+class Bar
+{
+    mixin Foo;
+}
+
+class Code : Bar
+{
+    override void func() { writeln("Code.func()"); }
+}
 
 void main()
 {
-    writeln("x = ", x);         // prints 4
-    writeln("bar() = ", bar()); // prints 5
+    Bar b = new Bar();
+    b.func();      // calls Foo.func()
+
+    b = new Code();
+    b.func();      // calls Code.func()
 }
 ------
 )
+
 
 $(SPEC_SUBNAV_PREV_NEXT template, Templates, contracts, Contract Programming)
 )
