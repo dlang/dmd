@@ -108,11 +108,12 @@ Expression arrayFuncConv(Expression e, Scope* sc)
  *   e = evaluates to an instance of a struct
  *   sc = context
  *   id = identifier of a field in that struct
+ *   arrow = -> was used
  * Returns:
  *   if successful `e.ident`
  *   if not then `ErrorExp` and message is printed
  */
-Expression fieldLookup(Expression e, Scope* sc, Identifier id)
+Expression fieldLookup(Expression e, Scope* sc, Identifier id, bool arrow)
 {
     e = e.expressionSemantic(sc);
     if (e.isErrorExp())
@@ -123,6 +124,9 @@ Expression fieldLookup(Expression e, Scope* sc, Identifier id)
     if (t.isTypePointer())
     {
         t = t.isTypePointer().next;
+        auto pe = e.toChars();
+        if (!arrow)
+            e.error("since `%s` is a pointer, use `%s->%s` instead of `%s.%s`", pe, pe, id.toChars(), pe, id.toChars());
         e = new PtrExp(e.loc, e);
     }
     if (auto ts = t.isTypeStruct())

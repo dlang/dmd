@@ -6788,7 +6788,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             if (exp.ident != Id.__sizeof)
             {
-                result = fieldLookup(exp.e1, sc, exp.ident);
+                result = fieldLookup(exp.e1, sc, exp.ident, exp.arrow);
                 return;
             }
         }
@@ -9123,7 +9123,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             else if (sc.flags & SCOPE.Cfile && e1x.isDotIdExp())
             {
                 auto die = e1x.isDotIdExp();
-                e1x = fieldLookup(die.e1, sc, die.ident);
+                e1x = fieldLookup(die.e1, sc, die.ident, die.arrow);
             }
             else if (auto die = e1x.isDotIdExp())
             {
