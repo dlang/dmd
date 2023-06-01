@@ -676,47 +676,48 @@ Params:
     ti = `TypeInfo` of array type
     arr = array to shrink. Its `.length` is element length, not byte length, despite `void` type
 */
-extern(C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) nothrow
+
+void _d_arrayshrinkfit(T)(T[] arr)
 {
     // note, we do not care about shared.  We are setting the length no matter
     // what, so no lock is required.
-    debug(PRINTF) printf("_d_arrayshrinkfit, elemsize = %d, arr.ptr = x%x arr.length = %d\n", ti.next.tsize, arr.ptr, arr.length);
-    auto tinext = unqualify(ti.next);
-    auto size = tinext.tsize;                  // array element size
+    debug(PRINTF) printf("_d_arrayshrinkfit, elemsize = %lu, arr.ptr = x%x arr.length = %d\n", T.sizeof, arr.ptr, arr.length);
+
+    import core.internal.traits : Unqual;
+
+    alias tinext = Unqual!T;
+    auto size = tinext.sizeof;                  // array element size
     auto cursize = arr.length * size;
-    auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
-    auto bic = isshared ? null : __getBlkInfo(arr.ptr);
-    auto info = bic ? *bic : GC.query(arr.ptr);
+    void* arr_ptr = cast(void*)arr.ptr;
+    bool isshared = is(T == shared) ? true : false;
+    auto bic = isshared ? null :  __getBlkInfo(arr_ptr);
+    auto info = bic ? *bic : GC.query(arr_ptr);
     if (info.base && (info.attr & BlkAttr.APPENDABLE))
     {
-        auto newsize = (arr.ptr - __arrayStart(info)) + cursize;
+        auto newsize = (arr_ptr - __arrayStart(info)) + cursize;
 
-        debug(PRINTF) printf("setting allocated size to %d\n", (arr.ptr - info.base) + cursize);
+        debug(PRINTF) printf("setting allocated size to %d\n", (arr_ptr - info.base) + cursize);
 
         // destroy structs that become unused memory when array size is shrinked
-        if (typeid(tinext) is typeid(TypeInfo_Struct)) // avoid a complete dynamic type cast
+        static if (is(T == struct) && __traits(hasMember, T, "__xdtor"))
         {
-            auto sti = cast(TypeInfo_Struct)cast(void*)tinext;
-            if (sti.xdtor)
+            auto oldsize = __arrayAllocLength(info, typeid(tinext));
+            if (oldsize > cursize)
             {
-                auto oldsize = __arrayAllocLength(info, tinext);
-                if (oldsize > cursize)
+                try
                 {
-                    try
-                    {
-                        finalize_array(arr.ptr + cursize, oldsize - cursize, sti);
-                    }
-                    catch (Exception e)
-                    {
-                        import core.exception : onFinalizeError;
-                        onFinalizeError(sti, e);
-                    }
+                    finalize_array(arr_ptr + cursize, oldsize - cursize, typeid(tinext));
+                }
+                catch (Exception e)
+                {
+                    import core.exception : onFinalizeError;
+                    onFinalizeError(typeid(tinext), e);
                 }
             }
         }
         // Note: Since we "assume" the append is safe, it means it is not shared.
         // Since it is not shared, we also know it won't throw (no lock).
-        if (!__setArrayAllocLength(info, newsize, false, tinext))
+        if (!__setArrayAllocLength(info, newsize, false, typeid(tinext)))
         {
             import core.exception : onInvalidMemoryOperationError;
             onInvalidMemoryOperationError();
