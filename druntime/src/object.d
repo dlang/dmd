@@ -3968,7 +3968,7 @@ Returns:
 */
 auto ref inout(T[]) assumeSafeAppend(T)(auto ref inout(T[]) arr) nothrow @system
 {
-    import rt.lifetime : _d_arrayshrinkfit;
+    import core.lifetime : _d_arrayshrinkfit;
     _d_arrayshrinkfit(arr);
     return arr;
 }

@@ -262,7 +262,7 @@ private class ArrayAllocLengthLock
 
   where elem0 starts 16 bytes after the first byte.
   */
-bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, const TypeInfo tinext, size_t oldlength = ~0) pure nothrow
+extern(C) bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, const TypeInfo tinext, size_t oldlength = ~0) pure nothrow
 {
     import core.atomic;
 
@@ -375,7 +375,7 @@ bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, co
 /**
   get the allocation size of the array for the given block (without padding or type info)
   */
-private size_t __arrayAllocLength(ref BlkInfo info, const TypeInfo tinext) pure nothrow
+private extern(C) size_t __arrayAllocLength(ref BlkInfo info, const TypeInfo tinext) pure nothrow
 {
     if (info.size <= 256)
         return *cast(ubyte *)(info.base + info.size - structTypeInfoSize(tinext) - SMALLPAD);
@@ -389,7 +389,7 @@ private size_t __arrayAllocLength(ref BlkInfo info, const TypeInfo tinext) pure 
 /**
   get the start of the array for the given block
   */
-private void *__arrayStart(return scope BlkInfo info) nothrow pure
+private extern(C) void *__arrayStart(return scope BlkInfo info) nothrow pure
 {
     return info.base + ((info.size & BIGLENGTHMASK) ? LARGEPREFIX : 0);
 }
@@ -566,7 +566,7 @@ unittest
         the base ptr as an indication of whether the struct is valid, or set
         the BlkInfo as a side-effect and return a bool to indicate success.
   */
-BlkInfo *__getBlkInfo(void *interior) nothrow
+extern(C) BlkInfo *__getBlkInfo(void *interior) nothrow
 {
     BlkInfo *ptr = __blkcache;
     version (single_cache)
@@ -603,7 +603,7 @@ BlkInfo *__getBlkInfo(void *interior) nothrow
     return null; // not in cache.
 }
 
-void __insertBlkInfoCache(BlkInfo bi, BlkInfo *curpos) nothrow
+extern(C) void __insertBlkInfoCache(BlkInfo bi, BlkInfo *curpos) nothrow
 {
     version (single_cache)
     {
@@ -663,69 +663,6 @@ void __insertBlkInfoCache(BlkInfo bi, BlkInfo *curpos) nothrow
             }
             *curpos = bi;
         }
-    }
-}
-
-/**
-Shrink the "allocated" length of an array to be the exact size of the array.
-
-It doesn't matter what the current allocated length of the array is, the
-user is telling the runtime that he knows what he is doing.
-
-Params:
-    ti = `TypeInfo` of array type
-    arr = array to shrink. Its `.length` is element length, not byte length, despite `void` type
-*/
-
-void _d_arrayshrinkfit(T)(T[] arr)
-{
-    // note, we do not care about shared.  We are setting the length no matter
-    // what, so no lock is required.
-    debug(PRINTF) printf("_d_arrayshrinkfit, elemsize = %lu, arr.ptr = x%x arr.length = %d\n", T.sizeof, arr.ptr, arr.length);
-
-    import core.internal.traits : Unqual;
-
-    alias tinext = Unqual!T;
-    auto size = tinext.sizeof;                  // array element size
-    auto cursize = arr.length * size;
-    void* arr_ptr = cast(void*)arr.ptr;
-    bool isshared = is(T == shared) ? true : false;
-    auto bic = isshared ? null :  __getBlkInfo(arr_ptr);
-    auto info = bic ? *bic : GC.query(arr_ptr);
-    if (info.base && (info.attr & BlkAttr.APPENDABLE))
-    {
-        auto newsize = (arr_ptr - __arrayStart(info)) + cursize;
-
-        debug(PRINTF) printf("setting allocated size to %d\n", (arr_ptr - info.base) + cursize);
-
-        // destroy structs that become unused memory when array size is shrinked
-        static if (is(T == struct) && __traits(hasMember, T, "__xdtor"))
-        {
-            auto oldsize = __arrayAllocLength(info, typeid(tinext));
-            if (oldsize > cursize)
-            {
-                try
-                {
-                    finalize_array(arr_ptr + cursize, oldsize - cursize, typeid(tinext));
-                }
-                catch (Exception e)
-                {
-                    import core.exception : onFinalizeError;
-                    onFinalizeError(typeid(tinext), e);
-                }
-            }
-        }
-        // Note: Since we "assume" the append is safe, it means it is not shared.
-        // Since it is not shared, we also know it won't throw (no lock).
-        if (!__setArrayAllocLength(info, newsize, false, typeid(tinext)))
-        {
-            import core.exception : onInvalidMemoryOperationError;
-            onInvalidMemoryOperationError();
-        }
-
-        // cache the block if not already done.
-        if (!isshared && !bic)
-            __insertBlkInfoCache(info, null);
     }
 }
 
@@ -1350,7 +1287,7 @@ void finalize_array2(void* p, size_t size) nothrow
     }
 }
 
-void finalize_array(void* p, size_t size, const TypeInfo_Struct si)
+extern(C) void finalize_array(void* p, size_t size, const TypeInfo_Struct si)
 {
     // Due to the fact that the delete operator calls destructors
     // for arrays from the last element to the first, we maintain

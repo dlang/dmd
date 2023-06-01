@@ -3000,3 +3000,79 @@ version (D_ProfileGC)
             assert(0, "Cannot create new `struct` if compiling without support for runtime type information!");
     }
 }
+
+
+/*
+These are needed for _d_arrayshrinkfit but are defined in rt/lifetime
+which seems to not be avaiable outside of package rt.
+*/
+import core.memory;
+
+extern(C) private GC.BlkInfo *__getBlkInfo(void *interior) nothrow;
+extern(C) private void *__arrayStart(return scope GC.BlkInfo info) nothrow pure;
+extern(C) private size_t __arrayAllocLength(ref GC.BlkInfo info, const TypeInfo tinext) pure nothrow;
+extern(C) private void finalize_array(void* p, size_t size, const TypeInfo_Struct si);
+extern(C) private bool __setArrayAllocLength(ref GC.BlkInfo info, size_t newlength, bool isshared, const TypeInfo tinext, size_t oldlength = ~0) pure nothrow;
+extern(C) private void __insertBlkInfoCache(GC.BlkInfo bi, GC.BlkInfo *curpos) nothrow;
+
+/**
+Shrink the "allocated" length of an array to be the exact size of the array.
+
+It doesn't matter what the current allocated length of the array is, the
+user is telling the runtime that he knows what he is doing.
+
+Params:
+    ti = `TypeInfo` of array type
+    arr = array to shrink. Its `.length` is element length, not byte length, despite `void` type
+*/
+void _d_arrayshrinkfit(T)(T[] arr) nothrow
+{
+    // note, we do not care about shared.  We are setting the length no matter
+    // what, so no lock is required.
+    debug(PRINTF) printf("_d_arrayshrinkfit, elemsize = %lu, arr.ptr = x%x arr.length = %d\n", T.sizeof, arr.ptr, arr.length);
+
+    import core.internal.traits : Unqual;
+
+    alias tinext = Unqual!T;
+    auto size = tinext.sizeof;                  // array element size
+    auto cursize = arr.length * size;
+    void* arr_ptr = cast(void*)arr.ptr;
+    bool isshared = is(T == shared) ? true : false;
+    auto bic = isshared ? null :  __getBlkInfo(arr_ptr);
+    auto info = bic ? *bic : GC.query(arr_ptr);
+    if (info.base && (info.attr & GC.BlkAttr.APPENDABLE))
+    {
+        auto newsize = (arr_ptr - __arrayStart(info)) + cursize;
+
+        debug(PRINTF) printf("setting allocated size to %d\n", (arr_ptr - info.base) + cursize);
+
+        // destroy structs that become unused memory when array size is shrinked
+        static if (is(T == struct) && __traits(hasMember, T, "__xdtor"))
+        {
+            auto oldsize = __arrayAllocLength(info, typeid(tinext));
+            if (oldsize > cursize)
+            {
+                try
+                {
+                    finalize_array(arr_ptr + cursize, oldsize - cursize, typeid(tinext));
+                }
+                catch (Exception e)
+                {
+                    import core.exception : onFinalizeError;
+                    onFinalizeError(typeid(tinext), e);
+                }
+            }
+        }
+        // Note: Since we "assume" the append is safe, it means it is not shared.
+        // Since it is not shared, we also know it won't throw (no lock).
+        if (!__setArrayAllocLength(info, newsize, false, typeid(tinext)))
+        {
+            import core.exception : onInvalidMemoryOperationError;
+            onInvalidMemoryOperationError();
+        }
+
+        // cache the block if not already done.
+        if (!isshared && !bic)
+            __insertBlkInfoCache(info, null);
+    }
+}
