@@ -59,7 +59,7 @@ else version (FreeBSD)
     /***
      * Assert failure function in the FreeBSD C library.
      */
-    noreturn __assert(const(char)* exp, const(char)* file, uint line);
+    noreturn __assert(const(char)* exp, const(char)* file, uint line, const(char)* exp);
 }
 else version (NetBSD)
 {
@@ -82,7 +82,7 @@ else version (DragonFlyBSD)
     /***
      * Assert failure function in the DragonFlyBSD C library.
      */
-    noreturn __assert(const(char)* exp, const(char)* file, uint line);
+    noreturn __assert(const(char)* exp, const(char)* file, uint line, const(char)* exp);
 }
 else version (CRuntime_Glibc)
 {
