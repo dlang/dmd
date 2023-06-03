@@ -11,4 +11,5 @@ extern(C++) class D : C { }
 void main() @safe
 {
     assert(cast(D)(new C) is null); // would fail as RTTI not checked
+    auto c = cast(C)(new D); // OK
 }
