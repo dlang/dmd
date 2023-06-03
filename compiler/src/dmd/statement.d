@@ -365,8 +365,8 @@ extern (C++) abstract class Statement : ASTNode
     pure nothrow @nogc
     inout(ReturnStatement) endsWithReturnStatement() inout { return null; }
 
-    final pure inout nothrow @nogc @safe:
-
+    final pure inout nothrow @nogc @trusted
+    {
     /********************
      * A cheaper method of doing downcasting of Statements.
      * Returns:
@@ -416,6 +416,7 @@ extern (C++) abstract class Statement : ASTNode
     inout(InlineAsmStatement)    isInlineAsmStatement()    { return stmt == STMT.InlineAsm    ? cast(typeof(return))this : null; }
     inout(GccAsmStatement)       isGccAsmStatement()       { return stmt == STMT.GccAsm       ? cast(typeof(return))this : null; }
     inout(ImportStatement)       isImportStatement()       { return stmt == STMT.Import       ? cast(typeof(return))this : null; }
+    }
 }
 
 /***********************************************************
