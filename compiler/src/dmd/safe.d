@@ -157,9 +157,11 @@ bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
  *      tfrom = type of e
  *      tto = type to cast e to
  * Returns:
- *      true if @safe
+ *      1 if @safe
+ *      0 if unsafe
+ *      -1 if using in @safe is deprecated
  */
-bool isSafeCast(Expression e, Type tfrom, Type tto)
+int isSafeCast(Expression e, Type tfrom, Type tto)
 {
     // Implicit conversions are always safe
     if (tfrom.implicitConvTo(tto))
@@ -182,8 +184,11 @@ bool isSafeCast(Expression e, Type tfrom, Type tto)
                 && cdfrom.classKind == ClassKind.d && cdto.classKind == ClassKind.d))
             return false;
 
+        // no RTTI
         if (cdfrom.isCPPinterface() || cdto.isCPPinterface())
             return false;
+        if (cdfrom.classKind == ClassKind.cpp || cdto.classKind == ClassKind.cpp)
+            return -1;
 
         if (!MODimplicitConv(tfromb.mod, ttob.mod))
             return false;

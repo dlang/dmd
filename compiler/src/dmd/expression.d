@@ -709,7 +709,7 @@ extern (C++) abstract class Expression : ASTNode
         return true;
     }
 
-    final pure inout nothrow @nogc @safe
+    final pure inout nothrow @nogc @trusted
     {
         inout(IntegerExp)   isIntegerExp() { return op == EXP.int64 ? cast(typeof(return))this : null; }
         inout(ErrorExp)     isErrorExp() { return op == EXP.error ? cast(typeof(return))this : null; }

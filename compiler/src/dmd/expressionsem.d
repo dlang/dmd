@@ -9251,13 +9251,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         // Check for unsafe casts
-        if (!isSafeCast(ex, t1b, tob))
-        {
-            if (sc.setUnsafe(false, exp.loc, "cast from `%s` to `%s` not allowed in safe code", exp.e1.type, exp.to))
-            {
-                return setError();
-            }
-        }
+        auto r = isSafeCast(ex, t1b, tob);
+        if (r == -1 && sc.setUnsafePreview(FeatureState.default_, false, exp.loc,
+                "cast from `%s` to `%s` not allowed in safe code", exp.e1.type, exp.to))
+            return setError();
+
+        if (r == 0 && sc.setUnsafe(false, exp.loc,
+                "cast from `%s` to `%s` not allowed in safe code", exp.e1.type, exp.to))
+            return setError();
 
         // `object.__ArrayCast` is a rewrite of an old runtime hook `_d_arraycast`. `_d_arraycast` was not built
         // to handle certain casts.  Those casts which `object.__ArrayCast` does not support are filtered out.
