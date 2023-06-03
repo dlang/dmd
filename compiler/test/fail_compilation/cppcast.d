@@ -1,7 +1,8 @@
 /*
+REQUIRED_ARGS: -de
 TEST_OUTPUT:
 ---
-fail_compilation/cppcast.d(12): Error: dynamic cast not supported for `extern(C++)` class
+fail_compilation/cppcast.d(13): Deprecation: dynamic cast not supported for `extern(C++)` class
 ---
 */
 extern(C++) class C { void f() { } }
