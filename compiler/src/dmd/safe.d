@@ -151,7 +151,7 @@ bool isSafeCast(Expression e, Type tfrom, Type tto)
                 && cdfrom.classKind == ClassKind.d && cdto.classKind == ClassKind.d))
             return false;
 
-        if (cdfrom.isCPPinterface() || cdto.isCPPinterface())
+        if (cdfrom.isCPPinterface() || cdto.isCPPinterface() || cdto.isCPPclass())
             return false;
 
         if (!MODimplicitConv(tfromb.mod, ttob.mod))
