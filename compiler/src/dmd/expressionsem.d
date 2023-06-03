@@ -9159,6 +9159,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             error(exp.loc, "cannot cast `%s`", exp.e1.toChars());
             return setError();
         }
+        else if (auto ttc = exp.to.isTypeClass())
+        {
+            if (exp.e1.type.isTypeClass() && ttc.sym.classKind == ClassKind.cpp)
+            {
+                exp.error("dynamic cast not supported for `extern(C++)` class");
+                return setError();
+            }
+        }
 
         // https://issues.dlang.org/show_bug.cgi?id=19954
         if (exp.e1.type.ty == Ttuple)
