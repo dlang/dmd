@@ -9191,9 +9191,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (exp.to == Type.terror)
                 return setError();
         }
-        if (auto ttc = exp.to.isTypeClass())
+        if (auto toc = exp.to.isClassHandle())
         {
-            if (exp.e1.type.isTypeClass() && ttc.sym.classKind == ClassKind.cpp)
+            auto e1c = exp.e1.type.isClassHandle();
+            if (e1c && toc.classKind == ClassKind.cpp &&
+                !toc.isBaseOf(e1c, null))
             {
                 // @@@DEPRECATED_2.114@@@
                 // When turning into error, uncomment the return statement
