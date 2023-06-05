@@ -2,7 +2,8 @@
 REQUIRED_ARGS: -de
 TEST_OUTPUT:
 ---
-fail_compilation/cppcast.d(13): Deprecation: dynamic cast not supported for `extern(C++)` class
+fail_compilation/cppcast.d(14): Deprecation: dynamic cast is not implemented for `extern(C++)` classes
+fail_compilation/cppcast.d(14):        use `cast(T)cast(void*)obj` instead
 ---
 */
 extern(C++) class C { void f() { } }

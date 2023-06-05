@@ -9195,11 +9195,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             auto e1c = exp.e1.type.isClassHandle();
             if (e1c && toc.classKind == ClassKind.cpp &&
-                !toc.isBaseOf(e1c, null))
+                e1c.isBaseOf(toc, null))
             {
                 // @@@DEPRECATED_2.114@@@
                 // When turning into error, uncomment the return statement
-                exp.deprecation("dynamic cast not supported for `extern(C++)` class");
+                exp.deprecation("dynamic cast is not implemented for `extern(C++)` classes");
+                deprecationSupplemental(exp.loc, "use `cast(T)cast(void*)obj` instead");
                 //return setError();
             }
         }
