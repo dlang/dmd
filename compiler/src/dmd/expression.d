@@ -7390,23 +7390,20 @@ extern(D) Modifiable checkModifiable(Expression exp, Scope* sc, ModifyFlags flag
 }
 
 /**
- * Verify if the given identifier is any of
- * _d_array{ctor,setctor,setassign,assign_l, assign_r}.
+ * Verify if the given identifier is _d_array{,set}ctor.
  *
  * Params:
  *  id = the identifier to verify
  *
  * Returns:
- *  `true` if the identifier corresponds to a construction of assignement
- *  runtime hook, `false` otherwise.
+ *  `true` if the identifier corresponds to a construction runtime hook,
+ *  `false` otherwise.
  */
-bool isArrayConstructionOrAssign(const Identifier id)
+bool isArrayConstruction(const Identifier id)
 {
     import dmd.id : Id;
 
-    return id == Id._d_arrayctor || id == Id._d_arraysetctor ||
-        id == Id._d_arrayassign_l || id == Id._d_arrayassign_r ||
-        id == Id._d_arraysetassign;
+    return id == Id._d_arrayctor || id == Id._d_arraysetctor;
 }
 
 /******************************
