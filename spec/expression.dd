@@ -2427,6 +2427,17 @@ $(GNAME AssertArguments):
     )
     )
 
+    $(NOTE $(D AssertError) is the default for $(B dmd), with an optional
+    $(DDSUBLINK dmd, switch-checkaction, $(B -checkaction=context))
+    switch to show certain sub-expressions used in the first *AssertExpression*
+    in the error message:)
+
+    ---
+    auto x = 4;
+    assert(x < 3);
+    ---
+    $(P When in use, the above will throw an `AssertError` with a message `4 >= 3`.)
+
     $(BEST_PRACTICE
     $(OL
         $(LI Do not have side effects in either $(I AssignExpression) that subsequent code
