@@ -508,8 +508,8 @@ public:
     virtual uinteger_t size(const Loc& loc);
     virtual bool isforwardRef();
     virtual AggregateDeclaration* isThis();
-    virtual bool isExport() const;
-    virtual bool isImportedSymbol() const;
+    virtual bool isExport();
+    virtual bool isImportedSymbol();
     virtual bool isDeprecated() const;
     virtual bool isOverloadable() const;
     virtual LabelDsymbol* isLabel();
@@ -2594,8 +2594,8 @@ public:
     bool isWinMain() const;
     bool isDllMain() const;
     bool isRtInit() const;
-    bool isExport() const final override;
-    bool isImportedSymbol() const final override;
+    bool isExport() final override;
+    bool isImportedSymbol() final override;
     bool isCodeseg() const final override;
     bool isOverloadable() const final override;
     bool isAbstract() final override;
@@ -5480,7 +5480,7 @@ public:
     bool isDeprecated() const final override;
     void setDeprecated();
     bool isNested() const;
-    bool isExport() const final override;
+    bool isExport() final override;
     Dsymbol* searchCtor();
     Visibility visible() final override;
     Type* handleType();
@@ -6135,8 +6135,8 @@ public:
     const char* kind() const override;
     AggregateDeclaration* isThis() final override;
     bool needThis() final override;
-    bool isExport() const final override;
-    bool isImportedSymbol() const final override;
+    bool isExport() final override;
+    bool isImportedSymbol() final override;
     bool isCtorinit() const;
     bool isDataseg() final override;
     bool isThreadlocal() final override;

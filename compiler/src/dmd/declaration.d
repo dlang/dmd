@@ -1325,12 +1325,17 @@ extern (C++) class VarDeclaration : Declaration
         return isField();
     }
 
-    override final bool isExport() const
+    override final bool isExport()
     {
-        return visibility.kind == Visibility.Kind.export_ || dllExport;
+        bool result = visibility.kind == Visibility.Kind.export_ || dllExport;
+
+	if (target.os == Target.OS.Windows && isThreadlocal())
+	    result = false;		// doesn't work on VC, either
+
+        return result;
     }
 
-    override final bool isImportedSymbol() const
+    override final bool isImportedSymbol()
     {
         /* If global variable has `export` and `extern` then it is imported
          *   export int sym1;            // definition:  exported
@@ -1342,6 +1347,10 @@ extern (C++) class VarDeclaration : Declaration
             visibility.kind == Visibility.Kind.export_ &&
             storage_class & STC.extern_ &&
             (storage_class & STC.static_ || parent.isModule());
+
+	if (target.os == Target.OS.Windows && isThreadlocal())
+	    result = false;		// doesn't work on VC, either
+
         //printf("isImportedSymbol() %s %d\n", toChars(), result);
         return result;
     }

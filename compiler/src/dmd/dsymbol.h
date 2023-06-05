@@ -240,8 +240,8 @@ public:
     virtual uinteger_t size(const Loc &loc);
     virtual bool isforwardRef();
     virtual AggregateDeclaration *isThis();     // is a 'this' required to access the member
-    virtual bool isExport() const;              // is Dsymbol exported?
-    virtual bool isImportedSymbol() const;      // is Dsymbol imported?
+    virtual bool isExport();                    // is Dsymbol exported?
+    virtual bool isImportedSymbol();            // is Dsymbol imported?
     virtual bool isDeprecated() const;                // is Dsymbol deprecated?
     virtual bool isOverloadable() const;
     virtual LabelDsymbol *isLabel();            // is this a LabelDsymbol?

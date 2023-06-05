@@ -286,8 +286,8 @@ public:
     const char *kind() const override;
     AggregateDeclaration *isThis() override final;
     bool needThis() override final;
-    bool isExport() const override final;
-    bool isImportedSymbol() const override final;
+    bool isExport() override final;
+    bool isImportedSymbol() override final;
     bool isCtorinit() const;
     bool isDataseg() override final;
     bool isThreadlocal() override final;
@@ -720,8 +720,8 @@ public:
     bool isCMain() const;
     bool isWinMain() const;
     bool isDllMain() const;
-    bool isExport() const override final;
-    bool isImportedSymbol() const override final;
+    bool isExport() override final;
+    bool isImportedSymbol() override final;
     bool isCodeseg() const override final;
     bool isOverloadable() const override final;
     bool isAbstract() override final;

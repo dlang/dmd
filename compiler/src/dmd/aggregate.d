@@ -736,7 +736,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             fields.push(vthis2);
     }
 
-    override final bool isExport() const
+    override final bool isExport()
     {
         return visibility.kind == Visibility.Kind.export_;
     }

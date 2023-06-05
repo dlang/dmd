@@ -1042,13 +1042,13 @@ extern (C++) class Dsymbol : ASTNode
     }
 
     // is Dsymbol exported?
-    bool isExport() const
+    bool isExport()
     {
         return false;
     }
 
     // is Dsymbol imported?
-    bool isImportedSymbol() const
+    bool isImportedSymbol()
     {
         return false;
     }

@@ -1350,12 +1350,12 @@ extern (C++) class FuncDeclaration : Declaration
         return ident == Id.rt_init && resolvedLinkage() == LINK.c && !isMember() && !isNested();
     }
 
-    override final bool isExport() const
+    override final bool isExport()
     {
         return visibility.kind == Visibility.Kind.export_ || dllExport;
     }
 
-    override final bool isImportedSymbol() const
+    override final bool isImportedSymbol()
     {
         //printf("isImportedSymbol()\n");
         //printf("protection = %d\n", visibility);
