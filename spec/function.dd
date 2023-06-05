@@ -4,9 +4,7 @@ $(SPEC_S Functions,
 
 $(HEADERNAV_TOC)
 
-$(H2 $(LNAME2 grammar, Grammar))
-
-$(H3 Function declaration)
+$(H2 $(LNAME2 grammar, Function Declarations))
 
 $(GRAMMAR
 $(GNAME FuncDeclaration):
@@ -24,7 +22,12 @@ $(GNAME FuncDeclaratorSuffix):
     $(GLINK2 template, TemplateParameters) $(GLINK Parameters) $(GLINK MemberFunctionAttributes)$(OPT) $(GLINK2 template, Constraint)$(OPT)
 )
 
-$(H3 Parameters)
+        * A *FuncDeclaration* with a $(GLINK FunctionBody) is called a *function definition*.
+        * A *FuncDeclaration* with *TemplateParameters* defines a
+          $(DDSUBLINK spec/template, function-templates, function template).
+
+
+$(H3 Function Parameters)
 
 $(GRAMMAR
 $(GNAME Parameters):
@@ -76,7 +79,7 @@ $(NOTE In D2, declaring a parameter `final` is a semantic error, but not a parse
 
 $(P See also: $(RELATIVE_LINK2 param-storage, parameter storage classes).)
 
-$(H3 Function attributes)
+$(H3 Function Attributes)
 
 $(GRAMMAR
 $(GNAME FunctionAttributes):
@@ -131,8 +134,6 @@ $(LEGACY_LNAME2 FunctionLiteralBody)
         $(DDSUBLINK spec/statement, ReturnStatement, return statement).
         This syntax also applies for $(DDSUBLINK spec/expression, function_literals, function literals).)
 
-        $(P $(B Note:) The *ShortenedFunctionBody* form requires the `-preview=shortenedMethods`
-        command-line switch, which is available starting in v2.096.0.)
 
 $(H3 $(LNAME2 function-declarations, Functions without Bodies))
 
