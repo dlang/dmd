@@ -1707,21 +1707,22 @@ $(H3 $(LNAME2 return-ref-parameters, Return Ref Parameters))
         returned reference will not outlive the matching argument's lifetime.
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 ---
 ref int identity(return ref int x) {
-  return x; // pass-through function that does nothing
+    return x; // pass-through function that does nothing
 }
 
 ref int fun() {
-  int x;
-  return identity(x); // Error: escaping reference to local variable x
+    int x;
+    return identity(x); // Error: escaping reference to local variable x
 }
 
 ref int gun(return ref int x) {
-  return identity(x); // OK
+    return identity(x); // OK
 }
 ---
-
+)
         $(P Struct non-static methods marked with the `return` attribute ensure the returned
         reference will not outlive the struct instance.
         )
@@ -1740,25 +1741,48 @@ ref int escape()
 }
 ---
 
-        $(P Returning the address of a `ref` variable is also checked.)
+        $(P Returning the address of a `ref` variable is also checked in `@safe` code.)
 
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 ---
-int* pluto(ref int i)
+int* pluto(ref int i) @safe
 {
     return &i; // error: returning &i escapes a reference to parameter i
 }
 
-int* mars(return ref int i)
+int* mars(return ref int i) @safe
 {
-    return &i;  // ok
+    return &i;  // OK with -preview=dip1000
 }
 ---
+)
 
-$(P If the function returns `void`, and the first parameter is `ref` or `out`, then
+$(P If a function returns `void`, and the first parameter is `ref` or `out`, then
 all subsequent `return ref` parameters are considered as being assigned to
 the first parameter for lifetime checking.
 The `this` reference parameter to a struct non-static member function is
 considered the first parameter.)
+
+---
+struct S
+{
+    private int* p;
+
+    void f(return ref int i) scope @safe
+    {
+        p = &i;
+    }
+}
+
+void main() @safe
+{
+    int i;
+    S s;
+    s.f(i); // OK with -preview=dip1000, lifetime of `s` is shorter than `i`
+    *s.p = 2;
+    assert(i == 2);
+}
+---
 
 $(P If there are multiple `return ref` parameters, the lifetime of the return
 value is the smallest lifetime of the corresponding arguments.)
@@ -1778,7 +1802,10 @@ int mercury(return ref int i)
 $(P Template functions, auto functions, nested functions and $(DDSUBLINK spec/expression, function_literals, lambdas)
  can deduce the `return` attribute.)
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
+@safe:
+
 ref int templateFunction()(ref int i)
 {
     return i; // ok
@@ -1795,10 +1822,6 @@ void uranus()
     {
         return i; // ok
     }
-}
-
-void venus()
-{
     auto lambdaFunction =
         (ref int i)
         {
@@ -1806,6 +1829,7 @@ void venus()
         };
 }
 ---
+)
 
 $(H3 $(LNAME2 scope-parameters, Scope Parameters))
 
