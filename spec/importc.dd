@@ -682,6 +682,16 @@ $(H2 $(LNAME2 visualc-extensions, Visual C Extensions))
     $(LI others are ignored)
     )
 
+    $(H3 $(LNAME2 __pragma, `__pragma` Attribute Extensions))
+
+    $(P The following
+        $(LINK@ https://learn.microsoft.com/en-us/cpp/preprocessor/pragma-directives-and-the-pragma-keyword?view=msvc-170, `__pragma` extensions):)
+
+    $(OL
+    $(LI `__pragma(pack(N))`)
+    $(LI others are ignored)
+    )
+
 $(H2 $(LNAME2 digital-mars-extensions, Digital Mars C Extensions))
 
     $(H3 $(LNAME2 __stdcall, `__stdcall` Function Calling Convention))
