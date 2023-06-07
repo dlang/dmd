@@ -7163,6 +7163,7 @@ public:
     FileType filetype;
     bool hasAlwaysInlines;
     bool isPackageFile;
+    bool isImportedModule;
     Package* pkg;
     Array<const char* > contentImportedFiles;
     int32_t needmoduleinfo;

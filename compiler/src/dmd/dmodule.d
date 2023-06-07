@@ -347,6 +347,7 @@ extern (C++) final class Module : Package
     FileType filetype;          // source file type
     bool hasAlwaysInlines;      // contains references to functions that must be inlined
     bool isPackageFile;         // if it is a package.d
+    bool isImportedModule;      // module contains exported declarations, meaning it is an interface to a DLL
     Package pkg;                // if isPackageFile is true, the Package that contains this package.d
     Strings contentImportedFiles; // array of files whose content was imported
     int needmoduleinfo;
