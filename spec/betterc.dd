@@ -122,7 +122,7 @@ $(H2 $(LNAME2 consequences, Unavailable Features))
 
 $(OL
     $(LI Garbage Collection)
-    $(LI TypeInfo and (DDSUBLINK abi, ModuleInfo, $(TT ModuleInfo)))
+    $(LI TypeInfo and $(DDSUBLINK spec/abi, ModuleInfo, $(TT ModuleInfo)))
     $(LI Classes)
     $(LI Built-in threading (e.g. $(MREF core, thread)))
     $(LI Dynamic arrays (though slices of static arrays work) and associative arrays)
