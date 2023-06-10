@@ -6048,7 +6048,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
      * give the nested TemplateInstance instantiations that got
      * us here. Those are a list threaded into the nested scopes.
      */
-    extern(D) final void printInstantiationTrace(Classification cl = Classification.error)
+    extern(D) final void printInstantiationTrace(const ref Loc loc, Classification cl = Classification.error)
     {
         if (global.gag)
             return;
@@ -6058,7 +6058,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                                     (global.params.errorSupplementLimit ? global.params.errorSupplementLimit : uint.max)
                                     : uint.max;
 
-        const(char)* format = "instantiated from here: `%s`";
+        const(char)* format = "instantiated from: `%s` at %s";
 
         // This returns a function pointer
         scope printFn = () {
@@ -6100,7 +6100,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         if (n_instantiations <= max_shown)
         {
             for (TemplateInstance cur = this; cur; cur = cur.tinst)
-                printFn(cur.loc, format, cur.toChars());
+                printFn(loc, format, cur.toChars(), cur.loc.toChars());
         }
         else if (n_instantiations - n_totalrecursions <= max_shown)
         {
@@ -6116,9 +6116,9 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 else
                 {
                     if (recursionDepth)
-                        printFn(cur.loc, "%d recursive instantiations from here: `%s`", recursionDepth + 2, cur.toChars());
+                        printFn(loc, "%d recursive instantiations from: `%s` at %s", recursionDepth + 2, cur.toChars(), cur.loc.toChars());
                     else
-                        printFn(cur.loc, format, cur.toChars());
+                        printFn(loc, format, cur.toChars(), cur.loc.toChars());
                     recursionDepth = 0;
                 }
             }
@@ -6131,10 +6131,10 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             for (TemplateInstance cur = this; cur; cur = cur.tinst)
             {
                 if (i == max_shown / 2)
-                    printFn(cur.loc, "... (%d instantiations, -v to show) ...", n_instantiations - max_shown);
+                    printFn(loc, "... (%d instantiations, -v to show from %s) ...", n_instantiations - max_shown, cur.loc.toChars());
 
                 if (i < max_shown / 2 || i >= n_instantiations - max_shown + max_shown / 2)
-                    printFn(cur.loc, format, cur.toChars());
+                    printFn(loc, format, cur.toChars(), cur.loc.toChars());
                 ++i;
             }
         }

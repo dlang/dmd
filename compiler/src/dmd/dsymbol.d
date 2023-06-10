@@ -475,9 +475,9 @@ extern (C++) class Dsymbol : ASTNode
             deprecation(loc, "is deprecated");
 
         if (auto ti = sc.parent ? sc.parent.isInstantiated() : null)
-            ti.printInstantiationTrace(Classification.deprecation);
+            ti.printInstantiationTrace(ti.loc, Classification.deprecation);
         else if (auto ti = sc.parent ? sc.parent.isTemplateInstance() : null)
-            ti.printInstantiationTrace(Classification.deprecation);
+            ti.printInstantiationTrace(ti.loc, Classification.deprecation);
 
         return true;
     }

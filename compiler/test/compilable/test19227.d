@@ -3,8 +3,6 @@
 ---
 compilable/test19227.d(18): Deprecation: use of complex type `cfloat` is deprecated, use `std.complex.Complex!(float)` instead
 Deprecation: use of complex type `const(cfloat)` is deprecated, use `std.complex.Complex!(float)` instead
-Deprecation: use of complex type `const(cfloat)` is deprecated, use `std.complex.Complex!(float)` instead
-Deprecation: use of complex type `const(cfloat)` is deprecated, use `std.complex.Complex!(float)` instead
 ---
 */
 

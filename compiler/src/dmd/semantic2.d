@@ -104,7 +104,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
         sc = sc.pop();
         if (errors)
         {
-            errorSupplemental(sa.loc, "while evaluating: `static assert(%s)`", sa.exp.toChars());
+            errorSupplemental(sa.exp.loc, "while evaluating: `static assert(%s)`", sa.exp.toChars());
             return;
         }
         else if (result)
@@ -144,7 +144,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
         else
             error(sa.loc, "static assert:  `%s` is false", sa.exp.toChars());
         if (sc.tinst)
-            sc.tinst.printInstantiationTrace();
+            sc.tinst.printInstantiationTrace(sa.loc);
         if (!global.gag)
             fatal();
     }
@@ -197,7 +197,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 if (!tempdecl.literal)
                     tempinst.error(tempinst.loc, "error instantiating");
                 if (tempinst.tinst)
-                    tempinst.tinst.printInstantiationTrace();
+                    tempinst.tinst.printInstantiationTrace(tempinst.loc);
             }
             tempinst.errors = true;
         }

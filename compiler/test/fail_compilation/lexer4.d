@@ -6,7 +6,6 @@ fail_compilation/lexer4.d(24): Error: unterminated character constant
 fail_compilation/lexer4.d(25): Error: unterminated character constant
 fail_compilation/lexer4.d(26): Error: binary digit expected, not `2`
 fail_compilation/lexer4.d(27): Error: octal digit expected, not `8`
-fail_compilation/lexer4.d(27): Error: octal literals larger than 7 are no longer supported
 fail_compilation/lexer4.d(28): Error: decimal digit expected, not `a`
 fail_compilation/lexer4.d(29): Error: unrecognized token
 fail_compilation/lexer4.d(30): Error: exponent required for hex float
@@ -17,6 +16,7 @@ fail_compilation/lexer4.d(36): Error: positive integer argument expected followi
 fail_compilation/lexer4.d(19): Error: found `"file"` when expecting new line following `#line` directive
 ---
 */
+
 
 
 static c1 = '

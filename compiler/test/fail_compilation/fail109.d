@@ -35,9 +35,9 @@ enum E1 : short
 TEST_OUTPUT:
 ---
 fail_compilation/fail109.d(50): Error: comparison between different enumeration types `B` and `C`; If this behavior is intended consider using `std.conv.asOriginalType`
-fail_compilation/fail109.d(50): Error: enum member `fail109.B.end` initialization with `B.start+1` causes overflow for type `C`
 ---
 */
+
 enum C
 {
     start,

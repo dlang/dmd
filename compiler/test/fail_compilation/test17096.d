@@ -3,7 +3,6 @@
 fail_compilation/test17096.d(29): Error: expected 1 arguments for `isPOD` but had 2
 fail_compilation/test17096.d(30): Error: expected 1 arguments for `isNested` but had 2
 fail_compilation/test17096.d(31): Deprecation: `traits(isVirtualFunction)` is deprecated. Use `traits(isVirtualMethod)` instead
-fail_compilation/test17096.d(31): Error: expected 1 arguments for `isVirtualFunction` but had 2
 fail_compilation/test17096.d(32): Error: expected 1 arguments for `isVirtualMethod` but had 2
 fail_compilation/test17096.d(33): Error: expected 1 arguments for `isAbstractFunction` but had 2
 fail_compilation/test17096.d(34): Error: expected 1 arguments for `isFinalFunction` but had 2
@@ -26,6 +25,7 @@ fail_compilation/test17096.d(50): Error: expected 1 arguments for `getVirtualInd
 fail_compilation/test17096.d(51): Error: a single type expected for trait pointerBitmap
 ---
 */
+
 enum b03 = __traits(isPOD, 1, 2);
 enum b04 = __traits(isNested, 1, 2);
 enum b05 = __traits(isVirtualFunction, 1, 2);

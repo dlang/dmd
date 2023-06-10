@@ -12,9 +12,7 @@ fail_compilation/misc_parser_err_cov1.d(33): Error: semicolon expected following
 fail_compilation/misc_parser_err_cov1.d(33): Error: found `+` when expecting `(` following `mixin`
 fail_compilation/misc_parser_err_cov1.d(35): Error: `key:value` expected for associative array literal
 fail_compilation/misc_parser_err_cov1.d(36): Error: basic type expected, not `;`
-fail_compilation/misc_parser_err_cov1.d(36): Error: `{ members }` expected for anonymous class
 fail_compilation/misc_parser_err_cov1.d(38): Error: template argument expected following `!`
-fail_compilation/misc_parser_err_cov1.d(38): Error: missing closing `)` after `if (parseShift!()`
 fail_compilation/misc_parser_err_cov1.d(38): Error: found `)` when expecting `(`
 fail_compilation/misc_parser_err_cov1.d(39): Error: missing closing `)` after `if (`
 fail_compilation/misc_parser_err_cov1.d(39): Error: identifier expected following `(type)`.
@@ -27,6 +25,8 @@ fail_compilation/misc_parser_err_cov1.d(42): Error: found `}` when expecting `;`
 fail_compilation/misc_parser_err_cov1.d(43): Error: found `End of File` when expecting `}` following compound statement
 ---
 */
+
+
 module misc_parser_err_cov1;
 
 

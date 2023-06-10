@@ -96,7 +96,6 @@ fail_compilation/shared.d(2216):        return value `getSharedObject()` is not 
 fail_compilation/shared.d(2222): Error: direct access to shared `a` is not allowed, see `core.atomic`
 fail_compilation/shared.d(2220): Error: function `shared.test_inference_4` function returns `shared` but cannot be inferred `ref`
 fail_compilation/shared.d(2222):        cannot implicitly convert `a` of type `shared(const(Object))` to `object.Object`
-fail_compilation/shared.d(2222): Error: cannot implicitly convert expression `a` of type `shared(const(Object))` to `object.Object`
 ---
  */
 

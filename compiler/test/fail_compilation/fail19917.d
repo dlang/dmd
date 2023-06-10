@@ -2,7 +2,6 @@
 TEST_OUTPUT:
 ---
 fail_compilation/fail19917.d(22): Error: overlapping default initialization for field `c` and `a`
-fail_compilation/fail19917.d(22): Error: overlapping default initialization for field `d` and `b`
 fail_compilation/fail19917.d(39): Error: overlapping default initialization for field `b` and `a`
 ---
 */

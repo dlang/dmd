@@ -18,9 +18,9 @@ fail_compilation/fail196.d(37): Error: found `foo` when expecting `;` following 
 fail_compilation/fail196.d(37): Error: found `<` instead of statement
 fail_compilation/fail196.d(43): Error: unterminated string constant starting at fail_compilation/fail196.d(43)
 fail_compilation/fail196.d(45): Error: found `End of File` when expecting `}` following compound statement
-fail_compilation/fail196.d(45): Error: found `End of File` when expecting `}` following compound statement
 ---
 */
+
 
 void main()
 {

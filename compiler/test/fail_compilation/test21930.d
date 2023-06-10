@@ -3,7 +3,7 @@
 TEST_OUTPUT:
 ---
 fail_compilation/test21930.d(21): Error: variable `string` is used as a type
-fail_compilation/test21930.d(15):        variable `string` is declared here
+fail_compilation/test21930.d(21):        variable `string` is declared at fail_compilation/test21930.d(15)
 fail_compilation/test21930.d(26): Error: constructor `test21930.R.this(string)` is not callable using argument types `()`
 ---
 */

@@ -1532,7 +1532,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                     );
                 }
 
-                .errorSupplemental(varDeclLoc, "variable `%s` is declared here", varDecl.toChars);
+                .errorSupplemental(loc, "variable `%s` is declared at %s", varDecl.toChars, varDeclLoc.toChars());
             }
             else
                 .error(loc, "`%s` is used as a type", mtype.toChars());

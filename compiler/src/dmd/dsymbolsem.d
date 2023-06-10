@@ -1180,7 +1180,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     const init_err = dsym._init.isExpInitializer();
                     if (init_err && init_err.exp.op == EXP.showCtfeContext)
                     {
-                         errorSupplemental(dsym.loc, "compile time context created here");
+                         errorSupplemental(dsym._init.loc, "compile time context created at %s", dsym.loc.toChars());
                     }
                 }
             }
@@ -6496,7 +6496,7 @@ Laftersemantic:
             if (!tempdecl.literal)
                 tempinst.error(tempinst.loc, "error instantiating");
             if (tempinst.tinst)
-                tempinst.tinst.printInstantiationTrace();
+                tempinst.tinst.printInstantiationTrace(tempinst.loc);
         }
         tempinst.errors = true;
         if (tempinst.gagged)

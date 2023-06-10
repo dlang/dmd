@@ -9,7 +9,7 @@ fail_compilation/typeerrors.d(41): Error: cannot have array of scope `typeerrors
 fail_compilation/typeerrors.d(42): Error: cannot have array of scope `typeerrors.C`
 fail_compilation/typeerrors.d(45): Error: `int[5]` is not an expression
 fail_compilation/typeerrors.d(47): Error: variable `x` is used as a type
-fail_compilation/typeerrors.d(38):        variable `x` is declared here
+fail_compilation/typeerrors.d(47):        variable `x` is declared at fail_compilation/typeerrors.d(38)
 fail_compilation/typeerrors.d(48): Error: cannot have associative array key of `void()`
 fail_compilation/typeerrors.d(49): Error: cannot have associative array key of `void`
 fail_compilation/typeerrors.d(50): Error: cannot have array of scope `typeerrors.C`

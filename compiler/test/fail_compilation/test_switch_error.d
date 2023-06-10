@@ -106,7 +106,6 @@ TEST_OUTPUT:
 fail_compilation/test_switch_error.d(513): Error: undefined identifier `undefinedFunc`
 fail_compilation/test_switch_error.d(517): Error: `case` expression must be a compile-time `string` or an integral constant, not `Strukt(1)`
 fail_compilation/test_switch_error.d(518): Error: `case` variables have to be `const` or `immutable`
-fail_compilation/test_switch_error.d(518): Error: `case` variables not allowed in `final switch` statements
 fail_compilation/test_switch_error.d(519): Error: `case` variables not allowed in `final switch` statements
 fail_compilation/test_switch_error.d(522): Error: undefined identifier `undefinedFunc2`
 ---

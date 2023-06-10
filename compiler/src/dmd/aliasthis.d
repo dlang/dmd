@@ -191,7 +191,7 @@ bool checkDeprecatedAliasThis(AliasThis at, const ref Loc loc, Scope* sc)
                         at.sym.toChars());
 
         if (auto ti = sc.parent ? sc.parent.isInstantiated() : null)
-            ti.printInstantiationTrace(Classification.deprecation);
+            ti.printInstantiationTrace(loc, Classification.deprecation);
 
         return true;
     }

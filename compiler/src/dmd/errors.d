@@ -400,6 +400,9 @@ else
 private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* header,
         const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null)
 {
+    if (messageGroup.isDuplicate(loc))
+        return;
+
     if (diagnosticHandler && diagnosticHandler(loc, headerColor, header, format, ap, p1, p2))
         return;
 
@@ -499,6 +502,7 @@ extern (C++) void verror(const ref Loc loc, const(char)* format, va_list ap, con
     global.errors++;
     if (!global.gag)
     {
+        messageGroup.start(loc);
         verrorPrint(loc, Classification.error, header, format, ap, p1, p2);
         if (global.params.errorLimit && global.errors >= global.params.errorLimit)
             fatal(); // moderate blizzard of cascading messages
@@ -506,7 +510,10 @@ extern (C++) void verror(const ref Loc loc, const(char)* format, va_list ap, con
     else
     {
         if (global.params.showGaggedErrors)
+	{
+            messageGroup.start(loc);
             verrorPrint(loc, Classification.gagged, header, format, ap, p1, p2);
+	}
         global.gaggedErrors++;
     }
 }
@@ -568,6 +575,7 @@ private void _vwarning(const ref Loc loc, const(char)* format, va_list ap)
     {
         if (!global.gag)
         {
+            messageGroup.start(loc);
             verrorPrint(loc, Classification.warning, "Warning: ", format, ap);
             if (global.params.warnings == DiagnosticReporting.error)
                 global.warnings++;
@@ -616,11 +624,14 @@ extern (C++) void vdeprecation(const ref Loc loc, const(char)* format, va_list a
 {
     static immutable header = "Deprecation: ";
     if (global.params.useDeprecated == DiagnosticReporting.error)
+    {
         verror(loc, format, ap, p1, p2, header.ptr);
+    }
     else if (global.params.useDeprecated == DiagnosticReporting.inform)
     {
         if (!global.gag)
         {
+            messageGroup.start(loc);
             verrorPrint(loc, Classification.deprecation, header.ptr, format, ap, p1, p2);
         }
         else
@@ -650,6 +661,9 @@ else
 
 private void _vmessage(const ref Loc loc, const(char)* format, va_list ap)
 {
+    if (messageGroup.isDuplicate(loc))
+        return;
+
     const p = loc.toChars();
     if (*p)
     {
@@ -929,3 +943,53 @@ private void writeHighlights(Console con, ref const OutBuffer buf)
             fputc(c, con.fp);
     }
 }
+
+/************************************************************
+ * This is a simple scheme to eliminate duplication of error
+ * messages, which we'll define has having the same location.
+ * The complication is that messages come in groups,
+ * all with the same location. This is dealt with by having
+ * some messages trigger the start of a group, which ends only
+ * when another start is seen, at wich point the previous location
+ * is logged in an associative array. The contents of the associative
+ * array is consulted when writing out a message.
+ */
+
+private struct MessageGroup
+{
+  nothrow:
+
+    /*********
+     * The start of a new group.
+     * Params:
+     *  loc = location associated with the mssage
+     */
+    void start(ref const Loc loc)
+    {
+        const Loc locInit = Loc.init;
+        if (!current.opEquals(locInit))
+        {
+            /* block printing of any further messages with current's location
+             */
+            duplicates[current] = true;
+        }
+        current = loc;
+    }
+
+    /********
+     * Test to see if loc is already been printed, and so is a duplicate
+     * Params:
+     *  loc = location in message to be printed
+     */
+    bool isDuplicate(ref const Loc loc)
+    {
+        bool* p = loc in duplicates;
+        return p !is null;
+    }
+
+  private:
+    Loc current = Loc.init;
+    bool[Loc] duplicates;
+}
+
+private MessageGroup messageGroup;

@@ -1242,7 +1242,7 @@ extern (C++) abstract class Expression : ASTNode
             if (!f.isDtorDeclaration())
                 errorSupplementalInferredAttr(f, /*max depth*/ 10, /*deprecation*/ false, STC.pure_);
 
-            checkOverridenDtor(sc, f, dd => dd.type.toTypeFunction().purity != PURE.impure, "impure");
+            checkOverriddenDtor(sc, f, dd => dd.type.toTypeFunction().purity != PURE.impure, "impure");
             return true;
         }
         return false;
@@ -1261,7 +1261,7 @@ extern (C++) abstract class Expression : ASTNode
      *   check = current check (e.g. whether it's pure)
      *   checkName = the kind of check (e.g. `"pure"`)
      */
-    extern (D) final void checkOverridenDtor(Scope* sc, FuncDeclaration f,
+    extern (D) final void checkOverriddenDtor(Scope* sc, FuncDeclaration f,
                 scope bool function(DtorDeclaration) check, const string checkName
     ) {
         auto dd = f.isDtorDeclaration();
@@ -1281,9 +1281,10 @@ extern (C++) abstract class Expression : ASTNode
             assert(!check(ad.fieldDtor));
         }
 
-        dd.loc.errorSupplemental("%s`%s.~this` is %.*s because of the following field's destructors:",
+        this.errorSupplemental("%s`%s.~this` at %s is %.*s because of the following field's destructors:",
                             dd.isGenerated() ? "generated " : "".ptr,
                             ad.toChars,
+                            dd.loc.toChars(),
                             cast(int) checkName.length, checkName.ptr);
 
         // Search for the offending fields
@@ -1311,13 +1312,13 @@ extern (C++) abstract class Expression : ASTNode
 
             if (fieldSd.dtor && !check(fieldSd.dtor))
             {
-                field.loc.errorSupplemental(" - %s %s", field.type.toChars(), field.toChars());
+                this.errorSupplemental("field at %s - %s %s", field.loc.toChars(), field.type.toChars(), field.toChars());
 
                 if (fieldSd.dtor.isGenerated())
-                    checkOverridenDtor(sc, fieldSd.dtor, check, checkName);
+                    checkOverriddenDtor(sc, fieldSd.dtor, check, checkName);
                 else
-                    fieldSd.dtor.loc.errorSupplemental("   %.*s `%s.~this` is declared here",
-                                            cast(int) checkName.length, checkName.ptr, fieldSd.toChars());
+                    this.errorSupplemental("   %.*s `%s.~this` is declared at %s",
+                                            cast(int) checkName.length, checkName.ptr, fieldSd.toChars(), fieldSd.dtor.loc.toChars());
             }
         }
     }
@@ -1503,9 +1504,9 @@ extern (C++) abstract class Expression : ASTNode
                     prettyChars);
                 if (!f.isDtorDeclaration)
                     errorSupplementalInferredAttr(f, /*max depth*/ 10, /*deprecation*/ false, STC.safe);
-                .errorSupplemental(f.loc, "`%s` is declared here", prettyChars);
+                .errorSupplemental(this.loc, "`%s` is declared at %s", prettyChars, f.loc.toChars());
 
-                checkOverridenDtor(sc, f, dd => dd.type.toTypeFunction().trust > TRUST.system, "@system");
+                checkOverriddenDtor(sc, f, dd => dd.type.toTypeFunction().trust > TRUST.system, "@system");
 
                 return true;
             }
@@ -1569,7 +1570,7 @@ extern (C++) abstract class Expression : ASTNode
                         f.errorSupplementalInferredAttr(/*max depth*/ 10, /*deprecation*/ false, STC.nogc);
                 }
 
-                checkOverridenDtor(sc, f, dd => dd.type.toTypeFunction().isnogc, "non-@nogc");
+                checkOverriddenDtor(sc, f, dd => dd.type.toTypeFunction().isnogc, "non-@nogc");
 
                 return true;
             }

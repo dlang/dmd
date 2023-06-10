@@ -2,7 +2,7 @@
 TEST_OUTPUT:
 ---
 fail_compilation/nestedtempl1.d(14): Deprecation: function `nestedtempl1.main.bar!(a).bar` function requires a dual-context, which is deprecated
-fail_compilation/nestedtempl1.d(26):        instantiated from here: `bar!(a)`
+fail_compilation/nestedtempl1.d(14):        instantiated from: `bar!(a)` at fail_compilation/nestedtempl1.d(26)
 fail_compilation/nestedtempl1.d(26): Error: modify `inout` to `mutable` is not allowed inside `inout` function
 ---
 */

@@ -143,7 +143,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 if (!tempdecl.literal)
                     tempinst.error(tempinst.loc, "error instantiating");
                 if (tempinst.tinst)
-                    tempinst.tinst.printInstantiationTrace();
+                    tempinst.tinst.printInstantiationTrace(tempinst.loc);
             }
             tempinst.errors = true;
         }
@@ -397,7 +397,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             {
                 funcdecl.deprecation("function requires a dual-context, which is deprecated");
                 if (auto ti = sc2.parent ? sc2.parent.isInstantiated() : null)
-                    ti.printInstantiationTrace(Classification.deprecation);
+                    ti.printInstantiationTrace(funcdecl.loc, Classification.deprecation);
             }
 
             //printf("[%s] ad = %p vthis = %p\n", loc.toChars(), ad, vthis);
