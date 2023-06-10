@@ -2299,6 +2299,7 @@ struct Gcx
         for (;;)
         {
             auto p = *cast(void**)(rng.pbot);
+            debug (VALGRIND) makeMemDefined((&p)[0 .. 1]);
 
             debug(MARK_PRINTF) printf("\tmark %p: %p\n", rng.pbot, p);
 
@@ -2528,6 +2529,7 @@ struct Gcx
         for (auto p = cast(void**)pbot; cast(void*)p < ptop; p++)
         {
             auto ptr = *p;
+            debug (VALGRIND) makeMemDefined((&ptr)[0 .. 1]);
             if (cast(size_t)(ptr - minAddr) < memSize)
                 toscanRoots.push(ptr);
         }
