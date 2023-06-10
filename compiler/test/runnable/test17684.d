@@ -1,10 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-runnable/test17684.d(37): Deprecation: alias this for classes/interfaces is deprecated
-runnable/test17684.d(54): Deprecation: alias this for classes/interfaces is deprecated
-runnable/test17684.d(54): Deprecation: alias this for classes/interfaces is deprecated
-runnable/test17684.d(37): Deprecation: alias this for classes/interfaces is deprecated
+runnable/test17684.d(35): Deprecation: alias this for classes/interfaces is deprecated
+runnable/test17684.d(52): Deprecation: alias this for classes/interfaces is deprecated
 ---
 */
 

@@ -3,20 +3,20 @@
 TEST_OUTPUT:
 ---
 fail_compilation/depmsg.d(40): Deprecation: struct `depmsg.main.Inner.A` is deprecated - With message!
-fail_compilation/depmsg.d(40): Deprecation: struct `depmsg.main.Inner.A` is deprecated - With message!
-fail_compilation/depmsg.d(41): Deprecation: class `depmsg.main.Inner.B` is deprecated - With message!
 fail_compilation/depmsg.d(41): Deprecation: class `depmsg.main.Inner.B` is deprecated - With message!
 fail_compilation/depmsg.d(42): Deprecation: interface `depmsg.main.Inner.C` is deprecated - With message!
-fail_compilation/depmsg.d(42): Deprecation: interface `depmsg.main.Inner.C` is deprecated - With message!
 fail_compilation/depmsg.d(43): Deprecation: union `depmsg.main.Inner.D` is deprecated - With message!
-fail_compilation/depmsg.d(43): Deprecation: union `depmsg.main.Inner.D` is deprecated - With message!
-fail_compilation/depmsg.d(44): Deprecation: enum `depmsg.main.Inner.E` is deprecated - With message!
 fail_compilation/depmsg.d(44): Deprecation: enum `depmsg.main.Inner.E` is deprecated - With message!
 fail_compilation/depmsg.d(46): Deprecation: alias `depmsg.main.Inner.G` is deprecated - With message!
 fail_compilation/depmsg.d(47): Deprecation: variable `depmsg.main.Inner.H` is deprecated - With message!
 fail_compilation/depmsg.d(48): Deprecation: class `depmsg.main.Inner.I()` is deprecated - With message!
 ---
 */
+
+
+
+
+
 
 void main()
 {

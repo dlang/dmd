@@ -121,10 +121,10 @@ TypeInfo c64ti = typeid(cdouble[]);
 TEST_OUTPUT:
 ---
 compilable/sw_transition_complex.d(128): Deprecation: use of complex type `creal*` is deprecated, use `std.complex.Complex!(real)` instead
-compilable/sw_transition_complex.d(128): Deprecation: use of imaginary type `ireal` is deprecated, use `real` instead
 compilable/sw_transition_complex.d(132): Deprecation: use of complex type `creal` is deprecated, use `std.complex.Complex!(real)` instead
 ---
 */
+
 void test14488a(creal *p, real r, ireal i)
 {
 }

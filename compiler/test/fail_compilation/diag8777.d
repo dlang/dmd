@@ -2,9 +2,9 @@
 TEST_OUTPUT:
 ---
 fail_compilation/diag8777.d(12): Error: constructor `diag8777.Foo1.this` missing initializer for immutable field `x`
-fail_compilation/diag8777.d(12): Error: constructor `diag8777.Foo1.this` missing initializer for const field `y`
 ---
 */
+
 class Foo1
 {
     immutable int[5] x;

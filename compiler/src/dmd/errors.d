@@ -400,6 +400,9 @@ else
 private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* header,
         const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null)
 {
+    if (messageGroup.isSuppressed())
+        return;
+
     if (diagnosticHandler && diagnosticHandler(loc, headerColor, header, format, ap, p1, p2))
         return;
 
@@ -499,6 +502,7 @@ extern (C++) void verror(const ref Loc loc, const(char)* format, va_list ap, con
     global.errors++;
     if (!global.gag)
     {
+        messageGroup.start(loc);
         verrorPrint(loc, Classification.error, header, format, ap, p1, p2);
         if (global.params.errorLimit && global.errors >= global.params.errorLimit)
             fatal(); // moderate blizzard of cascading messages
@@ -506,7 +510,10 @@ extern (C++) void verror(const ref Loc loc, const(char)* format, va_list ap, con
     else
     {
         if (global.params.showGaggedErrors)
+        {
+            messageGroup.start(loc);
             verrorPrint(loc, Classification.gagged, header, format, ap, p1, p2);
+        }
         global.gaggedErrors++;
     }
 }
@@ -568,6 +575,7 @@ private void _vwarning(const ref Loc loc, const(char)* format, va_list ap)
     {
         if (!global.gag)
         {
+            messageGroup.start(loc);
             verrorPrint(loc, Classification.warning, "Warning: ", format, ap);
             if (global.params.warnings == DiagnosticReporting.error)
                 global.warnings++;
@@ -621,6 +629,7 @@ extern (C++) void vdeprecation(const ref Loc loc, const(char)* format, va_list a
     {
         if (!global.gag)
         {
+            messageGroup.start(loc);
             verrorPrint(loc, Classification.deprecation, header.ptr, format, ap, p1, p2);
         }
         else
@@ -650,6 +659,9 @@ else
 
 private void _vmessage(const ref Loc loc, const(char)* format, va_list ap)
 {
+    if (messageGroup.isSuppressed())
+        return;
+
     const p = loc.toChars();
     if (*p)
     {
@@ -929,3 +941,54 @@ private void writeHighlights(Console con, ref const OutBuffer buf)
             fputc(c, con.fp);
     }
 }
+
+/************************************************************
+ * This is a simple scheme to eliminate duplication of error
+ * messages, which we'll define has having the same location.
+ * The complication is that messages come in groups,
+ * all with the same location. This is dealt with by having
+ * some messages trigger the start of a group, which ends only
+ * when another start is seen, at wich point the previous location
+ * is logged in an associative array. The contents of the associative
+ * array is consulted when writing out a message.
+ */
+
+private struct MessageGroup
+{
+  nothrow:
+
+    /*********
+     * The start of a new group.
+     * Params:
+     *  loc = location associated with the mssage
+     */
+    void start(ref const Loc loc)
+    {
+        if (loc.linnum() == 0)      // print messages with unknown location
+            suppress = false;
+        else
+        {
+            suppress = (loc in duplicates) !is null;
+
+            /* log this start of a message group
+             */
+            duplicates[loc] = true;
+        }
+    }
+
+
+    /*******************
+     * Is printing of a message suppressed due to it being a duplicate?
+     * Returns: true if don't print message
+     */
+    bool isSuppressed()
+    {
+        return suppress;
+    }
+
+  private:
+    bool[Loc] duplicates;
+    bool suppress;
+}
+
+private __gshared MessageGroup messageGroup;

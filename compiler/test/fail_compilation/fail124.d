@@ -3,9 +3,9 @@ TEST_OUTPUT:
 ---
 fail_compilation/fail124.d(17): Error: class `fail124.CC` inherits from duplicate interface `C`
 fail_compilation/fail124.d(31): Error: class `fail124.D` inherits from duplicate interface `T`
-fail_compilation/fail124.d(31): Error: class `fail124.D` inherits from duplicate interface `T`
 ---
 */
+
 
 //import std.stdio;
 

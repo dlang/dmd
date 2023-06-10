@@ -7,19 +7,6 @@ fail_compilation/dtor_attributes.d(118): Error: `pure` function `dtor_attributes
 fail_compilation/dtor_attributes.d(113):        generated `Strict.~this` is impure because of the following field's destructors:
 fail_compilation/dtor_attributes.d(111):         - HasDtor member
 fail_compilation/dtor_attributes.d(103):           impure `HasDtor.~this` is declared here
-fail_compilation/dtor_attributes.d(118): Error: `@safe` function `dtor_attributes.test1` cannot call `@system` destructor `dtor_attributes.Strict.~this`
-fail_compilation/dtor_attributes.d(113):        `dtor_attributes.Strict.~this` is declared here
-fail_compilation/dtor_attributes.d(113):        generated `Strict.~this` is @system because of the following field's destructors:
-fail_compilation/dtor_attributes.d(111):         - HasDtor member
-fail_compilation/dtor_attributes.d(103):           @system `HasDtor.~this` is declared here
-fail_compilation/dtor_attributes.d(118): Error: `@nogc` function `dtor_attributes.test1` cannot call non-@nogc destructor `dtor_attributes.Strict.~this`
-fail_compilation/dtor_attributes.d(113):        generated `Strict.~this` is non-@nogc because of the following field's destructors:
-fail_compilation/dtor_attributes.d(111):         - HasDtor member
-fail_compilation/dtor_attributes.d(103):           non-@nogc `HasDtor.~this` is declared here
-fail_compilation/dtor_attributes.d(118): Error: destructor `dtor_attributes.Strict.~this` is not `nothrow`
-fail_compilation/dtor_attributes.d(113):        generated `Strict.~this` is not nothrow because of the following field's destructors:
-fail_compilation/dtor_attributes.d(111):         - HasDtor member
-fail_compilation/dtor_attributes.d(103):           not nothrow `HasDtor.~this` is declared here
 fail_compilation/dtor_attributes.d(116): Error: function `dtor_attributes.test1` may throw but is marked as `nothrow`
 ---
 */

@@ -14,8 +14,6 @@ runnable/template10.d(245):        instantiated from here: `add!(a)`
 runnable/template10.d(211): Deprecation: function `template10.test4i!(I).test4i.add2!(b).add2` function requires a dual-context, which is deprecated
 runnable/template10.d(231):        instantiated from here: `add2!(b)`
 runnable/template10.d(251):        instantiated from here: `test4i!(I)`
-runnable/template10.d(201): Deprecation: function `template10.test4.inner!(a).inner` function requires a dual-context, which is deprecated
-runnable/template10.d(256):        instantiated from here: `inner!(a)`
 runnable/template10.d(266): Deprecation: function `template10.test5.add!(fun).add` function requires a dual-context, which is deprecated
 runnable/template10.d(282):        instantiated from here: `add!(fun)`
 runnable/template10.d(271): Deprecation: function `template10.test5.add!(fun).add.exec2!(fun, add).exec2` function requires a dual-context, which is deprecated
@@ -56,6 +54,8 @@ runnable/template10.d(731): Deprecation: function `template10.test13b.getC.C.fun
 runnable/template10.d(741):        instantiated from here: `fun!(n)`
 ---
 */
+
+
 
 /********************************************/
 
