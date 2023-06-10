@@ -4,6 +4,8 @@ $(SPEC_S Better C,
 
 $(HEADERNAV_TOC)
 
+$(H2 $(LNAME2 linking, Linking))
+
     $(P It is straightforward to link C functions and libraries into D programs.
     But linking D functions and libraries into C programs is not straightforward.
     )
@@ -22,11 +24,14 @@ $(HEADERNAV_TOC)
     a subset of D that fits this requirement, called $(B BetterC).
     )
 
+$(H2 $(LNAME2 better-c, Better C))
+
     $(IMPLEMENTATION_DEFINED $(B BetterC) is typically enabled by setting the $(TT -betterC)
     command line flag for the implementation.
     )
 
-    $(P When $(B BetterC) is enabled, the predefined $(LINK2 version.html, version) `D_BetterC`
+    $(P When $(B BetterC) is enabled, the predefined
+    $(DDLINK spec/version, Conditional Compilation, version) `D_BetterC`
     can be used for conditional compilation.
     )
 
@@ -63,7 +68,7 @@ Hello betterC
     be tricky, hence removing D's GC from the equation may be worthwhile sometimes.)
     )
 
-    $(P BetterC and $(LINK2 https://dlang.org/spec/importc.html, ImportC) are very different.
+    $(NOTE BetterC and $(DDLINK spec/importc, ImportC, ImportC) are very different.
     ImportC is an actual C compiler. BetterC is a subset of D that relies only on the
     existence of the C Standard library.)
 
@@ -82,7 +87,7 @@ $(H2 $(LNAME2 retained, Retained Features))
     $(LI RAII (yes, it can work without exceptions))
     $(LI `scope(exit)`)
     $(LI Memory safety protections)
-    $(LI Interfacing with C++)
+    $(LI $(DDLINK spec/cpp_interface, Interfacing to C++, Interfacing to C++))
     $(LI COM classes and C++ classes)
     $(LI `assert` failures are directed to the C runtime library)
     $(LI `switch` with strings)
@@ -93,7 +98,7 @@ $(H2 $(LNAME2 retained, Retained Features))
 
 $(H3 $(LNAME2 unittests, Running unittests in `-betterC`))
 
-While, testing can be done without the $(TT -betterC) flag, it is sometimes desirable to run the testsuite in `-betterC` too.
+While testing can be done without the $(TT -betterC) flag, it is sometimes desirable to run the testsuite in `-betterC` too.
 `unittest` blocks can be listed with the $(DDSUBLINK spec/traits, getUnitTests, `getUnitTests`) trait:
 
 ---
@@ -114,7 +119,7 @@ $(GT) dmd -betterC -unittest -run test.d
 dmd_runpezoXK: foo.d:3: Assertion `0' failed.
 )
 
-However, in `-betterC` `assert` expressions don't use Druntime's assert and are directed to `assert` of the C runtime library instead.
+However, in `-betterC`, `assert` expressions don't use Druntime's assert and are directed to `assert` from the C runtime library instead.
 
 $(H2 $(LNAME2 consequences, Unavailable Features))
 
@@ -125,7 +130,8 @@ $(OL
     $(LI TypeInfo and $(DDSUBLINK spec/abi, ModuleInfo, $(TT ModuleInfo)))
     $(LI Classes)
     $(LI Built-in threading (e.g. $(MREF core, thread)))
-    $(LI Dynamic arrays (though slices of static arrays work) and associative arrays)
+    $(LI Dynamic arrays (though slices of static arrays and pointers work))
+    $(LI Associative arrays)
     $(LI Exceptions)
     $(LI `synchronized` and $(MREF core, sync))
     $(LI Static module constructors or destructors)
