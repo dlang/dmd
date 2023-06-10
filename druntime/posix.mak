@@ -126,7 +126,7 @@ SRCS:=$(subst \,/,$(SRCS))
 # NOTE: a pre-compiled minit.obj has been provided in dmd for Win32	 and
 #       minit.asm is not used by dmd for Linux
 
-OBJS= $(ROOT)/errno_c.o $(ROOT)/threadasm.o
+OBJS= $(ROOT)/errno_c.o $(ROOT)/threadasm.o $(ROOT)/valgrind.o
 
 # use timelimit to avoid deadlocks if available
 TIMELIMIT:=$(if $(shell which timelimit 2>/dev/null || true),timelimit -t 10 ,)
@@ -365,6 +365,10 @@ $(ROOT)/errno_c.o : src/core/stdc/errno.c $(DMD)
 
 $(ROOT)/threadasm.o : src/core/threadasm.S
 	@mkdir -p $(dir $@)
+	$(CC) -c $(CFLAGS) $< -o$@
+
+$(ROOT)/valgrind.o : src/etc/valgrind/valgrind.c src/etc/valgrind/valgrind.h src/etc/valgrind/memcheck.h
+	@mkdir -p `dirname $@`
 	$(CC) -c $(CFLAGS) $< -o$@
 
 ######################## Create a shared library ##############################

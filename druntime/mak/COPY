@@ -546,4 +546,5 @@ COPY=\
 	$(IMPDIR)\core\thread\osthread.d \
 	$(IMPDIR)\core\thread\package.d \
 	\
+	$(IMPDIR)\etc\valgrind\valgrind.d \
 	$(IMPDIR)\etc\linux\memoryerror.d

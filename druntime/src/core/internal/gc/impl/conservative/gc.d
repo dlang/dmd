@@ -26,6 +26,7 @@ module core.internal.gc.impl.conservative.gc;
 //debug = INVARIANT;            // enable invariants
 //debug = PROFILE_API;          // profile API calls for config.profile > 1
 //debug = GC_RECURSIVE_LOCK;    // check for recursive locking on the same thread
+//debug = VALGRIND;             // Valgrind memcheck integration
 
 /***************************************************/
 version = COLLECT_PARALLEL;  // parallel scanning
@@ -51,6 +52,8 @@ version (GNU) import gcc.builtins;
 
 debug (PRINTF_TO_FILE) import core.stdc.stdio : sprintf, fprintf, fopen, fflush, FILE;
 else                   import core.stdc.stdio : sprintf, printf; // needed to output profiling results
+
+debug (VALGRIND) import etc.valgrind.valgrind;
 
 import core.time;
 alias currTime = MonoTime.currTime;
