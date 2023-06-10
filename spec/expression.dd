@@ -2550,9 +2550,9 @@ $(GNAME ArgumentList):
     $(GLINK AssignExpression) $(D ,) $(GSELF ArgumentList)
 )
 
-    $(P $(I NewExpression)s are used to allocate memory on the
+    $(P $(I NewExpression)s allocate memory on the
         $(DDLINK spec/garbage, Garbage Collection, garbage
-        collected) heap.
+        collected) heap by default.
     )
 
     $(P The `new` *Type* form constructs an instance of a type and default-initializes it.)
