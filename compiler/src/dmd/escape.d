@@ -2475,6 +2475,9 @@ bool isReferenceToMutable(Type t)
             }
             break;
 
+        case Tnull:
+            return false;
+
         default:
             assert(0);
     }
