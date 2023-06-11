@@ -1,8 +1,53 @@
+/// D wrapper for the Valgrind client API.
+/// Note that you must include this file into your program's compilation
+/// and compile with `-debug=VALGRIND` to access the declarations below.
 module etc.valgrind.valgrind;
+
+version (StdDdoc)
+{
+    /// Mark the memory covered by `mem` as unaddressable.
+    void makeMemNoAccess (const(void)[] mem) nothrow;
+
+    /// Similarly, mark memory covered by `mem` as addressable but undefined.
+    void makeMemUndefined(const(void)[] mem) nothrow;
+
+    /// Similarly, mark memory covered by `mem` as addressable and defined.
+    void makeMemDefined  (const(void)[] mem) nothrow;
+
+    /// Get the validity data for the address range covered by `mem` and copy it
+    /// into the provided `bits` array.
+    /// Returns:
+    ///   - 0   if not running on valgrind
+    ///   - 1   success
+    ///   - 2   [previously indicated unaligned arrays;  these are now allowed]
+    ///   - 3   if any parts of `mem`/`bits` are not addressable.
+    /// The metadata is not copied in cases 0, 2 or 3 so it should be
+    /// impossible to segfault your system by using this call.
+    uint getVBits(const(void)[] mem, ubyte[] bits) nothrow;
+
+    /// Set the validity data for the address range covered by `mem`, copying it
+    /// from the provided `bits` array.
+    /// Returns:
+    ///   - 0   if not running on valgrind
+    ///   - 1   success
+    ///   - 2   [previously indicated unaligned arrays;  these are now allowed]
+    ///   - 3   if any parts of `mem`/`bits` are not addressable.
+    /// The metadata is not copied in cases 0, 2 or 3 so it should be
+    /// impossible to segfault your system by using this call.
+    uint setVBits(const(void)[] mem, ubyte[] bits) nothrow;
+
+    /// Disable and re-enable reporting of addressing errors in the
+    /// address range covered by `mem`.
+    void disableAddrReportingInRange(const(void)[] mem) nothrow;
+
+    /// ditto
+    void enableAddrReportingInRange(const(void)[] mem) nothrow;
+}
+else:
 
 debug(VALGRIND):
 
-extern(C) nothrow
+private extern(C) nothrow
 {
     void _d_valgrind_make_mem_noaccess (const(void)* addr, size_t len);
     void _d_valgrind_make_mem_undefined(const(void)* addr, size_t len);
