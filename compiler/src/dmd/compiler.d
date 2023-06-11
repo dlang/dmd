@@ -275,7 +275,7 @@ private struct MatcherNode
  * -i=-foo // include everything except modules that match "foo*"
  * -i=foo  // only include modules that match "foo*" (exclude everything else)
  * ---
- * Note that this default behavior can be overriden using the '.' module pattern. i.e.
+ * Note that this default behavior can be overridden using the '.' module pattern. i.e.
  * ---
  * -i=-foo,-.  // this excludes everything
  * -i=foo,.    // this includes everything except the default exclusions (-std,-core,-etc.-object)

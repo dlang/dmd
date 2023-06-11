@@ -1605,7 +1605,7 @@ private struct FuncDeclSem3
         sc = s;
     }
 
-    /* Checks that the overriden functions (if any) have in contracts if
+    /* Checks that the overridden functions (if any) have in contracts if
      * funcdecl has an in contract.
      */
     void checkInContractOverrides()

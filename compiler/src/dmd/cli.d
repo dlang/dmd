@@ -429,7 +429,7 @@ dmd -cov -unittest myprog.d
             q"{$(P Enables "include imports" mode, where the compiler will include imported
              modules in the compilation, as if they were given on the command line. By default, when
              this option is enabled, all imported modules are included except those in
-             druntime/phobos. This behavior can be overriden by providing patterns via `-i=<pattern>`.
+             druntime/phobos. This behavior can be overridden by providing patterns via `-i=<pattern>`.
              A pattern of the form `-i=<package>` is an "inclusive pattern", whereas a pattern
              of the form `-i=-<package>` is an "exclusive pattern". Inclusive patterns will include
              all module's whose names match the pattern, whereas exclusive patterns will exclude them.
@@ -439,14 +439,14 @@ dmd -cov -unittest myprog.d
 
              $(P The default behavior of excluding druntime/phobos is accomplished by internally adding a
              set of standard exclusions, namely, `-i=-std -i=-core -i=-etc -i=-object`. Note that these
-             can be overriden with `-i=std -i=core -i=etc -i=object`.)
+             can be overridden with `-i=std -i=core -i=etc -i=object`.)
 
              $(P When a module matches multiple patterns, matches are prioritized by their component length, where
              a match with more components takes priority (i.e. pattern `foo.bar.baz` has priority over `foo.bar`).)
 
              $(P By default modules that don't match any pattern will be included. However, if at
              least one inclusive pattern is given, then modules not matching any pattern will
-             be excluded. This behavior can be overriden by usig `-i=.` to include by default or `-i=-.` to
+             be excluded. This behavior can be overridden by usig `-i=.` to include by default or `-i=-.` to
              exclude by default.)
 
              $(P Note that multiple `-i=...` options are allowed, each one adds a pattern.)}"
