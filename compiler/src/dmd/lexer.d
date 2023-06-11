@@ -2798,6 +2798,7 @@ class Lexer
             case TOK.endOfLine:
                 if (!inTokenStringConstant)
                 {
+                    this.scanloc.charnum = 0;
                     this.scanloc.linnum = linnum;
                     if (filespec)
                         this.scanloc.filename = filespec;
