@@ -3963,13 +3963,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                             hgs.fullQual = true;
 
                         // https://issues.dlang.org/show_bug.cgi?id=23745
-                        // If the potentially overriden function contains errors,
+                        // If the potentially overridden function contains errors,
                         // inform the user to fix that one first
                         if (fd.errors)
                         {
                             error(funcdecl.loc, "function `%s` does not override any function, did you mean to override `%s`?",
                                 funcdecl.toChars(), fd.toPrettyChars());
-                            errorSupplemental(fd.loc, "Function `%s` contains errors in its declaration, therefore it cannot be correctly overriden",
+                            errorSupplemental(fd.loc, "Function `%s` contains errors in its declaration, therefore it cannot be correctly overridden",
                                 fd.toPrettyChars());
                         }
                         else
@@ -3985,7 +3985,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     {
                         error(funcdecl.loc, "function `%s` does not override any function, did you mean to override %s `%s`?",
                             funcdeclToChars, s.kind, s.toPrettyChars());
-                        errorSupplemental(funcdecl.loc, "Functions are the only declarations that may be overriden");
+                        errorSupplemental(funcdecl.loc, "Functions are the only declarations that may be overridden");
                     }
                 }
                 else
