@@ -1,6 +1,6 @@
 include ../common.mak
 
-TESTS := ok_append no_use_after_free no_oob no_oob_sentinel
+TESTS := ok_append no_use_after_free no_oob no_oob_sentinel no_use_after_gc
 
 GC_SRC = \
   ../../src/core/internal/gc/impl/conservative/gc.d \
