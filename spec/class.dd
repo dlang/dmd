@@ -716,8 +716,9 @@ $(GNAME Destructor):
         }
         ------
 
-        $(P There can be only one destructor per class, the destructor
-        does not have any parameters,
+        $(P There can be only one destructor declared per class, although
+        other destructors $(DDSUBLINK spec/template-mixin, destructors, can be mixed in).
+        A destructor does not have any parameters,
         and has no attributes. It is always virtual.
         )
 

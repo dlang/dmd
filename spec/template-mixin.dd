@@ -334,7 +334,9 @@ void main()
 }
 -----
 
-$(H2 $(LNAME2 virtual_functions, Mixins and Virtual Functions))
+$(H2 $(LNAME2 aggregate_types, Aggregate Type Mixins))
+
+$(H3 $(LNAME2 virtual_functions, Mixin Virtual Functions))
 
         $(P Mixins can add virtual functions to a class:)
 
@@ -368,6 +370,41 @@ void main()
 ------
 )
 
+$(H3 $(LNAME2 destructors, Mixin Destructors))
+
+        $(P An aggregate type can mixin additional destructors.
+        Destructors are run in the opposite order to declaration order.)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+import std.stdio;
+
+mixin template addNewDtor()
+{
+    ~this()
+    {
+        writeln("Mixin dtor");
+    }
+}
+
+struct S
+{
+    ~this()
+    {
+        writeln("Struct dtor");
+    }
+
+    mixin addNewDtor;
+}
+
+void main()
+{
+    S s;
+    // prints `Mixin dtor`
+    // prints `Struct dtor`
+}
+---
+)
 
 $(SPEC_SUBNAV_PREV_NEXT template, Templates, contracts, Contract Programming)
 )
