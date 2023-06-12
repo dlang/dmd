@@ -1457,9 +1457,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (sym)
                 {
                     import dmd.access : symbolIsVisible;
-                    if (!symbolIsVisible(sc, sym))
+                    if (!symbolIsVisible(sc, sym) && !sym.errors)
+                    {
                         imp.mod.error(imp.loc, "member `%s` is not visible from module `%s`",
                             imp.names[i].toChars(), sc._module.toChars());
+                        sym.errors = true;
+                    }
                     ad.dsymbolSemantic(sc);
                     // If the import declaration is in non-root module,
                     // analysis of the aliased symbol is deferred.
