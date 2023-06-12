@@ -1770,13 +1770,47 @@ void main()
 
 $(H2 $(LEGACY_LNAME2 StructDestructor, struct-destructor, Struct Destructors))
 
-        $(P Destructors are called when an object goes out of scope.
+        $(P Destructors are called when an object goes out of scope, or
+        $(RELATIVE_LINK2 assign-overload, before an assignment).
         Their purpose is to free up resources owned by the struct
         object.
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+struct S
+{
+    int i;
+
+    ~this()
+    {
+        import std.stdio;
+        writeln("S(", i, ") is being destructed");
+    }
+}
+
+void main()
+{
+    auto s1 = S(1);
+    {
+        auto s2 = S(2);
+        // s2 destructor called
+    }
+    S(3); // s3 destructor called
+    // s1 destructor called
+}
+---
+)
+        $(P The destructor can also be called early using $(REF1 destroy, object)
+        or by assigning the struct's `init` property.)
+
+        $(P Struct destructors are used for $(DDSUBLINK spec/glossary, raii, RAII).)
+
+
+$(H2 $(LNAME2 union-field-destruction, Union Field Destruction))
+
         $(P Unions may have fields that have destructors. However, a union itself never has
-        a destructor. When a union goes out of scope, destructors for its fields are not called.
+        a destructor. When a union goes out of scope, destructors for its fields *are not called*.
         If those calls are desired, they must be inserted explicitly by the programmer:)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
