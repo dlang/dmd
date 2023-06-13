@@ -96,6 +96,7 @@ Lno:
  */
 extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedInterpret needInterpret)
 {
+    //printf("initializerSemantic() init: %s, tx: %s\n", init.toChars(), tx ? tx.toChars() : cast(char*)"");
     Type t = tx;
 
     static Initializer err()
@@ -1020,7 +1021,7 @@ Initializer inferType(Initializer init, Scope* sc)
 
     Initializer visitArray(ArrayInitializer init)
     {
-        //printf("ArrayInitializer::inferType() %s\n", toChars());
+        //printf("ArrayInitializer::inferType() %s\n", init.toChars());
         Expressions* keys = null;
         Expressions* values;
         if (init.isAssociativeArray())
@@ -1187,7 +1188,8 @@ extern (C++) Expression initializerToExpression(Initializer init, Type itype = n
      */
     Expression visitArray(ArrayInitializer init)
     {
-        //printf("ArrayInitializer::toExpression(), dim = %d\n", dim);
+        //printf("ArrayInitializer::toExpression(), dim: %d, itype: %s\n", cast(int)init.dim, itype ? itype.toChars() : cast(char*)"");
+        //printf("init.type: %s\n", init.type ? init.type.toChars() : cast(char*)"");
         //static int i; if (++i == 2) assert(0);
         uint edim;      // the length of the resulting array literal
         const(uint) amax = 0x80000000;
@@ -1304,6 +1306,26 @@ extern (C++) Expression initializerToExpression(Initializer init, Type itype = n
                             e2 = e;
                         e = new ArrayLiteralExp(e.loc, tn, elements2);
                     }
+                }
+            }
+        }
+
+        /* If itype is a wchar array, coerce any char literals to wchar literals.
+         * This is because typeMerge() will try and coerce them to dchars, then they
+         * won't implicitly convert back to wchar[] if one of the wchar's is invalid.
+         * eg:
+         *    wstring ws = ['a', cast(wchar)0xDC00];
+         */
+        if (itype &&
+            (itype.ty == Tarray || itype.ty == Tsarray) &&
+            itype.nextOf.ty == Twchar)
+        {
+            foreach (e; (*elements)[0 .. edim])
+            {
+                if (auto ie = e.isIntegerExp())
+                {
+                    if (ie.type && ie.type.ty == Tchar)
+                        ie.type = itype.nextOf;
                 }
             }
         }

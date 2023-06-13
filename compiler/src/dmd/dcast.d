@@ -62,9 +62,10 @@ enum LOG = false;
  */
 Expression implicitCastTo(Expression e, Scope* sc, Type t)
 {
+    //printf("Expression.implicitCastTo(%s of type %s) => %s\n", e.toChars(), e.type.toChars(), t.toChars());
     Expression visit(Expression e)
     {
-        // printf("Expression.implicitCastTo(%s of type %s) => %s\n", e.toChars(), e.type.toChars(), t.toChars());
+        //printf("implicitCastTo.visit(%s of type %s) => %s\n", e.toChars(), e.type.toChars(), t.toChars());
 
         if (const match = (sc && sc.flags & SCOPE.Cfile) ? e.cimplicitConvTo(t) : e.implicitConvTo(t))
         {
@@ -191,9 +192,17 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
 
     Expression visitSlice(SliceExp e)
     {
+        //printf("visitSlice() %s\n", e.toChars());
+        if (auto se1 = e.e1.isStringExp())
+        {
+            if (!e.lwr && !e.upr)  // if "abc"[]
+                return visitString(se1);
+        }
+
         auto result = visit(e);
 
         if (auto se = result.isSliceExp())
+        {
             if (auto ale = se.e1.isArrayLiteralExp())
             {
                 Type tb = t.toBasetype();
@@ -202,6 +211,7 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
                     : tb.nextOf().arrayOf();
                 se.e1 = ale.implicitCastTo(sc, tx);
             }
+        }
 
         return result;
     }
@@ -233,6 +243,8 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
  */
 MATCH implicitConvTo(Expression e, Type t)
 {
+    //printf("Expression::implicitConvTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
+
     MATCH visit(Expression e)
     {
         version (none)
@@ -750,6 +762,7 @@ MATCH implicitConvTo(Expression e, Type t)
         if ((tb.ty == Tarray || tb.ty == Tsarray) &&
             (typeb.ty == Tarray || typeb.ty == Tsarray))
         {
+            //printf("ArrayLiteralExp::implicitConvTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
             result = MATCH.exact;
             Type typen = typeb.nextOf().toBasetype();
 
@@ -1344,7 +1357,7 @@ MATCH implicitConvTo(Expression e, Type t)
 
     MATCH visitSlice(SliceExp e)
     {
-        //printf("SliceExp::implicitConvTo e = %s, type = %s\n", e.toChars(), e.type.toChars());
+        //printf("SliceExp::implicitConvTo e = %s, type = %s, to = %s\n", e.toChars(), e.type.toChars(), t.toChars());
         auto result = visit(e);
         if (result != MATCH.nomatch)
             return result;
