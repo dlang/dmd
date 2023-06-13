@@ -4374,7 +4374,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
         }
         if (!scd.type)
-            scd.type = new TypeFunction(ParameterList(), Type.tvoid, LINK.d, scd.storage_class);
+            scd.type = new TypeFunction(ParameterList(), Type.tvoid, LINK.d,
+                    /* static constructors are nothrow because the runtime hasn't been yet initialized */
+                    scd.storage_class | STC.nothrow_);
 
         /* If the static ctor appears within a template instantiation,
          * it could get called multiple times by the module constructors

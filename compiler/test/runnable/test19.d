@@ -69,12 +69,12 @@ int x2;
 
 class Foo4
 {
-    static  this() { x1 = 3; printf("Foo4 ctor()\n"); }
-    static ~this() { x1 = 4; printf("Foo4 dtor()\n"); }
+    static  this() { x1 = 3; debug printf("Foo4 ctor()\n"); }
+    static ~this() { x1 = 4; debug printf("Foo4 dtor()\n"); }
 }
 
-static  this() { x2 = 5; printf("ctor()\n"); }
-static ~this() { x2 = 6; printf("dtor()\n"); }
+static  this() { x2 = 5; debug printf("ctor()\n"); }
+static ~this() { x2 = 6; debug printf("dtor()\n"); }
 
 void test4()
 {

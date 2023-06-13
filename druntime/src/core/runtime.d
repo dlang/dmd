@@ -284,7 +284,7 @@ struct Runtime
      *      handler is used to generate TraceInfo.
      */
     extern(C) pragma(mangle, "rt_setTraceHandler") static @property void traceHandler(TraceHandler h,
-                    Throwable.TraceDeallocator d = null);
+                    Throwable.TraceDeallocator d = null) nothrow;
 
     /**
      * Gets the current trace handler.
@@ -399,7 +399,7 @@ struct Runtime
      * }
      * ---------
      */
-    static @property void extendedModuleUnitTester( ExtendedModuleUnitTester h )
+    static @property void extendedModuleUnitTester( ExtendedModuleUnitTester h ) nothrow
     {
         sm_extModuleUnitTester = h;
     }

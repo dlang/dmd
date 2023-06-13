@@ -8,6 +8,6 @@ class Afoo
 {
     static this()
     {
-	printf("Afoo()\n");
+        debug printf("Afoo()\n");
     }
 }

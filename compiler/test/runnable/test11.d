@@ -1123,7 +1123,7 @@ void test58()
     {
         static this()
         {
-            printf ("static constructor\n");
+            debug printf ("static constructor\n");
             x = 10;
         }
 

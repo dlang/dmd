@@ -67,42 +67,49 @@ static foreach (var; allVars)
 }
 
 /// called from the dshell module to initialize environment
-void dshellPrebuiltInit(string testDir, string testName)
+void dshellPrebuiltInit(string testDir, string testName) nothrow
 {
-    foreach (var; requiredEnvVars)
+    try
     {
-        Vars.set(var, requireEnv(var));
-    }
+        foreach (var; requiredEnvVars)
+        {
+            Vars.set(var, requireEnv(var));
+        }
 
-    foreach (var; optionalEnvVars)
-    {
-        Vars.set(var, environment.get(var, ""));
-    }
+        foreach (var; optionalEnvVars)
+        {
+            Vars.set(var, environment.get(var, ""));
+        }
 
-    Vars.set("TEST_DIR", testDir);
-    Vars.set("TEST_NAME", testName);
-    // reference to the resulting test_dir folder, e.g .test_results/runnable
-    Vars.set("RESULTS_TEST_DIR", buildPath(RESULTS_DIR, TEST_DIR));
-    // reference to the resulting files without a suffix, e.g. test_results/runnable/test123import test);
-    Vars.set("OUTPUT_BASE", buildPath(RESULTS_TEST_DIR, TEST_NAME));
-    // reference to the extra files directory
-    Vars.set("EXTRA_FILES", buildPath(TEST_DIR, "extra-files"));
-    // reference to the imports directory
-    Vars.set("IMPORT_FILES", buildPath(TEST_DIR, "imports"));
-    version (Windows)
-    {
-        Vars.set("LIBEXT", ".lib");
-        Vars.set("SOEXT", ".dll");
+        Vars.set("TEST_DIR", testDir);
+        Vars.set("TEST_NAME", testName);
+        // reference to the resulting test_dir folder, e.g .test_results/runnable
+        Vars.set("RESULTS_TEST_DIR", buildPath(RESULTS_DIR, TEST_DIR));
+        // reference to the resulting files without a suffix, e.g. test_results/runnable/test123import test);
+        Vars.set("OUTPUT_BASE", buildPath(RESULTS_TEST_DIR, TEST_NAME));
+        // reference to the extra files directory
+        Vars.set("EXTRA_FILES", buildPath(TEST_DIR, "extra-files"));
+        // reference to the imports directory
+        Vars.set("IMPORT_FILES", buildPath(TEST_DIR, "imports"));
+        version (Windows)
+        {
+            Vars.set("LIBEXT", ".lib");
+            Vars.set("SOEXT", ".dll");
+        }
+        else version (OSX)
+        {
+            Vars.set("LIBEXT", ".a");
+            Vars.set(`SOEXT`, `.dylib`);
+        }
+        else
+        {
+            Vars.set("LIBEXT", ".a");
+            Vars.set("SOEXT", ".so");
+        }
     }
-    else version (OSX)
+    catch(Exception e)
     {
-        Vars.set("LIBEXT", ".a");
-        Vars.set(`SOEXT`, `.dylib`);
-    }
-    else
-    {
-        Vars.set("LIBEXT", ".a");
-        Vars.set("SOEXT", ".so");
+        assert(0, e.msg);
     }
 }
 

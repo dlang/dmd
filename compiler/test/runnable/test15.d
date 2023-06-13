@@ -412,7 +412,7 @@ void test26()
 
 /************************************/
 
-void foo27(ClassInfo ci) { }
+void foo27(ClassInfo ci) nothrow { }
 
 class A27
 {
@@ -434,9 +434,9 @@ void test27()
 
 /************************************/
 
-void foo28(ClassInfo ci)
+void foo28(ClassInfo ci) nothrow
 {
-    printf("%.*s\n", cast(int)ci.name.length, ci.name.ptr);
+    debug printf("%.*s\n", cast(int)ci.name.length, ci.name.ptr);
 
     static int i;
     switch (i++)
@@ -463,7 +463,7 @@ class B28 : A28
         foo28(B28.classinfo );
         (new B28()).bodge_it();
     }
-    void bodge_it() {
+    void bodge_it() nothrow {
         foo28(A28.classinfo );
     }
 }

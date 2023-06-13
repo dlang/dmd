@@ -738,7 +738,7 @@ extern (C++) abstract class Expression : ASTNode
     Loc loc;        // file location
     const EXP op;   // to minimize use of dynamic_cast
 
-    extern (D) this(const ref Loc loc, EXP op) scope
+    extern (D) this(const ref Loc loc, EXP op) scope nothrow
     {
         //printf("Expression::Expression(op = %d) this = %p\n", op, this);
         this.loc = loc;
@@ -2582,7 +2582,7 @@ extern (C++) final class StringExp : Expression
 
     enum char NoPostfix = 0;
 
-    extern (D) this(const ref Loc loc, const(void)[] string) scope
+    extern (D) this(const ref Loc loc, const(void)[] string) scope nothrow
     {
         super(loc, EXP.string_);
         this.string = cast(char*)string.ptr; // note that this.string should be const

@@ -347,13 +347,13 @@ void test12()
     {
         static this()
         {
-            printf ("static constructor\n");
+            debug printf ("static constructor\n");
             x12 += 1;
         }
 
         this()
         {
-            printf ("class constructor\n");
+            debug printf ("class constructor\n");
             x12 += 10;
         }
     }

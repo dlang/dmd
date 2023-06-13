@@ -751,7 +751,12 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 // Check for errors related to 'nothrow'.
                 const blockexit = funcdecl.fbody.blockExit(funcdecl, f.isnothrow);
                 if (f.isnothrow && blockexit & BE.throw_)
-                    error(funcdecl.loc, "%s `%s` may throw but is marked as `nothrow`", funcdecl.kind(), funcdecl.toPrettyChars());
+                {
+                    if (funcdecl.isStaticCtorDeclaration())
+                        error(funcdecl.loc, "A module constructor may not throw as the runtime has not been yet initialized");
+                    else
+                        error(funcdecl.loc, "%s `%s` may throw but is marked as `nothrow`", funcdecl.kind(), funcdecl.toPrettyChars());
+                }
 
                 if (!(blockexit & (BE.throw_ | BE.halt) || funcdecl.hasCatches))
                 {
@@ -1182,7 +1187,12 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             {
                                 funcdecl.hasNoEH = false;
                                 if (isnothrow)
-                                    error(funcdecl.loc, "%s `%s` may throw but is marked as `nothrow`", funcdecl.kind(), funcdecl.toPrettyChars());
+                                {
+                                    if (funcdecl.isStaticCtorDeclaration())
+                                        error(funcdecl.loc, "A module constructor may not throw as the runtime has not been yet initialized");
+                                    else
+                                        error(funcdecl.loc, "%s `%s` may throw but is marked as `nothrow`", funcdecl.kind(), funcdecl.toPrettyChars());
+                                }
                                 else if (funcdecl.nothrowInprocess)
                                     f.isnothrow = false;
                             }
