@@ -1386,15 +1386,6 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
             {
                 if (fd.errors)
                     return ErrorExp.get();
-                if (!checkSymbolAccess(sc, fd))
-                {
-                    // @@@DEPRECATED_2.105@@@
-                    // When turning into error, uncomment the return statement
-                    TypeFunction tf = fd.type.isTypeFunction();
-                    deprecation(loc, "function `%s` of type `%s` is not accessible from module `%s`",
-                                fd.toPrettyChars(), tf.toChars, sc._module.toChars);
-                    //return ErrorExp.get();
-                }
                 assert(fd.type.ty == Tfunction);
                 Expression e = new CallExp(loc, e1, e2);
                 return e.expressionSemantic(sc);
@@ -1409,14 +1400,6 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
                 TypeFunction tf = fd.type.isTypeFunction();
                 if (!e2 || tf.isref)
                 {
-                    if (!checkSymbolAccess(sc, fd))
-                    {
-                        // @@@DEPRECATED_2.105@@@
-                        // When turning into error, uncomment the return statement
-                        deprecation(loc, "function `%s` of type `%s` is not accessible from module `%s`",
-                                    fd.toPrettyChars(), tf.toChars, sc._module.toChars);
-                        //return ErrorExp.get();
-                    }
                     Expression e = new CallExp(loc, e1);
                     if (e2)
                     {
@@ -5024,7 +5007,23 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             if (!exp.ignoreAttributes)
                 checkFunctionAttributes(exp, sc, exp.f);
-            checkAccess(exp.loc, sc, ue.e1, exp.f);
+
+            // Cut-down version of checkAccess() that doesn't use the "most visible" version of exp.f.
+            // We've already selected an overload here.
+            const parent = exp.f.toParent();
+            if (parent && parent.isTemplateInstance())
+            {
+                // already a deprecation
+            }
+            else if (!checkSymbolAccess(sc, exp.f))
+            {
+                // @@@DEPRECATED_2.105@@@
+                // When turning into error, uncomment the return statement
+                exp.deprecation("%s `%s` of type `%s` is not accessible from module `%s`",
+                    exp.f.kind(), exp.f.toPrettyChars(), exp.f.type.toChars(), sc._module.toChars);
+                //return ErrorExp.get();
+            }
+
             if (!exp.f.needThis())
             {
                 exp.e1 = Expression.combine(ue.e1, new VarExp(exp.loc, exp.f, false));
