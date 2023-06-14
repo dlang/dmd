@@ -1405,6 +1405,15 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     break;
                 }
             default:
+                Token* tk;
+                if (skipAttributes(&token, &tk) && tk.ptr != token.ptr ||
+                    token.value == TOK.static_ || token.value == TOK.extern_)
+                {
+                    error("`%s` token is not allowed in postfix position",
+                        Token.toChars(token.value));
+                    nextToken();
+                    continue;
+                }
                 return storageClass;
             }
             storageClass = appendStorageClass(storageClass, stc);
