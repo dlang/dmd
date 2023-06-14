@@ -18,6 +18,7 @@ import dmd.aliasthis;
 import dmd.arrayop;
 import dmd.arraytypes;
 import dmd.astenums;
+import dmd.constfold;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dscope;
@@ -65,9 +66,10 @@ enum LOG = false;
  */
 Expression implicitCastTo(Expression e, Scope* sc, Type t)
 {
+    //printf("Expression.implicitCastTo(%s of type %s) => %s\n", e.toChars(), e.type.toChars(), t.toChars());
     Expression visit(Expression e)
     {
-        // printf("Expression.implicitCastTo(%s of type %s) => %s\n", e.toChars(), e.type.toChars(), t.toChars());
+        //printf("Expression.implicitCastTo(%s of type %s) => %s\n", e.toChars(), e.type.toChars(), t.toChars());
 
         if (const match = (sc && sc.flags & SCOPE.Cfile) ? e.cimplicitConvTo(t) : e.implicitConvTo(t))
         {
@@ -236,6 +238,8 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
  */
 MATCH implicitConvTo(Expression e, Type t)
 {
+    //printf("Expression::implicitConvTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
+
     MATCH visit(Expression e)
     {
         version (none)
@@ -1780,6 +1784,32 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
         return e;
     }
 
+    Expression visitInteger(IntegerExp e)
+    {
+        Type tob = t.toBasetype();
+        Type t1b = e.type.toBasetype();
+        if (tob.equals(t1b))
+        {
+            auto result = e.copy(); // because of COW for assignment to e.type
+            result.type = t;
+            return result;
+        }
+
+        if (!e.type.equals(t))
+        {
+            if (t.isintegral() || t.isfloating())
+            {
+                UnionExp ue = Cast(e.loc, t, t, e);
+                auto result = ue.exp().copy();
+                assert(result.op != EXP.cantExpression);
+                return result;
+            }
+            else
+                return visit(e);
+        }
+        return e;
+    }
+
     Expression visitReal(RealExp e)
     {
         if (!e.type.equals(t))
@@ -2625,6 +2655,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
     {
         default                   : return visit(e);
         case EXP.error            : return visitError(e.isErrorExp());
+        case EXP.int64            : return visitInteger(e.isIntegerExp());
         case EXP.float64          : return visitReal(e.isRealExp());
         case EXP.complex80        : return visitComplex(e.isComplexExp());
         case EXP.structLiteral    : return visitStructLiteral(e.isStructLiteralExp());
