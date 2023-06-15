@@ -5184,7 +5184,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         case TOK.leftCurly:
             if (requireDo)
                 error("missing `do { ... }` after `in` or `out`");
-            f.fbody = parseStatement(0);
+            f.fbody = parseStatement(ParseStatementFlags.semi);
             f.endloc = endloc;
             break;
 
@@ -6024,7 +6024,7 @@ LagainStc:
                 auto statements = new AST.Statements();
                 while (token.value != TOK.rightCurly && token.value != TOK.endOfFile)
                 {
-                    statements.push(parseStatement(ParseStatementFlags.curlyScope));
+                    statements.push(parseStatement(ParseStatementFlags.semi | ParseStatementFlags.curlyScope));
                 }
                 if (endPtr)
                     *endPtr = token.ptr;
@@ -6057,7 +6057,10 @@ LagainStc:
         case TOK.semicolon:
             if (!(flags & ParseStatementFlags.semiOk))
             {
-                error("use `{ }` for an empty statement, not `;`");
+                if (flags & ParseStatementFlags.semi)
+                    deprecation("use `{ }` for an empty statement, not `;`");
+                else
+                    error("use `{ }` for an empty statement, not `;`");
             }
             nextToken();
             s = new AST.ExpStatement(loc, cast(AST.Expression)null);
@@ -6274,7 +6277,7 @@ LagainStc:
                     _body = null;
                 }
                 else
-                    _body = parseStatement(0);
+                    _body = parseStatement(ParseStatementFlags.semi);
                 s = new AST.PragmaStatement(loc, ident, args, _body);
                 break;
             }
@@ -6327,7 +6330,7 @@ LagainStc:
                     auto statements = new AST.Statements();
                     while (token.value != TOK.case_ && token.value != TOK.default_ && token.value != TOK.endOfFile && token.value != TOK.rightCurly)
                     {
-                        auto cur = parseStatement(ParseStatementFlags.curlyScope);
+                        auto cur = parseStatement(ParseStatementFlags.semi | ParseStatementFlags.curlyScope);
                         statements.push(cur);
 
                         // https://issues.dlang.org/show_bug.cgi?id=21739
@@ -6342,7 +6345,7 @@ LagainStc:
                 }
                 else
                 {
-                    s = parseStatement(0);
+                    s = parseStatement(ParseStatementFlags.semi);
                 }
                 s = new AST.ScopeStatement(loc, s, token.loc);
 
@@ -6371,12 +6374,12 @@ LagainStc:
                     auto statements = new AST.Statements();
                     while (token.value != TOK.case_ && token.value != TOK.default_ && token.value != TOK.endOfFile && token.value != TOK.rightCurly)
                     {
-                        statements.push(parseStatement(ParseStatementFlags.curlyScope));
+                        statements.push(parseStatement(ParseStatementFlags.semi | ParseStatementFlags.curlyScope));
                     }
                     s = new AST.CompoundStatement(loc, statements);
                 }
                 else
-                    s = parseStatement(0);
+                    s = parseStatement(ParseStatementFlags.semi);
                 s = new AST.ScopeStatement(loc, s, token.loc);
                 s = new AST.DefaultStatement(loc, s);
                 break;
@@ -9687,6 +9690,7 @@ immutable PREC[EXP.max + 1] precedence =
 
 enum ParseStatementFlags : int
 {
+    semi          = 1,        // empty ';' statements are allowed, but deprecated
     scope_        = 2,        // start a new scope
     curly         = 4,        // { } statement is required
     curlyScope    = 8,        // { } starts a new scope
