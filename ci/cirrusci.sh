@@ -16,10 +16,10 @@ if [ -z ${HOST_DMD+x} ] ; then echo "Variable 'HOST_DMD' needs to be set."; exit
 
 if [ "$OS_NAME" == "linux" ]; then
   export DEBIAN_FRONTEND=noninteractive
-  packages="git-core make g++ gdb gnupg curl libcurl4 tzdata zip unzip xz-utils llvm"
+  packages="git-core make g++ gdb gnupg curl libcurl4 tzdata zip unzip xz-utils llvm valgrind libc6-dbg"
   if [ "$MODEL" == "32" ]; then
     dpkg --add-architecture i386
-    packages="$packages g++-multilib libcurl4:i386"
+    packages="$packages g++-multilib libcurl4:i386 libc6-dbg:i386"
   fi
   if [ "${HOST_DMD:0:4}" == "gdmd" ]; then
     # ci/run.sh uses `sudo add-apt-repository ...` to add a PPA repo

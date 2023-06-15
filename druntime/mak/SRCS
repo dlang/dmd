@@ -581,4 +581,5 @@ SRCS=\
 	src\rt\util\typeinfo.d \
 	src\rt\util\utility.d \
 	\
+	src\etc\valgrind\valgrind.d \
 	src\etc\linux\memoryerror.d
