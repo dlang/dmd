@@ -118,7 +118,7 @@ extern (C++) /* CT */ BE canThrow(Expression e, FuncDeclaration func, bool mustN
                     {
                         auto sd = ts.sym;
                         const id = ce.f.ident;
-                        if (sd.postblit && isArrayConstructionOrAssign(id))
+                        if (sd.postblit && isArrayConstruction(id))
                         {
                             checkFuncThrows(ce, sd.postblit);
                             return;

@@ -416,9 +416,11 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                      *      op(e1.aliasthis)
                      */
                     //printf("att una %s e1 = %s\n", EXPtoString(op).ptr, this.e1.type.toChars());
-                    e.e1 = resolveAliasThis(sc, e.e1, true);
-                    if (e.e1)
+                    if (auto e1 = resolveAliasThis(sc, e.e1, true))
+                    {
+                        e.e1 = e1;
                         continue;
+                    }
                     break;
                 }
                 break;
