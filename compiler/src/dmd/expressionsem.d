@@ -10362,6 +10362,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (global.params.verbose)
             message("lowered   %s =>\n          %s", ae.toChars(), res.toChars());
 
+        res = new LoweredAssignExp(ae, res);
+        res.type = ae.type;
+
         return res;
     }
 
