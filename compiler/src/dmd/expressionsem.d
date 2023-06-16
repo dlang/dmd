@@ -5017,11 +5017,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             else if (!checkSymbolAccess(sc, exp.f))
             {
-                // @@@DEPRECATED_2.105@@@
-                // When turning into error, uncomment the return statement
-                exp.deprecation("%s `%s` of type `%s` is not accessible from module `%s`",
+                exp.error("%s `%s` of type `%s` is not accessible from module `%s`",
                     exp.f.kind(), exp.f.toPrettyChars(), exp.f.type.toChars(), sc._module.toChars);
-                //return ErrorExp.get();
+                return setError();
             }
 
             if (!exp.f.needThis())

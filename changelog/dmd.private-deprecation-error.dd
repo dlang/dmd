@@ -1,0 +1,18 @@
+Deprecation phase ended for access to private method when overloaded with public method.
+
+When a private method was overloaded with a public method that came after it,
+you could access the private overload as if it was public.
+
+After a deprecation period starting with 2.094, this code is now an error.
+
+Example:
+
+```
+struct Foo
+{
+    private void test(int) { }
+    public void test(string) { }
+}
+...
+Foo().test(3);
+```
