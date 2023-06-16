@@ -2381,7 +2381,7 @@ unittest
 
 unittest
 {
-    // bugzilla 13854
+    // https://issues.dlang.org/show_bug.cgi?id=13854
     auto arr = new ubyte[PAGESIZE]; // ensure page size
     auto info1 = GC.query(arr.ptr);
     assert(info1.base !is arr.ptr); // offset is required for page size or larger
@@ -2424,7 +2424,7 @@ unittest
 
 unittest
 {
-    // bugzilla 13878
+    // https://issues.dlang.org/show_bug.cgi?id=13878
     auto arr = new ubyte[1];
     auto info = GC.query(arr.ptr);
     assert(info.attr & BlkAttr.NO_SCAN); // should be NO_SCAN

@@ -4512,7 +4512,7 @@ extern (C++) abstract class BinExp : Expression
         Type t2 = e2.type;
 
         // T opAssign floating yields a floating. Prevent truncating conversions (float to int).
-        // See issue 3841.
+        // See https://issues.dlang.org/show_bug.cgi?id=3841.
         // Should we also prevent double to float (type.isfloating() && type.size() < t2.size()) ?
         if (op == EXP.addAssign || op == EXP.minAssign ||
             op == EXP.mulAssign || op == EXP.divAssign || op == EXP.modAssign ||

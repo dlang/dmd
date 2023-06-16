@@ -289,8 +289,9 @@ if ((is(LHS : const Object) || is(LHS : const shared Object)) &&
         // If same exact type => one call to method opEquals
         if (typeid(lhs) is typeid(rhs) ||
             !__ctfe && typeid(lhs).opEquals(typeid(rhs)))
-                /* CTFE doesn't like typeid much. 'is' works, but opEquals doesn't
-                (issue 7147). But CTFE also guarantees that equal TypeInfos are
+                /* CTFE doesn't like typeid much. 'is' works, but opEquals doesn't:
+                https://issues.dlang.org/show_bug.cgi?id=7147
+                But CTFE also guarantees that equal TypeInfos are
                 always identical. So, no opEquals needed during CTFE. */
         {
             return true;
@@ -983,7 +984,7 @@ class TypeInfo_Enum : TypeInfo
 }
 
 
-@safe unittest // issue 12233
+@safe unittest // https://issues.dlang.org/show_bug.cgi?id=12233
 {
     static assert(is(typeof(TypeInfo.init) == TypeInfo));
     assert(TypeInfo.init is null);

@@ -291,7 +291,7 @@ void except_fillInEHTable(Symbol *s)
                                 cf = code_next(cf);
                                 foffset += calccodsize(cf);
                             }
-                            // issue 9438
+                            // https://issues.dlang.org/show_bug.cgi?id=9438
                             //cf = code_next(cf);
                             //foffset += calccodsize(cf);
                             if (config.ehmethod == EHmethod.EH_DM)

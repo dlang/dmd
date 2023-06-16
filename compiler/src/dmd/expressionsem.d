@@ -3387,7 +3387,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (ve && ve.var && exp.parens && !ve.var.isStatic() && !(sc.stc & STC.static_) &&
                 sc.func && sc.func.needThis && ve.var.isMember2())
             {
-                // printf("apply fix for issue 9490: add `this.` to `%s`...\n", e.toChars());
+                // printf("apply fix for bugzilla issue 9490: add `this.` to `%s`...\n", e.toChars());
                 e = new DotVarExp(exp.loc, new ThisExp(exp.loc), ve.var, false);
             }
             //printf("e = %s %s\n", Token.toChars(e.op), e.toChars());

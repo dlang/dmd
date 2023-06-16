@@ -3334,7 +3334,7 @@ elem* toElem(Expression e, IRState *irs)
             {
                 // This optimization is not valid if alloca can be called
                 // multiple times within the same function, eg in a loop
-                // see issue 3822
+                // see https://issues.dlang.org/show_bug.cgi?id=3822
                 if (fd && fd.ident == Id.__alloca &&
                     !fd.fbody && fd._linkage == LINK.c &&
                     arguments && arguments.length == 1)

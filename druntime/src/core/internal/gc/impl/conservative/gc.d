@@ -93,7 +93,7 @@ private
         int rt_hasFinalizerInSegment(void* p, size_t size, uint attr, const scope void[] segment) nothrow;
 
         // Declared as an extern instead of importing core.exception
-        // to avoid inlining - see issue 13725.
+        // to avoid inlining - see https://issues.dlang.org/show_bug.cgi?id=13725.
         void onInvalidMemoryOperationError(void* pretend_sideffect = null) @trusted pure nothrow @nogc;
         void onOutOfMemoryErrorNoGC() @trusted nothrow @nogc;
 
@@ -4453,7 +4453,7 @@ struct SmallObjectPool
 }
 
 debug(SENTINEL) {} else // no additional capacity with SENTINEL
-unittest // bugzilla 14467
+unittest // https://issues.dlang.org/show_bug.cgi?id=14467
 {
     int[] arr = new int[10];
     assert(arr.capacity);
@@ -4461,7 +4461,7 @@ unittest // bugzilla 14467
     assert(arr.capacity);
 }
 
-unittest // bugzilla 15353
+unittest // https://issues.dlang.org/show_bug.cgi?id=15353
 {
     import core.memory : GC;
 
@@ -4478,7 +4478,7 @@ unittest // bugzilla 15353
     GC.collect();
 }
 
-unittest // bugzilla 15822
+unittest // https://issues.dlang.org/show_bug.cgi?id=15822
 {
     import core.memory : GC;
 
@@ -4499,7 +4499,7 @@ unittest // bugzilla 15822
     GC.collect();
 }
 
-unittest // bugzilla 1180
+unittest // https://issues.dlang.org/show_bug.cgi?id=1180
 {
     import core.exception;
     try
