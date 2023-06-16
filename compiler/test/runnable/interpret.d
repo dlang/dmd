@@ -4,7 +4,6 @@ TEST_OUTPUT:
 true
 g
 &Test109S(&Test109S(<recursion>))
-runnable/interpret.d(3742): Deprecation: alias this for classes/interfaces is deprecated
 tfoo
 tfoo
 Crash!
