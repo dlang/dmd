@@ -572,7 +572,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             // Require declarations, except when it's just a reference (as done for pointers)
             // or when the variable is defined externally
-            if (!ts.sym.members && !(dsym.storage_class & (STC.ref_ | STC.extern_)))
+            if (!ts.sym.members && !dsym.isReference() && (dsym.storage_class & STC.extern_))
             {
                 dsym.error("- no definition of struct `%s`", ts.toChars());
 
