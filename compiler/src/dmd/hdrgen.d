@@ -927,7 +927,7 @@ public:
         }
         if (d.decl.length == 0 || (hgs.hdrgen && d.decl.length == 1 && (*d.decl)[0].isUnitTestDeclaration()))
         {
-            // hack for bugzilla 8081
+            // hack for https://issues.dlang.org/show_bug.cgi?id=8081
             if (hasSTC) buf.writeByte(' ');
             buf.writestring("{}");
         }

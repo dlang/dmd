@@ -590,7 +590,8 @@ ClassInfo getClassInfo(_Unwind_Exception* exceptionObject, const(ubyte)* current
     for (ExceptionHeader* ehn = eh.next; ehn; ehn = ehn.next)
     {
         // like __dmd_personality_v0, don't combine when the exceptions are from different functions
-        // (fixes issue 19831, exception thrown and caught while inside finally block)
+        // Fixes "exception thrown and caught while inside finally block"
+        // https://issues.dlang.org/show_bug.cgi?id=19831
         if (currentLsd != ehn.languageSpecificData)
         {
             debug (EH_personality) writeln("break: %p %p", currentLsd, ehn.languageSpecificData);

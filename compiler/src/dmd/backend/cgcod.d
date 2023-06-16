@@ -2883,7 +2883,7 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
 
     assert((mfuncreg & (regcon.cse.mval & ~oldregcon)) == 0);
 
-    /* bugzilla 3521
+    /* https://issues.dlang.org/show_bug.cgi?id=3521
      * The problem is:
      *    reg op (reg = exp)
      * where reg must be preserved (in keepregs) while the expression to be evaluated

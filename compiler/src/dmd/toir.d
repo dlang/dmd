@@ -845,7 +845,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
             v.inClosure = true;
 
             // Hack for the case fail_compilation/fail10666.d,
-            // until proper issue 5730 fix will come.
+            // until proper https://issues.dlang.org/show_bug.cgi?id=5730 fix will come.
             bool isScopeDtorParam = v.edtor && (v.storage_class & STC.parameter);
             if (v.needsScopeDtor() || isScopeDtorParam)
             {

@@ -2054,7 +2054,7 @@ extern (C++) abstract class Type : ASTNode
                 return Type.terror;
 
             auto t = fd.type.nextOf();
-            if (!t) // issue 14185
+            if (!t) // https://issues.dlang.org/show_bug.cgi?id=14185
                 return Type.terror;
             t = t.substWildTo(mod == 0 ? MODFlags.mutable : mod);
             return t;
@@ -5105,7 +5105,7 @@ extern (C++) final class TypeDelegate : TypeNext
  * This is a shell containing a TraitsExp that can be
  * either resolved to a type or to a symbol.
  *
- * The point is to allow AliasDeclarationY to use `__traits()`, see issue 7804.
+ * The point is to allow AliasDeclarationY to use `__traits()`, see https://issues.dlang.org/show_bug.cgi?id=7804.
  */
 extern (C++) final class TypeTraits : Type
 {
@@ -7271,7 +7271,7 @@ private extern(D) bool isCopyConstructorCallable (StructDeclaration argStruct,
             {
                 /* Although a copy constructor may exist, no suitable match was found.
                  * i.e: `inout` constructor creates `const` object, not mutable.
-                 * Fallback to using the original generic error before bugzilla 22202.
+                 * Fallback to using the original generic error before https://issues.dlang.org/show_bug.cgi?id=22202.
                  */
                 goto Lnocpctor;
             }
