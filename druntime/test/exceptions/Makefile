@@ -5,7 +5,7 @@ TESTS=stderr_msg unittest_assert invalid_memory_operation unknown_gc static_dtor
       message_with_null
 
 ifeq ($(OS)-$(BUILD),linux-debug)
-    TESTS+=line_trace line_trace_21656 long_backtrace_trunc rt_trap_exceptions cpp_demangle
+    TESTS+=line_trace line_trace_21656 long_backtrace_trunc rt_trap_exceptions cpp_demangle memoryerror_null memoryerror_stackoverflow
     LINE_TRACE_DFLAGS:=-L--export-dynamic
 endif
 ifeq ($(OS),linux)
@@ -89,6 +89,9 @@ $(ROOT)/assert_fail.done: STDERR_EXP="success."
 $(ROOT)/cpp_demangle.done: STDERR_EXP="thrower(int)"
 
 $(ROOT)/message_with_null.done: STDERR_EXP=" world"
+
+$(ROOT)/memoryerror_null.done: STDERR_EXP="segmentation fault: null pointer read/write operation"
+$(ROOT)/memoryerror_stackoverflow.done: STDERR_EXP="segmentation fault: call stack overflow"
 
 $(ROOT)/%.done: $(ROOT)/%$(DOTEXE)
 	@echo Testing $*
