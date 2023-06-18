@@ -481,7 +481,7 @@ bool checkParamArgumentReturn(Scope* sc, Expression firstArg, Expression arg, Pa
     const byRef = param.isReference() && !(param.storageClass & STC.scope_)
         && !(param.storageClass & STC.returnScope); // fixme: it's possible to infer returnScope without scope with vaIsFirstRef
 
-    scope e = new AssignExp(arg.loc, firstArg, arg);
+    auto e = new AssignExp(arg.loc, firstArg, arg);
     return checkAssignEscape(sc, e, gag, byRef);
 }
 
