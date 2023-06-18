@@ -1770,8 +1770,8 @@ void main()
 
 $(H2 $(LEGACY_LNAME2 StructDestructor, struct-destructor, Struct Destructors))
 
-        $(P Destructors are called when an object goes out of scope, or
-        $(RELATIVE_LINK2 assign-overload, before an assignment).
+        $(P Destructors are called implicitly when an object goes out of scope, or
+        $(RELATIVE_LINK2 assign-overload, before an assignment) (by default).
         Their purpose is to free up resources owned by the struct
         object.
         )
@@ -1801,8 +1801,43 @@ void main()
 }
 ---
 )
-        $(P The destructor can also be called early using $(REF1 destroy, object)
-        or by assigning the struct's `init` property.)
+        $(P If the struct has a field of another struct type which itself has a destructor,
+        that destructor will be called at the end of the parent destructor. If there is no
+        parent destructor, the compiler will generate one. Similarly, a
+        static array of a struct type with a destructor will have the destructor
+        called for each element when the array goes out of scope.)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+struct S
+{
+    char c;
+
+    ~this()
+    {
+        import std.stdio;
+        writeln("S(", c, ") is being destructed");
+    }
+}
+
+struct Q
+{
+    S a;
+    S b;
+}
+
+void main()
+{
+    Q q = Q(S('a'), S('b'));
+    S[2] arr = [S('0'), S('1')];
+    // destructor called for arr[1], arr[0], q.b, q.a
+}
+---
+)
+
+        $(P A destructor for a struct instance can also be called early using
+        $(REF1 destroy, object). Note that the destructor will still
+        be called again when the instance goes out of scope.)
 
         $(P Struct destructors are used for $(DDSUBLINK spec/glossary, raii, RAII).)
 
@@ -1813,7 +1848,7 @@ $(H2 $(LNAME2 union-field-destruction, Union Field Destruction))
         a destructor. When a union goes out of scope, destructors for its fields *are not called*.
         If those calls are desired, they must be inserted explicitly by the programmer:)
 
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
 struct S
 {
