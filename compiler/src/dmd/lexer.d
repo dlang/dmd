@@ -1964,7 +1964,7 @@ class Lexer
     /***************************************
      * Get postfix of string literal.
      */
-    private void stringPostfix(Token* t) pure @nogc
+    private void stringPostfix(Token* t)
     {
         switch (*p)
         {
@@ -1973,6 +1973,13 @@ class Lexer
         case 'd':
             t.postfix = *p;
             p++;
+            // disallow e.g. `@r"_"dtype var;`
+            if (isidchar(*p) || *p & 0x80)
+            {
+                const loc = loc();
+                error(loc, "alphanumeric character cannot follow string literal `%c` postfix without whitespace",
+                    p[-1]);
+            }
             break;
         default:
             t.postfix = 0;
@@ -1994,6 +2001,16 @@ class Lexer
     {
         int base = 10;
         const start = p;
+        scope (exit)
+        {
+            // disallow e.g. `@10Utype var;`
+            if (p > start && (isalpha(p[-1]) || p[-1] & 0x80) && (isidchar(*p) || *p & 0x80))
+            {
+                const loc = loc();
+                error(loc, "alphanumeric character cannot follow numeric literal `%s` without whitespace",
+                    start[0..p-start].xarraydup().ptr);
+            }
+        }
         ulong n = 0; // unsigned >=64 bit integer type
         int d;
         bool err = false;
