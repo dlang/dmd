@@ -489,6 +489,15 @@ private Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
 
     if (auto dti = ue.isDotTemplateInstanceExp())
     {
+        // https://issues.dlang.org/show_bug.cgi?id=23968
+        // Typically, deprecated alias declarations are caught
+        // when `TemplateInstance.findTempDecl` is called,
+        // however, in this case the tempdecl field is updated
+        // therefore `findTempDecl` will return immediately
+        // and not get the chance to issue the deprecation.
+        if (s.isAliasDeclaration())
+            s.checkDeprecated(ue.loc, sc);
+
         auto ti = new TemplateInstance(loc, s.ident, dti.ti.tiargs);
         if (!ti.updateTempDecl(sc, s))
             return ErrorExp.get();
