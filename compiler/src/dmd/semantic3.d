@@ -1367,6 +1367,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
             if (isCppNonMappableType(f.next.toBasetype()))
             {
                 funcdecl.error("cannot return type `%s` because its linkage is `extern(C++)`", f.next.toChars());
+                if (f.next.isTypeDArray())
+                    errorSupplemental(funcdecl.loc, "slices are specific to D and do not have a counterpart representation in C++", f.next.toChars());
                 funcdecl.errors = true;
             }
             foreach (i, param; f.parameterList)
