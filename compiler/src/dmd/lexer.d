@@ -1974,7 +1974,7 @@ class Lexer
             t.postfix = *p;
             p++;
             // disallow e.g. `@r"_"dtype var;`
-            if (isidchar(*p) || *p & 0x80)
+            if (!Ccompile && (isidchar(*p) || *p & 0x80))
             {
                 const loc = loc();
                 error(loc, "alphanumeric character cannot follow string literal `%c` postfix without whitespace",
@@ -2004,7 +2004,9 @@ class Lexer
         scope (exit)
         {
             // disallow e.g. `@10Utype var;`
-            if (p > start && (isalpha(p[-1]) || p[-1] & 0x80) && (isidchar(*p) || *p & 0x80))
+            if (!Ccompile && p > start &&
+                (isalpha(p[-1]) || p[-1] & 0x80) &&
+                (isidchar(*p) || *p & 0x80))
             {
                 const loc = loc();
                 error(loc, "alphanumeric character cannot follow numeric literal `%s` without whitespace",
