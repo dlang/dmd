@@ -54,6 +54,8 @@ nothrow:
     _version      = Compiler version
     exefmt        = Executable file format
     generatedMain = a main entrypoint is generated
+    dataimports   = do not place data symbols into read-only segment,
+                    it might be necessary to resolve relocations at runtime
  */
 public
 @trusted
