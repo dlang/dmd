@@ -501,7 +501,7 @@ private __gshared StringTable!(Symbol*) *stringTab;
  */
 bool isDllImported(Dsymbol var)
 {
-    if (target.os & Target.OS.Posix)
+    if (!(target.os & Target.OS.Windows))
         return false;
     if (var.isImportedSymbol())
         return true;
