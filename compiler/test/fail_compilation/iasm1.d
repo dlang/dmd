@@ -116,7 +116,7 @@ void test5()
 
 /* TEST_OUTPUT:
 ---
-fail_compilation/iasm1.d(615): Error: delegate `iasm1.test6.__foreachbody1` label `L1` is undefined
+fail_compilation/iasm1.d(615): Error: delegate `iasm1.test6.__foreachbody_L611_C5` label `L1` is undefined
 ---
 */
 

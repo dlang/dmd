@@ -4,7 +4,7 @@ TEST_OUTPUT:
 fail_compilation/misc1.d(108): Error: `5` has no effect
 fail_compilation/misc1.d(109): Error: `1 + 2` has no effect
 fail_compilation/misc1.d(115): Deprecation: `1 * 1` has no effect
-fail_compilation/misc1.d(116): Deprecation: `__lambda3` has no effect
+fail_compilation/misc1.d(116): Deprecation: `__lambda_L116_C34` has no effect
 fail_compilation/misc1.d(122): Deprecation: `false` has no effect
 fail_compilation/misc1.d(125): Deprecation: `*sp++` has no effect
 fail_compilation/misc1.d(126): Deprecation: `j` has no effect
