@@ -1974,10 +1974,10 @@ class Lexer
             t.postfix = *p;
             p++;
             // disallow e.g. `@r"_"dtype var;`
-            if (!Ccompile && (isidchar(*p) || *p & 0x80))
+            if (!Ccompile && (isalpha(*p) || *p & 0x80))
             {
                 const loc = loc();
-                error(loc, "alphanumeric character cannot follow string literal `%c` postfix without whitespace",
+                error(loc, "identifier character cannot follow string `%c` postfix without whitespace",
                     p[-1]);
             }
             break;
@@ -2001,18 +2001,6 @@ class Lexer
     {
         int base = 10;
         const start = p;
-        scope (exit)
-        {
-            // disallow e.g. `@10Utype var;`
-            if (!Ccompile && p > start &&
-                (isalpha(p[-1]) || p[-1] & 0x80) &&
-                (isidchar(*p) || *p & 0x80))
-            {
-                const loc = loc();
-                error(loc, "alphanumeric character cannot follow numeric literal `%s` without whitespace",
-                    start[0..p-start].xarraydup().ptr);
-            }
-        }
         ulong n = 0; // unsigned >=64 bit integer type
         int d;
         bool err = false;
@@ -2206,6 +2194,7 @@ class Lexer
         FLAGS flags = (base == 10) ? FLAGS.decimal : FLAGS.none;
         // Parse trailing 'u', 'U', 'l' or 'L' in any combination
         const psuffix = p;
+LIntegerSuffix:
         while (1)
         {
             FLAGS f;
@@ -2214,26 +2203,31 @@ class Lexer
             case 'U':
             case 'u':
                 f = FLAGS.unsigned;
-                goto L1;
+                break;
             case 'l':
-                f = FLAGS.long_;
                 error("lower case integer suffix 'l' is not allowed. Please use 'L' instead");
-                goto L1;
+                goto case;
             case 'L':
                 f = FLAGS.long_;
-            L1:
-                p++;
-                if ((flags & f) && !err)
-                {
-                    error("repeated integer suffix `%c`", p[-1]);
-                    err = true;
-                }
-                flags = cast(FLAGS)(flags | f);
-                continue;
-            default:
                 break;
+            default:
+                // disallow e.g. `Foo!5Luvar;`
+                if (!Ccompile && flags >= FLAGS.unsigned && (isalpha(*p) || *p & 0x80))
+                {
+                    const loc = loc();
+                    error(loc, "identifier character cannot follow integer `%c` suffix without whitespace",
+                        p[-1]);
+                }
+                break LIntegerSuffix;
             }
-            break;
+            p++;
+            if ((flags & f) && !err)
+            {
+                error("repeated integer suffix `%c`", p[-1]);
+                err = true;
+            }
+            flags = cast(FLAGS)(flags | f);
+            continue;
         }
         if (base == 8 && n >= 8)
         {
@@ -2610,6 +2604,7 @@ class Lexer
             imaginary = true;
         }
 
+        bool gotSuffix = false;
         switch (*p)
         {
         case 'F':
@@ -2623,7 +2618,7 @@ class Lexer
             if (isWellformedString && !isOutOfRange)
                 isOutOfRange = Port.isFloat64LiteralOutOfRange(sbufptr);
             result = TOK.float64Literal;
-            break;
+            goto LcheckI;
         case 'l':
             if (!Ccompile)
                 error("use 'L' suffix instead of 'l'");
@@ -2635,13 +2630,22 @@ class Lexer
             result = TOK.float80Literal;
             break;
         }
-
+        gotSuffix = true;
+LcheckI:
         if ((*p == 'i' || *p == 'I') && !Ccompile)
         {
             if (*p == 'I')
                 error("use 'i' suffix instead of 'I'");
             p++;
             imaginary = true;
+            gotSuffix = true;
+        }
+        // disallow e.g. `Foo!5fvar;`
+        if (!Ccompile && gotSuffix && (isalpha(*p) || *p & 0x80))
+        {
+            const loc = loc();
+            error(loc, "identifier character cannot follow float `%c` suffix without whitespace",
+                p[-1]);
         }
 
         if (imaginary)

@@ -2,10 +2,10 @@
 REQUIRED_ARGS: -vcolumns
 TEST_OUTPUT:
 ---
-fail_compilation/templatesingleparam.d(17,14): Error: alphanumeric character cannot follow string literal `c` postfix without whitespace
-fail_compilation/templatesingleparam.d(18,10): Error: alphanumeric character cannot follow numeric literal `2LU` without whitespace
-fail_compilation/templatesingleparam.d(22,6): Error: alphanumeric character cannot follow string literal `d` postfix without whitespace
-fail_compilation/templatesingleparam.d(23,8): Error: alphanumeric character cannot follow numeric literal `0xFeed` without whitespace
+fail_compilation/templatesingleparam.d(17,14): Error: identifier character cannot follow string `c` postfix without whitespace
+fail_compilation/templatesingleparam.d(18,10): Error: identifier character cannot follow integer `U` suffix without whitespace
+fail_compilation/templatesingleparam.d(22,6): Error: identifier character cannot follow string `d` postfix without whitespace
+fail_compilation/templatesingleparam.d(23,4): Error: identifier character cannot follow float `f` suffix without whitespace
 ---
 */
 class Foo(alias str) {
@@ -20,4 +20,5 @@ class Bar {
 
 @`_`int i; // OK
 @`_`dint di;
-@0xFeedObject obj;
+@2flong fi;
+@0xFeedObject obj; // not caught
