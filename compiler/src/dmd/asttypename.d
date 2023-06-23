@@ -35,7 +35,6 @@ import dmd.mtype;
 import dmd.typinf;
 import dmd.identifier;
 import dmd.init;
-import dmd.doc;
 import dmd.root.complex;
 import dmd.root.rootobject;
 import dmd.statement;
