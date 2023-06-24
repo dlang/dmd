@@ -840,7 +840,8 @@ $(H2 $(LNAME2 data-type-compatibility, Data Type Compatibility))
 
     $(TROW
     $(ARGS $(I type)$(B [)$(I dim)$(B ])),
-    $(ARGS $(I type)$(B [)$(I dim)$(B ]))
+    $(ARGS $(I type)$(B [)$(I dim)$(B ]) for a variable/field declaration,
+    or $(DDSUBLINK spec/interfaceToC, passing_d_array, use `ref` for function parameter))
     )
 
     $(TROW
@@ -850,7 +851,7 @@ $(H2 $(LNAME2 data-type-compatibility, Data Type Compatibility))
 
     $(TROW
     $(ARGS $(I type)$(B [])),
-    $(ARGS no equivalent)
+    $(ARGS no `extern (C++)` equivalent, $(RELATIVE_LINK2 dynamic-arrays, see below))
     )
 
     $(TROW
@@ -871,6 +872,48 @@ $(H2 $(LNAME2 data-type-compatibility, Data Type Compatibility))
 
     $(P These equivalents hold when the D and C++ compilers used are companions
     on the host platform.)
+
+$(H3 $(LNAME2 dynamic-arrays, Dynamic Arrays))
+
+    $(P These are not supported for `extern (C++)`. For `extern (C)`, they
+    are equivalent to a struct template. For example:)
+
+---
+extern (C) const(char)[] slice;
+---
+
+    $(P `dmd -HC` generates the following C++ declaration:)
+
+```
+extern "C" _d_dynamicArray< const char > slice;
+```
+    $(P `_d_dynamicArray` is generated as follows:)
+
+```
+/// Represents a D [] array
+template<typename T>
+struct _d_dynamicArray final
+{
+    size_t length;
+    T *ptr;
+
+    _d_dynamicArray() : length(0), ptr(NULL) { }
+
+    _d_dynamicArray(size_t length_in, T *ptr_in)
+        : length(length_in), ptr(ptr_in) { }
+
+    T& operator[](const size_t idx) {
+        assert(idx < length);
+        return ptr[idx];
+    }
+
+    const T& operator[](const size_t idx) const {
+        assert(idx < length);
+        return ptr[idx];
+    }
+};
+```
+
 
 $(H2 $(LNAME2 packing-and-alignment, Packing and Alignment))
 
