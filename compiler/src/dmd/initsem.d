@@ -582,7 +582,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
 
     Initializer visitC(CInitializer ci)
     {
-        //printf("CInitializer::semantic() (%s) %s\n", t.toChars(), ci.toChars());
+        //printf("CInitializer::semantic() tx: %s t: %s ci: %s\n", (tx ? tx.toChars() : "".ptr), t.toChars(), ci.toChars());
         /* Rewrite CInitializer into ExpInitializer, ArrayInitializer, or StructInitializer
          */
         t = t.toBasetype();
@@ -767,7 +767,6 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                 return err();
             }
             const nfields = sd.fields.length;
-
             size_t fieldi = 0;
 
             for (size_t index = 0; index < ci.initializerList.length; )
@@ -804,6 +803,12 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                 {
                     if (fieldi == nfields)
                         break;
+                    if (index == 0 && ci.initializerList.length == 1 && di.initializer.isCInitializer())
+                    {
+                        ci = di.initializer.isCInitializer();
+                        continue;
+                    }
+
                     VarDeclaration field;
                     while (1)   // skip field if it overlaps with previously seen fields
                     {
@@ -951,10 +956,13 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
             return initializerSemantic(ai, sc, tx, needInterpret);
         }
         else if (ExpInitializer ei = isBraceExpression())
+        {
             return visitExp(ei);
+        }
         else
         {
-            assert(0);
+            error(ci.loc, "unrecognized C initializer `%s`", ci.toChars());
+            return err();
         }
     }
 
