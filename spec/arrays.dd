@@ -229,28 +229,38 @@ assert(*p == 2);
 
     $(P See $(DDSUBLINK spec/expression, pointer_arithmetic, *AddExpression*) for details.)
 
+
 $(H2 $(LNAME2 slicing, Slicing))
 
         $(P $(I Slicing) an array means to specify a subarray of it.
+        This is done by supplying two index expressions.
+        The elements from the start index up until the end index are selected.
+        Any item at the end index is not included.
+        )
+        $(P
         An array slice does not copy the data, it is only another
         reference to it. Slicing produces a dynamic array.
-        For example:
         )
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ---------
-int[10] a;   // declare array of 10 ints
+int[3] a = [4, 5, 6]; // static array of 3 ints
 int[] b;
 
-b = a[1..3]; // a[1..3] is a 2 element array consisting of
+b = a[1..3]; // a[1..3] is a 2 element dynamic array consisting of
              // a[1] and a[2]
-assert(b[1] == 0);
+assert(b == [5, 6]);
+assert(b.ptr == a.ptr + 1);
+
 a[2] = 3;
-assert(b[1] == 3);
+assert(b == [5, 3]);
+
+b = b[1..2];
+assert(b == [3]);
 ---------
 )
 
-        $(P $(I Identifier)[] is shorthand for a slice of the entire array.
+        $(P $(I Expression)`[]` is shorthand for a slice of the entire array.
         )
 
         $(P Slicing
