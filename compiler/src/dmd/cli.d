@@ -214,7 +214,7 @@ struct Usage
                     $(LI $(B in): in contracts)
                     $(LI $(B invariant): class/struct invariants)
                     $(LI $(B out): out contracts)
-                    $(LI $(B switch): finalswitch failure checking)
+                    $(LI $(B switch): $(D final switch) failure checking)
                 )
                 $(UL
                     $(LI $(B on) or not specified: specified check is enabled.)
@@ -226,8 +226,8 @@ struct Usage
         ),
         Option("checkaction=[D|C|halt|context]",
             "behavior on assert/boundscheck/finalswitch failure",
-            `Sets behavior when an assert fails, and array boundscheck fails,
-             or a final switch errors.
+            `Sets behavior when an assert or an array bounds check fails,
+             or a $(D final switch) errors.
                 $(UL
                     $(LI $(B D): Default behavior, which throws an unrecoverable $(D AssertError).)
                     $(LI $(B C): Calls the C runtime library assert failure function.)
@@ -394,7 +394,7 @@ dmd -cov -unittest myprog.d
         ),
         Option("Hd=<directory>",
             "write 'header' file to directory",
-            `Write D interface file to $(I dir) directory. $(SWLINK -op)
+            `Write D interface file to $(I directory). $(SWLINK -op)
             can be used if the original package hierarchy should
             be retained.`,
         ),
@@ -1021,8 +1021,8 @@ struct CLIUsage
     /// Options supported by -HC
     enum hcUsage = "Available header generation modes:
   =[h|help|?]           List information on all available choices
-  =silent               Silently ignore non-exern(C[++]) declarations
-  =verbose              Add a comment for ignored non-exern(C[++]) declarations
+  =silent               Silently ignore non-extern(C[++]) declarations
+  =verbose              Add a comment for ignored non-extern(C[++]) declarations
 ";
 
     /// Options supported by -gdwarf
