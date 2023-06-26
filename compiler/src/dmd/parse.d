@@ -4611,6 +4611,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                  */
                 if (tpl)
                 {
+                    if (storage_class & STC.override_)
+                        error(loc, "a function template cannot be `override`");
+                    else if (storage_class & STC.abstract_)
+                        error(loc, "a function template cannot be `abstract`");
+
                     // Wrap a template around the function declaration
                     auto decldefs = new AST.Dsymbols();
                     decldefs.push(s);
