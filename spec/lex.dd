@@ -762,19 +762,28 @@ $(GNAME HexLetter):
 
         $(P Integers can be specified in decimal, binary, or hexadecimal.)
 
-        $(P Decimal integers are a sequence of decimal digits.)
+        $(UL
+        $(LI Decimal integers are a sequence of decimal digits.)
 
-        $(P $(LNAME2 binary-literals, Binary integers) are a sequence of binary digits preceded
+        $(LI $(LNAME2 binary-literals, Binary integers) are a sequence of binary digits preceded
         by a $(SINGLEQUOTE 0b) or $(SINGLEQUOTE 0B).
         )
 
-        $(P C-style octal integer notation was deemed too easy to mix up with decimal notation;
+        $(LI C-style octal integer notation (e.g. `0167`) was deemed too easy to mix up with decimal notation;
         it is only fully supported in string literals.
         D still supports octal integer literals interpreted at compile time through the $(REF octal, std,conv)
         template, as in $(D octal!167).)
-        $(P Hexadecimal integers are a sequence of hexadecimal digits preceded
+
+        $(LI Hexadecimal integers are a sequence of hexadecimal digits preceded
         by a $(SINGLEQUOTE 0x) or $(SINGLEQUOTE 0X).
         )
+        )
+
+---
+10      // decimal
+0b1010  // binary
+0xA     // hex
+---
 
         $(P Integers can have embedded $(SINGLEQUOTE $(UNDERSCORE)) characters after a digit to improve readability, which are ignored.
         )
@@ -783,6 +792,7 @@ $(GNAME HexLetter):
         20_000        // leagues under the sea
         867_5309      // number on the wall
         1_522_000     // thrust of F1 engine (lbf sea level)
+        0xBAAD_F00D   // magic number for debugging
         ---
 
         $(P Integers can be immediately followed by one $(SINGLEQUOTE L) or one of
