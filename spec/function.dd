@@ -1295,6 +1295,8 @@ $(H2 $(LNAME2 function-overloading, Function Overloading))
 
         $(P Literals do not match $(CODE ref) or $(CODE out) parameters.)
 
+        $(P $(CODE scope) parameter storage class does not affect function overloading.)
+
         $(P If two or more functions have the same match level,
         then $(LNAME2 partial-ordering, $(I partial ordering))
         is used to disambiguate to find the best match.
