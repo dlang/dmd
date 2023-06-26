@@ -31,8 +31,6 @@ $(GNAME DeclDef):
     $(GLINK2 version, DebugSpecification)
     $(GLINK2 version, VersionSpecification)
     $(GLINK2 version, StaticAssert)
-    $(GLINK2 template, TemplateDeclaration)
-    $(GLINK2 template-mixin, TemplateMixinDeclaration)
     $(GLINK2 template-mixin, TemplateMixin)
     $(GLINK MixinDeclaration)
     $(GLINK EmptyDeclaration)

@@ -18,6 +18,8 @@ $(GNAME Declaration):
     $(GLINK2 version, ConditionalDeclaration)
     $(GLINK2 version, StaticForeachDeclaration)
     $(GLINK2 version, StaticAssert)
+    $(GLINK2 template, TemplateDeclaration)
+    $(GLINK2 template-mixin, TemplateMixinDeclaration)
 )
 
 $(P See also $(GLINK2 module, DeclDef).
