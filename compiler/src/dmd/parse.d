@@ -1155,6 +1155,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         case TOK.leftCurly:
             {
+                const lcLoc = token.loc;
                 const lookingForElseSave = lookingForElse;
                 lookingForElse = Loc();
 
@@ -1164,6 +1165,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 {
                     /* { */
                     error("matching `}` expected, not `%s`", token.toChars());
+                    eSink.errorSupplemental(lcLoc, "unmatched `{`");
                 }
                 else
                     nextToken();
@@ -6015,6 +6017,7 @@ LagainStc:
             }
         case TOK.leftCurly:
             {
+                const lcLoc = token.loc;
                 const lookingForElseSave = lookingForElse;
                 lookingForElse = Loc.initial;
 
@@ -6037,7 +6040,14 @@ LagainStc:
                 s = new AST.CompoundStatement(loc, statements);
                 if (flags & (ParseStatementFlags.scope_ | ParseStatementFlags.curlyScope))
                     s = new AST.ScopeStatement(loc, s, token.loc);
-                check(TOK.rightCurly, "compound statement");
+                if (token.value != TOK.rightCurly)
+                {
+                    error(token.loc, "matching `}` expected following compound statement, not `%s`",
+                        token.toChars());
+                    eSink.errorSupplemental(lcLoc, "unmatched `{`");
+                }
+                else
+                    nextToken();
                 lookingForElse = lookingForElseSave;
                 break;
             }
