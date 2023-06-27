@@ -9846,7 +9846,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             ale.e1 = ale1x;
 
             Type tn = ale.e1.type.toBasetype().nextOf();
-            checkDefCtor(ale.loc, tn);
+            TypeStruct ts = tn.isTypeStruct();
+            if (ts && ts.sym.noDefaultCtor) {
+                if (sc.setUnsafe(false, exp.loc,
+                    "cannot reallocate array of structs without default constructor in `@safe` function `%s`",
+                    sc.func))
+                {
+                    return setError();
+                }
+            }
 
             Identifier hook = global.params.tracegc ? Id._d_arraysetlengthTTrace : Id._d_arraysetlengthT;
             if (!verifyHookExist(exp.loc, *sc, Id._d_arraysetlengthTImpl, "resizing arrays"))
