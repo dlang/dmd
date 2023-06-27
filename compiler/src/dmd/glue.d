@@ -832,7 +832,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     }
     else
     {
-        specialFunctions(objmod, fd);
+        if (entryPointFunctions(objmod, fd))
+            s.Sclass = SC.global;
     }
 
     symtab_t *symtabsave = cstate.CSpsymtab;
@@ -1299,23 +1300,23 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
 
 
 /*******************************************
- * Detect special functions like `main()` and do special handling for them,
- * like special mangling, including libraries, setting the storage class, etc.
- * `objmod` and `fd` are updated.
+ * Detect entry points like `main()`.
+ * Entry points trigger special handling like referencing the
+ * default library, setting up sections, etc.
  *
  * Params:
- *      objmod = object module
+ *      objmod = object module to write hooks to
  *      fd = function symbol
+ * Returns:
+ *      true if entry point
  */
-private void specialFunctions(Obj objmod, FuncDeclaration fd)
+private bool entryPointFunctions(Obj objmod, FuncDeclaration fd)
 {
-    const libname = finalDefaultlibname();
-
-    Symbol* s = fd.toSymbol();  // backend symbol corresponding to fd
-
-    // Pull in RTL startup code (but only once)
-    if (fd.isMain() && onlyOneMain(fd.loc))
+    // D main()
+    if (fd.isMain() && onlyOneMain(fd))
     {
+        /* Reference the C main() to pull it in to the executable
+         */
         final switch (target.objectFormat())
         {
             case Target.ObjectFormat.elf:
@@ -1329,12 +1330,13 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
                 objmod.external_def("_main");
                 break;
         }
-        if (libname)
+        if (const libname = finalDefaultlibname())
             obj_includelib(libname);
-        s.Sclass = SC.global;
-        return;
+        return true;
     }
-    else if (fd.isRtInit())
+
+    // D runtime library
+    if (fd.isRtInit())
     {
         final switch (target.objectFormat())
         {
@@ -1346,70 +1348,80 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
             case Target.ObjectFormat.omf:
                 break;
         }
-        return;
+        return true;
     }
-    void includeWinLibs(bool cmain, const(char)* omflib)
-    {
-        if (target.objectFormat() == Target.ObjectFormat.coff)
-        {
-            if (!cmain)
-                objmod.includelib("uuid");
-            if (driverParams.mscrtlib.length && driverParams.mscrtlib[0])
-                obj_includelib(driverParams.mscrtlib);
-            objmod.includelib("OLDNAMES");
-        }
-        else if (target.objectFormat() == Target.ObjectFormat.omf)
-        {
-            if (cmain)
-            {
-                objmod.external_def("__acrtused_con"); // bring in C startup code
-                objmod.includelib("snn.lib");          // bring in C runtime library
-            }
-            else
-            {
-                objmod.external_def(omflib);
-            }
-        }
-    }
+
+    // C main()
     if (fd.isCMain())
     {
-        includeWinLibs(true, "");
-        s.Sclass = SC.global;
-    }
-    else if (target.os == Target.OS.Windows && fd.isWinMain() && onlyOneMain(fd.loc))
-    {
-        includeWinLibs(false, "__acrtused");
-        if (libname)
-            obj_includelib(libname);
-        s.Sclass = SC.global;
+        switch (target.objectFormat())
+        {
+            case Target.ObjectFormat.coff:
+                if (driverParams.mscrtlib.length && driverParams.mscrtlib[0])
+                    obj_includelib(driverParams.mscrtlib);
+                objmod.includelib("OLDNAMES");
+                break;
+
+            case Target.ObjectFormat.omf:
+                objmod.external_def("__acrtused_con"); // bring in C console startup code
+                objmod.includelib("snn.lib");          // bring in C runtime library
+                break;
+
+            default:
+                break;
+        }
+        return true;
     }
 
-    // Pull in RTL startup code
-    else if (target.os == Target.OS.Windows && fd.isDllMain() && onlyOneMain(fd.loc))
+    // Windows WinMain() or DllMain()
+    if (target.os == Target.OS.Windows &&
+        (fd.isWinMain() || fd.isDllMain()) &&
+        onlyOneMain(fd))
     {
-        includeWinLibs(false, "__acrtused_dll");
-        if (libname)
+        switch (target.objectFormat())
+        {
+            case Target.ObjectFormat.coff:
+                objmod.includelib("uuid");
+                if (driverParams.mscrtlib.length && driverParams.mscrtlib[0])
+                    obj_includelib(driverParams.mscrtlib);
+                objmod.includelib("OLDNAMES");
+                break;
+
+            case Target.ObjectFormat.omf:
+                objmod.external_def(fd.isWinMain() ? "__acrtused" : "__acrtused_dll");
+                break;
+
+            default:
+                assert(0);
+        }
+
+        if (const libname = finalDefaultlibname())
             obj_includelib(libname);
-        s.Sclass = SC.global;
+        return true;
     }
+
+    return false;
 }
 
-
-private bool onlyOneMain(Loc loc)
+/****************************************
+ * Only one entry point function is allowed. Print error if more than one.
+ * Params:
+ *      fd = a "main" function
+ * Returns:
+ *      true if haven't seen "main" before
+ */
+private bool onlyOneMain(FuncDeclaration fd)
 {
-    __gshared Loc lastLoc;
-    __gshared bool hasMain = false;
-    if (hasMain)
+    __gshared FuncDeclaration lastMain;
+    if (lastMain)
     {
-        const(char)* otherMainNames = "";
-        if (target.os == Target.OS.Windows)
-            otherMainNames = ", `WinMain`, or `DllMain`";
-        error(loc, "only one `main`%s allowed. Previously found `main` at %s",
-            otherMainNames, lastLoc.toChars());
+        const format = (target.os == Target.OS.Windows)
+            ? "only one entry point `main`, `WinMain` or `DllMain` is allowed. Previously found `%s` at %s"
+            : "only one entry point `main` is allowed. Previously found `%s` at %s";
+        error(fd.loc, format.ptr, lastMain.toChars(), lastMain.loc.toChars());
         return false;
     }
-    lastLoc = loc;
-    hasMain = true;
+    lastMain = fd;
     return true;
 }
 
