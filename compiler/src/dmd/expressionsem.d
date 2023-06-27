@@ -387,34 +387,6 @@ Expression checkNoreturnVarAccess(Expression exp)
 }
 
 /******************************
- * Check the tail CallExp is really property function call.
- * Bugs:
- * This doesn't appear to do anything.
- */
-private bool checkPropertyCall(Expression e)
-{
-    e = lastComma(e);
-
-    if (auto ce = e.isCallExp())
-    {
-        if (ce.f)
-        {
-            auto tf = ce.f.type.isTypeFunction();
-            /* If a forward reference to ce.f, try to resolve it
-             */
-            if (!tf.deco && ce.f.semanticRun < PASS.semanticdone)
-            {
-                ce.f.dsymbolSemantic(null);
-                tf = ce.f.type.isTypeFunction();
-            }
-        }
-        else if (!ce.e1.type.isFunction_Delegate_PtrToFunction())
-            assert(0);
-    }
-    return false;
-}
-
-/******************************
  * Find symbol in accordance with the UFCS name look up rule
  */
 private Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
@@ -726,7 +698,6 @@ private Expression resolveUFCSProperties(Scope* sc, Expression e1, Expression e2
         }
         else if (ex && !e)
         {
-            checkPropertyCall(ex);
             ex = new AssignExp(loc, ex, e2);
             return ex.expressionSemantic(sc);
         }
@@ -735,7 +706,6 @@ private Expression resolveUFCSProperties(Scope* sc, Expression e1, Expression e2
             // strict setter prints errors if fails
             e = e.expressionSemantic(sc);
         }
-        checkPropertyCall(e);
         return e;
     }
     else
@@ -746,8 +716,7 @@ private Expression resolveUFCSProperties(Scope* sc, Expression e1, Expression e2
         (*arguments)[0] = eleft;
         e = new CallExp(loc, e, arguments);
         e = e.expressionSemantic(sc);
-        checkPropertyCall(e);
-        return e.expressionSemantic(sc);
+        return e;
     }
 }
 
