@@ -748,7 +748,7 @@ private Expression resolveUFCSProperties(Scope* sc, Expression e1, Expression e2
 
         // https://issues.dlang.org/show_bug.cgi?id=24017
         if (sc.flags & SCOPE.debug_)
-            (cast(CallExp)e).inDebugStatement = true;
+            e.isCallExp().inDebugStatement = true;
 
         e = e.expressionSemantic(sc);
         checkPropertyCall(e);
