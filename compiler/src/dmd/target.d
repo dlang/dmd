@@ -135,9 +135,12 @@ void addDefaultVersionIdentifiers(const ref Param params, const ref Target tgt)
     }
     else
     {
-        VersionCondition.addPredefinedGlobalIdent("D_ModuleInfo");
-        VersionCondition.addPredefinedGlobalIdent("D_Exceptions");
-        VersionCondition.addPredefinedGlobalIdent("D_TypeInfo");
+        if (params.useModuleInfo)
+            VersionCondition.addPredefinedGlobalIdent("D_ModuleInfo");
+        if (params.useExceptions)
+            VersionCondition.addPredefinedGlobalIdent("D_Exceptions");
+        if (params.useTypeInfo)
+            VersionCondition.addPredefinedGlobalIdent("D_TypeInfo");
     }
 
     VersionCondition.addPredefinedGlobalIdent("D_HardFloat");
