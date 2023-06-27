@@ -1556,7 +1556,9 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         if (auto imp = s.isImport())
         {
             // https://issues.dlang.org/show_bug.cgi?id=9692
-            s = imp.mod;
+            // https://issues.dlang.org/show_bug.cgi?id=20008
+            if (imp.pkg)
+                s = imp.pkg;
         }
 
         // https://issues.dlang.org/show_bug.cgi?id=16044
