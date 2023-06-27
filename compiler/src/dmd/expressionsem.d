@@ -4084,9 +4084,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (arg.op == EXP.error)
                     return setError();
                 arg = arg.optimize(WANTvalue);
-                if (arg.op == EXP.int64 && cast(sinteger_t)arg.toInteger() < 0)
+                if (arg.op == EXP.int64 && (target.is64bit ?
+                    cast(sinteger_t)arg.toInteger() : cast(int)arg.toInteger()) < 0)
                 {
-                    exp.error("negative array index `%s`", arg.toChars());
+                    exp.error("negative array dimension `%s`", (*exp.arguments)[i].toChars());
                     return setError();
                 }
                 (*exp.arguments)[i] = arg;
