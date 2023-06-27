@@ -1485,6 +1485,11 @@ $(P
     ---
 
 $(P
+    The `Throwable` must not be a qualified as `immutable`, `const`, `inout` or
+    `shared`. The runtime may modify a thrown object (e.g. to contain a stack
+    trace) which would violate `const` or `immutable` objects.
+)
+$(P
     A $(I ThrowExpression) may be nested in another expression:
 )
     ---
