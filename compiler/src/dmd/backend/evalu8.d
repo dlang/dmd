@@ -39,8 +39,6 @@ extern (C++):
 nothrow:
 @safe:
 
-import dmd.backend.errors;
-
 import dmd.backend.fp : testFE, clearFE, statusFE, have_float_except;
 
 /**********************

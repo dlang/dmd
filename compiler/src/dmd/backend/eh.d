@@ -6,22 +6,16 @@
  *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/eh.d, _eh.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/eh.d, _eh.d)
  * Documentation:  https://dlang.org/phobos/dmd_eh.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/eh.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/eh.d
  */
 
-module dmd.eh;
+module dmd.backend.eh;
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
-
-import dmd.globals;
-import dmd.errors;
-import dmd.target;
-
-import dmd.root.rmem;
 
 import dmd.backend.barray;
 import dmd.backend.cc;
@@ -36,7 +30,7 @@ import dmd.backend.ty;
 import dmd.backend.type;
 
 extern (C++):
-
+nothrow:
 
 package(dmd) @property @nogc nothrow auto NPTRSIZE() { return _tysize[TYnptr]; }
 
@@ -114,7 +108,7 @@ void except_fillInEHTable(Symbol *s)
  */
     uint GUARD_SIZE;
     if (config.ehmethod == EHmethod.EH_DM)
-        GUARD_SIZE = (target.is64bit ? 3*8 : 5*4);
+        GUARD_SIZE = (I64() ? 3*8 : 5*4);
     else if (config.ehmethod == EHmethod.EH_WIN32)
         GUARD_SIZE = 3*4;
     else

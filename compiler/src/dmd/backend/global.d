@@ -40,9 +40,9 @@ nothrow:
 @safe:
 
 // FIXME: backend can't import front end modules because missing -J flag
-// import dmd.eh : except_gentables;
-Symbol* except_gentables();
+nothrow extern (C++) void error(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...);
 
+public import dmd.backend.eh : except_gentables;
 import dmd.backend.var : _tysize;
 import dmd.backend.ty : TYnptr, TYvoid, tybasic, tysize;
 

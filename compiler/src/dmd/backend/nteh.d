@@ -39,7 +39,7 @@ extern (C++):
 nothrow:
 @safe:
 
-void except_fillInEHTable(Symbol *s);
+import dmd.backend.eh : except_fillInEHTable;
 
 private __gshared
 {

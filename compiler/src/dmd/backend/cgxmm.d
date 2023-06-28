@@ -28,9 +28,6 @@ import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.xmm;
 
-import dmd.backend.errors;
-
-
 extern (C++):
 
 nothrow:
