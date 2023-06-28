@@ -1,5 +1,5 @@
 
-/* Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+/* Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * written by Rainer Schuetze
  * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -23,10 +23,10 @@ typedef volatile long double volatile_longdouble;
 #if __MINGW32__
 // MinGW supports 80 bit reals, but the formatting functions map to versions
 // from the MSVC runtime by default which don't.
-#define sprintf __mingw_sprintf
+#define snprintf __mingw_snprintf
 #endif
 
-inline size_t ld_sprint(char* str, int fmt, longdouble x)
+inline size_t ld_sprint(char* str, size_t size, int fmt, longdouble x)
 {
     if (((longdouble)(unsigned long long)x) == x)
     {   // ((1.5 -> 1 -> 1.0) == 1.5) is false
@@ -34,18 +34,18 @@ inline size_t ld_sprint(char* str, int fmt, longdouble x)
         // see https://en.cppreference.com/w/cpp/io/c/fprintf
         char sfmt[5] = "%#Lg";
         sfmt[3] = fmt;
-        return sprintf(str, sfmt, x);
+        return snprintf(str, size, sfmt, x);
     }
     else
     {
         char sfmt[4] = "%Lg";
         sfmt[2] = fmt;
-        return sprintf(str, sfmt, x);
+        return snprintf(str, size, sfmt, x);
     }
 }
 
 #if __MINGW32__
-#undef sprintf
+#undef snprintf
 #endif
 
 #else
@@ -251,7 +251,7 @@ extern const longdouble_soft ld_pi2;
 extern const longdouble_soft ld_piOver2;
 extern const longdouble_soft ld_piOver4;
 
-size_t ld_sprint(char* str, int fmt, longdouble_soft x);
+size_t ld_sprint(char* str, size_t size, int fmt, longdouble_soft x);
 
 //////////////////////////////////////////////
 typedef longdouble_soft longdouble;

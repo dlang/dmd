@@ -1,7 +1,7 @@
 /**
  * Defines an identifier, which is the name of a `Dsymbol`.
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/identifier.d, _identifier.d)
@@ -14,8 +14,8 @@ module dmd.identifier;
 import core.stdc.ctype;
 import core.stdc.stdio;
 import core.stdc.string;
-import dmd.globals;
 import dmd.id;
+import dmd.location;
 import dmd.common.outbuffer;
 import dmd.root.rootobject;
 import dmd.root.string;
@@ -88,7 +88,7 @@ nothrow:
         return name.ptr;
     }
 
-    extern (D) override const(char)[] toString() const pure
+    extern (D) override const(char)[] toString() const pure @safe
     {
         return name;
     }
@@ -274,12 +274,7 @@ nothrow:
         return idPool(s[0 .. len]);
     }
 
-    extern (D) static Identifier idPool(const(char)[] s)
-    {
-        return idPool(s, false);
-    }
-
-    extern (D) private static Identifier idPool(const(char)[] s, bool isAnonymous)
+    extern (D) static Identifier idPool(const(char)[] s, bool isAnonymous = false)
     {
         auto sv = stringtable.update(s);
         auto id = sv.value;
@@ -291,18 +286,18 @@ nothrow:
         return id;
     }
 
-    extern (D) static Identifier idPool(const(char)* s, size_t len, int value)
-    {
-        return idPool(s[0 .. len], value);
-    }
-
-    extern (D) static Identifier idPool(const(char)[] s, int value)
+    /******************************************
+     * Used for inserting keywords into the string table.
+     * Params:
+     *  s = string for keyword
+     *  value = TOK.xxxx for the keyword
+     */
+    extern (D) static void idPool(const(char)[] s, TOK value)
     {
         auto sv = stringtable.insert(s, null);
         assert(sv);
         auto id = new Identifier(sv.toString(), value);
         sv.value = id;
-        return id;
     }
 
     /**********************************

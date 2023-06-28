@@ -1,7 +1,7 @@
 /**
  * Functions for raising errors.
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/errors.d, _errors.d)
@@ -15,13 +15,74 @@ import core.stdc.stdarg;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
+import dmd.errorsink;
 import dmd.globals;
+import dmd.location;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.string;
 import dmd.console;
 
 nothrow:
+
+/***************************
+ * Error message sink for D compiler.
+ */
+class ErrorSinkCompiler : ErrorSink
+{
+  nothrow:
+  extern (C++):
+  override:
+
+    void error(const ref Loc loc, const(char)* format, ...)
+    {
+        va_list ap;
+        va_start(ap, format);
+        verror(loc, format, ap);
+        va_end(ap);
+    }
+
+    void errorSupplemental(const ref Loc loc, const(char)* format, ...)
+    {
+        va_list ap;
+        va_start(ap, format);
+        verrorSupplemental(loc, format, ap);
+        va_end(ap);
+    }
+
+    void warning(const ref Loc loc, const(char)* format, ...)
+    {
+        va_list ap;
+        va_start(ap, format);
+        vwarning(loc, format, ap);
+        va_end(ap);
+    }
+
+    void deprecation(const ref Loc loc, const(char)* format, ...)
+    {
+        va_list ap;
+        va_start(ap, format);
+        vdeprecation(loc, format, ap);
+        va_end(ap);
+    }
+
+    void deprecationSupplemental(const ref Loc loc, const(char)* format, ...)
+    {
+        va_list ap;
+        va_start(ap, format);
+        vdeprecationSupplemental(loc, format, ap);
+        va_end(ap);
+    }
+
+    void message(const ref Loc loc, const(char)* format, ...)
+    {
+        va_list ap;
+        va_start(ap, format);
+        vmessage(loc, format, ap);
+        va_end(ap);
+    }
+}
+
 
 /**
  * Color highlighting to classify messages
@@ -380,7 +441,10 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
         fputs(tmp.peekChars(), stderr);
     fputc('\n', stderr);
 
+    __gshared Loc old_loc;
     if (global.params.printErrorContext &&
+        // ignore supplemental messages with same loc
+        (loc != old_loc || strchr(header, ':')) &&
         // ignore invalid files
         loc != Loc.initial &&
         // ignore mixins for now
@@ -416,6 +480,7 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
             }
         }
     }
+    old_loc = loc;
     fflush(stderr);     // ensure it gets written out in case of compiler aborts
 }
 
@@ -475,6 +540,7 @@ private void _verrorSupplemental(const ref Loc loc, const(char)* format, va_list
     }
     else
         color = Classification.error;
+
     verrorPrint(loc, color, "       ", format, ap);
 }
 
@@ -761,8 +827,11 @@ private void colorHighlightCode(ref OutBuffer buf)
     }
     ++nested;
 
-    auto gaggedErrorsSave = global.startGagging();
-    scope Lexer lex = new Lexer(null, cast(char*)buf[].ptr, 0, buf.length - 1, 0, 1);
+    __gshared ErrorSinkNull errorSinkNull;
+    if (!errorSinkNull)
+        errorSinkNull = new ErrorSinkNull;
+
+    scope Lexer lex = new Lexer(null, cast(char*)buf[].ptr, 0, buf.length - 1, 0, 1, errorSinkNull, &global.compileEnv);
     OutBuffer res;
     const(char)* lastp = cast(char*)buf[].ptr;
     //printf("colorHighlightCode('%.*s')\n", cast(int)(buf.length - 1), buf[].ptr);
@@ -813,7 +882,6 @@ private void colorHighlightCode(ref OutBuffer buf)
     //printf("res = '%.*s'\n", cast(int)buf.length, buf[].ptr);
     buf.setsize(0);
     buf.write(&res);
-    global.endGagging(gaggedErrorsSave);
     --nested;
 }
 

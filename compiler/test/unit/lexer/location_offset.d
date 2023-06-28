@@ -2,6 +2,7 @@ module lexer.location_offset;
 
 import dmd.lexer : Lexer;
 import dmd.tokens : TOK;
+import dmd.errorsink;
 
 import support : afterEach;
 
@@ -16,7 +17,7 @@ unittest
 {
     enum code = "token";
 
-    scope lexer = new Lexer("test.d", code.ptr, 0, code.length, 0, 0);
+    scope lexer = new Lexer("test.d", code.ptr, 0, code.length, 0, 0, new ErrorSinkStderr, null);
 
     lexer.nextToken;
 
@@ -28,7 +29,7 @@ unittest
 {
     enum code = "ignored_token token";
 
-    scope lexer = new Lexer("test.d", code.ptr, 13, code.length - 14, 0, 0);
+    scope lexer = new Lexer("test.d", code.ptr, 13, code.length - 14, 0, 0, new ErrorSinkStderr, null);
 
     lexer.nextToken;
 
@@ -40,7 +41,7 @@ unittest
 {
     enum code = "token1 token2 3";
 
-    scope lexer = new Lexer("test.d", code.ptr, 0, code.length, 0, 0);
+    scope lexer = new Lexer("test.d", code.ptr, 0, code.length, 0, 0, new ErrorSinkStderr, null);
 
     lexer.nextToken;
     lexer.nextToken;
@@ -54,7 +55,7 @@ unittest
 {
     enum code = "token";
 
-    scope lexer = new Lexer("test.d", code.ptr, 0, code.length, 0, 0);
+    scope lexer = new Lexer("test.d", code.ptr, 0, code.length, 0, 0, new ErrorSinkStderr, null);
 
     lexer.nextToken;
     lexer.nextToken;
@@ -67,7 +68,7 @@ unittest
 {
     enum code = "/* comment */";
 
-    scope lexer = new Lexer("test.d", code.ptr, 0, code.length, 0, true);
+    scope lexer = new Lexer("test.d", code.ptr, 0, code.length, 0, true, new ErrorSinkStderr, null);
 
     lexer.nextToken;
 
@@ -80,7 +81,7 @@ unittest
 {
     enum code = "// comment";
 
-    scope lexer = new Lexer("test.d", code.ptr, 0, code.length, 0, true);
+    scope lexer = new Lexer("test.d", code.ptr, 0, code.length, 0, true, new ErrorSinkStderr, null);
 
     lexer.nextToken;
 
@@ -93,7 +94,7 @@ unittest
 {
     enum code = "/+ comment +/";
 
-    scope lexer = new Lexer("test.d", code.ptr, 0, code.length, 0, true);
+    scope lexer = new Lexer("test.d", code.ptr, 0, code.length, 0, true, new ErrorSinkStderr, null);
 
     lexer.nextToken;
 
@@ -106,7 +107,7 @@ unittest
 {
     enum code = "/* comment */ token";
 
-    scope lexer = new Lexer("test.d", code.ptr, 0, code.length, 0, 0);
+    scope lexer = new Lexer("test.d", code.ptr, 0, code.length, 0, 0, new ErrorSinkStderr, null);
 
     lexer.nextToken;
 
@@ -118,7 +119,7 @@ unittest
 {
     enum code = "// comment\ntoken";
 
-    scope lexer = new Lexer("test.d", code.ptr, 0, code.length, 0, 0);
+    scope lexer = new Lexer("test.d", code.ptr, 0, code.length, 0, 0, new ErrorSinkStderr, null);
 
     lexer.nextToken;
 
@@ -130,7 +131,7 @@ unittest
 {
     enum code = "/+ comment +/ token";
 
-    scope lexer = new Lexer("test.d", code.ptr, 0, code.length, 0, 0);
+    scope lexer = new Lexer("test.d", code.ptr, 0, code.length, 0, 0, new ErrorSinkStderr, null);
 
     lexer.nextToken;
 
@@ -142,7 +143,7 @@ unittest
 {
     enum code = "line\ntoken";
 
-    scope lexer = new Lexer("test.d", code.ptr, 0, code.length, 0, 0);
+    scope lexer = new Lexer("test.d", code.ptr, 0, code.length, 0, 0, new ErrorSinkStderr, null);
 
     lexer.nextToken;
     lexer.nextToken;
@@ -155,7 +156,7 @@ unittest
 {
     enum code = "line\r\ntoken";
 
-    scope lexer = new Lexer("test.d", code.ptr, 0, code.length, 0, 0);
+    scope lexer = new Lexer("test.d", code.ptr, 0, code.length, 0, 0, new ErrorSinkStderr, null);
 
     lexer.nextToken;
     lexer.nextToken;
@@ -168,7 +169,7 @@ unittest
 {
     enum code = "line\rtoken";
 
-    scope lexer = new Lexer("test.d", code.ptr, 0, code.length, 0, 0);
+    scope lexer = new Lexer("test.d", code.ptr, 0, code.length, 0, 0, new ErrorSinkStderr, null);
 
     lexer.nextToken;
     lexer.nextToken;
@@ -181,7 +182,7 @@ unittest
 {
     enum code = "'🍺'";
 
-    scope lexer = new Lexer("test.d", code.ptr, 0, code.length, 0, 0);
+    scope lexer = new Lexer("test.d", code.ptr, 0, code.length, 0, 0, new ErrorSinkStderr, null);
 
     lexer.nextToken;
 
@@ -193,7 +194,7 @@ unittest
 {
     enum code = `"🍺🍺"`;
 
-    scope lexer = new Lexer("test.d", code.ptr, 0, code.length, 0, 0);
+    scope lexer = new Lexer("test.d", code.ptr, 0, code.length, 0, 0, new ErrorSinkStderr, null);
 
     lexer.nextToken;
 
@@ -205,7 +206,7 @@ unittest
 {
     enum code = "'🍺' token";
 
-    scope lexer = new Lexer("test.d", code.ptr, 0, code.length, 0, 0);
+    scope lexer = new Lexer("test.d", code.ptr, 0, code.length, 0, 0, new ErrorSinkStderr, null);
 
     lexer.nextToken;
     lexer.nextToken;
@@ -218,7 +219,7 @@ unittest
 {
     enum code = `"🍺🍺" token`;
 
-    scope lexer = new Lexer("test.d", code.ptr, 0, code.length, 0, 0);
+    scope lexer = new Lexer("test.d", code.ptr, 0, code.length, 0, 0, new ErrorSinkStderr, null);
 
     lexer.nextToken;
     lexer.nextToken;
@@ -536,11 +537,14 @@ enum ignoreTokens
     _Static_assert,
     _Thread_local,
 
+    _assert,
     _import,
     __cdecl,
     __declspec,
     __stdcall,
+    __thread,
     __pragma,
+    __int128,
     __attribute__,
 
     max_,
@@ -553,9 +557,9 @@ static foreach (tok; __traits(allMembers, TOK))
         @(tests[tok].description)
         unittest
         {
-            const newCode = "first_token " ~ tests[tok].code;
+            const newCode = "first_token " ~ tests[tok].code ~ '\0';
 
-            scope lexer = new Lexer("test.d", newCode.ptr, 0, newCode.length, 0, 0);
+            scope lexer = new Lexer("test.d", newCode.ptr, 0, newCode.length, 0, 0, new ErrorSinkStderr, null);
 
             lexer.nextToken;
             lexer.nextToken;

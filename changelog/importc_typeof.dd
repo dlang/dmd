@@ -1,7 +1,0 @@
-ImportC now recognizes the `typeof(...)` operator
-
-ISO C does not specify a `typeof` operator, but it is a widely-implemented vendor extension.
-ImportC now implements this extension as well.
-
-Only the form `typeof(...)` is recognized, other compilers also support (or only support one of)
-`__typeof__(...)` and `__typeof(...)`. Imported C using these forms will need to be normalized with `#define`s.

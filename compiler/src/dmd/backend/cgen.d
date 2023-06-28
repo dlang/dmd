@@ -2,7 +2,7 @@
  * Generate code instructions
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgen.d, backend/cgen.d)
@@ -11,14 +11,6 @@
  */
 
 module dmd.backend.cgen;
-
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -37,18 +29,12 @@ import dmd.backend.obj;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-version (SCPP)
-{
-    import msgs2;
-}
-
 extern (C++):
 
 nothrow:
 
-dt_t *dt_get_nzeros(uint n);
-
-extern __gshared CGstate cgstate;
+public import dmd.backend.dt : dt_get_nzeros;
+public import dmd.backend.cgcod : cgstate;
 
 /*****************************
  * Find last code in list.
@@ -67,7 +53,7 @@ code *code_last(code *c)
  * Set flag bits on last code in list.
  */
 
-void code_orflag(code *c,uint flag)
+void code_orflag(code *c,uint flag) @safe
 {
     if (flag && c)
     {   while (c.next)
@@ -80,7 +66,7 @@ void code_orflag(code *c,uint flag)
  * Set rex bits on last code in list.
  */
 
-void code_orrex(code *c,uint rex)
+void code_orrex(code *c,uint rex) @safe
 {
     if (rex && c)
     {   while (c.next)
@@ -116,13 +102,12 @@ code *cat(code *c1,code *c2)
  * Returns:
  *      pointer to start of code list
  */
-
-code *gen(code *c,code *cs)
+private
+code *gen(code *c, ref code cs)
 {
-    debug assert(cs);
     assert(I64 || cs.Irex == 0);
     code* ce = code_malloc();
-    *ce = *cs;
+    *ce = cs;
     //printf("ce = %p %02x\n", ce, ce.Iop);
     //ccheck(ce);
     simplify_code(ce);
@@ -173,29 +158,6 @@ code *gen2(code *c,opcode_t op,uint rm)
 }
 
 
-code *gen2sib(code *c,opcode_t op,uint rm,uint sib)
-{
-    code* ce;
-    code* cstart;
-
-  cstart = ce = code_calloc();
-  /*cxcalloc++;*/
-  ce.Iop = op;
-  ce.Irm = cast(ubyte)rm;
-  ce.Isib = cast(ubyte)sib;
-  ce.Irex = cast(ubyte)((rm | (sib & (REX_B << 16))) >> 16);
-  if (sib & (REX_R << 16))
-        ce.Irex |= REX_X;
-  //ccheck(ce);
-  if (c)
-  {     cstart = c;
-        while (code_next(c)) c = code_next(c);  /* find end of list     */
-        c.next = ce;                      /* link into list       */
-  }
-  return cstart;
-}
-
-
 code *genc2(code *c,opcode_t op,uint ea,targ_size_t EV2)
 {   code cs;
 
@@ -205,68 +167,7 @@ code *genc2(code *c,opcode_t op,uint ea,targ_size_t EV2)
     cs.Iflags = CFoff;
     cs.IFL2 = FLconst;
     cs.IEV2.Vsize_t = EV2;
-    return gen(c,&cs);
-}
-
-/*****************
- * Generate code.
- */
-
-code *genc(code *c,opcode_t op,uint ea,uint FL1,targ_size_t EV1,uint FL2,targ_size_t EV2)
-{   code cs;
-
-    assert(FL1 < FLMAX);
-    cs.Iop = op;
-    cs.Iea = ea;
-    //ccheck(&cs);
-    cs.Iflags = CFoff;
-    cs.IFL1 = cast(ubyte)FL1;
-    cs.IEV1.Vsize_t = EV1;
-    assert(FL2 < FLMAX);
-    cs.IFL2 = cast(ubyte)FL2;
-    cs.IEV2.Vsize_t = EV2;
-    return gen(c,&cs);
-}
-
-
-/********************************
- * Generate 'instruction' which is actually a line number.
- */
-
-code *genlinnum(code *c,Srcpos srcpos)
-{   code cs;
-
-    //srcpos.print("genlinnum");
-    cs.Iop = ESCAPE | ESClinnum;
-    cs.IEV1.Vsrcpos = srcpos;
-    return gen(c,&cs);
-}
-
-/*****************************
- * Prepend line number to existing code.
- */
-
-void cgen_prelinnum(code **pc,Srcpos srcpos)
-{
-    *pc = cat(genlinnum(null,srcpos),*pc);
-}
-
-/********************************
- * Generate 'instruction' which tells the scheduler that the fpu stack has
- * changed.
- */
-
-code *genadjfpu(code *c, int offset)
-{   code cs;
-
-    if (!I16 && offset)
-    {
-        cs.Iop = ESCAPE | ESCadjfpu;
-        cs.IEV1.Vint = offset;
-        return gen(c,&cs);
-    }
-    else
-        return c;
+    return gen(c,cs);
 }
 
 
@@ -440,19 +341,8 @@ static if (TARGET_SEGMENTED)
 
     if (f.sym.Sxtrnnum == 0)
     {
-        if (f.sym.Sclass == SCstatic)
+        if (f.sym.Sclass == SC.static_)
         {
-version (SCPP)
-{
-            if (f.sym.Sdt)
-            {
-                outdata(f.sym);
-            }
-            else if (f.sym.Sseg == UNKNOWN)
-                synerr(EM_no_static_def,prettyident(f.sym)); // no definition found for static
-}
-else // MARS
-{
             // OBJ_OMF does not set Sxtrnnum for static Symbols, so check
             // whether the Symbol was assigned to a segment instead, compare
             // outdata(Symbol *s)
@@ -461,19 +351,18 @@ else // MARS
                 printf("Error: no definition for static %s\n", prettyident(f.sym)); // no definition found for static
                 err_exit(); // BUG: do better
             }
-}
         }
         else if (f.sym.Sflags & SFLwasstatic)
         {
             // Put it in BSS
-            f.sym.Sclass = SCstatic;
+            f.sym.Sclass = SC.static_;
             f.sym.Sfl = FLunde;
             f.sym.Sdt = dt_get_nzeros(cast(uint)type_size(f.sym.Stype));
             outdata(f.sym);
         }
-        else if (f.sym.Sclass != SCsinline)
+        else if (f.sym.Sclass != SC.sinline)
         {
-            f.sym.Sclass = SCextern;   /* make it external             */
+            f.sym.Sclass = SC.extern_;   /* make it external             */
             objmod.external(f.sym);
             if (f.sym.Sflags & SFLweak)
                 objmod.wkext(f.sym, null);
@@ -502,6 +391,4 @@ void outfixlist()
     foreach (ref f; fixups)
         outfixup(f);
     fixups.reset();
-}
-
 }

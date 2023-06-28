@@ -7,9 +7,9 @@ import core.demangle;
 void main(string[] args)
 {
     // https://issues.dlang.org/show_bug.cgi?id=4014
-    // -gf should drag in full definitions of Object, TickDuration and ClockType
+    // -gf should drag in full definitions of Object, Duration and ClockType
     Object o = new Object;
-    TickDuration duration; // struct
+    Duration duration; // struct
     ClockType ct; // enumerator
 
     version (CRuntime_Microsoft)
@@ -29,8 +29,8 @@ void main(string[] args)
         testSymbolHasChildren(objsym, "object.Object");
         objsym.Release();
 
-        IDiaSymbol ticksym = searchSymbol(globals, "core.time.TickDuration");
-        testSymbolHasChildren(ticksym, "core.time.TickDuration");
+        IDiaSymbol ticksym = searchSymbol(globals, "core.time.Duration");
+        testSymbolHasChildren(ticksym, "core.time.Duration");
         ticksym.Release();
 
         IDiaSymbol ctsym = searchSymbol(globals, "core.time.ClockType");

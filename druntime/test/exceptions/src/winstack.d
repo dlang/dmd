@@ -49,6 +49,15 @@ void main()
             assert(checkStack(ex), "Bad stack");
         }
     }
+
+    // see https://issues.dlang.org/show_bug.cgi?id=23859
+    try
+    {
+        recurseThrow(200);
+    }
+    catch(Exception e)
+    {
+    }
 }
 
 void regular()
@@ -65,4 +74,11 @@ void recursion(int i)
         void function() f = cast(void function())0;
         f();
     }
+}
+
+void* recurseThrow(int n)
+{
+    if (n > 0)
+        return recurseThrow(n - 1) + 1; // avoid tail call optimization
+    throw new Exception("cancel");
 }

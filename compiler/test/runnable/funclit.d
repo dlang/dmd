@@ -520,7 +520,6 @@ void test7705()
 {
     void foo1(void delegate(ref int ) dg){ int x=10; dg(x); }
     foo1((ref x){ pragma(msg, typeof(x)); assert(x == 10); });
-    static assert(!__traits(compiles, foo1((x){}) ));
 
     void foo2(void delegate(int, ...) dg){ dg(20, 3.14); }
     foo2((x,...){ pragma(msg, typeof(x)); assert(x == 20); });
@@ -1264,6 +1263,7 @@ void assign16271(T)(ref T a, T b)
 void test16271()
 {
     int x;
+    (delegate ref => x)() = -1;     assert(x == -1);
     (ref () => x )() = 1;           assert(x == 1);
     func16271!(ref () => x) = 2;    assert(x == 2);
     assign16271(x, 3);              assert(x == 3);

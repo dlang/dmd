@@ -3,7 +3,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/obj.d, backend/obj.d)
@@ -27,11 +27,7 @@ extern (C++):
 
 nothrow:
 
-version (SPP)
-    version = STUB;
-else version (HTOD)
-    version = STUB;
-else version (Windows)
+version (Windows)
 {
 }
 else version (Posix)
@@ -56,7 +52,7 @@ mixin(ObjMemDecl("bool $Obj_linkerdirective(const(char)* )"));
 mixin(ObjMemDecl("bool $Obj_allowZeroSize()"));
 mixin(ObjMemDecl("void $Obj_exestr(const(char)* p)"));
 mixin(ObjMemDecl("void $Obj_user(const(char)* p)"));
-mixin(ObjMemDecl("void $Obj_compiler()"));
+mixin(ObjMemDecl("void $Obj_compiler(const(char)* p)"));
 mixin(ObjMemDecl("void $Obj_wkext(Symbol *,Symbol *)"));
 mixin(ObjMemDecl("void $Obj_alias(const(char)* n1,const(char)* n2)"));
 mixin(ObjMemDecl("void $Obj_staticctor(Symbol *s,int dtor,int seg)"));
@@ -83,9 +79,9 @@ mixin(ObjMemDecl("int  $Obj_common_block(Symbol *s, int flag, targ_size_t size, 
 mixin(ObjMemDecl("void $Obj_lidata(int seg, targ_size_t offset, targ_size_t count)"));
 mixin(ObjMemDecl("void $Obj_write_zeros(seg_data *pseg, targ_size_t count)"));
 mixin(ObjMemDecl("void $Obj_write_byte(seg_data *pseg, uint _byte)"));
-mixin(ObjMemDecl("void $Obj_write_bytes(seg_data *pseg, uint nbytes, void *p)"));
+mixin(ObjMemDecl("void $Obj_write_bytes(seg_data *pseg, uint nbytes, const(void)* p)"));
 mixin(ObjMemDecl("void $Obj_byte(int seg, targ_size_t offset, uint _byte)"));
-mixin(ObjMemDecl("uint $Obj_bytes(int seg, targ_size_t offset, uint nbytes, void *p)"));
+mixin(ObjMemDecl("uint $Obj_bytes(int seg, targ_size_t offset, uint nbytes, const(void)* p)"));
 mixin(ObjMemDecl("void $Obj_reftodatseg(int seg, targ_size_t offset, targ_size_t val, uint targetdatum, int flags)"));
 mixin(ObjMemDecl("void $Obj_reftocodeseg(int seg, targ_size_t offset, targ_size_t val)"));
 mixin(ObjMemDecl("int  $Obj_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val, int flags)"));
@@ -101,71 +97,10 @@ mixin(ObjMemDecl("void $Obj_write_pointerRef(Symbol* s, uint off)"));
 mixin(ObjMemDecl("int  $Obj_jmpTableSegment(Symbol* s)"));
 mixin(ObjMemDecl("Symbol* $Obj_tlv_bootstrap()"));
 
-/******************************************************************/
-
-size_t OmfObj_mangle(Symbol *s,char *dest);
-void OmfObj_import(elem *e);
-void OmfObj_dosseg();
-void OmfObj_lzext(Symbol *,Symbol *);
-void OmfObj_theadr(const(char)* modname);
-void OmfObj_segment_group(targ_size_t codesize, targ_size_t datasize, targ_size_t cdatasize, targ_size_t udatasize);
-int  OmfObj_fardata(char *name, targ_size_t size, targ_size_t *poffset);
-void OmfObj_ledata(int seg, targ_size_t offset, targ_size_t data, uint lcfd, uint idx1, uint idx2);
-void OmfObj_write_long(int seg, targ_size_t offset, uint data, uint lcfd, uint idx1, uint idx2);
-void OmfObj_reftofarseg(int seg, targ_size_t offset, targ_size_t val, int farseg, int flags);
-int  OmfObj_seg_debugT();           // where the symbolic debug type data goes
-
-/******************************************************************/
-
-int  MsCoffObj_getsegment(const(char)* sectname, uint flags);
-int  MsCoffObj_getsegment2(uint shtidx);
-uint MsCoffObj_addScnhdr(const(char)* scnhdr_name, uint flags);
-void MsCoffObj_addrel(int seg, targ_size_t offset, Symbol *targsym, uint targseg, int rtype, int val);
-int  MsCoffObj_seg_drectve();
-int  MsCoffObj_seg_pdata();
-int  MsCoffObj_seg_xdata();
-int  MsCoffObj_seg_pdata_comdat(Symbol *sfunc);
-int  MsCoffObj_seg_xdata_comdat(Symbol *sfunc);
-int  MsCoffObj_seg_debugS();
-int  MsCoffObj_seg_debugS_comdat(Symbol *sfunc);
-int  MsCoffObj_seg_debugT();           // where the symbolic debug type data goes
-
-/******************************************************************/
-
-void ElfObj_dosseg();
-size_t ElfObj_mangle(Symbol* s, char* dest);
-void ElfObj_import(elem* e);
-void ElfObj_lzext(Symbol*, Symbol*);
-void ElfObj_theadr(const(char)* modname);
-void ElfObj_segment_group(targ_size_t codesize, targ_size_t datasize, targ_size_t cdatasize, targ_size_t udatasize);
-int ElfObj_fardata(char *name, targ_size_t size, targ_size_t* poffset);
-void ElfObj_ledata(int seg, targ_size_t offset, targ_size_t data, uint lcfd, uint idx1, uint idx2);
-void ElfObj_reftofarseg(int seg, targ_size_t offset, targ_size_t val, int farseg, int flags);
-void ElfObj_gotref(Symbol* s);
-uint ElfObj_addstr(OutBuffer* strtab, const(char)*);
-Symbol* ElfObj_getGOTsym();
-void ElfObj_refGOTsym();
-int ElfObj_getsegment(const(char)* sectname, const(char)* suffix, int type, int flags, int align_);
-void ElfObj_addrel(int seg, targ_size_t offset, uint type, uint symidx, targ_size_t val);
-size_t ElfObj_writerel(int targseg, size_t offset, uint type, uint symidx, targ_size_t val);
-
-/******************************************************************/
-
-void MachObj_dosseg();
-size_t MachObj_mangle(Symbol *s,char *dest);
-void MachObj_import(elem *e);
-void MachObj_lzext(Symbol *,Symbol *);
-void MachObj_theadr(const(char)* modname);
-void MachObj_segment_group(targ_size_t codesize, targ_size_t datasize, targ_size_t cdatasize, targ_size_t udatasize);
-int MachObj_fardata(char *name, targ_size_t size, targ_size_t *poffset);
-void MachObj_ledata(int seg, targ_size_t offset, targ_size_t data, uint lcfd, uint idx1, uint idx2);
-void MachObj_reftofarseg(int seg, targ_size_t offset, targ_size_t val, int farseg, int flags);
-void MachObj_gotref(Symbol *s);
-uint MachObj_addstr(OutBuffer *strtab, const(char)* );
-Symbol* MachObj_getGOTsym();
-void MachObj_refGOTsym();
-int MachObj_getsegment(const(char)* sectname, const(char)* segname, int align_, int flags);
-void MachObj_addrel(int seg, targ_size_t offset, Symbol* targsym, uint targseg, int rtype, int val);
+import dmd.backend.cgobj;
+import dmd.backend.mscoffobj;
+import dmd.backend.elfobj;
+import dmd.backend.machobj;
 
 /******************************************************************/
 
@@ -198,17 +133,17 @@ else
 
         void initfile(const(char)* filename, const(char)* csegname, const(char)* modname)
         {
-            mixin(genRetVoid("initfile(filename, csegname, modname)"));
+            mixin(genRetVal("initfile(filename, csegname, modname)"));
         }
 
         void termfile()
         {
-            mixin(genRetVoid("termfile()"));
+            mixin(genRetVal("termfile()"));
         }
 
         void term(const(char)* objfilename)
         {
-            mixin(genRetVoid("term(objfilename)"));
+            mixin(genRetVal("term(objfilename)"));
         }
 
         size_t mangle(Symbol *s,char *dest)
@@ -225,7 +160,7 @@ else
 
         void linnum(Srcpos srcpos, int seg, targ_size_t offset)
         {
-            mixin(genRetVoid("linnum(srcpos, seg, offset)"));
+            mixin(genRetVal("linnum(srcpos, seg, offset)"));
         }
 
         int codeseg(const char *name,int suffix)
@@ -241,7 +176,7 @@ else
 
         void startaddress(Symbol *s)
         {
-            mixin(genRetVoid("startaddress(s)"));
+            mixin(genRetVal("startaddress(s)"));
         }
 
         bool includelib(const(char)* name)
@@ -261,22 +196,22 @@ else
 
         void exestr(const(char)* p)
         {
-            mixin(genRetVoid("exestr(p)"));
+            mixin(genRetVal("exestr(p)"));
         }
 
         void user(const(char)* p)
         {
-            mixin(genRetVoid("user(p)"));
+            mixin(genRetVal("user(p)"));
         }
 
-        void compiler()
+        void compiler(const(char)* p)
         {
-            mixin(genRetVoid("compiler()"));
+            mixin(genRetVal("compiler(p)"));
         }
 
         void wkext(Symbol* s1, Symbol* s2)
         {
-            mixin(genRetVoid("wkext(s1, s2)"));
+            mixin(genRetVal("wkext(s1, s2)"));
         }
 
         void lzext(Symbol* s1, Symbol* s2)
@@ -287,7 +222,7 @@ else
 
         void _alias(const(char)* n1,const(char)* n2)
         {
-            mixin(genRetVoid("alias(n1, n2)"));
+            mixin(genRetVal("alias(n1, n2)"));
         }
 
         void theadr(const(char)* modname)
@@ -304,32 +239,32 @@ else
 
         void staticctor(Symbol *s,int dtor,int seg)
         {
-            mixin(genRetVoid("staticctor(s, dtor, seg)"));
+            mixin(genRetVal("staticctor(s, dtor, seg)"));
         }
 
         void staticdtor(Symbol *s)
         {
-            mixin(genRetVoid("staticdtor(s)"));
+            mixin(genRetVal("staticdtor(s)"));
         }
 
         void setModuleCtorDtor(Symbol *s, bool isCtor)
         {
-            mixin(genRetVoid("setModuleCtorDtor(s, isCtor)"));
+            mixin(genRetVal("setModuleCtorDtor(s, isCtor)"));
         }
 
         void ehtables(Symbol *sfunc,uint size,Symbol *ehsym)
         {
-            mixin(genRetVoid("ehtables(sfunc, size, ehsym)"));
+            mixin(genRetVal("ehtables(sfunc, size, ehsym)"));
         }
 
         void ehsections()
         {
-            mixin(genRetVoid("ehsections()"));
+            mixin(genRetVal("ehsections()"));
         }
 
         void moduleinfo(Symbol *scc)
         {
-            mixin(genRetVoid("moduleinfo(scc)"));
+            mixin(genRetVal("moduleinfo(scc)"));
         }
 
         int comdat(Symbol *s)
@@ -349,7 +284,7 @@ else
 
         void setcodeseg(int seg)
         {
-            mixin(genRetVoid("setcodeseg(seg)"));
+            mixin(genRetVal("setcodeseg(seg)"));
         }
 
         seg_data *tlsseg()
@@ -375,17 +310,17 @@ else
 
         void export_symbol(Symbol *s, uint argsize)
         {
-            mixin(genRetVoid("export_symbol(s, argsize)"));
+            mixin(genRetVal("export_symbol(s, argsize)"));
         }
 
         void pubdef(int seg, Symbol *s, targ_size_t offset)
         {
-            mixin(genRetVoid("pubdef(seg, s, offset)"));
+            mixin(genRetVal("pubdef(seg, s, offset)"));
         }
 
         void pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize)
         {
-            mixin(genRetVoid("pubdefsize(seg, s, offset, symsize)"));
+            mixin(genRetVal("pubdefsize(seg, s, offset, symsize)"));
         }
 
         int external_def(const(char)* name)
@@ -415,30 +350,30 @@ else
 
         void lidata(int seg, targ_size_t offset, targ_size_t count)
         {
-            mixin(genRetVoid("lidata(seg, offset, count)"));
+            mixin(genRetVal("lidata(seg, offset, count)"));
         }
 
         void write_zeros(seg_data *pseg, targ_size_t count)
         {
-            mixin(genRetVoid("write_zeros(pseg, count)"));
+            mixin(genRetVal("write_zeros(pseg, count)"));
         }
 
         void write_byte(seg_data *pseg, uint _byte)
         {
-            mixin(genRetVoid("write_byte(pseg, _byte)"));
+            mixin(genRetVal("write_byte(pseg, _byte)"));
         }
 
-        void write_bytes(seg_data *pseg, uint nbytes, void *p)
+        void write_bytes(seg_data *pseg, uint nbytes, const(void)* p)
         {
-            mixin(genRetVoid("write_bytes(pseg, nbytes, p)"));
+            mixin(genRetVal("write_bytes(pseg, nbytes, p)"));
         }
 
         void _byte(int seg, targ_size_t offset, uint _byte)
         {
-            mixin(genRetVoid("byte(seg, offset, _byte)"));
+            mixin(genRetVal("byte(seg, offset, _byte)"));
         }
 
-        uint bytes(int seg, targ_size_t offset, uint nbytes, void *p)
+        uint bytes(int seg, targ_size_t offset, uint nbytes, const(void)* p)
         {
             mixin(genRetVal("bytes(seg, offset, nbytes, p)"));
         }
@@ -451,7 +386,7 @@ else
 
         void reftodatseg(int seg, targ_size_t offset, targ_size_t val, uint targetdatum, int flags)
         {
-            mixin(genRetVoid("reftodatseg(seg, offset, val, targetdatum, flags)"));
+            mixin(genRetVal("reftodatseg(seg, offset, val, targetdatum, flags)"));
         }
 
         void reftofarseg(int seg, targ_size_t offset, targ_size_t val, int farseg, int flags)
@@ -462,7 +397,7 @@ else
 
         void reftocodeseg(int seg, targ_size_t offset, targ_size_t val)
         {
-            mixin(genRetVoid("reftocodeseg(seg, offset, val)"));
+            mixin(genRetVal("reftocodeseg(seg, offset, val)"));
         }
 
         int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val, int flags)
@@ -472,12 +407,12 @@ else
 
         void far16thunk(Symbol *s)
         {
-            mixin(genRetVoid("far16thunk(s)"));
+            mixin(genRetVal("far16thunk(s)"));
         }
 
         void fltused()
         {
-            mixin(genRetVoid("fltused()"));
+            mixin(genRetVal("fltused()"));
         }
 
         int data_readonly(char *p, int len, int *pseg)
@@ -502,17 +437,17 @@ else
 
         void func_start(Symbol *sfunc)
         {
-            mixin(genRetVoid("func_start(sfunc)"));
+            mixin(genRetVal("func_start(sfunc)"));
         }
 
         void func_term(Symbol *sfunc)
         {
-            mixin(genRetVoid("func_term(sfunc)"));
+            mixin(genRetVal("func_term(sfunc)"));
         }
 
         void write_pointerRef(Symbol* s, uint off)
         {
-            mixin(genRetVoid("write_pointerRef(s, off)"));
+            mixin(genRetVal("write_pointerRef(s, off)"));
         }
 
         int jmpTableSegment(Symbol* s)
@@ -678,8 +613,7 @@ else
     }
 }
 
-
-extern __gshared Obj objmod;
+public import dmd.backend.var : objmod;
 
 /*****************************************
  * Use to generate 4 function declarations, one for
@@ -702,87 +636,41 @@ string ObjMemDecl(string pattern)
 
 /****************************************
  * Generate boilerplate for static dispatch that
- * returns a void.
- * Params:
- *      arg = string to insert where ever there's a '$'
- * Returns:
- *      mixin string with static dispatch
- */
-private extern (D)
-string genRetVoid(string arg)
-{
-    string pattern =
-    "
-        switch (config.objfmt)
-        {
-            case OBJ_ELF:       ElfObj_$; break;
-            case OBJ_MSCOFF: MsCoffObj_$; break;
-            case OBJ_OMF:       OmfObj_$; break;
-            case OBJ_MACH:     MachObj_$; break;
-            default:     assert(0);
-        }
-    ";
-    return gen(pattern, arg);
-}
-
-/****************************************
- * Generate boilerplate for static dispatch that
  * returns a value. Don't care about type of the value.
  * Params:
- *      arg = string to insert where ever there's a '$'
+ *      arg = function name to be dispatched based on `objfmt`
  * Returns:
  *      mixin string with static dispatch
  */
 private extern (D)
 string genRetVal(string arg)
 {
-    string pattern =
+    return
     "
         switch (config.objfmt)
         {
-            case OBJ_ELF:    return    ElfObj_$;
-            case OBJ_MSCOFF: return MsCoffObj_$;
-            case OBJ_OMF:    return    OmfObj_$;
-            case OBJ_MACH:   return   MachObj_$;
+            case OBJ_ELF:    return    ElfObj_"~arg~";
+            case OBJ_MSCOFF: return MsCoffObj_"~arg~";
+            case OBJ_OMF:    return    OmfObj_"~arg~";
+            case OBJ_MACH:   return   MachObj_"~arg~";
             default:     assert(0);
         }
     ";
-    return gen(pattern, arg);
 }
 
 /****************************************
- * Generate boilerplate that replaces '$' in pattern with `arg`
+ * Generate boilerplate that replaces the single '$' in `pattern` with `arg`
  * Params:
  *      pattern = pattern to scan for '$'
- *      arg = string to insert where ever '$' is found
+ *      arg = string to insert where '$' is found
  * Returns:
  *      boilerplate string
  */
 private extern (D)
 string gen(string pattern, string arg)
 {
-    size_t count;               // number of '$' in pattern
-    foreach (c; pattern)
-        count += (c == '$');
-
-    // length of result
-    const length = pattern.length - count + arg.length * count;
-
-    char[] result = new char[length];
-    size_t i;
-    foreach (c; pattern)
-    {
-        if (c == '$')
-        {
-            result[i .. i + arg.length] = arg[]; // substitution
-            i += arg.length;
-        }
-        else
-        {
-            result[i] = c;
-            ++i;
-        }
-    }
-    assert(i == length);
-    return cast(string)result;
+    foreach (i; 0 .. pattern.length)
+        if (pattern[i] == '$')
+            return pattern[0 .. i] ~ arg ~ pattern[i + 1 .. $];
+    assert(0);
 }

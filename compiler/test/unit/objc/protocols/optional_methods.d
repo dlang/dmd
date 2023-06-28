@@ -5,7 +5,7 @@ module objc.protocols.optional_methods;
 
 version (D_ObjectiveC):
 
-import dmd.globals : Loc;
+import dmd.location;
 
 import support : afterEach, beforeEach, compiles, stripDelimited, Diagnostic;
 
@@ -129,10 +129,10 @@ unittest
         }
     }.stripDelimited;
 
-    enum loc = Loc(filename, 5, 20);
+    Loc loc = Loc(filename, 5, 20);
     enum message = "Error: function test.Foo.foo only functions with Objective-C linkage can be declared as optional";
     enum supplemental = "function is declared with D linkage";
-    enum expected = [Diagnostic(loc, message), Diagnostic(loc, supplemental)];
+    auto expected = [Diagnostic(loc, message), Diagnostic(loc, supplemental)];
 
     const diagnostics = compiles(code, filename);
     assert(diagnostics == expected, "\n" ~ diagnostics.toString);
@@ -154,9 +154,9 @@ unittest
         }
     }.stripDelimited;
 
-    enum loc = Loc(filename, 6, 30);
+    Loc loc = Loc(filename, 6, 30);
     enum message = "Error: function test.Foo.foo can only declare a function as optional once";
-    enum expected = Diagnostic(loc, message);
+    auto expected = Diagnostic(loc, message);
 
     const diagnostics = compiles(code, filename);
     assert(diagnostics == [expected], "\n" ~ diagnostics.toString);
@@ -184,9 +184,9 @@ unittest
         }
     }.stripDelimited;
 
-    enum loc = Loc(filename, 6, 20);
+    Loc loc = Loc(filename, 6, 20);
 
-    enum expected = [
+    auto expected = [
         Diagnostic(
             Loc(filename, 6, 20),
             "Error: function test.Foo.foo!().foo template cannot be optional"
@@ -223,10 +223,10 @@ unittest
         }
     }.stripDelimited;
 
-    enum loc = Loc(filename, 6, 20);
+    Loc loc = Loc(filename, 6, 20);
     enum message = "Error: function test.Foo.foo only functions declared inside interfaces can be optional";
     enum supplemental = "function is declared inside class";
-    enum expected = [Diagnostic(loc, message), Diagnostic(loc, supplemental)];
+    auto expected = [Diagnostic(loc, message), Diagnostic(loc, supplemental)];
 
     const diagnostics = compiles(code, filename);
     assert(diagnostics == expected, "\n" ~ diagnostics.toString);

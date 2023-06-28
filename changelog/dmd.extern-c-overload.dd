@@ -1,0 +1,23 @@
+Overloading `extern(C)` functions is now an error
+
+Since 2.095.0, defining the same function multiple times in a module is not allowed, since it would result in symbol clashes at link time.
+Overloading a function with different parameter types is still allowed of course, and works because D mangles symbol names including parameter types.
+However, some external linkages (such as `extern(C)`, `extern(Windows)`) don't do this, so overloading them can also result in symbol clashes at link time.
+Therefore, doing this was deprecated in that release as well.
+
+This deprecation now turned into an error.
+As a corrective action, give the function D or C++ linkage, or use a unique function name.
+
+---
+// Error:
+extern(C) float square(float x) { return x * x; }
+extern(C) double square(double x) { return x * x; }
+
+// Corrective action:
+extern(C) float squaref(float x) { return x * x; }
+extern(C) double squared(double x) { return x * x; }
+
+// Or:
+float square(float x) { return x * x; }
+double square(double x) { return x * x; }
+---

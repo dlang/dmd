@@ -1,7 +1,7 @@
 /**
  * Break down a D type into basic (register) types for the 32-bit x86 ABI.
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/argtypes_x86.d, _argtypes_x86.d)
@@ -17,6 +17,7 @@ import core.checkedint;
 import dmd.astenums;
 import dmd.declaration;
 import dmd.globals;
+import dmd.location;
 import dmd.mtype;
 import dmd.target;
 import dmd.visitor;
@@ -275,7 +276,7 @@ extern (C++) TypeTuple toArgTypes_x86(Type t)
             /*****
              * Get the nth element of this array.
              * Params:
-             *   n = element number, from 0..dim
+             *   n = element number, from 0..length
              *   offset = set to offset of the element from the start of the array
              *   alignsize = set to the aligned size of the element
              * Returns:
@@ -315,7 +316,7 @@ extern (C++) TypeTuple toArgTypes_x86(Type t)
                 return field.type;
             }
 
-            aggregate(t.size(Loc.initial), t.sym.fields.dim, &getNthField);
+            aggregate(t.size(Loc.initial), t.sym.fields.length, &getNthField);
         }
 
         /*******************
@@ -364,7 +365,7 @@ extern (C++) TypeTuple toArgTypes_x86(Type t)
                 uint falignsize;
                 Type ftype = getFieldInfo(0, foffset, falignsize);
                 TypeTuple tup = toArgTypes_x86(ftype);
-                if (tup && tup.arguments.dim == 1)
+                if (tup && tup.arguments.length == 1)
                 {
                     Type ft1 = (*tup.arguments)[0].type;
                     if (ft1.ty == Tfloat32 || ft1.ty == Tfloat64)

@@ -2,7 +2,7 @@
  * Code to do the Data Flow Analysis (doesn't act on the data).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/gflow.d, backend/gflow.d)
@@ -11,14 +11,6 @@
  */
 
 module dmd.backend.gflow;
-
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -53,10 +45,22 @@ char symbol_isintab(const Symbol* s) { return sytab[s.Sclass] & SCSS; }
 void util_free(void* p) { if (p) free(p); }
 
 @trusted
-void *util_calloc(uint n, uint size) { void* p = calloc(n, size); assert(!(n * size) || p); return p; }
+void *util_calloc(uint n, uint size)
+{
+    void* p = calloc(n, size);
+    if (n * size && !p)
+        err_nomem();
+    return p;
+}
 
 @trusted
-void *util_realloc(void* p, size_t n, size_t size) { void* q = realloc(p, n * size); assert(!(n * size) || q); return q; }
+void *util_realloc(void* p, size_t n, size_t size)
+{
+    void* q = realloc(p, n * size);
+    if (n * size && !q)
+        err_nomem();
+    return q;
+}
 
 extern (C++):
 
@@ -1953,6 +1957,4 @@ private void accumvbe(vec_t GEN,vec_t KILL,elem *n)
         } /* if */
         vec_subass(KILL,GEN);
     } /* if */
-}
-
 }

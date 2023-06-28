@@ -7,7 +7,7 @@
  * Compute common subexpressions for non-optimized builds.
  *
  * Copyright:   Copyright (C) 1985-1995 by Symantec
- *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgcs.d
@@ -15,12 +15,6 @@
  */
 
 module dmd.backend.cgcs;
-
-version (SPP)
-{
-}
-else
-{
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -50,12 +44,6 @@ nothrow:
 public extern (C++) void comsubs()
 {
     debug if (debugx) printf("comsubs(%p)\n",startblock);
-
-    version (SCPP)
-    {
-        if (errcnt)
-            return;
-    }
 
     comsubs2(startblock, cgcsdata);
 
@@ -617,29 +605,29 @@ void touchlvalue(ref CGCS cgcs, const elem* e)
     }
     switch (e.EV.Vsym.Sclass)
     {
-        case SCregpar:
-        case SCregister:
-        case SCpseudo:
+        case SC.regpar:
+        case SC.register:
+        case SC.pseudo:
             break;
 
-        case SCauto:
-        case SCparameter:
-        case SCfastpar:
-        case SCshadowreg:
-        case SCbprel:
+        case SC.auto_:
+        case SC.parameter:
+        case SC.fastpar:
+        case SC.shadowreg:
+        case SC.bprel:
             if (e.EV.Vsym.Sflags & SFLunambig)
                 break;
-            goto case SCstatic;
+            goto case SC.static_;
 
-        case SCstatic:
-        case SCextern:
-        case SCglobal:
-        case SClocstat:
-        case SCcomdat:
-        case SCinline:
-        case SCsinline:
-        case SCeinline:
-        case SCcomdef:
+        case SC.static_:
+        case SC.extern_:
+        case SC.global:
+        case SC.locstat:
+        case SC.comdat:
+        case SC.inline:
+        case SC.sinline:
+        case SC.einline:
+        case SC.comdef:
             touchstar(cgcs);
             break;
 
@@ -746,6 +734,4 @@ void touchaccess(ref Barray!HCS hcstab, const elem *ev) pure nothrow
         if (e && (e.Eoper == OPvp_fp || e.Eoper == OPcvp_fp) && e.EV.E1 != ev1)
             hcs.Helem = null;
     }
-}
-
 }

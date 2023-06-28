@@ -1,7 +1,7 @@
 /**
  * Glue code for Objective-C interop.
  *
- * Copyright:   Copyright (C) 2015-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2015-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/objc_glue.d, _objc_glue.d)
@@ -518,9 +518,9 @@ static:
      *
      * Allows to pass the name of the symbol as a D string.
      */
-    Symbol* symbolName(const(char)[] name, int sclass, type* t)
+    Symbol* symbolName(const(char)[] name, SC sclass, type* t)
     {
-        return symbol_name(name.ptr, cast(uint) name.length, sclass, t);
+        return symbol_name(name, sclass, t);
     }
 
     /**
@@ -534,7 +534,7 @@ static:
      */
     Symbol* getGlobal(const(char)[] name, type* t = type_fake(TYnptr))
     {
-        return symbolName(name, SCglobal, t);
+        return symbolName(name, SC.global, t);
     }
 
     /**
@@ -548,7 +548,7 @@ static:
      */
     Symbol* getStatic(const(char)[] name, type* t = type_fake(TYnptr))
     {
-        return symbolName(name, SCstatic, t);
+        return symbolName(name, SC.static_, t);
     }
 
     Symbol* getCString(const(char)[] str, const(char)[] symbolName, Segments.Id segment)
@@ -617,7 +617,7 @@ static:
         dtb.dword(0); // version
         dtb.dword(64); // flags
 
-        imageInfo = symbol_name("L_OBJC_IMAGE_INFO", SCstatic, type_allocn(TYarray, tstypes[TYchar]));
+        imageInfo = symbol_name("L_OBJC_IMAGE_INFO", SC.static_, type_allocn(TYarray, tstypes[TYchar]));
         imageInfo.Sdt = dtb.finish();
         imageInfo.Sseg = Segments[Segments.Id.imageinfo];
         outdata(imageInfo);
@@ -638,7 +638,7 @@ static:
         foreach (c; categories)
             dtb.xoff(getClassName(c), 0);
 
-        Symbol* symbol = symbol_name("L_OBJC_LABEL_CLASS_$", SCstatic, type_allocn(TYarray, tstypes[TYchar]));
+        Symbol* symbol = symbol_name("L_OBJC_LABEL_CLASS_$", SC.static_, type_allocn(TYarray, tstypes[TYchar]));
         symbol.Sdt = dtb.finish();
         symbol.Sseg = Segments[Segments.Id.classlist];
         outdata(symbol);
@@ -716,9 +716,9 @@ static:
 
             // create symbol
             __gshared size_t selectorCount = 0;
-            char[42] nameString;
-            sprintf(nameString.ptr, "L_OBJC_SELECTOR_REFERENCES_%llu", cast(ulong) selectorCount);
-            auto symbol = symbol_name(nameString.ptr, SCstatic, type_fake(TYnptr));
+            char[42] nameString = void;
+            const len = snprintf(nameString.ptr, nameString.length, "L_OBJC_SELECTOR_REFERENCES_%llu", cast(ulong) selectorCount);
+            auto symbol = symbol_name(nameString[0 .. len], SC.static_, type_fake(TYnptr));
 
             symbol.Sdt = dtb.finish();
             symbol.Sseg = seg;
@@ -1309,7 +1309,7 @@ struct ProtocolDeclaration
 
             auto symbol = Symbols.getGlobal(symbolName, type);
             symbol.Sseg = Segments[Segments.Id.protolist];
-            symbol.Sclass = SCcomdat;
+            symbol.Sclass = SC.comdat;
             symbol.Sflags |= SFLhidden;
             symbol.Salignment = 3;
 
@@ -1324,7 +1324,7 @@ struct ProtocolDeclaration
 
         auto symbol = Symbols.getGlobal(symbolName, type);
         symbol.Sseg = Segments[Segments.Id.data];
-        symbol.Sclass = SCcomdat;
+        symbol.Sclass = SC.comdat;
         symbol.Sflags |= SFLhidden;
         symbol.Salignment = 3;
 

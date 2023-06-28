@@ -117,18 +117,18 @@ static assert(is( X!( Ei, Ei ) == Ei ));
 static assert(is( X!( Ei, const(Ei) ) == const(Ei) ));
 static assert(is( X!( Ei, immutable(Ei) ) == const(Ei) ));
 static assert(is( X!( Eb, Eb ) == Eb ));
-static assert(is( X!( Eb, const(Eb) ) == int ));
-static assert(is( X!( Eb, immutable(Eb) ) == int ));
+static assert(is( X!( Eb, const(Eb) ) == const(Eb) ));
+static assert(is( X!( Eb, immutable(Eb) ) == const(Eb) ));
 static assert(is( X!( Ei, Eb ) == int ));
 static assert(is( X!( Ei, const(Eb) ) == int ));
 static assert(is( X!( Ei, immutable(Eb) ) == int ));
 
 static assert(is( X!( Ec, Ec ) == Ec ));
-static assert(is( X!( Ec, const(Ec) ) == const(char) ));
-static assert(is( X!( Ec, immutable(Ec) ) == const(char) ));
+static assert(is( X!( Ec, const(Ec) ) == const(Ec) ));
+static assert(is( X!( Ec, immutable(Ec) ) == const(Ec) ));
 static assert(is( X!( Ew, Ew ) == Ew ));
-static assert(is( X!( Ew, const(Ew) ) == const(wchar) ));
-static assert(is( X!( Ew, immutable(Ew) ) == const(wchar) ));
+static assert(is( X!( Ew, const(Ew) ) == const(Ew) ));
+static assert(is( X!( Ew, immutable(Ew) ) == const(Ew) ));
 static assert(is( X!( Ew, Ec ) == dchar ));
 static assert(is( X!( Ew, const(Ec) ) == dchar ));
 static assert(is( X!( Ew, immutable(Ec) ) == dchar ));
@@ -151,19 +151,19 @@ static assert(Error!( uint*, int* ));
 static assert(is( X!( int function(), int function() ) == int function() ));
 
 // void pointer
-static assert(is( X!( void*, int* ) == int* ));
-static assert(is( X!( int*, void* ) == int* ));
-static assert(is( X!( const(int)*, void* ) == const(int)* ));
-static assert(is( X!( const(int*), void* ) == const(int*) ));
-static assert(is( X!( int*, const(void)* ) == int* )); // `const`
-static assert(is( X!( int*, const(void*) ) == int* )); // `const`
-static assert(is( X!( int*, shared(void*) ) == int* )); // should fail
-static assert(is( X!( int*, shared(void)* ) == int* )); // should fail
+static assert(is( X!( void*, int* ) == void* ));
+static assert(is( X!( int*, void* ) == void* ));
+static assert(is( X!( const(int)*, void* ) == void* ));
+static assert(is( X!( const(int*), void* ) == void* ));
+static assert(is( X!( int*, const(void)* ) == const(void)* )); // `const`
+static assert(is( X!( int*, const(void*) ) == const(void*) )); // `const`
+static assert(is( X!( int*, shared(void*) ) == shared(void*) )); // should fail
+static assert(is( X!( int*, shared(void)* ) == shared(void)* )); // should fail
 
 static assert(Error!( int**, void** )); // should work
 
-static assert(is( X!( void*, int function() ) == int function() ));
-static assert(is( X!( immutable(void*), int function() ) == int function() )); // `const`
+static assert(is( X!( void*, int function() ) == void* ));
+static assert(is( X!( immutable(void*), int function() ) == immutable(void*) )); // `const`
 
 // implicit conversion
 static assert(is( X!( int*, const(int*) ) == const(int*) ));

@@ -2,7 +2,7 @@
  * Instruction tables for inline assembler.
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/ptrntab.d, backend/ptrntab.d)
  * Documentation:  https://dlang.org/phobos/dmd_backend_ptrntab.html
@@ -11,18 +11,8 @@
 
 module dmd.backend.ptrntab;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.stdio;
 import core.stdc.string;
-
-version (SCPP) extern (C) char* strlwr(return char* s);
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
@@ -5823,9 +5813,6 @@ extern (C++) OP *asm_op_lookup(const(char)* s)
         return null;
     strcpy(szBuf.ptr,s);
 
-    version (SCPP)
-        strlwr(szBuf.ptr);
-
     i = binary(szBuf.ptr,optab);
     return (i == -1) ? null : cast(OP*)&optab[i];
 }
@@ -5840,7 +5827,7 @@ private int binary(const(char)* p, const OP[] table)
 
     while (low <= high)
     {
-        const mid = (low + high) >> 1;
+        const mid = low + ((high - low) >> 1);
         int cond = table[mid].str[0] - cp;
         if (cond == 0)
             cond = strcmp(table[mid].str.ptr + 1,p);
@@ -5852,7 +5839,4 @@ private int binary(const(char)* p, const OP[] table)
             return cast(int)mid;                 /* match index                  */
     }
     return -1;
-}
-
-
 }

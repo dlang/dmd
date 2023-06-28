@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -72,6 +72,7 @@ class ExpressionDsymbol;
 class AliasAssign;
 class OverloadSet;
 class StaticAssert;
+class StaticIfDeclaration;
 struct AA;
 #ifdef IN_GCC
 typedef union tree_node Symbol;
@@ -85,6 +86,13 @@ struct Ungag
 
     Ungag(unsigned old) : oldgag(old) {}
     ~Ungag() { global.gag = oldgag; }
+};
+
+enum class ThreeState : uint8_t
+{
+    none,         // value not yet computed
+    no,           // value is false
+    yes,          // value is true
 };
 
 void dsymbolSemantic(Dsymbol *dsym, Scope *sc);
@@ -164,32 +172,38 @@ struct FieldState
     unsigned fieldAlign;
     unsigned bitOffset;
 
-    bool inFlight;
+    d_bool inFlight;
 };
+
+struct DsymbolAttributes;
 
 class Dsymbol : public ASTNode
 {
 public:
     Identifier *ident;
     Dsymbol *parent;
-    /// C++ namespace this symbol belongs to
-    CPPNamespaceDeclaration *namespace_;
     Symbol *csym;               // symbol for code generator
     Loc loc;                    // where defined
     Scope *_scope;               // !=NULL means context to use for semantic()
     const utf8_t *prettystring;
-    bool errors;                // this symbol failed to pass semantic()
+private:
+    DsymbolAttributes* atts;
+public:
+    d_bool errors;                // this symbol failed to pass semantic()
     PASS semanticRun;
     unsigned short localNum;        // perturb mangled name to avoid collisions with those in FuncDeclaration.localsymtab
-    DeprecatedDeclaration *depdecl; // customized deprecation message
-    UserAttributeDeclaration *userAttribDecl;   // user defined attributes
-
     static Dsymbol *create(Identifier *);
     const char *toChars() const override;
+    DeprecatedDeclaration* depdecl();
+    CPPNamespaceDeclaration* cppnamespace();
+    UserAttributeDeclaration* userAttribDecl();
+    DeprecatedDeclaration* depdecl(DeprecatedDeclaration* dd);
+    CPPNamespaceDeclaration* cppnamespace(CPPNamespaceDeclaration* ns);
+    UserAttributeDeclaration* userAttribDecl(UserAttributeDeclaration* uad);
     virtual const char *toPrettyCharsHelper(); // helper to print fully qualified (template) arguments
     Loc getLoc();
     const char *locToChars();
-    bool equals(const RootObject *o) const override;
+    bool equals(const RootObject * const o) const override;
     bool isAnonymous() const;
     void error(const Loc &loc, const char *format, ...);
     void error(const char *format, ...);
@@ -244,7 +258,6 @@ public:
     virtual void setFieldOffset(AggregateDeclaration *ad, FieldState& fieldState, bool isunion);
     virtual bool hasPointers();
     virtual bool hasStaticCtorOrDtor();
-    virtual void addLocalClass(ClassDeclarations *) { }
     virtual void addObjcSymbols(ClassDeclarations *, ClassDeclarations *) { }
     virtual void checkCtorConstInit() { }
 
@@ -308,8 +321,9 @@ public:
     virtual CPPNamespaceDeclaration *isCPPNamespaceDeclaration() { return NULL; }
     virtual VisibilityDeclaration *isVisibilityDeclaration() { return NULL; }
     virtual OverloadSet *isOverloadSet() { return NULL; }
-    virtual CompileDeclaration *isCompileDeclaration() { return NULL; }
+    virtual MixinDeclaration *isMixinDeclaration() { return NULL; }
     virtual StaticAssert *isStaticAssert() { return NULL; }
+    virtual StaticIfDeclaration *isStaticIfDeclaration() { return NULL; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 

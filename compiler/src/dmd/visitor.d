@@ -1,7 +1,7 @@
 /**
  * Provides a visitor class visiting all AST nodes present in the compiler.
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/visitor.d, _visitor.d)
@@ -89,6 +89,7 @@ public:
     void visit(ASTCodegen.ClassReferenceExp e) { visit(cast(ASTCodegen.Expression)e); }
     void visit(ASTCodegen.VoidInitExp e) { visit(cast(ASTCodegen.Expression)e); }
     void visit(ASTCodegen.ThrownExceptionExp e) { visit(cast(ASTCodegen.Expression)e); }
+    void visit(ASTCodegen.LoweredAssignExp e) { visit(cast(ASTCodegen.AssignExp)e); }
 }
 
 /**
@@ -152,7 +153,7 @@ extern (C++) class SemanticTimeTransitiveVisitor : SemanticTimePermissiveVisitor
         // need to avoid infinite recursion.
         if (!(e.stageflags & stageToCBuffer))
         {
-            int old = e.stageflags;
+            const old = e.stageflags;
             e.stageflags |= stageToCBuffer;
             foreach (el; *e.elements)
                 if (el)
@@ -240,6 +241,12 @@ extern (C++) class SemanticTimeTransitiveVisitor : SemanticTimePermissiveVisitor
         e.e1.accept(this);
         e.e2.accept(this);
     }
+
+    override void visit(ASTCodegen.LoweredAssignExp e)
+    {
+        e.lowering.accept(this);
+        visit(cast(AssignExp)e);
+    }
 }
 
 extern (C++) class StoppableVisitor : Visitor
@@ -248,7 +255,7 @@ extern (C++) class StoppableVisitor : Visitor
 public:
     bool stop;
 
-    final extern (D) this()
+    final extern (D) this() scope
     {
     }
 }

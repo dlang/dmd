@@ -4,21 +4,13 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2011-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2011-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgxmm.d, backend/cgxmm.d)
  */
 
 module dmd.backend.cgxmm;
-
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -36,18 +28,13 @@ import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.xmm;
 
-version (SCPP)
-    import dmd.backend.exh;
-version (MARS)
-    import dmd.backend.errors;
+import dmd.backend.errors;
 
 
 extern (C++):
 
 nothrow:
 @safe:
-
-int REGSIZE();
 
 uint mask(uint m);
 
@@ -69,18 +56,68 @@ bool isXMMstore(opcode_t op)
 
 /*******************************************
  * Move constant value into xmm register xreg.
+ * Params:
+ *      cdb = generated code appends to this
+ *      xreg = XMM register to load
+ *      sz = number of bytes to load
+ *      pev = pointer to const value
+ *      flags = if set flags based on value
  */
 
 @trusted
-private void movxmmconst(ref CodeBuilder cdb, reg_t xreg, uint sz, targ_size_t value, regm_t flags)
+void movxmmconst(ref CodeBuilder cdb, reg_t xreg, tym_t ty, eve* pev, regm_t flags)
 {
+    //printf("movxmmconst() %s ty: %s value: %lld\n", regm_str(mask(xreg)), tym_str(ty), pev.Vllong);
+
+    const sz = tysize(ty);
+    assert(mask(xreg) & XMMREGS);
+    if (sz == 16 || sz == 32)
+    {
+        if (sz == 16 &&
+                 pev.Vllong2[0] == 0 && pev.Vllong2[1] == 0)
+            cdb.gen2(PXOR,modregxrmx(3,xreg-XMM0,xreg-XMM0));       // PXOR xreg,xreg
+        else if (sz == 32 &&
+                 pev.Vllong4[0] == 0 && pev.Vllong4[1] == 0 &&
+                 pev.Vllong4[2] == 0 && pev.Vllong4[3] == 0)
+            cdb.gen2(PXOR,modregxrmx(3,xreg-XMM0,xreg-XMM0));       // PXOR xreg,xreg
+        else if (sz == 16 &&
+                 pev.Vllong2[0] == ~0 && pev.Vllong2[1] == ~0)
+            cdb.gen2(PCMPEQD,modregxrmx(3,xreg-XMM0,xreg-XMM0));    // PCMPEQD xreg,xreg
+        else if (sz == 32 &&
+                 pev.Vllong4[0] == ~0 && pev.Vllong4[1] == ~0 &&
+                 pev.Vllong4[2] == ~0 && pev.Vllong4[3] == ~0)
+            cdb.gen2(PCMPEQQ,modregxrmx(3,xreg-XMM0,xreg-XMM0));    // PCMPEQQ xreg,xreg
+        else
+            assert(0);
+        tym_t tyx = sz == 16 ? TYllong2 : TYllong4;
+        checkSetVex(cdb.last(), tyx);
+        return;
+    }
+
     /* Generate:
      *    MOV reg,value
      *    MOV xreg,reg
-     * Not so efficient. We should at least do a PXOR for 0.
      */
-    assert(mask(xreg) & XMMREGS);
     assert(sz == 4 || sz == 8);
+    targ_size_t value = pev.Vint;
+    if (sz == 8)
+        value = cast(targ_size_t)pev.Vullong;
+
+    if (value == 0)
+    {
+        if (ty == TYfloat || ty == TYifloat)
+        {
+            cdb.gen2(XORPS,modregxrmx(3,xreg-XMM0,xreg-XMM0));       // XORPS xreg,xreg
+            return;
+        }
+        else if (ty == TYdouble || ty == TYidouble)
+        {
+            cdb.gen2(XORPD,modregxrmx(3,xreg-XMM0,xreg-XMM0));       // XORPD xreg,xreg
+            return;
+        }
+    }
+
+
     if (I32 && sz == 8)
     {
         reg_t r;
@@ -159,10 +196,11 @@ void orthxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
             reg_t sreg; // hold sign bit
             const uint sz = tysize(e1.Ety);
             allocreg(cdb,&nretregs,&sreg,e2.Ety);
-            targ_size_t signbit = 0x80000000;
+            eve signbit;
+            signbit.Vint = 0x80000000;
             if (sz == 8)
-                signbit = cast(targ_size_t)0x8000000000000000L;
-            movxmmconst(cdb,sreg, sz, signbit, 0);
+                signbit.Vllong = 0x8000_0000_0000_0000;
+            movxmmconst(cdb,sreg, e1.Ety, &signbit, 0);
             getregs(cdb,nretregs);
             const opcode_t xop = (sz == 8) ? XORPD : XORPS;       // XORPD/S rreg,sreg
             cdb.gen2(xop,modregxrmx(3,rreg-XMM0,sreg-XMM0));
@@ -187,7 +225,7 @@ void orthxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     /* We should take advantage of mem addressing modes for OP XMM,MEM
      * but we do not at the moment.
      */
-    if (OTrel(e.Eoper))
+    if (OTrel(e.Eoper) && !tyvector(tybasic(e.Ety)))
     {
         cdb.gen2(op,modregxrmx(3,rreg-XMM0,reg-XMM0));
         checkSetVex(cdb.last(), e1.Ety);
@@ -196,6 +234,24 @@ void orthxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 
     getregs(cdb,retregs);
     cdb.gen2(op,modregxrmx(3,reg-XMM0,rreg-XMM0));
+    if (op == CMPPS || op == CMPPD)
+    {
+        // https://www.felixcloutier.com/x86/cmpps
+        ubyte imm8;
+        switch (e.Eoper)
+        {
+            case OPeqeq: imm8 = 0; break;
+            case OPlt:   imm8 = 1; break;
+            case OPle:   imm8 = 2; break;
+            case OPne:   imm8 = 4; break;
+            default:
+                elem_print(e);
+                assert(0);  // not doing the unordered compares
+        }
+        code* c = cdb.last();
+        c.IFL2 = FLconst;
+        c.IEV2.Vsize_t = imm8;
+    }
     checkSetVex(cdb.last(), e1.Ety);
     if (retregs != *pretregs)
         fixresult(cdb,e,retregs,pretregs);
@@ -660,10 +716,13 @@ void xmmneg(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     regm_t rretregs = XMMREGS & ~retregs;
     reg_t rreg;
     allocreg(cdb,&rretregs,&rreg,tyml);
-    targ_size_t signbit = 0x80000000;
+
+    eve signbit;
+    signbit.Vint = 0x80000000;
     if (sz == 8)
-        signbit = cast(targ_size_t)0x8000000000000000L;
-    movxmmconst(cdb,rreg, sz, signbit, 0);
+        signbit.Vllong = 0x8000_0000_0000_0000;
+
+    movxmmconst(cdb,rreg, tyml, &signbit, 0);
 
     getregs(cdb,retregs);
     const op = (sz == 8) ? XORPD : XORPS;       // XORPD/S reg,rreg
@@ -699,10 +758,12 @@ void xmmabs(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     regm_t rretregs = XMMREGS & ~retregs;
     reg_t rreg;
     allocreg(cdb,&rretregs,&rreg,tyml);
-    targ_size_t mask = 0x7FFF_FFFF;
+
+    eve mask;
+    mask.Vint = 0x7FFF_FFFF;
     if (sz == 8)
-        mask = cast(targ_size_t)0x7FFF_FFFF_FFFF_FFFFL;
-    movxmmconst(cdb,rreg, sz, mask, 0);
+        mask.Vllong = 0x7FFF_FFFF_FFFF_FFFFL;
+    movxmmconst(cdb, rreg, tyml, &mask, 0);
 
     getregs(cdb,retregs);
     const op = (sz == 8) ? ANDPD : ANDPS;       // ANDPD/S reg,rreg
@@ -720,7 +781,7 @@ void xmmabs(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-opcode_t xmmload(tym_t tym, bool aligned)
+opcode_t xmmload(tym_t tym, bool aligned = true)
 {
     opcode_t op;
     if (tysize(tym) == 32)
@@ -773,7 +834,7 @@ opcode_t xmmload(tym_t tym, bool aligned)
  */
 
 @trusted
-opcode_t xmmstore(tym_t tym, bool aligned)
+opcode_t xmmstore(tym_t tym, bool aligned = true)
 {
     opcode_t op;
     switch (tybasic(tym))
@@ -1029,12 +1090,58 @@ private opcode_t xmmoperator(tym_t tym, OPER oper)
             }
             break;
 
+        case OPgt:
+            switch (tym)
+            {
+                case TYschar32:
+                case TYuchar32:
+                case TYschar16:
+                case TYuchar16: op = PCMPGTB;  break;
+                case TYshort16:
+                case TYushort16:
+                case TYshort8:
+                case TYushort8: op = PCMPGTW;  break;
+                case TYlong8:
+                case TYulong8:
+                case TYlong4:
+                case TYulong4:  op = PCMPGTD;  break;
+                case TYllong4:
+                case TYullong4:
+                case TYllong2:
+                case TYullong2: op = PCMPGTQ;  break;
+                default:
+                    goto Lfloatcmp;
+            }
+            break;
+
+        case OPeqeq:
+            switch (tym)
+            {
+                case TYschar32:
+                case TYuchar32:
+                case TYschar16:
+                case TYuchar16: op = PCMPEQB;  break;
+                case TYshort16:
+                case TYushort16:
+                case TYshort8:
+                case TYushort8: op = PCMPEQW;  break;
+                case TYlong8:
+                case TYulong8:
+                case TYlong4:
+                case TYulong4:  op = PCMPEQD;  break;
+                case TYllong4:
+                case TYullong4:
+                case TYllong2:
+                case TYullong2: op = PCMPEQQ;  break;
+                default:
+                    goto Lfloatcmp;
+            }
+            break;
+
         case OPlt:
         case OPle:
-        case OPgt:
         case OPge:
         case OPne:
-        case OPeqeq:
         case OPunord:        /* !<>=         */
         case OPlg:           /* <>           */
         case OPleg:          /* <>=          */
@@ -1055,6 +1162,7 @@ private opcode_t xmmoperator(tym_t tym, OPER oper)
         case OPnuge:
         case OPnug:
         case OPnue:
+        Lfloatcmp:
             switch (tym)
             {
                 case TYfloat:
@@ -1062,6 +1170,13 @@ private opcode_t xmmoperator(tym_t tym, OPER oper)
                 case TYdouble:
                 case TYidouble: op = UCOMISD;  break;
 
+                case TYfloat4:
+                case TYfloat8:
+                case TYfloat16: op = CMPPS;    break;
+
+                case TYdouble2:
+                case TYdouble4:
+                case TYdouble8: op = CMPPD;    break;
                 default:        assert(0);
             }
             break;
@@ -1246,9 +1361,8 @@ static if (0)
             case SHUFPD:  case SHUFPS:
                 if (n == 3)
                 {
-                    version (MARS)
-                        if (pass == BackendPass.final_)
-                            error(e.Esrcpos.Sfilename, e.Esrcpos.Slinnum, e.Esrcpos.Scharnum, "missing 4th parameter to `__simd()`");
+                    if (pass == BackendPass.final_)
+                        error(e.Esrcpos.Sfilename, e.Esrcpos.Slinnum, e.Esrcpos.Scharnum, "missing 4th parameter to `__simd()`");
                     cs.IFL2 = FLconst;
                     cs.IEV2.Vsize_t = 0;
                 }
@@ -1261,8 +1375,6 @@ static if (0)
         {
             elem *imm8 = params[3];
             cs.IFL2 = FLconst;
-version (MARS)
-{
             if (imm8.Eoper != OPconst)
             {
                 error(imm8.Esrcpos.Sfilename, imm8.Esrcpos.Slinnum, imm8.Esrcpos.Scharnum, "last parameter to `__simd()` must be a constant");
@@ -1270,11 +1382,6 @@ version (MARS)
             }
             else
                 cs.IEV2.Vsize_t = cast(targ_size_t)el_tolong(imm8);
-}
-else
-{
-            cs.IEV2.Vsize_t = cast(targ_size_t)el_tolong(imm8);
-}
         }
         code_newreg(&cs, reg - XMM0);
         cs.Iop = op;
@@ -1861,4 +1968,33 @@ void cloadxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     cload87(cdb, e, pretregs);
 }
 
+/***********************************
+ * Determine if we can load a constant into an XMM register
+ * with instructions.
+ * Params:
+ *      e = constant
+ * Returns:
+ *      true if it can be done
+ */
+@trusted
+bool loadxmmconst(elem *e)
+{
+    //printf("loadxmmconst() "); elem_print_const(e); printf("\n");
+    const sz = tysize(e.Ety);
+    ubyte* p = cast(ubyte*)&e.EV;
+    assert(sz >= 1);
+
+    if (config.avx < 2 && sz >= 32)
+        return false;
+
+    // true only if all ones or all zeros
+    const b = p[0];
+    if (b != 0 && b != 0xFF)
+        return false;
+    foreach (i; 1 .. sz)
+    {
+        if (p[i] != b)
+            return false;
+    }
+    return true;
 }

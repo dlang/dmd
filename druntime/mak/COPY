@@ -15,6 +15,7 @@ COPY=\
 	$(IMPDIR)\core\cpuid.d \
 	$(IMPDIR)\core\demangle.d \
 	$(IMPDIR)\core\exception.d \
+	$(IMPDIR)\core\factory.d \
 	$(IMPDIR)\core\int128.d \
 	$(IMPDIR)\core\lifetime.d \
 	$(IMPDIR)\core\math.d \
@@ -46,6 +47,7 @@ COPY=\
 	$(IMPDIR)\core\internal\lifetime.d \
 	\
 	$(IMPDIR)\core\internal\array\appending.d \
+	$(IMPDIR)\core\internal\array\arrayassign.d \
 	$(IMPDIR)\core\internal\array\comparison.d \
 	$(IMPDIR)\core\internal\array\construction.d \
 	$(IMPDIR)\core\internal\array\equality.d \
@@ -544,4 +546,5 @@ COPY=\
 	$(IMPDIR)\core\thread\osthread.d \
 	$(IMPDIR)\core\thread\package.d \
 	\
+	$(IMPDIR)\etc\valgrind\valgrind.d \
 	$(IMPDIR)\etc\linux\memoryerror.d

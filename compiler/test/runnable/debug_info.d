@@ -27,8 +27,8 @@ else
 extern (C)
 {
     MachHeader* _dyld_get_image_header(uint image_index);
-    const(section)* getsectbynamefromheader(in mach_header* mhp, in char* segname, in char* sectname);
-    const(section_64)* getsectbynamefromheader_64(in mach_header_64* mhp, in char* segname, in char* sectname);
+    const(section)* getsectbynamefromheader(scope const mach_header* mhp, scope const char* segname, scope const char* sectname);
+    const(section_64)* getsectbynamefromheader_64(scope const mach_header_64* mhp, scope const char* segname, scope const char* sectname);
 }
 
 const(Section)* getSectByNameFromHeader(MachHeader* mhp, in char* segname, in char* sectname)

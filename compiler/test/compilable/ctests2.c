@@ -190,3 +190,19 @@ const typeof(testTypeofA) testTypeofB = 0;
 _Static_assert(sizeof(testTypeofB) == sizeof(short), "17");
 
 /*************************************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=23752
+void *c23752 = &*((void*)(0));
+
+/*************************************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=23767
+const int arr23767[4];
+void f23767(void)
+{
+    int x = *(0 ? (void*)0 : arr23767);
+    int y = *(1 ? arr23767 : (void*)(3-3));
+    int* p = (1 ? (void*)0 : (void*)0);
+}
+
+/*************************************************/

@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/gloop.d, backend/gloop.d)
@@ -13,14 +13,6 @@
  */
 
 module dmd.backend.gloop;
-
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -51,7 +43,7 @@ char symbol_isintab(const Symbol *s) { return sytab[s.Sclass] & SCSS; }
 
 extern (C++):
 
-bool findloopparameters(elem* erel, ref elem* rdeq, ref elem* rdinc);
+import dmd.backend.gother : findloopparameters;
 
 alias Loops = Rarray!Loop;
 
@@ -704,7 +696,6 @@ void loopopt()
 
     if (debugc) printf("loopopt()\n");
 restart:
-    file_progress();
     if (blockinit())                    // init block data
     {
         findloops(dfo[], startloop);    // Compute Bweights
@@ -840,7 +831,6 @@ restart:
     {
         //if (debugc) l.print();
 
-        file_progress();
         assert(l.Lpreheader);
         if (doflow)
         {
@@ -1556,8 +1546,8 @@ Lnextlis:
                 // first block of the function. Unfortunately, the rd vector
                 // does not take this into account. Therefore, we assume the
                 // worst and reject assignments to function parameters.
-                if (v.Sclass == SCparameter || v.Sclass == SCregpar ||
-                    v.Sclass == SCfastpar || v.Sclass == SCshadowreg)
+                if (v.Sclass == SC.parameter || v.Sclass == SC.regpar ||
+                    v.Sclass == SC.fastpar || v.Sclass == SC.shadowreg)
                         goto L3;
 
                 if (el_sideeffect(n.EV.E2)) goto L3;              // case 5
@@ -3917,7 +3907,4 @@ private int el_length(elem *e)
             break;
     }
     return n;
-}
-
-
 }

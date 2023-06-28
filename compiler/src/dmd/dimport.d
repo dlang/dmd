@@ -1,7 +1,7 @@
 /**
  * A `Dsymbol` representing a renamed import.
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dimport.d, _dimport.d)
@@ -22,9 +22,11 @@ import dmd.errors;
 import dmd.expression;
 import dmd.globals;
 import dmd.identifier;
+import dmd.location;
 import dmd.mtype;
 import dmd.visitor;
 
+import core.stdc.stdio;
 /***********************************************************
  */
 extern (C++) final class Import : Dsymbol
@@ -114,7 +116,7 @@ extern (C++) final class Import : Dsymbol
         assert(!s);
         auto si = new Import(loc, packages, id, aliasId, isstatic);
         si.comment = comment;
-        for (size_t i = 0; i < names.dim; i++)
+        for (size_t i = 0; i < names.length; i++)
         {
             si.addAlias(names[i], aliases[i]);
         }
@@ -223,7 +225,29 @@ extern (C++) final class Import : Dsymbol
     override void importAll(Scope* sc)
     {
         if (mod) return; // Already done
-        load(sc);
+
+        /*
+         * https://issues.dlang.org/show_bug.cgi?id=15525
+         *
+         * Loading the import has failed,
+         * most likely because of parsing errors.
+         * Therefore we cannot trust the resulting AST.
+         */
+        if (load(sc))
+        {
+            // https://issues.dlang.org/show_bug.cgi?id=23873
+            // For imports that are not at module or function level,
+            // e.g. aggregate level, the import symbol is added to the
+            // symbol table and later semantic is performed on it.
+            // This leads to semantic analysis on an malformed AST
+            // which causes all kinds of segfaults.
+            // The fix is to note that the module has errors and avoid
+            // semantic analysis on it.
+            if(mod)
+                mod.errors = true;
+            return;
+        }
+
         if (!mod) return; // Failed
 
         if (sc.stc & STC.static_)
@@ -232,11 +256,11 @@ extern (C++) final class Import : Dsymbol
         mod.checkImportDeprecation(loc, sc);
         if (sc.explicitVisibility)
             visibility = sc.visibility;
-        if (!isstatic && !aliasId && !names.dim)
+        if (!isstatic && !aliasId && !names.length)
             sc.scopesym.importScope(mod, visibility);
         // Enable access to pkgs/mod as soon as posible, because compiler
         // can traverse them before the import gets semantic (Issue: 21501)
-        if (!aliasId && !names.dim)
+        if (!aliasId && !names.length)
             addPackageAccess(sc.scopesym);
     }
 
@@ -256,11 +280,16 @@ extern (C++) final class Import : Dsymbol
             scopesym.addAccessiblePackage(p, visibility);
             foreach (id; packages[1 .. $]) // [b, c]
             {
-                p = cast(Package) p.symtab.lookup(id);
+                auto sym = p.symtab.lookup(id);
                 // https://issues.dlang.org/show_bug.cgi?id=17991
                 // An import of truly empty file/package can happen
                 // https://issues.dlang.org/show_bug.cgi?id=20151
                 // Package in the path conflicts with a module name
+                if (sym is null)
+                    break;
+                // https://issues.dlang.org/show_bug.cgi?id=23327
+                // Package conflicts with symbol of the same name
+                p = sym.isPackage();
                 if (p is null)
                     break;
                 scopesym.addAccessiblePackage(p, visibility);
@@ -282,14 +311,14 @@ extern (C++) final class Import : Dsymbol
     override void addMember(Scope* sc, ScopeDsymbol sd)
     {
         //printf("Import.addMember(this=%s, sd=%s, sc=%p)\n", toChars(), sd.toChars(), sc);
-        if (names.dim == 0)
+        if (names.length == 0)
             return Dsymbol.addMember(sc, sd);
         if (aliasId)
             Dsymbol.addMember(sc, sd);
         /* Instead of adding the import to sd's symbol table,
          * add each of the alias=name pairs
          */
-        for (size_t i = 0; i < names.dim; i++)
+        for (size_t i = 0; i < names.length; i++)
         {
             Identifier name = names[i];
             Identifier _alias = aliases[i];
@@ -306,7 +335,7 @@ extern (C++) final class Import : Dsymbol
     override void setScope(Scope* sc)
     {
         Dsymbol.setScope(sc);
-        if (aliasdecls.dim)
+        if (aliasdecls.length)
         {
             if (!mod)
                 importAll(sc);

@@ -7,7 +7,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/util2.d, backend/util2.d)
@@ -18,7 +18,6 @@ module dmd.backend.util2;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
-import core.stdc.stdint : uint64_t;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
@@ -27,17 +26,8 @@ import dmd.backend.mem;
 
 extern (C++):
 
-nothrow:
+nothrow: @nogc:
 @safe:
-
-void *ph_malloc(size_t nbytes);
-void *ph_calloc(size_t nbytes);
-void ph_free(void *p);
-void *ph_realloc(void *p , size_t nbytes);
-
-void file_progress()
-{
-}
 
 /****************************
  * Clean up and exit program.
@@ -66,79 +56,6 @@ void util_exit(int exitcode)
 {
     exit(exitcode);                     /* terminate abnormally         */
 }
-
-version (CRuntime_DigitalMars)
-{
-
-extern (C) extern __gshared int controlc_saw;
-
-/********************************
- * Control C interrupts go here.
- */
-@trusted
-private extern (C) void controlc_handler()
-{
-    //printf("saw controlc\n");
-    controlc_saw = 1;
-}
-
-/*********************************
- * Trap control C interrupts.
- */
-
-version (MARS) { } else
-{
-
-extern (C)
-{
-void controlc_open();
-void controlc_close();
-alias _controlc_handler_t = void function();
-extern __gshared _controlc_handler_t _controlc_handler;
-
-void _STI_controlc()
-{
-    //printf("_STI_controlc()\n");
-    _controlc_handler = &controlc_handler;
-    controlc_open();                    /* trap control C               */
-}
-
-void _STD_controlc()
-{
-    //printf("_STD_controlc()\n");
-    controlc_close();
-}
-}
-
-}
-}
-
-/***********************************
- * Send progress report.
- */
-
-void util_progress()
-{
-    version (MARS) { } else {
-    version (CRuntime_DigitalMars)
-    {
-        if (controlc_saw)
-            err_break();
-    }
-    }
-}
-
-void util_progress(int linnum)
-{
-    version (MARS) { } else {
-    version (CRuntime_DigitalMars)
-    {
-        if (controlc_saw)
-            err_break();
-    }
-    }
-}
-
 
 /**********************************
  * Binary string search.
@@ -217,7 +134,7 @@ else
 
     while (low <= high)
     {
-        int mid = (low + high) >> 1;
+        int mid = low + ((high - low) >> 1);
         int cond = table[mid][0] - cp;
         if (cond == 0)
             cond = strcmp(table[mid] + 1,p);
@@ -245,7 +162,7 @@ int binary(const(char)* p, size_t len, const(char)** table, int high)
 
     while (low <= high)
     {
-        int mid = (low + high) >> 1;
+        int mid = low + ((high - low) >> 1);
         int cond = table[mid][0] - cp;
 
         if (cond == 0)
@@ -269,7 +186,7 @@ int binary(const(char)* p, size_t len, const(char)** table, int high)
  * If c is a power of 2, return that power else -1.
  */
 
-int ispow2(uint64_t c)
+int ispow2(ulong c)
 {       int i;
 
         if (c == 0 || (c & (c - 1)))
@@ -278,123 +195,6 @@ int ispow2(uint64_t c)
             for (i = 0; c >>= 1; i++)
             { }
         return i;
-}
-
-/***************************
- */
-
-enum UTIL_PH = true;
-
-version (MEM_DEBUG)
-    enum MEM_DEBUG = false; //true;
-else
-    enum MEM_DEBUG = false;
-
-version (Windows)
-{
-void *util_malloc(uint n,uint size)
-{
-static if (MEM_DEBUG)
-{
-    void *p;
-
-    p = mem_malloc(n * size);
-    //dbg_printf("util_calloc(%d) = %p\n",n * size,p);
-    return p;
-}
-else static if (UTIL_PH)
-{
-    return ph_malloc(n * size);
-}
-else
-{
-    size_t nbytes = cast(size_t)n * cast(size_t)size;
-    void *p = malloc(nbytes);
-    if (!p && nbytes)
-        err_nomem();
-    return p;
-}
-}
-}
-
-/***************************
- */
-
-version (Windows)
-{
-void *util_calloc(uint n,uint size)
-{
-static if (MEM_DEBUG)
-{
-    void *p;
-
-    p = mem_calloc(n * size);
-    //dbg_printf("util_calloc(%d) = %p\n",n * size,p);
-    return p;
-}
-else static if (UTIL_PH)
-{
-    return ph_calloc(n * size);
-}
-else
-{
-    size_t nbytes = cast(size_t) n * cast(size_t) size;
-    void *p = calloc(n,size);
-    if (!p && nbytes)
-        err_nomem();
-    return p;
-}
-}
-}
-
-/***************************
- */
-
-version (Windows)
-{
-void util_free(void *p)
-{
-    //dbg_printf("util_free(%p)\n",p);
-static if (MEM_DEBUG)
-{
-    mem_free(p);
-}
-else static if (UTIL_PH)
-{
-    ph_free(p);
-}
-else
-{
-    free(p);
-}
-}
-}
-
-/***************************
- */
-
-version (Windows)
-{
-void *util_realloc(void *oldp,size_t n,size_t size)
-{
-static if (MEM_DEBUG)
-{
-    //dbg_printf("util_realloc(%p,%d)\n",oldp,n * size);
-    return mem_realloc(oldp,n * size);
-}
-else static if (UTIL_PH)
-{
-    return ph_realloc(oldp,n * size);
-}
-else
-{
-    const nbytes = n * size;
-    void *p = realloc(oldp,nbytes);
-    if (!p && nbytes)
-        err_nomem();
-    return p;
-}
-}
 }
 
 /*****************************

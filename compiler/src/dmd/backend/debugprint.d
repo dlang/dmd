@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/debug.c, backend/debugprint.d)
@@ -13,16 +13,6 @@
  */
 
 module dmd.backend.debugprint;
-
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-version (HTOD)
-    version = COMPILE;
-
-version (COMPILE)
-{
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -108,9 +98,9 @@ const(char)* class_str(SC c)
 
     static assert(sc.length == SCMAX);
     if (cast(uint) c < SCMAX)
-        sprintf(buffer.ptr,"SC%s",sc[c].ptr);
+        snprintf(buffer.ptr,buffer.length,"SC%s",sc[c].ptr);
     else
-        sprintf(buffer.ptr,"SC%u",cast(uint)c);
+        snprintf(buffer.ptr,buffer.length,"SC%u",cast(uint)c);
     assert(strlen(buffer.ptr) < buffer.length);
     return buffer.ptr;
 }
@@ -399,23 +389,12 @@ void WRblock(block *b)
                         printf(";\n");
                 }
         }
-        version (MARS)
-        {
         if (b.Bcode)
             b.Bcode.print();
-        }
-        version (SCPP)
-        {
-        if (b.Bcode)
-            b.Bcode.print();
-        }
         ferr("\n");
     }
     else
     {
-        targ_llong *pu;
-        int ncases;
-
         assert(b);
         printf("%2d: %s", b.Bnumber, bc_str(b.BC));
         if (b.Btry)
@@ -424,11 +403,8 @@ void WRblock(block *b)
             printf(" Bindex=%d",b.Bindex);
         if (b.BC == BC_finally)
             printf(" b_ret=B%d", b.b_ret ? b.b_ret.Bnumber : 0);
-version (MARS)
-{
         if (b.Bsrcpos.Sfilename)
             printf(" %s(%u)", b.Bsrcpos.Sfilename, b.Bsrcpos.Slinnum);
-}
         printf("\n");
         if (b.Belem)
         {
@@ -448,20 +424,20 @@ version (MARS)
                 printf(" B%d",list_block(bl).Bnumber);
             printf("\n");
         }
-        list_t bl = b.Bsucc;
+
         switch (b.BC)
         {
             case BCswitch:
-                pu = b.Bswitch;
-                assert(pu);
-                ncases = cast(int)*pu;
-                printf("\tncases = %d\n",ncases);
+                printf("\tncases = %d\n", cast(int)b.Bswitch.length);
+                list_t bl = b.Bsucc;
                 printf("\tdefault: B%d\n",list_block(bl) ? list_block(bl).Bnumber : 0);
-                while (ncases--)
-                {   bl = list_next(bl);
-                    printf("\tcase %lld: B%d\n", cast(long)*++pu,list_block(bl).Bnumber);
+                foreach (val; b.Bswitch)
+                {
+                    bl = list_next(bl);
+                    printf("\tcase %lld: B%d\n", cast(long)val, list_block(bl).Bnumber);
                 }
                 break;
+
             case BCiftrue:
             case BCgoto:
             case BCasm:
@@ -474,8 +450,7 @@ version (MARS)
             case BC_lpad:
             case BC_ret:
             case BC_except:
-
-                if (bl)
+                if (list_t bl = b.Bsucc)
                 {
                     printf("\tBsucc:");
                     for ( ; bl; bl = list_next(bl))
@@ -483,10 +458,12 @@ version (MARS)
                     printf("\n");
                 }
                 break;
+
             case BCret:
             case BCretexp:
             case BCexit:
                 break;
+
             default:
                 printf("bc = %d\n", b.BC);
                 assert(0);
@@ -520,6 +497,4 @@ void WRfunc(const char* msg, Symbol* sfunc, block* startblock)
     numberBlocks(startblock);
     for (block *b = startblock; b; b = b.Bnext)
         WRblock(b);
-}
-
 }

@@ -4,16 +4,13 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2012-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2012-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/pdata.d, backend/pdata.d)
  */
 
 module dmd.backend.pdata;
-
-version (MARS)
-{
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -25,8 +22,8 @@ import dmd.backend.code;
 import dmd.backend.code_x86;
 import dmd.backend.dt;
 import dmd.backend.el;
-import dmd.backend.exh;
 import dmd.backend.global;
+import dmd.backend.mscoffobj;
 import dmd.backend.obj;
 import dmd.backend.rtlsym;
 import dmd.backend.ty;
@@ -39,18 +36,9 @@ nothrow:
 // Determine if this Symbol is stored in a COMDAT
 private bool symbol_iscomdat3(Symbol* s)
 {
-    version (MARS)
-    {
-        return s.Sclass == SCcomdat ||
-            config.flags2 & CFG2comdat && s.Sclass == SCinline ||
-            config.flags4 & CFG4allcomdat && s.Sclass == SCglobal;
-    }
-    else
-    {
-        return s.Sclass == SCcomdat ||
-            config.flags2 & CFG2comdat && s.Sclass == SCinline ||
-            config.flags4 & CFG4allcomdat && (s.Sclass == SCglobal || s.Sclass == SCstatic);
-    }
+    return s.Sclass == SC.comdat ||
+        config.flags2 & CFG2comdat && s.Sclass == SC.inline ||
+        config.flags4 & CFG4allcomdat && s.Sclass == SC.global;
 }
 
 enum ALLOCA_LIMIT = 0x10000;
@@ -78,7 +66,7 @@ public void win64_pdata(Symbol *sf)
     memcpy(pdata_name, "$pdata$".ptr, 7);
     memcpy(pdata_name + 7, sf.Sident.ptr, sflen + 1);      // include terminating 0
 
-    Symbol *spdata = symbol_name(pdata_name,SCstatic,tstypes[TYint]);
+    Symbol *spdata = symbol_name(pdata_name[0 .. 7 + sflen],SC.static_,tstypes[TYint]);
     symbol_keep(spdata);
     symbol_debug(spdata);
 
@@ -122,7 +110,7 @@ private Symbol *win64_unwind(Symbol *sf)
     memcpy(unwind_name, "$unwind$".ptr, 8);
     memcpy(unwind_name + 8, sf.Sident.ptr, sflen + 1);     // include terminating 0
 
-    Symbol *sunwind = symbol_name(unwind_name,SCstatic,tstypes[TYint]);
+    Symbol *sunwind = symbol_name(unwind_name[0 .. 8 + sflen],SC.static_,tstypes[TYint]);
     symbol_keep(sunwind);
     symbol_debug(sunwind);
 
@@ -284,5 +272,4 @@ static if (1)
     auto dtb = DtBuilder(0);
     dtb.nbytes(4 + ((ui.CountOfCodes + 1) & ~1) * 2,cast(char *)&ui);
     return dtb.finish();
-}
 }

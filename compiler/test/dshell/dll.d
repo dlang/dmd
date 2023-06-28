@@ -6,8 +6,11 @@ int main()
         return DISABLED;
 
     version (DigitalMars)
-        version (OSX) // Shared libraries are not yet supported on OSX
+    {
+// Disable DM Dlls for now, need to redesign it
+//        version (OSX) // Shared libraries are not yet supported on OSX
             return DISABLED;
+    }
 
     Vars.set(`SRC`, `$EXTRA_FILES/dll`);
     Vars.set(`EXE_NAME`, `$OUTPUT_BASE/testdll$EXE`);

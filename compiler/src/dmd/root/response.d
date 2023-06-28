@@ -3,7 +3,7 @@
  *
  * This file is not shared with other compilers which use the DMD front-end.
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  *              Some portions copyright (c) 1994-1995 by Symantec
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
@@ -56,7 +56,7 @@ const(char)* responseExpandFrom(alias lookup)(ref Strings args) nothrow
     bool recurse = false;
 
     // i is updated by insertArgumentsFromResponse, so no foreach
-    for (size_t i = 0; i < args.dim;)
+    for (size_t i = 0; i < args.length;)
     {
         cp = args[i];
         if (cp[0] != '@')

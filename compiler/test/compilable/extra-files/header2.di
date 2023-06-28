@@ -76,7 +76,7 @@ template templateVariableBar(T) if (is(T == int))
 {
 	enum int templateVariableBar = T.stringof.length;
 }
-auto flit = 3 / 2.0;
+extern typeof(3 / 2.0) flit;
 void foo11217()(const int[] arr)
 {
 }
@@ -119,6 +119,21 @@ align (2) struct S12200_2
 {
 	align (1) {}
 }
+pure nothrow @trusted inout(T)[] overlap(T)(inout(T)[] r1, inout(T)[] r2)
+{
+	alias U = inout(T);
+	static nothrow U* max(U* a, U* b)
+	{
+		return a > b ? a : b;
+	}
+	static nothrow U* min(U* a, U* b)
+	{
+		return a < b ? a : b;
+	}
+	auto b = max(r1.ptr, r2.ptr);
+	auto e = min(r1.ptr + r1.length, r2.ptr + r2.length);
+	return b < e ? b[0..e - b] : null;
+}
 void gun()()
 {
 	int[] res;
@@ -132,6 +147,10 @@ void gun()()
 	else
 		break;
 }
+pragma (inline, true)int fun(int a, int b)
+{
+	return 3;
+}
 void leFoo()()
 {
 	sign = a == 2 ? false : (y < 0) ^ sign;
@@ -143,18 +162,12 @@ interface LeInterface
 }
 class LeClass
 {
-	this()
-	{
-		auto foo = new class LeInterface
-		{
-		}
-		;
-	}
+	this();
 }
-const levar = new class LeClass, LeInterface
+extern const typeof(new class LeClass, LeInterface
 {
 }
-;
+) levar;
 class CC
 {
 	@safe void fun()()

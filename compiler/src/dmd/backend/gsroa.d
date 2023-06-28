@@ -8,21 +8,13 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2016-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2016-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/gsroa.c, backend/gsroa.d)
  */
 
 module dmd.backend.gsroa;
-
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -49,8 +41,6 @@ nothrow:
 
 private enum log = false;       // print logging info
 private enum enable = true;     // enable SROA
-
-int REGSIZE();
 
 alias SLICESIZE = REGSIZE;  // slices are all register-sized
 enum MAXSLICES = 2;         // max # of pieces we can slice an aggregate into
@@ -394,11 +384,11 @@ if (enable) // disable while we test the inliner
 
         switch (s.Sclass)
         {
-            case SCfastpar:
-            case SCregister:
-            case SCauto:
-            case SCshadowreg:
-            case SCparameter:
+            case SC.fastpar:
+            case SC.register:
+            case SC.auto_:
+            case SC.shadowreg:
+            case SC.parameter:
                 anySlice = true;
                 sia[si].canSlice = true;
                 sia[si].accessSlice = false;
@@ -411,10 +401,10 @@ if (enable) // disable while we test the inliner
                 }
                 break;
 
-            case SCstack:
-            case SCpseudo:
-            case SCstatic:
-            case SCbprel:
+            case SC.stack:
+            case SC.pseudo:
+            case SC.static_:
+            case SC.bprel:
                 if (log) printf(" can't because Sclass\n");
                 sia[si].canSlice = false;
                 break;
@@ -459,17 +449,18 @@ if (enable) // disable while we test the inliner
 
                 const idlen = 2 + strlen(sold.Sident.ptr) + 2;
                 char *id = cast(char *)malloc(idlen + 1);
-                assert(id);
-                const len = sprintf(id, "__%s_%d", sold.Sident.ptr, SLICESIZE);
+                if (!id)
+                    err_nomem();
+                const len = snprintf(id, idlen + 1, "__%s_%d", sold.Sident.ptr, SLICESIZE);
                 assert(len == idlen);
                 if (log) printf("retyping slice symbol %s %s\n", sold.Sident.ptr, tym_str(sia[si].ty[0]));
                 if (log) printf("creating slice symbol %s %s\n", id, tym_str(sia[si].ty[1]));
-                Symbol *snew = symbol_calloc(id, cast(uint)idlen);
+                Symbol *snew = symbol_calloc(id[0 .. idlen]);
                 free(id);
                 snew.Sclass = sold.Sclass;
                 snew.Sfl = sold.Sfl;
                 snew.Sflags = sold.Sflags;
-                if (snew.Sclass == SCfastpar || snew.Sclass == SCshadowreg)
+                if (snew.Sclass == SC.fastpar || snew.Sclass == SC.shadowreg)
                 {
                     snew.Spreg = sold.Spreg2;
                     snew.Spreg2 = NOREG;
@@ -566,6 +557,4 @@ private int getSize(const(elem)* e)
     if (sz == -1 && e.ET && (tybasic(e.Ety) == TYstruct || tybasic(e.Ety) == TYarray))
         sz = cast(int)type_size(e.ET);
     return sz;
-}
-
 }

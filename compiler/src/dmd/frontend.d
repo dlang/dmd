@@ -1,7 +1,7 @@
 /**
  * Contains high-level interfaces for interacting with DMD as a library.
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/id.d, _id.d)
@@ -12,8 +12,9 @@ module dmd.frontend;
 
 import dmd.astcodegen : ASTCodegen;
 import dmd.dmodule : Module;
-import dmd.globals : CHECKENABLE, Loc, DiagnosticReporting;
+import dmd.globals : CHECKENABLE, DiagnosticReporting;
 import dmd.errors;
+import dmd.location;
 
 import std.range.primitives : isInputRange, ElementType;
 import std.traits : isNarrowString;
@@ -61,13 +62,10 @@ enum ContractChecking : CHECKENABLE
     enabledInSafe = CHECKENABLE.safeonly
 }
 
-unittest
-{
-    static assert(
-        __traits(allMembers, ContractChecking).length ==
-        __traits(allMembers, CHECKENABLE).length
-    );
-}
+static assert(
+    __traits(allMembers, ContractChecking).length ==
+    __traits(allMembers, CHECKENABLE).length
+);
 
 /// Indicates which contracts should be checked or not.
 struct ContractChecks
@@ -117,14 +115,14 @@ void initDMD(
 
     import dmd.cond : VersionCondition;
     import dmd.dmodule : Module;
+    import dmd.escape : EscapeState;
     import dmd.expression : Expression;
     import dmd.globals : CHECKENABLE, global;
     import dmd.id : Id;
     import dmd.identifier : Identifier;
-    import dmd.mars : addDefaultVersionIdentifiers;
     import dmd.mtype : Type;
     import dmd.objc : Objc;
-    import dmd.target : target, defaultTargetOS;
+    import dmd.target : target, defaultTargetOS, addDefaultVersionIdentifiers;
 
     .diagnosticHandler = diagnosticHandler;
     .fatalErrorHandler = fatalErrorHandler;
@@ -150,6 +148,7 @@ void initDMD(
     Module._init();
     Expression._init();
     Objc._init();
+    EscapeState.reset();
 
     addDefaultVersionIdentifiers(global.params, target);
 
@@ -170,6 +169,7 @@ void deinitializeDMD()
 {
     import dmd.dmodule : Module;
     import dmd.dsymbol : Dsymbol;
+    import dmd.escape : EscapeState;
     import dmd.expression : Expression;
     import dmd.globals : global;
     import dmd.id : Id;
@@ -189,6 +189,7 @@ void deinitializeDMD()
     Expression.deinitialize();
     Objc.deinitialize();
     Dsymbol.deinitialize();
+    EscapeState.reset();
 }
 
 /**
@@ -384,7 +385,8 @@ Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(AST = ASTCodeg
 {
     import dmd.root.file : File, Buffer;
 
-    import dmd.globals : Loc, global;
+    import dmd.globals : global;
+    import dmd.location;
     import dmd.parse : Parser;
     import dmd.identifier : Identifier;
     import dmd.tokens : TOK;
@@ -394,7 +396,7 @@ Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(AST = ASTCodeg
     import std.typecons : tuple;
 
     auto id = Identifier.idPool(fileName.baseName.stripExtension);
-    auto m = new Module(fileName, id, 0, 0);
+    auto m = new Module(fileName, id, 1, 0);
 
     if (code is null)
         m.read(Loc.initial);
@@ -407,6 +409,7 @@ Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(AST = ASTCodeg
         m.src = fb;
     }
 
+    m.importedFrom = m;
     m = m.parseModule!AST();
 
     Diagnostics diagnostics = {
@@ -430,7 +433,6 @@ void fullSemantic(Module m)
     m.importAll(null);
 
     m.dsymbolSemantic(null);
-    Module.dprogress = 1;
     Module.runDeferredSemantic();
 
     m.semantic2(null);

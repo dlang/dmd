@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1986-1998 by Symantec
- *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/gdag.d, backend/gdag.d)
@@ -13,14 +13,6 @@
  */
 
 module dmd.backend.gdag;
-
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
 
 import core.stdc.stdio;
 import core.stdc.time;
@@ -332,7 +324,7 @@ private void aewalk(elem **pn,vec_t ae)
         {
             assert(t.Eoper == OPvar);
             Symbol* s = t.EV.Vsym;
-            if (!(s.Sflags & SFLunambig))
+            if (Symbol_isAffected(*s))
                 vec_subass(ae,go.starkill);
             for (uint i = 0; (i = cast(uint) vec_index(i, ae)) < go.exptop; ++i) // for each ae elem
             {
@@ -821,7 +813,7 @@ private void abewalk(elem *n,vec_t ae,vec_t aeval)
 
             assert(t.Eoper == OPvar);
             s = t.EV.Vsym;
-            if (!(s.Sflags & SFLunambig))
+            if (Symbol_isAffected(*s))
                 vec_subass(ae,go.starkill);
             for (uint i = 0; (i = cast(uint) vec_index(i, ae)) < go.exptop; ++i) // for each ae elem
             {
@@ -965,6 +957,4 @@ private void abeset(elem *e,vec_t ae,vec_t aeval,int flag)
         }
         break;
     }
-}
-
 }

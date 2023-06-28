@@ -6,21 +6,7 @@ defaulttarget:
 	cd ..\..
 
 auto-tester-build:
-	cd compiler\src
-	$(MAKE) -f win32.mak auto-tester-build
-	cd ..\..
-	cd druntime
-	$(MAKE) -f win32.mak auto-tester-build
-	cd ..
+	echo "Auto-Tester has been disabled"
 
 auto-tester-test:
-	cd compiler\test
-	$(MAKE)
-	cd ..\..
-	cd druntime
-	$(MAKE) -f win32.mak auto-tester-test
-	cd ..
-	cd compiler\samples
-	gmake -f win32.mak DMD=..\src\dmd.exe MODEL=$(MODEL) "LIB=..\..\phobos;$(LIB)" \
-		"DFLAGS=-I..\..\druntime\import -I..\..\phobos -m$(MODEL)"
-	cd ..\..
+	echo "Auto-Tester has been disabled"

@@ -13,3 +13,17 @@ struct Foo {
 
 int y = ((size_t)((char *)&((struct Foo *)1)->x - (char *)1));
 _Static_assert(((size_t)((char *)&((struct Foo *)0)->y - (char *)0))==4, "");
+
+
+// https://issues.dlang.org/show_bug.cgi?id=23584
+
+int foo(float bar)
+{
+    return __builtin_bit_cast(unsigned int, bar);
+}
+
+void test23584()
+{
+    int i = foo(3.5);
+    _Static_assert(foo(3.5) == 0x40600000, "1");
+}

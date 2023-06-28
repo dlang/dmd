@@ -1,7 +1,7 @@
 /**
  * A library in the ELF format, used on Unix.
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/libelf.d, _libelf.d)
@@ -27,6 +27,7 @@ version (Windows)
 
 import dmd.globals;
 import dmd.lib;
+import dmd.location;
 import dmd.utils;
 
 import dmd.root.array;
@@ -125,7 +126,7 @@ final class LibElf : Library
             uint symtab_size = 0;
             char* filenametab = null;
             uint filenametab_size = 0;
-            uint mstart = cast(uint)objmodules.dim;
+            uint mstart = cast(uint)objmodules.length;
             while (offset < buflen)
             {
                 if (offset + ElfLibHeader.sizeof >= buflen)
@@ -235,7 +236,7 @@ final class LibElf : Library
                 //printf("symtab[%d] moff = %x  %x, name = %s\n", i, moff, moff + ElfLibHeader.sizeof, name.ptr);
                 for (uint m = mstart; 1; m++)
                 {
-                    if (m == objmodules.dim)
+                    if (m == objmodules.length)
                         return corrupt(__LINE__);  // didn't find it
                     ElfObjModule* om = objmodules[m];
                     //printf("\t%x\n", cast(char *)om.base - cast(char *)buf);
@@ -436,7 +437,7 @@ private:
         ElfOmToHeader(&h, &om);
         libbuf.write((&h)[0 .. 1]);
         char[4] buf;
-        Port.writelongBE(cast(uint)objsymbols.dim, buf.ptr);
+        Port.writelongBE(cast(uint)objsymbols.length, buf.ptr);
         libbuf.write(buf[0 .. 4]);
         foreach (os; objsymbols)
         {
@@ -462,7 +463,7 @@ private:
             memset(&h, ' ', ElfLibHeader.sizeof);
             h.object_name[0] = '/';
             h.object_name[1] = '/';
-            size_t len = sprintf(h.file_size.ptr, "%u", noffset);
+            size_t len = snprintf(h.file_size.ptr, ELF_FILE_SIZE_SIZE, "%u", noffset);
             assert(len < 10);
             h.file_size[len] = ' ';
             h.trailer[0] = '`';
@@ -514,16 +515,22 @@ struct ElfObjModule
 }
 
 enum ELF_OBJECT_NAME_SIZE = 16;
+enum ELF_FILE_TIME_SIZE = 12;
+enum ELF_USER_ID_SIZE = 6;
+enum ELF_GROUP_ID_SIZE = 6;
+enum ELF_FILE_MODE_SIZE = 8;
+enum ELF_FILE_SIZE_SIZE = 10;
+enum ELF_TRAILER_SIZE = 2;
 
 struct ElfLibHeader
 {
     char[ELF_OBJECT_NAME_SIZE] object_name;
-    char[12] file_time;
-    char[6] user_id;
-    char[6] group_id;
-    char[8] file_mode; // in octal
-    char[10] file_size;
-    char[2] trailer;
+    char[ELF_FILE_TIME_SIZE] file_time;
+    char[ELF_USER_ID_SIZE] user_id;
+    char[ELF_GROUP_ID_SIZE] group_id;
+    char[ELF_FILE_MODE_SIZE] file_mode; // in octal
+    char[ELF_FILE_SIZE_SIZE] file_size;
+    char[ELF_TRAILER_SIZE] trailer;
 }
 
 extern (C++) void ElfOmToHeader(ElfLibHeader* h, ElfObjModule* om)

@@ -4,7 +4,7 @@
  * Specification: $(LINK2 https://dlang.org/spec/struct.html, Structs, Unions),
  *                $(LINK2 https://dlang.org/spec/class.html, Class).
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/aggregate.d, _aggregate.d)
@@ -18,7 +18,6 @@ import core.stdc.stdio;
 import core.checkedint;
 
 import dmd.aliasthis;
-import dmd.apply;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.attrib;
@@ -34,6 +33,7 @@ import dmd.func;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
+import dmd.location;
 import dmd.mtype;
 import dmd.tokens;
 import dmd.typesem : defaultInit;
@@ -109,7 +109,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     CPPMANGLE cppmangle;
 
     /// overridden symbol with pragma(mangle, "...") if not null
-    MangleOverride* mangleOverride;
+    MangleOverride* pMangleOverride;
 
     /**
      * !=null if is nested
@@ -193,7 +193,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
      */
     final size_t nonHiddenFields()
     {
-        return fields.dim - isNested() - (vthis2 !is null);
+        return fields.length - isNested() - (vthis2 !is null);
     }
 
     /***************************************
@@ -206,7 +206,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         //printf("AggregateDeclaration::determineSize() %s, sizeok = %d\n", toChars(), sizeok);
 
         // The previous instance size finalizing had:
-        if (type.ty == Terror)
+        if (type.ty == Terror || errors)
             return false;   // failed already
         if (sizeok == Sizeok.done)
             return true;    // succeeded
@@ -274,7 +274,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     {
         //printf("AggregateDeclaration::checkOverlappedFields() %s\n", toChars());
         assert(sizeok == Sizeok.done);
-        size_t nfields = fields.dim;
+        size_t nfields = fields.length;
         if (isNested())
         {
             auto cd = isClassDeclaration();
@@ -355,23 +355,22 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
      *      false if any errors occur.
      *      Otherwise, returns true and the missing arguments will be pushed in elements[].
      */
-    final bool fill(const ref Loc loc, Expressions* elements, bool ctorinit)
+    final bool fill(const ref Loc loc, ref Expressions elements, bool ctorinit)
     {
         //printf("AggregateDeclaration::fill() %s\n", toChars());
         assert(sizeok == Sizeok.done);
-        assert(elements);
         const nfields = nonHiddenFields();
         bool errors = false;
 
-        size_t dim = elements.dim;
+        size_t dim = elements.length;
         elements.setDim(nfields);
         foreach (size_t i; dim .. nfields)
-            (*elements)[i] = null;
+            elements[i] = null;
 
         // Fill in missing any elements with default initializers
         foreach (i; 0 .. nfields)
         {
-            if ((*elements)[i])
+            if (elements[i])
                 continue;
 
             auto vd = fields[i];
@@ -389,7 +388,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
                 if (!vd.isOverlappedWith(v2))
                     continue;
 
-                if ((*elements)[j])
+                if (elements[j])
                 {
                     vx = null;
                     break;
@@ -489,10 +488,10 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
                     else
                         e = telem.defaultInitLiteral(loc);
                 }
-                (*elements)[fieldi] = e;
+                elements[fieldi] = e;
             }
         }
-        foreach (e; *elements)
+        foreach (e; elements)
         {
             if (e && e.op == EXP.error)
                 return false;
@@ -764,21 +763,18 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         if (s)
         {
             // Finish all constructors semantics to determine this.noDefaultCtor.
-            struct SearchCtor
+            static int searchCtor(Dsymbol s, void*)
             {
-                extern (C++) static int fp(Dsymbol s, void* ctxt)
-                {
-                    auto f = s.isCtorDeclaration();
-                    if (f && f.semanticRun == PASS.initial)
-                        f.dsymbolSemantic(null);
-                    return 0;
-                }
+                auto f = s.isCtorDeclaration();
+                if (f && f.semanticRun == PASS.initial)
+                    f.dsymbolSemantic(null);
+                return 0;
             }
 
-            for (size_t i = 0; i < members.dim; i++)
+            for (size_t i = 0; i < members.length; i++)
             {
                 auto sm = (*members)[i];
-                sm.apply(&SearchCtor.fp, null);
+                sm.apply(&searchCtor, null);
             }
         }
         return s;
@@ -813,4 +809,37 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     {
         v.visit(this);
     }
+}
+
+/*********************************
+ * Iterate this dsymbol or members of this scoped dsymbol, then
+ * call `fp` with the found symbol and `params`.
+ * Params:
+ *  symbol = the dsymbol or parent of members to call fp on
+ *  fp = function pointer to process the iterated symbol.
+ *       If it returns nonzero, the iteration will be aborted.
+ *  ctx = context parameter passed to fp.
+ * Returns:
+ *  nonzero if the iteration is aborted by the return value of fp,
+ *  or 0 if it's completed.
+ */
+int apply(Dsymbol symbol, int function(Dsymbol, void*) fp, void* ctx)
+{
+    if (auto nd = symbol.isNspace())
+    {
+        return nd.members.foreachDsymbol( (s) { return s && s.apply(fp, ctx); } );
+    }
+    if (auto ad = symbol.isAttribDeclaration())
+    {
+        return ad.include(ad._scope).foreachDsymbol( (s) { return s && s.apply(fp, ctx); } );
+    }
+    if (auto tm = symbol.isTemplateMixin())
+    {
+        if (tm._scope) // if fwd reference
+            dsymbolSemantic(tm, null); // try to resolve it
+
+        return tm.members.foreachDsymbol( (s) { return s && s.apply(fp, ctx); } );
+    }
+
+    return fp(symbol, ctx);
 }

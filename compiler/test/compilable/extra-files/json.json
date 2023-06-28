@@ -184,7 +184,7 @@
                 "protection": "public"
             },
             {
-                "char": 11,
+                "char": 1,
                 "deco": "VALUE_REMOVED_FOR_TEST",
                 "kind": "alias",
                 "line": 18,
@@ -337,7 +337,10 @@
                         "kind": "destructor",
                         "line": 29,
                         "name": "~this",
-                        "protection": "public"
+                        "protection": "public",
+                        "storageClass": [
+                            "scope"
+                        ]
                     },
                     {
                         "char": 12,

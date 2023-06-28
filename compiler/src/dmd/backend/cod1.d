@@ -7,7 +7,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cod1.d, backend/cod1.d)
@@ -15,14 +15,6 @@
  */
 
 module dmd.backend.cod1;
-
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
 
 import core.bitop;
 import core.stdc.stdio;
@@ -37,7 +29,6 @@ import dmd.backend.code_x86;
 import dmd.backend.codebuilder;
 import dmd.backend.mem;
 import dmd.backend.el;
-import dmd.backend.exh;
 import dmd.backend.global;
 import dmd.backend.obj;
 import dmd.backend.oper;
@@ -48,14 +39,10 @@ import dmd.backend.xmm;
 
 extern (C++):
 
+import dmd.backend.cg : segfl, stackfl;
+
 nothrow:
 @safe:
-
-int REGSIZE();
-
-extern __gshared CGstate cgstate;
-extern __gshared ubyte[FLMAX] segfl;
-extern __gshared bool[FLMAX] stackfl;
 
 private extern (D) uint mask(uint m) { return 1 << m; }
 
@@ -82,7 +69,7 @@ __gshared const   byte[8] regtorm   =   [ -1,-1,-1, 7,-1, 6, 4, 5 ];
 bool regParamInPreg(Symbol* s)
 {
     //printf("regPAramInPreg %s\n", s.Sident.ptr);
-    return (s.Sclass == SCfastpar || s.Sclass == SCshadowreg) &&
+    return (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg) &&
         (!(config.flags4 & CFG4optimized) || !(s.Sflags & GTregcand));
 }
 
@@ -972,7 +959,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                 {
                     if (s.Sfl == FLtlsdata || s.ty() & mTYthread)
                     {
-                        if (s.Sclass == SCglobal || s.Sclass == SCstatic || s.Sclass == SClocstat)
+                        if (s.Sclass == SC.global || s.Sclass == SC.static_ || s.Sclass == SC.locstat)
                             return false;
                     }
                     return true;
@@ -1384,7 +1371,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
             goto L2;
 
         case FLpara:
-            if (s.Sclass == SCshadowreg)
+            if (s.Sclass == SC.shadowreg)
                 goto case FLfast;
         Lpara:
             refparam = true;
@@ -1454,7 +1441,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                         regcon.params &= ~pregm;
                 }
             }
-            if (s.Sclass == SCshadowreg)
+            if (s.Sclass == SC.shadowreg)
                 goto Lpara;
             goto case FLbprel;
 
@@ -1524,8 +1511,8 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                     cgreg_unregister(s.Sregm);
 
                 if (
-                    s.Sclass == SCregpar ||
-                    s.Sclass == SCparameter)
+                    s.Sclass == SC.regpar ||
+                    s.Sclass == SC.parameter)
                 {   refparam = true;
                     reflocal = true;        // kludge to set up prolog
                 }
@@ -1570,7 +1557,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                 else if (I64)
                 {
                     if (config.flags3 & CFG3pie &&
-                        (s.Sclass == SCglobal || s.Sclass == SCstatic || s.Sclass == SClocstat))
+                        (s.Sclass == SC.global || s.Sclass == SC.static_ || s.Sclass == SC.locstat))
                     {
                         pcs.Iflags |= CFfs;
                         pcs.Irm = modregrm(0, 0, 4);
@@ -1578,7 +1565,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                     }
                     else
                     {
-                        pcs.Iflags |= CFopsize;
+                        //pcs.Iflags |= CFopsize; //I don't know what this was for
                         pcs.Irex = 0x48;
                     }
                 }
@@ -1604,16 +1591,13 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                 debug if (debugr) printf("'%s' not reg cand due to offset or size\n", s.Sident.ptr);
                 s.Sflags &= ~GTregcand;
             }
-            else if (tyvector(s.Stype.Tty))
+            else if (tyvector(s.Stype.Tty) && sz < tysize(s.Stype.Tty))
             {
                 // https://issues.dlang.org/show_bug.cgi?id=21673
                 // https://issues.dlang.org/show_bug.cgi?id=21676
                 // https://issues.dlang.org/show_bug.cgi?id=23009
-                // Currently, when assigning to element [0] of a double2 and -O puts it in
-                // a register, this gets generated:
-                // movsd   XMM0,[RDI]
-                // This clears the rest of XMM0, setting element [1] to 0.
-                // Until this is fixed, keep vector variables on the stack
+                // PR: https://github.com/dlang/dmd/pull/13977
+                // cannot read or write to partial vector
                 debug if (debugr) printf("'%s' not reg cand due to vector type\n", s.Sident.ptr);
                 s.Sflags &= ~GTregcand;
             }
@@ -1630,34 +1614,22 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
             break;
 
         case FLpseudo:
-            version (MARS)
             {
-                {
-                    getregs(cdb, mask(s.Sreglsw));
-                    pcs.Irm = modregrm(3, 0, s.Sreglsw & 7);
-                    if (s.Sreglsw & 8)
-                        pcs.Irex |= REX_B;
-                    if (e.EV.Voffset == 1 && sz == 1)
-                    {   assert(s.Sregm & BYTEREGS);
-                        assert(s.Sreglsw < 4);
-                        pcs.Irm |= 4;                  // use 2nd byte of register
-                    }
-                    else
-                    {   assert(!e.EV.Voffset);
-                        if (I64 && sz == 1 && s.Sreglsw >= 4)
-                            pcs.Irex |= REX;
-                    }
-                    break;
+                getregs(cdb, mask(s.Sreglsw));
+                pcs.Irm = modregrm(3, 0, s.Sreglsw & 7);
+                if (s.Sreglsw & 8)
+                    pcs.Irex |= REX_B;
+                if (e.EV.Voffset == 1 && sz == 1)
+                {   assert(s.Sregm & BYTEREGS);
+                    assert(s.Sreglsw < 4);
+                    pcs.Irm |= 4;                  // use 2nd byte of register
                 }
-            }
-            else
-            {
-                {
-                    uint u = s.Sreglsw;
-                    getregs(cdb, pseudomask[u]);
-                    pcs.Irm = modregrm(3, 0, pseudoreg[u] & 7);
-                    break;
+                else
+                {   assert(!e.EV.Voffset);
+                    if (I64 && sz == 1 && s.Sreglsw >= 4)
+                        pcs.Irex |= REX;
                 }
+                break;
             }
 
         case FLfardata:
@@ -2108,9 +2080,9 @@ __gshared int clib_inited = false;          // true if initialized
 @trusted
 Symbol* symboly(const(char)* name, regm_t desregs)
 {
-    Symbol *s = symbol_calloc(name);
+    Symbol *s = symbol_calloc(name[0 .. strlen(name)]);
     s.Stype = tsclib;
-    s.Sclass = SCextern;
+    s.Sclass = SC.extern_;
     s.Sfl = FLfunc;
     s.Ssymnum = 0;
     s.Sregsaved = ~desregs & (mBP | mES | ALLREGS);
@@ -2913,18 +2885,6 @@ void callclib(ref CodeBuilder cdb, elem* e, uint clib, regm_t* pretregs, regm_t 
         if (nalign)
             cod3_stackadj(cdb, -nalign);
         calledafunc = 1;
-
-        version (SCPP)
-        {
-            if (I16 &&                                   // bug in Optlink for weak references
-                config.flags3 & CFG3wkfloat &&
-                (cinfo.flags & (INFfloat | INFwkdone)) == INFfloat)
-            {
-                cinfo.flags |= INFwkdone;
-                makeitextern(getRtlsym(RTLSYM.INTONLY));
-                objmod.wkext(s, getRtlsym(RTLSYM.INTONLY));
-            }
-        }
     }
     if (I16)
         stackpush -= cinfo.pop;
@@ -2938,8 +2898,6 @@ void callclib(ref CodeBuilder cdb, elem* e, uint clib, regm_t* pretregs, regm_t 
  * Helper function for converting OPparam's into array of Parameters.
  */
 struct Parameter { elem* e; reg_t reg; reg_t reg2; uint numalign; }
-
-//void fillParameters(elem* e, Parameter* parameters, int* pi);
 
 @trusted
 void fillParameters(elem* e, Parameter* parameters, int* pi)
@@ -3023,8 +2981,6 @@ FuncParamRegs FuncParamRegs_create(tym_t tyf)
  *      false       not allocated to any register
  *      true        *preg1, *preg2 set to allocated register pair
  */
-
-//bool type_jparam2(type* t, tym_t ty);
 
 @trusted
 private bool type_jparam2(type* t, tym_t ty)
@@ -3826,8 +3782,9 @@ void cdstrthis(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
 private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
                       regm_t* pretregs,regm_t keepmsk, bool usefuncarg)
 {
-    //printf("%s ", funcsym_p.Sident.ptr);
     //printf("funccall(e = %p, *pretregs = %s, numpara = %d, numalign = %d, usefuncarg=%d)\n",e,regm_str(*pretregs),numpara,numalign,usefuncarg);
+    //printf("  from %s\n", funcsym_p.Sident.ptr);
+    //elem_print(e);
     calledafunc = 1;
     // Determine if we need frame for function prolog/epilog
 
@@ -4467,53 +4424,6 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
 
     switch (e.Eoper)
     {
-    version (SCPP)
-    {
-        case OPstrctor:
-        {
-            elem* e1 = e.EV.E1;
-            docommas(cdb,&e1);              // skip over any comma expressions
-
-            cod3_stackadj(cdb, sz);
-            stackpush += sz;
-            cdb.genadjesp(sz);
-
-            // Find OPstrthis and set it to stackpush
-            exp2_setstrthis(e1, null, stackpush, null);
-
-            regm_t retregs = 0;
-            codelem(cdb, e1, &retregs, true);
-            freenode(e);
-            return;
-        }
-        case OPstrthis:
-            // This is the parameter for the 'this' pointer corresponding to
-            // OPstrctor. We push a pointer to an object that was already
-            // allocated on the stack by OPstrctor.
-        {
-            regm_t retregs = allregs;
-            reg_t reg;
-            allocreg(cdb, &retregs, &reg, TYoffset);
-            genregs(cdb, 0x89, SP, reg);        // MOV reg,SP
-            if (I64)
-                code_orrex(cdb.last(), REX_W);
-            uint np = stackpush - e.EV.Vuns;         // stack delta to parameter
-            cdb.genc2(0x81, grex | modregrmx(3, 0, reg), np); // ADD reg,np
-            if (sz > REGSIZE)
-            {
-                cdb.gen1(0x16);                     // PUSH SS
-                stackpush += REGSIZE;
-            }
-            cdb.gen1(0x50 + (reg & 7));             // PUSH reg
-            if (reg & 8)
-                code_orrex(cdb.last(), REX_B);
-            stackpush += REGSIZE;
-            cdb.genadjesp(sz);
-            freenode(e);
-            return;
-        }
-    }
-
         case OPstrpar:
         {
             uint rm;
@@ -4824,7 +4734,8 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                     (fl = s.Sfl) != FLfardata &&
                     /* not a function that CS might not be the segment of       */
                     (!((fl == FLfunc || s.ty() & mTYcs) &&
-                      (s.Sclass == SCcomdat || s.Sclass == SCextern || s.Sclass == SCinline || config.wflags & WFthunk)) ||
+                      (s.Sclass == SC.comdat || s.Sclass == SC.extern_ ||
+                       s.Sclass == SC.inline || config.wflags & WFthunk)) ||
                      (fl == FLfunc && config.exe == EX_DOSX)
                     )
                    )
@@ -5296,6 +5207,8 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
             /* Evaluate using XMM register and XMM instruction.
              * This affects jmpopcode()
              */
+            if (s.Sclass == SC.parameter)
+                refparam = true;
             tstresult(cdb,s.Sregm,e.Ety,true);
         }
         else if (sz <= REGSIZE)
@@ -5386,6 +5299,16 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
         forregs |= DOUBLEREGS;
     if (e.Eoper == OPconst)
     {
+        if (tyvector(tym) && forregs & XMMREGS)
+        {
+            assert(!flags);
+            reg_t xreg;
+            allocreg(cdb, &forregs, &xreg, tym);     // allocate registers
+            movxmmconst(cdb, xreg, tym, &e.EV, flags);
+            fixresult(cdb, e, forregs, pretregs);
+            return;
+        }
+
         targ_size_t value = e.EV.Vint;
         if (sz == 8)
             value = cast(targ_size_t)e.EV.Vullong;
@@ -5395,7 +5318,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
 
         regm_t save = regcon.immed.mval;
         allocreg(cdb, &forregs, &reg, tym);        // allocate registers
-        regcon.immed.mval = save;               // KLUDGE!
+        regcon.immed.mval = save;               // allocreg could unnecessarily clear .mval
         if (sz <= REGSIZE)
         {
             if (sz == 1)
@@ -5408,22 +5331,9 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
             if (sz == 8)
                 flags |= 64;
             if (isXMMreg(reg))
-            {   /* This comes about because 0, 1, pi, etc., constants don't get stored
-                 * in the data segment, because they are x87 opcodes.
-                 * Not so efficient. We should at least do a PXOR for 0.
-                 */
-                reg_t r;
-                targ_size_t unsvalue = e.EV.Vuns;
-                if (sz == 8)
-                    unsvalue = cast(targ_size_t)e.EV.Vullong;
-                regwithvalue(cdb,ALLREGS, unsvalue,&r,flags);
-                flags = 0;                          // flags are already set
-                cdb.genfltreg(0x89, r, 0);            // MOV floatreg,r
-                if (sz == 8)
-                    code_orrex(cdb.last(), REX_W);
-                assert(sz == 4 || sz == 8);         // float or double
-                const opmv = xmmload(tym);
-                cdb.genxmmreg(opmv, reg, 0, tym);        // MOVSS/MOVSD XMMreg,floatreg
+            {
+                movxmmconst(cdb, reg, tym, &e.EV, 0);
+                flags = 0;
             }
             else
             {
@@ -5675,6 +5585,4 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
         fixresult(cdb, e, forregs, pretregs);
         return;
     }
-}
-
 }

@@ -1,7 +1,7 @@
 /**
  * Break down a D type into basic (register) types for the x86_64 System V ABI.
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     Martin Kinkelin
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/argtypes_sysv_x64.d, _argtypes_sysv_x64.d)
@@ -156,7 +156,7 @@ extern (C++) final class ToClassesVisitor : Visitor
     int numEightbytes;
     Class[4] result = Class.noClass;
 
-    this(size_t size)
+    this(size_t size) scope
     {
         assert(size > 0);
         this.size = size;
@@ -314,7 +314,7 @@ extern (C++) final class ToClassesVisitor : Visitor
             return field.type;
         }
 
-        classifyFields(baseOffset, t.sym.fields.dim, &getNthField);
+        classifyFields(baseOffset, t.sym.fields.length, &getNthField);
     }
 
     void classifyStaticArrayElements(uint baseOffset, TypeSArray t)

@@ -2,7 +2,7 @@
  * Implements LSDA (Language Specific Data Area) table generation
  * for Dwarf Exception Handling.
  *
- * Copyright: Copyright (C) 2015-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 2015-2023 by The D Language Foundation, All Rights Reserved
  * Authors: Walter Bright, https://www.digitalmars.com
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dwarfeh.d, backend/dwarfeh.d)
@@ -19,6 +19,7 @@ import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.code_x86;
 
+import dmd.backend.barray : Barray;
 import dmd.backend.dwarf;
 import dmd.backend.dwarf2;
 
@@ -38,36 +39,9 @@ struct DwEhTableEntry
     int prev;           // index to enclosing entry (-1 for none)
 }
 
-struct DwEhTable
-{
-nothrow:
-    DwEhTableEntry *ptr;    // pointer to table
-    uint dim;               // current amount used
-    uint capacity;
+alias DwEhTable = Barray!DwEhTableEntry;
 
-    DwEhTableEntry *index(uint i)
-    {
-        if (i >= dim) printf("i = %d dim = %d\n", i, dim);
-        assert(i < dim);
-        return ptr + i;
-    }
-
-    uint push()
-    {
-        assert(dim <= capacity);
-        if (dim == capacity)
-        {
-            assert(capacity < uint.max / (3 * DwEhTableEntry.sizeof));  // conservative overflow check
-            capacity += capacity + 16;
-            ptr = cast(DwEhTableEntry *)realloc(ptr, capacity * DwEhTableEntry.sizeof);
-            assert(ptr);
-        }
-        memset(ptr + dim, 0, DwEhTableEntry.sizeof);
-        return dim++;
-    }
-}
-
-private __gshared DwEhTable dwehtable;
+package __gshared DwEhTable dwehtable;
 
 /****************************
  * Generate .gcc_except_table, aka LS
@@ -80,11 +54,8 @@ private __gshared DwEhTable dwehtable;
  *      retoffset = offset from start of function to epilog
  */
 
-void genDwarfEh(Funcsym *sfunc, int seg, OutBuffer *et, bool scancode, uint startoffset, uint retoffset)
+void genDwarfEh(Funcsym *sfunc, int seg, OutBuffer *et, bool scancode, uint startoffset, uint retoffset, ref DwEhTable deh)
 {
-    debug
-    unittest_dwarfeh();
-
     /* LPstart = encoding of LPbase
      * LPbase = landing pad base (normally omitted)
      * TType = encoding of TTbase
@@ -116,8 +87,7 @@ static if (0)
     uint startsize = cast(uint)et.length();
     assert((startsize & 3) == 0);       // should be aligned
 
-    DwEhTable *deh = &dwehtable;
-    deh.dim = 0;
+    deh.reset();
     OutBuffer atbuf;
     OutBuffer cstbuf;
 
@@ -127,8 +97,8 @@ static if (0)
     block *bprev = null;
     // The first entry encompasses the entire function
     {
-        uint i = deh.push();
-        DwEhTableEntry *d = deh.index(i);
+        uint i = cast(uint) deh.length;
+        DwEhTableEntry *d = deh.push();
         d.start = cast(uint)(startblock.Boffset + startoffset);
         d.end = cast(uint)(startblock.Boffset + retoffset);
         d.lpad = 0;                    // no cleanup, no catches
@@ -138,7 +108,7 @@ static if (0)
     {
         if (index > 0 && b.Btry == bprev)
         {
-            DwEhTableEntry *d = deh.index(index);
+            DwEhTableEntry *d = &deh[index];
             d.end = cast(uint)b.Boffset;
             index = d.prev;
             if (bprev)
@@ -146,8 +116,8 @@ static if (0)
         }
         if (b.BC == BC_try)
         {
-            uint i = deh.push();
-            DwEhTableEntry *d = deh.index(i);
+            uint i = cast(uint) deh.length;
+            DwEhTableEntry *d = deh.push();
             d.start = cast(uint)b.Boffset;
 
             block *bf = b.nthSucc(1);
@@ -155,16 +125,16 @@ static if (0)
             {
                 d.lpad = cast(uint)bf.Boffset;
                 d.bcatch = bf;
-                uint *pat = bf.actionTable;
-                uint length = pat[0];
+                uint[] pat = (*bf.actionTable)[];
+                size_t length = pat.length;
                 assert(length);
                 uint offset = -1;
-                for (uint u = length; u; --u)
+                for (size_t u = length; u; --u)
                 {
                     /* Buy doing depth-first insertion into the Action Table,
                      * we can combine common tails.
                      */
-                    offset = actionTableInsert(&atbuf, pat[u], offset);
+                    offset = actionTableInsert(&atbuf, pat[u - 1], offset);
                 }
                 d.action = offset + 1;
             }
@@ -182,8 +152,8 @@ static if (0)
             {
                 if (c.Iop == (ESCAPE | ESCdctor))
                 {
-                    uint i = deh.push();
-                    DwEhTableEntry *d = deh.index(i);
+                    uint i = cast(uint) deh.length;
+                    DwEhTableEntry *d = deh.push();
                     d.start = coffset;
                     d.prev = index;
                     index = i;
@@ -194,7 +164,7 @@ static if (0)
                 {
                     assert(n > 0);
                     --n;
-                    DwEhTableEntry *d = deh.index(index);
+                    DwEhTableEntry *d = &deh[index];
                     d.end = coffset;
                     d.lpad = coffset;
                     index = d.prev;
@@ -212,11 +182,10 @@ static if (1)
      * Be sure to not generate empty entries,
      * and generate nested ranges reflecting the layout in the code.
      */
-    assert(deh.dim);
-    uint end = deh.index(0).start;
-    for (uint i = 0; i < deh.dim; ++i)
+    assert(deh.length > 0);
+    uint end = deh[0].start;
+    foreach (ref DwEhTableEntry d; deh[])
     {
-        DwEhTableEntry *d = deh.index(i);
         if (d.start < d.end)
         {
                 void WRITE(uint v)
@@ -413,8 +382,7 @@ int actionTableInsert(OutBuffer *atbuf, int ttindex, int nextoffset)
     return offset;
 }
 
-debug
-void unittest_actionTableInsert()
+@("action table insert") unittest
 {
     OutBuffer atbuf;
     static immutable int[3] tt1 = [ 1,2,3 ];
@@ -547,8 +515,7 @@ uint uLEB128size(uint value)
     return size;
 }
 
-debug
-void unittest_LEB128()
+@("LEB128") unittest
 {
     OutBuffer buf;
 
@@ -558,7 +525,7 @@ void unittest_LEB128()
         -0, -1, -2, -3, -300, -4000, -50_000, -600_000,
     ];
 
-    for (size_t i = 0; i < values.length; ++i)
+    foreach (i; 0..values.length)
     {
         const int value = values[i];
 
@@ -578,17 +545,4 @@ void unittest_LEB128()
         assert(!p.length);
         assert(result == value);
     }
-}
-
-
-debug
-void unittest_dwarfeh()
-{
-    __gshared bool run = false;
-    if (run)
-        return;
-    run = true;
-
-    unittest_LEB128();
-    unittest_actionTableInsert();
 }

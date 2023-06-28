@@ -150,7 +150,7 @@ struct Location
         if (this.procedure.length)
         {
             sink(" ");
-            sink(demangle(this.procedure, symbolBuffer));
+            sink(demangle(this.procedure, symbolBuffer, getCXXDemangler()));
         }
 
         sink(" [0x");

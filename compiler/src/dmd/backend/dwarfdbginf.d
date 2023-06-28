@@ -4,7 +4,7 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dwarfdbginf.d, backend/dwarfdbginf.d)
@@ -28,13 +28,6 @@ application if debug info is needed when the application is deployed.
 */
 
 module dmd.backend.dwarfdbginf;
-
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE):
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -62,12 +55,15 @@ static if (1)
     import dmd.backend.barray;
     import dmd.backend.code;
     import dmd.backend.code_x86;
+    import dmd.backend.drtlsym : getRtlsymPersonality;
     import dmd.backend.dwarf;
     import dmd.backend.dwarf2;
     import dmd.backend.mem;
     import dmd.backend.dlist;
     import dmd.backend.el;
+    import dmd.backend.elfobj : addSegmentToComdat;
     import dmd.backend.filespec;
+    import dmd.backend.machobj : getsegment2;
     import dmd.backend.global;
     import dmd.backend.obj;
     import dmd.backend.oper;
@@ -84,8 +80,6 @@ static if (1)
 
     nothrow:
 
-    int REGSIZE();
-
     __gshared
     {
         //static if (MACHOBJ)
@@ -97,15 +91,6 @@ static if (1)
         uint CIE_offset_unwind;     // CIE offset for unwind data
         uint CIE_offset_no_unwind;  // CIE offset for no unwind data
 
-        IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, uint sz,
-                uint typ, uint bind, IDXSEC sec,
-                ubyte visibility = STV_DEFAULT);
-        void addSegmentToComdat(segidx_t seg, segidx_t comdatseg);
-
-        int getsegment2(ref int seg, const(char)* sectname, const(char)* segname,
-            int align_, int flags);
-
-        Symbol* getRtlsymPersonality();
 
         private Barray!(Symbol*) resetSyms;        // Keep pointers to reset symbols
     }
@@ -196,7 +181,7 @@ static if (1)
                 type *t = tspvoid;
                 t.Tcount++;
                 type_setmangle(&t, mTYman_sys);         // no leading '_' for mangled name
-                eh_frame_sym = symbol_name("EH_frame0", SCstatic, t);
+                eh_frame_sym = symbol_name("EH_frame0", SC.static_, t);
                 Obj.pubdef(seg, eh_frame_sym, 0);
                 symbol_keep(eh_frame_sym);
             }
@@ -910,7 +895,7 @@ static if (1)
                 err_nomem();
             memcpy(name, getSymName(sfunc), len);
             memcpy(name + len, ".eh".ptr, 3 + 1);
-            fdesym = symbol_name(name, SCglobal, tspvoid);
+            fdesym = symbol_name(name[0 .. len + 3], SC.global, tspvoid);
             Obj.pubdef(dfseg, fdesym, startsize);
             symbol_keep(fdesym);
             free(name);
@@ -1262,28 +1247,17 @@ static if (1)
 
             debug_info.buf.writeuLEB128(1);                   // abbreviation code
 
-            version (MARS)
-            {
-                debug_info.buf.write("Digital Mars D ");
-                debug_info.buf.writeStringz(config._version);     // DW_AT_producer
-                // DW_AT_language
-                auto language = (config.fulltypes == CVDWARF_D) ? DW_LANG_D : DW_LANG_C89;
-                /* if source file has .c or .i extension, emit C debug info
-                 */
-                if (filename.length >= 2 &&
-                    filename[$ - 2] == '.' &&
-                    (filename[$ - 1] == 'c' || filename[$ - 1] == 'i'))
-                    language = DW_LANG_C89;
-                debug_info.buf.writeByte(language);
-            }
-            else version (SCPP)
-            {
-                debug_info.buf.write("Digital Mars C ");
-                debug_info.buf.writeStringz(global._version);      // DW_AT_producer
-                debug_info.buf.writeByte(DW_LANG_C89);            // DW_AT_language
-            }
-            else
-                static assert(0);
+            debug_info.buf.write("Digital Mars D ");
+            debug_info.buf.writeStringz(config._version);     // DW_AT_producer
+            // DW_AT_language
+            auto language = (config.fulltypes == CVDWARF_D) ? DW_LANG_D : DW_LANG_C89;
+            /* if source file has .c or .i extension, emit C debug info
+             */
+            if (filename.length >= 2 &&
+                filename[$ - 2] == '.' &&
+                (filename[$ - 1] == 'c' || filename[$ - 1] == 'i'))
+                language = DW_LANG_C89;
+            debug_info.buf.writeByte(language);
 
             debug_info.buf.writeStringz(filename);             // DW_AT_name
 
@@ -1477,16 +1451,7 @@ static if (1)
                     linnum_data *ld = &SegData[seg].SDlinnum_data[i];
                     const(char)* filename;
 
-                    version (MARS)
-                        filename = ld.filename;
-                    else
-                    {
-                        Sfile *sf = ld.filptr;
-                        if (sf)
-                            filename = sf.SFname;
-                        else
-                            filename = .filename;
-                    }
+                    filename = ld.filename;
 
                     if (last_filename == filename)
                     {
@@ -1777,14 +1742,11 @@ static if (1)
         if (!config.fulltypes)
             return;
 
-        version (MARS)
-        {
-            if (sfunc.Sflags & SFLnodebug)
-                return;
-            const(char)* filename = sfunc.Sfunc.Fstartline.Sfilename;
-            if (!filename)
-                return;
-        }
+        if (sfunc.Sflags & SFLnodebug)
+            return;
+        const(char)* filename = sfunc.Sfunc.Fstartline.Sfilename;
+        if (!filename)
+            return;
 
         uint funcabbrevcode;
 
@@ -1803,10 +1765,7 @@ static if (1)
         IDXSEC seg = sfunc.Sseg;
         seg_data *sd = SegData[seg];
 
-        version (MARS)
-            int filenum = dwarf_line_addfile(filename);
-        else
-            int filenum = 1;
+        int filenum = dwarf_line_addfile(filename);
 
         uint ret_type = dwarf_typidx(sfunc.Stype.Tnext);
         if (tybasic(sfunc.Stype.Tnext.Tty) == TYvoid)
@@ -1823,8 +1782,7 @@ static if (1)
         {
             Symbol *sa = globsym[si];
 
-            version (MARS)
-                if (sa.Sflags & SFLnodebug) continue;
+            if (sa.Sflags & SFLnodebug) continue;
 
             static immutable uint[14] formal_var_abbrev_suffix =
             [
@@ -1839,9 +1797,9 @@ static if (1)
 
             switch (sa.Sclass)
             {
-                case SCparameter:
-                case SCregpar:
-                case SCfastpar:
+                case SC.parameter:
+                case SC.regpar:
+                case SC.fastpar:
                     // discard index
                     cast(void)dwarf_typidx(sa.Stype);
                     if (!formalcode)
@@ -1852,10 +1810,10 @@ static if (1)
                     haveparameters = DW_CHILDREN_yes;
                     break;
 
-                case SCauto:
-                case SCbprel:
-                case SCregister:
-                case SCpseudo:
+                case SC.auto_:
+                case SC.bprel:
+                case SC.register:
+                case SC.pseudo:
                     // discard index
                     cast(void)dwarf_typidx(sa.Stype);
                     if (!variablecode)
@@ -1885,7 +1843,7 @@ static if (1)
         if (ret_type)
             dwarfabbrev.append(DW_AT_type, DW_FORM_ref4);
 
-        if (sfunc.Sclass == SCglobal)
+        if (sfunc.Sclass == SC.global)
             dwarfabbrev.append(DW_AT_external, DW_FORM_flag);
 
         if (sfunc.Sfunc.Fflags3 & Fmain)
@@ -1938,7 +1896,7 @@ static if (1)
         if (ret_type)
             debug_info.buf.write32(ret_type);                         // DW_AT_type
 
-        if (sfunc.Sclass == SCglobal)
+        if (sfunc.Sclass == SC.global)
             debug_info.buf.writeByte(1);                              // DW_AT_external
 
         if (config.dwarf < 4
@@ -1970,23 +1928,22 @@ static if (1)
             {
                 Symbol *sa = globsym[si];
 
-                version (MARS)
-                    if (sa.Sflags & SFLnodebug)
-                        continue;
+                if (sa.Sflags & SFLnodebug)
+                    continue;
 
                 uint vcode;
 
                 switch (sa.Sclass)
                 {
-                    case SCparameter:
-                    case SCregpar:
-                    case SCfastpar:
+                    case SC.parameter:
+                    case SC.regpar:
+                    case SC.fastpar:
                         vcode = formalcode;
                         goto L1;
-                    case SCauto:
-                    case SCregister:
-                    case SCpseudo:
-                    case SCbprel:
+                    case SC.auto_:
+                    case SC.register:
+                    case SC.pseudo:
+                    case SC.bprel:
                         vcode = variablecode;
                     L1:
                     {
@@ -2002,7 +1959,7 @@ static if (1)
                         debug_info.buf.writeuLEB128(sa.lposscopestart.Scharnum);   // DW_AT_decl_column
                         soffset = cast(uint)debug_info.buf.length();
                         debug_info.buf.writeByte(2);                  // DW_FORM_block1
-                        if (sa.Sfl == FLreg || sa.Sclass == SCpseudo)
+                        if (sa.Sfl == FLreg || sa.Sclass == SC.pseudo)
                         {
                             // BUG: register pairs not supported in Dwarf?
                             debug_info.buf.writeByte(DW_OP_reg0 + sa.Sreglsw);
@@ -2017,7 +1974,7 @@ static if (1)
                             foreach (sl; ListRange(st.Sfldlst))
                             {
                                 Symbol *sf = list_symbol(sl);
-                                if (sf.Sclass == SCmember)
+                                if (sf.Sclass == SC.member)
                                 {
                                     if(strcmp(sa.Sident.ptr, sf.Sident.ptr) == 0)
                                     {
@@ -2040,12 +1997,12 @@ static if (1)
                         else
                         {
                             debug_info.buf.writeByte(DW_OP_fbreg);
-                            if (sa.Sclass == SCregpar ||
-                                sa.Sclass == SCparameter)
+                            if (sa.Sclass == SC.regpar ||
+                                sa.Sclass == SC.parameter)
                                 debug_info.buf.writesLEB128(cast(int)sa.Soffset);
-                            else if (sa.Sclass == SCfastpar)
+                            else if (sa.Sclass == SC.fastpar)
                                 debug_info.buf.writesLEB128(cast(int)(Fast.size + BPoff - Para.size + sa.Soffset));
-                            else if (sa.Sclass == SCbprel)
+                            else if (sa.Sclass == SC.bprel)
                                 debug_info.buf.writesLEB128(cast(int)(-Para.size + sa.Soffset));
                             else
                                 debug_info.buf.writesLEB128(cast(int)(Auto.size + BPoff - Para.size + sa.Soffset));
@@ -2137,16 +2094,13 @@ static if (1)
 
         symbol_debug(s);
 
-        version (MARS)
-        {
-            if (s.Sflags & SFLnodebug)
-                return;
-        }
+        if (s.Sflags & SFLnodebug)
+            return;
 
         type *t = s.Stype;
         type_debug(t);
         tym_t tym = tybasic(t.Tty);
-        if (tyfunc(tym) && s.Sclass != SCtypedef)
+        if (tyfunc(tym) && s.Sclass != SC.typedef_)
             return;
 
         uint code;
@@ -2154,7 +2108,7 @@ static if (1)
         uint soffset;
         switch (s.Sclass)
         {
-            case SCglobal:
+            case SC.global:
                 typidx = dwarf_typidx(t);
 
                 code = DWARFAbbrev.write!([
@@ -2639,7 +2593,8 @@ static if (1)
                 if (!functypebuf)
                 {
                     functypebuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-                    assert(functypebuf);
+                    if (!functypebuf)
+                        err_nomem();
                 }
                 uint functypebufidx = cast(uint)functypebuf.length();
                 functypebuf.write(tmpbuf.buf, cast(uint)tmpbuf.length());
@@ -2863,7 +2818,7 @@ static if (1)
                     Symbol *sf = list_symbol(sl);
                     switch (sf.Sclass)
                     {
-                        case SCmember:
+                        case SC.member:
                             fieldidx.write32(dwarf_typidx(sf.Stype));
                             nfields++;
                             break;
@@ -2955,7 +2910,7 @@ static if (1)
 
                         switch (sf.Sclass)
                         {
-                            case SCmember:
+                            case SC.member:
                                 debug_info.buf.writeuLEB128(membercode);
                                 debug_info.buf.writeStringz(getSymName(sf));      // DW_AT_name
                                 //debug_info.buf.write32(dwarf_typidx(sf.Stype));
@@ -3088,10 +3043,7 @@ static if (1)
      */
     const(char)* getSymName(Symbol* sym)
     {
-        version (MARS)
-            return sym.prettyIdent ? sym.prettyIdent : sym.Sident.ptr;
-        else
-            return sym.Sident.ptr;
+        return sym.prettyIdent ? sym.prettyIdent : sym.Sident.ptr;
     }
 
     /* ======================= Abbreviation Codes ====================== */
@@ -3235,17 +3187,18 @@ static if (1)
         if (config.objfmt == OBJ_MACH)
         {
             char[16 + (except_table_num).sizeof * 3 + 1] name = void;
-            sprintf(name.ptr, "GCC_except_table%d", ++except_table_num);
+            const length = snprintf(name.ptr, name.length, "GCC_except_table%d", ++except_table_num);
             type *t = tspvoid;
             t.Tcount++;
             type_setmangle(&t, mTYman_sys);         // no leading '_' for mangled name
-            Symbol *s = symbol_name(name.ptr, SCstatic, t);
+            Symbol *s = symbol_name(name[0 .. length], SC.static_, t);
             Obj.pubdef(seg, s, cast(uint)buf.length());
             symbol_keep(s);
 
             sfunc.Sfunc.LSDAsym = s;
         }
-        genDwarfEh(sfunc, seg, buf, (usednteh & EHcleanup) != 0, startoffset, retoffset);
+        import dmd.backend.dwarfeh : dwehtable;
+        genDwarfEh(sfunc, seg, buf, (usednteh & EHcleanup) != 0, startoffset, retoffset, dwehtable);
     }
 
 }

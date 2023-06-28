@@ -28,8 +28,8 @@ unittest
         extern (C++) static final class InterfaceDeclaration : ClassDeclaration
         {
             import dmd.arraytypes : BaseClasses;
-            import dmd.globals : Loc;
             import dmd.identifier : Identifier;
+            import dmd.location;
 
             bool created = false;
 
@@ -56,7 +56,7 @@ unittest
     initDMD();
     defaultImportPaths.each!addImport;
 
-    auto t = parseModule!AST("test.d", q{
+    auto t = parseModule!AST("frontendcustomASTfamily.d", q{
         interface Foo {}
     });
 
@@ -109,8 +109,8 @@ unittest
     import dmd.frontend;
 
     import dmd.common.outbuffer;
-    import dmd.globals : Loc;
     import dmd.console : Color;
+    import dmd.location;
     import core.stdc.stdarg : va_list;
 
     string[] diagnosticMessages;
@@ -174,7 +174,7 @@ unittest
     initDMD();
     defaultImportPaths.each!addImport;
 
-    auto t = parseModule("test.d", q{
+    auto t = parseModule("frontendcontractchecking.d", q{
         int foo(int a)
         in(a == 3)
         out(result; result == 0)
@@ -219,7 +219,7 @@ unittest
     initDMD(null, null, ["Foo"]);
     defaultImportPaths.each!addImport;
 
-    auto t = parseModule("test.d", q{
+    auto t = parseModule("frontendversionidentifiers.d", q{
         version (Foo)
             enum a = 1;
         else
@@ -245,9 +245,9 @@ unittest
     import core.stdc.stdarg : va_list;
 
     import dmd.frontend;
-    import dmd.globals : Loc;
     import dmd.common.outbuffer;
     import dmd.console : Color;
+    import dmd.location;
 
     string[] diagnosticMessages;
 
@@ -263,7 +263,7 @@ unittest
     initDMD(&diagnosticHandler);
     defaultImportPaths.each!addImport;
 
-    parseModule("test.d", q{
+    parseModule("frontendcustomdiagnostichandling.d", q{
         void foo(){
             auto temp == 7.8;
             foreach(i; 0..5){
@@ -287,7 +287,7 @@ unittest
     defaultImportPaths.each!addImport;
     addStringImport(__FILE_FULL_PATH__.dirName.buildPath("support", "data"));
 
-    auto t = parseModule("test.d", q{
+    auto t = parseModule("frontendaddStringImport.d", q{
         enum a = import("foo.txt");
     });
 
@@ -310,7 +310,7 @@ unittest
     initDMD();
     defaultImportPaths.each!addImport;
 
-    auto t = parseModule("test.d", q{
+    auto t = parseModule("frontendfloatingpoint.d", q{
         static assert((2.0i).re == 0);
     });
 
@@ -333,7 +333,7 @@ unittest
     initDMD();
     defaultImportPaths.each!addImport;
 
-    auto t = parseModule("test.d", q{
+    auto t = parseModule("frontendinlineassembly.d", q{
         void foo()
         {
             asm
@@ -361,9 +361,10 @@ unittest
     import core.stdc.stdarg : va_list;
 
     import dmd.frontend;
-    import dmd.globals : Loc, global;
+    import dmd.globals : global;
     import dmd.common.outbuffer;
     import dmd.console : Color;
+    import dmd.location;
 
     string[] diagnosticMessages;
 
@@ -379,7 +380,7 @@ unittest
     initDMD(&diagnosticHandler);
     defaultImportPaths.each!addImport;
 
-    auto t = parseModule("test.dd", q{Ddoc});
+    auto t = parseModule("frontendddoc.dd", q{Ddoc});
 
     assert(!t.diagnostics.hasErrors);
     assert(!t.diagnostics.hasWarnings);

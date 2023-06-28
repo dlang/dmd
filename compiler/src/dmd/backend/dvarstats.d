@@ -4,7 +4,7 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2015-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2015-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     Rainer Schuetze
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dvarstats.d, backend/dvarstats.d)
@@ -208,7 +208,7 @@ private symtab_t* calcLexicalScope(return ref symtab_t symtab) return
     for (argcnt = 0; argcnt < symtab.length; argcnt++)
     {
         Symbol* sa = symtab[argcnt];
-        if (sa.Sclass != SCparameter && sa.Sclass != SCregpar && sa.Sclass != SCfastpar && sa.Sclass != SCshadowreg)
+        if (sa.Sclass != SC.parameter && sa.Sclass != SC.regpar && sa.Sclass != SC.fastpar && sa.Sclass != SC.shadowreg)
             break;
         sortedSymtab[argcnt] = sa;
     }
@@ -286,10 +286,10 @@ public void writeSymbolTable(ref symtab_t symtab,
     {
         Symbol *sa = (*symtab2)[si];
         if (endarg == false &&
-            sa.Sclass != SCparameter &&
-            sa.Sclass != SCfastpar &&
-            sa.Sclass != SCregpar &&
-            sa.Sclass != SCshadowreg)
+            sa.Sclass != SC.parameter &&
+            sa.Sclass != SC.fastpar &&
+            sa.Sclass != SC.regpar &&
+            sa.Sclass != SC.shadowreg)
         {
             if(fnEndArgs)
                 (*fnEndArgs)();
@@ -378,7 +378,7 @@ private int findLineIndex(uint line)
     int high = cast(int)lineOffsets.length;
     while (low < high)
     {
-        int mid = (low + high) >> 1;
+        int mid = low + ((high - low) >> 1);
         int ln = lineOffsets[mid].linnum;
         if (line < ln)
             high = mid;
@@ -392,10 +392,7 @@ private int findLineIndex(uint line)
 
 public void recordLineOffset(Srcpos src, targ_size_t off)
 {
-    version (MARS)
-        const sfilename = src.Sfilename;
-    else
-        const sfilename = srcpos_name(src);
+    const sfilename = src.Sfilename;
 
     // only record line numbers from one file, symbol info does not include source file
     if (!sfilename || !src.Slinnum)

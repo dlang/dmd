@@ -74,6 +74,11 @@ endif
 ifeq (solaris,$(OS))
 	CFLAGS+=-D_REENTRANT  # for thread-safe errno
 endif
+ifeq (osx,$(OS))
+	ifeq (64,$(MODEL))
+		CFLAGS+=--target=x86_64-darwin-apple  # ARM cpu is not supported by dmd
+	endif
+endif
 
 # Set DFLAGS
 UDFLAGS:=-conf= -Isrc -Iimport -w -de -preview=dip1000 -preview=fieldwise $(MODEL_FLAG) $(PIC) $(OPTIONAL_COVERAGE) -preview=dtorfields
@@ -121,7 +126,7 @@ SRCS:=$(subst \,/,$(SRCS))
 # NOTE: a pre-compiled minit.obj has been provided in dmd for Win32	 and
 #       minit.asm is not used by dmd for Linux
 
-OBJS= $(ROOT)/errno_c.o $(ROOT)/threadasm.o
+OBJS= $(ROOT)/errno_c.o $(ROOT)/threadasm.o $(ROOT)/valgrind.o
 
 # use timelimit to avoid deadlocks if available
 TIMELIMIT:=$(if $(shell which timelimit 2>/dev/null || true),timelimit -t 10 ,)
@@ -362,6 +367,10 @@ $(ROOT)/threadasm.o : src/core/threadasm.S
 	@mkdir -p $(dir $@)
 	$(CC) -c $(CFLAGS) $< -o$@
 
+$(ROOT)/valgrind.o : src/etc/valgrind/valgrind.c src/etc/valgrind/valgrind.h src/etc/valgrind/memcheck.h
+	@mkdir -p `dirname $@`
+	$(CC) -c $(CFLAGS) $< -o$@
+
 ######################## Create a shared library ##############################
 
 $(DRUNTIMESO) $(DRUNTIMESOLIB) dll: DFLAGS+=-version=Shared -fPIC
@@ -387,7 +396,7 @@ ifeq ($(HAS_ADDITIONAL_TESTS),1)
 	ADDITIONAL_TESTS:=test/init_fini test/exceptions test/coverage test/profile test/cycles test/allocations test/typeinfo \
 	    test/aa test/cpuid test/gc test/hash test/lifetime \
 	    test/thread test/unittest test/imports test/betterc test/stdcpp test/config \
-	    test/traits
+	    test/traits test/valgrind
 	ADDITIONAL_TESTS+=$(if $(SHARED),test/shared,)
 endif
 
@@ -575,22 +584,6 @@ publictests: $(addsuffix .publictests, $(basename $(SRCS)))
 	@$(DMD) -main $(UDFLAGS) -unittest -defaultlib= -debuglib= -od$(PUBLICTESTS_DIR) $(DRUNTIME) -run $(PUBLICTESTS_DIR)/$(subst /,_,$<)
 
 ################################################################################
-
-.PHONY : auto-tester-build
-ifneq (,$(findstring Darwin_64_32, $(PWD)))
-auto-tester-build:
-	echo "Darwin_64_32_disabled"
-else
-auto-tester-build: target checkwhitespace
-endif
-
-.PHONY : auto-tester-test
-ifneq (,$(findstring Darwin_64_32, $(PWD)))
-auto-tester-test:
-	echo "Darwin_64_32_disabled"
-else
-auto-tester-test: unittest benchmark-compile-only
-endif
 
 .PHONY : buildkite-test
 buildkite-test: unittest benchmark-compile-only

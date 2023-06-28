@@ -7,4 +7,4 @@ void main()
 {
         auto t = new Test!(char);
         t.show ("hello");
-} 
+}

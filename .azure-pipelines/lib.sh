@@ -34,9 +34,9 @@ download() {
 
 install_host_dmd() {
     if [ ! -f dmd2/README.TXT ]; then
-        download "http://downloads.dlang.org/releases/2.x/${HOST_DMD_VERSION}/dmd.${HOST_DMD_VERSION}.windows.7z" dmd2.7z
+        download "https://downloads.dlang.org/releases/2.x/${HOST_DMD_VERSION}/dmd.${HOST_DMD_VERSION}.windows.7z" dmd2.7z
         7z x dmd2.7z > /dev/null
-        download "http://downloads.dlang.org/other/libcurl-7.65.3-2-WinSSL-zlib-x86-x64.zip" libcurl.zip
+        download "https://downloads.dlang.org/other/libcurl-7.65.3-2-WinSSL-zlib-x86-x64.zip" libcurl.zip
         7z -y x libcurl.zip > /dev/null
     fi
     export PATH="$PWD/dmd2/windows/bin/:$PATH"
@@ -50,7 +50,7 @@ install_host_dmd() {
 
 install_host_dmc() {
     if [ ! -f dm/README.TXT ]; then
-        download "http://downloads.dlang.org/other/dm857c.zip" dmc.zip
+        download "https://downloads.dlang.org/other/dm857c.zip" dmc.zip
         7z x dmc.zip > /dev/null
         download "http://ftp.digitalmars.com/sppn.zip" sppn.zip
         7z x -odm/bin sppn.zip > /dev/null
@@ -67,7 +67,7 @@ install_grep() {
     mkdir -p "$tools_dir"
     cd "$tools_dir"
     if [ ! -f grep.exe ]; then
-        download "http://downloads.dlang.org/other/grep-3.1.zip" "grep-3.1.zip"
+        download "https://downloads.dlang.org/other/grep-3.1.zip" "grep-3.1.zip"
         unzip "grep-3.1.zip" # contains grep.exe
     fi
     export PATH="${tools_dir}:$PATH"

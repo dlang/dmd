@@ -19,7 +19,7 @@ void test()
     char *p = a.ptr;
     unsigned i = a.length;
     char *q = a.dup.ptr;
-    p = p.init;
+    p = p->init;
     struct S { int a, b; };
     struct S s;
     s.a = s.b;

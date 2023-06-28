@@ -4,7 +4,7 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/backconfig.d, backend/backconfig.d)
@@ -26,11 +26,6 @@ extern (C++):
 
 nothrow:
 @safe:
-
-version (MARS)
-{
-    void ph_init();
-}
 
 /**************************************
  * Initialize configuration for backend.
@@ -83,8 +78,6 @@ extern (C) void out_config_init(
         exefmt_t exefmt,
         bool generatedMain      // a main entrypoint is generated
         )
-{
-version (MARS)
 {
     //printf("out_config_init()\n");
 
@@ -355,7 +348,6 @@ static if (0)
     cfg.useTypeInfo = useTypeInfo;
     cfg.useExceptions = useExceptions;
 
-    ph_init();
     block_init();
 
     cod3_setdefault();
@@ -377,7 +369,6 @@ static if (0)
     else if (cfg.objfmt == OBJ_ELF)
         elfDebugSectionsInit();
     rtlsym_init(); // uses fregsaved, so must be after it's set inside cod3_set*
-}
 }
 
 /****************************

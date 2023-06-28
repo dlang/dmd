@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cdef.d, backend/_cdef.d)
@@ -20,6 +20,7 @@ import dmd.common.int128;
 import dmd.backend.cc: Classsym, Symbol, param_t, config;
 import dmd.backend.el;
 import dmd.backend.ty : I32;
+import dmd.backend.global : REGSIZE;
 
 import dmd.backend.dlist;
 
@@ -32,31 +33,18 @@ enum VERSION = "9.00.0";        // for banner and imbedding in .OBJ file
 enum VERSIONHEX = "0x900";      // for __DMC__ macro
 enum VERSIONINT = 0x900;        // for precompiled headers and DLL version
 
-version (SCPP)
-    version = XVERSION;
-version (SPP)
-    version = XVERSION;
-version (HTOD)
-    version = XVERSION;
-version (MARS)
-    version = XVERSION;
-
-version (XVERSION)
+extern (D) template xversion(string s)
 {
-    extern (D) template xversion(string s)
-    {
-        enum xversion = mixin(`{ version (` ~ s ~ `) return true; else return false; }`)();
-    }
-
-    enum TARGET_LINUX   = xversion!`linux`;
-    enum TARGET_OSX     = xversion!`OSX`;
-    enum TARGET_FREEBSD = xversion!`FreeBSD`;
-    enum TARGET_OPENBSD = xversion!`OpenBSD`;
-    enum TARGET_SOLARIS = xversion!`Solaris`;
-    enum TARGET_WINDOS  = xversion!`Windows`;
-    enum TARGET_DRAGONFLYBSD  = xversion!`DragonFlyBSD`;
+    enum xversion = mixin(`{ version (` ~ s ~ `) return true; else return false; }`)();
 }
 
+enum TARGET_LINUX   = xversion!`linux`;
+enum TARGET_OSX     = xversion!`OSX`;
+enum TARGET_FREEBSD = xversion!`FreeBSD`;
+enum TARGET_OPENBSD = xversion!`OpenBSD`;
+enum TARGET_SOLARIS = xversion!`Solaris`;
+enum TARGET_WINDOS  = xversion!`Windows`;
+enum TARGET_DRAGONFLYBSD  = xversion!`DragonFlyBSD`;
 
 //
 //      Attributes
@@ -108,19 +96,13 @@ enum IMPLIED_PRAGMA_ONCE = 1;       // include guards count as #pragma once
 enum bool HEADER_LIST = true;
 
 // Support generating code for 16 bit memory models
-version (SCPP)
-    enum SIXTEENBIT = TARGET_WINDOS != 0;
-else
-    enum SIXTEENBIT = false;
+enum SIXTEENBIT = false;
 
 /* Set for supporting the FLAT memory model.
  * This is not quite the same as !SIXTEENBIT, as one could
  * have near/far with 32 bit code.
  */
-version (MARS)
-    enum TARGET_SEGMENTED = false;
-else
-    enum TARGET_SEGMENTED = TARGET_WINDOS;
+enum TARGET_SEGMENTED = false;
 
 
 @trusted
@@ -162,44 +144,6 @@ enum NTEXCEPTIONS = 2;
 // PARC         parser, life of compilation
 // BEF          back end, function
 // BEC          back end, compilation
-
-//#define MEM_PH_FREE      mem_free
-//#define MEM_PARF_FREE    mem_free
-//#define MEM_PARC_FREE    mem_free
-//#define MEM_BEF_FREE     mem_free
-//#define MEM_BEC_FREE     mem_free
-
-//#define MEM_PH_CALLOC    mem_calloc
-//#define MEM_PARC_CALLOC  mem_calloc
-//#define MEM_PARF_CALLOC  mem_calloc
-//#define MEM_BEF_CALLOC   mem_calloc
-//#define MEM_BEC_CALLOC   mem_calloc
-
-//#define MEM_PH_MALLOC    mem_malloc
-//#define MEM_PARC_MALLOC  mem_malloc
-//#define MEM_PARF_MALLOC  mem_malloc
-//#define MEM_BEF_MALLOC   mem_malloc
-//#define MEM_BEC_MALLOC   mem_malloc
-
-//#define MEM_PH_STRDUP    mem_strdup
-//#define MEM_PARC_STRDUP  mem_strdup
-//#define MEM_PARF_STRDUP  mem_strdup
-//#define MEM_BEF_STRDUP   mem_strdup
-//#define MEM_BEC_STRDUP   mem_strdup
-
-//#define MEM_PH_REALLOC   mem_realloc
-//#define MEM_PARC_REALLOC mem_realloc
-//#define MEM_PARF_REALLOC mem_realloc
-//#define MEM_PERM_REALLOC mem_realloc
-//#define MEM_BEF_REALLOC  mem_realloc
-//#define MEM_BEC_REALLOC  mem_realloc
-
-//#define MEM_PH_FREEFP    mem_freefp
-//#define MEM_PARC_FREEFP  mem_freefp
-//#define MEM_PARF_FREEFP  mem_freefp
-//#define MEM_BEF_FREEFP   mem_freefp
-//#define MEM_BEC_FREEFP   mem_freefp
-
 
 // If we can use 386 instruction set (possible in 16 bit code)
 //#define I386 (config.target_cpu >= TARGET_80386)
@@ -247,8 +191,6 @@ enum EXIT_BREAK = 255;     // aborted compile with ^C
  * Target machine data types as they appear on the host.
  */
 
-import core.stdc.stdint : int64_t, uint64_t;
-
 alias targ_char = byte;
 alias targ_uchar = ubyte;
 alias targ_schar = byte;
@@ -256,14 +198,13 @@ alias targ_short = short;
 alias targ_ushort= ushort;
 alias targ_long = int;
 alias targ_ulong = uint;
-alias targ_llong = int64_t;
-alias targ_ullong = uint64_t;
+alias targ_llong = long;
+alias targ_ullong = ulong;
 alias targ_float = float;
 alias targ_double = double;
 public import dmd.root.longdouble : targ_ldouble = longdouble;
 
 // Extract most significant register from constant
-int REGSIZE();
 ulong MSREG(ulong p) { return (REGSIZE == 2) ? p >> 16 : ((targ_llong.sizeof == 8) ? p >> 32 : 0); }
 
 alias targ_int = int;
@@ -292,8 +233,8 @@ enum REGMASK = 0xFFFF;
 // targ_llong is also used to store host pointers, so it should have at least their size
 
 // 64 bit support
-alias targ_ptrdiff_t = int64_t;   // ptrdiff_t for target machine
-alias targ_size_t = uint64_t;     // size_t for the target machine
+alias targ_ptrdiff_t = long;   // ptrdiff_t for target machine
+alias targ_size_t    = ulong;  // size_t for the target machine
 
 /* Enable/disable various features
    (Some features may no longer work the old way when compiled out,
@@ -316,10 +257,7 @@ enum
     Vmodel = 4,        // large code, large data, vcm
 }
 
-version (MARS)
-    enum MEMMODELS = 1; // number of memory models
-else
-    enum MEMMODELS = 5;
+enum MEMMODELS = 1; // number of memory models
 
 /* Segments     */
 enum
@@ -336,46 +274,6 @@ enum
 enum REGMAX = 29;      // registers are numbered 0..10
 
 alias tym_t = uint;    // data type big enough for type masks
-
-
-version (MARS)
-{
-}
-else
-{
-version (_WINDLL)
-{
-/* We reference the required Windows-1252 encoding of the copyright symbol
-   by escaping its character code (0xA9) rather than directly embedding it in
-   the source text. The character code is invalid in UTF-8, which causes some
-   of our source-code preprocessing tools (e.g. tolf) to choke.
- */
-    enum COPYRIGHT_SYMBOL = "\xA9";
-    enum COPYRIGHT = "Copyright " ~ COPYRIGHT_SYMBOL ~ " 2001 Digital Mars";
-}
-else
-{
-    debug
-    {
-        enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2019.  All Rights Reserved.
-Written by Walter Bright
-*****BETA TEST VERSION*****";
-    }
-    else
-    {
-        version (linux)
-        {
-            enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2019.  All Rights Reserved.
-Written by Walter Bright, Linux version by Pat Nelson";
-        }
-        else
-        {
-            enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2019.  All Rights Reserved.
-Written by Walter Bright";
-        }
-    }
-}
-}
 
 /**********************************
  * Configuration
@@ -927,55 +825,54 @@ alias SYMFLGS = uint;
 /**********************************
  * Storage classes
  */
-
-alias SC = int;
-enum
+enum SC : ubyte
 {
-    SCunde,           // undefined
-    SCauto,           // automatic (stack)
-    SCstatic,         // statically allocated
-    SCthread,         // thread local
-    SCextern,         // external
-    SCregister,       // registered variable
-    SCpseudo,         // pseudo register variable
-    SCglobal,         // top level global definition
-    SCcomdat,         // initialized common block
-    SCparameter,      // function parameter
-    SCregpar,         // function register parameter
-    SCfastpar,        // function parameter passed in register
-    SCshadowreg,      // function parameter passed in register, shadowed on stack
-    SCtypedef,        // type definition
-    SCexplicit,       // explicit
-    SCmutable,        // mutable
-    SClabel,          // goto label
-    SCstruct,         // struct/class/union tag name
-    SCenum,           // enum tag name
-    SCfield,          // bit field of struct or union
-    SCconst,          // constant integer
-    SCmember,         // member of struct or union
-    SCanon,           // member of anonymous union
-    SCinline,         // for inline functions
-    SCsinline,        // for static inline functions
-    SCeinline,        // for extern inline functions
-    SCoverload,       // for overloaded function names
-    SCfriend,         // friend of a class
-    SCvirtual,        // virtual function
-    SClocstat,        // static, but local to a function
-    SCtemplate,       // class template
-    SCfunctempl,      // function template
-    SCftexpspec,      // function template explicit specialization
-    SClinkage,        // function linkage symbol
-    SCpublic,         // generate a pubdef for this
-    SCcomdef,         // uninitialized common block
-    SCbprel,          // variable at fixed offset from frame pointer
-    SCnamespace,      // namespace
-    SCalias,          // alias to another symbol
-    SCfuncalias,      // alias to another function symbol
-    SCmemalias,       // alias to base class member
-    SCstack,          // offset from stack pointer (not frame pointer)
-    SCadl,            // list of ADL symbols for overloading
-    SCMAX
+    unde,           /// undefined
+    auto_,          /// automatic (stack)
+    static_,        /// statically allocated
+    thread,         /// thread local
+    extern_,        /// external
+    register,       /// registered variable
+    pseudo,         /// pseudo register variable
+    global,         /// top level global definition
+    comdat,         /// initialized common block
+    parameter,      /// function parameter
+    regpar,         /// function register parameter
+    fastpar,        /// function parameter passed in register
+    shadowreg,      /// function parameter passed in register, shadowed on stack
+    typedef_,       /// type definition
+    explicit,       /// explicit
+    mutable,        /// mutable
+    label,          /// goto label
+    struct_,        /// struct/class/union tag name
+    enum_,          /// enum tag name
+    field,          /// bit field of struct or union
+    const_,         /// constant integer
+    member,         /// member of struct or union
+    anon,           /// member of anonymous union
+    inline,         /// for inline functions
+    sinline,        /// for static inline functions
+    einline,        /// for extern inline functions
+    overload,       /// for overloaded function names
+    friend,         /// friend of a class
+    virtual,        /// virtual function
+    locstat,        /// static, but local to a function
+    template_,      /// class template
+    functempl,      /// function template
+    ftexpspec,      /// function template explicit specialization
+    linkage,        /// function linkage symbol
+    public_,        /// generate a pubdef for this
+    comdef,         /// uninitialized common block
+    bprel,          /// variable at fixed offset from frame pointer
+    namespace,      /// namespace
+    alias_,         /// alias to another symbol
+    funcalias,      /// alias to another function symbol
+    memalias,       /// alias to base class member
+    stack,          /// offset from stack pointer (not frame pointer)
+    adl,            /// list of ADL symbols for overloading
 }
 
-int ClassInline(int c) { return c == SCinline || c == SCsinline || c == SCeinline; }
+enum SCMAX = SC.max + 1;
+
+int ClassInline(int c) { return c == SC.inline || c == SC.sinline || c == SC.einline; }
 int SymInline(Symbol* s) { return ClassInline(s.Sclass); }

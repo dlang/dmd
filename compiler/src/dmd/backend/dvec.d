@@ -4,7 +4,7 @@
  *
  * Simple bit vector implementation.
  *
- * Copyright:   Copyright (C) 2013-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2013-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dvec.d, backend/dvec.d)
@@ -17,6 +17,8 @@ import core.stdc.stdlib;
 import core.stdc.string;
 
 import core.bitop;
+
+import dmd.backend.global : err_nomem;
 
 extern (C):
 
@@ -106,8 +108,11 @@ struct VecGlobal
         }
         else
         {
+            if (dim >= size_t.max / vec_base_t.sizeof - 1024)
+                err_nomem(); // dim overflow
             v = cast(vec_t) calloc(dim + 2, vec_base_t.sizeof);
-            assert(v);
+            if (!v)
+                err_nomem();
         }
         if (v)
         {
@@ -129,6 +134,7 @@ struct VecGlobal
             return null;
 
         const dim = vec_dim(v);
+        // don't need to check overflow, assuming dim is already valid
         const nbytes = (dim + 2) * vec_base_t.sizeof;
         vec_t vc;
         vec_t result;
@@ -140,7 +146,8 @@ struct VecGlobal
         else
         {
             vc = cast(vec_t) calloc(nbytes, 1);
-            assert(vc);
+            if (!vc)
+                err_nomem();
         }
         if (vc)
         {

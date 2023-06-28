@@ -1,7 +1,7 @@
 /**
  * Convert an AST that went through all semantic phases into an object file.
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _toobj.d)
@@ -42,6 +42,7 @@ import dmd.glue;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.init;
+import dmd.location;
 import dmd.mtype;
 import dmd.nspace;
 import dmd.objc_glue;
@@ -94,24 +95,17 @@ void genModuleInfo(Module m)
 
     //////////////////////////////////////////////
 
-    m.csym.Sclass = SCglobal;
+    m.csym.Sclass = SC.global;
     m.csym.Sfl = FLdata;
 
     auto dtb = DtBuilder(0);
+
     ClassDeclarations aclasses;
-
-    //printf("members.dim = %d\n", members.dim);
-    foreach (i; 0 .. m.members.dim)
-    {
-        Dsymbol member = (*m.members)[i];
-
-        //printf("\tmember '%s'\n", member.toChars());
-        member.addLocalClass(&aclasses);
-    }
+    getLocalClasses(m, aclasses);
 
     // importedModules[]
-    size_t aimports_dim = m.aimports.dim;
-    for (size_t i = 0; i < m.aimports.dim; i++)
+    size_t aimports_dim = m.aimports.length;
+    for (size_t i = 0; i < m.aimports.length; i++)
     {
         Module mod = m.aimports[i];
         if (!mod.needmoduleinfo)
@@ -155,7 +149,7 @@ void genModuleInfo(Module m)
         flags |= MIunitTest;
     if (aimports_dim)
         flags |= MIimportedModules;
-    if (aclasses.dim)
+    if (aclasses.length)
         flags |= MIlocalClasses;
     flags |= MIname;
 
@@ -179,7 +173,7 @@ void genModuleInfo(Module m)
     if (flags & MIimportedModules)
     {
         dtb.size(aimports_dim);
-        foreach (i; 0 .. m.aimports.dim)
+        foreach (i; 0 .. m.aimports.length)
         {
             Module mod = m.aimports[i];
 
@@ -198,8 +192,8 @@ void genModuleInfo(Module m)
     }
     if (flags & MIlocalClasses)
     {
-        dtb.size(aclasses.dim);
-        foreach (i; 0 .. aclasses.dim)
+        dtb.size(aclasses.length);
+        foreach (i; 0 .. aclasses.length)
         {
             ClassDeclaration cd = aclasses[i];
             dtb.xoff(toSymbol(cd), 0, TYnptr);
@@ -263,7 +257,7 @@ void write_instance_pointers(Type type, Symbol *s, uint offset)
     const bytes_size_t = cast(size_t)Type.tsize_t.size(Loc.initial);
     const bits_size_t = bytes_size_t * 8;
     auto words = cast(size_t)(sz / bytes_size_t);
-    for (size_t i = 0; i < data.dim; i++)
+    for (size_t i = 0; i < data.length; i++)
     {
         size_t bits = words < bits_size_t ? words : bits_size_t;
         for (size_t b = 0; b < bits; b++)
@@ -280,7 +274,7 @@ void write_instance_pointers(Type type, Symbol *s, uint offset)
 
 void toObjFile(Dsymbol ds, bool multiobj)
 {
-    //printf("toObjFile(%s)\n", ds.toChars());
+    //printf("toObjFile(%s %s)\n", ds.kind(), ds.toChars());
 
     bool isCfile = ds.isCsymbol();
 
@@ -290,7 +284,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
     public:
         bool multiobj;
 
-        this(bool multiobj)
+        this(bool multiobj) scope
         {
             this.multiobj = multiobj;
         }
@@ -341,7 +335,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             assert(cd.semanticRun >= PASS.semantic3done);     // semantic() should have been run to completion
 
-            enum_SC scclass = SCcomdat;
+            SC scclass = SC.comdat;
 
             // Put out the members
             /* There might be static ctors in the members, and they cannot
@@ -404,7 +398,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             auto dtbv = DtBuilder(0);
             if (cd.vtblOffset())
                 dtbv.xoff(cd.csym, 0, TYnptr);           // first entry is ClassInfo reference
-            foreach (i; cd.vtblOffset() .. cd.vtbl.dim)
+            foreach (i; cd.vtblOffset() .. cd.vtbl.length)
             {
                 FuncDeclaration fd = cd.vtbl[i].isFuncDeclaration();
 
@@ -512,10 +506,10 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
                 // Generate static initializer
                 auto sinit = toInitializer(sd);
-                if (sinit.Sclass == SCextern)
+                if (sinit.Sclass == SC.extern_)
                 {
                     if (sinit == bzeroSymbol) assert(0);
-                    sinit.Sclass = sd.isInstantiated() ? SCcomdat : SCglobal;
+                    sinit.Sclass = sd.isInstantiated() ? SC.comdat : SC.global;
                     sinit.Sfl = FLdata;
                     auto dtb = DtBuilder(0);
                     StructDeclaration_toDt(sd, dtb);
@@ -529,7 +523,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                     if (config.objfmt != OBJ_MACH &&
                         dtallzeros(sinit.Sdt))
                     {
-                        sinit.Sclass = SCglobal;
+                        sinit.Sclass = SC.global;
                         dt2common(&sinit.Sdt);
                     }
                     else
@@ -564,7 +558,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 return;
             }
 
-            if (vd.aliassym)
+            if (vd.aliasTuple)
             {
                 vd.toAlias().accept(this);
                 return;
@@ -586,19 +580,19 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 vd.error("size overflow");
                 return;
             }
-            if (sz64 >= target.maxStaticDataSize)
+            if (sz64 > target.maxStaticDataSize)
             {
                 vd.error("size of 0x%llx exceeds max allowed size 0x%llx", sz64, target.maxStaticDataSize);
             }
             uint sz = cast(uint)sz64;
 
             Dsymbol parent = vd.toParent();
-            s.Sclass = SCglobal;
+            s.Sclass = SC.global;
 
             /* Make C static functions SCstatic
              */
             if (vd.storage_class & STC.static_ && vd.isCsymbol())
-                s.Sclass = SCstatic;
+                s.Sclass = SC.static_;
 
             do
             {
@@ -608,7 +602,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                  */
                 if (parent.isTemplateInstance() && !parent.isTemplateMixin())
                 {
-                    s.Sclass = SCcomdat;
+                    s.Sclass = SC.comdat;
                     break;
                 }
                 parent = parent.parent;
@@ -649,16 +643,16 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             // See if we can convert a comdat to a comdef,
             // which saves on exe file space.
-            if (s.Sclass == SCcomdat &&
+            if (s.Sclass == SC.comdat &&
                 s.Sdt &&
                 dtallzeros(s.Sdt) &&
                 !vd.isThreadlocal())
             {
-                s.Sclass = SCglobal;
+                s.Sclass = SC.global;
                 dt2common(&s.Sdt);
             }
 
-            if (s.Sclass & SCglobal && s.Stype.Tty & mTYconst)
+            if (s.Sclass == SC.global && s.Stype.Tty & mTYconst)
                 out_readonly(s);
 
             outdata(s);
@@ -697,9 +691,9 @@ void toObjFile(Dsymbol ds, bool multiobj)
             }
             else
             {
-                enum_SC scclass = SCglobal;
+                SC scclass = SC.global;
                 if (ed.isInstantiated())
-                    scclass = SCcomdat;
+                    scclass = SC.comdat;
 
                 // Generate static initializer
                 toInitializer(ed);
@@ -729,7 +723,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             }
 
             Symbol *s = toSymbol(tid);
-            s.Sclass = SCcomdat;
+            s.Sclass = SC.comdat;
             s.Sfl = FLdata;
 
             auto dtb = DtBuilder(0);
@@ -738,10 +732,10 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             // See if we can convert a comdat to a comdef,
             // which saves on exe file space.
-            if (s.Sclass == SCcomdat &&
+            if (s.Sclass == SC.comdat &&
                 dtallzeros(s.Sdt))
             {
-                s.Sclass = SCglobal;
+                s.Sclass = SC.global;
                 dt2common(&s.Sdt);
             }
 
@@ -756,7 +750,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             if (d)
             {
-                for (size_t i = 0; i < d.dim; i++)
+                for (size_t i = 0; i < d.length; i++)
                 {
                     Dsymbol s = (*d)[i];
                     s.accept(this);
@@ -768,7 +762,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
         {
             if (pd.ident == Id.lib)
             {
-                assert(pd.args && pd.args.dim == 1);
+                assert(pd.args && pd.args.length == 1);
 
                 Expression e = (*pd.args)[0];
 
@@ -793,7 +787,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             }
             else if (pd.ident == Id.startaddress)
             {
-                assert(pd.args && pd.args.dim == 1);
+                assert(pd.args && pd.args.length == 1);
                 Expression e = (*pd.args)[0];
                 Dsymbol sa = getDsymbol(e);
                 FuncDeclaration f = sa.isFuncDeclaration();
@@ -803,7 +797,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             }
             else if (pd.ident == Id.linkerDirective)
             {
-                assert(pd.args && pd.args.dim == 1);
+                assert(pd.args && pd.args.length == 1);
 
                 Expression e = (*pd.args)[0];
 
@@ -948,7 +942,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             outdata(tlvInit);
 
             if (target.is64bit)
-                tlvInit.Sclass = SCextern;
+                tlvInit.Sclass = SC.extern_;
 
             Symbol* tlvBootstrap = objmod.tlv_bootstrap();
             dtb.xoff(tlvBootstrap, 0, TYnptr);
@@ -971,16 +965,16 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             // Compute identifier for tlv symbol
             OutBuffer buffer;
-            buffer.writestring(s.Sident);
+            buffer.writestring(s.Sident.ptr);
             buffer.writestring("$tlv$init");
-            const(char) *tlvInitName = buffer.peekChars();
+            const(char)[] tlvInitName = buffer[];
 
             // Compute type for tlv symbol
             type *t = type_fake(vd.type.ty);
             type_setty(&t, t.Tty | mTYthreadData);
             type_setmangle(&t, mangle(vd));
 
-            Symbol *tlvInit = symbol_name(tlvInitName, SCstatic, t);
+            Symbol *tlvInit = symbol_name(tlvInitName, SC.static_, t);
             tlvInit.Sdt = null;
             tlvInit.Salignment = type_alignsize(s.Stype);
             if (vd._linkage == LINK.cpp)
@@ -1039,7 +1033,7 @@ private bool finishVtbl(ClassDeclaration cd)
 {
     bool hasError = false;
 
-    foreach (i; cd.vtblOffset() .. cd.vtbl.dim)
+    foreach (i; cd.vtblOffset() .. cd.vtbl.length)
     {
         FuncDeclaration fd = cd.vtbl[i].isFuncDeclaration();
 
@@ -1066,7 +1060,7 @@ private bool finishVtbl(ClassDeclaration cd)
          * If fd overlaps with any function in the vtbl[], then
          * issue 'hidden' error.
          */
-        foreach (j; 1 .. cd.vtbl.dim)
+        foreach (j; 1 .. cd.vtbl.length)
         {
             if (j == i)
                 continue;
@@ -1075,7 +1069,7 @@ private bool finishVtbl(ClassDeclaration cd)
                 continue;
             if (fd2.isFuture())
                 continue;
-            if (!fd.leastAsSpecialized(fd2) && !fd2.leastAsSpecialized(fd))
+            if (!fd.leastAsSpecialized(fd2, null) && !fd2.leastAsSpecialized(fd, null))
                 continue;
             // Hiding detected: same name, overlapping specializations
             TypeFunction tf = fd.type.toTypeFunction();
@@ -1104,15 +1098,15 @@ uint baseVtblOffset(ClassDeclaration cd, BaseClass *bc)
 {
     //printf("ClassDeclaration.baseVtblOffset('%s', bc = %p)\n", cd.toChars(), bc);
     uint csymoffset = target.classinfosize;    // must be ClassInfo.size
-    csymoffset += cd.vtblInterfaces.dim * (4 * target.ptrsize);
+    csymoffset += cd.vtblInterfaces.length * (4 * target.ptrsize);
 
-    for (size_t i = 0; i < cd.vtblInterfaces.dim; i++)
+    for (size_t i = 0; i < cd.vtblInterfaces.length; i++)
     {
         BaseClass *b = (*cd.vtblInterfaces)[i];
 
         if (b == bc)
             return csymoffset;
-        csymoffset += b.sym.vtbl.dim * target.ptrsize;
+        csymoffset += b.sym.vtbl.length * target.ptrsize;
     }
 
     // Put out the overriding interface vtbl[]s.
@@ -1122,7 +1116,7 @@ uint baseVtblOffset(ClassDeclaration cd, BaseClass *bc)
 
     for (cd2 = cd.baseClass; cd2; cd2 = cd2.baseClass)
     {
-        foreach (k; 0 .. cd2.vtblInterfaces.dim)
+        foreach (k; 0 .. cd2.vtblInterfaces.length)
         {
             BaseClass *bs = (*cd2.vtblInterfaces)[k];
             if (bs.fillVtbl(cd, null, 0))
@@ -1132,7 +1126,7 @@ uint baseVtblOffset(ClassDeclaration cd, BaseClass *bc)
                     //printf("\tcsymoffset = x%x\n", csymoffset);
                     return csymoffset;
                 }
-                csymoffset += bs.sym.vtbl.dim * target.ptrsize;
+                csymoffset += bs.sym.vtbl.length * target.ptrsize;
             }
         }
     }
@@ -1156,8 +1150,8 @@ private size_t emitVtbl(ref DtBuilder dtb, BaseClass *b, ref FuncDeclarations bv
     //printf("\toverriding vtbl[] for %s\n", b.sym.toChars());
     ClassDeclaration id = b.sym;
 
-    const id_vtbl_dim = id.vtbl.dim;
-    assert(id_vtbl_dim <= bvtbl.dim);
+    const id_vtbl_dim = id.vtbl.length;
+    assert(id_vtbl_dim <= bvtbl.length);
 
     size_t jstart = 0;
     if (id.vtblOffset())
@@ -1197,7 +1191,7 @@ private size_t emitVtbl(ref DtBuilder dtb, BaseClass *b, ref FuncDeclarations bv
 private void genClassInfoForClass(ClassDeclaration cd, Symbol* sinit)
 {
     // Put out the ClassInfo, which will be the __ClassZ symbol in the object file
-    enum_SC scclass = SCcomdat;
+    SC scclass = SC.comdat;
     cd.csym.Sclass = scclass;
     cd.csym.Sfl = FLdata;
 
@@ -1263,15 +1257,15 @@ private void genClassInfoForClass(ClassDeclaration cd, Symbol* sinit)
     dt_t *pdtname = dtb.xoffpatch(cd.csym, 0, TYnptr);
 
     // vtbl[]
-    dtb.size(cd.vtbl.dim);
-    if (cd.vtbl.dim)
+    dtb.size(cd.vtbl.length);
+    if (cd.vtbl.length)
         dtb.xoff(cd.vtblsym.csym, 0, TYnptr);
     else
         dtb.size(0);
 
     // interfaces[]
-    dtb.size(cd.vtblInterfaces.dim);
-    if (cd.vtblInterfaces.dim)
+    dtb.size(cd.vtblInterfaces.length);
+    if (cd.vtblInterfaces.length)
         dtb.xoff(cd.csym, offset, TYnptr);      // (*)
     else
         dtb.size(0);
@@ -1319,7 +1313,7 @@ Louter:
     {
         if (pc.members)
         {
-            for (size_t i = 0; i < pc.members.dim; i++)
+            for (size_t i = 0; i < pc.members.length; i++)
             {
                 Dsymbol sm = (*pc.members)[i];
                 //printf("sm = %s %s\n", sm.kind(), sm.toChars());
@@ -1361,8 +1355,8 @@ Louter:
     // Put out (*vtblInterfaces)[]. Must immediately follow csym, because
     // of the fixup (*)
 
-    offset += cd.vtblInterfaces.dim * (4 * target.ptrsize);
-    for (size_t i = 0; i < cd.vtblInterfaces.dim; i++)
+    offset += cd.vtblInterfaces.length * (4 * target.ptrsize);
+    for (size_t i = 0; i < cd.vtblInterfaces.length; i++)
     {
         BaseClass *b = (*cd.vtblInterfaces)[i];
         ClassDeclaration id = b.sym;
@@ -1383,7 +1377,7 @@ Louter:
         dtb.xoff(toSymbol(id), 0, TYnptr);
 
         // vtbl[]
-        dtb.size(id.vtbl.dim);
+        dtb.size(id.vtbl.length);
         dtb.xoff(cd.csym, offset, TYnptr);
 
         // offset
@@ -1392,8 +1386,8 @@ Louter:
 
     // Put out the (*vtblInterfaces)[].vtbl[]
     // This must be mirrored with ClassDeclaration.baseVtblOffset()
-    //printf("putting out %d interface vtbl[]s for '%s'\n", vtblInterfaces.dim, toChars());
-    foreach (i; 0 .. cd.vtblInterfaces.dim)
+    //printf("putting out %d interface vtbl[]s for '%s'\n", vtblInterfaces.length, toChars());
+    foreach (i; 0 .. cd.vtblInterfaces.length)
     {
         BaseClass *b = (*cd.vtblInterfaces)[i];
         offset += emitVtbl(dtb, b, b.vtbl, cd, i);
@@ -1404,7 +1398,7 @@ Louter:
     //printf("putting out overriding interface vtbl[]s for '%s' at offset x%x\n", toChars(), offset);
     for (ClassDeclaration pc = cd.baseClass; pc; pc = pc.baseClass)
     {
-        foreach (i; 0 .. pc.vtblInterfaces.dim)
+        foreach (i; 0 .. pc.vtblInterfaces.length)
         {
             BaseClass *b = (*pc.vtblInterfaces)[i];
             FuncDeclarations bvtbl;
@@ -1438,7 +1432,7 @@ Louter:
  */
 private void genClassInfoForInterface(InterfaceDeclaration id)
 {
-    enum_SC scclass = SCcomdat;
+    SC scclass = SC.comdat;
 
     // Put out the ClassInfo
     id.csym.Sclass = scclass;
@@ -1494,8 +1488,8 @@ private void genClassInfoForInterface(InterfaceDeclaration id)
 
     // interfaces[]
     uint offset = target.classinfosize;
-    dtb.size(id.vtblInterfaces.dim);
-    if (id.vtblInterfaces.dim)
+    dtb.size(id.vtblInterfaces.length);
+    if (id.vtblInterfaces.length)
     {
         if (Type.typeinfoclass)
         {
@@ -1553,8 +1547,8 @@ private void genClassInfoForInterface(InterfaceDeclaration id)
     // Put out (*vtblInterfaces)[]. Must immediately follow csym, because
     // of the fixup (*)
 
-    offset += id.vtblInterfaces.dim * (4 * target.ptrsize);
-    for (size_t i = 0; i < id.vtblInterfaces.dim; i++)
+    offset += id.vtblInterfaces.length * (4 * target.ptrsize);
+    for (size_t i = 0; i < id.vtblInterfaces.length; i++)
     {
         BaseClass *b = (*id.vtblInterfaces)[i];
         ClassDeclaration base = b.sym;

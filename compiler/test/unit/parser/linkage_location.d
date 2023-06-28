@@ -3,7 +3,7 @@ module parser.linkage_location;
 import dmd.frontend : parseModule;
 import support : afterEach, beforeEach;
 import dmd.attrib : CPPMangleDeclaration, CPPNamespaceDeclaration, LinkDeclaration;
-import dmd.globals : Loc;
+import dmd.location;
 import dmd.visitor : SemanticTimeTransitiveVisitor;
 
 @beforeEach initializeFrontend()
@@ -212,33 +212,10 @@ extern (C++) static class LinkVisitor : SemanticTimeTransitiveVisitor
     }
 }
 
-enum Links = [
-    "C",
-    "C++",
-    "D",
-    "Objective-C",
-    "Windows",
-    "System"];
-
-static foreach (link; Links)
-{
-    @("extern("~link~")")
-    unittest
-    {
-        auto t = parseModule("test.d", "first_token extern("~link~")");
-
-        scope visitor = new LinkVisitor;
-        t.module_.accept(visitor);
-
-        assert(visitor.l.linnum == 1);
-        assert(visitor.l.charnum == 13);
-    }
-}
-
 @("extern(C++) variable")
 unittest
 {
-    auto t = parseModule("test.d", "first_token extern(C++) int a;");
+    auto t = parseModule("test.d", "            extern(C++) int a;");
 
     scope visitor = new LinkVisitor;
     t.module_.accept(visitor);
@@ -250,7 +227,7 @@ unittest
 @("extern(C++) function")
 unittest
 {
-    auto t = parseModule("test.d", "first_token extern(C++) void f();");
+    auto t = parseModule("test.d", "            extern(C++) void f();");
 
     scope visitor = new LinkVisitor;
     t.module_.accept(visitor);
@@ -262,7 +239,7 @@ unittest
 @("extern(C++) struct")
 unittest
 {
-    auto t = parseModule("test.d", "first_token extern(C++) struct C {}");
+    auto t = parseModule("test.d", "            extern(C++) struct C {}");
 
     scope visitor = new LinkVisitor;
     t.module_.accept(visitor);
@@ -274,7 +251,7 @@ unittest
 @("extern(C++) class")
 unittest
 {
-    auto t = parseModule("test.d", "first_token extern(C++) class C {}");
+    auto t = parseModule("test.d", "            extern(C++) class C {}");
 
     scope visitor = new LinkVisitor;
     t.module_.accept(visitor);

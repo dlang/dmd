@@ -1,7 +1,7 @@
 /**
  * A library in the COFF format, used on 32-bit and 64-bit Windows targets.
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/libmscoff.d, _libmscoff.d)
@@ -29,6 +29,7 @@ version (Windows)
 
 import dmd.globals;
 import dmd.lib;
+import dmd.location;
 import dmd.utils;
 
 import dmd.root.array;
@@ -140,7 +141,7 @@ final class LibMSCoff : Library
             char* longnames = null;
             size_t longnames_length = 0;
             size_t offset = 8;
-            size_t mstart = objmodules.dim;
+            size_t mstart = objmodules.length;
             while (1)
             {
                 offset = (offset + 1) & ~1; // round to even boundary
@@ -292,7 +293,7 @@ final class LibMSCoff : Library
                 uint moff = member_file_offsets[memi];
                 for (size_t m = mstart; 1; m++)
                 {
-                    if (m == objmodules.dim)
+                    if (m == objmodules.length)
                         return corrupt(__LINE__);       // didn't find it
                     MSCoffObjModule* om = objmodules[m];
                     //printf("\tom offset = x%x\n", cast(char *)om.base - cast(char *)buf);
@@ -418,7 +419,7 @@ private:
         }
         assert(MSCoffLibHeader.sizeof == 60);
         /************* Scan Object Modules for Symbols ******************/
-        for (size_t i = 0; i < objmodules.dim; i++)
+        for (size_t i = 0; i < objmodules.length; i++)
         {
             MSCoffObjModule* om = objmodules[i];
             if (om.scan)
@@ -430,7 +431,7 @@ private:
         /* The longnames section is where we store long file names.
          */
         uint noffset = 0;
-        for (size_t i = 0; i < objmodules.dim; i++)
+        for (size_t i = 0; i < objmodules.length; i++)
         {
             MSCoffObjModule* om = objmodules[i];
             size_t len = om.name.length;
@@ -448,7 +449,7 @@ private:
         }
         /************* Determine string table length ******************/
         size_t slength = 0;
-        for (size_t i = 0; i < objsymbols.dim; i++)
+        for (size_t i = 0; i < objsymbols.length; i++)
         {
             MSCoffObjSymbol* os = objsymbols[i];
             slength += os.name.length + 1;
@@ -456,10 +457,10 @@ private:
         /************* Offset of first module ***********************/
         size_t moffset = 8; // signature
         size_t firstLinkerMemberOffset = moffset;
-        moffset += MSCoffLibHeader.sizeof + 4 + objsymbols.dim * 4 + slength; // 1st Linker Member
+        moffset += MSCoffLibHeader.sizeof + 4 + objsymbols.length * 4 + slength; // 1st Linker Member
         moffset += moffset & 1;
         size_t secondLinkerMemberOffset = moffset;
-        moffset += MSCoffLibHeader.sizeof + 4 + objmodules.dim * 4 + 4 + objsymbols.dim * 2 + slength;
+        moffset += MSCoffLibHeader.sizeof + 4 + objmodules.length * 4 + 4 + objsymbols.length * 2 + slength;
         moffset += moffset & 1;
         size_t LongnamesMemberOffset = moffset;
         moffset += MSCoffLibHeader.sizeof + noffset; // Longnames Member size
@@ -468,7 +469,7 @@ private:
             printf("\tmoffset = x%x\n", moffset);
         }
         /************* Offset of each module *************************/
-        for (size_t i = 0; i < objmodules.dim; i++)
+        for (size_t i = 0; i < objmodules.length; i++)
         {
             MSCoffObjModule* om = objmodules[i];
             moffset += moffset & 1;
@@ -484,7 +485,7 @@ private:
         MSCoffObjModule om;
         om.name_offset = -1;
         om.base = null;
-        om.length = cast(uint)(4 + objsymbols.dim * 4 + slength);
+        om.length = cast(uint)(4 + objsymbols.length * 4 + slength);
         om.offset = 8;
         om.name = "";
         time_t file_time = 0;
@@ -499,12 +500,12 @@ private:
         MSCoffOmToHeader(&h, &om);
         libbuf.write((&h)[0 .. 1]);
         char[4] buf;
-        Port.writelongBE(cast(uint)objsymbols.dim, buf.ptr);
+        Port.writelongBE(cast(uint)objsymbols.length, buf.ptr);
         libbuf.write(buf[0 .. 4]);
         // Sort objsymbols[] in module offset order
         objsymbols.sort!(MSCoffObjSymbol.offset_pred);
         uint lastoffset;
-        for (size_t i = 0; i < objsymbols.dim; i++)
+        for (size_t i = 0; i < objsymbols.length; i++)
         {
             MSCoffObjSymbol* os = objsymbols[i];
             //printf("objsymbols[%d] = '%s', offset = %u\n", cast(int) i, os.name.ptr, os.om.offset);
@@ -517,7 +518,7 @@ private:
             Port.writelongBE(lastoffset, buf.ptr);
             libbuf.write(buf[0 .. 4]);
         }
-        for (size_t i = 0; i < objsymbols.dim; i++)
+        for (size_t i = 0; i < objsymbols.length; i++)
         {
             MSCoffObjSymbol* os = objsymbols[i];
             libbuf.writestring(os.name);
@@ -527,29 +528,29 @@ private:
         if (libbuf.length & 1)
             libbuf.writeByte('\n');
         assert(libbuf.length == secondLinkerMemberOffset);
-        om.length = cast(uint)(4 + objmodules.dim * 4 + 4 + objsymbols.dim * 2 + slength);
+        om.length = cast(uint)(4 + objmodules.length * 4 + 4 + objsymbols.length * 2 + slength);
         MSCoffOmToHeader(&h, &om);
         libbuf.write((&h)[0 .. 1]);
-        Port.writelongLE(cast(uint)objmodules.dim, buf.ptr);
+        Port.writelongLE(cast(uint)objmodules.length, buf.ptr);
         libbuf.write(buf[0 .. 4]);
-        for (size_t i = 0; i < objmodules.dim; i++)
+        for (size_t i = 0; i < objmodules.length; i++)
         {
             MSCoffObjModule* om2 = objmodules[i];
             om2.index = cast(ushort)i;
             Port.writelongLE(om2.offset, buf.ptr);
             libbuf.write(buf[0 .. 4]);
         }
-        Port.writelongLE(cast(uint)objsymbols.dim, buf.ptr);
+        Port.writelongLE(cast(uint)objsymbols.length, buf.ptr);
         libbuf.write(buf[0 .. 4]);
         // Sort objsymbols[] in lexical order
         objsymbols.sort!(MSCoffObjSymbol.name_pred);
-        for (size_t i = 0; i < objsymbols.dim; i++)
+        for (size_t i = 0; i < objsymbols.length; i++)
         {
             MSCoffObjSymbol* os = objsymbols[i];
             Port.writelongLE(os.om.index + 1, buf.ptr);
             libbuf.write(buf[0 .. 2]);
         }
-        for (size_t i = 0; i < objsymbols.dim; i++)
+        for (size_t i = 0; i < objsymbols.length; i++)
         {
             MSCoffObjSymbol* os = objsymbols[i];
             libbuf.writestring(os.name);
@@ -564,13 +565,13 @@ private:
         memset(&h, ' ', MSCoffLibHeader.sizeof);
         h.object_name[0] = '/';
         h.object_name[1] = '/';
-        size_t len = sprintf(h.file_size.ptr, "%u", noffset);
+        size_t len = snprintf(h.file_size.ptr, MSCOFF_FILE_SIZE_SIZE, "%u", noffset);
         assert(len < 10);
         h.file_size[len] = ' ';
         h.trailer[0] = '`';
         h.trailer[1] = '\n';
         libbuf.write((&h)[0 .. 1]);
-        for (size_t i = 0; i < objmodules.dim; i++)
+        for (size_t i = 0; i < objmodules.length; i++)
         {
             MSCoffObjModule* om2 = objmodules[i];
             if (om2.name_offset >= 0)
@@ -581,7 +582,7 @@ private:
         }
         /* Write out each of the object modules
          */
-        for (size_t i = 0; i < objmodules.dim; i++)
+        for (size_t i = 0; i < objmodules.length; i++)
         {
             MSCoffObjModule* om2 = objmodules[i];
             if (libbuf.length & 1)
@@ -626,16 +627,22 @@ struct MSCoffObjModule
 }
 
 enum MSCOFF_OBJECT_NAME_SIZE = 16;
+enum MSCOFF_FILE_TIME_SIZE = 12;
+enum MSCOFF_USER_ID_SIZE = 6;
+enum MSCOFF_GROUP_ID_SIZE = 6;
+enum MSCOFF_FILE_MODE_SIZE = 8;
+enum MSCOFF_FILE_SIZE_SIZE = 10;
+enum MSCOFF_TRAILER_SIZE = 2;
 
 struct MSCoffLibHeader
 {
     char[MSCOFF_OBJECT_NAME_SIZE] object_name;
-    char[12] file_time;
-    char[6] user_id;
-    char[6] group_id;
-    char[8] file_mode; // in octal
-    char[10] file_size;
-    char[2] trailer;
+    char[MSCOFF_FILE_TIME_SIZE] file_time;
+    char[MSCOFF_USER_ID_SIZE] user_id;
+    char[MSCOFF_GROUP_ID_SIZE] group_id;
+    char[MSCOFF_FILE_MODE_SIZE] file_mode; // in octal
+    char[MSCOFF_FILE_SIZE_SIZE] file_size;
+    char[MSCOFF_TRAILER_SIZE] trailer;
 }
 
 extern (C++) void MSCoffOmToHeader(MSCoffLibHeader* h, MSCoffObjModule* om)
@@ -649,26 +656,21 @@ extern (C++) void MSCoffOmToHeader(MSCoffLibHeader* h, MSCoffObjModule* om)
     }
     else
     {
-        len = sprintf(h.object_name.ptr, "/%d", om.name_offset);
+        len = snprintf(h.object_name.ptr, MSCOFF_OBJECT_NAME_SIZE, "/%d", om.name_offset);
         h.object_name[len] = ' ';
     }
     assert(len < MSCOFF_OBJECT_NAME_SIZE);
     memset(h.object_name.ptr + len + 1, ' ', MSCOFF_OBJECT_NAME_SIZE - (len + 1));
-    /* In the following sprintf's, don't worry if the trailing 0
-     * that sprintf writes goes off the end of the field. It will
-     * write into the next field, which we will promptly overwrite
-     * anyway. (So make sure to write the fields in ascending order.)
-     */
-    len = sprintf(h.file_time.ptr, "%llu", cast(long)om.file_time);
+    len = snprintf(h.file_time.ptr, MSCOFF_FILE_TIME_SIZE, "%llu", cast(long)om.file_time);
     assert(len <= 12);
     memset(h.file_time.ptr + len, ' ', 12 - len);
     // Match what MS tools do (set to all blanks)
     memset(h.user_id.ptr, ' ', (h.user_id).sizeof);
     memset(h.group_id.ptr, ' ', (h.group_id).sizeof);
-    len = sprintf(h.file_mode.ptr, "%o", om.file_mode);
+    len = snprintf(h.file_mode.ptr, MSCOFF_FILE_MODE_SIZE, "%o", om.file_mode);
     assert(len <= 8);
     memset(h.file_mode.ptr + len, ' ', 8 - len);
-    len = sprintf(h.file_size.ptr, "%u", om.length);
+    len = snprintf(h.file_size.ptr, MSCOFF_FILE_SIZE_SIZE, "%u", om.length);
     assert(len <= 10);
     memset(h.file_size.ptr + len, ' ', 10 - len);
     h.trailer[0] = '`';

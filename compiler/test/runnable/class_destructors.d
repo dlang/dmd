@@ -154,7 +154,13 @@ void testDeleteWithoutCpp()
 
 class ThrowingChildD : ChildD
 {
-	static immutable ex = new Exception("STOP");
+	static Exception ex;
+
+	static this()
+	{
+		ex = new Exception("STOP");
+	}
+
 	~this()
 	{
 		throw ex;

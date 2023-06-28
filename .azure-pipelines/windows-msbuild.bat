@@ -64,7 +64,7 @@ cd "%DMD_DIR%"
 if not "%C_RUNTIME%" == "mingw" goto not_mingw
     rem install recent LLD and mingw libraries to built dmd
     if exist "%DMD_DIR%\generated\Windows\%CONFIGURATION%\%PLATFORM%\lld-link.exe" goto lld_exists
-    powershell -command "& { iwr http://downloads.dlang.org/other/lld-link-9.0.0-seh.zip -OutFile lld.zip }" || exit /B 11
+    powershell -command "& { iwr https://downloads.dlang.org/other/lld-link-9.0.0-seh.zip -OutFile lld.zip }" || exit /B 11
     7z x lld.zip -o%DMD_DIR%\generated\Windows\%CONFIGURATION%\%PLATFORM% || exit /B 12
     :lld_exists
 

@@ -1,4 +1,0 @@
-Relaxed `pragma(crt_constructor)` / `pragma(crt_destructor)` linkage check
-
-`extern(C)` isn't a requirement for CRT con/destructors anymore when
-using the default `void ()` signature.

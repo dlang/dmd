@@ -12,7 +12,7 @@
  */
 module interfaces.check_implementations_20861;
 
-import dmd.globals : Loc;
+import dmd.location;
 
 import support : afterEach, beforeEach, compiles, stripDelimited, Diagnostic;
 
@@ -45,7 +45,7 @@ import support : afterEach, beforeEach, compiles, stripDelimited, Diagnostic;
         }.stripDelimited;
 
         enum message = "Error: class test.Bar interface function void foo() is not implemented";
-        enum expected = Diagnostic(Loc(filename, 6, 1), message);
+        const expected = Diagnostic(Loc(filename, 6, 1), message);
 
         const diagnostics = compiles(code, filename);
         assert(diagnostics == [expected], "\n" ~ diagnostics.toString);
@@ -67,7 +67,7 @@ import support : afterEach, beforeEach, compiles, stripDelimited, Diagnostic;
         }.stripDelimited;
 
         enum message = "Error: class test.Bar interface function void foo() is not implemented";
-        enum expected = Diagnostic(Loc(filename, 6, 1), message);
+        const expected = Diagnostic(Loc(filename, 6, 1), message);
 
         const diagnostics = compiles(code, filename);
         assert(diagnostics == [expected], "\n" ~ diagnostics.toString);
@@ -94,7 +94,7 @@ import support : afterEach, beforeEach, compiles, stripDelimited, Diagnostic;
         }.stripDelimited;
 
         enum message = "Error: class test.Bar interface function void foo() is not implemented";
-        enum expected = Diagnostic(Loc(filename, 11, 1), message);
+        const expected = Diagnostic(Loc(filename, 11, 1), message);
 
         const diagnostics = compiles(code, filename);
         assert(diagnostics == [expected], "\n" ~ diagnostics.toString);
@@ -123,7 +123,7 @@ import support : afterEach, beforeEach, compiles, stripDelimited, Diagnostic;
         }.stripDelimited;
 
         enum message = "Error: class test.B interface function void foo() is not implemented";
-        enum expected = Diagnostic(Loc(filename, 11, 1), message);
+        const expected = Diagnostic(Loc(filename, 11, 1), message);
 
         const diagnostics = compiles(code, filename);
         assert(diagnostics == [expected], "\n" ~ diagnostics.toString);

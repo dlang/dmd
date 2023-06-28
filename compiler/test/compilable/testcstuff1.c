@@ -60,7 +60,7 @@ _Static_assert(sizeof(float) == 4, "ok");
 _Static_assert(sizeof(double) == 8, "ok");
 //_Static_assert(sizeof(long double) == 8 || sizeof(long double) == 10 || sizeof(long double) == 16, "ok");
 
-_Static_assert(sizeof(const restrict volatile char volatile restrict const) == 1, "ok");
+_Static_assert(sizeof(const volatile char volatile const) == 1, "ok");
 
 _Static_assert(sizeof(int*) == 8 || 4 == sizeof(char*), "ok");
 
@@ -201,6 +201,13 @@ _Static_assert(testexpinit() == 1 + 2 + 3, "ok");
 
 /********************************/
 
+__declspec(restrict) void* testrestrictdeclspec()
+{
+    return 0;
+}
+
+/********************************/
+
 // Character literals
 _Static_assert(sizeof('a') == 4, "ok");
 _Static_assert(sizeof(u'a') == 4, "ok");
@@ -220,6 +227,9 @@ _Static_assert(L'\u1234' == 0x1234, "ok");
 void test__func__()
 {
     _Static_assert((sizeof __func__) == 13, "ok");
+#ifdef __PRETTY_FUNC__
+    _Static_assert((sizeof __PRETTY_FUNC__) == 13, "ok");
+#endif
 }
 
 void teststringtype()
@@ -254,7 +264,7 @@ void test2()
     int;
     int (*xi);
     int (*fp)(void);
-    int (* const volatile restrict fp2)(void);
+    int (* const volatile fp2)(void);
     void* pv;
     char c, d;
     short sh;
@@ -267,12 +277,13 @@ void test2()
     typedef int TI;
     //extern int ei;
     static int si;
-    _Thread_local int tli;
+    static _Thread_local int tli;
+    int __declspec(thread) tlj;
     auto int ai;
     register int reg;
     const int ci;
     volatile int vi;
-    restrict int ri;
+    int* restrict ri;
 
 //    _Atomic(int) ai;
 //    _Alignas(c) ac;

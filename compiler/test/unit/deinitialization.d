@@ -33,7 +33,7 @@ unittest
 @("Type.deinitialize")
 unittest
 {
-    import dmd.mars : addDefaultVersionIdentifiers;
+    import dmd.target : addDefaultVersionIdentifiers;
     import dmd.mtype : Type;
     import dmd.globals : global;
 

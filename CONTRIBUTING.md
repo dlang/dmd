@@ -166,11 +166,15 @@ accomplishes nothing. The more of its internal details can be made private, the 
 
 19. Try to use function prefixes:
 
+*` do` for performing some action
+
+These functions should not be mutating the data nor issuing error messages.
+Make them `const` and `pure` if practical.
+
 * `is` is the parameter in a certain category?
 * `has` does the parameter have a certain feature?
 * `can` for can I do X with the parameter?
-
-Such functions should not be mutating the data nor issuing error messages.
+* `needs` for things necessary
 
 20. The function return value variable should be named `result`.
 
@@ -178,6 +182,16 @@ Such functions should not be mutating the data nor issuing error messages.
 
 22. Public declarations in modules should be "above the fold", i.e. first in the file, thus making the API of the module
 easily visible when opening the file. Private declarations should follow afterwards.
+
+23. Identifiers implying a boolean value should be framed as positives. For example,
+`doUnittests` is preferred over `noUnittests`. Never want to see double negatives such
+as `if (!noUnittests)`.
+
+24. Identifier Case
+
+* types should start with a capital letter
+* variables and functions should start with a lower case letter
+* module names should be all lower case (for maximal compatibility with case insensitive file systems)
 
 ## The following will not be viewed with favor:
 

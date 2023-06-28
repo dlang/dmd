@@ -1,7 +1,7 @@
 /**
  * CTFE for expressions involving pointers, slices, array concatenation etc.
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/ctfeexpr.d, _ctfeexpr.d)
@@ -27,6 +27,7 @@ import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
+import dmd.location;
 import dmd.mtype;
 import dmd.root.complex;
 import dmd.root.ctfloat;
@@ -46,7 +47,7 @@ extern (C++) final class ClassReferenceExp : Expression
 
     extern (D) this(const ref Loc loc, StructLiteralExp lit, Type type)
     {
-        super(loc, EXP.classReference, __traits(classInstanceSize, ClassReferenceExp));
+        super(loc, EXP.classReference);
         assert(lit && lit.sd && lit.sd.isClassDeclaration());
         this.value = lit;
         this.type = type;
@@ -62,17 +63,17 @@ extern (C++) final class ClassReferenceExp : Expression
     {
         ClassDeclaration cd = originalClass();
         uint fieldsSoFar = 0;
-        for (size_t j = 0; j < value.elements.dim; j++)
+        for (size_t j = 0; j < value.elements.length; j++)
         {
-            while (j - fieldsSoFar >= cd.fields.dim)
+            while (j - fieldsSoFar >= cd.fields.length)
             {
-                fieldsSoFar += cd.fields.dim;
+                fieldsSoFar += cd.fields.length;
                 cd = cd.baseClass;
             }
             VarDeclaration v2 = cd.fields[j - fieldsSoFar];
             if (fieldoffset == v2.offset && fieldtype.size() == v2.type.size())
             {
-                return cast(int)(value.elements.dim - fieldsSoFar - cd.fields.dim + (j - fieldsSoFar));
+                return cast(int)(value.elements.length - fieldsSoFar - cd.fields.length + (j - fieldsSoFar));
             }
         }
         return -1;
@@ -84,17 +85,17 @@ extern (C++) final class ClassReferenceExp : Expression
     {
         ClassDeclaration cd = originalClass();
         size_t fieldsSoFar = 0;
-        for (size_t j = 0; j < value.elements.dim; j++)
+        for (size_t j = 0; j < value.elements.length; j++)
         {
-            while (j - fieldsSoFar >= cd.fields.dim)
+            while (j - fieldsSoFar >= cd.fields.length)
             {
-                fieldsSoFar += cd.fields.dim;
+                fieldsSoFar += cd.fields.length;
                 cd = cd.baseClass;
             }
             VarDeclaration v2 = cd.fields[j - fieldsSoFar];
             if (v == v2)
             {
-                return cast(int)(value.elements.dim - fieldsSoFar - cd.fields.dim + (j - fieldsSoFar));
+                return cast(int)(value.elements.length - fieldsSoFar - cd.fields.length + (j - fieldsSoFar));
             }
         }
         return -1;
@@ -131,7 +132,7 @@ extern (C++) final class ThrownExceptionExp : Expression
 
     extern (D) this(const ref Loc loc, ClassReferenceExp victim)
     {
-        super(loc, EXP.thrownException, __traits(classInstanceSize, ThrownExceptionExp));
+        super(loc, EXP.thrownException);
         this.thrown = victim;
         this.type = victim.type;
     }
@@ -169,7 +170,7 @@ extern (C++) final class CTFEExp : Expression
 {
     extern (D) this(EXP tok)
     {
-        super(Loc.initial, tok, __traits(classInstanceSize, CTFEExp));
+        super(Loc.initial, tok);
         type = Type.tvoid;
     }
 
@@ -267,7 +268,7 @@ private Expressions* copyLiteralArray(Expressions* oldelems, Expression basis = 
     if (!oldelems)
         return oldelems;
     incArrayAllocs();
-    auto newelems = new Expressions(oldelems.dim);
+    auto newelems = new Expressions(oldelems.length);
     foreach (i, el; *oldelems)
     {
         (*newelems)[i] = copyLiteral(el ? el : basis).copy();
@@ -318,7 +319,7 @@ UnionExp copyLiteral(Expression e)
          * an int[4] array can be initialized with a single int.
          */
         auto oldelems = sle.elements;
-        auto newelems = new Expressions(oldelems.dim);
+        auto newelems = new Expressions(oldelems.length);
         foreach (i, ref el; *newelems)
         {
             // We need the struct definition to detect block assignment
@@ -357,15 +358,30 @@ UnionExp copyLiteral(Expression e)
         r.origin = sle.origin;
         return ue;
     }
-    if (e.op == EXP.function_ || e.op == EXP.delegate_ || e.op == EXP.symbolOffset || e.op == EXP.null_ || e.op == EXP.variable || e.op == EXP.dotVariable || e.op == EXP.int64 || e.op == EXP.float64 || e.op == EXP.char_ || e.op == EXP.complex80 || e.op == EXP.void_ || e.op == EXP.vector || e.op == EXP.typeid_)
+
+    switch(e.op)
     {
+    case EXP.function_:
+    case EXP.delegate_:
+    case EXP.symbolOffset:
+    case EXP.null_:
+    case EXP.variable:
+    case EXP.dotVariable:
+    case EXP.int64:
+    case EXP.float64:
+    case EXP.complex80:
+    case EXP.void_:
+    case EXP.vector:
+    case EXP.typeid_:
         // Simple value types
         // Keep e1 for DelegateExp and DotVarExp
         emplaceExp!(UnionExp)(&ue, e);
         Expression r = ue.exp();
         r.type = e.type;
         return ue;
+    default: break;
     }
+
     if (auto se = e.isSliceExp())
     {
         if (se.type.toBasetype().ty == Tsarray)
@@ -550,12 +566,12 @@ uinteger_t resolveArrayLength(Expression e)
         case EXP.arrayLiteral:
         {
             const ale = e.isArrayLiteralExp();
-            return ale.elements ? ale.elements.dim : 0;
+            return ale.elements ? ale.elements.length : 0;
         }
 
         case EXP.assocArrayLiteral:
         {
-            return e.isAssocArrayLiteralExp().keys.dim;
+            return e.isAssocArrayLiteralExp().keys.length;
         }
 
         default:
@@ -1264,12 +1280,12 @@ private int ctfeRawCmp(const ref Loc loc, Expression e1, Expression e2, bool ide
     {
         return e1.toInteger() != e2.toInteger();
     }
+    if (identity && e1.type.isfloating())
+        return !e1.isIdentical(e2);
     if (e1.type.isreal() || e1.type.isimaginary())
     {
         real_t r1 = e1.type.isreal() ? e1.toReal() : e1.toImaginary();
         real_t r2 = e1.type.isreal() ? e2.toReal() : e2.toImaginary();
-        if (identity)
-            return !CTFloat.isIdentical(r1, r2);
         if (CTFloat.isNaN(r1) || CTFloat.isNaN(r2)) // if unordered
         {
             return 1;   // they are not equal
@@ -1281,13 +1297,7 @@ private int ctfeRawCmp(const ref Loc loc, Expression e1, Expression e2, bool ide
     }
     else if (e1.type.iscomplex())
     {
-        auto c1 = e1.toComplex();
-        auto c2 = e2.toComplex();
-        if (identity)
-        {
-            return !RealIdentical(c1.re, c2.re) && !RealIdentical(c1.im, c2.im);
-        }
-        return c1 != c2;
+        return e1.toComplex() != e2.toComplex();
     }
     if (e1.op == EXP.structLiteral && e2.op == EXP.structLiteral)
     {
@@ -1296,15 +1306,15 @@ private int ctfeRawCmp(const ref Loc loc, Expression e1, Expression e2, bool ide
         // For structs, we only need to return 0 or 1 (< and > aren't legal).
         if (es1.sd != es2.sd)
             return 1;
-        else if ((!es1.elements || !es1.elements.dim) && (!es2.elements || !es2.elements.dim))
+        else if ((!es1.elements || !es1.elements.length) && (!es2.elements || !es2.elements.length))
             return 0; // both arrays are empty
         else if (!es1.elements || !es2.elements)
             return 1;
-        else if (es1.elements.dim != es2.elements.dim)
+        else if (es1.elements.length != es2.elements.length)
             return 1;
         else
         {
-            foreach (size_t i; 0 .. es1.elements.dim)
+            foreach (size_t i; 0 .. es1.elements.length)
             {
                 Expression ee1 = (*es1.elements)[i];
                 Expression ee2 = (*es2.elements)[i];
@@ -1328,8 +1338,8 @@ private int ctfeRawCmp(const ref Loc loc, Expression e1, Expression e2, bool ide
     {
         AssocArrayLiteralExp es1 = e1.isAssocArrayLiteralExp();
         AssocArrayLiteralExp es2 = e2.isAssocArrayLiteralExp();
-        size_t dim = es1.keys.dim;
-        if (es2.keys.dim != dim)
+        size_t dim = es1.keys.length;
+        if (es2.keys.length != dim)
             return 1;
         bool* used = cast(bool*)mem.xmalloc(bool.sizeof * dim);
         memset(used, 0, bool.sizeof * dim);
@@ -1360,11 +1370,11 @@ private int ctfeRawCmp(const ref Loc loc, Expression e1, Expression e2, bool ide
     }
     else if (e1.op == EXP.assocArrayLiteral && e2.op == EXP.null_)
     {
-        return e1.isAssocArrayLiteralExp.keys.dim != 0;
+        return e1.isAssocArrayLiteralExp.keys.length != 0;
     }
     else if (e1.op == EXP.null_ && e2.op == EXP.assocArrayLiteral)
     {
-        return e2.isAssocArrayLiteralExp.keys.dim != 0;
+        return e2.isAssocArrayLiteralExp.keys.length != 0;
     }
 
     error(loc, "CTFE internal error: bad compare of `%s` and `%s`", e1.toChars(), e2.toChars());
@@ -1398,16 +1408,8 @@ bool ctfeIdentity(const ref Loc loc, EXP op, Expression e1, Expression e2)
         SymOffExp es2 = e2.isSymOffExp();
         cmp = (es1.var == es2.var && es1.offset == es2.offset);
     }
-    else if (e1.type.isreal())
-        cmp = CTFloat.isIdentical(e1.toReal(), e2.toReal());
-    else if (e1.type.isimaginary())
-        cmp = RealIdentical(e1.toImaginary(), e2.toImaginary());
-    else if (e1.type.iscomplex())
-    {
-        complex_t v1 = e1.toComplex();
-        complex_t v2 = e2.toComplex();
-        cmp = RealIdentical(creall(v1), creall(v2)) && RealIdentical(cimagl(v1), cimagl(v1));
-    }
+    else if (e1.type.isfloating())
+        cmp = e1.isIdentical(e2);
     else
     {
         cmp = !ctfeRawCmp(loc, e1, e2, true);
@@ -1445,12 +1447,12 @@ UnionExp ctfeCat(const ref Loc loc, Type type, Expression e1, Expression e2)
         // [chars] ~ string => string (only valid for CTFE)
         StringExp es1 = e2.isStringExp();
         ArrayLiteralExp es2 = e1.isArrayLiteralExp();
-        const len = es1.len + es2.elements.dim;
+        const len = es1.len + es2.elements.length;
         const sz = es1.sz;
         void* s = mem.xmalloc((len + 1) * sz);
         const data1 = es1.peekData();
-        memcpy(cast(char*)s + sz * es2.elements.dim, data1.ptr, data1.length);
-        foreach (size_t i; 0 .. es2.elements.dim)
+        memcpy(cast(char*)s + sz * es2.elements.length, data1.ptr, data1.length);
+        foreach (size_t i; 0 .. es2.elements.length)
         {
             Expression es2e = (*es2.elements)[i];
             if (es2e.op != EXP.int64)
@@ -1465,7 +1467,7 @@ UnionExp ctfeCat(const ref Loc loc, Type type, Expression e1, Expression e2)
         memset(cast(char*)s + len * sz, 0, sz);
         emplaceExp!(StringExp)(&ue, loc, s[0 .. len * sz], len, sz);
         StringExp es = ue.exp().isStringExp();
-        es.committed = 0;
+        es.committed = false;
         es.type = type;
         return ue;
     }
@@ -1475,12 +1477,12 @@ UnionExp ctfeCat(const ref Loc loc, Type type, Expression e1, Expression e2)
         // Concatenate the strings
         StringExp es1 = e1.isStringExp();
         ArrayLiteralExp es2 = e2.isArrayLiteralExp();
-        const len = es1.len + es2.elements.dim;
+        const len = es1.len + es2.elements.length;
         const sz = es1.sz;
         void* s = mem.xmalloc((len + 1) * sz);
         auto slice = es1.peekData();
         memcpy(s, slice.ptr, slice.length);
-        foreach (size_t i; 0 .. es2.elements.dim)
+        foreach (size_t i; 0 .. es2.elements.length)
         {
             Expression es2e = (*es2.elements)[i];
             if (es2e.op != EXP.int64)
@@ -1496,7 +1498,7 @@ UnionExp ctfeCat(const ref Loc loc, Type type, Expression e1, Expression e2)
         emplaceExp!(StringExp)(&ue, loc, s[0 .. len * sz], len, sz);
         StringExp es = ue.exp().isStringExp();
         es.sz = sz;
-        es.committed = 0; //es1.committed;
+        es.committed = false; //es1.committed;
         es.type = type;
         return ue;
     }
@@ -1507,7 +1509,7 @@ UnionExp ctfeCat(const ref Loc loc, Type type, Expression e1, Expression e2)
         ArrayLiteralExp es2 = e2.isArrayLiteralExp();
         emplaceExp!(ArrayLiteralExp)(&ue, es1.loc, type, copyLiteralArray(es1.elements));
         es1 = ue.exp().isArrayLiteralExp();
-        es1.elements.insert(es1.elements.dim, copyLiteralArray(es2.elements));
+        es1.elements.insert(es1.elements.length, copyLiteralArray(es2.elements));
         return ue;
     }
     if (e1.op == EXP.arrayLiteral && e2.op == EXP.null_ && t1.nextOf().equals(t2.nextOf()))
@@ -1533,7 +1535,7 @@ Expression findKeyInAA(const ref Loc loc, AssocArrayLiteralExp ae, Expression e2
 {
     /* Search the keys backwards, in case there are duplicate keys
      */
-    for (size_t i = ae.keys.dim; i;)
+    for (size_t i = ae.keys.length; i;)
     {
         --i;
         Expression ekey = (*ae.keys)[i];
@@ -1567,9 +1569,9 @@ Expression ctfeIndex(UnionExp* pue, const ref Loc loc, Type type, Expression e1,
 
     if (auto ale = e1.isArrayLiteralExp())
     {
-        if (indx >= ale.elements.dim)
+        if (indx >= ale.elements.length)
         {
-            error(loc, "array index %llu is out of bounds `%s[0 .. %llu]`", indx, e1.toChars(), cast(ulong)ale.elements.dim);
+            error(loc, "array index %llu is out of bounds `%s[0 .. %llu]`", indx, e1.toChars(), cast(ulong)ale.elements.length);
             return CTFEExp.cantexp;
         }
         Expression e = (*ale.elements)[cast(size_t)indx];
@@ -1669,9 +1671,9 @@ void assignInPlace(Expression dest, Expression src)
         newelems = src.isStructLiteralExp().elements;
         auto sd = dest.isStructLiteralExp().sd;
         const nfields = sd.nonHiddenFields();
-        const nvthis = sd.fields.dim - nfields;
-        if (nvthis && oldelems.dim >= nfields && oldelems.dim < newelems.dim)
-            foreach (_; 0 .. newelems.dim - oldelems.dim)
+        const nvthis = sd.fields.length - nfields;
+        if (nvthis && oldelems.length >= nfields && oldelems.length < newelems.length)
+            foreach (_; 0 .. newelems.length - oldelems.length)
                 oldelems.push(null);
     }
     else if (dest.op == EXP.arrayLiteral && src.op == EXP.arrayLiteral)
@@ -1699,8 +1701,8 @@ void assignInPlace(Expression dest, Expression src)
         printf("invalid op %d %d\n", src.op, dest.op);
         assert(0);
     }
-    assert(oldelems.dim == newelems.dim);
-    foreach (size_t i; 0 .. oldelems.dim)
+    assert(oldelems.length == newelems.length);
+    foreach (size_t i; 0 .. oldelems.length)
     {
         Expression e = (*newelems)[i];
         Expression o = (*oldelems)[i];
@@ -1728,7 +1730,7 @@ Expression assignAssocArrayElement(const ref Loc loc, AssocArrayLiteralExp aae, 
     Expressions* keysx = aae.keys;
     Expressions* valuesx = aae.values;
     int updated = 0;
-    for (size_t j = valuesx.dim; j;)
+    for (size_t j = valuesx.length; j;)
     {
         j--;
         Expression ekey = (*aae.keys)[j];
@@ -1834,7 +1836,6 @@ bool isCtfeValueValid(Expression newval)
     {
         case EXP.int64:
         case EXP.float64:
-        case EXP.char_:
         case EXP.complex80:
             return tb.isscalar();
 
@@ -2013,13 +2014,13 @@ void showCtfeExpr(Expression e, int level = 0)
     if (elements)
     {
         size_t fieldsSoFar = 0;
-        for (size_t i = 0; i < elements.dim; i++)
+        for (size_t i = 0; i < elements.length; i++)
         {
             Expression z = null;
             VarDeclaration v = null;
             if (i > 15)
             {
-                printf("...(total %d elements)\n", cast(int)elements.dim);
+                printf("...(total %d elements)\n", cast(int)elements.length);
                 return;
             }
             if (sd)
@@ -2029,18 +2030,18 @@ void showCtfeExpr(Expression e, int level = 0)
             }
             else if (cd)
             {
-                while (i - fieldsSoFar >= cd.fields.dim)
+                while (i - fieldsSoFar >= cd.fields.length)
                 {
-                    fieldsSoFar += cd.fields.dim;
+                    fieldsSoFar += cd.fields.length;
                     cd = cd.baseClass;
                     for (int j = level; j > 0; --j)
                         printf(" ");
                     printf(" BASE CLASS: %s\n", cd.toChars());
                 }
                 v = cd.fields[i - fieldsSoFar];
-                assert((elements.dim + i) >= (fieldsSoFar + cd.fields.dim));
-                size_t indx = (elements.dim - fieldsSoFar) - cd.fields.dim + i;
-                assert(indx < elements.dim);
+                assert((elements.length + i) >= (fieldsSoFar + cd.fields.length));
+                size_t indx = (elements.length - fieldsSoFar) - cd.fields.length + i;
+                assert(indx < elements.length);
                 z = (*elements)[indx];
             }
             if (!z)
@@ -2092,8 +2093,8 @@ UnionExp voidInitLiteral(Type t, VarDeclaration var)
     else if (t.ty == Tstruct)
     {
         TypeStruct ts = cast(TypeStruct)t;
-        auto exps = new Expressions(ts.sym.fields.dim);
-        foreach (size_t i;  0 .. ts.sym.fields.dim)
+        auto exps = new Expressions(ts.sym.fields.length);
+        foreach (size_t i;  0 .. ts.sym.fields.length)
         {
             (*exps)[i] = voidInitLiteral(ts.sym.fields[i].type, ts.sym.fields[i]).copy();
         }

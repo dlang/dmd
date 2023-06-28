@@ -120,7 +120,24 @@ template Foo(T, int V)
 			B,
 			C,
 		}
-		void fswitch(Label l);
+		void fswitch(Label l)
+		{
+			final switch (l)
+			{
+				case A:
+				{
+					break;
+				}
+				case B:
+				{
+					break;
+				}
+				case C:
+				{
+					break;
+				}
+			}
+		}
 		loop:
 		while (x)
 		{
@@ -198,15 +215,11 @@ class xFoo2 : iFoo, iFoo2
 }
 class Foo3
 {
-	this(int a, ...)
-	{
-	}
-	this(int* a)
-	{
-	}
+	this(int a, ...);
+	this(int* a);
 }
 alias myint = int;
-static notquit = 1;
+static extern typeof(1) notquit;
 class Test
 {
 	void a();
@@ -260,7 +273,7 @@ void templ(T)(T val)
 {
 	pragma (msg, "Invalid destination type.");
 }
-static char[] charArray = ['"', '\''];
+static extern char[] charArray;
 class Point
 {
 	auto x = 10;
@@ -351,12 +364,8 @@ struct S6360
 }
 struct S12
 {
-	nothrow this(int n)
-	{
-	}
-	nothrow this(string s)
-	{
-	}
+	nothrow this(int n);
+	nothrow this(string s);
 }
 struct T12
 {
@@ -465,11 +474,7 @@ class TestClass
 	int aa;
 	int b1;
 	int b2;
-	this(int b1, int b2)
-	{
-		this.b1 = b1;
-		this.b2 = b2;
-	}
+	this(int b1, int b2);
 	ref foo()
 	{
 		return aa;
@@ -497,9 +502,7 @@ size_t magic();
 class Foo2A
 {
 	immutable(FooA) Dummy = new immutable(FooA);
-	private immutable pure nothrow @nogc @safe this()
-	{
-	}
+	private immutable pure nothrow @nogc @safe this();
 }
 struct Foo3A(T)
 {

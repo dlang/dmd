@@ -1,7 +1,7 @@
 /**
  * Convert to Intermediate Representation (IR) for the back-end.
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/_tocsym.d, _toir.d)
@@ -50,6 +50,7 @@ import dmd.globals;
 import dmd.glue;
 import dmd.identifier;
 import dmd.id;
+import dmd.location;
 import dmd.mtype;
 import dmd.target;
 import dmd.tocvdebug;
@@ -227,7 +228,7 @@ elem *getEthis(const ref Loc loc, IRState *irs, Dsymbol fd, Dsymbol fdp = null, 
         FuncDeclaration fdthis = thisfd;
         for (size_t i = 0; ; )
         {
-            if (i == fdthis.foverrides.dim)
+            if (i == fdthis.foverrides.length)
             {
                 if (i == 0)
                     break;
@@ -656,7 +657,7 @@ elem *resolveLengthVar(VarDeclaration lengthVar, elem **pe, Type t1)
 
         L3:
             slength = toSymbol(lengthVar);
-            if (slength.Sclass == SCauto && slength.Ssymnum == SYMIDX.max)
+            if (slength.Sclass == SC.auto_ && slength.Ssymnum == SYMIDX.max)
                 symbol_add(slength);
 
             einit = el_bin(OPeq, TYsize_t, el_var(slength), elength);
@@ -703,14 +704,17 @@ TYPE* getParentClosureType(Symbol* sthis, FuncDeclaration fd)
  * Also turns off nrvo for closure variables.
  * Params:
  *      fd = function
+ * Returns:
+ *      overall alignment of the closure
  */
-void setClosureVarOffset(FuncDeclaration fd)
+uint setClosureVarOffset(FuncDeclaration fd)
 {
     // Nothing to do
     if (!fd.needsClosure())
-        return;
+        return 0;
 
     uint offset = target.ptrsize;      // leave room for previous sthis
+    uint aggAlignment = offset;        // overall alignment for the closure
 
     foreach (v; fd.closureVars)
     {
@@ -748,11 +752,16 @@ void setClosureVarOffset(FuncDeclaration fd)
 
         offset += memsize;
 
+        uint actualAlignment = xalign.isDefault() ? memalignsize : xalign.get();
+        if (aggAlignment < actualAlignment)
+            aggAlignment = actualAlignment;     // take the largest
+
         /* Can't do nrvo if the variable is put in a closure, since
          * what the shidden points to may no longer exist.
          */
         assert(!fd.isNRVO() || fd.nrvo_var != v);
     }
+    return aggAlignment;
 }
 
 /*************************************
@@ -777,9 +786,20 @@ void setClosureVarOffset(FuncDeclaration fd)
 void buildClosure(FuncDeclaration fd, IRState *irs)
 {
     //printf("buildClosure(fd = %s)\n", fd.toChars());
+    const oldValue = fd.requiresClosure;
     if (fd.needsClosure())
     {
-        setClosureVarOffset(fd);
+        /* nrvo is incompatible with closure
+         */
+        if (oldValue != fd.requiresClosure && (fd.nrvo_var || irs.params.betterC))
+        {
+            /* https://issues.dlang.org/show_bug.cgi?id=23112
+             * This can shift due to templates being expanded that access alias symbols.
+             */
+            fd.checkClosure();   // give decent diagnostic
+        }
+
+        auto aggAlignment = setClosureVarOffset(fd);
 
         // Generate closure on the heap
         // BUG: doesn't capture variadic arguments passed to this function
@@ -812,19 +832,20 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
         symbol_struct_addField(Closstru.Ttag, "__chain", chaintype, 0);
 
         Symbol *sclosure;
-        sclosure = symbol_name("__closptr", SCauto, type_pointer(Closstru));
+        sclosure = symbol_name("__closptr", SC.auto_, type_pointer(Closstru));
         sclosure.Sflags |= SFLtrue | SFLfree;
         symbol_add(sclosure);
         irs.sclosure = sclosure;
 
-        assert(fd.closureVars.dim);
+        assert(fd.closureVars.length);
         assert(fd.closureVars[0].offset >= target.ptrsize);
         foreach (v; fd.closureVars)
         {
             //printf("closure var %s\n", v.toChars());
+            v.inClosure = true;
 
             // Hack for the case fail_compilation/fail10666.d,
-            // until proper issue 5730 fix will come.
+            // until proper https://issues.dlang.org/show_bug.cgi?id=5730 fix will come.
             bool isScopeDtorParam = v.edtor && (v.storage_class & STC.parameter);
             if (v.needsScopeDtor() || isScopeDtorParam)
             {
@@ -852,7 +873,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
         }
 
         // Calculate the size of the closure
-        VarDeclaration  vlast = fd.closureVars[fd.closureVars.dim - 1];
+        VarDeclaration  vlast = fd.closureVars[fd.closureVars.length - 1];
         typeof(Type.size()) lastsize;
         if (vlast.storage_class & STC.lazy_)
             lastsize = target.ptrsize * 2;
@@ -861,7 +882,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
         else
             lastsize = vlast.type.size();
         bool overflow;
-        const structsize = addu(vlast.offset, lastsize, overflow);
+        auto structsize = addu(vlast.offset, lastsize, overflow);
         assert(!overflow && structsize <= uint.max);
         //printf("structsize = %d\n", cast(uint)structsize);
 
@@ -871,10 +892,23 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
         if (driverParams.symdebug)
             toDebugClosure(Closstru.Ttag);
 
+        // Add extra size so we can align it
+        enum GC_ALIGN = 16;     // gc aligns on 16 bytes
+        if (aggAlignment > GC_ALIGN)
+            structsize += aggAlignment - GC_ALIGN;
+
         // Allocate memory for the closure
         elem *e = el_long(TYsize_t, structsize);
         e = el_bin(OPcall, TYnptr, el_var(getRtlsym(RTLSYM.ALLOCMEMORY)), e);
         toTraceGC(irs, e, fd.loc);
+
+        // Align it
+        if (aggAlignment > GC_ALIGN)
+        {
+            // e + (aggAlignment - 1) & ~(aggAlignment - 1)
+            e = el_bin(OPadd, TYsize_t, e, el_long(TYsize_t, aggAlignment - 1));
+            e = el_bin(OPand, TYsize_t, e, el_long(TYsize_t, ~(aggAlignment - 1L)));
+        }
 
         // Assign block of memory to sclosure
         //    sclosure = allocmemory(sz);
@@ -934,6 +968,181 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
     }
 }
 
+/**************************************
+ * Go through the variables in function fd that are
+ * to be allocated in an aligned section, and set the .offset fields
+ * for those variables to their positions relative to the start
+ * of the aligned section instance.
+ * Params:
+ *      fd = function
+ * Returns:
+ *      overall alignment of the align section
+ * Reference:
+ *      setClosureVarOffset
+ */
+uint setAlignSectionVarOffset(FuncDeclaration fd)
+{
+    // Nothing to do
+    if (!fd.alignSectionVars)
+        return 0;
+
+    uint offset = 0;
+    uint aggAlignment = offset;        // overall alignment for the closure
+
+    // first go through and find overall alignment for the entire section
+    foreach (v; (*fd.alignSectionVars)[])
+    {
+        if (v.inClosure)
+            continue;
+
+        /* Align and allocate space for v in the align closure
+         * just like AggregateDeclaration.addField() does.
+         */
+        const memsize = cast(uint)v.type.size();
+        const memalignsize = v.type.alignsize();
+        const xalign = v.alignment;
+
+        AggregateDeclaration.alignmember(xalign, memalignsize, &offset);
+        v.offset = offset;
+        //printf("align closure var %s, offset = %d\n", v.toChars(), offset);
+
+        offset += memsize;
+
+        uint actualAlignment = xalign.isDefault() ? memalignsize : xalign.get();
+        //printf("actualAlignment = x%x, x%x\n", actualAlignment, xalign.get());
+        if (aggAlignment < actualAlignment)
+            aggAlignment = actualAlignment;     // take the largest
+    }
+
+    return aggAlignment;
+}
+
+/*************************************
+ * Aligned sections are implemented by taking the local variables that
+ * need alignment that is larger than the stack alignment.
+ * They are allocated into a separate chunk of memory on the stack
+ * called an align section, which is aligned on function entry.
+ *
+ * buildAlignSection() inserts code just after the function prolog
+ * is complete. It allocates memory for the align closure by making
+ * a local stack variable to contain that memory, allocates
+ * a local variable (salignSection) to point to it.
+ * In VarExp::toElem and SymOffExp::toElem, when referring to a
+ * variable that is in an align closure, take the offset from salignSection rather
+ * than from the frame pointer.
+ * A variable cannot be in both a closure and an align section. They go in the closure
+ * and then that closure is aligned.
+ *
+ * getEthis() and NewExp::toElem need to use sclosure, if set, rather
+ * than the current frame pointer??
+ *
+ * Run after buildClosure, as buildClosure gets first dibs on inAlignSection variables
+ * Params:
+ *      fd = function in which all this occurs
+ *      irs = state of the intermediate code generation
+ * Reference:
+ *      buildClosure() is very similar.
+ *
+ *      https://github.com/dlang/dmd/pull/9143 was an incomplete attempt to solve this problem
+ *      that was merged. It should probably be removed.
+ */
+void buildAlignSection(FuncDeclaration fd, ref IRState irs)
+{
+    enum log = false;
+    if (log) printf("buildAlignSection(fd = %s)\n", fd.toChars());
+    if (!fd.alignSectionVars)
+        return;
+    auto alignSectionVars = (*fd.alignSectionVars)[];
+
+    /* If they're all in a closure, don't need to build an align section
+     */
+    foreach (v; alignSectionVars)
+    {
+        if (!v.inClosure)
+            goto L1;
+    }
+    return;
+  L1:
+
+    auto stackAlign = target.stackAlign();
+    auto aggAlignment = setAlignSectionVarOffset(fd);
+
+    /* Generate type name for align closure struct */
+    const char *name1 = "ALIGNSECTION.";
+    const char *name2 = fd.toPrettyChars();
+    size_t namesize = strlen(name1)+strlen(name2)+1;
+    char *closname = cast(char *)Mem.check(calloc(namesize, char.sizeof));
+    strcat(strcat(closname, name1), name2);
+
+    /* Build type for aligned section */
+    type *Closstru = type_struct_class(closname, stackAlign, 0, null, null, false, false, true, false);
+    free(closname);
+
+    Symbol *sclosure;
+    type* t = type_pointer(Closstru);
+    type_setcv(&t, t.Tty | mTYvolatile);        // so optimizer doesn't delete it
+    sclosure = symbol_name("__alignsecptr", SC.auto_, t);
+    sclosure.Sflags |= SFLtrue | SFLfree;
+    symbol_add(sclosure);
+    fd.salignSection = sclosure;
+
+    foreach (v; alignSectionVars)
+    {
+        if (v.inClosure)
+            continue;
+
+        if (log) printf("align section var %s\n", v.toChars());
+        v.inAlignSection = true;
+
+        Symbol *vsym = toSymbol(v);
+        assert(vsym.Sscope == null);
+        vsym.Sscope = sclosure;
+
+        /* Add variable as align section type member */
+        symbol_struct_addField(Closstru.Ttag, &vsym.Sident[0], vsym.Stype, v.offset);
+        if (log) printf("align section field %s: offset: %i\n", &vsym.Sident[0], v.offset);
+    }
+
+    // Calculate the size of the align section
+    VarDeclaration  vlast = alignSectionVars[$ - 1];
+    typeof(Type.size()) lastsize;
+    lastsize = vlast.type.size();
+    bool overflow;
+    auto structsize = addu(vlast.offset, lastsize, overflow);
+    assert(!overflow && structsize <= uint.max);
+    if (log) printf("structsize = %d\n", cast(uint)structsize);
+
+    // Add extra size so we can align it
+    if (log) printf("aggAlignment: x%x, stackAlign: x%x\n", aggAlignment, stackAlign);
+    assert(aggAlignment > stackAlign);
+    structsize += aggAlignment - stackAlign;
+
+    Closstru.Ttag.Sstruct.Sstructsize = cast(uint)structsize;
+    fd.csym.Sscope = sclosure;
+
+    if (driverParams.symdebug)
+        toDebugClosure(Closstru.Ttag);
+
+    // Create Symbol that is an instance of the align closure
+    Symbol *salignSectionInstance = symbol_name("__alignsec", SC.auto_, Closstru);
+    salignSectionInstance.Sflags |= SFLtrue | SFLfree;
+    symbol_add(salignSectionInstance);
+
+    elem *e = el_ptr(salignSectionInstance);
+
+    /* Align it
+     * e + (aggAlignment - 1) & ~(aggAlignment - 1)
+     */
+    e = el_bin(OPadd, TYsize_t, e, el_long(TYsize_t, aggAlignment - 1));
+    e = el_bin(OPand, TYsize_t, e, el_long(TYsize_t, ~(aggAlignment - 1L)));
+
+    // Assign pointer to align section instance to sclosure
+    //    salignSection = allocmemory(sz);
+    e = el_bin(OPeq, TYvoid, el_var(sclosure), e);
+
+    block_appendexp(irs.blx.curblock, e);
+}
+
 /*************************************
  * build a debug info struct for variables captured by nested functions,
  * but not in a closure.
@@ -948,7 +1157,7 @@ void buildCapture(FuncDeclaration fd)
     if (target.objectFormat() != Target.ObjectFormat.coff)  // toDebugClosure only implemented for CodeView,
         return;                 //  but optlink crashes for negative field offsets
 
-    if (fd.closureVars.dim && !fd.needsClosure)
+    if (fd.closureVars.length && !fd.needsClosure)
     {
         /* Generate type name for struct with captured variables */
         const char *name1 = "CAPTURE.";
@@ -974,7 +1183,7 @@ void buildCapture(FuncDeclaration fd)
         }
 
         // generate pseudo symbol to put into functions' Sscope
-        Symbol *scapture = symbol_name("__captureptr", SCalias, type_pointer(capturestru));
+        Symbol *scapture = symbol_name("__captureptr", SC.alias_, type_pointer(capturestru));
         scapture.Sflags |= SFLtrue | SFLfree;
         //symbol_add(scapture);
         fd.csym.Sscope = scapture;

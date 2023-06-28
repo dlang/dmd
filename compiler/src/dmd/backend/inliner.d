@@ -15,7 +15,7 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2022-2023 by The D Language Foundation, All Rights Reserved
  *              Some parts based on an inliner from the Digital Mars C compiler.
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
@@ -25,9 +25,6 @@
 // C++ specific routines
 
 module dmd.backend.inliner;
-
-version (MARS)
-{
 
 import core.stdc.stdio;
 import core.stdc.ctype;
@@ -106,6 +103,13 @@ bool canInlineFunction(Symbol *sfunc)
             default:
                 break;
         }
+
+        foreach (s; f.Flocsym[])
+        {
+            assert(s);
+            if (s.Sclass == SC.bprel)
+                return false;
+        }
     }
     if (!result)
         f.Fflags &= ~Finline;
@@ -170,7 +174,7 @@ bool canInlineExpression(elem* e)
                 /* Statics cannot be accessed from a different object file,
                  * so the reference will fail.
                  */
-                if (e.EV.Vsym.Sclass == SClocstat || e.EV.Vsym.Sclass == SCstatic)
+                if (e.EV.Vsym.Sclass == SC.locstat || e.EV.Vsym.Sclass == SC.static_)
                 {
                     if (log) printf("not inlining due to %s\n", e.EV.Vsym.Sident.ptr);
                     return false;
@@ -260,7 +264,7 @@ elem* scanExpressionForInlines(elem *e)
             (op == OPvar || op == OPrelconst))
         {
             Symbol* s = e.EV.Vsym;
-            if (s.Sclass == SCauto &&
+            if (s.Sclass == SC.auto_ &&
                 s.Ssymnum == SYMIDX.max)
             {   //dbg_printf("Deferred allocation of %p\n",s);
                 symbol_add(s);
@@ -367,17 +371,17 @@ private elem* inlineCall(elem *e,Symbol *sfunc)
         auto sc = s.Sclass;
         switch (sc)
         {
-            case SCparameter:
-            case SCfastpar:
-            case SCshadowreg:
-                sc = SCauto;
+            case SC.parameter:
+            case SC.fastpar:
+            case SC.shadowreg:
+                sc = SC.auto_;
                 goto L1;
-            case SCregpar:
-                sc = SCregister;
+            case SC.regpar:
+                sc = SC.register;
                 goto L1;
-            case SCregister:
-            case SCauto:
-            case SCpseudo:
+            case SC.register:
+            case SC.auto_:
+            case SC.pseudo:
             L1:
             {
                 //printf("  new symbol %s\n", s.Sident.ptr);
@@ -387,7 +391,7 @@ private elem* inlineCall(elem *e,Symbol *sfunc)
                 snew.Sflags |= SFLfree;
                 snew.Srange = null;
                 s.Sflags |= SFLreplace;
-                if (sc == SCpseudo)
+                if (sc == SC.pseudo)
                 {
                     snew.Sfl = FLpseudo;
                     snew.Sreglsw = s.Sreglsw;
@@ -395,8 +399,8 @@ private elem* inlineCall(elem *e,Symbol *sfunc)
                 s.Ssymnum = symbol_add(snew);
                 break;
             }
-            case SCglobal:
-            case SCstatic:
+            case SC.global:
+            case SC.static_:
                 break;
             default:
                 //fprintf(stderr, "Sclass = %d\n", sc);
@@ -504,7 +508,7 @@ private elem* initializeParamsWithArgs(elem* eargs, SYMIDX sistart, SYMIDX siend
                 Symbol* s = globsym[si];
                 ++si;
                 // SCregpar was turned into SCregister, SCparameter to SCauto
-                if (s.Sclass == SCregister || s.Sclass == SCauto)
+                if (s.Sclass == SC.register || s.Sclass == SC.auto_)
                     return s;
             }
         }
@@ -675,6 +679,4 @@ private int getSize(const(elem)* e)
     if (sz == -1 && e.ET && (tybasic(e.Ety) == TYstruct || tybasic(e.Ety) == TYarray))
         sz = cast(int)type_size(e.ET);
     return sz;
-}
-
 }

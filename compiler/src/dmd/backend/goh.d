@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1986-1998 by Symantec
- *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              https://www.boost.org/LICENSE_1_0.txt
@@ -71,9 +71,6 @@ struct DefNode
     vec_t    DNunambig;     // vector of unambiguous definitions
 }
 
-/* Global Variables */
-//extern __gshared uint[] optab;
-
 /* Global Optimizer variables
  */
 struct GlobalOptimizer
@@ -96,42 +93,10 @@ struct GlobalOptimizer
     vec_t vptrkill;     // vector of AEs killed by an access
 }
 
-extern __gshared GlobalOptimizer go;
-
-/* gdag.c */
-void builddags();
-void boolopt();
-void opt_arraybounds();
-
-/* gflow.c */
-void flowrd();
-void flowlv();
-void flowvbe();
-void flowcp();
-void flowae();
-void genkillae();
-void flowarraybounds();
-int ae_field_affect(elem *lvalue,elem *e);
-
-/* glocal.c */
-void localize();
-
-/* gloop.c */
-bool blockinit();
-void compdom();
-void loopopt();
-extern (C) void updaterd(elem *n,vec_t GEN,vec_t KILL);
-
-/* gother.c */
-void rd_arraybounds();
-void rd_free();
-void constprop();
-void copyprop();
-void rmdeadass();
-void elimass(elem *);
-void deadvar();
-void verybusyexp();
-void listrds(vec_t, elem *, vec_t, Barray!(elem*)*);
-
-/* gslice.c */
-void sliceStructs(ref symtab_t symtab, block* startblock);
+public import dmd.backend.var : go;
+public import dmd.backend.gdag : builddags, boolopt;
+public import dmd.backend.gflow : flowrd, flowlv, flowvbe, flowcp, flowae, genkillae;
+public import dmd.backend.glocal : localize;
+public import dmd.backend.gloop : blockinit, compdom, loopopt, updaterd;
+public import dmd.backend.gother : constprop, copyprop, rmdeadass, elimass, deadvar, verybusyexp, listrds;
+public import dmd.backend.gsroa : sliceStructs;

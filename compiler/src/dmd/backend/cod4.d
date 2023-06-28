@@ -13,7 +13,7 @@
  * Mostly code generation for assignment operators.
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cod4.d, backend/cod4.d)
@@ -22,14 +22,6 @@
  */
 
 module dmd.backend.cod4;
-
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -53,22 +45,14 @@ extern (C++):
 nothrow:
 @safe:
 
-int REGSIZE();
-
-extern __gshared CGstate cgstate;
-extern __gshared bool[FLMAX] datafl;
+import dmd.backend.cg : datafl;
 
 private extern (D) uint mask(uint m) { return 1 << m; }
 
                         /*   AX,CX,DX,BX                */
 __gshared const reg_t[4] dblreg = [ BX,DX,NOREG,CX ];
 
-// from divcoeff.c
-extern (C)
-{
-    bool choose_multiplier(int N, ulong d, int prec, ulong *pm, int *pshpost);
-    bool udiv_coefficients(int N, ulong d, int *pshpre, ulong *pm, int *pshpost);
-}
+import dmd.backend.divcoeff : choose_multiplier, udiv_coefficients;
 
 /*******************************
  * Return number of times symbol s appears in tree e.
@@ -461,7 +445,7 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                )
             {
                 Symbol *s = e11.EV.E1.EV.Vsym;
-                if (s.Sclass == SCfastpar || s.Sclass == SCshadowreg)
+                if (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg)
                 {
                     regcon.params &= ~s.Spregm();
                 }
@@ -733,7 +717,7 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
        )
     {
         Symbol *s = e11.EV.E1.EV.Vsym;
-        if (s.Sclass == SCfastpar || s.Sclass == SCshadowreg)
+        if (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg)
         {
             regcon.params &= ~s.Spregm();
         }
@@ -2308,13 +2292,6 @@ void cdshass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     if (e1.Ecount && !(*pretregs & (ALLREGS | mBP)) && !isregvar(e1,&retregs,&reg))
         *pretregs |= ALLREGS;
 
-    version (SCPP)
-    {
-        // Do this until the rest of the compiler does OPshr/OPashr correctly
-        if (oper == OPshrass)
-            oper = tyuns(tyml) ? OPshrass : OPashrass;
-    }
-
     // Select opcodes. op2 is used for msw for long shifts.
 
     switch (oper)
@@ -2555,6 +2532,9 @@ void cdcmp(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         codelem(cdb,e2,pretregs,false);
         return;
     }
+
+    if (tyvector(tybasic(e1.Ety)))
+        return orthxmm(cdb,e,pretregs);
 
     uint jop = jmpopcode(e);        // must be computed before
                                         // leaves are free'd
@@ -3839,7 +3819,7 @@ void cdbyteint(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     regm_t retregs;
     char size;
 
-    if ((*pretregs & (ALLREGS | mBP)) == 0)     // if don't need result in regs
+    if ((*pretregs & (ALLREGS | mBP | XMMREGS)) == 0) // if don't need result in regs
     {
         codelem(cdb,e.EV.E1,pretregs,false);      // then conversion isn't necessary
         return;
@@ -4888,7 +4868,4 @@ void opAssStorePair(ref CodeBuilder cdb, ref code cs, elem* e, reg_t rhi, reg_t 
         cssave(e1,retregs,!OTleaf(e1.Eoper));
     freenode(e1);
     fixresult(cdb,e,retregs,pretregs);
-}
-
-
 }

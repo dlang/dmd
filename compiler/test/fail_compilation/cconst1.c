@@ -2,7 +2,6 @@
 ---
 fail_compilation/cconst1.c(104): Error: cannot modify `const` expression `i`
 fail_compilation/cconst1.c(106): Error: cannot modify `const` expression `j`
-fail_compilation/cconst1.c(108): Error: cannot modify `const` expression `p`
 ---
 */
 

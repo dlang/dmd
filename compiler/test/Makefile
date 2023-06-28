@@ -142,6 +142,11 @@ ifneq ($(N),)
     EXECUTE_RUNNER:=$(EXECUTE_RUNNER) --jobs=$N
 endif
 
+# Workaround https://issues.dlang.org/show_bug.cgi?id=23517
+ifeq (osx,$(OS))
+    export MACOSX_DEPLOYMENT_TARGET=11
+endif
+
 ifeq (windows,$(OS))
 all:
 	echo "Windows builds have been disabled"
@@ -212,15 +217,6 @@ run_all_tests: $(RUNNER)
 start_all_tests: $(RUNNER)
 	@echo "Running all tests"
 	$(EXECUTE_RUNNER) all
-
-# The auto-tester cannot run runnable_cxx as its compiler is too old
-ifeq (windows,$(OS))
-auto-tester-test:
-	echo "Windows builds have been disabled"
-else
-auto-tester-test: $(RUNNER)
-	$(EXECUTE_RUNNER) runnable compilable fail_compilation dshell
-endif
 
 $(RESULTS_DIR)/d_do_test$(EXE): tools/d_do_test.d tools/sanitize_json.d $(RESULTS_DIR)/.created
 	@echo "Building d_do_test tool"

@@ -2,7 +2,7 @@
  * Top level code for the code generator.
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgcod.d, backend/cgcod.d)
@@ -13,14 +13,6 @@
 module dmd.backend.cgcod;
 
 version = FRAMEPTR;
-
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
 
 import core.bitop;
 import core.stdc.stdio;
@@ -40,10 +32,10 @@ import dmd.backend.dvec;
 import dmd.backend.melf;
 import dmd.backend.mem;
 import dmd.backend.el;
-import dmd.backend.exh;
 import dmd.backend.global;
 import dmd.backend.obj;
 import dmd.backend.oper;
+import dmd.backend.pdata : win64_pdata;
 import dmd.backend.rtlsym;
 import dmd.backend.symtab;
 import dmd.backend.ty;
@@ -51,12 +43,6 @@ import dmd.backend.type;
 import dmd.backend.xmm;
 
 import dmd.backend.barray;
-
-version (SCPP)
-{
-    import parser;
-    import precomp;
-}
 
 extern (C++):
 
@@ -66,13 +52,9 @@ nothrow:
 alias _compare_fp_t = extern(C) nothrow int function(const void*, const void*);
 extern(C) void qsort(void* base, size_t nmemb, size_t size, _compare_fp_t compar);
 
-version (MARS)
-    enum MARS = true;
-else
-    enum MARS = false;
+enum MARS = true;
 
-void dwarf_except_gentables(Funcsym *sfunc, uint startoffset, uint retoffset);
-int REGSIZE();
+import dmd.backend.dwarfdbginf : dwarf_except_gentables;
 
 private extern (D) uint mask(uint m) { return 1 << m; }
 
@@ -227,22 +209,9 @@ tryagain:
     calledFinally = false;
     usednteh = 0;
 
-    static if (MARS)
-    {
-        if (sfunc.Sfunc.Fflags3 & Fjmonitor &&
-            config.exe & EX_windos)
-            usednteh |= NTEHjmonitor;
-    }
-    else version (SCPP)
-    {
-        if (CPP)
-        {
-            if (config.exe == EX_WIN32 &&
-                (sfunc.Stype.Tflags & TFemptyexc || sfunc.Stype.Texcspec))
-                usednteh |= NTEHexcspec;
-            except_reset();
-        }
-    }
+    if (sfunc.Sfunc.Fflags3 & Fjmonitor &&
+        config.exe & EX_windos)
+        usednteh |= NTEHjmonitor;
 
     // Set on a trial basis, turning it off if anything might throw
     sfunc.Sfunc.Fflags3 |= Fnothrow;
@@ -280,12 +249,12 @@ tryagain:
             s.Sflags &= ~SFLread;
             switch (s.Sclass)
             {
-                case SCfastpar:
-                case SCshadowreg:
+                case SC.fastpar:
+                case SC.shadowreg:
                     regcon.params |= s.Spregm();
-                    goto case SCparameter;
+                    goto case SC.parameter;
 
-                case SCparameter:
+                case SC.parameter:
                     if (s.Sfl == FLreg)
                         noparams |= s.Sregm;
                     break;
@@ -350,12 +319,6 @@ tryagain:
     }
     cgreg_term();
 
-    version (SCPP)
-    {
-        if (CPP)
-            cgcod_eh();
-    }
-
     // See if we need to enforce a particular stack alignment
     foreach (i; 0 .. globsym.length)
     {
@@ -366,9 +329,9 @@ tryagain:
 
         switch (s.Sclass)
         {
-            case SCregister:
-            case SCauto:
-            case SCfastpar:
+            case SC.register:
+            case SC.auto_:
+            case SC.fastpar:
                 if (s.Sfl == FLreg)
                     break;
 
@@ -487,13 +450,10 @@ tryagain:
     debug
     debugw && printf("code jump optimization complete\n");
 
-    version (MARS)
+    if (usednteh & NTEH_try)
     {
-        if (usednteh & NTEH_try)
-        {
-            // Do this before code is emitted because we patch some instructions
-            nteh_filltables();
-        }
+        // Do this before code is emitted because we patch some instructions
+        nteh_filltables();
     }
 
     // Compute starting offset for switch tables
@@ -510,10 +470,6 @@ tryagain:
     {
         codout(sfunc.Sseg,eecontext.EEcode,null);
         code_free(eecontext.EEcode);
-        version (SCPP)
-        {
-            el_free(eecontext.EEelem);
-        }
     }
     else
     {
@@ -552,26 +508,6 @@ tryagain:
             }
             assert(b.Boffset == Offset(sfunc.Sseg));
 
-            version (SCPP)
-            {
-                if (CPP && !(config.exe == EX_WIN32))
-                {
-                    //printf("b = %p, index = %d\n",b,b.Bindex);
-                    //except_index_set(b.Bindex);
-
-                    if (btry != b.Btry)
-                    {
-                        btry = b.Btry;
-                        except_pair_setoffset(b,Offset(sfunc.Sseg) - funcoffset);
-                    }
-                    if (b.BC == BCtry)
-                    {
-                        btry = b;
-                        except_pair_setoffset(b,Offset(sfunc.Sseg) - funcoffset);
-                    }
-                }
-            }
-
             codout(sfunc.Sseg,b.Bcode,configv.vasm ? &disasmBuf : null);   // output code
         }
         if (coffset != Offset(sfunc.Sseg))
@@ -586,14 +522,9 @@ tryagain:
         if (configv.vasm)
             disassemble(disasmBuf[]);                   // disassemble the code
 
-        static if (NTEXCEPTIONS || MARS)
+        static if (1)
         {
-            version (MARS)
-                const nteh = usednteh & NTEH_try;
-            else static if (NTEXCEPTIONS)
-                const nteh = usednteh & NTEHcpp;
-            else
-                enum nteh = true;
+            const nteh = usednteh & NTEH_try;
             if (nteh)
             {
                 assert(!(config.flags & CFGromable));
@@ -620,15 +551,13 @@ tryagain:
                 case BCretexp:
                     /* Compute offset to return code from start of function */
                     retoffset = b.Boffset + b.Bsize - retsize - funcoffset;
-                    version (MARS)
-                    {
-                        /* Add 3 bytes to retoffset in case we have an exception
-                         * handler. THIS PROBABLY NEEDS TO BE IN ANOTHER SPOT BUT
-                         * IT FIXES THE PROBLEM HERE AS WELL.
-                         */
-                        if (usednteh & NTEH_try)
-                            retoffset += 3;
-                    }
+
+                    /* Add 3 bytes to retoffset in case we have an exception
+                     * handler. THIS PROBABLY NEEDS TO BE IN ANOTHER SPOT BUT
+                     * IT FIXES THE PROBLEM HERE AS WELL.
+                     */
+                    if (usednteh & NTEH_try)
+                        retoffset += 3;
                     flag = true;
                     break;
 
@@ -672,27 +601,6 @@ tryagain:
             }
         }
 
-        version (SCPP)
-        {
-            // Write out frame handler
-            if (NTEXCEPTIONS && usednteh & NTEHcpp)
-            {
-                nteh_framehandler(sfunc, except_gentables());
-            }
-            else
-            {
-                if (NTEXCEPTIONS && usednteh & NTEH_try)
-                {
-                    nteh_gentables(sfunc);
-                }
-                else
-                {
-                    if (CPP)
-                        except_gentables();
-                }
-            }
-        }
-
         for (block* b = startblock; b; b = b.Bnext)
         {
             code_free(b.Bcode);
@@ -725,12 +633,12 @@ tryagain:
 @trusted
 targ_size_t alignsection(targ_size_t base, uint alignment, int bias)
 {
-    assert(cast(int)base <= 0);
+    assert(cast(long)base <= 0);
     if (alignment > STACKALIGN)
         alignment = STACKALIGN;
     if (alignment)
     {
-        int sz = cast(int)(-base + bias);
+        long sz = cast(long)(-base + bias);
         assert(sz >= 0);
         sz &= (alignment - 1);
         if (sz)
@@ -862,13 +770,10 @@ Lagain:
     static if (NTEXCEPTIONS == 2)
     {
         Fast.size -= nteh_contextsym_size();
-        version (MARS)
+        if (config.exe & EX_windos)
         {
-            if (config.exe & EX_windos)
-            {
-                if (funcsym_p.Sfunc.Fflags3 & Ffakeeh && nteh_contextsym_size() == 0)
-                    Fast.size -= 5 * 4;
-            }
+            if (funcsym_p.Sfunc.Fflags3 & Ffakeeh && nteh_contextsym_size() == 0)
+                Fast.size -= 5 * 4;
         }
     }
 
@@ -1115,64 +1020,17 @@ else
         prolog_allocoffset = calcblksize(c);
     }
 
-    version (SCPP)
-    {
-        /*  The idea is to generate trace for all functions if -Nc is not thrown.
-         *  If -Nc is thrown, generate trace only for global COMDATs, because those
-         *  are relevant to the FUNCTIONS statement in the linker .DEF file.
-         *  This same logic should be in epilog().
-         */
-        if (config.flags & CFGtrace &&
-            (!(config.flags4 & CFG4allcomdat) ||
-             funcsym_p.Sclass == SCcomdat ||
-             funcsym_p.Sclass == SCglobal ||
-             (config.flags2 & CFG2comdat && SymInline(funcsym_p))
-            )
-           )
-        {
-            uint spalign = 0;
-            int sz = cast(int)localsize;
-            if (!enforcealign)
-            {
-                version (FRAMEPTR)
-                    sz += Para.size;
-                else
-                    sz += Para.size + (needframe ? 0 : -REGSIZE);
-            }
-            if (STACKALIGN >= 16 && (sz & (STACKALIGN - 1)))
-                spalign = STACKALIGN - (sz & (STACKALIGN - 1));
+    if (usednteh & NTEHjmonitor)
+    {   Symbol *sthis;
 
-            if (spalign)
-            {   /* This could be avoided by moving the function call to after the
-                 * registers are saved. But I don't remember why the call is here
-                 * and not there.
-                 */
-                cod3_stackadj(cdbx, spalign);
-            }
-
-            uint regsaved;
-            prolog_trace(cdbx, farfunc, &regsaved);
-
-            if (spalign)
-                cod3_stackadj(cdbx, -spalign);
-            useregs((ALLREGS | mBP | mES) & ~regsaved);
+        for (SYMIDX si = 0; 1; si++)
+        {   assert(si < globsym.length);
+            sthis = globsym[si];
+            if (strcmp(sthis.Sident.ptr,"this".ptr) == 0)
+                break;
         }
-    }
-
-    version (MARS)
-    {
-        if (usednteh & NTEHjmonitor)
-        {   Symbol *sthis;
-
-            for (SYMIDX si = 0; 1; si++)
-            {   assert(si < globsym.length);
-                sthis = globsym[si];
-                if (strcmp(sthis.Sident.ptr,"this".ptr) == 0)
-                    break;
-            }
-            nteh_monitor_prolog(cdbx,sthis);
-            EBPtoESP += 3 * 4;
-        }
+        nteh_monitor_prolog(cdbx,sthis);
+        EBPtoESP += 3 * 4;
     }
 
     cdb.append(cdbx);
@@ -1184,8 +1042,7 @@ Lcont:
     {
         if (variadic(funcsym_p.Stype))
             prolog_gen_win64_varargs(cdb);
-        regm_t namedargs;
-        prolog_loadparams(cdb, tyf, pushalloc, namedargs);
+        prolog_loadparams(cdb, tyf, pushalloc);
         return;
     }
 
@@ -1200,11 +1057,10 @@ Lcont:
     // Load register parameters off of the stack. Do not use
     // assignaddr(), as it will replace the stack reference with
     // the register!
-    regm_t namedargs;
-    prolog_loadparams(cdb, tyf, pushalloc, namedargs);
+    prolog_loadparams(cdb, tyf, pushalloc);
 
     if (sv64)
-        prolog_genvarargs(cdb, sv64, namedargs);
+        prolog_genvarargs(cdb, sv64);
 
     /* Alignment checks
      */
@@ -1295,12 +1151,12 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
          */
         switch (s.Sclass)
         {
-            case SCfastpar:
+            case SC.fastpar:
                 if (!(funcsym_p.Sfunc.Fflags3 & Ffakeeh))
                     goto Ldefault;   // don't need consistent stack frame
                 break;
 
-            case SCparameter:
+            case SC.parameter:
                 if (type_zeroSize(s.Stype, tybasic(funcsym_p.Stype.Tty)))
                 {
                     Para.offset = _align(REGSIZE,Para.offset); // align on word stack boundary
@@ -1309,7 +1165,7 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
                 }
                 break;          // allocate even if it's dead
 
-            case SCshadowreg:
+            case SC.shadowreg:
                 break;          // allocate even if it's dead
 
             default:
@@ -1332,7 +1188,7 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
 
         switch (s.Sclass)
         {
-            case SCfastpar:
+            case SC.fastpar:
                 /* Get these
                  * right next to the stack frame pointer, EBP.
                  * Needed so we can call nested contract functions
@@ -1355,8 +1211,8 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
                     Fast.alignment = alignsize;
                 break;
 
-            case SCregister:
-            case SCauto:
+            case SC.register:
+            case SC.auto_:
                 if (s.Sfl == FLreg)        // if allocated in register
                     break;
 
@@ -1374,15 +1230,15 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
                     Auto.alignment = alignsize;
                 break;
 
-            case SCstack:
+            case SC.stack:
                 EEStack.offset = _align(sz,EEStack.offset);
                 s.Soffset = EEStack.offset;
                 //printf("EEStack.offset =  x%lx\n",cast(long)s.Soffset);
                 EEStack.offset += sz;
                 break;
 
-            case SCshadowreg:
-            case SCparameter:
+            case SC.shadowreg:
+            case SC.parameter:
                 if (config.exe == EX_WIN64)
                 {
                     assert((Para.offset & 7) == 0);
@@ -1405,9 +1261,9 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
                             : type_size(s.Stype);
                 break;
 
-            case SCpseudo:
-            case SCstatic:
-            case SCbprel:
+            case SC.pseudo:
+            case SC.static_:
+            case SC.bprel:
                 break;
             default:
                 symbol_print(s);
@@ -1549,7 +1405,7 @@ private void blcodgen(block *bl)
                 if (vec_testbit(dfoidx,s.Srange))
                 {
                     regcon.mvar |= s.Sregm;
-                    if (s.Sclass == SCfastpar || s.Sclass == SCshadowreg)
+                    if (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg)
                         regcon.mpvar |= s.Sregm;
                 }
             }
@@ -1566,7 +1422,7 @@ private void blcodgen(block *bl)
                         regcon.cse.mval &= ~s.Sregm;
                         regcon.immed.mval &= ~s.Sregm;
                         regcon.params &= ~s.Sregm;
-                        if (s.Sclass == SCfastpar || s.Sclass == SCshadowreg)
+                        if (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg)
                             regcon.mpvar |= s.Sregm;
                     }
                 }
@@ -1617,214 +1473,6 @@ private void blcodgen(block *bl)
 
     debug
     debugw && printf("code gen complete\n");
-}
-
-/*****************************************
- * Add in exception handling code.
- */
-
-version (SCPP)
-{
-
-private void cgcod_eh()
-{
-    list_t stack;
-    int idx;
-    int tryidx;
-
-    if (!(usednteh & (EHtry | EHcleanup)))
-        return;
-
-    // Compute Bindex for each block
-    for (block *b = startblock; b; b = b.Bnext)
-    {
-        b.Bindex = -1;
-        b.Bflags &= ~BFLvisited;               /* mark as unvisited    */
-    }
-    block *btry = null;
-    int lastidx = 0;
-    startblock.Bindex = 0;
-    for (block *b = startblock; b; b = b.Bnext)
-    {
-        if (btry == b.Btry && b.BC == BCcatch)  // if don't need to pop try block
-        {
-            block *br = list_block(b.Bpred);          // find corresponding try block
-            assert(br.BC == BCtry);
-            b.Bindex = br.Bindex;
-        }
-        else if (btry != b.Btry && b.BC != BCcatch ||
-                 !(b.Bflags & BFLvisited))
-            b.Bindex = lastidx;
-        b.Bflags |= BFLvisited;
-
-        debug
-        if (debuge)
-        {
-            printf("%s block (%p) Btry=%p Bindex=%d\n",bc_str(b.BC),b,b.Btry,b.Bindex);
-        }
-
-        except_index_set(b.Bindex);
-        if (btry != b.Btry)                    // exited previous try block
-        {
-            except_pop(b,null,btry);
-            btry = b.Btry;
-        }
-        if (b.BC == BCtry)
-        {
-            except_push(b,null,b);
-            btry = b;
-            tryidx = except_index_get();
-            CodeBuilder cdb; cdb.ctor();
-            nteh_gensindex(cdb,tryidx - 1);
-            cdb.append(b.Bcode);
-            b.Bcode = cdb.finish();
-        }
-
-        stack = null;
-        for (code *c = b.Bcode; c; c = code_next(c))
-        {
-            if ((c.Iop & ESCAPEmask) == ESCAPE)
-            {
-                code *c1 = null;
-                switch (c.Iop & 0xFFFF00)
-                {
-                    case ESCctor:
-                        //printf("ESCctor\n");
-                        except_push(c,c.IEV1.Vtor,null);
-                        goto L1;
-
-                    case ESCdtor:
-                        //printf("ESCdtor\n");
-                        except_pop(c,c.IEV1.Vtor,null);
-                    L1: if (config.exe == EX_WIN32)
-                        {
-                            CodeBuilder cdb; cdb.ctor();
-                            nteh_gensindex(cdb,except_index_get() - 1);
-                            c1 = cdb.finish();
-                            c1.next = code_next(c);
-                            c.next = c1;
-                        }
-                        break;
-
-                    case ESCmark:
-                        //printf("ESCmark\n");
-                        idx = except_index_get();
-                        list_prependdata(&stack,idx);
-                        except_mark();
-                        break;
-
-                    case ESCrelease:
-                        //printf("ESCrelease\n");
-                        version (SCPP)
-                        {
-                            idx = list_data(stack);
-                            list_pop(&stack);
-                            if (idx != except_index_get())
-                            {
-                                if (config.exe == EX_WIN32)
-                                {
-                                    CodeBuilder cdb; cdb.ctor();
-                                    nteh_gensindex(cdb,idx - 1);
-                                    c1 = cdb.finish();
-                                    c1.next = code_next(c);
-                                    c.next = c1;
-                                }
-                                else
-                                {   except_pair_append(c,idx - 1);
-                                    c.Iop = ESCAPE | ESCoffset;
-                                }
-                            }
-                            except_release();
-                        }
-                        break;
-
-                    case ESCmark2:
-                        //printf("ESCmark2\n");
-                        except_mark();
-                        break;
-
-                    case ESCrelease2:
-                        //printf("ESCrelease2\n");
-                        version (SCPP)
-                        {
-                            except_release();
-                        }
-                        break;
-
-                    default:
-                        break;
-                }
-            }
-        }
-        assert(stack == null);
-        b.Bendindex = except_index_get();
-
-        if (b.BC != BCret && b.BC != BCretexp)
-            lastidx = b.Bendindex;
-
-        // Set starting index for each of the successors
-        int i = 0;
-        foreach (bl; ListRange(b.Bsucc))
-        {
-            block *bs = list_block(bl);
-            if (b.BC == BCtry)
-            {
-                switch (i)
-                {
-                    case 0:                             // block after catches
-                        bs.Bindex = b.Bendindex;
-                        break;
-
-                    case 1:                             // 1st catch block
-                        bs.Bindex = tryidx;
-                        break;
-
-                    default:                            // subsequent catch blocks
-                        bs.Bindex = b.Bindex;
-                        break;
-                }
-
-                debug
-                if (debuge)
-                {
-                    printf(" 1setting %p to %d\n",bs,bs.Bindex);
-                }
-            }
-            else if (!(bs.Bflags & BFLvisited))
-            {
-                bs.Bindex = b.Bendindex;
-
-                debug
-                if (debuge)
-                {
-                    printf(" 2setting %p to %d\n",bs,bs.Bindex);
-                }
-            }
-            bs.Bflags |= BFLvisited;
-            i++;
-        }
-    }
-
-    if (config.exe == EX_WIN32)
-        for (block *b = startblock; b; b = b.Bnext)
-        {
-            if (/*!b.Bcount ||*/ b.BC == BCtry)
-                continue;
-            foreach (bl; ListRange(b.Bpred))
-            {
-                int pi = list_block(bl).Bendindex;
-                if (b.Bindex != pi)
-                {
-                    CodeBuilder cdb; cdb.ctor();
-                    nteh_gensindex(cdb,b.Bindex - 1);
-                    cdb.append(b.Bcode);
-                    b.Bcode = cdb.finish();
-                    break;
-                }
-            }
-        }
-}
-
 }
 
 /******************************
@@ -1945,7 +1593,7 @@ int isregvar(elem *e,regm_t *pregm,reg_t *preg)
         switch (s.Sfl)
         {
             case FLreg:
-                if (s.Sclass == SCparameter)
+                if (s.Sclass == SC.parameter)
                 {   refparam = true;
                     reflocal = true;
                 }
@@ -1972,27 +1620,13 @@ static if (0)
                 goto Lreg;
 
             case FLpseudo:
-                version (MARS)
+                u = s.Sreglsw;
+                m = mask(u);
+                if (m & ALLREGS && (u & ~3) != 4) // if not BP,SP,EBP,ESP,or ?H
                 {
-                    u = s.Sreglsw;
-                    m = mask(u);
-                    if (m & ALLREGS && (u & ~3) != 4) // if not BP,SP,EBP,ESP,or ?H
-                    {
-                        reg = u & 7;
-                        regm = m;
-                        goto Lreg;
-                    }
-                }
-                else
-                {
-                    u = s.Sreglsw;
-                    m = pseudomask[u];
-                    if (m & ALLREGS && (u & ~3) != 4) // if not BP,SP,EBP,ESP,or ?H
-                    {
-                        reg = pseudoreg[u] & 7;
-                        regm = m;
-                        goto Lreg;
-                    }
+                    reg = u & 7;
+                    regm = m;
+                    goto Lreg;
                 }
                 break;
 
@@ -3249,7 +2883,7 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
 
     assert((mfuncreg & (regcon.cse.mval & ~oldregcon)) == 0);
 
-    /* bugzilla 3521
+    /* https://issues.dlang.org/show_bug.cgi?id=3521
      * The problem is:
      *    reg op (reg = exp)
      * where reg must be preserved (in keepregs) while the expression to be evaluated
@@ -3403,8 +3037,10 @@ const(char)* regm_str(regm_t rm)
         }
     }
     if (rm)
-    {   char *s = p + strlen(p);
-        sprintf(s,"x%02x",rm);
+    {
+        const pstrlen = strlen(p);
+        char *s = p + pstrlen;
+        snprintf(s, SMAX - pstrlen, "x%02x",rm);
     }
     assert(strlen(p) <= SMAX);
     return strdup(p);
@@ -3500,6 +3136,4 @@ void disassemble(ubyte[] code)
         printf("\n");
         i += sz;
     }
-}
-
 }

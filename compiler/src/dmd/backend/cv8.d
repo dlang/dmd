@@ -7,21 +7,13 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:    Copyright (C) 2012-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:    Copyright (C) 2012-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cv8.d, backend/cv8.d)
  */
 
 module dmd.backend.cv8;
-
-version (MARS)
-    version = COMPILE;
-version (SCPP)
-    version = COMPILE;
-
-version (COMPILE)
-{
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -36,8 +28,8 @@ import dmd.backend.code_x86;
 import dmd.backend.cv4;
 import dmd.backend.mem;
 import dmd.backend.el;
-import dmd.backend.exh;
 import dmd.backend.global;
+import dmd.backend.mscoffobj;
 import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.common.outbuffer;
@@ -55,24 +47,14 @@ nothrow:
 static if (1)
 {
 
-int REGSIZE();
 
 // Determine if this Symbol is stored in a COMDAT
 @trusted
 private bool symbol_iscomdat4(Symbol* s)
 {
-    version (MARS)
-    {
-        return s.Sclass == SCcomdat ||
-            config.flags2 & CFG2comdat && s.Sclass == SCinline ||
-            config.flags4 & CFG4allcomdat && s.Sclass == SCglobal;
-    }
-    else
-    {
-        return s.Sclass == SCcomdat ||
-            config.flags2 & CFG2comdat && s.Sclass == SCinline ||
-            config.flags4 & CFG4allcomdat && (s.Sclass == SCglobal || s.Sclass == SCstatic);
-    }
+    return s.Sclass == SC.comdat ||
+        config.flags2 & CFG2comdat && s.Sclass == SC.inline ||
+        config.flags4 & CFG4allcomdat && s.Sclass == SC.global;
 }
 
 
@@ -418,10 +400,8 @@ void cv8_func_term(Symbol *sfunc)
     else
         typidx = cv_typidx(sfunc.Stype);
 
-    version (MARS)
-        const(char)* id = sfunc.prettyIdent ? sfunc.prettyIdent : prettyident(sfunc);
-    else
-        const(char)* id = prettyident(sfunc);
+    const(char)* id = sfunc.prettyIdent ? sfunc.prettyIdent : prettyident(sfunc);
+
     size_t len = strlen(id);
     if(len > CV8_MAX_SYMBOL_LENGTH)
         len = CV8_MAX_SYMBOL_LENGTH;
@@ -442,7 +422,7 @@ void cv8_func_term(Symbol *sfunc)
     auto buf = currentfuncdata.f1buf;
     buf.reserve(cast(uint)(2 + 2 + 4 * 7 + 6 + 1 + len + 1));
     buf.write16n(cast(int)(2 + 4 * 7 + 6 + 1 + len + 1));
-    buf.write16n(sfunc.Sclass == SCstatic ? S_LPROC_V3 : S_GPROC_V3);
+    buf.write16n(sfunc.Sclass == SC.static_ ? S_LPROC_V3 : S_GPROC_V3);
     buf.write32(0);            // parent
     buf.write32(0);            // pend
     buf.write32(0);            // pnext
@@ -527,10 +507,7 @@ void cv8_func_term(Symbol *sfunc)
 @trusted
 void cv8_linnum(Srcpos srcpos, uint offset)
 {
-    version (MARS)
-        const sfilename = srcpos.Sfilename;
-    else
-        const sfilename = srcpos_name(srcpos);
+    const sfilename = srcpos.Sfilename;
     //printf("cv8_linnum(file = %s, line = %d, offset = x%x)\n", sfilename, cast(int)srcpos.Slinnum, cast(uint)offset);
 
     if (!sfilename)
@@ -702,10 +679,7 @@ void cv8_outsym(Symbol *s)
 
     idx_t typidx = cv_typidx(s.Stype);
     //printf("typidx = %x\n", typidx);
-    version (MARS)
-        const(char)* id = s.prettyIdent ? s.prettyIdent : prettyident(s);
-    else
-        const(char)* id = prettyident(s);
+    const(char)* id = s.prettyIdent ? s.prettyIdent : prettyident(s);
     size_t len = strlen(id);
 
     if(len > CV8_MAX_SYMBOL_LENGTH)
@@ -719,9 +693,9 @@ void cv8_outsym(Symbol *s)
     uint base;
     switch (s.Sclass)
     {
-        case SCparameter:
-        case SCregpar:
-        case SCshadowreg:
+        case SC.parameter:
+        case SC.regpar:
+        case SC.shadowreg:
             if (s.Sfl == FLreg)
             {
                 s.Sfl = FLpara;
@@ -732,7 +706,7 @@ void cv8_outsym(Symbol *s)
             base = cast(uint)(Para.size - BPoff);    // cancel out add of BPoff
             goto L1;
 
-        case SCauto:
+        case SC.auto_:
             if (s.Sfl == FLreg)
                 goto case_register;
         case_auto:
@@ -765,23 +739,23 @@ else
 }
             break;
 
-        case SCbprel:
+        case SC.bprel:
             base = -BPoff;
             goto L1;
 
-        case SCfastpar:
+        case SC.fastpar:
             if (s.Sfl != FLreg)
             {   base = cast(uint)Fast.size;
                 goto L1;
             }
             goto L2;
 
-        case SCregister:
+        case SC.register:
             if (s.Sfl != FLreg)
                 goto case_auto;
             goto case;
 
-        case SCpseudo:
+        case SC.pseudo:
         case_register:
         L2:
             buf.reserve(cast(uint)(2 + 2 + 4 + 2 + len + 1));
@@ -793,17 +767,17 @@ else
             buf.writeByte(0);
             break;
 
-        case SCextern:
+        case SC.extern_:
             break;
 
-        case SCstatic:
-        case SClocstat:
+        case SC.static_:
+        case SC.locstat:
             sr = S_LDATA_V3;
             goto Ldata;
 
-        case SCglobal:
-        case SCcomdat:
-        case SCcomdef:
+        case SC.global:
+        case SC.comdat:
+        case SC.comdef:
             sr = S_GDATA_V3;
         Ldata:
             /*
@@ -1222,8 +1196,6 @@ else
 
 }
     return cv_debtyp(d);
-}
-
 }
 
 }

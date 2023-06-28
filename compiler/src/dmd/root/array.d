@@ -2,7 +2,7 @@
 /**
  * Dynamic array implementation.
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/root/array.d, root/_array.d)
@@ -41,7 +41,7 @@ public:
      * Params:
      *  dim = initial length of array
      */
-    this(size_t dim) pure nothrow
+    this(size_t dim) pure nothrow scope
     {
         reserve(dim);
         this.length = dim;
@@ -69,7 +69,18 @@ public:
             {
                 foreach (u; 0 .. a.length)
                 {
-                    buf[u] = toStringFunc(a.data[u]);
+                    static if (is(typeof(a.data[u] is null)))
+                    {
+                        if (a.data[u] is null)
+                            buf[u] = "null";
+                        else
+                            buf[u] = toStringFunc(a.data[u]);
+                    }
+                    else
+                    {
+                        buf[u] = toStringFunc(a.data[u]);
+                    }
+
                     len += buf[u].length + seplen;
                 }
             }
@@ -222,6 +233,16 @@ public:
         }
     }
 
+    extern (D) void insert(size_t index, T[] a) pure nothrow
+    {
+        size_t d = a.length;
+        reserve(d);
+        if (length != index)
+            memmove(data.ptr + index + d, data.ptr + index, (length - index) * T.sizeof);
+        memcpy(data.ptr + index, a.ptr, d * T.sizeof);
+        length += d;
+    }
+
     void insert(size_t index, T ptr) pure nothrow
     {
         reserve(1);
@@ -342,7 +363,9 @@ public:
     }
 
     alias opDollar = length;
-    alias dim = length;
+
+    deprecated("use `.length` instead")
+    extern(D) size_t dim() const @nogc nothrow pure @safe { return length; }
 }
 
 unittest
@@ -369,6 +392,19 @@ unittest
     assert(str == `["hello","world"]`);
     // Test presence of null terminator.
     assert(str.ptr[str.length] == '\0');
+
+    // Test printing an array of classes, which can be null
+    static class C
+    {
+        override string toString() const
+        {
+            return "x";
+        }
+    }
+    auto nullarray = Array!C(2);
+    nullarray[0] = new C();
+    nullarray[1] = null;
+    assert(nullarray.toString() == `[x,null]`);
 }
 
 unittest
@@ -414,6 +450,14 @@ unittest
     arrayA.zero();
     foreach(e; arrayA)
         assert(e == 0);
+
+    arrayA.setDim(0);
+    arrayA.pushSlice([5, 6]);
+    arrayA.insert(1, [1, 2]);
+    assert(arrayA[] == [5, 1, 2, 6]);
+    arrayA.insert(0, [7, 8]);
+    arrayA.insert(arrayA.length, [0, 9]);
+    assert(arrayA[] == [7, 8, 5, 1, 2, 6, 0, 9]);
 }
 
 /**
@@ -530,7 +574,7 @@ unittest
 private template arraySortWrapper(T, alias fn)
 {
     pragma(mangle, "arraySortWrapper_" ~ T.mangleof ~ "_" ~ fn.mangleof)
-    extern(C) int arraySortWrapper(scope const void* e1, scope const void* e2) nothrow
+    extern(C) int arraySortWrapper(scope const void* e1, scope const void* e2)
     {
         return fn(cast(const(T*))e1, cast(const(T*))e2);
     }

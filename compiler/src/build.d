@@ -39,7 +39,6 @@ __gshared TaskPool taskPool;
 immutable rootRules = [
     &dmdDefault,
     &dmdPGO,
-    &autoTesterBuild,
     &runDmdUnittest,
     &clean,
     &checkwhitespace,
@@ -253,24 +252,6 @@ will trigger a full rebuild.
 
 */
 
-/// Returns: The rule that runs the autotester build
-alias autoTesterBuild = makeRule!((builder, rule) {
-    builder
-    .name("auto-tester-build")
-    .description("Run the autotester build")
-    .deps([toolchainInfo, dmdDefault, checkwhitespace, validateCommonBetterC]);
-
-    version (Posix)
-        rule.deps ~= runCxxUnittest;
-
-    // unittests are currently not executed as part of `auto-tester-test` on windows
-    // because changes to `win32.mak` require additional changes on the autotester
-    // (see https://github.com/dlang/dmd/pull/7414).
-    // This requires no further actions and avoids building druntime+phobos on unittest failure
-    version (Windows)
-        rule.deps ~= runDmdUnittest;
-});
-
 /// Returns: the rule that builds the lexer object file
 alias lexer = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule rule,
                                  string suffix, string[] extraFlags)
@@ -390,11 +371,6 @@ alias backend = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRul
         "-of" ~ rule.target,
         ]
         .chain(
-            (
-                // Only use -betterC when it doesn't break other features
-                extraFlags.canFind("-unittest", env["COVERAGE_FLAG"]) ||
-                flags["DFLAGS"].canFind("-unittest", env["COVERAGE_FLAG"])
-            ) ? [] : ["-betterC"],
             flags["DFLAGS"], extraFlags,
 
             // source files need to have relative paths in order for the code coverage
@@ -459,7 +435,19 @@ alias directoryRule = makeRuleWithArgs!((MethodInitializer!BuildRule builder, Bu
    .msg("mkdirRecurse '%s'".format(dir))
    .commandFunction(() => mkdirRecurse(dir))
 );
+alias dmdSymlink = makeRule!((builder, rule) => builder
+    .commandFunction((){
+        import std.process;
+        version(Windows)
+        {
 
+        }
+        else
+        {
+            spawnProcess(["ln", "-sf", env["DMD_PATH"], "./dmd"]);
+        }
+    })
+);
 /**
 BuildRule for the DMD executable.
 
@@ -472,7 +460,7 @@ alias dmdExe = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule
 
     string[] platformArgs;
     version (Windows)
-        platformArgs = ["-L/STACK:8388608"];
+        platformArgs = ["-L/STACK:16777216"];
 
     auto lexer = lexer(targetSuffix, depFlags);
     auto backend = backend(targetSuffix, depFlags);
@@ -659,7 +647,7 @@ alias runTests = makeRule!((testBuilder, testRule)
 
 /// BuildRule to run the DMD unittest executable.
 alias runDmdUnittest = makeRule!((builder, rule) {
-auto dmdUnittestExe = dmdExe("-unittest", ["-version=NoMain", "-unittest", "-main"], ["-unittest"]);
+auto dmdUnittestExe = dmdExe("-unittest", ["-version=NoMain", "-unittest", env["HOST_DMD_KIND"] == "gdc" ? "-fmain" : "-main"], ["-unittest"]);
     builder
         .name("unittest")
         .description("Run the dmd unittests")
@@ -843,7 +831,7 @@ alias style = makeRule!((builder, rule)
             // FIXME: Omitted --shallow-submodules because it requires a more recent
             //        git version which is not available on buildkite
             env["GIT"], "clone", "--depth=1", "--recurse-submodules",
-            "--branch=v0.11.0",
+            "--branch=v0.14.0",
             "https://github.com/dlang-community/D-Scanner", dscannerDir
         ])
     );
@@ -1292,7 +1280,7 @@ void parseEnvironment()
         writefln("Using Bootstrap compiler: %s", hostDMDVer);
         auto hostDMDRoot = env["G"].buildPath("host_dmd-"~hostDMDVer);
         auto hostDMDBase = hostDMDVer~"."~(os == "freebsd" ? os~"-"~model : os);
-        auto hostDMDURL = "http://downloads.dlang.org/releases/2.x/"~hostDMDVer~"/dmd."~hostDMDBase;
+        auto hostDMDURL = "https://downloads.dlang.org/releases/2.x/"~hostDMDVer~"/dmd."~hostDMDBase;
         env["HOST_DMD"] = hostDMDRoot.buildPath("dmd2", os, os == "osx" ? "bin" : "bin"~model, "dmd");
         env["HOST_DMD_PATH"] = env["HOST_DMD"];
         // TODO: use dmd.conf from the host too (in case there's a global or user-level dmd.conf)
@@ -1372,9 +1360,7 @@ void processEnvironment()
     else
         env.setDefault("ZIP", "zip");
 
-    string[] dflags = ["-version=MARS", "-w", "-de", env["PIC_FLAG"], env["MODEL_FLAG"], "-J"~env["G"], "-I" ~ srcDir];
-    if (env["HOST_DMD_KIND"] != "gdc")
-        dflags ~= ["-dip25"]; // gdmd doesn't support -dip25
+    string[] dflags = ["-w", "-de", env["PIC_FLAG"], env["MODEL_FLAG"], "-J"~env["G"], "-I" ~ srcDir];
 
     // TODO: add support for dObjc
     auto dObjc = false;
@@ -1551,7 +1537,7 @@ auto sourceFiles()
             link.d mars.d scanelf.d scanmach.d scanmscoff.d scanomf.d vsoptions.d
         "),
         frontend: fileArray(env["D"], "
-            access.d aggregate.d aliasthis.d apply.d argtypes_x86.d argtypes_sysv_x64.d argtypes_aarch64.d arrayop.d
+            access.d aggregate.d aliasthis.d argtypes_x86.d argtypes_sysv_x64.d argtypes_aarch64.d arrayop.d
             arraytypes.d astenums.d ast_node.d astcodegen.d asttypename.d attrib.d blockexit.d builtin.d canthrow.d chkformat.d
             cli.d clone.d compiler.d cond.d constfold.d cppmangle.d cppmanglewin.d cpreprocess.d ctfeexpr.d
             ctorflow.d dcast.d dclass.d declaration.d delegatize.d denum.d dimport.d
@@ -1559,7 +1545,7 @@ auto sourceFiles()
             dtemplate.d dtoh.d dversion.d escape.d expression.d expressionsem.d func.d hdrgen.d impcnvtab.d
             imphint.d importc.d init.d initsem.d inline.d inlinecost.d intrange.d json.d lambdacomp.d
             mtype.d mustuse.d nogc.d nspace.d ob.d objc.d opover.d optimize.d
-            parse.d parsetimevisitor.d permissivevisitor.d printast.d safe.d sapply.d
+            parse.d parsetimevisitor.d permissivevisitor.d postordervisitor.d printast.d safe.d sapply.d
             semantic2.d semantic3.d sideeffect.d statement.d statement_rewrite_walker.d
             statementsem.d staticassert.d staticcond.d stmtstate.d target.d templateparamsem.d traits.d
             transitivevisitor.d typesem.d typinf.d utils.d visitor.d foreachvar.d
@@ -1569,7 +1555,7 @@ auto sourceFiles()
         backendHeaders: fileArray(env["C"], "
             cc.d cdef.d cgcv.d code.d cv4.d dt.d el.d global.d
             obj.d oper.d rtlsym.d code_x86.d iasm.d codebuilder.d
-            ty.d type.d exh.d mach.d mscoff.d dwarf.d dwarf2.d xmm.d
+            ty.d type.d mach.d mscoff.d dwarf.d dwarf2.d xmm.d
             dlist.d melf.d
         "),
     };
@@ -1586,7 +1572,7 @@ auto sourceFiles()
             statement.h staticassert.h target.h template.h tokens.h version.h visitor.h
         "),
         lexer: fileArray(env["D"], "
-            console.d entity.d errors.d file_manager.d globals.d id.d identifier.d lexer.d tokens.d
+            console.d entity.d errors.d errorsink.d file_manager.d globals.d id.d identifier.d lexer.d location.d tokens.d
         ") ~ fileArray(env["ROOT"], "
             array.d bitarray.d ctfloat.d file.d filename.d hash.d port.d region.d rmem.d
             rootobject.d stringtable.d utf.d
@@ -1606,12 +1592,12 @@ auto sourceFiles()
         "),
         backend: fileArray(env["C"], "
             backend.d bcomplex.d evalu8.d divcoeff.d dvec.d go.d gsroa.d glocal.d gdag.d gother.d gflow.d
-            out.d inliner.d
+            dout.d inliner.d
             gloop.d compress.d cgelem.d cgcs.d ee.d cod4.d cod5.d nteh.d blockopt.d mem.d cg.d cgreg.d
             dtype.d debugprint.d fp.d symbol.d symtab.d elem.d dcode.d cgsched.d cg87.d cgxmm.d cgcod.d cod1.d cod2.d
-            cod3.d cv8.d dcgcv.d pdata.d util2.d var.d md5.d backconfig.d ph2.d drtlsym.d dwarfeh.d ptrntab.d
-            dvarstats.d dwarfdbginf.d cgen.d os.d goh.d barray.d cgcse.d elpicpie.d
-            machobj.d elfobj.d mscoffobj.d filespec.d newman.d cgobj.d aarray.d disasm86.d
+            cod3.d cv8.d dcgcv.d pdata.d util2.d var.d md5.d backconfig.d drtlsym.d dwarfeh.d ptrntab.d
+            dvarstats.d dwarfdbginf.d cgen.d goh.d barray.d cgcse.d elpicpie.d
+            machobj.d elfobj.d mscoffobj.d filespec.d cgobj.d aarray.d disasm86.d
             "
         ),
     };

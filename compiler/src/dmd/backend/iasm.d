@@ -2,7 +2,7 @@
  * Declarations for ptrntab.d, the instruction tables for the inline assembler.
  *
  * Copyright:   Copyright (C) 1982-1998 by Symantec
- *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     Mike Cote, John Micco, $(LINK2 https://www.digitalmars.com, Walter Bright),
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/iasm.d, backend/iasm.d)
@@ -403,52 +403,25 @@ enum
     ITSIZE          = 0x0F,    // mask for size
 }
 
-version (SCPP)
+alias OP_DB = int;
+enum
 {
-    alias OP_DB = int;
-    enum
-    {
-        // These are the number of bytes
-        OPdb = 1,
-        OPdw = 2,
-        OPdd = 4,
-        OPdq = 8,
-        OPdt = 10,
-        OPdf = 4,
-        OPde = 10,
-        OPds = 2,
-        OPdi = 4,
-        OPdl = 8,
-    }
+    // Integral types
+    OPdb,
+    OPds,
+    OPdi,
+    OPdl,
+
+    // Float types
+    OPdf,
+    OPdd,
+    OPde,
+
+    // Deprecated
+    OPdw = OPds,
+    OPdq = OPdl,
+    OPdt = OPde,
 }
-version (MARS)
-{
-    alias OP_DB = int;
-    enum
-    {
-        // Integral types
-        OPdb,
-        OPds,
-        OPdi,
-        OPdl,
-
-        // Float types
-        OPdf,
-        OPdd,
-        OPde,
-
-        // Deprecated
-        OPdw = OPds,
-        OPdq = OPdl,
-        OPdt = OPde,
-    }
-}
-
-
-/* from iasm.c */
-int asm_state(int iFlags);
-
-void asm_process_fixup( block **ppblockLabels );
 
 struct PTRNTAB4
 {

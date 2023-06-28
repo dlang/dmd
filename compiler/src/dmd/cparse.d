@@ -3,7 +3,7 @@
  *
  * Specification: C11
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/cparse.d, _cparse.d)
@@ -14,20 +14,18 @@
 module dmd.cparse;
 
 import core.stdc.stdio;
-import core.stdc.string;
+import core.stdc.string : memcpy;
+
 import dmd.astenums;
-import dmd.globals;
+import dmd.errorsink;
 import dmd.id;
 import dmd.identifier;
 import dmd.lexer;
+import dmd.location;
 import dmd.parse;
-import dmd.errors;
 import dmd.root.array;
-import dmd.root.filename;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
-import dmd.root.rootobject;
-import dmd.root.string;
 import dmd.tokens;
 
 /***********************************************************
@@ -68,9 +66,11 @@ final class CParser(AST) : Parser!AST
     OutBuffer* defines;
 
     extern (D) this(TARGET)(AST.Module _module, const(char)[] input, bool doDocComment,
-                            const ref TARGET target, OutBuffer* defines)
+                            ErrorSink errorSink,
+                            const ref TARGET target, OutBuffer* defines, const CompileEnv* compileEnv) scope
     {
-        super(_module, input, doDocComment);
+        const bool doUnittests = false;
+        super(_module, input, doDocComment, errorSink, compileEnv, doUnittests);
 
         //printf("CParser.this()\n");
         mod = _module;
@@ -199,7 +199,7 @@ final class CParser(AST) : Parser!AST
                     else if (token.value == TOK.leftCurly)
                         s = cparseStatement(ParseStatementFlags.curly | ParseStatementFlags.scope_);
                     else
-                        s = cparseStatement(ParseStatementFlags.semiOk);
+                        s = cparseStatement(0);
                     s = new AST.LabelStatement(loc, ident, s);
                     break;
                 }
@@ -267,11 +267,12 @@ final class CParser(AST) : Parser!AST
         case TOK.minusMinus:
         case TOK.sizeof_:
         case TOK._Generic:
+        case TOK._assert:
         Lexp:
             auto exp = cparseExpression();
             if (token.value == TOK.identifier && exp.op == EXP.identifier)
             {
-                error("found `%s` when expecting `;` or `=`, did you mean `%s %s = %s`?", peek(&token).toChars(), exp.toChars(), token.toChars(), peek(peek(&token)).toChars());
+                error(token.loc, "found `%s` when expecting `;` or `=`, did you mean `%s %s = %s`?", peek(&token).toChars(), exp.toChars(), token.toChars(), peek(peek(&token)).toChars());
                 nextToken();
             }
             else
@@ -285,6 +286,7 @@ final class CParser(AST) : Parser!AST
         case TOK.int16:
         case TOK.int32:
         case TOK.int64:
+        case TOK.__int128:
         case TOK.float32:
         case TOK.float64:
         case TOK.signed:
@@ -302,6 +304,7 @@ final class CParser(AST) : Parser!AST
         case TOK.extern_:
         case TOK.static_:
         case TOK._Thread_local:
+        case TOK.__thread:
         case TOK.auto_:
         case TOK.register:
 
@@ -320,6 +323,8 @@ final class CParser(AST) : Parser!AST
 
         // atomic-type-specifier or type_qualifier
         case TOK._Atomic:
+
+        case TOK.__attribute__:
 
         Ldeclaration:
         {
@@ -371,7 +376,7 @@ final class CParser(AST) : Parser!AST
             auto statements = new AST.Statements();
             while (token.value != TOK.rightCurly && token.value != TOK.endOfFile)
             {
-                statements.push(cparseStatement(ParseStatementFlags.semi | ParseStatementFlags.curlyScope));
+                statements.push(cparseStatement(ParseStatementFlags.curlyScope));
             }
             if (endPtr)
                 *endPtr = token.ptr;
@@ -505,6 +510,14 @@ final class CParser(AST) : Parser!AST
 
             nextToken();
             auto exp = cparseAssignExp();
+            AST.Expression expHigh;
+            if (token.value == TOK.dotDotDot)
+            {
+                /* Case Ranges https://gcc.gnu.org/onlinedocs/gcc/Case-Ranges.html
+                 */
+                nextToken();
+                expHigh = cparseAssignExp();
+            }
             check(TOK.colon);
 
             if (flags & ParseStatementFlags.curlyScope)
@@ -512,7 +525,7 @@ final class CParser(AST) : Parser!AST
                 auto statements = new AST.Statements();
                 while (token.value != TOK.case_ && token.value != TOK.default_ && token.value != TOK.endOfFile && token.value != TOK.rightCurly)
                 {
-                    auto cur = cparseStatement(ParseStatementFlags.semi | ParseStatementFlags.curlyScope);
+                    auto cur = cparseStatement(ParseStatementFlags.curlyScope);
                     statements.push(cur);
 
                     // https://issues.dlang.org/show_bug.cgi?id=21739
@@ -527,10 +540,13 @@ final class CParser(AST) : Parser!AST
             }
             else
             {
-                s = cparseStatement(ParseStatementFlags.semi);
+                s = cparseStatement(0);
             }
             s = new AST.ScopeStatement(loc, s, token.loc);
-            s = new AST.CaseStatement(loc, exp, s);
+            if (expHigh)
+                s = new AST.CaseRangeStatement(loc, exp, expHigh, s);
+            else
+                s = new AST.CaseStatement(loc, exp, s);
             break;
         }
 
@@ -544,12 +560,12 @@ final class CParser(AST) : Parser!AST
                 auto statements = new AST.Statements();
                 while (token.value != TOK.case_ && token.value != TOK.default_ && token.value != TOK.endOfFile && token.value != TOK.rightCurly)
                 {
-                    statements.push(cparseStatement(ParseStatementFlags.semi | ParseStatementFlags.curlyScope));
+                    statements.push(cparseStatement(ParseStatementFlags.curlyScope));
                 }
                 s = new AST.CompoundStatement(loc, statements);
             }
             else
-                s = cparseStatement(ParseStatementFlags.semi);
+                s = cparseStatement(0);
             s = new AST.ScopeStatement(loc, s, token.loc);
             s = new AST.DefaultStatement(loc, s);
             break;
@@ -599,7 +615,20 @@ final class CParser(AST) : Parser!AST
         }
 
         case TOK.asm_:
-            s = parseAsm();
+            switch (peekNext())
+            {
+                case TOK.goto_:
+                case TOK.inline:
+                case TOK.volatile:
+                case TOK.leftParenthesis:
+                    s = cparseGnuAsm();
+                    break;
+
+                default:
+                    // ImportC extensions: parse as a D asm block.
+                    s = parseAsm();
+                    break;
+            }
             break;
 
         default:
@@ -751,7 +780,7 @@ final class CParser(AST) : Parser!AST
                     if (token.postfix)
                     {
                         if (token.postfix != postfix)
-                            error("mismatched string literal postfixes `'%c'` and `'%c'`", postfix, token.postfix);
+                            error(token.loc, "mismatched string literal postfixes `'%c'` and `'%c'`", postfix, token.postfix);
                         postfix = token.postfix;
                     }
 
@@ -772,12 +801,23 @@ final class CParser(AST) : Parser!AST
 
         case TOK.leftParenthesis:
             nextToken();
-            e = cparseExpression();
+            if (token.value == TOK.leftCurly)
+                e = cparseStatementExpression();        // gcc extension
+            else
+                e = cparseExpression();
             check(TOK.rightParenthesis);
             break;
 
         case TOK._Generic:
             e = cparseGenericSelection();
+            break;
+
+        case TOK._assert:  // __check(assign-exp) extension
+            nextToken();
+            check(TOK.leftParenthesis, "`__check`");
+            e = parseAssignExp();
+            check(TOK.rightParenthesis);
+            e = new AST.AssertExp(loc, e, null);
             break;
 
         default:
@@ -1587,6 +1627,41 @@ final class CParser(AST) : Parser!AST
         return e;
     }
 
+    /*****************************
+     * gcc extension: https://gcc.gnu.org/onlinedocs/gcc/Statement-Exprs.html
+     * Represent as a function literal, then call the function literal.
+     * Parser is on opening curly brace.
+     */
+    private AST.Expression cparseStatementExpression()
+    {
+        AST.ParameterList parameterList;
+        StorageClass stc = 0;
+        const loc = token.loc;
+        typedefTab.push(null);
+        auto fbody = cparseStatement(ParseStatementFlags.scope_);
+        typedefTab.pop();                                        // end of function scope
+
+        // Rewrite last ExpStatement (if there is one) as a ReturnStatement
+        auto ss = fbody.isScopeStatement();
+        auto cs = ss.statement.isCompoundStatement();
+        assert(cs);
+        if (const len = (*cs.statements).length)
+        {
+            auto s = (*cs.statements)[len - 1];
+            if (auto es = s.isExpStatement())
+                (*cs.statements)[len - 1] = new AST.ReturnStatement(es.loc, es.exp);
+        }
+
+        auto tf = new AST.TypeFunction(parameterList, null, LINK.d, stc);
+        auto fd = new AST.FuncLiteralDeclaration(loc, token.loc, tf, TOK.delegate_, null, null, 0);
+        fd.fbody = fbody;
+
+        auto fe = new AST.FuncExp(loc, fd);
+        auto args = new AST.Expressions();
+        auto e = new AST.CallExp(loc, fe, args);   // call the function literal
+        return e;
+    }
+
     //}
     /********************************************************************************/
     /********************************* Declaration Parser ***************************/
@@ -1639,6 +1714,29 @@ final class CParser(AST) : Parser!AST
         specifier.packalign = this.packalign;
         auto tspec = cparseDeclarationSpecifiers(level, specifier);
 
+        AST.Dsymbol declareTag(AST.TypeTag tt, ref Specifier specifier)
+        {
+            /* `struct tag;` and `struct tag { ... };`
+             * always result in a declaration in the current scope
+             */
+            auto stag = (tt.tok == TOK.struct_) ? new AST.StructDeclaration(tt.loc, tt.id, false) :
+                        (tt.tok == TOK.union_)  ? new AST.UnionDeclaration(tt.loc, tt.id) :
+                                                  new AST.EnumDeclaration(tt.loc, tt.id, tt.base);
+            if (!tt.packalign.isUnknown())
+            {
+                // saw `struct __declspec(align(N)) Tag ...`
+                auto st = stag.isStructDeclaration();
+                st.alignment = tt.packalign;
+            }
+            stag.members = tt.members;
+            tt.members = null;
+            if (!symbols)
+                symbols = new AST.Dsymbols();
+            auto stags = applySpecifier(stag, specifier);
+            symbols.push(stags);
+            return stags;
+        }
+
         /* If a declarator does not follow, it is unnamed
          */
         if (token.value == TOK.semicolon)
@@ -1663,22 +1761,12 @@ final class CParser(AST) : Parser!AST
                 !tt.id && (tt.tok == TOK.struct_ || tt.tok == TOK.union_))
                 return; // legal but meaningless empty declaration, ignore it
 
-            /* `struct tag;` and `struct tag { ... };`
-             * always result in a declaration in the current scope
-             */
-            auto stag = (tt.tok == TOK.struct_) ? new AST.StructDeclaration(tt.loc, tt.id, false) :
-                        (tt.tok == TOK.union_)  ? new AST.UnionDeclaration(tt.loc, tt.id) :
-                                                  new AST.EnumDeclaration(tt.loc, tt.id, tt.base);
-            stag.members = tt.members;
-            if (!symbols)
-                symbols = new AST.Dsymbols();
-            auto stags = applySpecifier(stag, specifier);
-            symbols.push(stags);
+            auto stags = declareTag(tt, specifier);
 
             if (0 && tt.tok == TOK.enum_)    // C11 proscribes enums with no members, but we allow it
             {
                 if (!tt.members)
-                    error(tt.loc, "`enum %s` has no members", stag.toChars());
+                    error(tt.loc, "`enum %s` has no members", stags.toChars());
             }
             return;
         }
@@ -1739,7 +1827,7 @@ final class CParser(AST) : Parser!AST
                 case TOK.asm_:
                 case TOK.__attribute__:
                     if (token.value == TOK.asm_)
-                        asmName = cparseSimpleAsmExpr();
+                        asmName = cparseGnuAsmLabel();
                     if (token.value == TOK.__attribute__)
                     {
                         cparseGnuAttributes(specifier);
@@ -1822,17 +1910,10 @@ final class CParser(AST) : Parser!AST
                 {
                     if (tt.id || tt.tok == TOK.enum_)
                     {
-                        /* `struct tag;` and `struct tag { ... };`
-                         * always result in a declaration in the current scope
-                         */
-                        auto stag = (tt.tok == TOK.struct_) ? new AST.StructDeclaration(tt.loc, tt.id, false) :
-                                    (tt.tok == TOK.union_)  ? new AST.UnionDeclaration(tt.loc, tt.id) :
-                                                              new AST.EnumDeclaration(tt.loc, tt.id, tt.base);
-                        stag.members = tt.members;
-                        tt.members = null;
-                        if (!symbols)
-                            symbols = new AST.Dsymbols();
-                        symbols.push(stag);
+                        if (!tt.id && id)
+                            tt.id = id;
+                        Specifier spec;
+                        auto stag = declareTag(tt, spec);
                         if (tt.tok == TOK.enum_)
                         {
                             isalias = false;
@@ -1846,6 +1927,15 @@ final class CParser(AST) : Parser!AST
             }
             else if (id)
             {
+                if (auto tt = dt.isTypeTag())
+                {
+                    if (tt.members && (tt.id || tt.tok == TOK.enum_))
+                    {
+                        Specifier spec;
+                        declareTag(tt, spec);
+                    }
+                }
+
                 if (level == LVL.prototype)
                     break;      // declared later as Parameter, not VarDeclaration
 
@@ -1870,6 +1960,7 @@ final class CParser(AST) : Parser!AST
                     if (specifier.scw & SCW.x_Thread_local)
                         error("functions cannot be `_Thread_local`"); // C11 6.7.1-4
                     auto fd = new AST.FuncDeclaration(token.loc, Loc.initial, id, specifiersToSTC(level, specifier), dt, specifier.noreturn);
+                    specifiersToFuncDeclaration(fd, specifier);
                     s = fd;
                 }
                 else
@@ -1879,22 +1970,15 @@ final class CParser(AST) : Parser!AST
                     if (!hasInitializer &&
                         !(specifier.scw & (SCW.xextern | SCW.xstatic | SCW.x_Thread_local) || level == LVL.global))
                         initializer = new AST.VoidInitializer(token.loc);
-                    s = new AST.VarDeclaration(token.loc, dt, id, initializer, specifiersToSTC(level, specifier));
+                    auto vd = new AST.VarDeclaration(token.loc, dt, id, initializer, specifiersToSTC(level, specifier));
+                    specifiersToVarDeclaration(vd, specifier);
+                    s = vd;
                 }
                 if (level != LVL.global)
                     insertIdToTypedefTab(id);   // non-typedef declarations can hide typedefs in outer scopes
             }
             if (s !is null)
             {
-                s = applySpecifier(s, specifier);
-                if (level == LVL.local)
-                {
-                    // Wrap the declaration in `extern (C) { declaration }`
-                    // Necessary for function pointers, but harmless to apply to all.
-                    auto decls = new AST.Dsymbols(1);
-                    (*decls)[0] = s;
-                    s = new AST.LinkDeclaration(s.loc, linkage, decls);
-                }
                 // Saw `asm("name")` in the function, type, or variable definition.
                 // This is equivalent to `pragma(mangle, "name")` in D
                 if (asmName)
@@ -1915,7 +1999,18 @@ final class CParser(AST) : Parser!AST
                     {
                         auto str = asmName.peekString();
                         p.mangleOverride = str;
+//                      p.adFlags |= AST.VarDeclaration.nounderscore;
+                        p.adFlags |= 4; // cannot get above line to compile on Ubuntu
                     }
+                }
+                s = applySpecifier(s, specifier);
+                if (level == LVL.local)
+                {
+                    // Wrap the declaration in `extern (C) { declaration }`
+                    // Necessary for function pointers, but harmless to apply to all.
+                    auto decls = new AST.Dsymbols(1);
+                    (*decls)[0] = s;
+                    s = new AST.LinkDeclaration(s.loc, linkage, decls);
                 }
                 symbols.push(s);
             }
@@ -1926,7 +2021,7 @@ final class CParser(AST) : Parser!AST
                 case TOK.identifier:
                     if (s)
                     {
-                        error("missing comma or semicolon after declaration of `%s`, found `%s` instead", s.toChars(), token.toChars());
+                        error(token.loc, "missing comma or semicolon after declaration of `%s`, found `%s` instead", s.toChars(), token.toChars());
                         goto Lend;
                     }
                     goto default;
@@ -1988,11 +2083,10 @@ final class CParser(AST) : Parser!AST
             auto pl = ft.parameterList;
             if (pl.varargs != AST.VarArg.none && pl.length)
                 error("function identifier-list cannot end with `...`");
-            ft.parameterList.varargs = AST.VarArg.variadic;     // but C11 allows extra arguments
-            importBuiltins = true;                              // will need __va_list_tag
+            ft.parameterList.varargs = AST.VarArg.KRvariadic;   // but C11 allows extra arguments
             auto plLength = pl.length;
             if (symbols.length != plLength)
-                error("%d identifiers does not match %d declarations", cast(int)plLength, cast(int)symbols.length);
+                error(token.loc, "%d identifiers does not match %d declarations", cast(int)plLength, cast(int)symbols.length);
 
             /* Transfer the types and storage classes from symbols[] to pl[]
              */
@@ -2014,6 +2108,10 @@ final class CParser(AST) : Parser!AST
                     error("storage class and type are not allowed in identifier-list");
                 foreach (s; (*symbols)[]) // yes, quadratic
                 {
+                    auto ad = s.isAttribDeclaration();
+                    if (ad)
+                        s = (*ad.decl)[0];      // AlignDeclaration wrapping the declaration
+
                     auto d = s.isDeclaration();
                     if (d && p.ident == d.ident && d.type)
                     {
@@ -2038,6 +2136,7 @@ final class CParser(AST) : Parser!AST
         typedefTab.pop();                                        // end of function scope
 
         auto fd = new AST.FuncDeclaration(locFunc, prevloc, id, specifiersToSTC(LVL.global, specifier), ft, specifier.noreturn);
+        specifiersToFuncDeclaration(fd, specifier);
 
         if (addFuncName)
         {
@@ -2180,6 +2279,7 @@ final class CParser(AST) : Parser!AST
             ximaginary = 0x8000,
             xcomplex   = 0x10000,
             x_Atomic   = 0x20000,
+            xint128    = 0x40000,
         }
 
         AST.Type t;
@@ -2209,6 +2309,7 @@ final class CParser(AST) : Parser!AST
                 case TOK.typedef_:   scwx = SCW.xtypedef;   break;
                 case TOK.inline:     scwx = SCW.xinline;    break;
                 case TOK._Noreturn:  scwx = SCW.x_Noreturn; break;
+                case TOK.__thread:
                 case TOK._Thread_local: scwx = SCW.x_Thread_local; break;
 
                 // Type qualifiers
@@ -2224,6 +2325,7 @@ final class CParser(AST) : Parser!AST
                 case TOK.int16:      tkwx = TKW.xshort;     break;
                 case TOK.int32:      tkwx = TKW.xint;       break;
                 case TOK.int64:      tkwx = TKW.xlong;      break;
+                case TOK.__int128:   tkwx = TKW.xint128;    break;
                 case TOK.float32:    tkwx = TKW.xfloat;     break;
                 case TOK.float64:    tkwx = TKW.xdouble;    break;
                 case TOK.void_:      tkwx = TKW.xvoid;      break;
@@ -2243,15 +2345,25 @@ final class CParser(AST) : Parser!AST
                     const sloc = token.loc;
                     nextToken();
 
+                    Specifier tagSpecifier;
+
                     /* GNU Extensions
                      * struct-or-union-specifier:
                      *    struct-or-union gnu-attributes (opt) identifier (opt) { struct-declaration-list } gnu-attributes (opt)
                      *    struct-or-union gnu-attribute (opt) identifier
                      */
-                    if (token.value == TOK.__attribute__)
-                        cparseGnuAttributes(specifier);
-
-                    t = cparseStruct(sloc, structOrUnion, symbols);
+                    while (1)
+                    {
+                        if (token.value == TOK.__attribute__)
+                            cparseGnuAttributes(tagSpecifier);
+                        else if (token.value == TOK.__declspec)
+                            cparseDeclspec(tagSpecifier);
+                        else if (token.value == TOK.__pragma)
+                            uupragmaDirective(sloc);
+                        else
+                            break;
+                    }
+                    t = cparseStruct(sloc, structOrUnion, tagSpecifier.packalign, symbols);
                     tkwx = TKW.xtag;
                     break;
                 }
@@ -2272,8 +2384,8 @@ final class CParser(AST) : Parser!AST
                         if (isTypeName(tk) && tk.value == TOK.rightParenthesis)
                         {
                             nextToken();
+                            nextToken();
                             t = cparseTypeName();
-                            // TODO - implement the "atomic" part of t
                             tkwx = TKW.x_Atomic;
                             break;
                         }
@@ -2442,6 +2554,12 @@ final class CParser(AST) : Parser!AST
                     error("`inline` and `_Noreturn` function specifiers not allowed for `_Thread_local`");
                     scw &= ~scwx;
                 }
+                if (level == LVL.local &&
+                    scw & (SCW.x_Thread_local) && !(scw & (SCW.xstatic | SCW.xextern)))
+                {
+                    error("`_Thread_local` in block scope must be accompanied with `static` or `extern`"); // C11 6.7.1-3
+                    scw &= ~scwx;
+                }
                 if (level & (LVL.parameter | LVL.prototype) &&
                     scw & ~SCW.xregister)
                 {
@@ -2502,6 +2620,11 @@ final class CParser(AST) : Parser!AST
             case TKW.xunsigned | TKW.xllong | TKW.xint:
             case TKW.xunsigned | TKW.xllong:     t = unsignedTypeForSize(long_longsize); break;
 
+            case TKW.xint128:
+            case TKW.xsigned | TKW.xint128:     t = integerTypeForSize(16); break;
+
+            case TKW.xunsigned | TKW.xint128:   t = unsignedTypeForSize(16); break;
+
             case TKW.xvoid:                     t = AST.Type.tvoid; break;
             case TKW.xbool:                     t = boolsize == 1 ? AST.Type.tbool : integerTypeForSize(boolsize); break;
 
@@ -2537,6 +2660,7 @@ final class CParser(AST) : Parser!AST
             }
 
             case TKW.xtag:
+            case TKW.x_Atomic:  // no atomics for you
                 break;          // t is already set
 
             default:
@@ -2590,7 +2714,7 @@ final class CParser(AST) : Parser!AST
      *
      * Params:
      *  declarator   = declarator kind
-     *  t            = base type to start with
+     *  tbase        = base type to start with
      *  pident       = set to Identifier if there is one, null if not
      *  specifier    = specifiers in and out
      * Returns:
@@ -2598,12 +2722,25 @@ final class CParser(AST) : Parser!AST
      *  symbol table for the parameter-type-list, which will contain any
      *  declared struct, union or enum tags.
      */
-    private AST.Type cparseDeclarator(DTR declarator, AST.Type t,
+    private AST.Type cparseDeclarator(DTR declarator, AST.Type tbase,
         out Identifier pident, ref Specifier specifier)
     {
         //printf("cparseDeclarator(%d, %p)\n", declarator, t);
         AST.Types constTypes; // all the Types that will need `const` applied to them
-        constTypes.setDim(0);
+
+        /* Insert tx -> t into
+         *   ts -> ... -> t
+         * so that
+         *   ts -> ... -> tx -> t
+         */
+        static void insertTx(ref AST.Type ts, AST.Type tx, AST.Type t)
+        {
+            AST.Type* pt;
+            for (pt = &ts; *pt != t; pt = &(cast(AST.TypeNext)*pt).next)
+            {
+            }
+            *pt = tx;
+        }
 
         AST.Type parseDecl(AST.Type t)
         {
@@ -2670,20 +2807,6 @@ final class CParser(AST) : Parser!AST
             // parse DeclaratorSuffixes
             while (1)
             {
-                /* Insert tx -> t into
-                 *   ts -> ... -> t
-                 * so that
-                 *   ts -> ... -> tx -> t
-                 */
-                static void insertTx(ref AST.Type ts, AST.Type tx, AST.Type t)
-                {
-                    AST.Type* pt;
-                    for (pt = &ts; *pt != t; pt = &(cast(AST.TypeNext)*pt).next)
-                    {
-                    }
-                    *pt = tx;
-                }
-
                 switch (token.value)
                 {
                     case TOK.leftBracket:
@@ -2776,7 +2899,10 @@ final class CParser(AST) : Parser!AST
 
                         auto parameterList = cparseParameterList();
                         const lkg = specifier.mod & MOD.x__stdcall ? LINK.windows : linkage;
-                        AST.Type tf = new AST.TypeFunction(parameterList, t, lkg, 0);
+                        StorageClass stc = specifier._nothrow ? STC.nothrow_ : 0;
+                        if (specifier._pure)
+                            stc |= STC.pure_;
+                        AST.Type tf = new AST.TypeFunction(parameterList, t, lkg, stc);
     //                  tf = tf.addSTC(storageClass);  // TODO
                         insertTx(ts, tf, t);  // ts -> ... -> tf -> t
 
@@ -2793,7 +2919,17 @@ final class CParser(AST) : Parser!AST
             return ts;
         }
 
-        t = parseDecl(t);
+        auto t = parseDecl(tbase);
+
+        if (specifier.vector_size)
+        {
+            auto length = new AST.IntegerExp(token.loc, specifier.vector_size / tbase.size(), AST.Type.tuns32);
+            auto tsa = new AST.TypeSArray(tbase, length);
+            AST.Type tv = new AST.TypeVector(tsa);
+            specifier.vector_size = 0;          // used it up
+
+            insertTx(t, tv, tbase);     // replace tbase with tv
+        }
 
         /* Because const is transitive, cannot assemble types from
          * fragments. Instead, types to be annotated with const are put
@@ -2929,8 +3065,7 @@ final class CParser(AST) : Parser!AST
         if (token.value == TOK.rightParenthesis)        // func()
         {
             nextToken();
-            importBuiltins = true;                              // will need __va_list_tag
-            return AST.ParameterList(parameters, AST.VarArg.variadic, varargsStc);
+            return AST.ParameterList(parameters, AST.VarArg.KRvariadic, varargsStc);
         }
 
         /* Create function prototype scope
@@ -2989,11 +3124,11 @@ final class CParser(AST) : Parser!AST
             auto param = new AST.Parameter(specifiersToSTC(LVL.parameter, specifier),
                                            t, id, null, null);
             parameters.push(param);
-            if (token.value == TOK.rightParenthesis)
+            if (token.value == TOK.rightParenthesis || token.value == TOK.endOfFile)
                 break;
             check(TOK.comma);
         }
-        nextToken();
+        check(TOK.rightParenthesis);
         return finish();
     }
 
@@ -3054,9 +3189,15 @@ final class CParser(AST) : Parser!AST
      *    extended-decl-modifier extended-decl-modifier-seq
      *
      * extended-decl-modifier:
+     *    align(number)
+     *    deprecated(depMsg)
      *    dllimport
      *    dllexport
+     *    naked
+     *    noinline
      *    noreturn
+     *    nothrow
+     *    thread
      * Params:
      *  specifier = filled in with the attribute(s)
      */
@@ -3066,8 +3207,6 @@ final class CParser(AST) : Parser!AST
         /* Check for dllexport, dllimport
          * Ignore the rest
          */
-        bool dllimport;  // TODO implement
-        bool dllexport;  // TODO implement
         nextToken();     // move past __declspec
         check(TOK.leftParenthesis);
         while (1)
@@ -3083,18 +3222,71 @@ final class CParser(AST) : Parser!AST
             {
                 if (token.ident == Id.dllimport)
                 {
-                    dllimport = true;
+                    specifier.dllimport = true;
                     nextToken();
                 }
                 else if (token.ident == Id.dllexport)
                 {
-                    dllexport = true;
+                    specifier.dllexport = true;
+                    nextToken();
+                }
+                else if (token.ident == Id.naked)
+                {
+                    specifier.naked = true;
+                    nextToken();
+                }
+                else if (token.ident == Id.noinline)
+                {
+                    specifier.scw |= SCW.xnoinline;
                     nextToken();
                 }
                 else if (token.ident == Id.noreturn)
                 {
                     specifier.noreturn = true;
                     nextToken();
+                }
+                else if (token.ident == Id._nothrow)
+                {
+                    specifier._nothrow = true;
+                    nextToken();
+                }
+                else if (token.ident == Id.thread)
+                {
+                    specifier.scw |= SCW.x_Thread_local;
+                    nextToken();
+                }
+                else if (token.ident == Id._align)
+                {
+                    // Microsoft spec is very imprecise as to how this actually works
+                    nextToken();
+                    check(TOK.leftParenthesis);
+                    if (token.value == TOK.int32Literal)
+                    {
+                        const n = token.unsvalue;
+                        if (n < 1 || n & (n - 1) || 8192 < n)
+                            error("__decspec(align(%lld)) must be an integer positive power of 2 and be <= 8,192", cast(ulong)n);
+                        specifier.packalign.set(cast(uint)n);
+                        specifier.packalign.setPack(true);
+                        nextToken();
+                    }
+                    else
+                    {
+                        error("alignment value expected, not `%s`", token.toChars());
+                        nextToken();
+                    }
+
+                    check(TOK.rightParenthesis);
+                }
+                else if (token.ident == Id._deprecated)
+                {
+                    specifier._deprecated = true;
+                    nextToken();
+                    if (token.value == TOK.leftParenthesis)  // optional deprecation message
+                    {
+                        nextToken();
+                        specifier.depMsg = cparseExpression();
+                        check(TOK.rightParenthesis);
+                    }
                 }
                 else
                 {
@@ -3103,6 +3295,8 @@ final class CParser(AST) : Parser!AST
                         cparseParens();
                 }
             }
+            else if (token.value == TOK.restrict) // ImportC assigns no semantics to `restrict`, so just ignore the keyword.
+                nextToken();
             else
             {
                 error("extended-decl-modifier expected");
@@ -3112,7 +3306,8 @@ final class CParser(AST) : Parser!AST
     }
 
     /*************************
-     * Simple asm parser
+     * Parser for asm label. It appears after the declarator, and has apparently
+     * nothing to do with inline assembler.
      * https://gcc.gnu.org/onlinedocs/gcc/Asm-Labels.html
      * simple-asm-expr:
      *   asm ( asm-string-literal )
@@ -3120,15 +3315,105 @@ final class CParser(AST) : Parser!AST
      * asm-string-literal:
      *   string-literal
      */
-    private AST.StringExp cparseSimpleAsmExpr()
+    private AST.StringExp cparseGnuAsmLabel()
     {
         nextToken();     // move past asm
         check(TOK.leftParenthesis);
         if (token.value != TOK.string_)
-            error("string literal expected");
+            error("string literal expected for Asm Label, not `%s`", token.toChars());
         auto label = cparsePrimaryExp();
         check(TOK.rightParenthesis);
         return cast(AST.StringExp) label;
+    }
+
+    /********************
+     * Parse C inline assembler statement in Gnu format.
+     * https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html
+     *   asm asm-qualifiers ( AssemblerTemplate : OutputOperands : InputOperands : Clobbers : GotoLabels )
+     * Current token is on the `asm`.
+     * Returns:
+     *   inline assembler expression as a Statement
+     */
+    private AST.Statement cparseGnuAsm()
+    {
+        // Defer parsing of AsmStatements until semantic processing.
+        const loc = token.loc;
+
+        nextToken();
+
+        // Consume all asm-qualifiers. As a future optimization, we could record
+        // the `inline` and `volatile` storage classes against the statement.
+        while (token.value == TOK.goto_ ||
+               token.value == TOK.inline ||
+               token.value == TOK.volatile)
+            nextToken();
+
+        check(TOK.leftParenthesis);
+        if (token.value != TOK.string_)
+            error("string literal expected for Assembler Template, not `%s`", token.toChars());
+        Token* toklist = null;
+        Token** ptoklist = &toklist;
+        //Identifier label = null;
+        auto statements = new AST.Statements();
+
+        int parens;
+        while (1)
+        {
+            switch (token.value)
+            {
+                case TOK.leftParenthesis:
+                    ++parens;
+                    goto default;
+
+                case TOK.rightParenthesis:
+                    --parens;
+                    if (parens >= 0)
+                        goto default;
+                    break;
+
+                case TOK.semicolon:
+                    error("matching `)` expected, not `;`");
+                    break;
+
+                case TOK.endOfFile:
+                    /* ( */
+                    error("matching `)` expected, not end of file");
+                    break;
+
+                case TOK.colonColon:  // treat as two separate : tokens for iasmgcc
+                    *ptoklist = allocateToken();
+                    memcpy(*ptoklist, &token, Token.sizeof);
+                    (*ptoklist).value = TOK.colon;
+                    ptoklist = &(*ptoklist).next;
+
+                    *ptoklist = allocateToken();
+                    memcpy(*ptoklist, &token, Token.sizeof);
+                    (*ptoklist).value = TOK.colon;
+                    ptoklist = &(*ptoklist).next;
+
+                    *ptoklist = null;
+                    nextToken();
+                    continue;
+
+                default:
+                    *ptoklist = allocateToken();
+                    memcpy(*ptoklist, &token, Token.sizeof);
+                    ptoklist = &(*ptoklist).next;
+                    *ptoklist = null;
+                    nextToken();
+                    continue;
+            }
+            if (toklist)
+            {
+                // Create AsmStatement from list of tokens we've saved
+                AST.Statement s = new AST.AsmStatement(token.loc, toklist);
+                statements.push(s);
+            }
+            break;
+        }
+        nextToken();
+        auto s = new AST.CompoundAsmStatement(loc, statements, 0);
+        return s;
     }
 
     /*************************
@@ -3192,25 +3477,75 @@ final class CParser(AST) : Parser!AST
      */
     private void cparseGnuAttribute(ref Specifier specifier)
     {
-        /* Check for dllimport, dllexport, vector_size(bytes)
+        /* Check for dllimport, dllexport, naked, noreturn, vector_size(bytes)
          * Ignore the rest
          */
-        bool dllimport;  // TODO implement
-        bool dllexport;  // TODO implement
-
         if (!isGnuAttributeName())
             return;
 
         if (token.value == TOK.identifier)
         {
-            if (token.ident == Id.dllimport)
+            if (token.ident == Id.aligned)
             {
-                dllimport = true;
+                nextToken();
+                if (token.value == TOK.leftParenthesis)
+                {
+                    nextToken();
+                    if (token.value == TOK.int32Literal)
+                    {
+                        const n = token.unsvalue;
+                        if (n < 1 || n & (n - 1) || ushort.max < n)
+                            error("__attribute__((aligned(%lld))) must be an integer positive power of 2 and be <= 32,768", cast(ulong)n);
+                        specifier.packalign.set(cast(uint)n);
+                        specifier.packalign.setPack(true);
+                        nextToken();
+                    }
+                    else
+                    {
+                        error("alignment value expected, not `%s`", token.toChars());
+                        nextToken();
+                    }
+
+                    check(TOK.rightParenthesis);
+                }
+                /* ignore __attribute__((aligned)), which sets the alignment to the largest value for any data
+                 * type on the target machine. It's the opposite of __attribute__((packed))
+                 */
+            }
+            else if (token.ident == Id.always_inline) // https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html
+            {
+                specifier.scw |= SCW.xinline;
+                nextToken();
+            }
+            else if (token.ident == Id._deprecated)
+            {
+                specifier._deprecated = true;
+                nextToken();
+                if (token.value == TOK.leftParenthesis)  // optional deprecation message
+                {
+                    nextToken();
+                    specifier.depMsg = cparseExpression();
+                    check(TOK.rightParenthesis);
+                }
+            }
+            else if (token.ident == Id.dllimport)
+            {
+                specifier.dllimport = true;
                 nextToken();
             }
             else if (token.ident == Id.dllexport)
             {
-                dllexport = true;
+                specifier.dllexport = true;
+                nextToken();
+            }
+            else if (token.ident == Id.naked)
+            {
+                specifier.naked = true;
+                nextToken();
+            }
+            else if (token.ident == Id.noinline)
+            {
+                specifier.scw |= SCW.xnoinline;
                 nextToken();
             }
             else if (token.ident == Id.noreturn)
@@ -3218,11 +3553,33 @@ final class CParser(AST) : Parser!AST
                 specifier.noreturn = true;
                 nextToken();
             }
+            else if (token.ident == Id._nothrow)
+            {
+                specifier._nothrow = true;
+                nextToken();
+            }
+            else if (token.ident == Id._pure)
+            {
+                specifier._pure = true;
+                nextToken();
+            }
             else if (token.ident == Id.vector_size)
             {
                 nextToken();
                 check(TOK.leftParenthesis);
-                cparseConstantExp();  // TODO implement
+                if (token.value == TOK.int32Literal)
+                {
+                    const n = token.unsvalue;
+                    if (n < 1 || n & (n - 1) || ushort.max < n)
+                        error("__attribute__((vector_size(%lld))) must be an integer positive power of 2 and be <= 32,768", cast(ulong)n);
+                    specifier.vector_size = cast(uint) n;
+                    nextToken();
+                }
+                else
+                {
+                    error("value for vector_size expected, not `%s`", token.toChars());
+                    nextToken();
+                }
                 check(TOK.rightParenthesis);
             }
             else
@@ -3268,6 +3625,7 @@ final class CParser(AST) : Parser!AST
             case TOK._Complex:
             case TOK._Thread_local:
             case TOK.int32:
+            case TOK.__int128:
             case TOK.char_:
             case TOK.float32:
             case TOK.float64:
@@ -3377,7 +3735,8 @@ final class CParser(AST) : Parser!AST
          * https://en.cppreference.com/w/cpp/language/enum
          *   enum Identifier : Type
          */
-        AST.Type base = AST.Type.tint32;  // C11 6.7.2.2-4 implementation defined default base type
+        //AST.Type base = AST.Type.tint32;  // C11 6.7.2.2-4 implementation defined default base type
+        AST.Type base = null;               // C23 says base type is determined by enum member values
         if (token.value == TOK.colon)
         {
             nextToken();
@@ -3457,7 +3816,7 @@ final class CParser(AST) : Parser!AST
          * redeclaration, or reference to existing declaration.
          * Defer to the semantic() pass with a TypeTag.
          */
-        return new AST.TypeTag(loc, TOK.enum_, tag, base, members);
+        return new AST.TypeTag(loc, TOK.enum_, tag, structalign_t.init, base, members);
     }
 
     /*************************************
@@ -3479,11 +3838,12 @@ final class CParser(AST) : Parser!AST
      * Params:
      *  loc = location of `struct` or `union`
      *  structOrUnion = TOK.struct_ or TOK.union_
+     *  packalign = alignment to use for struct members
      *  symbols = symbols to add struct-or-union declaration to
      * Returns:
      *  type of the struct
      */
-    private AST.Type cparseStruct(Loc loc, TOK structOrUnion, ref AST.Dsymbols* symbols)
+    private AST.Type cparseStruct(Loc loc, TOK structOrUnion, structalign_t packalign, ref AST.Dsymbols* symbols)
     {
         Identifier tag;
 
@@ -3518,11 +3878,15 @@ final class CParser(AST) : Parser!AST
         else if (!tag)
             error("missing tag `identifier` after `%s`", Token.toChars(structOrUnion));
 
+        // many ways and places to declare alignment
+        if (packalign.isUnknown() && !this.packalign.isUnknown())
+            packalign.set(this.packalign.get());
+
         /* Need semantic information to determine if this is a declaration,
          * redeclaration, or reference to existing declaration.
          * Defer to the semantic() pass with a TypeTag.
          */
-        return new AST.TypeTag(loc, structOrUnion, tag, null, members);
+        return new AST.TypeTag(loc, structOrUnion, tag, packalign, null, members);
     }
 
     /*************************************
@@ -3871,7 +4235,7 @@ final class CParser(AST) : Parser!AST
                         return false;
                     /*
                         https://issues.dlang.org/show_bug.cgi?id=22267
-                        Fix issue 22267: If the parser encounters the following
+                        If the parser encounters the following
                             `identifier variableName = (expression);`
                         the initializer is not identified as such since the parentheses
                         cause the parser to keep walking indefinitely
@@ -3938,6 +4302,7 @@ final class CParser(AST) : Parser!AST
                 case TOK.int16:
                 case TOK.int32:
                 case TOK.int64:
+                case TOK.__int128:
                 case TOK.float32:
                 case TOK.float64:
                 case TOK.signed:
@@ -3964,6 +4329,13 @@ final class CParser(AST) : Parser!AST
                 case TOK.union_:
                 case TOK.enum_:
                     t = peek(t);
+                    if (t.value == TOK.__attribute__ ||
+                        t.value == TOK.__declspec)
+                    {
+                        t = peek(t);
+                        if (!skipParens(t, &t))
+                            return false;
+                    }
                     if (t.value == TOK.identifier)
                     {
                         t = peek(t);
@@ -3987,6 +4359,7 @@ final class CParser(AST) : Parser!AST
                 case TOK.typedef_:
                 case TOK.extern_:
                 case TOK.static_:
+                case TOK.__thread:
                 case TOK._Thread_local:
                 case TOK.auto_:
                 case TOK.register:
@@ -4302,6 +4675,7 @@ final class CParser(AST) : Parser!AST
                 case TOK.int16:
                 case TOK.int32:
                 case TOK.int64:
+                case TOK.__int128:
                 case TOK.float32:
                 case TOK.float64:
                 case TOK.void_:
@@ -4350,6 +4724,7 @@ final class CParser(AST) : Parser!AST
                 // atomic-type-specifier
                 case TOK._Atomic:
                 case TOK.typeof_:
+                case TOK.__attribute__:
                     t = peek(t);
                     if (t.value != TOK.leftParenthesis ||
                         !skipParens(t, &t))
@@ -4587,6 +4962,8 @@ final class CParser(AST) : Parser!AST
         // C11 6.7.4 Function specifiers
         xinline    = 0x40,
         x_Noreturn = 0x80,
+
+        xnoinline  = 0x100,
     }
 
     /// C11 6.7.3 Type qualifiers
@@ -4606,6 +4983,15 @@ final class CParser(AST) : Parser!AST
     struct Specifier
     {
         bool noreturn;  /// noreturn attribute
+        bool naked;     /// naked attribute
+        bool _nothrow;  /// nothrow attribute
+        bool _pure;     /// pure attribute
+        bool dllimport; /// dllimport attribute
+        bool dllexport; /// dllexport attribute
+        bool _deprecated;       /// deprecated attribute
+        AST.Expression depMsg;  /// deprecated message
+        uint vector_size;       /// positive power of 2 multipe of base type size
+
         SCW scw;        /// storage-class specifiers
         MOD mod;        /// type qualifiers
         AST.Expressions*  alignExps;  /// alignment
@@ -4629,6 +5015,8 @@ final class CParser(AST) : Parser!AST
             {
                 if (specifier.scw & SCW.xextern)
                     stc = AST.STC.extern_;
+                else if (specifier.scw & SCW.xstatic)
+                    stc = AST.STC.static_;
             }
             else if (level == LVL.local)
             {
@@ -4680,7 +5068,39 @@ final class CParser(AST) : Parser!AST
                     stc = AST.STC.gshared;
             }
         }
+        if (specifier._deprecated && !specifier.depMsg)
+            stc |= AST.STC.deprecated_;
         return stc;
+    }
+
+    /***********************
+     * Add attributes from Specifier to function
+     * Params:
+     *  fd = function to apply them to
+     *  specifier = specifiers
+     */
+    void specifiersToFuncDeclaration(AST.FuncDeclaration fd, const ref Specifier specifier)
+    {
+        fd.isNaked = specifier.naked;
+        fd.dllImport = specifier.dllimport;
+        fd.dllExport = specifier.dllexport;
+
+        if (specifier.scw & SCW.xnoinline)
+            fd.inlining = PINLINE.never;
+        else if (specifier.scw & SCW.xinline)
+            fd.inlining = PINLINE.always;
+    }
+
+    /***********************
+     * Add attributes from Specifier to variable
+     * Params:
+     *  vd = function to apply them to
+     *  specifier = specifiers
+     */
+    void specifiersToVarDeclaration(AST.VarDeclaration vd, const ref Specifier specifier)
+    {
+        vd.dllImport = specifier.dllimport;
+        vd.dllExport = specifier.dllexport;
     }
 
     /***********************
@@ -4700,6 +5120,11 @@ final class CParser(AST) : Parser!AST
             return AST.Type.tint32;
         if (size <= 8)
             return AST.Type.tint64;
+        if (size == 16)
+        {
+            error("__int128 not supported");
+            return AST.Type.terror;
+        }
         error("unsupported integer type");
         return AST.Type.terror;
     }
@@ -4721,6 +5146,11 @@ final class CParser(AST) : Parser!AST
             return AST.Type.tuns32;
         if (size <= 8)
             return AST.Type.tuns64;
+        if (size == 16)
+        {
+            error("unsigned __int128 not supported");
+            return AST.Type.terror;
+        }
         error("unsupported integer type");
         return AST.Type.terror;
     }
@@ -4783,7 +5213,7 @@ final class CParser(AST) : Parser!AST
         auto lenfn = new AST.IntegerExp(loc, fn.length + 1, AST.Type.tuns32); // +1 for terminating 0
         auto tfn = new AST.TypeSArray(AST.Type.tchar, lenfn);
         efn.type = tfn.immutableOf();
-        efn.committed = 1;
+        efn.committed = true;
         auto sfn = new AST.VarDeclaration(loc, tfn, Id.__func__, ifn, STC.gshared | STC.immutable_);
         auto e = new AST.DeclarationExp(loc, sfn);
         return new AST.ExpStatement(loc, e);
@@ -4815,7 +5245,13 @@ final class CParser(AST) : Parser!AST
         else if (auto tt = t.isTypeTag())
             tt.mod |= MODFlags.const_;
         else
-            t = t.addSTC(STC.const_);
+        {
+            /* Ignore const if the result would be const pointer to mutable
+             */
+            auto tn = t.nextOf();
+            if (!tn || tn.isConst())
+                t = t.addSTC(STC.const_);
+        }
         return t;
     }
 
@@ -4830,6 +5266,17 @@ final class CParser(AST) : Parser!AST
     private AST.Dsymbol applySpecifier(AST.Dsymbol s, ref Specifier specifier)
     {
         //printf("applySpecifier() %s\n", s.toChars());
+        if (specifier._deprecated)
+        {
+            if (specifier.depMsg)
+            {
+                // Wrap declaration in a DeprecatedDeclaration
+                auto decls = new AST.Dsymbols(1);
+                (*decls)[0] = s;
+                s = new AST.DeprecatedDeclaration(specifier.depMsg, decls);
+            }
+        }
+
         if (specifier.alignExps)
         {
             //printf("  applying _Alignas %s, packalign %d\n", (*specifier.alignExps)[0].toChars(), cast(int)specifier.packalign);
@@ -4985,6 +5432,24 @@ final class CParser(AST) : Parser!AST
                 pragmaDirective(scanloc);
                 return true;
             }
+            else if (n.ident == Id.ident) // #ident "string"
+            {
+                scan(&n);
+                if (n.value == TOK.string_ && n.ptr[0] == '"' && n.postfix == 0)
+                {
+                    /* gcc inserts string into the .comment section in the object file.
+                     * Just ignore it for now, but can support it later by writing
+                     * the string to obj_exestr()
+                     */
+                    //auto comment = n.ustring;
+
+                    scan(&n);
+                    if (n.value == TOK.endOfFile || n.value == TOK.endOfLine)
+                        return true;
+                }
+                error("\"string\" expected after `#ident`");
+                return false;
+            }
         }
         if (n.ident != Id.undef)
             error("C preprocessor directive `#%s` is not supported", n.toChars());
@@ -5001,20 +5466,39 @@ final class CParser(AST) : Parser!AST
     private void uupragmaDirective(const ref Loc startloc)
     {
         const loc = startloc;
-        nextToken();
+        nextToken();    // move past __pragma
         if (token.value != TOK.leftParenthesis)
         {
-            error(loc, "left parenthesis expected to follow `__pragma`");
+            error(loc, "left parenthesis expected to follow `__pragma` instead of `%s`", token.toChars());
+            nextToken();
             return;
         }
         nextToken();
-        if (token.value == TOK.identifier && token.ident == Id.pack)
-            pragmaPack(startloc, false);
+
+        if (token.value == TOK.identifier)
+        {
+            if (token.ident == Id.pack)
+                pragmaPack(startloc, false);
+            else
+            {
+                nextToken();
+                if (token.value == TOK.leftParenthesis)
+                    cparseParens();
+            }
+
+        }
+        else if (token.value == TOK.endOfFile)
+        {
+        }
+        else if (token.value == TOK.rightParenthesis)
+        {
+        }
         else
-            error(loc, "unrecognized __pragma");
+            error(loc, "unrecognized `__pragma(%s)`", token.toChars());
+
         if (token.value != TOK.rightParenthesis)
         {
-            error(loc, "right parenthesis expected to close `__pragma(...)`");
+            error(loc, "right parenthesis expected to close `__pragma(...)` instead of `%s`", token.toChars());
             return;
         }
         nextToken();
@@ -5107,9 +5591,9 @@ final class CParser(AST) : Parser!AST
         if (n.value == TOK.identifier && n.ident == Id.show)
         {
             if (packalign.isDefault())
-                warning(startloc, "current pack attribute is default");
+                eSink.warning(startloc, "current pack attribute is default");
             else
-                warning(startloc, "current pack attribute is %d", packalign.get());
+                eSink.warning(startloc, "current pack attribute is %d", packalign.get());
             scan(&n);
             return closingParen();
         }
@@ -5165,18 +5649,40 @@ final class CParser(AST) : Parser!AST
         if (n.value == TOK.identifier && n.ident == Id.pop)
         {
             scan(&n);
-            while (n.value == TOK.comma)
+            size_t len = this.records.length;
+            if (n.value == TOK.rightParenthesis) // #pragma pack ( pop )
+            {
+                if (len == 0)   // nothing to pop
+                    return closingParen();
+
+                this.records.setDim(len - 1);
+                this.packs.setDim(len - 1);
+                if (len == 1)   // stack is now empty
+                    packalign.setDefault();
+                else
+                    packalign = (*this.packs)[len - 1];
+                return closingParen();
+            }
+            while (n.value == TOK.comma)        // #pragma pack ( pop ,
             {
                 scan(&n);
                 if (n.value == TOK.identifier)
                 {
-                    for (size_t len = this.records.length; len; --len)
+                    /* pragma pack(pop, identifier
+                     * Pop until identifier is found, pop that one too, and set
+                     * alignment to the new top of the stack.
+                     * If identifier is not found, do nothing.
+                     */
+                    for ( ; len; --len)
                     {
                         if ((*this.records)[len - 1] == n.ident)
                         {
-                            packalign = (*this.packs)[len - 1];
                             this.records.setDim(len - 1);
                             this.packs.setDim(len - 1);
+                            if (len > 1)
+                                packalign = (*this.packs)[len - 2];
+                            else
+                                packalign.setDefault(); // stack empty, use default
                             break;
                         }
                     }
@@ -5185,14 +5691,18 @@ final class CParser(AST) : Parser!AST
                 else if (n.value == TOK.int32Literal)
                 {
                     setPackAlign(n);
-                    this.records.push(null);
-                    this.packs.push(packalign);
+                    scan(&n);
+                }
+                else
+                {
+                    error(loc, "identifier or alignment value expected following `#pragma pack(pop,` not `%s`", n.toChars());
                     scan(&n);
                 }
             }
             return closingParen();
         }
         /* # pragma pack ( integer )
+         * Sets alignment to integer
          */
         if (n.value == TOK.int32Literal)
         {
@@ -5201,6 +5711,7 @@ final class CParser(AST) : Parser!AST
             return closingParen();
         }
         /* # pragma pack ( )
+         * Sets alignment to default
          */
         if (n.value == TOK.rightParenthesis)
         {
@@ -5243,6 +5754,8 @@ final class CParser(AST) : Parser!AST
 
         void addVar(AST.VarDeclaration v)
         {
+            //printf("addVar() %s\n", v.toChars());
+            v.isCmacro(true);           // mark it as coming from a C #define
             /* If it's already defined, replace the earlier
              * definition
              */

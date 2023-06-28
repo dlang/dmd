@@ -1,7 +1,7 @@
 /**
  * Check the arguments to `printf` and `scanf` against the `format` string.
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/chkformat.d, _chkformat.d)
@@ -19,6 +19,7 @@ import dmd.errors;
 import dmd.expression;
 import dmd.globals;
 import dmd.identifier;
+import dmd.location;
 import dmd.mtype;
 import dmd.target;
 
@@ -62,7 +63,7 @@ import dmd.target;
 bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expression[] args, bool isVa_list)
 {
     //printf("checkPrintFormat('%.*s')\n", cast(int)format.length, format.ptr);
-    size_t n, gnu_m_count;    // index in args / number of Format.GNU_m
+    size_t n;    // index in args
     for (size_t i = 0; i < format.length;)
     {
         if (format[i] != '%')
@@ -79,6 +80,8 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
 
         if (fmt == Format.percent)
             continue;                   // "%%", no arguments
+        if (fmt == Format.GNU_m)
+            continue;                   // "%m", no arguments
 
         if (isVa_list)
         {
@@ -88,14 +91,11 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
             continue;
         }
 
-        if (fmt == Format.GNU_m)
-            ++gnu_m_count;
-
         Expression getNextArg(ref bool skip)
         {
             if (n == args.length)
             {
-                if (args.length < (n + 1) - gnu_m_count)
+                if (args.length < (n + 1))
                     deprecation(loc, "more format specifiers than %d arguments", cast(int)n);
                 else
                     skip = true;
@@ -177,6 +177,8 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
                         errorMsg(null, e, (c_longsize == 4 ? "uint" : "ulong"), t);
                     else
                         errorMsg(null, e, (c_longsize == 4 ? "int" : "long"), t);
+                    if (t.isintegral() && t.size() != c_longsize)
+                        errorSupplemental(e.loc, "C `long` is %d bytes on your system", c_longsize);
                 }
                 break;
 
@@ -288,8 +290,8 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
                 break;
 
             case Format.GNU_m:
-                break;  // not assert(0) because it may go through it if there are extra arguments
-
+            case Format.POSIX_ms:
+            case Format.POSIX_mls:
             case Format.percent:
                 assert(0);
         }
@@ -480,7 +482,6 @@ bool checkScanfFormat(ref const Loc loc, scope const char[] format, scope Expres
                     errorMsg(null, e, "real*", t);
                 break;
 
-            case Format.GNU_m:
             case Format.c:
             case Format.s:      // pointer to char string
                 if (!(t.ty == Tpointer && (tnext.ty == Tchar || tnext.ty == Tint8 || tnext.ty == Tuns8)))
@@ -498,10 +499,23 @@ bool checkScanfFormat(ref const Loc loc, scope const char[] format, scope Expres
                     errorMsg(null, e, "void**", t);
                 break;
 
+            case Format.POSIX_ms: // pointer to pointer to char string
+                Type tnext2 = tnext ? tnext.nextOf() : null;
+                if (!(t.ty == Tpointer && tnext.ty == Tpointer && (tnext2.ty == Tchar || tnext2.ty == Tint8 || tnext2.ty == Tuns8)))
+                    errorMsg(null, e, "char**", t);
+                break;
+
+            case Format.POSIX_mls: // pointer to pointer to wchar_t string
+                Type tnext2 = tnext ? tnext.nextOf() : null;
+                if (!(t.ty == Tpointer && tnext.ty == Tpointer && tnext2.ty.isSomeChar && tnext2.size() == target.c.wchar_tsize))
+                    errorMsg(null, e, "wchar_t**", t);
+                break;
+
             case Format.error:
                 deprecation(loc, "format specifier `\"%.*s\"` is invalid", cast(int)slice.length, slice.ptr);
                 break;
 
+            case Format.GNU_m:
             case Format.percent:
                 assert(0);
         }
@@ -565,35 +579,97 @@ Format parseScanfFormatSpecifier(scope const char[] format, ref size_t idx,
             return error();
     }
 
-    /* Read the scanset
-     * A scanset can be anything, so we just check that it is paired
-     */
-    if (format[i] == '[')
-    {
-        while (i < length)
-        {
-            if (format[i] == ']')
-                break;
-            ++i;
-        }
-
-        // no `]` found
-        if (i == length)
-            return error();
-
-        ++i;
-        // no specifier after `]`
-        // it could be mixed with the one above, but then idx won't have the right index
-        if (i == length)
-            return error();
-    }
-
     /* Read the specifier
      */
-    char genSpec;
-    Format specifier = parseGenericFormatSpecifier(format, i, genSpec);
-    if (specifier == Format.error)
-        return error();
+    Format specifier;
+    Modifier flags = Modifier.none;
+    switch (format[i])
+    {
+        case 'm':
+            // https://pubs.opengroup.org/onlinepubs/9699919799/functions/scanf.html
+            // POSIX.1-2017 C Extension (CX)
+            flags = Modifier.m;
+            ++i;
+            if (i == length)
+                return error();
+            if (format[i] == 'l')
+            {
+                ++i;
+                if (i == length)
+                    return error();
+                flags = Modifier.ml;
+            }
+
+            // Check valid conversion types for %m.
+            if (format[i] == 'c' || format[i] == 's')
+                specifier = flags == Modifier.ml ? Format.POSIX_mls :
+                                                   Format.POSIX_ms;
+            else if (format[i] == 'C' || format[i] == 'S')
+                specifier = flags == Modifier.m ? Format.POSIX_mls :
+                                                  Format.error;
+            else if (format[i] == '[')
+                goto case '[';
+            else
+                specifier = Format.error;
+            ++i;
+            break;
+
+        case 'l':
+            // Look for wchar_t scanset %l[..]
+            immutable j = i + 1;
+            if (j < length && format[j] == '[')
+            {
+                i = j;
+                flags = Modifier.l;
+                goto case '[';
+            }
+            goto default;
+
+        case '[':
+            // Read the scanset
+            i++;
+            if (i == length)
+                return error();
+            // If the conversion specifier begins with `[]` or `[^]`, the right
+            // bracket character is not the terminator, but in the scanlist.
+            if (format[i] == '^')
+            {
+                i++;
+                if (i == length)
+                    return error();
+            }
+            if (format[i] == ']')
+            {
+                i++;
+                if (i == length)
+                    return error();
+            }
+            // A scanset can be anything, so we just check that it is paired
+            while (i < length)
+            {
+                if (format[i] == ']')
+                    break;
+                ++i;
+            }
+            // no `]` found
+            if (i == length)
+                return error();
+
+            specifier = flags == Modifier.none ? Format.s         :
+                        flags == Modifier.l    ? Format.ls        :
+                        flags == Modifier.m    ? Format.POSIX_ms  :
+                        flags == Modifier.ml   ? Format.POSIX_mls :
+                                                 Format.error;
+            ++i;
+            break;
+
+        default:
+            char genSpec;
+            specifier = parseGenericFormatSpecifier(format, i, genSpec);
+            if (specifier == Format.error)
+                return error();
+            break;
+    }
 
     idx = i;
     return specifier;  // success
@@ -611,11 +687,13 @@ Format parseScanfFormatSpecifier(scope const char[] format, ref size_t idx,
  *          even if `Format.error` is returned
  *      widthStar = set if * for width
  *      precisionStar = set if * for precision
+ *      useGNUExts = true if parsing GNU format extensions
  * Returns:
  *      Format
  */
 Format parsePrintfFormatSpecifier(scope const char[] format, ref size_t idx,
-        out bool widthStar, out bool precisionStar) nothrow pure @safe
+        out bool widthStar, out bool precisionStar, bool useGNUExts =
+        findCondition(global.versionids, Identifier.idPool("CRuntime_Glibc"))) nothrow pure @safe
 {
     auto i = idx;
     assert(format[i] == '%');
@@ -728,14 +806,33 @@ Format parsePrintfFormatSpecifier(scope const char[] format, ref size_t idx,
     /* Read the specifier
      */
     char genSpec;
-    Format specifier = parseGenericFormatSpecifier(format, i, genSpec);
-    if (specifier == Format.error)
-        return error();
+    Format specifier;
+    switch (format[i])
+    {
+        case 'm':
+            // https://www.gnu.org/software/libc/manual/html_node/Other-Output-Conversions.html
+            if (useGNUExts)
+            {
+                specifier = Format.GNU_m;
+                genSpec = format[i];
+                ++i;
+                break;
+            }
+            goto default;
+
+        default:
+            specifier = parseGenericFormatSpecifier(format, i, genSpec);
+            if (specifier == Format.error)
+                return error();
+            break;
+    }
 
     switch (genSpec)
     {
         case 'c':
         case 's':
+        case 'C':
+        case 'S':
             if (hash || zero)
                 return error();
             break;
@@ -743,6 +840,11 @@ Format parsePrintfFormatSpecifier(scope const char[] format, ref size_t idx,
         case 'd':
         case 'i':
             if (hash)
+                return error();
+            break;
+
+        case 'm':
+            if (hash || zero || flags)
                 return error();
             break;
 
@@ -757,6 +859,22 @@ Format parsePrintfFormatSpecifier(scope const char[] format, ref size_t idx,
 
     idx = i;
     return specifier;  // success
+}
+
+/* Different kinds of conversion modifiers. */
+enum Modifier
+{
+    none,
+    h,          // short
+    hh,         // char
+    j,          // intmax_t
+    l,          // wint_t/wchar_t
+    ll,         // long long int
+    L,          // long double
+    m,          // char**
+    ml,         // wchar_t**
+    t,          // ptrdiff_t
+    z           // size_t
 }
 
 /* Different kinds of formatting specifications, variations we don't
@@ -797,7 +915,9 @@ enum Format
     jn,         // pointer to intmax_t
     zn,         // pointer to size_t
     tn,         // pointer to ptrdiff_t
-    GNU_m,      // GNU ext. : string corresponding to the error code in errno (printf) / length modifier (scanf)
+    GNU_m,      // GNU ext. : string corresponding to the error code in errno (printf)
+    POSIX_ms,   // POSIX ext. : dynamically allocated char string  (scanf)
+    POSIX_mls,  // POSIX ext. : dynamically allocated wchar_t string (scanf)
     percent,    // %% (i.e. no argument)
     error,      // invalid format specification
 }
@@ -817,38 +937,48 @@ enum Format
  *      Format
  */
 Format parseGenericFormatSpecifier(scope const char[] format,
-    ref size_t idx, out char genSpecifier, bool useGNUExts =
-    findCondition(global.versionids, Identifier.idPool("CRuntime_Glibc"))) nothrow pure @trusted
+    ref size_t idx, out char genSpecifier) nothrow pure @safe
 {
     const length = format.length;
 
     /* Read the `length modifier`
      */
     const lm = format[idx];
-    bool lm1;        // if jztL
-    bool lm2;        // if `hh` or `ll`
-    if (lm == 'j' ||
-        lm == 'z' ||
-        lm == 't' ||
-        lm == 'L')
+    Modifier flags;
+    switch (lm)
     {
-        ++idx;
-        if (idx == length)
-            return Format.error;
-        lm1 = true;
-    }
-    else if (lm == 'h' || lm == 'l')
-    {
-        ++idx;
-        if (idx == length)
-            return Format.error;
-        lm2 = lm == format[idx];
-        if (lm2)
-        {
+        case 'j':
+        case 'z':
+        case 't':
+        case 'L':
+            flags = lm == 'j' ? Modifier.j :
+                    lm == 'z' ? Modifier.z :
+                    lm == 't' ? Modifier.t :
+                                Modifier.L;
             ++idx;
             if (idx == length)
                 return Format.error;
-        }
+            break;
+
+        case 'h':
+        case 'l':
+            ++idx;
+            if (idx == length)
+                return Format.error;
+            if (lm == format[idx])
+            {
+                flags = lm == 'h' ? Modifier.hh : Modifier.ll;
+                ++idx;
+                if (idx == length)
+                    return Format.error;
+            }
+            else
+                flags = lm == 'h' ? Modifier.h : Modifier.l;
+            break;
+
+        default:
+            flags = Modifier.none;
+            break;
     }
 
     /* Read the `specifier`
@@ -860,34 +990,30 @@ Format parseGenericFormatSpecifier(scope const char[] format,
     {
         case 'd':
         case 'i':
-            if (lm == 'L')
-                specifier = Format.error;
-            else
-                specifier = lm == 'h' && lm2 ? Format.hhd :
-                            lm == 'h'        ? Format.hd  :
-                            lm == 'l' && lm2 ? Format.lld :
-                            lm == 'l'        ? Format.ld  :
-                            lm == 'j'        ? Format.jd  :
-                            lm == 'z'        ? Format.zd  :
-                            lm == 't'        ? Format.td  :
-                                               Format.d;
+            specifier = flags == Modifier.none ? Format.d   :
+                        flags == Modifier.hh   ? Format.hhd :
+                        flags == Modifier.h    ? Format.hd  :
+                        flags == Modifier.ll   ? Format.lld :
+                        flags == Modifier.l    ? Format.ld  :
+                        flags == Modifier.j    ? Format.jd  :
+                        flags == Modifier.z    ? Format.zd  :
+                        flags == Modifier.t    ? Format.td  :
+                                                 Format.error;
             break;
 
         case 'u':
         case 'o':
         case 'x':
         case 'X':
-            if (lm == 'L')
-                specifier = Format.error;
-            else
-                specifier = lm == 'h' && lm2 ? Format.hhu :
-                            lm == 'h'        ? Format.hu  :
-                            lm == 'l' && lm2 ? Format.llu :
-                            lm == 'l'        ? Format.lu  :
-                            lm == 'j'        ? Format.ju  :
-                            lm == 'z'        ? Format.zd  :
-                            lm == 't'        ? Format.td  :
-                                               Format.u;
+            specifier = flags == Modifier.none ? Format.u   :
+                        flags == Modifier.hh   ? Format.hhu :
+                        flags == Modifier.h    ? Format.hu  :
+                        flags == Modifier.ll   ? Format.llu :
+                        flags == Modifier.l    ? Format.lu  :
+                        flags == Modifier.j    ? Format.ju  :
+                        flags == Modifier.z    ? Format.zd  :
+                        flags == Modifier.t    ? Format.td  :
+                                                 Format.error;
             break;
 
         case 'f':
@@ -898,57 +1024,54 @@ Format parseGenericFormatSpecifier(scope const char[] format,
         case 'G':
         case 'a':
         case 'A':
-            if (lm == 'L')
-                specifier = Format.Lg;
-            else if (lm1 || lm2 || lm == 'h')
-                specifier = Format.error;
-            else
-                specifier = lm == 'l' ? Format.lg : Format.g;
+            specifier = flags == Modifier.none ? Format.g  :
+                        flags == Modifier.L    ? Format.Lg :
+                        flags == Modifier.l    ? Format.lg :
+                                                 Format.error;
             break;
 
         case 'c':
-            if (lm1 || lm2 || lm == 'h')
-                specifier = Format.error;
-            else
-                specifier = lm == 'l' ? Format.lc : Format.c;
+            specifier = flags == Modifier.none ? Format.c       :
+                        flags == Modifier.l    ? Format.lc      :
+                                                 Format.error;
             break;
 
         case 's':
-            if (lm1 || lm2 || lm == 'h')
-                specifier = Format.error;
-            else
-                specifier = lm == 'l' ? Format.ls : Format.s;
+            specifier = flags == Modifier.none ? Format.s       :
+                        flags == Modifier.l    ? Format.ls      :
+                                                 Format.error;
             break;
 
         case 'p':
-            if (lm1 || lm2 || lm == 'h' || lm == 'l')
-                specifier = Format.error;
-            else
-                specifier = Format.p;
+            specifier = flags == Modifier.none ? Format.p :
+                                                 Format.error;
             break;
 
         case 'n':
-            if (lm == 'L')
-                specifier = Format.error;
-            else
-                specifier = lm == 'l' && lm2 ? Format.lln :
-                            lm == 'l'        ? Format.ln  :
-                            lm == 'h' && lm2 ? Format.hhn :
-                            lm == 'h'        ? Format.hn  :
-                            lm == 'j'        ? Format.jn  :
-                            lm == 'z'        ? Format.zn  :
-                            lm == 't'        ? Format.tn  :
-                                               Format.n;
+            specifier = flags == Modifier.none ? Format.n   :
+                        flags == Modifier.ll   ? Format.lln :
+                        flags == Modifier.l    ? Format.ln  :
+                        flags == Modifier.hh   ? Format.hhn :
+                        flags == Modifier.h    ? Format.hn  :
+                        flags == Modifier.j    ? Format.jn  :
+                        flags == Modifier.z    ? Format.zn  :
+                        flags == Modifier.t    ? Format.tn  :
+                                                 Format.error;
             break;
 
-        case 'm':
-            if (useGNUExts)
-            {
-                // https://www.gnu.org/software/libc/manual/html_node/Other-Output-Conversions.html
-                specifier = Format.GNU_m;
-                break;
-            }
-            goto default;
+        case 'C':
+            // POSIX.1-2017 X/Open System Interfaces (XSI)
+            // %C format is equivalent to %lc
+            specifier = flags == Modifier.none ? Format.lc :
+                                                 Format.error;
+            break;
+
+        case 'S':
+            // POSIX.1-2017 X/Open System Interfaces (XSI)
+            // %S format is equivalent to %ls
+            specifier = flags == Modifier.none ? Format.ls :
+                                                 Format.error;
+            break;
 
         default:
             specifier = Format.error;
@@ -959,376 +1082,210 @@ Format parseGenericFormatSpecifier(scope const char[] format,
     return specifier; // success
 }
 
-unittest
+@("parseGenericFormatSpecifier") unittest
 {
-    /* parseGenericFormatSpecifier
-     */
-
     char genSpecifier;
     size_t idx;
 
-    assert(parseGenericFormatSpecifier("hhd", idx, genSpecifier) == Format.hhd);
-    assert(genSpecifier == 'd');
+    void testG(string fmtStr, Format expectedFormat, char expectedGenSpecifier)
+    {
+        idx = 0;
+        assert(parseGenericFormatSpecifier(fmtStr, idx, genSpecifier) == expectedFormat);
+        assert(genSpecifier == expectedGenSpecifier);
+    }
 
-    idx = 0;
-    assert(parseGenericFormatSpecifier("hn", idx, genSpecifier) == Format.hn);
-    assert(genSpecifier == 'n');
-
-    idx = 0;
-    assert(parseGenericFormatSpecifier("ji", idx, genSpecifier) == Format.jd);
-    assert(genSpecifier == 'i');
-
-    idx = 0;
-    assert(parseGenericFormatSpecifier("lu", idx, genSpecifier) == Format.lu);
-    assert(genSpecifier == 'u');
+    testG("hhd", Format.hhd, 'd');
+    testG("hn", Format.hn, 'n');
+    testG("ji", Format.jd, 'i');
+    testG("lu", Format.lu, 'u');
 
     idx = 0;
     assert(parseGenericFormatSpecifier("k", idx, genSpecifier) == Format.error);
+}
 
-    /* parsePrintfFormatSpecifier
-     */
+@("parsePrintfFormatSpecifier") unittest
+{
+    bool useGNUExts = false;
 
-     bool widthStar;
-     bool precisionStar;
+    size_t idx = 0;
+    bool widthStar;
+    bool precisionStar;
 
-     // one for each Format
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%d", idx, widthStar, precisionStar) == Format.d);
-     assert(idx == 2);
-     assert(!widthStar && !precisionStar);
-
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%ld", idx, widthStar, precisionStar) == Format.ld);
-     assert(idx == 3);
-
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%lld", idx, widthStar, precisionStar) == Format.lld);
-     assert(idx == 4);
-
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%jd", idx, widthStar, precisionStar) == Format.jd);
-     assert(idx == 3);
-
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%zd", idx, widthStar, precisionStar) == Format.zd);
-     assert(idx == 3);
-
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%td", idx, widthStar, precisionStar) == Format.td);
-     assert(idx == 3);
-
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%g", idx, widthStar, precisionStar) == Format.g);
-     assert(idx == 2);
-
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%Lg", idx, widthStar, precisionStar) == Format.Lg);
-     assert(idx == 3);
-
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%p", idx, widthStar, precisionStar) == Format.p);
-     assert(idx == 2);
-
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%n", idx, widthStar, precisionStar) == Format.n);
-     assert(idx == 2);
-
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%ln", idx, widthStar, precisionStar) == Format.ln);
-     assert(idx == 3);
-
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%lln", idx, widthStar, precisionStar) == Format.lln);
-     assert(idx == 4);
-
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%hn", idx, widthStar, precisionStar) == Format.hn);
-     assert(idx == 3);
-
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%hhn", idx, widthStar, precisionStar) == Format.hhn);
-     assert(idx == 4);
-
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%jn", idx, widthStar, precisionStar) == Format.jn);
-     assert(idx == 3);
-
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%zn", idx, widthStar, precisionStar) == Format.zn);
-     assert(idx == 3);
-
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%tn", idx, widthStar, precisionStar) == Format.tn);
-     assert(idx == 3);
-
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%c", idx, widthStar, precisionStar) == Format.c);
-     assert(idx == 2);
-
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%lc", idx, widthStar, precisionStar) == Format.lc);
-     assert(idx == 3);
-
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%s", idx, widthStar, precisionStar) == Format.s);
-     assert(idx == 2);
-
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%ls", idx, widthStar, precisionStar) == Format.ls);
-     assert(idx == 3);
-
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%%", idx, widthStar, precisionStar) == Format.percent);
-     assert(idx == 2);
-
-     // Synonyms
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%i", idx, widthStar, precisionStar) == Format.d);
-     assert(idx == 2);
-
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%u", idx, widthStar, precisionStar) == Format.u);
-     assert(idx == 2);
-
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%o", idx, widthStar, precisionStar) == Format.u);
-     assert(idx == 2);
-
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%x", idx, widthStar, precisionStar) == Format.u);
-     assert(idx == 2);
-
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%X", idx, widthStar, precisionStar) == Format.u);
-     assert(idx == 2);
-
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%f", idx, widthStar, precisionStar) == Format.g);
-     assert(idx == 2);
-
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%F", idx, widthStar, precisionStar) == Format.g);
-     assert(idx == 2);
-
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%G", idx, widthStar, precisionStar) == Format.g);
-     assert(idx == 2);
-
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%a", idx, widthStar, precisionStar) == Format.g);
-     assert(idx == 2);
-
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%La", idx, widthStar, precisionStar) == Format.Lg);
-     assert(idx == 3);
-
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%A", idx, widthStar, precisionStar) == Format.g);
-     assert(idx == 2);
-
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%lg", idx, widthStar, precisionStar) == Format.lg);
-     assert(idx == 3);
-
-     // width, precision
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%*d", idx, widthStar, precisionStar) == Format.d);
-     assert(idx == 3);
-     assert(widthStar && !precisionStar);
-
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%.*d", idx, widthStar, precisionStar) == Format.d);
-     assert(idx == 4);
-     assert(!widthStar && precisionStar);
-
-     idx = 0;
-     assert(parsePrintfFormatSpecifier("%*.*d", idx, widthStar, precisionStar) == Format.d);
-     assert(idx == 5);
-     assert(widthStar && precisionStar);
-
-     // Too short formats
-     {
-         foreach (s; ["%", "%-", "%+", "% ", "%#", "%0", "%*", "%1", "%19", "%.", "%.*", "%.1", "%.12",
-                      "%j", "%z", "%t", "%l", "%h", "%ll", "%hh"])
-         {
-             idx = 0;
-             assert(parsePrintfFormatSpecifier(s, idx, widthStar, precisionStar) == Format.error);
-             assert(idx == s.length);
-         }
-     }
-
-     // Undefined format combinations
-     {
-         foreach (s; ["%#d", "%llg", "%jg", "%zg", "%tg", "%hg", "%hhg",
-                      "%#c", "%0c", "%jc", "%zc", "%tc", "%Lc", "%hc", "%hhc", "%llc",
-                      "%#s", "%0s", "%js", "%zs", "%ts", "%Ls", "%hs", "%hhs", "%lls",
-                      "%jp", "%zp", "%tp", "%Lp", "%hp", "%lp", "%hhp", "%llp",
-                      "%-n", "%+n", "% n", "%#n", "%0n", "%*n", "%1n", "%19n", "%.n", "%.*n", "%.1n", "%.12n", "%Ln", "%K"])
-         {
-             idx = 0;
-             assert(parsePrintfFormatSpecifier(s, idx, widthStar, precisionStar) == Format.error);
-             assert(idx == s.length);
-         }
-     }
-
-    /* parseScanfFormatSpecifier
-     */
-
-    bool asterisk;
+    void testP(string fmtStr, Format expectedFormat, size_t expectedIdx)
+    {
+        idx = 0;
+        assert(parsePrintfFormatSpecifier(fmtStr, idx, widthStar, precisionStar, useGNUExts) == expectedFormat);
+        assert(idx == expectedIdx);
+    }
 
     // one for each Format
-    idx = 0;
-    assert(parseScanfFormatSpecifier("%d", idx, asterisk) == Format.d);
-    assert(idx == 2);
-    assert(!asterisk);
+    testP("%d", Format.d, 2);
+    assert(!widthStar && !precisionStar);
 
-    idx = 0;
-    assert(parseScanfFormatSpecifier("%hhd", idx, asterisk) == Format.hhd);
-    assert(idx == 4);
-
-    idx = 0;
-    assert(parseScanfFormatSpecifier("%hd", idx, asterisk) == Format.hd);
-    assert(idx == 3);
-
-    idx = 0;
-    assert(parseScanfFormatSpecifier("%ld", idx, asterisk) == Format.ld);
-    assert(idx == 3);
-
-    idx = 0;
-    assert(parseScanfFormatSpecifier("%lld", idx, asterisk) == Format.lld);
-    assert(idx == 4);
-
-    idx = 0;
-    assert(parseScanfFormatSpecifier("%jd", idx, asterisk) == Format.jd);
-    assert(idx == 3);
-
-    idx = 0;
-    assert(parseScanfFormatSpecifier("%zd", idx, asterisk) == Format.zd);
-    assert(idx == 3);
-
-    idx = 0;
-    assert(parseScanfFormatSpecifier("%td", idx, asterisk,) == Format.td);
-    assert(idx == 3);
-
-    idx = 0;
-    assert(parseScanfFormatSpecifier("%u", idx, asterisk) == Format.u);
-    assert(idx == 2);
-
-    idx = 0;
-    assert(parseScanfFormatSpecifier("%hhu", idx, asterisk,) == Format.hhu);
-    assert(idx == 4);
-
-    idx = 0;
-    assert(parseScanfFormatSpecifier("%hu", idx, asterisk) == Format.hu);
-    assert(idx == 3);
-
-    idx = 0;
-    assert(parseScanfFormatSpecifier("%lu", idx, asterisk) == Format.lu);
-    assert(idx == 3);
-
-    idx = 0;
-    assert(parseScanfFormatSpecifier("%llu", idx, asterisk) == Format.llu);
-    assert(idx == 4);
-
-    idx = 0;
-    assert(parseScanfFormatSpecifier("%ju", idx, asterisk) == Format.ju);
-    assert(idx == 3);
-
-    idx = 0;
-    assert(parseScanfFormatSpecifier("%g", idx, asterisk) == Format.g);
-    assert(idx == 2);
-
-    idx = 0;
-    assert(parseScanfFormatSpecifier("%lg", idx, asterisk) == Format.lg);
-    assert(idx == 3);
-
-    idx = 0;
-    assert(parseScanfFormatSpecifier("%Lg", idx, asterisk) == Format.Lg);
-    assert(idx == 3);
-
-    idx = 0;
-    assert(parseScanfFormatSpecifier("%p", idx, asterisk) == Format.p);
-    assert(idx == 2);
-
-    idx = 0;
-    assert(parseScanfFormatSpecifier("%s", idx, asterisk) == Format.s);
-    assert(idx == 2);
-
-    idx = 0;
-    assert(parseScanfFormatSpecifier("%ls", idx, asterisk,) == Format.ls);
-    assert(idx == 3);
-
-    idx = 0;
-    assert(parseScanfFormatSpecifier("%%", idx, asterisk) == Format.percent);
-    assert(idx == 2);
+    testP("%ld", Format.ld, 3);
+    testP("%lld", Format.lld, 4);
+    testP("%jd", Format.jd, 3);
+    testP("%zd", Format.zd, 3);
+    testP("%td", Format.td, 3);
+    testP("%g", Format.g, 2);
+    testP("%Lg", Format.Lg, 3);
+    testP("%p", Format.p, 2);
+    testP("%n", Format.n, 2);
+    testP("%ln", Format.ln, 3);
+    testP("%lln", Format.lln, 4);
+    testP("%hn", Format.hn, 3);
+    testP("%hhn", Format.hhn, 4);
+    testP("%jn", Format.jn, 3);
+    testP("%zn", Format.zn, 3);
+    testP("%tn", Format.tn, 3);
+    testP("%c", Format.c, 2);
+    testP("%lc", Format.lc, 3);
+    testP("%s", Format.s, 2);
+    testP("%ls", Format.ls, 3);
+    testP("%%", Format.percent, 2);
 
     // Synonyms
-    idx = 0;
-    assert(parseScanfFormatSpecifier("%i", idx, asterisk) == Format.d);
-    assert(idx == 2);
+    testP("%i", Format.d, 2);
+    testP("%u", Format.u, 2);
+    testP("%o", Format.u, 2);
+    testP("%x", Format.u, 2);
+    testP("%X", Format.u, 2);
+    testP("%f", Format.g, 2);
+    testP("%F", Format.g, 2);
+    testP("%G", Format.g, 2);
+    testP("%a", Format.g, 2);
+    testP("%La", Format.Lg, 3);
+    testP("%A", Format.g, 2);
+    testP("%lg", Format.lg, 3);
 
-    idx = 0;
-    assert(parseScanfFormatSpecifier("%n", idx, asterisk) == Format.n);
-    assert(idx == 2);
+    // width, precision
+    testP("%*d", Format.d, 3);
+    assert(widthStar && !precisionStar);
 
-    idx = 0;
-    assert(parseScanfFormatSpecifier("%o", idx, asterisk) == Format.u);
-    assert(idx == 2);
+    testP("%.*d", Format.d, 4);
+    assert(!widthStar && precisionStar);
 
-    idx = 0;
-    assert(parseScanfFormatSpecifier("%x", idx, asterisk) == Format.u);
-    assert(idx == 2);
+    testP("%*.*d", Format.d, 5);
+    assert(widthStar && precisionStar);
 
-    idx = 0;
-    assert(parseScanfFormatSpecifier("%f", idx, asterisk) == Format.g);
-    assert(idx == 2);
+    // Too short formats
+    foreach (s; ["%", "%-", "%+", "% ", "%#", "%0", "%*", "%1", "%19", "%.", "%.*", "%.1", "%.12",
+                    "%j", "%z", "%t", "%l", "%h", "%ll", "%hh"])
+    {
+        testP(s, Format.error, s.length);
+    }
 
-    idx = 0;
-    assert(parseScanfFormatSpecifier("%e", idx, asterisk) == Format.g);
-    assert(idx == 2);
+    // Undefined format combinations
+    foreach (s; ["%#d", "%llg", "%jg", "%zg", "%tg", "%hg", "%hhg",
+                    "%#c", "%0c", "%jc", "%zc", "%tc", "%Lc", "%hc", "%hhc", "%llc",
+                    "%#s", "%0s", "%js", "%zs", "%ts", "%Ls", "%hs", "%hhs", "%lls",
+                    "%jp", "%zp", "%tp", "%Lp", "%hp", "%lp", "%hhp", "%llp",
+                    "%-n", "%+n", "% n", "%#n", "%0n", "%*n", "%1n", "%19n", "%.n", "%.*n", "%.1n", "%.12n", "%Ln", "%K"])
+    {
+        testP(s, Format.error, s.length);
+    }
 
-    idx = 0;
-    assert(parseScanfFormatSpecifier("%a", idx, asterisk) == Format.g);
-    assert(idx == 2);
+    testP("%C", Format.lc, 2);
+    testP("%S", Format.ls, 2);
 
-    idx = 0;
-    assert(parseScanfFormatSpecifier("%c", idx, asterisk) == Format.c);
-    assert(idx == 2);
+    // GNU extensions: explicitly toggle ISO/GNU flag.
+    foreach (s; ["%jm", "%zm", "%tm", "%Lm", "%hm", "%hhm", "%lm", "%llm",
+                    "%#m", "%+m", "%-m", "% m", "%0m"])
+    {
+        useGNUExts = false;
+        testP(s, Format.error, s.length);
+        useGNUExts = true;
+        testP(s, Format.error, s.length);
+    }
+
+    foreach (s; ["%m", "%md", "%mz", "%mc", "%mm", "%msyz", "%ml", "%mlz", "%mlc", "%mlm"])
+    {
+        // valid cases, all parsed as `%m`
+        // GNU printf()
+        useGNUExts = true;
+        testP(s, Format.GNU_m, 2);
+
+        // ISO printf()
+        useGNUExts = false;
+        testP(s, Format.error, 2);
+    }
+}
+
+@("parseScanfFormatSpecifier") unittest
+{
+    size_t idx;
+    bool asterisk;
+
+    void testS(string fmtStr, Format expectedFormat, size_t expectedIdx)
+    {
+        idx = 0;
+        assert(parseScanfFormatSpecifier(fmtStr, idx, asterisk) == expectedFormat);
+        assert(idx == expectedIdx);
+    }
+
+    // one for each Format
+    testS("%d", Format.d, 2);
+    testS("%hhd", Format.hhd, 4);
+    testS("%hd", Format.hd, 3);
+    testS("%ld", Format.ld, 3);
+    testS("%lld", Format.lld, 4);
+    testS("%jd", Format.jd, 3);
+    testS("%zd", Format.zd, 3);
+    testS("%td", Format.td, 3);
+    testS("%u", Format.u, 2);
+    testS("%hhu", Format.hhu, 4);
+    testS("%hu", Format.hu, 3);
+    testS("%lu", Format.lu, 3);
+    testS("%llu", Format.llu, 4);
+    testS("%ju", Format.ju, 3);
+    testS("%g", Format.g, 2);
+    testS("%lg", Format.lg, 3);
+    testS("%Lg", Format.Lg, 3);
+    testS("%p", Format.p, 2);
+    testS("%s", Format.s, 2);
+    testS("%ls", Format.ls, 3);
+    testS("%%", Format.percent, 2);
+
+    // Synonyms
+    testS("%i", Format.d, 2);
+    testS("%n", Format.n, 2);
+
+    testS("%o", Format.u, 2);
+    testS("%x", Format.u, 2);
+    testS("%f", Format.g, 2);
+    testS("%e", Format.g, 2);
+    testS("%a", Format.g, 2);
+    testS("%c", Format.c, 2);
 
     // asterisk
-    idx = 0;
-    assert(parseScanfFormatSpecifier("%*d", idx, asterisk) == Format.d);
-    assert(idx == 3);
+    testS("%*d", Format.d, 3);
     assert(asterisk);
 
-    idx = 0;
-    assert(parseScanfFormatSpecifier("%9ld", idx, asterisk) == Format.ld);
-    assert(idx == 4);
+    testS("%9ld", Format.ld, 4);
     assert(!asterisk);
 
-    idx = 0;
-    assert(parseScanfFormatSpecifier("%*25984hhd", idx, asterisk) == Format.hhd);
-    assert(idx == 10);
+    testS("%*25984hhd", Format.hhd, 10);
     assert(asterisk);
 
     // scansets
-    idx = 0;
-    assert(parseScanfFormatSpecifier("%[a-zA-Z]s", idx, asterisk) == Format.s);
-    assert(idx == 10);
+    testS("%[a-zA-Z]", Format.s, 9);
     assert(!asterisk);
 
-    idx = 0;
-    assert(parseScanfFormatSpecifier("%*25[a-z]hhd", idx, asterisk) == Format.hhd);
-    assert(idx == 12);
+    testS("%*25l[a-z]", Format.ls, 10);
     assert(asterisk);
+
+    testS("%[]]", Format.s, 4);
+    assert(!asterisk);
+
+    testS("%[^]]", Format.s, 5);
+    assert(!asterisk);
 
     // Too short formats
     foreach (s; ["%", "% ", "%#", "%0", "%*", "%1", "%19",
                  "%j", "%z", "%t", "%l", "%h", "%ll", "%hh", "%K"])
     {
-        idx = 0;
-        assert(parseScanfFormatSpecifier(s, idx, asterisk) == Format.error);
-        assert(idx == s.length);
+
+        testS(s, Format.error, s.length);
     }
 
 
@@ -1338,18 +1295,37 @@ unittest
                  "%jp", "%zp", "%tp", "%Lp", "%hp", "%lp", "%hhp", "%llp",
                  "%-", "%+", "%#", "%0", "%.", "%Ln"])
     {
-        idx = 0;
-        assert(parseScanfFormatSpecifier(s, idx, asterisk) == Format.error);
-        assert(idx == s.length);
+
+        testS(s, Format.error, s.length);
 
     }
 
     // Invalid scansets
-    foreach (s; ["%[]", "%[s", "%[0-9lld", "%[", "%[a-z]"])
+    foreach (s; ["%[]", "%[^", "%[^]", "%[s", "%[0-9lld", "%[", "%l[^]"])
     {
-        idx = 0;
-        assert(parseScanfFormatSpecifier(s, idx, asterisk) == Format.error);
-        assert(idx == s.length);
+
+        testS(s, Format.error, s.length);
     }
 
+    // Posix extensions
+    foreach (s; ["%jm", "%zm", "%tm", "%Lm", "%hm", "%hhm", "%lm", "%llm",
+                 "%m", "%ma", "%md", "%ml", "%mm", "%mlb", "%mlj", "%mlr", "%mlz",
+                 "%LC", "%lC", "%llC", "%jC", "%tC", "%hC", "%hhC", "%zC",
+                 "%LS", "%lS", "%llS", "%jS", "%tS", "%hS", "%hhS", "%zS"])
+    {
+
+        testS(s, Format.error, s.length);
+    }
+
+    testS("%mc", Format.POSIX_ms, 3);
+    testS("%ms", Format.POSIX_ms, 3);
+    testS("%m[0-9]", Format.POSIX_ms, 7);
+    testS("%mlc", Format.POSIX_mls, 4);
+    testS("%mls", Format.POSIX_mls, 4);
+    testS("%ml[^0-9]", Format.POSIX_mls, 9);
+    testS("%mC", Format.POSIX_mls, 3);
+    testS("%mS", Format.POSIX_mls, 3);
+
+    testS("%C", Format.lc, 2);
+    testS("%S", Format.ls, 2);
 }

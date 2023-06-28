@@ -1,7 +1,7 @@
 /**
  * Perform constant folding.
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/optimize.d, _optimize.d)
@@ -25,6 +25,7 @@ import dmd.expression;
 import dmd.expressionsem;
 import dmd.globals;
 import dmd.init;
+import dmd.location;
 import dmd.mtype;
 import dmd.printast;
 import dmd.root.ctfloat;
@@ -188,7 +189,7 @@ private Expression fromConstInitializer(int result, Expression e1)
         {
             // If it is a comma expression involving a declaration, we mustn't
             // perform a copy -- we'd get two declarations of the same variable.
-            // See bugzilla 4465.
+            // See https://issues.dlang.org/show_bug.cgi?id=4465.
             if (e.op == EXP.comma && e.isCommaExp().e1.isDeclarationExp())
                 e = e1;
             else if (e.type != e1.type && e1.type && e1.type.ty != Tident)
@@ -225,7 +226,7 @@ package void setLengthVarIfKnown(VarDeclaration lengthVar, Expression arr)
     if (auto se = arr.isStringExp())
         len = se.len;
     else if (auto ale = arr.isArrayLiteralExp())
-        len = ale.elements.dim;
+        len = ale.elements.length;
     else
     {
         auto tsa = arr.type.toBasetype().isTypeSArray();
@@ -358,7 +359,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
 
     void visitAssocArrayLiteral(AssocArrayLiteralExp e)
     {
-        assert(e.keys.dim == e.values.dim);
+        assert(e.keys.length == e.values.length);
         foreach (i, ref ekey; (*e.keys)[])
         {
             expOptimize(ekey, result & WANTexpand);
@@ -370,7 +371,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
     {
         if (e.stageflags & stageOptimize)
             return;
-        int old = e.stageflags;
+        const old = e.stageflags;
         e.stageflags |= stageOptimize;
         if (e.elements)
         {
@@ -586,7 +587,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                     Expression ex = new AddrExp(ae1.loc, ae1);  // &a[i]
                     ex.type = ae1.type.pointerTo();
 
-                    Expression add = new AddExp(ae.loc, ex, new IntegerExp(ae.loc, offset, e.type));
+                    Expression add = new AddExp(ae.loc, ex, new IntegerExp(ae.e2.loc, offset, ae.e2.type));
                     add.type = e.type;
                     ret = Expression_optimize(add, result, keepLvalue);
                     return;
@@ -768,11 +769,8 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             return;
         if (e.arguments)
         {
-            Type t1 = e.e1.type.toBasetype();
-            if (auto td = t1.isTypeDelegate())
-                t1 = td.next;
             // t1 can apparently be void for __ArrayDtor(T) calls
-            if (auto tf = t1.isTypeFunction())
+            if (auto tf = e.calledFunctionType())
             {
                 foreach (i, ref arg; (*e.arguments)[])
                 {
@@ -862,7 +860,8 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                 return returnE_e1();    // can always convert a class to Object
             // Need to determine correct offset before optimizing away the cast.
             // https://issues.dlang.org/show_bug.cgi?id=16980
-            cdfrom.size(e.loc);
+            if (cdfrom.size(e.loc) == SIZE_INVALID)
+                return error();
             assert(cdfrom.sizeok == Sizeok.done);
             assert(cdto.sizeok == Sizeok.done || !cdto.isBaseOf(cdfrom, null));
             int offset;
@@ -1120,7 +1119,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                     e.e1 = ci;
             }
         }
-        if (e.e1.op == EXP.string_ || e.e1.op == EXP.arrayLiteral || e.e1.op == EXP.assocArrayLiteral || e.e1.type.toBasetype().ty == Tsarray)
+        if (e.e1.op == EXP.string_ || e.e1.op == EXP.arrayLiteral || e.e1.op == EXP.assocArrayLiteral || e.e1.type.toBasetype().ty == Tsarray || e.e1.op == EXP.null_)
         {
             ret = ArrayLength(e.type, e.e1).copy();
         }

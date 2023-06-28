@@ -15,7 +15,7 @@ module __builtins;
 /* gcc relies on internal __builtin_xxxx functions and templates to
  * accomplish <stdarg.h>. D does the same thing with templates in core.stdc.stdarg.
  * Here, we redirect the gcc builtin declarations to the equivalent
- * ones in core.stdc.stdarg, thereby avoiding having to hardware them
+ * ones in core.stdc.stdarg, thereby avoiding having to hardwire them
  * into the D compiler.
  */
 
@@ -67,8 +67,7 @@ version (DigitalMars)
 
     ushort __builtin_bswap16()(ushort value)
     {
-        import core.bitop;
-        return core.bitop.byteswap(value);
+        return cast(ushort) (((value >> 8) & 0xFF) | ((value << 8) & 0xFF00U));
     }
 
     uint __builtin_bswap32()(uint value)

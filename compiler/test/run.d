@@ -185,7 +185,7 @@ Options:
 
     if (targets.length > 0)
     {
-        string[] failedTargets;
+        shared string[] failedTargets;
         foreach (target; parallel(targets, 1))
         {
             log("run: %-(%s %)", target.args);
@@ -197,7 +197,7 @@ Options:
                             : "`unit` tests";
 
                 writeln(">>> TARGET FAILED: ", name);
-                failedTargets ~= name;
+                synchronized failedTargets ~= name;
             }
         }
         if (failedTargets.length > 0)

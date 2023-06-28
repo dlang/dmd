@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/attribute.html#visibility_attributes, Visibility Attributes)
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/access.d, _access.d)
@@ -16,16 +16,13 @@ module dmd.access;
 import dmd.aggregate;
 import dmd.astenums;
 import dmd.dclass;
-import dmd.declaration;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.errors;
 import dmd.expression;
-import dmd.func;
 import dmd.globals;
-import dmd.mtype;
+import dmd.location;
 import dmd.tokens;
 
 private enum LOG = false;

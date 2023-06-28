@@ -14,7 +14,7 @@
  * - Protection (`private`, `public`)
  * - Deprecated declarations (`@deprecated`)
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/attrib.d, _attrib.d)
@@ -40,6 +40,7 @@ import dmd.globals;
 import dmd.hdrgen : visibilityToBuffer;
 import dmd.id;
 import dmd.identifier;
+import dmd.location;
 import dmd.mtype;
 import dmd.objc; // for objc.addSymbols
 import dmd.common.outbuffer;
@@ -58,6 +59,12 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 
     extern (D) this(Dsymbols* decl)
     {
+        this.decl = decl;
+    }
+
+    extern (D) this(const ref Loc loc, Dsymbols* decl)
+    {
+        super(loc, null);
         this.decl = decl;
     }
 
@@ -196,17 +203,12 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 
     /****************************************
      */
-    override final void addLocalClass(ClassDeclarations* aclasses)
-    {
-        include(null).foreachDsymbol( s => s.addLocalClass(aclasses) );
-    }
-
     override final void addObjcSymbols(ClassDeclarations* classes, ClassDeclarations* categories)
     {
         objc.addSymbols(this, classes, categories);
     }
 
-    override final inout(AttribDeclaration) isAttribDeclaration() inout pure @safe
+    override inout(AttribDeclaration) isAttribDeclaration() inout pure @safe
     {
         return this;
     }
@@ -229,6 +231,12 @@ extern (C++) class StorageClassDeclaration : AttribDeclaration
     extern (D) this(StorageClass stc, Dsymbols* decl)
     {
         super(decl);
+        this.stc = stc;
+    }
+
+    extern (D) this(const ref Loc loc, StorageClass stc, Dsymbols* decl)
+    {
+        super(loc, decl);
         this.stc = stc;
     }
 
@@ -645,7 +653,8 @@ extern (C++) final class VisibilityDeclaration : AttribDeclaration
         {
             Module m = sc._module;
 
-            // While isAncestorPackageOf does an equality check, the fix for issue 17441 adds a check to see if
+            // https://issues.dlang.org/show_bug.cgi?id=17441
+            // While isAncestorPackageOf does an equality check, the fix for the issue adds a check to see if
             // each package's .isModule() properites are equal.
             //
             // Properties generated from `package(foo)` i.e. visibility.pkg have .isModule() == null.
@@ -781,7 +790,7 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
              * so in order to place that member we need to compute the member's
              * size and alignment.
              */
-            size_t fieldstart = ad.fields.dim;
+            size_t fieldstart = ad.fields.length;
 
             /* Hackishly hijack ad's structsize and alignsize fields
              * for use in our fake anon aggregate member.
@@ -804,7 +813,7 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
              * added in ad.fields, just update *poffset for the subsequent
              * field offset calculation.
              */
-            if (fieldstart == ad.fields.dim)
+            if (fieldstart == ad.fields.length)
             {
                 ad.structsize = savestructsize;
                 ad.alignsize = savealignsize;
@@ -838,7 +847,7 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
 
             // Add to the anon fields the base offset of this anonymous aggregate
             //printf("anon fields, anonoffset = %d\n", anonoffset);
-            foreach (const i; fieldstart .. ad.fields.dim)
+            foreach (const i; fieldstart .. ad.fields.length)
             {
                 VarDeclaration v = ad.fields[i];
                 //printf("\t[%d] %s %d\n", i, v.toChars(), v.offset);
@@ -894,48 +903,7 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
             // then it's evaluated on demand in function semantic
             return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility, sc.aligndecl, this);
         }
-        if (ident == Id.printf || ident == Id.scanf)
-        {
-            auto sc2 = sc.push();
-
-            if (ident == Id.printf)
-                // Override previous setting, never let both be set
-                sc2.flags = (sc2.flags & ~SCOPE.scanf) | SCOPE.printf;
-            else
-                sc2.flags = (sc2.flags & ~SCOPE.printf) | SCOPE.scanf;
-
-            return sc2;
-        }
         return sc;
-    }
-
-    PINLINE evalPragmaInline(Scope* sc)
-    {
-        if (!args || args.dim == 0)
-            return PINLINE.default_;
-
-        Expression e = (*args)[0];
-        if (!e.type)
-        {
-
-            sc = sc.startCTFE();
-            e = e.expressionSemantic(sc);
-            e = resolveProperties(sc, e);
-            sc = sc.endCTFE();
-            e = e.ctfeInterpret();
-            e = e.toBoolean(sc);
-            if (e.isErrorExp())
-                error("pragma(`inline`, `true` or `false`) expected, not `%s`", (*args)[0].toChars());
-            (*args)[0] = e;
-        }
-
-        const opt = e.toBool();
-        if (opt.isEmpty())
-            return PINLINE.default_;
-        else if (opt.get())
-            return PINLINE.always;
-        else
-            return PINLINE.never;
     }
 
     override const(char)* kind() const
@@ -1118,6 +1086,11 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
     override const(char)* kind() const
     {
         return "static if";
+    }
+
+    override inout(StaticIfDeclaration) isStaticIfDeclaration() inout pure @safe
+    {
+        return this;
     }
 
     override void accept(Visitor v)
@@ -1319,7 +1292,8 @@ extern(C++) final class ForwardingAttribDeclaration : AttribDeclaration
  *      mixin("int x");
  * https://dlang.org/spec/module.html#mixin-declaration
  */
-extern (C++) final class CompileDeclaration : AttribDeclaration
+// Note: was CompileDeclaration
+extern (C++) final class MixinDeclaration : AttribDeclaration
 {
     Expressions* exps;
     ScopeDsymbol scopesym;
@@ -1328,19 +1302,19 @@ extern (C++) final class CompileDeclaration : AttribDeclaration
     extern (D) this(const ref Loc loc, Expressions* exps)
     {
         super(loc, null, null);
-        //printf("CompileDeclaration(loc = %d)\n", loc.linnum);
+        //printf("MixinDeclaration(loc = %d)\n", loc.linnum);
         this.exps = exps;
     }
 
-    override CompileDeclaration syntaxCopy(Dsymbol s)
+    override MixinDeclaration syntaxCopy(Dsymbol s)
     {
-        //printf("CompileDeclaration::syntaxCopy('%s')\n", toChars());
-        return new CompileDeclaration(loc, Expression.arraySyntaxCopy(exps));
+        //printf("MixinDeclaration::syntaxCopy('%s')\n", toChars());
+        return new MixinDeclaration(loc, Expression.arraySyntaxCopy(exps));
     }
 
     override void addMember(Scope* sc, ScopeDsymbol sds)
     {
-        //printf("CompileDeclaration::addMember(sc = %p, sds = %p, memnum = %d)\n", sc, sds, memnum);
+        //printf("MixinDeclaration::addMember(sc = %p, sds = %p, memnum = %d)\n", sc, sds, memnum);
         this.scopesym = sds;
     }
 
@@ -1354,7 +1328,7 @@ extern (C++) final class CompileDeclaration : AttribDeclaration
         return "mixin";
     }
 
-    override inout(CompileDeclaration) isCompileDeclaration() inout
+    override inout(MixinDeclaration) isMixinDeclaration() inout
     {
         return this;
     }
@@ -1390,7 +1364,7 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
     override Scope* newScope(Scope* sc)
     {
         Scope* sc2 = sc;
-        if (atts && atts.dim)
+        if (atts && atts.length)
         {
             // create new one for changes
             sc2 = sc.copy();
@@ -1410,9 +1384,9 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
     extern (D) static Expressions* concat(Expressions* udas1, Expressions* udas2)
     {
         Expressions* udas;
-        if (!udas1 || udas1.dim == 0)
+        if (!udas1 || udas1.length == 0)
             udas = udas2;
-        else if (!udas2 || udas2.dim == 0)
+        else if (!udas2 || udas2.length == 0)
             udas = udas1;
         else
         {
@@ -1431,12 +1405,12 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
         if (auto sc = _scope)
         {
             _scope = null;
-            arrayExpressionSemantic(atts, sc);
+            arrayExpressionSemantic(atts.peekSlice(), sc);
         }
         auto exps = new Expressions();
         if (userAttribDecl && userAttribDecl !is this)
             exps.push(new TupleExp(Loc.initial, userAttribDecl.getAttributes()));
-        if (atts && atts.dim)
+        if (atts && atts.length)
             exps.push(new TupleExp(Loc.initial, atts));
         return exps;
     }
@@ -1554,7 +1528,7 @@ int foreachUda(Dsymbol sym, Scope* sc, int delegate(Expression) dg)
         return 0;
 
     auto udas = sym.userAttribDecl.getAttributes();
-    arrayExpressionSemantic(udas, sc, true);
+    arrayExpressionSemantic(udas.peekSlice(), sc, true);
 
     return udas.each!((uda) {
         if (!uda.isTupleExp())

@@ -1,7 +1,7 @@
 /**
  * Contains the `Id` struct with a list of predefined symbols the compiler knows about.
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/id.d, _id.d)
@@ -160,6 +160,7 @@ immutable Msgtable[] msgtable =
     { "xopEquals", "__xopEquals" },
     { "xopCmp", "__xopCmp" },
     { "xtoHash", "__xtoHash" },
+    { "__tmpfordtor" },
 
     { "LINE", "__LINE__" },
     { "FILE", "__FILE__" },
@@ -312,12 +313,19 @@ immutable Msgtable[] msgtable =
     { "__ArrayDtor" },
     { "_d_delThrowable" },
     { "_d_newThrowable" },
+    { "_d_newclassT" },
+    { "_d_newclassTTrace" },
+    { "_d_newitemT" },
+    { "_d_newitemTTrace" },
     { "_d_assert_fail" },
     { "dup" },
     { "_aaApply" },
     { "_aaApply2" },
     { "_d_arrayctor" },
     { "_d_arraysetctor" },
+    { "_d_arraysetassign" },
+    { "_d_arrayassign_l" },
+    { "_d_arrayassign_r" },
 
     // For pragma's
     { "Pinline", "inline" },
@@ -355,6 +363,8 @@ immutable Msgtable[] msgtable =
     { "_d_arrayappendcTXImpl" },
     { "_d_arrayappendcTX" },
     { "_d_arrayappendcTXTrace" },
+    { "_d_arraycatnTX" },
+    { "_d_arraycatnTXTrace" },
 
     // varargs implementation
     { "stdc" },
@@ -364,6 +374,10 @@ immutable Msgtable[] msgtable =
     // Builtin functions
     { "std" },
     { "core" },
+    { "config" },
+    { "c_complex_float" },
+    { "c_complex_double" },
+    { "c_complex_real" },
     { "etc" },
     { "attribute" },
     { "atomic" },
@@ -451,6 +465,7 @@ immutable Msgtable[] msgtable =
     { "isLazy" },
     { "hasMember" },
     { "identifier" },
+    { "fullyQualifiedName" },
     { "getProtection" },
     { "getVisibility" },
     { "parent" },
@@ -508,12 +523,21 @@ immutable Msgtable[] msgtable =
     { "wchar_t" },
 
     // for C compiler
+    { "ImportC", "__C" },
     { "__tag" },
     { "dllimport" },
     { "dllexport" },
+    { "naked" },
+    { "thread" },
     { "vector_size" },
     { "__func__" },
+    { "always_inline" },
+    { "noinline" },
     { "noreturn" },
+    { "_nothrow", "nothrow" },
+    { "_deprecated", "deprecated" },
+    { "_align", "align" },
+    { "aligned" },
     { "__pragma", "pragma" },
     { "builtins", "__builtins" },
     { "builtin_va_list", "__builtin_va_list" },
@@ -524,8 +548,10 @@ immutable Msgtable[] msgtable =
     { "show" },
     { "push" },
     { "pop" },
+    { "_pure", "pure" },
     { "define" },
     { "undef" },
+    { "ident" },
 ];
 
 

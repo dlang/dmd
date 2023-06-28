@@ -1,6 +1,6 @@
 #!/usr/bin/env dub
 /+dub.sdl:
-dependency "dmd" path="../.."
+dependency "dmd" path="../../.."
 +/
 
 import dmd.permissivevisitor;
@@ -27,7 +27,7 @@ extern(C++) class ImportVisitor2(AST) : ParseTimeTransitiveVisitor!AST
 
         printf("%s", imp.id.toChars());
 
-        if (imp.names.dim)
+        if (imp.names.length)
         {
             printf(" : ");
             foreach (const i, const name; imp.names)
@@ -82,12 +82,13 @@ void main()
     import dmd.id;
     import dmd.globals;
     import dmd.identifier;
+    import dmd.errorsink;
     import dmd.target;
 
     import core.memory;
 
     GC.disable();
-    string path = __FILE_FULL_PATH__.dirName.buildPath("../../../phobos/std/");
+    string path = __FILE_FULL_PATH__.dirName.buildPath("../../../../phobos/std/");
     string regex = "*.d";
 
     auto dFiles = dirEntries(path, regex, SpanMode.depth);
@@ -106,9 +107,10 @@ void main()
         auto id = Identifier.idPool(fn);
         auto m = new ASTBase.Module(&(fn.dup)[0], id, false, false);
         auto input = readText(fn);
+        input ~= '\0';
 
         //writeln("Started parsing...");
-        scope p = new Parser!ASTBase(m, input, false);
+        scope p = new Parser!ASTBase(m, input, false, new ErrorSinkStderr(), null, false);
         p.nextToken();
         m.members = p.parseModule();
         //writeln("Finished parsing. Starting transitive visitor");

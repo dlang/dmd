@@ -1,7 +1,7 @@
 /**
  * Extract symbols from an OMF object file.
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/scanomf.d, _scanomf.d)
@@ -14,6 +14,7 @@ module dmd.scanomf;
 import core.stdc.string;
 import core.stdc.stdlib;
 import dmd.globals;
+import dmd.location;
 import dmd.root.rmem;
 import dmd.common.outbuffer;
 import dmd.root.string;
@@ -42,7 +43,7 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
     char[LIBIDMAX + 1] name;
     Strings names;
     scope(exit)
-        for (size_t u = 1; u < names.dim; u++)
+        for (size_t u = 1; u < names.length; u++)
             free(cast(void*)names[u]);
     names.push(null); // don't use index 0
     easyomf = 0; // assume not EASY-OMF
@@ -105,7 +106,7 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
                     parseIdx(&p); // base segment
                 }
                 uint idx = parseIdx(&p); // public name index
-                if (idx == 0 || idx >= names.dim)
+                if (idx == 0 || idx >= names.length)
                 {
                     //debug(printf("[s] name idx=%d, uCntNames=%d\n", idx, uCntNames));
                     error(loc, "corrupt COMDAT");

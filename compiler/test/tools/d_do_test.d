@@ -981,7 +981,7 @@ string unifyDirSep(string str, string sep)
     }
     auto mStr = str.dup;
     auto remaining = mStr;
-    alias needles = AliasSeq!(".d", ".di", ".mixin", ".c", ".i");
+    alias needles = AliasSeq!(".d", ".di", ".mixin", ".c", ".i", ".h");
     enum needlesArray = [needles];
     // simple multi-delimiter word identification
     while (!remaining.empty)
@@ -1712,7 +1712,7 @@ int tryMain(string[] args)
             {
                 foreach (filename; testArgs.sources ~ (autoCompileImports ? null : testArgs.compiledImports))
                 {
-                    string newo = output_dir ~ envData.sep ~ replace(filename.baseName(), ".d", envData.obj);
+                    string newo = output_dir ~ envData.sep ~ filename.baseName().setExtension(envData.obj);
                     toCleanup ~= newo;
 
                     command = format("%s -conf= -m%s -I%s %s %s -od%s -c %s %s", envData.dmd, envData.model, input_dir,

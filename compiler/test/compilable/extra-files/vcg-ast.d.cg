@@ -109,7 +109,7 @@ R!int
 }
 mixin _d_cmain!();
 {
-	extern (C) 
+	extern (C)
 	{
 		extern (C) int _d_run_main(int argc, char** argv, void* mainFunc);
 		extern (C) int _Dmain(char[][] args);
@@ -133,7 +133,7 @@ RTInfo!(C)
 }
 NoPointersBitmapPayload!1$?:32=u|64=LU$
 {
-	enum $?:32=uint|64=ulong$[1] NoPointersBitmapPayload = 0$?:32=u|64=LU$;
+	enum $?:32=uint|64=ulong$[1] NoPointersBitmapPayload = [0$?:32=u|64=LU$];
 
 }
 values!(__c_wchar_t)

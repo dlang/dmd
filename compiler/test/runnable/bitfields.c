@@ -189,7 +189,7 @@ struct S6
 
 int boo6()
 {
-    S s;
+    struct S6 s;
     s.a = 3;
     s.b = 1;
     s.a += 2;

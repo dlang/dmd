@@ -5,21 +5,13 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1987-1995 by Symantec
- *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cg87.d, backend/cg87.d)
  */
 
 module dmd.backend.cg87;
-
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -47,12 +39,7 @@ nothrow:
 //       a multi-threaded version of the backend
 __gshared Globals87 global87;
 
-private:
-
-int REGSIZE();
-
 private extern (D) uint mask(uint m) { return 1 << m; }
-void callcdxxx(ref CodeBuilder cdb, elem *e, regm_t *pretregs, OPER op);
 
 
 // Constants that the 8087 supports directly
@@ -528,7 +515,7 @@ void comsub87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  * Decide if we need to gen an FWAIT.
  */
 
-void genfwait(ref CodeBuilder cdb)
+public void genfwait(ref CodeBuilder cdb)
 {
     if (ADDFWAIT())
         cdb.gen1(FWAIT);
@@ -2268,7 +2255,7 @@ private void cnvteq87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void opass87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+public void opass87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     code cs;
     uint op;
@@ -3956,6 +3943,4 @@ void cdtoprec(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
         cdb.genfltreg(ESC(mf,1),0,0);   // FLD float/double ptr fltreg
     }
     fixresult87(cdb, e, retregs, pretregs);
-}
-
 }

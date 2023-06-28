@@ -4,9 +4,9 @@ TEST_OUTPUT:
 ---
 fail_compilation/retscope.d(22): Error: scope parameter `p` may not be returned
 fail_compilation/retscope.d(32): Error: returning `b ? nested1(& i) : nested2(& j)` escapes a reference to local variable `j`
-fail_compilation/retscope.d(45): Error: scope variable `p` assigned to non-scope `q`
+fail_compilation/retscope.d(45): Error: scope variable `p` assigned to global variable `q`
 fail_compilation/retscope.d(47): Error: address of variable `i` assigned to `q` with longer lifetime
-fail_compilation/retscope.d(48): Error: scope variable `a` assigned to non-scope `b`
+fail_compilation/retscope.d(48): Error: scope variable `a` assigned to global variable `b`
 fail_compilation/retscope.d(49): Error: address of struct temporary returned by `(*fp2)()` assigned to longer lived variable `q`
 ---
 */
@@ -54,8 +54,8 @@ void test2(scope int* p, int[] a ...) @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(75): Error: function `retscope.HTTP.Impl.onReceive` is `@nogc` yet allocates closures with the GC
-fail_compilation/retscope.d(77):        retscope.HTTP.Impl.onReceive.__lambda1 closes over variable this at fail_compilation/retscope.d(75)
+fail_compilation/retscope.d(75): Error: function `retscope.HTTP.Impl.onReceive` is `@nogc` yet allocates closure for `onReceive()` with the GC
+fail_compilation/retscope.d(77):        `retscope.HTTP.Impl.onReceive.__lambda1` closes over variable `this` at fail_compilation/retscope.d(75)
 ---
 */
 
@@ -403,7 +403,7 @@ class Foo13
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(1205): Error: scope variable `f14` assigned to non-scope parameter `this` calling `foo`
+fail_compilation/retscope.d(1205): Error: scope variable `f14` calling non-scope member function `f14.foo()`
 ---
 */
 
@@ -454,7 +454,7 @@ fail_compilation/retscope.d(1311): Error: scope variable `u2` assigned to `ek` w
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(1405): Error: reference to local variable `buf` assigned to non-scope parameter `__anonymous_param` calling `myprintf`
+fail_compilation/retscope.d(1405): Error: reference to local variable `buf` assigned to non-scope anonymous parameter calling `myprintf`
 ---
 */
 
@@ -472,7 +472,7 @@ fail_compilation/retscope.d(1405): Error: reference to local variable `buf` assi
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(1509): Error: reference to stack allocated value returned by `(*fp15)()` assigned to non-scope parameter `__anonymous_param`
+fail_compilation/retscope.d(1509): Error: reference to stack allocated value returned by `(*fp15)()` assigned to non-scope anonymous parameter
 ---
 */
 
@@ -662,7 +662,7 @@ int test21()
 /*********************************************
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(1907): Error: scope variable `x` assigned to `this` with longer lifetime
+fail_compilation/retscope.d(1907): Error: scope variable `x` assigned to `ref` variable `this` with longer lifetime
 fail_compilation/retscope.d(1913): Error: scope variable `x` may not be returned
 ---
 */

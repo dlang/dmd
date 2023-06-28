@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/module.html, Modules)
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dmodule.d, _dmodule.d)
@@ -29,12 +29,14 @@ import dmd.dscope;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.errors;
+import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.file_manager;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
+import dmd.location;
 import dmd.parse;
 import dmd.cparse;
 import dmd.root.array;
@@ -62,7 +64,7 @@ void semantic3OnDependencies(Module m)
 
     m.semantic3(null);
 
-    foreach (i; 1 .. m.aimports.dim)
+    foreach (i; 1 .. m.aimports.length)
         semantic3OnDependencies(m.aimports[i]);
 }
 
@@ -98,12 +100,12 @@ private const(char)[] getFilename(Identifier[] packages, Identifier ident) nothr
 {
     const(char)[] filename = ident.toString();
 
-    if (packages.length == 0)
-        return filename;
-
     OutBuffer buf;
     OutBuffer dotmods;
     auto modAliases = &global.params.modFileAliasStrings;
+
+    if (packages.length == 0 && modAliases.length == 0)
+        return filename;
 
     void checkModFileAlias(const(char)[] p)
     {
@@ -132,7 +134,7 @@ private const(char)[] getFilename(Identifier[] packages, Identifier ident) nothr
     {
         const p = pid.toString();
         buf.writestring(p);
-        if (modAliases.dim)
+        if (modAliases.length)
             checkModFileAlias(p);
         version (Windows)
             enum FileSeparator = '\\';
@@ -141,7 +143,7 @@ private const(char)[] getFilename(Identifier[] packages, Identifier ident) nothr
         buf.writeByte(FileSeparator);
     }
     buf.writestring(filename);
-    if (modAliases.dim)
+    if (modAliases.length)
         checkModFileAlias(filename);
     buf.writeByte(0);
     filename = buf.extractSlice()[0 .. $ - 1];
@@ -308,7 +310,7 @@ extern (C++) class Package : ScopeDsymbol
             packages ~= s.ident;
         reverse(packages);
 
-        if (FileManager.lookForSourceFile(getFilename(packages, ident), global.path ? (*global.path)[] : null))
+        if (Module.find(getFilename(packages, ident)))
             Module.load(Loc.initial, packages, this.ident);
         else
             isPkgMod = PKG.package_;
@@ -325,7 +327,6 @@ extern (C++) final class Module : Package
     extern (C++) __gshared Dsymbols deferred;    // deferred Dsymbol's needing semantic() run on them
     extern (C++) __gshared Dsymbols deferred2;   // deferred Dsymbol's needing semantic2() run on them
     extern (C++) __gshared Dsymbols deferred3;   // deferred Dsymbol's needing semantic3() run on them
-    extern (C++) __gshared uint dprogress;       // progress resolving the deferred list
 
     static void _init()
     {
@@ -360,7 +361,8 @@ extern (C++) final class Module : Package
     Package pkg;                // if isPackageFile is true, the Package that contains this package.d
     Strings contentImportedFiles; // array of files whose content was imported
     int needmoduleinfo;
-    int selfimports;            // 0: don't know, 1: does not, 2: does
+    private ThreeState selfimports;
+    private ThreeState rootimports;
     Dsymbol[void*] tagSymTab;   /// ImportC: tag symbols that conflict with other symbols used as the index
 
     private OutBuffer defines;  // collect all the #define lines here
@@ -372,18 +374,16 @@ extern (C++) final class Module : Package
     bool selfImports()
     {
         //printf("Module::selfImports() %s\n", toChars());
-        if (selfimports == 0)
+        if (selfimports == ThreeState.none)
         {
             foreach (Module m; amodules)
-                m.insearch = 0;
-            selfimports = imports(this) + 1;
+                m.insearch = false;
+            selfimports = imports(this) ? ThreeState.yes : ThreeState.no;
             foreach (Module m; amodules)
-                m.insearch = 0;
+                m.insearch = false;
         }
-        return selfimports == 2;
+        return selfimports == ThreeState.yes;
     }
-
-    int rootimports;            // 0: don't know, 1: does not, 2: does
 
     /*************************************
      * Return true if module imports root module.
@@ -391,29 +391,29 @@ extern (C++) final class Module : Package
     bool rootImports()
     {
         //printf("Module::rootImports() %s\n", toChars());
-        if (rootimports == 0)
+        if (rootimports == ThreeState.none)
         {
             foreach (Module m; amodules)
-                m.insearch = 0;
-            rootimports = 1;
+                m.insearch = false;
+            rootimports = ThreeState.no;
             foreach (Module m; amodules)
             {
                 if (m.isRoot() && imports(m))
                 {
-                    rootimports = 2;
+                    rootimports = ThreeState.yes;
                     break;
                 }
             }
             foreach (Module m; amodules)
-                m.insearch = 0;
+                m.insearch = false;
         }
-        return rootimports == 2;
+        return rootimports == ThreeState.yes;
     }
 
-    int insearch;
-    Identifier searchCacheIdent;
-    Dsymbol searchCacheSymbol;  // cached value of search
-    int searchCacheFlags;       // cached flags
+    private Identifier searchCacheIdent;
+    private Dsymbol searchCacheSymbol;  // cached value of search
+    private int searchCacheFlags;       // cached flags
+    private bool insearch;
 
     /**
      * A root module is one that will be compiled all the way to
@@ -493,6 +493,16 @@ extern (C++) final class Module : Package
         return new Module(Loc.initial, filename, ident, doDocComment, doHdrGen);
     }
 
+    static const(char)* find(const(char)* filename)
+    {
+        return find(filename.toDString).ptr;
+    }
+
+    extern (D) static const(char)[] find(const(char)[] filename)
+    {
+        return global.fileManager.lookForSourceFile(filename, global.path ? (*global.path)[] : null);
+    }
+
     extern (C++) static Module load(const ref Loc loc, Identifiers* packages, Identifier ident)
     {
         return load(loc, packages ? (*packages)[] : null, ident);
@@ -507,7 +517,7 @@ extern (C++) final class Module : Package
         //  foo\bar\baz
         const(char)[] filename = getFilename(packages, ident);
         // Look for the source file
-        if (const result = FileManager.lookForSourceFile(filename, global.path ? (*global.path)[] : null))
+        if (const result = find(filename))
             filename = result; // leaks
 
         auto m = new Module(loc, filename, ident, 0, 0);
@@ -619,7 +629,7 @@ extern (C++) final class Module : Package
         else
         {
             // if module is not named 'package' but we're trying to read 'package.d', we're looking for a package module
-            bool isPackageMod = (strcmp(toChars(), "package") != 0) && (strcmp(srcfile.name(), package_d) == 0 || (strcmp(srcfile.name(), package_di) == 0));
+            bool isPackageMod = (strcmp(toChars(), "package") != 0) && isPackageFileName(srcfile);
             if (isPackageMod)
                 .error(loc, "importing package '%s' requires a 'package.d' file which cannot be found in '%s'", toChars(), srcfile.toChars());
             else
@@ -704,233 +714,12 @@ extern (C++) final class Module : Package
     /// ditto
     extern (D) Module parseModule(AST)()
     {
-        enum Endian { little, big}
-        enum SourceEncoding { utf16, utf32}
-
-        /*
-         * Convert a buffer from UTF32 to UTF8
-         * Params:
-         *    Endian = is the buffer big/little endian
-         *    buf = buffer of UTF32 data
-         * Returns:
-         *    input buffer reencoded as UTF8
-         */
-
-        char[] UTF32ToUTF8(Endian endian)(const(char)[] buf)
-        {
-            static if (endian == Endian.little)
-                alias readNext = Port.readlongLE;
-            else
-                alias readNext = Port.readlongBE;
-
-            if (buf.length & 3)
-            {
-                error("odd length of UTF-32 char source %llu", cast(ulong) buf.length);
-                return null;
-            }
-
-            const (uint)[] eBuf = cast(const(uint)[])buf;
-
-            OutBuffer dbuf;
-            dbuf.reserve(eBuf.length);
-
-            foreach (i; 0 .. eBuf.length)
-            {
-                const u = readNext(&eBuf[i]);
-                if (u & ~0x7F)
-                {
-                    if (u > 0x10FFFF)
-                    {
-                        error("UTF-32 value %08x greater than 0x10FFFF", u);
-                        return null;
-                    }
-                    dbuf.writeUTF8(u);
-                }
-                else
-                    dbuf.writeByte(u);
-            }
-            dbuf.writeByte(0); //add null terminator
-            return dbuf.extractSlice();
-        }
-
-        /*
-         * Convert a buffer from UTF16 to UTF8
-         * Params:
-         *    Endian = is the buffer big/little endian
-         *    buf = buffer of UTF16 data
-         * Returns:
-         *    input buffer reencoded as UTF8
-         */
-
-        char[] UTF16ToUTF8(Endian endian)(const(char)[] buf)
-        {
-            static if (endian == Endian.little)
-                alias readNext = Port.readwordLE;
-            else
-                alias readNext = Port.readwordBE;
-
-            if (buf.length & 1)
-            {
-                error("odd length of UTF-16 char source %llu", cast(ulong) buf.length);
-                return null;
-            }
-
-            const (ushort)[] eBuf = cast(const(ushort)[])buf;
-
-            OutBuffer dbuf;
-            dbuf.reserve(eBuf.length);
-
-            //i will be incremented in the loop for high codepoints
-            foreach (ref i; 0 .. eBuf.length)
-            {
-                uint u = readNext(&eBuf[i]);
-                if (u & ~0x7F)
-                {
-                    if (0xD800 <= u && u < 0xDC00)
-                    {
-                        i++;
-                        if (i >= eBuf.length)
-                        {
-                            error("surrogate UTF-16 high value %04x at end of file", u);
-                            return null;
-                        }
-                        const u2 = readNext(&eBuf[i]);
-                        if (u2 < 0xDC00 || 0xE000 <= u2)
-                        {
-                            error("surrogate UTF-16 low value %04x out of range", u2);
-                            return null;
-                        }
-                        u = (u - 0xD7C0) << 10;
-                        u |= (u2 - 0xDC00);
-                    }
-                    else if (u >= 0xDC00 && u <= 0xDFFF)
-                    {
-                        error("unpaired surrogate UTF-16 value %04x", u);
-                        return null;
-                    }
-                    else if (u == 0xFFFE || u == 0xFFFF)
-                    {
-                        error("illegal UTF-16 value %04x", u);
-                        return null;
-                    }
-                    dbuf.writeUTF8(u);
-                }
-                else
-                    dbuf.writeByte(u);
-            }
-            dbuf.writeByte(0); //add a terminating null byte
-            return dbuf.extractSlice();
-        }
-
         const(char)* srcname = srcfile.toChars();
         //printf("Module::parse(srcname = '%s')\n", srcname);
-        isPackageFile = (strcmp(srcfile.name(), package_d) == 0 ||
-                         strcmp(srcfile.name(), package_di) == 0);
-        const(char)[] buf = cast(const(char)[]) this.src;
-
-        bool needsReencoding = true;
-        bool hasBOM = true; //assume there's a BOM
-        Endian endian;
-        SourceEncoding sourceEncoding;
-
-        if (buf.length >= 2)
-        {
-            /* Convert all non-UTF-8 formats to UTF-8.
-             * BOM : https://www.unicode.org/faq/utf_bom.html
-             * 00 00 FE FF  UTF-32BE, big-endian
-             * FF FE 00 00  UTF-32LE, little-endian
-             * FE FF        UTF-16BE, big-endian
-             * FF FE        UTF-16LE, little-endian
-             * EF BB BF     UTF-8
-             */
-            if (buf[0] == 0xFF && buf[1] == 0xFE)
-            {
-                endian = Endian.little;
-
-                sourceEncoding = buf.length >= 4 && buf[2] == 0 && buf[3] == 0
-                                 ? SourceEncoding.utf32
-                                 : SourceEncoding.utf16;
-            }
-            else if (buf[0] == 0xFE && buf[1] == 0xFF)
-            {
-                endian = Endian.big;
-                sourceEncoding = SourceEncoding.utf16;
-            }
-            else if (buf.length >= 4 && buf[0] == 0 && buf[1] == 0 && buf[2] == 0xFE && buf[3] == 0xFF)
-            {
-                endian = Endian.big;
-                sourceEncoding = SourceEncoding.utf32;
-            }
-            else if (buf.length >= 3 && buf[0] == 0xEF && buf[1] == 0xBB && buf[2] == 0xBF)
-            {
-                needsReencoding = false;//utf8 with BOM
-            }
-            else
-            {
-                /* There is no BOM. Make use of Arcane Jill's insight that
-                 * the first char of D source must be ASCII to
-                 * figure out the encoding.
-                 */
-                hasBOM = false;
-                if (buf.length >= 4 && buf[1] == 0 && buf[2] == 0 && buf[3] == 0)
-                {
-                    endian = Endian.little;
-                    sourceEncoding = SourceEncoding.utf32;
-                }
-                else if (buf.length >= 4 && buf[0] == 0 && buf[1] == 0 && buf[2] == 0)
-                {
-                    endian = Endian.big;
-                    sourceEncoding = SourceEncoding.utf32;
-                }
-                else if (buf.length >= 2 && buf[1] == 0) //try to check for UTF-16
-                {
-                    endian = Endian.little;
-                    sourceEncoding = SourceEncoding.utf16;
-                }
-                else if (buf[0] == 0)
-                {
-                    endian = Endian.big;
-                    sourceEncoding = SourceEncoding.utf16;
-                }
-                else {
-                    // It's UTF-8
-                    needsReencoding = false;
-                    if (buf[0] >= 0x80)
-                    {
-                        error("source file must start with BOM or ASCII character, not \\x%02X", buf[0]);
-                        return null;
-                    }
-                }
-            }
-            //throw away BOM
-            if (hasBOM)
-            {
-                if (!needsReencoding) buf = buf[3..$];// utf-8 already
-                else if (sourceEncoding == SourceEncoding.utf32) buf = buf[4..$];
-                else buf = buf[2..$]; //utf 16
-            }
-        }
-        // Assume the buffer is from memory and has not be read from disk. Assume UTF-8.
-        else if (buf.length >= 1 && (buf[0] == '\0' || buf[0] == 0x1A))
-            needsReencoding = false;
-         //printf("%s, %d, %d, %d\n", srcfile.name.toChars(), needsReencoding, endian == Endian.little, sourceEncoding == SourceEncoding.utf16);
-        if (needsReencoding)
-        {
-            if (sourceEncoding == SourceEncoding.utf16)
-            {
-                buf = endian == Endian.little
-                      ? UTF16ToUTF8!(Endian.little)(buf)
-                      : UTF16ToUTF8!(Endian.big)(buf);
-            }
-            else
-            {
-                buf = endian == Endian.little
-                      ? UTF32ToUTF8!(Endian.little)(buf)
-                      : UTF32ToUTF8!(Endian.big)(buf);
-            }
-            // an error happened on UTF conversion
-            if (buf is null) return null;
-        }
+        isPackageFile = isPackageFileName(srcfile);
+        const(char)[] buf = processSource(src, this);
+        // an error happened on UTF conversion
+        if (buf is null) return null;
 
         /* If it starts with the string "Ddoc", then it's a documentation
          * source file.
@@ -978,7 +767,7 @@ extern (C++) final class Module : Package
         {
             filetype = FileType.c;
 
-            scope p = new CParser!AST(this, buf, cast(bool) docfile, target.c, &defines);
+            scope p = new CParser!AST(this, buf, cast(bool) docfile, global.errorSink, target.c, &defines, &global.compileEnv);
             p.nextToken();
             checkCompiledImport();
             members = p.parseModule();
@@ -987,7 +776,9 @@ extern (C++) final class Module : Package
         }
         else
         {
-            scope p = new Parser!AST(this, buf, cast(bool) docfile);
+            const bool doUnittests = global.params.useUnitTests || global.params.ddoc.doOutput || global.params.dihdr.doOutput;
+            scope p = new Parser!AST(this, buf, cast(bool) docfile, global.errorSink, &global.compileEnv, doUnittests);
+            p.transitionIn = global.params.vin;
             p.nextToken();
             p.parseModuleDeclaration();
             md = p.md;
@@ -1032,8 +823,7 @@ extern (C++) final class Module : Package
             }
             assert(dst);
             Module m = ppack ? ppack.isModule() : null;
-            if (m && (strcmp(m.srcfile.name(), package_d) != 0 &&
-                      strcmp(m.srcfile.name(), package_di) != 0))
+            if (m && !isPackageFileName(m.srcfile))
             {
                 .error(md.loc, "package name '%s' conflicts with usage as a module name in file %s", ppack.toPrettyChars(), m.srcfile.toChars());
             }
@@ -1155,7 +945,7 @@ extern (C++) final class Module : Package
         //    classinst == classinst -> .object.opEquals(classinst, classinst)
         // would fail inside object.d.
         if (filetype != FileType.c &&
-            (members.dim == 0 ||
+            (members.length == 0 ||
              (*members)[0].ident != Id.object ||
              (*members)[0].isImport() is null))
         {
@@ -1166,7 +956,7 @@ extern (C++) final class Module : Package
         {
             // Add all symbols into module's symbol table
             symtab = new DsymbolTable();
-            for (size_t i = 0; i < members.dim; i++)
+            for (size_t i = 0; i < members.length; i++)
             {
                 Dsymbol s = (*members)[i];
                 s.addMember(sc, sc.scopesym);
@@ -1179,12 +969,12 @@ extern (C++) final class Module : Package
          * before any semantic() on any of them.
          */
         setScope(sc); // remember module scope for semantic
-        for (size_t i = 0; i < members.dim; i++)
+        for (size_t i = 0; i < members.length; i++)
         {
             Dsymbol s = (*members)[i];
             s.setScope(sc);
         }
-        for (size_t i = 0; i < members.dim; i++)
+        for (size_t i = 0; i < members.length; i++)
         {
             Dsymbol s = (*members)[i];
             s.importAll(sc);
@@ -1254,9 +1044,9 @@ extern (C++) final class Module : Package
 
         uint errors = global.errors;
 
-        insearch = 1;
+        insearch = true;
         Dsymbol s = ScopeDsymbol.search(loc, ident, flags);
-        insearch = 0;
+        insearch = false;
 
         if (errors == global.errors)
         {
@@ -1302,19 +1092,22 @@ extern (C++) final class Module : Package
     extern (D) static void addDeferredSemantic(Dsymbol s)
     {
         //printf("Module::addDeferredSemantic('%s')\n", s.toChars());
-        deferred.push(s);
+        if (!deferred.contains(s))
+            deferred.push(s);
     }
 
     extern (D) static void addDeferredSemantic2(Dsymbol s)
     {
         //printf("Module::addDeferredSemantic2('%s')\n", s.toChars());
-        deferred2.push(s);
+        if (!deferred2.contains(s))
+            deferred2.push(s);
     }
 
     extern (D) static void addDeferredSemantic3(Dsymbol s)
     {
         //printf("Module::addDeferredSemantic3('%s')\n", s.toChars());
-        deferred3.push(s);
+        if (!deferred.contains(s))
+            deferred3.push(s);
     }
 
     /******************************************
@@ -1322,20 +1115,16 @@ extern (C++) final class Module : Package
      */
     static void runDeferredSemantic()
     {
-        if (dprogress == 0)
-            return;
-
         __gshared int nested;
         if (nested)
             return;
-        //if (deferred.dim) printf("+Module::runDeferredSemantic(), len = %d\n", deferred.dim);
+        //if (deferred.length) printf("+Module::runDeferredSemantic(), len = %ld\n", deferred.length);
         nested++;
 
         size_t len;
         do
         {
-            dprogress = 0;
-            len = deferred.dim;
+            len = deferred.length;
             if (!len)
                 break;
 
@@ -1360,13 +1149,13 @@ extern (C++) final class Module : Package
                 s.dsymbolSemantic(null);
                 //printf("deferred: %s, parent = %s\n", s.toChars(), s.parent.toChars());
             }
-            //printf("\tdeferred.dim = %d, len = %d, dprogress = %d\n", deferred.dim, len, dprogress);
+            //printf("\tdeferred.length = %ld, len = %ld\n", deferred.length, len);
             if (todoalloc)
                 free(todoalloc);
         }
-        while (deferred.dim < len || dprogress); // while making progress
+        while (deferred.length != len); // while making progress
         nested--;
-        //printf("-Module::runDeferredSemantic(), len = %d\n", deferred.dim);
+        //printf("-Module::runDeferredSemantic(), len = %ld\n", deferred.length);
     }
 
     static void runDeferredSemantic2()
@@ -1374,7 +1163,7 @@ extern (C++) final class Module : Package
         Module.runDeferredSemantic();
 
         Dsymbols* a = &Module.deferred2;
-        for (size_t i = 0; i < a.dim; i++)
+        for (size_t i = 0; i < a.length; i++)
         {
             Dsymbol s = (*a)[i];
             //printf("[%d] %s semantic2a\n", i, s.toPrettyChars());
@@ -1391,7 +1180,7 @@ extern (C++) final class Module : Package
         Module.runDeferredSemantic2();
 
         Dsymbols* a = &Module.deferred3;
-        for (size_t i = 0; i < a.dim; i++)
+        for (size_t i = 0; i < a.length; i++)
         {
             Dsymbol s = (*a)[i];
             //printf("[%d] %s semantic3a\n", i, s.toPrettyChars());
@@ -1428,7 +1217,7 @@ extern (C++) final class Module : Package
                 return true;
             if (!mi.insearch)
             {
-                mi.insearch = 1;
+                mi.insearch = true;
                 int r = mi.imports(m);
                 if (r)
                     return r;
@@ -1442,8 +1231,7 @@ extern (C++) final class Module : Package
         return this.importedFrom == this;
     }
 
-    // true if the module source file is directly
-    // listed in command line.
+    /// Returns: Whether this module is in the `core` package and has name `ident`
     bool isCoreModule(Identifier ident) nothrow
     {
         return this.ident == ident && parent && parent.ident == Id.core && !parent.parent;
@@ -1498,6 +1286,75 @@ extern (C++) final class Module : Package
             _escapetable = new Escape();
         return _escapetable;
     }
+
+    /****************************
+     * A Singleton that loads core.stdc.config
+     * Returns:
+     *  Module of core.stdc.config, null if couldn't find it
+     */
+    extern (D) static Module loadCoreStdcConfig()
+    {
+        __gshared Module core_stdc_config;
+        auto pkgids = new Identifier[2];
+        pkgids[0] = Id.core;
+        pkgids[1] = Id.stdc;
+        return loadModuleFromLibrary(core_stdc_config, pkgids, Id.config);
+    }
+
+    /****************************
+     * A Singleton that loads core.atomic
+     * Returns:
+     *  Module of core.atomic, null if couldn't find it
+     */
+    extern (D) static Module loadCoreAtomic()
+    {
+        __gshared Module core_atomic;
+        auto pkgids = new Identifier[1];
+        pkgids[0] = Id.core;
+        return loadModuleFromLibrary(core_atomic, pkgids, Id.atomic);
+    }
+
+    /****************************
+     * A Singleton that loads std.math
+     * Returns:
+     *  Module of std.math, null if couldn't find it
+     */
+    extern (D) static Module loadStdMath()
+    {
+        __gshared Module std_math;
+        auto pkgids = new Identifier[1];
+        pkgids[0] = Id.std;
+        return loadModuleFromLibrary(std_math, pkgids, Id.math);
+    }
+
+    /**********************************
+     * Load a Module from the library.
+     * Params:
+     *  mod = cached return value of this call
+     *  pkgids = package identifiers
+     *  modid = module id
+     * Returns:
+     *  Module loaded, null if cannot load it
+     */
+    extern (D) private static Module loadModuleFromLibrary(ref Module mod, Identifier[] pkgids, Identifier modid)
+    {
+        if (mod)
+            return mod;
+
+        auto imp = new Import(Loc.initial, pkgids[], modid, null, true);
+        // Module.load will call fatal() if there's no module available.
+        // Gag the error here, pushing the error handling to the caller.
+        const errors = global.startGagging();
+        imp.load(null);
+        if (imp.mod)
+        {
+            imp.mod.importAll(null);
+            imp.mod.dsymbolSemantic(null);
+        }
+        global.endGagging(errors);
+        mod = imp.mod;
+        return mod;
+    }
 }
 
 /***********************************************************
@@ -1536,4 +1393,224 @@ extern (C++) struct ModuleDeclaration
     {
         return this.toChars().toDString;
     }
+}
+
+/****************************************
+ * Create array of the local classes in the Module, suitable
+ * for inclusion in ModuleInfo
+ * Params:
+ *      mod = the Module
+ *      aclasses = array to fill in
+ * Returns: array of local classes
+ */
+extern (C++) void getLocalClasses(Module mod, ref ClassDeclarations aclasses)
+{
+    //printf("members.length = %d\n", mod.members.length);
+    int pushAddClassDg(size_t n, Dsymbol sm)
+    {
+        if (!sm)
+            return 0;
+
+        if (auto cd = sm.isClassDeclaration())
+        {
+            // compatibility with previous algorithm
+            if (cd.parent && cd.parent.isTemplateMixin())
+                return 0;
+
+            if (cd.classKind != ClassKind.objc)
+                aclasses.push(cd);
+        }
+        return 0;
+    }
+
+    ScopeDsymbol._foreach(null, mod.members, &pushAddClassDg);
+}
+
+/**
+ * Process the content of a source file
+ *
+ * Attempts to find which encoding it is using, if it has BOM,
+ * and then normalize the source to UTF-8. If no encoding is required,
+ * a slice of `src` will be returned without extra allocation.
+ *
+ * Params:
+ *  src = Content of the source file to process
+ *  mod = Module matching `src`, used for error handling
+ *
+ * Returns:
+ *   UTF-8 encoded variant of `src`, stripped of any BOM,
+ *   or `null` if an error happened.
+ */
+private const(char)[] processSource (const(ubyte)[] src, Module mod)
+{
+    enum SourceEncoding { utf16, utf32}
+    enum Endian { little, big}
+
+    /*
+     * Convert a buffer from UTF32 to UTF8
+     * Params:
+     *    Endian = is the buffer big/little endian
+     *    buf = buffer of UTF32 data
+     * Returns:
+     *    input buffer reencoded as UTF8
+     */
+
+    char[] UTF32ToUTF8(Endian endian)(const(char)[] buf)
+    {
+        static if (endian == Endian.little)
+            alias readNext = Port.readlongLE;
+        else
+            alias readNext = Port.readlongBE;
+
+        if (buf.length & 3)
+        {
+            mod.error("odd length of UTF-32 char source %llu", cast(ulong) buf.length);
+            return null;
+        }
+
+        const (uint)[] eBuf = cast(const(uint)[])buf;
+
+        OutBuffer dbuf;
+        dbuf.reserve(eBuf.length);
+
+        foreach (i; 0 .. eBuf.length)
+        {
+            const u = readNext(&eBuf[i]);
+            if (u & ~0x7F)
+            {
+                if (u > 0x10FFFF)
+                {
+                    mod.error("UTF-32 value %08x greater than 0x10FFFF", u);
+                    return null;
+                }
+                dbuf.writeUTF8(u);
+            }
+            else
+                dbuf.writeByte(u);
+        }
+        dbuf.writeByte(0); //add null terminator
+        return dbuf.extractSlice();
+    }
+
+    /*
+     * Convert a buffer from UTF16 to UTF8
+     * Params:
+     *    Endian = is the buffer big/little endian
+     *    buf = buffer of UTF16 data
+     * Returns:
+     *    input buffer reencoded as UTF8
+     */
+
+    char[] UTF16ToUTF8(Endian endian)(const(char)[] buf)
+    {
+        static if (endian == Endian.little)
+            alias readNext = Port.readwordLE;
+        else
+            alias readNext = Port.readwordBE;
+
+        if (buf.length & 1)
+        {
+            mod.error("odd length of UTF-16 char source %llu", cast(ulong) buf.length);
+            return null;
+        }
+
+        const (ushort)[] eBuf = cast(const(ushort)[])buf;
+
+        OutBuffer dbuf;
+        dbuf.reserve(eBuf.length);
+
+        //i will be incremented in the loop for high codepoints
+        foreach (ref i; 0 .. eBuf.length)
+        {
+            uint u = readNext(&eBuf[i]);
+            if (u & ~0x7F)
+            {
+                if (0xD800 <= u && u < 0xDC00)
+                {
+                    i++;
+                    if (i >= eBuf.length)
+                    {
+                        mod.error("surrogate UTF-16 high value %04x at end of file", u);
+                        return null;
+                    }
+                    const u2 = readNext(&eBuf[i]);
+                    if (u2 < 0xDC00 || 0xE000 <= u2)
+                    {
+                        mod.error("surrogate UTF-16 low value %04x out of range", u2);
+                        return null;
+                    }
+                    u = (u - 0xD7C0) << 10;
+                    u |= (u2 - 0xDC00);
+                }
+                else if (u >= 0xDC00 && u <= 0xDFFF)
+                {
+                    mod.error("unpaired surrogate UTF-16 value %04x", u);
+                    return null;
+                }
+                else if (u == 0xFFFE || u == 0xFFFF)
+                {
+                    mod.error("illegal UTF-16 value %04x", u);
+                    return null;
+                }
+                dbuf.writeUTF8(u);
+            }
+            else
+                dbuf.writeByte(u);
+        }
+        dbuf.writeByte(0); //add a terminating null byte
+        return dbuf.extractSlice();
+    }
+
+    const(char)[] buf = cast(const(char)[]) src;
+
+    // Assume the buffer is from memory and has not be read from disk. Assume UTF-8.
+    if (buf.length < 2)
+        return buf;
+
+    /* Convert all non-UTF-8 formats to UTF-8.
+     * BOM : https://www.unicode.org/faq/utf_bom.html
+     * 00 00 FE FF  UTF-32BE, big-endian
+     * FF FE 00 00  UTF-32LE, little-endian
+     * FE FF        UTF-16BE, big-endian
+     * FF FE        UTF-16LE, little-endian
+     * EF BB BF     UTF-8
+     */
+    if (buf[0] == 0xFF && buf[1] == 0xFE)
+    {
+        if (buf.length >= 4 && buf[2] == 0 && buf[3] == 0)
+            return UTF32ToUTF8!(Endian.little)(buf[4 .. $]);
+        return UTF16ToUTF8!(Endian.little)(buf[2 .. $]);
+    }
+
+    if (buf[0] == 0xFE && buf[1] == 0xFF)
+        return UTF16ToUTF8!(Endian.big)(buf[2 .. $]);
+
+    if (buf.length >= 4 && buf[0] == 0 && buf[1] == 0 && buf[2] == 0xFE && buf[3] == 0xFF)
+        return UTF32ToUTF8!(Endian.big)(buf[4 .. $]);
+
+    if (buf.length >= 3 && buf[0] == 0xEF && buf[1] == 0xBB && buf[2] == 0xBF)
+        return buf[3 .. $];
+
+    /* There is no BOM. Make use of Arcane Jill's insight that
+     * the first char of D source must be ASCII to
+     * figure out the encoding.
+     */
+    if (buf.length >= 4 && buf[1] == 0 && buf[2] == 0 && buf[3] == 0)
+        return UTF32ToUTF8!(Endian.little)(buf);
+    if (buf.length >= 4 && buf[0] == 0 && buf[1] == 0 && buf[2] == 0)
+        return UTF32ToUTF8!(Endian.big)(buf);
+    // try to check for UTF-16
+    if (buf.length >= 2 && buf[1] == 0)
+        return UTF16ToUTF8!(Endian.little)(buf);
+    if (buf[0] == 0)
+        return UTF16ToUTF8!(Endian.big)(buf);
+
+    // It's UTF-8
+    if (buf[0] >= 0x80)
+    {
+        mod.error("source file must start with BOM or ASCII character, not \\x%02X", buf[0]);
+        return null;
+    }
+
+    return buf;
 }

@@ -12,6 +12,7 @@ DOCS=\
 	$(DOCDIR)\core_attribute.html \
 	$(DOCDIR)\core_cpuid.html \
 	$(DOCDIR)\core_demangle.html \
+	$(DOCDIR)\core_factory.html \
 	$(DOCDIR)\core_lifetime.html \
 	$(DOCDIR)\core_memory.html \
 	$(DOCDIR)\core_runtime.html \
@@ -535,7 +536,6 @@ DOCS=\
 	$(DOCDIR)\rt_aApplyR.html \
 	$(DOCDIR)\rt_adi.html \
 	$(DOCDIR)\rt_alloca.html \
-	$(DOCDIR)\rt_arrayassign.html \
 	$(DOCDIR)\rt_arraycat.html \
 	$(DOCDIR)\rt_cast_.html \
 	$(DOCDIR)\rt_config.html \

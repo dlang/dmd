@@ -1,7 +1,7 @@
 # DEPRECATED - use src\build.d
 #_ win32.mak
 #
-# Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+# Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
 # written by Walter Bright
 # https://www.digitalmars.com
 # Distributed under the Boost Software License, Version 1.0.
@@ -77,12 +77,6 @@ RUN_BUILD=$(GEN)\build.exe --called-from-make "OS=$(OS)" "BUILD=$(BUILD)" "MODEL
 ############################## Release Targets ###############################
 
 defaulttarget: $G debdmd
-
-# FIXME: Windows test suite uses src/dmd.exe instead of $(GENERATED)/dmd.exe
-auto-tester-build: $(GEN)\build.exe
-	echo "Windows builds have been disabled"
-	#$(RUN_BUILD) "ENABLE_RELEASE=1" "ENABLE_ASSERTS=1" $@
-	#copy $(TARGETEXE) .
 
 dmd: $G reldmd
 

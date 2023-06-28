@@ -1,7 +1,7 @@
 /**
  * Development utility for printing AST nodes by their internal name, instead of as D source code.
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     Stefan Koch
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/asttypename.d, _asttypename.d)
@@ -35,7 +35,6 @@ import dmd.mtype;
 import dmd.typinf;
 import dmd.identifier;
 import dmd.init;
-import dmd.doc;
 import dmd.root.complex;
 import dmd.root.rootobject;
 import dmd.statement;
@@ -119,7 +118,7 @@ mixin(mixin_string);
 ///
 unittest
 {
-    import dmd.globals : Loc;
+    import dmd.location;
     Expression e = new TypeidExp(Loc.initial, null);
     Tuple t = new Tuple();
     TemplateTypeParameter tp = new TemplateTypeParameter(Loc.initial, null, null, null);

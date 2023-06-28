@@ -6,6 +6,7 @@
  * $(TR $(TD Arrays) $(TD
  *     $(MYREF assumeSafeAppend)
  *     $(MYREF capacity)
+ *     $(A #.dup.2, $(TT dup))
  *     $(MYREF idup)
  *     $(MYREF reserve)
  * ))
@@ -14,6 +15,7 @@
  *     $(MYREF byKeyValue)
  *     $(MYREF byValue)
  *     $(MYREF clear)
+ *     $(MYREF dup)
  *     $(MYREF get)
  *     $(MYREF keys)
  *     $(MYREF rehash)
@@ -23,15 +25,15 @@
  * ))
  * $(TR $(TD General) $(TD
  *     $(MYREF destroy)
- *     $(MYREF dup)
  *     $(MYREF hashOf)
- *     $(MYREF opEquals)
+ *     $(MYREF imported)
+ *     $(MYREF noreturn)
  * ))
- * $(TR $(TD Types) $(TD
+ * $(TR $(TD Classes) $(TD
  *     $(MYREF Error)
  *     $(MYREF Exception)
- *     $(MYREF noreturn)
  *     $(MYREF Object)
+ *     $(MYREF opEquals)
  *     $(MYREF Throwable)
  * ))
  * $(TR $(TD Type info) $(TD
@@ -61,7 +63,11 @@ alias size_t = typeof(int.sizeof);
 alias ptrdiff_t = typeof(cast(void*)0 - cast(void*)0);
 
 alias sizediff_t = ptrdiff_t; // For backwards compatibility only.
-alias noreturn = typeof(*null);  /// bottom type
+/**
+ * Bottom type.
+ * See $(DDSUBLINK spec/type, noreturn).
+ */
+alias noreturn = typeof(*null);
 
 alias hash_t = size_t; // For backwards compatibility only.
 alias equals_t = bool; // For backwards compatibility only.
@@ -266,7 +272,9 @@ class Object
     the typeinfo name string compare. This is because of dmd's dll implementation. However,
     it can infer to @safe if your class' opEquals is.
 +/
-bool opEquals(LHS, RHS)(LHS lhs, RHS rhs) if (is(LHS : const Object) && is(RHS : const Object))
+bool opEquals(LHS, RHS)(LHS lhs, RHS rhs)
+if ((is(LHS : const Object) || is(LHS : const shared Object)) &&
+    (is(RHS : const Object) || is(RHS : const shared Object)))
 {
     static if (__traits(compiles, lhs.opEquals(rhs)) && __traits(compiles, rhs.opEquals(lhs)))
     {
@@ -281,8 +289,9 @@ bool opEquals(LHS, RHS)(LHS lhs, RHS rhs) if (is(LHS : const Object) && is(RHS :
         // If same exact type => one call to method opEquals
         if (typeid(lhs) is typeid(rhs) ||
             !__ctfe && typeid(lhs).opEquals(typeid(rhs)))
-                /* CTFE doesn't like typeid much. 'is' works, but opEquals doesn't
-                (issue 7147). But CTFE also guarantees that equal TypeInfos are
+                /* CTFE doesn't like typeid much. 'is' works, but opEquals doesn't:
+                https://issues.dlang.org/show_bug.cgi?id=7147
+                But CTFE also guarantees that equal TypeInfos are
                 always identical. So, no opEquals needed during CTFE. */
         {
             return true;
@@ -505,11 +514,22 @@ unittest
     assert(obj1 != obj2);
 }
 
+// https://issues.dlang.org/show_bug.cgi?id=23291
+@system unittest
+{
+    static shared class C { bool opEquals(const(shared(C)) rhs) const shared  { return true;}}
+    const(C) c = new C();
+    const(C)[] a = [c];
+    const(C)[] b = [c];
+    assert(a[0] == b[0]);
+}
+
 private extern(C) void _d_setSameMutex(shared Object ownee, shared Object owner) nothrow;
 
 void setSameMutex(shared Object ownee, shared Object owner)
 {
-    _d_setSameMutex(ownee, owner);
+    import core.atomic : atomicLoad;
+    _d_setSameMutex(atomicLoad(ownee), atomicLoad(owner));
 }
 
 @system unittest
@@ -964,7 +984,7 @@ class TypeInfo_Enum : TypeInfo
 }
 
 
-@safe unittest // issue 12233
+@safe unittest // https://issues.dlang.org/show_bug.cgi?id=12233
 {
     static assert(is(typeof(TypeInfo.init) == TypeInfo));
     assert(TypeInfo.init is null);
@@ -1399,7 +1419,7 @@ class TypeInfo_Function : TypeInfo
        int func(int a, int b);
     }
 
-    alias functionTypes = typeof(__traits(getVirtualFunctions, C, "func"));
+    alias functionTypes = typeof(__traits(getVirtualMethods, C, "func"));
     assert(typeid(functionTypes[0]).toString() == "void function()");
     assert(typeid(functionTypes[1]).toString() == "void function(int)");
     assert(typeid(functionTypes[2]).toString() == "int function(int, int)");
@@ -1413,7 +1433,7 @@ class TypeInfo_Function : TypeInfo
        void func(int a);
     }
 
-    alias functionTypes = typeof(__traits(getVirtualFunctions, C, "func"));
+    alias functionTypes = typeof(__traits(getVirtualMethods, C, "func"));
 
     Object obj = typeid(functionTypes[0]);
     assert(obj.opEquals(typeid(functionTypes[0])));
@@ -2463,6 +2483,8 @@ class Throwable : Object
         string toString() const;
     }
 
+    alias TraceDeallocator = void function(TraceInfo) nothrow;
+
     string      msg;    /// A message describing the error.
 
     /**
@@ -2482,6 +2504,12 @@ class Throwable : Object
      * foreach) to extract the items in the stack trace (as strings).
      */
     TraceInfo   info;
+
+    /**
+     * If set, this is used to deallocate the TraceInfo on destruction.
+     */
+    TraceDeallocator infoDeallocator;
+
 
     /**
      * A reference to the _next error in the list. This is used when a new
@@ -2596,6 +2624,13 @@ class Throwable : Object
     {
         if (nextInChain && nextInChain._refcount)
             _d_delThrowable(nextInChain);
+        // handle owned traceinfo
+        if (infoDeallocator !is null)
+        {
+            infoDeallocator(info);
+            info = null; // avoid any kind of dangling pointers if we can help
+                         // it.
+        }
     }
 
     /**
@@ -2682,7 +2717,7 @@ class Exception : Throwable
      * Creates a new instance of Exception. The nextInChain parameter is used
      * internally and should always be $(D null) when passed by user code.
      * This constructor does not automatically throw the newly-created
-     * Exception; the $(D throw) statement should be used for that purpose.
+     * Exception; the $(D throw) expression should be used for that purpose.
      */
     @nogc @safe pure nothrow this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable nextInChain = null)
     {
@@ -2892,25 +2927,6 @@ void clear(Value, Key)(Value[Key]* aa)
     auto aa = ["k1": 2];
     aa.clear;
     assert("k1" !in aa);
-}
-
-// Issue 20559
-@system unittest
-{
-    static class Foo
-    {
-        int[string] aa;
-        alias aa this;
-    }
-
-    auto v = new Foo();
-    v["Hello World"] = 42;
-    v.clear;
-    assert("Hello World" !in v);
-
-    // Test for T*
-    static assert(!__traits(compiles, (&v).clear));
-    static assert( __traits(compiles, (*(&v)).clear));
 }
 
 /***********************************
@@ -3473,13 +3489,18 @@ ref V require(K, V)(ref V[K] aa, K key, lazy V value = V.init)
 private enum bool isSafeCopyable(T) = is(typeof(() @safe { union U { T x; } T *x; auto u = U(*x); }));
 
 /***********************************
- * Looks up key; if it exists applies the update callable else evaluates the
- * create callable and adds it to the associative array
+ * Calls `create` if `key` doesn't exist in the associative array,
+ * otherwise calls `update`.
+ * `create` returns a corresponding value for `key`.
+ * `update` accepts a key parameter. If it returns a value, the value is
+ * set for `key`.
  * Params:
  *      aa =     The associative array.
  *      key =    The key.
- *      create = The callable to apply on create.
- *      update = The callable to apply on update.
+ *      create = The callable to create a value for `key`.
+ *               Must return V.
+ *      update = The callable to call if `key` exists.
+ *               Takes a K argument, returns a V or void.
  */
 void update(K, V, C, U)(ref V[K] aa, K key, scope C create, scope U update)
 if (is(typeof(create()) : V) && (is(typeof(update(aa[K.init])) : V) || is(typeof(update(aa[K.init])) == void)))
@@ -3509,23 +3530,39 @@ if (is(typeof(create()) : V) && (is(typeof(update(aa[K.init])) : V) || is(typeof
 }
 
 ///
-@system unittest
+@safe unittest
 {
-    auto aa = ["k1": 1];
+    int[string] aa;
 
-    aa.update("k1", {
-        return -1; // create (won't be executed)
-    }, (ref int v) {
-        v += 1; // update
-    });
-    assert(aa["k1"] == 2);
+    // create
+    aa.update("key",
+        () => 1,
+        (int) {} // not executed
+        );
+    assert(aa["key"] == 1);
 
-    aa.update("k2", {
-        return 0; // create
-    }, (ref int v) {
-        v = -1; // update (won't be executed)
-    });
-    assert(aa["k2"] == 0);
+    // update value by ref
+    aa.update("key",
+        () => 0, // not executed
+        (ref int v) {
+            v += 1;
+        });
+    assert(aa["key"] == 2);
+
+    // update from return value
+    aa.update("key",
+        () => 0, // not executed
+        (int v) => v * 2
+        );
+    assert(aa["key"] == 4);
+
+    // 'update' without changing value
+    aa.update("key",
+        () => 0, // not executed
+        (int) {
+            // do something else
+        });
+    assert(aa["key"] == 4);
 }
 
 @safe unittest
@@ -4159,8 +4196,11 @@ void destroy(bool initialize = true, T)(T obj) if (is(T == interface))
     assert(c.s == "S");         // `c.s` is back to its inital state, `"S"`
     assert(c.a.dtorCount == 1); // `c.a`'s destructor was called
     assert(c.a.x == 10);        // `c.a.x` is back to its inital state, `10`
+}
 
-    // check C++ classes work too!
+/// C++ classes work too
+@system unittest
+{
     extern (C++) class CPP
     {
         struct Agg
@@ -4211,6 +4251,34 @@ void destroy(bool initialize = true, T)(T obj) if (is(T == interface))
     assert(i == 0);           // `i` is back to its initial state `0`
 }
 
+/// Nested struct type
+@system unittest
+{
+    int dtorCount;
+    struct A
+    {
+        int i;
+        ~this()
+        {
+            dtorCount++; // capture local variable
+        }
+    }
+    A a = A(5);
+    destroy!false(a);
+    assert(dtorCount == 1);
+    assert(a.i == 5);
+
+    destroy(a);
+    assert(dtorCount == 2);
+    assert(a.i == 0);
+
+    // the context pointer is now null
+    // restore it so the dtor can run
+    import core.lifetime : emplace;
+    emplace(&a, A(0));
+    // dtor also called here
+}
+
 @system unittest
 {
     extern(C++)
@@ -4222,44 +4290,6 @@ void destroy(bool initialize = true, T)(T obj) if (is(T == interface))
 
     destroy!false(new C());
     destroy!true(new C());
-}
-
-@system unittest
-{
-    // class with an `alias this`
-    class A
-    {
-        static int dtorCount;
-        ~this()
-        {
-            dtorCount++;
-        }
-    }
-
-    class B
-    {
-        A a;
-        alias a this;
-        this()
-        {
-            a = new A;
-        }
-        static int dtorCount;
-        ~this()
-        {
-            dtorCount++;
-        }
-    }
-    auto b = new B;
-    assert(A.dtorCount == 0);
-    assert(B.dtorCount == 0);
-    destroy(b);
-    assert(A.dtorCount == 0);
-    assert(B.dtorCount == 1);
-
-    auto a = new A;
-    destroy(a);
-    assert(A.dtorCount == 1);
 }
 
 @system unittest
@@ -4475,43 +4505,6 @@ if (__traits(isStaticArray, T))
     }
 }
 
-// https://issues.dlang.org/show_bug.cgi?id=19218
-@system unittest
-{
-    static struct S
-    {
-        static dtorCount = 0;
-        ~this() { ++dtorCount; }
-    }
-
-    static interface I
-    {
-        ref S[3] getArray();
-        alias getArray this;
-    }
-
-    static class C : I
-    {
-        static dtorCount = 0;
-        ~this() { ++dtorCount; }
-
-        S[3] a;
-        alias a this;
-
-        ref S[3] getArray() { return a; }
-    }
-
-    C c = new C();
-    destroy(c);
-    assert(S.dtorCount == 3);
-    assert(C.dtorCount == 1);
-
-    I i = new C();
-    destroy(i);
-    assert(S.dtorCount == 6);
-    assert(C.dtorCount == 2);
-}
-
 /// ditto
 void destroy(bool initialize = true, T)(ref T obj)
     if (!is(T == struct) && !is(T == interface) && !is(T == class) && !__traits(isStaticArray, T))
@@ -4568,14 +4561,22 @@ they are only intended to be instantiated by the compiler, not the user.
 public import core.internal.entrypoint : _d_cmain;
 
 public import core.internal.array.appending : _d_arrayappendT;
-public import core.internal.array.appending : _d_arrayappendTTrace;
+version (D_ProfileGC)
+{
+    public import core.internal.array.appending : _d_arrayappendTTrace;
+    public import core.internal.array.concatenation : _d_arraycatnTXTrace;
+    public import core.lifetime : _d_newitemTTrace;
+}
 public import core.internal.array.appending : _d_arrayappendcTXImpl;
 public import core.internal.array.comparison : __cmp;
 public import core.internal.array.equality : __equals;
 public import core.internal.array.casting: __ArrayCast;
-public import core.internal.array.concatenation : _d_arraycatnTXImpl;
+public import core.internal.array.concatenation : _d_arraycatnTX;
 public import core.internal.array.construction : _d_arrayctor;
 public import core.internal.array.construction : _d_arraysetctor;
+public import core.internal.array.arrayassign : _d_arrayassign_l;
+public import core.internal.array.arrayassign : _d_arrayassign_r;
+public import core.internal.array.arrayassign : _d_arraysetassign;
 public import core.internal.array.capacity: _d_arraysetlengthTImpl;
 
 public import core.internal.dassert: _d_assert_fail;
@@ -4591,6 +4592,9 @@ public import core.internal.switch_: __switch_error;
 
 public import core.lifetime : _d_delstructImpl;
 public import core.lifetime : _d_newThrowable;
+public import core.lifetime : _d_newclassT;
+public import core.lifetime : _d_newclassTTrace;
+public import core.lifetime : _d_newitemT;
 
 public @trusted @nogc nothrow pure extern (C) void _d_delThrowable(scope Throwable);
 

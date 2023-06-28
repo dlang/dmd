@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/ddoc.html, Documentation Generator)
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/doc.d, _doc.d)
@@ -41,6 +41,7 @@ import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.lexer;
+import dmd.location;
 import dmd.mtype;
 import dmd.root.array;
 import dmd.root.file;
@@ -106,7 +107,7 @@ private class Section
 
     void write(Loc loc, DocComment* dc, Scope* sc, Dsymbols* a, OutBuffer* buf)
     {
-        assert(a.dim);
+        assert(a.length);
         if (name.length)
         {
             static immutable table =
@@ -161,7 +162,7 @@ private final class ParamSection : Section
 {
     override void write(Loc loc, DocComment* dc, Scope* sc, Dsymbols* a, OutBuffer* buf)
     {
-        assert(a.dim);
+        assert(a.length);
         Dsymbol s = (*a)[0]; // test
         const(char)* p = body_.ptr;
         size_t len = body_.length;
@@ -226,12 +227,12 @@ private final class ParamSection : Section
                     buf.writestring("$(DDOC_PARAM_ID ");
                     {
                         size_t o = buf.length;
-                        Parameter fparam = isFunctionParameter(a, namestart, namelen);
+                        Parameter fparam = isFunctionParameter(a, namestart[0 .. namelen]);
                         if (!fparam)
                         {
                             // Comments on a template might refer to function parameters within.
                             // Search the parameters of nested eponymous functions (with the same name.)
-                            fparam = isEponymousFunctionParameter(a, namestart, namelen);
+                            fparam = isEponymousFunctionParameter(a, namestart[0 ..  namelen]);
                         }
                         bool isCVariadic = isCVariadicParameter(a, namestart[0 .. namelen]);
                         if (isCVariadic)
@@ -295,10 +296,10 @@ private final class ParamSection : Section
             goto L1;
         // write out last one
         buf.writestring(")");
-        TypeFunction tf = a.dim == 1 ? isTypeFunction(s) : null;
+        TypeFunction tf = a.length == 1 ? isTypeFunction(s) : null;
         if (tf)
         {
-            size_t pcount = (tf.parameterList.parameters ? tf.parameterList.parameters.dim : 0) +
+            size_t pcount = (tf.parameterList.parameters ? tf.parameterList.parameters.length : 0) +
                             cast(int)(tf.parameterList.varargs == VarArg.variadic);
             if (pcount != paramcount)
             {
@@ -328,7 +329,7 @@ private final class MacroSection : Section
 private alias Sections = Array!(Section);
 
 // Workaround for missing Parameter instance for variadic params. (it's unnecessary to instantiate one).
-private bool isCVariadicParameter(Dsymbols* a, const(char)[] p)
+private bool isCVariadicParameter(Dsymbols* a, const(char)[] p) @safe
 {
     foreach (member; *a)
     {
@@ -339,7 +340,7 @@ private bool isCVariadicParameter(Dsymbols* a, const(char)[] p)
     return false;
 }
 
-private Dsymbol getEponymousMember(TemplateDeclaration td)
+private Dsymbol getEponymousMember(TemplateDeclaration td) @safe
 {
     if (!td.onemember)
         return null;
@@ -386,7 +387,7 @@ extern(C++) void gendocfile(Module m)
         if (p)
             global.params.ddoc.files.shift(p);
         // Override with the ddoc macro files from the command line
-        for (size_t i = 0; i < global.params.ddoc.files.dim; i++)
+        for (size_t i = 0; i < global.params.ddoc.files.length; i++)
         {
             auto buffer = readFile(m.loc, global.params.ddoc.files[i]);
             // BUG: convert file contents to UTF-8 before use
@@ -428,9 +429,9 @@ extern(C++) void gendocfile(Module m)
     if (m.filetype == FileType.ddoc)
     {
         const ploc = m.md ? &m.md.loc : &m.loc;
-        const loc = Loc(ploc.filename ? ploc.filename : srcfilename.ptr,
-                        ploc.linnum,
-                        ploc.charnum);
+        Loc loc = *ploc;
+        if (!loc.filename)
+            loc.filename = srcfilename.ptr;
 
         size_t commentlen = strlen(cast(char*)m.comment);
         Dsymbols a;
@@ -456,7 +457,11 @@ extern(C++) void gendocfile(Module m)
     OutBuffer buf2;
     buf2.writestring("$(DDOC)");
     size_t end = buf2.length;
-    m.macrotable.expand(buf2, 0, end, null);
+
+    const success = m.macrotable.expand(buf2, 0, end, null, global.recursionLimit);
+    if (!success)
+        error(Loc.initial, "DDoc macro expansion limit exceeded; more than %d expansions.", global.recursionLimit);
+
     version (all)
     {
         /* Remove all the escape sequences from buf2,
@@ -753,9 +758,9 @@ private void emitAnchor(ref OutBuffer buf, Dsymbol s, Scope* sc, bool forHeader 
     if (auto imp = s.isImport())
     {
         // For example: `public import core.stdc.string : memcpy, memcmp;`
-        if (imp.aliases.dim > 0)
+        if (imp.aliases.length > 0)
         {
-            for(int i = 0; i < imp.aliases.dim; i++)
+            for(int i = 0; i < imp.aliases.length; i++)
             {
                 // Need to distinguish between
                 // `public import core.stdc.string : memcpy, memcmp;` and
@@ -862,7 +867,7 @@ private void expandTemplateMixinComments(TemplateMixin tm, ref OutBuffer buf, Sc
     TemplateDeclaration td = (tm && tm.tempdecl) ? tm.tempdecl.isTemplateDeclaration() : null;
     if (td && td.members)
     {
-        for (size_t i = 0; i < td.members.dim; i++)
+        for (size_t i = 0; i < td.members.length; i++)
         {
             Dsymbol sm = (*td.members)[i];
             TemplateMixin tmc = sm.isTemplateMixin();
@@ -894,7 +899,7 @@ private void emitMemberComments(ScopeDsymbol sds, ref OutBuffer buf, Scope* sc)
     buf.writestring(m);
     size_t offset2 = buf.length; // to see if we write anything
     sc = sc.push(sds);
-    for (size_t i = 0; i < sds.members.dim; i++)
+    for (size_t i = 0; i < sds.members.length; i++)
     {
         Dsymbol s = (*sds.members)[i];
         //printf("\ts = '%s'\n", s.toChars());
@@ -946,7 +951,7 @@ private void emitComment(Dsymbol s, ref OutBuffer buf, Scope* sc)
         OutBuffer* buf;
         Scope* sc;
 
-        extern (D) this(ref OutBuffer buf, Scope* sc)
+        extern (D) this(ref OutBuffer buf, Scope* sc) scope
         {
             this.buf = &buf;
             this.sc = sc;
@@ -994,7 +999,7 @@ private void emitComment(Dsymbol s, ref OutBuffer buf, Scope* sc)
             // Put previous doc comment if exists
             if (DocComment* dc = sc.lastdc)
             {
-                assert(dc.a.dim > 0, "Expects at least one declaration for a" ~
+                assert(dc.a.length > 0, "Expects at least one declaration for a" ~
                     "documentation comment");
 
                 auto symbol = dc.a[0];
@@ -1006,7 +1011,7 @@ private void emitComment(Dsymbol s, ref OutBuffer buf, Scope* sc)
 
                 // Put the declaration signatures as the document 'title'
                 buf.writestring(ddoc_decl_s);
-                for (size_t i = 0; i < dc.a.dim; i++)
+                for (size_t i = 0; i < dc.a.length; i++)
                 {
                     Dsymbol sx = dc.a[i];
                     // the added linebreaks in here make looking at multiple
@@ -1134,7 +1139,7 @@ private void emitComment(Dsymbol s, ref OutBuffer buf, Scope* sc)
                 return;
             if (ed.isAnonymous() && ed.members)
             {
-                for (size_t i = 0; i < ed.members.dim; i++)
+                for (size_t i = 0; i < ed.members.length; i++)
                 {
                     Dsymbol s = (*ed.members)[i];
                     emitComment(s, *buf, sc);
@@ -1172,7 +1177,7 @@ private void emitComment(Dsymbol s, ref OutBuffer buf, Scope* sc)
             Dsymbols* d = ad.include(null);
             if (d)
             {
-                for (size_t i = 0; i < d.dim; i++)
+                for (size_t i = 0; i < d.length; i++)
                 {
                     Dsymbol s = (*d)[i];
                     //printf("AttribDeclaration::emitComment %s\n", s.toChars());
@@ -1206,7 +1211,7 @@ private void emitComment(Dsymbol s, ref OutBuffer buf, Scope* sc)
              * a template, then include(null) will fail.
              */
             Dsymbols* d = cd.decl ? cd.decl : cd.elsedecl;
-            for (size_t i = 0; i < d.dim; i++)
+            for (size_t i = 0; i < d.length; i++)
             {
                 Dsymbol s = (*d)[i];
                 emitComment(s, *buf, sc);
@@ -1230,7 +1235,7 @@ private void toDocBuffer(Dsymbol s, ref OutBuffer buf, Scope* sc)
         OutBuffer* buf;
         Scope* sc;
 
-        extern (D) this(ref OutBuffer buf, Scope* sc)
+        extern (D) this(ref OutBuffer buf, Scope* sc) scope
         {
             this.buf = &buf;
             this.sc = sc;
@@ -1320,9 +1325,9 @@ private void toDocBuffer(Dsymbol s, ref OutBuffer buf, Scope* sc)
             if (d.isVarDeclaration() && td)
             {
                 buf.writeByte('(');
-                if (td.origParameters && td.origParameters.dim)
+                if (td.origParameters && td.origParameters.length)
                 {
-                    for (size_t i = 0; i < td.origParameters.dim; i++)
+                    for (size_t i = 0; i < td.origParameters.length; i++)
                     {
                         if (i)
                             buf.writestring(", ");
@@ -1480,7 +1485,7 @@ private void toDocBuffer(Dsymbol s, ref OutBuffer buf, Scope* sc)
                 buf.printf("%s %s", cd.kind(), cd.toChars());
             }
             int any = 0;
-            for (size_t i = 0; i < cd.baseclasses.dim; i++)
+            for (size_t i = 0; i < cd.baseclasses.length; i++)
             {
                 BaseClass* bc = (*cd.baseclasses)[i];
                 if (bc.sym && bc.sym.ident == Id.Object)
@@ -1553,7 +1558,7 @@ struct DocComment
         if (!comment)
             return dc;
         dc.parseSections(comment);
-        for (size_t i = 0; i < dc.sections.dim; i++)
+        for (size_t i = 0; i < dc.sections.length; i++)
         {
             Section sec = dc.sections[i];
             if (iequals("copyright", sec.name))
@@ -1869,7 +1874,7 @@ struct DocComment
 
     void writeSections(Scope* sc, Dsymbols* a, OutBuffer* buf)
     {
-        assert(a.dim);
+        assert(a.length);
         //printf("DocComment::writeSections()\n");
         Loc loc = (*a)[0].loc;
         if (Module m = (*a)[0].isModule())
@@ -1880,7 +1885,7 @@ struct DocComment
         size_t offset1 = buf.length;
         buf.writestring("$(DDOC_SECTIONS ");
         size_t offset2 = buf.length;
-        for (size_t i = 0; i < sections.dim; i++)
+        for (size_t i = 0; i < sections.length; i++)
         {
             Section sec = sections[i];
             if (sec.nooutput)
@@ -1898,7 +1903,7 @@ struct DocComment
             else
                 sec.write(loc, &this, sc, a, buf);
         }
-        for (size_t i = 0; i < a.dim; i++)
+        for (size_t i = 0; i < a.length; i++)
         {
             Dsymbol s = (*a)[i];
             if (Dsymbol td = getEponymousParent(s))
@@ -2561,17 +2566,17 @@ private size_t replaceMarkdownEmphasis(ref OutBuffer buf, const ref Loc loc, ref
 
 /****************************************************
  */
-private bool isIdentifier(Dsymbols* a, const(char)* p, size_t len)
+private bool isIdentifier(Dsymbols* a, const(char)[] s)
 {
     foreach (member; *a)
     {
         if (auto imp = member.isImport())
         {
             // For example: `public import str = core.stdc.string;`
-            // This checks if `p` is equal to `str`
+            // This checks if `s` is equal to `str`
             if (imp.aliasId)
             {
-                if (p[0 .. len] == imp.aliasId.toString())
+                if (s == imp.aliasId.toString())
                     return true;
             }
             else
@@ -2586,14 +2591,14 @@ private bool isIdentifier(Dsymbols* a, const(char)* p, size_t len)
                 }
                 fullyQualifiedImport ~= imp.id.toString();
 
-                // Check if `p` == `core.stdc.string`
-                if (p[0 .. len] == fullyQualifiedImport)
+                // Check if `s` == `core.stdc.string`
+                if (s == fullyQualifiedImport)
                     return true;
             }
         }
         else if (member.ident)
         {
-            if (p[0 .. len] == member.ident.toString())
+            if (s == member.ident.toString())
                 return true;
         }
 
@@ -2603,12 +2608,12 @@ private bool isIdentifier(Dsymbols* a, const(char)* p, size_t len)
 
 /****************************************************
  */
-private bool isKeyword(const(char)* p, size_t len)
+private bool isKeyword(const(char)[] str) @safe
 {
     immutable string[3] table = ["true", "false", "null"];
     foreach (s; table)
     {
-        if (p[0 .. len] == s)
+        if (str == s)
             return true;
     }
     return false;
@@ -2616,7 +2621,7 @@ private bool isKeyword(const(char)* p, size_t len)
 
 /****************************************************
  */
-private TypeFunction isTypeFunction(Dsymbol s)
+private TypeFunction isTypeFunction(Dsymbol s) @safe
 {
     FuncDeclaration f = s.isFuncDeclaration();
     /* f.type may be NULL for template members.
@@ -2632,14 +2637,14 @@ private TypeFunction isTypeFunction(Dsymbol s)
 
 /****************************************************
  */
-private Parameter isFunctionParameter(Dsymbol s, const(char)* p, size_t len)
+private Parameter isFunctionParameter(Dsymbol s, const(char)[] str) @safe
 {
     TypeFunction tf = isTypeFunction(s);
     if (tf && tf.parameterList.parameters)
     {
         foreach (fparam; *tf.parameterList.parameters)
         {
-            if (fparam.ident && p[0 .. len] == fparam.ident.toString())
+            if (fparam.ident && str == fparam.ident.toString())
             {
                 return fparam;
             }
@@ -2650,11 +2655,11 @@ private Parameter isFunctionParameter(Dsymbol s, const(char)* p, size_t len)
 
 /****************************************************
  */
-private Parameter isFunctionParameter(Dsymbols* a, const(char)* p, size_t len)
+private Parameter isFunctionParameter(Dsymbols* a, const(char)[] p) @safe
 {
-    for (size_t i = 0; i < a.dim; i++)
+    foreach (Dsymbol sym; *a)
     {
-        Parameter fparam = isFunctionParameter((*a)[i], p, len);
+        Parameter fparam = isFunctionParameter(sym, p);
         if (fparam)
         {
             return fparam;
@@ -2665,11 +2670,11 @@ private Parameter isFunctionParameter(Dsymbols* a, const(char)* p, size_t len)
 
 /****************************************************
  */
-private Parameter isEponymousFunctionParameter(Dsymbols *a, const(char) *p, size_t len)
+private Parameter isEponymousFunctionParameter(Dsymbols *a, const(char)[] p) @safe
 {
-    for (size_t i = 0; i < a.dim; i++)
+    foreach (Dsymbol dsym; *a)
     {
-        TemplateDeclaration td = (*a)[i].isTemplateDeclaration();
+        TemplateDeclaration td = dsym.isTemplateDeclaration();
         if (td && td.onemember)
         {
             /* Case 1: we refer to a template declaration inside the template
@@ -2688,7 +2693,7 @@ private Parameter isEponymousFunctionParameter(Dsymbols *a, const(char) *p, size
                /// ...ddoc...
                alias case2 = case1!int;
              */
-            AliasDeclaration ad = (*a)[i].isAliasDeclaration();
+            AliasDeclaration ad = dsym.isAliasDeclaration();
             if (ad && ad.aliassym)
             {
                 td = ad.aliassym.isTemplateDeclaration();
@@ -2699,7 +2704,7 @@ private Parameter isEponymousFunctionParameter(Dsymbols *a, const(char) *p, size
             Dsymbol sym = getEponymousMember(td);
             if (sym)
             {
-                Parameter fparam = isFunctionParameter(sym, p, len);
+                Parameter fparam = isFunctionParameter(sym, p);
                 if (fparam)
                 {
                     return fparam;
@@ -2715,7 +2720,7 @@ private Parameter isEponymousFunctionParameter(Dsymbols *a, const(char) *p, size
  */
 private TemplateParameter isTemplateParameter(Dsymbols* a, const(char)* p, size_t len)
 {
-    for (size_t i = 0; i < a.dim; i++)
+    for (size_t i = 0; i < a.length; i++)
     {
         TemplateDeclaration td = (*a)[i].isTemplateDeclaration();
         // Check for the parent, if the current symbol is not a template declaration.
@@ -3290,7 +3295,7 @@ private struct MarkdownLink
      * Params:
      *  buf   = an OutBuffer containing the DDoc
      *  i     = the index within `buf` that points to the first character of the URL.
-     *          If this function succeeds `i` will point just after the the end of the URL.
+     *          If this function succeeds `i` will point just after the end of the URL.
      * Returns: whether a URL was found and parsed
      */
     private bool parseHref(ref OutBuffer buf, ref size_t i)
@@ -3358,7 +3363,7 @@ private struct MarkdownLink
      * Params:
      *  buf   = an OutBuffer containing the DDoc
      *  i     = the index within `buf` that points to the first character of the title.
-     *          If this function succeeds `i` will point just after the the end of the title.
+     *          If this function succeeds `i` will point just after the end of the title.
      * Returns: whether a title was found and parsed
      */
     private bool parseTitle(ref OutBuffer buf, ref size_t i)
@@ -4146,7 +4151,7 @@ private size_t endRowAndTable(ref OutBuffer buf, size_t iStart, size_t iEnd, con
 private void highlightText(Scope* sc, Dsymbols* a, Loc loc, ref OutBuffer buf, size_t offset)
 {
     const incrementLoc = loc.linnum == 0 ? 1 : 0;
-    loc.linnum += incrementLoc;
+    loc.linnum = loc.linnum + incrementLoc;
     loc.charnum = 0;
     //printf("highlightText()\n");
     bool leadingBlank = true;
@@ -4251,7 +4256,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, ref OutBuffer buf, s
             lineQuoted = false;
             tableRowDetected = false;
             iLineStart = i + 1;
-            loc.linnum += incrementLoc;
+            loc.linnum = loc.linnum + incrementLoc;
 
             // update the paragraph start if we just entered a macro
             if (previousMacroLevel < macroLevel && iParagraphStart < iLineStart)
@@ -4956,17 +4961,17 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, ref OutBuffer buf, s
                     i = buf.bracket(i, "$(DDOC_AUTO_PSYMBOL_SUPPRESS ", j - 1, ")") - 1;
                     break;
                 }
-                if (isIdentifier(a, start, len))
+                if (isIdentifier(a, start[0 .. len]))
                 {
                     i = buf.bracket(i, "$(DDOC_AUTO_PSYMBOL ", j, ")") - 1;
                     break;
                 }
-                if (isKeyword(start, len))
+                if (isKeyword(start[0 .. len]))
                 {
                     i = buf.bracket(i, "$(DDOC_AUTO_KEYWORD ", j, ")") - 1;
                     break;
                 }
-                if (isFunctionParameter(a, start, len))
+                if (isFunctionParameter(a, start[0 .. len]))
                 {
                     //printf("highlighting arg '%s', i = %d, j = %d\n", arg.ident.toChars(), i, j);
                     i = buf.bracket(i, "$(DDOC_AUTO_PARAM ", j, ")") - 1;
@@ -5000,10 +5005,10 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, ref OutBuffer buf, s
 private void highlightCode(Scope* sc, Dsymbol s, ref OutBuffer buf, size_t offset)
 {
     auto imp = s.isImport();
-    if (imp && imp.aliases.dim > 0)
+    if (imp && imp.aliases.length > 0)
     {
         // For example: `public import core.stdc.string : memcpy, memcmp;`
-        for(int i = 0; i < imp.aliases.dim; i++)
+        for(int i = 0; i < imp.aliases.length; i++)
         {
             // Need to distinguish between
             // `public import core.stdc.string : memcpy, memcmp;` and
@@ -5055,7 +5060,7 @@ private void highlightCode(Scope* sc, Dsymbols* a, ref OutBuffer buf, size_t off
             if (i < j)
             {
                 size_t len = j - i;
-                if (isIdentifier(a, start, len))
+                if (isIdentifier(a, start[0 .. len]))
                 {
                     i = buf.bracket(i, "$(DDOC_PSYMBOL ", j, ")") - 1;
                     continue;
@@ -5066,12 +5071,12 @@ private void highlightCode(Scope* sc, Dsymbols* a, ref OutBuffer buf, size_t off
             if (i < j)
             {
                 size_t len = j - i;
-                if (isIdentifier(a, start, len))
+                if (isIdentifier(a, start[0 .. len]))
                 {
                     i = buf.bracket(i, "$(DDOC_PSYMBOL ", j, ")") - 1;
                     continue;
                 }
-                if (isFunctionParameter(a, start, len))
+                if (isFunctionParameter(a, start[0 .. len]))
                 {
                     //printf("highlighting arg '%s', i = %d, j = %d\n", arg.ident.toChars(), i, j);
                     i = buf.bracket(i, "$(DDOC_PARAM ", j, ")") - 1;
@@ -5085,7 +5090,7 @@ private void highlightCode(Scope* sc, Dsymbols* a, ref OutBuffer buf, size_t off
             size_t previ = i;
 
             // hunt for template declarations:
-            foreach (symi; 0 .. a.dim)
+            foreach (symi; 0 .. a.length)
             {
                 FuncDeclaration fd = (*a)[symi].isFuncDeclaration();
 
@@ -5098,14 +5103,14 @@ private void highlightCode(Scope* sc, Dsymbols* a, ref OutBuffer buf, size_t off
 
                 // build the template parameters
                 Array!(size_t) paramLens;
-                paramLens.reserve(td.parameters.dim);
+                paramLens.reserve(td.parameters.length);
 
                 OutBuffer parametersBuf;
                 HdrGenState hgs;
 
                 parametersBuf.writeByte('(');
 
-                foreach (parami; 0 .. td.parameters.dim)
+                foreach (parami; 0 .. td.parameters.length)
                 {
                     TemplateParameter tp = (*td.parameters)[parami];
 
@@ -5177,7 +5182,9 @@ private void highlightCode2(Scope* sc, Dsymbols* a, ref OutBuffer buf, size_t of
 {
     uint errorsave = global.startGagging();
 
-    scope Lexer lex = new Lexer(null, cast(char*)buf[].ptr, 0, buf.length - 1, 0, 1);
+    scope Lexer lex = new Lexer(null, cast(char*)buf[].ptr, 0, buf.length - 1, 0, 1,
+        global.errorSink,
+        &global.compileEnv);
     OutBuffer res;
     const(char)* lastp = cast(char*)buf[].ptr;
     //printf("highlightCode2('%.*s')\n", cast(int)(buf.length - 1), buf[].ptr);
@@ -5195,12 +5202,12 @@ private void highlightCode2(Scope* sc, Dsymbols* a, ref OutBuffer buf, size_t of
                 if (!sc)
                     break;
                 size_t len = lex.p - tok.ptr;
-                if (isIdentifier(a, tok.ptr, len))
+                if (isIdentifier(a, tok.ptr[0 .. len]))
                 {
                     highlight = "$(D_PSYMBOL ";
                     break;
                 }
-                if (isFunctionParameter(a, tok.ptr, len))
+                if (isFunctionParameter(a, tok.ptr[0 .. len]))
                 {
                     //printf("highlighting arg '%s', i = %d, j = %d\n", arg.ident.toChars(), i, j);
                     highlight = "$(D_PARAM ";
@@ -5246,7 +5253,7 @@ private void highlightCode2(Scope* sc, Dsymbols* a, ref OutBuffer buf, size_t of
 /****************************************
  * Determine if p points to the start of a "..." parameter identifier.
  */
-private bool isCVariadicArg(const(char)[] p)
+private bool isCVariadicArg(const(char)[] p) @nogc nothrow pure @safe
 {
     return p.length >= 3 && p[0 .. 3] == "...";
 }
@@ -5254,7 +5261,7 @@ private bool isCVariadicArg(const(char)[] p)
 /****************************************
  * Determine if p points to the start of an identifier.
  */
-bool isIdStart(const(char)* p)
+bool isIdStart(const(char)* p) @nogc nothrow pure
 {
     dchar c = *p;
     if (isalpha(c) || c == '_')
@@ -5273,7 +5280,7 @@ bool isIdStart(const(char)* p)
 /****************************************
  * Determine if p points to the rest of an identifier.
  */
-bool isIdTail(const(char)* p)
+bool isIdTail(const(char)* p) @nogc nothrow pure
 {
     dchar c = *p;
     if (isalnum(c) || c == '_')
@@ -5292,7 +5299,7 @@ bool isIdTail(const(char)* p)
 /****************************************
  * Determine if p points to the indentation space.
  */
-private bool isIndentWS(const(char)* p)
+private bool isIndentWS(const(char)* p) @nogc nothrow pure @safe
 {
     return (*p == ' ') || (*p == '\t');
 }
@@ -5300,7 +5307,7 @@ private bool isIndentWS(const(char)* p)
 /*****************************************
  * Return number of bytes in UTF character.
  */
-int utfStride(const(char)* p)
+int utfStride(const(char)* p) @nogc nothrow pure
 {
     dchar c = *p;
     if (c < 0x80)
@@ -5310,7 +5317,7 @@ int utfStride(const(char)* p)
     return cast(int)i;
 }
 
-private inout(char)* stripLeadingNewlines(inout(char)* s)
+private inout(char)* stripLeadingNewlines(inout(char)* s) @nogc nothrow pure
 {
     while (s && *s == '\n' || *s == '\r')
         s++;

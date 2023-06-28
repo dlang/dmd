@@ -3,7 +3,7 @@
  * x87 FPU instructions and vector instructions.
  *
  * Copyright:   Copyright (C) 1982-1998 by Symantec
- *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  */
@@ -531,7 +531,7 @@ char *getEAimpl(ubyte rex, uint c, int do_xmm, uint vlen)
             s = "-".ptr;
         }
         w &= 0xFFFF;
-        sprintf(EAb.ptr,((w < 10) ? "%s%s%s%ld%s" : "%s%s%s0%lXh%s"),
+        snprintf(EAb.ptr, EAb.length, ((w < 10) ? "%s%s%s%ld%s" : "%s%s%s0%lXh%s"),
                 segover,ptr[ptri],s,w,postfix);
 
         segover = "".ptr;
@@ -545,7 +545,7 @@ char *getEAimpl(ubyte rex, uint c, int do_xmm, uint vlen)
         auto p = mem(c, sz, value);
         if (*p == '[')   // if just `[number]`
             return displacement(value, postfix); // don't use brackets
-        sprintf(EAb.ptr,"%s%s%s%s",ptr[ptri],segover,p,postfix);
+        snprintf(EAb.ptr, EAb.length, "%s%s%s%s",ptr[ptri],segover,p,postfix);
         return EAb.ptr;
     }
 
@@ -689,9 +689,9 @@ char *getEAimpl(ubyte rex, uint c, int do_xmm, uint vlen)
                 sib_base |= 8;
 
             if (sib_index == 4)                 // REX_X is not ignored
-                sprintf(base.ptr,"[%s]",preg[sib_base]);
+                snprintf(base.ptr,base.length,"[%s]",preg[sib_base]);
             else
-                sprintf(base.ptr,"[%s%s][%s]",
+                snprintf(base.ptr,base.length,"[%s%s][%s]",
                     preg[sib_index], scale[sib >> 6].ptr, preg[sib_base]);
             strcpy(rbuf.ptr, base.ptr);
             switch (mod)
@@ -700,9 +700,9 @@ char *getEAimpl(ubyte rex, uint c, int do_xmm, uint vlen)
                     {
                         p = mem(c + 3, 4, dword(code, c + 3));
                         if (sib_index == 4)
-                          sprintf(EAb.ptr,"%s%s%s",ptr[ptri],segover,p);
+                          snprintf(EAb.ptr,EAb.length,"%s%s%s",ptr[ptri],segover,p);
                         else
-                          sprintf(EAb.ptr,"%s%s%s[%s%s]",ptr[ptri],segover,p,
+                          snprintf(EAb.ptr,EAb.length,"%s%s%s[%s%s]",ptr[ptri],segover,p,
                             preg[sib_index], scale[sib >> 6].ptr);
                         return EAb.ptr;
                     }
@@ -718,21 +718,21 @@ char *getEAimpl(ubyte rex, uint c, int do_xmm, uint vlen)
         }
         else
         {
-            sprintf(rbuf.ptr,"[%s]", preg[(rex & REX_B) ? 8|rm : rm]);
+            snprintf(rbuf.ptr,rbuf.length,"[%s]", preg[(rex & REX_B) ? 8|rm : rm]);
             switch (mod)
             {   case 0:
                     if (rm == 5)                // ignore REX_B
                     {
                         p = mem(c + 2, 4, dword(code, c + 2));
                         if (model == 64)
-                            sprintf(EAb.ptr,"%s%s%s[RIP]",ptr[ptri],segover,p);
+                            snprintf(EAb.ptr,EAb.length,"%s%s%s[RIP]",ptr[ptri],segover,p);
                         else
-                            sprintf(EAb.ptr,"%s%s%s",ptr[ptri],segover,p);
+                            snprintf(EAb.ptr,EAb.length,"%s%s%s",ptr[ptri],segover,p);
                         return EAb.ptr;
                     }
                     else
                     {   p = rbuf.ptr;
-                        sprintf(EA.ptr,"%s%s",ptr[ptri],p);
+                        snprintf(EA.ptr,EA.length,"%s%s",ptr[ptri],p);
                     }
                     p = EA.ptr;
                     break;
@@ -799,7 +799,7 @@ char *getEAimpl(ubyte rex, uint c, int do_xmm, uint vlen)
             }
         }
     }
-    sprintf(EAb.ptr,"%s%s",segover,p);
+    snprintf(EAb.ptr,EAb.length,"%s%s",segover,p);
     segover = "".ptr;
     assert(strlen(EA.ptr) < EA.length);
     assert(strlen(EAb.ptr) < EAb.length);
@@ -821,7 +821,7 @@ int prefixbyte(uint c)
         if (bObjectcode)
         {
             char[3 + 1] tmp;
-            sprintf(tmp.ptr, "%02X ", prefix);
+            snprintf(tmp.ptr, tmp.length, "%02X ", prefix);
             puts(tmp.ptr);
         }
     }
@@ -952,7 +952,7 @@ void getVEXstring(addr c, addr siz, char *p0)
 
     uint opcode,reg;
     char[5] p1buf;
-    sprintf(p1buf.ptr,"0x%02x",code[c]);
+    snprintf(p1buf.ptr,p1buf.length,"0x%02x",code[c]);
     const(char)* p1 = p1buf.ptr;
     const(char)* p2 = "".ptr;
     const(char)* p3 = "".ptr;
@@ -1872,7 +1872,7 @@ void disassemble(uint c)
     p0[0]='\0';
     if (bObjectcode) {
         for (i=0; i<siz; i++) {
-            sprintf( buf.ptr, "%02X ", code[c+i] );
+            snprintf( buf.ptr, buf.length, "%02X ", code[c+i] );
             strcat( p0.ptr, buf.ptr );
         }
         for (; i + prefixsize < 8; i++)
@@ -1910,7 +1910,7 @@ void disassemble(uint c)
         if (rex & REX_R)
             reg |= 8;
     }
-    sprintf(p1buf.ptr,"0x%02x",opcode);
+    snprintf(p1buf.ptr,p1buf.length,"0x%02x",opcode);
     p1 = p1buf.ptr;
     p2 = "";
     p3 = "";
@@ -3111,7 +3111,7 @@ void disassemble(uint c)
             Lpush:
                     p1 = "push";
                     if (opsize != defopsize)
-                    {   sprintf(buf.ptr,"dword ptr %s",p2);
+                    {   snprintf(buf.ptr,buf.length,"dword ptr %s",p2);
                         p2 = buf.ptr + opsize;
                     }
                     break;
@@ -3330,7 +3330,7 @@ void disassemble(uint c)
 const(char)* memoryDefault(uint c, uint sz, addr offset)
 {
     __gshared char[12 + 1] EA;
-    sprintf(EA.ptr,"[0%Xh]",offset);
+    snprintf(EA.ptr,EA.length,"[0%Xh]",offset);
     return EA.ptr;
 }
 
@@ -3366,7 +3366,7 @@ const(char)* immed16Default(ubyte[] code, uint c, int sz)
     }
     __gshared char[1 + offset.sizeof * 3 + 1 + 1] buf;
 
-    sprintf(buf.ptr, ((cast(long)offset < 10) ? "%lld" : "0%llXh"), offset);
+    snprintf(buf.ptr, buf.length,((cast(long)offset < 10) ? "%lld" : "0%llXh"), offset);
     return buf.ptr;
 }
 
@@ -3385,7 +3385,7 @@ const(char)* labelcodeDefault(uint c, uint offset, bool farflag, bool is16bit)
 {
     //printf("offset = %x\n", offset);
     __gshared char[1 + uint.sizeof * 3 + 1] buf;
-    sprintf(buf.ptr, "L%x", offset);
+    snprintf(buf.ptr, buf.length, "L%x", offset);
     return buf.ptr;
 }
 
@@ -3400,7 +3400,7 @@ const(char)* labelcodeDefault(uint c, uint offset, bool farflag, bool is16bit)
 const(char)* shortlabelDefault(uint pc, int offset)
 {
     __gshared char[1 + ulong.sizeof * 3 + 1] buf;
-    sprintf(buf.ptr, "L%x", pc + offset);
+    snprintf(buf.ptr, buf.length, "L%x", pc + offset);
     return buf.ptr;
 }
 
@@ -3428,7 +3428,7 @@ const(char)* wordtostring(uint w)
 {
     __gshared char[1 + w.sizeof * 3 + 1 + 1] EA;
 
-    sprintf(EA.ptr, ((w < 10) ? "%ld" : "0%lXh"), w);
+    snprintf(EA.ptr, EA.length, ((w < 10) ? "%ld" : "0%lXh"), w);
     return EA.ptr;
 }
 

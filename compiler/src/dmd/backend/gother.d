@@ -2,7 +2,7 @@
  * Other global optimizations
  *
  * Copyright:   Copyright (C) 1986-1998 by Symantec
- *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              https://www.boost.org/LICENSE_1_0.txt
@@ -12,14 +12,6 @@
  */
 
 module dmd.backend.gother;
-
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -48,11 +40,7 @@ char symbol_isintab(const Symbol *s) { return sytab[s.Sclass] & SCSS; }
 
 extern (C++):
 
-version (SCPP)
-    import parser;
-
-version (MARS)
-    import dmd.backend.errors;
+import dmd.backend.errors;
 
 /**********************************************************************/
 
@@ -358,7 +346,7 @@ private void conpropwalk(elem *n,vec_t IN)
             case OPne:
             case OPeqeq:
                 // Collect compare elems and their rd's in the rellist list
-                if (tyintegral(n.EV.E1.Ety))
+                if (tyintegral(n.EV.E1.Ety) && !tyvector(n.Ety))
                 {   //printf("appending to eqeqlist\n"); elem_print(n);
                     auto pdata = eqeqlist.push();
                     pdata.emplace(n,thisblock);
@@ -459,19 +447,6 @@ private void chkrd(elem *n, Barray!(elem*) rdlist)
         {
             printf("sv.Sident = %s\n", sv.Sident);
             return;
-        }
-    }
-
-    version (SCPP)
-    {
-        {   OutBuffer buf;
-            char *p2;
-
-            type_tostring(&buf, sv.Stype);
-            buf.writeByte(' ');
-            buf.write(sv.Sident.ptr);
-            p2 = buf.toString();
-            warerr(WM.WM_used_b4_set, p2);     // variable used before set
         }
     }
 
@@ -1255,7 +1230,7 @@ private bool copyPropWalk(elem *n,vec_t IN)
                 v = go.expnod[i].EV.E1.EV.Vsym;
                 if (ambig)
                 {
-                    if (!(v.Sflags & SFLunambig))
+                    if (Symbol_isAffected(*v))
                         goto clr;
                 }
                 else
@@ -1263,10 +1238,11 @@ private bool copyPropWalk(elem *n,vec_t IN)
                     if (v == t.EV.Vsym)
                         goto clr;
                 }
+
                 v = go.expnod[i].EV.E2.EV.Vsym;
                 if (ambig)
                 {
-                    if (!(v.Sflags & SFLunambig))
+                    if (Symbol_isAffected(*v))
                         goto clr;
                 }
                 else
@@ -1836,7 +1812,7 @@ void deadvar()
             char *p;
             Symbol *s = globsym[i];
 
-            if (s.Sflags & SFLdead && s.Sclass != SCparameter && s.Sclass != SCregpar)
+            if (s.Sflags & SFLdead && s.Sclass != SC.parameter && s.Sclass != SC.regpar)
                 s.Sflags &= ~GTregcand;    // do not put dead variables in registers
             debug
             {
@@ -2118,6 +2094,4 @@ private int ispath(uint j,block *bp,block *b)
             return true;
 
     return false;           /* j is used along all paths            */
-}
-
 }

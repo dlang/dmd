@@ -1,7 +1,7 @@
 /**
  * Generate debug info in the CV4 debug format.
  *
- * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _tocvdebug.d)
@@ -21,7 +21,6 @@ import dmd.root.array;
 import dmd.root.rmem;
 
 import dmd.aggregate;
-import dmd.apply;
 import dmd.astenums;
 import dmd.dclass;
 import dmd.declaration;
@@ -155,7 +154,7 @@ uint cv4_Denum(EnumDeclaration e)
     CvFieldList mc = CvFieldList(0, 0);
     if (!property)
     {
-        for (size_t i = 0; i < e.members.dim; i++)
+        for (size_t i = 0; i < e.members.length; i++)
         {
             EnumMember sf = (*e.members)[i].isEnumMember();
             if (!sf)
@@ -212,7 +211,7 @@ uint cv4_Denum(EnumDeclaration e)
         mc.alloc();
 
         // And fill it in
-        for (size_t i = 0; i < e.members.dim; i++)
+        for (size_t i = 0; i < e.members.length; i++)
         {
             EnumMember sf = (*e.members)[i].isEnumMember();
             if (!sf)
@@ -360,7 +359,7 @@ struct CvFieldList
 
     const bool canSplitList;
 
-    this(uint fields, uint len)
+    this(uint fields, uint len) scope
     {
         canSplitList = config.fulltypes == CV8; // optlink bails out with LF_INDEX
         fieldIndexLen = canSplitList ? (config.fulltypes == CV8 ? 2 + 2 + 4 : 2 + 2) : 0;
@@ -445,16 +444,18 @@ struct CvFieldList
 }
 
 // Lambda function
-int cv_mem_count(Dsymbol s, CvFieldList *pmc)
+int cv_mem_count(Dsymbol s, void* ctx)
 {
+    auto pmc = cast(CvFieldList *) ctx;
     int nwritten = cvMember(s, null);
     pmc.count(nwritten);
     return 0;
 }
 
 // Lambda function
-int cv_mem_p(Dsymbol s, CvFieldList *pmc)
+int cv_mem_p(Dsymbol s, void* ctx)
 {
+    auto pmc = cast(CvFieldList *) ctx;
     ubyte *p = pmc.writePtr();
     uint len = cvMember(s, p);
     pmc.written(len);
@@ -557,7 +558,7 @@ void toDebug(StructDeclaration sd)
 
     // Compute the number of fields and the length of the fieldlist record
     CvFieldList mc = CvFieldList(0, 0);
-    for (size_t i = 0; i < sd.members.dim; i++)
+    for (size_t i = 0; i < sd.members.length; i++)
     {
         Dsymbol s = (*sd.members)[i];
         s.apply(&cv_mem_count, &mc);
@@ -568,7 +569,7 @@ void toDebug(StructDeclaration sd)
     mc.alloc();
     if (nfields)
     {
-        for (size_t i = 0; i < sd.members.dim; i++)
+        for (size_t i = 0; i < sd.members.length; i++)
         {
             Dsymbol s = (*sd.members)[i];
             s.apply(&cv_mem_p, &mc);
@@ -647,7 +648,7 @@ void toDebug(ClassDeclaration cd)
     idx_t vshapeidx = 0;
     if (1)
     {
-        const size_t dim = cd.vtbl.dim;              // number of virtual functions
+        const size_t dim = cd.vtbl.length;              // number of virtual functions
         if (dim)
         {   // 4 bits per descriptor
             debtyp_t *vshape = debtyp_alloc(cast(uint)(4 + (dim + 1) / 2));
@@ -656,7 +657,7 @@ void toDebug(ClassDeclaration cd)
 
             size_t n = 0;
             ubyte descriptor = 0;
-            for (size_t i = 0; i < cd.vtbl.dim; i++)
+            for (size_t i = 0; i < cd.vtbl.length; i++)
             {
                 //if (intsize == 4)
                     descriptor |= 5;
@@ -715,7 +716,7 @@ void toDebug(ClassDeclaration cd)
     if (addInBaseClasses)
     {
         // Add in base classes
-        for (size_t i = 0; i < cd.baseclasses.dim; i++)
+        for (size_t i = 0; i < cd.baseclasses.length; i++)
         {
             const bc = (*cd.baseclasses)[i];
             const uint elementlen = 4 + cgcv.sz_idx + cv4_numericbytes(bc.offset);
@@ -723,7 +724,7 @@ void toDebug(ClassDeclaration cd)
         }
     }
 
-    for (size_t i = 0; i < cd.members.dim; i++)
+    for (size_t i = 0; i < cd.members.length; i++)
     {
         Dsymbol s = (*cd.members)[i];
         s.apply(&cv_mem_count, &mc);
@@ -743,7 +744,7 @@ void toDebug(ClassDeclaration cd)
             ubyte* p = base;
 
             // Add in base classes
-            for (size_t i = 0; i < cd.baseclasses.dim; i++)
+            for (size_t i = 0; i < cd.baseclasses.length; i++)
             {
                 BaseClass *bc = (*cd.baseclasses)[i];
                 const idx_t typidx2 = cv4_typidx(Type_toCtype(bc.sym.type).Tnext);

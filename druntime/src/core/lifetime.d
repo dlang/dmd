@@ -364,7 +364,7 @@ T* emplace(T, Args...)(void[] chunk, auto ref Args args)
     assert(u1.a == "hello");
 }
 
-@system unittest // bugzilla 15772
+@system unittest // https://issues.dlang.org/show_bug.cgi?id=15772
 {
     abstract class Foo {}
     class Bar: Foo {}
@@ -2322,7 +2322,7 @@ pure nothrow @nogc @system unittest
     assert(val == 1);
 }
 
-// issue 18913
+// https://issues.dlang.org/show_bug.cgi?id=18913
 @safe unittest
 {
     static struct NoCopy
@@ -2385,21 +2385,24 @@ template _d_delstructImpl(T)
         }
     }
 
-    import core.internal.array.utils : _d_HookTraceImpl;
+    version (D_ProfileGC)
+    {
+        import core.internal.array.utils : _d_HookTraceImpl;
 
-    private enum errorMessage = "Cannot delete struct if compiling without support for runtime type information!";
+        private enum errorMessage = "Cannot delete struct if compiling without support for runtime type information!";
 
-    /**
-     * TraceGC wrapper around $(REF _d_delstruct, core,lifetime,_d_delstructImpl).
-     *
-     * Bugs:
-     *   This function template was ported from a much older runtime hook that
-     *   bypassed safety, purity, and throwabilty checks. To prevent breaking
-     *   existing code, this function template is temporarily declared
-     *   `@trusted` until the implementation can be brought up to modern D
-     *   expectations.
-     */
-    alias _d_delstructTrace = _d_HookTraceImpl!(T, _d_delstruct, errorMessage);
+        /**
+         * TraceGC wrapper around $(REF _d_delstruct, core,lifetime,_d_delstructImpl).
+         *
+         * Bugs:
+         *   This function template was ported from a much older runtime hook that
+         *   bypassed safety, purity, and throwabilty checks. To prevent breaking
+         *   existing code, this function template is temporarily declared
+         *   `@trusted` until the implementation can be brought up to modern D
+         *   expectations.
+         */
+        alias _d_delstructTrace = _d_HookTraceImpl!(T, _d_delstruct, errorMessage);
+    }
 }
 
 @system pure nothrow unittest
@@ -2451,7 +2454,7 @@ template _d_delstructImpl(T)
     assert(outerDtors == 1);
 }
 
-// issue 25552
+// https://issues.dlang.org/show_bug.cgi?id=25552
 pure nothrow @system unittest
 {
     int i;
@@ -2475,7 +2478,7 @@ pure nothrow @system unittest
     assert(i == 2);
 }
 
-// issue 25552
+// https://issues.dlang.org/show_bug.cgi?id=25552
 @safe unittest
 {
     int i;
@@ -2524,7 +2527,7 @@ pure nothrow @system unittest
     assert(i == 6);
 }
 
-// issue 25552
+// https://issues.dlang.org/show_bug.cgi?id=25552
 @safe unittest
 {
     int i;
@@ -2708,4 +2711,292 @@ T _d_newThrowable(T)() @trusted
 
     assert(exc.refcount() == 1);
     assert(e.refcount() == 1);
+}
+
+/**
+ * Create a new class instance.
+ * Allocates memory and sets fields to their initial value, but does not call a
+ * constructor.
+ * ---
+ * new C() // _d_newclass!(C)()
+ * ---
+ * Returns: newly created object
+ */
+T _d_newclassT(T)() @trusted
+if (is(T == class))
+{
+    import core.internal.traits : hasIndirections;
+    import core.exception : onOutOfMemoryError;
+    import core.memory : GC, pureMalloc;
+
+    alias BlkAttr = GC.BlkAttr;
+
+    auto init = __traits(initSymbol, T);
+    void* p;
+
+    static if (__traits(getLinkage, T) == "Windows")
+    {
+        p = pureMalloc(init.length);
+        if (!p)
+            onOutOfMemoryError();
+    }
+    else
+    {
+        BlkAttr attr = BlkAttr.NONE;
+
+        /* `extern(C++)`` classes don't have a classinfo pointer in their vtable,
+         * so the GC can't finalize them.
+         */
+        static if (__traits(hasMember, T, "__dtor") && __traits(getLinkage, T) != "C++")
+            attr |= BlkAttr.FINALIZE;
+        static if (!hasIndirections!T)
+            attr |= BlkAttr.NO_SCAN;
+
+        p = GC.malloc(init.length, attr, typeid(T));
+        debug(PRINTF) printf(" p = %p\n", p);
+    }
+
+    debug(PRINTF)
+    {
+        printf("p = %p\n", p);
+        printf("init.ptr = %p, len = %llu\n", init.ptr, cast(ulong)init.length);
+        printf("vptr = %p\n", *cast(void**) init);
+        printf("vtbl[0] = %p\n", (*cast(void***) init)[0]);
+        printf("vtbl[1] = %p\n", (*cast(void***) init)[1]);
+        printf("init[0] = %x\n", (cast(uint*) init)[0]);
+        printf("init[1] = %x\n", (cast(uint*) init)[1]);
+        printf("init[2] = %x\n", (cast(uint*) init)[2]);
+        printf("init[3] = %x\n", (cast(uint*) init)[3]);
+        printf("init[4] = %x\n", (cast(uint*) init)[4]);
+    }
+
+    // initialize it
+    p[0 .. init.length] = init[];
+
+    debug(PRINTF) printf("initialization done\n");
+    return cast(T) p;
+}
+
+/**
+ * TraceGC wrapper around $(REF _d_newclassT, core,lifetime).
+ */
+T _d_newclassTTrace(T)(string file, int line, string funcname) @trusted
+{
+    version (D_TypeInfo)
+    {
+        import core.internal.array.utils : TraceHook, gcStatsPure, accumulatePure;
+        mixin(TraceHook!(T.stringof, "_d_newclassT"));
+
+        return _d_newclassT!T();
+    }
+    else
+        assert(0, "Cannot create new class if compiling without support for runtime type information!");
+}
+
+/**
+ * Allocate an initialized non-array item.
+ *
+ * This is an optimization to avoid things needed for arrays like the __arrayPad(size).
+ * Used to allocate struct instances on the heap.
+ *
+ * ---
+ * struct Sz {int x = 0;}
+ * struct Si {int x = 3;}
+ *
+ * void main()
+ * {
+ *     new Sz(); // uses zero-initialization
+ *     new Si(); // uses Si.init
+ * }
+ * ---
+ *
+ * Returns:
+ *     newly allocated item
+ */
+T* _d_newitemT(T)() @trusted
+{
+    import core.internal.lifetime : emplaceInitializer;
+    import core.internal.traits : hasElaborateDestructor, hasIndirections;
+    import core.memory : GC;
+
+    auto flags = !hasIndirections!T ? GC.BlkAttr.NO_SCAN : GC.BlkAttr.NONE;
+    immutable tiSize = hasElaborateDestructor!T ? size_t.sizeof : 0;
+    immutable itemSize = T.sizeof;
+    immutable totalSize = itemSize + tiSize;
+    if (tiSize)
+        flags |= GC.BlkAttr.STRUCTFINAL | GC.BlkAttr.FINALIZE;
+
+    auto blkInfo = GC.qalloc(totalSize, flags, null);
+    auto p = blkInfo.base;
+
+    if (tiSize)
+    {
+        // The GC might not have cleared the padding area in the block.
+        *cast(TypeInfo*) (p + (itemSize & ~(size_t.sizeof - 1))) = null;
+        *cast(TypeInfo*) (p + blkInfo.size - tiSize) = cast() typeid(T);
+    }
+
+    emplaceInitializer(*(cast(T*) p));
+
+    return cast(T*) p;
+}
+
+// Test allocation
+@safe unittest
+{
+    class C { }
+    C c = _d_newclassT!C();
+
+    assert(c !is null);
+}
+
+// Test initializers
+@safe unittest
+{
+    {
+        class C { int x, y; }
+        C c = _d_newclassT!C();
+
+        assert(c.x == 0);
+        assert(c.y == 0);
+    }
+    {
+        class C { int x = 2, y = 3; }
+        C c = _d_newclassT!C();
+
+        assert(c.x == 2);
+        assert(c.y == 3);
+    }
+}
+
+// Test allocation
+@safe unittest
+{
+    struct S { }
+    S* s = _d_newitemT!S();
+
+    assert(s !is null);
+}
+
+// Test initializers
+@safe unittest
+{
+    {
+        // zero-initialization
+        struct S { int x, y; }
+        S* s = _d_newitemT!S();
+
+        assert(s.x == 0);
+        assert(s.y == 0);
+    }
+    {
+        // S.init
+        struct S { int x = 2, y = 3; }
+        S* s = _d_newitemT!S();
+
+        assert(s.x == 2);
+        assert(s.y == 3);
+    }
+}
+
+// Test GC attributes
+version (CoreUnittest)
+{
+    struct S1
+    {
+        int x = 5;
+    }
+    struct S2
+    {
+        int x;
+        this(int x) { this.x = x; }
+    }
+    struct S3
+    {
+        int[4] x;
+        this(int x) { this.x[] = x; }
+    }
+    struct S4
+    {
+        int *x;
+    }
+
+}
+@system unittest
+{
+    import core.memory : GC;
+
+    auto s1 = new S1;
+    assert(s1.x == 5);
+    assert(GC.getAttr(s1) == GC.BlkAttr.NO_SCAN);
+
+    auto s2 = new S2(3);
+    assert(s2.x == 3);
+    assert(GC.getAttr(s2) == GC.BlkAttr.NO_SCAN);
+
+    auto s3 = new S3(1);
+    assert(s3.x == [1, 1, 1, 1]);
+    assert(GC.getAttr(s3) == GC.BlkAttr.NO_SCAN);
+    debug(SENTINEL) {} else
+        assert(GC.sizeOf(s3) == 16);
+
+    auto s4 = new S4;
+    assert(s4.x == null);
+    assert(GC.getAttr(s4) == 0);
+}
+
+// Test struct finalizers exception handling
+debug(SENTINEL) {} else
+@system unittest
+{
+    import core.memory : GC;
+
+    bool test(E)()
+    {
+        import core.exception;
+        static struct S1
+        {
+            E exc;
+            ~this() { throw exc; }
+        }
+
+        bool caught = false;
+        S1* s = new S1(new E("test onFinalizeError"));
+        try
+        {
+            GC.runFinalizers((cast(char*)(typeid(S1).xdtor))[0 .. 1]);
+        }
+        catch (FinalizeError err)
+        {
+            caught = true;
+        }
+        catch (E)
+        {
+        }
+        GC.free(s);
+        return caught;
+    }
+
+    assert(test!Exception);
+    import core.exception : InvalidMemoryOperationError;
+    assert(!test!InvalidMemoryOperationError);
+}
+
+version (D_ProfileGC)
+{
+    /**
+    * TraceGC wrapper around $(REF _d_newitemT, core,lifetime).
+    */
+    T* _d_newitemTTrace(T)(string file, int line, string funcname) @trusted
+    {
+        version (D_TypeInfo)
+        {
+            import core.internal.array.utils : TraceHook, gcStatsPure, accumulatePure;
+            mixin(TraceHook!(T.stringof, "_d_newitemT"));
+
+            return _d_newitemT!T();
+        }
+        else
+            assert(0, "Cannot create new `struct` if compiling without support for runtime type information!");
+    }
 }

@@ -3,7 +3,7 @@
  * Generate exception handling tables.
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/eh.d, _eh.d)
@@ -56,9 +56,9 @@ Symbol *except_gentables()
 
         char[13+5+1] name = void;
         __gshared int tmpnum;
-        sprintf(name.ptr,"_HandlerTable%d",tmpnum++);
+        const len = snprintf(name.ptr, name.length, "_HandlerTable%d", tmpnum++);
 
-        Symbol *s = symbol_name(name.ptr,SCstatic,tstypes[TYint]);
+        Symbol *s = symbol_name(name[0 .. len],SC.static_,tstypes[TYint]);
         symbol_keep(s);
         //symbol_debug(s);
 
@@ -291,7 +291,7 @@ void except_fillInEHTable(Symbol *s)
                                 cf = code_next(cf);
                                 foffset += calccodsize(cf);
                             }
-                            // issue 9438
+                            // https://issues.dlang.org/show_bug.cgi?id=9438
                             //cf = code_next(cf);
                             //foffset += calccodsize(cf);
                             if (config.ehmethod == EHmethod.EH_DM)
