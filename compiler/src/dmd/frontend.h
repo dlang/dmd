@@ -1863,7 +1863,7 @@ public:
     virtual bool isZeroInit(const Loc& loc);
     virtual int32_t hasWild() const;
     virtual bool hasVoidInitPointers();
-    virtual bool hasSystemFields();
+    virtual bool hasUnsafeBitpatterns();
     virtual bool hasInvariant();
     virtual Type* nextOf();
     Type* baseElemOf();
@@ -4242,6 +4242,7 @@ public:
     bool isunsigned() override;
     MATCH implicitConvTo(Type* to) override;
     bool isZeroInit(const Loc& loc) override;
+    bool hasUnsafeBitpatterns() override;
     TypeBasic* isTypeBasic() override;
     void accept(Visitor* v) override;
 };
@@ -4329,7 +4330,7 @@ public:
     MATCH constConv(Type* to) override;
     bool isZeroInit(const Loc& loc) override;
     bool hasVoidInitPointers() override;
-    bool hasSystemFields() override;
+    bool hasUnsafeBitpatterns() override;
     bool hasInvariant() override;
     Type* nextOf() override;
     void accept(Visitor* v) override;
@@ -4568,7 +4569,7 @@ public:
     MATCH constConv(Type* to) override;
     MATCH implicitConvTo(Type* to) override;
     Expression* defaultInitLiteral(const Loc& loc) override;
-    bool hasSystemFields() override;
+    bool hasUnsafeBitpatterns() override;
     bool hasVoidInitPointers() override;
     bool hasInvariant() override;
     bool needsDestruction() override;
@@ -4607,7 +4608,7 @@ public:
     bool needsCopyOrPostblit() override;
     bool needsNested() override;
     bool hasVoidInitPointers() override;
-    bool hasSystemFields() override;
+    bool hasUnsafeBitpatterns() override;
     bool hasInvariant() override;
     MATCH implicitConvTo(Type* to) override;
     MATCH constConv(Type* to) override;
@@ -7311,8 +7312,8 @@ public:
     bool hasPointerField(bool v);
     bool hasVoidInitPointers() const;
     bool hasVoidInitPointers(bool v);
-    bool hasSystemFields() const;
-    bool hasSystemFields(bool v);
+    bool hasUnsafeBitpatterns() const;
+    bool hasUnsafeBitpatterns(bool v);
     bool hasFieldWithInvariant() const;
     bool hasFieldWithInvariant(bool v);
     bool computedTypeProperties() const;
