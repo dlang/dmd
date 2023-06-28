@@ -40,17 +40,69 @@ nothrow:
 @safe:
 
 // FIXME: backend can't import front end modules because missing -J flag
-
-// import dmd.dmsc : _align, symboldata, size;
-targ_size_t _align(targ_size_t,targ_size_t);
-@trusted Symbol *symboldata(targ_size_t offset,tym_t ty);
-targ_size_t size(tym_t);
-
-// import dmd.e2ir : REGSIZE;
-int REGSIZE();
-
 // import dmd.eh : except_gentables;
 Symbol* except_gentables();
+
+import dmd.backend.var : _tysize;
+import dmd.backend.ty : TYnptr, TYvoid, tybasic, tysize;
+
+/***********************************
+ * Returns: aligned `offset` if it is of size `size`.
+ */
+targ_size_t _align(targ_size_t size, targ_size_t offset) @trusted
+{
+    switch (size)
+    {
+        case 1:
+            break;
+        case 2:
+        case 4:
+        case 8:
+        case 16:
+        case 32:
+        case 64:
+            offset = (offset + size - 1) & ~(size - 1);
+            break;
+        default:
+            if (size >= 16)
+                offset = (offset + 15) & ~15;
+            else
+                offset = (offset + _tysize[TYnptr] - 1) & ~(_tysize[TYnptr] - 1);
+            break;
+    }
+    return offset;
+}
+
+/*******************************
+ * Get size of ty
+ */
+targ_size_t size(tym_t ty) @trusted
+{
+    int sz = (tybasic(ty) == TYvoid) ? 1 : tysize(ty);
+    debug
+    {
+        if (sz == -1)
+            printf("ty: %s\n", tym_str(ty));
+    }
+    assert(sz!= -1);
+    return sz;
+}
+
+/****************************
+ * Generate symbol of type ty at DATA:offset
+ */
+Symbol *symboldata(targ_size_t offset, tym_t ty)
+{
+    Symbol *s = symbol_generate(SC.locstat, type_fake(ty));
+    s.Sfl = FLdata;
+    s.Soffset = offset;
+    s.Stype.Tmangle = mTYman_sys; // writes symbol unmodified in Obj::mangle
+    symbol_keep(s);               // keep around
+    return s;
+}
+
+/// Size of a register in bytes
+int REGSIZE() @trusted { return _tysize[TYnptr]; }
 
 public import dmd.backend.var : debuga, debugb, debugc, debugd, debuge, debugf,
     debugr, debugs, debugt, debugu, debugw, debugx, debugy;

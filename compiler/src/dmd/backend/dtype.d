@@ -296,7 +296,7 @@ debug
  * Returns:
  *      pointer to newly created type.
  */
-
+@nogc
 type *type_fake(tym_t ty)
 {   type *t;
 

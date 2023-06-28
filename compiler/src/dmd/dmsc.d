@@ -100,66 +100,6 @@ void backend_init()
     );
 }
 
-
-/***********************************
- * Return aligned 'offset' if it is of size 'size'.
- */
-
-targ_size_t _align(targ_size_t size, targ_size_t offset)
-{
-    switch (size)
-    {
-        case 1:
-            break;
-        case 2:
-        case 4:
-        case 8:
-        case 16:
-        case 32:
-        case 64:
-            offset = (offset + size - 1) & ~(size - 1);
-            break;
-        default:
-            if (size >= 16)
-                offset = (offset + 15) & ~15;
-            else
-                offset = (offset + _tysize[TYnptr] - 1) & ~(_tysize[TYnptr] - 1);
-            break;
-    }
-    return offset;
-}
-
-
-/*******************************
- * Get size of ty
- */
-
-targ_size_t size(tym_t ty)
-{
-    int sz = (tybasic(ty) == TYvoid) ? 1 : tysize(ty);
-    debug
-    {
-        if (sz == -1)
-            printf("ty: %s\n", tym_str(ty));
-    }
-    assert(sz!= -1);
-    return sz;
-}
-
-/****************************
- * Generate symbol of type ty at DATA:offset
- */
-
-Symbol *symboldata(targ_size_t offset,tym_t ty)
-{
-    Symbol *s = symbol_generate(SC.locstat, type_fake(ty));
-    s.Sfl = FLdata;
-    s.Soffset = offset;
-    s.Stype.Tmangle = mTYman_sys; // writes symbol unmodified in Obj::mangle
-    symbol_keep(s);               // keep around
-    return s;
-}
-
 /**************************************
  */
 
