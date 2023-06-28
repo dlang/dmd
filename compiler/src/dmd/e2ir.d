@@ -86,7 +86,7 @@ alias toSymbol = dmd.glue.toSymbol;
 void* mem_malloc2(uint);
 
 
-int REGSIZE() { return _tysize[TYnptr]; }
+private int registerSize() { return _tysize[TYnptr]; }
 
 /* If variable var is a reference
  */
@@ -117,7 +117,7 @@ bool ISX64REF(Declaration var)
              * https://docs.microsoft.com/en-us/cpp/build/x64-calling-convention?view=msvc-170#parameter-passing
              * but watch out because the spec doesn't mention copy construction
              */
-            return var.type.size(Loc.initial) > REGSIZE
+            return var.type.size(Loc.initial) > registerSize
                 || (var.storage_class & STC.lazy_)
                 || (var.type.isTypeStruct() && var.type.isTypeStruct().sym.hasCopyConstruction());
         }
@@ -136,7 +136,7 @@ bool ISX64REF(IRState* irs, Expression exp)
 {
     if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
     {
-        return exp.type.size(Loc.initial) > REGSIZE
+        return exp.type.size(Loc.initial) > registerSize
                || (exp.type.isTypeStruct() && exp.type.isTypeStruct().sym.hasCopyConstruction());
     }
     else if (irs.target.os & Target.OS.Posix)
@@ -6238,7 +6238,7 @@ Lagain:
         edim = el_bin(OPmul, TYsize_t, edim, el_long(TYsize_t, sz));
     }
 
-    if (irs.target.os == Target.OS.Windows && irs.target.is64bit && sz > REGSIZE)
+    if (irs.target.os == Target.OS.Windows && irs.target.is64bit && sz > registerSize)
     {
         evalue = addressElem(evalue, tb);
     }
