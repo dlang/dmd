@@ -3966,7 +3966,9 @@ $(H3 $(LNAME2 safe-interfaces, Safe Interfaces))
 
 $(H3 $(LNAME2 safe-values, Safe Values))
 
-        $(P For $(DDSUBLINK spec/type, basic-data-types, basic data types), all
+        $(P For a `bool`, only 0 and 1 are safe values.)
+
+        $(P For all other $(DDSUBLINK spec/type, basic-data-types, basic data types), all
         possible bit patterns are safe.)
 
         $(P A pointer is a safe value when it is one of:)
@@ -4006,6 +4008,8 @@ $(H3 $(LNAME2 safe-values, Safe Values))
         ---
         int[] f() @system
         {
+            bool b = true; /* b is initialized safe */
+            *(cast(ubyte*) &b) = 0xAA; /* b is now unsafe because it's not 0 or 1 */
             int[3] a;
             int[] d1 = a[0 .. 2]; /* d1 is safe. */
             int[] d2 = a.ptr[0 .. 3]; /* d2 is unsafe because it goes beyond a's

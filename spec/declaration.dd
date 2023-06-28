@@ -652,8 +652,9 @@ $(GNAME VoidInitializer):
         $(GLINK Initializer) or are set to the default value for the
         type of the variable. If the $(I Initializer) is $(D void),
         however, the variable is not initialized.
-        Void initializers for objects that contain indirections is not
-        allowed in `@safe` code.
+        Void initializers for variables with a type that may contain
+        $(DDSUBLINK spec/function, safe-values, unsafe values) (such as types with pointers)
+        are not allowed in `@safe` code.
         )
 
         $(IMPLEMENTATION_DEFINED If a void initialized variable's value is
