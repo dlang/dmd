@@ -276,7 +276,7 @@ public:
     virtual bool isZeroInit(const Loc &loc = Loc()); // if initializer is 0
     virtual int hasWild() const;
     virtual bool hasVoidInitPointers();
-    virtual bool hasSystemFields();
+    virtual bool hasUnsafeBitpatterns();
     virtual bool hasInvariant();
     virtual Type *nextOf();
     Type *baseElemOf();
@@ -421,7 +421,7 @@ public:
     MATCH constConv(Type *to) override;
     MATCH implicitConvTo(Type *to) override;
     Expression *defaultInitLiteral(const Loc &loc) override;
-    bool hasSystemFields() override;
+    bool hasUnsafeBitpatterns() override;
     bool hasVoidInitPointers() override;
     bool hasInvariant() override;
     bool needsDestruction() override;
@@ -739,7 +739,7 @@ public:
     bool needsCopyOrPostblit() override;
     bool needsNested() override;
     bool hasVoidInitPointers() override;
-    bool hasSystemFields() override;
+    bool hasUnsafeBitpatterns() override;
     bool hasInvariant() override;
     MATCH implicitConvTo(Type *to) override;
     MATCH constConv(Type *to) override;
@@ -775,7 +775,7 @@ public:
     MATCH constConv(Type *to) override;
     bool isZeroInit(const Loc &loc) override;
     bool hasVoidInitPointers() override;
-    bool hasSystemFields() override;
+    bool hasUnsafeBitpatterns() override;
     bool hasInvariant() override;
     Type *nextOf() override;
 

@@ -1412,7 +1412,7 @@ extern (C++) abstract class Type : ASTNode
      * Returns:
      *  true if so
      */
-    bool hasSystemFields()
+    bool hasUnsafeBitpatterns()
     {
         return false;
     }
@@ -2340,6 +2340,11 @@ extern (C++) final class TypeBasic : Type
         }
     }
 
+    override bool hasUnsafeBitpatterns()
+    {
+        return ty == Tbool;
+    }
+
     // For eliminating dynamic_cast
     override TypeBasic isTypeBasic()
     {
@@ -2657,9 +2662,9 @@ extern (C++) final class TypeSArray : TypeArray
         return ae;
     }
 
-    override bool hasSystemFields()
+    override bool hasUnsafeBitpatterns()
     {
-        return next.hasSystemFields();
+        return next.hasUnsafeBitpatterns();
     }
 
     override bool hasVoidInitPointers()
@@ -3976,11 +3981,11 @@ extern (C++) final class TypeStruct : Type
         return sym.hasVoidInitPointers;
     }
 
-    override bool hasSystemFields()
+    override bool hasUnsafeBitpatterns()
     {
         sym.size(Loc.initial); // give error for forward references
         sym.determineTypeProperties();
-        return sym.hasSystemFields;
+        return sym.hasUnsafeBitpatterns;
     }
 
     override bool hasInvariant()
@@ -4239,9 +4244,9 @@ extern (C++) final class TypeEnum : Type
         return memType().hasVoidInitPointers();
     }
 
-    override bool hasSystemFields()
+    override bool hasUnsafeBitpatterns()
     {
-        return memType().hasSystemFields();
+        return memType().hasUnsafeBitpatterns();
     }
 
     override bool hasInvariant()
