@@ -1382,7 +1382,7 @@ $(GNAME NewAnonClassExpression):
     $(D new) $(D class) $(GLINK ConstructorArgs)$(OPT) $(GLINK AnonBaseClassList)$(OPT) $(GLINK2 struct, AggregateBody)
 
 $(GNAME ConstructorArgs):
-    $(D $(LPAREN)) $(GLINK2 expression, ArgumentList)$(OPT) $(D $(RPAREN))
+    $(D $(LPAREN)) $(GLINK2 expression, NamedArgumentList)$(OPT) $(D $(RPAREN))
 
 $(GNAME AnonBaseClassList):
     $(GLINK SuperClassOrInterface)

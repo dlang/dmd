@@ -1529,8 +1529,8 @@ $(GNAME PostfixExpression):
     $(GSELF PostfixExpression) $(D .) $(GLINK NewExpression)
     $(GSELF PostfixExpression) $(D ++)
     $(GSELF PostfixExpression) $(D --)
-    $(GSELF PostfixExpression) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
-    $(GLINK2 type, TypeCtors)$(OPT) $(GLINK2 type, BasicType) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
+    $(GSELF PostfixExpression) $(D $(LPAREN)) $(GLINK NamedArgumentList)$(OPT) $(D $(RPAREN))
+    $(GLINK2 type, TypeCtors)$(OPT) $(GLINK2 type, BasicType) $(D $(LPAREN)) $(GLINK NamedArgumentList)$(OPT) $(D $(RPAREN))
     $(GLINK IndexExpression)
     $(GLINK SliceExpression)
 )
@@ -1758,9 +1758,9 @@ $(GNAME PrimaryExpression):
     $(GLINK2 type, FundamentalType) $(D .) $(IDENTIFIER)
     $(D $(LPAREN)) $(GLINK2 type, Type) $(D $(RPAREN) .) $(IDENTIFIER)
     $(D $(LPAREN)) $(GLINK2 type, Type) $(D $(RPAREN) .) $(GLINK2 template, TemplateInstance)
-    $(GLINK2 type, FundamentalType) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
+    $(GLINK2 type, FundamentalType) $(D $(LPAREN)) $(GLINK NamedArgumentList)$(OPT) $(D $(RPAREN))
     $(GLINK2 type, TypeCtor) $(D $(LPAREN)) $(GLINK2 type, Type) $(D $(RPAREN)) $(D .) $(IDENTIFIER)
-    $(GLINK2 type, TypeCtor) $(D $(LPAREN)) $(GLINK2 type, Type) $(D $(RPAREN)) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
+    $(GLINK2 type, TypeCtor) $(D $(LPAREN)) $(GLINK2 type, Type) $(D $(RPAREN)) $(D $(LPAREN)) $(GLINK NamedArgumentList)$(OPT) $(D $(RPAREN))
     $(GLINK2 type, Typeof)
     $(GLINK TypeidExpression)
     $(GLINK IsExpression)
@@ -2546,7 +2546,7 @@ $(GRAMMAR
 $(GNAME NewExpression):
     $(D new) $(GLINK2 type, Type)
     $(D new) $(GLINK2 type, Type) $(D [) $(GLINK AssignExpression) $(D ])
-    $(D new) $(GLINK2 type, Type) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
+    $(D new) $(GLINK2 type, Type) $(D $(LPAREN)) $(GLINK NamedArgumentList)$(OPT) $(D $(RPAREN))
     $(GLINK2 class, NewAnonClassExpression)
 
 $(GNAME ArgumentList):
@@ -2555,15 +2555,24 @@ $(GNAME ArgumentList):
     $(GLINK AssignExpression) $(D ,) $(GSELF ArgumentList)
 )
 
+$(GNAME NamedArgumentList):
+    $(GLINK NamedArgument)
+    $(GLINK NamedArgument) $(D ,)
+    $(GLINK NamedArgument) $(D ,) $(I NamedArgumentList)
+
+$(GNAME NamedArgument):
+    $(IDENTIFIER) $(D :) $(GLINK AssignExpression)
+    $(GLINK AssignExpression)
+
     $(P $(I NewExpression)s allocate memory on the
         $(DDLINK spec/garbage, Garbage Collection, garbage
         collected) heap by default.
     )
 
     $(P The `new` *Type* form constructs an instance of a type and default-initializes it.)
-    $(P The *Type(ArgumentList)* form allows passing either a single initializer
+    $(P The *Type(NamedArgumentList)* form allows passing either a single initializer
         of the same type, or multiple arguments for more complex types.
-        For class types, *ArgumentList* is passed to the class constructor.
+        For class types, *NamedArgumentList* is passed to the class constructor.
         For a dynamic array, the argument sets the initial array length.
         For multidimensional dynamic arrays, each argument corresponds to
         an initial length (see $(RELATIVE_LINK2 new_multidimensional, below)).)
@@ -2585,7 +2594,7 @@ $(GNAME ArgumentList):
 
     $(P The *Type[AssignExpression]* form allocates a dynamic array with
         length equal to *AssignExpression*.
-        It is preferred to use the *Type(ArgumentList)* form when allocating
+        It is preferred to use the *Type(NamedArgumentList)* form when allocating
         dynamic arrays instead, as it is more general.)
 
     $(NOTE It is not possible to allocate a static array directly with

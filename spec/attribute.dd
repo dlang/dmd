@@ -1024,9 +1024,9 @@ $(GRAMMAR
 $(GNAME UserDefinedAttribute):
     $(D @ $(LPAREN)) $(GLINK2 expression, TemplateArgumentList) $(D $(RPAREN))
     $(D @) $(GLINK2 template, TemplateSingleArgument)
-    $(D @) $(GLINK_LEX Identifier) $(D $(LPAREN)) $(GLINK2 expression, ArgumentList)$(OPT) $(D $(RPAREN))
+    $(D @) $(GLINK_LEX Identifier) $(D $(LPAREN)) $(GLINK2 expression, NamedArgumentList)$(OPT) $(D $(RPAREN))
     $(D @) $(GLINK2 template, TemplateInstance)
-    $(D @) $(GLINK2 template, TemplateInstance) $(D $(LPAREN)) $(GLINK2 expression, ArgumentList)$(OPT) $(D $(RPAREN))
+    $(D @) $(GLINK2 template, TemplateInstance) $(D $(LPAREN)) $(GLINK2 expression, NamedArgumentList)$(OPT) $(D $(RPAREN))
 )
 
     $(P
