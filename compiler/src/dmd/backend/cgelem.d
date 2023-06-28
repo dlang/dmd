@@ -65,8 +65,6 @@ private __gshared
 
 private bool cnst(const elem* e) { return e.Eoper == OPconst; }
 
-import dmd.backend.errors;
-
 /*****************************
  */
 

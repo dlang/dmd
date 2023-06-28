@@ -104,7 +104,6 @@ extern (C) void out_config_init(
     {
         if (dwarf)
         {
-            import dmd.backend.errors;
             error(null, 0, 0, "DWARF version %u is not supported", dwarf);
         }
 

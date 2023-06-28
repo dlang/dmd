@@ -17,12 +17,6 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
-import dmd.globals;
-import dmd.errors;
-import dmd.target;
-
-import dmd.root.rmem;
-
 import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
@@ -114,7 +108,7 @@ void except_fillInEHTable(Symbol *s)
  */
     uint GUARD_SIZE;
     if (config.ehmethod == EHmethod.EH_DM)
-        GUARD_SIZE = (target.is64bit ? 3*8 : 5*4);
+        GUARD_SIZE = (I64() ? 3*8 : 5*4);
     else if (config.ehmethod == EHmethod.EH_WIN32)
         GUARD_SIZE = 3*4;
     else
