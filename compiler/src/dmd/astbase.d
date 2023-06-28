@@ -3695,7 +3695,7 @@ struct ASTBase
                 {
                     Expression e = (*exps)[i];
                     if (e.type.ty == Ttuple)
-                        e.error("cannot form tuple of tuples");
+                        e.error("cannot form sequence of sequences");
                     auto arg = new Parameter(STC.undefined_, e.type, null, null, null);
                     (*arguments)[i] = arg;
                 }

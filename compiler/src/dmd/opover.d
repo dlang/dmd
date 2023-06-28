@@ -1045,7 +1045,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                 size_t dim = tup1.exps.length;
                 if (dim != tup2.exps.length)
                 {
-                    e.error("mismatched tuple lengths, `%d` and `%d`",
+                    e.error("mismatched sequence lengths, `%d` and `%d`",
                         cast(int)dim, cast(int)tup2.exps.length);
                     return ErrorExp.get();
                 }

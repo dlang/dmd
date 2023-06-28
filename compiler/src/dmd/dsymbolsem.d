@@ -695,7 +695,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 size_t tedim = te.exps.length;
                 if (tedim != nelems)
                 {
-                    error(dsym.loc, "tuple of %d elements cannot be assigned to tuple of %d elements", cast(int)tedim, cast(int)nelems);
+                    error(dsym.loc, "sequence of %d elements cannot be assigned to sequence of %d elements", cast(int)tedim, cast(int)nelems);
                     for (size_t u = tedim; u < nelems; u++) // fill dummy expression
                         te.exps.push(ErrorExp.get());
                 }
@@ -2044,7 +2044,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
         }
         else
-            ns.exp.error("compile time string constant (or tuple) expected, not `%s`",
+            ns.exp.error("compile time string constant (or sequence) expected, not `%s`",
                          ns.exp.toChars());
         attribSemantic(ns);
     }
@@ -2714,7 +2714,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
             if (i + 1 != tempdecl.parameters.length && tp.isTemplateTupleParameter())
             {
-                tempdecl.error("template tuple parameter must be last one");
+                tempdecl.error("template sequence parameter must be the last one");
                 tempdecl.errors = true;
             }
         }

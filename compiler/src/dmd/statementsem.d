@@ -4298,7 +4298,7 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
     const bool skipCheck = isStatic && needExpansion;
     if (!skipCheck && (dim < 1 || dim > 2))
     {
-        fs.error("only one (value) or two (key,value) arguments for tuple `foreach`");
+        fs.error("only one (value) or two (key,value) arguments allowed for sequence `foreach`");
         return returnEarly();
     }
 
