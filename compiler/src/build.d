@@ -1530,7 +1530,7 @@ auto sourceFiles()
     }
     DmdSources dmd = {
         glue: fileArray(env["D"], "
-            dmsc.d e2ir.d eh.d iasm.d iasmdmd.d iasmgcc.d glue.d objc_glue.d
+            dmsc.d e2ir.d iasm.d iasmdmd.d iasmgcc.d glue.d objc_glue.d
             s2ir.d tocsym.d toctype.d tocvdebug.d todt.d toir.d toobj.d
         "),
         driver: fileArray(env["D"], "dinifile.d dmdparams.d gluelayer.d lib.d libelf.d libmach.d libmscoff.d libomf.d
@@ -1592,7 +1592,7 @@ auto sourceFiles()
         backend: fileArray(env["C"], "
             backend.d bcomplex.d evalu8.d divcoeff.d dvec.d go.d gsroa.d glocal.d gdag.d gother.d gflow.d
             dout.d inliner.d
-            gloop.d compress.d cgelem.d cgcs.d ee.d cod4.d cod5.d nteh.d blockopt.d mem.d cg.d cgreg.d
+            gloop.d compress.d cgelem.d cgcs.d ee.d cod4.d cod5.d eh.d nteh.d blockopt.d mem.d cg.d cgreg.d
             dtype.d debugprint.d fp.d symbol.d symtab.d elem.d dcode.d cgsched.d cg87.d cgxmm.d cgcod.d cod1.d cod2.d
             cod3.d cv8.d dcgcv.d pdata.d util2.d var.d md5.d backconfig.d drtlsym.d dwarfeh.d ptrntab.d
             dvarstats.d dwarfdbginf.d cgen.d goh.d barray.d cgcse.d elpicpie.d
