@@ -15,10 +15,14 @@ auto some_d_other_func() {
 }
 
 void main(string[] args) {
-    E expected = A;
-    auto res = some_d_func(A);
+    E expected = E.A;
+    E res = some_d_func(A);
     assert (res == A);
     assert (res == expected);
+
+    res = some_d_func(E.B);
+    assert (res == B);
+    assert (res == E.B);
 
     auto res2 = some_d_other_func();
     assert (res2.r == A);
