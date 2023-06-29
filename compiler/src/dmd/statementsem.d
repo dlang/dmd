@@ -191,7 +191,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             result = s;
             return;
         }
-        //printf("ExpStatement::semantic() %s\n", exp.toChars());
+        //printf("ExpStatement::semantic() %s\n", s.toChars());
 
         // Allow CommaExp in ExpStatement because return isn't used
         CommaExp.allow(s.exp);
@@ -238,7 +238,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
     void visitCompound(CompoundStatement cs)
     {
-        //printf("CompoundStatement::semantic(this = %p, sc = %p)\n", cs, sc);
+        //printf("CompoundStatement.semantic()\n%s\n", cs.toChars());
         version (none)
         {
             foreach (i, s; cs.statements)
@@ -279,6 +279,40 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 ++i;
                 continue;       // look for errors in rest of statements
             }
+
+            /* Replace a TupleDeclaration with multiple ExpStatements, so that destructors
+             * for them are handled properly.
+             * https://issues.dlang.org/show_bug.cgi?id=24010
+             */
+            if (auto es = s.isExpStatement())
+            {
+                if (es.exp && es.exp.isDeclarationExp())
+                {
+                    Dsymbol d = es.exp.isDeclarationExp().declaration;
+                    if (auto vd = d.isVarDeclaration())
+                    {
+                        if (auto tt = vd.type.isTypeTuple())
+                        {
+                            cs.statements.remove(i);
+                            auto td = vd.aliasTuple.isTupleDeclaration();
+                            assert(td);
+                            const length = td.objects.length;
+                            foreach (j; 0 .. length)
+                            {
+                                /* Rewrite the VarExp to a DeclarationExp
+                                 */
+                                auto e = cast(Expression)(*td.objects)[j];
+                                auto vexp = e.isVarExp();
+                                auto dexp = new DeclarationExp(vexp.loc, vexp.var);
+                                auto sf = new ExpStatement(dexp.loc, dexp);
+                                cs.statements.insert(i + j, sf);
+                            }
+                            continue;
+                        }
+                    }
+                }
+            }
+
             Statement sentry;
             Statement sexception;
             Statement sfinally;
@@ -4653,13 +4687,14 @@ private Statements* flatten(Statement statement, Scope* sc)
         case STMT.Exp:
         case STMT.DtorExp:
             auto es = cast(ExpStatement)statement;
+
+            if (!es.exp || !es.exp.isDeclarationExp())
+                return null;
+
             /* https://issues.dlang.org/show_bug.cgi?id=14243
              * expand template mixin in statement scope
              * to handle variable destructors.
              */
-            if (!es.exp || !es.exp.isDeclarationExp())
-                return null;
-
             Dsymbol d = es.exp.isDeclarationExp().declaration;
             auto tm = d.isTemplateMixin();
             if (!tm)

@@ -83,6 +83,8 @@ void elem_setLoc(elem *e, const ref Loc loc) nothrow
 
 void Statement_toIR(Statement s, IRState *irs)
 {
+    //printf("Statement_toIR() %s\n", s.toChars());
+
     /* Generate a block for each label
      */
     FuncDeclaration fd = irs.getFunc();
@@ -99,6 +101,7 @@ void Statement_toIR(Statement s, IRState *irs)
     Statement_toIR(s, irs, &stmtstate);
 }
 
+private
 void Statement_toIR(Statement s, IRState *irs, StmtState* stmtstate)
 {
     /****************************************
