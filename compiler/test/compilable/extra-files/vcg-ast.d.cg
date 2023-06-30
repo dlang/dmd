@@ -7,7 +7,7 @@ template Seq(A...)
 {
 	alias Seq = A;
 }
-(int, int, int) a = tuple(1, 2, 3);
+(int, int, int) a = AliasSeq!(1, 2, 3);
 template R(T)
 {
 	struct _R
@@ -16,7 +16,7 @@ template R(T)
 	}
 }
 int x;
-static foreach (enum i; tuple(0, 1, 2))
+static foreach (enum i; AliasSeq!(0, 1, 2))
 {
 	mixin("int a" ~ i.stringof ~ " = 1;");
 }

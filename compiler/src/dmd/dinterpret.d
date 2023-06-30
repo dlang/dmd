@@ -2412,7 +2412,7 @@ public:
                 continue;
             if (ex.op == EXP.voidExpression)
             {
-                e.error("CTFE internal error: void element `%s` in tuple", exp.toChars());
+                e.error("CTFE internal error: void element `%s` in sequence", exp.toChars());
                 assert(0);
             }
 
