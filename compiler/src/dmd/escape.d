@@ -365,8 +365,9 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier parId, 
             (!fdc && parId) ? (desc ~ " `%s` assigned to non-scope parameter `%s`") :
             (desc ~ " `%s` assigned to non-scope anonymous parameter");
 
-        auto param = isThis ? v : (parId ? parId : fdc);
-        if (sc.setUnsafeDIP1000(gag, arg.loc, msg, v, param, fdc))
+        if (isThis ?
+            sc.setUnsafeDIP1000(gag, arg.loc, msg, arg, fdc.toParent2(), fdc) :
+            sc.setUnsafeDIP1000(gag, arg.loc, msg, v, parId ? parId : fdc, fdc))
         {
             result = true;
             printScopeFailure(previewSupplementalFunc(sc.isDeprecated(), global.params.useDIP1000), vPar, 10);
