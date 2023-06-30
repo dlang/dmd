@@ -279,6 +279,24 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 ++i;
                 continue;       // look for errors in rest of statements
             }
+
+            // expand tuple variables in order to attach destruction/exception logic
+            if (auto es = s.isExpStatement())
+            {
+                if (es.exp && es.exp.isDeclarationExp())
+                {
+                    auto de = es.exp.isDeclarationExp();
+                    auto vd = de.declaration.isVarDeclaration();
+                    if (vd && vd.aliasTuple && vd.aliasTuple.objects.length)
+                    {
+                        auto j = i;
+                        cs.statements.insert(i, vd.aliasTuple.objects.length - 1, null);
+                        vd.aliasTuple.foreachVar((v) { (*cs.statements)[j++] = toStatement(v); });
+                        s = (*cs.statements)[i];
+                    }
+                }
+            }
+
             Statement sentry;
             Statement sexception;
             Statement sfinally;
