@@ -4597,10 +4597,9 @@ extern (C++) final class TypeFunction : TypeNext
         // show qualification when toChars() is the same but types are different
         // https://issues.dlang.org/show_bug.cgi?id=19948
         // when comparing the type with strcmp, we need to drop the qualifier
-        auto at = arg.type.mutableOf().toChars();
-        bool qual = !arg.type.equals(par.type) && strcmp(at, par.type.mutableOf().toChars()) == 0;
-        if (qual)
-            at = arg.type.toPrettyChars(true);
+        bool qual = !arg.type.mutableOf().equals(par.type.mutableOf()) &&
+            strcmp(arg.type.mutableOf().toChars(), par.type.mutableOf().toChars()) == 0;
+        auto at = qual ? arg.type.toPrettyChars(true) : arg.type.toChars();
         OutBuffer buf;
         // only mention rvalue if it's relevant
         const rv = !arg.isLvalue() && par.isReference();
