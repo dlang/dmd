@@ -663,6 +663,7 @@ struct Array final
     void remove(size_t i);
     void insert(size_t index, Array* a);
     void insert(size_t index, T ptr);
+    void insert(size_t index, size_t count, T value);
     void setDim(size_t newdim);
     size_t find(T ptr) const;
     bool contains(T ptr) const;
