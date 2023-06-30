@@ -36,6 +36,7 @@ COPY=\
 	$(IMPDIR)\core\internal\execinfo.d \
 	$(IMPDIR)\core\internal\hash.d \
 	$(IMPDIR)\core\internal\moving.d \
+	$(IMPDIR)\core\internal\newaa.d \
 	$(IMPDIR)\core\internal\parseoptions.d \
 	$(IMPDIR)\core\internal\postblit.d \
 	$(IMPDIR)\core\internal\qsort.d \

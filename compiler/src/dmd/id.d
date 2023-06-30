@@ -305,6 +305,7 @@ immutable Msgtable[] msgtable =
     { "aaKeys", "_aaKeys" },
     { "aaValues", "_aaValues" },
     { "aaRehash", "_aaRehash" },
+    { "aaAsHash" },
     { "monitorenter", "_d_monitorenter" },
     { "monitorexit", "_d_monitorexit" },
     { "criticalenter", "_d_criticalenter2" },

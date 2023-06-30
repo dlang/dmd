@@ -275,6 +275,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
             // https://issues.dlang.org/show_bug.cgi?id=20417
             // Don't run CTFE for the temporary variables inside typeof or __traits(compiles)
             vd._init = vd._init.initializerSemantic(sc, vd.type, sc.intypeof == 1 || sc.flags & SCOPE.compile ? INITnointerpret : INITinterpret);
+            tryLowerStaticAA(vd, sc);
             vd.inuse--;
         }
         if (vd._init && vd.storage_class & STC.manifest)
@@ -818,4 +819,41 @@ private void doGNUABITagSemantic(ref Expression e, ref Expression* lastTag)
         return (cast(Expression*)e1).toStringExp().compare((cast(Expression*)e2).toStringExp());
     }
     ale.elements.sort!predicate;
+}
+
+/**
+ * Try lower a variable's static Associative Array to a newaa struct.
+ * Params:
+ *   vd = Variable to lower
+ *   sc = Scope
+ */
+void tryLowerStaticAA(VarDeclaration vd, Scope* sc)
+{
+    if (!vd.isDataseg())
+        return;
+    if (auto ei = vd._init.isExpInitializer())
+    {
+        if (auto initExp = ei.exp.isAssocArrayLiteralExp())
+        {
+            if (!verifyHookExist(ei.loc, *sc, Id.aaAsHash, "static associative array", Id.object))
+                return;
+
+            Expression exp = initExp.syntaxCopy();
+            Expression id = new IdentifierExp(exp.loc, Id.empty);
+            id = new DotIdExp(exp.loc, id, Id.object);
+            id = new DotIdExp(exp.loc, id, Id.aaAsHash);
+            auto arguments = new Expressions();
+            arguments.push(exp.syntaxCopy());
+            id = new CallExp(exp.loc, id, arguments);
+
+            sc = sc.startCTFE();
+            exp = id.expressionSemantic(sc);
+            exp = resolveProperties(sc, id);
+            sc = sc.endCTFE();
+            exp = exp.ctfeInterpret();
+
+            initExp.lowering = exp;
+            // printf("lowering = %s\n", initExp.lowering.toChars());
+        }
+    }
 }

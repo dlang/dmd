@@ -104,6 +104,14 @@ else version (AArch64)
     else version = WithArgTypes;
 }
 
+// Lower Associative Array to a newaa struct for static initialization.
+auto aaAsHash(K, V)(V[K] aa)
+{
+    import core.internal.newaa;
+    Hash!(K, V) h = aa;
+    return h;
+}
+
 /**
  * All D class objects inherit from Object.
  */

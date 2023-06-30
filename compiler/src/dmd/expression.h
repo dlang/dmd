@@ -446,6 +446,7 @@ public:
     OwnedBy ownedByCtfe;
     Expressions *keys;
     Expressions *values;
+    Expression* lowering;
 
     bool equals(const RootObject * const o) const override;
     AssocArrayLiteralExp *syntaxCopy() override;

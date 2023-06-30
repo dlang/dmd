@@ -7064,7 +7064,7 @@ private:
         char symoffexp[64LLU];
         char stringexp[50LLU];
         char arrayliteralexp[48LLU];
-        char assocarrayliteralexp[48LLU];
+        char assocarrayliteralexp[56LLU];
         char structliteralexp[76LLU];
         char compoundliteralexp[40LLU];
         char nullexp[25LLU];
@@ -7281,6 +7281,7 @@ public:
     OwnedBy ownedByCtfe;
     Array<Expression* >* keys;
     Array<Expression* >* values;
+    Expression* lowering;
     bool equals(const RootObject* const o) const override;
     AssocArrayLiteralExp* syntaxCopy() override;
     Optional<bool > toBool() override;
@@ -8753,6 +8754,7 @@ struct Id final
     static Identifier* aaKeys;
     static Identifier* aaValues;
     static Identifier* aaRehash;
+    static Identifier* aaAsHash;
     static Identifier* monitorenter;
     static Identifier* monitorexit;
     static Identifier* criticalenter;
