@@ -257,8 +257,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 continue;
             }
 
-            Statements* flt = s.flatten(sc);
-            if (flt)
+            if (auto flt = s.flatten(sc))
             {
                 cs.statements.remove(i);
                 cs.statements.insert(i, flt);
@@ -402,12 +401,11 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
         /* Flatten them in place
          */
-        void flatten(Statements* statements)
+        void flattenStatements(ref Statements statements)
         {
             for (size_t i = 0; i < statements.length;)
             {
-                Statement s = (*statements)[i];
-                if (s)
+                if (auto s = statements[i])
                 {
                     if (auto flt = s.flatten(sc))
                     {
@@ -424,7 +422,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
          * 'semantic' may return another CompoundStatement
          * (eg. CaseRangeStatement), so flatten it here.
          */
-        flatten(cs.statements);
+        flattenStatements(*cs.statements);
 
         foreach (s; *cs.statements)
         {
