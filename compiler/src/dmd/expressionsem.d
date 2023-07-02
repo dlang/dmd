@@ -1172,6 +1172,13 @@ L1:
  */
 private bool haveSameThis(FuncDeclaration outerFunc, FuncDeclaration calledFunc)
 {
+    // https://issues.dlang.org/show_bug.cgi?id=24013
+    // traits(getOverloads) inserts an alias to select the overload.
+    // When searching for the right this we need to use the aliased
+    // overload/function, not the alias.
+    outerFunc = outerFunc.toAliasFunc();
+    calledFunc = calledFunc.toAliasFunc();
+
     auto thisAd = outerFunc.isMemberLocal();
     if (!thisAd)
         return false;
