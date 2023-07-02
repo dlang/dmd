@@ -166,7 +166,7 @@ bool checkMutableArguments(Scope* sc, FuncDeclaration fd, TypeFunction tf,
         if (!(eb.isMutable || eb2.isMutable))
             return;
 
-        if (!tf.islive && !(global.params.useDIP1000 == FeatureState.enabled && sc.func.setUnsafe()))
+        if (!tf.islive && !(global.params.useDIP1000 == FeatureState.enabled && sc.func && sc.func.setUnsafe()))
             return;
 
         if (!gag)
@@ -487,7 +487,7 @@ bool checkParamArgumentReturn(Scope* sc, Expression firstArg, Expression arg, Pa
     const byRef = param.isReference() && !(param.storageClass & STC.scope_)
         && !(param.storageClass & STC.returnScope); // fixme: it's possible to infer returnScope without scope with vaIsFirstRef
 
-    scope e = new AssignExp(arg.loc, firstArg, arg);
+    auto e = new AssignExp(arg.loc, firstArg, arg);
     return checkAssignEscape(sc, e, gag, byRef);
 }
 
