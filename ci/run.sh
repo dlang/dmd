@@ -170,6 +170,17 @@ testsuite() {
 }
 
 download_install_sh() {
+  if command -v gpg > /dev/null; then
+    curl -fsSL \
+      -A "$CURL_USER_AGENT" \
+      --connect-timeout 5 \
+      --speed-time 30 \
+      --speed-limit 1024 \
+      --retry 5 \
+      --retry-delay 5 \
+      https://dlang.org/d-keyring.gpg | gpg --import /dev/stdin
+  fi
+
   local mirrors location
   location="${1:-install.sh}"
   mirrors=(
