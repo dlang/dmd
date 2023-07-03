@@ -228,6 +228,7 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
         $(TROW $(ARGS $(D iOS)) , $(ARGS iOS))
         $(TROW $(ARGS $(D TVOS)) , $(ARGS tvOS))
         $(TROW $(ARGS $(D WatchOS)) , $(ARGS watchOS))
+        $(TROW $(ARGS $(D VisionOS)) , $(ARGS visionOS))
         $(TROW $(ARGS $(D FreeBSD)) , $(ARGS FreeBSD))
         $(TROW $(ARGS $(D OpenBSD)) , $(ARGS OpenBSD))
         $(TROW $(ARGS $(D NetBSD)) , $(ARGS NetBSD))
