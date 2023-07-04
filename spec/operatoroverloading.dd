@@ -9,31 +9,6 @@ $(HEADERNAV_TOC)
         members. No additional syntax is used.
         )
 
-        $(UL
-        $(LI $(RELATIVE_LINK2 unary, Unary Operator Overloading))
-        $(LI $(RELATIVE_LINK2 cast, Cast Operator Overloading))
-        $(LI $(RELATIVE_LINK2 binary, Binary Operator Overloading))
-        $(LI $(RELATIVE_LINK2 eqcmp, Overloading the Comparison Operators)
-                $(UL
-                $(LI $(RELATIVE_LINK2 equals, Overloading $(D ==) and $(D !=)))
-                $(LI $(RELATIVE_LINK2 compare, Overloading $(D <), $(D <=),
-                $(D >), and $(D >=)))
-                )
-        )
-        $(LI $(RELATIVE_LINK2 function-call, Function Call Operator Overloading))
-        $(LI $(RELATIVE_LINK2 assignment, Assignment Operator Overloading))
-        $(LI $(RELATIVE_LINK2 op-assign, Op Assignment Operator Overloading))
-        $(LI $(RELATIVE_LINK2 array-ops, Array Indexing and Slicing Operators Overloading)
-                $(UL
-                $(LI $(RELATIVE_LINK2 array, Index Operator Overloading))
-                $(LI $(RELATIVE_LINK2 slice, Slice Operator Overloading))
-                $(LI $(RELATIVE_LINK2 dollar, Dollar Operator Overloading))
-                )
-        )
-        $(LI $(RELATIVE_LINK2 dispatch, Forwarding))
-        $(LI $(RELATIVE_LINK2 old-style, D1 style operator overloading))
-        )
-
 $(H2 $(LEGACY_LNAME2 Unary, unary, Unary Operator Overloading))
 
         $(TABLE2 Overloadable Unary Operators,
@@ -568,7 +543,7 @@ $(BEST_PRACTICE Using `(i > s.i) - (i < s.i)` instead of `i - s.i` to
 compare integers avoids overflow.)
 
 
-$(H2 $(LEGACY_LNAME2 FunctionCall, function-call, Function Call Operator Overloading $(D f())))
+$(H2 $(LEGACY_LNAME2 FunctionCall, function-call, Function Call Operator Overloading))
 
         $(P The function call operator, $(D ()), can be overloaded by
         declaring a function named $(CODE opCall):
