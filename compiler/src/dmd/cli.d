@@ -820,6 +820,11 @@ dmd -cov -unittest myprog.d
             `Enable $(LINK2 $(ROOT_DIR)articles/warnings.html, informational warnings (i.e. compilation
             still proceeds normally))`,
         ),
+        Option("wo",
+            "warnings about use of obsolete features (compilation will continue)",
+            `Enable warnings about use of obsolete features that may be problematic (compilation
+            still proceeds normally)`,
+        ),
         Option("X",
             "generate JSON file"
         ),

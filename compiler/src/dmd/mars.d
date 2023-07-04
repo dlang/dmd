@@ -1942,6 +1942,8 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.warnings = DiagnosticReporting.error;
         else if (arg == "-wi")  // https://dlang.org/dmd.html#switch-wi
             params.warnings = DiagnosticReporting.inform;
+        else if (arg == "-wo")  // https://dlang.org/dmd.html#switch-wo
+            params.obsolete = true;
         else if (arg == "-O")   // https://dlang.org/dmd.html#switch-O
             driverParams.optimize = true;
         else if (arg == "-o-")  // https://dlang.org/dmd.html#switch-o-
