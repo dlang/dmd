@@ -3179,6 +3179,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             funcdecl.skipCodegen = true;
 
         funcdecl._linkage = sc.linkage;
+        if (sc.flags & SCOPE.Cfile && funcdecl.isFuncLiteralDeclaration())
+            funcdecl._linkage = LINK.d; // so they are uniquely mangled
+
         if (auto fld = funcdecl.isFuncLiteralDeclaration())
         {
             if (fld.treq)
