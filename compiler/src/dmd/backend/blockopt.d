@@ -1056,7 +1056,6 @@ private void brrear()
  *      dfo = array to fill in in DFO
  *      startblock = list of blocks
  */
-@safe
 void compdfo(ref Barray!(block*) dfo, block* startblock)
 {
     debug if (debugc) printf("compdfo()\n");

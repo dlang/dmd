@@ -32,8 +32,10 @@ import dmd.backend.type;
 extern (C++):
 
 nothrow:
+@safe:
 
 // Determine if this Symbol is stored in a COMDAT
+@trusted
 private bool symbol_iscomdat3(Symbol* s)
 {
     return s.Sclass == SC.comdat ||
@@ -53,7 +55,7 @@ enum ALLOCA_LIMIT = 0x10000;
  * Params:
  *      sf = function to generate unwind data for
  */
-
+@trusted
 public void win64_pdata(Symbol *sf)
 {
     //printf("win64_pdata()\n");
@@ -100,7 +102,7 @@ private:
  * Returns:
  *      generated symbol referring to unwind data
  */
-
+@trusted
 private Symbol *win64_unwind(Symbol *sf)
 {
     // Generate the unwind name, which is $unwind$funcname
@@ -197,7 +199,7 @@ static if (0)
 }
 
 
-
+@trusted
 private dt_t *unwind_data()
 {
     UNWIND_INFO ui;

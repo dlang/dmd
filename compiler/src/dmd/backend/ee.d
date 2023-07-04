@@ -30,13 +30,14 @@ import dmd.backend.iasm;
 extern(C++):
 
 nothrow:
+@safe:
 
 __gshared EEcontext eecontext;
 
 //////////////////////////////////////
 // Convert any symbols generated for the debugger expression to SCstack
 // storage class.
-
+@trusted
 void eecontext_convs(SYMIDX marksi)
 {
     symtab_t *ps;

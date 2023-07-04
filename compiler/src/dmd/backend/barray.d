@@ -29,8 +29,6 @@ import dmd.backend.global : err_nomem;
  */
 struct Barray(T)
 {
-  @safe:
-
     /**********************
      * Set useable length of array.
      * Params:
@@ -161,8 +159,6 @@ unittest
 
 struct Rarray(T)
 {
-  @safe:
-
     /*******************
      * Append an uninitialized element of T to array.
      * This leaves allocations used by T intact.

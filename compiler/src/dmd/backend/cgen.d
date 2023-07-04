@@ -32,6 +32,7 @@ import dmd.backend.type;
 extern (C++):
 
 nothrow:
+@safe:
 
 public import dmd.backend.dt : dt_get_nzeros;
 public import dmd.backend.cgcod : cgstate;
@@ -53,7 +54,7 @@ code *code_last(code *c)
  * Set flag bits on last code in list.
  */
 
-void code_orflag(code *c,uint flag) @safe
+void code_orflag(code *c,uint flag)
 {
     if (flag && c)
     {   while (c.next)
@@ -66,7 +67,7 @@ void code_orflag(code *c,uint flag) @safe
  * Set rex bits on last code in list.
  */
 
-void code_orrex(code *c,uint rex) @safe
+void code_orrex(code *c,uint rex)
 {
     if (rex && c)
     {   while (c.next)
@@ -185,6 +186,7 @@ code *gennop(code *c)
  * Clean stack after call to codelem().
  */
 
+@trusted
 void gencodelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,bool constflag)
 {
     if (e)
@@ -207,6 +209,7 @@ void gencodelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,bool constflag)
  * If so, return !=0 and set *preg to which register it is.
  */
 
+@trusted
 bool reghasvalue(regm_t regm,targ_size_t value,reg_t *preg)
 {
     //printf("reghasvalue(%s, %llx)\n", regm_str(regm), cast(ulong)value);
@@ -229,7 +232,7 @@ bool reghasvalue(regm_t regm,targ_size_t value,reg_t *preg)
  * Output:
  *      *preg   the register selected
  */
-
+@trusted
 void regwithvalue(ref CodeBuilder cdb,regm_t regm,targ_size_t value,reg_t *preg,regm_t flags)
 {
     //printf("regwithvalue(value = %lld)\n", cast(long)value);
@@ -267,7 +270,7 @@ private __gshared Barray!Fixup fixups;
 /****************************
  * Add to the fix list.
  */
-
+@trusted
 size_t addtofixlist(Symbol *s,targ_size_t offset,int seg,targ_size_t val,int flags)
 {
         static immutable ubyte[8] zeros = 0;
@@ -324,6 +327,7 @@ void searchfixlist (Symbol *s )
  * Output fixups as references to external or static Symbol.
  * First emit data for still undefined static Symbols or mark non-static Symbols as SCextern.
  */
+@trusted
 private void outfixup(ref Fixup f)
 {
     symbol_debug(f.sym);
@@ -386,6 +390,7 @@ else
  * End of module. Output fixups as references
  * to external Symbols.
  */
+@trusted
 void outfixlist()
 {
     foreach (ref f; fixups)

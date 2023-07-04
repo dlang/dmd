@@ -386,7 +386,6 @@ size_t vec_index(size_t b, const vec_t vec)
  * Returns:
  *      number of set bits
  */
-@safe
 pure
 uint vec_numBitsSet(const vec_t vec)
 {
@@ -664,7 +663,7 @@ struct VecRange
     size_t i;
     const vec_t v;
 
-  @nogc @safe nothrow pure:
+  @nogc nothrow pure:
     this(const vec_t v) { this.v = v; i = vec_index(0, v); }
     bool empty() const { return i == vec_numbits(v); }
     size_t front() const { return i; }

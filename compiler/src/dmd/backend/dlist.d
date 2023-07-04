@@ -556,7 +556,7 @@ list_t list_insert(list_t *pl,void *ptr,int n)
  */
 struct ListRange
 {
-  pure nothrow @nogc @safe:
+  pure nothrow @nogc:
 
     this(list_t li)
     {

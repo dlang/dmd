@@ -38,6 +38,7 @@ import dmd.common.outbuffer;
 extern (C++):
 
 nothrow:
+@safe:
 
 alias _compare_fp_t = extern(C) nothrow int function(const void*, const void*);
 extern(C) void qsort(void* base, size_t nmemb, size_t size, _compare_fp_t compar);
@@ -53,6 +54,7 @@ alias nlist = dmd.backend.mach.nlist;   // avoid conflict with dmd.backend.dlist
  */
 
 extern (C) {
+@trusted
 private int mach_rel_fp(scope const(void*) e1, scope const(void*) e2)
 {   Relocation *r1 = cast(Relocation *)e1;
     Relocation *r2 = cast(Relocation *)e2;
@@ -61,6 +63,7 @@ private int mach_rel_fp(scope const(void*) e1, scope const(void*) e2)
 }
 }
 
+@trusted
 void mach_relsort(OutBuffer *buf)
 {
     qsort(buf.buf, buf.length() / Relocation.sizeof, Relocation.sizeof, &mach_rel_fp);
@@ -91,6 +94,7 @@ public import dmd.backend.dwarfdbginf : except_table_seg, eh_frame_seg;
  */
 
 /// Returns: a reference to the global offset table
+@trusted
 Symbol* MachObj_getGOTsym()
 {
     __gshared Symbol *GOTsym;
@@ -114,7 +118,9 @@ private extern (D) __gshared OutBuffer *symtab_strings;
 
 // Section Headers
 __gshared OutBuffer  *SECbuf;             // Buffer to build section table in
+@trusted
 section* SecHdrTab() { return cast(section *)SECbuf.buf; }
+@trusted
 section_64* SecHdrTab64() { return cast(section_64 *)SECbuf.buf; }
 
 __gshared
@@ -140,6 +146,7 @@ private OutBuffer *public_symbuf;
 private OutBuffer *extern_symbuf;
 }
 
+@trusted
 private void reset_symbols(OutBuffer *buf)
 {
     Symbol **p = cast(Symbol **)buf.buf;
@@ -189,7 +196,7 @@ enum
 /******************************
  * Returns !=0 if this segment is a code segment.
  */
-
+@trusted
 int mach_seg_data_isCode(const ref seg_data sd)
 {
     // The codegen assumes that code.data references are indirect,
@@ -282,7 +289,7 @@ struct Relocation
  *
  * Returns index into the specified string table.
  */
-
+@trusted
 IDXSTR MachObj_addstr(OutBuffer *strtab, const(char)* str)
 {
     //printf("MachObj_addstr(strtab = %p str = '%s')\n",strtab,str);
@@ -299,7 +306,7 @@ IDXSTR MachObj_addstr(OutBuffer *strtab, const(char)* str)
  *
  * Returns index into the table.
  */
-
+@trusted
 private IDXSTR mach_addmangled(Symbol *s)
 {
     //printf("mach_addmangled(%s)\n", s.Sident);
@@ -392,7 +399,7 @@ static if (0)
  * Ouput read only data for data
  *
  */
-
+@trusted
 int MachObj_data_readonly(char *p, int len, int *pseg)
 {
     int oldoff = cast(int)Offset(CDATA);
@@ -403,6 +410,7 @@ int MachObj_data_readonly(char *p, int len, int *pseg)
     return oldoff;
 }
 
+@trusted
 int MachObj_data_readonly(char *p, int len)
 {
     int pseg;
@@ -418,6 +426,7 @@ int MachObj_data_readonly(char *p, int len)
  * Returns:
  *    segment index
  */
+@trusted
 int MachObj_string_literal_segment(uint sz)
 {
     if (sz == 1)
@@ -430,7 +439,7 @@ int MachObj_string_literal_segment(uint sz)
  * Perform initialization that applies to all .o output files.
  *      Called before any other obj_xxx routines
  */
-
+@trusted
 Obj MachObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
 {
     //printf("MachObj_init()\n");
@@ -555,7 +564,7 @@ Obj MachObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname
  *      filename:       Name of source file
  *      csegname:       User specified default code segment name
  */
-
+@trusted
 void MachObj_initfile(const(char)* filename, const(char)* csegname, const(char)* modname)
 {
     //dbg_printf("MachObj_initfile(filename = %s, modname = %s)\n",filename,modname);
@@ -620,7 +629,7 @@ static if (0)
  * Number symbols so they are
  * ordered as locals, public and then extern/comdef
  */
-
+@trusted
 void mach_numbersyms()
 {
     //printf("mach_numbersyms()\n");
@@ -660,7 +669,7 @@ void mach_numbersyms()
 /***************************
  * Fixup and terminate object file.
  */
-
+@trusted
 void MachObj_termfile()
 {
     //dbg_printf("MachObj_termfile\n");
@@ -673,7 +682,7 @@ void MachObj_termfile()
 /*********************************
  * Terminate package.
  */
-
+@trusted
 void MachObj_term(const(char)* objfilename)
 {
     //printf("MachObj_term()\n");
@@ -1483,7 +1492,7 @@ void MachObj_term(const(char)* objfilename)
  *      seg = segment it corresponds to
  *      offset = offset within seg
  */
-
+@trusted
 void MachObj_linnum(Srcpos srcpos, int seg, targ_size_t offset)
 {
     if (srcpos.Slinnum == 0)
@@ -1643,7 +1652,7 @@ void MachObj_staticdtor(Symbol *s)
  * Stuff pointer to function in its own segment.
  * Used for static ctor and dtor lists.
  */
-
+@trusted
 void MachObj_setModuleCtorDtor(Symbol *sfunc, bool isCtor)
 {
     const align_ = I64 ? 3 : 2; // align to _tysize[TYnptr]
@@ -1664,7 +1673,7 @@ void MachObj_setModuleCtorDtor(Symbol *sfunc, bool isCtor)
  *      pointer to ehsym
  *      length of function
  */
-
+@trusted
 void MachObj_ehtables(Symbol *sfunc,uint size,Symbol *ehsym)
 {
     //dbg_printf("MachObj_ehtables(%s) \n",sfunc.Sident.ptr);
@@ -1716,6 +1725,7 @@ int MachObj_comdatsize(Symbol *s, targ_size_t symsize)
     return MachObj_comdat(s);
 }
 
+@trusted
 int MachObj_comdat(Symbol *s)
 {
     const(char)* sectname;
@@ -1782,6 +1792,7 @@ int MachObj_readonly_comdat(Symbol *s)
  * Returns:
  *      jump table segment for function s
  */
+@trusted
 int MachObj_jmpTableSegment(Symbol *s)
 {
     return (config.flags & CFGromable) ? cseg : CDATA;
@@ -1794,7 +1805,7 @@ int MachObj_jmpTableSegment(Symbol *s)
  * Returns:
  *      segment index of found or newly created segment
  */
-
+@trusted
 int MachObj_getsegment(const(char)* sectname, const(char)* segname,
         int align_, int flags)
 {
@@ -1905,7 +1916,7 @@ int getsegment2(ref int seg, const(char)* sectname, const(char)* segname,
  * Reset code seg to existing seg.
  * Used after a COMDAT for a function is done.
  */
-
+@trusted
 void MachObj_setcodeseg(int seg)
 {
     cseg = seg;
@@ -1962,7 +1973,7 @@ else
  * Returns:
  *      segment for TLS segment
  */
-
+@trusted
 seg_data *MachObj_tlsseg()
 {
     //printf("MachObj_tlsseg(\n");
@@ -1979,7 +1990,7 @@ seg_data *MachObj_tlsseg()
  * Returns:
  *      segment for TLS segment
  */
-
+@trusted
 seg_data *MachObj_tlsseg_bss()
 {
 
@@ -2006,7 +2017,7 @@ seg_data *MachObj_tlsseg_bss()
  * Returns:
  *      segment for TLS data segment
  */
-
+@trusted
 seg_data *MachObj_tlsseg_data()
 {
     //printf("MachObj_tlsseg_data(\n");
@@ -2038,6 +2049,7 @@ static if (0)
 }
 }
 
+@trusted
 private extern (D) char* unsstr (uint value)
 {
     __gshared char[64] buffer = void;
@@ -2052,6 +2064,7 @@ private extern (D) char* unsstr (uint value)
  *      mangled name
  */
 
+@trusted
 private extern (D)
 char *obj_mangle2(Symbol *s,char *dest)
 {
@@ -2147,7 +2160,7 @@ void MachObj_export_symbol(Symbol *s,uint argsize)
  * Returns:
  *      actual seg
  */
-
+@trusted
 int MachObj_data_start(Symbol *sdata, targ_size_t datasize, int seg)
 {
     targ_size_t alignbytes;
@@ -2180,7 +2193,7 @@ int MachObj_data_start(Symbol *sdata, targ_size_t datasize, int seg)
  * If code for this function is in a different segment
  * than the current default in cseg, switch cseg to new segment.
  */
-
+@trusted
 void MachObj_func_start(Symbol *sfunc)
 {
     //printf("MachObj_func_start(%s)\n",sfunc.Sident.ptr);
@@ -2201,7 +2214,7 @@ void MachObj_func_start(Symbol *sfunc)
 /*******************************
  * Update function info after codgen
  */
-
+@trusted
 void MachObj_func_term(Symbol *sfunc)
 {
     //dbg_printf("MachObj_func_term(%s) offset %x, Coffset %x symidx %d\n",
@@ -2231,6 +2244,7 @@ void MachObj_pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t syms
     return MachObj_pubdef(seg, s, offset);
 }
 
+@trusted
 void MachObj_pubdef(int seg, Symbol *s, targ_size_t offset)
 {
     //printf("MachObj_pubdef(%d:x%x s=%p, %s)\n", seg, offset, s, s.Sident.ptr);
@@ -2274,6 +2288,7 @@ void MachObj_pubdef(int seg, Symbol *s, targ_size_t offset)
  *      NOTE: Numbers will not be linear.
  */
 
+@trusted
 int MachObj_external_def(const(char)* name)
 {
     //printf("MachObj_external_def('%s')\n",name);
@@ -2294,6 +2309,7 @@ int MachObj_external_def(const(char)* name)
  *      NOTE: Numbers will not be linear.
  */
 
+@trusted
 int MachObj_external(Symbol *s)
 {
     //printf("MachObj_external('%s') %x\n",s.Sident.ptr,s.Svalue);
@@ -2312,7 +2328,7 @@ int MachObj_external(Symbol *s)
  * Returns:
  *      Symbol table index for symbol
  */
-
+@trusted
 int MachObj_common_block(Symbol *s,targ_size_t size,targ_size_t count)
 {
     //printf("MachObj_common_block('%s', size=%d, count=%d)\n",s.Sident.ptr,size,count);
@@ -2354,7 +2370,7 @@ void MachObj_write_zeros(seg_data *pseg, targ_size_t count)
  *
  *      For boundary alignment and initialization
  */
-
+@trusted
 void MachObj_lidata(int seg,targ_size_t offset,targ_size_t count)
 {
     //printf("MachObj_lidata(%d,%x,%d)\n",seg,offset,count);
@@ -2383,7 +2399,7 @@ void MachObj_write_byte(seg_data *pseg, uint byte_)
 /************************************
  * Output byte to object file.
  */
-
+@trusted
 void MachObj_byte(int seg,targ_size_t offset,uint byte_)
 {
     OutBuffer *buf = SegData[seg].SDbuf;
@@ -2412,7 +2428,7 @@ void MachObj_write_bytes(seg_data *pseg, uint nbytes, const(void)* p)
  * Returns:
  *      nbytes
  */
-
+@trusted
 uint MachObj_bytes(int seg, targ_size_t offset, uint nbytes, const(void)* p)
 {
 static if (0)
@@ -2449,7 +2465,7 @@ static if (0)
 /*********************************************
  * Add a relocation entry for seg/offset.
  */
-
+@trusted
 void MachObj_addrel(int seg, targ_size_t offset, Symbol *targsym,
         uint targseg, int rtype, int val = 0)
 {
@@ -2483,7 +2499,7 @@ void MachObj_addrel(int seg, targ_size_t offset, Symbol *targsym,
  *      to allocate storage:
  *              MachObj_reftodatseg(DATA,offset,3 * (int *).sizeof,UDATA);
  */
-
+@trusted
 void MachObj_reftodatseg(int seg,targ_size_t offset,targ_size_t val,
         uint targetdatum,int flags)
 {
@@ -2525,7 +2541,7 @@ static if (0)
  *      offset =        offset within seg
  *      val =           displacement from start of this module
  */
-
+@trusted
 void MachObj_reftocodeseg(int seg,targ_size_t offset,targ_size_t val)
 {
     //printf("MachObj_reftocodeseg(seg=%d, offset=x%x, val=x%x )\n",seg,cast(uint)offset,cast(uint)val);
@@ -2558,7 +2574,7 @@ void MachObj_reftocodeseg(int seg,targ_size_t offset,targ_size_t val)
  * Returns:
  *      number of bytes in reference (4 or 8)
  */
-
+@trusted
 int MachObj_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
         int flags)
 {
@@ -2778,6 +2794,7 @@ static if(TERMCODE)
     fobjbuf.write(buffer, len);
 }+/
 
+@trusted
 private extern (D)
 int elf_align(targ_size_t size, int foffset)
 {
@@ -2792,6 +2809,7 @@ int elf_align(targ_size_t size, int foffset)
 /***************************************
  * Stuff pointer to ModuleInfo in its own segment.
  */
+@trusted
 void MachObj_moduleinfo(Symbol *scc)
 {
     int align_ = I64 ? 3 : 2; // align to _tysize[TYnptr]
@@ -2821,7 +2839,7 @@ static if (0)
 
 /*************************************
  */
-
+@trusted
 void MachObj_gotref(Symbol *s)
 {
     //printf("MachObj_gotref(%x '%s', %d)\n",s,s.Sident.ptr, s.Sclass);
@@ -2851,6 +2869,7 @@ void MachObj_gotref(Symbol *s)
  * It's used as a placeholder in the TLV descriptors. The dynamic linker will
  * replace the placeholder with a real function at load time.
  */
+@trusted
 Symbol* MachObj_tlv_bootstrap()
 {
     __gshared Symbol* tlv_bootstrap_sym;
@@ -2910,6 +2929,7 @@ int mach_dwarf_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t va
  * Returns:
  *      number of bytes written at seg:offset
  */
+@trusted
 int dwarf_eh_frame_fixup(int dfseg, targ_size_t offset, Symbol *s, targ_size_t val, Symbol *fdesym)
 {
     OutBuffer *buf = SegData[dfseg].SDbuf;
