@@ -2145,17 +2145,21 @@ regm_t getscratch()
  * Evaluate an elem that is a common subexp that has been encountered
  * before.
  * Look first to see if it is already in a register.
+ * Params:
+ *	cdb = sink for generated code
+ *	e = the elem
+ *	pretregs = input is mask of registers, output is result register
  */
 
 @trusted
-private void comsub(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
 {
     tym_t tym;
     regm_t regm,emask;
     reg_t reg;
     uint byte_,sz;
 
-    //printf("comsub(e = %p, *pretregs = %s)\n",e,regm_str(*pretregs));
+    //printf("comsub(e = %p, pretregs = %s)\n",e,regm_str(pretregs));
     elem_debug(e);
 
     debug
@@ -2166,7 +2170,7 @@ private void comsub(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
     assert(e.Ecomsub <= e.Ecount);
 
-    if (*pretregs == 0)        // no possible side effects anyway
+    if (pretregs == 0)        // no possible side effects anyway
     {
         return;
     }
@@ -2183,21 +2187,21 @@ private void comsub(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     }
     emask &= regcon.cse.mval;                     // make sure all bits are valid
 
-    if (emask & XMMREGS && *pretregs == mPSW)
+    if (emask & XMMREGS && pretregs == mPSW)
         { }
     else if (tyxmmreg(e.Ety) && config.fpxmmregs)
     {
-        if (*pretregs & (mST0 | mST01))
+        if (pretregs & (mST0 | mST01))
         {
-            regm_t retregs = *pretregs & mST0 ? XMMREGS : mXMM0 | mXMM1;
-            comsub(cdb, e, &retregs);
-            fixresult(cdb,e,retregs,pretregs);
+            regm_t retregs = pretregs & mST0 ? XMMREGS : mXMM0 | mXMM1;
+            comsub(cdb, e, retregs);
+            fixresult(cdb,e,retregs,&pretregs);
             return;
         }
     }
     else if (tyfloating(e.Ety) && config.inline8087)
     {
-        comsub87(cdb,e,pretregs);
+        comsub87(cdb,e,&pretregs);
         return;
     }
 
@@ -2208,8 +2212,8 @@ private void comsub(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
     debug if (debugw)
     {
-        printf("comsub(e=%p): *pretregs=%s, emask=%s, csemask=%s, regcon.cse.mval=%s, regcon.mvar=%s\n",
-                e,regm_str(*pretregs),regm_str(emask),regm_str(csemask),
+        printf("comsub(e=%p): pretregs=%s, emask=%s, csemask=%s, regcon.cse.mval=%s, regcon.mvar=%s\n",
+                e,regm_str(pretregs),regm_str(emask),regm_str(csemask),
                 regm_str(regcon.cse.mval),regm_str(regcon.mvar));
         if (regcon.cse.mval & 1)
             elem_print(regcon.cse.value[0]);
@@ -2223,15 +2227,15 @@ private void comsub(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     {
         /* First see if it is already in a correct register     */
 
-        regm = emask & *pretregs;
+        regm = emask & pretregs;
         if (regm == 0)
             regm = emask;               /* try any other register       */
         if (regm)                       /* if it's in a register        */
         {
-            if (!OTleaf(e.Eoper) || !(regm & regcon.mvar) || (*pretregs & regcon.mvar) == *pretregs)
+            if (!OTleaf(e.Eoper) || !(regm & regcon.mvar) || (pretregs & regcon.mvar) == pretregs)
             {
                 regm = mask(findreg(regm));
-                fixresult(cdb,e,regm,pretregs);
+                fixresult(cdb,e,regm,&pretregs);
                 return;
             }
         }
@@ -2245,7 +2249,7 @@ private void comsub(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
             if (cse.flags & CSEsimple)
             {
-                retregs = *pretregs;
+                retregs = pretregs;
                 if (byte_ && !(retregs & BYTEREGS))
                     retregs = BYTEREGS;
                 else if (!(retregs & allregs))
@@ -2262,7 +2266,7 @@ private void comsub(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             {
                 reflocal = true;
                 cse.flags |= CSEload;
-                if (*pretregs == mPSW)  // if result in CCs only
+                if (pretregs == mPSW)  // if result in CCs only
                 {
                     if (config.fpxmmregs && (tyxmmreg(cse.e.Ety) || tyvector(cse.e.Ety)))
                     {
@@ -2271,7 +2275,7 @@ private void comsub(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                         gen_loadcse(cdb, cse.e.Ety, reg, cse.slot);
                         regcon.cse.mval |= mask(reg); // cs is in a reg
                         regcon.cse.value[reg] = e;
-                        fixresult(cdb,e,retregs,pretregs);
+                        fixresult(cdb,e,retregs,&pretregs);
                     }
                     else
                     {
@@ -2281,7 +2285,7 @@ private void comsub(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 }
                 else
                 {
-                    retregs = *pretregs;
+                    retregs = pretregs;
                     if (byte_ && !(retregs & BYTEREGS))
                         retregs = BYTEREGS;
                     allocreg(cdb,&retregs,&reg,tym);
@@ -2289,7 +2293,7 @@ private void comsub(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 L10:
                     regcon.cse.mval |= mask(reg); // cs is in a reg
                     regcon.cse.value[reg] = e;
-                    fixresult(cdb,e,retregs,pretregs);
+                    fixresult(cdb,e,retregs,&pretregs);
                 }
             }
             return;
@@ -2323,7 +2327,7 @@ private void comsub(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         }
 
         /* Look for right vals in any regs      */
-        regm = *pretregs & mMSW;
+        regm = pretregs & mMSW;
         if (emask & regm)
             msreg = findreg(emask & regm);
         else if (emask & mMSW)
@@ -2336,7 +2340,7 @@ private void comsub(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             loadcse(cdb,e,msreg,mMSW);
         }
 
-        regm = *pretregs & (mLSW | mBP);
+        regm = pretregs & (mLSW | mBP);
         if (emask & regm)
             lsreg = findreg(emask & regm);
         else if (emask & (mLSW | mBP))
@@ -2350,7 +2354,7 @@ private void comsub(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         }
 
         regm = mask(msreg) | mask(lsreg);       /* mask of result       */
-        fixresult(cdb,e,regm,pretregs);
+        fixresult(cdb,e,regm,&pretregs);
         return;
     }
     else if (tym == TYdouble || tym == TYdouble_alias)    // double
@@ -2366,7 +2370,7 @@ private void comsub(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                     loadcse(cdb,e,reg,mask(reg));
             }
             regm = DOUBLEREGS_16;
-            fixresult(cdb,e,regm,pretregs);
+            fixresult(cdb,e,regm,&pretregs);
             return;
         }
         if (OTleaf(e.Eoper)) goto reload;
@@ -2388,19 +2392,19 @@ reload:                                 /* reload result from memory    */
     switch (e.Eoper)
     {
         case OPrelconst:
-            cdrelconst(cdb,e,pretregs);
+            cdrelconst(cdb,e,&pretregs);
             break;
 
         case OPgot:
             if (config.exe & EX_posix)
             {
-                cdgot(cdb,e,pretregs);
+                cdgot(cdb,e,&pretregs);
                 break;
             }
             goto default;
 
         default:
-            if (*pretregs == mPSW &&
+            if (pretregs == mPSW &&
                 config.fpxmmregs &&
                 (tyxmmreg(tym) || tysimd(tym)))
             {
@@ -2409,10 +2413,10 @@ reload:                                 /* reload result from memory    */
                 cssave(e,retregs,false);
                 return;
             }
-            loaddata(cdb,e,pretregs);
+            loaddata(cdb,e,&pretregs);
             break;
     }
-    cssave(e,*pretregs,false);
+    cssave(e,pretregs,false);
 }
 
 
@@ -2695,7 +2699,7 @@ void codelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,uint constflag)
     uint op = e.Eoper;
     if (e.Ecount && e.Ecount != e.Ecomsub)     // if common subexp
     {
-        comsub(cdb,e,pretregs);
+        comsub(cdb,e, *pretregs);
         goto L1;
     }
 
