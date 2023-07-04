@@ -1968,7 +1968,8 @@ extern (C++) class FuncDeclaration : Declaration
         overloadApply(cast() this, (Dsymbol s)
         {
             auto f = s.isFuncDeclaration();
-            if (!f)
+            auto td = s.isTemplateDeclaration();
+            if (!f && !td)
                 return 0;
             if (result)
             {
