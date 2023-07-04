@@ -8823,6 +8823,12 @@ LagainStc:
                                     te.parens = true;
                                     e = parsePostExp(te);
                                 }
+                                else if (token.value == TOK.leftParenthesis)
+                                {
+                                    auto te = new AST.TypeExp(loc, t);
+                                    te.parens = true;
+                                    e = parsePostExp(te);
+                                }
                                 else
                                 {
                                     e = parseUnaryExp();
