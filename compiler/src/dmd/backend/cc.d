@@ -529,7 +529,7 @@ enum
  */
 struct BlockRange
 {
-  pure nothrow @nogc @safe:
+  pure nothrow @nogc:
 
     this(block* b)
     {

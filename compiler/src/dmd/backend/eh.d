@@ -31,13 +31,15 @@ import dmd.backend.type;
 
 extern (C++):
 nothrow:
+@safe:
 
-package(dmd) @property @nogc nothrow auto NPTRSIZE() { return _tysize[TYnptr]; }
+package(dmd) @property @nogc nothrow auto @trusted NPTRSIZE() { return _tysize[TYnptr]; }
 
 /****************************
  * Generate and output scope table.
  */
 
+@trusted
 Symbol *except_gentables()
 {
     //printf("except_gentables()\n");
@@ -83,7 +85,7 @@ Symbol *except_gentables()
  *    void *finally;              // finally code to execute
  * }
  */
-
+@trusted
 void except_fillInEHTable(Symbol *s)
 {
     uint fsize = NPTRSIZE;             // target size of function pointer

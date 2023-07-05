@@ -475,7 +475,6 @@ void WRblock(block *b)
  * Number the blocks starting at 1.
  * So much more convenient than pointer values.
  */
-@safe
 void numberBlocks(block *startblock)
 {
     uint number = 0;

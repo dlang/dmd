@@ -138,5 +138,6 @@ enum RTLSYM
 }
 
 extern (C++):
+@safe:
 
 public import dmd.backend.drtlsym : getRtlsym, getRtlsymPersonality;

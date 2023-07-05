@@ -43,6 +43,7 @@ addr calccodsize(ubyte[] code, addr c, out addr pc, uint model)
  * Returns:
  *      true if jump or call target
  */
+@trusted
 public
 bool jmpTarget(ubyte[] code, ref addr c, out addr offset)
 {
@@ -100,7 +101,7 @@ bool jmpTarget(ubyte[] code, ref addr c, out addr offset)
  *          for the program counter value, and `offset` for the offset
  *          of the label from the pc.
  */
-
+@trusted
 public
 void getopstring(void delegate(char) nothrow @nogc put, ubyte[] code, uint c, addr siz,
         uint model, int nearptr, ubyte bObjectcode,
@@ -136,6 +137,8 @@ enum BUFMAX = 2000;
 struct Disasm
 {
   nothrow @nogc:
+
+    @trusted
     this(void delegate(char) nothrow @nogc put, ubyte[] code, addr siz,
         uint model, int nearptr, ubyte bObjectcode,
         const(char)*function(uint c, uint sz, uint offset) nothrow @nogc mem,
@@ -3327,6 +3330,7 @@ void disassemble(uint c)
  * Returns:
  *      string representation of the memory address
  */
+@trusted
 const(char)* memoryDefault(uint c, uint sz, addr offset)
 {
     __gshared char[12 + 1] EA;
@@ -3344,6 +3348,7 @@ const(char)* memoryDefault(uint c, uint sz, addr offset)
  * Returns:
  *      string representation of the memory address
  */
+@trusted
 const(char)* immed16Default(ubyte[] code, uint c, int sz)
 {
     ulong offset;
@@ -3381,6 +3386,7 @@ const(char)* immed16Default(ubyte[] code, uint c, int sz)
  * Returns:
  *      string representation of the memory address
  */
+@trusted
 const(char)* labelcodeDefault(uint c, uint offset, bool farflag, bool is16bit)
 {
     //printf("offset = %x\n", offset);
@@ -3397,6 +3403,7 @@ const(char)* labelcodeDefault(uint c, uint offset, bool farflag, bool is16bit)
  * Returns:
  *      string representation of the memory address
  */
+@trusted
 const(char)* shortlabelDefault(uint pc, int offset)
 {
     __gshared char[1 + ulong.sizeof * 3 + 1] buf;
@@ -3424,6 +3431,7 @@ addr dword(ubyte[] code, uint c)
 
 /*************************************
  */
+@trusted
 const(char)* wordtostring(uint w)
 {
     __gshared char[1 + w.sizeof * 3 + 1 + 1] EA;
