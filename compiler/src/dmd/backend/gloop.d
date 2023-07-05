@@ -674,10 +674,6 @@ Lret:
 
 private __gshared
 {
-    int gref;                // parameter for markinvar()
-    block *gblock;           // parameter for markinvar()
-    vec_t lv;                // parameter for markinvar()
-    vec_t gin;               // parameter for markinvar()
     bool doflow;             // true if flow analysis has to be redone
 }
 
@@ -841,7 +837,7 @@ restart:
             if (go.defnod.length == 0)     /* if no definition elems       */
                 break;              /* no need to optimize          */
         }
-        lv = l.Lloop;
+        vec_t lv = l.Lloop;
         if (debugc) printf("...Loop %p start...\n",&l);
 
         /* Unmark all elems in this loop         */
@@ -850,7 +846,7 @@ restart:
                 unmarkall(dfo[i].Belem);       /* unmark all elems     */
 
         /* Find & mark all LIs   */
-        gin = vec_clone(l.Lpreheader.Bout);
+        vec_t gin = vec_clone(l.Lpreheader.Bout);
         vec_t rd = vec_calloc(go.defnod.length);        /* allocate our running RD vector */
         for (uint i = 0; (i = cast(uint) vec_index(i, lv)) < dfo.length; ++i) // for each block in loop
         {
@@ -869,11 +865,7 @@ restart:
                     }
                     printf("rd    : "); vec_println(rd);
                 }
-                gblock = b;
-                gref = 0;
-                if (b != l.Lhead)
-                    gref = 1;
-                markinvar(b.Belem, rd);
+                markInvariants(b != l.Lhead, b, lv, gin, b.Belem, rd);
                 static if (0)
                 {
                     printf("B%d\n", i);
@@ -950,362 +942,368 @@ restart:
  */
 
 @trusted
-private void markinvar(elem *n,vec_t rd)
+private void markInvariants(int gref, block* gblock, vec_t lv, vec_t gin, elem *n, vec_t rd)
 {
-    vec_t tmp;
-    uint i;
-    Symbol *v;
-    elem *n1;
 
-    assert(n && rd);
-    assert(vec_numbits(rd) == go.defnod.length);
-    switch (n.Eoper)
+    void markinvar(elem *n,vec_t rd)
     {
-        case OPaddass:  case OPminass:  case OPmulass:  case OPandass:
-        case OPorass:   case OPxorass:  case OPdivass:  case OPmodass:
-        case OPshlass:  case OPshrass:  case OPashrass:
-        case OPpostinc: case OPpostdec:
-        case OPcall:
-        case OPvecsto:
-        case OPcmpxchg:
-            markinvar(n.EV.E2,rd);
-            goto case OPnegass;
+        vec_t tmp;
+        uint i;
+        Symbol *v;
+        elem *n1;
 
-        case OPnegass:
-            n1 = n.EV.E1;
-            if (n1.Eoper == OPind)
-                    markinvar(n1.EV.E1,rd);
-            else if (OTbinary(n1.Eoper))
-            {   markinvar(n1.EV.E1,rd);
-                markinvar(n1.EV.E2,rd);
-            }
-        L2:
-            if (n.Eoper == OPcall ||
-                gblock.Btry ||
-                !(n1.Eoper == OPvar &&
-                    symbol_isintab(n1.EV.Vsym)))
-            {
-                gref = 1;
-            }
+        assert(n && rd);
+        assert(vec_numbits(rd) == go.defnod.length);
+        switch (n.Eoper)
+        {
+            case OPaddass:  case OPminass:  case OPmulass:  case OPandass:
+            case OPorass:   case OPxorass:  case OPdivass:  case OPmodass:
+            case OPshlass:  case OPshrass:  case OPashrass:
+            case OPpostinc: case OPpostdec:
+            case OPcall:
+            case OPvecsto:
+            case OPcmpxchg:
+                markinvar(n.EV.E2,rd);
+                goto case OPnegass;
 
-            updaterd(n,rd,null);
-            break;
-
-        case OPcallns:
-            markinvar(n.EV.E2,rd);
-            markinvar(n.EV.E1,rd);
-            break;
-
-        case OPstrcpy:
-        case OPstrcat:
-        case OPmemcpy:
-        case OPmemset:
-            markinvar(n.EV.E2,rd);
-            markinvar(n.EV.E1,rd);
-            updaterd(n,rd,null);
-            break;
-
-        case OPbtc:
-        case OPbtr:
-        case OPbts:
-            markinvar(n.EV.E1,rd);
-            markinvar(n.EV.E2,rd);
-            updaterd(n,rd,null);
-            break;
-
-        case OPucall:
-            markinvar(n.EV.E1,rd);
-            goto case OPasm;
-
-        case OPasm:
-            gref = 1;
-            updaterd(n,rd,null);
-            break;
-
-        case OPucallns:
-        case OPstrpar:
-        case OPstrctor:
-        case OPvector:
-        case OPvoid:
-        case OPstrlen:
-        case OPddtor:
-        case OPinp:
-        case OPprefetch:                // don't mark E2
-            markinvar(n.EV.E1,rd);
-            break;
-
-        case OPcond:
-        case OPparam:
-        case OPstrcmp:
-        case OPmemcmp:
-        case OPbt:                      // OPbt is like OPind, assume not LI
-        case OPoutp:
-            markinvar(n.EV.E1,rd);
-            markinvar(n.EV.E2,rd);
-            break;
-
-        case OPandand:
-        case OPoror:
-            markinvar(n.EV.E1,rd);
-            tmp = vec_clone(rd);
-            markinvar(n.EV.E2,tmp);
-            if (el_returns(n.EV.E2))
-                vec_orass(rd,tmp);              // rd |= tmp
-            vec_free(tmp);
-            break;
-
-        case OPcolon:
-        case OPcolon2:
-            tmp = vec_clone(rd);
-            switch (el_returns(n.EV.E1) * 2 | int(el_returns(n.EV.E2)))
-            {
-                case 3: // E1 and E2 return
-                    markinvar(n.EV.E1,rd);
-                    markinvar(n.EV.E2,tmp);
-                    vec_orass(rd,tmp);              // rd |= tmp
-                    break;
-                case 2: // E1 returns
-                    markinvar(n.EV.E1,rd);
-                    markinvar(n.EV.E2,tmp);
-                    break;
-                case 1: // E2 returns
-                    markinvar(n.EV.E1,tmp);
-                    markinvar(n.EV.E2,rd);
-                    break;
-                case 0: // neither returns
-                    markinvar(n.EV.E1,tmp);
-                    vec_copy(tmp,rd);
-                    markinvar(n.EV.E2,tmp);
-                    break;
-                default:
-                    assert(0);
-            }
-            vec_free(tmp);
-            break;
-
-        case OPaddr:            // mark addresses of OPvars as LI
-            markinvar(n.EV.E1,rd);
-            if (n.EV.E1.Eoper == OPvar || isLI(n.EV.E1))
-                makeLI(n);
-            break;
-
-        case OPmsw:
-        case OPneg:     case OPbool:    case OPnot:     case OPcom:
-        case OPs16_32:  case OPd_s32:   case OPs32_d:
-        case OPd_s16:   case OPs16_d:   case OPd_f:     case OPf_d:
-        case OP32_16:   case OPu8_16:
-        case OPld_d:    case OPd_ld:
-        case OPld_u64:
-        case OPc_r:     case OPc_i:
-        case OPu16_32:
-        case OPu16_d:   case OPd_u16:
-        case OPs8_16:   case OP16_8:
-        case OPd_u32:   case OPu32_d:
-
-        case OPs32_64:  case OPu32_64:
-        case OP64_32:
-        case OPd_s64:   case OPd_u64:
-        case OPs64_d:
-        case OPu64_d:
-        case OP128_64:
-        case OPs64_128:
-        case OPu64_128:
-
-        case OPabs:
-        case OPtoprec:
-        case OPrndtol:
-        case OPrint:
-        case OPsetjmp:
-        case OPbsf:
-        case OPbsr:
-        case OPbswap:
-        case OPpopcnt:
-        case OPsqrt:
-        case OPsin:
-        case OPcos:
-        case OPvp_fp: /* BUG for MacHandles */
-        case OPnp_f16p: case OPf16p_np: case OPoffset: case OPnp_fp:
-        case OPcvp_fp:
-        case OPvecfill:
-            markinvar(n.EV.E1,rd);
-            if (isLI(n.EV.E1))        /* if child is LI               */
-                makeLI(n);
-            break;
-
-        case OPeq:
-        case OPstreq:
-            markinvar(n.EV.E2,rd);
-            n1 = n.EV.E1;
-            markinvar(n1,rd);
-
-            /* Determine if assignment is LI. Conditions are:       */
-            /* 1) Rvalue is LI                                      */
-            /* 2) Lvalue is a variable (simplifies things a lot)    */
-            /* 3) Lvalue can only be affected by unambiguous defs   */
-            /* 4) No rd's of lvalue that are within the loop (other */
-            /*    than the current def)                             */
-            if (isLI(n.EV.E2) && n1.Eoper == OPvar)          /* 1 & 2 */
-            {
-                v = n1.EV.Vsym;
-                if (v.Sflags & SFLunambig)
-                {
-                    tmp = vec_calloc(go.defnod.length);
-                    //filterrd(tmp,rd,v);
-                    listrds(rd,n1,tmp,null);
-                    for (i = 0; (i = cast(uint) vec_index(i, tmp)) < go.defnod.length; ++i)
-                        if (go.defnod[i].DNelem != n &&
-                            vec_testbit(go.defnod[i].DNblock.Bdfoidx,lv))
-                                goto L3;
-                    makeLI(n);      // then the def is LI
-                L3: vec_free(tmp);
+            case OPnegass:
+                n1 = n.EV.E1;
+                if (n1.Eoper == OPind)
+                        markinvar(n1.EV.E1,rd);
+                else if (OTbinary(n1.Eoper))
+                {   markinvar(n1.EV.E1,rd);
+                    markinvar(n1.EV.E2,rd);
                 }
-            }
-            goto L2;
-
-        case OPadd:     case OPmin:     case OPmul:     case OPand:
-        case OPor:      case OPxor:     case OPdiv:     case OPmod:
-        case OPshl:     case OPshr:     case OPeqeq:    case OPne:
-        case OPlt:      case OPle:      case OPgt:      case OPge:
-        case OPashr:
-        case OPror:     case OProl:
-        case OPbtst:
-
-        case OPunord:   case OPlg:      case OPleg:     case OPule:
-        case OPul:      case OPuge:     case OPug:      case OPue:
-        case OPngt:     case OPnge:     case OPnlt:     case OPnle:
-        case OPord:     case OPnlg:     case OPnleg:    case OPnule:
-        case OPnul:     case OPnuge:    case OPnug:     case OPnue:
-
-        case OPcomma:
-        case OPpair:
-        case OPrpair:
-        case OPremquo:
-        case OPscale:
-        case OPyl2x:
-        case OPyl2xp1:
-            markinvar(n.EV.E1,rd);
-            markinvar(n.EV.E2,rd);
-            if (isLI(n.EV.E2) && isLI(n.EV.E1))
-                    makeLI(n);
-            break;
-
-        case OPind:                     /* must assume this is not LI   */
-            markinvar(n.EV.E1,rd);
-            if (isLI(n.EV.E1))
-            {
-                static if (0)
+            L2:
+                if (n.Eoper == OPcall ||
+                    gblock.Btry ||
+                    !(n1.Eoper == OPvar &&
+                        symbol_isintab(n1.EV.Vsym)))
                 {
-                    // This doesn't work with C++, because exp2_ptrtocomtype() will
-                    // transfer const to where it doesn't belong.
-                    if (n.Ety & mTYconst)
-                    {
-                        makeLI(n);
-                    }
+                    gref = 1;
+                }
 
-                    // This was disabled because it was marking as LI
-                    // the loop dimension for the [i] array if
-                    // a[j][i] was in a loop. This meant the a[j] array bounds
-                    // check for the a[j].length was skipped.
-                    else if (n.Ejty)
+                updaterd(n,rd,null);
+                break;
+
+            case OPcallns:
+                markinvar(n.EV.E2,rd);
+                markinvar(n.EV.E1,rd);
+                break;
+
+            case OPstrcpy:
+            case OPstrcat:
+            case OPmemcpy:
+            case OPmemset:
+                markinvar(n.EV.E2,rd);
+                markinvar(n.EV.E1,rd);
+                updaterd(n,rd,null);
+                break;
+
+            case OPbtc:
+            case OPbtr:
+            case OPbts:
+                markinvar(n.EV.E1,rd);
+                markinvar(n.EV.E2,rd);
+                updaterd(n,rd,null);
+                break;
+
+            case OPucall:
+                markinvar(n.EV.E1,rd);
+                goto case OPasm;
+
+            case OPasm:
+                gref = 1;
+                updaterd(n,rd,null);
+                break;
+
+            case OPucallns:
+            case OPstrpar:
+            case OPstrctor:
+            case OPvector:
+            case OPvoid:
+            case OPstrlen:
+            case OPddtor:
+            case OPinp:
+            case OPprefetch:                // don't mark E2
+                markinvar(n.EV.E1,rd);
+                break;
+
+            case OPcond:
+            case OPparam:
+            case OPstrcmp:
+            case OPmemcmp:
+            case OPbt:                      // OPbt is like OPind, assume not LI
+            case OPoutp:
+                markinvar(n.EV.E1,rd);
+                markinvar(n.EV.E2,rd);
+                break;
+
+            case OPandand:
+            case OPoror:
+                markinvar(n.EV.E1,rd);
+                tmp = vec_clone(rd);
+                markinvar(n.EV.E2,tmp);
+                if (el_returns(n.EV.E2))
+                    vec_orass(rd,tmp);              // rd |= tmp
+                vec_free(tmp);
+                break;
+
+            case OPcolon:
+            case OPcolon2:
+                tmp = vec_clone(rd);
+                switch (el_returns(n.EV.E1) * 2 | int(el_returns(n.EV.E2)))
+                {
+                    case 3: // E1 and E2 return
+                        markinvar(n.EV.E1,rd);
+                        markinvar(n.EV.E2,tmp);
+                        vec_orass(rd,tmp);              // rd |= tmp
+                        break;
+                    case 2: // E1 returns
+                        markinvar(n.EV.E1,rd);
+                        markinvar(n.EV.E2,tmp);
+                        break;
+                    case 1: // E2 returns
+                        markinvar(n.EV.E1,tmp);
+                        markinvar(n.EV.E2,rd);
+                        break;
+                    case 0: // neither returns
+                        markinvar(n.EV.E1,tmp);
+                        vec_copy(tmp,rd);
+                        markinvar(n.EV.E2,tmp);
+                        break;
+                    default:
+                        assert(0);
+                }
+                vec_free(tmp);
+                break;
+
+            case OPaddr:            // mark addresses of OPvars as LI
+                markinvar(n.EV.E1,rd);
+                if (n.EV.E1.Eoper == OPvar || isLI(n.EV.E1))
+                    makeLI(n);
+                break;
+
+            case OPmsw:
+            case OPneg:     case OPbool:    case OPnot:     case OPcom:
+            case OPs16_32:  case OPd_s32:   case OPs32_d:
+            case OPd_s16:   case OPs16_d:   case OPd_f:     case OPf_d:
+            case OP32_16:   case OPu8_16:
+            case OPld_d:    case OPd_ld:
+            case OPld_u64:
+            case OPc_r:     case OPc_i:
+            case OPu16_32:
+            case OPu16_d:   case OPd_u16:
+            case OPs8_16:   case OP16_8:
+            case OPd_u32:   case OPu32_d:
+
+            case OPs32_64:  case OPu32_64:
+            case OP64_32:
+            case OPd_s64:   case OPd_u64:
+            case OPs64_d:
+            case OPu64_d:
+            case OP128_64:
+            case OPs64_128:
+            case OPu64_128:
+
+            case OPabs:
+            case OPtoprec:
+            case OPrndtol:
+            case OPrint:
+            case OPsetjmp:
+            case OPbsf:
+            case OPbsr:
+            case OPbswap:
+            case OPpopcnt:
+            case OPsqrt:
+            case OPsin:
+            case OPcos:
+            case OPvp_fp: /* BUG for MacHandles */
+            case OPnp_f16p: case OPf16p_np: case OPoffset: case OPnp_fp:
+            case OPcvp_fp:
+            case OPvecfill:
+                markinvar(n.EV.E1,rd);
+                if (isLI(n.EV.E1))        /* if child is LI               */
+                    makeLI(n);
+                break;
+
+            case OPeq:
+            case OPstreq:
+                markinvar(n.EV.E2,rd);
+                n1 = n.EV.E1;
+                markinvar(n1,rd);
+
+                /* Determine if assignment is LI. Conditions are:       */
+                /* 1) Rvalue is LI                                      */
+                /* 2) Lvalue is a variable (simplifies things a lot)    */
+                /* 3) Lvalue can only be affected by unambiguous defs   */
+                /* 4) No rd's of lvalue that are within the loop (other */
+                /*    than the current def)                             */
+                if (isLI(n.EV.E2) && n1.Eoper == OPvar)          /* 1 & 2 */
+                {
+                    v = n1.EV.Vsym;
+                    if (v.Sflags & SFLunambig)
                     {
                         tmp = vec_calloc(go.defnod.length);
-                        filterrdind(tmp,rd,n);  // only the RDs pertaining to n
-
-                        // if (no RDs within loop)
-                        //      then it's loop invariant
-
-                        for (i = 0; (i = cast(uint) vec_index(i, tmp)) < go.defnod.length; ++i)  // for each RD
-                            if (vec_testbit(go.defnod[i].DNblock.Bdfoidx,lv))
-                                goto L10;       // found a RD in the loop
-
-                        // If gref has occurred, this can still be LI
-                        // if n is an AE that was also an AE at the
-                        // point of gref.
-                        // We can catch a subset of these cases by looking
-                        // at the AEs at the start of the loop.
-                        if (gref)
-                        {
-                            int j;
-
-                            //printf("\tn is: "); WReqn(n); printf("\n");
-                            for (j = 0; (j = cast(uint) vec_index(j, gin)) < go.exptop; ++j)
-                            {
-                                elem *e = go.expnod[j];
-
-                                //printf("\t\tgo.expnod[%d] = %p\n",j,e);
-                                //printf("\t\tAE is: "); WReqn(e); printf("\n");
-                                if (el_match2(n,e))
-                                {
-                                    makeLI(n);
-                                    //printf("Ind LI: "); WReqn(n); printf("\n");
-                                    break;
-                                }
-                            }
-                        }
-                        else
-                            makeLI(n);
-                  L10:
-                        vec_free(tmp);
-                        break;
+                        //filterrd(tmp,rd,v);
+                        listrds(rd,n1,tmp,null);
+                        for (i = 0; (i = cast(uint) vec_index(i, tmp)) < go.defnod.length; ++i)
+                            if (go.defnod[i].DNelem != n &&
+                                vec_testbit(go.defnod[i].DNblock.Bdfoidx,lv))
+                                    goto L3;
+                        makeLI(n);      // then the def is LI
+                    L3: vec_free(tmp);
                     }
                 }
-            }
-            break;
+                goto L2;
 
-        case OPvar:
-            v = n.EV.Vsym;
-            if (v.Sflags & SFLunambig)     // must be unambiguous to be LI
-            {
-                tmp = vec_calloc(go.defnod.length);
-                //filterrd(tmp,rd,v);       // only the RDs pertaining to v
-                listrds(rd,n,tmp,null);  // only the RDs pertaining to v
+            case OPadd:     case OPmin:     case OPmul:     case OPand:
+            case OPor:      case OPxor:     case OPdiv:     case OPmod:
+            case OPshl:     case OPshr:     case OPeqeq:    case OPne:
+            case OPlt:      case OPle:      case OPgt:      case OPge:
+            case OPashr:
+            case OPror:     case OProl:
+            case OPbtst:
 
-                // if (no RDs within loop)
-                //  then it's loop invariant
+            case OPunord:   case OPlg:      case OPleg:     case OPule:
+            case OPul:      case OPuge:     case OPug:      case OPue:
+            case OPngt:     case OPnge:     case OPnlt:     case OPnle:
+            case OPord:     case OPnlg:     case OPnleg:    case OPnule:
+            case OPnul:     case OPnuge:    case OPnug:     case OPnue:
 
-                for (i = 0; (i = cast(uint) vec_index(i, tmp)) < go.defnod.length; ++i)  // for each RD
-                    if (vec_testbit(go.defnod[i].DNblock.Bdfoidx,lv))
-                        goto L1;    // found a RD in the loop
+            case OPcomma:
+            case OPpair:
+            case OPrpair:
+            case OPremquo:
+            case OPscale:
+            case OPyl2x:
+            case OPyl2xp1:
+                markinvar(n.EV.E1,rd);
+                markinvar(n.EV.E2,rd);
+                if (isLI(n.EV.E2) && isLI(n.EV.E1))
+                        makeLI(n);
+                break;
+
+            case OPind:                     /* must assume this is not LI   */
+                markinvar(n.EV.E1,rd);
+                if (isLI(n.EV.E1))
+                {
+                    static if (0)
+                    {
+                        // This doesn't work with C++, because exp2_ptrtocomtype() will
+                        // transfer const to where it doesn't belong.
+                        if (n.Ety & mTYconst)
+                        {
+                            makeLI(n);
+                        }
+
+                        // This was disabled because it was marking as LI
+                        // the loop dimension for the [i] array if
+                        // a[j][i] was in a loop. This meant the a[j] array bounds
+                        // check for the a[j].length was skipped.
+                        else if (n.Ejty)
+                        {
+                            tmp = vec_calloc(go.defnod.length);
+                            filterrdind(tmp,rd,n);  // only the RDs pertaining to n
+
+                            // if (no RDs within loop)
+                            //      then it's loop invariant
+
+                            for (i = 0; (i = cast(uint) vec_index(i, tmp)) < go.defnod.length; ++i)  // for each RD
+                                if (vec_testbit(go.defnod[i].DNblock.Bdfoidx,lv))
+                                    goto L10;       // found a RD in the loop
+
+                            // If gref has occurred, this can still be LI
+                            // if n is an AE that was also an AE at the
+                            // point of gref.
+                            // We can catch a subset of these cases by looking
+                            // at the AEs at the start of the loop.
+                            if (gref)
+                            {
+                                int j;
+
+                                //printf("\tn is: "); WReqn(n); printf("\n");
+                                for (j = 0; (j = cast(uint) vec_index(j, gin)) < go.exptop; ++j)
+                                {
+                                    elem *e = go.expnod[j];
+
+                                    //printf("\t\tgo.expnod[%d] = %p\n",j,e);
+                                    //printf("\t\tAE is: "); WReqn(e); printf("\n");
+                                    if (el_match2(n,e))
+                                    {
+                                        makeLI(n);
+                                        //printf("Ind LI: "); WReqn(n); printf("\n");
+                                        break;
+                                    }
+                                }
+                            }
+                            else
+                                makeLI(n);
+                      L10:
+                            vec_free(tmp);
+                            break;
+                        }
+                    }
+                }
+                break;
+
+            case OPvar:
+                v = n.EV.Vsym;
+                if (v.Sflags & SFLunambig)     // must be unambiguous to be LI
+                {
+                    tmp = vec_calloc(go.defnod.length);
+                    //filterrd(tmp,rd,v);       // only the RDs pertaining to v
+                    listrds(rd,n,tmp,null);  // only the RDs pertaining to v
+
+                    // if (no RDs within loop)
+                    //  then it's loop invariant
+
+                    for (i = 0; (i = cast(uint) vec_index(i, tmp)) < go.defnod.length; ++i)  // for each RD
+                        if (vec_testbit(go.defnod[i].DNblock.Bdfoidx,lv))
+                            goto L1;    // found a RD in the loop
+                    makeLI(n);
+
+                L1: vec_free(tmp);
+                }
+                break;
+
+            case OPstring:
+            case OPrelconst:
+            case OPconst:                   /* constants are always LI      */
+            case OPframeptr:
                 makeLI(n);
+                break;
 
-            L1: vec_free(tmp);
-            }
-            break;
+            case OPinfo:
+                markinvar(n.EV.E2,rd);
+                break;
 
-        case OPstring:
-        case OPrelconst:
-        case OPconst:                   /* constants are always LI      */
-        case OPframeptr:
-            makeLI(n);
-            break;
+            case OPstrthis:
+            case OPmark:
+            case OPctor:
+            case OPdtor:
+            case OPdctor:
+            case OPhalt:
+            case OPgot:                     // shouldn't OPgot be makeLI ?
+                break;
 
-        case OPinfo:
-            markinvar(n.EV.E2,rd);
-            break;
+            default:
+                //printf("n.Eoper = %s, OPconst = %d\n", oper_str(n.Eoper), OPconst);
+                assert(0);
+        }
 
-        case OPstrthis:
-        case OPmark:
-        case OPctor:
-        case OPdtor:
-        case OPdctor:
-        case OPhalt:
-        case OPgot:                     // shouldn't OPgot be makeLI ?
-            break;
-
-        default:
-            //printf("n.Eoper = %s, OPconst = %d\n", oper_str(n.Eoper), OPconst);
-            assert(0);
-    }
-
-    debug
-    {
-        if (debugc && isLI(n))
+        debug
         {
-            printf("  LI elem: ");
-            WReqn(n);
-            printf("\n");
+            if (debugc && isLI(n))
+            {
+                printf("  LI elem: ");
+                WReqn(n);
+                printf("\n");
+            }
         }
     }
+
+    markinvar(n, rd);
 }
 
 /********************
