@@ -93,13 +93,13 @@ enum CW_roundtonearest = 0x3BF;
  */
 
 @trusted
-private void getlvalue87(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
+private void getlvalue87(ref CodeBuilder cdb, ref code pcs,elem *e,regm_t keepmsk)
 {
     // the x87 instructions cannot read XMM registers
     if (e.Eoper == OPvar || e.Eoper == OPrelconst)
         e.EV.Vsym.Sflags &= ~GTregcand;
 
-    getlvalue(cdb, pcs, e, keepmsk);
+    getlvalue(cdb, &pcs, e, keepmsk);
     if (ADDFWAIT())
         pcs.Iflags |= CFwait;
     if (I32)
@@ -1675,7 +1675,7 @@ L5:
                 }
                 else
                 {
-                    getlvalue87(cdb,&cs,e,0);
+                    getlvalue87(cdb,cs,e,0);
                     makesure87(cdb,eleft,eoffset,0,0);
                     cs.Iop = ESC(mf,0);
                     cs.Irm |= modregrm(0,op,0);
@@ -1721,7 +1721,7 @@ L5:
                 static if (1)
                 {
                   L4:
-                    getlvalue87(cdb,&cs,e.EV.E1,0);
+                    getlvalue87(cdb,cs,e.EV.E1,0);
                     cs.Iop = ESC(mf1,0);
                     if (op != -1)
                     {
@@ -1762,7 +1762,7 @@ L5:
             if (e.EV.E1.Eoper == OPvar ||
                 (e.EV.E1.Eoper == OPind && e.EV.E1.Ecount == 0))
             {
-                getlvalue87(cdb,&cs,e.EV.E1,0);
+                getlvalue87(cdb,cs,e.EV.E1,0);
                 cs.Iop = 0xDF;
                 push87(cdb);
                 cs.Irm |= modregrm(0,5,0);
@@ -2027,12 +2027,12 @@ void eq87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             while (e2.Eoper == OPcomma)
                 e2 = e2.EV.E2;
             note87(e2,0,0);
-            getlvalue87(cdb, &cs, e.EV.E1, 0);
+            getlvalue87(cdb, cs, e.EV.E1, 0);
             makesure87(cdb,e2,0,0,1);
         }
         else
         {
-            getlvalue87(cdb, &cs, e.EV.E1, 0);
+            getlvalue87(cdb, cs, e.EV.E1, 0);
         }
         cs.Irm |= modregrm(0,op2,0);            // OR in reg field
         cdb.gen(&cs);
@@ -2134,7 +2134,7 @@ void complex_eq87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         cs.Iflags = 0;
         cs.Irex = 0;
         cs.Iop = op1;
-        getlvalue87(cdb, &cs, e.EV.E1, 0);
+        getlvalue87(cdb, cs, e.EV.E1, 0);
         cs.IEV1.Voffset += sz;
         cs.Irm |= modregrm(0, op2, 0);
         makesure87(cdb,e.EV.E2, sz, 0, 0);
@@ -2300,7 +2300,7 @@ public void opass87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     regm_t retregs = mST0;
     codelem(cdb,e.EV.E2,&retregs,false);     // evaluate rvalue
     note87(e.EV.E2,0,0);
-    getlvalue87(cdb,&cs,e.EV.E1,e.Eoper==OPmodass?mAX:0);
+    getlvalue87(cdb,cs,e.EV.E1,e.Eoper==OPmodass?mAX:0);
     makesure87(cdb,e.EV.E2,0,0,0);
     if (config.flags4 & CFG4fdivcall && e.Eoper == OPdivass)
     {
@@ -2417,7 +2417,7 @@ private void opmod_complex87(ref CodeBuilder cdb, elem *e,regm_t *pretregs)
     regm_t retregs = mST0;
     codelem(cdb,e.EV.E2,&retregs,false);         // FLD E2
     note87(e.EV.E2,0,0);
-    getlvalue87(cdb,&cs,e.EV.E1,0);
+    getlvalue87(cdb,cs,e.EV.E1,0);
     makesure87(cdb,e.EV.E2,0,0,0);
 
     push87(cdb);
@@ -2514,7 +2514,7 @@ private void opass_complex87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         retregs = mST0;
         codelem(cdb,e.EV.E2, &retregs, false);
         note87(e.EV.E2, 0, 0);
-        getlvalue87(cdb,&cs, e.EV.E1, 0);
+        getlvalue87(cdb,cs, e.EV.E1, 0);
         makesure87(cdb,e.EV.E2,0,0,0);
         push87(cdb);
         cdb.genf2(0xD9,0xC0);                   // FLD ST(0)
@@ -2523,7 +2523,7 @@ private void opass_complex87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     else
     {
         loadComplex(cdb,e.EV.E2);
-        getlvalue87(cdb,&cs,e.EV.E1,0);
+        getlvalue87(cdb,cs,e.EV.E1,0);
         makesure87(cdb,e.EV.E2,sz2,0,0);
         makesure87(cdb,e.EV.E2,0,1,0);
     }
@@ -2782,7 +2782,7 @@ void cdnegass87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     int sz = _tysize[tyml];
 
     code cs;
-    getlvalue87(cdb,&cs,e1,0);
+    getlvalue87(cdb,cs,e1,0);
 
     /* If the EA is really an XMM register, modEA() will fail.
      * So disallow putting e1 into a register.
@@ -2855,7 +2855,7 @@ void post87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     //printf("post87(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
     code cs;
     assert(*pretregs);
-    getlvalue87(cdb,&cs,e.EV.E1,0);
+    getlvalue87(cdb,cs,e.EV.E1,0);
     tym_t ty1 = tybasic(e.EV.E1.Ety);
     switch (ty1)
     {
@@ -3457,7 +3457,7 @@ void cdind87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     //printf("cdind87(e = %p, *pretregs = %s)\n",e,regm_str(*pretregs));
     code cs;
 
-    getlvalue87(cdb,&cs,e,0);           // get addressing mode
+    getlvalue87(cdb,cs,e,0);           // get addressing mode
     if (*pretregs)
     {
         switch (tybasic(e.Ety))
