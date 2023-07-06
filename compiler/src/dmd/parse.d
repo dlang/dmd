@@ -718,16 +718,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                      tk.value == TOK.out_ || tk.value == TOK.do_ || tk.value == TOK.goesTo ||
                      tk.value == TOK.identifier && tk.ident == Id._body))
                 {
-                    version (none)
-                    {
-                        // @@@DEPRECATED_2.117@@@
-                        // https://github.com/dlang/DIPs/blob/1f5959abe482b1f9094f6484a7d0a3ade77fc2fc/DIPs/accepted/DIP1003.md
-                        // Deprecated in 2.097 - Can be removed from 2.117
-                        // The deprecation period is longer than usual as `body`
-                        // was quite widely used.
-                        if (tk.value == TOK.identifier && tk.ident == Id._body)
-                            deprecation("usage of the `body` keyword is deprecated. Use `do` instead.");
-                    }
+                    if (tk.value == TOK.identifier && tk.ident == Id._body)
+                        usageOfBodyKeyword();
 
                     a = parseDeclarations(true, pAttrs, pAttrs.comment);
                     if (a && a.length)
@@ -1166,7 +1158,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 a = parseDeclDefs(0, pLastDecl);
                 if (token.value != TOK.rightCurly)
                 {
-                    /* { */
+                    /* left curly brace */
                     error("matching `}` expected, not `%s`", token.toChars());
                     eSink.errorSupplemental(lcLoc, "unmatched `{`");
                 }
@@ -1508,7 +1500,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         if (token.value != TOK.leftCurly)
         {
-            error("`{` expected after template parameter list, not `%s`", token.toChars());
+            error("`{` expected after template parameter list, not `%s`", token.toChars()); /* } */
             goto Lerr;
         }
         decldefs = parseBlock(null);
@@ -2727,7 +2719,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         nextToken();
 
-        const(char)* begPtr = token.ptr + 1; // skip '{'
+        const(char)* begPtr = token.ptr + 1; // skip left curly brace
         const(char)* endPtr = null;
         AST.Statement sbody = parseStatement(ParseStatementFlags.curly, &endPtr);
 
@@ -4453,16 +4445,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     (tk.value == TOK.leftParenthesis || tk.value == TOK.leftCurly || tk.value == TOK.in_ || tk.value == TOK.out_ || tk.value == TOK.goesTo ||
                      tk.value == TOK.do_ || tk.value == TOK.identifier && tk.ident == Id._body))
                 {
-                    version (none)
-                    {
-                        // @@@DEPRECATED_2.117@@@
-                        // https://github.com/dlang/DIPs/blob/1f5959abe482b1f9094f6484a7d0a3ade77fc2fc/DIPs/accepted/DIP1003.md
-                        // Deprecated in 2.097 - Can be removed from 2.117
-                        // The deprecation period is longer than usual as `body`
-                        // was quite widely used.
-                        if (tk.value == TOK.identifier && tk.ident == Id._body)
-                            deprecation("usage of the `body` keyword is deprecated. Use `do` instead.");
-                    }
+                    if (tk.value == TOK.identifier && tk.ident == Id._body)
+                        usageOfBodyKeyword();
 
                     ts = null;
                 }
@@ -5199,15 +5183,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         case TOK.identifier:
             if (token.ident == Id._body)
             {
-                version (none)
-                {
-                    // @@@DEPRECATED_2.117@@@
-                    // https://github.com/dlang/DIPs/blob/1f5959abe482b1f9094f6484a7d0a3ade77fc2fc/DIPs/accepted/DIP1003.md
-                    // Deprecated in 2.097 - Can be removed from 2.117
-                    // The deprecation period is longer than usual as `body`
-                    // was quite widely used.
-                    deprecation("usage of the `body` keyword is deprecated. Use `do` instead.");
-                }
+                usageOfBodyKeyword();
                 goto case TOK.do_;
             }
             goto default;
@@ -7581,15 +7557,7 @@ LagainStc:
             case TOK.identifier:
                 if (t.ident == Id._body)
                 {
-                    version (none)
-                    {
-                        // @@@DEPRECATED_2.117@@@
-                        // https://github.com/dlang/DIPs/blob/1f5959abe482b1f9094f6484a7d0a3ade77fc2fc/DIPs/accepted/DIP1003.md
-                        // Deprecated in 2.097 - Can be removed from 2.117
-                        // The deprecation period is longer than usual as `body`
-                        // was quite widely used.
-                        deprecation("usage of the `body` keyword is deprecated. Use `do` instead.");
-                    }
+                    usageOfBodyKeyword();
                     goto case TOK.do_;
                 }
                 goto default;
@@ -9544,6 +9512,19 @@ LagainStc:
                 STC.live     |
                 /*STC.future   |*/ // probably should be included
                 STC.disable;
+
+    void usageOfBodyKeyword()
+    {
+        version (none)
+        {
+            // @@@DEPRECATED_2.117@@@
+            // https://github.com/dlang/DIPs/blob/1f5959abe482b1f9094f6484a7d0a3ade77fc2fc/DIPs/accepted/DIP1003.md
+            // Deprecated in 2.097 - Can be removed from 2.117
+            // The deprecation period is longer than usual as `body`
+            // was quite widely used.
+            deprecation("usage of the `body` keyword is deprecated. Use `do` instead.");
+        }
+    }
 }
 
 enum PREC : int
