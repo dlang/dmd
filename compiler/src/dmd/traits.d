@@ -52,6 +52,7 @@ import dmd.visitor;
 import dmd.root.rootobject;
 import dmd.common.outbuffer;
 import dmd.root.string;
+import dmd.root.optional;
 
 enum LOGSEMANTIC = false;
 
@@ -339,6 +340,30 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
     {
         e.error("expected %d arguments for `%s` but had %d", expected, e.ident.toChars(), cast(int)dim);
         return ErrorExp.get();
+    }
+
+    auto getStringTraitsArg(RootObject obj) {
+        auto ex = isExpression(obj);
+
+        StringExp se = ex ? ex.ctfeInterpret().toStringExp() : null;
+        if (!ex || !se || se.len == 0)
+        {
+            e.error("string expected as argument of __traits `%s` instead of `%s`", e.ident.toChars(), ex.toChars());
+            return null;
+        }
+        se = se.toUTF8(sc);
+
+        return se.peekString();
+    }
+
+    Optional!bool getBoolTraitsArg(RootObject obj) {
+        auto ex = isExpression(obj);
+        ex = ex ? ex.ctfeInterpret() : null;
+
+        if (!ex || !ex.type.equals(Type.tbool))
+            return Optional!bool();
+
+        return ex.toBool();
     }
 
     static IntegerExp True()
@@ -1907,16 +1932,11 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         if (dim != 1)
             return dimError(1);
 
-        auto ex = isExpression((*e.args)[0]);
-        StringExp se = ex ? ex.ctfeInterpret().toStringExp() : null;
-        if (!ex || !se || se.len == 0)
-        {
-            e.error("string expected as argument of __traits `%s` instead of `%s`", e.ident.toChars(), ex.toChars());
+        auto slice = getStringTraitsArg((*e.args)[0]);
+        if (slice == null) {
             return ErrorExp.get();
         }
-        se = se.toUTF8(sc);
 
-        const slice = se.peekString();
         Expression r = target.getTargetInfo(slice.ptr, e.loc); // BUG: reliance on terminating 0
         if (!r)
         {
@@ -2074,6 +2094,147 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         return tup.expressionSemantic(sc);
     }
 
+    Expression evaluateExpConstant(Expression e, Type type) {
+        auto expType = e.type;
+
+        if (expType is null) {  // Need to run exp semantic if type is null
+            uint errors = global.errors;
+            e = e.expressionSemantic(sc);
+
+            if (global.errors != errors)
+                return null;
+
+            expType = e.type;
+        }
+
+        auto checkImplicitConv = expType.implicitConvTo(type);
+
+        if (checkImplicitConv == MATCH.nomatch) {   // Check if type can be implicit converted
+            e.error("The cmdline constant expected a `%s` type but received `%s` which is a type `%s`",
+                type.toChars, e.toChars(), expType.toChars);
+            return null;
+        }
+
+        return e;
+    }
+
+    Expression evaluateConstant(const(char)[] value, Type type, bool needToEvaluate) {
+
+        if (!needToEvaluate)
+            return new StringExp(e.loc, value);
+
+        uint errors = global.errors;
+        scope p = new Parser!ASTCodegen(e.loc, sc._module, value, false, global.errorSink, &global.compileEnv, false);
+        p.transitionIn = global.params.vin;
+        p.nextToken();
+
+        Expression e = p.parseExpression();
+        if (global.errors != errors)
+            return null;
+
+        if (p.token.value != TOK.endOfFile)
+        {
+               e.error("Incomplete cmdline constant `%.*s`", cast(int) value.length, value.ptr);
+               return null;
+        }
+
+        return evaluateExpConstant(e, type);
+    }
+
+    const(char)[] getConstantValue(const(char)[] constantName, const(char)[] moduleName) {
+        // Get cmdline constant array
+        auto cmdlineConstantArr = global.params.cmdlineConstants.peekSlice;
+
+        for (int i = 0; i < cmdlineConstantArr.length; i+=2) {
+            auto cmdlineConstantArrName = cmdlineConstantArr[i].toDString();
+
+            if (cmdlineConstantArrName.length < moduleName.length + 2) {
+                continue;   // constant name must contains module name, so must be at least moduleName.x
+            }
+
+            if (cmdlineConstantArrName[0..moduleName.length + 1] != moduleName ~ ".") {
+                continue;   // constant name doesn't starts with current scope module name
+            }
+
+            if (cmdlineConstantArrName == constantName) {
+                return cmdlineConstantArr[i+1].toDString();
+            }
+        }
+
+        return null;
+    }
+
+    if (e.ident == Id.getCmdlineConstant)
+    {
+        if (dim < 1)
+            return dimError(1); // Must be at least 1 argument
+
+        if (dim > 3)
+            return dimError(3); // Max 3 argument
+
+        // Get current scope full module name
+        OutBuffer moduleNameBuf;
+        sc._module.fullyQualifiedName(moduleNameBuf);
+        auto moduleName = moduleNameBuf.extractSlice;
+
+        // Get strings
+        auto constantName = getStringTraitsArg((*e.args)[0]);
+        if (constantName == null)
+            return ErrorExp.get();
+
+        if (constantName.length <= moduleName.length + 1 || constantName[0..moduleName.length + 1] != moduleName ~ ".")
+            constantName = moduleName ~ "." ~ constantName; // Implicit add module name to traits lookup constant name
+
+        auto constantValue = getConstantValue(constantName, moduleName);  // Get constant value from compiler cmdline
+        Optional!bool needToEvaluate = Optional!bool.create(false);    // Default bool == false
+        Expression exp;
+        Type type;
+
+        if (dim > 1) {  // We have the second argument (type or false)
+            needToEvaluate = getBoolTraitsArg((*e.args)[1]);
+            type = getType((*e.args)[1]);
+        }
+
+        if (!needToEvaluate.isPresent) // Bool not present in second argument, so must be a type
+            needToEvaluate = Optional!bool.create(true);
+        else if (!needToEvaluate.get()) {  // Bool present (default) and == false, we will not evaluate the constant
+            needToEvaluate = Optional!bool.create(false);
+            type = new TypeBasic(TY.Tchar).immutableOf().arrayOf();
+        } else if (needToEvaluate.get() || !type) {    // Secocond argument must be a type or false (true is invalid)
+            e.error("The second trait argument accepts only D types or false");
+            return ErrorExp.get();
+        }
+
+        if (dim == 3 && !constantValue) {   // Fallback to default value
+            exp = isExpression((*e.args)[2]);
+            exp = exp ? exp.ctfeInterpret() : null;
+
+            if (!exp) {     // Must be expression
+                e.error("Expression expected as third argument of __traits getCmdlineConstant instead of `%s`", exp.toChars());
+                return ErrorExp.get();
+            }
+
+            exp = evaluateExpConstant(exp, type);  // Evaluate the expression (also if second argument == false)
+
+            if (!exp)
+               return ErrorExp.get();   // Evaluate fail
+
+            return exp.expressionSemantic(sc);
+        }
+
+        if (!constantValue) {   // No third argument and no constant passed to compiler cmdline
+            e.error("Cmdline constant `%.*s` was not passed to the compiler arguments", cast(int) constantName.length, constantName.ptr);
+            return ErrorExp.get();
+        }
+
+        exp = evaluateConstant(constantValue, type, needToEvaluate.get);  // Evaluate expression, if needToEvaluate == false get string exp
+
+        if (!exp)
+            return ErrorExp.get(); // Evaluate fail
+
+        return exp.expressionSemantic(sc);
+    }
+
     /* Can't find the identifier. Try a spell check for a better error message
      */
     traitNotFound(e);
@@ -2223,7 +2384,7 @@ private void traitNotFound(TraitsExp e)
         initialized = true;     // lazy initialization
 
         // All possible traits
-        __gshared Identifier*[59] idents =
+        __gshared Identifier*[60] idents =
         [
             &Id.allMembers,
             &Id.child,
@@ -2284,6 +2445,7 @@ private void traitNotFound(TraitsExp e)
             &Id.isZeroInit,
             &Id.parameters,
             &Id.parent,
+            &Id.getCmdlineConstant,
         ];
 
         StringTable!(bool)* stringTable = cast(StringTable!(bool)*) &traitsStringTable;

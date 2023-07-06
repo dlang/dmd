@@ -1,0 +1,15 @@
+Added __traits(getCmdlineConstant) to allow define constant from cmdline
+
+This allows to define constants via the cmdline which you can get via
+__traits(getCmdlineConstant) to use them in the code.
+
+---
+# dmd -define:mymod.test1=some_text -define:mymod.test2=4
+
+module mymod;
+pragma(msg, __traits(getCmdlineConstant, "test1"));   // Prints "some_text"
+pragma(msg, __traits(getCmdlineConstant, "mymod.test1")); // Prints "some_text"
+pragma(msg, __traits(getCmdlineConstant, "test2", false)); // Prints string "4"
+pragma(msg, __traits(getCmdlineConstant, "test2", int)); // Prints integer 4
+pragma(msg, __traits(getCmdlineConstant, "test3", int, 2)); // Constant not passed to dmd --> fallback default -> Prints integer 2
+---

@@ -2267,6 +2267,43 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             else
                 goto Lerror;
         }
+        else if (startsWith(p + 1, "define:"))
+        {
+            auto definedStr = (p + 8).toDString();
+            const(char)[] constantName;
+            const(char)[] constantValue;
+
+            if (definedStr.length < 3)
+                goto Lerror;    // Must be at least a=b
+
+            foreach (idefstr, c; definedStr) {
+                if (idefstr == 0 || idefstr == definedStr.length - 1)
+                    continue;   // The '=' separator must be in between
+
+                if (c == '=') {
+                    constantName = definedStr[0..idefstr];   // Split string at '=' separator
+                    constantValue = definedStr[idefstr+1..$];
+                    break;
+                }
+            }
+
+            if (constantName.length == 0 || constantValue.length == 0)    // The two string must not be empty
+                goto Lerror;
+
+            if (!params.cmdlineConstants)
+                params.cmdlineConstants = new Array!(const(char)*);
+
+            // Check if it has been defined more than once
+            auto cmdlineConstantArr = params.cmdlineConstants.peekSlice;
+            for (int idefarr = 0; idefarr < cmdlineConstantArr.length; idefarr+=2) {
+                if (cmdlineConstantArr[idefarr].toDString() == constantName) {
+                    error("Cmdline constant \"%.*s\" was defined more than once", cast(int) constantName.length, constantName.ptr);
+                }
+            }
+
+            params.cmdlineConstants.push(constantName.xarraydup.ptr);    // Duplicate array to null terminated
+            params.cmdlineConstants.push(constantValue.xarraydup.ptr);
+        }
         else if (arg == "--b")
             driverParams.debugb = true;
         else if (arg == "--c")

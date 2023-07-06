@@ -500,6 +500,7 @@ immutable Msgtable[] msgtable =
     { "isCopyable" },
     { "toType" },
     { "parameters" },
+    { "getCmdlineConstant" },
 
     // For C++ mangling
     { "allocator" },

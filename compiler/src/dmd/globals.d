@@ -212,6 +212,8 @@ extern (C++) struct Param
     uint versionlevel;                  // version level
     Array!(const(char)*)* versionids;   // version identifiers
 
+    Array!(const(char)*)* cmdlineConstants;   // Cmdline constants
+
 
     MessageStyle messageStyle = MessageStyle.digitalmars; // style of file/line annotations on messages
 
