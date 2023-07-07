@@ -6931,6 +6931,48 @@ void test6166()
     assert(n.a[1] == 7);
 }
 
+/*****************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=12878
+
+void test12878()
+{
+    ubyte* p;
+
+    static ubyte[] data =
+    [
+        0x67, 0x8B, 0x06,
+        0x67, 0x89, 0x0F,
+        0x67, 0xE3, 0xF7,
+    ];
+
+    asm
+    {
+        call    L1;
+     L2:
+        mov     EAX, [ESI];
+        mov     [EDI], ECX;
+        jecxz   L2;
+
+L1:     pop     RAX;
+        mov     p[RBP],RAX;
+    }
+
+    foreach (ref i, b; data)
+    {
+        assert(p[i] == b);
+    }
+
+    return;
+    asm
+    {
+        jmp     foo12878;
+    }
+}
+
+void foo12878()
+{
+}
+
 /****************************************************/
 
 int main()
@@ -7011,6 +7053,7 @@ int main()
     test20126();
     test63();
     test6166();
+    test12878();
 
     printf("Success\n");
     return 0;
