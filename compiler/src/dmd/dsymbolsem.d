@@ -1127,11 +1127,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                                 {
                                     if (sc.func.isSafe())
                                     {
-                                        // @@@DEPRECATED_2.112@@@
-                                        deprecation(dsym.loc,
-                                            "`scope` allocation of `%s` requires that constructor be annotated with `scope`",
-                                            dsym.toChars());
-                                        deprecationSupplemental(ne.member.loc, "is the location of the constructor");
+                                        if (global.params.obsolete)
+                                        {
+                                            warning(dsym.loc,
+                                                "`scope` allocation of `%s` requires that constructor be annotated with `scope`",
+                                                dsym.toChars());
+                                            warningSupplemental(ne.member.loc, "is the location of the constructor");
+                                        }
                                      }
                                      else
                                          sc.func.setUnsafe();
