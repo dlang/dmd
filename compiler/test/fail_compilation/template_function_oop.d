@@ -1,8 +1,9 @@
 /*
+REQUIRED_ARGS: -de
 TEST_OUTPUT:
 ---
-fail_compilation/template_function_oop.d(15): Error: a function template cannot be `override`
-fail_compilation/template_function_oop.d(16): Error: a function template cannot be `abstract`
+fail_compilation/template_function_oop.d(16): Deprecation: a function template is not virtual so cannot be marked `override`
+fail_compilation/template_function_oop.d(17): Deprecation: a function template is not virtual so cannot be marked `abstract`
 ---
 */
 class C

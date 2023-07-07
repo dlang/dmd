@@ -4611,10 +4611,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                  */
                 if (tpl)
                 {
+                    // @@@DEPRECATED_2.114@@@
+                    // Both deprecated in 2.104, change to error
                     if (storage_class & STC.override_)
-                        error(loc, "a function template cannot be `override`");
+                        deprecation(loc, "a function template is not virtual so cannot be marked `override`");
                     else if (storage_class & STC.abstract_)
-                        error(loc, "a function template cannot be `abstract`");
+                        deprecation(loc, "a function template is not virtual so cannot be marked `abstract`");
 
                     // Wrap a template around the function declaration
                     auto decldefs = new AST.Dsymbols();
