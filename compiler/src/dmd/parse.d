@@ -3036,6 +3036,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         }
 
         e = new AST.EnumDeclaration(loc, id, memtype);
+        // opaque type
         if (token.value == TOK.semicolon && id)
             nextToken();
         else if (token.value == TOK.leftCurly)
@@ -3068,7 +3069,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     && token.value != TOK.comma
                     && token.value != TOK.assign)
                 {
-                    switch(token.value)
+                    switch (token.value)
                     {
                         case TOK.at:
                             if (StorageClass _stc = parseAttribute(udas))
@@ -3104,7 +3105,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                             }
                             else
                             {
-                                goto default;
+                                if (isAnonymousEnum)
+                                    goto default; // maybe `Type identifier`
+
+                                prevTOK = token.value;
+                                nextToken();
+                                error("expected `,` or `=` after identifier, not `%s`", token.toChars());
                             }
                             break;
                         default:
