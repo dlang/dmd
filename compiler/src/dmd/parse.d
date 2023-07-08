@@ -3116,6 +3116,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         default:
                             if (isAnonymousEnum)
                             {
+                                if (type)
+                                {
+                                    error("expected identifier after type, not `%s`", token.toChars());
+                                    type = null;
+                                    break;
+                                }
                                 type = parseType(&ident, null);
                                 if (type == AST.Type.terror)
                                 {
@@ -3126,6 +3132,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                                 else
                                 {
                                     prevTOK = TOK.identifier;
+                                    const tv = token.value;
+                                    if (ident && tv != TOK.assign && tv != TOK.comma && tv != TOK.rightCurly)
+                                    {
+                                        error("expected `,` or `=` after identifier, not `%s`", token.toChars());
+                                    }
                                 }
                             }
                             else
@@ -3167,7 +3178,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 {
                     value = null;
                     if (type && type != AST.Type.terror && isAnonymousEnum)
-                        error("if type, there must be an initializer");
+                        error("initializer required after `%s` when type is specified", ident.toChars());
                 }
 
                 AST.DeprecatedDeclaration dd;
@@ -3472,6 +3483,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         return decldefs;
     }
 
+    /* Parse a type and optional identifier
+     * Params:
+     *  pident       = set to Identifier if there is one, null if not
+     *  ptpl         = if !null, then set to TemplateParameterList
+     */
     AST.Type parseType(Identifier* pident = null, AST.TemplateParameters** ptpl = null)
     {
         /* Take care of the storage class prefixes that
