@@ -1,0 +1,19 @@
+Ddoc
+
+$(SPEC_S Legacy Code,
+
+$(HEADERNAV_TOC)
+
+    $(P To maintain compatibility with older D code, many legacy features remain supported.
+    If the $(TT -wo) compiler command line switch is used, the compiler will give warning messages
+    for each use of a legacy feature.
+    This page describes each legacy feature that is supported, with a suggestion of how to
+    modernize the code.
+    )
+
+)
+
+Macros:
+        CHAPTER=45
+        TITLE=Legacy Code
+    D=<span class="d_inlinecode">$0</span>
