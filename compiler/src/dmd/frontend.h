@@ -3384,6 +3384,7 @@ struct CompileEnv final
     bool previewIn;
     bool ddocOutput;
     bool shortenedMethods;
+    bool obsolete;
     CompileEnv() :
         versionNumber(),
         date(),
@@ -3392,10 +3393,11 @@ struct CompileEnv final
         timestamp(),
         previewIn(),
         ddocOutput(),
-        shortenedMethods(true)
+        shortenedMethods(true),
+        obsolete()
     {
     }
-    CompileEnv(uint32_t versionNumber, _d_dynamicArray< const char > date = {}, _d_dynamicArray< const char > time = {}, _d_dynamicArray< const char > vendor = {}, _d_dynamicArray< const char > timestamp = {}, bool previewIn = false, bool ddocOutput = false, bool shortenedMethods = true) :
+    CompileEnv(uint32_t versionNumber, _d_dynamicArray< const char > date = {}, _d_dynamicArray< const char > time = {}, _d_dynamicArray< const char > vendor = {}, _d_dynamicArray< const char > timestamp = {}, bool previewIn = false, bool ddocOutput = false, bool shortenedMethods = true, bool obsolete = false) :
         versionNumber(versionNumber),
         date(date),
         time(time),
@@ -3403,7 +3405,8 @@ struct CompileEnv final
         timestamp(timestamp),
         previewIn(previewIn),
         ddocOutput(ddocOutput),
-        shortenedMethods(shortenedMethods)
+        shortenedMethods(shortenedMethods),
+        obsolete(obsolete)
         {}
 };
 
@@ -7150,14 +7153,16 @@ public:
     ThisExp(const Loc& loc, const EXP tok);
     ThisExp* syntaxCopy() override;
     Optional<bool > toBool() override;
-    bool isLvalue() final override;
-    Expression* toLvalue(Scope* sc, Expression* e) final override;
+    bool isLvalue() override;
+    Expression* toLvalue(Scope* sc, Expression* e) override;
     void accept(Visitor* v) override;
 };
 
 class SuperExp final : public ThisExp
 {
 public:
+    bool isLvalue() override;
+    Expression* toLvalue(Scope* sc, Expression* e) override;
     void accept(Visitor* v) override;
 };
 

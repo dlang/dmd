@@ -153,9 +153,10 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (parseCommandlineAndConfig(argc, argv, params, files))
         return EXIT_FAILURE;
 
-    global.compileEnv.previewIn = global.params.previewIn;
-    global.compileEnv.ddocOutput = global.params.ddoc.doOutput;
+    global.compileEnv.previewIn        = global.params.previewIn;
+    global.compileEnv.ddocOutput       = global.params.ddoc.doOutput;
     global.compileEnv.shortenedMethods = global.params.shortenedMethods;
+    global.compileEnv.obsolete         = global.params.obsolete;
 
     if (params.usage)
     {
@@ -1943,7 +1944,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         else if (arg == "-wi")  // https://dlang.org/dmd.html#switch-wi
             params.warnings = DiagnosticReporting.inform;
         else if (arg == "-wo")  // https://dlang.org/dmd.html#switch-wo
+        {
+            params.warnings = DiagnosticReporting.inform;
             params.obsolete = true;
+        }
         else if (arg == "-O")   // https://dlang.org/dmd.html#switch-O
             driverParams.optimize = true;
         else if (arg == "-o-")  // https://dlang.org/dmd.html#switch-o-
