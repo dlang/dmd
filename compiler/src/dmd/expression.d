@@ -2494,13 +2494,13 @@ extern (C++) final class SuperExp : ThisExp
         super(loc, EXP.super_);
     }
 
-    override final bool isLvalue()
+    override bool isLvalue()
     {
         // Class `super` should be an rvalue
         return false;
     }
 
-    override final Expression toLvalue(Scope* sc, Expression e)
+    override Expression toLvalue(Scope* sc, Expression e)
     {
         // Class `super` is an rvalue
         return Expression.toLvalue(sc, e);
