@@ -9515,14 +9515,9 @@ LagainStc:
 
     void usageOfBodyKeyword()
     {
-        version (none)
+        if (compileEnv.obsolete)
         {
-            // @@@DEPRECATED_2.117@@@
-            // https://github.com/dlang/DIPs/blob/1f5959abe482b1f9094f6484a7d0a3ade77fc2fc/DIPs/accepted/DIP1003.md
-            // Deprecated in 2.097 - Can be removed from 2.117
-            // The deprecation period is longer than usual as `body`
-            // was quite widely used.
-            deprecation("usage of the `body` keyword is deprecated. Use `do` instead.");
+            eSink.warning(token.loc, "usage of identifer `body` as a keyword is obsolete. Use `do` instead.");
         }
     }
 }

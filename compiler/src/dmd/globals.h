@@ -264,6 +264,7 @@ struct CompileEnv
     bool previewIn;
     bool ddocOutput;
     bool shortenedMethods;
+    bool obsolete;
 };
 
 struct Global
