@@ -3127,6 +3127,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         else if (!ident)
                         {
                             error("no identifier for declarator `%s`", type.toChars());
+
                             type = null;
                         }
                         else
@@ -3141,8 +3142,14 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     }
                     else
                     {
-                        // error
-                        check(TOK.identifier);
+                        Token* t = &token;
+                        if (isBasicType(&t))
+                        {
+                            error("named enum cannot declare member with type", (*t).toChars());
+                            nextToken();
+                        }
+                        else
+                            check(TOK.identifier);
                         continue;
                     }
                 }
