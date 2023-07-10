@@ -3127,7 +3127,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         else if (!ident)
                         {
                             error("no identifier for declarator `%s`", type.toChars());
-
                             type = null;
                         }
                         else
