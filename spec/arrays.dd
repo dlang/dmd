@@ -473,9 +473,9 @@ a ~= b; // a becomes the concatenation of a and b
         setting dynamic array length) for details.
         )
 
-$(H2 $(LNAME2 array-operations, Array Operations))
+$(H2 $(LNAME2 array-operations, Vector Operations))
 
-        $(P Many array operations, also known as vector operations,
+        $(P Many array operations
         can be expressed at a high level rather than as a loop.
         For example, the loop:
         )
@@ -500,28 +500,50 @@ a[] = b[] + 4;
 
         $(P A vector operation is indicated by the slice operator appearing
         as the left-hand side of an assignment or an op-assignment expression.
-        The right-hand side can be an expression consisting either of an array
-        slice of the same length and type as the left-hand side or a scalar expression
-        of the element type of the left-hand side, in any combination.
-        )
+        The right-hand side can be certain combinations of:)
 
+        * An array $(GLINK2 expression, SliceExpression) of the same length
+          and type as the left-hand side
+        * A scalar expression of the same element type as the left-hand side
+
+        $(P The following operations are supported:)
+
+        * Unary: `-`, `~`
+        * Add: `+`, `-`
+        * Mul: `*`, `/`, `%`,
+        * Bitwise: `^`, `&`, `|`
+        * Pow: `^^`
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
-T[] a, b, c;
-...
-a[] -= (b[] + 4) * c[];
+int[3] a = 0;
+int[] b = [1, 2, 3];
+
+a[] += 10 - (b[] ^^ 2);
+assert(a == [9, 6, 1]);
 ---
+)
+
+        $(NOTE In particular, an expression using
+        $(GLINK2 expression, ConditionalExpression),
+        $(DDSUBLINK spec/expression, logical_expressions, logical expressions),
+        $(GLINK2 expression, CmpExpression),
+        concatenation `~` or a function call is *not* a vector op.)
 
         $(P The slice on the left and any slices on the right must not overlap.
         All operands are evaluated exactly once, even if the array slice
         has zero elements in it.
         )
 
+        $(P If the element type defines matching overloaded operators,
+        those methods must be `pure nothrow @nogc`.)
+
         $(P The order in which the array elements are computed
         is implementation defined, and may even occur in parallel.
         An application must not depend on this order.
         )
 
-        $(P Implementation note: Many vector operations are expected
+        $(P $(B Implementation Note:) Many vector operations are expected
         to take advantage of any vector math instructions available on
         the target computer.
         )
