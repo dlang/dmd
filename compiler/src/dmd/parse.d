@@ -3149,7 +3149,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         }
                         else
                             check(TOK.identifier);
-                        continue;
+
+                        // avoid extra error messages
+                        const tv = token.value;
+                        if (tv != TOK.assign && tv != TOK.comma && tv != TOK.rightCurly && tv != TOK.endOfFile)
+                            continue;
                     }
                 }
 
