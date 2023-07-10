@@ -72,7 +72,7 @@ static void frontend_init()
     global.params.objname = NULL;
 
     target.os = Target::OS_linux;
-    target.is64bit = true;
+    target.isX86_64 = true;
     target.cpu = CPU::native;
     target._init(global.params);
 

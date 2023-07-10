@@ -749,7 +749,7 @@ RETRY:
     switch (usActual)
     {
         case 0:
-            if (target.is64bit && (pop.ptb.pptb0.usFlags & _i64_bit))
+            if (target.isX86_64 && (pop.ptb.pptb0.usFlags & _i64_bit))
             {
                 asmerr("opcode `%s` is unavailable in 64bit mode", asm_opstr(pop));  // illegal opcode in 64bit mode
                 break;
@@ -792,7 +792,7 @@ RETRY:
                         continue;
 
                     // Check if match is invalid in 64bit mode
-                    if (target.is64bit && (table1.usFlags & _i64_bit))
+                    if (target.isX86_64 && (table1.usFlags & _i64_bit))
                     {
                         bInvalid64bit = true;
                         continue;
@@ -859,7 +859,7 @@ RETRY:
             {
                 if (log) { printf("table1   = "); asm_output_flags(table2.usOp1); printf("\n"); }
                 if (log) { printf("table2   = "); asm_output_flags(table2.usOp2); printf("\n"); }
-                if (target.is64bit && (table2.usFlags & _i64_bit))
+                if (target.isX86_64 && (table2.usFlags & _i64_bit))
                     asmerr("opcode `%s` is unavailable in 64bit mode", asm_opstr(pop));
 
                 const bMatch1 = asm_match_flags(opflags[0], table2.usOp1);
@@ -1354,7 +1354,7 @@ code *asm_emit(Loc loc,
     {
         emit(0x67);
         pc.Iflags |= CFaddrsize;
-        if (!target.is64bit)
+        if (!target.isX86_64)
             amods[i] = _addr16;
         else
             amods[i] = _addr32;
@@ -1475,10 +1475,10 @@ code *asm_emit(Loc loc,
 
     asmstate.statement.regs |= asm_modify_regs(ptb, opnds);
 
-    if (ptb.pptb0.usFlags & _64_bit && !target.is64bit)
+    if (ptb.pptb0.usFlags & _64_bit && !target.isX86_64)
         asmerr("use -m64 to compile 64 bit instructions");
 
-    if (target.is64bit && (ptb.pptb0.usFlags & _64_bit))
+    if (target.isX86_64 && (ptb.pptb0.usFlags & _64_bit))
     {
         emit(REX | REX_W);
         pc.Irex |= REX_W;
@@ -1503,7 +1503,7 @@ code *asm_emit(Loc loc,
         // an immediate and does not affect operation size
         case 3:
         case 2:
-            if ((!target.is64bit &&
+            if ((!target.isX86_64 &&
                   (amods[1] == _addr16 ||
                    (isOneOf(OpndSize._16, uSizemaskTable[1]) && aoptyTable[1] == _rel ) ||
                    (isOneOf(OpndSize._32, uSizemaskTable[1]) && aoptyTable[1] == _mnoi) ||
@@ -1522,7 +1522,7 @@ code *asm_emit(Loc loc,
             goto case;
 
         case 1:
-            if ((!target.is64bit &&
+            if ((!target.isX86_64 &&
                   (amods[0] == _addr16 ||
                    (isOneOf(OpndSize._16, uSizemaskTable[0]) && aoptyTable[0] == _rel ) ||
                    (isOneOf(OpndSize._32, uSizemaskTable[0]) && aoptyTable[0] == _mnoi) ||
@@ -1873,7 +1873,7 @@ L3:
                 {
                     reg &= 7;
                     pc.Irex |= REX_B;
-                    assert(target.is64bit);
+                    assert(target.isX86_64);
                 }
                 if (asmstate.ucItype == ITfloat)
                     pc.Irm += reg;
@@ -1955,12 +1955,12 @@ L3:
                 {
                     reg &= 7;
                     pc.Irex |= REX_B;
-                    assert(target.is64bit);
+                    assert(target.isX86_64);
                 }
                 else if (opnds[0].base.isSIL_DIL_BPL_SPL())
                 {
                     pc.Irex |= REX;
-                    assert(target.is64bit);
+                    assert(target.isX86_64);
                 }
                 if (asmstate.ucItype == ITfloat)
                     pc.Irm += reg;
@@ -1977,12 +1977,12 @@ L3:
                 {
                     reg &= 7;
                     pc.Irex |= REX_B;
-                    assert(target.is64bit);
+                    assert(target.isX86_64);
                 }
                 else if (opnds[0].base.isSIL_DIL_BPL_SPL())
                 {
                     pc.Irex |= REX;
-                    assert(target.is64bit);
+                    assert(target.isX86_64);
                 }
                 if (asmstate.ucItype == ITfloat)
                     pc.Irm += reg;
@@ -2054,7 +2054,7 @@ L3:
                     {
                         reg &= 7;
                         pc.Irex |= REX_B;
-                        assert(target.is64bit);
+                        assert(target.isX86_64);
                     }
                     if (asmstate.ucItype == ITfloat)
                         pc.Irm += reg;
@@ -2532,7 +2532,7 @@ void asm_make_modrm_byte(
                 }
                 else
                 {
-                    pc.IFL1 = target.is64bit ? FLblock : FLblockoff;
+                    pc.IFL1 = target.isX86_64 ? FLblock : FLblockoff;
                     pc.IEV1.Vlsym = cast(_LabelDsymbol*)label;
                 }
                 pc.Iflags |= CFoff;
@@ -2586,7 +2586,7 @@ void asm_make_modrm_byte(
             assert(d);
             if (d.isDataseg() || d.isCodeseg())
             {
-                if (!target.is64bit && amod == _addr16)
+                if (!target.isX86_64 && amod == _addr16)
                 {
                     asmerr("cannot have 16 bit addressing mode in 32 bit code");
                     return;
@@ -2673,7 +2673,7 @@ void asm_make_modrm_byte(
             bOffsetsym = true;
 
     }
-    else if (amod == _addr32 || (amod == _flbl && !target.is64bit))
+    else if (amod == _addr32 || (amod == _flbl && !target.isX86_64))
     {
         bool bModset = false;
 
@@ -3394,7 +3394,7 @@ immutable(REG)* asm_reg_lookup(const(char)[] s)
             return &regtab[i];
         }
     }
-    if (target.is64bit)
+    if (target.isX86_64)
     {
         for (int i = 0; i < regtab64.length; i++)
         {
@@ -3459,7 +3459,7 @@ OpndSize asm_type_size(Type ptype, bool bPtr)
             case 4:     u = OpndSize._32;        break;
             case 6:     u = OpndSize._48;        break;
 
-            case 8:     if (target.is64bit || bPtr)
+            case 8:     if (target.isX86_64 || bPtr)
                             u = OpndSize._64;
                         break;
 

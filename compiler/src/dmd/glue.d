@@ -567,14 +567,14 @@ private void genObjFile(Module m, bool multiobj)
         elem *ecov  = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(m.cov));
         elem *ebcov = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(bcov));
 
-        if (target.os == Target.OS.Windows && target.is64bit)
+        if (target.os == Target.OS.Windows && target.isX86_64)
         {
             ecov  = addressElem(ecov,  Type.tvoid.arrayOf(), false);
             ebcov = addressElem(ebcov, Type.tvoid.arrayOf(), false);
         }
 
         elem *efilename = toEfilename(m);
-        if (target.os == Target.OS.Windows && target.is64bit)
+        if (target.os == Target.OS.Windows && target.isX86_64)
             efilename = addressElem(efilename, Type.tstring, true);
 
         elem *e = el_params(
@@ -1000,7 +1000,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         {
             if (fpr.alloc(sp.Stype, sp.Stype.Tty, &sp.Spreg, &sp.Spreg2))
             {
-                sp.Sclass = (target.os == Target.OS.Windows && target.is64bit) ? SC.shadowreg : SC.fastpar;
+                sp.Sclass = (target.os == Target.OS.Windows && target.isX86_64) ? SC.shadowreg : SC.fastpar;
                 sp.Sfl = (sp.Sclass == SC.shadowreg) ? FLpara : FLfast;
             }
         }
@@ -1029,7 +1029,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     if (fd.v_argptr)
     {
         // Declare va_argsave
-        if (target.is64bit &&
+        if (target.isX86_64 &&
             target.os & Target.OS.Posix)
         {
             type *t = type_struct_class("__va_argsave_t", 16, 8 * 6 + 8 * 16 + 8 * 3 + 8, null, null, false, false, true, false);
@@ -1537,7 +1537,7 @@ tym_t totym(Type tx)
             final switch (tf.linkage)
             {
                 case LINK.windows:
-                    if (target.is64bit)
+                    if (target.isX86_64)
                         goto case LINK.c;
                     t = (tf.parameterList.varargs == VarArg.variadic ||
                          tf.parameterList.varargs == VarArg.KRvariadic) ? TYnfunc : TYnsfunc;
@@ -1550,7 +1550,7 @@ tym_t totym(Type tx)
                     if (target.os == Target.OS.Windows)
                     {
                     }
-                    else if (!target.is64bit && retStyle(tf, false) == RET.stack)
+                    else if (!target.isX86_64 && retStyle(tf, false) == RET.stack)
                         t = TYhfunc;
                     break;
 

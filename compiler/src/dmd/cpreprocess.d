@@ -117,7 +117,7 @@ private const(char)[] cppCommand()
         {
             VSOptions vsopt;
             vsopt.initialize();
-            auto path = vsopt.compilerPath(target.is64bit);
+            auto path = vsopt.compilerPath(target.isX86_64);
             return toDString(path);
         }
         if (target.objectFormat() == Target.ObjectFormat.omf)

@@ -44,12 +44,12 @@ void backend_init()
     exefmt_t exfmt;
     switch (target.os)
     {
-        case Target.OS.Windows: exfmt = target.is64bit ? EX_WIN64 : EX_WIN32;       break;
-        case Target.OS.linux:   exfmt = target.is64bit ? EX_LINUX64 : EX_LINUX;     break;
-        case Target.OS.OSX:     exfmt = target.is64bit ? EX_OSX64 : EX_OSX;         break;
-        case Target.OS.FreeBSD: exfmt = target.is64bit ? EX_FREEBSD64 : EX_FREEBSD; break;
-        case Target.OS.OpenBSD: exfmt = target.is64bit ? EX_OPENBSD64 : EX_OPENBSD; break;
-        case Target.OS.Solaris: exfmt = target.is64bit ? EX_SOLARIS64 : EX_SOLARIS; break;
+        case Target.OS.Windows: exfmt = target.isX86_64 ? EX_WIN64 : EX_WIN32;       break;
+        case Target.OS.linux:   exfmt = target.isX86_64 ? EX_LINUX64 : EX_LINUX;     break;
+        case Target.OS.OSX:     exfmt = target.isX86_64 ? EX_OSX64 : EX_OSX;         break;
+        case Target.OS.FreeBSD: exfmt = target.isX86_64 ? EX_FREEBSD64 : EX_FREEBSD; break;
+        case Target.OS.OpenBSD: exfmt = target.isX86_64 ? EX_OPENBSD64 : EX_OPENBSD; break;
+        case Target.OS.Solaris: exfmt = target.isX86_64 ? EX_SOLARIS64 : EX_SOLARIS; break;
         case Target.OS.DragonFlyBSD: exfmt = EX_DRAGONFLYBSD64; break;
         default: assert(0);
     }
@@ -68,7 +68,7 @@ void backend_init()
         exe = true;         // if writing out EXE file
 
     out_config_init(
-        (target.is64bit ? 64 : 32) | (target.objectFormat() == Target.ObjectFormat.coff ? 1 : 0),
+        (target.isX86_64 ? 64 : 32) | (target.objectFormat() == Target.ObjectFormat.coff ? 1 : 0),
         exe,
         false, //params.trace,
         driverParams.nofloat,
