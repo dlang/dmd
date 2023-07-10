@@ -22,6 +22,10 @@ $(GNAME EnumMembers):
     $(GLINK EnumMember) $(D ,)
     $(GLINK EnumMember) $(D ,) $(GSELF EnumMembers)
 
+$(GNAME EnumMember):
+    $(GLINK EnumMemberAttributes)$(OPT) $(GLINK_LEX Identifier)
+    $(GLINK EnumMemberAttributes)$(OPT) $(GLINK_LEX Identifier) $(D =) $(ASSIGNEXPRESSION)
+
 $(GNAME EnumMemberAttributes):
     $(GLINK EnumMemberAttribute)
     $(GLINK EnumMemberAttribute) $(GSELF EnumMemberAttributes)
@@ -30,11 +34,8 @@ $(GNAME EnumMemberAttribute):
     $(GLINK2 attribute, DeprecatedAttribute)
     $(GLINK2 attribute, UserDefinedAttribute)
     $(D @)$(LINK2 attribute.html#disable, $(D disable))
-
-$(GNAME EnumMember):
-    $(GLINK EnumMemberAttributes)$(OPT) $(GLINK_LEX Identifier)
-    $(GLINK EnumMemberAttributes)$(OPT) $(GLINK_LEX Identifier) $(D =) $(ASSIGNEXPRESSION)
-
+)
+$(GRAMMAR
 $(GNAME AnonymousEnumDeclaration):
     $(D enum) $(D :) $(GLINK EnumBaseType) $(D {) $(GLINK EnumMembers) $(D })
     $(D enum) $(D {) $(GLINK AnonymousEnumMembers) $(D })
@@ -249,7 +250,7 @@ enum
 }
 ---
 
-$(H2 $(LNAME2 manifest_constants, Manifest Constants))
+$(H3 $(LNAME2 single_member, Single Member Syntax))
 
         $(P If there is only one member of an anonymous enum, the `{ }` can
         be omitted. Gramatically speaking, this is an $(GLINK2 declaration, AutoDeclaration).
@@ -259,6 +260,10 @@ $(H2 $(LNAME2 manifest_constants, Manifest Constants))
 enum i = 4;      // i is 4 of type int
 enum long l = 3; // l is 3 of type long
 ---
+
+$(H2 $(LNAME2 manifest_constants, Manifest Constants))
+
+        $(P Enum members are manifest constants, which exist only at compile-time.)
 
         $(P Manifest constants are not lvalues, meaning their address
         cannot be taken.  They exist only in the memory of the compiler.)
