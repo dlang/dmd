@@ -1974,7 +1974,7 @@ class Lexer
             t.postfix = *p;
             p++;
             // disallow e.g. `@r"_"dtype var;`
-            if (!Ccompile && (isalpha(*p) || *p & 0x80))
+            if (!Ccompile && isalpha(*p))
             {
                 const loc = loc();
                 error(loc, "identifier character cannot follow string `%c` postfix without whitespace",
@@ -2212,7 +2212,7 @@ LIntegerSuffix:
                 break;
             default:
                 // disallow e.g. `Foo!5Luvar;`
-                if (!Ccompile && flags >= FLAGS.unsigned && (isalpha(*p) || *p & 0x80))
+                if (!Ccompile && flags >= FLAGS.unsigned && isalpha(*p))
                 {
                     const loc = loc();
                     error(loc, "identifier character cannot follow integer `%c` suffix without whitespace",
@@ -2641,7 +2641,7 @@ LcheckI:
             gotSuffix = true;
         }
         // disallow e.g. `Foo!5fvar;`
-        if (!Ccompile && gotSuffix && (isalpha(*p) || *p & 0x80))
+        if (!Ccompile && gotSuffix && isalpha(*p))
         {
             const loc = loc();
             error(loc, "identifier character cannot follow float `%c` suffix without whitespace",
