@@ -3042,7 +3042,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         else if (token.value == TOK.leftCurly)
         {
             bool isAnonymousEnum = !id;
-            TOK prevTOK;
 
             //printf("enum definition\n");
             e.members = new AST.Dsymbols();
@@ -3065,9 +3064,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 StorageClass stc;
                 AST.Expression deprecationMessage;
                 enum attributeErrorMessage = "`%s` is not a valid attribute for enum members";
-                while(token.value != TOK.rightCurly
-                    && token.value != TOK.comma
-                    && token.value != TOK.assign)
+            Lattrs:
+                while (1)
                 {
                     switch (token.value)
                     {
@@ -3082,7 +3080,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                                     AST.stcToBuffer(&buf, _stc);
                                     error(attributeErrorMessage, buf.peekChars());
                                 }
-                                prevTOK = token.value;
                                 nextToken();
                             }
                             break;
@@ -3090,94 +3087,76 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                             stc |= STC.deprecated_;
                             if (!parseDeprecatedAttribute(deprecationMessage))
                             {
-                                prevTOK = token.value;
                                 nextToken();
-                            }
-                            break;
-                        case TOK.identifier:
-                            const tv = peekNext();
-                            if (tv == TOK.assign || tv == TOK.comma || tv == TOK.rightCurly)
-                            {
-                                ident = token.ident;
-                                type = null;
-                                prevTOK = token.value;
-                                nextToken();
-                            }
-                            else
-                            {
-                                if (isAnonymousEnum)
-                                    goto default; // maybe `Type identifier`
-
-                                prevTOK = token.value;
-                                nextToken();
-                                error("expected `,` or `=` after identifier, not `%s`", token.toChars());
                             }
                             break;
                         default:
-                            if (isAnonymousEnum)
-                            {
-                                if (type)
-                                {
-                                    error("expected identifier after type, not `%s`", token.toChars());
-                                    type = null;
-                                    break;
-                                }
-                                type = parseType(&ident, null);
-                                if (type == AST.Type.terror)
-                                {
-                                    type = null;
-                                    prevTOK = token.value;
-                                    nextToken();
-                                }
-                                else
-                                {
-                                    prevTOK = TOK.identifier;
-                                    const tv = token.value;
-                                    if (ident && tv != TOK.assign && tv != TOK.comma && tv != TOK.rightCurly)
-                                    {
-                                        error("expected `,` or `=` after identifier, not `%s`", token.toChars());
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                error(attributeErrorMessage, token.toChars());
-                                prevTOK = token.value;
-                                nextToken();
-                            }
-                            break;
-                    }
-                    if (token.value == TOK.comma)
-                    {
-                        prevTOK = token.value;
+                            break Lattrs;
                     }
                 }
-
-                if (type && type != AST.Type.terror)
+                if (token.value == TOK.identifier)
                 {
-                    if (!ident)
-                        error("no identifier for declarator `%s`", type.toChars());
-                    if (!isAnonymousEnum)
-                        error("type only allowed if anonymous enum and no enum type");
-                }
-                AST.Expression value;
-                if (token.value == TOK.assign)
-                {
-                    if (prevTOK == TOK.identifier)
+                    const tv = peekNext();
+                    if (tv == TOK.assign || tv == TOK.comma || tv == TOK.rightCurly)
                     {
+                        ident = token.ident;
+                        type = null;
                         nextToken();
-                        value = parseAssignExp();
                     }
                     else
                     {
-                        error("assignment must be preceded by an identifier");
+                        if (isAnonymousEnum)
+                            goto Ltype;
+
                         nextToken();
+                        error("expected `,` or `=` after identifier, not `%s`", token.toChars());
                     }
                 }
                 else
                 {
+                    if (isAnonymousEnum)
+                    {
+                    Ltype:
+                        // Type identifier
+                        type = parseType(&ident, null);
+                        if (type == AST.Type.terror)
+                        {
+                            type = null;
+                            nextToken();
+                        }
+                        else if (!ident)
+                        {
+                            error("no identifier for declarator `%s`", type.toChars());
+                            type = null;
+                        }
+                        else
+                        {
+                            const tv = token.value;
+                            if (tv != TOK.assign && tv != TOK.comma && tv != TOK.rightCurly)
+                            {
+                                error("expected `,` or `=` after identifier, not `%s`", token.toChars());
+                                nextToken();
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // error
+                        check(TOK.identifier);
+                        continue;
+                    }
+                }
+
+                AST.Expression value;
+                if (token.value == TOK.assign)
+                {
+                    nextToken();
+                    value = parseAssignExp();
+                }
+                else
+                {
                     value = null;
-                    if (type && type != AST.Type.terror && isAnonymousEnum)
+                    if (type && isAnonymousEnum)
                         error("initializer required after `%s` when type is specified", ident.toChars());
                 }
 
@@ -3197,10 +3176,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     em.userAttribDecl = uad;
                 }
 
-                if (token.value == TOK.rightCurly)
-                {
-                }
-                else
+                if (token.value != TOK.rightCurly)
                 {
                     addComment(em, comment);
                     comment = null;
@@ -3218,8 +3194,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             nextToken();
         }
         else
-            error("enum declaration is invalid");
-
+        {
+            nextToken();
+            error("expected `{`, not `%s` for enum declaration", token.toChars());
+        }
         //printf("-parseEnum() %s\n", e.toChars());
         return e;
     }

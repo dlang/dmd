@@ -8,8 +8,8 @@ fail_compilation/failcontracts.d(19): Error: semicolon expected following functi
 fail_compilation/failcontracts.d(20): Error: semicolon expected following function declaration, not `bode`
 fail_compilation/failcontracts.d(22): Error: unexpected `(` in declarator
 fail_compilation/failcontracts.d(22): Error: found `T` when expecting `)`
-fail_compilation/failcontracts.d(22): Error: enum declaration is invalid
-fail_compilation/failcontracts.d(22): Error: found `)` instead of statement
+fail_compilation/failcontracts.d(22): Error: expected `{`, not `;` for enum declaration
+fail_compilation/failcontracts.d(22): Error: use `{ }` for an empty statement, not `;`
 ---
 */
 
