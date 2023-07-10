@@ -240,12 +240,31 @@ $(H2 $(LEGACY_LNAME2 Cast, cast, Cast Operator Overloading))
         expression, except in the case of boolean operations (see next
         section).)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+struct S
+{
+    void* mem;
+
+    bool opCast(T)()
+    if (is(T == bool)) => mem !is null;
+}
+
+S s = S(new int);
+auto b = cast(bool) s;
+assert(b);
+//b = s; // error
+---
+)
+    $(P If the return type of `opCast` differs from the *type* parameter of
+        the `cast`, then the result is implicitly converted to *type*.)
+
 $(H3 $(LNAME2 boolean_operators, Boolean Operations))
 
-        $(P Notably absent from the list of overloaded unary operators is the !
+        $(P Notably absent from the list of overloaded unary operators is the `!`
         logical negation operator. More obscurely absent is a unary operator
-        to convert to a bool result.
-        Instead, these are covered by a rewrite to:
+        to convert to a `bool` result.
+        Instead, for structs these are covered by a rewrite to:
         )
 ---
 opCast!(bool)(e)
@@ -258,10 +277,15 @@ if (e)   =>  if (e.opCast!(bool))
 if (!e)  =>  if (!e.opCast!(bool))
 ---
 
-        $(P etc., whenever a bool result is expected. This only happens, however, for
-        instances of structs. Class references are converted to bool by checking to
+        $(P and similarly for other boolean conditional expressions and
+        $(DDSUBLINK spec/expression, logical_expressions, logical operators) used
+        on the struct instance.)
+
+        $(P This only happens, however, for
+        instances of structs. Class references are converted to `bool` by checking to
         see if the class reference is null or not.
         )
+
 
 $(H2 $(LEGACY_LNAME2 Binary, binary, Binary Operator Overloading))
 
