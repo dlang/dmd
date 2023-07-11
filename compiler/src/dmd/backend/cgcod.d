@@ -2146,9 +2146,9 @@ regm_t getscratch()
  * before.
  * Look first to see if it is already in a register.
  * Params:
- *	cdb = sink for generated code
- *	e = the elem
- *	pretregs = input is mask of registers, output is result register
+ *      cdb = sink for generated code
+ *      e = the elem
+ *      pretregs = input is mask of registers, output is result register
  */
 
 @trusted

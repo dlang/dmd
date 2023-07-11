@@ -1765,6 +1765,14 @@ code *asm_emit(Loc loc,
 
         case 0x0F0000:                      // an AMD instruction
             const puc = (cast(ubyte *) &opcode);
+            if (opcode == ENDBR32 || opcode == ENDBR64)
+            {
+                emit(puc[3]);
+                emit(puc[2]);
+                emit(puc[1]);
+                emit(puc[0]);
+                goto L3;
+            }
             emit(puc[2]);
             emit(puc[1]);
             emit(puc[0]);
