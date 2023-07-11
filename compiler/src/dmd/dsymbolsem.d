@@ -3466,23 +3466,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (funcdecl.isAbstract() && funcdecl.isFinalFunc())
             funcdecl.error("cannot be both `final` and `abstract`");
-        version (none)
-        {
-            if (funcdecl.isAbstract() && funcdecl.fbody)
-                funcdecl.error("`abstract` functions cannot have bodies");
-        }
-
-        version (none)
-        {
-            if (funcdecl.isStaticConstructor() || funcdecl.isStaticDestructor())
-            {
-                if (!funcdecl.isStatic() || funcdecl.type.nextOf().ty != Tvoid)
-                    funcdecl.error("static constructors / destructors must be `static void`");
-                if (f.arguments && f.arguments.length)
-                    funcdecl.error("static constructors / destructors must have empty parameter list");
-                // BUG: check for invalid storage classes
-            }
-        }
 
         if (funcdecl.printf || funcdecl.scanf)
         {
