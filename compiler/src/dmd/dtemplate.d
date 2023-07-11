@@ -6307,7 +6307,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         // This should only be called on the primary instantiation.
         assert(this is inst);
 
-        if (global.params.allInst)
+        if (global.params.allInst || global.params.betterC)
         {
             // Do codegen if there is an instantiation from a root module, to maximize link-ability.
             static ThreeState needsCodegenAllInst(TemplateInstance tithis, TemplateInstance tinst)
