@@ -7373,34 +7373,33 @@ void checkPrintfScanfSignature(FuncDeclaration funcdecl, TypeFunction f, Scope* 
     }
 
     const nparams = f.parameterList.length;
-    if ((f.linkage == LINK.c || f.linkage == LINK.cpp) &&
-
-        (f.parameterList.varargs == VarArg.variadic &&
-            nparams >= 1 &&
-            isPointerToChar(f.parameterList[nparams - 1]) ||
-
-            f.parameterList.varargs == VarArg.none &&
-            nparams >= 2 &&
-            isPointerToChar(f.parameterList[nparams - 2]) &&
-            isVa_list(f.parameterList[nparams - 1])
-        )
-        )
+    const p = (funcdecl.printf ? Id.printf : Id.scanf).toChars();
+    if (!(f.linkage == LINK.c || f.linkage == LINK.cpp))
     {
-        // the signature is valid for printf/scanf, no error
+        .error(funcdecl.loc, "`pragma(%s)` function `%s` must have `extern(C)` or `extern(C++)` linkage,"
+            ~" not `extern(%s)`",
+            p, funcdecl.toChars(), f.linkage.linkageToChars());
+    }
+    if (f.parameterList.varargs == VarArg.variadic)
+    {
+        if (!(nparams >= 1 && isPointerToChar(f.parameterList[nparams - 1])))
+        {
+            .error(funcdecl.loc, "`pragma(%s)` function `%s` must have"
+                ~ " signature `%s %s([parameters...], const(char)*, ...)` not `%s`",
+                p, funcdecl.toChars(), f.next.toChars(), funcdecl.toChars(), funcdecl.type.toChars());
+        }
+    }
+    else if (f.parameterList.varargs == VarArg.none)
+    {
+        if(!(nparams >= 2 && isPointerToChar(f.parameterList[nparams - 2]) &&
+            isVa_list(f.parameterList[nparams - 1])))
+            .error(funcdecl.loc, "`pragma(%s)` function `%s` must have"~
+                " signature `%s %s([parameters...], const(char)*, va_list)`",
+                p, funcdecl.toChars(), f.next.toChars(), funcdecl.toChars());
     }
     else
     {
-        const p = (funcdecl.printf ? Id.printf : Id.scanf).toChars();
-        if (f.parameterList.varargs == VarArg.variadic)
-        {
-            funcdecl.error("`pragma(%s)` functions must be `extern(C) %s %s([parameters...], const(char)*, ...)`"
-                            ~ " not `%s`",
-                p, f.next.toChars(), funcdecl.toChars(), funcdecl.type.toChars());
-        }
-        else
-        {
-            funcdecl.error("`pragma(%s)` functions must be `extern(C) %s %s([parameters...], const(char)*, va_list)`",
-                p, f.next.toChars(), funcdecl.toChars());
-        }
+        .error(funcdecl.loc, "`pragma(%s)` function `%s` must have C-style variadic `...` or `va_list` parameter",
+            p, funcdecl.toChars());
     }
 }
