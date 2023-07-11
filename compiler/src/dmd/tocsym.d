@@ -172,7 +172,7 @@ Symbol *toSymbol(Dsymbol s)
             }
             else if (vd.storage_class & STC.lazy_)
             {
-                if (target.os == Target.OS.Windows && target.is64bit && vd.isParameter())
+                if (target.os == Target.OS.Windows && target.isX86_64 && vd.isParameter())
                     t = type_fake(TYnptr);
                 else
                     t = type_fake(TYdelegate);          // Tdelegate as C type
@@ -284,7 +284,7 @@ Symbol *toSymbol(Dsymbol s)
             final switch (vd.resolvedLinkage())
             {
                 case LINK.windows:
-                    m = target.is64bit ? mTYman_c : mTYman_std;
+                    m = target.isX86_64 ? mTYman_c : mTYman_std;
                     break;
 
                 case LINK.objc:
@@ -402,7 +402,7 @@ Symbol *toSymbol(Dsymbol s)
                 final switch (fd.resolvedLinkage())
                 {
                     case LINK.windows:
-                        t.Tmangle = target.is64bit ? mTYman_c : mTYman_std;
+                        t.Tmangle = target.isX86_64 ? mTYman_c : mTYman_std;
                         break;
 
                     case LINK.c:
@@ -420,7 +420,7 @@ Symbol *toSymbol(Dsymbol s)
                         s.Sflags |= SFLpublic;
                         /* Nested functions use the same calling convention as
                          * member functions, because both can be used as delegates. */
-                        if ((fd.isThis() || fd.isNested()) && !target.is64bit && target.os == Target.OS.Windows)
+                        if ((fd.isThis() || fd.isNested()) && !target.isX86_64 && target.os == Target.OS.Windows)
                         {
                             if ((cast(TypeFunction)fd.type).parameterList.varargs == VarArg.variadic)
                             {
@@ -529,14 +529,14 @@ private Symbol *createImport(Symbol *sym, Loc loc)
     }
     else if (sym.Stype.Tmangle == mTYman_std && tyfunc(sym.Stype.Tty))
     {
-        if (target.os == Target.OS.Windows && target.is64bit)
+        if (target.os == Target.OS.Windows && target.isX86_64)
             idlen = snprintf(id, allocLen, "__imp_%s",n);
         else
             idlen = snprintf(id, allocLen, "_imp__%s@%u",n,cast(uint)type_paramsize(sym.Stype));
     }
     else
     {
-        idlen = snprintf(id, allocLen, (target.os == Target.OS.Windows && target.is64bit) ? "__imp_%s" : (sym.Stype.Tmangle == mTYman_cpp) ? "_imp_%s" : "_imp__%s",n);
+        idlen = snprintf(id, allocLen, (target.os == Target.OS.Windows && target.isX86_64) ? "__imp_%s" : (sym.Stype.Tmangle == mTYman_cpp) ? "_imp_%s" : "_imp__%s",n);
     }
     auto t = type_alloc(TYnptr | mTYconst);
     t.Tnext = sym.Stype;
@@ -661,7 +661,7 @@ Symbol *toInitializer(AggregateDeclaration ad)
             sd.type.size() <= 128 &&
             sd.zeroInit &&
             config.objfmt != OBJ_MACH && // same reason as in toobj.d toObjFile()
-            !(config.objfmt == OBJ_MSCOFF && !target.is64bit)) // -m32mscoff relocations are wrong
+            !(config.objfmt == OBJ_MSCOFF && !target.isX86_64)) // -m32mscoff relocations are wrong
         {
             auto bzsave = bzeroSymbol;
             ad.sinit = getBzeroSymbol();

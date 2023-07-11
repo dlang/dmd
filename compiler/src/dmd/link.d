@@ -317,13 +317,13 @@ public int runLINK()
                 driverParams.mscrtlib[0..6] != "msvcrt" || !isdigit(driverParams.mscrtlib[6]))
                 vsopt.initialize();
 
-            const(char)* linkcmd = getenv(target.is64bit ? "LINKCMD64" : "LINKCMD");
+            const(char)* linkcmd = getenv(target.isX86_64 ? "LINKCMD64" : "LINKCMD");
             if (!linkcmd)
                 linkcmd = getenv("LINKCMD"); // backward compatible
             if (!linkcmd)
-                linkcmd = vsopt.linkerPath(target.is64bit);
+                linkcmd = vsopt.linkerPath(target.isX86_64);
 
-            if (!target.is64bit && FileName.equals(FileName.name(linkcmd), "lld-link.exe"))
+            if (!target.isX86_64 && FileName.equals(FileName.name(linkcmd), "lld-link.exe"))
             {
                 // object files not SAFESEH compliant, but LLD is more picky than MS link
                 cmdbuf.writestring(" /SAFESEH:NO");
@@ -332,7 +332,7 @@ public int runLINK()
                 vsopt.uninitialize();
             }
 
-            if (const(char)* lflags = vsopt.linkOptions(target.is64bit))
+            if (const(char)* lflags = vsopt.linkOptions(target.isX86_64))
             {
                 cmdbuf.writeByte(' ');
                 cmdbuf.writestring(lflags);
@@ -578,7 +578,7 @@ public int runLINK()
         ensurePathToNameExists(Loc.initial, global.params.exefile);
         if (driverParams.symdebug)
             argv.push("-g");
-        if (target.is64bit)
+        if (target.isX86_64)
             argv.push("-m64");
         else
             argv.push("-m32");
@@ -1272,7 +1272,7 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
         }
 
         // Set memory model
-        argv.push(target.is64bit ? "-m64" : "-m32");
+        argv.push(target.isX86_64 ? "-m64" : "-m32");
 
         // merge #define's with output
         argv.push("-dD");       // https://gcc.gnu.org/onlinedocs/cpp/Invocation.html#index-dD

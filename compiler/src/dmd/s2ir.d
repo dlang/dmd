@@ -1076,7 +1076,7 @@ void Statement_toIR(Statement s, IRState *irs, StmtState* stmtstate)
                 tryblock.appendSucc(bcatch);
                 block_goto(blx, BCjcatch, null);
 
-                if (cs.type && irs.target.os == Target.OS.Windows && irs.target.is64bit) // Win64
+                if (cs.type && irs.target.os == Target.OS.Windows && irs.target.isX86_64) // Win64
                 {
                     /* The linker will attempt to merge together identical functions,
                      * even if the catch types differ. So add a reference to the

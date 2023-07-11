@@ -618,7 +618,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             }
 
             auto dtb = DtBuilder(0);
-            if (config.objfmt == OBJ_MACH && target.is64bit && (s.Stype.Tty & mTYLINK) == mTYthread)
+            if (config.objfmt == OBJ_MACH && target.isX86_64 && (s.Stype.Tty & mTYLINK) == mTYthread)
             {
                 tlsToDt(vd, s, sz, dtb, isCfile);
             }
@@ -926,7 +926,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
          */
         static void tlsToDt(VarDeclaration vd, Symbol *s, uint sz, ref DtBuilder dtb, bool isCfile)
         {
-            assert(config.objfmt == OBJ_MACH && target.is64bit && (s.Stype.Tty & mTYLINK) == mTYthread);
+            assert(config.objfmt == OBJ_MACH && target.isX86_64 && (s.Stype.Tty & mTYLINK) == mTYthread);
 
             Symbol *tlvInit = createTLVDataSymbol(vd, s);
             auto tlvInitDtb = DtBuilder(0);
@@ -941,7 +941,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             tlvInit.Sdt = tlvInitDtb.finish();
             outdata(tlvInit);
 
-            if (target.is64bit)
+            if (target.isX86_64)
                 tlvInit.Sclass = SC.extern_;
 
             Symbol* tlvBootstrap = objmod.tlv_bootstrap();
@@ -961,7 +961,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
          */
         static Symbol *createTLVDataSymbol(VarDeclaration vd, Symbol *s)
         {
-            assert(config.objfmt == OBJ_MACH && target.is64bit && (s.Stype.Tty & mTYLINK) == mTYthread);
+            assert(config.objfmt == OBJ_MACH && target.isX86_64 && (s.Stype.Tty & mTYLINK) == mTYthread);
 
             // Compute identifier for tlv symbol
             OutBuffer buffer;
@@ -997,7 +997,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             final switch (vd.resolvedLinkage())
             {
                 case LINK.windows:
-                    return target.is64bit ? mTYman_c : mTYman_std;
+                    return target.isX86_64 ? mTYman_c : mTYman_std;
 
                 case LINK.objc:
                 case LINK.c:

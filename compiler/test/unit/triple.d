@@ -16,7 +16,7 @@ unittest
 {
     auto triple = Triple("x86-unknown-windows-msvc");
     assert(triple.os == Target.OS.Windows);
-    assert(triple.is64bit == false);
+    assert(triple.isX86_64 == false);
     assert(triple.cenv == TargetC.Runtime.Microsoft);
 }
 
@@ -25,7 +25,7 @@ unittest
 {
     auto triple = Triple("x64-apple-darwin20.3.0");
     assert(triple.os == Target.OS.OSX);
-    assert(triple.is64bit == true);
+    assert(triple.isX86_64 == true);
 }
 
 @("-target=x86_64+avx2-apple-darwin20.3.0")
@@ -33,7 +33,7 @@ unittest
 {
     auto triple = Triple("x86_64+avx2-apple-darwin20.3.0");
     assert(triple.os == Target.OS.OSX);
-    assert(triple.is64bit == true);
+    assert(triple.isX86_64 == true);
     assert(triple.cpu == CPU.avx2);
 }
 
@@ -41,7 +41,7 @@ unittest
 unittest
 {
     auto triple = Triple("x86_64-unknown-linux-musl-clang");
-    assert(triple.is64bit == true);
+    assert(triple.isX86_64 == true);
     assert(triple.os == Target.OS.linux);
     assert(triple.cenv == TargetC.Runtime.Musl);
     assert(triple.cppenv == TargetCPP.Runtime.Clang);

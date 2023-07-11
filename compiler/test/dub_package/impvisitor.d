@@ -100,7 +100,7 @@ void main()
         Id.initialize();
         global._init();
         target.os = Target.OS.linux;
-        target.is64bit = (size_t.sizeof == 8);
+        target.isX86_64 = (size_t.sizeof == 8);
         global.params.useUnitTests = true;
         ASTBase.Type._init();
 
