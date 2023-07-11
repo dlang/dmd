@@ -6491,7 +6491,7 @@ uint calccodsize(code *c)
                 size = 9;               // 64 bit immediate value for MOV to/from RAX
                 goto Lret;
             }
-            goto Ldefault;
+            goto default;
 
         case 0xF6:                      /* TEST mem8,immed8             */
             ins = inssize[op];
@@ -6511,8 +6511,16 @@ uint calccodsize(code *c)
                 size += (i32 ^ ((iflags & CFopsize) !=0)) ? 4 : 2;
             break;
 
+        case 0xFA:
+        case 0xFB:
+            if (c.Iop == ENDBR32 || c.Iop == ENDBR64)
+            {
+                size = 4;
+                break;
+            }
+            goto default;
+
         default:
-        Ldefault:
             ins = inssize[op];
             size = ins & 7;
             if (i32)
@@ -6992,7 +7000,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
             else if ((op & 0xFF00) == 0x0F00)
                 ins = inssize2[op & 0xFF];
 
-            if (op & 0xFF000000)
+            if (op & 0xFF_00_00_00)
             {
                 ubyte op1 = op >> 24;
                 if (op1 == 0xF2 || op1 == 0xF3 || op1 == 0x66)

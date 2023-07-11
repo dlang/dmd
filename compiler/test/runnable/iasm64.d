@@ -3718,6 +3718,8 @@ void test50()
         0x9B,           // wait
         0x91,           // xchg EAX,ECX
         0xD7,           // xlat
+        0xF3, 0x0F, 0x1E, 0xFB, // endbr32
+        0xF3, 0x0F, 0x1E, 0xFA, // endbr64
         0x48, 0x8D, 0x1D, 0x02, 0x00, 0x00, 0x00, // lea RBX,L1;
         0x89, 0xC0,     // mov EAX,EAX
     ];
@@ -3844,6 +3846,8 @@ L10:    nop; nop;         // put instructions above this or L10 changes
         wait    ;
         xchg    EAX,ECX ;
         xlat    ;
+        endbr32 ;
+        endbr64 ;
         lea     RBX,L1 ;
         mov     EAX,EAX ;
 
@@ -3853,6 +3857,7 @@ L1:                                     ;
     }
     for (i = 0; i < data.length; i++)
     {
+        //printf("[%d] %02x %02x\n", i, p[i], data[i]);
         assert(p[i] == data[i]);
     }
 }

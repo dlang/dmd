@@ -464,6 +464,8 @@ enum
 
     ESCAPE  = SEGDS,   // marker that special information is here
                        // (Iop2 is the type of special information)
+    ENDBR32 = 0xF30F1EFB,
+    ENDBR64 = 0xF30F1EFA,
 }
 
 
