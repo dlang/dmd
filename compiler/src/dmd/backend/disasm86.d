@@ -1986,6 +1986,12 @@ void disassemble(uint c)
                 case 0x11:      p1 = "movss";           goto Lsdxmmr;
                 case 0x12:      p1 = "movsldup";        goto Lsdxmm;
                 case 0x16:      p1 = "movshdup";        goto Lsdxmm;
+                case 0x1E:
+                        if (code[c + 3] == 0xFB)
+                            p1 = "endbr32";
+                        else if (code[c + 3] == 0xFA)
+                            p1 = "endbr64";
+                        break;
                 case 0x2A:      p1 = "cvtsi2ss";        goto Lsd32;
                 case 0x2C:      p1 = "cvttss2si";       goto Lsd4;
                 case 0x2D:      p1 = "cvtss2si";        goto Lsd;
@@ -3650,7 +3656,7 @@ unittest
     ];
 
     int line64 = __LINE__;
-    string[24] cases64 =      // 64 bit code gen
+    string[26] cases64 =      // 64 bit code gen
     [
         "31 C0               xor  EAX,EAX",
         "48 89 4C 24 08      mov  8[RSP],RCX",
@@ -3676,6 +3682,8 @@ unittest
         "66 0F C2 00 CF      cmppd     XMM0,[RAX],0CFh",
         "F3 41 0F C2 C7 AF   cmpss     XMM0,XMM15,0C7h",
         "66 0F 73 FF 99      pslldq    XMM7,099h",
+        "F3 0F 1E FB         endbr32",
+        "F3 0F 1E FA         endbr64",
     ];
 
     char[BUFMAX] buf;
