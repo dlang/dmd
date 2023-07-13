@@ -3472,57 +3472,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (funcdecl.printf || funcdecl.scanf)
         {
-            /* printf/scanf-like functions must be of the form:
-             *    extern (C/C++) T printf([parameters...], const(char)* format, ...);
-             * or:
-             *    extern (C/C++) T vprintf([parameters...], const(char)* format, va_list);
-             */
-
-            static bool isPointerToChar(Parameter p)
-            {
-                if (auto tptr = p.type.isTypePointer())
-                {
-                    return tptr.next.ty == Tchar;
-                }
-                return false;
-            }
-
-            bool isVa_list(Parameter p)
-            {
-                return p.type.equals(target.va_listType(funcdecl.loc, sc));
-            }
-
-            const nparams = f.parameterList.length;
-            if ((f.linkage == LINK.c || f.linkage == LINK.cpp) &&
-
-                (f.parameterList.varargs == VarArg.variadic &&
-                 nparams >= 1 &&
-                 isPointerToChar(f.parameterList[nparams - 1]) ||
-
-                 f.parameterList.varargs == VarArg.none &&
-                 nparams >= 2 &&
-                 isPointerToChar(f.parameterList[nparams - 2]) &&
-                 isVa_list(f.parameterList[nparams - 1])
-                )
-               )
-            {
-                // the signature is valid for printf/scanf, no error
-            }
-            else
-            {
-                const p = (funcdecl.printf ? Id.printf : Id.scanf).toChars();
-                if (f.parameterList.varargs == VarArg.variadic)
-                {
-                    funcdecl.error("`pragma(%s)` functions must be `extern(C) %s %s([parameters...], const(char)*, ...)`"
-                                   ~ " not `%s`",
-                        p, f.next.toChars(), funcdecl.toChars(), funcdecl.type.toChars());
-                }
-                else
-                {
-                    funcdecl.error("`pragma(%s)` functions must be `extern(C) %s %s([parameters...], const(char)*, va_list)`",
-                        p, f.next.toChars(), funcdecl.toChars());
-                }
-            }
+            checkPrintfScanfSignature(funcdecl, f, sc);
         }
 
         if (auto id = parent.isInterfaceDeclaration())
@@ -7386,4 +7336,65 @@ private void writeMixin(const(char)[] s, ref const Loc loc, ref int lines, ref O
     }
     buf.writenl();
     ++lines;
+}
+
+/**
+ * Check signature of `pragma(printf)` function, print error if invalid.
+ *
+ * printf/scanf-like functions must be of the form:
+ *    extern (C/C++) T printf([parameters...], const(char)* format, ...);
+ * or:
+ *    extern (C/C++) T vprintf([parameters...], const(char)* format, va_list);
+ *
+ * Params:
+ *      funcdecl = function to check
+ *      f = function type
+ *      sc = scope
+ */
+void checkPrintfScanfSignature(FuncDeclaration funcdecl, TypeFunction f, Scope* sc)
+{
+    static bool isPointerToChar(Parameter p)
+    {
+        if (auto tptr = p.type.isTypePointer())
+        {
+            return tptr.next.ty == Tchar;
+        }
+        return false;
+    }
+
+    bool isVa_list(Parameter p)
+    {
+        return p.type.equals(target.va_listType(funcdecl.loc, sc));
+    }
+
+    const nparams = f.parameterList.length;
+    const p = (funcdecl.printf ? Id.printf : Id.scanf).toChars();
+    if (!(f.linkage == LINK.c || f.linkage == LINK.cpp))
+    {
+        .error(funcdecl.loc, "`pragma(%s)` function `%s` must have `extern(C)` or `extern(C++)` linkage,"
+            ~" not `extern(%s)`",
+            p, funcdecl.toChars(), f.linkage.linkageToChars());
+    }
+    if (f.parameterList.varargs == VarArg.variadic)
+    {
+        if (!(nparams >= 1 && isPointerToChar(f.parameterList[nparams - 1])))
+        {
+            .error(funcdecl.loc, "`pragma(%s)` function `%s` must have"
+                ~ " signature `%s %s([parameters...], const(char)*, ...)` not `%s`",
+                p, funcdecl.toChars(), f.next.toChars(), funcdecl.toChars(), funcdecl.type.toChars());
+        }
+    }
+    else if (f.parameterList.varargs == VarArg.none)
+    {
+        if(!(nparams >= 2 && isPointerToChar(f.parameterList[nparams - 2]) &&
+            isVa_list(f.parameterList[nparams - 1])))
+            .error(funcdecl.loc, "`pragma(%s)` function `%s` must have"~
+                " signature `%s %s([parameters...], const(char)*, va_list)`",
+                p, funcdecl.toChars(), f.next.toChars(), funcdecl.toChars());
+    }
+    else
+    {
+        .error(funcdecl.loc, "`pragma(%s)` function `%s` must have C-style variadic `...` or `va_list` parameter",
+            p, funcdecl.toChars());
+    }
 }
