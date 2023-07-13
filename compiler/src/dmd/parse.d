@@ -8808,6 +8808,7 @@ LagainStc:
                             {
                                 // (type) una_exp
                                 nextToken();
+                                // Note: `t` may be an expression that looks like a type
                                 auto t = parseType();
                                 check(TOK.rightParenthesis);
 
@@ -8825,8 +8826,12 @@ LagainStc:
                                     te.parens = true;
                                     e = parsePostExp(te);
                                 }
-                                else if (token.value == TOK.leftParenthesis)
+                                else if (token.value == TOK.leftParenthesis ||
+                                    token.value == TOK.plusPlus || token.value == TOK.minusMinus)
                                 {
+                                    // (type)(expr)
+                                    // (callable)(args)
+                                    // (expr)++
                                     auto te = new AST.TypeExp(loc, t);
                                     te.parens = true;
                                     e = parsePostExp(te);
