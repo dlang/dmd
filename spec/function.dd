@@ -1725,24 +1725,6 @@ ref int gun(return ref int x) {
 }
 ---
 )
-        $(P Struct non-static methods marked with the `return` attribute ensure the returned
-        reference will not outlive the struct instance.
-        )
-
----
-struct S
-{
-    private int x;
-    ref int get() return { return x; }
-}
-
-ref int escape()
-{
-    S s;
-    return s.get(); // Error: escaping reference to local variable s
-}
----
-
         $(P Returning the address of a `ref` variable is also checked in `@safe` code.)
 
 $(SPEC_RUNNABLE_EXAMPLE_FAIL
@@ -1832,6 +1814,52 @@ void uranus()
 }
 ---
 )
+
+$(H4 $(LNAME2 struct-return-methods, Struct Return Methods))
+
+        $(P Struct non-static methods can be marked with the `return` attribute to ensure a returned
+        reference will not outlive the struct instance.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+---
+struct S
+{
+    private int x;
+    ref int get() return { return x; }
+}
+
+ref int escape()
+{
+    S s;
+    return s.get(); // Error: escaping reference to local variable s
+}
+---
+)
+        $(P The hidden `this` ref-parameter then becomes `return ref`.)
+
+        $(P The `return` attribute can also be used to limit
+        the lifetime of the returned value, even when the method is not `ref`:
+        )
+
+---
+struct S
+{
+    private int i;
+    int* get() return @safe => &i;
+}
+
+void f() @safe
+{
+    int* p;
+    {
+        S s;
+        int *q = s.get(); // OK, q has shorter lifetime than s
+        p = s.get(); // error, p has longer lifetime
+        p = (new S).get(); // OK, heap allocated S
+    }
+}
+---
 
 $(H3 $(LNAME2 scope-parameters, Scope Parameters))
 
