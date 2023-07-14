@@ -2159,7 +2159,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         else if (arg == "-release")     // https://dlang.org/dmd.html#switch-release
             params.release = true;
         else if (arg == "-betterC")     // https://dlang.org/dmd.html#switch-betterC
+        {
             params.betterC = true;
+            params.allInst = true;
+        }
         else if (arg == "-noboundscheck") // https://dlang.org/dmd.html#switch-noboundscheck
         {
             params.boundscheck = CHECKENABLE.off;
