@@ -1,0 +1,14 @@
+__traits(getOverloads) takes an overload symbol
+
+`__traits(getOverloads)` can now be invoked with
+a single parameter. This parameter must be an overload set.
+`__traits(getOverloads)` will evaluate to a tuple of the
+overloads forming the set.
+For example:
+-------
+int foo() { return 0; }
+int foo(int a) { return a + 1; }
+
+assert(__traits(getOverloads, foo)[0]() == 0);
+assert(__traits(getOverloads, foo)[1](5) == 6);
+-------

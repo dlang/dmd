@@ -76,9 +76,17 @@ int foo();
 int foo(int);
 
 static assert(__traits(getLocation, __traits(getOverloads, traits, "foo")[1])[1] == 74);
+static assert(__traits(getLocation, __traits(getOverloads, foo)[1])[1] == 74);
+
+import imports.traits_a;
+import imports.traits_b;
+
+static assert(__traits(compiles, __traits(getOverloads, baz)[0]()));
+static assert(__traits(compiles, __traits(getOverloads, baz)[1](int.init)));
+static assert(__traits(compiles, __traits(getOverloads, baz)[2](string.init)));
 
 mixin("int bar;");
-static assert(__traits(getLocation, bar)[1] == 78);
+static assert(__traits(getLocation, bar)[1] == 86);
 
 struct Outer
 {
@@ -86,8 +94,8 @@ struct Outer
 
     void method() {}
 }
-static assert(__traits(getLocation, Outer.Nested)[1] == 83);
-static assert(__traits(getLocation, Outer.method)[1] == 85);
+static assert(__traits(getLocation, Outer.Nested)[1] == 91);
+static assert(__traits(getLocation, Outer.method)[1] == 93);
 
 /******************************************/
 // https://issues.dlang.org/show_bug.cgi?id=19902
