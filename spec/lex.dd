@@ -293,33 +293,19 @@ $(GNAME StringLiteral):
     $(GLINK DelimitedString)
     $(GLINK TokenString)
 )
+$(P
+A string literal is either a double quoted string, a wysiwyg quoted
+string, a delimited string, or a token string.
+)
+
+$(P In all string literal forms, an $(GLINK EndOfLine) is regarded as a single
+$(D \n) character.)
+
+$(P String literals are read only.)
+
+$(UNDEFINED_BEHAVIOR writing to a string literal. This is not allowed in `@safe` code.)
+
 $(GRAMMAR_LEX
-$(GNAME WysiwygString):
-    $(B r") $(GLINK WysiwygCharacters)$(OPT) $(B ") $(GLINK StringPostfix)$(OPT)
-
-$(GNAME AlternateWysiwygString):
-    $(B $(BACKTICK)) $(GLINK WysiwygCharacters)$(OPT) $(B $(BACKTICK)) $(GLINK StringPostfix)$(OPT)
-
-$(GNAME WysiwygCharacters):
-    $(GLINK WysiwygCharacter)
-    $(GLINK WysiwygCharacter) $(GSELF WysiwygCharacters)
-
-$(GNAME WysiwygCharacter):
-    $(GLINK Character)
-    $(GLINK EndOfLine)
-
-$(GNAME DoubleQuotedString):
-    $(B ") $(GLINK DoubleQuotedCharacters)$(OPT) $(B ") $(GLINK StringPostfix)$(OPT)
-
-$(GNAME DoubleQuotedCharacters):
-    $(GLINK DoubleQuotedCharacter)
-    $(GLINK DoubleQuotedCharacter) $(GSELF DoubleQuotedCharacters)
-
-$(GNAME DoubleQuotedCharacter):
-    $(GLINK Character)
-    $(GLINK EscapeSequence)
-    $(GLINK EndOfLine)
-
 $(GNAME EscapeSequence):
     $(B \\')
     $(B \\")
@@ -345,67 +331,24 @@ $(GNAME StringPostfix):
     $(B c)
     $(B w)
     $(B d)
-
-$(GNAME DelimitedString):
-    $(B q") $(GLINK Delimiter) $(GLINK WysiwygCharacters)$(OPT) $(GLINK MatchingDelimiter) $(B ") $(GLINK StringPostfix)$(OPT)
-    $(B q"$(LPAREN)) $(GLINK ParenDelimitedCharacters)$(OPT) $(B $(RPAREN)") $(GLINK StringPostfix)$(OPT)
-    $(B q"[) $(GLINK BracketDelimitedCharacters)$(OPT) $(B ]") $(GLINK StringPostfix)$(OPT)
-    $(B q"{) $(GLINK BraceDelimitedCharacters)$(OPT) $(B }") $(GLINK StringPostfix)$(OPT)
-    $(B q"<) $(GLINK AngleDelimitedCharacters)$(OPT) $(B >") $(GLINK StringPostfix)$(OPT)
-
-$(GNAME Delimiter):
-    $(GLINK Identifier)
-
-$(GNAME MatchingDelimiter):
-    $(GLINK Identifier)
-
-$(GNAME ParenDelimitedCharacters):
-    $(GLINK WysiwygCharacter)
-    $(GLINK WysiwygCharacter) $(GSELF ParenDelimitedCharacters)
-    $(B $(LPAREN)) $(GSELF ParenDelimitedCharacters)$(OPT) $(B $(RPAREN))
-
-$(GNAME BracketDelimitedCharacters):
-    $(GLINK WysiwygCharacter)
-    $(GLINK WysiwygCharacter) $(GSELF BracketDelimitedCharacters)
-    $(B [) $(GSELF BracketDelimitedCharacters)$(OPT) $(B ])
-
-$(GNAME BraceDelimitedCharacters):
-    $(GLINK WysiwygCharacter)
-    $(GLINK WysiwygCharacter) $(GSELF BraceDelimitedCharacters)
-    $(B {) $(GSELF BraceDelimitedCharacters)$(OPT) $(B })
-
-$(GNAME AngleDelimitedCharacters):
-    $(GLINK WysiwygCharacter)
-    $(GLINK WysiwygCharacter) $(GSELF AngleDelimitedCharacters)
-    $(B <) $(GSELF AngleDelimitedCharacters)$(OPT) $(B >)
 )
-$(GRAMMAR
-$(GNAME TokenString):
-    $(D q{) $(GLINK TokenStringTokens)$(OPT) $(D }) $(GLINK StringPostfix)$(OPT)
-
-$(GNAME TokenStringTokens):
-    $(GLINK TokenStringToken)
-    $(GLINK TokenStringToken) $(GSELF TokenStringTokens)
-
-$(GNAME TokenStringToken):
-    $(GLINK TokenNoBraces)
-    $(D {) $(GLINK TokenStringTokens)$(OPT) $(D })
-)
-
-        $(P
-        A string literal is either a double quoted string, a wysiwyg quoted
-        string, a delimited string, or a token string.
-        )
-
-        $(P In all string literal forms, an $(GLINK EndOfLine) is regarded as a single
-        $(D \n) character.)
-
-        $(P String literals are read only.)
-
-        $(UNDEFINED_BEHAVIOR writing to a string literal. This is not allowed in `@safe` code.)
 
 $(H3 $(LNAME2 wysiwyg, Wysiwyg Strings))
+$(GRAMMAR_LEX
+$(GNAME WysiwygString):
+    $(B r") $(GLINK WysiwygCharacters)$(OPT) $(B ") $(GLINK StringPostfix)$(OPT)
 
+$(GNAME AlternateWysiwygString):
+    $(B $(BACKTICK)) $(GLINK WysiwygCharacters)$(OPT) $(B $(BACKTICK)) $(GLINK StringPostfix)$(OPT)
+
+$(GNAME WysiwygCharacters):
+    $(GLINK WysiwygCharacter)
+    $(GLINK WysiwygCharacter) $(GSELF WysiwygCharacters)
+
+$(GNAME WysiwygCharacter):
+    $(GLINK Character)
+    $(GLINK EndOfLine)
+)
         $(P
         Wysiwyg ("what you see is what you get") quoted strings can be defined
         using either of two syntaxes.
@@ -439,6 +382,19 @@ $(H3 $(LNAME2 wysiwyg, Wysiwyg Strings))
         ---
 
 $(H3 $(LNAME2 double_quoted_strings, Double Quoted Strings))
+$(GRAMMAR_LEX
+$(GNAME DoubleQuotedString):
+    $(B ") $(GLINK DoubleQuotedCharacters)$(OPT) $(B ") $(GLINK StringPostfix)$(OPT)
+
+$(GNAME DoubleQuotedCharacters):
+    $(GLINK DoubleQuotedCharacter)
+    $(GLINK DoubleQuotedCharacter) $(GSELF DoubleQuotedCharacters)
+
+$(GNAME DoubleQuotedCharacter):
+    $(GLINK Character)
+    $(GLINK EscapeSequence)
+    $(GLINK EndOfLine)
+)
 
         $(P Double quoted strings are enclosed by "". $(GLINK EscapeSequence)s can be
         embedded in them.)
@@ -452,8 +408,41 @@ $(H3 $(LNAME2 double_quoted_strings, Double Quoted Strings))
         "        // string is 3 characters,
                  // 'a', 'b', and a linefeed
         ---
-
 $(H3 $(LNAME2 delimited_strings, Delimited Strings))
+$(GRAMMAR_LEX
+$(GNAME DelimitedString):
+    $(B q") $(GLINK Delimiter) $(GLINK WysiwygCharacters)$(OPT) $(GLINK MatchingDelimiter) $(B ") $(GLINK StringPostfix)$(OPT)
+    $(B q"$(LPAREN)) $(GLINK ParenDelimitedCharacters)$(OPT) $(B $(RPAREN)") $(GLINK StringPostfix)$(OPT)
+    $(B q"[) $(GLINK BracketDelimitedCharacters)$(OPT) $(B ]") $(GLINK StringPostfix)$(OPT)
+    $(B q"{) $(GLINK BraceDelimitedCharacters)$(OPT) $(B }") $(GLINK StringPostfix)$(OPT)
+    $(B q"<) $(GLINK AngleDelimitedCharacters)$(OPT) $(B >") $(GLINK StringPostfix)$(OPT)
+
+$(GNAME Delimiter):
+    $(GLINK Identifier)
+
+$(GNAME MatchingDelimiter):
+    $(GLINK Identifier)
+
+$(GNAME ParenDelimitedCharacters):
+    $(GLINK WysiwygCharacter)
+    $(GLINK WysiwygCharacter) $(GSELF ParenDelimitedCharacters)
+    $(B $(LPAREN)) $(GSELF ParenDelimitedCharacters)$(OPT) $(B $(RPAREN))
+
+$(GNAME BracketDelimitedCharacters):
+    $(GLINK WysiwygCharacter)
+    $(GLINK WysiwygCharacter) $(GSELF BracketDelimitedCharacters)
+    $(B [) $(GSELF BracketDelimitedCharacters)$(OPT) $(B ])
+
+$(GNAME BraceDelimitedCharacters):
+    $(GLINK WysiwygCharacter)
+    $(GLINK WysiwygCharacter) $(GSELF BraceDelimitedCharacters)
+    $(B {) $(GSELF BraceDelimitedCharacters)$(OPT) $(B })
+
+$(GNAME AngleDelimitedCharacters):
+    $(GLINK WysiwygCharacter)
+    $(GLINK WysiwygCharacter) $(GSELF AngleDelimitedCharacters)
+    $(B <) $(GSELF AngleDelimitedCharacters)$(OPT) $(B >)
+)
 
         $(P Delimited strings use various forms of delimiters.
         The delimiter, whether a character or identifier,
@@ -505,6 +494,18 @@ q"/foo]/"          // "foo]"
 ---
 
 $(H3 $(LNAME2 token_strings, Token Strings))
+$(GRAMMAR
+$(GNAME TokenString):
+    $(D q{) $(GLINK TokenStringTokens)$(OPT) $(D }) $(GLINK StringPostfix)$(OPT)
+
+$(GNAME TokenStringTokens):
+    $(GLINK TokenStringToken)
+    $(GLINK TokenStringToken) $(GSELF TokenStringTokens)
+
+$(GNAME TokenStringToken):
+    $(GLINK TokenNoBraces)
+    $(D {) $(GLINK TokenStringTokens)$(OPT) $(D })
+)
 
         $(P Token strings open with the characters $(D q)$(CODE_LCURL) and close with
         the token $(CODE_RCURL). In between must be valid D tokens.
