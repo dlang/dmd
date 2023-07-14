@@ -4606,6 +4606,7 @@ bool setUnsafe(Scope* sc,
 bool setUnsafePreview(Scope* sc, FeatureState fs, bool gag, Loc loc, const(char)* msg,
     RootObject arg0 = null, RootObject arg1 = null, RootObject arg2 = null)
 {
+    //printf("setUnsafePreview() fs:%d %s\n", fs, msg);
     with (FeatureState) final switch (fs)
     {
       case disabled:
@@ -4620,9 +4621,10 @@ bool setUnsafePreview(Scope* sc, FeatureState fs, bool gag, Loc loc, const(char)
         if (sc.func.isSafeBypassingInference())
         {
             if (!gag)
-                previewErrorFunc(sc.isDeprecated(), fs)(
-                    loc, msg, arg0 ? arg0.toChars() : "", arg1 ? arg1.toChars() : "", arg2 ? arg2.toChars() : ""
-                );
+            {
+                if (!sc.isDeprecated() && global.params.obsolete)
+                    warning(loc, msg, arg0 ? arg0.toChars() : "", arg1 ? arg1.toChars() : "", arg2 ? arg2.toChars() : "");
+            }
         }
         else if (!sc.func.safetyViolation)
         {
