@@ -1747,7 +1747,7 @@ $(GNAME PrimaryExpression):
     $(GLINK_LEX IntegerLiteral)
     $(GLINK_LEX FloatLiteral)
     $(LEGACY_LNAME2 CharacterLiteral)$(LEGACY_LNAME2 character-literal)$(GLINK_LEX CharacterLiteral)
-    $(GLINK_LEX StringLiteral)
+    $(RELATIVE_LINK2 string_literals, *StringLiteral*)
     $(GLINK ArrayLiteral)
     $(GLINK AssocArrayLiteral)
     $(GLINK FunctionLiteral)
@@ -1842,19 +1842,14 @@ $(H3 $(LNAME2 null, null))
         but no longer exact.
     )
 
-$(H3 $(LNAME2 string_literals, String Literals))
+$(H3 $(LEGACY_LNAME2 StringLiteral, string_literals, String Literals))
 
-$(GRAMMAR_INFORMATIVE
-$(GNAME StringLiteral):
-    $(GLINK_LEX WysiwygString)
-    $(GLINK_LEX AlternateWysiwygString)
-    $(GLINK_LEX DoubleQuotedString)
-    $(GLINK_LEX DelimitedString)
-    $(GLINK_LEX TokenString)
-)
+    $(P See $(GLINK_LEX StringLiteral) grammar.)
 
-    $(P String literals can implicitly convert to any
-        of the following types, they have equal weight:
+    $(P String literals are read-only.
+        A string literal without a $(DDSUBLINK spec/lex, string_postfix, StringPostfix)
+        can implicitly convert to any
+        of the following types, which have equal weight:
     )
 
     $(TABLE
@@ -1866,39 +1861,46 @@ $(GNAME StringLiteral):
         $(TROW $(D immutable(dchar)[]))
     )
 
+    $(UNDEFINED_BEHAVIOR writing to a string literal. This is not allowed in `@safe` code.)
+
     $(P By default, a string literal is typed as a dynamic array, but the element
         count is known at compile time. So all string literals can be
-        implicitly converted to static array types.)
+        implicitly converted to an immutable static array:)
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         -------------
         void foo(char[2] a)
         {
-            assert(a == "bc");
+            assert(a[0] == 'b');
         }
         void bar(ref const char[2] a)
         {
             assert(a == "bc");
         }
-        void baz(const char[3] a) {}
 
         void main()
         {
-            string str = "abc";
-            foo(str[1 .. 3]);
-            bar(str[1 .. 3]);
-          //baz(str[1 .. 3]); // cannot match length
+            foo("bc");
+            foo("b"); // OK
+            //foo("bcd"); // error, too many chars
+            bar("bc"); // OK, same length
+            //bar("b"); // error, lengths must match
         }
         -------------
+        )
+    $(P A string literal converts to a static array rvalue of the same or longer length.
+        Any extra elements are padded with zeros. A string literal
+        can also convert to a static array lvalue of the same length.)
 
-    $(P String literals have a 0 appended to them, which makes
-        them easy to pass to C or C++ functions expecting a $(CODE const char*)
-        string.
-        The 0 is not included in the $(CODE .length) property of the
+    $(P String literals have a `'\0'` appended to them, which makes
+        them easy to pass to C or C++ functions expecting a null-terminated
+        $(CODE const char*) string.
+        The `'\0'` is not included in the $(CODE .length) property of the
         string literal.
     )
 
-    $(P Concatenation of string literals requires the use of the
-        `~` operator, and is resolved at compile time.
+    $(P Concatenation of string literals requires the use of
+        $(RELATIVE_LINK2 cat_expressions, the `~` operator), and is resolved at compile time.
         C style implicit concatenation without an intervening operator is
         error prone and not supported in D.)
 

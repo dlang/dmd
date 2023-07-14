@@ -289,49 +289,16 @@ $(GNAME StringLiteral):
     $(GLINK WysiwygString)
     $(GLINK AlternateWysiwygString)
     $(GLINK DoubleQuotedString)
-
     $(GLINK DelimitedString)
     $(GLINK TokenString)
 )
 $(P
-A string literal is either a double quoted string, a wysiwyg quoted
+A string literal is either a wysiwyg quoted string, a double quoted
 string, a delimited string, or a token string.
 )
 
 $(P In all string literal forms, an $(GLINK EndOfLine) is regarded as a single
 $(D \n) character.)
-
-$(P String literals are read only.)
-
-$(UNDEFINED_BEHAVIOR writing to a string literal. This is not allowed in `@safe` code.)
-
-$(GRAMMAR_LEX
-$(GNAME EscapeSequence):
-    $(B \\')
-    $(B \\")
-    $(B \\?)
-    $(B \\\\)
-    $(B \0)
-    $(B \a)
-    $(B \b)
-    $(B \f)
-    $(B \n)
-    $(B \r)
-    $(B \t)
-    $(B \v)
-    $(B \x) $(GLINK HexDigit) $(GLINK HexDigit)
-    $(B \\) $(GLINK OctalDigit)
-    $(B \\) $(GLINK OctalDigit) $(GLINK OctalDigit)
-    $(B \\) $(GLINK OctalDigit) $(GLINK OctalDigit) $(GLINK OctalDigit)
-    $(B \u) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit)
-    $(B \U) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit)
-    $(B \\) $(GLINK2 entity, NamedCharacterEntity)
-
-$(GNAME StringPostfix):
-    $(B c)
-    $(B w)
-    $(B d)
-)
 
 $(H3 $(LNAME2 wysiwyg, Wysiwyg Strings))
 $(GRAMMAR_LEX
@@ -526,6 +493,13 @@ $(GNAME TokenStringToken):
 
 $(H3 $(LNAME2 string_postfix, String Postfix))
 
+$(GRAMMAR_LEX
+$(GNAME StringPostfix):
+    $(B c)
+    $(B w)
+    $(B d)
+)
+
         $(P The optional $(I StringPostfix) character gives a specific type
         to the string, rather than it being inferred from the context.
         The types corresponding to the postfix characters are:
@@ -551,7 +525,28 @@ $(H3 $(LNAME2 string_postfix, String Postfix))
 
 $(H2 $(LNAME2 escape_sequences, Escape Sequences))
 
-    $(P The escape sequences listed in $(GLINK EscapeSequence) are:)
+$(GRAMMAR_LEX
+$(GNAME EscapeSequence):
+    $(B \\')
+    $(B \\")
+    $(B \\?)
+    $(B \\\\)
+    $(B \0)
+    $(B \a)
+    $(B \b)
+    $(B \f)
+    $(B \n)
+    $(B \r)
+    $(B \t)
+    $(B \v)
+    $(B \x) $(GLINK HexDigit) $(GLINK HexDigit)
+    $(B \\) $(GLINK OctalDigit)
+    $(B \\) $(GLINK OctalDigit) $(GLINK OctalDigit)
+    $(B \\) $(GLINK OctalDigit) $(GLINK OctalDigit) $(GLINK OctalDigit)
+    $(B \u) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit)
+    $(B \U) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit)
+    $(B \\) $(GLINK2 entity, NamedCharacterEntity)
+)
 
     $(LONGTABLE_2COLS 0.8, Escape Sequences,
     $(THEAD Sequence, Meaning),
