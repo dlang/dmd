@@ -14175,6 +14175,12 @@ Expression toBoolean(Expression exp, Scope* sc)
                               exp.toChars(), t.toChars());
                 return ErrorExp.get();
             }
+            if (global.compileEnv.obsolete && tb.ty == Tarray)
+            {
+                warning(exp.loc, "boolean evaluation of dynamic arrays is obsolete");
+                warningSupplemental(exp.loc, "Use one of: %s !is null, %s.length, or %s.ptr instead",
+                    exp.toChars(), exp.toChars(), exp.toChars());
+            }
             return e;
     }
 }
