@@ -81,11 +81,11 @@ enum CppStdRevision : uint
 }
 
 /// Trivalent boolean to represent the state of a `revert`able change
-enum FeatureState : byte
+enum FeatureState : ubyte
 {
-    default_ = -1, /// Not specified by the user
-    disabled = 0,  /// Specified as `-revert=`
-    enabled = 1    /// Specified as `-preview=`
+    default_ = 0,  /// Not specified by the user
+    disabled = 1,  /// Specified as `-revert=`
+    enabled  = 2,  /// Specified as `-preview=`
 }
 
 extern(C++) struct Output
