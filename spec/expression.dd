@@ -1844,7 +1844,7 @@ $(H3 $(LNAME2 null, null))
 
 $(H3 $(LNAME2 string_literals, String Literals))
 
-$(GRAMMAR
+$(GRAMMAR_INFORMATIVE
 $(GNAME StringLiteral):
     $(GLINK_LEX WysiwygString)
     $(GLINK_LEX AlternateWysiwygString)
@@ -3084,7 +3084,7 @@ void foo()
 
 $(H4 $(LNAME2 is-parameter-list, Parameter List Forms))
 
-$(GRAMMAR
+$(GRAMMAR_INFORMATIVE
 $(D is $(LPAREN)) $(I Type) $(D :) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
 $(D is $(LPAREN)) $(I Type) $(D ==) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
 $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D :) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
