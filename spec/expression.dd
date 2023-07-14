@@ -2392,7 +2392,8 @@ $(GNAME AssertArguments):
     $(GLINK AssignExpression) $(D ,) $(GLINK AssignExpression) $(D ,)$(OPT)
 )
 
-    $(P The first $(I AssignExpression) must evaluate to `true`. If it does not, an $(I Assert Failure)
+    $(P The first $(I AssignExpression) is evaluated and converted to a boolean value.
+    If the value is not `true`, an $(I Assert Failure)
     has occurred and the program enters an $(I Invalid State).
     )
 
