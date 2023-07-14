@@ -6,6 +6,9 @@ $(HEADERNAV_TOC)
 
 $(H2 $(LNAME2 grammar, Grammar))
 
+$(P *Declaration* can be used inside a function body for a $(GLINK2 statement, DeclarationStatement),
+as well as outside a function as it is included in $(GLINK2 module, DeclDef).)
+
 $(GRAMMAR
 $(GNAME Declaration):
     $(GLINK2 function, FuncDeclaration)
@@ -20,10 +23,9 @@ $(GNAME Declaration):
     $(GLINK2 version, StaticAssert)
     $(GLINK2 template, TemplateDeclaration)
     $(GLINK2 template-mixin, TemplateMixinDeclaration)
+    $(GLINK2 template-mixin, TemplateMixin)
 )
 
-$(P See also $(GLINK2 module, DeclDef).
-)
 
 $(H3 $(LNAME2 aggregates, Aggregates))
 

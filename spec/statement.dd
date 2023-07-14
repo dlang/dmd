@@ -63,11 +63,8 @@ $(GNAME NonEmptyStatementNoCaseNoDefault):
     $(GLINK2 pragma, PragmaStatement)
     $(GLINK2 version, ConditionalStatement)
     $(GLINK2 version, StaticForeachStatement)
-    $(GLINK2 version, StaticAssert)
-    $(GLINK2 template-mixin, TemplateMixin)
     $(GLINK2 module, ImportDeclaration)
 )
-
 
         $(P Any ambiguities in the grammar between $(I Statement)s and
         $(GLINK2 declaration, Declaration)s are
