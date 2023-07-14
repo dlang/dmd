@@ -14175,6 +14175,10 @@ Expression toBoolean(Expression exp, Scope* sc)
                               exp.toChars(), t.toChars());
                 return ErrorExp.get();
             }
+            if (exp.isArrayLiteralExp() || exp.isStringExp())
+            {
+                deprecation(exp.loc, "boolean evaluation of array/string literals is deprecated");
+            }
             return e;
     }
 }
