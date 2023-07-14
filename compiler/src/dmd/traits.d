@@ -947,15 +947,24 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
          */
 
         Dsymbol sym = getDsymbol(o);
+
+        if (sym && e.ident == Id.hasMember)
+        {
+            if (auto sm = sym.search(e.loc, id))
+                return True();
+
+            // https://issues.dlang.org/show_bug.cgi?id=23951
+            if (auto decl = sym.isDeclaration())
+            {
+                ex = typeDotIdExp(e.loc, decl.type, id);
+                goto doSemantic;
+            }
+        }
+
         if (auto t = isType(o))
             ex = typeDotIdExp(e.loc, t, id);
         else if (sym)
         {
-            if (e.ident == Id.hasMember)
-            {
-                if (auto sm = sym.search(e.loc, id))
-                    return True();
-            }
             ex = new DsymbolExp(e.loc, sym);
             ex = new DotIdExp(e.loc, ex, id);
         }
@@ -966,7 +975,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             e.error("invalid first argument");
             return ErrorExp.get();
         }
-
+    doSemantic:
         // ignore symbol visibility and disable access checks for these traits
         Scope* scx = sc.push();
         scx.flags |= SCOPE.ignoresymbolvisibility | SCOPE.noaccesscheck;
