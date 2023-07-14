@@ -14177,6 +14177,7 @@ Expression toBoolean(Expression exp, Scope* sc)
             }
             if (global.compileEnv.obsolete && tb.ty == Tarray)
             {
+                // obsolete from 2.105
                 warning(exp.loc, "boolean evaluation of dynamic arrays is obsolete");
                 warningSupplemental(exp.loc, "Use one of: %s !is null, %s.length, or %s.ptr instead",
                     exp.toChars(), exp.toChars(), exp.toChars());
