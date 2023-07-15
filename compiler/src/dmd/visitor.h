@@ -268,6 +268,7 @@ class UshrAssignExp;
 class CatAssignExp;
 class CatElemAssignExp;
 class CatDcharAssignExp;
+class LoweredAssignExp;
 class AddExp;
 class MinExp;
 class CatExp;
@@ -659,6 +660,7 @@ public:
     virtual void visit(ClassReferenceExp *e) { visit((Expression *)e); }
     virtual void visit(VoidInitExp *e) { visit((Expression *)e); }
     virtual void visit(ThrownExceptionExp *e) { visit((Expression *)e); }
+    virtual void visit(LoweredAssignExp *e) { visit((AssignExp *)e); }
 };
 
 class StoppableVisitor : public Visitor
