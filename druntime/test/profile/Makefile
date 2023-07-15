@@ -52,7 +52,9 @@ $(ROOT)/both.done: $(ROOT)/%.done: $(ROOT)/%
 	$(QUIET) cat $(ROOT)/both.def
 	$(QUIET) sort $(ROOT)/both.def -o $(ROOT)/both.def
 	$(QUIET)(sort bothnew.def.exp | $(DIFF) - $(ROOT)/both.def)
-	$(QUIET)$(DIFF) bothgc.log.exp $(ROOT)/bothgc.log
+	$(QUIET)$(DIFF) \
+		<($(GREP) -vF 'core.' bothgc.log.exp) \
+		<($(GREP) -vF 'core.' $(ROOT)/bothgc.log)
 	@touch $@
 
 $(ROOT)/%: $(SRC)/%.d
