@@ -366,6 +366,14 @@ $(H3 $(LNAME2 vargs, Variadic Function Arguments))
 $(P Arguments to variadic functions (such as `printf`) are considered to be consumed.
 )
 
+
+$(H2 $(LNAME2 references, References))
+
+$(OL
+$(LI $(LINK2 https://bartoszmilewski.com/2009/06/02/race-free-multithreading-ownership, Race-free Multithreading: Ownership))
+)
+
+
 $(SPEC_SUBNAV_PREV_NEXT importc, ImportC, windows, Windows Programming)
 )
 

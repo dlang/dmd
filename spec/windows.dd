@@ -10,8 +10,8 @@ $(P This covers Windows programming with 32 bit OMF, 32 bit Mscoff,
 
 $(H2 $(LNAME2 mscoff, Windows 32 and 64 bit MSCOFF Programs))
 
-    $(P 32 bit and 64 bit MSCOFF programs use the Microsoft Visual C/C++ compiler as the Associated
-    C Compiler, generate object files in the MSCOFF format, and use the Microsoft linker
+    $(P 32 bit and 64 bit MSCOFF programs use the Microsoft Visual C/C++ compiler as the $(ACC),
+    generate object files in the MSCOFF format, and use the Microsoft linker
     to link them.
     )
 
@@ -25,7 +25,7 @@ $(H2 $(LNAME2 omf, Windows 32 bit OMF Programs))
 
     $(P 32 bit OMF programs use the
     $(LINK2 https://www.digitalmars.com/download/freecompiler.html, Digital Mars C/C++ compiler)
-    as the Associated C Compiler, generate object files in the OMF format, and use the
+    as the $(ACC), generate object files in the OMF format, and use the
     $(LINK2 https://www.digitalmars.com/ctg/optlink.html, Optlink linker)
     to link them.
     )

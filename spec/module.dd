@@ -30,10 +30,6 @@ $(GNAME DeclDef):
     $(GLINK2 version, ConditionalDeclaration)
     $(GLINK2 version, DebugSpecification)
     $(GLINK2 version, VersionSpecification)
-    $(GLINK2 version, StaticAssert)
-    $(GLINK2 template, TemplateDeclaration)
-    $(GLINK2 template-mixin, TemplateMixinDeclaration)
-    $(GLINK2 template-mixin, TemplateMixin)
     $(GLINK MixinDeclaration)
     $(GLINK EmptyDeclaration)
 
@@ -631,11 +627,11 @@ $(P Each $(GLINK2 expression, AssignExpression) in the $(I ArgumentList) is
     evaluated at compile time, and the result must be representable
     as a string.
     The resulting strings are concatenated to form a string.
-    The text contents of the string must be compilable as a valid
+    The text contents of the string must be compilable as valid
     $(GLINK DeclDefs), and is compiled as such.)
 
-$(P The content of a mixin cannot be forward referenced by other DeclDefs of
-    the same scope because it is not yet pulled in the AST.)
+$(P The content of a mixin cannot be forward referenced by other *DeclDefs* of
+    the same scope because it is not yet pulled into the AST.)
 
 ---------
 class B : A {}      // Error: undefined identifier `A`
@@ -643,7 +639,7 @@ mixin ("class A {}");
 ---------
 
 $(P Forward references may only work in function bodies because they
-    are processed after the declarations)
+    are processed after the declarations:)
 
 ---------
 void v()

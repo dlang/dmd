@@ -105,7 +105,10 @@ $(SUBNAV_TEMPLATE
             $(ROOT_DIR)spec/simd.html, Vector Extensions,
             $(ROOT_DIR)spec/betterc.html, Better C,
             $(ROOT_DIR)spec/importc.html, ImportC,
-            $(ROOT_DIR)spec/ob.html, Live Functions
+            $(ROOT_DIR)spec/ob.html, Live Functions,
+            $(ROOT_DIR)spec/windows.html, Windows Programming,
+            $(ROOT_DIR)spec/glossary.html, Glossary,
+            $(ROOT_DIR)spec/legacy.html, Legacy Code
         )
     )
 )

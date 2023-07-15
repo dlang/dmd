@@ -78,7 +78,7 @@ $(H2 $(LNAME2 dialect, ImportC Dialect))
 
     $(IMPLEMENTATION_DEFINED Adjustment to the ImportC dialect is made to match the
     behavior of the C compiler that the D compiler is matched to,
-    i.e. the $(DDSUBLINK glossary, acc, Associated C Compiler).
+    i.e. the $(ACC).
     )
 
     $(P Further adjustment is made to take advantage of some of the D
@@ -132,7 +132,7 @@ $(H2 $(LNAME2 preprocessor, Preprocessor))
     $(P ImportC does not have a preprocessor. It is designed to compile C
     files after they have been first run through the C preprocessor.
     ImportC can automatically run the C preprocessor associated with the
-    Associated C Compiler, or a preprocessor can be run manually.
+    $(ACC), or a preprocessor can be run manually.
     )
 
     $(H3 $(LNAME2 auto-cpp, Running the Preprocessor Automatically))
@@ -328,7 +328,7 @@ $(H2 $(LNAME2 implementation, Implementation))
 
     $(P This is described in C11 7.6.1)
 
-$(GRAMMAR
+$(GRAMMAR_INFORMATIVE
 #pragma STDC FENV_ACCESS on-off-switch
 
 on-off-switch:
@@ -422,6 +422,19 @@ int myprintf(char *, ...) asm("printf");
 
     $(P Any declarations in scope can be accessed, not just
     declarations that lexically precede a reference.)
+
+$(CCODE
+Ta *p;  // Ta is forward referenced
+struct Sa { int x; };
+typedef struct Sa Ta; // Ta is defined
+)
+
+$(CCODE
+struct S s;
+int* p = &s.t.x;  // struct S definition is forward referenced
+struct S { int a; struct T t; }; // T still forward referenced
+struct T { int b; int x; }; // definition of struct T
+)
 
     $(H3 $(LNAME2 cpp-tag-symbols, C++ Style Tag Symbols))
 
@@ -666,6 +679,16 @@ $(H2 $(LNAME2 visualc-extensions, Visual C Extensions))
     $(LI `__declspec(noinline)`)
     $(LI `__declspec(noreturn)`)
     $(LI `__declspec(thread)`)
+    $(LI others are ignored)
+    )
+
+    $(H3 $(LNAME2 __pragma, `__pragma` Attribute Extensions))
+
+    $(P The following
+        $(LINK@ https://learn.microsoft.com/en-us/cpp/preprocessor/pragma-directives-and-the-pragma-keyword?view=msvc-170, `__pragma` extensions):)
+
+    $(OL
+    $(LI `__pragma(pack(N))`)
     $(LI others are ignored)
     )
 

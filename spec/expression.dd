@@ -1485,6 +1485,11 @@ $(P
     ---
 
 $(P
+    The `Throwable` must not be a qualified as `immutable`, `const`, `inout` or
+    `shared`. The runtime may modify a thrown object (e.g. to contain a stack
+    trace) which would violate `const` or `immutable` objects.
+)
+$(P
     A $(I ThrowExpression) may be nested in another expression:
 )
     ---
@@ -1524,8 +1529,8 @@ $(GNAME PostfixExpression):
     $(GSELF PostfixExpression) $(D .) $(GLINK NewExpression)
     $(GSELF PostfixExpression) $(D ++)
     $(GSELF PostfixExpression) $(D --)
-    $(GSELF PostfixExpression) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
-    $(GLINK2 type, TypeCtors)$(OPT) $(GLINK2 type, BasicType) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
+    $(GSELF PostfixExpression) $(D $(LPAREN)) $(GLINK NamedArgumentList)$(OPT) $(D $(RPAREN))
+    $(GLINK2 type, TypeCtors)$(OPT) $(GLINK2 type, BasicType) $(D $(LPAREN)) $(GLINK NamedArgumentList)$(OPT) $(D $(RPAREN))
     $(GLINK IndexExpression)
     $(GLINK SliceExpression)
 )
@@ -1742,7 +1747,7 @@ $(GNAME PrimaryExpression):
     $(GLINK_LEX IntegerLiteral)
     $(GLINK_LEX FloatLiteral)
     $(LEGACY_LNAME2 CharacterLiteral)$(LEGACY_LNAME2 character-literal)$(GLINK_LEX CharacterLiteral)
-    $(GLINK_LEX StringLiteral)
+    $(RELATIVE_LINK2 string_literals, *StringLiteral*)
     $(GLINK ArrayLiteral)
     $(GLINK AssocArrayLiteral)
     $(GLINK FunctionLiteral)
@@ -1753,9 +1758,9 @@ $(GNAME PrimaryExpression):
     $(GLINK2 type, FundamentalType) $(D .) $(IDENTIFIER)
     $(D $(LPAREN)) $(GLINK2 type, Type) $(D $(RPAREN) .) $(IDENTIFIER)
     $(D $(LPAREN)) $(GLINK2 type, Type) $(D $(RPAREN) .) $(GLINK2 template, TemplateInstance)
-    $(GLINK2 type, FundamentalType) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
+    $(GLINK2 type, FundamentalType) $(D $(LPAREN)) $(GLINK NamedArgumentList)$(OPT) $(D $(RPAREN))
     $(GLINK2 type, TypeCtor) $(D $(LPAREN)) $(GLINK2 type, Type) $(D $(RPAREN)) $(D .) $(IDENTIFIER)
-    $(GLINK2 type, TypeCtor) $(D $(LPAREN)) $(GLINK2 type, Type) $(D $(RPAREN)) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
+    $(GLINK2 type, TypeCtor) $(D $(LPAREN)) $(GLINK2 type, Type) $(D $(RPAREN)) $(D $(LPAREN)) $(GLINK NamedArgumentList)$(OPT) $(D $(RPAREN))
     $(GLINK2 type, Typeof)
     $(GLINK TypeidExpression)
     $(GLINK IsExpression)
@@ -1837,19 +1842,14 @@ $(H3 $(LNAME2 null, null))
         but no longer exact.
     )
 
-$(H3 $(LNAME2 string_literals, String Literals))
+$(H3 $(LEGACY_LNAME2 StringLiteral, string_literals, String Literals))
 
-$(GRAMMAR
-$(GNAME StringLiteral):
-    $(GLINK_LEX WysiwygString)
-    $(GLINK_LEX AlternateWysiwygString)
-    $(GLINK_LEX DoubleQuotedString)
-    $(GLINK_LEX DelimitedString)
-    $(GLINK_LEX TokenString)
-)
+    $(P See $(GLINK_LEX StringLiteral) grammar.)
 
-    $(P String literals can implicitly convert to any
-        of the following types, they have equal weight:
+    $(P String literals are read-only.
+        A string literal without a $(DDSUBLINK spec/lex, string_postfix, StringPostfix)
+        can implicitly convert to any
+        of the following types, which have equal weight:
     )
 
     $(TABLE
@@ -1861,39 +1861,46 @@ $(GNAME StringLiteral):
         $(TROW $(D immutable(dchar)[]))
     )
 
+    $(UNDEFINED_BEHAVIOR writing to a string literal. This is not allowed in `@safe` code.)
+
     $(P By default, a string literal is typed as a dynamic array, but the element
         count is known at compile time. So all string literals can be
-        implicitly converted to static array types.)
+        implicitly converted to an immutable static array:)
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         -------------
         void foo(char[2] a)
         {
-            assert(a == "bc");
+            assert(a[0] == 'b');
         }
         void bar(ref const char[2] a)
         {
             assert(a == "bc");
         }
-        void baz(const char[3] a) {}
 
         void main()
         {
-            string str = "abc";
-            foo(str[1 .. 3]);
-            bar(str[1 .. 3]);
-          //baz(str[1 .. 3]); // cannot match length
+            foo("bc");
+            foo("b"); // OK
+            //foo("bcd"); // error, too many chars
+            bar("bc"); // OK, same length
+            //bar("b"); // error, lengths must match
         }
         -------------
+        )
+    $(P A string literal converts to a static array rvalue of the same or longer length.
+        Any extra elements are padded with zeros. A string literal
+        can also convert to a static array lvalue of the same length.)
 
-    $(P String literals have a 0 appended to them, which makes
-        them easy to pass to C or C++ functions expecting a $(CODE const char*)
-        string.
-        The 0 is not included in the $(CODE .length) property of the
+    $(P String literals have a `'\0'` appended to them, which makes
+        them easy to pass to C or C++ functions expecting a null-terminated
+        $(CODE const char*) string.
+        The `'\0'` is not included in the $(CODE .length) property of the
         string literal.
     )
 
-    $(P Concatenation of string literals requires the use of the
-        `~` operator, and is resolved at compile time.
+    $(P Concatenation of string literals requires the use of
+        $(RELATIVE_LINK2 cat_expressions, the `~` operator), and is resolved at compile time.
         C style implicit concatenation without an intervening operator is
         error prone and not supported in D.)
 
@@ -2083,16 +2090,18 @@ $(GNAME RefOrAutoRef):
     $(D auto ref)
 )
 
-    $(P $(I FunctionLiteral)s (also known as $(LNAME2 lambdas, $(I Lambdas))) enable embedding anonymous functions
+    $(P $(I FunctionLiteral)s enable embedding anonymous functions
         and anonymous delegates directly into expressions.
-        $(I Type) is the return type of the function or delegate -
+        Short function literals are known as $(LNAME2 lambdas, $(I lambdas)).
+    )
+      * $(I Type) is the return type of the function or delegate -
         if omitted it is $(RELATIVE_LINK2 lambda-return-type, inferred).
-        $(I ParameterWithAttributes) or $(I ParameterWithMemberAttributes)
+      * $(I ParameterWithAttributes) or $(I ParameterWithMemberAttributes)
         can be used to specify the parameters for the function. If these are
         omitted, the function defaults to the empty parameter list $(D ( )).
-        The type of a function literal is a
+      * Parameter types can be $(RELATIVE_LINK2 lambda-parameter-inference, omitted).
+      * The type of a function literal is a
         $(DDSUBLINK spec/function, closures, delegate or a pointer to function).
-    )
 
     $(P For example:)
 
@@ -2425,6 +2434,17 @@ $(GNAME AssertArguments):
     )
     )
 
+    $(NOTE $(D AssertError) is the default for $(B dmd), with an optional
+    $(DDSUBLINK dmd, switch-checkaction, $(B -checkaction=context))
+    switch to show certain sub-expressions used in the first *AssertExpression*
+    in the error message:)
+
+    ---
+    auto x = 4;
+    assert(x < 3);
+    ---
+    $(P When in use, the above will throw an `AssertError` with a message `4 >= 3`.)
+
     $(BEST_PRACTICE
     $(OL
         $(LI Do not have side effects in either $(I AssignExpression) that subsequent code
@@ -2528,7 +2548,7 @@ $(GRAMMAR
 $(GNAME NewExpression):
     $(D new) $(GLINK2 type, Type)
     $(D new) $(GLINK2 type, Type) $(D [) $(GLINK AssignExpression) $(D ])
-    $(D new) $(GLINK2 type, Type) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
+    $(D new) $(GLINK2 type, Type) $(D $(LPAREN)) $(GLINK NamedArgumentList)$(OPT) $(D $(RPAREN))
     $(GLINK2 class, NewAnonClassExpression)
 
 $(GNAME ArgumentList):
@@ -2537,15 +2557,24 @@ $(GNAME ArgumentList):
     $(GLINK AssignExpression) $(D ,) $(GSELF ArgumentList)
 )
 
-    $(P $(I NewExpression)s are used to allocate memory on the
+$(GNAME NamedArgumentList):
+    $(GLINK NamedArgument)
+    $(GLINK NamedArgument) $(D ,)
+    $(GLINK NamedArgument) $(D ,) $(I NamedArgumentList)
+
+$(GNAME NamedArgument):
+    $(IDENTIFIER) $(D :) $(GLINK AssignExpression)
+    $(GLINK AssignExpression)
+
+    $(P $(I NewExpression)s allocate memory on the
         $(DDLINK spec/garbage, Garbage Collection, garbage
-        collected) heap.
+        collected) heap by default.
     )
 
     $(P The `new` *Type* form constructs an instance of a type and default-initializes it.)
-    $(P The *Type(ArgumentList)* form allows passing either a single initializer
+    $(P The *Type(NamedArgumentList)* form allows passing either a single initializer
         of the same type, or multiple arguments for more complex types.
-        For class types, *ArgumentList* is passed to the class constructor.
+        For class types, *NamedArgumentList* is passed to the class constructor.
         For a dynamic array, the argument sets the initial array length.
         For multidimensional dynamic arrays, each argument corresponds to
         an initial length (see $(RELATIVE_LINK2 new_multidimensional, below)).)
@@ -2567,7 +2596,7 @@ $(GNAME ArgumentList):
 
     $(P The *Type[AssignExpression]* form allocates a dynamic array with
         length equal to *AssignExpression*.
-        It is preferred to use the *Type(ArgumentList)* form when allocating
+        It is preferred to use the *Type(NamedArgumentList)* form when allocating
         dynamic arrays instead, as it is more general.)
 
     $(NOTE It is not possible to allocate a static array directly with
@@ -3057,7 +3086,7 @@ void foo()
 
 $(H4 $(LNAME2 is-parameter-list, Parameter List Forms))
 
-$(GRAMMAR
+$(GRAMMAR_INFORMATIVE
 $(D is $(LPAREN)) $(I Type) $(D :) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
 $(D is $(LPAREN)) $(I Type) $(D ==) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
 $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D :) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))

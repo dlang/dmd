@@ -1,0 +1,60 @@
+Ddoc
+
+$(SPEC_S Legacy Code,
+
+$(HEADERNAV_TOC)
+
+    $(P To maintain compatibility with older D code, many legacy features remain supported.
+    If the $(TT -wo) compiler command line switch is used, the compiler will give warning messages
+    for each use of a legacy feature.
+    This page describes each legacy feature that is supported, with a suggestion of how to
+    modernize the code.
+    )
+
+)
+
+    $(TABLE2 Legacy Features,
+        $(THEAD Feature)
+        $(TROW $(DEPLINK body keyword), usage of identifier $(TT body) as a keyword is obsolete use $(TT do) instead)
+    )
+
+$(H3 $(DEPNAME body keyword))
+    $(P `body` was a keyword used to specify a function/method's body in the presence of contracts
+        ---
+        class Foo
+        {
+            void bar(int i)
+            in { assert(i >= 42); }
+            body { /* Do something interesting */ }
+
+            string method(string s)
+            out(v) { assert(v.length == s.length); }
+            body { /* Do something even more interesting */ }
+
+            void noBody() { /* No contracts, no body */ }
+        }
+        ---
+    )
+$(H4 Corrective Action)
+    $(P Use the `do` keyword instead (introduced v2.075.0)
+        ---
+        void bar(int i)
+        in { assert(i >= 42); }
+        do { /* Look ma, no body! */ }
+        ---
+    )
+$(H4 Rationale)
+    $(P The `body` keyword was only used for this single purpose.
+        Since D grammar aims to be context free, this common word was reserved,
+        which led to frequent trouble for people interfacing with other languages
+        (e.g. javascript) or auto-generating code.
+    )
+
+
+Macros:
+        CHAPTER=45
+        TITLE=Legacy Code
+        DEPLINK=$(RELATIVE_LINK2 $0, $0)
+        DEPLINK2=$(LINK2 $1.html#$2, $2)
+        DEPNAME=$(LNAME2 $0, $0)
+    D=<span class="d_inlinecode">$0</span>

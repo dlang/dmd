@@ -249,7 +249,6 @@ $(MULTICOLS 4,     $(GLINK Identifier)
     $(D ~=)
     $(D @)
     $(D =>)
-    $(D #)
 )
 )
 
@@ -290,10 +289,18 @@ $(GNAME StringLiteral):
     $(GLINK WysiwygString)
     $(GLINK AlternateWysiwygString)
     $(GLINK DoubleQuotedString)
-
     $(GLINK DelimitedString)
     $(GLINK TokenString)
 )
+$(P
+A string literal is either a wysiwyg quoted string, a double quoted
+string, a delimited string, or a token string.
+)
+
+$(P In all string literal forms, an $(GLINK EndOfLine) is regarded as a single
+$(D \n) character.)
+
+$(H3 $(LNAME2 wysiwyg, Wysiwyg Strings))
 $(GRAMMAR_LEX
 $(GNAME WysiwygString):
     $(B r") $(GLINK WysiwygCharacters)$(OPT) $(B ") $(GLINK StringPostfix)$(OPT)
@@ -308,105 +315,7 @@ $(GNAME WysiwygCharacters):
 $(GNAME WysiwygCharacter):
     $(GLINK Character)
     $(GLINK EndOfLine)
-
-$(GNAME DoubleQuotedString):
-    $(B ") $(GLINK DoubleQuotedCharacters)$(OPT) $(B ") $(GLINK StringPostfix)$(OPT)
-
-$(GNAME DoubleQuotedCharacters):
-    $(GLINK DoubleQuotedCharacter)
-    $(GLINK DoubleQuotedCharacter) $(GSELF DoubleQuotedCharacters)
-
-$(GNAME DoubleQuotedCharacter):
-    $(GLINK Character)
-    $(GLINK EscapeSequence)
-    $(GLINK EndOfLine)
-
-$(GNAME EscapeSequence):
-    $(B \\')
-    $(B \\")
-    $(B \\?)
-    $(B \\\\)
-    $(B \0)
-    $(B \a)
-    $(B \b)
-    $(B \f)
-    $(B \n)
-    $(B \r)
-    $(B \t)
-    $(B \v)
-    $(B \x) $(GLINK HexDigit) $(GLINK HexDigit)
-    $(B \\) $(GLINK OctalDigit)
-    $(B \\) $(GLINK OctalDigit) $(GLINK OctalDigit)
-    $(B \\) $(GLINK OctalDigit) $(GLINK OctalDigit) $(GLINK OctalDigit)
-    $(B \u) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit)
-    $(B \U) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit)
-    $(B \\) $(GLINK2 entity, NamedCharacterEntity)
-
-$(GNAME StringPostfix):
-    $(B c)
-    $(B w)
-    $(B d)
-
-$(GNAME DelimitedString):
-    $(B q") $(GLINK Delimiter) $(GLINK WysiwygCharacters)$(OPT) $(GLINK MatchingDelimiter) $(B ") $(GLINK StringPostfix)$(OPT)
-    $(B q"$(LPAREN)) $(GLINK ParenDelimitedCharacters)$(OPT) $(B $(RPAREN)") $(GLINK StringPostfix)$(OPT)
-    $(B q"[) $(GLINK BracketDelimitedCharacters)$(OPT) $(B ]") $(GLINK StringPostfix)$(OPT)
-    $(B q"{) $(GLINK BraceDelimitedCharacters)$(OPT) $(B }") $(GLINK StringPostfix)$(OPT)
-    $(B q"<) $(GLINK AngleDelimitedCharacters)$(OPT) $(B >") $(GLINK StringPostfix)$(OPT)
-
-$(GNAME Delimiter):
-    $(GLINK Identifier)
-
-$(GNAME MatchingDelimiter):
-    $(GLINK Identifier)
-
-$(GNAME ParenDelimitedCharacters):
-    $(GLINK WysiwygCharacter)
-    $(GLINK WysiwygCharacter) $(GSELF ParenDelimitedCharacters)
-    $(B $(LPAREN)) $(GSELF ParenDelimitedCharacters)$(OPT) $(B $(RPAREN))
-
-$(GNAME BracketDelimitedCharacters):
-    $(GLINK WysiwygCharacter)
-    $(GLINK WysiwygCharacter) $(GSELF BracketDelimitedCharacters)
-    $(B [) $(GSELF BracketDelimitedCharacters)$(OPT) $(B ])
-
-$(GNAME BraceDelimitedCharacters):
-    $(GLINK WysiwygCharacter)
-    $(GLINK WysiwygCharacter) $(GSELF BraceDelimitedCharacters)
-    $(B {) $(GSELF BraceDelimitedCharacters)$(OPT) $(B })
-
-$(GNAME AngleDelimitedCharacters):
-    $(GLINK WysiwygCharacter)
-    $(GLINK WysiwygCharacter) $(GSELF AngleDelimitedCharacters)
-    $(B <) $(GSELF AngleDelimitedCharacters)$(OPT) $(B >)
 )
-$(GRAMMAR
-$(GNAME TokenString):
-    $(D q{) $(GLINK TokenStringTokens)$(OPT) $(D }) $(GLINK StringPostfix)$(OPT)
-
-$(GNAME TokenStringTokens):
-    $(GLINK TokenStringToken)
-    $(GLINK TokenStringToken) $(GSELF TokenStringTokens)
-
-$(GNAME TokenStringToken):
-    $(GLINK TokenNoBraces)
-    $(D {) $(GLINK TokenStringTokens)$(OPT) $(D })
-)
-
-        $(P
-        A string literal is either a double quoted string, a wysiwyg quoted
-        string, a delimited string, or a token string.
-        )
-
-        $(P In all string literal forms, an $(GLINK EndOfLine) is regarded as a single
-        $(D \n) character.)
-
-        $(P String literals are read only.)
-
-        $(UNDEFINED_BEHAVIOR writing to a string literal. This is not allowed in `@safe` code.)
-
-$(H3 $(LNAME2 wysiwyg, Wysiwyg Strings))
-
         $(P
         Wysiwyg ("what you see is what you get") quoted strings can be defined
         using either of two syntaxes.
@@ -440,6 +349,19 @@ $(H3 $(LNAME2 wysiwyg, Wysiwyg Strings))
         ---
 
 $(H3 $(LNAME2 double_quoted_strings, Double Quoted Strings))
+$(GRAMMAR_LEX
+$(GNAME DoubleQuotedString):
+    $(B ") $(GLINK DoubleQuotedCharacters)$(OPT) $(B ") $(GLINK StringPostfix)$(OPT)
+
+$(GNAME DoubleQuotedCharacters):
+    $(GLINK DoubleQuotedCharacter)
+    $(GLINK DoubleQuotedCharacter) $(GSELF DoubleQuotedCharacters)
+
+$(GNAME DoubleQuotedCharacter):
+    $(GLINK Character)
+    $(GLINK EscapeSequence)
+    $(GLINK EndOfLine)
+)
 
         $(P Double quoted strings are enclosed by "". $(GLINK EscapeSequence)s can be
         embedded in them.)
@@ -453,8 +375,41 @@ $(H3 $(LNAME2 double_quoted_strings, Double Quoted Strings))
         "        // string is 3 characters,
                  // 'a', 'b', and a linefeed
         ---
-
 $(H3 $(LNAME2 delimited_strings, Delimited Strings))
+$(GRAMMAR_LEX
+$(GNAME DelimitedString):
+    $(B q") $(GLINK Delimiter) $(GLINK WysiwygCharacters)$(OPT) $(GLINK MatchingDelimiter) $(B ") $(GLINK StringPostfix)$(OPT)
+    $(B q"$(LPAREN)) $(GLINK ParenDelimitedCharacters)$(OPT) $(B $(RPAREN)") $(GLINK StringPostfix)$(OPT)
+    $(B q"[) $(GLINK BracketDelimitedCharacters)$(OPT) $(B ]") $(GLINK StringPostfix)$(OPT)
+    $(B q"{) $(GLINK BraceDelimitedCharacters)$(OPT) $(B }") $(GLINK StringPostfix)$(OPT)
+    $(B q"<) $(GLINK AngleDelimitedCharacters)$(OPT) $(B >") $(GLINK StringPostfix)$(OPT)
+
+$(GNAME Delimiter):
+    $(GLINK Identifier)
+
+$(GNAME MatchingDelimiter):
+    $(GLINK Identifier)
+
+$(GNAME ParenDelimitedCharacters):
+    $(GLINK WysiwygCharacter)
+    $(GLINK WysiwygCharacter) $(GSELF ParenDelimitedCharacters)
+    $(B $(LPAREN)) $(GSELF ParenDelimitedCharacters)$(OPT) $(B $(RPAREN))
+
+$(GNAME BracketDelimitedCharacters):
+    $(GLINK WysiwygCharacter)
+    $(GLINK WysiwygCharacter) $(GSELF BracketDelimitedCharacters)
+    $(B [) $(GSELF BracketDelimitedCharacters)$(OPT) $(B ])
+
+$(GNAME BraceDelimitedCharacters):
+    $(GLINK WysiwygCharacter)
+    $(GLINK WysiwygCharacter) $(GSELF BraceDelimitedCharacters)
+    $(B {) $(GSELF BraceDelimitedCharacters)$(OPT) $(B })
+
+$(GNAME AngleDelimitedCharacters):
+    $(GLINK WysiwygCharacter)
+    $(GLINK WysiwygCharacter) $(GSELF AngleDelimitedCharacters)
+    $(B <) $(GSELF AngleDelimitedCharacters)$(OPT) $(B >)
+)
 
         $(P Delimited strings use various forms of delimiters.
         The delimiter, whether a character or identifier,
@@ -506,6 +461,18 @@ q"/foo]/"          // "foo]"
 ---
 
 $(H3 $(LNAME2 token_strings, Token Strings))
+$(GRAMMAR
+$(GNAME TokenString):
+    $(D q{) $(GLINK TokenStringTokens)$(OPT) $(D }) $(GLINK StringPostfix)$(OPT)
+
+$(GNAME TokenStringTokens):
+    $(GLINK TokenStringToken)
+    $(GLINK TokenStringToken) $(GSELF TokenStringTokens)
+
+$(GNAME TokenStringToken):
+    $(GLINK TokenNoBraces)
+    $(D {) $(GLINK TokenStringTokens)$(OPT) $(D })
+)
 
         $(P Token strings open with the characters $(D q)$(CODE_LCURL) and close with
         the token $(CODE_RCURL). In between must be valid D tokens.
@@ -525,6 +492,13 @@ $(H3 $(LNAME2 token_strings, Token Strings))
         ---
 
 $(H3 $(LNAME2 string_postfix, String Postfix))
+
+$(GRAMMAR_LEX
+$(GNAME StringPostfix):
+    $(B c)
+    $(B w)
+    $(B d)
+)
 
         $(P The optional $(I StringPostfix) character gives a specific type
         to the string, rather than it being inferred from the context.
@@ -551,7 +525,28 @@ $(H3 $(LNAME2 string_postfix, String Postfix))
 
 $(H2 $(LNAME2 escape_sequences, Escape Sequences))
 
-    $(P The escape sequences listed in $(GLINK EscapeSequence) are:)
+$(GRAMMAR_LEX
+$(GNAME EscapeSequence):
+    $(B \\')
+    $(B \\")
+    $(B \\?)
+    $(B \\\\)
+    $(B \0)
+    $(B \a)
+    $(B \b)
+    $(B \f)
+    $(B \n)
+    $(B \r)
+    $(B \t)
+    $(B \v)
+    $(B \x) $(GLINK HexDigit) $(GLINK HexDigit)
+    $(B \\) $(GLINK OctalDigit)
+    $(B \\) $(GLINK OctalDigit) $(GLINK OctalDigit)
+    $(B \\) $(GLINK OctalDigit) $(GLINK OctalDigit) $(GLINK OctalDigit)
+    $(B \u) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit)
+    $(B \U) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit)
+    $(B \\) $(GLINK2 entity, NamedCharacterEntity)
+)
 
     $(LONGTABLE_2COLS 0.8, Escape Sequences,
     $(THEAD Sequence, Meaning),
@@ -763,27 +758,37 @@ $(GNAME HexLetter):
 
         $(P Integers can be specified in decimal, binary, or hexadecimal.)
 
-        $(P Decimal integers are a sequence of decimal digits.)
+        $(UL
+        $(LI Decimal integers are a sequence of decimal digits.)
 
-        $(P $(LNAME2 binary-literals, Binary integers) are a sequence of binary digits preceded
+        $(LI $(LNAME2 binary-literals, Binary integers) are a sequence of binary digits preceded
         by a $(SINGLEQUOTE 0b) or $(SINGLEQUOTE 0B).
         )
 
-        $(P C-style octal integer notation was deemed too easy to mix up with decimal notation;
+        $(LI C-style octal integer notation (e.g. `0167`) was deemed too easy to mix up with decimal notation;
         it is only fully supported in string literals.
         D still supports octal integer literals interpreted at compile time through the $(REF octal, std,conv)
         template, as in $(D octal!167).)
-        $(P Hexadecimal integers are a sequence of hexadecimal digits preceded
+
+        $(LI Hexadecimal integers are a sequence of hexadecimal digits preceded
         by a $(SINGLEQUOTE 0x) or $(SINGLEQUOTE 0X).
         )
+        )
 
-        $(P Integers can have embedded $(SINGLEQUOTE $(UNDERSCORE)) characters to improve readability, and which are ignored.
+---
+10      // decimal
+0b1010  // binary
+0xA     // hex
+---
+
+        $(P Integers can have embedded $(SINGLEQUOTE $(UNDERSCORE)) characters after a digit to improve readability, which are ignored.
         )
 
         ---
         20_000        // leagues under the sea
         867_5309      // number on the wall
         1_522_000     // thrust of F1 engine (lbf sea level)
+        0xBAAD_F00D   // magic number for debugging
         ---
 
         $(P Integers can be immediately followed by one $(SINGLEQUOTE L) or one of
@@ -832,23 +837,18 @@ $(H2 $(LNAME2 floatliteral, Floating Point Literals))
 
 $(GRAMMAR_LEX
 $(GNAME FloatLiteral):
-    $(GLINK Float)
-    $(GLINK Float) $(GLINK Suffix)
-    $(GLINK Integer) $(GLINK FloatSuffix)
-    $(GLINK Integer) $(GLINK ImaginarySuffix)
-    $(GLINK Integer) $(GLINK FloatSuffix) $(GLINK ImaginarySuffix)
-    $(GLINK Integer) $(GLINK RealSuffix) $(GLINK ImaginarySuffix)
+    $(GLINK Float) $(GLINK Suffix)$(OPT)
+    $(GLINK Integer) $(GLINK FloatSuffix) $(GLINK ImaginarySuffix)$(OPT)
+    $(GLINK Integer) $(GLINK RealSuffix)$(OPT) $(GLINK ImaginarySuffix)
 
 $(GNAME Float):
     $(GLINK DecimalFloat)
     $(GLINK HexFloat)
 
 $(GNAME DecimalFloat):
-    $(GLINK LeadingDecimal) $(B .)
-    $(GLINK LeadingDecimal) $(B .) $(GLINK DecimalDigitsNoStartingUS)
+    $(GLINK LeadingDecimal) $(B .) $(GLINK DecimalDigitsNoStartingUS)$(OPT)
     $(GLINK LeadingDecimal) $(B .) $(GLINK DecimalDigitsNoStartingUS) $(GLINK DecimalExponent)
-    $(B .) $(GLINK DecimalDigitsNoStartingUS)
-    $(B .) $(GLINK DecimalDigitsNoStartingUS) $(GLINK DecimalExponent)
+    $(B .) $(GLINK DecimalDigitsNoStartingUS) $(GLINK DecimalExponent)$(OPT)
     $(GLINK LeadingDecimal) $(GLINK DecimalExponent)
 
 $(GNAME DecimalExponent):
@@ -884,11 +884,9 @@ $(GNAME HexExponentStart):
 
 
 $(GNAME Suffix):
-    $(GLINK FloatSuffix)
-    $(GLINK RealSuffix)
+    $(GLINK FloatSuffix) $(GLINK ImaginarySuffix)$(OPT)
+    $(GLINK RealSuffix) $(GLINK ImaginarySuffix)$(OPT)
     $(GLINK ImaginarySuffix)
-    $(GLINK FloatSuffix) $(GLINK ImaginarySuffix)
-    $(GLINK RealSuffix) $(GLINK ImaginarySuffix)
 
 $(GNAME FloatSuffix):
     $(B f)
@@ -897,7 +895,7 @@ $(GNAME FloatSuffix):
 $(GNAME RealSuffix):
     $(B L)
 
-$(GNAME ImaginarySuffix):
+$(GDEPRECATED $(GNAME ImaginarySuffix)):
     $(B i)
 
 $(GNAME LeadingDecimal):
@@ -905,14 +903,34 @@ $(GNAME LeadingDecimal):
     $(B 0) $(GLINK DecimalDigitsNoSingleUS)
 )
 
-        $(P Floats can be in decimal or hexadecimal format.)
+        $(P Floats can be in decimal or hexadecimal format, and must have
+        at least one digit and either a decimal point, an exponent, or
+        a *FloatSuffix*.)
+
+        $(P Decimal floats can have an exponent which is `e` or `E` followed
+        by a decimal number serving as the exponent of 10.)
+
+---
+-1.0
+1e2               // 100.0
+1e-2              // 0.01
+-1.175494351e-38F // float.min
+---
 
         $(P Hexadecimal floats are preceded by a $(B 0x) or $(B 0X) and the
         exponent is a $(B p) or $(B P) followed by a decimal number serving as
         the exponent of 2.
         )
 
-        $(P Floating literals can have embedded $(SINGLEQUOTE $(UNDERSCORE)) characters to improve readability, and which are ignored.
+---
+0xAp0                  // 10.0
+0x1p2                  // 4.0
+0x1.FFFFFFFFFFFFFp1023 // double.max
+0x1p-52                // double.epsilon
+---
+
+        $(P Floating literals can have embedded $(D $(UNDERSCORE)) characters
+        after a digit to improve readability, which are ignored.
         )
 
         ---
@@ -922,24 +940,21 @@ $(GNAME LeadingDecimal):
         6_022_.140_857E+20_
         ---
 
-        $(P Floating literals with no suffix are of type `double`.
-        Floating literals followed by $(B f) or $(B F) are of type `float`,
-        and those followed by $(B L) are of type `real`.
-        )
-
-        $(P Examples:)
+        * Floating literals with no suffix are of type `double`.
+        * Floating literals followed by $(B f) or $(B F) are of type `float`.
+        * Floating literals followed by $(B L) are of type `real`.
 
 ---------
-0x1.FFFFFFFFFFFFFp1023 // double.max
-0x1p-52                // double.epsilon
-1.175494351e-38F       // float.min
+0.0                    // double
+0F                     // float
+0.0L                   // real
 ---------
 
         $(P The literal may not exceed the range of the type.
         The literal is rounded to fit into
         the significant digits of the type.
         )
-        $(P If a floating literal has a $(B .) and a type suffix, at least one
+        $(P If a floating literal has a $(D .) and a type suffix, at least one
             digit must be in-between:)
 
         ---
@@ -948,7 +963,7 @@ $(GNAME LeadingDecimal):
         1.;  // OK, double
         ---
 
-        $(P NOTE: Floating literals followed by $(B i) to denote imaginary
+        $(NOTE Floating literals followed by $(B i) to denote imaginary
         floating point values have been deprecated.)
 
 
@@ -1141,7 +1156,7 @@ $(GNAME Filespec):
         $(P There is currently only one special token sequence, $(D #line).
         )
 
-        $(P This sets the current source line number to $(GLINK IntegerLiteral),
+        $(P This sets the line number of the next source line to $(GLINK IntegerLiteral),
         and optionally the current source file name to $(GLINK Filespec),
         beginning with the next line of source text.
         )

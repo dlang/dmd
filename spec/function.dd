@@ -4,9 +4,7 @@ $(SPEC_S Functions,
 
 $(HEADERNAV_TOC)
 
-$(H2 $(LNAME2 grammar, Grammar))
-
-$(H3 Function declaration)
+$(H2 $(LNAME2 grammar, Function Declarations))
 
 $(GRAMMAR
 $(GNAME FuncDeclaration):
@@ -24,7 +22,12 @@ $(GNAME FuncDeclaratorSuffix):
     $(GLINK2 template, TemplateParameters) $(GLINK Parameters) $(GLINK MemberFunctionAttributes)$(OPT) $(GLINK2 template, Constraint)$(OPT)
 )
 
-$(H3 Parameters)
+        * A *FuncDeclaration* with a $(GLINK FunctionBody) is called a *function definition*.
+        * A *FuncDeclaration* with *TemplateParameters* defines a
+          $(DDSUBLINK spec/template, function-templates, function template).
+
+
+$(H3 Function Parameters)
 
 $(GRAMMAR
 $(GNAME Parameters):
@@ -32,8 +35,7 @@ $(GNAME Parameters):
 
 $(GNAME ParameterList):
     $(GLINK Parameter)
-    $(GLINK Parameter) $(D ,)
-    $(GLINK Parameter) $(D ,) $(GSELF ParameterList)
+    $(GLINK Parameter) $(D ,) $(GSELF ParameterList)$(OPT)
     $(GLINK VariadicArgumentsAttributes)$(OPT) $(D ...)
 
 $(GNAME Parameter):
@@ -77,7 +79,7 @@ $(NOTE In D2, declaring a parameter `final` is a semantic error, but not a parse
 
 $(P See also: $(RELATIVE_LINK2 param-storage, parameter storage classes).)
 
-$(H3 Function attributes)
+$(H3 Function Attributes)
 
 $(GRAMMAR
 $(GNAME FunctionAttributes):
@@ -132,8 +134,6 @@ $(LEGACY_LNAME2 FunctionLiteralBody)
         $(DDSUBLINK spec/statement, ReturnStatement, return statement).
         This syntax also applies for $(DDSUBLINK spec/expression, function_literals, function literals).)
 
-        $(P $(B Note:) The *ShortenedFunctionBody* form requires the `-preview=shortenedMethods`
-        command-line switch, which is available starting in v2.096.0.)
 
 $(H3 $(LNAME2 function-declarations, Functions without Bodies))
 
@@ -1295,6 +1295,8 @@ $(H2 $(LNAME2 function-overloading, Function Overloading))
 
         $(P Literals do not match $(CODE ref) or $(CODE out) parameters.)
 
+        $(P $(CODE scope) parameter storage class does not affect function overloading.)
+
         $(P If two or more functions have the same match level,
         then $(LNAME2 partial-ordering, $(I partial ordering))
         is used to disambiguate to find the best match.
@@ -1647,7 +1649,7 @@ void main()
 
         $(P See Also: $(RELATIVE_LINK2 lazy_variadic_functions, Lazy Variadic Functions))
 
-$(H3 $(LNAME2 function-default-args, Function Default Arguments))
+$(H3 $(LNAME2 function-default-args, Default Arguments))
 
         $(P Function parameter declarations can have default values:)
 
@@ -1665,14 +1667,14 @@ foo(4);   // same as foo(4, 3);
 ---
 module m;
 private immutable int b;
-pure void g(int a=b){}
+pure void g(int a = b) {}
 ---
 ---
 import m;
 int b;
 pure void f()
 {
-  g();  // ok, uses m.b
+    g();  // ok, uses m.b
 }
 ---
 
@@ -1681,20 +1683,24 @@ pure void f()
 ---
 module m;
 int b;
-pure void g(int a=b){}
+pure void g(int a = b) {}
 ---
 ---
 import m;
 enum int b = 3;
 pure void f()
 {
-  g();  // error, cannot access mutable global `m.b` in pure function
+    g();  // error, cannot access mutable global `m.b` in pure function
 }
 ---
 
         $(P If the default value for a parameter is given, all following
         parameters must also have default values.
         )
+
+        $(P See also: function type aliases
+        $(DDSUBLINK spec/declaration, alias-function, with default values).)
+
 
 $(H3 $(LNAME2 return-ref-parameters, Return Ref Parameters))
 
@@ -1703,58 +1709,64 @@ $(H3 $(LNAME2 return-ref-parameters, Return Ref Parameters))
         returned reference will not outlive the matching argument's lifetime.
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 ---
 ref int identity(return ref int x) {
-  return x; // pass-through function that does nothing
+    return x; // pass-through function that does nothing
 }
 
 ref int fun() {
-  int x;
-  return identity(x); // Error: escaping reference to local variable x
+    int x;
+    return identity(x); // Error: escaping reference to local variable x
 }
 
 ref int gun(return ref int x) {
-  return identity(x); // OK
+    return identity(x); // OK
 }
 ---
+)
+        $(P Returning the address of a `ref` variable is also checked in `@safe` code.)
 
-        $(P Struct non-static methods marked with the `return` attribute ensure the returned
-        reference will not outlive the struct instance.
-        )
-
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 ---
-struct S
-{
-    private int x;
-    ref int get() return { return x; }
-}
-
-ref int escape()
-{
-    S s;
-    return s.get(); // Error: escaping reference to local variable s
-}
----
-
-        $(P Returning the address of a `ref` variable is also checked.)
-
----
-int* pluto(ref int i)
+int* pluto(ref int i) @safe
 {
     return &i; // error: returning &i escapes a reference to parameter i
 }
 
-int* mars(return ref int i)
+int* mars(return ref int i) @safe
 {
-    return &i;  // ok
+    return &i;  // OK with -preview=dip1000
 }
 ---
+)
 
-$(P If the function returns `void`, and the first parameter is `ref` or `out`, then
+$(P If a function returns `void`, and the first parameter is `ref` or `out`, then
 all subsequent `return ref` parameters are considered as being assigned to
 the first parameter for lifetime checking.
 The `this` reference parameter to a struct non-static member function is
 considered the first parameter.)
+
+---
+struct S
+{
+    private int* p;
+
+    void f(return ref int i) scope @safe
+    {
+        p = &i;
+    }
+}
+
+void main() @safe
+{
+    int i;
+    S s;
+    s.f(i); // OK with -preview=dip1000, lifetime of `s` is shorter than `i`
+    *s.p = 2;
+    assert(i == 2);
+}
+---
 
 $(P If there are multiple `return ref` parameters, the lifetime of the return
 value is the smallest lifetime of the corresponding arguments.)
@@ -1774,7 +1786,10 @@ int mercury(return ref int i)
 $(P Template functions, auto functions, nested functions and $(DDSUBLINK spec/expression, function_literals, lambdas)
  can deduce the `return` attribute.)
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
+@safe:
+
 ref int templateFunction()(ref int i)
 {
     return i; // ok
@@ -1791,15 +1806,58 @@ void uranus()
     {
         return i; // ok
     }
-}
-
-void venus()
-{
     auto lambdaFunction =
         (ref int i)
         {
             return &i; // ok
         };
+}
+---
+)
+
+$(H4 $(LNAME2 struct-return-methods, Struct Return Methods))
+
+        $(P Struct non-static methods can be marked with the `return` attribute to ensure a returned
+        reference will not outlive the struct instance.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+---
+struct S
+{
+    private int x;
+    ref int get() return { return x; }
+}
+
+ref int escape()
+{
+    S s;
+    return s.get(); // Error: escaping reference to local variable s
+}
+---
+)
+        $(P The hidden `this` ref-parameter then becomes `return ref`.)
+
+        $(P The `return` attribute can also be used to limit
+        the lifetime of the returned value, even when the method is not `ref`:
+        )
+
+---
+struct S
+{
+    private int i;
+    int* get() return @safe => &i;
+}
+
+void f() @safe
+{
+    int* p;
+    {
+        S s;
+        int *q = s.get(); // OK, q has shorter lifetime than s
+        p = s.get(); // error, p has longer lifetime
+        p = (new S).get(); // OK, heap allocated S
+    }
 }
 ---
 
@@ -3144,7 +3202,9 @@ void main()
 
         $(P The stack variables referenced by a nested function are
         still valid even after the function exits (NOTE this is different
-        from D 1.0.) This is called a $(I closure).
+        from D 1.0).
+        This combining of the environment and the function is called
+        a $(I dynamic closure).
         )
 
         $(P Those referenced stack variables that make up the closure
@@ -3185,6 +3245,8 @@ void main()
         a closure and is an error.
         )
 
+$(H4 $(LNAME2 method-delegates, Method Delegates))
+
         $(P Delegates to non-static nested functions contain two pieces of
         data: the pointer to the stack frame of the lexically enclosing
         function (called the $(I context pointer)) and the address of the
@@ -3194,38 +3256,39 @@ void main()
         Both forms of delegates are indistinguishable, and are
         the same type.
         )
+        $(P A delegate can be set to a particular object and method using `&obj.method`:)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ------
 struct Foo
 {
-    int a = 7;
-    int bar() { return a; }
+    int a;
+    int get() { return a; }
 }
 
-int foo(int delegate() dg)
+int add1(int delegate() dg)
 {
     return dg() + 1;
 }
 
 void main()
 {
-    Foo f;
-    int i = foo(&f.bar);
+    Foo f = {7};
+    int delegate() dg = &f.get; // bind to an instance of Foo and a method
+    assert(dg.ptr == &f);
+    assert(dg.funcptr == &Foo.get);
+
+    int i = add1(dg);
     assert(i == 8);
 
     int x = 27;
     int abc() { return x; }
 
-    i = foo(&abc);
+    i = add1(&abc);
     assert(i == 28);
 }
 ------
 )
-
-        $(P This combining of the environment and the function is called
-        a $(I dynamic closure).
-        )
 
         $(P The $(D .ptr) property of a delegate will return the
         $(I context pointer) value as a $(D void*).
@@ -3822,7 +3885,7 @@ $(H3 $(LNAME2 safe-interfaces, Safe Interfaces))
         function has a safe interface when:)
         $(OL
             $(LI it cannot exhibit
-                $(DDSUBLINK glossary, undefined_behavior, undefined behavior),
+                $(DDSUBLINK spec/glossary, undefined_behavior, undefined behavior),
                 and)
             $(LI it cannot create unsafe values that are accessible from other
                 parts of the program (e.g., via return values, global variables,

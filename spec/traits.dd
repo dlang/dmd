@@ -346,7 +346,7 @@ static assert(!__traits(isCopyable, T));
 $(H3 $(GNAME isPOD))
 
         $(P Takes one argument, which must be a type. It returns
-        $(D true) if the type is a $(DDSUBLINK glossary, pod, POD) type, otherwise $(D false).)
+        $(D true) if the type is a $(DDSUBLINK spec/glossary, pod, POD) type, otherwise $(D false).)
 
 $(H3 $(GNAME toType))
 
@@ -647,7 +647,7 @@ $(H3 $(GNAME initSymbol))
         )
 
         $(P
-            This traits is not available during $(DDSUBLINK glossary, ctfe, CTFE) because the actual address
+            This traits is not available during $(DDSUBLINK spec/glossary, ctfe, CTFE) because the actual address
             of the initializer symbol will be set by the linker and hence is not available at compile time.
         )
 
@@ -1507,7 +1507,7 @@ $(H3 $(GNAME getUnitTests))
                 Takes one argument, a symbol of an aggregate (e.g. struct/class/module).
                 The result is a symbol sequence of all the unit test functions of that aggregate.
                 The functions returned are like normal nested static functions,
-                $(DDSUBLINK glossary, ctfe, CTFE) will work and
+                $(DDSUBLINK spec/glossary, ctfe, CTFE) will work and
                 $(DDSUBLINK spec/attribute, uda, UDAs) will be accessible.
         )
 

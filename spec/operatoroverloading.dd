@@ -9,31 +9,6 @@ $(HEADERNAV_TOC)
         members. No additional syntax is used.
         )
 
-        $(UL
-        $(LI $(RELATIVE_LINK2 unary, Unary Operator Overloading))
-        $(LI $(RELATIVE_LINK2 cast, Cast Operator Overloading))
-        $(LI $(RELATIVE_LINK2 binary, Binary Operator Overloading))
-        $(LI $(RELATIVE_LINK2 eqcmp, Overloading the Comparison Operators)
-                $(UL
-                $(LI $(RELATIVE_LINK2 equals, Overloading $(D ==) and $(D !=)))
-                $(LI $(RELATIVE_LINK2 compare, Overloading $(D <), $(D <=),
-                $(D >), and $(D >=)))
-                )
-        )
-        $(LI $(RELATIVE_LINK2 function-call, Function Call Operator Overloading))
-        $(LI $(RELATIVE_LINK2 assignment, Assignment Operator Overloading))
-        $(LI $(RELATIVE_LINK2 op-assign, Op Assignment Operator Overloading))
-        $(LI $(RELATIVE_LINK2 array-ops, Array Indexing and Slicing Operators Overloading)
-                $(UL
-                $(LI $(RELATIVE_LINK2 array, Index Operator Overloading))
-                $(LI $(RELATIVE_LINK2 slice, Slice Operator Overloading))
-                $(LI $(RELATIVE_LINK2 dollar, Dollar Operator Overloading))
-                )
-        )
-        $(LI $(RELATIVE_LINK2 dispatch, Forwarding))
-        $(LI $(RELATIVE_LINK2 old-style, D1 style operator overloading))
-        )
-
 $(H2 $(LEGACY_LNAME2 Unary, unary, Unary Operator Overloading))
 
         $(TABLE2 Overloadable Unary Operators,
@@ -265,12 +240,31 @@ $(H2 $(LEGACY_LNAME2 Cast, cast, Cast Operator Overloading))
         expression, except in the case of boolean operations (see next
         section).)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+struct S
+{
+    void* mem;
+
+    bool opCast(T)()
+    if (is(T == bool)) => mem !is null;
+}
+
+S s = S(new int);
+auto b = cast(bool) s;
+assert(b);
+//b = s; // error
+---
+)
+    $(P If the return type of `opCast` differs from the *type* parameter of
+        the `cast`, then the result is implicitly converted to *type*.)
+
 $(H3 $(LNAME2 boolean_operators, Boolean Operations))
 
-        $(P Notably absent from the list of overloaded unary operators is the !
+        $(P Notably absent from the list of overloaded unary operators is the `!`
         logical negation operator. More obscurely absent is a unary operator
-        to convert to a bool result.
-        Instead, these are covered by a rewrite to:
+        to convert to a `bool` result.
+        Instead, for structs these are covered by a rewrite to:
         )
 ---
 opCast!(bool)(e)
@@ -283,10 +277,15 @@ if (e)   =>  if (e.opCast!(bool))
 if (!e)  =>  if (!e.opCast!(bool))
 ---
 
-        $(P etc., whenever a bool result is expected. This only happens, however, for
-        instances of structs. Class references are converted to bool by checking to
+        $(P and similarly for other boolean conditional expressions and
+        $(DDSUBLINK spec/expression, logical_expressions, logical operators) used
+        on the struct instance.)
+
+        $(P This only happens, however, for
+        instances of structs. Class references are converted to `bool` by checking to
         see if the class reference is null or not.
         )
+
 
 $(H2 $(LEGACY_LNAME2 Binary, binary, Binary Operator Overloading))
 
@@ -568,7 +567,7 @@ $(BEST_PRACTICE Using `(i > s.i) - (i < s.i)` instead of `i - s.i` to
 compare integers avoids overflow.)
 
 
-$(H2 $(LEGACY_LNAME2 FunctionCall, function-call, Function Call Operator Overloading $(D f())))
+$(H2 $(LEGACY_LNAME2 FunctionCall, function-call, Function Call Operator Overloading))
 
         $(P The function call operator, $(D ()), can be overloaded by
         declaring a function named $(CODE opCall):

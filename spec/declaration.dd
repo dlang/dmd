@@ -6,6 +6,9 @@ $(HEADERNAV_TOC)
 
 $(H2 $(LNAME2 grammar, Grammar))
 
+$(P *Declaration* can be used inside a function body for a $(GLINK2 statement, DeclarationStatement),
+as well as outside a function as it is included in $(GLINK2 module, DeclDef).)
+
 $(GRAMMAR
 $(GNAME Declaration):
     $(GLINK2 function, FuncDeclaration)
@@ -18,10 +21,11 @@ $(GNAME Declaration):
     $(GLINK2 version, ConditionalDeclaration)
     $(GLINK2 version, StaticForeachDeclaration)
     $(GLINK2 version, StaticAssert)
+    $(GLINK2 template, TemplateDeclaration)
+    $(GLINK2 template-mixin, TemplateMixinDeclaration)
+    $(GLINK2 template-mixin, TemplateMixin)
 )
 
-$(P See also $(GLINK2 module, DeclDef).
-)
 
 $(H3 $(LNAME2 aggregates, Aggregates))
 
@@ -411,9 +415,11 @@ assert(S.j == 4);
 $(H3 $(LNAME2 alias-function, Aliasing a Function Type))
 
         $(P Function types can be aliased:)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 alias Fun = int(string p);
-int fun(string){return 0;}
+int fun(string) {return 0;}
 static assert(is(typeof(fun) == Fun));
 
 alias MemberFun1 = int() const;
@@ -421,8 +427,8 @@ alias MemberFun2 = const int();
 // leading attributes apply to the func, not the return type
 static assert(is(MemberFun1 == MemberFun2));
 --------------------
-
-        $(P Aliases can be used to call a function with different default
+)
+        $(P Type aliases can be used to call a function with different default
         arguments, change an argument from required to default or vice versa:)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
@@ -434,7 +440,7 @@ void main() {
     foo();              // prints v: 6
     foo(8);             // prints v: 8
     Bar bar = &barbar;
-    // bar(4);             // compilation error, because the `Bar` alias
+    //bar(4);           // compilation error, because the `Bar` alias
                         // requires an explicit 2nd argument
     barbar(4);          // prints a: 4, b: 6, c: 7
     bar(4, 5);          // prints a: 4, b: 5, c: 9

@@ -55,7 +55,9 @@ $(TOC Table of Contents,
                 $(A betterc.html, Better C),
                 $(A importc.html, Import C),
                 $(A ob.html, Live Functions),
-                $(A windows.html, Windows Programming)
+                $(A windows.html, Windows Programming),
+                $(A glossary.html, Glossary),
+                $(A legacy.html, Legacy Code)
         ))
 )
 
