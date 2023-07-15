@@ -351,6 +351,9 @@ dmd -cov -unittest myprog.d
         Option("extern-std=[h|help|?]",
             "list all supported standards"
         ),
+        Option("fIBT",
+            "generate Indirect Branch Tracking code"
+        ),
         Option("fPIC",
             "generate position independent code",
             cast(TargetOS) (TargetOS.all & ~(TargetOS.Windows | TargetOS.OSX))

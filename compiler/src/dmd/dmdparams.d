@@ -35,6 +35,7 @@ struct DMDparams
 
     bool optimize;          // run optimizer
     bool nofloat;           // code should not pull in floating point support
+    bool ibt;               // generate indirect branch tracking
     PIC pic = PIC.fixed;    // generate fixed, pic or pie code
     bool stackstomp;        // add stack stomping code
 

@@ -78,6 +78,7 @@ void backend_init()
         driverParams.symdebug,
         driverParams.alwaysframe,
         driverParams.stackstomp,
+        driverParams.ibt,
         target.cpu >= CPU.avx2 ? 2 : target.cpu >= CPU.avx ? 1 : 0,
         driverParams.pic,
         params.useModuleInfo && Module.moduleinfo,

@@ -45,6 +45,7 @@ nothrow:
                     2 for fake it with C symbolic debug info
     alwaysframe   = always create standard function frame
     stackstomp    = add stack stomping code
+    ibt           = generate Indirect Branch Tracking code
     avx           = use AVX instruction set (0, 1, 2)
     pic           = position independence level (0, 1, 2)
     useModuleInfo = implement ModuleInfo
@@ -68,6 +69,7 @@ extern (C) void out_config_init(
         int symdebug,
         bool alwaysframe,
         bool stackstomp,
+        bool ibt,
         ubyte avx,
         ubyte pic,
         bool useModuleInfo,
@@ -99,6 +101,8 @@ extern (C) void out_config_init(
     model &= 32 | 64;
     if (generatedMain)
         cfg.flags2 |= CFG2genmain;
+    if (ibt)
+        cfg.flags3 |= CFG3ibt;
 
     if (dwarf < 3 || dwarf > 5)
     {

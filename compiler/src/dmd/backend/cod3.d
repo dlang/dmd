@@ -1659,6 +1659,8 @@ void doswitch(ref CodeBuilder cdb, block *b)
         goto Lifthen;
     else if (I16 && cast(targ_ullong)(vmax - vmin) <= ncases * 2)
         goto Ljmptab;           // >=50% of the table is case values, rest is default
+    else if (config.flags3 & CFG3ibt)
+        goto Lifthen;           // no jump table for ENDBR
     else if (cast(targ_ullong)(vmax - vmin) <= ncases * 3)
         goto Ljmptab;           // >= 33% of the table is case values, rest is default
     else if (I16)
@@ -4731,6 +4733,9 @@ void cod3_thunk(Symbol *sthunk,Symbol *sfunc,uint p,tym_t thisty,
             MOV EAX, d2[EAX]                    EAX = this.vptr
             JMP i[EAX]                          jump to virtual function
          */
+        if (config.flags3 & CFG3ibt)
+            cdb.gen1(I32 ? ENDBR32 : ENDBR64);
+
         reg_t reg = 0;
         if (cast(int)d < 0)
         {
