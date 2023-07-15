@@ -1508,7 +1508,7 @@ struct CaseVal
 
     /* Sort function for qsort() */
     @trusted
-    extern (C) static nothrow int cmp(scope const(void*) p, scope const(void*) q)
+    extern (C) static nothrow pure @nogc int cmp(scope const(void*) p, scope const(void*) q)
     {
         const(CaseVal)* c1 = cast(const(CaseVal)*)p;
         const(CaseVal)* c2 = cast(const(CaseVal)*)q;
@@ -1552,21 +1552,22 @@ private void cmpval(ref CodeBuilder cdb, targ_llong val, uint sz, reg_t reg, reg
     }
 }
 
-@trusted
-private void ifthen(ref CodeBuilder cdb, CaseVal *casevals, size_t ncases,
+@trusted extern (D)
+private void ifthen(ref CodeBuilder cdb, scope CaseVal[] casevals,
         uint sz, reg_t reg, reg_t reg2, reg_t sreg, block *bdefault, bool last)
 {
+    const ncases = casevals.length;
     if (ncases >= 4 && config.flags4 & CFG4speed)
     {
         size_t pivot = ncases >> 1;
 
         // Compares for casevals[0..pivot]
         CodeBuilder cdb1; cdb1.ctor();
-        ifthen(cdb1, casevals, pivot, sz, reg, reg2, sreg, bdefault, true);
+        ifthen(cdb1, casevals[0 .. pivot], sz, reg, reg2, sreg, bdefault, true);
 
         // Compares for casevals[pivot+1..ncases]
         CodeBuilder cdb2; cdb2.ctor();
-        ifthen(cdb2, casevals + pivot + 1, ncases - pivot - 1, sz, reg, reg2, sreg, bdefault, last);
+        ifthen(cdb2, casevals[pivot + 1 .. $], sz, reg, reg2, sreg, bdefault, last);
         code *c2 = gennop(null);
 
         // Compare for caseval[pivot]
@@ -1581,7 +1582,7 @@ private void ifthen(ref CodeBuilder cdb, CaseVal *casevals, size_t ncases,
     }
     else
     {   // Not worth doing a binary search, just do a sequence of CMP/JE
-        for (size_t n = 0; n < ncases; n++)
+        foreach (size_t n; 0 .. ncases)
         {
             targ_llong val = casevals[n].val;
             cmpval(cdb, val, sz, reg, reg2, sreg);
@@ -1693,9 +1694,12 @@ void doswitch(ref CodeBuilder cdb, block *b)
         reg_t sreg = NOREG;                          // may need a scratch register
 
         // Put into casevals[0..ncases] so we can sort then slice
-        assert(ncases < size_t.max / (2 * CaseVal.sizeof));
-        CaseVal *casevals = cast(CaseVal *)malloc(ncases * CaseVal.sizeof);
-        assert(casevals);
+
+        import dmd.common.string : SmallBuffer;
+        CaseVal[10] tmp = void;
+        auto sb = SmallBuffer!(CaseVal)(ncases, tmp[]);
+        CaseVal[] casevals = sb[];
+
         foreach (n, val; b.Bswitch)
         {
             casevals[n].val = val;
@@ -1710,15 +1714,13 @@ void doswitch(ref CodeBuilder cdb, block *b)
         }
 
         // Sort cases so we can do a runtime binary search
-        qsort(casevals, ncases, CaseVal.sizeof, &CaseVal.cmp);
+        qsort(casevals.ptr, casevals.length, CaseVal.sizeof, &CaseVal.cmp);
 
         //for (uint n = 0; n < ncases; n++)
             //printf("casevals[%lld] = x%x\n", n, casevals[n].val);
 
         // Generate binary tree of comparisons
-        ifthen(cdb, casevals, ncases, sz, reg, reg2, sreg, bdefault, bdefault != b.Bnext);
-
-        free(casevals);
+        ifthen(cdb, casevals, sz, reg, reg2, sreg, bdefault, bdefault != b.Bnext);
 
         cgstate.stackclean--;
         return;
