@@ -13,16 +13,6 @@
 
 module dmd.backend.drtlsym;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-version (HTOD)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -41,17 +31,10 @@ extern (C++):
 
 nothrow:
 
-version (HTOD)
-    __gshared uint ALLREGS;
-
 private __gshared Symbol*[RTLSYM.max + 1] rtlsym;
 
-version (MARS)
-    // This varies depending on C ABI
-    alias FREGSAVED = fregsaved;
-else
-    enum FREGSAVED = (mBP | mBX | mSI | mDI);
-
+// This varies depending on C ABI
+alias FREGSAVED = fregsaved;
 
 /******************************************
  * Get Symbol corresponding to Dwarf "personality" function.
@@ -68,7 +51,7 @@ Symbol* getRtlsymPersonality() { return getRtlsym(RTLSYM.PERSONALITY); }
  * Returns:
  *      runtime library Symbol
  */
-Symbol *getRtlsym(RTLSYM i)
+Symbol *getRtlsym(RTLSYM i) @trusted
 {
      Symbol** ps = &rtlsym[i];
      if (*ps)
@@ -249,8 +232,6 @@ void rtlsym_init()
  * Reset the symbols for the case when we are generating multiple
  * .OBJ files from one compile.
  */
-version (MARS)
-{
 void rtlsym_reset()
 {
     clib_inited = 0;            // reset CLIB symbols, too
@@ -264,13 +245,9 @@ void rtlsym_reset()
     }
 }
 
-}
-
 /*******************************
  */
 
 void rtlsym_term()
 {
-}
-
 }

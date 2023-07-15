@@ -30,6 +30,9 @@
 #define __inline__ inline
 #define __inline inline
 #define __volatile__ volatile
+#define __attribute __attribute__
+#define __alignof _Alignof
+#define __vector_size__ vector_size
 
 /********************
  * Clang nullability extension used by macOS headers.
@@ -76,6 +79,7 @@
 
 #define __builtin_isnan(x) isnan(x)
 #define __builtin_isfinite(x) finite(x)
+#define __builtin_alloca(x) alloca(x)
 
 /********************************
  * __has_extension is a clang thing:

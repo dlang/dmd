@@ -14,14 +14,6 @@
  */
 module dmd.backend.cod5;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.stdio;
 import core.stdc.string;
 import core.stdc.time;
@@ -221,6 +213,4 @@ private int need_prolog(block *b)
 
 Lneed:
     return 1;
-}
-
 }

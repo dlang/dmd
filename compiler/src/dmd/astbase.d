@@ -3695,7 +3695,7 @@ struct ASTBase
                 {
                     Expression e = (*exps)[i];
                     if (e.type.ty == Ttuple)
-                        e.error("cannot form tuple of tuples");
+                        e.error("cannot form sequence of sequences");
                     auto arg = new Parameter(STC.undefined_, e.type, null, null, null);
                     (*arguments)[i] = arg;
                 }
@@ -4536,7 +4536,6 @@ struct ASTBase
     {
         EXP op;
         ubyte size;
-        ubyte parens;
         Type type;
         Loc loc;
 
@@ -5115,6 +5114,8 @@ struct ASTBase
 
     extern (C++) final class TypeExp : Expression
     {
+        bool parens;
+
         extern (D) this(const ref Loc loc, Type type)
         {
             super(loc, EXP.type, __traits(classInstanceSize, TypeExp));
@@ -5147,6 +5148,7 @@ struct ASTBase
     extern (C++) class IdentifierExp : Expression
     {
         Identifier ident;
+        bool parens;
 
         final extern (D) this(const ref Loc loc, Identifier ident)
         {

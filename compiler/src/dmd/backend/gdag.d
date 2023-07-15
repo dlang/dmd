@@ -14,14 +14,6 @@
 
 module dmd.backend.gdag;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.stdio;
 import core.stdc.time;
 
@@ -965,6 +957,4 @@ private void abeset(elem *e,vec_t ae,vec_t aeval,int flag)
         }
         break;
     }
-}
-
 }

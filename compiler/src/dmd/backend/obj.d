@@ -27,9 +27,7 @@ extern (C++):
 
 nothrow:
 
-version (HTOD)
-    version = STUB;
-else version (Windows)
+version (Windows)
 {
 }
 else version (Posix)
@@ -54,7 +52,7 @@ mixin(ObjMemDecl("bool $Obj_linkerdirective(const(char)* )"));
 mixin(ObjMemDecl("bool $Obj_allowZeroSize()"));
 mixin(ObjMemDecl("void $Obj_exestr(const(char)* p)"));
 mixin(ObjMemDecl("void $Obj_user(const(char)* p)"));
-mixin(ObjMemDecl("void $Obj_compiler()"));
+mixin(ObjMemDecl("void $Obj_compiler(const(char)* p)"));
 mixin(ObjMemDecl("void $Obj_wkext(Symbol *,Symbol *)"));
 mixin(ObjMemDecl("void $Obj_alias(const(char)* n1,const(char)* n2)"));
 mixin(ObjMemDecl("void $Obj_staticctor(Symbol *s,int dtor,int seg)"));
@@ -81,9 +79,9 @@ mixin(ObjMemDecl("int  $Obj_common_block(Symbol *s, int flag, targ_size_t size, 
 mixin(ObjMemDecl("void $Obj_lidata(int seg, targ_size_t offset, targ_size_t count)"));
 mixin(ObjMemDecl("void $Obj_write_zeros(seg_data *pseg, targ_size_t count)"));
 mixin(ObjMemDecl("void $Obj_write_byte(seg_data *pseg, uint _byte)"));
-mixin(ObjMemDecl("void $Obj_write_bytes(seg_data *pseg, uint nbytes, void *p)"));
+mixin(ObjMemDecl("void $Obj_write_bytes(seg_data *pseg, uint nbytes, const(void)* p)"));
 mixin(ObjMemDecl("void $Obj_byte(int seg, targ_size_t offset, uint _byte)"));
-mixin(ObjMemDecl("uint $Obj_bytes(int seg, targ_size_t offset, uint nbytes, void *p)"));
+mixin(ObjMemDecl("uint $Obj_bytes(int seg, targ_size_t offset, uint nbytes, const(void)* p)"));
 mixin(ObjMemDecl("void $Obj_reftodatseg(int seg, targ_size_t offset, targ_size_t val, uint targetdatum, int flags)"));
 mixin(ObjMemDecl("void $Obj_reftocodeseg(int seg, targ_size_t offset, targ_size_t val)"));
 mixin(ObjMemDecl("int  $Obj_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val, int flags)"));
@@ -99,71 +97,10 @@ mixin(ObjMemDecl("void $Obj_write_pointerRef(Symbol* s, uint off)"));
 mixin(ObjMemDecl("int  $Obj_jmpTableSegment(Symbol* s)"));
 mixin(ObjMemDecl("Symbol* $Obj_tlv_bootstrap()"));
 
-/******************************************************************/
-
-size_t OmfObj_mangle(Symbol *s,char *dest);
-void OmfObj_import(elem *e);
-void OmfObj_dosseg();
-void OmfObj_lzext(Symbol *,Symbol *);
-void OmfObj_theadr(const(char)* modname);
-void OmfObj_segment_group(targ_size_t codesize, targ_size_t datasize, targ_size_t cdatasize, targ_size_t udatasize);
-int  OmfObj_fardata(char *name, targ_size_t size, targ_size_t *poffset);
-void OmfObj_ledata(int seg, targ_size_t offset, targ_size_t data, uint lcfd, uint idx1, uint idx2);
-void OmfObj_write_long(int seg, targ_size_t offset, uint data, uint lcfd, uint idx1, uint idx2);
-void OmfObj_reftofarseg(int seg, targ_size_t offset, targ_size_t val, int farseg, int flags);
-int  OmfObj_seg_debugT();           // where the symbolic debug type data goes
-
-/******************************************************************/
-
-int  MsCoffObj_getsegment(const(char)* sectname, uint flags);
-int  MsCoffObj_getsegment2(uint shtidx);
-uint MsCoffObj_addScnhdr(const(char)* scnhdr_name, uint flags);
-void MsCoffObj_addrel(int seg, targ_size_t offset, Symbol *targsym, uint targseg, int rtype, int val);
-int  MsCoffObj_seg_drectve();
-int  MsCoffObj_seg_pdata();
-int  MsCoffObj_seg_xdata();
-int  MsCoffObj_seg_pdata_comdat(Symbol *sfunc);
-int  MsCoffObj_seg_xdata_comdat(Symbol *sfunc);
-int  MsCoffObj_seg_debugS();
-int  MsCoffObj_seg_debugS_comdat(Symbol *sfunc);
-int  MsCoffObj_seg_debugT();           // where the symbolic debug type data goes
-
-/******************************************************************/
-
-void ElfObj_dosseg();
-size_t ElfObj_mangle(Symbol* s, char* dest);
-void ElfObj_import(elem* e);
-void ElfObj_lzext(Symbol*, Symbol*);
-void ElfObj_theadr(const(char)* modname);
-void ElfObj_segment_group(targ_size_t codesize, targ_size_t datasize, targ_size_t cdatasize, targ_size_t udatasize);
-int ElfObj_fardata(char *name, targ_size_t size, targ_size_t* poffset);
-void ElfObj_ledata(int seg, targ_size_t offset, targ_size_t data, uint lcfd, uint idx1, uint idx2);
-void ElfObj_reftofarseg(int seg, targ_size_t offset, targ_size_t val, int farseg, int flags);
-void ElfObj_gotref(Symbol* s);
-uint ElfObj_addstr(OutBuffer* strtab, const(char)*);
-Symbol* ElfObj_getGOTsym();
-void ElfObj_refGOTsym();
-int ElfObj_getsegment(const(char)* sectname, const(char)* suffix, int type, int flags, int align_);
-void ElfObj_addrel(int seg, targ_size_t offset, uint type, uint symidx, targ_size_t val);
-size_t ElfObj_writerel(int targseg, size_t offset, uint type, uint symidx, targ_size_t val);
-
-/******************************************************************/
-
-void MachObj_dosseg();
-size_t MachObj_mangle(Symbol *s,char *dest);
-void MachObj_import(elem *e);
-void MachObj_lzext(Symbol *,Symbol *);
-void MachObj_theadr(const(char)* modname);
-void MachObj_segment_group(targ_size_t codesize, targ_size_t datasize, targ_size_t cdatasize, targ_size_t udatasize);
-int MachObj_fardata(char *name, targ_size_t size, targ_size_t *poffset);
-void MachObj_ledata(int seg, targ_size_t offset, targ_size_t data, uint lcfd, uint idx1, uint idx2);
-void MachObj_reftofarseg(int seg, targ_size_t offset, targ_size_t val, int farseg, int flags);
-void MachObj_gotref(Symbol *s);
-uint MachObj_addstr(OutBuffer *strtab, const(char)* );
-Symbol* MachObj_getGOTsym();
-void MachObj_refGOTsym();
-int MachObj_getsegment(const(char)* sectname, const(char)* segname, int align_, int flags);
-void MachObj_addrel(int seg, targ_size_t offset, Symbol* targsym, uint targseg, int rtype, int val);
+import dmd.backend.cgobj;
+import dmd.backend.mscoffobj;
+import dmd.backend.elfobj;
+import dmd.backend.machobj;
 
 /******************************************************************/
 
@@ -267,9 +204,9 @@ else
             mixin(genRetVal("user(p)"));
         }
 
-        void compiler()
+        void compiler(const(char)* p)
         {
-            mixin(genRetVal("compiler()"));
+            mixin(genRetVal("compiler(p)"));
         }
 
         void wkext(Symbol* s1, Symbol* s2)
@@ -426,7 +363,7 @@ else
             mixin(genRetVal("write_byte(pseg, _byte)"));
         }
 
-        void write_bytes(seg_data *pseg, uint nbytes, void *p)
+        void write_bytes(seg_data *pseg, uint nbytes, const(void)* p)
         {
             mixin(genRetVal("write_bytes(pseg, nbytes, p)"));
         }
@@ -436,7 +373,7 @@ else
             mixin(genRetVal("byte(seg, offset, _byte)"));
         }
 
-        uint bytes(int seg, targ_size_t offset, uint nbytes, void *p)
+        uint bytes(int seg, targ_size_t offset, uint nbytes, const(void)* p)
         {
             mixin(genRetVal("bytes(seg, offset, nbytes, p)"));
         }
@@ -676,8 +613,7 @@ else
     }
 }
 
-
-extern __gshared Obj objmod;
+public import dmd.backend.var : objmod;
 
 /*****************************************
  * Use to generate 4 function declarations, one for

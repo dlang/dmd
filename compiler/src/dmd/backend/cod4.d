@@ -23,14 +23,6 @@
 
 module dmd.backend.cod4;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -53,20 +45,14 @@ extern (C++):
 nothrow:
 @safe:
 
-extern __gshared CGstate cgstate;
-extern __gshared bool[FLMAX] datafl;
+import dmd.backend.cg : datafl;
 
 private extern (D) uint mask(uint m) { return 1 << m; }
 
                         /*   AX,CX,DX,BX                */
 __gshared const reg_t[4] dblreg = [ BX,DX,NOREG,CX ];
 
-// from divcoeff.c
-extern (C)
-{
-    bool choose_multiplier(int N, ulong d, int prec, ulong *pm, int *pshpost);
-    bool udiv_coefficients(int N, ulong d, int *pshpre, ulong *pm, int *pshpost);
-}
+import dmd.backend.divcoeff : choose_multiplier, udiv_coefficients;
 
 /*******************************
  * Return number of times symbol s appears in tree e.
@@ -2305,13 +2291,6 @@ void cdshass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     // if our lvalue is a cse, make sure we evaluate for result in register
     if (e1.Ecount && !(*pretregs & (ALLREGS | mBP)) && !isregvar(e1,&retregs,&reg))
         *pretregs |= ALLREGS;
-
-    version (SCPP)
-    {
-        // Do this until the rest of the compiler does OPshr/OPashr correctly
-        if (oper == OPshrass)
-            oper = tyuns(tyml) ? OPshrass : OPashrass;
-    }
 
     // Select opcodes. op2 is used for msw for long shifts.
 
@@ -4889,7 +4868,4 @@ void opAssStorePair(ref CodeBuilder cdb, ref code cs, elem* e, reg_t rhi, reg_t 
         cssave(e1,retregs,!OTleaf(e1.Eoper));
     freenode(e1);
     fixresult(cdb,e,retregs,pretregs);
-}
-
-
 }

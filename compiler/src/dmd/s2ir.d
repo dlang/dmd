@@ -50,6 +50,7 @@ import dmd.toir;
 import dmd.tokens;
 import dmd.visitor;
 
+import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcv;
@@ -75,7 +76,7 @@ alias toSymbol = dmd.glue.toSymbol;
 alias StmtState = dmd.stmtstate.StmtState!block;
 
 
-void elem_setLoc(elem *e, const ref Loc loc) pure nothrow
+void elem_setLoc(elem *e, const ref Loc loc) nothrow
 {
     srcpos_setLoc(e.Esrcpos, loc);
 }
@@ -437,22 +438,24 @@ void Statement_toIR(Statement s, IRState *irs, StmtState* stmtstate)
         block_appendexp(mystate.switchBlock, econd);
         block_next(blx,BCswitch,null);
 
-        // Corresponding free is in block_free
-        alias TCase = typeof(mystate.switchBlock.Bswitch[0]);
-        auto pu = cast(TCase *)Mem.check(.malloc(TCase.sizeof * (numcases + 1)));
-        mystate.switchBlock.Bswitch = pu;
-        /* First pair is the number of cases, and the default block
+        /* First successor is the default block
          */
-        *pu++ = numcases;
         mystate.switchBlock.appendSucc(mystate.defaultBlock);
 
-        /* Fill in the first entry for each pair, which is the case value.
-         * CaseStatement.toIR() will fill in
-         * the second entry for each pair with the block.
-         */
         if (numcases)
-            foreach (cs; *s.cases)
-                *pu++ = cs.exp.toInteger();
+        {
+            // Corresponding free is in block_free
+            alias TCase = typeof(mystate.switchBlock.Bswitch[0]);
+            auto pu = cast(TCase *)Mem.check(.malloc(TCase.sizeof * numcases));
+            mystate.switchBlock.Bswitch = pu[0 .. numcases];
+
+            /* Fill in the first entry for each pair, which is the case value.
+             * CaseStatement.toIR() will fill in
+             * the second entry for each pair with the block.
+             */
+            foreach (i, cs; *s.cases)
+                mystate.switchBlock.Bswitch[i] = cs.exp.toInteger();
+        }
 
         Statement_toIR(s._body, irs, &mystate);
 
@@ -946,14 +949,17 @@ void Statement_toIR(Statement s, IRState *irs, StmtState* stmtstate)
                                         el_combine(e3, el_var(shandler)));
 
             const numcases = s.catches.length;
-            bswitch.Bswitch = cast(targ_llong *) Mem.check(.malloc((targ_llong).sizeof * (numcases + 1)));
-            bswitch.Bswitch[0] = numcases;
+            if (numcases)
+            {
+                long* pu = cast(long*) Mem.check(.malloc(long.sizeof * numcases));
+                bswitch.Bswitch = pu[0 .. numcases];
+            }
             bswitch.appendSucc(defaultblock);
             block_next(blx, BCswitch, null);
 
             foreach (i, cs; *s.catches)
             {
-                bswitch.Bswitch[1 + i] = 1 + i;
+                bswitch.Bswitch[i] = i;
 
                 if (cs.var)
                     cs.var.csym = tryblock.jcatchvar;
@@ -991,12 +997,12 @@ void Statement_toIR(Statement s, IRState *irs, StmtState* stmtstate)
                 {
                     if (ct == catchtype)
                     {
-                        bswitch.Bswitch[1 + i] = 1 + j;  // index starts at 1
+                        bswitch.Bswitch[i] = 1 + j;  // index starts at 1
                         goto L1;
                     }
                 }
                 f.typesTable.push(catchtype);
-                bswitch.Bswitch[1 + i] = f.typesTable.length;  // index starts at 1
+                bswitch.Bswitch[i] = f.typesTable.length;  // index starts at 1
            L1:
                 block *bcase = blx.curblock;
                 bswitch.appendSucc(bcase);
@@ -1052,11 +1058,11 @@ void Statement_toIR(Statement s, IRState *irs, StmtState* stmtstate)
             /* Make a copy of the switch case table, which will later become the Action Table.
              * Need a copy since the bswitch may get rewritten by the optimizer.
              */
-            alias TAction = typeof(bcatch.actionTable[0]);
-            bcatch.actionTable = cast(TAction*)Mem.check(.malloc(TAction.sizeof * (numcases + 1)));
-            foreach (i; 0 .. numcases + 1)
-                bcatch.actionTable[i] = cast(TAction)bswitch.Bswitch[i];
-
+            alias TAction = typeof((*bcatch.actionTable)[0]);
+            bcatch.actionTable = cast(Barray!TAction*)Mem.check(.calloc(Barray!TAction.sizeof, 1));
+            bcatch.actionTable.setLength(numcases);
+            foreach (i; 0 .. numcases)
+                (*bcatch.actionTable)[i] = cast(TAction)bswitch.Bswitch[i];
         }
         else
         {
@@ -1070,7 +1076,7 @@ void Statement_toIR(Statement s, IRState *irs, StmtState* stmtstate)
                 tryblock.appendSucc(bcatch);
                 block_goto(blx, BCjcatch, null);
 
-                if (cs.type && irs.target.os == Target.OS.Windows && irs.target.is64bit) // Win64
+                if (cs.type && irs.target.os == Target.OS.Windows && irs.target.isX86_64) // Win64
                 {
                     /* The linker will attempt to merge together identical functions,
                      * even if the catch types differ. So add a reference to the
@@ -1707,12 +1713,12 @@ void insertFinallyBlockGotos(block *startblock)
     }
 }
 
-private void block_setLoc(block *b, const ref Loc loc) pure nothrow
+private void block_setLoc(block *b, const ref Loc loc) nothrow
 {
     srcpos_setLoc(b.Bsrcpos, loc);
 }
 
-private void srcpos_setLoc(ref Srcpos s, const ref Loc loc) pure nothrow
+private void srcpos_setLoc(ref Srcpos s, const ref Loc loc) nothrow
 {
     s.set(loc.filename, loc.linnum, loc.charnum);
 }

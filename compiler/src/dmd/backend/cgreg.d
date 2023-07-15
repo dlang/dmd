@@ -13,14 +13,6 @@
 
 module dmd.backend.cgreg;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -45,8 +37,6 @@ extern (C++):
 
 nothrow:
 @safe:
-
-int REGSIZE();
 
 private __gshared
 {
@@ -1047,6 +1037,4 @@ Ltried:
     vec_free(v);
 
     return flag;
-}
-
 }

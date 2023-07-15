@@ -287,6 +287,7 @@ class GotoCaseStatement;
 class GotoStatement;
 class ReturnStatement;
 class ScopeStatement;
+struct ContractInfo;
 struct ObjcSelector;
 class PeelStatement;
 class CompoundStatement;
@@ -376,18 +377,26 @@ enum class MessageStyle : uint8_t
 
 struct Loc final
 {
-    const char* filename;
-    uint32_t linnum;
-    uint32_t charnum;
+private:
+    uint32_t _linnum;
+    uint16_t _charnum;
+    uint16_t fileIndex;
+public:
     static bool showColumns;
     static MessageStyle messageStyle;
     static void set(bool showColumns, MessageStyle messageStyle);
+    uint32_t charnum() const;
+    uint32_t charnum(uint32_t num);
+    uint32_t linnum() const;
+    uint32_t linnum(uint32_t num);
+    const char* filename() const;
+    void filename(const char* name);
     const char* toChars(bool showColumns = showColumns, MessageStyle messageStyle = messageStyle) const;
     bool equals(const Loc& loc) const;
     Loc() :
-        filename(),
-        linnum(),
-        charnum()
+        _linnum(),
+        _charnum(),
+        fileIndex()
     {
     }
 };
@@ -654,6 +663,7 @@ struct Array final
     void remove(size_t i);
     void insert(size_t index, Array* a);
     void insert(size_t index, T ptr);
+    void insert(size_t index, size_t count, T value);
     void setDim(size_t newdim);
     size_t find(T ptr) const;
     bool contains(T ptr) const;
@@ -970,7 +980,6 @@ public:
     Type* type;
     Loc loc;
     const EXP op;
-    bool parens;
     size_t size() const;
     static void _init();
     static void deinitialize();
@@ -2344,7 +2353,7 @@ struct AttributeViolation final
     RootObject* arg1;
     RootObject* arg2;
     AttributeViolation() :
-        loc(Loc(nullptr, 0u, 0u)),
+        loc(Loc(0u, 0u, 0u)),
         fmtStr(nullptr),
         arg0(nullptr),
         arg1(nullptr),
@@ -2429,16 +2438,11 @@ struct ParameterList final
 class FuncDeclaration : public Declaration
 {
 public:
-    Array<Statement* >* frequires;
-    Array<Ensure >* fensures;
-    Statement* frequire;
-    Statement* fensure;
     Statement* fbody;
     Array<FuncDeclaration* > foverrides;
-    FuncDeclaration* fdrequire;
-    FuncDeclaration* fdensure;
-    Array<Expression* >* fdrequireParams;
-    Array<Expression* >* fdensureParams;
+private:
+    ContractInfo* contracts;
+public:
     const char* mangleString;
     VarDeclaration* vresult;
     LabelDsymbol* returnLabel;
@@ -2538,6 +2542,22 @@ private:
 public:
     ObjcFuncDeclaration objc;
     static FuncDeclaration* create(const Loc& loc, const Loc& endloc, Identifier* id, StorageClass storage_class, Type* type, bool noreturn = false);
+    Array<Statement* >* frequires();
+    Array<Ensure >* fensures();
+    Statement* frequire();
+    Statement* fensure();
+    FuncDeclaration* fdrequire();
+    FuncDeclaration* fdensure();
+    Array<Expression* >* fdrequireParams();
+    Array<Expression* >* fdensureParams();
+    Array<Statement* >* frequires(Array<Statement* >* param);
+    Array<Ensure >* fensures(Array<Ensure >* param);
+    Statement* frequire(Statement* param);
+    Statement* fensure(Statement* param);
+    FuncDeclaration* fdrequire(FuncDeclaration* param);
+    FuncDeclaration* fdensure(FuncDeclaration* param);
+    Array<Expression* >* fdrequireParams(Array<Expression* >* param);
+    Array<Expression* >* fdensureParams(Array<Expression* >* param);
     FuncDeclaration* syntaxCopy(Dsymbol* s) override;
     bool functionSemantic();
     bool functionSemantic3();
@@ -2661,6 +2681,7 @@ enum class FuncResolveFlag : uint8_t
     standard = 0u,
     quiet = 1u,
     overloadOnly = 2u,
+    ufcs = 4u,
 };
 
 class InvariantDeclaration final : public FuncDeclaration
@@ -3058,6 +3079,7 @@ struct Param final
     bool release;
     bool preservePaths;
     DiagnosticReporting warnings;
+    bool obsolete;
     bool color;
     bool cov;
     uint8_t covPercent;
@@ -3163,6 +3185,7 @@ struct Param final
         release(),
         preservePaths(),
         warnings((DiagnosticReporting)2u),
+        obsolete(),
         color(),
         cov(),
         covPercent(),
@@ -3242,7 +3265,7 @@ struct Param final
         mapfile()
     {
     }
-    Param(bool obj, bool multiobj = false, bool trace = false, bool tracegc = false, bool verbose = false, bool vcg_ast = false, bool showColumns = false, bool vtls = false, bool vtemplates = false, bool vtemplatesListInstances = false, bool vgc = false, bool vfield = false, bool vcomplex = true, bool vin = false, DiagnosticReporting useDeprecated = (DiagnosticReporting)1u, bool useUnitTests = false, bool useInline = false, bool release = false, bool preservePaths = false, DiagnosticReporting warnings = (DiagnosticReporting)2u, bool color = false, bool cov = false, uint8_t covPercent = 0u, bool ctfe_cov = false, bool ignoreUnsupportedPragmas = false, bool useModuleInfo = true, bool useTypeInfo = true, bool useExceptions = true, bool betterC = false, bool addMain = false, bool allInst = false, bool bitfields = false, CppStdRevision cplusplus = (CppStdRevision)201103u, bool showGaggedErrors = false, bool printErrorContext = false, bool manual = false, bool usage = false, bool mcpuUsage = false, bool transitionUsage = false, bool checkUsage = false, bool checkActionUsage = false, bool revertUsage = false, bool previewUsage = false, bool externStdUsage = false, bool hcUsage = false, bool logo = false, FeatureState useDIP25 = (FeatureState)1, FeatureState useDIP1000 = (FeatureState)-1, bool ehnogc = false, bool useDIP1021 = false, FeatureState fieldwise = (FeatureState)-1, bool fixAliasThis = false, FeatureState rvalueRefParam = (FeatureState)-1, FeatureState noSharedAccess = (FeatureState)-1, bool previewIn = false, bool inclusiveInContracts = false, bool shortenedMethods = true, bool fixImmutableConv = false, bool fix16997 = true, FeatureState dtorFields = (FeatureState)-1, FeatureState systemVariables = (FeatureState)-1, CHECKENABLE useInvariants = (CHECKENABLE)0u, CHECKENABLE useIn = (CHECKENABLE)0u, CHECKENABLE useOut = (CHECKENABLE)0u, CHECKENABLE useArrayBounds = (CHECKENABLE)0u, CHECKENABLE useAssert = (CHECKENABLE)0u, CHECKENABLE useSwitchError = (CHECKENABLE)0u, CHECKENABLE boundscheck = (CHECKENABLE)0u, CHECKACTION checkAction = (CHECKACTION)0u, uint32_t errorLimit = 20u, uint32_t errorSupplementLimit = 6u, _d_dynamicArray< const char > argv0 = {}, Array<const char* > modFileAliasStrings = Array<const char* >(), Array<const char* >* imppath = nullptr, Array<const char* >* fileImppath = nullptr, _d_dynamicArray< const char > objdir = {}, _d_dynamicArray< const char > objname = {}, _d_dynamicArray< const char > libname = {}, Output ddoc = Output(), Output dihdr = Output(), Output cxxhdr = Output(), Output json = Output(), JsonFieldFlags jsonFieldFlags = (JsonFieldFlags)0u, Output makeDeps = Output(), Output mixinOut = Output(), Output moduleDeps = Output(), uint32_t debuglevel = 0u, Array<const char* >* debugids = nullptr, uint32_t versionlevel = 0u, Array<const char* >* versionids = nullptr, MessageStyle messageStyle = (MessageStyle)0u, bool run = false, Array<const char* > runargs = Array<const char* >(), Array<const char* > cppswitches = Array<const char* >(), const char* cpp = nullptr, Array<const char* > objfiles = Array<const char* >(), Array<const char* > linkswitches = Array<const char* >(), Array<bool > linkswitchIsForCC = Array<bool >(), Array<const char* > libfiles = Array<const char* >(), Array<const char* > dllfiles = Array<const char* >(), _d_dynamicArray< const char > deffile = {}, _d_dynamicArray< const char > resfile = {}, _d_dynamicArray< const char > exefile = {}, _d_dynamicArray< const char > mapfile = {}) :
+    Param(bool obj, bool multiobj = false, bool trace = false, bool tracegc = false, bool verbose = false, bool vcg_ast = false, bool showColumns = false, bool vtls = false, bool vtemplates = false, bool vtemplatesListInstances = false, bool vgc = false, bool vfield = false, bool vcomplex = true, bool vin = false, DiagnosticReporting useDeprecated = (DiagnosticReporting)1u, bool useUnitTests = false, bool useInline = false, bool release = false, bool preservePaths = false, DiagnosticReporting warnings = (DiagnosticReporting)2u, bool obsolete = false, bool color = false, bool cov = false, uint8_t covPercent = 0u, bool ctfe_cov = false, bool ignoreUnsupportedPragmas = false, bool useModuleInfo = true, bool useTypeInfo = true, bool useExceptions = true, bool betterC = false, bool addMain = false, bool allInst = false, bool bitfields = false, CppStdRevision cplusplus = (CppStdRevision)201103u, bool showGaggedErrors = false, bool printErrorContext = false, bool manual = false, bool usage = false, bool mcpuUsage = false, bool transitionUsage = false, bool checkUsage = false, bool checkActionUsage = false, bool revertUsage = false, bool previewUsage = false, bool externStdUsage = false, bool hcUsage = false, bool logo = false, FeatureState useDIP25 = (FeatureState)1, FeatureState useDIP1000 = (FeatureState)-1, bool ehnogc = false, bool useDIP1021 = false, FeatureState fieldwise = (FeatureState)-1, bool fixAliasThis = false, FeatureState rvalueRefParam = (FeatureState)-1, FeatureState noSharedAccess = (FeatureState)-1, bool previewIn = false, bool inclusiveInContracts = false, bool shortenedMethods = true, bool fixImmutableConv = false, bool fix16997 = true, FeatureState dtorFields = (FeatureState)-1, FeatureState systemVariables = (FeatureState)-1, CHECKENABLE useInvariants = (CHECKENABLE)0u, CHECKENABLE useIn = (CHECKENABLE)0u, CHECKENABLE useOut = (CHECKENABLE)0u, CHECKENABLE useArrayBounds = (CHECKENABLE)0u, CHECKENABLE useAssert = (CHECKENABLE)0u, CHECKENABLE useSwitchError = (CHECKENABLE)0u, CHECKENABLE boundscheck = (CHECKENABLE)0u, CHECKACTION checkAction = (CHECKACTION)0u, uint32_t errorLimit = 20u, uint32_t errorSupplementLimit = 6u, _d_dynamicArray< const char > argv0 = {}, Array<const char* > modFileAliasStrings = Array<const char* >(), Array<const char* >* imppath = nullptr, Array<const char* >* fileImppath = nullptr, _d_dynamicArray< const char > objdir = {}, _d_dynamicArray< const char > objname = {}, _d_dynamicArray< const char > libname = {}, Output ddoc = Output(), Output dihdr = Output(), Output cxxhdr = Output(), Output json = Output(), JsonFieldFlags jsonFieldFlags = (JsonFieldFlags)0u, Output makeDeps = Output(), Output mixinOut = Output(), Output moduleDeps = Output(), uint32_t debuglevel = 0u, Array<const char* >* debugids = nullptr, uint32_t versionlevel = 0u, Array<const char* >* versionids = nullptr, MessageStyle messageStyle = (MessageStyle)0u, bool run = false, Array<const char* > runargs = Array<const char* >(), Array<const char* > cppswitches = Array<const char* >(), const char* cpp = nullptr, Array<const char* > objfiles = Array<const char* >(), Array<const char* > linkswitches = Array<const char* >(), Array<bool > linkswitchIsForCC = Array<bool >(), Array<const char* > libfiles = Array<const char* >(), Array<const char* > dllfiles = Array<const char* >(), _d_dynamicArray< const char > deffile = {}, _d_dynamicArray< const char > resfile = {}, _d_dynamicArray< const char > exefile = {}, _d_dynamicArray< const char > mapfile = {}) :
         obj(obj),
         multiobj(multiobj),
         trace(trace),
@@ -3263,6 +3286,7 @@ struct Param final
         release(release),
         preservePaths(preservePaths),
         warnings(warnings),
+        obsolete(obsolete),
         color(color),
         cov(cov),
         covPercent(covPercent),
@@ -3360,6 +3384,7 @@ struct CompileEnv final
     bool previewIn;
     bool ddocOutput;
     bool shortenedMethods;
+    bool obsolete;
     CompileEnv() :
         versionNumber(),
         date(),
@@ -3368,10 +3393,11 @@ struct CompileEnv final
         timestamp(),
         previewIn(),
         ddocOutput(),
-        shortenedMethods(true)
+        shortenedMethods(true),
+        obsolete()
     {
     }
-    CompileEnv(uint32_t versionNumber, _d_dynamicArray< const char > date = {}, _d_dynamicArray< const char > time = {}, _d_dynamicArray< const char > vendor = {}, _d_dynamicArray< const char > timestamp = {}, bool previewIn = false, bool ddocOutput = false, bool shortenedMethods = true) :
+    CompileEnv(uint32_t versionNumber, _d_dynamicArray< const char > date = {}, _d_dynamicArray< const char > time = {}, _d_dynamicArray< const char > vendor = {}, _d_dynamicArray< const char > timestamp = {}, bool previewIn = false, bool ddocOutput = false, bool shortenedMethods = true, bool obsolete = false) :
         versionNumber(versionNumber),
         date(date),
         time(time),
@@ -3379,7 +3405,8 @@ struct CompileEnv final
         timestamp(timestamp),
         previewIn(previewIn),
         ddocOutput(ddocOutput),
-        shortenedMethods(shortenedMethods)
+        shortenedMethods(shortenedMethods),
+        obsolete(obsolete)
         {}
 };
 
@@ -6992,23 +7019,23 @@ struct UnionExp final
 private:
     union __AnonStruct__u
     {
-        char exp[34LLU];
-        char integerexp[48LLU];
-        char errorexp[34LLU];
-        char realexp[64LLU];
-        char complexexp[80LLU];
-        char symoffexp[72LLU];
-        char stringexp[58LLU];
-        char arrayliteralexp[56LLU];
-        char assocarrayliteralexp[56LLU];
-        char structliteralexp[84LLU];
-        char compoundliteralexp[48LLU];
-        char nullexp[34LLU];
-        char dotvarexp[57LLU];
-        char addrexp[48LLU];
-        char indexexp[82LLU];
-        char sliceexp[73LLU];
-        char vectorexp[61LLU];
+        char exp[25LLU];
+        char integerexp[40LLU];
+        char errorexp[25LLU];
+        char realexp[48LLU];
+        char complexexp[64LLU];
+        char symoffexp[64LLU];
+        char stringexp[50LLU];
+        char arrayliteralexp[48LLU];
+        char assocarrayliteralexp[48LLU];
+        char structliteralexp[76LLU];
+        char compoundliteralexp[40LLU];
+        char nullexp[25LLU];
+        char dotvarexp[49LLU];
+        char addrexp[40LLU];
+        char indexexp[74LLU];
+        char sliceexp[65LLU];
+        char vectorexp[53LLU];
     };
     #pragma pack(pop)
 
@@ -7096,6 +7123,7 @@ class IdentifierExp : public Expression
 {
 public:
     Identifier* ident;
+    bool parens;
     static IdentifierExp* create(const Loc& loc, Identifier* ident);
     bool isLvalue() final override;
     Expression* toLvalue(Scope* sc, Expression* e) final override;
@@ -7125,14 +7153,16 @@ public:
     ThisExp(const Loc& loc, const EXP tok);
     ThisExp* syntaxCopy() override;
     Optional<bool > toBool() override;
-    bool isLvalue() final override;
-    Expression* toLvalue(Scope* sc, Expression* e) final override;
+    bool isLvalue() override;
+    Expression* toLvalue(Scope* sc, Expression* e) override;
     void accept(Visitor* v) override;
 };
 
 class SuperExp final : public ThisExp
 {
 public:
+    bool isLvalue() override;
+    Expression* toLvalue(Scope* sc, Expression* e) override;
     void accept(Visitor* v) override;
 };
 
@@ -7256,6 +7286,7 @@ public:
 class TypeExp final : public Expression
 {
 public:
+    bool parens;
     TypeExp* syntaxCopy() override;
     bool checkType() override;
     bool checkValue() override;
@@ -7539,6 +7570,7 @@ public:
     bool directcall;
     bool inDebugStatement;
     bool ignoreAttributes;
+    bool isUfcsRewrite;
     VarDeclaration* vthis2;
     static CallExp* create(const Loc& loc, Expression* e, Array<Expression* >* exps);
     static CallExp* create(const Loc& loc, Expression* e);
@@ -8160,7 +8192,7 @@ struct Target final
     TargetObjC objc;
     _d_dynamicArray< const char > architectureName;
     CPU cpu;
-    bool is64bit;
+    bool isX86_64;
     bool isLP64;
     _d_dynamicArray< const char > obj_ext;
     _d_dynamicArray< const char > lib_ext;
@@ -8233,7 +8265,7 @@ public:
         objc(),
         architectureName(),
         cpu((CPU)11u),
-        is64bit(true),
+        isX86_64(true),
         isLP64(),
         obj_ext(),
         lib_ext(),
@@ -8247,7 +8279,7 @@ public:
         params()
     {
     }
-    Target(OS os, uint8_t osMajor = 0u, uint8_t ptrsize = 0u, uint8_t realsize = 0u, uint8_t realpad = 0u, uint8_t realalignsize = 0u, uint8_t classinfosize = 0u, uint64_t maxStaticDataSize = 0LLU, TargetC c = TargetC(), TargetCPP cpp = TargetCPP(), TargetObjC objc = TargetObjC(), _d_dynamicArray< const char > architectureName = {}, CPU cpu = (CPU)11u, bool is64bit = true, bool isLP64 = false, _d_dynamicArray< const char > obj_ext = {}, _d_dynamicArray< const char > lib_ext = {}, _d_dynamicArray< const char > dll_ext = {}, bool run_noext = false, bool omfobj = false, FPTypeProperties<float > FloatProperties = FPTypeProperties<float >(), FPTypeProperties<double > DoubleProperties = FPTypeProperties<double >(), FPTypeProperties<_d_real > RealProperties = FPTypeProperties<_d_real >(), Type* tvalist = nullptr, const Param* params = nullptr) :
+    Target(OS os, uint8_t osMajor = 0u, uint8_t ptrsize = 0u, uint8_t realsize = 0u, uint8_t realpad = 0u, uint8_t realalignsize = 0u, uint8_t classinfosize = 0u, uint64_t maxStaticDataSize = 0LLU, TargetC c = TargetC(), TargetCPP cpp = TargetCPP(), TargetObjC objc = TargetObjC(), _d_dynamicArray< const char > architectureName = {}, CPU cpu = (CPU)11u, bool isX86_64 = true, bool isLP64 = false, _d_dynamicArray< const char > obj_ext = {}, _d_dynamicArray< const char > lib_ext = {}, _d_dynamicArray< const char > dll_ext = {}, bool run_noext = false, bool omfobj = false, FPTypeProperties<float > FloatProperties = FPTypeProperties<float >(), FPTypeProperties<double > DoubleProperties = FPTypeProperties<double >(), FPTypeProperties<_d_real > RealProperties = FPTypeProperties<_d_real >(), Type* tvalist = nullptr, const Param* params = nullptr) :
         os(os),
         osMajor(osMajor),
         ptrsize(ptrsize),
@@ -8261,7 +8293,7 @@ public:
         objc(objc),
         architectureName(architectureName),
         cpu(cpu),
-        is64bit(is64bit),
+        isX86_64(isX86_64),
         isLP64(isLP64),
         obj_ext(obj_ext),
         lib_ext(lib_ext),
@@ -8301,6 +8333,7 @@ public:
     void visit(ForStatement* s) override;
     void visit(ForeachStatement* s) override;
     void visit(ForeachRangeStatement* s) override;
+    void visit(StaticForeachStatement* s) override;
     void visit(IfStatement* s) override;
     void visit(ConditionalStatement* s) override;
     void visit(PragmaStatement* s) override;
@@ -8703,6 +8736,8 @@ struct Id final
     static Identifier* _d_newThrowable;
     static Identifier* _d_newclassT;
     static Identifier* _d_newclassTTrace;
+    static Identifier* _d_newitemT;
+    static Identifier* _d_newitemTTrace;
     static Identifier* _d_assert_fail;
     static Identifier* dup;
     static Identifier* _aaApply;
@@ -8900,6 +8935,7 @@ struct Id final
     static Identifier* _pure;
     static Identifier* define;
     static Identifier* undef;
+    static Identifier* ident;
     static void initialize();
     Id()
     {

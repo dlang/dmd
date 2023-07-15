@@ -9,6 +9,7 @@
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/compress.d, backend/compress.d)
  */
+module dmd.backend.compress;
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -24,7 +25,7 @@ nothrow:
  */
 
 @trusted
-private bool longest_match(char *dict, int dlen, char *pattern, int plen,
+private bool longest_match(const(char) *dict, int dlen, const(char) *pattern, int plen,
         int *pmatchoff, int *pmatchlen)
 {
     int matchlen = 0;
@@ -74,7 +75,7 @@ private bool longest_match(char *dict, int dlen, char *pattern, int plen,
  *      malloc'd compressed 0-terminated identifier
  */
 @trusted
-extern(C) char *id_compress(char *id, int idlen, size_t *plen)
+extern(C) char *id_compress(const(char) *id, int idlen, size_t *plen)
 {
     int count = 0;
     char *p = cast(char *)malloc(idlen + 1);

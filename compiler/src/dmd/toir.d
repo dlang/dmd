@@ -598,7 +598,7 @@ int intrinsic_op(FuncDeclaration fd)
         }
     }
 
-    if (!target.is64bit)
+    if (!target.isX86_64)
     // No 64-bit bsf bsr in 32bit mode
     {
         if ((op == OPbsf || op == OPbsr) && argtype1 is Type.tuns64)
@@ -607,7 +607,7 @@ int intrinsic_op(FuncDeclaration fd)
     return op;
 
 Lva_start:
-    if (target.is64bit &&
+    if (target.isX86_64 &&
         fd.toParent().isTemplateInstance() &&
         id3 == Id.va_start &&
         id2 == Id.stdarg &&
@@ -653,7 +653,7 @@ elem *resolveLengthVar(VarDeclaration lengthVar, elem **pe, Type t1)
         {
             elength = *pe;
             *pe = el_same(&elength);
-            elength = el_una(target.is64bit ? OP128_64 : OP64_32, TYsize_t, elength);
+            elength = el_una(target.isX86_64 ? OP128_64 : OP64_32, TYsize_t, elength);
 
         L3:
             slength = toSymbol(lengthVar);
@@ -845,7 +845,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
             v.inClosure = true;
 
             // Hack for the case fail_compilation/fail10666.d,
-            // until proper issue 5730 fix will come.
+            // until proper https://issues.dlang.org/show_bug.cgi?id=5730 fix will come.
             bool isScopeDtorParam = v.edtor && (v.storage_class & STC.parameter);
             if (v.needsScopeDtor() || isScopeDtorParam)
             {

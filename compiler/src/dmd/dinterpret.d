@@ -16,7 +16,6 @@ module dmd.dinterpret;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
-import dmd.apply;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.attrib;
@@ -2413,7 +2412,7 @@ public:
                 continue;
             if (ex.op == EXP.voidExpression)
             {
-                e.error("CTFE internal error: void element `%s` in tuple", exp.toChars());
+                e.error("CTFE internal error: void element `%s` in sequence", exp.toChars());
                 assert(0);
             }
 

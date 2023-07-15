@@ -12,11 +12,6 @@
 
 module dmd.backend.blockopt;
 
-version (SCPP)
-    version = COMPILE;
-else version (HTOD)
-    version = COMPILE;
-
 import core.stdc.stdio;
 import core.stdc.string;
 import core.stdc.time;
@@ -37,17 +32,7 @@ import dmd.backend.ty;
 
 import dmd.backend.barray;
 
-version (COMPILE)
-{
-    import parser;
-    import iasm;
-    import precomp;
-}
-
-
-version (SCPP)
-    enum SCPP_OR_NTEXCEPTIONS = true;
-else static if (NTEXCEPTIONS)
+static if (NTEXCEPTIONS)
     enum SCPP_OR_NTEXCEPTIONS = true;
 else
     enum SCPP_OR_NTEXCEPTIONS = false;
@@ -57,15 +42,7 @@ extern(C++):
 nothrow:
 @safe:
 
-extern (C) void *mem_fcalloc(size_t numbytes); // tk/mem.c
-extern (C) void mem_free(void*); // tk/mem.c
-
-alias MEM_PH_FREE = mem_free;
-
-version (HTOD)
-    void *util_realloc(void* p, size_t n, size_t size);
-else
-    import dmd.backend.gflow : util_realloc;
+import dmd.backend.gflow : util_realloc;
 
 __gshared
 {
@@ -139,8 +116,6 @@ void block_term()
  * Finish up this block and start the next one.
  */
 
-version (MARS)
-{
 @trusted
 void block_next(Blockx *bctx,int bc,block *bn)
 {
@@ -153,35 +128,11 @@ void block_next(Blockx *bctx,int bc,block *bn)
     bctx.curblock.Btry = bctx.tryblock;
     bctx.curblock.Bflags |= bctx.flags;
 }
-}
-else
-{
-@trusted
-void block_next(int bc,block *bn)
-{
-    curblock.BC = cast(ubyte) bc;
-    curblock.Bsymend = globsym.length;
-    block_last = curblock;
-    if (!bn)
-        bn = block_calloc_i();
-    curblock.Bnext = bn;                     // next block
-    curblock = curblock.Bnext;               // new current block
-    curblock.Bsymstart = globsym.length;
-    curblock.Btry = pstate.STbtry;
-}
-
-void block_next()
-{
-    block_next(cast(BC)curblock.BC,null);
-}
-}
 
 /**************************
  * Finish up this block and start the next one.
  */
 
-version (MARS)
-{
 block *block_goto(Blockx *bx,int bc,block *bn)
 {
     block *b;
@@ -190,7 +141,6 @@ block *block_goto(Blockx *bx,int bc,block *bn)
     block_next(bx,bc,bn);
     b.appendSucc(bx.curblock);
     return bx.curblock;
-}
 }
 
 /****************************
@@ -364,35 +314,19 @@ void block_free(block *b)
         case BCswitch:
         case BCifthen:
         case BCjmptab:
-            version (MARS)
+            free(b.Bswitch.ptr);
+            break;
+
+        case BCjcatch:
+            if (b.actionTable)
             {
-                free(b.Bswitch);
-            }
-            else
-            {
-                MEM_PH_FREE(b.Bswitch);
+                b.actionTable.dtor();
+                free(b.actionTable);
             }
             break;
 
-        version (SCPP)
-        {
-            case BCcatch:
-                type_free(b.Bcatchtype);
-                break;
-        }
-
-        version (MARS)
-        {
-            case BCjcatch:
-                free(b.actionTable);
-                break;
-        }
-
         case BCasm:
-            version (HTOD) {} else
-            {
-                code_free(b.Bcode);
-            }
+            code_free(b.Bcode);
             break;
 
         default:
@@ -435,7 +369,7 @@ void blocklist_hydrate(block **pb)
                 break;
 
             case BCswitch:
-                ph_hydrate(cast(void**)&b.Bswitch);
+                ph_hydrate(cast(void**)&b.Bswitch.ptr);
                 break;
 
             case BC_finally:
@@ -447,10 +381,7 @@ void blocklist_hydrate(block **pb)
                 break;
 
             case BCasm:
-                version (HTOD) {} else
-                {
-                    code_hydrate(&b.Bcode);
-                }
+                code_hydrate(&b.Bcode);
                 break;
 
             default:
@@ -498,7 +429,7 @@ void blocklist_dehydrate(block **pb)
                 break;
 
             case BCswitch:
-                ph_dehydrate(&b.Bswitch);
+                ph_dehydrate(&b.Bswitch.ptr);
                 break;
 
             case BC_finally:
@@ -535,9 +466,6 @@ void blocklist_dehydrate(block **pb)
 @trusted
 void block_appendexp(block *b,elem *e)
 {
-    version (MARS) {}
-    else assert(PARSER);
-
     if (e)
     {
         assert(b);
@@ -551,33 +479,19 @@ void block_appendexp(block *b,elem *e)
             if (t)
                 type_debug(t);
             elem_debug(e);
-            version (MARS)
-            {
-                tym_t ty = e.Ety;
+            tym_t ty = e.Ety;
 
-                elem_debug(e);
-                /* Build tree such that (a,b) => (a,(b,e))  */
-                while (ec.Eoper == OPcomma)
-                {
-                    ec.Ety = ty;
-                    ec.ET = t;
-                    pe = &(ec.EV.E2);
-                    ec = *pe;
-                }
-                e = el_bin(OPcomma,ty,ec,e);
-                e.ET = t;
-            }
-            else
+            elem_debug(e);
+            /* Build tree such that (a,b) => (a,(b,e))  */
+            while (ec.Eoper == OPcomma)
             {
-                /* Build tree such that (a,b) => (a,(b,e))  */
-                while (ec.Eoper == OPcomma)
-                {
-                    el_settype(ec,t);
-                    pe = &(ec.EV.E2);
-                    ec = *pe;
-                }
-                e = el_bint(OPcomma,t,ec,e);
+                ec.Ety = ty;
+                ec.ET = t;
+                pe = &(ec.EV.E2);
+                ec = *pe;
             }
+            e = el_bin(OPcomma,ty,ec,e);
+            e.ET = t;
         }
         *pe = e;
     }
@@ -653,11 +567,9 @@ void blockopt(int iter)
             blexit();
             if (iter >= 2)
                 brmin();                // minimize branching
-            version (MARS)
-                // Switched to one block per Statement, do not undo it
-                enum merge = false;
-            else
-                enum merge = true;
+
+            // Switched to one block per Statement, do not undo it
+            enum merge = false;
 
             do
             {
@@ -1023,30 +935,27 @@ private void bropt()
                 continue;
             assert(tyintegral(n.Ety));
             targ_llong value = el_tolong(n);
-            targ_llong* pv = b.Bswitch;      // ptr to switch data
-            assert(pv);
-            uint ncases = cast(uint) *pv++;  // # of cases
-            uint i = 1;                      // first case
-            while (1)
+
+            int i = 0;          // 0 means the default case
+            foreach (j, val; b.Bswitch)
             {
-                if (i > ncases)
+                if (val == value)
                 {
-                    i = 0;      // select default
+                    i = cast(int)j + 1;
                     break;
                 }
-                if (*pv++ == value)
-                    break;      // found it
-                i++;            // next case
             }
-            /* the ith entry in Bsucc is the one we want    */
-            block *db = b.nthSucc(i);
+            block* db = b.nthSucc(i);
+
             /* delete predecessors of successors (!)        */
             foreach (bl; ListRange(b.Bsucc))
-                if (i--)            // if not ith successor
+            {
+                if (i--)            // but not the db successor
                 {
                     void *p = list_subtract(&(list_block(bl).Bpred),b);
                     assert(p == b);
                 }
+            }
 
             /* dump old successor list and create a new one */
             list_free(&b.Bsucc,FPNULL);
@@ -1083,15 +992,7 @@ private void brrear()
             /* loops which we avoid by putting a lid on     */
             /* the number of iterations.                    */
 
-            version (SCPP)
-            {
-                static if (NTEXCEPTIONS)
-                    enum additionalAnd = "b.Btry == bt.Btry &&
-                                      bt.Btry == bt.nthSucc(0).Btry";
-                else
-                    enum additionalAnd = "b.Btry == bt.Btry";
-            }
-            else static if (NTEXCEPTIONS)
+            static if (NTEXCEPTIONS)
                 enum additionalAnd = "b.Btry == bt.Btry &&
                                   bt.Btry == bt.nthSucc(0).Btry";
             else
@@ -1155,7 +1056,6 @@ private void brrear()
  *      dfo = array to fill in in DFO
  *      startblock = list of blocks
  */
-@safe
 void compdfo(ref Barray!(block*) dfo, block* startblock)
 {
     debug if (debugc) printf("compdfo()\n");
@@ -1288,7 +1188,6 @@ private int mergeblks()
 
             if (b == bL2)
             {
-        Lcontinue:
                 continue;
             }
             assert(bL2.Bpred);
@@ -1301,15 +1200,6 @@ private int mergeblks()
                     bL2.BC == BC_try ||
                     b.Btry != bL2.Btry)
                     continue;
-                version (SCPP)
-                {
-                    // If any predecessors of b are BCasm, don't merge.
-                    foreach (bl; ListRange(b.Bpred))
-                    {
-                        if (list_block(bl).BC == BCasm)
-                            goto Lcontinue;
-                    }
-                }
 
                 /* JOIN the elems               */
                 elem *e = el_combine(b.Belem,bL2.Belem);
@@ -1373,19 +1263,6 @@ private void blident()
     debug if (debugc) printf("blident()\n");
     assert(startblock);
 
-    version (SCPP)
-    {
-        // Determine if any asm blocks
-        int anyasm = 0;
-        for (block *bn = startblock; bn; bn = bn.Bnext)
-        {
-            if (bn.BC == BCasm)
-            {   anyasm = 1;
-                break;
-            }
-        }
-    }
-
     block *bnext;
     for (block *bn = startblock; bn; bn = bnext)
     {
@@ -1416,7 +1293,7 @@ private void blident()
                 switch (b.BC)
                 {
                     case BCswitch:
-                        if (memcmp(b.Bswitch,bn.Bswitch,list_nitems(bn.Bsucc) * (*bn.Bswitch).sizeof))
+                        if (b.Bswitch[] != bn.Bswitch[])
                             continue;
                         break;
 
@@ -1473,25 +1350,6 @@ private void blident()
                     // unreachable code
                     //bn = b;
                     //b = startblock;             /* swap b and bn        */
-                }
-
-                version (SCPP)
-                {
-                    // Don't do it if any predecessors are ASM blocks, since
-                    // we'd have to walk the code list to fix up any jmps.
-                    if (anyasm)
-                    {
-                        foreach (bl; ListRange(bn.Bpred))
-                        {
-                            block *bp = list_block(bl);
-                            if (bp.BC == BCasm)
-                                goto Lcontinue;
-                            foreach (bls; ListRange(bp.Bsucc))
-                                if (list_block(bls) == bn &&
-                                    list_block(bls).BC == BCasm)
-                                    goto Lcontinue;
-                        }
-                    }
                 }
 
                 /* Change successors to predecessors of bn to point to  */
@@ -1557,14 +1415,7 @@ private void blreturn()
             static if (SCPP_OR_NTEXCEPTIONS)
             {
                 // If no other blocks with the same Btry, don't split
-                version (SCPP)
-                {
-                    auto ifCondition = config.flags3 & CFG3eh;
-                }
-                else
-                {
-                    enum ifCondition = true;
-                }
+                enum ifCondition = true;
                 if (ifCondition)
                 {
                     for (block *b2 = startblock; b2; b2 = b2.Bnext)
@@ -1719,7 +1570,7 @@ private void bltailmerge()
                     switch (b.BC)
                     {
                         case BCswitch:
-                            if (memcmp(b.Bswitch,bn.Bswitch,list_nitems(bn.Bsucc) * (*bn.Bswitch).sizeof))
+                            if (b.Bswitch[] != bn.Bswitch[])
                                 continue;
                             break;
 
@@ -1818,13 +1669,6 @@ private void bltailmerge()
 @trusted
 private void brmin()
 {
-    version (SCPP)
-    {
-        // Dunno how this may mess up generating EH tables.
-        if (config.flags3 & CFG3eh)         // if EH turned on
-            return;
-    }
-
     debug if (debugc) printf("brmin()\n");
     debug assert(startblock);
     for (block *b = startblock.Bnext; b; b = b.Bnext)
@@ -1926,12 +1770,6 @@ private void block_check()
 @trusted
 private void brtailrecursion()
 {
-    version (SCPP)
-    {
-    //    if (tyvariadic(funcsym_p.Stype))
-            return;
-        return;             // haven't dealt with struct params, and ctors/dtors
-    }
     if (funcsym_p.Sfunc.Fflags3 & Fnotailrecursion)
         return;
     if (localgot)
@@ -2212,24 +2050,18 @@ private void emptyloops()
 @trusted
 private void funcsideeffects()
 {
-    version (MARS)
+    //printf("funcsideeffects('%s')\n",funcsym_p.Sident);
+    for (block *b = startblock; b; b = b.Bnext)
     {
-        //printf("funcsideeffects('%s')\n",funcsym_p.Sident);
-        for (block *b = startblock; b; b = b.Bnext)
+        if (b.Belem && funcsideeffect_walk(b.Belem))
         {
-            if (b.Belem && funcsideeffect_walk(b.Belem))
-            {
-                //printf("  function '%s' has side effects\n",funcsym_p.Sident);
-                return;
-            }
+            //printf("  function '%s' has side effects\n",funcsym_p.Sident);
+            return;
         }
-        funcsym_p.Sfunc.Fflags3 |= Fnosideeff;
-        //printf("  function '%s' has no side effects\n",funcsym_p.Sident);
     }
+    funcsym_p.Sfunc.Fflags3 |= Fnosideeff;
+    //printf("  function '%s' has no side effects\n",funcsym_p.Sident);
 }
-
-version (MARS)
-{
 
 @trusted
 private int funcsideeffect_walk(elem *e)
@@ -2265,8 +2097,6 @@ private int funcsideeffect_walk(elem *e)
 
   Lside:
     return 1;
-}
-
 }
 
 /*******************************

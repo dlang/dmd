@@ -20,6 +20,7 @@ import dmd.backend.code_x86 : opcode_t;
 extern (C++):
 @nogc:
 nothrow:
+@safe:
 
 //#include <setjmp.h>
 
@@ -403,52 +404,25 @@ enum
     ITSIZE          = 0x0F,    // mask for size
 }
 
-version (SCPP)
+alias OP_DB = int;
+enum
 {
-    alias OP_DB = int;
-    enum
-    {
-        // These are the number of bytes
-        OPdb = 1,
-        OPdw = 2,
-        OPdd = 4,
-        OPdq = 8,
-        OPdt = 10,
-        OPdf = 4,
-        OPde = 10,
-        OPds = 2,
-        OPdi = 4,
-        OPdl = 8,
-    }
+    // Integral types
+    OPdb,
+    OPds,
+    OPdi,
+    OPdl,
+
+    // Float types
+    OPdf,
+    OPdd,
+    OPde,
+
+    // Deprecated
+    OPdw = OPds,
+    OPdq = OPdl,
+    OPdt = OPde,
 }
-version (MARS)
-{
-    alias OP_DB = int;
-    enum
-    {
-        // Integral types
-        OPdb,
-        OPds,
-        OPdi,
-        OPdl,
-
-        // Float types
-        OPdf,
-        OPdd,
-        OPde,
-
-        // Deprecated
-        OPdw = OPds,
-        OPdq = OPdl,
-        OPdt = OPde,
-    }
-}
-
-
-/* from iasm.c */
-int asm_state(int iFlags);
-
-void asm_process_fixup( block **ppblockLabels );
 
 struct PTRNTAB4
 {

@@ -20,14 +20,6 @@
 
 module dmd.backend.cod2;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -40,7 +32,6 @@ import dmd.backend.code_x86;
 import dmd.backend.codebuilder;
 import dmd.backend.mem;
 import dmd.backend.el;
-import dmd.backend.exh;
 import dmd.backend.global;
 import dmd.backend.oper;
 import dmd.backend.ty;
@@ -52,20 +43,13 @@ extern (C++):
 nothrow:
 @safe:
 
-extern __gshared CGstate cgstate;
-extern __gshared ubyte[FLMAX] segfl;
-extern __gshared bool[FLMAX] stackfl;
+import dmd.backend.cg : segfl, stackfl;
 
 __gshared int cdcmp_flag;
 
 private extern (D) uint mask(uint m) { return 1 << m; }
 
-// from divcoeff.c
-extern (C)
-{
-    bool choose_multiplier(int N, ulong d, int prec, ulong *pm, int *pshpost);
-    bool udiv_coefficients(int N, ulong d, int *pshpre, ulong *pm, int *pshpost);
-}
+import dmd.backend.divcoeff : choose_multiplier, udiv_coefficients;
 
 /*******************************
  * Swap two registers.
@@ -2761,13 +2745,6 @@ void cdshift(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     assert(!tyfloating(tyml));
     OPER oper = e.Eoper;
     uint grex = ((I64 && sz == 8) ? REX_W : 0) << 16;
-
-version (SCPP)
-{
-    // Do this until the rest of the compiler does OPshr/OPashr correctly
-    if (oper == OPshr)
-        oper = (tyuns(tyml)) ? OPshr : OPashr;
-}
 
     uint s1,s2;
     switch (oper)
@@ -5625,51 +5602,11 @@ void cdinfo(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     switch (e.EV.E1.Eoper)
     {
-version (MARS)
-{
         case OPdctor:
             codelem(cdb,e.EV.E2,pretregs,false);
             regm_t retregs = 0;
             codelem(cdb,e.EV.E1,&retregs,false);
             break;
-}
-version (SCPP)
-{
-        case OPdtor:
-            cdcomma(cdb,e,pretregs);
-            break;
-        case OPctor:
-            codelem(cdb,e.EV.E2,pretregs,false);
-            regm_t retregs = 0;
-            codelem(cdb,e.EV.E1,&retregs,false);
-            break;
-        case OPmark:
-            if (0 && config.exe == EX_WIN32)
-            {
-                const idx = except_index_get();
-                except_mark();
-                codelem(cdb,e.EV.E2,pretregs,false);
-                if (config.exe == EX_WIN32 && idx != except_index_get())
-                {   usednteh |= NTEHcleanup;
-                    nteh_gensindex(cdb,idx - 1);
-                }
-                except_release();
-                assert(idx == except_index_get());
-            }
-            else
-            {
-                code cs = void;
-                cs.Iop = ESCAPE | ESCmark;
-                cs.Iflags = 0;
-                cs.Irex = 0;
-                cdb.gen(&cs);
-                codelem(cdb,e.EV.E2,pretregs,false);
-                cs.Iop = ESCAPE | ESCrelease;
-                cdb.gen(&cs);
-            }
-            freenode(e.EV.E1);
-            break;
-}
         default:
             assert(0);
     }
@@ -5798,21 +5735,6 @@ void cdddtor(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 @trusted
 void cdctor(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
-version (SCPP)
-{
-    usednteh |= EHcleanup;
-    if (config.exe == EX_WIN32)
-        usednteh |= NTEHcleanup;
-    assert(*pretregs == 0);
-
-    code cs = void;
-    cs.Iop = ESCAPE | ESCctor;
-    cs.Iflags = 0;
-    cs.Irex = 0;
-    cs.IFL1 = FLctor;
-    cs.IEV1.Vtor = e;
-    cdb.gen(&cs);
-}
 }
 
 /******
@@ -5820,21 +5742,6 @@ version (SCPP)
  */
 void cddtor(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
-version (SCPP)
-{
-    usednteh |= EHcleanup;
-    if (config.exe == EX_WIN32)
-        usednteh |= NTEHcleanup;
-    assert(*pretregs == 0);
-
-    code cs = void;
-    cs.Iop = ESCAPE | ESCdtor;
-    cs.Iflags = 0;
-    cs.Irex = 0;
-    cs.IFL1 = FLdtor;
-    cs.IEV1.Vtor = e;
-    cdb.gen(&cs);
-}
 }
 
 void cdmark(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
@@ -5867,6 +5774,4 @@ void cdhalt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     assert(*pretregs == 0);
     cdb.gen1(config.target_cpu >= TARGET_80286 ? UD2 : INT3);
-}
-
 }

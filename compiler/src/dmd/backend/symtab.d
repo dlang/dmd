@@ -26,13 +26,6 @@ nothrow:
 
 alias SYMIDX = size_t;    // symbol table index
 
-alias MEM_PH_MALLOC = mem_malloc;
-alias MEM_PH_CALLOC = mem_calloc;
-alias MEM_PH_FREE = mem_free;
-alias MEM_PH_FREEFP = mem_freefp;
-alias MEM_PH_STRDUP = mem_strdup;
-alias MEM_PH_REALLOC = mem_realloc;
-
 import dmd.backend.global : err_nomem;
 
 struct symtab_t
@@ -58,7 +51,7 @@ struct symtab_t
 
             T* p;
             if (config.flags2 & (CFG2phgen | CFG2phuse | CFG2phauto | CFG2phautoy))
-                p = cast(T*) MEM_PH_REALLOC(barray.tab, newcap * T.sizeof);
+                p = cast(T*) mem_realloc(barray.tab, newcap * T.sizeof);
             else
                 p = cast(T*) realloc(barray.tab, newcap * T.sizeof);
 
@@ -106,7 +99,7 @@ struct symtab_t
     void dtor()
     {
         if (config.flags2 & (CFG2phgen | CFG2phuse | CFG2phauto | CFG2phautoy))
-            MEM_PH_FREE(tab);
+            mem_free(tab);
         else
             free(tab);
         length = 0;

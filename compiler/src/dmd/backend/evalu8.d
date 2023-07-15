@@ -34,27 +34,12 @@ import dmd.backend.type;
 
 import dmd.common.int128;
 
-version (SCPP)
-{
-import msgs2;
-import parser;
-import scopeh;
-}
-
 extern (C++):
 
 nothrow:
 @safe:
 
-version (MARS)
-    import dmd.backend.errors;
-
-// fp.c
-int testFE();
-void clearFE();
-int statusFE();
-bool have_float_except();
-
+import dmd.backend.fp : testFE, clearFE, statusFE, have_float_except;
 
 /**********************
  * Return boolean result of constant elem.
@@ -73,14 +58,6 @@ int boolres(elem *e)
         case OPstring:
             return true;
 
-version (SCPP)
-{
-        case OPvar:
-            assert(CPP && PARSER);
-            el_toconst(e);
-            assert(e.Eoper == OPconst);
-            goto case OPconst;
-}
         case OPconst:
             switch (tybasic(typemask(e)))
             {   case TYchar:
@@ -151,12 +128,6 @@ version (SCPP)
                     break;
 
                 case TYstruct:  // happens on syntax error of (struct x)0
-                version (SCPP)
-                {
-                    assert(errcnt);
-                    goto case TYvoid;
-                }
-                else
                     assert(0);
 
                 case TYvoid:    /* happens if we get syntax errors or
@@ -1121,8 +1092,6 @@ static if (0)
         }
         break;
     case OPmod:
-version (MARS)
-{
         if (!tyfloating(tym))
         {
             if (!boolres(e2))
@@ -1136,21 +1105,6 @@ version (MARS)
                     break;
             }
         }
-}
-else
-{
-        if (1)
-        {
-            if (!boolres(e2))
-            {
-                div0:
-                overflow:
-                    version (SCPP)
-                        synerr(EM_divby0);
-                    break;
-            }
-        }
-}
         if (uns)
         {
             if (tym == TYucent)
@@ -1308,22 +1262,8 @@ else
         }
         if (cast(targ_ullong) i2 > targ_ullong.sizeof * 8)
             i2 = targ_ullong.sizeof * 8;
-version (SCPP)
-{
-        if (tyuns(tym))
-        {   //printf("unsigned\n");
-            e.EV.Vullong = (cast(targ_ullong) l1) >> i2;
-        }
-        else
-        {   //printf("signed\n");
-            e.EV.Vllong = l1 >> i2;
-        }
-}
-version (MARS)
-{
         // Always unsigned
         e.EV.Vullong = (cast(targ_ullong) l1) >> i2;
-}
         break;
 
     case OPbtst:
@@ -1332,8 +1272,6 @@ version (MARS)
         e.EV.Vullong = ((cast(targ_ullong) l1) >> i2) & 1;
         break;
 
-version (MARS)
-{
     case OPashr:
         if (tym == TYcent || tym == TYucent)
         {
@@ -1345,7 +1283,6 @@ version (MARS)
         // Always signed
         e.EV.Vllong = l1 >> i2;
         break;
-}
 
     case OPpair:
         switch (tysize(e.Ety))
@@ -1977,8 +1914,6 @@ static if (0) // && MARS
         return e;
   }
 
-    int flags;
-
     if (!(goal & GOALignore_exceptions) &&
         (config.flags4 & CFG4fastfloat) == 0 && testFE() &&
         (have_float_except() || tyfloating(tym) || tyfloating(tybasic(typemask(e))))
@@ -1990,17 +1925,6 @@ static if (0) // && MARS
     }
     else
     {
-version (SCPP)
-{
-        if ((flags = statusFE()) & 0x3F)
-        {   // Should also give diagnostic warning for:
-            // overflow, underflow, denormal, invalid
-            if (flags & 0x04)
-                warerr(WM.WM_divby0);
-    //      else if (flags & 0x08)          // overflow
-    //          warerr(WM.WM_badnumber);
-        }
-}
     }
 
   /*debug printf("result = x%lx\n",e.EV.Vlong);*/

@@ -13,14 +13,6 @@
 
 module dmd.backend.dcode;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -133,6 +125,4 @@ debug
     printf("Max # of codes = %d\n",count);
 }
 }
-}
-
 }

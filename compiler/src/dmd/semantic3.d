@@ -1367,6 +1367,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
             if (isCppNonMappableType(f.next.toBasetype()))
             {
                 funcdecl.error("cannot return type `%s` because its linkage is `extern(C++)`", f.next.toChars());
+                if (f.next.isTypeDArray())
+                    errorSupplemental(funcdecl.loc, "slices are specific to D and do not have a counterpart representation in C++", f.next.toChars());
                 funcdecl.errors = true;
             }
             foreach (i, param; f.parameterList)
@@ -1420,7 +1422,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
          * https://issues.dlang.org/show_bug.cgi?id=14246
          */
         AggregateDeclaration ad = ctor.isMemberDecl();
-        if (!ctor.fbody || !ad || !ad.fieldDtor || !global.params.dtorFields || global.params.betterC || ctor.type.toTypeFunction.isnothrow)
+        if (!ctor.fbody || !ad || !ad.fieldDtor || !global.params.dtorFields || !global.params.useExceptions || ctor.type.toTypeFunction.isnothrow)
             return visit(cast(FuncDeclaration)ctor);
 
         /* Generate:
@@ -1605,7 +1607,7 @@ private struct FuncDeclSem3
         sc = s;
     }
 
-    /* Checks that the overriden functions (if any) have in contracts if
+    /* Checks that the overridden functions (if any) have in contracts if
      * funcdecl has an in contract.
      */
     void checkInContractOverrides()

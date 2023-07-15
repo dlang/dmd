@@ -16,14 +16,6 @@
 
 module dmd.backend.gsroa;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -49,8 +41,6 @@ nothrow:
 
 private enum log = false;       // print logging info
 private enum enable = true;     // enable SROA
-
-int REGSIZE();
 
 alias SLICESIZE = REGSIZE;  // slices are all register-sized
 enum MAXSLICES = 2;         // max # of pieces we can slice an aggregate into
@@ -567,6 +557,4 @@ private int getSize(const(elem)* e)
     if (sz == -1 && e.ET && (tybasic(e.Ety) == TYstruct || tybasic(e.Ety) == TYarray))
         sz = cast(int)type_size(e.ET);
     return sz;
-}
-
 }

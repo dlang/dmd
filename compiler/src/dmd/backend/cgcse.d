@@ -14,14 +14,6 @@
 
 module dmd.backend.cgcse;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -277,6 +269,3 @@ struct CSE
  * The slot number should be unique to each CSE, and allocation of actual slots should be
  * done after the code is generated, not during generation.
  */
-
-
-}

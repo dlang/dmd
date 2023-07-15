@@ -10,14 +10,6 @@
  */
 module dmd.backend.cgobj;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.ctype;
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -48,33 +40,19 @@ extern (C++):
 nothrow:
 @safe:
 
-version (SCPP)
-{
-    import filespec;
-    import msgs2;
-    import scopeh;
+import dmd.backend.dvarstats;
 
-    extern(C) char* getcwd(char*,size_t);
+import dmd.backend.filespec : filespecdotext, filespecgetroot, filespecname;
+
+version (Windows)
+{
+    extern (C) int stricmp(const(char)*, const(char)*) pure nothrow @nogc;
+    alias filespeccmp = stricmp;
 }
+else
+    alias filespeccmp = strcmp;
 
-version (MARS)
-{
-    import dmd.backend.dvarstats;
-
-    //import dmd.backend.filespec;
-    char *filespecdotext(const(char)* filespec);
-    char *filespecgetroot(const(char)* name);
-    char *filespecname(const(char)* filespec);
-
-    version (Windows)
-    {
-        extern (C) int stricmp(const(char)*, const(char)*) pure nothrow @nogc;
-        alias filespeccmp = stricmp;
-    }
-    else
-        alias filespeccmp = strcmp;
-
-    extern(C) char* getcwd(char*,size_t);
+extern(C) char* getcwd(char*,size_t);
 
 struct Loc
 {
@@ -94,7 +72,6 @@ static if (__VERSION__ < 2092)
     void error(Loc loc, const(char)* format, ...);
 else
     pragma(printf) void error(Loc loc, const(char)* format, ...);
-}
 
 version (Windows)
 {
@@ -115,15 +92,13 @@ version (Posix)
     }
 }
 
-int obj_namestring(char *p,const(char)* name);
-
 enum MULTISCOPE = 1;            /* account for bug in MultiScope debugger
                                    where it cannot handle a line number
                                    with multiple offsets. We use a bit vector
                                    to filter out the extra offsets.
                                  */
 
-extern (C) void TOOFFSET(void* p, targ_size_t value);
+import dmd.backend.dcgcv : TOOFFSET;
 
 @trusted
 void TOWORD(void* a, uint b)
@@ -318,10 +293,7 @@ enum
 
 struct Linnum
 {
-version (MARS)
         const(char)* filename;  // source file name
-else
-        Sfile *filptr;          // file pointer
 
         int cseg;               // our internal segment number
         int seg;                // segment/public index
@@ -393,12 +365,9 @@ static if (MULTISCOPE)
 
     int fisegi;                 // SegData[] index of FI segment
 
-version (MARS)
-{
     int fmsegi;                 // SegData[] of FM segment
     int datrefsegi;             // SegData[] of DATA pointer ref segment
     int tlsrefsegi;             // SegData[] of TLS pointer ref segment
-}
 
     int tlssegi;                // SegData[] of tls segment
     int fardataidx;
@@ -423,10 +392,7 @@ version (MARS)
     Rarray!(Linnum) linnum_list;
     Barray!(char*) linreclist;  // array of line records
 
-version (MARS)
-{
     Barray!PtrRef ptrrefs;      // buffer for pointer references
-}
 }
 
 __gshared
@@ -457,28 +423,13 @@ void objrecord(uint rectyp, const(char)* record, uint reclen)
     o.writeByten(0);           // use 0 for checksum
 }
 
-
-/**************************
- * Insert an index number.
- * Input:
- *      p . where to put the 1 or 2 byte index
- *      index = the 15 bit index
- * Returns:
- *      # of bytes stored
- */
-
 void error(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...);
 void fatal();
 
 void too_many_symbols()
 {
-version (SCPP)
-    err_fatal(EM_too_many_symbols, 0x7FFF);
-else // MARS
-{
     error(null, 0, 0, "more than %d symbols in object file", 0x7FFF);
     fatal();
-}
 }
 
 version (X86) version (DigitalMars)
@@ -637,20 +588,10 @@ Symbol * OmfObj_sym_cdata(tym_t ty,char *p,int len)
 
 int OmfObj_data_readonly(char *p, int len, int *pseg)
 {
-version (MARS)
-{
     targ_size_t oldoff = Offset(CDATA);
     OmfObj_bytes(CDATA,Offset(CDATA),len,p);
     Offset(CDATA) += len;
     *pseg = CDATA;
-}
-else
-{
-    targ_size_t oldoff = Offset(DATA);
-    OmfObj_bytes(DATA,Offset(DATA),len,p);
-    Offset(DATA) += len;
-    *pseg = DATA;
-}
     return cast(int)oldoff;
 }
 
@@ -820,21 +761,9 @@ void OmfObj_term(const(char)* objfilename)
         list_t dl;
         uint size;
 
-version (SCPP)
-{
-        if (!errcnt)
-        {
-            obj_defaultlib();
-            objflush_pointerRefs();
-            outfixlist();               // backpatches
-        }
-}
-else
-{
         obj_defaultlib();
         objflush_pointerRefs();
         outfixlist();               // backpatches
-}
         if (config.fulltypes)
             cv_term();                  // write out final debug info
         outextdata();                   // finish writing EXTDEFs
@@ -949,7 +878,6 @@ static if (TERMCODE)
 @trusted
 void OmfObj_linnum(Srcpos srcpos,int seg,targ_size_t offset)
 {
-version (MARS)
     varStats_recordLineOffset(srcpos, offset);
 
     uint linnum = srcpos.Slinnum;
@@ -962,19 +890,8 @@ static if (0)
 
     char linos2 = config.exe == EX_OS2 && !seg_is_comdat(SegData[seg].segidx);
 
-version (MARS)
-{
     bool cond = (!obj.term &&
         (seg_is_comdat(SegData[seg].segidx) || (srcpos.Sfilename && srcpos.Sfilename != obj.modname)));
-}
-else
-{
-    if (!srcpos.Sfilptr)
-        return;
-    sfile_debug(*srcpos.Sfilptr);
-    bool cond = !obj.term &&
-                (!(srcpos_sfile(srcpos).SFflags & SFtop) || (seg_is_comdat(SegData[seg].segidx) && !obj.term));
-}
     if (cond)
     {
         // Not original source file, or a COMDAT.
@@ -989,10 +906,7 @@ else
         Linnum* ln;
         foreach (ref rln; obj.linnum_list)
         {
-            version (MARS)
-                bool cond2 = rln.filename == srcpos.Sfilename;
-            else version (SCPP)
-                bool cond2 = rln.filptr == *srcpos.Sfilptr;
+            bool cond2 = rln.filename == srcpos.Sfilename;
 
             if (cond2 &&
                 rln.cseg == seg)
@@ -1003,10 +917,7 @@ else
         }
         // Create new entry
         ln = obj.linnum_list.push();
-        version (MARS)
-            ln.filename = srcpos.Sfilename;
-        else
-            ln.filptr = *srcpos.Sfilptr;
+        ln.filename = srcpos.Sfilename;
 
         ln.cseg = seg;
         ln.seg = obj.pubnamidx;
@@ -1158,10 +1069,6 @@ static if (MULTISCOPE)
 @trusted
 private void linnum_term()
 {
-version (SCPP)
-    Sfile *lastfilptr = null;
-
-version (MARS)
     const(char)* lastfilename = null;
 
     const csegsave = cseg;
@@ -1171,35 +1078,19 @@ version (MARS)
 
     foreach (ref ln; obj.linnum_list)
     {
-        version (SCPP)
+        const(char)* filename = ln.filename;
+        if (filename != lastfilename)
         {
-            Sfile *filptr = ln.filptr;
-            if (filptr != lastfilptr)
-            {
-                if (lastfilptr == null && strcmp(filptr.SFname,obj.modname))
-                    OmfObj_theadr(filptr.SFname);
-                lastfilptr = filptr;
-            }
-        }
-        version (MARS)
-        {
-            const(char)* filename = ln.filename;
-            if (filename != lastfilename)
-            {
-                if (filename)
-                    objmod.theadr(filename);
-                lastfilename = filename;
-            }
+            if (filename)
+                objmod.theadr(filename);
+            lastfilename = filename;
         }
         cseg = ln.cseg;
         assert(cseg > 0);
         obj.pubnamidx = ln.seg;
 
         Srcpos srcpos;
-        version (MARS)
-            srcpos.Sfilename = ln.filename;
-        else
-            srcpos.Sfilptr = &ln.filptr;
+        srcpos.Sfilename = ln.filename;
 
         const slice = ln.data[];
         const pend = slice.ptr + slice.length;
@@ -1345,10 +1236,7 @@ private void obj_defaultlib()
     char[4] library;            // default library
     static immutable char[5+1] model = "SMCLV";
 
-version (MARS)
     memcpy(library.ptr,"SM?".ptr,4);
-else
-    memcpy(library.ptr,"SD?".ptr,4);
 
     switch (config.exe)
     {
@@ -1360,10 +1248,7 @@ else
             library[1] = 'O';
             break;
         case EX_WIN32:
-version (MARS)
             library[1] = 'M';
-else
-            library[1] = 'N';
 
             library[2] = (config.flags4 & CFG4dllrtl) ? 'D' : 'N';
             break;
@@ -1490,13 +1375,9 @@ void OmfObj_theadr(const(char)* modname)
  */
 
 @trusted
-void OmfObj_compiler()
+void OmfObj_compiler(const(char)* p)
 {
-    const(char)* compiler = "\0\xDB" ~ "Digital Mars C/C++"
-        ~ VERSION
-        ;       // compiled by ...
-
-    objrecord(COMENT,compiler,cast(uint)strlen(compiler));
+    obj_comment(0xDB, p, strlen(p));
 }
 
 /*******************************
@@ -1668,19 +1549,7 @@ private void objsegdef(int attr,targ_size_t size,int segnamidx,int classnamidx)
     }
     else                                // 16 bit segment
     {
-version (MARS)
         assert(0);
-else
-{
-        if (size & ~0xFFFFL)
-        {
-            if (size == 0x10000)        // if exactly 64Kb
-                sd[0] |= 2;             // set "B" bit
-            else
-                synerr(EM_seg_gt_64k,size);     // segment exceeds 64Kb
-        }
-//printf("attr = %x\n", attr);
-}
     }
     debug
     assert(reclen <= sd.sizeof);
@@ -1710,22 +1579,10 @@ void OmfObj_segment_group(targ_size_t codesize,targ_size_t datasize,
 
     objsegdef(obj.csegattr,codesize,3,CODECLASS);  // seg _TEXT, class CODE
 
-version (MARS)
-{
     dsegattr = SEG_ATTR(SEG_ALIGN16,SEG_C_PUBLIC,0,USE32);
     objsegdef(dsegattr,datasize,5,DATACLASS);   // [DATA]  seg _DATA, class DATA
     objsegdef(dsegattr,cdatasize,7,CDATACLASS); // [CDATA] seg CONST, class CONST
     objsegdef(dsegattr,udatasize,8,BSSCLASS);   // [UDATA] seg _BSS,  class BSS
-}
-else
-{
-    dsegattr = I32
-          ? SEG_ATTR(SEG_ALIGN4,SEG_C_PUBLIC,0,USE32)
-          : SEG_ATTR(SEG_ALIGN2,SEG_C_PUBLIC,0,USE16);
-    objsegdef(dsegattr,datasize,5,DATACLASS);   // seg _DATA, class DATA
-    objsegdef(dsegattr,cdatasize,7,CDATACLASS); // seg CONST, class CONST
-    objsegdef(dsegattr,udatasize,8,BSSCLASS);   // seg _BSS, class BSS
-}
 
     obj.lnameidx = 10;                          // next lname index
     obj.segidx = 5;                             // next segment index
@@ -1880,9 +1737,6 @@ void OmfObj_setModuleCtorDtor(Symbol *s, bool isCtor)
 
     symbol_debug(s);
 
-version (SCPP)
-    debug assert(memcmp(s.Sident.ptr,"_ST".ptr,3) == 0);
-
     // Determine if constructor or destructor
     // _STI... is a constructor, _STD... is a destructor
     int i = !isCtor;
@@ -1976,10 +1830,6 @@ void OmfObj_ehsections()
  * Append pointer to ModuleInfo to "FM" segment.
  * The FM segment is bracketed by the empty FMB and FME segments.
  */
-
-version (MARS)
-{
-
 @trusted
 void OmfObj_moduleinfo(Symbol *scc)
 {
@@ -2020,8 +1870,6 @@ void OmfObj_moduleinfo(Symbol *scc)
     targ_size_t offset = SegData[obj.fmsegi].SDoffset;
     offset += OmfObj_reftoident(obj.fmsegi,offset,scc,0,LARGECODE ? CFoff | CFseg : CFoff);     // put out function pointer
     SegData[obj.fmsegi].SDoffset = offset;
-}
-
 }
 
 
@@ -2238,13 +2086,7 @@ seg_data* OmfObj_tlsseg()
 
         objrecord(LNAMES,tlssegname.ptr,tlssegname.sizeof - 1);
 
-version (MARS)
         segattr = SEG_ATTR(SEG_ALIGN16,SEG_C_PUBLIC,0,USE32);
-else
-        segattr = I32
-            ? SEG_ATTR(SEG_ALIGN4,SEG_C_PUBLIC,0,USE32)
-            : SEG_ATTR(SEG_ALIGN2,SEG_C_PUBLIC,0,USE16);
-
 
         // Put out beginning segment (.tls)
         objsegdef(segattr,0,obj.lnameidx + 2,obj.lnameidx + 1);
@@ -2363,73 +2205,7 @@ private int obj_newfarseg(targ_size_t size,int classidx)
 
 void OmfObj_import(elem *e)
 {
-version (MARS)
     assert(0);
-else
-{
-    Symbol *s;
-    Symbol *simp;
-
-    elem_debug(e);
-    if ((e.Eoper == OPvar || e.Eoper == OPrelconst) &&
-        (s = e.EV.Vsym).ty() & mTYimport &&
-        (s.Sclass == SC.extern_ || s.Sclass == SC.inline)
-       )
-    {
-        char* name;
-        char* p;
-        size_t len;
-        char[IDMAX + IDOHD + 1] buffer = void;
-
-        // Create import name
-        len = OmfObj_mangle(s,buffer.ptr);
-        if (buffer[0] == cast(char)0xFF && buffer[1] == 0)
-        {   name = buffer.ptr + 4;
-            len -= 4;
-        }
-        else
-        {   name = buffer.ptr + 1;
-            len -= 1;
-        }
-        if (config.flags4 & CFG4underscore)
-        {   p = cast(char *) alloca(5 + len + 1);
-            memcpy(p,"_imp_".ptr,5);
-            memcpy(p + 5,name,len);
-            p[5 + len] = 0;
-        }
-        else
-        {   p = cast(char *) alloca(6 + len + 1);
-            memcpy(p,"__imp_".ptr,6);
-            memcpy(p + 6,name,len);
-            p[6 + len] = 0;
-        }
-        simp = scope_search(p,SCTglobal);
-        if (!simp)
-        {   type *t;
-
-            simp = scope_define(p,SCTglobal,SC.extern_);
-            simp.Ssequence = 0;
-            simp.Sfl = FLextern;
-            simp.Simport = s;
-            t = newpointer(s.Stype);
-            t.Tmangle = mTYman_c;
-            t.Tcount++;
-            simp.Stype = t;
-        }
-        assert(!e.EV.Voffset);
-        if (e.Eoper == OPrelconst)
-        {
-            e.Eoper = OPvar;
-            e.EV.Vsym = simp;
-        }
-        else // OPvar
-        {
-            e.Eoper = OPind;
-            e.EV.E1 = el_var(simp);
-            e.EV.E2 = null;
-        }
-    }
-}
 }
 
 /*******************************
@@ -2446,12 +2222,7 @@ size_t OmfObj_mangle(Symbol *s,char *dest)
     char *name2 = null;
 
     //printf("OmfObj_mangle('%s'), mangle = x%x\n",s.Sident.ptr,type_mangle(s.Stype));
-version (SCPP)
-    name = CPP ? cpp_mangle(s) : &s.Sident[0];
-else version (MARS)
     name = &s.Sident[0];
-else
-    static assert(0);
 
     len = strlen(name);                 // # of bytes in name
 
@@ -2466,8 +2237,6 @@ else
 
         // Attempt to compress the name
         name2 = id_compress(name, cast(int)len, &len2);
-version (MARS)
-{
         if (len2 > LIBIDMAX)            // still too long
         {
             /* Form md5 digest of the name and store it in the
@@ -2497,28 +2266,6 @@ version (MARS)
             name = name2;
             len = len2;
         }
-}
-else
-{
-        if (len2 > IDMAX)               // still too long
-        {
-version (SCPP)
-            synerr(EM_identifier_too_long, name, len - IDMAX, IDMAX);
-else version (MARS)
-{
-//          error(Loc(), "identifier %s is too long by %d characters", name, len - IDMAX);
-}
-else
-            assert(0);
-
-            len = IDMAX;
-        }
-        else
-        {
-            name = name2;
-            len = len2;
-        }
-}
     }
     ilen = len;
     if (ilen > (255-2-int.sizeof*3))
@@ -2660,7 +2407,6 @@ void OmfObj_func_start(Symbol *sfunc)
     sfunc.Sseg = cseg;             // current code seg
     sfunc.Soffset = Offset(cseg);       // offset of start of function
 
-version (MARS)
     varStats_startFunction();
 }
 
@@ -3308,7 +3054,7 @@ L1:     { }
  * Append bytes to segment.
  */
 
-void OmfObj_write_bytes(seg_data *pseg, uint nbytes, void *p)
+void OmfObj_write_bytes(seg_data *pseg, uint nbytes, const(void)* p)
 {
     OmfObj_bytes(pseg.SDseg, pseg.SDoffset, nbytes, p);
     pseg.SDoffset += nbytes;
@@ -3321,7 +3067,7 @@ void OmfObj_write_bytes(seg_data *pseg, uint nbytes, void *p)
  */
 
 @trusted
-uint OmfObj_bytes(int seg, targ_size_t offset, uint nbytes, void* p)
+uint OmfObj_bytes(int seg, targ_size_t offset, uint nbytes, const(void)* p)
 {
     uint n = nbytes;
 
@@ -3340,7 +3086,7 @@ uint OmfObj_bytes(int seg, targ_size_t offset, uint nbytes, void* p)
         {
             OmfObj_byte(seg, offset, *cast(char*)p);
             offset++;
-            p = (cast(char *)p) + 1;
+            ++p;
             nbytes--;
             lr = cast(Ledatarec*)SegData[seg].ledata;
             if (lr.i + nbytes <= LEDATAMAX)
@@ -3351,7 +3097,7 @@ uint OmfObj_bytes(int seg, targ_size_t offset, uint nbytes, void* p)
                 {
                     lr = ledata_new(seg, offset);
                     memcpy(lr.data.ptr, p, LEDATAMAX);
-                    p = (cast(char *)p) + LEDATAMAX;
+                    p += LEDATAMAX;
                     nbytes -= LEDATAMAX;
                     offset += LEDATAMAX;
                     lr.i = LEDATAMAX;
@@ -4004,11 +3750,8 @@ void OmfObj_gotref(Symbol *s)
 @trusted
 void OmfObj_write_pointerRef(Symbol* s, uint soff)
 {
-version (MARS)
-{
     // defer writing pointer references until the symbols are written out
     obj.ptrrefs.push(PtrRef(s, soff));
-}
 }
 
 /*****************************************
@@ -4020,8 +3763,6 @@ version (MARS)
  */
 @trusted
 private void objflush_pointerRef(Symbol* s, uint soff)
-{
-version (MARS)
 {
     bool isTls = (s.Sfl == FLtlsdata);
     int* segi = isTls ? &obj.tlsrefsegi : &obj.datrefsegi;
@@ -4061,7 +3802,6 @@ version (MARS)
     offset += objmod.reftoident(*segi, offset, s, soff, CFoff);
     SegData[*segi].SDoffset = offset;
 }
-}
 
 /*****************************************
  * flush all pointer references saved by write_pointerRef
@@ -4070,12 +3810,7 @@ version (MARS)
 @trusted
 private void objflush_pointerRefs()
 {
-version (MARS)
-{
     foreach (ref pr; obj.ptrrefs)
         objflush_pointerRef(pr.sym, pr.offset);
     obj.ptrrefs.reset();
-}
-}
-
 }

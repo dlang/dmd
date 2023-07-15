@@ -11,18 +11,8 @@
 
 module dmd.backend.ptrntab;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.stdio;
 import core.stdc.string;
-
-version (SCPP) extern (C) char* strlwr(return char* s);
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
@@ -61,6 +51,8 @@ alias aptb0AAA = OPTABLE0!(     0x37  ,_i64_bit | _modax);
 alias aptb0AAD = OPTABLE0!(     0xd50a,_i64_bit | _modax);
 alias aptb0AAM = OPTABLE0!(     0xd40a,_i64_bit | _modax);
 alias aptb0AAS = OPTABLE0!(     0x3f,  _i64_bit | _modax);
+alias aptb0ENDBR32 = OPTABLE0!( ENDBR32, _I386);
+alias aptb0ENDBR64 = OPTABLE0!( ENDBR64, _I386);
 alias aptb0CBW = OPTABLE0!(     0x98,_16_bit | _modax);
 alias aptb0CWDE = OPTABLE0!(    0x98,_32_bit | _I386 | _modax);
 alias aptb0CDQE = OPTABLE0!(    0x98,_64_bit | _modax);
@@ -4943,6 +4935,8 @@ immutable OP[] optab = [
     { "dt",         ITdata | OPdt,  { null } },
     { "dw",         ITdata | OPdw,  { null } },
     { "emms",       0,              { &aptb0EMMS[0] } },
+    { "endbr32",    0,              { &aptb0ENDBR32[0] } },
+    { "endbr64",    0,              { &aptb0ENDBR64[0] } },
     { "enter",      2,              { &aptb2ENTER[0] } },
     { "extractps",  3,              { &aptb3EXTRACTPS[0] } },
     { "f2xm1",      ITfloat | 0,    { &aptb0F2XM1[0] } },
@@ -5823,9 +5817,6 @@ extern (C++) OP *asm_op_lookup(const(char)* s)
         return null;
     strcpy(szBuf.ptr,s);
 
-    version (SCPP)
-        strlwr(szBuf.ptr);
-
     i = binary(szBuf.ptr,optab);
     return (i == -1) ? null : cast(OP*)&optab[i];
 }
@@ -5852,7 +5843,4 @@ private int binary(const(char)* p, const OP[] table)
             return cast(int)mid;                 /* match index                  */
     }
     return -1;
-}
-
-
 }

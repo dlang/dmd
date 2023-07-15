@@ -51,7 +51,7 @@ struct S2
 #pragma pack(pop)
 #pragma pack(show)
 
-_Static_assert(sizeof(struct S2) == 1 + 1, "2");
+_Static_assert(sizeof(struct S2) == 8, "2");
 
 #pragma pack(push, 8)
 #pragma pack(show)
@@ -63,7 +63,7 @@ struct S3
 #pragma pack(pop)
 #pragma pack(show)
 
-_Static_assert(sizeof(struct S3) == 4, "3");
+_Static_assert(sizeof(struct S3) == 8, "3");
 
 #pragma pack()
 #pragma pack(show)

@@ -304,9 +304,6 @@ enum
     CFPREFIX    = CFSEG | CFopsize | CFaddrsize,
 }
 
-@trusted
-extern (C) void CF_print(uint cf);
-
 struct code
 {
     code *next;
@@ -399,8 +396,6 @@ struct code
     }
 }
 
-extern (C) void code_print(scope code*);
-
 /*******************
  * Some instructions.
  */
@@ -469,6 +464,8 @@ enum
 
     ESCAPE  = SEGDS,   // marker that special information is here
                        // (Iop2 is the type of special information)
+    ENDBR32 = 0xF30F1EFB,
+    ENDBR64 = 0xF30F1EFA,
 }
 
 

@@ -45,12 +45,6 @@ public extern (C++) void comsubs()
 {
     debug if (debugx) printf("comsubs(%p)\n",startblock);
 
-    version (SCPP)
-    {
-        if (errcnt)
-            return;
-    }
-
     comsubs2(startblock, cgcsdata);
 
     debug if (debugx)

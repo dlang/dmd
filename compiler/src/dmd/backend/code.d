@@ -85,14 +85,9 @@ union evc
 
 /********************** PUBLIC FUNCTIONS *******************/
 
-code *code_calloc();
-void code_free(code *);
-void code_term();
+public import dmd.backend.dcode : code_calloc, code_free, code_term, code_chunk_alloc, code_list;
 
 code *code_next(code *c) { return c.next; }
-
-code *code_chunk_alloc();
-extern __gshared code *code_list;
 
 @trusted
 code *code_malloc()
@@ -144,8 +139,6 @@ struct LocalSection
  * what parts of NT exception handling we need.
  */
 
-extern __gshared uint usednteh;
-
 enum
 {
     NTEH_try        = 1,      // used _try statement
@@ -175,51 +168,12 @@ struct CGstate
     bool accessedTLS;           // set if accessed Thread Local Storage (TLS)
 }
 
-// nteh.c
-void nteh_prolog(ref CodeBuilder cdb);
-void nteh_epilog(ref CodeBuilder cdb);
-void nteh_usevars();
-void nteh_filltables();
-void nteh_gentables(Symbol *sfunc);
-void nteh_setsp(ref CodeBuilder cdb, opcode_t op);
-void nteh_filter(ref CodeBuilder cdb, block *b);
-void nteh_framehandler(Symbol *, Symbol *);
-void nteh_gensindex(ref CodeBuilder, int);
-enum GENSINDEXSIZE = 7;
-void nteh_monitor_prolog(ref CodeBuilder cdb,Symbol *shandle);
-void nteh_monitor_epilog(ref CodeBuilder cdb,regm_t retregs);
-code *nteh_patchindex(code* c, int index);
-void nteh_unwind(ref CodeBuilder cdb,regm_t retregs,uint index);
+public import dmd.backend.nteh;
+public import dmd.backend.cgen;
+public import dmd.backend.cgreg : cgreg_init, cgreg_term, cgreg_reset, cgreg_used,
+    cgreg_spillreg_prolog, cgreg_spillreg_epilog, cgreg_assign, cgreg_unregister;
 
-// cgen.c
-code *code_last(code *c);
-void code_orflag(code *c,uint flag);
-void code_orrex(code *c,uint rex);
-code *setOpcode(code *c, code *cs, opcode_t op);
-code *cat(code *c1, code *c2);
-code *gen1 (code *c , opcode_t op );
-code *gen2 (code *c , opcode_t op , uint rm );
-code *gen2sib(code *c,opcode_t op,uint rm,uint sib);
-code *genc2 (code *c , opcode_t op , uint rm , targ_size_t EV2 );
-code *genc (code *c , opcode_t op , uint rm , uint FL1 , targ_size_t EV1 , uint FL2 , targ_size_t EV2 );
-code *genlinnum(code *,Srcpos);
-code *gennop(code *);
-void gencodelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,bool constflag);
-bool reghasvalue (regm_t regm , targ_size_t value , reg_t *preg );
-void regwithvalue(ref CodeBuilder cdb, regm_t regm, targ_size_t value, reg_t *preg, regm_t flags);
-
-// cgreg.c
-void cgreg_init();
-void cgreg_term();
-void cgreg_reset();
-void cgreg_used(uint bi,regm_t used);
-void cgreg_spillreg_prolog(block *b,Symbol *s,ref CodeBuilder cdbstore,ref CodeBuilder cdbload);
-void cgreg_spillreg_epilog(block *b,Symbol *s,ref CodeBuilder cdbstore,ref CodeBuilder cdbload);
-int cgreg_assign(Symbol *retsym);
-void cgreg_unregister(regm_t conflict);
-
-// cgsched.c
-void cgsched_block(block *b);
+public import dmd.backend.cgsched : cgsched_block;
 
 alias IDXSTR = uint;
 alias IDXSEC = uint;
@@ -265,8 +219,8 @@ struct seg_data
     int isCode() { return config.objfmt == OBJ_MACH ? mach_seg_data_isCode(this) : mscoff_seg_data_isCode(this); }
 }
 
-extern int mach_seg_data_isCode(const ref seg_data sd) @system;
-extern int mscoff_seg_data_isCode(const ref seg_data sd) @system;
+public import dmd.backend.machobj : mach_seg_data_isCode;
+public import dmd.backend.mscoffobj : mscoff_seg_data_isCode;
 
 struct linnum_data
 {
@@ -282,7 +236,7 @@ struct LinOff
     uint offset;
 }
 
-extern __gshared Rarray!(seg_data*) SegData;
+public import dmd.backend.cgobj : SegData;
 
 @trusted
 ref targ_size_t Offset(int seg) { return SegData[seg].SDoffset; }
@@ -320,30 +274,9 @@ struct FuncParamRegs
     const(ubyte)* floatregs;    // map to fp register
 }
 
-extern __gshared
-{
-    regm_t msavereg,mfuncreg,allregs;
+public import dmd.backend.cg : BPRM, FLOATREGS, FLOATREGS2, DOUBLEREGS,
+    localsize, framehandleroffset, cseg, STACKALIGN, TARGET_STACKALIGN;
 
-    int BPRM;
-    regm_t FLOATREGS;
-    regm_t FLOATREGS2;
-    regm_t DOUBLEREGS;
-    //const char datafl[],stackfl[],segfl[],flinsymtab[];
-    char needframe,gotref;
-    targ_size_t localsize,
-        funcoffset,
-        framehandleroffset;
-    segidx_t cseg;
-    int STACKALIGN;
-    int TARGET_STACKALIGN;
-    LocalSection Para;
-    LocalSection Fast;
-    LocalSection Auto;
-    LocalSection EEStack;
-    LocalSection Alloca;
-}
-
-/* cgcod.c */
 public import dmd.backend.cgcod;
 enum BackendPass
 {
@@ -369,72 +302,7 @@ else
 reg_t findregmsw(uint regm) { return findreg(regm & mMSW); }
 reg_t findreglsw(uint regm) { return findreg(regm & (mLSW | mBP)); }
 
-/* cdxxx.c: functions that go into cdxxx[] table */
-void cdabs(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdaddass(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdasm(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdbscan(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdbswap(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdbt(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdbtst(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdbyteint(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdcmp(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdcmpxchg(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdcnvt(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdcom(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdcomma(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdcond(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdconvt87(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdctor(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cddctor(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdddtor(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cddtor(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdeq(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cderr(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdfar16(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdframeptr(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdgot(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdhalt(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdind(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdinfo(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdlngsht(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdloglog(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdmark(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdmemcmp(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdmemcpy(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdmemset(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdmsw(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdmul(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cddiv(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdmulass(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cddivass(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdneg(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdnot(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdorth(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdpair(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdpopcnt(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdport(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdpost(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdprefetch(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdrelconst(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdrndtol(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdscale(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
 void cdsetjmp(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdshass(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdshift(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdshtlng(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdstrcmp(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdstrcpy(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdstreq(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdstrlen(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdstrthis(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdtoprec(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdvecfill(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdvecsto(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdvector(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void cdvoid(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
-void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
 
 public import dmd.backend.cod1;
 public import dmd.backend.cod2;

@@ -214,7 +214,7 @@ struct Usage
                     $(LI $(B in): in contracts)
                     $(LI $(B invariant): class/struct invariants)
                     $(LI $(B out): out contracts)
-                    $(LI $(B switch): finalswitch failure checking)
+                    $(LI $(B switch): $(D final switch) failure checking)
                 )
                 $(UL
                     $(LI $(B on) or not specified: specified check is enabled.)
@@ -226,8 +226,8 @@ struct Usage
         ),
         Option("checkaction=[D|C|halt|context]",
             "behavior on assert/boundscheck/finalswitch failure",
-            `Sets behavior when an assert fails, and array boundscheck fails,
-             or a final switch errors.
+            `Sets behavior when an assert or an array bounds check fails,
+             or a $(D final switch) errors.
                 $(UL
                     $(LI $(B D): Default behavior, which throws an unrecoverable $(D AssertError).)
                     $(LI $(B C): Calls the C runtime library assert failure function.)
@@ -394,7 +394,7 @@ dmd -cov -unittest myprog.d
         ),
         Option("Hd=<directory>",
             "write 'header' file to directory",
-            `Write D interface file to $(I dir) directory. $(SWLINK -op)
+            `Write D interface file to $(I directory). $(SWLINK -op)
             can be used if the original package hierarchy should
             be retained.`,
         ),
@@ -429,7 +429,7 @@ dmd -cov -unittest myprog.d
             q"{$(P Enables "include imports" mode, where the compiler will include imported
              modules in the compilation, as if they were given on the command line. By default, when
              this option is enabled, all imported modules are included except those in
-             druntime/phobos. This behavior can be overriden by providing patterns via `-i=<pattern>`.
+             druntime/phobos. This behavior can be overridden by providing patterns via `-i=<pattern>`.
              A pattern of the form `-i=<package>` is an "inclusive pattern", whereas a pattern
              of the form `-i=-<package>` is an "exclusive pattern". Inclusive patterns will include
              all module's whose names match the pattern, whereas exclusive patterns will exclude them.
@@ -439,14 +439,14 @@ dmd -cov -unittest myprog.d
 
              $(P The default behavior of excluding druntime/phobos is accomplished by internally adding a
              set of standard exclusions, namely, `-i=-std -i=-core -i=-etc -i=-object`. Note that these
-             can be overriden with `-i=std -i=core -i=etc -i=object`.)
+             can be overridden with `-i=std -i=core -i=etc -i=object`.)
 
              $(P When a module matches multiple patterns, matches are prioritized by their component length, where
              a match with more components takes priority (i.e. pattern `foo.bar.baz` has priority over `foo.bar`).)
 
              $(P By default modules that don't match any pattern will be included. However, if at
              least one inclusive pattern is given, then modules not matching any pattern will
-             be excluded. This behavior can be overriden by usig `-i=.` to include by default or `-i=-.` to
+             be excluded. This behavior can be overridden by usig `-i=.` to include by default or `-i=-.` to
              exclude by default.)
 
              $(P Note that multiple `-i=...` options are allowed, each one adds a pattern.)}"
@@ -820,6 +820,11 @@ dmd -cov -unittest myprog.d
             `Enable $(LINK2 $(ROOT_DIR)articles/warnings.html, informational warnings (i.e. compilation
             still proceeds normally))`,
         ),
+        Option("wo",
+            "warnings about use of obsolete features (compilation will continue)",
+            `Enable warnings about use of obsolete features that may be problematic (compilation
+            still proceeds normally)`,
+        ),
         Option("X",
             "generate JSON file"
         ),
@@ -1021,8 +1026,8 @@ struct CLIUsage
     /// Options supported by -HC
     enum hcUsage = "Available header generation modes:
   =[h|help|?]           List information on all available choices
-  =silent               Silently ignore non-exern(C[++]) declarations
-  =verbose              Add a comment for ignored non-exern(C[++]) declarations
+  =silent               Silently ignore non-extern(C[++]) declarations
+  =verbose              Add a comment for ignored non-extern(C[++]) declarations
 ";
 
     /// Options supported by -gdwarf

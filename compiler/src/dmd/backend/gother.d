@@ -13,14 +13,6 @@
 
 module dmd.backend.gother;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.time;
@@ -47,12 +39,6 @@ nothrow:
 char symbol_isintab(const Symbol *s) { return sytab[s.Sclass] & SCSS; }
 
 extern (C++):
-
-version (SCPP)
-    import parser;
-
-version (MARS)
-    import dmd.backend.errors;
 
 /**********************************************************************/
 
@@ -459,19 +445,6 @@ private void chkrd(elem *n, Barray!(elem*) rdlist)
         {
             printf("sv.Sident = %s\n", sv.Sident);
             return;
-        }
-    }
-
-    version (SCPP)
-    {
-        {   OutBuffer buf;
-            char *p2;
-
-            type_tostring(&buf, sv.Stype);
-            buf.writeByte(' ');
-            buf.write(sv.Sident.ptr);
-            p2 = buf.toString();
-            warerr(WM.WM_used_b4_set, p2);     // variable used before set
         }
     }
 
@@ -2119,6 +2092,4 @@ private int ispath(uint j,block *bp,block *b)
             return true;
 
     return false;           /* j is used along all paths            */
-}
-
 }

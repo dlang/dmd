@@ -47,7 +47,6 @@ extern (C++):
 nothrow:
 @safe:
 
-import dmd.backend.os : os_clock;
 /***************************************************************************/
 
 
@@ -218,11 +217,6 @@ void dbg_optprint(char *title)
 @trusted
 void optfunc()
 {
-version (HTOD)
-{
-}
-else
-{
     if (debugc) printf("optfunc()\n");
     dbg_optprint("optfunc\n");
 
@@ -256,7 +250,7 @@ else
 
     // Some functions can take enormous amounts of time to optimize.
     // We try to put a lid on it.
-    clock_t starttime = os_clock();
+    clock_t starttime = clock();
     int iter = 0;           // iteration count
     do
     {
@@ -265,10 +259,6 @@ else
         {   assert(iter < iterationLimit);      // infinite loop check
             break;
         }
-version (MARS)
-        util_progress();
-else
-        file_progress();
 
         //printf("optelem\n");
         /* canonicalize the trees        */
@@ -310,7 +300,7 @@ else
 
         if (go.mfoptim & MFcnp)
             boolopt();                  // optimize boolean values
-        if (go.changes && go.mfoptim & MFloop && (os_clock() - starttime) < 30 * CLOCKS_PER_SEC)
+        if (go.changes && go.mfoptim & MFloop && (clock() - starttime) < 30 * CLOCKS_PER_SEC)
             continue;
 
         if (go.mfoptim & MFcnp)
@@ -352,7 +342,7 @@ else
             rmdeadass();                /* remove dead assignments       */
 
         if (debugc) printf("changes = %d\n", go.changes);
-        if (!(go.changes && go.mfoptim & MFloop && (os_clock() - starttime) < 30 * CLOCKS_PER_SEC))
+        if (!(go.changes && go.mfoptim & MFloop && (clock() - starttime) < 30 * CLOCKS_PER_SEC))
             break;
     } while (1);
     if (debugc) printf("%d iterations\n",iter);
@@ -382,5 +372,4 @@ else
     {
         block_optimizer_free(b);
     }
-}
 }

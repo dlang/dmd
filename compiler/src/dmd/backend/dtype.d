@@ -11,22 +11,6 @@
 
 module dmd.backend.dtype;
 
-version (SCPP)
-{
-    version = COMPILE;
-    version = SCPP_HTOD;
-}
-version (HTOD)
-{
-    version = COMPILE;
-    version = SCPP_HTOD;
-}
-version (MARS)
-    version = COMPILE;
-
-
-version (COMPILE)
-{
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -41,37 +25,13 @@ import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-version (SCPP_HTOD)
-{
-    import dtoken;
-    import msgs2;
-    import parser;
-    import precomp;
-}
-
 extern (C++):
 
 nothrow:
 @safe:
 
-alias MEM_PH_MALLOC = mem_malloc;
-alias MEM_PH_CALLOC = mem_calloc;
-alias MEM_PH_FREE = mem_free;
-alias MEM_PH_STRDUP = mem_strdup;
-alias MEM_PARF_MALLOC = mem_malloc;
-alias MEM_PARF_CALLOC = mem_calloc;
-alias MEM_PARF_REALLOC = mem_realloc;
-alias MEM_PARF_FREE = mem_free;
-alias MEM_PARF_STRDUP = mem_strdup;
-
-version (SCPP_HTOD)
-    @trusted
-    struct_t* struct_calloc();
-else
-    @trusted
-    struct_t* struct_calloc() { return cast(struct_t*) mem_calloc(struct_t.sizeof); }
-
-int REGSIZE();
+@trusted
+struct_t* struct_calloc() { return cast(struct_t*) mem_calloc(struct_t.sizeof); }
 
 private __gshared
 {
@@ -92,57 +52,6 @@ __gshared
     type* tsptrdiff, tssize;
 }
 
-/*******************************
- * Compute size of type in bytes.
- * Mark size as known after error message if it is not known.
- * Instantiate templates as needed to compute size.
- * Params:
- *      t = type
- * Returns:
- *      size
- */
-
-version (SCPP_HTOD)
-{
-@trusted
-targ_size_t type_size(type* t)
-{
-    switch (tybasic(t.Tty))
-    {
-        case TYarray:
-            if (t.Tflags & TFsizeunknown)
-            {
-                synerr(EM_unknown_size,"array".ptr);    /* size of array is unknown     */
-                t.Tflags &= ~TFsizeunknown;
-            }
-            type_size(t.Tnext);
-            break;
-
-        case TYstruct:
-            auto ts = t.Ttag.Stype;    // find main instance
-                                       // (for const struct X)
-            if (ts.Tflags & TFsizeunknown)
-            {
-                template_instantiate_forward(ts.Ttag);
-                if (ts.Tflags & TFsizeunknown)
-                    synerr(EM_unknown_size,ts.Tty & TYstruct ? prettyident(ts.Ttag) : "struct");
-                ts.Tflags &= ~TFsizeunknown;
-            }
-            break;
-
-        case TYenum:
-            if (t.Ttag.Senum.SEflags & SENforward)
-                synerr(EM_unknown_size, prettyident(t.Ttag));
-            type_size(t.Tnext);
-            break;
-
-        default:
-            break;
-    }
-    return type_size(cast(const)t);
-}
-}
-
 /***********************
  * Compute size of type in bytes.
  * Params:
@@ -150,7 +59,7 @@ targ_size_t type_size(type* t)
  * Returns:
  *      size
  */
-@trusted
+@trusted @nogc
 targ_size_t type_size(const type *t)
 {   targ_size_t s;
     tym_t tyb;
@@ -179,22 +88,12 @@ targ_size_t type_size(const type *t)
             case TYnsfunc:
             case TYifunc:
             case TYjfunc:
-version (SCPP_HTOD)
-{
-            case TYmfunc:
-                if (config.ansi_c)
-                    synerr(EM_unknown_size,"function".ptr); /* size of function is not known */
-}
                 s = 1;
                 break;
             case TYarray:
             {
                 if (t.Tflags & TFsizeunknown)
                 {
-version (SCPP_HTOD)
-{
-                    synerr(EM_unknown_size,"array".ptr);    /* size of array is unknown     */
-}
                 }
                 if (t.Tflags & TFvla)
                 {
@@ -203,19 +102,8 @@ version (SCPP_HTOD)
                 }
                 s = type_size(t.Tnext);
                 uint u = cast(uint)t.Tdim * cast(uint) s;
-version (SCPP_HTOD)
-{
-                type_chksize(u);
-}
-else version (MARS)
-{
                 if (t.Tdim && ((u / t.Tdim) != s || cast(int)u < 0))
                     assert(0);          // overflow should have been detected in front end
-}
-else
-{
-                static assert(0);
-}
                 s = u;
                 break;
             }
@@ -227,40 +115,13 @@ else
                 s = ts.Ttag.Sstruct.Sstructsize;
                 break;
             }
-version (SCPP_HTOD)
-{
-            case TYenum:
-                if (t.Ttag.Senum.SEflags & SENforward)
-                    synerr(EM_unknown_size, prettyident(cast(Symbol*)t.Ttag));
-                s = type_size(t.Tnext);
-                break;
-}
             case TYvoid:
-version (SCPP_HTOD) static if (TARGET_WINDOS)   // GNUC allows it, so we will, too
-{
-                synerr(EM_void_novalue);        // voids have no value
-}
                 s = 1;
                 break;
 
             case TYref:
-version (MARS)
-{
                 s = tysize(TYnptr);
                 break;
-}
-version (SCPP_HTOD)
-{
-            case TYmemptr:
-            case TYvtshape:
-                s = tysize(tym_conv(t));
-                break;
-
-            case TYident:
-                synerr(EM_unknown_size, t.Tident);
-                s = 1;
-                break;
-}
 
             default:
                 debug printf("%s\n", tym_str(t.Tty));
@@ -340,13 +201,6 @@ bool type_zeroSize(type *t, tym_t tyf)
                                            // (for const struct X)
             if (ts.Tflags & TFsizeunknown)
             {
-version (SCPP_HTOD)
-{
-                template_instantiate_forward(ts.Ttag);
-                if (ts.Tflags & TFsizeunknown)
-                    synerr(EM_unknown_size,ts.Tty & TYstruct ? prettyident(ts.Ttag) : "struct");
-                ts.Tflags &= ~TFsizeunknown;
-}
             }
             if (ts.Ttag.Sstruct.Sflags & STR0size)
 //{ printf("0size\n"); type_print(t); *(char*)0=0;
@@ -405,7 +259,7 @@ uint type_paramsize(type *t)
  *      pointer to newly created type.
  */
 
-@trusted
+@trusted @nogc
 type *type_alloc(tym_t ty)
 {   type *t;
 
@@ -435,38 +289,6 @@ debug
     return t;
 }
 
-/*************************************
- * Allocate a TYtemplate.
- */
-
-version (SCPP_HTOD)
-{
-type *type_alloc_template(Symbol *s)
-{   type *t;
-
-    t = cast(type *) mem_fmalloc(typetemp_t.sizeof);
-    memset(t, 0, typetemp_t.sizeof);
-    t.Tty = TYtemplate;
-    if (s.Stemplate.TMprimary)
-        s = s.Stemplate.TMprimary;
-    (cast(typetemp_t *)t).Tsym = s;
-version (SRCPOS_4TYPES)
-{
-    if (PARSER && config.fulltypes)
-        t.Tsrcpos = getlinnum();
-}
-debug
-{
-    t.id = type.IDtype;
-    type_num++;
-    if (type_num > type_max)
-        type_max = type_num;
-    //printf("Alloc'ing template type %p %s", t, tym_str(t.Tty));
-}
-    return t;
-}
-}
-
 /*****************************
  * Fake a type & initialize it.
  * Input:
@@ -474,11 +296,10 @@ debug
  * Returns:
  *      pointer to newly created type.
  */
-
+@nogc
 type *type_fake(tym_t ty)
 {   type *t;
 
-version (MARS)
     assert(ty != TYstruct);
 
     t = type_alloc(ty);
@@ -504,25 +325,6 @@ type *type_allocn(tym_t ty,type *tn)
     tn.Tcount++;
     //printf("\tt = %p\n", t);
     return t;
-}
-
-/******************************
- * Allocate a TYmemptr type.
- */
-
-version (SCPP_HTOD)
-{
-type *type_allocmemptr(Classsym *stag,type *tn)
-{   type *t;
-
-    symbol_debug(stag);
-    assert(stag.Sclass == SC.struct_ || tybasic(stag.Stype.Tty) == TYident);
-    t = type_allocn(TYmemptr,tn);
-    t.Ttag = stag;
-    //printf("type_allocmemptr() = %p\n", t);
-    //type_print(t);
-    return t;
-}
 }
 
 /********************************
@@ -637,7 +439,7 @@ type *type_enum(const(char)* name, type *tbase)
 {
     Symbol *s = symbol_calloc(name[0 .. strlen(name)]);
     s.Sclass = SC.enum_;
-    s.Senum = cast(enum_t *) MEM_PH_CALLOC(enum_t.sizeof);
+    s.Senum = cast(enum_t *) mem_calloc(enum_t.sizeof);
     s.Senum.SEflags |= SENforward;        // forward reference
 
     type *t = type_allocn(TYenum, tbase);
@@ -724,37 +526,13 @@ void type_free(type *t)
             list_free(&t.Texcspec, cast(list_free_fp)&type_free);
             goto L1;
         }
-version (SCPP_HTOD)
-{
-        if (ty == TYtemplate)
-        {
-            param_free(&t.Tparamtypes);
-            goto L1;
-        }
-        if (ty == TYident)
-        {
-            MEM_PH_FREE(t.Tident);
-            goto L1;
-        }
-}
         if (t.Tflags & TFvla && t.Tel)
         {
             el_free(t.Tel);
             goto L1;
         }
-version (SCPP_HTOD)
-{
-        if (t.Talternate && typtr(ty))
-        {
-            type_free(t.Talternate);
-            goto L1;
-        }
-}
-version (MARS)
-{
         if (t.Tkey && typtr(ty))
             type_free(t.Tkey);
-}
       L1:
 
 debug
@@ -867,14 +645,6 @@ void type_init()
 
     tsdlib = tsjlib;
 
-version (SCPP_HTOD)
-{
-    tspcvoid = type_alloc(mTYconst | TYvoid);
-    tspcvoid = newpointer(tspcvoid);
-    tspcvoid.Tmangle = mTYman_c;
-    tspcvoid.Tcount++;
-}
-
     // Type of logical expression
     tslogical = (config.flags4 & CFG4bool) ? tstypes[TYbool] : tstypes[TYint];
 
@@ -954,32 +724,11 @@ type *type_copy(type *t)
     param_t *p;
 
     type_debug(t);
-version (SCPP_HTOD)
-{
-    if (tybasic(t.Tty) == TYtemplate)
-    {
-        tn = type_alloc_template((cast(typetemp_t *)t).Tsym);
-    }
-    else
-        tn = type_alloc(t.Tty);
-}
-else
-        tn = type_alloc(t.Tty);
+    tn = type_alloc(t.Tty);
 
     *tn = *t;
     switch (tybasic(tn.Tty))
     {
-version (SCPP_HTOD)
-{
-            case TYtemplate:
-                (cast(typetemp_t *)tn).Tsym = (cast(typetemp_t *)t).Tsym;
-                goto L1;
-
-            case TYident:
-                tn.Tident = cast(char *)MEM_PH_STRDUP(t.Tident);
-                break;
-}
-
             case TYarray:
                 if (tn.Tflags & TFvla)
                     tn.Tel = el_copytree(tn.Tel);
@@ -988,7 +737,6 @@ version (SCPP_HTOD)
             default:
                 if (tyfunc(tn.Tty))
                 {
-                L1:
                     tn.Tparamtypes = null;
                     for (p = t.Tparamtypes; p; p = p.Pnext)
                     {   param_t *pn;
@@ -996,23 +744,15 @@ version (SCPP_HTOD)
                         pn = param_append_type(&tn.Tparamtypes,p.Ptype);
                         if (p.Pident)
                         {
-                            pn.Pident = cast(char *)MEM_PH_STRDUP(p.Pident);
+                            pn.Pident = cast(char *)mem_strdup(p.Pident);
                         }
                         assert(!p.Pelem);
                     }
                 }
                 else
                 {
-version (SCPP_HTOD)
-{
-                if (tn.Talternate && typtr(tn.Tty))
-                    tn.Talternate.Tcount++;
-}
-version (MARS)
-{
                 if (tn.Tkey && typtr(tn.Tty))
                     tn.Tkey.Tcount++;
-}
                 }
                 break;
     }
@@ -1022,36 +762,6 @@ version (MARS)
     }
     tn.Tcount = 0;
     return tn;
-}
-
-/************************************
- */
-
-version (SCPP_HTOD)
-{
-
-elem *type_vla_fix(type **pt)
-{
-    type *t;
-    elem *e = null;
-
-    for (t = *pt; t; t = t.Tnext)
-    {
-        type_debug(t);
-        if (tybasic(t.Tty) == TYarray && t.Tflags & TFvla && t.Tel)
-        {   Symbol *s;
-            elem *ec;
-
-            s = symbol_genauto(tstypes[TYuint]);
-            ec = el_var(s);
-            ec = el_bint(OPeq, tstypes[TYuint], ec, t.Tel);
-            e = el_combine(e, ec);
-            t.Tel = el_var(s);
-        }
-    }
-    return e;
-}
-
 }
 
 /****************************
@@ -1380,119 +1090,6 @@ void param_t_print_list(scope param_t* p)
 }
 
 
-/**********************************
- * Hydrate a type.
- */
-
-version (SCPP_HTOD)
-{
-
-static if (HYDRATE)
-{
-void type_hydrate(type **pt)
-{
-    type *t;
-
-    assert(pt);
-    while (isdehydrated(*pt))
-    {
-        t = cast(type *) ph_hydrate(cast(void**)pt);
-        type_debug(t);
-        switch (tybasic(t.Tty))
-        {
-            case TYstruct:
-            case TYenum:
-            case TYmemptr:
-            case TYvtshape:
-                // Cannot assume symbol is hydrated, because entire HX file
-                // may not have been hydrated.
-                Classsym_hydrate(&t.Ttag);
-                symbol_debug(t.Ttag);
-                break;
-            case TYident:
-                ph_hydrate(cast(void**)&t.Tident);
-                break;
-            case TYtemplate:
-                symbol_hydrate(&(cast(typetemp_t *)t).Tsym);
-                param_hydrate(&t.Tparamtypes);
-                break;
-            case TYarray:
-                if (t.Tflags & TFvla)
-                    el_hydrate(&t.Tel);
-                break;
-            default:
-                if (tyfunc(t.Tty))
-                {   param_hydrate(&t.Tparamtypes);
-                    list_hydrate(&t.Texcspec, cast(list_free_fp)&type_hydrate);
-                }
-                else if (t.Talternate && typtr(t.Tty))
-                    type_hydrate(&t.Talternate);
-                else if (t.Tkey && typtr(t.Tty))
-                    type_hydrate(&t.Tkey);
-                break;
-        }
-        pt = &t.Tnext;
-    }
-}
-}
-
-/**********************************
- * Dehydrate a type.
- */
-
-static if (DEHYDRATE)
-{
-void type_dehydrate(type **pt)
-{
-    type *t;
-
-    while ((t = *pt) != null && !isdehydrated(t))
-    {
-        ph_dehydrate(pt);
-version (DEBUG_XSYMGEN)
-{
-        /* don't dehydrate types in HEAD when creating XSYM */
-        if (xsym_gen && (t.Tflags & TFhydrated))
-            return;
-}
-        type_debug(t);
-        switch (tybasic(t.Tty))
-        {
-            case TYstruct:
-            case TYenum:
-            case TYmemptr:
-            case TYvtshape:
-                Classsym_dehydrate(&t.Ttag);
-                break;
-            case TYident:
-                ph_dehydrate(&t.Tident);
-                break;
-            case TYtemplate:
-                symbol_dehydrate(&(cast(typetemp_t *)t).Tsym);
-                param_dehydrate(&t.Tparamtypes);
-                break;
-            case TYarray:
-                if (t.Tflags & TFvla)
-                    el_dehydrate(&t.Tel);
-                break;
-            default:
-                if (tyfunc(t.Tty))
-                {   param_dehydrate(&t.Tparamtypes);
-                    list_dehydrate(&t.Texcspec, cast(list_free_fp)&type_dehydrate);
-                }
-                else if (t.Talternate && typtr(t.Tty))
-                    type_dehydrate(&t.Talternate);
-                else if (t.Tkey && typtr(t.Tty))
-                    type_dehydrate(&t.Tkey);
-                break;
-        }
-        pt = &t.Tnext;
-    }
-}
-}
-
-}
-
 /****************************
  * Allocate a param_t.
  */
@@ -1600,11 +1197,6 @@ uint param_t_length(scope param_t* p)
 @trusted
 param_t* param_t_createTal(scope param_t* p, param_t *ptali)
 {
-version (SCPP_HTOD)
-{
-    param_t *ptalistart = ptali;
-    param_t *pstart = p;
-}
     param_t *ptal = null;
     param_t **pp = &ptal;
 
@@ -1614,7 +1206,7 @@ version (SCPP_HTOD)
         if (p.Pident)
         {
             // Should find a way to just point rather than dup
-            (*pp).Pident = cast(char *)MEM_PH_STRDUP(p.Pident);
+            (*pp).Pident = cast(char *)mem_strdup(p.Pident);
         }
         if (ptali)
         {
@@ -1625,15 +1217,6 @@ version (SCPP_HTOD)
             if (ptali.Pelem)
             {
                 elem *e = el_copytree(ptali.Pelem);
-version (SCPP_HTOD)
-{
-                if (p.Ptype)
-                {   type *t = p.Ptype;
-                    t = template_tyident(t, ptalistart, pstart, 1);
-                    e = poptelem3(typechk(e, t));
-                    type_free(t);
-                }
-}
                 (*pp).Pelem = e;
             }
             (*pp).Psym = ptali.Psym;
@@ -1706,84 +1289,6 @@ Symbol *param_search(const(char)* name, param_t **pp)
     return s;
 }
 
-/**********************************
- * Hydrate/dehydrate a type.
- */
-
-version (SCPP_HTOD)
-{
-static if (HYDRATE)
-{
-void param_hydrate(param_t **pp)
-{
-    param_t *p;
-
-    assert(pp);
-    if (isdehydrated(*pp))
-    {   while (*pp)
-        {   assert(isdehydrated(*pp));
-            p = cast(param_t *) ph_hydrate(cast(void**)pp);
-            param_debug(p);
-
-            type_hydrate(&p.Ptype);
-            if (p.Ptype)
-                type_debug(p.Ptype);
-            ph_hydrate(cast(void**)&p.Pident);
-            if (CPP)
-            {
-                el_hydrate(&p.Pelem);
-                if (p.Pelem)
-                    elem_debug(p.Pelem);
-                type_hydrate(&p.Pdeftype);
-                if (p.Pptpl)
-                    param_hydrate(&p.Pptpl);
-                if (p.Psym)
-                    symbol_hydrate(&p.Psym);
-                if (p.PelemToken)
-                    token_hydrate(&p.PelemToken);
-            }
-
-            pp = &p.Pnext;
-        }
-    }
-}
-}
-
-static if (DEHYDRATE)
-{
-void param_dehydrate(param_t **pp)
-{
-    param_t *p;
-
-    assert(pp);
-    while ((p = *pp) != null && !isdehydrated(p))
-    {   param_debug(p);
-
-        ph_dehydrate(pp);
-        if (p.Ptype && !isdehydrated(p.Ptype))
-            type_debug(p.Ptype);
-        type_dehydrate(&p.Ptype);
-        ph_dehydrate(&p.Pident);
-        if (CPP)
-        {
-            el_dehydrate(&p.Pelem);
-            type_dehydrate(&p.Pdeftype);
-            if (p.Pptpl)
-                param_dehydrate(&p.Pptpl);
-            if (p.Psym)
-                symbol_dehydrate(&p.Psym);
-            if (p.PelemToken)
-                token_dehydrate(&p.PelemToken);
-        }
-        pp = &p.Pnext;
-    }
-}
-}
-}
-
-version (MARS)
-{
-
 // Return TRUE if type lists match.
 private int paramlstmatch(param_t *p1,param_t *p2)
 {
@@ -1835,8 +1340,4 @@ int typematch(type *t1,type *t2,int relax)
              ((t1.Tflags & TFfixed) == (t2.Tflags & TFfixed) &&
                  paramlstmatch(t1.Tparamtypes,t2.Tparamtypes) ))
          ;
-}
-
-}
-
 }

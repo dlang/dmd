@@ -18,7 +18,6 @@ import core.stdc.stdio;
 import core.stdc.string;
 
 import dmd.aggregate;
-import dmd.apply;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.attrib;
@@ -40,6 +39,7 @@ import dmd.location;
 import dmd.mtype;
 import dmd.opover;
 import dmd.printast;
+import dmd.postordervisitor;
 import dmd.statement;
 import dmd.tokens;
 import dmd.visitor;
@@ -84,8 +84,8 @@ private void inlineScanDsymbol(Dsymbol s)
  * Perform the "inline copying" of a default argument for a function parameter.
  *
  * Todo:
- *  The hack for bugzilla 4820 case is still questionable. Perhaps would have to
- *  handle a delegate expression with 'null' context properly in front-end.
+ *  The hack for https://issues.dlang.org/show_bug.cgi?id=4820 case is still questionable.
+ *  Perhaps would have to handle a delegate expression with 'null' context properly in front-end.
  */
 public Expression inlineCopy(Expression e, Scope* sc)
 {

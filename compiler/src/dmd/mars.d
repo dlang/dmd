@@ -153,9 +153,10 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (parseCommandlineAndConfig(argc, argv, params, files))
         return EXIT_FAILURE;
 
-    global.compileEnv.previewIn = global.params.previewIn;
-    global.compileEnv.ddocOutput = global.params.ddoc.doOutput;
+    global.compileEnv.previewIn        = global.params.previewIn;
+    global.compileEnv.ddocOutput       = global.params.ddoc.doOutput;
     global.compileEnv.shortenedMethods = global.params.shortenedMethods;
+    global.compileEnv.obsolete         = global.params.obsolete;
 
     if (params.usage)
     {
@@ -697,7 +698,7 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
     sections.push("Environment");
     parseConfFile(environment, global.inifilename, inifilepath, inifileBuffer, &sections);
 
-    const(char)[] arch = target.is64bit ? "64" : "32"; // use default
+    const(char)[] arch = target.isX86_64 ? "64" : "32"; // use default
     arch = parse_arch_arg(&arguments, arch);
 
     // parse architecture from DFLAGS read from [Environment] section
@@ -708,7 +709,7 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
         arch = parse_arch_arg(&dflags, arch);
     }
 
-    bool is64bit = arch[0] == '6';
+    bool isX86_64 = arch[0] == '6';
 
     version(Windows) // delete LIB entry in [Environment] (necessary for optlink) to allow inheriting environment for MS-COFF
     if (arch != "32omf")
@@ -731,7 +732,7 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
         return true;
     }
 
-    if (target.is64bit != is64bit)
+    if (target.isX86_64 != isX86_64)
         error(Loc.initial, "the architecture must not be changed in the %s section of %.*s",
               envsection.ptr, cast(int)global.inifilename.length, global.inifilename.ptr);
 
@@ -1127,7 +1128,7 @@ private void setDefaultLibrary(ref Param params, const ref Target target)
     {
         if (target.os == Target.OS.Windows)
         {
-            if (target.is64bit)
+            if (target.isX86_64)
                 driverParams.defaultlibname = "phobos64";
             else if (!target.omfobj)
                 driverParams.defaultlibname = "phobos32mscoff";
@@ -1620,22 +1621,22 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (arg == "-m32") // https://dlang.org/dmd.html#switch-m32
         {
-            target.is64bit = false;
+            target.isX86_64 = false;
             target.omfobj = false;
         }
         else if (arg == "-m64") // https://dlang.org/dmd.html#switch-m64
         {
-            target.is64bit = true;
+            target.isX86_64 = true;
             target.omfobj = false;
         }
         else if (arg == "-m32mscoff") // https://dlang.org/dmd.html#switch-m32mscoff
         {
-            target.is64bit = false;
+            target.isX86_64 = false;
             target.omfobj = false;
         }
         else if (arg == "-m32omf") // https://dlang.org/dmd.html#switch-m32omfobj
         {
-            target.is64bit = false;
+            target.isX86_64 = false;
             target.omfobj = true;
         }
         else if (startsWith(p + 1, "mscrtlib="))
@@ -1942,6 +1943,11 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.warnings = DiagnosticReporting.error;
         else if (arg == "-wi")  // https://dlang.org/dmd.html#switch-wi
             params.warnings = DiagnosticReporting.inform;
+        else if (arg == "-wo")  // https://dlang.org/dmd.html#switch-wo
+        {
+            params.warnings = DiagnosticReporting.inform;
+            params.obsolete = true;
+        }
         else if (arg == "-O")   // https://dlang.org/dmd.html#switch-O
             driverParams.optimize = true;
         else if (arg == "-o-")  // https://dlang.org/dmd.html#switch-o-
@@ -2153,7 +2159,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         else if (arg == "-release")     // https://dlang.org/dmd.html#switch-release
             params.release = true;
         else if (arg == "-betterC")     // https://dlang.org/dmd.html#switch-betterC
+        {
             params.betterC = true;
+            params.allInst = true;
+        }
         else if (arg == "-noboundscheck") // https://dlang.org/dmd.html#switch-noboundscheck
         {
             params.boundscheck = CHECKENABLE.off;
@@ -2433,7 +2442,7 @@ private void reconcileCommands(ref Param params, ref Target target)
     }
     else if (target.os == Target.OS.DragonFlyBSD)
     {
-        if (!target.is64bit)
+        if (!target.isX86_64)
             error(Loc.initial, "`-m32` is not supported on DragonFlyBSD, it is 64-bit only");
     }
 
@@ -2548,7 +2557,7 @@ private void reconcileLinkRunLib(ref Param params, size_t numSrcFiles, const cha
             {
                 VSOptions vsopt;
                 vsopt.initialize();
-                driverParams.mscrtlib = vsopt.defaultRuntimeLibrary(target.is64bit).toDString;
+                driverParams.mscrtlib = vsopt.defaultRuntimeLibrary(target.isX86_64).toDString;
             }
             else
             {

@@ -15,6 +15,9 @@ module dmd.backend.ty;
 
 // Online documentation: https://dlang.org/phobos/dmd_backend_ty.html
 
+public import dmd.backend.var : tyequiv, dttab, dttab4, tystring, tytouns, _tyrelax, tytab,
+    _tysize, _tyalignsize, TYaarray, TYdelegate, TYdarray, TYptrdiff, TYsize, TYsize_t;
+
 extern (C++):
 @nogc:
 nothrow:
@@ -153,12 +156,6 @@ enum
 
 alias TYerror = TYint;
 
-extern __gshared int TYaarray;                            // D type
-
-// These change depending on memory model
-extern __gshared int TYdelegate, TYdarray;                // D types
-extern __gshared int TYptrdiff, TYsize, TYsize_t;
-
 enum
 {
     mTYbasic        = 0xFF,          // bit mask for basic types
@@ -219,8 +216,6 @@ enum
 pure
 tym_t tybasic(tym_t ty) { return ty & mTYbasic; }
 
-/* Flags in tytab[] array       */
-extern __gshared uint[256] tytab;
 enum
 {
     TYFLptr         = 1,
@@ -243,10 +238,6 @@ enum
     TYFLfarfunc     = 0x100,      // __far functions (for segmented architectures)
     TYFLxmmreg      = 0x10000,    // can be put in XMM register
 }
-
-/* Array to give the size in bytes of a type, -1 means error    */
-extern __gshared byte[256] _tysize;
-extern __gshared byte[256] _tyalignsize;
 
 // Give size of type
 @trusted
@@ -349,7 +340,6 @@ alias TYoffset = TYuint;         // offset to an address
 uint typfunc(tym_t ty) { return tytab[ty & 0xFF] & TYFLpascal; }
 
 /* Array to convert a type to its unsigned equivalent   */
-extern __gshared tym_t[256] tytouns;
 @trusted
 tym_t touns(tym_t ty) { return tytouns[ty & 0xFF]; }
 
@@ -361,22 +351,8 @@ uint tyfarfunc(tym_t ty) { return tytab[ty & 0xFF] & TYFLfarfunc; }
 @trusted
 uint tysimd(tym_t ty) { return tytab[ty & 0xFF] & TYFLsimd; }
 
-/* Determine relaxed type       */
-extern __gshared ubyte[TYMAX] _tyrelax;
 @trusted
 uint tyrelax(tym_t ty) { return _tyrelax[tybasic(ty)]; }
-
-
-/* Determine functionally equivalent type       */
-extern __gshared ubyte[TYMAX] tyequiv;
-
-/* Give an ascii string for a type      */
-extern (C) { extern __gshared const(char)*[TYMAX] tystring; }
-
-/* Debugger value for type      */
-extern __gshared ubyte[TYMAX] dttab;
-extern __gshared ushort[TYMAX] dttab4;
-
 
 @trusted
 bool I16() { return _tysize[TYnptr] == 2; }

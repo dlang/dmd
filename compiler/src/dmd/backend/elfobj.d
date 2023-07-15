@@ -15,14 +15,6 @@
 
 module dmd.backend.elfobj;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -36,6 +28,7 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.code_x86;
+import dmd.backend.dout : symbol_iscomdat2;
 import dmd.backend.mem;
 import dmd.backend.aarray;
 import dmd.backend.dlist;
@@ -53,15 +46,8 @@ extern (C++):
 
 nothrow:
 
-static if (1)
-{
-
 import dmd.backend.dwarf;
 import dmd.backend.melf;
-
-extern bool symbol_iscomdat2(Symbol* s) @system;
-
-//#define DEBSYM 0x7E
 
 private __gshared OutBuffer *fobjbuf;
 
@@ -69,13 +55,8 @@ enum MATCH_SECTION = 1;
 
 enum DEST_LEN = (IDMAX + IDOHD + 1);
 
-version (MARS)
-{
-    // C++ name mangling is handled by front end
-    const(char)* cpp_mangle2(Symbol* s) { return &s.Sident[0]; }
-}
-else
-    const(char)* cpp_mangle2(Symbol* s) { return cpp_mangle(s); }
+// C++ name mangling is handled by front end
+const(char)* cpp_mangle2(Symbol* s) { return &s.Sident[0]; }
 
 void addSegmentToComdat(segidx_t seg, segidx_t comdatseg);
 
@@ -131,7 +112,7 @@ alias reltype_t = uint;
 
 private __gshared Symbol *GOTsym; // global offset table reference
 
-private Symbol *ElfObj_getGOTsym()
+Symbol *ElfObj_getGOTsym()
 {
     if (!GOTsym)
     {
@@ -792,6 +773,13 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
 
     if (shndx_data)
         shndx_data.reset();
+
+    if (note_data)
+        note_data.reset();
+
+    if (comment_data)
+        comment_data.reset();
+
     symbol_idx = 0;
     local_cnt = 0;
     // The symbols that every object file has
@@ -1035,22 +1023,13 @@ void ElfObj_termfile()
 void ElfObj_term(const(char)* objfilename)
 {
     //printf("ElfObj_term()\n");
-    version (SCPP)
-    {
-        if (errcnt)
-            return;
-    }
-
     outfixlist();           // backpatches
 
     if (configv.addlinenumbers)
         dwarf_termfile();
 
-    version (MARS)
-    {
-        if (config.useModuleInfo)
-            obj_rtinit();
-    }
+    if (config.useModuleInfo)
+        obj_rtinit();
 
     int foffset;
     Elf32_Shdr *sechdr;
@@ -1412,18 +1391,8 @@ static if (0)
     srcpos.print("");
 }
 
-version (MARS)
-{
     if (!srcpos.Sfilename)
         return;
-}
-version (SCPP)
-{
-    if (!srcpos.Sfilptr)
-        return;
-    sfile_debug(&srcpos_sfile(srcpos));
-    Sfile *sf = *srcpos.Sfilptr;
-}
 
     size_t i;
     seg_data *pseg = SegData[seg];
@@ -1433,22 +1402,11 @@ version (SCPP)
     {
         if (i == pseg.SDlinnum_data.length)
         {   // Create new entry
-            version (MARS)
-                pseg.SDlinnum_data.push(linnum_data(srcpos.Sfilename));
-            version (SCPP)
-                pseg.SDlinnum_data.push(linnum_data(sf));
+            pseg.SDlinnum_data.push(linnum_data(srcpos.Sfilename));
             break;
         }
-version (MARS)
-{
         if (pseg.SDlinnum_data[i].filename == srcpos.Sfilename)
             break;
-}
-version (SCPP)
-{
-        if (pseg.SDlinnum_data[i].filptr == sf)
-            break;
-}
     }
 
     linnum_data *ld = &pseg.SDlinnum_data[i];
@@ -1510,7 +1468,17 @@ void ElfObj_exestr(const(char)* p)
 
 void ElfObj_user(const(char)* p)
 {
-    //dbg_printf("ElfObj_user(char *%s)\n",p);
+    //printf("ElfObj_user(char *%s)\n",p);
+    if (!comment_data)
+    {
+        comment_data = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
+        if (!comment_data)
+            err_nomem();
+        comment_data.writeByte(0);
+    }
+
+    comment_data.writestring(p);
+    comment_data.writeByte(0);
 }
 
 /*******************************
@@ -1540,24 +1508,10 @@ void ElfObj_filename(const(char)* modname)
  * Embed compiler version in .obj file.
  */
 
-void ElfObj_compiler()
+void ElfObj_compiler(const(char)* p)
 {
     //dbg_printf("ElfObj_compiler\n");
-    comment_data = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-    if (!comment_data)
-        err_nomem();
-
-    enum maxVersionLength = 40;  // hope enough to store `git describe --dirty`
-    enum compilerHeader = "\0Digital Mars C/C++ ";
-    enum n = compilerHeader.length;
-    char[n + maxVersionLength] compiler = compilerHeader;
-
-    assert(config._version.length + 1  < maxVersionLength);
-    const newLength = n + config._version.length;
-    compiler[n .. newLength] = config._version;
-    compiler[newLength] = 0;
-    comment_data.write(compiler[0 .. newLength + 1]);
-    //dbg_printf("Comment data size %d\n",comment_data.length());
+    ElfObj_user(p);
 }
 
 
@@ -2165,12 +2119,7 @@ char *obj_mangle2(Symbol *s,char *dest, size_t *destlen)
     symbol_debug(s);
     assert(dest);
 
-version (SCPP)
-    name = CPP ? cpp_mangle2(s) : s.Sident.ptr;
-else version (MARS)
     // C++ name mangling is handled by front end
-    name = s.Sident.ptr;
-else
     name = s.Sident.ptr;
 
     size_t len = strlen(name);                 // # of bytes in name
@@ -2449,27 +2398,9 @@ int ElfObj_external(Symbol *s)
     elfobj.resetSyms.push(s);
     const namidx = elf_addmangled(s);
 
-version (SCPP)
-{
-    if (s.Sscope && !tyfunc(s.ty()))
-    {
-        symtype = STT_OBJECT;
-        sectype = SHN_COMMON;
-        size = type_size(s.Stype);
-    }
-    else
-    {
-        symtype = STT_NOTYPE;
-        sectype = SHN_UNDEF;
-        size = 0;
-    }
-}
-else
-{
     symtype = STT_NOTYPE;
     sectype = SHN_UNDEF;
     size = 0;
-}
     if (s.ty() & mTYthread)
     {
         //printf("ElfObj_external('%s') %x TLS\n",s.Sident.ptr,s.Svalue);
@@ -2605,7 +2536,7 @@ void ElfObj_byte(int seg,targ_size_t offset,uint byte_)
  * Append bytes to segment.
  */
 
-void ElfObj_write_bytes(seg_data *pseg, uint nbytes, void *p)
+void ElfObj_write_bytes(seg_data *pseg, uint nbytes, const(void)* p)
 {
     ElfObj_bytes(pseg.SDseg, pseg.SDoffset, nbytes, p);
 }
@@ -2616,7 +2547,7 @@ void ElfObj_write_bytes(seg_data *pseg, uint nbytes, void *p)
  *      nbytes
  */
 
-uint ElfObj_bytes(int seg, targ_size_t offset, uint nbytes, void *p)
+uint ElfObj_bytes(int seg, targ_size_t offset, uint nbytes, const(void)* p)
 {
 static if (0)
 {
@@ -3349,9 +3280,6 @@ int elf_align(targ_size_t size,int foffset)
  * Stuff pointer to ModuleInfo into its own section (minfo).
  */
 
-version (MARS)
-{
-
 void ElfObj_moduleinfo(Symbol *scc)
 {
     const CFflags = I64 ? (CFoffset64 | CFoff) : CFoff;
@@ -3745,8 +3673,6 @@ else
     p.sh_size    = cast(uint)Offset(groupseg);
 }
 
-}
-
 /*************************************
  */
 
@@ -3827,8 +3753,4 @@ int elf_dwarf_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val
         //et.write32(s.Soffset);
     }
     return 4;
-}
-
-}
-
 }

@@ -27,11 +27,6 @@ extern (C++):
 nothrow:
 @safe:
 
-version (MARS)
-{
-    void ph_init();
-}
-
 /**************************************
  * Initialize configuration for backend.
  * Params:
@@ -84,8 +79,6 @@ extern (C) void out_config_init(
         bool generatedMain      // a main entrypoint is generated
         )
 {
-version (MARS)
-{
     //printf("out_config_init()\n");
 
     auto cfg = &config;
@@ -111,7 +104,6 @@ version (MARS)
     {
         if (dwarf)
         {
-            import dmd.backend.errors;
             error(null, 0, 0, "DWARF version %u is not supported", dwarf);
         }
 
@@ -355,7 +347,6 @@ static if (0)
     cfg.useTypeInfo = useTypeInfo;
     cfg.useExceptions = useExceptions;
 
-    ph_init();
     block_init();
 
     cod3_setdefault();
@@ -377,7 +368,6 @@ static if (0)
     else if (cfg.objfmt == OBJ_ELF)
         elfDebugSectionsInit();
     rtlsym_init(); // uses fregsaved, so must be after it's set inside cod3_set*
-}
 }
 
 /****************************

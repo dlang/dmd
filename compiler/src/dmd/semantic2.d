@@ -447,14 +447,12 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 const sameParams = tf1.parameterList == tf2.parameterList;
 
                 // Allow the hack to declare overloads with different parameters/STC's
-                // @@@DEPRECATED_2.104@@@
-                // Deprecated in 2020-08, make this an error in 2.104
                 if (parent1.isModule() &&
                     linkage1 != LINK.d && linkage1 != LINK.cpp &&
                     (!sameAttr || !sameParams)
                 )
                 {
-                    f2.deprecation("cannot overload `extern(%s)` function at %s",
+                    f2.error("cannot overload `extern(%s)` function at %s",
                             linkageToChars(f1._linkage),
                             f1.loc.toChars());
                     return 0;
@@ -814,9 +812,8 @@ private void doGNUABITagSemantic(ref Expression e, ref Expression* lastTag)
     // but it's a concession to practicality.
     // Casts are unfortunately necessary as `implicitConvTo` is not
     // `const` (and nor is `StringExp`, by extension).
-    static int predicate(const scope Expression* e1, const scope Expression* e2) nothrow
+    static int predicate(const scope Expression* e1, const scope Expression* e2)
     {
-        scope(failure) assert(0, "An exception was thrown");
         return (cast(Expression*)e1).toStringExp().compare((cast(Expression*)e2).toStringExp());
     }
     ale.elements.sort!predicate;

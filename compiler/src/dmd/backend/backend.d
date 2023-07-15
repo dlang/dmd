@@ -12,19 +12,5 @@
  */
 module dmd.backend.backend;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import dmd.backend.code_x86;
 import dmd.backend.el;
-
-extern (C++):
-
-nothrow:
-
-}

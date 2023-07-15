@@ -26,17 +26,6 @@ import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-version (SCPP)
-{
-    import parser;
-    import phstring;
-}
-version (HTOD)
-{
-    import parser;
-    import phstring;
-}
-
 extern (C++):
 
 nothrow:
@@ -52,6 +41,7 @@ char OPTIMIZER = 0;                 // indicate we're in the optimizer
 int structalign;                /* alignment for members of structures  */
 char dbcs = 0;                      // current double byte character set
 
+// These change depending on memory model
 int TYptrdiff = TYint;
 int TYsize = TYuint;
 int TYsize_t = TYuint;
@@ -59,60 +49,21 @@ int TYaarray = TYnptr;
 int TYdelegate = TYllong;
 int TYdarray = TYullong;
 
-char debuga=0,debugb=0,debugc=0,debugd=0,debuge=0,debugf=0,debugr=0,debugs=0,debugt=0,debugu=0,debugw=0,debugx=0,debugy=0;
-
-version (MARS) { } else
-{
-linkage_t linkage;
-int linkage_spec = 0;           /* using the default                    */
-
-/* Function types       */
-/* LINK_MAXDIM = C,C++,Pascal,FORTRAN,syscall,stdcall,Mars */
-static if (MEMMODELS == 1)
-{
-tym_t[LINK_MAXDIM] functypetab =
-[
-    TYnfunc,
-    TYnpfunc,
-    TYnpfunc,
-    TYnfunc,
-];
-}
-else
-{
-tym_t[MEMMODELS][LINK_MAXDIM] functypetab =
-[
-    [ TYnfunc,  TYffunc,  TYnfunc,  TYffunc,  TYffunc  ],
-    [ TYnfunc,  TYffunc,  TYnfunc,  TYffunc,  TYffunc  ],
-    [ TYnpfunc, TYfpfunc, TYnpfunc, TYfpfunc, TYfpfunc ],
-    [ TYnpfunc, TYfpfunc, TYnpfunc, TYfpfunc, TYfpfunc ],
-    [ TYnfunc,  TYffunc,  TYnfunc,  TYffunc,  TYffunc  ],
-    [ TYnsfunc, TYfsfunc, TYnsfunc, TYfsfunc, TYfsfunc ],
-    [ TYjfunc,  TYfpfunc, TYnpfunc, TYfpfunc, TYfpfunc ],
-];
-}
-
-/* Function mangling    */
-/* LINK_MAXDIM = C,C++,Pascal,FORTRAN,syscall,stdcall */
-mangle_t[LINK_MAXDIM] funcmangletab =
-[
-    mTYman_c,
-    mTYman_cpp,
-    mTYman_pas,
-    mTYman_for,
-    mTYman_sys,
-    mTYman_std,
-    mTYman_d,
-];
-
-/* Name mangling for global variables   */
-mangle_t[LINK_MAXDIM] varmangletab =
-[
-    mTYman_c,
-    mTYman_cpp,
-    mTYman_pas,mTYman_for,mTYman_sys,mTYman_std,mTYman_d
-];
-}
+char debuga = 0; /// cg - watch assignaddr()
+char debugb = 0; /// watch block optimization
+char debugc = 0; /// watch code generated
+char debugd = 0; /// watch debug information generated
+char debuge = 0; /// dump eh info
+char debugf = 0; /// trees after dooptim
+char debugg = 0; /// trees for code generator
+char debugo = 0; /// watch optimizer
+char debugr = 0; /// watch register allocation
+char debugs = 0; /// watch common subexp eliminator
+char debugt = 0; /// do test points
+char debugu = 0;
+char debugw = 0; /// watch progress
+char debugx = 0; /// suppress predefined CPP stuff
+char debugy = 0; /// watch output to il buffer
 
 /* File variables: */
 
@@ -136,17 +87,6 @@ char*   foutdir = null,       // directory to place output files in
         ftdbname = null,
         fdepname = null,
         flstname = null;       /* the filename strings                 */
-
-version (SCPP)
-{
-    phstring_t fdeplist;
-    phstring_t pathlist;            // include paths
-}
-version (HTOD)
-{
-    phstring_t fdeplist;
-    phstring_t pathlist;            // include paths
-}
 
 int pathsysi;                   // -isystem= index
 list_t headers;                 /* pre-include files                    */
@@ -276,7 +216,7 @@ extern (D) private enum tytab_init =
     return tab;
 } ();
 
-
+/// Give an ascii string for a type
 extern (C) __gshared const(char)*[TYMAX] tystring =
 () {
     const(char)*[TYMAX] ret = [
@@ -350,100 +290,51 @@ extern (C) __gshared const(char)*[TYMAX] tystring =
         TYident    : "ident",
         TYtemplate : "template",
         TYvtshape  : "vtshape",
+
+        TYschar     : "byte",
+        TYuchar     : "ubyte",
+        TYwchar_t   : "wchar",
+
+        TYnullptr   : "typeof(null)",
+
+        TYushort    : "ushort",
+        TYuint      : "uint",
+        TYulong     : "ulong",
+
+        TYldouble   : "real",
+
+        TYifloat    : "ifloat",
+        TYidouble   : "idouble",
+        TYildouble  : "ireal",
+
+        TYcfloat    : "cfloat",
+        TYcdouble   : "cdouble",
+        TYcldouble  : "creal",
+
+        TYschar16   : "byte[16]",
+        TYuchar16   : "ubyte[16]",
+        TYushort8   : "ushort[8]",
+        TYulong4    : "ulong[4]", // c_ulong
+        TYllong2    : "long[2]",
+        TYullong2   : "ulong[2]",
+
+        TYschar32   : "byte[32]",
+        TYuchar32   : "ubyte[32]",
+        TYushort16  : "ushort[16]",
+        TYulong8    : "ulong[8]", // c_ulong
+        TYllong4    : "long[4]",
+        TYullong4   : "ulong[4]",
+
+        TYschar64   : "byte[64]",
+        TYuchar64   : "ubyte[64]",
+        TYushort32  : "ushort[32]",
+        TYulong16   : "ulong[16]", // c_ulong
+        TYllong8    : "long[8]",
+        TYullong8   : "ulong[8]",
     ];
 
-    version(SCPP)
-    {
-        ret[TYschar] = "signed char";
-        ret[TYuchar] = "unsigned char";
-        ret[TYwchar_t] = "wchar_t";
-
-        ret[TYnullptr] = "nullptr_t";
-
-        ret[TYushort] = "unsigned short";
-        ret[TYuint] = "unsigned int";
-        ret[TYulong] = "unsigned long";
-
-        ret[TYldouble] = "long double";
-
-        ret[TYifloat] = "imaginary float";
-        ret[TYidouble] = "imaginary double";
-        ret[TYildouble] = "imaginary long double";
-
-        ret[TYcfloat] = "complex float";
-        ret[TYcdouble] = "complex double";
-        ret[TYcldouble] = "complex long double";
-
-        ret[TYllong] = "long long";
-        ret[TYullong] = "unsigned long long";
-
-        ret[TYschar16] = "signed char[16]";
-        ret[TYuchar16] = "unsigned char[16]";
-        ret[TYushort8] = "unsigned short[8]";
-        ret[TYulong4] = "unsigned long[4]";
-        ret[TYllong2] = "long long[2]";
-        ret[TYullong2] = "unsigned long long[2]";
-
-        ret[TYschar32] = "signed char[32]";
-        ret[TYuchar32] = "unsigned char[32]";
-        ret[TYushort16] = "unsigned short[16]";
-        ret[TYulong8] = "unsigned long[8]";
-        ret[TYllong4] = "long long[4]";
-        ret[TYullong4] = "unsigned long long[4]";
-
-        ret[TYschar64] = "signed char[64]";
-        ret[TYuchar64] = "unsigned char[64]";
-        ret[TYushort32] = "unsigned short[32]";
-        ret[TYulong16] = "unsigned long[16]";
-        ret[TYllong8] = "long long[8]";
-        ret[TYullong8] = "unsigned long long[8]";
-    } else version(MARS)
-    {
-        ret[TYschar] = "byte";
-        ret[TYuchar] = "ubyte";
-        ret[TYwchar_t] = "wchar";
-
-        ret[TYnullptr] = "typeof(null)";
-
-        ret[TYushort] = "ushort";
-        ret[TYuint] = "uint";
-        ret[TYulong] = "ulong";
-
-        ret[TYldouble] = "real";
-
-        ret[TYifloat] = "ifloat";
-        ret[TYidouble] = "idouble";
-        ret[TYildouble] = "ireal";
-
-        ret[TYcfloat] = "cfloat";
-        ret[TYcdouble] = "cdouble";
-        ret[TYcldouble] = "creal";
-
-        ret[TYullong] = ret[TYulong]; // c_ulong
-        ret[TYllong] = ret[TYlong]; // c_long
-
-        ret[TYschar16] = "byte[16]";
-        ret[TYuchar16] = "ubyte[16]";
-        ret[TYushort8] = "ushort[8]";
-        ret[TYulong4] = "ulong[4]"; // c_ulong
-        ret[TYllong2] = "long[2]";
-        ret[TYullong2] = "ulong[2]";
-
-        ret[TYschar32] = "byte[32]";
-        ret[TYuchar32] = "ubyte[32]";
-        ret[TYushort16] = "ushort[16]";
-        ret[TYulong8] = "ulong[8]"; // c_ulong
-        ret[TYllong4] = "long[4]";
-        ret[TYullong4] = "ulong[4]";
-
-        ret[TYschar64] = "byte[64]";
-        ret[TYuchar64] = "ubyte[64]";
-        ret[TYushort32] = "ushort[32]";
-        ret[TYulong16] = "ulong[16]"; // c_ulong
-        ret[TYllong8] = "long[8]";
-        ret[TYullong8] = "ulong[8]";
-    } else
-        static assert(0, "Unsupported compiler backend!");
+    ret[TYullong] = ret[TYulong]; // c_ulong
+    ret[TYllong] = ret[TYlong]; // c_long
 
     return ret;
 } ();
@@ -772,6 +663,7 @@ __gshared ushort[TYMAX] dttab4 =
 ];
 
 /// Size of a type
+/// -1 means error
 __gshared byte[256] _tysize =
 [
     TYbool    : 1,
@@ -886,6 +778,7 @@ __gshared byte[256] _tysize =
 enum SET_ALIGN = -1;
 
 /// Size of a type to use for alignment
+/// -1 means error
 __gshared byte[256] _tyalignsize =
 [
     TYbool    : 1,

@@ -31,15 +31,6 @@ import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-version (SCPP)
-{
-    import scopeh;
-}
-else version (HTOD)
-{
-    import scopeh;
-}
-
 static if (NTEXCEPTIONS)
 {
 
@@ -48,8 +39,7 @@ extern (C++):
 nothrow:
 @safe:
 
-int REGSIZE();
-void except_fillInEHTable(Symbol *s);
+import dmd.backend.eh : except_fillInEHTable;
 
 private __gshared
 {
@@ -72,7 +62,7 @@ int nteh_EBPoffset_prev()       { return -nteh_contextsym_size() + 8; }
 int nteh_EBPoffset_info()       { return -nteh_contextsym_size() + 4; }
 int nteh_EBPoffset_esp()        { return -nteh_contextsym_size() + 0; }
 
-int nteh_offset_sindex()        { version (MARS) { return 16; } else { return 20; } }
+int nteh_offset_sindex()        { return 16; }
 int nteh_offset_sindex_seh()    { return 20; }
 int nteh_offset_info()          { return 4; }
 
@@ -117,12 +107,9 @@ private Symbol *nteh_scopetable()
 @trusted
 void nteh_filltables()
 {
-version (MARS)
-{
     Symbol *s = s_table;
     symbol_debug(s);
     except_fillInEHTable(s);
-}
 }
 
 /****************************
@@ -135,60 +122,10 @@ void nteh_gentables(Symbol *sfunc)
 {
     Symbol *s = s_table;
     symbol_debug(s);
-version (MARS)
-{
     //except_fillInEHTable(s);
-}
-else
-{
-    /* NTEH table for C.
-     * The table consists of triples:
-     *  parent index
-     *  filter address
-     *  handler address
-     */
-    uint fsize = 4;             // target size of function pointer
-    auto dtb = DtBuilder(0);
-    int sz = 0;                     // size so far
-
-    foreach (b; BlockRange(startblock))
-    {
-        if (b.BC == BC_try)
-        {
-            block *bhandler;
-
-            dtb.dword(b.Blast_index);  // parent index
-
-            // If try-finally
-            if (b.numSucc() == 2)
-            {
-                dtb.dword(0);           // filter address
-                bhandler = b.nthSucc(1);
-                assert(bhandler.BC == BC_finally);
-                // To successor of BC_finally block
-                bhandler = bhandler.nthSucc(0);
-            }
-            else // try-except
-            {
-                bhandler = b.nthSucc(1);
-                assert(bhandler.BC == BC_filter);
-                dtb.coff(bhandler.Boffset);    // filter address
-                bhandler = b.nthSucc(2);
-                assert(bhandler.BC == BC_except);
-            }
-            dtb.coff(bhandler.Boffset);        // handler address
-            sz += 4 + fsize * 2;
-        }
-    }
-    assert(sz != 0);
-    s.Sdt = dtb.finish();
-}
 
     outdata(s);                 // output the scope table
-version (MARS)
-{
     nteh_framehandler(sfunc, s);
-}
     s_table = null;
 }
 
@@ -202,8 +139,6 @@ void nteh_declarvars(Blockx *bx)
     Symbol *s;
 
     //printf("nteh_declarvars()\n");
-version (MARS)
-{
     if (!(bx.funcsym.Sfunc.Fflags3 & Fnteh)) // if haven't already done it
     {   bx.funcsym.Sfunc.Fflags3 |= Fnteh;
         s = symbol_name(s_name_context[0 .. strlen(s_name_context)],SC.bprel,tstypes[TYint]);
@@ -214,33 +149,10 @@ version (MARS)
         bx.context = s;
     }
 }
-else
-{
-    if (!(funcsym_p.Sfunc.Fflags3 & Fnteh))   // if haven't already done it
-    {   funcsym_p.Sfunc.Fflags3 |= Fnteh;
-        if (!s_context)
-            s_context = scope_search(s_name_context_tag, CPP ? SCTglobal : SCTglobaltag);
-        symbol_debug(s_context);
-
-        s = symbol_name(s_name_context[0 .. strlen(s_name_context)],SC.bprel,s_context.Stype);
-        s.Soffset = -6 * 4;            // -5 * 4 for C++
-        s.Sflags |= SFLfree;
-        symbol_add(s);
-        type_setty(&s.Stype,mTYvolatile | TYstruct);
-
-        s = symbol_name(s_name_ecode[0 .. strlen(s_name_context)],SC.auto_,type_alloc(mTYvolatile | TYint));
-        s.Sflags |= SFLfree;
-        symbol_add(s);
-    }
-}
-}
 
 /**************************************
  * Generate elem that sets the context index into the scope table.
  */
-
-version (MARS)
-{
 elem *nteh_setScopeTableIndex(Blockx *blx, int scope_index)
 {
     elem *e;
@@ -251,7 +163,6 @@ elem *nteh_setScopeTableIndex(Blockx *blx, int scope_index)
     e = el_var(s);
     e.EV.Voffset = nteh_offset_sindex();
     return el_bin(OPeq, TYint, e, el_long(TYint, scope_index));
-}
 }
 
 
@@ -281,20 +192,7 @@ uint nteh_contextsym_size()
 
     if (usednteh & NTEH_try)
     {
-version (MARS)
-{
         sz = 5 * 4;
-}
-else version (SCPP)
-{
-        sz = 6 * 4;
-}
-else version (HTOD)
-{
-        sz = 6 * 4;
-}
-else
-        static assert(0);
     }
     else if (usednteh & NTEHcpp)
     {
@@ -334,20 +232,9 @@ Symbol *nteh_ecodesym()
 
 void nteh_usevars()
 {
-version (SCPP)
-{
-    // Turn off SFLdead and SFLunambig in Sflags
-    nteh_contextsym().Sflags &= ~(SFLdead | SFLunambig);
-    nteh_contextsym().Sflags |= SFLread;
-    nteh_ecodesym().Sflags   &= ~(SFLdead | SFLunambig);
-    nteh_ecodesym().Sflags   |= SFLread;
-}
-else
-{
     // Turn off SFLdead and SFLunambig in Sflags
     nteh_contextsym().Sflags &= ~SFLdead;
     nteh_contextsym().Sflags |= SFLread;
-}
 }
 
 /*********************************
@@ -394,33 +281,10 @@ void nteh_prolog(ref CodeBuilder cdb)
     cs.IEV2.Vint = -1;
     cdb.gen(&cs);                 // PUSH -1
 
-    version (MARS)
-    {
-        // PUSH &framehandler
-        cs.IFL2 = FLframehandler;
-        nteh_scopetable();
-    }
-    else
-    {
-    if (usednteh & NTEHcpp)
-    {
-        // PUSH &framehandler
-        cs.IFL2 = FLframehandler;
-    }
-    else
-    {
-        // Do stable
-        cs.Iflags |= CFoff;
-        cs.IFL2 = FLextern;
-        cs.IEV2.Vsym = nteh_scopetable();
-        cs.IEV2.Voffset = 0;
-        cdb.gen(&cs);                       // PUSH &scope_table
+    // PUSH &framehandler
+    cs.IFL2 = FLframehandler;
+    nteh_scopetable();
 
-        cs.IFL2 = FLextern;
-        cs.IEV2.Vsym = getRtlsym(RTLSYM.EXCEPT_HANDLER3);
-        makeitextern(getRtlsym(RTLSYM.EXCEPT_HANDLER3));
-    }
-    }
 
     CodeBuilder cdb2;
     cdb2.ctor();
@@ -480,10 +344,7 @@ void nteh_epilog(ref CodeBuilder cdb)
     code cs;
     reg_t reg;
 
-version (MARS)
     reg = CX;
-else
-    reg = (tybasic(funcsym_p.Stype.Tnext.Tty) == TYvoid) ? AX : CX;
 
     useregs(1 << reg);
 
@@ -583,10 +444,7 @@ void nteh_framehandler(Symbol *sfunc, Symbol *scopetable)
         cdb.ctor();
         cdb.gencs(0xB8+AX,0,FLextern,scopetable);  // MOV EAX,&scope_table
 
-version (MARS)
         cdb.gencs(0xE9,0,FLfunc,getRtlsym(RTLSYM.D_HANDLER));      // JMP _d_framehandler
-else
-        cdb.gencs(0xE9,0,FLfunc,getRtlsym(RTLSYM.CPP_HANDLER));    // JMP __cpp_framehandler
 
         code *c = cdb.finish();
         pinholeopt(c,null);
@@ -632,51 +490,6 @@ void cdsetjmp(ref CodeBuilder cdb, elem *e,regm_t *pretregs)
     uint flag;
 
     stackpushsave = stackpush;
-version (SCPP)
-{
-    if (CPP && (funcsym_p.Sfunc.Fflags3 & Fcppeh || usednteh & NTEHcpp))
-    {
-        /*  If in C++ try block
-            If the frame that is calling setjmp has a try,catch block then
-            the call to setjmp3 is as follows:
-              __setjmp3(environment,3,__cpp_longjmp_unwind,trylevel,funcdata);
-
-            __cpp_longjmp_unwind is a routine in the RTL. This is a
-            stdcall routine that will deal with unwinding for CPP Frames.
-            trylevel is the value that gets incremented at each catch,
-            constructor invocation.
-            funcdata is the same value that you put into EAX prior to
-            cppframehandler getting called.
-         */
-        Symbol *s;
-
-        s = except_gensym();
-        if (!s)
-            goto L1;
-
-        cdb.gencs(0x68,0,FLextern,s);                 // PUSH &scope_table
-        stackpush += 4;
-        cdb.genadjesp(4);
-
-        cdb.genc1(0xFF,modregrm(1,6,BP),FLconst,cast(targ_uns)-4);
-                                                // PUSH trylevel
-        stackpush += 4;
-        cdb.genadjesp(4);
-
-        cs.Iop = 0x68;
-        cs.Iflags = CFoff;
-        cs.Irex = 0;
-        cs.IFL2 = FLextern;
-        cs.IEV2.Vsym = getRtlsym(RTLSYM.CPP_LONGJMP);
-        cs.IEV2.Voffset = 0;
-        cdb.gen(&cs);                         // PUSH &_cpp_longjmp_unwind
-        stackpush += 4;
-        cdb.genadjesp(4);
-
-        flag = 3;
-        goto L2;
-    }
-}
     if (funcsym_p.Sfunc.Fflags3 & Fnteh)
     {
         /*  If in NT SEH try block
@@ -722,10 +535,8 @@ version (SCPP)
             try..catch, then call setjmp3 as follows:
             _setjmp3(environment,0)
          */
-    L1:
         flag = 0;
     }
-L2:
     cs.Iop = 0x68;
     cs.Iflags = 0;
     cs.Irex = 0;
@@ -761,17 +572,10 @@ L2:
 void nteh_unwind(ref CodeBuilder cdb,regm_t saveregs,uint stop_index)
 {
     // Shouldn't this always be CX?
-version (SCPP)
-    const reg_t reg = AX;
-else
     const reg_t reg = CX;
 
-version (MARS)
     // https://github.com/dlang/dmd/blob/cdfadf8a18f474e6a1b8352af2541efe3e3467cc/druntime/src/rt/deh_win32.d#L934
     const local_unwind = RTLSYM.D_LOCAL_UNWIND2;    // __d_local_unwind2()
-else
-    // dm/src/win32/ehsup.c
-    const local_unwind = RTLSYM.LOCAL_UNWIND2;      // __local_unwind2()
 
     const regm_t desregs = (~getRtlsym(local_unwind).Sregsaved & (ALLREGS)) | (1 << reg);
     CodeBuilder cdbs;
@@ -795,21 +599,12 @@ else
     cdbx.gen(&cs);                             // LEA  ECX,contextsym
 
     int nargs = 0;
-version (SCPP)
-{
-    const int take_addr = 1;
-    cdbx.genc2(0x68,0,take_addr);                  // PUSH take_addr
-    ++nargs;
-}
 
     cdbx.genc2(0x68,0,stop_index);                 // PUSH stop_index
     cdbx.gen1(0x50 + reg);                         // PUSH ECX            ; DEstablisherFrame
     nargs += 2;
-version (MARS)
-{
     cdbx.gencs(0x68,0,FLextern,nteh_scopetable());      // PUSH &scope_table    ; DHandlerTable
     ++nargs;
-}
 
     cdbx.gencs(0xE8,0,FLfunc,getRtlsym(local_unwind));  // CALL _local_unwind()
     cod3_stackadj(cdbx, -nargs * 4);
@@ -823,8 +618,6 @@ version (MARS)
  * Set monitor, hook monitor exception handler.
  */
 
-version (MARS)
-{
 @trusted
 void nteh_monitor_prolog(ref CodeBuilder cdb, Symbol *shandle)
 {
@@ -883,16 +676,11 @@ void nteh_monitor_prolog(ref CodeBuilder cdb, Symbol *shandle)
     cdb.append(cdbx);
 }
 
-}
-
 /*************************************************
  * Release monitor, unhook monitor exception handler.
  * Input:
  *      retregs         registers to not destroy
  */
-
-version (MARS)
-{
 
 @trusted
 void nteh_monitor_epilog(ref CodeBuilder cdb,regm_t retregs)
@@ -928,8 +716,6 @@ void nteh_monitor_epilog(ref CodeBuilder cdb,regm_t retregs)
     cs.IEV1.Vsym = getRtlsym(RTLSYM.EXCEPT_LIST);
     cs.IEV1.Voffset = 0;
     cdb.gen(&cs);                       // POP FS:__except_list
-}
-
 }
 
 }

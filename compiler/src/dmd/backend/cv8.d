@@ -15,14 +15,6 @@
 
 module dmd.backend.cv8;
 
-version (MARS)
-    version = COMPILE;
-version (SCPP)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -36,8 +28,8 @@ import dmd.backend.code_x86;
 import dmd.backend.cv4;
 import dmd.backend.mem;
 import dmd.backend.el;
-import dmd.backend.exh;
 import dmd.backend.global;
+import dmd.backend.mscoffobj;
 import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.common.outbuffer;
@@ -60,18 +52,9 @@ static if (1)
 @trusted
 private bool symbol_iscomdat4(Symbol* s)
 {
-    version (MARS)
-    {
-        return s.Sclass == SC.comdat ||
-            config.flags2 & CFG2comdat && s.Sclass == SC.inline ||
-            config.flags4 & CFG4allcomdat && s.Sclass == SC.global;
-    }
-    else
-    {
-        return s.Sclass == SC.comdat ||
-            config.flags2 & CFG2comdat && s.Sclass == SC.inline ||
-            config.flags4 & CFG4allcomdat && (s.Sclass == SC.global || s.Sclass == SC.static_);
-    }
+    return s.Sclass == SC.comdat ||
+        config.flags2 & CFG2comdat && s.Sclass == SC.inline ||
+        config.flags4 & CFG4allcomdat && s.Sclass == SC.global;
 }
 
 
@@ -417,10 +400,8 @@ void cv8_func_term(Symbol *sfunc)
     else
         typidx = cv_typidx(sfunc.Stype);
 
-    version (MARS)
-        const(char)* id = sfunc.prettyIdent ? sfunc.prettyIdent : prettyident(sfunc);
-    else
-        const(char)* id = prettyident(sfunc);
+    const(char)* id = sfunc.prettyIdent ? sfunc.prettyIdent : prettyident(sfunc);
+
     size_t len = strlen(id);
     if(len > CV8_MAX_SYMBOL_LENGTH)
         len = CV8_MAX_SYMBOL_LENGTH;
@@ -526,10 +507,7 @@ void cv8_func_term(Symbol *sfunc)
 @trusted
 void cv8_linnum(Srcpos srcpos, uint offset)
 {
-    version (MARS)
-        const sfilename = srcpos.Sfilename;
-    else
-        const sfilename = srcpos_name(srcpos);
+    const sfilename = srcpos.Sfilename;
     //printf("cv8_linnum(file = %s, line = %d, offset = x%x)\n", sfilename, cast(int)srcpos.Slinnum, cast(uint)offset);
 
     if (!sfilename)
@@ -701,10 +679,7 @@ void cv8_outsym(Symbol *s)
 
     idx_t typidx = cv_typidx(s.Stype);
     //printf("typidx = %x\n", typidx);
-    version (MARS)
-        const(char)* id = s.prettyIdent ? s.prettyIdent : prettyident(s);
-    else
-        const(char)* id = prettyident(s);
+    const(char)* id = s.prettyIdent ? s.prettyIdent : prettyident(s);
     size_t len = strlen(id);
 
     if(len > CV8_MAX_SYMBOL_LENGTH)
@@ -1221,8 +1196,6 @@ else
 
 }
     return cv_debtyp(d);
-}
-
 }
 
 }

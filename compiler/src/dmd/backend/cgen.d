@@ -12,14 +12,6 @@
 
 module dmd.backend.cgen;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -37,18 +29,13 @@ import dmd.backend.obj;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-version (SCPP)
-{
-    import msgs2;
-}
-
 extern (C++):
 
 nothrow:
+@safe:
 
-dt_t *dt_get_nzeros(uint n);
-
-extern __gshared CGstate cgstate;
+public import dmd.backend.dt : dt_get_nzeros;
+public import dmd.backend.cgcod : cgstate;
 
 /*****************************
  * Find last code in list.
@@ -199,6 +186,7 @@ code *gennop(code *c)
  * Clean stack after call to codelem().
  */
 
+@trusted
 void gencodelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,bool constflag)
 {
     if (e)
@@ -221,6 +209,7 @@ void gencodelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,bool constflag)
  * If so, return !=0 and set *preg to which register it is.
  */
 
+@trusted
 bool reghasvalue(regm_t regm,targ_size_t value,reg_t *preg)
 {
     //printf("reghasvalue(%s, %llx)\n", regm_str(regm), cast(ulong)value);
@@ -243,7 +232,7 @@ bool reghasvalue(regm_t regm,targ_size_t value,reg_t *preg)
  * Output:
  *      *preg   the register selected
  */
-
+@trusted
 void regwithvalue(ref CodeBuilder cdb,regm_t regm,targ_size_t value,reg_t *preg,regm_t flags)
 {
     //printf("regwithvalue(value = %lld)\n", cast(long)value);
@@ -281,7 +270,7 @@ private __gshared Barray!Fixup fixups;
 /****************************
  * Add to the fix list.
  */
-
+@trusted
 size_t addtofixlist(Symbol *s,targ_size_t offset,int seg,targ_size_t val,int flags)
 {
         static immutable ubyte[8] zeros = 0;
@@ -338,6 +327,7 @@ void searchfixlist (Symbol *s )
  * Output fixups as references to external or static Symbol.
  * First emit data for still undefined static Symbols or mark non-static Symbols as SCextern.
  */
+@trusted
 private void outfixup(ref Fixup f)
 {
     symbol_debug(f.sym);
@@ -357,17 +347,6 @@ static if (TARGET_SEGMENTED)
     {
         if (f.sym.Sclass == SC.static_)
         {
-version (SCPP)
-{
-            if (f.sym.Sdt)
-            {
-                outdata(f.sym);
-            }
-            else if (f.sym.Sseg == UNKNOWN)
-                synerr(EM_no_static_def,prettyident(f.sym)); // no definition found for static
-}
-else // MARS
-{
             // OBJ_OMF does not set Sxtrnnum for static Symbols, so check
             // whether the Symbol was assigned to a segment instead, compare
             // outdata(Symbol *s)
@@ -376,7 +355,6 @@ else // MARS
                 printf("Error: no definition for static %s\n", prettyident(f.sym)); // no definition found for static
                 err_exit(); // BUG: do better
             }
-}
         }
         else if (f.sym.Sflags & SFLwasstatic)
         {
@@ -412,11 +390,10 @@ else
  * End of module. Output fixups as references
  * to external Symbols.
  */
+@trusted
 void outfixlist()
 {
     foreach (ref f; fixups)
         outfixup(f);
     fixups.reset();
-}
-
 }

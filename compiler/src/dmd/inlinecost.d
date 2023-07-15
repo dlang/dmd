@@ -15,7 +15,6 @@ import core.stdc.stdio;
 import core.stdc.string;
 
 import dmd.aggregate;
-import dmd.apply;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.attrib;
@@ -33,6 +32,7 @@ import dmd.identifier;
 import dmd.init;
 import dmd.mtype;
 import dmd.opover;
+import dmd.postordervisitor;
 import dmd.statement;
 import dmd.tokens;
 import dmd.visitor;

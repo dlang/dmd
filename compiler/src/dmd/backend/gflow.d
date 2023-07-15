@@ -12,14 +12,6 @@
 
 module dmd.backend.gflow;
 
-version (SCPP)
-    version = COMPILE;
-version (MARS)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -1965,6 +1957,4 @@ private void accumvbe(vec_t GEN,vec_t KILL,elem *n)
         } /* if */
         vec_subass(KILL,GEN);
     } /* if */
-}
-
 }

@@ -51,6 +51,7 @@ struct CompileEnv
     bool previewIn;          /// `in` means `[ref] scope const`, accepts rvalues
     bool ddocOutput;         /// collect embedded documentation comments
     bool shortenedMethods = true;   /// allow => in normal function declarations
+    bool obsolete;           /// warn on use of legacy code
 }
 
 /***********************************************************
@@ -119,7 +120,7 @@ class Lexer
     this(const(char)* filename, const(char)* base, size_t begoffset,
         size_t endoffset, bool doDocComment, bool commentToken,
         ErrorSink errorSink,
-        const CompileEnv* compileEnv) pure scope
+        const CompileEnv* compileEnv) scope
     {
         scanloc = Loc(filename, 1, 1);
         // debug printf("Lexer::Lexer(%p)\n", base);
@@ -393,6 +394,15 @@ class Lexer
                     }
                 }
                 continue; // skip white space
+
+            case '\\':
+                if (Ccompile && (p[1] == '\r' || p[1] == '\n'))
+                {
+                    ++p; // ignore \ followed by new line, like VC does
+                    continue;
+                }
+                goto default;
+
             case '0':
                 if (!isZeroSecond(p[1]))        // if numeric literal does not continue
                 {
@@ -564,7 +574,7 @@ class Lexer
                         }
                         break;
                     }
-                    Identifier id = Identifier.idPool(cast(char*)t.ptr, cast(uint)(p - t.ptr));
+                    Identifier id = Identifier.idPool((cast(char*)t.ptr)[0 .. p - t.ptr], false);
                     t.ident = id;
                     t.value = cast(TOK)id.getValue();
 
@@ -2196,7 +2206,7 @@ class Lexer
                 p++;
                 if ((flags & f) && !err)
                 {
-                    error("unrecognized token");
+                    error("repeated integer suffix `%c`", p[-1]);
                     err = true;
                 }
                 flags = cast(FLAGS)(flags | f);
@@ -2663,9 +2673,9 @@ class Lexer
         return result;
     }
 
-    final Loc loc() pure @nogc
+    final Loc loc() @nogc
     {
-        scanloc.charnum = cast(uint)(1 + p - line);
+        scanloc.charnum = cast(ushort)(1 + p - line);
         version (LocOffset)
             scanloc.fileOffset = cast(uint)(p - base);
         return scanloc;
@@ -3089,9 +3099,9 @@ class Lexer
     /**************************
      * `p` should be at start of next line
      */
-    private void endOfLine() pure @nogc @safe
+    private void endOfLine() @nogc @safe
     {
-        scanloc.linnum++;
+        scanloc.linnum = scanloc.linnum + 1;
         line = p;
     }
 }

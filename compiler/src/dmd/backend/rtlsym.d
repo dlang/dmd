@@ -138,9 +138,6 @@ enum RTLSYM
 }
 
 extern (C++):
-
-nothrow:
 @safe:
 
-Symbol *getRtlsym(RTLSYM i);
-Symbol *getRtlsymPersonality();
+public import dmd.backend.drtlsym : getRtlsym, getRtlsymPersonality;

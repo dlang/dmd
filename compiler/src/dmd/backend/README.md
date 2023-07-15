@@ -56,7 +56,6 @@ Object File Generation
 Exception Handling
 ------------------
 
-* **exh.d**           interface for exception handling support
 * **nteh.d**          Windows structured exception handling support
 
 Miscellaneous
@@ -66,7 +65,6 @@ Miscellaneous
 * **bcomplex.d**      our own complex number implementation
 * **md5.d**           implementation of MD5 message digest
 * **md5.di**          API for md5.d
-* **newman.d**        "new" C++ name mangling scheme
 * **os.d**            some operating system specific support
 * **cc.d**            common definitions
 * **cdef.d**          configuration
@@ -78,7 +76,6 @@ Miscellaneous
 * **oper.d**          operators for expression tree
 * **optabgen.d**      generate tables for back end
 * **ty.d**            type masks
-* **ph2.d**           leaking allocator
 * **symbol.d**        symbols for the back end
 * **type.d**          types for the back end
 * **var.d**           global variables
@@ -107,5 +104,5 @@ Code Generation
 * **code_x86.d**      x86 specific declarations
 * **dcode.d**         aloocate and free code blocks
 * **drtlsym.d**       compiler runtime function symbols
-* **out.d**           transition from intermediate representation to code generator
+* **dout.d**           transition from intermediate representation to code generator
 * **xmm.d**           xmm opcodes

@@ -125,16 +125,16 @@ static if (0)
             {
                 d.lpad = cast(uint)bf.Boffset;
                 d.bcatch = bf;
-                uint *pat = bf.actionTable;
-                uint length = pat[0];
+                uint[] pat = (*bf.actionTable)[];
+                size_t length = pat.length;
                 assert(length);
                 uint offset = -1;
-                for (uint u = length; u; --u)
+                for (size_t u = length; u; --u)
                 {
                     /* Buy doing depth-first insertion into the Action Table,
                      * we can combine common tails.
                      */
-                    offset = actionTableInsert(&atbuf, pat[u], offset);
+                    offset = actionTableInsert(&atbuf, pat[u - 1], offset);
                 }
                 d.action = offset + 1;
             }

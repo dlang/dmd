@@ -39,23 +39,12 @@ import dmd.backend.type;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
 
-version (SCPP)
-    import tk.mem;
-else
-{
-    extern (C)
-    {
-        nothrow void *mem_calloc(size_t);
-    }
-}
-
 extern (C++):
 
 nothrow:
 @safe:
 
-elem * evalu8(elem *e, goal_t goal);
-
+import dmd.backend.evalu8 : evalu8;
 
 /* Masks so we can easily check size */
 enum CHARMASK  = 0xFF;
@@ -75,12 +64,6 @@ private __gshared
 }
 
 private bool cnst(const elem* e) { return e.Eoper == OPconst; }
-int REGSIZE();
-
-version (MARS)
-{
-    import dmd.backend.errors;
-}
 
 /*****************************
  */
@@ -478,12 +461,9 @@ private elem *fixconvop(elem *e)
     {   if (e.Eoper != OPshlass && e.Eoper != OPshrass && e.Eoper != OPashrass)
             e.EV.E2 = el_una(icop,tym,e2);
 
-        version (MARS)
-        {
-            // https://issues.dlang.org/show_bug.cgi?id=23618
-            if ((cop == OPu16_32 || cop == OPu8_16) && e.Eoper == OPashrass)
-                e.Eoper = OPshrass;     // always unsigned right shift for MARS
-        }
+        // https://issues.dlang.org/show_bug.cgi?id=23618
+        if ((cop == OPu16_32 || cop == OPu8_16) && e.Eoper == OPashrass)
+            e.Eoper = OPshrass;     // always unsigned right shift for MARS
 
         return e;
     }
@@ -2545,7 +2525,7 @@ Lret:
 
 private elem * elremquo(elem *e, goal_t goal)
 {
-    static if (0) version (MARS)
+    static if (0)
     if (cnst(e.EV.E2) && !boolres(e.EV.E2))
         error(e.Esrcpos.Sfilename, e.Esrcpos.Slinnum, e.Esrcpos.Scharnum, "divide by zero\n");
 
@@ -2578,7 +2558,7 @@ private elem * eldiv(elem *e, goal_t goal)
     int uns = tyuns(tym) | tyuns(e2.Ety);
     if (cnst(e2))
     {
-        static if (0) version (MARS)
+        static if (0)
         if (!boolres(e2))
             error(e.Esrcpos.Sfilename, e.Esrcpos.Slinnum, e.Esrcpos.Scharnum, "divide by zero\n");
 
@@ -3257,11 +3237,8 @@ private elem * elbit(elem *e, goal_t goal)
     e2.Ety = e.Ety;
 
     OPER shift = OPshr;
-    version (MARS)
-    {
-        if (!tyuns(tym1))
-            shift = OPashr;
-    }
+    if (!tyuns(tym1))
+        shift = OPashr;
     e.EV.E1 = el_bin(shift,tym1,
                 el_bin(OPshl,tym1,e.EV.E1,el_long(TYint,c)),
                 el_long(TYint,b));
@@ -3825,11 +3802,8 @@ static if (0)  // Doesn't work too well, removed
         {
             tym_t ty;
 
-            version (MARS)
-                enum side = false; // don't allow side effects in e2.EV.E2 because of
-                                   // D order-of-evaluation rules
-            else
-                enum side = true;  // ok in C and C++
+            enum side = false; // don't allow side effects in e2.EV.E2 because of
+                               // D order-of-evaluation rules
 
             // Replace (e1 = e1 op e) with (e1 op= e)
             if (el_match(e1,e2.EV.E1) &&
@@ -4073,10 +4047,7 @@ static if (0)
         else                            /* signed bit field             */
         {
             OPER shift = OPshr;
-            version (MARS)
-            {
-                shift = OPashr;
-            }
+            shift = OPashr;
             c = sz - w;                 /* e2 = (r << c) >> c           */
             e2 = el_bin(shift,t,el_bin(OPshl,tyl,r,el_long(TYint,c)),el_long(TYint,c));
             pe = &e2.EV.E1.EV.E1;
@@ -5479,19 +5450,6 @@ elem *elddtor(elem *e, goal_t goal)
 private elem * elinfo(elem *e, goal_t goal)
 {
     //printf("elinfo()\n");
-    version (SCPP)
-    static if (NTEXCEPTIONS)
-    {
-        if (funcsym_p.Sfunc.Fflags3 & Fnteh)
-        {   // Eliminate cleanup info if using NT structured EH
-            if (e.Eoper == OPinfo)
-                e = el_selecte2(e);
-            else
-            {   el_free(e);
-                e = el_long(TYint,0);
-            }
-        }
-    }
     return e;
 }
 
@@ -5518,6 +5476,9 @@ private elem * elvalist(elem *e, goal_t goal)
         return e;
     }
 
+    elem* ap = e.EV.E1;         // pointer to va_list
+    elem* parmn = e.EV.E2;      // address of last named parameter
+
     if (I32)
     {
         // (OPva_start &va)
@@ -5541,7 +5502,7 @@ private elem * elvalist(elem *e, goal_t goal)
             lastNamed = arguments_typeinfo;
 
         e.Eoper = OPeq;
-        e.EV.E1 = el_una(OPind, TYnptr, e.EV.E1);
+        e.EV.E1 = el_una(OPind, TYnptr, ap);
         if (lastNamed)
         {
             e.EV.E2 = el_ptr(lastNamed);
@@ -5573,7 +5534,7 @@ if (config.exe & EX_windos)
     }
 
     e.Eoper = OPeq;
-    e.EV.E1 = el_una(OPind, TYnptr, e.EV.E1);
+    e.EV.E1 = el_una(OPind, TYnptr, ap);
     if (lastNamed)
     {
         e.EV.E2 = el_ptr(lastNamed);
@@ -5605,11 +5566,12 @@ if (config.exe & EX_posix)
     }
 
     e.Eoper = OPeq;
-    e.EV.E1 = el_una(OPind, TYnptr, e.EV.E1);
+    e.EV.E1 = el_una(OPind, TYnptr, ap);
     if (va_argsave)
     {
         e.EV.E2 = el_ptr(va_argsave);
-        e.EV.E2.EV.Voffset = 6 * 8 + 8 * 16;
+        e.EV.E2.EV.Voffset = 6 * 8 + 8 * 16; // offset to struct __va_list_tag defined in sysv_x64.d
+        return el_combine(prolog_genva_start(va_argsave, parmn.EV.Vsym), e);
     }
     else
         e.EV.E2 = el_long(TYnptr, 0);
@@ -6029,7 +5991,7 @@ beg:
         if (OTcommut(op))                // if commutative
         {
               /* see if we should swap the leaves       */
-              version (MARS) { enum MARS = true; } else { enum MARS = false; }
+              enum MARS = true;
               if (
                 MARS ? (
                 cost(e2) > cost(e1) &&
@@ -6243,13 +6205,11 @@ void postoptelem(elem *e)
         {
             /* This is necessary as the optimizer tends to lose this information
              */
-            version (MARS)
             if (e.Esrcpos.Slinnum > pos.Slinnum)
                 pos = e.Esrcpos;
 
             if (e.Eoper == OPind)
             {
-                version (MARS)
                 if (e.EV.E1.Eoper == OPconst &&
                     /* Allow TYfgptr to reference GS:[0000] etc.
                      */
@@ -6272,7 +6232,6 @@ void postoptelem(elem *e)
         {
             /* This is necessary as the optimizer tends to lose this information
              */
-            version (MARS)
             if (e.Esrcpos.Slinnum > pos.Slinnum)
                 pos = e.Esrcpos;
 

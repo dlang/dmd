@@ -275,7 +275,7 @@ private struct MatcherNode
  * -i=-foo // include everything except modules that match "foo*"
  * -i=foo  // only include modules that match "foo*" (exclude everything else)
  * ---
- * Note that this default behavior can be overriden using the '.' module pattern. i.e.
+ * Note that this default behavior can be overridden using the '.' module pattern. i.e.
  * ---
  * -i=-foo,-.  // this excludes everything
  * -i=foo,.    // this includes everything except the default exclusions (-std,-core,-etc.-object)
@@ -401,7 +401,7 @@ private void parseModulePattern(const(char)* modulePattern, MatcherNode* dst, us
                 if (*modulePattern == '.')
                 {
                     assert(modulePattern > idStart, "empty module pattern");
-                    *dst = MatcherNode(Identifier.idPool(idStart, cast(uint)(modulePattern - idStart)));
+                    *dst = MatcherNode(Identifier.idPool(idStart[0 .. modulePattern - idStart]));
                     modulePattern++;
                     idStart = modulePattern;
                     break;
@@ -413,7 +413,7 @@ private void parseModulePattern(const(char)* modulePattern, MatcherNode* dst, us
             if (*modulePattern == '\0')
             {
                 assert(modulePattern > idStart, "empty module pattern");
-                *lastNode = MatcherNode(Identifier.idPool(idStart, cast(uint)(modulePattern - idStart)));
+                *lastNode = MatcherNode(Identifier.idPool(idStart[0 .. modulePattern - idStart]));
                 break;
             }
         }

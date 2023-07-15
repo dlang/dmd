@@ -20,6 +20,7 @@ import dmd.common.int128;
 import dmd.backend.cc: Classsym, Symbol, param_t, config;
 import dmd.backend.el;
 import dmd.backend.ty : I32;
+import dmd.backend.global : REGSIZE;
 
 import dmd.backend.dlist;
 
@@ -32,29 +33,18 @@ enum VERSION = "9.00.0";        // for banner and imbedding in .OBJ file
 enum VERSIONHEX = "0x900";      // for __DMC__ macro
 enum VERSIONINT = 0x900;        // for precompiled headers and DLL version
 
-version (SCPP)
-    version = XVERSION;
-version (HTOD)
-    version = XVERSION;
-version (MARS)
-    version = XVERSION;
-
-version (XVERSION)
+extern (D) template xversion(string s)
 {
-    extern (D) template xversion(string s)
-    {
-        enum xversion = mixin(`{ version (` ~ s ~ `) return true; else return false; }`)();
-    }
-
-    enum TARGET_LINUX   = xversion!`linux`;
-    enum TARGET_OSX     = xversion!`OSX`;
-    enum TARGET_FREEBSD = xversion!`FreeBSD`;
-    enum TARGET_OPENBSD = xversion!`OpenBSD`;
-    enum TARGET_SOLARIS = xversion!`Solaris`;
-    enum TARGET_WINDOS  = xversion!`Windows`;
-    enum TARGET_DRAGONFLYBSD  = xversion!`DragonFlyBSD`;
+    enum xversion = mixin(`{ version (` ~ s ~ `) return true; else return false; }`)();
 }
 
+enum TARGET_LINUX   = xversion!`linux`;
+enum TARGET_OSX     = xversion!`OSX`;
+enum TARGET_FREEBSD = xversion!`FreeBSD`;
+enum TARGET_OPENBSD = xversion!`OpenBSD`;
+enum TARGET_SOLARIS = xversion!`Solaris`;
+enum TARGET_WINDOS  = xversion!`Windows`;
+enum TARGET_DRAGONFLYBSD  = xversion!`DragonFlyBSD`;
 
 //
 //      Attributes
@@ -106,19 +96,13 @@ enum IMPLIED_PRAGMA_ONCE = 1;       // include guards count as #pragma once
 enum bool HEADER_LIST = true;
 
 // Support generating code for 16 bit memory models
-version (SCPP)
-    enum SIXTEENBIT = TARGET_WINDOS != 0;
-else
-    enum SIXTEENBIT = false;
+enum SIXTEENBIT = false;
 
 /* Set for supporting the FLAT memory model.
  * This is not quite the same as !SIXTEENBIT, as one could
  * have near/far with 32 bit code.
  */
-version (MARS)
-    enum TARGET_SEGMENTED = false;
-else
-    enum TARGET_SEGMENTED = TARGET_WINDOS;
+enum TARGET_SEGMENTED = false;
 
 
 @trusted
@@ -160,44 +144,6 @@ enum NTEXCEPTIONS = 2;
 // PARC         parser, life of compilation
 // BEF          back end, function
 // BEC          back end, compilation
-
-//#define MEM_PH_FREE      mem_free
-//#define MEM_PARF_FREE    mem_free
-//#define MEM_PARC_FREE    mem_free
-//#define MEM_BEF_FREE     mem_free
-//#define MEM_BEC_FREE     mem_free
-
-//#define MEM_PH_CALLOC    mem_calloc
-//#define MEM_PARC_CALLOC  mem_calloc
-//#define MEM_PARF_CALLOC  mem_calloc
-//#define MEM_BEF_CALLOC   mem_calloc
-//#define MEM_BEC_CALLOC   mem_calloc
-
-//#define MEM_PH_MALLOC    mem_malloc
-//#define MEM_PARC_MALLOC  mem_malloc
-//#define MEM_PARF_MALLOC  mem_malloc
-//#define MEM_BEF_MALLOC   mem_malloc
-//#define MEM_BEC_MALLOC   mem_malloc
-
-//#define MEM_PH_STRDUP    mem_strdup
-//#define MEM_PARC_STRDUP  mem_strdup
-//#define MEM_PARF_STRDUP  mem_strdup
-//#define MEM_BEF_STRDUP   mem_strdup
-//#define MEM_BEC_STRDUP   mem_strdup
-
-//#define MEM_PH_REALLOC   mem_realloc
-//#define MEM_PARC_REALLOC mem_realloc
-//#define MEM_PARF_REALLOC mem_realloc
-//#define MEM_PERM_REALLOC mem_realloc
-//#define MEM_BEF_REALLOC  mem_realloc
-//#define MEM_BEC_REALLOC  mem_realloc
-
-//#define MEM_PH_FREEFP    mem_freefp
-//#define MEM_PARC_FREEFP  mem_freefp
-//#define MEM_PARF_FREEFP  mem_freefp
-//#define MEM_BEF_FREEFP   mem_freefp
-//#define MEM_BEC_FREEFP   mem_freefp
-
 
 // If we can use 386 instruction set (possible in 16 bit code)
 //#define I386 (config.target_cpu >= TARGET_80386)
@@ -259,7 +205,6 @@ alias targ_double = double;
 public import dmd.root.longdouble : targ_ldouble = longdouble;
 
 // Extract most significant register from constant
-int REGSIZE();
 ulong MSREG(ulong p) { return (REGSIZE == 2) ? p >> 16 : ((targ_llong.sizeof == 8) ? p >> 32 : 0); }
 
 alias targ_int = int;
@@ -312,10 +257,7 @@ enum
     Vmodel = 4,        // large code, large data, vcm
 }
 
-version (MARS)
-    enum MEMMODELS = 1; // number of memory models
-else
-    enum MEMMODELS = 5;
+enum MEMMODELS = 1; // number of memory models
 
 /* Segments     */
 enum
@@ -332,46 +274,6 @@ enum
 enum REGMAX = 29;      // registers are numbered 0..10
 
 alias tym_t = uint;    // data type big enough for type masks
-
-
-version (MARS)
-{
-}
-else
-{
-version (_WINDLL)
-{
-/* We reference the required Windows-1252 encoding of the copyright symbol
-   by escaping its character code (0xA9) rather than directly embedding it in
-   the source text. The character code is invalid in UTF-8, which causes some
-   of our source-code preprocessing tools (e.g. tolf) to choke.
- */
-    enum COPYRIGHT_SYMBOL = "\xA9";
-    enum COPYRIGHT = "Copyright " ~ COPYRIGHT_SYMBOL ~ " 2001 Digital Mars";
-}
-else
-{
-    debug
-    {
-        enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2019.  All Rights Reserved.
-Written by Walter Bright
-*****BETA TEST VERSION*****";
-    }
-    else
-    {
-        version (linux)
-        {
-            enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2019.  All Rights Reserved.
-Written by Walter Bright, Linux version by Pat Nelson";
-        }
-        else
-        {
-            enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2019.  All Rights Reserved.
-Written by Walter Bright";
-        }
-    }
-}
-}
 
 /**********************************
  * Configuration

@@ -676,7 +676,7 @@ Params:
     ti = `TypeInfo` of array type
     arr = array to shrink. Its `.length` is element length, not byte length, despite `void` type
 */
-extern(C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) /+nothrow+/
+extern(C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) nothrow
 {
     // note, we do not care about shared.  We are setting the length no matter
     // what, so no lock is required.
@@ -701,7 +701,17 @@ extern(C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) /+nothrow+/
             {
                 auto oldsize = __arrayAllocLength(info, tinext);
                 if (oldsize > cursize)
-                    finalize_array(arr.ptr + cursize, oldsize - cursize, sti);
+                {
+                    try
+                    {
+                        finalize_array(arr.ptr + cursize, oldsize - cursize, sti);
+                    }
+                    catch (Exception e)
+                    {
+                        import core.exception : onFinalizeError;
+                        onFinalizeError(sti, e);
+                    }
+                }
             }
         }
         // Note: Since we "assume" the append is safe, it means it is not shared.
@@ -1148,25 +1158,8 @@ extern (C) void[] _d_newarraymiTX(const TypeInfo ti, size_t[] dims) @weak
 }
 
 /**
-Allocate an uninitialized non-array item.
-
-This is an optimization to avoid things needed for arrays like the __arrayPad(size).
-
-- `_d_newitemU` leaves the item uninitialized
-- `_d_newitemT` zero initializes the item
-- `_d_newitemiT` uses a non-zero initializer from `TypeInfo`
-
-Used to allocate struct instances on the heap.
----
-struct Sz {int x = 0;}
-struct Si {int x = 3;}
-
-void main()
-{
-    new Sz(); // _d_newitemT(typeid(Sz))
-    new Si(); // _d_newitemiT(typeid(Si))
-}
----
+Non-template version of $(REF _d_newitemT, core,lifetime) that does not perform
+initialization. Needed for $(REF allocEntry, rt,aaA).
 
 Params:
     _ti = `TypeInfo` of item to allocate
@@ -1193,26 +1186,6 @@ extern (C) void* _d_newitemU(scope const TypeInfo _ti) pure nothrow @weak
         *cast(TypeInfo*)(p + blkInf.size - tiSize) = cast() ti;
     }
 
-    return p;
-}
-
-/// ditto
-extern (C) void* _d_newitemT(const TypeInfo _ti) pure nothrow @weak
-{
-    import core.stdc.string;
-    auto p = _d_newitemU(_ti);
-    memset(p, 0, _ti.tsize);
-    return p;
-}
-
-/// Same as above, for item with non-zero initializer.
-extern (C) void* _d_newitemiT(const TypeInfo _ti) pure nothrow @weak
-{
-    import core.stdc.string;
-    auto p = _d_newitemU(_ti);
-    auto init = _ti.initializer();
-    assert(init.length <= _ti.tsize);
-    memcpy(p, init.ptr, init.length);
     return p;
 }
 
@@ -1334,12 +1307,19 @@ int hasArrayFinalizerInSegment(void* p, size_t size, in void[] segment) nothrow
     return cast(size_t)(cast(void*)si.xdtor - segment.ptr) < segment.length;
 }
 
+debug (VALGRIND) import etc.valgrind.valgrind;
+
 // called by the GC
 void finalize_array2(void* p, size_t size) nothrow
 {
     debug(PRINTF) printf("rt_finalize_array2(p = %p)\n", p);
 
     TypeInfo_Struct si = void;
+    debug (VALGRIND)
+    {
+        auto block = p[0..size];
+        disableAddrReportingInRange(block);
+    }
     if (size <= 256)
     {
         si = *cast(TypeInfo_Struct*)(p + size - size_t.sizeof);
@@ -1356,6 +1336,7 @@ void finalize_array2(void* p, size_t size) nothrow
         size = *cast(size_t*)p;
         p += LARGEPREFIX;
     }
+    debug (VALGRIND) enableAddrReportingInRange(block);
 
     try
     {
@@ -2361,52 +2342,6 @@ unittest
     testPostBlit!(const(S))();
 }
 
-// cannot define structs inside unit test block, or they become nested structs.
-version (CoreUnittest)
-{
-    struct S1
-    {
-        int x = 5;
-    }
-    struct S2
-    {
-        int x;
-        this(int x) {this.x = x;}
-    }
-    struct S3
-    {
-        int[4] x;
-        this(int x)
-        {this.x[] = x;}
-    }
-    struct S4
-    {
-        int *x;
-    }
-
-}
-
-unittest
-{
-    auto s1 = new S1;
-    assert(s1.x == 5);
-    assert(GC.getAttr(s1) == BlkAttr.NO_SCAN);
-
-    auto s2 = new S2(3);
-    assert(s2.x == 3);
-    assert(GC.getAttr(s2) == BlkAttr.NO_SCAN);
-
-    auto s3 = new S3(1);
-    assert(s3.x == [1,1,1,1]);
-    assert(GC.getAttr(s3) == BlkAttr.NO_SCAN);
-    debug(SENTINEL) {} else
-        assert(GC.sizeOf(s3) == 16);
-
-    auto s4 = new S4;
-    assert(s4.x == null);
-    assert(GC.getAttr(s4) == 0);
-}
-
 unittest
 {
     // Bugzilla 3454 - Inconsistent flag setting in GC.realloc()
@@ -2446,7 +2381,7 @@ unittest
 
 unittest
 {
-    // bugzilla 13854
+    // https://issues.dlang.org/show_bug.cgi?id=13854
     auto arr = new ubyte[PAGESIZE]; // ensure page size
     auto info1 = GC.query(arr.ptr);
     assert(info1.base !is arr.ptr); // offset is required for page size or larger
@@ -2489,7 +2424,7 @@ unittest
 
 unittest
 {
-    // bugzilla 13878
+    // https://issues.dlang.org/show_bug.cgi?id=13878
     auto arr = new ubyte[1];
     auto info = GC.query(arr.ptr);
     assert(info.attr & BlkAttr.NO_SCAN); // should be NO_SCAN
@@ -2723,41 +2658,6 @@ unittest
         {
         }
         GC.free(cast(void*)c);
-        return caught;
-    }
-
-    assert( test!Exception);
-    import core.exception : InvalidMemoryOperationError;
-    assert(!test!InvalidMemoryOperationError);
-}
-
-// test struct finalizers exception handling
-debug(SENTINEL) {} else
-unittest
-{
-    bool test(E)()
-    {
-        import core.exception;
-        static struct S1
-        {
-            E exc;
-            ~this() { throw exc; }
-        }
-
-        bool caught = false;
-        S1* s = new S1(new E("test onFinalizeError"));
-        try
-        {
-            GC.runFinalizers((cast(char*)(typeid(S1).xdtor))[0..1]);
-        }
-        catch (FinalizeError err)
-        {
-            caught = true;
-        }
-        catch (E)
-        {
-        }
-        GC.free(s);
         return caught;
     }
 

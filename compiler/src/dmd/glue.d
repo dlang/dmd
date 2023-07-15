@@ -356,6 +356,11 @@ private void obj_start(ref OutBuffer objbuf, const(char)* srcfile)
         objmod = Obj.initialize(&objbuf, srcfile, null);
     }
 
+    OutBuffer buf;
+    buf.write("DMD ");
+    buf.write(global.versionString());
+    Obj.compiler(buf.peekChars());
+
     el_reset();
     cg87_reset();
     out_reset();
@@ -562,14 +567,14 @@ private void genObjFile(Module m, bool multiobj)
         elem *ecov  = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(m.cov));
         elem *ebcov = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(bcov));
 
-        if (target.os == Target.OS.Windows && target.is64bit)
+        if (target.os == Target.OS.Windows && target.isX86_64)
         {
             ecov  = addressElem(ecov,  Type.tvoid.arrayOf(), false);
             ebcov = addressElem(ebcov, Type.tvoid.arrayOf(), false);
         }
 
         elem *efilename = toEfilename(m);
-        if (target.os == Target.OS.Windows && target.is64bit)
+        if (target.os == Target.OS.Windows && target.isX86_64)
             efilename = addressElem(efilename, Type.tstring, true);
 
         elem *e = el_params(
@@ -827,7 +832,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     }
     else
     {
-        specialFunctions(objmod, fd);
+        if (entryPointFunctions(objmod, fd))
+            s.Sclass = SC.global;
     }
 
     symtab_t *symtabsave = cstate.CSpsymtab;
@@ -919,13 +925,15 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         params[pi] = toSymbol(fd.v_arguments);
         pi += 1;
     }
+    Symbol* lastParam;
     if (fd.parameters)
     {
         foreach (i, v; *fd.parameters)
         {
-            //printf("param[%d] = %p, %s\n", i, v, v.toChars());
+            //printf("param[%d] = %p, %s\n", cast(int)i, v, v.toChars());
             assert(!v.csym);
-            params[pi + i] = toSymbol(v);
+            lastParam = toSymbol(v);
+            params[pi + i] = lastParam;
         }
         pi += fd.parameters.length;
     }
@@ -992,7 +1000,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         {
             if (fpr.alloc(sp.Stype, sp.Stype.Tty, &sp.Spreg, &sp.Spreg2))
             {
-                sp.Sclass = (target.os == Target.OS.Windows && target.is64bit) ? SC.shadowreg : SC.fastpar;
+                sp.Sclass = (target.os == Target.OS.Windows && target.isX86_64) ? SC.shadowreg : SC.fastpar;
                 sp.Sfl = (sp.Sclass == SC.shadowreg) ? FLpara : FLfast;
             }
         }
@@ -1021,10 +1029,10 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     if (fd.v_argptr)
     {
         // Declare va_argsave
-        if (target.is64bit &&
+        if (target.isX86_64 &&
             target.os & Target.OS.Posix)
         {
-            type *t = type_struct_class("__va_argsave_t", 16, 8 * 6 + 8 * 16 + 8 * 3, null, null, false, false, true, false);
+            type *t = type_struct_class("__va_argsave_t", 16, 8 * 6 + 8 * 16 + 8 * 3 + 8, null, null, false, false, true, false);
             // The backend will pick this up by name
             Symbol *sv = symbol_name("__va_argsave", SC.auto_, t);
             sv.Stype.Tty |= mTYvolatile;
@@ -1036,7 +1044,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         {
             Symbol *sa = toSymbol(fd.v_argptr);
             symbol_add(sa);
-            elem *e = el_una(OPva_start, TYnptr, el_ptr(sa));
+            elem *e = el_bin(OPva_start, TYnptr, el_ptr(sa), lastParam ? el_ptr(lastParam) : el_long(TYnptr, 0));
             block_appendexp(irs.blx.curblock, e);
         }
     }
@@ -1292,23 +1300,23 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
 
 
 /*******************************************
- * Detect special functions like `main()` and do special handling for them,
- * like special mangling, including libraries, setting the storage class, etc.
- * `objmod` and `fd` are updated.
+ * Detect entry points like `main()`.
+ * Entry points trigger special handling like referencing the
+ * default library, setting up sections, etc.
  *
  * Params:
- *      objmod = object module
+ *      objmod = object module to write hooks to
  *      fd = function symbol
+ * Returns:
+ *      true if entry point
  */
-private void specialFunctions(Obj objmod, FuncDeclaration fd)
+private bool entryPointFunctions(Obj objmod, FuncDeclaration fd)
 {
-    const libname = finalDefaultlibname();
-
-    Symbol* s = fd.toSymbol();  // backend symbol corresponding to fd
-
-    // Pull in RTL startup code (but only once)
-    if (fd.isMain() && onlyOneMain(fd.loc))
+    // D main()
+    if (fd.isMain() && onlyOneMain(fd))
     {
+        /* Reference the C main() to pull it in to the executable
+         */
         final switch (target.objectFormat())
         {
             case Target.ObjectFormat.elf:
@@ -1322,12 +1330,13 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
                 objmod.external_def("_main");
                 break;
         }
-        if (libname)
+        if (const libname = finalDefaultlibname())
             obj_includelib(libname);
-        s.Sclass = SC.global;
-        return;
+        return true;
     }
-    else if (fd.isRtInit())
+
+    // D runtime library
+    if (fd.isRtInit())
     {
         final switch (target.objectFormat())
         {
@@ -1339,70 +1348,80 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
             case Target.ObjectFormat.omf:
                 break;
         }
-        return;
+        return true;
     }
-    void includeWinLibs(bool cmain, const(char)* omflib)
-    {
-        if (target.objectFormat() == Target.ObjectFormat.coff)
-        {
-            if (!cmain)
-                objmod.includelib("uuid");
-            if (driverParams.mscrtlib.length && driverParams.mscrtlib[0])
-                obj_includelib(driverParams.mscrtlib);
-            objmod.includelib("OLDNAMES");
-        }
-        else if (target.objectFormat() == Target.ObjectFormat.omf)
-        {
-            if (cmain)
-            {
-                objmod.external_def("__acrtused_con"); // bring in C startup code
-                objmod.includelib("snn.lib");          // bring in C runtime library
-            }
-            else
-            {
-                objmod.external_def(omflib);
-            }
-        }
-    }
+
+    // C main()
     if (fd.isCMain())
     {
-        includeWinLibs(true, "");
-        s.Sclass = SC.global;
-    }
-    else if (target.os == Target.OS.Windows && fd.isWinMain() && onlyOneMain(fd.loc))
-    {
-        includeWinLibs(false, "__acrtused");
-        if (libname)
-            obj_includelib(libname);
-        s.Sclass = SC.global;
+        switch (target.objectFormat())
+        {
+            case Target.ObjectFormat.coff:
+                if (driverParams.mscrtlib.length && driverParams.mscrtlib[0])
+                    obj_includelib(driverParams.mscrtlib);
+                objmod.includelib("OLDNAMES");
+                break;
+
+            case Target.ObjectFormat.omf:
+                objmod.external_def("__acrtused_con"); // bring in C console startup code
+                objmod.includelib("snn.lib");          // bring in C runtime library
+                break;
+
+            default:
+                break;
+        }
+        return true;
     }
 
-    // Pull in RTL startup code
-    else if (target.os == Target.OS.Windows && fd.isDllMain() && onlyOneMain(fd.loc))
+    // Windows WinMain() or DllMain()
+    if (target.os == Target.OS.Windows &&
+        (fd.isWinMain() || fd.isDllMain()) &&
+        onlyOneMain(fd))
     {
-        includeWinLibs(false, "__acrtused_dll");
-        if (libname)
+        switch (target.objectFormat())
+        {
+            case Target.ObjectFormat.coff:
+                objmod.includelib("uuid");
+                if (driverParams.mscrtlib.length && driverParams.mscrtlib[0])
+                    obj_includelib(driverParams.mscrtlib);
+                objmod.includelib("OLDNAMES");
+                break;
+
+            case Target.ObjectFormat.omf:
+                objmod.external_def(fd.isWinMain() ? "__acrtused" : "__acrtused_dll");
+                break;
+
+            default:
+                assert(0);
+        }
+
+        if (const libname = finalDefaultlibname())
             obj_includelib(libname);
-        s.Sclass = SC.global;
+        return true;
     }
+
+    return false;
 }
 
-
-private bool onlyOneMain(Loc loc)
+/****************************************
+ * Only one entry point function is allowed. Print error if more than one.
+ * Params:
+ *      fd = a "main" function
+ * Returns:
+ *      true if haven't seen "main" before
+ */
+private bool onlyOneMain(FuncDeclaration fd)
 {
-    __gshared Loc lastLoc;
-    __gshared bool hasMain = false;
-    if (hasMain)
+    __gshared FuncDeclaration lastMain;
+    if (lastMain)
     {
-        const(char)* otherMainNames = "";
-        if (target.os == Target.OS.Windows)
-            otherMainNames = ", `WinMain`, or `DllMain`";
-        error(loc, "only one `main`%s allowed. Previously found `main` at %s",
-            otherMainNames, lastLoc.toChars());
+        const format = (target.os == Target.OS.Windows)
+            ? "only one entry point `main`, `WinMain` or `DllMain` is allowed. Previously found `%s` at %s"
+            : "only one entry point `main` is allowed. Previously found `%s` at %s";
+        error(fd.loc, format.ptr, lastMain.toChars(), lastMain.loc.toChars());
         return false;
     }
-    lastLoc = loc;
-    hasMain = true;
+    lastMain = fd;
     return true;
 }
 
@@ -1518,7 +1537,7 @@ tym_t totym(Type tx)
             final switch (tf.linkage)
             {
                 case LINK.windows:
-                    if (target.is64bit)
+                    if (target.isX86_64)
                         goto case LINK.c;
                     t = (tf.parameterList.varargs == VarArg.variadic ||
                          tf.parameterList.varargs == VarArg.KRvariadic) ? TYnfunc : TYnsfunc;
@@ -1531,7 +1550,7 @@ tym_t totym(Type tx)
                     if (target.os == Target.OS.Windows)
                     {
                     }
-                    else if (!target.is64bit && retStyle(tf, false) == RET.stack)
+                    else if (!target.isX86_64 && retStyle(tf, false) == RET.stack)
                         t = TYhfunc;
                     break;
 

@@ -10,14 +10,6 @@
 
 module dmd.backend.mscoffobj;
 
-version (MARS)
-    version = COMPILE;
-version (SCPP)
-    version = COMPILE;
-
-version (COMPILE)
-{
-
 import core.stdc.ctype;
 import core.stdc.stdio;
 import core.stdc.stdint;
@@ -115,6 +107,8 @@ IMAGE_SECTION_HEADER* ScnhdrTab() { return cast(IMAGE_SECTION_HEADER *)ScnhdrBuf
 //      into SegData[]
 //      New compiler segments are added to end.
 
+public:
+
 /******************************
  * Returns !=0 if this segment is a code segment.
  */
@@ -125,11 +119,7 @@ int mscoff_seg_data_isCode(const ref seg_data sd)
     return (ScnhdrTab[sd.SDshtidx].Characteristics & IMAGE_SCN_CNT_CODE) != 0;
 }
 
-public:
 
-// already in cgobj.c (should be part of objmod?):
-// seg_data **SegData;
-extern Rarray!(seg_data*) SegData;
 
 private extern (D) segidx_t seg_tlsseg = UNKNOWN;
 private extern (D) segidx_t seg_tlsseg_bss = UNKNOWN;
@@ -209,22 +199,11 @@ Symbol * MsCoffObj_sym_cdata(tym_t ty,char *p,int len)
 int MsCoffObj_data_readonly(char *p, int len, segidx_t *pseg)
 {
     int oldoff;
-version (SCPP)
-{
-    oldoff = Offset(DATA);
-    SegData[DATA].SDbuf.reserve(len);
-    SegData[DATA].SDbuf.writen(p,len);
-    Offset(DATA) += len;
-    *pseg = DATA;
-}
-else
-{
     oldoff = cast(int)Offset(CDATA);
     SegData[CDATA].SDbuf.reserve(len);
     SegData[CDATA].SDbuf.writen(p,len);
     Offset(CDATA) += len;
     *pseg = CDATA;
-}
     return oldoff;
 }
 
@@ -390,26 +369,6 @@ Obj MsCoffObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegna
 void MsCoffObj_initfile(const(char)* filename, const(char)* csegname, const(char)* modname)
 {
     //dbg_printf("MsCoffObj_initfile(filename = %s, modname = %s)\n",filename,modname);
-version (SCPP)
-{
-    static if (TARGET_LINUX)
-    {
-    if (csegname && *csegname && strcmp(csegname,".text"))
-    {   // Define new section and make it the default for cseg segment
-        // NOTE: cseg is initialized to CODE
-        IDXSEC newsecidx;
-        Elf32_Shdr *newtextsec;
-        IDXSYM newsymidx;
-        assert(!I64);      // fix later
-        SegData[cseg].SDshtidx = newsecidx =
-            elf_newsection(csegname,0,SHT_PROGDEF,SHF_ALLOC|SHF_EXECINSTR);
-        newtextsec = &ScnhdrTab[newsecidx];
-        newtextsec.sh_addralign = 4;
-        SegData[cseg].SDsymidx =
-            elf_addsym(0, 0, 0, STT_SECTION, STB_LOCAL, newsecidx);
-    }
-    }
-}
     if (config.fulltypes)
         cv8_initmodule(filename, modname);
 }
@@ -643,30 +602,14 @@ void MsCoffObj_term(const(char)* objfilename)
 {
     //printf("MsCoffObj_term()\n");
     assert(fobjbuf.length() == 0);
-version (SCPP)
-{
-    if (!errcnt)
-    {
-        objflush_pointerRefs();
-        outfixlist();           // backpatches
-    }
-}
-else
-{
+
     objflush_pointerRefs();
     outfixlist();           // backpatches
-}
 
     if (configv.addlinenumbers)
     {
         cv8_termfile(objfilename);
     }
-
-version (SCPP)
-{
-    if (errcnt)
-        return;
-}
 
     // To allow tooling support for most output files
     // switch to new object file format (similar to C++ with /bigobj)
@@ -1014,16 +957,8 @@ version (SCPP)
 @trusted
 void MsCoffObj_linnum(Srcpos srcpos, int seg, targ_size_t offset)
 {
-    version (MARS)
-    {
-        if (srcpos.Slinnum == 0 || !srcpos.Sfilename)
-            return;
-    }
-    else
-    {
-        if (srcpos.Slinnum == 0 || !srcpos.srcpos_name())
-            return;
-    }
+    if (srcpos.Slinnum == 0 || !srcpos.Sfilename)
+        return;
 
     cv8_linnum(srcpos, cast(uint)offset);
 }
@@ -1121,9 +1056,10 @@ void MsCoffObj_filename(const(char)* modname)
  * Embed compiler version in .obj file.
  */
 
-void MsCoffObj_compiler()
+void MsCoffObj_compiler(const(char)* p)
 {
     //dbg_printf("MsCoffObj_compiler\n");
+    MsCoffObj_user(p);
 }
 
 /**************************************
@@ -1736,12 +1672,7 @@ char *obj_mangle2(Symbol *s,char *dest)
     symbol_debug(s);
     assert(dest);
 
-version (SCPP)
-    name = CPP ? cpp_mangle(s) : &s.Sident[0];
-else version (MARS)
     // C++ name mangling is handled by front end
-    name = &s.Sident[0];
-else
     name = &s.Sident[0];
 
     len = strlen(name);                 // # of bytes in name
@@ -2095,7 +2026,7 @@ void MsCoffObj_byte(segidx_t seg,targ_size_t offset,uint byte_)
  * Append bytes to segment.
  */
 
-void MsCoffObj_write_bytes(seg_data *pseg, uint nbytes, void *p)
+void MsCoffObj_write_bytes(seg_data *pseg, uint nbytes, const(void)* p)
 {
     MsCoffObj_bytes(pseg.SDseg, pseg.SDoffset, nbytes, p);
 }
@@ -2107,7 +2038,7 @@ void MsCoffObj_write_bytes(seg_data *pseg, uint nbytes, void *p)
  */
 
 @trusted
-uint MsCoffObj_bytes(segidx_t seg, targ_size_t offset, uint nbytes, void *p)
+uint MsCoffObj_bytes(segidx_t seg, targ_size_t offset, uint nbytes, const(void)* p)
 {
 static if (0)
 {
@@ -2451,10 +2382,6 @@ int elf_align(int size, int foffset)
  * Input:
  *      scc     symbol for ModuleInfo
  */
-
-version (MARS)
-{
-
 @trusted
 void MsCoffObj_moduleinfo(Symbol *scc)
 {
@@ -2472,8 +2399,6 @@ void MsCoffObj_moduleinfo(Symbol *scc)
     if (I64)
         flags |= CFoffset64;
     SegData[seg].SDoffset += MsCoffObj_reftoident(seg, Offset(seg), scc, 0, flags);
-}
-
 }
 
 /**********************************
@@ -2559,6 +2484,4 @@ extern (D) private void objflush_pointerRefs()
         objflush_pointerRef(s, soff);
     }
     ptrref_buf.reset();
-}
-
 }
