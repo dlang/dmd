@@ -2859,21 +2859,24 @@ L1:
  */
 
 @trusted
-private bool optim_loglog(elem **pe)
+private bool optim_loglog(ref elem* pe)
 {
     if (I16)
         return false;
-    elem *e = *pe;
+    elem *e = pe;
     const op = e.Eoper;
     assert(op == OPandand || op == OPoror);
     size_t n = el_opN(e, op);
     if (n <= 3)
         return false;
     uint ty = e.Ety;
-    assert(n < size_t.max / (2 * (elem *).sizeof));   // conservative overflow check
-    elem **array = cast(elem **)malloc(n * (elem *).sizeof);
-    assert(array);
-    elem **p = array;
+
+    import dmd.common.string : SmallBuffer;
+    elem*[100] tmp = void;
+    auto sb = SmallBuffer!(elem*)(n, tmp[]);
+    elem*[] array = sb[];
+
+    elem **p = array.ptr;
     el_opArray(&p, e, op);
 
     bool any = false;
@@ -3024,13 +3027,11 @@ private bool optim_loglog(elem **pe)
         for (size_t i = first + 1; i + (last - first) < n; ++i)
             array[i] = array[i + (last - first)];
         n -= last - first;
-        (*pe) = el_opCombine(array, n, op, ty);
+        pe = el_opCombine(array.ptr, n, op, ty);
 
-        free(array);
         return true;
     }
 
-    free(array);
     return false;
 }
 
@@ -5755,14 +5756,14 @@ beg:
             case OPoror:
                 if (rightgoal)
                     rightgoal = GOALflags;
-                if (OPTIMIZER && optim_loglog(&e))
+                if (OPTIMIZER && optim_loglog(e))
                     goto beg;
                 goto Llog;
 
             case OPandand:
                 if (rightgoal)
                     rightgoal = GOALflags;
-                if (OPTIMIZER && optim_loglog(&e))
+                if (OPTIMIZER && optim_loglog(e))
                     goto beg;
                 goto Llog;
 
