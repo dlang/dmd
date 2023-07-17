@@ -2555,7 +2555,6 @@ $(GNAME ArgumentList):
     $(GLINK AssignExpression)
     $(GLINK AssignExpression) $(D ,)
     $(GLINK AssignExpression) $(D ,) $(GSELF ArgumentList)
-)
 
 $(GNAME NamedArgumentList):
     $(GLINK NamedArgument)
@@ -2565,6 +2564,7 @@ $(GNAME NamedArgumentList):
 $(GNAME NamedArgument):
     $(IDENTIFIER) $(D :) $(GLINK AssignExpression)
     $(GLINK AssignExpression)
+)
 
     $(P $(I NewExpression)s allocate memory on the
         $(DDLINK spec/garbage, Garbage Collection, garbage
