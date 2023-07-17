@@ -27,6 +27,8 @@ abstract class ErrorSink
 
     void warning(const ref Loc loc, const(char)* format, ...);
 
+    void obsolete(const ref Loc loc, const(char)* format, ...);
+
     void message(const ref Loc loc, const(char)* format, ...);
 
     void deprecation(const ref Loc loc, const(char)* format, ...);
@@ -48,6 +50,8 @@ class ErrorSinkNull : ErrorSink
     void errorSupplemental(const ref Loc loc, const(char)* format, ...) { }
 
     void warning(const ref Loc loc, const(char)* format, ...) { }
+
+    void obsolete(const ref Loc loc, const(char)* format, ...) { }
 
     void message(const ref Loc loc, const(char)* format, ...) { }
 
@@ -88,6 +92,23 @@ class ErrorSinkStderr : ErrorSink
     void errorSupplemental(const ref Loc loc, const(char)* format, ...) { }
 
     void warning(const ref Loc loc, const(char)* format, ...)
+    {
+        fputs("Warning: ", stderr);
+        const p = loc.toChars();
+        if (*p)
+        {
+            fprintf(stderr, "%s: ", p);
+            //mem.xfree(cast(void*)p); // loc should provide the free()
+        }
+
+        va_list ap;
+        va_start(ap, format);
+        vfprintf(stderr, format, ap);
+        fputc('\n', stderr);
+        va_end(ap);
+    }
+
+    void obsolete(const ref Loc loc, const(char)* format, ...)
     {
         fputs("Warning: ", stderr);
         const p = loc.toChars();

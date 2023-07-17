@@ -58,6 +58,14 @@ class ErrorSinkCompiler : ErrorSink
         va_end(ap);
     }
 
+    void obsolete(const ref Loc loc, const(char)* format, ...)
+    {
+        va_list ap;
+        va_start(ap, format);
+        vobsolete(loc, format, ap);
+        va_end(ap);
+    }
+
     void deprecation(const ref Loc loc, const(char)* format, ...)
     {
         va_list ap;
@@ -257,6 +265,30 @@ else
         va_list ap;
         va_start(ap, format);
         vwarningSupplemental(loc, format, ap);
+        va_end(ap);
+    }
+
+/**
+ * Print an obsolete warning message, increasing the global warning count.
+ * Params:
+ *      loc    = location of warning
+ *      format = printf-style format specification
+ *      ...    = printf-style variadic arguments
+ */
+static if (__VERSION__ < 2092)
+    extern (C++) void obsolete(const ref Loc loc, const(char)* format, ...)
+    {
+        va_list ap;
+        va_start(ap, format);
+        vobsolete(loc, format, ap);
+        va_end(ap);
+    }
+else
+    pragma(printf) extern (C++) void obsolete(const ref Loc loc, const(char)* format, ...)
+    {
+        va_list ap;
+        va_start(ap, format);
+        vobsolete(loc, format, ap);
         va_end(ap);
     }
 
@@ -568,6 +600,24 @@ static if (__VERSION__ < 2092)
     }
 else
     pragma(printf) extern (C++) void vwarning(const ref Loc loc, const(char)* format, va_list ap)
+    {
+        _vwarning(loc, format, ap);
+    }
+
+/**
+ * Same as $(D obsolete), but takes a va_list parameter.
+ * Params:
+ *      loc    = location of warning
+ *      format = printf-style format specification
+ *      ap     = printf-style variadic arguments
+ */
+static if (__VERSION__ < 2092)
+    extern (C++) void vobsolete(const ref Loc loc, const(char)* format, va_list ap)
+    {
+        _vwarning(loc, format, ap);
+    }
+else
+    pragma(printf) extern (C++) void vobsolete(const ref Loc loc, const(char)* format, va_list ap)
     {
         _vwarning(loc, format, ap);
     }

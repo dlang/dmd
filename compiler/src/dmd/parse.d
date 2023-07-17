@@ -9547,7 +9547,7 @@ LagainStc:
     {
         if (compileEnv.obsolete)
         {
-            eSink.warning(token.loc, "usage of identifer `body` as a keyword is obsolete. Use `do` instead.");
+            eSink.obsolete(token.loc, "usage of identifer `body` as a keyword is obsolete. Use `do` instead.");
         }
     }
 }

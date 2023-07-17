@@ -8493,6 +8493,8 @@ extern void warning(const Loc& loc, const char* format, ...);
 
 extern void warningSupplemental(const Loc& loc, const char* format, ...);
 
+extern void obsolete(const Loc& loc, const char* format, ...);
+
 extern void deprecation(const Loc& loc, const char* format, ...);
 
 extern void deprecationSupplemental(const Loc& loc, const char* format, ...);
@@ -8508,6 +8510,8 @@ extern void verror(const Loc& loc, const char* format, va_list ap, const char* p
 extern void verrorSupplemental(const Loc& loc, const char* format, va_list ap);
 
 extern void vwarning(const Loc& loc, const char* format, va_list ap);
+
+extern void vobsolete(const Loc& loc, const char* format, va_list ap);
 
 extern void vwarningSupplemental(const Loc& loc, const char* format, va_list ap);
 
