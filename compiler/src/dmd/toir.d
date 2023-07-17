@@ -791,7 +791,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
     {
         /* nrvo is incompatible with closure
          */
-        if (oldValue != fd.requiresClosure && (fd.nrvo_var || irs.params.betterC))
+        if (oldValue != fd.requiresClosure && (fd.nrvo_var || !irs.params.useGC))
         {
             /* https://issues.dlang.org/show_bug.cgi?id=23112
              * This can shift due to templates being expanded that access alias symbols.

@@ -2532,6 +2532,7 @@ private void reconcileCommands(ref Param params, ref Target target)
         params.useModuleInfo = false;
         params.useTypeInfo = false;
         params.useExceptions = false;
+        params.useGC = false;
     }
 }
 
