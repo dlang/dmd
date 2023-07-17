@@ -5629,60 +5629,61 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         AST.Parameter param = null;
         StorageClass storageClass = 0;
         StorageClass stc = 0;
-LagainStc:
-        if (stc)
+    Lwhile:
+        while (1)
         {
+            switch (token.value)
+            {
+            // parse ref for better error
+            case TOK.ref_:
+                stc = STC.ref_;
+                break;
+
+            case TOK.scope_:
+                stc = STC.scope_;
+                break;
+
+            case TOK.auto_:
+                stc = STC.auto_;
+                break;
+
+            case TOK.const_:
+                if (peekNext() != TOK.leftParenthesis)
+                {
+                    stc = STC.const_;
+                    break;
+                }
+                goto default;
+
+            case TOK.immutable_:
+                if (peekNext() != TOK.leftParenthesis)
+                {
+                    stc = STC.immutable_;
+                    break;
+                }
+                goto default;
+
+            case TOK.shared_:
+                if (peekNext() != TOK.leftParenthesis)
+                {
+                    stc = STC.shared_;
+                    break;
+                }
+                goto default;
+
+            case TOK.inout_:
+                if (peekNext() != TOK.leftParenthesis)
+                {
+                    stc = STC.wild;
+                    break;
+                }
+                goto default;
+
+            default:
+                break Lwhile;
+            }
             storageClass = appendStorageClass(storageClass, stc);
             nextToken();
-        }
-        switch (token.value)
-        {
-        case TOK.ref_:
-            stc = STC.ref_;
-            goto LagainStc;
-
-        case TOK.scope_:
-            stc = STC.scope_;
-            goto LagainStc;
-
-        case TOK.auto_:
-            stc = STC.auto_;
-            goto LagainStc;
-
-        case TOK.const_:
-            if (peekNext() != TOK.leftParenthesis)
-            {
-                stc = STC.const_;
-                goto LagainStc;
-            }
-            break;
-
-        case TOK.immutable_:
-            if (peekNext() != TOK.leftParenthesis)
-            {
-                stc = STC.immutable_;
-                goto LagainStc;
-            }
-            break;
-
-        case TOK.shared_:
-            if (peekNext() != TOK.leftParenthesis)
-            {
-                stc = STC.shared_;
-                goto LagainStc;
-            }
-            break;
-
-        case TOK.inout_:
-            if (peekNext() != TOK.leftParenthesis)
-            {
-                stc = STC.wild;
-                goto LagainStc;
-            }
-            break;
-
-        default:
-            break;
         }
         auto n = peek(&token);
         if (storageClass != 0 && token.value == TOK.identifier && n.value == TOK.assign)
