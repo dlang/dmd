@@ -204,7 +204,6 @@ private:
 
 public:
 nothrow:
-@nogc:
     @trusted
     this(int dummy)
     {

@@ -151,9 +151,7 @@ public import dmd.backend.cg87 : loadconst, cg87_reset;
 public import dmd.backend.cod3 : cod3_thunk;
 
 public import dmd.backend.dout : outthunk, out_readonly, out_readonly_comdat,
-    out_regcand, writefunc, alignOffset, out_reset, out_readonly_sym, out_string_literal;
-
-void outdata(Symbol *s);
+    out_regcand, writefunc, alignOffset, out_reset, out_readonly_sym, out_string_literal, outdata;
 
 public import dmd.backend.blockopt : bc_goal, block_calloc, block_init, block_term, block_next,
     block_next, block_goto, block_goto, block_goto, block_goto, block_ptr, block_pred,
