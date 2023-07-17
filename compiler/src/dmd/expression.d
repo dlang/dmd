@@ -825,7 +825,7 @@ extern (C++) abstract class Expression : ASTNode
             {
                 va_list ap;
                 va_start(ap, format);
-                .verror(loc, format, ap);
+                .verrorReport(loc, format, ap, ErrorKind.error);
                 va_end(ap);
             }
         }
@@ -837,7 +837,7 @@ extern (C++) abstract class Expression : ASTNode
 
             va_list ap;
             va_start(ap, format);
-            .verrorSupplemental(loc, format, ap);
+            .verrorReportSupplemental(loc, format, ap, ErrorKind.error);
             va_end(ap);
         }
 
@@ -847,7 +847,7 @@ extern (C++) abstract class Expression : ASTNode
             {
                 va_list ap;
                 va_start(ap, format);
-                .vwarning(loc, format, ap);
+                .verrorReport(loc, format, ap, ErrorKind.warning);
                 va_end(ap);
             }
         }
@@ -858,7 +858,7 @@ extern (C++) abstract class Expression : ASTNode
             {
                 va_list ap;
                 va_start(ap, format);
-                .vdeprecation(loc, format, ap);
+                .verrorReport(loc, format, ap, ErrorKind.deprecation);
                 va_end(ap);
             }
         }
@@ -871,7 +871,7 @@ extern (C++) abstract class Expression : ASTNode
             {
                 va_list ap;
                 va_start(ap, format);
-                .verror(loc, format, ap);
+                .verrorReport(loc, format, ap, ErrorKind.error);
                 va_end(ap);
             }
         }
@@ -883,7 +883,7 @@ extern (C++) abstract class Expression : ASTNode
 
             va_list ap;
             va_start(ap, format);
-            .verrorSupplemental(loc, format, ap);
+            .verrorReportSupplemental(loc, format, ap, ErrorKind.error);
             va_end(ap);
         }
 
@@ -893,7 +893,7 @@ extern (C++) abstract class Expression : ASTNode
             {
                 va_list ap;
                 va_start(ap, format);
-                .vwarning(loc, format, ap);
+                .verrorReport(loc, format, ap, ErrorKind.warning);
                 va_end(ap);
             }
         }
@@ -904,7 +904,7 @@ extern (C++) abstract class Expression : ASTNode
             {
                 va_list ap;
                 va_start(ap, format);
-                .vdeprecation(loc, format, ap);
+                .verrorReport(loc, format, ap, ErrorKind.deprecation);
                 va_end(ap);
             }
         }

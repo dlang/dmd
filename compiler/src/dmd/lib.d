@@ -109,7 +109,7 @@ class Library
     {
         va_list ap;
         va_start(ap, format);
-        .verror(loc, format, ap);
+        .verrorReport(loc, format, ap, ErrorKind.error);
         va_end(ap);
     }
 

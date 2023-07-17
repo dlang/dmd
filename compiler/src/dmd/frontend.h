@@ -5390,6 +5390,15 @@ enum class CPU : uint8_t
     native = 12u,
 };
 
+enum class ErrorKind
+{
+    warning = 0,
+    deprecation = 1,
+    error = 2,
+    tip = 3,
+    message = 4,
+};
+
 typedef _d_real longdouble;
 
 typedef uint64_t uint64_t;
@@ -8503,21 +8512,9 @@ extern void message(const char* format, ...);
 
 extern void tip(const char* format, ...);
 
-extern void verror(const Loc& loc, const char* format, va_list ap, const char* p1 = nullptr, const char* p2 = nullptr, const char* header = "Error: ");
+extern void verrorReport(const Loc& loc, const char* format, va_list ap, ErrorKind kind, const char* p1 = nullptr, const char* p2 = nullptr);
 
-extern void verrorSupplemental(const Loc& loc, const char* format, va_list ap);
-
-extern void vwarning(const Loc& loc, const char* format, va_list ap);
-
-extern void vwarningSupplemental(const Loc& loc, const char* format, va_list ap);
-
-extern void vdeprecation(const Loc& loc, const char* format, va_list ap, const char* p1 = nullptr, const char* p2 = nullptr);
-
-extern void vmessage(const Loc& loc, const char* format, va_list ap);
-
-extern void vtip(const char* format, va_list ap);
-
-extern void vdeprecationSupplemental(const Loc& loc, const char* format, va_list ap);
+extern void verrorReportSupplemental(const Loc& loc, const char* format, va_list ap, ErrorKind kind);
 
 extern void fatal();
 
