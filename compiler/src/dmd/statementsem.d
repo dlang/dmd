@@ -4068,8 +4068,8 @@ void catchSemantic(Catch c, Scope* sc)
     }
     else if (!c.type.isNaked() && !c.type.isConst())
     {
-        // @@@DEPRECATED_2.113@@@
-        // Deprecated in 2.103, change into an error & uncomment in 2.113
+        // @@@DEPRECATED_2.115@@@
+        // Deprecated in 2.105, change into an error & uncomment assign in 2.115
         deprecation(c.loc, "can only catch mutable or const qualified types, not `%s`", c.type.toChars());
         //c.errors = true;
     }

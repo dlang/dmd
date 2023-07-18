@@ -304,7 +304,6 @@ public:
         }
         return result;
     }
-
     mixin(generateMembers());
 
     this(OutBuffer* fwdbuf, OutBuffer* donebuf, OutBuffer* buf) scope
