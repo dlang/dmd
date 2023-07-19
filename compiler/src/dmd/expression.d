@@ -3800,7 +3800,11 @@ extern (C++) final class SymOffExp : SymbolExp
             // FIXME: This error report will never be handled anyone.
             // It should be done before the SymOffExp construction.
             if (v.needThis())
-                .error(loc, "need `this` for address of `%s`", v.toChars());
+            {
+                auto m = v.isMemberLocal();
+                assert(m);
+                .error(loc, "taking the address of non-static variable `%s` requires an instance of `%s`", v.toChars(), m.toChars());
+            }
             hasOverloads = false;
         }
         super(loc, EXP.symbolOffset, var, hasOverloads);
