@@ -3085,7 +3085,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 cs.push(new ExpStatement(ss.loc, tmp));
 
                 auto args = new Parameters();
-                args.push(new Parameter(0, ClassDeclaration.object.type, null, null, null));
+                args.push(new Parameter(Loc.initial, 0, ClassDeclaration.object.type, null, null, null));
 
                 FuncDeclaration fdenter = FuncDeclaration.genCfunc(args, Type.tvoid, Id.monitorenter);
                 Expression e = new CallExp(ss.loc, fdenter, new VarExp(ss.loc, tmp));
@@ -3127,7 +3127,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             cs.push(new ExpStatement(ss.loc, v));
 
             auto enterArgs = new Parameters();
-            enterArgs.push(new Parameter(0, t.pointerTo(), null, null, null));
+            enterArgs.push(new Parameter(Loc.initial, 0, t.pointerTo(), null, null, null));
 
             FuncDeclaration fdenter = FuncDeclaration.genCfunc(enterArgs, Type.tvoid, Id.criticalenter, STC.nothrow_);
             Expression e = new AddrExp(ss.loc, tmpExp);
@@ -3137,7 +3137,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             cs.push(new ExpStatement(ss.loc, e));
 
             auto exitArgs = new Parameters();
-            exitArgs.push(new Parameter(0, t, null, null, null));
+            exitArgs.push(new Parameter(Loc.initial, 0, t, null, null, null));
 
             FuncDeclaration fdexit = FuncDeclaration.genCfunc(exitArgs, Type.tvoid, Id.criticalexit, STC.nothrow_);
             e = new CallExp(ss.loc, fdexit, tmpExp);
@@ -3841,13 +3841,13 @@ private extern(D) Expression applyArray(ForeachStatement fs, Expression flde,
     FuncDeclaration fdapply;
     TypeDelegate dgty;
     auto params = new Parameters();
-    params.push(new Parameter(STC.in_, tn.arrayOf(), null, null, null));
+    params.push(new Parameter(Loc.initial, STC.in_, tn.arrayOf(), null, null, null));
     auto dgparams = new Parameters();
-    dgparams.push(new Parameter(0, Type.tvoidptr, null, null, null));
+    dgparams.push(new Parameter(Loc.initial, 0, Type.tvoidptr, null, null, null));
     if (dim == 2)
-        dgparams.push(new Parameter(0, Type.tvoidptr, null, null, null));
+        dgparams.push(new Parameter(Loc.initial, 0, Type.tvoidptr, null, null, null));
     dgty = new TypeDelegate(new TypeFunction(ParameterList(dgparams), Type.tint32, LINK.d));
-    params.push(new Parameter(0, dgty, null, null, null));
+    params.push(new Parameter(Loc.initial, 0, dgty, null, null, null));
     fdapply = FuncDeclaration.genCfunc(params, Type.tint32, fdname.ptr);
 
     if (tab.isTypeSArray())
@@ -3908,14 +3908,14 @@ private extern(D) Expression applyAssocArray(ForeachStatement fs, Expression fld
     if (!fdapply[i])
     {
         auto params = new Parameters();
-        params.push(new Parameter(0, Type.tvoid.pointerTo(), null, null, null));
-        params.push(new Parameter(STC.const_, Type.tsize_t, null, null, null));
+        params.push(new Parameter(Loc.initial, 0, Type.tvoid.pointerTo(), null, null, null));
+        params.push(new Parameter(Loc.initial, STC.const_, Type.tsize_t, null, null, null));
         auto dgparams = new Parameters();
-        dgparams.push(new Parameter(0, Type.tvoidptr, null, null, null));
+        dgparams.push(new Parameter(Loc.initial, 0, Type.tvoidptr, null, null, null));
         if (dim == 2)
-            dgparams.push(new Parameter(0, Type.tvoidptr, null, null, null));
+            dgparams.push(new Parameter(Loc.initial, 0, Type.tvoidptr, null, null, null));
         fldeTy[i] = new TypeDelegate(new TypeFunction(ParameterList(dgparams), Type.tint32, LINK.d));
-        params.push(new Parameter(0, fldeTy[i], null, null, null));
+        params.push(new Parameter(Loc.initial, 0, fldeTy[i], null, null, null));
         fdapply[i] = FuncDeclaration.genCfunc(params, Type.tint32, i ? Id._aaApply2 : Id._aaApply);
     }
 
@@ -4026,7 +4026,7 @@ private FuncExp foreachBodyToFunction(Scope* sc, ForeachStatement fs, TypeFuncti
             Statement s = new ExpStatement(fs.loc, v);
             fs._body = new CompoundStatement(fs.loc, s, fs._body);
         }
-        params.push(new Parameter(stc, p.type, id, null, null));
+        params.push(new Parameter(fs.loc, stc, p.type, id, null, null));
     }
     // https://issues.dlang.org/show_bug.cgi?id=13840
     // Throwable nested function inside nothrow function is acceptable.

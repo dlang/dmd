@@ -2935,11 +2935,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                             //error("scope cannot be ref or out");
 
                         const tv = peekNext();
+                        Loc loc;
                         if (tpl && token.value == TOK.identifier &&
                             (tv == TOK.comma || tv == TOK.rightParenthesis || tv == TOK.dotDotDot))
                         {
                             Identifier id = Identifier.generateId("__T");
-                            const loc = token.loc;
+                            loc = token.loc;
                             at = new AST.TypeIdentifier(loc, id);
                             if (!*tpl)
                                 *tpl = new AST.TemplateParameters();
@@ -2951,7 +2952,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         }
                         else
                         {
-                            at = parseType(&ai);
+                            at = parseType(&ai, null, &loc);
                         }
                         ae = null;
                         if (token.value == TOK.assign) // = defaultArg
@@ -2959,7 +2960,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                             nextToken();
                             ae = parseDefaultInitExp();
                         }
-                        auto param = new AST.Parameter(storageClass | STC.parameter, at, ai, ae, null);
+                        auto param = new AST.Parameter(loc, storageClass | STC.parameter, at, ai, ae, null);
                         if (udas)
                         {
                             auto a = new AST.Dsymbols();
@@ -3481,8 +3482,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      * Params:
      *  pident       = set to Identifier if there is one, null if not
      *  ptpl         = if !null, then set to TemplateParameterList
+     *  pdeclLoc     = if !null, then set to location of the declarator
      */
-    AST.Type parseType(Identifier* pident = null, AST.TemplateParameters** ptpl = null)
+    AST.Type parseType(Identifier* pident = null, AST.TemplateParameters** ptpl = null, Loc* pdeclLoc = null)
     {
         /* Take care of the storage class prefixes that
          * serve as type attributes:
@@ -3539,6 +3541,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         AST.Type t;
         t = parseBasicType();
 
+        if (pdeclLoc)
+            *pdeclLoc = token.loc;
         int alt = 0;
         t = parseDeclarator(t, alt, pident, ptpl);
         checkCstyleTypeSyntax(typeLoc, t, alt, pident ? *pident : null);
@@ -5126,7 +5130,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 parameterList.parameters = new AST.Parameters();
                 Identifier id = Identifier.generateId("__T");
                 AST.Type t = new AST.TypeIdentifier(loc, id);
-                parameterList.parameters.push(new AST.Parameter(STC.parameter, t, token.ident, null, null));
+                parameterList.parameters.push(new AST.Parameter(loc, STC.parameter, t, token.ident, null, null));
 
                 tpl = new AST.TemplateParameters();
                 AST.TemplateParameter tp = new AST.TemplateTypeParameter(loc, id, null, null);
@@ -5443,6 +5447,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         {
             Identifier ai = null;
             AST.Type at;
+            Loc aloc;
 
             StorageClass storageClass = 0;
             StorageClass stc = 0;
@@ -5524,6 +5529,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     lastai = token.ident;
                     ai = token.ident;
                     at = null; // infer argument type
+                    aloc = token.loc;
                     nextToken();
                     goto Larg;
                 }
@@ -5532,7 +5538,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             if (!ai)
                 noIdentifierForDeclarator(at);
         Larg:
-            auto p = new AST.Parameter(storageClass, at, ai, null, null);
+            auto p = new AST.Parameter(aloc, storageClass, at, ai, null, null);
             parameters.push(p);
             if (token.value == TOK.comma)
             {
@@ -5684,16 +5690,18 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         {
             Identifier ai = token.ident;
             AST.Type at = null; // infer parameter type
+            const aloc = token.loc;
             nextToken();
             check(TOK.assign);
-            param = new AST.Parameter(storageClass, at, ai, null, null);
+            param = new AST.Parameter(aloc, storageClass, at, ai, null, null);
         }
         else if (isDeclaration(&token, NeedDeclaratorId.must, TOK.assign, null))
         {
             Identifier ai;
+            const aloc = token.loc;
             AST.Type at = parseType(&ai);
             check(TOK.assign);
-            param = new AST.Parameter(storageClass, at, ai, null, null);
+            param = new AST.Parameter(aloc, storageClass, at, ai, null, null);
         }
         else if (storageClass != 0)
             error("found `%s` while expecting `=` or identifier", n.toChars());
