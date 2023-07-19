@@ -532,6 +532,7 @@ enum
     CFG3semirelax   = 0x40000, // moderate relaxed type checking (non-Windows targets)
     CFG3pic         = 0x80000, // position independent code
     CFG3pie         = 0x10_0000, // position independent executable (CFG3pic also set)
+    CFG3ibt         = 0x20_0000, // indirect branch tracking
 }
 
 alias config_flags4_t = uint;

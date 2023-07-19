@@ -678,6 +678,9 @@ void prolog(ref CodeBuilder cdb)
     tym_t tym = tybasic(tyf);
     const farfunc = tyfarfunc(tym) != 0;
 
+    if (config.flags3 & CFG3ibt && !I16)
+        cdb.gen1(I32 ? ENDBR32 : ENDBR64);
+
     // Special Intel 64 bit ABI prolog setup for variadic functions
     Symbol *sv64 = null;                        // set to __va_argsave
     if (I64 && variadic(funcsym_p.Stype))

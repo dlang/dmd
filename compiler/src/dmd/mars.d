@@ -1562,6 +1562,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (arg == "-shared")
             driverParams.dll = true;
+        else if (arg == "-fIBT")
+        {
+            driverParams.ibt = true;
+        }
         else if (arg == "-fPIC")
         {
             driverParams.pic = PIC.pic;
