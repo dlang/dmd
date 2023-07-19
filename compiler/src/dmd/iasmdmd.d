@@ -2099,7 +2099,7 @@ void asmerr(const(char)* format, ...)
 
     va_list ap;
     va_start(ap, format);
-    verror(asmstate.loc, format, ap);
+    verrorReport(asmstate.loc, format, ap, ErrorKind.error);
     va_end(ap);
 
     asmstate.errors = true;

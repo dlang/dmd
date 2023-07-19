@@ -381,7 +381,7 @@ extern (C++) class Dsymbol : ASTNode
         {
             va_list ap;
             va_start(ap, format);
-            .verror(loc, format, ap, kind(), prettyFormatHelper().ptr);
+            .verrorReport(loc, format, ap, ErrorKind.error, kind(), prettyFormatHelper().ptr);
             va_end(ap);
         }
 
@@ -390,7 +390,7 @@ extern (C++) class Dsymbol : ASTNode
             va_list ap;
             va_start(ap, format);
             const loc = getLoc();
-            .verror(loc, format, ap, kind(), prettyFormatHelper().ptr);
+            .verrorReport(loc, format, ap, ErrorKind.error, kind(), prettyFormatHelper().ptr);
             va_end(ap);
         }
 
@@ -398,7 +398,7 @@ extern (C++) class Dsymbol : ASTNode
         {
             va_list ap;
             va_start(ap, format);
-            .vdeprecation(loc, format, ap, kind(), prettyFormatHelper().ptr);
+            .verrorReport(loc, format, ap, ErrorKind.deprecation, kind(), prettyFormatHelper().ptr);
             va_end(ap);
         }
 
@@ -407,7 +407,7 @@ extern (C++) class Dsymbol : ASTNode
             va_list ap;
             va_start(ap, format);
             const loc = getLoc();
-            .vdeprecation(loc, format, ap, kind(), prettyFormatHelper().ptr);
+            .verrorReport(loc, format, ap, ErrorKind.deprecation, kind(), prettyFormatHelper().ptr);
             va_end(ap);
         }
     }
@@ -417,7 +417,7 @@ extern (C++) class Dsymbol : ASTNode
         {
             va_list ap;
             va_start(ap, format);
-            .verror(loc, format, ap, kind(), prettyFormatHelper().ptr);
+            .verrorReport(loc, format, ap, ErrorKind.error, kind(), prettyFormatHelper().ptr);
             va_end(ap);
         }
 
@@ -426,7 +426,7 @@ extern (C++) class Dsymbol : ASTNode
             va_list ap;
             va_start(ap, format);
             const loc = getLoc();
-            .verror(loc, format, ap, kind(), prettyFormatHelper().ptr);
+            .verrorReport(loc, format, ap, ErrorKind.error, kind(), prettyFormatHelper().ptr);
             va_end(ap);
         }
 
@@ -434,7 +434,7 @@ extern (C++) class Dsymbol : ASTNode
         {
             va_list ap;
             va_start(ap, format);
-            .vdeprecation(loc, format, ap, kind(), prettyFormatHelper().ptr);
+            .verrorReport(loc, format, ap, ErrorKind.deprecation, kind(), prettyFormatHelper().ptr);
             va_end(ap);
         }
 
@@ -443,7 +443,7 @@ extern (C++) class Dsymbol : ASTNode
             va_list ap;
             va_start(ap, format);
             const loc = getLoc();
-            .vdeprecation(loc, format, ap, kind(), prettyFormatHelper().ptr);
+            .verrorReport(loc, format, ap, ErrorKind.deprecation, kind(), prettyFormatHelper().ptr);
             va_end(ap);
         }
     }
