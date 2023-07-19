@@ -647,11 +647,11 @@ extern (C++) final class TupleDeclaration : Declaration
                 {
                     buf.printf("_%s_%d", ident.toChars(), i);
                     auto id = Identifier.idPool(buf.extractSlice());
-                    auto arg = new Parameter(STC.in_, t, id, null);
+                    auto arg = new Parameter(Loc.initial, STC.in_, t, id, null);
                 }
                 else
                 {
-                    auto arg = new Parameter(0, t, null, null, null);
+                    auto arg = new Parameter(Loc.initial, 0, t, null, null, null);
                 }
                 (*args)[i] = arg;
                 if (!t.deco)
