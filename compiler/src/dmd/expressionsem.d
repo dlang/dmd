@@ -2621,11 +2621,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     private void needThisError(Loc loc, FuncDeclaration f)
     {
-        auto m = f.isMemberLocal();
-        if (!m)
-            .error(loc, "calling non-static function `%s` requires a `this` instance", f.toChars());
-        else
-            .error(loc, "calling non-static function `%s` requires an instance of type `%s`", f.toChars(), m.toChars());
+        auto t = f.isThis();
+        assert(t);
+        .error(loc, "calling non-static function `%s` requires an instance of type `%s`", f.toChars(), t.toChars());
         setError();
     }
 
