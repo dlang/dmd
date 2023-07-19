@@ -2619,6 +2619,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         result = ErrorExp.get();
     }
 
+    private void needThisError(Loc loc, FuncDeclaration f)
+    {
+        auto m = f.isMemberLocal();
+        if (!m)
+            .error(loc, "calling non-static function `%s` requires a `this` instance", f.toChars());
+        else
+            .error(loc, "calling non-static function `%s` requires an instance of type `%s`", f.toChars(), m.toChars());
+        setError();
+    }
+
     /**************************
      * Semantically analyze Expression.
      * Determine types, fold constants, etc.
@@ -5242,8 +5252,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     }
                     else if (isNeedThisScope(sc, exp.f))
                     {
-                        exp.error("need `this` for `%s` of type `%s`", exp.f.toChars(), exp.f.type.toChars());
-                        return setError();
+                        return needThisError(exp.loc, exp.f);
                     }
                 }
                 exp.e1 = new VarExp(exp.e1.loc, exp.f, false);
@@ -5386,8 +5395,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                     // If no error is printed, it means that `f` is the single matching overload
                     // and it needs `this`.
-                    exp.error("need `this` for `%s` of type `%s`", exp.f.toChars(), exp.f.type.toChars());
-                    return setError();
+                    return needThisError(exp.loc, exp.f);
                 }
             }
 
