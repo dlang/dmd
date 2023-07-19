@@ -1714,7 +1714,7 @@ elem* toElem(Expression e, IRState *irs)
         /* Do this check during code gen rather than semantic() because concatenation is
          * allowed in CTFE, and cannot distinguish that in semantic().
          */
-        if (irs.params.betterC)
+        if (!irs.params.useGC)
         {
             error(ce.loc, "array concatenation of expression `%s` requires the GC which is not available with -betterC", ce.toChars());
             return el_long(TYint, 0);

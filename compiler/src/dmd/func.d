@@ -2244,7 +2244,7 @@ extern (C++) class FuncDeclaration : Declaration
             if (global.gag)     // need not report supplemental errors
                 return true;
         }
-        else if (global.params.betterC)
+        else if (!global.params.useGC)
         {
             error("is `-betterC` yet allocates closure for `%s()` with the GC", toChars());
             if (global.gag)     // need not report supplemental errors

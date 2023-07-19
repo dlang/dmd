@@ -133,6 +133,7 @@ extern (C++) struct Param
     bool useModuleInfo = true;   // generate runtime module information
     bool useTypeInfo = true;     // generate runtime type information
     bool useExceptions = true;   // support exception handling
+    bool useGC = true;           // support features that require the D runtime GC
     bool betterC;           // be a "better C" compiler; no dependency on D runtime
     bool addMain;           // add a default main() function
     bool allInst;           // generate code for all template instantiations
