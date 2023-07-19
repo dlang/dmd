@@ -1620,7 +1620,9 @@ extern (C++) abstract class Expression : ASTNode
             {
                 //printf("checkRightThis sc.intypeof = %d, ad = %p, func = %p, fdthis = %p\n",
                 //        sc.intypeof, sc.getStructClassScope(), func, fdthis);
-                error("need `this` for `%s` of type `%s`", ve.var.toChars(), ve.var.type.toChars());
+                auto m = ve.var.isMemberLocal();
+                assert(m);
+                error("accessing non-static variable `%s` requires an instance of `%s`", ve.var.toChars(), m.toChars());
                 return true;
             }
         }

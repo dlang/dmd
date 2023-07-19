@@ -2,7 +2,7 @@
 TEST_OUTPUT:
 ---
 fail_compilation/ice15332.d(16): Error: calling non-static function `fun` requires an instance of type `C`
-fail_compilation/ice15332.d(17): Error: need `this` for `var` of type `int`
+fail_compilation/ice15332.d(17): Error: accessing non-static variable `var` requires an instance of `C`
 ---
 */
 
