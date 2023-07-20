@@ -1620,7 +1620,9 @@ extern (C++) abstract class Expression : ASTNode
             {
                 //printf("checkRightThis sc.intypeof = %d, ad = %p, func = %p, fdthis = %p\n",
                 //        sc.intypeof, sc.getStructClassScope(), func, fdthis);
-                error("need `this` for `%s` of type `%s`", ve.var.toChars(), ve.var.type.toChars());
+                auto t = ve.var.isThis();
+                assert(t);
+                error("accessing non-static variable `%s` requires an instance of `%s`", ve.var.toChars(), t.toChars());
                 return true;
             }
         }
@@ -3798,7 +3800,11 @@ extern (C++) final class SymOffExp : SymbolExp
             // FIXME: This error report will never be handled anyone.
             // It should be done before the SymOffExp construction.
             if (v.needThis())
-                .error(loc, "need `this` for address of `%s`", v.toChars());
+            {
+                auto t = v.isThis();
+                assert(t);
+                .error(loc, "taking the address of non-static variable `%s` requires an instance of `%s`", v.toChars(), t.toChars());
+            }
             hasOverloads = false;
         }
         super(loc, EXP.symbolOffset, var, hasOverloads);
