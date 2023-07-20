@@ -1206,6 +1206,7 @@ extern (C++) struct Target
         cppStd,
         floatAbi,
         objectFormat,
+        CET
     }
 
     /**
@@ -1248,6 +1249,8 @@ extern (C++) struct Target
                 return stringExp("");
             case cppStd.stringof:
                 return new IntegerExp(params.cplusplus);
+            case CET.stringof:
+                return new IntegerExp(driverParams.ibt);
 
             default:
                 return null;
