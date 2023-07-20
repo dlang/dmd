@@ -1219,10 +1219,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                             bool needctfe = dsym.isDataseg() || (dsym.storage_class & STC.manifest);
                             if (needctfe)
                                 sc = sc.startCTFE();
+                            sc.varDecl = dsym; // https://issues.dlang.org/show_bug.cgi?id=24051
                             exp = exp.expressionSemantic(sc);
                             exp = resolveProperties(sc, exp);
                             if (needctfe)
                                 sc = sc.endCTFE();
+                            sc.varDecl = null;
                             ei.exp = exp;
                         }
 
