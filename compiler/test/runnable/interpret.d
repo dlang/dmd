@@ -2196,7 +2196,7 @@ struct Q
     Q opOpAssign(string op)(int w) if (op == "-")
     {
         x -= w;
-        version(D_Version2) { mixin("return this;"); } else { mixin("return *this;"); }
+        return this;
     }
     int boo()  { return 4; }
     int coo()  { return x; }
@@ -2426,7 +2426,7 @@ static assert(bug1605() == 27);
 
 int bug2564()
 {
-    version(D_Version2) { mixin("enum int Q = 0;"); }else {mixin("int Q = 0;"); }
+    enum int Q = 0;
     string [2] s = ["a", "b"];
     assert(s[Q].dup == "a");
     return 0;
@@ -2645,8 +2645,6 @@ static assert(lazyTest2(17) == 18);
 
 /************************************************/
 
-version(D_Version2)
-{
 // https://issues.dlang.org/show_bug.cgi?id=4020
 // https://issues.dlang.org/show_bug.cgi?id=4027
 // D2 only
@@ -2675,7 +2673,6 @@ string delegate() bug4027(string s)
 static if (is(typeof((){ static const s = bug4027("aaa")(); }()))) {
     static assert(bug4027("aaa")() == "aaa");
     static assert(bug4027("bbb")() == "bbb");
-}
 }
 
 // ---
