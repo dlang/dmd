@@ -884,8 +884,6 @@ dmd -cov -unittest myprog.d
             "implement https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1021.md (Mutable function arguments)"),
         Feature("bitfields", "bitfields", "add bitfields https://github.com/dlang/dlang.org/pull/3190"),
         Feature("fieldwise", "fieldwise", "use fieldwise comparisons for struct equality"),
-        Feature("fixAliasThis", "fixAliasThis",
-            "when a symbol is resolved, check alias this scope before going to upper scopes"),
         Feature("intpromote", "fix16997",
             "fix integral promotions for unary + - ~ operators", false, true),
         Feature("dtorfields", "dtorFields",

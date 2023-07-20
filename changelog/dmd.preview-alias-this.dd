@@ -1,0 +1,6 @@
+Alias this fix has now become the default
+
+Prior to this release there was an alias this bug where
+[alias this was not considered when doing scope](https://issues.dlang.org/show_bug.cgi?id=16082).
+[The issue was fixed but put behind a preview switch](https://github.com/dlang/dmd/pull/8885).
+Starting with this release, the fix becomes the default.
