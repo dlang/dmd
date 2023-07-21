@@ -116,7 +116,7 @@ private void getlvalue87(ref CodeBuilder cdb, ref code pcs,elem *e,regm_t keepms
  */
 
 @trusted
-private void ndp_fstp(ref CodeBuilder cdb, int i, tym_t ty)
+private void ndp_fstp(ref CodeBuilder cdb, size_t i, tym_t ty)
 {
     switch (tybasic(ty))
     {
@@ -145,7 +145,7 @@ private void ndp_fstp(ref CodeBuilder cdb, int i, tym_t ty)
 }
 
 @trusted
-private void ndp_fld(ref CodeBuilder cdb, int i, tym_t ty)
+private void ndp_fld(ref CodeBuilder cdb, size_t i, tym_t ty)
 {
     switch (tybasic(ty))
     {
@@ -174,19 +174,26 @@ private void ndp_fld(ref CodeBuilder cdb, int i, tym_t ty)
 }
 
 /**************************
- * Return index of empty slot in global87.save[].
+ * Insert e into next available slot in save[].
+ * Params:
+ *    save = array of NDP
+ *    ndp = NDP to insert into save[]
+ * Returns:
+ *    index of slot in save[] where ndp was inserted
  */
 
-@trusted
-private int getemptyslot()
+@safe
+private size_t getemptyslot(T)(ref T save, ref NDP ndp)
 {
-    Barray!NDP* s = &global87.save;
-    foreach (i, ref ndp; (*s)[])
-        if (ndp.e == null)
-            return cast(int)i;
+    foreach (i, ref n; save[])
+        if (n.e == null)
+        {
+            n = ndp;
+            return i;
+        }
 
-    s.push(NDP());
-    return cast(int)s.length - 1;
+    save.push(ndp);
+    return save.length - 1;
 }
 
 /*********************************
@@ -225,8 +232,7 @@ void push87(ref CodeBuilder cdb, int line, const(char)* file)
     // if we would lose the top register off of the stack
     if (global87.stack[7].e != null)
     {
-        int i = getemptyslot();
-        global87.save[i] = global87.stack[7];
+        const i = getemptyslot(global87.save, global87.stack[7]);
         cdb.genf2(0xD9,0xF6);                         // FDECSTP
         genfwait(cdb);
         ndp_fstp(cdb, i, global87.stack[7].e.Ety);       // FSTP i[BP]
@@ -364,9 +370,8 @@ void save87(ref CodeBuilder cdb)
     while (global87.stack[0].e && global87.stackused)
     {
         // Save it
-        int i = getemptyslot();
-        if (NDPP) printf("saving %p in temporary global87.save[%d]\n",global87.stack[0].e,i);
-        global87.save[i] = global87.stack[0];
+        const i = getemptyslot(global87.save, global87.stack[0]);
+        if (NDPP) printf("saving %p in temporary global87.save[%d]\n",global87.stack[0].e, cast(int)i);
 
         genfwait(cdb);
         ndp_fstp(cdb,i,global87.stack[0].e.Ety); // FSTP i[BP]
@@ -394,9 +399,8 @@ void save87regs(ref CodeBuilder cdb, uint n)
             genfwait(cdb);
             if (k <= global87.stackused)
             {
-                int i = getemptyslot();
+                const i = getemptyslot(global87.save, global87.stack[k - 1]);
                 ndp_fstp(cdb, i, global87.stack[k - 1].e.Ety);   // FSTP i[BP]
-                global87.save[i] = global87.stack[k - 1];
                 global87.stack[k - 1] = NDP();
             }
         }
@@ -422,8 +426,8 @@ void gensaverestore87(regm_t regm, ref CodeBuilder cdbsave, ref CodeBuilder cdbr
     //printf("gensaverestore87(%s)\n", regm_str(regm));
     assert(regm == mST0 || regm == mST01);
 
-    int i = getemptyslot();
-    global87.save[i].e = el_calloc();       // this blocks slot [i] for the life of this function
+    auto ndp0 = NDP(el_calloc());
+    const i = getemptyslot(global87.save, ndp0);  // this blocks slot [i] for the life of this function
     ndp_fstp(cdbsave, i, TYldouble);
 
     CodeBuilder cdb2a;
@@ -432,8 +436,8 @@ void gensaverestore87(regm_t regm, ref CodeBuilder cdbsave, ref CodeBuilder cdbr
 
     if (regm == mST01)
     {
-        int j = getemptyslot();
-        global87.save[j].e = el_calloc();
+        auto ndp1 = NDP(el_calloc());
+        const j = getemptyslot(global87.save, ndp1);
         ndp_fstp(cdbsave, j, TYldouble);
         ndp_fld(cdbrestore, j, TYldouble);
     }
