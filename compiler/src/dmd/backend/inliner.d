@@ -66,6 +66,11 @@ bool canInlineFunction(Symbol *sfunc)
     assert(f && tyfunc(t.Tty));
 
     bool result = false;
+
+    // Disable backend inliner until this issue if fixed:
+    // https://issues.dlang.org/show_bug.cgi?id=23857
+    return result;
+
     if (!(config.flags & CFGnoinlines) && /* if inlining is turned on   */
         f.Fflags & Finline &&
         /* Cannot inline varargs or unprototyped functions      */
