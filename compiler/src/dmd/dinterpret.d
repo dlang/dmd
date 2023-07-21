@@ -6105,7 +6105,10 @@ public:
                 result = interpret(&ue, e.msg, istate);
                 if (exceptionOrCant(result))
                     return;
-                e.error("`%s`", result.toChars());
+                if (StringExp se = result.isStringExp())
+                    e.error("%s", se.toStringz().ptr);
+                else
+                    e.error("%s", result.toChars());
             }
             else
                 e.error("`%s` failed", e.toChars());
