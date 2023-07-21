@@ -83,9 +83,12 @@ enum NDPP = 0;       // print out debugging info
 @trusted
 bool NOSAHF() { return I64 || config.fpxmmregs; }     // can't use SAHF instruction
 
-enum CW_roundto0 = 0xFBF;
-enum CW_roundtonearest = 0x3BF;
-
+/** 87 Control Word rounding modes */
+enum CW : ushort
+{
+    roundto0       = 0xFBF,
+    roundtonearest = 0x3BF,
+}
 
 /**********************************
  * When we need to temporarilly save 8087 registers, we record information
@@ -177,14 +180,13 @@ private void ndp_fld(ref CodeBuilder cdb, int i, tym_t ty)
 @trusted
 private int getemptyslot()
 {
-    int i;
+    Barray!NDP* s = &global87.save;
+    foreach (i, ref ndp; (*s)[])
+        if (ndp.e == null)
+            return cast(int)i;
 
-    for (i = 0; i < global87.save.length; ++i)
-        if (global87.save[i].e == null)
-            return i;
-
-    global87.save.push(NDP());
-    return i;
+    s.push(NDP());
+    return cast(int)s.length - 1;
 }
 
 /*********************************
@@ -2236,7 +2238,7 @@ private void cnvteq87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     freenode(e.EV.E2);
 
     genfwait(cdb);
-    genrnd(cdb, CW_roundto0);               // FLDCW roundto0
+    genSetRoundingMode(cdb, CW.roundto0);   // FLDCW roundto0
 
     pop87();
     cs.Iflags = ADDFWAIT() ? CFwait : 0;
@@ -2245,7 +2247,7 @@ private void cnvteq87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     loadea(cdb,e.EV.E1,&cs,op1,op2,0,0,0);
 
     genfwait(cdb);
-    genrnd(cdb, CW_roundtonearest);         // FLDCW roundtonearest
+    genSetRoundingMode(cdb, CW.roundtonearest);   // FLDCW roundtonearest
 
     freenode(e.EV.E1);
 }
@@ -3245,12 +3247,12 @@ void cnvt87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
         if (config.flags3 & CFG3pic)
         {
-            cdb.genc(0xC7,modregrm(2,0,4) + 256*modregrm(0,4,SP),FLconst,szoff+2,FLconst,CW_roundto0); // MOV szoff+2[ESP], CW_roundto0
+            cdb.genc(0xC7,modregrm(2,0,4) + 256*modregrm(0,4,SP),FLconst,szoff+2,FLconst,CW.roundto0); // MOV szoff+2[ESP], CW.roundto0
             code_orflag(cdb.last(), CFopsize);
             cdb.genc1(0xD9,modregrm(2,5,4) + 256*modregrm(0,4,SP),FLconst,szoff+2); // FLDCW szoff+2[ESP]
         }
         else
-            genrnd(cdb, CW_roundto0);   // FLDCW roundto0
+            genSetRoundingMode(cdb, CW.roundto0);   // FLDCW roundto0
 
         pop87();
 
@@ -3285,7 +3287,7 @@ void cnvt87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         codelem(cdb,e.EV.E1,&retregs,false);
 
         genfwait(cdb);
-        genrnd(cdb, CW_roundto0);                  // FLDCW roundto0
+        genSetRoundingMode(cdb, CW.roundto0);      // FLDCW roundto0
 
         pop87();
         cdb.genfltreg(mf,rf,0);                    // FISTP floatreg
@@ -3304,7 +3306,7 @@ void cnvt87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         }
         else
             cdb.genfltreg(LOD,reg,0);                // MOV reg,floatreg
-        genrnd(cdb, CW_roundtonearest);              // FLDCW roundtonearest
+        genSetRoundingMode(cdb, CW.roundtonearest);  // FLDCW roundtonearest
         fixresult(cdb,e,retregs,pretregs);
     }
 }
@@ -3499,11 +3501,14 @@ void cg87_reset()
 
 
 /*****************************************
- * Initialize control word constants.
+ * Set rounding mode.
+ * Params:
+ *      cdb = code sink
+ *      cw = control word spedifying rounding mode
  */
 
 @trusted
-private void genrnd(ref CodeBuilder cdb, short cw)
+private void genSetRoundingMode(ref CodeBuilder cdb, CW cw)
 {
     if (config.flags3 & CFG3pic)
     {
@@ -3518,16 +3523,14 @@ private void genrnd(ref CodeBuilder cdb, short cw)
     {
         if (!oldd.round)                // if not initialized
         {
-            short cwi;
-
             oldd.round = 1;
 
-            cwi = CW_roundto0;          // round to 0
+            auto cwi = CW.roundto0;          // round to 0
             oldd.roundto0 = out_readonly_sym(TYshort,&cwi,2);
-            cwi = CW_roundtonearest;            // round to nearest
+            cwi = CW.roundtonearest;            // round to nearest
             oldd.roundtonearest = out_readonly_sym(TYshort,&cwi,2);
         }
-        Symbol *rnddir = (cw == CW_roundto0) ? oldd.roundto0 : oldd.roundtonearest;
+        Symbol *rnddir = (cw == CW.roundto0) ? oldd.roundto0 : oldd.roundtonearest;
         code cs;
         cs.Iop = 0xD9;
         cs.Iflags = CFoff;
