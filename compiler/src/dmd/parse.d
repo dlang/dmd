@@ -1222,7 +1222,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                       (orig & STC.scope_) ? "scope".ptr : "ref".ptr);
             }
             else if (added & STC.ref_)
-                deprecation("using `in ref` is deprecated, use `-preview=in` and `in` instead");
+            {
+                // accept for legacy compatibility
+                //deprecation("using `in ref` is deprecated, use `-preview=in` and `in` instead");
+            }
             else
                 error("attribute `scope` cannot be applied with `in`, use `-preview=in` instead");
             return orig;
@@ -1240,7 +1243,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                       stc_str, stc_str);
             }
             else if (orig & STC.ref_)
-                deprecation("using `ref in` is deprecated, use `-preview=in` and `in` instead");
+            {
+                // accept for legacy compatibility
+                //deprecation("using `in ref` is deprecated, use `-preview=in` and `in` instead");
+            }
             else
                 error("attribute `in` cannot be added after `scope`: remove `scope` and use `-preview=in`");
             return orig;
