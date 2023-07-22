@@ -206,11 +206,13 @@ void gencodelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,bool constflag)
 
 /**********************************
  * Determine if one of the registers in regm has value in it.
- * If so, return !=0 and set *preg to which register it is.
+ * Returns:
+ *	if so, true and preg is set to which register it is.
+ *	otherwise, false and preg is set to 0.
  */
 
 @trusted
-bool reghasvalue(regm_t regm,targ_size_t value,reg_t *preg)
+bool reghasvalue(regm_t regm,targ_size_t value, out reg_t preg)
 {
     //printf("reghasvalue(%s, %llx)\n", regm_str(regm), cast(ulong)value);
     /* See if another register has the right value      */
@@ -218,7 +220,7 @@ bool reghasvalue(regm_t regm,targ_size_t value,reg_t *preg)
     for (regm_t mreg = regcon.immed.mval; mreg; mreg >>= 1)
     {
         if (mreg & regm & 1 && regcon.immed.value[r] == value)
-        {   *preg = r;
+        {   preg = r;
             return true;
         }
         r++;
@@ -241,7 +243,7 @@ void regwithvalue(ref CodeBuilder cdb,regm_t regm,targ_size_t value,reg_t *preg,
         preg = &reg;
 
     // If we don't already have a register with the right value in it
-    if (!reghasvalue(regm,value,preg))
+    if (!reghasvalue(regm,value,*preg))
     {
         regm_t save = regcon.immed.mval;
         allocreg(cdb,&regm,preg,TYint);  // allocate register

@@ -4287,7 +4287,7 @@ private void movParams(ref CodeBuilder cdb, elem* e, uint stackalign, uint funca
                 {   int regsize = REGSIZE;
                     regm_t retregs = (sz == 1) ? BYTEREGS : allregs;
                     reg_t reg;
-                    if (reghasvalue(retregs,*p,&reg))
+                    if (reghasvalue(retregs,*p,reg))
                     {
                         cs.Iop = (cs.Iop & 1) | 0x88;
                         cs.Irm |= modregrm(0, reg & 7, 0); // MOV EA,reg
@@ -4839,7 +4839,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                 for (int i = 0; i < 3; ++i)
                 {
                     reg_t reg;
-                    if (reghasvalue(allregs, value, &reg))
+                    if (reghasvalue(allregs, value, reg))
                         cdb.gen1(0x50 + reg);           // PUSH reg
                     else
                         cdb.genc2(0x68,0,value);        // PUSH value
@@ -4913,7 +4913,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                         regwithvalue(cdb,allregs,value,&reg,64);
                         goto Preg;          // cannot push imm64 unless it is sign extended 32 bit value
                     }
-                    if (regsize == REGSIZE && reghasvalue(allregs,value,&reg))
+                    if (regsize == REGSIZE && reghasvalue(allregs,value,reg))
                         goto Preg;
                     cdb.genc2((szb == 1) ? 0x6A : 0x68, 0, value); // PUSH value
                 }
@@ -5313,7 +5313,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
         if (sz == 8)
             value = cast(targ_size_t)e.EV.Vullong;
 
-        if (sz == REGSIZE && reghasvalue(forregs, value, &reg))
+        if (sz == REGSIZE && reghasvalue(forregs, value, reg))
             forregs = mask(reg);
 
         regm_t save = regcon.immed.mval;

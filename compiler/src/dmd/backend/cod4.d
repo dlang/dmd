@@ -611,7 +611,7 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                         {
                             regm_t retregsx = (sz == 1) ? BYTEREGS : allregs;
                             reg_t regx;
-                            if (reghasvalue(retregsx,*p,&regx))
+                            if (reghasvalue(retregsx,*p,regx))
                             {
                                 cs.Iop = (cs.Iop & 1) | 0x88;
                                 cs.Irm |= modregrm(0,regx & 7,0); // MOV EA,regx
@@ -1009,7 +1009,7 @@ void cdaddass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             // Handle shortcuts. Watch out for if result has
             // to be in flags.
 
-            if (reghasvalue(isbyte ? BYTEREGS : ALLREGS,i,&reg) && i != 1 && i != -1 &&
+            if (reghasvalue(isbyte ? BYTEREGS : ALLREGS,i,reg) && i != 1 && i != -1 &&
                 !opsize)
             {
                 cs.Iop = op1;
@@ -2828,7 +2828,7 @@ void cdcmp(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                              */
                             genregs(cdb,0xD1,0,reg);   // ROL reg,1
                             reg_t regi;
-                            if (reghasvalue(allregs,1,&regi))
+                            if (reghasvalue(allregs,1,regi))
                                 genregs(cdb,0x23,reg,regi);  // AND reg,regi
                             else
                                 cdb.genc2(0x81,modregrm(3,4,reg),1); // AND reg,1
@@ -2991,7 +2991,7 @@ void cdcmp(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             {   // CMP reg,const
                 reg = findreg(retregs & allregs);   // get reg that e1 is in
                 rretregs = allregs & ~retregs;
-                if (cs.IFL2 == FLconst && reghasvalue(rretregs,cs.IEV2.Vint,&rreg))
+                if (cs.IFL2 == FLconst && reghasvalue(rretregs,cs.IEV2.Vint,rreg))
                 {
                     genregs(cdb,0x3B,reg,rreg);
                     code_orrex(cdb.last(), rex);
