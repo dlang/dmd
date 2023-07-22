@@ -296,7 +296,7 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             else if (sz == 4)
                 value &= 0xFFFFFFFF;
             reg_t reg;
-            if (reghasvalue(isbyte ? BYTEREGS : ALLREGS,value,&reg))
+            if (reghasvalue(isbyte ? BYTEREGS : ALLREGS,value,reg))
             {
                 code_newreg(&cs, reg);
                 if (I64 && isbyte && reg >= 4)
@@ -733,7 +733,7 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                         i &= 0xFFFF;
                     }
                 }
-                rval = reghasvalue(isbyte ? BYTEREGS : ALLREGS,i,&rreg);
+                rval = reghasvalue(isbyte ? BYTEREGS : ALLREGS,i,rreg);
                 cs.IEV2.Vsize_t = i;
             L3:
                 if (!test)
@@ -2024,7 +2024,7 @@ void cdnot(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         if (config.target_cpu >= TARGET_80486 &&
             tysize(e.Ety) == 1)
         {
-            if (reghasvalue((sz == 1) ? BYTEREGS : ALLREGS,0,&reg))
+            if (reghasvalue((sz == 1) ? BYTEREGS : ALLREGS,0,reg))
             {
                 cs.Iop = 0x39;
                 if (I64 && (sz == 1) && reg >= 4)
@@ -2056,7 +2056,7 @@ void cdnot(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             goto L4;
         }
 
-        if (reghasvalue((sz == 1) ? BYTEREGS : ALLREGS,1,&reg))
+        if (reghasvalue((sz == 1) ? BYTEREGS : ALLREGS,1,reg))
             cs.Iop = 0x39;
         else
         {   cs.Iop = 0x81;

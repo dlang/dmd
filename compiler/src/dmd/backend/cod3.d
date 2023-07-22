@@ -6315,7 +6315,7 @@ void simplify_code(code* c)
     if (config.flags4 & CFG4optimized &&
         (c.Iop == 0x81 || c.Iop == 0x80) &&
         c.IFL2 == FLconst &&
-        reghasvalue((c.Iop == 0x80) ? BYTEREGS : ALLREGS,I64 ? c.IEV2.Vsize_t : c.IEV2.Vlong,&reg) &&
+        reghasvalue((c.Iop == 0x80) ? BYTEREGS : ALLREGS,I64 ? c.IEV2.Vsize_t : c.IEV2.Vlong,reg) &&
         !(I16 && c.Iflags & CFopsize)
        )
     {
