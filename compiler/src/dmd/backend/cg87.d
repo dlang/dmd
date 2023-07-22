@@ -1835,7 +1835,7 @@ L5:
                 note87(eleft,eoffset,0);    // don't trash this value
             retregs = ALLREGS & mLSW;
             codelem(cdb,e.EV.E1,&retregs,false);
-            regwithvalue(cdb,ALLREGS & mMSW,0,&reg,0);  // 0-extend
+            regwithvalue(cdb,ALLREGS & mMSW,0,reg,0);  // 0-extend
             retregs |= mask(reg);
             mf1 = MFlong;
             goto L3;

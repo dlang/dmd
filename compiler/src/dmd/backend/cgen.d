@@ -207,8 +207,8 @@ void gencodelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,bool constflag)
 /**********************************
  * Determine if one of the registers in regm has value in it.
  * Returns:
- *	if so, true and preg is set to which register it is.
- *	otherwise, false and preg is set to 0.
+ *      if so, true and preg is set to which register it is.
+ *      otherwise, false and preg is set to 0.
  */
 
 @trusted
@@ -232,24 +232,20 @@ bool reghasvalue(regm_t regm,targ_size_t value, out reg_t preg)
 /**************************************
  * Load a register from the mask regm with value.
  * Output:
- *      *preg   the register selected
+ *      preg = the register selected
  */
 @trusted
-void regwithvalue(ref CodeBuilder cdb,regm_t regm,targ_size_t value,reg_t *preg,regm_t flags)
+void regwithvalue(ref CodeBuilder cdb,regm_t regm,targ_size_t value, out reg_t preg,regm_t flags)
 {
     //printf("regwithvalue(value = %lld)\n", cast(long)value);
-    reg_t reg;
-    if (!preg)
-        preg = &reg;
 
-    // If we don't already have a register with the right value in it
-    if (!reghasvalue(regm,value,*preg))
-    {
-        regm_t save = regcon.immed.mval;
-        allocreg(cdb,&regm,preg,TYint);  // allocate register
-        regcon.immed.mval = save;
-        movregconst(cdb,*preg,value,flags);   // store value into reg
-    }
+    if (reghasvalue(regm,value,preg))
+        return; // already have a register with the right value in it
+
+    regm_t save = regcon.immed.mval;
+    allocreg(cdb,&regm,&preg,TYint);  // allocate register
+    regcon.immed.mval = save;
+    movregconst(cdb,preg,value,flags);   // store value into reg
 }
 
 /************************
