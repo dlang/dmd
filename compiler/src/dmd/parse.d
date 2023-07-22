@@ -8711,7 +8711,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     nextToken();
                     if (token.value != TOK.identifier)
                     {
-                        error("identifier expected following `(type)`.");
+                        error("identifier expected following `%s.`, not `%s`",
+                            t.toChars(), token.toChars());
                         return AST.ErrorExp.get();
                     }
                     e = new AST.DotIdExp(loc, new AST.TypeExp(loc, t), token.ident);
@@ -8723,7 +8724,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     e = new AST.TypeExp(loc, t);
                     if (token.value != TOK.leftParenthesis)
                     {
-                        error("`(arguments)` expected following `%s`", t.toChars());
+                        error("`(arguments)` expected following `%s`, not `%s`",
+                            t.toChars(), token.toChars());
                         return e;
                     }
                     e = new AST.CallExp(loc, e, parseArguments());
