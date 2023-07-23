@@ -281,7 +281,13 @@ void optfunc()
                 }
             }
         //printf("blockopt\n");
-        scanForInlines(funcsym_p);
+
+        /* Only scan once to prevent recursive functions from endlessly being inlined
+         * https://issues.dlang.org/show_bug.cgi?id=23857
+         */
+        if (iter == 1)
+            scanForInlines(funcsym_p);
+
         if (go.mfoptim & MFdc)
             blockopt(0);                // do block optimization
         out_regcand(&globsym);          // recompute register candidates
