@@ -149,19 +149,12 @@ private regm_t lastretregs,last2retregs,last3retregs,last4retregs,last5retregs;
 @trusted
 void codgen(Symbol *sfunc)
 {
-    bool flag;
-    block *btry;
-
-    // Register usage. If a bit is on, the corresponding register is live
-    // in that basic block.
-
     //printf("codgen('%s')\n",funcsym_p.Sident.ptr);
     assert(sfunc == funcsym_p);
     assert(cseg == funcsym_p.Sseg);
 
     cgreg_init();
     CSE.initialize();
-    tym_t functy = tybasic(sfunc.ty());
     cod3_initregs();
     allregs = ALLREGS;
     pass = BackendPass.initial;
@@ -243,9 +236,8 @@ tryagain:
     if (!config.fulltypes || (config.flags4 & CFG4optimized))
     {
         regm_t noparams = 0;
-        for (int i = 0; i < globsym.length; i++)
+        foreach (s; globsym[])
         {
-            Symbol *s = globsym[i];
             s.Sflags &= ~SFLread;
             switch (s.Sclass)
             {
@@ -275,10 +267,10 @@ tryagain:
         assert(dfo);
 
         cgreg_reset();
-        for (dfoidx = 0; dfoidx < dfo.length; dfoidx++)
+        foreach (i, b; dfo[])
         {
+            dfoidx = cast(int)i;
             regcon.used = msavereg | regcon.cse.mval;   // registers already in use
-            block* b = dfo[dfoidx];
             blcodgen(b);                        // gen code in depth-first order
             //printf("b.Bregcon.used = %s\n", regm_str(b.Bregcon.used));
             cgreg_used(dfoidx, b.Bregcon.used); // gather register used information
@@ -320,10 +312,8 @@ tryagain:
     cgreg_term();
 
     // See if we need to enforce a particular stack alignment
-    foreach (i; 0 .. globsym.length)
+    foreach (s; globsym[])
     {
-        Symbol *s = globsym[i];
-
         if (Symbol_Sisdead(*s, anyiasm))
             continue;
 
@@ -416,6 +406,7 @@ tryagain:
     debugw && printf("code addr complete\n");
 
     // Do jump optimization
+    bool flag;
     do
     {
         flag = false;
@@ -425,15 +416,14 @@ tryagain:
                 continue;
             int i = branch(b,0);            // see if jmp => jmp short
             if (i)                          // if any bytes saved
-            {   targ_size_t offset;
-
+            {
                 b.Bsize -= i;
-                offset = b.Boffset + b.Bsize;
+                auto offset = b.Boffset + b.Bsize;
                 for (block* bn = b.Bnext; bn; bn = bn.Bnext)
                 {
                     if (bn.Balign)
-                    {   targ_size_t u = bn.Balign - 1;
-
+                    {
+                        targ_size_t u = bn.Balign - 1;
                         offset = (offset + u) & ~u;
                     }
                     bn.Boffset = offset;
@@ -522,30 +512,26 @@ tryagain:
         if (configv.vasm)
             disassemble(disasmBuf[]);                   // disassemble the code
 
-        static if (1)
+        const nteh = usednteh & NTEH_try;
+        if (nteh)
         {
-            const nteh = usednteh & NTEH_try;
-            if (nteh)
-            {
-                assert(!(config.flags & CFGromable));
-                //printf("framehandleroffset = x%x, coffset = x%x\n",framehandleroffset,coffset);
-                objmod.reftocodeseg(sfunc.Sseg,framehandleroffset,coffset);
-            }
+            assert(!(config.flags & CFGromable));
+            //printf("framehandleroffset = x%x, coffset = x%x\n",framehandleroffset,coffset);
+            objmod.reftocodeseg(sfunc.Sseg,framehandleroffset,coffset);
         }
 
         // Write out switch tables
-        flag = false;                       // true if last active block was a ret
         for (block* b = startblock; b; b = b.Bnext)
         {
             switch (b.BC)
             {
                 case BCjmptab:              /* if jump table                */
                     outjmptab(b);           /* write out jump table         */
-                    goto Ldefault;
+                    goto default;
 
                 case BCswitch:
                     outswitab(b);           /* write out switch table       */
-                    goto Ldefault;
+                    goto default;
 
                 case BCret:
                 case BCretexp:
@@ -558,11 +544,9 @@ tryagain:
                      */
                     if (usednteh & NTEH_try)
                         retoffset += 3;
-                    flag = true;
                     break;
 
                 default:
-                Ldefault:
                     retoffset = b.Boffset + b.Bsize - funcoffset;
                     break;
             }
@@ -610,6 +594,7 @@ tryagain:
 
     // Mask of regs saved
     // BUG: do interrupt functions save BP?
+    tym_t functy = tybasic(sfunc.ty());
     sfunc.Sregsaved = (functy == TYifunc) ? cast(regm_t) mBP : (mfuncreg | fregsaved);
 
     debug
