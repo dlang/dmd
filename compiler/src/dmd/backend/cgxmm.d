@@ -294,6 +294,8 @@ void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,regm_t 
         {   regvar = true;
             retregs = varregm;    // evaluate directly in target register
         }
+        else
+            varregm = 0;
     }
     if (*pretregs & mPSW && OTleaf(e1.Eoper))     // if evaluating e1 couldn't change flags
     {   // Be careful that this lines up with jmpopcode()

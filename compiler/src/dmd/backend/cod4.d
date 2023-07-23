@@ -2773,17 +2773,21 @@ void cdcmp(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
         case OPconst:
             // If compare against 0
-            if (sz <= REGSIZE && *pretregs == mPSW && !boolres(e2) &&
-                isregvar(e1,retregs,reg)
-               )
-            {   // Just do a TEST instruction
-                genregs(cdb,0x85 ^ isbyte,reg,reg);      // TEST reg,reg
-                cdb.last().Iflags |= (cs.Iflags & CFopsize) | CFpsw;
-                code_orrex(cdb.last(), rex);
-                if (I64 && isbyte && reg >= 4)
-                    cdb.last().Irex |= REX;                 // address byte registers
-                retregs = mPSW;
-                break;
+            {
+                regm_t regm2;
+                reg_t reg2;
+                if (sz <= REGSIZE && *pretregs == mPSW && !boolres(e2) &&
+                    isregvar(e1,retregs,reg)
+                   )
+                {   // Just do a TEST instruction
+                    genregs(cdb,0x85 ^ isbyte,reg,reg);      // TEST reg2,reg2
+                    cdb.last().Iflags |= (cs.Iflags & CFopsize) | CFpsw;
+                    code_orrex(cdb.last(), rex);
+                    if (I64 && isbyte && reg >= 4)
+                        cdb.last().Irex |= REX;                 // address byte registers
+                    retregs = mPSW;
+                    break;
+                }
             }
 
             if (!tyuns(tym) && !tyuns(e2.Ety) &&

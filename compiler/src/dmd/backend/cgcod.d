@@ -1559,14 +1559,14 @@ private void resetEcomsub(elem *e)
  * Determine if elem e is a register variable.
  * Params:
  *      e = a register variable
- *      pregm = set to mask of registers that make up the variable otherwise 0
- *      reg = the least significant register in pregm, otherwise 0
+ *      pregm = set to mask of registers that make up the variable otherwise not changed
+ *      reg = the least significant register in pregm, otherwise not changed
  * Returns:
  *      true if register variable
  */
 
 @trusted
-bool isregvar(elem *e, out regm_t pregm, out reg_t preg)
+bool isregvar(elem *e, ref regm_t pregm, ref reg_t preg)
 {
     regm_t regm;
     reg_t reg;
