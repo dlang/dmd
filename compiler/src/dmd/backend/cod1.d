@@ -505,7 +505,7 @@ void logexp(ref CodeBuilder cdb, elem *e, int jcond, uint fltarg, code *targ)
                     logexp(cdb, e.EV.E2, jcond, fltarg, targ);
                     cdb.append(cnop);
                 }
-                andregcon(&regconsave);
+                andregcon(regconsave);
                 freenode(e);
                 cgstate.stackclean--;
                 return;
@@ -528,7 +528,7 @@ void logexp(ref CodeBuilder cdb, elem *e, int jcond, uint fltarg, code *targ)
                     regconsave = regcon;
                     logexp(cdb, e.EV.E2, jcond, fltarg, targ);
                 }
-                andregcon(&regconsave);
+                andregcon(regconsave);
                 freenode(e);
                 cgstate.stackclean--;
                 return;
@@ -566,8 +566,8 @@ void logexp(ref CodeBuilder cdb, elem *e, int jcond, uint fltarg, code *targ)
 
                 cdb.append(cnop2);
                 logexp(cdb, e.EV.E2.EV.E2, jcond, fltarg, targ);
-                andregcon(&regconold);
-                andregcon(&regconsave);
+                andregcon(regconold);
+                andregcon(regconsave);
                 freenode(e.EV.E2);
                 freenode(e);
                 cdb.append(cnop);
