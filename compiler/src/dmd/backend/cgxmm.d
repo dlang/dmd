@@ -268,7 +268,6 @@ void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,regm_t 
     code cs;
     elem *e11;
     bool regvar;                  /* true means evaluate into register variable */
-    regm_t varregm;
     targ_int postinc;
 
     //printf("xmmeq(e1 = %p, e2 = %p, *pretregs = %s)\n", e1, e2, regm_str(*pretregs));
@@ -282,13 +281,13 @@ void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,regm_t 
     // If default, select store opcode
     cs.Iop = (op == CMP) ? xmmstore(tyml, aligned) : op;
     regvar = false;
-    varregm = 0;
+    regm_t varregm = 0;
     if (config.flags4 & CFG4optimized)
     {
         // Be careful of cases like (x = x+x+x). We cannot evaluate in
         // x if x is in a register.
         reg_t varreg;
-        if (isregvar(e1,&varregm,&varreg) &&    // if lvalue is register variable
+        if (isregvar(e1, varregm, varreg) &&    // if lvalue is register variable
             doinreg(e1.EV.Vsym,e2) &&           // and we can compute directly into it
             varregm & XMMREGS
            )
@@ -553,7 +552,7 @@ void xmmopass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         // x if x is in a register.
         reg_t varreg;
         regm_t varregm;
-        if (isregvar(e1,&varregm,&varreg) &&    // if lvalue is register variable
+        if (isregvar(e1,varregm,varreg) &&    // if lvalue is register variable
             doinreg(e1.EV.Vsym,e2)          // and we can compute directly into it
            )
         {   regvar = true;
@@ -620,7 +619,7 @@ void xmmpost(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         // x if x is in a register.
         reg_t varreg;
         regm_t varregm;
-        if (isregvar(e1,&varregm,&varreg) &&    // if lvalue is register variable
+        if (isregvar(e1,varregm,varreg) &&    // if lvalue is register variable
             doinreg(e1.EV.Vsym,e2)          // and we can compute directly into it
            )
         {

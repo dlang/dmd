@@ -2581,7 +2581,7 @@ bool cse_simple(code *c, elem *e)
         sz == REGSIZE &&
         e.EV.E2.Eoper == OPconst &&
         e.EV.E1.Eoper == OPvar &&
-        isregvar(e.EV.E1,&regm,&reg) &&
+        isregvar(e.EV.E1,regm,reg) &&
         !(e.EV.E1.EV.Vsym.Sflags & SFLspill)
        )
     {
@@ -2600,7 +2600,7 @@ bool cse_simple(code *c, elem *e)
     else if (e.Eoper == OPind &&
         sz <= REGSIZE &&
         e.EV.E1.Eoper == OPvar &&
-        isregvar(e.EV.E1,&regm,&reg) &&
+        isregvar(e.EV.E1,regm,reg) &&
         (I32 || I64 || regm & IDXREGS) &&
         !(e.EV.E1.EV.Vsym.Sflags & SFLspill)
        )
