@@ -2758,6 +2758,12 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 {
                     if (e0)
                         rs.error("expected return type of `%s`, not `%s`", tret.toChars(), resType.toChars());
+                    else if (tbret.isTypeNoreturn())
+                    {
+                        rs.error("cannot return from `noreturn` function");
+                        .errorSupplemental(rs.loc,
+                            "Consider adding an endless loop, `assert(0)`, or another `noreturn` expression");
+                    }
                     else
                         rs.error("`return` expression expected");
                 }
