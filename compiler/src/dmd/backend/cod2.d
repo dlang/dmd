@@ -2291,7 +2291,7 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     uint jop1 = jmpopcode(e21);
     uint jop2 = jmpopcode(e22);
 
-    docommas(cdb,&e1);
+    docommas(cdb,e1);
     cgstate.stackclean++;
 
     if (!OTrel(op1) && e1 == e21 &&
@@ -4434,7 +4434,7 @@ void cdstreq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
     // First, load pointer to rvalue into SI
     regm_t srcregs = mSI;                      // source is DS:SI
-    docommas(cdb,&e2);
+    docommas(cdb,e2);
     if (e2.Eoper == OPind)             // if (.. = *p)
     {   elem *e21 = e2.EV.E1;
 

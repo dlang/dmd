@@ -480,7 +480,7 @@ void logexp(ref CodeBuilder cdb, elem *e, int jcond, uint fltarg, code *targ)
     }
 
     int no87 = (jcond & 2) == 0;
-    docommas(cdb, &e);             // scan down commas
+    docommas(cdb, e);             // scan down commas
     cgstate.stackclean++;
 
     code* c, ce;
@@ -4431,7 +4431,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
             elem* e1 = e.EV.E1;
             if (sz == 0)
             {
-                docommas(cdb, &e1); // skip over any commas
+                docommas(cdb, e1); // skip over any commas
 
                 const stackpushsave = stackpush;
                 const stackcleansave = cgstate.stackclean;
@@ -4453,7 +4453,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                 e = e1;
                 goto L1;
             }
-            docommas(cdb,&e1);             // skip over any commas
+            docommas(cdb, e1);             // skip over any commas
             code_flags_t seg = 0;          // assume no seg override
             regm_t retregs = sz ? IDXREGS : 0;
             bool doneoff = false;

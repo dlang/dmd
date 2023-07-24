@@ -1116,7 +1116,7 @@ static if (NTEXCEPTIONS)
             if (config.flags4 & CFG4optimized)
             {   regm_t usedsave;
 
-                docommas(cdb,&e);
+                docommas(cdb,e);
                 usedsave = regcon.used;
                 if (!OTleaf(e.Eoper))
                     gencodelem(cdb,e,&retregs,true);
@@ -1619,7 +1619,7 @@ void doswitch(ref CodeBuilder cdb, block *b)
     //printf("doswitch(%d)\n", b.BC);
     elem *e = b.Belem;
     elem_debug(e);
-    docommas(cdb,&e);
+    docommas(cdb,e);
     cgstate.stackclean++;
     tym_t tys = tybasic(e.Ety);
     int sz = _tysize[tys];
