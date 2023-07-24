@@ -1557,27 +1557,24 @@ private void resetEcomsub(elem *e)
 
 /*********************************
  * Determine if elem e is a register variable.
- * If so:
- *      *pregm = mask of registers that make up the variable
- *      *preg = the least significant register
- *      returns true
- * Else
- *      returns false
+ * Params:
+ *      e = a register variable
+ *      pregm = set to mask of registers that make up the variable otherwise not changed
+ *      reg = the least significant register in pregm, otherwise not changed
+ * Returns:
+ *      true if register variable
  */
 
 @trusted
-int isregvar(elem *e,regm_t *pregm,reg_t *preg)
+bool isregvar(elem *e, ref regm_t pregm, ref reg_t preg)
 {
-    Symbol *s;
-    uint u;
-    regm_t m;
     regm_t regm;
     reg_t reg;
 
     elem_debug(e);
     if (e.Eoper == OPvar || e.Eoper == OPrelconst)
     {
-        s = e.EV.Vsym;
+        Symbol* s = e.EV.Vsym;
         switch (s.Sfl)
         {
             case FLreg:
@@ -1593,9 +1590,8 @@ static if (0)
                 // Let's just see if there is a CSE in a reg we can use
                 // instead. This helps avoid AGI's.
                 if (e.Ecount && e.Ecount != e.Ecomsub)
-                {   int i;
-
-                    for (i = 0; i < arraysize(regcon.cse.value); i++)
+                {
+                    foreach (i; 0 .. arraysize(regcon.cse.value))
                     {
                         if (regcon.cse.value[i] == e)
                         {   reg = i;
@@ -1605,16 +1601,18 @@ static if (0)
                 }
 }
                 assert(regm & regcon.mvar && !(regm & ~regcon.mvar));
-                goto Lreg;
+                preg = reg;
+                pregm = regm;
+                return true;
 
             case FLpseudo:
-                u = s.Sreglsw;
-                m = mask(u);
+                uint u = s.Sreglsw;
+                regm_t m = mask(u);
                 if (m & ALLREGS && (u & ~3) != 4) // if not BP,SP,EBP,ESP,or ?H
                 {
-                    reg = u & 7;
-                    regm = m;
-                    goto Lreg;
+                    preg = u & 7;
+                    pregm = m;
+                    return true;
                 }
                 break;
 
@@ -1623,13 +1621,6 @@ static if (0)
         }
     }
     return false;
-
-Lreg:
-    if (preg)
-        *preg = reg;
-    if (pregm)
-        *pregm = regm;
-    return true;
 }
 
 /*********************************
@@ -2827,7 +2818,7 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
         regm_t regm;
         reg_t reg;
 
-        if (isregvar(e,&regm,&reg) &&           // if e is a register variable
+        if (isregvar(e, regm, reg) &&           // if e is a register variable
             (regm & *pretregs) == regm &&       // in one of the right regs
             e.EV.Voffset == 0
            )

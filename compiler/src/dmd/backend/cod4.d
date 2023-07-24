@@ -676,7 +676,7 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     {
         // Be careful of cases like (x = x+x+x). We cannot evaluate in
         // x if x is in a register.
-        if (isregvar(e1,&varregm,&varreg) &&    // if lvalue is register variable
+        if (isregvar(e1,varregm,varreg) &&    // if lvalue is register variable
             doinreg(e1.EV.Vsym,e2) &&       // and we can compute directly into it
             !(sz == 1 && e1.EV.Voffset == 1)
            )
@@ -1167,7 +1167,7 @@ void cdaddass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             assert(0);
         freenode(e.EV.E2);        // don't need it anymore
     }
-    else if (isregvar(e1,&varregm,&varreg) &&
+    else if (isregvar(e1,varregm,varreg) &&
              (e2.Eoper == OPvar || e2.Eoper == OPind) &&
             !evalinregister(e2) &&
              sz <= REGSIZE)               // deal with later
@@ -2272,9 +2272,7 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 void cdshass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     code cs;
-    regm_t retregs;
     uint op1,op2;
-    reg_t reg;
 
     elem *e1 = e.EV.E1;
     elem *e2 = e.EV.E2;
@@ -2289,7 +2287,9 @@ void cdshass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     uint rex = (I64 && sz == 8) ? REX_W : 0;
 
     // if our lvalue is a cse, make sure we evaluate for result in register
-    if (e1.Ecount && !(*pretregs & (ALLREGS | mBP)) && !isregvar(e1,&retregs,&reg))
+    regm_t retregs;
+    reg_t reg;
+    if (e1.Ecount && !(*pretregs & (ALLREGS | mBP)) && !isregvar(e1,retregs,reg))
         *pretregs |= ALLREGS;
 
     // Select opcodes. op2 is used for msw for long shifts.
@@ -2773,17 +2773,21 @@ void cdcmp(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
         case OPconst:
             // If compare against 0
-            if (sz <= REGSIZE && *pretregs == mPSW && !boolres(e2) &&
-                isregvar(e1,&retregs,&reg)
-               )
-            {   // Just do a TEST instruction
-                genregs(cdb,0x85 ^ isbyte,reg,reg);      // TEST reg,reg
-                cdb.last().Iflags |= (cs.Iflags & CFopsize) | CFpsw;
-                code_orrex(cdb.last(), rex);
-                if (I64 && isbyte && reg >= 4)
-                    cdb.last().Irex |= REX;                 // address byte registers
-                retregs = mPSW;
-                break;
+            {
+                regm_t regm2;
+                reg_t reg2;
+                if (sz <= REGSIZE && *pretregs == mPSW && !boolres(e2) &&
+                    isregvar(e1,retregs,reg)
+                   )
+                {   // Just do a TEST instruction
+                    genregs(cdb,0x85 ^ isbyte,reg,reg);      // TEST reg2,reg2
+                    cdb.last().Iflags |= (cs.Iflags & CFopsize) | CFpsw;
+                    code_orrex(cdb.last(), rex);
+                    if (I64 && isbyte && reg >= 4)
+                        cdb.last().Irex |= REX;                 // address byte registers
+                    retregs = mPSW;
+                    break;
+                }
             }
 
             if (!tyuns(tym) && !tyuns(e2.Ety) &&
@@ -2947,8 +2951,10 @@ void cdcmp(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 break;
             }
 
+            regm_t regmx;
+            reg_t regx;
             if (evalinregister(e2) && !OTassign(e1.Eoper) &&
-                !isregvar(e1,null,null))
+                !isregvar(e1,regmx,regx))
             {
                 regm_t m;
 
@@ -3043,11 +3049,11 @@ void cdcmp(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                     goto L2;
             }
             if ((e1.Eoper == OPvar &&
-                 isregvar(e2,&rretregs,&reg) &&
+                 isregvar(e2,rretregs,reg) &&
                  sz <= REGSIZE
                 ) ||
                 (e1.Eoper == OPind &&
-                 isregvar(e2,&rretregs,&reg) &&
+                 isregvar(e2,rretregs,reg) &&
                  !evalinregister(e1) &&
                  sz <= REGSIZE
                 )
@@ -4272,7 +4278,8 @@ void cdbtst(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
         if (I64 && sz == 8 && tysize(e2.Ety) == 4)
         {
             regm_t rregm;
-            if (isregvar(e2, &rregm, null))
+            reg_t rreg;
+            if (isregvar(e2, rregm, rreg))
                 retregs &= ~rregm;
         }
 

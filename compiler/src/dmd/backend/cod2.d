@@ -323,7 +323,7 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         // Handle (exp & reg)
         reg_t reg;
         regm_t retregs;
-        if (isregvar(e2,&retregs,&reg))
+        if (isregvar(e2,retregs,reg))
         {
             code cs = void;
             cs.Iflags = 0;
@@ -452,7 +452,7 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
             reg_t reg11;
             regm_t regm;
-            if (e11.Eoper == OPvar && isregvar(e11,&regm,&reg11))
+            if (e11.Eoper == OPvar && isregvar(e11,regm,reg11))
             {
                 if (tysize(e11.Ety) <= REGSIZE)
                     retregs = mask(reg11); // only want the LSW
@@ -608,6 +608,7 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     else
     {
         regm_t regm;
+        reg_t regx;
 
         /* if (tyword + TYfptr) */
         if (_tysize[ty1] == REGSIZE && _tysize[ty2] > REGSIZE)
@@ -629,7 +630,7 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         else if (e2oper == OPvar &&
                  e1.Eoper == OPvar &&
                  e.Eoper != OPmin &&
-                 isregvar(e1,&regm,null) &&
+                 isregvar(e1,regm,regx) &&
                  regm != retregs &&
                  _tysize[ty1] == _tysize[ty2])
         {
@@ -2841,7 +2842,7 @@ void cdshift(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                     reg_t reg;
                     regm_t regm;
 
-                    if (isregvar(e1,&regm,&reg) && !(regm & retregs))
+                    if (isregvar(e1,regm,reg) && !(regm & retregs))
                     {   code cs;
                         allocreg(cdb,&retregs,&resreg,e.Ety);
                         buildEA(&cs,-1,reg,1 << shiftcnt,0);
