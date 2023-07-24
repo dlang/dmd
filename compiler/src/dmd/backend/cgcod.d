@@ -3072,10 +3072,10 @@ void docommas(ref CodeBuilder cdb,elem **pe)
  */
 
 @trusted
-void andregcon(con_t *pregconsave)
+void andregcon(ref con_t pregconsave)
 {
     regm_t m = ~1;
-    for (int i = 0; i < REGMAX; i++)
+    foreach (i; 0 ..REGMAX)
     {
         if (pregconsave.cse.value[i] != regcon.cse.value[i])
             regcon.cse.mval &= m;

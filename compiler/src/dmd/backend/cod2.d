@@ -2314,7 +2314,7 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             regimmed_set(findreg(retregs),0);
         codelem(cdb,e22,&retregs,false);
 
-        andregcon(&regconsave);
+        andregcon(regconsave);
         assert(stackpushsave == stackpush);
 
         *pretregs = retregs;
@@ -2457,7 +2457,7 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
         codelem(cdb,e22,&retregs,false);
 
-        andregcon(&regconsave);
+        andregcon(regconsave);
         assert(stackpushsave == stackpush);
 
         freenode(e2);
@@ -2532,8 +2532,8 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     else
         codelem(cdb2,e22,&retregs,false);   // use same regs as E1
     *pretregs = retregs | psw;
-    andregcon(&regconold);
-    andregcon(&regconsave);
+    andregcon(regconold);
+    andregcon(regconsave);
     assert(global87.stackused == stackusedsave);
     assert(stackpush == stackpushsave);
     memcpy(global87.stack.ptr,_8087save.ptr,global87.stack.sizeof);
@@ -2614,7 +2614,7 @@ void cdloglog(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             regcon = regconsave;
         }
         else
-            andregcon(&regconsave);
+            andregcon(regconsave);
         assert(stackpush == stackpushsave);
         cdb.append(cnop3);
         cdb.append(cdb1);        // eval code, throw away result
@@ -2655,7 +2655,7 @@ void cdloglog(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     {
         codelem(cdb,e2,pretregs,false);
 
-        andregcon(&regconsave);
+        andregcon(regconsave);
 
         // stack depth should not change when evaluating E2
         assert(stackpush == stackpushsave);
@@ -2686,7 +2686,7 @@ void cdloglog(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     }
 
     logexp(cdb,e2,1,FLcode,cnop1);
-    andregcon(&regconsave);
+    andregcon(regconsave);
 
     // stack depth should not change when evaluating E2
     assert(stackpush == stackpushsave);
