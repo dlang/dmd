@@ -6638,7 +6638,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             else
             {
                 OutBuffer buf;
-                buf.printf("%s failed", exp.toChars());
+                buf.printf("`%s` failed", exp.toChars());
                 exp.msg = new StringExp(Loc.initial, buf.extractSlice());
                 goto LSkip;
             }
