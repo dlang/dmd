@@ -1661,7 +1661,7 @@ L5:
                 note87(eleft,eoffset,0);
                 noted = true;
             }
-            docommas(cdb,&e);
+            docommas(cdb,e);
             goto L5;
 
         case OPvar:

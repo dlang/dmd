@@ -3041,18 +3041,18 @@ const(char)* regm_str(regm_t rm)
 /*********************************
  * Scan down comma-expressions.
  * Output:
- *      *pe = first elem down right side that is not an OPcomma
+ *      pe = first elem down right side that is not an OPcomma
  * Returns:
  *      code generated for left branches of comma-expressions
  */
 
 @trusted
-void docommas(ref CodeBuilder cdb,elem **pe)
+void docommas(ref CodeBuilder cdb, ref elem *pe)
 {
     uint stackpushsave = stackpush;
     int stackcleansave = cgstate.stackclean;
     cgstate.stackclean = 0;
-    elem* e = *pe;
+    elem* e = pe;
     while (1)
     {
         if (configv.addlinenumbers && e.Esrcpos.Slinnum)
@@ -3068,7 +3068,7 @@ void docommas(ref CodeBuilder cdb,elem **pe)
         e = e.EV.E2;
         freenode(eold);
     }
-    *pe = e;
+    pe = e;
     assert(cgstate.stackclean == 0);
     cgstate.stackclean = stackcleansave;
     genstackclean(cdb,stackpush - stackpushsave,0);

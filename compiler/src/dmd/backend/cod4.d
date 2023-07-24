@@ -3829,7 +3829,7 @@ void cdbyteint(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     char op = e.Eoper;
     elem *e1 = e.EV.E1;
     if (e1.Eoper == OPcomma)
-        docommas(cdb,&e1);
+        docommas(cdb,e1);
     if (!I16)
     {
         if (e1.Eoper == OPvar || (e1.Eoper == OPind && !e1.Ecount))
