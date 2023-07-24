@@ -104,11 +104,6 @@ enum SIXTEENBIT = false;
  */
 enum TARGET_SEGMENTED = false;
 
-
-@trusted
-bool LDOUBLE() { return config.exe == EX_WIN32; }   // support true long doubles
-
-
 // NT structured exception handling
 //      0: no support
 //      1: old style
@@ -224,10 +219,6 @@ enum
     TMAXSIZE       = 16,      // largest size a constant can be
 }
 
-//#define intsize         _tysize[TYint]
-//#define REGSIZE         _tysize[TYnptr]
-//@property @nogc nothrow auto NPTRSIZE() { return _tysize[TYnptr]; }
-//#define FPTRSIZE        _tysize[TYfptr]
 enum REGMASK = 0xFFFF;
 
 // targ_llong is also used to store host pointers, so it should have at least their size
@@ -236,17 +227,6 @@ enum REGMASK = 0xFFFF;
 alias targ_ptrdiff_t = long;   // ptrdiff_t for target machine
 alias targ_size_t    = ulong;  // size_t for the target machine
 
-/* Enable/disable various features
-   (Some features may no longer work the old way when compiled out,
-    I don't test the old ways once the new way is set.)
- */
-//#define NEWTEMPMANGLE   (!(config.flags4 & CFG4oldtmangle))     // do new template mangling
-//#define USEDLLSHELL     _WINDLL
-bool MFUNC() { return I32 != 0; } // && config.exe == EX_WIN32)       // member functions are TYmfunc
-enum CV3 = 0;          // 1 means support CV3 debug format
-
-
-//#define TOOLKIT_H
 
 enum
 {

@@ -107,13 +107,6 @@ int REGSIZE() @trusted { return _tysize[TYnptr]; }
 public import dmd.backend.var : debuga, debugb, debugc, debugd, debuge, debugf,
     debugr, debugs, debugt, debugu, debugw, debugx, debugy;
 
-enum CR = '\r';             // Used because the MPW version of the compiler warps
-enum LF = '\n';             // \n into \r and \r into \n.  The translator version
-                            // does not and this causes problems with the compilation
-                            // with the translator
-enum CR_STR = "\r";
-enum LF_STR = "\n";
-
 public import dmd.backend.cgxmm : mask;
 public import dmd.backend.var : OPTIMIZER, PARSER, globsym, controlc_saw, pointertype, sytab;
 public import dmd.backend.cg : fregsaved, localgot, tls_get_addr_sym;

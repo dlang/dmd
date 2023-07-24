@@ -1778,7 +1778,6 @@ int MachObj_comdat(Symbol *s)
     {   // Code symbols are 'published' by MachObj_func_start()
 
         MachObj_pubdef(s.Sseg,s,s.Soffset);
-        searchfixlist(s);               // backpatch any refs to this symbol
     }
     return s.Sseg;
 }

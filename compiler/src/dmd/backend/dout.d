@@ -186,7 +186,6 @@ void outdata(Symbol *s)
                     assert(s.Sseg && s.Sseg != UNKNOWN);
                     if (s.Sclass == SC.global || (s.Sclass == SC.static_ && config.objfmt != OBJ_OMF)) // if a pubdef to be done
                         objmod.pubdefsize(s.Sseg,s,s.Soffset,datasize);   // do the definition
-                    searchfixlist(s);
                     if (config.fulltypes &&
                         !(s.Sclass == SC.static_ && funcsym_p)) // not local static
                     {
@@ -320,7 +319,6 @@ void outdata(Symbol *s)
         else
             cv_outsym(s);
     }
-    searchfixlist(s);
 
     /* Go back through list, now that we know its size, and send out    */
     /* the data.                                                        */
@@ -1027,7 +1025,6 @@ private void writefunc2(Symbol *sfunc)
         }
         cod3_align(cseg);               // align start of function
         objmod.func_start(sfunc);
-        searchfixlist(sfunc);           // backpatch any refs to this function
     }
 
     //printf("codgen()\n");

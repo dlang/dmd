@@ -4880,7 +4880,6 @@ void cod3_thunk(Symbol *sthunk,Symbol *sfunc,uint p,tym_t thisty,
     {
         objmod.pubdef(seg,sthunk,sthunk.Soffset);
     }
-    searchfixlist(sthunk);              // resolve forward refs
 }
 
 /*****************************

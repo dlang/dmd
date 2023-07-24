@@ -313,14 +313,6 @@ if (config.exe & EX_windos)
         return numbytes;
 }
 
-static if (0)
-{
-void searchfixlist (Symbol *s )
-{
-    //printf("searchfixlist(%s)\n", s.Sident);
-}
-}
-
 /****************************
  * Output fixups as references to external or static Symbol.
  * First emit data for still undefined static Symbols or mark non-static Symbols as SCextern.
