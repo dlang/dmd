@@ -760,7 +760,6 @@ $(H2 $(LNAME2 static-constructor, Static Constructors))
 
 $(GRAMMAR
 $(GNAME StaticConstructor):
-    $(D static this ( )) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(D ;)
     $(D static this ( )) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, FunctionBody)
 )
 
@@ -855,7 +854,6 @@ $(H2 $(LNAME2 static-destructor, Static Destructors))
 
 $(GRAMMAR
 $(GNAME StaticDestructor):
-    $(D static ~ this ( )) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(D ;)
     $(D static ~ this ( )) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, FunctionBody)
 )
 
@@ -903,7 +901,6 @@ $(H2 $(LNAME2 shared_static_constructors, Shared Static Constructors))
 
 $(GRAMMAR
 $(GNAME SharedStaticConstructor):
-    $(D shared static this ( )) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(D ;)
     $(D shared static this ( )) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, FunctionBody)
 )
 
@@ -915,7 +912,6 @@ $(H2 $(LNAME2 shared_static_destructors, Shared Static Destructors))
 
 $(GRAMMAR
 $(GNAME SharedStaticDestructor):
-    $(D shared static ~ this ( )) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(D ;)
     $(D shared static ~ this ( )) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, FunctionBody)
 )
 
