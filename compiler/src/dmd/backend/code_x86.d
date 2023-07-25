@@ -15,7 +15,7 @@ module dmd.backend.code_x86;
 // Online documentation: https://dlang.org/phobos/dmd_backend_code_x86.html
 
 import dmd.backend.cdef;
-import dmd.backend.cc : config;
+import dmd.backend.cc : config, FL;
 import dmd.backend.code;
 import dmd.backend.codebuilder : CodeBuilder;
 import dmd.backend.el : elem;
@@ -370,7 +370,7 @@ struct code
      * operand, usually for immediate instructions.
      */
 
-    ubyte IFL1,IFL2;    // FLavors of 1st, 2nd operands
+    FL IFL1,IFL2;         // FLavors of 1st, 2nd operands
     evc IEV1;             // 1st operand, if any
     evc IEV2;             // 2nd operand, if any
 
