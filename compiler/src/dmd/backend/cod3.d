@@ -6910,7 +6910,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
                 ggen.flush();
                 if (c.Iflags == CFaddrsize)    // kludge for DA inline asm
                 {
-                    do32bit(ggen, FLblockoff,&c.IEV1,0,0);
+                    do32bit(ggen, FLblockoff,c.IEV1,0,0);
                 }
                 else
                 {
@@ -7074,7 +7074,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
                 switch (rm & 0xC0)
                 {
                     case 0x40:
-                        do8bit(ggen, cast(FL) c.IFL1,&c.IEV1);     // 8 bit
+                        do8bit(ggen, cast(FL) c.IFL1,c.IEV1);     // 8 bit
                         break;
 
                     case 0:
@@ -7111,7 +7111,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
                                     val += 4;
                             }
                         }
-                        do32bit(ggen, cast(FL)c.IFL1,&c.IEV1,cfflags,cast(int)val);
+                        do32bit(ggen, cast(FL)c.IFL1,c.IEV1,cfflags,cast(int)val);
                         break;
                     }
 
@@ -7123,7 +7123,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
             {
                 switch (rm & 0xC0)
                 {   case 0x40:
-                        do8bit(ggen, cast(FL) c.IFL1,&c.IEV1);     // 8 bit
+                        do8bit(ggen, cast(FL) c.IFL1,c.IEV1);     // 8 bit
                         break;
 
                     case 0:
@@ -7132,7 +7132,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
                         goto case 0x80;
 
                     case 0x80:
-                        do16bit(ggen, cast(FL)c.IFL1,&c.IEV1,CFoff);
+                        do16bit(ggen, cast(FL)c.IFL1,c.IEV1,CFoff);
                         break;
 
                     default:
@@ -7143,13 +7143,13 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
         else
         {
             if (op == ENTER)
-                do16bit(ggen, cast(FL)c.IFL1,&c.IEV1,0);
+                do16bit(ggen, cast(FL)c.IFL1,c.IEV1,0);
         }
         flags &= CFseg | CFoff | CFselfrel;
         if (ins & T)                    /* if second operand            */
         {
             if (ins & E)            /* if data-8                    */
-                do8bit(ggen, cast(FL) c.IFL2,&c.IEV2);
+                do8bit(ggen, cast(FL) c.IFL2,c.IEV2);
             else if (!I16)
             {
                 switch (op)
@@ -7157,7 +7157,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
                     case 0xC2:              /* RETN imm16           */
                     case 0xCA:              /* RETF imm16           */
                     do16:
-                        do16bit(ggen, cast(FL)c.IFL2,&c.IEV2,flags);
+                        do16bit(ggen, cast(FL)c.IFL2,c.IEV2,flags);
                         break;
 
                     case 0xA1:
@@ -7165,7 +7165,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
                         if (I64 && c.Irex)
                         {
                     do64:
-                            do64bit(ggen, cast(FL)c.IFL2,&c.IEV2,flags);
+                            do64bit(ggen, cast(FL)c.IFL2,c.IEV2,flags);
                             break;
                         }
                         goto case 0xA0;
@@ -7176,7 +7176,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
                             goto do16;
                         else
                     do32:
-                            do32bit(ggen, cast(FL)c.IFL2,&c.IEV2,flags,0);
+                            do32bit(ggen, cast(FL)c.IFL2,c.IEV2,flags,0);
                         break;
 
                     case 0x9A:
@@ -7278,16 +7278,16 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
         else if (op == 0xF6)            /* TEST mem8,immed8             */
         {
             if ((rm & (7<<3)) == 0)
-                do8bit(ggen, cast(FL)c.IFL2,&c.IEV2);
+                do8bit(ggen, cast(FL)c.IFL2,c.IEV2);
         }
         else if (op == 0xF7)
         {
             if ((rm & (7<<3)) == 0)     /* TEST mem16/32,immed16/32     */
             {
                 if ((I32 || I64) ^ ((c.Iflags & CFopsize) != 0))
-                    do32bit(ggen, cast(FL)c.IFL2,&c.IEV2,flags,0);
+                    do32bit(ggen, cast(FL)c.IFL2,c.IEV2,flags,0);
                 else
-                    do16bit(ggen, cast(FL)c.IFL2,&c.IEV2,flags);
+                    do16bit(ggen, cast(FL)c.IFL2,c.IEV2,flags);
             }
         }
 
@@ -7307,7 +7307,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
 
 
 @trusted
-private void do64bit(ref MiniCodeBuf pbuf, FL fl, evc *uev,int flags)
+private void do64bit(ref MiniCodeBuf pbuf, FL fl, ref evc uev,int flags)
 {
     char *p;
     Symbol *s;
@@ -7317,7 +7317,7 @@ private void do64bit(ref MiniCodeBuf pbuf, FL fl, evc *uev,int flags)
     switch (fl)
     {
         case FLconst:
-            ad = *cast(targ_size_t *) uev;
+            ad = *cast(targ_size_t *) &uev;
         L1:
             pbuf.genp(8,&ad);
             return;
@@ -7421,7 +7421,7 @@ private void do64bit(ref MiniCodeBuf pbuf, FL fl, evc *uev,int flags)
 
 
 @trusted
-private void do32bit(ref MiniCodeBuf pbuf, FL fl, evc *uev,int flags, int val)
+private void do32bit(ref MiniCodeBuf pbuf, FL fl, ref evc uev,int flags, int val)
 {
     char *p;
     Symbol *s;
@@ -7432,7 +7432,7 @@ private void do32bit(ref MiniCodeBuf pbuf, FL fl, evc *uev,int flags, int val)
     {
         case FLconst:
             assert(targ_size_t.sizeof == 4 || targ_size_t.sizeof == 8);
-            ad = * cast(targ_size_t *) uev;
+            ad = * cast(targ_size_t *) &uev;
         L1:
             pbuf.genp(4,&ad);
             return;
@@ -7487,7 +7487,7 @@ private void do32bit(ref MiniCodeBuf pbuf, FL fl, evc *uev,int flags, int val)
         case FLcode:
             //assert(JMPJMPTABLE);            // the only use case
             pbuf.flush();
-            ad = *cast(targ_size_t *) uev + pbuf.getOffset();
+            ad = *cast(targ_size_t *) &uev + pbuf.getOffset();
             objmod.reftocodeseg(pbuf.seg,pbuf.offset,ad);
             pbuf.write32(cast(uint)ad);
             break;
@@ -7601,7 +7601,7 @@ private void do32bit(ref MiniCodeBuf pbuf, FL fl, evc *uev,int flags, int val)
 
 
 @trusted
-private void do16bit(ref MiniCodeBuf pbuf, FL fl, evc *uev,int flags)
+private void do16bit(ref MiniCodeBuf pbuf, FL fl, ref evc uev,int flags)
 {
     char *p;
     Symbol *s;
@@ -7610,7 +7610,7 @@ private void do16bit(ref MiniCodeBuf pbuf, FL fl, evc *uev,int flags)
     switch (fl)
     {
         case FLconst:
-            pbuf.genp(2,cast(char *) uev);
+            pbuf.genp(2,cast(char *) &uev);
             return;
 
         case FLdatseg:
@@ -7689,7 +7689,7 @@ private void do16bit(ref MiniCodeBuf pbuf, FL fl, evc *uev,int flags)
 
 
 @trusted
-private void do8bit(ref MiniCodeBuf pbuf, FL fl, evc *uev)
+private void do8bit(ref MiniCodeBuf pbuf, FL fl, ref evc uev)
 {
     char c;
     targ_ptrdiff_t delta;
