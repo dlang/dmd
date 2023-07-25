@@ -5964,18 +5964,20 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 break;
 
             case TOK.function_:
+                if (e.targ.ty != Tfunction)
+                    return no();
+                goto case;
             case TOK.parameters:
                 {
-                    if (e.targ.ty != Tfunction)
+                    if (auto tf = e.targ.isFunction_Delegate_PtrToFunction())
+                        tded = tf;
+                    else
                         return no();
-                    tded = e.targ;
 
                     /* Generate tuple from function parameter types.
                      */
-                    assert(tded.ty == Tfunction);
-                    auto tdedf = tded.isTypeFunction();
                     auto args = new Parameters();
-                    foreach (i, arg; tdedf.parameterList)
+                    foreach (i, arg; tded.isTypeFunction().parameterList)
                     {
                         assert(arg && arg.type);
                         /* If one of the default arguments was an error,
