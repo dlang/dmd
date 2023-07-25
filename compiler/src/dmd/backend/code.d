@@ -311,8 +311,6 @@ public import dmd.backend.cod4;
 public import dmd.backend.cod5;
 public import dmd.backend.cgen : outfixlist, addtofixlist;
 
-void searchfixlist(Symbol *s) {}
-
 public import dmd.backend.cgxmm;
 public import dmd.backend.cg87;
 

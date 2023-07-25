@@ -1742,7 +1742,6 @@ int ElfObj_comdat(Symbol *s)
     if (s.Sfl == FLdata || s.Sfl == FLtlsdata)
     {
         ElfObj_pubdef(s.Sseg,s,0);
-        searchfixlist(s);               // backpatch any refs to this symbol
     }
     return s.Sseg;
 }
@@ -1753,7 +1752,6 @@ int ElfObj_comdatsize(Symbol *s, targ_size_t symsize)
     if (s.Sfl == FLdata || s.Sfl == FLtlsdata)
     {
         ElfObj_pubdefsize(s.Sseg,s,0,symsize);
-        searchfixlist(s);               // backpatch any refs to this symbol
     }
     s.Soffset = 0;
     return s.Sseg;
@@ -2437,7 +2435,6 @@ int ElfObj_common_block(Symbol *s,targ_size_t size,targ_size_t count)
         SegData[s.Sseg].SDsym = s;
         SegData[s.Sseg].SDoffset += size * count;
         ElfObj_pubdefsize(s.Sseg, s, 0, size * count);
-        searchfixlist(s);
         return s.Sseg;
     }
     else
@@ -2448,7 +2445,6 @@ int ElfObj_common_block(Symbol *s,targ_size_t size,targ_size_t count)
         SegData[s.Sseg].SDsym = s;
         SegData[s.Sseg].SDoffset += size * count;
         ElfObj_pubdefsize(s.Sseg, s, 0, size * count);
-        searchfixlist(s);
         return s.Sseg;
     }
 static if (0)

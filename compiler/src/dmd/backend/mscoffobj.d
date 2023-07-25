@@ -1306,7 +1306,6 @@ int MsCoffObj_comdat(Symbol *s)
     {   // Code symbols are 'published' by MsCoffObj_func_start()
 
         MsCoffObj_pubdef(s.Sseg,s,s.Soffset);
-        searchfixlist(s);               // backpatch any refs to this symbol
     }
     return s.Sseg;
 }
@@ -1331,7 +1330,6 @@ int MsCoffObj_readonly_comdat(Symbol *s)
     {   // Code symbols are 'published' by MsCoffObj_func_start()
 
         MsCoffObj_pubdef(s.Sseg,s,s.Soffset);
-        searchfixlist(s);               // backpatch any refs to this symbol
     }
     return s.Sseg;
 }
@@ -1953,7 +1951,6 @@ int MsCoffObj_common_block(Symbol *s,targ_size_t size,targ_size_t count)
     SegData[s.Sseg].SDoffset += count * size;
 
     MsCoffObj_pubdef(s.Sseg, s, s.Soffset);
-    searchfixlist(s);               // backpatch any refs to this symbol
 
     return 1;           // should return void
 }
