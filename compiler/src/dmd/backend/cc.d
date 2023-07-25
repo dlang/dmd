@@ -1170,7 +1170,7 @@ struct Symbol
 //#endif
 
     SC Sclass;                  // storage class (SCxxxx)
-    char Sfl;                   // flavor (FLxxxx)
+    FL Sfl;                     // flavor (FLxxxx)
     SYMFLGS Sflags;             // flag bits (SFLxxxx)
 
     vec_t       Srange;         // live range, if any
@@ -1344,7 +1344,7 @@ void param_debug(const param_t *p)
  * These should be combined with storage classes.
  */
 
-alias FL = int;
+alias FL = ubyte;
 enum
 {
     // Change this, update debug.c too

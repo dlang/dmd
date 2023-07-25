@@ -866,7 +866,8 @@ void getlvalue_lsw(code *c)
 @trusted
 void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
 {
-    uint fl, f, opsave;
+    FL fl;
+    uint f, opsave;
     elem* e1, e11, e12;
     bool e1isadd, e1free;
     reg_t reg;
@@ -1658,7 +1659,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
             break;
 
         default:
-            WRFL(cast(FL)fl);
+            WRFL(fl);
             symbol_print(s);
             assert(0);
     }
@@ -3915,7 +3916,7 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
         // Function calls may throw Errors
         funcsym_p.Sfunc.Fflags3 &= ~Fnothrow;
 
-        if (e1.Eoper != OPind) { WRFL(cast(FL)el_fl(e1)); printf("e1.Eoper: %s\n", oper_str(e1.Eoper)); }
+        if (e1.Eoper != OPind) { WRFL(el_fl(e1)); printf("e1.Eoper: %s\n", oper_str(e1.Eoper)); }
         save87(cdb);                   // assume 8087 regs are all trashed
         assert(e1.Eoper == OPind);
         elem *e11 = e1.EV.E1;

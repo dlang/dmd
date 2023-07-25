@@ -5612,7 +5612,7 @@ targ_size_t cod3_bpoffset(Symbol *s)
             break;
 
         default:
-            WRFL(cast(FL)s.Sfl);
+            WRFL(s.Sfl);
             symbol_print(s);
             assert(0);
     }
@@ -6181,7 +6181,7 @@ void pinholeopt(code *c,block *b)
                             break;
 
                         default:
-                            WRFL(cast(FL)c.IFL2);
+                            WRFL(c.IFL2);
                             assert(0);
                     }
                     break;
@@ -7187,7 +7187,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
                             goto ptr1632;
 
                     case 0x68:              // PUSH immed32
-                        if (cast(FL)c.IFL2 == FLblock)
+                        if (c.IFL2 == FLblock)
                         {
                             c.IFL2 = FLblockoff;
                             goto do32;
@@ -7254,7 +7254,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
                         break;
 
                     case 0x68:              // PUSH immed16
-                        if (cast(FL)c.IFL2 == FLblock)
+                        if (c.IFL2 == FLblock)
                         {   c.IFL2 = FLblockoff;
                             goto do16;
                         }
@@ -7691,17 +7691,16 @@ private void do16bit(ref MiniCodeBuf pbuf, FL fl, evc *uev,int flags)
 @trusted
 private void do8bit(ref MiniCodeBuf pbuf, FL fl, evc *uev)
 {
-    char c;
-    targ_ptrdiff_t delta;
+    ubyte c;
 
     switch (fl)
     {
         case FLconst:
-            c = cast(char)uev.Vuns;
+            c = cast(ubyte)uev.Vuns;
             break;
 
         case FLblock:
-            delta = uev.Vblock.Boffset - pbuf.getOffset() - 1;
+            targ_ptrdiff_t delta = uev.Vblock.Boffset - pbuf.getOffset() - 1;
             if (cast(byte)delta != delta)
             {
                 if (uev.Vblock.Bsrcpos.Slinnum)
@@ -7709,7 +7708,7 @@ private void do8bit(ref MiniCodeBuf pbuf, FL fl, evc *uev)
                 printf("block displacement of %lld exceeds the maximum offset of -128 to 127.\n", cast(long)delta);
                 err_exit();
             }
-            c = cast(char)delta;
+            c = cast(ubyte)delta;
             debug assert(uev.Vblock.Boffset > pbuf.getOffset() || c != 0x7F);
             break;
 
@@ -7848,14 +7847,14 @@ extern (C) void code_print(scope code* c)
                 case FLtlsdata:
                 case FLextern:
                     printf(" ");
-                    WRFL(cast(FL)c.IFL1);
+                    WRFL(c.IFL1);
                     printf(" sym='%s'",c.IEV1.Vsym.Sident.ptr);
                     if (c.IEV1.Voffset)
                         printf(".%d", cast(int)c.IEV1.Voffset);
                     break;
 
                 default:
-                    WRFL(cast(FL)c.IFL1);
+                    WRFL(c.IFL1);
                     break;
             }
         }
@@ -7863,7 +7862,7 @@ extern (C) void code_print(scope code* c)
     if (ins & T)
     {
         printf(" ");
-        WRFL(cast(FL)c.IFL2);
+        WRFL(c.IFL2);
         switch (c.IFL2)
         {
             case FLconst:
@@ -7902,7 +7901,7 @@ extern (C) void code_print(scope code* c)
                 break;
 
             default:
-                WRFL(cast(FL)c.IFL2);
+                WRFL(c.IFL2);
                 break;
         }
     }
