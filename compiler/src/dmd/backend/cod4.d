@@ -2774,8 +2774,6 @@ void cdcmp(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         case OPconst:
             // If compare against 0
             {
-                regm_t regm2;
-                reg_t reg2;
                 if (sz <= REGSIZE && *pretregs == mPSW && !boolres(e2) &&
                     isregvar(e1,retregs,reg)
                    )
