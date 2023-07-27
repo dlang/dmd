@@ -25,7 +25,7 @@ class C
     this(D d) @safe @nogc;
 }
 
-C foo(D d)@nogc @safe
+C foo(D d) @nogc @safe
 {
     scope e = new C(1);  // ok
     scope c = new C(d);  // deprecation
@@ -37,4 +37,9 @@ C bax(D d) @safe
     scope e = new C(1);  // ok
     scope c = new C(d);  // deprecation
     return c.d.c;
+}
+
+void inferred(D d)
+{
+    scope c = new C(d);  // ok
 }
