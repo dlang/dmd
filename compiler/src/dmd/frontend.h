@@ -6089,8 +6089,10 @@ public:
     bool inClosure(bool v);
     bool inAlignSection() const;
     bool inAlignSection(bool v);
+    bool systemInferred() const;
+    bool systemInferred(bool v);
 private:
-    uint16_t bitFields;
+    uint32_t bitFields;
 public:
     int8_t canassign;
     uint8_t isdataseg;

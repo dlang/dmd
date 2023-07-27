@@ -1158,10 +1158,11 @@ extern (C++) class VarDeclaration : Declaration
             bool inClosure;         /// is inserted into a GC allocated closure
             bool inAlignSection;    /// is inserted into an aligned section on stack
         }
+        bool systemInferred;    /// @system was inferred from initializer
     }
 
     import dmd.common.bitfields : generateBitFields;
-    mixin(generateBitFields!(BitFields, ushort));
+    mixin(generateBitFields!(BitFields, uint));
 
     byte canassign;                 // it can be assigned to
     ubyte isdataseg;                // private data for isDataseg 0 unset, 1 true, 2 false
