@@ -2831,7 +2831,7 @@ void callclib(ref CodeBuilder cdb, elem* e, uint clib, regm_t* pretregs, regm_t 
             0x66,0x0f,0xa4,0xc2,0x10,   // shld EDX,EAX,16      ;DX,AX = EAX
         ];
 
-        cdb.genasm(cast(char*)lmul.ptr, lmul.sizeof);
+        cdb.genasm(lmul[]);
     }
     else
     {
@@ -3876,7 +3876,7 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
         }
         else
         {
-            int fl = FLfunc;
+            FL fl = FLfunc;
             if (!tyfunc(s.ty()))
                 fl = el_fl(e1);
             if (tym1 == TYifunc)
