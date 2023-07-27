@@ -3729,12 +3729,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (cd.isAbstract())
             {
                 exp.error("cannot create instance of abstract class `%s`", cd.toChars());
+                errorSupplemental(cd.loc, "class `%s` is declared here", cd.toChars());
                 for (size_t i = 0; i < cd.vtbl.length; i++)
                 {
                     FuncDeclaration fd = cd.vtbl[i].isFuncDeclaration();
                     if (fd && fd.isAbstract())
                     {
-                        errorSupplemental(exp.loc, "function `%s` is not implemented",
+                        errorSupplemental(fd.loc, "function `%s` is not implemented",
                             fd.toFullSignature());
                     }
                 }
