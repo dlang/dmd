@@ -2421,6 +2421,7 @@ $(GNAME AssertArguments):
     $(UNDEFINED_BEHAVIOR Once in an $(I Invalid State) the behavior of the continuing execution
     of the program is undefined.)
 
+    $(PANEL
     $(IMPLEMENTATION_DEFINED Whether the first $(I AssertExpression) is evaluated
     or not (at runtime) is typically set with a compiler switch. If it is not evaluated,
     any side effects specified by the $(I AssertExpression) may not occur.
@@ -2435,7 +2436,7 @@ $(GNAME AssertArguments):
     )
     )
 
-    $(NOTE $(D AssertError) is the default for $(B dmd), with an optional
+    $(NOTE Throwing $(D AssertError) is the default for $(B dmd), with an optional
     $(DDSUBLINK dmd, switch-checkaction, $(B -checkaction=context))
     switch to show certain sub-expressions used in the first *AssertExpression*
     in the error message:)
@@ -2444,7 +2445,8 @@ $(GNAME AssertArguments):
     auto x = 4;
     assert(x < 3);
     ---
-    $(P When in use, the above will throw an `AssertError` with a message `4 >= 3`.)
+    When in use, the above will throw an `AssertError` with a message `4 >= 3`.
+    )
 
     $(BEST_PRACTICE
     $(OL
