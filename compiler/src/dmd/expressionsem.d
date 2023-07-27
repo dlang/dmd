@@ -2609,7 +2609,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     Scope* sc;
     Expression result;
 
-    this(Scope* sc) scope
+    this(Scope* sc) scope @safe
     {
         this.sc = sc;
     }

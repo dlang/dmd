@@ -62,7 +62,7 @@ extern (C++) abstract class Condition : ASTNode
         return DYNCAST.condition;
     }
 
-    extern (D) this(const ref Loc loc)
+    extern (D) this(const ref Loc loc) @safe
     {
         this.loc = loc;
     }
@@ -124,7 +124,7 @@ extern (C++) final class StaticForeach : RootObject
      */
     bool needExpansion = false;
 
-    extern (D) this(const ref Loc loc, ForeachStatement aggrfe, ForeachRangeStatement rangefe)
+    extern (D) this(const ref Loc loc, ForeachStatement aggrfe, ForeachRangeStatement rangefe) @safe
     {
         assert(!!aggrfe ^ !!rangefe);
 
@@ -496,7 +496,7 @@ extern (C++) class DVCondition : Condition
     Identifier ident;
     Module mod;
 
-    extern (D) this(const ref Loc loc, Module mod, uint level, Identifier ident)
+    extern (D) this(const ref Loc loc, Module mod, uint level, Identifier ident) @safe
     {
         super(loc);
         this.mod = mod;
@@ -637,7 +637,7 @@ extern (C++) final class VersionCondition : DVCondition
      * Returns:
      *   `true` if it is reserved, `false` otherwise
      */
-    extern(D) private static bool isReserved(const(char)[] ident)
+    extern(D) private static bool isReserved(const(char)[] ident) @safe
     {
         // This list doesn't include "D_*" versions, see the last return
         switch (ident)
@@ -902,7 +902,7 @@ extern (C++) final class StaticIfCondition : Condition
 {
     Expression exp;
 
-    extern (D) this(const ref Loc loc, Expression exp)
+    extern (D) this(const ref Loc loc, Expression exp) @safe
     {
         super(loc);
         this.exp = exp;

@@ -344,7 +344,7 @@ immutable:
     ubyte val;
     opflag_t ty;
 
-    bool isSIL_DIL_BPL_SPL() const
+    bool isSIL_DIL_BPL_SPL() const @safe
     {
         // Be careful as these have the same val's as AH CH DH BH
         return ty == _r8 &&
@@ -2430,7 +2430,7 @@ void asm_make_modrm_byte(
         uint rm;
         uint reg;
         uint mod;
-        uint auchOpcode()
+        uint auchOpcode() @safe
         {
             assert(rm < 8);
             assert(reg < 8);
@@ -2444,7 +2444,7 @@ void asm_make_modrm_byte(
         uint base;
         uint index;
         uint ss;
-        uint auchOpcode()
+        uint auchOpcode() @safe
         {
             assert(base < 8);
             assert(index < 8);
@@ -3143,7 +3143,7 @@ Lmatch:
 /*******************************
  */
 
-bool asm_match_float_flags(opflag_t usOp, opflag_t usTable)
+bool asm_match_float_flags(opflag_t usOp, opflag_t usTable) @safe
 {
     ASM_OPERAND_TYPE    aoptyTable;
     ASM_OPERAND_TYPE    aoptyOp;
@@ -4580,7 +4580,7 @@ TOK tryExpressionToOperand(Expression e, out OPND o1, out Dsymbol s)
  * If c is a power of 2, return that power else -1.
  */
 
-private int ispow2(uint c)
+private int ispow2(uint c) @safe
 {
     int i;
 
@@ -4597,7 +4597,7 @@ private int ispow2(uint c)
  * Returns: true if szop is one of the values in sztbl
  */
 private
-bool isOneOf(OpndSize szop, OpndSize sztbl)
+bool isOneOf(OpndSize szop, OpndSize sztbl) @safe
 {
     with (OpndSize)
     {

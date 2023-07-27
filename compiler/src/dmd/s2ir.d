@@ -1753,7 +1753,7 @@ private void setScopeIndex(Blockx *blx, block *b, int scope_index)
  * Allocate a new block, and set the tryblock.
  */
 
-private block *block_calloc(Blockx *blx)
+private block *block_calloc(Blockx *blx) @safe
 {
     block *b = dmd.backend.global.block_calloc();
     b.Btry = blx.tryblock;

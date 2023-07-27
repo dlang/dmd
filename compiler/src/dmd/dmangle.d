@@ -564,7 +564,7 @@ public:
     OutBuffer* buf;
     Backref* backref;
 
-    extern (D) this(OutBuffer* buf, Backref* backref)
+    extern (D) this(OutBuffer* buf, Backref* backref) @safe
     {
         this.buf = buf;
         this.backref = backref;
@@ -1214,7 +1214,7 @@ private struct Backref
  * Mangle basic type ty to buf.
  */
 
-private void tyToDecoBuffer(OutBuffer* buf, int ty)
+private void tyToDecoBuffer(OutBuffer* buf, int ty) @safe
 {
     const c = mangleChar[ty];
     buf.writeByte(c);
@@ -1225,7 +1225,7 @@ private void tyToDecoBuffer(OutBuffer* buf, int ty)
 /*********************************
  * Mangling for mod.
  */
-private void MODtoDecoBuffer(OutBuffer* buf, MOD mod)
+private void MODtoDecoBuffer(OutBuffer* buf, MOD mod) @safe
 {
     switch (mod)
     {
@@ -1274,7 +1274,7 @@ private void MODtoDecoBuffer(OutBuffer* buf, MOD mod)
  *  pos           = relative position to encode
  */
 private
-void writeBackRef(OutBuffer* buf, size_t pos)
+void writeBackRef(OutBuffer* buf, size_t pos) @safe
 {
     buf.writeByte('Q');
     enum base = 26;

@@ -962,7 +962,7 @@ public:
     Expression eresult;
     bool again;
 
-    extern (D) this() scope
+    extern (D) this() scope @safe
     {
     }
 
@@ -1573,7 +1573,7 @@ private extern (C++) final class InlineScanVisitorDsymbol : Visitor
     alias visit = Visitor.visit;
 public:
 
-    extern (D) this() scope
+    extern (D) this() scope @safe
     {
     }
 
@@ -2302,7 +2302,7 @@ private bool isConstruction(Expression e)
  * Returns:
  *      true if v's initializer is the only value assigned to v
  */
-private bool onlyOneAssign(VarDeclaration v, FuncDeclaration fd)
+private bool onlyOneAssign(VarDeclaration v, FuncDeclaration fd) @safe
 {
     if (!v.type.isMutable())
         return true;            // currently the only case handled atm

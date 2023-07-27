@@ -274,7 +274,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     alias visit = Visitor.visit;
 
     Scope* sc;
-    this(Scope* sc) scope
+    this(Scope* sc) scope @safe
     {
         this.sc = sc;
     }
@@ -6087,7 +6087,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
                 alias visit = Visitor.visit;
                 TemplateInstance inst;
 
-                extern (D) this(TemplateInstance inst) scope
+                extern (D) this(TemplateInstance inst) scope @safe
                 {
                     this.inst = inst;
                 }

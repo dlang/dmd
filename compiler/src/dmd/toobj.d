@@ -284,7 +284,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
     public:
         bool multiobj;
 
-        this(bool multiobj) scope
+        this(bool multiobj) scope @safe
         {
             this.multiobj = multiobj;
         }

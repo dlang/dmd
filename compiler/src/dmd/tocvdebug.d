@@ -931,7 +931,7 @@ private extern (C++) class CVMember : Visitor
     ubyte *p;
     int result;
 
-    this(ubyte *p)
+    this(ubyte *p) @safe
     {
         this.p = p;
         result = 0;

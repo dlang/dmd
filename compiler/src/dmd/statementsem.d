@@ -109,7 +109,7 @@ private Identifier fixupLabelName(Scope* sc, Identifier ident)
  * Returns:
  *      if `true`, then the `LabelStatement`, otherwise `null`
  */
-private LabelStatement checkLabeledLoop(Scope* sc, Statement statement)
+private LabelStatement checkLabeledLoop(Scope* sc, Statement statement) @safe
 {
     if (sc.slabel && sc.slabel.statement == statement)
     {

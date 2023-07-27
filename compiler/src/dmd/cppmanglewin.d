@@ -47,7 +47,7 @@ const(char)* toCppMangleMSVC(Dsymbol s)
     return v.mangleOf(s);
 }
 
-const(char)* cppTypeInfoMangleMSVC(Dsymbol s)
+const(char)* cppTypeInfoMangleMSVC(Dsymbol s) @safe
 {
     //printf("cppTypeInfoMangle(%s)\n", s.toChars());
     assert(0);
@@ -59,7 +59,7 @@ const(char)* toCppMangleDMC(Dsymbol s)
     return v.mangleOf(s);
 }
 
-const(char)* cppTypeInfoMangleDMC(Dsymbol s)
+const(char)* cppTypeInfoMangleDMC(Dsymbol s) @safe
 {
     //printf("cppTypeInfoMangle(%s)\n", s.toChars());
     assert(0);
@@ -105,7 +105,7 @@ private final class VisualCPPMangler : Visitor
 
     OutBuffer buf;
 
-    extern (D) this(VisualCPPMangler rvl) scope
+    extern (D) this(VisualCPPMangler rvl) scope @safe
     {
         saved_idents[] = rvl.saved_idents[];
         saved_types[]  = rvl.saved_types[];
@@ -114,7 +114,7 @@ private final class VisualCPPMangler : Visitor
     }
 
 public:
-    extern (D) this(bool isDmc, Loc loc) scope
+    extern (D) this(bool isDmc, Loc loc) scope @safe
     {
         saved_idents[] = null;
         saved_types[] = null;
@@ -857,7 +857,7 @@ extern(D):
     }
 
     // returns true if name already saved
-    bool checkAndSaveIdent(Identifier name)
+    bool checkAndSaveIdent(Identifier name) @safe
     {
         foreach (i, ref id; saved_idents)
         {
@@ -875,7 +875,7 @@ extern(D):
         return false;
     }
 
-    void saveIdent(Identifier name)
+    void saveIdent(Identifier name) @safe
     {
         foreach (ref id; saved_idents)
         {
@@ -1280,7 +1280,7 @@ void mangleNumber(ref OutBuffer buf, dinteger_t num)
 
 /*************************************
  */
-void mangleVisibility(ref OutBuffer buf, Declaration d, string privProtDef)
+void mangleVisibility(ref OutBuffer buf, Declaration d, string privProtDef)@safe
 {
     switch (d.visibility.kind)
     {
