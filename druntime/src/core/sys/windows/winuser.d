@@ -2837,7 +2837,7 @@ alias MENUITEMINFOW*        LPMENUITEMINFOW;
 alias const(MENUITEMINFOW)* LPCMENUITEMINFOW;
 
 struct SCROLLINFO {
-    UINT cbSize = this.sizeof;
+    UINT cbSize = typeof(this).sizeof;
     UINT fMask;
     int nMin;
     int nMax;
@@ -2874,7 +2874,7 @@ alias void MENUTEMPLATE, MENUTEMPLATEA, MENUTEMPLATEW;
 alias MENUTEMPLATE* LPMENUTEMPLATEA, LPMENUTEMPLATEW, LPMENUTEMPLATE;
 
 struct HELPINFO {
-    UINT cbSize = this.sizeof;
+    UINT cbSize = typeof(this).sizeof;
     int iContextType;
     int iCtrlId;
     HANDLE hItemHandle;
@@ -2884,7 +2884,7 @@ struct HELPINFO {
 alias HELPINFO* LPHELPINFO;
 
 struct MSGBOXPARAMSA {
-    UINT cbSize = this.sizeof;
+    UINT cbSize = typeof(this).sizeof;
     HWND hwndOwner;
     HINSTANCE hInstance;
     LPCSTR lpszText;
@@ -2898,7 +2898,7 @@ struct MSGBOXPARAMSA {
 alias MSGBOXPARAMSA* PMSGBOXPARAMSA, LPMSGBOXPARAMSA;
 
 struct MSGBOXPARAMSW {
-    UINT cbSize = this.sizeof;
+    UINT cbSize = typeof(this).sizeof;
     HWND hwndOwner;
     HINSTANCE hInstance;
     LPCWSTR lpszText;
@@ -2918,7 +2918,7 @@ struct USEROBJECTFLAGS {
 }
 
 struct FILTERKEYS {
-    UINT cbSize = this.sizeof;
+    UINT cbSize = typeof(this).sizeof;
     DWORD dwFlags;
     DWORD iWaitMSec;
     DWORD iDelayMSec;
@@ -2927,21 +2927,21 @@ struct FILTERKEYS {
 }
 
 struct HIGHCONTRASTA {
-    UINT cbSize = this.sizeof;
+    UINT cbSize = typeof(this).sizeof;
     DWORD dwFlags;
     LPSTR lpszDefaultScheme;
 }
 alias HIGHCONTRASTA* LPHIGHCONTRASTA;
 
 struct HIGHCONTRASTW {
-    UINT cbSize = this.sizeof;
+    UINT cbSize = typeof(this).sizeof;
     DWORD dwFlags;
     LPWSTR lpszDefaultScheme;
 }
 alias HIGHCONTRASTW* LPHIGHCONTRASTW;
 
 struct ICONMETRICSA {
-    UINT cbSize = this.sizeof;
+    UINT cbSize = typeof(this).sizeof;
     int iHorzSpacing;
     int iVertSpacing;
     int iTitleWrap;
@@ -2950,7 +2950,7 @@ struct ICONMETRICSA {
 alias ICONMETRICSA* LPICONMETRICSA;
 
 struct ICONMETRICSW {
-    UINT cbSize = this.sizeof;
+    UINT cbSize = typeof(this).sizeof;
     int iHorzSpacing;
     int iVertSpacing;
     int iTitleWrap;
@@ -2959,7 +2959,7 @@ struct ICONMETRICSW {
 alias ICONMETRICSW* LPICONMETRICSW;
 
 struct MINIMIZEDMETRICS {
-    UINT cbSize = this.sizeof;
+    UINT cbSize = typeof(this).sizeof;
     int iWidth;
     int iHorzGap;
     int iVertGap;
@@ -2968,7 +2968,7 @@ struct MINIMIZEDMETRICS {
 alias MINIMIZEDMETRICS* LPMINIMIZEDMETRICS;
 
 struct MOUSEKEYS {
-    UINT cbSize = this.sizeof;
+    UINT cbSize = typeof(this).sizeof;
     DWORD dwFlags;
     DWORD iMaxSpeed;
     DWORD iTimeToMaxSpeed;
@@ -2979,7 +2979,7 @@ struct MOUSEKEYS {
 alias MOUSEKEYS* LPMOUSEKEYS;
 
 struct NONCLIENTMETRICSA {
-    UINT cbSize = this.sizeof;
+    UINT cbSize = typeof(this).sizeof;
     int iBorderWidth;
     int iScrollWidth;
     int iScrollHeight;
@@ -2998,7 +2998,7 @@ struct NONCLIENTMETRICSA {
 alias NONCLIENTMETRICSA* LPNONCLIENTMETRICSA;
 
 struct NONCLIENTMETRICSW {
-    UINT cbSize = this.sizeof;
+    UINT cbSize = typeof(this).sizeof;
     int iBorderWidth;
     int iScrollWidth;
     int iScrollHeight;
@@ -3017,7 +3017,7 @@ struct NONCLIENTMETRICSW {
 alias NONCLIENTMETRICSW* LPNONCLIENTMETRICSW;
 
 struct SERIALKEYSA {
-    UINT cbSize = this.sizeof;
+    UINT cbSize = typeof(this).sizeof;
     DWORD dwFlags;
     LPSTR lpszActivePort;
     LPSTR lpszPort;
@@ -3028,7 +3028,7 @@ struct SERIALKEYSA {
 alias SERIALKEYSA* LPSERIALKEYSA;
 
 struct SERIALKEYSW {
-    UINT cbSize = this.sizeof;
+    UINT cbSize = typeof(this).sizeof;
     DWORD dwFlags;
     LPWSTR lpszActivePort;
     LPWSTR lpszPort;
@@ -3039,7 +3039,7 @@ struct SERIALKEYSW {
 alias SERIALKEYSW* LPSERIALKEYSW;
 
 struct SOUNDSENTRYA {
-    UINT cbSize = this.sizeof;
+    UINT cbSize = typeof(this).sizeof;
     DWORD dwFlags;
     DWORD iFSTextEffect;
     DWORD iFSTextEffectMSec;
@@ -3055,7 +3055,7 @@ struct SOUNDSENTRYA {
 alias SOUNDSENTRYA* LPSOUNDSENTRYA;
 
 struct SOUNDSENTRYW {
-    UINT cbSize = this.sizeof;
+    UINT cbSize = typeof(this).sizeof;
     DWORD dwFlags;
     DWORD iFSTextEffect;
     DWORD iFSTextEffectMSec;
@@ -3071,13 +3071,13 @@ struct SOUNDSENTRYW {
 alias SOUNDSENTRYW* LPSOUNDSENTRYW;
 
 struct STICKYKEYS {
-    DWORD cbSize = this.sizeof;
+    DWORD cbSize = typeof(this).sizeof;
     DWORD dwFlags;
 }
 alias STICKYKEYS* LPSTICKYKEYS;
 
 struct TOGGLEKEYS {
-    DWORD cbSize = this.sizeof;
+    DWORD cbSize = typeof(this).sizeof;
     DWORD dwFlags;
 }
 
@@ -3090,7 +3090,7 @@ struct MOUSEHOOKSTRUCT {
 alias MOUSEHOOKSTRUCT* LPMOUSEHOOKSTRUCT, PMOUSEHOOKSTRUCT;
 
 struct TRACKMOUSEEVENT {
-    DWORD cbSize = this.sizeof;
+    DWORD cbSize = typeof(this).sizeof;
     DWORD dwFlags;
     HWND  hwndTrack;
     DWORD dwHoverTime;
@@ -3098,7 +3098,7 @@ struct TRACKMOUSEEVENT {
 alias TRACKMOUSEEVENT* LPTRACKMOUSEEVENT;
 
 struct TPMPARAMS {
-    UINT cbSize = this.sizeof;
+    UINT cbSize = typeof(this).sizeof;
     RECT rcExclude;
 }
 alias TPMPARAMS* LPTPMPARAMS;
@@ -3236,7 +3236,7 @@ struct STYLESTRUCT {
 alias STYLESTRUCT* LPSTYLESTRUCT;
 
 struct ALTTABINFO {
-    DWORD cbSize = this.sizeof;
+    DWORD cbSize = typeof(this).sizeof;
     int   cItems;
     int   cColumns;
     int   cRows;
@@ -3249,7 +3249,7 @@ struct ALTTABINFO {
 alias ALTTABINFO* PALTTABINFO, LPALTTABINFO;
 
 struct COMBOBOXINFO {
-    DWORD cbSize = this.sizeof;
+    DWORD cbSize = typeof(this).sizeof;
     RECT rcItem;
     RECT rcButton;
     DWORD stateButton;
@@ -3260,7 +3260,7 @@ struct COMBOBOXINFO {
 alias COMBOBOXINFO* PCOMBOBOXINFO, LPCOMBOBOXINFO;
 
 struct CURSORINFO {
-    DWORD cbSize = this.sizeof;
+    DWORD cbSize = typeof(this).sizeof;
     DWORD flags;
     HCURSOR hCursor;
     POINT ptScreenPos;
@@ -3268,7 +3268,7 @@ struct CURSORINFO {
 alias CURSORINFO* PCURSORINFO, LPCURSORINFO;
 
 struct MENUBARINFO {
-    DWORD cbSize = this.sizeof;
+    DWORD cbSize = typeof(this).sizeof;
     RECT  rcBar;
     HMENU hMenu;
     HWND  hwndMenu;
@@ -3283,7 +3283,7 @@ struct MENUBARINFO {
 alias MENUBARINFO* PMENUBARINFO;
 
 struct MENUINFO {
-    DWORD cbSize = this.sizeof;
+    DWORD cbSize = typeof(this).sizeof;
     DWORD fMask;
     DWORD dwStyle;
     UINT cyMax;
@@ -3298,7 +3298,7 @@ alias const(MENUINFO)* LPCMENUINFO;
 enum CCHILDREN_SCROLLBAR = 5;
 
 struct SCROLLBARINFO {
-    DWORD cbSize = this.sizeof;
+    DWORD cbSize = typeof(this).sizeof;
     RECT  rcScrollBar;
     int   dxyLineButton;
     int   xyThumbTop;
@@ -3325,13 +3325,13 @@ struct WINDOWINFO {
 alias WINDOWINFO* PWINDOWINFO, LPWINDOWINFO;
 
 struct LASTINPUTINFO {
-    UINT cbSize = this.sizeof;
+    UINT cbSize = typeof(this).sizeof;
     DWORD dwTime;
 }
 alias LASTINPUTINFO* PLASTINPUTINFO;
 
 struct MONITORINFO {
-    DWORD cbSize = this.sizeof;
+    DWORD cbSize = typeof(this).sizeof;
     RECT rcMonitor;
     RECT rcWork;
     DWORD dwFlags;
@@ -3414,7 +3414,7 @@ alias INPUT* PINPUT, LPINPUT;
 
 static if (_WIN32_WINNT >= 0x501) {
     align(4) struct BSMINFO {
-        UINT  cbSize = this.sizeof;
+        UINT  cbSize = typeof(this).sizeof;
         HDESK hdesk;
         HWND  hwnd;
 align(4) LUID  luid;
@@ -3515,7 +3515,7 @@ align(4) LUID  luid;
     }
 
     struct RID_DEVICE_INFO {
-        DWORD cbSize = this.sizeof;
+        DWORD cbSize = typeof(this).sizeof;
         DWORD dwType;
         union {
             RID_DEVICE_INFO_MOUSE mouse;
@@ -4185,7 +4185,7 @@ alias TITLEBARINFO* PTITLEBARINFO, LPTITLEBARINFO;
 
 static if (_WIN32_WINNT >= 0x501) { // *** correct?
     struct FLASHWINFO {
-        UINT  cbSize = this.sizeof;
+        UINT  cbSize = typeof(this).sizeof;
         HWND  hwnd;
         DWORD dwFlags;
         UINT  uCount;
@@ -4403,7 +4403,7 @@ enum {
 }
 
 struct GUITHREADINFO {
-    DWORD cbSize = this.sizeof;
+    DWORD cbSize = typeof(this).sizeof;
     DWORD flags;
     HWND  hwndActive;
     HWND  hwndFocus;

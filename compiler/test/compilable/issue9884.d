@@ -16,9 +16,9 @@ struct Foo
 
     static this()
     {
-        this.data = new int[10];
-        foreach (ref x; this.data) x = 1;
-        this.data[] = 1;
+        data = new int[10];
+        foreach (ref x; data) x = 1;
+        data[] = 1;
     }
 }
 

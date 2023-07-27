@@ -820,8 +820,8 @@ class Foo38
     {
         printf("%.*s\n", cast(int)Object.classinfo.name.length, Object.classinfo.name.ptr);
         assert(Object.classinfo.name == "object.Object");
-        assert(super.classinfo.name == "object.Object");
-        assert(this.classinfo.name == "test12.Foo38");
+        assert(typeof(super).classinfo.name == "object.Object");
+        assert(typeof(this).classinfo.name == "test12.Foo38");
     }
 }
 
@@ -857,7 +857,7 @@ class C40
 
     static int foo()
     {
-        return this.x;
+        return C40.x;
     }
 }
 

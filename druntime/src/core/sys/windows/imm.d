@@ -331,7 +331,7 @@ struct STYLEBUFW{
 alias STYLEBUFW* PSTYLEBUFW, LPSTYLEBUFW;
 
 struct IMEMENUITEMINFOA{
-    UINT cbSize = this.sizeof;
+    UINT cbSize = typeof(this).sizeof;
     UINT fType;
     UINT fState;
     UINT wID;
@@ -344,7 +344,7 @@ struct IMEMENUITEMINFOA{
 alias IMEMENUITEMINFOA* PIMEMENUITEMINFOA, LPIMEMENUITEMINFOA;
 
 struct IMEMENUITEMINFOW{
-    UINT cbSize = this.sizeof;
+    UINT cbSize = typeof(this).sizeof;
     UINT fType;
     UINT fState;
     UINT wID;

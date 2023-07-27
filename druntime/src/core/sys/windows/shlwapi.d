@@ -49,7 +49,7 @@ enum URL_UNESCAPE_INPLACE        = 0x00100000;
 align(1):
 struct DLLVERSIONINFO
 {
-    DWORD cbSize = this.sizeof;
+    DWORD cbSize = typeof(this).sizeof;
     DWORD dwMajorVersion;
     DWORD dwMinorVersion;
     DWORD dwBuildNumber;

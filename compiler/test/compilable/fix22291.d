@@ -104,7 +104,7 @@ struct TestConstructor
     string y;
     //This parameter will not have a name but it's (tuple) members
     //will
-    this(typeof(this.tupleof))
+    this(typeof(TestConstructor.tupleof))
     {
         this.tupleof = __traits(parameters);
     }

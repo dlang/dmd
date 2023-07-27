@@ -340,7 +340,7 @@ struct Segments
         immutable int flags;
         immutable int alignment;
 
-        this(typeof(this.tupleof) tuple)
+        this(typeof(Segments.tupleof) tuple)
         {
             this.tupleof = tuple;
         }

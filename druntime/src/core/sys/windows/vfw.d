@@ -639,7 +639,7 @@ extern (Windows) {
 }
 
 struct COMPVARS {
-    LONG        cbSize = this.sizeof;
+    LONG        cbSize = typeof(this).sizeof;
     DWORD       dwFlags;
     HIC         hic;
     DWORD               fccType;

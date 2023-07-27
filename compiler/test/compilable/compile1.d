@@ -778,9 +778,9 @@ enum bug13286 = is(typeof({ struct S { S x; } }));
 struct S13280
 {
     alias U = ubyte;
-    alias T1 =       ubyte[this.sizeof]; // ok
-    alias T2 = const     U[this.sizeof]; // ok
-    alias T3 = const ubyte[this.sizeof]; // ok <- error
+    alias T1 =       ubyte[typeof(this).sizeof]; // ok
+    alias T2 = const     U[typeof(this).sizeof]; // ok
+    alias T3 = const ubyte[typeof(this).sizeof]; // ok <- error
 }
 
 /***************************************************/

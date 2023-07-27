@@ -2433,7 +2433,7 @@ template Mix12981(T)
 {
     class A
     {
-        alias typeof(this.outer) x;
+        alias typeof(A.outer) x;
     }
 }
 

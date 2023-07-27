@@ -1534,7 +1534,7 @@ static if (_WIN32_WINNT >= 0x500) {
 
 static if (_WIN32_WINNT >= 0x501) {
     struct ACTCTXA {
-        ULONG cbSize = this.sizeof;
+        ULONG cbSize = typeof(this).sizeof;
         DWORD dwFlags;
         LPCSTR lpSource;
         USHORT wProcessorArchitecture;
@@ -1548,7 +1548,7 @@ static if (_WIN32_WINNT >= 0x501) {
     alias const(ACTCTXA)* PCACTCTXA;
 
     struct ACTCTXW {
-        ULONG cbSize = this.sizeof;
+        ULONG cbSize = typeof(this).sizeof;
         DWORD dwFlags;
         LPCWSTR lpSource;
         USHORT wProcessorArchitecture;
@@ -1562,7 +1562,7 @@ static if (_WIN32_WINNT >= 0x501) {
     alias const(ACTCTXW)* PCACTCTXW;
 
     struct ACTCTX_SECTION_KEYED_DATA {
-        ULONG cbSize = this.sizeof;
+        ULONG cbSize = typeof(this).sizeof;
         ULONG ulDataFormatVersion;
         PVOID lpData;
         ULONG ulLength;

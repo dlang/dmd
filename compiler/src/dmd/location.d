@@ -60,8 +60,8 @@ nothrow:
      */
     extern (C++) static void set(bool showColumns, MessageStyle messageStyle)
     {
-        this.showColumns = showColumns;
-        this.messageStyle = messageStyle;
+        Loc.showColumns = showColumns;
+        Loc.messageStyle = messageStyle;
     }
 
     extern (D) this(const(char)* filename, uint linnum, uint charnum)
