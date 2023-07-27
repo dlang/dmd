@@ -421,7 +421,7 @@ int expandAliasThisTuples(Expressions* exps, size_t starti = 0)
  * Returns:
  *      template for that function, otherwise null
  */
-TemplateDeclaration getFuncTemplateDecl(Dsymbol s)
+TemplateDeclaration getFuncTemplateDecl(Dsymbol s) @safe
 {
     FuncDeclaration f = s.isFuncDeclaration();
     if (f && f.parent)
@@ -636,7 +636,7 @@ private:
  *      true if x1 is x2
  *      else false
  */
-bool RealIdentical(real_t x1, real_t x2)
+bool RealIdentical(real_t x1, real_t x2) @safe
 {
     return (CTFloat.isNaN(x1) && CTFloat.isNaN(x2)) || CTFloat.isIdentical(x1, x2);
 }
@@ -648,7 +648,7 @@ bool RealIdentical(real_t x1, real_t x2)
  *      (foo).size
  *      cast(foo).size
  */
-DotIdExp typeDotIdExp(const ref Loc loc, Type type, Identifier ident)
+DotIdExp typeDotIdExp(const ref Loc loc, Type type, Identifier ident) @safe
 {
     return new DotIdExp(loc, new TypeExp(loc, type), ident);
 }
@@ -738,7 +738,7 @@ extern (C++) abstract class Expression : ASTNode
     Loc loc;        // file location
     const EXP op;   // to minimize use of dynamic_cast
 
-    extern (D) this(const ref Loc loc, EXP op) scope
+    extern (D) this(const ref Loc loc, EXP op) scope @safe
     {
         //printf("Expression::Expression(op = %d) this = %p\n", op, this);
         this.loc = loc;
@@ -944,7 +944,7 @@ extern (C++) abstract class Expression : ASTNode
      * is returned via e0.
      * Otherwise 'e' is directly returned and e0 is set to NULL.
      */
-    extern (D) static Expression extractLast(Expression e, out Expression e0)
+    extern (D) static Expression extractLast(Expression e, out Expression e0) @safe
     {
         if (e.op != EXP.comma)
         {
@@ -2159,7 +2159,7 @@ extern (C++) final class VoidInitExp : Expression
     VarDeclaration var; /// the variable from where the void value came from, null if not known
                         /// Useful for error messages
 
-    extern (D) this(VarDeclaration var)
+    extern (D) this(VarDeclaration var) @safe
     {
         super(var.loc, EXP.void_);
         this.var = var;
@@ -2185,7 +2185,7 @@ extern (C++) final class RealExp : Expression
 {
     real_t value;
 
-    extern (D) this(const ref Loc loc, real_t value, Type type)
+    extern (D) this(const ref Loc loc, real_t value, Type type) @safe
     {
         super(loc, EXP.float64);
         //printf("RealExp::RealExp(%Lg)\n", value);
@@ -2193,7 +2193,7 @@ extern (C++) final class RealExp : Expression
         this.type = type;
     }
 
-    static RealExp create(const ref Loc loc, real_t value, Type type)
+    static RealExp create(const ref Loc loc, real_t value, Type type) @safe
     {
         return new RealExp(loc, value, type);
     }
@@ -2268,7 +2268,7 @@ extern (C++) final class ComplexExp : Expression
 {
     complex_t value;
 
-    extern (D) this(const ref Loc loc, complex_t value, Type type)
+    extern (D) this(const ref Loc loc, complex_t value, Type type) @safe
     {
         super(loc, EXP.complex80);
         this.value = value;
@@ -2276,7 +2276,7 @@ extern (C++) final class ComplexExp : Expression
         //printf("ComplexExp::ComplexExp(%s)\n", toChars());
     }
 
-    static ComplexExp create(const ref Loc loc, complex_t value, Type type)
+    static ComplexExp create(const ref Loc loc, complex_t value, Type type) @safe
     {
         return new ComplexExp(loc, value, type);
     }
@@ -2360,13 +2360,13 @@ extern (C++) class IdentifierExp : Expression
     Identifier ident;
     bool parens;        // if it appears as (identifier)
 
-    extern (D) this(const ref Loc loc, Identifier ident) scope
+    extern (D) this(const ref Loc loc, Identifier ident) scope @safe
     {
         super(loc, EXP.identifier);
         this.ident = ident;
     }
 
-    static IdentifierExp create(const ref Loc loc, Identifier ident)
+    static IdentifierExp create(const ref Loc loc, Identifier ident) @safe
     {
         return new IdentifierExp(loc, ident);
     }
@@ -2413,7 +2413,7 @@ extern (C++) final class DsymbolExp : Expression
     Dsymbol s;
     bool hasOverloads;
 
-    extern (D) this(const ref Loc loc, Dsymbol s, bool hasOverloads = true)
+    extern (D) this(const ref Loc loc, Dsymbol s, bool hasOverloads = true) @safe
     {
         super(loc, EXP.dSymbol);
         this.s = s;
@@ -2443,13 +2443,13 @@ extern (C++) class ThisExp : Expression
 {
     VarDeclaration var;
 
-    extern (D) this(const ref Loc loc)
+    extern (D) this(const ref Loc loc) @safe
     {
         super(loc, EXP.this_);
         //printf("ThisExp::ThisExp() loc = %d\n", loc.linnum);
     }
 
-    this(const ref Loc loc, const EXP tok)
+    this(const ref Loc loc, const EXP tok) @safe
     {
         super(loc, tok);
         //printf("ThisExp::ThisExp() loc = %d\n", loc.linnum);
@@ -2491,7 +2491,7 @@ extern (C++) class ThisExp : Expression
  */
 extern (C++) final class SuperExp : ThisExp
 {
-    extern (D) this(const ref Loc loc)
+    extern (D) this(const ref Loc loc) @safe
     {
         super(loc, EXP.super_);
     }
@@ -2521,7 +2521,7 @@ extern (C++) final class SuperExp : ThisExp
  */
 extern (C++) final class NullExp : Expression
 {
-    extern (D) this(const ref Loc loc, Type type = null) scope
+    extern (D) this(const ref Loc loc, Type type = null) scope @safe
     {
         super(loc, EXP.null_);
         this.type = type;
@@ -2985,7 +2985,7 @@ extern (C++) final class TupleExp : Expression
 
     Expressions* exps;
 
-    extern (D) this(const ref Loc loc, Expression e0, Expressions* exps)
+    extern (D) this(const ref Loc loc, Expression e0, Expressions* exps) @safe
     {
         super(loc, EXP.tuple);
         //printf("TupleExp(this = %p)\n", this);
@@ -2993,7 +2993,7 @@ extern (C++) final class TupleExp : Expression
         this.exps = exps;
     }
 
-    extern (D) this(const ref Loc loc, Expressions* exps)
+    extern (D) this(const ref Loc loc, Expressions* exps) @safe
     {
         super(loc, EXP.tuple);
         //printf("TupleExp(this = %p)\n", this);
@@ -3034,7 +3034,7 @@ extern (C++) final class TupleExp : Expression
         }
     }
 
-    static TupleExp create(const ref Loc loc, Expressions* exps)
+    static TupleExp create(const ref Loc loc, Expressions* exps) @safe
     {
         return new TupleExp(loc, exps);
     }
@@ -3090,7 +3090,7 @@ extern (C++) final class ArrayLiteralExp : Expression
 
     Expressions* elements;
 
-    extern (D) this(const ref Loc loc, Type type, Expressions* elements)
+    extern (D) this(const ref Loc loc, Type type, Expressions* elements) @safe
     {
         super(loc, EXP.arrayLiteral);
         this.type = type;
@@ -3105,7 +3105,7 @@ extern (C++) final class ArrayLiteralExp : Expression
         elements.push(e);
     }
 
-    extern (D) this(const ref Loc loc, Type type, Expression basis, Expressions* elements)
+    extern (D) this(const ref Loc loc, Type type, Expression basis, Expressions* elements) @safe
     {
         super(loc, EXP.arrayLiteral);
         this.type = type;
@@ -3113,7 +3113,7 @@ extern (C++) final class ArrayLiteralExp : Expression
         this.elements = elements;
     }
 
-    static ArrayLiteralExp create(const ref Loc loc, Expressions* elements)
+    static ArrayLiteralExp create(const ref Loc loc, Expressions* elements) @safe
     {
         return new ArrayLiteralExp(loc, null, elements);
     }
@@ -3250,7 +3250,7 @@ extern (C++) final class AssocArrayLiteralExp : Expression
     Expressions* keys;
     Expressions* values;
 
-    extern (D) this(const ref Loc loc, Expressions* keys, Expressions* values)
+    extern (D) this(const ref Loc loc, Expressions* keys, Expressions* values) @safe
     {
         super(loc, EXP.assocArrayLiteral);
         assert(keys.length == values.length);
@@ -3349,7 +3349,7 @@ extern (C++) final class StructLiteralExp : Expression
     bool isOriginal = false; /// used when moving instances to indicate `this is this.origin`
     OwnedBy ownedByCtfe = OwnedBy.code;
 
-    extern (D) this(const ref Loc loc, StructDeclaration sd, Expressions* elements, Type stype = null)
+    extern (D) this(const ref Loc loc, StructDeclaration sd, Expressions* elements, Type stype = null) @safe
     {
         super(loc, EXP.structLiteral);
         this.sd = sd;
@@ -3528,7 +3528,7 @@ extern (C++) final class CompoundLiteralExp : Expression
 {
     Initializer initializer; /// initializer-list
 
-    extern (D) this(const ref Loc loc, Type type_name, Initializer initializer)
+    extern (D) this(const ref Loc loc, Type type_name, Initializer initializer) @safe
     {
         super(loc, EXP.compoundLiteral);
         super.type = type_name;
@@ -3549,7 +3549,7 @@ extern (C++) final class TypeExp : Expression
 {
     bool parens;    // if this is a parenthesized expression
 
-    extern (D) this(const ref Loc loc, Type type)
+    extern (D) this(const ref Loc loc, Type type) @safe
     {
         super(loc, EXP.type);
         //printf("TypeExp::TypeExp(%s)\n", type.toChars());
@@ -3591,7 +3591,7 @@ extern (C++) final class ScopeExp : Expression
 {
     ScopeDsymbol sds;
 
-    extern (D) this(const ref Loc loc, ScopeDsymbol sds)
+    extern (D) this(const ref Loc loc, ScopeDsymbol sds) @safe
     {
         super(loc, EXP.scope_);
         //printf("ScopeExp::ScopeExp(sds = '%s')\n", sds.toChars());
@@ -3646,7 +3646,7 @@ extern (C++) final class TemplateExp : Expression
     TemplateDeclaration td;
     FuncDeclaration fd;
 
-    extern (D) this(const ref Loc loc, TemplateDeclaration td, FuncDeclaration fd = null)
+    extern (D) this(const ref Loc loc, TemplateDeclaration td, FuncDeclaration fd = null) @safe
     {
         super(loc, EXP.template_);
         //printf("TemplateExp(): %s\n", td.toChars());
@@ -3707,7 +3707,7 @@ extern (C++) final class NewExp : Expression
     /// The fields are still separate for backwards compatibility
     extern (D) ArgumentList argumentList() { return ArgumentList(arguments, names); }
 
-    extern (D) this(const ref Loc loc, Expression thisexp, Type newtype, Expressions* arguments, Identifiers* names = null)
+    extern (D) this(const ref Loc loc, Expression thisexp, Type newtype, Expressions* arguments, Identifiers* names = null) @safe
     {
         super(loc, EXP.new_);
         this.thisexp = thisexp;
@@ -3716,7 +3716,7 @@ extern (C++) final class NewExp : Expression
         this.names = names;
     }
 
-    static NewExp create(const ref Loc loc, Expression thisexp, Type newtype, Expressions* arguments)
+    static NewExp create(const ref Loc loc, Expression thisexp, Type newtype, Expressions* arguments) @safe
     {
         return new NewExp(loc, thisexp, newtype, arguments);
     }
@@ -3745,7 +3745,7 @@ extern (C++) final class NewAnonClassExp : Expression
     ClassDeclaration cd;    // class being instantiated
     Expressions* arguments; // Array of Expression's to call class constructor
 
-    extern (D) this(const ref Loc loc, Expression thisexp, ClassDeclaration cd, Expressions* arguments)
+    extern (D) this(const ref Loc loc, Expression thisexp, ClassDeclaration cd, Expressions* arguments) @safe
     {
         super(loc, EXP.newAnonymousClass);
         this.thisexp = thisexp;
@@ -3772,7 +3772,7 @@ extern (C++) class SymbolExp : Expression
     Dsymbol originalScope; // original scope before inlining
     bool hasOverloads;
 
-    extern (D) this(const ref Loc loc, EXP op, Declaration var, bool hasOverloads)
+    extern (D) this(const ref Loc loc, EXP op, Declaration var, bool hasOverloads) @safe
     {
         super(loc, op);
         assert(var);
@@ -3828,7 +3828,7 @@ extern (C++) final class SymOffExp : SymbolExp
 extern (C++) final class VarExp : SymbolExp
 {
     bool delegateWasExtracted;
-    extern (D) this(const ref Loc loc, Declaration var, bool hasOverloads = true)
+    extern (D) this(const ref Loc loc, Declaration var, bool hasOverloads = true) @safe
     {
         if (var.isVarDeclaration())
             hasOverloads = false;
@@ -3839,7 +3839,7 @@ extern (C++) final class VarExp : SymbolExp
         this.type = var.type;
     }
 
-    static VarExp create(const ref Loc loc, Declaration var, bool hasOverloads = true)
+    static VarExp create(const ref Loc loc, Declaration var, bool hasOverloads = true) @safe
     {
         return new VarExp(loc, var, hasOverloads);
     }
@@ -4248,7 +4248,7 @@ extern (C++) final class DeclarationExp : Expression
 {
     Dsymbol declaration;
 
-    extern (D) this(const ref Loc loc, Dsymbol declaration)
+    extern (D) this(const ref Loc loc, Dsymbol declaration) @safe
     {
         super(loc, EXP.declaration);
         this.declaration = declaration;
@@ -4281,7 +4281,7 @@ extern (C++) final class TypeidExp : Expression
 {
     RootObject obj;
 
-    extern (D) this(const ref Loc loc, RootObject o)
+    extern (D) this(const ref Loc loc, RootObject o) @safe
     {
         super(loc, EXP.typeid_);
         this.obj = o;
@@ -4306,7 +4306,7 @@ extern (C++) final class TraitsExp : Expression
     Identifier ident;
     Objects* args;
 
-    extern (D) this(const ref Loc loc, Identifier ident, Objects* args)
+    extern (D) this(const ref Loc loc, Identifier ident, Objects* args) @safe
     {
         super(loc, EXP.traits);
         this.ident = ident;
@@ -4331,7 +4331,7 @@ extern (C++) final class TraitsExp : Expression
  */
 extern (C++) final class HaltExp : Expression
 {
-    extern (D) this(const ref Loc loc)
+    extern (D) this(const ref Loc loc) @safe
     {
         super(loc, EXP.halt);
     }
@@ -4355,7 +4355,7 @@ extern (C++) final class IsExp : Expression
     TOK tok;            // ':' or '=='
     TOK tok2;           // 'struct', 'union', etc.
 
-    extern (D) this(const ref Loc loc, Type targ, Identifier id, TOK tok, Type tspec, TOK tok2, TemplateParameters* parameters) scope
+    extern (D) this(const ref Loc loc, Type targ, Identifier id, TOK tok, Type tspec, TOK tok2, TemplateParameters* parameters) scope @safe
     {
         super(loc, EXP.is_);
         this.targ = targ;
@@ -4394,7 +4394,7 @@ extern (C++) abstract class UnaExp : Expression
 {
     Expression e1;
 
-    extern (D) this(const ref Loc loc, EXP op, Expression e1) scope
+    extern (D) this(const ref Loc loc, EXP op, Expression e1) scope @safe
     {
         super(loc, op);
         this.e1 = e1;
@@ -4467,7 +4467,7 @@ extern (C++) abstract class BinExp : Expression
     Type att1;      // Save alias this type to detect recursion
     Type att2;      // Save alias this type to detect recursion
 
-    extern (D) this(const ref Loc loc, EXP op, Expression e1, Expression e2) scope
+    extern (D) this(const ref Loc loc, EXP op, Expression e1, Expression e2) scope @safe
     {
         super(loc, op);
         this.e1 = e1;
@@ -4758,7 +4758,7 @@ extern (C++) abstract class BinExp : Expression
  */
 extern (C++) class BinAssignExp : BinExp
 {
-    extern (D) this(const ref Loc loc, EXP op, Expression e1, Expression e2) scope
+    extern (D) this(const ref Loc loc, EXP op, Expression e1, Expression e2) scope @safe
     {
         super(loc, op, e1, e2);
     }
@@ -4795,7 +4795,7 @@ extern (C++) final class MixinExp : Expression
 {
     Expressions* exps;
 
-    extern (D) this(const ref Loc loc, Expressions* exps)
+    extern (D) this(const ref Loc loc, Expressions* exps) @safe
     {
         super(loc, EXP.mixin_);
         this.exps = exps;
@@ -4843,7 +4843,7 @@ extern (C++) final class MixinExp : Expression
  */
 extern (C++) final class ImportExp : UnaExp
 {
-    extern (D) this(const ref Loc loc, Expression e)
+    extern (D) this(const ref Loc loc, Expression e) @safe
     {
         super(loc, EXP.import_, e);
     }
@@ -4863,7 +4863,7 @@ extern (C++) final class AssertExp : UnaExp
 {
     Expression msg;
 
-    extern (D) this(const ref Loc loc, Expression e, Expression msg = null)
+    extern (D) this(const ref Loc loc, Expression e, Expression msg = null) @safe
     {
         super(loc, EXP.assert_, e);
         this.msg = msg;
@@ -4914,13 +4914,13 @@ extern (C++) final class DotIdExp : UnaExp
     bool wantsym;       // do not replace Symbol with its initializer during semantic()
     bool arrow;         // ImportC: if -> instead of .
 
-    extern (D) this(const ref Loc loc, Expression e, Identifier ident)
+    extern (D) this(const ref Loc loc, Expression e, Identifier ident) @safe
     {
         super(loc, EXP.dotIdentifier, e);
         this.ident = ident;
     }
 
-    static DotIdExp create(const ref Loc loc, Expression e, Identifier ident)
+    static DotIdExp create(const ref Loc loc, Expression e, Identifier ident) @safe
     {
         return new DotIdExp(loc, e, ident);
     }
@@ -4938,7 +4938,7 @@ extern (C++) final class DotTemplateExp : UnaExp
 {
     TemplateDeclaration td;
 
-    extern (D) this(const ref Loc loc, Expression e, TemplateDeclaration td)
+    extern (D) this(const ref Loc loc, Expression e, TemplateDeclaration td) @safe
     {
         super(loc, EXP.dotTemplateDeclaration, e);
         this.td = td;
@@ -4969,7 +4969,7 @@ extern (C++) final class DotVarExp : UnaExp
     Declaration var;
     bool hasOverloads;
 
-    extern (D) this(const ref Loc loc, Expression e, Declaration var, bool hasOverloads = true)
+    extern (D) this(const ref Loc loc, Expression e, Declaration var, bool hasOverloads = true) @safe
     {
         if (var.isVarDeclaration())
             hasOverloads = false;
@@ -5060,7 +5060,7 @@ extern (C++) final class DotTemplateInstanceExp : UnaExp
         this.ti = new TemplateInstance(loc, name, tiargs);
     }
 
-    extern (D) this(const ref Loc loc, Expression e, TemplateInstance ti)
+    extern (D) this(const ref Loc loc, Expression e, TemplateInstance ti) @safe
     {
         super(loc, EXP.dotTemplateInstance, e);
         this.ti = ti;
@@ -5153,7 +5153,7 @@ extern (C++) final class DelegateExp : UnaExp
     bool hasOverloads;
     VarDeclaration vthis2;  // container for multi-context
 
-    extern (D) this(const ref Loc loc, Expression e, FuncDeclaration f, bool hasOverloads = true, VarDeclaration vthis2 = null)
+    extern (D) this(const ref Loc loc, Expression e, FuncDeclaration f, bool hasOverloads = true, VarDeclaration vthis2 = null) @safe
     {
         super(loc, EXP.delegate_, e);
         this.func = f;
@@ -5173,7 +5173,7 @@ extern (C++) final class DotTypeExp : UnaExp
 {
     Dsymbol sym;        // symbol that represents a type
 
-    extern (D) this(const ref Loc loc, Expression e, Dsymbol s)
+    extern (D) this(const ref Loc loc, Expression e, Dsymbol s) @safe
     {
         super(loc, EXP.dotType, e);
         this.sym = s;
@@ -5228,14 +5228,14 @@ extern (C++) final class CallExp : UnaExp
     /// The fields are still separate for backwards compatibility
     extern (D) ArgumentList argumentList() { return ArgumentList(arguments, names); }
 
-    extern (D) this(const ref Loc loc, Expression e, Expressions* exps, Identifiers* names = null)
+    extern (D) this(const ref Loc loc, Expression e, Expressions* exps, Identifiers* names = null) @safe
     {
         super(loc, EXP.call, e);
         this.arguments = exps;
         this.names = names;
     }
 
-    extern (D) this(const ref Loc loc, Expression e)
+    extern (D) this(const ref Loc loc, Expression e) @safe
     {
         super(loc, EXP.call, e);
     }
@@ -5270,12 +5270,12 @@ extern (C++) final class CallExp : UnaExp
         this.f = fd;
     }
 
-    static CallExp create(const ref Loc loc, Expression e, Expressions* exps)
+    static CallExp create(const ref Loc loc, Expression e, Expressions* exps) @safe
     {
         return new CallExp(loc, e, exps);
     }
 
-    static CallExp create(const ref Loc loc, Expression e)
+    static CallExp create(const ref Loc loc, Expression e) @safe
     {
         return new CallExp(loc, e);
     }
@@ -5383,7 +5383,7 @@ TypeFunction calledFunctionType(CallExp ce)
         return null;
 }
 
-FuncDeclaration isFuncAddress(Expression e, bool* hasOverloads = null)
+FuncDeclaration isFuncAddress(Expression e, bool* hasOverloads = null) @safe
 {
     if (auto ae = e.isAddrExp())
     {
@@ -5424,12 +5424,12 @@ FuncDeclaration isFuncAddress(Expression e, bool* hasOverloads = null)
  */
 extern (C++) final class AddrExp : UnaExp
 {
-    extern (D) this(const ref Loc loc, Expression e)
+    extern (D) this(const ref Loc loc, Expression e) @safe
     {
         super(loc, EXP.address, e);
     }
 
-    extern (D) this(const ref Loc loc, Expression e, Type t)
+    extern (D) this(const ref Loc loc, Expression e, Type t) @safe
     {
         this(loc, e);
         type = t;
@@ -5446,14 +5446,14 @@ extern (C++) final class AddrExp : UnaExp
  */
 extern (C++) final class PtrExp : UnaExp
 {
-    extern (D) this(const ref Loc loc, Expression e)
+    extern (D) this(const ref Loc loc, Expression e) @safe
     {
         super(loc, EXP.star, e);
         //if (e.type)
         //  type = ((TypePointer *)e.type).next;
     }
 
-    extern (D) this(const ref Loc loc, Expression e, Type t)
+    extern (D) this(const ref Loc loc, Expression e, Type t) @safe
     {
         super(loc, EXP.star, e);
         type = t;
@@ -5499,7 +5499,7 @@ extern (C++) final class PtrExp : UnaExp
  */
 extern (C++) final class NegExp : UnaExp
 {
-    extern (D) this(const ref Loc loc, Expression e)
+    extern (D) this(const ref Loc loc, Expression e) @safe
     {
         super(loc, EXP.negate, e);
     }
@@ -5515,7 +5515,7 @@ extern (C++) final class NegExp : UnaExp
  */
 extern (C++) final class UAddExp : UnaExp
 {
-    extern (D) this(const ref Loc loc, Expression e) scope
+    extern (D) this(const ref Loc loc, Expression e) scope @safe
     {
         super(loc, EXP.uadd, e);
     }
@@ -5531,7 +5531,7 @@ extern (C++) final class UAddExp : UnaExp
  */
 extern (C++) final class ComExp : UnaExp
 {
-    extern (D) this(const ref Loc loc, Expression e)
+    extern (D) this(const ref Loc loc, Expression e) @safe
     {
         super(loc, EXP.tilde, e);
     }
@@ -5547,7 +5547,7 @@ extern (C++) final class ComExp : UnaExp
  */
 extern (C++) final class NotExp : UnaExp
 {
-    extern (D) this(const ref Loc loc, Expression e)
+    extern (D) this(const ref Loc loc, Expression e) @safe
     {
         super(loc, EXP.not, e);
     }
@@ -5567,7 +5567,7 @@ extern (C++) final class DeleteExp : UnaExp
 {
     bool isRAII;        // true if called automatically as a result of scoped destruction
 
-    extern (D) this(const ref Loc loc, Expression e, bool isRAII)
+    extern (D) this(const ref Loc loc, Expression e, bool isRAII) @safe
     {
         super(loc, EXP.delete_, e);
         this.isRAII = isRAII;
@@ -5591,7 +5591,7 @@ extern (C++) final class CastExp : UnaExp
     Type to;                    // type to cast to
     ubyte mod = cast(ubyte)~0;  // MODxxxxx
 
-    extern (D) this(const ref Loc loc, Expression e, Type t)
+    extern (D) this(const ref Loc loc, Expression e, Type t) @safe
     {
         super(loc, EXP.cast_, e);
         this.to = t;
@@ -5599,7 +5599,7 @@ extern (C++) final class CastExp : UnaExp
 
     /* For cast(const) and cast(immutable)
      */
-    extern (D) this(const ref Loc loc, Expression e, ubyte mod)
+    extern (D) this(const ref Loc loc, Expression e, ubyte mod) @safe
     {
         super(loc, EXP.cast_, e);
         this.mod = mod;
@@ -5653,14 +5653,14 @@ extern (C++) final class VectorExp : UnaExp
     uint dim = ~0;      // number of elements in the vector
     OwnedBy ownedByCtfe = OwnedBy.code;
 
-    extern (D) this(const ref Loc loc, Expression e, Type t)
+    extern (D) this(const ref Loc loc, Expression e, Type t) @safe
     {
         super(loc, EXP.vector, e);
         assert(t.ty == Tvector);
         to = cast(TypeVector)t;
     }
 
-    static VectorExp create(const ref Loc loc, Expression e, Type t)
+    static VectorExp create(const ref Loc loc, Expression e, Type t) @safe
     {
         return new VectorExp(loc, e, t);
     }
@@ -5689,7 +5689,7 @@ extern (C++) final class VectorExp : UnaExp
  */
 extern (C++) final class VectorArrayExp : UnaExp
 {
-    extern (D) this(const ref Loc loc, Expression e1)
+    extern (D) this(const ref Loc loc, Expression e1) @safe
     {
         super(loc, EXP.vectorArray, e1);
     }
@@ -5733,14 +5733,14 @@ extern (C++) final class SliceExp : UnaExp
     mixin(generateBitFields!(BitFields, ubyte));
 
     /************************************************************/
-    extern (D) this(const ref Loc loc, Expression e1, IntervalExp ie)
+    extern (D) this(const ref Loc loc, Expression e1, IntervalExp ie) @safe
     {
         super(loc, EXP.slice, e1);
         this.upr = ie ? ie.upr : null;
         this.lwr = ie ? ie.lwr : null;
     }
 
-    extern (D) this(const ref Loc loc, Expression e1, Expression lwr, Expression upr)
+    extern (D) this(const ref Loc loc, Expression e1, Expression lwr, Expression upr) @safe
     {
         super(loc, EXP.slice, e1);
         this.upr = upr;
@@ -5790,7 +5790,7 @@ extern (C++) final class SliceExp : UnaExp
  */
 extern (C++) final class ArrayLengthExp : UnaExp
 {
-    extern (D) this(const ref Loc loc, Expression e1)
+    extern (D) this(const ref Loc loc, Expression e1) @safe
     {
         super(loc, EXP.arrayLength, e1);
     }
@@ -5821,7 +5821,7 @@ extern (C++) final class ArrayExp : UnaExp
             arguments.push(index);
     }
 
-    extern (D) this(const ref Loc loc, Expression e1, Expressions* args)
+    extern (D) this(const ref Loc loc, Expression e1, Expressions* args) @safe
     {
         super(loc, EXP.array, e1);
         arguments = args;
@@ -5858,7 +5858,7 @@ extern (C++) final class ArrayExp : UnaExp
  */
 extern (C++) final class DotExp : BinExp
 {
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.dot, e1, e2);
     }
@@ -5884,7 +5884,7 @@ extern (C++) final class CommaExp : BinExp
     bool allowCommaExp;
 
 
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2, bool generated = true)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2, bool generated = true) @safe
     {
         super(loc, EXP.comma, e1, e2);
         allowCommaExp = isGenerated = generated;
@@ -5937,7 +5937,7 @@ extern (C++) final class CommaExp : BinExp
      *   exp = An expression that discards its result.
      *         If the argument is null or not a CommaExp, nothing happens.
      */
-    static void allow(Expression exp)
+    static void allow(Expression exp) @safe
     {
         if (exp)
             if (auto ce = exp.isCommaExp())
@@ -5953,7 +5953,7 @@ extern (C++) final class IntervalExp : Expression
     Expression lwr;
     Expression upr;
 
-    extern (D) this(const ref Loc loc, Expression lwr, Expression upr)
+    extern (D) this(const ref Loc loc, Expression lwr, Expression upr) @safe
     {
         super(loc, EXP.interval);
         this.lwr = lwr;
@@ -5978,7 +5978,7 @@ extern (C++) final class IntervalExp : Expression
  */
 extern (C++) final class DelegatePtrExp : UnaExp
 {
-    extern (D) this(const ref Loc loc, Expression e1)
+    extern (D) this(const ref Loc loc, Expression e1) @safe
     {
         super(loc, EXP.delegatePointer, e1);
     }
@@ -6016,7 +6016,7 @@ extern (C++) final class DelegatePtrExp : UnaExp
  */
 extern (C++) final class DelegateFuncptrExp : UnaExp
 {
-    extern (D) this(const ref Loc loc, Expression e1)
+    extern (D) this(const ref Loc loc, Expression e1) @safe
     {
         super(loc, EXP.delegateFunctionPointer, e1);
     }
@@ -6056,13 +6056,13 @@ extern (C++) final class IndexExp : BinExp
     bool modifiable = false;    // assume it is an rvalue
     bool indexIsInBounds;       // true if 0 <= e2 && e2 <= e1.length - 1
 
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.index, e1, e2);
         //printf("IndexExp::IndexExp('%s')\n", toChars());
     }
 
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2, bool indexIsInBounds)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2, bool indexIsInBounds) @safe
     {
         super(loc, EXP.index, e1, e2);
         this.indexIsInBounds = indexIsInBounds;
@@ -6156,7 +6156,7 @@ extern (C++) final class PostExp : BinExp
  */
 extern (C++) final class PreExp : UnaExp
 {
-    extern (D) this(EXP op, const ref Loc loc, Expression e)
+    extern (D) this(EXP op, const ref Loc loc, Expression e) @safe
     {
         super(loc, op, e);
         assert(op == EXP.preMinusMinus || op == EXP.prePlusPlus);
@@ -6186,12 +6186,12 @@ extern (C++) class AssignExp : BinExp
 
     /************************************************************/
     /* op can be EXP.assign, EXP.construct, or EXP.blit */
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.assign, e1, e2);
     }
 
-    this(const ref Loc loc, EXP tok, Expression e1, Expression e2)
+    this(const ref Loc loc, EXP tok, Expression e1, Expression e2) @safe
     {
         super(loc, tok, e1, e2);
     }
@@ -6237,7 +6237,7 @@ extern (C++) class AssignExp : BinExp
 extern (C++) final class LoweredAssignExp : AssignExp
 {
     Expression lowering;
-    extern (D) this(AssignExp exp, Expression lowering)
+    extern (D) this(AssignExp exp, Expression lowering) @safe
     {
         super(exp.loc, EXP.loweredAssignExp, exp.e1, exp.e2);
         this.lowering = lowering;
@@ -6257,14 +6257,14 @@ extern (C++) final class LoweredAssignExp : AssignExp
  */
 extern (C++) final class ConstructExp : AssignExp
 {
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.construct, e1, e2);
     }
 
     // Internal use only. If `v` is a reference variable, the assignment
     // will become a reference initialization automatically.
-    extern (D) this(const ref Loc loc, VarDeclaration v, Expression e2)
+    extern (D) this(const ref Loc loc, VarDeclaration v, Expression e2) @safe
     {
         auto ve = new VarExp(loc, v);
         assert(v.type && ve.type);
@@ -6286,14 +6286,14 @@ extern (C++) final class ConstructExp : AssignExp
  */
 extern (C++) final class BlitExp : AssignExp
 {
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.blit, e1, e2);
     }
 
     // Internal use only. If `v` is a reference variable, the assinment
     // will become a reference rebinding automatically.
-    extern (D) this(const ref Loc loc, VarDeclaration v, Expression e2)
+    extern (D) this(const ref Loc loc, VarDeclaration v, Expression e2) @safe
     {
         auto ve = new VarExp(loc, v);
         assert(v.type && ve.type);
@@ -6315,7 +6315,7 @@ extern (C++) final class BlitExp : AssignExp
  */
 extern (C++) final class AddAssignExp : BinAssignExp
 {
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.addAssign, e1, e2);
     }
@@ -6331,7 +6331,7 @@ extern (C++) final class AddAssignExp : BinAssignExp
  */
 extern (C++) final class MinAssignExp : BinAssignExp
 {
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.minAssign, e1, e2);
     }
@@ -6347,7 +6347,7 @@ extern (C++) final class MinAssignExp : BinAssignExp
  */
 extern (C++) final class MulAssignExp : BinAssignExp
 {
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.mulAssign, e1, e2);
     }
@@ -6363,7 +6363,7 @@ extern (C++) final class MulAssignExp : BinAssignExp
  */
 extern (C++) final class DivAssignExp : BinAssignExp
 {
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.divAssign, e1, e2);
     }
@@ -6379,7 +6379,7 @@ extern (C++) final class DivAssignExp : BinAssignExp
  */
 extern (C++) final class ModAssignExp : BinAssignExp
 {
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.modAssign, e1, e2);
     }
@@ -6395,7 +6395,7 @@ extern (C++) final class ModAssignExp : BinAssignExp
  */
 extern (C++) final class AndAssignExp : BinAssignExp
 {
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.andAssign, e1, e2);
     }
@@ -6411,7 +6411,7 @@ extern (C++) final class AndAssignExp : BinAssignExp
  */
 extern (C++) final class OrAssignExp : BinAssignExp
 {
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.orAssign, e1, e2);
     }
@@ -6427,7 +6427,7 @@ extern (C++) final class OrAssignExp : BinAssignExp
  */
 extern (C++) final class XorAssignExp : BinAssignExp
 {
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.xorAssign, e1, e2);
     }
@@ -6443,7 +6443,7 @@ extern (C++) final class XorAssignExp : BinAssignExp
  */
 extern (C++) final class PowAssignExp : BinAssignExp
 {
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.powAssign, e1, e2);
     }
@@ -6459,7 +6459,7 @@ extern (C++) final class PowAssignExp : BinAssignExp
  */
 extern (C++) final class ShlAssignExp : BinAssignExp
 {
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.leftShiftAssign, e1, e2);
     }
@@ -6475,7 +6475,7 @@ extern (C++) final class ShlAssignExp : BinAssignExp
  */
 extern (C++) final class ShrAssignExp : BinAssignExp
 {
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.rightShiftAssign, e1, e2);
     }
@@ -6491,7 +6491,7 @@ extern (C++) final class ShrAssignExp : BinAssignExp
  */
 extern (C++) final class UshrAssignExp : BinAssignExp
 {
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.unsignedRightShiftAssign, e1, e2);
     }
@@ -6516,12 +6516,12 @@ extern (C++) final class UshrAssignExp : BinAssignExp
  */
 extern (C++) class CatAssignExp : BinAssignExp
 {
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.concatenateAssign, e1, e2);
     }
 
-    extern (D) this(const ref Loc loc, EXP tok, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, EXP tok, Expression e1, Expression e2) @safe
     {
         super(loc, tok, e1, e2);
     }
@@ -6537,7 +6537,7 @@ extern (C++) class CatAssignExp : BinAssignExp
  */
 extern (C++) final class CatElemAssignExp : CatAssignExp
 {
-    extern (D) this(const ref Loc loc, Type type, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Type type, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.concatenateElemAssign, e1, e2);
         this.type = type;
@@ -6554,7 +6554,7 @@ extern (C++) final class CatElemAssignExp : CatAssignExp
  */
 extern (C++) final class CatDcharAssignExp : CatAssignExp
 {
-    extern (D) this(const ref Loc loc, Type type, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Type type, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.concatenateDcharAssign, e1, e2);
         this.type = type;
@@ -6573,7 +6573,7 @@ extern (C++) final class CatDcharAssignExp : CatAssignExp
  */
 extern (C++) final class AddExp : BinExp
 {
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.add, e1, e2);
     }
@@ -6591,7 +6591,7 @@ extern (C++) final class AddExp : BinExp
  */
 extern (C++) final class MinExp : BinExp
 {
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.min, e1, e2);
     }
@@ -6611,7 +6611,7 @@ extern (C++) final class CatExp : BinExp
 {
     Expression lowering;  // call to druntime hook `_d_arraycatnTX`
 
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2) scope
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2) scope @safe
     {
         super(loc, EXP.concatenate, e1, e2);
     }
@@ -6636,7 +6636,7 @@ extern (C++) final class CatExp : BinExp
  */
 extern (C++) final class MulExp : BinExp
 {
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.mul, e1, e2);
     }
@@ -6654,7 +6654,7 @@ extern (C++) final class MulExp : BinExp
  */
 extern (C++) final class DivExp : BinExp
 {
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.div, e1, e2);
     }
@@ -6672,7 +6672,7 @@ extern (C++) final class DivExp : BinExp
  */
 extern (C++) final class ModExp : BinExp
 {
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.mod, e1, e2);
     }
@@ -6690,7 +6690,7 @@ extern (C++) final class ModExp : BinExp
  */
 extern (C++) final class PowExp : BinExp
 {
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.pow, e1, e2);
     }
@@ -6708,7 +6708,7 @@ extern (C++) final class PowExp : BinExp
  */
 extern (C++) final class ShlExp : BinExp
 {
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.leftShift, e1, e2);
     }
@@ -6726,7 +6726,7 @@ extern (C++) final class ShlExp : BinExp
  */
 extern (C++) final class ShrExp : BinExp
 {
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.rightShift, e1, e2);
     }
@@ -6744,7 +6744,7 @@ extern (C++) final class ShrExp : BinExp
  */
 extern (C++) final class UshrExp : BinExp
 {
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.unsignedRightShift, e1, e2);
     }
@@ -6762,7 +6762,7 @@ extern (C++) final class UshrExp : BinExp
  */
 extern (C++) final class AndExp : BinExp
 {
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.and, e1, e2);
     }
@@ -6780,7 +6780,7 @@ extern (C++) final class AndExp : BinExp
  */
 extern (C++) final class OrExp : BinExp
 {
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.or, e1, e2);
     }
@@ -6798,7 +6798,7 @@ extern (C++) final class OrExp : BinExp
  */
 extern (C++) final class XorExp : BinExp
 {
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.xor, e1, e2);
     }
@@ -6817,7 +6817,7 @@ extern (C++) final class XorExp : BinExp
  */
 extern (C++) final class LogicalExp : BinExp
 {
-    extern (D) this(const ref Loc loc, EXP op, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, EXP op, Expression e1, Expression e2) @safe
     {
         super(loc, op, e1, e2);
         assert(op == EXP.andAnd || op == EXP.orOr);
@@ -6839,7 +6839,7 @@ extern (C++) final class LogicalExp : BinExp
  */
 extern (C++) final class CmpExp : BinExp
 {
-    extern (D) this(EXP op, const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(EXP op, const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, op, e1, e2);
         assert(op == EXP.lessThan || op == EXP.lessOrEqual || op == EXP.greaterThan || op == EXP.greaterOrEqual);
@@ -6860,7 +6860,7 @@ extern (C++) final class CmpExp : BinExp
  */
 extern (C++) final class InExp : BinExp
 {
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.in_, e1, e2);
     }
@@ -6899,7 +6899,7 @@ extern (C++) final class RemoveExp : BinExp
  */
 extern (C++) final class EqualExp : BinExp
 {
-    extern (D) this(EXP op, const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(EXP op, const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, op, e1, e2);
         assert(op == EXP.equal || op == EXP.notEqual);
@@ -6920,7 +6920,7 @@ extern (C++) final class EqualExp : BinExp
  */
 extern (C++) final class IdentityExp : BinExp
 {
-    extern (D) this(EXP op, const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(EXP op, const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, op, e1, e2);
         assert(op == EXP.identity || op == EXP.notIdentity);
@@ -6941,7 +6941,7 @@ extern (C++) final class CondExp : BinExp
 {
     Expression econd;
 
-    extern (D) this(const ref Loc loc, Expression econd, Expression e1, Expression e2) scope
+    extern (D) this(const ref Loc loc, Expression econd, Expression e1, Expression e2) scope @safe
     {
         super(loc, EXP.question, e1, e2);
         this.econd = econd;
@@ -6990,7 +6990,7 @@ extern (C++) final class CondExp : BinExp
             VarDeclaration vcond;
             bool isThen;
 
-            extern (D) this(Scope* sc, CondExp ce)
+            extern (D) this(Scope* sc, CondExp ce) @safe
             {
                 this.sc = sc;
                 this.ce = ce;
@@ -7081,7 +7081,7 @@ bool isDefaultInitOp(EXP op) pure nothrow @safe @nogc
  */
 extern (C++) class DefaultInitExp : Expression
 {
-    extern (D) this(const ref Loc loc, EXP op)
+    extern (D) this(const ref Loc loc, EXP op) @safe
     {
         super(loc, op);
     }
@@ -7097,7 +7097,7 @@ extern (C++) class DefaultInitExp : Expression
  */
 extern (C++) final class FileInitExp : DefaultInitExp
 {
-    extern (D) this(const ref Loc loc, EXP tok)
+    extern (D) this(const ref Loc loc, EXP tok) @safe
     {
         super(loc, tok);
     }
@@ -7126,7 +7126,7 @@ extern (C++) final class FileInitExp : DefaultInitExp
  */
 extern (C++) final class LineInitExp : DefaultInitExp
 {
-    extern (D) this(const ref Loc loc)
+    extern (D) this(const ref Loc loc) @safe
     {
         super(loc, EXP.line);
     }
@@ -7148,7 +7148,7 @@ extern (C++) final class LineInitExp : DefaultInitExp
  */
 extern (C++) final class ModuleInitExp : DefaultInitExp
 {
-    extern (D) this(const ref Loc loc)
+    extern (D) this(const ref Loc loc) @safe
     {
         super(loc, EXP.moduleString);
     }
@@ -7171,7 +7171,7 @@ extern (C++) final class ModuleInitExp : DefaultInitExp
  */
 extern (C++) final class FuncInitExp : DefaultInitExp
 {
-    extern (D) this(const ref Loc loc)
+    extern (D) this(const ref Loc loc) @safe
     {
         super(loc, EXP.functionString);
     }
@@ -7200,7 +7200,7 @@ extern (C++) final class FuncInitExp : DefaultInitExp
  */
 extern (C++) final class PrettyFuncInitExp : DefaultInitExp
 {
-    extern (D) this(const ref Loc loc)
+    extern (D) this(const ref Loc loc) @safe
     {
         super(loc, EXP.prettyFunction);
     }
@@ -7268,7 +7268,7 @@ extern (C++) final class GenericExp : Expression
     Types* types;       /// type-names for generic associations (null entry for `default`)
     Expressions* exps;  /// 1:1 mapping of typeNames to exps
 
-    extern (D) this(const ref Loc loc, Expression cntlExp, Types* types, Expressions* exps)
+    extern (D) this(const ref Loc loc, Expression cntlExp, Types* types, Expressions* exps) @safe
     {
         super(loc, EXP._Generic);
         this.cntlExp = cntlExp;

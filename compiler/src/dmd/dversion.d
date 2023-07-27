@@ -35,12 +35,12 @@ extern (C++) final class DebugSymbol : Dsymbol
 {
     uint level;
 
-    extern (D) this(const ref Loc loc, Identifier ident)
+    extern (D) this(const ref Loc loc, Identifier ident) @safe
     {
         super(loc, ident);
     }
 
-    extern (D) this(const ref Loc loc, uint level)
+    extern (D) this(const ref Loc loc, uint level) @safe
     {
         super(loc, null);
         this.level = level;

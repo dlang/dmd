@@ -40,7 +40,7 @@ public:
     bool checkOnly;     // don't print errors
     bool err;
 
-    extern (D) this(FuncDeclaration f) scope
+    extern (D) this(FuncDeclaration f) scope @safe
     {
         this.f = f;
     }

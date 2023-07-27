@@ -183,7 +183,7 @@ private final class ANSIConsole : Console
 
   public:
 
-    this(FILE* fp) { _fp = fp; }
+    this(FILE* fp) @safe { _fp = fp; }
 
     @property FILE* fp() { return _fp; }
 

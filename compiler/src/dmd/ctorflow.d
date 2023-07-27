@@ -71,7 +71,7 @@ struct CtorFlow
      * Params:
      *  csx = bits to set
      */
-    void orCSX(CSX csx) nothrow pure
+    void orCSX(CSX csx) nothrow pure @safe
     {
         callSuper |= csx;
         foreach (ref u; fieldinit)
@@ -83,7 +83,7 @@ struct CtorFlow
      * Params:
      *  ctorflow = bits to OR in
      */
-    void OR(const ref CtorFlow ctorflow) pure nothrow
+    void OR(const ref CtorFlow ctorflow) pure nothrow @safe
     {
         callSuper |= ctorflow.callSuper;
         if (fieldinit.length && ctorflow.fieldinit.length)
@@ -172,7 +172,7 @@ bool mergeCallSuper(ref CSX a, const CSX b) pure nothrow @safe
  * Returns:
  *      false means either `a` or `b` skips initialization
  */
-bool mergeFieldInit(ref CSX a, const CSX b) pure nothrow
+bool mergeFieldInit(ref CSX a, const CSX b) pure nothrow @safe
 {
     if (b == a)
         return true;

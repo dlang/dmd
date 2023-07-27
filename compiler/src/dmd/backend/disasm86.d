@@ -223,7 +223,7 @@ const(char)* BREGNAME(uint rex, uint reg)
 }
 
 /* Return !=0 if there is an SIB byte   */
-bool issib(uint rm) { return (rm & 7) == 4 && (rm & 0xC0) != 0xC0; }
+bool issib(uint rm) @safe { return (rm & 7) == 4 && (rm & 0xC0) != 0xC0; }
 
 
 addr calccodsize(addr c, out addr pc)
@@ -377,7 +377,7 @@ addr calccodsize(addr c, out addr pc)
  * Load byte at code[c].
  */
 
-const(char)* immed8(uint c)
+const(char)* immed8(uint c) @safe
 {
     return wordtostring(code[c]);
 }
@@ -3421,7 +3421,7 @@ const(char)* shortlabelDefault(uint pc, int offset)
  * Load word at code[c].
  */
 
-uint word(ubyte[] code, uint c)
+uint word(ubyte[] code, uint c) @safe
 {
     return code[c] + (code[c + 1] << 8);
 }

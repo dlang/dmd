@@ -194,7 +194,7 @@ private Expressions* buildArrayOp(Scope* sc, Expression e, Objects* tiargs)
         Expressions* args;
 
     public:
-        extern (D) this(Scope* sc, Objects* tiargs) scope
+        extern (D) this(Scope* sc, Objects* tiargs) scope @safe
         {
             this.sc = sc;
             this.tiargs = tiargs;
@@ -276,7 +276,7 @@ bool isArrayOpImplicitCast(TypeDArray tfrom, TypeDArray tto)
 /***********************************************
  * Test if expression is a unary array op.
  */
-bool isUnaArrayOp(EXP op)
+bool isUnaArrayOp(EXP op) @safe
 {
     switch (op)
     {
@@ -292,7 +292,7 @@ bool isUnaArrayOp(EXP op)
 /***********************************************
  * Test if expression is a binary array op.
  */
-bool isBinArrayOp(EXP op)
+bool isBinArrayOp(EXP op) @safe
 {
     switch (op)
     {
@@ -315,7 +315,7 @@ bool isBinArrayOp(EXP op)
 /***********************************************
  * Test if expression is a binary assignment array op.
  */
-bool isBinAssignArrayOp(EXP op)
+bool isBinAssignArrayOp(EXP op) @safe
 {
     switch (op)
     {

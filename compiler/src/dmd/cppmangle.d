@@ -2131,7 +2131,7 @@ private void visitObject(V : Visitor)(RootObject o, V this_)
 }
 
 /// Helper function to safely get a type out of a `RootObject`
-private Type asType(RootObject o)
+private Type asType(RootObject o) @safe
 {
     if (Type ta = isType(o))
         return ta;
@@ -2143,7 +2143,7 @@ private Type asType(RootObject o)
 }
 
 /// Helper function to safely get a `FuncDeclaration` out of a `RootObject`
-private FuncDeclaration asFuncDecl(RootObject o)
+private FuncDeclaration asFuncDecl(RootObject o) @safe
 {
     Dsymbol d = isDsymbol(o);
     assert(d !is null);
