@@ -66,7 +66,7 @@ Target.OS defaultTargetOS()
         static assert(0, "unknown TARGET");
 }
 
-ubyte defaultTargetOSMajor()
+ubyte defaultTargetOSMajor() @safe
 {
     version (FreeBSD)
     {
@@ -499,7 +499,7 @@ extern (C++) struct Target
     /**
      Determine the object format to be used
      */
-    extern(D) Target.ObjectFormat objectFormat()
+    extern(D) Target.ObjectFormat objectFormat() @safe
     {
         if (os == Target.OS.OSX)
             return Target.ObjectFormat.macho;
@@ -514,7 +514,7 @@ extern (C++) struct Target
     /**
      * Determine the instruction set to be used
      */
-    void setCPU()
+    void setCPU() @safe
     {
         if(!isXmmSupported())
         {
@@ -546,7 +546,7 @@ extern (C++) struct Target
      * This can be used to restore the state set by `_init` to its original
      * state.
      */
-    void deinitialize()
+    void deinitialize() @safe
     {
         this = this.init;
     }
@@ -653,7 +653,7 @@ extern (C++) struct Target
      *      2   vector element type is not supported
      *      3   vector size is not supported
      */
-    extern (C++) int isVectorTypeSupported(int sz, Type type)
+    extern (C++) int isVectorTypeSupported(int sz, Type type) @safe
     {
         if (!isXmmSupported())
             return 1; // not supported
@@ -931,7 +931,7 @@ extern (C++) struct Target
      * Returns:
      *      `LINK` to use for `extern(System)`
      */
-    extern (C++) LINK systemLinkage()
+    extern (C++) LINK systemLinkage() @safe
     {
         return os == Target.OS.Windows ? LINK.windows : LINK.c;
     }
@@ -1259,7 +1259,7 @@ extern (C++) struct Target
      *  tf = type of function being called
      * Returns: `true` if the callee invokes destructors for arguments.
      */
-    extern (C++) bool isCalleeDestroyingArgs(TypeFunction tf)
+    extern (C++) bool isCalleeDestroyingArgs(TypeFunction tf) @safe
     {
         // On windows, the callee destroys arguments always regardless of function linkage,
         // and regardless of whether the caller or callee cleans the stack.
@@ -1294,7 +1294,7 @@ extern (C++) struct Target
      * Returns:
      *      `false` if the target does not support `pragma(linkerDirective)`.
      */
-    extern (C++) bool supportsLinkerDirective() const
+    extern (C++) bool supportsLinkerDirective() const @safe
     {
         return os == Target.OS.Windows && !omfobj;
     }
@@ -1308,7 +1308,7 @@ extern (C++) struct Target
      * Returns:
      *  true if xmm usage is supported
      */
-    extern (D) bool isXmmSupported()
+    extern (D) bool isXmmSupported() @safe
     {
         return isX86_64 || os == Target.OS.OSX;
     }
@@ -1317,7 +1317,7 @@ extern (C++) struct Target
      * Returns:
      *  true if generating code for POSIX
      */
-    extern (D) @property bool isPOSIX() scope const nothrow @nogc
+    extern (D) @property bool isPOSIX() scope const nothrow @nogc @safe
     out(result) { assert(result || os == Target.OS.Windows); }
     do
     {
@@ -1328,7 +1328,7 @@ extern (C++) struct Target
      * Returns:
      *  alignment of the stack
      */
-    extern (D) uint stackAlign()
+    extern (D) uint stackAlign() @safe
     {
         return isXmmSupported() ? 16 : (isX86_64 ? 8 : 4);
     }
@@ -1373,7 +1373,7 @@ struct TargetC
     Runtime runtime;          /// vendor of the C runtime to link against
     BitFieldStyle bitFieldStyle; /// different C compilers do it differently
 
-    extern (D) void initialize(ref const Param params, ref const Target target)
+    extern (D) void initialize(ref const Param params, ref const Target target) @safe
     {
         const os = target.os;
         boolsize = 1;
@@ -1460,7 +1460,7 @@ struct TargetCPP
     bool wrapDtorInExternD;   /// set if C++ dtors require a D wrapper to be callable from runtime
     Runtime runtime;          /// vendor of the C++ runtime to link against
 
-    extern (D) void initialize(ref const Param params, ref const Target target)
+    extern (D) void initialize(ref const Param params, ref const Target target) @safe
     {
         const os = target.os;
         if (os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.DragonFlyBSD | Target.OS.Solaris))
@@ -1618,7 +1618,7 @@ struct TargetObjC
 {
     bool supported;     /// set if compiler can interface with Objective-C
 
-    extern (D) void initialize(ref const Param params, ref const Target target)
+    extern (D) void initialize(ref const Param params, ref const Target target) @safe
     {
         if (target.os == Target.OS.OSX && target.isX86_64)
             supported = true;

@@ -105,7 +105,7 @@ struct IRState
         this.Cfile = m.filetype == FileType.c;
     }
 
-    FuncDeclaration getFunc()
+    FuncDeclaration getFunc() @safe
     {
         return symbol;
     }
@@ -149,7 +149,7 @@ struct IRState
      * Returns:
      *  true if in a nothrow section of code
      */
-    bool isNothrow()
+    bool isNothrow() @safe
     {
         return !mayThrow;
     }

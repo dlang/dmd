@@ -58,7 +58,7 @@ struct ObjcSelector
         stringtable._init();
     }
 
-    extern (D) this(const(char)* sv, size_t len, size_t pcount)
+    extern (D) this(const(char)* sv, size_t len, size_t pcount) @safe
     {
         stringvalue = sv;
         stringlen = len;
@@ -167,12 +167,12 @@ extern (C++) struct ObjcClassDeclaration
     /// List of non-inherited methods.
     FuncDeclaration[] methodList;
 
-    extern (D) this(ClassDeclaration classDeclaration)
+    extern (D) this(ClassDeclaration classDeclaration) @safe
     {
         this.classDeclaration = classDeclaration;
     }
 
-    bool isRootClass() const
+    bool isRootClass() const @safe
     {
         return classDeclaration.classKind == ClassKind.objc &&
             !metaclass &&

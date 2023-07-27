@@ -116,7 +116,7 @@ enum Class : ubyte
     memory
 }
 
-Class merge(Class a, Class b)
+Class merge(Class a, Class b) @safe
 {
     bool any(Class value) { return a == value || b == value; }
 
@@ -140,7 +140,7 @@ struct Classification
     Class[4] classes;
     int numEightbytes;
 
-    const(Class[]) slice() const return { return classes[0 .. numEightbytes]; }
+    const(Class[]) slice() const return @safe { return classes[0 .. numEightbytes]; }
 }
 
 Classification classify(Type t, size_t size)
@@ -156,7 +156,7 @@ extern (C++) final class ToClassesVisitor : Visitor
     int numEightbytes;
     Class[4] result = Class.noClass;
 
-    this(size_t size) scope
+    this(size_t size) scope @safe
     {
         assert(size > 0);
         this.size = size;

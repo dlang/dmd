@@ -39,7 +39,7 @@ import dmd.tocvdebug;
  * Returns:
  *  corresponding tym_t bits
  */
-tym_t modToTym(MOD mod) pure
+tym_t modToTym(MOD mod) pure @safe
 {
     switch (mod)
     {

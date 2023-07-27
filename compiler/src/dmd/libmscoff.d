@@ -44,7 +44,7 @@ import dmd.root.stringtable;
 import dmd.scanmscoff;
 
 // Entry point (only public symbol in this module).
-public extern (C++) Library LibMSCoff_factory()
+public extern (C++) Library LibMSCoff_factory() @safe
 {
     return new LibMSCoff();
 }
@@ -59,13 +59,13 @@ struct MSCoffObjSymbol
     MSCoffObjModule* om;
 
     /// Predicate for `Array.sort`for name comparison
-    static int name_pred (scope const MSCoffObjSymbol** ppe1, scope const MSCoffObjSymbol** ppe2) nothrow @nogc pure
+    static int name_pred (scope const MSCoffObjSymbol** ppe1, scope const MSCoffObjSymbol** ppe2) nothrow @nogc pure @safe
     {
         return dstrcmp((**ppe1).name, (**ppe2).name);
     }
 
     /// Predicate for `Array.sort`for offset comparison
-    static int offset_pred (scope const MSCoffObjSymbol** ppe1, scope const MSCoffObjSymbol** ppe2) nothrow @nogc pure
+    static int offset_pred (scope const MSCoffObjSymbol** ppe1, scope const MSCoffObjSymbol** ppe2) nothrow @nogc pure @safe
     {
         return (**ppe1).om.offset - (**ppe2).om.offset;
     }

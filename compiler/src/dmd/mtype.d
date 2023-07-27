@@ -157,7 +157,7 @@ MOD MODmerge(MOD mod1, MOD mod2) pure nothrow @nogc @safe
 /*********************************
  * Store modifier name into buf.
  */
-void MODtoBuffer(OutBuffer* buf, MOD mod) nothrow
+void MODtoBuffer(OutBuffer* buf, MOD mod) nothrow @safe
 {
     buf.writestring(MODtoString(mod));
 }
@@ -174,7 +174,7 @@ const(char)* MODtoChars(MOD mod) nothrow pure
 }
 
 /// Ditto
-string MODtoString(MOD mod) nothrow pure
+string MODtoString(MOD mod) nothrow pure @safe
 {
     final switch (mod)
     {
@@ -6564,7 +6564,7 @@ extern (C++) struct ParameterList
     VarArg varargs = VarArg.none;
     bool hasIdentifierList;             // true if C identifier-list style
 
-    this(Parameters* parameters, VarArg varargs = VarArg.none, StorageClass stc = 0)
+    this(Parameters* parameters, VarArg varargs = VarArg.none, StorageClass stc = 0) @safe
     {
         this.parameters = parameters;
         this.varargs = varargs;
@@ -6667,7 +6667,7 @@ extern (C++) final class Parameter : ASTNode
     Expression defaultArg;
     UserAttributeDeclaration userAttribDecl; // user defined attributes
 
-    extern (D) this(StorageClass storageClass, Type type, Identifier ident, Expression defaultArg, UserAttributeDeclaration userAttribDecl)
+    extern (D) this(StorageClass storageClass, Type type, Identifier ident, Expression defaultArg, UserAttributeDeclaration userAttribDecl) @safe
     {
         this.type = type;
         this.ident = ident;
@@ -6676,7 +6676,7 @@ extern (C++) final class Parameter : ASTNode
         this.userAttribDecl = userAttribDecl;
     }
 
-    static Parameter create(StorageClass storageClass, Type type, Identifier ident, Expression defaultArg, UserAttributeDeclaration userAttribDecl)
+    static Parameter create(StorageClass storageClass, Type type, Identifier ident, Expression defaultArg, UserAttributeDeclaration userAttribDecl) @safe
     {
         return new Parameter(storageClass, type, ident, defaultArg, userAttribDecl);
     }
@@ -7646,7 +7646,7 @@ mixin template VisitType(Result)
  *      handler = string for the name of the visit handler
  * Returns: boilerplate code for a case
  */
-pure string visitTYCase(string handler)
+pure string visitTYCase(string handler) @safe
 {
     if (__ctfe)
     {

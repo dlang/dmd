@@ -80,7 +80,7 @@ Params:
 
 Returns: true iff `os` contains the current targetOS.
 */
-bool isCurrentTargetOS(TargetOS os)
+bool isCurrentTargetOS(TargetOS os) @safe
 {
     return (os & targetOS) > 0;
 }
@@ -916,7 +916,7 @@ struct CLIUsage
     Returns a string of all available CLI options for the current targetOS.
     Options are separated by newlines.
     */
-    static string usage()
+    static string usage() @safe
     {
         enum maxFlagLength = 18;
         enum s = () {

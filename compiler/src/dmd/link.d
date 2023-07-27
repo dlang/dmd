@@ -93,7 +93,7 @@ version (CRuntime_Microsoft)
 /****************************************
  * Write filename to cmdbuf, quoting if necessary.
  */
-private void writeFilename(OutBuffer* buf, const(char)[] filename)
+private void writeFilename(OutBuffer* buf, const(char)[] filename) @safe
 {
     /* Loop and see if we need to quote
      */

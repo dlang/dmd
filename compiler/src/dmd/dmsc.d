@@ -104,6 +104,6 @@ void backend_init()
 /**************************************
  */
 
-void backend_term()
+void backend_term() @safe
 {
 }

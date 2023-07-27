@@ -109,7 +109,7 @@ struct CtorFlow
  * Returns:
  *      false means one of the paths skips construction
  */
-bool mergeCallSuper(ref CSX a, const CSX b) pure nothrow
+bool mergeCallSuper(ref CSX a, const CSX b) pure nothrow @safe
 {
     // This does a primitive flow analysis to support the restrictions
     // regarding when and how constructors can appear.

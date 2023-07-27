@@ -614,7 +614,7 @@ extern (C++) struct Scope
      * Returns:
      *  innermost scope, null if none
      */
-    extern (D) Scope* inner() return
+    extern (D) Scope* inner() return @safe
     {
         for (Scope* sc = &this; sc; sc = sc.enclosing)
         {

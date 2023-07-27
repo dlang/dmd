@@ -205,7 +205,7 @@ nothrow:
      * Returns:
      *   true if Loc has been set to other than the default initialization
      */
-    bool isValid() const pure
+    bool isValid() const pure @safe
     {
         return fileIndex != 0;
     }

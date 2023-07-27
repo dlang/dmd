@@ -280,19 +280,19 @@ private:
     Expression localThis;       // value of 'this', or NULL if none
 
 public:
-    size_t stackPointer()
+    size_t stackPointer() @safe
     {
         return values.length;
     }
 
     // The current value of 'this', or NULL if none
-    Expression getThis()
+    Expression getThis() @safe
     {
         return localThis;
     }
 
     // Largest number of stack positions we've used
-    size_t maxStackUsage()
+    size_t maxStackUsage() @safe
     {
         return maxStackPointer;
     }
@@ -1646,7 +1646,7 @@ public:
     Expression result;
     UnionExp* pue;              // storage for `result`
 
-    extern (D) this(UnionExp* pue, InterState* istate, CTFEGoal goal) scope
+    extern (D) this(UnionExp* pue, InterState* istate, CTFEGoal goal) scope @safe
     {
         this.pue = pue;
         this.istate = istate;
@@ -3246,7 +3246,7 @@ public:
      */
     // Returns the variable which is eventually modified, or NULL if an rvalue.
     // thisval is the current value of 'this'.
-    static VarDeclaration findParentVar(Expression e)
+    static VarDeclaration findParentVar(Expression e) @safe
     {
         for (;;)
         {
