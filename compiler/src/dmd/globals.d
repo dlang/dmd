@@ -344,8 +344,8 @@ extern (C++) struct Global
             compileEnv.vendor = "Digital Mars D";
 
             // -color=auto is the default value
-            import dmd.console : detectTerminal;
-            params.color = detectTerminal();
+            import dmd.console : detectTerminal, detectColorPreference;
+            params.color = detectTerminal() && detectColorPreference();
         }
         else version (IN_GCC)
         {
