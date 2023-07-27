@@ -4558,7 +4558,7 @@ bool setUnsafe(Scope* sc,
                 .error(loc, fmt, arg0 ? arg0.toChars() : "", arg1 ? arg1.toChars() : "", arg2 ? arg2.toChars() : "");
                 return true;
             }
-            else if (!(sc.varDecl.storage_class & STC.system))
+            else if (!(sc.varDecl.storage_class & STC.trusted))
             {
                 sc.varDecl.storage_class |= STC.system;
             }
