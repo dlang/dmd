@@ -1,8 +1,9 @@
-/* TEST_OUTPUT:
+/* REQUIRED_ARGS: -wo -wi
+TEST_OUTPUT:
 ---
-compilable/test23145.d(117): Deprecation: `scope` allocation of `c` requires that constructor be annotated with `scope`
+compilable/test23145.d(117): Warning: `scope` allocation of `c` requires that constructor be annotated with `scope`
 compilable/test23145.d(111):        is the location of the constructor
-compilable/test23145.d(124): Deprecation: `scope` allocation of `c` requires that constructor be annotated with `scope`
+compilable/test23145.d(124): Warning: `scope` allocation of `c` requires that constructor be annotated with `scope`
 compilable/test23145.d(111):        is the location of the constructor
 ---
 */
