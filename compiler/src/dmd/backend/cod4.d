@@ -4113,7 +4113,7 @@ void cdasm(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     // Assume only regs normally destroyed by a function are destroyed
     getregs(cdb,(ALLREGS | mES) & ~fregsaved);
-    cdb.genasm(cast(char *)e.EV.Vstring, cast(uint) e.EV.Vstrlen);
+    cdb.genasm(cast(ubyte[])e.EV.Vstring[0 .. e.EV.Vstrlen]);
     fixresult(cdb,e,(I16 ? mDX | mAX : mAX),pretregs);
 }
 

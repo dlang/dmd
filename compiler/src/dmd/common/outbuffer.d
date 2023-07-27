@@ -711,6 +711,12 @@ struct OutBuffer
         return cast(char*)data.ptr;
     }
 
+    // Peek at slice of data without taking ownership
+    extern (D) ubyte[] peekSlice() pure nothrow
+    {
+        return data[0 .. offset];
+    }
+
     // Append terminating null if necessary and take ownership of data
     extern (C++) char* extractChars() pure nothrow
     {

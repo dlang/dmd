@@ -3699,7 +3699,7 @@ code *asm_db_parse(OP *pop)
     cdb.ctor();
     if (driverParams.symdebug)
         cdb.genlinnum(Srcpos.create(asmstate.loc.filename, asmstate.loc.linnum, asmstate.loc.charnum));
-    cdb.genasm(bytes.peekChars(), cast(uint)bytes.length);
+    cdb.genasm(bytes.peekSlice());
     code *c = cdb.finish();
 
     asmstate.statement.regs |= /* mES| */ ALLREGS;
