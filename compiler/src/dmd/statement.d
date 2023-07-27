@@ -1927,6 +1927,10 @@ extern (C++) final class LabelDsymbol : Dsymbol
     bool deleted;           // set if rewritten to return in foreach delegate
     bool iasm;              // set if used by inline assembler
 
+    // set if label was defined multiple times, to avoid duplicate errors
+    // can be removed if generic error message deduplication is implemented
+    bool duplicated;
+
     extern (D) this(Identifier ident, const ref Loc loc = Loc.initial)
     {
         super(loc, ident);

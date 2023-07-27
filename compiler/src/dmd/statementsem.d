@@ -3553,9 +3553,19 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         ls.inCtfeBlock = (sc.flags & SCOPE.ctfeBlock) != 0;
 
         LabelDsymbol ls2 = fd.searchLabel(ls.ident, ls.loc);
-        if (ls2.statement)
+        if (ls2.statement && !ls2.duplicated)
         {
-            ls.error("label `%s` already defined", ls2.toChars());
+            if (ls.loc == ls2.loc)
+            {
+                ls2.duplicated = true;
+                ls.error("label `%s` is duplicated", ls2.toChars());
+                .errorSupplemental(ls2.loc, "labels cannot be used in a static foreach with more than 1 iteration");
+            }
+            else
+            {
+                ls.error("label `%s` is already defined", ls2.toChars());
+                .errorSupplemental(ls2.loc, "first definition is here");
+            }
             return setError();
         }
         else

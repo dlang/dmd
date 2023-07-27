@@ -4508,6 +4508,7 @@ public:
     LabelStatement* statement;
     bool deleted;
     bool iasm;
+    bool duplicated;
     static LabelDsymbol* create(Identifier* ident);
     LabelDsymbol* isLabel() override;
     void accept(Visitor* v) override;
