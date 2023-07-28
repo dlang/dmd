@@ -1582,7 +1582,7 @@ private Type arrayExpressionToCommonType(Scope* sc, ref Expressions exps)
     return t0;
 }
 
-private Expression opAssignToOp(const ref Loc loc, EXP op, Expression e1, Expression e2)
+private Expression opAssignToOp(const ref Loc loc, EXP op, Expression e1, Expression e2) @safe
 {
     Expression e;
     switch (op)

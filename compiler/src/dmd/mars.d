@@ -2617,13 +2617,13 @@ private void reconcileLinkRunLib(ref Param params, size_t numSrcFiles, const cha
 }
 
 /// Sets the boolean for a flag with the given name
-private static void setFlagFor(string name, ref bool b)
+private static void setFlagFor(string name, ref bool b) @safe
 {
     b = name != "revert";
 }
 
 /// Sets the FeatureState for a flag with the given name
-private static void setFlagFor(string name, ref FeatureState s)
+private static void setFlagFor(string name, ref FeatureState s) @safe
 {
     s = name != "revert" ? FeatureState.enabled : FeatureState.disabled;
 }

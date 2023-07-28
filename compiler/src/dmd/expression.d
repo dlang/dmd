@@ -913,7 +913,7 @@ extern (C++) abstract class Expression : ASTNode
     /**********************************
      * Combine e1 and e2 by CommaExp if both are not NULL.
      */
-    extern (D) static Expression combine(Expression e1, Expression e2)
+    extern (D) static Expression combine(Expression e1, Expression e2) @safe
     {
         if (e1)
         {
@@ -928,12 +928,12 @@ extern (C++) abstract class Expression : ASTNode
         return e1;
     }
 
-    extern (D) static Expression combine(Expression e1, Expression e2, Expression e3)
+    extern (D) static Expression combine(Expression e1, Expression e2, Expression e3) @safe
     {
         return combine(combine(e1, e2), e3);
     }
 
-    extern (D) static Expression combine(Expression e1, Expression e2, Expression e3, Expression e4)
+    extern (D) static Expression combine(Expression e1, Expression e2, Expression e3, Expression e4) @safe
     {
         return combine(combine(e1, e2), combine(e3, e4));
     }

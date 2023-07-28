@@ -284,7 +284,7 @@ extern (C++) class Dsymbol : ASTNode
         this.ident = ident;
     }
 
-    static Dsymbol create(Identifier ident) nothrow
+    static Dsymbol create(Identifier ident) nothrow @safe
     {
         return new Dsymbol(ident);
     }

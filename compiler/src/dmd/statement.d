@@ -479,7 +479,7 @@ extern (C++) class ExpStatement : Statement
         this.exp = exp;
     }
 
-    final extern (D) this(const ref Loc loc, Dsymbol declaration)
+    final extern (D) this(const ref Loc loc, Dsymbol declaration) @safe
     {
         super(loc, STMT.Exp);
         this.exp = new DeclarationExp(loc, declaration);
@@ -775,7 +775,7 @@ extern (C++) final class ForwardingStatement : Statement
         this.statement = statement;
     }
 
-    extern (D) this(const ref Loc loc, Statement statement)
+    extern (D) this(const ref Loc loc, Statement statement) @safe
     {
         auto sym = new ForwardingScopeDsymbol();
         sym.symtab = new DsymbolTable();
@@ -1931,12 +1931,12 @@ extern (C++) final class LabelDsymbol : Dsymbol
     // can be removed if generic error message deduplication is implemented
     bool duplicated;
 
-    extern (D) this(Identifier ident, const ref Loc loc = Loc.initial)
+    extern (D) this(Identifier ident, const ref Loc loc = Loc.initial) @safe
     {
         super(loc, ident);
     }
 
-    static LabelDsymbol create(Identifier ident)
+    static LabelDsymbol create(Identifier ident) @safe
     {
         return new LabelDsymbol(ident);
     }

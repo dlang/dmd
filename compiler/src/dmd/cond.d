@@ -279,7 +279,7 @@ extern (C++) final class StaticForeach : RootObject
      *     An AST for the expression `Tuple(e)`.
      */
 
-    private extern(D) Expression createTuple(const ref Loc loc, TypeStruct type, Expressions* e)
+    private extern(D) Expression createTuple(const ref Loc loc, TypeStruct type, Expressions* e) @safe
     {   // TODO: move to druntime?
         return new CallExp(loc, new TypeExp(loc, type), e);
     }

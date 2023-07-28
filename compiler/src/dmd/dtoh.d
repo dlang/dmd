@@ -295,7 +295,7 @@ public:
     // Generates getter-setter methods to replace the use of alias this
     // This should be replaced by a `static foreach` once the gdc tester
     // gets upgraded to version 10 (to support `static foreach`).
-    private extern(D) static string generateMembers()
+    private extern(D) static string generateMembers() @safe
     {
         string result = "";
         foreach(member; __traits(allMembers, Context))

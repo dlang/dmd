@@ -45,7 +45,7 @@ extern (C++) final class ClassReferenceExp : Expression
 {
     StructLiteralExp value;
 
-    extern (D) this(const ref Loc loc, StructLiteralExp lit, Type type)
+    extern (D) this(const ref Loc loc, StructLiteralExp lit, Type type) @safe
     {
         super(loc, EXP.classReference);
         assert(lit && lit.sd && lit.sd.isClassDeclaration());
@@ -130,7 +130,7 @@ extern (C++) final class ThrownExceptionExp : Expression
 {
     ClassReferenceExp thrown;   // the thing being tossed
 
-    extern (D) this(const ref Loc loc, ClassReferenceExp victim)
+    extern (D) this(const ref Loc loc, ClassReferenceExp victim) @safe
     {
         super(loc, EXP.thrownException);
         this.thrown = victim;
