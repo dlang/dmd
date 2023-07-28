@@ -77,20 +77,22 @@ class Foo
 }
 ------
 
-        $(P Note that there is no trailing $(D ;) after the closing $(D }) of the class
+$(PANEL
+        $(NOTE Unlike C++, there is no trailing $(D ;) after the closing $(D }) of the class
         definition.
-        It is also not possible to declare a variable var like:)
+        It is also not possible to declare a variable `var` inline:)
 
 ------
 class Foo { } var;
 ------
 
-        Instead:
+        Instead, use:
 
 ------
 class Foo { }
 Foo var;
 ------
+)
 
 $(H2 $(LNAME2 access_control, Access Control))
 
