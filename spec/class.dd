@@ -718,43 +718,59 @@ $(GNAME Destructor):
     $(D ~ this ( )) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, FunctionBody)
 )
 
-        $(P The destructor function is called when the object
-        is deleted by the garbage collector, or when a
-        $(DDSUBLINK spec/attribute, scope-class-var, `scope` class instance) goes out of scope.
-        The syntax is:)
+        $(P The destructor function is called when:)
 
+        * A live object is deleted by the garbage collector
+        * A live $(DDSUBLINK spec/attribute, scope-class-var, `scope` class instance) goes out of scope
+        * $(REF1 destroy, object) is called on the object
+
+        $(P Example:)
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ------
+        import std.stdio;
+
         class Foo
         {
             ~this() // destructor for Foo
             {
+                writeln("dtor");
             }
         }
-        ------
 
-        $(P There can be only one destructor declared per class, although
-        other destructors $(DDSUBLINK spec/template-mixin, destructors, can be mixed in).
-        A destructor does not have any parameters,
-        and has no attributes. It is always virtual.
+        void main()
+        {
+            auto foo = new Foo;
+            destroy(foo);
+            writeln("end");
+        }
+        ------
         )
 
-        $(P The destructor is expected to release any resources held by the
+        * Only one destructor can be declared per class, although
+          other destructors $(DDSUBLINK spec/template-mixin, destructors, can be mixed in).
+        * A destructor does not have any parameters or attributes.
+        * A destructor is always virtual.
+
+        $(P The destructor is expected to release any non-GC resources held by the
         object.
         )
 
-        $(P The program can explicitly inform the garbage collector that an
-        object is no longer referred to with $(REF1 destroy, object), and
-        then the garbage collector calls the destructor immediately.  The
-        destructor is guaranteed to never be called twice.
+        $(P The program can explicitly call the destructor of a live
+        object immediately with $(REF1 destroy, object).
+        The runtime marks the object so the destructor is never called twice.
         )
 
-        $(P The destructor for the super class automatically gets called when
-        the destructor ends. There is no way to call the super destructor
+        $(P The destructor for the $(RELATIVE_LINK2 super_class, super class) automatically gets called when
+        the destructor ends. There is no way to call the super class destructor
         explicitly.
         )
 
-        $(P The garbage collector is not guaranteed to run the destructor
-        for all unreferenced objects. Furthermore, the order in which the
+        $(IMPLEMENTATION_DEFINED The garbage collector is not guaranteed to run the destructor
+        for all unreferenced objects.)
+
+        $(PANEL
+        $(DIVC spec-boxes, $(B Important:) The order in which the
         garbage collector calls destructors for unreferenced objects
         is not specified.
         This means that
@@ -762,13 +778,14 @@ $(GNAME Destructor):
         that has
         members which are references to garbage collected objects, those
         references may no longer be valid. This means that destructors
-        cannot reference sub objects.
-        This rule does not apply to auto objects or objects destructed
-        with $(REF1 destroy, object), as the destructor is not being run
-        by the garbage collector, meaning all references are valid.
+        cannot reference sub objects.)
+
+        $(NOTE This rule does not apply to a `scope` class instance or an object destructed
+        with `destroy`, as the destructor is not being run
+        during a garbage collection cycle, meaning all references are valid.)
         )
 
-        $(P Objects referenced from the data segment never get collected
+        $(P Objects referenced from the static data segment never get collected
         by the GC.
         )
 
