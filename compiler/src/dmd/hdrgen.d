@@ -2920,7 +2920,7 @@ void toCBuffer(const Initializer iz, OutBuffer* buf, HdrGenState* hgs)
     initializerToBuffer(cast() iz, buf, hgs);
 }
 
-bool stcToBuffer(OutBuffer* buf, StorageClass stc)
+bool stcToBuffer(OutBuffer* buf, StorageClass stc) @safe
 {
     //printf("stc: %llx\n", stc);
     bool result = false;
@@ -3039,7 +3039,7 @@ string stcToString(ref StorageClass stc) @safe
     return null;
 }
 
-private void linkageToBuffer(OutBuffer* buf, LINK linkage)
+private void linkageToBuffer(OutBuffer* buf, LINK linkage) @safe
 {
     const s = linkageToString(linkage);
     if (s.length)

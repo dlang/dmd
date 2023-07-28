@@ -712,7 +712,7 @@ extern (C++) void fatal()
  * Try to stop forgetting to remove the breakpoints from
  * release builds.
  */
-extern (C++) void halt()
+extern (C++) void halt() @safe
 {
     assert(0);
 }

@@ -201,7 +201,7 @@ private struct ModuleComponentRange
         else
             return Identifier.idPool("package");
     }
-    void popFront() { index++; }
+    void popFront() @safe { index++; }
 }
 
 /*

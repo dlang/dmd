@@ -670,7 +670,7 @@ extern (C++) struct Scope
     /********************************************
      * Search enclosing scopes for ScopeDsymbol.
      */
-    extern (D) ScopeDsymbol getScopesym()
+    extern (D) ScopeDsymbol getScopesym() @safe
     {
         for (Scope* sc = &this; sc; sc = sc.enclosing)
         {
@@ -683,7 +683,7 @@ extern (C++) struct Scope
     /********************************************
      * Search enclosing scopes for ClassDeclaration.
      */
-    extern (D) ClassDeclaration getClassScope()
+    extern (D) ClassDeclaration getClassScope() @safe
     {
         for (Scope* sc = &this; sc; sc = sc.enclosing)
         {
@@ -698,7 +698,7 @@ extern (C++) struct Scope
     /********************************************
      * Search enclosing scopes for ClassDeclaration or StructDeclaration.
      */
-    extern (D) AggregateDeclaration getStructClassScope()
+    extern (D) AggregateDeclaration getStructClassScope() @safe
     {
         for (Scope* sc = &this; sc; sc = sc.enclosing)
         {
@@ -742,7 +742,7 @@ extern (C++) struct Scope
      * where it was declared. So mark the Scope as not
      * to be free'd.
      */
-    extern (D) void setNoFree()
+    extern (D) void setNoFree() @safe
     {
         //int i = 0;
         //printf("Scope::setNoFree(this = %p)\n", this);

@@ -2161,7 +2161,7 @@ mixin template VisitStatement(Result)
  *      handler = string for the name of the visit handler
  * Returns: boilerplate code for a case
  */
-pure string visitStmtCase(string handler)
+pure string visitStmtCase(string handler) @safe
 {
     if (__ctfe)
     {

@@ -563,7 +563,7 @@ extern (C++) final class DebugCondition : DVCondition
      *           If `null`, this conditiion will use an integer level.
      *  loc = Location in the source file
      */
-    extern (D) this(const ref Loc loc, Module mod, uint level, Identifier ident)
+    extern (D) this(const ref Loc loc, Module mod, uint level, Identifier ident) @safe
     {
         super(loc, mod, level, ident);
     }
@@ -840,7 +840,7 @@ extern (C++) final class VersionCondition : DVCondition
      *           If `null`, this conditiion will use an integer level.
      *  loc = Location in the source file
      */
-    extern (D) this(const ref Loc loc, Module mod, uint level, Identifier ident)
+    extern (D) this(const ref Loc loc, Module mod, uint level, Identifier ident) @safe
     {
         super(loc, mod, level, ident);
     }

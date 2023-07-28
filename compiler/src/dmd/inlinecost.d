@@ -346,7 +346,7 @@ public:
                 InlineCostVisitor icv;
 
             public:
-                extern (D) this(InlineCostVisitor icv)
+                extern (D) this(InlineCostVisitor icv) @safe
                 {
                     this.icv = icv;
                 }
