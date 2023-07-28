@@ -50,7 +50,7 @@ $(P A class consists of:)
 
 $(COMMENT list of notable components, not exhaustive)
 $(UL
-        $(LI a super class)
+        $(LI a $(RELATIVE_LINK2 super_class, super class))
         $(LI $(DDLINK spec/interface, Interfaces, interfaces)
         $(LI dynamic fields)
         $(LI $(DDSUBLINK spec/attribute, static, static) fields)
@@ -99,6 +99,25 @@ $(H2 $(LNAME2 access_control, Access Control))
         visibility attributes).
         The default visibility attribute is $(D public).
         )
+
+$(H2 $(LNAME2 super_class, Super Class))
+
+        $(P
+        All classes inherit from a super class. If one is not specified,
+        a class inherits from $(REF1 Object, object). `Object` forms the root
+        of the D class inheritance hierarchy.
+        )
+
+---
+class A { }     // A inherits from Object
+class B : A { } // B inherits from A
+---
+
+        $(P Multiple class inheritance is not supported, however a class can inherit from
+        multiple $(DDLINK spec/interface, Interfaces, interfaces).
+        If a super class is declared, it must come before any interfaces.
+        Commas are used to separate inherited types.)
+
 
 $(H2 $(LNAME2 fields, Fields))
 
@@ -214,12 +233,6 @@ $(H3 $(LNAME2 hidden-fields, Accessing Hidden Fields))
         to the class object's vtbl[] and monitor, respectively, but
         should not be used in user code.
         )
-
-$(H2 $(LNAME2 super_class, Super Class))
-
-        All classes inherit from a super class. If one is not specified,
-        it inherits from $(REF1 Object, object). `Object` forms the root
-        of the D class inheritance hierarchy.
 
 $(H2 $(LNAME2 member-functions, Member Functions (a.k.a. Methods)))
 
