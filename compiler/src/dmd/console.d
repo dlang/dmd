@@ -228,6 +228,19 @@ bool detectTerminal() nothrow
 }
 
 /**
+ * Tries to detect the preference for colorized console output
+ * based on the `NO_COLOR` environment variable: https://no-color.org/
+ *
+ * Returns: `true` if colorized console output is preferred
+*/
+bool detectColorPreference() nothrow @trusted
+{
+    import core.stdc.stdlib : getenv;
+    const noColor = getenv("NO_COLOR");
+	return noColor == null || noColor[0] == '\0';
+}
+
+/**
  * Creates an instance of Console connected to stream fp.
  * Params:
  *      fp = io stream
