@@ -105,7 +105,7 @@ else version (AArch64)
 }
 
 // Lower Associative Array to a newaa struct for static initialization.
-auto aaAsHash(K, V)(V[K] aa)
+auto _aaAsStruct(K, V)(V[K] aa) @safe
 {
     import core.internal.newaa;
     Hash!(K, V) h = aa;

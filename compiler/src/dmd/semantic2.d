@@ -829,31 +829,46 @@ private void doGNUABITagSemantic(ref Expression e, ref Expression* lastTag)
  */
 void tryLowerStaticAA(VarDeclaration vd, Scope* sc)
 {
-    if (!vd.isDataseg())
+    if (vd.storage_class & STC.manifest)
         return;
     if (auto ei = vd._init.isExpInitializer())
     {
-        if (auto initExp = ei.exp.isAssocArrayLiteralExp())
-        {
-            if (!verifyHookExist(ei.loc, *sc, Id.aaAsHash, "static associative array", Id.object))
-                return;
+        scope v = new StaticAAVisitor(sc);
+        v.vd = vd;
+        ei.exp.accept(v);
+    }
+}
 
-            Expression exp = initExp.syntaxCopy();
-            Expression id = new IdentifierExp(exp.loc, Id.empty);
-            id = new DotIdExp(exp.loc, id, Id.object);
-            id = new DotIdExp(exp.loc, id, Id.aaAsHash);
-            auto arguments = new Expressions();
-            arguments.push(exp.syntaxCopy());
-            id = new CallExp(exp.loc, id, arguments);
+/// Visit Associative Array literals and lower them to structs for static initialization
+private extern(C++) final class StaticAAVisitor : SemanticTimeTransitiveVisitor
+{
+    alias visit = SemanticTimeTransitiveVisitor.visit;
+    Scope* sc;
+    VarDeclaration vd;
 
-            sc = sc.startCTFE();
-            exp = id.expressionSemantic(sc);
-            exp = resolveProperties(sc, id);
-            sc = sc.endCTFE();
-            exp = exp.ctfeInterpret();
+    this(Scope* sc) scope @safe
+    {
+        this.sc = sc;
+    }
 
-            initExp.lowering = exp;
-            // printf("lowering = %s\n", initExp.lowering.toChars());
-        }
+    override void visit(AssocArrayLiteralExp aaExp)
+    {
+        if (!verifyHookExist(aaExp.loc, *sc, Id._aaAsStruct, "initializing static associative arrays", Id.object))
+            return;
+
+        Expression hookFunc = new IdentifierExp(aaExp.loc, Id.empty);
+        hookFunc = new DotIdExp(aaExp.loc, hookFunc, Id.object);
+        hookFunc = new DotIdExp(aaExp.loc, hookFunc, Id._aaAsStruct);
+        auto arguments = new Expressions();
+        arguments.push(aaExp.syntaxCopy());
+        Expression loweredExp = new CallExp(aaExp.loc, hookFunc, arguments);
+
+        sc = sc.startCTFE();
+        loweredExp = loweredExp.expressionSemantic(sc);
+        loweredExp = resolveProperties(sc, loweredExp);
+        sc = sc.endCTFE();
+        loweredExp = loweredExp.ctfeInterpret();
+
+        aaExp.lowering = loweredExp;
     }
 }

@@ -3894,6 +3894,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                             continue;
                         v.inuse++;
                         v._init = v._init.initializerSemantic(v._scope, v.type, INITinterpret);
+                        import dmd.semantic2 : tryLowerStaticAA;
+                        tryLowerStaticAA(v, sc);
                         v.inuse--;
                     }
                 }

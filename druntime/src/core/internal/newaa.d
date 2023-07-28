@@ -158,7 +158,7 @@ struct Hash(K, V)
                 resize(dim / GROW_FAC);
         }
 
-        void resize(size_t ndim) pure nothrow
+        void resize(size_t ndim) pure nothrow @trusted
         {
             auto obuckets = buckets;
             buckets = allocBuckets(ndim);
@@ -217,7 +217,7 @@ struct Hash(K, V)
                 location = aa.findSlotInsert(h);
             }
 
-            aa.firstUsed = min(aa.firstUsed, cast(uint)(location - aa.buckets.ptr));
+            aa.firstUsed = min(aa.firstUsed, cast(uint)(location - &aa.buckets[0]));
             location.hash = h;
             location.entry = new Entry(key, value);
         }
@@ -248,7 +248,7 @@ struct Hash(K, V)
         return &loc.entry.value;
     }
 
-    size_t toHash() scope const nothrow
+    size_t toHash() scope const
     {
         if (length == 0)
             return 0;
@@ -301,6 +301,7 @@ struct Hash(K, V)
             aa = null;
             foreach (k, v; other)
                 this[k] = v;
+            aa.entryTI = typeid(Entry);
         }
         static if (is(OK == K) && is(OV == V))
         {
@@ -397,58 +398,8 @@ private size_t calcHash(K)(in K pkey)
     return mix(hash) | HASH_FILLED_MARK;
 }
 
-auto asAA(K, V)(Hash!(K, V) hash) @trusted
-{
-    if (hash.aa)
-    {
-        // shore up any differences in implementation, unless we are running at
-        // compile time.
-        if (__ctfe)
-        {
-            // need to build the AA from the hash
-            V[K] result;
-            foreach (e; hash[])
-            {
-                result[e.key] = e.value;
-            }
-            return result;
-        }
-        if (hash.aa.entryTI is null)
-            // needs to be set
-            hash.aa.entryTI = typeid(hash.Entry);
-
-        // use a reinterpret cast.
-        return *cast(V[K]*)&hash;
-    }
-    return V[K].init;
-}
-
 Hash!(K, V) asHash(K, V)(V[K] aa)
 {
     Hash!(K, V) h = aa;
     return h;
-}
-
-unittest {
-    auto buildAAAtCompiletime()
-    {
-        Hash!(string, int) h = ["hello": 5];
-        //h["hello"] = 5;
-        return h;
-    }
-    static h = buildAAAtCompiletime();
-    auto aa = h.asAA;
-    h["there"] = 4;
-    aa["D is the best"] = 3;
-
-    aa = null;
-    aa["one"] = 1;
-    aa["two"] = 2;
-    aa["three"] = 3;
-    h = aa;
-    h = h; // ensure assignment works.
-    Hash!(string, int) h2 = h; // ensure construction works;
-    h.remove("one");
-    import core.exception;
-    // assertThrown!RangeError(h2["four"]);
 }

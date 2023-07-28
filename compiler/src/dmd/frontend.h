@@ -8754,7 +8754,7 @@ struct Id final
     static Identifier* aaKeys;
     static Identifier* aaValues;
     static Identifier* aaRehash;
-    static Identifier* aaAsHash;
+    static Identifier* _aaAsStruct;
     static Identifier* monitorenter;
     static Identifier* monitorexit;
     static Identifier* criticalenter;

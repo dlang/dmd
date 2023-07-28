@@ -493,8 +493,8 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
             Expression_toDt(e.lowering, dtb);
             return;
         }
-        e.error("static initializations of associative arrays is not allowed.");
-        errorSupplemental(e.loc, "associative arrays must be initialized at runtime: https://dlang.org/spec/hash-map.html#runtime_initialization");
+        e.error("internal compiler error: failed to detect static initialization of associative array");
+        assert(0);
     }
 
     void visitStructLiteral(StructLiteralExp sle)
