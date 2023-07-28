@@ -1238,6 +1238,20 @@ public:
     }
 };
 
+struct MacroTable final
+{
+    typedef bool(*fp_t)(const char* p);
+private:
+    void* mactab;
+public:
+    MacroTable()
+    {
+    }
+    MacroTable(void* mactab) :
+        mactab(mactab)
+        {}
+};
+
 enum class CSX : uint16_t
 {
     none = 0u,
@@ -6349,19 +6363,6 @@ public:
 };
 
 extern void printCtfePerformanceStats();
-
-struct MacroTable final
-{
-private:
-    void* mactab;
-public:
-    MacroTable()
-    {
-    }
-    MacroTable(void* mactab) :
-        mactab(mactab)
-        {}
-};
 
 extern const char* mangleExact(FuncDeclaration* fd);
 
