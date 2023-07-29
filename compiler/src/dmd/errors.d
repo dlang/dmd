@@ -68,6 +68,14 @@ class ErrorSinkCompiler : ErrorSink
         va_end(ap);
     }
 
+    void warningSupplemental(const ref Loc loc, const(char)* format, ...)
+    {
+        va_list ap;
+        va_start(ap, format);
+        verrorReportSupplemental(loc, format, ap, ErrorKind.warning);
+        va_end(ap);
+    }
+
     void deprecation(const ref Loc loc, const(char)* format, ...)
     {
         va_list ap;

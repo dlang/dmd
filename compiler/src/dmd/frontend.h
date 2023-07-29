@@ -239,6 +239,7 @@ struct ModuleDeclaration;
 template <typename Datum>
 struct FileMapping;
 struct Escape;
+class ErrorSink;
 class LabelStatement;
 class SwitchStatement;
 class Statement;
@@ -309,7 +310,6 @@ class ArrayInitializer;
 class ExpInitializer;
 class CInitializer;
 class FileManager;
-class ErrorSink;
 class ErrorStatement;
 class ExpStatement;
 class ConditionalStatement;
@@ -6495,7 +6495,7 @@ struct ModuleDeclaration final
 
 extern void getLocalClasses(Module* mod, Array<ClassDeclaration* >& aclasses);
 
-extern void gendocfile(Module* m);
+extern void gendocfile(Module* m, ErrorSink* eSink);
 
 struct Scope final
 {
@@ -6519,6 +6519,7 @@ struct Scope final
     bool inLoop;
     int32_t intypeof;
     VarDeclaration* lastVar;
+    ErrorSink* eSink;
     Module* minst;
     TemplateInstance* tinst;
     CtorFlow ctorflow;
@@ -6559,6 +6560,7 @@ struct Scope final
         inLoop(),
         intypeof(),
         lastVar(),
+        eSink(),
         minst(),
         tinst(),
         ctorflow(),
@@ -6578,7 +6580,7 @@ struct Scope final
         aliasAsg()
     {
     }
-    Scope(Scope* enclosing, Module* _module = nullptr, ScopeDsymbol* scopesym = nullptr, FuncDeclaration* func = nullptr, VarDeclaration* varDecl = nullptr, Dsymbol* parent = nullptr, LabelStatement* slabel = nullptr, SwitchStatement* sw = nullptr, Statement* tryBody = nullptr, TryFinallyStatement* tf = nullptr, ScopeGuardStatement* os = nullptr, Statement* sbreak = nullptr, Statement* scontinue = nullptr, ForeachStatement* fes = nullptr, Scope* callsc = nullptr, Dsymbol* inunion = nullptr, bool nofree = false, bool inLoop = false, int32_t intypeof = 0, VarDeclaration* lastVar = nullptr, Module* minst = nullptr, TemplateInstance* tinst = nullptr, CtorFlow ctorflow = CtorFlow(), AlignDeclaration* aligndecl = nullptr, CPPNamespaceDeclaration* namespace_ = nullptr, LINK linkage = (LINK)1u, CPPMANGLE cppmangle = (CPPMANGLE)0u, PragmaDeclaration* inlining = nullptr, Visibility visibility = Visibility((Visibility::Kind)5u, nullptr), int32_t explicitVisibility = 0, uint64_t stc = 0LLU, DeprecatedDeclaration* depdecl = nullptr, uint32_t flags = 0u, UserAttributeDeclaration* userAttribDecl = nullptr, DocComment* lastdc = nullptr, void* anchorCounts = nullptr, Identifier* prevAnchor = nullptr, AliasDeclaration* aliasAsg = nullptr) :
+    Scope(Scope* enclosing, Module* _module = nullptr, ScopeDsymbol* scopesym = nullptr, FuncDeclaration* func = nullptr, VarDeclaration* varDecl = nullptr, Dsymbol* parent = nullptr, LabelStatement* slabel = nullptr, SwitchStatement* sw = nullptr, Statement* tryBody = nullptr, TryFinallyStatement* tf = nullptr, ScopeGuardStatement* os = nullptr, Statement* sbreak = nullptr, Statement* scontinue = nullptr, ForeachStatement* fes = nullptr, Scope* callsc = nullptr, Dsymbol* inunion = nullptr, bool nofree = false, bool inLoop = false, int32_t intypeof = 0, VarDeclaration* lastVar = nullptr, ErrorSink* eSink = nullptr, Module* minst = nullptr, TemplateInstance* tinst = nullptr, CtorFlow ctorflow = CtorFlow(), AlignDeclaration* aligndecl = nullptr, CPPNamespaceDeclaration* namespace_ = nullptr, LINK linkage = (LINK)1u, CPPMANGLE cppmangle = (CPPMANGLE)0u, PragmaDeclaration* inlining = nullptr, Visibility visibility = Visibility((Visibility::Kind)5u, nullptr), int32_t explicitVisibility = 0, uint64_t stc = 0LLU, DeprecatedDeclaration* depdecl = nullptr, uint32_t flags = 0u, UserAttributeDeclaration* userAttribDecl = nullptr, DocComment* lastdc = nullptr, void* anchorCounts = nullptr, Identifier* prevAnchor = nullptr, AliasDeclaration* aliasAsg = nullptr) :
         enclosing(enclosing),
         _module(_module),
         scopesym(scopesym),
@@ -6599,6 +6601,7 @@ struct Scope final
         inLoop(inLoop),
         intypeof(intypeof),
         lastVar(lastVar),
+        eSink(eSink),
         minst(minst),
         tinst(tinst),
         ctorflow(ctorflow),

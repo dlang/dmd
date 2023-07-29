@@ -29,6 +29,7 @@ import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.expression;
 import dmd.errors;
+import dmd.errorsink;
 import dmd.func;
 import dmd.globals;
 import dmd.id;
@@ -96,6 +97,7 @@ extern (C++) struct Scope
     bool inLoop;                    /// true if inside a loop (where constructor calls aren't allowed)
     int intypeof;                   /// in typeof(exp)
     VarDeclaration lastVar;         /// Previous symbol used to prevent goto-skips-init
+    ErrorSink eSink;                /// sink for error messages
 
     /* If  minst && !tinst, it's in definitely non-speculative scope (eg. module member scope).
      * If !minst && !tinst, it's in definitely speculative scope (eg. template constraint).
