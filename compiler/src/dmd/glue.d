@@ -851,7 +851,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     Dsymbols deferToObj;                   // write these to OBJ file later
     Array!(elem*) varsInScope;
     Label*[void*] labels = null;
-    IRState irs = IRState(m, fd, &varsInScope, &deferToObj, &labels, &global.params, &target);
+    IRState irs = IRState(m, fd, &varsInScope, &deferToObj, &labels, &global.params, &target, global.errorSink);
 
     Symbol *shidden = null;
     Symbol *sthis = null;

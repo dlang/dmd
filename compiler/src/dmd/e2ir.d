@@ -36,7 +36,6 @@ import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dtemplate;
-import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
@@ -525,7 +524,7 @@ elem* toElem(Expression e, IRState *irs)
         //printf("\tparent = '%s'\n", se.var.parent ? se.var.parent.toChars() : "null");
         if (se.op == EXP.variable && se.var.needThis())
         {
-            se.error("need `this` to access member `%s`", se.toChars());
+            irs.eSink.error(se.loc, "need `this` to access member `%s`", se.toChars());
             return el_long(TYsize_t, 0);
         }
 
@@ -1134,7 +1133,7 @@ elem* toElem(Expression e, IRState *irs)
 
                 if (!cd.vthis)
                 {
-                    ne.error("forward reference to `%s`", cd.toChars());
+                    irs.eSink.error(ne.loc, "forward reference to `%s`", cd.toChars());
                 }
                 else
                 {
@@ -1328,7 +1327,7 @@ elem* toElem(Expression e, IRState *irs)
         }
         else
         {
-            ne.error("internal compiler error: cannot new type `%s`\n", t.toChars());
+            irs.eSink.error(ne.loc, "internal compiler error: cannot new type `%s`\n", t.toChars());
             assert(0);
         }
 
@@ -1646,7 +1645,7 @@ elem* toElem(Expression e, IRState *irs)
                 foreach (i; 1 .. depth - d)
                     e1 = (cast(CastExp)e1).e1;
 
-                el = toElemCast(cast(CastExp)e1, el, true);
+                el = toElemCast(cast(CastExp)e1, el, true, *irs);
             }
         }
         else
@@ -1716,7 +1715,7 @@ elem* toElem(Expression e, IRState *irs)
          */
         if (!irs.params.useGC)
         {
-            error(ce.loc, "array concatenation of expression `%s` requires the GC which is not available with -betterC", ce.toChars());
+            irs.eSink.error(ce.loc, "array concatenation of expression `%s` requires the GC which is not available with -betterC", ce.toChars());
             return el_long(TYint, 0);
         }
 
@@ -3042,13 +3041,13 @@ elem* toElem(Expression e, IRState *irs)
     elem* visitType(TypeExp e)
     {
         //printf("TypeExp.toElem()\n");
-        e.error("type `%s` is not an expression", e.toChars());
+        irs.eSink.error(e.loc, "type `%s` is not an expression", e.toChars());
         return el_long(TYint, 0);
     }
 
     elem* visitScope(ScopeExp e)
     {
-        e.error("`%s` is not an expression", e.sds.toChars());
+        irs.eSink.error(e.loc, "`%s` is not an expression", e.sds.toChars());
         return el_long(TYint, 0);
     }
 
@@ -3061,7 +3060,7 @@ elem* toElem(Expression e, IRState *irs)
         VarDeclaration v = dve.var.isVarDeclaration();
         if (!v)
         {
-            dve.error("`%s` is not a field, but a %s", dve.var.toChars(), dve.var.kind());
+            irs.eSink.error(dve.loc, "`%s` is not a field, but a %s", dve.var.toChars(), dve.var.kind());
             return el_long(TYint, 0);
         }
 
@@ -3171,7 +3170,7 @@ elem* toElem(Expression e, IRState *irs)
                 directcall = 1;
 
             if (!de.func.isThis())
-                de.error("delegates are only for non-static functions");
+                irs.eSink.error(de.loc, "delegates are only for non-static functions");
 
             if (!de.func.isVirtual() ||
                 directcall ||
@@ -3655,7 +3654,7 @@ elem* toElem(Expression e, IRState *irs)
         }
         elem *e = toElem(ce.e1, irs);
 
-        return toElemCast(ce, e, false);
+        return toElemCast(ce, e, false, *irs);
     }
 
     elem* visitArrayLength(ArrayLengthExp ale)
@@ -4399,7 +4398,7 @@ elem *ExpressionsToStaticArray(IRState* irs, const ref Loc loc, Expressions *exp
 
 /***************************************************
  */
-elem *toElemCast(CastExp ce, elem *e, bool isLvalue)
+elem *toElemCast(CastExp ce, elem *e, bool isLvalue, ref IRState irs)
 {
     tym_t ftym;
     tym_t ttym;
@@ -5259,7 +5258,7 @@ elem *toElemCast(CastExp ce, elem *e, bool isLvalue)
                 //dump(0);
                 //printf("fty = %d, tty = %d, %d\n", fty, tty, t.ty);
                 // This error should really be pushed to the front end
-                ce.error("e2ir: cannot cast `%s` of type `%s` to type `%s`", ce.e1.toChars(), ce.e1.type.toChars(), t.toChars());
+                irs.eSink.error(ce.loc, "e2ir: cannot cast `%s` of type `%s` to type `%s`", ce.e1.toChars(), ce.e1.type.toChars(), t.toChars());
                 e = el_long(TYint, 0);
                 return e;
 
@@ -5358,7 +5357,7 @@ elem *callfunc(const ref Loc loc,
         {
             Expression arg = (*arguments)[0];
             if (arg.op != EXP.int64)
-                arg.error("simd operator must be an integer constant, not `%s`", arg.toChars());
+                irs.eSink.error(arg.loc, "simd operator must be an integer constant, not `%s`", arg.toChars());
         }
 
         /* Convert arguments[] to elems[] in left-to-right order
