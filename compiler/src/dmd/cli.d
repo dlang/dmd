@@ -137,7 +137,7 @@ struct Usage
         *  os = for which `TargetOS` the flags are applicable
         *  ddocText = detailed description of the flag (in Ddoc)
         */
-        this(string flag, string helpText, TargetOS os = TargetOS.all)
+        this(string flag, string helpText, TargetOS os = TargetOS.all) @safe
         {
             this.flag = flag;
             this.helpText = helpText;
@@ -146,7 +146,7 @@ struct Usage
         }
 
         /// ditto
-        this(string flag, string helpText, string ddocText, TargetOS os = TargetOS.all)
+        this(string flag, string helpText, string ddocText, TargetOS os = TargetOS.all) @safe
         {
             this.flag = flag;
             this.helpText = helpText;

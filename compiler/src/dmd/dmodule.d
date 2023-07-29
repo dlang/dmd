@@ -1389,7 +1389,7 @@ extern (C++) struct ModuleDeclaration
         this.isdeprecated = isdeprecated;
     }
 
-    extern (C++) const(char)* toChars() const
+    extern (C++) const(char)* toChars() const @safe
     {
         OutBuffer buf;
         foreach (pid; packages)

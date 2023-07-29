@@ -251,13 +251,13 @@ extern (C++) abstract class Declaration : Dsymbol
     // overridden symbol with pragma(mangle, "...")
     const(char)[] mangleOverride;
 
-    final extern (D) this(Identifier ident)
+    final extern (D) this(Identifier ident) @safe
     {
         super(ident);
         visibility = Visibility(Visibility.Kind.undefined);
     }
 
-    final extern (D) this(const ref Loc loc, Identifier ident)
+    final extern (D) this(const ref Loc loc, Identifier ident) @safe
     {
         super(loc, ident);
         visibility = Visibility(Visibility.Kind.undefined);
@@ -595,7 +595,7 @@ extern (C++) final class TupleDeclaration : Declaration
     bool isexp;             // true: expression tuple
     bool building;          // it's growing in AliasAssign semantic
 
-    extern (D) this(const ref Loc loc, Identifier ident, Objects* objects)
+    extern (D) this(const ref Loc loc, Identifier ident, Objects* objects) @safe
     {
         super(loc, ident);
         this.objects = objects;
@@ -746,7 +746,7 @@ extern (C++) final class AliasDeclaration : Declaration
     Dsymbol overnext;   // next in overload list
     Dsymbol _import;    // !=null if unresolved internal alias for selective import
 
-    extern (D) this(const ref Loc loc, Identifier ident, Type type)
+    extern (D) this(const ref Loc loc, Identifier ident, Type type) @safe
     {
         super(loc, ident);
         //printf("AliasDeclaration(id = '%s', type = %p)\n", ident.toChars(), type);
@@ -755,7 +755,7 @@ extern (C++) final class AliasDeclaration : Declaration
         assert(type);
     }
 
-    extern (D) this(const ref Loc loc, Identifier ident, Dsymbol s)
+    extern (D) this(const ref Loc loc, Identifier ident, Dsymbol s) @safe
     {
         super(loc, ident);
         //printf("AliasDeclaration(id = '%s', s = %p)\n", ident.toChars(), s);
@@ -764,7 +764,7 @@ extern (C++) final class AliasDeclaration : Declaration
         assert(s);
     }
 
-    static AliasDeclaration create(const ref Loc loc, Identifier id, Type type)
+    static AliasDeclaration create(const ref Loc loc, Identifier id, Type type) @safe
     {
         return new AliasDeclaration(loc, id, type);
     }
@@ -1045,7 +1045,7 @@ extern (C++) final class OverDeclaration : Declaration
     Dsymbol overnext;   // next in overload list
     Dsymbol aliassym;
 
-    extern (D) this(Identifier ident, Dsymbol s)
+    extern (D) this(Identifier ident, Dsymbol s) @safe
     {
         super(ident);
         this.aliassym = s;
@@ -2012,7 +2012,7 @@ extern (C++) final class SymbolDeclaration : Declaration
 {
     AggregateDeclaration dsym;
 
-    extern (D) this(const ref Loc loc, AggregateDeclaration dsym)
+    extern (D) this(const ref Loc loc, AggregateDeclaration dsym) @safe
     {
         super(loc, dsym.ident);
         this.dsym = dsym;

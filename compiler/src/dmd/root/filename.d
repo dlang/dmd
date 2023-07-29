@@ -124,7 +124,7 @@ nothrow:
     }
 
     /// Ditto
-    extern (D) static bool absolute(const(char)[] name) pure @nogc
+    extern (D) static bool absolute(const(char)[] name) pure @nogc @safe
     {
         if (!name.length)
             return false;
@@ -277,7 +277,7 @@ nothrow:
     }
 
     /// Ditto
-    extern (D) static const(char)[] name(const(char)[] str) pure @nogc
+    extern (D) static const(char)[] name(const(char)[] str) pure @nogc @safe
     {
         foreach_reverse (idx, char e; str)
         {

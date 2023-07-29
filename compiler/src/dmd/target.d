@@ -46,7 +46,7 @@ enum CPU : ubyte
     native              // the machine the compiler is being run on
 }
 
-Target.OS defaultTargetOS()
+Target.OS defaultTargetOS() @safe
 {
     version (Windows)
         return Target.OS.Windows;

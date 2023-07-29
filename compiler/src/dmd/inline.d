@@ -2348,7 +2348,7 @@ private bool expNeedsDtor(Expression exp)
         Expression exp;
 
     public:
-        extern (D) this(Expression exp) scope
+        extern (D) this(Expression exp) scope @safe
         {
             this.exp = exp;
         }

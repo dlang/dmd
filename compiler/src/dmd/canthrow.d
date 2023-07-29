@@ -63,7 +63,7 @@ extern (C++) /* CT */ BE canThrow(Expression e, FuncDeclaration func, bool mustN
         CT result;
 
     public:
-        extern (D) this(FuncDeclaration func, bool mustNotThrow) scope
+        extern (D) this(FuncDeclaration func, bool mustNotThrow) scope @safe
         {
             this.func = func;
             this.mustNotThrow = mustNotThrow;
