@@ -237,7 +237,7 @@ bool detectColorPreference() nothrow @trusted
 {
     import core.stdc.stdlib : getenv;
     const noColor = getenv("NO_COLOR");
-	return noColor == null || noColor[0] == '\0';
+        return noColor == null || noColor[0] == '\0';
 }
 
 /**

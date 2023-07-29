@@ -45,6 +45,7 @@ import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.toctype;
 import dmd.e2ir;
+import dmd.errorsink;
 import dmd.func;
 import dmd.globals;
 import dmd.glue;
@@ -86,11 +87,12 @@ struct IRState
     Label*[void*]* labels;          // table of labels used/declared in function
     const Param* params;            // command line parameters
     const Target* target;           // target
+    ErrorSink eSink;                // sink for error messages
     bool mayThrow;                  // the expression being evaluated may throw
     bool Cfile;                     // use C semantics
 
     this(Module m, FuncDeclaration fd, Array!(elem*)* varsInScope, Dsymbols* deferToObj, Label*[void*]* labels,
-        const Param* params, const Target* target)
+        const Param* params, const Target* target, ErrorSink eSink)
     {
         this.m = m;
         this.symbol = fd;
@@ -99,6 +101,7 @@ struct IRState
         this.labels = labels;
         this.params = params;
         this.target = target;
+        this.eSink = eSink;
         mayThrow = global.params.useExceptions
             && ClassDeclaration.throwable
             && !(fd && fd.hasNoEH);

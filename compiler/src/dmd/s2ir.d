@@ -32,7 +32,6 @@ import dmd.dsymbol;
 import dmd.dstruct;
 import dmd.dtemplate;
 import dmd.e2ir;
-import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
@@ -107,7 +106,7 @@ void Statement_toIR(Statement s, IRState *irs, StmtState* stmtstate)
 
     void visitDefaultCase(Statement s)
     {
-        error(s.loc, "visitDefaultCase() %d for %s\n", s.stmt, s.toChars());
+        irs.eSink.error(s.loc, "visitDefaultCase() %d for %s\n", s.stmt, s.toChars());
         assert(0);
     }
 
