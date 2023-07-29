@@ -34,7 +34,6 @@ import dmd.backend.type;
 
 import dmd.common.int128;
 
-extern (C++):
 
 nothrow:
 @safe:
@@ -1991,5 +1990,5 @@ version (CRuntime_Microsoft)
 }
 else
 {
-    targ_ldouble _modulo(targ_ldouble x, targ_ldouble y);
+    import dmd.backend.fp : _modulo;
 }

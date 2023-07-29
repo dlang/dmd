@@ -24,7 +24,6 @@ import dmd.backend.global : REGSIZE;
 
 import dmd.backend.dlist;
 
-extern (C++):
 @nogc:
 nothrow:
 @safe:

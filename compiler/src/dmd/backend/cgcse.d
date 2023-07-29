@@ -28,7 +28,6 @@ import dmd.backend.ty;
 
 import dmd.backend.barray;
 
-extern (C++):
 nothrow:
 @safe:
 

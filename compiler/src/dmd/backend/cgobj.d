@@ -68,11 +68,6 @@ struct Loc
     }
 }
 
-static if (__VERSION__ < 2092)
-    void error(Loc loc, const(char)* format, ...);
-else
-    pragma(printf) void error(Loc loc, const(char)* format, ...);
-
 version (Windows)
 {
     extern(C) char* strupr(char*);
@@ -422,9 +417,6 @@ void objrecord(uint rectyp, const(char)* record, uint reclen)
     o.writen(record,reclen);
     o.writeByten(0);           // use 0 for checksum
 }
-
-void error(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...);
-void fatal();
 
 void too_many_symbols()
 {

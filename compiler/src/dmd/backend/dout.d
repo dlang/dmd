@@ -47,7 +47,6 @@ version (Windows)
     }
 }
 
-extern (C++):
 
 nothrow:
 @safe:

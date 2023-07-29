@@ -30,7 +30,6 @@ import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.evalu8 : el_toldoubled;
 
-extern (C++):
 
 nothrow:
 @safe:
@@ -38,9 +37,6 @@ nothrow:
 // NOTE: this could be a TLS global which would allow this variable to be used in
 //       a multi-threaded version of the backend
 __gshared Globals87 global87;
-
-private extern (D) uint mask(uint m) { return 1 << m; }
-
 
 // Constants that the 8087 supports directly
 // BUG: rewrite for 80 bit long doubles

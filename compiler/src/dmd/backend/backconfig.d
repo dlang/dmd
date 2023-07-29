@@ -22,7 +22,6 @@ import dmd.backend.ty;
 import dmd.backend.type;
 
 import dmd.backend.dwarfdbginf;
-extern (C++):
 
 nothrow:
 @safe:

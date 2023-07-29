@@ -25,7 +25,6 @@ import dmd.backend.cc : Symbol;
 
 import dmd.backend.dlist;
 
-extern (C++):
 @nogc:
 nothrow:
 @safe:

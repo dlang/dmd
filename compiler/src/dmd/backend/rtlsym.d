@@ -137,7 +137,6 @@ enum RTLSYM
     CXA_ATEXIT
 }
 
-extern (C++):
 @safe:
 
 public import dmd.backend.drtlsym : getRtlsym, getRtlsymPersonality;

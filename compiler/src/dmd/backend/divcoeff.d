@@ -14,7 +14,6 @@ module dmd.backend.divcoeff;
 
 import core.stdc.stdio;
 
-extern (C++):
 
 nothrow:
 @safe:

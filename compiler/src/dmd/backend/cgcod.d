@@ -44,7 +44,6 @@ import dmd.backend.xmm;
 
 import dmd.backend.barray;
 
-extern (C++):
 
 nothrow:
 @safe:
@@ -55,9 +54,6 @@ extern(C) void qsort(void* base, size_t nmemb, size_t size, _compare_fp_t compar
 enum MARS = true;
 
 import dmd.backend.dwarfdbginf : dwarf_except_gentables;
-
-private extern (D) uint mask(uint m) { return 1 << m; }
-
 
 __gshared
 {
@@ -2450,7 +2446,7 @@ void callcdxxx(ref CodeBuilder cdb, elem *e, regm_t *pretregs, OPER op)
 }
 
 // jump table
-private extern (C++) __gshared nothrow void function (ref CodeBuilder,elem *,regm_t *)[OPMAX] cdxxx =
+private __gshared nothrow void function (ref CodeBuilder,elem *,regm_t *)[OPMAX] cdxxx =
 [
     OPunde:    &cderr,
     OPadd:     &cdorth,

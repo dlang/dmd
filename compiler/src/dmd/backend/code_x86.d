@@ -390,7 +390,7 @@ struct code
 
     bool isJumpOP() { return Iop == JMP || Iop == JMPS; }
 
-    extern (C++) void print()               // pretty-printer
+    void print()               // pretty-printer
     {
         code_print(&this);
     }
@@ -552,7 +552,6 @@ bool ADDFWAIT() { return config.target_cpu <= TARGET_80286; }
 /************************************
  */
 
-extern (C++):
 
 struct NDP
 {

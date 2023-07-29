@@ -41,7 +41,6 @@ nothrow:
 @trusted
 char symbol_isintab(const Symbol *s) { return sytab[s.Sclass] & SCSS; }
 
-extern (C++):
 
 import dmd.backend.gother : findloopparameters;
 

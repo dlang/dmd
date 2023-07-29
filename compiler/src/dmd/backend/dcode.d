@@ -24,7 +24,6 @@ import dmd.backend.code_x86;
 import dmd.backend.global;
 import dmd.backend.mem;
 
-extern (C++):
 
 nothrow:
 @safe:

@@ -29,7 +29,6 @@ import dmd.backend.obj;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-extern (C++):
 
 nothrow:
 @safe:

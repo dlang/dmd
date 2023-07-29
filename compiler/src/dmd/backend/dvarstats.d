@@ -22,7 +22,6 @@ import dmd.backend.code;
 import dmd.backend.symtab;
 import dmd.backend.barray;
 
-extern (C++):
 
 nothrow:
 

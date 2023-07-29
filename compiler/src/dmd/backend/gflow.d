@@ -62,7 +62,6 @@ void *util_realloc(void* p, size_t n, size_t size)
     return q;
 }
 
-extern (C++):
 
 
 /* Since many routines are nearly identical, we can combine them with   */

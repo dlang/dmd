@@ -40,14 +40,11 @@ import dmd.backend.ty;
 import dmd.backend.evalu8 : el_toldoubled;
 import dmd.backend.xmm;
 
-extern (C++):
 
 nothrow:
 @safe:
 
 import dmd.backend.cg : datafl;
-
-private extern (D) uint mask(uint m) { return 1 << m; }
 
                         /*   AX,CX,DX,BX                */
 __gshared const reg_t[4] dblreg = [ BX,DX,NOREG,CX ];

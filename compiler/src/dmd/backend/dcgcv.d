@@ -40,7 +40,6 @@ import dmd.common.outbuffer;
 
 import dmd.backend.dvarstats;
 
-extern (C++):
 
 nothrow:
 @safe:
@@ -94,8 +93,6 @@ enum EASY_LCFDpointer =      (LOCATsegrel | 0x1800);
 enum LCFD32offset     =      (LOCATsegrel | 0x2404);
 enum LCFD32pointer    =      (LOCATsegrel | 0x2C00);
 enum LCFD16pointer    =      (LOCATsegrel | 0x0C00);
-
-extern Cgcv cgcv; // already declared in cgcv.d
 }
 
 enum MARS = true;
@@ -1858,7 +1855,6 @@ private void cv4_func(Funcsym *s, ref symtab_t symtab)
             ubyte[2] name;
         }
 
-      extern (C++):
 
         static void endArgs()
         {

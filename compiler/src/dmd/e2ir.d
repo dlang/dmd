@@ -83,7 +83,7 @@ alias Elems = Array!(elem *);
 alias toSymbol = dmd.tocsym.toSymbol;
 alias toSymbol = dmd.glue.toSymbol;
 
-void* mem_malloc2(uint);
+import dmd.backend.util2 : mem_malloc2;
 
 
 private int registerSize() { return _tysize[TYnptr]; }

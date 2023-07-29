@@ -27,7 +27,6 @@ import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-extern (C++):
 
 nothrow:
 
