@@ -382,7 +382,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         if (m.filetype == FileType.ddoc)
         {
             anydocfiles = true;
-            gendocfile(m);
+            gendocfile(m, global.errorSink);
             // Remove m from list of modules
             modules.remove(modi);
             modi--;
@@ -540,7 +540,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     {
         foreach (m; modules)
         {
-            gendocfile(m);
+            gendocfile(m, global.errorSink);
         }
     }
     if (params.vcg_ast)

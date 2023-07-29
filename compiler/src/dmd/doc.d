@@ -34,7 +34,7 @@ import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.dtemplate;
-import dmd.errors;
+import dmd.errorsink;
 import dmd.func;
 import dmd.globals;
 import dmd.hdrgen;
@@ -140,7 +140,7 @@ private class Section
             size_t o = buf.length;
             foreach (char c; name)
                 buf.writeByte((c == '_') ? ' ' : c);
-            escapeStrayParenthesis(loc, buf, o, false);
+            escapeStrayParenthesis(loc, buf, o, false, sc.eSink);
             buf.writestring(")");
         }
         else
@@ -150,7 +150,7 @@ private class Section
     L1:
         size_t o = buf.length;
         buf.write(body_);
-        escapeStrayParenthesis(loc, buf, o, true);
+        escapeStrayParenthesis(loc, buf, o, true, sc.eSink);
         highlightText(sc, a, loc, *buf, o);
         buf.writestring(")");
     }
@@ -252,11 +252,11 @@ private final class ParamSection : Section
                             }
                             else if (!fparam)
                             {
-                                warning(s.loc, "Ddoc: function declaration has no parameter '%.*s'", cast(int)namelen, namestart);
+                                sc.eSink.warning(s.loc, "Ddoc: function declaration has no parameter '%.*s'", cast(int)namelen, namestart);
                             }
                             buf.write(namestart[0 .. namelen]);
                         }
-                        escapeStrayParenthesis(loc, buf, o, true);
+                        escapeStrayParenthesis(loc, buf, o, true, sc.eSink);
                         highlightCode(sc, a, *buf, o);
                     }
                     buf.writestring(")");
@@ -264,7 +264,7 @@ private final class ParamSection : Section
                     {
                         size_t o = buf.length;
                         buf.write(textstart[0 .. textlen]);
-                        escapeStrayParenthesis(loc, buf, o, true);
+                        escapeStrayParenthesis(loc, buf, o, true, sc.eSink);
                         highlightText(sc, a, loc, *buf, o);
                     }
                     buf.writestring(")");
@@ -303,12 +303,12 @@ private final class ParamSection : Section
                             cast(int)(tf.parameterList.varargs == VarArg.variadic);
             if (pcount != paramcount)
             {
-                warning(s.loc, "Ddoc: parameter count mismatch, expected %llu, got %llu",
+                sc.eSink.warning(s.loc, "Ddoc: parameter count mismatch, expected %llu, got %llu",
                         cast(ulong) pcount, cast(ulong) paramcount);
                 if (paramcount == 0)
                 {
                     // Chances are someone messed up the format
-                    warningSupplemental(s.loc, "Note that the format is `param = description`");
+                    sc.eSink.warningSupplemental(s.loc, "Note that the format is `param = description`");
                 }
             }
         }
@@ -371,7 +371,7 @@ private immutable ddoc_decl_dd_e = ")\n";
 
 /****************************************************
  */
-extern(C++) void gendocfile(Module m)
+extern(C++) void gendocfile(Module m, ErrorSink eSink)
 {
     __gshared OutBuffer mbuf;
     __gshared int mbuf_done;
@@ -398,6 +398,7 @@ extern(C++) void gendocfile(Module m)
     }
     DocComment.parseMacros(m.escapetable, m.macrotable, mbuf[]);
     Scope* sc = Scope.createGlobal(m); // create root scope
+    sc.eSink = eSink;
     DocComment* dc = DocComment.parse(m, m.comment);
     dc.pmacrotable = &m.macrotable;
     dc.escapetable = m.escapetable;
@@ -460,7 +461,7 @@ extern(C++) void gendocfile(Module m)
 
     const success = m.macrotable.expand(buf2, 0, end, null, global.recursionLimit);
     if (!success)
-        error(Loc.initial, "DDoc macro expansion limit exceeded; more than %d expansions.", global.recursionLimit);
+        eSink.error(Loc.initial, "DDoc macro expansion limit exceeded; more than %d expansions.", global.recursionLimit);
 
     version (all)
     {
@@ -568,7 +569,7 @@ void escapeDdocString(OutBuffer* buf, size_t start)
  *    directly preceeded by a backslash with $(LPAREN) or $(RPAREN) instead of
  *    counting them as stray parentheses
  */
-private void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start, bool respectBackslashEscapes)
+private void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start, bool respectBackslashEscapes, ErrorSink eSink)
 {
     uint par_open = 0;
     char inCode = 0;
@@ -589,7 +590,7 @@ private void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start, bool 
                 if (par_open == 0)
                 {
                     //stray ')'
-                    warning(loc, "Ddoc: Stray ')'. This may cause incorrect Ddoc output. Use $(RPAREN) instead for unpaired right parentheses.");
+                    eSink.warning(loc, "Ddoc: Stray ')'. This may cause incorrect Ddoc output. Use $(RPAREN) instead for unpaired right parentheses.");
                     buf.remove(u, 1); //remove the )
                     buf.insert(u, "$(RPAREN)"); //insert this instead
                     u += 8; //skip over newly inserted macro
@@ -667,7 +668,7 @@ private void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start, bool 
                 if (par_open == 0)
                 {
                     //stray '('
-                    warning(loc, "Ddoc: Stray '('. This may cause incorrect Ddoc output. Use $(LPAREN) instead for unpaired left parentheses.");
+                    eSink.warning(loc, "Ddoc: Stray '('. This may cause incorrect Ddoc output. Use $(LPAREN) instead for unpaired left parentheses.");
                     buf.remove(u, 1); //remove the (
                     buf.insert(u, "$(LPAREN)"); //insert this instead
                 }
@@ -1896,7 +1897,7 @@ struct DocComment
                 buf.writestring("$(DDOC_SUMMARY ");
                 size_t o = buf.length;
                 buf.write(sec.body_);
-                escapeStrayParenthesis(loc, buf, o, true);
+                escapeStrayParenthesis(loc, buf, o, true, sc.eSink);
                 highlightText(sc, a, loc, *buf, o);
                 buf.writestring(")");
             }
@@ -4417,7 +4418,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, ref OutBuffer buf, s
                     codebuf.write(buf[iCodeStart + count .. i]);
                     // escape the contents, but do not perform highlighting except for DDOC_PSYMBOL
                     highlightCode(sc, a, codebuf, 0);
-                    escapeStrayParenthesis(loc, &codebuf, 0, false);
+                    escapeStrayParenthesis(loc, &codebuf, 0, false, sc.eSink);
                     buf.remove(iCodeStart, i - iCodeStart + count); // also trimming off the current `
                     immutable pre = "$(DDOC_BACKQUOTED ";
                     i = buf.insert(iCodeStart, pre);
@@ -4626,7 +4627,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, ref OutBuffer buf, s
                         highlightCode2(sc, a, codebuf, 0);
                     else
                         codebuf.remove(codebuf.length-1, 1);    // remove the trailing 0 byte
-                    escapeStrayParenthesis(loc, &codebuf, 0, false);
+                    escapeStrayParenthesis(loc, &codebuf, 0, false, sc.eSink);
                     buf.remove(iCodeStart, i - iCodeStart);
                     i = buf.insert(iCodeStart, codebuf[]);
                     i = buf.insert(i, ")\n");
@@ -4984,7 +4985,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, ref OutBuffer buf, s
     }
 
     if (inCode == '-')
-        error(loc, "unmatched `---` in DDoc comment");
+        sc.eSink.error(loc, "unmatched `---` in DDoc comment");
     else if (inCode)
         buf.insert(buf.length, ")");
 
@@ -5180,10 +5181,10 @@ private void highlightCode3(Scope* sc, ref OutBuffer buf, const(char)* p, const(
  */
 private void highlightCode2(Scope* sc, Dsymbols* a, ref OutBuffer buf, size_t offset)
 {
-    uint errorsave = global.startGagging();
+    scope eSinkNull = new ErrorSinkNull();
 
     scope Lexer lex = new Lexer(null, cast(char*)buf[].ptr, 0, buf.length - 1, 0, 1,
-        global.errorSink,
+        eSinkNull,  // ignore errors
         &global.compileEnv);
     OutBuffer res;
     const(char)* lastp = cast(char*)buf[].ptr;
@@ -5247,7 +5248,6 @@ private void highlightCode2(Scope* sc, Dsymbols* a, ref OutBuffer buf, size_t of
     }
     buf.setsize(offset);
     buf.write(&res);
-    global.endGagging(errorsave);
 }
 
 /****************************************

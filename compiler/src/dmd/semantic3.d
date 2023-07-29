@@ -1423,7 +1423,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
          */
         AggregateDeclaration ad = ctor.isMemberDecl();
         if (!ctor.fbody || !ad || !ad.fieldDtor ||
-	    global.params.dtorFields == FeatureState.disabled || !global.params.useExceptions || ctor.type.toTypeFunction.isnothrow)
+            global.params.dtorFields == FeatureState.disabled || !global.params.useExceptions || ctor.type.toTypeFunction.isnothrow)
             return visit(cast(FuncDeclaration)ctor);
 
         /* Generate:
