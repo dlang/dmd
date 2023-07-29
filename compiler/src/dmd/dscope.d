@@ -160,7 +160,7 @@ extern (C++) struct Scope
         return new Scope();
     }
 
-    extern (D) static Scope* createGlobal(Module _module)
+    extern (D) static Scope* createGlobal(Module _module, ErrorSink eSink)
     {
         Scope* sc = Scope.alloc();
         *sc = Scope.init;
@@ -168,6 +168,7 @@ extern (C++) struct Scope
         sc.minst = _module;
         sc.scopesym = new ScopeDsymbol();
         sc.scopesym.symtab = new DsymbolTable();
+	sc.eSink = eSink;
         // Add top level package as member of this global scope
         Dsymbol m = _module;
         while (m.parent)

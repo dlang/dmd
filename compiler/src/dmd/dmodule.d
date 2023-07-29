@@ -948,7 +948,7 @@ extern (C++) final class Module : Package
          * gets imported, it is unaffected by context.
          * Ignore prevsc.
          */
-        Scope* sc = Scope.createGlobal(this); // create root scope
+        Scope* sc = Scope.createGlobal(this, global.errorSink); // create root scope
 
         if (md && md.msg)
             md.msg = semanticString(sc, md.msg, "deprecation message");

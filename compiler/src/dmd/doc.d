@@ -397,8 +397,7 @@ extern(C++) void gendocfile(Module m, ErrorSink eSink)
         }
     }
     DocComment.parseMacros(m.escapetable, m.macrotable, mbuf[]);
-    Scope* sc = Scope.createGlobal(m); // create root scope
-    sc.eSink = eSink;
+    Scope* sc = Scope.createGlobal(m, eSink); // create root scope
     DocComment* dc = DocComment.parse(m, m.comment);
     dc.pmacrotable = &m.macrotable;
     dc.escapetable = m.escapetable;
