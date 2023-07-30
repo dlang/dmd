@@ -793,7 +793,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                     mem.xfree(name);
                     name = newName;
                  }
-                
+
                 /* Embed the library names into the object file.
                  * The linker will then automatically
                  * search that library, too.
