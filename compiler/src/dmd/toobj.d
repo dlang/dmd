@@ -789,7 +789,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                     newName[totalLen] = 0;
                     name[0] = '/';
                     memcpy(newName, symbol.loc.filename(), filenameLen);
-                    memcpy(newName[filenameLen], name, nameLen);
+                    memcpy(&newName[filenameLen], name, nameLen);
                     mem.xfree(name);
                     name = newName;
                  }
