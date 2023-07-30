@@ -775,12 +775,12 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 Dsymbol symbol = getDsymbol(e);
                 if (name[0] == '.') {
                     auto nameLen = strlen(name);
-                    auto filenameLen = strlen(symbol.filename());
+                    auto filenameLen = strlen(symbol.loc.filename());
                     auto totalLen = nameLen + filenameLen + 1;
                     auto newName = cast(char*) mem.xmalloc(totalLen);
                     newName[totalLen] = 0;
                     name[0] = '/';
-                    memcpy(newName, symbol.filename(), filenameLen);
+                    memcpy(newName, symbol.loc.filename(), filenameLen);
                     memcpy(newName[filenameLen], name, nameLen);
                     mem.xfree(name);
                     name = newName;
