@@ -44,6 +44,7 @@ import dmd.backend.filespec : filespecdotext, filespecgetroot, filespecname;
 
 version (Windows)
 {
+    extern (C) int memicmp(const(void)*, const(void)*, size_t) pure nothrow @nogc;
     extern (C) int stricmp(const(char)*, const(char)*) pure nothrow @nogc;
     alias filespeccmp = stricmp;
 }
@@ -1127,15 +1128,26 @@ private void obj_comment(ubyte x, const(char)* string, size_t len)
  */
 
 @trusted
-bool OmfObj_includelib(const(char)* name)
+bool OmfObj_includelib(scope const char[] name)
 {
-    const(char)* p;
-    size_t len = strlen(name);
+    const(char)[] n = name;
 
-    p = filespecdotext(name);
-    if (!filespeccmp(p,".lib"))
-        len -= strlen(p);               // lop off .LIB extension
-    obj_comment(0x9F, name, len);
+    // lop off .LIB extension
+    if (name.length >= 4)
+    {
+        version (Windows)
+        {
+            if (memicmp(name[$ - 4 .. $].ptr, ".lib".ptr, 4) == 0)
+                n = name[0 .. $ - 4];
+        }
+        else
+        {
+            if (memcmp(name[$ - 4 .. $].ptr, ".lib".ptr, 4) == 0)
+                n = name[0 .. $ - 4];
+        }
+    }
+
+    obj_comment(0x9F, n.ptr, n.length);
     return true;
 }
 
@@ -1220,7 +1232,7 @@ private void obj_defaultlib()
 
     if (!(config.flags2 & CFG2nodeflib))
     {
-        objmod.includelib(configv.deflibname ? configv.deflibname : library.ptr);
+        objmod.includelib(configv.deflibname ? configv.deflibname[0 .. strlen(configv.deflibname)] : library);
     }
 }
 

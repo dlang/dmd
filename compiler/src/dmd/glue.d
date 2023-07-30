@@ -402,14 +402,9 @@ private void obj_end(ref OutBuffer objbuf, Library library, const(char)* objfile
     }
 }
 
-bool obj_includelib(const(char)* name) nothrow
+extern (D) bool obj_includelib(scope const char[] name) nothrow
 {
     return objmod.includelib(name);
-}
-
-extern(D) bool obj_includelib(const(char)[] name) nothrow
-{
-    return name.toCStringThen!(n => obj_includelib(n.ptr));
 }
 
 void obj_startaddress(Symbol *s)

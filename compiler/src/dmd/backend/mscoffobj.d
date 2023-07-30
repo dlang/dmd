@@ -977,12 +977,13 @@ void MsCoffObj_startaddress(Symbol *s)
  */
 
 @trusted
-bool MsCoffObj_includelib(const(char)* name)
+extern (D)
+bool MsCoffObj_includelib(scope const char[] name)
 {
     int seg = MsCoffObj_seg_drectve();
     //dbg_printf("MsCoffObj_includelib(name *%s)\n",name);
     SegData[seg].SDbuf.write(" /DEFAULTLIB:\"".ptr, 14);
-    SegData[seg].SDbuf.write(name, cast(uint)strlen(name));
+    SegData[seg].SDbuf.write(name.ptr, cast(uint)name.length);
     SegData[seg].SDbuf.writeByte('"');
     return true;
 }

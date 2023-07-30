@@ -1426,7 +1426,7 @@ void ElfObj_startaddress(Symbol *s)
  * Output library name.
  */
 
-bool ElfObj_includelib(const(char)* name)
+bool ElfObj_includelib(scope const char[] name)
 {
     //dbg_printf("ElfObj_includelib(name *%s)\n",name);
     return false;
