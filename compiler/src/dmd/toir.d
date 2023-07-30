@@ -854,7 +854,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
             {
                 /* Because the value needs to survive the end of the scope!
                  */
-                irs.eSink.error(v.loc, "`%s` has scoped destruction, cannot build closure", v.toChars());
+                irs.eSink.error(v.loc, "variable `%s` has scoped destruction, cannot build closure", v.toPrettyChars());
             }
             if (v.isargptr)
             {
@@ -862,7 +862,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
                  * This is actually a bug, but better to produce a nice
                  * message at compile time rather than memory corruption at runtime
                  */
-                irs.eSink.error(v.loc, "`%s` cannot reference variadic arguments from closure", v.toChars());
+                irs.eSink.error(v.loc, "variable `%s` cannot reference variadic arguments from closure", v.toPrettyChars());
             }
 
             /* Set Sscope to closure */
