@@ -771,7 +771,21 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 StringExp se = cast(StringExp)e;
                 char *name = cast(char *)mem.xmalloc(se.numberOfCodeUnits() + 1);
                 se.writeTo(name, true);
-
+                
+                Dsymbol sym = getDsymbol(e);
+                if (name[0] == '.') {
+                    auto nameLen = strlen(name);
+                    auto filenameLen = strlen(symbol.filename());
+                    auto totalLen = nameLen + filenameLen + 1;
+                    auto newName = cast(char*) mem.xmalloc(totalLen);
+                    newName[totalLen] = 0;
+                    name[0] = '/';
+                    memcpy(newName, symbol.filename(), filenameLen);
+                    memcpy(newName[filenameLen], name, nameLen);
+                    mem.xfree(name);
+                    name = newName;
+                 }
+                
                 /* Embed the library names into the object file.
                  * The linker will then automatically
                  * search that library, too.
