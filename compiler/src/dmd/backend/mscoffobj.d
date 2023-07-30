@@ -37,8 +37,6 @@ import dmd.backend.mscoff;
 
 import dmd.common.outbuffer;
 
-extern (C++):
-
 nothrow:
 @safe:
 
@@ -234,7 +232,7 @@ int MsCoffObj_string_literal_segment(uint sz)
  * One source file can generate multiple .obj files.
  */
 
-@trusted
+@system
 Obj MsCoffObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
 {
     //printf("MsCoffObj_init()\n");

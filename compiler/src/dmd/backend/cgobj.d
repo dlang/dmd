@@ -35,8 +35,6 @@ import dmd.backend.type;
 
 import dmd.common.outbuffer;
 
-extern (C++):
-
 nothrow:
 @safe:
 
@@ -392,7 +390,7 @@ static if (MULTISCOPE)
 
 __gshared
 {
-    Rarray!(seg_data*) SegData;
+    extern (C++) Rarray!(seg_data*) SegData;
     Objstate obj;
 }
 
@@ -418,49 +416,16 @@ void objrecord(uint rectyp, const(char)* record, uint reclen)
     o.writeByten(0);           // use 0 for checksum
 }
 
+@trusted
 void too_many_symbols()
 {
-    error(null, 0, 0, "more than %d symbols in object file", 0x7FFF);
+    error(null, 0, 0, "more than %d symbols in object file %s", 0x7FFF, obj.modname);
     fatal();
 }
 
 version (X86) version (DigitalMars)
     version = X86ASM;
 
-version (X86ASM)
-{
-@trusted
-int insidx(char *p,uint index)
-{
-    asm nothrow
-    {
-        naked                           ;
-        mov     EAX,[ESP+8]             ; // index
-        mov     ECX,[ESP+4]             ; // p
-
-        cmp     EAX,0x7F                ;
-        jae     L1                      ;
-        mov     [ECX],AL                ;
-        mov     EAX,1                   ;
-        ret                             ;
-
-
-    L1:                                 ;
-        cmp     EAX,0x7FFF              ;
-        ja      L2                      ;
-
-        mov     [ECX+1],AL              ;
-        or      EAX,0x8000              ;
-        mov     [ECX],AH                ;
-        mov     EAX,2                   ;
-        ret                             ;
-    }
-    L2:
-        too_many_symbols();
-}
-}
-else
-{
 @trusted
 int insidx(char *p,uint index)
 {
@@ -484,7 +449,6 @@ int insidx(char *p,uint index)
         too_many_symbols();
         return 0;
     }
-}
 }
 
 /**************************
@@ -619,8 +583,7 @@ segidx_t OmfObj_seg_debugT()
  *      filename        source file name
  *      csegname        code segment name (can be null)
  */
-
-@trusted
+@system
 Obj OmfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
 {
         //printf("OmfObj_init()\n");

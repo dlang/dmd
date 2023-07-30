@@ -342,6 +342,9 @@ private void obj_start(ref OutBuffer objbuf, const(char)* srcfile)
 
     version (Windows)
     {
+        import dmd.backend.mscoffobj;
+        import dmd.backend.cgobj;
+
         // Produce Ms COFF files by default, OMF for -m32omf
         assert(objbuf.length() == 0);
         switch (target.objectFormat())
