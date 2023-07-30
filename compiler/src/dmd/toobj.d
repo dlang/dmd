@@ -772,7 +772,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 char *name = cast(char *)mem.xmalloc(se.numberOfCodeUnits() + 1);
                 se.writeTo(name, true);
                 
-                Dsymbol sym = getDsymbol(e);
+                Dsymbol symbol = getDsymbol(e);
                 if (name[0] == '.') {
                     auto nameLen = strlen(name);
                     auto filenameLen = strlen(symbol.filename());
