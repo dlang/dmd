@@ -34,7 +34,6 @@ import dmd.backend.type;
 static if (NTEXCEPTIONS)
 {
 
-extern (C++):
 
 nothrow:
 @safe:

@@ -24,7 +24,6 @@ import dmd.backend.el;
 import dmd.backend.symtab;
 import dmd.backend.type;
 
-extern (C++):
 @nogc:
 nothrow:
 @safe:

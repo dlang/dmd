@@ -47,14 +47,11 @@ import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.xmm;
 
-extern (C++):
 
 nothrow:
 @safe:
 
 enum MARS = true;
-
-private extern (D) uint mask(uint m) { return 1 << m; }
 
 //private void genorreg(ref CodeBuilder c, uint t, uint f) { genregs(c, 0x09, f, t); }
 

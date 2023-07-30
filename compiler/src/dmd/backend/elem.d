@@ -54,7 +54,6 @@ version (CRuntime_Microsoft) extern (C++)
 }
 +/
 
-extern (C++):
 
 nothrow:
 @safe:

@@ -28,13 +28,9 @@ import dmd.backend.mem;
 import dmd.backend.ty;
 import dmd.backend.barray;
 
-extern (C++):
 
 nothrow:
 @safe:
-
-
-private uint mask(uint m) { return 1 << m; }
 
 // is32bitaddr works correctly only when x is 0 or 1.  This is
 // true today for the current definition of I32, but if the definition

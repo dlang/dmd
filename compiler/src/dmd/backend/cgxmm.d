@@ -28,12 +28,9 @@ import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.xmm;
 
-extern (C++):
 
 nothrow:
 @safe:
-
-uint mask(uint m);
 
 /*******************************************
  * Is operator a store operator?

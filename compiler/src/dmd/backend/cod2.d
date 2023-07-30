@@ -38,7 +38,6 @@ import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.xmm;
 
-extern (C++):
 
 nothrow:
 @safe:
@@ -46,8 +45,6 @@ nothrow:
 import dmd.backend.cg : segfl, stackfl;
 
 __gshared int cdcmp_flag;
-
-private extern (D) uint mask(uint m) { return 1 << m; }
 
 import dmd.backend.divcoeff : choose_multiplier, udiv_coefficients;
 

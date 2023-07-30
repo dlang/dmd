@@ -20,7 +20,6 @@ import dmd.backend.code;
 import dmd.backend.code_x86;
 import dmd.backend.type;
 
-extern (C++):
 
 ///////////////////// GLOBALS /////////////////////
 

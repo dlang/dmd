@@ -76,7 +76,6 @@ static if (1)
 
     import dmd.common.outbuffer;
 
-    extern (C++):
 
     nothrow:
 
@@ -3204,7 +3203,6 @@ static if (1)
 }
 else
 {
-    extern (C++):
 
     void dwarf_CFA_set_loc(uint location) { }
     void dwarf_CFA_set_reg_offset(int reg, int offset) { }

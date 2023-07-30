@@ -29,7 +29,6 @@ nothrow:
 @nogc:
 @safe:
 
-extern (C++):
 
 /**********************************************
  * Free a data definition struct.

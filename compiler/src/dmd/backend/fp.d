@@ -17,7 +17,6 @@ import core.stdc.fenv;
 import dmd.root.longdouble;
 import dmd.backend.cdef;
 
-extern (C++):
 
 nothrow:
 @safe:

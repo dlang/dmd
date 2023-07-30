@@ -28,8 +28,6 @@ import dmd.backend.cdef;
 import dmd.backend.dlist;
 import dmd.backend.ty;
 
-extern(C++):
-
 nothrow:
 @safe:
 

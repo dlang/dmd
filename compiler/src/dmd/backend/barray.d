@@ -20,7 +20,6 @@ import core.stdc.string;
 nothrow:
 @safe:
 
-extern (C++):
 
 import dmd.backend.global : err_nomem;
 
