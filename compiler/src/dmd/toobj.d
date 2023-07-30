@@ -771,9 +771,17 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 StringExp se = cast(StringExp)e;
                 char *name = cast(char *)mem.xmalloc(se.numberOfCodeUnits() + 1);
                 se.writeTo(name, true);
-                
-                Dsymbol symbol = getDsymbol(e);
+
+                /* Library lookup will be relative to the folder where dmd will be invocated from
+                 * This is a problem if you want to link a local static library,
+                 * because if you have a library (import) in a different folder, the pragma's path will be relative to that folder instead
+                 * So when you decide to compile a program that depend on that library, it will no longer be able to find the static library
+                 * As a workaround, if the 1st character is a `.` we can pretend it's to lookup relative to the symbol's filename's path
+                 * This code will concenate the filename of the symbol where the pragma was defined, with the name of the library,
+                 * and it will replace the `.` with a `/`
+                 */
                 if (name[0] == '.') {
+                    Dsymbol symbol = getDsymbol(e);
                     auto nameLen = strlen(name);
                     auto filenameLen = strlen(symbol.loc.filename());
                     auto totalLen = nameLen + filenameLen + 1;
