@@ -179,7 +179,7 @@ void addPredefinedGlobalIdentifiers(const ref Target tgt)
         switch (tgt.os)
         {
             case OS.none:         { predef("FreeStanding"); break; }
-            case OS.linux:        { predef("linux");        break; }
+            case OS.linux:        { predef("linux"); predef("Linux"); break; }
             case OS.OpenBSD:      { predef("OpenBSD");      break; }
             case OS.DragonFlyBSD: { predef("DragonFlyBSD"); break; }
             case OS.Solaris:      { predef("Solaris");      break; }
