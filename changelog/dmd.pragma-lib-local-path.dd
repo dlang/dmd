@@ -1,6 +1,6 @@
 `pragma(lib)` can now be used to refer to local paths.
 
-This is useful to distribute self-contained bindings to C libraries, or when you do not want to depend on `dub`.
+This is useful to greatly simplify your build script, and makes it easier to distribute self-contained bindings to C libraries, or when you simply do not want to depend on `dub`.
 
 To use it, just prefix your library with `local:` and dmd will setup the path for you, the path is relative to the directory of the current module.
 
