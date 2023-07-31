@@ -1,9 +1,11 @@
 /*
+LINK:
 EXTRA_SOURCES: imports/pragma_lib_local.d
-RUN_OUTPUT:
+TEST_OUTPUT:
 ---
-/usr/bin/ld: pr15479.o: in function `_Dmain':
-pr15479.d:(.text._Dmain[_Dmain]+0x5): undefined reference to `lib_get_int'
+/usr/bin/ld: cannot find extra-files/fake.a: No such file or directory
+collect2: error: ld returned 1 exit status
+Error: linker exited with status 1
 ---
 */
 import core.stdc.stdio;
