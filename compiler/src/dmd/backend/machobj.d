@@ -35,8 +35,6 @@ import dmd.backend.type;
 
 import dmd.common.outbuffer;
 
-extern (C++):
-
 nothrow:
 @safe:
 
@@ -220,7 +218,7 @@ int mach_seg_data_isCode(const ref seg_data sd)
 
 __gshared
 {
-extern Rarray!(seg_data*) SegData;
+extern (C++) extern Rarray!(seg_data*) SegData;
 
 /**
  * Section index for the __thread_vars/__tls_data section.
@@ -439,7 +437,7 @@ int MachObj_string_literal_segment(uint sz)
  * Perform initialization that applies to all .o output files.
  *      Called before any other obj_xxx routines
  */
-@trusted
+@system
 Obj MachObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
 {
     //printf("MachObj_init()\n");

@@ -42,8 +42,6 @@ import dmd.backend.type;
 
 import dmd.common.outbuffer;
 
-extern (C++):
-
 nothrow:
 
 import dmd.backend.dwarf;
@@ -273,7 +271,7 @@ IDXSYM      MAP_SEG2SYMIDX(int seg) { return SegData[seg].SDsymidx; }
 Elf32_Shdr* MAP_SEG2SEC(int seg)    { return &SecHdrTab[MAP_SEG2SECIDX(seg)]; }
 int         MAP_SEG2TYP(int seg)    { return MAP_SEG2SEC(seg).sh_flags & SHF_EXECINSTR ? CODE : DATA; }
 
-extern Rarray!(seg_data*) SegData;
+extern (C++) extern Rarray!(seg_data*) SegData;
 
 int seg_tlsseg = UNKNOWN;
 int seg_tlsseg_bss = UNKNOWN;
@@ -626,7 +624,6 @@ int ElfObj_string_literal_segment(uint sz)
  *      csegname = name for code segment
  */
 
-private
 Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
 {
     //printf("ElfObj_init(filename = %s, csegname = %s)\n",filename,csegname);
