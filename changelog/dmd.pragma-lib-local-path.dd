@@ -1,0 +1,21 @@
+`pragma(lib)` can now be used to refer to local paths.
+
+This is useful to distribute self-contained bindings to C libraries, or when you do not want to depend on `dub`.
+
+To use it, just prefix your library with `local:` and dmd will setup the path for you, the path is relative to the directory of the current module.
+
+Example:
+
+---
+module library;
+
+version (linux) {
+    pragma(lib, "local:bin/linux/library.a");
+}
+else version (Windows) {
+    pragma(lib, "local:bin/windows/library.lib");
+}
+else {
+    static assert(0, "Platform is not supported.");
+}
+---
