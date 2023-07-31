@@ -776,10 +776,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
                  * The linker will then automatically
                  * search that library, too.
                  */
-                if (!obj_includelib(name))
-                {
-                    void combine(char* destination, const (char)* path1, const (char)* path2)
-                    {
+                if (!obj_includelib(name)) {
+                    void combine(char* destination, const (char)* path1, const (char)* path2) {
                         if(path1 == null && path2 == null) {
                             strcpy(destination, "");
                         }
@@ -788,12 +786,12 @@ void toObjFile(Dsymbol ds, bool multiobj)
                         }
                         else if(path1 == null || strlen(path1) == 0) {
                             strcpy(destination, path2);
-                        } 
+                        }
                         else {
                             const(char)* directory_separator = "/";
                             const(char)* last_char = path1;
                             while(*last_char != '\0')
-                                last_char++;        
+                                last_char++;
                             int append_directory_separator = 0;
                             if(strcmp(last_char, directory_separator) != 0) {
                                 append_directory_separator = 1;
@@ -835,7 +833,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                      * If the path starts with `local:`, then combine the symbol's path with the lib's filename so the lookup is local
                      * This is useful when distributing self contained libraries as folder
                      * This assume the path is built with forward slash
-                     */ 
+                     */
                     bool isLocal = strncmp("local:", name, 6) == 0;
                     if (isLocal) {
                         addLocalLibFile();
