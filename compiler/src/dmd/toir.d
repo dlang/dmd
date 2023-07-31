@@ -347,7 +347,7 @@ elem *getEthis(const ref Loc loc, IRState *irs, Dsymbol fd, Dsymbol fdp = null, 
     {
         if (!irs.sthis)                // if no frame pointer for this function
         {
-            fd.error(loc, "is a nested function and cannot be accessed from `%s`", irs.getFunc().toPrettyChars());
+            irs.eSink.error(loc, "`%s` is a nested function and cannot be accessed from `%s`", fd.toChars(), irs.getFunc().toPrettyChars());
             return el_long(TYnptr, 0); // error recovery
         }
 
@@ -381,7 +381,7 @@ elem *getEthis(const ref Loc loc, IRState *irs, Dsymbol fd, Dsymbol fdp = null, 
                 if (!ad)
                 {
                   Lnoframe:
-                    irs.getFunc().error(loc, "cannot get frame pointer to `%s`", fd.toPrettyChars());
+                    irs.eSink.error(loc, "cannot get frame pointer to `%s`", fd.toPrettyChars());
                     return el_long(TYnptr, 0);      // error recovery
                 }
                 ClassDeclaration cd = ad.isClassDeclaration();
@@ -854,7 +854,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
             {
                 /* Because the value needs to survive the end of the scope!
                  */
-                v.error("has scoped destruction, cannot build closure");
+                irs.eSink.error(v.loc, "variable `%s` has scoped destruction, cannot build closure", v.toPrettyChars());
             }
             if (v.isargptr)
             {
@@ -862,7 +862,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
                  * This is actually a bug, but better to produce a nice
                  * message at compile time rather than memory corruption at runtime
                  */
-                v.error("cannot reference variadic arguments from closure");
+                irs.eSink.error(v.loc, "variable `%s` cannot reference variadic arguments from closure", v.toPrettyChars());
             }
 
             /* Set Sscope to closure */
