@@ -267,7 +267,7 @@ Derived db = cast(Derived)new Base(); // explicit conversion
 
     $(P A dynamic array, say `x`, of a derived class can be implicitly converted
     to a dynamic array, say `y`, of a base class iff elements of `x` and `y` are
-    qualified as being either both `const` or `both` `immutable`.)
+    qualified as being either both `const` or both `immutable`.)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 -------------------
@@ -280,7 +280,7 @@ immutable(Base)[] ia = (immutable(Derived)[]).init; // `immutable` elements
 
     $(P A static array, say `x`, of a derived class can be implicitly converted
     to a static array, say `y`, of a base class iff elements of `x` and `y` are
-    qualified as being either both `const` or `both` `immutable` or both mutable
+    qualified as being either both `const` or both `immutable` or both mutable
     (neither `const` nor `immutable`).)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
