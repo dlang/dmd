@@ -530,12 +530,10 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             }
 
             RootObject o = (*tup.objects)[cast(size_t)d];
-            if (o.dyncast() != DYNCAST.type)
-            {
-                .error(loc, "`%s` is not a type", mtype.toChars());
-                return error();
-            }
-            return (cast(Type)o).addMod(mtype.mod);
+            if (auto tt = o.isType())
+                return tt.addMod(mtype.mod);
+            .error(loc, "`%s` is not a type", mtype.toChars());
+            return error();
         }
 
         if (t && t.ty == Terror)

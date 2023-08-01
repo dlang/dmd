@@ -4708,9 +4708,9 @@ void errorSupplementalInferredAttr(FuncDeclaration fd, int maxDepth, bool deprec
                     s.arg0 ? s.arg0.toChars() : "", s.arg1 ? s.arg1.toChars() : "", s.arg2 ? s.arg2.toChars() : "");
             }
         }
-        else if (s.arg0.dyncast() == DYNCAST.dsymbol)
+        else if (auto sa = s.arg0.isDsymbol())
         {
-            if (FuncDeclaration fd2 = (cast(Dsymbol) s.arg0).isFuncDeclaration())
+            if (FuncDeclaration fd2 = sa.isFuncDeclaration())
             {
                 if (maxDepth > 0)
                 {

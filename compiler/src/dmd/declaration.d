@@ -626,7 +626,7 @@ extern (C++) final class TupleDeclaration : Declaration
             for (size_t i = 0; i < objects.length; i++)
             {
                 RootObject o = (*objects)[i];
-                if (o.dyncast() != DYNCAST.type)
+                if (!o.isType())
                 {
                     //printf("\tnot[%d], %p, %d\n", i, o, o.dyncast());
                     return null;

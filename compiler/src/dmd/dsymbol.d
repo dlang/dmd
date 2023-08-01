@@ -353,9 +353,9 @@ extern (C++) class Dsymbol : ASTNode
     {
         if (this == o)
             return true;
-        if (o.dyncast() != DYNCAST.dsymbol)
+        const s = o.isDsymbol();
+        if (!s)
             return false;
-        auto s = cast(Dsymbol)o;
         // Overload sets don't have an ident
         // Function-local declarations may have identical names
         // if they are declared in different scopes
