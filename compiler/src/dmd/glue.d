@@ -1104,7 +1104,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         block_appendexp(irs.blx.curblock, e);
     }
 
-    buildClosure(fd, &irs);
+    buildClosure(fd, irs);
     buildAlignSection(fd, irs); // must be after buildClosure
 
     if (config.ehmethod == EHmethod.EH_WIN32 && fd.isSynchronized() && cd &&
@@ -1116,7 +1116,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         s.Sfunc.Fflags3 |= Fjmonitor;
     }
 
-    Statement_toIR(sbody, &irs);
+    Statement_toIR(sbody, irs);
 
     if (global.errors)
     {

@@ -172,7 +172,7 @@ extern (C++):
  * References:
  * https://dlang.org/dmd-windows.html#switch-cov
  */
-extern (D) elem *incUsageElem(IRState *irs, const ref Loc loc)
+extern (D) elem *incUsageElem(ref IRState irs, const ref Loc loc)
 {
     uint linnum = loc.linnum;
 
@@ -213,7 +213,7 @@ extern (D) elem *incUsageElem(IRState *irs, const ref Loc loc)
  * 'origSc' is the original scope we inlined from.
  * This routine is critical for implementing nested functions.
  */
-elem *getEthis(const ref Loc loc, IRState *irs, Dsymbol fd, Dsymbol fdp = null, Dsymbol origSc = null)
+elem *getEthis(const ref Loc loc, ref IRState irs, Dsymbol fd, Dsymbol fdp = null, Dsymbol origSc = null)
 {
     elem *ethis;
     FuncDeclaration thisfd = irs.getFunc();
@@ -445,7 +445,7 @@ elem *fixEthis2(elem *ethis, FuncDeclaration fd, bool ctxt2 = false)
  * Returns:
  *      *(ey + (ethis2 ? ad.vthis2 : ad.vthis).offset) = this;
  */
-elem *setEthis(const ref Loc loc, IRState *irs, elem *ey, AggregateDeclaration ad, bool setthis2 = false)
+elem *setEthis(const ref Loc loc, ref IRState irs, elem *ey, AggregateDeclaration ad, bool setthis2 = false)
 {
     elem *ethis;
     FuncDeclaration thisfd = irs.getFunc();
@@ -786,7 +786,7 @@ uint setClosureVarOffset(FuncDeclaration fd)
  * getEthis() and NewExp::toElem need to use sclosure, if set, rather
  * than the current frame pointer.
  */
-void buildClosure(FuncDeclaration fd, IRState *irs)
+void buildClosure(FuncDeclaration fd, ref IRState irs)
 {
     //printf("buildClosure(fd = %s)\n", fd.toChars());
     const oldValue = fd.requiresClosure;
