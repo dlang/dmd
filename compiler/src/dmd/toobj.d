@@ -776,7 +776,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                  * The linker will then automatically
                  * search that library, too.
                  */
-                if (!obj_includelib(name))
+                if (!obj_includelib(name[0 .. strlen(name)]))
                 {
                     /* The format does not allow embedded library names,
                      * so instead append the library name to the list to be passed

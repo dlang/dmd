@@ -1540,9 +1540,9 @@ void MachObj_startaddress(Symbol *s)
  * Output library name.
  */
 
-bool MachObj_includelib(const(char)* name)
+bool MachObj_includelib(scope const char[] name)
 {
-    //dbg_printf("MachObj_includelib(name *%s)\n",name);
+    //dbg_printf("MachObj_includelibx(name *%s)\n",name);
     return false;
 }
 

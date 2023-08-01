@@ -118,7 +118,7 @@ else
             mixin(genRetVal("startaddress(s)"));
         }
 
-        bool includelib(const(char)* name)
+        bool includelib(scope const(char)[] name)
         {
             mixin(genRetVal("includelib(name)"));
         }
