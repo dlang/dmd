@@ -80,7 +80,7 @@ void elem_setLoc(elem *e, const ref Loc loc) nothrow
     srcpos_setLoc(e.Esrcpos, loc);
 }
 
-void Statement_toIR(Statement s, IRState *irs)
+void Statement_toIR(Statement s, ref IRState irs)
 {
     /* Generate a block for each label
      */
@@ -98,7 +98,7 @@ void Statement_toIR(Statement s, IRState *irs)
     Statement_toIR(s, irs, &stmtstate);
 }
 
-void Statement_toIR(Statement s, IRState *irs, StmtState* stmtstate)
+void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
 {
     /****************************************
      * This should be overridden by each statement class.
@@ -1763,7 +1763,7 @@ private block *block_calloc(Blockx *blx) @safe
  * Add in code to increment usage count for linnum.
  */
 
-private void incUsage(IRState *irs, const ref Loc loc)
+private void incUsage(ref IRState irs, const ref Loc loc)
 {
 
     if (irs.params.cov && loc.linnum)
