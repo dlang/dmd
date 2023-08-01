@@ -5015,7 +5015,10 @@ RootObject compileTypeMixin(TypeMixin tm, ref const Loc loc, Scope* sc)
     }
     if (p.token.value != TOK.endOfFile)
     {
-        .error(loc, "incomplete mixin type `%s`", str.ptr);
+        .error(loc, "unexpected token `%s` after type `%s`",
+            p.token.toChars(), o.toChars());
+        .errorSupplemental(loc, "while parsing string mixin type `%s`",
+            str.ptr);
         return null;
     }
 

@@ -6276,7 +6276,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (p.token.value != TOK.endOfFile)
         {
-            exp.error("incomplete mixin expression `%s`", str.ptr);
+            e.error("unexpected token `%s` after %s expression",
+                p.token.toChars(), EXPtoString(e.op).ptr);
+            e.errorSupplemental("while parsing string mixin expression `%s`",
+                str.ptr);
             return null;
         }
         return e;
