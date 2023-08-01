@@ -830,8 +830,9 @@ void toObjFile(Dsymbol ds, bool multiobj)
                  */
                 bool isLocal = strncmp("local:", name, 6) == 0;
                 if (isLocal) {
+                    auto combined = combinePath();
                     mem.xfree(name);
-                    name = combinePath();
+                    name = combined;
                 }
 
                 /* Embed the library names into the object file.
