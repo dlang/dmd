@@ -479,7 +479,7 @@ void cv_init()
                 cgcv.deb_offset = 0x80000000;
         }
 
-        objmod.write_bytes(SegData[DEBSYM],4,&cgcv.signature);
+        objmod.write_bytes(SegData[DEBSYM],(&cgcv.signature)[0 .. 1]);
 
         // Allocate an LF_ARGLIST with no arguments
         if (config.fulltypes == CV4)
@@ -521,7 +521,7 @@ void cv_init()
         strcpy(version_.ptr + 1,VERSION);
         cv_namestring(debsym.ptr + 8,version_.ptr);
         TOWORD(debsym.ptr,6 + (version_).sizeof);
-        objmod.write_bytes(SegData[DEBSYM],8 + (version_).sizeof,debsym.ptr);
+        objmod.write_bytes(SegData[DEBSYM], debsym[0 .. 8 + (version_).sizeof]);
 
     }
     else
@@ -1606,7 +1606,7 @@ private void cv4_outsym(Symbol *s)
         }
 
         uint soffset = cast(uint)Offset(DEBSYM);
-        objmod.write_bytes(SegData[DEBSYM],length,debsym);
+        objmod.write_bytes(SegData[DEBSYM],debsym[0 .. length]);
 
         // Put out fixup for function start offset
         objmod.reftoident(DEBSYM,soffset + u,s,0,CFseg | CFoff);
@@ -1761,7 +1761,7 @@ private void cv4_outsym(Symbol *s)
                 assert(length <= 0x1000);
                 if (idx2 != 0)
                 {   uint offset = cast(uint)Offset(DEBSYM);
-                    objmod.write_bytes(SegData[DEBSYM],length,debsym);
+                    objmod.write_bytes(SegData[DEBSYM],debsym[0 .. length]);
                     objmod.write_long(DEBSYM,offset + fixoff,cast(uint)s.Soffset,
                         cgcv.LCFDpointer + fd,idx1,idx2);
                 }
@@ -1806,7 +1806,7 @@ static if (1)
                 goto Lret;
         }
         assert(length <= 40 + len);
-        objmod.write_bytes(SegData[DEBSYM],length,debsym);
+        objmod.write_bytes(SegData[DEBSYM],debsym[0 .. length]);
     }
 Lret:
     if (debsym != buf.ptr)
@@ -1859,7 +1859,7 @@ private void cv4_func(Funcsym *s, ref symtab_t symtab)
         static void endArgs()
         {
             __gshared ushort[2] endargs = [ 2, S_ENDARG ];
-            objmod.write_bytes(SegData[DEBSYM],(endargs).sizeof,endargs.ptr);
+            objmod.write_bytes(SegData[DEBSYM],endargs[]);
         }
         static void beginBlock(int offset, int length)
         {
@@ -1869,7 +1869,7 @@ private void cv4_func(Funcsym *s, ref symtab_t symtab)
             uint soffset = cast(uint)Offset(DEBSYM);
             // parent and end to be filled by linker
             block32_data block32 = { (block32_data).sizeof - 2, S_BLOCK32, 0, 0, length, 0, 0, [ 0, '\0' ] };
-            objmod.write_bytes(SegData[DEBSYM], (block32).sizeof, &block32);
+            objmod.write_bytes(SegData[DEBSYM], (&block32)[0 .. 1]);
             size_t offOffset = cast(char*)&block32.offset - cast(char*)&block32;
             objmod.reftoident(DEBSYM, soffset + offOffset, sfunc, offset + sfunc.Soffset, CFseg | CFoff);
         }
@@ -1879,7 +1879,7 @@ private void cv4_func(Funcsym *s, ref symtab_t symtab)
                 return; // optlink does not like more than 255 scope blocks
 
             __gshared ushort[2] endargs = [ 2, S_END ];
-            objmod.write_bytes(SegData[DEBSYM],(endargs).sizeof,endargs.ptr);
+            objmod.write_bytes(SegData[DEBSYM],endargs[]);
         }
     }
 
@@ -2049,13 +2049,13 @@ private void cv4_func(Funcsym *s, ref symtab_t symtab)
 
         TOWORD(sreturn.ptr,u);
         TOWORD(sreturn.ptr + 2,S_RETURN);
-        objmod.write_bytes(SegData[DEBSYM],u + 2,sreturn.ptr);
+        objmod.write_bytes(SegData[DEBSYM],sreturn[0 .. u + 2]);
     }
 
     // Put out end scope
     {   __gshared ushort[2] endproc = [ 2,S_END ];
 
-        objmod.write_bytes(SegData[DEBSYM],(endproc).sizeof,endproc.ptr);
+        objmod.write_bytes(SegData[DEBSYM],endproc[]);
     }
 
     cv_outlist();
@@ -2081,13 +2081,13 @@ void cv_term()
             cv_outlist();
             goto case;
         case CV8:
-            objmod.write_bytes(SegData[typeseg],4,&cgcv.signature);
+            objmod.write_bytes(SegData[typeseg],(&cgcv.signature)[0 .. 1]);
             if (debtyp.length != 1 || config.fulltypes == CV8)
             {
                 for (uint u = 0; u < debtyp.length; u++)
                 {   debtyp_t *d = debtyp[u];
 
-                    objmod.write_bytes(SegData[typeseg],2 + d.length,cast(char *)d + uint.sizeof);
+                    objmod.write_bytes(SegData[typeseg],(cast(void *)d)[uint.sizeof .. uint.sizeof + 2 + d.length]);
                     debtyp_free(d);
                 }
             }

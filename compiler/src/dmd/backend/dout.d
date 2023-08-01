@@ -121,7 +121,7 @@ void outdata(Symbol *s)
                          dt.DTnbytes > config.threshold)
                 {
                 L1:
-                    objmod.write_bytes(SegData[dt.DTseg],dt.DTnbytes,dt.DTpbytes);
+                    objmod.write_bytes(SegData[dt.DTseg],dt.DTpbytes[0 .. dt.DTnbytes]);
                     break;
                 }
                 else
@@ -1216,7 +1216,7 @@ static if (0)
         alignOffset(DATA, sz);
         s = symboldata(Offset(DATA),ty | mTYconst);
         s.Sseg = DATA;
-        objmod.write_bytes(SegData[DATA], len, p);
+        objmod.write_bytes(SegData[DATA], p[0 .. len]);
         //printf("s.Sseg = %d:x%x\n", s.Sseg, s.Soffset);
     }
 
@@ -1253,7 +1253,7 @@ static if (0)
 void out_readonly_comdat(Symbol *s, const(void)* p, uint len, uint nzeros)
 {
     objmod.readonly_comdat(s);         // create comdat segment
-    objmod.write_bytes(SegData[s.Sseg], len, cast(void *)p);
+    objmod.write_bytes(SegData[s.Sseg], p[0 .. len]);
     objmod.lidata(s.Sseg, len, nzeros);
 }
 

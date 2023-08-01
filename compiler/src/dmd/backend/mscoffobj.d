@@ -2022,9 +2022,10 @@ void MsCoffObj_byte(segidx_t seg,targ_size_t offset,uint byte_)
  * Append bytes to segment.
  */
 
-void MsCoffObj_write_bytes(seg_data *pseg, uint nbytes, const(void)* p)
+@trusted
+void MsCoffObj_write_bytes(seg_data *pseg, const(void[]) a)
 {
-    MsCoffObj_bytes(pseg.SDseg, pseg.SDoffset, nbytes, p);
+    MsCoffObj_bytes(pseg.SDseg, pseg.SDoffset, a.length, a.ptr);
 }
 
 /************************************
