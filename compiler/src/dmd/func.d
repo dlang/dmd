@@ -4561,6 +4561,7 @@ bool setUnsafe(Scope* sc,
             else if (!(sc.varDecl.storage_class & STC.trusted))
             {
                 sc.varDecl.storage_class |= STC.system;
+                sc.varDecl.systemInferred = true;
             }
         }
         return false;

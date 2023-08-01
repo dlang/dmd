@@ -2,9 +2,12 @@
 REQUIRED_ARGS: -preview=systemVariables
 TEST_OUTPUT:
 ---
-fail_compilation/systemvariables_var_init.d(21): Error: cannot access `@system` variable `ptrEnum` in @safe code
-fail_compilation/systemvariables_var_init.d(22): Error: cannot access `@system` variable `ptrConst` in @safe code
-fail_compilation/systemvariables_var_init.d(24): Error: cannot access `@system` variable `ptrVar` in @safe code
+fail_compilation/systemvariables_var_init.d(24): Error: cannot access `@system` variable `ptrEnum` in @safe code
+fail_compilation/systemvariables_var_init.d(16):        `ptrEnum` is inferred to be `@system` from its initializer here
+fail_compilation/systemvariables_var_init.d(25): Error: cannot access `@system` variable `ptrConst` in @safe code
+fail_compilation/systemvariables_var_init.d(17):        `ptrConst` is inferred to be `@system` from its initializer here
+fail_compilation/systemvariables_var_init.d(27): Error: cannot access `@system` variable `ptrVar` in @safe code
+fail_compilation/systemvariables_var_init.d(19):        `ptrVar` is inferred to be `@system` from its initializer here
 ---
 */
 

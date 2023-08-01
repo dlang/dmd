@@ -1485,6 +1485,7 @@ extern (C++) abstract class Expression : ASTNode
                 else
                 {
                     sc.varDecl.storage_class |= STC.system;
+                    sc.varDecl.systemInferred = true;
                 }
             }
             return false;

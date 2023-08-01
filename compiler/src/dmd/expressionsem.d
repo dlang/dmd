@@ -875,6 +875,13 @@ Lagain:
                 if (sc.setUnsafePreview(global.params.systemVariables, false, loc,
                     "cannot access `@system` variable `%s` in @safe code", sd))
                 {
+                    if (auto v = sd.isVarDeclaration())
+                    {
+                        if (v.systemInferred)
+                            errorSupplemental(v.loc, "`%s` is inferred to be `@system` from its initializer here", v.toChars());
+                        else
+                            errorSupplemental(v.loc, "`%s` is declared here", v.toChars());
+                    }
                     return ErrorExp.get();
                 }
             }
