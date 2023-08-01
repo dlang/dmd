@@ -2380,7 +2380,7 @@ void MachObj_lidata(int seg,targ_size_t offset,targ_size_t count)
     }
     else
     {
-        MachObj_bytes(seg, offset, cast(uint)count, null);
+        MachObj_bytes(seg, offset, cast(size_t)count, null);
     }
 }
 
@@ -2426,7 +2426,7 @@ void MachObj_write_bytes(seg_data *pseg, uint nbytes, const(void)* p)
  *      nbytes
  */
 @trusted
-uint MachObj_bytes(int seg, targ_size_t offset, uint nbytes, const(void)* p)
+size_t MachObj_bytes(int seg, targ_size_t offset, size_t nbytes, const(void)* p)
 {
 static if (0)
 {
@@ -2443,7 +2443,7 @@ static if (0)
         //raise(SIGSEGV);
         assert(buf != null);
     }
-    int save = cast(int)buf.length();
+    const save = buf.length();
     //dbg_printf("MachObj_bytes(seg=%d, offset=x%lx, nbytes=%d, p=x%x)\n",
             //seg,offset,nbytes,p);
     buf.position(cast(size_t)offset, nbytes);
@@ -2728,7 +2728,7 @@ static if (0)
 
         OutBuffer *buf = SegData[seg].SDbuf;
         int save = cast(int)buf.length();
-        buf.position(cast(uint)offset, retsize);
+        buf.position(cast(size_t)offset, retsize);
         //printf("offset = x%llx, val = x%llx\n", offset, val);
         if (retsize == 8)
             buf.write64(val);

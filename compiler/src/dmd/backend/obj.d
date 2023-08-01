@@ -312,7 +312,7 @@ else
             mixin(genRetVal("byte(seg, offset, _byte)"));
         }
 
-        uint bytes(int seg, targ_size_t offset, uint nbytes, const(void)* p)
+        size_t bytes(int seg, targ_size_t offset, size_t nbytes, const(void)* p)
         {
             mixin(genRetVal("bytes(seg, offset, nbytes, p)"));
         }

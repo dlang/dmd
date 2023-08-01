@@ -161,7 +161,7 @@ struct Relocation
  * Returns offset into the specified string table.
  */
 
-IDXSTR MsCoffObj_addstr(OutBuffer *strtab, const(char)* str) @system
+IDXSTR MsCoffObj_addstr(OutBuffer *strtab, const char[] str) @system
 {
     //printf("MsCoffObj_addstr(strtab = %p str = '%s')\n",strtab,str);
     IDXSTR idx = cast(IDXSTR)strtab.length();        // remember starting offset
@@ -441,7 +441,7 @@ private void syment_set_name(SymbolTable32 *sym, const(char)* name)
     size_t len = strlen(name);
     if (len > 8)
     {   // Use offset into string table
-        IDXSTR idx = MsCoffObj_addstr(string_table, name);
+        IDXSTR idx = MsCoffObj_addstr(string_table, name[0 .. len]);
         sym.Zeros = 0;
         sym.Offset = idx;
     }
@@ -1448,7 +1448,7 @@ IDXSEC MsCoffObj_addScnhdr(const(char)* scnhdr_name, uint flags)
     size_t len = strlen(scnhdr_name);
     if (len > 8)
     {   // Use /nnnn form
-        IDXSTR idx = MsCoffObj_addstr(string_table, scnhdr_name);
+        IDXSTR idx = MsCoffObj_addstr(string_table, scnhdr_name[0 .. len]);
         snprintf(cast(char *)sec.Name, IMAGE_SIZEOF_SHORT_NAME, "/%d", idx);
     }
     else
@@ -2033,7 +2033,7 @@ void MsCoffObj_write_bytes(seg_data *pseg, uint nbytes, const(void)* p)
  */
 
 @trusted
-uint MsCoffObj_bytes(segidx_t seg, targ_size_t offset, uint nbytes, const(void)* p)
+size_t MsCoffObj_bytes(segidx_t seg, targ_size_t offset, size_t nbytes, const(void)* p)
 {
 static if (0)
 {
@@ -2050,7 +2050,7 @@ static if (0)
         //raise(SIGSEGV);
         assert(buf != null);
     }
-    int save = cast(int)buf.length();
+    const save = buf.length();
     //dbg_printf("MsCoffObj_bytes(seg=%d, offset=x%lx, nbytes=%d, p=x%x)\n",
             //seg,offset,nbytes,p);
     buf.position(cast(size_t)offset, nbytes);
