@@ -7706,7 +7706,7 @@ private void removeHookTraceImpl(ref CallExp ce, ref FuncDeclaration fd)
     // Get the Hook from the second template parameter
     TemplateInstance templateInstance = fd.parent.isTemplateInstance;
     RootObject hook = (*templateInstance.tiargs)[1];
-    assert(hook.dyncast() == DYNCAST.dsymbol, "Expected _d_HookTraceImpl's second template parameter to be an alias to the hook!");
+    assert(hook.isDsymbol(), "Expected _d_HookTraceImpl's second template parameter to be an alias to the hook!");
     fd = (cast(Dsymbol)hook).isFuncDeclaration;
 
     // Remove the first three trace parameters
