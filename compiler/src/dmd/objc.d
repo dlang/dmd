@@ -119,7 +119,7 @@ struct ObjcSelector
             buf.writeByte('_');
             foreach (i, fparam; ftype.parameterList)
             {
-                mangleToBuffer(fparam.type, &buf);
+                mangleToBuffer(fparam.type, buf);
                 buf.writeByte(':');
             }
         }

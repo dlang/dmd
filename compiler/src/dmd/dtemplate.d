@@ -7542,7 +7542,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         //printf("TemplateInstance.genIdent('%s')\n", tempdecl.ident.toChars());
         assert(args is tiargs);
         OutBuffer buf;
-        mangleToBuffer(this, &buf);
+        mangleToBuffer(this, buf);
         //printf("\tgenIdent = %s\n", buf.peekChars());
         return Identifier.idPool(buf[]);
     }
