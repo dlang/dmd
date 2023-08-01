@@ -2006,7 +2006,7 @@ extern (C++) Type merge(Type type)
         OutBuffer buf;
         buf.reserve(32);
 
-        mangleToBuffer(type, &buf);
+        mangleToBuffer(type, buf);
 
         auto sv = type.stringtable.update(buf[]);
         if (sv.value)

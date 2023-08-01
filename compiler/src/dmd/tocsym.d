@@ -73,7 +73,7 @@ Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, SC sclass, type *t, const(cha
     import dmd.common.outbuffer : OutBuffer;
 
     OutBuffer buf;
-    mangleToBuffer(ds, &buf);
+    mangleToBuffer(ds, buf);
     size_t nlen = buf.length;
     const(char)* n = buf.peekChars();
     assert(n);
@@ -139,7 +139,7 @@ Symbol *toSymbol(Dsymbol s)
             const(char)[] id = vd.ident.toString();
             if (vd.isDataseg())
             {
-                mangleToBuffer(vd, &buf);
+                mangleToBuffer(vd, buf);
                 id = buf[];
             }
             else

@@ -481,7 +481,7 @@ void test_array()
 void test_outbuffer()
 {
     OutBuffer buf;
-    mangleToBuffer(Type::tint64, &buf);
+    mangleToBuffer(Type::tint64, buf);
     assert(strcmp(buf.peekChars(), "l") == 0);
     buf.reset();
 

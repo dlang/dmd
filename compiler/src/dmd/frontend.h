@@ -6361,13 +6361,13 @@ public:
 
 extern const char* mangleExact(FuncDeclaration* fd);
 
-extern void mangleToBuffer(Type* t, OutBuffer* buf);
+extern void mangleToBuffer(Type* t, OutBuffer& buf);
 
-extern void mangleToBuffer(Expression* e, OutBuffer* buf);
+extern void mangleToBuffer(Expression* e, OutBuffer& buf);
 
-extern void mangleToBuffer(Dsymbol* s, OutBuffer* buf);
+extern void mangleToBuffer(Dsymbol* s, OutBuffer& buf);
 
-extern void mangleToBuffer(TemplateInstance* ti, OutBuffer* buf);
+extern void mangleToBuffer(TemplateInstance* ti, OutBuffer& buf);
 
 class Package : public ScopeDsymbol
 {

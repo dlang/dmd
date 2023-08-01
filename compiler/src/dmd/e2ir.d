@@ -261,7 +261,7 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
             {
                 import dmd.dmangle;
                 scope StringExp se = new StringExp(Loc.initial, str[0 .. len], len, cast(ubyte)sz, 'c');
-                mangleToBuffer(se, &buf);   // recycle how strings are mangled for templates
+                mangleToBuffer(se, buf);   // recycle how strings are mangled for templates
 
                 if (buf.length >= 32 + 2)   // long mangling, replace with hash
                 {

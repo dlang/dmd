@@ -12920,7 +12920,7 @@ private Expression dotIdSemanticPropX(DotIdExp exp, Scope* sc)
                 }
             }
             OutBuffer buf;
-            mangleToBuffer(ds, &buf);
+            mangleToBuffer(ds, buf);
             Expression e = new StringExp(loc, buf.extractSlice());
             return e.expressionSemantic(sc);
         }
