@@ -2540,7 +2540,7 @@ void ElfObj_write_bytes(seg_data *pseg, uint nbytes, const(void)* p)
  *      nbytes
  */
 
-uint ElfObj_bytes(int seg, targ_size_t offset, uint nbytes, const(void)* p)
+size_t ElfObj_bytes(int seg, targ_size_t offset, size_t nbytes, const(void)* p)
 {
 static if (0)
 {
@@ -2557,7 +2557,7 @@ static if (0)
         //raise(SIGSEGV);
         assert(buf != null);
     }
-    int save = cast(int)buf.length();
+    const save = buf.length();
     //dbg_printf("ElfObj_bytes(seg=%d, offset=x%lx, nbytes=%d, p=x%x)\n",
             //seg,offset,nbytes,p);
     buf.position(cast(size_t)offset, nbytes);

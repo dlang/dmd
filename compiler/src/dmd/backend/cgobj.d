@@ -3022,9 +3022,9 @@ void OmfObj_write_bytes(seg_data *pseg, uint nbytes, const(void)* p)
  */
 
 @trusted
-uint OmfObj_bytes(int seg, targ_size_t offset, uint nbytes, const(void)* p)
+size_t OmfObj_bytes(int seg, targ_size_t offset, size_t nbytes, const(void)* p)
 {
-    uint n = nbytes;
+    size_t n = nbytes;
 
     //dbg_printf("OmfObj_bytes(seg=%d, offset=x%lx, nbytes=x%x, p=%p)\n",seg,offset,nbytes,p);
     Ledatarec *lr = cast(Ledatarec*)SegData[seg].ledata;
@@ -3065,7 +3065,7 @@ uint OmfObj_bytes(int seg, targ_size_t offset, uint nbytes, const(void)* p)
     {
         uint i = cast(uint)(offset - lr.offset);
         if (lr.i < i + nbytes)
-            lr.i = i + nbytes;
+            lr.i = cast(uint)(i + nbytes);
         memcpy(lr.data.ptr + i,p,nbytes);
     }
     return n;
