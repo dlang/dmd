@@ -772,80 +772,78 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 char *name = cast(char *)mem.xmalloc(se.numberOfCodeUnits() + 1);
                 se.writeTo(name, true);
 
+                void combine(char* destination, const (char)* path1, const (char)* path2) {
+                    if(path1 == null && path2 == null) {
+                        strcpy(destination, "");
+                    }
+                    else if(path2 == null || strlen(path2) == 0) {
+                        strcpy(destination, path1);
+                    }
+                    else if(path1 == null || strlen(path1) == 0) {
+                        strcpy(destination, path2);
+                    }
+                    else {
+                        version (Windows)
+                            const(char)* directory_separator = "\\";
+                        else
+                            const(char)* directory_separator = "/";
+                        const(char)* last_char = path1;
+                        while(*last_char != '\0')
+                            last_char++;
+                        int append_directory_separator = 0;
+                        if(strcmp(last_char, directory_separator) != 0) {
+                            append_directory_separator = 1;
+                        }
+                        strcpy(destination, path1);
+                        if(append_directory_separator)
+                            strcat(destination, directory_separator);
+                        strcat(destination, path2);
+                    }
+                }
+                char* combinePath() {
+                    auto fileName = ds.loc.filename();
+                    auto fileNameLen = strlen(fileName);
+
+                    char *folderName = cast(char *)mem.xmalloc(fileNameLen + 1);
+                    scope(exit) mem.xfree(folderName);
+
+                    memcpy(folderName, fileName, fileNameLen + 1);
+
+                    for (size_t i = fileNameLen; i > 0; i--) {
+                        if (fileName[i] == '/' || fileName[i] == '\\') {
+                            folderName[i] = 0;
+                            break;
+                        }
+                    }
+                    auto libName = &name[6];
+                    auto libNameLen = strlen(libName);
+
+                    char *toAdd = cast(char *)mem.xmalloc(fileNameLen + libNameLen + 1 + 1);
+                    combine(toAdd, folderName, libName);
+
+                    return toAdd;
+                }
+                /*
+                 * If the path starts with `local:`, then combine the symbol's path with the lib's filename so the lookup is local
+                 * This is useful when distributing self contained libraries as folder
+                 * This assume the path is built with forward slash
+                 */
+                bool isLocal = strncmp("local:", name, 6) == 0;
+                if (isLocal) {
+                    mem.xfree(name);
+                    name = combinePath();
+                }
+
                 /* Embed the library names into the object file.
                  * The linker will then automatically
                  * search that library, too.
                  */
                 if (!obj_includelib(name[0 .. strlen(name)])) {
-                    void combine(char* destination, const (char)* path1, const (char)* path2)
-                    {
-                        if(path1 == null && path2 == null) {
-                            strcpy(destination, "");
-                        }
-                        else if(path2 == null || strlen(path2) == 0) {
-                            strcpy(destination, path1);
-                        }
-                        else if(path1 == null || strlen(path1) == 0) {
-                            strcpy(destination, path2);
-                        }
-                        else {
-                            const(char)* directory_separator = "/";
-                            const(char)* last_char = path1;
-                            while(*last_char != '\0')
-                                last_char++;
-                            int append_directory_separator = 0;
-                            if(strcmp(last_char, directory_separator) != 0) {
-                                append_directory_separator = 1;
-                            }
-                            strcpy(destination, path1);
-                            if(append_directory_separator)
-                                strcat(destination, directory_separator);
-                            strcat(destination, path2);
-                        }
-                    }
-                    void addLocalLibFile() {
-                        auto fileName = ds.loc.filename();
-                        auto fileNameLen = strlen(fileName);
-
-                        char *folderName = cast(char *)mem.xmalloc(fileNameLen + 1);
-                        scope(exit) mem.xfree(folderName);
-
-                        memcpy(folderName, fileName, fileNameLen + 1);
-
-                        for (size_t i = fileNameLen; i > 0; i--) {
-                            if (fileName[i] == '/') {
-                                folderName[i] = 0;
-                                break;
-                            }
-                        }
-                        auto libName = &name[6];
-                        auto libNameLen = strlen(libName);
-
-                        char *toAdd = cast(char *)mem.xmalloc(fileNameLen + libNameLen + 1 + 1);
-                        combine(toAdd, folderName, libName);
-
-                        /* The format does not allow embedded library names,
-                         * so instead append the library name to the list to be passed
-                         * to the linker.
-                         */
-                        global.params.libfiles.push(toAdd);
-                    }
-                    /*
-                     * If the path starts with `local:`, then combine the symbol's path with the lib's filename so the lookup is local
-                     * This is useful when distributing self contained libraries as folder
-                     * This assume the path is built with forward slash
+                    /* The format does not allow embedded library names,
+                     * so instead append the library name to the list to be passed
+                     * to the linker.
                      */
-                    bool isLocal = strncmp("local:", name, 6) == 0;
-                    if (isLocal) {
-                        addLocalLibFile();
-                        mem.xfree(name);
-                    } else {
-                        /* The format does not allow embedded library names,
-                         * so instead append the library name to the list to be passed
-                         * to the linker.
-                         */
-                        global.params.libfiles.push(name);
-                    }
+                    global.params.libfiles.push(name);
                 }
             }
             else if (pd.ident == Id.startaddress)
