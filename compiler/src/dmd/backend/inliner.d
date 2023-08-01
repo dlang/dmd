@@ -51,6 +51,7 @@ private enum log2 = false;
 
 /**********************************
  * Determine if function can be inline'd.
+ * Used to decide to save a function's intermediate code for later inlining.
  * Params:
  *      sfunc = function to check
  * Returns:
