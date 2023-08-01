@@ -21,7 +21,6 @@ import dmd.arrayop;
 import dmd.arraytypes;
 import dmd.astcodegen;
 import dmd.astenums;
-import dmd.ast_node;
 import dmd.attrib;
 import dmd.blockexit;
 import dmd.clone;
@@ -39,7 +38,6 @@ import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.errors;
-import dmd.errorsink;
 import dmd.escape;
 import dmd.expression;
 import dmd.expressionsem;
@@ -57,7 +55,6 @@ import dmd.mustuse;
 import dmd.nogc;
 import dmd.opover;
 import dmd.parse;
-import dmd.printast;
 import dmd.common.outbuffer;
 import dmd.root.string;
 import dmd.semantic2;
@@ -68,7 +65,6 @@ import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
-import dmd.compiler;
 
 version (DMDLIB)
 {
@@ -142,6 +138,8 @@ private Expression checkAssignmentAsCondition(Expression e, Scope* sc)
 // Performs semantic analysis in Statement AST nodes
 extern(C++) Statement statementSemantic(Statement s, Scope* sc)
 {
+    import dmd.compiler;
+
     version (CallbackAPI)
         Compiler.onStatementSemanticStart(s, sc);
 
