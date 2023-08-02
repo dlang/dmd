@@ -3021,10 +3021,11 @@ L1:     { }
  * Append bytes to segment.
  */
 
-void OmfObj_write_bytes(seg_data *pseg, uint nbytes, const(void)* p)
+@trusted
+void OmfObj_write_bytes(seg_data *pseg, const(void[]) a)
 {
-    OmfObj_bytes(pseg.SDseg, pseg.SDoffset, nbytes, p);
-    pseg.SDoffset += nbytes;
+    OmfObj_bytes(pseg.SDseg, pseg.SDoffset, a.length, a.ptr);
+    pseg.SDoffset += a.length;
 }
 
 /************************************

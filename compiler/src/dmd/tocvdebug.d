@@ -292,7 +292,7 @@ void cv_udt(const char* id, uint typidx)
     TOWORD(debsym,length - 2);
 
     assert(length <= 40 + len);
-    objmod.write_bytes(SegData[DEBSYM],length,debsym);
+    objmod.write_bytes(SegData[DEBSYM],debsym[0 .. length]);
 }
 
 /* ==================================================================== */

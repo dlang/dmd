@@ -302,9 +302,9 @@ else
             mixin(genRetVal("write_byte(pseg, _byte)"));
         }
 
-        void write_bytes(seg_data *pseg, uint nbytes, const(void)* p)
+        void write_bytes(seg_data *pseg, const(void[]) a)
         {
-            mixin(genRetVal("write_bytes(pseg, nbytes, p)"));
+            mixin(genRetVal("write_bytes(pseg, a)"));
         }
 
         void _byte(int seg, targ_size_t offset, uint _byte)

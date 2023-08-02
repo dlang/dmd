@@ -2415,9 +2415,9 @@ void MachObj_byte(int seg,targ_size_t offset,uint byte_)
  * Append bytes to segment.
  */
 
-void MachObj_write_bytes(seg_data *pseg, uint nbytes, const(void)* p)
+void MachObj_write_bytes(seg_data *pseg, const(void[]) a)
 {
-    MachObj_bytes(pseg.SDseg, pseg.SDoffset, nbytes, p);
+    MachObj_bytes(pseg.SDseg, pseg.SDoffset, a.length, &a[0]);
 }
 
 /************************************
