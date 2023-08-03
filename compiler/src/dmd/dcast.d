@@ -23,7 +23,6 @@ import dmd.declaration;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.errors;
 import dmd.escape;
 import dmd.expression;
 import dmd.expressionsem;
@@ -32,7 +31,6 @@ import dmd.globals;
 import dmd.hdrgen;
 import dmd.location;
 import dmd.impcnvtab;
-import dmd.id;
 import dmd.importc;
 import dmd.init;
 import dmd.intrange;
@@ -44,7 +42,6 @@ import dmd.root.rmem;
 import dmd.root.utf;
 import dmd.tokens;
 import dmd.typesem;
-import dmd.visitor;
 
 enum LOG = false;
 
