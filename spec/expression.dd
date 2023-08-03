@@ -850,15 +850,19 @@ $(GNAME ShiftExpression):
         -------------
     )
 
-$(H2 $(LNAME2 add_expressions, Add Expressions))
+$(H2 $(LNAME2 additive_expressions, Additive Expressions))
 
 $(GRAMMAR
 $(GNAME AddExpression):
     $(GLINK MulExpression)
     $(GSELF AddExpression) $(D +) $(GLINK MulExpression)
     $(GSELF AddExpression) $(D -) $(GLINK MulExpression)
-    $(GLINK CatExpression)
+    $(GSELF AddExpression) $(D ~) $(GLINK MulExpression)
 )
+
+$(H3 $(LNAME2 add_expressions, Add Expressions))
+    $(P In the cases of the Additive operations $(D +) and $(D -):
+    )
 
     $(P If the operands are of integral types, they undergo the $(USUAL_ARITHMETIC_CONVERSIONS),
         and then are brought to a common type using the
@@ -882,10 +886,9 @@ $(GNAME AddExpression):
     $(P Add expressions for floating point operands are not associative.
     )
 
-    $(H3 $(LNAME2 pointer_arithmetic, Pointer Arithmetic))
+    $(H4 $(LNAME2 pointer_arithmetic, Pointer Arithmetic))
 
-    $(P If the operator is $(D +) or $(D -), and
-        the first operand is a pointer, and the second is an integral type,
+    $(P If the first operand is a pointer, and the second is an integral type,
         the resulting type is the type of the first operand, and the resulting
         value is the pointer plus (or minus) the second operand multiplied by
         the size of the type pointed to by the first operand.
@@ -935,12 +938,9 @@ assert(d == 2);
 )
 
 
-$(H2 $(LNAME2 cat_expressions, Cat Expressions))
-
-$(GRAMMAR
-$(GNAME CatExpression):
-    $(GLINK AddExpression) $(D ~) $(GLINK MulExpression)
-)
+$(H3 $(LNAME2 cat_expressions, Cat Expressions))
+    $(P In the case of the Additive operation $(D ~):
+    )
 
     $(P A $(I CatExpression) concatenates a container's data with other data, producing
         a new container.)
