@@ -877,6 +877,10 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             return 0;
         }
 
+        // opaque class is not abstract if it is not declared abstract
+        if (!members)
+            return no();
+
         for (size_t i = 0; i < members.length; i++)
         {
             auto s = (*members)[i];
