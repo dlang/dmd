@@ -12,7 +12,6 @@
 module dmd.ctfeexpr;
 
 import core.stdc.stdio;
-import core.stdc.stdlib;
 import core.stdc.string;
 import dmd.arraytypes;
 import dmd.astenums;
