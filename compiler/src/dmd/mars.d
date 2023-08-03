@@ -17,15 +17,12 @@
 module dmd.mars;
 
 import core.stdc.ctype;
-//import core.stdc.limits;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
 import dmd.arraytypes;
-//import dmd.astcodegen;
 import dmd.astenums;
-//import dmd.builtin;
 import dmd.cond;
 import dmd.console;
 import dmd.compiler;
@@ -41,7 +38,6 @@ import dmd.dtemplate;
 import dmd.dtoh;
 import dmd.errors;
 import dmd.expression;
-//import dmd.file_manager;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
