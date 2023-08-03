@@ -2327,7 +2327,12 @@ public:
         {
             //printf("%s %d\n", p.defaultArg.toChars, p.defaultArg.op);
             buf.writestring(" = ");
+            // Always emit the FDN of a symbol for the default argument,
+            // to avoid generating an ambiguous assignment.
+            auto save = adparent;
+            adparent = null;
             printExpressionFor(p.type, p.defaultArg);
+            adparent = save;
         }
     }
 
