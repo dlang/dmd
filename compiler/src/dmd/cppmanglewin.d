@@ -11,7 +11,6 @@
 
 module dmd.cppmanglewin;
 
-import core.stdc.string;
 import core.stdc.stdio;
 
 import dmd.arraytypes;
