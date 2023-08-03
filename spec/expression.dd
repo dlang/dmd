@@ -1550,6 +1550,48 @@ $(TABLE
     $(TROW *SliceExpression*, Select a series of elements)
 )
 
+$(H3 $(LNAME2 argument-list, Postfix Argument Lists))
+
+$(GRAMMAR
+$(GNAME ArgumentList):
+    $(GLINK AssignExpression)
+    $(GLINK AssignExpression) $(D ,)
+    $(GLINK AssignExpression) $(D ,) $(GSELF ArgumentList)
+
+$(GNAME NamedArgumentList):
+    $(GLINK NamedArgument)
+    $(GLINK NamedArgument) $(D ,)
+    $(GLINK NamedArgument) $(D ,) $(I NamedArgumentList)
+
+$(GNAME NamedArgument):
+    $(IDENTIFIER) $(D :) $(GLINK AssignExpression)
+    $(GLINK AssignExpression)
+)
+
+    $(P A callable expression can precede a list of arguments in parentheses.)
+
+---
+void f(int, int);
+
+f(5, 6);
+(&f)(5, 6);
+---
+
+    $(P A type can precede a list of arguments.)
+
+---
+struct S
+{
+    int x, y;
+}
+
+S s = S(1, 2);
+---
+
+    $(P See also: $(RELATIVE_LINK2 uniform_construction_syntax,
+    Uniform construction syntax for built-in scalar types))
+
+
 $(H2 $(LNAME2 index_expressions, Index Expressions))
 
 $(GRAMMAR
@@ -2553,20 +2595,6 @@ $(GNAME NewExpression):
     $(D new) $(GLINK2 type, Type) $(D [) $(GLINK AssignExpression) $(D ])
     $(D new) $(GLINK2 type, Type) $(D $(LPAREN)) $(GLINK NamedArgumentList)$(OPT) $(D $(RPAREN))
     $(GLINK2 class, NewAnonClassExpression)
-
-$(GNAME ArgumentList):
-    $(GLINK AssignExpression)
-    $(GLINK AssignExpression) $(D ,)
-    $(GLINK AssignExpression) $(D ,) $(GSELF ArgumentList)
-
-$(GNAME NamedArgumentList):
-    $(GLINK NamedArgument)
-    $(GLINK NamedArgument) $(D ,)
-    $(GLINK NamedArgument) $(D ,) $(I NamedArgumentList)
-
-$(GNAME NamedArgument):
-    $(IDENTIFIER) $(D :) $(GLINK AssignExpression)
-    $(GLINK AssignExpression)
 )
 
     $(P $(I NewExpression)s allocate memory on the
