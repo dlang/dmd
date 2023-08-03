@@ -1334,7 +1334,7 @@ $(H2 $(LNAME2 implicit-conversions, Implicit Conversions))
 
         $(P A static array $(D T[dim]) can be implicitly
         converted to
-        one of the following:
+        one of the following ($(D U) is a base class of $(D T)):
         )
 
         $(UL
