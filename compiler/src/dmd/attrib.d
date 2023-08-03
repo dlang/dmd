@@ -45,7 +45,6 @@ import dmd.mtype;
 import dmd.objc; // for objc.addSymbols
 import dmd.common.outbuffer;
 import dmd.root.array; // for each
-import dmd.tokens;
 import dmd.visitor;
 
 /***********************************************************
