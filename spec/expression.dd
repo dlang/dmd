@@ -2726,6 +2726,7 @@ $(GNAME IsExpression):
 
 $(GNAME TypeSpecialization):
     $(GLINK2 type, Type)
+    $(GLINK2 type, TypeCtor)
     $(D struct)
     $(D union)
     $(D class)
@@ -2735,10 +2736,6 @@ $(GNAME TypeSpecialization):
     $(D function)
     $(D delegate)
     $(D super)
-    $(D const)
-    $(D immutable)
-    $(D inout)
-    $(D shared)
     $(D return)
     $(D __parameters)
     $(D module)
@@ -2837,6 +2834,18 @@ static assert(!is(Bar == int));
 -------------
 )
         $(P
+        If *TypeSpecialization* is a $(GLINK2 type, TypeCtor)
+        then the condition is satisfied if *Type* is of that *TypeCtor*:
+        )
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+static assert(is(const int == const));
+static assert(is(const int[] == const));
+static assert(!is(const(int)[] == const)); // head is mutable
+static assert(!is(immutable int == const));
+---
+)
+        $(P
         If $(I TypeSpecialization) is one of
                 $(D struct)
                 $(D union)
@@ -2885,22 +2894,6 @@ static assert(!is(int == class));
         static assert(is(typeof(foo) == __parameters));
         ---
         )
-        $(P
-        If *TypeSpecialization* is a $(GLINK2 type, TypeCtor) keyword
-                $(D const)
-                $(D immutable)
-                $(D inout)
-                $(D shared)
-        then the condition is satisfied if *Type* is of that *TypeCtor*:
-        )
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
----
-static assert(is(const int == const));
-static assert(is(const int[] == const));
-static assert(!is(const(int)[] == const)); // head is mutable
-static assert(!is(immutable int == const));
----
-)
         $(P $(B See also:) $(DDLINK spec/traits, Traits, Traits).)
 
 
