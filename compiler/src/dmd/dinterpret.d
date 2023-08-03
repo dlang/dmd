@@ -40,7 +40,6 @@ import dmd.init;
 import dmd.initsem;
 import dmd.location;
 import dmd.mtype;
-import dmd.printast;
 import dmd.root.rmem;
 import dmd.root.array;
 import dmd.root.ctfloat;
