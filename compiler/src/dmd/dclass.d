@@ -880,7 +880,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             return 0;
         }
 
-        // opaque class is not abstract if it is not declared abastract
+        // opaque class is not abstract if it is not declared abstract
         if (!members)
             return no();
 
