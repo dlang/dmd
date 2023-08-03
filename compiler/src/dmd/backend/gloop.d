@@ -3635,7 +3635,7 @@ private void unrollWalker(elem* e, uint defnum, Symbol* v, targ_llong increment,
      * state == unrolls: done
      */
 
-    void walker(elem *e)
+    void walker(elem *e) @trusted
     {
         assert(e);
         const op = e.Eoper;
@@ -3643,7 +3643,7 @@ private void unrollWalker(elem* e, uint defnum, Symbol* v, targ_llong increment,
         {
             if (e.Edef != defnum)
             {
-                walker(e.EV.E2);
+                walker(e.EV.E2); // this function is @trusted because of this union access
                 walker(e.EV.E1);
             }
         }
