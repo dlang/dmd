@@ -391,7 +391,7 @@ public:
     uint32_t linnum(uint32_t num);
     const char* filename() const;
     void filename(const char* name);
-    const char* toChars(bool showColumns = showColumns, MessageStyle messageStyle = messageStyle) const;
+    const char* toChars(bool showColumns = Loc::showColumns, MessageStyle messageStyle = Loc::messageStyle) const;
     bool equals(const Loc& loc) const;
     Loc() :
         _linnum(),
