@@ -15,9 +15,7 @@ module dmd.cpreprocess;
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
-import core.stdc.string;
 
-import dmd.astenums;
 import dmd.errors;
 import dmd.globals;
 import dmd.link;
@@ -29,8 +27,6 @@ import dmd.common.outbuffer;
 
 import dmd.root.array;
 import dmd.root.filename;
-import dmd.root.rmem;
-import dmd.root.rootobject;
 import dmd.root.string;
 
 // Use default for other versions
