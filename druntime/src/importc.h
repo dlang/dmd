@@ -105,6 +105,7 @@
 #define __builtin___strcpy_chk(dest, src, x) strcpy(dest,src)
 #define __builtin___strncat_chk(dest, src, len, x) strncat(dest,src,len)
 #define __builtin___strncpy_chk(dest, src, len, x) strncpy(dest,src,len)
+#define __builtin___sprintf_chk(s, flag, os, fmt, ...) sprintf(s, fmt, __VA_ARGS__)
 #endif
 
 #if __FreeBSD__
