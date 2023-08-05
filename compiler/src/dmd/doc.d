@@ -389,7 +389,7 @@ extern(C++) void gendocfile(Module m, ErrorSink eSink)
         // Override with the ddoc macro files from the command line
         for (size_t i = 0; i < global.params.ddoc.files.length; i++)
         {
-            auto buffer = readFile(m.loc, global.params.ddoc.files[i]);
+            auto buffer = readFile(m.loc, global.params.ddoc.files[i].toDString());
             // BUG: convert file contents to UTF-8 before use
             const data = buffer.data;
             //printf("file: '%.*s'\n", cast(int)data.length, data.ptr);

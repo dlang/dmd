@@ -53,12 +53,6 @@ const(char)* toWinPath(const(char)* src)
  *   loc = The line number information from where the call originates
  *   filename = Path to file
  */
-Buffer readFile(Loc loc, const(char)* filename)
-{
-    return readFile(loc, filename.toDString());
-}
-
-/// Ditto
 Buffer readFile(Loc loc, const(char)[] filename)
 {
     auto result = File.read(filename);
