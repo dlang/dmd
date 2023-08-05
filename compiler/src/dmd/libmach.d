@@ -89,7 +89,7 @@ final class LibMach : Library
 
         void corrupt(int reason)
         {
-            error("corrupt Mach object module %.*s %d",
+            eSink.error(loc, "corrupt Mach object module %.*s %d",
                   cast(int)module_name.length, module_name.ptr, reason);
         }
 
@@ -281,7 +281,7 @@ final class LibMach : Library
                     s = tab.lookup(name.ptr, name.length);
                     assert(s);
                     MachObjSymbol* os = cast(MachObjSymbol*)s.ptrvalue;
-                    error("multiple definition of %s: %s and %s: %s", om.name.ptr, name.ptr, os.om.name.ptr, os.name.ptr);
+                    eSink.error(loc, "multiple definition of %s: %s and %s: %s", om.name.ptr, name.ptr, os.om.name.ptr, os.name.ptr);
                 }
             }
             else

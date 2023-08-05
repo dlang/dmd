@@ -83,7 +83,7 @@ final class LibOMF : Library
 
         void corrupt(int reason)
         {
-            error("corrupt OMF object module %.*s %d",
+            eSink.error(loc, "corrupt OMF object module %.*s %d",
                   cast(int)module_name.length, module_name.ptr, reason);
         }
 
@@ -132,7 +132,7 @@ final class LibOMF : Library
         }
         else if (lh.recTyp == '!' && memcmp(lh, "!<arch>\n".ptr, 8) == 0)
         {
-            error("COFF libraries not supported");
+            eSink.error(loc, "COFF libraries not supported");
             return;
         }
         else
@@ -197,7 +197,7 @@ final class LibOMF : Library
                 const s2 = tab.lookup(name);
                 assert(s2);
                 const os = s2.value;
-                error("multiple definition of %.*s: %.*s and %.*s: %s",
+                eSink.error(loc, "multiple definition of %.*s: %.*s and %.*s: %s",
                     cast(int)om.name.length, om.name.ptr,
                     cast(int)name.length, name.ptr,
                     cast(int)os.om.name.length, os.om.name.ptr, os.name);
