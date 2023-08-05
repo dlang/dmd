@@ -638,9 +638,13 @@ $(GNAME IntegerSuffix):
     $(B UL)
 
 $(GNAME DecimalInteger):
-    $(B 0)
+    $(B 0) $(GLINK Underscores)$(OPT)
     $(GLINK NonZeroDigit)
     $(GLINK NonZeroDigit) $(GLINK DecimalDigitsUS)
+
+$(GNAME Underscores):
+    $(B _)
+    $(GLINK Underscores) $(B _)
 
 $(GNAME BinaryInteger):
     $(GLINK BinPrefix) $(GLINK BinaryDigitsNoSingleUS)
