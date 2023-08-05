@@ -78,6 +78,30 @@ int main(string[] args)
 void runMain(string[] args)
 {
     jobs = totalCPUs;
+    version (linux)
+    {
+        /*
+        Detect if the number of usable CPUs is restricted using cgroups.
+        This is for example used on CircleCI. Using the number of total
+        CPUs as the number of jobs could then result in random out of
+        memory problems, because the amount of memory is also restricted.
+        Reduce the default number of jobs if this is detected.
+        */
+        const cpuSharesFilename = "/sys/fs/cgroup/cpu/cpu.shares";
+        if (exists(cpuSharesFilename))
+        {
+            string cpuSharesStr = readText(cpuSharesFilename).strip;
+            try
+            {
+                int cpuShares = cpuSharesStr.to!int;
+                jobs = min(jobs, max(1, cpuShares / 1024));
+            }
+            catch (ConvException)
+            {
+                stderr.writeln("Warning: /sys/fs/cgroup/cpu/cpu.shares contains unknown value:", cpuSharesStr);
+            }
+        }
+    }
     bool calledFromMake = false;
     auto res = getopt(args,
         "j|jobs", "Specifies the number of jobs (commands) to run simultaneously (default: %d)".format(totalCPUs), &jobs,
