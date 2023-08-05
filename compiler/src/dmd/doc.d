@@ -371,26 +371,28 @@ private immutable ddoc_decl_dd_s = "$(DDOC_DECL_DD ";
 private immutable ddoc_decl_dd_e = ")\n";
 
 /****************************************************
+ * Generate Ddoc file for Module m.
+ * Params:
+ *      m = Module
+ *      ddocfiles = array of .ddoc files to read for macro definitions
+ *	datetime = string returned by ctime()
+ *      eSink = send error messages to eSink
  */
-extern(C++) void gendocfile(Module m, const(char)* datetime, ErrorSink eSink)
+extern(C++) void gendocfile(Module m, const ref Array!(const(char)*) ddocfiles, const(char)* datetime, ErrorSink eSink)
 {
     __gshared OutBuffer mbuf;
     __gshared int mbuf_done;
     OutBuffer buf;
     //printf("Module::gendocfile()\n");
-    if (!mbuf_done) // if not already read the ddoc files
+    if (!mbuf_done) // if not already read the ddocfiles
     {
         mbuf_done = 1;
         // Use our internal default
         mbuf.writestring(ddoc_default);
-        // Override with DDOCFILE specified in the sc.ini file
-        char* p = getenv("DDOCFILE");
-        if (p)
-            global.params.ddoc.files.shift(p);
-        // Override with the ddoc macro files from the command line
-        for (size_t i = 0; i < global.params.ddoc.files.length; i++)
+        // Override with the ddoc macro files from the environemnt and command line
+        foreach (file; ddocfiles)
         {
-            auto buffer = readFile(m.loc, global.params.ddoc.files[i].toDString());
+            auto buffer = readFile(m.loc, file.toDString());
             // BUG: convert file contents to UTF-8 before use
             const data = buffer.data;
             //printf("file: '%.*s'\n", cast(int)data.length, data.ptr);

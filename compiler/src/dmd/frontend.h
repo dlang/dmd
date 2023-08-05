@@ -6500,7 +6500,7 @@ struct ModuleDeclaration final
 
 extern void getLocalClasses(Module* mod, Array<ClassDeclaration* >& aclasses);
 
-extern void gendocfile(Module* m, const char* datetime, ErrorSink* eSink);
+extern void gendocfile(Module* m, const Array<const char* >& ddocfiles, const char* datetime, ErrorSink* eSink);
 
 struct Scope final
 {

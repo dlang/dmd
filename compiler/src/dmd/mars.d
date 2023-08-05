@@ -592,6 +592,9 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             printf("arguments[%d] = '%s'\n", i, arguments[i]);
         }
     }
+
+    files.reserve(arguments.length - 1);
+
     for (size_t i = 1; i < arguments.length; i++)
     {
         const(char)* p = arguments[i];
