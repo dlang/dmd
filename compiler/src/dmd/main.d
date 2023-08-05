@@ -388,7 +388,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         if (m.filetype == FileType.ddoc)
         {
             anydocfiles = true;
-            gendocfile(m, global.datetime.ptr, global.errorSink);
+            gendocfile(m, global.params.ddoc.files, global.datetime.ptr, global.errorSink);
             // Remove m from list of modules
             modules.remove(modi);
             modi--;
@@ -549,7 +549,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     {
         foreach (m; modules)
         {
-            gendocfile(m, global.datetime.ptr, global.errorSink);
+            gendocfile(m, global.params.ddoc.files, global.datetime.ptr, global.errorSink);
         }
     }
     if (params.vcg_ast)
@@ -642,7 +642,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
  * Params:
  *   argc = Number of arguments passed via command line
  *   argv = Array of string arguments passed via command line
- *   params = parametes from argv
+ *   params = parameters from argv
  *   files = files from argv
  * Returns: true on faiure
  */
@@ -668,7 +668,6 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
     if (const(char)* missingFile = responseExpand(arguments)) // expand response files
         error(Loc.initial, "cannot open response file '%s'", missingFile);
     //for (size_t i = 0; i < arguments.length; ++i) printf("arguments[%d] = '%s'\n", i, arguments[i]);
-    files.reserve(arguments.length - 1);
     // Set default values
     params.argv0 = arguments[0].toDString;
 
@@ -739,6 +738,10 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
         errorSupplemental(loc, "run `dmd -man` to open browser on manual");
         return true;
     }
+
+    // DDOCFILE specified in the sc.ini file comes first and gets overridden by user specified files
+    if (char* p = getenv("DDOCFILE"))
+        global.params.ddoc.files.shift(p);
 
     if (target.isX86_64 != isX86_64)
         error(Loc.initial, "the architecture must not be changed in the %s section of %.*s",
