@@ -258,6 +258,7 @@ extern (C++) struct Global
     Array!(const(char)*)* filePath;     /// Array of char*'s which form the file import lookup path
 
     private enum string _version = import("VERSION");
+    char[26] datetime;      /// string returned by ctime()
     CompileEnv compileEnv;
 
     Param params;           /// command line parameters
@@ -369,6 +370,7 @@ extern (C++) struct Global
             core.stdc.time.time(&ct);
         const p = ctime(&ct);
         assert(p);
+        datetime[] = p[0 .. 26];
 
         __gshared char[11 + 1] date = 0;        // put in BSS segment
         __gshared char[8  + 1] time = 0;

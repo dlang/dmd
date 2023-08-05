@@ -3420,6 +3420,7 @@ struct Global final
     _d_dynamicArray< const char > written;
     Array<const char* >* path;
     Array<const char* >* filePath;
+    char datetime[26LLU];
     CompileEnv compileEnv;
     Param params;
     uint32_t errors;
@@ -6498,7 +6499,7 @@ struct ModuleDeclaration final
 
 extern void getLocalClasses(Module* mod, Array<ClassDeclaration* >& aclasses);
 
-extern void gendocfile(Module* m, ErrorSink* eSink);
+extern void gendocfile(Module* m, const char* datetime, ErrorSink* eSink);
 
 struct Scope final
 {
