@@ -989,7 +989,7 @@ public:
     const char* toChars() const override;
     void error(const char* format, ...) const;
     void errorSupplemental(const char* format, ...);
-    void warning(const char* format, ...) const;
+    void warning(uint32_t flag, const char* format, ...) const;
     void deprecation(const char* format, ...) const;
     virtual dinteger_t toInteger();
     virtual uinteger_t toUInteger();
@@ -4157,7 +4157,7 @@ public:
     static Array<Statement* >* arraySyntaxCopy(Array<Statement* >* a);
     const char* toChars() const final override;
     void error(const char* format, ...);
-    void warning(const char* format, ...);
+    void warning(uint32_t flag, const char* format, ...);
     void deprecation(const char* format, ...);
     virtual Statement* getRelatedLabeled();
     virtual bool hasBreak() const;
@@ -5393,6 +5393,22 @@ enum class CPU : uint8_t
     avx512 = 10u,
     baseline = 11u,
     native = 12u,
+};
+
+enum class DiagnosticFlag
+{
+    none = 0,
+    cxxcompat = 1,
+    conversion = 2,
+    dangling_else = 3,
+    ddoc = 4,
+    discarded = 5,
+    foreach_reverse_aa = 6,
+    inline_ = 7,
+    obsolete = 8,
+    pragma_ = 9,
+    shadow = 10,
+    unreachable = 11,
 };
 
 enum class ErrorKind
@@ -8508,9 +8524,9 @@ extern void error(const char* filename, uint32_t linnum, uint32_t charnum, const
 
 extern void errorSupplemental(const Loc& loc, const char* format, ...);
 
-extern void warning(const Loc& loc, const char* format, ...);
+extern void warning(uint32_t flag, const Loc& loc, const char* format, ...);
 
-extern void warningSupplemental(const Loc& loc, const char* format, ...);
+extern void warningSupplemental(uint32_t flag, const Loc& loc, const char* format, ...);
 
 extern void deprecation(const Loc& loc, const char* format, ...);
 
@@ -8522,9 +8538,9 @@ extern void message(const char* format, ...);
 
 extern void tip(const char* format, ...);
 
-extern void verrorReport(const Loc& loc, const char* format, va_list ap, ErrorKind kind, const char* p1 = nullptr, const char* p2 = nullptr);
+extern void verrorReport(const Loc& loc, const char* format, va_list ap, ErrorKind kind, uint32_t flag = 0u, const char* p1 = nullptr, const char* p2 = nullptr);
 
-extern void verrorReportSupplemental(const Loc& loc, const char* format, va_list ap, ErrorKind kind);
+extern void verrorReportSupplemental(const Loc& loc, const char* format, va_list ap, ErrorKind kind, uint32_t flag = 0u);
 
 extern void fatal();
 

@@ -6058,11 +6058,9 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             {
                 case Classification.error:
                     return &errorSupplemental;
-                case Classification.warning:
-                    return &warningSupplemental;
                 case Classification.deprecation:
                     return &deprecationSupplemental;
-                case Classification.gagged, Classification.tip:
+                case Classification.gagged, Classification.tip, Classification.warning:
                     assert(0);
             }
         }();

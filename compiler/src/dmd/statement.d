@@ -133,11 +133,11 @@ extern (C++) abstract class Statement : ASTNode
             va_end(ap);
         }
 
-        final void warning(const(char)* format, ...)
+        final void warning(uint flag, const(char)* format, ...)
         {
             va_list ap;
             va_start(ap, format);
-            .verrorReport(loc, format, ap, ErrorKind.warning);
+            .verrorReport(loc, format, ap, ErrorKind.warning, flag);
             va_end(ap);
         }
 
@@ -159,11 +159,11 @@ extern (C++) abstract class Statement : ASTNode
             va_end(ap);
         }
 
-        pragma(printf) final void warning(const(char)* format, ...)
+        pragma(printf) final void warning(uint flag, const(char)* format, ...)
         {
             va_list ap;
             va_start(ap, format);
-            .verrorReport(loc, format, ap, ErrorKind.warning);
+            .verrorReport(loc, format, ap, ErrorKind.warning, flag);
             va_end(ap);
         }
 

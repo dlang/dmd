@@ -252,7 +252,7 @@ private final class ParamSection : Section
                             }
                             else if (!fparam)
                             {
-                                sc.eSink.warning(s.loc, "Ddoc: function declaration has no parameter '%.*s'", cast(int)namelen, namestart);
+                                sc.eSink.warning(DiagnosticFlag.ddoc, s.loc, "Ddoc: function declaration has no parameter '%.*s'", cast(int)namelen, namestart);
                             }
                             buf.write(namestart[0 .. namelen]);
                         }
@@ -303,12 +303,12 @@ private final class ParamSection : Section
                             cast(int)(tf.parameterList.varargs == VarArg.variadic);
             if (pcount != paramcount)
             {
-                sc.eSink.warning(s.loc, "Ddoc: parameter count mismatch, expected %llu, got %llu",
+                sc.eSink.warning(DiagnosticFlag.ddoc, s.loc, "Ddoc: parameter count mismatch, expected %llu, got %llu",
                         cast(ulong) pcount, cast(ulong) paramcount);
                 if (paramcount == 0)
                 {
                     // Chances are someone messed up the format
-                    sc.eSink.warningSupplemental(s.loc, "Note that the format is `param = description`");
+                    sc.eSink.warningSupplemental(DiagnosticFlag.ddoc, s.loc, "Note that the format is `param = description`");
                 }
             }
         }
@@ -589,7 +589,7 @@ private void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start, bool 
                 if (par_open == 0)
                 {
                     //stray ')'
-                    eSink.warning(loc, "Ddoc: Stray ')'. This may cause incorrect Ddoc output. Use $(RPAREN) instead for unpaired right parentheses.");
+                    eSink.warning(DiagnosticFlag.ddoc, loc, "Ddoc: Stray ')'. This may cause incorrect Ddoc output. Use $(RPAREN) instead for unpaired right parentheses.");
                     buf.remove(u, 1); //remove the )
                     buf.insert(u, "$(RPAREN)"); //insert this instead
                     u += 8; //skip over newly inserted macro
@@ -667,7 +667,7 @@ private void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start, bool 
                 if (par_open == 0)
                 {
                     //stray '('
-                    eSink.warning(loc, "Ddoc: Stray '('. This may cause incorrect Ddoc output. Use $(LPAREN) instead for unpaired left parentheses.");
+                    eSink.warning(DiagnosticFlag.ddoc, loc, "Ddoc: Stray '('. This may cause incorrect Ddoc output. Use $(LPAREN) instead for unpaired left parentheses.");
                     buf.remove(u, 1); //remove the (
                     buf.insert(u, "$(LPAREN)"); //insert this instead
                 }
