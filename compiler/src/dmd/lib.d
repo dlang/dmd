@@ -91,7 +91,8 @@ class Library
             message("library   %s", loc.filename);
 
         auto filenameString = loc.filename.toDString;
-        ensurePathToNameExists(Loc.initial, filenameString);
+        if (!ensurePathToNameExists(Loc.initial, filenameString))
+            return;
         auto tmpname = filenameString ~ ".tmp\0";
         scope(exit) destroy(tmpname);
 

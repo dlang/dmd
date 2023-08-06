@@ -153,7 +153,8 @@ extern (C++) void generateJson(Modules* modules)
             //    name = FileName::combine(dir, name);
             jsonfilename = FileName.forceExt(n, json_ext);
         }
-        writeFile(Loc.initial, jsonfilename, buf[]);
+        if (!writeFile(Loc.initial, jsonfilename, buf[]))
+            fatal();
     }
 }
 

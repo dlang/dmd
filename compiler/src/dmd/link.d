@@ -268,7 +268,8 @@ public int runLINK()
                 setExeFile();
             }
             // Make sure path to exe file exists
-            ensurePathToNameExists(Loc.initial, global.params.exefile);
+            if (!ensurePathToNameExists(Loc.initial, global.params.exefile))
+                fatal();
             cmdbuf.writeByte(' ');
             if (global.params.mapfile)
             {
@@ -344,7 +345,8 @@ public int runLINK()
             if (p.length > 7000)
             {
                 lnkfilename = FileName.forceExt(global.params.exefile, "lnk");
-                writeFile(Loc.initial, lnkfilename, p);
+                if (!writeFile(Loc.initial, lnkfilename, p))
+                    fatal();
                 if (lnkfilename.length < p.length)
                 {
                     p[0] = '@';
@@ -390,7 +392,8 @@ public int runLINK()
                 setExeFile();
             }
             // Make sure path to exe file exists
-            ensurePathToNameExists(Loc.initial, global.params.exefile);
+            if (!ensurePathToNameExists(Loc.initial, global.params.exefile))
+                fatal();
             cmdbuf.writeByte(',');
             if (global.params.mapfile)
                 writeFilename(&cmdbuf, global.params.mapfile);
@@ -455,7 +458,8 @@ public int runLINK()
             if (p.length > 7000)
             {
                 lnkfilename = FileName.forceExt(global.params.exefile, "lnk");
-                writeFile(Loc.initial, lnkfilename, p);
+                if (!writeFile(Loc.initial, lnkfilename, p))
+                    fatal();
                 if (lnkfilename.length < p.length)
                 {
                     p[0] = '@';
@@ -575,7 +579,8 @@ public int runLINK()
             global.params.exefile = ex;
         }
         // Make sure path to exe file exists
-        ensurePathToNameExists(Loc.initial, global.params.exefile);
+        if (!ensurePathToNameExists(Loc.initial, global.params.exefile))
+            fatal();
         if (driverParams.symdebug)
             argv.push("-g");
         if (target.isX86_64)

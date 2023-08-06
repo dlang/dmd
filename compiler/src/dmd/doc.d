@@ -34,6 +34,7 @@ import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.dtemplate;
+import dmd.errors : fatal;
 import dmd.errorsink;
 import dmd.func;
 import dmd.globals;
@@ -494,7 +495,8 @@ extern(C++) void gendocfile(Module m, ErrorSink eSink)
                 buf.writeByte(c);
             }
         }
-        writeFile(m.loc, m.docfile.toString(), buf[]);
+        if (!writeFile(m.loc, m.docfile.toString(), buf[]))
+            return fatal();
     }
     else
     {
@@ -515,7 +517,8 @@ extern(C++) void gendocfile(Module m, ErrorSink eSink)
             }
             buf2.setsize(i);
         }
-        writeFile(m.loc, m.docfile.toString(), buf2[]);
+        if (!writeFile(m.loc, m.docfile.toString(), buf2[]))
+            return fatal();
     }
 }
 
