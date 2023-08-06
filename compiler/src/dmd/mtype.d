@@ -4815,7 +4815,7 @@ extern (C++) final class TypeFunction : TypeNext
                 auto paramLen = strlen(paramRaw);
                 auto paramDef = paramRaw[0..paramLen];
 
-                bufErr.printf("%s", funcDef.ptr);
+                bufExtra.printf("\t%s\n\t", funcDef.ptr);
 
                 auto found = index_of_linear(funcDef, 0, paramDef);
                 if (found != -1)
@@ -4831,8 +4831,8 @@ extern (C++) final class TypeFunction : TypeNext
                     }
                 }
 
-                if (pMessage)
-                    *pMessage = bufErr.extractChars();
+                //if (!pMessage)
+                //    *pMessage = bufErr.extractChars();
                 if (pExtraMessage)
                     *pExtraMessage = bufExtra.extractChars();
 
