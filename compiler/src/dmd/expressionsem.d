@@ -5270,8 +5270,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
             }
 
-            const(char)* failMessage;
-            if (!tf.callMatch(null, exp.argumentList, 0, &failMessage, sc))
+            const(char)* failMessage = null;
+            const(char)* failExtraMessage = null;
+            if (!tf.callMatch(null, exp.argumentList, 0, &failMessage, sc, &failExtraMessage))
             {
                 OutBuffer buf;
                 buf.writeByte('(');
@@ -5285,6 +5286,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     p, exp.e1.toChars(), parametersTypeToChars(tf.parameterList), buf.peekChars());
                 if (failMessage)
                     errorSupplemental(exp.loc, "%s", failMessage);
+                if (failExtraMessage)
+                    errorSupplemental(exp.loc, "%s", failExtraMessage);
                 return setError();
             }
             // Purity and safety check should run after testing arguments matching
@@ -5344,7 +5347,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 exp.f = exp.f.toAliasFunc();
                 TypeFunction tf = cast(TypeFunction)exp.f.type;
                 const(char)* failMessage;
-                if (!tf.callMatch(null, exp.argumentList, 0, &failMessage, sc))
+                const(char)* failExtraMessage;
+                if (!tf.callMatch(null, exp.argumentList, 0, &failMessage, sc, &failExtraMessage))
                 {
                     OutBuffer buf;
                     buf.writeByte('(');
@@ -5363,6 +5367,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         exp.f.kind(), exp.f.toPrettyChars(), parametersTypeToChars(tf.parameterList), buf.peekChars());
                     if (failMessage)
                         errorSupplemental(exp.loc, "%s", failMessage);
+                    if (failExtraMessage)
+                        errorSupplemental(exp.loc, "%s", failExtraMessage);
                     exp.f = null;
                 }
             }

@@ -4630,7 +4630,7 @@ extern (C++) final class TypeFunction : TypeNext
      * Returns:
      *      MATCHxxxx
      */
-    extern (D) MATCH callMatch(Type tthis, ArgumentList argumentList, int flag = 0, const(char)** pMessage = null, Scope* sc = null)
+    extern (D) MATCH callMatch(Type tthis, ArgumentList argumentList, int flag = 0, const(char)** pMessage = null, Scope* sc = null, const(char)** pExtraMessage = null)
     {
         //printf("TypeFunction::callMatch() %s\n", toChars());
         MATCH match = MATCH.exact; // assume exact match
@@ -4780,6 +4780,61 @@ extern (C++) final class TypeFunction : TypeNext
                 // If an error happened previously, `pMessage` was already filled
                 else if (pMessage && !*pMessage)
                     *pMessage = getParamError(args[u], p);
+
+                OutBuffer bufErr;
+                OutBuffer bufExtra;
+
+                // perhaps use something else from the code base
+                // or move it elsewhere
+                bool equals(T)(const(T)[] self, const(T)[] other)
+                {
+                    if (self.length != other.length) return false;
+                    if (self.ptr == other.ptr) return true;
+
+                    for(size_t i = 0; i < self.length; ++i)
+                    {
+                        if(self[i] != other[i])
+                            return false;
+                    }
+                    return true;
+                }
+                int index_of_linear(T)(const(T)[] haystack, int startIndex, scope const(T)[] needle)
+                {
+                    int i = startIndex;
+                    const end = haystack.length - needle.length;
+                    while (i <= end)
+                    {
+                        if (equals(haystack[i .. i + needle.length], needle)) return i;
+                        i += 1;
+                    }
+                    return -1;
+                }
+
+                auto funcDef = toString();
+                auto paramRaw = parameterToChars(p, this, false);
+                auto paramLen = strlen(paramRaw);
+                auto paramDef = paramRaw[0..paramLen];
+
+                bufErr.printf("%s", funcDef.ptr);
+
+                auto found = index_of_linear(funcDef, 0, paramDef);
+                if (found != -1)
+                {
+                    for (size_t i = 0; i < funcDef.length; i++)
+                    {
+                        if (i < found)
+                            bufExtra.printf(" ");
+                        else if (i == found)
+                            bufExtra.printf("^");
+                        else if (i < (found + paramLen))
+                            bufExtra.printf("_");
+                    }
+                }
+
+                if (pMessage)
+                    *pMessage = bufErr.extractChars();
+                if (pExtraMessage)
+                    *pExtraMessage = bufExtra.extractChars();
 
                 return MATCH.nomatch;
             }
