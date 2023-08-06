@@ -755,31 +755,31 @@ void emitMakeDeps(ref Param params)
     // start by resolving and writing the target (which is sometimes resolved during link phase)
     if (driverParams.link && params.exefile)
     {
-	buf.writeEscapedMakePath(&params.exefile[0]);
+        buf.writeEscapedMakePath(&params.exefile[0]);
     }
     else if (driverParams.lib)
     {
-	const(char)[] libname = params.libname ? params.libname : FileName.name(params.objfiles[0].toDString);
-	libname = FileName.forceExt(libname,target.lib_ext);
+        const(char)[] libname = params.libname ? params.libname : FileName.name(params.objfiles[0].toDString);
+        libname = FileName.forceExt(libname,target.lib_ext);
 
-	buf.writeEscapedMakePath(&libname[0]);
+        buf.writeEscapedMakePath(&libname[0]);
     }
     else if (params.objname)
     {
-	buf.writeEscapedMakePath(&params.objname[0]);
+        buf.writeEscapedMakePath(&params.objname[0]);
     }
     else if (params.objfiles.length)
     {
-	buf.writeEscapedMakePath(params.objfiles[0]);
-	foreach (of; params.objfiles[1 .. $])
-	{
-	    buf.writestring(" ");
-	    buf.writeEscapedMakePath(of);
-	}
+        buf.writeEscapedMakePath(params.objfiles[0]);
+        foreach (of; params.objfiles[1 .. $])
+        {
+            buf.writestring(" ");
+            buf.writeEscapedMakePath(of);
+        }
     }
     else
     {
-	assert(false, "cannot resolve makedeps target");
+        assert(false, "cannot resolve makedeps target");
     }
 
     buf.writestring(":");
@@ -787,17 +787,17 @@ void emitMakeDeps(ref Param params)
     // then output every dependency
     foreach (dep; params.makeDeps.files)
     {
-	buf.writestringln(" \\");
-	buf.writestring("  ");
-	buf.writeEscapedMakePath(dep);
+        buf.writestringln(" \\");
+        buf.writestring("  ");
+        buf.writeEscapedMakePath(dep);
     }
     buf.writenl();
 
     const data = buf[];
     if (params.makeDeps.name)
-	writeFile(Loc.initial, params.makeDeps.name, data);
+        writeFile(Loc.initial, params.makeDeps.name, data);
     else
-	printf("%.*s", cast(int) data.length, data.ptr);
+        printf("%.*s", cast(int) data.length, data.ptr);
 }
 
 // in druntime:
