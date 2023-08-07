@@ -371,7 +371,7 @@ private immutable ddoc_decl_dd_e = ")\n";
 
 /****************************************************
  */
-extern(C++) void gendocfile(Module m, ErrorSink eSink)
+extern(C++) void gendocfile(Module m, const(char)* datetime, ErrorSink eSink)
 {
     __gshared OutBuffer mbuf;
     __gshared int mbuf_done;
@@ -409,14 +409,9 @@ extern(C++) void gendocfile(Module m, ErrorSink eSink)
         m.macrotable.define("TITLE", p);
     }
     // Set time macros
-    {
-        time_t t;
-        time(&t);
-        char* p = ctime(&t);
-        p = mem.xstrdup(p);
-        m.macrotable.define("DATETIME", p.toDString());
-        m.macrotable.define("YEAR", p[20 .. 20 + 4]);
-    }
+    m.macrotable.define("DATETIME", datetime[0 .. 26]);
+    m.macrotable.define("YEAR", datetime[20 .. 20 + 4]);
+
     const srcfilename = m.srcfile.toString();
     m.macrotable.define("SRCFILENAME", srcfilename);
     const docfilename = m.docfile.toString();
