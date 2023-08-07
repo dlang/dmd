@@ -529,7 +529,10 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
         const data = (*ob)[];
         if (params.moduleDeps.name)
-            writeFile(Loc.initial, params.moduleDeps.name, data);
+        {
+            if (!writeFile(Loc.initial, params.moduleDeps.name, data))
+                fatal();
+        }
         else
             printf("%.*s", cast(int)data.length, data.ptr);
     }
@@ -795,7 +798,10 @@ void emitMakeDeps(ref Param params)
 
     const data = buf[];
     if (params.makeDeps.name)
-        writeFile(Loc.initial, params.makeDeps.name, data);
+    {
+        if (!writeFile(Loc.initial, params.makeDeps.name, data))
+            fatal();
+    }
     else
         printf("%.*s", cast(int) data.length, data.ptr);
 }

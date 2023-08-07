@@ -199,7 +199,8 @@ struct _d_dynamicArray final
     else
     {
         const(char)[] name = FileName.combine(global.params.cxxhdr.dir, global.params.cxxhdr.name);
-        writeFile(Loc.initial, name, buf[]);
+        if (!writeFile(Loc.initial, name, buf[]))
+            return fatal();
     }
 }
 

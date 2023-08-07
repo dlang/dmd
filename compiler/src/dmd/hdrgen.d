@@ -33,6 +33,7 @@ import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.dversion;
+import dmd.errors : fatal;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
@@ -82,7 +83,8 @@ extern (C++) void genhdrfile(Module m)
     HdrGenState hgs;
     hgs.hdrgen = true;
     toCBuffer(m, &buf, &hgs);
-    writeFile(m.loc, m.hdrfile.toString(), buf[]);
+    if (!writeFile(m.loc, m.hdrfile.toString(), buf[]))
+        fatal();
 }
 
 /**
