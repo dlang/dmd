@@ -16,7 +16,6 @@ import core.stdc.stdio;
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
-import dmd.attrib;
 import dmd.ctorflow;
 import dmd.dclass;
 import dmd.delegatize;

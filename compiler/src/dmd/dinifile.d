@@ -19,7 +19,6 @@ import core.sys.windows.winbase;
 import core.sys.windows.windef;
 
 import dmd.errors;
-import dmd.globals;
 import dmd.location;
 import dmd.root.env;
 import dmd.root.rmem;
