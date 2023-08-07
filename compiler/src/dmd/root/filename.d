@@ -175,7 +175,7 @@ nothrow:
     extern (D) static const(char)[] toAbsolute(const(char)[] name, const(char)[] base = null)
     {
         const base_ = base ? base : getcwd(null, 0).toDString();
-        return absolute(name) ? mem.xarraydup(name) : combine(base_, name);
+        return absolute(name) ? xarraydup(name) : combine(base_, name);
     }
 
     /********************************

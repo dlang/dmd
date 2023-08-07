@@ -1784,7 +1784,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             return noDeclarations();
         }
-        else if (pd.ident == Id.lib)
+        else if (pd.ident == Id.lib || pd.ident == Id.libLocal)
         {
             if (!pd.args || pd.args.length != 1)
                 pd.error("string expected for library name");
