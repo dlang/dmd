@@ -387,9 +387,7 @@ extern(C++) void gendocfile(Module m, const ref Array!(const(char)*) ddocfiles, 
     if (!mbuf_done) // if not already read the ddocfiles
     {
         mbuf_done = 1;
-        // Use our internal default
-        mbuf.writestring(ddoc_default);
-        // Override with the ddoc macro files from the environemnt and command line
+        // Read ddoc macro files from the environment and command line
         foreach (file; ddocfiles)
         {
             auto buffer = readFile(m.loc, file.toDString());
@@ -399,7 +397,12 @@ extern(C++) void gendocfile(Module m, const ref Array!(const(char)*) ddocfiles, 
             mbuf.write(data);
         }
     }
+    // Load internal default macros first
+    DocComment.parseMacros(m.escapetable, m.macrotable, ddoc_default[]);
+
+    // Ddoc files override default macros
     DocComment.parseMacros(m.escapetable, m.macrotable, mbuf[]);
+
     Scope* sc = Scope.createGlobal(m, eSink); // create root scope
     DocComment* dc = DocComment.parse(m, m.comment);
     dc.pmacrotable = &m.macrotable;
