@@ -705,7 +705,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     }
                     sc2.ctorflow.freeFieldinit();
 
-                    if (cd && !(sc2.ctorflow.callSuper & CSX.any_ctor) && cd.baseClass && cd.baseClass.ctor)
+                    if (cd && !(sc2.ctorflow.callSuper & (CSX.any_ctor | CSX.halt)) && cd.baseClass && cd.baseClass.ctor)
                     {
                         sc2.ctorflow.callSuper = CSX.none;
 

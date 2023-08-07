@@ -1120,18 +1120,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                                  */
                                 if (ne.member && !(ne.member.storage_class & STC.scope_))
                                 {
-                                    if (sc.func.isSafe())
-                                    {
-                                        if (global.params.obsolete)
-                                        {
-                                            warning(dsym.loc,
-                                                "`scope` allocation of `%s` requires that constructor be annotated with `scope`",
-                                                dsym.toChars());
-                                            warningSupplemental(ne.member.loc, "is the location of the constructor");
-                                        }
-                                     }
-                                     else
-                                         sc.func.setUnsafe();
+                                    import dmd.escape : setUnsafeDIP1000;
+                                    const inSafeFunc = sc.func && sc.func.isSafeBypassingInference();
+                                    if (sc.setUnsafeDIP1000(false, dsym.loc, "`scope` allocation of `%s` requires that constructor be annotated with `scope`", dsym))
+                                        errorSupplemental(ne.member.loc, "is the location of the constructor");
+                                    else if (global.params.obsolete && inSafeFunc)
+                                        warningSupplemental(ne.member.loc, "is the location of the constructor");
                                 }
                                 ne.onstack = 1;
                                 dsym.onstack = true;
