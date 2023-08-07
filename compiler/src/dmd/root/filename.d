@@ -168,9 +168,14 @@ nothrow:
     */
     extern (C++) static const(char)* toAbsolute(const(char)* name, const(char)* base = null)
     {
-        const name_ = name.toDString();
-        const base_ = base ? base.toDString() : getcwd(null, 0).toDString();
-        return absolute(name_) ? name : combine(base_, name_).ptr;
+        return toAbsolute(name.toDString, base ? base.toDString : null).ptr;
+    }
+
+    // Ditto
+    extern (D) static const(char)[] toAbsolute(const(char)[] name, const(char)[] base = null)
+    {
+        const base_ = base ? base : getcwd(null, 0).toDString();
+        return absolute(name) ? mem.xarraydup(name) : combine(base_, name);
     }
 
     /********************************

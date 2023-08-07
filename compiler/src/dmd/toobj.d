@@ -847,6 +847,53 @@ void toObjFile(Dsymbol ds, bool multiobj)
                     global.params.libfiles.push(name);
                 }
             }
+            else if (pd.ident == Id.libLocal)
+            {
+                import dmd.root.filename: FileName;
+                assert(pd.args && pd.args.length == 1);
+
+                Expression e = (*pd.args)[0];
+
+                assert(e.op == EXP.string_);
+
+                StringExp se = cast(StringExp)e;
+                char *name = cast(char *)mem.xmalloc(se.numberOfCodeUnits() + 1);
+                se.writeTo(name, true);
+
+                auto fileName = FileName.toAbsolute(ds.loc.filename());
+                auto fileNameLen = strlen(fileName);
+                scope (exit) mem.xfree(cast(void*)fileName);
+
+                size_t slashIndex = 0;
+                for (size_t i = fileNameLen; i > 0; i--)
+                {
+                    if (fileName[i] == '/' || fileName[i] == '\\')
+                    {
+                        slashIndex = i;
+                        break;
+                    }
+                }
+
+                auto folder = fileName[0 .. slashIndex];
+                auto lib = name[0 .. strlen(name)];
+
+                auto local = FileName.combine(folder, lib);
+
+                mem.xfree(name);
+
+                /* Embed the library names into the object file.
+                 * The linker will then automatically
+                 * search that library, too.
+                 */
+                if (!obj_includelib(local))
+                {
+                    /* The format does not allow embedded library names,
+                     * so instead append the library name to the list to be passed
+                     * to the linker.
+                     */
+                    global.params.libfiles.push(local.ptr);
+                }
+            }
             else if (pd.ident == Id.startaddress)
             {
                 assert(pd.args && pd.args.length == 1);
