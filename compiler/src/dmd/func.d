@@ -2016,6 +2016,7 @@ extern (C++) class FuncDeclaration : Declaration
     final bool isUnique() const
     {
         bool result = false;
+        try
         overloadApply(cast() this, (Dsymbol s)
         {
             auto f = s.isFuncDeclaration();
@@ -2033,6 +2034,7 @@ extern (C++) class FuncDeclaration : Declaration
                 return 0;
             }
         });
+        catch (Exception) assert(0);
         return result;
     }
 

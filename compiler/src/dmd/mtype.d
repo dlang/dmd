@@ -787,7 +787,9 @@ extern (C++) abstract class Type : ASTNode
         HdrGenState hgs;
         hgs.fullQual = (ty == Tclass && !mod);
 
-        .toCBuffer(this, &buf, null, &hgs);
+        try
+            .toCBuffer(this, &buf, null, &hgs);
+        catch (Exception) assert(0);
         return buf.extractChars();
     }
 
@@ -2392,7 +2394,9 @@ extern (C++) abstract class Type : ASTNode
             return this;
         Type unqualThis = cast(Type) this;
         // `mutableOf` needs a mutable `this` only for caching
-        return cast(inout(Type)) unqualThis.mutableOf();
+        try
+            return cast(inout(Type)) unqualThis.mutableOf();
+        catch (Exception) assert(0);
     }
 
     inout(ClassDeclaration) isClassHandle() inout

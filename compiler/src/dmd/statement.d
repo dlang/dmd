@@ -118,7 +118,9 @@ extern (C++) abstract class Statement : ASTNode
     {
         HdrGenState hgs;
         OutBuffer buf;
-        .toCBuffer(this, &buf, &hgs);
+        try
+            .toCBuffer(this, &buf, &hgs);
+        catch (Exception) assert(0);
         buf.writeByte(0);
         return buf.extractSlice().ptr;
     }

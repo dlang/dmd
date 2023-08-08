@@ -47,13 +47,13 @@ extern (C++) class RootObject
         return o is this;
     }
 
-    const(char)* toChars() const
+    const(char)* toChars() const nothrow
     {
         assert(0);
     }
 
     ///
-    extern(D) const(char)[] toString() const
+    extern(D) const(char)[] toString() const nothrow
     {
         import core.stdc.string : strlen;
         auto p = this.toChars();

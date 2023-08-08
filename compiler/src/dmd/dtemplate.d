@@ -728,7 +728,9 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
     override const(char)* toChars() const
     {
-        return toCharsMaybeConstraints(true);
+        try
+            return toCharsMaybeConstraints(true);
+        catch (Exception) assert(0);
     }
 
     /****************************
@@ -6024,7 +6026,9 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     override const(char)* toChars() const
     {
         OutBuffer buf;
-        toCBufferInstance(this, &buf);
+        try
+            toCBufferInstance(this, &buf);
+        catch (Exception) assert(0);
         return buf.extractChars();
     }
 
@@ -7825,7 +7829,9 @@ extern (C++) final class TemplateMixin : TemplateInstance
     override const(char)* toChars() const
     {
         OutBuffer buf;
-        toCBufferInstance(this, &buf);
+        try
+            toCBufferInstance(this, &buf);
+        catch (Exception) assert(0);
         return buf.extractChars();
     }
 

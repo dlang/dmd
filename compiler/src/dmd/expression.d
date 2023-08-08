@@ -813,7 +813,9 @@ extern (C++) abstract class Expression : ASTNode
     {
         OutBuffer buf;
         HdrGenState hgs;
-        toCBuffer(this, &buf, &hgs);
+        try
+            toCBuffer(this, &buf, &hgs);
+        catch (Exception) assert(0);
         return buf.extractChars();
     }
 
