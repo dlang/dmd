@@ -8489,14 +8489,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
         }
 
-        // Look for casting to a vector type
-        if (tob.ty == Tvector && t1b.ty != Tvector)
-        {
-            result = new VectorExp(exp.loc, exp.e1, exp.to);
-            result = result.expressionSemantic(sc);
-            return;
-        }
-
         Expression ex = exp.e1.castTo(sc, exp.to);
         if (ex.op == EXP.error)
         {
