@@ -117,10 +117,10 @@ Where:
 %.*s", cast(int)inifileCanon.length, inifileCanon.ptr, cast(int)help.length, &help[0]);
 }
 
-extern (C++) void generateJson(Modules* modules)
+extern (C++) void generateJson(ref Modules modules)
 {
     OutBuffer buf;
-    json_generate(&buf, modules);
+    json_generate(modules, buf);
 
     // Write buf to file
     const(char)[] name = global.params.json.name;
