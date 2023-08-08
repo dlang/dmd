@@ -26,6 +26,7 @@ import core.sys.posix.unistd;
 import dmd.common.smallbuffer;
 
 nothrow:
+@safe:
 
 version (Windows)
 {
@@ -63,6 +64,7 @@ struct FileMapping(Datum)
     // state }
 
   nothrow:
+  @trusted:
 
     /**
     Open `filename` and map it in memory. If `Datum` is `const`, opens for
@@ -463,6 +465,7 @@ struct FileMapping(Datum)
 }
 
 /// Write a file, returning `true` on success.
+@trusted
 extern(D) static bool writeFile(const(char)* name, const void[] data) nothrow
 {
     version (Posix)
@@ -518,6 +521,7 @@ extern(D) static bool writeFile(const(char)* name, const void[] data) nothrow
 }
 
 /// Touch a file to current date
+@trusted
 bool touchFile(const char* namez)
 {
     version (Windows)
@@ -559,6 +563,7 @@ Size of a file in bytes.
 Params: fd = file handle
 Returns: file size in bytes, or `ulong.max` on any error.
 */
+@trusted
 version (Posix)
 private ulong fileSize(int fd)
 {
@@ -571,6 +576,7 @@ private ulong fileSize(int fd)
 
 /// Ditto
 version (Windows)
+@trusted
 private ulong fileSize(HANDLE fd)
 {
     ulong result;
@@ -587,6 +593,7 @@ fun = the delegate to run, usually inlined: `fakePure({ ... });`
 
 Returns: whatever `fun` returns.
 */
+@trusted
 private auto ref fakePure(F)(scope F fun) pure
 {
     mixin("alias PureFun = " ~ F.stringof ~ " pure;");
