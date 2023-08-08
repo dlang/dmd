@@ -33,7 +33,6 @@ import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.dversion;
-import dmd.errors : fatal;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
@@ -52,7 +51,6 @@ import dmd.statement;
 import dmd.staticassert;
 import dmd.target;
 import dmd.tokens;
-import dmd.utils;
 import dmd.visitor;
 
 struct HdrGenState
@@ -74,17 +72,20 @@ struct HdrGenState
 
 enum TEST_EMIT_ALL = 0;
 
-extern (C++) void genhdrfile(Module m)
+/****************************************
+ * Generate a header (.di) file for Module m.
+ * Params:
+ *      m = Module to generate header for
+ *      buf = buffer to write the data to
+ */
+extern (C++) void genhdrfile(Module m, ref OutBuffer buf)
 {
-    OutBuffer buf;
     buf.doindent = 1;
     buf.printf("// D import file generated from '%s'", m.srcfile.toChars());
     buf.writenl();
     HdrGenState hgs;
     hgs.hdrgen = true;
     toCBuffer(m, &buf, &hgs);
-    if (!writeFile(m.loc, m.hdrfile.toString(), buf[]))
-        fatal();
 }
 
 /**

@@ -421,13 +421,18 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
          * line switches and what else is imported, they are generated
          * before any semantic analysis.
          */
+        OutBuffer buf;
         foreach (m; modules)
         {
             if (m.filetype == FileType.dhdr)
                 continue;
             if (params.verbose)
                 message("import    %s", m.toChars());
-            genhdrfile(m);
+
+            buf.reset();         // reuse the buffer
+            genhdrfile(m, buf);
+            if (!writeFile(m.loc, m.hdrfile.toString(), buf[]))
+                fatal();
         }
     }
     if (global.errors)
