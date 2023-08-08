@@ -2874,7 +2874,7 @@ struct HdrGenState final
 
 enum : int32_t { TEST_EMIT_ALL = 0 };
 
-extern void genhdrfile(Module* m);
+extern void genhdrfile(Module* m, OutBuffer& buf);
 
 extern void moduleToBuffer(OutBuffer* buf, Module* m);
 
