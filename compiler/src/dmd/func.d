@@ -2013,9 +2013,10 @@ extern (C++) class FuncDeclaration : Declaration
      * Returns:
      *  true if there are no overloads of this function
      */
-    final bool isUnique() const
+    final bool isUnique() const nothrow
     {
         bool result = false;
+        try
         overloadApply(cast() this, (Dsymbol s)
         {
             auto f = s.isFuncDeclaration();
@@ -2033,6 +2034,7 @@ extern (C++) class FuncDeclaration : Declaration
                 return 0;
             }
         });
+        catch (Throwable) assert(0);
         return result;
     }
 
@@ -2982,7 +2984,7 @@ extern (C++) class FuncDeclaration : Declaration
         return this;
     }
 
-    inout(FuncDeclaration) toAliasFunc() inout
+    inout(FuncDeclaration) toAliasFunc() inout nothrow
     {
         return this;
     }

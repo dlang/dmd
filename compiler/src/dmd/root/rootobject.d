@@ -42,7 +42,7 @@ extern (C++) class RootObject
     {
     }
 
-    bool equals(const RootObject o) const
+    bool equals(const RootObject o) const nothrow
     {
         return o is this;
     }
