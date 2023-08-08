@@ -6104,7 +6104,8 @@ public:
                 result = interpret(&ue, e.msg, istate);
                 if (exceptionOrCant(result))
                     return;
-                if (StringExp se = result.isStringExp())
+                result = scrubReturnValue(e.loc, result);
+                if (StringExp se = result.toStringExp())
                     e.error("%s", se.toStringz().ptr);
                 else
                     e.error("%s", result.toChars());
