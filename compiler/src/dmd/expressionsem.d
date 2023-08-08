@@ -7259,7 +7259,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         else if (!exp.e1.type.deco)
         {
             // try to resolve the type
-            exp.e1.type = exp.e1.type.typeSemantic(exp.e1.loc, null);
+            exp.e1.type = exp.e1.type.typeSemantic(exp.e1.loc, sc);
             if (!exp.e1.type.deco)  // still couldn't resolve it
             {
                 if (auto ve = exp.e1.isVarExp())
