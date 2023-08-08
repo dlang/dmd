@@ -8104,7 +8104,7 @@ extern Expression* resolveProperties(Scope* sc, Expression* e);
 
 extern Expression* expressionSemantic(Expression* e, Scope* sc);
 
-extern void json_generate(OutBuffer* buf, Array<Module* >* modules);
+extern void json_generate(Array<Module* >& modules, OutBuffer& buf);
 
 extern JsonFieldFlags tryParseJsonField(const char* fieldName);
 

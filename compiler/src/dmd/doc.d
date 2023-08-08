@@ -375,7 +375,7 @@ private immutable ddoc_decl_dd_e = ")\n";
  * Params:
  *      m = Module
  *      ddocfiles = array of .ddoc files to read for macro definitions
- *	datetime = string returned by ctime()
+ *      datetime = string returned by ctime()
  *      eSink = send error messages to eSink
  */
 extern(C++) void gendocfile(Module m, const ref Array!(const(char)*) ddocfiles, const(char)* datetime, ErrorSink eSink)
