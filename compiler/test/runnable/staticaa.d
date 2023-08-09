@@ -105,6 +105,16 @@ void testClassInit()
 
 /////////////////////////////////////////////
 
+immutable(string)[immutable(int)] immutableAA = [1: "one", 2: "two"];
+
+void testImmutable()
+{
+    assert(immutableAA[1] == "one");
+    assert(immutableAA[2] == "two");
+}
+
+/////////////////////////////////////////////
+
 void main()
 {
     testSimple();
@@ -112,4 +122,5 @@ void main()
     testDestructor();
     testStructInit();
     testClassInit();
+    testImmutable();
 }
