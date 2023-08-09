@@ -5272,12 +5272,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
 
             const(char)* failMessage;
-            ushort charIndex = 0;
-            if (!tf.callMatch(null, exp.argumentList, 0, &failMessage, sc, &charIndex))
+            Loc argLoc = exp.loc;
+            if (!tf.callMatch(null, exp.argumentList, 0, &failMessage, sc, &argLoc))
             {
-                // set the charnum to the proper argument's position if any
-                if (charIndex > 0)
-                    exp.loc.charnum(charIndex);
                 OutBuffer buf;
                 buf.writeByte('(');
                 argExpTypesToCBuffer(&buf, exp.arguments);
@@ -5286,10 +5283,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     tthis.modToBuffer(&buf);
 
                 //printf("tf = %s, args = %s\n", tf.deco, (*arguments)[0].type.deco);
-                .error(exp.loc, "%s `%s%s` is not callable using argument types `%s`",
+                .error(argLoc, "%s `%s%s` is not callable using argument types `%s`",
                     p, exp.e1.toChars(), parametersTypeToChars(tf.parameterList), buf.peekChars());
                 if (failMessage)
-                    errorSupplemental(exp.loc, "%s", failMessage);
+                    errorSupplemental(argLoc, "%s", failMessage);
                 return setError();
             }
             // Purity and safety check should run after testing arguments matching
@@ -5349,12 +5346,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 exp.f = exp.f.toAliasFunc();
                 TypeFunction tf = cast(TypeFunction)exp.f.type;
                 const(char)* failMessage;
-                ushort charIndex = 0;
-                if (!tf.callMatch(null, exp.argumentList, 0, &failMessage, sc, &charIndex))
+                Loc argLoc = exp.loc;
+                if (!tf.callMatch(null, exp.argumentList, 0, &failMessage, sc, &argLoc))
                 {
-                    // set the charnum to the proper argument's position if any
-                    if (charIndex > 0)
-                        exp.loc.charnum(charIndex);
                     OutBuffer buf;
                     buf.writeByte('(');
                     argExpTypesToCBuffer(&buf, exp.arguments);
@@ -5368,10 +5362,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         .errorSupplemental(exp.loc, "the following error occured while looking for a UFCS match");
                     }
 
-                    .error(exp.loc, "%s `%s%s` is not callable using argument types `%s`",
+                    .error(argLoc, "%s `%s%s` is not callable using argument types `%s`",
                         exp.f.kind(), exp.f.toPrettyChars(), parametersTypeToChars(tf.parameterList), buf.peekChars());
                     if (failMessage)
-                        errorSupplemental(exp.loc, "%s", failMessage);
+                        errorSupplemental(argLoc, "%s", failMessage);
                     exp.f = null;
                 }
             }

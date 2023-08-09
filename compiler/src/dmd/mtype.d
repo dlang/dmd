@@ -4632,7 +4632,7 @@ extern (C++) final class TypeFunction : TypeNext
      * Returns:
      *      MATCHxxxx
      */
-    extern (D) MATCH callMatch(Type tthis, ArgumentList argumentList, int flag = 0, const(char)** pMessage = null, Scope* sc = null, ushort* charIndex = null)
+    extern (D) MATCH callMatch(Type tthis, ArgumentList argumentList, int flag = 0, const(char)** pMessage = null, Scope* sc = null, Loc* argLoc = null)
     {
         //printf("TypeFunction::callMatch() %s\n", toChars());
         MATCH match = MATCH.exact; // assume exact match
@@ -4783,10 +4783,10 @@ extern (C++) final class TypeFunction : TypeNext
                 else if (pMessage && !*pMessage)
                     *pMessage = getParamError(args[u], p);
 
-                if (charIndex && argumentList.arguments.length >= u)
+                if (argLoc && argumentList.arguments.length >= u)
                 {
                     auto actualArg = argumentList.arguments.opIndex(u);
-                    *charIndex = cast(ushort) actualArg.loc.charnum;
+                    *argLoc = actualArg.loc;
                 }
 
                 return MATCH.nomatch;
