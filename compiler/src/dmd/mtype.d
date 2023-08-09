@@ -480,7 +480,7 @@ extern (C++) abstract class Type : ASTNode
         assert(0);
     }
 
-    override bool equals(const RootObject o) const nothrow
+    override bool equals(const RootObject o) const
     {
         Type t = cast(Type)o;
         //printf("Type::equals(%s, %s)\n", toChars(), t.toChars());
@@ -2386,15 +2386,13 @@ extern (C++) abstract class Type : ASTNode
     /**************************
      * Return type with the top level of it being mutable.
      */
-    inout(Type) toHeadMutable() inout nothrow
+    inout(Type) toHeadMutable() inout
     {
         if (!mod)
             return this;
         Type unqualThis = cast(Type) this;
         // `mutableOf` needs a mutable `this` only for caching
-        try
-            return cast(inout(Type)) unqualThis.mutableOf();
-        catch (Throwable) assert(0);
+        return cast(inout(Type)) unqualThis.mutableOf();
     }
 
     inout(ClassDeclaration) isClassHandle() inout

@@ -636,7 +636,7 @@ private:
  *      true if x1 is x2
  *      else false
  */
-bool RealIdentical(real_t x1, real_t x2) @safe nothrow
+bool RealIdentical(real_t x1, real_t x2) @safe
 {
     return (CTFloat.isNaN(x1) && CTFloat.isNaN(x2)) || CTFloat.isIdentical(x1, x2);
 }
