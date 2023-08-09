@@ -1,10 +1,19 @@
 /*
+REQUIRED_ARGS: -verrors=context
 TEST_OUTPUT:
 ---
-fail_compilation/switch_skip.d(13): Error: `switch` skips declaration of variable `switch_skip.test3.j`
-fail_compilation/switch_skip.d(17):        declared here
-fail_compilation/switch_skip.d(30): Error: `switch` skips declaration of variable `switch_skip.test.z`
-fail_compilation/switch_skip.d(32):        declared here
+fail_compilation/switch_skip.d(22): Error: `switch` skips declaration of variable `switch_skip.test3.j`
+    switch (i)
+    ^
+fail_compilation/switch_skip.d(26):        declared here
+            int j;
+                ^
+fail_compilation/switch_skip.d(39): Error: `switch` skips declaration of variable `switch_skip.test.z`
+    final switch(n)
+    ^
+fail_compilation/switch_skip.d(41):        declared here
+        int z = 5;
+            ^
 ---
 */
 
