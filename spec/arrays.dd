@@ -204,7 +204,7 @@ assert(b[1] == 2);
 ---------
 )
 
-    $(P See also $(GLINK2 expression, IndexExpression).)
+    $(P See also $(GLINK2 expression, IndexOperation).)
 
 $(H3 $(LNAME2 pointer-arithmetic, Pointer Arithmetic))
 
@@ -284,7 +284,7 @@ writeln(b[7]);      // 10
 ---------
 )
 
-    $(P See also $(GLINK2 expression, SliceExpression).)
+    $(P See also $(GLINK2 expression, SliceOperation).)
 
 
 $(H2 $(LNAME2 array-length, Array Length))
@@ -502,7 +502,7 @@ a[] = b[] + 4;
         as the left-hand side of an assignment or an op-assignment expression.
         The right-hand side can be certain combinations of:)
 
-        * An array $(GLINK2 expression, SliceExpression) of the same length
+        * An array $(GLINK2 expression, SliceOperation) of the same length
           and type as the left-hand side
         * A scalar expression of the same element type as the left-hand side
 

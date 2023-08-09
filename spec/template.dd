@@ -950,10 +950,10 @@ $(H4 $(LNAME2 seq-ops, Sequence Operations))
     $(LI The number of elements in an $(I AliasSeq) can be retrieved with
         the $(D .length) property.)
     $(LI The $(I n)th element can be retrieved by
-        $(DDSUBLINK spec/expression, index_expressions, indexing) an
+        $(DDSUBLINK spec/expression, index_operations, indexing) an
         $(I AliasSeq) with `Seq[n]`. Indexes must be known at compile-time.
         The result is an lvalue when the element is a variable.)
-    $(LI $(DDSUBLINK spec/expression, slice_expressions, Slicing)
+    $(LI $(DDSUBLINK spec/expression, slice_operations, Slicing)
         produces a new sequence with a subset of the elements of the original sequence.)
     )
 

@@ -3679,7 +3679,7 @@ $(H2 $(LNAME2 nogc-functions, No-GC Functions))
         $(LI $(DDSUBLINK spec/expression, CatExpression, array concatenation))
         $(LI $(DDSUBLINK spec/expression, simple_assignment_expressions, array appending))
         $(LI $(DDSUBLINK spec/expression, AssocArrayLiteral, constructing an associative array))
-        $(LI $(DDSUBLINK spec/expression, IndexExpression, indexing) an associative array
+        $(LI $(DDSUBLINK spec/expression, IndexOperation, indexing) an associative array
             $(NOTE because it may throw $(D RangeError) if the specified key is not present))
         $(LI $(DDSUBLINK spec/expression, NewExpression, allocating an object with `new`) on the heap
             $(NOTE `new` declarations of $(D class types) in function scopes are compatible with
