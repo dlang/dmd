@@ -3890,7 +3890,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     foreach (v; c.fields)
                     {
                         if (v.inuse || v._scope is null || v._init is null ||
-                            v._init.isVoidInitializer())
+                            v._init.isVoidInitializer() || v.semanticRun >= PASS.semantic2done)
                             continue;
                         v.inuse++;
                         v._init = v._init.initializerSemantic(v._scope, v.type, INITinterpret);
