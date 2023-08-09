@@ -70,18 +70,15 @@ $(H2 $(LNAME2 named_enums, Named Enums))
         ---
 
 
-        $(P If the $(I EnumBaseType) is not explicitly set, and the first
+        $(P If the $(GLINK EnumBaseType) is not explicitly set, and the first
         $(I EnumMember) has an *AssignExpression*, it is set to the type of that
         *AssignExpression*. Otherwise, it defaults to
         type $(CODE int).)
 
-        $(P Named enum members may not have individual $(I Type)s.
-        )
-
-        $(P A named enum member can be implicitly cast to its $(GLINK EnumBaseType),
-        but $(I EnumBaseType) types
-        cannot be implicitly cast to an enum type.
-        )
+        * A named enum member can be
+          $(DDSUBLINK spec/type, implicit-conversions, implicitly cast to its $(I EnumBaseType)).
+        * An $(I EnumBaseType) instance cannot be implicitly cast to a named enum type.
+        * A named enum member does not have an individual $(I Type).
 
         $(P The value of an $(GLINK EnumMember) is given by its *AssignExpression* if present.
         If there is no *AssignExpression* and it is the first $(I EnumMember),
@@ -129,17 +126,26 @@ enum E : C
         writeln(X.init); // error: enum X is opaque and has no default initializer
         ---
 
-$(H3 $(LNAME2 enum_default_initializer, Enum Default Initializer))
+$(H3 $(LEGACY_LNAME2 enum_default_initializer, enum_variables, Enum Variables))
 
-        $(P The $(CODE .init) property of an enum type is the value
-        of the first member of that enum.
-        This is also the default initializer for the enum type.
+        $(P A variable can be of named enum type.
+        The default initializer is the first member defined for the enum type.
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ------
 enum X { A=3, B, C }
-X x;      // x is initialized to 3
+X x;
+assert(x == X.A);
+x |= X.B;
+assert(x & X.A);
 ------
+)
+
+        $(P The result type of a binary operation performed when the operands have
+        different types is defined $(DDSUBLINK spec/type, enum-ops, here).)
+
+        $(P See also: $(DDSUBLINK spec/statement, final-switch-statement, `final switch`).)
 
 $(H3 $(LNAME2 enum_properties, Enum Properties))
 

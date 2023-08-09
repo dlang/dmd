@@ -432,8 +432,10 @@ $(H3 $(LEGACY_LNAME2 Usual Arithmetic Conversions, usual-arithmetic-conversions,
     ---
     )
 
-    $(P If one or both of the operand types is an enum  after
-    undergoing the above conversions, the result type is:)
+$(H4 $(LNAME2 enum-ops, Enum Operations))
+
+    $(P If one or both of the operand types is an $(DDLINK spec/enum, Enums, enum) after
+    undergoing the above conversions, the result type is determined as follows:)
 
     $(OL
     $(LI If the operands are the same type, the result will be of
@@ -445,6 +447,32 @@ $(H3 $(LEGACY_LNAME2 Usual Arithmetic Conversions, usual-arithmetic-conversions,
     means there is a shorter sequence of conversions to base type to get there from the
     original type.)
     )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+enum E { a, b, c }
+enum F { x, y }
+
+void test()
+{
+    E e = E.a;
+    e = e | E.c;
+    //e = e + 4; // error, can't assign int to E
+    int i = e + 4;
+    e += 4; // OK, see below
+
+    F f;
+    //f = e | f; // error, can't assign int to F
+    i = e | f;
+}
+---
+)
+
+    $(NOTE Above, `e += 4` compiles because the
+    $(DDSUBLINK spec/expression, assignment_operator_expressions, operator assignment)
+    is equivalent to `e = cast(E)(e + 4)`.)
+
+$(H3 $(LNAME2 disallowed-conversions, Preserving Bit Patterns))
 
     $(P Integer values cannot be implicitly converted to another
     type that cannot represent the integer bit pattern after integral
@@ -459,12 +487,12 @@ ulong  u4 = long(-1); // ok, -1 can be represented in a long, which can be conve
 ---
 )
 
-    $(P Floating point types cannot be implicitly converted to
-    integral types. Complex or imaginary floating point types cannot be implicitly converted
-    to non-complex floating point types. Non-complex floating point types
-    cannot be implicitly converted to imaginary floating
-    point types.
-    )
+    * Floating point types cannot be implicitly converted to
+      integral types.
+    * Complex or imaginary floating point types cannot be implicitly converted
+      to non-complex floating point types.
+    * Non-complex floating point types cannot be implicitly converted to imaginary floating
+      point types.
 
 $(H3 $(LNAME2 vrp, Value Range Propagation))
 
