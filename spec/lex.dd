@@ -676,9 +676,7 @@ $(GNAME DecimalDigitsUS):
     $(GLINK DecimalDigitUS) $(GSELF DecimalDigitsUS)
 
 $(GNAME DecimalDigitsNoSingleUS):
-    $(GLINK DecimalDigit)
-    $(GLINK DecimalDigit) $(GLINK DecimalDigitsUS)
-    $(GLINK DecimalDigitsUS) $(GLINK DecimalDigit)
+    $(GLINK DecimalDigitsUS)$(OPT) $(GLINK DecimalDigit) $(GLINK DecimalDigitsUS)$(OPT)
 
 $(GNAME DecimalDigitsNoStartingUS):
     $(GLINK DecimalDigit)
@@ -693,10 +691,7 @@ $(GNAME DecimalDigitUS):
     $(B _)
 
 $(GNAME BinaryDigitsNoSingleUS):
-    $(GLINK BinaryDigit)
-    $(GLINK BinaryDigit) $(GLINK BinaryDigitsUS)
-    $(GLINK BinaryDigitsUS) $(GLINK BinaryDigit)
-    $(GLINK BinaryDigitsUS) $(GLINK BinaryDigit) $(GLINK BinaryDigitsUS)
+    $(GLINK BinaryDigitsUS)$(OPT) $(GLINK BinaryDigit) $(GLINK BinaryDigitsUS)$(OPT)
 
 $(GNAME BinaryDigitsUS):
     $(GLINK BinaryDigitUS)
@@ -729,9 +724,7 @@ $(GNAME HexDigitsUS):
     $(GLINK HexDigitUS) $(GSELF HexDigitsUS)
 
 $(GNAME HexDigitsNoSingleUS):
-    $(GLINK HexDigit)
-    $(GLINK HexDigit) $(GLINK HexDigitsUS)
-    $(GLINK HexDigitsUS) $(GLINK HexDigit)
+    $(GLINK HexDigitsUS)$(OPT) $(GLINK HexDigit) $(GLINK HexDigitsUS)$(OPT)
 
 $(GNAME HexDigitsNoStartingUS):
     $(GLINK HexDigit)
