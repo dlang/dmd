@@ -551,7 +551,7 @@ extern (C++) class Dsymbol : ASTNode
      *
      * See also `parent`, `toParent` and `toParent2`.
      */
-    final inout(Dsymbol) pastMixin() inout nothrow
+    final inout(Dsymbol) pastMixin() inout
     {
         //printf("Dsymbol::pastMixin() %s\n", toChars());
         if (!isTemplateMixin() && !isForwardingAttribDeclaration() && !isForwardingScopeDsymbol())
@@ -601,7 +601,7 @@ extern (C++) class Dsymbol : ASTNode
      *  // s.toParentLocal() == FuncDeclaration('mod.test')
      * ---
      */
-    final inout(Dsymbol) toParent() inout nothrow
+    final inout(Dsymbol) toParent() inout
     {
         return parent ? parent.pastMixin() : null;
     }
