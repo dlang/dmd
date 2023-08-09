@@ -5272,8 +5272,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
 
             const(char)* failMessage;
-            if (!tf.callMatch(null, exp.argumentList, 0, &failMessage, sc))
+            ushort charIndex = 0;
+            if (!tf.callMatch(null, exp.argumentList, 0, &failMessage, sc, &charIndex))
             {
+                // set the charnum to the proper argument's position if any
+                if (charIndex > 0)
+                    exp.loc.charnum(charIndex);
                 OutBuffer buf;
                 buf.writeByte('(');
                 argExpTypesToCBuffer(&buf, exp.arguments);
@@ -5345,8 +5349,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 exp.f = exp.f.toAliasFunc();
                 TypeFunction tf = cast(TypeFunction)exp.f.type;
                 const(char)* failMessage;
-                if (!tf.callMatch(null, exp.argumentList, 0, &failMessage, sc))
+                ushort charIndex = 0;
+                if (!tf.callMatch(null, exp.argumentList, 0, &failMessage, sc, &charIndex))
                 {
+                    // set the charnum to the proper argument's position if any
+                    if (charIndex > 0)
+                        exp.loc.charnum(charIndex);
                     OutBuffer buf;
                     buf.writeByte('(');
                     argExpTypesToCBuffer(&buf, exp.arguments);
