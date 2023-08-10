@@ -3,8 +3,8 @@ TEST_OUTPUT:
 ---
 fail_compilation/parseStc.d(12): Error: missing closing `)` after `if (x`
 fail_compilation/parseStc.d(12): Error: use `{ }` for an empty statement, not `;`
-fail_compilation/parseStc.d(12): Error: found `)` when expecting `;` following statement
-fail_compilation/parseStc.d(12):        `1` found here
+fail_compilation/parseStc.d(12): Error: found `)` when expecting `;` following expression
+fail_compilation/parseStc.d(12):        expression: `1`
 fail_compilation/parseStc.d(13): Error: redundant attribute `const`
 ---
 */

@@ -5824,7 +5824,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 AST.Expression exp = parseExpression();
                 /* https://issues.dlang.org/show_bug.cgi?id=15103
                  * Improve declaration / initialization syntax error message
-                 * Error: found 'foo' when expecting ';' following statement
+                 * Error: found 'foo' when expecting ';' following expression
                  * becomes Error: found `(` when expecting `;` or `=`, did you mean `Foo foo = 42`?
                  */
                 if (token.value == TOK.identifier && exp.op == EXP.identifier)
@@ -5849,13 +5849,13 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                      * otherwise we fall back on the old path (advancing the token).
                      */
                     if (token.value != TOK.semicolon && peek(&token).value == TOK.semicolon)
-                        error("found `%s` when expecting `;` following statement", token.toChars());
+                        error("found `%s` when expecting `;` following expression", token.toChars());
                     else
                     {
                         if (token.value != TOK.semicolon)
                         {
-                            error("found `%s` when expecting `;` following statement", token.toChars());
-                            eSink.errorSupplemental(exp.loc, "`%s` found here", exp.toChars());
+                            error("found `%s` when expecting `;` following expression", token.toChars());
+                            eSink.errorSupplemental(exp.loc, "expression: `%s`", exp.toChars());
                         }
                         nextToken();
                     }
