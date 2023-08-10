@@ -62,7 +62,7 @@ struct FileMapping(Datum)
     private const(char)* name;
     // state }
 
-  nothrow:
+  nothrow @nogc:
 
     /**
     Open `filename` and map it in memory. If `Datum` is `const`, opens for
@@ -462,7 +462,7 @@ struct FileMapping(Datum)
 }
 
 /// Write a file, returning `true` on success.
-extern(D) static bool writeFile(const(char)* name, const void[] data) nothrow
+extern(D) static bool writeFile(const(char)* name, const void[] data) nothrow @nogc
 {
     version (Posix)
     {
@@ -517,7 +517,7 @@ extern(D) static bool writeFile(const(char)* name, const void[] data) nothrow
 }
 
 /// Touch a file to current date
-bool touchFile(const char* namez)
+bool touchFile(const char* namez) nothrow @nogc
 {
     version (Windows)
     {
@@ -559,7 +559,7 @@ Params: fd = file handle
 Returns: file size in bytes, or `ulong.max` on any error.
 */
 version (Posix)
-private ulong fileSize(int fd)
+private ulong fileSize(int fd) @trusted nothrow @nogc
 {
     import core.sys.posix.sys.stat;
     stat_t buf;
@@ -570,7 +570,7 @@ private ulong fileSize(int fd)
 
 /// Ditto
 version (Windows)
-private ulong fileSize(HANDLE fd)
+private ulong fileSize(HANDLE fd) @trusted nothrow @nogc
 {
     ulong result;
     if (GetFileSizeEx(fd, cast(LARGE_INTEGER*) &result) == 0)
