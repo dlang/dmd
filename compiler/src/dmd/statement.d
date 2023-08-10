@@ -1252,9 +1252,10 @@ extern (C++) final class SwitchStatement : Statement
                 if (v.isDataseg() || (v.storage_class & (STC.manifest | STC.temp) && vd.ident != Id.withSym) || v._init.isVoidInitializer())
                     continue;
                 if (vd.ident == Id.withSym)
-                    error("`switch` skips declaration of `with` temporary at %s", v.loc.toChars());
+                    error("`switch` skips declaration of `with` temporary");
                 else
-                    error("`switch` skips declaration of variable `%s` at %s", v.toPrettyChars(), v.loc.toChars());
+                    error("`switch` skips declaration of variable `%s`", v.toPrettyChars());
+                errorSupplemental(v.loc, "declared here");
                 return true;
             }
             return false;
