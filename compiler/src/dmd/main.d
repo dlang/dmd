@@ -357,6 +357,25 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         m.read(Loc.initial);
     }
 
+    OutBuffer ddocbuf;          // buffer for contents of .ddoc files
+    bool ddocbufIsRead;         // set when ddocbuf is filled
+
+    /* Read ddoc macro files named by the DDOCFILE environment variable and command line
+     * and concatenate the text into ddocbuf
+     */
+    void readDdocFiles(ref const Loc loc, ref const Strings ddocfiles, ref OutBuffer ddocbuf)
+    {
+        foreach (file; ddocfiles)
+        {
+            auto buffer = readFile(loc, file.toDString());
+            // BUG: convert file contents to UTF-8 before use
+            const data = buffer.data;
+            //printf("file: '%.*s'\n", cast(int)data.length, data.ptr);
+            ddocbuf.write(data);
+        }
+        ddocbufIsRead = true;
+    }
+
     // Parse files
     bool anydocfiles = false;
     size_t filecount = modules.length;
@@ -389,7 +408,9 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         if (m.filetype == FileType.ddoc)
         {
             anydocfiles = true;
-            gendocfile(m, global.params.ddoc.files, global.datetime.ptr, global.errorSink);
+            if (!ddocbufIsRead)
+                readDdocFiles(m.loc, global.params.ddoc.files, ddocbuf);
+            gendocfile(m, ddocbuf[], global.datetime.ptr, global.errorSink);
             // Remove m from list of modules
             modules.remove(modi);
             modi--;
@@ -555,7 +576,9 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     {
         foreach (m; modules)
         {
-            gendocfile(m, global.params.ddoc.files, global.datetime.ptr, global.errorSink);
+            if (!ddocbufIsRead)
+                readDdocFiles(m.loc, global.params.ddoc.files, ddocbuf);
+            gendocfile(m, ddocbuf[], global.datetime.ptr, global.errorSink);
         }
     }
     if (params.vcg_ast)
