@@ -5853,7 +5853,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     else
                     {
                         if (token.value != TOK.semicolon)
-                            error("found `%s` when expecting `;` following statement `%s` on line %s", token.toChars(), exp.toChars(), exp.loc.toChars());
+                        {
+                            error("found `%s` when expecting `;` following statement", token.toChars());
+                            eSink.errorSupplemental(exp.loc, "`%s` found here", exp.toChars());
+                        }
                         nextToken();
                     }
                 }
