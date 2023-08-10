@@ -7058,7 +7058,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             {
                 .error(loc, "%s `%s.%s` matches more than one template declaration:",
                     td_best.kind(), td_best.parent.toPrettyChars(), td_best.ident.toChars());
-                .errorSupplemental(td_best.loc, "`%s`", td_best.toChars());
+                .errorSupplemental(td_best.loc, "`%s`\nand:", td_best.toChars());
                 .errorSupplemental(td_ambig.loc, "`%s`", td_ambig.toChars());
                 return false;
             }
