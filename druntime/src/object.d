@@ -108,6 +108,7 @@ else version (AArch64)
 auto _aaAsStruct(K, V)(V[K] aa) @safe
 {
     import core.internal.newaa : makeAA;
+    assert(__ctfe);
     return makeAA!(K, V)(aa);
 }
 

@@ -39,13 +39,11 @@ private struct Bucket
     void *entry;
 }
 
-private struct Impl
+struct Impl
 {
     Bucket[] buckets;
     uint used;
     uint deleted;
-    // these are not used in this implementation, but put here so we can
-    // keep the same layout if converted to an AA.
     TypeInfo_Struct entryTI;
     uint firstUsed;
     immutable uint keysz;
