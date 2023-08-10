@@ -3287,7 +3287,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 /* { */
                 error(token.loc, "`}` expected following members in `%s` declaration",
                     Token.toChars(tok));
-                eSink.errorSupplemental(loc, "declared here");
+                if (id)
+                    eSink.errorSupplemental(loc, "%s `%s` starts here",
+                        Token.toChars(tok), id.toChars());
+                else
+                    eSink.errorSupplemental(loc, "%s starts here",
+                        Token.toChars(tok));
             }
             nextToken();
         }

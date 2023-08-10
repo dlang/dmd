@@ -9,7 +9,7 @@ fail_compilation/testsemi.d(117): Error: no identifier for declarator `x`
 fail_compilation/testsemi.d(123): Error: found `int` when expecting `;` following mixin
 fail_compilation/testsemi.d(129): Error: found `int` when expecting `;` following `import` Expression
 fail_compilation/testsemi.d(131): Error: `}` expected following members in `class` declaration
-fail_compilation/testsemi.d(112):        declared here
+fail_compilation/testsemi.d(112):        class `C` starts here
 ---
  */
 
