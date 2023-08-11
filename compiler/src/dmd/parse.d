@@ -4581,8 +4581,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             }
             else if (t.ty == Tfunction)
             {
-                /* @@@DEPRECATED_2.105.1@@@
-                 * change to error */
+                /* @@@DEPRECATED_2.115@@@
+                 * change to error, deprecated in 2.105.1 */
                 if (storage_class & STC.manifest)
                     deprecation("function cannot have enum storage class");
 
