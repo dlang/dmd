@@ -37,6 +37,8 @@ import dmd.tokens;
 import dmd.visitor;
 import dmd.arraytypes;
 
+private:
+
 /// Groups global state for escape checking together
 package(dmd) struct EscapeState
 {
@@ -69,6 +71,7 @@ package(dmd) struct EscapeState
  * Returns:
  *      `true` if error
  */
+public
 bool checkMutableArguments(Scope* sc, FuncDeclaration fd, TypeFunction tf,
     Expression ethis, Expressions* arguments, bool gag)
 {
@@ -226,6 +229,7 @@ bool checkMutableArguments(Scope* sc, FuncDeclaration fd, TypeFunction tf,
  * Returns:
  *      `true` if any elements escaped
  */
+public
 bool checkArrayLiteralEscape(Scope *sc, ArrayLiteralExp ae, bool gag)
 {
     bool errors;
@@ -249,6 +253,7 @@ bool checkArrayLiteralEscape(Scope *sc, ArrayLiteralExp ae, bool gag)
  * Returns:
  *      `true` if any elements escaped
  */
+public
 bool checkAssocArrayLiteralEscape(Scope *sc, AssocArrayLiteralExp ae, bool gag)
 {
     bool errors;
@@ -274,6 +279,7 @@ bool checkAssocArrayLiteralEscape(Scope *sc, AssocArrayLiteralExp ae, bool gag)
  *    v = parameter that was not inferred
  *    recursionLimit = recursion limit for printing the reason
  */
+private
 void printScopeFailure(E)(E printFunc, VarDeclaration v, int recursionLimit)
 {
     recursionLimit--;
@@ -316,6 +322,7 @@ void printScopeFailure(E)(E printFunc, VarDeclaration v, int recursionLimit)
  * Returns:
  *      `true` if pointers to the stack can escape via assignment
  */
+public
 bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier parId, VarDeclaration vPar, STC parStc, Expression arg, bool assertmsg, bool gag)
 {
     enum log = false;
@@ -467,6 +474,7 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier parId, 
  * Returns:
  *      `true` if assignment to `firstArg` would cause an error
  */
+public
 bool checkParamArgumentReturn(Scope* sc, Expression firstArg, Expression arg, Parameter param, bool gag)
 {
     enum log = false;
@@ -502,6 +510,7 @@ bool checkParamArgumentReturn(Scope* sc, Expression firstArg, Expression arg, Pa
  * Returns:
  *      `true` if construction would cause an escaping reference error
  */
+public
 bool checkConstructorEscape(Scope* sc, CallExp ce, bool gag)
 {
     enum log = false;
@@ -543,6 +552,7 @@ bool checkConstructorEscape(Scope* sc, CallExp ce, bool gag)
 }
 
 /// How a `return` parameter escapes its pointer value
+public
 enum ReturnParamDest
 {
     returnVal, /// through return statement: `return x`
@@ -564,6 +574,7 @@ enum ReturnParamDest
  *   tthis = type of `this` parameter, or `null` if none
  * Returns: What a `return` parameter should transfer the lifetime of the argument to
  */
+public
 ReturnParamDest returnParamDest(TypeFunction tf, Type tthis)
 {
     assert(tf);
@@ -596,6 +607,7 @@ ReturnParamDest returnParamDest(TypeFunction tf, Type tthis)
  * Returns:
  *      `true` if pointers to the stack can escape via assignment
  */
+public
 bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
 {
     enum log = false;
@@ -959,6 +971,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
  * Returns:
  *      `true` if pointers to the stack can escape
  */
+public
 bool checkThrowEscape(Scope* sc, Expression e, bool gag)
 {
     //printf("[%s] checkThrowEscape, e = %s\n", e.loc.toChars(), e.toChars());
@@ -1002,6 +1015,7 @@ bool checkThrowEscape(Scope* sc, Expression e, bool gag)
  * Returns:
  *      `true` if pointers to the stack can escape
  */
+public
 bool checkNewEscape(Scope* sc, Expression e, bool gag)
 {
     import dmd.globals: FeatureState;
@@ -1144,6 +1158,7 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
  * Returns:
  *      `true` if pointers to the stack can escape
  */
+public
 bool checkReturnEscape(Scope* sc, Expression e, bool gag)
 {
     //printf("[%s] checkReturnEscape, e: %s\n", e.loc.toChars(), e.toChars());
@@ -1161,6 +1176,7 @@ bool checkReturnEscape(Scope* sc, Expression e, bool gag)
  * Returns:
  *      `true` if references to the stack can escape
  */
+public
 bool checkReturnEscapeRef(Scope* sc, Expression e, bool gag)
 {
     version (none)
@@ -1434,6 +1450,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
  *      va = variable to infer scope for
  * Returns: `true` if succesful or already `scope`
  */
+private
 bool inferScope(VarDeclaration va)
 {
     if (!va)
@@ -1526,6 +1543,7 @@ private bool inferReturn(FuncDeclaration fd, VarDeclaration v, bool returnScope)
  *      live = if @live semantics apply, i.e. expressions `p`, `*p`, `**p`, etc., all return `p`.
   *     retRefTransition = if `e` is returned through a `return ref scope` function call
  */
+public
 void escapeByValue(Expression e, EscapeByResults* er, bool live = false, bool retRefTransition = false)
 {
     //printf("[%s] escapeByValue, e: %s\n", e.loc.toChars(), e.toChars());
@@ -1924,6 +1942,7 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false, bool re
  *      live = if @live semantics apply, i.e. expressions `p`, `*p`, `**p`, etc., all return `p`.
  *      retRefTransition = if `e` is returned through a `return ref scope` function call
  */
+private
 void escapeByRef(Expression e, EscapeByResults* er, bool live = false, bool retRefTransition = false)
 {
     //printf("[%s] escapeByRef, e: %s, retRefTransition: %d\n", e.loc.toChars(), e.toChars(), retRefTransition);
@@ -2158,6 +2177,7 @@ void escapeByRef(Expression e, EscapeByResults* er, bool live = false, bool retR
 /************************************
  * Aggregate the data collected by the escapeBy??() functions.
  */
+public
 struct EscapeByResults
 {
     VarDeclarations byref;      // array into which variables being returned by ref are inserted
@@ -2295,6 +2315,7 @@ private void doNotInferScope(VarDeclaration v, RootObject o)
  *   f = final function type. `funcdecl.type` started as the 'premature type' before attribute
  *       inference, then its inferred attributes are copied over to final type `f`
  */
+public
 void finishScopeParamInference(FuncDeclaration funcdecl, ref TypeFunction f)
 {
 
@@ -2427,6 +2448,7 @@ private void eliminateMaybeScopes(VarDeclaration[] array)
  * Returns:
  *      true if it's a pointer (or reference) to mutable data
  */
+private
 bool isReferenceToMutable(Type t)
 {
     t = t.baseElemOf();
@@ -2486,6 +2508,7 @@ bool isReferenceToMutable(Type t)
  * Returns:
  *      true if it's a pointer (or reference) to mutable data
  */
+private
 bool isReferenceToMutable(Parameter p, Type t)
 {
     if (p.isReference())
@@ -2561,6 +2584,7 @@ private void addMaybe(VarDeclaration va, VarDeclaration v)
 }
 
 // `setUnsafePreview` partially evaluated for dip1000
+public
 bool setUnsafeDIP1000(Scope* sc, bool gag, Loc loc, const(char)* msg,
     RootObject arg0 = null, RootObject arg1 = null, RootObject arg2 = null)
 {
