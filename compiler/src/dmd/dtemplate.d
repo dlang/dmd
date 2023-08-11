@@ -7056,10 +7056,10 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
             if (td_ambig)
             {
-                .error(loc, "%s `%s.%s` matches more than one template declaration:\n%s:     `%s`\nand\n%s:     `%s`",
-                    td_best.kind(), td_best.parent.toPrettyChars(), td_best.ident.toChars(),
-                    td_best.loc.toChars(), td_best.toChars(),
-                    td_ambig.loc.toChars(), td_ambig.toChars());
+                .error(loc, "%s `%s.%s` matches more than one template declaration:",
+                    td_best.kind(), td_best.parent.toPrettyChars(), td_best.ident.toChars());
+                .errorSupplemental(td_best.loc, "`%s`\nand:", td_best.toChars());
+                .errorSupplemental(td_ambig.loc, "`%s`", td_ambig.toChars());
                 return false;
             }
             if (td_best)

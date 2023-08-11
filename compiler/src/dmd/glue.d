@@ -1415,9 +1415,10 @@ private bool onlyOneMain(FuncDeclaration fd)
     if (lastMain)
     {
         const format = (target.os == Target.OS.Windows)
-            ? "only one entry point `main`, `WinMain` or `DllMain` is allowed. Previously found `%s` at %s"
-            : "only one entry point `main` is allowed. Previously found `%s` at %s";
-        error(fd.loc, format.ptr, lastMain.toChars(), lastMain.loc.toChars());
+            ? "only one entry point `main`, `WinMain` or `DllMain` is allowed"
+            : "only one entry point `main` is allowed";
+        error(fd.loc, format.ptr);
+        errorSupplemental(lastMain.loc, "previously found `%s` here", lastMain.toFullSignature());
         return false;
     }
     lastMain = fd;

@@ -1864,17 +1864,15 @@ extern (C++) final class GotoStatement : Statement
         {
             // Lifetime ends at end of expression, so no issue with skipping the statement
         }
-        else if (vd.ident == Id.withSym)
-        {
-            error("`goto` skips declaration of `with` temporary at %s", vd.loc.toChars());
-            return true;
-        }
         else
         {
-            error("`goto` skips declaration of variable `%s` at %s", vd.toPrettyChars(), vd.loc.toChars());
+            if (vd.ident == Id.withSym)
+                error("`goto` skips declaration of `with` temporary");
+            else
+                error("`goto` skips declaration of variable `%s`", vd.toPrettyChars());
+            errorSupplemental(vd.loc, "declared here");
             return true;
         }
-
         return false;
     }
 
