@@ -4581,8 +4581,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             }
             else if (t.ty == Tfunction)
             {
+                /* @@@DEPRECATED_2.105.1@@@
+                 * change to error */
                 if (storage_class & STC.manifest)
-                    error("function cannot have enum storage class");
+                    deprecation("function cannot have enum storage class");
 
                 AST.Expression constraint = null;
                 //printf("%s funcdecl t = %s, storage_class = x%lx\n", loc.toChars(), t.toChars(), storage_class);
