@@ -2283,6 +2283,7 @@ extern (C++) class FuncDeclaration : Declaration
                             f.kind, f.toPrettyChars(), v.toChars());
                         if (v.ident != Id.This)
                             .errorSupplemental(v.loc, "`%s` declared here", v.toChars());
+
                         break LcheckAncestorsOfANestedRef;
                     }
                 }
