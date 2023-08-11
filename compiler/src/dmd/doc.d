@@ -377,35 +377,33 @@ immutable ddoc_decl_dd_e = ")\n";
  * Generate Ddoc file for Module m.
  * Params:
  *      m = Module
- *      ddocfiles = array of .ddoc files to read for macro definitions
- *      datetime = string returned by ctime()
+ *      ddoctext_ptr = combined text of .ddoc files for macro definitions
+ *      ddoctext_length = extant of ddoctext_ptr
+ *      datetime = charz returned by ctime()
  *      eSink = send error messages to eSink
  */
 public
-extern(C++) void gendocfile(Module m, const ref Array!(const(char)*) ddocfiles, const(char)* datetime, ErrorSink eSink)
+extern(C++) void gendocfile(Module m, const char* ddoctext_ptr, size_t ddoctext_length, const char* datetime, ErrorSink eSink)
 {
-    __gshared OutBuffer mbuf;
-    __gshared int mbuf_done;
-    OutBuffer buf;
-    //printf("Module::gendocfile()\n");
-    if (!mbuf_done) // if not already read the ddocfiles
-    {
-        mbuf_done = 1;
-        // Read ddoc macro files from the environment and command line
-        foreach (file; ddocfiles)
-        {
-            auto buffer = readFile(m.loc, file.toDString());
-            // BUG: convert file contents to UTF-8 before use
-            const data = buffer.data;
-            //printf("file: '%.*s'\n", cast(int)data.length, data.ptr);
-            mbuf.write(data);
-        }
-    }
+    gendocfile(m, ddoctext_ptr[0 .. ddoctext_length], datetime, eSink);
+}
+
+/****************************************************
+ * Generate Ddoc file for Module m.
+ * Params:
+ *      m = Module
+ *      ddoctext = combined text of .ddoc files for macro definitions
+ *      datetime = charz returned by ctime()
+ *      eSink = send error messages to eSink
+ */
+public
+void gendocfile(Module m, const char[] ddoctext, const char* datetime, ErrorSink eSink)
+{
     // Load internal default macros first
     DocComment.parseMacros(m.escapetable, m.macrotable, ddoc_default[]);
 
     // Ddoc files override default macros
-    DocComment.parseMacros(m.escapetable, m.macrotable, mbuf[]);
+    DocComment.parseMacros(m.escapetable, m.macrotable, ddoctext);
 
     Scope* sc = Scope.createGlobal(m, eSink); // create root scope
     DocComment* dc = DocComment.parse(m, m.comment);
@@ -431,6 +429,8 @@ extern(C++) void gendocfile(Module m, const ref Array!(const(char)*) ddocfiles, 
         dc.copyright.nooutput = 1;
         m.macrotable.define("COPYRIGHT", dc.copyright.body_);
     }
+
+    OutBuffer buf;
     if (m.filetype == FileType.ddoc)
     {
         const ploc = m.md ? &m.md.loc : &m.loc;
