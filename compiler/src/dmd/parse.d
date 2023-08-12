@@ -3285,8 +3285,14 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             if (token.value != TOK.rightCurly)
             {
                 /* { */
-                error(token.loc, "`}` expected following members in `%s` declaration at %s",
-                    Token.toChars(tok), loc.toChars());
+                error(token.loc, "`}` expected following members in `%s` declaration",
+                    Token.toChars(tok));
+                if (id)
+                    eSink.errorSupplemental(loc, "%s `%s` starts here",
+                        Token.toChars(tok), id.toChars());
+                else
+                    eSink.errorSupplemental(loc, "%s starts here",
+                        Token.toChars(tok));
             }
             nextToken();
         }
