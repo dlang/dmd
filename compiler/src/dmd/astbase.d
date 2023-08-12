@@ -170,7 +170,7 @@ struct ASTBase
                 va_list ap;
                 va_start(ap, format);
                 // last parameter : toPrettyChars
-                verrorReport(loc, format, ap, ErrorKind.error, kind(), "");
+                verrorReport(loc, format, ap, ErrorKind.error, 0, kind(), "");
                 va_end(ap);
             }
         else
@@ -179,7 +179,7 @@ struct ASTBase
                 va_list ap;
                 va_start(ap, format);
                 // last parameter : toPrettyChars
-                verrorReport(loc, format, ap, ErrorKind.error, kind(), "");
+                verrorReport(loc, format, ap, ErrorKind.error, 0, kind(), "");
                 va_end(ap);
             }
 

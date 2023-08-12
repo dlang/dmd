@@ -94,7 +94,7 @@ public:
 
     const char *toChars() const override;
     void error(const char *format, ...) const;
-    void warning(const char *format, ...) const;
+    void warning(unsigned flag, const char *format, ...) const;
     void deprecation(const char *format, ...) const;
 
     virtual dinteger_t toInteger();

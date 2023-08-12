@@ -116,7 +116,7 @@ public:
     const char *toChars() const override final;
 
     void error(const char *format, ...);
-    void warning(const char *format, ...);
+    void warning(unsigned flag, const char *format, ...);
     void deprecation(const char *format, ...);
     virtual Statement *getRelatedLabeled() { return this; }
     virtual bool hasBreak() const;
