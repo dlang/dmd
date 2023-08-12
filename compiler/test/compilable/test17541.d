@@ -20,9 +20,8 @@ struct BB
     }
 }
 
-BB bb;
-
-@nogc bar()
+pure @safe @nogc nothrow bar()
 {
+    BB bb;
     bb.foo();
 }

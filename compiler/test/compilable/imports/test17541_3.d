@@ -1,6 +1,6 @@
 module three;
 
-void aaa() @nogc
+void aaa() pure @safe @nogc nothrow
 {
 
 }

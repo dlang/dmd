@@ -1510,6 +1510,12 @@ extern (C++) class FuncDeclaration : Declaration
      */
     extern (D) final bool setImpure(Loc loc = Loc.init, const(char)* fmt = null, RootObject arg0 = null)
     {
+        if (purityInprocess && semanticRun < PASS.semantic3 && _scope)
+        {
+            this.semantic2(_scope);
+            this.semantic3(_scope);
+        }
+
         if (purityInprocess)
         {
             purityInprocess = false;
@@ -1572,6 +1578,12 @@ extern (C++) class FuncDeclaration : Declaration
         bool gag = false, Loc loc = Loc.init, const(char)* fmt = null,
         RootObject arg0 = null, RootObject arg1 = null, RootObject arg2 = null)
     {
+        if (safetyInprocess && semanticRun < PASS.semantic3 && _scope)
+        {
+            this.semantic2(_scope);
+            this.semantic3(_scope);
+        }
+
         if (safetyInprocess)
         {
             safetyInprocess = false;
@@ -1677,9 +1689,16 @@ extern (C++) class FuncDeclaration : Declaration
      */
     extern (D) final void setThrow(Loc loc, const(char)* fmt, RootObject arg0 = null)
     {
-        if (nothrowInprocess && !nothrowViolation)
+        if (nothrowInprocess)
         {
-            nothrowViolation = new AttributeViolation(loc, fmt, arg0); // action that requires GC
+            if (semanticRun < PASS.semantic3 && _scope)
+            {
+                this.semantic2(_scope);
+                this.semantic3(_scope);
+            }
+
+            if (nothrowInprocess && !nothrowViolation)
+                nothrowViolation = new AttributeViolation(loc, fmt, arg0); // action that requires GC
         }
     }
 
