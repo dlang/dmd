@@ -17,8 +17,8 @@ import core.stdc.stdarg;
 
 import dmd.globals;
 import dmd.location;
-import dmd.errors;
-import dmd.target;
+import dmd.errorsink;
+import dmd.target : Target;
 import dmd.utils;
 
 import dmd.common.outbuffer;
@@ -35,15 +35,22 @@ private enum LOG = false;
 
 class Library
 {
-    static Library factory()
+    const(char)[] lib_ext;      // library file extension
+    ErrorSink eSink;            // where the error messages go
+
+    static Library factory(Target.ObjectFormat of, const char[] lib_ext, ErrorSink eSink)
     {
-        final switch (target.objectFormat())
+        Library lib;
+        final switch (of)
         {
-            case Target.ObjectFormat.elf:   return LibElf_factory();
-            case Target.ObjectFormat.macho: return LibMach_factory();
-            case Target.ObjectFormat.coff:  return LibMSCoff_factory();
-            case Target.ObjectFormat.omf:   return LibOMF_factory();
+            case Target.ObjectFormat.elf:   lib = LibElf_factory();     break;
+            case Target.ObjectFormat.macho: lib = LibMach_factory();    break;
+            case Target.ObjectFormat.coff:  lib = LibMSCoff_factory();  break;
+            case Target.ObjectFormat.omf:   lib = LibOMF_factory();     break;
         }
+        lib.lib_ext = lib_ext;
+        lib.eSink = eSink;
+        return lib;
     }
 
     abstract void addObject(const(char)[] module_name, const ubyte[] buf);
@@ -72,12 +79,12 @@ class Library
             // Generate lib file name from first obj name
             const(char)[] n = global.params.objfiles[0].toDString;
             n = FileName.name(n);
-            arg = FileName.forceExt(n, target.lib_ext);
+            arg = FileName.forceExt(n, lib_ext);
         }
         if (!FileName.absolute(arg))
             arg = FileName.combine(dir, arg);
 
-        loc = Loc(FileName.defaultExt(arg, target.lib_ext).ptr, 0, 0);
+        loc = Loc(FileName.defaultExt(arg, lib_ext).ptr, 0, 0);
     }
 
     final const(char)* getFilename() const
@@ -85,33 +92,32 @@ class Library
         return loc.filename;
     }
 
-    final void write()
+    /***************************
+     * Write the library file.
+     * Returns: false on failure
+     */
+    final bool write()
     {
         if (global.params.verbose)
-            message("library   %s", loc.filename);
+            eSink.message(Loc.initial, "library   %s", loc.filename);
 
         auto filenameString = loc.filename.toDString;
         if (!ensurePathToNameExists(Loc.initial, filenameString))
-            return;
+            return false;
+
         auto tmpname = filenameString ~ ".tmp\0";
-        scope(exit) destroy(tmpname);
 
         auto libbuf = OutBuffer(tmpname.ptr);
         WriteLibToBuffer(&libbuf);
 
         if (!libbuf.moveToFile(loc.filename))
         {
-            .error(loc, "error writing file '%s'", loc.filename);
-            fatal();
+            eSink.error(loc, "error writing file '%s'", loc.filename);
+            destroy(tmpname);
+            return false;
         }
-    }
-
-    final void error(const(char)* format, ...)
-    {
-        va_list ap;
-        va_start(ap, format);
-        .verrorReport(loc, format, ap, ErrorKind.error);
-        va_end(ap);
+        destroy(tmpname);
+        return true;
     }
 
   protected:

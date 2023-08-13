@@ -80,7 +80,7 @@ alias toSymbol = dmd.tocsym.toSymbol;
  *  libmodules = array of objects/libraries already generated (passed on command line)
  *  libname = {.lib,.a} file output name
  *  objdir = directory to write object files to
- *  lib = write library file instead of object file(s)
+ *  writeLibrary = write library file instead of object file(s)
  *  obj = generate object files
  *  oneobj = write one object file instead of multiple ones
  *  multiobj = break one object file into multiple ones
@@ -88,13 +88,13 @@ alias toSymbol = dmd.tocsym.toSymbol;
  */
 void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
                           const(char)[] libname, const(char)[] objdir,
-                          bool lib, bool obj, bool oneobj, bool multiobj,
+                          bool writeLibrary, bool obj, bool oneobj, bool multiobj,
                           bool verbose)
 {
     Library library = null;
-    if (lib)
+    if (writeLibrary)
     {
-        library = Library.factory();
+        library = Library.factory(target.objectFormat(), target.lib_ext, global.errorSink);
         library.setFilename(objdir, libname);
         // Add input object and input library files to output library
         foreach (p; libmodules)
@@ -139,12 +139,15 @@ void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
             genObjFile(m, multiobj);
             obj_end(objbuf, library, m.objfile.toChars());
             obj_write_deferred(objbuf, library, glue.obj_symbols_towrite);
-            if (global.errors && !lib)
+            if (global.errors && !writeLibrary)
                 m.deleteObjFile();
         }
     }
-    if (lib && !global.errors)
-        library.write();
+    if (writeLibrary && !global.errors)
+    {
+        if (!library.write())
+            fatal();
+    }
 }
 
 extern (C++):

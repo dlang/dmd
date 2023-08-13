@@ -95,7 +95,7 @@ final class LibMSCoff : Library
 
         void corrupt(int reason)
         {
-            error("corrupt MS Coff object module %.*s %d",
+            eSink.error(loc, "corrupt MS Coff object module %.*s %d",
                   cast(int)module_name.length, module_name.ptr, reason);
         }
 

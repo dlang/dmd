@@ -87,7 +87,7 @@ final class LibElf : Library
 
         void corrupt(int reason)
         {
-            error("corrupt ELF object module %.*s %d",
+            eSink.error(loc, "corrupt ELF object module %.*s %d",
                   cast(int)module_name.length, module_name.ptr, reason);
         }
 
@@ -324,7 +324,7 @@ final class LibElf : Library
                 s = tab.lookup(name.ptr, name.length);
                 assert(s);
                 ElfObjSymbol* os = s.value;
-                error("multiple definition of %s: %s and %s: %s", om.name.ptr, name.ptr, os.om.name.ptr, os.name.ptr);
+                eSink.error(loc, "multiple definition of %s: %s and %s: %s", om.name.ptr, name.ptr, os.om.name.ptr, os.name.ptr);
             }
         }
         else
