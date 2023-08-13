@@ -34,7 +34,6 @@ import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.dtemplate;
-import dmd.errors : fatal;
 import dmd.errorsink;
 import dmd.func;
 import dmd.globals;
@@ -53,7 +52,6 @@ import dmd.root.rmem;
 import dmd.root.string;
 import dmd.root.utf;
 import dmd.tokens;
-import dmd.utils;
 import dmd.visitor;
 
 private:
@@ -381,23 +379,25 @@ immutable ddoc_decl_dd_e = ")\n";
  *      ddoctext_length = extant of ddoctext_ptr
  *      datetime = charz returned by ctime()
  *      eSink = send error messages to eSink
+ *      outbuf = append the Ddoc text to this
  */
 public
-extern(C++) void gendocfile(Module m, const char* ddoctext_ptr, size_t ddoctext_length, const char* datetime, ErrorSink eSink)
+extern(C++) void gendocfile(Module m, const char* ddoctext_ptr, size_t ddoctext_length, const char* datetime, ErrorSink eSink, ref OutBuffer outbuf)
 {
-    gendocfile(m, ddoctext_ptr[0 .. ddoctext_length], datetime, eSink);
+    gendocfile(m, ddoctext_ptr[0 .. ddoctext_length], datetime, eSink, outbuf);
 }
 
 /****************************************************
- * Generate Ddoc file for Module m.
+ * Generate Ddoc text for Module `m` and append it to `outbuf`.
  * Params:
  *      m = Module
  *      ddoctext = combined text of .ddoc files for macro definitions
  *      datetime = charz returned by ctime()
  *      eSink = send error messages to eSink
+ *      outbuf = append the Ddoc text to this
  */
 public
-void gendocfile(Module m, const char[] ddoctext, const char* datetime, ErrorSink eSink)
+void gendocfile(Module m, const char[] ddoctext, const char* datetime, ErrorSink eSink, ref OutBuffer outbuf)
 {
     // Load internal default macros first
     DocComment.parseMacros(m.escapetable, m.macrotable, ddoc_default[]);
@@ -459,70 +459,42 @@ void gendocfile(Module m, const char[] ddoctext, const char* datetime, ErrorSink
     }
     //printf("BODY= '%.*s'\n", cast(int)buf.length, buf.data);
     m.macrotable.define("BODY", buf[]);
+
     OutBuffer buf2;
     buf2.writestring("$(DDOC)");
     size_t end = buf2.length;
 
+    // Expand buf in place with macro expansions
     const success = m.macrotable.expand(buf2, 0, end, null, global.recursionLimit, &isIdStart, &isIdTail);
     if (!success)
         eSink.error(Loc.initial, "DDoc macro expansion limit exceeded; more than %d expansions.", global.recursionLimit);
 
-    version (all)
+    /* Remove all the escape sequences from buf,
+     * and make CR-LF the newline.
+     */
+    const slice = buf2[];
+    outbuf.reserve(slice.length);
+    auto p = slice.ptr;
+    for (size_t j = 0; j < slice.length; j++)
     {
-        /* Remove all the escape sequences from buf2,
-         * and make CR-LF the newline.
-         */
+        char c = p[j];
+        if (c == 0xFF && j + 1 < slice.length)
         {
-            const slice = buf2[];
-            buf.setsize(0);
-            buf.reserve(slice.length);
-            auto p = slice.ptr;
-            for (size_t j = 0; j < slice.length; j++)
-            {
-                char c = p[j];
-                if (c == 0xFF && j + 1 < slice.length)
-                {
-                    j++;
-                    continue;
-                }
-                if (c == '\n')
-                    buf.writeByte('\r');
-                else if (c == '\r')
-                {
-                    buf.writestring("\r\n");
-                    if (j + 1 < slice.length && p[j + 1] == '\n')
-                    {
-                        j++;
-                    }
-                    continue;
-                }
-                buf.writeByte(c);
-            }
+            j++;
+            continue;
         }
-        if (!writeFile(m.loc, m.docfile.toString(), buf[]))
-            return fatal();
-    }
-    else
-    {
-        /* Remove all the escape sequences from buf2
-         */
+        if (c == '\n')
+            outbuf.writeByte('\r');
+        else if (c == '\r')
         {
-            size_t i = 0;
-            char* p = buf2.data;
-            for (size_t j = 0; j < buf2.length; j++)
+            outbuf.writestring("\r\n");
+            if (j + 1 < slice.length && p[j + 1] == '\n')
             {
-                if (p[j] == 0xFF && j + 1 < buf2.length)
-                {
-                    j++;
-                    continue;
-                }
-                p[i] = p[j];
-                i++;
+                j++;
             }
-            buf2.setsize(i);
+            continue;
         }
-        if (!writeFile(m.loc, m.docfile.toString(), buf2[]))
-            return fatal();
+        outbuf.writeByte(c);
     }
 }
 

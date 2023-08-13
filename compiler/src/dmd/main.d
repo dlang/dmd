@@ -378,6 +378,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     // Parse files
     bool anydocfiles = false;
+    OutBuffer ddocOutputText;
     size_t filecount = modules.length;
     for (size_t filei = 0, modi = 0; filei < filecount; filei++, modi++)
     {
@@ -410,7 +411,13 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             anydocfiles = true;
             if (!ddocbufIsRead)
                 readDdocFiles(m.loc, global.params.ddoc.files, ddocbuf);
-            gendocfile(m, ddocbuf[], global.datetime.ptr, global.errorSink);
+
+            ddocOutputText.setsize(0);
+            gendocfile(m, ddocbuf[], global.datetime.ptr, global.errorSink, ddocOutputText);
+
+            if (!writeFile(m.loc, m.docfile.toString(), ddocOutputText[]))
+                fatal();
+
             // Remove m from list of modules
             modules.remove(modi);
             modi--;
@@ -578,7 +585,12 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         {
             if (!ddocbufIsRead)
                 readDdocFiles(m.loc, global.params.ddoc.files, ddocbuf);
-            gendocfile(m, ddocbuf[], global.datetime.ptr, global.errorSink);
+
+            ddocOutputText.setsize(0);
+            gendocfile(m, ddocbuf[], global.datetime.ptr, global.errorSink, ddocOutputText);
+
+            if (!writeFile(m.loc, m.docfile.toString(), ddocOutputText[]))
+                fatal();
         }
     }
     if (params.vcg_ast)
