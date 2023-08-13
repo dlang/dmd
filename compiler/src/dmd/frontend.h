@@ -6517,7 +6517,7 @@ struct ModuleDeclaration final
 
 extern void getLocalClasses(Module* mod, Array<ClassDeclaration* >& aclasses);
 
-extern void gendocfile(Module* m, const char* const ddoctext_ptr, size_t ddoctext_length, const char* const datetime, ErrorSink* eSink);
+extern void gendocfile(Module* m, const char* const ddoctext_ptr, size_t ddoctext_length, const char* const datetime, ErrorSink* eSink, OutBuffer& outbuf);
 
 struct Scope final
 {
