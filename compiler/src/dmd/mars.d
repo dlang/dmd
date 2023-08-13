@@ -1422,6 +1422,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             else
                 goto Lerror;
         }
+        else if (arg == "-nothrow") // https://dlang.org/dmd.html#switch-nothrow
+        {
+            params.useExceptions = false;
+        }
         else if (arg == "-unittest")
             params.useUnitTests = true;
         else if (p[1] == 'I')              // https://dlang.org/dmd.html#switch-I
