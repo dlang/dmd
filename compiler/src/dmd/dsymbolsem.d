@@ -4592,6 +4592,24 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             m.needmoduleinfo = 1;
             //printf("module1 %s needs moduleinfo\n", m.toChars());
         }
+
+        foreachUda(scd, sc, (Expression e) {
+            import dmd.attrib : isEnumAttribute;
+            if (!isEnumAttribute(e, Id.udaStandalone))
+                return 0;
+
+            if (auto sharedCtor = scd.isSharedStaticCtorDeclaration())
+            {
+                auto trust = sharedCtor.type.isTypeFunction().trust;
+                if (trust != TRUST.system && trust != TRUST.trusted)
+                    error(e.loc, "a module constructor using `@%s` must be `@system` or `@trusted`", Id.udaStandalone.toChars());
+                sharedCtor.standalone = true;
+            }
+            else
+                .error(e.loc, "`@%s` can only be used on shared static constructors", Id.udaStandalone.toChars());
+
+            return 1;
+        });
     }
 
     override void visit(StaticDtorDeclaration sdd)

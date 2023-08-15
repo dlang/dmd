@@ -843,6 +843,7 @@ public:
 class SharedStaticCtorDeclaration final : public StaticCtorDeclaration
 {
 public:
+    bool standalone;
     SharedStaticCtorDeclaration *syntaxCopy(Dsymbol *) override;
 
     SharedStaticCtorDeclaration *isSharedStaticCtorDeclaration() override { return this; }

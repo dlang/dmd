@@ -521,6 +521,7 @@ immutable Msgtable[] msgtable =
     { "udaSelector", "selector" },
     { "udaOptional", "optional"},
     { "udaMustUse", "mustuse" },
+    { "udaStandalone", "__standalone" },
 
     // C names, for undefined identifier error messages
     { "NULL" },

@@ -4005,6 +4005,7 @@ public:
 class SharedStaticCtorDeclaration final : public StaticCtorDeclaration
 {
 public:
+    bool standalone;
     SharedStaticCtorDeclaration* syntaxCopy(Dsymbol* s) override;
     SharedStaticCtorDeclaration* isSharedStaticCtorDeclaration() override;
     void accept(Visitor* v) override;
@@ -8825,6 +8826,7 @@ struct Id final
     static Identifier* udaSelector;
     static Identifier* udaOptional;
     static Identifier* udaMustUse;
+    static Identifier* udaStandalone;
     static Identifier* TRUE;
     static Identifier* FALSE;
     static Identifier* ImportC;
