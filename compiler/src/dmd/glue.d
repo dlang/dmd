@@ -91,10 +91,12 @@ void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
                           bool writeLibrary, bool obj, bool oneobj, bool multiobj,
                           bool verbose)
 {
+    auto eSink = global.errorSink;
+
     Library library = null;
     if (writeLibrary)
     {
-        library = Library.factory(target.objectFormat(), target.lib_ext, global.errorSink);
+        library = Library.factory(target.objectFormat(), target.lib_ext, eSink);
         library.setFilename(objdir, libname);
         // Add input object and input library files to output library
         foreach (p; libmodules)
@@ -145,8 +147,28 @@ void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
     }
     if (writeLibrary && !global.errors)
     {
-        if (!library.write())
+        if (global.params.verbose)
+            eSink.message(Loc.initial, "library   %s", library.loc.filename);
+
+        auto filenameString = library.loc.filename.toDString;
+        if (!ensurePathToNameExists(Loc.initial, filenameString))
             fatal();
+
+        /* Write library to temporary file. If that is successful,
+         * then and only then replace the existing file with the temporary file
+         */
+        auto tmpname = filenameString ~ ".tmp\0";
+
+        auto libbuf = OutBuffer(tmpname.ptr);
+        library.writeLibToBuffer(libbuf);
+
+        if (!libbuf.moveToFile(library.loc.filename))
+        {
+            eSink.error(library.loc, "error writing file '%s'", library.loc.filename);
+            destroy(tmpname);
+            fatal();
+        }
+        destroy(tmpname);
     }
 }
 

@@ -411,7 +411,7 @@ private:
      *      Longnames Member
      *      object modules...
      */
-    protected override void WriteLibToBuffer(OutBuffer* libbuf)
+    protected override void writeLibToBuffer(ref OutBuffer libbuf)
     {
         static if (LOG)
         {
