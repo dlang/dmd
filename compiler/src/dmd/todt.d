@@ -488,13 +488,13 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
      */
     void visitAssocArrayLiteral(AssocArrayLiteralExp e)
     {
-        if (e.lowering)
+        if (!e.lowering)
         {
-            Expression_toDt(e.lowering, dtb);
-            return;
+            e.error("internal compiler error: failed to detect static initialization of associative array");
+            assert(0);
         }
-        e.error("internal compiler error: failed to detect static initialization of associative array");
-        assert(0);
+        Expression_toDt(e.lowering, dtb);
+        return;
     }
 
     void visitStructLiteral(StructLiteralExp sle)
