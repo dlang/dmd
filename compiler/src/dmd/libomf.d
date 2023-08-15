@@ -369,7 +369,7 @@ private:
      *      dictionary header
      *      dictionary pages...
      */
-    protected override void WriteLibToBuffer(OutBuffer* libbuf)
+    protected override void writeLibToBuffer(ref OutBuffer libbuf)
     {
         /* Scan each of the object modules for symbols
          * to go into the dictionary
@@ -421,7 +421,7 @@ private:
             assert(page <= 0xFFFF);
             om.page = cast(ushort)page;
             // Write out the object module om
-            writeOMFObj(libbuf, om.base, om.length, om.name.ptr);
+            writeOMFObj(&libbuf, om.base, om.length, om.name.ptr);
             // Round the size of the file up to the next page size
             // by filling with 0s
             uint n = (g_page_size - 1) & libbuf.length;
@@ -486,7 +486,7 @@ private:
         libHeader.ndicpages = ndicpages;
         libHeader.flags = 1; // always case sensitive
         // Write library header at start of buffer
-        memcpy(cast(void*)(*libbuf)[].ptr, &libHeader, (libHeader).sizeof);
+        memcpy(cast(void*)libbuf[].ptr, &libHeader, (libHeader).sizeof);
     }
 }
 

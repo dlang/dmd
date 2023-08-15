@@ -55,7 +55,7 @@ class Library
 
     abstract void addObject(const(char)[] module_name, const ubyte[] buf);
 
-    protected abstract void WriteLibToBuffer(OutBuffer* libbuf);
+    abstract void writeLibToBuffer(ref OutBuffer libbuf);
 
 
     /***********************************
@@ -92,34 +92,6 @@ class Library
         return loc.filename;
     }
 
-    /***************************
-     * Write the library file.
-     * Returns: false on failure
-     */
-    final bool write()
-    {
-        if (global.params.verbose)
-            eSink.message(Loc.initial, "library   %s", loc.filename);
-
-        auto filenameString = loc.filename.toDString;
-        if (!ensurePathToNameExists(Loc.initial, filenameString))
-            return false;
-
-        auto tmpname = filenameString ~ ".tmp\0";
-
-        auto libbuf = OutBuffer(tmpname.ptr);
-        WriteLibToBuffer(&libbuf);
-
-        if (!libbuf.moveToFile(loc.filename))
-        {
-            eSink.error(loc, "error writing file '%s'", loc.filename);
-            destroy(tmpname);
-            return false;
-        }
-        destroy(tmpname);
-        return true;
-    }
-
-  protected:
+  public:
     Loc loc;                  // the filename of the library
 }
