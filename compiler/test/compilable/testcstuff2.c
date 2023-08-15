@@ -733,3 +733,19 @@ void test23725()
 {
     __fnldcw(1, 2);
 }
+
+/************************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=24070
+
+typedef struct Typ Typ;
+typedef struct Field Field;
+
+struct Typ {
+	struct Field {
+	} (*fields)[1];
+};
+
+static void parse() {
+    Typ* ty;
+    void* fields = &ty->fields;
+}
