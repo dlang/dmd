@@ -25,13 +25,11 @@ version (Windows)
     import core.sys.windows.stat;
 }
 
-import dmd.globals;
 import dmd.lib;
 import dmd.location;
 import dmd.utils;
 
 import dmd.root.array;
-import dmd.root.file;
 import dmd.root.filename;
 import dmd.common.outbuffer;
 import dmd.root.port;

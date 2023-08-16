@@ -97,7 +97,25 @@ void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
     if (writeLibrary)
     {
         library = Library.factory(target.objectFormat(), target.lib_ext, eSink);
-        library.setFilename(objdir, libname);
+
+        /* Determine actual file name of library to write to by combining
+         * objdir, libname, the first object file name, and lib_ext
+         */
+        const(char)[] arg;
+        if (!libname.length)
+        {
+            // get name of the first object file
+            const(char)[] n = global.params.objfiles[0].toDString;
+            n = FileName.name(n);                // remove its path
+            arg = FileName.forceExt(n, library.lib_ext); // force library name extension
+        }
+        else
+            arg = FileName.defaultExt(libname, library.lib_ext);
+        if (!FileName.absolute(arg))
+            arg = FileName.combine(objdir, arg);
+
+        library.setFilename(arg);
+
         // Add input object and input library files to output library
         foreach (p; libmodules)
             library.addObject(p.toDString(), null);
