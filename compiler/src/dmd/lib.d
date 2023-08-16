@@ -13,23 +13,16 @@
 module dmd.lib;
 
 import core.stdc.stdio;
-import core.stdc.stdarg;
-
-import dmd.globals;
-import dmd.location;
-import dmd.errorsink;
-import dmd.target : Target;
-import dmd.utils;
 
 import dmd.common.outbuffer;
-import dmd.root.file;
-import dmd.root.filename;
-import dmd.root.string;
+import dmd.errorsink;
+import dmd.location;
+import dmd.target : Target;
 
-import dmd.libomf;
-import dmd.libmscoff;
 import dmd.libelf;
 import dmd.libmach;
+import dmd.libmscoff;
+import dmd.libomf;
 
 private enum LOG = false;
 
@@ -59,34 +52,26 @@ class Library
 
 
     /***********************************
-     * Set the library file name based on the output directory
-     * and the filename.
-     * Add default library file name extension.
+     * Set library file name
      * Params:
-     *  dir = path to file
-     *  filename = name of file relative to `dir`
+     *  filename = name of library file
      */
-    final void setFilename(const(char)[] dir, const(char)[] filename)
+    final void setFilename(const char[] filename)
     {
         static if (LOG)
         {
-            printf("LibElf::setFilename(dir = '%.*s', filename = '%.*s')\n",
-                   cast(int)dir.length, dir.ptr, cast(int)filename.length, filename.ptr);
+            printf("LibElf::setFilename(filename = '%.*s')\n",
+                   cast(int)filename.length, filename.ptr);
         }
-        const(char)[] arg = filename;
-        if (!arg.length)
-        {
-            // Generate lib file name from first obj name
-            const(char)[] n = global.params.objfiles[0].toDString;
-            n = FileName.name(n);
-            arg = FileName.forceExt(n, lib_ext);
-        }
-        if (!FileName.absolute(arg))
-            arg = FileName.combine(dir, arg);
 
-        loc = Loc(FileName.defaultExt(arg, lib_ext).ptr, 0, 0);
+        loc = Loc(filename.ptr, 0, 0);
     }
 
+    /*************
+     * Retrieve library file name
+     * Returns:
+     *  filename = name of library file
+     */
     final const(char)* getFilename() const
     {
         return loc.filename;
