@@ -46,6 +46,7 @@ import dmd.tokens;
 
 struct ObjcSelector
 {
+nothrow:
     // MARK: Selector
     private __gshared StringTable!(ObjcSelector*) stringtable;
     private __gshared int incnum = 0;
@@ -137,7 +138,7 @@ struct ObjcSelector
 
 private __gshared Objc _objc;
 
-Objc objc()
+Objc objc() nothrow
 {
     return _objc;
 }
@@ -149,6 +150,7 @@ Objc objc()
  */
 extern (C++) struct ObjcClassDeclaration
 {
+nothrow:
     /// `true` if this class is a metaclass.
     bool isMeta = false;
 
@@ -199,6 +201,7 @@ extern (C++) struct ObjcFuncDeclaration
 // Should be an interface
 extern(C++) abstract class Objc
 {
+nothrow:
     static void _init()
     {
         if (target.objc.supported)
@@ -403,6 +406,7 @@ extern(C++) abstract class Objc
 
 extern(C++) private final class Unsupported : Objc
 {
+nothrow:
     extern(D) final this()
     {
         ObjcGlue.initialize();
@@ -513,6 +517,7 @@ extern(C++) private final class Unsupported : Objc
 
 extern(C++) private final class Supported : Objc
 {
+nothrow:
     extern(D) final this()
     {
         VersionCondition.addPredefinedGlobalIdent("D_ObjectiveC");
@@ -889,7 +894,7 @@ if (is(T == ClassDeclaration) || is(T == InterfaceDeclaration))
     }
 }
 
-private Identifier createMetaclassIdentifier(ClassDeclaration classDeclaration)
+private Identifier createMetaclassIdentifier(ClassDeclaration classDeclaration) nothrow
 {
     const name = "class_" ~ classDeclaration.ident.toString ~ "_Meta";
     return Identifier.generateAnonymousId(name);

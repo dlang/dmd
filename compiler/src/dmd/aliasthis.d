@@ -31,6 +31,7 @@ import dmd.visitor;
  */
 extern (C++) final class AliasThis : Dsymbol
 {
+nothrow:
     Identifier ident;
     /// The symbol this `alias this` resolves to
     Dsymbol sym;
@@ -83,7 +84,7 @@ extern (C++) final class AliasThis : Dsymbol
  * Returns:
  *      Expression that is `e.aliasthis`
  */
-Expression resolveAliasThis(Scope* sc, Expression e, bool gag = false, bool findOnly = false)
+Expression resolveAliasThis(Scope* sc, Expression e, bool gag = false, bool findOnly = false) nothrow
 {
     import dmd.typesem : dotExp;
     for (AggregateDeclaration ad = isAggregate(e.type); ad;)
@@ -167,7 +168,7 @@ Expression resolveAliasThis(Scope* sc, Expression e, bool gag = false, bool find
  * Returns:
  *   Whether the alias this was reported as deprecated.
  */
-bool checkDeprecatedAliasThis(AliasThis at, const ref Loc loc, Scope* sc)
+bool checkDeprecatedAliasThis(AliasThis at, const ref Loc loc, Scope* sc) nothrow
 {
     import dmd.errors : deprecation, Classification;
     import dmd.dsymbolsem : getMessage;
@@ -219,7 +220,7 @@ bool checkDeprecatedAliasThis(AliasThis at, const ref Loc loc, Scope* sc)
  * Returns:
  *   `false` if the rewrite is safe, `true` if it would loop back around
  */
-bool isRecursiveAliasThis(ref Type att, Type t)
+bool isRecursiveAliasThis(ref Type att, Type t) nothrow
 {
     //printf("+isRecursiveAliasThis(att = %s, t = %s)\n", att ? att.toChars() : "null", t.toChars());
     auto tb = t.toBasetype();

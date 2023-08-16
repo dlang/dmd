@@ -14,7 +14,7 @@ module dmd.sapply;
 import dmd.statement;
 import dmd.visitor;
 
-bool walkPostorder(Statement s, StoppableVisitor v)
+bool walkPostorder(Statement s, StoppableVisitor v) nothrow
 {
     scope PostorderStatementVisitor pv = new PostorderStatementVisitor(v);
     s.accept(pv);
@@ -34,7 +34,7 @@ bool walkPostorder(Statement s, StoppableVisitor v)
 private extern (C++) final class PostorderStatementVisitor : StoppableVisitor
 {
     alias visit = typeof(super).visit;
-public:
+nothrow public:
     StoppableVisitor v;
 
     extern (D) this(StoppableVisitor v) scope @safe

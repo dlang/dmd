@@ -53,6 +53,7 @@ enum Include : ubyte
 
 extern (C++) abstract class Condition : ASTNode
 {
+nothrow:
     Loc loc;
 
     Include inc;
@@ -101,6 +102,7 @@ extern (C++) abstract class Condition : ASTNode
 
 extern (C++) final class StaticForeach : RootObject
 {
+nothrow:
     extern(D) static immutable tupleFieldName = "tuple"; // used in lowering
 
     Loc loc;
@@ -492,6 +494,7 @@ extern (C++) final class StaticForeach : RootObject
  */
 extern (C++) class DVCondition : Condition
 {
+nothrow:
     uint level;
     Identifier ident;
     Module mod;
@@ -519,6 +522,7 @@ extern (C++) class DVCondition : Condition
  */
 extern (C++) final class DebugCondition : DVCondition
 {
+nothrow:
     /**
      * Add an user-supplied identifier to the list of global debug identifiers
      *
@@ -628,6 +632,7 @@ extern (C++) final class DebugCondition : DVCondition
  */
 extern (C++) final class VersionCondition : DVCondition
 {
+nothrow:
     /**
      * Check if a given version identifier is reserved.
      *
@@ -900,6 +905,7 @@ extern (C++) final class VersionCondition : DVCondition
  */
 extern (C++) final class StaticIfCondition : Condition
 {
+nothrow:
     Expression exp;
 
     extern (D) this(const ref Loc loc, Expression exp) @safe
@@ -991,7 +997,7 @@ bool findCondition(Identifiers* ids, Identifier ident) @safe nothrow pure
 }
 
 // Helper for printing dependency information
-private void printDepsConditional(Scope* sc, DVCondition condition, const(char)[] depType)
+private void printDepsConditional(Scope* sc, DVCondition condition, const(char)[] depType) nothrow
 {
     if (!global.params.moduleDeps.buffer || global.params.moduleDeps.name)
         return;

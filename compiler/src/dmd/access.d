@@ -32,7 +32,7 @@ private enum LOG = false;
  * type of the 'this' pointer used to access smember.
  * Returns true if the member is not accessible.
  */
-bool checkAccess(AggregateDeclaration ad, Loc loc, Scope* sc, Dsymbol smember)
+bool checkAccess(AggregateDeclaration ad, Loc loc, Scope* sc, Dsymbol smember) nothrow
 {
     static if (LOG)
     {
@@ -58,12 +58,12 @@ bool checkAccess(AggregateDeclaration ad, Loc loc, Scope* sc, Dsymbol smember)
 /****************************************
  * Determine if scope sc has package level access to s.
  */
-private bool hasPackageAccess(Scope* sc, Dsymbol s)
+private bool hasPackageAccess(Scope* sc, Dsymbol s) nothrow
 {
     return hasPackageAccess(sc._module, s);
 }
 
-private bool hasPackageAccess(Module mod, Dsymbol s)
+private bool hasPackageAccess(Module mod, Dsymbol s) nothrow
 {
     static if (LOG)
     {
@@ -140,7 +140,7 @@ private bool hasPackageAccess(Module mod, Dsymbol s)
 /****************************************
  * Determine if scope sc has protected level access to cd.
  */
-private bool hasProtectedAccess(Scope *sc, Dsymbol s)
+private bool hasProtectedAccess(Scope *sc, Dsymbol s) nothrow
 {
     if (auto cd = s.isClassMember()) // also includes interfaces
     {
@@ -160,7 +160,7 @@ private bool hasProtectedAccess(Scope *sc, Dsymbol s)
  * Check access to d for expression e.d
  * Returns true if the declaration is not accessible.
  */
-bool checkAccess(Loc loc, Scope* sc, Expression e, Dsymbol d)
+bool checkAccess(Loc loc, Scope* sc, Expression e, Dsymbol d) nothrow
 {
     if (sc.flags & SCOPE.noaccesscheck)
         return false;
@@ -218,7 +218,7 @@ bool checkAccess(Loc loc, Scope* sc, Expression e, Dsymbol d)
  * (see https://issues.dlang.org/show_bug.cgi?id=313).
  *
  */
-bool checkAccess(Scope* sc, Package p)
+bool checkAccess(Scope* sc, Package p) nothrow
 {
     if (sc._module == p)
         return false;
@@ -239,7 +239,7 @@ bool checkAccess(Scope* sc, Package p)
  *  s = symbol to check for visibility
  * Returns: true if s is visible in mod
  */
-bool symbolIsVisible(Module mod, Dsymbol s)
+bool symbolIsVisible(Module mod, Dsymbol s) nothrow
 {
     // should sort overloads by ascending visibility instead of iterating here
     s = mostVisibleOverload(s);
@@ -257,7 +257,7 @@ bool symbolIsVisible(Module mod, Dsymbol s)
 /**
  * Same as above, but determines the lookup module from symbols `origin`.
  */
-bool symbolIsVisible(Dsymbol origin, Dsymbol s)
+bool symbolIsVisible(Dsymbol origin, Dsymbol s) nothrow
 {
     return symbolIsVisible(origin.getAccessModule(), s);
 }
@@ -271,7 +271,7 @@ bool symbolIsVisible(Dsymbol origin, Dsymbol s)
  *  s = symbol to check for visibility
  * Returns: true if s is visible by origin
  */
-bool symbolIsVisible(Scope *sc, Dsymbol s)
+bool symbolIsVisible(Scope *sc, Dsymbol s) nothrow
 {
     s = mostVisibleOverload(s);
     return checkSymbolAccess(sc, s);
@@ -286,7 +286,7 @@ bool symbolIsVisible(Scope *sc, Dsymbol s)
  *  s = symbol to check for visibility
  * Returns: true if s is visible by origin
  */
-bool checkSymbolAccess(Scope *sc, Dsymbol s)
+bool checkSymbolAccess(Scope *sc, Dsymbol s) nothrow
 {
     final switch (s.visible().kind)
     {
@@ -305,7 +305,7 @@ bool checkSymbolAccess(Scope *sc, Dsymbol s)
  * but doesn't recurse nor resolve aliases because visibility is an
  * attribute of the alias not the aliasee.
  */
-public Dsymbol mostVisibleOverload(Dsymbol s, Module mod = null)
+public Dsymbol mostVisibleOverload(Dsymbol s, Module mod = null) nothrow
 {
     if (!s.isOverloadable())
         return s;

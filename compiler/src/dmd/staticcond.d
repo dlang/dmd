@@ -41,7 +41,7 @@ import dmd.tokens;
  * Returns:
  *      true if evaluates to true
  */
-bool evalStaticCondition(Scope* sc, Expression original, Expression e, out bool errors, Expressions* negatives = null)
+bool evalStaticCondition(Scope* sc, Expression original, Expression e, out bool errors, Expressions* negatives = null) nothrow
 {
     if (negatives)
         negatives.setDim(0);
@@ -137,7 +137,7 @@ bool evalStaticCondition(Scope* sc, Expression original, Expression e, out bool 
  *      instantiated expression is not based on the original one
  */
 const(char)* visualizeStaticCondition(Expression original, Expression instantiated,
-    const Expression[] negatives, bool full, ref uint itemCount)
+    const Expression[] negatives, bool full, ref uint itemCount) nothrow
 {
     if (!original || !instantiated || original.loc !is instantiated.loc)
         return null;
@@ -153,7 +153,7 @@ const(char)* visualizeStaticCondition(Expression original, Expression instantiat
 }
 
 private uint visualizeFull(Expression original, Expression instantiated,
-    const Expression[] negatives, ref OutBuffer buf)
+    const Expression[] negatives, ref OutBuffer buf) nothrow
 {
     // tree-like structure; traverse and format simultaneously
     uint count;
@@ -292,7 +292,7 @@ private uint visualizeFull(Expression original, Expression instantiated,
 }
 
 private uint visualizeShort(Expression original, Expression instantiated,
-    const Expression[] negatives, ref OutBuffer buf)
+    const Expression[] negatives, ref OutBuffer buf) nothrow
 {
     // simple list; somewhat similar to long version, so no comments
     // one difference is that it needs to hold items to display in a stack

@@ -64,6 +64,7 @@ private enum LOG = false;
 /// Ditto
 extern (C++) final class Nspace : ScopeDsymbol
 {
+nothrow:
     /**
      * Namespace identifier resolved during semantic.
      */

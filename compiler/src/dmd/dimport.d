@@ -31,6 +31,7 @@ import core.stdc.stdio;
  */
 extern (C++) final class Import : Dsymbol
 {
+nothrow:
     /* static import aliasId = pkg1.pkg2.id : alias1 = name1, alias2 = name2;
      */
     Identifier[] packages;  // array of Identifier's representing packages

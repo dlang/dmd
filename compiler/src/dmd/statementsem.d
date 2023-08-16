@@ -81,7 +81,7 @@ version (DMDLIB)
  * Returns:
  *      adjusted label name
  */
-private Identifier fixupLabelName(Scope* sc, Identifier ident)
+private Identifier fixupLabelName(Scope* sc, Identifier ident) nothrow
 {
     uint flags = (sc.flags & SCOPE.contract);
     const id = ident.toString();
@@ -105,7 +105,7 @@ private Identifier fixupLabelName(Scope* sc, Identifier ident)
  * Returns:
  *      if `true`, then the `LabelStatement`, otherwise `null`
  */
-private LabelStatement checkLabeledLoop(Scope* sc, Statement statement) @safe
+private LabelStatement checkLabeledLoop(Scope* sc, Statement statement) nothrow @safe
 {
     if (sc.slabel && sc.slabel.statement == statement)
     {
@@ -122,7 +122,7 @@ private LabelStatement checkLabeledLoop(Scope* sc, Statement statement) @safe
  * Returns:
  *  `e` or ErrorExp.
  */
-private Expression checkAssignmentAsCondition(Expression e, Scope* sc)
+private Expression checkAssignmentAsCondition(Expression e, Scope* sc) nothrow
 {
     if (sc.flags & SCOPE.Cfile)
         return e;
@@ -136,7 +136,7 @@ private Expression checkAssignmentAsCondition(Expression e, Scope* sc)
 }
 
 // Performs semantic analysis in Statement AST nodes
-extern(C++) Statement statementSemantic(Statement s, Scope* sc)
+extern(C++) Statement statementSemantic(Statement s, Scope* sc) nothrow
 {
     import dmd.compiler;
 
@@ -152,11 +152,11 @@ extern(C++) Statement statementSemantic(Statement s, Scope* sc)
 }
 
 package (dmd)
-Statement statementSemanticVisit(Statement s, Scope* sc)
+Statement statementSemanticVisit(Statement s, Scope* sc) nothrow
 {
     Statement result;
 
-    void setError()
+    void setError() nothrow
     {
         result = new ErrorStatement();
     }
@@ -2678,7 +2678,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                  * https://dlang.org/spec/function.html#auto-ref-functions
                  */
 
-                void turnOffRef(scope void delegate() supplemental)
+                void turnOffRef(scope void delegate() nothrow supplemental)
                 {
                     tf.isref = false;    // return by value
                     tf.isreturn = false; // ignore 'return' attribute, whether explicit or inferred
@@ -3692,7 +3692,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
  *
  * Returns: true if the `throw` is valid, or false if an error was found
  */
-public bool throwSemantic(const ref Loc loc, ref Expression exp, Scope* sc)
+public bool throwSemantic(const ref Loc loc, ref Expression exp, Scope* sc) nothrow
 {
     if (!global.params.useExceptions)
     {
@@ -3739,7 +3739,7 @@ public bool throwSemantic(const ref Loc loc, ref Expression exp, Scope* sc)
 }
 
 private extern(D) Expression applyOpApply(ForeachStatement fs, Expression flde,
-            Type tab, Scope* sc2, Dsymbol sapply)
+            Type tab, Scope* sc2, Dsymbol sapply) nothrow
 {
     version (none)
     {
@@ -3774,7 +3774,7 @@ private extern(D) Expression applyOpApply(ForeachStatement fs, Expression flde,
 }
 
 private extern(D) Expression applyDelegate(ForeachStatement fs, Expression flde,
-                                                  Type tab, Scope* sc2)
+                                                  Type tab, Scope* sc2) nothrow
 {
     Expression ec;
     /* Call:
@@ -3799,7 +3799,7 @@ private extern(D) Expression applyDelegate(ForeachStatement fs, Expression flde,
 }
 
 private extern(D) Expression applyArray(ForeachStatement fs, Expression flde,
-                                               Type tab, Scope* sc2, Type tn, Type tnv)
+                                               Type tab, Scope* sc2, Type tn, Type tnv) nothrow
 {
     Expression ec;
     const dim = fs.parameters.length;
@@ -3865,7 +3865,7 @@ private extern(D) Expression applyArray(ForeachStatement fs, Expression flde,
     return ec;
 }
 
-private extern(D) Expression applyAssocArray(ForeachStatement fs, Expression flde, Type tab)
+private extern(D) Expression applyAssocArray(ForeachStatement fs, Expression flde, Type tab) nothrow
 {
     auto taa = tab.isTypeAArray();
     Expression ec;
@@ -3941,7 +3941,7 @@ private extern(D) Expression applyAssocArray(ForeachStatement fs, Expression fld
     return ec;
 }
 
-private extern(D) Statement loopReturn(Expression e, Statements* cases, const ref Loc loc)
+private extern(D) Statement loopReturn(Expression e, Statements* cases, const ref Loc loc) nothrow
 {
     if (!cases.length)
     {
@@ -3981,7 +3981,7 @@ private extern(D) Statement loopReturn(Expression e, Statements* cases, const re
  *  Function literal created, as an expression
  *  null if error.
  */
-private FuncExp foreachBodyToFunction(Scope* sc, ForeachStatement fs, TypeFunction tfld)
+private FuncExp foreachBodyToFunction(Scope* sc, ForeachStatement fs, TypeFunction tfld) nothrow
 {
     auto params = new Parameters();
     foreach (i, p; *fs.parameters)
@@ -4045,7 +4045,7 @@ private FuncExp foreachBodyToFunction(Scope* sc, ForeachStatement fs, TypeFuncti
 }
 
 
-void catchSemantic(Catch c, Scope* sc)
+void catchSemantic(Catch c, Scope* sc) nothrow
 {
     //printf("Catch::semantic(%s)\n", ident.toChars());
 
@@ -4169,7 +4169,7 @@ void catchSemantic(Catch c, Scope* sc)
     sc.pop();
 }
 
-Statement semanticNoScope(Statement s, Scope* sc)
+Statement semanticNoScope(Statement s, Scope* sc) nothrow
 {
     //printf("Statement::semanticNoScope() %s\n", toChars());
     if (!s.isCompoundStatement() && !s.isScopeStatement())
@@ -4181,7 +4181,7 @@ Statement semanticNoScope(Statement s, Scope* sc)
 }
 
 // Same as semanticNoScope(), but do create a new scope
-private Statement semanticScope(Statement s, Scope* sc, Statement sbreak, Statement scontinue, Statement tryBody)
+private Statement semanticScope(Statement s, Scope* sc, Statement sbreak, Statement scontinue, Statement tryBody) nothrow
 {
     auto sym = new ScopeDsymbol();
     sym.parent = sc.scopesym;
@@ -4211,7 +4211,7 @@ private Statement semanticScope(Statement s, Scope* sc, Statement sbreak, Statem
  * Returns:
  *    code to be run in the finally clause
  */
-Statement scopeCode(Statement statement, Scope* sc, out Statement sentry, out Statement sexception, out Statement sfinally)
+Statement scopeCode(Statement statement, Scope* sc, out Statement sentry, out Statement sexception, out Statement sfinally) nothrow
 {
     if (auto es = statement.isExpStatement())
     {
@@ -4303,7 +4303,7 @@ Statement scopeCode(Statement statement, Scope* sc, out Statement sentry, out St
  * expands the tuples into multiple `STC.local` `static foreach`
  * variables.
  */
-public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachStatement fs, Dsymbols* dbody, bool needExpansion)
+public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachStatement fs, Dsymbols* dbody, bool needExpansion) nothrow
 {
     // Voldemort return type
     union U
@@ -4445,7 +4445,7 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
          * Returns:
          *     `true` iff the declaration was successful.
          */
-        bool declareVariable(StorageClass storageClass, Type type, Identifier ident, Expression e, Type t)
+        bool declareVariable(StorageClass storageClass, Type type, Identifier ident, Expression e, Type t) nothrow
         {
             if (storageClass & (STC.out_ | STC.lazy_) ||
                 storageClass & STC.ref_ && !te)
@@ -4661,7 +4661,7 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
  * Returns:
  *     The array of `Statements`, or `null` if no flattening necessary
  */
-private Statements* flatten(Statement statement, Scope* sc)
+private Statements* flatten(Statement statement, Scope* sc) nothrow
 {
     static auto errorStatements()
     {
@@ -4857,7 +4857,7 @@ private Statements* flatten(Statement statement, Scope* sc)
  * Returns:
  *    s redone as a Statement
  */
-private Statement toStatement(Dsymbol s)
+private Statement toStatement(Dsymbol s) nothrow
 {
     Statement result;
 
@@ -4926,7 +4926,7 @@ to mark all its nodes as nothrow.
 Params:
     s = AST Node to traverse
 */
-private void debugThrowWalker(Statement s)
+private void debugThrowWalker(Statement s) nothrow
 {
 
     extern(C++) final class DebugWalker : SemanticTimeTransitiveVisitor
@@ -4959,7 +4959,7 @@ private void debugThrowWalker(Statement s)
  * Returns:
  *    `true` on success
  */
-bool pragmaMsgSemantic(Loc loc, Scope* sc, Expressions* args)
+bool pragmaMsgSemantic(Loc loc, Scope* sc, Expressions* args) nothrow
 {
     if (!args)
         return true;
@@ -4999,7 +4999,7 @@ bool pragmaMsgSemantic(Loc loc, Scope* sc, Expressions* args)
  * Returns:
  *    `true` on success
  */
-bool pragmaStartAddressSemantic(Loc loc, Scope* sc, Expressions* args)
+bool pragmaStartAddressSemantic(Loc loc, Scope* sc, Expressions* args) nothrow
 {
     if (!args || args.length != 1)
     {

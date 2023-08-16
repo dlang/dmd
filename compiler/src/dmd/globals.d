@@ -283,7 +283,7 @@ extern (C++) struct Global
 
     ErrorSink errorSink;       /// where the error messages go
 
-    extern (C++) FileName function(FileName, ref const Loc, out bool, OutBuffer*) preprocess;
+    extern (C++) FileName function(FileName, ref const Loc, out bool, OutBuffer*) nothrow preprocess;
 
   nothrow:
 

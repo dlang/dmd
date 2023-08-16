@@ -295,7 +295,7 @@ struct Triple
     }
 }
 
-void setTriple(ref Target target, const ref Triple triple) @safe
+void setTriple(ref Target target, const ref Triple triple) nothrow @safe
 {
     target.cpu     = triple.cpu;
     target.isX86_64 = triple.isX86_64;
@@ -309,7 +309,7 @@ void setTriple(ref Target target, const ref Triple triple) @safe
 /**
 Returns: the final defaultlibname based on the command-line parameters
 */
-extern (D) const(char)[] finalDefaultlibname()
+extern (D) const(char)[] finalDefaultlibname() nothrow
 {
     import dmd.globals : global;
     return global.params.betterC ? null :

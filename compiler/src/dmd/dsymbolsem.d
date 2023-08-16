@@ -83,7 +83,7 @@ else version = MARS;
 
 enum LOG = false;
 
-private uint setMangleOverride(Dsymbol s, const(char)[] sym)
+private uint setMangleOverride(Dsymbol s, const(char)[] sym) nothrow
 {
     if (s.isFuncDeclaration() || s.isVarDeclaration())
     {
@@ -111,7 +111,7 @@ private uint setMangleOverride(Dsymbol s, const(char)[] sym)
  *    s = symbol to apply
  *    printf = `true` for printf, `false` for scanf
  */
-private void setPragmaPrintf(Dsymbol s, bool printf)
+private void setPragmaPrintf(Dsymbol s, bool printf) nothrow
 {
     if (auto fd = s.isFuncDeclaration())
     {
@@ -128,7 +128,7 @@ private void setPragmaPrintf(Dsymbol s, bool printf)
 /*************************************
  * Does semantic analysis on the public face of declarations.
  */
-extern(C++) void dsymbolSemantic(Dsymbol dsym, Scope* sc)
+extern(C++) void dsymbolSemantic(Dsymbol dsym, Scope* sc) nothrow
 {
     scope v = new DsymbolSemanticVisitor(sc);
     dsym.accept(v);
@@ -142,7 +142,7 @@ extern(C++) void dsymbolSemantic(Dsymbol dsym, Scope* sc)
  * Returns:
  *      ad with alignment value determined
  */
-AlignDeclaration getAlignment(AlignDeclaration ad, Scope* sc)
+AlignDeclaration getAlignment(AlignDeclaration ad, Scope* sc) nothrow
 {
     if (!ad.salign.isUnknown())   // UNKNOWN is 0
         return ad;
@@ -190,7 +190,7 @@ AlignDeclaration getAlignment(AlignDeclaration ad, Scope* sc)
     return ad;
 }
 
-const(char)* getMessage(DeprecatedDeclaration dd)
+const(char)* getMessage(DeprecatedDeclaration dd) nothrow
 {
     if (auto sc = dd._scope)
     {
@@ -212,7 +212,7 @@ const(char)* getMessage(DeprecatedDeclaration dd)
 
 
 // Returns true if a contract can appear without a function body.
-package bool allowsContractWithoutBody(FuncDeclaration funcdecl)
+package bool allowsContractWithoutBody(FuncDeclaration funcdecl) nothrow
 {
     assert(!funcdecl.fbody);
 
@@ -248,7 +248,7 @@ Return:
     `false` if ctor is not an rvalue constructor or if `sd` does not contain a
     copy constructor. `true` otherwise
 */
-bool checkHasBothRvalueAndCpCtor(StructDeclaration sd, CtorDeclaration ctor, TemplateInstance ti)
+bool checkHasBothRvalueAndCpCtor(StructDeclaration sd, CtorDeclaration ctor, TemplateInstance ti) nothrow
 {
     auto loc = ctor.loc;
     auto tf = cast(TypeFunction)ctor.type;
@@ -271,6 +271,7 @@ bool checkHasBothRvalueAndCpCtor(StructDeclaration sd, CtorDeclaration ctor, Tem
 
 private extern(C++) final class DsymbolSemanticVisitor : Visitor
 {
+nothrow:
     alias visit = Visitor.visit;
 
     Scope* sc;
@@ -4911,7 +4912,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
              * beyond the Lancestorsdone. To do the recursive semantic analysis,
              * temporarily set and unset `_scope` around exp().
              */
-            T resolveBase(T)(lazy T exp)
+            // FIXME: revert from delegate to lazy argument when https://issues.dlang.org/show_bug.cgi?id=12647 is fixed
+            T resolveBase(T)(T delegate() nothrow exp_dg)
             {
                 if (!scx)
                 {
@@ -4921,14 +4923,14 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 static if (!is(T == void))
                 {
                     cldec._scope = scx;
-                    auto r = exp();
+                    auto r = exp_dg();
                     cldec._scope = null;
                     return r;
                 }
                 else
                 {
                     cldec._scope = scx;
-                    exp();
+                    exp_dg();
                     cldec._scope = null;
                 }
             }
@@ -4939,7 +4941,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             for (size_t i = 0; i < cldec.baseclasses.length;)
             {
                 auto b = (*cldec.baseclasses)[i];
-                b.type = resolveBase(b.type.typeSemantic(cldec.loc, sc));
+                b.type = resolveBase(() => b.type.typeSemantic(cldec.loc, sc));
 
                 Type tb = b.type.toBasetype();
                 if (auto tup = tb.isTypeTuple())
@@ -5010,7 +5012,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 b.sym = cldec.baseClass;
 
                 if (tc.sym.baseok < Baseok.done)
-                    resolveBase(tc.sym.dsymbolSemantic(null)); // Try to resolve forward reference
+                    resolveBase(() => tc.sym.dsymbolSemantic(null)); // Try to resolve forward reference
                 if (tc.sym.baseok < Baseok.done)
                 {
                     //printf("\ttry later, forward reference of base class %s\n", tc.sym.toChars());
@@ -5091,7 +5093,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 b.sym = tc.sym;
 
                 if (tc.sym.baseok < Baseok.done)
-                    resolveBase(tc.sym.dsymbolSemantic(null)); // Try to resolve forward reference
+                    resolveBase(() => tc.sym.dsymbolSemantic(null)); // Try to resolve forward reference
                 if (tc.sym.baseok < Baseok.done)
                 {
                     //printf("\ttry later, forward reference of base %s\n", tc.sym.toChars());
@@ -5553,7 +5555,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (idec.baseok < Baseok.done)
         {
-            T resolveBase(T)(lazy T exp)
+            // FIXME: revert from delegate to lazy argument when https://issues.dlang.org/show_bug.cgi?id=12647 is fixed
+            T resolveBase(T)(T delegate() nothrow exp_dg)
             {
                 if (!scx)
                 {
@@ -5563,14 +5566,14 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 static if (!is(T == void))
                 {
                     idec._scope = scx;
-                    auto r = exp();
+                    auto r = exp_dg();
                     idec._scope = null;
                     return r;
                 }
                 else
                 {
                     idec._scope = scx;
-                    exp();
+                    exp_dg();
                     idec._scope = null;
                 }
             }
@@ -5581,7 +5584,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             for (size_t i = 0; i < idec.baseclasses.length;)
             {
                 auto b = (*idec.baseclasses)[i];
-                b.type = resolveBase(b.type.typeSemantic(idec.loc, sc));
+                b.type = resolveBase(() => b.type.typeSemantic(idec.loc, sc));
 
                 Type tb = b.type.toBasetype();
                 if (auto tup = tb.isTypeTuple())
@@ -5661,7 +5664,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 b.sym = tc.sym;
 
                 if (tc.sym.baseok < Baseok.done)
-                    resolveBase(tc.sym.dsymbolSemantic(null)); // Try to resolve forward reference
+                    resolveBase(() => tc.sym.dsymbolSemantic(null)); // Try to resolve forward reference
                 if (tc.sym.baseok < Baseok.done)
                 {
                     //printf("\ttry later, forward reference of base %s\n", tc.sym.toChars());
@@ -5805,7 +5808,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
  *      sc = context of `ed`
  *      sds = symbol table that `ed` resides in
  */
-void addEnumMembers(EnumDeclaration ed, Scope* sc, ScopeDsymbol sds)
+void addEnumMembers(EnumDeclaration ed, Scope* sc, ScopeDsymbol sds) nothrow
 {
     //printf("addEnumMembers(ed: %p)\n", ed);
     if (ed.added)
@@ -5854,7 +5857,7 @@ void addEnumMembers(EnumDeclaration ed, Scope* sc, ScopeDsymbol sds)
  *  true if `id` is a DRuntime hook
  *  false otherwise
  */
-private bool isDRuntimeHook(Identifier id)
+private bool isDRuntimeHook(Identifier id) nothrow
 {
     return id == Id._d_HookTraceImpl ||
         id == Id._d_newclassT || id == Id._d_newclassTTrace ||
@@ -5869,7 +5872,7 @@ private bool isDRuntimeHook(Identifier id)
         id == Id._d_arrayappendcTXImpl;
 }
 
-void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList argumentList)
+void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList argumentList) nothrow
 {
     //printf("[%s] TemplateInstance.dsymbolSemantic('%s', this=%p, gag = %d, sc = %p)\n", tempinst.loc.toChars(), tempinst.toChars(), tempinst, global.gag, sc);
     version (none)
@@ -6078,6 +6081,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
                there will be undefined references at link-time.  */
             extern (C++) final class InstMemberWalker : Visitor
             {
+            nothrow:
                 alias visit = Visitor.visit;
                 TemplateInstance inst;
 
@@ -6532,7 +6536,7 @@ Laftersemantic:
  * This is a greatly simplified version of templateInstanceSemantic().
  */
 private
-void aliasSeqInstanceSemantic(TemplateInstance tempinst, Scope* sc, TemplateDeclaration tempdecl)
+void aliasSeqInstanceSemantic(TemplateInstance tempinst, Scope* sc, TemplateDeclaration tempdecl) nothrow
 {
     //printf("[%s] aliasSeqInstance.dsymbolSemantic('%s')\n", tempinst.loc.toChars(), tempinst.toChars());
     Scope* paramscope = sc.push();
@@ -6557,7 +6561,7 @@ void aliasSeqInstanceSemantic(TemplateInstance tempinst, Scope* sc, TemplateDecl
  * This is a greatly simplified version of templateInstanceSemantic().
  */
 private
-void aliasInstanceSemantic(TemplateInstance tempinst, Scope* sc, TemplateDeclaration tempdecl)
+void aliasInstanceSemantic(TemplateInstance tempinst, Scope* sc, TemplateDeclaration tempdecl) nothrow
 {
     //printf("[%s] aliasInstance.dsymbolSemantic('%s')\n", tempinst.loc.toChars(), tempinst.toChars());
     Scope* paramscope = sc.push();
@@ -6581,7 +6585,7 @@ void aliasInstanceSemantic(TemplateInstance tempinst, Scope* sc, TemplateDeclara
 }
 
 // function used to perform semantic on AliasDeclaration
-void aliasSemantic(AliasDeclaration ds, Scope* sc)
+void aliasSemantic(AliasDeclaration ds, Scope* sc) nothrow
 {
     //printf("AliasDeclaration::semantic() %s\n", ds.toChars());
 
@@ -6754,7 +6758,7 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
  * Perform semantic on AliasAssignment.
  * Has a lot of similarities to aliasSemantic(). Perhaps they should share code.
  */
-private void aliasAssignSemantic(AliasAssign ds, Scope* sc)
+private void aliasAssignSemantic(AliasAssign ds, Scope* sc) nothrow
 {
     //printf("AliasAssign::semantic() %p,  %s\n", ds, ds.ident.toChars());
 
@@ -6972,7 +6976,7 @@ private void aliasAssignSemantic(AliasAssign ds, Scope* sc)
  *       null.
  */
 private TupleDeclaration aliasAssignInPlace(Scope* sc, TemplateInstance tempinst,
-                                            AliasDeclaration aliassym)
+                                            AliasDeclaration aliassym) nothrow
 {
     // Mark instance with semantic done, not needed but just in case.
     tempinst.inst = tempinst;
@@ -7072,7 +7076,7 @@ private TupleDeclaration aliasAssignInPlace(Scope* sc, TemplateInstance tempinst
  * We can only be 100% sure of being AliasSeq after running semanticTiargs()
  * and findBestMatch() but this optimization must happen before that.
  */
-private TemplateInstance isAliasSeq(Scope* sc, TypeInstance ti)
+private TemplateInstance isAliasSeq(Scope* sc, TypeInstance ti) nothrow
 {
     auto tovers = ti.tempinst.tempdecl.isOverloadSet();
     foreach (size_t oi; 0 .. tovers ? tovers.a.length : 1)
@@ -7104,7 +7108,7 @@ private TemplateInstance isAliasSeq(Scope* sc, TypeInstance ti)
  * Returns:
  *      false if any errors occur.
  */
-bool determineFields(AggregateDeclaration ad)
+bool determineFields(AggregateDeclaration ad) nothrow
 {
     if (ad._scope)
         dsymbolSemantic(ad, null);
@@ -7115,7 +7119,7 @@ bool determineFields(AggregateDeclaration ad)
     // determineFields can be called recursively from one of the fields's v.semantic
     ad.fields.setDim(0);
 
-    static int func(Dsymbol s, void* ctx)
+    static int func(Dsymbol s, void* ctx) nothrow
     {
         auto ad = cast(AggregateDeclaration)ctx;
         auto v = s.isVarDeclaration();
@@ -7184,7 +7188,7 @@ bool determineFields(AggregateDeclaration ad)
 }
 
 /// Do an atomic operation (currently tailored to [shared] static ctors|dtors) needs
-private CallExp doAtomicOp (string op, Identifier var, Expression arg)
+private CallExp doAtomicOp (string op, Identifier var, Expression arg) nothrow
 {
     assert(op == "-=" || op == "+=");
 
@@ -7217,7 +7221,7 @@ private CallExp doAtomicOp (string op, Identifier var, Expression arg)
  *   args = pragma arguments
  * Returns: corresponding `PINLINE` state
  */
-PINLINE evalPragmaInline(Loc loc, Scope* sc, Expressions* args)
+PINLINE evalPragmaInline(Loc loc, Scope* sc, Expressions* args) nothrow
 {
     if (!args || args.length == 0)
         return PINLINE.default_;
@@ -7262,7 +7266,7 @@ PINLINE evalPragmaInline(Loc loc, Scope* sc, Expressions* args)
  *      adjusted loc suitable for Parser
  */
 
-Loc adjustLocForMixin(const(char)[] input, ref const Loc loc, ref Output mixinOut)
+Loc adjustLocForMixin(const(char)[] input, ref const Loc loc, ref Output mixinOut) nothrow
 {
     Loc result;
     if (mixinOut.doOutput)
@@ -7295,7 +7299,7 @@ Loc adjustLocForMixin(const(char)[] input, ref const Loc loc, ref Output mixinOu
  *      lines = line count to update
  *      output = sink for output
  */
-private void writeMixin(const(char)[] s, ref const Loc loc, ref int lines, ref OutBuffer buf)
+private void writeMixin(const(char)[] s, ref const Loc loc, ref int lines, ref OutBuffer buf) nothrow
 {
     buf.writestring("// expansion at ");
     buf.writestring(loc.toChars());
@@ -7345,7 +7349,7 @@ private void writeMixin(const(char)[] s, ref const Loc loc, ref int lines, ref O
  *      f = function type
  *      sc = scope
  */
-void checkPrintfScanfSignature(FuncDeclaration funcdecl, TypeFunction f, Scope* sc)
+void checkPrintfScanfSignature(FuncDeclaration funcdecl, TypeFunction f, Scope* sc) nothrow
 {
     static bool isPointerToChar(Parameter p)
     {

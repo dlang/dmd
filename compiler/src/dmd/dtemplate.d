@@ -185,7 +185,7 @@ inout(Type) getType(inout RootObject o)
 
 }
 
-Dsymbol getDsymbol(RootObject oarg)
+Dsymbol getDsymbol(RootObject oarg) nothrow
 {
     //printf("getDsymbol()\n");
     //printf("e %p s %p t %p v %p\n", isExpression(oarg), isDsymbol(oarg), isType(oarg), isTuple(oarg));
@@ -214,7 +214,7 @@ Dsymbol getDsymbol(RootObject oarg)
 }
 
 
-private Expression getValue(ref Dsymbol s)
+private Expression getValue(ref Dsymbol s) nothrow
 {
     if (s)
     {
@@ -230,7 +230,7 @@ private Expression getValue(ref Dsymbol s)
 /***********************
  * Try to get value from manifest constant
  */
-private Expression getValue(Expression e)
+private Expression getValue(Expression e) nothrow
 {
     if (!e)
         return null;
@@ -247,7 +247,7 @@ private Expression getValue(Expression e)
     return e;
 }
 
-private Expression getExpression(RootObject o)
+private Expression getExpression(RootObject o) nothrow
 {
     auto s = isDsymbol(o);
     return s ? .getValue(s) : .getValue(isExpression(o));
@@ -257,7 +257,7 @@ private Expression getExpression(RootObject o)
  * If o1 matches o2, return true.
  * Else, return false.
  */
-private bool match(RootObject o1, RootObject o2)
+private bool match(RootObject o1, RootObject o2) nothrow
 {
     enum log = false;
 
@@ -360,7 +360,7 @@ Lnomatch:
 /************************************
  * Match an array of them.
  */
-private bool arrayObjectMatch(Objects* oa1, Objects* oa2)
+private bool arrayObjectMatch(Objects* oa1, Objects* oa2) nothrow
 {
     if (oa1 == oa2)
         return true;
@@ -384,7 +384,7 @@ private bool arrayObjectMatch(Objects* oa1, Objects* oa2)
 /************************************
  * Return hash of Objects.
  */
-private size_t arrayObjectHash(Objects* oa1)
+private size_t arrayObjectHash(Objects* oa1) nothrow
 {
     import dmd.root.hash : mixHash;
 
@@ -416,7 +416,7 @@ private size_t arrayObjectHash(Objects* oa1)
  * Handles all Expression classes and MUST match their equals method,
  * i.e. e1.equals(e2) implies expressionHash(e1) == expressionHash(e2).
  */
-private size_t expressionHash(Expression e)
+private size_t expressionHash(Expression e) nothrow
 {
     import dmd.root.ctfloat : CTFloat;
     import dmd.root.hash : calcHash, mixHash;
@@ -494,7 +494,7 @@ private size_t expressionHash(Expression e)
     }
 }
 
-RootObject objectSyntaxCopy(RootObject o)
+RootObject objectSyntaxCopy(RootObject o) nothrow
 {
     if (!o)
         return null;
@@ -507,6 +507,7 @@ RootObject objectSyntaxCopy(RootObject o)
 
 extern (C++) final class Tuple : RootObject
 {
+nothrow:
     Objects objects;
 
     extern (D) this() {}
@@ -546,6 +547,7 @@ struct TemplatePrevious
  */
 extern (C++) final class TemplateDeclaration : ScopeDsymbol
 {
+nothrow:
     import dmd.root.array : Array;
 
     TemplateParameters* parameters;     // array of TemplateParameter's
@@ -2537,6 +2539,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
 extern (C++) final class TypeDeduced : Type
 {
+nothrow:
     Type tded;
     Expressions argexps; // corresponding expressions
     Types tparams; // tparams[i].mod
@@ -2598,7 +2601,7 @@ extern (C++) final class TypeDeduced : Type
  *      pMessage    = address to store error message, or null
  */
 void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiargs,
-    Type tthis, ArgumentList argumentList, const(char)** pMessage = null)
+    Type tthis, ArgumentList argumentList, const(char)** pMessage = null) nothrow
 {
     version (none)
     {
@@ -3155,7 +3158,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
  * Given an identifier, figure out which TemplateParameter it is.
  * Return IDX_NOTFOUND if not found.
  */
-private size_t templateIdentifierLookup(Identifier id, TemplateParameters* parameters)
+private size_t templateIdentifierLookup(Identifier id, TemplateParameters* parameters) nothrow
 {
     for (size_t i = 0; i < parameters.length; i++)
     {
@@ -3166,7 +3169,7 @@ private size_t templateIdentifierLookup(Identifier id, TemplateParameters* param
     return IDX_NOTFOUND;
 }
 
-private size_t templateParameterLookup(Type tparam, TemplateParameters* parameters)
+private size_t templateParameterLookup(Type tparam, TemplateParameters* parameters) nothrow
 {
     if (tparam.ty == Tident)
     {
@@ -3177,7 +3180,7 @@ private size_t templateParameterLookup(Type tparam, TemplateParameters* paramete
     return IDX_NOTFOUND;
 }
 
-private ubyte deduceWildHelper(Type t, Type* at, Type tparam)
+private ubyte deduceWildHelper(Type t, Type* at, Type tparam) nothrow
 {
     if ((tparam.mod & MODFlags.wild) == 0)
         return 0;
@@ -3239,7 +3242,7 @@ private ubyte deduceWildHelper(Type t, Type* at, Type tparam)
 /**
  * Returns the common type of the 2 types.
  */
-private Type rawTypeMerge(Type t1, Type t2)
+private Type rawTypeMerge(Type t1, Type t2) nothrow
 {
     if (t1.equals(t2))
         return t1;
@@ -3260,7 +3263,7 @@ private Type rawTypeMerge(Type t1, Type t2)
     return null;
 }
 
-private MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
+private MATCH deduceTypeHelper(Type t, Type* at, Type tparam) nothrow
 {
     // 9*9 == 81 cases
 
@@ -3492,12 +3495,12 @@ __gshared Expression emptyArrayElement = null;
  * Output:
  *      dedtypes = [ int ]      // Array of Expression/Type's
  */
-MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* parameters, Objects* dedtypes, uint* wm = null, size_t inferStart = 0, bool ignoreAliasThis = false)
+MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* parameters, Objects* dedtypes, uint* wm = null, size_t inferStart = 0, bool ignoreAliasThis = false) nothrow
 {
     extern (C++) final class DeduceType : Visitor
     {
         alias visit = Visitor.visit;
-    public:
+    nothrow public:
         Scope* sc;
         Type tparam;
         TemplateParameters* parameters;
@@ -4973,7 +4976,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
  *      iStart      = Start index of tparams to limit the tested parameters. If it's
  *                    nonzero, tparams[0..iStart] will be excluded from the test target.
  */
-bool reliesOnTident(Type t, TemplateParameters* tparams, size_t iStart = 0)
+bool reliesOnTident(Type t, TemplateParameters* tparams, size_t iStart = 0) nothrow
 {
     return reliesOnTemplateParameters(t, (*tparams)[0 .. tparams.length]);
 }
@@ -4984,7 +4987,7 @@ bool reliesOnTident(Type t, TemplateParameters* tparams, size_t iStart = 0)
  *      t           = Tested type, if null, returns false.
  *      tparams     = Template parameters.
  */
-private bool reliesOnTemplateParameters(Type t, TemplateParameter[] tparams)
+private bool reliesOnTemplateParameters(Type t, TemplateParameter[] tparams) nothrow
 {
     bool visitVector(TypeVector t)
     {
@@ -5082,12 +5085,12 @@ private bool reliesOnTemplateParameters(Type t, TemplateParameter[] tparams)
  * Returns:
  *      true if it does
  */
-private bool reliesOnTemplateParameters(Expression e, TemplateParameter[] tparams)
+private bool reliesOnTemplateParameters(Expression e, TemplateParameter[] tparams) nothrow
 {
     extern (C++) final class ReliesOnTemplateParameters : Visitor
     {
         alias visit = Visitor.visit;
-    public:
+    nothrow public:
         TemplateParameter[] tparams;
         bool result;
 
@@ -5344,6 +5347,7 @@ private bool reliesOnTemplateParameters(Expression e, TemplateParameter[] tparam
  */
 extern (C++) class TemplateParameter : ASTNode
 {
+nothrow:
     Loc loc;
     Identifier ident;
 
@@ -5428,6 +5432,7 @@ extern (C++) class TemplateParameter : ASTNode
  */
 extern (C++) class TemplateTypeParameter : TemplateParameter
 {
+nothrow:
     Type specType;      // if !=null, this is the type specialization
     Type defaultType;
 
@@ -5521,6 +5526,7 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
  */
 extern (C++) final class TemplateThisParameter : TemplateTypeParameter
 {
+nothrow:
     extern (D) this(const ref Loc loc, Identifier ident, Type specType, Type defaultType) @safe
     {
         super(loc, ident, specType, defaultType);
@@ -5549,6 +5555,7 @@ extern (C++) final class TemplateThisParameter : TemplateTypeParameter
  */
 extern (C++) final class TemplateValueParameter : TemplateParameter
 {
+nothrow:
     Type valType;
     Expression specValue;
     Expression defaultValue;
@@ -5677,6 +5684,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
  */
 extern (C++) final class TemplateAliasParameter : TemplateParameter
 {
+nothrow:
     Type specType;
     RootObject specAlias;
     RootObject defaultAlias;
@@ -5768,6 +5776,7 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
  */
 extern (C++) final class TemplateTupleParameter : TemplateParameter
 {
+nothrow:
     extern (D) this(const ref Loc loc, Identifier ident) @safe
     {
         super(loc, ident);
@@ -5852,6 +5861,7 @@ extern (C++) final class TemplateTupleParameter : TemplateParameter
  */
 extern (C++) class TemplateInstance : ScopeDsymbol
 {
+nothrow:
     Identifier name;
 
     // Array of Types/Expressions of template
@@ -7655,7 +7665,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
  * However, if those symbols leak to the actual code, compiler should remark
  * them as non-speculative to generate their code and link to the final executable.
  */
-void unSpeculative(Scope* sc, RootObject o)
+void unSpeculative(Scope* sc, RootObject o) nothrow
 {
     if (!o)
         return;
@@ -7715,7 +7725,7 @@ void unSpeculative(Scope* sc, RootObject o)
  * Return false if it might be an alias or tuple.
  * (Note that even in this case, it could still turn out to be a value).
  */
-bool definitelyValueParameter(Expression e) @safe
+bool definitelyValueParameter(Expression e) nothrow @safe
 {
     // None of these can be value parameters
     if (e.op == EXP.tuple || e.op == EXP.scope_ ||
@@ -7777,6 +7787,7 @@ bool definitelyValueParameter(Expression e) @safe
  */
 extern (C++) final class TemplateMixin : TemplateInstance
 {
+nothrow:
     TypeQualified tqual;
 
     extern (D) this(const ref Loc loc, Identifier ident, TypeQualified tqual, Objects* tiargs)
@@ -7919,6 +7930,7 @@ extern (C++) final class TemplateMixin : TemplateInstance
  */
 struct TemplateInstanceBox
 {
+nothrow:
     TemplateInstance ti;
 
     this(TemplateInstance ti)
@@ -7981,7 +7993,7 @@ struct TemplateInstanceBox
  *      dedtypes[]      deduced arguments to template instance
  *      *psparam        set to symbol declared and initialized to dedtypes[i]
  */
-MATCH matchArg(TemplateParameter tp, Loc instLoc, Scope* sc, Objects* tiargs, size_t i, TemplateParameters* parameters, Objects* dedtypes, Declaration* psparam)
+MATCH matchArg(TemplateParameter tp, Loc instLoc, Scope* sc, Objects* tiargs, size_t i, TemplateParameters* parameters, Objects* dedtypes, Declaration* psparam) nothrow
 {
     MATCH matchArgNoMatch()
     {
@@ -8048,7 +8060,7 @@ MATCH matchArg(TemplateParameter tp, Loc instLoc, Scope* sc, Objects* tiargs, si
         return matchArgParameter();
 }
 
-MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t i, TemplateParameters* parameters, Objects* dedtypes, Declaration* psparam)
+MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t i, TemplateParameters* parameters, Objects* dedtypes, Declaration* psparam) nothrow
 {
     MATCH matchArgNoMatch()
     {
@@ -8436,6 +8448,7 @@ MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t i, Templ
  */
 struct TemplateStats
 {
+nothrow:
     __gshared TemplateStats[const void*] stats;
 
     uint numInstantiations;     // number of instantiations of the template
@@ -8555,6 +8568,7 @@ extern (C++) void printTemplateStats()
 /// Pair of MATCHes
 private struct MATCHpair
 {
+nothrow:
     MATCH mta;  /// match template parameters by initial template arguments
     MATCH mfa;  /// match template parameters by inferred template arguments
 
@@ -8567,7 +8581,7 @@ private struct MATCHpair
     }
 }
 
-private void write(ref OutBuffer buf, RootObject obj)
+private void write(ref OutBuffer buf, RootObject obj) nothrow
 {
     if (obj)
     {

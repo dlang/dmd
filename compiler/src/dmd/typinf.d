@@ -36,7 +36,7 @@ import core.stdc.stdio;
  *      sc    = the scope
  *      genObjCode = if true, object code will be generated for the obtained TypeInfo
  */
-extern (C++) void genTypeInfo(Expression e, const ref Loc loc, Type torig, Scope* sc, bool genObjCode = true)
+extern (C++) void genTypeInfo(Expression e, const ref Loc loc, Type torig, Scope* sc, bool genObjCode = true) nothrow
 {
     // printf("genTypeInfo() %s\n", torig.toChars());
 
@@ -111,14 +111,14 @@ extern (C++) void genTypeInfo(Expression e, const ref Loc loc, Type torig, Scope
  * Returns:
  *      The type of the `TypeInfo` object associated with `t`
  */
-extern (C++) Type getTypeInfoType(const ref Loc loc, Type t, Scope* sc, bool genObjCode = true)
+extern (C++) Type getTypeInfoType(const ref Loc loc, Type t, Scope* sc, bool genObjCode = true) nothrow
 {
     assert(t.ty != Terror);
     genTypeInfo(null, loc, t, sc, genObjCode);
     return t.vtinfo.type;
 }
 
-private TypeInfoDeclaration getTypeInfoDeclaration(Type t)
+private TypeInfoDeclaration getTypeInfoDeclaration(Type t) nothrow
 {
     //printf("Type::getTypeInfoDeclaration() %s\n", t.toChars());
     switch (t.ty)
@@ -159,7 +159,7 @@ private TypeInfoDeclaration getTypeInfoDeclaration(Type t)
  *      true if any part of type t is speculative.
  *      if t is null, returns false.
  */
-bool isSpeculativeType(Type t)
+bool isSpeculativeType(Type t) nothrow
 {
     static bool visitVector(TypeVector t)
     {
@@ -256,7 +256,7 @@ bool isSpeculativeType(Type t)
 /* Indicates whether druntime already contains an appropriate TypeInfo instance
  * for the specified type (in module rt.util.typeinfo).
  */
-extern (C++) bool builtinTypeInfo(Type t)
+extern (C++) bool builtinTypeInfo(Type t) nothrow
 {
     if (!t.mod) // unqualified types only
     {

@@ -35,7 +35,7 @@ else
 
 /************************ AsmStatement ***************************************/
 
-extern(C++) Statement asmSemantic(AsmStatement s, Scope *sc)
+extern(C++) Statement asmSemantic(AsmStatement s, Scope *sc) nothrow
 {
     //printf("AsmStatement.semantic()\n");
 

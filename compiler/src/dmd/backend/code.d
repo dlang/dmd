@@ -86,10 +86,10 @@ union evc
 
 public import dmd.backend.dcode : code_calloc, code_free, code_term, code_chunk_alloc, code_list;
 
-code *code_next(code *c) { return c.next; }
+code *code_next(code *c) nothrow { return c.next; }
 
 @trusted
-code *code_malloc()
+code *code_malloc() nothrow
 {
     //printf("code %d\n", sizeof(code));
     code *c = code_list ? code_list : code_chunk_alloc();
@@ -237,13 +237,13 @@ struct LinOff
 
 public import dmd.backend.cgobj : SegData;
 
-@trusted
+nothrow @trusted
 ref targ_size_t Offset(int seg) { return SegData[seg].SDoffset; }
 
-@trusted
+nothrow @trusted
 ref targ_size_t Doffset() { return Offset(DATA); }
 
-@trusted
+nothrow @trusted
 ref targ_size_t CDoffset() { return Offset(CDATA); }
 
 /**************************************************/
@@ -253,6 +253,7 @@ ref targ_size_t CDoffset() { return Offset(CDATA); }
 
 struct FuncParamRegs
 {
+nothrow:
     //this(tym_t tyf);
     @trusted
     static FuncParamRegs create(tym_t tyf) { return FuncParamRegs_create(tyf); }
@@ -286,8 +287,8 @@ enum BackendPass
 
 public import dmd.backend.cgcod : retsize, findreg;
 
-reg_t findregmsw(uint regm) { return findreg(regm & mMSW); }
-reg_t findreglsw(uint regm) { return findreg(regm & (mLSW | mBP)); }
+reg_t findregmsw(uint regm) nothrow { return findreg(regm & mMSW); }
+reg_t findreglsw(uint regm) nothrow { return findreg(regm & (mLSW | mBP)); }
 
 public import dmd.backend.cod1;
 public import dmd.backend.cod2;
@@ -304,7 +305,7 @@ public import dmd.backend.cg87;
  * Params: bp = asm block
  * Returns: mask of registers used by block bp.
  */
-@system
+nothrow @system
 regm_t iasm_regs(block *bp)
 {
     debug (debuga)
@@ -319,7 +320,7 @@ regm_t iasm_regs(block *bp)
  * NOTE: For 16 bit generator, this is always a (targ_short) sign-extended
  *      value.
  */
-@trusted
+nothrow @trusted
 void regimmed_set(int reg, targ_size_t e)
 {
     regcon.immed.value[reg] = e;

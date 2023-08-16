@@ -77,7 +77,7 @@ enum LOG = false;
 /*************************************
  * Does semantic analysis on function bodies.
  */
-extern(C++) void semantic3(Dsymbol dsym, Scope* sc)
+extern(C++) void semantic3(Dsymbol dsym, Scope* sc) nothrow
 {
     scope v = new Semantic3Visitor(sc);
     dsym.accept(v);
@@ -85,6 +85,7 @@ extern(C++) void semantic3(Dsymbol dsym, Scope* sc)
 
 private extern(C++) final class Semantic3Visitor : Visitor
 {
+nothrow:
     alias visit = Visitor.visit;
 
     Scope* sc;
@@ -1597,6 +1598,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
 private struct FuncDeclSem3
 {
+nothrow:
     // The FuncDeclaration subject to Semantic analysis
     FuncDeclaration funcdecl;
 
@@ -1628,7 +1630,7 @@ private struct FuncDeclSem3
     }
 }
 
-extern (C++) void semanticTypeInfoMembers(StructDeclaration sd)
+extern (C++) void semanticTypeInfoMembers(StructDeclaration sd) nothrow
 {
     if (sd.xeq &&
         sd.xeq._scope &&

@@ -30,7 +30,7 @@ import dmd.root.stringtable;
 import dmd.scanomf;
 
 // Entry point (only public symbol in this module).
-extern (C++) Library LibOMF_factory()
+extern (C++) Library LibOMF_factory() nothrow
 {
     return new LibOMF();
 }
@@ -56,6 +56,7 @@ alias OmfObjSymbols = Array!(OmfObjSymbol*);
 
 final class LibOMF : Library
 {
+nothrow:
     OmfObjModules objmodules; // OmfObjModule[]
     OmfObjSymbols objsymbols; // OmfObjSymbol[]
     StringTable!(OmfObjSymbol*) tab;
@@ -507,7 +508,7 @@ enum BUCKETSIZE = (BUCKETPAGE - HASHMOD - 1);
  * Returns:
  *      false   failure
  */
-bool EnterDict(ubyte* bucketsP, ushort ndicpages, ubyte* entry, uint entrylen)
+bool EnterDict(ubyte* bucketsP, ushort ndicpages, ubyte* entry, uint entrylen) nothrow
 {
     ushort uStartIndex;
     ushort uStep;

@@ -15,6 +15,7 @@ module dmd.parsetimevisitor;
   */
 extern (C++) class ParseTimeVisitor(AST)
 {
+nothrow:
 public:
     void visit(AST.Dsymbol) { assert(0); }
     void visit(AST.Parameter) { assert(0); }

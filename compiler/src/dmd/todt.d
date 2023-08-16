@@ -64,7 +64,7 @@ alias Dts = Array!(dt_t*);
 
 /* ================================================================ */
 
-extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb, bool isCfile)
+extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb, bool isCfile) nothrow
 {
     void visitError(ErrorInitializer)
     {
@@ -214,7 +214,7 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb, bool isC
 
 /* ================================================================ */
 
-extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
+extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb) nothrow
 {
     dtb.checkInitialized();
 
@@ -640,7 +640,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
 
 // Generate the data for the static initializer.
 
-extern (C++) void ClassDeclaration_toDt(ClassDeclaration cd, ref DtBuilder dtb)
+extern (C++) void ClassDeclaration_toDt(ClassDeclaration cd, ref DtBuilder dtb) nothrow
 {
     //printf("ClassDeclaration.toDt(this = '%s')\n", cd.toChars());
 
@@ -649,7 +649,7 @@ extern (C++) void ClassDeclaration_toDt(ClassDeclaration cd, ref DtBuilder dtb)
     //printf("-ClassDeclaration.toDt(this = '%s')\n", cd.toChars());
 }
 
-extern (C++) void StructDeclaration_toDt(StructDeclaration sd, ref DtBuilder dtb)
+extern (C++) void StructDeclaration_toDt(StructDeclaration sd, ref DtBuilder dtb) nothrow
 {
     //printf("+StructDeclaration.toDt(), this='%s'\n", sd.toChars());
     membersToDt(sd, dtb, null, 0, null, null);
@@ -664,7 +664,7 @@ extern (C++) void StructDeclaration_toDt(StructDeclaration sd, ref DtBuilder dtb
  *      cd = C++ class
  *      dtb = data table builder
  */
-extern (C++) void cpp_type_info_ptr_toDt(ClassDeclaration cd, ref DtBuilder dtb)
+extern (C++) void cpp_type_info_ptr_toDt(ClassDeclaration cd, ref DtBuilder dtb) nothrow
 {
     //printf("cpp_type_info_ptr_toDt(this = '%s')\n", cd.toChars());
     assert(cd.isCPPclass());
@@ -701,7 +701,7 @@ extern (C++) void cpp_type_info_ptr_toDt(ClassDeclaration cd, ref DtBuilder dtb)
 private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
         Expressions* elements, size_t firstFieldIndex,
         ClassDeclaration concreteType,
-        BaseClass*** ppb)
+        BaseClass*** ppb) nothrow
 {
     ClassDeclaration cd = ad.isClassDeclaration();
     const bool isCtype = ad.isCsymbol();
@@ -1034,7 +1034,7 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
 
 /* ================================================================= */
 
-extern (C++) void Type_toDt(Type t, ref DtBuilder dtb, bool isCtype = false)
+extern (C++) void Type_toDt(Type t, ref DtBuilder dtb, bool isCtype = false) nothrow
 {
     switch (t.ty)
     {
@@ -1056,7 +1056,7 @@ extern (C++) void Type_toDt(Type t, ref DtBuilder dtb, bool isCtype = false)
     }
 }
 
-private void toDtElem(TypeSArray tsa, ref DtBuilder dtb, Expression e, bool isCtype)
+private void toDtElem(TypeSArray tsa, ref DtBuilder dtb, Expression e, bool isCtype) nothrow
 {
     //printf("TypeSArray.toDtElem() tsa = %s\n", tsa.toChars());
     if (tsa.size(Loc.initial) == 0)
@@ -1103,7 +1103,7 @@ private void toDtElem(TypeSArray tsa, ref DtBuilder dtb, Expression e, bool isCt
 /*                   CTFE stuff                      */
 /*****************************************************/
 
-private void ClassReferenceExp_toDt(ClassReferenceExp e, ref DtBuilder dtb, int off)
+private void ClassReferenceExp_toDt(ClassReferenceExp e, ref DtBuilder dtb, int off) nothrow
 {
     //printf("ClassReferenceExp.toDt() %d\n", e.op);
     Symbol* s = toSymbol(e);
@@ -1112,7 +1112,7 @@ private void ClassReferenceExp_toDt(ClassReferenceExp e, ref DtBuilder dtb, int 
         write_instance_pointers(e.type, s, 0);
 }
 
-extern (C++) void ClassReferenceExp_toInstanceDt(ClassReferenceExp ce, ref DtBuilder dtb)
+extern (C++) void ClassReferenceExp_toInstanceDt(ClassReferenceExp ce, ref DtBuilder dtb) nothrow
 {
     //printf("ClassReferenceExp.toInstanceDt() %d\n", ce.op);
     ClassDeclaration cd = ce.originalClass();
@@ -1128,6 +1128,7 @@ extern (C++) void ClassReferenceExp_toInstanceDt(ClassReferenceExp ce, ref DtBui
  */
 private extern (C++) class TypeInfoDtVisitor : Visitor
 {
+nothrow:
     DtBuilder* dtb;
 
     /*
@@ -1607,7 +1608,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
     }
 }
 
-extern (C++) void TypeInfo_toDt(ref DtBuilder dtb, TypeInfoDeclaration d)
+extern (C++) void TypeInfo_toDt(ref DtBuilder dtb, TypeInfoDeclaration d) nothrow
 {
     scope v = new TypeInfoDtVisitor(dtb);
     d.accept(v);

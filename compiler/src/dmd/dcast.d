@@ -60,7 +60,7 @@ enum LOG = false;
  *   The resulting casted expression (mutating `e`), or `ErrorExp`
  *    if such an implicit conversion is not possible.
  */
-Expression implicitCastTo(Expression e, Scope* sc, Type t)
+Expression implicitCastTo(Expression e, Scope* sc, Type t) nothrow
 {
     Expression visit(Expression e)
     {
@@ -231,7 +231,7 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
  * Returns:
  *   The `MATCH` level between `e.type` and `t`.
  */
-MATCH implicitConvTo(Expression e, Type t)
+MATCH implicitConvTo(Expression e, Type t) nothrow
 {
     MATCH visit(Expression e)
     {
@@ -1288,7 +1288,7 @@ MATCH implicitConvTo(Expression e, Type t)
 
                 struct ClassCheck
                 {
-                    extern (C++) static bool convertible(Expression e, ClassDeclaration cd, MOD mod)
+                    extern (C++) static bool convertible(Expression e, ClassDeclaration cd, MOD mod) nothrow
                     {
                         for (size_t i = 0; i < cd.fields.length; i++)
                         {
@@ -1469,7 +1469,7 @@ MATCH implicitConvTo(Expression e, Type t)
  * Returns:
  *   The `MATCH` level between `e.type` and `t`.
  */
-MATCH cimplicitConvTo(Expression e, Type t)
+MATCH cimplicitConvTo(Expression e, Type t) nothrow
 {
     Type tb = t.toBasetype();
     Type typeb = e.type.toBasetype();
@@ -1491,7 +1491,7 @@ MATCH cimplicitConvTo(Expression e, Type t)
 
 /*****************************************
  */
-Type toStaticArrayType(SliceExp e)
+Type toStaticArrayType(SliceExp e) nothrow
 {
     if (e.lwr && e.upr)
     {
@@ -1519,7 +1519,7 @@ Type toStaticArrayType(SliceExp e)
  * Assume that the expression `e` does not have any indirections.
  * (Parameter 'att' is used to stop 'alias this' recursion)
  */
-Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
+Expression castTo(Expression e, Scope* sc, Type t, Type att = null) nothrow
 {
     //printf("castTo(e: %s from: %s to: %s\n", e.toChars(), e.type.toChars(), t.toChars());
 
@@ -2644,7 +2644,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
  *      t       Target type
  *      flag    1: don't put an error when inference fails
  */
-Expression inferType(Expression e, Type t, int flag = 0)
+Expression inferType(Expression e, Type t, int flag = 0) nothrow
 {
     Expression visitAle(ArrayLiteralExp ale)
     {
@@ -2725,7 +2725,7 @@ Expression inferType(Expression e, Type t, int flag = 0)
 /****************************************
  * Scale addition/subtraction to/from pointer.
  */
-Expression scaleFactor(BinExp be, Scope* sc)
+Expression scaleFactor(BinExp be, Scope* sc) nothrow
 {
     Type t1b = be.e1.type.toBasetype();
     Type t2b = be.e2.type.toBasetype();
@@ -2787,7 +2787,7 @@ Expression scaleFactor(BinExp be, Scope* sc)
  * I.e., make sure that [1,2] is compatible with [],
  * [[1,2]] is compatible with [[]], etc.
  */
-private bool isVoidArrayLiteral(Expression e, Type other)
+private bool isVoidArrayLiteral(Expression e, Type other) nothrow
 {
     while (e.op == EXP.arrayLiteral && e.type.ty == Tarray && (e.isArrayLiteralExp().elements.length == 1))
     {
@@ -2819,7 +2819,7 @@ private bool isVoidArrayLiteral(Expression e, Type other)
  * Returns:
  *      The resulting type in case of success, `null` in case of error
  */
-Type typeMerge(Scope* sc, EXP op, ref Expression pe1, ref Expression pe2)
+Type typeMerge(Scope* sc, EXP op, ref Expression pe1, ref Expression pe2) nothrow
 {
     //printf("typeMerge() %s op %s\n", e1.toChars(), e2.toChars());
 
@@ -3560,7 +3560,7 @@ LmodCompare:
  * Returns:
  *    null on success, ErrorExp if error occurs
  */
-Expression typeCombine(BinExp be, Scope* sc)
+Expression typeCombine(BinExp be, Scope* sc) nothrow
 {
     Expression errorReturn()
     {
@@ -3604,7 +3604,7 @@ Expression typeCombine(BinExp be, Scope* sc)
  * Do integral promotions (convertchk).
  * Don't convert <array of> to <pointer to>
  */
-Expression integralPromotions(Expression e, Scope* sc)
+Expression integralPromotions(Expression e, Scope* sc) nothrow
 {
     //printf("integralPromotions %s %s\n", e.toChars(), e.type.toChars());
     switch (e.type.toBasetype().ty)
@@ -3643,7 +3643,7 @@ Expression integralPromotions(Expression e, Scope* sc)
  *      https://issues.dlang.org/show_bug.cgi?id=16997
  */
 
-void fix16997(Scope* sc, UnaExp ue)
+void fix16997(Scope* sc, UnaExp ue) nothrow
 {
     if (global.params.fix16997 || sc.flags & SCOPE.Cfile)
         ue.e1 = integralPromotions(ue.e1, sc);          // desired C-like behavor
@@ -3675,7 +3675,7 @@ void fix16997(Scope* sc, UnaExp ue)
  * This is to enable comparing things like an immutable
  * array with a mutable one.
  */
-extern (C++) bool arrayTypeCompatibleWithoutCasting(Type t1, Type t2)
+extern (C++) bool arrayTypeCompatibleWithoutCasting(Type t1, Type t2) nothrow
 {
     t1 = t1.toBasetype();
     t2 = t2.toBasetype();
@@ -3694,7 +3694,7 @@ extern (C++) bool arrayTypeCompatibleWithoutCasting(Type t1, Type t2)
  * be allowed.
  */
 @trusted
-IntRange getIntRange(Expression e)
+IntRange getIntRange(Expression e) nothrow
 {
     IntRange visit(Expression e)
     {
@@ -3890,7 +3890,7 @@ IntRange getIntRange(Expression e)
  *   to = Type to cast the expression to.
  * Returns: A CommaExp, upon any failure ErrorExp will be returned.
  */
-Expression specialNoreturnCast(Expression toBeCasted, Type to)
+Expression specialNoreturnCast(Expression toBeCasted, Type to) nothrow
 {
     return Expression.combine(toBeCasted, to.defaultInitLiteral(toBeCasted.loc));
 }

@@ -59,7 +59,7 @@ private enum ExpType
  * Returns:
  *  `true` if the 2 lambda functions are equal, `false` otherwise
  */
-bool isSameFuncLiteral(FuncLiteralDeclaration l1, FuncLiteralDeclaration l2, Scope* sc)
+bool isSameFuncLiteral(FuncLiteralDeclaration l1, FuncLiteralDeclaration l2, Scope* sc) nothrow
 {
     bool result;
     if (auto ser1 = getSerialization(l1, sc))
@@ -97,7 +97,7 @@ bool isSameFuncLiteral(FuncLiteralDeclaration l1, FuncLiteralDeclaration l2, Sco
  * Returns:
  *  The serialization of `fld` allocated with mem.
  */
-private string getSerialization(FuncLiteralDeclaration fld, Scope* sc)
+private string getSerialization(FuncLiteralDeclaration fld, Scope* sc) nothrow
 {
     scope serVisitor = new SerializeVisitor(fld.parent._scope);
     fld.accept(serVisitor);
@@ -110,7 +110,7 @@ private string getSerialization(FuncLiteralDeclaration fld, Scope* sc)
 
 private extern (C++) class SerializeVisitor : SemanticTimeTransitiveVisitor
 {
-private:
+nothrow private:
     StringTable!(const(char)[]) arg_hash;
     Scope* sc;
     ExpType et;

@@ -37,7 +37,7 @@ import dmd.typesem;
  * Returns:
  *      adjusted type
  */
-Type cAdjustParamType(Type t, Scope* sc)
+Type cAdjustParamType(Type t, Scope* sc) nothrow
 {
     if (!(sc.flags & SCOPE.Cfile))
         return t;
@@ -72,7 +72,7 @@ Type cAdjustParamType(Type t, Scope* sc)
  * Returns:
  *  converted expression
  */
-Expression arrayFuncConv(Expression e, Scope* sc)
+Expression arrayFuncConv(Expression e, Scope* sc) nothrow
 {
     //printf("arrayFuncConv() %s\n", e.toChars());
     if (!(sc.flags & SCOPE.Cfile))
@@ -113,7 +113,7 @@ Expression arrayFuncConv(Expression e, Scope* sc)
  *   if successful `e.ident`
  *   if not then `ErrorExp` and message is printed
  */
-Expression fieldLookup(Expression e, Scope* sc, Identifier id, bool arrow)
+Expression fieldLookup(Expression e, Scope* sc, Identifier id, bool arrow) nothrow
 {
     e = e.expressionSemantic(sc);
     if (e.isErrorExp())
@@ -150,7 +150,7 @@ Expression fieldLookup(Expression e, Scope* sc, Identifier id, bool arrow)
  * Returns:
  *      Expression if this was a C expression with completed semantic, null if not
  */
-Expression carraySemantic(ArrayExp ae, Scope* sc)
+Expression carraySemantic(ArrayExp ae, Scope* sc) nothrow
 {
     if (!(sc.flags & SCOPE.Cfile))
         return null;
@@ -187,7 +187,7 @@ Expression carraySemantic(ArrayExp ae, Scope* sc)
 /******************************************
  * Determine default initializer for const global symbol.
  */
-void addDefaultCInitializer(VarDeclaration dsym)
+void addDefaultCInitializer(VarDeclaration dsym) nothrow
 {
     //printf("addDefaultCInitializer() %s\n", dsym.toChars());
     if (!(dsym.storage_class & (STC.static_ | STC.gshared)))
@@ -217,7 +217,7 @@ void addDefaultCInitializer(VarDeclaration dsym)
  * Returns:
  *      null means leave as is, !=null means rewritten AST
  */
-Expression castCallAmbiguity(Expression e, Scope* sc)
+Expression castCallAmbiguity(Expression e, Scope* sc) nothrow
 {
     Expression* pe = &e;
 
@@ -281,7 +281,7 @@ Expression castCallAmbiguity(Expression e, Scope* sc)
  *      true if C11 considers them equivalent
  */
 
-bool cFuncEquivalence(TypeFunction tf1, TypeFunction tf2)
+bool cFuncEquivalence(TypeFunction tf1, TypeFunction tf2) nothrow
 {
     //printf("cFuncEquivalence()\n  %s\n  %s\n", tf1.toChars(), tf2.toChars());
     if (tf1.equals(tf2))
@@ -338,7 +338,7 @@ bool cFuncEquivalence(TypeFunction tf1, TypeFunction tf2)
  * Returns:
  *      true if they are equivalent types
  */
-bool cTypeEquivalence(Type t1, Type t2)
+bool cTypeEquivalence(Type t1, Type t2) nothrow
 {
     if (t1.equals(t2))
         return true;    // that was easy

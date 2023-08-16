@@ -40,25 +40,25 @@ import dmd.visitor;
 extern (C++):
 
 
-const(char)* toCppMangleMSVC(Dsymbol s)
+const(char)* toCppMangleMSVC(Dsymbol s) nothrow
 {
     scope VisualCPPMangler v = new VisualCPPMangler(false, s.loc);
     return v.mangleOf(s);
 }
 
-const(char)* cppTypeInfoMangleMSVC(Dsymbol s) @safe
+const(char)* cppTypeInfoMangleMSVC(Dsymbol s) nothrow @safe
 {
     //printf("cppTypeInfoMangle(%s)\n", s.toChars());
     assert(0);
 }
 
-const(char)* toCppMangleDMC(Dsymbol s)
+const(char)* toCppMangleDMC(Dsymbol s) nothrow
 {
     scope VisualCPPMangler v = new VisualCPPMangler(true, s.loc);
     return v.mangleOf(s);
 }
 
-const(char)* cppTypeInfoMangleDMC(Dsymbol s) @safe
+const(char)* cppTypeInfoMangleDMC(Dsymbol s) nothrow @safe
 {
     //printf("cppTypeInfoMangle(%s)\n", s.toChars());
     assert(0);
@@ -74,7 +74,7 @@ const(char)* cppTypeInfoMangleDMC(Dsymbol s) @safe
  *      true if type is shared or immutable
  *      false otherwise
  */
-private extern (D) bool checkImmutableShared(Type type, Loc loc)
+private extern (D) bool checkImmutableShared(Type type, Loc loc) nothrow
 {
     if (type.isImmutable() || type.isShared())
     {
@@ -87,6 +87,7 @@ private extern (D) bool checkImmutableShared(Type type, Loc loc)
 
 private final class VisualCPPMangler : Visitor
 {
+nothrow:
     alias visit = Visitor.visit;
     Identifier[10] saved_idents;
     Type[10] saved_types;
@@ -1121,7 +1122,7 @@ extern(D):
  *      mangling for special symbols,
  *      null if not a special symbol
  */
-string mangleSpecialName(Dsymbol sym)
+string mangleSpecialName(Dsymbol sym) nothrow
 {
     string mangle;
     if (sym.isCtorDeclaration())
@@ -1158,7 +1159,7 @@ string mangleSpecialName(Dsymbol sym)
  *      true if sym has no further mangling needed
  *      false otherwise
  */
-bool mangleOperator(ref OutBuffer buf, TemplateInstance ti, ref const(char)[] symName, ref int firstTemplateArg)
+bool mangleOperator(ref OutBuffer buf, TemplateInstance ti, ref const(char)[] symName, ref int firstTemplateArg) nothrow
 {
     auto whichOp = isCppOperator(ti.name);
     final switch (whichOp)
@@ -1251,7 +1252,7 @@ bool mangleOperator(ref OutBuffer buf, TemplateInstance ti, ref const(char)[] sy
 
 /**********************************'
  */
-void mangleNumber(ref OutBuffer buf, dinteger_t num)
+void mangleNumber(ref OutBuffer buf, dinteger_t num) nothrow
 {
     if (!num) // 0 encoded as "A@"
     {
@@ -1279,7 +1280,7 @@ void mangleNumber(ref OutBuffer buf, dinteger_t num)
 
 /*************************************
  */
-void mangleVisibility(ref OutBuffer buf, Declaration d, string privProtDef)@safe
+void mangleVisibility(ref OutBuffer buf, Declaration d, string privProtDef) nothrow @safe
 {
     switch (d.visibility.kind)
     {

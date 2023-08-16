@@ -33,6 +33,7 @@ import dmd.visitor;
  */
 extern (C++) final class DebugSymbol : Dsymbol
 {
+nothrow:
     uint level;
 
     extern (D) this(const ref Loc loc, Identifier ident) @safe
@@ -127,6 +128,7 @@ extern (C++) final class DebugSymbol : Dsymbol
  */
 extern (C++) final class VersionSymbol : Dsymbol
 {
+nothrow:
     uint level;
 
     extern (D) this(const ref Loc loc, Identifier ident) @safe

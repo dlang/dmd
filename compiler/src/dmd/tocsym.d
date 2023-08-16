@@ -66,7 +66,7 @@ extern (C++):
  * Helper
  */
 
-Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, SC sclass, type *t, const(char)* suffix)
+Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, SC sclass, type *t, const(char)* suffix) nothrow
 {
     //printf("Dsymbol::toSymbolX('%s')\n", prefix);
     import dmd.common.string : SmallBuffer;
@@ -102,10 +102,11 @@ Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, SC sclass, type *t, const(cha
 /*************************************
  */
 
-Symbol *toSymbol(Dsymbol s)
+Symbol *toSymbol(Dsymbol s) nothrow
 {
     extern (C++) static final class ToSymbol : Visitor
     {
+    nothrow:
         alias visit = Visitor.visit;
 
         Symbol *result;
@@ -514,7 +515,7 @@ Symbol *toSymbol(Dsymbol s)
  *      import symbol
  */
 
-private Symbol *createImport(Symbol *sym, Loc loc)
+private Symbol *createImport(Symbol *sym, Loc loc) nothrow
 {
     //printf("Dsymbol.createImport('%s')\n", sym.Sident.ptr);
     const char* n = sym.Sident.ptr;
@@ -554,7 +555,7 @@ private Symbol *createImport(Symbol *sym, Loc loc)
  * Generate import symbol from symbol.
  */
 
-Symbol *toImport(Declaration ds)
+Symbol *toImport(Declaration ds) nothrow
 {
     if (!ds.isym)
     {
@@ -569,7 +570,7 @@ Symbol *toImport(Declaration ds)
  * Thunks adjust the incoming 'this' pointer by 'offset'.
  */
 
-Symbol *toThunkSymbol(FuncDeclaration fd, int offset)
+Symbol *toThunkSymbol(FuncDeclaration fd, int offset) nothrow
 {
     Symbol *s = toSymbol(fd);
     if (!offset)
@@ -597,7 +598,7 @@ Symbol *toThunkSymbol(FuncDeclaration fd, int offset)
  * Fake a struct symbol.
  */
 
-Classsym *fake_classsym(Identifier id)
+Classsym *fake_classsym(Identifier id) nothrow
 {
     auto t = type_struct_class(id.toChars(),8,0,
         null,null,
@@ -615,7 +616,7 @@ Classsym *fake_classsym(Identifier id)
  * needed directly (like for rtti comparisons), make it directly accessible.
  */
 
-Symbol *toVtblSymbol(ClassDeclaration cd, bool genCsymbol = true)
+Symbol *toVtblSymbol(ClassDeclaration cd, bool genCsymbol = true) nothrow
 {
     if (!cd.vtblsym || !cd.vtblsym.csym)
     {
@@ -638,7 +639,7 @@ Symbol *toVtblSymbol(ClassDeclaration cd, bool genCsymbol = true)
  * Create the static initializer for the struct/class.
  */
 
-Symbol *toInitializer(AggregateDeclaration ad)
+Symbol *toInitializer(AggregateDeclaration ad) nothrow
 {
     //printf("toInitializer() %s\n", ad.toChars());
     if (!ad.sinit)
@@ -701,7 +702,7 @@ Symbol *toInitializer(AggregateDeclaration ad)
     return cast(Symbol*)ad.sinit;
 }
 
-Symbol *toInitializer(EnumDeclaration ed)
+Symbol *toInitializer(EnumDeclaration ed) nothrow
 {
     if (!ed.sinit)
     {
@@ -724,7 +725,7 @@ Symbol *toInitializer(EnumDeclaration ed)
  *              1       add value signature
  */
 
-Symbol *aaGetSymbol(TypeAArray taa, const(char)* func, int flags)
+Symbol *aaGetSymbol(TypeAArray taa, const(char)* func, int flags) nothrow
 {
     assert((flags & ~1) == 0);
 
@@ -765,7 +766,7 @@ Symbol *aaGetSymbol(TypeAArray taa, const(char)* func, int flags)
 /*                   CTFE stuff                      */
 /*****************************************************/
 
-Symbol* toSymbol(StructLiteralExp sle)
+Symbol* toSymbol(StructLiteralExp sle) nothrow
 {
     //printf("toSymbol() %p.sym: %p\n", sle, sle.sym);
     if (sle.sym)
@@ -785,7 +786,7 @@ Symbol* toSymbol(StructLiteralExp sle)
     return sle.sym;
 }
 
-Symbol* toSymbol(ClassReferenceExp cre)
+Symbol* toSymbol(ClassReferenceExp cre) nothrow
 {
     //printf("toSymbol() %p.value.sym: %p\n", cre, cre.value.sym);
     if (cre.value.origin.sym)
@@ -814,7 +815,7 @@ Symbol* toSymbol(ClassReferenceExp cre)
  * Returns:
  *      symbol of instance of __cpp_type_info_ptr
  */
-Symbol* toSymbolCpp(ClassDeclaration cd)
+Symbol* toSymbolCpp(ClassDeclaration cd) nothrow
 {
     assert(cd.isCPPclass());
 
@@ -844,7 +845,7 @@ Symbol* toSymbolCpp(ClassDeclaration cd)
  * Returns:
  *      Symbol of cd's rtti type info
  */
-Symbol *toSymbolCppTypeInfo(ClassDeclaration cd)
+Symbol *toSymbolCppTypeInfo(ClassDeclaration cd) nothrow
 {
     const id = target.cpp.typeInfoMangle(cd);
     auto s = symbol_calloc(id[0 .. strlen(id)]);
@@ -864,7 +865,7 @@ Symbol *toSymbolCppTypeInfo(ClassDeclaration cd)
  * Returns:
  *      Srcpos backend struct corresponding to the given location
  */
-Srcpos toSrcpos(Loc loc)
+Srcpos toSrcpos(Loc loc) nothrow
 {
     return Srcpos.create(loc.filename, loc.linnum, loc.charnum);
 }

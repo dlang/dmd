@@ -58,7 +58,7 @@ else version (IN_LLVM) {}
 else version = MARS;
 
 // function used to call semantic3 on a module's dependencies
-void semantic3OnDependencies(Module m)
+void semantic3OnDependencies(Module m) nothrow
 {
     if (!m)
         return;
@@ -159,6 +159,7 @@ private const(char)[] getFilename(Identifier[] packages, Identifier ident) nothr
  */
 extern (C++) class Package : ScopeDsymbol
 {
+nothrow:
     PKG isPkgMod = PKG.unknown;
     uint tag;        // auto incremented tag, used to mask package tree in scopes
     Module mod;     // !=null if isPkgMod == PKG.module_
@@ -325,6 +326,7 @@ extern (C++) class Package : ScopeDsymbol
  */
 extern (C++) final class Module : Package
 {
+nothrow:
     extern (C++) __gshared Module rootModule;
     extern (C++) __gshared DsymbolTable modules; // symbol table of all modules
     extern (C++) __gshared Modules amodules;     // array of all modules
@@ -1374,6 +1376,7 @@ extern (C++) final class Module : Package
  */
 extern (C++) struct ModuleDeclaration
 {
+nothrow:
     Loc loc;
     Identifier id;
     Identifier[] packages;  // array of Identifier's representing packages
@@ -1416,7 +1419,7 @@ extern (C++) struct ModuleDeclaration
  *      aclasses = array to fill in
  * Returns: array of local classes
  */
-extern (C++) void getLocalClasses(Module mod, ref ClassDeclarations aclasses)
+extern (C++) void getLocalClasses(Module mod, ref ClassDeclarations aclasses) nothrow
 {
     //printf("members.length = %d\n", mod.members.length);
     int pushAddClassDg(size_t n, Dsymbol sm)
@@ -1454,7 +1457,7 @@ extern (C++) void getLocalClasses(Module mod, ref ClassDeclarations aclasses)
  *   UTF-8 encoded variant of `src`, stripped of any BOM,
  *   or `null` if an error happened.
  */
-private const(char)[] processSource (const(ubyte)[] src, Module mod)
+private const(char)[] processSource (const(ubyte)[] src, Module mod) nothrow
 {
     enum SourceEncoding { utf16, utf32}
     enum Endian { little, big}

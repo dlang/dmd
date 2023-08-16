@@ -18,7 +18,7 @@ module dmd.dmangle;
 /******************************************************************************
  * Returns exact mangled name of function.
  */
-extern (C++) const(char)* mangleExact(FuncDeclaration fd)
+extern (C++) const(char)* mangleExact(FuncDeclaration fd) nothrow
 {
     //printf("mangleExact()\n");
     if (!fd.mangleString)
@@ -32,7 +32,7 @@ extern (C++) const(char)* mangleExact(FuncDeclaration fd)
     return fd.mangleString;
 }
 
-extern (C++) void mangleToBuffer(Type t, ref OutBuffer buf)
+extern (C++) void mangleToBuffer(Type t, ref OutBuffer buf) nothrow
 {
     //printf("mangleToBuffer t()\n");
     if (t.deco)
@@ -45,7 +45,7 @@ extern (C++) void mangleToBuffer(Type t, ref OutBuffer buf)
     }
 }
 
-extern (C++) void mangleToBuffer(Expression e, ref OutBuffer buf)
+extern (C++) void mangleToBuffer(Expression e, ref OutBuffer buf) nothrow
 {
     //printf("mangleToBuffer e()\n");
     auto backref = Backref(null);
@@ -53,7 +53,7 @@ extern (C++) void mangleToBuffer(Expression e, ref OutBuffer buf)
     e.accept(v);
 }
 
-extern (C++) void mangleToBuffer(Dsymbol s, ref OutBuffer buf)
+extern (C++) void mangleToBuffer(Dsymbol s, ref OutBuffer buf) nothrow
 {
     //printf("mangleToBuffer s(%s)\n", s.toChars());
     auto backref = Backref(null);
@@ -61,7 +61,7 @@ extern (C++) void mangleToBuffer(Dsymbol s, ref OutBuffer buf)
     s.accept(v);
 }
 
-extern (C++) void mangleToBuffer(TemplateInstance ti, ref OutBuffer buf)
+extern (C++) void mangleToBuffer(TemplateInstance ti, ref OutBuffer buf) nothrow
 {
     //printf("mangleToBuffer ti()\n");
     auto backref = Backref(null);
@@ -109,7 +109,7 @@ unittest
  *      Type for succeeded
  */
 
-public Type decoToType(const(char)[] deco)
+public Type decoToType(const(char)[] deco) nothrow
 {
     //printf("decoToType(): %.*s\n", cast(int)deco.length, deco.ptr);
     if (auto sv = Type.stringtable.lookup(deco))
@@ -249,9 +249,9 @@ unittest
  *      buf = buffer to append mangling to
  *      backref = state of back references (updated)
  */
-void mangleType(Type t, ubyte modMask, ref OutBuffer buf, ref Backref backref)
+void mangleType(Type t, ubyte modMask, ref OutBuffer buf, ref Backref backref) nothrow
 {
-    void visitWithMask(Type t, ubyte modMask)
+    void visitWithMask(Type t, ubyte modMask) nothrow
     {
         void mangleSymbol(Dsymbol s)
         {
@@ -395,7 +395,7 @@ void mangleType(Type t, ubyte modMask, ref OutBuffer buf, ref Backref backref)
 
 /*************************************************************
  */
-void mangleFuncType(TypeFunction t, TypeFunction ta, ubyte modMask, Type tret, ref OutBuffer buf, ref Backref backref)
+void mangleFuncType(TypeFunction t, TypeFunction ta, ubyte modMask, Type tret, ref OutBuffer buf, ref Backref backref) nothrow
 {
     //printf("mangleFuncType() %s\n", t.toChars());
     if (t.inuse && tret)
@@ -485,7 +485,7 @@ void mangleFuncType(TypeFunction t, TypeFunction ta, ubyte modMask, Type tret, r
 
 /*************************************************************
  */
-void mangleParameter(Parameter p, ref OutBuffer buf, ref Backref backref)
+void mangleParameter(Parameter p, ref OutBuffer buf, ref Backref backref) nothrow
 {
     // https://dlang.org/spec/abi.html#Parameter
 
@@ -558,7 +558,7 @@ void mangleParameter(Parameter p, ref OutBuffer buf, ref Backref backref)
 private extern (C++) final class Mangler : Visitor
 {
     alias visit = Visitor.visit;
-public:
+nothrow public:
     static assert(Key.sizeof == size_t.sizeof);
 
     OutBuffer* buf;
@@ -1132,6 +1132,7 @@ public:
  */
 private struct Backref
 {
+nothrow:
     /**
     * Back references a non-basic type
     *
@@ -1214,7 +1215,7 @@ private struct Backref
  * Mangle basic type ty to buf.
  */
 
-private void tyToDecoBuffer(ref OutBuffer buf, int ty) @safe
+private void tyToDecoBuffer(ref OutBuffer buf, int ty) nothrow @safe
 {
     const c = mangleChar[ty];
     buf.writeByte(c);
@@ -1225,7 +1226,7 @@ private void tyToDecoBuffer(ref OutBuffer buf, int ty) @safe
 /*********************************
  * Mangling for mod.
  */
-private void MODtoDecoBuffer(ref OutBuffer buf, MOD mod) @safe
+private void MODtoDecoBuffer(ref OutBuffer buf, MOD mod) nothrow @safe
 {
     switch (mod)
     {
@@ -1274,7 +1275,7 @@ private void MODtoDecoBuffer(ref OutBuffer buf, MOD mod) @safe
  *  pos           = relative position to encode
  */
 private
-void writeBackRef(ref OutBuffer buf, size_t pos) @safe
+void writeBackRef(ref OutBuffer buf, size_t pos) nothrow @safe
 {
     buf.writeByte('Q');
     enum base = 26;
@@ -1296,7 +1297,7 @@ void writeBackRef(ref OutBuffer buf, size_t pos) @safe
  * Write length prefixed string to buf.
  */
 private
-extern (D) void toBuffer(ref OutBuffer buf, const(char)[] id, Dsymbol s)
+extern (D) void toBuffer(ref OutBuffer buf, const(char)[] id, Dsymbol s) nothrow
 {
     const len = id.length;
     if (buf.length + len >= 8 * 1024 * 1024) // 8 megs ought be enough for anyone
@@ -1321,7 +1322,7 @@ extern (D) void toBuffer(ref OutBuffer buf, const(char)[] id, Dsymbol s)
  *      localNum = local symbol number
  */
 private
-void writeLocalParent(ref OutBuffer buf, uint localNum)
+void writeLocalParent(ref OutBuffer buf, uint localNum) nothrow
 {
     uint ndigits = 1;
     auto n = localNum;
@@ -1340,7 +1341,7 @@ void writeLocalParent(ref OutBuffer buf, uint localNum)
  *      value = real to write
  */
 private
-void realToMangleBuffer(ref OutBuffer buf, real_t value)
+void realToMangleBuffer(ref OutBuffer buf, real_t value) nothrow
 {
     /* Rely on %A to get portable mangling.
      * Must munge result to get only identifier characters.
@@ -1410,7 +1411,7 @@ void realToMangleBuffer(ref OutBuffer buf, real_t value)
  *     an externally mangled name or null if the declaration cannot be called externally
  */
 private
-extern (D) const(char)[] externallyMangledIdentifier(Declaration d)
+extern (D) const(char)[] externallyMangledIdentifier(Declaration d) nothrow
 {
     assert(!d.mangleOverride, "mangle overrides should have been handled earlier");
 

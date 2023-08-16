@@ -43,7 +43,7 @@ import dmd.root.stringtable;
 import dmd.scanmscoff;
 
 // Entry point (only public symbol in this module).
-public extern (C++) Library LibMSCoff_factory() @safe
+public extern (C++) Library LibMSCoff_factory() nothrow @safe
 {
     return new LibMSCoff();
 }
@@ -75,6 +75,7 @@ alias MSCoffObjSymbols = Array!(MSCoffObjSymbol*);
 
 final class LibMSCoff : Library
 {
+nothrow:
     MSCoffObjModules objmodules; // MSCoffObjModule[]
     MSCoffObjSymbols objsymbols; // MSCoffObjSymbol[]
 
@@ -644,7 +645,7 @@ struct MSCoffLibHeader
     char[MSCOFF_TRAILER_SIZE] trailer;
 }
 
-extern (C++) void MSCoffOmToHeader(MSCoffLibHeader* h, MSCoffObjModule* om)
+extern (C++) void MSCoffOmToHeader(MSCoffLibHeader* h, MSCoffObjModule* om) nothrow
 {
     size_t len;
     if (om.name_offset == -1)

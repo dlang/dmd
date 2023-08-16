@@ -28,6 +28,7 @@ import dmd.visitor;
  */
 extern (C++) final class StaticAssert : Dsymbol
 {
+nothrow:
     Expression exp;
     Expressions* msgs;
 

@@ -30,7 +30,7 @@ import dmd.visitor;
  *      A tuple of zero length means the type cannot be passed/returned in registers.
  *      null indicates a `void`.
  */
-extern (C++) TypeTuple toArgTypes_sysv_x64(Type t)
+extern (C++) TypeTuple toArgTypes_sysv_x64(Type t) nothrow
 {
     if (t == Type.terror)
         return new TypeTuple(t);
@@ -116,7 +116,7 @@ enum Class : ubyte
     memory
 }
 
-Class merge(Class a, Class b) @safe
+Class merge(Class a, Class b) nothrow @safe
 {
     bool any(Class value) { return a == value || b == value; }
 
@@ -137,13 +137,14 @@ Class merge(Class a, Class b) @safe
 
 struct Classification
 {
+nothrow:
     Class[4] classes;
     int numEightbytes;
 
     const(Class[]) slice() const return @safe { return classes[0 .. numEightbytes]; }
 }
 
-Classification classify(Type t, size_t size)
+Classification classify(Type t, size_t size) nothrow
 {
     scope v = new ToClassesVisitor(size);
     t.accept(v);
@@ -152,6 +153,7 @@ Classification classify(Type t, size_t size)
 
 extern (C++) final class ToClassesVisitor : Visitor
 {
+nothrow:
     const size_t size;
     int numEightbytes;
     Class[4] result = Class.noClass;
@@ -333,7 +335,7 @@ extern (C++) final class ToClassesVisitor : Visitor
         classifyFields(baseOffset, cast(size_t) t.dim.toInteger(), &getNthElement);
     }
 
-    extern(D) void classifyFields(uint baseOffset, size_t nfields, Type delegate(size_t, out uint, out uint) getFieldInfo)
+    extern(D) void classifyFields(uint baseOffset, size_t nfields, Type delegate(size_t, out uint, out uint) nothrow getFieldInfo)
     {
         // classify each field (recursively for aggregates) and merge all classes per eightbyte
         foreach (n; 0 .. nfields)

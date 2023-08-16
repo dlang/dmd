@@ -28,7 +28,7 @@ import dmd.root.rootobject;
 extern (C++) class Visitor : ParseTimeVisitor!ASTCodegen
 {
     alias visit = ParseTimeVisitor!ASTCodegen.visit;
-public:
+nothrow public:
     void visit(ASTCodegen.ErrorStatement s) { visit(cast(ASTCodegen.Statement)s); }
     void visit(ASTCodegen.PeelStatement s) { visit(cast(ASTCodegen.Statement)s); }
     void visit(ASTCodegen.UnrolledLoopStatement s) { visit(cast(ASTCodegen.Statement)s); }
@@ -252,7 +252,7 @@ extern (C++) class SemanticTimeTransitiveVisitor : SemanticTimePermissiveVisitor
 extern (C++) class StoppableVisitor : Visitor
 {
     alias visit = Visitor.visit;
-public:
+nothrow public:
     bool stop;
 
     final extern (D) this() scope @safe

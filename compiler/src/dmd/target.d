@@ -46,7 +46,7 @@ enum CPU : ubyte
     native              // the machine the compiler is being run on
 }
 
-Target.OS defaultTargetOS() @safe
+Target.OS defaultTargetOS() nothrow @safe
 {
     version (Windows)
         return Target.OS.Windows;
@@ -66,7 +66,7 @@ Target.OS defaultTargetOS() @safe
         static assert(0, "unknown TARGET");
 }
 
-ubyte defaultTargetOSMajor() @safe
+ubyte defaultTargetOSMajor() nothrow @safe
 {
     version (FreeBSD)
     {
@@ -99,7 +99,7 @@ ubyte defaultTargetOSMajor() @safe
  *      tgt    = target
  */
 public
-void addDefaultVersionIdentifiers(const ref Param params, const ref Target tgt)
+void addDefaultVersionIdentifiers(const ref Param params, const ref Target tgt) nothrow
 {
     import dmd.cond : VersionCondition;
     import dmd.dmdparams : driverParams, PIC;
@@ -156,7 +156,7 @@ void addDefaultVersionIdentifiers(const ref Param params, const ref Target tgt)
 //  * Add predefined global identifiers that are determied by the target
 //  */
 private
-void addPredefinedGlobalIdentifiers(const ref Target tgt)
+void addPredefinedGlobalIdentifiers(const ref Target tgt) nothrow
 {
     import dmd.cond : VersionCondition;
 
@@ -234,7 +234,7 @@ void addPredefinedGlobalIdentifiers(const ref Target tgt)
 }
 
 private
-void addCRuntimePredefinedGlobalIdent(const ref TargetC c)
+void addCRuntimePredefinedGlobalIdent(const ref TargetC c) nothrow
 {
     import dmd.cond : VersionCondition;
 
@@ -255,7 +255,7 @@ void addCRuntimePredefinedGlobalIdent(const ref TargetC c)
 }
 
 private
-void addCppRuntimePredefinedGlobalIdent(const ref TargetCPP cpp)
+void addCppRuntimePredefinedGlobalIdent(const ref TargetCPP cpp) nothrow
 {
     import dmd.cond : VersionCondition;
 
@@ -284,6 +284,7 @@ void addCppRuntimePredefinedGlobalIdent(const ref TargetCPP cpp)
  */
 extern (C++) struct Target
 {
+nothrow:
     import dmd.dscope : Scope;
     import dmd.expression : Expression;
     import dmd.func : FuncDeclaration;
@@ -1340,6 +1341,7 @@ extern (C++) struct Target
  */
 struct TargetC
 {
+nothrow:
     enum Runtime : ubyte
     {
         Unspecified,
@@ -1439,6 +1441,7 @@ struct TargetC
  */
 struct TargetCPP
 {
+nothrow:
     import dmd.dsymbol : Dsymbol;
     import dmd.dclass : ClassDeclaration;
     import dmd.func : FuncDeclaration;
@@ -1616,6 +1619,7 @@ struct TargetCPP
  */
 struct TargetObjC
 {
+nothrow:
     bool supported;     /// set if compiler can interface with Objective-C
 
     extern (D) void initialize(ref const Param params, ref const Target target) @safe

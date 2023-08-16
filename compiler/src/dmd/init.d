@@ -42,6 +42,7 @@ alias INITinterpret = NeedInterpret.INITinterpret;
  */
 extern (C++) class Initializer : ASTNode
 {
+nothrow:
     Loc loc;
     InitKind kind;
 
@@ -106,6 +107,7 @@ extern (C++) class Initializer : ASTNode
  */
 extern (C++) final class VoidInitializer : Initializer
 {
+nothrow:
     Type type;      // type that this will initialize to
 
     extern (D) this(const ref Loc loc) @safe
@@ -123,6 +125,7 @@ extern (C++) final class VoidInitializer : Initializer
  */
 extern (C++) final class ErrorInitializer : Initializer
 {
+nothrow:
     extern (D) this() @safe
     {
         super(Loc.initial, InitKind.error);
@@ -138,6 +141,7 @@ extern (C++) final class ErrorInitializer : Initializer
  */
 extern (C++) final class StructInitializer : Initializer
 {
+nothrow:
     Identifiers field;      // of Identifier *'s
     Initializers value;     // parallel array of Initializer *'s
 
@@ -163,6 +167,7 @@ extern (C++) final class StructInitializer : Initializer
  */
 extern (C++) final class ArrayInitializer : Initializer
 {
+nothrow:
     Expressions index;      // indices
     Initializers value;     // of Initializer *'s
     uint dim;               // length of array being initialized
@@ -203,6 +208,7 @@ extern (C++) final class ArrayInitializer : Initializer
  */
 extern (C++) final class ExpInitializer : Initializer
 {
+nothrow:
     bool expandTuples;
     Expression exp;
 
@@ -223,6 +229,7 @@ extern (C++) final class ExpInitializer : Initializer
  */
 struct Designator
 {
+nothrow:
     Expression exp;     /// [ constant-expression ]
     Identifier ident;   /// . identifier
 
@@ -245,6 +252,7 @@ struct DesigInit
  */
 extern (C++) final class CInitializer : Initializer
 {
+nothrow:
     DesigInits initializerList; /// initializer-list
     Type type;              /// type that array will be used to initialize
     bool sem;               /// true if semantic() is run
@@ -267,7 +275,7 @@ extern (C++) final class CInitializer : Initializer
  * Returns:
  *      the copy
  */
-Initializer syntaxCopy(Initializer inx)
+Initializer syntaxCopy(Initializer inx) nothrow
 {
     static Initializer visitVoid(VoidInitializer vi)
     {
@@ -377,7 +385,7 @@ mixin template VisitInitializer(Result)
  *      handler = string for the name of the visit handler
  * Returns: boilerplate code for a case
  */
-string visitCase(string handler) pure @safe
+string visitCase(string handler) nothrow pure @safe
 {
     if (__ctfe)
     {

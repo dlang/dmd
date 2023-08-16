@@ -43,7 +43,7 @@ import dmd.func : setUnsafe, setUnsafePreview;
  *      true if error
  */
 
-bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
+bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg) nothrow
 {
     //printf("checkUnsafeAccess(e: '%s', readonly: %d, printmsg: %d)\n", e.toChars(), readonly, printmsg);
     if (e.op != EXP.dotVariable)
@@ -147,7 +147,7 @@ bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
  * Returns:
  *      true if @safe
  */
-bool isSafeCast(Expression e, Type tfrom, Type tto)
+bool isSafeCast(Expression e, Type tfrom, Type tto) nothrow
 {
     // Implicit conversions are always safe
     if (tfrom.implicitConvTo(tto))
@@ -236,7 +236,7 @@ bool isSafeCast(Expression e, Type tfrom, Type tto)
  * Returns:
  *      true if error
  */
-bool checkUnsafeDotExp(Scope* sc, Expression e, Identifier id, int flag)
+bool checkUnsafeDotExp(Scope* sc, Expression e, Identifier id, int flag) nothrow
 {
     if (!(flag & DotExpFlag.noDeref)) // this use is attempting a dereference
     {

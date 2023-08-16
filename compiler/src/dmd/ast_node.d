@@ -22,5 +22,5 @@ extern (C++) abstract class ASTNode : RootObject
      * Params:
      *  v = the visitor to use when visiting this node
      */
-    abstract void accept(Visitor v);
+    abstract void accept(Visitor v) nothrow;
 }

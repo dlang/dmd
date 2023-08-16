@@ -48,7 +48,7 @@ import dmd.visitor;
  * Returns:
  *   FuncDeclaration of `toString()` if found, `null` if not
  */
-extern (C++) FuncDeclaration search_toString(StructDeclaration sd)
+extern (C++) FuncDeclaration search_toString(StructDeclaration sd) nothrow
 {
     Dsymbol s = search_function(sd, Id.tostring);
     FuncDeclaration fd = s ? s.isFuncDeclaration() : null;
@@ -71,7 +71,7 @@ extern (C++) FuncDeclaration search_toString(StructDeclaration sd)
  *      sc = context
  *      t = type that TypeInfo is being generated for
  */
-extern (C++) void semanticTypeInfo(Scope* sc, Type t)
+extern (C++) void semanticTypeInfo(Scope* sc, Type t) nothrow
 {
     if (sc)
     {
@@ -195,6 +195,7 @@ enum StructFlags : int
  */
 extern (C++) class StructDeclaration : AggregateDeclaration
 {
+nothrow:
     FuncDeclarations postblits; // Array of postblit functions
     FuncDeclaration postblit;   // aggregate postblit
 
@@ -569,7 +570,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
  * Returns:
  *      true if it's all binary 0
  */
-bool _isZeroInit(Expression exp)
+bool _isZeroInit(Expression exp) nothrow
 {
     switch (exp.op)
     {
@@ -658,6 +659,7 @@ bool _isZeroInit(Expression exp)
  */
 extern (C++) final class UnionDeclaration : StructDeclaration
 {
+nothrow:
     extern (D) this(const ref Loc loc, Identifier id)
     {
         super(loc, id, false);

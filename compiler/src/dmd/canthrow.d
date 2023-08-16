@@ -50,7 +50,7 @@ enum CT : BE
  * Returns true if the expression may throw exceptions.
  * If 'mustNotThrow' is true, generate an error if it throws
  */
-extern (C++) /* CT */ BE canThrow(Expression e, FuncDeclaration func, bool mustNotThrow)
+extern (C++) /* CT */ BE canThrow(Expression e, FuncDeclaration func, bool mustNotThrow) nothrow
 {
     //printf("Expression::canThrow(%d) %s\n", mustNotThrow, e.toChars());
     // stop walking if we determine this expression can throw
@@ -61,7 +61,7 @@ extern (C++) /* CT */ BE canThrow(Expression e, FuncDeclaration func, bool mustN
         bool mustNotThrow;
         CT result;
 
-    public:
+    nothrow public:
         extern (D) this(FuncDeclaration func, bool mustNotThrow) scope @safe
         {
             this.func = func;
@@ -222,7 +222,7 @@ extern (C++) /* CT */ BE canThrow(Expression e, FuncDeclaration func, bool mustN
  * Does symbol, when initialized, throw?
  * Mirrors logic in Dsymbol_toElem().
  */
-private CT Dsymbol_canThrow(Dsymbol s, FuncDeclaration func, bool mustNotThrow)
+private CT Dsymbol_canThrow(Dsymbol s, FuncDeclaration func, bool mustNotThrow) nothrow
 {
     CT result;
 

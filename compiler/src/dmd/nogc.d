@@ -36,7 +36,7 @@ import dmd.visitor;
 extern (C++) final class NOGCVisitor : StoppableVisitor
 {
     alias visit = typeof(super).visit;
-public:
+nothrow public:
     FuncDeclaration f;
     bool checkOnly;     // don't print errors
     bool err;
@@ -211,7 +211,7 @@ public:
     }
 }
 
-Expression checkGC(Scope* sc, Expression e)
+Expression checkGC(Scope* sc, Expression e) nothrow
 {
     if (sc.flags & SCOPE.ctfeBlock)     // ignore GC in ctfe blocks
         return e;
@@ -252,7 +252,7 @@ Expression checkGC(Scope* sc, Expression e)
  * Parameters:
  *  fd = The function declaration to remove `_d_HookTraceImpl` from
  */
-private FuncDeclaration stripHookTraceImpl(FuncDeclaration fd)
+private FuncDeclaration stripHookTraceImpl(FuncDeclaration fd) nothrow
 {
     import dmd.id : Id;
     import dmd.dsymbol : Dsymbol;

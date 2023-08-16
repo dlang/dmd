@@ -38,6 +38,7 @@ import dmd.visitor;
  */
 extern (C++) struct BaseClass
 {
+nothrow:
     Type type;          // (before semantic processing)
 
     ClassDeclaration sym;
@@ -140,6 +141,7 @@ enum ClassFlags : uint
  */
 extern (C++) class ClassDeclaration : AggregateDeclaration
 {
+nothrow:
     extern (C++) __gshared
     {
         // Names found by reading object.d in druntime
@@ -1007,6 +1009,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
  */
 extern (C++) final class InterfaceDeclaration : ClassDeclaration
 {
+nothrow:
     extern (D) this(const ref Loc loc, Identifier id, BaseClasses* baseclasses)
     {
         super(loc, id, baseclasses, null, false);

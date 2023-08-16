@@ -51,7 +51,7 @@ import dmd.visitor;
  * Returns:
  *     `TypeIdentifier` corresponding to `object.Throwable`
  */
-TypeIdentifier getThrowable()
+TypeIdentifier getThrowable() nothrow
 {
     auto tid = new TypeIdentifier(Loc.initial, Id.empty);
     tid.addIdent(Id.object);
@@ -63,7 +63,7 @@ TypeIdentifier getThrowable()
  * Returns:
  *      TypeIdentifier corresponding to `object.Exception`
  */
-TypeIdentifier getException()
+TypeIdentifier getException() nothrow
 {
     auto tid = new TypeIdentifier(Loc.initial, Id.empty);
     tid.addIdent(Id.object);
@@ -76,6 +76,7 @@ TypeIdentifier getException()
  */
 extern (C++) abstract class Statement : ASTNode
 {
+nothrow:
     const Loc loc;
     const STMT stmt;
 
@@ -424,6 +425,7 @@ extern (C++) abstract class Statement : ASTNode
  */
 extern (C++) final class ErrorStatement : Statement
 {
+nothrow:
     extern (D) this()
     {
         super(Loc.initial, STMT.Error);
@@ -445,6 +447,7 @@ extern (C++) final class ErrorStatement : Statement
  */
 extern (C++) final class PeelStatement : Statement
 {
+nothrow:
     Statement s;
 
     extern (D) this(Statement s) @safe
@@ -465,6 +468,7 @@ extern (C++) final class PeelStatement : Statement
  */
 extern (C++) class ExpStatement : Statement
 {
+nothrow:
     Expression exp;
 
     final extern (D) this(const ref Loc loc, Expression exp) @safe
@@ -505,6 +509,7 @@ extern (C++) class ExpStatement : Statement
  */
 extern (C++) final class DtorExpStatement : ExpStatement
 {
+nothrow:
     // Wraps an expression that is the destruction of 'var'
     VarDeclaration var;
 
@@ -531,6 +536,7 @@ extern (C++) final class DtorExpStatement : ExpStatement
 // Note: was called CompileStatement
 extern (C++) final class MixinStatement : Statement
 {
+nothrow:
     Expressions* exps;
 
     extern (D) this(const ref Loc loc, Expression exp)
@@ -561,6 +567,7 @@ extern (C++) final class MixinStatement : Statement
  */
 extern (C++) class CompoundStatement : Statement
 {
+nothrow:
     Statements* statements;
 
     /**
@@ -649,6 +656,7 @@ extern (C++) class CompoundStatement : Statement
  */
 extern (C++) final class CompoundDeclarationStatement : CompoundStatement
 {
+nothrow:
     extern (D) this(const ref Loc loc, Statements* statements) @safe
     {
         super(loc, statements, STMT.CompoundDeclaration);
@@ -676,6 +684,7 @@ extern (C++) final class CompoundDeclarationStatement : CompoundStatement
  */
 extern (C++) final class UnrolledLoopStatement : Statement
 {
+nothrow:
     Statements* statements;
 
     extern (D) this(const ref Loc loc, Statements* statements) @safe
@@ -714,6 +723,7 @@ extern (C++) final class UnrolledLoopStatement : Statement
  */
 extern (C++) final class ScopeStatement : Statement
 {
+nothrow:
     Statement statement;
     Loc endloc;                 // location of closing curly bracket
 
@@ -762,6 +772,7 @@ extern (C++) final class ScopeStatement : Statement
  */
 extern (C++) final class ForwardingStatement : Statement
 {
+nothrow:
     /// The symbol containing the `static foreach` variables.
     ForwardingScopeDsymbol sym = null;
     /// The wrapped statement.
@@ -799,6 +810,7 @@ extern (C++) final class ForwardingStatement : Statement
  */
 extern (C++) final class WhileStatement : Statement
 {
+nothrow:
     Parameter param;
     Expression condition;
     Statement _body;
@@ -842,6 +854,7 @@ extern (C++) final class WhileStatement : Statement
  */
 extern (C++) final class DoStatement : Statement
 {
+nothrow:
     Statement _body;
     Expression condition;
     Loc endloc;                 // location of ';' after while
@@ -883,6 +896,7 @@ extern (C++) final class DoStatement : Statement
  */
 extern (C++) final class ForStatement : Statement
 {
+nothrow:
     Statement _init;
     Expression condition;
     Expression increment;
@@ -941,6 +955,7 @@ extern (C++) final class ForStatement : Statement
  */
 extern (C++) final class ForeachStatement : Statement
 {
+nothrow:
     TOK op;                     // TOK.foreach_ or TOK.foreach_reverse_
     Parameters* parameters;     // array of Parameters, one for each ForeachType
     Expression aggr;            // ForeachAggregate
@@ -995,6 +1010,7 @@ extern (C++) final class ForeachStatement : Statement
  */
 extern (C++) final class ForeachRangeStatement : Statement
 {
+nothrow:
     TOK op;                 // TOK.foreach_ or TOK.foreach_reverse_
     Parameter prm;          // loop index variable
     Expression lwr;
@@ -1041,6 +1057,7 @@ extern (C++) final class ForeachRangeStatement : Statement
  */
 extern (C++) final class IfStatement : Statement
 {
+nothrow:
     Parameter prm;
     Expression condition;
     Statement ifbody;
@@ -1089,6 +1106,7 @@ extern (C++) final class IfStatement : Statement
  */
 extern (C++) final class ConditionalStatement : Statement
 {
+nothrow:
     Condition condition;
     Statement ifbody;
     Statement elsebody;
@@ -1126,6 +1144,7 @@ extern (C++) final class ConditionalStatement : Statement
  */
 extern (C++) final class StaticForeachStatement : Statement
 {
+nothrow:
     StaticForeach sfe;
 
     extern (D) this(const ref Loc loc, StaticForeach sfe) @safe
@@ -1150,6 +1169,7 @@ extern (C++) final class StaticForeachStatement : Statement
  */
 extern (C++) final class PragmaStatement : Statement
 {
+nothrow:
     const Identifier ident;
     Expressions* args;      // array of Expression's
     Statement _body;
@@ -1178,6 +1198,7 @@ extern (C++) final class PragmaStatement : Statement
  */
 extern (C++) final class StaticAssertStatement : Statement
 {
+nothrow:
     StaticAssert sa;
 
     extern (D) this(StaticAssert sa) @safe
@@ -1202,6 +1223,7 @@ extern (C++) final class StaticAssertStatement : Statement
  */
 extern (C++) final class SwitchStatement : Statement
 {
+nothrow:
     Expression condition;           /// switch(condition)
     Statement _body;                ///
     bool isFinal;                   /// https://dlang.org/spec/statement.html#final-switch-statement
@@ -1285,6 +1307,7 @@ extern (C++) final class SwitchStatement : Statement
  */
 extern (C++) final class CaseStatement : Statement
 {
+nothrow:
     Expression exp;
     Statement statement;
 
@@ -1315,6 +1338,7 @@ extern (C++) final class CaseStatement : Statement
  */
 extern (C++) final class CaseRangeStatement : Statement
 {
+nothrow:
     Expression first;
     Expression last;
     Statement statement;
@@ -1343,6 +1367,7 @@ extern (C++) final class CaseRangeStatement : Statement
  */
 extern (C++) final class DefaultStatement : Statement
 {
+nothrow:
     Statement statement;
 
     VarDeclaration lastVar;
@@ -1369,6 +1394,7 @@ extern (C++) final class DefaultStatement : Statement
  */
 extern (C++) final class GotoDefaultStatement : Statement
 {
+nothrow:
     SwitchStatement sw;
 
     extern (D) this(const ref Loc loc) @safe
@@ -1392,6 +1418,7 @@ extern (C++) final class GotoDefaultStatement : Statement
  */
 extern (C++) final class GotoCaseStatement : Statement
 {
+nothrow:
     Expression exp;     // null, or which case to goto
 
     CaseStatement cs;   // case statement it resolves to
@@ -1417,6 +1444,7 @@ extern (C++) final class GotoCaseStatement : Statement
  */
 extern (C++) final class SwitchErrorStatement : Statement
 {
+nothrow:
     Expression exp;
 
     extern (D) this(const ref Loc loc) @safe
@@ -1441,6 +1469,7 @@ extern (C++) final class SwitchErrorStatement : Statement
  */
 extern (C++) final class ReturnStatement : Statement
 {
+nothrow:
     Expression exp;
     size_t caseDim;
 
@@ -1471,6 +1500,7 @@ extern (C++) final class ReturnStatement : Statement
  */
 extern (C++) final class BreakStatement : Statement
 {
+nothrow:
     Identifier ident;
 
     extern (D) this(const ref Loc loc, Identifier ident) @safe
@@ -1495,6 +1525,7 @@ extern (C++) final class BreakStatement : Statement
  */
 extern (C++) final class ContinueStatement : Statement
 {
+nothrow:
     Identifier ident;
 
     extern (D) this(const ref Loc loc, Identifier ident) @safe
@@ -1519,6 +1550,7 @@ extern (C++) final class ContinueStatement : Statement
  */
 extern (C++) final class SynchronizedStatement : Statement
 {
+nothrow:
     Expression exp;
     Statement _body;
 
@@ -1555,6 +1587,7 @@ extern (C++) final class SynchronizedStatement : Statement
  */
 extern (C++) final class WithStatement : Statement
 {
+nothrow:
     Expression exp;
     Statement _body;
     VarDeclaration wthis;
@@ -1584,6 +1617,7 @@ extern (C++) final class WithStatement : Statement
  */
 extern (C++) final class TryCatchStatement : Statement
 {
+nothrow:
     Statement _body;
     Catches* catches;
 
@@ -1622,6 +1656,7 @@ extern (C++) final class TryCatchStatement : Statement
  */
 extern (C++) final class Catch : RootObject
 {
+nothrow:
     const Loc loc;
     Type type;
     Identifier ident;
@@ -1655,6 +1690,7 @@ extern (C++) final class Catch : RootObject
  */
 extern (C++) final class TryFinallyStatement : Statement
 {
+nothrow:
     Statement _body;
     Statement finalbody;
 
@@ -1700,6 +1736,7 @@ extern (C++) final class TryFinallyStatement : Statement
  */
 extern (C++) final class ScopeGuardStatement : Statement
 {
+nothrow:
     TOK tok;
     Statement statement;
 
@@ -1726,6 +1763,7 @@ extern (C++) final class ScopeGuardStatement : Statement
  */
 extern (C++) final class ThrowStatement : Statement
 {
+nothrow:
     Expression exp;
 
     // was generated by the compiler, wasn't present in source code
@@ -1754,6 +1792,7 @@ extern (C++) final class ThrowStatement : Statement
  */
 extern (C++) final class DebugStatement : Statement
 {
+nothrow:
     Statement statement;
 
     extern (D) this(const ref Loc loc, Statement statement) @safe
@@ -1778,6 +1817,7 @@ extern (C++) final class DebugStatement : Statement
  */
 extern (C++) final class GotoStatement : Statement
 {
+nothrow:
     Identifier ident;
     LabelDsymbol label;
     Statement tryBody;              /// set to TryCatchStatement or TryFinallyStatement if in _body portion
@@ -1887,6 +1927,7 @@ extern (C++) final class GotoStatement : Statement
  */
 extern (C++) final class LabelStatement : Statement
 {
+nothrow:
     Identifier ident;
     Statement statement;
 
@@ -1921,6 +1962,7 @@ extern (C++) final class LabelStatement : Statement
  */
 extern (C++) final class LabelDsymbol : Dsymbol
 {
+nothrow:
     LabelStatement statement;
 
     bool deleted;           // set if rewritten to return in foreach delegate
@@ -1957,6 +1999,7 @@ extern (C++) final class LabelDsymbol : Dsymbol
  */
 extern (C++) class AsmStatement : Statement
 {
+nothrow:
     Token* tokens;
 
     extern (D) this(const ref Loc loc, Token* tokens) @safe
@@ -1987,6 +2030,7 @@ extern (C++) class AsmStatement : Statement
  */
 extern (C++) final class InlineAsmStatement : AsmStatement
 {
+nothrow:
     code* asmcode;
     uint asmalign;  // alignment of this statement
     uint regs;      // mask of registers modified (must match regm_t in back end)
@@ -2015,6 +2059,7 @@ extern (C++) final class InlineAsmStatement : AsmStatement
  */
 extern (C++) final class GccAsmStatement : AsmStatement
 {
+nothrow:
     StorageClass stc;           // attributes of the asm {} block
     Expression insn;            // string expression that is the template for assembler code
     Expressions* args;          // input and output operands of the statement
@@ -2046,6 +2091,7 @@ extern (C++) final class GccAsmStatement : AsmStatement
  */
 extern (C++) final class CompoundAsmStatement : CompoundStatement
 {
+nothrow:
     StorageClass stc; // postfix attributes like nothrow/pure/@trusted
 
     extern (D) this(const ref Loc loc, Statements* statements, StorageClass stc) @safe
@@ -2075,6 +2121,7 @@ extern (C++) final class CompoundAsmStatement : CompoundStatement
  */
 extern (C++) final class ImportStatement : Statement
 {
+nothrow:
     Dsymbols* imports;      // Array of Import's
 
     extern (D) this(const ref Loc loc, Dsymbols* imports) @safe
@@ -2160,7 +2207,7 @@ mixin template VisitStatement(Result)
  *      handler = string for the name of the visit handler
  * Returns: boilerplate code for a case
  */
-pure string visitStmtCase(string handler) @safe
+pure string visitStmtCase(string handler) nothrow @safe
 {
     if (__ctfe)
     {

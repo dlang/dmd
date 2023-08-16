@@ -268,7 +268,7 @@ bool isSomeChar(TY ty) pure nothrow @nogc @safe
  *      isref = if true, check `ref t`; otherwise, check just `t`
  *      t = the type that is being checked
  */
-int mutabilityOfType(bool isref, Type t)
+int mutabilityOfType(bool isref, Type t) nothrow
 {
     if (isref)
     {
@@ -332,6 +332,7 @@ enum Covariant
  */
 extern (C++) abstract class Type : ASTNode
 {
+nothrow:
     TY ty;
     MOD mod; // modifiers MODxxxx
     char* deco;
@@ -2780,6 +2781,7 @@ extern (C++) abstract class Type : ASTNode
  */
 extern (C++) final class TypeError : Type
 {
+nothrow:
     extern (D) this() @safe
     {
         super(Terror);
@@ -2816,6 +2818,7 @@ extern (C++) final class TypeError : Type
  */
 extern (C++) abstract class TypeNext : Type
 {
+nothrow:
     Type next;
 
     final extern (D) this(TY ty, Type next) @safe
@@ -3115,6 +3118,7 @@ extern (C++) abstract class TypeNext : Type
  */
 extern (C++) final class TypeBasic : Type
 {
+nothrow:
     const(char)* dstring;
     uint flags;
 
@@ -3515,6 +3519,7 @@ extern (C++) final class TypeBasic : Type
  */
 extern (C++) final class TypeVector : Type
 {
+nothrow:
     Type basetype;
 
     extern (D) this(Type basetype) @safe
@@ -3632,6 +3637,7 @@ extern (C++) final class TypeVector : Type
  */
 extern (C++) abstract class TypeArray : TypeNext
 {
+nothrow:
     final extern (D) this(TY ty, Type next) @safe
     {
         super(ty, next);
@@ -3648,6 +3654,7 @@ extern (C++) abstract class TypeArray : TypeNext
  */
 extern (C++) final class TypeSArray : TypeArray
 {
+nothrow:
     Expression dim;
 
     extern (D) this(Type t, Expression dim) @safe
@@ -3874,6 +3881,7 @@ extern (C++) final class TypeSArray : TypeArray
  */
 extern (C++) final class TypeDArray : TypeArray
 {
+nothrow:
     extern (D) this(Type t) @safe
     {
         super(Tarray, t);
@@ -3969,6 +3977,7 @@ extern (C++) final class TypeDArray : TypeArray
  */
 extern (C++) final class TypeAArray : TypeArray
 {
+nothrow:
     Type index;     // key type
     Loc loc;
 
@@ -4066,6 +4075,7 @@ extern (C++) final class TypeAArray : TypeArray
  */
 extern (C++) final class TypePointer : TypeNext
 {
+nothrow:
     extern (D) this(Type t) @safe
     {
         super(Tpointer, t);
@@ -4173,6 +4183,7 @@ extern (C++) final class TypePointer : TypeNext
  */
 extern (C++) final class TypeReference : TypeNext
 {
+nothrow:
     extern (D) this(Type t) @safe
     {
         super(Treference, t);
@@ -4230,6 +4241,7 @@ alias TRUSTformatSystem = TRUSTformat.TRUSTformatSystem;
  */
 extern (C++) final class TypeFunction : TypeNext
 {
+nothrow:
     // .next is the return type
 
     ParameterList parameterList;   // function parameters
@@ -5011,6 +5023,7 @@ extern (C++) final class TypeFunction : TypeNext
  */
 extern (C++) final class TypeDelegate : TypeNext
 {
+nothrow:
     // .next is a TypeFunction
 
     extern (D) this(TypeFunction t) @safe
@@ -5108,6 +5121,7 @@ extern (C++) final class TypeDelegate : TypeNext
  */
 extern (C++) final class TypeTraits : Type
 {
+nothrow:
     Loc loc;
     /// The expression to resolve as type or symbol.
     TraitsExp exp;
@@ -5166,6 +5180,7 @@ extern (C++) final class TypeTraits : Type
  */
 extern (C++) final class TypeMixin : Type
 {
+nothrow:
     Loc loc;
     Expressions* exps;
     RootObject obj; // cached result of semantic analysis.
@@ -5211,6 +5226,7 @@ extern (C++) final class TypeMixin : Type
  */
 extern (C++) abstract class TypeQualified : Type
 {
+nothrow:
     Loc loc;
 
     // array of Identifier and TypeInstance,
@@ -5296,6 +5312,7 @@ extern (C++) abstract class TypeQualified : Type
  */
 extern (C++) final class TypeIdentifier : TypeQualified
 {
+nothrow:
     Identifier ident;
 
     // The symbol representing this identifier, before alias resolution
@@ -5358,6 +5375,7 @@ extern (C++) final class TypeIdentifier : TypeQualified
  */
 extern (C++) final class TypeInstance : TypeQualified
 {
+nothrow:
     TemplateInstance tempinst;
 
     extern (D) this(const ref Loc loc, TemplateInstance tempinst)
@@ -5402,6 +5420,7 @@ extern (C++) final class TypeInstance : TypeQualified
  */
 extern (C++) final class TypeTypeof : TypeQualified
 {
+nothrow:
     Expression exp;
     int inuse;
 
@@ -5453,6 +5472,7 @@ extern (C++) final class TypeTypeof : TypeQualified
  */
 extern (C++) final class TypeReturn : TypeQualified
 {
+nothrow:
     extern (D) this(const ref Loc loc)
     {
         super(Treturn, loc);
@@ -5490,6 +5510,7 @@ extern (C++) final class TypeReturn : TypeQualified
  */
 extern (C++) final class TypeStruct : Type
 {
+nothrow:
     StructDeclaration sym;
     AliasThisRec att = AliasThisRec.fwdref;
     bool inuse = false; // struct currently subject of recursive method call
@@ -5828,6 +5849,7 @@ extern (C++) final class TypeStruct : Type
  */
 extern (C++) final class TypeEnum : Type
 {
+nothrow:
     EnumDeclaration sym;
 
     extern (D) this(EnumDeclaration sym) @safe
@@ -6004,6 +6026,7 @@ extern (C++) final class TypeEnum : Type
  */
 extern (C++) final class TypeClass : Type
 {
+nothrow:
     ClassDeclaration sym;
     AliasThisRec att = AliasThisRec.fwdref;
     CPPMANGLE cppmangle = CPPMANGLE.def;
@@ -6179,6 +6202,7 @@ extern (C++) final class TypeClass : Type
  */
 extern (C++) final class TypeTuple : Type
 {
+nothrow:
     // 'logically immutable' cached global - don't modify!
     __gshared TypeTuple empty = new TypeTuple();
 
@@ -6340,6 +6364,7 @@ extern (C++) final class TypeTuple : Type
  */
 extern (C++) final class TypeSlice : TypeNext
 {
+nothrow:
     Expression lwr;
     Expression upr;
 
@@ -6373,6 +6398,7 @@ extern (C++) final class TypeSlice : TypeNext
  */
 extern (C++) final class TypeNull : Type
 {
+nothrow:
     extern (D) this() @safe
     {
         //printf("TypeNull %p\n", this);
@@ -6438,6 +6464,7 @@ extern (C++) final class TypeNull : Type
  */
 extern (C++) final class TypeNoreturn : Type
 {
+nothrow:
     extern (D) this() @safe
     {
         //printf("TypeNoreturn %p\n", this);
@@ -6508,6 +6535,7 @@ extern (C++) final class TypeNoreturn : Type
  */
 extern (C++) final class TypeTag : Type
 {
+nothrow:
     Loc loc;                /// location of declaration
     TOK tok;                /// TOK.struct_, TOK.union_, TOK.enum_
     structalign_t packalign; /// alignment of struct/union fields
@@ -6558,6 +6586,7 @@ extern (C++) final class TypeTag : Type
  */
 extern (C++) struct ParameterList
 {
+nothrow:
     /// The raw (unexpanded) formal parameters, possibly containing tuples.
     Parameters* parameters;
     StorageClass stc;                   // storage class of ...
@@ -6659,6 +6688,7 @@ extern (C++) struct ParameterList
  */
 extern (C++) final class Parameter : ASTNode
 {
+nothrow:
     import dmd.attrib : UserAttributeDeclaration;
 
     Loc loc;
@@ -6801,12 +6831,12 @@ extern (C++) final class Parameter : ASTNode
     }
 
     /// Type of delegate when iterating solely on the parameters
-    alias ForeachDg = extern (D) int delegate(size_t paramidx, Parameter param);
+    alias ForeachDg = extern (D) int delegate(size_t paramidx, Parameter param) nothrow;
     /// Type of delegate when iterating on both the original set of parameters,
     /// and the type tuple. Useful for semantic analysis.
     /// 'o' stands for 'original' and 'e' stands for 'expanded'.
     alias SemanticForeachDg = extern (D) int delegate(
-        size_t oidx, Parameter oparam, size_t eidx, Parameter eparam);
+        size_t oidx, Parameter oparam, size_t eidx, Parameter eparam) nothrow;
 
     /***************************************
      * Expands tuples in args in depth first order. Calls
@@ -7002,7 +7032,7 @@ extern (C++) final class Parameter : ASTNode
  *    The fully-qualified names of both types if the two type names are not the same,
  *    or the unqualified names of both types if the two type names are the same.
  */
-const(char*)[2] toAutoQualChars(Type t1, Type t2)
+const(char*)[2] toAutoQualChars(Type t1, Type t2) nothrow
 {
     auto s1 = t1.toChars();
     auto s2 = t2.toChars();
@@ -7020,7 +7050,7 @@ const(char*)[2] toAutoQualChars(Type t1, Type t2)
  * For each active modifier (MODFlags.const_, MODFlags.immutable_, etc) call `fp` with a
  * void* for the work param and a string representation of the attribute.
  */
-void modifiersApply(const TypeFunction tf, void delegate(string) dg)
+void modifiersApply(const TypeFunction tf, void delegate(string) nothrow dg) nothrow
 {
     immutable ubyte[4] modsArr = [MODFlags.const_, MODFlags.immutable_, MODFlags.wild, MODFlags.shared_];
 
@@ -7037,7 +7067,7 @@ void modifiersApply(const TypeFunction tf, void delegate(string) dg)
  * For each active attribute (ref/const/nogc/etc) call `fp` with a void* for the
  * work param and a string representation of the attribute.
  */
-void attributesApply(const TypeFunction tf, void delegate(string) dg, TRUSTformat trustFormat = TRUSTformatDefault)
+void attributesApply(const TypeFunction tf, void delegate(string) nothrow dg, TRUSTformat trustFormat = TRUSTformatDefault) nothrow
 {
     if (tf.purity)
         dg("pure");
@@ -7072,7 +7102,7 @@ void attributesApply(const TypeFunction tf, void delegate(string) dg, TRUSTforma
  * If the type is a class or struct, returns the symbol for it,
  * else null.
  */
-extern (C++) AggregateDeclaration isAggregate(Type t)
+extern (C++) AggregateDeclaration isAggregate(Type t) nothrow
 {
     t = t.toBasetype();
     if (t.ty == Tclass)
@@ -7090,7 +7120,7 @@ extern (C++) AggregateDeclaration isAggregate(Type t)
  * Returns:
  *      true if an expression of type t can be e1 in an array expression
  */
-bool isIndexableNonAggregate(Type t)
+bool isIndexableNonAggregate(Type t) nothrow
 {
     t = t.toBasetype();
     return (t.ty == Tpointer || t.ty == Tsarray || t.ty == Tarray || t.ty == Taarray ||
@@ -7104,7 +7134,7 @@ bool isIndexableNonAggregate(Type t)
  * Returns:
  *      true if we can copy it
  */
-bool isCopyable(Type t)
+bool isCopyable(Type t) nothrow
 {
     //printf("isCopyable() %s\n", t.toChars());
     if (auto ts = t.isTypeStruct())
@@ -7222,7 +7252,7 @@ const(char)* toChars(ScopeRef sr) pure nothrow @nogc @safe
  * ```
  */
 private extern(D) bool isCopyConstructorCallable (StructDeclaration argStruct,
-    Expression arg, Type tprm, Scope* sc, const(char)** pMessage)
+    Expression arg, Type tprm, Scope* sc, const(char)** pMessage) nothrow
 {
     auto tmp = new VarDeclaration(arg.loc, tprm, Identifier.generateId("__copytmp"), null);
     tmp.storage_class = STC.rvalue | STC.temp | STC.ctfe;
@@ -7310,7 +7340,7 @@ private extern(D) bool isCopyConstructorCallable (StructDeclaration argStruct,
  * Returns: Whether `trailingArgs` match `p`.
  */
 private extern(D) MATCH argumentMatchParameter (TypeFunction tf, Parameter p,
-    Expression arg, ubyte wildmatch, int flag, Scope* sc, const(char)** pMessage)
+    Expression arg, ubyte wildmatch, int flag, Scope* sc, const(char)** pMessage) nothrow
 {
     //printf("arg: %s, type: %s\n", arg.toChars(), arg.type.toChars());
     MATCH m;
@@ -7465,7 +7495,7 @@ private extern(D) MATCH argumentMatchParameter (TypeFunction tf, Parameter p,
  * Returns: Whether `trailingArgs` match `p`.
  */
 private extern(D) MATCH matchTypeSafeVarArgs(TypeFunction tf, Parameter p,
-    Expression[] trailingArgs, const(char)** pMessage)
+    Expression[] trailingArgs, const(char)** pMessage) nothrow
 {
     Type tb = p.type.toBasetype();
 
@@ -7546,7 +7576,7 @@ private extern(D) MATCH matchTypeSafeVarArgs(TypeFunction tf, Parameter p,
  * Returns:
  *   A vector type suitable for the result of a vector comparison operation.
  */
-TypeVector toBooleanVector(TypeVector tv)
+TypeVector toBooleanVector(TypeVector tv) nothrow
 {
     Type telem = tv.elementType();
     switch (telem.ty)
@@ -7648,7 +7678,7 @@ mixin template VisitType(Result)
  *      handler = string for the name of the visit handler
  * Returns: boilerplate code for a case
  */
-pure string visitTYCase(string handler) @safe
+pure string visitTYCase(string handler) nothrow @safe
 {
     if (__ctfe)
     {

@@ -62,7 +62,7 @@ import dmd.backend.xmm;
  */
 
 version (none)
-public void iasm_term()
+public void iasm_term() nothrow
 {
     if (asmstate.bInit)
     {
@@ -80,7 +80,7 @@ public void iasm_term()
  * Returns:
  *      `s` on success, ErrorStatement if errors happened
  */
-public Statement inlineAsmSemantic(InlineAsmStatement s, Scope *sc)
+public Statement inlineAsmSemantic(InlineAsmStatement s, Scope *sc) nothrow
 {
     //printf("InlineAsmStatement.semantic()\n");
 
@@ -339,7 +339,7 @@ __gshared ASM_STATE asmstate;
  */
 struct REG
 {
-immutable:
+immutable nothrow:
     string regstr;
     ubyte val;
     opflag_t ty;
@@ -637,7 +637,7 @@ struct OPND
 /*******************************
  */
 
-void asm_chktok(TOK toknum, const(char)* msg)
+void asm_chktok(TOK toknum, const(char)* msg) nothrow
 {
     if (asmstate.tokValue != toknum)
     {
@@ -653,7 +653,7 @@ void asm_chktok(TOK toknum, const(char)* msg)
 /*******************************
  */
 
-PTRNTAB asm_classify(OP *pop, OPND[] opnds, out int outNumops)
+PTRNTAB asm_classify(OP *pop, OPND[] opnds, out int outNumops) nothrow
 {
     opflag_t[4] opflags;
     bool    bInvalid64bit = false;
@@ -1108,7 +1108,7 @@ version (none)
 /*******************************
  */
 
-opflag_t asm_determine_float_flags(ref OPND popnd)
+opflag_t asm_determine_float_flags(ref OPND popnd) nothrow
 {
     //printf("asm_determine_float_flags()\n");
 
@@ -1172,7 +1172,7 @@ version (none)
 /*******************************
  */
 
-opflag_t asm_determine_operand_flags(ref OPND popnd)
+opflag_t asm_determine_operand_flags(ref OPND popnd) nothrow
 {
     //printf("asm_determine_operand_flags()\n");
     Dsymbol ps;
@@ -1324,7 +1324,7 @@ opflag_t asm_determine_operand_flags(ref OPND popnd)
 
 code *asm_emit(Loc loc,
     uint usNumops, PTRNTAB ptb,
-    OP *pop, OPND[] opnds)
+    OP *pop, OPND[] opnds) nothrow
 {
     ubyte[16] instruction = void;
     size_t insIdx = 0;
@@ -2092,7 +2092,7 @@ L3:
 /*******************************
  */
 
-void asmerr(const(char)* format, ...)
+void asmerr(const(char)* format, ...) nothrow
 {
     if (asmstate.errors)
         return;
@@ -2108,7 +2108,7 @@ void asmerr(const(char)* format, ...)
 /*******************************
  */
 
-opflag_t asm_float_type_size(Type ptype, opflag_t *pusFloat)
+opflag_t asm_float_type_size(Type ptype, opflag_t *pusFloat) nothrow
 {
     *pusFloat = 0;
 
@@ -2144,14 +2144,14 @@ opflag_t asm_float_type_size(Type ptype, opflag_t *pusFloat)
 /*******************************
  */
 
-private @safe pure bool asm_isint(const ref OPND o)
+private nothrow @safe pure bool asm_isint(const ref OPND o)
 {
     if (o.base || o.s)
         return false;
     return true;
 }
 
-private @safe pure bool asm_isNonZeroInt(const ref OPND o)
+private nothrow @safe pure bool asm_isNonZeroInt(const ref OPND o)
 {
     if (o.base || o.s)
         return false;
@@ -2161,7 +2161,7 @@ private @safe pure bool asm_isNonZeroInt(const ref OPND o)
 /*******************************
  */
 
-private @safe pure bool asm_is_fpreg(const(char)[] szReg)
+private nothrow @safe pure bool asm_is_fpreg(const(char)[] szReg)
 {
     return szReg == "ST";
 }
@@ -2170,7 +2170,7 @@ private @safe pure bool asm_is_fpreg(const(char)[] szReg)
  * Merge operands o1 and o2 into a single operand, o1.
  */
 
-private void asm_merge_opnds(ref OPND o1, ref OPND o2)
+private void asm_merge_opnds(ref OPND o1, ref OPND o2) nothrow
 {
     void illegalAddressError(string debugWhy)
     {
@@ -2332,7 +2332,7 @@ private void asm_merge_opnds(ref OPND o1, ref OPND o2)
 /***************************************
  */
 
-void asm_merge_symbol(ref OPND o1, Dsymbol s)
+void asm_merge_symbol(ref OPND o1, Dsymbol s) nothrow
 {
     EnumMember em;
 
@@ -2420,17 +2420,17 @@ L2:
  */
 
 void asm_make_modrm_byte(
-        void delegate(ubyte) emit,
+        void delegate(ubyte) nothrow emit,
         code *pc,
         opflag_t usFlags,
-        scope OPND[] opnds)
+        scope OPND[] opnds) nothrow
 {
     struct MODRM_BYTE
     {
         uint rm;
         uint reg;
         uint mod;
-        uint auchOpcode() @safe
+        uint auchOpcode() nothrow @safe
         {
             assert(rm < 8);
             assert(reg < 8);
@@ -2444,7 +2444,7 @@ void asm_make_modrm_byte(
         uint base;
         uint index;
         uint ss;
-        uint auchOpcode() @safe
+        uint auchOpcode() nothrow @safe
         {
             assert(base < 8);
             assert(index < 8);
@@ -2917,7 +2917,7 @@ void asm_make_modrm_byte(
 /*******************************
  */
 
-regm_t asm_modify_regs(PTRNTAB ptb, scope OPND[] opnds)
+regm_t asm_modify_regs(PTRNTAB ptb, scope OPND[] opnds) nothrow
 {
     regm_t usRet = 0;
 
@@ -3003,7 +3003,7 @@ regm_t asm_modify_regs(PTRNTAB ptb, scope OPND[] opnds)
  *      true if match
  */
 
-bool asm_match_flags(opflag_t usOp, opflag_t usTable)
+bool asm_match_flags(opflag_t usOp, opflag_t usTable) nothrow
 {
     ASM_OPERAND_TYPE    aoptyTable;
     ASM_OPERAND_TYPE    aoptyOp;
@@ -3143,7 +3143,7 @@ Lmatch:
 /*******************************
  */
 
-bool asm_match_float_flags(opflag_t usOp, opflag_t usTable) @safe
+bool asm_match_float_flags(opflag_t usOp, opflag_t usTable) nothrow @safe
 {
     ASM_OPERAND_TYPE    aoptyTable;
     ASM_OPERAND_TYPE    aoptyOp;
@@ -3212,7 +3212,7 @@ bool asm_match_float_flags(opflag_t usOp, opflag_t usTable) @safe
  */
 
 //debug
- void asm_output_flags(opflag_t opflags)
+ void asm_output_flags(opflag_t opflags) nothrow
 {
     ASM_OPERAND_TYPE    aopty = ASM_GET_aopty(opflags);
     ASM_MODIFIERS       amod = ASM_GET_amod(opflags);
@@ -3326,7 +3326,7 @@ bool asm_match_float_flags(opflag_t usOp, opflag_t usTable) @safe
  */
 
 //debug
- void asm_output_popnd(const ref OPND popnd)
+ void asm_output_popnd(const ref OPND popnd) nothrow
 {
     if (popnd.segreg)
             printf("%s:", popnd.segreg.regstr.ptr);
@@ -3374,7 +3374,7 @@ bool asm_match_float_flags(opflag_t usOp, opflag_t usTable) @safe
             printf("+%llxh", cast(long)popnd.disp);
 }
 
-void printOperands(OP* pop, scope OPND[] opnds)
+void printOperands(OP* pop, scope OPND[] opnds) nothrow
 {
     printf("\t%s\t", asm_opstr(pop));
     foreach (i, ref  opnd; opnds)
@@ -3391,7 +3391,7 @@ void printOperands(OP* pop, scope OPND[] opnds)
 /*******************************
  */
 
-immutable(REG)* asm_reg_lookup(const(char)[] s)
+immutable(REG)* asm_reg_lookup(const(char)[] s) nothrow
 {
     //dbg_printf("asm_reg_lookup('%s')\n",s);
 
@@ -3419,7 +3419,7 @@ immutable(REG)* asm_reg_lookup(const(char)[] s)
 /*******************************
  */
 
-void asm_token()
+void asm_token() nothrow
 {
     if (asmstate.tok)
         asmstate.tok = asmstate.tok.next;
@@ -3429,7 +3429,7 @@ void asm_token()
 /*******************************
  */
 
-void asm_token_trans(Token *tok)
+void asm_token_trans(Token *tok) nothrow
 {
     asmstate.tokValue = TOK.endOfFile;
     if (tok)
@@ -3451,7 +3451,7 @@ void asm_token_trans(Token *tok)
 /*******************************
  */
 
-OpndSize asm_type_size(Type ptype, bool bPtr)
+OpndSize asm_type_size(Type ptype, bool bPtr) nothrow
 {
     OpndSize u;
 
@@ -3496,7 +3496,7 @@ OpndSize asm_type_size(Type ptype, bool bPtr)
  *              for optimizer.
  */
 
-code *asm_da_parse(OP *pop)
+code *asm_da_parse(OP *pop) nothrow
 {
     CodeBuilder cdb;
     cdb.ctor();
@@ -3538,7 +3538,7 @@ code *asm_da_parse(OP *pop)
  * Parse DB, DW, DD, DQ and DT expressions.
  */
 
-code *asm_db_parse(OP *pop)
+code *asm_db_parse(OP *pop) nothrow
 {
     union DT
     {
@@ -3712,7 +3712,7 @@ code *asm_db_parse(OP *pop)
  * Parse and get integer expression.
  */
 
-int asm_getnum()
+int asm_getnum() nothrow
 {
     int v;
     dinteger_t i;
@@ -3752,7 +3752,7 @@ int asm_getnum()
 /*******************************
  */
 
-void asm_cond_exp(out OPND o1)
+void asm_cond_exp(out OPND o1) nothrow
 {
     //printf("asm_cond_exp()\n");
     asm_log_or_exp(o1);
@@ -3774,7 +3774,7 @@ void asm_cond_exp(out OPND o1)
 /*******************************
  */
 
-void asm_log_or_exp(out OPND o1)
+void asm_log_or_exp(out OPND o1) nothrow
 {
     asm_log_and_exp(o1);
     while (asmstate.tokValue == TOK.orOr)
@@ -3794,7 +3794,7 @@ void asm_log_or_exp(out OPND o1)
 /*******************************
  */
 
-void asm_log_and_exp(out OPND o1)
+void asm_log_and_exp(out OPND o1) nothrow
 {
     asm_inc_or_exp(o1);
     while (asmstate.tokValue == TOK.andAnd)
@@ -3814,7 +3814,7 @@ void asm_log_and_exp(out OPND o1)
 /*******************************
  */
 
-void asm_inc_or_exp(out OPND o1)
+void asm_inc_or_exp(out OPND o1) nothrow
 {
     asm_xor_exp(o1);
     while (asmstate.tokValue == TOK.or)
@@ -3834,7 +3834,7 @@ void asm_inc_or_exp(out OPND o1)
 /*******************************
  */
 
-void asm_xor_exp(out OPND o1)
+void asm_xor_exp(out OPND o1) nothrow
 {
     asm_and_exp(o1);
     while (asmstate.tokValue == TOK.xor)
@@ -3854,7 +3854,7 @@ void asm_xor_exp(out OPND o1)
 /*******************************
  */
 
-void asm_and_exp(out OPND o1)
+void asm_and_exp(out OPND o1) nothrow
 {
     asm_equal_exp(o1);
     while (asmstate.tokValue == TOK.and)
@@ -3874,7 +3874,7 @@ void asm_and_exp(out OPND o1)
 /*******************************
  */
 
-void asm_equal_exp(out OPND o1)
+void asm_equal_exp(out OPND o1) nothrow
 {
     asm_rel_exp(o1);
     while (1)
@@ -3918,7 +3918,7 @@ void asm_equal_exp(out OPND o1)
 /*******************************
  */
 
-void asm_rel_exp(out OPND o1)
+void asm_rel_exp(out OPND o1) nothrow
 {
     asm_shift_exp(o1);
     while (1)
@@ -3968,7 +3968,7 @@ void asm_rel_exp(out OPND o1)
 /*******************************
  */
 
-void asm_shift_exp(out OPND o1)
+void asm_shift_exp(out OPND o1) nothrow
 {
     asm_add_exp(o1);
     while (asmstate.tokValue == TOK.leftShift || asmstate.tokValue == TOK.rightShift || asmstate.tokValue == TOK.unsignedRightShift)
@@ -3996,7 +3996,7 @@ void asm_shift_exp(out OPND o1)
 /*******************************
  */
 
-void asm_add_exp(out OPND o1)
+void asm_add_exp(out OPND o1) nothrow
 {
     asm_mul_exp(o1);
     while (1)
@@ -4039,7 +4039,7 @@ void asm_add_exp(out OPND o1)
 /*******************************
  */
 
-void asm_mul_exp(out OPND o1)
+void asm_mul_exp(out OPND o1) nothrow
 {
     //printf("+asm_mul_exp()\n");
     asm_br_exp(o1);
@@ -4116,7 +4116,7 @@ void asm_mul_exp(out OPND o1)
 /*******************************
  */
 
-void asm_br_exp(out OPND o1)
+void asm_br_exp(out OPND o1) nothrow
 {
     //printf("asm_br_exp()\n");
     if (asmstate.tokValue != TOK.leftBracket)
@@ -4152,7 +4152,7 @@ void asm_br_exp(out OPND o1)
 /*******************************
  */
 
-void asm_una_exp(ref OPND o1)
+void asm_una_exp(ref OPND o1) nothrow
 {
     Type ptype;
 
@@ -4338,7 +4338,7 @@ version (none)
 /*******************************
  */
 
-void asm_primary_exp(out OPND o1)
+void asm_primary_exp(out OPND o1) nothrow
 {
     switch (asmstate.tokValue)
     {
@@ -4547,7 +4547,7 @@ void asm_primary_exp(out OPND o1)
  *      `TOK.const_` if `e` was evaluated to a valid constant,
  *      `TOK.error` otherwise.
  */
-TOK tryExpressionToOperand(Expression e, out OPND o1, out Dsymbol s)
+TOK tryExpressionToOperand(Expression e, out OPND o1, out Dsymbol s) nothrow
 {
     Scope *sc = asmstate.sc.startCTFE();
     e = e.expressionSemantic(sc);
@@ -4580,7 +4580,7 @@ TOK tryExpressionToOperand(Expression e, out OPND o1, out Dsymbol s)
  * If c is a power of 2, return that power else -1.
  */
 
-private int ispow2(uint c) @safe
+private int ispow2(uint c) nothrow @safe
 {
     int i;
 
@@ -4597,7 +4597,7 @@ private int ispow2(uint c) @safe
  * Returns: true if szop is one of the values in sztbl
  */
 private
-bool isOneOf(OpndSize szop, OpndSize sztbl) @safe
+bool isOneOf(OpndSize szop, OpndSize sztbl) nothrow @safe
 {
     with (OpndSize)
     {

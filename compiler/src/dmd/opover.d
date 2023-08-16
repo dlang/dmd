@@ -43,7 +43,7 @@ import dmd.visitor;
  * Determine if operands of binary op can be reversed
  * to fit operator overload.
  */
-bool isCommutative(EXP op) @safe
+bool isCommutative(EXP op) nothrow @safe
 {
     switch (op)
     {
@@ -70,7 +70,7 @@ bool isCommutative(EXP op) @safe
 /***********************************
  * Get Identifier for operator overload.
  */
-private Identifier opId(Expression e)
+private Identifier opId(Expression e) nothrow
 {
     switch (e.op)
     {
@@ -123,7 +123,7 @@ private Identifier opId(Expression e)
  * Get Identifier for reverse operator overload,
  * `null` if not supported for this operator.
  */
-private Identifier opId_r(Expression e)
+private Identifier opId_r(Expression e) nothrow
 {
     switch (e.op)
     {
@@ -148,7 +148,7 @@ private Identifier opId_r(Expression e)
 /*******************************************
  * Helper function to turn operator into template argument list
  */
-Objects* opToArg(Scope* sc, EXP op)
+Objects* opToArg(Scope* sc, EXP op) nothrow
 {
     /* Remove the = from op=
      */
@@ -204,7 +204,7 @@ Objects* opToArg(Scope* sc, EXP op)
 }
 
 // Try alias this on first operand
-private Expression checkAliasThisForLhs(AggregateDeclaration ad, Scope* sc, BinExp e)
+private Expression checkAliasThisForLhs(AggregateDeclaration ad, Scope* sc, BinExp e) nothrow
 {
     if (!ad || !ad.aliasthis)
         return null;
@@ -233,7 +233,7 @@ private Expression checkAliasThisForLhs(AggregateDeclaration ad, Scope* sc, BinE
 }
 
 // Try alias this on second operand
-private Expression checkAliasThisForRhs(AggregateDeclaration ad, Scope* sc, BinExp e)
+private Expression checkAliasThisForRhs(AggregateDeclaration ad, Scope* sc, BinExp e) nothrow
 {
     if (!ad || !ad.aliasthis)
         return null;
@@ -271,7 +271,7 @@ private Expression checkAliasThisForRhs(AggregateDeclaration ad, Scope* sc, BinE
  *      `null` if not an operator overload,
  *      otherwise the lowered expression
  */
-Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
+Expression op_overload(Expression e, Scope* sc, EXP* pop = null) nothrow
 {
         Expression visit(Expression e)
         {
@@ -1299,7 +1299,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
 /******************************************
  * Common code for overloading of EqualExp and CmpExp
  */
-private Expression compare_overload(BinExp e, Scope* sc, Identifier id, EXP* pop)
+private Expression compare_overload(BinExp e, Scope* sc, Identifier id, EXP* pop) nothrow
 {
     //printf("BinExp::compare_overload(id = %s) %s\n", id.toChars(), e.toChars());
     AggregateDeclaration ad1 = isAggregate(e.e1.type);
@@ -1404,7 +1404,7 @@ private Expression compare_overload(BinExp e, Scope* sc, Identifier id, EXP* pop
 /***********************************
  * Utility to build a function call out of this reference and argument.
  */
-Expression build_overload(const ref Loc loc, Scope* sc, Expression ethis, Expression earg, Dsymbol d)
+Expression build_overload(const ref Loc loc, Scope* sc, Expression ethis, Expression earg, Dsymbol d) nothrow
 {
     assert(d);
     Expression e;
@@ -1421,7 +1421,7 @@ Expression build_overload(const ref Loc loc, Scope* sc, Expression ethis, Expres
 /***************************************
  * Search for function funcid in aggregate ad.
  */
-Dsymbol search_function(ScopeDsymbol ad, Identifier funcid)
+Dsymbol search_function(ScopeDsymbol ad, Identifier funcid) nothrow
 {
     Dsymbol s = ad.search(Loc.initial, funcid);
     if (s)
@@ -1451,7 +1451,7 @@ Dsymbol search_function(ScopeDsymbol ad, Identifier funcid)
  *      true if successfully figured it out; feaggr updated with semantic analysis.
  *      false for failed, which is an error.
  */
-bool inferForeachAggregate(Scope* sc, bool isForeach, ref Expression feaggr, out Dsymbol sapply)
+bool inferForeachAggregate(Scope* sc, bool isForeach, ref Expression feaggr, out Dsymbol sapply) nothrow
 {
     //printf("inferForeachAggregate(%s)\n", feaggr.toChars());
     bool sliced;
@@ -1549,7 +1549,7 @@ bool inferForeachAggregate(Scope* sc, bool isForeach, ref Expression feaggr, out
  * Returns:
  *      false for errors
  */
-bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbol sapply)
+bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbol sapply) nothrow
 {
     if (!fes.parameters || !fes.parameters.length)
         return false;
@@ -1700,7 +1700,7 @@ bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbol sapply)
  * Returns:
  *      best match if there is one, null if error
  */
-private FuncDeclaration findBestOpApplyMatch(Expression ethis, FuncDeclaration fstart, Parameters* parameters)
+private FuncDeclaration findBestOpApplyMatch(Expression ethis, FuncDeclaration fstart, Parameters* parameters) nothrow
 {
     MOD mod = ethis.type.mod;
     MATCH match = MATCH.nomatch;
@@ -1788,7 +1788,7 @@ private FuncDeclaration findBestOpApplyMatch(Expression ethis, FuncDeclaration f
  *      true for match for this function
  *      false for no match for this function
  */
-private bool matchParamsToOpApply(TypeFunction tf, Parameters* parameters, bool infer)
+private bool matchParamsToOpApply(TypeFunction tf, Parameters* parameters, bool infer) nothrow
 {
     enum nomatch = false;
 
@@ -1840,7 +1840,7 @@ private bool matchParamsToOpApply(TypeFunction tf, Parameters* parameters, bool 
  * Returns:
  *      reverse of op
  */
-private EXP reverseRelation(EXP op) pure @safe
+private EXP reverseRelation(EXP op) nothrow pure @safe
 {
     switch (op)
     {

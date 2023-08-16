@@ -235,6 +235,7 @@ private struct FUNCFLAG
  */
 extern (C++) struct Ensure
 {
+nothrow:
     Identifier id;
     Statement ensure;
 
@@ -282,6 +283,7 @@ private struct ContractInfo
  */
 extern (C++) class FuncDeclaration : Declaration
 {
+nothrow:
     Statement fbody;                    /// function body
 
     FuncDeclarations foverrides;        /// functions this function overrides
@@ -3004,7 +3006,7 @@ extern (C++) class FuncDeclaration : Declaration
  * Returns:
  *      void expression that calls the invariant
  */
-Expression addInvariant(AggregateDeclaration ad, VarDeclaration vthis)
+Expression addInvariant(AggregateDeclaration ad, VarDeclaration vthis) nothrow
 {
     Expression e = null;
     // Call invariant directly only if it exists
@@ -3061,11 +3063,11 @@ Expression addInvariant(AggregateDeclaration ad, VarDeclaration vthis)
  *      ==0     continue
  *      !=0     done (and the return value from the last dg() call)
  */
-extern (D) int overloadApply(Dsymbol fstart, scope int delegate(Dsymbol) dg, Scope* sc = null)
+extern (D) int overloadApply(Dsymbol fstart, scope int delegate(Dsymbol) nothrow dg, Scope* sc = null) nothrow
 {
     Dsymbols visited;
 
-    int overloadApplyRecurse(Dsymbol fstart, scope int delegate(Dsymbol) dg, Scope* sc)
+    int overloadApplyRecurse(Dsymbol fstart, scope int delegate(Dsymbol) nothrow dg, Scope* sc)
     {
         // Detect cyclic calls.
         if (visited.contains(fstart))
@@ -3176,7 +3178,7 @@ Returns:
 A tuple with `isMutable` and `isNotShared` set
 if the `lhsMod` is missing those modifiers (compared to rhs).
 */
-auto MODMatchToBuffer(OutBuffer* buf, ubyte lhsMod, ubyte rhsMod)
+auto MODMatchToBuffer(OutBuffer* buf, ubyte lhsMod, ubyte rhsMod) nothrow
 {
     static struct Mismatches
     {
@@ -3240,7 +3242,7 @@ unittest
     assert(mismatches.isMutable);
 }
 
-private const(char)* prependSpace(const(char)* str)
+private const(char)* prependSpace(const(char)* str) nothrow
 {
     if (!str || !*str) return "";
 
@@ -3272,7 +3274,7 @@ enum FuncResolveFlag : ubyte
  *      if match is found, then function symbol, else null
  */
 FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
-    Objects* tiargs, Type tthis, ArgumentList argumentList, FuncResolveFlag flags)
+    Objects* tiargs, Type tthis, ArgumentList argumentList, FuncResolveFlag flags) nothrow
 {
     auto fargs = argumentList.arguments;
     if (!s)
@@ -3608,7 +3610,7 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
 /**************************************
  * Returns an indirect type one step from t.
  */
-Type getIndirection(Type t)
+Type getIndirection(Type t) nothrow
 {
     t = t.baseElemOf();
     if (t.ty == Tarray || t.ty == Tpointer)
@@ -3650,7 +3652,7 @@ Type getIndirection(Type t)
  * Returns:
  *      true if reference to `tb` is isolated from reference to `ta`
  */
-private bool traverseIndirections(Type ta, Type tb)
+private bool traverseIndirections(Type ta, Type tb) nothrow
 {
     //printf("traverseIndirections(%s, %s)\n", ta.toChars(), tb.toChars());
 
@@ -3735,7 +3737,7 @@ private bool traverseIndirections(Type ta, Type tb)
 /* For all functions between outerFunc and f, mark them as needing
  * a closure.
  */
-private void markAsNeedingClosure(Dsymbol f, FuncDeclaration outerFunc)
+private void markAsNeedingClosure(Dsymbol f, FuncDeclaration outerFunc) nothrow
 {
     for (Dsymbol sx = f; sx && sx != outerFunc; sx = sx.toParentP(outerFunc))
     {
@@ -3764,7 +3766,7 @@ private void markAsNeedingClosure(Dsymbol f, FuncDeclaration outerFunc)
  * Returns:
  *      true if any closures were needed
  */
-private bool checkEscapingSiblings(FuncDeclaration f, FuncDeclaration outerFunc, void* p = null)
+private bool checkEscapingSiblings(FuncDeclaration f, FuncDeclaration outerFunc, void* p = null) nothrow
 {
     static struct PrevSibling
     {
@@ -3827,6 +3829,7 @@ private bool checkEscapingSiblings(FuncDeclaration f, FuncDeclaration outerFunc,
  */
 extern (C++) final class FuncAliasDeclaration : FuncDeclaration
 {
+nothrow:
     FuncDeclaration funcalias;
     bool hasOverloads;
 
@@ -3876,6 +3879,7 @@ extern (C++) final class FuncAliasDeclaration : FuncDeclaration
  */
 extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
 {
+nothrow:
     TOK tok;        // TOK.function_ or TOK.delegate_
     Type treq;      // target of return type inference
 
@@ -4012,6 +4016,7 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
  */
 extern (C++) final class CtorDeclaration : FuncDeclaration
 {
+nothrow:
     bool isCpCtor;
     extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, Type type, bool isCpCtor = false)
     {
@@ -4068,6 +4073,7 @@ extern (C++) final class CtorDeclaration : FuncDeclaration
  */
 extern (C++) final class PostBlitDeclaration : FuncDeclaration
 {
+nothrow:
     extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, Identifier id)
     {
         super(loc, endloc, id, stc, null);
@@ -4116,6 +4122,7 @@ extern (C++) final class PostBlitDeclaration : FuncDeclaration
  */
 extern (C++) final class DtorDeclaration : FuncDeclaration
 {
+nothrow:
     extern (D) this(const ref Loc loc, const ref Loc endloc)
     {
         super(loc, endloc, Id.dtor, STC.undefined_, null);
@@ -4181,6 +4188,7 @@ extern (C++) final class DtorDeclaration : FuncDeclaration
  */
 extern (C++) class StaticCtorDeclaration : FuncDeclaration
 {
+nothrow:
     extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc)
     {
         super(loc, endloc, Identifier.generateIdWithLoc("_staticCtor", loc), STC.static_ | stc, null);
@@ -4239,6 +4247,7 @@ extern (C++) class StaticCtorDeclaration : FuncDeclaration
  */
 extern (C++) final class SharedStaticCtorDeclaration : StaticCtorDeclaration
 {
+nothrow:
     extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc)
     {
         super(loc, endloc, "_sharedStaticCtor", stc);
@@ -4267,6 +4276,7 @@ extern (C++) final class SharedStaticCtorDeclaration : StaticCtorDeclaration
  */
 extern (C++) class StaticDtorDeclaration : FuncDeclaration
 {
+nothrow:
     VarDeclaration vgate; // 'gate' variable
 
     extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc)
@@ -4327,6 +4337,7 @@ extern (C++) class StaticDtorDeclaration : FuncDeclaration
  */
 extern (C++) final class SharedStaticDtorDeclaration : StaticDtorDeclaration
 {
+nothrow:
     extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc)
     {
         super(loc, endloc, "_sharedStaticDtor", stc);
@@ -4355,6 +4366,7 @@ extern (C++) final class SharedStaticDtorDeclaration : StaticDtorDeclaration
  */
 extern (C++) final class InvariantDeclaration : FuncDeclaration
 {
+nothrow:
     extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, Identifier id, Statement fbody)
     {
         // Make a unique invariant for now; we'll fix it up as we add it to the aggregate invariant list.
@@ -4410,6 +4422,7 @@ extern (C++) final class InvariantDeclaration : FuncDeclaration
  */
 extern (C++) final class UnitTestDeclaration : FuncDeclaration
 {
+nothrow:
     char* codedoc;      // for documented unittest
 
     // toObjFile() these nested functions after this one
@@ -4464,6 +4477,7 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
  */
 extern (C++) final class NewDeclaration : FuncDeclaration
 {
+nothrow:
     extern (D) this(const ref Loc loc, StorageClass stc)
     {
         super(loc, Loc.initial, Id.classNew, STC.static_ | stc, null);
@@ -4523,7 +4537,7 @@ extern (C++) final class NewDeclaration : FuncDeclaration
  * Returns: `true` if the provided scope is the root
  * of the traits compiles list of scopes.
  */
-bool isRootTraitsCompilesScope(Scope* sc)
+bool isRootTraitsCompilesScope(Scope* sc) nothrow
 {
     return (sc.flags & SCOPE.compile) && !(sc.func.flags & SCOPE.compile);
 }
@@ -4544,7 +4558,7 @@ bool isRootTraitsCompilesScope(Scope* sc)
  */
 bool setUnsafe(Scope* sc,
     bool gag = false, Loc loc = Loc.init, const(char)* fmt = null,
-    RootObject arg0 = null, RootObject arg1 = null, RootObject arg2 = null)
+    RootObject arg0 = null, RootObject arg1 = null, RootObject arg2 = null) nothrow
 {
     if (sc.intypeof)
         return false; // typeof(cast(int*)0) is safe
@@ -4608,7 +4622,7 @@ bool setUnsafe(Scope* sc,
  * Returns: whether an actual safe error (not deprecation) occured
  */
 bool setUnsafePreview(Scope* sc, FeatureState fs, bool gag, Loc loc, const(char)* msg,
-    RootObject arg0 = null, RootObject arg1 = null, RootObject arg2 = null)
+    RootObject arg0 = null, RootObject arg1 = null, RootObject arg2 = null) nothrow
 {
     //printf("setUnsafePreview() fs:%d %s\n", fs, msg);
     with (FeatureState) final switch (fs)
@@ -4667,7 +4681,7 @@ struct AttributeViolation
 ///   maxDepth = up to how many functions deep to report errors
 ///   deprecation = print deprecations instead of errors
 ///   stc = storage class of attribute to check
-void errorSupplementalInferredAttr(FuncDeclaration fd, int maxDepth, bool deprecation, STC stc)
+void errorSupplementalInferredAttr(FuncDeclaration fd, int maxDepth, bool deprecation, STC stc) nothrow
 {
     auto errorFunc = deprecation ? &deprecationSupplemental : &errorSupplemental;
 

@@ -31,12 +31,12 @@ import dmd.visitor;
  *  1. save evaluation order
  *  2. prevent sharing of sub-expression in AST
  */
-extern (C++) bool isTrivialExp(Expression e)
+extern (C++) bool isTrivialExp(Expression e) nothrow
 {
     extern (C++) final class IsTrivialExp : StoppableVisitor
     {
         alias visit = typeof(super).visit;
-    public:
+    nothrow public:
         extern (D) this() scope @safe
         {
         }
@@ -69,12 +69,12 @@ extern (C++) bool isTrivialExp(Expression e)
  *   assumeImpureCalls = whether function calls should always be assumed to
  *                       be impure (e.g. debug is allowed to violate purity)
  */
-extern (C++) bool hasSideEffect(Expression e, bool assumeImpureCalls = false)
+extern (C++) bool hasSideEffect(Expression e, bool assumeImpureCalls = false) nothrow
 {
     extern (C++) final class LambdaHasSideEffect : StoppableVisitor
     {
         alias visit = typeof(super).visit;
-    public:
+    nothrow public:
         extern (D) this() scope @safe
         {
         }
@@ -98,7 +98,7 @@ extern (C++) bool hasSideEffect(Expression e, bool assumeImpureCalls = false)
  *      2   nothrow + strongly pure + only immutable indirections in the return
  *          type
  */
-int callSideEffectLevel(FuncDeclaration f)
+int callSideEffectLevel(FuncDeclaration f) nothrow
 {
     /* https://issues.dlang.org/show_bug.cgi?id=12760
      * https://issues.dlang.org/show_bug.cgi?id=16384
@@ -123,7 +123,7 @@ int callSideEffectLevel(FuncDeclaration f)
     }
 }
 
-int callSideEffectLevel(Type t)
+int callSideEffectLevel(Type t) nothrow
 {
     t = t.toBasetype();
     TypeFunction tf;
@@ -153,7 +153,7 @@ int callSideEffectLevel(Type t)
     return 0;
 }
 
-private bool lambdaHasSideEffect(Expression e, bool assumeImpureCalls = false)
+private bool lambdaHasSideEffect(Expression e, bool assumeImpureCalls = false) nothrow
 {
     switch (e.op)
     {
@@ -235,7 +235,7 @@ private bool lambdaHasSideEffect(Expression e, bool assumeImpureCalls = false)
  * Returns:
  *      true if expression has no side effects
  */
-bool discardValue(Expression e)
+bool discardValue(Expression e) nothrow
 {
     if (lambdaHasSideEffect(e)) // check side-effect shallowly
         return false;
@@ -395,7 +395,7 @@ bool discardValue(Expression e)
  * Returns:
  *  Newly created temporary variable.
  */
-VarDeclaration copyToTemp(StorageClass stc, const char[] name, Expression e)
+VarDeclaration copyToTemp(StorageClass stc, const char[] name, Expression e) nothrow
 {
     assert(name[0] == '_' && name[1] == '_');
     auto vd = new VarDeclaration(e.loc, e.type,
@@ -420,7 +420,7 @@ VarDeclaration copyToTemp(StorageClass stc, const char[] name, Expression e)
  *  e's lvalue-ness will be handled well by STC.ref_ or STC.rvalue.
  */
 Expression extractSideEffect(Scope* sc, const char[] name,
-    ref Expression e0, Expression e, bool alwaysCopy = false)
+    ref Expression e0, Expression e, bool alwaysCopy = false) nothrow
 {
     //printf("extractSideEffect(e: %s)\n", e.toChars());
 

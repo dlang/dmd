@@ -60,13 +60,16 @@ struct ASTBase
 
     alias Visitor = ParseTimeVisitor!ASTBase;
 
+nothrow:
+
     extern (C++) abstract class ASTNode : RootObject
     {
-        abstract void accept(Visitor v);
+        abstract void accept(Visitor v) nothrow;
     }
 
     extern (C++) class Dsymbol : ASTNode
     {
+    nothrow:
         Loc loc;
         Identifier ident;
         UnitTestDeclaration ddocUnittest;
@@ -281,6 +284,7 @@ struct ASTBase
 
     extern (C++) class AliasThis : Dsymbol
     {
+    nothrow:
         Identifier ident;
 
         extern (D) this(const ref Loc loc, Identifier ident)
@@ -298,6 +302,7 @@ struct ASTBase
 
     extern (C++) final class AliasAssign : Dsymbol
     {
+    nothrow:
         Identifier ident;
         Type type;
         Dsymbol aliassym;
@@ -324,6 +329,7 @@ struct ASTBase
 
     extern (C++) abstract class Declaration : Dsymbol
     {
+    nothrow:
         StorageClass storage_class;
         Visibility visibility;
         LINK linkage;
@@ -353,6 +359,7 @@ struct ASTBase
 
     extern (C++) class ScopeDsymbol : Dsymbol
     {
+    nothrow:
         Dsymbols* members;
         final extern (D) this() {}
         final extern (D) this(Identifier id)
@@ -372,6 +379,7 @@ struct ASTBase
 
     extern (C++) class Import : Dsymbol
     {
+    nothrow:
         Identifier[] packages;
         Identifier id;
         Identifier aliasId;
@@ -426,6 +434,7 @@ struct ASTBase
 
     extern (C++) abstract class AttribDeclaration : Dsymbol
     {
+    nothrow:
         Dsymbols* decl;
 
         final extern (D) this(Dsymbols *decl)
@@ -452,6 +461,7 @@ struct ASTBase
 
     extern (C++) final class StaticAssert : Dsymbol
     {
+    nothrow:
         Expression exp;
         Expressions* msgs;
 
@@ -478,6 +488,7 @@ struct ASTBase
 
     extern (C++) final class DebugSymbol : Dsymbol
     {
+    nothrow:
         uint level;
 
         extern (D) this(const ref Loc loc, Identifier ident)
@@ -499,6 +510,7 @@ struct ASTBase
 
     extern (C++) final class VersionSymbol : Dsymbol
     {
+    nothrow:
         uint level;
 
         extern (D) this(const ref Loc loc, Identifier ident)
@@ -520,6 +532,7 @@ struct ASTBase
 
     extern (C++) class VarDeclaration : Declaration
     {
+    nothrow:
         Type type;
         Initializer _init;
         enum AdrOnStackNone = ~0u;
@@ -549,6 +562,7 @@ struct ASTBase
 
     extern (C++) class BitFieldDeclaration : VarDeclaration
     {
+    nothrow:
         Expression width;
 
         uint fieldWidth;
@@ -581,6 +595,7 @@ struct ASTBase
 
     extern (C++) class FuncDeclaration : Declaration
     {
+    nothrow:
         Statement fbody;
         Statements* frequires;
         Ensures* fensures;
@@ -630,6 +645,7 @@ struct ASTBase
 
     extern (C++) final class AliasDeclaration : Declaration
     {
+    nothrow:
         Dsymbol aliassym;
 
         extern (D) this(const ref Loc loc, Identifier id, Dsymbol s)
@@ -661,6 +677,7 @@ struct ASTBase
 
     extern (C++) final class TupleDeclaration : Declaration
     {
+    nothrow:
         Objects* objects;
 
         extern (D) this(const ref Loc loc, Identifier id, Objects* objects)
@@ -678,6 +695,7 @@ struct ASTBase
 
     extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
     {
+    nothrow:
         TOK tok;
 
         extern (D) this(const ref Loc loc, Loc endloc, Type type, TOK tok, ForeachStatement fes, Identifier id = null, StorageClass storage_class = STC.undefined_)
@@ -701,6 +719,7 @@ struct ASTBase
 
     extern (C++) final class PostBlitDeclaration : FuncDeclaration
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc, Identifier id)
         {
             super(loc, endloc, id, stc, null);
@@ -714,6 +733,7 @@ struct ASTBase
 
     extern (C++) final class CtorDeclaration : FuncDeclaration
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc, Type type, bool isCopyCtor = false)
         {
             super(loc, endloc, Id.ctor, stc, type);
@@ -732,6 +752,7 @@ struct ASTBase
 
     extern (C++) final class DtorDeclaration : FuncDeclaration
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Loc endloc)
         {
             super(loc, endloc, Id.dtor, STC.undefined_, null);
@@ -754,6 +775,7 @@ struct ASTBase
 
     extern (C++) final class InvariantDeclaration : FuncDeclaration
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc, Identifier id, Statement fbody)
         {
             super(loc, endloc, id ? id : Identifier.generateIdWithLoc("__invariant", loc), stc, null);
@@ -768,6 +790,7 @@ struct ASTBase
 
     extern (C++) final class UnitTestDeclaration : FuncDeclaration
     {
+    nothrow:
         char* codedoc;
 
         extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc, char* codedoc)
@@ -784,6 +807,7 @@ struct ASTBase
 
     extern (C++) final class NewDeclaration : FuncDeclaration
     {
+    nothrow:
         extern (D) this(const ref Loc loc, StorageClass stc)
         {
             super(loc, Loc.initial, Id.classNew, STC.static_ | stc, null);
@@ -797,6 +821,7 @@ struct ASTBase
 
     extern (C++) class StaticCtorDeclaration : FuncDeclaration
     {
+    nothrow:
         final extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc)
         {
             super(loc, endloc, Identifier.generateIdWithLoc("_staticCtor", loc), STC.static_ | stc, null);
@@ -814,6 +839,7 @@ struct ASTBase
 
     extern (C++) class StaticDtorDeclaration : FuncDeclaration
     {
+    nothrow:
         final extern (D) this()(Loc loc, Loc endloc, StorageClass stc)
         {
             super(loc, endloc, Identifier.generateIdWithLoc("__staticDtor", loc), STC.static_ | stc, null);
@@ -831,6 +857,7 @@ struct ASTBase
 
     extern (C++) final class SharedStaticCtorDeclaration : StaticCtorDeclaration
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc)
         {
             super(loc, endloc, "_sharedStaticCtor", stc);
@@ -844,6 +871,7 @@ struct ASTBase
 
     extern (C++) final class SharedStaticDtorDeclaration : StaticDtorDeclaration
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc)
         {
             super(loc, endloc, "_sharedStaticDtor", stc);
@@ -857,6 +885,7 @@ struct ASTBase
 
     extern (C++) class Package : ScopeDsymbol
     {
+    nothrow:
         PKG isPkgMod;
         uint tag;
 
@@ -876,6 +905,7 @@ struct ASTBase
 
     extern (C++) final class EnumDeclaration : ScopeDsymbol
     {
+    nothrow:
         Type type;
         Type memtype;
         Visibility visibility;
@@ -897,6 +927,7 @@ struct ASTBase
 
     extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     {
+    nothrow:
         Visibility visibility;
         Sizeok sizeok;
         Type type;
@@ -922,6 +953,7 @@ struct ASTBase
 
     extern (C++) final class TemplateDeclaration : ScopeDsymbol
     {
+    nothrow:
         TemplateParameters* parameters;
         TemplateParameters* origParameters;
         Expression constraint;
@@ -973,6 +1005,7 @@ struct ASTBase
 
     extern (C++) class TemplateInstance : ScopeDsymbol
     {
+    nothrow:
         Identifier name;
         Objects* tiargs;
         Dsymbol tempdecl;
@@ -1046,6 +1079,7 @@ struct ASTBase
 
     extern (C++) final class Nspace : ScopeDsymbol
     {
+    nothrow:
         /**
          * Namespace identifier resolved during semantic.
          */
@@ -1067,6 +1101,7 @@ struct ASTBase
 
     extern (C++) final class MixinDeclaration : AttribDeclaration
     {
+    nothrow:
         Expressions* exps;
 
         extern (D) this(const ref Loc loc, Expressions* exps)
@@ -1084,6 +1119,7 @@ struct ASTBase
 
     extern (C++) final class UserAttributeDeclaration : AttribDeclaration
     {
+    nothrow:
         Expressions* atts;
 
         extern (D) this(Expressions* atts, Dsymbols* decl)
@@ -1131,6 +1167,7 @@ struct ASTBase
 
     extern (C++) final class LinkDeclaration : AttribDeclaration
     {
+    nothrow:
         LINK linkage;
 
         extern (D) this(const ref Loc loc, LINK p, Dsymbols* decl)
@@ -1147,6 +1184,7 @@ struct ASTBase
 
     extern (C++) final class AnonDeclaration : AttribDeclaration
     {
+    nothrow:
         bool isunion;
 
         extern (D) this(const ref Loc loc, bool isunion, Dsymbols* decl)
@@ -1164,6 +1202,7 @@ struct ASTBase
 
     extern (C++) final class AlignDeclaration : AttribDeclaration
     {
+    nothrow:
         Expressions* exps;
         structalign_t salign;
 
@@ -1193,6 +1232,7 @@ struct ASTBase
 
     extern (C++) final class CPPMangleDeclaration : AttribDeclaration
     {
+    nothrow:
         CPPMANGLE cppmangle;
 
         extern (D) this(const ref Loc loc, CPPMANGLE p, Dsymbols* decl)
@@ -1209,6 +1249,7 @@ struct ASTBase
 
     extern (C++) final class CPPNamespaceDeclaration : AttribDeclaration
     {
+    nothrow:
         Expression exp;
 
         extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* decl)
@@ -1230,6 +1271,7 @@ struct ASTBase
 
     extern (C++) final class VisibilityDeclaration : AttribDeclaration
     {
+    nothrow:
         Visibility visibility;
         Identifier[] pkg_identifiers;
 
@@ -1256,6 +1298,7 @@ struct ASTBase
 
     extern (C++) final class PragmaDeclaration : AttribDeclaration
     {
+    nothrow:
         Expressions* args;
 
         extern (D) this(const ref Loc loc, Identifier ident, Expressions* args, Dsymbols* decl)
@@ -1274,6 +1317,7 @@ struct ASTBase
 
     extern (C++) class StorageClassDeclaration : AttribDeclaration
     {
+    nothrow:
         StorageClass stc;
 
         final extern (D) this(StorageClass stc, Dsymbols* decl)
@@ -1302,6 +1346,7 @@ struct ASTBase
 
     extern (C++) class ConditionalDeclaration : AttribDeclaration
     {
+    nothrow:
         Condition condition;
         Dsymbols* elsedecl;
 
@@ -1320,6 +1365,7 @@ struct ASTBase
 
     extern (C++) final class DeprecatedDeclaration : StorageClassDeclaration
     {
+    nothrow:
         Expression msg;
 
         extern (D) this(Expression msg, Dsymbols* decl)
@@ -1336,6 +1382,7 @@ struct ASTBase
 
     extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
         {
             super(loc, condition, decl, elsedecl);
@@ -1349,6 +1396,7 @@ struct ASTBase
 
     extern (C++) final class StaticForeachDeclaration : AttribDeclaration
     {
+    nothrow:
         StaticForeach sfe;
 
         extern (D) this(StaticForeach sfe, Dsymbols* decl)
@@ -1365,6 +1413,7 @@ struct ASTBase
 
     extern (C++) final class EnumMember : VarDeclaration
     {
+    nothrow:
         Expression origValue;
         Type origType;
 
@@ -1394,6 +1443,7 @@ struct ASTBase
 
     extern (C++) final class Module : Package
     {
+    nothrow:
         extern (C++) __gshared AggregateDeclaration moduleinfo;
 
         const FileName srcfile;
@@ -1421,6 +1471,7 @@ struct ASTBase
 
     extern (C++) class StructDeclaration : AggregateDeclaration
     {
+    nothrow:
         int zeroInit;
         ThreeState ispod;
 
@@ -1450,6 +1501,7 @@ struct ASTBase
 
     extern (C++) final class UnionDeclaration : StructDeclaration
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Identifier id)
         {
             super(loc, id, false);
@@ -1468,6 +1520,7 @@ struct ASTBase
 
     extern (C++) class ClassDeclaration : AggregateDeclaration
     {
+    nothrow:
         extern (C++) __gshared
         {
             // Names found by reading object.d in druntime
@@ -1667,6 +1720,7 @@ struct ASTBase
 
     extern (C++) class InterfaceDeclaration : ClassDeclaration
     {
+    nothrow:
         final extern (D) this(const ref Loc loc, Identifier id, BaseClasses* baseclasses)
         {
             super(loc, id, baseclasses, null, false);
@@ -1680,6 +1734,7 @@ struct ASTBase
 
     extern (C++) class TemplateMixin : TemplateInstance
     {
+    nothrow:
         TypeQualified tqual;
 
         extern (D) this(const ref Loc loc, Identifier ident, TypeQualified tqual, Objects *tiargs)
@@ -1699,6 +1754,7 @@ struct ASTBase
 
     extern (C++) struct ParameterList
     {
+    nothrow:
         Parameters* parameters;
         StorageClass stc;                   // storage class of ...
         VarArg varargs = VarArg.none;
@@ -1713,13 +1769,14 @@ struct ASTBase
 
     extern (C++) final class Parameter : ASTNode
     {
+    nothrow:
         StorageClass storageClass;
         Type type;
         Identifier ident;
         Expression defaultArg;
         UserAttributeDeclaration userAttribDecl; // user defined attributes
 
-        extern (D) alias ForeachDg = int delegate(size_t idx, Parameter param);
+        extern (D) alias ForeachDg = int delegate(size_t idx, Parameter param) nothrow;
 
         final extern (D) this(StorageClass storageClass, Type type, Identifier ident, Expression defaultArg, UserAttributeDeclaration userAttribDecl)
         {
@@ -1818,6 +1875,7 @@ struct ASTBase
 
     extern (C++) abstract class Statement : ASTNode
     {
+    nothrow:
         Loc loc;
         STMT stmt;
 
@@ -1847,6 +1905,7 @@ struct ASTBase
 
     extern (C++) final class ImportStatement : Statement
     {
+    nothrow:
         Dsymbols* imports;
 
         extern (D) this(const ref Loc loc, Dsymbols* imports)
@@ -1863,6 +1922,7 @@ struct ASTBase
 
     extern (C++) final class ScopeStatement : Statement
     {
+    nothrow:
         Statement statement;
         Loc endloc;
 
@@ -1881,6 +1941,7 @@ struct ASTBase
 
     extern (C++) final class ReturnStatement : Statement
     {
+    nothrow:
         Expression exp;
 
         extern (D) this(const ref Loc loc, Expression exp)
@@ -1897,6 +1958,7 @@ struct ASTBase
 
     extern (C++) final class LabelStatement : Statement
     {
+    nothrow:
         Identifier ident;
         Statement statement;
 
@@ -1915,6 +1977,7 @@ struct ASTBase
 
     extern (C++) final class StaticAssertStatement : Statement
     {
+    nothrow:
         StaticAssert sa;
 
         final extern (D) this(StaticAssert sa)
@@ -1931,6 +1994,7 @@ struct ASTBase
 
     extern (C++) final class MixinStatement : Statement
     {
+    nothrow:
         Expressions* exps;
 
         final extern (D) this(const ref Loc loc, Expressions* exps)
@@ -1947,6 +2011,7 @@ struct ASTBase
 
     extern (C++) final class WhileStatement : Statement
     {
+    nothrow:
         Parameter param;
         Expression condition;
         Statement _body;
@@ -1968,6 +2033,7 @@ struct ASTBase
 
     extern (C++) final class ForStatement : Statement
     {
+    nothrow:
         Statement _init;
         Expression condition;
         Expression increment;
@@ -1992,6 +2058,7 @@ struct ASTBase
 
     extern (C++) final class DoStatement : Statement
     {
+    nothrow:
         Statement _body;
         Expression condition;
         Loc endloc;
@@ -2012,6 +2079,7 @@ struct ASTBase
 
     extern (C++) final class ForeachRangeStatement : Statement
     {
+    nothrow:
         TOK op;                 // TOK.foreach_ or TOK.foreach_reverse_
         Parameter prm;          // loop index variable
         Expression lwr;
@@ -2039,6 +2107,7 @@ struct ASTBase
 
     extern (C++) final class ForeachStatement : Statement
     {
+    nothrow:
         TOK op;                     // TOK.foreach_ or TOK.foreach_reverse_
         Parameters* parameters;     // array of Parameter*'s
         Expression aggr;
@@ -2063,6 +2132,7 @@ struct ASTBase
 
     extern (C++) final class IfStatement : Statement
     {
+    nothrow:
         Parameter prm;
         Expression condition;
         Statement ifbody;
@@ -2088,6 +2158,7 @@ struct ASTBase
 
     extern (C++) final class ScopeGuardStatement : Statement
     {
+    nothrow:
         TOK tok;
         Statement statement;
 
@@ -2106,6 +2177,7 @@ struct ASTBase
 
     extern (C++) final class ConditionalStatement : Statement
     {
+    nothrow:
         Condition condition;
         Statement ifbody;
         Statement elsebody;
@@ -2126,6 +2198,7 @@ struct ASTBase
 
     extern (C++) final class StaticForeachStatement : Statement
     {
+    nothrow:
         StaticForeach sfe;
 
         extern (D) this(const ref Loc loc, StaticForeach sfe)
@@ -2142,6 +2215,7 @@ struct ASTBase
 
     extern (C++) final class PragmaStatement : Statement
     {
+    nothrow:
         Identifier ident;
         Expressions* args;      // array of Expression's
         Statement _body;
@@ -2162,6 +2236,7 @@ struct ASTBase
 
     extern (C++) final class SwitchStatement : Statement
     {
+    nothrow:
         Expression condition;
         Statement _body;
         bool isFinal;
@@ -2182,6 +2257,7 @@ struct ASTBase
 
     extern (C++) final class CaseRangeStatement : Statement
     {
+    nothrow:
         Expression first;
         Expression last;
         Statement statement;
@@ -2202,6 +2278,7 @@ struct ASTBase
 
     extern (C++) final class CaseStatement : Statement
     {
+    nothrow:
         Expression exp;
         Statement statement;
 
@@ -2220,6 +2297,7 @@ struct ASTBase
 
     extern (C++) final class DefaultStatement : Statement
     {
+    nothrow:
         Statement statement;
 
         extern (D) this(const ref Loc loc, Statement s)
@@ -2236,6 +2314,7 @@ struct ASTBase
 
     extern (C++) final class BreakStatement : Statement
     {
+    nothrow:
         Identifier ident;
 
         extern (D) this(const ref Loc loc, Identifier ident)
@@ -2252,6 +2331,7 @@ struct ASTBase
 
     extern (C++) final class ContinueStatement : Statement
     {
+    nothrow:
         Identifier ident;
 
         extern (D) this(const ref Loc loc, Identifier ident)
@@ -2268,6 +2348,7 @@ struct ASTBase
 
     extern (C++) final class GotoDefaultStatement : Statement
     {
+    nothrow:
         extern (D) this(const ref Loc loc)
         {
             super(loc, STMT.GotoDefault);
@@ -2281,6 +2362,7 @@ struct ASTBase
 
     extern (C++) final class GotoCaseStatement : Statement
     {
+    nothrow:
         Expression exp;
 
         extern (D) this(const ref Loc loc, Expression exp)
@@ -2297,6 +2379,7 @@ struct ASTBase
 
     extern (C++) final class GotoStatement : Statement
     {
+    nothrow:
         Identifier ident;
 
         extern (D) this(const ref Loc loc, Identifier ident)
@@ -2313,6 +2396,7 @@ struct ASTBase
 
     extern (C++) final class SynchronizedStatement : Statement
     {
+    nothrow:
         Expression exp;
         Statement _body;
 
@@ -2331,6 +2415,7 @@ struct ASTBase
 
     extern (C++) final class WithStatement : Statement
     {
+    nothrow:
         Expression exp;
         Statement _body;
         Loc endloc;
@@ -2351,6 +2436,7 @@ struct ASTBase
 
     extern (C++) final class TryCatchStatement : Statement
     {
+    nothrow:
         Statement _body;
         Catches* catches;
 
@@ -2369,6 +2455,7 @@ struct ASTBase
 
     extern (C++) final class TryFinallyStatement : Statement
     {
+    nothrow:
         Statement _body;
         Statement finalbody;
 
@@ -2387,6 +2474,7 @@ struct ASTBase
 
     extern (C++) final class ThrowStatement : Statement
     {
+    nothrow:
         Expression exp;
 
         extern (D) this(const ref Loc loc, Expression exp)
@@ -2403,6 +2491,7 @@ struct ASTBase
 
     extern (C++) class AsmStatement : Statement
     {
+    nothrow:
         Token* tokens;
 
         extern (D) this(const ref Loc loc, Token* tokens)
@@ -2425,6 +2514,7 @@ struct ASTBase
 
     extern (C++) final class InlineAsmStatement : AsmStatement
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Token* tokens)
         {
             super(loc, tokens, STMT.InlineAsm);
@@ -2438,6 +2528,7 @@ struct ASTBase
 
     extern (C++) final class GccAsmStatement : AsmStatement
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Token* tokens)
         {
             super(loc, tokens, STMT.GccAsm);
@@ -2451,6 +2542,7 @@ struct ASTBase
 
     extern (C++) class ExpStatement : Statement
     {
+    nothrow:
         Expression exp;
 
         final extern (D) this(const ref Loc loc, Expression exp)
@@ -2472,6 +2564,7 @@ struct ASTBase
 
     extern (C++) class CompoundStatement : Statement
     {
+    nothrow:
         Statements* statements;
 
         final extern (D) this(const ref Loc loc, Statements* statements)
@@ -2503,6 +2596,7 @@ struct ASTBase
 
     extern (C++) final class ErrorStatement : Statement
     {
+    nothrow:
         extern (D) this()
         {
             super(Loc.initial, STMT.Error);
@@ -2517,6 +2611,7 @@ struct ASTBase
 
     extern (C++) final class CompoundDeclarationStatement : CompoundStatement
     {
+    nothrow:
         final extern (D) this(const ref Loc loc, Statements* statements)
         {
             super(loc, statements, STMT.CompoundDeclaration);
@@ -2530,6 +2625,7 @@ struct ASTBase
 
     extern (C++) final class CompoundAsmStatement : CompoundStatement
     {
+    nothrow:
         StorageClass stc;
 
         final extern (D) this(const ref Loc loc, Statements* s, StorageClass stc)
@@ -2546,6 +2642,7 @@ struct ASTBase
 
     extern (C++) final class Catch : RootObject
     {
+    nothrow:
         Loc loc;
         Type type;
         Identifier ident;
@@ -2562,6 +2659,7 @@ struct ASTBase
 
     extern (C++) abstract class Type : ASTNode
     {
+    nothrow:
         TY ty;
         MOD mod;
         char* deco;
@@ -3429,6 +3527,7 @@ struct ASTBase
     // since the class is needed only for its size; need to add all method definitions
     extern (C++) final class TypeBasic : Type
     {
+    nothrow:
         const(char)* dstring;
         uint flags;
 
@@ -3579,6 +3678,7 @@ struct ASTBase
 
     extern (C++) final class TypeError : Type
     {
+    nothrow:
         extern (D) this()
         {
             super(Terror);
@@ -3597,6 +3697,7 @@ struct ASTBase
 
     extern (C++) final class TypeNull : Type
     {
+    nothrow:
         extern (D) this()
         {
             super(Tnull);
@@ -3616,6 +3717,7 @@ struct ASTBase
 
     extern (C++) final class TypeNoreturn : Type
     {
+    nothrow:
         extern (D) this()
         {
             super(Tnoreturn);
@@ -3635,6 +3737,7 @@ struct ASTBase
 
     extern (C++) class TypeVector : Type
     {
+    nothrow:
         Type basetype;
 
         extern (D) this(Type basetype)
@@ -3656,6 +3759,7 @@ struct ASTBase
 
     extern (C++) final class TypeEnum : Type
     {
+    nothrow:
         EnumDeclaration sym;
 
         extern (D) this(EnumDeclaration sym)
@@ -3677,6 +3781,7 @@ struct ASTBase
 
     extern (C++) final class TypeTuple : Type
     {
+    nothrow:
         Parameters* arguments;
 
         extern (D) this(Parameters* arguments)
@@ -3719,6 +3824,7 @@ struct ASTBase
 
     extern (C++) final class TypeClass : Type
     {
+    nothrow:
         ClassDeclaration sym;
         AliasThisRec att = AliasThisRec.fwdref;
 
@@ -3741,6 +3847,7 @@ struct ASTBase
 
     extern (C++) final class TypeStruct : Type
     {
+    nothrow:
         StructDeclaration sym;
         AliasThisRec att = AliasThisRec.fwdref;
         bool inuse = false;
@@ -3764,6 +3871,7 @@ struct ASTBase
 
     extern (C++) final class TypeTag : Type
     {
+    nothrow:
         Loc loc;
         TOK tok;
         Identifier id;
@@ -3800,6 +3908,7 @@ struct ASTBase
 
     extern (C++) final class TypeReference : TypeNext
     {
+    nothrow:
         extern (D) this(Type t)
         {
             super(Treference, t);
@@ -3825,6 +3934,7 @@ struct ASTBase
 
     extern (C++) abstract class TypeNext : Type
     {
+    nothrow:
         Type next;
 
         final extern (D) this(TY ty, Type next)
@@ -3846,6 +3956,7 @@ struct ASTBase
 
     extern (C++) final class TypeSlice : TypeNext
     {
+    nothrow:
         Expression lwr;
         Expression upr;
 
@@ -3871,6 +3982,7 @@ struct ASTBase
 
     extern (C++) class TypeDelegate : TypeNext
     {
+    nothrow:
         extern (D) this(Type t)
         {
             super(Tfunction, t);
@@ -3896,6 +4008,7 @@ struct ASTBase
 
     extern (C++) final class TypePointer : TypeNext
     {
+    nothrow:
         extern (D) this(Type t)
         {
             super(Tpointer, t);
@@ -3920,6 +4033,7 @@ struct ASTBase
 
     extern (C++) class TypeFunction : TypeNext
     {
+    nothrow:
         // .next is the return type
 
         ParameterList parameterList;   // function parameters
@@ -4161,6 +4275,7 @@ struct ASTBase
 
     extern (C++) class TypeArray : TypeNext
     {
+    nothrow:
         final extern (D) this(TY ty, Type next)
         {
             super(ty, next);
@@ -4174,6 +4289,7 @@ struct ASTBase
 
     extern (C++) final class TypeDArray : TypeArray
     {
+    nothrow:
         extern (D) this(Type t)
         {
             super(Tarray, t);
@@ -4198,6 +4314,7 @@ struct ASTBase
 
     extern (C++) final class TypeAArray : TypeArray
     {
+    nothrow:
         Type index;
         Loc loc;
 
@@ -4239,6 +4356,7 @@ struct ASTBase
 
     extern (C++) final class TypeSArray : TypeArray
     {
+    nothrow:
         Expression dim;
 
         final extern (D) this(Type t, Expression dim)
@@ -4272,6 +4390,7 @@ struct ASTBase
 
     extern (C++) abstract class TypeQualified : Type
     {
+    nothrow:
         Objects idents;
         Loc loc;
 
@@ -4367,6 +4486,7 @@ struct ASTBase
 
     extern (C++) class TypeTraits : Type
     {
+    nothrow:
         TraitsExp exp;
         Loc loc;
 
@@ -4393,6 +4513,7 @@ struct ASTBase
 
     extern (C++) final class TypeMixin : Type
     {
+    nothrow:
         Loc loc;
         Expressions* exps;
         RootObject obj;
@@ -4431,6 +4552,7 @@ struct ASTBase
 
     extern (C++) final class TypeIdentifier : TypeQualified
     {
+    nothrow:
         Identifier ident;
 
         extern (D) this(const ref Loc loc, Identifier ident)
@@ -4460,6 +4582,7 @@ struct ASTBase
 
     extern (C++) final class TypeReturn : TypeQualified
     {
+    nothrow:
         extern (D) this(const ref Loc loc)
         {
             super(Treturn, loc);
@@ -4481,6 +4604,7 @@ struct ASTBase
 
     extern (C++) final class TypeTypeof : TypeQualified
     {
+    nothrow:
         Expression exp;
 
         extern (D) this(const ref Loc loc, Expression exp)
@@ -4505,6 +4629,7 @@ struct ASTBase
 
     extern (C++) final class TypeInstance : TypeQualified
     {
+    nothrow:
         TemplateInstance tempinst;
 
         final extern (D) this(const ref Loc loc, TemplateInstance tempinst)
@@ -4534,6 +4659,7 @@ struct ASTBase
 
     extern (C++) abstract class Expression : ASTNode
     {
+    nothrow:
         EXP op;
         ubyte size;
         Type type;
@@ -4703,6 +4829,7 @@ struct ASTBase
 
     extern (C++) final class DeclarationExp : Expression
     {
+    nothrow:
         Dsymbol declaration;
 
         extern (D) this(const ref Loc loc, Dsymbol declaration)
@@ -4719,6 +4846,7 @@ struct ASTBase
 
     extern (C++) final class IntegerExp : Expression
     {
+    nothrow:
         dinteger_t value;
 
         extern (D) this(const ref Loc loc, dinteger_t value, Type type)
@@ -4808,6 +4936,7 @@ struct ASTBase
 
     extern (C++) final class NewAnonClassExp : Expression
     {
+    nothrow:
         Expression thisexp;     // if !=null, 'this' for class being allocated
         ClassDeclaration cd;    // class being instantiated
         Expressions* arguments; // Array of Expression's to call class constructor
@@ -4828,6 +4957,7 @@ struct ASTBase
 
     extern (C++) final class IsExp : Expression
     {
+    nothrow:
         Type targ;
         Identifier id;      // can be null
         Type tspec;         // can be null
@@ -4854,6 +4984,7 @@ struct ASTBase
 
     extern (C++) final class RealExp : Expression
     {
+    nothrow:
         real_t value;
 
         extern (D) this(const ref Loc loc, real_t value, Type type)
@@ -4871,6 +5002,7 @@ struct ASTBase
 
     extern (C++) final class NullExp : Expression
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Type type = null)
         {
             super(loc, EXP.null_, __traits(classInstanceSize, NullExp));
@@ -4885,6 +5017,7 @@ struct ASTBase
 
     extern (C++) final class TypeidExp : Expression
     {
+    nothrow:
         RootObject obj;
 
         extern (D) this(const ref Loc loc, RootObject o)
@@ -4901,6 +5034,7 @@ struct ASTBase
 
     extern (C++) final class TraitsExp : Expression
     {
+    nothrow:
         Identifier ident;
         Objects* args;
 
@@ -4924,6 +5058,7 @@ struct ASTBase
 
     extern (C++) final class StringExp : Expression
     {
+    nothrow:
         union
         {
             char* string;   // if sz == 1
@@ -4997,6 +5132,7 @@ struct ASTBase
 
     extern (C++) class NewExp : Expression
     {
+    nothrow:
         Expression thisexp;         // if !=null, 'this' for class being allocated
         Type newtype;
         Expressions* arguments;     // Array of Expression's
@@ -5019,6 +5155,7 @@ struct ASTBase
 
     extern (C++) final class AssocArrayLiteralExp : Expression
     {
+    nothrow:
         Expressions* keys;
         Expressions* values;
 
@@ -5038,6 +5175,7 @@ struct ASTBase
 
     extern (C++) final class ArrayLiteralExp : Expression
     {
+    nothrow:
         Expression basis;
         Expressions* elements;
 
@@ -5069,6 +5207,7 @@ struct ASTBase
 
     extern (C++) final class FuncExp : Expression
     {
+    nothrow:
         FuncLiteralDeclaration fd;
         TemplateDeclaration td;
         TOK tok;
@@ -5096,6 +5235,7 @@ struct ASTBase
 
     extern (C++) final class IntervalExp : Expression
     {
+    nothrow:
         Expression lwr;
         Expression upr;
 
@@ -5114,6 +5254,7 @@ struct ASTBase
 
     extern (C++) final class TypeExp : Expression
     {
+    nothrow:
         bool parens;
 
         extern (D) this(const ref Loc loc, Type type)
@@ -5130,6 +5271,7 @@ struct ASTBase
 
     extern (C++) final class ScopeExp : Expression
     {
+    nothrow:
         ScopeDsymbol sds;
 
         extern (D) this(const ref Loc loc, ScopeDsymbol sds)
@@ -5147,6 +5289,7 @@ struct ASTBase
 
     extern (C++) class IdentifierExp : Expression
     {
+    nothrow:
         Identifier ident;
         bool parens;
 
@@ -5164,6 +5307,7 @@ struct ASTBase
 
     extern (C++) class UnaExp : Expression
     {
+    nothrow:
         Expression e1;
 
         final extern (D) this(const ref Loc loc, EXP op, int size, Expression e1)
@@ -5180,6 +5324,7 @@ struct ASTBase
 
     extern (C++) class DefaultInitExp : Expression
     {
+    nothrow:
         final extern (D) this(const ref Loc loc, EXP op, int size)
         {
             super(loc, op, size);
@@ -5193,6 +5338,7 @@ struct ASTBase
 
     extern (C++) abstract class BinExp : Expression
     {
+    nothrow:
         Expression e1;
         Expression e2;
 
@@ -5211,6 +5357,7 @@ struct ASTBase
 
     extern (C++) final class DsymbolExp : Expression
     {
+    nothrow:
         Dsymbol s;
         bool hasOverloads;
 
@@ -5229,6 +5376,7 @@ struct ASTBase
 
     extern (C++) final class TemplateExp : Expression
     {
+    nothrow:
         TemplateDeclaration td;
         FuncDeclaration fd;
 
@@ -5248,6 +5396,7 @@ struct ASTBase
 
     extern (C++) class SymbolExp : Expression
     {
+    nothrow:
         Declaration var;
         bool hasOverloads;
 
@@ -5267,6 +5416,7 @@ struct ASTBase
 
     extern (C++) final class VarExp : SymbolExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Declaration var, bool hasOverloads = true)
         {
             if (var.isVarDeclaration())
@@ -5284,6 +5434,7 @@ struct ASTBase
 
     extern (C++) final class TupleExp : Expression
     {
+    nothrow:
         Expression e0;
         Expressions* exps;
 
@@ -5386,6 +5537,7 @@ struct ASTBase
 
     extern (C++) final class DollarExp : IdentifierExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc)
         {
             super(loc, Id.dollar);
@@ -5399,6 +5551,7 @@ struct ASTBase
 
     extern (C++) class ThisExp : Expression
     {
+    nothrow:
         final extern (D) this(const ref Loc loc)
         {
             super(loc, EXP.this_, __traits(classInstanceSize, ThisExp));
@@ -5412,6 +5565,7 @@ struct ASTBase
 
     extern (C++) final class SuperExp : ThisExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc)
         {
             super(loc);
@@ -5426,6 +5580,7 @@ struct ASTBase
 
     extern (C++) final class AddrExp : UnaExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e)
         {
             super(loc, EXP.address, __traits(classInstanceSize, AddrExp), e);
@@ -5439,6 +5594,7 @@ struct ASTBase
 
     extern (C++) final class PreExp : UnaExp
     {
+    nothrow:
         extern (D) this(EXP op, Loc loc, Expression e)
         {
             super(loc, op, __traits(classInstanceSize, PreExp), e);
@@ -5452,6 +5608,7 @@ struct ASTBase
 
     extern (C++) final class PtrExp : UnaExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e)
         {
             super(loc, EXP.star, __traits(classInstanceSize, PtrExp), e);
@@ -5470,6 +5627,7 @@ struct ASTBase
 
     extern (C++) final class NegExp : UnaExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e)
         {
             super(loc, EXP.negate, __traits(classInstanceSize, NegExp), e);
@@ -5483,6 +5641,7 @@ struct ASTBase
 
     extern (C++) final class UAddExp : UnaExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e)
         {
             super(loc, EXP.uadd, __traits(classInstanceSize, UAddExp), e);
@@ -5496,6 +5655,7 @@ struct ASTBase
 
     extern (C++) final class NotExp : UnaExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e)
         {
             super(loc, EXP.not, __traits(classInstanceSize, NotExp), e);
@@ -5509,6 +5669,7 @@ struct ASTBase
 
     extern (C++) final class ComExp : UnaExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e)
         {
             super(loc, EXP.tilde, __traits(classInstanceSize, ComExp), e);
@@ -5522,6 +5683,7 @@ struct ASTBase
 
     extern (C++) final class DeleteExp : UnaExp
     {
+    nothrow:
         bool isRAII;
 
         extern (D) this(const ref Loc loc, Expression e, bool isRAII)
@@ -5538,6 +5700,7 @@ struct ASTBase
 
     extern (C++) final class CastExp : UnaExp
     {
+    nothrow:
         Type to;
         ubyte mod = cast(ubyte)~0;
 
@@ -5560,6 +5723,7 @@ struct ASTBase
 
     extern (C++) final class CallExp : UnaExp
     {
+    nothrow:
         Expressions* arguments;
         Identifiers* names;
 
@@ -5601,6 +5765,7 @@ struct ASTBase
 
     extern (C++) final class DotIdExp : UnaExp
     {
+    nothrow:
         Identifier ident;
 
         extern (D) this(const ref Loc loc, Expression e, Identifier ident)
@@ -5617,6 +5782,7 @@ struct ASTBase
 
     extern (C++) final class AssertExp : UnaExp
     {
+    nothrow:
         Expression msg;
 
         extern (D) this(const ref Loc loc, Expression e, Expression msg = null)
@@ -5633,6 +5799,7 @@ struct ASTBase
 
     extern (C++) final class ThrowExp : UnaExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e)
         {
             super(loc, EXP.throw_, __traits(classInstanceSize, ThrowExp), e);
@@ -5652,6 +5819,7 @@ struct ASTBase
 
     extern (C++) final class MixinExp : Expression
     {
+    nothrow:
         Expressions* exps;
 
         extern (D) this(const ref Loc loc, Expressions* exps)
@@ -5668,6 +5836,7 @@ struct ASTBase
 
     extern (C++) final class ImportExp : UnaExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e)
         {
             super(loc, EXP.import_, __traits(classInstanceSize, ImportExp), e);
@@ -5681,6 +5850,7 @@ struct ASTBase
 
     extern (C++) final class DotTemplateInstanceExp : UnaExp
     {
+    nothrow:
         TemplateInstance ti;
 
         extern (D) this(const ref Loc loc, Expression e, Identifier name, Objects* tiargs)
@@ -5702,6 +5872,7 @@ struct ASTBase
 
     extern (C++) final class ArrayExp : UnaExp
     {
+    nothrow:
         Expressions* arguments;
 
         extern (D) this(const ref Loc loc, Expression e1, Expression index = null)
@@ -5726,6 +5897,7 @@ struct ASTBase
 
     extern (C++) final class FuncInitExp : DefaultInitExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc)
         {
             super(loc, EXP.functionString, __traits(classInstanceSize, FuncInitExp));
@@ -5739,6 +5911,7 @@ struct ASTBase
 
     extern (C++) final class PrettyFuncInitExp : DefaultInitExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc)
         {
             super(loc, EXP.prettyFunction, __traits(classInstanceSize, PrettyFuncInitExp));
@@ -5752,6 +5925,7 @@ struct ASTBase
 
     extern (C++) final class FileInitExp : DefaultInitExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, EXP tok)
         {
             super(loc, tok, __traits(classInstanceSize, FileInitExp));
@@ -5765,6 +5939,7 @@ struct ASTBase
 
     extern (C++) final class LineInitExp : DefaultInitExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc)
         {
             super(loc, EXP.line, __traits(classInstanceSize, LineInitExp));
@@ -5778,6 +5953,7 @@ struct ASTBase
 
     extern (C++) final class ModuleInitExp : DefaultInitExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc)
         {
             super(loc, EXP.moduleString, __traits(classInstanceSize, ModuleInitExp));
@@ -5791,6 +5967,7 @@ struct ASTBase
 
     extern (C++) final class CommaExp : BinExp
     {
+    nothrow:
         const bool isGenerated;
         bool allowCommaExp;
 
@@ -5808,6 +5985,7 @@ struct ASTBase
 
     extern (C++) final class PostExp : BinExp
     {
+    nothrow:
         extern (D) this(EXP op, Loc loc, Expression e)
         {
             super(loc, op, __traits(classInstanceSize, PostExp), e, new IntegerExp(loc, 1, Type.tint32));
@@ -5821,6 +5999,7 @@ struct ASTBase
 
     extern (C++) final class PowExp : BinExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.pow, __traits(classInstanceSize, PowExp), e1, e2);
@@ -5834,6 +6013,7 @@ struct ASTBase
 
     extern (C++) final class MulExp : BinExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.mul, __traits(classInstanceSize, MulExp), e1, e2);
@@ -5847,6 +6027,7 @@ struct ASTBase
 
     extern (C++) final class DivExp : BinExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.div, __traits(classInstanceSize, DivExp), e1, e2);
@@ -5860,6 +6041,7 @@ struct ASTBase
 
     extern (C++) final class ModExp : BinExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.mod, __traits(classInstanceSize, ModExp), e1, e2);
@@ -5873,6 +6055,7 @@ struct ASTBase
 
     extern (C++) final class AddExp : BinExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.add, __traits(classInstanceSize, AddExp), e1, e2);
@@ -5886,6 +6069,7 @@ struct ASTBase
 
     extern (C++) final class MinExp : BinExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.min, __traits(classInstanceSize, MinExp), e1, e2);
@@ -5899,6 +6083,7 @@ struct ASTBase
 
     extern (C++) final class CatExp : BinExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.concatenate, __traits(classInstanceSize, CatExp), e1, e2);
@@ -5912,6 +6097,7 @@ struct ASTBase
 
     extern (C++) final class ShlExp : BinExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.leftShift, __traits(classInstanceSize, ShlExp), e1, e2);
@@ -5925,6 +6111,7 @@ struct ASTBase
 
     extern (C++) final class ShrExp : BinExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.rightShift, __traits(classInstanceSize, ShrExp), e1, e2);
@@ -5938,6 +6125,7 @@ struct ASTBase
 
     extern (C++) final class UshrExp : BinExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.unsignedRightShift, __traits(classInstanceSize, UshrExp), e1, e2);
@@ -5951,6 +6139,7 @@ struct ASTBase
 
     extern (C++) final class EqualExp : BinExp
     {
+    nothrow:
         extern (D) this(EXP op, Loc loc, Expression e1, Expression e2)
         {
             super(loc, op, __traits(classInstanceSize, EqualExp), e1, e2);
@@ -5965,6 +6154,7 @@ struct ASTBase
 
     extern (C++) final class InExp : BinExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.in_, __traits(classInstanceSize, InExp), e1, e2);
@@ -5978,6 +6168,7 @@ struct ASTBase
 
     extern (C++) final class IdentityExp : BinExp
     {
+    nothrow:
         extern (D) this(EXP op, Loc loc, Expression e1, Expression e2)
         {
             super(loc, op, __traits(classInstanceSize, IdentityExp), e1, e2);
@@ -5991,6 +6182,7 @@ struct ASTBase
 
     extern (C++) final class CmpExp : BinExp
     {
+    nothrow:
         extern (D) this(EXP op, Loc loc, Expression e1, Expression e2)
         {
             super(loc, op, __traits(classInstanceSize, CmpExp), e1, e2);
@@ -6004,6 +6196,7 @@ struct ASTBase
 
     extern (C++) final class AndExp : BinExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.and, __traits(classInstanceSize, AndExp), e1, e2);
@@ -6017,6 +6210,7 @@ struct ASTBase
 
     extern (C++) final class XorExp : BinExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.xor, __traits(classInstanceSize, XorExp), e1, e2);
@@ -6030,6 +6224,7 @@ struct ASTBase
 
     extern (C++) final class OrExp : BinExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.or, __traits(classInstanceSize, OrExp), e1, e2);
@@ -6043,6 +6238,7 @@ struct ASTBase
 
     extern (C++) final class LogicalExp : BinExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, EXP op, Expression e1, Expression e2)
         {
             super(loc, op, __traits(classInstanceSize, LogicalExp), e1, e2);
@@ -6056,6 +6252,7 @@ struct ASTBase
 
     extern (C++) final class CondExp : BinExp
     {
+    nothrow:
         Expression econd;
 
         extern (D) this(const ref Loc loc, Expression econd, Expression e1, Expression e2)
@@ -6072,6 +6269,7 @@ struct ASTBase
 
     extern (C++) final class AssignExp : BinExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.assign, __traits(classInstanceSize, AssignExp), e1, e2);
@@ -6085,6 +6283,7 @@ struct ASTBase
 
     extern (C++) class BinAssignExp : BinExp
     {
+    nothrow:
         final extern (D) this(const ref Loc loc, EXP op, int size, Expression e1, Expression e2)
         {
             super(loc, op, size, e1, e2);
@@ -6098,6 +6297,7 @@ struct ASTBase
 
     extern (C++) final class AddAssignExp : BinAssignExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.addAssign, __traits(classInstanceSize, AddAssignExp), e1, e2);
@@ -6111,6 +6311,7 @@ struct ASTBase
 
     extern (C++) final class MinAssignExp : BinAssignExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.minAssign, __traits(classInstanceSize, MinAssignExp), e1, e2);
@@ -6124,6 +6325,7 @@ struct ASTBase
 
     extern (C++) final class MulAssignExp : BinAssignExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.mulAssign, __traits(classInstanceSize, MulAssignExp), e1, e2);
@@ -6137,6 +6339,7 @@ struct ASTBase
 
     extern (C++) final class DivAssignExp : BinAssignExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.divAssign, __traits(classInstanceSize, DivAssignExp), e1, e2);
@@ -6150,6 +6353,7 @@ struct ASTBase
 
     extern (C++) final class ModAssignExp : BinAssignExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.modAssign, __traits(classInstanceSize, ModAssignExp), e1, e2);
@@ -6163,6 +6367,7 @@ struct ASTBase
 
     extern (C++) final class PowAssignExp : BinAssignExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.powAssign, __traits(classInstanceSize, PowAssignExp), e1, e2);
@@ -6176,6 +6381,7 @@ struct ASTBase
 
     extern (C++) final class AndAssignExp : BinAssignExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.andAssign, __traits(classInstanceSize, AndAssignExp), e1, e2);
@@ -6189,6 +6395,7 @@ struct ASTBase
 
     extern (C++) final class OrAssignExp : BinAssignExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.orAssign, __traits(classInstanceSize, OrAssignExp), e1, e2);
@@ -6202,6 +6409,7 @@ struct ASTBase
 
     extern (C++) final class XorAssignExp : BinAssignExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.xorAssign, __traits(classInstanceSize, XorAssignExp), e1, e2);
@@ -6215,6 +6423,7 @@ struct ASTBase
 
     extern (C++) final class ShlAssignExp : BinAssignExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.leftShiftAssign, __traits(classInstanceSize, ShlAssignExp), e1, e2);
@@ -6228,6 +6437,7 @@ struct ASTBase
 
     extern (C++) final class ShrAssignExp : BinAssignExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.rightShiftAssign, __traits(classInstanceSize, ShrAssignExp), e1, e2);
@@ -6241,6 +6451,7 @@ struct ASTBase
 
     extern (C++) final class UshrAssignExp : BinAssignExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.unsignedRightShiftAssign, __traits(classInstanceSize, UshrAssignExp), e1, e2);
@@ -6254,6 +6465,7 @@ struct ASTBase
 
     extern (C++) class CatAssignExp : BinAssignExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.concatenateAssign, __traits(classInstanceSize, CatAssignExp), e1, e2);
@@ -6272,6 +6484,7 @@ struct ASTBase
 
     extern (C++) final class CatElemAssignExp : CatAssignExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Type type, Expression e1, Expression e2)
         {
             super(loc, EXP.concatenateElemAssign, e1, e2);
@@ -6286,6 +6499,7 @@ struct ASTBase
 
     extern (C++) final class CatDcharAssignExp : CatAssignExp
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Type type, Expression e1, Expression e2)
         {
             super(loc, EXP.concatenateDcharAssign, e1, e2);
@@ -6300,6 +6514,7 @@ struct ASTBase
 
     extern (C++) final class GenericExp : Expression
     {
+    nothrow:
         Expression cntlExp;
         Types* types;
         Expressions* exps;
@@ -6320,6 +6535,7 @@ struct ASTBase
 
     extern (C++) final class ErrorExp : Expression
     {
+    nothrow:
         private extern (D) this()
         {
             super(Loc.initial, EXP.error, __traits(classInstanceSize, ErrorExp));
@@ -6353,6 +6569,7 @@ struct ASTBase
 
     extern (C++) class TemplateParameter : ASTNode
     {
+    nothrow:
         Loc loc;
         Identifier ident;
 
@@ -6372,6 +6589,7 @@ struct ASTBase
 
     extern (C++) final class TemplateAliasParameter : TemplateParameter
     {
+    nothrow:
         Type specType;
         RootObject specAlias;
         RootObject defaultAlias;
@@ -6393,6 +6611,7 @@ struct ASTBase
 
     extern (C++) class TemplateTypeParameter : TemplateParameter
     {
+    nothrow:
         Type specType;
         Type defaultType;
 
@@ -6412,6 +6631,7 @@ struct ASTBase
 
     extern (C++) final class TemplateTupleParameter : TemplateParameter
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Identifier ident)
         {
             super(loc, ident);
@@ -6426,6 +6646,7 @@ struct ASTBase
 
     extern (C++) final class TemplateValueParameter : TemplateParameter
     {
+    nothrow:
         Type valType;
         Expression specValue;
         Expression defaultValue;
@@ -6448,6 +6669,7 @@ struct ASTBase
 
     extern (C++) final class TemplateThisParameter : TemplateTypeParameter
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Identifier ident, Type specType, Type defaultType)
         {
             super(loc, ident, specType, defaultType);
@@ -6461,6 +6683,7 @@ struct ASTBase
 
     extern (C++) abstract class Condition : ASTNode
     {
+    nothrow:
         Loc loc;
 
         final extern (D) this(const ref Loc loc)
@@ -6481,6 +6704,7 @@ struct ASTBase
 
     extern (C++) final class StaticForeach : RootObject
     {
+    nothrow:
         Loc loc;
 
         ForeachStatement aggrfe;
@@ -6501,6 +6725,7 @@ struct ASTBase
 
     extern (C++) final class StaticIfCondition : Condition
     {
+    nothrow:
         Expression exp;
 
         final extern (D) this(const ref Loc loc, Expression exp)
@@ -6522,6 +6747,7 @@ struct ASTBase
 
     extern (C++) class DVCondition : Condition
     {
+    nothrow:
         uint level;
         Identifier ident;
         Module mod;
@@ -6541,6 +6767,7 @@ struct ASTBase
 
     extern (C++) final class DebugCondition : DVCondition
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Module mod, uint level, Identifier ident)
         {
             super(loc, mod, level, ident);
@@ -6554,6 +6781,7 @@ struct ASTBase
 
     extern (C++) final class VersionCondition : DVCondition
     {
+    nothrow:
         extern (D) this(const ref Loc loc, Module mod, uint level, Identifier ident)
         {
             super(loc, mod, level, ident);
@@ -6567,6 +6795,7 @@ struct ASTBase
 
     extern (C++) class Initializer : ASTNode
     {
+    nothrow:
         Loc loc;
         InitKind kind;
 
@@ -6595,6 +6824,7 @@ struct ASTBase
 
     extern (C++) final class ExpInitializer : Initializer
     {
+    nothrow:
         Expression exp;
 
         extern (D) this(const ref Loc loc, Expression exp)
@@ -6611,6 +6841,7 @@ struct ASTBase
 
     extern (C++) final class StructInitializer : Initializer
     {
+    nothrow:
         Identifiers field;
         Initializers value;
 
@@ -6633,6 +6864,7 @@ struct ASTBase
 
     extern (C++) final class ArrayInitializer : Initializer
     {
+    nothrow:
         Expressions index;
         Initializers value;
         uint dim;
@@ -6659,6 +6891,7 @@ struct ASTBase
 
     extern (C++) final class VoidInitializer : Initializer
     {
+    nothrow:
         extern (D) this(const ref Loc loc)
         {
             super(loc, InitKind.void_);
@@ -6672,6 +6905,7 @@ struct ASTBase
 
     struct Designator
     {
+    nothrow:
         Expression exp;         /// [ constant-expression ]
         Identifier ident;       /// . identifier
 
@@ -6687,6 +6921,7 @@ struct ASTBase
 
     extern (C++) final class CInitializer : Initializer
     {
+    nothrow:
         DesigInits initializerList; /// initializer-list
 
         extern (D) this(const ref Loc loc)
@@ -6723,6 +6958,7 @@ struct ASTBase
 
     struct ModuleDeclaration
     {
+    nothrow:
         Loc loc;
         Identifier id;
         Identifier[] packages;

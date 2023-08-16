@@ -17,7 +17,7 @@ import dmd.expression;
 import dmd.root.array;
 import dmd.visitor;
 
-bool walkPostorder(Expression e, StoppableVisitor v)
+bool walkPostorder(Expression e, StoppableVisitor v) nothrow
 {
     scope PostorderExpressionVisitor pv = new PostorderExpressionVisitor(v);
     e.accept(pv);
@@ -40,26 +40,26 @@ private extern (C++) final class PostorderExpressionVisitor : StoppableVisitor
 public:
     StoppableVisitor v;
 
-    extern (D) this(StoppableVisitor v) scope @safe
+    extern (D) this(StoppableVisitor v) nothrow scope @safe
     {
         this.v = v;
     }
 
-    bool doCond(Expression e)
+    bool doCond(Expression e) nothrow
     {
         if (!stop && e)
             e.accept(this);
         return stop;
     }
 
-    extern(D) bool doCond(Expression[] e)
+    extern(D) bool doCond(Expression[] e) nothrow
     {
         for (size_t i = 0; i < e.length && !stop; i++)
             doCond(e[i]);
         return stop;
     }
 
-    bool applyTo(Expression e)
+    bool applyTo(Expression e) nothrow
     {
         e.accept(v);
         stop = v.stop;

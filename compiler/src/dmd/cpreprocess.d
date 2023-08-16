@@ -45,7 +45,7 @@ version (Windows) version = runPreprocessor;
  *      filename of output
  */
 extern (C++)
-FileName preprocess(FileName csrcfile, ref const Loc loc, out bool ifile, OutBuffer* defines)
+FileName preprocess(FileName csrcfile, ref const Loc loc, out bool ifile, OutBuffer* defines) nothrow
 {
     /* Look for "importc.h" by searching along import path.
      * It should be in the same place as "object.d"
@@ -102,7 +102,7 @@ FileName preprocess(FileName csrcfile, ref const Loc loc, out bool ifile, OutBuf
         return csrcfile;        // no-op
 }
 
-private const(char)[] cppCommand()
+private const(char)[] cppCommand() nothrow
 {
     if (auto p = getenv("CPPCMD"))
         return toDString(p);

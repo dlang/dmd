@@ -119,7 +119,7 @@ enum ModifyFlags
  * Returns:
  *      left-most non-comma expression
  */
-inout(Expression) firstComma(inout Expression e)
+inout(Expression) firstComma(inout Expression e) nothrow
 {
     Expression ex = cast()e;
     while (ex.op == EXP.comma)
@@ -136,7 +136,7 @@ inout(Expression) firstComma(inout Expression e)
  *      right-most non-comma expression
  */
 
-inout(Expression) lastComma(inout Expression e)
+inout(Expression) lastComma(inout Expression e) nothrow
 {
     Expression ex = cast()e;
     while (ex.op == EXP.comma)
@@ -154,7 +154,7 @@ inout(Expression) lastComma(inout Expression e)
  * Returns:
  *      Found function if it satisfies `isThis()`, otherwise `null`
  */
-FuncDeclaration hasThis(Scope* sc)
+FuncDeclaration hasThis(Scope* sc) nothrow
 {
     //printf("hasThis()\n");
     Dsymbol p = sc.parent;
@@ -206,7 +206,7 @@ FuncDeclaration hasThis(Scope* sc)
  * Returns:
  *      true means a `this` is needed
  */
-bool isNeedThisScope(Scope* sc, Declaration d)
+bool isNeedThisScope(Scope* sc, Declaration d) nothrow
 {
     if (sc.intypeof == 1)
         return false;
@@ -241,7 +241,7 @@ bool isNeedThisScope(Scope* sc, Declaration d)
  * check e is exp.opDispatch!(tiargs) or not
  * It's used to switch to UFCS the semantic analysis path
  */
-bool isDotOpDispatch(Expression e)
+bool isDotOpDispatch(Expression e) nothrow
 {
     if (auto dtie = e.isDotTemplateInstanceExp())
         return dtie.ti.name == Id.opDispatch;
@@ -263,7 +263,7 @@ bool isDotOpDispatch(Expression e)
  *     exps  = array of Expressions
  *     names = optional array of names corresponding to Expressions
  */
-extern (C++) void expandTuples(Expressions* exps, Identifiers* names = null)
+extern (C++) void expandTuples(Expressions* exps, Identifiers* names = null) nothrow
 {
     //printf("expandTuples()\n");
     if (exps is null)
@@ -348,7 +348,7 @@ extern (C++) void expandTuples(Expressions* exps, Identifiers* names = null)
 /****************************************
  * Expand alias this tuples.
  */
-TupleDeclaration isAliasThisTuple(Expression e)
+TupleDeclaration isAliasThisTuple(Expression e) nothrow
 {
     if (!e.type)
         return null;
@@ -378,7 +378,7 @@ TupleDeclaration isAliasThisTuple(Expression e)
     }
 }
 
-int expandAliasThisTuples(Expressions* exps, size_t starti = 0)
+int expandAliasThisTuples(Expressions* exps, size_t starti = 0) nothrow
 {
     if (!exps || exps.length == 0)
         return -1;
@@ -421,7 +421,7 @@ int expandAliasThisTuples(Expressions* exps, size_t starti = 0)
  * Returns:
  *      template for that function, otherwise null
  */
-TemplateDeclaration getFuncTemplateDecl(Dsymbol s) @safe
+TemplateDeclaration getFuncTemplateDecl(Dsymbol s) nothrow @safe
 {
     FuncDeclaration f = s.isFuncDeclaration();
     if (f && f.parent)
@@ -445,7 +445,7 @@ TemplateDeclaration getFuncTemplateDecl(Dsymbol s) @safe
  * If we want the value of this expression, but do not want to call
  * the destructor on it.
  */
-Expression valueNoDtor(Expression e)
+Expression valueNoDtor(Expression e) nothrow
 {
     auto ex = lastComma(e);
 
@@ -498,7 +498,7 @@ Expression valueNoDtor(Expression e)
  *      destinationType = the type of the object on which the copy constructor is called;
  *                        may be null if the struct defines a postblit
  */
-private Expression callCpCtor(Scope* sc, Expression e, Type destinationType)
+private Expression callCpCtor(Scope* sc, Expression e, Type destinationType) nothrow
 {
     if (auto ts = e.type.baseElemOf().isTypeStruct())
     {
@@ -547,7 +547,7 @@ private Expression callCpCtor(Scope* sc, Expression e, Type destinationType)
  * Returns:
  *  The expression that copy constructs or moves the value.
  */
-extern (D) Expression doCopyOrMove(Scope *sc, Expression e, Type t = null)
+extern (D) Expression doCopyOrMove(Scope *sc, Expression e, Type t = null) nothrow
 {
     if (auto ce = e.isCondExp())
     {
@@ -568,6 +568,7 @@ extern (D) Expression doCopyOrMove(Scope *sc, Expression e, Type t = null)
  */
 extern (C++) struct UnionExp
 {
+nothrow:
     // yes, default constructor does nothing
     extern (D) this(Expression e)
     {
@@ -636,7 +637,7 @@ private:
  *      true if x1 is x2
  *      else false
  */
-bool RealIdentical(real_t x1, real_t x2) @safe
+bool RealIdentical(real_t x1, real_t x2) nothrow @safe
 {
     return (CTFloat.isNaN(x1) && CTFloat.isNaN(x2)) || CTFloat.isIdentical(x1, x2);
 }
@@ -648,7 +649,7 @@ bool RealIdentical(real_t x1, real_t x2) @safe
  *      (foo).size
  *      cast(foo).size
  */
-DotIdExp typeDotIdExp(const ref Loc loc, Type type, Identifier ident) @safe
+DotIdExp typeDotIdExp(const ref Loc loc, Type type, Identifier ident) nothrow @safe
 {
     return new DotIdExp(loc, new TypeExp(loc, type), ident);
 }
@@ -662,7 +663,7 @@ DotIdExp typeDotIdExp(const ref Loc loc, Type type, Identifier ident) @safe
  * Returns:
  *      variable if there is one, null if not
  */
-VarDeclaration expToVariable(Expression e)
+VarDeclaration expToVariable(Expression e) nothrow
 {
     while (1)
     {
@@ -734,6 +735,7 @@ enum WANTexpand = 1;    // expand const/immutable variables if possible
  */
 extern (C++) abstract class Expression : ASTNode
 {
+nothrow:
     Type type;      // !=null means that semantic() has been run
     Loc loc;        // file location
     const EXP op;   // to minimize use of dynamic_cast
@@ -1262,7 +1264,7 @@ extern (C++) abstract class Expression : ASTNode
      *   checkName = the kind of check (e.g. `"pure"`)
      */
     extern (D) final void checkOverriddenDtor(Scope* sc, FuncDeclaration f,
-                scope bool function(DtorDeclaration) check, const string checkName
+                scope bool function(DtorDeclaration) nothrow check, const string checkName
     ) {
         auto dd = f.isDtorDeclaration();
         if (!dd || !dd.isGenerated())
@@ -1894,6 +1896,7 @@ extern (C++) abstract class Expression : ASTNode
  */
 extern (C++) final class IntegerExp : Expression
 {
+nothrow:
     private dinteger_t value;
 
     extern (D) this(const ref Loc loc, dinteger_t value, Type type)
@@ -2112,6 +2115,7 @@ extern (C++) final class IntegerExp : Expression
  */
 extern (C++) final class ErrorExp : Expression
 {
+nothrow:
     private extern (D) this()
     {
         super(Loc.initial, EXP.error);
@@ -2157,6 +2161,7 @@ extern (C++) final class ErrorExp : Expression
  */
 extern (C++) final class VoidInitExp : Expression
 {
+nothrow:
     VarDeclaration var; /// the variable from where the void value came from, null if not known
                         /// Useful for error messages
 
@@ -2184,6 +2189,7 @@ extern (C++) final class VoidInitExp : Expression
  */
 extern (C++) final class RealExp : Expression
 {
+nothrow:
     real_t value;
 
     extern (D) this(const ref Loc loc, real_t value, Type type) @safe
@@ -2267,6 +2273,7 @@ extern (C++) final class RealExp : Expression
  */
 extern (C++) final class ComplexExp : Expression
 {
+nothrow:
     complex_t value;
 
     extern (D) this(const ref Loc loc, complex_t value, Type type) @safe
@@ -2358,6 +2365,7 @@ extern (C++) final class ComplexExp : Expression
  */
 extern (C++) class IdentifierExp : Expression
 {
+nothrow:
     Identifier ident;
     bool parens;        // if it appears as (identifier)
 
@@ -2395,6 +2403,7 @@ extern (C++) class IdentifierExp : Expression
  */
 extern (C++) final class DollarExp : IdentifierExp
 {
+nothrow:
     extern (D) this(const ref Loc loc)
     {
         super(loc, Id.dollar);
@@ -2411,6 +2420,7 @@ extern (C++) final class DollarExp : IdentifierExp
  */
 extern (C++) final class DsymbolExp : Expression
 {
+nothrow:
     Dsymbol s;
     bool hasOverloads;
 
@@ -2442,6 +2452,7 @@ extern (C++) final class DsymbolExp : Expression
  */
 extern (C++) class ThisExp : Expression
 {
+nothrow:
     VarDeclaration var;
 
     extern (D) this(const ref Loc loc) @safe
@@ -2492,6 +2503,7 @@ extern (C++) class ThisExp : Expression
  */
 extern (C++) final class SuperExp : ThisExp
 {
+nothrow:
     extern (D) this(const ref Loc loc) @safe
     {
         super(loc, EXP.super_);
@@ -2522,6 +2534,7 @@ extern (C++) final class SuperExp : ThisExp
  */
 extern (C++) final class NullExp : Expression
 {
+nothrow:
     extern (D) this(const ref Loc loc, Type type = null) scope @safe
     {
         super(loc, EXP.null_);
@@ -2568,6 +2581,7 @@ extern (C++) final class NullExp : Expression
  */
 extern (C++) final class StringExp : Expression
 {
+nothrow:
     char postfix = NoPostfix;   // 'c', 'w', 'd'
     OwnedBy ownedByCtfe = OwnedBy.code;
     private union
@@ -2975,6 +2989,7 @@ extern (C++) final class StringExp : Expression
  */
 extern (C++) final class TupleExp : Expression
 {
+nothrow:
     /* Tuple-field access may need to take out its side effect part.
      * For example:
      *      foo().tupleof
@@ -3080,6 +3095,7 @@ extern (C++) final class TupleExp : Expression
  */
 extern (C++) final class ArrayLiteralExp : Expression
 {
+nothrow:
     OwnedBy ownedByCtfe = OwnedBy.code;
     bool onstack = false;
 
@@ -3246,6 +3262,7 @@ extern (C++) final class ArrayLiteralExp : Expression
  */
 extern (C++) final class AssocArrayLiteralExp : Expression
 {
+nothrow:
     OwnedBy ownedByCtfe = OwnedBy.code;
 
     Expressions* keys;
@@ -3317,6 +3334,7 @@ enum stageToCBuffer         = 0x20; /// toCBuffer is running
  */
 extern (C++) final class StructLiteralExp : Expression
 {
+nothrow:
     StructDeclaration sd;   /// which aggregate this is for
     Expressions* elements;  /// parallels sd.fields[] with null entries for fields to skip
     Type stype;             /// final type of result (can be different from sd's type)
@@ -3527,6 +3545,7 @@ extern (C++) final class StructLiteralExp : Expression
  */
 extern (C++) final class CompoundLiteralExp : Expression
 {
+nothrow:
     Initializer initializer; /// initializer-list
 
     extern (D) this(const ref Loc loc, Type type_name, Initializer initializer) @safe
@@ -3548,6 +3567,7 @@ extern (C++) final class CompoundLiteralExp : Expression
  */
 extern (C++) final class TypeExp : Expression
 {
+nothrow:
     bool parens;    // if this is a parenthesized expression
 
     extern (D) this(const ref Loc loc, Type type) @safe
@@ -3590,6 +3610,7 @@ extern (C++) final class TypeExp : Expression
  */
 extern (C++) final class ScopeExp : Expression
 {
+nothrow:
     ScopeDsymbol sds;
 
     extern (D) this(const ref Loc loc, ScopeDsymbol sds) @safe
@@ -3644,6 +3665,7 @@ extern (C++) final class ScopeExp : Expression
  */
 extern (C++) final class TemplateExp : Expression
 {
+nothrow:
     TemplateDeclaration td;
     FuncDeclaration fd;
 
@@ -3692,6 +3714,7 @@ extern (C++) final class TemplateExp : Expression
  */
 extern (C++) final class NewExp : Expression
 {
+nothrow:
     Expression thisexp;         // if !=null, 'this' for class being allocated
     Type newtype;
     Expressions* arguments;     // Array of Expression's
@@ -3742,6 +3765,7 @@ extern (C++) final class NewExp : Expression
  */
 extern (C++) final class NewAnonClassExp : Expression
 {
+nothrow:
     Expression thisexp;     // if !=null, 'this' for class being allocated
     ClassDeclaration cd;    // class being instantiated
     Expressions* arguments; // Array of Expression's to call class constructor
@@ -3769,6 +3793,7 @@ extern (C++) final class NewAnonClassExp : Expression
  */
 extern (C++) class SymbolExp : Expression
 {
+nothrow:
     Declaration var;
     Dsymbol originalScope; // original scope before inlining
     bool hasOverloads;
@@ -3792,6 +3817,7 @@ extern (C++) class SymbolExp : Expression
  */
 extern (C++) final class SymOffExp : SymbolExp
 {
+nothrow:
     dinteger_t offset;
 
     extern (D) this(const ref Loc loc, Declaration var, dinteger_t offset, bool hasOverloads = true)
@@ -3828,6 +3854,7 @@ extern (C++) final class SymOffExp : SymbolExp
  */
 extern (C++) final class VarExp : SymbolExp
 {
+nothrow:
     bool delegateWasExtracted;
     extern (D) this(const ref Loc loc, Declaration var, bool hasOverloads = true) @safe
     {
@@ -3914,6 +3941,7 @@ extern (C++) final class VarExp : SymbolExp
  */
 extern (C++) final class OverExp : Expression
 {
+nothrow:
     OverloadSet vars;
 
     extern (D) this(const ref Loc loc, OverloadSet s)
@@ -3946,6 +3974,7 @@ extern (C++) final class OverExp : Expression
 
 extern (C++) final class FuncExp : Expression
 {
+nothrow:
     FuncLiteralDeclaration fd;
     TemplateDeclaration td;
     TOK tok;  // TOK.reserved, TOK.delegate_, TOK.function_
@@ -4247,6 +4276,7 @@ extern (C++) final class FuncExp : Expression
  */
 extern (C++) final class DeclarationExp : Expression
 {
+nothrow:
     Dsymbol declaration;
 
     extern (D) this(const ref Loc loc, Dsymbol declaration) @safe
@@ -4280,6 +4310,7 @@ extern (C++) final class DeclarationExp : Expression
  */
 extern (C++) final class TypeidExp : Expression
 {
+nothrow:
     RootObject obj;
 
     extern (D) this(const ref Loc loc, RootObject o) @safe
@@ -4304,6 +4335,7 @@ extern (C++) final class TypeidExp : Expression
  */
 extern (C++) final class TraitsExp : Expression
 {
+nothrow:
     Identifier ident;
     Objects* args;
 
@@ -4332,6 +4364,7 @@ extern (C++) final class TraitsExp : Expression
  */
 extern (C++) final class HaltExp : Expression
 {
+nothrow:
     extern (D) this(const ref Loc loc) @safe
     {
         super(loc, EXP.halt);
@@ -4349,6 +4382,7 @@ extern (C++) final class HaltExp : Expression
  */
 extern (C++) final class IsExp : Expression
 {
+nothrow:
     Type targ;
     Identifier id;      // can be null
     Type tspec;         // can be null
@@ -4393,6 +4427,7 @@ extern (C++) final class IsExp : Expression
  */
 extern (C++) abstract class UnaExp : Expression
 {
+nothrow:
     Expression e1;
 
     extern (D) this(const ref Loc loc, EXP op, Expression e1) scope @safe
@@ -4455,14 +4490,15 @@ extern (C++) abstract class UnaExp : Expression
     }
 }
 
-alias fp_t = UnionExp function(const ref Loc loc, Type, Expression, Expression);
-alias fp2_t = bool function(const ref Loc loc, EXP, Expression, Expression);
+alias fp_t = UnionExp function(const ref Loc loc, Type, Expression, Expression) nothrow;
+alias fp2_t = bool function(const ref Loc loc, EXP, Expression, Expression) nothrow;
 
 /***********************************************************
  * Base class for binary operators
  */
 extern (C++) abstract class BinExp : Expression
 {
+nothrow:
     Expression e1;
     Expression e2;
     Type att1;      // Save alias this type to detect recursion
@@ -4759,6 +4795,7 @@ extern (C++) abstract class BinExp : Expression
  */
 extern (C++) class BinAssignExp : BinExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, EXP op, Expression e1, Expression e2) scope @safe
     {
         super(loc, op, e1, e2);
@@ -4794,6 +4831,7 @@ extern (C++) class BinAssignExp : BinExp
  */
 extern (C++) final class MixinExp : Expression
 {
+nothrow:
     Expressions* exps;
 
     extern (D) this(const ref Loc loc, Expressions* exps) @safe
@@ -4844,6 +4882,7 @@ extern (C++) final class MixinExp : Expression
  */
 extern (C++) final class ImportExp : UnaExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e) @safe
     {
         super(loc, EXP.import_, e);
@@ -4862,6 +4901,7 @@ extern (C++) final class ImportExp : UnaExp
  */
 extern (C++) final class AssertExp : UnaExp
 {
+nothrow:
     Expression msg;
 
     extern (D) this(const ref Loc loc, Expression e, Expression msg = null) @safe
@@ -4889,6 +4929,7 @@ extern (C++) final class AssertExp : UnaExp
  */
 extern (C++) final class ThrowExp : UnaExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e)
     {
         super(loc, EXP.throw_, e);
@@ -4910,6 +4951,7 @@ extern (C++) final class ThrowExp : UnaExp
  */
 extern (C++) final class DotIdExp : UnaExp
 {
+nothrow:
     Identifier ident;
     bool noderef;       // true if the result of the expression will never be dereferenced
     bool wantsym;       // do not replace Symbol with its initializer during semantic()
@@ -4937,6 +4979,7 @@ extern (C++) final class DotIdExp : UnaExp
  */
 extern (C++) final class DotTemplateExp : UnaExp
 {
+nothrow:
     TemplateDeclaration td;
 
     extern (D) this(const ref Loc loc, Expression e, TemplateDeclaration td) @safe
@@ -4967,6 +5010,7 @@ extern (C++) final class DotTemplateExp : UnaExp
  */
 extern (C++) final class DotVarExp : UnaExp
 {
+nothrow:
     Declaration var;
     bool hasOverloads;
 
@@ -5052,6 +5096,7 @@ extern (C++) final class DotVarExp : UnaExp
  */
 extern (C++) final class DotTemplateInstanceExp : UnaExp
 {
+nothrow:
     TemplateInstance ti;
 
     extern (D) this(const ref Loc loc, Expression e, Identifier name, Objects* tiargs)
@@ -5150,6 +5195,7 @@ extern (C++) final class DotTemplateInstanceExp : UnaExp
  */
 extern (C++) final class DelegateExp : UnaExp
 {
+nothrow:
     FuncDeclaration func;
     bool hasOverloads;
     VarDeclaration vthis2;  // container for multi-context
@@ -5172,6 +5218,7 @@ extern (C++) final class DelegateExp : UnaExp
  */
 extern (C++) final class DotTypeExp : UnaExp
 {
+nothrow:
     Dsymbol sym;        // symbol that represents a type
 
     extern (D) this(const ref Loc loc, Expression e, Dsymbol s) @safe
@@ -5216,6 +5263,7 @@ struct ArgumentList
  */
 extern (C++) final class CallExp : UnaExp
 {
+nothrow:
     Expressions* arguments; // function arguments
     Identifiers* names;     // named argument identifiers
     FuncDeclaration f;      // symbol to call
@@ -5370,7 +5418,7 @@ extern (C++) final class CallExp : UnaExp
  *   ce = function call expression. Must have had semantic analysis done.
  * Returns: called function type, or `null` if error / no semantic analysis done
  */
-TypeFunction calledFunctionType(CallExp ce)
+TypeFunction calledFunctionType(CallExp ce) nothrow
 {
     Type t = ce.e1.type;
     if (!t)
@@ -5384,7 +5432,7 @@ TypeFunction calledFunctionType(CallExp ce)
         return null;
 }
 
-FuncDeclaration isFuncAddress(Expression e, bool* hasOverloads = null) @safe
+FuncDeclaration isFuncAddress(Expression e, bool* hasOverloads = null) nothrow @safe
 {
     if (auto ae = e.isAddrExp())
     {
@@ -5425,6 +5473,7 @@ FuncDeclaration isFuncAddress(Expression e, bool* hasOverloads = null) @safe
  */
 extern (C++) final class AddrExp : UnaExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e) @safe
     {
         super(loc, EXP.address, e);
@@ -5447,6 +5496,7 @@ extern (C++) final class AddrExp : UnaExp
  */
 extern (C++) final class PtrExp : UnaExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e) @safe
     {
         super(loc, EXP.star, e);
@@ -5500,6 +5550,7 @@ extern (C++) final class PtrExp : UnaExp
  */
 extern (C++) final class NegExp : UnaExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e) @safe
     {
         super(loc, EXP.negate, e);
@@ -5516,6 +5567,7 @@ extern (C++) final class NegExp : UnaExp
  */
 extern (C++) final class UAddExp : UnaExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e) scope @safe
     {
         super(loc, EXP.uadd, e);
@@ -5532,6 +5584,7 @@ extern (C++) final class UAddExp : UnaExp
  */
 extern (C++) final class ComExp : UnaExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e) @safe
     {
         super(loc, EXP.tilde, e);
@@ -5548,6 +5601,7 @@ extern (C++) final class ComExp : UnaExp
  */
 extern (C++) final class NotExp : UnaExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e) @safe
     {
         super(loc, EXP.not, e);
@@ -5566,6 +5620,7 @@ extern (C++) final class NotExp : UnaExp
  */
 extern (C++) final class DeleteExp : UnaExp
 {
+nothrow:
     bool isRAII;        // true if called automatically as a result of scoped destruction
 
     extern (D) this(const ref Loc loc, Expression e, bool isRAII) @safe
@@ -5589,6 +5644,7 @@ extern (C++) final class DeleteExp : UnaExp
  */
 extern (C++) final class CastExp : UnaExp
 {
+nothrow:
     Type to;                    // type to cast to
     ubyte mod = cast(ubyte)~0;  // MODxxxxx
 
@@ -5650,6 +5706,7 @@ extern (C++) final class CastExp : UnaExp
  */
 extern (C++) final class VectorExp : UnaExp
 {
+nothrow:
     TypeVector to;      // the target vector type before semantic()
     uint dim = ~0;      // number of elements in the vector
     OwnedBy ownedByCtfe = OwnedBy.code;
@@ -5690,6 +5747,7 @@ extern (C++) final class VectorExp : UnaExp
  */
 extern (C++) final class VectorArrayExp : UnaExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e1) @safe
     {
         super(loc, EXP.vectorArray, e1);
@@ -5719,6 +5777,7 @@ extern (C++) final class VectorArrayExp : UnaExp
  */
 extern (C++) final class SliceExp : UnaExp
 {
+nothrow:
     Expression upr;             // null if implicit 0
     Expression lwr;             // null if implicit [length - 1]
 
@@ -5791,6 +5850,7 @@ extern (C++) final class SliceExp : UnaExp
  */
 extern (C++) final class ArrayLengthExp : UnaExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e1) @safe
     {
         super(loc, EXP.arrayLength, e1);
@@ -5809,6 +5869,7 @@ extern (C++) final class ArrayLengthExp : UnaExp
  */
 extern (C++) final class ArrayExp : UnaExp
 {
+nothrow:
     Expressions* arguments;     // Array of Expression's a0..an
 
     size_t currentDimension;    // for opDollar
@@ -5859,6 +5920,7 @@ extern (C++) final class ArrayExp : UnaExp
  */
 extern (C++) final class DotExp : BinExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.dot, e1, e2);
@@ -5874,6 +5936,7 @@ extern (C++) final class DotExp : BinExp
  */
 extern (C++) final class CommaExp : BinExp
 {
+nothrow:
     /// This is needed because AssignExp rewrites CommaExp, hence it needs
     /// to trigger the deprecation.
     const bool isGenerated;
@@ -5951,6 +6014,7 @@ extern (C++) final class CommaExp : BinExp
  */
 extern (C++) final class IntervalExp : Expression
 {
+nothrow:
     Expression lwr;
     Expression upr;
 
@@ -5979,6 +6043,7 @@ extern (C++) final class IntervalExp : Expression
  */
 extern (C++) final class DelegatePtrExp : UnaExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e1) @safe
     {
         super(loc, EXP.delegatePointer, e1);
@@ -6017,6 +6082,7 @@ extern (C++) final class DelegatePtrExp : UnaExp
  */
 extern (C++) final class DelegateFuncptrExp : UnaExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e1) @safe
     {
         super(loc, EXP.delegateFunctionPointer, e1);
@@ -6053,6 +6119,7 @@ extern (C++) final class DelegateFuncptrExp : UnaExp
  */
 extern (C++) final class IndexExp : BinExp
 {
+nothrow:
     VarDeclaration lengthVar;
     bool modifiable = false;    // assume it is an rvalue
     bool indexIsInBounds;       // true if 0 <= e2 && e2 <= e1.length - 1
@@ -6140,6 +6207,7 @@ extern (C++) final class IndexExp : BinExp
  */
 extern (C++) final class PostExp : BinExp
 {
+nothrow:
     extern (D) this(EXP op, const ref Loc loc, Expression e)
     {
         super(loc, op, e, IntegerExp.literal!1);
@@ -6157,6 +6225,7 @@ extern (C++) final class PostExp : BinExp
  */
 extern (C++) final class PreExp : UnaExp
 {
+nothrow:
     extern (D) this(EXP op, const ref Loc loc, Expression e) @safe
     {
         super(loc, op, e);
@@ -6183,6 +6252,7 @@ enum MemorySet
  */
 extern (C++) class AssignExp : BinExp
 {
+nothrow:
     MemorySet memset;
 
     /************************************************************/
@@ -6237,6 +6307,7 @@ extern (C++) class AssignExp : BinExp
  */
 extern (C++) final class LoweredAssignExp : AssignExp
 {
+nothrow:
     Expression lowering;
     extern (D) this(AssignExp exp, Expression lowering) @safe
     {
@@ -6258,6 +6329,7 @@ extern (C++) final class LoweredAssignExp : AssignExp
  */
 extern (C++) final class ConstructExp : AssignExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.construct, e1, e2);
@@ -6287,6 +6359,7 @@ extern (C++) final class ConstructExp : AssignExp
  */
 extern (C++) final class BlitExp : AssignExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.blit, e1, e2);
@@ -6316,6 +6389,7 @@ extern (C++) final class BlitExp : AssignExp
  */
 extern (C++) final class AddAssignExp : BinAssignExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.addAssign, e1, e2);
@@ -6332,6 +6406,7 @@ extern (C++) final class AddAssignExp : BinAssignExp
  */
 extern (C++) final class MinAssignExp : BinAssignExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.minAssign, e1, e2);
@@ -6348,6 +6423,7 @@ extern (C++) final class MinAssignExp : BinAssignExp
  */
 extern (C++) final class MulAssignExp : BinAssignExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.mulAssign, e1, e2);
@@ -6364,6 +6440,7 @@ extern (C++) final class MulAssignExp : BinAssignExp
  */
 extern (C++) final class DivAssignExp : BinAssignExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.divAssign, e1, e2);
@@ -6380,6 +6457,7 @@ extern (C++) final class DivAssignExp : BinAssignExp
  */
 extern (C++) final class ModAssignExp : BinAssignExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.modAssign, e1, e2);
@@ -6396,6 +6474,7 @@ extern (C++) final class ModAssignExp : BinAssignExp
  */
 extern (C++) final class AndAssignExp : BinAssignExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.andAssign, e1, e2);
@@ -6412,6 +6491,7 @@ extern (C++) final class AndAssignExp : BinAssignExp
  */
 extern (C++) final class OrAssignExp : BinAssignExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.orAssign, e1, e2);
@@ -6428,6 +6508,7 @@ extern (C++) final class OrAssignExp : BinAssignExp
  */
 extern (C++) final class XorAssignExp : BinAssignExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.xorAssign, e1, e2);
@@ -6444,6 +6525,7 @@ extern (C++) final class XorAssignExp : BinAssignExp
  */
 extern (C++) final class PowAssignExp : BinAssignExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.powAssign, e1, e2);
@@ -6460,6 +6542,7 @@ extern (C++) final class PowAssignExp : BinAssignExp
  */
 extern (C++) final class ShlAssignExp : BinAssignExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.leftShiftAssign, e1, e2);
@@ -6476,6 +6559,7 @@ extern (C++) final class ShlAssignExp : BinAssignExp
  */
 extern (C++) final class ShrAssignExp : BinAssignExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.rightShiftAssign, e1, e2);
@@ -6492,6 +6576,7 @@ extern (C++) final class ShrAssignExp : BinAssignExp
  */
 extern (C++) final class UshrAssignExp : BinAssignExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.unsignedRightShiftAssign, e1, e2);
@@ -6517,6 +6602,7 @@ extern (C++) final class UshrAssignExp : BinAssignExp
  */
 extern (C++) class CatAssignExp : BinAssignExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.concatenateAssign, e1, e2);
@@ -6538,6 +6624,7 @@ extern (C++) class CatAssignExp : BinAssignExp
  */
 extern (C++) final class CatElemAssignExp : CatAssignExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Type type, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.concatenateElemAssign, e1, e2);
@@ -6555,6 +6642,7 @@ extern (C++) final class CatElemAssignExp : CatAssignExp
  */
 extern (C++) final class CatDcharAssignExp : CatAssignExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Type type, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.concatenateDcharAssign, e1, e2);
@@ -6574,6 +6662,7 @@ extern (C++) final class CatDcharAssignExp : CatAssignExp
  */
 extern (C++) final class AddExp : BinExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.add, e1, e2);
@@ -6592,6 +6681,7 @@ extern (C++) final class AddExp : BinExp
  */
 extern (C++) final class MinExp : BinExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.min, e1, e2);
@@ -6610,6 +6700,7 @@ extern (C++) final class MinExp : BinExp
  */
 extern (C++) final class CatExp : BinExp
 {
+nothrow:
     Expression lowering;  // call to druntime hook `_d_arraycatnTX`
 
     extern (D) this(const ref Loc loc, Expression e1, Expression e2) scope @safe
@@ -6637,6 +6728,7 @@ extern (C++) final class CatExp : BinExp
  */
 extern (C++) final class MulExp : BinExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.mul, e1, e2);
@@ -6655,6 +6747,7 @@ extern (C++) final class MulExp : BinExp
  */
 extern (C++) final class DivExp : BinExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.div, e1, e2);
@@ -6673,6 +6766,7 @@ extern (C++) final class DivExp : BinExp
  */
 extern (C++) final class ModExp : BinExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.mod, e1, e2);
@@ -6691,6 +6785,7 @@ extern (C++) final class ModExp : BinExp
  */
 extern (C++) final class PowExp : BinExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.pow, e1, e2);
@@ -6709,6 +6804,7 @@ extern (C++) final class PowExp : BinExp
  */
 extern (C++) final class ShlExp : BinExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.leftShift, e1, e2);
@@ -6727,6 +6823,7 @@ extern (C++) final class ShlExp : BinExp
  */
 extern (C++) final class ShrExp : BinExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.rightShift, e1, e2);
@@ -6745,6 +6842,7 @@ extern (C++) final class ShrExp : BinExp
  */
 extern (C++) final class UshrExp : BinExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.unsignedRightShift, e1, e2);
@@ -6763,6 +6861,7 @@ extern (C++) final class UshrExp : BinExp
  */
 extern (C++) final class AndExp : BinExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.and, e1, e2);
@@ -6781,6 +6880,7 @@ extern (C++) final class AndExp : BinExp
  */
 extern (C++) final class OrExp : BinExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.or, e1, e2);
@@ -6799,6 +6899,7 @@ extern (C++) final class OrExp : BinExp
  */
 extern (C++) final class XorExp : BinExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.xor, e1, e2);
@@ -6818,6 +6919,7 @@ extern (C++) final class XorExp : BinExp
  */
 extern (C++) final class LogicalExp : BinExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, EXP op, Expression e1, Expression e2) @safe
     {
         super(loc, op, e1, e2);
@@ -6840,6 +6942,7 @@ extern (C++) final class LogicalExp : BinExp
  */
 extern (C++) final class CmpExp : BinExp
 {
+nothrow:
     extern (D) this(EXP op, const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, op, e1, e2);
@@ -6861,6 +6964,7 @@ extern (C++) final class CmpExp : BinExp
  */
 extern (C++) final class InExp : BinExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.in_, e1, e2);
@@ -6879,6 +6983,7 @@ extern (C++) final class InExp : BinExp
  */
 extern (C++) final class RemoveExp : BinExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, Expression e1, Expression e2)
     {
         super(loc, EXP.remove, e1, e2);
@@ -6900,6 +7005,7 @@ extern (C++) final class RemoveExp : BinExp
  */
 extern (C++) final class EqualExp : BinExp
 {
+nothrow:
     extern (D) this(EXP op, const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, op, e1, e2);
@@ -6921,6 +7027,7 @@ extern (C++) final class EqualExp : BinExp
  */
 extern (C++) final class IdentityExp : BinExp
 {
+nothrow:
     extern (D) this(EXP op, const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, op, e1, e2);
@@ -6940,6 +7047,7 @@ extern (C++) final class IdentityExp : BinExp
  */
 extern (C++) final class CondExp : BinExp
 {
+nothrow:
     Expression econd;
 
     extern (D) this(const ref Loc loc, Expression econd, Expression e1, Expression e2) scope @safe
@@ -6985,7 +7093,7 @@ extern (C++) final class CondExp : BinExp
         extern (C++) final class DtorVisitor : StoppableVisitor
         {
             alias visit = typeof(super).visit;
-        public:
+        nothrow public:
             Scope* sc;
             CondExp ce;
             VarDeclaration vcond;
@@ -7082,6 +7190,7 @@ bool isDefaultInitOp(EXP op) pure nothrow @safe @nogc
  */
 extern (C++) class DefaultInitExp : Expression
 {
+nothrow:
     extern (D) this(const ref Loc loc, EXP op) @safe
     {
         super(loc, op);
@@ -7098,6 +7207,7 @@ extern (C++) class DefaultInitExp : Expression
  */
 extern (C++) final class FileInitExp : DefaultInitExp
 {
+nothrow:
     extern (D) this(const ref Loc loc, EXP tok) @safe
     {
         super(loc, tok);
@@ -7127,6 +7237,7 @@ extern (C++) final class FileInitExp : DefaultInitExp
  */
 extern (C++) final class LineInitExp : DefaultInitExp
 {
+nothrow:
     extern (D) this(const ref Loc loc) @safe
     {
         super(loc, EXP.line);
@@ -7149,6 +7260,7 @@ extern (C++) final class LineInitExp : DefaultInitExp
  */
 extern (C++) final class ModuleInitExp : DefaultInitExp
 {
+nothrow:
     extern (D) this(const ref Loc loc) @safe
     {
         super(loc, EXP.moduleString);
@@ -7172,6 +7284,7 @@ extern (C++) final class ModuleInitExp : DefaultInitExp
  */
 extern (C++) final class FuncInitExp : DefaultInitExp
 {
+nothrow:
     extern (D) this(const ref Loc loc) @safe
     {
         super(loc, EXP.functionString);
@@ -7201,6 +7314,7 @@ extern (C++) final class FuncInitExp : DefaultInitExp
  */
 extern (C++) final class PrettyFuncInitExp : DefaultInitExp
 {
+nothrow:
     extern (D) this(const ref Loc loc) @safe
     {
         super(loc, EXP.prettyFunction);
@@ -7244,6 +7358,7 @@ extern (C++) final class PrettyFuncInitExp : DefaultInitExp
  */
 extern (C++) final class ObjcClassReferenceExp : Expression
 {
+nothrow:
     ClassDeclaration classDeclaration;
 
     extern (D) this(const ref Loc loc, ClassDeclaration classDeclaration)
@@ -7265,6 +7380,7 @@ extern (C++) final class ObjcClassReferenceExp : Expression
  */
 extern (C++) final class GenericExp : Expression
 {
+nothrow:
     Expression cntlExp; /// controlling expression of a generic selection (not evaluated)
     Types* types;       /// type-names for generic associations (null entry for `default`)
     Expressions* exps;  /// 1:1 mapping of typeNames to exps
@@ -7298,7 +7414,7 @@ extern (C++) final class GenericExp : Expression
  * Returns:
  *      Whether the type is modifiable
  */
-extern(D) Modifiable checkModifiable(Expression exp, Scope* sc, ModifyFlags flag = ModifyFlags.none)
+extern(D) Modifiable checkModifiable(Expression exp, Scope* sc, ModifyFlags flag = ModifyFlags.none) nothrow
 {
     switch(exp.op)
     {
@@ -7447,7 +7563,7 @@ extern(D) Modifiable checkModifiable(Expression exp, Scope* sc, ModifyFlags flag
  *  `true` if the identifier corresponds to a construction runtime hook,
  *  `false` otherwise.
  */
-bool isArrayConstruction(const Identifier id)
+bool isArrayConstruction(const Identifier id) nothrow
 {
     import dmd.id : Id;
 

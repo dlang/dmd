@@ -64,7 +64,7 @@ enum ClassKind : ubyte
  * Returns:
  *     0-terminated string for `c`
  */
-const(char)* toChars(ClassKind c) @safe
+const(char)* toChars(ClassKind c) nothrow @safe
 {
     final switch (c)
     {
@@ -94,6 +94,7 @@ struct MangleOverride
  */
 extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 {
+nothrow:
     Type type;                  ///
     StorageClass storage_class; ///
     uint structsize;            /// size of struct
@@ -823,7 +824,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
  *  nonzero if the iteration is aborted by the return value of fp,
  *  or 0 if it's completed.
  */
-int apply(Dsymbol symbol, int function(Dsymbol, void*) fp, void* ctx)
+int apply(Dsymbol symbol, int function(Dsymbol, void*) nothrow fp, void* ctx) nothrow
 {
     if (auto nd = symbol.isNspace())
     {

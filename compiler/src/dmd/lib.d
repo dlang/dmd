@@ -28,6 +28,7 @@ private enum LOG = false;
 
 class Library
 {
+nothrow:
     const(char)[] lib_ext;      // library file extension
     ErrorSink eSink;            // where the error messages go
 

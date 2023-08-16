@@ -80,7 +80,7 @@ void elem_setLoc(elem *e, const ref Loc loc) nothrow
     srcpos_setLoc(e.Esrcpos, loc);
 }
 
-void Statement_toIR(Statement s, ref IRState irs)
+void Statement_toIR(Statement s, ref IRState irs) nothrow
 {
     /* Generate a block for each label
      */
@@ -98,7 +98,7 @@ void Statement_toIR(Statement s, ref IRState irs)
     Statement_toIR(s, irs, &stmtstate);
 }
 
-void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
+void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate) nothrow
 {
     /****************************************
      * This should be overridden by each statement class.
@@ -1480,7 +1480,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
  *      startblock = first block in function
  */
 
-void insertFinallyBlockCalls(block *startblock)
+void insertFinallyBlockCalls(block *startblock) nothrow
 {
     int flagvalue = 0;          // 0 is forunwind_resume
     block *bcret = null;
@@ -1662,7 +1662,7 @@ void insertFinallyBlockCalls(block *startblock)
  *      startblock = first block in function
  */
 
-void insertFinallyBlockGotos(block *startblock)
+void insertFinallyBlockGotos(block *startblock) nothrow
 {
     enum log = false;
 
@@ -1742,7 +1742,7 @@ private bool isAssertFalse(const Statement s) nothrow
  * Generate code to set index into scope table.
  */
 
-private void setScopeIndex(Blockx *blx, block *b, int scope_index)
+private void setScopeIndex(Blockx *blx, block *b, int scope_index) nothrow
 {
     if (config.ehmethod == EHmethod.EH_WIN32 && !(blx.funcsym.Sfunc.Fflags3 & Feh_none))
         block_appendexp(b, nteh_setScopeTableIndex(blx, scope_index));
@@ -1752,7 +1752,7 @@ private void setScopeIndex(Blockx *blx, block *b, int scope_index)
  * Allocate a new block, and set the tryblock.
  */
 
-private block *block_calloc(Blockx *blx) @safe
+private block *block_calloc(Blockx *blx) nothrow @safe
 {
     block *b = dmd.backend.global.block_calloc();
     b.Btry = blx.tryblock;
@@ -1763,7 +1763,7 @@ private block *block_calloc(Blockx *blx) @safe
  * Add in code to increment usage count for linnum.
  */
 
-private void incUsage(ref IRState irs, const ref Loc loc)
+private void incUsage(ref IRState irs, const ref Loc loc) nothrow
 {
 
     if (irs.params.cov && loc.linnum)

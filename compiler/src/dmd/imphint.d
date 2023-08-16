@@ -20,7 +20,7 @@ module dmd.imphint;
  * Not meant to be a comprehensive list of names in each module,
  * just the most common ones.
  */
-const(char)[] importHint(const(char)[] s) @safe
+const(char)[] importHint(const(char)[] s) nothrow @safe
 {
     if (auto entry = s in hints)
         return *entry;
@@ -29,7 +29,7 @@ const(char)[] importHint(const(char)[] s) @safe
 
 private immutable string[string] hints;
 
-shared static this()
+shared static this() nothrow
 {
     // in alphabetic order
     hints = [

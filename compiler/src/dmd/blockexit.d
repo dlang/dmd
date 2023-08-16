@@ -60,7 +60,7 @@ enum BE : int
  * Returns:
  *   BE.xxxx
  */
-int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
+int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow) nothrow
 {
         int result = BE.none;
 
@@ -535,7 +535,7 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
  +
  + Returns: `BE.[err]throw` depending on the type of `exp`
  +/
-BE checkThrow(ref const Loc loc, Expression exp, const bool mustNotThrow, FuncDeclaration func)
+BE checkThrow(ref const Loc loc, Expression exp, const bool mustNotThrow, FuncDeclaration func) nothrow
 {
     import dmd.errors : error;
 

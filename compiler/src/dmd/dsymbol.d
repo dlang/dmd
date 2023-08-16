@@ -67,7 +67,7 @@ import dmd.visitor;
  *
  * See_Also: $(REF each, dmd, root, array)
  */
-int foreachDsymbol(Dsymbols* symbols, scope int delegate(Dsymbol) dg)
+int foreachDsymbol(Dsymbols* symbols, scope int delegate(Dsymbol) nothrow dg) nothrow
 {
     assert(dg);
     if (symbols)
@@ -93,7 +93,7 @@ int foreachDsymbol(Dsymbols* symbols, scope int delegate(Dsymbol) dg)
  *
  * See_Also: $(REF each, dmd, root, array)
  */
-void foreachDsymbol(Dsymbols* symbols, scope void delegate(Dsymbol) dg)
+void foreachDsymbol(Dsymbols* symbols, scope void delegate(Dsymbol) nothrow dg) nothrow
 {
     assert(dg);
     if (symbols)
@@ -126,6 +126,7 @@ struct Ungag
 
 struct Visibility
 {
+nothrow:
     ///
     enum Kind : ubyte
     {
@@ -253,6 +254,7 @@ private struct DsymbolAttributes
  */
 extern (C++) class Dsymbol : ASTNode
 {
+nothrow:
     Identifier ident;
     Dsymbol parent;
     Symbol* csym;           // symbol for code generator
@@ -1421,7 +1423,7 @@ extern (C++) class ScopeDsymbol : Dsymbol
     DsymbolTable symtab;        // members[] sorted into table
     uint endlinnum;             // the linnumber of the statement after the scope (0 if unknown)
 
-private:
+nothrow private:
     /// symbols whose members have been imported, i.e. imported modules and template mixins
     Dsymbols* importedScopes;
     Visibility.Kind* visibilities; // array of Visibility.Kind, one for each import
@@ -1859,7 +1861,7 @@ public:
         return false;
     }
 
-    extern (D) alias ForeachDg = int delegate(size_t idx, Dsymbol s);
+    extern (D) alias ForeachDg = int delegate(size_t idx, Dsymbol s) nothrow;
 
     /***************************************
      * Expands attribute declarations in members in depth first
@@ -2491,7 +2493,7 @@ extern (C++) final class DsymbolTable : RootObject
  *      if s and s2 are successfully put in symbol table then return the merged symbol,
  *      null if they conflict
  */
-Dsymbol handleTagSymbols(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsymbol sds)
+Dsymbol handleTagSymbols(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsymbol sds) nothrow
 {
     enum log = false;
     if (log) printf("handleTagSymbols('%s') add %p existing %p\n", s.toChars(), s, s2);
@@ -2603,7 +2605,7 @@ Dsymbol handleTagSymbols(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsymbol sds)
  *      if s and s2 are successfully put in symbol table then return the merged symbol,
  *      null if they conflict
  */
-Dsymbol handleSymbolRedeclarations(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsymbol sds)
+Dsymbol handleSymbolRedeclarations(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsymbol sds) nothrow
 {
     enum log = false;
     if (log) printf("handleSymbolRedeclarations('%s')\n", s.toChars());

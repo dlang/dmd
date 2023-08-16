@@ -82,7 +82,7 @@ uint visibilityToCVAttr(Visibility.Kind vis) pure nothrow @safe @nogc
     return attribute;
 }
 
-uint cv4_memfunctypidx(FuncDeclaration fd)
+uint cv4_memfunctypidx(FuncDeclaration fd) nothrow
 {
     //printf("cv4_memfunctypidx(fd = '%s')\n", fd.toChars());
 
@@ -143,7 +143,7 @@ uint cv4_memfunctypidx(FuncDeclaration fd)
 enum CV4_NAMELENMAX = 0x3b9f;                   // found by trial and error
 enum CV8_NAMELENMAX = 0xffff;                   // length record is 16-bit only
 
-uint cv4_Denum(EnumDeclaration e)
+uint cv4_Denum(EnumDeclaration e) nothrow
 {
     //dbg_printf("cv4_Denum(%s)\n", e.toChars());
     const uint property = (!e.members || !e.memtype || !e.memtype.isintegral())
@@ -251,7 +251,7 @@ uint cv4_Denum(EnumDeclaration e)
  * Returns:
  *      aligned count
  */
-uint cv_align(ubyte *p, uint n)
+uint cv_align(ubyte *p, uint n) nothrow
 {
     if (config.fulltypes == CV8)
     {
@@ -276,7 +276,7 @@ uint cv_align(ubyte *p, uint n)
  *      id = name of user defined type
  *      typidx = type index
  */
-void cv_udt(const char* id, uint typidx)
+void cv_udt(const char* id, uint typidx) nothrow
 {
     if (config.fulltypes == CV8)
         return cv8_udt(id, typidx);
@@ -301,7 +301,7 @@ void cv_udt(const char* id, uint typidx)
  * Emit symbolic debug info in CV format.
  */
 
-void toDebug(EnumDeclaration ed)
+void toDebug(EnumDeclaration ed) nothrow
 {
     if (target.os != Target.OS.Windows)
         return;
@@ -341,6 +341,7 @@ void toDebug(EnumDeclaration ed)
  */
 struct CvFieldList
 {
+nothrow:
     // one LF_FIELDLIST record
     static struct FLChunk
     {
@@ -444,7 +445,7 @@ struct CvFieldList
 }
 
 // Lambda function
-int cv_mem_count(Dsymbol s, void* ctx)
+int cv_mem_count(Dsymbol s, void* ctx) nothrow
 {
     auto pmc = cast(CvFieldList *) ctx;
     int nwritten = cvMember(s, null);
@@ -453,7 +454,7 @@ int cv_mem_count(Dsymbol s, void* ctx)
 }
 
 // Lambda function
-int cv_mem_p(Dsymbol s, void* ctx)
+int cv_mem_p(Dsymbol s, void* ctx) nothrow
 {
     auto pmc = cast(CvFieldList *) ctx;
     ubyte *p = pmc.writePtr();
@@ -463,7 +464,7 @@ int cv_mem_p(Dsymbol s, void* ctx)
 }
 
 
-void toDebug(StructDeclaration sd)
+void toDebug(StructDeclaration sd) nothrow
 {
     if (target.os != Target.OS.Windows)
         return;
@@ -599,7 +600,7 @@ void toDebug(StructDeclaration sd)
 }
 
 
-void toDebug(ClassDeclaration cd)
+void toDebug(ClassDeclaration cd) nothrow
 {
     if (target.os != Target.OS.Windows)
         return;
@@ -799,7 +800,7 @@ void toDebug(ClassDeclaration cd)
 //    return typidx;
 }
 
-private uint writeField(ubyte* p, const char* id, uint attr, uint typidx, uint offset)
+private uint writeField(ubyte* p, const char* id, uint attr, uint typidx, uint offset) nothrow
 {
     if (config.fulltypes == CV8)
     {
@@ -822,7 +823,7 @@ private uint writeField(ubyte* p, const char* id, uint attr, uint typidx, uint o
     }
 }
 
-void toDebugClosure(Symbol* closstru)
+void toDebugClosure(Symbol* closstru) nothrow
 {
     if (target.os != Target.OS.Windows)
         return;
@@ -920,7 +921,7 @@ void toDebugClosure(Symbol* closstru)
  *      number of bytes written, or that would be written if p==null
  */
 
-int cvMember(Dsymbol s, ubyte *p)
+int cvMember(Dsymbol s, ubyte *p) nothrow
 {
     scope v = new CVMember(p);
     s.accept(v);
@@ -931,7 +932,7 @@ private extern (C++) class CVMember : Visitor
     ubyte *p;
     int result;
 
-    this(ubyte *p) @safe
+    this(ubyte *p) nothrow @safe
     {
         this.p = p;
         result = 0;
@@ -943,7 +944,7 @@ private extern (C++) class CVMember : Visitor
     {
     }
 
-    void cvMemberCommon(Dsymbol s, const(char)* id, idx_t typidx)
+    void cvMemberCommon(Dsymbol s, const(char)* id, idx_t typidx) nothrow
     {
         if (!p)
             result = cv_stringbytes(id);

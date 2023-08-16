@@ -76,6 +76,7 @@ private enum PersistentFlags =
 
 extern (C++) struct Scope
 {
+nothrow:
     Scope* enclosing;               /// enclosing Scope
 
     Module _module;                 /// Root module

@@ -50,7 +50,7 @@ import dmd.common.outbuffer;
  * Does not modify the AST, just checks for errors.
  */
 
-void oblive(FuncDeclaration funcdecl)
+void oblive(FuncDeclaration funcdecl) nothrow
 {
     //printf("oblive() %s\n", funcdecl.toChars());
     //printf("fbody: %s\n", funcdecl.fbody.toChars());
@@ -84,6 +84,7 @@ alias StmtState = dmd.stmtstate.StmtState!ObNode;
  */
 struct ObState
 {
+nothrow:
     ObNodes nodes;
     VarDeclarations vars;
 
@@ -103,6 +104,7 @@ struct ObState
  */
 struct ObNode
 {
+nothrow:
     Expression exp;     /// expression for the node
     ObNodes preds;      /// predecessors
     ObNodes succs;      /// successors
@@ -145,7 +147,7 @@ enum ObType : ubyte
     fend,
 }
 
-string toString(ObType obtype) @safe
+string toString(ObType obtype) nothrow @safe
 {
     return obtype == ObType.goto_     ? "goto  "  :
            obtype == ObType.return_   ? "ret   "  :
@@ -197,12 +199,12 @@ enum PtrState : ubyte
 
 /************
  */
-const(char)* toChars(PtrState state)
+const(char)* toChars(PtrState state) nothrow
 {
     return toString(state).ptr;
 }
 
-string toString(PtrState state) @safe
+string toString(PtrState state) nothrow @safe
 {
     return ["Initial", "Undefined", "Owner", "Borrowed", "Readonly"][state];
 }
@@ -212,6 +214,7 @@ string toString(PtrState state) @safe
  */
 struct PtrVarState
 {
+nothrow:
     BitArray deps;           /// dependencies
     PtrState state;          /// state the pointer variable is in
 
@@ -319,7 +322,7 @@ struct PtrVarState
 /*****************************************
  * Set the `.extra` field for LabelStatements in labtab[].
  */
-void setLabelStatementExtraFields(DsymbolTable labtab)
+void setLabelStatementExtraFields(DsymbolTable labtab) nothrow
 {
     if (labtab)
         foreach (keyValue; labtab.tab.asRange)
@@ -335,12 +338,12 @@ void setLabelStatementExtraFields(DsymbolTable labtab)
  * Convert statement into ObNodes.
  */
 
-void toObNodes(ref ObNodes obnodes, Statement s)
+void toObNodes(ref ObNodes obnodes, Statement s) nothrow
 {
     ObNode* curblock = new ObNode(null);
     obnodes.push(curblock);
 
-    void visit(Statement s, StmtState* stmtstate)
+    void visit(Statement s, StmtState* stmtstate) nothrow
     {
         if (!s)
             return;
@@ -880,7 +883,7 @@ void toObNodes(ref ObNodes obnodes, Statement s)
  *      obnodes = graph of the function
  */
 
-void insertFinallyBlockCalls(ref ObNodes obnodes)
+void insertFinallyBlockCalls(ref ObNodes obnodes) nothrow
 {
     ObNode* bcret = null;
     ObNode* bcretexp = null;
@@ -978,7 +981,7 @@ void insertFinallyBlockCalls(ref ObNodes obnodes)
  *      obnodes = nodes for the function
  */
 
-void insertFinallyBlockGotos(ref ObNodes obnodes)
+void insertFinallyBlockGotos(ref ObNodes obnodes) nothrow
 {
     /* Remove all the try_, finally_, lpad and ret nodes.
      * Actually, just make them into no-ops.
@@ -1012,7 +1015,7 @@ void insertFinallyBlockGotos(ref ObNodes obnodes)
  * Set the `index` field of each ObNode
  * to its index in the `obnodes[]` array.
  */
-void numberNodes(ref ObNodes obnodes) @safe
+void numberNodes(ref ObNodes obnodes) nothrow @safe
 {
     //printf("numberNodes()\n");
     foreach (i, ob; obnodes)
@@ -1036,7 +1039,7 @@ void numberNodes(ref ObNodes obnodes) @safe
  * Params:
  *      obnodes = array of nodes
  */
-void removeUnreachable(ref ObNodes obnodes)
+void removeUnreachable(ref ObNodes obnodes) nothrow
 {
     if (!obnodes.length)
         return;
@@ -1085,7 +1088,7 @@ void removeUnreachable(ref ObNodes obnodes)
 /*************************************
  * Compute predecessors.
  */
-void computePreds(ref ObNodes obnodes)
+void computePreds(ref ObNodes obnodes) nothrow
 {
     foreach (ob; obnodes)
     {
@@ -1099,7 +1102,7 @@ void computePreds(ref ObNodes obnodes)
 /*******************************
  * Are we interested in tracking variable `v`?
  */
-bool isTrackableVar(VarDeclaration v)
+bool isTrackableVar(VarDeclaration v) nothrow
 {
     //printf("isTrackableVar() %s\n", v.toChars());
     auto tb = v.type.toBasetype();
@@ -1131,7 +1134,7 @@ bool isTrackableVar(VarDeclaration v)
  * Returns:
  *      variable if so, null if not
  */
-VarDeclaration isTrackableVarExp(Expression e)
+VarDeclaration isTrackableVarExp(Expression e) nothrow
 {
     if (auto ve = e.isVarExp())
     {
@@ -1150,7 +1153,7 @@ VarDeclaration isTrackableVarExp(Expression e)
  *      funcdecl = function we are in
  *      vars = array to fill in
  */
-void collectVars(FuncDeclaration funcdecl, out VarDeclarations vars)
+void collectVars(FuncDeclaration funcdecl, out VarDeclarations vars) nothrow
 {
     enum log = false;
     if (log)
@@ -1190,7 +1193,7 @@ void collectVars(FuncDeclaration funcdecl, out VarDeclarations vars)
  * Can be allocated much more efficiently by subdividing a single
  * large array of bits
  */
-void allocDeps(PtrVarState[] pvss)
+void allocDeps(PtrVarState[] pvss) nothrow
 {
     //printf("allocDeps()\n");
     foreach (ref pvs; pvss)
@@ -1203,7 +1206,7 @@ void allocDeps(PtrVarState[] pvss)
 /**************************************
  * Allocate state variables foreach node.
  */
-void allocStates(ref ObState obstate)
+void allocStates(ref ObState obstate) nothrow
 {
     //printf("---------------allocStates()------------------\n");
     const vlen = obstate.vars.length;
@@ -1229,7 +1232,7 @@ void allocStates(ref ObState obstate)
  * Returns:
  *      true if it does
  */
-bool isBorrowedPtr(VarDeclaration v)
+bool isBorrowedPtr(VarDeclaration v) nothrow
 {
     return v.isScope() && !v.isowner && v.type.nextOf().isMutable();
 }
@@ -1239,7 +1242,7 @@ bool isBorrowedPtr(VarDeclaration v)
  * Returns:
  *      true if it does
  */
-bool isReadonlyPtr(VarDeclaration v)
+bool isReadonlyPtr(VarDeclaration v) nothrow
 {
     return v.isScope() && !v.type.nextOf().isMutable();
 }
@@ -1247,7 +1250,7 @@ bool isReadonlyPtr(VarDeclaration v)
 /***************************************
  * Compute the gen vector for ob.
  */
-void genKill(ref ObState obstate, ObNode* ob)
+void genKill(ref ObState obstate, ObNode* ob) nothrow
 {
     enum log = false;
     if (log)
@@ -1340,18 +1343,19 @@ void genKill(ref ObState obstate, ObNode* ob)
         readVar(ob, vi, mutable, ob.gen);
     }
 
-    void foreachExp(ObNode* ob, Expression e)
+    void foreachExp(ObNode* ob, Expression e) nothrow
     {
         extern (C++) final class ExpWalker : Visitor
         {
+        nothrow:
             alias visit = typeof(super).visit;
-            extern (D) void delegate(ObNode*, VarDeclaration, Expression, bool) dgWriteVar;
+            extern (D) void delegate(ObNode*, VarDeclaration, Expression, bool) nothrow dgWriteVar;
             extern (D) void delegate(const ref Loc loc, ObNode* ob, VarDeclaration v, bool mutable) dgReadVar;
             ObNode* ob;
             ObState* obstate;
 
-            extern (D) this(void delegate(ObNode*, VarDeclaration, Expression, bool) dgWriteVar,
-                            void delegate(const ref Loc loc, ObNode* ob, VarDeclaration v, bool mutable) dgReadVar,
+            extern (D) this(void delegate(ObNode*, VarDeclaration, Expression, bool) nothrow dgWriteVar,
+                            void delegate(const ref Loc loc, ObNode* ob, VarDeclaration v, bool mutable) nothrow dgReadVar,
                             ObNode* ob, ref ObState obstate) scope
             {
                 this.dgWriteVar = dgWriteVar;
@@ -1386,7 +1390,7 @@ void genKill(ref ObState obstate, ObNode* ob)
 
             override void visit(DeclarationExp e)
             {
-                void Dsymbol_visit(Dsymbol s)
+                void Dsymbol_visit(Dsymbol s) nothrow
                 {
                     if (auto vd = s.isVarDeclaration())
                     {
@@ -1727,7 +1731,7 @@ void genKill(ref ObState obstate, ObNode* ob)
  * Determine the state of a variable based on
  * its type and storage class.
  */
-PtrState toPtrState(VarDeclaration v)
+PtrState toPtrState(VarDeclaration v) nothrow
 {
     /* pointer to mutable:        Owner
      * pointer to mutable, scope: Borrowed
@@ -1753,7 +1757,7 @@ PtrState toPtrState(VarDeclaration v)
 /**********************************
  * Does type `t` contain any pointers to mutable?
  */
-bool hasPointersToMutableFields(Type t)
+bool hasPointersToMutableFields(Type t) nothrow
 {
     auto tb = t.toBasetype();
     if (!tb.isMutable())
@@ -1783,7 +1787,7 @@ bool hasPointersToMutableFields(Type t)
 /********************************
  * Does type `t` have any mutable fields?
  */
-bool hasMutableFields(Type t)
+bool hasMutableFields(Type t) nothrow
 {
     auto tb = t.toBasetype();
     if (!tb.isMutable())
@@ -1810,7 +1814,7 @@ bool hasMutableFields(Type t)
  * Do the data flow analysis (i.e. compute the input[]
  * and output[] vectors for each ObNode).
  */
-void doDataFlowAnalysis(ref ObState obstate)
+void doDataFlowAnalysis(ref ObState obstate) nothrow
 {
     enum log = false;
     if (log)
@@ -1948,7 +1952,7 @@ void doDataFlowAnalysis(ref ObState obstate)
 /***************************************
  * Check for Ownership/Borrowing errors.
  */
-void checkObErrors(ref ObState obstate)
+void checkObErrors(ref ObState obstate) nothrow
 {
     enum log = false;
     if (log)
@@ -2048,15 +2052,16 @@ void checkObErrors(ref ObState obstate)
     {
         extern (C++) final class ExpWalker : Visitor
         {
+        nothrow:
             alias visit = typeof(super).visit;
-            extern (D) void delegate(ObNode*, PtrVarState[], VarDeclaration, Expression) dgWriteVar;
-            extern (D) void delegate(const ref Loc loc, ObNode* ob, VarDeclaration v, bool mutable, PtrVarState[]) dgReadVar;
+            extern (D) void delegate(ObNode*, PtrVarState[], VarDeclaration, Expression) nothrow dgWriteVar;
+            extern (D) void delegate(const ref Loc loc, ObNode* ob, VarDeclaration v, bool mutable, PtrVarState[]) nothrow dgReadVar;
             PtrVarState[] cpvs;
             ObNode* ob;
             ObState* obstate;
 
-            extern (D) this(void delegate(const ref Loc loc, ObNode* ob, VarDeclaration v, bool mutable, PtrVarState[]) dgReadVar,
-                            void delegate(ObNode*, PtrVarState[], VarDeclaration, Expression) dgWriteVar,
+            extern (D) this(void delegate(const ref Loc loc, ObNode* ob, VarDeclaration v, bool mutable, PtrVarState[]) nothrow dgReadVar,
+                            void delegate(ObNode*, PtrVarState[], VarDeclaration, Expression) nothrow dgWriteVar,
                             PtrVarState[] cpvs, ObNode* ob, ref ObState obstate) scope
             {
                 this.dgReadVar  = dgReadVar;
@@ -2072,7 +2077,7 @@ void checkObErrors(ref ObState obstate)
 
             override void visit(DeclarationExp e)
             {
-                void Dsymbol_visit(Dsymbol s)
+                void Dsymbol_visit(Dsymbol s) nothrow
                 {
                     if (auto vd = s.isVarDeclaration())
                     {
@@ -2582,7 +2587,7 @@ void checkObErrors(ref ObState obstate)
  * Hence, when a read is done, instead of when assignment to the variable is done, the O/B rules are enforced.
  * (Also called "non-lexical scoping".)
  */
-void readVar(ObNode* ob, const size_t vi, bool mutable, PtrVarState[] gen)
+void readVar(ObNode* ob, const size_t vi, bool mutable, PtrVarState[] gen) nothrow
 {
     //printf("readVar(v%d)\n", cast(int)vi);
     auto pvso = &gen[vi];
@@ -2628,7 +2633,7 @@ void readVar(ObNode* ob, const size_t vi, bool mutable, PtrVarState[] gen)
 /********************
  * Recursively make Undefined all who list vi as a dependency
  */
-void makeChildrenUndefined(size_t vi, PtrVarState[] gen)
+void makeChildrenUndefined(size_t vi, PtrVarState[] gen) nothrow
 {
     //printf("makeChildrenUndefined(%d)\n", vi);
     foreach (di; 0 .. gen.length)
@@ -2649,7 +2654,7 @@ void makeChildrenUndefined(size_t vi, PtrVarState[] gen)
 /********************
  * Recursively make Undefined vi undefined and all who list vi as a dependency
  */
-void makeUndefined(size_t vi, PtrVarState[] gen)
+void makeUndefined(size_t vi, PtrVarState[] gen) nothrow
 {
     auto pvs = &gen[vi];
     pvs.state = PtrState.Undefined;  // set this first to avoid infinite recursion
@@ -2660,7 +2665,7 @@ void makeUndefined(size_t vi, PtrVarState[] gen)
 /*************************
  * Is type `t` a reference to a const or a reference to a mutable?
  */
-bool isMutableRef(Type t)
+bool isMutableRef(Type t) nothrow
 {
     auto tb = t.toBasetype();
     return (tb.nextOf() ? tb.nextOf() : tb).isMutable();

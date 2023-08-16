@@ -65,7 +65,7 @@ bool tooCostly(int cost) pure nothrow @safe
  * Returns:
  *      cost of inlining e
  */
-int inlineCostExpression(Expression e)
+int inlineCostExpression(Expression e) nothrow
 {
     scope InlineCostVisitor icv = new InlineCostVisitor(false, true, true, null);
     icv.expressionInlineCost(e);
@@ -82,7 +82,7 @@ int inlineCostExpression(Expression e)
  * Returns:
  *      cost of inlining fd
  */
-int inlineCostFunction(FuncDeclaration fd, bool hasthis, bool hdrscan)
+int inlineCostFunction(FuncDeclaration fd, bool hasthis, bool hdrscan) nothrow
 {
     scope InlineCostVisitor icv = new InlineCostVisitor(hasthis, hdrscan, false, fd);
     fd.fbody.accept(icv);
@@ -100,7 +100,7 @@ int inlineCostFunction(FuncDeclaration fd, bool hasthis, bool hdrscan)
  * Returns: `null` if `e` is not an aggregate or if it is an aggregate that
  *      doesn't permit inlining, and the aggregate otherwise.
  */
-AggregateDeclaration isInlinableNestedAggregate(DeclarationExp e)
+AggregateDeclaration isInlinableNestedAggregate(DeclarationExp e) nothrow
 {
     AggregateDeclaration result;
     if (e.declaration.isAnonymous() && e.declaration.isAttribDeclaration)
@@ -148,7 +148,7 @@ private:
 extern (C++) final class InlineCostVisitor : Visitor
 {
     alias visit = Visitor.visit;
-public:
+nothrow public:
     int nested;
     bool hasthis;
     bool hdrscan;       // if inline scan for 'header' content
@@ -345,7 +345,7 @@ public:
                 alias visit = typeof(super).visit;
                 InlineCostVisitor icv;
 
-            public:
+            nothrow public:
                 extern (D) this(InlineCostVisitor icv) @safe
                 {
                     this.icv = icv;

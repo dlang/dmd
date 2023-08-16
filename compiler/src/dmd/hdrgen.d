@@ -78,7 +78,7 @@ enum TEST_EMIT_ALL = 0;
  *      m = Module to generate header for
  *      buf = buffer to write the data to
  */
-extern (C++) void genhdrfile(Module m, ref OutBuffer buf)
+extern (C++) void genhdrfile(Module m, ref OutBuffer buf) nothrow
 {
     buf.doindent = 1;
     buf.printf("// D import file generated from '%s'", m.srcfile.toChars());
@@ -94,14 +94,14 @@ extern (C++) void genhdrfile(Module m, ref OutBuffer buf)
  *   buf = buffer to write to.
  *   m = module to visit all members of.
  */
-extern (C++) void moduleToBuffer(OutBuffer* buf, Module m)
+extern (C++) void moduleToBuffer(OutBuffer* buf, Module m) nothrow
 {
     HdrGenState hgs;
     hgs.fullDump = true;
     toCBuffer(m, buf, &hgs);
 }
 
-void moduleToBuffer2(Module m, OutBuffer* buf, HdrGenState* hgs)
+void moduleToBuffer2(Module m, OutBuffer* buf, HdrGenState* hgs) nothrow
 {
     if (m.md)
     {
@@ -135,7 +135,7 @@ void moduleToBuffer2(Module m, OutBuffer* buf, HdrGenState* hgs)
     }
 }
 
-private void statementToBuffer(Statement s, OutBuffer* buf, HdrGenState* hgs)
+private void statementToBuffer(Statement s, OutBuffer* buf, HdrGenState* hgs) nothrow
 {
     void visitDefaultCase(Statement s)
     {
@@ -795,7 +795,7 @@ private void statementToBuffer(Statement s, OutBuffer* buf, HdrGenState* hgs)
     visit.VisitStatement(s);
 }
 
-private void dsymbolToBuffer(Dsymbol s, OutBuffer* buf, HdrGenState* hgs)
+private void dsymbolToBuffer(Dsymbol s, OutBuffer* buf, HdrGenState* hgs) nothrow
 {
     scope v = new DsymbolPrettyPrintVisitor(buf, hgs);
     s.accept(v);
@@ -804,7 +804,7 @@ private void dsymbolToBuffer(Dsymbol s, OutBuffer* buf, HdrGenState* hgs)
 private extern (C++) final class DsymbolPrettyPrintVisitor : Visitor
 {
     alias visit = Visitor.visit;
-public:
+nothrow public:
     OutBuffer* buf;
     HdrGenState* hgs;
 
@@ -1884,7 +1884,7 @@ public:
 /*********************************************
  * Print expression to buffer.
  */
-private void expressionPrettyPrint(Expression e, OutBuffer* buf, HdrGenState* hgs)
+private void expressionPrettyPrint(Expression e, OutBuffer* buf, HdrGenState* hgs) nothrow
 {
     void visit(Expression e)
     {
@@ -2720,7 +2720,7 @@ private void expressionPrettyPrint(Expression e, OutBuffer* buf, HdrGenState* hg
  *   allowHex = whether hex floating point literals may be used
  *              for greater accuracy
  */
-void floatToBuffer(Type type, const real_t value, OutBuffer* buf, const bool allowHex)
+void floatToBuffer(Type type, const real_t value, OutBuffer* buf, const bool allowHex) nothrow
 {
     /** sizeof(value)*3 is because each byte of mantissa is max
         of 256 (3 characters). The string will be "-M.MMMMe-4932".
@@ -2765,7 +2765,7 @@ void floatToBuffer(Type type, const real_t value, OutBuffer* buf, const bool all
     }
 }
 
-private void templateParameterToBuffer(TemplateParameter tp, OutBuffer* buf, HdrGenState* hgs)
+private void templateParameterToBuffer(TemplateParameter tp, OutBuffer* buf, HdrGenState* hgs) nothrow
 {
     scope v = new TemplateParameterPrettyPrintVisitor(buf, hgs);
     tp.accept(v);
@@ -2774,7 +2774,7 @@ private void templateParameterToBuffer(TemplateParameter tp, OutBuffer* buf, Hdr
 private extern (C++) final class TemplateParameterPrettyPrintVisitor : Visitor
 {
     alias visit = Visitor.visit;
-public:
+nothrow public:
     OutBuffer* buf;
     HdrGenState* hgs;
 
@@ -2846,7 +2846,7 @@ public:
     }
 }
 
-private void conditionToBuffer(Condition c, OutBuffer* buf, HdrGenState* hgs)
+private void conditionToBuffer(Condition c, OutBuffer* buf, HdrGenState* hgs) nothrow
 {
     scope v = new ConditionPrettyPrintVisitor(buf, hgs);
     c.accept(v);
@@ -2855,7 +2855,7 @@ private void conditionToBuffer(Condition c, OutBuffer* buf, HdrGenState* hgs)
 private extern (C++) final class ConditionPrettyPrintVisitor : Visitor
 {
     alias visit = Visitor.visit;
-public:
+nothrow public:
     OutBuffer* buf;
     HdrGenState* hgs;
 
@@ -2893,24 +2893,24 @@ public:
     }
 }
 
-void toCBuffer(const Statement s, OutBuffer* buf, HdrGenState* hgs)
+void toCBuffer(const Statement s, OutBuffer* buf, HdrGenState* hgs) nothrow
 {
     (cast()s).statementToBuffer(buf, hgs);
 }
 
-void toCBuffer(const Type t, OutBuffer* buf, const Identifier ident, HdrGenState* hgs)
+void toCBuffer(const Type t, OutBuffer* buf, const Identifier ident, HdrGenState* hgs) nothrow
 {
     typeToBuffer(cast() t, ident, buf, hgs);
 }
 
-void toCBuffer(Dsymbol s, OutBuffer* buf, HdrGenState* hgs)
+void toCBuffer(Dsymbol s, OutBuffer* buf, HdrGenState* hgs) nothrow
 {
     scope v = new DsymbolPrettyPrintVisitor(buf, hgs);
     s.accept(v);
 }
 
 // used from TemplateInstance::toChars() and TemplateMixin::toChars()
-void toCBufferInstance(const TemplateInstance ti, OutBuffer* buf, bool qualifyTypes = false)
+void toCBufferInstance(const TemplateInstance ti, OutBuffer* buf, bool qualifyTypes = false) nothrow
 {
     HdrGenState hgs;
     hgs.fullQual = qualifyTypes;
@@ -2918,12 +2918,12 @@ void toCBufferInstance(const TemplateInstance ti, OutBuffer* buf, bool qualifyTy
     v.visit(cast() ti);
 }
 
-void toCBuffer(const Initializer iz, OutBuffer* buf, HdrGenState* hgs)
+void toCBuffer(const Initializer iz, OutBuffer* buf, HdrGenState* hgs) nothrow
 {
     initializerToBuffer(cast() iz, buf, hgs);
 }
 
-bool stcToBuffer(OutBuffer* buf, StorageClass stc) @safe
+bool stcToBuffer(OutBuffer* buf, StorageClass stc) nothrow @safe
 {
     //printf("stc: %llx\n", stc);
     bool result = false;
@@ -2983,7 +2983,7 @@ bool stcToBuffer(OutBuffer* buf, StorageClass stc) @safe
  * and return a string representation of it.
  * stc is reduced by the one picked.
  */
-string stcToString(ref StorageClass stc) @safe
+string stcToString(ref StorageClass stc) nothrow @safe
 {
     static struct SCstring
     {
@@ -3042,7 +3042,7 @@ string stcToString(ref StorageClass stc) @safe
     return null;
 }
 
-private void linkageToBuffer(OutBuffer* buf, LINK linkage) @safe
+private void linkageToBuffer(OutBuffer* buf, LINK linkage) nothrow @safe
 {
     const s = linkageToString(linkage);
     if (s.length)
@@ -3053,7 +3053,7 @@ private void linkageToBuffer(OutBuffer* buf, LINK linkage) @safe
     }
 }
 
-const(char)* linkageToChars(LINK linkage)
+const(char)* linkageToChars(LINK linkage) nothrow
 {
     /// Works because we return a literal
     return linkageToString(linkage).ptr;
@@ -3080,7 +3080,7 @@ string linkageToString(LINK linkage) pure nothrow @safe
     }
 }
 
-void visibilityToBuffer(OutBuffer* buf, Visibility vis)
+void visibilityToBuffer(OutBuffer* buf, Visibility vis) nothrow
 {
     buf.writestring(visibilityToString(vis.kind));
     if (vis.kind == Visibility.Kind.package_ && vis.pkg)
@@ -3095,7 +3095,7 @@ void visibilityToBuffer(OutBuffer* buf, Visibility vis)
  * Returns:
  *   a human readable representation of `kind`
  */
-const(char)* visibilityToChars(Visibility.Kind kind)
+const(char)* visibilityToChars(Visibility.Kind kind) nothrow
 {
     // Null terminated because we return a literal
     return visibilityToString(kind).ptr;
@@ -3124,20 +3124,20 @@ extern (D) string visibilityToString(Visibility.Kind kind) nothrow pure @safe
 }
 
 // Print the full function signature with correct ident, attributes and template args
-void functionToBufferFull(TypeFunction tf, OutBuffer* buf, const Identifier ident, HdrGenState* hgs, TemplateDeclaration td)
+void functionToBufferFull(TypeFunction tf, OutBuffer* buf, const Identifier ident, HdrGenState* hgs, TemplateDeclaration td) nothrow
 {
     //printf("TypeFunction::toCBuffer() this = %p\n", this);
     visitFuncIdentWithPrefix(tf, ident, td, buf, hgs);
 }
 
 // ident is inserted before the argument list and will be "function" or "delegate" for a type
-void functionToBufferWithIdent(TypeFunction tf, OutBuffer* buf, const(char)* ident, bool isStatic)
+void functionToBufferWithIdent(TypeFunction tf, OutBuffer* buf, const(char)* ident, bool isStatic) nothrow
 {
     HdrGenState hgs;
     visitFuncIdentWithPostfix(tf, ident.toDString(), buf, &hgs, isStatic);
 }
 
-void toCBuffer(const Expression e, OutBuffer* buf, HdrGenState* hgs)
+void toCBuffer(const Expression e, OutBuffer* buf, HdrGenState* hgs) nothrow
 {
     expressionPrettyPrint(cast()e, buf, hgs);
 }
@@ -3145,7 +3145,7 @@ void toCBuffer(const Expression e, OutBuffer* buf, HdrGenState* hgs)
 /**************************************************
  * Write out argument types to buf.
  */
-void argExpTypesToCBuffer(OutBuffer* buf, Expressions* arguments)
+void argExpTypesToCBuffer(OutBuffer* buf, Expressions* arguments) nothrow
 {
     if (!arguments || !arguments.length)
         return;
@@ -3158,13 +3158,13 @@ void argExpTypesToCBuffer(OutBuffer* buf, Expressions* arguments)
     }
 }
 
-void toCBuffer(const TemplateParameter tp, OutBuffer* buf, HdrGenState* hgs)
+void toCBuffer(const TemplateParameter tp, OutBuffer* buf, HdrGenState* hgs) nothrow
 {
     scope v = new TemplateParameterPrettyPrintVisitor(buf, hgs);
     (cast() tp).accept(v);
 }
 
-void arrayObjectsToBuffer(OutBuffer* buf, Objects* objects)
+void arrayObjectsToBuffer(OutBuffer* buf, Objects* objects) nothrow
 {
     if (!objects || !objects.length)
         return;
@@ -3183,7 +3183,7 @@ void arrayObjectsToBuffer(OutBuffer* buf, Objects* objects)
  *  pl = parameter list to print
  * Returns: Null-terminated string representing parameters.
  */
-extern (C++) const(char)* parametersTypeToChars(ParameterList pl)
+extern (C++) const(char)* parametersTypeToChars(ParameterList pl) nothrow
 {
     OutBuffer buf;
     HdrGenState hgs;
@@ -3199,7 +3199,7 @@ extern (C++) const(char)* parametersTypeToChars(ParameterList pl)
  *  fullQual = whether to fully qualify types.
  * Returns: Null-terminated string representing parameters.
  */
-const(char)* parameterToChars(Parameter parameter, TypeFunction tf, bool fullQual)
+const(char)* parameterToChars(Parameter parameter, TypeFunction tf, bool fullQual) nothrow
 {
     OutBuffer buf;
     HdrGenState hgs;
@@ -3223,7 +3223,7 @@ const(char)* parameterToChars(Parameter parameter, TypeFunction tf, bool fullQua
  *      hgs = context
  */
 
-private void parametersToBuffer(ParameterList pl, OutBuffer* buf, HdrGenState* hgs)
+private void parametersToBuffer(ParameterList pl, OutBuffer* buf, HdrGenState* hgs) nothrow
 {
     buf.writeByte('(');
     foreach (i; 0 .. pl.length)
@@ -3261,7 +3261,7 @@ private void parametersToBuffer(ParameterList pl, OutBuffer* buf, HdrGenState* h
  *      buf = buffer to write it to
  *      hgs = context
  */
-private void parameterToBuffer(Parameter p, OutBuffer* buf, HdrGenState* hgs)
+private void parameterToBuffer(Parameter p, OutBuffer* buf, HdrGenState* hgs) nothrow
 {
     if (p.userAttribDecl)
     {
@@ -3333,7 +3333,7 @@ private void parameterToBuffer(Parameter p, OutBuffer* buf, HdrGenState* hgs)
  *     basis = replace `null`s in argument list with this expression (for sparse array literals)
  *     names = if non-null, use these as the names for the arguments
  */
-private void argsToBuffer(Expressions* expressions, OutBuffer* buf, HdrGenState* hgs, Expression basis = null, Identifiers* names = null)
+private void argsToBuffer(Expressions* expressions, OutBuffer* buf, HdrGenState* hgs, Expression basis = null, Identifiers* names = null) nothrow
 {
     if (!expressions || !expressions.length)
         return;
@@ -3384,7 +3384,7 @@ private void argsToBuffer(Expressions* expressions, OutBuffer* buf, HdrGenState*
     }
 }
 
-private void sizeToBuffer(Expression e, OutBuffer* buf, HdrGenState* hgs)
+private void sizeToBuffer(Expression e, OutBuffer* buf, HdrGenState* hgs) nothrow
 {
     if (e.type == Type.tsize_t)
     {
@@ -3412,7 +3412,7 @@ private void sizeToBuffer(Expression e, OutBuffer* buf, HdrGenState* hgs)
     expToBuffer(e, PREC.assign, buf, hgs);
 }
 
-private void expressionToBuffer(Expression e, OutBuffer* buf, HdrGenState* hgs)
+private void expressionToBuffer(Expression e, OutBuffer* buf, HdrGenState* hgs) nothrow
 {
     expressionPrettyPrint(e, buf, hgs);
 }
@@ -3421,7 +3421,7 @@ private void expressionToBuffer(Expression e, OutBuffer* buf, HdrGenState* hgs)
  * Write expression out to buf, but wrap it
  * in ( ) if its precedence is less than pr.
  */
-private void expToBuffer(Expression e, PREC pr, OutBuffer* buf, HdrGenState* hgs)
+private void expToBuffer(Expression e, PREC pr, OutBuffer* buf, HdrGenState* hgs) nothrow
 {
     debug
     {
@@ -3456,7 +3456,7 @@ private void expToBuffer(Expression e, PREC pr, OutBuffer* buf, HdrGenState* hgs
  * An entry point to pretty-print type.
  */
 private void typeToBuffer(Type t, const Identifier ident, OutBuffer* buf, HdrGenState* hgs,
-                          ubyte modMask = 0)
+                          ubyte modMask = 0) nothrow
 {
     if (auto tf = t.isTypeFunction())
     {
@@ -3471,7 +3471,7 @@ private void typeToBuffer(Type t, const Identifier ident, OutBuffer* buf, HdrGen
     }
 }
 
-private void visitWithMask(Type t, ubyte modMask, OutBuffer* buf, HdrGenState* hgs)
+private void visitWithMask(Type t, ubyte modMask, OutBuffer* buf, HdrGenState* hgs) nothrow
 {
     // Tuples and functions don't use the type constructor syntax
     if (modMask == t.mod || t.ty == Tfunction || t.ty == Ttuple)
@@ -3507,7 +3507,7 @@ private void visitWithMask(Type t, ubyte modMask, OutBuffer* buf, HdrGenState* h
 }
 
 
-private void dumpTemplateInstance(TemplateInstance ti, OutBuffer* buf, HdrGenState* hgs)
+private void dumpTemplateInstance(TemplateInstance ti, OutBuffer* buf, HdrGenState* hgs) nothrow
 {
     buf.writeByte('{');
     buf.writenl();
@@ -3530,7 +3530,7 @@ private void dumpTemplateInstance(TemplateInstance ti, OutBuffer* buf, HdrGenSta
 
 }
 
-private void tiargsToBuffer(TemplateInstance ti, OutBuffer* buf, HdrGenState* hgs)
+private void tiargsToBuffer(TemplateInstance ti, OutBuffer* buf, HdrGenState* hgs) nothrow
 {
     buf.writeByte('!');
     if (ti.nest)
@@ -3579,7 +3579,7 @@ private void tiargsToBuffer(TemplateInstance ti, OutBuffer* buf, HdrGenState* hg
  * This makes a 'pretty' version of the template arguments.
  * It's analogous to genIdent() which makes a mangled version.
  */
-private void objectToBuffer(RootObject oarg, OutBuffer* buf, HdrGenState* hgs)
+private void objectToBuffer(RootObject oarg, OutBuffer* buf, HdrGenState* hgs) nothrow
 {
     //printf("objectToBuffer()\n");
     /* The logic of this should match what genIdent() does. The _dynamic_cast()
@@ -3632,7 +3632,7 @@ private void objectToBuffer(RootObject oarg, OutBuffer* buf, HdrGenState* hgs)
 }
 
 
-private void visitFuncIdentWithPostfix(TypeFunction t, const char[] ident, OutBuffer* buf, HdrGenState* hgs, bool isStatic)
+private void visitFuncIdentWithPostfix(TypeFunction t, const char[] ident, OutBuffer* buf, HdrGenState* hgs, bool isStatic) nothrow
 {
     if (t.inuse)
     {
@@ -3677,7 +3677,7 @@ private void visitFuncIdentWithPostfix(TypeFunction t, const char[] ident, OutBu
 }
 
 private void visitFuncIdentWithPrefix(TypeFunction t, const Identifier ident, TemplateDeclaration td,
-    OutBuffer* buf, HdrGenState* hgs)
+    OutBuffer* buf, HdrGenState* hgs) nothrow
 {
     if (t.inuse)
     {
@@ -3746,7 +3746,7 @@ private void visitFuncIdentWithPrefix(TypeFunction t, const Identifier ident, Te
 }
 
 
-private void initializerToBuffer(Initializer inx, OutBuffer* buf, HdrGenState* hgs)
+private void initializerToBuffer(Initializer inx, OutBuffer* buf, HdrGenState* hgs) nothrow
 {
     void visitError(ErrorInitializer iz)
     {
@@ -3835,7 +3835,7 @@ private void initializerToBuffer(Initializer inx, OutBuffer* buf, HdrGenState* h
 }
 
 
-private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
+private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs) nothrow
 {
     void visitType(Type t)
     {
@@ -4099,7 +4099,7 @@ private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
  * Convert EXP to char*.
  */
 
-string EXPtoString(EXP op)
+string EXPtoString(EXP op) nothrow
 {
     static immutable char*[EXP.max + 1] strings =
     [

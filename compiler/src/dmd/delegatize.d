@@ -43,7 +43,7 @@ import dmd.visitor;
  * Returns:
  *  A delegate literal
  */
-Expression toDelegate(Expression e, Type t, Scope* sc)
+Expression toDelegate(Expression e, Type t, Scope* sc) nothrow
 {
     //printf("Expression::toDelegate(t = %s) %s\n", t.toChars(), e.toChars());
     Loc loc = e.loc;
@@ -81,10 +81,11 @@ Expression toDelegate(Expression e, Type t, Scope* sc)
  *   e = expression to check
  *   fd = function literal symbol (the new parent)
  */
-private void lambdaSetParent(Expression e, FuncDeclaration fd)
+private void lambdaSetParent(Expression e, FuncDeclaration fd) nothrow
 {
     extern (C++) final class LambdaSetParent : StoppableVisitor
     {
+    nothrow:
         alias visit = typeof(super).visit;
         FuncDeclaration fd;
 
@@ -195,12 +196,12 @@ private void lambdaSetParent(Expression e, FuncDeclaration fd)
  * Returns:
  *      true if error occurs.
  */
-bool lambdaCheckForNestedRef(Expression e, Scope* sc)
+bool lambdaCheckForNestedRef(Expression e, Scope* sc) nothrow
 {
     extern (C++) final class LambdaCheckForNestedRef : StoppableVisitor
     {
         alias visit = typeof(super).visit;
-    public:
+    nothrow public:
         Scope* sc;
         bool result;
 
@@ -277,7 +278,7 @@ bool lambdaCheckForNestedRef(Expression e, Scope* sc)
  * References:
  *      for static links see https://en.wikipedia.org/wiki/Call_stack#Functions_of_the_call_stack
  */
-bool ensureStaticLinkTo(Dsymbol s, Dsymbol p)
+bool ensureStaticLinkTo(Dsymbol s, Dsymbol p) nothrow
 {
     while (s)
     {

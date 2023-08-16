@@ -74,6 +74,7 @@ struct Label
  */
 struct IRState
 {
+nothrow:
     Module m;                       // module
     private FuncDeclaration symbol; // function that code is being generate for
     Symbol* shidden;                // hidden parameter to function
@@ -172,7 +173,7 @@ extern (C++):
  * References:
  * https://dlang.org/dmd-windows.html#switch-cov
  */
-extern (D) elem *incUsageElem(ref IRState irs, const ref Loc loc)
+extern (D) elem *incUsageElem(ref IRState irs, const ref Loc loc) nothrow
 {
     uint linnum = loc.linnum;
 
@@ -213,7 +214,7 @@ extern (D) elem *incUsageElem(ref IRState irs, const ref Loc loc)
  * 'origSc' is the original scope we inlined from.
  * This routine is critical for implementing nested functions.
  */
-elem *getEthis(const ref Loc loc, ref IRState irs, Dsymbol fd, Dsymbol fdp = null, Dsymbol origSc = null)
+elem *getEthis(const ref Loc loc, ref IRState irs, Dsymbol fd, Dsymbol fdp = null, Dsymbol origSc = null) nothrow
 {
     elem *ethis;
     FuncDeclaration thisfd = irs.getFunc();
@@ -428,7 +429,7 @@ elem *getEthis(const ref Loc loc, ref IRState irs, Dsymbol fd, Dsymbol fdp = nul
  * Returns:
  *      *(ethis + offset);
  */
-elem *fixEthis2(elem *ethis, FuncDeclaration fd, bool ctxt2 = false)
+elem *fixEthis2(elem *ethis, FuncDeclaration fd, bool ctxt2 = false) nothrow
 {
     if (fd && fd.hasDualContext())
     {
@@ -445,7 +446,7 @@ elem *fixEthis2(elem *ethis, FuncDeclaration fd, bool ctxt2 = false)
  * Returns:
  *      *(ey + (ethis2 ? ad.vthis2 : ad.vthis).offset) = this;
  */
-elem *setEthis(const ref Loc loc, ref IRState irs, elem *ey, AggregateDeclaration ad, bool setthis2 = false)
+elem *setEthis(const ref Loc loc, ref IRState irs, elem *ey, AggregateDeclaration ad, bool setthis2 = false) nothrow
 {
     elem *ethis;
     FuncDeclaration thisfd = irs.getFunc();
@@ -497,7 +498,7 @@ enum OPtoPrec = OPMAX + 1; // front end only
  *      NotIntrinsic if not an intrinsic function,
  *      OPtoPrec if frontend-only intrinsic
  */
-int intrinsic_op(FuncDeclaration fd)
+int intrinsic_op(FuncDeclaration fd) nothrow
 {
     int op = NotIntrinsic;
     fd = fd.toAliasFunc();
@@ -634,7 +635,7 @@ Lva_start:
  * Returns:
  *      expression that initializes 'length'
  */
-elem *resolveLengthVar(VarDeclaration lengthVar, elem **pe, Type t1)
+elem *resolveLengthVar(VarDeclaration lengthVar, elem **pe, Type t1) nothrow
 {
     //printf("resolveLengthVar()\n");
     elem *einit = null;
@@ -680,7 +681,7 @@ elem *resolveLengthVar(VarDeclaration lengthVar, elem **pe, Type t1)
  *      sthis = the symbol of the current 'this' derived from fd.vthis
  *      fd = the nested function
  */
-TYPE* getParentClosureType(Symbol* sthis, FuncDeclaration fd)
+TYPE* getParentClosureType(Symbol* sthis, FuncDeclaration fd) nothrow
 {
     if (sthis)
     {
@@ -710,7 +711,7 @@ TYPE* getParentClosureType(Symbol* sthis, FuncDeclaration fd)
  * Returns:
  *      overall alignment of the closure
  */
-uint setClosureVarOffset(FuncDeclaration fd)
+uint setClosureVarOffset(FuncDeclaration fd) nothrow
 {
     // Nothing to do
     if (!fd.needsClosure())
@@ -786,7 +787,7 @@ uint setClosureVarOffset(FuncDeclaration fd)
  * getEthis() and NewExp::toElem need to use sclosure, if set, rather
  * than the current frame pointer.
  */
-void buildClosure(FuncDeclaration fd, ref IRState irs)
+void buildClosure(FuncDeclaration fd, ref IRState irs) nothrow
 {
     //printf("buildClosure(fd = %s)\n", fd.toChars());
     const oldValue = fd.requiresClosure;
@@ -983,7 +984,7 @@ void buildClosure(FuncDeclaration fd, ref IRState irs)
  * Reference:
  *      setClosureVarOffset
  */
-uint setAlignSectionVarOffset(FuncDeclaration fd)
+uint setAlignSectionVarOffset(FuncDeclaration fd) nothrow
 {
     // Nothing to do
     if (!fd.alignSectionVars)
@@ -1049,7 +1050,7 @@ uint setAlignSectionVarOffset(FuncDeclaration fd)
  *      https://github.com/dlang/dmd/pull/9143 was an incomplete attempt to solve this problem
  *      that was merged. It should probably be removed.
  */
-void buildAlignSection(FuncDeclaration fd, ref IRState irs)
+void buildAlignSection(FuncDeclaration fd, ref IRState irs) nothrow
 {
     enum log = false;
     if (log) printf("buildAlignSection(fd = %s)\n", fd.toChars());
@@ -1153,7 +1154,7 @@ void buildAlignSection(FuncDeclaration fd, ref IRState irs)
  * Params:
  *      fd = function
  */
-void buildCapture(FuncDeclaration fd)
+void buildCapture(FuncDeclaration fd) nothrow
 {
     if (!driverParams.symdebug)
         return;
@@ -1205,7 +1206,7 @@ void buildCapture(FuncDeclaration fd)
  * Returns:
  *   RET.stack if return value from function is on the stack, RET.regs otherwise
  */
-RET retStyle(TypeFunction tf, bool needsThis)
+RET retStyle(TypeFunction tf, bool needsThis) nothrow
 {
     //printf("TypeFunction.retStyle() %s\n", toChars());
     return target.isReturnOnStack(tf, needsThis) ? RET.stack : RET.regs;

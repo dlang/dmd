@@ -42,7 +42,7 @@ import dmd.root.stringtable;
 import dmd.scanmach;
 
 // Entry point (only public symbol in this module).
-public extern (C++) Library LibMach_factory()
+public extern (C++) Library LibMach_factory() nothrow
 {
     return new LibMach();
 }
@@ -62,6 +62,7 @@ alias MachObjSymbols = Array!(MachObjSymbol*);
 
 final class LibMach : Library
 {
+nothrow:
     MachObjModules objmodules; // MachObjModule[]
     MachObjSymbols objsymbols; // MachObjSymbol[]
     StringTable!(MachObjSymbol*) tab;
@@ -510,7 +511,7 @@ struct MachLibHeader
     char[MACH_TRAILER_SIZE] trailer;
 }
 
-extern (C++) void MachOmToHeader(MachLibHeader* h, MachObjModule* om)
+extern (C++) void MachOmToHeader(MachLibHeader* h, MachObjModule* om) nothrow
 {
     const slen = om.name.length;
     int nzeros = 8 - ((slen + 4) & 7);

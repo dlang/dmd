@@ -38,6 +38,7 @@ enum DYNCAST : int
 
 extern (C++) class RootObject
 {
+nothrow:
     this() nothrow pure @nogc @safe scope
     {
     }

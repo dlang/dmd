@@ -78,7 +78,7 @@ import dmd.tokens;
  *      ps = set if s[oindex] is a Dsymbol, otherwise null
  *      oindex = index into s
  */
-private void resolveTupleIndex(const ref Loc loc, Scope* sc, Dsymbol s, out Expression pe, out Type pt, out Dsymbol ps, RootObject oindex)
+private void resolveTupleIndex(const ref Loc loc, Scope* sc, Dsymbol s, out Expression pe, out Type pt, out Dsymbol ps, RootObject oindex) nothrow
 {
     auto tup = s.isTupleDeclaration();
 
@@ -149,7 +149,7 @@ private void resolveTupleIndex(const ref Loc loc, Scope* sc, Dsymbol s, out Expr
  *      typeid = set if in TypeidExpression https://dlang.org/spec/expression.html#TypeidExpression
  */
 private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymbol s, Dsymbol scopesym,
-    out Expression pe, out Type pt, out Dsymbol ps, bool intypeid = false)
+    out Expression pe, out Type pt, out Dsymbol ps, bool intypeid = false) nothrow
 {
     version (none)
     {
@@ -378,7 +378,7 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
  * Returns:
  *      t redone as Expression, null if cannot
  */
-Expression typeToExpression(Type t)
+Expression typeToExpression(Type t) nothrow
 {
     static Expression visitSArray(TypeSArray t)
     {
@@ -436,7 +436,7 @@ Expression typeToExpression(Type t)
  *      `Type` with completed semantic analysis, `Terror` if errors
  *      were encountered
  */
-extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
+extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc) nothrow
 {
     static Type error()
     {
@@ -1966,7 +1966,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
  * Returns:
  *      the type that was merged
  */
-extern (C++) Type merge(Type type)
+extern (C++) Type merge(Type type) nothrow
 {
     switch (type.ty)
     {
@@ -2046,7 +2046,7 @@ extern (C++) Type merge(Type type)
  *      expression representing the property, or null if not a property and (flag & 1)
  */
 Expression getProperty(Type t, Scope* scope_, const ref Loc loc, Identifier ident, int flag,
-    Expression src = null)
+    Expression src = null) nothrow
 {
     Expression visitType(Type mt)
     {
@@ -2462,7 +2462,7 @@ Expression getProperty(Type t, Scope* scope_, const ref Loc loc, Identifier iden
  *      e = if exp should remain an Expression, set e to that Expression else null
  *
  */
-private void resolveExp(Expression exp, out Type t, out Expression e, out Dsymbol s)
+private void resolveExp(Expression exp, out Type t, out Expression e, out Dsymbol s) nothrow
 {
     if (exp.isTypeExp())
         t = exp.type;
@@ -2500,7 +2500,7 @@ private void resolveExp(Expression exp, out Type t, out Expression e, out Dsymbo
  *  ps = is set if t is a symbol
  *  intypeid = true if in type id
  */
-void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type pt, out Dsymbol ps, bool intypeid = false)
+void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type pt, out Dsymbol ps, bool intypeid = false) nothrow
 {
     void returnExp(Expression e)
     {
@@ -3134,7 +3134,7 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
  * Returns:
  *  resulting expression with e.ident resolved
  */
-Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag flag)
+Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag flag) nothrow
 {
     Expression visitType(Type mt)
     {
@@ -4443,7 +4443,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
  * Returns:
  *  The initialization expression for the type.
  */
-extern (C++) Expression defaultInit(Type mt, const ref Loc loc, const bool isCfile = false)
+extern (C++) Expression defaultInit(Type mt, const ref Loc loc, const bool isCfile = false) nothrow
 {
     Expression visitBasic(TypeBasic mt)
     {
@@ -4621,7 +4621,7 @@ extern (C++) Expression defaultInit(Type mt, const ref Loc loc, const bool isCfi
  *      Complex!float, Complex!double, Complex!real or null for error
  */
 
-Type getComplexLibraryType(const ref Loc loc, Scope* sc, TY ty)
+Type getComplexLibraryType(const ref Loc loc, Scope* sc, TY ty) nothrow
 {
     // singleton
     __gshared Type complex_float;
@@ -4685,7 +4685,7 @@ private:
 /* Helper function for `typeToExpression`. Contains common code
  * for TypeQualified derived classes.
  */
-Expression typeToExpressionHelper(TypeQualified t, Expression e, size_t i = 0)
+Expression typeToExpressionHelper(TypeQualified t, Expression e, size_t i = 0) nothrow
 {
     //printf("toExpressionHelper(e = %s %s)\n", EXPtoString(e.op).ptr, e.toChars());
     foreach (id; t.idents[i .. t.idents.length])
@@ -4733,7 +4733,7 @@ Expression typeToExpressionHelper(TypeQualified t, Expression e, size_t i = 0)
  * This evaluates exp while setting length to be the number
  * of elements in the tuple t.
  */
-Expression semanticLength(Scope* sc, Type t, Expression exp)
+Expression semanticLength(Scope* sc, Type t, Expression exp) nothrow
 {
     if (auto tt = t.isTypeTuple())
     {
@@ -4756,7 +4756,7 @@ Expression semanticLength(Scope* sc, Type t, Expression exp)
     return exp;
 }
 
-Expression semanticLength(Scope* sc, TupleDeclaration tup, Expression exp)
+Expression semanticLength(Scope* sc, TupleDeclaration tup, Expression exp) nothrow
 {
     ScopeDsymbol sym = new ArrayScopeSymbol(sc, tup);
     sym.parent = sc.scopesym;
@@ -4783,7 +4783,7 @@ Expression semanticLength(Scope* sc, TupleDeclaration tup, Expression exp)
  *      `t` if no parameter identifiers or default arguments found, otherwise a new type that is
  *      the same as t but with no parameter identifiers or default arguments.
  */
-Type stripDefaultArgs(Type t)
+Type stripDefaultArgs(Type t) nothrow
 {
     static Parameters* stripParams(Parameters* parameters)
     {
@@ -4877,7 +4877,7 @@ Type stripDefaultArgs(Type t)
  * Returns:
  *      corresponding value of .max/.min
  */
-Expression getMaxMinValue(EnumDeclaration ed, const ref Loc loc, Identifier id)
+Expression getMaxMinValue(EnumDeclaration ed, const ref Loc loc, Identifier id) nothrow
 {
     //printf("EnumDeclaration::getMaxValue()\n");
 
@@ -4988,7 +4988,7 @@ Expression getMaxMinValue(EnumDeclaration ed, const ref Loc loc, Identifier id)
  * Return:
  *      null if error, else RootObject AST as parsed
  */
-RootObject compileTypeMixin(TypeMixin tm, ref const Loc loc, Scope* sc)
+RootObject compileTypeMixin(TypeMixin tm, ref const Loc loc, Scope* sc) nothrow
 {
     OutBuffer buf;
     if (expressionsToString(buf, sc, tm.exps))

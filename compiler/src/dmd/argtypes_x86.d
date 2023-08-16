@@ -33,12 +33,12 @@ import dmd.visitor;
  *      A tuple of zero length means the type cannot be passed/returned in registers.
  *      null indicates a `void`.
  */
-extern (C++) TypeTuple toArgTypes_x86(Type t)
+extern (C++) TypeTuple toArgTypes_x86(Type t) nothrow
 {
     extern (C++) final class ToArgTypes : Visitor
     {
         alias visit = Visitor.visit;
-    public:
+    nothrow public:
         TypeTuple result;
 
         /*****
@@ -326,7 +326,7 @@ extern (C++) TypeTuple toArgTypes_x86(Type t)
          *      nfields = number of fields in the aggregate (dimension for static arrays)
          *      getFieldInfo = get information about the nth field in the aggregate
          */
-        extern (D) void aggregate(uinteger_t sz, size_t nfields, Type delegate(size_t, out uint, out uint) getFieldInfo)
+        extern (D) void aggregate(uinteger_t sz, size_t nfields, Type delegate(size_t, out uint, out uint) nothrow getFieldInfo)
         {
             if (nfields == 0)
                 return memory();

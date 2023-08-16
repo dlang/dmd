@@ -33,17 +33,18 @@ version (NoBackend)
     extern (C++)
     {
         // iasm
-        Statement asmSemantic(AsmStatement s, Scope* sc)
+        Statement asmSemantic(AsmStatement s, Scope* sc) nothrow
         {
             sc.func.hasReturnExp = 8;
             return null;
         }
 
         // toir
-        void toObjFile(Dsymbol ds, bool multiobj)   {}
+        void toObjFile(Dsymbol ds, bool multiobj) nothrow {}
 
         extern(C++) abstract class ObjcGlue
         {
+        nothrow:
             static void initialize() {}
         }
     }
@@ -58,13 +59,14 @@ else version (IN_GCC)
 
     extern (C++)
     {
-        Statement asmSemantic(AsmStatement s, Scope* sc);
-        void toObjFile(Dsymbol ds, bool multiobj);
+        Statement asmSemantic(AsmStatement s, Scope* sc) nothrow;
+        void toObjFile(Dsymbol ds, bool multiobj) nothrow;
     }
 
     // stubs
     extern(C++) abstract class ObjcGlue
     {
+    nothrow:
         static void initialize() {}
     }
 }

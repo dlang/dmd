@@ -46,17 +46,18 @@ import dmd.visitor;
  *      e = expression tree to visit
  *      dgVar = call when a variable is declared
  */
-void foreachVar(Expression e, void delegate(VarDeclaration) dgVar)
+void foreachVar(Expression e, void delegate(VarDeclaration) nothrow dgVar) nothrow
 {
     if (!e)
         return;
 
     extern (C++) final class VarWalker : StoppableVisitor
     {
+    nothrow:
         alias visit = typeof(super).visit;
-        extern (D) void delegate(VarDeclaration) dgVar;
+        extern (D) void delegate(VarDeclaration) nothrow dgVar;
 
-        extern (D) this(void delegate(VarDeclaration) dgVar) scope @safe
+        extern (D) this(void delegate(VarDeclaration) nothrow dgVar) scope @safe
         {
             this.dgVar = dgVar;
         }
@@ -111,10 +112,10 @@ void foreachVar(Expression e, void delegate(VarDeclaration) dgVar)
  *      dgVar = delegate to pass found VarDeclarations to
  */
 void foreachExpAndVar(Statement s,
-        void delegate(Expression) dgExp,
-        void delegate(VarDeclaration) dgVar)
+        void delegate(Expression) nothrow dgExp,
+        void delegate(VarDeclaration) nothrow dgVar) nothrow
 {
-    void visit(Statement s)
+    void visit(Statement s) nothrow
     {
         void visitExp(ExpStatement s)
         {

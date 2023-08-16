@@ -28,7 +28,7 @@ extern (C++) class StatementRewriteWalker : SemanticTimePermissiveVisitor
      */
     Statement* ps;
 
-public:
+nothrow public:
     final void visitStmt(ref Statement s)
     {
         ps = &s;

@@ -35,14 +35,14 @@ import dmd.utils;
 import dmd.target;
 import dmd.vsoptions;
 
-version (Posix) extern (C) int pipe(int*);
+version (Posix) extern (C) int pipe(int*) nothrow;
 
 version (Windows)
 {
     /* https://www.digitalmars.com/rtl/process.html#_spawn
      * https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/spawnvp-wspawnvp?view=msvc-170
      */
-    extern (C)
+    extern (C) nothrow
     {
         int spawnlp(int, const char*, const char*, const char*, const char*);
         int spawnl(int, const char*, const char*, const char*, const char*);
@@ -53,7 +53,7 @@ version (Windows)
 }
 
 // Workaround lack of 'vfork' in older druntime binding for non-Glibc
-version (Posix) extern(C) pid_t vfork();
+version (Posix) extern(C) pid_t vfork() nothrow;
 version (CRuntime_Microsoft)
 {
   // until the new windows bindings are available when building dmd.
@@ -93,7 +93,7 @@ version (CRuntime_Microsoft)
 /****************************************
  * Write filename to cmdbuf, quoting if necessary.
  */
-private void writeFilename(OutBuffer* buf, const(char)[] filename) @safe
+private void writeFilename(OutBuffer* buf, const(char)[] filename) nothrow @safe
 {
     /* Loop and see if we need to quote
      */
@@ -113,7 +113,7 @@ private void writeFilename(OutBuffer* buf, const(char)[] filename) @safe
     buf.writestring(filename);
 }
 
-private void writeFilename(OutBuffer* buf, const(char)* filename)
+private void writeFilename(OutBuffer* buf, const(char)* filename) nothrow
 {
     writeFilename(buf, filename.toDString());
 }
@@ -129,7 +129,7 @@ version (Posix)
      *     -1 if there is an IO error
      *      0 otherwise
      */
-    private int findNoMainError(int fd)
+    private int findNoMainError(int fd) nothrow
     {
         version (OSX)
         {
@@ -174,7 +174,7 @@ version (Posix)
 
 version (Windows)
 {
-    private void writeQuotedArgIfNeeded(ref OutBuffer buffer, const(char)* arg)
+    private void writeQuotedArgIfNeeded(ref OutBuffer buffer, const(char)* arg) nothrow
     {
         bool quote = false;
         for (size_t i = 0; arg[i]; ++i)
@@ -217,7 +217,7 @@ version (Windows)
 /*****************************
  * Run the linker.  Return status of execution.
  */
-public int runLINK()
+public int runLINK() nothrow
 {
     const phobosLibname = finalDefaultlibname();
 
@@ -856,7 +856,7 @@ public int runLINK()
  */
 version (Windows)
 {
-    private int executecmd(const(char)* cmd, const(char)* args)
+    private int executecmd(const(char)* cmd, const(char)* args) nothrow
     {
         int status;
         size_t len;
@@ -937,7 +937,7 @@ version (Windows)
  */
 version (Windows)
 {
-    private int executearg0(const(char)* cmd, const(char)* args)
+    private int executearg0(const(char)* cmd, const(char)* args) nothrow
     {
         const argv0 = global.params.argv0;
         //printf("argv0='%s', cmd='%s', args='%s'\n",argv0,cmd,args);
@@ -955,7 +955,7 @@ version (Windows)
  * Run the compiled program.
  * Return exit status.
  */
-public int runProgram()
+public int runProgram() nothrow
 {
     //printf("runProgram()\n");
     if (global.params.verbose)
@@ -1050,7 +1050,7 @@ public int runProgram()
  *    exit status.
  */
 public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char)* importc_h, ref Array!(const(char)*) cppswitches,
-    const(char)[] output, OutBuffer* defines)
+    const(char)[] output, OutBuffer* defines) nothrow
 {
     //printf("runPreprocessor() cpp: %.*s filename: %.*s\n", cast(int)cpp.length, cpp.ptr, cast(int)filename.length, filename.ptr);
     version (Windows)
@@ -1366,7 +1366,7 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
  *      https://github.com/dlang/visuald/blob/master/tools/pipedmd.d#L252
  */
 version (Windows)
-int runProcessCollectStdout(const(wchar)* szCommand, ubyte[] buffer, void delegate(ubyte[]) sink)
+int runProcessCollectStdout(const(wchar)* szCommand, ubyte[] buffer, void delegate(ubyte[]) nothrow sink) nothrow
 {
     import core.sys.windows.windows;
     import core.sys.windows.wtypes;

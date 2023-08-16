@@ -25,7 +25,7 @@ import dmd.hdrgen;
  *  e = expression AST to print
  *  indent = indentation level
  */
-void printAST(Expression e, int indent = 0)
+void printAST(Expression e, int indent = 0) nothrow
 {
     scope PrintASTVisitor pav = new PrintASTVisitor(indent);
     e.accept(pav);
@@ -35,6 +35,7 @@ private:
 
 extern (C++) final class PrintASTVisitor : Visitor
 {
+nothrow:
     alias visit = Visitor.visit;
 
     int indent;

@@ -77,7 +77,7 @@ enum LOGSEMANTIC = false;
  * Returns:
  *      Dsymbol  the corresponding symbol for oarg
  */
-private Dsymbol getDsymbolWithoutExpCtx(RootObject oarg)
+private Dsymbol getDsymbolWithoutExpCtx(RootObject oarg) nothrow
 {
     if (auto e = isExpression(oarg))
     {
@@ -94,7 +94,7 @@ private Dsymbol getDsymbolWithoutExpCtx(RootObject oarg)
  *  if interpreted as the type given as argument
  * Returns: the size of the type in bytes, ulong.max on error
  */
-ulong getTypePointerBitmap(Loc loc, Type t, Array!(ulong)* data)
+ulong getTypePointerBitmap(Loc loc, Type t, Array!(ulong)* data) nothrow
 {
     ulong sz;
     if (t.ty == Tclass && !(cast(TypeClass)t).sym.isInterfaceDeclaration())
@@ -121,7 +121,7 @@ ulong getTypePointerBitmap(Loc loc, Type t, Array!(ulong)* data)
     ulong offset;
     bool error;
 
-    void visit(Type t)
+    void visit(Type t) nothrow
     {
         void setpointer(ulong off)
         {
@@ -279,7 +279,7 @@ ulong getTypePointerBitmap(Loc loc, Type t, Array!(ulong)* data)
  *
  *  Returns: [T.sizeof, pointerbit0-31/63, pointerbit32/64-63/128, ...]
  */
-private Expression pointerBitmap(TraitsExp e)
+private Expression pointerBitmap(TraitsExp e) nothrow
 {
     if (!e.args || e.args.length != 1)
     {
@@ -308,7 +308,7 @@ private Expression pointerBitmap(TraitsExp e)
     return ale;
 }
 
-Expression semanticTraits(TraitsExp e, Scope* sc)
+Expression semanticTraits(TraitsExp e, Scope* sc) nothrow
 {
     static if (LOGSEMANTIC)
     {
@@ -389,7 +389,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         return null;
     }
 
-    IntegerExp isX(T)(bool delegate(T) fp)
+    IntegerExp isX(T)(bool delegate(T) nothrow fp)
     {
         if (!dim)
             return False();
@@ -422,7 +422,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
     alias isDeclX = isX!Declaration;
     alias isFuncX = isX!FuncDeclaration;
 
-    Expression isPkgX(bool function(Package) fp)
+    Expression isPkgX(bool function(Package) nothrow fp)
     {
         return isDsymX((Dsymbol sym) {
             Package p = resolveIsPackage(sym);
@@ -1587,7 +1587,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
         auto idents = new Identifiers();
 
-        int pushIdentsDg(size_t n, Dsymbol sm)
+        int pushIdentsDg(size_t n, Dsymbol sm) nothrow
         {
             if (!sm)
                 return 1;
@@ -1816,7 +1816,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         {
             bool[void*] uniqueUnitTests;
 
-            void symbolDg(Dsymbol s)
+            void symbolDg(Dsymbol s) nothrow
             {
                 if (auto ad = s.isAttribDeclaration())
                 {
@@ -2091,7 +2091,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 }
 
 /// compare arguments of __traits(isSame)
-private bool isSame(RootObject o1, RootObject o2, Scope* sc)
+private bool isSame(RootObject o1, RootObject o2, Scope* sc) nothrow
 {
     static FuncLiteralDeclaration isLambda(RootObject oarg)
     {
@@ -2222,7 +2222,7 @@ Lnext:
  * Params:
  *      e = the offending trait
  */
-private void traitNotFound(TraitsExp e)
+private void traitNotFound(TraitsExp e) nothrow
 {
     __gshared const StringTable!bool traitsStringTable;
     __gshared bool initialized;

@@ -85,11 +85,11 @@ alias toSymbol = dmd.glue.toSymbol;
 import dmd.backend.util2 : mem_malloc2;
 
 
-private int registerSize() { return _tysize[TYnptr]; }
+private int registerSize() nothrow { return _tysize[TYnptr]; }
 
 /* If variable var is a reference
  */
-bool ISREF(Declaration var)
+bool ISREF(Declaration var) nothrow
 {
     if (var.isReference())
     {
@@ -101,7 +101,7 @@ bool ISREF(Declaration var)
 
 /* If variable var of type typ is a reference due to x64 calling conventions
  */
-bool ISX64REF(Declaration var)
+bool ISX64REF(Declaration var) nothrow
 {
     if (var.isReference())
     {
@@ -131,7 +131,7 @@ bool ISX64REF(Declaration var)
 
 /* If variable exp of type typ is a reference due to x64 calling conventions
  */
-bool ISX64REF(ref IRState irs, Expression exp)
+bool ISX64REF(ref IRState irs, Expression exp) nothrow
 {
     if (irs.target.os == Target.OS.Windows && irs.target.isX86_64)
     {
@@ -156,7 +156,7 @@ bool ISX64REF(ref IRState irs, Expression exp)
  * Returns:
  *      generated elem
  */
-elem* elAssign(elem* e1, elem* e2, Type t, type* tx)
+elem* elAssign(elem* e1, elem* e2, Type t, type* tx) nothrow
 {
     //printf("e1:\n"); elem_print(e1);
     //printf("e2:\n"); elem_print(e2);
@@ -191,7 +191,7 @@ elem* elAssign(elem* e1, elem* e2, Type t, type* tx)
  * Returns:
  *      true if 0 bits
  */
-bool type_zeroCopy(type* t)
+bool type_zeroCopy(type* t) nothrow
 {
     return type_size(t) == 0 ||
         (tybasic(t.Tty) == TYstruct &&
@@ -209,7 +209,7 @@ bool type_zeroCopy(type* t)
  *      Symbol
  */
 
-Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
+Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz) nothrow
 {
     //printf("toStringSymbol() %p\n", stringTab);
     auto sv = stringTab.update(str, len * sz);
@@ -294,7 +294,7 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
  * Turn StringExp into Symbol.
  */
 
-Symbol *toStringSymbol(StringExp se)
+Symbol *toStringSymbol(StringExp se) nothrow
 {
     Symbol *si;
     const n = cast(int)se.numberOfCodeUnits();
@@ -321,7 +321,7 @@ Symbol *toStringSymbol(StringExp se)
  *      loc = to get file/line from
  */
 
-void toTraceGC(ref IRState irs, elem *e, const ref Loc loc)
+void toTraceGC(ref IRState irs, elem *e, const ref Loc loc) nothrow
 {
     static immutable RTLSYM[2][25] map =
     [
@@ -389,7 +389,7 @@ void toTraceGC(ref IRState irs, elem *e, const ref Loc loc)
  *      generated elem tree
  */
 
-elem *toElemDtor(Expression e, ref IRState irs)
+elem *toElemDtor(Expression e, ref IRState irs) nothrow
 {
     //printf("Expression.toElemDtor() %s\n", e.toChars());
 
@@ -429,7 +429,7 @@ elem *toElemDtor(Expression e, ref IRState irs)
  *      the equivalent of &e
  */
 
-elem *addressElem(elem *e, Type t, bool alwaysCopy = false)
+elem *addressElem(elem *e, Type t, bool alwaysCopy = false) nothrow
 {
     //printf("addressElem()\n");
 
@@ -484,7 +484,7 @@ elem *addressElem(elem *e, Type t, bool alwaysCopy = false)
 /********************************
  * Reset stringTab[] between object files being emitted, because the symbols are local.
  */
-void clearStringTab()
+void clearStringTab() nothrow
 {
     //printf("clearStringTab()\n");
     if (stringTab)
@@ -505,7 +505,7 @@ private __gshared StringTable!(Symbol*) *stringTab;
  * Returns:
  *      backend elem tree
  */
-elem* toElem(Expression e, ref IRState irs)
+elem* toElem(Expression e, ref IRState irs) nothrow
 {
     elem* visit(Expression e)
     {
@@ -4196,7 +4196,7 @@ private:
 /**************************************
  * Mirrors logic in Dsymbol_canThrow().
  */
-elem *Dsymbol_toElem(Dsymbol s, ref IRState irs)
+elem *Dsymbol_toElem(Dsymbol s, ref IRState irs) nothrow
 {
     elem *e = null;
 
@@ -4288,7 +4288,7 @@ elem *Dsymbol_toElem(Dsymbol s, ref IRState irs)
  * Allocate a static array, and initialize its members with elems[].
  * Return the initialization expression, and the symbol for the static array in *psym.
  */
-elem *ElemsToStaticArray(const ref Loc loc, Type telem, Elems *elems, Symbol **psym)
+elem *ElemsToStaticArray(const ref Loc loc, Type telem, Elems *elems, Symbol **psym) nothrow
 {
     // Create a static array of type telem[dim]
     const dim = elems.length;
@@ -4320,7 +4320,7 @@ elem *ElemsToStaticArray(const ref Loc loc, Type telem, Elems *elems, Symbol **p
  * exps[].
  * Return the initialization expression, and the symbol for the static array in *psym.
  */
-elem *ExpressionsToStaticArray(ref IRState irs, const ref Loc loc, Expressions *exps, Symbol **psym, size_t offset = 0, Expression basis = null)
+elem *ExpressionsToStaticArray(ref IRState irs, const ref Loc loc, Expressions *exps, Symbol **psym, size_t offset = 0, Expression basis = null) nothrow
 {
     // Create a static array of type telem[dim]
     const dim = exps.length;
@@ -4398,7 +4398,7 @@ elem *ExpressionsToStaticArray(ref IRState irs, const ref Loc loc, Expressions *
 
 /***************************************************
  */
-elem *toElemCast(CastExp ce, elem *e, bool isLvalue, ref IRState irs)
+elem *toElemCast(CastExp ce, elem *e, bool isLvalue, ref IRState irs) nothrow
 {
     tym_t ftym;
     tym_t ttym;
@@ -5270,7 +5270,7 @@ elem *toElemCast(CastExp ce, elem *e, bool isLvalue, ref IRState irs)
  * If argument to a function should use OPstrpar,
  * fix it so it does and return it.
  */
-elem *useOPstrpar(elem *e)
+elem *useOPstrpar(elem *e) nothrow
 {
     tym_t ty = tybasic(e.Ety);
     if (ty == TYstruct || ty == TYarray)
@@ -5298,6 +5298,7 @@ elem *callfunc(const ref Loc loc,
         Expressions *arguments,
         elem *esel = null,      // selector for Objective-C methods (when not provided by fd)
         elem *ethis2 = null)    // multi-context array
+nothrow
 {
     elem *ethis = null;
     elem *eside = null;
@@ -5771,7 +5772,7 @@ elem *callfunc(const ref Loc loc,
  * Returns:
  *      elem that evaluates the side effects
  */
-extern (D) elem *fixArgumentEvaluationOrder(elem*[] elems)
+extern (D) elem *fixArgumentEvaluationOrder(elem*[] elems) nothrow
 {
     /* It matters if all are true:
      * 1. at least one argument has side effects
@@ -5852,7 +5853,7 @@ extern (D) elem *fixArgumentEvaluationOrder(elem*[] elems)
  * Lvalue elems are OPvar and OPind.
  */
 
-bool elemIsLvalue(elem* e)
+bool elemIsLvalue(elem* e) nothrow
 {
     while (e.Eoper == OPcomma || e.Eoper == OPinfo)
         e = e.EV.E2;
@@ -5894,7 +5895,7 @@ bool elemIsLvalue(elem* e)
  *      e rebuilt into a pointer to the data
  */
 
-elem *array_toPtr(Type t, elem *e)
+elem *array_toPtr(Type t, elem *e) nothrow
 {
     //printf("array_toPtr()\n");
     //elem_print(e);
@@ -5956,7 +5957,7 @@ else
  * Convert array to a dynamic array.
  */
 
-elem *array_toDarray(Type t, elem *e)
+elem *array_toDarray(Type t, elem *e) nothrow
 {
     uint dim;
     elem *ef = null;
@@ -6035,7 +6036,7 @@ elem *array_toDarray(Type t, elem *e)
 /************************************
  */
 
-elem *sarray_toDarray(const ref Loc loc, Type tfrom, Type tto, elem *e)
+elem *sarray_toDarray(const ref Loc loc, Type tfrom, Type tto, elem *e) nothrow
 {
     //printf("sarray_toDarray()\n");
     //elem_print(e);
@@ -6067,7 +6068,7 @@ elem *sarray_toDarray(const ref Loc loc, Type tfrom, Type tto, elem *e)
  *      TypeInfo
  */
 private
-elem *getTypeInfo(Expression e, Type t, ref IRState irs)
+elem *getTypeInfo(Expression e, Type t, ref IRState irs) nothrow
 {
     assert(t.ty != Terror);
     genTypeInfo(e, e.loc, t, null);
@@ -6078,7 +6079,7 @@ elem *getTypeInfo(Expression e, Type t, ref IRState irs)
 /********************************************
  * Determine if t is a struct that has postblit.
  */
-StructDeclaration needsPostblit(Type t)
+StructDeclaration needsPostblit(Type t) nothrow
 {
     if (auto ts = t.baseElemOf().isTypeStruct())
     {
@@ -6092,7 +6093,7 @@ StructDeclaration needsPostblit(Type t)
 /********************************************
  * Determine if t is a struct that has destructor.
  */
-StructDeclaration needsDtor(Type t)
+StructDeclaration needsDtor(Type t) nothrow
 {
     if (auto ts = t.baseElemOf().isTypeStruct())
     {
@@ -6117,7 +6118,7 @@ StructDeclaration needsDtor(Type t)
  * Returns:
  *      created IR code
  */
-elem *setArray(Expression exp, elem *eptr, elem *edim, Type tb, elem *evalue, ref IRState irs, int op)
+elem *setArray(Expression exp, elem *eptr, elem *edim, Type tb, elem *evalue, ref IRState irs, int op) nothrow
 {
     //elem_print(evalue);
     assert(op == EXP.blit || op == EXP.assign || op == EXP.construct);
@@ -6300,7 +6301,7 @@ Lagain:
  * tries to use aligned int stores whereever possible.
  * Update *poffset to end of initialized hole; *poffset will be >= offset2.
  */
-elem *fillHole(Symbol *stmp, size_t *poffset, size_t offset2, size_t maxoff)
+elem *fillHole(Symbol *stmp, size_t *poffset, size_t offset2, size_t maxoff) nothrow
 {
     elem *e = null;
     bool basealign = true;
@@ -6347,7 +6348,7 @@ elem *fillHole(Symbol *stmp, size_t *poffset, size_t offset2, size_t maxoff)
  *                  false if allocated by operator new, as the holes are already zeroed.
  */
 
-elem *toElemStructLit(StructLiteralExp sle, ref IRState irs, EXP op, Symbol *sym, bool fillHoles)
+elem *toElemStructLit(StructLiteralExp sle, ref IRState irs, EXP op, Symbol *sym, bool fillHoles) nothrow
 {
     //printf("[%s] StructLiteralExp.toElem() %s\n", sle.loc.toChars(), sle.toChars());
     //printf("\tblit = %s, sym = %p fillHoles = %d\n", op == EXP.blit, sym, fillHoles);
@@ -6618,7 +6619,7 @@ elem *toElemStructLit(StructLiteralExp sle, ref IRState irs, EXP op, Symbol *sym
  *      er with destructors appended
  */
 
-elem *appendDtors(ref IRState irs, elem *er, size_t starti, size_t endi)
+elem *appendDtors(ref IRState irs, elem *er, size_t starti, size_t endi) nothrow
 {
     //printf("appendDtors(%d .. %d)\n", starti, endi);
 
@@ -6697,7 +6698,7 @@ elem *appendDtors(ref IRState irs, elem *er, size_t starti, size_t endi)
  * for insertion into the parameter list.
  */
 
-elem *filelinefunction(ref IRState irs, const ref Loc loc)
+elem *filelinefunction(ref IRState irs, const ref Loc loc) nothrow
 {
     const(char)* id = loc.filename;
     size_t len = strlen(id);
@@ -6732,7 +6733,7 @@ elem *filelinefunction(ref IRState irs, const ref Loc loc)
  * Returns:
  *      elem generated
  */
-elem* buildRangeError(ref IRState irs, const ref Loc loc)
+elem* buildRangeError(ref IRState irs, const ref Loc loc) nothrow
 {
     final switch (irs.params.checkAction)
     {
@@ -6758,7 +6759,7 @@ elem* buildRangeError(ref IRState irs, const ref Loc loc)
  * Returns:
  *      elem generated
  */
-elem* buildArraySliceError(ref IRState irs, const ref Loc loc, elem* lower, elem* upper, elem* length) {
+elem* buildArraySliceError(ref IRState irs, const ref Loc loc, elem* lower, elem* upper, elem* length) nothrow {
     final switch (irs.params.checkAction)
     {
     case CHECKACTION.C:
@@ -6785,7 +6786,7 @@ elem* buildArraySliceError(ref IRState irs, const ref Loc loc, elem* lower, elem
  * Returns:
  *      elem generated
  */
-elem* buildArrayIndexError(ref IRState irs, const ref Loc loc, elem* index, elem* length) {
+elem* buildArrayIndexError(ref IRState irs, const ref Loc loc, elem* index, elem* length) nothrow {
     final switch (irs.params.checkAction)
     {
     case CHECKACTION.C:
@@ -6801,7 +6802,7 @@ elem* buildArrayIndexError(ref IRState irs, const ref Loc loc, elem* index, elem
 }
 
 /// Returns: elem representing a C-string (char*) to the filename
-elem* locToFileElem(const ref IRState irs, const ref Loc loc) {
+elem* locToFileElem(const ref IRState irs, const ref Loc loc) nothrow {
     elem* efile;
     if (loc.filename)
     {
@@ -6826,7 +6827,7 @@ elem* locToFileElem(const ref IRState irs, const ref Loc loc) {
  * Returns:
  *      generated call
  */
-elem *callCAssert(ref IRState irs, const ref Loc loc, Expression exp, Expression emsg, const(char)* str)
+elem *callCAssert(ref IRState irs, const ref Loc loc, Expression exp, Expression emsg, const(char)* str) nothrow
 {
     //printf("callCAssert.toElem() %s\n", e.toChars());
     Module m = cast(Module)irs.blx._module;
@@ -6922,7 +6923,7 @@ elem *callCAssert(ref IRState irs, const ref Loc loc, Expression exp, Expression
  * Returns:
  *      generated instruction
  */
-elem *genHalt(const ref Loc loc)
+elem *genHalt(const ref Loc loc) nothrow
 {
     elem *e = el_calloc();
     e.Ety = TYnoreturn;
@@ -6943,7 +6944,7 @@ elem *genHalt(const ref Loc loc)
  * Returns:
  *      `ethis2` if successful, null otherwise
  */
-elem* setEthis2(const ref Loc loc, ref IRState irs, FuncDeclaration fd, elem* ethis2, elem** ethis, elem** eside)
+elem* setEthis2(const ref Loc loc, ref IRState irs, FuncDeclaration fd, elem* ethis2, elem** ethis, elem** eside) nothrow
 {
     if (!fd.hasDualContext())
         return null;
@@ -6972,7 +6973,7 @@ elem* setEthis2(const ref Loc loc, ref IRState irs, FuncDeclaration fd, elem* et
  *      OPva_start node
  */
 private
-elem* constructVa_start(elem* e)
+elem* constructVa_start(elem* e) nothrow
 {
     assert(e.Eoper == OPparam);
 

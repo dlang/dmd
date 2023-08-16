@@ -35,6 +35,7 @@ alias CompileEnv = dmd.lexer.CompileEnv;
  */
 class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 {
+nothrow:
     AST.ModuleDeclaration* md;
 
     protected

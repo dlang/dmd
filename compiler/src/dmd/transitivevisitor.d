@@ -28,6 +28,7 @@ extern(C++) class ParseTimeTransitiveVisitor(AST) : PermissiveVisitor!AST
  */
 package mixin template ParseVisitMethods(AST)
 {
+nothrow:
     import dmd.root.array;
 
 //   Statement Nodes

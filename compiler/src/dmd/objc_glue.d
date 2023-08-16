@@ -46,7 +46,7 @@ import dmd.backend.obj;
 
 private __gshared ObjcGlue _objc;
 
-ObjcGlue objc()
+ObjcGlue objc() nothrow
 {
     return _objc;
 }
@@ -54,6 +54,7 @@ ObjcGlue objc()
 // Should be an interface
 extern(C++) abstract class ObjcGlue
 {
+nothrow:
     static struct ElemResult
     {
         elem* ec;
@@ -181,6 +182,7 @@ extern(C++) final class Unsupported : ObjcGlue
 
 extern(C++) final class Supported : ObjcGlue
 {
+nothrow:
     extern (D) this()
     {
         Segments.initialize();
@@ -314,6 +316,7 @@ extern(C++) final class Supported : ObjcGlue
 
 struct Segments
 {
+nothrow:
     enum Id
     {
         classlist,
@@ -405,7 +408,7 @@ struct Segments
 
 struct Symbols
 {
-static:
+nothrow static:
 
     private __gshared
     {
@@ -933,7 +936,7 @@ static:
      * Returns: the cached symbol
      */
     private Symbol* cache(const(char)[] name, SymbolCache symbolCache,
-        scope Symbol* delegate() block)
+        scope Symbol* delegate() nothrow block)
     {
         hasSymbols_ = true;
 
@@ -954,6 +957,7 @@ private:
  */
 struct ObjcClassDeclaration
 {
+nothrow:
     /// Indicates what kind of class this is.
     private enum Flags
     {
@@ -1277,6 +1281,7 @@ private:
  */
 struct ProtocolDeclaration
 {
+nothrow:
     /// The interface declaration
     private InterfaceDeclaration interfaceDeclaration;
 
@@ -1581,7 +1586,7 @@ char[] format(size_t bufLength, Args...)(return ref char[bufLength] buffer,
 }
 
 /// Returns: the symbol of the given selector
-Symbol* toNameSymbol(const ObjcSelector* selector)
+Symbol* toNameSymbol(const ObjcSelector* selector) nothrow
 {
     return Symbols.getMethVarName(selector.toString());
 }
@@ -1593,7 +1598,7 @@ Symbol* toNameSymbol(const ObjcSelector* selector)
  *  dtb = the dt builder to add the symbol to
  *  symbol = the symbol to add
  */
-void xoffOrNull(ref DtBuilder dtb, Symbol* symbol) @safe
+void xoffOrNull(ref DtBuilder dtb, Symbol* symbol) nothrow @safe
 {
     if (symbol)
         dtb.xoff(symbol, 0);

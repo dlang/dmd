@@ -73,7 +73,7 @@ enum LOG = false;
 /*************************************
  * Does semantic analysis on initializers and members of aggregates.
  */
-extern(C++) void semantic2(Dsymbol dsym, Scope* sc)
+extern(C++) void semantic2(Dsymbol dsym, Scope* sc) nothrow
 {
     scope v = new Semantic2Visitor(sc);
     dsym.accept(v);
@@ -81,6 +81,7 @@ extern(C++) void semantic2(Dsymbol dsym, Scope* sc)
 
 private extern(C++) final class Semantic2Visitor : Visitor
 {
+nothrow:
     alias visit = Visitor.visit;
     Scope* sc;
     this(Scope* sc) scope @safe
@@ -284,7 +285,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
              */
             if (ExpInitializer ei = vd._init.isExpInitializer())
             {
-                static bool hasInvalidEnumInitializer(Expression e)
+                static bool hasInvalidEnumInitializer(Expression e) nothrow
                 {
                     static bool arrayHasInvalidEnumInitializer(Expressions* elems)
                     {
@@ -740,7 +741,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
  *            only one ABI tag object is allowed per symbol
  *            (but it can have multiple tags as it's an array exp).
  */
-private void doGNUABITagSemantic(ref Expression e, ref Expression* lastTag)
+private void doGNUABITagSemantic(ref Expression e, ref Expression* lastTag) nothrow
 {
     import dmd.dmangle;
 

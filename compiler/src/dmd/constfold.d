@@ -38,7 +38,7 @@ import dmd.tokens;
 
 private enum LOG = false;
 
-private Expression expType(Type type, Expression e)
+private Expression expType(Type type, Expression e) nothrow
 {
     if (type != e.type)
     {
@@ -52,7 +52,7 @@ private Expression expType(Type type, Expression e)
  * Returns:
  *    true if e is a constant
  */
-int isConst(Expression e) @safe
+int isConst(Expression e) nothrow @safe
 {
     //printf("Expression::isConst(): %s\n", e.toChars());
     switch (e.op)
@@ -76,7 +76,7 @@ int isConst(Expression e) @safe
  * Params:
  *      ue = where to write it
  */
-void cantExp(out UnionExp ue)
+void cantExp(out UnionExp ue) nothrow
 {
     emplaceExp!(CTFEExp)(&ue, EXP.cantExpression);
 }
@@ -86,7 +86,7 @@ void cantExp(out UnionExp ue)
  * and so have been folded in with them.
  */
 /* ========================================================================== */
-UnionExp Neg(Type type, Expression e1)
+UnionExp Neg(Type type, Expression e1) nothrow
 {
     UnionExp ue = void;
     Loc loc = e1.loc;
@@ -109,7 +109,7 @@ UnionExp Neg(Type type, Expression e1)
     return ue;
 }
 
-UnionExp Com(Type type, Expression e1)
+UnionExp Com(Type type, Expression e1) nothrow
 {
     UnionExp ue = void;
     Loc loc = e1.loc;
@@ -117,7 +117,7 @@ UnionExp Com(Type type, Expression e1)
     return ue;
 }
 
-UnionExp Not(Type type, Expression e1)
+UnionExp Not(Type type, Expression e1) nothrow
 {
     UnionExp ue = void;
     Loc loc = e1.loc;
@@ -128,7 +128,7 @@ UnionExp Not(Type type, Expression e1)
     return ue;
 }
 
-UnionExp Add(const ref Loc loc, Type type, Expression e1, Expression e2)
+UnionExp Add(const ref Loc loc, Type type, Expression e1, Expression e2) nothrow
 {
     UnionExp ue = void;
     static if (LOG)
@@ -233,7 +233,7 @@ UnionExp Add(const ref Loc loc, Type type, Expression e1, Expression e2)
     return ue;
 }
 
-UnionExp Min(const ref Loc loc, Type type, Expression e1, Expression e2)
+UnionExp Min(const ref Loc loc, Type type, Expression e1, Expression e2) nothrow
 {
     // Compute e1-e2 as e1+(-e2)
     UnionExp neg = Neg(e2.type, e2);
@@ -241,7 +241,7 @@ UnionExp Min(const ref Loc loc, Type type, Expression e1, Expression e2)
     return ue;
 }
 
-UnionExp Mul(const ref Loc loc, Type type, Expression e1, Expression e2)
+UnionExp Mul(const ref Loc loc, Type type, Expression e1, Expression e2) nothrow
 {
     UnionExp ue = void;
     if (type.isfloating())
@@ -290,7 +290,7 @@ UnionExp Mul(const ref Loc loc, Type type, Expression e1, Expression e2)
     return ue;
 }
 
-UnionExp Div(const ref Loc loc, Type type, Expression e1, Expression e2)
+UnionExp Div(const ref Loc loc, Type type, Expression e1, Expression e2) nothrow
 {
     UnionExp ue = void;
     if (type.isfloating())
@@ -365,7 +365,7 @@ UnionExp Div(const ref Loc loc, Type type, Expression e1, Expression e2)
     return ue;
 }
 
-UnionExp Mod(const ref Loc loc, Type type, Expression e1, Expression e2)
+UnionExp Mod(const ref Loc loc, Type type, Expression e1, Expression e2) nothrow
 {
     UnionExp ue = void;
     if (type.isfloating())
@@ -430,7 +430,7 @@ UnionExp Mod(const ref Loc loc, Type type, Expression e1, Expression e2)
     return ue;
 }
 
-UnionExp Pow(const ref Loc loc, Type type, Expression e1, Expression e2)
+UnionExp Pow(const ref Loc loc, Type type, Expression e1, Expression e2) nothrow
 {
     //printf("Pow()\n");
     UnionExp ue;
@@ -510,14 +510,14 @@ UnionExp Pow(const ref Loc loc, Type type, Expression e1, Expression e2)
     return ue;
 }
 
-UnionExp Shl(const ref Loc loc, Type type, Expression e1, Expression e2)
+UnionExp Shl(const ref Loc loc, Type type, Expression e1, Expression e2) nothrow
 {
     UnionExp ue = void;
     emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger() << e2.toInteger(), type);
     return ue;
 }
 
-UnionExp Shr(const ref Loc loc, Type type, Expression e1, Expression e2)
+UnionExp Shr(const ref Loc loc, Type type, Expression e1, Expression e2) nothrow
 {
     UnionExp ue = void;
     dinteger_t value = e1.toInteger();
@@ -563,7 +563,7 @@ UnionExp Shr(const ref Loc loc, Type type, Expression e1, Expression e2)
     return ue;
 }
 
-UnionExp Ushr(const ref Loc loc, Type type, Expression e1, Expression e2)
+UnionExp Ushr(const ref Loc loc, Type type, Expression e1, Expression e2) nothrow
 {
     UnionExp ue = void;
     dinteger_t value = e1.toInteger();
@@ -603,21 +603,21 @@ UnionExp Ushr(const ref Loc loc, Type type, Expression e1, Expression e2)
     return ue;
 }
 
-UnionExp And(const ref Loc loc, Type type, Expression e1, Expression e2)
+UnionExp And(const ref Loc loc, Type type, Expression e1, Expression e2) nothrow
 {
     UnionExp ue = void;
     emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger() & e2.toInteger(), type);
     return ue;
 }
 
-UnionExp Or(const ref Loc loc, Type type, Expression e1, Expression e2)
+UnionExp Or(const ref Loc loc, Type type, Expression e1, Expression e2) nothrow
 {
     UnionExp ue = void;
     emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger() | e2.toInteger(), type);
     return ue;
 }
 
-UnionExp Xor(const ref Loc loc, Type type, Expression e1, Expression e2)
+UnionExp Xor(const ref Loc loc, Type type, Expression e1, Expression e2) nothrow
 {
     //printf("Xor(linnum = %d, e1 = %s, e2 = %s)\n", loc.linnum, e1.toChars(), e2.toChars());
     UnionExp ue = void;
@@ -627,7 +627,7 @@ UnionExp Xor(const ref Loc loc, Type type, Expression e1, Expression e2)
 
 /* Also returns EXP.cantExpression if cannot be computed.
  */
-UnionExp Equal(EXP op, const ref Loc loc, Type type, Expression e1, Expression e2)
+UnionExp Equal(EXP op, const ref Loc loc, Type type, Expression e1, Expression e2) nothrow
 {
     UnionExp ue = void;
     int cmp = 0;
@@ -825,7 +825,7 @@ UnionExp Equal(EXP op, const ref Loc loc, Type type, Expression e1, Expression e
     return ue;
 }
 
-UnionExp Identity(EXP op, const ref Loc loc, Type type, Expression e1, Expression e2)
+UnionExp Identity(EXP op, const ref Loc loc, Type type, Expression e1, Expression e2) nothrow
 {
     UnionExp ue = void;
     int cmp;
@@ -859,7 +859,7 @@ UnionExp Identity(EXP op, const ref Loc loc, Type type, Expression e1, Expressio
     return ue;
 }
 
-UnionExp Cmp(EXP op, const ref Loc loc, Type type, Expression e1, Expression e2)
+UnionExp Cmp(EXP op, const ref Loc loc, Type type, Expression e1, Expression e2) nothrow
 {
     UnionExp ue = void;
     dinteger_t n;
@@ -923,7 +923,7 @@ UnionExp Cmp(EXP op, const ref Loc loc, Type type, Expression e1, Expression e2)
  *  to: type to cast to
  *  type: type to paint the result
  */
-UnionExp Cast(const ref Loc loc, Type type, Type to, Expression e1)
+UnionExp Cast(const ref Loc loc, Type type, Type to, Expression e1) nothrow
 {
     UnionExp ue = void;
     Type tb = to.toBasetype();
@@ -1089,7 +1089,7 @@ UnionExp Cast(const ref Loc loc, Type type, Type to, Expression e1)
     return ue;
 }
 
-UnionExp ArrayLength(Type type, Expression e1)
+UnionExp ArrayLength(Type type, Expression e1) nothrow
 {
     UnionExp ue = void;
     Loc loc = e1.loc;
@@ -1123,7 +1123,7 @@ UnionExp ArrayLength(Type type, Expression e1)
 
 /* Also return EXP.cantExpression if this fails
  */
-UnionExp Index(Type type, Expression e1, Expression e2, bool indexIsInBounds)
+UnionExp Index(Type type, Expression e1, Expression e2, bool indexIsInBounds) nothrow
 {
     UnionExp ue = void;
     Loc loc = e1.loc;
@@ -1223,7 +1223,7 @@ UnionExp Index(Type type, Expression e1, Expression e2, bool indexIsInBounds)
 
 /* Also return EXP.cantExpression if this fails
  */
-UnionExp Slice(Type type, Expression e1, Expression lwr, Expression upr)
+UnionExp Slice(Type type, Expression e1, Expression lwr, Expression upr) nothrow
 {
     UnionExp ue = void;
     Loc loc = e1.loc;
@@ -1286,7 +1286,7 @@ UnionExp Slice(Type type, Expression e1, Expression lwr, Expression upr)
 
 /* Check whether slice `[newlwr .. newupr]` is in the range `[lwr .. upr]`
  */
-bool sliceBoundsCheck(uinteger_t lwr, uinteger_t upr, uinteger_t newlwr, uinteger_t newupr) pure @safe
+bool sliceBoundsCheck(uinteger_t lwr, uinteger_t upr, uinteger_t newlwr, uinteger_t newupr) nothrow pure @safe
 {
     assert(lwr <= upr);
     return !(newlwr <= newupr &&
@@ -1297,7 +1297,7 @@ bool sliceBoundsCheck(uinteger_t lwr, uinteger_t upr, uinteger_t newlwr, uintege
 /* Set a slice of char/integer array literal 'existingAE' from a string 'newval'.
  * existingAE[firstIndex..firstIndex+newval.length] = newval.
  */
-void sliceAssignArrayLiteralFromString(ArrayLiteralExp existingAE, const StringExp newval, size_t firstIndex)
+void sliceAssignArrayLiteralFromString(ArrayLiteralExp existingAE, const StringExp newval, size_t firstIndex) nothrow
 {
     const len = newval.len;
     Type elemType = existingAE.type.nextOf();
@@ -1311,7 +1311,7 @@ void sliceAssignArrayLiteralFromString(ArrayLiteralExp existingAE, const StringE
 /* Set a slice of string 'existingSE' from a char array literal 'newae'.
  *   existingSE[firstIndex..firstIndex+newae.length] = newae.
  */
-void sliceAssignStringFromArrayLiteral(StringExp existingSE, ArrayLiteralExp newae, size_t firstIndex)
+void sliceAssignStringFromArrayLiteral(StringExp existingSE, ArrayLiteralExp newae, size_t firstIndex) nothrow
 {
     assert(existingSE.ownedByCtfe != OwnedBy.code);
     foreach (j; 0 .. newae.elements.length)
@@ -1323,7 +1323,7 @@ void sliceAssignStringFromArrayLiteral(StringExp existingSE, ArrayLiteralExp new
 /* Set a slice of string 'existingSE' from a string 'newstr'.
  *   existingSE[firstIndex..firstIndex+newstr.length] = newstr.
  */
-void sliceAssignStringFromString(StringExp existingSE, const StringExp newstr, size_t firstIndex)
+void sliceAssignStringFromString(StringExp existingSE, const StringExp newstr, size_t firstIndex) nothrow
 {
     assert(existingSE.ownedByCtfe != OwnedBy.code);
     size_t sz = existingSE.sz;
@@ -1336,7 +1336,7 @@ void sliceAssignStringFromString(StringExp existingSE, const StringExp newstr, s
 /* Compare a string slice with another string slice.
  * Conceptually equivalent to memcmp( se1[lo1..lo1+len],  se2[lo2..lo2+len])
  */
-int sliceCmpStringWithString(const StringExp se1, const StringExp se2, size_t lo1, size_t lo2, size_t len)
+int sliceCmpStringWithString(const StringExp se1, const StringExp se2, size_t lo1, size_t lo2, size_t len) nothrow
 {
     size_t sz = se1.sz;
     assert(sz == se2.sz);
@@ -1348,7 +1348,7 @@ int sliceCmpStringWithString(const StringExp se1, const StringExp se2, size_t lo
 /* Compare a string slice with an array literal slice
  * Conceptually equivalent to memcmp( se1[lo1..lo1+len],  ae2[lo2..lo2+len])
  */
-int sliceCmpStringWithArray(const StringExp se1, ArrayLiteralExp ae2, size_t lo1, size_t lo2, size_t len)
+int sliceCmpStringWithArray(const StringExp se1, ArrayLiteralExp ae2, size_t lo1, size_t lo2, size_t len) nothrow
 {
     foreach (j; 0 .. len)
     {
@@ -1371,7 +1371,7 @@ int sliceCmpStringWithArray(const StringExp se1, ArrayLiteralExp ae2, size_t lo1
  *      Newly allocated `Expressions`. Note that it points to the original
  *      `Expression` values in e1 and e2.
  */
-private Expressions* copyElements(Expression e1, Expression e2 = null)
+private Expressions* copyElements(Expression e1, Expression e2 = null) nothrow
 {
     auto elems = new Expressions();
 
@@ -1406,7 +1406,7 @@ private Expressions* copyElements(Expression e1, Expression e2 = null)
 
 /* Also return EXP.cantExpression if this fails
  */
-UnionExp Cat(const ref Loc loc, Type type, Expression e1, Expression e2)
+UnionExp Cat(const ref Loc loc, Type type, Expression e1, Expression e2) nothrow
 {
     UnionExp ue = void;
     Expression e = CTFEExp.cantexp;
@@ -1708,7 +1708,7 @@ UnionExp Cat(const ref Loc loc, Type type, Expression e1, Expression e2)
     return ue;
 }
 
-UnionExp Ptr(Type type, Expression e1)
+UnionExp Ptr(Type type, Expression e1) nothrow
 {
     //printf("Ptr(e1 = %s)\n", e1.toChars());
     UnionExp ue = void;

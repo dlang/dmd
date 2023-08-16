@@ -34,7 +34,7 @@ import dmd.visitor;
  * Returns:
  *      `true` if no errors
  */
-extern(C++) bool tpsemantic(TemplateParameter tp, Scope* sc, TemplateParameters* parameters)
+extern(C++) bool tpsemantic(TemplateParameter tp, Scope* sc, TemplateParameters* parameters) nothrow
 {
     scope v = new TemplateParameterSemanticVisitor(sc, parameters);
     tp.accept(v);
@@ -44,6 +44,7 @@ extern(C++) bool tpsemantic(TemplateParameter tp, Scope* sc, TemplateParameters*
 
 private extern (C++) final class TemplateParameterSemanticVisitor : Visitor
 {
+nothrow:
     alias visit = Visitor.visit;
 
     Scope* sc;
@@ -150,7 +151,7 @@ private extern (C++) final class TemplateParameterSemanticVisitor : Visitor
  * Returns:
  *      object resulting from running `semantic` on `o`
  */
-RootObject aliasParameterSemantic(Loc loc, Scope* sc, RootObject o, TemplateParameters* parameters)
+RootObject aliasParameterSemantic(Loc loc, Scope* sc, RootObject o, TemplateParameters* parameters) nothrow
 {
     if (!o)
         return null;

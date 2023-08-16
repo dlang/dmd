@@ -94,7 +94,7 @@ enum LOGSEMANTIC = false;
  * Returns:
  *      true on error
  */
-bool expressionsToString(ref OutBuffer buf, Scope* sc, Expressions* exps)
+bool expressionsToString(ref OutBuffer buf, Scope* sc, Expressions* exps) nothrow
 {
     if (!exps)
         return false;
@@ -150,7 +150,7 @@ bool expressionsToString(ref OutBuffer buf, Scope* sc, Expressions* exps)
  * Returns:
  *  String literal, or `null` if error happens.
  */
-StringExp semanticString(Scope *sc, Expression exp, const char* s)
+StringExp semanticString(Scope *sc, Expression exp, const char* s) nothrow
 {
     sc = sc.startCTFE();
     exp = exp.expressionSemantic(sc);
@@ -178,7 +178,7 @@ StringExp semanticString(Scope *sc, Expression exp, const char* s)
     return se;
 }
 
-private Expression extractOpDollarSideEffect(Scope* sc, UnaExp ue)
+private Expression extractOpDollarSideEffect(Scope* sc, UnaExp ue) nothrow
 {
     Expression e0;
     Expression e1 = Expression.extractLast(ue.e1, e0);
@@ -207,7 +207,7 @@ private Expression extractOpDollarSideEffect(Scope* sc, UnaExp ue)
  * Runs semantic on ae.arguments. Declares temporary variables
  * if '$' was used.
  */
-Expression resolveOpDollar(Scope* sc, ArrayExp ae, Expression* pe0)
+Expression resolveOpDollar(Scope* sc, ArrayExp ae, Expression* pe0) nothrow
 {
     assert(!ae.lengthVar);
     *pe0 = null;
@@ -291,7 +291,7 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, Expression* pe0)
  * Returns:
  *      ae, or ErrorExp if errors occurred
  */
-Expression resolveOpDollar(Scope* sc, ArrayExp ae, IntervalExp ie, Expression* pe0)
+Expression resolveOpDollar(Scope* sc, ArrayExp ae, IntervalExp ie, Expression* pe0) nothrow
 {
     //assert(!ae.lengthVar);
     if (!ie)
@@ -340,7 +340,7 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, IntervalExp ie, Expression* p
  * Perform semantic() on an array of Expressions.
  */
 extern(D) bool arrayExpressionSemantic(
-    Expression[] exps, Scope* sc, bool preserveErrors = false)
+    Expression[] exps, Scope* sc, bool preserveErrors = false) nothrow
 {
     bool err = false;
     foreach (ref e; exps)
@@ -369,7 +369,7 @@ Returns:
     variable access, `exp` otherwise.
 */
 
-Expression checkNoreturnVarAccess(Expression exp)
+Expression checkNoreturnVarAccess(Expression exp) nothrow
 {
     assert(exp.type);
 
@@ -389,7 +389,7 @@ Expression checkNoreturnVarAccess(Expression exp)
 /******************************
  * Find symbol in accordance with the UFCS name look up rule
  */
-private Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
+private Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident) nothrow
 {
     //printf("searchUFCS(ident = %s)\n", ident.toChars());
     Loc loc = ue.loc;
@@ -485,7 +485,7 @@ private Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
 /******************************
  * Pull out callable entity with UFCS.
  */
-private Expression resolveUFCS(Scope* sc, CallExp ce)
+private Expression resolveUFCS(Scope* sc, CallExp ce) nothrow
 {
     Loc loc = ce.loc;
     Expression eleft;
@@ -641,7 +641,7 @@ private Expression resolveUFCS(Scope* sc, CallExp ce)
 /******************************
  * Pull out property with UFCS.
  */
-private Expression resolveUFCSProperties(Scope* sc, Expression e1, Expression e2 = null)
+private Expression resolveUFCSProperties(Scope* sc, Expression e1, Expression e2 = null) nothrow
 {
     Loc loc = e1.loc;
     Expression eleft;
@@ -728,7 +728,7 @@ private Expression resolveUFCSProperties(Scope* sc, Expression e1, Expression e2
 /******************************
  * If e1 is a property function (template), resolve it.
  */
-Expression resolvePropertiesOnly(Scope* sc, Expression e1)
+Expression resolvePropertiesOnly(Scope* sc, Expression e1) nothrow
 {
     //printf("e1 = %s %s\n", Token.toChars(e1.op), e1.toChars());
 
@@ -827,7 +827,7 @@ Expression resolvePropertiesOnly(Scope* sc, Expression e1)
  * Returns:
  *      `s` turned into an expression, `ErrorExp` if an error occurred
  */
-Expression symbolToExp(Dsymbol s, const ref Loc loc, Scope *sc, bool hasOverloads)
+Expression symbolToExp(Dsymbol s, const ref Loc loc, Scope *sc, bool hasOverloads) nothrow
 {
     static if (LOGSEMANTIC)
     {
@@ -1056,7 +1056,7 @@ Lagain:
  * Returns:
  *      Expression representing the `this` for the var
  */
-private Expression getRightThis(const ref Loc loc, Scope* sc, AggregateDeclaration ad, Expression e1, Dsymbol var, int flag = 0)
+private Expression getRightThis(const ref Loc loc, Scope* sc, AggregateDeclaration ad, Expression e1, Dsymbol var, int flag = 0) nothrow
 {
     //printf("\ngetRightThis(e1 = %s, ad = %s, var = %s)\n", e1.toChars(), ad.toChars(), var.toChars());
 L1:
@@ -1177,7 +1177,7 @@ L1:
  *  `true` if outerFunc and calledFunc may use the same `this` pointer.
  * `false` otherwise.
  */
-private bool haveSameThis(FuncDeclaration outerFunc, FuncDeclaration calledFunc)
+private bool haveSameThis(FuncDeclaration outerFunc, FuncDeclaration calledFunc) nothrow
 {
     // https://issues.dlang.org/show_bug.cgi?id=24013
     // traits(getOverloads) inserts an alias to select the overload.
@@ -1217,7 +1217,7 @@ private bool haveSameThis(FuncDeclaration outerFunc, FuncDeclaration calledFunc)
 /***************************************
  * Pull out any properties.
  */
-private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = null, BinExp saveAtts = null)
+private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = null, BinExp saveAtts = null) nothrow
 {
     //printf("resolvePropertiesX, e1 = %s %s, e2 = %s\n", EXPtoString(e1.op).ptr, e1.toChars(), e2 ? e2.toChars() : null);
     Loc loc = e1.loc;
@@ -1469,7 +1469,7 @@ Leprop:
     return ErrorExp.get();
 }
 
-extern (C++) Expression resolveProperties(Scope* sc, Expression e)
+extern (C++) Expression resolveProperties(Scope* sc, Expression e) nothrow
 {
     //printf("resolveProperties(%s)\n", e.toChars());
     e = resolvePropertiesX(sc, e);
@@ -1485,7 +1485,7 @@ extern (C++) Expression resolveProperties(Scope* sc, Expression e)
  * Returns:
  *      The common type, or `null` if an error has occured
  */
-private Type arrayExpressionToCommonType(Scope* sc, ref Expressions exps)
+private Type arrayExpressionToCommonType(Scope* sc, ref Expressions exps) nothrow
 {
     /* Still have a problem with:
      *  ubyte[][] = [ cast(ubyte[])"hello", [1]];
@@ -1589,7 +1589,7 @@ private Type arrayExpressionToCommonType(Scope* sc, ref Expressions exps)
     return t0;
 }
 
-private Expression opAssignToOp(const ref Loc loc, EXP op, Expression e1, Expression e2) @safe
+private Expression opAssignToOp(const ref Loc loc, EXP op, Expression e1, Expression e2) nothrow @safe
 {
     Expression e;
     switch (op)
@@ -1648,7 +1648,7 @@ private Expression opAssignToOp(const ref Loc loc, EXP op, Expression e1, Expres
  * Rewrite:
  *    array.length op= e2
  */
-private Expression rewriteOpAssign(BinExp exp)
+private Expression rewriteOpAssign(BinExp exp) nothrow
 {
     ArrayLengthExp ale = exp.e1.isArrayLengthExp();
     if (ale.e1.isVarExp())
@@ -1684,7 +1684,7 @@ private Expression rewriteOpAssign(BinExp exp)
  * Returns:
  *     `true` when a semantic error occurred
  */
-private bool preFunctionParameters(Scope* sc, ArgumentList argumentList, const bool reportErrors = true)
+private bool preFunctionParameters(Scope* sc, ArgumentList argumentList, const bool reportErrors = true) nothrow
 {
     Expressions* exps = argumentList.arguments;
     bool err = false;
@@ -1738,7 +1738,7 @@ private bool preFunctionParameters(Scope* sc, ArgumentList argumentList, const b
  * Returns:
  *      true    an error was issued
  */
-private bool checkDefCtor(Loc loc, Type t)
+private bool checkDefCtor(Loc loc, Type t) nothrow
 {
     if (auto ts = t.baseElemOf().isTypeStruct())
     {
@@ -1775,7 +1775,7 @@ private bool checkDefCtor(Loc loc, Type t)
  */
 private bool functionParameters(const ref Loc loc, Scope* sc,
     TypeFunction tf, Expression ethis, Type tthis, ArgumentList argumentList, FuncDeclaration fd,
-    Type* prettype, Expression* peprefix)
+    Type* prettype, Expression* peprefix) nothrow
 {
     Expressions* arguments = argumentList.arguments;
     //printf("functionParameters() %s\n", fd ? fd.toChars() : "");
@@ -2024,7 +2024,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
              * }
              *
              */
-            bool checkEnclosingWild(Dsymbol s)
+            bool checkEnclosingWild(Dsymbol s) nothrow
             {
                 bool checkWild(Dsymbol s)
                 {
@@ -2587,7 +2587,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
  * Returns:
  *  the symbol which `sym` represents (or `null` if it doesn't represent a `Package`)
  */
-Package resolveIsPackage(Dsymbol sym)
+Package resolveIsPackage(Dsymbol sym) nothrow
 {
     Package pkg;
     if (Import imp = sym.isImport())
@@ -2612,6 +2612,7 @@ Package resolveIsPackage(Dsymbol sym)
 
 private extern (C++) final class ExpressionSemanticVisitor : Visitor
 {
+nothrow:
     alias visit = Visitor.visit;
 
     Scope* sc;
@@ -12830,7 +12831,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
  * Try to run semantic routines.
  * If they fail, return NULL.
  */
-Expression trySemantic(Expression exp, Scope* sc)
+Expression trySemantic(Expression exp, Scope* sc) nothrow
 {
     //printf("+trySemantic(%s)\n", exp.toChars());
     uint errors = global.startGagging();
@@ -12847,7 +12848,7 @@ Expression trySemantic(Expression exp, Scope* sc)
  * Helper function for easy error propagation.
  * If error occurs, returns ErrorExp. Otherwise returns NULL.
  */
-Expression unaSemantic(UnaExp e, Scope* sc)
+Expression unaSemantic(UnaExp e, Scope* sc) nothrow
 {
     static if (LOGSEMANTIC)
     {
@@ -12864,7 +12865,7 @@ Expression unaSemantic(UnaExp e, Scope* sc)
  * Helper function for easy error propagation.
  * If error occurs, returns ErrorExp. Otherwise returns NULL.
  */
-Expression binSemantic(BinExp e, Scope* sc)
+Expression binSemantic(BinExp e, Scope* sc) nothrow
 {
     static if (LOGSEMANTIC)
     {
@@ -12888,7 +12889,7 @@ Expression binSemantic(BinExp e, Scope* sc)
     return null;
 }
 
-Expression binSemanticProp(BinExp e, Scope* sc)
+Expression binSemanticProp(BinExp e, Scope* sc) nothrow
 {
     if (Expression ex = binSemantic(e, sc))
         return ex;
@@ -12904,14 +12905,14 @@ Expression binSemanticProp(BinExp e, Scope* sc)
 }
 
 // entrypoint for semantic ExpressionSemanticVisitor
-extern (C++) Expression expressionSemantic(Expression e, Scope* sc)
+extern (C++) Expression expressionSemantic(Expression e, Scope* sc) nothrow
 {
     scope v = new ExpressionSemanticVisitor(sc);
     e.accept(v);
     return v.result;
 }
 
-private Expression dotIdSemanticPropX(DotIdExp exp, Scope* sc)
+private Expression dotIdSemanticPropX(DotIdExp exp, Scope* sc) nothrow
 {
     //printf("DotIdExp::semanticX(this = %p, '%s')\n", this, toChars());
     if (Expression ex = unaSemantic(exp, sc))
@@ -13019,7 +13020,7 @@ private Expression dotIdSemanticPropX(DotIdExp exp, Scope* sc)
  * Returns:
  *      resolved expression, null if error
  */
-Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, bool gag)
+Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, bool gag) nothrow
 {
     //printf("DotIdExp::semanticY(this = %p, '%s')\n", exp, exp.toChars());
 
@@ -13374,7 +13375,7 @@ Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, bool gag)
  * Returns:
  *     `null` if error or not found, or the resolved expression.
  */
-Expression dotTemplateSemanticProp(DotTemplateInstanceExp exp, Scope* sc, bool gag)
+Expression dotTemplateSemanticProp(DotTemplateInstanceExp exp, Scope* sc, bool gag) nothrow
 {
     static if (LOGSEMANTIC)
     {
@@ -13557,7 +13558,7 @@ Lerr:
  * Returns:
  *      true on error
  */
-bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
+bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false) nothrow
 {
     if (global.params.noSharedAccess != FeatureState.enabled ||
         !sc ||
@@ -13569,7 +13570,7 @@ bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
 
     //printf("checkSharedAccess() `%s` returnRef: %d\n", e.toChars(), returnRef);
 
-    bool check(Expression e, bool allowRef)
+    bool check(Expression e, bool allowRef) nothrow
     {
         bool sharedError(Expression e)
         {
@@ -13725,7 +13726,7 @@ bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
  * Returns:
  *      `true` if ok, `false` for error
  */
-bool checkAddressVar(Scope* sc, Expression exp, VarDeclaration v)
+bool checkAddressVar(Scope* sc, Expression exp, VarDeclaration v) nothrow
 {
     //printf("checkAddressVar(exp: %s, v: %s)\n", exp.toChars(), v.toChars());
     if (v is null)
@@ -13757,7 +13758,7 @@ bool checkAddressVar(Scope* sc, Expression exp, VarDeclaration v)
  * Returns:
  *      true if the expression is addressable
  */
-bool checkAddressable(Expression e, Scope* sc)
+bool checkAddressable(Expression e, Scope* sc) nothrow
 {
     Expression ex = e;
     while (true)
@@ -13823,7 +13824,7 @@ bool checkAddressable(Expression e, Scope* sc)
  *  f   = function to be checked
  * Returns: `true` if error occur.
  */
-private bool checkFunctionAttributes(Expression exp, Scope* sc, FuncDeclaration f)
+private bool checkFunctionAttributes(Expression exp, Scope* sc, FuncDeclaration f) nothrow
 {
     with(exp)
     {
@@ -13851,7 +13852,7 @@ private bool checkFunctionAttributes(Expression exp, Scope* sc, FuncDeclaration 
  * Returns:
  *      Expression representing the `this` for the var
  */
-Expression getThisSkipNestedFuncs(const ref Loc loc, Scope* sc, Dsymbol s, AggregateDeclaration ad, Expression e1, Type t, Dsymbol var, bool flag = false)
+Expression getThisSkipNestedFuncs(const ref Loc loc, Scope* sc, Dsymbol s, AggregateDeclaration ad, Expression e1, Type t, Dsymbol var, bool flag = false) nothrow
 {
     int n = 0;
     while (s && s.isFuncDeclaration())
@@ -13912,7 +13913,7 @@ Expression getThisSkipNestedFuncs(const ref Loc loc, Scope* sc, Dsymbol s, Aggre
  *      newly created variable such that a closure is made for the variable when
  *      the address of `fd` is taken.
  */
-VarDeclaration makeThis2Argument(const ref Loc loc, Scope* sc, FuncDeclaration fd)
+VarDeclaration makeThis2Argument(const ref Loc loc, Scope* sc, FuncDeclaration fd) nothrow
 {
     Type tthis2 = Type.tvoidptr.sarrayOf(2);
     VarDeclaration vthis2 = new VarDeclaration(loc, tthis2, Identifier.generateId("__this"), null);
@@ -13938,7 +13939,7 @@ VarDeclaration makeThis2Argument(const ref Loc loc, Scope* sc, FuncDeclaration f
  * Returns:
  *      a `bool` indicating if the hook is present.
  */
-bool verifyHookExist(const ref Loc loc, ref Scope sc, Identifier id, string description, Identifier module_ = Id.object)
+bool verifyHookExist(const ref Loc loc, ref Scope sc, Identifier id, string description, Identifier module_ = Id.object) nothrow
 {
     auto rootSymbol = sc.search(loc, Id.empty, null);
     if (auto moduleSymbol = rootSymbol.search(loc, module_))
@@ -13961,7 +13962,7 @@ bool verifyHookExist(const ref Loc loc, ref Scope sc, Identifier id, string desc
  *      false if any errors occur,
  *      otherwise true and elements[] are rewritten for the output.
  */
-private bool fit(StructDeclaration sd, const ref Loc loc, Scope* sc, Expressions* elements, Type stype)
+private bool fit(StructDeclaration sd, const ref Loc loc, Scope* sc, Expressions* elements, Type stype) nothrow
 {
     if (!elements)
         return true;
@@ -14072,7 +14073,7 @@ private bool fit(StructDeclaration sd, const ref Loc loc, Scope* sc, Expressions
  * Returns:
  *     VarExp referenceing `em` or ErrorExp if `em` if disabled/deprecated
  */
-Expression getVarExp(EnumMember em, const ref Loc loc, Scope* sc)
+Expression getVarExp(EnumMember em, const ref Loc loc, Scope* sc) nothrow
 {
     dsymbolSemantic(em, sc);
     if (em.errors)
@@ -14107,7 +14108,7 @@ Expression getVarExp(EnumMember em, const ref Loc loc, Scope* sc)
  * Returns:
  *     Modified expression on success, ErrorExp on error
  */
-Expression toBoolean(Expression exp, Scope* sc)
+Expression toBoolean(Expression exp, Scope* sc) nothrow
 {
     switch(exp.op)
     {

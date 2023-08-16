@@ -32,6 +32,7 @@ import dmd.tokens;
  */
 final class CParser(AST) : Parser!AST
 {
+nothrow:
     AST.Dsymbols* symbols;      // symbols declared in current scope
 
     bool addFuncName;           /// add declaration of __func__ to function symbol table

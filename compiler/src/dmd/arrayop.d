@@ -34,7 +34,7 @@ import dmd.visitor;
 /**********************************************
  * Check that there are no uses of arrays without [].
  */
-bool isArrayOpValid(Expression e)
+bool isArrayOpValid(Expression e) nothrow
 {
     //printf("isArrayOpValid() %s\n", e.toChars());
     if (e.op == EXP.slice)
@@ -72,7 +72,7 @@ bool isArrayOpValid(Expression e)
     return true;
 }
 
-bool isNonAssignmentArrayOp(Expression e)
+bool isNonAssignmentArrayOp(Expression e) nothrow
 {
     if (e.op == EXP.slice)
         return isNonAssignmentArrayOp(e.isSliceExp().e1);
@@ -85,7 +85,7 @@ bool isNonAssignmentArrayOp(Expression e)
     return false;
 }
 
-bool checkNonAssignmentArrayOp(Expression e, bool suggestion = false)
+bool checkNonAssignmentArrayOp(Expression e, bool suggestion = false) nothrow
 {
     if (isNonAssignmentArrayOp(e))
     {
@@ -113,7 +113,7 @@ bool checkNonAssignmentArrayOp(Expression e, bool suggestion = false)
  * https://github.com/dlang/dmd/blob/cdfadf8a18f474e6a1b8352af2541efe3e3467cc/druntime/src/object.d#L4694
  * https://github.com/dlang/dmd/blob/master/druntime/src/core/internal/array/operations.d
  */
-Expression arrayOp(BinExp e, Scope* sc)
+Expression arrayOp(BinExp e, Scope* sc) nothrow
 {
     //printf("BinExp.arrayOp() %s\n", e.toChars());
     Type tb = e.type.toBasetype();
@@ -154,7 +154,7 @@ Expression arrayOp(BinExp e, Scope* sc)
 }
 
 /// ditto
-Expression arrayOp(BinAssignExp e, Scope* sc)
+Expression arrayOp(BinAssignExp e, Scope* sc) nothrow
 {
     //printf("BinAssignExp.arrayOp() %s\n", e.toChars());
 
@@ -182,7 +182,7 @@ Expression arrayOp(BinAssignExp e, Scope* sc)
  * using reverse polish notation (RPN) to encode order of operations.
  * Encode operations as string arguments, using a "u" prefix for unary operations.
  */
-private Expressions* buildArrayOp(Scope* sc, Expression e, Objects* tiargs)
+private Expressions* buildArrayOp(Scope* sc, Expression e, Objects* tiargs) nothrow
 {
     extern (C++) final class BuildArrayOpVisitor : Visitor
     {
@@ -191,7 +191,7 @@ private Expressions* buildArrayOp(Scope* sc, Expression e, Objects* tiargs)
         Objects* tiargs;
         Expressions* args;
 
-    public:
+    nothrow public:
         extern (D) this(Scope* sc, Objects* tiargs) scope @safe
         {
             this.sc = sc;
@@ -263,7 +263,7 @@ private Expressions* buildArrayOp(Scope* sc, Expression e, Objects* tiargs)
  * Returns:
  *      true if can be performed by _arrayOp
  */
-bool isArrayOpImplicitCast(TypeDArray tfrom, TypeDArray tto)
+bool isArrayOpImplicitCast(TypeDArray tfrom, TypeDArray tto) nothrow
 {
     const tyf = tfrom.nextOf().toBasetype().ty;
     const tyt = tto  .nextOf().toBasetype().ty;
@@ -274,7 +274,7 @@ bool isArrayOpImplicitCast(TypeDArray tfrom, TypeDArray tto)
 /***********************************************
  * Test if expression is a unary array op.
  */
-bool isUnaArrayOp(EXP op) @safe
+bool isUnaArrayOp(EXP op) nothrow @safe
 {
     switch (op)
     {
@@ -290,7 +290,7 @@ bool isUnaArrayOp(EXP op) @safe
 /***********************************************
  * Test if expression is a binary array op.
  */
-bool isBinArrayOp(EXP op) @safe
+bool isBinArrayOp(EXP op) nothrow @safe
 {
     switch (op)
     {
@@ -313,7 +313,7 @@ bool isBinArrayOp(EXP op) @safe
 /***********************************************
  * Test if expression is a binary assignment array op.
  */
-bool isBinAssignArrayOp(EXP op) @safe
+bool isBinAssignArrayOp(EXP op) nothrow @safe
 {
     switch (op)
     {
@@ -336,7 +336,7 @@ bool isBinAssignArrayOp(EXP op) @safe
 /***********************************************
  * Test if operand is a valid array op operand.
  */
-bool isArrayOpOperand(Expression e)
+bool isArrayOpOperand(Expression e) nothrow
 {
     //printf("Expression.isArrayOpOperand() %s\n", e.toChars());
     if (e.op == EXP.slice)
@@ -368,7 +368,7 @@ bool isArrayOpOperand(Expression e)
  *      instance of ErrorExp
  */
 
-ErrorExp arrayOpInvalidError(Expression e)
+ErrorExp arrayOpInvalidError(Expression e) nothrow
 {
     e.error("invalid array operation `%s` (possible missing [])", e.toChars());
     if (e.op == EXP.add)

@@ -82,7 +82,7 @@ alias toSymbol = dmd.glue.toSymbol;
 
 // Put out instance of ModuleInfo for this Module
 
-void genModuleInfo(Module m)
+void genModuleInfo(Module m) nothrow
 {
     //printf("Module.genmoduleinfo() %s\n", m.toChars());
 
@@ -227,7 +227,7 @@ void genModuleInfo(Module m)
  *      s      = symbol that contains the data
  *      offset = offset of the data inside the Symbol's memory
  */
-void write_pointers(Type type, Symbol *s, uint offset)
+void write_pointers(Type type, Symbol *s, uint offset) nothrow
 {
     uint ty = type.toBasetype().ty;
     if (ty == Tclass)
@@ -244,7 +244,7 @@ void write_pointers(Type type, Symbol *s, uint offset)
 *      s      = symbol that contains the data
 *      offset = offset of the data inside the Symbol's memory
 */
-void write_instance_pointers(Type type, Symbol *s, uint offset)
+void write_instance_pointers(Type type, Symbol *s, uint offset) nothrow
 {
     if (!type.hasPointers())
         return;
@@ -272,7 +272,7 @@ void write_instance_pointers(Type type, Symbol *s, uint offset)
 
 /* ================================================================== */
 
-void toObjFile(Dsymbol ds, bool multiobj)
+void toObjFile(Dsymbol ds, bool multiobj) nothrow
 {
     //printf("toObjFile(%s %s)\n", ds.kind(), ds.toChars());
 
@@ -281,7 +281,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
     extern (C++) final class ToObjFile : Visitor
     {
         alias visit = Visitor.visit;
-    public:
+    nothrow public:
         bool multiobj;
 
         this(bool multiobj) scope @safe
@@ -1029,7 +1029,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
  * Returns:
  *    true for success (no errors)
  */
-private bool finishVtbl(ClassDeclaration cd)
+private bool finishVtbl(ClassDeclaration cd) nothrow
 {
     bool hasError = false;
 
@@ -1094,7 +1094,7 @@ private bool finishVtbl(ClassDeclaration cd)
  * Returns ~0 if not this csym.
  */
 
-uint baseVtblOffset(ClassDeclaration cd, BaseClass *bc)
+uint baseVtblOffset(ClassDeclaration cd, BaseClass *bc) nothrow
 {
     //printf("ClassDeclaration.baseVtblOffset('%s', bc = %p)\n", cd.toChars(), bc);
     uint csymoffset = target.classinfosize;    // must be ClassInfo.size
@@ -1145,7 +1145,7 @@ uint baseVtblOffset(ClassDeclaration cd, BaseClass *bc)
  * Returns:
  *    number of bytes emitted
  */
-private size_t emitVtbl(ref DtBuilder dtb, BaseClass *b, ref FuncDeclarations bvtbl, ClassDeclaration pc, size_t k)
+private size_t emitVtbl(ref DtBuilder dtb, BaseClass *b, ref FuncDeclarations bvtbl, ClassDeclaration pc, size_t k) nothrow
 {
     //printf("\toverriding vtbl[] for %s\n", b.sym.toChars());
     ClassDeclaration id = b.sym;
@@ -1188,7 +1188,7 @@ private size_t emitVtbl(ref DtBuilder dtb, BaseClass *b, ref FuncDeclarations bv
  *      cd = the class
  *      sinit = the Initializer (__initZ) symbol for the class
  */
-private void genClassInfoForClass(ClassDeclaration cd, Symbol* sinit)
+private void genClassInfoForClass(ClassDeclaration cd, Symbol* sinit) nothrow
 {
     // Put out the ClassInfo, which will be the __ClassZ symbol in the object file
     SC scclass = SC.comdat;
@@ -1430,7 +1430,7 @@ Louter:
  * Params:
  *      id = the interface
  */
-private void genClassInfoForInterface(InterfaceDeclaration id)
+private void genClassInfoForInterface(InterfaceDeclaration id) nothrow
 {
     SC scclass = SC.comdat;
 

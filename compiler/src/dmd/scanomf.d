@@ -32,8 +32,8 @@ private enum LOG = false;
  *      module_name = name of the object module (used for error messages)
  *      loc =         location to use for error printing
  */
-void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
-        const(ubyte)[] base, const(char)* module_name, Loc loc)
+void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) nothrow pAddSymbol,
+        const(ubyte)[] base, const(char)* module_name, Loc loc) nothrow
 {
     static if (LOG)
     {
@@ -182,7 +182,7 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
  * Returns:
  *      true for corrupt OMF data
  */
-bool scanOmfLib(void delegate(char* name, void* base, size_t length) pAddObjModule, void* buf, size_t buflen, uint pagesize)
+bool scanOmfLib(void delegate(char* name, void* base, size_t length) nothrow pAddObjModule, void* buf, size_t buflen, uint pagesize) nothrow
 {
     /* Split up the buffer buf[0..buflen] into multiple object modules,
      * each aligned on a pagesize boundary.
@@ -236,7 +236,7 @@ bool scanOmfLib(void delegate(char* name, void* base, size_t length) pAddObjModu
     return (base !is null); // missing MODEND record
 }
 
-uint OMFObjSize(const(void)* base, uint length, const(char)* name)
+uint OMFObjSize(const(void)* base, uint length, const(char)* name) nothrow
 {
     ubyte c = *cast(const(ubyte)*)base;
     if (c != THEADR && c != LHEADR)
@@ -248,7 +248,7 @@ uint OMFObjSize(const(void)* base, uint length, const(char)* name)
     return length;
 }
 
-void writeOMFObj(OutBuffer* buf, const(void)* base, uint length, const(char)* name)
+void writeOMFObj(OutBuffer* buf, const(void)* base, uint length, const(char)* name) nothrow
 {
     ubyte c = *cast(const(ubyte)*)base;
     if (c != THEADR && c != LHEADR)
@@ -327,7 +327,7 @@ enum LLNAMES = 0xCA;
 enum LIBIDMAX = (512 - 0x25 - 3 - 4);
 
 // max size that will fit in dictionary
-extern (C++) void parseName(const(ubyte)** pp, char* name)
+extern (C++) void parseName(const(ubyte)** pp, char* name) nothrow
 {
     auto p = *pp;
     uint len = *p++;
@@ -343,7 +343,7 @@ extern (C++) void parseName(const(ubyte)** pp, char* name)
     *pp = p + len;
 }
 
-ushort parseIdx(const(ubyte)** pp)
+ushort parseIdx(const(ubyte)** pp) nothrow
 {
     auto p = *pp;
     const c = *p++;
@@ -353,7 +353,7 @@ ushort parseIdx(const(ubyte)** pp)
 }
 
 // skip numeric field of a data type of a COMDEF record
-void skipNumericField(const(ubyte)** pp)
+void skipNumericField(const(ubyte)** pp) nothrow
 {
     const(ubyte)* p = *pp;
     const c = *p++;
@@ -369,7 +369,7 @@ void skipNumericField(const(ubyte)** pp)
 }
 
 // skip data type of a COMDEF record
-void skipDataType(const(ubyte)** pp)
+void skipDataType(const(ubyte)** pp) nothrow
 {
     auto p = *pp;
     const c = *p++;

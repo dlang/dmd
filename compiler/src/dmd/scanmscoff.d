@@ -39,8 +39,8 @@ private enum LOG = false;
  *      module_name = name of the object module (used for error messages)
  *      loc =         location to use for error printing
  */
-void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
-        const(ubyte)[] base, const(char)* module_name, Loc loc)
+void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) nothrow pAddSymbol,
+        const(ubyte)[] base, const(char)* module_name, Loc loc) nothrow
 {
     static if (LOG)
     {

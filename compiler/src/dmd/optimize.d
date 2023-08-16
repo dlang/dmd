@@ -41,7 +41,7 @@ import dmd.visitor;
  *      null if not,
  *      ErrorExp if error
  */
-Expression expandVar(int result, VarDeclaration v)
+Expression expandVar(int result, VarDeclaration v) nothrow
 {
     //printf("expandVar(result = %d, v = %p, %s)\n", result, v, v ? v.toChars() : "null");
 
@@ -176,7 +176,7 @@ Expression expandVar(int result, VarDeclaration v)
     return nullReturn();
 }
 
-private Expression fromConstInitializer(int result, Expression e1)
+private Expression fromConstInitializer(int result, Expression e1) nothrow
 {
     //printf("fromConstInitializer(result = %x, %s)\n", result, e1.toChars());
     //static int xx; if (xx++ == 10) assert(0);
@@ -216,7 +216,7 @@ private Expression fromConstInitializer(int result, Expression e1)
  *    lengthVar = variable declaration for the `.length` property
  *    arr = String, ArrayLiteral, or of TypeSArray
  */
-package void setLengthVarIfKnown(VarDeclaration lengthVar, Expression arr)
+package void setLengthVarIfKnown(VarDeclaration lengthVar, Expression arr) nothrow
 {
     if (!lengthVar)
         return;
@@ -245,7 +245,7 @@ package void setLengthVarIfKnown(VarDeclaration lengthVar, Expression arr)
  *    lengthVar = variable declaration for the `.length` property
  *    type = TypeSArray
  */
-package void setLengthVarIfKnown(VarDeclaration lengthVar, Type type)
+package void setLengthVarIfKnown(VarDeclaration lengthVar, Type type) nothrow
 {
     if (!lengthVar)
         return;
@@ -270,7 +270,7 @@ package void setLengthVarIfKnown(VarDeclaration lengthVar, Type type)
  * Returns:
  *      Constant folded version of `e`
  */
-Expression Expression_optimize(Expression e, int result, bool keepLvalue)
+Expression Expression_optimize(Expression e, int result, bool keepLvalue) nothrow
 {
     //printf("Expression_optimize() e: %s result: %d keepLvalue %d\n", e.toChars(), result, keepLvalue);
     Expression ret = e;
@@ -993,7 +993,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         }
     }
 
-    extern (D) void shift_optimize(BinExp e, UnionExp function(const ref Loc, Type, Expression, Expression) shift)
+    extern (D) void shift_optimize(BinExp e, UnionExp function(const ref Loc, Type, Expression, Expression) nothrow shift)
     {
         if (binOptimize(e, result))
             return;

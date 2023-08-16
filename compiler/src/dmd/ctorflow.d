@@ -39,6 +39,7 @@ struct FieldInit
  */
 struct CtorFlow
 {
+nothrow:
     CSX callSuper;      /// state of calling other constructors
 
     FieldInit[] fieldinit;    /// state of field initializations

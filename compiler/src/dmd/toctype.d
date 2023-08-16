@@ -39,7 +39,7 @@ import dmd.tocvdebug;
  * Returns:
  *  corresponding tym_t bits
  */
-tym_t modToTym(MOD mod) pure @safe
+tym_t modToTym(MOD mod) nothrow pure @safe
 {
     switch (mod)
     {
@@ -76,7 +76,7 @@ tym_t modToTym(MOD mod) pure @safe
  * Returns:
  *      back end equivalent `type`
  */
-extern (C++) type* Type_toCtype(Type t)
+extern (C++) type* Type_toCtype(Type t) nothrow
 {
     if (t.ctype)
         return t.ctype;

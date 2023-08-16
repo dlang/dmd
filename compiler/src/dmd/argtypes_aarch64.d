@@ -27,7 +27,7 @@ import dmd.mtype;
  *      A tuple of zero length means the type cannot be passed/returned in registers.
  *      null indicates a `void`.
  */
-extern (C++) TypeTuple toArgTypes_aarch64(Type t)
+extern (C++) TypeTuple toArgTypes_aarch64(Type t) nothrow
 {
     if (t == Type.terror)
         return new TypeTuple(t);
@@ -82,7 +82,7 @@ extern (C++) TypeTuple toArgTypes_aarch64(Type t)
  * If the type is an HFVA and `rewriteType` is specified, it is set to a
  * corresponding static array type.
  */
-extern (C++) bool isHFVA(Type t, int maxNumElements = 4, Type* rewriteType = null)
+extern (C++) bool isHFVA(Type t, int maxNumElements = 4, Type* rewriteType = null) nothrow
 {
     t = t.toBasetype();
     if ((t.ty != Tstruct && t.ty != Tsarray && !t.iscomplex()) || !isPOD(t))
@@ -101,7 +101,7 @@ extern (C++) bool isHFVA(Type t, int maxNumElements = 4, Type* rewriteType = nul
 
 private:
 
-bool isPOD(Type t)
+bool isPOD(Type t) nothrow
 {
     auto baseType = t.baseElemOf();
     if (auto ts = baseType.isTypeStruct())
@@ -117,7 +117,7 @@ bool isPOD(Type t)
  * If `fundamentalType` is null, it is set on the first occasion and then left
  * untouched.
  */
-size_t getNestedHFVA(Type t, ref Type fundamentalType)
+size_t getNestedHFVA(Type t, ref Type fundamentalType) nothrow
 {
     t = t.toBasetype();
 

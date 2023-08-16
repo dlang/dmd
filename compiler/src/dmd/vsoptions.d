@@ -31,6 +31,7 @@ private immutable supportedPre2017Versions = ["14.0", "12.0", "11.0", "10.0", "9
 
 extern(C++) struct VSOptions
 {
+nothrow:
     // evaluated once at startup, reflecting the result of vcvarsall.bat
     //  from the current environment or the latest Visual Studio installation
     const(char)* WindowsSdkDir;
@@ -644,7 +645,7 @@ extern(D):
         else
         {
             // running as a 32-bit process on a 64-bit host?
-            alias fnIsWow64Process = extern(Windows) BOOL function(HANDLE, PBOOL);
+            alias fnIsWow64Process = extern(Windows) BOOL function(HANDLE, PBOOL) nothrow;
             __gshared fnIsWow64Process pIsWow64Process;
 
             if (!pIsWow64Process)
@@ -665,14 +666,14 @@ extern(D):
 
 private:
 
-inout(wchar)[] toDString(inout(wchar)* s)
+inout(wchar)[] toDString(inout(wchar)* s) nothrow
 {
     return s ? s[0 .. wcslen(s)] : null;
 }
 
-extern(C) wchar* _wgetenv(const(wchar)* name);
+extern(C) wchar* _wgetenv(const(wchar)* name) nothrow;
 
-char* getenv(wstring name)
+char* getenv(wstring name) nothrow
 {
     if (auto wide = _wgetenv(name.ptr))
         return toNarrowStringz(wide.toDString).ptr;
@@ -693,9 +694,9 @@ const(char)* returnDirIfContainsFile(string fileName)(scope const(char)[][] dirs
     return null;
 }
 
-extern (C) int _waccess(const(wchar)* _FileName, int _AccessMode);
+extern (C) int _waccess(const(wchar)* _FileName, int _AccessMode) nothrow;
 
-bool exists(const(wchar)* path)
+bool exists(const(wchar)* path) nothrow
 {
     return _waccess(path, 0) == 0;
 }
@@ -746,8 +747,9 @@ interface ISetupConfiguration : IUnknown
 
 const GUID iid_SetupConfiguration = { 0x177F0C4A, 0x1CD3, 0x4DE7, [ 0xA3, 0x2C, 0x71, 0xDB, 0xBB, 0x9F, 0xA3, 0x6D ] };
 
-const(char)* detectVSInstallDirViaCOM()
+const(char)* detectVSInstallDirViaCOM() nothrow
 {
+    scope (failure) assert(0, "Exception thrown where that was believed impossible"); // FIXME: if actually impossible the called functions should be nothrow.
     CoInitialize(null);
     scope(exit) CoUninitialize();
 

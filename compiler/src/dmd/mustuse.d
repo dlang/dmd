@@ -22,7 +22,7 @@ private const StringExp plusPlus, minusMinus;
 
 // Loc.initial cannot be used in static initializers, so
 // these need a static constructor.
-shared static this()
+shared static this() nothrow
 {
     plusPlus = new StringExp(Loc.initial, "++");
     minusMinus = new StringExp(Loc.initial, "--");
@@ -38,7 +38,7 @@ shared static this()
  *
  * Returns: true on error, false on success.
  */
-bool checkMustUse(Expression e, Scope* sc)
+bool checkMustUse(Expression e, Scope* sc) nothrow
 {
     import dmd.id : Id;
 
@@ -65,7 +65,7 @@ bool checkMustUse(Expression e, Scope* sc)
  * Params:
  *   sym = symbol to check
  */
-void checkMustUseReserved(Dsymbol sym)
+void checkMustUseReserved(Dsymbol sym) nothrow
 {
     import dmd.attrib : foreachUdaNoSemantic;
     import dmd.errors : error;
@@ -97,7 +97,7 @@ void checkMustUseReserved(Dsymbol sym)
  * Returns: true if the given expression is an assignment, either simple (a = b)
  * or compound (a += b, etc).
  */
-private bool isAssignment(Expression e)
+private bool isAssignment(Expression e) nothrow
 {
     if (e.isAssignExp || e.isBinAssignExp || e.isConstructExp || e.isBlitExp)
         return true;
@@ -116,7 +116,7 @@ private bool isAssignment(Expression e)
 /**
  * Returns: true if id is the identifier of an assignment operator overload.
  */
-private bool isAssignmentOpId(Identifier id)
+private bool isAssignmentOpId(Identifier id) nothrow
 {
     import dmd.id : Id;
 
@@ -145,7 +145,7 @@ private bool isAssignmentOpId(Identifier id)
 /**
  * Returns: true if the given expression is an increment (++) or decrement (--).
  */
-private bool isIncrementOrDecrement(Expression e)
+private bool isIncrementOrDecrement(Expression e) nothrow
 {
     import dmd.dtemplate : isExpression;
     import dmd.location;
@@ -203,7 +203,7 @@ private bool isIncrementOrDecrement(Expression e)
 /**
  * Returns: true if the given symbol has the @mustuse attribute.
  */
-private bool hasMustUseAttribute(Dsymbol sym, Scope* sc)
+private bool hasMustUseAttribute(Dsymbol sym, Scope* sc) nothrow
 {
     import dmd.attrib : foreachUda;
 
@@ -224,7 +224,7 @@ private bool hasMustUseAttribute(Dsymbol sym, Scope* sc)
 /**
  * Returns: true if the given expression is core.attribute.mustuse.
  */
-private bool isMustUseAttribute(Expression e)
+private bool isMustUseAttribute(Expression e) nothrow
 {
     import dmd.attrib : isCoreUda;
     import dmd.id : Id;

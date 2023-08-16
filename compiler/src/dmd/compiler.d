@@ -45,6 +45,7 @@ extern (C++) __gshared
  */
 extern (C++) struct Compiler
 {
+nothrow:
     /******************************
      * Encode the given expression, which is assumed to be an rvalue literal
      * as another type for use in CTFE.
@@ -179,6 +180,7 @@ extern (C++) struct Compiler
 // A range of component identifiers for a module
 private struct ModuleComponentRange
 {
+nothrow:
     Identifier[] packages;
     Identifier name;
     bool isPackageFile;
@@ -203,7 +205,7 @@ private struct ModuleComponentRange
  * Returns:
  *  True if the given module should be included in the compilation.
  */
-private bool includeImportedModuleCheck(ModuleComponentRange components)
+private bool includeImportedModuleCheck(ModuleComponentRange components) nothrow
     in { assert(includeImports); }
 do
 {
@@ -241,6 +243,7 @@ do
 // so that the first match is always the longest (best) match.
 private struct MatcherNode
 {
+nothrow:
     union
     {
         struct
@@ -282,7 +285,7 @@ private __gshared Array!MatcherNode matchNodes;
  * Creates the global list of match nodes used to match module names
  * given strings provided by the -i commmand line option.
  */
-private void createMatchNodes()
+private void createMatchNodes() nothrow
 {
     static size_t findSortedIndexToAddForDepth(size_t depth)
     {
@@ -338,7 +341,7 @@ private void createMatchNodes()
  * Returns:
  *  The component depth of the given module pattern.
  */
-pure @safe
+nothrow pure @safe
 private ushort parseModulePatternDepth(const char[] modulePattern)
 {
     const length = modulePattern.length;
@@ -371,7 +374,7 @@ unittest
  *  dst = the data structure to save the parsed module pattern to.
  *  depth = the depth of the module pattern previously retrieved from $(D parseModulePatternDepth).
  */
-private void parseModulePattern(const(char)* modulePattern, MatcherNode* dst, ushort depth)
+private void parseModulePattern(const(char)* modulePattern, MatcherNode* dst, ushort depth) nothrow
 {
     bool isExclude = false;
     if (modulePattern[0] == '-')

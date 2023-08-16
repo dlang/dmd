@@ -51,7 +51,7 @@ import dmd.typesem;
  *     The converted associative array initializer or ErrorExp if `ai`
  *     is not an associative array initializer.
  */
-Expression toAssocArrayLiteral(ArrayInitializer ai)
+Expression toAssocArrayLiteral(ArrayInitializer ai) nothrow
 {
     Expression e;
     //printf("ArrayInitializer::toAssocArrayInitializer()\n");
@@ -94,7 +94,7 @@ Lno:
  *      `Initializer` with completed semantic analysis, `ErrorInitializer` if errors
  *      were encountered
  */
-extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedInterpret needInterpret)
+extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedInterpret needInterpret) nothrow
 {
     Type t = tx;
 
@@ -999,7 +999,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
  * Returns:
  *      an equivalent `ExpInitializer` if successful, or `ErrorInitializer` if it cannot be translated
  */
-Initializer inferType(Initializer init, Scope* sc)
+Initializer inferType(Initializer init, Scope* sc) nothrow
 {
     Initializer visitVoid(VoidInitializer i)
     {
@@ -1156,7 +1156,7 @@ Initializer inferType(Initializer init, Scope* sc)
  * Returns:
  *      `Expression` created, `null` if cannot, `ErrorExp` for other errors
  */
-extern (C++) Expression initializerToExpression(Initializer init, Type itype = null, const bool isCfile = false)
+extern (C++) Expression initializerToExpression(Initializer init, Type itype = null, const bool isCfile = false) nothrow
 {
     //printf("initializerToExpression() isCfile: %d\n", isCfile);
 
@@ -1362,7 +1362,7 @@ extern (C++) Expression initializerToExpression(Initializer init, Type itype = n
  * Returns:
  *    true if it has non-constant pointers
  */
-private bool hasNonConstPointers(Expression e)
+private bool hasNonConstPointers(Expression e) nothrow
 {
     static bool checkArray(Expressions* elems)
     {
@@ -1448,9 +1448,9 @@ Params:
 Returns: list of expressions ordered to the struct's fields, or `null` on error
 */
 Expressions* resolveStructLiteralNamedArgs(StructDeclaration sd, Type t, Scope* sc,
-    Loc iloc, Identifier[] names, scope Expression delegate(size_t i, Type fieldType) getExp,
-    scope Loc delegate(size_t i) getLoc
-)
+    Loc iloc, Identifier[] names, scope Expression delegate(size_t i, Type fieldType) nothrow getExp,
+    scope Loc delegate(size_t i) nothrow getLoc
+) nothrow
 {
     //expandTuples for non-identity arguments?
     const nfields = sd.nonHiddenFields();

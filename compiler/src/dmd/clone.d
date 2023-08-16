@@ -50,7 +50,7 @@ import dmd.tokens;
  * Returns:
  *      merged storage class
  */
-StorageClass mergeFuncAttrs(StorageClass s1, const FuncDeclaration f) pure
+StorageClass mergeFuncAttrs(StorageClass s1, const FuncDeclaration f) nothrow pure
 {
     if (!f)
         return s1;
@@ -96,7 +96,7 @@ StorageClass mergeFuncAttrs(StorageClass s1, const FuncDeclaration f) pure
  * Returns:
  *      if found, returns FuncDeclaration of opAssign, otherwise null
  */
-FuncDeclaration hasIdentityOpAssign(AggregateDeclaration ad, Scope* sc)
+FuncDeclaration hasIdentityOpAssign(AggregateDeclaration ad, Scope* sc) nothrow
 {
     Dsymbol assign = search_function(ad, Id.assign);
     if (assign)
@@ -146,7 +146,7 @@ FuncDeclaration hasIdentityOpAssign(AggregateDeclaration ad, Scope* sc)
  * it has a destructor or a postblit.
  * We need to generate one if a user-specified one does not exist.
  */
-private bool needOpAssign(StructDeclaration sd)
+private bool needOpAssign(StructDeclaration sd) nothrow
 {
     //printf("StructDeclaration::needOpAssign() %s\n", sd.toChars());
 
@@ -252,7 +252,7 @@ private bool needOpAssign(StructDeclaration sd)
  * Returns:
  *      generated `opAssign` function
  */
-FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
+FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc) nothrow
 {
     if (FuncDeclaration f = hasIdentityOpAssign(sd, sc))
     {
@@ -400,7 +400,7 @@ FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
  * any fields has an opEquals.
  * Generate one if a user-specified one does not exist.
  */
-bool needOpEquals(StructDeclaration sd)
+bool needOpEquals(StructDeclaration sd) nothrow
 {
     //printf("StructDeclaration::needOpEquals() %s\n", sd.toChars());
     if (sd.isUnionDeclaration())
@@ -456,7 +456,7 @@ Lneed:
 /*******************************************
  * Check given aggregate actually has an identity opEquals or not.
  */
-private FuncDeclaration hasIdentityOpEquals(AggregateDeclaration ad, Scope* sc)
+private FuncDeclaration hasIdentityOpEquals(AggregateDeclaration ad, Scope* sc) nothrow
 {
     FuncDeclaration f;
     if (Dsymbol eq = search_function(ad, Id.eq))
@@ -514,7 +514,7 @@ private FuncDeclaration hasIdentityOpEquals(AggregateDeclaration ad, Scope* sc)
  *      s1.tupleof == s2.tupleof
  * to calculate structural equality. See EqualExp.op_overload.
  */
-FuncDeclaration buildOpEquals(StructDeclaration sd, Scope* sc)
+FuncDeclaration buildOpEquals(StructDeclaration sd, Scope* sc) nothrow
 {
     if (hasIdentityOpEquals(sd, sc))
     {
@@ -533,7 +533,7 @@ FuncDeclaration buildOpEquals(StructDeclaration sd, Scope* sc)
  * This is called by TypeInfo.equals(p1, p2). If the struct does not support
  * const objects comparison, it will throw "not implemented" Error in runtime.
  */
-FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
+FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc) nothrow
 {
     if (!needOpEquals(sd))
         return null; // bitwise comparison would work
@@ -610,7 +610,7 @@ FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
  * This is called by TypeInfo.compare(p1, p2). If the struct does not support
  * const objects comparison, it will throw "not implemented" Error in runtime.
  */
-FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
+FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc) nothrow
 {
     //printf("StructDeclaration::buildXopCmp() %s\n", toChars());
     if (Dsymbol cmp = search_function(sd, Id.cmp))
@@ -729,7 +729,7 @@ FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
  * any fields has a toHash.
  * Generate one if a user-specified one does not exist.
  */
-private bool needToHash(StructDeclaration sd)
+private bool needToHash(StructDeclaration sd) nothrow
 {
     //printf("StructDeclaration::needToHash() %s\n", sd.toChars());
     if (sd.isUnionDeclaration())
@@ -782,7 +782,7 @@ Lneed:
  * Build __xtoHash for non-bitwise hashing
  *      static hash_t xtoHash(ref const S p) nothrow @trusted;
  */
-FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
+FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc) nothrow
 {
     if (Dsymbol s = search_function(sd, Id.tohash))
     {
@@ -864,7 +864,7 @@ FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
  * Close similarity with StructDeclaration::buildPostBlit(),
  * and the ordering changes (runs backward instead of forwards).
  */
-void buildDtors(AggregateDeclaration ad, Scope* sc)
+void buildDtors(AggregateDeclaration ad, Scope* sc) nothrow
 {
     //printf("AggregateDeclaration::buildDtor() %s\n", ad.toChars());
     if (ad.isUnionDeclaration())
@@ -1061,7 +1061,7 @@ void buildDtors(AggregateDeclaration ad, Scope* sc)
  * Returns:
  *  the shim destructor, semantically analyzed and added to the class as a member
  */
-private DtorDeclaration buildWindowsCppDtor(AggregateDeclaration ad, DtorDeclaration dtor, Scope* sc)
+private DtorDeclaration buildWindowsCppDtor(AggregateDeclaration ad, DtorDeclaration dtor, Scope* sc) nothrow
 {
     auto cldec = ad.isClassDeclaration();
     if (!cldec || cldec.cppDtorVtblIndex == -1) // scalar deleting dtor not built for non-virtual dtors
@@ -1115,7 +1115,7 @@ private DtorDeclaration buildWindowsCppDtor(AggregateDeclaration ad, DtorDeclara
  * Returns:
  *  the shim destructor, semantically analyzed and added to the class as a member
  */
-private DtorDeclaration buildExternDDtor(AggregateDeclaration ad, Scope* sc)
+private DtorDeclaration buildExternDDtor(AggregateDeclaration ad, Scope* sc) nothrow
 {
     auto dtor = ad.aggrDtor;
     if (!dtor)
@@ -1168,7 +1168,7 @@ private DtorDeclaration buildExternDDtor(AggregateDeclaration ad, Scope* sc)
  * }
  * ---
  */
-FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
+FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc) nothrow
 {
     switch (ad.invs.length)
     {
@@ -1221,7 +1221,7 @@ FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
  * Note the close similarity with AggregateDeclaration::buildDtor(),
  * and the ordering changes (runs forward instead of backwards).
  */
-FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
+FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc) nothrow
 {
     //printf("buildPostBlit() %s\n", sd.toChars());
     if (sd.isUnionDeclaration())
@@ -1510,7 +1510,7 @@ FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
  * Returns:
  *  The copy constructor declaration for struct `sd`.
  */
-private CtorDeclaration generateCopyCtorDeclaration(StructDeclaration sd, const StorageClass paramStc, const StorageClass funcStc)
+private CtorDeclaration generateCopyCtorDeclaration(StructDeclaration sd, const StorageClass paramStc, const StorageClass funcStc) nothrow
 {
     auto fparams = new Parameters();
     auto structType = sd.type;
@@ -1538,7 +1538,7 @@ private CtorDeclaration generateCopyCtorDeclaration(StructDeclaration sd, const 
  * Returns:
  *  A `CompoundStatement` containing the body of the copy constructor.
  */
-private Statement generateCopyCtorBody(StructDeclaration sd)
+private Statement generateCopyCtorBody(StructDeclaration sd) nothrow
 {
     Loc loc;
     Expression e;
@@ -1569,7 +1569,7 @@ private Statement generateCopyCtorBody(StructDeclaration sd)
  *  `true` if one needs to be generated
  *  `false` otherwise
  */
-private bool needCopyCtor(StructDeclaration sd, out bool hasCpCtor)
+private bool needCopyCtor(StructDeclaration sd, out bool hasCpCtor) nothrow
 {
     if (global.errors)
         return false;
@@ -1677,7 +1677,7 @@ LcheckFields:
  *  `true` if `struct` sd defines a copy constructor (explicitly or generated),
  *  `false` otherwise.
  */
-bool buildCopyCtor(StructDeclaration sd, Scope* sc)
+bool buildCopyCtor(StructDeclaration sd, Scope* sc) nothrow
 {
     bool hasCpCtor;
     if (!needCopyCtor(sd, hasCpCtor))

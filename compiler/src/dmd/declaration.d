@@ -52,7 +52,7 @@ else version = MARS;
  * accessible from the current scope.
  * Returns true if error occurs.
  */
-bool checkFrameAccess(Loc loc, Scope* sc, AggregateDeclaration ad, size_t iStart = 0)
+bool checkFrameAccess(Loc loc, Scope* sc, AggregateDeclaration ad, size_t iStart = 0) nothrow
 {
     Dsymbol sparent = ad.toParentLocal();
     Dsymbol sparent2 = ad.toParent2();
@@ -89,7 +89,7 @@ bool checkFrameAccess(Loc loc, Scope* sc, AggregateDeclaration ad, size_t iStart
  * Returns:
  *    true if it's an initialization of v
  */
-bool modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1)
+bool modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1) nothrow
 {
     //printf("modifyFieldVar(var = %s)\n", var.toChars());
     Dsymbol s = sc.func;
@@ -213,7 +213,7 @@ bool modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1)
 
 /******************************************
  */
-extern (C++) void ObjectNotFound(Identifier id)
+extern (C++) void ObjectNotFound(Identifier id) nothrow
 {
     error(Loc.initial, "`%s` not found. object.d may be incorrectly installed or corrupt.", id.toChars());
     fatal();
@@ -233,6 +233,7 @@ struct MatchAccumulator
  */
 extern (C++) abstract class Declaration : Dsymbol
 {
+nothrow:
     Type type;
     Type originalType;  // before semantic analysis
     StorageClass storage_class = STC.undefined_;
@@ -589,6 +590,7 @@ extern (C++) abstract class Declaration : Dsymbol
  */
 extern (C++) final class TupleDeclaration : Declaration
 {
+nothrow:
     Objects* objects;
     TypeTuple tupletype;    // !=null if this is a type tuple
     bool isexp;             // true: expression tuple
@@ -691,7 +693,7 @@ extern (C++) final class TupleDeclaration : Declaration
      * Params:
      *    dg = delegate to call for each Dsymbol
      */
-    extern (D) void foreachVar(scope void delegate(Dsymbol) dg)
+    extern (D) void foreachVar(scope void delegate(Dsymbol) nothrow dg)
     {
         assert(isexp);
         foreach (o; *objects)
@@ -711,7 +713,7 @@ extern (C++) final class TupleDeclaration : Declaration
      * Returns:
      *    last value returned by dg()
      */
-    extern (D) int foreachVar(scope int delegate(Dsymbol) dg)
+    extern (D) int foreachVar(scope int delegate(Dsymbol) nothrow dg)
     {
         assert(isexp);
         foreach (o; *objects)
@@ -740,6 +742,7 @@ extern (C++) final class TupleDeclaration : Declaration
  */
 extern (C++) final class AliasDeclaration : Declaration
 {
+nothrow:
     Dsymbol aliassym;   // alias ident = aliassym;
 
     Dsymbol overnext;   // next in overload list
@@ -1041,6 +1044,7 @@ extern (C++) final class AliasDeclaration : Declaration
  */
 extern (C++) final class OverDeclaration : Declaration
 {
+nothrow:
     Dsymbol overnext;   // next in overload list
     Dsymbol aliassym;
 
@@ -1119,6 +1123,7 @@ extern (C++) final class OverDeclaration : Declaration
  */
 extern (C++) class VarDeclaration : Declaration
 {
+nothrow:
     Initializer _init;
     FuncDeclarations nestedrefs;    // referenced by these lexically nested functions
     TupleDeclaration aliasTuple;    // when `this` is really a tuple of declarations
@@ -1744,6 +1749,7 @@ extern (C++) class VarDeclaration : Declaration
  */
 extern (C++) class BitFieldDeclaration : VarDeclaration
 {
+nothrow:
     Expression width;
 
     uint fieldWidth;
@@ -2010,6 +2016,7 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
  */
 extern (C++) final class SymbolDeclaration : Declaration
 {
+nothrow:
     AggregateDeclaration dsym;
 
     extern (D) this(const ref Loc loc, AggregateDeclaration dsym) @safe
@@ -2035,6 +2042,7 @@ extern (C++) final class SymbolDeclaration : Declaration
  */
 extern (C++) class TypeInfoDeclaration : VarDeclaration
 {
+nothrow:
     Type tinfo;
 
     final extern (D) this(Type tinfo)
@@ -2082,6 +2090,7 @@ extern (C++) class TypeInfoDeclaration : VarDeclaration
  */
 extern (C++) final class TypeInfoStructDeclaration : TypeInfoDeclaration
 {
+nothrow:
     extern (D) this(Type tinfo)
     {
         super(tinfo);
@@ -2107,6 +2116,7 @@ extern (C++) final class TypeInfoStructDeclaration : TypeInfoDeclaration
  */
 extern (C++) final class TypeInfoClassDeclaration : TypeInfoDeclaration
 {
+nothrow:
     extern (D) this(Type tinfo)
     {
         super(tinfo);
@@ -2132,6 +2142,7 @@ extern (C++) final class TypeInfoClassDeclaration : TypeInfoDeclaration
  */
 extern (C++) final class TypeInfoInterfaceDeclaration : TypeInfoDeclaration
 {
+nothrow:
     extern (D) this(Type tinfo)
     {
         super(tinfo);
@@ -2157,6 +2168,7 @@ extern (C++) final class TypeInfoInterfaceDeclaration : TypeInfoDeclaration
  */
 extern (C++) final class TypeInfoPointerDeclaration : TypeInfoDeclaration
 {
+nothrow:
     extern (D) this(Type tinfo)
     {
         super(tinfo);
@@ -2182,6 +2194,7 @@ extern (C++) final class TypeInfoPointerDeclaration : TypeInfoDeclaration
  */
 extern (C++) final class TypeInfoArrayDeclaration : TypeInfoDeclaration
 {
+nothrow:
     extern (D) this(Type tinfo)
     {
         super(tinfo);
@@ -2207,6 +2220,7 @@ extern (C++) final class TypeInfoArrayDeclaration : TypeInfoDeclaration
  */
 extern (C++) final class TypeInfoStaticArrayDeclaration : TypeInfoDeclaration
 {
+nothrow:
     extern (D) this(Type tinfo)
     {
         super(tinfo);
@@ -2232,6 +2246,7 @@ extern (C++) final class TypeInfoStaticArrayDeclaration : TypeInfoDeclaration
  */
 extern (C++) final class TypeInfoAssociativeArrayDeclaration : TypeInfoDeclaration
 {
+nothrow:
     extern (D) this(Type tinfo)
     {
         super(tinfo);
@@ -2257,6 +2272,7 @@ extern (C++) final class TypeInfoAssociativeArrayDeclaration : TypeInfoDeclarati
  */
 extern (C++) final class TypeInfoEnumDeclaration : TypeInfoDeclaration
 {
+nothrow:
     extern (D) this(Type tinfo)
     {
         super(tinfo);
@@ -2282,6 +2298,7 @@ extern (C++) final class TypeInfoEnumDeclaration : TypeInfoDeclaration
  */
 extern (C++) final class TypeInfoFunctionDeclaration : TypeInfoDeclaration
 {
+nothrow:
     extern (D) this(Type tinfo)
     {
         super(tinfo);
@@ -2307,6 +2324,7 @@ extern (C++) final class TypeInfoFunctionDeclaration : TypeInfoDeclaration
  */
 extern (C++) final class TypeInfoDelegateDeclaration : TypeInfoDeclaration
 {
+nothrow:
     extern (D) this(Type tinfo)
     {
         super(tinfo);
@@ -2332,6 +2350,7 @@ extern (C++) final class TypeInfoDelegateDeclaration : TypeInfoDeclaration
  */
 extern (C++) final class TypeInfoTupleDeclaration : TypeInfoDeclaration
 {
+nothrow:
     extern (D) this(Type tinfo)
     {
         super(tinfo);
@@ -2357,6 +2376,7 @@ extern (C++) final class TypeInfoTupleDeclaration : TypeInfoDeclaration
  */
 extern (C++) final class TypeInfoConstDeclaration : TypeInfoDeclaration
 {
+nothrow:
     extern (D) this(Type tinfo)
     {
         super(tinfo);
@@ -2382,6 +2402,7 @@ extern (C++) final class TypeInfoConstDeclaration : TypeInfoDeclaration
  */
 extern (C++) final class TypeInfoInvariantDeclaration : TypeInfoDeclaration
 {
+nothrow:
     extern (D) this(Type tinfo)
     {
         super(tinfo);
@@ -2407,6 +2428,7 @@ extern (C++) final class TypeInfoInvariantDeclaration : TypeInfoDeclaration
  */
 extern (C++) final class TypeInfoSharedDeclaration : TypeInfoDeclaration
 {
+nothrow:
     extern (D) this(Type tinfo)
     {
         super(tinfo);
@@ -2432,6 +2454,7 @@ extern (C++) final class TypeInfoSharedDeclaration : TypeInfoDeclaration
  */
 extern (C++) final class TypeInfoWildDeclaration : TypeInfoDeclaration
 {
+nothrow:
     extern (D) this(Type tinfo)
     {
         super(tinfo);
@@ -2457,6 +2480,7 @@ extern (C++) final class TypeInfoWildDeclaration : TypeInfoDeclaration
  */
 extern (C++) final class TypeInfoVectorDeclaration : TypeInfoDeclaration
 {
+nothrow:
     extern (D) this(Type tinfo)
     {
         super(tinfo);
@@ -2483,6 +2507,7 @@ extern (C++) final class TypeInfoVectorDeclaration : TypeInfoDeclaration
  */
 extern (C++) final class ThisDeclaration : VarDeclaration
 {
+nothrow:
     extern (D) this(const ref Loc loc, Type t)
     {
         super(loc, t, Id.This, null);

@@ -212,7 +212,7 @@ private:
 extern(C++) final class ToCppBuffer : Visitor
 {
     alias visit = Visitor.visit;
-public:
+nothrow public:
     enum EnumKind
     {
         Int,
@@ -2921,8 +2921,18 @@ public:
         auto check = cast(void*) (td ? td : sym);
 
         // Omit redundant fwd-declaration if we already emitted the entire declaration
-        if (visited.get(check, false))
-            return;
+        version (none)
+        {
+            // FIXME: use this version when 'get' can infer nothrow
+            if (visited.get(check, false))
+                return;
+        }
+        else
+        {
+            if (const pVisited = check in visited)
+                if (*pVisited)
+                    return;
+        }
 
         // Already created a fwd-declaration?
         if (check in forwarded)
@@ -3055,6 +3065,7 @@ public:
 /// Namespace for identifiers used to represent special enums in C++
 struct DMDType
 {
+nothrow:
     __gshared Identifier c_long;
     __gshared Identifier c_ulong;
     __gshared Identifier c_longlong;
@@ -3082,7 +3093,7 @@ struct DMDType
 }
 
 /// Initializes all data structures used by the header generator
-void initialize()
+void initialize() nothrow
 {
     __gshared bool initialized;
 
@@ -3095,34 +3106,34 @@ void initialize()
 }
 
 /// Writes `#if <content>` into the supplied buffer
-void hashIf(ref OutBuffer buf, string content) @safe
+void hashIf(ref OutBuffer buf, string content) nothrow @safe
 {
     buf.writestring("#if ");
     buf.writestringln(content);
 }
 
 /// Writes `#elif <content>` into the supplied buffer
-void hashElIf(ref OutBuffer buf, string content) @safe
+void hashElIf(ref OutBuffer buf, string content) nothrow @safe
 {
     buf.writestring("#elif ");
     buf.writestringln(content);
 }
 
 /// Writes `#endif` into the supplied buffer
-void hashEndIf(ref OutBuffer buf) @safe
+void hashEndIf(ref OutBuffer buf) nothrow @safe
 {
     buf.writestringln("#endif");
 }
 
 /// Writes `#define <content>` into the supplied buffer
-void hashDefine(ref OutBuffer buf, string content) @safe
+void hashDefine(ref OutBuffer buf, string content) nothrow @safe
 {
     buf.writestring("#define ");
     buf.writestringln(content);
 }
 
 /// Writes `#include <content>` into the supplied buffer
-void hashInclude(ref OutBuffer buf, string content) @safe
+void hashInclude(ref OutBuffer buf, string content) nothrow @safe
 {
     buf.writestring("#include ");
     buf.writestringln(content);
@@ -3130,7 +3141,7 @@ void hashInclude(ref OutBuffer buf, string content) @safe
 
 /// Determines whether `ident` is a reserved keyword in C++
 /// Returns: the kind of keyword or `null`
-const(char*) keywordClass(const Identifier ident)
+const(char*) keywordClass(const Identifier ident) nothrow
 {
     if (!ident)
         return null;
@@ -3223,7 +3234,7 @@ const(char*) keywordClass(const Identifier ident)
 
 /// Finds the outermost symbol if `sym` is nested.
 /// Returns `sym` if it appears at module scope
-ASTCodegen.Dsymbol outermostSymbol(ASTCodegen.Dsymbol sym)
+ASTCodegen.Dsymbol outermostSymbol(ASTCodegen.Dsymbol sym) nothrow
 {
     assert(sym);
     while (true)
@@ -3237,7 +3248,7 @@ ASTCodegen.Dsymbol outermostSymbol(ASTCodegen.Dsymbol sym)
 
 /// Fetches the symbol for user-defined types from the type `t`
 /// if `t` is either `TypeClass`, `TypeStruct` or `TypeEnum`
-ASTCodegen.Dsymbol symbolFromType(ASTCodegen.Type t) @safe
+ASTCodegen.Dsymbol symbolFromType(ASTCodegen.Type t) nothrow @safe
 {
     if (auto tc = t.isTypeClass())
         return tc.sym;
@@ -3261,7 +3272,7 @@ ASTCodegen.Dsymbol symbolFromType(ASTCodegen.Type t) @safe
  *
  * Returns: the symbol or `null` if not found
  */
-ASTCodegen.Dsymbol findMember(ASTCodegen.Dsymbol sym, Identifier name)
+ASTCodegen.Dsymbol findMember(ASTCodegen.Dsymbol sym, Identifier name) nothrow
 {
     if (auto mem = sym.search(Loc.initial, name, ASTCodegen.IgnoreErrors))
         return mem;

@@ -41,7 +41,7 @@ import dmd.target;
 import dmd.visitor;
 
 version(Windows) {
-    extern (C) char* getcwd(char* buffer, size_t maxlen);
+    extern (C) char* getcwd(char* buffer, size_t maxlen) nothrow;
 } else {
     import core.sys.posix.unistd : getcwd;
 }
@@ -49,7 +49,7 @@ version(Windows) {
 private extern (C++) final class ToJsonVisitor : Visitor
 {
     alias visit = Visitor.visit;
-public:
+nothrow public:
     OutBuffer* buf;
     int indentLevel;
     const(char)[] filename;
@@ -1071,7 +1071,7 @@ extern (C++) JsonFieldFlags tryParseJsonField(const(char)* fieldName)
 Determines and returns the compiler interface which is one of `dmd`, `ldc`,
 `gdc` or `sdc`. Returns `null` if no interface can be determined.
 */
-private extern(D) string determineCompilerInterface()
+private extern(D) string determineCompilerInterface() nothrow
 {
     if (global.compileEnv.vendor == "Digital Mars D")
         return "dmd";

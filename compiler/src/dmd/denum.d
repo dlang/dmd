@@ -38,6 +38,7 @@ import dmd.visitor;
  */
 extern (C++) final class EnumDeclaration : ScopeDsymbol
 {
+nothrow:
     /* The separate, and distinct, cases are:
      *  1. enum { ... }
      *  2. enum : memtype { ... }
@@ -265,6 +266,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
  */
 extern (C++) final class EnumMember : VarDeclaration
 {
+nothrow:
     /* Can take the following forms:
      *  1. id
      *  2. id = value

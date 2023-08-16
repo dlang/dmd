@@ -54,6 +54,7 @@ import dmd.visitor;
  */
 extern (C++) abstract class AttribDeclaration : Dsymbol
 {
+nothrow:
     Dsymbols* decl;     /// Dsymbol's affected by this AttribDeclaration
 
     extern (D) this(Dsymbols* decl) @safe
@@ -225,6 +226,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
  */
 extern (C++) class StorageClassDeclaration : AttribDeclaration
 {
+nothrow:
     StorageClass stc;
 
     extern (D) this(StorageClass stc, Dsymbols* decl) @safe
@@ -343,6 +345,7 @@ extern (C++) class StorageClassDeclaration : AttribDeclaration
  */
 extern (C++) final class DeprecatedDeclaration : StorageClassDeclaration
 {
+nothrow:
     Expression msg;         /// deprecation message
     const(char)* msgstr;    /// cached string representation of msg
 
@@ -399,6 +402,7 @@ extern (C++) final class DeprecatedDeclaration : StorageClassDeclaration
  */
 extern (C++) final class LinkDeclaration : AttribDeclaration
 {
+nothrow:
     LINK linkage; /// either explicitly set or `default_`
 
     extern (D) this(const ref Loc loc, LINK linkage, Dsymbols* decl) @safe
@@ -451,6 +455,7 @@ extern (C++) final class LinkDeclaration : AttribDeclaration
  */
 extern (C++) final class CPPMangleDeclaration : AttribDeclaration
 {
+nothrow:
     CPPMANGLE cppmangle;
 
     extern (D) this(const ref Loc loc, CPPMANGLE cppmangle, Dsymbols* decl) @safe
@@ -520,22 +525,23 @@ extern (C++) final class CPPMangleDeclaration : AttribDeclaration
  */
 extern (C++) final class CPPNamespaceDeclaration : AttribDeclaration
 {
+nothrow:
     /// CTFE-able expression, resolving to `TupleExp` or `StringExp`
     Expression exp;
 
-    extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* decl) @safe
+    extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* decl) nothrow @safe
     {
         super(loc, ident, decl);
     }
 
-    extern (D) this(const ref Loc loc, Expression exp, Dsymbols* decl) @safe
+    extern (D) this(const ref Loc loc, Expression exp, Dsymbols* decl) nothrow @safe
     {
         super(loc, null, decl);
         this.exp = exp;
     }
 
     extern (D) this(const ref Loc loc, Identifier ident, Expression exp, Dsymbols* decl,
-                    CPPNamespaceDeclaration parent) @safe
+                    CPPNamespaceDeclaration parent) nothrow @safe
     {
         super(loc, ident, decl);
         this.exp = exp;
@@ -596,7 +602,7 @@ extern (C++) final class VisibilityDeclaration : AttribDeclaration
      *  visibility = visibility attribute data
      *  decl = declarations which are affected by this visibility attribute
      */
-    extern (D) this(const ref Loc loc, Visibility visibility, Dsymbols* decl) @safe
+    extern (D) this(const ref Loc loc, Visibility visibility, Dsymbols* decl) nothrow @safe
     {
         super(loc, null, decl);
         this.visibility = visibility;
@@ -609,7 +615,7 @@ extern (C++) final class VisibilityDeclaration : AttribDeclaration
      *  pkg_identifiers = list of identifiers for a qualified package name
      *  decl = declarations which are affected by this visibility attribute
      */
-    extern (D) this(const ref Loc loc, Identifier[] pkg_identifiers, Dsymbols* decl)
+    extern (D) this(const ref Loc loc, Identifier[] pkg_identifiers, Dsymbols* decl) nothrow
     {
         super(loc, null, decl);
         this.visibility.kind = Visibility.Kind.package_;
@@ -709,7 +715,7 @@ extern (C++) final class AlignDeclaration : AttribDeclaration
     structalign_t salign;
 
 
-    extern (D) this(const ref Loc loc, Expression exp, Dsymbols* decl)
+    extern (D) this(const ref Loc loc, Expression exp, Dsymbols* decl) nothrow
     {
         super(loc, null, decl);
         if (exp)
@@ -719,13 +725,13 @@ extern (C++) final class AlignDeclaration : AttribDeclaration
         }
     }
 
-    extern (D) this(const ref Loc loc, Expressions* exps, Dsymbols* decl) @safe
+    extern (D) this(const ref Loc loc, Expressions* exps, Dsymbols* decl) nothrow @safe
     {
         super(loc, null, decl);
         this.exps = exps;
     }
 
-    extern (D) this(const ref Loc loc, structalign_t salign, Dsymbols* decl) @safe
+    extern (D) this(const ref Loc loc, structalign_t salign, Dsymbols* decl) nothrow @safe
     {
         super(loc, null, decl);
         this.salign = salign;
@@ -761,7 +767,7 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
     uint anonstructsize;    /// size of anonymous struct
     uint anonalignsize;     /// size of anonymous struct for alignment purposes
 
-    extern (D) this(const ref Loc loc, bool isunion, Dsymbols* decl) @safe
+    extern (D) this(const ref Loc loc, bool isunion, Dsymbols* decl) nothrow @safe
     {
         super(loc, null, decl);
         this.isunion = isunion;
@@ -881,7 +887,7 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
 {
     Expressions* args;      /// parameters of this pragma
 
-    extern (D) this(const ref Loc loc, Identifier ident, Expressions* args, Dsymbols* decl) @safe
+    extern (D) this(const ref Loc loc, Identifier ident, Expressions* args, Dsymbols* decl) nothrow @safe
     {
         super(loc, ident, decl);
         this.args = args;
@@ -927,7 +933,7 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
     Condition condition;    /// condition deciding whether decl or elsedecl applies
     Dsymbols* elsedecl;     /// array of Dsymbol's for else block
 
-    extern (D) this(const ref Loc loc, Condition condition, Dsymbols* decl, Dsymbols* elsedecl) @safe
+    extern (D) this(const ref Loc loc, Condition condition, Dsymbols* decl, Dsymbols* elsedecl) nothrow @safe
     {
         super(loc, null, decl);
         //printf("ConditionalDeclaration::ConditionalDeclaration()\n");
@@ -1005,7 +1011,7 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
     private bool addisdone = false; /// true if members have been added to scope
     private bool onStack = false;   /// true if a call to `include` is currently active
 
-    extern (D) this(const ref Loc loc, Condition condition, Dsymbols* decl, Dsymbols* elsedecl) @safe
+    extern (D) this(const ref Loc loc, Condition condition, Dsymbols* decl, Dsymbols* elsedecl) nothrow @safe
     {
         super(loc, condition, decl, elsedecl);
         //printf("StaticIfDeclaration::StaticIfDeclaration()\n");
@@ -1119,7 +1125,7 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
     bool cached = false;
     Dsymbols* cache = null;
 
-    extern (D) this(StaticForeach sfe, Dsymbols* decl) @safe
+    extern (D) this(StaticForeach sfe, Dsymbols* decl) nothrow @safe
     {
         super(sfe.loc, null, decl);
         this.sfe = sfe;
@@ -1250,7 +1256,7 @@ extern(C++) final class ForwardingAttribDeclaration : AttribDeclaration
 {
     ForwardingScopeDsymbol sym = null;
 
-    this(Dsymbols* decl) @safe
+    this(Dsymbols* decl) nothrow @safe
     {
         super(decl);
         sym = new ForwardingScopeDsymbol();
@@ -1298,7 +1304,7 @@ extern (C++) final class MixinDeclaration : AttribDeclaration
     ScopeDsymbol scopesym;
     bool compiled;
 
-    extern (D) this(const ref Loc loc, Expressions* exps) @safe
+    extern (D) this(const ref Loc loc, Expressions* exps) nothrow @safe
     {
         super(loc, null, null);
         //printf("MixinDeclaration(loc = %d)\n", loc.linnum);
@@ -1347,7 +1353,7 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
 {
     Expressions* atts;
 
-    extern (D) this(Expressions* atts, Dsymbols* decl) @safe
+    extern (D) this(Expressions* atts, Dsymbols* decl) nothrow @safe
     {
         super(decl);
         this.atts = atts;
@@ -1380,7 +1386,7 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
         return AttribDeclaration.setScope(sc);
     }
 
-    extern (D) static Expressions* concat(Expressions* udas1, Expressions* udas2)
+    extern (D) static Expressions* concat(Expressions* udas1, Expressions* udas2) nothrow
     {
         Expressions* udas;
         if (!udas1 || udas1.length == 0)
@@ -1399,7 +1405,7 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
         return udas;
     }
 
-    Expressions* getAttributes()
+    Expressions* getAttributes() nothrow
     {
         if (auto sc = _scope)
         {
@@ -1436,7 +1442,7 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
      * Returns:
      *   `true` if the expression references the compiler-recognized `gnuAbiTag`
      */
-    static bool isGNUABITag(Expression e)
+    static bool isGNUABITag(Expression e) nothrow
     {
         if (global.params.cplusplus < CppStdRevision.cpp11)
             return false;
@@ -1463,7 +1469,7 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
      *   sym = symbol to check for `gnuAbiTag`
      *   linkage = Linkage of the symbol (Declaration.link or sc.link)
      */
-    static void checkGNUABITag(Dsymbol sym, LINK linkage)
+    static void checkGNUABITag(Dsymbol sym, LINK linkage) nothrow
     {
         if (global.params.cplusplus < CppStdRevision.cpp11)
             return;
@@ -1500,7 +1506,7 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
  *  sym = the symbol to check
  *  ident = the name of the expected UDA
  */
-bool isCoreUda(Dsymbol sym, Identifier ident)
+bool isCoreUda(Dsymbol sym, Identifier ident) nothrow
 {
     if (sym.ident != ident || !sym.parent)
         return false;
@@ -1521,7 +1527,7 @@ bool isCoreUda(Dsymbol sym, Identifier ident)
  *  If `dg` returns `!= 0`, stops the iteration and returns that value.
  *  Otherwise, returns 0.
  */
-int foreachUda(Dsymbol sym, Scope* sc, int delegate(Expression) dg)
+int foreachUda(Dsymbol sym, Scope* sc, int delegate(Expression) nothrow dg) nothrow
 {
     if (!sym.userAttribDecl)
         return 0;
@@ -1561,7 +1567,7 @@ int foreachUda(Dsymbol sym, Scope* sc, int delegate(Expression) dg)
  *  If `dg` returns `!= 0`, stops the iteration and returns that value.
  *  Otherwise, returns 0.
  */
-int foreachUdaNoSemantic(Dsymbol sym, int delegate(Expression) dg)
+int foreachUdaNoSemantic(Dsymbol sym, int delegate(Expression) nothrow dg) nothrow
 {
     if (sym.userAttribDecl is null || sym.userAttribDecl.atts is null)
         return 0;

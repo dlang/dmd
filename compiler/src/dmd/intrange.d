@@ -18,7 +18,7 @@ import dmd.mtype;
 import dmd.expression;
 import dmd.globals;
 
-private uinteger_t copySign(uinteger_t x, bool sign) @safe
+private uinteger_t copySign(uinteger_t x, bool sign) nothrow @safe
 {
     // return sign ? -x : x;
     return (x - cast(uinteger_t)sign) ^ -cast(uinteger_t)sign;
@@ -26,6 +26,7 @@ private uinteger_t copySign(uinteger_t x, bool sign) @safe
 
 struct SignExtendedNumber
 {
+nothrow:
     uinteger_t value;
     bool negative;
 
@@ -295,6 +296,7 @@ struct SignExtendedNumber
 
 struct IntRange
 {
+nothrow:
     SignExtendedNumber imin, imax;
 
     this(IntRange another) @safe
@@ -910,7 +912,7 @@ private:
         return ~maxOr(~lhs, ~rhs);
     }
 
-    static swap(ref IntRange a, ref IntRange b)
+    static swap(ref IntRange a, ref IntRange b) nothrow
     {
         auto aux = a;
         a = b;

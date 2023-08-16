@@ -72,6 +72,10 @@ import dmd.utils;
 alias symbols = Array!(Symbol*);
 alias toSymbol = dmd.tocsym.toSymbol;
 
+// qsort is only nothrow in newer versions of druntime (since 2.081.0)
+private alias _compare_fp_t = extern(C) nothrow int function(const void*, const void*);
+private extern(C) void qsort(scope void* base, size_t nmemb, size_t size, _compare_fp_t compar) nothrow @nogc;
+
 /**
  * Generate code for `modules` and write objects/libraries
  *
@@ -89,7 +93,7 @@ alias toSymbol = dmd.tocsym.toSymbol;
 void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
                           const(char)[] libname, const(char)[] objdir,
                           bool writeLibrary, bool obj, bool oneobj, bool multiobj,
-                          bool verbose)
+                          bool verbose) nothrow
 {
     auto eSink = global.errorSink;
 
@@ -221,7 +225,7 @@ private __gshared Glue glue;
  * Only happens with multiobj.
  */
 
-void obj_append(Dsymbol s)
+void obj_append(Dsymbol s) nothrow
 {
     //printf("deferred: %s\n", s.toChars());
     glue.obj_symbols_towrite.push(s);
@@ -235,7 +239,7 @@ void obj_append(Dsymbol s)
  *      symbols_towrite = array of Dsymbols
  */
 extern (D)
-private void obj_write_deferred(ref OutBuffer objbuf, Library library, ref Dsymbols symbols_towrite)
+private void obj_write_deferred(ref OutBuffer objbuf, Library library, ref Dsymbols symbols_towrite) nothrow
 {
     // this array can grow during the loop; do not replace with foreach
     for (size_t i = 0; i < symbols_towrite.length; ++i)
@@ -322,7 +326,7 @@ private void obj_write_deferred(ref OutBuffer objbuf, Library library, ref Dsymb
 
 extern (D)
 private Symbol *callFuncsAndGates(Module m, Symbol*[] sctors, StaticDtorDeclaration[] ectorgates,
-        const(char)* id)
+        const(char)* id) nothrow
 {
     if (!sctors.length && !ectorgates.length)
         return null;
@@ -375,7 +379,7 @@ private Symbol *callFuncsAndGates(Module m, Symbol*[] sctors, StaticDtorDeclarat
  *      srcfile = name of the source file
  */
 
-private void obj_start(ref OutBuffer objbuf, const(char)* srcfile)
+private void obj_start(ref OutBuffer objbuf, const(char)* srcfile) nothrow
 {
     //printf("obj_start()\n");
 
@@ -423,7 +427,7 @@ private void obj_start(ref OutBuffer objbuf, const(char)* srcfile)
  *      objfilename = what to call the object module
  *      library = if non-null, add object module to this library
  */
-private void obj_end(ref OutBuffer objbuf, Library library, const(char)* objfilename)
+private void obj_end(ref OutBuffer objbuf, Library library, const(char)* objfilename) nothrow
 {
     objmod.term(objfilename);
     //delete objmod;
@@ -451,12 +455,12 @@ extern (D) bool obj_includelib(scope const char[] name) nothrow
     return objmod.includelib(name);
 }
 
-void obj_startaddress(Symbol *s)
+void obj_startaddress(Symbol *s) nothrow
 {
     return objmod.startaddress(s);
 }
 
-bool obj_linkerdirective(const(char)* directive)
+bool obj_linkerdirective(const(char)* directive) nothrow
 {
     return objmod.linkerdirective(directive);
 }
@@ -466,7 +470,7 @@ bool obj_linkerdirective(const(char)* directive)
  * Generate .obj file for Module.
  */
 
-private void genObjFile(Module m, bool multiobj)
+private void genObjFile(Module m, bool multiobj) nothrow
 {
     //EEcontext *ee = env.getEEcontext();
 
@@ -679,7 +683,7 @@ private void genObjFile(Module m, bool multiobj)
 
 /* ================================================================== */
 
-private UnitTestDeclaration needsDeferredNested(FuncDeclaration fd)
+private UnitTestDeclaration needsDeferredNested(FuncDeclaration fd) nothrow
 {
     while (fd && fd.isNested())
     {
@@ -694,7 +698,7 @@ private UnitTestDeclaration needsDeferredNested(FuncDeclaration fd)
 }
 
 
-void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
+void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj) nothrow
 {
     ClassDeclaration cd = fd.parent.isClassDeclaration();
     //printf("FuncDeclaration_toObjFile(%p, %s.%s)\n", fd, fd.parent.toChars(), fd.toChars());
@@ -1352,7 +1356,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
  * Returns:
  *      true if entry point
  */
-private bool entryPointFunctions(Obj objmod, FuncDeclaration fd)
+private bool entryPointFunctions(Obj objmod, FuncDeclaration fd) nothrow
 {
     // D main()
     if (fd.isMain() && onlyOneMain(fd))
@@ -1452,7 +1456,7 @@ private bool entryPointFunctions(Obj objmod, FuncDeclaration fd)
  * Returns:
  *      true if haven't seen "main" before
  */
-private bool onlyOneMain(FuncDeclaration fd)
+private bool onlyOneMain(FuncDeclaration fd) nothrow
 {
     __gshared FuncDeclaration lastMain;
     if (lastMain)
@@ -1474,7 +1478,7 @@ private bool onlyOneMain(FuncDeclaration fd)
  * Return back end type corresponding to D front end type.
  */
 
-tym_t totym(Type tx)
+tym_t totym(Type tx) nothrow
 {
     tym_t t;
     switch (tx.ty)
@@ -1623,7 +1627,7 @@ tym_t totym(Type tx)
 /**************************************
  */
 
-Symbol *toSymbol(Type t)
+Symbol *toSymbol(Type t) nothrow
 {
     if (t.ty == Tclass)
     {
@@ -1639,7 +1643,7 @@ Symbol *toSymbol(Type t)
  * Returns:
  *    bzero symbol
  */
-Symbol* getBzeroSymbol()
+Symbol* getBzeroSymbol() nothrow
 {
     Symbol* s = bzeroSymbol;
     if (s)
@@ -1671,7 +1675,7 @@ Symbol* getBzeroSymbol()
  * Generate elem that is a dynamic array slice of the module file name.
  */
 
-private elem *toEfilename(Module m)
+private elem *toEfilename(Module m) nothrow
 {
     //printf("toEfilename(%s)\n", m.toChars());
     const(char)* id = m.srcfile.toChars();
@@ -1688,7 +1692,7 @@ private elem *toEfilename(Module m)
 }
 
 // Used in e2ir.d
-elem *toEfilenamePtr(Module m)
+elem *toEfilenamePtr(Module m) nothrow
 {
     //printf("toEfilenamePtr(%s)\n", m.toChars());
     const(char)* id = m.srcfile.toChars();

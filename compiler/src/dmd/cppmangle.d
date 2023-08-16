@@ -51,7 +51,7 @@ import dmd.visitor;
 
 // helper to check if an identifier is a C++ operator
 enum CppOperator { Cast, Assign, Eq, Index, Call, Unary, Binary, OpAssign, Unknown }
-package CppOperator isCppOperator(Identifier id)
+package CppOperator isCppOperator(Identifier id) nothrow
 {
     __gshared const(Identifier)[] operators = null;
     if (!operators)
@@ -65,7 +65,7 @@ package CppOperator isCppOperator(Identifier id)
 }
 
 ///
-extern(C++) const(char)* toCppMangleItanium(Dsymbol s)
+extern(C++) const(char)* toCppMangleItanium(Dsymbol s) nothrow
 {
     //printf("toCppMangleItanium(%s)\n", s.toChars());
     OutBuffer buf;
@@ -75,7 +75,7 @@ extern(C++) const(char)* toCppMangleItanium(Dsymbol s)
 }
 
 ///
-extern(C++) const(char)* cppTypeInfoMangleItanium(Dsymbol s)
+extern(C++) const(char)* cppTypeInfoMangleItanium(Dsymbol s) nothrow
 {
     //printf("cppTypeInfoMangle(%s)\n", s.toChars());
     OutBuffer buf;
@@ -86,7 +86,7 @@ extern(C++) const(char)* cppTypeInfoMangleItanium(Dsymbol s)
 }
 
 ///
-extern(C++) const(char)* cppThunkMangleItanium(FuncDeclaration fd, int offset)
+extern(C++) const(char)* cppThunkMangleItanium(FuncDeclaration fd, int offset) nothrow
 {
     //printf("cppThunkMangleItanium(%s)\n", fd.toChars());
     OutBuffer buf;
@@ -103,7 +103,7 @@ extern(C++) const(char)* cppThunkMangleItanium(FuncDeclaration fd, int offset)
  * Returns:
  *      true if sym is an aggregate destructor
  */
-bool isAggregateDtor(const Dsymbol sym)
+bool isAggregateDtor(const Dsymbol sym) nothrow
 {
     const dtor = sym.isDtorDeclaration();
     if (!dtor)
@@ -116,6 +116,7 @@ bool isAggregateDtor(const Dsymbol sym)
 /// Context used when processing pre-semantic AST
 private struct Context
 {
+nothrow:
     /// Template instance of the function being mangled
     TemplateInstance ti;
     /// Function declaration we're mangling
@@ -137,11 +138,12 @@ private struct Context
      * Returns:
      *   The previous state of this `Context` object
      */
-    private Context push(lazy RootObject next) @safe
+    private Context push(Delegate)(Delegate next)
+    if (is(Delegate == delegate))
     {
         auto r = this.res;
         if (r !is null)
-            this.res = next;
+            this.res = next();
         return Context(this.ti, this.fd, r);
     }
 
@@ -156,6 +158,7 @@ private struct Context
 
 private final class CppMangleVisitor : Visitor
 {
+nothrow:
     /// Context used when processing pre-semantic AST
     private Context context;
 
@@ -218,7 +221,7 @@ private final class CppMangleVisitor : Visitor
             rt = tf.nextOf();
         if (tf.isref)
             rt = rt.referenceTo();
-        auto prev = this.context.push(tf.nextOf());
+        auto prev = this.context.push(() => tf.nextOf());
         scope (exit) this.context.pop(prev);
         this.headOfType(rt);
     }
@@ -439,7 +442,7 @@ private final class CppMangleVisitor : Visitor
         TemplateParameter tp = (*td.parameters)[arg];
         RootObject o = (*ti.tiargs)[arg];
 
-        auto prev = this.context.push({
+        auto prev = this.context.push(() {
                 TemplateInstance parentti;
                 if (this.context.res.dyncast() == DYNCAST.dsymbol)
                     parentti = this.context.res.asFuncDecl().parent.isTemplateInstance();
@@ -454,7 +457,7 @@ private final class CppMangleVisitor : Visitor
                         parentti = parent.parent.isTemplateInstance();
                 }
                 return (*parentti.tiargs)[arg];
-            }());
+            });
         scope (exit) this.context.pop(prev);
 
         if (tp.isTemplateTypeParameter())
@@ -596,7 +599,7 @@ private final class CppMangleVisitor : Visitor
      *   p = Symbol to write
      *   dg = Delegate to execute
      */
-    void writeChained(Dsymbol p, scope void delegate() dg)
+    void writeChained(Dsymbol p, scope void delegate() nothrow dg)
     {
         if (p && !p.isModule())
         {
@@ -1124,7 +1127,7 @@ private final class CppMangleVisitor : Visitor
      *            call with nested name qualifier (`N..E`).
      *            Otherwise, they are already present (e.g. `Nspace` was used).
      */
-    void writeNamespace(CPPNamespaceDeclaration ns, scope void delegate() dg,
+    void writeNamespace(CPPNamespaceDeclaration ns, scope void delegate() nothrow dg,
                         bool haveNE = false)
     {
         void runDg () { if (dg !is null) dg(); }
@@ -1350,7 +1353,7 @@ private final class CppMangleVisitor : Visitor
                     t.toChars());
                 fatal();
             }
-            auto prev = this.context.push({
+            auto prev = this.context.push(() {
                     TypeFunction tf;
                     if (isDsymbol(this.context.res))
                         tf = this.context.res.asFuncDecl().type.isTypeFunction();
@@ -1358,7 +1361,7 @@ private final class CppMangleVisitor : Visitor
                         tf = this.context.res.asType().isTypeFunction();
                     assert(tf);
                     return (*tf.parameterList.parameters)[n].type;
-                }());
+                });
             scope (exit) this.context.pop(prev);
 
             if (this.context.ti && global.params.cplusplus >= CppStdRevision.cpp11)
@@ -1404,7 +1407,7 @@ private final class CppMangleVisitor : Visitor
         else
         {
             // For value types, strip const/immutable/shared from the head of the type
-            auto prev = this.context.push(this.context.res.asType().mutableOf().unSharedOf());
+            auto prev = this.context.push(() => this.context.res.asType().mutableOf().unSharedOf());
             scope (exit) this.context.pop(prev);
             t.mutableOf().unSharedOf().accept(this);
         }
@@ -1613,7 +1616,7 @@ private final class CppMangleVisitor : Visitor
      *   dg = Delegate to execute after writing the qualified symbol
      *
      */
-    private void writeQualified(TemplateInstance t, scope void delegate() dg)
+    private void writeQualified(TemplateInstance t, scope void delegate() nothrow dg)
     {
         auto type = isType(this.context.res);
         if (!type)
@@ -1848,7 +1851,7 @@ extern(C++):
         if (substitute(t))
             return;
         buf.writeByte('P');
-        auto prev = this.context.push(this.context.res.asType().nextOf());
+        auto prev = this.context.push(() => this.context.res.asType().nextOf());
         scope (exit) this.context.pop(prev);
         t.next.accept(this);
         append(t);
@@ -2129,7 +2132,7 @@ private void visitObject(V : Visitor)(RootObject o, V this_)
 }
 
 /// Helper function to safely get a type out of a `RootObject`
-private Type asType(RootObject o) @safe
+private Type asType(RootObject o) nothrow @safe
 {
     if (Type ta = isType(o))
         return ta;
@@ -2141,7 +2144,7 @@ private Type asType(RootObject o) @safe
 }
 
 /// Helper function to safely get a `FuncDeclaration` out of a `RootObject`
-private FuncDeclaration asFuncDecl(RootObject o) @safe
+private FuncDeclaration asFuncDecl(RootObject o) nothrow @safe
 {
     Dsymbol d = isDsymbol(o);
     assert(d !is null);
@@ -2153,6 +2156,7 @@ private FuncDeclaration asFuncDecl(RootObject o) @safe
 /// Helper class to compare entries in components
 private extern(C++) final class ComponentVisitor : Visitor
 {
+nothrow:
     /// Only one of the following is not `null`, it's always
     /// the most specialized type, set from the ctor
     private Nspace namespace;
@@ -2321,7 +2325,7 @@ private extern(C++) final class ComponentVisitor : Visitor
 
 /// Transitional functions for `CPPNamespaceDeclaration` / `Nspace`
 /// Remove when `Nspace` is removed.
-private bool isNamespaceEqual (Nspace a, Nspace b)
+private bool isNamespaceEqual (Nspace a, Nspace b) nothrow
 {
     if (a is null || b is null)
         return false;
@@ -2329,13 +2333,13 @@ private bool isNamespaceEqual (Nspace a, Nspace b)
 }
 
 /// Ditto
-private bool isNamespaceEqual (Nspace a, CPPNamespaceDeclaration b)
+private bool isNamespaceEqual (Nspace a, CPPNamespaceDeclaration b) nothrow
 {
     return isNamespaceEqual(b, a);
 }
 
 /// Ditto
-private bool isNamespaceEqual (CPPNamespaceDeclaration a, Nspace b, size_t idx = 0)
+private bool isNamespaceEqual (CPPNamespaceDeclaration a, Nspace b, size_t idx = 0) nothrow
 {
     if ((a is null) != (b is null))
         return false;
@@ -2351,7 +2355,7 @@ private bool isNamespaceEqual (CPPNamespaceDeclaration a, Nspace b, size_t idx =
 
 /// Returns:
 ///   Whether  two `CPPNamespaceDeclaration` are equals
-private bool isNamespaceEqual (CPPNamespaceDeclaration a, CPPNamespaceDeclaration b) @safe
+private bool isNamespaceEqual (CPPNamespaceDeclaration a, CPPNamespaceDeclaration b) nothrow @safe
 {
     if (a is null || b is null)
         return false;
@@ -2398,6 +2402,7 @@ private bool isNamespaceEqual (CPPNamespaceDeclaration a, CPPNamespaceDeclaratio
  */
 private struct ABITagContainer
 {
+nothrow:
     private Array!StringExp written;
 
     static ArrayLiteralExp forSymbol (Dsymbol s)
@@ -2479,7 +2484,7 @@ private struct ABITagContainer
  *   Either the index to insert `exp` at (if `exact == false`),
  *   or the index of `exp` in `slice`.
  */
-private size_t closestIndex (const(StringExp)[] slice, StringExp exp, out bool exact)
+private size_t closestIndex (const(StringExp)[] slice, StringExp exp, out bool exact) nothrow
 {
     if (!slice.length) return 0;
 
@@ -2546,10 +2551,11 @@ unittest
  *   toWrite = where to put StringExp's to be written
  */
 private
-void leftOver(TypeFunction tf, const(Array!StringExp)* previous, Array!StringExp* toWrite)
+void leftOver(TypeFunction tf, const(Array!StringExp)* previous, Array!StringExp* toWrite) nothrow
 {
     extern(C++) final class LeftoverVisitor : Visitor
     {
+    nothrow:
         /// List of tags to write
         private Array!StringExp* toWrite;
         /// List of tags to ignore

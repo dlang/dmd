@@ -59,7 +59,7 @@ import dmd.visitor;
  * functions and may invoke a function that contains `ErrorStatement` in its body.
  * If that, the "CTFE failed because of previous errors" error is raised.
  */
-public Expression ctfeInterpret(Expression e)
+public Expression ctfeInterpret(Expression e) nothrow
 {
     switch (e.op)
     {
@@ -121,7 +121,7 @@ public Expression ctfeInterpret(Expression e)
 /* Run CTFE on the expression, but allow the expression to be a TypeExp
  *  or a tuple containing a TypeExp. (This is required by pragma(msg)).
  */
-public Expression ctfeInterpretForPragmaMsg(Expression e)
+public Expression ctfeInterpretForPragmaMsg(Expression e) nothrow
 {
     if (e.op == EXP.error || e.op == EXP.type)
         return e;
@@ -164,7 +164,7 @@ public Expression ctfeInterpretForPragmaMsg(Expression e)
     return e;
 }
 
-public Expression getValue(VarDeclaration vd)
+public Expression getValue(VarDeclaration vd) nothrow
 {
     return ctfeGlobals.stack.getValue(vd);
 }
@@ -187,7 +187,7 @@ T ctfeEmplaceExp(T : Expression, Args...)(Args args)
 }
 
 // CTFE diagnostic information
-public extern (C++) void printCtfePerformanceStats()
+public extern (C++) void printCtfePerformanceStats() nothrow
 {
     debug (SHOWPERFORMANCE)
     {
@@ -200,7 +200,7 @@ public extern (C++) void printCtfePerformanceStats()
 /**************************
  */
 
-void incArrayAllocs()
+void incArrayAllocs() nothrow
 {
     ++ctfeGlobals.numArrayAllocs;
 }
@@ -250,7 +250,7 @@ enum CTFE_RECURSION_LIMIT = 1000;
  */
 struct CtfeStack
 {
-private:
+nothrow private:
     /* The stack. Every declaration we encounter is pushed here,
      * together with the VarDeclaration, and the previous
      * stack address of that variable, so that we can restore it
@@ -421,7 +421,7 @@ private struct InterState
  * result expression if successful, EXP.cantExpression if not,
  * or CTFEExp if function returned void.
  */
-private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterState* istate, Expressions* arguments, Expression thisarg)
+private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterState* istate, Expressions* arguments, Expression thisarg) nothrow
 {
     debug (LOG)
     {
@@ -725,7 +725,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
 }
 
 /// used to collect coverage information in ctfe
-void incUsageCtfe(InterState* istate, const ref Loc loc)
+void incUsageCtfe(InterState* istate, const ref Loc loc) nothrow
 {
     if (global.params.ctfe_cov && istate)
     {
@@ -747,7 +747,7 @@ void incUsageCtfe(InterState* istate, const ref Loc loc)
  *      !NULL   expression from return statement, or thrown exception
  */
 
-Expression interpretStatement(Statement s, InterState* istate)
+Expression interpretStatement(Statement s, InterState* istate) nothrow
 {
     UnionExp ue = void;
     auto result = interpretStatement(&ue, s, istate);
@@ -757,7 +757,7 @@ Expression interpretStatement(Statement s, InterState* istate)
 }
 
 ///
-Expression interpretStatement(UnionExp* pue, Statement s, InterState* istate)
+Expression interpretStatement(UnionExp* pue, Statement s, InterState* istate) nothrow
 {
     Expression result;
 
@@ -1639,7 +1639,7 @@ Expression interpretStatement(UnionExp* pue, Statement s, InterState* istate)
 private extern (C++) final class Interpreter : Visitor
 {
     alias visit = Visitor.visit;
-public:
+nothrow public:
     InterState* istate;
     CTFEGoal goal;
     Expression result;
@@ -4233,6 +4233,7 @@ public:
              */
             struct RecursiveBlock
             {
+            nothrow:
                 InterState* istate;
                 Expression newval;
                 bool refCopy;
@@ -6458,7 +6459,7 @@ public:
 
 /// Interpret `throw <exp>` found at the specified location `loc`
 private
-void interpretThrow(ref Expression result, Expression exp, const ref Loc loc, InterState* istate)
+void interpretThrow(ref Expression result, Expression exp, const ref Loc loc, InterState* istate) nothrow
 {
     incUsageCtfe(istate, loc);
 
@@ -6488,7 +6489,7 @@ void interpretThrow(ref Expression result, Expression exp, const ref Loc loc, In
  * Returns:
  *    `e` cast to `CallExp` if it's the hook, `null` otherwise
  */
-public CallExp isRuntimeHook(Expression e, Identifier id)
+public CallExp isRuntimeHook(Expression e, Identifier id) nothrow
 {
     if (auto ce = e.isCallExp())
     {
@@ -6518,7 +6519,7 @@ public CallExp isRuntimeHook(Expression e, Identifier id)
  *    resulting expression
  */
 
-Expression interpret(UnionExp* pue, Expression e, InterState* istate, CTFEGoal goal = CTFEGoal.RValue)
+Expression interpret(UnionExp* pue, Expression e, InterState* istate, CTFEGoal goal = CTFEGoal.RValue) nothrow
 {
     if (!e)
         return null;
@@ -6532,7 +6533,7 @@ Expression interpret(UnionExp* pue, Expression e, InterState* istate, CTFEGoal g
 }
 
 ///
-Expression interpret(Expression e, InterState* istate, CTFEGoal goal = CTFEGoal.RValue)
+Expression interpret(Expression e, InterState* istate, CTFEGoal goal = CTFEGoal.RValue) nothrow
 {
     UnionExp ue = void;
     auto result = interpret(&ue, e, istate, goal);
@@ -6550,7 +6551,7 @@ Expression interpret(Expression e, InterState* istate, CTFEGoal goal = CTFEGoal.
  * Returns:
  *    resulting expression
  */
-Expression interpretRegion(Expression e, InterState* istate, CTFEGoal goal = CTFEGoal.RValue)
+Expression interpretRegion(Expression e, InterState* istate, CTFEGoal goal = CTFEGoal.RValue) nothrow
 {
     UnionExp ue = void;
     auto result = interpret(&ue, e, istate, goal);
@@ -6575,7 +6576,7 @@ Expression interpretRegion(Expression e, InterState* istate, CTFEGoal goal = CTF
 }
 
 private
-Expressions* copyArrayOnWrite(Expressions* exps, Expressions* original)
+Expressions* copyArrayOnWrite(Expressions* exps, Expressions* original) nothrow
 {
     if (exps is original)
     {
@@ -6599,7 +6600,7 @@ Expressions* copyArrayOnWrite(Expressions* exps, Expressions* original)
     true if it is safe to return, false if an error was generated.
  */
 private
-bool stopPointersEscaping(const ref Loc loc, Expression e)
+bool stopPointersEscaping(const ref Loc loc, Expression e) nothrow
 {
     if (!e.type.hasPointers())
         return true;
@@ -6648,7 +6649,7 @@ bool stopPointersEscaping(const ref Loc loc, Expression e)
 
 // Check all elements of an array for escaping local variables. Return false if error
 private
-bool stopPointersEscapingFromArray(const ref Loc loc, Expressions* elems)
+bool stopPointersEscapingFromArray(const ref Loc loc, Expressions* elems) nothrow
 {
     foreach (e; *elems)
     {
@@ -6659,7 +6660,7 @@ bool stopPointersEscapingFromArray(const ref Loc loc, Expressions* elems)
 }
 
 private
-Statement findGotoTarget(InterState* istate, Identifier ident)
+Statement findGotoTarget(InterState* istate, Identifier ident) nothrow
 {
     Statement target = null;
     if (ident)
@@ -6673,7 +6674,7 @@ Statement findGotoTarget(InterState* istate, Identifier ident)
 }
 
 private
-ThrownExceptionExp chainExceptions(ThrownExceptionExp oldest, ThrownExceptionExp newest)
+ThrownExceptionExp chainExceptions(ThrownExceptionExp oldest, ThrownExceptionExp newest) nothrow
 {
     debug (LOG)
     {
@@ -6712,17 +6713,17 @@ ThrownExceptionExp chainExceptions(ThrownExceptionExp oldest, ThrownExceptionExp
  * 1. all slices must be resolved.
  * 2. all .ownedByCtfe set to OwnedBy.code
  */
-private Expression scrubReturnValue(const ref Loc loc, Expression e)
+private Expression scrubReturnValue(const ref Loc loc, Expression e) nothrow
 {
     /* Returns: true if e is void,
      * or is an array literal or struct literal of void elements.
      */
-    static bool isVoid(const Expression e, bool checkArrayType = false) pure
+    static bool isVoid(const Expression e, bool checkArrayType = false) nothrow pure
     {
         if (e.op == EXP.void_)
             return true;
 
-        static bool isEntirelyVoid(const Expressions* elems)
+        static bool isEntirelyVoid(const Expressions* elems) nothrow
         {
             foreach (e; *elems)
             {
@@ -6750,7 +6751,7 @@ private Expression scrubReturnValue(const ref Loc loc, Expression e)
     /* Scrub all elements of elems[].
      * Returns: null for success, error Expression for failure
      */
-    Expression scrubArray(Expressions* elems, bool structlit = false)
+    Expression scrubArray(Expressions* elems, bool structlit = false) nothrow
     {
         foreach (ref e; *elems)
         {
@@ -6775,7 +6776,7 @@ private Expression scrubReturnValue(const ref Loc loc, Expression e)
         return null;
     }
 
-    Expression scrubSE(StructLiteralExp sle)
+    Expression scrubSE(StructLiteralExp sle) nothrow
     {
         sle.ownedByCtfe = OwnedBy.code;
         if (!(sle.stageflags & stageScrub))
@@ -6843,7 +6844,7 @@ private Expression scrubReturnValue(const ref Loc loc, Expression e)
 /**************************************
  * Transitively set all .ownedByCtfe to OwnedBy.cache
  */
-private Expression scrubCacheValue(Expression e)
+private Expression scrubCacheValue(Expression e) nothrow
 {
     if (!e)
         return e;
@@ -6918,7 +6919,7 @@ private Expression scrubCacheValue(Expression e)
  * Returns:
  *      Mem owned expression
  */
-private Expression copyRegionExp(Expression e)
+private Expression copyRegionExp(Expression e) nothrow
 {
     if (!e)
         return e;
@@ -7066,7 +7067,7 @@ private Expression copyRegionExp(Expression e)
 
 /******************************* Special Functions ***************************/
 
-private Expression interpret_length(UnionExp* pue, InterState* istate, Expression earg)
+private Expression interpret_length(UnionExp* pue, InterState* istate, Expression earg) nothrow
 {
     //printf("interpret_length()\n");
     earg = interpret(pue, earg, istate);
@@ -7081,7 +7082,7 @@ private Expression interpret_length(UnionExp* pue, InterState* istate, Expressio
     return pue.exp();
 }
 
-private Expression interpret_keys(UnionExp* pue, InterState* istate, Expression earg, Type returnType)
+private Expression interpret_keys(UnionExp* pue, InterState* istate, Expression earg, Type returnType) nothrow
 {
     debug (LOG)
     {
@@ -7104,7 +7105,7 @@ private Expression interpret_keys(UnionExp* pue, InterState* istate, Expression 
     return pue.exp();
 }
 
-private Expression interpret_values(UnionExp* pue, InterState* istate, Expression earg, Type returnType)
+private Expression interpret_values(UnionExp* pue, InterState* istate, Expression earg, Type returnType) nothrow
 {
     debug (LOG)
     {
@@ -7128,7 +7129,7 @@ private Expression interpret_values(UnionExp* pue, InterState* istate, Expressio
     return pue.exp();
 }
 
-private Expression interpret_dup(UnionExp* pue, InterState* istate, Expression earg)
+private Expression interpret_dup(UnionExp* pue, InterState* istate, Expression earg) nothrow
 {
     debug (LOG)
     {
@@ -7158,7 +7159,7 @@ private Expression interpret_dup(UnionExp* pue, InterState* istate, Expression e
 }
 
 // signature is int delegate(ref Value) OR int delegate(ref Key, ref Value)
-private Expression interpret_aaApply(UnionExp* pue, InterState* istate, Expression aa, Expression deleg)
+private Expression interpret_aaApply(UnionExp* pue, InterState* istate, Expression aa, Expression deleg) nothrow
 {
     aa = interpret(aa, istate);
     if (exceptionOrCantInterpret(aa))
@@ -7224,7 +7225,7 @@ private Expression interpret_aaApply(UnionExp* pue, InterState* istate, Expressi
 /* Decoding UTF strings for foreach loops. Duplicates the functionality of
  * the twelve _aApplyXXn functions in aApply.d in the runtime.
  */
-private Expression foreachApplyUtf(UnionExp* pue, InterState* istate, Expression str, Expression deleg, bool rvs)
+private Expression foreachApplyUtf(UnionExp* pue, InterState* istate, Expression str, Expression deleg, bool rvs) nothrow
 {
     debug (LOG)
     {
@@ -7482,7 +7483,7 @@ private Expression foreachApplyUtf(UnionExp* pue, InterState* istate, Expression
 /* If this is a built-in function, return the interpreted result,
  * Otherwise, return NULL.
  */
-private Expression evaluateIfBuiltin(UnionExp* pue, InterState* istate, const ref Loc loc, FuncDeclaration fd, Expressions* arguments, Expression pthis)
+private Expression evaluateIfBuiltin(UnionExp* pue, InterState* istate, const ref Loc loc, FuncDeclaration fd, Expressions* arguments, Expression pthis) nothrow
 {
     Expression e = null;
     size_t nargs = arguments ? arguments.length : 0;
@@ -7593,7 +7594,7 @@ private Expression evaluateIfBuiltin(UnionExp* pue, InterState* istate, const re
     return e;
 }
 
-private Expression evaluatePostblit(InterState* istate, Expression e)
+private Expression evaluatePostblit(InterState* istate, Expression e) nothrow
 {
     auto ts = e.type.baseElemOf().isTypeStruct();
     if (!ts)
@@ -7625,7 +7626,7 @@ private Expression evaluatePostblit(InterState* istate, Expression e)
     assert(0);
 }
 
-private Expression evaluateDtor(InterState* istate, Expression e)
+private Expression evaluateDtor(InterState* istate, Expression e) nothrow
 {
     auto ts = e.type.baseElemOf().isTypeStruct();
     if (!ts)
@@ -7660,19 +7661,19 @@ private Expression evaluateDtor(InterState* istate, Expression e)
 /* Setter functions for CTFE variable values.
  * These functions exist to check for compiler CTFE bugs.
  */
-private bool hasValue(VarDeclaration vd)
+private bool hasValue(VarDeclaration vd) nothrow
 {
     return vd.ctfeAdrOnStack != VarDeclaration.AdrOnStackNone &&
            getValue(vd) !is null;
 }
 
 // Don't check for validity
-private void setValueWithoutChecking(VarDeclaration vd, Expression newval)
+private void setValueWithoutChecking(VarDeclaration vd, Expression newval) nothrow
 {
     ctfeGlobals.stack.setValue(vd, newval);
 }
 
-private void setValue(VarDeclaration vd, Expression newval)
+private void setValue(VarDeclaration vd, Expression newval) nothrow
 {
     //printf("setValue() vd: %s newval: %s\n", vd.toChars(), newval.toChars());
     version (none)
@@ -7696,7 +7697,7 @@ private void setValue(VarDeclaration vd, Expression newval)
  *  ce = The CallExp that possible will be be replaced
  *  fd = Fully resolve function declaration that `ce` would call
  */
-private void removeHookTraceImpl(ref CallExp ce, ref FuncDeclaration fd)
+private void removeHookTraceImpl(ref CallExp ce, ref FuncDeclaration fd) nothrow
 {
     if (fd.ident != Id._d_HookTraceImpl)
         return;

@@ -40,7 +40,7 @@ import dmd.root.stringtable;
 import dmd.scanelf;
 
 // Entry point (only public symbol in this module).
-public extern (C++) Library LibElf_factory()
+public extern (C++) Library LibElf_factory() nothrow
 {
     return new LibElf();
 }
@@ -60,6 +60,7 @@ alias ElfObjSymbols = Array!(ElfObjSymbol*);
 
 final class LibElf : Library
 {
+nothrow:
     ElfObjModules objmodules; // ElfObjModule[]
     ElfObjSymbols objsymbols; // ElfObjSymbol[]
     StringTable!(ElfObjSymbol*) tab;
@@ -531,7 +532,7 @@ struct ElfLibHeader
     char[ELF_TRAILER_SIZE] trailer;
 }
 
-extern (C++) void ElfOmToHeader(ElfLibHeader* h, ElfObjModule* om)
+extern (C++) void ElfOmToHeader(ElfLibHeader* h, ElfObjModule* om) nothrow
 {
     char* buffer = cast(char*)h;
     // user_id and group_id are padded on 6 characters in Header struct.
