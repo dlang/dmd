@@ -607,6 +607,11 @@ dmd -cov -unittest myprog.d
             `Turns off all array bounds checking, even for safe functions. $(RED Deprecated
             (use $(TT $(SWLINK -boundscheck)=off) instead).)`,
         ),
+        Option("nothrow",
+            "assume no Exceptions will be thrown",
+            `Turns off generation of exception stack unwinding code, enables
+	    more efficient code for RAII objects.`,
+        ),
         Option("O",
             "optimize",
             `Optimize generated code. For fastest executables, compile

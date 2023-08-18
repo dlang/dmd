@@ -3281,7 +3281,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
         if (!global.params.useExceptions)
         {
-            tcs.error("cannot use try-catch statements with -betterC");
+            tcs.error("cannot use try-catch statements with %s", global.params.betterC ? "-betterC".ptr : "-nothrow".ptr);
             return setError();
         }
 
@@ -3696,7 +3696,7 @@ public bool throwSemantic(const ref Loc loc, ref Expression exp, Scope* sc)
 {
     if (!global.params.useExceptions)
     {
-        loc.error("cannot use `throw` statements with -betterC");
+        loc.error("cannot use `throw` statements with %s", global.params.betterC ? "-betterC".ptr : "-nothrow".ptr);
         return false;
     }
 
