@@ -317,7 +317,7 @@ private:
             this.addSymbol(om, name, pickAny);
         }
 
-        scanMachObjModule(&addSymbol, om.base[0 .. om.length], om.name.ptr, loc);
+        scanMachObjModule(&addSymbol, om.base[0 .. om.length], om.name.ptr, loc, eSink);
     }
 
     /*****************************************************************************/

@@ -352,7 +352,7 @@ private:
             this.addSymbol(om, name, pickAny);
         }
 
-        scanElfObjModule(&addSymbol, om.base[0 .. om.length], om.name.ptr, loc);
+        scanElfObjModule(&addSymbol, om.base[0 .. om.length], om.name.ptr, loc, eSink);
     }
 
     /*****************************************************************************/
