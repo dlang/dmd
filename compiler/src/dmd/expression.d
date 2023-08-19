@@ -4039,11 +4039,18 @@ extern (C++) final class FuncExp : Expression
             return new FuncExp(loc, fd);
     }
 
+    /** Try to match `this` to type `to`.
+     * Params:
+     * to = Target type
+     * sc = Scope
+     * presult = Location to store converted `this`
+     * eSink = error handler */
     extern (D) MATCH matchType(Type to, Scope* sc, FuncExp* presult, ErrorSink eSink)
     {
         MATCH cannotInfer()
         {
-            eSink.error(loc, "cannot infer parameter types from `%s`", to.toChars());
+            eSink.error(loc, "cannot infer parameter types for `%s` from `%s`",
+                toChars(), to.toChars());
             return MATCH.nomatch;
         }
 
