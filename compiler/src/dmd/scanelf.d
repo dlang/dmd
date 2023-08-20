@@ -33,7 +33,7 @@ enum LOG = false;
  *      eSink =       where the error messages go
  */
 void scanElfObjModule(void delegate(const(char)[] name, int pickAny) nothrow pAddSymbol,
-        const(ubyte)[] base, const(char)* module_name, Loc loc, ErrorSink eSink)
+        scope const ubyte[] base, const char* module_name, Loc loc, ErrorSink eSink)
 {
     static if (LOG)
     {
