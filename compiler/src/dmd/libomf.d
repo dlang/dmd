@@ -419,7 +419,7 @@ private:
             assert(page <= 0xFFFF);
             om.page = cast(ushort)page;
             // Write out the object module om
-            writeOMFObj(&libbuf, om.base, om.length, om.name.ptr);
+            writeOMFObj(libbuf, om.base, om.length, om.name.ptr);
             // Round the size of the file up to the next page size
             // by filling with 0s
             uint n = (g_page_size - 1) & libbuf.length;

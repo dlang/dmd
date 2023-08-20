@@ -34,23 +34,22 @@ private enum LOG = false;
  *      eSink =       where the error messages go
  */
 void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
-        const(ubyte)[] base, const(char)* module_name, Loc loc, ErrorSink eSink)
+        scope const ubyte[] base, scope const char* module_name, Loc loc, ErrorSink eSink)
 {
     static if (LOG)
     {
         printf("scanOmfObjModule(%s)\n", module_name);
     }
-    int easyomf;
-    char[LIBIDMAX + 1] name;
+    char[LIBIDMAX + 1] name = void;
     Strings names;
     scope(exit)
         for (size_t u = 1; u < names.length; u++)
             free(cast(void*)names[u]);
     names.push(null); // don't use index 0
-    easyomf = 0; // assume not EASY-OMF
-    auto pend = cast(const(ubyte)*)base.ptr + base.length;
+    bool easyomf = false; // assume not EASY-OMF
+    const pend = base.ptr + base.length;
     const(ubyte)* pnext;
-    for (auto p = cast(const(ubyte)*)base.ptr; 1; p = pnext)
+    for (auto p = base.ptr; 1; p = pnext)
     {
         assert(p < pend);
         ubyte recTyp = *p++;
@@ -64,7 +63,7 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
         case LLNAMES:
             while (p + 1 < pnext)
             {
-                parseName(&p, name.ptr);
+                parseName(p, name.ptr);
                 char* copy = cast(char*)Mem.check(strdup(name.ptr));
                 names.push(copy);
             }
@@ -74,13 +73,13 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
                 recTyp = PUB386; // convert to MS format
             goto case;
         case PUB386:
-            if (!(parseIdx(&p) | parseIdx(&p)))
+            if (!(parseIdx(p) | parseIdx(p)))
                 p += 2; // skip seg, grp, frame
             while (p + 1 < pnext)
             {
-                parseName(&p, name.ptr);
+                parseName(p, name.ptr);
                 p += (recTyp == PUBDEF) ? 2 : 4; // skip offset
-                parseIdx(&p); // skip type index
+                parseIdx(p); // skip type index
                 pAddSymbol(name[0 .. strlen(name.ptr)], 0);
             }
             break;
@@ -100,13 +99,13 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
                 p += 2; // enum data offset
                 if (recTyp == COMDAT + 1)
                     p += 2; // enum data offset
-                parseIdx(&p); // type index
+                parseIdx(p); // type index
                 if ((attr & 0x0F) == 0) // if explicit allocation
                 {
-                    parseIdx(&p); // base group
-                    parseIdx(&p); // base segment
+                    parseIdx(p); // base group
+                    parseIdx(p); // base segment
                 }
-                uint idx = parseIdx(&p); // public name index
+                uint idx = parseIdx(p); // public name index
                 if (idx == 0 || idx >= names.length)
                 {
                     //debug(printf("[s] name idx=%d, uCntNames=%d\n", idx, uCntNames));
@@ -122,9 +121,9 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
             {
                 while (p + 1 < pnext)
                 {
-                    parseName(&p, name.ptr);
-                    parseIdx(&p); // type index
-                    skipDataType(&p); // data type
+                    parseName(p, name.ptr);
+                    parseIdx(p); // type index
+                    skipDataType(p); // data type
                     pAddSymbol(name[0 .. strlen(name.ptr)], 1);
                 }
                 break;
@@ -132,9 +131,9 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
         case ALIAS:
             while (p + 1 < pnext)
             {
-                parseName(&p, name.ptr);
+                parseName(p, name.ptr);
                 pAddSymbol(name[0 .. strlen(name.ptr)], 0);
-                parseName(&p, name.ptr);
+                parseName(p, name.ptr);
             }
             break;
         case MODEND:
@@ -149,7 +148,7 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
                     for (uint i = 0; i < (omfstr1).sizeof; i++)
                         if (*p++ != omfstr1[i])
                             goto L1;
-                    easyomf = 1;
+                    easyomf = true;
                     break;
                 L1:
                 }
@@ -164,7 +163,7 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
                         if (*p++ != omfstr2[i])
                             goto L2;
                     p++; // skip OrdFlag field
-                    parseName(&p, name.ptr);
+                    parseName(p, name.ptr);
                     pAddSymbol(name[0 .. strlen(name.ptr)], 0);
                     break;
                 L2:
@@ -183,13 +182,13 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
  * Returns:
  *      true for corrupt OMF data
  */
-bool scanOmfLib(void delegate(char* name, void* base, size_t length) pAddObjModule, void* buf, size_t buflen, uint pagesize)
+bool scanOmfLib(void delegate(char* name, void* base, size_t length) pAddObjModule, scope void* buf, size_t buflen, uint pagesize)
 {
     /* Split up the buffer buf[0..buflen] into multiple object modules,
      * each aligned on a pagesize boundary.
      */
     const(ubyte)* base = null;
-    char[LIBIDMAX + 1] name;
+    char[LIBIDMAX + 1] name = void;
     auto p = cast(const(ubyte)*)buf;
     auto pend = p + buflen;
     const(ubyte)* pnext;
@@ -211,7 +210,7 @@ bool scanOmfLib(void delegate(char* name, void* base, size_t length) pAddObjModu
             {
                 base = p;
                 p += 3;
-                parseName(&p, name.ptr);
+                parseName(p, name.ptr);
                 if (name[0] == 'C' && name[1] == 0) // old C compilers did this
                     base = pnext; // skip past THEADR
             }
@@ -237,7 +236,7 @@ bool scanOmfLib(void delegate(char* name, void* base, size_t length) pAddObjModu
     return (base !is null); // missing MODEND record
 }
 
-uint OMFObjSize(const(void)* base, uint length, const(char)* name)
+uint OMFObjSize(scope const void* base, size_t length, scope const char* name)
 {
     ubyte c = *cast(const(ubyte)*)base;
     if (c != THEADR && c != LHEADR)
@@ -246,17 +245,17 @@ uint OMFObjSize(const(void)* base, uint length, const(char)* name)
         assert(len <= LIBIDMAX);
         length += len + 5;
     }
-    return length;
+    return cast(uint)length;
 }
 
-void writeOMFObj(OutBuffer* buf, const(void)* base, uint length, const(char)* name)
+void writeOMFObj(ref OutBuffer buf, scope const void* base, size_t length, scope const char* name)
 {
     ubyte c = *cast(const(ubyte)*)base;
     if (c != THEADR && c != LHEADR)
     {
         const len = strlen(name);
         assert(len <= LIBIDMAX);
-        ubyte[4 + LIBIDMAX + 1] header;
+        ubyte[4 + LIBIDMAX + 1] header = void;
         header[0] = THEADR;
         header[1] = cast(ubyte)(2 + len);
         header[2] = 0;
@@ -328,9 +327,9 @@ enum LLNAMES = 0xCA;
 enum LIBIDMAX = (512 - 0x25 - 3 - 4);
 
 // max size that will fit in dictionary
-extern (C++) void parseName(const(ubyte)** pp, char* name)
+void parseName(ref scope const(ubyte)* pp, char* name)
 {
-    auto p = *pp;
+    auto p = pp;
     uint len = *p++;
     if (len == 0xFF && *p == 0) // if long name
     {
@@ -341,22 +340,22 @@ extern (C++) void parseName(const(ubyte)** pp, char* name)
     }
     memcpy(name, p, len);
     name[len] = 0;
-    *pp = p + len;
+    pp = p + len;
 }
 
-ushort parseIdx(const(ubyte)** pp)
+ushort parseIdx(ref scope const(ubyte)* pp)
 {
-    auto p = *pp;
+    auto p = pp;
     const c = *p++;
     ushort idx = (0x80 & c) ? ((0x7F & c) << 8) + *p++ : c;
-    *pp = p;
+    pp = p;
     return idx;
 }
 
 // skip numeric field of a data type of a COMDEF record
-void skipNumericField(const(ubyte)** pp)
+void skipNumericField(ref scope const(ubyte)* pp)
 {
-    const(ubyte)* p = *pp;
+    const(ubyte)* p = pp;
     const c = *p++;
     if (c == 0x81)
         p += 2;
@@ -366,28 +365,28 @@ void skipNumericField(const(ubyte)** pp)
         p += 4;
     else
         assert(c <= 0x80);
-    *pp = p;
+    pp = p;
 }
 
 // skip data type of a COMDEF record
-void skipDataType(const(ubyte)** pp)
+void skipDataType(ref scope const(ubyte)* pp)
 {
-    auto p = *pp;
+    auto p = pp;
     const c = *p++;
     if (c == 0x61)
     {
         // FAR data
-        skipNumericField(&p);
-        skipNumericField(&p);
+        skipNumericField(p);
+        skipNumericField(p);
     }
     else if (c == 0x62)
     {
         // NEAR data
-        skipNumericField(&p);
+        skipNumericField(p);
     }
     else
     {
         assert(1 <= c && c <= 0x5f); // Borland segment indices
     }
-    *pp = p;
+    pp = p;
 }
