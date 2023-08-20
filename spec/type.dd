@@ -226,23 +226,9 @@ $(H3 $(LEGACY_LNAME2 Implicit Conversions, implicit-conversions, Implicit Conver
     types as required. The rules for integers are detailed in the next sections.
     )
 
-    $(P An enum can be implicitly converted to its base
+    $(P An enum can be $(DDSUBLINK spec/enum, named_enums, implicitly converted) to its base
     type, but going the other way requires an explicit
-    conversion. For example:)
-
-$(SPEC_RUNNABLE_EXAMPLE_FAIL
--------------------
-int i;
-
-enum Foo { E }
-Foo f;
-i = f;           // OK
-f = i;           // error
-f = cast(Foo)i;  // OK
-f = 0;           // error
-f = Foo.E;       // OK
--------------------
-)
+    conversion.)
 
     $(UL
     $(LI All types implicitly convert to $(RELATIVE_LINK2 noreturn, `noreturn`).)

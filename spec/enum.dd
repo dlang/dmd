@@ -75,10 +75,24 @@ $(H2 $(LNAME2 named_enums, Named Enums))
         *AssignExpression*. Otherwise, it defaults to
         type $(CODE int).)
 
-        * A named enum member can be
-          $(DDSUBLINK spec/type, implicit-conversions, implicitly cast to its $(I EnumBaseType)).
+        * A named enum member can be implicitly cast to its $(I EnumBaseType).
         * An $(I EnumBaseType) instance cannot be implicitly cast to a named enum type.
-        * A named enum member does not have an individual $(I Type).
+
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+-------------------
+int i;
+
+enum Foo { E }
+Foo f;
+i = f;           // OK
+f = i;           // error
+f = cast(Foo)i;  // OK
+f = 0;           // error
+f = Foo.E;       // OK
+-------------------
+)
+
+        $(P A named enum member does not have an individual $(I Type).)
 
         $(P The value of an $(GLINK EnumMember) is given by its *AssignExpression* if present.
         If there is no *AssignExpression* and it is the first $(I EnumMember),
