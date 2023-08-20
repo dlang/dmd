@@ -1,6 +1,8 @@
 /**
  * Generate the object file for function declarations and critical sections.
  *
+ * generateCodeAndWrite() is the only function seen by the front end.
+ *
  * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
@@ -69,8 +71,11 @@ import dmd.toobj;
 import dmd.typesem;
 import dmd.utils;
 
+private:
+
 alias symbols = Array!(Symbol*);
-alias toSymbol = dmd.tocsym.toSymbol;
+
+public alias toSymbol = dmd.tocsym.toSymbol;
 
 /**
  * Generate code for `modules` and write objects/libraries
@@ -86,7 +91,7 @@ alias toSymbol = dmd.tocsym.toSymbol;
  *  multiobj = break one object file into multiple ones
  *  verbose = print progress message when generatig code
  */
-void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
+public void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
                           const(char)[] libname, const(char)[] objdir,
                           bool writeLibrary, bool obj, bool oneobj, bool multiobj,
                           bool verbose)
@@ -193,7 +198,7 @@ void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
 extern (C++):
 
 //extern
-__gshared Symbol* bzeroSymbol;        /// common location for immutable zeros
+public __gshared Symbol* bzeroSymbol;        /// common location for immutable zeros
 
 struct Glue
 {
@@ -220,8 +225,7 @@ private __gshared Glue glue;
  * Append s to list of object files to generate later.
  * Only happens with multiobj.
  */
-
-void obj_append(Dsymbol s)
+public void obj_append(Dsymbol s)
 {
     //printf("deferred: %s\n", s.toChars());
     glue.obj_symbols_towrite.push(s);
@@ -446,17 +450,17 @@ private void obj_end(ref OutBuffer objbuf, Library library, const(char)* objfile
     }
 }
 
-extern (D) bool obj_includelib(scope const char[] name) nothrow
+public extern (D) bool obj_includelib(scope const char[] name) nothrow
 {
     return objmod.includelib(name);
 }
 
-void obj_startaddress(Symbol *s)
+public void obj_startaddress(Symbol *s)
 {
     return objmod.startaddress(s);
 }
 
-bool obj_linkerdirective(const(char)* directive)
+public bool obj_linkerdirective(const(char)* directive)
 {
     return objmod.linkerdirective(directive);
 }
@@ -693,8 +697,7 @@ private UnitTestDeclaration needsDeferredNested(FuncDeclaration fd)
     return null;
 }
 
-
-void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
+public void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
 {
     ClassDeclaration cd = fd.parent.isClassDeclaration();
     //printf("FuncDeclaration_toObjFile(%p, %s.%s)\n", fd, fd.parent.toChars(), fd.toChars());
@@ -1473,8 +1476,7 @@ private bool onlyOneMain(FuncDeclaration fd)
 /*****************************
  * Return back end type corresponding to D front end type.
  */
-
-tym_t totym(Type tx)
+public tym_t totym(Type tx)
 {
     tym_t t;
     switch (tx.ty)
@@ -1627,7 +1629,7 @@ tym_t totym(Type tx)
  * Returns:
  *    bzero symbol
  */
-Symbol* getBzeroSymbol()
+public Symbol* getBzeroSymbol()
 {
     Symbol* s = bzeroSymbol;
     if (s)
@@ -1676,7 +1678,7 @@ private elem *toEfilename(Module m)
 }
 
 // Used in e2ir.d
-elem *toEfilenamePtr(Module m)
+public elem *toEfilenamePtr(Module m)
 {
     //printf("toEfilenamePtr(%s)\n", m.toChars());
     const(char)* id = m.srcfile.toChars();
