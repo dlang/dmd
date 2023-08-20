@@ -13,13 +13,13 @@ module dmd.scanomf;
 
 import core.stdc.string;
 import core.stdc.stdlib;
-import dmd.globals;
+
+import dmd.arraytypes;
+import dmd.common.outbuffer;
+import dmd.errorsink;
 import dmd.location;
 import dmd.root.rmem;
-import dmd.common.outbuffer;
 import dmd.root.string;
-import dmd.arraytypes;
-import dmd.errors;
 
 private enum LOG = false;
 
@@ -31,9 +31,10 @@ private enum LOG = false;
  *      base =        array of contents of object module
  *      module_name = name of the object module (used for error messages)
  *      loc =         location to use for error printing
+ *      eSink =       where the error messages go
  */
 void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
-        const(ubyte)[] base, const(char)* module_name, Loc loc)
+        const(ubyte)[] base, const(char)* module_name, Loc loc, ErrorSink eSink)
 {
     static if (LOG)
     {
@@ -109,7 +110,7 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
                 if (idx == 0 || idx >= names.length)
                 {
                     //debug(printf("[s] name idx=%d, uCntNames=%d\n", idx, uCntNames));
-                    error(loc, "corrupt COMDAT");
+                    eSink.error(loc, "corrupt COMDAT");
                     return;
                 }
                 //printf("[s] name='%s'\n",name);

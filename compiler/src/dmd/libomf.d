@@ -220,7 +220,7 @@ private:
             this.addSymbol(om, name, pickAny);
         }
 
-        scanOmfObjModule(&addSymbol, om.base[0 .. om.length], om.name.ptr, loc);
+        scanOmfObjModule(&addSymbol, om.base[0 .. om.length], om.name.ptr, loc, eSink);
     }
 
     /***********************************

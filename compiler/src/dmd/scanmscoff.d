@@ -25,7 +25,7 @@ else
 import dmd.root.rmem;
 import dmd.root.string;
 
-import dmd.globals, dmd.errors;
+import dmd.errorsink;
 import dmd.location;
 
 private enum LOG = false;
@@ -38,9 +38,10 @@ private enum LOG = false;
  *      base =        array of contents of object module
  *      module_name = name of the object module (used for error messages)
  *      loc =         location to use for error printing
+ *      eSink =       where the error messages go
  */
 void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
-        const(ubyte)[] base, const(char)* module_name, Loc loc)
+        const(ubyte)[] base, const(char)* module_name, Loc loc, ErrorSink eSink)
 {
     static if (LOG)
     {
@@ -49,7 +50,7 @@ void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) pAddSymb
 
     void corrupt(int reason)
     {
-        error(loc, "corrupt MS-Coff object module `%s` %d", module_name, reason);
+        eSink.error(loc, "corrupt MS-Coff object module `%s` %d", module_name, reason);
     }
 
     const buf = base.ptr;
@@ -84,16 +85,16 @@ void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) pAddSymb
         break;
     default:
         if (buf[0] == 0x80)
-            error(loc, "object module `%s` is 32 bit OMF, but it should be 64 bit MS-Coff", module_name);
+            eSink.error(loc, "object module `%s` is 32 bit OMF, but it should be 64 bit MS-Coff", module_name);
         else
-            error(loc, "MS-Coff object module `%s` has magic = %x, should be %x", module_name, header.Machine, IMAGE_FILE_MACHINE_AMD64);
+            eSink.error(loc, "MS-Coff object module `%s` has magic = %x, should be %x", module_name, header.Machine, IMAGE_FILE_MACHINE_AMD64);
         return;
     }
     // Get string table:  string_table[0..string_len]
     size_t off = header.PointerToSymbolTable;
     if (off == 0)
     {
-        error(loc, "MS-Coff object module `%s` has no string table", module_name);
+        eSink.error(loc, "MS-Coff object module `%s` has no string table", module_name);
         return;
     }
     off += header.NumberOfSymbols * (is_old_coff ? SymbolTable.sizeof : SymbolTable32.sizeof);

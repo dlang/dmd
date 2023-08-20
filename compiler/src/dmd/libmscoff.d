@@ -393,7 +393,7 @@ private:
             this.addSymbol(om, name, pickAny);
         }
 
-        scanMSCoffObjModule(&addSymbol, om.base[0 .. om.length], om.name.ptr, loc);
+        scanMSCoffObjModule(&addSymbol, om.base[0 .. om.length], om.name.ptr, loc, eSink);
     }
 
     /*****************************************************************************/

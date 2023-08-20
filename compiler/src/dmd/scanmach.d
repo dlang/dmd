@@ -13,8 +13,8 @@ module dmd.scanmach;
 
 import core.stdc.string;
 import core.stdc.stdint;
-import dmd.globals;
-import dmd.errors;
+
+import dmd.errorsink;
 import dmd.location;
 
 //import core.sys.darwin.mach.loader;
@@ -30,9 +30,10 @@ private enum LOG = false;
  *      base =        array of contents of object module
  *      module_name = name of the object module (used for error messages)
  *      loc =         location to use for error printing
+ *      eSink =       where the error messages go
  */
 void scanMachObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
-        const(ubyte)[] base, const(char)* module_name, Loc loc)
+        const(ubyte)[] base, const(char)* module_name, Loc loc, ErrorSink eSink)
 {
     static if (LOG)
     {
@@ -41,7 +42,7 @@ void scanMachObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol
 
     void corrupt(int reason)
     {
-        error(loc, "corrupt Mach-O object module `%s` %d", module_name, reason);
+        eSink.error(loc, "corrupt Mach-O object module `%s` %d", module_name, reason);
     }
 
     const buf = base.ptr;
@@ -58,12 +59,12 @@ void scanMachObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol
     {
         if (header.cputype != CPU_TYPE_I386)
         {
-            error(loc, "Mach-O object module `%s` has cputype = %d, should be %d", module_name, header.cputype, CPU_TYPE_I386);
+            eSink.error(loc, "Mach-O object module `%s` has cputype = %d, should be %d", module_name, header.cputype, CPU_TYPE_I386);
             return;
         }
         if (header.filetype != MH_OBJECT)
         {
-            error(loc, "Mach-O object module `%s` has file type = %d, should be %d", module_name, header.filetype, MH_OBJECT);
+            eSink.error(loc, "Mach-O object module `%s` has file type = %d, should be %d", module_name, header.filetype, MH_OBJECT);
             return;
         }
         if (buflen < mach_header.sizeof + header.sizeofcmds)
@@ -77,12 +78,12 @@ void scanMachObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol
             return corrupt(__LINE__);
         if (header64.cputype != CPU_TYPE_X86_64)
         {
-            error(loc, "Mach-O object module `%s` has cputype = %d, should be %d", module_name, header64.cputype, CPU_TYPE_X86_64);
+            eSink.error(loc, "Mach-O object module `%s` has cputype = %d, should be %d", module_name, header64.cputype, CPU_TYPE_X86_64);
             return;
         }
         if (header64.filetype != MH_OBJECT)
         {
-            error(loc, "Mach-O object module `%s` has file type = %d, should be %d", module_name, header64.filetype, MH_OBJECT);
+            eSink.error(loc, "Mach-O object module `%s` has file type = %d, should be %d", module_name, header64.filetype, MH_OBJECT);
             return;
         }
         if (buflen < mach_header_64.sizeof + header64.sizeofcmds)
