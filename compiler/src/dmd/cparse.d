@@ -3298,8 +3298,10 @@ final class CParser(AST) : Parser!AST
                 nextToken();
             else
             {
-                error("extended-decl-modifier expected");
-                break;
+                error("extended-decl-modifier expected after `__declspec(`, saw `%s` instead", token.toChars());
+                nextToken();
+                if (token.value != TOK.rightParenthesis)
+                    break;
             }
         }
     }
