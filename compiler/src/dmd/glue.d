@@ -1620,18 +1620,6 @@ tym_t totym(Type tx)
     return t;
 }
 
-/**************************************
- */
-
-Symbol *toSymbol(Type t)
-{
-    if (t.ty == Tclass)
-    {
-        return toSymbol((cast(TypeClass)t).sym);
-    }
-    assert(0);
-}
-
 /*******************************************
  * Generate readonly symbol that consists of a bunch of zeros.
  * Immutable Symbol instances can be mapped over it.

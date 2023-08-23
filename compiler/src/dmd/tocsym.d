@@ -857,6 +857,21 @@ Symbol *toSymbolCppTypeInfo(ClassDeclaration cd)
     return s;
 }
 
+/**************************************
+ * Turn a class type into a C Symbol.
+ * Params:
+ *      t = class type
+ * Returns:
+ *      corresponding Symbol
+ */
+
+Symbol *toSymbol(Type t)
+{
+    auto tc = t.isTypeClass();
+    assert(tc);
+    return toSymbol(tc.sym);
+}
+
 /**********************************
  * Converts a Loc to backend Srcpos
  * Params:
