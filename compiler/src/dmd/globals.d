@@ -282,6 +282,7 @@ extern (C++) struct Global
     enum recursionLimit = 500; /// number of recursive template expansions before abort
 
     ErrorSink errorSink;       /// where the error messages go
+    ErrorSink errorSinkNull;   /// where the error messages are ignored
 
     extern (C++) FileName function(FileName, ref const Loc, out bool, OutBuffer*) preprocess;
 
@@ -338,6 +339,7 @@ extern (C++) struct Global
     extern (C++) void _init()
     {
         errorSink = new ErrorSinkCompiler;
+        errorSinkNull = new ErrorSinkNull;
 
         this.fileManager = new FileManager();
         version (MARS)

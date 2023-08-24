@@ -297,6 +297,7 @@ struct Global
 
     FileManager* fileManager;
     ErrorSink* errorSink;       // where the error messages go
+    ErrorSink* errorSinkNull;   // where the error messages disappear
 
     FileName (*preprocess)(FileName, const Loc&, bool&, OutBuffer&);
 
