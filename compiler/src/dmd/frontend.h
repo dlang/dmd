@@ -8597,6 +8597,7 @@ struct Id final
     static Identifier* returnLabel;
     static Identifier* line;
     static Identifier* empty;
+    static Identifier* dotdotdot;
     static Identifier* p;
     static Identifier* gate;
     static Identifier* cpp_type_info_ptr;

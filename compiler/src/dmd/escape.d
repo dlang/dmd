@@ -326,9 +326,9 @@ public
 bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier parId, VarDeclaration vPar, STC parStc, Expression arg, bool assertmsg, bool gag)
 {
     enum log = false;
-    if (log) printf("checkParamArgumentEscape(arg: %s par: %s)\n",
+    if (log) printf("checkParamArgumentEscape(arg: %s par: %s parSTC: %llx)\n",
         arg ? arg.toChars() : "null",
-        parId ? parId.toChars() : "null");
+        parId ? parId.toChars() : "null", parStc);
     //printf("type = %s, %d\n", arg.type.toChars(), arg.type.hasPointers());
 
     if (!arg.type.hasPointers())
@@ -341,7 +341,7 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier parId, 
     if (parStc & STC.scope_)
     {
         // These errors only apply to non-scope parameters
-        // When the paraneter is `scope`, only `checkScopeVarAddr` on `er.byref` is needed
+        // When the parameter is `scope`, only `checkScopeVarAddr` on `er.byref` is needed
         er.byfunc.setDim(0);
         er.byvalue.setDim(0);
         er.byexp.setDim(0);
