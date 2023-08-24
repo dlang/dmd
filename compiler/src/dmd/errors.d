@@ -154,10 +154,11 @@ package auto previewSupplementalFunc(bool isDeprecated, FeatureState featureStat
 
 /**
  * Print an error message, increasing the global error count.
- * Params:
+ * Parameters:
  *      loc    = location of error
  *      format = printf-style format specification
- *      scope const ...    = printf-style variadic arguments
+ *
+ *      scope const ... is printf-style variadic arguments
  */
 static if (__VERSION__ < 2092)
     extern (C++) void error(const ref Loc loc, const(char)* format, scope const ...)
@@ -178,12 +179,13 @@ else
 
 /**
  * Same as above, but takes a filename and line information arguments as separate parameters.
- * Params:
+ * Parameters:
  *      filename = source file of error
  *      linnum   = line in the source file
  *      charnum  = column number on the line
  *      format   = printf-style format specification
- *      scope const ...      = printf-style variadic arguments
+ *
+ *      scope const ... is printf-style variadic arguments
  */
 static if (__VERSION__ < 2092)
     extern (C++) void error(const(char)* filename, uint linnum, uint charnum, const(char)* format, scope const ...)
@@ -207,10 +209,11 @@ else
 /**
  * Print additional details about an error message.
  * Doesn't increase the error count or print an additional error prefix.
- * Params:
+ * Parameters:
  *      loc    = location of error
  *      format = printf-style format specification
- *      scope const ...    = printf-style variadic arguments
+ *
+ *      scope const ... is printf-style variadic arguments
  */
 static if (__VERSION__ < 2092)
     extern (C++) void errorSupplemental(const ref Loc loc, const(char)* format, scope const ...)
@@ -231,10 +234,11 @@ else
 
 /**
  * Print a warning message, increasing the global warning count.
- * Params:
+ * Parameters:
  *      loc    = location of warning
  *      format = printf-style format specification
- *      scope const ...    = printf-style variadic arguments
+ *
+ *      scope const ... is printf-style variadic arguments
  */
 static if (__VERSION__ < 2092)
     extern (C++) void warning(const ref Loc loc, const(char)* format, scope const ...)
@@ -256,10 +260,11 @@ else
 /**
  * Print additional details about a warning message.
  * Doesn't increase the warning count or print an additional warning prefix.
- * Params:
+ * Parameters:
  *      loc    = location of warning
  *      format = printf-style format specification
- *      scope const ...    = printf-style variadic arguments
+ *
+ *      scope const ... is printf-style variadic arguments
  */
 static if (__VERSION__ < 2092)
     extern (C++) void warningSupplemental(const ref Loc loc, const(char)* format, scope const ...)
@@ -281,10 +286,11 @@ else
 /**
  * Print a deprecation message, may increase the global warning or error count
  * depending on whether deprecations are ignored.
- * Params:
+ * Parameters:
  *      loc    = location of deprecation
  *      format = printf-style format specification
- *      scope const ...    = printf-style variadic arguments
+ *
+ *      scope const ... is printf-style variadic arguments
  */
 static if (__VERSION__ < 2092)
     extern (C++) void deprecation(const ref Loc loc, const(char)* format, scope const ...)
@@ -306,10 +312,11 @@ else
 /**
  * Print additional details about a deprecation message.
  * Doesn't increase the error count, or print an additional deprecation prefix.
- * Params:
+ * Parameters:
  *      loc    = location of deprecation
  *      format = printf-style format specification
- *      scope const ...    = printf-style variadic arguments
+ *
+ *      scope const ... is printf-style variadic arguments
  */
 static if (__VERSION__ < 2092)
     extern (C++) void deprecationSupplemental(const ref Loc loc, const(char)* format, scope const ...)
@@ -331,10 +338,11 @@ else
 /**
  * Print a verbose message.
  * Doesn't prefix or highlight messages.
- * Params:
+ * Parameters:
  *      loc    = location of message
  *      format = printf-style format specification
- *      scope const ...    = printf-style variadic arguments
+ *
+ *      scope const ... is printf-style variadic arguments
  */
 static if (__VERSION__ < 2092)
     extern (C++) void message(const ref Loc loc, const(char)* format, scope const ...)
@@ -355,9 +363,10 @@ else
 
 /**
  * Same as above, but doesn't take a location argument.
- * Params:
+ * Parameters:
  *      format = printf-style format specification
- *      scope const ...    = printf-style variadic arguments
+ *
+ *      scope const ... is printf-style variadic arguments
  */
 static if (__VERSION__ < 2092)
     extern (C++) void message(const(char)* format, scope const ...)
@@ -392,9 +401,10 @@ __gshared DiagnosticHandler diagnosticHandler;
 
 /**
  * Print a tip message with the prefix and highlighting.
- * Params:
+ * Parameters:
  *      format = printf-style format specification
- *      scope const ...    = printf-style variadic arguments
+ *
+ *      scope const ... is printf-style variadic arguments
  */
 static if (__VERSION__ < 2092)
     extern (C++) void tip(const(char)* format, scope const ...)
