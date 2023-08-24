@@ -114,6 +114,7 @@ immutable Msgtable[] msgtable =
     { "returnLabel", "__returnLabel" },
     { "line" },
     { "empty", "" },
+    { "dotdotdot", "..." }, // use for error messages
     { "p" },
     { "__vptr" },
     { "__monitor" },

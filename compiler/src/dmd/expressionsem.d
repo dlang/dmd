@@ -2319,6 +2319,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             }
             err |= arg.checkValue();
             err |= arg.checkSharedAccess(sc);
+            err |= checkParamArgumentEscape(sc, fd, Id.dotdotdot, null, cast(STC) tf.parameterList.stc, arg, false, false);
             arg = arg.optimize(WANTvalue);
         }
         (*arguments)[i] = arg;
