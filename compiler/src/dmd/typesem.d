@@ -2089,6 +2089,7 @@ Expression getProperty(Type t, Scope* scope_, const ref Loc loc, Identifier iden
             {
                 e = new StringExp(loc, mt.deco.toDString());
                 Scope sc;
+                sc.eSink = global.errorSink;
                 e = e.expressionSemantic(&sc);
             }
         }
@@ -2097,6 +2098,7 @@ Expression getProperty(Type t, Scope* scope_, const ref Loc loc, Identifier iden
             const s = mt.toChars();
             e = new StringExp(loc, s.toDString());
             Scope sc;
+            sc.eSink = global.errorSink;
             e = e.expressionSemantic(&sc);
         }
         else if (flag && mt != Type.terror)

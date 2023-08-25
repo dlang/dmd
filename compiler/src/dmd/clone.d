@@ -546,6 +546,7 @@ FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
             TypeFunction tfeqptr;
             {
                 Scope scx;
+                scx.eSink = sc.eSink;
                 /* const bool opEquals(ref const S s);
                  */
                 auto parameters = new Parameters();
@@ -620,6 +621,7 @@ FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
             TypeFunction tfcmpptr;
             {
                 Scope scx;
+                scx.eSink = sc.eSink;
                 /* const int opCmp(ref const S s);
                  */
                 auto parameters = new Parameters();
