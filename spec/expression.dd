@@ -2327,10 +2327,23 @@ $(H4 $(LNAME2 lambda-return-type, Return Type Inference))
     ---
     )
 
-$(H4 $(LNAME2 lambda-short-syntax, Short Syntax))
+$(H4 $(LNAME2 lambda-short-syntax, Nullary Short Syntax))
 
-    $(P Anonymous delegates can behave like arbitrary statement literals.
-        For example, here an arbitrary statement is executed by a loop:)
+    $(P *Parameters* can be omitted completely for a function literal
+        when there is a *BlockStatement* function body.)
+
+    $(NOTE This form is not allowed to be immediately called as an *ExpressionStatement*,
+        because it would require arbitrary lookahead to distinguish it from a *BlockStatement*.)
+
+---
+auto f = { writeln("hi"); }; // OK, f has type `void function()`
+f();
+{ writeln("hi"); }(); // error
+() { writeln("hi"); }(); // OK
+---
+
+    $(PANEL Anonymous delegates can behave like arbitrary statement literals.
+        For example, here an arbitrary statement is executed by a loop:
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
         -------------
@@ -2351,6 +2364,9 @@ $(H4 $(LNAME2 lambda-short-syntax, Short Syntax))
         }
         -------------
         )
+    )
+
+$(H4 $(LNAME2 lambda-short-body, Shortened Body Syntax))
 
     $(P The syntax $(D => AssignExpression) is equivalent to $(D { return AssignExpression; }).)
 
