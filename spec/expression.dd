@@ -2038,7 +2038,7 @@ $(H4 $(LNAME2 cast_array_literal, Casting))
         {
             // cast array literal
             const short[] ct = cast(short[]) [cast(byte)1, 1];
-            // this is equivalent with:
+            // this is equivalent to:
             // const short[] ct = [cast(short)1, cast(short)1];
             writeln(ct);  // writes [1, 1]
 
@@ -2287,13 +2287,13 @@ $(H4 $(LNAME2 lambda-parameter-inference, Parameter Type Inference))
         auto fp = (i) { return 1; }; // error, cannot infer type of `i`
         ---
 
-$(H5 $(LNAME2 function-literal-alias, Function Literal Aliasing))
+$(H4 $(LNAME2 function-literal-alias, Function Literal Aliasing))
 
-    $(P If a function literal is
-        $(DDSUBLINK spec/declaration, alias, aliased), the inference
-        of the parameter types is done when the types are needed, as
-        the function literal becomes a
-        $(DDSUBLINK spec/template, function-templates, function template).)
+    $(P Function literals can be $(DDSUBLINK spec/declaration, alias, aliased).
+        Aliasing a function literal with unspecified parameter types produces a
+        $(DDSUBLINK spec/template, function-template, function template)
+        with type parameters for each unspecified parameter type of the literal.
+        Type inference for the literal is then done when the template is instantiated.)
 
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
