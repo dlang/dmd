@@ -8284,6 +8284,7 @@ private:
         cppStd = 1,
         floatAbi = 2,
         objectFormat = 3,
+        CET = 4,
     };
 
 public:
