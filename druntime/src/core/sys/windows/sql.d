@@ -1,4 +1,10 @@
+// @@@DEPRECATED_2.112@@@
+
 /**
+$(RED Warning:
+      This module is deprecated. It will be removed in 2.112.
+      Use `etc.c.odbc.sql` instead.)
+
  * Windows API header module
  *
  * Translated from MinGW Windows headers
@@ -6,6 +12,8 @@
  * License: $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source: $(DRUNTIMESRC core/sys/windows/_sql.d)
  */
+ 
+deprecated("Import etc.c.odbc.sql instead.")
 module core.sys.windows.sql;
 version (Windows):
 
