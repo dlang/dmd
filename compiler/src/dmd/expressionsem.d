@@ -12879,18 +12879,16 @@ Expression binSemantic(BinExp e, Scope* sc)
     if (e2x.op == EXP.type)
         e2x = resolveAliasThis(sc, e2x);
 
-    if (e1x.op == EXP.type || e2x.op == EXP.type)
-    {
-        if (e1x.op == EXP.type)
-            e1x.error("type `%s` is not an expression", e1x.toChars());
-        else
-            e2x.error("type `%s` is not an expression", e2x.toChars());
-        return ErrorExp.get();
-    }
     if (e1x.op == EXP.error)
         return e1x;
     if (e2x.op == EXP.error)
         return e2x;
+    // allow empty AliasSeq!() == ...
+    if (!e1x.type.isTypeTuple() && e1x.checkValue())
+        return ErrorExp.get();
+    if (!e2x.type.isTypeTuple() && e2x.checkValue())
+        return ErrorExp.get();
+
     e.e1 = e1x;
     e.e2 = e2x;
     return null;
