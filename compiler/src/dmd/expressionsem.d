@@ -2814,6 +2814,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
                 // Haven't done overload resolution yet, so pass 1
                 e = symbolToExp(s, exp.loc, sc, true);
+//~ printf("%s --\n", s.toChars());
             }
             result = e;
             return;
@@ -12883,12 +12884,15 @@ Expression binSemantic(BinExp e, Scope* sc)
         return e1x;
     if (e2x.op == EXP.error)
         return e2x;
-    // allow empty AliasSeq!() == ...
-    if (!e1x.type.isTypeTuple() && e1x.checkValue())
-        return ErrorExp.get();
-    if (!e2x.type.isTypeTuple() && e2x.checkValue())
-        return ErrorExp.get();
-
+    // defer `TA == TB` error
+    if (!e.isEqualExp() && !e.isIdentityExp())
+    {
+        // allow empty AliasSeq!() == ...
+        if (!e1x.type.isTypeTuple() && e1x.type.ty != Tvoid && e1x.checkValue())
+            return ErrorExp.get();
+        if (!e2x.type.isTypeTuple() && e2x.type.ty != Tvoid && e2x.checkValue())
+            return ErrorExp.get();
+    }
     e.e1 = e1x;
     e.e2 = e2x;
     return null;
