@@ -132,7 +132,7 @@
 #define _In_reads_(x)
 #define _In_reads_opt_(x)
 #define _In_reads_bytes_opt_(x)
-#define _Inout_ 
+#define _Inout_
 #define _Inout_opt_
 #define _Inout_updates_opt_(x)
 #define _Inout_updates_bytes_opt_(x)
