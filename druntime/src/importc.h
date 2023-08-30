@@ -126,6 +126,8 @@
 #define _NO_CRT_STDIO_INLINE 1
 
 // This header disables the Windows API Annotations macros
+// Need to include sal.h to get the pragma once to prevent macro redefinition.
+#include "sal.h"
 #include "no_sal2.h"
 #endif
 
