@@ -124,6 +124,24 @@
 #define __ptr64
 #define __unaligned
 #define _NO_CRT_STDIO_INLINE 1
+
+// Windows API Annotations - This may be incomplete
+#define _Inexpressible_
+#define _In_
+#define _In_opt_
+#define _In_reads_(x)
+#define _In_reads_opt_(x)
+#define _In_reads_bytes_opt_(x)
+#define _Inout_ 
+#define _Inout_opt_
+#define _Inout_updates_opt_(x)
+#define _Inout_updates_bytes_opt_(x)
+#define _Out_
+#define _Out_opt_
+#define _Out_writes_(x)
+#define _Out_writes_opt_(x)
+#define _Out_writes_bytes_opt_(x)
+#define _Success_(x)
 #endif
 
 /****************************
