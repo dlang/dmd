@@ -12884,6 +12884,15 @@ Expression binSemantic(BinExp e, Scope* sc)
         return e1x;
     if (e2x.op == EXP.error)
         return e2x;
+
+    auto etmp = checkNoreturnVarAccess(e1x);
+    if (etmp != e1x)
+        return etmp;
+
+    etmp = checkNoreturnVarAccess(e2x);
+    if (etmp != e2x)
+        return etmp;
+
     e.e1 = e1x;
     e.e2 = e2x;
     return null;
