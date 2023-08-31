@@ -4038,11 +4038,10 @@ extern (C++) final class FuncExp : Expression
 
     extern (D) MATCH matchType(Type to, Scope* sc, FuncExp* presult, int flag = 0)
     {
-
-        static MATCH cannotInfer(Expression e, Type to, int flag)
+        MATCH cannotInfer()
         {
             if (!flag)
-                e.error("cannot infer parameter types from `%s`", to.toChars());
+                error("cannot infer parameter types from `%s`", to.toChars());
             return MATCH.nomatch;
         }
 
@@ -4075,7 +4074,7 @@ extern (C++) final class FuncExp : Expression
         {
             if (!tof)
             {
-                return cannotInfer(this, to, flag);
+                return cannotInfer();
             }
 
             // Parameter types inference from 'tof'
@@ -4086,7 +4085,7 @@ extern (C++) final class FuncExp : Expression
             const dim = tf.parameterList.length;
 
             if (tof.parameterList.length != dim || tof.parameterList.varargs != tf.parameterList.varargs)
-                return cannotInfer(this, to, flag);
+                return cannotInfer();
 
             auto tiargs = new Objects();
             tiargs.reserve(td.parameters.length);
@@ -4106,7 +4105,7 @@ extern (C++) final class FuncExp : Expression
                 Parameter pto = tof.parameterList[u];
                 Type t = pto.type;
                 if (t.ty == Terror)
-                    return cannotInfer(this, to, flag);
+                    return cannotInfer();
                 tf.parameterList[u].storageClass = tof.parameterList[u].storageClass;
                 tiargs.push(t);
             }
@@ -4126,7 +4125,7 @@ extern (C++) final class FuncExp : Expression
             if (auto ef = ex.isFuncExp())
                 return ef.matchType(to, sc, presult, flag);
             else
-                return cannotInfer(this, to, flag);
+                return cannotInfer();
         }
 
         if (!tof || !tof.next)
