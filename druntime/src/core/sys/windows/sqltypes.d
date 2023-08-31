@@ -1,9 +1,6 @@
-// @@@DEPRECATED_2.112@@@
-
 /**
 $(RED Warning:
-      This module is deprecated. It will be removed in 2.112.
-      Use `etc.c.odbc.sqltypes` instead.)
+      This binding is out-of-date and does not allow use on non-Windows platforms. Use `etc.c.odbc.sqltypes` instead.)
 
  * Windows API header module
  *
@@ -13,7 +10,6 @@ $(RED Warning:
  * Source: $(DRUNTIMESRC core/sys/windows/_sqltypes.d)
  */
 
-deprecated("Import etc.c.odbc.sqltypes instead.")
 module core.sys.windows.sqltypes;
 version (Windows):
 

@@ -1,9 +1,6 @@
-// @@@DEPRECATED_2.112@@@
-
 /**
 $(RED Warning:
-      This module is deprecated. It will be removed in 2.112.
-      Use `etc.c.odbc.sqlucode` instead.)
+      This binding is out-of-date and does not allow use on non-Windows platforms. Use `etc.c.odbc.sqlucode` instead.)
 
  * Windows API header module
  *
@@ -13,7 +10,6 @@ $(RED Warning:
  * Source: $(DRUNTIMESRC core/sys/windows/_sqlucode.d)
  */
 
-deprecated("Import etc.c.odbc.sqlucode instead.")
 module core.sys.windows.sqlucode;
 version (Windows):
 
