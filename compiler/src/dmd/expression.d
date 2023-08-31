@@ -3250,6 +3250,8 @@ extern (C++) final class AssocArrayLiteralExp : Expression
 
     Expressions* keys;
     Expressions* values;
+    /// Lower to core.internal.newaa for static initializaton
+    Expression lowering;
 
     extern (D) this(const ref Loc loc, Expressions* keys, Expressions* values) @safe
     {

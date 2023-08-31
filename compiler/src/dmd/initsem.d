@@ -54,7 +54,7 @@ import dmd.typesem;
 Expression toAssocArrayLiteral(ArrayInitializer ai)
 {
     Expression e;
-    //printf("ArrayInitializer::toAssocArrayInitializer()\n");
+    //printf("ArrayInitializer::toAssocArrayInitializer(%s)\n", ai.toChars());
     //static int i; if (++i == 2) assert(0);
     const dim = ai.value.length;
     auto keys = new Expressions(dim);
