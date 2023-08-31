@@ -70,7 +70,7 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
         {
             // no need for an extra cast when matching is exact
 
-            if (match == MATCH.convert && e.type.isTypeNoreturn())
+            if (match == MATCH.convert && e.type.isTypeNoreturn() && e.op != EXP.type)
             {
                 return specialNoreturnCast(e, t);
             }
@@ -1534,7 +1534,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
         {
             return e;
         }
-        if (e.type.isTypeNoreturn())
+        if (e.type.isTypeNoreturn() && e.op != EXP.type)
         {
             return specialNoreturnCast(e, t);
         }
