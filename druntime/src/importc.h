@@ -115,8 +115,6 @@
 #endif
 
 #if _MSC_VER
-//#undef _Post_writable_size
-//#define _Post_writable_size(x) // consider #include <no_sal2.h>
 #define _CRT_INSECURE_DEPRECATE(x)
 #define _CRT_NONSTDC_NO_DEPRECATE 1
 #define _CRT_SECURE_NO_WARNINGS 1
@@ -124,6 +122,11 @@
 #define __ptr64
 #define __unaligned
 #define _NO_CRT_STDIO_INLINE 1
+
+// This header disables the Windows API Annotations macros
+// Need to include sal.h to get the pragma once to prevent macro redefinition.
+#include "sal.h"
+#include "no_sal2.h"
 #endif
 
 /****************************
