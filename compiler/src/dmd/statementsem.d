@@ -929,6 +929,11 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
         foreach (Parameter p; *fs.parameters)
         {
+            if (p.unpack)
+            {
+                p.unpack.propagateStorageClasses();
+                p.storageClass |= p.unpack.storage_class;
+            }
             if (p.storageClass & STC.manifest)
             {
                 error(fs.loc, "cannot declare `enum` loop variables for non-unrolled foreach");
@@ -958,6 +963,30 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             s = s.statementSemantic(sc2);
             sc2.pop();
             result = s;
+        }
+
+        Statement unpackVariables(Statement _body)
+        {
+            Statements* ups = null;
+            foreach (i; 0 .. dim)
+            {
+                Parameter p = (*fs.parameters)[i];
+                if (p.unpack)
+                {
+                    if (ups is null)
+                    {
+                        ups = new Statements();
+                    }
+                    p.unpack._init = new IdentifierExp(p.loc, p.ident);
+                    ups.push(new ExpStatement(p.unpack.loc, p.unpack));
+                }
+            }
+            if (ups !is null)
+            {
+                ups.push(_body);
+                return new CompoundStatement(loc, ups);
+            }
+            return _body;
         }
 
         Type tn = null;
@@ -994,6 +1023,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 }
             }
 
+            fs._body = unpackVariables(fs._body); // TODO: translate to unpacked parameters instead
             FuncExp flde = foreachBodyToFunction(sc2, fs, tfld);
             if (!flde)
                 return null;
@@ -1261,6 +1291,8 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 fs.value._init = new ExpInitializer(loc, indexExp);
                 Statement ds = new ExpStatement(loc, fs.value);
 
+                fs._body = unpackVariables(fs._body);
+
                 if (dim == 2)
                 {
                     Parameter p = (*fs.parameters)[0];
@@ -1478,6 +1510,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                     }
                 }
 
+                fs._body = unpackVariables(fs._body);
                 forbody = new CompoundStatement(loc, makeargs, fs._body);
 
                 Statement s = new ForStatement(loc, _init, condition, increment, forbody, fs.endloc);
@@ -1667,6 +1700,13 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             //increment = new AddAssignExp(loc, new VarExp(loc, fs.key), IntegerExp.literal!1);
             increment = new PreExp(EXP.prePlusPlus, loc, new VarExp(loc, fs.key));
         }
+
+        if (fs.param.unpack !is null)
+        {
+            fs.param.unpack._init = new IdentifierExp(fs.param.loc, fs.param.ident);
+            fs._body = new CompoundStatement(loc, new ExpStatement(fs.param.unpack.loc, fs.param.unpack), fs._body);
+        }
+
         if ((fs.param.storageClass & STC.ref_) && fs.param.type.equals(fs.key.type))
         {
             fs.key.range = null;
@@ -1696,6 +1736,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         }
 
         auto s = new ForStatement(loc, forinit, cond, increment, fs._body, fs.endloc);
+
         if (LabelStatement ls = checkLabeledLoop(sc, fs))
             ls.gotoTarget = s;
         result = s.statementSemantic(sc);
@@ -4585,6 +4626,12 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
                 return returnEarly();
             }
 
+            if (p.unpack)
+            {
+                error(fs.loc, "foreach: cannot unpack key");
+                return returnEarly();
+            }
+
             const length = te ? te.exps.length : tuple.arguments.length;
             IntRange dimrange = IntRange(SignExtendedNumber(length))._cast(Type.tsize_t);
             // https://issues.dlang.org/show_bug.cgi?id=12504
@@ -4615,12 +4662,14 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
          *     storageClass = The storage class of the variable.
          *     type = The declared type of the variable.
          *     ident = The name of the variable.
+         *     unpack = Associated unpack declaration.
          *     e = The initializer of the variable (i.e. the current element of the looped over aggregate).
          *     t = The type of the initializer.
          * Returns:
          *     `true` iff the declaration was successful.
          */
-        bool declareVariable(STC storageClass, Type type, Identifier ident, Expression e, Type t)
+        import dmd.attrib: UnpackDeclaration;
+        bool declareVariable(STC storageClass, Type type, Identifier ident, UnpackDeclaration unpack, Expression e, Type t)
         {
             if (storageClass & (STC.out_ | STC.lazy_) ||
                 storageClass & STC.ref_ && !te)
@@ -4743,13 +4792,25 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
                 decls.push(var);
             else
                 stmts.push(new ExpStatement(loc, var));
+
+            if (unpack)
+            {
+                auto _init = new IdentifierExp(var.loc, var.ident);
+                auto ndecls = Dsymbol.arraySyntaxCopy(unpack.decl);
+                auto nunpack = new UnpackDeclaration(var.loc, ndecls, _init, var.storage_class);
+                if (isDecl)
+                    decls.push(nunpack);
+                else
+                    stmts.push(new ExpStatement(loc, nunpack));
+            }
+
             return true;
         }
 
         if (!isStatic)
         {
             // Declare value
-            if (!declareVariable(p.storageClass, p.type, p.ident, e, t))
+            if (!declareVariable(p.storageClass, p.type, p.ident, p.unpack, e, t))
             {
                 return returnEarly();
             }
@@ -4759,7 +4820,7 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
             if (!needExpansion)
             {
                 // Declare value
-                if (!declareVariable(p.storageClass, p.type, p.ident, e, t))
+                if (!declareVariable(p.storageClass, p.type, p.ident, p.unpack, e, t))
                 {
                     return returnEarly();
                 }
@@ -4768,7 +4829,7 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
             {   // expand tuples into multiple `static foreach` variables.
                 assert(e && !t);
                 auto ident = Identifier.generateId("__value");
-                declareVariable(STC.none, e.type, ident, e, null);
+                declareVariable(STC.none, e.type, ident, null, e, null);
                 import dmd.cond: StaticForeach;
                 auto field = Identifier.idPool(StaticForeach.tupleFieldName.ptr,StaticForeach.tupleFieldName.length);
                 Expression access = new DotIdExp(loc, e, field);
@@ -4782,7 +4843,7 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
                     Expression init_ = new IndexExp(loc, access, new IntegerExp(loc, l, Type.tsize_t));
                     init_ = init_.expressionSemantic(sc);
                     assert(init_.type);
-                    declareVariable(p.storageClass, init_.type, cp.ident, init_, null);
+                    declareVariable(p.storageClass, init_.type, cp.ident, cp.unpack, init_, null);
                 }
             }
         }

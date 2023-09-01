@@ -19255,7 +19255,7 @@ void lowerNonArrayAggregate(StaticForeach sfe, Scope* sc)
         {
             auto p = sfe.aggrfe ? (*sfe.aggrfe.parameters)[i] : sfe.rangefe.param;
             auto storageClass = j == 2 ? p.storageClass : p.storageClass & ~(STC.manifest | STC.alias_);
-            params.push(new Parameter(aloc, storageClass, p.type, p.ident, null, null, p.unpack));
+            params.push(new Parameter(aloc, storageClass, p.type, p.ident, null, null, p.unpack ? p.unpack.syntaxCopy(null) : null));
         }
     }
     Expression[2] res;
