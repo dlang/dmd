@@ -37,7 +37,13 @@ Refer to their respective `README.md` for more in-depth information.
 | [compiler/samples](compiler/samples) | Various code examples                             |
 | [druntime](druntime)                 | root of all runtime related code                  |
 
-For more general information regarding compiling, installing, and
+With a D compiler and dub installed, dmd can be built with:
+
+```
+dub build dmd:compiler
+```
+
+For more information regarding compiling, installing, and
 hacking on DMD, check the [contribution guide](CONTRIBUTING.md) and
 visit the [D Wiki](https://wiki.dlang.org/DMD).
 
