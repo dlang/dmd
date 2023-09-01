@@ -1180,7 +1180,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         }
     }
 
-    AST.UnpackDeclaration parseUnpackDeclaration(STC g_storage_class, bool parseInitializer = true)
+    AST.UnpackDeclaration parseUnpackDeclaration(STC g_storage_class, bool parseInitializer = true, bool isParameter = false)
     in
     {
         assert(token.value == TOK.leftParenthesis);
@@ -1208,7 +1208,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 error("user defined attributes not allowed within unpack declarations");
             if (token.value == TOK.leftParenthesis)
             {
-                vars.push(parseUnpackDeclaration(storage_class, false));
+                vars.push(parseUnpackDeclaration(storage_class, false, isParameter));
             }
             else
             {
@@ -5829,6 +5829,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
             STC storageClass = STC.none;
             STC stc = STC.none;
+
+            AST.UnpackDeclaration unpack = null;
         Lagain:
             if (stc)
             {
@@ -5865,36 +5867,28 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     break;
 
                 case TOK.const_:
-                    if (peekNext() != TOK.leftParenthesis)
-                    {
-                        stc = STC.const_;
-                        goto Lagain;
-                    }
-                    break;
+                    if (isTypeConstructor(&token))
+                        break;
+                    stc = STC.const_;
+                    goto Lagain;
 
                 case TOK.immutable_:
-                    if (peekNext() != TOK.leftParenthesis)
-                    {
-                        stc = STC.immutable_;
-                        goto Lagain;
-                    }
-                    break;
+                    if (isTypeConstructor(&token))
+                        break;
+                    stc = STC.immutable_;
+                    goto Lagain;
 
                 case TOK.shared_:
-                    if (peekNext() != TOK.leftParenthesis)
-                    {
-                        stc = STC.shared_;
-                        goto Lagain;
-                    }
-                    break;
+                    if (isTypeConstructor(&token))
+                        break;
+                    stc = STC.shared_;
+                    goto Lagain;
 
                 case TOK.inout_:
-                    if (peekNext() != TOK.leftParenthesis)
-                    {
-                        stc = STC.wild;
-                        goto Lagain;
-                    }
-                    break;
+                    if (isTypeConstructor(&token))
+                        break;
+                    stc = STC.wild;
+                    goto Lagain;
 
                 default:
                     break;
@@ -5912,11 +5906,21 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     goto Larg;
                 }
             }
+            else if (token.value == TOK.leftParenthesis)
+            {
+                TOK after = peekPastParen(&token).value;
+                if (after == TOK.comma || after == TOK.semicolon)
+                {
+                    unpack = parseUnpackDeclaration(storageClass | STC.temp | STC.ctfe, false, true);
+                    ai = Identifier.generateId("__unpack");
+                    goto Larg;
+                }
+            }
             at = parseType(&ai);
             if (!ai)
                 noIdentifierForDeclarator(at, token);
         Larg:
-            auto p = new AST.Parameter(aloc, storageClass, at, ai, null, null, null);
+            auto p = new AST.Parameter(aloc, storageClass, at, ai, null, null, unpack);
             parameters.push(p);
             if (token.value == TOK.comma)
             {
