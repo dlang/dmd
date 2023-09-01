@@ -267,7 +267,6 @@ extern (C++) struct Global
     uint gag;               /// !=0 means gag reporting of errors & warnings
     uint gaggedErrors;      /// number of errors reported while gagged
     uint gaggedWarnings;    /// number of warnings reported while gagged
-    OutBuffer* errorBuf;    /// buffer to write gagged errors to or null
 
     void* console;         /// opaque pointer to console for controlling text attributes
 

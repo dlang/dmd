@@ -472,9 +472,6 @@ extern (C++) void verrorReport(const ref Loc loc, const(char)* format, va_list a
                 info.headerColor = Classification.gagged;
                 verrorPrint(format, ap, info);
             }
-            if (global.errorBuf)
-                global.errorBuf.vprintf(format, ap);
-
             global.gaggedErrors++;
         }
         break;

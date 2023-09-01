@@ -4599,12 +4599,14 @@ extern (C++) final class TypeFunction : TypeNext
         if (arg.type.ty == Tvoid && sc)
         if (auto fe = arg.isFuncExp())
         {
-            const n = global.startGagging();
-            global.errorBuf = &buf;
-            fe.matchType(par.type, sc, null);
-            global.errorBuf = null;
-            global.endGagging(n);
-            return buf.extractChars();
+            import dmd.errorsink;
+            import std.algorithm.searching;
+            auto eSink = new ErrorSinkBuffer;
+            fe.matchType(par.type, sc, null, eSink);
+            // for now we need just the message part
+            auto s = eSink.buffer.extractSlice(true);
+            s.findSkip("Error: ");
+            return s.ptr;
         }
         // show qualification when toChars() is the same but types are different
         // https://issues.dlang.org/show_bug.cgi?id=19948
