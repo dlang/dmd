@@ -3568,6 +3568,27 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
                         single_candidate ? "Candidate is: `%s`" : "Candidates are: `%s`",
                         tmsg);
             }
+            if (auto td2 = td.onemember.isTemplateDeclaration())
+            {
+                overloadApply(td2, (s) {
+                    const(char)* p;
+                    if (auto td3 = s.isTemplateDeclaration())
+                        p = td3.toCharsNoConstraints();
+                    else
+                        p = s.toChars();
+
+                    .errorSupplemental(s.loc, "Containing: %s", p);
+                    return 0;
+                });
+                //~ do {
+                //~ if (td2.funcroot) td2 = td2.funcroot.isTemplateDeclaration();
+                //~ printCandidates(loc, td2, showDeprecated);
+                //~ td2 = td2.overnext;
+                //~ } while (td2);
+                    //~ printCandidates(
+            }
+            if (auto fd2 = td.onemember.isFuncDeclaration())
+                printCandidates(loc, fd2, showDeprecated);
         }
         return true;
     }
