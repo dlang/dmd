@@ -171,7 +171,7 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
     {
         //printf("FuncExp::implicitCastTo type = %p %s, t = %s\n", e.type, e.type ? e.type.toChars() : NULL, t.toChars());
         FuncExp fe;
-        if (e.matchType(t, sc, &fe, sc.eSink) > MATCH.nomatch)
+        if (e.matchType(t, sc, &fe, global.errorSink) > MATCH.nomatch)
         {
             return fe;
         }
