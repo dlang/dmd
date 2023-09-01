@@ -1,0 +1,21 @@
+name: Build D compiler using dub
+
+on:
+  - pull_request
+  - push
+
+jobs:
+    test:
+        name: Build D compiler using dub
+        strategy:
+            matrix:
+                os: [ubuntu-latest, windows-latest]
+        runs-on: ${{ matrix.os }}
+        steps:
+            - uses: actions/checkout@v2
+
+            - name: Install Host D compiler
+              uses: dlang-community/setup-dlang@v1.3.0
+
+            - name: Invoke dub
+              run: dub run dmd:compiler -- --version
