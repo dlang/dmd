@@ -151,6 +151,7 @@ extern (C++) private class AddCommentVisitor: Visitor
         }
     }
     override void visit(StaticForeachDeclaration sfd) {}
+    override void visit(UnpackDeclaration upd) {}
 }
 
 

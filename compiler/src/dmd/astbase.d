@@ -1366,7 +1366,7 @@ struct ASTBase
         Expression _init;
         StorageClass storage_class;
 
-        extern (D) this(const ref Loc loc, Dsymbols* vars, Expression _init, StorageClass storage_class)
+        extern (D) this(Loc loc, Dsymbols* vars, Expression _init, StorageClass storage_class)
         {
             super(null);
             this.loc = loc;
@@ -1744,16 +1744,18 @@ struct ASTBase
         Identifier ident;
         Expression defaultArg;
         UserAttributeDeclaration userAttribDecl; // user defined attributes
+        UnpackDeclaration unpack;
 
         extern (D) alias ForeachDg = int delegate(size_t idx, Parameter param);
 
-        final extern (D) this(Loc loc, StorageClass storageClass, Type type, Identifier ident, Expression defaultArg, UserAttributeDeclaration userAttribDecl)
+        final extern (D) this(Loc loc, StorageClass storageClass, Type type, Identifier ident, Expression defaultArg, UserAttributeDeclaration userAttribDecl, UnpackDeclaration unpack)
         {
             this.storageClass = storageClass;
             this.type = type;
             this.ident = ident;
             this.defaultArg = defaultArg;
             this.userAttribDecl = userAttribDecl;
+            this.unpack = unpack;
         }
 
         static size_t dim(Parameters* parameters)
@@ -1820,7 +1822,7 @@ struct ASTBase
 
         Parameter syntaxCopy()
         {
-            return new Parameter(loc, storageClass, type ? type.syntaxCopy() : null, ident, defaultArg ? defaultArg.syntaxCopy() : null, userAttribDecl ? userAttribDecl.syntaxCopy(null) : null);
+            return new Parameter(loc, storageClass, type ? type.syntaxCopy() : null, ident, defaultArg ? defaultArg.syntaxCopy() : null, userAttribDecl ? userAttribDecl.syntaxCopy(null) : null, unpack ? unpack.syntaxCopy(null) : null);
         }
 
         override void accept(Visitor v)
@@ -3679,7 +3681,7 @@ struct ASTBase
                     Expression e = (*exps)[i];
                     if (e.type.ty == Ttuple)
                         error(e.loc, "cannot form sequence of sequences");
-                    auto arg = new Parameter(e.loc, STC.none, e.type, null, null, null);
+                    auto arg = new Parameter(e.loc, STC.none, e.type, null, null, null, null);
                     (*arguments)[i] = arg;
                 }
             }

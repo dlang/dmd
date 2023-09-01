@@ -4927,7 +4927,7 @@ private bool functionParameters(Loc loc, Scope* sc,
         for (size_t i = 0; i < arguments.length - nparams; i++)
         {
             Expression earg = (*arguments)[nparams + i];
-            auto arg = new Parameter(earg.loc, STC.in_, earg.type, null, null, null);
+            auto arg = new Parameter(earg.loc, STC.in_, earg.type, null, null, null, null);
             (*args)[i] = arg;
         }
         auto tup = new TypeTuple(args);
@@ -9129,7 +9129,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     for (size_t i = 0; i < cd.baseclasses.length; i++)
                     {
                         BaseClass* b = (*cd.baseclasses)[i];
-                        args.push(new Parameter(Loc.initial, STC.in_, b.type, null, null, null));
+                        args.push(new Parameter(Loc.initial, STC.in_, b.type, null, null, null, null));
                     }
                     tded = new TypeTuple(args);
                 }
@@ -9175,7 +9175,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                          */
                         if (e.tok2 == TOK.parameters && arg.defaultArg && arg.defaultArg.op == EXP.error)
                             return setError();
-                        args.push(new Parameter(arg.loc, arg.storageClass, arg.type, (e.tok2 == TOK.parameters) ? arg.ident : null, (e.tok2 == TOK.parameters) ? arg.defaultArg : null, arg.userAttribDecl));
+                        args.push(new Parameter(arg.loc, arg.storageClass, arg.type, (e.tok2 == TOK.parameters) ? arg.ident : null, (e.tok2 == TOK.parameters) ? arg.defaultArg : null, arg.userAttribDecl, (e.tok2 == TOK.parameters) ? arg.unpack : null));
                     }
                     tded = new TypeTuple(args);
                     break;
@@ -19255,7 +19255,7 @@ void lowerNonArrayAggregate(StaticForeach sfe, Scope* sc)
         {
             auto p = sfe.aggrfe ? (*sfe.aggrfe.parameters)[i] : sfe.rangefe.param;
             auto storageClass = j == 2 ? p.storageClass : p.storageClass & ~(STC.manifest | STC.alias_);
-            params.push(new Parameter(aloc, storageClass, p.type, p.ident, null, null));
+            params.push(new Parameter(aloc, storageClass, p.type, p.ident, null, null, p.unpack));
         }
     }
     Expression[2] res;
