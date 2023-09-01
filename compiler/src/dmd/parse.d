@@ -8200,6 +8200,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         case TOK.string_:
         case TOK.hexadecimalString:
+            const bool hexString = token.value == TOK.hexadecimalString;
             {
                 // cat adjacent strings
                 auto s = token.ustring;
@@ -8235,6 +8236,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         break;
                 }
                 e = new AST.StringExp(loc, s[0 .. len], len, 1, postfix);
+                e.isStringExp().hexString = hexString;
                 break;
             }
         case TOK.void_:
