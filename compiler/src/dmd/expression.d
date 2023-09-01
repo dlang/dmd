@@ -40,6 +40,7 @@ import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.errors;
+import dmd.errorsink;
 import dmd.escape;
 import dmd.expressionsem;
 import dmd.func;
@@ -4038,13 +4039,11 @@ extern (C++) final class FuncExp : Expression
             return new FuncExp(loc, fd);
     }
 
-    extern (D) MATCH matchType(Type to, Scope* sc, FuncExp* presult, int flag = 0)
+    extern (D) MATCH matchType(Type to, Scope* sc, FuncExp* presult, ErrorSink eSink)
     {
-
-        static MATCH cannotInfer(Expression e, Type to, int flag)
+        MATCH cannotInfer()
         {
-            if (!flag)
-                e.error("cannot infer parameter types from `%s`", to.toChars());
+            eSink.error(loc, "cannot infer parameter types from `%s`", to.toChars());
             return MATCH.nomatch;
         }
 
@@ -4057,8 +4056,7 @@ extern (C++) final class FuncExp : Expression
         {
             if (tok == TOK.function_)
             {
-                if (!flag)
-                    error("cannot match function literal to delegate type `%s`", to.toChars());
+                eSink.error(loc, "cannot match function literal to delegate type `%s`", to.toChars());
                 return MATCH.nomatch;
             }
             tof = cast(TypeFunction)to.nextOf();
@@ -4067,8 +4065,7 @@ extern (C++) final class FuncExp : Expression
         {
             if (tok == TOK.delegate_)
             {
-                if (!flag)
-                    error("cannot match delegate literal to function pointer type `%s`", to.toChars());
+                eSink.error(loc, "cannot match delegate literal to function pointer type `%s`", to.toChars());
                 return MATCH.nomatch;
             }
         }
@@ -4077,7 +4074,7 @@ extern (C++) final class FuncExp : Expression
         {
             if (!tof)
             {
-                return cannotInfer(this, to, flag);
+                return cannotInfer();
             }
 
             // Parameter types inference from 'tof'
@@ -4088,7 +4085,7 @@ extern (C++) final class FuncExp : Expression
             const dim = tf.parameterList.length;
 
             if (tof.parameterList.length != dim || tof.parameterList.varargs != tf.parameterList.varargs)
-                return cannotInfer(this, to, flag);
+                return cannotInfer();
 
             auto tiargs = new Objects();
             tiargs.reserve(td.parameters.length);
@@ -4108,7 +4105,7 @@ extern (C++) final class FuncExp : Expression
                 Parameter pto = tof.parameterList[u];
                 Type t = pto.type;
                 if (t.ty == Terror)
-                    return cannotInfer(this, to, flag);
+                    return cannotInfer();
                 tf.parameterList[u].storageClass = tof.parameterList[u].storageClass;
                 tiargs.push(t);
             }
@@ -4126,9 +4123,9 @@ extern (C++) final class FuncExp : Expression
             if (ex.op == EXP.error)
                 return MATCH.nomatch;
             if (auto ef = ex.isFuncExp())
-                return ef.matchType(to, sc, presult, flag);
+                return ef.matchType(to, sc, presult, eSink);
             else
-                return cannotInfer(this, to, flag);
+                return cannotInfer();
         }
 
         if (!tof || !tof.next)
@@ -4200,10 +4197,10 @@ extern (C++) final class FuncExp : Expression
                 (*presult).fd.modifyReturns(sc, tof.next);
             }
         }
-        else if (!flag)
+        else if (!cast(ErrorSinkNull)eSink)
         {
             auto ts = toAutoQualChars(tx, to);
-            error("cannot implicitly convert expression `%s` of type `%s` to `%s`",
+            eSink.error(loc, "cannot implicitly convert expression `%s` of type `%s` to `%s`",
                 toChars(), ts[0], ts[1]);
         }
         return m;

@@ -4316,7 +4316,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (exp.fd.treq) // defer type determination
             {
                 FuncExp fe;
-                if (exp.matchType(exp.fd.treq, sc, &fe) > MATCH.nomatch)
+                if (exp.matchType(exp.fd.treq, sc, &fe, sc.eSink) > MATCH.nomatch)
                     e = fe;
                 else
                     e = ErrorExp.get();

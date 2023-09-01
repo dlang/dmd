@@ -79,6 +79,7 @@ class ErrorSinkNull : ErrorSink
 
 /*****************************************
  * Simplest implementation, just sends messages to stderr.
+ * See also: ErrorSinkCompiler.
  */
 class ErrorSinkStderr : ErrorSink
 {
