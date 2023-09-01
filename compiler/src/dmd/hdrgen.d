@@ -62,6 +62,7 @@ struct HdrGenState
     bool doFuncBodies;  /// include function bodies in output
     bool vcg_ast;       /// write out codegen-ast
     bool skipConstraints;  // skip constraints when doing templates
+    bool showOneMember = true;
 
     bool fullQual;      /// fully qualify types when printing
     int tpltMember;
@@ -1974,11 +1975,13 @@ void toCharsMaybeConstraints(const TemplateDeclaration td, ref OutBuffer buf, re
     }
     buf.writeByte(')');
 
-    if (td.onemember)
+    if (hgs.showOneMember && td.onemember)
     {
         if (const fd = td.onemember.isFuncDeclaration())
+        //~ const FuncDeclaration fd = td.onemember.isFuncDeclaration();
+        //~ if (fd && fd.type)
         {
-            if (TypeFunction tf = cast(TypeFunction)fd.type.isTypeFunction())
+            if (TypeFunction tf = cast(TypeFunction) fd.type.isTypeFunction())
             {
                 // !! Casted away const
                 buf.writestring(parametersTypeToChars(tf.parameterList));
