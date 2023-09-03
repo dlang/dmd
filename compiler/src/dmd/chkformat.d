@@ -226,7 +226,7 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
                 break;
 
             case Format.n:      // pointer to int
-                if (!(t.ty == Tpointer && tnext.ty == Tint32))
+                if (!(t.ty == Tpointer && tnext.ty == Tint32 && tnext.isMutable()))
                     errorMsg(null, e, "int*", t);
                 break;
 
