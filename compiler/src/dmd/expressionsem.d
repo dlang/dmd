@@ -2332,14 +2332,14 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
     {
         if (auto se = (*arguments)[nparams - 1 - isVa_list].isStringExp())
         {
-            checkPrintfFormat(se.loc, se.peekString(), (*arguments)[nparams .. nargs], isVa_list);
+            checkPrintfFormat(se.loc, se.peekString(), (*arguments)[nparams .. nargs], isVa_list, sc.eSink);
         }
     }
     else if (fd && fd.scanf)
     {
         if (auto se = (*arguments)[nparams - 1 - isVa_list].isStringExp())
         {
-            checkScanfFormat(se.loc, se.peekString(), (*arguments)[nparams .. nargs], isVa_list);
+            checkScanfFormat(se.loc, se.peekString(), (*arguments)[nparams .. nargs], isVa_list, sc.eSink);
         }
     }
     else
