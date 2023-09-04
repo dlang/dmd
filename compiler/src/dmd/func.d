@@ -3519,9 +3519,9 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
                                 : int.max;
     const(char)* constraintsTip;
 
-    int printed; // number of candidates printed
-    int count = 0;
-    bool child;
+    int printed = 0; // number of candidates printed
+    int count = 0; // total candidates
+    bool child; // true if inside an eponymous template
     string prefix()
     {
         if (child)
@@ -3551,7 +3551,7 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
                 return true;
             auto tf = cast(TypeFunction) fd.type;
             .errorSupplemental(fd.loc, "%s`%s%s`",
-                prefix().ptr, fd.toPrettyChars(),
+                prefix().ptr, child ? fd.toChars() : fd.toPrettyChars(),
                 parametersTypeToChars(tf.parameterList));
         }
         else if (auto td = s.isTemplateDeclaration())
@@ -3561,7 +3561,11 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
             if (!print)
                 return true;
 
-            const tmsg = td.toCharsNoConstraints();
+            // td.onemember may not have overloads set
+            // (see fail_compilation/onemember_overloads.d)
+            // assume if more than one member it is overloaded internally
+            bool recurse = td.onemember && td.members.length > 1;
+            const tmsg = td.toCharsFull(false, !recurse);
             const cmsg = child ? null : td.getConstraintEvalError(constraintsTip);
 
             if (cmsg)
@@ -3569,11 +3573,19 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
             else
                 .errorSupplemental(td.loc, "%s`%s`", prefix().ptr, tmsg);
 
-            if (auto td2 = td.onemember.isTemplateDeclaration())
+            if (recurse)
             {
-                // FIXME this only shows first child overload for fail_compilation/onemember_overloads.d
                 child = true;
-                matchSymbol(td.onemember, print);
+                foreach (d; *td.members)
+                {
+                    if (d.ident != td.ident)
+                        continue;
+
+                    if (auto fd2 = d.isFuncDeclaration())
+                        matchSymbol(fd2, print);
+                    else if (auto td2 = d.isTemplateDeclaration())
+                        matchSymbol(td2, print);
+                }
                 child = false;
             }
         }
