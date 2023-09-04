@@ -36,4 +36,3 @@ template t2(T)
     bool t2(int[]);
     bool t2(R)(R);
 }
-
