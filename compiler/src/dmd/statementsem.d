@@ -38,6 +38,7 @@ import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.errors;
+import dmd.errorsink;
 import dmd.escape;
 import dmd.expression;
 import dmd.expressionsem;
@@ -2697,7 +2698,12 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 {
                     /* May return by ref
                      */
-                    if (checkReturnEscapeRef(sc, rs.exp, true))
+                    Scope* sc2 = sc.push();
+                    sc2.eSink = global.errorSinkNull;
+                    bool err = checkReturnEscapeRef(sc2, rs.exp, true);
+                    sc2.pop();
+
+                    if (err)
                         turnOffRef(() { checkReturnEscapeRef(sc, rs.exp, false); });
                     else if (!rs.exp.type.constConv(tf.next))
                         turnOffRef(
