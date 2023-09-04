@@ -3518,10 +3518,24 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
                                 (global.params.errorSupplementLimit ? global.params.errorSupplementLimit : int.max)
                                 : int.max;
     const(char)* constraintsTip;
-    // determine if the first candidate was printed
-    int printed;
 
-    bool matchSymbol(Dsymbol s, bool print, bool single_candidate = false)
+    int printed; // number of candidates printed
+    int count = 0;
+    bool child;
+    string prefix()
+    {
+        if (child)
+            return "  - Containing: ";
+
+        enum plural = "Candidates are: ";
+        // show blank space after first
+        enum char[plural.length] spaces = ' ';
+        if (printed)
+            return spaces;
+
+        return (count == 1) ? "Candidate is: " : plural;
+    }
+    bool matchSymbol(Dsymbol s, bool print)
     {
         if (auto fd = s.isFuncDeclaration())
         {
@@ -3536,10 +3550,8 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
             if (!print)
                 return true;
             auto tf = cast(TypeFunction) fd.type;
-            .errorSupplemental(fd.loc,
-                    printed ? "                `%s%s`" :
-                    single_candidate ? "Candidate is: `%s%s`" : "Candidates are: `%s%s`",
-                    fd.toPrettyChars(),
+            .errorSupplemental(fd.loc, "%s`%s%s`",
+                prefix().ptr, fd.toPrettyChars(),
                 parametersTypeToChars(tf.parameterList));
         }
         else if (auto td = s.isTemplateDeclaration())
@@ -3548,52 +3560,26 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
 
             if (!print)
                 return true;
-            const tmsg = td.toCharsNoConstraints();
-            const cmsg = td.getConstraintEvalError(constraintsTip);
 
-            // add blank space if there are multiple candidates
-            // the length of the blank space is `strlen("Candidates are: ")`
+            const tmsg = td.toCharsNoConstraints();
+            const cmsg = child ? null : td.getConstraintEvalError(constraintsTip);
 
             if (cmsg)
-            {
-                .errorSupplemental(td.loc,
-                        printed ? "                `%s`\n%s" :
-                        single_candidate ? "Candidate is: `%s`\n%s" : "Candidates are: `%s`\n%s",
-                        tmsg, cmsg);
-            }
+                .errorSupplemental(td.loc, "%s`%s`\n%s", prefix().ptr, tmsg, cmsg);
             else
-            {
-                .errorSupplemental(td.loc,
-                        printed ? "                `%s`" :
-                        single_candidate ? "Candidate is: `%s`" : "Candidates are: `%s`",
-                        tmsg);
-            }
+                .errorSupplemental(td.loc, "%s`%s`", prefix().ptr, tmsg);
+
             if (auto td2 = td.onemember.isTemplateDeclaration())
             {
-                overloadApply(td2, (s) {
-                    const(char)* p;
-                    if (auto td3 = s.isTemplateDeclaration())
-                        p = td3.toCharsNoConstraints();
-                    else
-                        p = s.toChars();
-
-                    .errorSupplemental(s.loc, "Containing: %s", p);
-                    return 0;
-                });
-                //~ do {
-                //~ if (td2.funcroot) td2 = td2.funcroot.isTemplateDeclaration();
-                //~ printCandidates(loc, td2, showDeprecated);
-                //~ td2 = td2.overnext;
-                //~ } while (td2);
-                    //~ printCandidates(
+                // FIXME this only shows first child overload for fail_compilation/onemember_overloads.d
+                child = true;
+                matchSymbol(td.onemember, print);
+                child = false;
             }
-            if (auto fd2 = td.onemember.isFuncDeclaration())
-                printCandidates(loc, fd2, showDeprecated);
         }
         return true;
     }
     // determine if there's > 1 candidate
-    int count = 0;
     overloadApply(declaration, (s) {
         if (matchSymbol(s, false))
             count++;
@@ -3603,7 +3589,7 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
     overloadApply(declaration, (s) {
         if (global.params.verbose || printed < DisplayLimit)
         {
-            if (matchSymbol(s, true, count == 1))
+            if (matchSymbol(s, true))
                 printed++;
         }
         else
