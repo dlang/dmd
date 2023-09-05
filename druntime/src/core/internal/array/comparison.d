@@ -123,7 +123,7 @@ if (!__traits(isScalar, T1) && !__traits(isScalar, T2))
             // https://issues.dlang.org/show_bug.cgi?id=17244
             static assert(is(U1 == U2), "Internal error.");
             import core.stdc.string : memcmp;
-            auto c = (() @trusted => memcmp(&at(s1, u), &at(s2, u), U1.sizeof))();
+            auto c = (() @trusted => memcmp(cast(void*)(&at(s1, u)), cast(void*)(&at(s2, u)), U1.sizeof))();
             if (c != 0)
                 return c;
         }
