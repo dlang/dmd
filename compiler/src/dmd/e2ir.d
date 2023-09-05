@@ -1317,7 +1317,7 @@ elem* toElem(Expression e, ref IRState irs)
         }
         else if (auto taa = t.isTypeAArray())
         {
-            Symbol *s = aaGetSymbol(taa, "New", 0);
+            Symbol* s = getRtlsym(RTLSYM.AANEW);
             elem *ti = getTypeInfo(ne, t, irs);
             // aaNew(ti)
             elem *ep = el_params(ti, null);
@@ -2027,13 +2027,13 @@ elem* toElem(Expression e, ref IRState irs)
         else if (t1.ty == Taarray && t2.ty == Taarray)
         {
             TypeAArray taa = cast(TypeAArray)t1;
-            Symbol *s = aaGetSymbol(taa, "Equal", 0);
+            Symbol* s = getRtlsym(RTLSYM.AAEQUAL);
             elem *ti = getTypeInfo(ee, taa, irs);
             elem *ea1 = toElem(ee.e1, irs);
             elem *ea2 = toElem(ee.e2, irs);
             // aaEqual(ti, e1, e2)
             elem *ep = el_params(ea2, ea1, ti, null);
-            e = el_bin(OPcall, TYnptr, el_var(s), ep);
+            e = el_bin(OPcall, TYint, el_var(s), ep);
             if (ee.op == EXP.notEqual)
                 e = el_bin(OPxor, TYint, e, el_long(TYint, 1));
             elem_setLoc(e, ee.loc);
@@ -2134,7 +2134,7 @@ elem* toElem(Expression e, ref IRState irs)
 
         // aaInX(aa, keyti, key);
         key = addressElem(key, ie.e1.type);
-        Symbol *s = aaGetSymbol(taa, "InX", 0);
+        Symbol* s = getRtlsym(RTLSYM.AAINX);
         elem *keyti = getTypeInfo(ie, taa.index, irs);
         elem *ep = el_params(key, keyti, aa, null);
         elem *e = el_bin(OPcall, totym(ie.type), el_var(s), ep);
@@ -2154,10 +2154,10 @@ elem* toElem(Expression e, ref IRState irs)
         elem *ekey = toElem(re.e2, irs);
 
         ekey = addressElem(ekey, re.e2.type);
-        Symbol *s = aaGetSymbol(taa, "DelX", 0);
+        Symbol* s = getRtlsym(RTLSYM.AADELX);
         elem *keyti = getTypeInfo(re, taa.index, irs);
         elem *ep = el_params(ekey, keyti, ea, null);
-        elem *e = el_bin(OPcall, TYnptr, el_var(s), ep);
+        elem *e = el_bin(OPcall, TYbool, el_var(s), ep);
 
         elem_setLoc(e, re.loc);
         return e;
@@ -3855,12 +3855,12 @@ elem* toElem(Expression e, ref IRState irs)
             if (ie.modifiable)
             {
                 n1 = el_una(OPaddr, TYnptr, n1);
-                s = aaGetSymbol(taa, "GetY", 1);
+                s = getRtlsym(RTLSYM.AAGETY);
                 ti = getTypeInfo(ie.e1, taa.unSharedOf().mutableOf(), irs);
             }
             else
             {
-                s = aaGetSymbol(taa, "GetRvalueX", 1);
+                s = getRtlsym(RTLSYM.AAGETRVALUEX);
                 ti = getTypeInfo(ie.e1, taa.index, irs);
             }
             //printf("taa.index = %s\n", taa.index.toChars());

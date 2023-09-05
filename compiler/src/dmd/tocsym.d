@@ -716,51 +716,6 @@ Symbol *toInitializer(EnumDeclaration ed)
 }
 
 
-/********************************************
- * Determine the right symbol to look up
- * an associative array element.
- * Input:
- *      flags   0       don't add value signature
- *              1       add value signature
- */
-
-Symbol *aaGetSymbol(TypeAArray taa, const(char)* func, int flags)
-{
-    assert((flags & ~1) == 0);
-
-    // Dumb linear symbol table - should use associative array!
-    __gshared Symbol*[] sarray;
-
-    //printf("aaGetSymbol(func = '%s', flags = %d, key = %p)\n", func, flags, key);
-    import core.stdc.stdlib : alloca;
-    const allocLen = 3 + strlen(func) + 1;
-    auto id = cast(char *)alloca(allocLen);
-    const idlen = snprintf(id, allocLen, "_aa%s", func);
-
-    // See if symbol is already in sarray
-    foreach (s; sarray)
-    {
-        if (strcmp(id, s.Sident.ptr) == 0)
-        {
-            return s;                       // use existing Symbol
-        }
-    }
-
-    // Create new Symbol
-
-    auto s = symbol_calloc(id[0 .. idlen]);
-    s.Sclass = SC.extern_;
-    s.Ssymnum = SYMIDX.max;
-    symbol_func(s);
-
-    auto t = type_function(TYnfunc, null, false, Type_toCtype(taa.next));
-    t.Tmangle = mTYman_c;
-    s.Stype = t;
-
-    sarray ~= s;                         // remember it
-    return s;
-}
-
 /*****************************************************/
 /*                   CTFE stuff                      */
 /*****************************************************/
