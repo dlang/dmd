@@ -75,7 +75,6 @@ public
 bool checkMutableArguments(Scope* sc, FuncDeclaration fd, TypeFunction tf,
     Expression ethis, Expressions* arguments, bool gag)
 {
-    assert(sc.eSink);
     enum log = false;
     if (log) printf("[%s] checkMutableArguments, fd: `%s`\n", fd.loc.toChars(), fd.toChars());
     if (log && ethis) printf("ethis: `%s`\n", ethis.toChars());
@@ -183,7 +182,7 @@ bool checkMutableArguments(Scope* sc, FuncDeclaration fd, TypeFunction tf,
             const(char)* msg = eb.isMutable && eb2.isMutable
                                 ? "more than one mutable reference %s `%s` in arguments to `%s()`"
                                 : "mutable and const references %s `%s` in arguments to `%s()`";
-            /*sc.eSink.*/error((*arguments)[i].loc, msg,
+            sc.eSink.error((*arguments)[i].loc, msg,
                   referenceVerb,
                   v.toChars(),
                   fd ? fd.toPrettyChars() : "indirectly");
@@ -233,8 +232,6 @@ bool checkMutableArguments(Scope* sc, FuncDeclaration fd, TypeFunction tf,
 public
 bool checkArrayLiteralEscape(Scope *sc, ArrayLiteralExp ae, bool gag)
 {
-//xyzzy
-//    assert(sc.eSink);
     bool errors;
     if (ae.basis)
         errors = checkNewEscape(sc, ae.basis, gag);
@@ -259,7 +256,6 @@ bool checkArrayLiteralEscape(Scope *sc, ArrayLiteralExp ae, bool gag)
 public
 bool checkAssocArrayLiteralEscape(Scope *sc, AssocArrayLiteralExp ae, bool gag)
 {
-    assert(sc.eSink);
     bool errors;
     foreach (ex; *ae.keys)
     {
@@ -329,7 +325,6 @@ void printScopeFailure(E)(E printFunc, VarDeclaration v, int recursionLimit)
 public
 bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier parId, VarDeclaration vPar, STC parStc, Expression arg, bool assertmsg, bool gag)
 {
-    assert(sc.eSink);
     enum log = false;
     if (log) printf("checkParamArgumentEscape(arg: %s par: %s parSTC: %llx)\n",
         arg ? arg.toChars() : "null",
@@ -482,7 +477,6 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier parId, 
 public
 bool checkParamArgumentReturn(Scope* sc, Expression firstArg, Expression arg, Parameter param, bool gag)
 {
-    assert(sc.eSink);
     enum log = false;
     if (log) printf("checkParamArgumentReturn(firstArg: %s arg: %s)\n",
         firstArg.toChars(), arg.toChars());
@@ -519,7 +513,6 @@ bool checkParamArgumentReturn(Scope* sc, Expression firstArg, Expression arg, Pa
 public
 bool checkConstructorEscape(Scope* sc, CallExp ce, bool gag)
 {
-    assert(sc.eSink);
     enum log = false;
     if (log) printf("checkConstructorEscape(%s, %s)\n", ce.toChars(), ce.type.toChars());
     Type tthis = ce.type.toBasetype();
@@ -617,7 +610,6 @@ ReturnParamDest returnParamDest(TypeFunction tf, Type tthis)
 public
 bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
 {
-    assert(sc.eSink);
     enum log = false;
     if (log) printf("checkAssignEscape(e: %s, byRef: %d)\n", e.toChars(), byRef);
     if (e.op != EXP.assign && e.op != EXP.blit && e.op != EXP.construct &&
@@ -932,7 +924,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
             !(va && va.storage_class & STC.temp))
         {
             if (!gag)
-                /*sc.eSink.*/deprecation(ee.loc, "slice of static array temporary returned by `%s` assigned to longer lived variable `%s`",
+                sc.eSink.deprecation(ee.loc, "slice of static array temporary returned by `%s` assigned to longer lived variable `%s`",
                     ee.toChars(), e1.toChars());
             //result = true;
             continue;
@@ -982,7 +974,6 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
 public
 bool checkThrowEscape(Scope* sc, Expression e, bool gag)
 {
-    assert(sc.eSink);
     //printf("[%s] checkThrowEscape, e = %s\n", e.loc.toChars(), e.toChars());
     EscapeByResults er;
 
@@ -1027,8 +1018,6 @@ bool checkThrowEscape(Scope* sc, Expression e, bool gag)
 public
 bool checkNewEscape(Scope* sc, Expression e, bool gag)
 {
-// xyzzy
-//    assert(sc.eSink);
     import dmd.globals: FeatureState;
     import dmd.errors: previewErrorFunc;
 
@@ -1149,7 +1138,7 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
     {
         if (log) printf("byexp %s\n", ee.toChars());
         if (!gag)
-            /*sc.eSink.*/error(ee.loc, "storing reference to stack allocated value returned by `%s` into allocated memory causes it to escape",
+            sc.eSink.error(ee.loc, "storing reference to stack allocated value returned by `%s` into allocated memory causes it to escape",
                   ee.toChars());
         result = true;
     }
@@ -1172,7 +1161,6 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
 public
 bool checkReturnEscape(Scope* sc, Expression e, bool gag)
 {
-    assert(sc.eSink);
     //printf("[%s] checkReturnEscape, e: %s\n", e.loc.toChars(), e.toChars());
     return checkReturnEscapeImpl(sc, e, false, gag);
 }
@@ -1191,7 +1179,6 @@ bool checkReturnEscape(Scope* sc, Expression e, bool gag)
 public
 bool checkReturnEscapeRef(Scope* sc, Expression e, bool gag)
 {
-    assert(sc.eSink);
     version (none)
     {
         printf("[%s] checkReturnEscapeRef, e = %s\n", e.loc.toChars(), e.toChars());
@@ -1214,7 +1201,6 @@ bool checkReturnEscapeRef(Scope* sc, Expression e, bool gag)
  */
 private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
 {
-    assert(sc.eSink);
     enum log = false;
     if (log) printf("[%s] checkReturnEscapeImpl, refs: %d e: `%s`\n", e.loc.toChars(), refs, e.toChars());
     EscapeByResults er;
@@ -1296,7 +1282,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
         else if (v.isTypesafeVariadicArray && p == sc.func)
         {
             if (!gag)
-                /*sc.eSink.*/error(e.loc, "returning `%s` escapes a reference to variadic parameter `%s`", e.toChars(), v.toChars());
+                sc.eSink.error(e.loc, "returning `%s` escapes a reference to variadic parameter `%s`", e.toChars(), v.toChars());
             result = false;
         }
         else
@@ -1450,7 +1436,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
         else
         {
             if (!gag)
-                /*sc.eSink.*/error(ee.loc, "escaping reference to stack allocated value returned by `%s`", ee.toChars());
+                sc.eSink.error(ee.loc, "escaping reference to stack allocated value returned by `%s`", ee.toChars());
             result = true;
         }
     }

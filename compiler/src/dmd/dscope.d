@@ -169,7 +169,7 @@ extern (C++) struct Scope
         sc.scopesym = new ScopeDsymbol();
         sc.scopesym.symtab = new DsymbolTable();
         sc.eSink = eSink;
-if (!eSink) .error(_module.loc, "xyzzy");
+        assert(eSink);
         // Add top level package as member of this global scope
         Dsymbol m = _module;
         while (m.parent)
