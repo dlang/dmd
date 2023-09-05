@@ -11013,7 +11013,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             (exp.e2.isStringExp() && (exp.e1.isIntegerExp() || exp.e1.isStringExp())))
             return exp;
 
-        Identifier hook = global.params.tracegc ? Id._d_arraycatnTXTrace : Id._d_arraycatnTX;
+        bool useTraceGCHook = global.params.tracegc && sc.needsCodegen();
+
+        Identifier hook = useTraceGCHook ? Id._d_arraycatnTXTrace : Id._d_arraycatnTX;
         if (!verifyHookExist(exp.loc, *sc, hook, "concatenating arrays"))
         {
             setError();
@@ -11042,7 +11044,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         auto arguments = new Expressions();
-        if (global.params.tracegc)
+        if (useTraceGCHook)
         {
             auto funcname = (sc.callsc && sc.callsc.func) ?
                 sc.callsc.func.toPrettyChars() : sc.func.toPrettyChars();
@@ -11069,7 +11071,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         /* `_d_arraycatnTX` canot be used with `-betterC`, but `CatExp`s may be
          * used with `-betterC`, but only during CTFE.
          */
-        if (global.params.betterC || !sc.needsCodegen())
+        if (global.params.betterC)
             return;
 
         if (auto ce = exp.isCatExp())
