@@ -518,11 +518,11 @@ void build_syment_table(bool bigobj)
             }
         }
 
-        memset(&aux.x_section.Zeros, 0, 2);
+//        memset(&aux.x_section.Zeros, 0, 2);
 
         syment_buf.write(&aux, symsize);
 
-        assert((aux).sizeof == 20);
+        assert((aux).sizeof == 18);
     }
 
     /* Add symbols from symbuf[]
