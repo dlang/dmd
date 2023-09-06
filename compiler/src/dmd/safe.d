@@ -240,9 +240,18 @@ bool checkUnsafeDotExp(Scope* sc, Expression e, Identifier id, int flag)
 {
     if (flag & DotExpFlag.noDeref) // this use is not attempting a dereference
         return false;
-
-    if (id == Id.ptr)
-        return sc.setUnsafe(false, e.loc, "`(%s).ptr` cannot be used in `@safe` code, use `&(%s)[0]` instead", e, e);
-    else
+    if (id != Id.ptr)
         return sc.setUnsafe(false, e.loc, "`(%s).%s` cannot be used in `@safe` code", e, id);
+
+    if (e.isStringExp()) // always null terminated
+        return false;
+    else if (auto al = e.isArrayLiteralExp())
+    {
+        if (al.elements.length > 0) // can deref ptr
+            return false;
+
+        return sc.setUnsafe(false, e.loc, "`[].ptr` cannot be used in `@safe` code", e);
+    }
+    return sc.setUnsafe(false, e.loc, "`(%s).ptr` cannot be used in `@safe` code, use `&(%s)[0]` instead",
+        e, e);
 }
