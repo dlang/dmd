@@ -1810,6 +1810,25 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 return setError();
             }
         }
+        else if (ps.ident == Id.mangle)
+        {
+            auto es = ps._body ? ps._body.isExpStatement() : null;
+            auto de = es ? es.exp.isDeclarationExp() : null;
+            if (!de)
+            {
+                ps.error("`pragma(mangle)` must be attached to a declaration");
+                return setError();
+            }
+            const se = ps.args && (*ps.args).length == 1 ? semanticString(sc, (*ps.args)[0], "pragma mangle argument") : null;
+            if (!se)
+            {
+                ps.error("`pragma(mangle)` takes a single argument that must be a string literal");
+                return setError();
+            }
+            const cnt = setMangleOverride(de.declaration, cast(const(char)[])se.peekData());
+            if (cnt != 1)
+                assert(0);
+        }
         else if (!global.params.ignoreUnsupportedPragmas)
         {
             ps.error("unrecognized `pragma(%s)`", ps.ident.toChars());
