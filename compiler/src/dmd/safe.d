@@ -238,12 +238,11 @@ bool isSafeCast(Expression e, Type tfrom, Type tto)
  */
 bool checkUnsafeDotExp(Scope* sc, Expression e, Identifier id, int flag)
 {
-    if (!(flag & DotExpFlag.noDeref)) // this use is attempting a dereference
-    {
-        if (id == Id.ptr)
-            return sc.setUnsafe(false, e.loc, "`%s.ptr` cannot be used in `@safe` code, use `&%s[0]` instead", e, e);
-        else
-            return sc.setUnsafe(false, e.loc, "`%s.%s` cannot be used in `@safe` code", e, id);
-    }
-    return false;
+    if (flag & DotExpFlag.noDeref) // this use is not attempting a dereference
+        return false;
+
+    if (id == Id.ptr)
+        return sc.setUnsafe(false, e.loc, "`(%s).ptr` cannot be used in `@safe` code, use `&(%s)[0]` instead", e, e);
+    else
+        return sc.setUnsafe(false, e.loc, "`(%s).%s` cannot be used in `@safe` code", e, id);
 }
