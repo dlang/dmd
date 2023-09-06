@@ -3522,16 +3522,16 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
     int printed = 0; // number of candidates printed
     int count = 0; // total candidates
     bool child; // true if inside an eponymous template
-    string prefix()
+    const(char)* errorPrefix()
     {
         if (child)
             return "  - Containing: ";
 
         enum plural = "Candidates are: ";
-        // show blank space after first
+        // align with blank spaces after first message
         enum char[plural.length] spaces = ' ';
         if (printed)
-            return spaces;
+            return (spaces ~ '\0').ptr;
 
         return (count == 1) ? "Candidate is: " : plural;
     }
@@ -3551,7 +3551,7 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
                 return true;
             auto tf = cast(TypeFunction) fd.type;
             .errorSupplemental(fd.loc, "%s`%s%s`",
-                prefix().ptr, child ? fd.toChars() : fd.toPrettyChars(),
+                errorPrefix(), child ? fd.toChars() : fd.toPrettyChars(),
                 parametersTypeToChars(tf.parameterList));
         }
         else if (auto td = s.isTemplateDeclaration())
@@ -3569,9 +3569,9 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
             const cmsg = child ? null : td.getConstraintEvalError(constraintsTip);
 
             if (cmsg)
-                .errorSupplemental(td.loc, "%s`%s`\n%s", prefix().ptr, tmsg, cmsg);
+                .errorSupplemental(td.loc, "%s`%s`\n%s", errorPrefix(), tmsg, cmsg);
             else
-                .errorSupplemental(td.loc, "%s`%s`", prefix().ptr, tmsg);
+                .errorSupplemental(td.loc, "%s`%s`", errorPrefix(), tmsg);
 
             if (recurse)
             {
