@@ -6487,7 +6487,7 @@ public:
     bool isCoreModule(Identifier* ident);
     int32_t doppelganger;
     Symbol* cov;
-    uint32_t* covb;
+    _d_dynamicArray< uint32_t > covb;
     Symbol* sictor;
     Symbol* sctor;
     Symbol* sdtor;

@@ -181,18 +181,17 @@ extern (D) elem *incUsageElem(ref IRState irs, const ref Loc loc)
         loc.filename != m.srcfile.toChars())
         return null;
 
-    //printf("cov = %p, covb = %p, linnum = %u\n", m.cov, m.covb, p, linnum);
+    //printf("cov = %p, covb = %p, linnum = %u\n", m.cov, m.covb.ptr, p, linnum);
 
     linnum--;           // from 1-based to 0-based
 
     /* Set bit in covb[] indicating this is a valid code line number
      */
-    uint *p = m.covb;
-    if (p)      // covb can be null if it has already been written out to its .obj file
+    if (m.covb.length)    // covb can be null if it has already been written out to its .obj file
     {
         assert(linnum < m.numlines);
-        p += linnum / ((*p).sizeof * 8);
-        *p |= 1 << (linnum & ((*p).sizeof * 8 - 1));
+        size_t i = linnum / (m.covb[0].sizeof * 8);
+        m.covb[i] |= 1 << (linnum & (m.covb[0].sizeof * 8 - 1));
     }
 
     /* Generate: *(m.cov + linnum * 4) += 1

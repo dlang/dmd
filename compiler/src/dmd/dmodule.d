@@ -1253,7 +1253,7 @@ extern (C++) final class Module : Package
     // Back end
     int doppelganger; // sub-module
     Symbol* cov; // private uint[] __coverage;
-    uint* covb; // bit array of valid code line numbers
+    uint[] covb; // bit array of valid code line numbers
     Symbol* sictor; // module order independent constructor
     Symbol* sctor; // module constructor
     Symbol* sdtor; // module destructor
