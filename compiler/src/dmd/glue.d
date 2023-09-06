@@ -565,7 +565,10 @@ private void genObjFile(Module m, bool multiobj)
 
         outdata(m.cov);
 
-        m.covb = cast(uint *)Mem.check(calloc((m.numlines + 32) / 32, (*m.covb).sizeof));
+	size_t sz = m.covb[0].sizeof;
+	size_t n = (m.numlines + sz * 8) / (sz * 8);
+	uint* p =  cast(uint*)Mem.check(calloc(n, sz));
+	m.covb = p[0 .. n];
     }
 
     for (int i = 0; i < m.members.length; i++)
@@ -587,12 +590,12 @@ private void genObjFile(Module m, bool multiobj)
         bcov.Sfl = FLdata;
 
         auto dtb = DtBuilder(0);
-        dtb.nbytes((m.numlines + 32) / 32 * (*m.covb).sizeof, cast(char *)m.covb);
+        dtb.nbytes(cast(uint)(m.covb.length * m.covb[0].sizeof), cast(char*)m.covb.ptr);
         bcov.Sdt = dtb.finish();
 
         outdata(bcov);
 
-        free(m.covb);
+        free(m.covb.ptr);
         m.covb = null;
 
         /* Generate:
