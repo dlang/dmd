@@ -19,7 +19,9 @@ fail_compilation/test11176.d(21): Error: `[].ptr` cannot be used in `@safe` code
 @safe ubyte cool(ubyte[1] b) {
     auto p = "".ptr;
     auto q = [].ptr; // error
-    auto r = [ubyte(1)].ptr;
+    auto r = [b[0]].ptr; // runtime element
+    enum e = [1] ~ 2;
+    auto s = e.ptr;
     return *b.ptr;
 }
 
