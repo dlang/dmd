@@ -618,7 +618,7 @@ private void verrorPrint(const(char)* format, va_list ap, ref ErrorInfo info)
 
     if (global.params.showGaggedErrors && global.gag)
         fprintf(stderr, "(spec:%d) ", global.gag);
-    else if (global.errorCallback && headerColor == Color(Classification.error))
+    else if (global.errorCallback && info.kind == ErrorKind.error)
     {
         auto cb = global.errorCallback;
         global.errorCallback = null; // reset and avoid recursion
