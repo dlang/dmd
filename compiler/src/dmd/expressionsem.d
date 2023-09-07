@@ -12068,8 +12068,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
             }
 
-            if (sc.needsCodegen() &&
-                (t1.ty == Tarray || t1.ty == Tsarray) &&
+            if ((t1.ty == Tarray || t1.ty == Tsarray) &&
                 (t2.ty == Tarray || t2.ty == Tsarray))
             {
                 if (!verifyHookExist(exp.loc, *sc, Id.__cmp, "comparing arrays"))
