@@ -74,10 +74,6 @@ import dmd.backend.type;
 
 extern (C++):
 
-alias toSymbol = dmd.tocsym.toSymbol;
-alias toSymbol = dmd.glue.toSymbol;
-
-
 /* ================================================================== */
 
 // Put out instance of ModuleInfo for this Module
