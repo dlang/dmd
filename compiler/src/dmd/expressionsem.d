@@ -1190,6 +1190,11 @@ private bool haveSameThis(FuncDeclaration outerFunc, FuncDeclaration calledFunc)
     if (thisAd == requiredAd)
         return true;
 
+    // if outerfunc is the member of a nested aggregate, then let
+    // getRightThis take care of this.
+    if (thisAd.isNested())
+        return true;
+
     // outerfunc is the member of a base class that contains calledFunc,
     // then we consider that they have the same this.
     auto cd = requiredAd.isClassDeclaration();
@@ -1197,11 +1202,6 @@ private bool haveSameThis(FuncDeclaration outerFunc, FuncDeclaration calledFunc)
         return false;
 
     if (cd.isBaseOf2(thisAd.isClassDeclaration()))
-        return true;
-
-    // if outerfunc is the member of a nested aggregate, then let
-    // getRightThis take care of this.
-    if (thisAd.isNested())
         return true;
 
     return false;
