@@ -69,9 +69,6 @@ import dmd.backend.type;
 
 extern (C++):
 
-alias toSymbol = dmd.tocsym.toSymbol;
-alias toSymbol = dmd.glue.toSymbol;
-
 alias StmtState = dmd.stmtstate.StmtState!block;
 
 

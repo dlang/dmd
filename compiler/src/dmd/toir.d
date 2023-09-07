@@ -57,9 +57,6 @@ import dmd.target;
 import dmd.tocvdebug;
 import dmd.tocsym;
 
-alias toSymbol = dmd.tocsym.toSymbol;
-alias toSymbol = dmd.glue.toSymbol;
-
 /****************************************
  * Our label symbol
  */

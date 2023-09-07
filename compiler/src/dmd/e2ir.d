@@ -79,9 +79,6 @@ extern (C++):
 
 alias Elems = Array!(elem *);
 
-alias toSymbol = dmd.tocsym.toSymbol;
-alias toSymbol = dmd.glue.toSymbol;
-
 import dmd.backend.util2 : mem_malloc2;
 
 

@@ -49,9 +49,6 @@ import dmd.visitor;
 import dmd.backend.cc;
 import dmd.backend.dt;
 
-alias toSymbol = dmd.tocsym.toSymbol;
-alias toSymbol = dmd.glue.toSymbol;
-
 /* A dt_t is a simple structure representing data to be added
  * to the data segment of the output object file. As such,
  * it is a list of initialized bytes, 0 data, and offsets from
