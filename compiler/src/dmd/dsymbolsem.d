@@ -2528,9 +2528,14 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (!em.ed.isAnonymous())
                     em.ed.memtype = t;
             }
+            const errors = global.startGagging();
             Expression e = new IntegerExp(em.loc, 0, t);
             e = e.ctfeInterpret();
-
+            if (global.endGagging(errors))
+            {
+                error(em.loc, "cannot generate 0 value of type `%s` for `%s`",
+                    t.toChars(), em.toChars());
+            }
             // save origValue for better json output
             em.origValue = e;
 
