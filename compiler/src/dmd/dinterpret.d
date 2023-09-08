@@ -634,8 +634,6 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
     {
         if (ctfeGlobals.callDepth > CTFE_RECURSION_LIMIT)
         {
-            // This is a compiler error. It must not be suppressed.
-            global.gag = 0;
             fd.error("CTFE recursion limit exceeded");
             e = CTFEExp.cantexp;
             break;
