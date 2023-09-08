@@ -2564,14 +2564,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (emprev.errors)
                 return errorReturn();
 
-            // display an introductory error before showing what actually failed
-            global.setErrorCallback({
-                try
-                error(em.loc, "cannot check `%s` value for overflow", em.toPrettyChars());
-                catch (Exception) {}
-            });
-            scope (exit) global.setErrorCallback(null);
-
+            auto errors = global.startGagging();
             Expression eprev = emprev.value;
             assert(eprev);
             // .toHeadMutable() due to https://issues.dlang.org/show_bug.cgi?id=18645
@@ -2591,12 +2584,19 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             Expression e = new EqualExp(EXP.equal, em.loc, eprev, emax);
             e = e.expressionSemantic(sc);
             e = e.ctfeInterpret();
+            if (global.endGagging(errors))
+            {
+                // display an introductory error before showing what actually failed
+                error(em.loc, "cannot check `%s` value for overflow", em.toPrettyChars());
+                // rerun to show errors
+                Expression e2 = DotIdExp.create(em.ed.loc, new TypeExp(em.ed.loc, tprev), Id.max);
+                e2 = e2.expressionSemantic(sc);
+                e2 = e2.ctfeInterpret();
+                e2 = new EqualExp(EXP.equal, em.loc, eprev, e2);
+                e2 = e2.expressionSemantic(sc);
+                e2 = e2.ctfeInterpret();
+            }
             // now any errors are for generating a value
-            global.setErrorCallback({
-                try
-                error(em.loc, "cannot generate value for `%s`", em.toPrettyChars());
-                catch (Exception) {}
-            });
             if (e.toInteger())
             {
                 auto mt = em.ed.memtype;
@@ -2606,12 +2606,21 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     emprev.ed.toChars(), emprev.toChars(), mt.toChars());
                 return errorReturn();
             }
+            errors = global.startGagging();
             // Now set e to (eprev + 1)
             e = new AddExp(em.loc, eprev, IntegerExp.literal!1);
             e = e.expressionSemantic(sc);
             e = e.castTo(sc, eprev.type);
             e = e.ctfeInterpret();
-
+            if (global.endGagging(errors))
+            {
+                error(em.loc, "cannot generate value for `%s`", em.toPrettyChars());
+                // rerun to show errors
+                Expression e2 = new AddExp(em.loc, eprev, IntegerExp.literal!1);
+                e2 = e2.expressionSemantic(sc);
+                e2 = e2.castTo(sc, eprev.type);
+                e2 = e2.ctfeInterpret();
+            }
             // save origValue (without cast) for better json output
             if (e.op != EXP.error) // avoid duplicate diagnostics
             {
