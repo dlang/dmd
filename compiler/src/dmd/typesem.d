@@ -2129,7 +2129,9 @@ Expression getProperty(Type t, Scope* scope_, const ref Loc loc, Identifier iden
                         error(loc, "no property `%s` for `%s` of type `%s`", ident.toChars(), src.toChars(), mt.toPrettyChars(true));
                     else
                         error(loc, "no property `%s` for type `%s`", ident.toChars(), mt.toPrettyChars(true));
+
                     if (auto dsym = mt.toDsymbol(scope_))
+                    {
                         if (auto sym = dsym.isAggregateDeclaration())
                         {
                             if (auto fd = search_function(sym, Id.opDispatch))
@@ -2137,6 +2139,9 @@ Expression getProperty(Type t, Scope* scope_, const ref Loc loc, Identifier iden
                             else if (!sym.members)
                                 errorSupplemental(sym.loc, "`%s %s` is opaque and has no members.", sym.kind, mt.toPrettyChars(true));
                         }
+                        errorSupplemental(dsym.loc, "%s `%s` defined here",
+                            dsym.kind, dsym.toChars());
+                    }
                 }
             }
             e = ErrorExp.get();
@@ -3940,6 +3945,8 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
                     e.error("no property `%s` for type `%s`", ident.toChars(),
                         mt.toChars());
 
+                errorSupplemental(mt.sym.loc, "%s `%s` defined here",
+                    mt.sym.kind, mt.toChars());
                 return ErrorExp.get();
             }
             return res;
