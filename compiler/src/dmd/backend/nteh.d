@@ -43,15 +43,13 @@ import dmd.backend.eh : except_fillInEHTable;
 private __gshared
 {
     Symbol *s_table;
-    Symbol *s_context;
-    const(char)* s_name_context_tag = "__nt_context";
-    const(char)* s_name_context = "__context";
-    const(char)* s_name_ecode = "__ecode";
+    //Symbol *s_context;
+}
 
-    const(char)* text_nt =
-    "struct __nt_context {" ~
-        "int esp; int info; int prev; int handler; int stable; int sindex; int ebp;" ~
-     "};\n";
+private
+{
+    //immutable string s_name_context_tag = "__nt_context";
+    immutable string s_name_context = "__context";
 }
 
 // member stable is not used for MARS or C++
@@ -72,7 +70,14 @@ int nteh_offset_info()          { return 4; }
 ubyte *nteh_context_string()
 {
     if (config.exe == EX_WIN32)
-        return cast(ubyte *)text_nt;
+    {
+        immutable string text_nt =
+            "struct __nt_context {" ~
+                "int esp; int info; int prev; int handler; int stable; int sindex; int ebp;" ~
+             "};\n";
+
+        return cast(ubyte *)text_nt.ptr;
+    }
     else
         return null;
 }
@@ -135,12 +140,10 @@ void nteh_gentables(Symbol *sfunc)
 @trusted
 void nteh_declarvars(Blockx *bx)
 {
-    Symbol *s;
-
     //printf("nteh_declarvars()\n");
     if (!(bx.funcsym.Sfunc.Fflags3 & Fnteh)) // if haven't already done it
     {   bx.funcsym.Sfunc.Fflags3 |= Fnteh;
-        s = symbol_name(s_name_context[0 .. strlen(s_name_context)],SC.bprel,tstypes[TYint]);
+        Symbol* s = symbol_name(s_name_context,SC.bprel,tstypes[TYint]);
         s.Soffset = -5 * 4;            // -6 * 4 for C __try, __except, __finally
         s.Sflags |= SFLfree | SFLnodebug;
         type_setty(&s.Stype,mTYvolatile | TYint);
@@ -154,35 +157,32 @@ void nteh_declarvars(Blockx *bx)
  */
 elem *nteh_setScopeTableIndex(Blockx *blx, int scope_index)
 {
-    elem *e;
-    Symbol *s;
-
-    s = blx.context;
+    Symbol* s = blx.context;
     symbol_debug(s);
-    e = el_var(s);
+    elem* e = el_var(s);
     e.EV.Voffset = nteh_offset_sindex();
     return el_bin(OPeq, TYint, e, el_long(TYint, scope_index));
 }
 
 
 /**********************************
- * Return pointer to context symbol.
+ * Returns: pointer to context symbol.
  */
 
 @trusted
 Symbol *nteh_contextsym()
 {
-    for (SYMIDX si = 0; 1; si++)
-    {   assert(si < globsym.length);
-        Symbol* sp = globsym[si];
+    foreach (Symbol* sp; globsym)
+    {
         symbol_debug(sp);
-        if (strcmp(sp.Sident.ptr,s_name_context) == 0)
+        if (strcmp(sp.Sident.ptr,s_name_context.ptr) == 0)
             return sp;
     }
+    assert(0);
 }
 
 /**********************************
- * Return size of context symbol on stack.
+ * Returns: size of context symbol on stack.
  */
 @trusted
 uint nteh_contextsym_size()
@@ -207,22 +207,18 @@ uint nteh_contextsym_size()
 }
 
 /**********************************
- * Return pointer to ecode symbol.
+ * Return: pointer to ecode symbol.
  */
 
 @trusted
 Symbol *nteh_ecodesym()
 {
-    SYMIDX si;
-    Symbol *sp;
-
-    for (si = 0; 1; si++)
-    {   assert(si < globsym.length);
-        sp = globsym[si];
-        symbol_debug(sp);
-        if (strcmp(sp.Sident.ptr, s_name_ecode) == 0)
+    foreach (Symbol* sp; globsym)
+    {
+        if (strcmp(sp.Sident.ptr, "__ecode") == 0)
             return sp;
     }
+    assert(0);
 }
 
 /*********************************
@@ -340,13 +336,10 @@ void nteh_epilog(ref CodeBuilder cdb)
         mov     ECX,__context[EBP].prev
         mov     FS:__except_list,ECX
      */
-    code cs;
-    reg_t reg;
-
-    reg = CX;
-
+    reg_t reg = CX;
     useregs(1 << reg);
 
+    code cs;
     cs.Iop = 0x8B;
     cs.Irm = modregrm(2,reg,BPRM);
     cs.Iflags = 0;
@@ -390,8 +383,6 @@ void nteh_setsp(ref CodeBuilder cdb, opcode_t op)
 @trusted
 void nteh_filter(ref CodeBuilder cdb, block *b)
 {
-    code cs;
-
     assert(b.BC == BC_filter);
     if (b.Bflags & BFLehcode)          // if referenced __ecode
     {
@@ -404,6 +395,7 @@ void nteh_filter(ref CodeBuilder cdb, block *b)
 
         getregs(cdb,mAX);
 
+        code cs;
         cs.Iop = 0x8B;
         cs.Irm = modregrm(2,AX,BPRM);
         cs.Iflags = 0;
@@ -485,10 +477,9 @@ void cdsetjmp(ref CodeBuilder cdb, elem *e,regm_t *pretregs)
 {
     code cs;
     regm_t retregs;
-    uint stackpushsave;
     uint flag;
 
-    stackpushsave = stackpush;
+    const stackpushsave = stackpush;
     if (funcsym_p.Sfunc.Fflags3 & Fnteh)
     {
         /*  If in NT SEH try block
@@ -502,9 +493,8 @@ void cdsetjmp(ref CodeBuilder cdb, elem *e,regm_t *pretregs)
             decrement at the close of the try.  This corresponds to the
             index field of the ehrec.
          */
-        int sindex_off;
 
-        sindex_off = 20;                // offset of __context.sindex
+        int sindex_off = 20;                // offset of __context.sindex
         cs.Iop = 0xFF;
         cs.Irm = modregrm(2,6,BPRM);
         cs.Iflags = 0;
