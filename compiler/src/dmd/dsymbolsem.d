@@ -83,7 +83,7 @@ else version = MARS;
 
 enum LOG = false;
 
-private uint setMangleOverride(Dsymbol s, const(char)[] sym)
+package uint setMangleOverride(Dsymbol s, const(char)[] sym)
 {
     if (s.isFuncDeclaration() || s.isVarDeclaration())
     {
