@@ -267,7 +267,6 @@ extern (C++) struct Global
     uint gag;               /// !=0 means gag reporting of errors & warnings
     uint gaggedErrors;      /// number of errors reported while gagged
     uint gaggedWarnings;    /// number of warnings reported while gagged
-    extern(D) void delegate() nothrow errorCallback; /// run before printing errors
 
     void* console;         /// opaque pointer to console for controlling text attributes
 
@@ -323,17 +322,6 @@ extern (C++) struct Global
         errors -= (gaggedErrors - oldGagged);
         gaggedErrors = oldGagged;
         return anyErrs;
-    }
-
-    /**
-     * for now only one can be set at a time.
-     * Triggers on error or supplemental error.
-     * Ignores gagged errors.
-     * Call with null to disable callack
-     */
-    extern(D) void setErrorCallback(void delegate() nothrow cb)
-    {
-        global.errorCallback = cb;
     }
 
     /**
