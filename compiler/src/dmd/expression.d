@@ -1045,9 +1045,9 @@ extern (C++) abstract class Expression : ASTNode
             loc = e.loc;
 
         if (e.op == EXP.type)
-            error("`%s` is a `%s` definition and cannot be modified", e.type.toChars(), e.type.kind());
+            error("`%s` is a `%s` definition, not an lvalue", e.type.toChars(), e.type.kind());
         else
-            error("`%s` is not an lvalue and cannot be modified", e.toChars());
+            error("`%s` is not an lvalue", e.toChars());
 
         return ErrorExp.get();
     }
@@ -1085,6 +1085,11 @@ extern (C++) abstract class Expression : ASTNode
                     toChars(), type.toChars());
                 return ErrorExp.get();
             }
+        }
+        if (!isLvalue())
+        {
+            error("`%s` is not an lvalue and cannot be modified", e.toChars());
+            return ErrorExp.get();
         }
         return toLvalue(sc, e);
     }
@@ -1984,7 +1989,7 @@ extern (C++) final class IntegerExp : Expression
             e = this;
         else if (!loc.isValid())
             loc = e.loc;
-        e.error("cannot modify constant `%s`", e.toChars());
+        e.error("`%s` is a constant, not an lvalue", e.toChars());
         return ErrorExp.get();
     }
 
@@ -3873,7 +3878,33 @@ extern (C++) final class VarExp : SymbolExp
     {
         if (var.storage_class & STC.manifest)
         {
-            error("manifest constant `%s` cannot be modified", var.toChars());
+            error("manifest constant `%s` is not an lvalue", toChars());
+            return ErrorExp.get();
+        }
+        if (var.storage_class & STC.lazy_ && !delegateWasExtracted)
+        {
+            error("lazy variable `%s` is not an lvalue", var.toChars());
+            return ErrorExp.get();
+        }
+        if (var.ident == Id.ctfe)
+        {
+            error("compiler-generated variable `__ctfe` is not an lvalue");
+            return ErrorExp.get();
+        }
+        if (var.ident == Id.dollar) // https://issues.dlang.org/show_bug.cgi?id=13574
+        {
+            error("operator `$` is not an lvalue");
+            return ErrorExp.get();
+        }
+        return this;
+    }
+
+    override Expression modifiableLvalue(Scope* sc, Expression e)
+    {
+        //printf("VarExp::modifiableLvalue('%s')\n", var.toChars());
+        if (var.storage_class & STC.manifest)
+        {
+            error("cannot modify manifest constant `%s`", toChars());
             return ErrorExp.get();
         }
         if (var.storage_class & STC.lazy_ && !delegateWasExtracted)
@@ -3889,17 +3920,6 @@ extern (C++) final class VarExp : SymbolExp
         if (var.ident == Id.dollar) // https://issues.dlang.org/show_bug.cgi?id=13574
         {
             error("cannot modify operator `$`");
-            return ErrorExp.get();
-        }
-        return this;
-    }
-
-    override Expression modifiableLvalue(Scope* sc, Expression e)
-    {
-        //printf("VarExp::modifiableLvalue('%s')\n", var.toChars());
-        if (var.storage_class & STC.manifest)
-        {
-            error("cannot modify manifest constant `%s`", toChars());
             return ErrorExp.get();
         }
         // See if this expression is a modifiable lvalue (i.e. not const)

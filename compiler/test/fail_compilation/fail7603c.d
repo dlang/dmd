@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail7603c.d(8): Error: cannot modify constant `3`
+fail_compilation/fail7603c.d(8): Error: `3` is a constant, not an lvalue
 ---
 */
 enum x = 3;

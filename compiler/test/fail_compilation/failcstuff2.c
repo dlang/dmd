@@ -1,21 +1,21 @@
 // check semantic analysis of C files
 /* TEST_OUTPUT:
 ---
-fail_compilation/failcstuff2.c(113): Error: `cast(int)var` is not an lvalue and cannot be modified
+fail_compilation/failcstuff2.c(113): Error: `cast(int)var` is not an lvalue
 fail_compilation/failcstuff2.c(114): Error: `sizeof` is not a member of `int`
 fail_compilation/failcstuff2.c(115): Error: `cast(short)3` is not an lvalue and cannot be modified
-fail_compilation/failcstuff2.c(116): Error: cannot modify constant `4`
-fail_compilation/failcstuff2.c(117): Error: cannot modify constant `5`
-fail_compilation/failcstuff2.c(118): Error: cannot modify constant `6`
-fail_compilation/failcstuff2.c(119): Error: `cast(int)var` is not an lvalue and cannot be modified
-fail_compilation/failcstuff2.c(120): Error: `cast(int)var` is not an lvalue and cannot be modified
-fail_compilation/failcstuff2.c(121): Error: `cast(int)var` is not an lvalue and cannot be modified
-fail_compilation/failcstuff2.c(122): Error: `cast(int)var` is not an lvalue and cannot be modified
-fail_compilation/failcstuff2.c(123): Error: `cast(int)var` is not an lvalue and cannot be modified
-fail_compilation/failcstuff2.c(124): Error: `makeS22067().field` is not an lvalue and cannot be modified
-fail_compilation/failcstuff2.c(125): Error: `makeS22067().field` is not an lvalue and cannot be modified
-fail_compilation/failcstuff2.c(126): Error: `makeS22067().field` is not an lvalue and cannot be modified
-fail_compilation/failcstuff2.c(127): Error: `makeS22067().field` is not an lvalue and cannot be modified
+fail_compilation/failcstuff2.c(116): Error: `4` is not an lvalue and cannot be modified
+fail_compilation/failcstuff2.c(117): Error: `5` is not an lvalue and cannot be modified
+fail_compilation/failcstuff2.c(118): Error: `6` is a constant, not an lvalue
+fail_compilation/failcstuff2.c(119): Error: `cast(int)var` is not an lvalue
+fail_compilation/failcstuff2.c(120): Error: `cast(int)var` is not an lvalue
+fail_compilation/failcstuff2.c(121): Error: `cast(int)var` is not an lvalue
+fail_compilation/failcstuff2.c(122): Error: `cast(int)var` is not an lvalue
+fail_compilation/failcstuff2.c(123): Error: `cast(int)var` is not an lvalue
+fail_compilation/failcstuff2.c(124): Error: `makeS22067().field` is not an lvalue
+fail_compilation/failcstuff2.c(125): Error: `makeS22067().field` is not an lvalue
+fail_compilation/failcstuff2.c(126): Error: `makeS22067().field` is not an lvalue
+fail_compilation/failcstuff2.c(127): Error: `makeS22067().field` is not an lvalue
 fail_compilation/failcstuff2.c(153): Error: `cast(short)var` is not an lvalue and cannot be modified
 fail_compilation/failcstuff2.c(154): Error: `cast(long)var` is not an lvalue and cannot be modified
 fail_compilation/failcstuff2.c(354): Error: variable `arr` cannot be read at compile time

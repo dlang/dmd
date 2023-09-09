@@ -6,8 +6,8 @@ fail_compilation/fail6795.d(19): Error: `[0][0]` is not an lvalue and cannot be 
 fail_compilation/fail6795.d(20): Error: `[0:0][0]` is not an lvalue and cannot be modified
 fail_compilation/fail6795.d(22): Error: `[0][0]` is not an lvalue and cannot be modified
 fail_compilation/fail6795.d(23): Error: `[0:0][0]` is not an lvalue and cannot be modified
-fail_compilation/fail6795.d(25): Error: `[0][0]` is not an lvalue and cannot be modified
-fail_compilation/fail6795.d(26): Error: `[0:0][0]` is not an lvalue and cannot be modified
+fail_compilation/fail6795.d(25): Error: `[0][0]` is not an lvalue
+fail_compilation/fail6795.d(26): Error: `[0:0][0]` is not an lvalue
 ---
 */
 
