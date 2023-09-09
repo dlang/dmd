@@ -565,10 +565,10 @@ private void genObjFile(Module m, bool multiobj)
 
         outdata(m.cov);
 
-	size_t sz = m.covb[0].sizeof;
-	size_t n = (m.numlines + sz * 8) / (sz * 8);
-	uint* p =  cast(uint*)Mem.check(calloc(n, sz));
-	m.covb = p[0 .. n];
+        size_t sz = m.covb[0].sizeof;
+        size_t n = (m.numlines + sz * 8) / (sz * 8);
+        uint* p =  cast(uint*)Mem.check(calloc(n, sz));
+        m.covb = p[0 .. n];
     }
 
     for (int i = 0; i < m.members.length; i++)

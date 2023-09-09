@@ -52,6 +52,7 @@ struct CompileEnv
     bool ddocOutput;         /// collect embedded documentation comments
     bool shortenedMethods = true;   /// allow => in normal function declarations
     bool obsolete;           /// warn on use of legacy code
+    bool masm;               /// use MASM inline asm syntax
 }
 
 /***********************************************************

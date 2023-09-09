@@ -610,7 +610,7 @@ dmd -cov -unittest myprog.d
         Option("nothrow",
             "assume no Exceptions will be thrown",
             `Turns off generation of exception stack unwinding code, enables
-	    more efficient code for RAII objects.`,
+            more efficient code for RAII objects.`,
         ),
         Option("O",
             "optimize",

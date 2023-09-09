@@ -626,7 +626,7 @@ final class CParser(AST) : Parser!AST
 
                 default:
                     // ImportC extensions: parse as a D asm block.
-                    s = parseAsm();
+                    s = parseAsm(compileEnv.masm);
                     break;
             }
             break;
