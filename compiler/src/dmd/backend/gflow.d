@@ -200,7 +200,7 @@ private void rdgenkill()
         vec_free(b.Boutrd);
 
         /* calculate and create new vectors */
-        rdelem(b.Bgen, b.Bkill, b.Belem);
+        rdelem(b.Bgen, b.Bkill, b.Belem, deftop);
         if (b.BC == BCasm)
         {
             vec_clear(b.Bkill);        // KILL nothing
@@ -255,7 +255,6 @@ private uint numdefelems(const(elem)* e, ref uint num_unambig_def)
  */
 
 @trusted
-extern (D)
 private void asgdefelems(block *b,elem *n, DefNode[] defnod, ref size_t i)
 {
     assert(b && n);
@@ -298,7 +297,6 @@ private void asgdefelems(block *b,elem *n, DefNode[] defnod, ref size_t i)
  */
 
 @trusted
-extern (D)
 private void initDNunambigVectors(DefNode[] defnod)
 {
     //printf("initDNunambigVectors()\n");
@@ -350,7 +348,6 @@ private void initDNunambigVectors(DefNode[] defnod)
  */
 
 @trusted
-extern (D)
 private void fillInDNunambig(vec_t v, elem *e, size_t start, DefNode[] defnod)
 {
     assert(OTassign(e.Eoper));
@@ -399,16 +396,16 @@ private void fillInDNunambig(vec_t v, elem *e, size_t start, DefNode[] defnod)
  *      GEN = gen vector to create
  *      KILL = kill vector to create
  *      n = elem tree to evaluate for GEN and KILL
+ *      deftop = number of bits in vectors
  */
 
 @trusted
-private void rdelem(out vec_t GEN, out vec_t KILL,
-        elem *n)
+private void rdelem(out vec_t GEN, out vec_t KILL, elem *n, uint deftop)
 {
-    GEN = vec_calloc(go.defnod.length);
-    KILL = vec_calloc(go.defnod.length);
+    GEN  = vec_calloc(deftop);
+    KILL = vec_calloc(deftop);
     if (n)
-        accumrd(GEN, KILL, n);
+        accumrd(GEN, KILL, n, deftop);
 }
 
 /**************************************
@@ -416,19 +413,19 @@ private void rdelem(out vec_t GEN, out vec_t KILL,
  */
 
 @trusted
-private void accumrd(vec_t GEN,vec_t KILL,elem *n)
+private void accumrd(vec_t GEN,vec_t KILL,elem *n,uint deftop)
 {
     assert(GEN && KILL && n);
     const op = n.Eoper;
     if (OTunary(op))
-        accumrd(GEN,KILL,n.EV.E1);
+        accumrd(GEN,KILL,n.EV.E1,deftop);
     else if (OTbinary(op))
     {
         if (op == OPcolon || op == OPcolon2)
         {
             vec_t Gl,Kl,Gr,Kr;
-            rdelem(Gl, Kl, n.EV.E1);
-            rdelem(Gr, Kr, n.EV.E2);
+            rdelem(Gl, Kl, n.EV.E1, deftop);
+            rdelem(Gr, Kr, n.EV.E2, deftop);
 
             switch (el_returns(n.EV.E1) * 2 | int(el_returns(n.EV.E2)))
             {
@@ -480,9 +477,9 @@ private void accumrd(vec_t GEN,vec_t KILL,elem *n)
         }
         else if (op == OPandand || op == OPoror)
         {
-            accumrd(GEN,KILL,n.EV.E1);
+            accumrd(GEN,KILL,n.EV.E1,deftop);
             vec_t Gr,Kr;
-            rdelem(Gr, Kr, n.EV.E2);
+            rdelem(Gr, Kr, n.EV.E2, deftop);
             if (el_returns(n.EV.E2))
                 vec_orass(GEN,Gr);      // GEN |= Gr
 
@@ -491,13 +488,13 @@ private void accumrd(vec_t GEN,vec_t KILL,elem *n)
         }
         else if (OTrtol(op) && ERTOL(n))
         {
-            accumrd(GEN,KILL,n.EV.E2);
-            accumrd(GEN,KILL,n.EV.E1);
+            accumrd(GEN,KILL,n.EV.E2,deftop);
+            accumrd(GEN,KILL,n.EV.E1,deftop);
         }
         else
         {
-            accumrd(GEN,KILL,n.EV.E1);
-            accumrd(GEN,KILL,n.EV.E2);
+            accumrd(GEN,KILL,n.EV.E1,deftop);
+            accumrd(GEN,KILL,n.EV.E2,deftop);
         }
     }
 
