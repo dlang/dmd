@@ -100,11 +100,26 @@ private void elemdatafree(ref Elemdatas eds)
     eds.reset();
 }
 
-private __gshared
+private struct EqRelInc
 {
+    /* These arrays ratchet up in size, and are recycled for each use rather
+     * than being free'd and reallocated
+     */
     Elemdatas eqeqlist;       // array of Elemdata's of OPeqeq & OPne elems
     Elemdatas rellist;        // array of Elemdata's of relop elems
     Elemdatas inclist;        // array of Elemdata's of increment elems
+
+    void reset() nothrow
+    {
+        elemdatafree(eqeqlist);
+        elemdatafree(rellist);
+        elemdatafree(inclist);
+    }
+}
+
+private __gshared
+{
+    EqRelInc eqrelinc;
 }
 
 /*************************** Constant Propagation ***************************/
@@ -118,12 +133,11 @@ private __gshared
 @trusted
 void constprop()
 {
-    rd_compute();
-    intranges(rellist, inclist); // compute integer ranges
-    eqeqranges(eqeqlist);        // see if we can eliminate some relationals
-    elemdatafree(eqeqlist);
-    elemdatafree(rellist);
-    elemdatafree(inclist);
+    rd_compute(eqrelinc);
+    intranges(eqrelinc.rellist, eqrelinc.inclist);        // compute integer ranges
+    eqeqranges(eqrelinc.eqeqlist);       // see if we can eliminate some relationals
+
+    eqrelinc.reset();           // reset for next time
 }
 
 /************************************
@@ -132,14 +146,14 @@ void constprop()
  */
 
 @trusted
-private void rd_compute()
+private void rd_compute(ref EqRelInc eqrelinc)
 {
     if (debugc) printf("constprop()\n");
     assert(dfo);
     flowrd();               /* compute reaching definitions (rd)    */
     if (go.defnod.length == 0)     /* if no reaching defs                  */
         return;
-    assert(rellist.length == 0 && inclist.length == 0 && eqeqlist.length == 0);
+    assert(eqrelinc.rellist.length == 0 && eqrelinc.inclist.length == 0 && eqrelinc.eqeqlist.length == 0);
     block_clearvisit();
     foreach (b; dfo[])    // for each block
     {
@@ -167,7 +181,7 @@ private void rd_compute()
             continue;                   // not reliable for this block
         if (b.Belem)
         {
-            constantPropagation(b);
+            constantPropagation(b, eqrelinc);
 
             debug
             if (!(vec_equal(b.Binrd,b.Boutrd)))
@@ -203,9 +217,10 @@ private void rd_compute()
  *                      Modify vector of reaching defs.
  * Params:
  *      thisblock = block being constant propagated
+ *      eqrelinc  = fill with data collected
  */
 @trusted
-private void constantPropagation(block* thisblock)
+private void constantPropagation(block* thisblock, ref EqRelInc eqrelinc)
 {
     void conpropwalk(elem *n,vec_t IN)
     {
@@ -319,7 +334,7 @@ private void constantPropagation(block* thisblock)
                     {
                         //printf("appending to rellist\n"); elem_print(n);
                         //printf("\trellist IN: "); vec_print(IN); printf("\n");
-                        auto pdata = rellist.push();
+                        auto pdata = eqrelinc.rellist.push();
                         pdata.emplace(n, thisblock);
                         listrds(IN, n.EV.E1, null, &pdata.rdlist);
                     }
@@ -334,7 +349,7 @@ private void constantPropagation(block* thisblock)
                     {
                         //printf("appending to inclist\n"); elem_print(n);
                         //printf("\tinclist IN: "); vec_print(IN); printf("\n");
-                        auto pdata = inclist.push();
+                        auto pdata = eqrelinc.inclist.push();
                         pdata.emplace(n, thisblock);
                         listrds(IN, n.EV.E1, null, &pdata.rdlist);
                     }
@@ -345,7 +360,7 @@ private void constantPropagation(block* thisblock)
                     // Collect compare elems and their rd's in the rellist list
                     if (tyintegral(n.EV.E1.Ety) && !tyvector(n.Ety))
                     {   //printf("appending to eqeqlist\n"); elem_print(n);
-                        auto pdata = eqeqlist.push();
+                        auto pdata = eqrelinc.eqeqlist.push();
                         pdata.emplace(n, thisblock);
                         listrds(IN, n.EV.E1, null, &pdata.rdlist);
                     }
@@ -922,19 +937,16 @@ private void intranges(ref Elemdatas rellist, ref Elemdatas inclist)
  */
 
 @trusted
-private bool returnResult(bool result)
-{
-    elemdatafree(eqeqlist);
-    elemdatafree(rellist);
-    elemdatafree(inclist);
-    return result;
-}
-
-@trusted
-bool findloopparameters(elem* erel, ref elem* rdeq, ref elem* rdinc)
+public bool findloopparameters(elem* erel, ref elem* rdeq, ref elem* rdinc)
 {
     if (debugc) printf("findloopparameters()\n");
     const bool log = false;
+
+    bool returnResult(bool result)
+    {
+        eqrelinc.reset();
+        return result;
+    }
 
     assert(erel.EV.E1.Eoper == OPvar);
     Symbol* v = erel.EV.E1.EV.Vsym;
@@ -943,11 +955,11 @@ bool findloopparameters(elem* erel, ref elem* rdeq, ref elem* rdinc)
     if (!(sytab[v.Sclass] & SCRD))
         return false;
 
-    rd_compute();       // compute rellist, inclist, eqeqlist
+    rd_compute(eqrelinc);     // compute rellist, inclist, eqeqlist
 
     /* Find `erel` in `rellist`
      */
-    Elemdata* rel = rellist.find(erel);
+    Elemdata* rel = eqrelinc.rellist.find(erel);
     if (!rel)
     {
         if (log) printf("\trel not found\n");
@@ -981,7 +993,7 @@ bool findloopparameters(elem* erel, ref elem* rdeq, ref elem* rdinc)
         return returnResult(false);
     }
 
-    Elemdata* iel = inclist.find(rdinc);
+    Elemdata* iel = eqrelinc.inclist.find(rdinc);
     if (!iel)
     {
         if (log) printf("\trdinc not found\n");
@@ -1067,7 +1079,7 @@ private int loopcheck(block *start,block *inc,block *rel)
 
 
 @trusted
-void copyprop()
+public void copyprop()
 {
     out_regcand(&globsym);
     if (debugc) printf("copyprop()\n");
@@ -1364,7 +1376,7 @@ private __gshared
 }
 
 @trusted
-void rmdeadass()
+public void rmdeadass()
 {
     if (debugc) printf("rmdeadass()\n");
     flowlv();                       /* compute live variables       */
@@ -1446,7 +1458,7 @@ void rmdeadass()
  */
 
 @trusted
-void elimass(elem *n)
+public void elimass(elem *n)
 {   elem *e1;
 
     switch (n.Eoper)
@@ -1769,7 +1781,7 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
  * Be careful not to compute live ranges for members of structures (CLMOS).
  */
 @trusted
-void deadvar()
+public void deadvar()
 {
         assert(dfo);
 
@@ -1866,7 +1878,7 @@ private void dvwalk(elem *n,uint i)
 private __gshared vec_t blockseen; /* which blocks we have visited         */
 
 @trusted
-void verybusyexp()
+public void verybusyexp()
 {
     elem **pn;
     uint j,l;
