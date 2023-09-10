@@ -5619,13 +5619,6 @@ extern (C++) final class CastExp : UnaExp
         if (to.ty == Tsarray && (e1.type.ty == Tvector || e1.type.ty == Tsarray))
             return true;
 
-        // enable for next edition
-        // mutable/const -> immutable, const -> mutable can't be lvalue
-        // allow casting to/from shared as lvalue
-        if (0 && !e1.type.unSharedOf().pointerTo.implicitConvTo(
-            to.unSharedOf().pointerTo()))
-            return false;
-
         return e1.type.mutableOf().unSharedOf().equals(to.mutableOf().unSharedOf());
     }
 
@@ -5639,13 +5632,14 @@ extern (C++) final class CastExp : UnaExp
         }
         if (isLvalue())
         {
-            // see isLvalue
+            // mutable/const -> immutable, const -> mutable can't be lvalue
+            // allow casting to/from shared as lvalue
             if (to.ty != Tsarray && !e1.type.unSharedOf().pointerTo.implicitConvTo(
                 to.unSharedOf().pointerTo()))
             {
-                warning(DiagnosticFlag.obsolete,
-                    "using cast from `%s` to `%s` as an lvalue is obsolete",
-                    e1.type.toChars(), to.toChars());
+                setUnsafePreview(sc, global.params.useDIP1000, false, loc,
+                    "cannot use cast from `%s` to `%s` as an lvalue in @safe code",
+                    e1.type, to);
             }
             return this;
         }
