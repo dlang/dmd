@@ -5615,8 +5615,18 @@ extern (C++) final class CastExp : UnaExp
         //printf("e1.type = %s, to.type = %s\n", e1.type.toChars(), to.toChars());
         if (!e1.isLvalue())
             return false;
-        return (to.ty == Tsarray && (e1.type.ty == Tvector || e1.type.ty == Tsarray)) ||
-            e1.type.mutableOf().unSharedOf().equals(to.mutableOf().unSharedOf());
+
+        if (to.ty == Tsarray && (e1.type.ty == Tvector || e1.type.ty == Tsarray))
+            return true;
+
+        // enable for next edition
+        // mutable/const -> immutable, const -> mutable can't be lvalue
+        // allow casting to/from shared as lvalue
+        if (0 && !e1.type.unSharedOf().pointerTo.implicitConvTo(
+            to.unSharedOf().pointerTo()))
+            return false;
+
+        return e1.type.mutableOf().unSharedOf().equals(to.mutableOf().unSharedOf());
     }
 
     override Expression toLvalue(Scope* sc, Expression e)
@@ -5628,7 +5638,17 @@ extern (C++) final class CastExp : UnaExp
             return Expression.toLvalue(sc, e);
         }
         if (isLvalue())
+        {
+            // see isLvalue
+            if (to.ty != Tsarray && !e1.type.unSharedOf().pointerTo.implicitConvTo(
+                to.unSharedOf().pointerTo()))
+            {
+                warning(DiagnosticFlag.obsolete,
+                    "using cast from `%s` to `%s` as an lvalue is obsolete",
+                    e1.type.toChars(), to.toChars());
+            }
             return this;
+        }
         return Expression.toLvalue(sc, e);
     }
 
