@@ -1958,6 +1958,7 @@ extern (C++) final class LabelDsymbol : Dsymbol
 extern (C++) class AsmStatement : Statement
 {
     Token* tokens;
+    bool caseSensitive;  // for register names
 
     extern (D) this(const ref Loc loc, Token* tokens) @safe
     {

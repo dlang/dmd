@@ -6601,7 +6601,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             }
 
         case TOK.asm_:
-            s = parseAsm();
+            s = parseAsm(false);
             break;
 
         case TOK.import_:
@@ -6972,10 +6972,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      *   AsmInstruction ;
      *   AsmInstruction ; AsmInstruction
      *
+     * Params:
+     *   endOfLine = true if EOL means end of asm statement
      * Returns:
      *   inline assembler block as a Statement
      */
-    AST.Statement parseAsm()
+    AST.Statement parseAsm(bool endOfLine)
     {
         // Parse the asm block into a sequence of AsmStatements,
         // each AsmStatement is one instruction.
@@ -6998,6 +7000,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         size_t nestlevel = 0;
         while (1)
         {
+            if (endOfLine)
+                nextDefineLine();
             switch (token.value)
             {
             case TOK.identifier:
@@ -7032,6 +7036,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 }
                 break;
 
+            case TOK.endOfLine:
+                nextDefineLine();
+                goto case;
+
             case TOK.semicolon:
                 if (nestlevel != 0)
                     error("mismatched number of curly brackets");
@@ -7039,7 +7047,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 if (toklist || label)
                 {
                     // Create AsmStatement from list of tokens we've saved
-                    AST.Statement s = new AST.AsmStatement(token.loc, toklist);
+                    AST.AsmStatement as = new AST.AsmStatement(token.loc, toklist);
+                    as.caseSensitive = !endOfLine;
+                    AST.Statement s = as;
                     toklist = null;
                     ptoklist = &toklist;
                     if (label)
@@ -7083,6 +7093,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             break;
         }
         nextToken();
+        if (token.value == TOK.endOfLine)
+            nextToken();
         auto s = new AST.CompoundAsmStatement(loc, statements, stc);
         return s;
     }

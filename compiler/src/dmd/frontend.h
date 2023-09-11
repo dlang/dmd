@@ -3403,6 +3403,7 @@ struct CompileEnv final
     bool ddocOutput;
     bool shortenedMethods;
     bool obsolete;
+    bool masm;
     CompileEnv() :
         versionNumber(),
         date(),
@@ -3412,10 +3413,11 @@ struct CompileEnv final
         previewIn(),
         ddocOutput(),
         shortenedMethods(true),
-        obsolete()
+        obsolete(),
+        masm()
     {
     }
-    CompileEnv(uint32_t versionNumber, _d_dynamicArray< const char > date = {}, _d_dynamicArray< const char > time = {}, _d_dynamicArray< const char > vendor = {}, _d_dynamicArray< const char > timestamp = {}, bool previewIn = false, bool ddocOutput = false, bool shortenedMethods = true, bool obsolete = false) :
+    CompileEnv(uint32_t versionNumber, _d_dynamicArray< const char > date = {}, _d_dynamicArray< const char > time = {}, _d_dynamicArray< const char > vendor = {}, _d_dynamicArray< const char > timestamp = {}, bool previewIn = false, bool ddocOutput = false, bool shortenedMethods = true, bool obsolete = false, bool masm = false) :
         versionNumber(versionNumber),
         date(date),
         time(time),
@@ -3424,7 +3426,8 @@ struct CompileEnv final
         previewIn(previewIn),
         ddocOutput(ddocOutput),
         shortenedMethods(shortenedMethods),
-        obsolete(obsolete)
+        obsolete(obsolete),
+        masm(masm)
         {}
 };
 
@@ -4237,6 +4240,7 @@ class AsmStatement : public Statement
 {
 public:
     Token* tokens;
+    bool caseSensitive;
     AsmStatement* syntaxCopy() override;
     void accept(Visitor* v) override;
 };

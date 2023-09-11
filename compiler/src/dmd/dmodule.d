@@ -780,7 +780,9 @@ extern (C++) final class Module : Package
         {
             filetype = FileType.c;
 
+            global.compileEnv.masm = target.os == Target.OS.Windows && !target.omfobj; // Microsoft inline assembler format
             scope p = new CParser!AST(this, buf, cast(bool) docfile, global.errorSink, target.c, &defines, &global.compileEnv);
+            global.compileEnv.masm = false;
             p.nextToken();
             checkCompiledImport();
             members = p.parseModule();
