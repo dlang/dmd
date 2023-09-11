@@ -5634,7 +5634,7 @@ extern (C++) final class CastExp : UnaExp
         {
             // mutable/const -> immutable, const -> mutable can't be lvalue
             // allow casting to/from shared as lvalue
-            if (to.ty != Tsarray && !e1.type.unSharedOf().pointerTo.implicitConvTo(
+            if (!(sc && sc.flags & SCOPE.ctfe) && to.ty != Tsarray && !e1.type.unSharedOf().pointerTo.implicitConvTo(
                 to.unSharedOf().pointerTo()))
             {
                 setUnsafePreview(sc, global.params.useDIP1000, false, loc,
