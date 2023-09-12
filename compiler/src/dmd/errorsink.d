@@ -51,6 +51,10 @@ abstract class ErrorSink
     void deprecation(const ref Loc loc, const(char)* format, ...);
 
     void deprecationSupplemental(const ref Loc loc, const(char)* format, ...);
+
+    // subclassing ErrorSinkNull is useful to override just one method,
+    // so don't use cast(ErrorSinkNull) to check
+    final bool isNullSink() => typeid(this) == typeid(ErrorSinkNull);
 }
 
 /*****************************************

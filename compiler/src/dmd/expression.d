@@ -4204,7 +4204,7 @@ extern (C++) final class FuncExp : Expression
                 (*presult).fd.modifyReturns(sc, tof.next);
             }
         }
-        else if (!cast(ErrorSinkNull)eSink)
+        else if (!eSink.isNullSink())
         {
             auto ts = toAutoQualChars(tx, to);
             eSink.error(loc, "cannot implicitly convert expression `%s` of type `%s` to `%s`",
