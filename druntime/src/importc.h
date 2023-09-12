@@ -106,6 +106,11 @@
 #define __builtin___strncat_chk(dest, src, len, x) strncat(dest,src,len)
 #define __builtin___strncpy_chk(dest, src, len, x) strncpy(dest,src,len)
 #define __builtin___sprintf_chk(s, flag, os, fmt, ...) sprintf(s, fmt, __VA_ARGS__)
+#define __builtin___snprintf_chk(s, c, flag, os, fmt, ...) snprintf(s, c, fmt, __VA_ARGS__)
+#define __builtin___vsnprintf_chk(s, c, flag, os, fmt, ...) vsnprintf(s, c, fmt, __VA_ARGS__)
+#define __builtin___strlcat_chk(dest, src, x, n) strlcat(dest,src,x)
+#define __builtin___strlcpy_chk(dest, src, x, n) strlcpy(dest,src,x)
+#define __builtin_object_size
 #endif
 
 #if __FreeBSD__
