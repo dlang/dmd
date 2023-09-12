@@ -4600,13 +4600,19 @@ extern (C++) final class TypeFunction : TypeNext
         if (auto fe = arg.isFuncExp())
         {
             import dmd.errorsink;
-            import std.algorithm.searching;
-            auto eSink = new ErrorSinkBuffer;
+            auto eSink = new class ErrorSinkNull
+            {
+                nothrow extern(C++) override
+                void error(const ref Loc loc, const(char)* format, ...)
+                {
+                    va_list ap;
+                    va_start(ap, format);
+                    buf.vprintf(format, ap);
+                    va_end(ap);
+                }
+            };
             fe.matchType(par.type, sc, null, eSink);
-            // for now we need just the message part
-            auto s = eSink.buffer.extractSlice(true);
-            s.findSkip("Error: ");
-            return s.ptr;
+            return buf.extractChars();
         }
         // show qualification when toChars() is the same but types are different
         // https://issues.dlang.org/show_bug.cgi?id=19948
