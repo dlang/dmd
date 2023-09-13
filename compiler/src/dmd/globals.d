@@ -102,7 +102,7 @@ extern(C++) struct Output
     int bufferLines;    // number of lines written to the buffer
 }
 
-/// Command line state related to printing uasage about other switches
+/// Command line state related to printing usage about other switches
 extern(C++) struct Help
 {
     bool manual;       // open browser on compiler manual
