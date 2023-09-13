@@ -611,7 +611,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 }
                 if (arg == "/?")
                 {
-                    params.usage = true;
+                    params.help.usage = true;
                     return false;
                 }
             }
@@ -665,7 +665,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 break;
             default:
                 errorInvalidSwitch(p);
-                params.checkActionUsage = true;
+                params.help.checkAction = true;
                 return false;
             }
         }
@@ -728,7 +728,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                   check(checkarg, "switch",    params.useSwitchError)))
             {
                 errorInvalidSwitch(p);
-                params.checkUsage = true;
+                params.help.check = true;
                 return false;
             }
         }
@@ -997,14 +997,14 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                     break;
                 default:
                     errorInvalidSwitch(p, "Only `baseline`, `avx`, `avx2` or `native` are allowed for `-mcpu`");
-                    params.mcpuUsage = true;
+                    params.help.mcpu = true;
                     return false;
                 }
             }
             else
             {
                 errorInvalidSwitch(p, "Only `baseline`, `avx`, `avx2` or `native` are allowed for `-mcpu`");
-                params.mcpuUsage = true;
+                params.help.mcpu = true;
                 return false;
             }
         }
@@ -1066,7 +1066,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 break;
             default:
                 error("switch `%s` is invalid", p);
-                params.externStdUsage = true;
+                params.help.externStd = true;
                 return false;
             }
         }
@@ -1104,7 +1104,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                             break;
                         default:
                             error("transition `%s` is invalid", p);
-                            params.transitionUsage = true;
+                            params.help.transition = true;
                             return false;
                     }
                 }
@@ -1121,12 +1121,12 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                             break;
                         default:
                             error("transition `%s` is invalid", p);
-                            params.transitionUsage = true;
+                            params.help.transition = true;
                             return false;
                     }
                 }
                 errorInvalidSwitch(p);
-                params.transitionUsage = true;
+                params.help.transition = true;
                 return false;
             }
         }
@@ -1141,7 +1141,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             if (!parseCLIOption!("preview", Usage.previews)(params, arg))
             {
                 error("preview `%s` is invalid", p);
-                params.previewUsage = true;
+                params.help.preview = true;
                 return false;
             }
 
