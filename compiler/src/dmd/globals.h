@@ -96,6 +96,21 @@ struct Output
     int bufferLines;    // number of lines written to the buffer
 };
 
+/// Command line state related to printing uasage about other switches
+struct Help
+{
+    d_bool manual;       // open browser on compiler manual
+    d_bool usage;        // print usage and exit
+    // print help of switch:
+    d_bool mcpu;         // -mcpu
+    d_bool transition;   // -transition
+    d_bool check;        // -check
+    d_bool checkAction;  // -checkaction
+    d_bool revert;       // -revert
+    d_bool preview;      // -preview
+    d_bool externStd;    // -extern-std
+    d_bool hc;           // -HC
+}
 // Put command line switches in here
 struct Param
 {
@@ -136,16 +151,7 @@ struct Param
     CppStdRevision cplusplus;  // version of C++ name mangling to support
     d_bool showGaggedErrors;  // print gagged errors anyway
     d_bool printErrorContext;  // print errors with the error context (the error line in the source file)
-    d_bool manual;            // open browser on compiler manual
-    d_bool usage;             // print usage and exit
-    d_bool mcpuUsage;         // print help on -mcpu switch
-    d_bool transitionUsage;   // print help on -transition switch
-    d_bool checkUsage;        // print help on -check switch
-    d_bool checkActionUsage;  // print help on -checkaction switch
-    d_bool revertUsage;       // print help on -revert switch
-    d_bool previewUsage;      // print help on -preview switch
-    d_bool externStdUsage;    // print help on -extern-std switch
-    d_bool hcUsage;           // print help on -HC switch
+    Help help;
     d_bool logo;              // print logo;
 
     // Options for `-preview=/-revert=`
