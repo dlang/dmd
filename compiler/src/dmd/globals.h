@@ -110,7 +110,8 @@ struct Help
     d_bool preview;      // -preview
     d_bool externStd;    // -extern-std
     d_bool hc;           // -HC
-}
+};
+
 // Put command line switches in here
 struct Param
 {
