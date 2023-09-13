@@ -54,7 +54,7 @@ abstract class ErrorSink
 
     // subclassing ErrorSinkNull is useful to override just one method,
     // so don't use cast(ErrorSinkNull) to check
-    final bool isNullSink() => typeid(this) == typeid(ErrorSinkNull);
+    final bool isNullSink() { return typeid(this) == typeid(ErrorSinkNull); }
 }
 
 /*****************************************
