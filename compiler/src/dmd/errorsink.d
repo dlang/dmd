@@ -35,8 +35,12 @@ enum DiagnosticFlag
  */
 abstract class ErrorSink
 {
-  nothrow:
   extern (C++):
+    // subclassing ErrorSinkNull is useful to override just one method,
+    // so don't use cast(ErrorSinkNull) to check
+    final bool isNullSink() { return typeid(this) == typeid(ErrorSinkNull); }
+
+  nothrow:
 
     void error(const ref Loc loc, const(char)* format, ...);
 
@@ -51,10 +55,6 @@ abstract class ErrorSink
     void deprecation(const ref Loc loc, const(char)* format, ...);
 
     void deprecationSupplemental(const ref Loc loc, const(char)* format, ...);
-
-    // subclassing ErrorSinkNull is useful to override just one method,
-    // so don't use cast(ErrorSinkNull) to check
-    final bool isNullSink() { return typeid(this) == typeid(ErrorSinkNull); }
 }
 
 /*****************************************
