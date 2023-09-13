@@ -164,7 +164,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     global.compileEnv.shortenedMethods = global.params.shortenedMethods;
     global.compileEnv.obsolete         = global.params.obsolete;
 
-    if (params.usage)
+    if (params.help.usage)
     {
         usage();
         return EXIT_SUCCESS;
@@ -216,7 +216,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         foreach (n; params)
         {
             s ~= q{
-                if (params.}~n~q{Usage)
+                if (params.help.}~n~q{)
                     return printHelpUsage(CLIUsage.}~n~q{Usage);
             };
         }
