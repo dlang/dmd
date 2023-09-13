@@ -530,7 +530,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
     static string checkOptionsMixin(string usageFlag, string missingMsg)
     {
         return q{
-            final switch (checkOptions(arg[len - 1 .. $], params.}~usageFlag~","~
+            final switch (checkOptions(arg[len - 1 .. $], params.help.}~usageFlag~","~
                           `"`~missingMsg~`"`~q{))
             {
                 case CheckOptions.error:
@@ -647,7 +647,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
              *    -checkaction=D|C|halt|context
              */
             enum len = "-checkaction=".length;
-            mixin(checkOptionsMixin("checkActionUsage",
+            mixin(checkOptionsMixin("checkAction",
                 "`-check=<behavior>` requires a behavior"));
             switch (arg[len .. $])
             {
@@ -672,7 +672,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         else if (startsWith(p + 1, "check")) // https://dlang.org/dmd.html#switch-check
         {
             enum len = "-check=".length;
-            mixin(checkOptionsMixin("checkUsage",
+            mixin(checkOptionsMixin("check",
                 "`-check=<action>` requires an action"));
             /* Parse:
              *    -check=[assert|bounds|in|invariant|out|switch][=[on|off]]
@@ -976,7 +976,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             enum len = "-mcpu=".length;
             // Parse:
             //      -mcpu=identifier
-            mixin(checkOptionsMixin("mcpuUsage",
+            mixin(checkOptionsMixin("mcpu",
                 "`-mcpu=<architecture>` requires an architecture"));
             if (Identifier.isValidIdentifier(p + len))
             {
@@ -1043,7 +1043,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             enum len = "-extern-std=".length;
             // Parse:
             //      -extern-std=identifier
-            mixin(checkOptionsMixin("externStdUsage",
+            mixin(checkOptionsMixin("externStd",
                 "`-extern-std=<standard>` requires a standard"));
             const(char)[] cpprev = arg[len .. $];
 
@@ -1075,7 +1075,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             enum len = "-transition=".length;
             // Parse:
             //      -transition=number
-            mixin(checkOptionsMixin("transitionUsage",
+            mixin(checkOptionsMixin("transition",
                 "`-transition=<name>` requires a name"));
             if (!parseCLIOption!("transition", Usage.transitions)(params, arg))
             {
@@ -1135,7 +1135,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             enum len = "-preview=".length;
             // Parse:
             //      -preview=name
-            mixin(checkOptionsMixin("previewUsage",
+            mixin(checkOptionsMixin("preview",
                 "`-preview=<name>` requires a name"));
 
             if (!parseCLIOption!("preview", Usage.previews)(params, arg))
@@ -1158,13 +1158,13 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             enum len = "-revert=".length;
             // Parse:
             //      -revert=name
-            mixin(checkOptionsMixin("revertUsage",
+            mixin(checkOptionsMixin("revert",
                 "`-revert=<name>` requires a name"));
 
             if (!parseCLIOption!("revert", Usage.reverts)(params, arg))
             {
                 error("revert `%s` is invalid", p);
-                params.revertUsage = true;
+                params.help.revert = true;
                 return false;
             }
         }
@@ -1256,7 +1256,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 break;
             case '=':
                 enum len = "-HC=".length;
-                mixin(checkOptionsMixin("hcUsage", "`-HC=<mode>` requires a valid mode"));
+                mixin(checkOptionsMixin("hc", "`-HC=<mode>` requires a valid mode"));
                 const mode = arg[len .. $];
                 switch (mode)
                 {
@@ -1268,7 +1268,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                         break;
                     default:
                         errorInvalidSwitch(p);
-                        params.hcUsage = true;
+                        params.help.hc = true;
                         return false;
                 }
                 break;
@@ -1518,7 +1518,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         else if (arg == "--help" ||
                  arg == "-h")
         {
-            params.usage = true;
+            params.help.usage = true;
             return false;
         }
         else if (arg == "--r")

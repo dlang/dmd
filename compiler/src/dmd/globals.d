@@ -101,6 +101,23 @@ extern(C++) struct Output
     OutBuffer* buffer;  // if this output is buffered, this is the buffer
     int bufferLines;    // number of lines written to the buffer
 }
+
+/// Command line state related to printing uasage about other switches
+extern(C++) struct Help
+{
+    bool manual;       // open browser on compiler manual
+    bool usage;        // print usage and exit
+    // print help of switch:
+    bool mcpu;         // -mcpu
+    bool transition;   // -transition
+    bool check;        // -check
+    bool checkAction;  // -checkaction
+    bool revert;       // -revert
+    bool preview;      // -preview
+    bool externStd;    // -extern-std
+    bool hc;           // -HC
+}
+
 /// Put command line switches in here
 extern (C++) struct Param
 {
@@ -143,16 +160,7 @@ extern (C++) struct Param
 
     bool showGaggedErrors;  // print gagged errors anyway
     bool printErrorContext;  // print errors with the error context (the error line in the source file)
-    bool manual;            // open browser on compiler manual
-    bool usage;             // print usage and exit
-    bool mcpuUsage;         // print help on -mcpu switch
-    bool transitionUsage;   // print help on -transition switch
-    bool checkUsage;        // print help on -check switch
-    bool checkActionUsage;  // print help on -checkaction switch
-    bool revertUsage;       // print help on -revert switch
-    bool previewUsage;      // print help on -preview switch
-    bool externStdUsage;    // print help on -extern-std switch
-    bool hcUsage;           // print help on -HC switch
+    Help help;
     bool logo;              // print compiler logo
 
     // Options for `-preview=/-revert=`
