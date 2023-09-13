@@ -3522,16 +3522,16 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
     int printed = 0; // number of candidates printed
     int count = 0; // total candidates
     bool child; // true if inside an eponymous template
-    const(char)* errorPrefix()
+    const(char)* errorPrefix() @safe
     {
         if (child)
             return "  - Containing: ";
 
-        enum plural = "Candidates are: ";
         // align with blank spaces after first message
-        enum char[plural.length] spaces = ' ';
+        enum plural = "Candidates are: ";
+        enum spaces = "                ";
         if (printed)
-            return (spaces ~ '\0').ptr;
+            return spaces;
 
         return (count == 1) ? "Candidate is: " : plural;
     }
