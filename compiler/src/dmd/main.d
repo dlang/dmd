@@ -226,7 +226,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     mixin(generateUsageChecks(["mcpu", "transition", "check", "checkAction",
         "preview", "revert", "externStd", "hc"]));
 
-    if (params.manual)
+    if (params.help.manual)
     {
         version (Windows)
         {
