@@ -1598,7 +1598,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (startsWith(p + 1, "man"))   // https://dlang.org/dmd.html#switch-man
         {
-            params.manual = true;
+            params.help.manual = true;
             return false;
         }
         else if (arg == "-run")              // https://dlang.org/dmd.html#switch-run
