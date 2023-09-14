@@ -169,7 +169,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         return EXIT_SUCCESS;
     }
 
-    if (params.logo)
+    if (params.v.logo)
     {
         logo();
         return EXIT_SUCCESS;
@@ -257,11 +257,11 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         return EXIT_SUCCESS;
     }
 
-    if (params.color)
+    if (params.v.color)
         global.console = cast(void*) createConsole(core.stdc.stdio.stderr);
 
     target.setCPU();
-    Loc.set(params.showColumns, params.messageStyle);
+    Loc.set(params.v.showColumns, params.v.messageStyle);
 
     if (global.errors)
     {
@@ -311,7 +311,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     // Predefined version identifiers
     addDefaultVersionIdentifiers(params, target);
 
-    if (params.verbose)
+    if (params.v.verbose)
     {
         stdout.printPredefinedVersions();
         stdout.printGlobalConfigs();
@@ -382,7 +382,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     for (size_t filei = 0, modi = 0; filei < filecount; filei++, modi++)
     {
         Module m = modules[modi];
-        if (params.verbose)
+        if (params.v.verbose)
             message("parse     %s", m.toChars());
         if (!Module.rootModule)
             Module.rootModule = m;
@@ -454,7 +454,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         {
             if (m.filetype == FileType.dhdr)
                 continue;
-            if (params.verbose)
+            if (params.v.verbose)
                 message("import    %s", m.toChars());
 
             buf.reset();         // reuse the buffer
@@ -469,7 +469,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     // load all unconditional imports for better symbol resolving
     foreach (m; modules)
     {
-        if (params.verbose)
+        if (params.v.verbose)
             message("importall %s", m.toChars());
         m.importAll(null);
     }
@@ -481,7 +481,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     // Do semantic analysis
     foreach (m; modules)
     {
-        if (params.verbose)
+        if (params.v.verbose)
             message("semantic  %s", m.toChars());
         m.dsymbolSemantic(null);
     }
@@ -501,7 +501,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     // Do pass 2 semantic analysis
     foreach (m; modules)
     {
-        if (params.verbose)
+        if (params.v.verbose)
             message("semantic2 %s", m.toChars());
         m.semantic2(null);
     }
@@ -512,7 +512,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     // Do pass 3 semantic analysis
     foreach (m; modules)
     {
-        if (params.verbose)
+        if (params.v.verbose)
             message("semantic3 %s", m.toChars());
         m.semantic3(null);
     }
@@ -524,7 +524,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         {
             auto m = compiledImports[i];
             assert(m.isRoot);
-            if (params.verbose)
+            if (params.v.verbose)
                 message("semantic3 %s", m.toChars());
             m.semantic3(null);
             modules.push(m);
@@ -539,7 +539,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     {
         if (params.useInline || m.hasAlwaysInlines)
         {
-            if (params.verbose)
+            if (params.v.verbose)
                 message("inline scan %s", m.toChars());
             inlineScanModule(m);
         }
@@ -629,7 +629,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     generateCodeAndWrite(modules[], libmodules[], params.libname, params.objdir,
                          driverParams.lib, params.obj, driverParams.oneobj, params.multiobj,
-                         params.verbose);
+                         params.v.verbose);
 
     backend_term();
 

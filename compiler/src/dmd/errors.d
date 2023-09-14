@@ -457,12 +457,12 @@ extern (C++) void verrorReport(const ref Loc loc, const(char)* format, va_list a
         {
             info.headerColor = Classification.error;
             verrorPrint(format, ap, info);
-            if (global.params.errorLimit && global.errors >= global.params.errorLimit)
+            if (global.params.v.errorLimit && global.errors >= global.params.v.errorLimit)
                 fatal(); // moderate blizzard of cascading messages
         }
         else
         {
-            if (global.params.showGaggedErrors)
+            if (global.params.v.showGaggedErrors)
             {
                 info.headerColor = Classification.gagged;
                 verrorPrint(format, ap, info);
@@ -549,7 +549,7 @@ extern (C++) void verrorReportSupplemental(const ref Loc loc, const(char)* forma
     case ErrorKind.error:
         if (global.gag)
         {
-            if (!global.params.showGaggedErrors)
+            if (!global.params.v.showGaggedErrors)
                 return;
             info.headerColor = Classification.gagged;
         }
@@ -610,7 +610,7 @@ private void verrorPrint(const(char)* format, va_list ap, ref ErrorInfo info)
         diagnosticHandler(info.loc, info.headerColor, header, format, ap, info.p1, info.p2))
         return;
 
-    if (global.params.showGaggedErrors && global.gag)
+    if (global.params.v.showGaggedErrors && global.gag)
         fprintf(stderr, "(spec:%d) ", global.gag);
     Console con = cast(Console) global.console;
     const p = info.loc.toChars();
@@ -650,7 +650,7 @@ private void verrorPrint(const(char)* format, va_list ap, ref ErrorInfo info)
 
     __gshared Loc old_loc;
     Loc loc = info.loc;
-    if (global.params.printErrorContext &&
+    if (global.params.v.printErrorContext &&
         // ignore supplemental messages with same loc
         (loc != old_loc || !info.supplemental) &&
         // ignore invalid files

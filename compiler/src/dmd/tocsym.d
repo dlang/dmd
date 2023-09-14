@@ -238,7 +238,7 @@ Symbol *toSymbol(Dsymbol s)
                     if (config.objfmt == OBJ_MACH && _tysize[TYnptr] == 8)
                         s.Salignment = 2;
 
-                    if (global.params.vtls)
+                    if (global.params.v.tls)
                     {
                         message(vd.loc, "`%s` is thread local", vd.toChars());
                     }

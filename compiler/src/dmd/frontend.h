@@ -3050,6 +3050,67 @@ struct Help final
         {}
 };
 
+struct Verbose final
+{
+    bool verbose;
+    bool showColumns;
+    bool tls;
+    bool templates;
+    bool templatesListInstances;
+    bool gc;
+    bool field;
+    bool complex;
+    bool vin;
+    bool showGaggedErrors;
+    bool printErrorContext;
+    bool logo;
+    bool color;
+    bool cov;
+    MessageStyle messageStyle;
+    uint32_t errorLimit;
+    uint32_t errorSupplementLimit;
+    uint32_t errorSupplementCount();
+    Verbose() :
+        verbose(),
+        showColumns(),
+        tls(),
+        templates(),
+        templatesListInstances(),
+        gc(),
+        field(),
+        complex(true),
+        vin(),
+        showGaggedErrors(),
+        printErrorContext(),
+        logo(),
+        color(),
+        cov(),
+        messageStyle((MessageStyle)0u),
+        errorLimit(20u),
+        errorSupplementLimit(6u)
+    {
+    }
+    Verbose(bool verbose, bool showColumns = false, bool tls = false, bool templates = false, bool templatesListInstances = false, bool gc = false, bool field = false, bool complex = true, bool vin = false, bool showGaggedErrors = false, bool printErrorContext = false, bool logo = false, bool color = false, bool cov = false, MessageStyle messageStyle = (MessageStyle)0u, uint32_t errorLimit = 20u, uint32_t errorSupplementLimit = 6u) :
+        verbose(verbose),
+        showColumns(showColumns),
+        tls(tls),
+        templates(templates),
+        templatesListInstances(templatesListInstances),
+        gc(gc),
+        field(field),
+        complex(complex),
+        vin(vin),
+        showGaggedErrors(showGaggedErrors),
+        printErrorContext(printErrorContext),
+        logo(logo),
+        color(color),
+        cov(cov),
+        messageStyle(messageStyle),
+        errorLimit(errorLimit),
+        errorSupplementLimit(errorSupplementLimit)
+        {}
+};
+
 enum class FeatureState : uint8_t
 {
     default_ = 0u,
@@ -3118,23 +3179,13 @@ struct Param final
     bool multiobj;
     bool trace;
     bool tracegc;
-    bool verbose;
     bool vcg_ast;
-    bool showColumns;
-    bool vtls;
-    bool vtemplates;
-    bool vtemplatesListInstances;
-    bool vgc;
-    bool vfield;
-    bool vcomplex;
-    bool vin;
     DiagnosticReporting useDeprecated;
     bool useUnitTests;
     bool useInline;
     bool release;
     bool preservePaths;
     DiagnosticReporting warnings;
-    bool color;
     bool cov;
     uint8_t covPercent;
     bool ctfe_cov;
@@ -3148,10 +3199,8 @@ struct Param final
     bool allInst;
     bool bitfields;
     CppStdRevision cplusplus;
-    bool showGaggedErrors;
-    bool printErrorContext;
     Help help;
-    bool logo;
+    Verbose v;
     FeatureState useDIP25;
     FeatureState useDIP1000;
     bool ehnogc;
@@ -3175,8 +3224,6 @@ struct Param final
     CHECKENABLE useSwitchError;
     CHECKENABLE boundscheck;
     CHECKACTION checkAction;
-    uint32_t errorLimit;
-    uint32_t errorSupplementLimit;
     _d_dynamicArray< const char > argv0;
     Array<const char* > modFileAliasStrings;
     Array<const char* >* imppath;
@@ -3196,7 +3243,6 @@ struct Param final
     Array<const char* >* debugids;
     uint32_t versionlevel;
     Array<const char* >* versionids;
-    MessageStyle messageStyle;
     bool run;
     Array<const char* > runargs;
     Array<const char* > cppswitches;
@@ -3215,23 +3261,13 @@ struct Param final
         multiobj(),
         trace(),
         tracegc(),
-        verbose(),
         vcg_ast(),
-        showColumns(),
-        vtls(),
-        vtemplates(),
-        vtemplatesListInstances(),
-        vgc(),
-        vfield(),
-        vcomplex(true),
-        vin(),
         useDeprecated((DiagnosticReporting)1u),
         useUnitTests(),
         useInline(false),
         release(),
         preservePaths(),
         warnings((DiagnosticReporting)2u),
-        color(),
         cov(),
         covPercent(),
         ctfe_cov(false),
@@ -3245,10 +3281,8 @@ struct Param final
         allInst(),
         bitfields(),
         cplusplus((CppStdRevision)201103u),
-        showGaggedErrors(),
-        printErrorContext(),
         help(),
-        logo(),
+        v(),
         useDIP25((FeatureState)2u),
         ehnogc(),
         useDIP1021(),
@@ -3266,8 +3300,6 @@ struct Param final
         useSwitchError((CHECKENABLE)0u),
         boundscheck((CHECKENABLE)0u),
         checkAction((CHECKACTION)0u),
-        errorLimit(20u),
-        errorSupplementLimit(6u),
         argv0(),
         modFileAliasStrings(),
         imppath(),
@@ -3286,7 +3318,6 @@ struct Param final
         debugids(),
         versionlevel(),
         versionids(),
-        messageStyle((MessageStyle)0u),
         run(),
         runargs(),
         cppswitches(),
@@ -3302,28 +3333,18 @@ struct Param final
         mapfile()
     {
     }
-    Param(bool obj, bool multiobj = false, bool trace = false, bool tracegc = false, bool verbose = false, bool vcg_ast = false, bool showColumns = false, bool vtls = false, bool vtemplates = false, bool vtemplatesListInstances = false, bool vgc = false, bool vfield = false, bool vcomplex = true, bool vin = false, DiagnosticReporting useDeprecated = (DiagnosticReporting)1u, bool useUnitTests = false, bool useInline = false, bool release = false, bool preservePaths = false, DiagnosticReporting warnings = (DiagnosticReporting)2u, bool color = false, bool cov = false, uint8_t covPercent = 0u, bool ctfe_cov = false, bool ignoreUnsupportedPragmas = false, bool useModuleInfo = true, bool useTypeInfo = true, bool useExceptions = true, bool useGC = true, bool betterC = false, bool addMain = false, bool allInst = false, bool bitfields = false, CppStdRevision cplusplus = (CppStdRevision)201103u, bool showGaggedErrors = false, bool printErrorContext = false, Help help = Help(), bool logo = false, FeatureState useDIP25 = (FeatureState)2u, FeatureState useDIP1000 = (FeatureState)0u, bool ehnogc = false, bool useDIP1021 = false, FeatureState fieldwise = (FeatureState)0u, bool fixAliasThis = false, FeatureState rvalueRefParam = (FeatureState)0u, FeatureState noSharedAccess = (FeatureState)0u, bool previewIn = false, bool inclusiveInContracts = false, bool shortenedMethods = true, bool fixImmutableConv = false, bool fix16997 = true, FeatureState dtorFields = (FeatureState)0u, FeatureState systemVariables = (FeatureState)0u, CHECKENABLE useInvariants = (CHECKENABLE)0u, CHECKENABLE useIn = (CHECKENABLE)0u, CHECKENABLE useOut = (CHECKENABLE)0u, CHECKENABLE useArrayBounds = (CHECKENABLE)0u, CHECKENABLE useAssert = (CHECKENABLE)0u, CHECKENABLE useSwitchError = (CHECKENABLE)0u, CHECKENABLE boundscheck = (CHECKENABLE)0u, CHECKACTION checkAction = (CHECKACTION)0u, uint32_t errorLimit = 20u, uint32_t errorSupplementLimit = 6u, _d_dynamicArray< const char > argv0 = {}, Array<const char* > modFileAliasStrings = Array<const char* >(), Array<const char* >* imppath = nullptr, Array<const char* >* fileImppath = nullptr, _d_dynamicArray< const char > objdir = {}, _d_dynamicArray< const char > objname = {}, _d_dynamicArray< const char > libname = {}, Output ddoc = Output(), Output dihdr = Output(), Output cxxhdr = Output(), Output json = Output(), JsonFieldFlags jsonFieldFlags = (JsonFieldFlags)0u, Output makeDeps = Output(), Output mixinOut = Output(), Output moduleDeps = Output(), uint32_t debuglevel = 0u, Array<const char* >* debugids = nullptr, uint32_t versionlevel = 0u, Array<const char* >* versionids = nullptr, MessageStyle messageStyle = (MessageStyle)0u, bool run = false, Array<const char* > runargs = Array<const char* >(), Array<const char* > cppswitches = Array<const char* >(), const char* cpp = nullptr, Array<const char* > objfiles = Array<const char* >(), Array<const char* > linkswitches = Array<const char* >(), Array<bool > linkswitchIsForCC = Array<bool >(), Array<const char* > libfiles = Array<const char* >(), Array<const char* > dllfiles = Array<const char* >(), _d_dynamicArray< const char > deffile = {}, _d_dynamicArray< const char > resfile = {}, _d_dynamicArray< const char > exefile = {}, _d_dynamicArray< const char > mapfile = {}) :
+    Param(bool obj, bool multiobj = false, bool trace = false, bool tracegc = false, bool vcg_ast = false, DiagnosticReporting useDeprecated = (DiagnosticReporting)1u, bool useUnitTests = false, bool useInline = false, bool release = false, bool preservePaths = false, DiagnosticReporting warnings = (DiagnosticReporting)2u, bool cov = false, uint8_t covPercent = 0u, bool ctfe_cov = false, bool ignoreUnsupportedPragmas = false, bool useModuleInfo = true, bool useTypeInfo = true, bool useExceptions = true, bool useGC = true, bool betterC = false, bool addMain = false, bool allInst = false, bool bitfields = false, CppStdRevision cplusplus = (CppStdRevision)201103u, Help help = Help(), Verbose v = Verbose(), FeatureState useDIP25 = (FeatureState)2u, FeatureState useDIP1000 = (FeatureState)0u, bool ehnogc = false, bool useDIP1021 = false, FeatureState fieldwise = (FeatureState)0u, bool fixAliasThis = false, FeatureState rvalueRefParam = (FeatureState)0u, FeatureState noSharedAccess = (FeatureState)0u, bool previewIn = false, bool inclusiveInContracts = false, bool shortenedMethods = true, bool fixImmutableConv = false, bool fix16997 = true, FeatureState dtorFields = (FeatureState)0u, FeatureState systemVariables = (FeatureState)0u, CHECKENABLE useInvariants = (CHECKENABLE)0u, CHECKENABLE useIn = (CHECKENABLE)0u, CHECKENABLE useOut = (CHECKENABLE)0u, CHECKENABLE useArrayBounds = (CHECKENABLE)0u, CHECKENABLE useAssert = (CHECKENABLE)0u, CHECKENABLE useSwitchError = (CHECKENABLE)0u, CHECKENABLE boundscheck = (CHECKENABLE)0u, CHECKACTION checkAction = (CHECKACTION)0u, _d_dynamicArray< const char > argv0 = {}, Array<const char* > modFileAliasStrings = Array<const char* >(), Array<const char* >* imppath = nullptr, Array<const char* >* fileImppath = nullptr, _d_dynamicArray< const char > objdir = {}, _d_dynamicArray< const char > objname = {}, _d_dynamicArray< const char > libname = {}, Output ddoc = Output(), Output dihdr = Output(), Output cxxhdr = Output(), Output json = Output(), JsonFieldFlags jsonFieldFlags = (JsonFieldFlags)0u, Output makeDeps = Output(), Output mixinOut = Output(), Output moduleDeps = Output(), uint32_t debuglevel = 0u, Array<const char* >* debugids = nullptr, uint32_t versionlevel = 0u, Array<const char* >* versionids = nullptr, bool run = false, Array<const char* > runargs = Array<const char* >(), Array<const char* > cppswitches = Array<const char* >(), const char* cpp = nullptr, Array<const char* > objfiles = Array<const char* >(), Array<const char* > linkswitches = Array<const char* >(), Array<bool > linkswitchIsForCC = Array<bool >(), Array<const char* > libfiles = Array<const char* >(), Array<const char* > dllfiles = Array<const char* >(), _d_dynamicArray< const char > deffile = {}, _d_dynamicArray< const char > resfile = {}, _d_dynamicArray< const char > exefile = {}, _d_dynamicArray< const char > mapfile = {}) :
         obj(obj),
         multiobj(multiobj),
         trace(trace),
         tracegc(tracegc),
-        verbose(verbose),
         vcg_ast(vcg_ast),
-        showColumns(showColumns),
-        vtls(vtls),
-        vtemplates(vtemplates),
-        vtemplatesListInstances(vtemplatesListInstances),
-        vgc(vgc),
-        vfield(vfield),
-        vcomplex(vcomplex),
-        vin(vin),
         useDeprecated(useDeprecated),
         useUnitTests(useUnitTests),
         useInline(useInline),
         release(release),
         preservePaths(preservePaths),
         warnings(warnings),
-        color(color),
         cov(cov),
         covPercent(covPercent),
         ctfe_cov(ctfe_cov),
@@ -3337,10 +3358,8 @@ struct Param final
         allInst(allInst),
         bitfields(bitfields),
         cplusplus(cplusplus),
-        showGaggedErrors(showGaggedErrors),
-        printErrorContext(printErrorContext),
         help(help),
-        logo(logo),
+        v(v),
         useDIP25(useDIP25),
         useDIP1000(useDIP1000),
         ehnogc(ehnogc),
@@ -3364,8 +3383,6 @@ struct Param final
         useSwitchError(useSwitchError),
         boundscheck(boundscheck),
         checkAction(checkAction),
-        errorLimit(errorLimit),
-        errorSupplementLimit(errorSupplementLimit),
         argv0(argv0),
         modFileAliasStrings(modFileAliasStrings),
         imppath(imppath),
@@ -3385,7 +3402,6 @@ struct Param final
         debugids(debugids),
         versionlevel(versionlevel),
         versionids(versionids),
-        messageStyle(messageStyle),
         run(run),
         runargs(runargs),
         cppswitches(cppswitches),

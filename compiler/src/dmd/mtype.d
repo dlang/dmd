@@ -4592,7 +4592,7 @@ extern (C++) final class TypeFunction : TypeNext
     // arguments get specially formatted
     private const(char)* getParamError(Expression arg, Parameter par)
     {
-        if (global.gag && !global.params.showGaggedErrors)
+        if (global.gag && !global.params.v.showGaggedErrors)
             return null;
         // show qualification when toChars() is the same but types are different
         // https://issues.dlang.org/show_bug.cgi?id=19948
@@ -4611,7 +4611,7 @@ extern (C++) final class TypeFunction : TypeNext
 
     private extern(D) const(char)* getMatchError(A...)(const(char)* format, A args)
     {
-        if (global.gag && !global.params.showGaggedErrors)
+        if (global.gag && !global.params.v.showGaggedErrors)
             return null;
         OutBuffer buf;
         buf.printf(format, args);

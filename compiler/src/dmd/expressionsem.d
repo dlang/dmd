@@ -6277,7 +6277,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         const bool doUnittests = global.params.useUnitTests || global.params.ddoc.doOutput || global.params.dihdr.doOutput;
         auto loc = adjustLocForMixin(str, exp.loc, global.params.mixinOut);
         scope p = new Parser!ASTCodegen(loc, sc._module, str, false, global.errorSink, &global.compileEnv, doUnittests);
-        p.transitionIn = global.params.vin;
+        p.transitionIn = global.params.v.vin;
         p.nextToken();
         //printf("p.loc.linnum = %d\n", p.loc.linnum);
 
@@ -6372,7 +6372,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         sc._module.contentImportedFiles.push(resolvedNamez.ptr);
-        if (global.params.verbose)
+        if (global.params.v.verbose)
         {
             const slice = se.peekString();
             message("file      %.*s\t(%s)", cast(int)slice.length, slice.ptr, resolvedNamez.ptr);
@@ -10289,7 +10289,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     res = Expression.combine(e0, ce).expressionSemantic(sc);
                 }
 
-                if (global.params.verbose)
+                if (global.params.v.verbose)
                     message("lowered   %s =>\n          %s", exp.toChars(), res.toChars());
             }
         }
@@ -10379,7 +10379,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (isArrayAssign)
             res = Expression.combine(res, ae.e1).expressionSemantic(sc);
 
-        if (global.params.verbose)
+        if (global.params.v.verbose)
             message("lowered   %s =>\n          %s", ae.toChars(), res.toChars());
 
         res = new LoweredAssignExp(ae, res);

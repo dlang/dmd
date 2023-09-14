@@ -1780,7 +1780,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                     if (!se)
                         return setError();
 
-                    if (global.params.verbose)
+                    if (global.params.v.verbose)
                     {
                         message("library   %.*s", cast(int)se.len, se.string);
                     }
@@ -1980,9 +1980,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             if (ed && ss.cases.length < ed.members.length)
             {
                 int missingMembers = 0;
-                const maxShown = !global.params.verbose ?
-                                    (global.params.errorSupplementLimit ? global.params.errorSupplementLimit : int.max)
-                                    : int.max;
+                const maxShown = global.params.v.errorSupplementCount();
             Lmembers:
                 foreach (es; *ed.members)
                 {
@@ -4858,7 +4856,7 @@ private Statements* flatten(Statement statement, Scope* sc)
             const bool doUnittests = global.params.useUnitTests || global.params.ddoc.doOutput || global.params.dihdr.doOutput;
             auto loc = adjustLocForMixin(str, cs.loc, global.params.mixinOut);
             scope p = new Parser!ASTCodegen(loc, sc._module, str, false, global.errorSink, &global.compileEnv, doUnittests);
-            p.transitionIn = global.params.vin;
+            p.transitionIn = global.params.v.vin;
             p.nextToken();
 
             auto a = new Statements();

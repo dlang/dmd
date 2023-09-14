@@ -742,10 +742,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 switch(arg[7 .. $])
                 {
                 case "on":
-                    params.color = true;
+                    params.v.color = true;
                     break;
                 case "off":
-                    params.color = false;
+                    params.v.color = false;
                     break;
                 case "auto":
                     break;
@@ -757,7 +757,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             else if (p[6])
                 goto Lerror;
             else
-                params.color = true;
+                params.v.color = true;
         }
         else if (startsWith(p + 1, "conf=")) // https://dlang.org/dmd.html#switch-conf
         {
@@ -893,23 +893,23 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 params.trace = true;
         }
         else if (arg == "-v") // https://dlang.org/dmd.html#switch-v
-            params.verbose = true;
+            params.v.verbose = true;
         else if (arg == "-vcg-ast")
             params.vcg_ast = true;
         else if (arg == "-vasm") // https://dlang.org/dmd.html#switch-vasm
             driverParams.vasm = true;
         else if (arg == "-vtls") // https://dlang.org/dmd.html#switch-vtls
-            params.vtls = true;
+            params.v.tls = true;
         else if (startsWith(p + 1, "vtemplates")) // https://dlang.org/dmd.html#switch-vtemplates
         {
-            params.vtemplates = true;
+            params.v.templates = true;
             if (p[1 + "vtemplates".length] == '=')
             {
                 const(char)[] style = arg[1 + "vtemplates=".length .. $];
                 switch (style)
                 {
                 case "list-instances":
-                    params.vtemplatesListInstances = true;
+                    params.v.templatesListInstances = true;
                     break;
                 default:
                     error("unknown vtemplates style '%.*s', must be 'list-instances'", cast(int) style.length, style.ptr);
@@ -917,9 +917,9 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             }
         }
         else if (arg == "-vcolumns") // https://dlang.org/dmd.html#switch-vcolumns
-            params.showColumns = true;
+            params.v.showColumns = true;
         else if (arg == "-vgc") // https://dlang.org/dmd.html#switch-vgc
-            params.vgc = true;
+            params.v.gc = true;
         else if (startsWith(p + 1, "verrors")) // https://dlang.org/dmd.html#switch-verrors
         {
             if (p[8] != '=')
@@ -929,13 +929,13 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             }
             if (startsWith(p + 9, "spec"))
             {
-                params.showGaggedErrors = true;
+                params.v.showGaggedErrors = true;
             }
             else if (startsWith(p + 9, "context"))
             {
-                params.printErrorContext = true;
+                params.v.printErrorContext = true;
             }
-            else if (!params.errorLimit.parseDigits(p.toDString()[9 .. $]))
+            else if (!params.v.errorLimit.parseDigits(p.toDString()[9 .. $]))
             {
                 errorInvalidSwitch(p, "Only number, `spec`, or `context` are allowed for `-verrors`");
                 return true;
@@ -943,7 +943,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (startsWith(p + 1, "verror-supplements"))
         {
-            if (!params.errorSupplementLimit.parseDigits(p.toDString()[20 .. $]))
+            if (!params.v.errorSupplementLimit.parseDigits(p.toDString()[20 .. $]))
             {
                 errorInvalidSwitch(p, "Only a number is allowed for `-verror-supplements`");
                 return true;
@@ -956,10 +956,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             switch (style)
             {
             case "digitalmars":
-                params.messageStyle = MessageStyle.digitalmars;
+                params.v.messageStyle = MessageStyle.digitalmars;
                 break;
             case "gnu":
-                params.messageStyle = MessageStyle.gnu;
+                params.v.messageStyle = MessageStyle.gnu;
                 break;
             default:
                 error("unknown error style '%.*s', must be 'digitalmars' or 'gnu'", cast(int) style.length, style.ptr);
@@ -1092,7 +1092,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                     switch (num)
                     {
                         case 3449:
-                            params.vfield = true;
+                            params.v.field = true;
                             break;
                         case 14_246:
                             params.dtorFields = FeatureState.enabled;
@@ -1526,7 +1526,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             driverParams.debugr = true;
         else if (arg == "--version")
         {
-            params.logo = true;
+            params.v.logo = true;
             return false;
         }
         else if (arg == "--x")

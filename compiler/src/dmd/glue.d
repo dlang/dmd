@@ -170,7 +170,7 @@ public void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
     }
     if (writeLibrary && !global.errors)
     {
-        if (global.params.verbose)
+        if (global.params.v.verbose)
             eSink.message(Loc.initial, "library   %s", library.loc.filename);
 
         auto filenameString = library.loc.filename.toDString;
@@ -795,7 +795,7 @@ public void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     // start code generation
     fd.semanticRun = PASS.obj;
 
-    if (global.params.verbose)
+    if (global.params.v.verbose)
         message("function  %s", fd.toPrettyChars());
 
     // tunnel type of "this" to debug info generation

@@ -528,7 +528,7 @@ extern (C++) final class Module : Package
 
         if (!m.read(loc))
             return null;
-        if (global.params.verbose)
+        if (global.params.v.verbose)
         {
             OutBuffer buf;
             foreach (pid; packages)
@@ -793,7 +793,7 @@ extern (C++) final class Module : Package
         {
             const bool doUnittests = global.params.useUnitTests || global.params.ddoc.doOutput || global.params.dihdr.doOutput;
             scope p = new Parser!AST(this, buf, cast(bool) docfile, global.errorSink, &global.compileEnv, doUnittests);
-            p.transitionIn = global.params.vin;
+            p.transitionIn = global.params.v.vin;
             p.nextToken();
             p.parseModuleDeclaration();
             md = p.md;

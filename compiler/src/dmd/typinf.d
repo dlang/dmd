@@ -54,10 +54,7 @@ extern (C++) void genTypeInfo(Expression e, const ref Loc loc, Type torig, Scope
                 .error(loc, "`TypeInfo` cannot be used with -betterC");
 
             if (sc && sc.tinst)
-            {
-                global.params.verbose = true;
-                sc.tinst.printInstantiationTrace();
-            }
+                sc.tinst.printInstantiationTrace(Classification.error, uint.max);
 
             fatal();
         }

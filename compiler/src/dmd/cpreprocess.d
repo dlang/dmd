@@ -65,7 +65,7 @@ FileName preprocess(FileName csrcfile, ref const Loc loc, out bool ifile, OutBuf
 
     if (importc_h)
     {
-        if (global.params.verbose)
+        if (global.params.v.verbose)
             message("include   %s", importc_h);
     }
     else

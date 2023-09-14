@@ -141,7 +141,7 @@ extern (C++) struct Compiler
             if (includeImportedModuleCheck(ModuleComponentRange(
                 m.md ? m.md.packages : [], m.ident, m.isPackageFile)))
             {
-                if (global.params.verbose)
+                if (global.params.v.verbose)
                     message("compileimport (%s)", m.srcfile.toChars);
                 compiledImports.push(m);
                 return true; // this import will be compiled

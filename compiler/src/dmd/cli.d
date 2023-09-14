@@ -862,13 +862,13 @@ dmd -cov -unittest myprog.d
 
     /// Returns all available transitions
     static immutable transitions = [
-        Feature("field", "vfield",
+        Feature("field", "v.field",
             "list all non-mutable fields which occupy an object instance"),
-        Feature("complex", "vcomplex",
+        Feature("complex", "v.complex",
             "give deprecation messages about all usages of complex or imaginary types", true, true),
-        Feature("tls", "vtls",
+        Feature("tls", "v.tls",
             "list all variables going into thread local storage"),
-        Feature("in", "vin",
+        Feature("in", "v.vin",
             "list all usages of 'in' on parameter"),
     ];
 
