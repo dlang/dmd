@@ -379,8 +379,8 @@ struct Loc final
 {
 private:
     uint32_t _linnum;
-    uint16_t _charnum;
-    uint16_t fileIndex;
+    uint32_t _charnum;
+    uint32_t fileIndex;
 public:
     static bool showColumns;
     static MessageStyle messageStyle;
@@ -7019,9 +7019,9 @@ struct UnionExp final
 private:
     union __AnonStruct__u
     {
-        char exp[25LLU];
+        char exp[29LLU];
         char integerexp[40LLU];
-        char errorexp[25LLU];
+        char errorexp[29LLU];
         char realexp[48LLU];
         char complexexp[64LLU];
         char symoffexp[64LLU];
@@ -7030,7 +7030,7 @@ private:
         char assocarrayliteralexp[48LLU];
         char structliteralexp[76LLU];
         char compoundliteralexp[40LLU];
-        char nullexp[25LLU];
+        char nullexp[29LLU];
         char dotvarexp[49LLU];
         char addrexp[40LLU];
         char indexexp[74LLU];
