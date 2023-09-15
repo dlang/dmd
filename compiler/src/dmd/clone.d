@@ -1128,7 +1128,7 @@ private DtorDeclaration buildExternDDtor(AggregateDeclaration ad, Scope* sc)
         return null;
 
     // Generate shim only when ABI incompatible on target platform
-    if (ad.classKind != ClassKind.cpp || !target.cpp.wrapDtorInExternD)
+    if (dtor._linkage != LINK.cpp || !target.cpp.wrapDtorInExternD)
         return dtor;
 
     // generate member function that adjusts calling convention
