@@ -7584,7 +7584,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 }
                 continue;
 
-            // Valid tokens that follow a declaration
+            // Valid tokens that follow the start of a declaration
             case TOK.rightParenthesis:
             case TOK.rightBracket:
             case TOK.assign:
@@ -7602,6 +7602,23 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     return true;
                 }
                 return false;
+
+            // To recognize the shortened function declaration syntax
+            case TOK.goesTo:
+                /*
+                    1. https://issues.dlang.org/show_bug.cgi?id=24088
+
+                    2. We need to make sure the would-be
+                       declarator has an identifier otherwise function literals
+                       are handled incorrectly. Some special treatment is required
+                       here, it turns out that a lot of code in the compiler relies
+                       on this mess (in the parser), i.e. having isDeclarator be more
+                       precise the parsing of other things go kaboom, so we do it in a
+                       separate case.
+                */
+                if (*haveId)
+                    goto case TOK.do_;
+                goto default;
 
             case TOK.identifier:
                 if (t.ident == Id._body)
