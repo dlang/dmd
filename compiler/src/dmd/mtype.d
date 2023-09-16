@@ -7690,3 +7690,28 @@ pure string visitTYCase(string handler) @safe
     }
     assert(0);
 }
+
+
+/**
+ * Returns:
+ *     `TypeIdentifier` corresponding to `object.Throwable`
+ */
+TypeIdentifier getThrowable()
+{
+    auto tid = new TypeIdentifier(Loc.initial, Id.empty);
+    tid.addIdent(Id.object);
+    tid.addIdent(Id.Throwable);
+    return tid;
+}
+
+/**
+ * Returns:
+ *      TypeIdentifier corresponding to `object.Exception`
+ */
+TypeIdentifier getException()
+{
+    auto tid = new TypeIdentifier(Loc.initial, Id.empty);
+    tid.addIdent(Id.object);
+    tid.addIdent(Id.Exception);
+    return tid;
+}

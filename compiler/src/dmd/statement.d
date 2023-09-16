@@ -16,19 +16,13 @@ module dmd.statement;
 import core.stdc.stdarg;
 import core.stdc.stdio;
 
-import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.ast_node;
 import dmd.gluelayer;
 import dmd.cond;
-import dmd.dclass;
 import dmd.declaration;
-import dmd.denum;
-import dmd.dimport;
-import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
 import dmd.func;
@@ -37,39 +31,13 @@ import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
-import dmd.dinterpret;
 import dmd.mtype;
 import dmd.common.outbuffer;
 import dmd.root.rootobject;
 import dmd.sapply;
-import dmd.sideeffect;
 import dmd.staticassert;
 import dmd.tokens;
 import dmd.visitor;
-
-/**
- * Returns:
- *     `TypeIdentifier` corresponding to `object.Throwable`
- */
-TypeIdentifier getThrowable()
-{
-    auto tid = new TypeIdentifier(Loc.initial, Id.empty);
-    tid.addIdent(Id.object);
-    tid.addIdent(Id.Throwable);
-    return tid;
-}
-
-/**
- * Returns:
- *      TypeIdentifier corresponding to `object.Exception`
- */
-TypeIdentifier getException()
-{
-    auto tid = new TypeIdentifier(Loc.initial, Id.empty);
-    tid.addIdent(Id.object);
-    tid.addIdent(Id.Exception);
-    return tid;
-}
 
 /***********************************************************
  * Specification: https://dlang.org/spec/statement.html
