@@ -1197,6 +1197,11 @@ private bool haveSameThis(FuncDeclaration outerFunc, FuncDeclaration calledFunc)
     if (thisAd == requiredAd)
         return true;
 
+    // if outerfunc is the member of a nested aggregate, then let
+    // getRightThis take care of this.
+    if (thisAd.isNested())
+        return true;
+
     // outerfunc is the member of a base class that contains calledFunc,
     // then we consider that they have the same this.
     auto cd = requiredAd.isClassDeclaration();
@@ -1204,11 +1209,6 @@ private bool haveSameThis(FuncDeclaration outerFunc, FuncDeclaration calledFunc)
         return false;
 
     if (cd.isBaseOf2(thisAd.isClassDeclaration()))
-        return true;
-
-    // if outerfunc is the member of a nested aggregate, then let
-    // getRightThis take care of this.
-    if (thisAd.isNested())
         return true;
 
     return false;
@@ -11042,7 +11042,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             (exp.e2.isStringExp() && (exp.e1.isIntegerExp() || exp.e1.isStringExp())))
             return exp;
 
-        Identifier hook = global.params.tracegc ? Id._d_arraycatnTXTrace : Id._d_arraycatnTX;
+        bool useTraceGCHook = global.params.tracegc && sc.needsCodegen();
+
+        Identifier hook = useTraceGCHook ? Id._d_arraycatnTXTrace : Id._d_arraycatnTX;
         if (!verifyHookExist(exp.loc, *sc, hook, "concatenating arrays"))
         {
             setError();
@@ -11071,7 +11073,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         auto arguments = new Expressions();
-        if (global.params.tracegc)
+        if (useTraceGCHook)
         {
             auto funcname = (sc.callsc && sc.callsc.func) ?
                 sc.callsc.func.toPrettyChars() : sc.func.toPrettyChars();
@@ -11098,7 +11100,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         /* `_d_arraycatnTX` canot be used with `-betterC`, but `CatExp`s may be
          * used with `-betterC`, but only during CTFE.
          */
-        if (!global.params.useGC || !sc.needsCodegen())
+        if (!global.params.useGC)
             return;
 
         if (auto ce = exp.isCatExp())
@@ -12097,8 +12099,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
             }
 
-            if (sc.needsCodegen() &&
-                (t1.ty == Tarray || t1.ty == Tsarray) &&
+            if ((t1.ty == Tarray || t1.ty == Tsarray) &&
                 (t2.ty == Tarray || t2.ty == Tsarray))
             {
                 if (!verifyHookExist(exp.loc, *sc, Id.__cmp, "comparing arrays"))
