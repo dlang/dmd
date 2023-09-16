@@ -989,7 +989,7 @@ public:
     const char* toChars() const override;
     void error(const char* format, ...) const;
     void errorSupplemental(const char* format, ...);
-    void warning(uint32_t flag, const char* format, ...) const;
+    void warning(const char* format, ...) const;
     void deprecation(const char* format, ...) const;
     virtual dinteger_t toInteger();
     virtual uinteger_t toUInteger();
@@ -8545,9 +8545,9 @@ extern void error(const char* filename, uint32_t linnum, uint32_t charnum, const
 
 extern void errorSupplemental(const Loc& loc, const char* format, ...);
 
-extern void warning(uint32_t flag, const Loc& loc, const char* format, ...);
+extern void warning(const Loc& loc, const char* format, ...);
 
-extern void warningSupplemental(uint32_t flag, const Loc& loc, const char* format, ...);
+extern void warningSupplemental(const Loc& loc, const char* format, ...);
 
 extern void deprecation(const Loc& loc, const char* format, ...);
 
@@ -8559,9 +8559,9 @@ extern void message(const char* format, ...);
 
 extern void tip(const char* format, ...);
 
-extern void verrorReport(const Loc& loc, const char* format, va_list ap, ErrorKind kind, uint32_t flag = 0u, const char* p1 = nullptr, const char* p2 = nullptr);
+extern void verrorReport(const Loc& loc, const char* format, va_list ap, ErrorKind kind, const char* p1 = nullptr, const char* p2 = nullptr);
 
-extern void verrorReportSupplemental(const Loc& loc, const char* format, va_list ap, ErrorKind kind, uint32_t flag = 0u);
+extern void verrorReportSupplemental(const Loc& loc, const char* format, va_list ap, ErrorKind kind);
 
 extern void fatal();
 

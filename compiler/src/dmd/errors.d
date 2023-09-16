@@ -23,8 +23,6 @@ import dmd.root.rmem;
 import dmd.root.string;
 import dmd.console;
 
-public import dmd.errorsink : DiagnosticFlag;
-
 nothrow:
 
 /// Constants used to discriminate kinds of error messages.
@@ -62,19 +60,19 @@ class ErrorSinkCompiler : ErrorSink
         va_end(ap);
     }
 
-    void warning(uint flag, const ref Loc loc, const(char)* format, ...)
+    void warning(const ref Loc loc, const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
-        verrorReport(loc, format, ap, ErrorKind.warning, flag);
+        verrorReport(loc, format, ap, ErrorKind.warning);
         va_end(ap);
     }
 
-    void warningSupplemental(uint flag, const ref Loc loc, const(char)* format, ...)
+    void warningSupplemental(const ref Loc loc, const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
-        verrorReportSupplemental(loc, format, ap, ErrorKind.warning, flag);
+        verrorReportSupplemental(loc, format, ap, ErrorKind.warning);
         va_end(ap);
     }
 
@@ -234,25 +232,24 @@ else
 /**
  * Print a warning message, increasing the global warning count.
  * Params:
- *      flag   = which flag directly controls this warning
  *      loc    = location of warning
  *      format = printf-style format specification
  *      ...    = printf-style variadic arguments
  */
 static if (__VERSION__ < 2092)
-    extern (C++) void warning(uint flag, const ref Loc loc, const(char)* format, ...)
+    extern (C++) void warning(const ref Loc loc, const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
-        verrorReport(loc, format, ap, ErrorKind.warning, flag);
+        verrorReport(loc, format, ap, ErrorKind.warning);
         va_end(ap);
     }
 else
-    pragma(printf) extern (C++) void warning(uint flag, const ref Loc loc, const(char)* format, ...)
+    pragma(printf) extern (C++) void warning(const ref Loc loc, const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
-        verrorReport(loc, format, ap, ErrorKind.warning, flag);
+        verrorReport(loc, format, ap, ErrorKind.warning);
         va_end(ap);
     }
 
@@ -260,25 +257,24 @@ else
  * Print additional details about a warning message.
  * Doesn't increase the warning count or print an additional warning prefix.
  * Params:
- *      flag   = which flag directly controls this warning
  *      loc    = location of warning
  *      format = printf-style format specification
  *      ...    = printf-style variadic arguments
  */
 static if (__VERSION__ < 2092)
-    extern (C++) void warningSupplemental(uint flag, const ref Loc loc, const(char)* format, ...)
+    extern (C++) void warningSupplemental(const ref Loc loc, const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
-        verrorReportSupplemental(loc, format, ap, ErrorKind.warning, flag);
+        verrorReportSupplemental(loc, format, ap, ErrorKind.warning);
         va_end(ap);
     }
 else
-    pragma(printf) extern (C++) void warningSupplemental(uint flag, const ref Loc loc, const(char)* format, ...)
+    pragma(printf) extern (C++) void warningSupplemental(const ref Loc loc, const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
-        verrorReportSupplemental(loc, format, ap, ErrorKind.warning, flag);
+        verrorReportSupplemental(loc, format, ap, ErrorKind.warning);
         va_end(ap);
     }
 
@@ -447,11 +443,10 @@ private struct ErrorInfo
  *      format      = printf-style format specification
  *      ap          = printf-style variadic arguments
  *      kind        = kind of error being printed
- *      flag        = which flag directly controls this error (default is none)
  *      p1          = additional message prefix
  *      p2          = additional message prefix
  */
-extern (C++) void verrorReport(const ref Loc loc, const(char)* format, va_list ap, ErrorKind kind, uint flag = 0, const(char)* p1 = null, const(char)* p2 = null)
+extern (C++) void verrorReport(const ref Loc loc, const(char)* format, va_list ap, ErrorKind kind, const(char)* p1 = null, const(char)* p2 = null)
 {
     auto info = ErrorInfo(loc, kind, p1, p2);
     final switch (info.kind)
@@ -544,9 +539,8 @@ extern (C++) void verrorReport(const ref Loc loc, const(char)* format, va_list a
  *      format      = printf-style format specification
  *      ap          = printf-style variadic arguments
  *      kind        = kind of error being printed
- *      flag        = which flag directly controls this error (default is none)
  */
-extern (C++) void verrorReportSupplemental(const ref Loc loc, const(char)* format, va_list ap, ErrorKind kind, uint flag = 0)
+extern (C++) void verrorReportSupplemental(const ref Loc loc, const(char)* format, va_list ap, ErrorKind kind)
 {
     auto info = ErrorInfo(loc, kind);
     info.supplemental = true;

@@ -24,23 +24,6 @@ enum class ErrorKind
     message = 4,
 };
 
-// Constants used to map compiler warnings to a specific flag.
-enum class DiagnosticFlag
-{
-    none = 0,
-    cxxcompat = 1,
-    conversion = 2,
-    dangling_else = 3,
-    ddoc = 4,
-    discarded = 5,
-    foreach_reverse_aa = 6,
-    inline_ = 7,
-    obsolete = 8,
-    pragma_ = 9,
-    shadow = 10,
-    unreachable = 11,
-};
-
 bool isConsoleColorSupported();
 
 #if defined(__GNUC__)

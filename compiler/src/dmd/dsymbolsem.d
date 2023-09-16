@@ -1121,11 +1121,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                                 if (ne.member && !(ne.member.storage_class & STC.scope_))
                                 {
                                     import dmd.escape : setUnsafeDIP1000;
-                                    const inSafeFunc = sc.func && sc.func.isSafeBypassingInference();
+                                    const inSafeFunc = sc.func && sc.func.isSafeBypassingInference();   // isSafeBypassingInference may call setUnsafe().
                                     if (sc.setUnsafeDIP1000(false, dsym.loc, "`scope` allocation of `%s` requires that constructor be annotated with `scope`", dsym))
                                         errorSupplemental(ne.member.loc, "is the location of the constructor");
-                                    else if (global.params.obsolete && inSafeFunc)
-                                        warningSupplemental(DiagnosticFlag.obsolete, ne.member.loc, "is the location of the constructor");
                                 }
                                 ne.onstack = 1;
                                 dsym.onstack = true;
@@ -3859,7 +3857,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                              * an interface function?
                              */
                             //if (!isOverride())
-                            //    warning(DiagnosticFlag.override_, loc, "overrides base class function %s, but is not marked with 'override'", fdv.toPrettyChars());
+                            //    warning(loc, "overrides base class function %s, but is not marked with 'override'", fdv.toPrettyChars());
 
                             if (fdv.tintro)
                                 ti = fdv.tintro;
