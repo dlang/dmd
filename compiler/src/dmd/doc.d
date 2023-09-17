@@ -107,7 +107,7 @@ class Section
         assert(0);
     }
 
-    void write(Loc loc, DocComment* dc, Scope* sc, Dsymbols* a, OutBuffer* buf)
+    void write(Loc loc, DocComment* dc, Scope* sc, Dsymbols* a, ref OutBuffer buf)
     {
         assert(a.length);
         if (name.length)
@@ -153,7 +153,7 @@ class Section
         size_t o = buf.length;
         buf.write(body_);
         escapeStrayParenthesis(loc, buf, o, true, sc.eSink);
-        highlightText(sc, a, loc, *buf, o);
+        highlightText(sc, a, loc, buf, o);
         buf.writestring(")");
     }
 }
@@ -162,7 +162,7 @@ class Section
  */
 final class ParamSection : Section
 {
-    override void write(Loc loc, DocComment* dc, Scope* sc, Dsymbols* a, OutBuffer* buf)
+    override void write(Loc loc, DocComment* dc, Scope* sc, Dsymbols* a, ref OutBuffer buf)
     {
         assert(a.length);
         Dsymbol s = (*a)[0]; // test
@@ -243,7 +243,7 @@ final class ParamSection : Section
                         }
                         else if (fparam && fparam.type && fparam.ident)
                         {
-                            toCBuffer(fparam.type, *buf, fparam.ident, hgs);
+                            toCBuffer(fparam.type, buf, fparam.ident, hgs);
                         }
                         else
                         {
@@ -259,7 +259,7 @@ final class ParamSection : Section
                             buf.write(namestart[0 .. namelen]);
                         }
                         escapeStrayParenthesis(loc, buf, o, true, sc.eSink);
-                        highlightCode(sc, a, *buf, o);
+                        highlightCode(sc, a, buf, o);
                     }
                     buf.writestring(")");
                     buf.writestring("$(DDOC_PARAM_DESC ");
@@ -267,7 +267,7 @@ final class ParamSection : Section
                         size_t o = buf.length;
                         buf.write(textstart[0 .. textlen]);
                         escapeStrayParenthesis(loc, buf, o, true, sc.eSink);
-                        highlightText(sc, a, loc, *buf, o);
+                        highlightText(sc, a, loc, buf, o);
                     }
                     buf.writestring(")");
                 }
@@ -321,7 +321,7 @@ final class ParamSection : Section
  */
 final class MacroSection : Section
 {
-    override void write(Loc loc, DocComment* dc, Scope* sc, Dsymbols* a, OutBuffer* buf)
+    override void write(Loc loc, DocComment* dc, Scope* sc, Dsymbols* a, ref OutBuffer buf)
     {
         //printf("MacroSection::write()\n");
         DocComment.parseMacros(dc.escapetable, *dc.pmacrotable, body_);
@@ -445,7 +445,7 @@ void gendocfile(Module m, const char[] ddoctext, const char* datetime, ErrorSink
         if (dc.macros)
         {
             commentlen = dc.macros.name.ptr - m.comment;
-            dc.macros.write(loc, dc, sc, &a, &buf);
+            dc.macros.write(loc, dc, sc, &a, buf);
         }
         buf.write(m.comment[0 .. commentlen]);
         highlightText(sc, &a, loc, buf, 0);
@@ -454,7 +454,7 @@ void gendocfile(Module m, const char[] ddoctext, const char* datetime, ErrorSink
     {
         Dsymbols a;
         a.push(m);
-        dc.writeSections(sc, &a, &buf);
+        dc.writeSections(sc, &a, buf);
         emitMemberComments(m, buf, sc);
     }
     //printf("BODY= '%.*s'\n", cast(int)buf.length, buf.data);
@@ -506,11 +506,11 @@ void gendocfile(Module m, const char[] ddoctext, const char* datetime, ErrorSink
  * text won't be expanded.
  */
 public
-void escapeDdocString(OutBuffer* buf, size_t start)
+void escapeDdocString(ref OutBuffer buf, size_t start)
 {
     for (size_t u = start; u < buf.length; u++)
     {
-        char c = (*buf)[u];
+        char c = buf[u];
         switch (c)
         {
         case '$':
@@ -548,14 +548,14 @@ void escapeDdocString(OutBuffer* buf, size_t start)
  *    directly preceeded by a backslash with $(LPAREN) or $(RPAREN) instead of
  *    counting them as stray parentheses
  */
-private void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start, bool respectBackslashEscapes, ErrorSink eSink)
+private void escapeStrayParenthesis(Loc loc, ref OutBuffer buf, size_t start, bool respectBackslashEscapes, ErrorSink eSink)
 {
     uint par_open = 0;
     char inCode = 0;
     bool atLineStart = true;
     for (size_t u = start; u < buf.length; u++)
     {
-        char c = (*buf)[u];
+        char c = buf[u];
         switch (c)
         {
         case '(':
@@ -599,7 +599,7 @@ private void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start, bool 
             // Issue 15465: don't try to escape unbalanced parens inside code
             // blocks.
             int numdash = 1;
-            for (++u; u < buf.length && (*buf)[u] == c; ++u)
+            for (++u; u < buf.length && buf[u] == c; ++u)
                 ++numdash;
             --u;
             if (c == '`' || (atLineStart && numdash >= 3))
@@ -615,14 +615,14 @@ private void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start, bool 
             // replace backslash-escaped parens with their macros
             if (!inCode && respectBackslashEscapes && u+1 < buf.length)
             {
-                if ((*buf)[u+1] == '(' || (*buf)[u+1] == ')')
+                if (buf[u+1] == '(' || buf[u+1] == ')')
                 {
-                    const paren = (*buf)[u+1] == '(' ? "$(LPAREN)" : "$(RPAREN)";
+                    const paren = buf[u+1] == '(' ? "$(LPAREN)" : "$(RPAREN)";
                     buf.remove(u, 2); //remove the \)
                     buf.insert(u, paren); //insert this instead
                     u += 8; //skip over newly inserted macro
                 }
-                else if ((*buf)[u+1] == '\\')
+                else if (buf[u+1] == '\\')
                     ++u;
             }
             break;
@@ -637,7 +637,7 @@ private void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start, bool 
         for (size_t u = buf.length; u > start;)
         {
             u--;
-            char c = (*buf)[u];
+            char c = buf[u];
             switch (c)
             {
             case ')':
@@ -1017,7 +1017,7 @@ void emitComment(Dsymbol s, ref OutBuffer buf, Scope* sc)
                 // Put the ddoc comment as the document 'description'
                 buf.writestring(ddoc_decl_dd_s);
                 {
-                    dc.writeSections(sc, &dc.a, buf);
+                    dc.writeSections(sc, &dc.a, *buf);
                     if (ScopeDsymbol sds = dc.a[0].isScopeDsymbol())
                         emitMemberComments(sds, *buf, sc);
                 }
@@ -1853,7 +1853,7 @@ struct DocComment
         }
     }
 
-    void writeSections(Scope* sc, Dsymbols* a, OutBuffer* buf)
+    void writeSections(Scope* sc, Dsymbols* a, ref OutBuffer buf)
     {
         assert(a.length);
         //printf("DocComment::writeSections()\n");
@@ -1878,7 +1878,7 @@ struct DocComment
                 size_t o = buf.length;
                 buf.write(sec.body_);
                 escapeStrayParenthesis(loc, buf, o, true, sc.eSink);
-                highlightText(sc, a, loc, *buf, o);
+                highlightText(sc, a, loc, buf, o);
                 buf.writestring(")");
             }
             else
@@ -1909,7 +1909,7 @@ struct DocComment
                     buf.writestring("----\n");
                     buf.writestring(codedoc);
                     buf.writestring("----\n");
-                    highlightText(sc, a, loc, *buf, o);
+                    highlightText(sc, a, loc, buf, o);
                 }
                 buf.writestring(")");
             }
@@ -4398,7 +4398,7 @@ void highlightText(Scope* sc, Dsymbols* a, Loc loc, ref OutBuffer buf, size_t of
                     codebuf.write(buf[iCodeStart + count .. i]);
                     // escape the contents, but do not perform highlighting except for DDOC_PSYMBOL
                     highlightCode(sc, a, codebuf, 0);
-                    escapeStrayParenthesis(loc, &codebuf, 0, false, sc.eSink);
+                    escapeStrayParenthesis(loc, codebuf, 0, false, sc.eSink);
                     buf.remove(iCodeStart, i - iCodeStart + count); // also trimming off the current `
                     immutable pre = "$(DDOC_BACKQUOTED ";
                     i = buf.insert(iCodeStart, pre);
@@ -4607,7 +4607,7 @@ void highlightText(Scope* sc, Dsymbols* a, Loc loc, ref OutBuffer buf, size_t of
                         highlightCode2(sc, a, codebuf, 0);
                     else
                         codebuf.remove(codebuf.length-1, 1);    // remove the trailing 0 byte
-                    escapeStrayParenthesis(loc, &codebuf, 0, false, sc.eSink);
+                    escapeStrayParenthesis(loc, codebuf, 0, false, sc.eSink);
                     buf.remove(iCodeStart, i - iCodeStart);
                     i = buf.insert(iCodeStart, codebuf[]);
                     i = buf.insert(i, ")\n");
@@ -5217,7 +5217,7 @@ void highlightCode2(Scope* sc, Dsymbols* a, ref OutBuffer buf, size_t offset)
                  * https://issues.dlang.org/show_bug.cgi?id=7715
                  * https://issues.dlang.org/show_bug.cgi?id=10519
                  */
-                escapeDdocString(&res, o);
+                escapeDdocString(res, o);
             res.writeByte(')');
         }
         else
