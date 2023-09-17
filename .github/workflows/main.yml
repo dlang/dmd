@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
+  posix:
     strategy:
       fail-fast: false
       matrix:
@@ -19,6 +19,11 @@ jobs:
           - job_name: Ubuntu 22.04 x64, DMD (latest)
             os: ubuntu-22.04
             host_dmd: dmd
+          # Enable this to replace coverage tests on CircleCI
+          # - job_name: Ubuntu 22.04 x64, DMD (coverage)
+          #   os: ubuntu-22.04
+          #   host_dmd: dmd
+          #   coverage: true
           - job_name: Ubuntu 22.04 x64, DMD (bootstrap)
             os: ubuntu-22.04
             host_dmd: dmd-2.079.0
@@ -26,6 +31,11 @@ jobs:
             os: ubuntu-22.04
             model: 32
             host_dmd: dmd
+          - job_name: Ubuntu 22.04 x86, DMD (coverage)
+            os: ubuntu-22.04
+            model: 32
+            host_dmd: dmd
+            coverage: true
           - job_name: Ubuntu 22.04 x86, DMD (bootstrap)
             os: ubuntu-22.04
             model: 32
@@ -40,6 +50,10 @@ jobs:
           - job_name: macOS 13 x64, DMD (latest)
             os: macos-13
             host_dmd: dmd
+          - job_name: macOS 13 x64, DMD (coverage)
+            os: macos-13
+            host_dmd: dmd
+            coverage: true
           - job_name: macOS 12 x64, DMD (bootstrap)
             os: macos-12
             # de-facto bootstrap version on OSX
@@ -55,6 +69,8 @@ jobs:
       HOST_DMD: ${{ matrix.host_dmd }}
       N: ${{ startsWith(matrix.os, 'macos') && '3' || '2' }}
       FULL_BUILD: true
+      # for coverage:
+      DMD_TEST_COVERAGE: ${{ matrix.coverage && '1' || '0' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -82,12 +98,20 @@ jobs:
             exit 1
           fi
 
-          ./ci/run.sh setup_repos "$REPO_BRANCH"
+          ci/run.sh setup_repos "$REPO_BRANCH"
       - name: Build
         run: ci/run.sh build
+      - name: Rebuild dmd (with enabled coverage)
+        if: matrix.coverage
+        run: ENABLE_RELEASE=0 ENABLE_DEBUG=1 ENABLE_COVERAGE=1 ${{ runner.os == 'macOS' && 'OS_NAME=osx' || '' }} ci/run.sh rebuild
       - name: Test dmd
         run: ci/run.sh test_dmd
       - name: Test druntime
+        if: '!matrix.coverage'
         run: ci/run.sh test_druntime
       - name: Test phobos
+        if: '!matrix.coverage'
         run: ci/run.sh test_phobos
+      - name: Upload coverage report
+        if: matrix.coverage
+        run: ci/run.sh codecov

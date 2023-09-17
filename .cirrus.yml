@@ -51,42 +51,6 @@ coverage_environment_template: &COVERAGE_ENVIRONMENT_TEMPLATE
   DMD_TEST_COVERAGE: 1
   CODECOV_TOKEN: ENCRYPTED[cc6ce01618eaee6c9a08ebc81446a9233588df3b2c6ba4e30ffb7715ee9815734ccfd9fcec4f6abfc6a1b9dd8253110d]
 
-# Linux
-linux_task:
-  name: Ubuntu 22.04 $TASK_NAME_SUFFIX
-  container:
-    image: ubuntu:22.04
-    cpu: 4
-    memory: 8G
-    # Workaround GDB bug on 22.04 by requesting a privileged container
-    # See https://github.com/cirruslabs/cirrus-ci-docs/issues/1136
-    kvm: true
-  timeout_in: 60m
-  environment:
-    matrix:
-      - TASK_NAME_SUFFIX: x86, DMD (coverage)
-        MODEL: 32
-        << : *COVERAGE_ENVIRONMENT_TEMPLATE
-      # Enable this to replace coverage tests on CircleCI
-      # - TASK_NAME_SUFFIX: x64, DMD (coverage)
-      #   << : *COVERAGE_ENVIRONMENT_TEMPLATE
-  << : *COMMON_STEPS_TEMPLATE
-
-# Mac
-macos13_task:
-  name: macOS 13.x x64 (M1), $TASK_NAME_SUFFIX
-  macos_instance:
-    image: ghcr.io/cirruslabs/macos-ventura-xcode:latest
-  timeout_in: 60m
-  environment:
-    OS_NAME: darwin
-    # override Cirrus default OS (`darwin`)
-    OS: osx
-    matrix:
-      - TASK_NAME_SUFFIX: DMD (coverage)
-        << : *COVERAGE_ENVIRONMENT_TEMPLATE
-  << : *COMMON_STEPS_TEMPLATE
-
 # FreeBSD
 freebsd13_task:
   name: FreeBSD 13.0 x64, DMD ($TASK_NAME_TYPE)
