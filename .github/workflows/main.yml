@@ -71,7 +71,6 @@ jobs:
       FULL_BUILD: true
       # for coverage:
       DMD_TEST_COVERAGE: ${{ matrix.coverage && '1' || '0' }}
-      CODECOV_TOKEN: ${{ matrix.coverage && secrets.CODECOV_TOKEN || '' }}
     steps:
       - uses: actions/checkout@v4
         with:
