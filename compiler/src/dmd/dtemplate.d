@@ -750,7 +750,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         {
             if (i)
                 buf.writestring(", ");
-            .toCBuffer(tp, &buf, &hgs);
+            toCBuffer(tp, buf, hgs);
         }
         buf.writeByte(')');
 
@@ -768,7 +768,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             constraint)
         {
             buf.writestring(" if (");
-            .toCBuffer(constraint, &buf, &hgs);
+            toCBuffer(constraint, buf, hgs);
             buf.writeByte(')');
         }
 
