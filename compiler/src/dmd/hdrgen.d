@@ -85,7 +85,7 @@ extern (C++) void genhdrfile(Module m, ref OutBuffer buf)
     buf.writenl();
     HdrGenState hgs;
     hgs.hdrgen = true;
-    toCBuffer(m, &buf, &hgs);
+    toCBuffer(m, buf, hgs);
 }
 
 /**
@@ -98,7 +98,7 @@ extern (C++) void moduleToBuffer(OutBuffer* buf, Module m)
 {
     HdrGenState hgs;
     hgs.fullDump = true;
-    toCBuffer(m, buf, &hgs);
+    toCBuffer(m, *buf, hgs);
 }
 
 void moduleToBuffer2(Module m, OutBuffer* buf, HdrGenState* hgs)
@@ -2893,19 +2893,19 @@ public:
     }
 }
 
-void toCBuffer(const Statement s, OutBuffer* buf, HdrGenState* hgs)
+void toCBuffer(const Statement s, ref OutBuffer buf, ref HdrGenState hgs)
 {
-    (cast()s).statementToBuffer(buf, hgs);
+    (cast()s).statementToBuffer(&buf, &hgs);
 }
 
-void toCBuffer(const Type t, OutBuffer* buf, const Identifier ident, HdrGenState* hgs)
+void toCBuffer(const Type t, ref OutBuffer buf, const Identifier ident, ref HdrGenState hgs)
 {
-    typeToBuffer(cast() t, ident, buf, hgs);
+    typeToBuffer(cast() t, ident, &buf, &hgs);
 }
 
-void toCBuffer(Dsymbol s, OutBuffer* buf, HdrGenState* hgs)
+void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
 {
-    scope v = new DsymbolPrettyPrintVisitor(buf, hgs);
+    scope v = new DsymbolPrettyPrintVisitor(&buf, &hgs);
     s.accept(v);
 }
 
@@ -2918,9 +2918,9 @@ void toCBufferInstance(const TemplateInstance ti, OutBuffer* buf, bool qualifyTy
     v.visit(cast() ti);
 }
 
-void toCBuffer(const Initializer iz, OutBuffer* buf, HdrGenState* hgs)
+void toCBuffer(const Initializer iz, ref OutBuffer buf, ref HdrGenState hgs)
 {
-    initializerToBuffer(cast() iz, buf, hgs);
+    initializerToBuffer(cast() iz, &buf, &hgs);
 }
 
 bool stcToBuffer(OutBuffer* buf, StorageClass stc) @safe
@@ -3137,9 +3137,9 @@ void functionToBufferWithIdent(TypeFunction tf, OutBuffer* buf, const(char)* ide
     visitFuncIdentWithPostfix(tf, ident.toDString(), buf, &hgs, isStatic);
 }
 
-void toCBuffer(const Expression e, OutBuffer* buf, HdrGenState* hgs)
+void toCBuffer(const Expression e, ref OutBuffer buf, ref HdrGenState hgs)
 {
-    expressionPrettyPrint(cast()e, buf, hgs);
+    expressionPrettyPrint(cast()e, &buf, &hgs);
 }
 
 /**************************************************
@@ -3158,9 +3158,9 @@ void argExpTypesToCBuffer(OutBuffer* buf, Expressions* arguments)
     }
 }
 
-void toCBuffer(const TemplateParameter tp, OutBuffer* buf, HdrGenState* hgs)
+void toCBuffer(const TemplateParameter tp, ref OutBuffer buf, ref HdrGenState hgs)
 {
-    scope v = new TemplateParameterPrettyPrintVisitor(buf, hgs);
+    scope v = new TemplateParameterPrettyPrintVisitor(&buf, &hgs);
     (cast() tp).accept(v);
 }
 
@@ -3814,7 +3814,7 @@ private void initializerToBuffer(Initializer inx, OutBuffer* buf, HdrGenState* h
                     if (d.exp)
                     {
                         buf.writeByte('[');
-                        toCBuffer(d.exp, buf, hgs);
+                        toCBuffer(d.exp, *buf, *hgs);
                         buf.writeByte(']');
                     }
                     else

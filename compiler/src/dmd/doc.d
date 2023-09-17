@@ -243,7 +243,7 @@ final class ParamSection : Section
                         }
                         else if (fparam && fparam.type && fparam.ident)
                         {
-                            .toCBuffer(fparam.type, buf, fparam.ident, &hgs);
+                            toCBuffer(fparam.type, *buf, fparam.ident, hgs);
                         }
                         else
                         {
@@ -1226,7 +1226,7 @@ void toDocBuffer(Dsymbol s, ref OutBuffer buf, Scope* sc)
             //printf("Dsymbol::toDocbuffer() %s\n", s.toChars());
             HdrGenState hgs;
             hgs.ddoc = true;
-            .toCBuffer(s, buf, &hgs);
+            toCBuffer(s, *buf, hgs);
         }
 
         void prefix(Dsymbol s)
@@ -1276,7 +1276,7 @@ void toDocBuffer(Dsymbol s, ref OutBuffer buf, Scope* sc)
             HdrGenState hgs;
             hgs.ddoc = true;
             emitVisibility(*buf, i);
-            .toCBuffer(i, buf, &hgs);
+            toCBuffer(i, *buf, hgs);
         }
 
         override void visit(Declaration d)
@@ -1298,7 +1298,7 @@ void toDocBuffer(Dsymbol s, ref OutBuffer buf, Scope* sc)
                     functionToBufferFull(cast(TypeFunction)origType, buf, d.ident, &hgs, td);
                 }
                 else
-                    .toCBuffer(origType, buf, d.ident, &hgs);
+                    toCBuffer(origType, *buf, d.ident, hgs);
             }
             else
                 buf.writestring(d.ident.toString());
@@ -1311,7 +1311,7 @@ void toDocBuffer(Dsymbol s, ref OutBuffer buf, Scope* sc)
                     {
                         if (i)
                             buf.writestring(", ");
-                        toCBuffer((*td.origParameters)[i], buf, &hgs);
+                        toCBuffer((*td.origParameters)[i], *buf, hgs);
                     }
                 }
                 buf.writeByte(')');
@@ -1325,7 +1325,7 @@ void toDocBuffer(Dsymbol s, ref OutBuffer buf, Scope* sc)
                     buf.writestring("$(DDOC_CONSTRAINT ");
                 }
 
-                .toCBuffer(td.constraint, buf, &hgs);
+                toCBuffer(td.constraint, *buf, hgs);
 
                 if (noFuncDecl)
                 {
@@ -1485,7 +1485,7 @@ void toDocBuffer(Dsymbol s, ref OutBuffer buf, Scope* sc)
                 else
                 {
                     HdrGenState hgs;
-                    .toCBuffer(bc.type, buf, null, &hgs);
+                    toCBuffer(bc.type, *buf, null, hgs);
                 }
             }
             buf.writestring(";\n");
@@ -1500,7 +1500,7 @@ void toDocBuffer(Dsymbol s, ref OutBuffer buf, Scope* sc)
             {
                 buf.writestring(": $(DDOC_ENUM_BASETYPE ");
                 HdrGenState hgs;
-                .toCBuffer(ed.memtype, buf, null, &hgs);
+                toCBuffer(ed.memtype, *buf, null, hgs);
                 buf.writestring(")");
             }
             buf.writestring(";\n");
@@ -5100,7 +5100,7 @@ void highlightCode(Scope* sc, Dsymbols* a, ref OutBuffer buf, size_t offset)
 
                     size_t lastOffset = parametersBuf.length;
 
-                    .toCBuffer(tp, &parametersBuf, &hgs);
+                    toCBuffer(tp, parametersBuf, hgs);
 
                     paramLens[parami] = parametersBuf.length - lastOffset;
                 }
