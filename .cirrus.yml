@@ -64,24 +64,12 @@ linux_task:
   timeout_in: 60m
   environment:
     matrix:
-      - TASK_NAME_SUFFIX: x86, DMD (latest)
-        MODEL: 32
       - TASK_NAME_SUFFIX: x86, DMD (coverage)
         MODEL: 32
         << : *COVERAGE_ENVIRONMENT_TEMPLATE
-      - TASK_NAME_SUFFIX: x86, DMD (bootstrap)
-        MODEL: 32
-        HOST_DMD: dmd-2.097.1
-      - TASK_NAME_SUFFIX: x64, DMD (latest)
       # Enable this to replace coverage tests on CircleCI
       # - TASK_NAME_SUFFIX: x64, DMD (coverage)
       #   << : *COVERAGE_ENVIRONMENT_TEMPLATE
-      - TASK_NAME_SUFFIX: x64, DMD (bootstrap)
-        HOST_DMD: dmd-2.079.0
-      - TASK_NAME_SUFFIX: x64, LDC
-        HOST_DC: ldc #TODO: Update to HOST_DMD when support for HOST_DC is removed
-      - TASK_NAME_SUFFIX: x64, GDC
-        HOST_DMD: gdmd-9
   << : *COMMON_STEPS_TEMPLATE
 
 # Mac
@@ -95,22 +83,8 @@ macos13_task:
     # override Cirrus default OS (`darwin`)
     OS: osx
     matrix:
-      - TASK_NAME_SUFFIX: DMD (latest)
       - TASK_NAME_SUFFIX: DMD (coverage)
         << : *COVERAGE_ENVIRONMENT_TEMPLATE
-  << : *COMMON_STEPS_TEMPLATE
-macos12_task:
-  name: macOS 12.x x64 (M1), DMD (bootstrap)
-  macos_instance:
-    image: ghcr.io/cirruslabs/macos-monterey-xcode:latest
-  timeout_in: 60m
-  environment:
-    OS_NAME: darwin
-    # override Cirrus default OS (`darwin`)
-    OS: osx
-    # de-facto bootstrap version on OSX
-    # See: https://github.com/dlang/dmd/pull/13890
-    HOST_DMD: dmd-2.099.1
   << : *COMMON_STEPS_TEMPLATE
 
 # FreeBSD
