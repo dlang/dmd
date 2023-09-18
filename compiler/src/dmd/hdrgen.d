@@ -1927,7 +1927,7 @@ private void expressionPrettyPrint(Expression e, OutBuffer* buf, HdrGenState* hg
                     const o = buf.length;
                     writeSingleCharLiteral(*buf, cast(dchar) v);
                     if (hgs.ddoc)
-                        escapeDdocString(buf, o);
+                        escapeDdocString(*buf, o);
                     break;
                 }
             case Tint8:
@@ -2070,7 +2070,7 @@ private void expressionPrettyPrint(Expression e, OutBuffer* buf, HdrGenState* hg
             writeCharLiteral(*buf, e.getCodeUnit(i));
         }
         if (hgs.ddoc)
-            escapeDdocString(buf, o);
+            escapeDdocString(*buf, o);
         buf.writeByte('"');
         if (e.postfix)
             buf.writeByte(e.postfix);
