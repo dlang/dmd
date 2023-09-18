@@ -766,7 +766,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             else
             {
                 OutBuffer buf;
-                stcToBuffer(&buf, stc);
+                stcToBuffer(buf, stc);
                 dsym.error("cannot be `%s`", buf.peekChars());
             }
             dsym.storage_class &= ~stc; // strip off
@@ -783,7 +783,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (stc)
             {
                 OutBuffer buf;
-                stcToBuffer(&buf, stc);
+                stcToBuffer(buf, stc);
                 dsym.error("cannot be `scope` and `%s`", buf.peekChars());
             }
             else if (dsym.isMember())
@@ -1512,11 +1512,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         ob.writestring(") : ");
         // use visibility instead of sc.visibility because it couldn't be
         // resolved yet, see the comment above
-        visibilityToBuffer(ob, imp.visibility);
+        visibilityToBuffer(*ob, imp.visibility);
         ob.writeByte(' ');
         if (imp.isstatic)
         {
-            stcToBuffer(ob, STC.static_);
+            stcToBuffer(*ob, STC.static_);
             ob.writeByte(' ');
         }
         ob.writestring(": ");
@@ -3915,7 +3915,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     OutBuffer buf;
 
                     auto fd = s.isFuncDeclaration();
-                    functionToBufferFull(cast(TypeFunction)(funcdecl.type), &buf,
+                    functionToBufferFull(cast(TypeFunction)(funcdecl.type), buf,
                         new Identifier(funcdecl.toPrettyChars()), &hgs, null);
                     const(char)* funcdeclToChars = buf.peekChars();
 
@@ -3938,7 +3938,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         }
                         else
                         {
-                            functionToBufferFull(cast(TypeFunction)(fd.type), &buf1,
+                            functionToBufferFull(cast(TypeFunction)(fd.type), buf1,
                                 new Identifier(fd.toPrettyChars()), &hgs, null);
 
                             error(funcdecl.loc, "function `%s` does not override any function, did you mean to override `%s`?",

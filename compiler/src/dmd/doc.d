@@ -918,7 +918,7 @@ void emitVisibility(ref OutBuffer buf, Declaration d)
 
 void emitVisibility(ref OutBuffer buf, Visibility vis)
 {
-    visibilityToBuffer(&buf, vis);
+    visibilityToBuffer(buf, vis);
     buf.writeByte(' ');
 }
 
@@ -1295,7 +1295,7 @@ void toDocBuffer(Dsymbol s, ref OutBuffer buf, Scope* sc)
                 Type origType = d.originalType ? d.originalType : d.type;
                 if (origType.ty == Tfunction)
                 {
-                    functionToBufferFull(cast(TypeFunction)origType, buf, d.ident, &hgs, td);
+                    functionToBufferFull(cast(TypeFunction)origType, *buf, d.ident, &hgs, td);
                 }
                 else
                     toCBuffer(origType, *buf, d.ident, hgs);

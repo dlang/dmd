@@ -2891,7 +2891,7 @@ enum : int32_t { TEST_EMIT_ALL = 0 };
 
 extern void genhdrfile(Module* m, OutBuffer& buf);
 
-extern void moduleToBuffer(OutBuffer* buf, Module* m);
+extern void moduleToBuffer(OutBuffer& buf, Module* m);
 
 extern const char* parametersTypeToChars(ParameterList pl);
 

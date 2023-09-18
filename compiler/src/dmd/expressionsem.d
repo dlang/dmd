@@ -5279,7 +5279,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 OutBuffer buf;
                 buf.writeByte('(');
-                argExpTypesToCBuffer(&buf, exp.arguments);
+                argExpTypesToCBuffer(buf, exp.arguments);
                 buf.writeByte(')');
                 if (tthis)
                     tthis.modToBuffer(&buf);
@@ -5352,7 +5352,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 {
                     OutBuffer buf;
                     buf.writeByte('(');
-                    argExpTypesToCBuffer(&buf, exp.arguments);
+                    argExpTypesToCBuffer(buf, exp.arguments);
                     buf.writeByte(')');
 
                     //printf("tf = %s, args = %s\n", tf.deco, (*arguments)[0].type.deco);
