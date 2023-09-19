@@ -58,7 +58,7 @@ IntFun colon_at_top_level =
 
 IntFun block_statement_only_with_nested_statement =
 {
-    if (true)
+    static if (true)
     {
         return 1 + 1;
     }
