@@ -3377,7 +3377,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (!tf.isNaked() && !(funcdecl.isThis() || funcdecl.isNested()))
             {
                 OutBuffer buf;
-                MODtoBuffer(&buf, tf.mod);
+                MODtoBuffer(buf, tf.mod);
                 funcdecl.error("without `this` cannot be `%s`", buf.peekChars());
                 tf.mod = 0; // remove qualifiers
             }

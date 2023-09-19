@@ -1493,7 +1493,7 @@ public:
     virtual uint32_t alignsize();
     Type* trySemantic(const Loc& loc, Scope* sc);
     Type* merge2();
-    void modToBuffer(OutBuffer* buf) const;
+    void modToBuffer(OutBuffer& buf) const;
     char* modToChars() const;
     virtual bool isintegral();
     virtual bool isfloating();

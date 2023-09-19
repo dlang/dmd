@@ -5282,7 +5282,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 argExpTypesToCBuffer(buf, exp.arguments);
                 buf.writeByte(')');
                 if (tthis)
-                    tthis.modToBuffer(&buf);
+                    tthis.modToBuffer(buf);
 
                 //printf("tf = %s, args = %s\n", tf.deco, (*arguments)[0].type.deco);
                 .error(exp.loc, "%s `%s%s` is not callable using argument types `%s`",
