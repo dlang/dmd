@@ -1453,7 +1453,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             {
                 // storage_class is apparently not set for dtor & ctor
                 OutBuffer ob;
-                stcToBuffer(&ob,
+                stcToBuffer(ob,
                     (ngErr ? STC.nogc : 0) |
                     (puErr ? STC.pure_ : 0) |
                     (saErr ? STC.system : 0)

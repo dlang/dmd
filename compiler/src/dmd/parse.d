@@ -1204,7 +1204,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         if (orig & added)
         {
             OutBuffer buf;
-            AST.stcToBuffer(&buf, added);
+            AST.stcToBuffer(buf, added);
             error("redundant attribute `%s`", buf.peekChars());
             return orig | added;
         }
@@ -2546,7 +2546,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         else if (StorageClass modStc = stc & STC.TYPECTOR)
         {
             OutBuffer buf;
-            AST.stcToBuffer(&buf, modStc);
+            AST.stcToBuffer(buf, modStc);
             error(loc, "static constructor cannot be `%s`", buf.peekChars());
         }
         stc &= ~(STC.static_ | STC.TYPECTOR);
@@ -2581,7 +2581,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         else if (StorageClass modStc = stc & STC.TYPECTOR)
         {
             OutBuffer buf;
-            AST.stcToBuffer(&buf, modStc);
+            AST.stcToBuffer(buf, modStc);
             error(loc, "static destructor cannot be `%s`", buf.peekChars());
         }
         stc &= ~(STC.static_ | STC.TYPECTOR);
@@ -2620,7 +2620,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         else if (StorageClass modStc = stc & STC.TYPECTOR)
         {
             OutBuffer buf;
-            AST.stcToBuffer(&buf, modStc);
+            AST.stcToBuffer(buf, modStc);
             error(loc, "shared static constructor cannot be `%s`", buf.peekChars());
         }
         stc &= ~(STC.static_ | STC.TYPECTOR);
@@ -2654,7 +2654,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         else if (StorageClass modStc = stc & STC.TYPECTOR)
         {
             OutBuffer buf;
-            AST.stcToBuffer(&buf, modStc);
+            AST.stcToBuffer(buf, modStc);
             error(loc, "shared static destructor cannot be `%s`", buf.peekChars());
         }
         stc &= ~(STC.static_ | STC.TYPECTOR);
@@ -2838,7 +2838,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     if (varargsStc & ~VarArgsStc)
                     {
                         OutBuffer buf;
-                        AST.stcToBuffer(&buf, varargsStc & ~VarArgsStc);
+                        AST.stcToBuffer(buf, varargsStc & ~VarArgsStc);
                         error("variadic parameter cannot have attributes `%s`", buf.peekChars());
                         varargsStc &= VarArgsStc;
                     }
@@ -3085,7 +3085,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                                 else
                                 {
                                     OutBuffer buf;
-                                    AST.stcToBuffer(&buf, _stc);
+                                    AST.stcToBuffer(buf, _stc);
                                     error(attributeErrorMessage, buf.peekChars());
                                 }
                                 nextToken();
@@ -4966,7 +4966,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         if (remStc)
                         {
                             OutBuffer buf;
-                            AST.stcToBuffer(&buf, remStc);
+                            AST.stcToBuffer(buf, remStc);
                             // @@@DEPRECATED_2.103@@@
                             // Deprecated in 2020-07, can be made an error in 2.103
                             eSink.deprecation(token.loc, "storage class `%s` has no effect in type aliases", buf.peekChars());
@@ -5121,7 +5121,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     if (save == TOK.function_)
                     {
                         OutBuffer buf;
-                        AST.stcToBuffer(&buf, modStc);
+                        AST.stcToBuffer(buf, modStc);
                         error("function literal cannot be `%s`", buf.peekChars());
                     }
                     else

@@ -6024,14 +6024,14 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     override const(char)* toChars() const
     {
         OutBuffer buf;
-        toCBufferInstance(this, &buf);
+        toCBufferInstance(this, buf);
         return buf.extractChars();
     }
 
     override final const(char)* toPrettyCharsHelper()
     {
         OutBuffer buf;
-        toCBufferInstance(this, &buf, true);
+        toCBufferInstance(this, buf, true);
         return buf.extractChars();
     }
 
@@ -7823,7 +7823,7 @@ extern (C++) final class TemplateMixin : TemplateInstance
     override const(char)* toChars() const
     {
         OutBuffer buf;
-        toCBufferInstance(this, &buf);
+        toCBufferInstance(this, buf);
         return buf.extractChars();
     }
 

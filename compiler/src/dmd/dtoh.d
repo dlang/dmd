@@ -2642,7 +2642,7 @@ public:
             import dmd.hdrgen;
             // Hex floating point literals were introduced in C++ 17
             const allowHex = global.params.cplusplus >= CppStdRevision.cpp17;
-            floatToBuffer(e.type, e.value, buf, allowHex);
+            floatToBuffer(e.type, e.value, *buf, allowHex);
         }
     }
 

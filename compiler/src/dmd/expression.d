@@ -7216,7 +7216,7 @@ extern (C++) final class PrettyFuncInitExp : DefaultInitExp
         {
             const funcStr = fd.Dsymbol.toPrettyChars();
             OutBuffer buf;
-            functionToBufferWithIdent(fd.type.isTypeFunction(), &buf, funcStr, fd.isStatic);
+            functionToBufferWithIdent(fd.type.isTypeFunction(), buf, funcStr, fd.isStatic);
             s = buf.extractChars();
         }
         else
