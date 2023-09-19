@@ -128,13 +128,13 @@ jobs:
             freebsd_version: '12.4'
             host_dmd: dmd-2.095.0
     name: ${{ matrix.job_name }}
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 50
-      - name: Run in qemu VM
+      - name: Run in VM
         uses: cross-platform-actions/action@v0.19.0
         with:
           operating_system: freebsd
@@ -149,7 +149,7 @@ jobs:
             export OS_NAME=freebsd
             export MODEL=64
             export HOST_DMD='${{ matrix.host_dmd }}'
-            export N=2
+            export N=3
             export FULL_BUILD=true
             export CI_DFLAGS="-version=TARGET_FREEBSD${freebsd_major}"
 
