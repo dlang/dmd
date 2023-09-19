@@ -2507,7 +2507,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, HdrGenState*
             typeToBuffer(e.to, null, buf, hgs);
         else
         {
-            MODtoBuffer(&buf, e.mod);
+            MODtoBuffer(buf, e.mod);
         }
         buf.writeByte(')');
         expToBuffer(e.e1, precedence[e.op], buf, hgs);
@@ -3483,17 +3483,17 @@ private void visitWithMask(Type t, ubyte modMask, ref OutBuffer buf, HdrGenState
         ubyte m = t.mod & ~(t.mod & modMask);
         if (m & MODFlags.shared_)
         {
-            MODtoBuffer(&buf, MODFlags.shared_);
+            MODtoBuffer(buf, MODFlags.shared_);
             buf.writeByte('(');
         }
         if (m & MODFlags.wild)
         {
-            MODtoBuffer(&buf, MODFlags.wild);
+            MODtoBuffer(buf, MODFlags.wild);
             buf.writeByte('(');
         }
         if (m & (MODFlags.const_ | MODFlags.immutable_))
         {
-            MODtoBuffer(&buf, m & (MODFlags.const_ | MODFlags.immutable_));
+            MODtoBuffer(buf, m & (MODFlags.const_ | MODFlags.immutable_));
             buf.writeByte('(');
         }
         typeToBufferx(t, buf, hgs);
@@ -3663,7 +3663,7 @@ private void visitFuncIdentWithPostfix(TypeFunction t, const char[] ident, ref O
     if (t.mod)
     {
         buf.writeByte(' ');
-        MODtoBuffer(&buf, t.mod);
+        MODtoBuffer(buf, t.mod);
     }
 
     void dg(string str)
@@ -3690,7 +3690,7 @@ private void visitFuncIdentWithPrefix(TypeFunction t, const Identifier ident, Te
      */
     if (t.mod)
     {
-        MODtoBuffer(&buf, t.mod);
+        MODtoBuffer(buf, t.mod);
         buf.writeByte(' ');
     }
 

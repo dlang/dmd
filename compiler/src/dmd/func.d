@@ -3350,7 +3350,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
     argExpTypesToCBuffer(fargsBuf, fargs);
     fargsBuf.writeByte(')');
     if (tthis)
-        tthis.modToBuffer(&fargsBuf);
+        tthis.modToBuffer(fargsBuf);
 
     // The call is ambiguous
     if (m.lastf && m.nextf)
