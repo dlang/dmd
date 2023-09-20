@@ -96,7 +96,7 @@ f = Foo.E;       // OK
 
         $(P The value of an $(GLINK EnumMember) is given by its *AssignExpression* if present.
         If there is no *AssignExpression* and it is the first $(I EnumMember),
-        its value is $(GLINK EnumBaseType)`.init`.
+        its value is converted to $(GLINK EnumBaseType) from `0`.
         If there is no *AssignExpression* and it is not the first $(I EnumMember),
         it is given the value of the previous $(I EnumMember)`+1`:)
 
@@ -108,6 +108,19 @@ f = Foo.E;       // OK
         * If the value of the previous $(I EnumMember)`+1` is the same as the
           value of the previous $(I EnumMember), it is an error. (This can happen
           with floating point types).
+
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+---
+enum E : char
+{
+    a,
+    b = char.max,
+    c // overflow
+}
+
+static assert(E.a == 0);
+---
+)
 
         $(P All $(I EnumMember)s are in scope for the *AssignExpression*s.
         )
