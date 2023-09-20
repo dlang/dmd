@@ -7531,7 +7531,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         if (exp.e1.checkNoBool())
             return setError();
-        if (exp.e1.checkArithmetic() ||
+        if (exp.e1.checkArithmetic(exp.op) ||
             exp.e1.checkSharedAccess(sc))
             return setError();
 
@@ -7561,7 +7561,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         if (exp.e1.checkNoBool())
             return setError();
-        if (exp.e1.checkArithmetic())
+        if (exp.e1.checkArithmetic(exp.op))
             return setError();
         if (exp.e1.checkSharedAccess(sc))
             return setError();
@@ -10795,11 +10795,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         bool err = false;
         if (tb1.ty == Tdelegate || tb1.isPtrToFunction())
         {
-            err |= exp.e1.checkArithmetic() || exp.e1.checkSharedAccess(sc);
+            err |= exp.e1.checkArithmetic(exp.op) || exp.e1.checkSharedAccess(sc);
         }
         if (tb2.ty == Tdelegate || tb2.isPtrToFunction())
         {
-            err |= exp.e2.checkArithmetic() || exp.e2.checkSharedAccess(sc);
+            err |= exp.e2.checkArithmetic(exp.op) || exp.e2.checkSharedAccess(sc);
         }
         if (err)
             return setError();
@@ -10901,11 +10901,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         bool err = false;
         if (t1.ty == Tdelegate || t1.isPtrToFunction())
         {
-            err |= exp.e1.checkArithmetic() || exp.e1.checkSharedAccess(sc);
+            err |= exp.e1.checkArithmetic(exp.op) || exp.e1.checkSharedAccess(sc);
         }
         if (t2.ty == Tdelegate || t2.isPtrToFunction())
         {
-            err |= exp.e2.checkArithmetic() || exp.e2.checkSharedAccess(sc);
+            err |= exp.e2.checkArithmetic(exp.op) || exp.e2.checkSharedAccess(sc);
         }
         if (err)
             return setError();

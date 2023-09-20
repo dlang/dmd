@@ -1187,7 +1187,7 @@ extern (C++) abstract class Expression : ASTNode
         return checkValue();
     }
 
-    extern (D) final bool checkArithmetic()
+    extern (D) final bool checkArithmetic(EXP op)
     {
         if (op == EXP.error)
             return true;
@@ -1195,7 +1195,11 @@ extern (C++) abstract class Expression : ASTNode
             return true;
         if (!type.isintegral() && !type.isfloating())
         {
-            error("`%s` is not of arithmetic type, it is a `%s`", toChars(), type.toChars());
+            // unary aggregate ops error here
+            const char* msg = type.isAggregate() ?
+                "operator `%s` is not defined for `%s` of type `%s`" :
+                "illegal operator `%s` for `%s` of type `%s`";
+            error(msg, EXPtoString(op).ptr, toChars(), type.toChars());
             return true;
         }
         return checkValue();
@@ -4673,8 +4677,8 @@ extern (C++) abstract class BinExp : Expression
 
     extern (D) final bool checkArithmeticBin()
     {
-        bool r1 = e1.checkArithmetic();
-        bool r2 = e2.checkArithmetic();
+        bool r1 = e1.checkArithmetic(this.op);
+        bool r2 = e2.checkArithmetic(this.op);
         return (r1 || r2);
     }
 
