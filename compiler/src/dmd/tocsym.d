@@ -25,6 +25,7 @@ import dmd.ctfeexpr;
 import dmd.declaration;
 import dmd.dclass;
 import dmd.denum;
+import dmd.dmdparams;
 import dmd.dmodule;
 import dmd.dstruct;
 import dmd.dsymbol;
@@ -104,6 +105,8 @@ Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, SC sclass, type *t, const(cha
 
 Symbol *toSymbol(Dsymbol s)
 {
+    //printf("toSymbol() %s\n", s.toChars());
+
     extern (C++) static final class ToSymbol : Visitor
     {
         alias visit = Visitor.visit;
@@ -339,6 +342,39 @@ Symbol *toSymbol(Dsymbol s)
             const(char)* id = mangleExact(fd);
 
             //printf("FuncDeclaration.toSymbol(%s %s)\n", fd.kind(), fd.toChars());
+
+            /* MS-LINK cannot handle multiple COMDATs with the same name.
+             * This can happen with two .c files that define the same function.
+             * They get compiled into one .obj file with the `oneobj` setting.
+             * https://issues.dlang.org/show_bug.cgi?id=24129
+             */
+            if (driverParams.oneobj)
+            {
+                auto mod = fd.getModule();
+                if (mod &&
+                    mod.isRoot() &&               // included on command line
+                    mod.filetype == FileType.c && // a C file
+                    fd.fbody &&                   // a function definition
+                    fd._linkage == LINK.c &&
+                    !fd.skipCodegen)              // code gen is desired
+                {
+                    __gshared DsymbolTable Csymtab;  // sorry about another global variable
+                    if (Csymtab is null)
+                        Csymtab = new DsymbolTable();
+
+                    if (!Csymtab.insert(fd))    // if code was already generated for same-named function
+                    {
+                        /* Use the C symbol for the previously generated function
+                         */
+                        fd.csym = Csymtab.lookup(fd.ident).csym;
+                        result = fd.csym;
+
+                        fd.skipCodegen = true;
+                        return;
+                    }
+                }
+            }
+
             //printf("\tid = '%s'\n", id);
             //printf("\ttype = %s\n", fd.type.toChars());
             auto s = symbol_calloc(id[0 .. strlen(id)]);

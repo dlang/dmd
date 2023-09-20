@@ -787,14 +787,16 @@ public void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         return;
     }
 
+    Symbol *s = toSymbol(fd); // may set skipCodegen
+    func_t *f = s.Sfunc;
+    if (fd.skipCodegen) // test it again, as toSymbol() might have set it
+        return;
+
     // start code generation
     fd.semanticRun = PASS.obj;
 
     if (global.params.verbose)
         message("function  %s", fd.toPrettyChars());
-
-    Symbol *s = toSymbol(fd);
-    func_t *f = s.Sfunc;
 
     // tunnel type of "this" to debug info generation
     if (AggregateDeclaration ad = fd.parent.isAggregateDeclaration())
