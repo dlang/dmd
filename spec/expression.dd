@@ -404,7 +404,8 @@ $(GNAME ConditionalExpression):
         the result type of the conditional expression.
     )
 
-    $(P $(B Note:)
+    $(PANEL
+    $(NOTE
         When a conditional expression is the left operand of
         an $(RELATIVE_LINK2 assign_expressions, assign expression),
         parentheses are required for disambiguation:
@@ -413,8 +414,8 @@ $(GNAME ConditionalExpression):
     bool test;
     int a, b, c;
     ...
-    test ? a = b : c = 2;   // Deprecated
-    (test ? a = b : c) = 2; // Equivalent
+    test ? a = b : c = 2;   // error
+    (test ? a = b : c) = 2; // OK
     ---
 
     $(P This makes the intent clearer, because the first statement can
@@ -423,6 +424,7 @@ $(GNAME ConditionalExpression):
     ---
     test ? a = b : (c = 2);
     ---
+    )
 
 $(H2 $(LNAME2 logical_expressions, Logical Expressions))
 
@@ -493,6 +495,25 @@ $(H2 $(LNAME2 bitwise_expressions, Bitwise Expressions))
         operation is done.
     )
     $(DDOC_SEE_ALSO $(GLINK ShiftExpression), $(GLINK ComplementExpression))
+
+    $(PANEL
+    $(NOTE If an *OrExpression*, *XorExpression* or *AndExpression* appears on
+        either side of an *EqualExpression*, *IdentityExpression* or *RelExpression*,
+        it is a compile error. Instead, disambiguate by using parentheses.
+    )
+
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+---
+int x, a, b;
+x = a & 5 == b; // error
+x = a & 5 is b; // error
+x = a & 5 <= b; // error
+
+x = (a & 5) == b; // OK
+x = a & (5 == b); // OK
+---
+)
+)
 
 $(H3 $(LNAME2 or_expressions, Or Expressions))
 
