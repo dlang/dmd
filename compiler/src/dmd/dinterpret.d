@@ -787,7 +787,7 @@ Expression interpretStatement(UnionExp* pue, Statement s, InterState* istate)
             istate.start = null;
         }
 
-        s.error("statement `%s` cannot be interpreted at compile time", s.toChars());
+        error(s.loc, "statement `%s` cannot be interpreted at compile time", s.toChars());
         result = CTFEExp.cantexp;
     }
 
@@ -973,7 +973,7 @@ Expression interpretStatement(UnionExp* pue, Statement s, InterState* istate)
         {
             // To support this, we need to copy all the closure vars
             // into the delegate literal.
-            s.error("closures are not yet supported in CTFE");
+            error(s.loc, "closures are not yet supported in CTFE");
             result = CTFEExp.cantexp;
             return;
         }
@@ -1256,7 +1256,7 @@ Expression interpretStatement(UnionExp* pue, Statement s, InterState* istate)
         if (!scase)
         {
             if (s.hasNoDefault)
-                s.error("no `default` or `case` for `%s` in `switch` statement", econdition.toChars());
+                error(s.loc, "no `default` or `case` for `%s` in `switch` statement", econdition.toChars());
             scase = s.sdefault;
         }
 
@@ -1596,7 +1596,7 @@ Expression interpretStatement(UnionExp* pue, Statement s, InterState* istate)
                 return;
             istate.start = null;
         }
-        s.error("`asm` statements cannot be interpreted at compile time");
+        error(s.loc, "`asm` statements cannot be interpreted at compile time");
         result = CTFEExp.cantexp;
     }
 

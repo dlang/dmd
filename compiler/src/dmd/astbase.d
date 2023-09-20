@@ -164,25 +164,6 @@ struct ASTBase
             return "symbol";
         }
 
-        static if (__VERSION__ < 2092)
-            final void error(const(char)* format, ...)
-            {
-                va_list ap;
-                va_start(ap, format);
-                // last parameter : toPrettyChars
-                verrorReport(loc, format, ap, ErrorKind.error, 0, kind(), "");
-                va_end(ap);
-            }
-        else
-            pragma(printf) final void error(const(char)* format, ...)
-            {
-                va_list ap;
-                va_start(ap, format);
-                // last parameter : toPrettyChars
-                verrorReport(loc, format, ap, ErrorKind.error, 0, kind(), "");
-                va_end(ap);
-            }
-
         inout(AttribDeclaration) isAttribDeclaration() inout
         {
             return null;
@@ -410,7 +391,7 @@ struct ASTBase
         void addAlias(Identifier name, Identifier _alias)
         {
             if (isstatic)
-                error("cannot have an import bind list");
+                error(loc, "cannot have an import bind list");
             if (!aliasId)
                 this.ident = null;
 
@@ -1510,7 +1491,7 @@ struct ASTBase
             {
                 // Look for special class names
                 if (id == Id.__sizeof || id == Id.__xalignof || id == Id._mangleof)
-                    error("illegal class name");
+                    error(loc, "illegal class name");
 
                 // BUG: What if this is the wrong TypeInfo, i.e. it is nested?
                 if (id.toChars()[0] == 'T')
@@ -1518,103 +1499,103 @@ struct ASTBase
                     if (id == Id.TypeInfo)
                     {
                         if (!inObject)
-                            error("%s", msg.ptr);
+                            error(loc, "%s", msg.ptr);
                         Type.dtypeinfo = this;
                     }
                     if (id == Id.TypeInfo_Class)
                     {
                         if (!inObject)
-                            error("%s", msg.ptr);
+                            error(loc, "%s", msg.ptr);
                         Type.typeinfoclass = this;
                     }
                     if (id == Id.TypeInfo_Interface)
                     {
                         if (!inObject)
-                            error("%s", msg.ptr);
+                            error(loc, "%s", msg.ptr);
                         Type.typeinfointerface = this;
                     }
                     if (id == Id.TypeInfo_Struct)
                     {
                         if (!inObject)
-                            error("%s", msg.ptr);
+                            error(loc, "%s", msg.ptr);
                         Type.typeinfostruct = this;
                     }
                     if (id == Id.TypeInfo_Pointer)
                     {
                         if (!inObject)
-                            error("%s", msg.ptr);
+                            error(loc, "%s", msg.ptr);
                         Type.typeinfopointer = this;
                     }
                     if (id == Id.TypeInfo_Array)
                     {
                         if (!inObject)
-                            error("%s", msg.ptr);
+                            error(loc, "%s", msg.ptr);
                         Type.typeinfoarray = this;
                     }
                     if (id == Id.TypeInfo_StaticArray)
                     {
                         //if (!inObject)
-                        //    Type.typeinfostaticarray.error("%s", msg.ptr);
+                        //    Type.typeinfostaticarray.error(loc, "%s", msg.ptr);
                         Type.typeinfostaticarray = this;
                     }
                     if (id == Id.TypeInfo_AssociativeArray)
                     {
                         if (!inObject)
-                            error("%s", msg.ptr);
+                            error(loc, "%s", msg.ptr);
                         Type.typeinfoassociativearray = this;
                     }
                     if (id == Id.TypeInfo_Enum)
                     {
                         if (!inObject)
-                            error("%s", msg.ptr);
+                            error(loc, "%s", msg.ptr);
                         Type.typeinfoenum = this;
                     }
                     if (id == Id.TypeInfo_Function)
                     {
                         if (!inObject)
-                            error("%s", msg.ptr);
+                            error(loc, "%s", msg.ptr);
                         Type.typeinfofunction = this;
                     }
                     if (id == Id.TypeInfo_Delegate)
                     {
                         if (!inObject)
-                            error("%s", msg.ptr);
+                            error(loc, "%s", msg.ptr);
                         Type.typeinfodelegate = this;
                     }
                     if (id == Id.TypeInfo_Tuple)
                     {
                         if (!inObject)
-                            error("%s", msg.ptr);
+                            error(loc, "%s", msg.ptr);
                         Type.typeinfotypelist = this;
                     }
                     if (id == Id.TypeInfo_Const)
                     {
                         if (!inObject)
-                            error("%s", msg.ptr);
+                            error(loc, "%s", msg.ptr);
                         Type.typeinfoconst = this;
                     }
                     if (id == Id.TypeInfo_Invariant)
                     {
                         if (!inObject)
-                            error("%s", msg.ptr);
+                            error(loc, "%s", msg.ptr);
                         Type.typeinfoinvariant = this;
                     }
                     if (id == Id.TypeInfo_Shared)
                     {
                         if (!inObject)
-                            error("%s", msg.ptr);
+                            error(loc, "%s", msg.ptr);
                         Type.typeinfoshared = this;
                     }
                     if (id == Id.TypeInfo_Wild)
                     {
                         if (!inObject)
-                            error("%s", msg.ptr);
+                            error(loc, "%s", msg.ptr);
                         Type.typeinfowild = this;
                     }
                     if (id == Id.TypeInfo_Vector)
                     {
                         if (!inObject)
-                            error("%s", msg.ptr);
+                            error(loc, "%s", msg.ptr);
                         Type.typeinfovector = this;
                     }
                 }
@@ -1622,32 +1603,32 @@ struct ASTBase
                 if (id == Id.Object)
                 {
                     if (!inObject)
-                        error("%s", msg.ptr);
+                        error(loc, "%s", msg.ptr);
                     object = this;
                 }
 
                 if (id == Id.Throwable)
                 {
                     if (!inObject)
-                        error("%s", msg.ptr);
+                        error(loc, "%s", msg.ptr);
                     throwable = this;
                 }
                 if (id == Id.Exception)
                 {
                     if (!inObject)
-                        error("%s", msg.ptr);
+                        error(loc, "%s", msg.ptr);
                     exception = this;
                 }
                 if (id == Id.Error)
                 {
                     if (!inObject)
-                        error("%s", msg.ptr);
+                        error(loc, "%s", msg.ptr);
                     errorException = this;
                 }
                 if (id == Id.cpp_type_info_ptr)
                 {
                     if (!inObject)
-                        error("%s", msg.ptr);
+                        error(loc, "%s", msg.ptr);
                     cpp_type_info_ptr = this;
                 }
             }

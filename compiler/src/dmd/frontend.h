@@ -4190,9 +4190,6 @@ public:
     virtual Statement* syntaxCopy();
     static Array<Statement* >* arraySyntaxCopy(Array<Statement* >* a);
     const char* toChars() const final override;
-    void error(const char* format, ...);
-    void warning(uint32_t flag, const char* format, ...);
-    void deprecation(const char* format, ...);
     virtual Statement* getRelatedLabeled();
     virtual bool hasBreak() const;
     virtual bool hasContinue() const;
