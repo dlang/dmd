@@ -33,7 +33,7 @@ private enum LOG = false;
  *      eSink =       where the error messages go
  */
 void scanMachObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
-        const(ubyte)[] base, const(char)* module_name, Loc loc, ErrorSink eSink)
+        const ubyte[] base, const char* module_name, Loc loc, ErrorSink eSink)
 {
     static if (LOG)
     {
@@ -96,7 +96,7 @@ void scanMachObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol
     symtab_command* symtab_commands;
     // Commands immediately follow mach_header
     char* commands = cast(char*)buf + (header.magic == MH_MAGIC_64 ? mach_header_64.sizeof : mach_header.sizeof);
-    for (uint32_t i = 0; i < ncmds; i++)
+    foreach (i; 0 .. ncmds)
     {
         load_command* command = cast(load_command*)commands;
         //printf("cmd = 0x%02x, cmdsize = %u\n", command.cmd, command.cmdsize);
@@ -121,7 +121,7 @@ void scanMachObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol
             return corrupt(__LINE__);
 
         // For each symbol
-        for (int i = 0; i < symtab_commands.nsyms; i++)
+        foreach (i; 0 .. symtab_commands.nsyms)
         {
             nlist_64* s = symtab + i;
             const(char)* name = strtab + s.n_strx;
@@ -172,7 +172,7 @@ void scanMachObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol
             return corrupt(__LINE__);
 
         // For each symbol
-        for (int i = 0; i < symtab_commands.nsyms; i++)
+        foreach (i; 0 .. symtab_commands.nsyms)
         {
             nlist* s = symtab + i;
             const(char)* name = strtab + s.n_strx;
