@@ -18,6 +18,7 @@ import dmd.astenums;
 import dmd.canthrow;
 import dmd.dclass;
 import dmd.declaration;
+import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
@@ -143,9 +144,9 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
                                 // Deprecated in 2.100
                                 // Make an error in 2.110
                                 if (sl && sl.isCaseStatement())
-                                    s.deprecation("switch case fallthrough - use 'goto %s;' if intended", gototype);
+                                    deprecation(s.loc, "switch case fallthrough - use 'goto %s;' if intended", gototype);
                                 else
-                                    s.error("switch case fallthrough - use 'goto %s;' if intended", gototype);
+                                    error(s.loc, "switch case fallthrough - use 'goto %s;' if intended", gototype);
                             }
                         }
                     }
@@ -155,7 +156,7 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
                         import dmd.errorsink : DiagnosticFlag;
                         if (blockExit(s, func, mustNotThrow) != BE.halt && s.hasCode() &&
                             s.loc != Loc.initial) // don't emit warning for generated code
-                            s.warning(DiagnosticFlag.unreachable, "statement is not reachable");
+                            warning(DiagnosticFlag.unreachable, s.loc, "statement is not reachable");
                     }
                     else
                     {
@@ -505,7 +506,7 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
                 if(func)
                     func.setThrow(s.loc, "`asm` statement is assumed to throw - mark it with `nothrow` if it does not");
                 if (mustNotThrow)
-                    s.error("`asm` statement is assumed to throw - mark it with `nothrow` if it does not"); // TODO
+                    error(s.loc, "`asm` statement is assumed to throw - mark it with `nothrow` if it does not"); // TODO
                 else
                     result |= BE.throw_;
             }

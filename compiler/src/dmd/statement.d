@@ -19,11 +19,11 @@ import core.stdc.stdio;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.ast_node;
+import dmd.errors;
 import dmd.gluelayer;
 import dmd.cond;
 import dmd.declaration;
 import dmd.dsymbol;
-import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
@@ -89,59 +89,6 @@ extern (C++) abstract class Statement : ASTNode
         toCBuffer(this, buf, hgs);
         buf.writeByte(0);
         return buf.extractSlice().ptr;
-    }
-
-    static if (__VERSION__ < 2092)
-    {
-        final void error(const(char)* format, ...)
-        {
-            va_list ap;
-            va_start(ap, format);
-            .verrorReport(loc, format, ap, ErrorKind.error);
-            va_end(ap);
-        }
-
-        final void warning(uint flag, const(char)* format, ...)
-        {
-            va_list ap;
-            va_start(ap, format);
-            .verrorReport(loc, format, ap, ErrorKind.warning, flag);
-            va_end(ap);
-        }
-
-        final void deprecation(const(char)* format, ...)
-        {
-            va_list ap;
-            va_start(ap, format);
-            .verrorReport(loc, format, ap, ErrorKind.deprecation);
-            va_end(ap);
-        }
-    }
-    else
-    {
-        pragma(printf) final void error(const(char)* format, ...)
-        {
-            va_list ap;
-            va_start(ap, format);
-            .verrorReport(loc, format, ap, ErrorKind.error);
-            va_end(ap);
-        }
-
-        pragma(printf) final void warning(uint flag, const(char)* format, ...)
-        {
-            va_list ap;
-            va_start(ap, format);
-            .verrorReport(loc, format, ap, ErrorKind.warning, flag);
-            va_end(ap);
-        }
-
-        pragma(printf) final void deprecation(const(char)* format, ...)
-        {
-            va_list ap;
-            va_start(ap, format);
-            .verrorReport(loc, format, ap, ErrorKind.deprecation);
-            va_end(ap);
-        }
     }
 
     Statement getRelatedLabeled()
@@ -1220,9 +1167,9 @@ extern (C++) final class SwitchStatement : Statement
                 if (v.isDataseg() || (v.storage_class & (STC.manifest | STC.temp) && vd.ident != Id.withSym) || v._init.isVoidInitializer())
                     continue;
                 if (vd.ident == Id.withSym)
-                    error("`switch` skips declaration of `with` temporary");
+                    error(loc, "`switch` skips declaration of `with` temporary");
                 else
-                    error("`switch` skips declaration of variable `%s`", v.toPrettyChars());
+                    error(loc, "`switch` skips declaration of variable `%s`", v.toPrettyChars());
                 errorSupplemental(v.loc, "declared here");
                 return true;
             }
@@ -1782,22 +1729,22 @@ extern (C++) final class GotoStatement : Statement
             else
             {
                 if (label.statement.os)
-                    error("cannot `goto` in to `%s` block", Token.toChars(label.statement.os.tok));
+                    error(loc, "cannot `goto` in to `%s` block", Token.toChars(label.statement.os.tok));
                 else
-                    error("cannot `goto` out of `%s` block", Token.toChars(os.tok));
+                    error(loc, "cannot `goto` out of `%s` block", Token.toChars(os.tok));
                 return true;
             }
         }
 
         if (label.statement.tf != tf)
         {
-            error("cannot `goto` in or out of `finally` block");
+            error(loc, "cannot `goto` in or out of `finally` block");
             return true;
         }
 
         if (label.statement.inCtfeBlock && !inCtfeBlock)
         {
-            error("cannot `goto` into `if (__ctfe)` block");
+            error(loc, "cannot `goto` into `if (__ctfe)` block");
             return true;
         }
 
@@ -1806,7 +1753,7 @@ extern (C++) final class GotoStatement : Statement
         {
             if (!stb)
             {
-                error("cannot `goto` into `try` block");
+                error(loc, "cannot `goto` into `try` block");
                 return true;
             }
             if (auto stf = stb.isTryFinallyStatement())
@@ -1835,9 +1782,9 @@ extern (C++) final class GotoStatement : Statement
         else
         {
             if (vd.ident == Id.withSym)
-                error("`goto` skips declaration of `with` temporary");
+                error(loc, "`goto` skips declaration of `with` temporary");
             else
-                error("`goto` skips declaration of variable `%s`", vd.toPrettyChars());
+                error(loc, "`goto` skips declaration of variable `%s`", vd.toPrettyChars());
             errorSupplemental(vd.loc, "declared here");
             return true;
         }
