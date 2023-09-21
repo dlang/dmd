@@ -350,7 +350,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                     Identifier id = Identifier.generateId("__o");
 
                     Statement handler = new PeelStatement(sexception);
-                    if (sexception.blockExit(sc.func, false) & BE.fallthru)
+                    if (sexception.blockExit(sc.func, null) & BE.fallthru)
                     {
                         auto ts = new ThrowStatement(Loc.initial, new IdentifierExp(Loc.initial, id));
                         ts.internalThrow = true;
@@ -2071,7 +2071,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             a.reserve(2);
             sc.sw.sdefault = new DefaultStatement(ss.loc, s);
             a.push(ss._body);
-            if (ss._body.blockExit(sc.func, false) & BE.fallthru)
+            if (ss._body.blockExit(sc.func, null) & BE.fallthru)
                 a.push(new BreakStatement(Loc.initial, null));
             a.push(sc.sw.sdefault);
             cs = new CompoundStatement(ss.loc, a);
@@ -3378,7 +3378,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         /* If the try body never throws, we can eliminate any catches
          * of recoverable exceptions.
          */
-        if (!(tcs._body.blockExit(sc.func, false) & BE.throw_) && ClassDeclaration.exception)
+        if (!(tcs._body.blockExit(sc.func, null) & BE.throw_) && ClassDeclaration.exception)
         {
             foreach_reverse (i; 0 .. tcs.catches.length)
             {
@@ -3428,7 +3428,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             return;
         }
 
-        auto blockexit = tfs._body.blockExit(sc.func, false);
+        auto blockexit = tfs._body.blockExit(sc.func, null);
 
         // if not worrying about exceptions
         if (!(global.params.useExceptions && ClassDeclaration.throwable))
