@@ -1,7 +1,7 @@
 // REQUIRED_ARGS: -o- -w
 
 /*
-TEST_OUTPUT:
+Warning removed in: https://github.com/dlang/dmd/pull/15568
 ---
 fail_compilation/warn12809.d(25): Warning: statement is not reachable
 fail_compilation/warn12809.d(33): Warning: statement is not reachable
@@ -36,7 +36,7 @@ void test_unrachable3()
 /********************************************/
 
 /*
-TEST_OUTPUT:
+
 ---
 fail_compilation/warn12809.d(108): Warning: statement is not reachable
 fail_compilation/warn12809.d(115): Warning: statement is not reachable
