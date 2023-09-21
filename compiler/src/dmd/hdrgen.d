@@ -204,8 +204,7 @@ private void statementToBuffer(Statement s, ref OutBuffer buf, HdrGenState* hgs)
                 auto d = ds.exp.isDeclarationExp().declaration;
                 if (auto v = d.isVarDeclaration())
                 {
-                    scope ppv = new DsymbolPrettyPrintVisitor(&buf, hgs);
-                    ppv.visitVarDecl(v, anywritten);
+                    visitVarDecl(v, anywritten, buf, *hgs);
                 }
                 else
                     d.dsymbolToBuffer(buf, hgs);
@@ -1521,60 +1520,9 @@ public:
     {
         if (d.storage_class & STC.local)
             return;
-        visitVarDecl(d, false);
+        visitVarDecl(d, false, *buf, *hgs);
         buf.writeByte(';');
         buf.writenl();
-    }
-
-    void visitVarDecl(VarDeclaration v, bool anywritten)
-    {
-        const bool isextern = hgs.hdrgen &&
-            !hgs.insideFuncBody &&
-            !hgs.tpltMember &&
-            !hgs.insideAggregate &&
-            !(v.storage_class & STC.manifest);
-
-        void vinit(VarDeclaration v)
-        {
-            auto ie = v._init.isExpInitializer();
-            if (ie && (ie.exp.op == EXP.construct || ie.exp.op == EXP.blit))
-                (cast(AssignExp)ie.exp).e2.expressionToBuffer(*buf, hgs);
-            else
-                v._init.initializerToBuffer(*buf, hgs);
-        }
-
-        if (anywritten)
-        {
-            buf.writestring(", ");
-            buf.writestring(v.ident.toString());
-        }
-        else
-        {
-            const bool useTypeof = isextern && v._init && !v.type;
-            auto stc = v.storage_class;
-            if (isextern)
-                stc |= STC.extern_;
-            if (useTypeof)
-                stc &= ~STC.auto_;
-            if (stcToBuffer(*buf, stc))
-                buf.writeByte(' ');
-            if (v.type)
-                typeToBuffer(v.type, v.ident, *buf, hgs);
-            else if (useTypeof)
-            {
-                buf.writestring("typeof(");
-                vinit(v);
-                buf.writestring(") ");
-                buf.writestring(v.ident.toString());
-            }
-            else
-                buf.writestring(v.ident.toString());
-        }
-        if (v._init && !isextern)
-        {
-            buf.writestring(" = ");
-            vinit(v);
-        }
     }
 
     override void visit(FuncDeclaration f)
@@ -1880,6 +1828,61 @@ public:
         moduleToBuffer2(m, *buf, hgs);
     }
 }
+
+/*******************************************
+ * Pretty-print a VarDeclaration to buf.
+ */
+private void visitVarDecl(VarDeclaration v, bool anywritten, ref OutBuffer buf, ref HdrGenState hgs)
+{
+    const bool isextern = hgs.hdrgen &&
+        !hgs.insideFuncBody &&
+        !hgs.tpltMember &&
+        !hgs.insideAggregate &&
+        !(v.storage_class & STC.manifest);
+
+    void vinit(VarDeclaration v)
+    {
+        auto ie = v._init.isExpInitializer();
+        if (ie && (ie.exp.op == EXP.construct || ie.exp.op == EXP.blit))
+            (cast(AssignExp)ie.exp).e2.expressionToBuffer(buf, &hgs);
+        else
+            v._init.initializerToBuffer(buf, &hgs);
+    }
+
+    if (anywritten)
+    {
+        buf.writestring(", ");
+        buf.writestring(v.ident.toString());
+    }
+    else
+    {
+        const bool useTypeof = isextern && v._init && !v.type;
+        auto stc = v.storage_class;
+        if (isextern)
+            stc |= STC.extern_;
+        if (useTypeof)
+            stc &= ~STC.auto_;
+        if (stcToBuffer(buf, stc))
+            buf.writeByte(' ');
+        if (v.type)
+            typeToBuffer(v.type, v.ident, buf, &hgs);
+        else if (useTypeof)
+        {
+            buf.writestring("typeof(");
+            vinit(v);
+            buf.writestring(") ");
+            buf.writestring(v.ident.toString());
+        }
+        else
+            buf.writestring(v.ident.toString());
+    }
+    if (v._init && !isextern)
+    {
+        buf.writestring(" = ");
+        vinit(v);
+    }
+}
+
 
 /*********************************************
  * Print expression to buffer.
@@ -2254,8 +2257,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, HdrGenState*
             //   which isn't correct as regular D code.
                 buf.writeByte('(');
 
-                scope v = new DsymbolPrettyPrintVisitor(&buf, hgs);
-                v.visitVarDecl(var, false);
+                visitVarDecl(var, false, buf, *hgs);
 
                 buf.writeByte(';');
                 buf.writeByte(')');
