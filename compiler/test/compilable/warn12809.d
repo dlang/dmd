@@ -71,3 +71,27 @@ void test3()
     finally foo();
     int x = 1;
 }
+
+// https://issues.dlang.org/show_bug.cgi?id=14835
+bool isEven(int i)()
+{
+    static if (i % 2)
+        return true;
+    return false;
+}
+
+enum x = isEven!0;
+
+// https://issues.dlang.org/show_bug.cgi?id=10532
+alias Seq(T...) = T;
+void f()
+{
+    foreach (e; Seq!(10, 20))
+    {
+        if (e == 10)
+            continue;
+
+        // lots of code follows..
+        auto x = 1;
+    }
+}
