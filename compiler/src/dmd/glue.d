@@ -1134,7 +1134,7 @@ public void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         Statement sf = ExpStatement.create(fd.loc, e);
 
         Statement stf;
-        if (sbody.blockExit(fd, false) == BE.fallthru)
+        if (sbody.blockExit(fd, null) == BE.fallthru)
             stf = CompoundStatement.create(Loc.initial, sbody, sf);
         else
             stf = TryFinallyStatement.create(Loc.initial, sbody, sf);

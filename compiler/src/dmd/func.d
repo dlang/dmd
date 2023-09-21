@@ -173,7 +173,7 @@ public:
             Identifier id = Identifier.generateId("__o");
 
             Statement handler = new PeelStatement(sexception);
-            if (sexception.blockExit(fd, false) & BE.fallthru)
+            if (sexception.blockExit(fd, null) & BE.fallthru)
             {
                 auto ts = new ThrowStatement(Loc.initial, new IdentifierExp(Loc.initial, id));
                 ts.internalThrow = true;
