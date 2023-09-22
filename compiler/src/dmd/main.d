@@ -706,14 +706,14 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     {
         Timespan total = ts_init + ts_parse + ts_sem1 + ts_sem2 + ts_sem2 + ts_sem3 + ts_inliner + ts_codegen + ts_linker;
         printf("%-25s%10.2f ms%10.2f %%\n", "Total".ptr,          total.msecs(),       100.0);
-        printf("%-25s%10.2f ms%10.2f %%\n", "Initialization".ptr, ts_init.msecs(),     ts_init.ticks    / total.ticks * 100.0);
-        printf("%-25s%10.2f ms%10.2f %%\n", "Parser".ptr,         ts_parse.msecs(),    ts_parse.ticks   / total.ticks * 100.0);
-        printf("%-25s%10.2f ms%10.2f %%\n", "Sem1".ptr,           ts_sem1.msecs(),     ts_sem1.ticks    / total.ticks * 100.0);
-        printf("%-25s%10.2f ms%10.2f %%\n", "Sem2".ptr,           ts_sem2.msecs(),     ts_sem2.ticks    / total.ticks * 100.0);
-        printf("%-25s%10.2f ms%10.2f %%\n", "Sem3".ptr,           ts_sem3.msecs(),     ts_sem3.ticks    / total.ticks * 100.0);
-        printf("%-25s%10.2f ms%10.2f %%\n", "Inliner".ptr,        ts_inliner.msecs(),  ts_inliner.ticks / total.ticks * 100.0);
-        printf("%-25s%10.2f ms%10.2f %%\n", "Codegen".ptr,        ts_codegen.msecs(),  ts_codegen.ticks / total.ticks * 100.0);
-        printf("%-25s%10.2f ms%10.2f %%\n", "Linker".ptr,         ts_linker.msecs(),   ts_linker.ticks  / total.ticks * 100.0);
+        printf("%-25s%10.2f ms%10.2f %%\n", "Initialization".ptr, ts_init.msecs(),     ts_init.ticks    / cast(double) total.ticks * 100.0);
+        printf("%-25s%10.2f ms%10.2f %%\n", "Parser".ptr,         ts_parse.msecs(),    ts_parse.ticks   / cast(double) total.ticks * 100.0);
+        printf("%-25s%10.2f ms%10.2f %%\n", "Sem1".ptr,           ts_sem1.msecs(),     ts_sem1.ticks    / cast(double) total.ticks * 100.0);
+        printf("%-25s%10.2f ms%10.2f %%\n", "Sem2".ptr,           ts_sem2.msecs(),     ts_sem2.ticks    / cast(double) total.ticks * 100.0);
+        printf("%-25s%10.2f ms%10.2f %%\n", "Sem3".ptr,           ts_sem3.msecs(),     ts_sem3.ticks    / cast(double) total.ticks * 100.0);
+        printf("%-25s%10.2f ms%10.2f %%\n", "Inliner".ptr,        ts_inliner.msecs(),  ts_inliner.ticks / cast(double) total.ticks * 100.0);
+        printf("%-25s%10.2f ms%10.2f %%\n", "Codegen".ptr,        ts_codegen.msecs(),  ts_codegen.ticks / cast(double) total.ticks * 100.0);
+        printf("%-25s%10.2f ms%10.2f %%\n", "Linker".ptr,         ts_linker.msecs(),   ts_linker.ticks  / cast(double) total.ticks * 100.0);
     }
 
     return status;
