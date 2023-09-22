@@ -1521,6 +1521,8 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.help.usage = true;
             return false;
         }
+        else if (arg == "-printTiming")
+            params.printTiming = true;
         else if (arg == "--r")
             driverParams.debugr = true;
         else if (arg == "--version")

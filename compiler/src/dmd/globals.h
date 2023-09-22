@@ -154,6 +154,7 @@ struct Param
     d_bool printErrorContext;  // print errors with the error context (the error line in the source file)
     Help help;
     d_bool logo;              // print logo;
+    d_bool printTiming;
 
     // Options for `-preview=/-revert=`
     FeatureState useDIP25;       // implement https://wiki.dlang.org/DIP25

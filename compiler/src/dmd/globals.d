@@ -162,6 +162,7 @@ extern (C++) struct Param
     bool printErrorContext;  // print errors with the error context (the error line in the source file)
     Help help;
     bool logo;              // print compiler logo
+    bool printTiming;       // print compiler timing
 
     // Options for `-preview=/-revert=`
     FeatureState useDIP25 = FeatureState.enabled; // implement https://wiki.dlang.org/DIP25

@@ -292,6 +292,17 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     setDefaultLibrary(params, target);
 
+    StopWatch sw;
+    Timespan ts_init;
+    Timespan ts_parse;
+    Timespan ts_sem1;
+    Timespan ts_sem2;
+    Timespan ts_sem3;
+    Timespan ts_inliner;
+    Timespan ts_codegen;
+    Timespan ts_linker;
+
+    sw.restart();
     // Initialization
     target._init(params);
     Type._init();
@@ -312,6 +323,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     // Predefined version identifiers
     addDefaultVersionIdentifiers(params, target);
 
+    ts_init = sw.elapsed();
     if (params.verbose)
     {
         stdout.printPredefinedVersions();
@@ -349,6 +361,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     global.path = buildPath(params.imppath);
     global.filePath = buildPath(params.fileImppath);
 
+    sw.restart();
     // Create Modules
     Modules modules = createModules(files, libmodules, target);
     // Read files
@@ -435,6 +448,8 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         }
     }
 
+    ts_parse = sw.elapsed();
+
     if (anydocfiles && modules.length && (driverParams.oneobj || params.objname))
     {
         error(Loc.initial, "conflicting Ddoc and obj generation options");
@@ -479,6 +494,8 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     backend_init();
 
+
+    sw.restart();
     // Do semantic analysis
     foreach (m; modules)
     {
@@ -499,6 +516,8 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         //fatal();
     }
 
+    ts_sem1 = sw.elapsed();
+    sw.restart();
     // Do pass 2 semantic analysis
     foreach (m; modules)
     {
@@ -509,7 +528,8 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     Module.runDeferredSemantic2();
     if (global.errors)
         removeHdrFilesAndFail(params, modules);
-
+    ts_sem2 = sw.elapsed();
+    sw.restart();
     // Do pass 3 semantic analysis
     foreach (m; modules)
     {
@@ -534,6 +554,8 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     Module.runDeferredSemantic3();
     if (global.errors)
         removeHdrFilesAndFail(params, modules);
+    ts_sem3 = sw.elapsed();
+    sw.restart();
 
     // Scan for functions to inline
     foreach (m; modules)
@@ -545,6 +567,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             inlineScanModule(m);
         }
     }
+    ts_inliner = sw.elapsed();
 
     if (global.warnings)
         errorOnWarning();
@@ -628,10 +651,11 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             params.objfiles.push(mainModule.objfile.toChars());
     }
 
+    sw.restart();
     generateCodeAndWrite(modules[], libmodules[], params.libname, params.objdir,
                          driverParams.lib, params.obj, driverParams.oneobj, params.multiobj,
                          params.verbose);
-
+    ts_codegen = sw.elapsed();
     backend_term();
 
     if (global.errors)
@@ -645,7 +669,11 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     else
     {
         if (driverParams.link)
+        {
+            sw.restart();
             status = runLINK();
+            ts_linker = sw.elapsed();
+        }
         if (params.run)
         {
             if (!status)
@@ -673,6 +701,20 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     if (global.errors || global.warnings)
         removeHdrFilesAndFail(params, modules);
+
+    if (params.printTiming)
+    {
+        Timespan total = ts_init + ts_parse + ts_sem1 + ts_sem2 + ts_sem2 + ts_sem3 + ts_inliner + ts_codegen + ts_linker;
+        printf("%-25s%10.2f ms%10.2f %%\n", "Total".ptr,          total.msecs(),       100.0);
+        printf("%-25s%10.2f ms%10.2f %%\n", "Initialization".ptr, ts_init.msecs(),     ts_init.ticks    / total.ticks * 100.0);
+        printf("%-25s%10.2f ms%10.2f %%\n", "Parser".ptr,         ts_parse.msecs(),    ts_parse.ticks   / total.ticks * 100.0);
+        printf("%-25s%10.2f ms%10.2f %%\n", "Sem1".ptr,           ts_sem1.msecs(),     ts_sem1.ticks    / total.ticks * 100.0);
+        printf("%-25s%10.2f ms%10.2f %%\n", "Sem2".ptr,           ts_sem2.msecs(),     ts_sem2.ticks    / total.ticks * 100.0);
+        printf("%-25s%10.2f ms%10.2f %%\n", "Sem3".ptr,           ts_sem3.msecs(),     ts_sem3.ticks    / total.ticks * 100.0);
+        printf("%-25s%10.2f ms%10.2f %%\n", "Inliner".ptr,        ts_inliner.msecs(),  ts_inliner.ticks / total.ticks * 100.0);
+        printf("%-25s%10.2f ms%10.2f %%\n", "Codegen".ptr,        ts_codegen.msecs(),  ts_codegen.ticks / total.ticks * 100.0);
+        printf("%-25s%10.2f ms%10.2f %%\n", "Linker".ptr,         ts_linker.msecs(),   ts_linker.ticks  / total.ticks * 100.0);
+    }
 
     return status;
 }
@@ -1062,6 +1104,159 @@ void reconcileLinkRunLib(ref Param params, size_t numSrcFiles, const char[] obj_
             //fatal();
         }
     }
+}
+
+ulong ticks()
+{
+    version (Windows)
+    {
+        import core.sys.windows.windows : QueryPerformanceCounter;
+        import core.sys.windows.windows : LARGE_INTEGER;
+
+        LARGE_INTEGER counter;
+        QueryPerformanceCounter(&counter);
+        return counter.QuadPart;
+    }
+    else version (Posix)
+    {
+        import core.sys.posix.time : clock_gettime;
+        import core.sys.posix.time : timespec;
+        import core.sys.posix.time : CLOCK_MONOTONIC;
+
+        timespec now;
+        clock_gettime(CLOCK_MONOTONIC, &now);
+
+        ulong ticks = 0;
+        ticks += now.tv_sec;
+        ticks *= 1_000_000_000;
+        ticks += now.tv_nsec;
+        return ticks;
+    }
+    else
+    {
+        import rt.wasm;
+        return js_ticks();
+    }
+}
+
+ulong frequency()
+{
+    version (Windows)
+    {
+        import core.sys.windows.windows : QueryPerformanceFrequency;
+        import core.sys.windows.windows : LARGE_INTEGER;
+
+        LARGE_INTEGER frequency;
+        QueryPerformanceFrequency(&frequency);
+        return frequency.QuadPart;
+    }
+    else version (Posix)
+    {
+        return 1_000_000_000;
+    }
+    else
+    {
+        return 1_000;
+    }
+}
+
+struct StopWatch
+{
+    ulong start_ticks = 0;
+    ulong stop_ticks = 0;
+
+    void reset()
+    {
+        start_ticks = 0;
+        stop_ticks = 0;
+    }
+
+    void restart()
+    {
+        reset();
+        start();
+    }
+
+    bool is_running()
+    {
+        return start_ticks != 0;
+    }
+
+    bool is_stopped()
+    {
+        return stop_ticks != 0;
+    }
+
+    void start()
+    {
+        start_ticks = ticks();
+    }
+
+    void stop()
+    {
+        stop_ticks = ticks();
+    }
+
+    void resume()
+    {
+        start_ticks += ticks() - stop_ticks;
+    }
+
+    Timespan elapsed()
+    {
+        if (is_running() == false) return Timespan(0, frequency());
+
+        auto t = (is_stopped() ? stop_ticks : ticks()) - start_ticks;
+        return Timespan(t, frequency());
+    }
+}
+
+
+struct Timespan
+{
+    ulong ticks;
+    ulong frequency;
+
+    double nano()
+    {
+        return ((ticks * 1000.0) / frequency) * 1_000_000;
+    }
+
+    double msecs()
+    {
+        return (ticks * 1000.0) / frequency;
+    }
+
+    int msecs_i()
+    {
+        return cast(int) ( (ticks * 1000.0) / frequency );
+    }
+
+    double seconds()
+    {
+        return ((ticks * 1000.0) / frequency) / 1000;
+    }
+
+    Timespan opBinary(string op)(Timespan other)
+    {
+        Timespan ret = void;
+        mixin("ret.ticks = ticks" ~ op ~ "other.ticks;");
+        ret.frequency = frequency;
+        return ret;
+    }
+
+    Timespan opBinary(string op)(double other)
+    {
+        Timespan ret = void;
+        mixin("ret.ticks = ticks" ~ op ~ "cast(ulong) other;");
+        ret.frequency = frequency;
+        return ret;
+    }
+}
+
+Timespan now()
+{
+    return Timespan(ticks(), frequency());
 }
 
 }
