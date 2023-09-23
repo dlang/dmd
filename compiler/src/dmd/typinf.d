@@ -43,7 +43,7 @@ extern (C++) void genTypeInfo(Expression e, const ref Loc loc, Type torig, Scope
     // Even when compiling without `useTypeInfo` (e.g. -betterC) we should
     // still be able to evaluate `TypeInfo` at compile-time, just not at runtime.
     // https://issues.dlang.org/show_bug.cgi?id=18472
-    if (!sc || !(sc.flags & SCOPE.ctfe))
+    if (!sc || (sc.flags & SCOPE.ctfe))
     {
         if (!global.params.useTypeInfo)
         {
