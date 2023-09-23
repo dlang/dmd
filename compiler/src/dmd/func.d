@@ -4626,7 +4626,7 @@ bool setUnsafePreview(Scope* sc, FeatureState fs, bool gag, Loc loc, const(char)
         {
             if (!gag)
             {
-                if (!sc.isDeprecated() && global.params.obsolete)
+                version (none) // disable obsolete warning
                     warning(loc, msg, arg0 ? arg0.toChars() : "", arg1 ? arg1.toChars() : "", arg2 ? arg2.toChars() : "");
             }
         }

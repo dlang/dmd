@@ -135,7 +135,6 @@ struct Param
     d_bool release;       // build release version
     d_bool preservePaths; // true means don't strip path from source file
     Diagnostic warnings;
-    d_bool obsolete;      // warn about use of obsolete features
     d_bool color;         // use ANSI colors in console output
     d_bool cov;           // generate code coverage data
     unsigned char covPercent;   // 0..100 code coverage percentage required
@@ -272,7 +271,6 @@ struct CompileEnv
     bool previewIn;
     bool ddocOutput;
     bool shortenedMethods;
-    bool obsolete;
 };
 
 struct Global

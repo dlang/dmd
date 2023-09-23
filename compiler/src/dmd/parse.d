@@ -9601,7 +9601,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
     void usageOfBodyKeyword()
     {
-        if (compileEnv.obsolete)
+        version (none)  // disable obsolete warning
         {
             eSink.warning(token.loc, "usage of identifer `body` as a keyword is obsolete. Use `do` instead.");
         }
