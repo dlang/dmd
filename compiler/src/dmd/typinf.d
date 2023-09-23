@@ -54,7 +54,8 @@ extern (C++) void genTypeInfo(Expression e, const ref Loc loc, Type torig, Scope
                 .error(loc, "`TypeInfo` cannot be used with -betterC");
             fatal();
         }
-    }
+    } else if (global.params.useTypeInfo == false)
+        return;
 
     if (!Type.dtypeinfo)
     {
@@ -115,7 +116,7 @@ extern (C++) Type getTypeInfoType(const ref Loc loc, Type t, Scope* sc, bool gen
 {
     assert(t.ty != Terror);
     genTypeInfo(null, loc, t, sc, genObjCode);
-    return t.vtinfo.type;
+    return t.vtinfo ? t.vtinfo.type : null;
 }
 
 private TypeInfoDeclaration getTypeInfoDeclaration(Type t)
