@@ -691,6 +691,7 @@ extern (C++) final class VersionCondition : DVCondition
             case "LDC":
             case "linux":
             case "LittleEndian":
+            case "LoongArch32":
             case "LoongArch64":
             case "LoongArch_HardFloat":
             case "LoongArch_SoftFloat":
