@@ -724,9 +724,20 @@ public:
         {
             //printf("NewExp.doInlineAs!%s(): %s\n", Result.stringof.ptr, e.toChars());
             auto ne = e.copy().isNewExp();
+            auto lowering = ne.lowering;
+            if (lowering)
+                if (auto ce = lowering.isCallExp())
+                    if (ce.f.ident == Id._d_newarrayT)
+                    {
+                        ne.lowering = doInlineAs!Expression(lowering, ids);
+                        goto LhasLowering;
+                    }
+
             ne.thisexp = doInlineAs!Expression(e.thisexp, ids);
             ne.argprefix = doInlineAs!Expression(e.argprefix, ids);
             ne.arguments = arrayExpressionDoInline(e.arguments);
+
+        LhasLowering:
             result = ne;
 
             semanticTypeInfo(null, e.type);

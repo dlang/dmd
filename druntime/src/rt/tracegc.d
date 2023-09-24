@@ -17,9 +17,6 @@ module rt.tracegc;
 
 // version = tracegc;
 
-extern (C) void[] _d_newarrayT(const TypeInfo ti, size_t length);
-extern (C) void[] _d_newarrayU(const scope TypeInfo ti, size_t length);
-extern (C) void[] _d_newarrayiT(const TypeInfo ti, size_t length);
 extern (C) void[] _d_newarraymTX(const TypeInfo ti, size_t[] dims);
 extern (C) void[] _d_newarraymiTX(const TypeInfo ti, size_t[] dims);
 extern (C) void _d_callfinalizer(void* p);
@@ -59,6 +56,7 @@ extern (C) size_t gc_extend(void* p, size_t mx, size_t sz, const TypeInfo ti = n
 enum accumulator = q{
     import rt.profilegc : accumulate;
     import core.memory : GC;
+    import core.stdc.string : strstr;
 
     static if (is(typeof(ci)))
         string name = ci.name;
@@ -91,7 +89,8 @@ enum accumulator = q{
     scope(exit)
     {
         ulong size = GC.allocatedInCurrentThread - currentlyAllocated;
-        if (size > 0)
+        // Skip internal functions.
+        if (size > 0 && strstr(funcname.ptr, "core.internal") is null)
             accumulate(file, line, funcname, name, size);
     }
 };

@@ -8767,6 +8767,8 @@ struct Id final
     static Identifier* _d_newclassTTrace;
     static Identifier* _d_newitemT;
     static Identifier* _d_newitemTTrace;
+    static Identifier* _d_newarrayT;
+    static Identifier* _d_newarrayTTrace;
     static Identifier* _d_assert_fail;
     static Identifier* dup;
     static Identifier* _aaApply;

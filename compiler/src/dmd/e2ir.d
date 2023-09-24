@@ -1251,15 +1251,8 @@ elem* toElem(Expression e, ref IRState irs)
             assert(ne.arguments && ne.arguments.length >= 1);
             if (ne.arguments.length == 1)
             {
-                // Single dimension array allocations
-                Expression arg = (*ne.arguments)[0]; // gives array length
-                e = toElem(arg, irs);
-
-                // call _d_newT(ti, arg)
-                e = el_param(e, getTypeInfo(ne, ne.type, irs));
-                const rtl = tda.next.isZeroInit(Loc.initial) ? RTLSYM.NEWARRAYT : RTLSYM.NEWARRAYIT;
-                e = el_bin(OPcall,TYdarray,el_var(getRtlsym(rtl)),e);
-                toTraceGC(irs, e, ne.loc);
+                assert(ne.lowering);
+                e = toElem(ne.lowering, irs);
             }
             else
             {
