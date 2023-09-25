@@ -2916,8 +2916,9 @@ void toCBufferInstance(const TemplateInstance ti, ref OutBuffer buf, bool qualif
 {
     HdrGenState hgs;
     hgs.fullQual = qualifyTypes;
-    scope v = new DsymbolPrettyPrintVisitor(&buf, &hgs);
-    v.visit(cast() ti);
+
+    buf.writestring(ti.name.toChars());
+    tiargsToBuffer(cast() ti, buf, &hgs);
 }
 
 void toCBuffer(const Initializer iz, ref OutBuffer buf, ref HdrGenState hgs)
