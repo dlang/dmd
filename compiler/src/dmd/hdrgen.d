@@ -1194,7 +1194,7 @@ public:
         buf.writeByte(' ');
         buf.writestring(d.ident.toString());
         buf.writeByte('(');
-        visitTemplateParameters(hgs.ddoc ? d.origParameters : d.parameters);
+        visitTemplateParameters(hgs.ddoc ? d.origParameters : d.parameters, *buf, *hgs);
         buf.writeByte(')');
         visitTemplateConstraint(d.constraint);
         if (hgs.hdrgen || hgs.fullDump)
@@ -1238,7 +1238,7 @@ public:
             buf.writeByte(' ');
             buf.writestring(ad.ident.toString());
             buf.writeByte('(');
-            visitTemplateParameters(hgs.ddoc ? d.origParameters : d.parameters);
+            visitTemplateParameters(hgs.ddoc ? d.origParameters : d.parameters, *buf, *hgs);
             buf.writeByte(')');
             visitTemplateConstraint(d.constraint);
             visitBaseClasses(ad.isClassDeclaration());
@@ -1271,7 +1271,7 @@ public:
             else
                 buf.writestring(vd.ident.toString());
             buf.writeByte('(');
-            visitTemplateParameters(hgs.ddoc ? d.origParameters : d.parameters);
+            visitTemplateParameters(hgs.ddoc ? d.origParameters : d.parameters, *buf, *hgs);
             buf.writeByte(')');
             if (vd._init)
             {
@@ -1287,18 +1287,6 @@ public:
             return true;
         }
         return false;
-    }
-
-    void visitTemplateParameters(TemplateParameters* parameters)
-    {
-        if (!parameters || !parameters.length)
-            return;
-        foreach (i, p; *parameters)
-        {
-            if (i)
-                buf.writestring(", ");
-            p.templateParameterToBuffer(*buf, hgs);
-        }
     }
 
     void visitTemplateConstraint(Expression constraint)
@@ -1829,6 +1817,23 @@ public:
     }
 }
 
+
+/*****************************************
+ * Pretty-print a template parameter list to a buffer.
+ */
+private void visitTemplateParameters(TemplateParameters* parameters, ref OutBuffer buf, ref HdrGenState hgs)
+{
+    if (!parameters)
+        return;
+    foreach (i, p; *parameters)
+    {
+        if (i)
+            buf.writestring(", ");
+        p.templateParameterToBuffer(buf, &hgs);
+    }
+}
+
+
 /*******************************************
  * Pretty-print a VarDeclaration to buf.
  */
@@ -2313,8 +2318,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, HdrGenState*
         if (e.parameters && e.parameters.length)
         {
             buf.writestring(", ");
-            scope v = new DsymbolPrettyPrintVisitor(&buf, hgs);
-            v.visitTemplateParameters(e.parameters);
+            visitTemplateParameters(e.parameters, buf, *hgs);
         }
         buf.writeByte(')');
     }
