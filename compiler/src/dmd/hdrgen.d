@@ -796,282 +796,242 @@ private void statementToBuffer(Statement s, ref OutBuffer buf, HdrGenState* hgs)
 
 private void dsymbolToBuffer(Dsymbol s, ref OutBuffer buf, HdrGenState* hgs)
 {
-    scope v = new DsymbolPrettyPrintVisitor(&buf, hgs);
-    s.accept(v);
+    toCBuffer(s, buf, *hgs);
 }
 
-private extern (C++) final class DsymbolPrettyPrintVisitor : Visitor
+void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
 {
-    alias visit = Visitor.visit;
-public:
-    OutBuffer* buf;
-    HdrGenState* hgs;
-
-    extern (D) this(OutBuffer* buf, HdrGenState* hgs) scope @safe
+    extern (C++)
+    final class DsymbolPrettyPrintVisitor : Visitor
     {
-        this.buf = buf;
-        this.hgs = hgs;
-    }
+        alias visit = Visitor.visit;
+    public:
+        OutBuffer* buf;
+        HdrGenState* hgs;
 
-    ////////////////////////////////////////////////////////////////////////////
-
-    override void visit(Dsymbol s)
-    {
-        buf.writestring(s.toChars());
-    }
-
-    override void visit(StaticAssert s)
-    {
-        buf.writestring(s.kind());
-        buf.writeByte('(');
-        s.exp.expressionToBuffer(*buf, hgs);
-        if (s.msgs)
+        extern (D) this(ref OutBuffer buf, ref HdrGenState hgs) scope
         {
-            foreach (m; (*s.msgs)[])
+            this.buf = &buf;
+            this.hgs = &hgs;
+        }
+
+        ////////////////////////////////////////////////////////////////////////////
+
+        override void visit(Dsymbol s)
+        {
+            buf.writestring(s.toChars());
+        }
+
+        override void visit(StaticAssert s)
+        {
+            buf.writestring(s.kind());
+            buf.writeByte('(');
+            s.exp.expressionToBuffer(*buf, hgs);
+            if (s.msgs)
             {
-                buf.writestring(", ");
-                m.expressionToBuffer(*buf, hgs);
-            }
-        }
-        buf.writestring(");");
-        buf.writenl();
-    }
-
-    override void visit(DebugSymbol s)
-    {
-        buf.writestring("debug = ");
-        if (s.ident)
-            buf.writestring(s.ident.toString());
-        else
-            buf.print(s.level);
-        buf.writeByte(';');
-        buf.writenl();
-    }
-
-    override void visit(VersionSymbol s)
-    {
-        buf.writestring("version = ");
-        if (s.ident)
-            buf.writestring(s.ident.toString());
-        else
-            buf.print(s.level);
-        buf.writeByte(';');
-        buf.writenl();
-    }
-
-    override void visit(EnumMember em)
-    {
-        if (em.type)
-            typeToBuffer(em.type, em.ident, *buf, hgs);
-        else
-            buf.writestring(em.ident.toString());
-        if (em.value)
-        {
-            buf.writestring(" = ");
-            em.value.expressionToBuffer(*buf, hgs);
-        }
-    }
-
-    override void visit(Import imp)
-    {
-        if (hgs.hdrgen && imp.id == Id.object)
-            return; // object is imported by default
-        if (imp.isstatic)
-            buf.writestring("static ");
-        buf.writestring("import ");
-        if (imp.aliasId)
-        {
-            buf.printf("%s = ", imp.aliasId.toChars());
-        }
-        foreach (const pid; imp.packages)
-        {
-            buf.printf("%s.", pid.toChars());
-        }
-        buf.writestring(imp.id.toString());
-        if (imp.names.length)
-        {
-            buf.writestring(" : ");
-            foreach (const i, const name; imp.names)
-            {
-                if (i)
+                foreach (m; (*s.msgs)[])
+                {
                     buf.writestring(", ");
-                const _alias = imp.aliases[i];
-                if (_alias)
-                    buf.printf("%s = %s", _alias.toChars(), name.toChars());
-                else
-                    buf.writestring(name.toChars());
+                    m.expressionToBuffer(*buf, hgs);
+                }
             }
-        }
-        buf.writeByte(';');
-        buf.writenl();
-    }
-
-    override void visit(AliasThis d)
-    {
-        buf.writestring("alias ");
-        buf.writestring(d.ident.toString());
-        buf.writestring(" this;\n");
-    }
-
-    override void visit(AttribDeclaration d)
-    {
-        bool hasSTC;
-        if (auto stcd = d.isStorageClassDeclaration)
-        {
-            hasSTC = stcToBuffer(*buf, stcd.stc);
+            buf.writestring(");");
+            buf.writenl();
         }
 
-        if (!d.decl)
+        override void visit(DebugSymbol s)
         {
+            buf.writestring("debug = ");
+            if (s.ident)
+                buf.writestring(s.ident.toString());
+            else
+                buf.print(s.level);
             buf.writeByte(';');
             buf.writenl();
-            return;
         }
-        if (d.decl.length == 0 || (hgs.hdrgen && d.decl.length == 1 && (*d.decl)[0].isUnitTestDeclaration()))
+
+        override void visit(VersionSymbol s)
         {
-            // hack for https://issues.dlang.org/show_bug.cgi?id=8081
-            if (hasSTC) buf.writeByte(' ');
-            buf.writestring("{}");
-        }
-        else if (d.decl.length == 1)
-        {
-            if (hasSTC) buf.writeByte(' ');
-            (*d.decl)[0].accept(this);
-            return;
-        }
-        else
-        {
+            buf.writestring("version = ");
+            if (s.ident)
+                buf.writestring(s.ident.toString());
+            else
+                buf.print(s.level);
+            buf.writeByte(';');
             buf.writenl();
-            buf.writeByte('{');
-            buf.writenl();
-            buf.level++;
-            foreach (de; *d.decl)
-                de.accept(this);
-            buf.level--;
-            buf.writeByte('}');
         }
-        buf.writenl();
-    }
 
-    override void visit(StorageClassDeclaration d)
-    {
-        visit(cast(AttribDeclaration)d);
-    }
-
-    override void visit(DeprecatedDeclaration d)
-    {
-        buf.writestring("deprecated(");
-        d.msg.expressionToBuffer(*buf, hgs);
-        buf.writestring(") ");
-        visit(cast(AttribDeclaration)d);
-    }
-
-    override void visit(LinkDeclaration d)
-    {
-        buf.writestring("extern (");
-        buf.writestring(linkageToString(d.linkage));
-        buf.writestring(") ");
-        visit(cast(AttribDeclaration)d);
-    }
-
-    override void visit(CPPMangleDeclaration d)
-    {
-        string s;
-        final switch (d.cppmangle)
+        override void visit(EnumMember em)
         {
-        case CPPMANGLE.asClass:
-            s = "class";
-            break;
-        case CPPMANGLE.asStruct:
-            s = "struct";
-            break;
-        case CPPMANGLE.def:
-            break;
-        }
-        buf.writestring("extern (C++, ");
-        buf.writestring(s);
-        buf.writestring(") ");
-        visit(cast(AttribDeclaration)d);
-    }
-
-    override void visit(VisibilityDeclaration d)
-    {
-        visibilityToBuffer(*buf, d.visibility);
-        AttribDeclaration ad = cast(AttribDeclaration)d;
-        if (ad.decl.length <= 1)
-            buf.writeByte(' ');
-        if (ad.decl.length == 1 && (*ad.decl)[0].isVisibilityDeclaration)
-            visit(cast(AttribDeclaration)(*ad.decl)[0]);
-        else
-            visit(cast(AttribDeclaration)d);
-    }
-
-    override void visit(AlignDeclaration d)
-    {
-        if (d.exps)
-        {
-            foreach (i, exp; (*d.exps)[])
+            if (em.type)
+                typeToBuffer(em.type, em.ident, *buf, hgs);
+            else
+                buf.writestring(em.ident.toString());
+            if (em.value)
             {
-                if (i)
-                    buf.writeByte(' ');
-                buf.printf("align (%s)", exp.toChars());
+                buf.writestring(" = ");
+                em.value.expressionToBuffer(*buf, hgs);
             }
-            if (d.decl && d.decl.length < 2)
-                buf.writeByte(' ');
-        }
-        else
-            buf.writestring("align ");
-
-        visit(d.isAttribDeclaration());
-    }
-
-    override void visit(AnonDeclaration d)
-    {
-        buf.writestring(d.isunion ? "union" : "struct");
-        buf.writenl();
-        buf.writestring("{");
-        buf.writenl();
-        buf.level++;
-        if (d.decl)
-        {
-            foreach (de; *d.decl)
-                de.accept(this);
-        }
-        buf.level--;
-        buf.writestring("}");
-        buf.writenl();
-    }
-
-    override void visit(PragmaDeclaration d)
-    {
-        buf.writestring("pragma (");
-        buf.writestring(d.ident.toString());
-        if (d.args && d.args.length)
-        {
-            buf.writestring(", ");
-            argsToBuffer(d.args, *buf, hgs);
         }
 
-        buf.writeByte(')');
-
-        // https://issues.dlang.org/show_bug.cgi?id=14690
-        // Unconditionally perform a full output dump
-        // for `pragma(inline)` declarations.
-        bool savedFullDump = global.params.dihdr.fullOutput;
-        if (d.ident == Id.Pinline)
-            global.params.dihdr.fullOutput = true;
-
-        visit(cast(AttribDeclaration)d);
-        global.params.dihdr.fullOutput = savedFullDump;
-    }
-
-    override void visit(ConditionalDeclaration d)
-    {
-        d.condition.conditionToBuffer(*buf, hgs);
-        if (d.decl || d.elsedecl)
+        override void visit(Import imp)
         {
+            if (hgs.hdrgen && imp.id == Id.object)
+                return; // object is imported by default
+            if (imp.isstatic)
+                buf.writestring("static ");
+            buf.writestring("import ");
+            if (imp.aliasId)
+            {
+                buf.printf("%s = ", imp.aliasId.toChars());
+            }
+            foreach (const pid; imp.packages)
+            {
+                buf.printf("%s.", pid.toChars());
+            }
+            buf.writestring(imp.id.toString());
+            if (imp.names.length)
+            {
+                buf.writestring(" : ");
+                foreach (const i, const name; imp.names)
+                {
+                    if (i)
+                        buf.writestring(", ");
+                    const _alias = imp.aliases[i];
+                    if (_alias)
+                        buf.printf("%s = %s", _alias.toChars(), name.toChars());
+                    else
+                        buf.writestring(name.toChars());
+                }
+            }
+            buf.writeByte(';');
             buf.writenl();
-            buf.writeByte('{');
+        }
+
+        override void visit(AliasThis d)
+        {
+            buf.writestring("alias ");
+            buf.writestring(d.ident.toString());
+            buf.writestring(" this;\n");
+        }
+
+        override void visit(AttribDeclaration d)
+        {
+            bool hasSTC;
+            if (auto stcd = d.isStorageClassDeclaration)
+            {
+                hasSTC = stcToBuffer(*buf, stcd.stc);
+            }
+
+            if (!d.decl)
+            {
+                buf.writeByte(';');
+                buf.writenl();
+                return;
+            }
+            if (d.decl.length == 0 || (hgs.hdrgen && d.decl.length == 1 && (*d.decl)[0].isUnitTestDeclaration()))
+            {
+                // hack for https://issues.dlang.org/show_bug.cgi?id=8081
+                if (hasSTC) buf.writeByte(' ');
+                buf.writestring("{}");
+            }
+            else if (d.decl.length == 1)
+            {
+                if (hasSTC) buf.writeByte(' ');
+                (*d.decl)[0].accept(this);
+                return;
+            }
+            else
+            {
+                buf.writenl();
+                buf.writeByte('{');
+                buf.writenl();
+                buf.level++;
+                foreach (de; *d.decl)
+                    de.accept(this);
+                buf.level--;
+                buf.writeByte('}');
+            }
+            buf.writenl();
+        }
+
+        override void visit(StorageClassDeclaration d)
+        {
+            visit(cast(AttribDeclaration)d);
+        }
+
+        override void visit(DeprecatedDeclaration d)
+        {
+            buf.writestring("deprecated(");
+            d.msg.expressionToBuffer(*buf, hgs);
+            buf.writestring(") ");
+            visit(cast(AttribDeclaration)d);
+        }
+
+        override void visit(LinkDeclaration d)
+        {
+            buf.writestring("extern (");
+            buf.writestring(linkageToString(d.linkage));
+            buf.writestring(") ");
+            visit(cast(AttribDeclaration)d);
+        }
+
+        override void visit(CPPMangleDeclaration d)
+        {
+            string s;
+            final switch (d.cppmangle)
+            {
+            case CPPMANGLE.asClass:
+                s = "class";
+                break;
+            case CPPMANGLE.asStruct:
+                s = "struct";
+                break;
+            case CPPMANGLE.def:
+                break;
+            }
+            buf.writestring("extern (C++, ");
+            buf.writestring(s);
+            buf.writestring(") ");
+            visit(cast(AttribDeclaration)d);
+        }
+
+        override void visit(VisibilityDeclaration d)
+        {
+            visibilityToBuffer(*buf, d.visibility);
+            AttribDeclaration ad = cast(AttribDeclaration)d;
+            if (ad.decl.length <= 1)
+                buf.writeByte(' ');
+            if (ad.decl.length == 1 && (*ad.decl)[0].isVisibilityDeclaration)
+                visit(cast(AttribDeclaration)(*ad.decl)[0]);
+            else
+                visit(cast(AttribDeclaration)d);
+        }
+
+        override void visit(AlignDeclaration d)
+        {
+            if (d.exps)
+            {
+                foreach (i, exp; (*d.exps)[])
+                {
+                    if (i)
+                        buf.writeByte(' ');
+                    buf.printf("align (%s)", exp.toChars());
+                }
+                if (d.decl && d.decl.length < 2)
+                    buf.writeByte(' ');
+            }
+            else
+                buf.writestring("align ");
+
+            visit(d.isAttribDeclaration());
+        }
+
+        override void visit(AnonDeclaration d)
+        {
+            buf.writestring(d.isunion ? "union" : "struct");
+            buf.writenl();
+            buf.writestring("{");
             buf.writenl();
             buf.level++;
             if (d.decl)
@@ -1080,126 +1040,337 @@ public:
                     de.accept(this);
             }
             buf.level--;
-            buf.writeByte('}');
-            if (d.elsedecl)
+            buf.writestring("}");
+            buf.writenl();
+        }
+
+        override void visit(PragmaDeclaration d)
+        {
+            buf.writestring("pragma (");
+            buf.writestring(d.ident.toString());
+            if (d.args && d.args.length)
             {
-                buf.writenl();
-                buf.writestring("else");
+                buf.writestring(", ");
+                argsToBuffer(d.args, *buf, hgs);
+            }
+
+            buf.writeByte(')');
+
+            // https://issues.dlang.org/show_bug.cgi?id=14690
+            // Unconditionally perform a full output dump
+            // for `pragma(inline)` declarations.
+            bool savedFullDump = global.params.dihdr.fullOutput;
+            if (d.ident == Id.Pinline)
+                global.params.dihdr.fullOutput = true;
+
+            visit(cast(AttribDeclaration)d);
+            global.params.dihdr.fullOutput = savedFullDump;
+        }
+
+        override void visit(ConditionalDeclaration d)
+        {
+            d.condition.conditionToBuffer(*buf, hgs);
+            if (d.decl || d.elsedecl)
+            {
                 buf.writenl();
                 buf.writeByte('{');
                 buf.writenl();
                 buf.level++;
-                foreach (de; *d.elsedecl)
-                    de.accept(this);
+                if (d.decl)
+                {
+                    foreach (de; *d.decl)
+                        de.accept(this);
+                }
                 buf.level--;
                 buf.writeByte('}');
+                if (d.elsedecl)
+                {
+                    buf.writenl();
+                    buf.writestring("else");
+                    buf.writenl();
+                    buf.writeByte('{');
+                    buf.writenl();
+                    buf.level++;
+                    foreach (de; *d.elsedecl)
+                        de.accept(this);
+                    buf.level--;
+                    buf.writeByte('}');
+                }
             }
-        }
-        else
-            buf.writeByte(':');
-        buf.writenl();
-    }
-
-    override void visit(StaticForeachDeclaration s)
-    {
-        void foreachWithoutBody(ForeachStatement s)
-        {
-            buf.writestring(Token.toString(s.op));
-            buf.writestring(" (");
-            foreach (i, p; *s.parameters)
-            {
-                if (i)
-                    buf.writestring(", ");
-                if (stcToBuffer(*buf, p.storageClass))
-                    buf.writeByte(' ');
-                if (p.type)
-                    typeToBuffer(p.type, p.ident, *buf, hgs);
-                else
-                    buf.writestring(p.ident.toString());
-            }
-            buf.writestring("; ");
-            s.aggr.expressionToBuffer(*buf, hgs);
-            buf.writeByte(')');
-            buf.writenl();
-        }
-
-        void foreachRangeWithoutBody(ForeachRangeStatement s)
-        {
-            /* s.op ( prm ; lwr .. upr )
-             */
-            buf.writestring(Token.toString(s.op));
-            buf.writestring(" (");
-            if (s.prm.type)
-                typeToBuffer(s.prm.type, s.prm.ident, *buf, hgs);
             else
-                buf.writestring(s.prm.ident.toString());
-            buf.writestring("; ");
-            s.lwr.expressionToBuffer(*buf, hgs);
-            buf.writestring(" .. ");
-            s.upr.expressionToBuffer(*buf, hgs);
-            buf.writeByte(')');
+                buf.writeByte(':');
             buf.writenl();
         }
 
-        buf.writestring("static ");
-        if (s.sfe.aggrfe)
+        override void visit(StaticForeachDeclaration s)
         {
-            foreachWithoutBody(s.sfe.aggrfe);
+            void foreachWithoutBody(ForeachStatement s)
+            {
+                buf.writestring(Token.toString(s.op));
+                buf.writestring(" (");
+                foreach (i, p; *s.parameters)
+                {
+                    if (i)
+                        buf.writestring(", ");
+                    if (stcToBuffer(*buf, p.storageClass))
+                        buf.writeByte(' ');
+                    if (p.type)
+                        typeToBuffer(p.type, p.ident, *buf, hgs);
+                    else
+                        buf.writestring(p.ident.toString());
+                }
+                buf.writestring("; ");
+                s.aggr.expressionToBuffer(*buf, hgs);
+                buf.writeByte(')');
+                buf.writenl();
+            }
+
+            void foreachRangeWithoutBody(ForeachRangeStatement s)
+            {
+                /* s.op ( prm ; lwr .. upr )
+                 */
+                buf.writestring(Token.toString(s.op));
+                buf.writestring(" (");
+                if (s.prm.type)
+                    typeToBuffer(s.prm.type, s.prm.ident, *buf, hgs);
+                else
+                    buf.writestring(s.prm.ident.toString());
+                buf.writestring("; ");
+                s.lwr.expressionToBuffer(*buf, hgs);
+                buf.writestring(" .. ");
+                s.upr.expressionToBuffer(*buf, hgs);
+                buf.writeByte(')');
+                buf.writenl();
+            }
+
+            buf.writestring("static ");
+            if (s.sfe.aggrfe)
+            {
+                foreachWithoutBody(s.sfe.aggrfe);
+            }
+            else
+            {
+                assert(s.sfe.rangefe);
+                foreachRangeWithoutBody(s.sfe.rangefe);
+            }
+            buf.writeByte('{');
+            buf.writenl();
+            buf.level++;
+            visit(cast(AttribDeclaration)s);
+            buf.level--;
+            buf.writeByte('}');
+            buf.writenl();
+
         }
-        else
+
+        override void visit(MixinDeclaration d)
         {
-            assert(s.sfe.rangefe);
-            foreachRangeWithoutBody(s.sfe.rangefe);
+            buf.writestring("mixin(");
+            argsToBuffer(d.exps, *buf, hgs, null);
+            buf.writestring(");");
+            buf.writenl();
         }
-        buf.writeByte('{');
-        buf.writenl();
-        buf.level++;
-        visit(cast(AttribDeclaration)s);
-        buf.level--;
-        buf.writeByte('}');
-        buf.writenl();
 
-    }
-
-    override void visit(MixinDeclaration d)
-    {
-        buf.writestring("mixin(");
-        argsToBuffer(d.exps, *buf, hgs, null);
-        buf.writestring(");");
-        buf.writenl();
-    }
-
-    override void visit(UserAttributeDeclaration d)
-    {
-        buf.writestring("@(");
-        argsToBuffer(d.atts, *buf, hgs);
-        buf.writeByte(')');
-        visit(cast(AttribDeclaration)d);
-    }
-
-    override void visit(TemplateDeclaration d)
-    {
-        version (none)
+        override void visit(UserAttributeDeclaration d)
         {
-            // Should handle template functions for doc generation
-            if (onemember && onemember.isFuncDeclaration())
-                buf.writestring("foo ");
+            buf.writestring("@(");
+            argsToBuffer(d.atts, *buf, hgs);
+            buf.writeByte(')');
+            visit(cast(AttribDeclaration)d);
         }
-        if ((hgs.hdrgen || hgs.fullDump) && visitEponymousMember(d))
-            return;
-        if (hgs.ddoc)
-            buf.writestring(d.kind());
-        else
-            buf.writestring("template");
-        buf.writeByte(' ');
-        buf.writestring(d.ident.toString());
-        buf.writeByte('(');
-        visitTemplateParameters(hgs.ddoc ? d.origParameters : d.parameters, *buf, *hgs);
-        buf.writeByte(')');
-        visitTemplateConstraint(d.constraint);
-        if (hgs.hdrgen || hgs.fullDump)
+
+        override void visit(TemplateDeclaration d)
         {
-            hgs.tpltMember++;
+            version (none)
+            {
+                // Should handle template functions for doc generation
+                if (onemember && onemember.isFuncDeclaration())
+                    buf.writestring("foo ");
+            }
+            if ((hgs.hdrgen || hgs.fullDump) && visitEponymousMember(d))
+                return;
+            if (hgs.ddoc)
+                buf.writestring(d.kind());
+            else
+                buf.writestring("template");
+            buf.writeByte(' ');
+            buf.writestring(d.ident.toString());
+            buf.writeByte('(');
+            visitTemplateParameters(hgs.ddoc ? d.origParameters : d.parameters, *buf, *hgs);
+            buf.writeByte(')');
+            visitTemplateConstraint(d.constraint);
+            if (hgs.hdrgen || hgs.fullDump)
+            {
+                hgs.tpltMember++;
+                buf.writenl();
+                buf.writeByte('{');
+                buf.writenl();
+                buf.level++;
+                foreach (s; *d.members)
+                    s.accept(this);
+                buf.level--;
+                buf.writeByte('}');
+                buf.writenl();
+                hgs.tpltMember--;
+            }
+        }
+
+        bool visitEponymousMember(TemplateDeclaration d)
+        {
+            if (!d.members || d.members.length != 1)
+                return false;
+            Dsymbol onemember = (*d.members)[0];
+            if (onemember.ident != d.ident)
+                return false;
+            if (FuncDeclaration fd = onemember.isFuncDeclaration())
+            {
+                assert(fd.type);
+                if (stcToBuffer(*buf, fd.storage_class))
+                    buf.writeByte(' ');
+                functionToBufferFull(cast(TypeFunction)fd.type, *buf, d.ident, hgs, d);
+                visitTemplateConstraint(d.constraint);
+                hgs.tpltMember++;
+                bodyToBuffer(fd);
+                hgs.tpltMember--;
+                return true;
+            }
+            if (AggregateDeclaration ad = onemember.isAggregateDeclaration())
+            {
+                buf.writestring(ad.kind());
+                buf.writeByte(' ');
+                buf.writestring(ad.ident.toString());
+                buf.writeByte('(');
+                visitTemplateParameters(hgs.ddoc ? d.origParameters : d.parameters, *buf, *hgs);
+                buf.writeByte(')');
+                visitTemplateConstraint(d.constraint);
+                visitBaseClasses(ad.isClassDeclaration());
+                hgs.tpltMember++;
+                if (ad.members)
+                {
+                    buf.writenl();
+                    buf.writeByte('{');
+                    buf.writenl();
+                    buf.level++;
+                    foreach (s; *ad.members)
+                        s.accept(this);
+                    buf.level--;
+                    buf.writeByte('}');
+                }
+                else
+                    buf.writeByte(';');
+                buf.writenl();
+                hgs.tpltMember--;
+                return true;
+            }
+            if (VarDeclaration vd = onemember.isVarDeclaration())
+            {
+                if (d.constraint)
+                    return false;
+                if (stcToBuffer(*buf, vd.storage_class))
+                    buf.writeByte(' ');
+                if (vd.type)
+                    typeToBuffer(vd.type, vd.ident, *buf, hgs);
+                else
+                    buf.writestring(vd.ident.toString());
+                buf.writeByte('(');
+                visitTemplateParameters(hgs.ddoc ? d.origParameters : d.parameters, *buf, *hgs);
+                buf.writeByte(')');
+                if (vd._init)
+                {
+                    buf.writestring(" = ");
+                    ExpInitializer ie = vd._init.isExpInitializer();
+                    if (ie && (ie.exp.op == EXP.construct || ie.exp.op == EXP.blit))
+                        (cast(AssignExp)ie.exp).e2.expressionToBuffer(*buf, hgs);
+                    else
+                        vd._init.initializerToBuffer(*buf, hgs);
+                }
+                buf.writeByte(';');
+                buf.writenl();
+                return true;
+            }
+            return false;
+        }
+
+        void visitTemplateConstraint(Expression constraint)
+        {
+            if (!constraint)
+                return;
+            buf.writestring(" if (");
+            constraint.expressionToBuffer(*buf, hgs);
+            buf.writeByte(')');
+        }
+
+        override void visit(TemplateInstance ti)
+        {
+            buf.writestring(ti.name.toChars());
+            tiargsToBuffer(ti, *buf, hgs);
+
+            if (hgs.fullDump)
+            {
+                buf.writenl();
+                dumpTemplateInstance(ti, *buf, hgs);
+            }
+        }
+
+        override void visit(TemplateMixin tm)
+        {
+            buf.writestring("mixin ");
+            typeToBuffer(tm.tqual, null, *buf, hgs);
+            tiargsToBuffer(tm, *buf, hgs);
+            if (tm.ident && memcmp(tm.ident.toChars(), cast(const(char)*)"__mixin", 7) != 0)
+            {
+                buf.writeByte(' ');
+                buf.writestring(tm.ident.toString());
+            }
+            buf.writeByte(';');
+            buf.writenl();
+            if (hgs.fullDump)
+                dumpTemplateInstance(tm, *buf, hgs);
+        }
+
+        override void visit(EnumDeclaration d)
+        {
+            auto oldInEnumDecl = hgs.inEnumDecl;
+            scope(exit) hgs.inEnumDecl = oldInEnumDecl;
+            hgs.inEnumDecl = d;
+            buf.writestring("enum ");
+            if (d.ident)
+            {
+                buf.writestring(d.ident.toString());
+            }
+            if (d.memtype)
+            {
+                buf.writestring(" : ");
+                typeToBuffer(d.memtype, null, *buf, hgs);
+            }
+            if (!d.members)
+            {
+                buf.writeByte(';');
+                buf.writenl();
+                return;
+            }
+            buf.writenl();
+            buf.writeByte('{');
+            buf.writenl();
+            buf.level++;
+            foreach (em; *d.members)
+            {
+                if (!em)
+                    continue;
+                em.accept(this);
+                buf.writeByte(',');
+                buf.writenl();
+            }
+            buf.level--;
+            buf.writeByte('}');
+            buf.writenl();
+        }
+
+        override void visit(Nspace d)
+        {
+            buf.writestring("extern (C++, ");
+            buf.writestring(d.ident.toString());
+            buf.writeByte(')');
             buf.writenl();
             buf.writeByte('{');
             buf.writenl();
@@ -1209,213 +1380,20 @@ public:
             buf.level--;
             buf.writeByte('}');
             buf.writenl();
-            hgs.tpltMember--;
         }
-    }
 
-    bool visitEponymousMember(TemplateDeclaration d)
-    {
-        if (!d.members || d.members.length != 1)
-            return false;
-        Dsymbol onemember = (*d.members)[0];
-        if (onemember.ident != d.ident)
-            return false;
-        if (FuncDeclaration fd = onemember.isFuncDeclaration())
-        {
-            assert(fd.type);
-            if (stcToBuffer(*buf, fd.storage_class))
-                buf.writeByte(' ');
-            functionToBufferFull(cast(TypeFunction)fd.type, *buf, d.ident, hgs, d);
-            visitTemplateConstraint(d.constraint);
-            hgs.tpltMember++;
-            bodyToBuffer(fd);
-            hgs.tpltMember--;
-            return true;
-        }
-        if (AggregateDeclaration ad = onemember.isAggregateDeclaration())
-        {
-            buf.writestring(ad.kind());
-            buf.writeByte(' ');
-            buf.writestring(ad.ident.toString());
-            buf.writeByte('(');
-            visitTemplateParameters(hgs.ddoc ? d.origParameters : d.parameters, *buf, *hgs);
-            buf.writeByte(')');
-            visitTemplateConstraint(d.constraint);
-            visitBaseClasses(ad.isClassDeclaration());
-            hgs.tpltMember++;
-            if (ad.members)
-            {
-                buf.writenl();
-                buf.writeByte('{');
-                buf.writenl();
-                buf.level++;
-                foreach (s; *ad.members)
-                    s.accept(this);
-                buf.level--;
-                buf.writeByte('}');
-            }
-            else
-                buf.writeByte(';');
-            buf.writenl();
-            hgs.tpltMember--;
-            return true;
-        }
-        if (VarDeclaration vd = onemember.isVarDeclaration())
-        {
-            if (d.constraint)
-                return false;
-            if (stcToBuffer(*buf, vd.storage_class))
-                buf.writeByte(' ');
-            if (vd.type)
-                typeToBuffer(vd.type, vd.ident, *buf, hgs);
-            else
-                buf.writestring(vd.ident.toString());
-            buf.writeByte('(');
-            visitTemplateParameters(hgs.ddoc ? d.origParameters : d.parameters, *buf, *hgs);
-            buf.writeByte(')');
-            if (vd._init)
-            {
-                buf.writestring(" = ");
-                ExpInitializer ie = vd._init.isExpInitializer();
-                if (ie && (ie.exp.op == EXP.construct || ie.exp.op == EXP.blit))
-                    (cast(AssignExp)ie.exp).e2.expressionToBuffer(*buf, hgs);
-                else
-                    vd._init.initializerToBuffer(*buf, hgs);
-            }
-            buf.writeByte(';');
-            buf.writenl();
-            return true;
-        }
-        return false;
-    }
-
-    void visitTemplateConstraint(Expression constraint)
-    {
-        if (!constraint)
-            return;
-        buf.writestring(" if (");
-        constraint.expressionToBuffer(*buf, hgs);
-        buf.writeByte(')');
-    }
-
-    override void visit(TemplateInstance ti)
-    {
-        buf.writestring(ti.name.toChars());
-        tiargsToBuffer(ti, *buf, hgs);
-
-        if (hgs.fullDump)
-        {
-            buf.writenl();
-            dumpTemplateInstance(ti, *buf, hgs);
-        }
-    }
-
-    override void visit(TemplateMixin tm)
-    {
-        buf.writestring("mixin ");
-        typeToBuffer(tm.tqual, null, *buf, hgs);
-        tiargsToBuffer(tm, *buf, hgs);
-        if (tm.ident && memcmp(tm.ident.toChars(), cast(const(char)*)"__mixin", 7) != 0)
-        {
-            buf.writeByte(' ');
-            buf.writestring(tm.ident.toString());
-        }
-        buf.writeByte(';');
-        buf.writenl();
-        if (hgs.fullDump)
-            dumpTemplateInstance(tm, *buf, hgs);
-    }
-
-    override void visit(EnumDeclaration d)
-    {
-        auto oldInEnumDecl = hgs.inEnumDecl;
-        scope(exit) hgs.inEnumDecl = oldInEnumDecl;
-        hgs.inEnumDecl = d;
-        buf.writestring("enum ");
-        if (d.ident)
-        {
-            buf.writestring(d.ident.toString());
-        }
-        if (d.memtype)
-        {
-            buf.writestring(" : ");
-            typeToBuffer(d.memtype, null, *buf, hgs);
-        }
-        if (!d.members)
-        {
-            buf.writeByte(';');
-            buf.writenl();
-            return;
-        }
-        buf.writenl();
-        buf.writeByte('{');
-        buf.writenl();
-        buf.level++;
-        foreach (em; *d.members)
-        {
-            if (!em)
-                continue;
-            em.accept(this);
-            buf.writeByte(',');
-            buf.writenl();
-        }
-        buf.level--;
-        buf.writeByte('}');
-        buf.writenl();
-    }
-
-    override void visit(Nspace d)
-    {
-        buf.writestring("extern (C++, ");
-        buf.writestring(d.ident.toString());
-        buf.writeByte(')');
-        buf.writenl();
-        buf.writeByte('{');
-        buf.writenl();
-        buf.level++;
-        foreach (s; *d.members)
-            s.accept(this);
-        buf.level--;
-        buf.writeByte('}');
-        buf.writenl();
-    }
-
-    override void visit(StructDeclaration d)
-    {
-        buf.writestring(d.kind());
-        buf.writeByte(' ');
-        if (!d.isAnonymous())
-            buf.writestring(d.toChars());
-        if (!d.members)
-        {
-            buf.writeByte(';');
-            buf.writenl();
-            return;
-        }
-        buf.writenl();
-        buf.writeByte('{');
-        buf.writenl();
-        buf.level++;
-        hgs.insideAggregate++;
-        foreach (s; *d.members)
-            s.accept(this);
-        hgs.insideAggregate--;
-        buf.level--;
-        buf.writeByte('}');
-        buf.writenl();
-    }
-
-    override void visit(ClassDeclaration d)
-    {
-        if (!d.isAnonymous())
+        override void visit(StructDeclaration d)
         {
             buf.writestring(d.kind());
             buf.writeByte(' ');
-            buf.writestring(d.ident.toString());
-        }
-        visitBaseClasses(d);
-        if (d.members)
-        {
+            if (!d.isAnonymous())
+                buf.writestring(d.toChars());
+            if (!d.members)
+            {
+                buf.writeByte(';');
+                buf.writenl();
+                return;
+            }
             buf.writenl();
             buf.writeByte('{');
             buf.writenl();
@@ -1426,395 +1404,423 @@ public:
             hgs.insideAggregate--;
             buf.level--;
             buf.writeByte('}');
+            buf.writenl();
         }
-        else
-            buf.writeByte(';');
-        buf.writenl();
-    }
 
-    void visitBaseClasses(ClassDeclaration d)
-    {
-        if (!d || !d.baseclasses.length)
-            return;
-        if (!d.isAnonymous())
-            buf.writestring(" : ");
-        foreach (i, b; *d.baseclasses)
+        override void visit(ClassDeclaration d)
         {
-            if (i)
-                buf.writestring(", ");
-            typeToBuffer(b.type, null, *buf, hgs);
-        }
-    }
-
-    override void visit(AliasDeclaration d)
-    {
-        if (d.storage_class & STC.local)
-            return;
-        buf.writestring("alias ");
-        if (d.aliassym)
-        {
-            buf.writestring(d.ident.toString());
-            buf.writestring(" = ");
-            if (stcToBuffer(*buf, d.storage_class))
-                buf.writeByte(' ');
-            /*
-                https://issues.dlang.org/show_bug.cgi?id=23223
-                https://issues.dlang.org/show_bug.cgi?id=23222
-                This special case (initially just for modules) avoids some segfaults
-                and nicer -vcg-ast output.
-            */
-            if (d.aliassym.isModule())
+            if (!d.isAnonymous())
             {
-                buf.writestring(d.aliassym.ident.toString());
+                buf.writestring(d.kind());
+                buf.writeByte(' ');
+                buf.writestring(d.ident.toString());
+            }
+            visitBaseClasses(d);
+            if (d.members)
+            {
+                buf.writenl();
+                buf.writeByte('{');
+                buf.writenl();
+                buf.level++;
+                hgs.insideAggregate++;
+                foreach (s; *d.members)
+                    s.accept(this);
+                hgs.insideAggregate--;
+                buf.level--;
+                buf.writeByte('}');
             }
             else
+                buf.writeByte(';');
+            buf.writenl();
+        }
+
+        void visitBaseClasses(ClassDeclaration d)
+        {
+            if (!d || !d.baseclasses.length)
+                return;
+            if (!d.isAnonymous())
+                buf.writestring(" : ");
+            foreach (i, b; *d.baseclasses)
             {
-                d.aliassym.accept(this);
+                if (i)
+                    buf.writestring(", ");
+                typeToBuffer(b.type, null, *buf, hgs);
             }
         }
-        else if (d.type.ty == Tfunction)
+
+        override void visit(AliasDeclaration d)
         {
-            if (stcToBuffer(*buf, d.storage_class))
-                buf.writeByte(' ');
-            typeToBuffer(d.type, d.ident, *buf, hgs);
+            if (d.storage_class & STC.local)
+                return;
+            buf.writestring("alias ");
+            if (d.aliassym)
+            {
+                buf.writestring(d.ident.toString());
+                buf.writestring(" = ");
+                if (stcToBuffer(*buf, d.storage_class))
+                    buf.writeByte(' ');
+                /*
+                    https://issues.dlang.org/show_bug.cgi?id=23223
+                    https://issues.dlang.org/show_bug.cgi?id=23222
+                    This special case (initially just for modules) avoids some segfaults
+                    and nicer -vcg-ast output.
+                */
+                if (d.aliassym.isModule())
+                {
+                    buf.writestring(d.aliassym.ident.toString());
+                }
+                else
+                {
+                    d.aliassym.accept(this);
+                }
+            }
+            else if (d.type.ty == Tfunction)
+            {
+                if (stcToBuffer(*buf, d.storage_class))
+                    buf.writeByte(' ');
+                typeToBuffer(d.type, d.ident, *buf, hgs);
+            }
+            else if (d.ident)
+            {
+                hgs.declstring = (d.ident == Id.string || d.ident == Id.wstring || d.ident == Id.dstring);
+                buf.writestring(d.ident.toString());
+                buf.writestring(" = ");
+                if (stcToBuffer(*buf, d.storage_class))
+                    buf.writeByte(' ');
+                typeToBuffer(d.type, null, *buf, hgs);
+                hgs.declstring = false;
+            }
+            buf.writeByte(';');
+            buf.writenl();
         }
-        else if (d.ident)
+
+        override void visit(AliasAssign d)
         {
-            hgs.declstring = (d.ident == Id.string || d.ident == Id.wstring || d.ident == Id.dstring);
             buf.writestring(d.ident.toString());
             buf.writestring(" = ");
-            if (stcToBuffer(*buf, d.storage_class))
-                buf.writeByte(' ');
-            typeToBuffer(d.type, null, *buf, hgs);
-            hgs.declstring = false;
+            if (d.aliassym)
+                d.aliassym.accept(this);
+            else // d.type
+                typeToBuffer(d.type, null, *buf, hgs);
+            buf.writeByte(';');
+            buf.writenl();
         }
-        buf.writeByte(';');
-        buf.writenl();
-    }
 
-    override void visit(AliasAssign d)
-    {
-        buf.writestring(d.ident.toString());
-        buf.writestring(" = ");
-        if (d.aliassym)
-            d.aliassym.accept(this);
-        else // d.type
-            typeToBuffer(d.type, null, *buf, hgs);
-        buf.writeByte(';');
-        buf.writenl();
-    }
-
-    override void visit(VarDeclaration d)
-    {
-        if (d.storage_class & STC.local)
-            return;
-        visitVarDecl(d, false, *buf, *hgs);
-        buf.writeByte(';');
-        buf.writenl();
-    }
-
-    override void visit(FuncDeclaration f)
-    {
-        //printf("FuncDeclaration::toCBuffer() '%s'\n", f.toChars());
-        if (stcToBuffer(*buf, f.storage_class))
-            buf.writeByte(' ');
-        auto tf = cast(TypeFunction)f.type;
-        typeToBuffer(tf, f.ident, *buf, hgs);
-
-        if (hgs.hdrgen)
+        override void visit(VarDeclaration d)
         {
-            // if the return type is missing (e.g. ref functions or auto)
-            // https://issues.dlang.org/show_bug.cgi?id=20090
-            // constructors are an exception: they don't have an explicit return
-            // type but we still don't output the body.
-            if ((!f.isCtorDeclaration() && !tf.next) || f.storage_class & STC.auto_)
+            if (d.storage_class & STC.local)
+                return;
+            visitVarDecl(d, false, *buf, *hgs);
+            buf.writeByte(';');
+            buf.writenl();
+        }
+
+        override void visit(FuncDeclaration f)
+        {
+            //printf("FuncDeclaration::toCBuffer() '%s'\n", f.toChars());
+            if (stcToBuffer(*buf, f.storage_class))
+                buf.writeByte(' ');
+            auto tf = cast(TypeFunction)f.type;
+            typeToBuffer(tf, f.ident, *buf, hgs);
+
+            if (hgs.hdrgen)
             {
-                hgs.autoMember++;
-                bodyToBuffer(f);
-                hgs.autoMember--;
-            }
-            else if (hgs.tpltMember == 0 && global.params.dihdr.fullOutput == false && !hgs.insideFuncBody)
-            {
-                if (!f.fbody)
+                // if the return type is missing (e.g. ref functions or auto)
+                // https://issues.dlang.org/show_bug.cgi?id=20090
+                // constructors are an exception: they don't have an explicit return
+                // type but we still don't output the body.
+                if ((!f.isCtorDeclaration() && !tf.next) || f.storage_class & STC.auto_)
                 {
-                    // this can happen on interfaces / abstract functions, see `allowsContractWithoutBody`
-                    if (f.fensures || f.frequires)
+                    hgs.autoMember++;
+                    bodyToBuffer(f);
+                    hgs.autoMember--;
+                }
+                else if (hgs.tpltMember == 0 && global.params.dihdr.fullOutput == false && !hgs.insideFuncBody)
+                {
+                    if (!f.fbody)
+                    {
+                        // this can happen on interfaces / abstract functions, see `allowsContractWithoutBody`
+                        if (f.fensures || f.frequires)
+                            buf.writenl();
+                        contractsToBuffer(f);
+                    }
+                    buf.writeByte(';');
+                    buf.writenl();
+                }
+                else
+                    bodyToBuffer(f);
+            }
+            else
+                bodyToBuffer(f);
+        }
+
+        /// Returns: whether `do` is needed to write the function body
+        bool contractsToBuffer(FuncDeclaration f)
+        {
+            bool requireDo = false;
+            // in{}
+            if (f.frequires)
+            {
+                foreach (frequire; *f.frequires)
+                {
+                    buf.writestring("in");
+                    if (auto es = frequire.isExpStatement())
+                    {
+                        assert(es.exp && es.exp.op == EXP.assert_);
+                        buf.writestring(" (");
+                        (cast(AssertExp)es.exp).e1.expressionToBuffer(*buf, hgs);
+                        buf.writeByte(')');
                         buf.writenl();
+                        requireDo = false;
+                    }
+                    else
+                    {
+                        buf.writenl();
+                        frequire.statementToBuffer(*buf, hgs);
+                        requireDo = true;
+                    }
+                }
+            }
+            // out{}
+            if (f.fensures)
+            {
+                foreach (fensure; *f.fensures)
+                {
+                    buf.writestring("out");
+                    if (auto es = fensure.ensure.isExpStatement())
+                    {
+                        assert(es.exp && es.exp.op == EXP.assert_);
+                        buf.writestring(" (");
+                        if (fensure.id)
+                        {
+                            buf.writestring(fensure.id.toString());
+                        }
+                        buf.writestring("; ");
+                        (cast(AssertExp)es.exp).e1.expressionToBuffer(*buf, hgs);
+                        buf.writeByte(')');
+                        buf.writenl();
+                        requireDo = false;
+                    }
+                    else
+                    {
+                        if (fensure.id)
+                        {
+                            buf.writeByte('(');
+                            buf.writestring(fensure.id.toString());
+                            buf.writeByte(')');
+                        }
+                        buf.writenl();
+                        fensure.ensure.statementToBuffer(*buf, hgs);
+                        requireDo = true;
+                    }
+                }
+            }
+            return requireDo;
+        }
+
+        void bodyToBuffer(FuncDeclaration f)
+        {
+            if (!f.fbody || (hgs.hdrgen && global.params.dihdr.fullOutput == false && !hgs.autoMember && !hgs.tpltMember && !hgs.insideFuncBody))
+            {
+                if (!f.fbody && (f.fensures || f.frequires))
+                {
+                    buf.writenl();
                     contractsToBuffer(f);
                 }
                 buf.writeByte(';');
                 buf.writenl();
+                return;
+            }
+
+            // there is no way to know if a function is nested
+            // or not after parsing. We need scope information
+            // for that, which is avaible during semantic
+            // analysis. To overcome that, a simple mechanism
+            // is implemented: everytime we print a function
+            // body (templated or not) we increment a counter.
+            // We decredement the counter when we stop
+            // printing the function body.
+            ++hgs.insideFuncBody;
+            scope(exit) { --hgs.insideFuncBody; }
+
+            const savetlpt = hgs.tpltMember;
+            const saveauto = hgs.autoMember;
+            hgs.tpltMember = 0;
+            hgs.autoMember = 0;
+            buf.writenl();
+            bool requireDo = contractsToBuffer(f);
+
+            if (requireDo)
+            {
+                buf.writestring("do");
+                buf.writenl();
+            }
+            buf.writeByte('{');
+            buf.writenl();
+            buf.level++;
+            f.fbody.statementToBuffer(*buf, hgs);
+            buf.level--;
+            buf.writeByte('}');
+            buf.writenl();
+            hgs.tpltMember = savetlpt;
+            hgs.autoMember = saveauto;
+        }
+
+        override void visit(FuncLiteralDeclaration f)
+        {
+            if (f.type.ty == Terror)
+            {
+                buf.writestring("__error");
+                return;
+            }
+            if (f.tok != TOK.reserved)
+            {
+                buf.writestring(f.kind());
+                buf.writeByte(' ');
+            }
+            TypeFunction tf = cast(TypeFunction)f.type;
+
+            if (!f.inferRetType && tf.next)
+                typeToBuffer(tf.next, null, *buf, hgs);
+            parametersToBuffer(tf.parameterList, *buf, hgs);
+
+            // https://issues.dlang.org/show_bug.cgi?id=20074
+            void printAttribute(string str)
+            {
+                buf.writeByte(' ');
+                buf.writestring(str);
+            }
+            tf.attributesApply(&printAttribute);
+
+
+            CompoundStatement cs = f.fbody.isCompoundStatement();
+            Statement s1;
+            if (f.semanticRun >= PASS.semantic3done && cs)
+            {
+                s1 = (*cs.statements)[cs.statements.length - 1];
             }
             else
+                s1 = !cs ? f.fbody : null;
+            ReturnStatement rs = s1 ? s1.endsWithReturnStatement() : null;
+            if (rs && rs.exp)
+            {
+                buf.writestring(" => ");
+                rs.exp.expressionToBuffer(*buf, hgs);
+            }
+            else
+            {
+                hgs.tpltMember++;
                 bodyToBuffer(f);
-        }
-        else
-            bodyToBuffer(f);
-    }
-
-    /// Returns: whether `do` is needed to write the function body
-    bool contractsToBuffer(FuncDeclaration f)
-    {
-        bool requireDo = false;
-        // in{}
-        if (f.frequires)
-        {
-            foreach (frequire; *f.frequires)
-            {
-                buf.writestring("in");
-                if (auto es = frequire.isExpStatement())
-                {
-                    assert(es.exp && es.exp.op == EXP.assert_);
-                    buf.writestring(" (");
-                    (cast(AssertExp)es.exp).e1.expressionToBuffer(*buf, hgs);
-                    buf.writeByte(')');
-                    buf.writenl();
-                    requireDo = false;
-                }
-                else
-                {
-                    buf.writenl();
-                    frequire.statementToBuffer(*buf, hgs);
-                    requireDo = true;
-                }
+                hgs.tpltMember--;
             }
         }
-        // out{}
-        if (f.fensures)
-        {
-            foreach (fensure; *f.fensures)
-            {
-                buf.writestring("out");
-                if (auto es = fensure.ensure.isExpStatement())
-                {
-                    assert(es.exp && es.exp.op == EXP.assert_);
-                    buf.writestring(" (");
-                    if (fensure.id)
-                    {
-                        buf.writestring(fensure.id.toString());
-                    }
-                    buf.writestring("; ");
-                    (cast(AssertExp)es.exp).e1.expressionToBuffer(*buf, hgs);
-                    buf.writeByte(')');
-                    buf.writenl();
-                    requireDo = false;
-                }
-                else
-                {
-                    if (fensure.id)
-                    {
-                        buf.writeByte('(');
-                        buf.writestring(fensure.id.toString());
-                        buf.writeByte(')');
-                    }
-                    buf.writenl();
-                    fensure.ensure.statementToBuffer(*buf, hgs);
-                    requireDo = true;
-                }
-            }
-        }
-        return requireDo;
-    }
 
-    void bodyToBuffer(FuncDeclaration f)
-    {
-        if (!f.fbody || (hgs.hdrgen && global.params.dihdr.fullOutput == false && !hgs.autoMember && !hgs.tpltMember && !hgs.insideFuncBody))
+        override void visit(PostBlitDeclaration d)
         {
-            if (!f.fbody && (f.fensures || f.frequires))
+            if (stcToBuffer(*buf, d.storage_class))
+                buf.writeByte(' ');
+            buf.writestring("this(this)");
+            bodyToBuffer(d);
+        }
+
+        override void visit(DtorDeclaration d)
+        {
+            if (stcToBuffer(*buf, d.storage_class))
+                buf.writeByte(' ');
+            buf.writestring("~this()");
+            bodyToBuffer(d);
+        }
+
+        override void visit(StaticCtorDeclaration d)
+        {
+            if (stcToBuffer(*buf, d.storage_class & ~STC.static_))
+                buf.writeByte(' ');
+            if (d.isSharedStaticCtorDeclaration())
+                buf.writestring("shared ");
+            buf.writestring("static this()");
+            if (hgs.hdrgen && !hgs.tpltMember)
             {
+                buf.writeByte(';');
                 buf.writenl();
-                contractsToBuffer(f);
             }
-            buf.writeByte(';');
-            buf.writenl();
-            return;
+            else
+                bodyToBuffer(d);
         }
 
-        // there is no way to know if a function is nested
-        // or not after parsing. We need scope information
-        // for that, which is avaible during semantic
-        // analysis. To overcome that, a simple mechanism
-        // is implemented: everytime we print a function
-        // body (templated or not) we increment a counter.
-        // We decredement the counter when we stop
-        // printing the function body.
-        ++hgs.insideFuncBody;
-        scope(exit) { --hgs.insideFuncBody; }
-
-        const savetlpt = hgs.tpltMember;
-        const saveauto = hgs.autoMember;
-        hgs.tpltMember = 0;
-        hgs.autoMember = 0;
-        buf.writenl();
-        bool requireDo = contractsToBuffer(f);
-
-        if (requireDo)
+        override void visit(StaticDtorDeclaration d)
         {
-            buf.writestring("do");
-            buf.writenl();
+            if (stcToBuffer(*buf, d.storage_class & ~STC.static_))
+                buf.writeByte(' ');
+            if (d.isSharedStaticDtorDeclaration())
+                buf.writestring("shared ");
+            buf.writestring("static ~this()");
+            if (hgs.hdrgen && !hgs.tpltMember)
+            {
+                buf.writeByte(';');
+                buf.writenl();
+            }
+            else
+                bodyToBuffer(d);
         }
-        buf.writeByte('{');
-        buf.writenl();
-        buf.level++;
-        f.fbody.statementToBuffer(*buf, hgs);
-        buf.level--;
-        buf.writeByte('}');
-        buf.writenl();
-        hgs.tpltMember = savetlpt;
-        hgs.autoMember = saveauto;
-    }
 
-    override void visit(FuncLiteralDeclaration f)
-    {
-        if (f.type.ty == Terror)
+        override void visit(InvariantDeclaration d)
         {
-            buf.writestring("__error");
-            return;
+            if (hgs.hdrgen)
+                return;
+            if (stcToBuffer(*buf, d.storage_class))
+                buf.writeByte(' ');
+            buf.writestring("invariant");
+            if(auto es = d.fbody.isExpStatement())
+            {
+                assert(es.exp && es.exp.op == EXP.assert_);
+                buf.writestring(" (");
+                (cast(AssertExp)es.exp).e1.expressionToBuffer(*buf, hgs);
+                buf.writestring(");");
+                buf.writenl();
+            }
+            else
+            {
+                bodyToBuffer(d);
+            }
         }
-        if (f.tok != TOK.reserved)
+
+        override void visit(UnitTestDeclaration d)
         {
-            buf.writestring(f.kind());
-            buf.writeByte(' ');
+            if (hgs.hdrgen)
+                return;
+            if (stcToBuffer(*buf, d.storage_class))
+                buf.writeByte(' ');
+            buf.writestring("unittest");
+            bodyToBuffer(d);
         }
-        TypeFunction tf = cast(TypeFunction)f.type;
 
-        if (!f.inferRetType && tf.next)
-            typeToBuffer(tf.next, null, *buf, hgs);
-        parametersToBuffer(tf.parameterList, *buf, hgs);
-
-        // https://issues.dlang.org/show_bug.cgi?id=20074
-        void printAttribute(string str)
+        override void visit(BitFieldDeclaration d)
         {
-            buf.writeByte(' ');
-            buf.writestring(str);
-        }
-        tf.attributesApply(&printAttribute);
-
-
-        CompoundStatement cs = f.fbody.isCompoundStatement();
-        Statement s1;
-        if (f.semanticRun >= PASS.semantic3done && cs)
-        {
-            s1 = (*cs.statements)[cs.statements.length - 1];
-        }
-        else
-            s1 = !cs ? f.fbody : null;
-        ReturnStatement rs = s1 ? s1.endsWithReturnStatement() : null;
-        if (rs && rs.exp)
-        {
-            buf.writestring(" => ");
-            rs.exp.expressionToBuffer(*buf, hgs);
-        }
-        else
-        {
-            hgs.tpltMember++;
-            bodyToBuffer(f);
-            hgs.tpltMember--;
-        }
-    }
-
-    override void visit(PostBlitDeclaration d)
-    {
-        if (stcToBuffer(*buf, d.storage_class))
-            buf.writeByte(' ');
-        buf.writestring("this(this)");
-        bodyToBuffer(d);
-    }
-
-    override void visit(DtorDeclaration d)
-    {
-        if (stcToBuffer(*buf, d.storage_class))
-            buf.writeByte(' ');
-        buf.writestring("~this()");
-        bodyToBuffer(d);
-    }
-
-    override void visit(StaticCtorDeclaration d)
-    {
-        if (stcToBuffer(*buf, d.storage_class & ~STC.static_))
-            buf.writeByte(' ');
-        if (d.isSharedStaticCtorDeclaration())
-            buf.writestring("shared ");
-        buf.writestring("static this()");
-        if (hgs.hdrgen && !hgs.tpltMember)
-        {
+            if (stcToBuffer(*buf, d.storage_class))
+                buf.writeByte(' ');
+            Identifier id = d.isAnonymous() ? null : d.ident;
+            typeToBuffer(d.type, id, *buf, hgs);
+            buf.writestring(" : ");
+            d.width.expressionToBuffer(*buf, hgs);
             buf.writeByte(';');
             buf.writenl();
         }
-        else
-            bodyToBuffer(d);
-    }
 
-    override void visit(StaticDtorDeclaration d)
-    {
-        if (stcToBuffer(*buf, d.storage_class & ~STC.static_))
-            buf.writeByte(' ');
-        if (d.isSharedStaticDtorDeclaration())
-            buf.writestring("shared ");
-        buf.writestring("static ~this()");
-        if (hgs.hdrgen && !hgs.tpltMember)
+        override void visit(NewDeclaration d)
         {
-            buf.writeByte(';');
-            buf.writenl();
+            if (stcToBuffer(*buf, d.storage_class & ~STC.static_))
+                buf.writeByte(' ');
+            buf.writestring("new();");
         }
-        else
-            bodyToBuffer(d);
-    }
 
-    override void visit(InvariantDeclaration d)
-    {
-        if (hgs.hdrgen)
-            return;
-        if (stcToBuffer(*buf, d.storage_class))
-            buf.writeByte(' ');
-        buf.writestring("invariant");
-        if(auto es = d.fbody.isExpStatement())
+        override void visit(Module m)
         {
-            assert(es.exp && es.exp.op == EXP.assert_);
-            buf.writestring(" (");
-            (cast(AssertExp)es.exp).e1.expressionToBuffer(*buf, hgs);
-            buf.writestring(");");
-            buf.writenl();
-        }
-        else
-        {
-            bodyToBuffer(d);
+            moduleToBuffer2(m, *buf, hgs);
         }
     }
 
-    override void visit(UnitTestDeclaration d)
-    {
-        if (hgs.hdrgen)
-            return;
-        if (stcToBuffer(*buf, d.storage_class))
-            buf.writeByte(' ');
-        buf.writestring("unittest");
-        bodyToBuffer(d);
-    }
-
-    override void visit(BitFieldDeclaration d)
-    {
-        if (stcToBuffer(*buf, d.storage_class))
-            buf.writeByte(' ');
-        Identifier id = d.isAnonymous() ? null : d.ident;
-        typeToBuffer(d.type, id, *buf, hgs);
-        buf.writestring(" : ");
-        d.width.expressionToBuffer(*buf, hgs);
-        buf.writeByte(';');
-        buf.writenl();
-    }
-
-    override void visit(NewDeclaration d)
-    {
-        if (stcToBuffer(*buf, d.storage_class & ~STC.static_))
-            buf.writeByte(' ');
-        buf.writestring("new();");
-    }
-
-    override void visit(Module m)
-    {
-        moduleToBuffer2(m, *buf, hgs);
-    }
+    scope v = new DsymbolPrettyPrintVisitor(buf, hgs);
+    s.accept(v);
 }
 
 
@@ -2907,12 +2913,6 @@ void toCBuffer(const Statement s, ref OutBuffer buf, ref HdrGenState hgs)
 void toCBuffer(const Type t, ref OutBuffer buf, const Identifier ident, ref HdrGenState hgs)
 {
     typeToBuffer(cast() t, ident, buf, &hgs);
-}
-
-void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
-{
-    scope v = new DsymbolPrettyPrintVisitor(&buf, &hgs);
-    s.accept(v);
 }
 
 // used from TemplateInstance::toChars() and TemplateMixin::toChars()
