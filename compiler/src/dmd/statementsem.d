@@ -2014,11 +2014,10 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 needswitcherror = true;
         }
 
-        if (!sc.sw.sdefault &&
-            (!ss.isFinal || needswitcherror || global.params.useAssert == CHECKENABLE.on || sc.func.isSafe))
+        ss.hasDefault = sc.sw.sdefault ||
+            !(!ss.isFinal || needswitcherror || global.params.useAssert == CHECKENABLE.on || sc.func.isSafe);
+        if (!ss.hasDefault)
         {
-            ss.hasNoDefault = 1;
-
             if (!ss.isFinal && (!ss._body || !ss._body.isErrorStatement()) && !(sc.flags & SCOPE.Cfile))
                 error(ss.loc, "`switch` statement without a `default`; use `final switch` or add `default: assert(0);` or add `default: break;`");
 
@@ -2207,7 +2206,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                     /* Flag that we need to do special code generation
                     * for this, i.e. generate a sequence of if-then-else
                     */
-                    sw.hasVars = 1;
+                    sw.hasVars = true;
 
                     /* TODO check if v can be uninitialized at that point.
                     */

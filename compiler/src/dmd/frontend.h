@@ -4649,13 +4649,13 @@ public:
     Expression* condition;
     Statement* _body;
     bool isFinal;
+    bool hasDefault;
+    bool hasVars;
     DefaultStatement* sdefault;
     Statement* tryBody;
     TryFinallyStatement* tf;
     Array<GotoCaseStatement* > gotoCases;
     Array<CaseStatement* >* cases;
-    int32_t hasNoDefault;
-    int32_t hasVars;
     VarDeclaration* lastVar;
     SwitchStatement* syntaxCopy() override;
     bool hasBreak() const override;

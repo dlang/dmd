@@ -1121,13 +1121,13 @@ extern (C++) final class SwitchStatement : Statement
     Statement _body;                ///
     bool isFinal;                   /// https://dlang.org/spec/statement.html#final-switch-statement
 
+    bool hasDefault;                /// true if has default statement
+    bool hasVars;                   /// true if has variable case values
     DefaultStatement sdefault;      /// default:
     Statement tryBody;              /// set to TryCatchStatement or TryFinallyStatement if in _body portion
     TryFinallyStatement tf;         /// set if in the 'finally' block of a TryFinallyStatement
     GotoCaseStatements gotoCases;   /// array of unresolved GotoCaseStatement's
     CaseStatements* cases;          /// array of CaseStatement's
-    int hasNoDefault;               /// !=0 if no default statement
-    int hasVars;                    /// !=0 if has variable case values
     VarDeclaration lastVar;         /// last observed variable declaration in this statement
 
     extern (D) this(const ref Loc loc, Expression condition, Statement _body, bool isFinal)
