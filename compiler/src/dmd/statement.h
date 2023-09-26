@@ -435,13 +435,13 @@ public:
     Statement *_body;
     d_bool isFinal;
 
+    d_bool hasDefault;             // true if default statement
+    d_bool hasVars;                // true if has variable case values
     DefaultStatement *sdefault;
     Statement *tryBody;            // set to TryCatchStatement or TryFinallyStatement if in _body portion
     TryFinallyStatement *tf;
     GotoCaseStatements gotoCases;  // array of unresolved GotoCaseStatement's
     CaseStatements *cases;         // array of CaseStatement's
-    int hasNoDefault;           // !=0 if no default statement
-    int hasVars;                // !=0 if has variable case values
     VarDeclaration *lastVar;
 
     SwitchStatement *syntaxCopy() override;
