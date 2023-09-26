@@ -571,12 +571,7 @@ extern (C++) final class CompoundDeclarationStatement : CompoundStatement
 
     override CompoundDeclarationStatement syntaxCopy()
     {
-        auto a = new Statements(statements.length);
-        foreach (i, s; *statements)
-        {
-            (*a)[i] = s ? s.syntaxCopy() : null;
-        }
-        return new CompoundDeclarationStatement(loc, a);
+        return new CompoundDeclarationStatement(loc, Statement.arraySyntaxCopy(statements));
     }
 
     override void accept(Visitor v)
@@ -601,12 +596,7 @@ extern (C++) final class UnrolledLoopStatement : Statement
 
     override UnrolledLoopStatement syntaxCopy()
     {
-        auto a = new Statements(statements.length);
-        foreach (i, s; *statements)
-        {
-            (*a)[i] = s ? s.syntaxCopy() : null;
-        }
-        return new UnrolledLoopStatement(loc, a);
+        return new UnrolledLoopStatement(loc, Statement.arraySyntaxCopy(statements));
     }
 
     override bool hasBreak() const pure nothrow
@@ -1972,12 +1962,7 @@ extern (C++) final class CompoundAsmStatement : CompoundStatement
 
     override CompoundAsmStatement syntaxCopy()
     {
-        auto a = new Statements(statements.length);
-        foreach (i, s; *statements)
-        {
-            (*a)[i] = s ? s.syntaxCopy() : null;
-        }
-        return new CompoundAsmStatement(loc, a, stc);
+        return new CompoundAsmStatement(loc, Statement.arraySyntaxCopy(statements), stc);
     }
 
     override void accept(Visitor v)
