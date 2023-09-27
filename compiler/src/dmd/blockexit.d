@@ -153,10 +153,9 @@ int blockExit(Statement s, FuncDeclaration func, ErrorSink eSink)
 
                     if (!(result & BE.fallthru) && !s.comeFrom())
                     {
-                        import dmd.errorsink : DiagnosticFlag;
                         if (blockExit(s, func, eSink) != BE.halt && s.hasCode() &&
                             s.loc != Loc.initial) // don't emit warning for generated code
-                            global.errorSink.warning(DiagnosticFlag.unreachable, s.loc, "statement is not reachable");
+                            global.errorSink.warning(s.loc, "statement is not reachable");
                     }
                     else
                     {
@@ -454,8 +453,7 @@ int blockExit(Statement s, FuncDeclaration func, ErrorSink eSink)
                 // destructor call, exit of synchronized statement, etc.
                 if (result == BE.halt && finalresult != BE.halt && s.finalbody && s.finalbody.hasCode())
                 {
-                    import dmd.errorsink : DiagnosticFlag;
-                    eSink.warning(s.finalbody.loc, DiagnosticFlag.unreachable, "statement is not reachable");
+                    eSink.warning(s.finalbody.loc, "statement is not reachable");
                 }
             }
 

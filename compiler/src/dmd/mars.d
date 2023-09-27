@@ -1174,8 +1174,9 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.warnings = DiagnosticReporting.inform;
         else if (arg == "-wo")  // https://dlang.org/dmd.html#switch-wo
         {
-            params.warnings = DiagnosticReporting.inform;
-            params.obsolete = true;
+            // Obsolete features has been obsoleted until a DIP for "additions"
+            // has been drafted and ratified in the language spec.
+            // Rather, these old features will just be accepted without warning.
         }
         else if (arg == "-O")   // https://dlang.org/dmd.html#switch-O
             driverParams.optimize = true;

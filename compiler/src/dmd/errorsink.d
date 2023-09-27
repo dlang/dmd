@@ -13,23 +13,6 @@ module dmd.errorsink;
 
 import dmd.location;
 
-/// Constants used to map compiler warnings to a specific flag.
-enum DiagnosticFlag
-{
-    none,
-    cxxcompat,
-    conversion,
-    dangling_else,
-    ddoc,
-    discarded,
-    foreach_reverse_aa,
-    inline_,
-    obsolete,
-    pragma_,
-    shadow,
-    unreachable,
-}
-
 /***************************************
  * Where error/warning/deprecation messages go.
  */
@@ -42,9 +25,9 @@ abstract class ErrorSink
 
     void errorSupplemental(const ref Loc loc, const(char)* format, ...);
 
-    void warning(uint flag, const ref Loc loc, const(char)* format, ...);
+    void warning(const ref Loc loc, const(char)* format, ...);
 
-    void warningSupplemental(uint flag, const ref Loc loc, const(char)* format, ...);
+    void warningSupplemental(const ref Loc loc, const(char)* format, ...);
 
     void message(const ref Loc loc, const(char)* format, ...);
 
@@ -66,9 +49,9 @@ class ErrorSinkNull : ErrorSink
 
     void errorSupplemental(const ref Loc loc, const(char)* format, ...) { }
 
-    void warning(uint flag, const ref Loc loc, const(char)* format, ...) { }
+    void warning(const ref Loc loc, const(char)* format, ...) { }
 
-    void warningSupplemental(uint flag, const ref Loc loc, const(char)* format, ...) { }
+    void warningSupplemental(const ref Loc loc, const(char)* format, ...) { }
 
     void message(const ref Loc loc, const(char)* format, ...) { }
 
@@ -109,7 +92,7 @@ class ErrorSinkStderr : ErrorSink
 
     void errorSupplemental(const ref Loc loc, const(char)* format, ...) { }
 
-    void warning(uint flag, const ref Loc loc, const(char)* format, ...)
+    void warning(const ref Loc loc, const(char)* format, ...)
     {
         fputs("Warning: ", stderr);
         const p = loc.toChars();
@@ -126,7 +109,7 @@ class ErrorSinkStderr : ErrorSink
         va_end(ap);
     }
 
-    void warningSupplemental(uint flag, const ref Loc loc, const(char)* format, ...) { }
+    void warningSupplemental(const ref Loc loc, const(char)* format, ...) { }
 
     void deprecation(const ref Loc loc, const(char)* format, ...)
     {

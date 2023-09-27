@@ -483,7 +483,7 @@ extern (C++) struct Scope
                         ident == Id.length && sc.scopesym.isArrayScopeSymbol() &&
                         sc.enclosing && sc.enclosing.search(loc, ident, null, flags))
                     {
-                        warning(DiagnosticFlag.shadow, s.loc, "array `length` hides other `length` name in outer scope");
+                        warning(s.loc, "array `length` hides other `length` name in outer scope");
                     }
                     //printMsg("\tfound local", s);
                     if (pscopesym)
