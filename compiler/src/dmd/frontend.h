@@ -7153,16 +7153,14 @@ public:
     ThisExp(const Loc& loc, const EXP tok);
     ThisExp* syntaxCopy() override;
     Optional<bool > toBool() override;
-    bool isLvalue() override;
-    Expression* toLvalue(Scope* sc, Expression* e) override;
+    bool isLvalue() final override;
+    Expression* toLvalue(Scope* sc, Expression* e) final override;
     void accept(Visitor* v) override;
 };
 
 class SuperExp final : public ThisExp
 {
 public:
-    bool isLvalue() override;
-    Expression* toLvalue(Scope* sc, Expression* e) override;
     void accept(Visitor* v) override;
 };
 
