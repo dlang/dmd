@@ -6427,7 +6427,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         const generateMsg = !exp.msg &&
                             sc.needsCodegen() && // let ctfe interpreter handle the error message
                             global.params.checkAction == CHECKACTION.context &&
-                            global.params.useAssert == CHECKENABLE.on;
+                            global.params.useAssert == CHECKENABLE.on &&
+                            !((exp.e1.isIntegerExp() && (exp.e1.toInteger() == 0)) ||
+                               exp.e1.isNullExp());
         Expression temporariesPrefix;
 
         if (generateMsg)
