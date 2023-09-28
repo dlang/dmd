@@ -1,0 +1,20 @@
+Implement `pragma(__ctfe [,bool])` to selectively supress code gen for functions
+
+Some functions are used only at compile time and are not executed at all at runtime.
+`pragma(__ctfe)` provides a way to prevent the function from being code generated.
+---------
+pragma(__ctfe, true)
+string myFancyMixin(Types)(Types t) { ... }
+mixin(myFancyMixin!(int)(42));
+
+pragma(__ctfe)
+auto preComputeLookupTable(...) { ... }
+immutable lut = preComputeLookupTable(...);
+---------
+
+The optional boolean argument works the same way as `pragma(inline)` in that
+`pragma(__ctfe, true)` and `pragma(__ctfe)` have the same effect, to supress
+the generation of the attached function. The argument, if present, will be evaluated
+at CTFE and can be used to programmatically control the switch.
+`pragma(__ctfe, false)` has no effect: the function is sent for codegen as if
+the pragma were not present.

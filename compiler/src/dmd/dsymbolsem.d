@@ -1669,7 +1669,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
             return se;
         }
-        void declarations()
+        void declarations(bool skipCodegen = false)
         {
             if (!pd.decl)
                 return;
@@ -1686,6 +1686,14 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     s.setPragmaPrintf(pd.ident == Id.printf);
                     s.dsymbolSemantic(sc2);
                     continue;
+                }
+
+                if (pd.ident == Id.ctfe)
+                {
+                    if (auto fd = s.isFuncDeclaration())
+                    {
+                        fd.skipCodegen = skipCodegen;
+                    }
                 }
 
                 s.dsymbolSemantic(sc2);
@@ -1824,6 +1832,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             // this pragma now gets evaluated on demand in function semantic
 
             return declarations();
+        }
+        else if (pd.ident == Id.ctfe)
+        {
+            return declarations(pragmaCtfeSemanitc(pd.loc, sc, pd.args));
         }
         else if (pd.ident == Id.mangle)
         {
@@ -7276,6 +7288,46 @@ PINLINE evalPragmaInline(Loc loc, Scope* sc, Expressions* args)
         return PINLINE.always;
     else
         return PINLINE.never;
+}
+
+/***************************************
+ * Interpret a `pragma(__ctfe, x)`
+ *
+ * Params:
+ *   loc = location for error messages
+ *   sc = scope for evaluation of argument
+ *   args = pragma arguments
+ * Returns: true if the funtion this pragma is attached to should not be
+ *     emitted for codegen
+ */
+bool pragmaCtfeSemanitc(Loc loc, Scope* sc, Expressions *args)
+{
+    if (!args)
+        return true;
+    if (args.length != 1)
+    {
+        .error(loc, "one `bool` argument expected for `__ctfe`");
+
+        return false;
+    }
+    Expression e = (*args)[0];
+    sc = sc.startCTFE();
+    e = e.expressionSemantic(sc);
+    e = resolveProperties(sc, e);
+    sc = sc.endCTFE();
+
+    e = e.ctfeInterpret();
+    if (!e)
+        return false;
+    (*args)[0] = e;
+    auto opt = e.toBool();
+    if (opt.isEmpty())
+    {
+        .error(loc, "one `bool` argument expected for `__ctfe`");
+
+        return false;
+    }
+    return opt.get();
 }
 
 /***************************************************
