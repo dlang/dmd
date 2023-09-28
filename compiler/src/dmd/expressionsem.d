@@ -6427,7 +6427,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         const generateMsg = !exp.msg &&
                             sc.needsCodegen() && // let ctfe interpreter handle the error message
                             global.params.checkAction == CHECKACTION.context &&
-                            global.params.useAssert == CHECKENABLE.on;
+                            global.params.useAssert == CHECKENABLE.on &&
+                            !((exp.e1.isIntegerExp() && (exp.e1.toInteger() == 0)) ||
+                               exp.e1.isNullExp());
         Expression temporariesPrefix;
 
         if (generateMsg)
@@ -10042,7 +10044,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 {
                     const(char)* e1str = exp.e1.toChars();
                     const(char)* e2str = e2x.toChars();
-                    exp.warning(DiagnosticFlag.assignment, "explicit element-wise assignment `%s = (%s)[]` is better than `%s = %s`", e1str, e2str, e1str, e2str);
+                    exp.warning("explicit element-wise assignment `%s = (%s)[]` is better than `%s = %s`", e1str, e2str, e1str, e2str);
                 }
             }
 
@@ -10104,7 +10106,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     const(char)* e1str = exp.e1.toChars();
                     const(char)* e2str = e2x.toChars();
                     const(char)* atypestr = exp.e1.op == EXP.slice ? "element-wise" : "slice";
-                    exp.warning(DiagnosticFlag.assignment, "explicit %s assignment `%s = (%s)[]` is better than `%s = %s`", atypestr, e1str, e2str, e1str, e2str);
+                    exp.warning("explicit %s assignment `%s = (%s)[]` is better than `%s = %s`", atypestr, e1str, e2str, e1str, e2str);
                 }
             }
             if (exp.op == EXP.blit)

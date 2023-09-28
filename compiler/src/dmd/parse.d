@@ -5382,7 +5382,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     {
         if (token.value != TOK.else_ && token.value != TOK.catch_ && token.value != TOK.finally_ && lookingForElse.linnum != 0)
         {
-            eSink.warning(DiagnosticFlag.dangling_else, elseloc, "else is dangling, add { } after condition at %s", lookingForElse.toChars());
+            eSink.warning(elseloc, "else is dangling, add { } after condition at %s", lookingForElse.toChars());
         }
     }
 
@@ -9601,9 +9601,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
     void usageOfBodyKeyword()
     {
-        if (compileEnv.obsolete)
+        version (none)  // disable obsolete warning
         {
-            eSink.warning(DiagnosticFlag.obsolete, token.loc, "usage of identifer `body` as a keyword is obsolete. Use `do` instead.");
+            eSink.warning(token.loc, "usage of identifer `body` as a keyword is obsolete. Use `do` instead.");
         }
     }
 }

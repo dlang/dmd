@@ -842,13 +842,13 @@ extern (C++) abstract class Expression : ASTNode
             va_end(ap);
         }
 
-        final void warning(uint flag, const(char)* format, ...) const
+        final void warning(const(char)* format, ...) const
         {
             if (type != Type.terror)
             {
                 va_list ap;
                 va_start(ap, format);
-                .verrorReport(loc, format, ap, ErrorKind.warning, flag);
+                .verrorReport(loc, format, ap, ErrorKind.warning);
                 va_end(ap);
             }
         }
@@ -888,13 +888,13 @@ extern (C++) abstract class Expression : ASTNode
             va_end(ap);
         }
 
-        pragma(printf) final void warning(uint flag, const(char)* format, ...) const
+        pragma(printf) final void warning(const(char)* format, ...) const
         {
             if (type != Type.terror)
             {
                 va_list ap;
                 va_start(ap, format);
-                .verrorReport(loc, format, ap, ErrorKind.warning, flag);
+                .verrorReport(loc, format, ap, ErrorKind.warning);
                 va_end(ap);
             }
         }
@@ -4536,7 +4536,7 @@ extern (C++) abstract class BinExp : Expression
         {
             if ((type.isintegral() && t2.isfloating()))
             {
-                warning(DiagnosticFlag.conversion, "`%s %s %s` is performing truncating conversion", type.toChars(), EXPtoString(op).ptr, t2.toChars());
+                warning("`%s %s %s` is performing truncating conversion", type.toChars(), EXPtoString(op).ptr, t2.toChars());
             }
         }
 

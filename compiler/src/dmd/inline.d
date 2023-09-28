@@ -1887,7 +1887,7 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
 
 Lno:
     if (fd.inlining == PINLINE.always && global.params.warnings == DiagnosticReporting.inform)
-        warning(DiagnosticFlag.inline_, fd.loc, "cannot inline function `%s`", fd.toPrettyChars());
+        warning(fd.loc, "cannot inline function `%s`", fd.toPrettyChars());
 
     if (!hdrscan) // Don't modify inlineStatus for header content scan
     {

@@ -125,6 +125,7 @@ struct Usage
         string flag; /// The CLI flag without leading `-`, e.g. `color`
         string helpText; /// A detailed description of the flag
         TargetOS os = TargetOS.all; /// For which `TargetOS` the flags are applicable
+        bool documented = true; // whether this option should be shown in the documentation
 
         // Needs to be version-ed to prevent the text ending up in the binary
         // See also: https://issues.dlang.org/show_bug.cgi?id=18238
@@ -136,22 +137,25 @@ struct Usage
         *  helpText = detailed description of the flag
         *  os = for which `TargetOS` the flags are applicable
         *  ddocText = detailed description of the flag (in Ddoc)
+        *  documented = whether this option should be shown in the documentation
         */
-        this(string flag, string helpText, TargetOS os = TargetOS.all) @safe
+        this(string flag, string helpText, TargetOS os = TargetOS.all, bool documented = true) @safe
         {
             this.flag = flag;
             this.helpText = helpText;
             version(DdocOptions) this.ddocText = helpText;
             this.os = os;
+            this.documented = documented;
         }
 
         /// ditto
-        this(string flag, string helpText, string ddocText, TargetOS os = TargetOS.all) @safe
+        this(string flag, string helpText, string ddocText, TargetOS os = TargetOS.all, bool documented = true) @safe
         {
             this.flag = flag;
             this.helpText = helpText;
             version(DdocOptions) this.ddocText = ddocText;
             this.os = os;
+            this.documented = documented;
         }
     }
 
@@ -831,7 +835,7 @@ dmd -cov -unittest myprog.d
         Option("wo",
             "warnings about use of obsolete features (compilation will continue)",
             `Enable warnings about use of obsolete features that may be problematic (compilation
-            still proceeds normally)`,
+            still proceeds normally)`, TargetOS.all, false,
         ),
         Option("X",
             "generate JSON file"
@@ -928,6 +932,8 @@ struct CLIUsage
             char[] buf;
             foreach (option; Usage.options)
             {
+                if (!option.documented)
+                    continue;
                 if (option.os.isCurrentTargetOS)
                 {
                     buf ~= "  -" ~ option.flag;

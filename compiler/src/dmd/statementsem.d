@@ -1198,7 +1198,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             }
         case Taarray:
             if (fs.op == TOK.foreach_reverse_)
-                warning(DiagnosticFlag.foreach_reverse_aa, fs.loc, "cannot use `foreach_reverse` with an associative array");
+                warning(fs.loc, "cannot use `foreach_reverse` with an associative array");
             if (checkForArgTypes(fs))
                 return retError();
 
@@ -2014,11 +2014,10 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 needswitcherror = true;
         }
 
-        if (!sc.sw.sdefault &&
-            (!ss.isFinal || needswitcherror || global.params.useAssert == CHECKENABLE.on || sc.func.isSafe))
+        ss.hasDefault = sc.sw.sdefault ||
+            !(!ss.isFinal || needswitcherror || global.params.useAssert == CHECKENABLE.on || sc.func.isSafe);
+        if (!ss.hasDefault)
         {
-            ss.hasNoDefault = 1;
-
             if (!ss.isFinal && (!ss._body || !ss._body.isErrorStatement()) && !(sc.flags & SCOPE.Cfile))
                 error(ss.loc, "`switch` statement without a `default`; use `final switch` or add `default: assert(0);` or add `default: break;`");
 
@@ -2207,7 +2206,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                     /* Flag that we need to do special code generation
                     * for this, i.e. generate a sequence of if-then-else
                     */
-                    sw.hasVars = 1;
+                    sw.hasVars = true;
 
                     /* TODO check if v can be uninitialized at that point.
                     */
@@ -5052,4 +5051,131 @@ bool pragmaStartAddressSemantic(Loc loc, Scope* sc, Expressions* args)
         }
     }
     return true;
+}
+
+/************************************
+ * Check for skipped variable declarations.
+ * Params:
+ *      ss = statement to check
+ * Returns:
+ *  true if error
+ */
+private bool checkLabel(SwitchStatement ss)
+{
+    /*
+     * Checks the scope of a label for existing variable declaration.
+     * Params:
+     *   vd = last variable declared before this case/default label
+     * Returns: `true` if the variables declared in this label would be skipped.
+     */
+    bool checkVar(VarDeclaration vd)
+    {
+        for (auto v = vd; v && v != ss.lastVar; v = v.lastVar)
+        {
+            if (v.isDataseg() || (v.storage_class & (STC.manifest | STC.temp) && vd.ident != Id.withSym) || v._init.isVoidInitializer())
+                continue;
+            if (vd.ident == Id.withSym)
+                error(ss.loc, "`switch` skips declaration of `with` temporary");
+            else
+                error(ss.loc, "`switch` skips declaration of variable `%s`", v.toPrettyChars());
+            errorSupplemental(v.loc, "declared here");
+            return true;
+        }
+        return false;
+    }
+
+    enum error = true;
+
+    if (ss.sdefault && checkVar(ss.sdefault.lastVar))
+        return !error; // return error once fully deprecated
+
+    foreach (scase; *ss.cases)
+    {
+        if (scase && checkVar(scase.lastVar))
+            return !error; // return error once fully deprecated
+    }
+    return !error;
+}
+
+
+/**************
+ * Check for skipped variable declarations.
+ * Params:
+ *      gs = statement to check
+ * Returns: true for error
+ */
+bool checkLabel(GotoStatement gs)
+{
+    if (!gs.label.statement)
+        return true;        // error should have been issued for this already
+
+    if (gs.label.statement.os != gs.os)
+    {
+        if (gs.os && gs.os.tok == TOK.onScopeFailure && !gs.label.statement.os)
+        {
+            // Jump out from scope(failure) block is allowed.
+        }
+        else
+        {
+            if (gs.label.statement.os)
+                error(gs.loc, "cannot `goto` in to `%s` block", Token.toChars(gs.label.statement.os.tok));
+            else
+                error(gs.loc, "cannot `goto` out of `%s` block", Token.toChars(gs.os.tok));
+            return true;
+        }
+    }
+
+    if (gs.label.statement.tf != gs.tf)
+    {
+        error(gs.loc, "cannot `goto` in or out of `finally` block");
+        return true;
+    }
+
+    if (gs.label.statement.inCtfeBlock && !gs.inCtfeBlock)
+    {
+        error(gs.loc, "cannot `goto` into `if (__ctfe)` block");
+        return true;
+    }
+
+    Statement stbnext;
+    for (auto stb = gs.tryBody; stb != gs.label.statement.tryBody; stb = stbnext)
+    {
+        if (!stb)
+        {
+            error(gs.loc, "cannot `goto` into `try` block");
+            return true;
+        }
+        if (auto stf = stb.isTryFinallyStatement())
+            stbnext = stf.tryBody;
+        else if (auto stc = stb.isTryCatchStatement())
+            stbnext = stc.tryBody;
+        else
+            assert(0);
+    }
+
+    VarDeclaration vd = gs.label.statement.lastVar;
+    if (!vd || vd.isDataseg() || (vd.storage_class & STC.manifest))
+        return false;
+
+    VarDeclaration last = gs.lastVar;
+    while (last && last != vd)
+        last = last.lastVar;
+    if (last == vd)
+    {
+        // All good, the label's scope has no variables
+    }
+    else if (vd.storage_class & STC.exptemp)
+    {
+        // Lifetime ends at end of expression, so no issue with skipping the statement
+    }
+    else
+    {
+        if (vd.ident == Id.withSym)
+            error(gs.loc, "`goto` skips declaration of `with` temporary");
+        else
+            error(gs.loc, "`goto` skips declaration of variable `%s`", vd.toPrettyChars());
+        errorSupplemental(vd.loc, "declared here");
+        return true;
+    }
+    return false;
 }

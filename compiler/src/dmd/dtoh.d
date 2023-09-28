@@ -480,11 +480,11 @@ public:
             }
 
             __gshared bool warned = false;
-            warning(DiagnosticFlag.cxxcompat, loc, "%s `%s` is a %s", kind, ident.toChars(), reason);
+            warning(loc, "%s `%s` is a %s", kind, ident.toChars(), reason);
 
             if (!warned)
             {
-                warningSupplemental(DiagnosticFlag.cxxcompat, loc, "The generated C++ header will contain " ~
+                warningSupplemental(loc, "The generated C++ header will contain " ~
                                     "identifiers that are keywords in C++");
                 warned = true;
             }
