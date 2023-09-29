@@ -3101,22 +3101,17 @@ const(char)* linkageToChars(LINK linkage)
 
 string linkageToString(LINK linkage) pure nothrow @safe
 {
-    final switch (linkage)
+    with (LINK)
     {
-    case LINK.default_:
-        return null;
-    case LINK.d:
-        return "D";
-    case LINK.c:
-        return "C";
-    case LINK.cpp:
-        return "C++";
-    case LINK.windows:
-        return "Windows";
-    case LINK.objc:
-        return "Objective-C";
-    case LINK.system:
-        return "System";
+        immutable string[7] a = [
+                default_ : null,
+                d        : "D",
+                c        : "C",
+                cpp      : "C++",
+                windows  : "Windows",
+                objc     : "Objective-C",
+                system   : "System" ];
+        return a[linkage];
     }
 }
 
@@ -3144,22 +3139,16 @@ const(char)* visibilityToChars(Visibility.Kind kind)
 /// Ditto
 extern (D) string visibilityToString(Visibility.Kind kind) nothrow pure @safe
 {
-    final switch (kind)
+    with (Visibility.Kind)
     {
-    case Visibility.Kind.undefined:
-        return null;
-    case Visibility.Kind.none:
-        return "none";
-    case Visibility.Kind.private_:
-        return "private";
-    case Visibility.Kind.package_:
-        return "package";
-    case Visibility.Kind.protected_:
-        return "protected";
-    case Visibility.Kind.public_:
-        return "public";
-    case Visibility.Kind.export_:
-        return "export";
+        immutable string[7] a = [
+                none       : "none",
+                private_   : "private",
+                package_   : "package",
+                protected_ : "protected",
+                public_    : "public",
+                export_    : "export" ];
+        return a[kind];
     }
 }
 
