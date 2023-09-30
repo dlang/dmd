@@ -24,6 +24,7 @@ import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.globals;
+import dmd.hdrgen;
 import dmd.init;
 import dmd.location;
 import dmd.mtype;
@@ -100,7 +101,7 @@ Expression expandVar(int result, VarDeclaration v)
                 {
                     if (v.storage_class & STC.manifest)
                     {
-                        v.error("enum cannot be initialized with `%s`", v._init.toChars());
+                        v.error("enum cannot be initialized with `%s`", dmd.hdrgen.toChars(v._init));
                         return errorReturn();
                     }
                     return nullReturn();

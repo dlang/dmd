@@ -788,7 +788,7 @@ public:
         objectStart();
         jsonProperties(d);
         if (d._init)
-            property("init", d._init.toString());
+            property("init", toString(d._init));
         if (d.isField())
             property("offset", d.offset);
         if (!d.alignment.isUnknown() && !d.alignment.isDefault())
