@@ -231,6 +231,9 @@ final class CParser(AST) : Parser!AST
                     }
                     goto Lexp;  // function call
 
+                case TOK.semicolon:
+                    goto Lexp;
+
                 default:
                 {
                     /* If tokens look like a declaration, assume it is one
