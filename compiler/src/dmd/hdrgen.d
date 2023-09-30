@@ -88,6 +88,23 @@ extern (C++) void genhdrfile(Module m, ref OutBuffer buf)
     toCBuffer(m, buf, hgs);
 }
 
+/***************************************
+ * Turn a Statement into a string suitable for printf.
+ * Leaks memory.
+ * Params:
+ *	s = Statement to convert
+ * Returns:
+ *	0-terminated string
+ */
+public extern (C++) const(char)* toChars(const Statement s)
+{
+    HdrGenState hgs;
+    OutBuffer buf;
+    toCBuffer(s, buf, hgs);
+    buf.writeByte(0);
+    return buf.extractSlice().ptr;
+}
+
 public extern (C++) const(char)* toChars(const Initializer i)
 {
     OutBuffer buf;

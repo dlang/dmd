@@ -82,15 +82,6 @@ extern (C++) abstract class Statement : ASTNode
         return b;
     }
 
-    override final const(char)* toChars() const
-    {
-        HdrGenState hgs;
-        OutBuffer buf;
-        toCBuffer(this, buf, hgs);
-        buf.writeByte(0);
-        return buf.extractSlice().ptr;
-    }
-
     Statement getRelatedLabeled()
     {
         return this;
