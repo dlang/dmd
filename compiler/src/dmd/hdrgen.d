@@ -2055,7 +2055,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, HdrGenState*
 
     void visitVoidInit(VoidInitExp e)
     {
-        buf.writestring("__void");
+        buf.writestring("void");
     }
 
     void floatToBuffer(Type type, real_t value)
