@@ -4667,11 +4667,12 @@ public import core.internal.array.appending : _d_arrayappendT;
 version (D_ProfileGC)
 {
     public import core.internal.array.appending : _d_arrayappendTTrace;
+    public import core.internal.array.appending : _d_arrayappendcTXTrace;
     public import core.internal.array.concatenation : _d_arraycatnTXTrace;
     public import core.lifetime : _d_newitemTTrace;
     public import core.internal.array.construction : _d_newarrayTTrace;
 }
-public import core.internal.array.appending : _d_arrayappendcTXImpl;
+public import core.internal.array.appending : _d_arrayappendcTX;
 public import core.internal.array.comparison : __cmp;
 public import core.internal.array.equality : __equals;
 public import core.internal.array.casting: __ArrayCast;

@@ -11199,8 +11199,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         result = res;
 
-        if ((exp.op == EXP.concatenateAssign || exp.op == EXP.concatenateElemAssign) &&
-            sc.needsCodegen())
+        if ((exp.op == EXP.concatenateAssign || exp.op == EXP.concatenateElemAssign) && sc.needsCodegen())
         {
             // if aa ordering is triggered, `res` will be a CommaExp
             // and `.e2` will be the rewritten original expression.
@@ -11244,7 +11243,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 arguments.push(exp.e1);
                 arguments.push(exp.e2);
                 Expression ce = new CallExp(exp.loc, id, arguments);
-                *output = ce.expressionSemantic(sc);
+
+                exp.lowering = ce.expressionSemantic(sc);
+                *output = exp;
             }
             else if (exp.op == EXP.concatenateElemAssign)
             {
@@ -11264,15 +11265,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
 
                 Identifier hook = global.params.tracegc ? Id._d_arrayappendcTXTrace : Id._d_arrayappendcTX;
-                if (!verifyHookExist(exp.loc, *sc, Id._d_arrayappendcTXImpl, "appending element to arrays", Id.object))
+                if (!verifyHookExist(exp.loc, *sc, hook, "appending element to arrays", Id.object))
                     return setError();
 
-                // Lower to object._d_arrayappendcTXImpl!(typeof(e1))._d_arrayappendcTX{,Trace}(e1, 1), e1[$-1]=e2
+                // Lower to object._d_arrayappendcTX{,Trace}(e1, 1), e1[$-1]=e2
                 Expression id = new IdentifierExp(exp.loc, Id.empty);
                 id = new DotIdExp(exp.loc, id, Id.object);
-                auto tiargs = new Objects();
-                tiargs.push(exp.e1.type);
-                id = new DotTemplateInstanceExp(exp.loc, id, Id._d_arrayappendcTXImpl, tiargs);
                 id = new DotIdExp(exp.loc, id, hook);
 
                 auto arguments = new Expressions();
@@ -11299,11 +11297,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 {
                     /* Before the template hook, this check was performed in e2ir.d
                      * for expressions like `a ~= a[$-1]`. Here, $ will be modified
-                     * by calling `_d_arrayappendcT`, so we need to save `a[$-1]` in
+                     * by calling `_d_arrayappendcTX`, so we need to save `a[$-1]` in
                      * a temporary variable.
                      */
                     value2 = extractSideEffect(sc, "__appendtmp", eValue2, value2, true);
-                    exp.e2 = value2;
 
                     // `__appendtmp*` will be destroyed together with the array `exp.e1`.
                     auto vd = eValue2.isDeclarationExp().declaration.isVarDeclaration();
@@ -11319,13 +11316,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 auto e0 = Expression.combine(ce, ae).expressionSemantic(sc);
                 e0 = Expression.combine(e0, value1);
                 e0 = Expression.combine(eValue1, e0);
-
                 e0 = Expression.combine(eValue2, e0);
 
-                *output = e0.expressionSemantic(sc);
+                exp.lowering = e0.expressionSemantic(sc);
+                *output = exp;
             }
         }
-
     }
 
     override void visit(AddExp exp)

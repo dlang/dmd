@@ -1148,6 +1148,8 @@ public:
 class CatAssignExp : public BinAssignExp
 {
 public:
+    Expression *lowering;   // lowered druntime hook `_d_arrayappend{cTX,T}`
+
     void accept(Visitor *v) override { v->visit(this); }
 };
 
