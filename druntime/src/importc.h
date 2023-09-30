@@ -111,6 +111,7 @@
 #define __builtin___strlcat_chk(dest, src, x, n) strlcat(dest,src,x)
 #define __builtin___strlcpy_chk(dest, src, x, n) strlcpy(dest,src,x)
 #define __builtin_object_size
+#define __signed signed
 #endif
 
 #if __FreeBSD__
