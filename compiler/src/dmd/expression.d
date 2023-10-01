@@ -2172,11 +2172,6 @@ extern (C++) final class VoidInitExp : Expression
         this.type = var.type;
     }
 
-    override const(char)* toChars() const
-    {
-        return "void";
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
