@@ -153,6 +153,7 @@ int blockExit(Statement s, FuncDeclaration func, ErrorSink eSink)
 
                     if (!(result & BE.fallthru) && !s.comeFrom())
                     {
+                        version (none) // this warning is completely useless due to insane false positive rate in real life template code
                         if (blockExit(s, func, eSink) != BE.halt && s.hasCode() &&
                             s.loc != Loc.initial) // don't emit warning for generated code
                             global.errorSink.warning(s.loc, "statement is not reachable");
