@@ -113,8 +113,6 @@ public:
 
     virtual Statement *syntaxCopy();
 
-    const char *toChars() const override final;
-
     void error(const char *format, ...);
     void warning(unsigned flag, const char *format, ...);
     void deprecation(const char *format, ...);

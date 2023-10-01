@@ -2895,7 +2895,7 @@ extern void moduleToBuffer(OutBuffer& buf, Module* m);
 
 extern const char* parametersTypeToChars(ParameterList pl);
 
-extern const char* toChars(const Initializer* const i);
+extern const char* toChars(const Statement* const s);
 
 enum class InitKind : uint8_t
 {
@@ -4184,7 +4184,6 @@ public:
     DYNCAST dyncast() const final override;
     virtual Statement* syntaxCopy();
     static Array<Statement* >* arraySyntaxCopy(Array<Statement* >* a);
-    const char* toChars() const final override;
     virtual Statement* getRelatedLabeled();
     virtual bool hasBreak() const;
     virtual bool hasContinue() const;
@@ -8116,6 +8115,8 @@ public:
 extern Expression* resolveProperties(Scope* sc, Expression* e);
 
 extern Expression* expressionSemantic(Expression* e, Scope* sc);
+
+extern const char* toChars(const Initializer* const i);
 
 extern void json_generate(Array<Module* >& modules, OutBuffer& buf);
 
