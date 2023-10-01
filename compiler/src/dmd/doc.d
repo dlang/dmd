@@ -433,7 +433,7 @@ extern(C++) void gendocfile(Module m)
         if (!loc.filename)
             loc.filename = srcfilename.ptr;
 
-        size_t commentlen = strlen(cast(char*)m.comment);
+        size_t commentlen = m.comment ? strlen(cast(char*)m.comment) : 0;
         Dsymbols a;
         // https://issues.dlang.org/show_bug.cgi?id=9764
         // Don't push m in a, to prevent emphasize ddoc file name.
