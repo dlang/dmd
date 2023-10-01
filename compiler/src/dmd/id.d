@@ -503,6 +503,9 @@ immutable Msgtable[] msgtable =
     { "toType" },
     { "parameters" },
 
+    // For TypeInfo members
+    { "tsize" },
+
     // For C++ mangling
     { "allocator" },
     { "basic_string" },
