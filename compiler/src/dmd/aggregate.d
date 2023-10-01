@@ -31,6 +31,7 @@ import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
+import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
@@ -337,7 +338,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
                 else if (v2._init && i < j)
                 {
                     .error(v2.loc, "union field `%s` with default initialization `%s` must be before field `%s`",
-                        v2.toChars(), v2._init.toChars(), vd.toChars());
+                        v2.toChars(), dmd.hdrgen.toChars(v2._init), vd.toChars());
                     errors = true;
                 }
             }

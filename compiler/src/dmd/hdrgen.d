@@ -88,6 +88,22 @@ extern (C++) void genhdrfile(Module m, ref OutBuffer buf)
     toCBuffer(m, buf, hgs);
 }
 
+public extern (C++) const(char)* toChars(const Initializer i)
+{
+    OutBuffer buf;
+    HdrGenState hgs;
+    toCBuffer(i, buf, hgs);
+    return buf.extractChars();
+}
+
+public const(char)[] toString(const Initializer i)
+{
+    OutBuffer buf;
+    HdrGenState hgs;
+    toCBuffer(i, buf, hgs);
+    return buf.extractSlice();
+}
+
 /**
  * Dumps the full contents of module `m` to `buf`.
  * Params:

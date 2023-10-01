@@ -553,7 +553,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             if (inferred)
             {
-                dsym.error("- type `%s` is inferred from initializer `%s`, and variables cannot be of type `void`", dsym.type.toChars(), dsym._init.toChars());
+                dsym.error("- type `%s` is inferred from initializer `%s`, and variables cannot be of type `void`", dsym.type.toChars(), toChars(dsym._init));
             }
             else
                 dsym.error("- variables cannot be of type `void`");

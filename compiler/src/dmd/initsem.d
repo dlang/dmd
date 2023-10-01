@@ -29,6 +29,7 @@ import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
 import dmd.globals;
+import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.importc;
@@ -59,12 +60,12 @@ Expression toAssocArrayLiteral(ArrayInitializer ai)
     if (!dim)
     {
         error(ai.loc, "invalid associative array initializer `%s`, use `null` instead",
-            ai.toChars());
+            toChars(ai));
         return ErrorExp.get();
     }
     auto no(const char* format, Initializer i)
     {
-        error(i.loc, format, i.toChars());
+        error(i.loc, format, toChars(i));
         return ErrorExp.get();
     }
     Expression e;
@@ -791,12 +792,12 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                     const length = (*dlist).length;
                     if (length == 0 || !(*dlist)[0].ident)
                     {
-                        error(ci.loc, "`.identifier` expected for C struct field initializer `%s`", ci.toChars());
+                        error(ci.loc, "`.identifier` expected for C struct field initializer `%s`", toChars(ci));
                         return err();
                     }
                     if (length > 1)
                     {
-                        error(ci.loc, "only 1 designator currently allowed for C struct field initializer `%s`", ci.toChars());
+                        error(ci.loc, "only 1 designator currently allowed for C struct field initializer `%s`", toChars(ci));
                         return err();
                     }
                     auto id = (*dlist)[0].ident;
@@ -912,12 +913,12 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                     const length = (*dlist).length;
                     if (length == 0 || !(*dlist)[0].exp)
                     {
-                        error(ci.loc, "`[ constant-expression ]` expected for C array element initializer `%s`", ci.toChars());
+                        error(ci.loc, "`[ constant-expression ]` expected for C array element initializer `%s`", toChars(ci));
                         return err();
                     }
                     if (length > 1)
                     {
-                        error(ci.loc, "only 1 designator currently allowed for C array element initializer `%s`", ci.toChars());
+                        error(ci.loc, "only 1 designator currently allowed for C array element initializer `%s`", toChars(ci));
                         return err();
                     }
                     //printf("tn: %s, di.initializer: %s\n", tn.toChars(), di.initializer.toChars());
@@ -988,7 +989,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
         }
         else
         {
-            error(ci.loc, "unrecognized C initializer `%s`", ci.toChars());
+            error(ci.loc, "unrecognized C initializer `%s`", toChars(ci));
             return err();
         }
     }

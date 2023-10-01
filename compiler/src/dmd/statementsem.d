@@ -45,6 +45,7 @@ import dmd.expressionsem;
 import dmd.func;
 import dmd.globals;
 import dmd.gluelayer;
+import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.importc;
@@ -1391,7 +1392,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
                 version (none)
                 {
-                    printf("init: %s\n", _init.toChars());
+                    printf("init: %s\n", toChars(_init));
                     printf("condition: %s\n", condition.toChars());
                     printf("increment: %s\n", increment.toChars());
                     printf("body: %s\n", forbody.toChars());
@@ -4546,13 +4547,13 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
                         {
                             if (!isStatic)
                             {
-                                error(fs.loc, "constant value `%s` cannot be `ref`", ie.toChars());
+                                error(fs.loc, "constant value `%s` cannot be `ref`", toChars(ie));
                             }
                             else
                             {
                                 if (!needExpansion)
                                 {
-                                    error(fs.loc, "constant value `%s` cannot be `ref`", ie.toChars());
+                                    error(fs.loc, "constant value `%s` cannot be `ref`", toChars(ie));
                                 }
                                 else
                                 {

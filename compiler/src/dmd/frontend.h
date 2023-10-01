@@ -2895,6 +2895,8 @@ extern void moduleToBuffer(OutBuffer& buf, Module* m);
 
 extern const char* parametersTypeToChars(ParameterList pl);
 
+extern const char* toChars(const Initializer* const i);
+
 enum class InitKind : uint8_t
 {
     void_ = 0u,
@@ -2911,7 +2913,6 @@ public:
     Loc loc;
     InitKind kind;
     DYNCAST dyncast() const override;
-    const char* toChars() const final override;
     ErrorInitializer* isErrorInitializer();
     VoidInitializer* isVoidInitializer();
     StructInitializer* isStructInitializer();
