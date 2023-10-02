@@ -4667,7 +4667,7 @@ public:
         }
         errorSupplemental(callingExp.loc, "called from here: `%s`", callingExp.toChars());
         // Quit if it's not worth trying to compress the stack trace
-        if (ctfeGlobals.callDepth < 6 || global.params.verbose)
+        if (ctfeGlobals.callDepth < 6 || global.params.v.verbose)
             return;
         // Recursion happens if the current function already exists in the call stack.
         int numToSuppress = 0;
@@ -7714,6 +7714,6 @@ private void removeHookTraceImpl(ref CallExp ce, ref FuncDeclaration fd)
 
     ce = ctfeEmplaceExp!CallExp(ce.loc, ctfeEmplaceExp!VarExp(ce.loc, fd, false), arguments);
 
-    if (global.params.verbose)
+    if (global.params.v.verbose)
         message("strip     %s =>\n          %s", oldCE.toChars(), ce.toChars());
 }

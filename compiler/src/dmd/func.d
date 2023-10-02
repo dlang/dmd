@@ -1696,7 +1696,7 @@ extern (C++) class FuncDeclaration : Declaration
 
     extern (D) final void printGCUsage(const ref Loc loc, const(char)* warn)
     {
-        if (!global.params.vgc)
+        if (!global.params.v.gc)
             return;
 
         Module m = getModule();
@@ -3391,7 +3391,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
                    td.kind(), td.parent.toPrettyChars(), td.ident.toChars(),
                    tiargsBuf.peekChars(), fargsBuf.peekChars());
 
-            if (!global.gag || global.params.showGaggedErrors)
+            if (!global.gag || global.params.v.showGaggedErrors)
                 printCandidates(loc, td, sc.isDeprecated());
             return null;
         }
@@ -3430,7 +3430,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
         {
             .error(loc, "none of the overloads of `%s` are callable using a %sobject",
                    fd.ident.toChars(), thisBuf.peekChars());
-            if (!global.gag || global.params.showGaggedErrors)
+            if (!global.gag || global.params.v.showGaggedErrors)
                 printCandidates(loc, fd, sc.isDeprecated());
             return null;
         }
@@ -3461,7 +3461,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
     {
         .error(loc, "none of the overloads of `%s` are callable using argument types `%s`",
                fd.toChars(), fargsBuf.peekChars());
-        if (!global.gag || global.params.showGaggedErrors)
+        if (!global.gag || global.params.v.showGaggedErrors)
             printCandidates(loc, fd, sc.isDeprecated());
         return null;
     }
@@ -3471,7 +3471,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
            tf.modToChars(), fargsBuf.peekChars());
 
     // re-resolve to check for supplemental message
-    if (!global.gag || global.params.showGaggedErrors)
+    if (!global.gag || global.params.v.showGaggedErrors)
     {
         if (tthis)
         {
@@ -3514,9 +3514,7 @@ private void printCandidates(Decl)(const ref Loc loc, Decl declaration, bool sho
 if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
 {
     // max num of overloads to print (-v or -verror-supplements overrides this).
-    const int DisplayLimit = !global.params.verbose ?
-                                (global.params.errorSupplementLimit ? global.params.errorSupplementLimit : int.max)
-                                : int.max;
+    const uint DisplayLimit = global.params.v.errorSupplementCount();
     const(char)* constraintsTip;
     // determine if the first candidate was printed
     int printed;
@@ -3580,7 +3578,7 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
     });
     int skipped = 0;
     overloadApply(declaration, (s) {
-        if (global.params.verbose || printed < DisplayLimit)
+        if (global.params.v.verbose || printed < DisplayLimit)
         {
             if (matchSymbol(s, true, count == 1))
                 printed++;

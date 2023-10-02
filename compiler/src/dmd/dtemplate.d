@@ -916,7 +916,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         import dmd.staticcond;
 
         // there will be a full tree view in verbose mode, and more compact list in the usual
-        const full = global.params.verbose;
+        const full = global.params.v.verbose;
         uint count;
         const msg = visualizeStaticCondition(constraint, lastConstraint, lastConstraintNegs[], full, count);
         scope (exit)
@@ -6039,17 +6039,17 @@ extern (C++) class TemplateInstance : ScopeDsymbol
      * Given an error instantiating the TemplateInstance,
      * give the nested TemplateInstance instantiations that got
      * us here. Those are a list threaded into the nested scopes.
+     * Params:
+     *  cl = classification of this trace as printing either errors or deprecations
+     *  max_shown = maximum number of trace elements printed (controlled with -v/-verror-limit)
      */
-    extern(D) final void printInstantiationTrace(Classification cl = Classification.error)
+    extern(D) final void printInstantiationTrace(Classification cl = Classification.error,
+                                                 const(uint) max_shown = global.params.v.errorSupplementCount())
     {
         if (global.gag)
             return;
 
         // Print full trace for verbose mode, otherwise only short traces
-        const(uint) max_shown = !global.params.verbose ?
-                                    (global.params.errorSupplementLimit ? global.params.errorSupplementLimit : uint.max)
-                                    : uint.max;
-
         const(char)* format = "instantiated from here: `%s`";
 
         // This returns a function pointer
@@ -8453,12 +8453,12 @@ struct TemplateStats
         {
             if (ts.allInstances is null)
                 ts.allInstances = new TemplateInstances();
-            if (global.params.vtemplatesListInstances)
+            if (global.params.v.templatesListInstances)
                 ts.allInstances.push(cast() ti);
         }
 
     // message(ti.loc, "incInstance %p %p", td, ti);
-        if (!global.params.vtemplates)
+        if (!global.params.v.templates)
             return;
         if (!td)
             return;
@@ -8482,7 +8482,7 @@ struct TemplateStats
                           const TemplateInstance ti)
     {
         // message(ti.loc, "incUnique %p %p", td, ti);
-        if (!global.params.vtemplates)
+        if (!global.params.v.templates)
             return;
         if (!td)
             return;
@@ -8511,7 +8511,7 @@ extern (C++) void printTemplateStats()
         }
     }
 
-    if (!global.params.vtemplates)
+    if (!global.params.v.templates)
         return;
 
     Array!(TemplateDeclarationStats) sortedStats;
@@ -8525,7 +8525,7 @@ extern (C++) void printTemplateStats()
 
     foreach (const ref ss; sortedStats[])
     {
-        if (global.params.vtemplatesListInstances &&
+        if (global.params.v.templatesListInstances &&
             ss.ts.allInstances)
         {
             message(ss.td.loc,

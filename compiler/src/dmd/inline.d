@@ -67,7 +67,7 @@ public void inlineScanModule(Module m)
     foreach (i; 0 .. m.members.length)
     {
         Dsymbol s = (*m.members)[i];
-        //if (global.params.verbose)
+        //if (global.params.v.verbose)
         //    message("inline scan symbol %s", s.toChars());
         inlineScanDsymbol(s);
     }
@@ -1476,7 +1476,7 @@ public:
             return;
         }
 
-        if (global.params.verbose && (eresult || sresult))
+        if (global.params.v.verbose && (eresult || sresult))
             message("inlined   %s =>\n          %s", fd.toPrettyChars(), parent.toPrettyChars());
 
         if (eresult && e.type.ty != Tvoid)

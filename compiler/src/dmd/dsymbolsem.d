@@ -809,7 +809,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             AggregateDeclaration aad = parent.isAggregateDeclaration();
             if (aad)
             {
-                if (global.params.vfield && dsym.storage_class & (STC.const_ | STC.immutable_) && dsym._init && !dsym._init.isVoidInitializer())
+                if (global.params.v.field && dsym.storage_class & (STC.const_ | STC.immutable_) && dsym._init && !dsym._init.isVoidInitializer())
                 {
                     const(char)* s = (dsym.storage_class & STC.immutable_) ? "immutable" : "const";
                     message(dsym.loc, "`%s.%s` is `%s` field", ad.toPrettyChars(), dsym.toChars(), s);
@@ -1766,7 +1766,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     if (!se)
                         return noDeclarations();
                     (*pd.args)[0] = se;
-                    if (global.params.verbose)
+                    if (global.params.v.verbose)
                         message("linkopt   %.*s", cast(int)se.len, se.peekString().ptr);
                 }
                 return noDeclarations();
@@ -1794,7 +1794,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 (*pd.args)[0] = se;
 
                 auto name = se.peekString().xarraydup;
-                if (global.params.verbose)
+                if (global.params.v.verbose)
                     message("library   %s", name.ptr);
                 if (global.params.moduleDeps.buffer && !global.params.moduleDeps.name)
                 {
@@ -1888,7 +1888,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return declarations();
         }
 
-        if (!global.params.verbose)
+        if (!global.params.v.verbose)
             return declarations();
 
         /* Print unrecognized pragmas
@@ -1944,7 +1944,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         const bool doUnittests = global.params.useUnitTests || global.params.ddoc.doOutput || global.params.dihdr.doOutput;
         auto loc = adjustLocForMixin(str, cd.loc, global.params.mixinOut);
         scope p = new Parser!ASTCodegen(loc, sc._module, str, false, global.errorSink, &global.compileEnv, doUnittests);
-        p.transitionIn = global.params.vin;
+        p.transitionIn = global.params.v.vin;
         p.nextToken();
 
         auto d = p.parseDeclDefs(0);
@@ -4053,7 +4053,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         funcdecl._scope.setNoFree();
 
         __gshared bool printedMain = false; // semantic might run more than once
-        if (global.params.verbose && !printedMain)
+        if (global.params.v.verbose && !printedMain)
         {
             const(char)* type = funcdecl.isMain() ? "main" : funcdecl.isWinMain() ? "winmain" : funcdecl.isDllMain() ? "dllmain" : cast(const(char)*)null;
             Module mod = sc._module;

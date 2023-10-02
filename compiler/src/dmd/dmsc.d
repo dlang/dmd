@@ -73,7 +73,7 @@ void backend_init()
         false, //params.trace,
         driverParams.nofloat,
         driverParams.vasm,
-        params.verbose,
+        params.v.verbose,
         driverParams.optimize,
         driverParams.symdebug,
         driverParams.alwaysframe,
