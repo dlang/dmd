@@ -1430,18 +1430,19 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
                 /* ti.toObjFile() won't get called. So, store these
                  * member functions into object file in here.
                  */
+                const bool multi = global.params.obj.multiobj;
                 if (sd.xeq && sd.xeq != StructDeclaration.xerreq)
-                    toObjFile(sd.xeq, global.params.multiobj);
+                    toObjFile(sd.xeq, multi);
                 if (sd.xcmp && sd.xcmp != StructDeclaration.xerrcmp)
-                    toObjFile(sd.xcmp, global.params.multiobj);
+                    toObjFile(sd.xcmp, multi);
                 if (FuncDeclaration ftostr = search_toString(sd))
-                    toObjFile(ftostr, global.params.multiobj);
+                    toObjFile(ftostr, multi);
                 if (sd.xhash)
-                    toObjFile(sd.xhash, global.params.multiobj);
+                    toObjFile(sd.xhash, multi);
                 if (sd.postblit)
-                    toObjFile(sd.postblit, global.params.multiobj);
+                    toObjFile(sd.postblit, multi);
                 if (sd.dtor)
-                    toObjFile(sd.dtor, global.params.multiobj);
+                    toObjFile(sd.dtor, multi);
             }
         }
 

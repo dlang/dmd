@@ -234,7 +234,7 @@ public int runLINK()
     {
         const(char)[] fn = FileName.forceExt(global.params.exefile, map_ext);
         const(char)[] path = FileName.path(global.params.exefile);
-        return path.length ? fn : FileName.combine(global.params.objdir, fn);
+        return path.length ? fn : FileName.combine(global.params.obj.dir, fn);
     }
 
     version (Windows)
@@ -623,7 +623,7 @@ public int runLINK()
             {
                 const(char)[] fn = FileName.forceExt(global.params.exefile, map_ext);
                 const(char)[] path = FileName.path(global.params.exefile);
-                global.params.mapfile = path.length ? fn : FileName.combine(global.params.objdir, fn);
+                global.params.mapfile = path.length ? fn : FileName.combine(global.params.obj.dir, fn);
             }
             argv.push("-Xlinker");
             argv.push(global.params.mapfile.xarraydup.ptr);
@@ -782,6 +782,7 @@ public int runLINK()
         {
             // Print it
             OutBuffer buf;
+            buf.writestring("linker ");
             for (size_t i = 0; i < argv.length; i++)
             {
                 buf.writestring(argv[i]);

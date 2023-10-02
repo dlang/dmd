@@ -96,7 +96,7 @@ extern (C++) void genTypeInfo(Expression e, const ref Loc loc, Type torig, Scope
             }
             else // if in obj generation pass
             {
-                toObjFile(t.vtinfo, global.params.multiobj);
+                toObjFile(t.vtinfo, global.params.obj.multiobj);
             }
         }
     }

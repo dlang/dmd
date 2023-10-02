@@ -606,7 +606,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 const ext = FileName.ext(arg);
                 if (ext.length && FileName.equals(ext, "exe"))
                 {
-                    params.objname = arg;
+                    params.obj.name = arg;
                     continue;
                 }
                 if (arg == "/?")
@@ -802,7 +802,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         else if (arg == "-map") // https://dlang.org/dmd.html#switch-map
             driverParams.map = true;
         else if (arg == "-multiobj")
-            params.multiobj = true;
+            params.obj.multiobj = true;
         else if (startsWith(p + 1, "mixin="))
         {
             auto tmp = p + 6 + 1;
@@ -1181,7 +1181,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         else if (arg == "-O")   // https://dlang.org/dmd.html#switch-O
             driverParams.optimize = true;
         else if (arg == "-o-")  // https://dlang.org/dmd.html#switch-o-
-            params.obj = false;
+            params.obj.doOutput = false;
         else if (p[1] == 'o')
         {
             const(char)* path;
@@ -1195,7 +1195,8 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 {
                     path = toWinPath(path);
                 }
-                params.objdir = path.toDString;
+                params.obj.dir = path.toDString;
+                params.lib.dir = params.obj.dir;
                 break;
             case 'f':                       // https://dlang.org/dmd.html#switch-of
                 if (!p[3])
@@ -1205,7 +1206,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 {
                     path = toWinPath(path);
                 }
-                params.objname = path.toDString;
+                params.obj.name = path.toDString;
                 break;
             case 'p':                       // https://dlang.org/dmd.html#switch-op
                 if (p[3])
@@ -1379,7 +1380,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.ehnogc = true;
         }
         else if (arg == "-lib")         // https://dlang.org/dmd.html#switch-lib
-            driverParams.lib = true;
+        {
+            params.lib.doOutput = true; // Write library files instead of object files
+            params.obj.doOutput = false;
+        }
         else if (arg == "-nofloat")
             driverParams.nofloat = true;
         else if (arg == "-quiet")
