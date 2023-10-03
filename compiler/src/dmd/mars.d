@@ -1469,9 +1469,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 }
                 else if (Identifier.isValidIdentifier(p + 7))
                 {
-                    if (!params.debugids)
-                        params.debugids = new Array!(const(char)*);
-                    params.debugids.push(p + 7);
+                    DebugCondition.addGlobalIdent((p + 7).toDString());
                 }
                 else
                     goto Lerror;
@@ -1499,10 +1497,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 }
                 else if (Identifier.isValidIdentifier(p + 9))
                 {
-
-                    if (!params.versionids)
-                        params.versionids = new Array!(const(char)*);
-                    params.versionids.push(p + 9);
+                    VersionCondition.addGlobalIdent((p+9).toDString());
                 }
                 else
                     goto Lerror;

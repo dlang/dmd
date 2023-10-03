@@ -280,15 +280,6 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     }
 
     reconcileCommands(params, target);
-
-    // Add in command line versions
-    if (params.versionids)
-        foreach (charz; *params.versionids)
-            VersionCondition.addGlobalIdent(charz.toDString());
-    if (params.debugids)
-        foreach (charz; *params.debugids)
-            DebugCondition.addGlobalIdent(charz.toDString());
-
     setDefaultLibrary(params, target);
 
     // Initialization

@@ -218,10 +218,7 @@ struct Param
     Output moduleDeps;        // Generate `.deps` module dependencies
 
     unsigned debuglevel;   // debug level
-    Array<const char *> *debugids;     // debug identifiers
-
     unsigned versionlevel; // version level
-    Array<const char *> *versionids;   // version identifiers
 
     d_bool run;           // run resulting executable
     Strings runargs;    // arguments for executable

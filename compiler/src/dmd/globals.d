@@ -233,10 +233,7 @@ extern (C++) struct Param
     Output moduleDeps;                  // Generate `.deps` module dependencies
 
     uint debuglevel;                    // debug level
-    Array!(const(char)*)* debugids;     // debug identifiers
-
     uint versionlevel;                  // version level
-    Array!(const(char)*)* versionids;   // version identifiers
 
     bool run; // run resulting executable
     Strings runargs; // arguments for executable
