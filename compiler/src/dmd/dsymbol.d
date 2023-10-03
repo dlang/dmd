@@ -2140,7 +2140,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                      */
                     if (exp.op == EXP.array && (cast(ArrayExp)exp).arguments.length != 1)
                     {
-                        exp.error("`%s` only defines opDollar for one dimension", ad.toChars());
+                        error(exp.loc, "`%s` only defines opDollar for one dimension", ad.toChars());
                         return null;
                     }
                     Declaration d = s.isDeclaration();
@@ -2149,7 +2149,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                 }
                 e = e.expressionSemantic(sc);
                 if (!e.type)
-                    exp.error("`%s` has no value", e.toChars());
+                    error(exp.loc, "`%s` has no value", e.toChars());
                 t = e.type.toBasetype();
                 if (t && t.ty == Tfunction)
                     e = new CallExp(e.loc, e);

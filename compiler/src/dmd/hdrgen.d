@@ -92,9 +92,9 @@ extern (C++) void genhdrfile(Module m, ref OutBuffer buf)
  * Turn a Statement into a string suitable for printf.
  * Leaks memory.
  * Params:
- *	s = Statement to convert
+ *      s = Statement to convert
  * Returns:
- *	0-terminated string
+ *      0-terminated string
  */
 public extern (C++) const(char)* toChars(const Statement s)
 {

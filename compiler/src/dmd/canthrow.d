@@ -20,6 +20,7 @@ import dmd.astenums;
 import dmd.blockexit : BE, checkThrow;
 import dmd.declaration;
 import dmd.dsymbol;
+import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
@@ -75,7 +76,7 @@ extern (C++) /* CT */ BE canThrow(Expression e, FuncDeclaration func, bool mustN
             {
                 if (mustNotThrow)
                 {
-                    e.error("%s `%s` is not `nothrow`", f.kind(), f.toPrettyChars());
+                    error(e.loc, "%s `%s` is not `nothrow`", f.kind(), f.toPrettyChars());
                     if (!f.isDtorDeclaration())
                         errorSupplementalInferredAttr(f, 10, false, STC.nothrow_);
 
@@ -143,7 +144,7 @@ extern (C++) /* CT */ BE canThrow(Expression e, FuncDeclaration func, bool mustN
                 auto e1 = ce.e1;
                 if (auto pe = e1.isPtrExp())   // print 'fp' if e1 is (*fp)
                     e1 = pe.e1;
-                ce.error("`%s` is not `nothrow`", e1.toChars());
+                error(ce.loc, "`%s` is not `nothrow`", e1.toChars());
             }
             result |= CT.exception;
         }
