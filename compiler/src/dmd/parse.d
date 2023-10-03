@@ -8899,7 +8899,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                                 {
                                     e = parseUnaryExp();
                                     e = new AST.CastExp(loc, e, t);
-                                    error("C style cast illegal, use `%s`", e.toChars());
+                                    error(loc, "C style cast illegal, use `%s`", e.toChars());
                                 }
                                 return e;
                             }
