@@ -1271,7 +1271,24 @@ UnionExp Slice(Type type, Expression e1, Expression lwr, Expression upr)
         const uinteger_t ilwr = lwr.toInteger();
         const uinteger_t iupr = upr.toInteger();
         if (sliceBoundsCheck(0, es1.elements.length, ilwr, iupr))
-            cantExp(ue);
+        {
+            bool isError = false;
+            if (lwr.op == EXP.int64 && upr.op == EXP.int64 && ilwr > iupr)
+            {
+                e1.error("in slice `%s[%llu..%llu]`, lower bound is greater than upper bound", e1.toChars, ilwr, iupr);
+                isError = true;
+            }
+            if (upr.op == EXP.int64 && iupr > es1.elements.length)
+            {
+                e1.error("in slice `%s[%llu..%llu]`, upper bound is greater than array length `%llu`", e1.toChars, ilwr, iupr, es1.elements.length);
+                isError = true;
+            }
+
+            if (isError)
+                emplaceExp!(ErrorExp)(&ue);
+            else
+                cantExp(ue);
+        }
         else
         {
             auto elements = new Expressions(cast(size_t)(iupr - ilwr));
@@ -1279,12 +1296,34 @@ UnionExp Slice(Type type, Expression e1, Expression lwr, Expression upr)
             emplaceExp!(ArrayLiteralExp)(&ue, e1.loc, type, elements);
         }
     }
+    else if (e1.type.toBasetype().ty == Tsarray) {
+        TypeSArray tsa = cast(TypeSArray)e1.type.toBasetype();
+        uinteger_t length = tsa.dim.toInteger();
+        bool isError = false;
+        if (lwr.op == EXP.int64 && upr.op == EXP.int64 && lwr.toInteger() > upr.toInteger())
+        {
+            e1.error("in slice `%s[%llu..%llu]`, lower bound is greater than upper bound", e1.toChars, lwr.toInteger(), upr.toInteger());
+            isError = true;
+        }
+        if (upr.op == EXP.int64 && upr.toInteger() > length)
+        {
+            e1.error("in slice `%s[%llu..%llu]`, upper bound is greater than array length `%llu`", e1.toChars, lwr.toInteger(), upr.toInteger(), length);
+            isError = true;
+        }
+
+        if (isError)
+            emplaceExp!(ErrorExp)(&ue);
+        else
+            cantExp(ue);
+    }
     else
         cantExp(ue);
     return ue;
 }
 
 /* Check whether slice `[newlwr .. newupr]` is in the range `[lwr .. upr]`
+ *
+ * Returns true if the check fails; false otherwise
  */
 bool sliceBoundsCheck(uinteger_t lwr, uinteger_t upr, uinteger_t newlwr, uinteger_t newupr) pure @safe
 {

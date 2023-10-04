@@ -1520,12 +1520,18 @@ extern (C++) class VarDeclaration : Declaration
             }
             else
             {
-                // __ArrayDtor(v[0 .. n])
+                // __ArrayDtor((cast(T[n])v)[0 .. n])
                 e = new VarExp(loc, this);
 
                 const sdsz = sd.type.size();
                 assert(sdsz != SIZE_INVALID && sdsz != 0);
                 const n = sz / sdsz;
+
+                Type sty = sd.type.sarrayOf(n);
+
+                e = new CastExp(loc, e, sty);
+                e.type = sty;
+
                 SliceExp se = new SliceExp(loc, e, new IntegerExp(loc, 0, Type.tsize_t),
                     new IntegerExp(loc, n, Type.tsize_t));
 
