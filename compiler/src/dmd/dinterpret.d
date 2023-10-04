@@ -1419,7 +1419,7 @@ Expression interpretStatement(UnionExp* pue, Statement s, InterState* istate)
                     setValue(ca.var, ex.thrown);
                 }
                 e = interpretStatement(ca.handler, istate);
-                if (CTFEExp.isGotoExp(e))
+                while (CTFEExp.isGotoExp(e))
                 {
                     /* This is an optimization that relies on the locality of the jump target.
                      * If the label is in the same catch handler, the following scan
@@ -1431,11 +1431,19 @@ Expression interpretStatement(UnionExp* pue, Statement s, InterState* istate)
                     istatex.start = istate.gotoTarget; // set starting statement
                     istatex.gotoTarget = null;
                     Expression eh = interpretStatement(ca.handler, &istatex);
-                    if (!istatex.start)
+                    if (istatex.start)
                     {
-                        istate.gotoTarget = null;
-                        e = eh;
+                        // The goto target is outside the current scope.
+                        break;
                     }
+                    // The goto target was within the body.
+                    if (CTFEExp.isCantExp(eh))
+                    {
+                        e = eh;
+                        break;
+                    }
+                    *istate = istatex;
+                    e = eh;
                 }
                 break;
             }
@@ -1562,7 +1570,7 @@ Expression interpretStatement(UnionExp* pue, Statement s, InterState* istate)
         ctfeGlobals.stack.push(s.wthis);
         setValue(s.wthis, e);
         e = interpretStatement(s._body, istate);
-        if (CTFEExp.isGotoExp(e))
+        while (CTFEExp.isGotoExp(e))
         {
             /* This is an optimization that relies on the locality of the jump target.
              * If the label is in the same WithStatement, the following scan
@@ -1574,11 +1582,19 @@ Expression interpretStatement(UnionExp* pue, Statement s, InterState* istate)
             istatex.start = istate.gotoTarget; // set starting statement
             istatex.gotoTarget = null;
             Expression ex = interpretStatement(s._body, &istatex);
-            if (!istatex.start)
+            if (istatex.start)
             {
-                istate.gotoTarget = null;
-                e = ex;
+                // The goto target is outside the current scope.
+                break;
             }
+            // The goto target was within the body.
+            if (CTFEExp.isCantExp(ex))
+            {
+                e = ex;
+                break;
+            }
+            *istate = istatex;
+            e = ex;
         }
         ctfeGlobals.stack.pop(s.wthis);
         result = e;
