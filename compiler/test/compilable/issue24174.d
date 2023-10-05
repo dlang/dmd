@@ -34,5 +34,3 @@ bool func2() {
 
 pragma(msg, func1());
 pragma(msg, func2());
-
-void main() {}
