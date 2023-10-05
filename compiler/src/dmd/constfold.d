@@ -1273,12 +1273,12 @@ UnionExp Slice(Type type, Expression e1, Expression lwr, Expression upr)
         if (sliceBoundsCheck(0, es1.elements.length, ilwr, iupr))
         {
             bool isError = false;
-            if (lwr.op == EXP.int64 && upr.op == EXP.int64 && ilwr > iupr)
+            if (ilwr > iupr)
             {
                 e1.error("in slice `%s[%llu..%llu]`, lower bound is greater than upper bound", e1.toChars, ilwr, iupr);
                 isError = true;
             }
-            if (upr.op == EXP.int64 && iupr > es1.elements.length)
+            if (iupr > es1.elements.length)
             {
                 e1.error("in slice `%s[%llu..%llu]`, upper bound is greater than array length `%llu`", e1.toChars, ilwr, iupr, es1.elements.length);
                 isError = true;
@@ -1296,7 +1296,8 @@ UnionExp Slice(Type type, Expression e1, Expression lwr, Expression upr)
             emplaceExp!(ArrayLiteralExp)(&ue, e1.loc, type, elements);
         }
     }
-    else if (e1.type.toBasetype().ty == Tsarray) {
+    else if (e1.type.toBasetype().ty == Tsarray)
+    {
         TypeSArray tsa = cast(TypeSArray)e1.type.toBasetype();
         uinteger_t length = tsa.dim.toInteger();
         bool isError = false;
