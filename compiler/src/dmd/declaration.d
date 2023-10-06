@@ -1527,6 +1527,12 @@ extern (C++) class VarDeclaration : Declaration
                 assert(sdsz != SIZE_INVALID && sdsz != 0);
                 const n = sz / sdsz;
 
+                // The cast to an static array of size n needs to be done here to explicitly
+                // cast any multi-dimensional array into its lineralized form. This is safe to
+                // do since multi-dimensional arrays are layed out linearly in memory.
+                // Doing this prevents the compiler down the line to report an error to the user,
+                // which might be confused since this here is generated code the user didn't 
+                // explicitly wrote.
                 Type sty = sd.type.sarrayOf(n);
 
                 e = new CastExp(loc, e, sty);
