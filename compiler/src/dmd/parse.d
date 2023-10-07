@@ -6329,10 +6329,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             {
                 nextToken();
                 check(TOK.leftParenthesis);
+                auto param = parseAssignCondition();
                 AST.Expression condition = parseExpression();
                 closeCondition("switch", null, condition);
                 AST.Statement _body = parseStatement(ParseStatementFlags.scope_);
-                s = new AST.SwitchStatement(loc, condition, _body, isfinal);
+                s = new AST.SwitchStatement(loc, param, condition, _body, isfinal, token.loc);
                 break;
             }
         case TOK.case_:

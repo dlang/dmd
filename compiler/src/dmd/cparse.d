@@ -504,7 +504,7 @@ final class CParser(AST) : Parser!AST
             auto condition = cparseExpression();
             check(TOK.rightParenthesis);
             auto _body = cparseStatement(ParseStatementFlags.scope_);
-            s = new AST.SwitchStatement(loc, condition, _body, false);
+            s = new AST.SwitchStatement(loc, null, condition, _body, false, token.loc);
             break;
         }
 
