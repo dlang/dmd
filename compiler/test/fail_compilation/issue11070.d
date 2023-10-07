@@ -11,7 +11,7 @@ void test() {
     import std.stdio : writeln;
     switch (auto x = get()) {
         default:
-            writeln("inside switch: ", x);
+            auto z = x;
     }
-    writeln("outside switch: ", x);
+    x = 1;
 }

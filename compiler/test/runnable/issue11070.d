@@ -7,10 +7,10 @@ inside switch: 1
 int get() { return 1; }
 
 void test() {
-    import std.stdio : writeln;
+    import core.stdc.stdio : printf;
     switch (auto x = get()) {
         default:
-            writeln("inside switch: ", x);
+            printf("inside switch: %d\n", x);
     }
 }
 
