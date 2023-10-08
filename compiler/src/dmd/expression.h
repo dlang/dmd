@@ -93,9 +93,6 @@ public:
     DYNCAST dyncast() const override final { return DYNCAST_EXPRESSION; }
 
     const char *toChars() const override;
-    void error(const char *format, ...) const;
-    void warning(unsigned flag, const char *format, ...) const;
-    void deprecation(const char *format, ...) const;
 
     virtual dinteger_t toInteger();
     virtual uinteger_t toUInteger();

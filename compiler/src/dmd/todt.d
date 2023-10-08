@@ -221,7 +221,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
         {
             printf("Expression.toDt() op = %d e = %s \n", e.op, e.toChars());
         }
-        e.error("non-constant expression `%s`", e.toChars());
+        error(e.loc, "non-constant expression `%s`", e.toChars());
         dtb.nzeros(1);
     }
 
@@ -487,7 +487,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
     {
         if (!e.lowering)
         {
-            e.error("internal compiler error: failed to detect static initialization of associative array");
+            error(e.loc, "internal compiler error: failed to detect static initialization of associative array");
             assert(0);
         }
         Expression_toDt(e.lowering, dtb);
@@ -522,7 +522,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
             if ((v.isConst() || v.isImmutable()) &&
                 e.type.toBasetype().ty != Tsarray && v._init)
             {
-                e.error("recursive reference `%s`", e.toChars());
+                error(e.loc, "recursive reference `%s`", e.toChars());
                 return;
             }
             v.inuse++;

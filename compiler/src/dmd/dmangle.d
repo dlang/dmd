@@ -142,6 +142,7 @@ import dmd.declaration;
 import dmd.dmodule;
 import dmd.dsymbol;
 import dmd.dtemplate;
+import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
@@ -888,7 +889,7 @@ public:
                 buf.writeByte('V');
                 if (ea.op == EXP.tuple)
                 {
-                    ea.error("sequence is not a valid template value argument");
+                    error(ea.loc, "sequence is not a valid template value argument");
                     continue;
                 }
                 // Now that we know it is not an alias, we MUST obtain a value
@@ -982,7 +983,8 @@ public:
     ////////////////////////////////////////////////////////////////////////////
     override void visit(Expression e)
     {
-        e.error("expression `%s` is not a valid template value argument", e.toChars());
+        if (!e.type.isTypeError())
+            error(e.loc, "expression `%s` is not a valid template value argument", e.toChars());
     }
 
     override void visit(IntegerExp e)
@@ -1040,7 +1042,7 @@ public:
             {
                 dchar c;
                 if (const s = utf_decodeWchar(slice, u, c))
-                    e.error("%.*s", cast(int)s.length, s.ptr);
+                    error(e.loc, "%.*s", cast(int)s.length, s.ptr);
                 else
                     tmp.writeUTF8(c);
             }
@@ -1054,7 +1056,7 @@ public:
             foreach (c; slice)
             {
                 if (!utf_isValidDchar(c))
-                    e.error("invalid UCS-32 char \\U%08x", c);
+                    error(e.loc, "invalid UCS-32 char \\U%08x", c);
                 else
                     tmp.writeUTF8(c);
             }

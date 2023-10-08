@@ -987,10 +987,6 @@ public:
     virtual Expression* syntaxCopy();
     DYNCAST dyncast() const final override;
     const char* toChars() const override;
-    void error(const char* format, ...) const;
-    void errorSupplemental(const char* format, ...);
-    void warning(const char* format, ...) const;
-    void deprecation(const char* format, ...) const;
     virtual dinteger_t toInteger();
     virtual uinteger_t toUInteger();
     virtual _d_real toReal();

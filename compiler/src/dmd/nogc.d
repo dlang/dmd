@@ -86,7 +86,7 @@ public:
         }
         if (f.setGC(e.loc, format))
         {
-            e.error(format, f.kind(), f.toPrettyChars());
+            error(e.loc, format, f.kind(), f.toPrettyChars());
             err = true;
             return true;
         }

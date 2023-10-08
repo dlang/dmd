@@ -131,7 +131,7 @@ private Expression checkAssignmentAsCondition(Expression e, Scope* sc)
     auto ec = lastComma(e);
     if (ec.op == EXP.assign)
     {
-        ec.error("assignment cannot be used as a condition, perhaps `==` was meant?");
+        error(ec.loc, "assignment cannot be used as a condition, perhaps `==` was meant?");
         return ErrorExp.get();
     }
     return e;
@@ -666,7 +666,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             const olderrors = global.startGagging();
             discardValue(fs.increment);
             if (global.endGagging(olderrors))
-                fs.increment.deprecation("`%s` has no effect", fs.increment.toChars());
+                deprecation(fs.increment.loc, "`%s` has no effect", fs.increment.toChars());
             if (checkNonAssignmentArrayOp(fs.increment))
                 fs.increment = ErrorExp.get();
             fs.increment = fs.increment.optimize(WANTvalue);
@@ -2631,7 +2631,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                     //errors = true;
                 }
                 if (global.endGagging(olderrors))
-                    rs.exp.deprecation("`%s` has no effect", rs.exp.toChars());
+                    deprecation(rs.exp.loc, "`%s` has no effect", rs.exp.toChars());
 
                 /* Replace:
                  *      return exp;

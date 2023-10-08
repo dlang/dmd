@@ -106,7 +106,7 @@ public Expression inlineCopy(Expression e, Scope* sc)
     int cost = inlineCostExpression(e);
     if (cost >= COST_MAX)
     {
-        e.error("cannot inline default argument `%s`", e.toChars());
+        error(e.loc, "cannot inline default argument `%s`", e.toChars());
         return ErrorExp.get();
     }
     scope ids = new InlineDoState(sc.parent, null);

@@ -6217,7 +6217,7 @@ extern (C++) final class TypeTuple : Type
             {
                 Expression e = (*exps)[i];
                 if (e.type.ty == Ttuple)
-                    e.error("cannot form sequence of sequences");
+                    error(e.loc, "cannot form sequence of sequences");
                 auto arg = new Parameter(e.loc, STC.undefined_, e.type, null, null, null);
                 (*arguments)[i] = arg;
             }

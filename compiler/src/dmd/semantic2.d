@@ -748,7 +748,7 @@ private void doGNUABITagSemantic(ref Expression e, ref Expression* lastTag)
     // When `@gnuAbiTag` is used, the type will be the UDA, not the struct literal
     if (e.op == EXP.type)
     {
-        e.error("`@%s` at least one argument expected", Id.udaGNUAbiTag.toChars());
+        error(e.loc, "`@%s` at least one argument expected", Id.udaGNUAbiTag.toChars());
         return;
     }
 
@@ -766,7 +766,7 @@ private void doGNUABITagSemantic(ref Expression e, ref Expression* lastTag)
     auto ale = (*sle.elements)[0].isArrayLiteralExp();
     if (ale is null)
     {
-        e.error("`@%s` at least one argument expected", Id.udaGNUAbiTag.toChars());
+        error(e.loc, "`@%s` at least one argument expected", Id.udaGNUAbiTag.toChars());
         return;
     }
 
@@ -775,8 +775,8 @@ private void doGNUABITagSemantic(ref Expression e, ref Expression* lastTag)
     {
         const str1 = (*lastTag.isStructLiteralExp().elements)[0].toString();
         const str2 = ale.toString();
-        e.error("only one `@%s` allowed per symbol", Id.udaGNUAbiTag.toChars());
-        e.errorSupplemental("instead of `@%s @%s`, use `@%s(%.*s, %.*s)`",
+        error(e.loc, "only one `@%s` allowed per symbol", Id.udaGNUAbiTag.toChars());
+        errorSupplemental(e.loc, "instead of `@%s @%s`, use `@%s(%.*s, %.*s)`",
             lastTag.toChars(), e.toChars(), Id.udaGNUAbiTag.toChars(),
             // Avoid [ ... ]
             cast(int)str1.length - 2, str1.ptr + 1,
@@ -792,7 +792,7 @@ private void doGNUABITagSemantic(ref Expression e, ref Expression* lastTag)
         const str = elem.toStringExp().peekString();
         if (!str.length)
         {
-            e.error("argument `%d` to `@%s` cannot be %s", cast(int)(idx + 1),
+            error(e.loc, "argument `%d` to `@%s` cannot be %s", cast(int)(idx + 1),
                     Id.udaGNUAbiTag.toChars(),
                     elem.isNullExp() ? "`null`".ptr : "empty".ptr);
             continue;
@@ -802,7 +802,7 @@ private void doGNUABITagSemantic(ref Expression e, ref Expression* lastTag)
         {
             if (!c.isValidMangling())
             {
-                e.error("`@%s` char `0x%02x` not allowed in mangling",
+                error(e.loc, "`@%s` char `0x%02x` not allowed in mangling",
                         Id.udaGNUAbiTag.toChars(), c);
                 break;
             }

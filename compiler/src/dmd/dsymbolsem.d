@@ -205,7 +205,7 @@ const(char)* getMessage(DeprecatedDeclaration dd)
         if (auto se = dd.msg.toStringExp())
             dd.msgstr = se.toStringz().ptr;
         else
-            dd.msg.error("compile time constant expected, not `%s`", dd.msg.toChars());
+            error(dd.msg.loc, "compile time constant expected, not `%s`", dd.msg.toChars());
     }
     return dd.msgstr;
 }
@@ -1333,18 +1333,18 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (!dsym.type.isintegral())
         {
             // C11 6.7.2.1-5
-            width.error("bit-field type `%s` is not an integer type", dsym.type.toChars());
+            error(width.loc, "bit-field type `%s` is not an integer type", dsym.type.toChars());
             dsym.errors = true;
         }
         if (!width.isIntegerExp())
         {
-            width.error("bit-field width `%s` is not an integer constant", dsym.width.toChars());
+            error(width.loc, "bit-field width `%s` is not an integer constant", dsym.width.toChars());
             dsym.errors = true;
         }
         const uwidth = width.toInteger(); // uwidth is unsigned
         if (uwidth == 0 && !dsym.isAnonymous())
         {
-            width.error("bit-field `%s` has zero width", dsym.toChars());
+            error(width.loc, "bit-field `%s` has zero width", dsym.toChars());
             dsym.errors = true;
         }
         const sz = dsym.type.size();
@@ -1353,7 +1353,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         const max_width = sz * 8;
         if (uwidth > max_width)
         {
-            width.error("width `%lld` of bit-field `%s` does not fit in type `%s`", cast(long)uwidth, dsym.toChars(), dsym.type.toChars());
+            error(width.loc, "width `%lld` of bit-field `%s` does not fit in type `%s`", cast(long)uwidth, dsym.toChars(), dsym.type.toChars());
             dsym.errors = true;
         }
         dsym.fieldWidth = cast(uint)uwidth;
@@ -1712,7 +1712,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                             e = se;
                         }
                         else
-                            e.error("must be a string");
+                            error(e.loc, "must be a string");
                     }
                     if (agg)
                     {
@@ -1990,7 +1990,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             const sident = se.toStringz();
             if (!sident.length || !Identifier.isValidIdentifier(sident))
             {
-                ns.exp.error("expected valid identifier for C++ namespace but got `%.*s`",
+                error(ns.exp.loc, "expected valid identifier for C++ namespace but got `%.*s`",
                              cast(int)sident.length, sident.ptr);
                 return null;
             }
@@ -2028,7 +2028,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         return; // An error happened in `identFromSE`
                 }
                 else
-                    ns.exp.error("`%s`: index %llu is not a string constant, it is a `%s`",
+                    error(ns.exp.loc, "`%s`: index %llu is not a string constant, it is a `%s`",
                                  ns.exp.toChars(), cast(ulong) d, ns.exp.type.toChars());
             }
         }
@@ -2038,8 +2038,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         else if (ns.exp.isTypeExp() && ns.exp.isTypeExp().type.toBasetype().isTypeTuple())
         {
         }
-        else
-            ns.exp.error("compile time string constant (or sequence) expected, not `%s`",
+        else if (!ns.exp.type.isTypeError())
+            error(ns.exp.loc, "compile time string constant (or sequence) expected, not `%s`",
                          ns.exp.toChars());
         attribSemantic(ns);
     }
