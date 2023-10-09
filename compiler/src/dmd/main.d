@@ -484,7 +484,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         for (size_t i = 0; i < Module.deferred.length; i++)
         {
             Dsymbol sd = Module.deferred[i];
-            sd.error("unable to resolve forward reference in definition");
+            error(sd.loc, "%s `%s` unable to resolve forward reference in definition", sd.kind(), sd.toPrettyChars());
         }
         //fatal();
     }
