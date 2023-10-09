@@ -1141,7 +1141,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         else if (auto ale = ex.isArrayLiteralExp())
                         {
                             // or an array literal assigned to a `scope` variable
-                            if (global.params.useDIP1000 == FeatureState.enabled
+                            if (sc.useDIP1000 == FeatureState.enabled
                                 && !dsym.type.nextOf().needsDestruction())
                                 ale.onstack = true;
                         }
