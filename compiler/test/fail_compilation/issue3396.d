@@ -2,7 +2,7 @@
 TEST_OUTPUT:
 ---
 fail_compilation/issue3396.d(17): Error: call to unimplemented abstract function `void M()`
-fail_compilation/issue3396.d(12):        declared here
+fail_compilation/issue3396.d(17):        declared here: fail_compilation/issue3396.d(12)
 ---
 */
 module issue3396;
