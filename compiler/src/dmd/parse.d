@@ -6247,9 +6247,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 if (auto ds = parseDebugSpecification())
                 {
                     if (ds.ident)
-                        ds.error("declaration must be at module level");
+                        eSink.error(ds.loc, "%s `%s` declaration must be at module level", ds.kind, ds.toPrettyChars);
                     else
-                        ds.error("level declaration must be at module level");
+                        eSink.error(ds.loc, "%s `%s` level declaration must be at module level", ds.kind, ds.toPrettyChars);
                 }
                 break;
             }
@@ -6263,9 +6263,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 if (auto vs = parseVersionSpecification())
                 {
                     if (vs.ident)
-                        vs.error("declaration must be at module level");
+                        eSink.error(vs.loc, "%s `%s` declaration must be at module level", vs.kind, vs.toPrettyChars);
                     else
-                        vs.error("level declaration must be at module level");
+                        eSink.error(vs.loc, "%s `%s` level declaration must be at module level", vs.kind, vs.toPrettyChars);
                 }
                 break;
             }

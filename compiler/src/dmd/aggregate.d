@@ -453,7 +453,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
                     assert(!vx._init.isVoidInitializer());
                     if (vx.inuse)   // https://issues.dlang.org/show_bug.cgi?id=18057
                     {
-                        vx.error(loc, "recursive initialization of field");
+                        .error(loc, "%s `%s` recursive initialization of field", vx.kind(), vx.toPrettyChars());
                         errors = true;
                     }
                     else

@@ -326,12 +326,12 @@ extern (C++) abstract class Declaration : Dsymbol
                             continue;
                         if (sdv.postblit.isDisabled())
                         {
-                            p.error(loc, "is not copyable because field `%s` is not copyable", structField.toChars());
+                            .error(loc, "%s `%s` is not copyable because field `%s` is not copyable", p.kind, p.toPrettyChars, structField.toChars());
                             return true;
                         }
                     }
                 }
-                p.error(loc, "is not copyable because it has a disabled postblit");
+                .error(loc, "%s `%s` is not copyable because it has a disabled postblit", p.kind, p.toPrettyChars);
                 return true;
             }
         }
@@ -945,7 +945,7 @@ extern (C++) final class AliasDeclaration : Declaration
         }
         if (inuse)
         {
-            error("recursive alias declaration");
+            .error(loc, "%s `%s` recursive alias declaration", kind, toPrettyChars);
 
         Lerr:
             // Avoid breaking "recursive alias" state during errors gagged
@@ -1003,7 +1003,7 @@ extern (C++) final class AliasDeclaration : Declaration
     {
         if (inuse)
         {
-            error("recursive alias declaration");
+            .error(loc, "%s `%s` recursive alias declaration", kind, toPrettyChars);
             return this;
         }
         inuse = 1;
@@ -1377,7 +1377,7 @@ extern (C++) class VarDeclaration : Declaration
             Dsymbol parent = toParent();
             if (!parent && !(storage_class & STC.static_))
             {
-                error("forward referenced");
+                .error(loc, "%s `%s` forward referenced", kind, toPrettyChars);
                 type = Type.terror;
             }
             else if (storage_class & (STC.static_ | STC.extern_ | STC.gshared) ||

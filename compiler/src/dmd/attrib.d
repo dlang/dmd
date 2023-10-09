@@ -665,7 +665,7 @@ extern (C++) final class VisibilityDeclaration : AttribDeclaration
             {
                 Package pkg = m.parent ? m.parent.isPackage() : null;
                 if (!pkg || !visibility.pkg.isAncestorPackageOf(pkg))
-                    error("does not bind to one of ancestor packages of module `%s`", m.toPrettyChars(true));
+                    .error(loc, "%s `%s` does not bind to one of ancestor packages of module `%s`", kind(), toPrettyChars(false), m.toPrettyChars(true));
             }
         }
         return AttribDeclaration.addMember(sc, sds);
