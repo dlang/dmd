@@ -4646,7 +4646,7 @@ public:
 class SwitchStatement final : public Statement
 {
 public:
-    Parameter *param;
+    Parameter* param;
     Expression* condition;
     Statement* _body;
     bool isFinal;
