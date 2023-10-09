@@ -716,6 +716,14 @@ MATCH implicitConvTo(Expression e, Type t)
                     if (e.postfix != 'd')
                         m = MATCH.convert;
                     return m;
+                case Tint8:
+                case Tuns8:
+                    if (e.hexString)
+                    {
+                        m = MATCH.convert;
+                        return m;
+                    }
+                    break;
                 case Tenum:
                     if (tn.isTypeEnum().sym.isSpecial())
                     {

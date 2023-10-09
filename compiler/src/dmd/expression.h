@@ -377,6 +377,7 @@ public:
     size_t len;         // number of chars, wchars, or dchars
     unsigned char sz;   // 1: char, 2: wchar, 4: dchar
     bool committed;     // if type is committed
+    bool hexString;     // if string is parsed from a hex string literal
 
     static StringExp *create(const Loc &loc, const char *s);
     static StringExp *create(const Loc &loc, const void *s, d_size_t len);

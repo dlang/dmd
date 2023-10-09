@@ -2497,6 +2497,9 @@ extern (C++) final class StringExp : Expression
      */
     bool committed;
 
+    /// If the string is parsed from a hex string literal
+    bool hexString = false;
+
     enum char NoPostfix = 0;
 
     extern (D) this(const ref Loc loc, const(void)[] string) scope

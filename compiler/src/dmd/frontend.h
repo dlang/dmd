@@ -7065,7 +7065,7 @@ private:
         char realexp[48LLU];
         char complexexp[64LLU];
         char symoffexp[64LLU];
-        char stringexp[50LLU];
+        char stringexp[51LLU];
         char arrayliteralexp[48LLU];
         char assocarrayliteralexp[56LLU];
         char structliteralexp[76LLU];
@@ -7228,6 +7228,7 @@ public:
     size_t len;
     uint8_t sz;
     bool committed;
+    bool hexString;
     enum : char { NoPostfix = 0u };
 
     static StringExp* create(const Loc& loc, const char* s);
