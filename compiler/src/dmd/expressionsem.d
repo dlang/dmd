@@ -3209,7 +3209,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             const explicitScope = p.isLazy() ||
                 ((p.storageClass & STC.scope_) && !(p.storageClass & STC.scopeinferred));
             if ((pStc & (STC.scope_ | STC.lazy_)) &&
-                ((global.params.useDIP1000 == FeatureState.enabled) || explicitScope) &&
+                ((sc.useDIP1000 == FeatureState.enabled) || explicitScope) &&
                 !(pStc & STC.return_))
             {
                 /* Argument value cannot escape from the called function.
@@ -15797,7 +15797,7 @@ bool checkAddressVar(Scope* sc, Expression exp, VarDeclaration v)
     }
     if (sc.func && !sc.intypeof && !v.isDataseg())
     {
-        if (global.params.useDIP1000 != FeatureState.enabled &&
+        if (sc.useDIP1000 != FeatureState.enabled &&
             !(v.storage_class & STC.temp) &&
             sc.setUnsafe(false, exp.loc, "cannot take address of local `%s` in `@safe` function `%s`", v, sc.func))
         {
