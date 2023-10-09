@@ -427,17 +427,23 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
     {
         printf("\n********\n%s FuncDeclaration::interpret(istate = %p) %s\n", fd.loc.toChars(), istate, fd.toChars());
     }
+
+    void fdError(const(char)* msg)
+    {
+        error(fd.loc, "%s `%s` %s", fd.kind, fd.toPrettyChars, msg);
+    }
+
     assert(pue);
     if (fd.semanticRun == PASS.semantic3)
     {
-        fd.error("circular dependency. Functions cannot be interpreted while being compiled");
+        fdError("circular dependency. Functions cannot be interpreted while being compiled");
         return CTFEExp.cantexp;
     }
     if (!fd.functionSemantic3())
         return CTFEExp.cantexp;
     if (fd.semanticRun < PASS.semantic3done)
     {
-        fd.error("circular dependency. Functions cannot be interpreted while being compiled");
+        fdError("circular dependency. Functions cannot be interpreted while being compiled");
         return CTFEExp.cantexp;
     }
 
@@ -445,7 +451,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
     if (tf.parameterList.varargs != VarArg.none && arguments &&
         ((fd.parameters && arguments.length != fd.parameters.length) || (!fd.parameters && arguments.length)))
     {
-        fd.error("C-style variadic functions are not yet implemented in CTFE");
+        fdError("C-style variadic functions are not yet implemented in CTFE");
         return CTFEExp.cantexp;
     }
 
@@ -460,7 +466,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
     {
         // error, no this. Prevent segfault.
         // Here should be unreachable by the strict 'this' check in front-end.
-        fd.error("need `this` to access member `%s`", fd.toChars());
+        error(fd.loc, "%s `%s` need `this` to access member `%s`", fd.kind, fd.toPrettyChars, fd.toChars());
         return CTFEExp.cantexp;
     }
 
@@ -577,7 +583,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
             VarDeclaration vx = earg.isVarExp().var.isVarDeclaration();
             if (!vx)
             {
-                fd.error("cannot interpret `%s` as a `ref` parameter", earg.toChars());
+                error(fd.loc, "%s `%s` cannot interpret `%s` as a `ref` parameter", fd.kind, fd.toPrettyChars, earg.toChars());
                 return CTFEExp.cantexp;
             }
 
@@ -634,7 +640,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
     {
         if (ctfeGlobals.callDepth > CTFE_RECURSION_LIMIT)
         {
-            fd.error("CTFE recursion limit exceeded");
+            fdError("CTFE recursion limit exceeded");
             e = CTFEExp.cantexp;
             break;
         }
@@ -649,7 +655,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
 
         if (istatex.start)
         {
-            fd.error("CTFE internal error: failed to resume at statement `%s`", istatex.start.toChars());
+            error(fd.loc, "%s `%s` CTFE internal error: failed to resume at statement `%s`", fd.kind, fd.toPrettyChars, istatex.start.toChars());
             return CTFEExp.cantexp;
         }
 
@@ -680,7 +686,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
             /* missing a return statement can happen with C functions
              * https://issues.dlang.org/show_bug.cgi?id=23056
              */
-            fd.error("no return value from function");
+            fdError("no return value from function");
             e = CTFEExp.cantexp;
         }
     }
@@ -2871,7 +2877,9 @@ public:
                         result = eref;
                         return;
                     }
-                    e.member.error("`%s` cannot be constructed at compile time, because the constructor has no available source code", e.newtype.toChars());
+                    auto m = e.member;
+                    error(m.loc, "%s `%s` `%s` cannot be constructed at compile time, because the constructor has no available source code",
+                        m.kind, m.toPrettyChars, e.newtype.toChars());
                     result = CTFEExp.cantexp;
                     return;
                 }

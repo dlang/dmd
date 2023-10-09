@@ -822,7 +822,7 @@ public:
             printf("\n");
         }
         if (!ti.tempdecl)
-            ti.error("is not defined");
+            error(ti.loc, "%s `%s` is not defined", ti.kind, ti.toPrettyChars);
         else
             mangleParent(ti);
 
@@ -927,7 +927,7 @@ public:
                     }
                     if (!d.type || !d.type.deco)
                     {
-                        ti.error("forward reference of %s `%s`", d.kind(), d.toChars());
+                        error(ti.loc, "%s `%s` forward reference of %s `%s`", ti.kind, ti.toPrettyChars, d.kind(), d.toChars());
                         continue;
                     }
                 }
@@ -1302,7 +1302,7 @@ extern (D) void toBuffer(ref OutBuffer buf, const(char)[] id, Dsymbol s)
 {
     const len = id.length;
     if (buf.length + len >= 8 * 1024 * 1024) // 8 megs ought be enough for anyone
-        s.error("excessive length %llu for symbol, possible recursive expansion?", cast(ulong)(buf.length + len));
+        error(s.loc, "%s `%s` excessive length %llu for symbol, possible recursive expansion?", s.kind, s.toPrettyChars, cast(ulong)(buf.length + len));
     else
     {
         buf.print(len);
@@ -1424,7 +1424,7 @@ extern (D) const(char)[] externallyMangledIdentifier(Declaration d)
           (d.isVarDeclaration() && d.isDataseg() && d.storage_class & STC.extern_))))
     {
         if (linkage != LINK.d && d.localNum)
-            d.error("the same declaration cannot be in multiple scopes with non-D linkage");
+            error(d.loc, "%s `%s` the same declaration cannot be in multiple scopes with non-D linkage", d.kind, d.toPrettyChars);
 
         final switch (linkage)
         {
@@ -1440,7 +1440,7 @@ extern (D) const(char)[] externallyMangledIdentifier(Declaration d)
                 return p.toDString();
             }
             case LINK.default_:
-                d.error("forward declaration");
+                error(d.loc, "%s `%s` forward declaration", d.kind, d.toPrettyChars);
                 return d.ident.toString();
             case LINK.system:
                 assert(0);
