@@ -4791,7 +4791,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     }
                     else
                         assert(0);
-                    e = new CallExp(exp.loc, e, exp.arguments);
+                    e = new CallExp(exp.loc, e, exp.arguments, exp.names);
                     e = e.expressionSemantic(sc);
                     result = e;
                     return;
