@@ -1869,6 +1869,37 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             return;
         }
 
+        if (ss.param)
+        {
+            /**
+             * If the switch statement is of form `switch(auto a = exp) { body }`,
+             * rewrite to the following inside it's own scope:
+             *
+             * auto a = exp
+             * switch(a)
+             *     { body }
+             */
+            auto statements = new Statements();
+            auto vardecl = new VarDeclaration(ss.param.loc,
+                ss.param.type,
+                ss.param.ident,
+                new ExpInitializer(ss.condition.loc, ss.condition),
+                ss.param.storageClass);
+
+            statements.push(new ExpStatement(ss.param.loc, vardecl));
+
+            ss.condition = new VarExp(ss.param.loc, vardecl, false);
+            ss.param = null;
+
+            statements.push(ss);
+
+            Statement s = new CompoundStatement(ss.loc, statements);
+            s = new ScopeStatement(ss.loc, s, ss.endloc);
+            s = s.statementSemantic(sc);
+            result = s;
+            return;
+        }
+
         bool conditionError = false;
         ss.condition = ss.condition.expressionSemantic(sc);
         ss.condition = resolveProperties(sc, ss.condition);
@@ -3990,7 +4021,7 @@ private extern(D) Statement loopReturn(Expression e, Statements* cases, const re
     }
 
     s = new CompoundStatement(loc, a);
-    return new SwitchStatement(loc, e, s, false);
+    return new SwitchStatement(loc, null, e, s, false, loc);
 }
 
 /*************************************

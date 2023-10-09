@@ -1098,9 +1098,11 @@ extern (C++) final class StaticAssertStatement : Statement
  */
 extern (C++) final class SwitchStatement : Statement
 {
+    Parameter param;
     Expression condition;           /// switch(condition)
     Statement _body;                ///
     bool isFinal;                   /// https://dlang.org/spec/statement.html#final-switch-statement
+    Loc endloc;
 
     bool hasDefault;                /// true if has default statement
     bool hasVars;                   /// true if has variable case values
@@ -1111,17 +1113,24 @@ extern (C++) final class SwitchStatement : Statement
     CaseStatements* cases;          /// array of CaseStatement's
     VarDeclaration lastVar;         /// last observed variable declaration in this statement
 
-    extern (D) this(const ref Loc loc, Expression condition, Statement _body, bool isFinal)
+    extern (D) this(const ref Loc loc, Parameter param, Expression condition, Statement _body, bool isFinal, Loc endloc)
     {
         super(loc, STMT.Switch);
+        this.param = param;
         this.condition = condition;
         this._body = _body;
         this.isFinal = isFinal;
+        this.endloc = endloc;
     }
 
     override SwitchStatement syntaxCopy()
     {
-        return new SwitchStatement(loc, condition.syntaxCopy(), _body.syntaxCopy(), isFinal);
+        return new SwitchStatement(loc,
+            param ? param.syntaxCopy() : null,
+            condition.syntaxCopy(),
+            _body.syntaxCopy(),
+            isFinal,
+            endloc);
     }
 
     override bool hasBreak() const pure nothrow

@@ -2143,16 +2143,20 @@ struct ASTBase
 
     extern (C++) final class SwitchStatement : Statement
     {
+        Parameter param;
         Expression condition;
         Statement _body;
         bool isFinal;
+        Loc endloc;             // location of closing curly bracket
 
-        extern (D) this(const ref Loc loc, Expression c, Statement b, bool isFinal)
+        extern (D) this(const ref Loc loc, Parameter param, Expression c, Statement b, bool isFinal, Loc endloc)
         {
             super(loc, STMT.Switch);
+            this.param = param;
             this.condition = c;
             this._body = b;
             this.isFinal = isFinal;
+            this.endloc = endloc;
         }
 
         override void accept(Visitor v)

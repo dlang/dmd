@@ -429,9 +429,11 @@ public:
 class SwitchStatement final : public Statement
 {
 public:
+    Parameter *param;
     Expression *condition;
     Statement *_body;
     d_bool isFinal;
+    Loc endloc;
 
     d_bool hasDefault;             // true if default statement
     d_bool hasVars;                // true if has variable case values

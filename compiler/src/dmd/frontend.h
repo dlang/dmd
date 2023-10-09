@@ -4646,9 +4646,11 @@ public:
 class SwitchStatement final : public Statement
 {
 public:
+    Parameter *param;
     Expression* condition;
     Statement* _body;
     bool isFinal;
+    Loc endloc;
     bool hasDefault;
     bool hasVars;
     DefaultStatement* sdefault;
