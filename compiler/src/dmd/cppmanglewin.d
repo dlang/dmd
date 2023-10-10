@@ -553,7 +553,7 @@ extern(D):
         // fake mangling for fields to fix https://issues.dlang.org/show_bug.cgi?id=16525
         if (!(d.storage_class & (STC.extern_ | STC.field | STC.gshared)))
         {
-            d.error("internal compiler error: C++ static non-__gshared non-extern variables not supported");
+            .error(d.loc, "%s `%s` internal compiler error: C++ static non-__gshared non-extern variables not supported", d.kind, d.toPrettyChars);
             fatal();
         }
         buf.writeByte('?');
@@ -600,7 +600,7 @@ extern(D):
     {
         if (!tv.valType.isintegral())
         {
-            sym.error("internal compiler error: C++ %s template value parameter is not supported", tv.valType.toChars());
+            .error(sym.loc, "%s `%s` internal compiler error: C++ %s template value parameter is not supported", sym.kind, sym.toPrettyChars, tv.valType.toChars());
             fatal();
             return;
         }
@@ -679,7 +679,8 @@ extern(D):
                 }
                 else
                 {
-                    sym.error("internal compiler error: C++ templates support only integral value, type parameters, alias templates and alias function parameters");
+                    .error(sym.loc, "%s `%s` internal compiler error: C++ templates support only integral value, type parameters, alias templates and alias function parameters",
+                        sym.kind, sym.toPrettyChars);
                     fatal();
                 }
             }
@@ -687,7 +688,7 @@ extern(D):
         }
         else
         {
-            sym.error("internal compiler error: `%s` is unsupported parameter for C++ template", o.toChars());
+            .error(sym.loc, "%s `%s` internal compiler error: `%s` is unsupported parameter for C++ template", sym.kind, sym.toPrettyChars, o.toChars());
             fatal();
         }
     }
@@ -831,7 +832,8 @@ extern(D):
                 Type t = isType(o);
                 if (t is null)
                 {
-                    actualti.error("internal compiler error: C++ `%s` template value parameter is not supported", o.toChars());
+                    .error(actualti.loc, "%s `%s` internal compiler error: C++ `%s` template value parameter is not supported",
+                        actualti.kind, actualti.toPrettyChars, o.toChars());
                     fatal();
                 }
                 tmp.mangleTemplateType(o);
@@ -842,7 +844,8 @@ extern(D):
             }
             else
             {
-                sym.error("internal compiler error: C++ templates support only integral value, type parameters, alias templates and alias function parameters");
+                .error(sym.loc, "%s `%s` internal compiler error: C++ templates support only integral value, type parameters, alias templates and alias function parameters",
+                    sym.kind, sym.toPrettyChars);
                 fatal();
             }
         }

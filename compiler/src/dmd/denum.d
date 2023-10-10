@@ -18,6 +18,7 @@ import core.stdc.stdio;
 
 import dmd.astenums;
 import dmd.attrib;
+import dmd.errors;
 import dmd.gluelayer;
 import dmd.declaration;
 import dmd.dscope;
