@@ -9685,7 +9685,7 @@ immutable PREC[EXP.max + 1] precedence =
     EXP.overloadSet : PREC.primary,
     EXP.void_ : PREC.primary,
     EXP.vectorArray : PREC.primary,
-    EXP._Generic : PREC.primary,
+    EXP._Generic_ : PREC.primary,
 
     // post
     EXP.dotTemplateInstance : PREC.primary,
