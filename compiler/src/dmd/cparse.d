@@ -811,7 +811,7 @@ final class CParser(AST) : Parser!AST
             check(TOK.rightParenthesis);
             break;
 
-        case TOK._Generic:
+        case TOK._Generic_:
             e = cparseGenericSelection();
             break;
 
@@ -2321,16 +2321,16 @@ final class CParser(AST) : Parser!AST
 
                 // Type specifiers
                 case TOK.char_:      tkwx = TKW.xchar;      break;
-                case TOK.signed_:     tkwx = TKW.xsigned;    break;
-                case TOK.unsigned_:   tkwx = TKW.xunsigned;  break;
+                case TOK.signed_:    tkwx = TKW.xsigned;    break;
+                case TOK.unsigned_:  tkwx = TKW.xunsigned;  break;
                 case TOK.int16:      tkwx = TKW.xshort;     break;
                 case TOK.int32:      tkwx = TKW.xint;       break;
                 case TOK.int64:      tkwx = TKW.xlong;      break;
-                case TOK.__int128:   tkwx = TKW.xint128;    break;
+                case TOK.__int128_:  tkwx = TKW.xint128;    break;
                 case TOK.float32:    tkwx = TKW.xfloat;     break;
                 case TOK.float64:    tkwx = TKW.xdouble;    break;
                 case TOK.void_:      tkwx = TKW.xvoid;      break;
-                case TOK._Bool_:      tkwx = TKW.xbool;      break;
+                case TOK._Bool_:     tkwx = TKW.xbool;      break;
                 case TOK._Imaginary_: tkwx = TKW.ximaginary; break;
                 case TOK._Complex_:   tkwx = TKW.xcomplex;   break;
 
@@ -3617,7 +3617,7 @@ final class CParser(AST) : Parser!AST
             case TOK.int64:
             case TOK.const_:
             case TOK.extern_:
-            case TOK.register:
+            case TOK.register_:
             case TOK.typedef_:
             case TOK.int16:
             case TOK.inline_:
@@ -4306,7 +4306,7 @@ final class CParser(AST) : Parser!AST
                 case TOK.int16:
                 case TOK.int32:
                 case TOK.int64:
-                case TOK.__int128:
+                case TOK.__int128_:
                 case TOK.float32:
                 case TOK.float64:
                 case TOK.signed_:
@@ -4861,7 +4861,7 @@ final class CParser(AST) : Parser!AST
                     return false;
                 break;
 
-            case TOK._Alignof:
+            case TOK._Alignof_:
                 t = peek(t);
                 if (t.value != TOK.leftParenthesis)
                     return false;

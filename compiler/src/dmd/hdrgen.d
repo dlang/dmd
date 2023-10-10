@@ -4225,7 +4225,7 @@ string EXPtoString(EXP op)
         EXP.overloadSet : "__overloadset",
         EXP.void_ : "void",
         EXP.vectorArray : "vectorarray",
-        EXP._Generic : "_Generic",
+        EXP._Generic_ : "_Generic",
 
         // post
         EXP.dotTemplateInstance : "dotti",
