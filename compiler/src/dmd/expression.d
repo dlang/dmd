@@ -1769,7 +1769,7 @@ extern (C++) abstract class Expression : ASTNode
         inout(EqualExp)    isEqualExp() { return (op == EXP.equal || op == EXP.notEqual) ? cast(typeof(return))this : null; }
         inout(IdentityExp) isIdentityExp() { return (op == EXP.identity || op == EXP.notIdentity) ? cast(typeof(return))this : null; }
         inout(CondExp)     isCondExp() { return op == EXP.question ? cast(typeof(return))this : null; }
-        inout(GenericExp)  isGenericExp() { return op == EXP._Generic ? cast(typeof(return))this : null; }
+        inout(GenericExp)  isGenericExp() { return op == EXP._Generic_ ? cast(typeof(return))this : null; }
         inout(DefaultInitExp)    isDefaultInitExp() { return isDefaultInitOp(op) ? cast(typeof(return))this: null; }
         inout(FileInitExp)       isFileInitExp() { return (op == EXP.file || op == EXP.fileFullPath) ? cast(typeof(return))this : null; }
         inout(LineInitExp)       isLineInitExp() { return op == EXP.line ? cast(typeof(return))this : null; }
@@ -7180,7 +7180,7 @@ extern (C++) final class GenericExp : Expression
 
     extern (D) this(const ref Loc loc, Expression cntlExp, Types* types, Expressions* exps) @safe
     {
-        super(loc, EXP._Generic);
+        super(loc, EXP._Generic_);
         this.cntlExp = cntlExp;
         this.types = types;
         this.exps = exps;
@@ -7540,7 +7540,7 @@ private immutable ubyte[EXP.max+1] expSize = [
     EXP.objcClassReference: __traits(classInstanceSize, ObjcClassReferenceExp),
     EXP.vectorArray: __traits(classInstanceSize, VectorArrayExp),
     EXP.compoundLiteral: __traits(classInstanceSize, CompoundLiteralExp),
-    EXP._Generic: __traits(classInstanceSize, GenericExp),
+    EXP._Generic_: __traits(classInstanceSize, GenericExp),
     EXP.interval: __traits(classInstanceSize, IntervalExp),
     EXP.loweredAssignExp : __traits(classInstanceSize, LoweredAssignExp),
 ];

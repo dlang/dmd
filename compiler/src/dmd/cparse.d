@@ -269,8 +269,8 @@ final class CParser(AST) : Parser!AST
         case TOK.plusPlus:
         case TOK.minusMinus:
         case TOK.sizeof_:
-        case TOK._Generic:
-        case TOK._assert:
+        case TOK._Generic_:
+        case TOK._assert_:
         Lexp:
             auto exp = cparseExpression();
             if (token.value == TOK.identifier && exp.op == EXP.identifier)
@@ -289,14 +289,14 @@ final class CParser(AST) : Parser!AST
         case TOK.int16:
         case TOK.int32:
         case TOK.int64:
-        case TOK.__int128:
+        case TOK.__int128_:
         case TOK.float32:
         case TOK.float64:
-        case TOK.signed:
-        case TOK.unsigned:
-        case TOK._Bool:
+        case TOK.signed_:
+        case TOK.unsigned_:
+        case TOK._Bool_:
         //case TOK._Imaginary:
-        case TOK._Complex:
+        case TOK._Complex_:
         case TOK.struct_:
         case TOK.union_:
         case TOK.enum_:
@@ -306,28 +306,28 @@ final class CParser(AST) : Parser!AST
         case TOK.typedef_:
         case TOK.extern_:
         case TOK.static_:
-        case TOK._Thread_local:
-        case TOK.__thread:
+        case TOK._Thread_local_:
+        case TOK.__thread_:
         case TOK.auto_:
-        case TOK.register:
+        case TOK.register_:
 
         // function-specifiers
-        case TOK.inline:
-        case TOK._Noreturn:
+        case TOK.inline_:
+        case TOK._Noreturn_:
 
         // type-qualifiers
         case TOK.const_:
-        case TOK.volatile:
-        case TOK.restrict:
-        case TOK.__stdcall:
+        case TOK.volatile_:
+        case TOK.restrict_:
+        case TOK.__stdcall_:
 
         // alignment-specifier
-        case TOK._Alignas:
+        case TOK._Alignas_:
 
         // atomic-type-specifier or type_qualifier
-        case TOK._Atomic:
+        case TOK._Atomic_:
 
-        case TOK.__attribute__:
+        case TOK.__attribute___:
 
         Ldeclaration:
         {
@@ -357,7 +357,7 @@ final class CParser(AST) : Parser!AST
             break;
         }
 
-        case TOK._Static_assert:        // _Static_assert ( constant-expression, string-literal ) ;
+        case TOK._Static_assert_:        // _Static_assert ( constant-expression, string-literal ) ;
             s = new AST.StaticAssertStatement(cparseStaticAssert());
             break;
 
@@ -621,8 +621,8 @@ final class CParser(AST) : Parser!AST
             switch (peekNext())
             {
                 case TOK.goto_:
-                case TOK.inline:
-                case TOK.volatile:
+                case TOK.inline_:
+                case TOK.volatile_:
                 case TOK.leftParenthesis:
                     s = cparseGnuAsm();
                     break;
@@ -815,7 +815,7 @@ final class CParser(AST) : Parser!AST
             e = cparseGenericSelection();
             break;
 
-        case TOK._assert:  // __check(assign-exp) extension
+        case TOK._assert_:  // __check(assign-exp) extension
             nextToken();
             check(TOK.leftParenthesis, "`__check`");
             e = parseAssignExp();
@@ -1047,7 +1047,7 @@ final class CParser(AST) : Parser!AST
             break;
         }
 
-        case TOK._Alignof:
+        case TOK._Alignof_:
         {
             nextToken();
             check(TOK.leftParenthesis);
@@ -1690,20 +1690,20 @@ final class CParser(AST) : Parser!AST
     void cparseDeclaration(LVL level)
     {
         //printf("cparseDeclaration(level = %d)\n", level);
-        if (token.value == TOK._Static_assert)
+        if (token.value == TOK._Static_assert_)
         {
             auto s = cparseStaticAssert();
             symbols.push(s);
             return;
         }
 
-        if (token.value == TOK.__pragma)
+        if (token.value == TOK.__pragma_)
         {
             uupragmaDirective(scanloc);
             return;
         }
 
-        if (token.value == TOK._import) // import declaration extension
+        if (token.value == TOK._import_) // import declaration extension
         {
             auto a = parseImport();
             if (a && a.length)
@@ -1828,10 +1828,10 @@ final class CParser(AST) : Parser!AST
                 case TOK.comma:
                 case TOK.semicolon:
                 case TOK.asm_:
-                case TOK.__attribute__:
+                case TOK.__attribute___:
                     if (token.value == TOK.asm_)
                         asmName = cparseGnuAsmLabel();
-                    if (token.value == TOK.__attribute__)
+                    if (token.value == TOK.__attribute___)
                     {
                         cparseGnuAttributes(specifier);
                         if (token.value == TOK.leftCurly)
@@ -2306,23 +2306,23 @@ final class CParser(AST) : Parser!AST
                 case TOK.static_:    scwx = SCW.xstatic;    break;
                 case TOK.extern_:    scwx = SCW.xextern;    break;
                 case TOK.auto_:      scwx = SCW.xauto;      break;
-                case TOK.register:   scwx = SCW.xregister;  break;
+                case TOK.register_:  scwx = SCW.xregister;  break;
                 case TOK.typedef_:   scwx = SCW.xtypedef;   break;
-                case TOK.inline:     scwx = SCW.xinline;    break;
-                case TOK._Noreturn:  scwx = SCW.x_Noreturn; break;
-                case TOK.__thread:
-                case TOK._Thread_local: scwx = SCW.x_Thread_local; break;
+                case TOK.inline_:    scwx = SCW.xinline;    break;
+                case TOK._Noreturn_:  scwx = SCW.x_Noreturn; break;
+                case TOK.__thread_:
+                case TOK._Thread_local_: scwx = SCW.x_Thread_local; break;
 
                 // Type qualifiers
-                case TOK.const_:     modx = MOD.xconst;     break;
-                case TOK.volatile:   modx = MOD.xvolatile;  break;
-                case TOK.restrict:   modx = MOD.xrestrict;  break;
-                case TOK.__stdcall:  modx = MOD.x__stdcall; break;
+                case TOK.const_:      modx = MOD.xconst;     break;
+                case TOK.volatile_:   modx = MOD.xvolatile;  break;
+                case TOK.restrict_:   modx = MOD.xrestrict;  break;
+                case TOK.__stdcall_:  modx = MOD.x__stdcall; break;
 
                 // Type specifiers
                 case TOK.char_:      tkwx = TKW.xchar;      break;
-                case TOK.signed:     tkwx = TKW.xsigned;    break;
-                case TOK.unsigned:   tkwx = TKW.xunsigned;  break;
+                case TOK.signed_:     tkwx = TKW.xsigned;    break;
+                case TOK.unsigned_:   tkwx = TKW.xunsigned;  break;
                 case TOK.int16:      tkwx = TKW.xshort;     break;
                 case TOK.int32:      tkwx = TKW.xint;       break;
                 case TOK.int64:      tkwx = TKW.xlong;      break;
@@ -2330,9 +2330,9 @@ final class CParser(AST) : Parser!AST
                 case TOK.float32:    tkwx = TKW.xfloat;     break;
                 case TOK.float64:    tkwx = TKW.xdouble;    break;
                 case TOK.void_:      tkwx = TKW.xvoid;      break;
-                case TOK._Bool:      tkwx = TKW.xbool;      break;
-                case TOK._Imaginary: tkwx = TKW.ximaginary; break;
-                case TOK._Complex:   tkwx = TKW.xcomplex;   break;
+                case TOK._Bool_:      tkwx = TKW.xbool;      break;
+                case TOK._Imaginary_: tkwx = TKW.ximaginary; break;
+                case TOK._Complex_:   tkwx = TKW.xcomplex;   break;
 
                 case TOK.identifier:
                     tkwx = TKW.xident;
@@ -2355,11 +2355,11 @@ final class CParser(AST) : Parser!AST
                      */
                     while (1)
                     {
-                        if (token.value == TOK.__attribute__)
+                        if (token.value == TOK.__attribute___)
                             cparseGnuAttributes(tagSpecifier);
-                        else if (token.value == TOK.__declspec)
+                        else if (token.value == TOK.__declspec_)
                             cparseDeclspec(tagSpecifier);
-                        else if (token.value == TOK.__pragma)
+                        else if (token.value == TOK.__pragma_)
                             uupragmaDirective(sloc);
                         else
                             break;
@@ -2374,7 +2374,7 @@ final class CParser(AST) : Parser!AST
                     tkwx = TKW.xtag;
                     break;
 
-                case TOK._Atomic:
+                case TOK._Atomic_:
                 {
                     // C11 6.7.2.4
                     // type-specifier if followed by `( type-name )`
@@ -2396,7 +2396,7 @@ final class CParser(AST) : Parser!AST
                     break;
                 }
 
-                case TOK._Alignas:
+                case TOK._Alignas_:
                 {
                     /* C11 6.7.5
                      * _Alignas ( type-name )
@@ -2431,7 +2431,7 @@ final class CParser(AST) : Parser!AST
                     break;
                 }
 
-                case TOK.__attribute__:
+                case TOK.__attribute___:
                 {
                     /* GNU Extensions
                      * declaration-specifiers:
@@ -2441,7 +2441,7 @@ final class CParser(AST) : Parser!AST
                     break;
                 }
 
-                case TOK.__declspec:
+                case TOK.__declspec_:
                 {
                     /* Microsoft extension
                      */
@@ -2765,7 +2765,7 @@ final class CParser(AST) : Parser!AST
                      */
                     nextToken();
 
-                    if (token.value == TOK.__stdcall) // T (__stdcall*fp)();
+                    if (token.value == TOK.__stdcall_) // T (__stdcall*fp)();
                     {
                         specifier.mod |= MOD.x__stdcall;
                         nextToken();
@@ -2782,7 +2782,7 @@ final class CParser(AST) : Parser!AST
                     const mod = cparseTypeQualifierList();
                     if (mod & MOD.xconst)
                         constTypes.push(t);
-                    if (token.value == TOK.__attribute__)
+                    if (token.value == TOK.__attribute___)
                         cparseGnuAttributes(specifier);
                     continue;
 
@@ -2990,11 +2990,11 @@ final class CParser(AST) : Parser!AST
         {
             switch (token.value)
             {
-                case TOK.const_:     mod |= MOD.xconst;     break;
-                case TOK.volatile:   mod |= MOD.xvolatile;  break;
-                case TOK.restrict:   mod |= MOD.xrestrict;  break;
-                case TOK._Atomic:    mod |= MOD.x_Atomic;   break;
-                case TOK.__stdcall:  mod |= MOD.x__stdcall; break;
+                case TOK.const_:      mod |= MOD.xconst;     break;
+                case TOK.volatile_:   mod |= MOD.xvolatile;  break;
+                case TOK.restrict_:   mod |= MOD.xrestrict;  break;
+                case TOK._Atomic_:    mod |= MOD.x_Atomic;   break;
+                case TOK.__stdcall_:  mod |= MOD.x__stdcall; break;
 
                 default:
                     return mod;
@@ -3119,7 +3119,7 @@ final class CParser(AST) : Parser!AST
             Identifier id;
             const paramLoc = token.loc;
             auto t = cparseDeclarator(DTR.xparameter, tspec, id, specifier);
-            if (token.value == TOK.__attribute__)
+            if (token.value == TOK.__attribute___)
                 cparseGnuAttributes(specifier);
             if (specifier.mod & MOD.xconst)
                 t = toConst(t);
@@ -3297,7 +3297,7 @@ final class CParser(AST) : Parser!AST
                         cparseParens();
                 }
             }
-            else if (token.value == TOK.restrict) // ImportC assigns no semantics to `restrict`, so just ignore the keyword.
+            else if (token.value == TOK.restrict_) // ImportC assigns no semantics to `restrict`, so just ignore the keyword.
                 nextToken();
             else
             {
@@ -3347,9 +3347,9 @@ final class CParser(AST) : Parser!AST
 
         // Consume all asm-qualifiers. As a future optimization, we could record
         // the `inline` and `volatile` storage classes against the statement.
-        while (token.value == TOK.goto_ ||
-               token.value == TOK.inline ||
-               token.value == TOK.volatile)
+        while (token.value == TOK.goto_   ||
+               token.value == TOK.inline_ ||
+               token.value == TOK.volatile_)
             nextToken();
 
         check(TOK.leftParenthesis);
@@ -3438,7 +3438,7 @@ final class CParser(AST) : Parser!AST
      */
     private void cparseGnuAttributes(ref Specifier specifier)
     {
-        while (token.value == TOK.__attribute__)
+        while (token.value == TOK.__attribute___)
         {
             nextToken();     // move past __attribute__
             check(TOK.leftParenthesis);
@@ -3613,29 +3613,29 @@ final class CParser(AST) : Parser!AST
         {
             case TOK.identifier:
             case TOK.static_:
-            case TOK.unsigned:
+            case TOK.unsigned_:
             case TOK.int64:
             case TOK.const_:
             case TOK.extern_:
             case TOK.register:
             case TOK.typedef_:
             case TOK.int16:
-            case TOK.inline:
-            case TOK._Noreturn:
-            case TOK.volatile:
-            case TOK.signed:
+            case TOK.inline_:
+            case TOK._Noreturn_:
+            case TOK.volatile_:
+            case TOK.signed_:
             case TOK.auto_:
-            case TOK.restrict:
-            case TOK._Complex:
-            case TOK._Thread_local:
+            case TOK.restrict_:
+            case TOK._Complex_:
+            case TOK._Thread_local_:
             case TOK.int32:
-            case TOK.__int128:
+            case TOK.__int128_:
             case TOK.char_:
             case TOK.float32:
             case TOK.float64:
             case TOK.void_:
-            case TOK._Bool:
-            case TOK._Atomic:
+            case TOK._Bool_:
+            case TOK._Atomic_:
                 return true;
 
             default:
@@ -3725,7 +3725,7 @@ final class CParser(AST) : Parser!AST
          */
         Specifier specifier;
         specifier.packalign.setDefault();
-        if (token.value == TOK.__attribute__)
+        if (token.value == TOK.__attribute___)
             cparseGnuAttributes(specifier);
 
         Identifier tag;
@@ -3767,7 +3767,7 @@ final class CParser(AST) : Parser!AST
                 nextToken();
                 auto mloc = token.loc;
 
-                if (token.value == TOK.__attribute__)
+                if (token.value == TOK.__attribute___)
                 {
                     /* gnu-attributes can appear here, but just scan and ignore them
                      * https://gcc.gnu.org/onlinedocs/gcc/Enumerator-Attributes.html
@@ -3785,7 +3785,7 @@ final class CParser(AST) : Parser!AST
                     // TODO C11 6.7.2.2-2 value must fit into an int
                 }
 
-                if (token.value == TOK.__attribute__)
+                if (token.value == TOK.__attribute___)
                 {
                     /* gnu-attributes can appear here, but just scan and ignore them
                      * https://gcc.gnu.org/onlinedocs/gcc/Enumerator-Attributes.html
@@ -3810,7 +3810,7 @@ final class CParser(AST) : Parser!AST
             /* GNU Extensions
              * Parse the postfix gnu-attributes (opt)
              */
-            if (token.value == TOK.__attribute__)
+            if (token.value == TOK.__attribute___)
                 cparseGnuAttributes(specifier);
         }
         else if (!tag)
@@ -3913,7 +3913,7 @@ final class CParser(AST) : Parser!AST
     void cparseStructDeclaration(AST.Dsymbols* members)
     {
         //printf("cparseStructDeclaration()\n");
-        if (token.value == TOK._Static_assert)
+        if (token.value == TOK._Static_assert_)
         {
             auto s = cparseStaticAssert();
             members.push(s);
@@ -4021,7 +4021,7 @@ final class CParser(AST) : Parser!AST
              *    declarator gnu-attributes (opt)
              *    declarator (opt) : constant-expression gnu-attributes (opt)
              */
-            if (token.value == TOK.__attribute__)
+            if (token.value == TOK.__attribute___)
                 cparseGnuAttributes(specifier);
 
             if (!tspec && !specifier.scw && !specifier.mod)
@@ -4108,7 +4108,7 @@ final class CParser(AST) : Parser!AST
                 if (t.value != TOK.leftParenthesis || !skipParens(t, &t))
                     return false;
             }
-            if (t.value == TOK.__attribute__)
+            if (t.value == TOK.__attribute___)
             {
                 t = peek(t);
                 if (t.value != TOK.leftParenthesis || !skipParens(t, &t))
@@ -4309,11 +4309,11 @@ final class CParser(AST) : Parser!AST
                 case TOK.__int128:
                 case TOK.float32:
                 case TOK.float64:
-                case TOK.signed:
-                case TOK.unsigned:
-                case TOK._Bool:
-                //case TOK._Imaginary:
-                case TOK._Complex:
+                case TOK.signed_:
+                case TOK.unsigned_:
+                case TOK._Bool_:
+                //case TOK._Imaginary_:
+                case TOK._Complex_:
                     t = peek(t);
                     seenType = true;
                     any = true;
@@ -4333,8 +4333,8 @@ final class CParser(AST) : Parser!AST
                 case TOK.union_:
                 case TOK.enum_:
                     t = peek(t);
-                    if (t.value == TOK.__attribute__ ||
-                        t.value == TOK.__declspec)
+                    if (t.value == TOK.__attribute___ ||
+                        t.value == TOK.__declspec_)
                     {
                         t = peek(t);
                         if (!skipParens(t, &t))
@@ -4363,27 +4363,27 @@ final class CParser(AST) : Parser!AST
                 case TOK.typedef_:
                 case TOK.extern_:
                 case TOK.static_:
-                case TOK.__thread:
-                case TOK._Thread_local:
+                case TOK.__thread_:
+                case TOK._Thread_local_:
                 case TOK.auto_:
-                case TOK.register:
+                case TOK.register_:
 
                 // function-specifiers
-                case TOK.inline:
-                case TOK._Noreturn:
+                case TOK.inline_:
+                case TOK._Noreturn_:
 
                 // type-qualifiers
                 case TOK.const_:
-                case TOK.volatile:
-                case TOK.restrict:
-                case TOK.__stdcall:
+                case TOK.volatile_:
+                case TOK.restrict_:
+                case TOK.__stdcall_:
                     t = peek(t);
                     any = true;
                     continue;
 
-                case TOK._Alignas:      // alignment-specifier
-                case TOK.__declspec:    // decl-specifier
-                case TOK.__attribute__: // attribute-specifier
+                case TOK._Alignas_:      // alignment-specifier
+                case TOK.__declspec_:    // decl-specifier
+                case TOK.__attribute___: // attribute-specifier
                     t = peek(t);
                     if (!skipParens(t, &t))
                         return false;
@@ -4391,7 +4391,7 @@ final class CParser(AST) : Parser!AST
                     continue;
 
                 // either atomic-type-specifier or type_qualifier
-                case TOK._Atomic:  // TODO _Atomic ( type-name )
+                case TOK._Atomic_:  // TODO _Atomic ( type-name )
                     t = peek(t);
                     if (t.value == TOK.leftParenthesis) // maybe atomic-type-specifier
                     {
@@ -4614,10 +4614,10 @@ final class CParser(AST) : Parser!AST
             switch (t.value)
             {
                 case TOK.const_:
-                case TOK.restrict:
-                case TOK.volatile:
-                case TOK._Atomic:
-                case TOK.__stdcall:
+                case TOK.restrict_:
+                case TOK.volatile_:
+                case TOK._Atomic_:
+                case TOK.__stdcall_:
                     t = peek(t);
                     continue;
 
@@ -4668,24 +4668,24 @@ final class CParser(AST) : Parser!AST
             {
                 // Type Qualifiers
                 case TOK.const_:
-                case TOK.restrict:
-                case TOK.volatile:
-                case TOK.__stdcall:
+                case TOK.restrict_:
+                case TOK.volatile_:
+                case TOK.__stdcall_:
 
                 // Type Specifiers
                 case TOK.char_:
-                case TOK.signed:
-                case TOK.unsigned:
+                case TOK.signed_:
+                case TOK.unsigned_:
                 case TOK.int16:
                 case TOK.int32:
                 case TOK.int64:
-                case TOK.__int128:
+                case TOK.__int128_:
                 case TOK.float32:
                 case TOK.float64:
                 case TOK.void_:
-                case TOK._Bool:
-                //case TOK._Imaginary: // ? missing in Spec
-                case TOK._Complex:
+                case TOK._Bool_:
+                //case TOK._Imaginary_: // ? missing in Spec
+                case TOK._Complex_:
                     t = peek(t);
                     break;
 
@@ -4726,9 +4726,9 @@ final class CParser(AST) : Parser!AST
                     break;
 
                 // atomic-type-specifier
-                case TOK._Atomic:
+                case TOK._Atomic_:
                 case TOK.typeof_:
-                case TOK.__attribute__:
+                case TOK.__attribute___:
                     t = peek(t);
                     if (t.value != TOK.leftParenthesis ||
                         !skipParens(t, &t))
@@ -4915,7 +4915,7 @@ final class CParser(AST) : Parser!AST
                     return false;
                 break;
 
-            case TOK._Generic:
+            case TOK._Generic_:
                 t = peek(t);
                 if (!skipParens(t, &t))
                     return false;
