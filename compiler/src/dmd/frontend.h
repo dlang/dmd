@@ -592,8 +592,6 @@ public:
     virtual StaticIfDeclaration* isStaticIfDeclaration();
 };
 
-typedef uint64_t size_t;
-
 struct BitArray final
 {
     typedef uint64_t Chunk_t;
@@ -8561,6 +8559,8 @@ struct Id final
     static Identifier* IUnknown;
     static Identifier* Object;
     static Identifier* object;
+    static Identifier* _size_t;
+    static Identifier* _ptrdiff_t;
     static Identifier* string;
     static Identifier* wstring;
     static Identifier* dstring;
