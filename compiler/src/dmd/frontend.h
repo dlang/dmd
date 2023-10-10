@@ -8558,6 +8558,8 @@ struct Id final
     static Identifier* IUnknown;
     static Identifier* Object;
     static Identifier* object;
+    static Identifier* _size_t;
+    static Identifier* _ptrdiff_t;
     static Identifier* string;
     static Identifier* wstring;
     static Identifier* dstring;
