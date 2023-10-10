@@ -23,6 +23,7 @@ import dmd.dsymbol;
 import dmd.errors;
 import dmd.globals;
 import dmd.hdrgen;
+import dmd.id;
 import dmd.identifier;
 import dmd.location;
 import dmd.root.filename;
@@ -1045,6 +1046,10 @@ public:
     override void visit(AST.AliasDeclaration ad)
     {
         debug (Debug_DtoH) mixin(traceVisit!ad);
+
+        // Declared in object.d but already included in `#include`s
+        if (ad.ident == Id._size_t || ad.ident == Id._ptrdiff_t)
+            return;
 
         if (!shouldEmitAndMarkVisited(ad))
             return;

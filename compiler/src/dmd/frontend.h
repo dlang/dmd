@@ -592,8 +592,6 @@ public:
     virtual StaticIfDeclaration* isStaticIfDeclaration();
 };
 
-typedef uint64_t size_t;
-
 struct BitArray final
 {
     typedef uint64_t Chunk_t;
