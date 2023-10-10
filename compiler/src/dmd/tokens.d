@@ -426,7 +426,7 @@ enum EXP : ubyte
     loweredAssignExp,
 }
 
-enum FirstCKeyword = TOK.inline;
+enum FirstCKeyword = TOK.inline_;
 
 // Assert that all token enum members have consecutive values and
 // that none of them overlap
@@ -865,7 +865,7 @@ extern (C++) struct Token
         TOK.inline_    : "inline",
         TOK.register_  : "register",
         TOK.restrict_  : "restrict",
-        TOK.signed     : "signed",
+        TOK.signed_     : "signed",
         TOK.sizeof_    : "sizeof",
         TOK.typedef_   : "typedef",
         TOK.unsigned_  : "unsigned",
