@@ -886,7 +886,7 @@ extern (C++) class Dsymbol : ASTNode
             if (ident == Id.__sizeof ||
                 !(sc && sc.flags & SCOPE.Cfile) && (ident == Id.__xalignof || ident == Id._mangleof))
             {
-                error("`.%s` property cannot be redefined", ident.toChars());
+                .error(loc, "%s `%s` `.%s` property cannot be redefined", kind, toPrettyChars, ident.toChars());
                 errors = true;
             }
         }
@@ -1026,7 +1026,7 @@ extern (C++) class Dsymbol : ASTNode
      */
     uinteger_t size(const ref Loc loc)
     {
-        error("symbol `%s` has no size", toChars());
+        .error(loc, "%s `%s` symbol `%s` has no size", kind, toPrettyChars, toChars());
         return SIZE_INVALID;
     }
 
@@ -1776,7 +1776,7 @@ public:
         }
         else
         {
-            s1.error(s1.loc, "conflicts with %s `%s` at %s", s2.kind(), s2.toPrettyChars(), s2.locToChars());
+            .error(s1.loc, "%s `%s` conflicts with %s `%s` at %s", s1.kind, s1.toPrettyChars, s2.kind(), s2.toPrettyChars(), s2.locToChars());
         }
     }
 
