@@ -931,7 +931,7 @@ enum class EXP : uint8_t
     objcClassReference = 121u,
     vectorArray = 122u,
     compoundLiteral = 123u,
-    _Generic_ = 124u,
+    _Generic = 124u,
     interval = 125u,
     loweredAssignExp = 126u,
 };
@@ -1807,24 +1807,24 @@ enum class TOK : uint8_t
     whitespace = 197u,
     inline_ = 198u,
     register_ = 199u,
-    restrict_ = 200u,
+    restrict = 200u,
     signed_ = 201u,
     sizeof_ = 202u,
     typedef_ = 203u,
     unsigned_ = 204u,
     volatile_ = 205u,
-    _Alignas_ = 206u,
-    _Alignof_ = 207u,
-    _Atomic_ = 208u,
-    _Bool_ = 209u,
+    _Alignas = 206u,
+    _Alignof = 207u,
+    _Atomic = 208u,
+    _Bool = 209u,
     _Complex_ = 210u,
-    _Generic_ = 211u,
-    _Imaginary_ = 212u,
-    _Noreturn_ = 213u,
-    _Static_assert_ = 214u,
-    _Thread_local_ = 215u,
-    _assert_ = 216u,
-    _import_ = 217u,
+    _Generic = 211u,
+    _Imaginary = 212u,
+    _Noreturn = 213u,
+    _Static_assert = 214u,
+    _Thread_local = 215u,
+    _assert = 216u,
+    _import = 217u,
     __cdecl_ = 218u,
     __declspec_ = 219u,
     __stdcall_ = 220u,
@@ -6048,7 +6048,7 @@ class AliasDeclaration final : public Declaration
 public:
     Dsymbol* aliassym;
     Dsymbol* overnext;
-    Dsymbol* _import_;
+    Dsymbol* _import;
     static AliasDeclaration* create(const Loc& loc, Identifier* id, Type* type);
     AliasDeclaration* syntaxCopy(Dsymbol* s) override;
     bool overloadInsert(Dsymbol* s) override;
@@ -8609,6 +8609,7 @@ struct Id final
     static Identifier* p;
     static Identifier* gate;
     static Identifier* cpp_type_info_ptr;
+    static Identifier* _assert;
     static Identifier* _unittest;
     static Identifier* _body;
     static Identifier* printf;
