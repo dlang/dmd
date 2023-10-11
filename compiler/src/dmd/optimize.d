@@ -91,7 +91,7 @@ Expression expandVar(int result, VarDeclaration v)
                 {
                     if (v.storage_class & STC.manifest)
                     {
-                        v.error("recursive initialization of constant");
+                        .error(v.loc, "%s `%s` recursive initialization of constant", v.kind, v.toPrettyChars);
                         return errorReturn();
                     }
                     return nullReturn();
@@ -101,7 +101,7 @@ Expression expandVar(int result, VarDeclaration v)
                 {
                     if (v.storage_class & STC.manifest)
                     {
-                        v.error("enum cannot be initialized with `%s`", dmd.hdrgen.toChars(v._init));
+                        .error(v.loc, "%s `%s` enum cannot be initialized with `%s`", v.kind, v.toPrettyChars, dmd.hdrgen.toChars(v._init));
                         return errorReturn();
                     }
                     return nullReturn();
