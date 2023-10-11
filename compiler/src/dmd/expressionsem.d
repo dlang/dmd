@@ -1745,7 +1745,7 @@ private bool checkDefCtor(Loc loc, Type t)
         StructDeclaration sd = ts.sym;
         if (sd.noDefaultCtor)
         {
-            sd.error(loc, "default construction is disabled");
+            .error(loc, "%s `%s` default construction is disabled", sd.kind, sd.toPrettyChars);
             return true;
         }
     }
@@ -12938,7 +12938,7 @@ private Expression dotIdSemanticPropX(DotIdExp exp, Scope* sc)
 
                 if (f.purityInprocess || f.safetyInprocess || f.nothrowInprocess || f.nogcInprocess)
                 {
-                    f.error(loc, "cannot retrieve its `.mangleof` while inferring attributes");
+                    error(loc, "%s `%s` cannot retrieve its `.mangleof` while inferring attributes", f.kind, f.toPrettyChars);
                     return ErrorExp.get();
                 }
             }
