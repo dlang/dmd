@@ -3216,6 +3216,21 @@ const(char*) keywordClass(const Identifier ident)
             if (global.params.cplusplus >= CppStdRevision.cpp20)
                 return "keyword in C++20";
             return null;
+        case "restrict":
+        case "_Alignas":
+        case "_Alignof":
+        case "_Atomic":
+        case "_Bool":
+        //case "_Complex": // handled above in C++
+        case "_Generic":
+        case "_Imaginary":
+        case "_Noreturn":
+        case "_Static_assert":
+        case "_Thread_local":
+        case "_assert":
+        case "_import":
+        //case "__...": handled in default case below
+            return "Keyword in C";
 
         default:
             // Identifiers starting with __ are reserved
