@@ -5488,6 +5488,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
 
+        // `super.fun()` with fun being abstract and unimplemented
+        auto supDotFun = exp.e1.isDotVarExp();
+        if (supDotFun && supDotFun.e1.isSuperExp() && exp.f && exp.f.isAbstract() && !exp.f.fbody)
+        {
+            error(exp.loc, "call to unimplemented abstract function `%s`", exp.f.toFullSignature());
+            errorSupplemental(exp.loc, "declared here: %s", exp.f.loc.toChars());
+        }
+
         // declare dual-context container
         if (exp.f && exp.f.hasDualContext() && !sc.intypeof && sc.func)
         {
