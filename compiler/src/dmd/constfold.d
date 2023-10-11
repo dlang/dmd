@@ -1275,12 +1275,12 @@ UnionExp Slice(Type type, Expression e1, Expression lwr, Expression upr)
             bool isError = false;
             if (ilwr > iupr)
             {
-                e1.error("in slice `%s[%llu..%llu]`, lower bound is greater than upper bound", e1.toChars, ilwr, iupr);
+                .error(e1.loc, "in slice `%s[%llu..%llu]`, lower bound is greater than upper bound", e1.toChars, ilwr, iupr);
                 isError = true;
             }
             if (iupr > es1.elements.length)
             {
-                e1.error("in slice `%s[%llu..%llu]`, upper bound is greater than array length `%llu`", e1.toChars, ilwr, iupr, es1.elements.length);
+                .error(e1.loc, "in slice `%s[%llu..%llu]`, upper bound is greater than array length `%llu`", e1.toChars, ilwr, iupr, es1.elements.length);
                 isError = true;
             }
 
@@ -1303,12 +1303,12 @@ UnionExp Slice(Type type, Expression e1, Expression lwr, Expression upr)
         bool isError = false;
         if (lwr.op == EXP.int64 && upr.op == EXP.int64 && lwr.toInteger() > upr.toInteger())
         {
-            e1.error("in slice `%s[%llu..%llu]`, lower bound is greater than upper bound", e1.toChars, lwr.toInteger(), upr.toInteger());
+            .error(e1.loc, "in slice `%s[%llu..%llu]`, lower bound is greater than upper bound", e1.toChars, lwr.toInteger(), upr.toInteger());
             isError = true;
         }
         if (upr.op == EXP.int64 && upr.toInteger() > length)
         {
-            e1.error("in slice `%s[%llu..%llu]`, upper bound is greater than array length `%llu`", e1.toChars, lwr.toInteger(), upr.toInteger(), length);
+            .error(e1.loc, "in slice `%s[%llu..%llu]`, upper bound is greater than array length `%llu`", e1.toChars, lwr.toInteger(), upr.toInteger(), length);
             isError = true;
         }
 
