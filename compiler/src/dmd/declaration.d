@@ -1531,7 +1531,7 @@ extern (C++) class VarDeclaration : Declaration
                 // cast any multi-dimensional array into its lineralized form. This is safe to
                 // do since multi-dimensional arrays are layed out linearly in memory.
                 // Doing this prevents the compiler down the line to report an error to the user,
-                // which might be confused since this here is generated code the user didn't 
+                // which might be confused since this here is generated code the user didn't
                 // explicitly wrote.
                 Type sty = sd.type.sarrayOf(n);
 
