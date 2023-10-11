@@ -1807,7 +1807,7 @@ enum class TOK : uint8_t
     whitespace = 197u,
     inline_ = 198u,
     register_ = 199u,
-    restrict = 200u,
+    restrict_ = 200u,
     signed_ = 201u,
     sizeof_ = 202u,
     typedef_ = 203u,
@@ -6048,7 +6048,7 @@ class AliasDeclaration final : public Declaration
 public:
     Dsymbol* aliassym;
     Dsymbol* overnext;
-    Dsymbol* _import;
+    Dsymbol* _import_;
     static AliasDeclaration* create(const Loc& loc, Identifier* id, Type* type);
     AliasDeclaration* syntaxCopy(Dsymbol* s) override;
     bool overloadInsert(Dsymbol* s) override;
@@ -8609,7 +8609,6 @@ struct Id final
     static Identifier* p;
     static Identifier* gate;
     static Identifier* cpp_type_info_ptr;
-    static Identifier* _assert;
     static Identifier* _unittest;
     static Identifier* _body;
     static Identifier* printf;
