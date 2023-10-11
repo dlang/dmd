@@ -657,7 +657,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
         /// Checks that the given class implements all methods of its interfaces.
         static void checkInterfaceImplementations(ClassDeclaration cd)
         {
-            foreach (base; cd.interfaces)
+            cd.forAllInterfaces((base)
             {
                 // https://issues.dlang.org/show_bug.cgi?id=22729
                 // interfaces that have errors or that
@@ -690,7 +690,17 @@ private extern(C++) final class Semantic2Visitor : Visitor
                         // Check that it is current
                         //printf("newinstance = %d fd.toParent() = %s ifd.toParent() = %s\n",
                             //newinstance, fd.toParent().toChars(), ifd.toParent().toChars());
-                        if (fd.toParent() != cd && ifd.toParent() == base.sym)
+                        const fdp = fd.toParent();
+                        bool isImplemented(ClassDeclaration cd)
+                        {
+                            if (fdp == cd)
+                                return true;
+                            else if (!cd.baseClass)
+                                return false;
+                            else
+                                return isImplemented(cd.baseClass);
+                        }
+                        if (!isImplemented(cd) && ifd.toParent() == base.sym)
                             cd.error("interface function `%s` is not implemented", ifd.toFullSignature());
                     }
                     else
@@ -698,10 +708,26 @@ private extern(C++) final class Semantic2Visitor : Visitor
                         //printf("            not found %p\n", fd);
                         // BUG: should mark this class as abstract?
                         if (!cd.isAbstract())
-                            cd.error("interface function `%s` is not implemented", ifd.toFullSignature());
+                        {
+                            // detect whether to use deprecation
+                            bool isDirectInterface = false;
+                            foreach (directInterface; cd.interfaces)
+                            {
+                                if (base is directInterface)
+                                {
+                                    isDirectInterface = true;
+                                    break;
+                                }
+                            }
+                            if (isDirectInterface)
+                                cd.error("interface function `%s` is not implemented", ifd.toFullSignature());
+                            else
+                                cd.deprecation("interface function `%s` is not implemented", ifd.toFullSignature());
+                        }
                     }
                 }
-            }
+                return true;
+            });
         }
 
         if (cd.semanticRun >= PASS.semantic2done)
