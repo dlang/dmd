@@ -214,7 +214,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
         if (!members)
         {
-            error(loc, "unknown size");
+            .error(loc, "%s `%s` unknown size", kind, toPrettyChars);
             return false;
         }
 
@@ -244,7 +244,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     Lfail:
         // There's unresolvable forward reference.
         if (type != Type.terror)
-            error(loc, "no size because of forward reference");
+            error(loc, "%s `%s` no size because of forward reference", kind, toPrettyChars);
         // Don't cache errors from speculative semantic, might be resolvable later.
         // https://issues.dlang.org/show_bug.cgi?id=16574
         if (!global.gag)
