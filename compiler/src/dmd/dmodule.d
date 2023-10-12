@@ -907,11 +907,11 @@ extern (C++) final class Module : Package
             if (Module mprev = prev.isModule())
             {
                 if (!FileName.equals(srcname, mprev.srcfile.toChars()))
-                    error(loc, "from file %s conflicts with another module %s from file %s", srcname, mprev.toChars(), mprev.srcfile.toChars());
+                    error(loc, "%s `%s` from file %s conflicts with another module %s from file %s", kind, toPrettyChars, srcname, mprev.toChars(), mprev.srcfile.toChars());
                 else if (isRoot() && mprev.isRoot())
-                    error(loc, "from file %s is specified twice on the command line", srcname);
+                    error(loc, "%s `%s` from file %s is specified twice on the command line", kind, toPrettyChars, srcname);
                 else
-                    error(loc, "from file %s must be imported with 'import %s;'", srcname, toPrettyChars());
+                    error(loc, "%s `%s` from file %s must be imported with 'import %s;'", kind, toPrettyChars, srcname, toPrettyChars());
                 // https://issues.dlang.org/show_bug.cgi?id=14446
                 // Return previously parsed module to avoid AST duplication ICE.
                 return mprev;
@@ -922,7 +922,7 @@ extern (C++) final class Module : Package
                 if (isPackageFile)
                     amodules.push(this); // Add to global array of all modules
                 else
-                    error(md ? md.loc : loc, "from file %s conflicts with package name %s", srcname, pkg.toChars());
+                    error(md ? md.loc : loc, "%s `%s` from file %s conflicts with package name %s", kind, toPrettyChars, srcname, pkg.toChars());
             }
             else
                 assert(global.errors);
@@ -1028,11 +1028,11 @@ extern (C++) final class Module : Package
                 const slice = se.peekString();
                 if (slice.length)
                 {
-                    deprecation(loc, "is deprecated - %.*s", cast(int)slice.length, slice.ptr);
+                    deprecation(loc, "%s `%s` is deprecated - %.*s", kind, toPrettyChars, cast(int)slice.length, slice.ptr);
                     return;
                 }
             }
-            deprecation(loc, "is deprecated");
+            deprecation(loc, "%s `%s` is deprecated", kind, toPrettyChars);
         }
     }
 

@@ -11,7 +11,7 @@
 
 module dmd.errors;
 
-import core.stdc.stdarg;
+public import core.stdc.stdarg;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;

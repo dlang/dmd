@@ -357,7 +357,7 @@ extern (C++) abstract class Declaration : Dsymbol
                 return true;
             }
         }
-        error(loc, "cannot be used because it is annotated with `@disable`");
+        .error(loc, "%s `%s` cannot be used because it is annotated with `@disable`", kind, toPrettyChars);
         return true;
     }
 
@@ -388,7 +388,7 @@ extern (C++) abstract class Declaration : Dsymbol
                 {
                     const(char)* s = isParameter() && parent.ident != Id.ensure ? "parameter" : "result";
                     if (!(flag & ModifyFlags.noError))
-                        error(loc, "cannot modify %s `%s` in contract", s, toChars());
+                        error(loc, "%s `%s` cannot modify %s `%s` in contract", kind, toPrettyChars, s, toChars());
                     return Modifiable.initialization; // do not report type related errors
                 }
             }
@@ -402,7 +402,7 @@ extern (C++) abstract class Declaration : Dsymbol
                 if (scx.func == vthis.parent && (scx.flags & SCOPE.contract))
                 {
                     if (!(flag & ModifyFlags.noError))
-                        error(loc, "cannot modify parameter `this` in contract");
+                        error(loc, "%s `%s` cannot modify parameter `this` in contract", kind, toPrettyChars);
                     return Modifiable.initialization; // do not report type related errors
                 }
             }

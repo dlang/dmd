@@ -375,79 +375,6 @@ extern (C++) class Dsymbol : ASTNode
         return '`' ~ cstr.toDString() ~ "`\0";
     }
 
-    static if (__VERSION__ < 2092)
-    {
-        final void error(const ref Loc loc, const(char)* format, ...)
-        {
-            va_list ap;
-            va_start(ap, format);
-            .verrorReport(loc, format, ap, ErrorKind.error, kind(), prettyFormatHelper().ptr);
-            va_end(ap);
-        }
-
-        final void error(const(char)* format, ...)
-        {
-            va_list ap;
-            va_start(ap, format);
-            const loc = getLoc();
-            .verrorReport(loc, format, ap, ErrorKind.error, kind(), prettyFormatHelper().ptr);
-            va_end(ap);
-        }
-
-        final void deprecation(const ref Loc loc, const(char)* format, ...)
-        {
-            va_list ap;
-            va_start(ap, format);
-            .verrorReport(loc, format, ap, ErrorKind.deprecation, kind(), prettyFormatHelper().ptr);
-            va_end(ap);
-        }
-
-        final void deprecation(const(char)* format, ...)
-        {
-            va_list ap;
-            va_start(ap, format);
-            const loc = getLoc();
-            .verrorReport(loc, format, ap, ErrorKind.deprecation, kind(), prettyFormatHelper().ptr);
-            va_end(ap);
-        }
-    }
-    else
-    {
-        pragma(printf) final void error(const ref Loc loc, const(char)* format, ...)
-        {
-            va_list ap;
-            va_start(ap, format);
-            .verrorReport(loc, format, ap, ErrorKind.error, kind(), prettyFormatHelper().ptr);
-            va_end(ap);
-        }
-
-        pragma(printf) final void error(const(char)* format, ...)
-        {
-            va_list ap;
-            va_start(ap, format);
-            const loc = getLoc();
-            .verrorReport(loc, format, ap, ErrorKind.error, kind(), prettyFormatHelper().ptr);
-            va_end(ap);
-        }
-
-        pragma(printf) final void deprecation(const ref Loc loc, const(char)* format, ...)
-        {
-            va_list ap;
-            va_start(ap, format);
-            .verrorReport(loc, format, ap, ErrorKind.deprecation, kind(), prettyFormatHelper().ptr);
-            va_end(ap);
-        }
-
-        pragma(printf) final void deprecation(const(char)* format, ...)
-        {
-            va_list ap;
-            va_start(ap, format);
-            const loc = getLoc();
-            .verrorReport(loc, format, ap, ErrorKind.deprecation, kind(), prettyFormatHelper().ptr);
-            va_end(ap);
-        }
-    }
-
     final bool checkDeprecated(const ref Loc loc, Scope* sc)
     {
         if (global.params.useDeprecated == DiagnosticReporting.off)
@@ -470,9 +397,9 @@ extern (C++) class Dsymbol : ASTNode
                 break;
         }
         if (message)
-            deprecation(loc, "is deprecated - %s", message);
+            deprecation(loc, "%s `%s` is deprecated - %s", kind, toPrettyChars, message);
         else
-            deprecation(loc, "is deprecated");
+            deprecation(loc, "%s `%s` is deprecated", kind, toPrettyChars);
 
         if (auto ti = sc.parent ? sc.parent.isInstantiated() : null)
             ti.printInstantiationTrace(Classification.deprecation);

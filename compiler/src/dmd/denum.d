@@ -192,7 +192,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
                 return defaultval = memtype.defaultInit(loc);
             }
 
-            error(loc, "is opaque and has no default initializer");
+            error(loc, "%s `%s` is opaque and has no default initializer", kind, toPrettyChars);
             return handleErrors();
         }
 
@@ -203,7 +203,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             {
                 if (em.semanticRun < PASS.semanticdone)
                 {
-                    error(loc, "forward reference of `%s.init`", toChars());
+                    error(loc, "%s `%s` forward reference of `%s.init`", kind, toPrettyChars, toChars());
                     return handleErrors();
                 }
 
