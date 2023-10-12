@@ -195,7 +195,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
             if (!tempinst.errors)
             {
                 if (!tempdecl.literal)
-                    tempinst.error(tempinst.loc, "error instantiating");
+                    .error(tempinst.loc, "%s `%s` error instantiating", tempinst.kind, tempinst.toPrettyChars);
                 if (tempinst.tinst)
                     tempinst.tinst.printInstantiationTrace();
             }
@@ -315,7 +315,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 }
 
                 if (hasInvalidEnumInitializer(ei.exp))
-                    vd.error(": Unable to initialize enum with class or pointer to struct. Use static const variable instead.");
+                    .error(vd.loc, "%s `%s` : Unable to initialize enum with class or pointer to struct. Use static const variable instead.", vd.kind, vd.toPrettyChars);
             }
         }
         else if (vd._init && vd.isThreadlocal())
@@ -326,13 +326,13 @@ private extern(C++) final class Semantic2Visitor : Visitor
             {
                 ExpInitializer ei = vd._init.isExpInitializer();
                 if (ei && ei.exp.op == EXP.classReference)
-                    vd.error("is a thread-local class and cannot have a static initializer. Use `static this()` to initialize instead.");
+                    .error(vd.loc, "%s `%s` is a thread-local class and cannot have a static initializer. Use `static this()` to initialize instead.", vd.kind, vd.toPrettyChars);
             }
             else if (vd.type.ty == Tpointer && vd.type.nextOf().ty == Tstruct && vd.type.nextOf().isMutable() && !vd.type.nextOf().isShared())
             {
                 ExpInitializer ei = vd._init.isExpInitializer();
                 if (ei && ei.exp.op == EXP.address && (cast(AddrExp)ei.exp).e1.op == EXP.structLiteral)
-                    vd.error("is a thread-local pointer to struct and cannot have a static initializer. Use `static this()` to initialize instead.");
+                    .error(vd.loc, "%s `%s` is a thread-local pointer to struct and cannot have a static initializer. Use `static this()` to initialize instead.", vd.kind, vd.toPrettyChars);
             }
         }
         vd.semanticRun = PASS.semantic2done;
@@ -454,7 +454,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
                     (!sameAttr || !sameParams)
                 )
                 {
-                    f2.error("cannot overload `extern(%s)` function at %s",
+                    .error(f2.loc, "%s `%s` cannot overload `extern(%s)` function at %s", f2.kind, f2.toPrettyChars,
                             linkageToChars(f1._linkage),
                             f1.loc.toChars());
                     return 0;
@@ -473,14 +473,14 @@ private extern(C++) final class Semantic2Visitor : Visitor
                     // this condition, as well as the error for extern(C) functions above.
                     if (sameAttr != tf1.attributesEqual(tf2))
                     {
-                        f2.deprecation("cannot overload `extern(%s)` function at %s",
+                        .deprecation(f2.loc, "%s `%s` cannot overload `extern(%s)` function at %s", f2.kind, f2.toPrettyChars,
                                 linkageToChars(f1._linkage),
                                 f1.loc.toChars());
                     }
                     return 0;
                 }
 
-                error(f2.loc, "%s `%s%s` conflicts with previous declaration at %s",
+                .error(f2.loc, "%s `%s%s` conflicts with previous declaration at %s",
                         f2.kind(),
                         f2.toPrettyChars(),
                         parametersTypeToChars(tf2.parameterList),
@@ -631,7 +631,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
 
         if (ad._scope)
         {
-            ad.error("has forward references");
+            .error(ad.loc, "%s `%s` has forward references", ad.kind, ad.toPrettyChars);
             return;
         }
 
@@ -685,20 +685,20 @@ private extern(C++) final class Semantic2Visitor : Visitor
                         //printf("            found\n");
                         // Check that calling conventions match
                         if (fd._linkage != ifd._linkage)
-                            fd.error("linkage doesn't match interface function");
+                            .error(fd.loc, "%s `%s` linkage doesn't match interface function", fd.kind, fd.toPrettyChars);
 
                         // Check that it is current
                         //printf("newinstance = %d fd.toParent() = %s ifd.toParent() = %s\n",
                             //newinstance, fd.toParent().toChars(), ifd.toParent().toChars());
                         if (fd.toParent() != cd && ifd.toParent() == base.sym)
-                            cd.error("interface function `%s` is not implemented", ifd.toFullSignature());
+                            .error(cd.loc, "%s `%s` interface function `%s` is not implemented", cd.kind, cd.toPrettyChars, ifd.toFullSignature());
                     }
                     else
                     {
                         //printf("            not found %p\n", fd);
                         // BUG: should mark this class as abstract?
                         if (!cd.isAbstract())
-                            cd.error("interface function `%s` is not implemented", ifd.toFullSignature());
+                            .error(cd.loc, "%s `%s` interface function `%s` is not implemented", cd.kind, cd.toPrettyChars, ifd.toFullSignature());
                     }
                 }
             }
