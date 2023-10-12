@@ -2737,7 +2737,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                     // checking for `shared`, make sure we were right
                     if (global.params.noSharedAccess == FeatureState.enabled && rs.exp.type.isShared())
                     {
-                        fd.error("function returns `shared` but cannot be inferred `ref`");
+                        .error(fd.loc, "%s `%s` function returns `shared` but cannot be inferred `ref`", fd.kind, fd.toPrettyChars);
                         supplemental();
                     }
                 }
