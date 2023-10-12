@@ -760,7 +760,7 @@ public void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
          * but the errors were gagged.
          * Try to reproduce those errors, and then fail.
          */
-        fd.error("errors compiling the function");
+        .error(fd.loc, "%s `%s` errors compiling the function", fd.kind, fd.toPrettyChars);
         return;
     }
     assert(fd.semanticRun == PASS.semantic3done);

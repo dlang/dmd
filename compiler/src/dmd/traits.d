@@ -1975,7 +1975,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         {
             if (d.inuse)
             {
-                d.error("circular reference in `__traits(GetCppNamespaces,...)`");
+                .error(d.loc, "%s `%s` circular reference in `__traits(GetCppNamespaces,...)`", d.kind, d.toPrettyChars);
                 return ErrorExp.get();
             }
             d.inuse = 1;
