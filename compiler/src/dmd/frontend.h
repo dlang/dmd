@@ -7056,7 +7056,7 @@ struct UnionExp final
     Expression* copy();
     #pragma pack(push, 8)
 private:
-    union __AnonStruct__u
+    union _AnonStruct_u
     {
         char exp[29LLU];
         char integerexp[40LLU];
@@ -7079,7 +7079,7 @@ private:
     #pragma pack(pop)
 
     // Ignoring var u alignment 8
-    __AnonStruct__u u;
+    _AnonStruct_u u;
 public:
     UnionExp() :
         u()
