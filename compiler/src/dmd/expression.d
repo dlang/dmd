@@ -602,7 +602,7 @@ extern (C++) struct UnionExp
 
 private:
     // Ensure that the union is suitably aligned.
-    align(8) union __AnonStruct__u
+    align(8) union _AnonStruct_u
     {
         char[__traits(classInstanceSize, Expression)] exp;
         char[__traits(classInstanceSize, IntegerExp)] integerexp;
@@ -623,7 +623,7 @@ private:
         char[__traits(classInstanceSize, VectorExp)] vectorexp;
     }
 
-    __AnonStruct__u u;
+    _AnonStruct_u u;
 }
 
 /********************************

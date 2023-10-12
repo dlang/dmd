@@ -672,8 +672,7 @@ alias buildFrontendHeaders = makeRule!((builder, rule) {
         .command([dmdExeFile] ~
             flags["DFLAGS"]
               .filter!(f => startsWith(f, "-debug=", "-version=", "-I", "-J")).array ~
-            // Ignore warnings because of invalid C++ identifiers in the source code
-            ["-J" ~ env["RES"], "-c", "-o-", "-wi", "-HCf="~rule.target,
+            ["-J" ~ env["RES"], "-c", "-o-", "-HCf="~rule.target,
             // Enforce the expected target architecture
             "-m64", "-os=linux",
             ] ~ dmdSources);
