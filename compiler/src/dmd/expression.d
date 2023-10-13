@@ -1770,7 +1770,10 @@ extern (C++) abstract class Expression : ASTNode
         inout(IdentityExp) isIdentityExp() { return (op == EXP.identity || op == EXP.notIdentity) ? cast(typeof(return))this : null; }
         inout(CondExp)     isCondExp() { return op == EXP.question ? cast(typeof(return))this : null; }
         inout(GenericExp)  isGenericExp() { return op == EXP._Generic ? cast(typeof(return))this : null; }
-        inout(DefaultInitExp)    isDefaultInitExp() { return isDefaultInitOp(op) ? cast(typeof(return))this: null; }
+        inout(DefaultInitExp)    isDefaultInitExp() { return
+            (op == EXP.prettyFunction    || op == EXP.functionString ||
+             op == EXP.line              || op == EXP.moduleString   ||
+             op == EXP.file              || op == EXP.fileFullPath   ) ? cast(typeof(return))this : null; }
         inout(FileInitExp)       isFileInitExp() { return (op == EXP.file || op == EXP.fileFullPath) ? cast(typeof(return))this : null; }
         inout(LineInitExp)       isLineInitExp() { return op == EXP.line ? cast(typeof(return))this : null; }
         inout(ModuleInitExp)     isModuleInitExp() { return op == EXP.moduleString ? cast(typeof(return))this : null; }
@@ -6967,14 +6970,6 @@ extern (C++) final class CondExp : BinExp
     }
 }
 
-/// Returns: if this token is the `op` for a derived `DefaultInitExp` class.
-bool isDefaultInitOp(EXP op) pure nothrow @safe @nogc
-{
-    return  op == EXP.prettyFunction    || op == EXP.functionString ||
-            op == EXP.line              || op == EXP.moduleString   ||
-            op == EXP.file              || op == EXP.fileFullPath   ;
-}
-
 /***********************************************************
  * A special keyword when used as a function's default argument
  *
@@ -6991,6 +6986,12 @@ bool isDefaultInitOp(EXP op) pure nothrow @safe @nogc
  */
 extern (C++) class DefaultInitExp : Expression
 {
+    /*************************
+     * Params:
+     *  loc = location
+     *  op = EXP.prettyFunction, EXP.functionString, EXP.moduleString,
+     *       EXP.line, EXP.file, EXP.fileFullPath
+     */
     extern (D) this(const ref Loc loc, EXP op) @safe
     {
         super(loc, op);

@@ -1887,7 +1887,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             }
             else
             {
-                if (isDefaultInitOp(arg.op))
+                if (arg.isDefaultInitExp())
                 {
                     arg = arg.resolveLoc(loc, sc);
                     (*arguments)[i] = arg;
