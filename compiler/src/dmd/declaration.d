@@ -809,6 +809,11 @@ extern (C++) final class AliasDeclaration : Declaration
                 return this._import && this.equals(s);
             }
 
+            // https://issues.dlang.org/show_bug.cgi?id=23865
+            // only insert if the symbol can be part of a set
+            const s1 = s.toAlias();
+            const isInsertCandidate = s1.isFuncDeclaration() || s1.isOverDeclaration() || s1.isTemplateDeclaration();
+
             /* When s is added in member scope by static if, mixin("code") or others,
              * aliassym is determined already. See the case in: test/compilable/test61.d
              */
@@ -823,7 +828,8 @@ extern (C++) final class AliasDeclaration : Declaration
                 fa.visibility = visibility;
                 fa.parent = parent;
                 aliassym = fa;
-                return aliassym.overloadInsert(s);
+                if (isInsertCandidate)
+                    return aliassym.overloadInsert(s);
             }
             if (auto td = sa.isTemplateDeclaration())
             {
@@ -831,7 +837,8 @@ extern (C++) final class AliasDeclaration : Declaration
                 od.visibility = visibility;
                 od.parent = parent;
                 aliassym = od;
-                return aliassym.overloadInsert(s);
+                if (isInsertCandidate)
+                    return aliassym.overloadInsert(s);
             }
             if (auto od = sa.isOverDeclaration())
             {
@@ -842,7 +849,8 @@ extern (C++) final class AliasDeclaration : Declaration
                     od.parent = parent;
                     aliassym = od;
                 }
-                return od.overloadInsert(s);
+                if (isInsertCandidate)
+                    return od.overloadInsert(s);
             }
             if (auto os = sa.isOverloadSet())
             {
@@ -868,8 +876,11 @@ extern (C++) final class AliasDeclaration : Declaration
                     os.parent = parent;
                     aliassym = os;
                 }
-                os.push(s);
-                return true;
+                if (isInsertCandidate)
+                {
+                    os.push(s);
+                    return true;
+                }
             }
             return false;
         }
