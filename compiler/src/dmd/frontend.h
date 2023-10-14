@@ -110,6 +110,7 @@ class Expression;
 class TypeTuple;
 class Condition;
 class StaticForeach;
+class ErrorSink;
 struct UnionExp;
 class DebugCondition;
 class VersionCondition;
@@ -239,7 +240,6 @@ struct ModuleDeclaration;
 template <typename Datum>
 struct FileMapping;
 struct Escape;
-class ErrorSink;
 class LabelStatement;
 class SwitchStatement;
 class Statement;
@@ -5753,7 +5753,7 @@ extern BUILTIN isBuiltin(FuncDeclaration* fd);
 
 extern Expression* eval_builtin(const Loc& loc, FuncDeclaration* fd, Array<Expression* >* arguments);
 
-extern BE canThrow(Expression* e, FuncDeclaration* func, bool mustNotThrow);
+extern BE canThrow(Expression* e, FuncDeclaration* func, ErrorSink* eSink);
 
 extern bool includeImports;
 

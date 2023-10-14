@@ -400,7 +400,7 @@ elem *toElemDtor(Expression e, ref IRState irs)
      * it can be enabled only for optimized builds.
      */
     const mayThrowSave = irs.mayThrow;
-    if (irs.mayThrow && !canThrow(e, irs.getFunc(), false))
+    if (irs.mayThrow && !canThrow(e, irs.getFunc(), null))
         irs.mayThrow = false;
 
     const starti = irs.varsInScope.length;
