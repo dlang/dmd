@@ -1601,6 +1601,8 @@ extern (C++) class VarDeclaration : Declaration
         {
             inuse++;
             _init = _init.initializerSemantic(_scope, type, INITinterpret);
+            import dmd.semantic2 : lowerStaticAAs;
+            lowerStaticAAs(this, _scope);
             _scope = null;
             inuse--;
         }
