@@ -24,6 +24,7 @@ import dmd.declaration;
 import dmd.dstruct;
 import dmd.errors;
 import dmd.expression;
+import dmd.expressionutil;
 import dmd.globals;
 import dmd.location;
 import dmd.mtype;

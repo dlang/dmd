@@ -57,6 +57,7 @@ import dmd.dsymbolsem;
 import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem;
+import dmd.expressionutil;
 import dmd.func;
 import dmd.globals;
 import dmd.hdrgen;
@@ -5629,7 +5630,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
                     // i.e: `template T(int arg = T)`
                     // Raise error now before calling resolveProperties otherwise we'll
                     // start looping on the expansion of the template instance.
-		    auto td = sc.tinst.tempdecl;
+                    auto td = sc.tinst.tempdecl;
                     .error(td.loc, "%s `%s` recursive template expansion", td.kind, td.toPrettyChars);
                     return ErrorExp.get();
                 }

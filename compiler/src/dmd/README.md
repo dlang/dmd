@@ -130,6 +130,7 @@ Note that these groups have no strict meaning, the category assignments are a bi
 | [constfold.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/constfold.d)   | Do constant folding of arithmetic expressions                                              |
 | [optimize.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/optimize.d)     | Do constant folding more generally                                                         |
 | [dcast.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dcast.d)           | Implicit or explicit cast(), finding common types e.g. in `x ? a : b`, integral promotions |
+| [expressionutil.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/expressionutil.d)| various support functions for Expression nodes                                      |
 | [impcnvtab.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/impcnvtab.d)   | Define an implicit conversion table for basic types                                        |
 | [importc.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/importc.d)       | Helpers specific to ImportC                                                                |
 | [sideeffect.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/sideeffect.d) | Extract side-effects of expressions for certain lowerings.                                 |

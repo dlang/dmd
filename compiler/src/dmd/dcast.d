@@ -26,6 +26,7 @@ import dmd.dsymbol;
 import dmd.errors;
 import dmd.escape;
 import dmd.expression;
+import dmd.expressionutil;
 import dmd.expressionsem;
 import dmd.func;
 import dmd.globals;

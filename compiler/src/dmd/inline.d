@@ -28,6 +28,7 @@ import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.expression;
+import dmd.expressionutil;
 import dmd.errors;
 import dmd.func;
 import dmd.globals;

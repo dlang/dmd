@@ -30,6 +30,7 @@ import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
+import dmd.expressionutil;
 import dmd.expressionsem;
 import dmd.func;
 import dmd.globals;

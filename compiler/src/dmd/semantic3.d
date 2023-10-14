@@ -40,6 +40,7 @@ import dmd.errors;
 import dmd.escape;
 import dmd.expression;
 import dmd.expressionsem;
+import dmd.expressionutil;
 import dmd.func;
 import dmd.globals;
 import dmd.id;

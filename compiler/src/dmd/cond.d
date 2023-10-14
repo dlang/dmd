@@ -23,6 +23,7 @@ import dmd.dscope;
 import dmd.dsymbol;
 import dmd.errors;
 import dmd.expression;
+import dmd.expressionutil;
 import dmd.expressionsem;
 import dmd.globals;
 import dmd.identifier;

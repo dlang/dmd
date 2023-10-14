@@ -1626,7 +1626,7 @@ private const(char)[] processSource (const(ubyte)[] src, Module mod)
     // It's UTF-8
     if (buf[0] >= 0x80)
     {
-	auto loc = mod.getLoc();
+        auto loc = mod.getLoc();
         .error(loc, "%s `%s` source file must start with BOM or ASCII character, not \\x%02X", mod.kind, mod.toPrettyChars, buf[0]);
         return null;
     }

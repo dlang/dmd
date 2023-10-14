@@ -18,6 +18,7 @@ import dmd.dsymbol;
 import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem;
+import dmd.expressionutil;
 import dmd.globals;
 import dmd.identifier;
 import dmd.mtype;

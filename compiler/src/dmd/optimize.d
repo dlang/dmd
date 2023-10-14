@@ -23,6 +23,7 @@ import dmd.dsymbolsem;
 import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem;
+import dmd.expressionutil;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.init;

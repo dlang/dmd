@@ -33,6 +33,7 @@ import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
+import dmd.expressionutil;
 import dmd.func;
 import dmd.globals;
 import dmd.id;

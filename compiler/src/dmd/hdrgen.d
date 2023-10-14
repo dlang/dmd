@@ -34,6 +34,7 @@ import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.dversion;
 import dmd.expression;
+import dmd.expressionutil;
 import dmd.func;
 import dmd.globals;
 import dmd.id;

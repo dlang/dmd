@@ -43,6 +43,7 @@ import dmd.dtemplate;
 import dmd.errors;
 import dmd.escape;
 import dmd.expression;
+import dmd.expressionutil;
 import dmd.file_manager;
 import dmd.func;
 import dmd.globals;

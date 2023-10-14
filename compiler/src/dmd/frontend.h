@@ -2316,27 +2316,9 @@ struct TemplateStats final
 
 enum : bool { LOGSEMANTIC = false };
 
-enum class Modifiable
-{
-    no = 0,
-    yes = 1,
-    initialization = 2,
-};
-
-enum class ModifyFlags
-{
-    none = 0,
-    noError = 1,
-    fieldAssign = 2,
-};
-
 enum : int32_t { WANTexpand = 1 };
 
 enum : int32_t { WANTvalue = 0 };
-
-typedef bool(*fp2_t)(Loc& loc, EXP , Expression , Expression );
-
-typedef UnionExp(*fp_t)(Loc& loc, Type , Expression , Expression );
 
 enum : int32_t { stageApply = 8 };
 
@@ -5026,8 +5008,6 @@ struct ASTCodegen final
     using MixinExp = ::MixinExp;
     using ModAssignExp = ::ModAssignExp;
     using ModExp = ::ModExp;
-    using Modifiable = ::Modifiable;
-    using ModifyFlags = ::ModifyFlags;
     using ModuleInitExp = ::ModuleInitExp;
     using MulAssignExp = ::MulAssignExp;
     using MulExp = ::MulExp;
@@ -5040,7 +5020,6 @@ struct ASTCodegen final
     using OrAssignExp = ::OrAssignExp;
     using OrExp = ::OrExp;
     using OverExp = ::OverExp;
-    using OwnedBy = ::OwnedBy;
     using PostExp = ::PostExp;
     using PowAssignExp = ::PowAssignExp;
     using PowExp = ::PowExp;
@@ -5079,8 +5058,6 @@ struct ASTCodegen final
     using XorAssignExp = ::XorAssignExp;
     using XorExp = ::XorExp;
     using emplaceExp = ::emplaceExp;
-    using fp2_t = ::fp2_t;
-    using fp_t = ::fp_t;
     using AttributeViolation = ::AttributeViolation;
     using BUILTIN = ::BUILTIN;
     using CtorDeclaration = ::CtorDeclaration;
@@ -7044,8 +7021,6 @@ public:
     void accept(Visitor* v) override;
 };
 
-extern void expandTuples(Array<Expression* >* exps, Array<Identifier* >* names = nullptr);
-
 struct UnionExp final
 {
     Expression* exp();
@@ -8115,6 +8090,8 @@ public:
     GenericExp* syntaxCopy() override;
     void accept(Visitor* v) override;
 };
+
+extern void expandTuples(Array<Expression* >* exps, Array<Identifier* >* names = nullptr);
 
 extern Expression* resolveProperties(Scope* sc, Expression* e);
 
