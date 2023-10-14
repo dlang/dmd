@@ -2370,7 +2370,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
         for (ptrdiff_t i = 0; i != nargs; i++)
         {
             Expression arg = (*arguments)[i];
-            if (canThrow(arg, sc.func, false))
+            if (canThrow(arg, sc.func, null))
                 lastthrow = i;
             if (arg.type.needsDestruction())
             {

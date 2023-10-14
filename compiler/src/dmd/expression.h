@@ -51,7 +51,7 @@ bool isTrivialExp(Expression *e);
 bool hasSideEffect(Expression *e, bool assumeImpureCalls = false);
 
 enum BE : int32_t;
-BE canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow);
+BE canThrow(Expression *e, FuncDeclaration *func, ErrorSink *eSink);
 
 typedef unsigned char OwnedBy;
 enum

@@ -544,7 +544,7 @@ void test_cppmangle()
     assert(fd->fbody);
     auto rs = (*fd->fbody->isCompoundStatement()->statements)[0]->isReturnStatement();
     assert(rs);
-    assert(!canThrow(rs->exp, fd, false));
+    assert(!canThrow(rs->exp, fd, NULL));
 
     assert(!global.endGagging(errors));
 }
