@@ -5724,13 +5724,19 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
     override RootObject defaultArg(const ref Loc instLoc, Scope* sc)
     {
         RootObject da = defaultAlias;
-        Type ta = isType(defaultAlias);
-        if (ta)
+        if (auto ta = isType(defaultAlias))
         {
-            if (ta.ty == Tinstance)
+            switch (ta.ty)
             {
-                // If the default arg is a template, instantiate for each type
+            // If the default arg is a template, instantiate for each type
+            case Tinstance :
+            // same if the default arg is a mixin, traits, typeof
+            // since the content might rely on a previous parameter
+            // (https://issues.dlang.org/show_bug.cgi?id=23686)
+            case Tmixin, Ttypeof, Ttraits :
                 da = ta.syntaxCopy();
+                break;
+            default:
             }
         }
 
