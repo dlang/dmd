@@ -305,9 +305,10 @@ UnionExp copyLiteral(Expression e)
     }
     if (auto aae = e.isAssocArrayLiteralExp())
     {
-        emplaceExp!(AssocArrayLiteralExp)(&ue, e.loc, copyLiteralArray(aae.keys), copyLiteralArray(aae.values));
+        emplaceExp!(AssocArrayLiteralExp)(&ue, aae.loc, copyLiteralArray(aae.keys), copyLiteralArray(aae.values));
         AssocArrayLiteralExp r = ue.exp().isAssocArrayLiteralExp();
-        r.type = e.type;
+        r.type = aae.type;
+        r.lowering = aae.lowering;
         r.ownedByCtfe = OwnedBy.ctfe;
         return ue;
     }
