@@ -199,45 +199,6 @@ FuncDeclaration hasThis(Scope* sc)
 
 }
 
-/***********************************
- * Determine if a `this` is needed to access `d`.
- * Params:
- *      sc = context
- *      d = declaration to check
- * Returns:
- *      true means a `this` is needed
- */
-bool isNeedThisScope(Scope* sc, Declaration d)
-{
-    if (sc.intypeof == 1)
-        return false;
-
-    AggregateDeclaration ad = d.isThis();
-    if (!ad)
-        return false;
-    //printf("d = %s, ad = %s\n", d.toChars(), ad.toChars());
-
-    for (Dsymbol s = sc.parent; s; s = s.toParentLocal())
-    {
-        //printf("\ts = %s %s, toParent2() = %p\n", s.kind(), s.toChars(), s.toParent2());
-        if (AggregateDeclaration ad2 = s.isAggregateDeclaration())
-        {
-            if (ad2 == ad)
-                return false;
-            else if (ad2.isNested())
-                continue;
-            else
-                return true;
-        }
-        if (FuncDeclaration f = s.isFuncDeclaration())
-        {
-            if (f.isMemberLocal())
-                break;
-        }
-    }
-    return true;
-}
-
 /******************************
  * check e is exp.opDispatch!(tiargs) or not
  * It's used to switch to UFCS the semantic analysis path
@@ -958,6 +919,45 @@ extern (C++) abstract class Expression : ASTNode
             error(loc, "`%s` is not an lvalue and cannot be modified", e.toChars());
 
         return ErrorExp.get();
+    }
+
+    /***********************************
+     * Determine if a `this` is needed to access `d`.
+     * Params:
+     *      sc = context
+     *      d = declaration to check
+     * Returns:
+     *      true means a `this` is needed
+     */
+    private static bool isNeedThisScope(Scope* sc, Declaration d)
+    {
+        if (sc.intypeof == 1)
+            return false;
+
+        AggregateDeclaration ad = d.isThis();
+        if (!ad)
+            return false;
+        //printf("d = %s, ad = %s\n", d.toChars(), ad.toChars());
+
+        for (Dsymbol s = sc.parent; s; s = s.toParentLocal())
+        {
+            //printf("\ts = %s %s, toParent2() = %p\n", s.kind(), s.toChars(), s.toParent2());
+            if (AggregateDeclaration ad2 = s.isAggregateDeclaration())
+            {
+                if (ad2 == ad)
+                    return false;
+                else if (ad2.isNested())
+                    continue;
+                else
+                    return true;
+            }
+            if (FuncDeclaration f = s.isFuncDeclaration())
+            {
+                if (f.isMemberLocal())
+                    break;
+            }
+        }
+        return true;
     }
 
     Expression modifiableLvalue(Scope* sc, Expression e)
