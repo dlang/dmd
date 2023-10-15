@@ -8272,6 +8272,7 @@ MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t i, Templ
              */
             if (tap.specType)
             {
+                tap.specType = typeSemantic(tap.specType, tap.loc, sc);
                 Declaration d = (cast(Dsymbol)sa).isDeclaration();
                 if (!d)
                     return matchArgNoMatch();
