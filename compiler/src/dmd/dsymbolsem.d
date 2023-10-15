@@ -269,6 +269,39 @@ bool checkHasBothRvalueAndCpCtor(StructDeclaration sd, CtorDeclaration ctor, Tem
     return false;
 }
 
+/****************************************
+ * Expand alias this tuples.
+ */
+private TupleDeclaration isAliasThisTuple(Expression e)
+{
+    if (!e.type)
+        return null;
+
+    Type t = e.type.toBasetype();
+    while (true)
+    {
+        if (Dsymbol s = t.toDsymbol(null))
+        {
+            if (auto ad = s.isAggregateDeclaration())
+            {
+                s = ad.aliasthis ? ad.aliasthis.sym : null;
+                if (s && s.isVarDeclaration())
+                {
+                    TupleDeclaration td = s.isVarDeclaration().toAlias().isTupleDeclaration();
+                    if (td && td.isexp)
+                        return td;
+                }
+                if (Type att = t.aliasthisOf())
+                {
+                    t = att;
+                    continue;
+                }
+            }
+        }
+        return null;
+    }
+}
+
 private extern(C++) final class DsymbolSemanticVisitor : Visitor
 {
     alias visit = Visitor.visit;
