@@ -238,17 +238,6 @@ bool isNeedThisScope(Scope* sc, Declaration d)
     return true;
 }
 
-/******************************
- * check e is exp.opDispatch!(tiargs) or not
- * It's used to switch to UFCS the semantic analysis path
- */
-bool isDotOpDispatch(Expression e)
-{
-    if (auto dtie = e.isDotTemplateInstanceExp())
-        return dtie.ti.name == Id.opDispatch;
-    return false;
-}
-
 /****************************************
  * Expand tuples in-place.
  *
