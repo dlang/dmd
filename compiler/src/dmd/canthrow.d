@@ -51,7 +51,7 @@ enum CT : BE
  * If `eSink` is not null, generate an error if `e` throws
  * Params:
  *      e = expression to check for throwing
- *      f = function
+ *      func = function
  *      eSink = if !null, then send error messages to eSink
  * Returns: `CT.exception` or `CT.error` if the expression may throw exceptions.
  */
