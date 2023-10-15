@@ -368,41 +368,6 @@ TupleDeclaration isAliasThisTuple(Expression e)
     }
 }
 
-int expandAliasThisTuples(Expressions* exps, size_t starti = 0)
-{
-    if (!exps || exps.length == 0)
-        return -1;
-
-    for (size_t u = starti; u < exps.length; u++)
-    {
-        Expression exp = (*exps)[u];
-        if (TupleDeclaration td = exp.isAliasThisTuple)
-        {
-            exps.remove(u);
-            size_t i;
-            td.foreachVar((s)
-            {
-                auto d = s.isDeclaration();
-                auto e = new DotVarExp(exp.loc, exp, d);
-                assert(d.type);
-                e.type = d.type;
-                exps.insert(u + i, e);
-                ++i;
-            });
-            version (none)
-            {
-                printf("expansion ->\n");
-                foreach (e; exps)
-                {
-                    printf("\texps[%d] e = %s %s\n", i, EXPtoString(e.op), e.toChars());
-                }
-            }
-            return cast(int)u;
-        }
-    }
-    return -1;
-}
-
 /****************************************
  * If `s` is a function template, i.e. the only member of a template
  * and that member is a function, return that template.
