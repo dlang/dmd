@@ -626,22 +626,6 @@ private:
     _AnonStruct_u u;
 }
 
-/********************************
- * Test to see if two reals are the same.
- * Regard NaN's as equivalent.
- * Regard +0 and -0 as different.
- * Params:
- *      x1 = first operand
- *      x2 = second operand
- * Returns:
- *      true if x1 is x2
- *      else false
- */
-bool RealIdentical(real_t x1, real_t x2) @safe
-{
-    return (CTFloat.isNaN(x1) && CTFloat.isNaN(x2)) || CTFloat.isIdentical(x1, x2);
-}
-
 /************************ TypeDotIdExp ************************************/
 /* Things like:
  *      int.size
@@ -2116,6 +2100,21 @@ extern (C++) final class RealExp : Expression
         emplaceExp!(RealExp)(pue, loc, value, type);
     }
 
+    /********************************
+     * Test to see if two reals are the same.
+     * Regard NaN's as equivalent.
+     * Regard +0 and -0 as different.
+     * Params:
+     *      x1 = first operand
+     *      x2 = second operand
+     * Returns:
+     *      true if x1 is x2
+     *      else false
+     */
+    private static bool RealIdentical(real_t x1, real_t x2) @safe
+    {
+        return (CTFloat.isNaN(x1) && CTFloat.isNaN(x2)) || CTFloat.isIdentical(x1, x2);
+    }
     override bool equals(const RootObject o) const
     {
         if (this == o)
@@ -2205,7 +2204,9 @@ extern (C++) final class ComplexExp : Expression
             return true;
         if (auto ne = (cast(Expression)o).isComplexExp())
         {
-            if (type.toHeadMutable().equals(ne.type.toHeadMutable()) && RealIdentical(creall(value), creall(ne.value)) && RealIdentical(cimagl(value), cimagl(ne.value)))
+            if (type.toHeadMutable().equals(ne.type.toHeadMutable()) &&
+                RealExp.RealIdentical(creall(value), creall(ne.value)) &&
+                RealExp.RealIdentical(cimagl(value), cimagl(ne.value)))
             {
                 return true;
             }
