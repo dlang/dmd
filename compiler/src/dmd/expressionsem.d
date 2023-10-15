@@ -483,6 +483,18 @@ private Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
 }
 
 /******************************
+ * check e is exp.opDispatch!(tiargs) or not
+ * It's used to switch to UFCS the semantic analysis path
+ */
+private bool isDotOpDispatch(Expression e)
+{
+    if (auto dtie = e.isDotTemplateInstanceExp())
+        return dtie.ti.name == Id.opDispatch;
+    return false;
+}
+
+
+/******************************
  * Pull out callable entity with UFCS.
  */
 private Expression resolveUFCS(Scope* sc, CallExp ce)
