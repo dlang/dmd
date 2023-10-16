@@ -12492,6 +12492,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         exp.setNoderefOperands();
 
+
+        const e1isNullExp = exp.e1.op == EXP.null_;
+        const e2isNullExp = exp.e2.op == EXP.null_;
+
         if (auto e = binSemanticProp(exp, sc))
         {
             result = e;
@@ -12542,6 +12546,41 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             deprecation(exp.loc, "identity comparison of static arrays "
                 ~ "implicitly coerces them to slices, "
                 ~ "which are compared by reference");
+
+        // https://issues.dlang.org/show_bug.cgi?id=23972
+        //
+        // `iface is obj`  ->  `cast(Object)iface is obj`
+        // `iface1 is iface2` ->  `cast(Object)iface1 is cast(Object)iface2`
+        if (!e1isNullExp && !e2isNullExp)
+        {
+            auto tc1 = exp.e1.type.isTypeClass();
+            auto tc2 = exp.e2.type.isTypeClass();
+            if (tc1 && tc2)
+            {
+                const id1 = tc1 && !tc1.sym.isCPPinterface() ? tc1.sym.isInterfaceDeclaration() : null;
+                const id2 = tc2 && !tc2.sym.isCPPinterface() ? tc2.sym.isInterfaceDeclaration() : null;
+                if (id1 || id2)
+                {
+                    if (id1 && id2)
+                    {
+                        auto t1 = new TypeIdentifier(exp.e1.loc, Id.Object).addMod(exp.e1.type.mod);
+                        exp.e1 = new CastExp(exp.e1.loc, exp.e1, t1).expressionSemantic(sc);
+                        auto t2 = new TypeIdentifier(exp.e1.loc, Id.Object).addMod(exp.e2.type.mod);
+                        exp.e2 = new CastExp(exp.e2.loc, exp.e2, t2).expressionSemantic(sc);
+                    }
+                    else if (!id1)
+                    {
+                        auto t = new TypeIdentifier(exp.e2.loc, Id.Object).addMod(exp.e1.type.mod);
+                        exp.e2 = new CastExp(exp.e2.loc, exp.e2, t).expressionSemantic(sc);
+                    }
+                    else
+                    {
+                        auto t = new TypeIdentifier(exp.e1.loc, Id.Object).addMod(exp.e2.type.mod);
+                        exp.e2 = new CastExp(exp.e1.loc, exp.e1, t).expressionSemantic(sc);
+                    }
+                }
+            }
+        }
 
         result = exp;
     }
