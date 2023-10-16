@@ -1878,15 +1878,6 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 else
                     (*arguments)[i] = arg;
             }
-            else
-            {
-                if (isDefaultInitOp(arg.op))
-                {
-                    arg = arg.resolveLoc(loc, sc);
-                    (*arguments)[i] = arg;
-                }
-            }
-
 
             if (tf.parameterList.varargs == VarArg.typesafe && i + 1 == nparams) // https://dlang.org/spec/function.html#variadic
             {
