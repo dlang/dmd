@@ -7300,6 +7300,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             if (!hasOverloads && f.checkForwardRef(exp.loc))
                 return setError();
+            import dmd.builtin : determine_builtin;
+            if (!f.fbody)
+            {
+                const b = determine_builtin(f);
+                if (b != BUILTIN.unknown && b != BUILTIN.unimp)
+                {
+                    error(exp.loc, "cannot take address of intrinsic function `%s`", exp.e1.toChars());
+                    if (BUILTIN.sin <= b && b <= BUILTIN.isfinite)
+                        errorSupplemental(exp.loc, "use `&std.math.%s` instead", exp.e1.toChars());
+                }
+            }
         }
         else if (!exp.e1.type.deco)
         {

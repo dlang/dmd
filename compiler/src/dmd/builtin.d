@@ -68,15 +68,13 @@ private:
  * Handler for evaluating builtins during CTFE.
  *
  * Params:
- *  loc = The call location, for error reporting.
- *  fd = The callee declaration, e.g. to disambiguate between different overloads
+ *  func = The callee declaration, e.g. to disambiguate between different overloads
  *       in a single handler (LDC).
- *  arguments = The function call arguments.
  * Returns:
- *  An Expression containing the return value of the call.
+ *      The BUILTIN of `func`
  */
 
-BUILTIN determine_builtin(FuncDeclaration func)
+package BUILTIN determine_builtin(FuncDeclaration func)
 {
     auto fd = func.toAliasFunc();
     if (fd.isDeprecated())
