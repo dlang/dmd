@@ -1484,7 +1484,7 @@ extern (C++) final class TryCatchStatement : Statement
 /***********************************************************
  * https://dlang.org/spec/statement.html#Catch
  */
-extern (C++) final class Catch
+extern (C++) final class Catch : RootObject
 {
     const Loc loc;
     Type type;

@@ -2529,7 +2529,7 @@ struct ASTBase
         }
     }
 
-    extern (C++) final class Catch
+    extern (C++) final class Catch : RootObject
     {
         Loc loc;
         Type type;
