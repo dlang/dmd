@@ -590,7 +590,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class Catch final
+class Catch final : public RootObject
 {
 public:
     Loc loc;

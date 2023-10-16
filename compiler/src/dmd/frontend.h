@@ -4278,7 +4278,7 @@ public:
     void accept(Visitor* v) override;
 };
 
-class Catch final
+class Catch final : public RootObject
 {
 public:
     const Loc loc;
