@@ -17,6 +17,7 @@ import core.stdc.string;
 
 import dmd.arraytypes;
 import dmd.astenums;
+import dmd.ast_node;
 import dmd.attrib;
 import dmd.dclass;
 import dmd.declaration;
@@ -35,7 +36,6 @@ import dmd.mtype;
 import dmd.postordervisitor;
 import dmd.printast;
 import dmd.root.array;
-import dmd.root.rootobject;
 import dmd.statement;
 import dmd.tokens;
 import dmd.visitor;

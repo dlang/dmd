@@ -25,7 +25,6 @@ import dmd.identifier;
 import dmd.location;
 import dmd.mtype;
 import dmd.common.outbuffer;
-import dmd.root.rootobject;
 import dmd.tokens;
 import dmd.visitor;
 

@@ -19,6 +19,7 @@ import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astcodegen;
 import dmd.astenums;
+import dmd.ast_node;
 import dmd.attrib;
 import dmd.canthrow;
 import dmd.dclass;
@@ -49,7 +50,6 @@ import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
-import dmd.root.rootobject;
 import dmd.common.outbuffer;
 import dmd.root.string;
 

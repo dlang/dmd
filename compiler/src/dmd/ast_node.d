@@ -10,8 +10,59 @@
  */
 module dmd.ast_node;
 
-import dmd.root.rootobject : RootObject;
 import dmd.visitor : Visitor;
+
+/***********************************************************
+ */
+
+enum DYNCAST : int
+{
+    object,
+    expression,
+    dsymbol,
+    type,
+    identifier,
+    tuple,
+    parameter,
+    statement,
+    condition,
+    templateparameter,
+    initializer,
+}
+
+/***********************************************************
+ */
+
+extern (C++) class RootObject
+{
+    this() nothrow pure @nogc @safe scope
+    {
+    }
+
+    bool equals(const RootObject o) const
+    {
+        return o is this;
+    }
+
+    const(char)* toChars() const
+    {
+        assert(0);
+    }
+
+    ///
+    extern(D) const(char)[] toString() const
+    {
+        import core.stdc.string : strlen;
+        auto p = this.toChars();
+        return p[0 .. strlen(p)];
+    }
+
+    DYNCAST dyncast() const nothrow pure @nogc @safe
+    {
+        return DYNCAST.object;
+    }
+}
+
 
 /// The base class of all AST nodes.
 extern (C++) abstract class ASTNode : RootObject

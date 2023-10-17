@@ -19,6 +19,7 @@ import dmd.root.rmem;
 
 import dmd.aggregate;
 import dmd.astenums;
+import dmd.ast_node;
 import dmd.declaration;
 import dmd.dscope;
 import dmd.dsymbol;
@@ -32,7 +33,6 @@ import dmd.init;
 import dmd.location;
 import dmd.mtype;
 import dmd.printast;
-import dmd.root.rootobject;
 import dmd.tokens;
 import dmd.visitor;
 import dmd.arraytypes;

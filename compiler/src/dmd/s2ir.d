@@ -19,10 +19,10 @@ import core.stdc.time;
 
 import dmd.root.array;
 import dmd.root.rmem;
-import dmd.root.rootobject;
 
 import dmd.aggregate;
 import dmd.astenums;
+import dmd.ast_node;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.denum;

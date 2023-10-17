@@ -19,6 +19,7 @@ import core.stdc.stdlib;
 import core.stdc.string;
 
 import dmd.astenums;
+import dmd.ast_node;
 import dmd.declaration;
 import dmd.denum;
 import dmd.dmdparams;
@@ -41,7 +42,6 @@ import dmd.tokens;
 import dmd.root.ctfloat;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
-import dmd.root.rootobject;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;

@@ -15,6 +15,7 @@ import core.stdc.stdio;
 
 import dmd.arraytypes;
 import dmd.astenums;
+import dmd.ast_node;
 import dmd.cppmangle : isAggregateDtor, isCppOperator, CppOperator;
 import dmd.dclass;
 import dmd.declaration;
@@ -31,7 +32,6 @@ import dmd.identifier;
 import dmd.location;
 import dmd.mtype;
 import dmd.common.outbuffer;
-import dmd.root.rootobject;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem;

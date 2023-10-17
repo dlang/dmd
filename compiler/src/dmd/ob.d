@@ -16,12 +16,12 @@ import core.stdc.stdlib;
 import core.stdc.string;
 
 import dmd.root.array;
-import dmd.root.rootobject;
 import dmd.root.rmem;
 
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
+import dmd.ast_node;
 import dmd.declaration;
 import dmd.dscope;
 import dmd.dsymbol;

@@ -17,6 +17,7 @@ import core.stdc.stdio;
 import core.stdc.string;
 
 import dmd.astenums;
+import dmd.ast_node;
 import dmd.errorsink;
 import dmd.id;
 import dmd.identifier;
@@ -25,7 +26,6 @@ import dmd.location;
 import dmd.root.filename;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
-import dmd.root.rootobject;
 import dmd.root.string;
 import dmd.tokens;
 

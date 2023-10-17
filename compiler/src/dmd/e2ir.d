@@ -19,12 +19,12 @@ import core.stdc.time;
 import dmd.root.array;
 import dmd.root.ctfloat;
 import dmd.root.rmem;
-import dmd.root.rootobject;
 import dmd.root.stringtable;
 
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
+import dmd.ast_node;
 import dmd.attrib;
 import dmd.canthrow;
 import dmd.ctfeexpr;

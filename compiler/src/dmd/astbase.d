@@ -25,13 +25,13 @@ struct ASTBase
     import dmd.root.file;
     import dmd.root.filename;
     import dmd.root.array;
-    import dmd.root.rootobject;
     import dmd.common.outbuffer;
     import dmd.root.ctfloat;
     import dmd.root.rmem;
     import dmd.root.string : toDString;
     import dmd.root.stringtable;
 
+    import dmd.ast_node;
     import dmd.tokens;
     import dmd.identifier;
     import dmd.globals;
@@ -59,6 +59,57 @@ struct ASTBase
     alias DesigInits            = Array!(DesigInit);
 
     alias Visitor = ParseTimeVisitor!ASTBase;
+
+    /***********************************************************
+     */
+
+    enum DYNCAST : int
+    {
+        object,
+        expression,
+        dsymbol,
+        type,
+        identifier,
+        tuple,
+        parameter,
+        statement,
+        condition,
+        templateparameter,
+        initializer,
+    }
+
+    /***********************************************************
+     */
+
+    extern (C++) class RootObject
+    {
+        this() nothrow pure @nogc @safe scope
+        {
+        }
+
+        bool equals(const RootObject o) const
+        {
+            return o is this;
+        }
+
+        const(char)* toChars() const
+        {
+            assert(0);
+        }
+
+        ///
+        extern(D) const(char)[] toString() const
+        {
+            import core.stdc.string : strlen;
+            auto p = this.toChars();
+            return p[0 .. strlen(p)];
+        }
+
+        DYNCAST dyncast() const nothrow pure @nogc @safe
+        {
+            return DYNCAST.object;
+        }
+    }
 
     extern (C++) abstract class ASTNode : RootObject
     {

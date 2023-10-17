@@ -1813,7 +1813,7 @@ public:
         {
             buf.writestring("::");
 
-            import dmd.root.rootobject;
+            import dmd.ast_node;
             // Is this even possible?
             if (arg.dyncast != DYNCAST.identifier)
             {

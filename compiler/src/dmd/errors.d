@@ -105,6 +105,7 @@ class ErrorSinkCompiler : ErrorSink
 /**
  * Color highlighting to classify messages
  */
+alias Color = dmd.console.Color;
 enum Classification : Color
 {
     error = Color.brightRed,          /// for errors
