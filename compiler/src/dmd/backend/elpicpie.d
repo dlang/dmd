@@ -46,12 +46,26 @@ elem * el_var(Symbol *s)
     if (config.exe & EX_posix)
     {
         if (config.flags3 & CFG3pie &&
-            s.Stype.Tty & mTYthread)
-            return el_pievar(s);            // Position Independent Executable
+            s.Stype.Tty & mTYthread &&
+            (s.Sclass == SC.global ||
+             s.Sclass == SC.static_ ||
+             s.Sclass == SC.locstat))
+        {
+        }
+        else
+        {
+            if (config.flags3 & CFG3pie &&
+                s.Stype.Tty & mTYthread)
+            {
+                return el_pievar(s);            // Position Independent Executable
+            }
 
-        if (config.flags3 & CFG3pic &&
-            !tyfunc(s.ty()))
-            return el_picvar(s);            // Position Independent Code
+            if (config.flags3 & CFG3pic &&
+                !tyfunc(s.ty()))
+            {
+                return el_picvar(s);            // Position Independent Code
+            }
+        }
     }
 
     if (config.exe & (EX_OSX | EX_OSX64))
@@ -128,7 +142,9 @@ else if (config.exe & EX_posix)
             Obj.refGOTsym();
         elem *e1 = el_calloc();
         e1.EV.Vsym = s;
-        if (s.Sclass == SC.static_ || s.Sclass == SC.locstat)
+        if (s.Sclass == SC.global ||
+            s.Sclass == SC.static_ ||
+            s.Sclass == SC.locstat)
         {
             e1.Eoper = OPrelconst;
             e1.Ety = TYnptr;
@@ -739,7 +755,7 @@ private elem *el_pievar(Symbol *s)
             case SC.static_:
             case SC.locstat:
             case SC.global:
-                break;
+                assert(0);
 
             case SC.comdat:
             case SC.comdef:
@@ -767,7 +783,7 @@ private elem *el_pievar(Symbol *s)
             case SC.static_:
             case SC.locstat:
             case SC.global:
-                break;
+                assert(0);
 
             case SC.comdat:
             case SC.comdef:
