@@ -25,7 +25,7 @@ struct ASTBase
     import dmd.root.file;
     import dmd.root.filename;
     import dmd.root.array;
-    import dmd.root.rootobject;
+    import dmd.rootobject;
     import dmd.common.outbuffer;
     import dmd.root.ctfloat;
     import dmd.root.rmem;

@@ -67,7 +67,7 @@ import dmd.root.array;
 import dmd.root.ctfloat;
 import dmd.root.filename;
 import dmd.common.outbuffer;
-import dmd.root.rootobject;
+import dmd.rootobject;
 import dmd.root.string;
 import dmd.root.utf;
 import dmd.semantic2;

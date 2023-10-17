@@ -31,7 +31,7 @@ import dmd.identifier;
 import dmd.location;
 import dmd.mtype;
 import dmd.common.outbuffer;
-import dmd.root.rootobject;
+import dmd.rootobject;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem;

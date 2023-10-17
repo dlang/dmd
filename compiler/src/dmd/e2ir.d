@@ -19,7 +19,7 @@ import core.stdc.time;
 import dmd.root.array;
 import dmd.root.ctfloat;
 import dmd.root.rmem;
-import dmd.root.rootobject;
+import dmd.rootobject;
 import dmd.root.stringtable;
 
 import dmd.aggregate;
