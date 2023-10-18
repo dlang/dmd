@@ -44,7 +44,7 @@ import dmd.root.rmem;
 import dmd.root.array;
 import dmd.root.ctfloat;
 import dmd.root.region;
-import dmd.root.rootobject;
+import dmd.rootobject;
 import dmd.root.utf;
 import dmd.statement;
 import dmd.tokens;

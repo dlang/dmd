@@ -41,7 +41,7 @@ import dmd.tokens;
 import dmd.root.ctfloat;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
-import dmd.root.rootobject;
+import dmd.rootobject;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;

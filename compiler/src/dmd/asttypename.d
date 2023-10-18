@@ -36,7 +36,7 @@ import dmd.typinf;
 import dmd.identifier;
 import dmd.init;
 import dmd.root.complex;
-import dmd.root.rootobject;
+import dmd.rootobject;
 import dmd.statement;
 import dmd.staticassert;
 import dmd.nspace;
