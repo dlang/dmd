@@ -63,6 +63,7 @@ import dmd.opover;
 import dmd.optimize;
 import dmd.parse;
 import dmd.printast;
+import dmd.postordervisitor;
 import dmd.root.array;
 import dmd.root.ctfloat;
 import dmd.root.filename;
@@ -491,6 +492,78 @@ private bool isDotOpDispatch(Expression e)
     if (auto dtie = e.isDotTemplateInstanceExp())
         return dtie.ti.name == Id.opDispatch;
     return false;
+}
+
+private void hookDtors(CondExp ce, Scope* sc)
+{
+    extern (C++) final class DtorVisitor : StoppableVisitor
+    {
+        alias visit = typeof(super).visit;
+    public:
+        Scope* sc;
+        CondExp ce;
+        VarDeclaration vcond;
+        bool isThen;
+
+        extern (D) this(Scope* sc, CondExp ce) @safe
+        {
+            this.sc = sc;
+            this.ce = ce;
+        }
+
+        override void visit(Expression e)
+        {
+            //printf("(e = %s)\n", e.toChars());
+        }
+
+        override void visit(DeclarationExp e)
+        {
+            auto v = e.declaration.isVarDeclaration();
+            if (v && !v.isDataseg())
+            {
+                if (v._init)
+                {
+                    if (auto ei = v._init.isExpInitializer())
+                        walkPostorder(ei.exp, this);
+                }
+
+                if (v.edtor)
+                    walkPostorder(v.edtor, this);
+
+                if (v.needsScopeDtor())
+                {
+                    if (!vcond)
+                    {
+                        vcond = copyToTemp(STC.volatile_ | STC.const_, "__cond", ce.econd);
+                        vcond.dsymbolSemantic(sc);
+
+                        Expression de = new DeclarationExp(ce.econd.loc, vcond);
+                        de = de.expressionSemantic(sc);
+
+                        Expression ve = new VarExp(ce.econd.loc, vcond);
+                        ce.econd = Expression.combine(de, ve);
+                    }
+
+                    //printf("\t++v = %s, v.edtor = %s\n", v.toChars(), v.edtor.toChars());
+                    Expression ve = new VarExp(vcond.loc, vcond);
+                    if (isThen)
+                        v.edtor = new LogicalExp(v.edtor.loc, EXP.andAnd, ve, v.edtor);
+                    else
+                        v.edtor = new LogicalExp(v.edtor.loc, EXP.orOr, ve, v.edtor);
+                    v.edtor = v.edtor.expressionSemantic(sc);
+                    //printf("\t--v = %s, v.edtor = %s\n", v.toChars(), v.edtor.toChars());
+                }
+            }
+        }
+    }
+
+    scope DtorVisitor v = new DtorVisitor(sc, ce);
+    //printf("+%s\n", toChars());
+    v.isThen = true;
+    walkPostorder(ce.e1, v);
+    v.isThen = false;
+    walkPostorder(ce.e2, v);
+    //printf("-%s\n", toChars());
 }
 
 
