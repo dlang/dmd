@@ -11,6 +11,7 @@ SRCS=\
 	src\core\exception.d \
 	src\core\factory.d \
 	src\core\int128.d \
+	src\core\interpolation.d \
 	src\core\lifetime.d \
 	src\core\math.d \
 	src\core\memory.d \

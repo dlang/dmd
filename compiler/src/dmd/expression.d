@@ -721,6 +721,7 @@ extern (C++) abstract class Expression : ASTNode
         inout(SuperExp)     isSuperExp() { return op == EXP.super_ ? cast(typeof(return))this : null; }
         inout(NullExp)      isNullExp() { return op == EXP.null_ ? cast(typeof(return))this : null; }
         inout(StringExp)    isStringExp() { return op == EXP.string_ ? cast(typeof(return))this : null; }
+        inout(InterpExp)    isInterpExp() { return op == EXP.interpolated ? cast(typeof(return))this : null; }
         inout(TupleExp)     isTupleExp() { return op == EXP.tuple ? cast(typeof(return))this : null; }
         inout(ArrayLiteralExp) isArrayLiteralExp() { return op == EXP.arrayLiteral ? cast(typeof(return))this : null; }
         inout(AssocArrayLiteralExp) isAssocArrayLiteralExp() { return op == EXP.assocArrayLiteral ? cast(typeof(return))this : null; }
@@ -1846,6 +1847,28 @@ extern (C++) final class StringExp : Expression
         v.visit(this);
     }
 }
+
+extern (C++) final class InterpExp : Expression
+{
+    char postfix = NoPostfix;   // 'c', 'w', 'd'
+    OwnedBy ownedByCtfe = OwnedBy.code;
+    InterpolatedSet* interpolatedSet;
+
+    enum char NoPostfix = 0;
+
+    extern (D) this(const ref Loc loc, InterpolatedSet* set, char postfix = NoPostfix) scope
+    {
+        super(loc, EXP.interpolated);
+        this.interpolatedSet = set;
+        this.postfix = postfix;
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
 
 /***********************************************************
  * A sequence of expressions
@@ -5494,6 +5517,7 @@ private immutable ubyte[EXP.max+1] expSize = [
     EXP.preMinusMinus: __traits(classInstanceSize, PreExp),
     EXP.identifier: __traits(classInstanceSize, IdentifierExp),
     EXP.string_: __traits(classInstanceSize, StringExp),
+    EXP.interpolated: __traits(classInstanceSize, InterpExp),
     EXP.this_: __traits(classInstanceSize, ThisExp),
     EXP.super_: __traits(classInstanceSize, SuperExp),
     EXP.halt: __traits(classInstanceSize, HaltExp),

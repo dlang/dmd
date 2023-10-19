@@ -17,6 +17,7 @@ COPY=\
 	$(IMPDIR)\core\exception.d \
 	$(IMPDIR)\core\factory.d \
 	$(IMPDIR)\core\int128.d \
+	$(IMPDIR)\core\interpolation.d \
 	$(IMPDIR)\core\lifetime.d \
 	$(IMPDIR)\core\math.d \
 	$(IMPDIR)\core\memory.d \
