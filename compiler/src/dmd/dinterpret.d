@@ -4965,6 +4965,22 @@ public:
 
     override void visit(CommaExp e)
     {
+        /****************************************
+         * Find the first non-comma expression.
+         * Params:
+         *      e = Expressions connected by commas
+         * Returns:
+         *      left-most non-comma expression
+         */
+        static inout(Expression) firstComma(inout Expression e)
+        {
+            Expression ex = cast()e;
+            while (ex.op == EXP.comma)
+                ex = (cast(CommaExp)ex).e1;
+            return cast(inout)ex;
+
+        }
+
         debug (LOG)
         {
             printf("%s CommaExp::interpret() %s\n", e.loc.toChars(), e.toChars());
