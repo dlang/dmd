@@ -141,6 +141,58 @@ bool expressionsToString(ref OutBuffer buf, Scope* sc, Expressions* exps)
     return false;
 }
 
+/*****************************************
+ * Determine if `this` is available by walking up the enclosing
+ * scopes until a function is found.
+ *
+ * Params:
+ *      sc = where to start looking for the enclosing function
+ * Returns:
+ *      Found function if it satisfies `isThis()`, otherwise `null`
+ */
+FuncDeclaration hasThis(Scope* sc)
+{
+    //printf("hasThis()\n");
+    Dsymbol p = sc.parent;
+    while (p && p.isTemplateMixin())
+        p = p.parent;
+    FuncDeclaration fdthis = p ? p.isFuncDeclaration() : null;
+    //printf("fdthis = %p, '%s'\n", fdthis, fdthis ? fdthis.toChars() : "");
+
+    // Go upwards until we find the enclosing member function
+    FuncDeclaration fd = fdthis;
+    while (1)
+    {
+        if (!fd)
+        {
+            return null;
+        }
+        if (!fd.isNested() || fd.isThis() || (fd.hasDualContext() && fd.isMember2()))
+            break;
+
+        Dsymbol parent = fd.parent;
+        while (1)
+        {
+            if (!parent)
+                return null;
+            TemplateInstance ti = parent.isTemplateInstance();
+            if (ti)
+                parent = ti.parent;
+            else
+                break;
+        }
+        fd = parent.isFuncDeclaration();
+    }
+
+    if (!fd.isThis() && !(fd.hasDualContext() && fd.isMember2()))
+    {
+        return null;
+    }
+
+    assert(fd.vthis);
+    return fd;
+
+}
 
 /***********************************************************
  * Resolve `exp` as a compile-time known string.
