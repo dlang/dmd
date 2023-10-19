@@ -114,22 +114,6 @@ enum ModifyFlags
 }
 
 /****************************************
- * Find the first non-comma expression.
- * Params:
- *      e = Expressions connected by commas
- * Returns:
- *      left-most non-comma expression
- */
-inout(Expression) firstComma(inout Expression e)
-{
-    Expression ex = cast()e;
-    while (ex.op == EXP.comma)
-        ex = (cast(CommaExp)ex).e1;
-    return cast(inout)ex;
-
-}
-
-/****************************************
  * Find the last non-comma expression.
  * Params:
  *      e = Expressions connected by commas
