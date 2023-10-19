@@ -3093,6 +3093,47 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         result = e;
     }
 
+    override void visit(InterpExp e)
+    {
+        // i"foo $bar" -> (.object.imported!"core.interpolation".InterpolationHeader!("foo ", "bar"), bar)()
+
+        // the header's template args are all the components of the interpolated thing
+        // the normalization rules are: always starts and ends with a string literal.
+        // then always alternates between a string and an interpolated expression
+        auto tiargs = new Objects();
+        foreach (str; e.interpolatedSet.parts)
+            tiargs.push(new StringExp(e.loc, str));
+
+        Expression id = new IdentifierExp(e.loc, Id.empty);
+        id = new DotIdExp(e.loc, id, Id.object);
+        auto moduleNameArgs = new Objects();
+        moduleNameArgs.push(new StringExp(e.loc, "core.interpolation"));
+        id = new DotTemplateInstanceExp(e.loc, id, Id.imported, moduleNameArgs);
+        id = new DotTemplateInstanceExp(e.loc, id, Id.InterpolationHeader, tiargs);
+        id = new CallExp(e.loc, id, new Expressions());
+        // id = id.expressionSemantic(sc);
+
+        auto arguments = new Expressions();
+        arguments.push(id); // the header
+
+        foreach (idx, str; e.interpolatedSet.parts)
+            if (idx % 2 == 0)
+            {
+                arguments.push(new StringExp(e.loc, str));
+            }
+            else
+            {
+                Expressions* mix = new Expressions();
+                mix.push(new StringExp(e.loc, str));
+                arguments.push(new MixinExp(e.loc, mix));
+            }
+
+        auto loweredTo = new TupleExp(e.loc, arguments);
+        visit(loweredTo);
+
+        result = loweredTo;
+    }
+
     override void visit(StringExp e)
     {
         static if (LOGSEMANTIC)

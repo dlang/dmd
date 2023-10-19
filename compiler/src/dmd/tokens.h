@@ -133,6 +133,7 @@ enum class TOK : unsigned char
     // Leaf operators
     identifier,
     string_,
+    interpolated,
     hexadecimalString,
     this_,
     super_,
@@ -390,6 +391,7 @@ enum class EXP : unsigned char
     // Leaf operators
     identifier,
     string_,
+    interpolated,
     this_,
     super_,
     halt,

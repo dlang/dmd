@@ -611,6 +611,7 @@ private:
         char[__traits(classInstanceSize, ComplexExp)] complexexp;
         char[__traits(classInstanceSize, SymOffExp)] symoffexp;
         char[__traits(classInstanceSize, StringExp)] stringexp;
+        char[__traits(classInstanceSize, InterpExp)] interpexp;
         char[__traits(classInstanceSize, ArrayLiteralExp)] arrayliteralexp;
         char[__traits(classInstanceSize, AssocArrayLiteralExp)] assocarrayliteralexp;
         char[__traits(classInstanceSize, StructLiteralExp)] structliteralexp;
@@ -1667,6 +1668,7 @@ extern (C++) abstract class Expression : ASTNode
         inout(SuperExp)     isSuperExp() { return op == EXP.super_ ? cast(typeof(return))this : null; }
         inout(NullExp)      isNullExp() { return op == EXP.null_ ? cast(typeof(return))this : null; }
         inout(StringExp)    isStringExp() { return op == EXP.string_ ? cast(typeof(return))this : null; }
+        inout(InterpExp)    isInterpExp() { return op == EXP.interpolated ? cast(typeof(return))this : null; }
         inout(TupleExp)     isTupleExp() { return op == EXP.tuple ? cast(typeof(return))this : null; }
         inout(ArrayLiteralExp) isArrayLiteralExp() { return op == EXP.arrayLiteral ? cast(typeof(return))this : null; }
         inout(AssocArrayLiteralExp) isAssocArrayLiteralExp() { return op == EXP.assocArrayLiteral ? cast(typeof(return))this : null; }
@@ -2878,6 +2880,28 @@ extern (C++) final class StringExp : Expression
         v.visit(this);
     }
 }
+
+extern (C++) final class InterpExp : Expression
+{
+    char postfix = NoPostfix;   // 'c', 'w', 'd'
+    OwnedBy ownedByCtfe = OwnedBy.code;
+    InterpolatedSet* interpolatedSet;
+
+    enum char NoPostfix = 0;
+
+    extern (D) this(const ref Loc loc, InterpolatedSet* set, char postfix = NoPostfix) scope
+    {
+        super(loc, EXP.interpolated);
+        this.interpolatedSet = set;
+        this.postfix = postfix;
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
 
 /***********************************************************
  * A sequence of expressions

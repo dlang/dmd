@@ -507,6 +507,17 @@ class Lexer
                 }
                 else
                     goto case_ident;
+            case 'i':
+                if (Ccompile)
+                    goto case_ident;
+                if (p[1] == '"')
+                {
+                    p++;
+                    interpolatedStringConstant(t);
+                    return;
+                }
+                else
+                    goto case_ident;
             case '"':
                 escapeStringConstant(t);
                 return;
@@ -518,7 +529,7 @@ class Lexer
             case 'f':
             case 'g':
             case 'h':
-            case 'i':
+                /*case 'i':*/
             case 'j':
             case 'k':
             case 'l':
@@ -1773,6 +1784,77 @@ class Lexer
         }
     }
 
+    private void interpolatedStringConstant(Token* result)
+    {
+        escapeStringConstant(result, true);
+    }
+
+    // returns true if it got special treatment as an interpolated segment
+    // otherwise returns false, indicating to treat it as just part of a normal string
+    private bool handleInterpolatedSegment(Token* token, Loc start)
+    {
+        bool wasSpecial = true;
+        switch(*p)
+        {
+        case '$':
+            // escaped $
+            p++; // skip the second $ too
+            stringbuffer.writeByte('$');
+            return true;
+        case '_':
+        case 'a': .. case 'z':
+        case 'A': .. case 'Z':
+
+            // always put the string part in first
+            token.appendInterpolatedPart(stringbuffer);
+            stringbuffer.setsize(0);
+
+            // identifier, scan it with the lexer to follow all rules
+            auto pstart = p;
+            Token tok;
+            scan(&tok);
+
+            // then put the interpolated string segment
+            token.appendInterpolatedPart(pstart[0 .. p - pstart]);
+
+            return true;
+        case '(':
+            // expression, at this level we need to scan until the closing ')'
+
+            // always put the string part in first
+            token.appendInterpolatedPart(stringbuffer);
+            stringbuffer.setsize(0);
+
+            int openParenCount = 1;
+            p++; // skip the first open paren
+            auto pstart = p;
+            while (openParenCount > 0)
+            {
+                // need to scan with the lexer to support embedded strings and other complex cases
+                Token tok;
+                scan(&tok);
+                if (tok.value == TOK.leftParenthesis)
+                    openParenCount++;
+                if (tok.value == TOK.rightParenthesis)
+                    openParenCount--;
+                if (tok.value == TOK.endOfFile)
+                {
+                    // FIXME: make this error better, it spams a lot
+                    error("unterminated interpolated string constant starting at %s", start.toChars());
+                    return false;
+                }
+            }
+
+            // then put the interpolated string segment
+            token.appendInterpolatedPart(pstart[0 .. p - 1 - pstart]);
+
+            return true;
+        default:
+            // nothing special
+            return false;
+        }
+    }
+
     /**
     Scan a quoted string while building the processed string value by
     handling escape sequences. The result is returned in the given `t` token.
@@ -1784,9 +1866,17 @@ class Lexer
     *   D https://dlang.org/spec/lex.html#double_quoted_strings
     *   ImportC C11 6.4.5
     */
-    private void escapeStringConstant(Token* t)
+    private void escapeStringConstant(Token* t, bool supportInterpolation = false)
     {
-        t.value = TOK.string_;
+        if (supportInterpolation)
+        {
+            t.value = TOK.interpolated;
+            t.interpolatedSet = null;
+        }
+        else
+        {
+            t.value = TOK.string_;
+        }
 
         const start = loc();
         const tc = *p++;        // opening quote
@@ -1819,6 +1909,14 @@ class Lexer
                     break;
                 }
                 break;
+            case '$':
+                if (!supportInterpolation)
+                    goto default;
+
+                if (!handleInterpolatedSegment(t, start))
+                    goto default;
+
+                continue;
             case '\n':
                 endOfLine();
                 if (Ccompile)
@@ -1836,7 +1934,10 @@ class Lexer
             case '"':
                 if (c != tc)
                     goto default;
-                t.setString(stringbuffer);
+                if (supportInterpolation)
+                    t.appendInterpolatedPart(stringbuffer);
+                else
+                    t.setString(stringbuffer);
                 if (!Ccompile)
                     stringPostfix(t);
                 return;
