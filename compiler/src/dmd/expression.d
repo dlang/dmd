@@ -1391,26 +1391,6 @@ extern (C++) abstract class Expression : ASTNode
         return false;
     }
 
-    extern (D) final bool checkRightThis(Scope* sc)
-    {
-        if (op == EXP.error)
-            return true;
-        if (op == EXP.variable && type.ty != Terror)
-        {
-            VarExp ve = cast(VarExp)this;
-            if (isNeedThisScope(sc, ve.var))
-            {
-                //printf("checkRightThis sc.intypeof = %d, ad = %p, func = %p, fdthis = %p\n",
-                //        sc.intypeof, sc.getStructClassScope(), func, fdthis);
-                auto t = ve.var.isThis();
-                assert(t);
-                error(loc, "accessing non-static variable `%s` requires an instance of `%s`", ve.var.toChars(), t.toChars());
-                return true;
-            }
-        }
-        return false;
-    }
-
     /*******************************
      * Check whether the expression allows RMW operations, error with rmw operator diagnostic if not.
      * ex is the RHS expression, or NULL if ++/-- is used (for diagnostics)

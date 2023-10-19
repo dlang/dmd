@@ -1641,6 +1641,26 @@ Leprop:
     return ErrorExp.get();
 }
 
+private bool checkRightThis(Expression e, Scope* sc)
+{
+    if (e.op == EXP.error)
+        return true;
+    if (e.op == EXP.variable && e.type.ty != Terror)
+    {
+        VarExp ve = cast(VarExp)e;
+        if (isNeedThisScope(sc, ve.var))
+        {
+            //printf("checkRightThis sc.intypeof = %d, ad = %p, func = %p, fdthis = %p\n",
+            //        sc.intypeof, sc.getStructClassScope(), func, fdthis);
+            auto t = ve.var.isThis();
+            assert(t);
+            error(e.loc, "accessing non-static variable `%s` requires an instance of `%s`", ve.var.toChars(), t.toChars());
+            return true;
+        }
+    }
+    return false;
+}
+
 extern (C++) Expression resolveProperties(Scope* sc, Expression e)
 {
     //printf("resolveProperties(%s)\n", e.toChars());
