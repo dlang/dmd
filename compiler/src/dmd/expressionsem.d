@@ -986,6 +986,181 @@ Expression resolvePropertiesOnly(Scope* sc, Expression e1)
     return e1;
 }
 
+Expression modifiableLvalue(Expression e, Scope* sc, Expression ebackup)
+{
+    scope v = new ModifiableLvalueVisitor(sc, ebackup);
+    e.accept(v);
+    assert(v.result);
+    return v.result;
+}
+
+private extern (C++) class ModifiableLvalueVisitor : Visitor
+{
+    alias visit = Visitor.visit;
+
+    Expression result, ebackup;
+    Scope* sc;
+
+    this(Scope* _sc, Expression _ebackup)
+    {
+        sc = _sc;
+        ebackup = _ebackup;
+        result = null;
+    }
+    override void visit(Expression e)
+    {
+        //printf("Expression::modifiableLvalue() %s, type = %s\n", toChars(), type.toChars());
+        // See if this expression is a modifiable lvalue (i.e. not const)
+        if (checkModifiable(e, sc) == Modifiable.yes)
+        {
+            assert(e.type);
+            if (!e.type.isMutable())
+            {
+                if (auto dve = e.isDotVarExp())
+                {
+                    if (isNeedThisScope(sc, dve.var))
+                        for (Dsymbol s = sc.func; s; s = s.toParentLocal())
+                    {
+                        FuncDeclaration ff = s.isFuncDeclaration();
+                        if (!ff)
+                            break;
+                        if (!ff.type.isMutable)
+                        {
+                            error(e.loc, "cannot modify `%s` in `%s` function", e.toChars(), MODtoChars(e.type.mod));
+                            result = ErrorExp.get();
+                            return;
+                        }
+                    }
+                }
+                error(e.loc, "cannot modify `%s` expression `%s`", MODtoChars(e.type.mod), e.toChars());
+                result = ErrorExp.get();
+                return;
+            }
+            else if (!e.type.isAssignable())
+            {
+                error(e.loc, "cannot modify struct instance `%s` of type `%s` because it contains `const` or `immutable` members",
+                    e.toChars(), e.type.toChars());
+                result = ErrorExp.get();
+                return;
+            }
+        }
+        result = e.toLvalue(sc, ebackup);
+    }
+
+    override void visit(StringExp e)
+    {
+        error(e.loc, "cannot modify string literal `%s`", e.toChars());
+        result = ErrorExp.get();
+    }
+
+    override void visit(VarExp e)
+    {
+        //printf("VarExp::modifiableLvalue('%s')\n", var.toChars());
+        if (e.var.storage_class & STC.manifest)
+        {
+            error(e.loc, "cannot modify manifest constant `%s`", e.toChars());
+            result = ErrorExp.get();
+            return;
+        }
+        // See if this expression is a modifiable lvalue (i.e. not const)
+        visit(cast(Expression)ebackup);
+    }
+
+    override void visit(BinAssignExp e)
+    {
+        // should check e.e1.checkModifiable() ?
+        result = e.toLvalue(sc, e);
+    }
+
+    override void visit(DotVarExp e)
+    {
+        version (none)
+        {
+            printf("DotVarExp::modifiableLvalue(%s)\n", e.toChars());
+            printf("e1.type = %s\n", e.e1.type.toChars());
+            printf("var.type = %s\n", e.var.type.toChars());
+        }
+
+        visit(cast(Expression)ebackup);
+    }
+
+    override void visit(PtrExp e)
+    {
+        //printf("PtrExp::modifiableLvalue() %s, type %s\n", toChars(), type.toChars());
+        Declaration var;
+        if (auto se = e.e1.isSymOffExp())
+            var = se.var;
+        else if (auto ve = e.e1.isVarExp())
+            var = ve.var;
+        if (var && var.type.isFunction_Delegate_PtrToFunction())
+        {
+            if (var.type.isTypeFunction())
+                error(e.loc, "function `%s` is not an lvalue and cannot be modified", var.toChars());
+            else
+                error(e.loc, "function pointed to by `%s` is not an lvalue and cannot be modified", var.toChars());
+            result = ErrorExp.get();
+            return;
+        }
+        visit(cast(Expression)ebackup);
+    }
+
+    override void visit(SliceExp e)
+    {
+        error(e.loc, "slice expression `%s` is not a modifiable lvalue", e.toChars());
+        result = e;
+    }
+
+    override void visit(CommaExp e)
+    {
+        e.e2 = e.e2.modifiableLvalue(sc, ebackup);
+        result = e;
+    }
+
+    override void visit(DelegatePtrExp e)
+    {
+        if (sc.setUnsafe(false, e.loc, "cannot modify delegate pointer in `@safe` code `%s`", e))
+        {
+            result = ErrorExp.get();
+            return;
+        }
+        visit(cast(Expression)ebackup);
+    }
+
+    override void visit(DelegateFuncptrExp e)
+    {
+        if (sc.setUnsafe(false, e.loc, "cannot modify delegate function pointer in `@safe` code `%s`", e))
+        {
+            result = ErrorExp.get();
+            return;
+        }
+        visit(cast(Expression)ebackup);
+    }
+
+    override void visit(IndexExp e)
+    {
+        //printf("IndexExp::modifiableLvalue(%s)\n", toChars());
+        Expression ex = e.markSettingAAElem();
+        if (ex.op == EXP.error)
+        {
+            result = ex;
+            return;
+        }
+        visit(cast(Expression)ebackup);
+    }
+
+    override void visit(CondExp e)
+    {
+        if (!e.e1.isLvalue() && !e.e2.isLvalue())
+        {
+            error(e.loc, "conditional expression `%s` is not a modifiable lvalue", e.toChars());
+            result = ErrorExp.get();
+            return;
+        }
+        e.e1 = e.e1.modifiableLvalue(sc, e.e1);
+        e.e2 = e.e2.modifiableLvalue(sc, e.e2);
+        result = e.toLvalue(sc, e);
+    }
+}
 /****************************************
  * Turn symbol `s` into the expression it represents.
  *

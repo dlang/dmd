@@ -828,43 +828,6 @@ extern (C++) abstract class Expression : ASTNode
         return ErrorExp.get();
     }
 
-    Expression modifiableLvalue(Scope* sc, Expression e)
-    {
-        //printf("Expression::modifiableLvalue() %s, type = %s\n", toChars(), type.toChars());
-        // See if this expression is a modifiable lvalue (i.e. not const)
-        if (checkModifiable(this, sc) == Modifiable.yes)
-        {
-            assert(type);
-            if (!type.isMutable())
-            {
-                if (auto dve = this.isDotVarExp())
-                {
-                    if (isNeedThisScope(sc, dve.var))
-                        for (Dsymbol s = sc.func; s; s = s.toParentLocal())
-                    {
-                        FuncDeclaration ff = s.isFuncDeclaration();
-                        if (!ff)
-                            break;
-                        if (!ff.type.isMutable)
-                        {
-                            error(loc, "cannot modify `%s` in `%s` function", toChars(), MODtoChars(type.mod));
-                            return ErrorExp.get();
-                        }
-                    }
-                }
-                error(loc, "cannot modify `%s` expression `%s`", MODtoChars(type.mod), toChars());
-                return ErrorExp.get();
-            }
-            else if (!type.isAssignable())
-            {
-                error(loc, "cannot modify struct instance `%s` of type `%s` because it contains `const` or `immutable` members",
-                    toChars(), type.toChars());
-                return ErrorExp.get();
-            }
-        }
-        return toLvalue(sc, e);
-    }
-
     final Expression implicitCastTo(Scope* sc, Type t)
     {
         return .implicitCastTo(this, sc, t);
@@ -2674,12 +2637,6 @@ extern (C++) final class StringExp : Expression
         return (type && type.toBasetype().ty == Tsarray) ? this : Expression.toLvalue(sc, e);
     }
 
-    override Expression modifiableLvalue(Scope* sc, Expression e)
-    {
-        error(loc, "cannot modify string literal `%s`", toChars());
-        return ErrorExp.get();
-    }
-
     /********************************
      * Convert string contents to a 0 terminated string,
      * allocated by mem.xmalloc().
@@ -3672,18 +3629,6 @@ extern (C++) final class VarExp : SymbolExp
         return this;
     }
 
-    override Expression modifiableLvalue(Scope* sc, Expression e)
-    {
-        //printf("VarExp::modifiableLvalue('%s')\n", var.toChars());
-        if (var.storage_class & STC.manifest)
-        {
-            error(loc, "cannot modify manifest constant `%s`", toChars());
-            return ErrorExp.get();
-        }
-        // See if this expression is a modifiable lvalue (i.e. not const)
-        return Expression.modifiableLvalue(sc, e);
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -4552,12 +4497,6 @@ extern (C++) class BinAssignExp : BinExp
         return this;
     }
 
-    override final Expression modifiableLvalue(Scope* sc, Expression e)
-    {
-        // should check e1.checkModifiable() ?
-        return toLvalue(sc, this);
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -4804,18 +4743,6 @@ extern (C++) final class DotVarExp : UnaExp
             }
         }
         return this;
-    }
-
-    override Expression modifiableLvalue(Scope* sc, Expression e)
-    {
-        version (none)
-        {
-            printf("DotVarExp::modifiableLvalue(%s)\n", toChars());
-            printf("e1.type = %s\n", e1.type.toChars());
-            printf("var.type = %s\n", var.type.toChars());
-        }
-
-        return Expression.modifiableLvalue(sc, e);
     }
 
     override void accept(Visitor v)
@@ -5247,25 +5174,6 @@ extern (C++) final class PtrExp : UnaExp
         return this;
     }
 
-    override Expression modifiableLvalue(Scope* sc, Expression e)
-    {
-        //printf("PtrExp::modifiableLvalue() %s, type %s\n", toChars(), type.toChars());
-        Declaration var;
-        if (auto se = e1.isSymOffExp())
-            var = se.var;
-        else if (auto ve = e1.isVarExp())
-            var = ve.var;
-        if (var && var.type.isFunction_Delegate_PtrToFunction())
-        {
-            if (var.type.isTypeFunction())
-                error(loc, "function `%s` is not an lvalue and cannot be modified", var.toChars());
-            else
-                error(loc, "function pointed to by `%s` is not an lvalue and cannot be modified", var.toChars());
-            return ErrorExp.get();
-        }
-        return Expression.modifiableLvalue(sc, e);
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -5546,12 +5454,6 @@ extern (C++) final class SliceExp : UnaExp
         return (type && type.toBasetype().ty == Tsarray) ? this : Expression.toLvalue(sc, e);
     }
 
-    override Expression modifiableLvalue(Scope* sc, Expression e)
-    {
-        error(loc, "slice expression `%s` is not a modifiable lvalue", toChars());
-        return this;
-    }
-
     override Optional!bool toBool()
     {
         return e1.toBool();
@@ -5679,12 +5581,6 @@ extern (C++) final class CommaExp : BinExp
         return this;
     }
 
-    override Expression modifiableLvalue(Scope* sc, Expression e)
-    {
-        e2 = e2.modifiableLvalue(sc, e);
-        return this;
-    }
-
     override Optional!bool toBool()
     {
         return e2.toBool();
@@ -5772,15 +5668,6 @@ extern (C++) final class DelegatePtrExp : UnaExp
         return this;
     }
 
-    override Expression modifiableLvalue(Scope* sc, Expression e)
-    {
-        if (sc.setUnsafe(false, this.loc, "cannot modify delegate pointer in `@safe` code `%s`", this))
-        {
-            return ErrorExp.get();
-        }
-        return Expression.modifiableLvalue(sc, e);
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -5808,15 +5695,6 @@ extern (C++) final class DelegateFuncptrExp : UnaExp
     {
         e1 = e1.toLvalue(sc, e);
         return this;
-    }
-
-    override Expression modifiableLvalue(Scope* sc, Expression e)
-    {
-        if (sc.setUnsafe(false, this.loc, "cannot modify delegate function pointer in `@safe` code `%s`", this))
-        {
-            return ErrorExp.get();
-        }
-        return Expression.modifiableLvalue(sc, e);
     }
 
     override void accept(Visitor v)
@@ -5871,16 +5749,6 @@ extern (C++) final class IndexExp : BinExp
         if (isLvalue())
             return this;
         return Expression.toLvalue(sc, e);
-    }
-
-    override Expression modifiableLvalue(Scope* sc, Expression e)
-    {
-        //printf("IndexExp::modifiableLvalue(%s)\n", toChars());
-        Expression ex = markSettingAAElem();
-        if (ex.op == EXP.error)
-            return ex;
-
-        return Expression.modifiableLvalue(sc, e);
     }
 
     extern (D) Expression markSettingAAElem()
@@ -6743,18 +6611,6 @@ extern (C++) final class CondExp : BinExp
         e.e2 = e2.toLvalue(sc, null).addressOf();
         e.type = type.pointerTo();
         return new PtrExp(loc, e, type);
-    }
-
-    override Expression modifiableLvalue(Scope* sc, Expression e)
-    {
-        if (!e1.isLvalue() && !e2.isLvalue())
-        {
-            error(loc, "conditional expression `%s` is not a modifiable lvalue", toChars());
-            return ErrorExp.get();
-        }
-        e1 = e1.modifiableLvalue(sc, e1);
-        e2 = e2.modifiableLvalue(sc, e2);
-        return toLvalue(sc, this);
     }
 
     override void accept(Visitor v)

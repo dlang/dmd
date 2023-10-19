@@ -102,7 +102,6 @@ public:
     virtual StringExp *toStringExp();
     virtual bool isLvalue();
     virtual Expression *toLvalue(Scope *sc, Expression *e);
-    virtual Expression *modifiableLvalue(Scope *sc, Expression *e);
     Expression *implicitCastTo(Scope *sc, Type *t);
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
@@ -390,7 +389,6 @@ public:
     Optional<bool> toBool() override;
     bool isLvalue() override;
     Expression *toLvalue(Scope *sc, Expression *e) override;
-    Expression *modifiableLvalue(Scope *sc, Expression *e) override;
     void accept(Visitor *v) override { v->visit(this); }
     size_t numberOfCodeUnits(int tynto = 0) const;
     void writeTo(void* dest, bool zero, int tyto = 0) const;
@@ -600,7 +598,6 @@ public:
     bool equals(const RootObject * const o) const override;
     bool isLvalue() override;
     Expression *toLvalue(Scope *sc, Expression *e) override;
-    Expression *modifiableLvalue(Scope *sc, Expression *e) override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -730,7 +727,6 @@ class BinAssignExp : public BinExp
 public:
     bool isLvalue() override final;
     Expression *toLvalue(Scope *sc, Expression *ex) override final;
-    Expression *modifiableLvalue(Scope *sc, Expression *e) override final;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -796,7 +792,6 @@ public:
 
     bool isLvalue() override;
     Expression *toLvalue(Scope *sc, Expression *e) override;
-    Expression *modifiableLvalue(Scope *sc, Expression *e) override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -867,7 +862,6 @@ class PtrExp final : public UnaExp
 public:
     bool isLvalue() override;
     Expression *toLvalue(Scope *sc, Expression *e) override;
-    Expression *modifiableLvalue(Scope *sc, Expression *e) override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -958,7 +952,6 @@ public:
     SliceExp *syntaxCopy() override;
     bool isLvalue() override;
     Expression *toLvalue(Scope *sc, Expression *e) override;
-    Expression *modifiableLvalue(Scope *sc, Expression *e) override;
     Optional<bool> toBool() override;
 
     void accept(Visitor *v) override { v->visit(this); }
@@ -985,7 +978,6 @@ class DelegatePtrExp final : public UnaExp
 public:
     bool isLvalue() override;
     Expression *toLvalue(Scope *sc, Expression *e) override;
-    Expression *modifiableLvalue(Scope *sc, Expression *e) override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -994,7 +986,6 @@ class DelegateFuncptrExp final : public UnaExp
 public:
     bool isLvalue() override;
     Expression *toLvalue(Scope *sc, Expression *e) override;
-    Expression *modifiableLvalue(Scope *sc, Expression *e) override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -1029,7 +1020,6 @@ public:
     d_bool allowCommaExp;
     bool isLvalue() override;
     Expression *toLvalue(Scope *sc, Expression *e) override;
-    Expression *modifiableLvalue(Scope *sc, Expression *e) override;
     Optional<bool> toBool() override;
     Expression *addDtorHook(Scope *sc) override;
     void accept(Visitor *v) override { v->visit(this); }
@@ -1045,7 +1035,6 @@ public:
     IndexExp *syntaxCopy() override;
     bool isLvalue() override;
     Expression *toLvalue(Scope *sc, Expression *e) override;
-    Expression *modifiableLvalue(Scope *sc, Expression *e) override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -1325,7 +1314,6 @@ public:
     CondExp *syntaxCopy() override;
     bool isLvalue() override;
     Expression *toLvalue(Scope *sc, Expression *e) override;
-    Expression *modifiableLvalue(Scope *sc, Expression *e) override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
