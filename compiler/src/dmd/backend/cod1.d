@@ -1402,7 +1402,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                             if (preg != NOREG && regcon.params & mask(preg))
                             {
                                 //printf("sz %d, preg %s, Voffset %d\n", cast(int)sz, regm_str(mask(preg)), cast(int)voffset);
-                                if (mask(preg) & XMMREGS && sz != REGSIZE)
+                                if (mask(preg) & XMMREGS)
                                 {
                                     /* The following fails with this from std.math on Linux64:
                                         void main()
