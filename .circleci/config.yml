@@ -3,7 +3,7 @@ jobs:
   build:
     working_directory: ~/dmd
     docker:
-      - image: circleci/buildpack-deps:18.04
+      - image: cimg/base:current-20.04
     parallelism: 1
     steps:
       - checkout

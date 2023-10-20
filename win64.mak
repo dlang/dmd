@@ -5,5 +5,5 @@
 MAKE=make
 
 all:
-	cd src
+	cd compiler\src
 	$(MAKE) -f win64.mak

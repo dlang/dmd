@@ -1,21 +1,12 @@
 MAKE=make
 
 defaulttarget:
-	cd src
+	cd compiler\src
 	$(MAKE) -f win32.mak
-	cd ..
+	cd ..\..
 
 auto-tester-build:
-	cd src
-	$(MAKE) -f win32.mak auto-tester-build
-	cd ..
+	echo "Auto-Tester has been disabled"
 
 auto-tester-test:
-	cd test
-	$(MAKE)
-	cd ..
-	cd samples
-	gmake -f win32.mak DMD=..\src\dmd.exe MODEL=$(MODEL) "LIB=..\..\phobos;$(LIB)" \
-		"DFLAGS=-I..\..\druntime\import -I..\..\phobos -m$(MODEL)"
-	cd ..
-
+	echo "Auto-Tester has been disabled"

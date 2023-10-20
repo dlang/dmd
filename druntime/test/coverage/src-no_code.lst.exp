@@ -1,0 +1,7 @@
+       |import core.runtime;
+       |
+       |void main(string[] args)
+       |{
+      1|    dmd_coverDestPath(args[1]);
+       |}
+src/no_code.d is 100% covered

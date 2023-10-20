@@ -45,7 +45,7 @@ visuald() {
 ################################################################################
 
 dm_make() {
-    download "http://downloads.dlang.org/other/dm857c.zip" dmc.zip
+    download "https://downloads.dlang.org/other/dm857c.zip" dmc.zip
     unzip dmc.zip > /dev/null
     export DMC="$PWD/dm/bin/dmc.exe"
     export DM_MAKE="$PWD/dm/bin/make.exe"

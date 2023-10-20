@@ -12,3 +12,11 @@ steps:
       bash --version
       sh --login .azure-pipelines/windows.sh
     displayName: Build and test
+
+  # Try to upload the coverage files from the previous step to CodeCov
+  # This job is allowed to fail s.t. it does not block PR's in case of
+  # environmental issues
+  - script: bash --login -c "OS_NAME=windows source ci/codecov.sh"
+    displayName: "Upload coverage report"
+    condition: eq( variables.DMD_TEST_COVERAGE, 1)
+    continueOnError: true
