@@ -42,7 +42,6 @@ version (OSX)
     enum clock_t CLOCKS_PER_SEC = 1_000_000; // was 100 until OSX 10.4/10.5
 }
 
-extern (C++):
 
 nothrow:
 @safe:
@@ -259,10 +258,6 @@ void optfunc()
         {   assert(iter < iterationLimit);      // infinite loop check
             break;
         }
-version (MARS)
-        util_progress();
-else
-        file_progress();
 
         //printf("optelem\n");
         /* canonicalize the trees        */
@@ -285,7 +280,13 @@ else
                 }
             }
         //printf("blockopt\n");
-        scanForInlines(funcsym_p);
+
+        /* Only scan once to prevent recursive functions from endlessly being inlined
+         * https://issues.dlang.org/show_bug.cgi?id=23857
+         */
+        if (iter == 1)
+            scanForInlines(funcsym_p);
+
         if (go.mfoptim & MFdc)
             blockopt(0);                // do block optimization
         out_regcand(&globsym);          // recompute register candidates

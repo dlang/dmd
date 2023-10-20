@@ -27,18 +27,13 @@ import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-extern (C++):
 
 nothrow:
 
 private __gshared Symbol*[RTLSYM.max + 1] rtlsym;
 
-version (MARS)
-    // This varies depending on C ABI
-    alias FREGSAVED = fregsaved;
-else
-    enum FREGSAVED = (mBP | mBX | mSI | mDI);
-
+// This varies depending on C ABI
+alias FREGSAVED = fregsaved;
 
 /******************************************
  * Get Symbol corresponding to Dwarf "personality" function.
@@ -138,6 +133,14 @@ Symbol *getRtlsym(RTLSYM i) @trusted
         case RTLSYM.ARRAYSETASSIGN:         symbolz(ps,FLfunc,FREGSAVED,"_d_arraysetassign", 0, t); break;
         case RTLSYM.ARRAYEQ2:               symbolz(ps,FLfunc,FREGSAVED,"_adEq2", 0, t); break;
 
+        /* Associative Arrays https://github.com/dlang/dmd/blob/master/druntime/src/rt/aaA.d */
+        case RTLSYM.AANEW:                  symbolz(ps,FLfunc,FREGSAVED,"_aaNew",        0, t); break;
+        case RTLSYM.AAEQUAL:                symbolz(ps,FLfunc,FREGSAVED,"_aaEqual",      0, t); break;
+        case RTLSYM.AAINX:                  symbolz(ps,FLfunc,FREGSAVED,"_aaInX",        0, t); break;
+        case RTLSYM.AADELX:                 symbolz(ps,FLfunc,FREGSAVED,"_aaDelX",       0, t); break;
+        case RTLSYM.AAGETY:                 symbolz(ps,FLfunc,FREGSAVED,"_aaGetY",       0, t); break;
+        case RTLSYM.AAGETRVALUEX:           symbolz(ps,FLfunc,FREGSAVED,"_aaGetRvalueX", 0, t); break;
+
         case RTLSYM.EXCEPT_HANDLER3:        symbolz(ps,FLfunc,fregsaved,"_except_handler3", 0, tsclib); break;
         case RTLSYM.CPP_HANDLER:            symbolz(ps,FLfunc,FREGSAVED,"_cpp_framehandler", 0, tsclib); break;
         case RTLSYM.D_HANDLER:              symbolz(ps,FLfunc,FREGSAVED,"_d_framehandler", 0, tsclib); break;
@@ -236,8 +239,6 @@ void rtlsym_init()
  * Reset the symbols for the case when we are generating multiple
  * .OBJ files from one compile.
  */
-version (MARS)
-{
 void rtlsym_reset()
 {
     clib_inited = 0;            // reset CLIB symbols, too
@@ -249,8 +250,6 @@ void rtlsym_reset()
             rtlsym[i].Stypidx = 0;
         }
     }
-}
-
 }
 
 /*******************************

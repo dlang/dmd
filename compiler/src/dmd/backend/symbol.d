@@ -13,11 +13,8 @@
 
 module dmd.backend.symbol;
 
-version (MARS)
-{
-    enum HYDRATE = false;
-    enum DEHYDRATE = false;
-}
+enum HYDRATE = false;
+enum DEHYDRATE = false;
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -37,7 +34,6 @@ import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-extern (C++):
 
 nothrow:
 @safe:
@@ -46,7 +42,7 @@ import dmd.backend.code_x86;
 
 void struct_free(struct_t *st) { }
 
-@trusted
+@trusted @nogc
 func_t* func_calloc()
 {
     func_t* f = cast(func_t *) calloc(1, func_t.sizeof);
@@ -156,10 +152,7 @@ int Symbol_Salignsize(ref Symbol s)
 @trusted
 bool Symbol_Sisdead(const ref Symbol s, bool anyInlineAsm)
 {
-    version (MARS)
-        enum vol = false;
-    else
-        enum vol = true;
+    enum vol = false;
     return s.Sflags & SFLdead ||
            /* SFLdead means the optimizer found no references to it.
             * The rest deals with variables that the compiler never needed
@@ -278,7 +271,7 @@ Symbol * symbol_calloc(const(char)[] id)
  *      created Symbol
  */
 
-@trusted
+@trusted @nogc
 extern (C)
 Symbol * symbol_name(const(char)[] name, SC sclass, type *t)
 {
@@ -314,7 +307,7 @@ Funcsym *symbol_funcalias(Funcsym *sf)
  * Create a symbol, give it a name, storage class and type.
  */
 
-@trusted
+@trusted @nogc
 Symbol * symbol_generate(SC sclass,type *t)
 {
     __gshared int tmpnum;
@@ -325,7 +318,6 @@ Symbol * symbol_generate(SC sclass,type *t)
     Symbol *s = symbol_name(name.ptr[0 .. length],sclass,t);
     //symbol_print(s);
 
-version (MARS)
     s.Sflags |= SFLnodebug | SFLartifical;
 
     return s;
@@ -366,7 +358,7 @@ Symbol *symbol_genauto(tym_t ty)
  * Add in the variants for a function symbol.
  */
 
-@trusted
+@trusted @nogc
 void symbol_func(Symbol *s)
 {
     //printf("symbol_func(%s, x%x)\n", s.Sident.ptr, fregsaved);
@@ -583,8 +575,7 @@ debug
                 list_free(&f.Fthunks,cast(list_free_fp)&symbol_free);
               }
                 list_free(&f.Fsymtree,cast(list_free_fp)&symbol_free);
-                version (MARS)
-                    f.typesTable.dtor();
+                f.typesTable.dtor();
                 func_free(f);
             }
             switch (s.Sclass)

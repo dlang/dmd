@@ -364,7 +364,7 @@ T* emplace(T, Args...)(void[] chunk, auto ref Args args)
     assert(u1.a == "hello");
 }
 
-@system unittest // bugzilla 15772
+@system unittest // https://issues.dlang.org/show_bug.cgi?id=15772
 {
     abstract class Foo {}
     class Bar: Foo {}
@@ -1570,7 +1570,11 @@ template forward(args...)
             alias fwd = arg;
         // (r)value
         else
-            @property auto fwd(){ pragma(inline, true); return move(arg); }
+            @property auto fwd()
+            {
+                version (DigitalMars) { /* @@BUG 23890@@ */ } else pragma(inline, true);
+                return move(arg);
+            }
     }
 
     alias Result = AliasSeq!();
@@ -2322,7 +2326,7 @@ pure nothrow @nogc @system unittest
     assert(val == 1);
 }
 
-// issue 18913
+// https://issues.dlang.org/show_bug.cgi?id=18913
 @safe unittest
 {
     static struct NoCopy
@@ -2454,7 +2458,7 @@ template _d_delstructImpl(T)
     assert(outerDtors == 1);
 }
 
-// issue 25552
+// https://issues.dlang.org/show_bug.cgi?id=25552
 pure nothrow @system unittest
 {
     int i;
@@ -2478,7 +2482,7 @@ pure nothrow @system unittest
     assert(i == 2);
 }
 
-// issue 25552
+// https://issues.dlang.org/show_bug.cgi?id=25552
 @safe unittest
 {
     int i;
@@ -2527,7 +2531,7 @@ pure nothrow @system unittest
     assert(i == 6);
 }
 
-// issue 25552
+// https://issues.dlang.org/show_bug.cgi?id=25552
 @safe unittest
 {
     int i;

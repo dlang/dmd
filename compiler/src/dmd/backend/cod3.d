@@ -47,21 +47,15 @@ import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.xmm;
 
-extern (C++):
 
 nothrow:
 @safe:
 
 enum MARS = true;
 
-private extern (D) uint mask(uint m) { return 1 << m; }
-
 //private void genorreg(ref CodeBuilder c, uint t, uint f) { genregs(c, 0x09, f, t); }
 
 enum JMPJMPTABLE = false;               // benchmarking shows it's slower
-
-enum MINLL =           0x8000_0000_0000_0000L;
-enum MAXLL =           0x7FFF_FFFF_FFFF_FFFFL;
 
 /*************
  * Size in bytes of each instruction.
@@ -300,13 +294,17 @@ ubyte vex_inssize(code *c)
 }
 
 /************************************
- * Determine if there is a modregrm byte for code.
+ * Determine if there is a modregrm byte for instruction.
+ * Params:
+ *      c = instruction
+ * Returns:
+ *      true if has modregrm byte
  */
 
 @trusted
-int cod3_EA(code *c)
-{   uint ins;
-
+bool hasModregrm(scope const code* c)
+{
+    uint ins;
     opcode_t op1 = c.Iop & 0xFF;
     if (op1 == ESCAPE)
         ins = 0;
@@ -316,7 +314,7 @@ int cod3_EA(code *c)
         ins = inssize2[op1];
     else
         ins = inssize[op1];
-    return ins & M;
+    return (ins & M) != 0;
 }
 
 /********************************
@@ -454,7 +452,7 @@ void cod3_align_bytes(int seg, size_t nbytes)
                 n = nops.length;
             p = cast(char*)nops;
         }
-        objmod.write_bytes(SegData[seg],cast(uint)n,cast(char*)p);
+        objmod.write_bytes(SegData[seg],p[0 .. n]);
         nbytes -= n;
     }
 }
@@ -1115,7 +1113,7 @@ static if (NTEXCEPTIONS)
             if (config.flags4 & CFG4optimized)
             {   regm_t usedsave;
 
-                docommas(cdb,&e);
+                docommas(cdb,e);
                 usedsave = regcon.used;
                 if (!OTleaf(e.Eoper))
                     gencodelem(cdb,e,&retregs,true);
@@ -1507,7 +1505,7 @@ struct CaseVal
 
     /* Sort function for qsort() */
     @trusted
-    extern (C) static nothrow int cmp(scope const(void*) p, scope const(void*) q)
+    extern (C) static nothrow pure @nogc int cmp(scope const(void*) p, scope const(void*) q)
     {
         const(CaseVal)* c1 = cast(const(CaseVal)*)p;
         const(CaseVal)* c2 = cast(const(CaseVal)*)q;
@@ -1551,21 +1549,22 @@ private void cmpval(ref CodeBuilder cdb, targ_llong val, uint sz, reg_t reg, reg
     }
 }
 
-@trusted
-private void ifthen(ref CodeBuilder cdb, CaseVal *casevals, size_t ncases,
+@trusted extern (D)
+private void ifthen(ref CodeBuilder cdb, scope CaseVal[] casevals,
         uint sz, reg_t reg, reg_t reg2, reg_t sreg, block *bdefault, bool last)
 {
+    const ncases = casevals.length;
     if (ncases >= 4 && config.flags4 & CFG4speed)
     {
         size_t pivot = ncases >> 1;
 
         // Compares for casevals[0..pivot]
         CodeBuilder cdb1; cdb1.ctor();
-        ifthen(cdb1, casevals, pivot, sz, reg, reg2, sreg, bdefault, true);
+        ifthen(cdb1, casevals[0 .. pivot], sz, reg, reg2, sreg, bdefault, true);
 
         // Compares for casevals[pivot+1..ncases]
         CodeBuilder cdb2; cdb2.ctor();
-        ifthen(cdb2, casevals + pivot + 1, ncases - pivot - 1, sz, reg, reg2, sreg, bdefault, last);
+        ifthen(cdb2, casevals[pivot + 1 .. $], sz, reg, reg2, sreg, bdefault, last);
         code *c2 = gennop(null);
 
         // Compare for caseval[pivot]
@@ -1580,7 +1579,7 @@ private void ifthen(ref CodeBuilder cdb, CaseVal *casevals, size_t ncases,
     }
     else
     {   // Not worth doing a binary search, just do a sequence of CMP/JE
-        for (size_t n = 0; n < ncases; n++)
+        foreach (size_t n; 0 .. ncases)
         {
             targ_llong val = casevals[n].val;
             cmpval(cdb, val, sz, reg, reg2, sreg);
@@ -1611,29 +1610,24 @@ private void ifthen(ref CodeBuilder cdb, CaseVal *casevals, size_t ncases,
 @trusted
 void doswitch(ref CodeBuilder cdb, block *b)
 {
-    targ_ulong msw;
-
     // If switch tables are in code segment and we need a CS: override to get at them
     bool csseg = cast(bool)(config.flags & CFGromable);
 
     //printf("doswitch(%d)\n", b.BC);
     elem *e = b.Belem;
     elem_debug(e);
-    docommas(cdb,&e);
+    docommas(cdb,e);
     cgstate.stackclean++;
     tym_t tys = tybasic(e.Ety);
     int sz = _tysize[tys];
     bool dword = (sz == 2 * REGSIZE);
+    targ_ulong msw;
     bool mswsame = true;                // assume all msw's are the same
-    targ_llong *p = b.Bswitch;          // pointer to case data
-    assert(p);
-    uint ncases = cast(uint)*p++;       // number of cases
 
-    targ_llong vmax = MINLL;            // smallest possible llong
-    targ_llong vmin = MAXLL;            // largest possible llong
-    for (uint n = 0; n < ncases; n++)   // find max and min case values
+    targ_llong vmax = long.min;         // smallest possible llong
+    targ_llong vmin = long.max;         // largest possible llong
+    foreach (n, val; b.Bswitch)         // find max and min case values
     {
-        targ_llong val = *p++;
         if (val > vmax) vmax = val;
         if (val < vmin) vmin = val;
         if (REGSIZE == 2)
@@ -1642,7 +1636,7 @@ void doswitch(ref CodeBuilder cdb, block *b)
             if (n == 0)
                 msw = ms;
             else if (msw != ms)
-                mswsame = 0;
+                mswsame = false;
         }
         else // REGSIZE == 4
         {
@@ -1650,18 +1644,20 @@ void doswitch(ref CodeBuilder cdb, block *b)
             if (n == 0)
                 msw = ms;
             else if (msw != ms)
-                mswsame = 0;
+                mswsame = false;
         }
     }
-    p -= ncases;
     //dbg_printf("vmax = x%lx, vmin = x%lx, vmax-vmin = x%lx\n",vmax,vmin,vmax - vmin);
 
     /* Three kinds of switch strategies - pick one
      */
+    const ncases = b.Bswitch.length;
     if (ncases <= 3)
         goto Lifthen;
     else if (I16 && cast(targ_ullong)(vmax - vmin) <= ncases * 2)
         goto Ljmptab;           // >=50% of the table is case values, rest is default
+    else if (config.flags3 & CFG3ibt)
+        goto Lifthen;           // no jump table for ENDBR
     else if (cast(targ_ullong)(vmax - vmin) <= ncases * 3)
         goto Ljmptab;           // >= 33% of the table is case values, rest is default
     else if (I16)
@@ -1697,32 +1693,33 @@ void doswitch(ref CodeBuilder cdb, block *b)
         reg_t sreg = NOREG;                          // may need a scratch register
 
         // Put into casevals[0..ncases] so we can sort then slice
-        assert(ncases < size_t.max / (2 * CaseVal.sizeof));
-        CaseVal *casevals = cast(CaseVal *)malloc(ncases * CaseVal.sizeof);
-        assert(casevals);
-        for (uint n = 0; n < ncases; n++)
+
+        import dmd.common.string : SmallBuffer;
+        CaseVal[10] tmp = void;
+        auto sb = SmallBuffer!(CaseVal)(ncases, tmp[]);
+        CaseVal[] casevals = sb[];
+
+        foreach (n, val; b.Bswitch)
         {
-            casevals[n].val = p[n];
+            casevals[n].val = val;
             bl = list_next(bl);
             casevals[n].target = list_block(bl);
 
             // See if we need a scratch register
-            if (sreg == NOREG && I64 && sz == 8 && p[n] != cast(int)p[n])
+            if (sreg == NOREG && I64 && sz == 8 && val != cast(int)val)
             {   regm_t regm = ALLREGS & ~mask(reg);
                 allocreg(cdb,&regm, &sreg, TYint);
             }
         }
 
         // Sort cases so we can do a runtime binary search
-        qsort(casevals, ncases, CaseVal.sizeof, &CaseVal.cmp);
+        qsort(casevals.ptr, casevals.length, CaseVal.sizeof, &CaseVal.cmp);
 
         //for (uint n = 0; n < ncases; n++)
             //printf("casevals[%lld] = x%x\n", n, casevals[n].val);
 
         // Generate binary tree of comparisons
-        ifthen(cdb, casevals, ncases, sz, reg, reg2, sreg, bdefault, bdefault != b.Bnext);
-
-        free(casevals);
+        ifthen(cdb, casevals, sz, reg, reg2, sreg, bdefault, bdefault != b.Bnext);
 
         cgstate.stackclean--;
         return;
@@ -1839,9 +1836,9 @@ static if (JMPJMPTABLE)
             targ_llong u;
             for (u = vmin; ; u++)
             {   block *targ = bdef;
-                for (n = 0; n < ncases; n++)
+                foreach (n, val; b.Bswitch)
                 {
-                    if (p[n] == u)
+                    if (val == u)
                     {   targ = b.nthSucc(n + 1);
                         break;
                     }
@@ -2061,16 +2058,15 @@ void outjmptab(block *b)
     if (JMPJMPTABLE && I32)
         return;
 
-    targ_llong *p = b.Bswitch;               // pointer to case data
-    size_t ncases = cast(size_t)*p++;        // number of cases
+    const ncases = b.Bswitch.length;        // number of cases
 
     /* Find vmin and vmax, the range of the table will be [vmin .. vmax + 1]
      * Must be same computation as used in doswitch().
      */
-    targ_llong vmax = MINLL;                 // smallest possible llong
-    targ_llong vmin = MAXLL;                 // largest possible llong
-    for (size_t n = 0; n < ncases; n++)      // find min case value
-    {   targ_llong val = p[n];
+    targ_llong vmax = long.min;              // smallest possible llong
+    targ_llong vmin = long.max;              // largest possible llong
+    foreach (val; b.Bswitch)                 // find min case value
+    {
         if (val > vmax) vmax = val;
         if (val < vmin) vmin = val;
     }
@@ -2093,11 +2089,13 @@ void outjmptab(block *b)
     targ_size_t def = b.nthSucc(0).Boffset;  // default address
     for (targ_llong u = vmin; ; u++)
     {   targ_size_t targ = def;                     // default
-        for (size_t n = 0; n < ncases; n++)
-        {       if (p[n] == u)
-                {       targ = b.nthSucc(cast(int)(n + 1)).Boffset;
-                        break;
-                }
+        foreach (n; 0 .. ncases)
+        {
+            if (b.Bswitch[n] == u)
+            {
+                targ = b.nthSucc(cast(int)(n + 1)).Boffset;
+                break;
+            }
         }
         if (config.exe & (EX_LINUX64 | EX_FREEBSD64 | EX_OPENBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS64))
         {
@@ -2126,27 +2124,15 @@ void outjmptab(block *b)
                 objmod.reftocodeseg(jmpseg,*poffset,targ);
             *poffset += 4;
         }
-        else if (config.exe & (EX_OSX | EX_OSX64))
+        else if (config.exe & (EX_OSX | EX_OSX64) || I64)
         {
-            targ_size_t val;
-            if (I64)
-                val = targ - b.Btableoffset;
-            else
-                val = targ - b.Btablebase;
-            objmod.write_bytes(SegData[jmpseg],4,&val);
+            const val = cast(uint)(targ - (I64 ? b.Btableoffset : b.Btablebase));
+            objmod.write_bytes(SegData[jmpseg],(&val)[0 .. 1]);
         }
         else
         {
-            if (I64)
-            {
-                targ_size_t val = targ - b.Btableoffset;
-                objmod.write_bytes(SegData[jmpseg],4,&val);
-            }
-            else
-            {
-                objmod.reftocodeseg(jmpseg,*poffset,targ);
-                *poffset += tysize(TYnptr);
-            }
+            objmod.reftocodeseg(jmpseg,*poffset,targ);
+            *poffset += tysize(TYnptr);
         }
 
         if (u == vmax)                  // for case that (vmax == ~0)
@@ -2165,8 +2151,7 @@ void outjmptab(block *b)
 void outswitab(block *b)
 {
     //printf("outswitab()\n");
-    targ_llong *p = b.Bswitch;        // pointer to case data
-    uint ncases = cast(uint)*p++;     // number of cases
+    const ncases = b.Bswitch.length;     // number of cases
 
     const int seg = objmod.jmpTableSegment(funcsym_p);
     targ_size_t *poffset = &Offset(seg);
@@ -2177,11 +2162,10 @@ void outswitab(block *b)
 
     uint sz = _tysize[TYint];
     assert(SegData[seg].SDseg == seg);
-    for (uint n = 0; n < ncases; n++)          // send out value table
+    foreach (val; b.Bswitch)          // send out value table
     {
         //printf("\tcase %d, offset = x%x\n", n, *poffset);
-        objmod.write_bytes(SegData[seg],sz,p);
-        p++;
+        objmod.write_bytes(SegData[seg],(cast(void*)&val)[0 .. sz]);
     }
     offset += alignbytes + sz * ncases;
     assert(*poffset == offset);
@@ -2189,19 +2173,17 @@ void outswitab(block *b)
     if (b.Btablesize == ncases * (REGSIZE * 2 + tysize(TYnptr)))
     {
         // Send out MSW table
-        p -= ncases;
-        for (uint n = 0; n < ncases; n++)
+        foreach (val; b.Bswitch)
         {
-            targ_size_t val = cast(targ_size_t)MSREG(*p);
-            p++;
-            objmod.write_bytes(SegData[seg],REGSIZE,&val);
+            auto msval = cast(targ_size_t)MSREG(val);
+            objmod.write_bytes(SegData[seg],(cast(void*)&msval)[0 .. REGSIZE]);
         }
         offset += REGSIZE * ncases;
         assert(*poffset == offset);
     }
 
     list_t bl = b.Bsucc;
-    for (uint n = 0; n < ncases; n++)          // send out address table
+    foreach (n; 0 .. ncases)          // send out address table
     {
         bl = list_next(bl);
         objmod.reftocodeseg(seg,*poffset,list_block(bl).Boffset);
@@ -2584,7 +2566,7 @@ bool cse_simple(code *c, elem *e)
         sz == REGSIZE &&
         e.EV.E2.Eoper == OPconst &&
         e.EV.E1.Eoper == OPvar &&
-        isregvar(e.EV.E1,&regm,&reg) &&
+        isregvar(e.EV.E1,regm,reg) &&
         !(e.EV.E1.EV.Vsym.Sflags & SFLspill)
        )
     {
@@ -2603,7 +2585,7 @@ bool cse_simple(code *c, elem *e)
     else if (e.Eoper == OPind &&
         sz <= REGSIZE &&
         e.EV.E1.Eoper == OPvar &&
-        isregvar(e.EV.E1,&regm,&reg) &&
+        isregvar(e.EV.E1,regm,reg) &&
         (I32 || I64 || regm & IDXREGS) &&
         !(e.EV.E1.EV.Vsym.Sflags & SFLspill)
        )
@@ -3824,10 +3806,9 @@ private void epilog_restoreregs(ref CodeBuilder cdb, regm_t topop)
  * Params:
  *      cdb = sink for generated code
  *      sv = symbol for __va_argsave
- *      namedargs = registers that named parameters (not ... arguments) were passed in.
  */
 @trusted
-void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv, regm_t namedargs)
+void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv)
 {
     /* Generate code to move any arguments passed in registers into
      * the stack variable __va_argsave,
@@ -3848,12 +3829,10 @@ void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv, regm_t namedargs)
         MOV     voff+3*8[RBP],RCX
         MOV     voff+4*8[RBP],R8
         MOV     voff+5*8[RBP],R9
-        MOVZX   EAX,AL                      // AL = 0..8, # of XMM registers used
-        SHL     EAX,2                       // 4 bytes for each MOVAPS
-        LEA     R11,offset L2[RIP]
-        SUB     R11,RAX
+        TEST    AL,AL
         LEA     RAX,voff+6*8+0x7F[RBP]
-        JMP     R11d
+        JE      L2
+
         MOVAPS  -0x0F[RAX],XMM7             // only save XMM registers if actually used
         MOVAPS  -0x1F[RAX],XMM6
         MOVAPS  -0x2F[RAX],XMM5
@@ -3862,13 +3841,10 @@ void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv, regm_t namedargs)
         MOVAPS  -0x5F[RAX],XMM2
         MOVAPS  -0x6F[RAX],XMM1
         MOVAPS  -0x7F[RAX],XMM0
+
       L2:
-        MOV     1[RAX],offset_regs          // set __va_argsave.offset_regs
-        MOV     5[RAX],offset_fpregs        // set __va_argsave.offset_fpregs
         LEA     R11, Para.size+Para.offset[RBP]
-        MOV     9[RAX],R11                  // set __va_argsave.stack_args
-        SUB     RAX,6*8+0x7F                // point to start of __va_argsave
-        MOV     6*8+8*16+4+4+8[RAX],RAX     // set __va_argsave.reg_args
+        MOV     9+16[RAX],R11                // set __va_argsave.stack_args
     * RAX and R11 are destroyed.
     */
 
@@ -3878,50 +3854,95 @@ void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv, regm_t namedargs)
     const int vregnum = 6;
     const uint vsize = vregnum * 8 + 8 * 16;
 
-    static immutable ubyte[vregnum] regs = [ DI,SI,DX,CX,R8,R9 ];
+    static immutable reg_t[vregnum] regs = [ DI,SI,DX,CX,R8,R9 ];
 
     if (!hasframe || enforcealign)
         voff += EBPtoESP;
 
-    for (int i = 0; i < vregnum; i++)
+    regm_t namedargs = prolog_namedArgs();
+    foreach (i, r; regs)
     {
-        uint r = regs[i];
         if (!(mask(r) & namedargs))  // unnamed arguments would be the ... ones
         {
             uint ea = (REX_W << 16) | modregxrm(2,r,BPRM);
             if (!hasframe || enforcealign)
                 ea = (REX_W << 16) | (modregrm(0,4,SP) << 8) | modregxrm(2,r,4);
-            cdb.genc1(0x89,ea,FLconst,voff + i*8);
+            cdb.genc1(0x89,ea,FLconst,voff + i*8);  // MOV voff+i*8[RBP],r
         }
     }
 
-    genregs(cdb,MOVZXb,AX,AX);                 // MOVZX EAX,AL
-    cdb.genc2(0xC1,modregrm(3,4,AX),2);                     // SHL EAX,2
-    int raxoff = cast(int)(voff+6*8+0x7F);
-    uint L2offset = (raxoff < -0x7F) ? 0x2D : 0x2A;
-    if (!hasframe || enforcealign)
-        L2offset += 1;                                      // +1 for sib byte
-    // LEA R11,offset L2[RIP]
-    cdb.genc1(LEA,(REX_W << 16) | modregxrm(0,R11,5),FLconst,L2offset);
-    genregs(cdb,0x29,AX,R11);                  // SUB R11,RAX
-    code_orrex(cdb.last(), REX_W);
-    // LEA RAX,voff+vsize-6*8-16+0x7F[RBP]
+    code* cnop = gennop(null);
+    genregs(cdb,0x84,AX,AX);                   // TEST AL,AL
+
     uint ea = (REX_W << 16) | modregrm(2,AX,BPRM);
     if (!hasframe || enforcealign)
         // add sib byte for [RSP] addressing
         ea = (REX_W << 16) | (modregrm(0,4,SP) << 8) | modregxrm(2,AX,4);
-    cdb.genc1(LEA,ea,FLconst,raxoff);
-    cdb.gen2(0xFF,modregrmx(3,4,R11));                      // JMP R11d
-    for (int i = 0; i < 8; i++)
+    int raxoff = cast(int)(voff+6*8+0x7F);
+    cdb.genc1(LEA,ea,FLconst,raxoff);          // LEA RAX,voff+vsize-6*8-16+0x7F[RBP]
+
+    genjmp(cdb,JE,FLcode, cast(block *)cnop);  // JE L2
+
+    foreach (i; 0 .. 8)
     {
         // MOVAPS -15-16*i[RAX],XMM7-i
         cdb.genc1(0x0F29,modregrm(0,XMM7-i,0),FLconst,-15-16*i);
     }
+    cdb.append(cnop);
+
+    // LEA R11, Para.size+Para.offset[RBP]
+    uint ea2 = modregxrm(2,R11,BPRM);
+    if (!hasframe)
+        ea2 = (modregrm(0,4,SP) << 8) | modregrm(2,DX,4);
+    Para.offset = (Para.offset + (REGSIZE - 1)) & ~(REGSIZE - 1);
+    cdb.genc1(LEA,(REX_W << 16) | ea2,FLconst,Para.size + Para.offset);
+
+    // MOV 9+16[RAX],R11
+    cdb.genc1(0x89,(REX_W << 16) | modregxrm(2,R11,AX),FLconst,9 + 16);   // into stack_args_save
+
+    pinholeopt(cdb.peek(), null);
+    useregs(mAX|mR11);
+}
+
+/********************************
+ * Generate elems for va_start()
+ * Params:
+ *      sv = symbol for __va_argsave
+ *      parmn = last named parameter
+ */
+@trusted
+elem* prolog_genva_start(Symbol* sv, Symbol* parmn)
+{
+    enum Vregnum = 6;
+
+    /* the stack variable __va_argsave points to an instance of:
+     *   struct __va_argsave_t {
+     *     size_t[Vregnum] regs;
+     *     real[8] fpregs;
+     *     struct __va_list_tag {
+     *         uint offset_regs;
+     *         uint offset_fpregs;
+     *         void* stack_args;
+     *         void* reg_args;
+     *     }
+     *     void* stack_args_save;
+     *   }
+     */
+
+    enum OFF // offsets into __va_argsave_t
+    {
+        Offset_regs   = Vregnum*8 + 8*16,
+        Offset_fpregs = Offset_regs + 4,
+        Stack_args    = Offset_fpregs + 4,
+        Reg_args      = Stack_args + 8,
+        Stack_args_save = Reg_args + 8,
+    }
 
     /* Compute offset_regs and offset_fpregs
      */
+    regm_t namedargs = prolog_namedArgs();
     uint offset_regs = 0;
-    uint offset_fpregs = vregnum * 8;
+    uint offset_fpregs = Vregnum * 8;
     for (int i = AX; i <= XMM7; i++)
     {
         regm_t m = mask(i);
@@ -3936,31 +3957,52 @@ void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv, regm_t namedargs)
                 break;
         }
     }
-    // MOV 1[RAX],offset_regs
-    cdb.genc(0xC7,modregrm(2,0,AX),FLconst,1,FLconst,offset_regs);
 
-    // MOV 5[RAX],offset_fpregs
-    cdb.genc(0xC7,modregrm(2,0,AX),FLconst,5,FLconst,offset_fpregs);
+    // set offset_regs
+    elem* e1 = el_bin(OPeq, TYint, el_var(sv), el_long(TYint, offset_regs));
+    e1.EV.E1.Ety = TYint;
+    e1.EV.E1.EV.Voffset = OFF.Offset_regs;
 
-    // LEA R11, Para.size+Para.offset[RBP]
-    ea = modregxrm(2,R11,BPRM);
-    if (!hasframe)
-        ea = (modregrm(0,4,SP) << 8) | modregrm(2,DX,4);
-    Para.offset = (Para.offset + (REGSIZE - 1)) & ~(REGSIZE - 1);
-    cdb.genc1(LEA,(REX_W << 16) | ea,FLconst,Para.size + Para.offset);
+    // set offset_fpregs
+    elem* e2 = el_bin(OPeq, TYint, el_var(sv), el_long(TYint, offset_fpregs));
+    e2.EV.E1.Ety = TYint;
+    e2.EV.E1.EV.Voffset = OFF.Offset_fpregs;
 
-    // MOV 9[RAX],R11
-    cdb.genc1(0x89,(REX_W << 16) | modregxrm(2,R11,AX),FLconst,9);
+    // set reg_args
+    elem* e4 = el_bin(OPeq, TYnptr, el_var(sv), el_ptr(sv));
+    e4.EV.E1.Ety = TYnptr;
+    e4.EV.E1.EV.Voffset = OFF.Reg_args;
 
-    // SUB RAX,6*8+0x7F             // point to start of __va_argsave
-    cdb.genc2(0x2D,0,6*8+0x7F);
-    code_orrex(cdb.last(), REX_W);
+    // set stack_args
+    /* which is a pointer to the first variadic argument on the stack.
+     * Normally, we could set it by taking the address of the last named parameter
+     * (parmn) and then skipping past it. The trouble, though, is it fails
+     * when all the named parameters get passed in a register.
+     *    elem* e3 = el_bin(OPeq, TYnptr, el_var(sv), el_ptr(parmn));
+     *    e3.EV.E1.Ety = TYnptr;
+     *    e3.EV.E1.EV.Voffset = OFF.Stack_args;
+     *    auto sz = type_size(parmn.Stype);
+     *    sz = (sz + (REGSIZE - 1)) & ~(REGSIZE - 1);
+     *    e3.EV.E2.EV.Voffset += sz;
+     * The next possibility is to do it the way prolog_genvarargs() does:
+     *    LEA R11, Para.size+Para.offset[RBP]
+     * The trouble there is Para.size and Para.offset is not available when
+     * this function is called. It might be possible to compute this earlier.(1)
+     * Another possibility is creating a special operand type that gets filled
+     * in after the prolog_genvarargs() is called.
+     * Or do it this simpler way - compute the needed value in prolog_genvarargs(),
+     * and save it in a slot just after va_argsave, called `stack_args_save`.
+     * Then, just copy from `stack_args_save` to `stack_args`.
+     * Although, doing (1) might be optimal.
+     */
+    elem* e3 = el_bin(OPeq, TYnptr, el_var(sv), el_var(sv));
+    e3.EV.E1.Ety = TYnptr;
+    e3.EV.E1.EV.Voffset = OFF.Stack_args;
+    e3.EV.E2.Ety = TYnptr;
+    e3.EV.E2.EV.Voffset = OFF.Stack_args_save;
 
-    // MOV 6*8+8*16+4+4+8[RAX],RAX  // set __va_argsave.reg_args
-    cdb.genc1(0x89,(REX_W << 16) | modregrm(2,AX,AX),FLconst,6*8+8*16+4+4+8);
-
-    pinholeopt(cdb.peek(), null);
-    useregs(mAX|mR11);
+    elem* e = el_combine(e1, el_combine(e2, el_combine(e3, e4)));
+    return e;
 }
 
 void prolog_gen_win64_varargs(ref CodeBuilder cdb)
@@ -3976,14 +4018,29 @@ void prolog_gen_win64_varargs(ref CodeBuilder cdb)
 }
 
 /************************************
+ * Get mask of registers that named parameters (not ... variadic arguments) were passed in.
+ * Returns:
+ *      the mask
+ */
+@trusted regm_t prolog_namedArgs()
+{
+    regm_t namedargs;
+    foreach (s; globsym[])
+    {
+        if (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg)
+            namedargs |= s.Spregm();
+    }
+    return namedargs;
+}
+
+/************************************
  * Params:
  *      cdb = generated code sink
  *      tf = what's the type of the function
  *      pushalloc = use PUSH to allocate on the stack rather than subtracting from SP
- *      namedargs = set to the registers that named parameters were passed in
  */
 @trusted
-void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_t namedargs)
+void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
 {
     //printf("prolog_loadparams() %s\n", funcsym_p.Sident.ptr);
     debug
@@ -4163,9 +4220,6 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
     {
         Symbol *s = globsym[si];
         uint sz = cast(uint)type_size(s.Stype);
-
-        if (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg)
-            namedargs |= s.Spregm();
 
         if (!((s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg) && s.Sfl == FLreg))
         {
@@ -4664,6 +4718,9 @@ void cod3_thunk(Symbol *sthunk,Symbol *sfunc,uint p,tym_t thisty,
             MOV EAX, d2[EAX]                    EAX = this.vptr
             JMP i[EAX]                          jump to virtual function
          */
+        if (config.flags3 & CFG3ibt)
+            cdb.gen1(I32 ? ENDBR32 : ENDBR64);
+
         reg_t reg = 0;
         if (cast(int)d < 0)
         {
@@ -4808,7 +4865,6 @@ void cod3_thunk(Symbol *sthunk,Symbol *sfunc,uint p,tym_t thisty,
     {
         objmod.pubdef(seg,sthunk,sthunk.Soffset);
     }
-    searchfixlist(sthunk);              // resolve forward refs
 }
 
 /*****************************
@@ -5540,7 +5596,7 @@ targ_size_t cod3_bpoffset(Symbol *s)
             break;
 
         default:
-            WRFL(cast(FL)s.Sfl);
+            WRFL(s.Sfl);
             symbol_print(s);
             assert(0);
     }
@@ -6109,7 +6165,7 @@ void pinholeopt(code *c,block *b)
                             break;
 
                         default:
-                            WRFL(cast(FL)c.IFL2);
+                            WRFL(c.IFL2);
                             assert(0);
                     }
                     break;
@@ -6243,7 +6299,7 @@ void simplify_code(code* c)
     if (config.flags4 & CFG4optimized &&
         (c.Iop == 0x81 || c.Iop == 0x80) &&
         c.IFL2 == FLconst &&
-        reghasvalue((c.Iop == 0x80) ? BYTEREGS : ALLREGS,I64 ? c.IEV2.Vsize_t : c.IEV2.Vlong,&reg) &&
+        reghasvalue((c.Iop == 0x80) ? BYTEREGS : ALLREGS,I64 ? c.IEV2.Vsize_t : c.IEV2.Vlong,reg) &&
         !(I16 && c.Iflags & CFopsize)
        )
     {
@@ -6426,7 +6482,7 @@ uint calccodsize(code *c)
                 size = 9;               // 64 bit immediate value for MOV to/from RAX
                 goto Lret;
             }
-            goto Ldefault;
+            goto default;
 
         case 0xF6:                      /* TEST mem8,immed8             */
             ins = inssize[op];
@@ -6446,8 +6502,16 @@ uint calccodsize(code *c)
                 size += (i32 ^ ((iflags & CFopsize) !=0)) ? 4 : 2;
             break;
 
+        case 0xFA:
+        case 0xFB:
+            if (c.Iop == ENDBR32 || c.Iop == ENDBR64)
+            {
+                size = 4;
+                break;
+            }
+            goto default;
+
         default:
-        Ldefault:
             ins = inssize[op];
             size = ins & 7;
             if (i32)
@@ -6830,7 +6894,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
                 ggen.flush();
                 if (c.Iflags == CFaddrsize)    // kludge for DA inline asm
                 {
-                    do32bit(&ggen, FLblockoff,&c.IEV1,0,0);
+                    do32bit(ggen, FLblockoff,c.IEV1,0,0);
                 }
                 else
                 {
@@ -6927,7 +6991,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
             else if ((op & 0xFF00) == 0x0F00)
                 ins = inssize2[op & 0xFF];
 
-            if (op & 0xFF000000)
+            if (op & 0xFF_00_00_00)
             {
                 ubyte op1 = op >> 24;
                 if (op1 == 0xF2 || op1 == 0xF3 || op1 == 0x66)
@@ -6994,7 +7058,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
                 switch (rm & 0xC0)
                 {
                     case 0x40:
-                        do8bit(&ggen, cast(FL) c.IFL1,&c.IEV1);     // 8 bit
+                        do8bit(ggen, cast(FL) c.IFL1,c.IEV1);     // 8 bit
                         break;
 
                     case 0:
@@ -7031,7 +7095,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
                                     val += 4;
                             }
                         }
-                        do32bit(&ggen, cast(FL)c.IFL1,&c.IEV1,cfflags,cast(int)val);
+                        do32bit(ggen, cast(FL)c.IFL1,c.IEV1,cfflags,cast(int)val);
                         break;
                     }
 
@@ -7043,7 +7107,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
             {
                 switch (rm & 0xC0)
                 {   case 0x40:
-                        do8bit(&ggen, cast(FL) c.IFL1,&c.IEV1);     // 8 bit
+                        do8bit(ggen, cast(FL) c.IFL1,c.IEV1);     // 8 bit
                         break;
 
                     case 0:
@@ -7052,7 +7116,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
                         goto case 0x80;
 
                     case 0x80:
-                        do16bit(&ggen, cast(FL)c.IFL1,&c.IEV1,CFoff);
+                        do16bit(ggen, cast(FL)c.IFL1,c.IEV1,CFoff);
                         break;
 
                     default:
@@ -7063,13 +7127,13 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
         else
         {
             if (op == ENTER)
-                do16bit(&ggen, cast(FL)c.IFL1,&c.IEV1,0);
+                do16bit(ggen, cast(FL)c.IFL1,c.IEV1,0);
         }
         flags &= CFseg | CFoff | CFselfrel;
         if (ins & T)                    /* if second operand            */
         {
             if (ins & E)            /* if data-8                    */
-                do8bit(&ggen, cast(FL) c.IFL2,&c.IEV2);
+                do8bit(ggen, cast(FL) c.IFL2,c.IEV2);
             else if (!I16)
             {
                 switch (op)
@@ -7077,7 +7141,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
                     case 0xC2:              /* RETN imm16           */
                     case 0xCA:              /* RETF imm16           */
                     do16:
-                        do16bit(&ggen, cast(FL)c.IFL2,&c.IEV2,flags);
+                        do16bit(ggen, cast(FL)c.IFL2,c.IEV2,flags);
                         break;
 
                     case 0xA1:
@@ -7085,7 +7149,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
                         if (I64 && c.Irex)
                         {
                     do64:
-                            do64bit(&ggen, cast(FL)c.IFL2,&c.IEV2,flags);
+                            do64bit(ggen, cast(FL)c.IFL2,c.IEV2,flags);
                             break;
                         }
                         goto case 0xA0;
@@ -7096,7 +7160,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
                             goto do16;
                         else
                     do32:
-                            do32bit(&ggen, cast(FL)c.IFL2,&c.IEV2,flags,0);
+                            do32bit(ggen, cast(FL)c.IFL2,c.IEV2,flags,0);
                         break;
 
                     case 0x9A:
@@ -7107,7 +7171,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
                             goto ptr1632;
 
                     case 0x68:              // PUSH immed32
-                        if (cast(FL)c.IFL2 == FLblock)
+                        if (c.IFL2 == FLblock)
                         {
                             c.IFL2 = FLblockoff;
                             goto do32;
@@ -7174,7 +7238,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
                         break;
 
                     case 0x68:              // PUSH immed16
-                        if (cast(FL)c.IFL2 == FLblock)
+                        if (c.IFL2 == FLblock)
                         {   c.IFL2 = FLblockoff;
                             goto do16;
                         }
@@ -7198,16 +7262,16 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
         else if (op == 0xF6)            /* TEST mem8,immed8             */
         {
             if ((rm & (7<<3)) == 0)
-                do8bit(&ggen, cast(FL)c.IFL2,&c.IEV2);
+                do8bit(ggen, cast(FL)c.IFL2,c.IEV2);
         }
         else if (op == 0xF7)
         {
             if ((rm & (7<<3)) == 0)     /* TEST mem16/32,immed16/32     */
             {
                 if ((I32 || I64) ^ ((c.Iflags & CFopsize) != 0))
-                    do32bit(&ggen, cast(FL)c.IFL2,&c.IEV2,flags,0);
+                    do32bit(ggen, cast(FL)c.IFL2,c.IEV2,flags,0);
                 else
-                    do16bit(&ggen, cast(FL)c.IFL2,&c.IEV2,flags);
+                    do16bit(ggen, cast(FL)c.IFL2,c.IEV2,flags);
             }
         }
 
@@ -7227,7 +7291,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
 
 
 @trusted
-private void do64bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags)
+private void do64bit(ref MiniCodeBuf pbuf, FL fl, ref evc uev,int flags)
 {
     char *p;
     Symbol *s;
@@ -7237,7 +7301,7 @@ private void do64bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags)
     switch (fl)
     {
         case FLconst:
-            ad = *cast(targ_size_t *) uev;
+            ad = *cast(targ_size_t *) &uev;
         L1:
             pbuf.genp(8,&ad);
             return;
@@ -7341,7 +7405,7 @@ private void do64bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags)
 
 
 @trusted
-private void do32bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags, int val)
+private void do32bit(ref MiniCodeBuf pbuf, FL fl, ref evc uev,int flags, int val)
 {
     char *p;
     Symbol *s;
@@ -7352,7 +7416,7 @@ private void do32bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags, int val)
     {
         case FLconst:
             assert(targ_size_t.sizeof == 4 || targ_size_t.sizeof == 8);
-            ad = * cast(targ_size_t *) uev;
+            ad = * cast(targ_size_t *) &uev;
         L1:
             pbuf.genp(4,&ad);
             return;
@@ -7407,7 +7471,7 @@ private void do32bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags, int val)
         case FLcode:
             //assert(JMPJMPTABLE);            // the only use case
             pbuf.flush();
-            ad = *cast(targ_size_t *) uev + pbuf.getOffset();
+            ad = *cast(targ_size_t *) &uev + pbuf.getOffset();
             objmod.reftocodeseg(pbuf.seg,pbuf.offset,ad);
             pbuf.write32(cast(uint)ad);
             break;
@@ -7521,7 +7585,7 @@ private void do32bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags, int val)
 
 
 @trusted
-private void do16bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags)
+private void do16bit(ref MiniCodeBuf pbuf, FL fl, ref evc uev,int flags)
 {
     char *p;
     Symbol *s;
@@ -7530,7 +7594,7 @@ private void do16bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags)
     switch (fl)
     {
         case FLconst:
-            pbuf.genp(2,cast(char *) uev);
+            pbuf.genp(2,cast(char *) &uev);
             return;
 
         case FLdatseg:
@@ -7609,19 +7673,18 @@ private void do16bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags)
 
 
 @trusted
-private void do8bit(MiniCodeBuf *pbuf, FL fl, evc *uev)
+private void do8bit(ref MiniCodeBuf pbuf, FL fl, ref evc uev)
 {
-    char c;
-    targ_ptrdiff_t delta;
+    ubyte c;
 
     switch (fl)
     {
         case FLconst:
-            c = cast(char)uev.Vuns;
+            c = cast(ubyte)uev.Vuns;
             break;
 
         case FLblock:
-            delta = uev.Vblock.Boffset - pbuf.getOffset() - 1;
+            targ_ptrdiff_t delta = uev.Vblock.Boffset - pbuf.getOffset() - 1;
             if (cast(byte)delta != delta)
             {
                 if (uev.Vblock.Bsrcpos.Slinnum)
@@ -7629,7 +7692,7 @@ private void do8bit(MiniCodeBuf *pbuf, FL fl, evc *uev)
                 printf("block displacement of %lld exceeds the maximum offset of -128 to 127.\n", cast(long)delta);
                 err_exit();
             }
-            c = cast(char)delta;
+            c = cast(ubyte)delta;
             debug assert(uev.Vblock.Boffset > pbuf.getOffset() || c != 0x7F);
             break;
 
@@ -7768,14 +7831,14 @@ extern (C) void code_print(scope code* c)
                 case FLtlsdata:
                 case FLextern:
                     printf(" ");
-                    WRFL(cast(FL)c.IFL1);
+                    WRFL(c.IFL1);
                     printf(" sym='%s'",c.IEV1.Vsym.Sident.ptr);
                     if (c.IEV1.Voffset)
                         printf(".%d", cast(int)c.IEV1.Voffset);
                     break;
 
                 default:
-                    WRFL(cast(FL)c.IFL1);
+                    WRFL(c.IFL1);
                     break;
             }
         }
@@ -7783,7 +7846,7 @@ extern (C) void code_print(scope code* c)
     if (ins & T)
     {
         printf(" ");
-        WRFL(cast(FL)c.IFL2);
+        WRFL(c.IFL2);
         switch (c.IFL2)
         {
             case FLconst:
@@ -7822,7 +7885,7 @@ extern (C) void code_print(scope code* c)
                 break;
 
             default:
-                WRFL(cast(FL)c.IFL2);
+                WRFL(c.IFL2);
                 break;
         }
     }

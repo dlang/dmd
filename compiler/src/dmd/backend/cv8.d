@@ -29,6 +29,7 @@ import dmd.backend.cv4;
 import dmd.backend.mem;
 import dmd.backend.el;
 import dmd.backend.global;
+import dmd.backend.mscoffobj;
 import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.common.outbuffer;
@@ -38,7 +39,6 @@ import dmd.backend.type;
 import dmd.backend.dvarstats;
 import dmd.backend.xmm;
 
-extern (C++):
 
 nothrow:
 @safe:
@@ -458,13 +458,13 @@ void cv8_func_term(Symbol *sfunc)
             ubyte[1] name;
         }
 
-        extern (C++) static void endArgs()
+        static void endArgs()
         {
             auto buf = currentfuncdata.f1buf;
             buf.write16(2);
             buf.write16(S_ENDARG);
         }
-        extern (C++) static void beginBlock(int offset, int length)
+        static void beginBlock(int offset, int length)
         {
             auto buf = currentfuncdata.f1buf;
             uint soffset = cast(uint)buf.length();
@@ -479,7 +479,7 @@ void cv8_func_term(Symbol *sfunc)
             f1f.value = offset;
             currentfuncdata.f1fixup.write(&f1f, f1f.sizeof);
         }
-        extern (C++) static void endBlock()
+        static void endBlock()
         {
             auto buf = currentfuncdata.f1buf;
             buf.write16(2);

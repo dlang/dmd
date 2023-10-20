@@ -19,7 +19,7 @@ int main()
     int i = test();
     if (i != 2)
         return 1;
-    int j = abc.b;
+    int j = abc->b;
     if (j != 2)
         return 1;
     return 0;

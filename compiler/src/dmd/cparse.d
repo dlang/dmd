@@ -231,6 +231,9 @@ final class CParser(AST) : Parser!AST
                     }
                     goto Lexp;  // function call
 
+                case TOK.semicolon:
+                    goto Lexp;
+
                 default:
                 {
                     /* If tokens look like a declaration, assume it is one
@@ -501,7 +504,7 @@ final class CParser(AST) : Parser!AST
             auto condition = cparseExpression();
             check(TOK.rightParenthesis);
             auto _body = cparseStatement(ParseStatementFlags.scope_);
-            s = new AST.SwitchStatement(loc, condition, _body, false);
+            s = new AST.SwitchStatement(loc, null, condition, _body, false, token.loc);
             break;
         }
 
@@ -626,7 +629,7 @@ final class CParser(AST) : Parser!AST
 
                 default:
                     // ImportC extensions: parse as a D asm block.
-                    s = parseAsm();
+                    s = parseAsm(compileEnv.masm);
                     break;
             }
             break;
@@ -1911,14 +1914,12 @@ final class CParser(AST) : Parser!AST
                     if (tt.id || tt.tok == TOK.enum_)
                     {
                         if (!tt.id && id)
+                            /* This applies for enums declared as
+                             * typedef enum {A} E;
+                             */
                             tt.id = id;
                         Specifier spec;
-                        auto stag = declareTag(tt, spec);
-                        if (tt.tok == TOK.enum_)
-                        {
-                            isalias = false;
-                            s = new AST.AliasDeclaration(token.loc, id, stag);
-                        }
+                        declareTag(tt, spec);
                     }
                 }
                 if (isalias)
@@ -2358,6 +2359,8 @@ final class CParser(AST) : Parser!AST
                             cparseGnuAttributes(tagSpecifier);
                         else if (token.value == TOK.__declspec)
                             cparseDeclspec(tagSpecifier);
+                        else if (token.value == TOK.__pragma)
+                            uupragmaDirective(sloc);
                         else
                             break;
                     }
@@ -3114,12 +3117,13 @@ final class CParser(AST) : Parser!AST
             }
 
             Identifier id;
+            const paramLoc = token.loc;
             auto t = cparseDeclarator(DTR.xparameter, tspec, id, specifier);
             if (token.value == TOK.__attribute__)
                 cparseGnuAttributes(specifier);
             if (specifier.mod & MOD.xconst)
                 t = toConst(t);
-            auto param = new AST.Parameter(specifiersToSTC(LVL.parameter, specifier),
+            auto param = new AST.Parameter(paramLoc, specifiersToSTC(LVL.parameter, specifier),
                                            t, id, null, null);
             parameters.push(param);
             if (token.value == TOK.rightParenthesis || token.value == TOK.endOfFile)
@@ -3297,8 +3301,10 @@ final class CParser(AST) : Parser!AST
                 nextToken();
             else
             {
-                error("extended-decl-modifier expected");
-                break;
+                error("extended-decl-modifier expected after `__declspec(`, saw `%s` instead", token.toChars());
+                nextToken();
+                if (token.value != TOK.rightParenthesis)
+                    break;
             }
         }
     }
@@ -3876,6 +3882,10 @@ final class CParser(AST) : Parser!AST
         else if (!tag)
             error("missing tag `identifier` after `%s`", Token.toChars(structOrUnion));
 
+        // many ways and places to declare alignment
+        if (packalign.isUnknown() && !this.packalign.isUnknown())
+            packalign.set(this.packalign.get());
+
         /* Need semantic information to determine if this is a declaration,
          * redeclaration, or reference to existing declaration.
          * Defer to the semantic() pass with a TypeTag.
@@ -4229,7 +4239,7 @@ final class CParser(AST) : Parser!AST
                         return false;
                     /*
                         https://issues.dlang.org/show_bug.cgi?id=22267
-                        Fix issue 22267: If the parser encounters the following
+                        If the parser encounters the following
                             `identifier variableName = (expression);`
                         the initializer is not identified as such since the parentheses
                         cause the parser to keep walking indefinitely
@@ -5460,20 +5470,39 @@ final class CParser(AST) : Parser!AST
     private void uupragmaDirective(const ref Loc startloc)
     {
         const loc = startloc;
-        nextToken();
+        nextToken();    // move past __pragma
         if (token.value != TOK.leftParenthesis)
         {
-            error(loc, "left parenthesis expected to follow `__pragma`");
+            error(loc, "left parenthesis expected to follow `__pragma` instead of `%s`", token.toChars());
+            nextToken();
             return;
         }
         nextToken();
-        if (token.value == TOK.identifier && token.ident == Id.pack)
-            pragmaPack(startloc, false);
+
+        if (token.value == TOK.identifier)
+        {
+            if (token.ident == Id.pack)
+                pragmaPack(startloc, false);
+            else
+            {
+                nextToken();
+                if (token.value == TOK.leftParenthesis)
+                    cparseParens();
+            }
+
+        }
+        else if (token.value == TOK.endOfFile)
+        {
+        }
+        else if (token.value == TOK.rightParenthesis)
+        {
+        }
         else
-            error(loc, "unrecognized __pragma");
+            error(loc, "unrecognized `__pragma(%s)`", token.toChars());
+
         if (token.value != TOK.rightParenthesis)
         {
-            error(loc, "right parenthesis expected to close `__pragma(...)`");
+            error(loc, "right parenthesis expected to close `__pragma(...)` instead of `%s`", token.toChars());
             return;
         }
         nextToken();

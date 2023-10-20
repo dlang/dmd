@@ -28,13 +28,9 @@ import dmd.backend.mem;
 import dmd.backend.ty;
 import dmd.backend.barray;
 
-extern (C++):
 
 nothrow:
 @safe:
-
-
-private uint mask(uint m) { return 1 << m; }
 
 // is32bitaddr works correctly only when x is 0 or 1.  This is
 // true today for the current definition of I32, but if the definition
@@ -50,6 +46,7 @@ private bool PRO() { return config.target_cpu >= TARGET_PentiumPro; }
 
 private enum FP : ubyte
 {
+    none = 0,
     fstp = 1,       /// FSTP mem
     fld  = 2,       /// FLD mem
     fop  = 3,       /// Fop ST0,mem or Fop ST0
@@ -1275,9 +1272,8 @@ private int pair_class(code *c)
  */
 
 @trusted
-private void getinfo(Cinfo *ci,code *c)
+private void getinfo(out Cinfo ci,code *c)
 {
-    memset(ci,0,Cinfo.sizeof);
     if (!c)
         return;
     ci.c = c;
@@ -1805,7 +1801,7 @@ Lret:
  *      !=0 if they can pair
  */
 
-private int pair_test(Cinfo *cu,Cinfo *cv)
+private int pair_test(const ref Cinfo cu, const ref Cinfo cv)
 {
     uint pcu;
     uint pcv;
@@ -1853,7 +1849,7 @@ Lnopair:
  *      !=0 if they have an AGI
  */
 
-private int pair_agi(Cinfo *c1, Cinfo *c2)
+private int pair_agi(const ref Cinfo c1, const ref Cinfo c2) pure
 {
     uint x = c1.w & c2.a;
     return x && !(x == mSP && c1.pair & c2.pair & PE);
@@ -2191,7 +2187,7 @@ Lconflict:
     delay_clocks = 0;
 
     // Determine if AGI
-    if (!PRO && pair_agi(ci1,ci2))
+    if (!PRO && pair_agi(*ci1, *ci2))
         delay_clocks = 1;
 
     // Special delays for floating point
@@ -2484,7 +2480,7 @@ int insert(Cinfo *ci)
                 {
                     if (k >= TBLMAX)
                         goto Lnoinsert;
-                    if (tbl[k] && pair_agi(tbl[k],ci))
+                    if (tbl[k] && pair_agi(*tbl[k], *ci))
                     {
                         k = ((k + 2) & ~1) + 1;
                     }
@@ -2506,7 +2502,7 @@ int insert(Cinfo *ci)
         if (tbl[i])
         {
             // In case, due to movesp, we skipped over some AGI instructions
-            if (!PRO && pair_agi(tbl[i],ci))
+            if (!PRO && pair_agi(*tbl[i], *ci))
             {
                 i = ((i + 2) & ~1) + 1;
                 if (i >= TBLMAX)
@@ -2566,11 +2562,11 @@ int insert(Cinfo *ci)
                 assert((TBLMAX & 1) == 0);
                 if (i & 1)                      // if V pipe
                 {
-                    if (pair_test(tbl[i - 1],ci))
+                    if (pair_test(*tbl[i - 1], *ci))
                     {
                         goto Linsert;
                     }
-                    else if (i > imin && pair_test(ci,tbl[i - 1]))
+                    else if (i > imin && pair_test(*ci, *tbl[i - 1]))
                     {
                 L1:
                         tbl[i] = tbl[i - 1];
@@ -2696,7 +2692,7 @@ bool stage(code *c)
     if (cinfomax == TBLMAX)             // if out of space
         return false;
     auto ci = &cinfo[cinfomax++];
-    getinfo(ci,c);
+    getinfo(*ci,c);
 
     if (c.Iflags & (CFtarg | CFtarg2 | CFvolatile | CFvex))
     {
@@ -2719,7 +2715,7 @@ bool stage(code *c)
     {
         if (cs)
         {
-            if (pair_agi(cs,ci))
+            if (pair_agi(*cs, *ci))
             {
                 if (!insert(cs))
                     goto Lnostage;
@@ -3088,7 +3084,7 @@ private code *peephole(code *cstart,regm_t scratch)
         mod = rmn & 0xC0;
         reg = rmn & modregrm(0,7,0);
         rm =  rmn & 7;
-        if (cod3_EA(c1))
+        if (c1.hasModregrm())
             repEA(c1,r1,r2);
         switch (c1.Iop)
         {

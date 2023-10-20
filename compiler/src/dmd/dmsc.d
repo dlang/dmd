@@ -44,12 +44,12 @@ void backend_init()
     exefmt_t exfmt;
     switch (target.os)
     {
-        case Target.OS.Windows: exfmt = target.is64bit ? EX_WIN64 : EX_WIN32;       break;
-        case Target.OS.linux:   exfmt = target.is64bit ? EX_LINUX64 : EX_LINUX;     break;
-        case Target.OS.OSX:     exfmt = target.is64bit ? EX_OSX64 : EX_OSX;         break;
-        case Target.OS.FreeBSD: exfmt = target.is64bit ? EX_FREEBSD64 : EX_FREEBSD; break;
-        case Target.OS.OpenBSD: exfmt = target.is64bit ? EX_OPENBSD64 : EX_OPENBSD; break;
-        case Target.OS.Solaris: exfmt = target.is64bit ? EX_SOLARIS64 : EX_SOLARIS; break;
+        case Target.OS.Windows: exfmt = target.isX86_64 ? EX_WIN64 : EX_WIN32;       break;
+        case Target.OS.linux:   exfmt = target.isX86_64 ? EX_LINUX64 : EX_LINUX;     break;
+        case Target.OS.OSX:     exfmt = target.isX86_64 ? EX_OSX64 : EX_OSX;         break;
+        case Target.OS.FreeBSD: exfmt = target.isX86_64 ? EX_FREEBSD64 : EX_FREEBSD; break;
+        case Target.OS.OpenBSD: exfmt = target.isX86_64 ? EX_OPENBSD64 : EX_OPENBSD; break;
+        case Target.OS.Solaris: exfmt = target.isX86_64 ? EX_SOLARIS64 : EX_SOLARIS; break;
         case Target.OS.DragonFlyBSD: exfmt = EX_DRAGONFLYBSD64; break;
         default: assert(0);
     }
@@ -68,16 +68,17 @@ void backend_init()
         exe = true;         // if writing out EXE file
 
     out_config_init(
-        (target.is64bit ? 64 : 32) | (target.objectFormat() == Target.ObjectFormat.coff ? 1 : 0),
+        (target.isX86_64 ? 64 : 32) | (target.objectFormat() == Target.ObjectFormat.coff ? 1 : 0),
         exe,
         false, //params.trace,
         driverParams.nofloat,
         driverParams.vasm,
-        params.verbose,
+        params.v.verbose,
         driverParams.optimize,
         driverParams.symdebug,
         driverParams.alwaysframe,
         driverParams.stackstomp,
+        driverParams.ibt,
         target.cpu >= CPU.avx2 ? 2 : target.cpu >= CPU.avx ? 1 : 0,
         driverParams.pic,
         params.useModuleInfo && Module.moduleinfo,
@@ -100,69 +101,9 @@ void backend_init()
     );
 }
 
-
-/***********************************
- * Return aligned 'offset' if it is of size 'size'.
- */
-
-targ_size_t _align(targ_size_t size, targ_size_t offset)
-{
-    switch (size)
-    {
-        case 1:
-            break;
-        case 2:
-        case 4:
-        case 8:
-        case 16:
-        case 32:
-        case 64:
-            offset = (offset + size - 1) & ~(size - 1);
-            break;
-        default:
-            if (size >= 16)
-                offset = (offset + 15) & ~15;
-            else
-                offset = (offset + _tysize[TYnptr] - 1) & ~(_tysize[TYnptr] - 1);
-            break;
-    }
-    return offset;
-}
-
-
-/*******************************
- * Get size of ty
- */
-
-targ_size_t size(tym_t ty)
-{
-    int sz = (tybasic(ty) == TYvoid) ? 1 : tysize(ty);
-    debug
-    {
-        if (sz == -1)
-            printf("ty: %s\n", tym_str(ty));
-    }
-    assert(sz!= -1);
-    return sz;
-}
-
-/****************************
- * Generate symbol of type ty at DATA:offset
- */
-
-Symbol *symboldata(targ_size_t offset,tym_t ty)
-{
-    Symbol *s = symbol_generate(SC.locstat, type_fake(ty));
-    s.Sfl = FLdata;
-    s.Soffset = offset;
-    s.Stype.Tmangle = mTYman_sys; // writes symbol unmodified in Obj::mangle
-    symbol_keep(s);               // keep around
-    return s;
-}
-
 /**************************************
  */
 
-void backend_term()
+void backend_term() @safe
 {
 }

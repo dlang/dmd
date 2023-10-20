@@ -292,7 +292,7 @@ void cv_udt(const char* id, uint typidx)
     TOWORD(debsym,length - 2);
 
     assert(length <= 40 + len);
-    objmod.write_bytes(SegData[DEBSYM],length,debsym);
+    objmod.write_bytes(SegData[DEBSYM],debsym[0 .. length]);
 }
 
 /* ==================================================================== */
@@ -931,7 +931,7 @@ private extern (C++) class CVMember : Visitor
     ubyte *p;
     int result;
 
-    this(ubyte *p)
+    this(ubyte *p) @safe
     {
         this.p = p;
         result = 0;

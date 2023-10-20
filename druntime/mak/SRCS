@@ -34,6 +34,7 @@ SRCS=\
 	src\core\internal\execinfo.d \
 	src\core\internal\hash.d \
 	src\core\internal\moving.d \
+	src\core\internal\newaa.d \
 	src\core\internal\parseoptions.d \
 	src\core\internal\postblit.d \
 	src\core\internal\qsort.d \
@@ -581,4 +582,5 @@ SRCS=\
 	src\rt\util\typeinfo.d \
 	src\rt\util\utility.d \
 	\
+	src\etc\valgrind\valgrind.d \
 	src\etc\linux\memoryerror.d

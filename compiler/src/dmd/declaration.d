@@ -16,7 +16,6 @@ import core.stdc.stdio;
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
-import dmd.attrib;
 import dmd.ctorflow;
 import dmd.dclass;
 import dmd.delegatize;
@@ -38,11 +37,15 @@ import dmd.intrange;
 import dmd.location;
 import dmd.mtype;
 import dmd.common.outbuffer;
-import dmd.root.rootobject;
+import dmd.rootobject;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
+
+version (IN_GCC) {}
+else version (IN_LLVM) {}
+else version = MARS;
 
 /************************************
  * Check to see the aggregate type is nested and its context pointer is
@@ -184,6 +187,15 @@ bool modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1)
                     MODtoChars(var.type.mod), var.kind(), var.toChars());
                 errorSupplemental(loc, "Use `shared static this` instead.");
             }
+            else if (fd.isStaticCtorDeclaration() && !fd.isSharedStaticCtorDeclaration() &&
+                    var.type.isConst())
+            {
+                // @@@DEPRECATED_2.116@@@
+                // Turn this into an error, merging with the branch above
+                .deprecation(loc, "%s %s `%s` initialization is not allowed in `static this`",
+                    MODtoChars(var.type.mod), var.kind(), var.toChars());
+                deprecationSupplemental(loc, "Use `shared static this` instead.");
+            }
             return result;
         }
         else
@@ -238,13 +250,13 @@ extern (C++) abstract class Declaration : Dsymbol
     // overridden symbol with pragma(mangle, "...")
     const(char)[] mangleOverride;
 
-    final extern (D) this(Identifier ident)
+    final extern (D) this(Identifier ident) @safe
     {
         super(ident);
         visibility = Visibility(Visibility.Kind.undefined);
     }
 
-    final extern (D) this(const ref Loc loc, Identifier ident)
+    final extern (D) this(const ref Loc loc, Identifier ident) @safe
     {
         super(loc, ident);
         visibility = Visibility(Visibility.Kind.undefined);
@@ -314,12 +326,12 @@ extern (C++) abstract class Declaration : Dsymbol
                             continue;
                         if (sdv.postblit.isDisabled())
                         {
-                            p.error(loc, "is not copyable because field `%s` is not copyable", structField.toChars());
+                            .error(loc, "%s `%s` is not copyable because field `%s` is not copyable", p.kind, p.toPrettyChars, structField.toChars());
                             return true;
                         }
                     }
                 }
-                p.error(loc, "is not copyable because it has a disabled postblit");
+                .error(loc, "%s `%s` is not copyable because it has a disabled postblit", p.kind, p.toPrettyChars);
                 return true;
             }
         }
@@ -345,7 +357,7 @@ extern (C++) abstract class Declaration : Dsymbol
                 return true;
             }
         }
-        error(loc, "cannot be used because it is annotated with `@disable`");
+        .error(loc, "%s `%s` cannot be used because it is annotated with `@disable`", kind, toPrettyChars);
         return true;
     }
 
@@ -376,7 +388,7 @@ extern (C++) abstract class Declaration : Dsymbol
                 {
                     const(char)* s = isParameter() && parent.ident != Id.ensure ? "parameter" : "result";
                     if (!(flag & ModifyFlags.noError))
-                        error(loc, "cannot modify %s `%s` in contract", s, toChars());
+                        error(loc, "%s `%s` cannot modify %s `%s` in contract", kind, toPrettyChars, s, toChars());
                     return Modifiable.initialization; // do not report type related errors
                 }
             }
@@ -390,7 +402,7 @@ extern (C++) abstract class Declaration : Dsymbol
                 if (scx.func == vthis.parent && (scx.flags & SCOPE.contract))
                 {
                     if (!(flag & ModifyFlags.noError))
-                        error(loc, "cannot modify parameter `this` in contract");
+                        error(loc, "%s `%s` cannot modify parameter `this` in contract", kind, toPrettyChars);
                     return Modifiable.initialization; // do not report type related errors
                 }
             }
@@ -582,7 +594,7 @@ extern (C++) final class TupleDeclaration : Declaration
     bool isexp;             // true: expression tuple
     bool building;          // it's growing in AliasAssign semantic
 
-    extern (D) this(const ref Loc loc, Identifier ident, Objects* objects)
+    extern (D) this(const ref Loc loc, Identifier ident, Objects* objects) @safe
     {
         super(loc, ident);
         this.objects = objects;
@@ -595,7 +607,7 @@ extern (C++) final class TupleDeclaration : Declaration
 
     override const(char)* kind() const
     {
-        return "tuple";
+        return "sequence";
     }
 
     override Type getType()
@@ -613,7 +625,7 @@ extern (C++) final class TupleDeclaration : Declaration
             for (size_t i = 0; i < objects.length; i++)
             {
                 RootObject o = (*objects)[i];
-                if (o.dyncast() != DYNCAST.type)
+                if (!o.isType())
                 {
                     //printf("\tnot[%d], %p, %d\n", i, o, o.dyncast());
                     return null;
@@ -634,11 +646,11 @@ extern (C++) final class TupleDeclaration : Declaration
                 {
                     buf.printf("_%s_%d", ident.toChars(), i);
                     auto id = Identifier.idPool(buf.extractSlice());
-                    auto arg = new Parameter(STC.in_, t, id, null);
+                    auto arg = new Parameter(Loc.initial, STC.in_, t, id, null);
                 }
                 else
                 {
-                    auto arg = new Parameter(0, t, null, null, null);
+                    auto arg = new Parameter(Loc.initial, 0, t, null, null, null);
                 }
                 (*args)[i] = arg;
                 if (!t.deco)
@@ -733,7 +745,7 @@ extern (C++) final class AliasDeclaration : Declaration
     Dsymbol overnext;   // next in overload list
     Dsymbol _import;    // !=null if unresolved internal alias for selective import
 
-    extern (D) this(const ref Loc loc, Identifier ident, Type type)
+    extern (D) this(const ref Loc loc, Identifier ident, Type type) @safe
     {
         super(loc, ident);
         //printf("AliasDeclaration(id = '%s', type = %p)\n", ident.toChars(), type);
@@ -742,7 +754,7 @@ extern (C++) final class AliasDeclaration : Declaration
         assert(type);
     }
 
-    extern (D) this(const ref Loc loc, Identifier ident, Dsymbol s)
+    extern (D) this(const ref Loc loc, Identifier ident, Dsymbol s) @safe
     {
         super(loc, ident);
         //printf("AliasDeclaration(id = '%s', s = %p)\n", ident.toChars(), s);
@@ -751,7 +763,7 @@ extern (C++) final class AliasDeclaration : Declaration
         assert(s);
     }
 
-    static AliasDeclaration create(const ref Loc loc, Identifier id, Type type)
+    static AliasDeclaration create(const ref Loc loc, Identifier id, Type type) @safe
     {
         return new AliasDeclaration(loc, id, type);
     }
@@ -933,7 +945,7 @@ extern (C++) final class AliasDeclaration : Declaration
         }
         if (inuse)
         {
-            error("recursive alias declaration");
+            .error(loc, "%s `%s` recursive alias declaration", kind, toPrettyChars);
 
         Lerr:
             // Avoid breaking "recursive alias" state during errors gagged
@@ -991,7 +1003,7 @@ extern (C++) final class AliasDeclaration : Declaration
     {
         if (inuse)
         {
-            error("recursive alias declaration");
+            .error(loc, "%s `%s` recursive alias declaration", kind, toPrettyChars);
             return this;
         }
         inuse = 1;
@@ -1032,7 +1044,7 @@ extern (C++) final class OverDeclaration : Declaration
     Dsymbol overnext;   // next in overload list
     Dsymbol aliassym;
 
-    extern (D) this(Identifier ident, Dsymbol s)
+    extern (D) this(Identifier ident, Dsymbol s) @safe
     {
         super(ident);
         this.aliassym = s;
@@ -1154,10 +1166,11 @@ extern (C++) class VarDeclaration : Declaration
             bool inClosure;         /// is inserted into a GC allocated closure
             bool inAlignSection;    /// is inserted into an aligned section on stack
         }
+        bool systemInferred;    /// @system was inferred from initializer
     }
 
     import dmd.common.bitfields : generateBitFields;
-    mixin(generateBitFields!(BitFields, ushort));
+    mixin(generateBitFields!(BitFields, uint));
 
     byte canassign;                 // it can be assigned to
     ubyte isdataseg;                // private data for isDataseg 0 unset, 1 true, 2 false
@@ -1364,7 +1377,7 @@ extern (C++) class VarDeclaration : Declaration
             Dsymbol parent = toParent();
             if (!parent && !(storage_class & STC.static_))
             {
-                error("forward referenced");
+                .error(loc, "%s `%s` forward referenced", kind, toPrettyChars);
                 type = Type.terror;
             }
             else if (storage_class & (STC.static_ | STC.extern_ | STC.gshared) ||
@@ -1588,6 +1601,8 @@ extern (C++) class VarDeclaration : Declaration
         {
             inuse++;
             _init = _init.initializerSemantic(_scope, type, INITinterpret);
+            import dmd.semantic2 : lowerStaticAAs;
+            lowerStaticAAs(this, _scope);
             _scope = null;
             inuse--;
         }
@@ -1999,7 +2014,7 @@ extern (C++) final class SymbolDeclaration : Declaration
 {
     AggregateDeclaration dsym;
 
-    extern (D) this(const ref Loc loc, AggregateDeclaration dsym)
+    extern (D) this(const ref Loc loc, AggregateDeclaration dsym) @safe
     {
         super(loc, dsym.ident);
         this.dsym = dsym;

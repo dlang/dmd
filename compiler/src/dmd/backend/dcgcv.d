@@ -40,7 +40,6 @@ import dmd.common.outbuffer;
 
 import dmd.backend.dvarstats;
 
-extern (C++):
 
 nothrow:
 @safe:
@@ -94,8 +93,6 @@ enum EASY_LCFDpointer =      (LOCATsegrel | 0x1800);
 enum LCFD32offset     =      (LOCATsegrel | 0x2404);
 enum LCFD32pointer    =      (LOCATsegrel | 0x2C00);
 enum LCFD16pointer    =      (LOCATsegrel | 0x0C00);
-
-extern Cgcv cgcv; // already declared in cgcv.d
 }
 
 enum MARS = true;
@@ -482,7 +479,7 @@ void cv_init()
                 cgcv.deb_offset = 0x80000000;
         }
 
-        objmod.write_bytes(SegData[DEBSYM],4,&cgcv.signature);
+        objmod.write_bytes(SegData[DEBSYM],(&cgcv.signature)[0 .. 1]);
 
         // Allocate an LF_ARGLIST with no arguments
         if (config.fulltypes == CV4)
@@ -524,7 +521,7 @@ void cv_init()
         strcpy(version_.ptr + 1,VERSION);
         cv_namestring(debsym.ptr + 8,version_.ptr);
         TOWORD(debsym.ptr,6 + (version_).sizeof);
-        objmod.write_bytes(SegData[DEBSYM],8 + (version_).sizeof,debsym.ptr);
+        objmod.write_bytes(SegData[DEBSYM], debsym[0 .. 8 + (version_).sizeof]);
 
     }
     else
@@ -852,8 +849,6 @@ idx_t cv4_struct(Classsym *s,int flags)
         }
         return s.Stypidx;
     }
-
-    util_progress();
 
     // Compute the number of fields, and the length of the fieldlist record
     nfields = 0;
@@ -1221,8 +1216,6 @@ else
             break;
 
         Laarray:
-version (MARS)
-{
             key = cv4_typidx(t.Tkey);
             switch (config.fulltypes)
             {
@@ -1254,18 +1247,14 @@ else
                 default:
                     assert(0);
             }
-}
             break;
 
         Ldelegate:
             switch (config.fulltypes)
             {
-version (MARS)
-{
                 case CV8:
                     typidx = cv8_ddelegate(t, next);
                     break;
-}
 
                 case CV4:
                     tv = type_fake(TYnptr);
@@ -1418,10 +1407,7 @@ else
         {
             if (config.fulltypes == CV8)
             {
-version (MARS)
-{
                 typidx = cv8_fwdref(t.Ttag);
-}
             }
             else
             {
@@ -1440,14 +1426,11 @@ version (MARS)
                 typidx = cv4_fwdenum(t);
             break;
 
-version (MARS)
-{
         case TYref:
         case TYnref:
             attribute |= 0x20;          // indicate reference pointer
             tym = TYnptr;               // convert to C data type
             goto L1;                    // and try again
-}
 
         case TYnullptr:
             tym = TYnptr;
@@ -1550,11 +1533,8 @@ private void cv4_outsym(Symbol *s)
 
     //printf("cv4_outsym(%s)\n",s.Sident.ptr);
     symbol_debug(s);
-version (MARS)
-{
     if (s.Sflags & SFLnodebug)
         return;
-}
     t = s.Stype;
     type_debug(t);
     tym = tybasic(t.Tty);
@@ -1626,7 +1606,7 @@ version (MARS)
         }
 
         uint soffset = cast(uint)Offset(DEBSYM);
-        objmod.write_bytes(SegData[DEBSYM],length,debsym);
+        objmod.write_bytes(SegData[DEBSYM],debsym[0 .. length]);
 
         // Put out fixup for function start offset
         objmod.reftoident(DEBSYM,soffset + u,s,0,CFseg | CFoff);
@@ -1641,14 +1621,7 @@ version (MARS)
         idx_t typidx;
 
         typidx = cv4_typidx(t);
-version (MARS)
-{
         id = s.prettyIdent ? s.prettyIdent : prettyident(s);
-}
-else
-{
-        id = prettyident(s);
-}
         len = cast(uint)strlen(id);
         debsym = (39 + IDOHD + len <= (buf).sizeof) ? buf.ptr : cast(ubyte *) malloc(39 + IDOHD + len);
         if (!debsym)
@@ -1788,7 +1761,7 @@ else
                 assert(length <= 0x1000);
                 if (idx2 != 0)
                 {   uint offset = cast(uint)Offset(DEBSYM);
-                    objmod.write_bytes(SegData[DEBSYM],length,debsym);
+                    objmod.write_bytes(SegData[DEBSYM],debsym[0 .. length]);
                     objmod.write_long(DEBSYM,offset + fixoff,cast(uint)s.Soffset,
                         cgcv.LCFDpointer + fd,idx1,idx2);
                 }
@@ -1833,7 +1806,7 @@ static if (1)
                 goto Lret;
         }
         assert(length <= 40 + len);
-        objmod.write_bytes(SegData[DEBSYM],length,debsym);
+        objmod.write_bytes(SegData[DEBSYM],debsym[0 .. length]);
     }
 Lret:
     if (debsym != buf.ptr)
@@ -1861,8 +1834,6 @@ private void cv4_func(Funcsym *s, ref symtab_t symtab)
     int endarg;
 
     cv4_outsym(s);              // put out function symbol
-version (MARS)
-{
     __gshared Funcsym* sfunc;
     __gshared int cntOpenBlocks;
     sfunc = s;
@@ -1884,12 +1855,11 @@ version (MARS)
             ubyte[2] name;
         }
 
-      extern (C++):
 
         static void endArgs()
         {
             __gshared ushort[2] endargs = [ 2, S_ENDARG ];
-            objmod.write_bytes(SegData[DEBSYM],(endargs).sizeof,endargs.ptr);
+            objmod.write_bytes(SegData[DEBSYM],endargs[]);
         }
         static void beginBlock(int offset, int length)
         {
@@ -1899,7 +1869,7 @@ version (MARS)
             uint soffset = cast(uint)Offset(DEBSYM);
             // parent and end to be filled by linker
             block32_data block32 = { (block32_data).sizeof - 2, S_BLOCK32, 0, 0, length, 0, 0, [ 0, '\0' ] };
-            objmod.write_bytes(SegData[DEBSYM], (block32).sizeof, &block32);
+            objmod.write_bytes(SegData[DEBSYM], (&block32)[0 .. 1]);
             size_t offOffset = cast(char*)&block32.offset - cast(char*)&block32;
             objmod.reftoident(DEBSYM, soffset + offOffset, sfunc, offset + sfunc.Soffset, CFseg | CFoff);
         }
@@ -1909,21 +1879,11 @@ version (MARS)
                 return; // optlink does not like more than 255 scope blocks
 
             __gshared ushort[2] endargs = [ 2, S_END ];
-            objmod.write_bytes(SegData[DEBSYM],(endargs).sizeof,endargs.ptr);
+            objmod.write_bytes(SegData[DEBSYM],endargs[]);
         }
     }
 
     varStats_writeSymbolTable(symtab, &cv4_outsym, &cv4.endArgs, &cv4.beginBlock, &cv4.endBlock);
-}
-else
-{
-    // Put out local symbols
-    endarg = 0;
-    foreach (sa; symtab[])
-    {   //printf("symtab[%d] = %p\n",si,symtab[si]);
-        cv4_outsym(sa);
-    }
-}
 
     // Put out function return record
     if (1)
@@ -2089,13 +2049,13 @@ else
 
         TOWORD(sreturn.ptr,u);
         TOWORD(sreturn.ptr + 2,S_RETURN);
-        objmod.write_bytes(SegData[DEBSYM],u + 2,sreturn.ptr);
+        objmod.write_bytes(SegData[DEBSYM],sreturn[0 .. u + 2]);
     }
 
     // Put out end scope
     {   __gshared ushort[2] endproc = [ 2,S_END ];
 
-        objmod.write_bytes(SegData[DEBSYM],(endproc).sizeof,endproc.ptr);
+        objmod.write_bytes(SegData[DEBSYM],endproc[]);
     }
 
     cv_outlist();
@@ -2121,13 +2081,13 @@ void cv_term()
             cv_outlist();
             goto case;
         case CV8:
-            objmod.write_bytes(SegData[typeseg],4,&cgcv.signature);
+            objmod.write_bytes(SegData[typeseg],(&cgcv.signature)[0 .. 1]);
             if (debtyp.length != 1 || config.fulltypes == CV8)
             {
                 for (uint u = 0; u < debtyp.length; u++)
                 {   debtyp_t *d = debtyp[u];
 
-                    objmod.write_bytes(SegData[typeseg],2 + d.length,cast(char *)d + uint.sizeof);
+                    objmod.write_bytes(SegData[typeseg],(cast(void *)d)[uint.sizeof .. uint.sizeof + 2 + d.length]);
                     debtyp_free(d);
                 }
             }
@@ -2156,16 +2116,9 @@ void cv_func(Funcsym *s)
 {
 
     //printf("cv_func('%s')\n",s.Sident.ptr);
-version (MARS)
-{
     if (s.Sflags & SFLnodebug)
         return;
-}
-else
-{
-    if (CPP && s.Sfunc.Fflags & Fnodebug)     // if don't generate debug info
-        return;
-}
+
     switch (config.fulltypes)
     {
         case CV4:
@@ -2188,11 +2141,8 @@ void cv_outsym(Symbol *s)
 {
     //printf("cv_outsym('%s')\n",s.Sident.ptr);
     symbol_debug(s);
-version (MARS)
-{
     if (s.Sflags & SFLnodebug)
         return;
-}
     switch (config.fulltypes)
     {
         case CV4:
@@ -2201,12 +2151,9 @@ version (MARS)
             cv4_outsym(s);
             break;
 
-version (MARS)
-{
         case CV8:
             cv8_outsym(s);
             break;
-}
 
         default:
             assert(0);

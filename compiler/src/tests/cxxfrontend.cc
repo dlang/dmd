@@ -72,7 +72,7 @@ static void frontend_init()
     global.params.objname = NULL;
 
     target.os = Target::OS_linux;
-    target.is64bit = true;
+    target.isX86_64 = true;
     target.cpu = CPU::native;
     target._init(global.params);
 
@@ -373,8 +373,8 @@ void test_emplace()
 void test_parameters()
 {
     Parameters *args = new Parameters;
-    args->push(Parameter::create(STCundefined, Type::tint32, NULL, NULL, NULL));
-    args->push(Parameter::create(STCundefined, Type::tint64, NULL, NULL, NULL));
+    args->push(Parameter::create(Loc(), STCundefined, Type::tint32, NULL, NULL, NULL));
+    args->push(Parameter::create(Loc(), STCundefined, Type::tint64, NULL, NULL, NULL));
 
     TypeFunction *tf = TypeFunction::create(args, Type::tvoid, VARARGnone, LINK::c);
 
@@ -481,7 +481,7 @@ void test_array()
 void test_outbuffer()
 {
     OutBuffer buf;
-    mangleToBuffer(Type::tint64, &buf);
+    mangleToBuffer(Type::tint64, buf);
     assert(strcmp(buf.peekChars(), "l") == 0);
     buf.reset();
 
@@ -544,7 +544,7 @@ void test_cppmangle()
     assert(fd->fbody);
     auto rs = (*fd->fbody->isCompoundStatement()->statements)[0]->isReturnStatement();
     assert(rs);
-    assert(!canThrow(rs->exp, fd, false));
+    assert(!canThrow(rs->exp, fd, NULL));
 
     assert(!global.endGagging(errors));
 }

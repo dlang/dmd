@@ -19,7 +19,7 @@ import core.stdc.time;
 import dmd.root.array;
 import dmd.root.ctfloat;
 import dmd.root.rmem;
-import dmd.root.rootobject;
+import dmd.rootobject;
 import dmd.root.stringtable;
 
 import dmd.aggregate;
@@ -36,7 +36,6 @@ import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dtemplate;
-import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
@@ -80,13 +79,10 @@ extern (C++):
 
 alias Elems = Array!(elem *);
 
-alias toSymbol = dmd.tocsym.toSymbol;
-alias toSymbol = dmd.glue.toSymbol;
-
-void* mem_malloc2(uint);
+import dmd.backend.util2 : mem_malloc2;
 
 
-int REGSIZE() { return _tysize[TYnptr]; }
+private int registerSize() { return _tysize[TYnptr]; }
 
 /* If variable var is a reference
  */
@@ -111,13 +107,13 @@ bool ISX64REF(Declaration var)
 
     if (var.isParameter())
     {
-        if (target.os == Target.OS.Windows && target.is64bit)
+        if (target.os == Target.OS.Windows && target.isX86_64)
         {
             /* Use Microsoft C++ ABI
              * https://docs.microsoft.com/en-us/cpp/build/x64-calling-convention?view=msvc-170#parameter-passing
              * but watch out because the spec doesn't mention copy construction
              */
-            return var.type.size(Loc.initial) > REGSIZE
+            return var.type.size(Loc.initial) > registerSize
                 || (var.storage_class & STC.lazy_)
                 || (var.type.isTypeStruct() && var.type.isTypeStruct().sym.hasCopyConstruction());
         }
@@ -132,11 +128,11 @@ bool ISX64REF(Declaration var)
 
 /* If variable exp of type typ is a reference due to x64 calling conventions
  */
-bool ISX64REF(IRState* irs, Expression exp)
+bool ISX64REF(ref IRState irs, Expression exp)
 {
-    if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
+    if (irs.target.os == Target.OS.Windows && irs.target.isX86_64)
     {
-        return exp.type.size(Loc.initial) > REGSIZE
+        return exp.type.size(Loc.initial) > registerSize
                || (exp.type.isTypeStruct() && exp.type.isTypeStruct().sym.hasCopyConstruction());
     }
     else if (irs.target.os & Target.OS.Posix)
@@ -262,7 +258,7 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
             {
                 import dmd.dmangle;
                 scope StringExp se = new StringExp(Loc.initial, str[0 .. len], len, cast(ubyte)sz, 'c');
-                mangleToBuffer(se, &buf);   // recycle how strings are mangled for templates
+                mangleToBuffer(se, buf);   // recycle how strings are mangled for templates
 
                 if (buf.length >= 32 + 2)   // long mangling, replace with hash
                 {
@@ -322,7 +318,7 @@ Symbol *toStringSymbol(StringExp se)
  *      loc = to get file/line from
  */
 
-void toTraceGC(IRState *irs, elem *e, const ref Loc loc)
+void toTraceGC(ref IRState irs, elem *e, const ref Loc loc)
 {
     static immutable RTLSYM[2][25] map =
     [
@@ -390,7 +386,7 @@ void toTraceGC(IRState *irs, elem *e, const ref Loc loc)
  *      generated elem tree
  */
 
-elem *toElemDtor(Expression e, IRState *irs)
+elem *toElemDtor(Expression e, ref IRState irs)
 {
     //printf("Expression.toElemDtor() %s\n", e.toChars());
 
@@ -404,7 +400,7 @@ elem *toElemDtor(Expression e, IRState *irs)
      * it can be enabled only for optimized builds.
      */
     const mayThrowSave = irs.mayThrow;
-    if (irs.mayThrow && !canThrow(e, irs.getFunc(), false))
+    if (irs.mayThrow && !canThrow(e, irs.getFunc(), null))
         irs.mayThrow = false;
 
     const starti = irs.varsInScope.length;
@@ -506,7 +502,7 @@ private __gshared StringTable!(Symbol*) *stringTab;
  * Returns:
  *      backend elem tree
  */
-elem* toElem(Expression e, IRState *irs)
+elem* toElem(Expression e, ref IRState irs)
 {
     elem* visit(Expression e)
     {
@@ -525,7 +521,7 @@ elem* toElem(Expression e, IRState *irs)
         //printf("\tparent = '%s'\n", se.var.parent ? se.var.parent.toChars() : "null");
         if (se.op == EXP.variable && se.var.needThis())
         {
-            se.error("need `this` to access member `%s`", se.toChars());
+            irs.eSink.error(se.loc, "need `this` to access member `%s`", se.toChars());
             return el_long(TYsize_t, 0);
         }
 
@@ -1134,7 +1130,7 @@ elem* toElem(Expression e, IRState *irs)
 
                 if (!cd.vthis)
                 {
-                    ne.error("forward reference to `%s`", cd.toChars());
+                    irs.eSink.error(ne.loc, "forward reference to `%s`", cd.toChars());
                 }
                 else
                 {
@@ -1280,7 +1276,7 @@ elem* toElem(Expression e, IRState *irs)
                 elem *earray = ExpressionsToStaticArray(irs, ne.loc, ne.arguments, &sdata);
 
                 e = el_pair(TYdarray, el_long(TYsize_t, ne.arguments.length), el_ptr(sdata));
-                if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
+                if (irs.target.os == Target.OS.Windows && irs.target.isX86_64)
                     e = addressElem(e, Type.tsize_t.arrayOf());
                 e = el_param(e, getTypeInfo(ne, ne.type, irs));
                 const rtl = t.isZeroInit(Loc.initial) ? RTLSYM.NEWARRAYMTX : RTLSYM.NEWARRAYMITX;
@@ -1318,7 +1314,7 @@ elem* toElem(Expression e, IRState *irs)
         }
         else if (auto taa = t.isTypeAArray())
         {
-            Symbol *s = aaGetSymbol(taa, "New", 0);
+            Symbol* s = getRtlsym(RTLSYM.AANEW);
             elem *ti = getTypeInfo(ne, t, irs);
             // aaNew(ti)
             elem *ep = el_params(ti, null);
@@ -1328,7 +1324,7 @@ elem* toElem(Expression e, IRState *irs)
         }
         else
         {
-            ne.error("internal compiler error: cannot new type `%s`\n", t.toChars());
+            irs.eSink.error(ne.loc, "internal compiler error: cannot new type `%s`\n", t.toChars());
             assert(0);
         }
 
@@ -1507,7 +1503,7 @@ elem* toElem(Expression e, IRState *irs)
                 size_t len = strlen(id);
                 Symbol *si = toStringSymbol(id, len, 1);
                 elem *efilename = el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(si));
-                if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
+                if (irs.target.os == Target.OS.Windows && irs.target.isX86_64)
                     efilename = addressElem(efilename, Type.tstring, true);
 
                 if (ae.msg)
@@ -1519,7 +1515,7 @@ elem* toElem(Expression e, IRState *irs)
                      */
                     elem *emsg = toElemDtor(ae.msg, irs);
                     emsg = array_toDarray(ae.msg.type, emsg);
-                    if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
+                    if (irs.target.os == Target.OS.Windows && irs.target.isX86_64)
                         emsg = addressElem(emsg, Type.tvoid.arrayOf(), false);
 
                     ea = el_var(getRtlsym(ud ? RTLSYM.DUNITTEST_MSG : RTLSYM.DASSERT_MSG));
@@ -1646,7 +1642,7 @@ elem* toElem(Expression e, IRState *irs)
                 foreach (i; 1 .. depth - d)
                     e1 = (cast(CastExp)e1).e1;
 
-                el = toElemCast(cast(CastExp)e1, el, true);
+                el = toElemCast(cast(CastExp)e1, el, true, irs);
             }
         }
         else
@@ -1698,7 +1694,7 @@ elem* toElem(Expression e, IRState *irs)
     {
         elem *ex = toElem(e, irs);
         ex = array_toDarray(e.type, ex);
-        if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
+        if (irs.target.os == Target.OS.Windows && irs.target.isX86_64)
         {
             ex = addressElem(ex, Type.tvoid.arrayOf(), false);
         }
@@ -1714,9 +1710,9 @@ elem* toElem(Expression e, IRState *irs)
         /* Do this check during code gen rather than semantic() because concatenation is
          * allowed in CTFE, and cannot distinguish that in semantic().
          */
-        if (irs.params.betterC)
+        if (!irs.params.useGC)
         {
-            error(ce.loc, "array concatenation of expression `%s` requires the GC which is not available with -betterC", ce.toChars());
+            irs.eSink.error(ce.loc, "array concatenation of expression `%s` requires the GC which is not available with -betterC", ce.toChars());
             return el_long(TYint, 0);
         }
 
@@ -1963,7 +1959,7 @@ elem* toElem(Expression e, IRState *irs)
 
                 if (t1.ty == Tarray)
                 {
-                    elen1 = el_una(target.is64bit ? OP128_64 : OP64_32, TYsize_t, el_same(&earr1));
+                    elen1 = el_una(target.isX86_64 ? OP128_64 : OP64_32, TYsize_t, el_same(&earr1));
                     esiz1 = el_bin(OPmul, TYsize_t, el_same(&elen1), el_long(TYsize_t, sz));
                     eptr1 = array_toPtr(t1, el_same(&earr1));
                 }
@@ -1977,7 +1973,7 @@ elem* toElem(Expression e, IRState *irs)
 
                 if (t2.ty == Tarray)
                 {
-                    elen2 = el_una(target.is64bit ? OP128_64 : OP64_32, TYsize_t, el_same(&earr2));
+                    elen2 = el_una(target.isX86_64 ? OP128_64 : OP64_32, TYsize_t, el_same(&earr2));
                     esiz2 = el_bin(OPmul, TYsize_t, el_same(&elen2), el_long(TYsize_t, sz));
                     eptr2 = array_toPtr(t2, el_same(&earr2));
                 }
@@ -2028,13 +2024,13 @@ elem* toElem(Expression e, IRState *irs)
         else if (t1.ty == Taarray && t2.ty == Taarray)
         {
             TypeAArray taa = cast(TypeAArray)t1;
-            Symbol *s = aaGetSymbol(taa, "Equal", 0);
+            Symbol* s = getRtlsym(RTLSYM.AAEQUAL);
             elem *ti = getTypeInfo(ee, taa, irs);
             elem *ea1 = toElem(ee.e1, irs);
             elem *ea2 = toElem(ee.e2, irs);
             // aaEqual(ti, e1, e2)
             elem *ep = el_params(ea2, ea1, ti, null);
-            e = el_bin(OPcall, TYnptr, el_var(s), ep);
+            e = el_bin(OPcall, TYint, el_var(s), ep);
             if (ee.op == EXP.notEqual)
                 e = el_bin(OPxor, TYint, e, el_long(TYint, 1));
             elem_setLoc(e, ee.loc);
@@ -2135,7 +2131,7 @@ elem* toElem(Expression e, IRState *irs)
 
         // aaInX(aa, keyti, key);
         key = addressElem(key, ie.e1.type);
-        Symbol *s = aaGetSymbol(taa, "InX", 0);
+        Symbol* s = getRtlsym(RTLSYM.AAINX);
         elem *keyti = getTypeInfo(ie, taa.index, irs);
         elem *ep = el_params(key, keyti, aa, null);
         elem *e = el_bin(OPcall, totym(ie.type), el_var(s), ep);
@@ -2155,10 +2151,10 @@ elem* toElem(Expression e, IRState *irs)
         elem *ekey = toElem(re.e2, irs);
 
         ekey = addressElem(ekey, re.e2.type);
-        Symbol *s = aaGetSymbol(taa, "DelX", 0);
+        Symbol* s = getRtlsym(RTLSYM.AADELX);
         elem *keyti = getTypeInfo(re, taa.index, irs);
         elem *ep = el_params(ekey, keyti, ea, null);
-        elem *e = el_bin(OPcall, TYnptr, el_var(s), ep);
+        elem *e = el_bin(OPcall, TYbool, el_var(s), ep);
 
         elem_setLoc(e, re.loc);
         return e;
@@ -2236,7 +2232,7 @@ elem* toElem(Expression e, IRState *irs)
                     einit = resolveLengthVar(are.lengthVar, &n1, ta);
                     enbytes = el_copytree(n1);
                     n1 = array_toPtr(ta, n1);
-                    enbytes = el_una(target.is64bit ? OP128_64 : OP64_32, TYsize_t, enbytes);
+                    enbytes = el_una(target.isX86_64 ? OP128_64 : OP64_32, TYsize_t, enbytes);
                 }
                 else if (ta.ty == Tpointer)
                 {
@@ -2339,7 +2335,7 @@ elem* toElem(Expression e, IRState *irs)
 
                     /* Returns: length of array ex
                      */
-                    static elem *getDotLength(IRState* irs, elem *eto, elem *ex)
+                    static elem *getDotLength(ref IRState irs, elem *eto, elem *ex)
                     {
                         if (eto.Eoper == OPpair &&
                             eto.EV.E1.Eoper == OPconst)
@@ -2350,7 +2346,7 @@ elem* toElem(Expression e, IRState *irs)
                         else
                         {
                             // It's not a constant, so pull it from the dynamic array
-                            return el_una(target.is64bit ? OP128_64 : OP64_32, TYsize_t, el_copytree(ex));
+                            return el_una(target.isX86_64 ? OP128_64 : OP64_32, TYsize_t, el_copytree(ex));
                         }
                     }
 
@@ -2413,7 +2409,7 @@ elem* toElem(Expression e, IRState *irs)
                     // Generate:
                     //      _d_arraycopy(eto, efrom, esize)
 
-                    if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
+                    if (irs.target.os == Target.OS.Windows && irs.target.isX86_64)
                     {
                         eto   = addressElem(eto,   Type.tvoid.arrayOf());
                         efrom = addressElem(efrom, Type.tvoid.arrayOf());
@@ -3042,13 +3038,13 @@ elem* toElem(Expression e, IRState *irs)
     elem* visitType(TypeExp e)
     {
         //printf("TypeExp.toElem()\n");
-        e.error("type `%s` is not an expression", e.toChars());
+        irs.eSink.error(e.loc, "type `%s` is not an expression", e.toChars());
         return el_long(TYint, 0);
     }
 
     elem* visitScope(ScopeExp e)
     {
-        e.error("`%s` is not an expression", e.sds.toChars());
+        irs.eSink.error(e.loc, "`%s` is not an expression", e.sds.toChars());
         return el_long(TYint, 0);
     }
 
@@ -3061,7 +3057,7 @@ elem* toElem(Expression e, IRState *irs)
         VarDeclaration v = dve.var.isVarDeclaration();
         if (!v)
         {
-            dve.error("`%s` is not a field, but a %s", dve.var.toChars(), dve.var.kind());
+            irs.eSink.error(dve.loc, "`%s` is not a field, but a %s", dve.var.toChars(), dve.var.kind());
             return el_long(TYint, 0);
         }
 
@@ -3171,7 +3167,7 @@ elem* toElem(Expression e, IRState *irs)
                 directcall = 1;
 
             if (!de.func.isThis())
-                de.error("delegates are only for non-static functions");
+                irs.eSink.error(de.loc, "delegates are only for non-static functions");
 
             if (!de.func.isVirtual() ||
                 directcall ||
@@ -3334,7 +3330,7 @@ elem* toElem(Expression e, IRState *irs)
             {
                 // This optimization is not valid if alloca can be called
                 // multiple times within the same function, eg in a loop
-                // see issue 3822
+                // see https://issues.dlang.org/show_bug.cgi?id=3822
                 if (fd && fd.ident == Id.__alloca &&
                     !fd.fbody && fd._linkage == LINK.c &&
                     arguments && arguments.length == 1)
@@ -3655,13 +3651,13 @@ elem* toElem(Expression e, IRState *irs)
         }
         elem *e = toElem(ce.e1, irs);
 
-        return toElemCast(ce, e, false);
+        return toElemCast(ce, e, false, irs);
     }
 
     elem* visitArrayLength(ArrayLengthExp ale)
     {
         elem *e = toElem(ale.e1, irs);
-        e = el_una(target.is64bit ? OP128_64 : OP64_32, totym(ale.type), e);
+        e = el_una(target.isX86_64 ? OP128_64 : OP64_32, totym(ale.type), e);
         elem_setLoc(e, ale.loc);
         return e;
     }
@@ -3683,7 +3679,7 @@ elem* toElem(Expression e, IRState *irs)
         elem *e = toElem(dfpe.e1, irs);
         Type tb1 = dfpe.e1.type.toBasetype();
         e = addressElem(e, tb1);
-        e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, target.is64bit ? 8 : 4));
+        e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, target.isX86_64 ? 8 : 4));
         e = el_una(OPind, totym(dfpe.type), e);
         elem_setLoc(e, dfpe.loc);
         return e;
@@ -3743,7 +3739,7 @@ elem* toElem(Expression e, IRState *irs)
                         {
                             elen = e;
                             e = el_same(&elen);
-                            elen = el_una(target.is64bit ? OP128_64 : OP64_32, TYsize_t, elen);
+                            elen = el_una(target.isX86_64 ? OP128_64 : OP64_32, TYsize_t, elen);
                         }
                     }
 
@@ -3856,12 +3852,12 @@ elem* toElem(Expression e, IRState *irs)
             if (ie.modifiable)
             {
                 n1 = el_una(OPaddr, TYnptr, n1);
-                s = aaGetSymbol(taa, "GetY", 1);
+                s = getRtlsym(RTLSYM.AAGETY);
                 ti = getTypeInfo(ie.e1, taa.unSharedOf().mutableOf(), irs);
             }
             else
             {
-                s = aaGetSymbol(taa, "GetRvalueX", 1);
+                s = getRtlsym(RTLSYM.AAGETRVALUEX);
                 ti = getTypeInfo(ie.e1, taa.index, irs);
             }
             //printf("taa.index = %s\n", taa.index.toChars());
@@ -3901,7 +3897,7 @@ elem* toElem(Expression e, IRState *irs)
                 {
                     elength = n1;
                     n1 = el_same(&elength);
-                    elength = el_una(target.is64bit ? OP128_64 : OP64_32, TYsize_t, elength);
+                    elength = el_una(target.isX86_64 ? OP128_64 : OP64_32, TYsize_t, elength);
                 L1:
                     elem *n2x = n2;
                     n2 = el_same(&n2x);
@@ -4047,7 +4043,7 @@ elem* toElem(Expression e, IRState *irs)
 
             elem *ev = el_pair(TYdarray, el_long(TYsize_t, dim), el_ptr(svalues));
             elem *ek = el_pair(TYdarray, el_long(TYsize_t, dim), el_ptr(skeys  ));
-            if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
+            if (irs.target.os == Target.OS.Windows && irs.target.isX86_64)
             {
                 ev = addressElem(ev, Type.tvoid.arrayOf());
                 ek = addressElem(ek, Type.tvoid.arrayOf());
@@ -4197,7 +4193,7 @@ private:
 /**************************************
  * Mirrors logic in Dsymbol_canThrow().
  */
-elem *Dsymbol_toElem(Dsymbol s, IRState* irs)
+elem *Dsymbol_toElem(Dsymbol s, ref IRState irs)
 {
     elem *e = null;
 
@@ -4321,7 +4317,7 @@ elem *ElemsToStaticArray(const ref Loc loc, Type telem, Elems *elems, Symbol **p
  * exps[].
  * Return the initialization expression, and the symbol for the static array in *psym.
  */
-elem *ExpressionsToStaticArray(IRState* irs, const ref Loc loc, Expressions *exps, Symbol **psym, size_t offset = 0, Expression basis = null)
+elem *ExpressionsToStaticArray(ref IRState irs, const ref Loc loc, Expressions *exps, Symbol **psym, size_t offset = 0, Expression basis = null)
 {
     // Create a static array of type telem[dim]
     const dim = exps.length;
@@ -4399,7 +4395,7 @@ elem *ExpressionsToStaticArray(IRState* irs, const ref Loc loc, Expressions *exp
 
 /***************************************************
  */
-elem *toElemCast(CastExp ce, elem *e, bool isLvalue)
+elem *toElemCast(CastExp ce, elem *e, bool isLvalue, ref IRState irs)
 {
     tym_t ftym;
     tym_t ttym;
@@ -4461,7 +4457,7 @@ elem *toElemCast(CastExp ce, elem *e, bool isLvalue)
         else
         {
             // e1 . (uint)(e1 >> 32)
-            if (target.is64bit)
+            if (target.isX86_64)
             {
                 e = el_bin(OPshr, TYucent, e, el_long(TYint, 64));
                 e = el_una(OP128_64, totym(t), e);
@@ -4505,7 +4501,7 @@ elem *toElemCast(CastExp ce, elem *e, bool isLvalue)
                 elem *es = el_same(&e);
 
                 elem *eptr = el_una(OPmsw, TYnptr, es);
-                elem *elen = el_una(target.is64bit ? OP128_64 : OP64_32, TYsize_t, e);
+                elem *elen = el_una(target.isX86_64 ? OP128_64 : OP64_32, TYsize_t, e);
                 elem *elen2 = el_bin(OPmul, TYsize_t, elen, el_long(TYsize_t, fsize / tsize));
                 e = el_pair(totym(ce.type), elen2, eptr);
             }
@@ -4626,7 +4622,7 @@ elem *toElemCast(CastExp ce, elem *e, bool isLvalue)
         case Tpointer:
             if (fty == Tdelegate)
                 return Lpaint(ce, e, ttym);
-            tty = target.is64bit ? Tuns64 : Tuns32;
+            tty = target.isX86_64 ? Tuns64 : Tuns32;
             break;
 
         case Tchar:     tty = Tuns8;    break;
@@ -4651,7 +4647,7 @@ elem *toElemCast(CastExp ce, elem *e, bool isLvalue)
             // typeof(null) is same with void* in binary level.
             return Lzero(ce, e, ttym);
         }
-        case Tpointer:  fty = target.is64bit ? Tuns64 : Tuns32;  break;
+        case Tpointer:  fty = target.isX86_64 ? Tuns64 : Tuns32;  break;
         case Tchar:     fty = Tuns8;    break;
         case Twchar:    fty = Tuns16;   break;
         case Tdchar:    fty = Tuns32;   break;
@@ -5259,7 +5255,7 @@ elem *toElemCast(CastExp ce, elem *e, bool isLvalue)
                 //dump(0);
                 //printf("fty = %d, tty = %d, %d\n", fty, tty, t.ty);
                 // This error should really be pushed to the front end
-                ce.error("e2ir: cannot cast `%s` of type `%s` to type `%s`", ce.e1.toChars(), ce.e1.type.toChars(), t.toChars());
+                irs.eSink.error(ce.loc, "e2ir: cannot cast `%s` of type `%s` to type `%s`", ce.e1.toChars(), ce.e1.type.toChars(), t.toChars());
                 e = el_long(TYint, 0);
                 return e;
 
@@ -5288,7 +5284,7 @@ elem *useOPstrpar(elem *e)
  */
 
 elem *callfunc(const ref Loc loc,
-        IRState *irs,
+        ref IRState irs,
         int directcall,         // 1: don't do virtual call
         Type tret,              // return type
         elem *ec,               // evaluates to function address
@@ -5327,13 +5323,13 @@ elem *callfunc(const ref Loc loc,
         assert(tf);
         ethis = ec;
         ec = el_same(&ethis);
-        ethis = el_una(target.is64bit ? OP128_64 : OP64_32, TYnptr, ethis); // get this
+        ethis = el_una(target.isX86_64 ? OP128_64 : OP64_32, TYnptr, ethis); // get this
         ec = array_toPtr(t, ec);                // get funcptr
         tym_t tym;
         /* Delegates use the same calling convention as member functions.
          * For extern(C++) on Win32 this differs from other functions.
          */
-        if (tf.linkage == LINK.cpp && !target.is64bit && target.os == Target.OS.Windows)
+        if (tf.linkage == LINK.cpp && !target.isX86_64 && target.os == Target.OS.Windows)
             tym = (tf.parameterList.varargs == VarArg.variadic) ? TYnfunc : TYmfunc;
         else
             tym = totym(tf);
@@ -5358,7 +5354,7 @@ elem *callfunc(const ref Loc loc,
         {
             Expression arg = (*arguments)[0];
             if (arg.op != EXP.int64)
-                arg.error("simd operator must be an integer constant, not `%s`", arg.toChars());
+                irs.eSink.error(arg.loc, "simd operator must be an integer constant, not `%s`", arg.toChars());
         }
 
         /* Convert arguments[] to elems[] in left-to-right order
@@ -5411,7 +5407,7 @@ elem *callfunc(const ref Loc loc,
                 continue;
             }
 
-            if (irs.target.os == Target.OS.Windows && irs.target.is64bit && tybasic(ea.Ety) == TYcfloat)
+            if (irs.target.os == Target.OS.Windows && irs.target.isX86_64 && tybasic(ea.Ety) == TYcfloat)
             {
                 /* Treat a cfloat like it was a struct { float re,im; }
                  */
@@ -5590,7 +5586,7 @@ elem *callfunc(const ref Loc loc,
             assert(cast(int)vindex >= 0);
 
             // Build *(ev + vindex * 4)
-            if (!target.is64bit)
+            if (!target.isX86_64)
                 assert(tysize(TYnptr) == 4);
             ec = el_bin(OPadd,TYnptr,ev,el_long(TYsize_t, vindex * tysize(TYnptr)));
             ec = el_una(OPind,TYnptr,ec);
@@ -6068,7 +6064,7 @@ elem *sarray_toDarray(const ref Loc loc, Type tfrom, Type tto, elem *e)
  *      TypeInfo
  */
 private
-elem *getTypeInfo(Expression e, Type t, IRState* irs)
+elem *getTypeInfo(Expression e, Type t, ref IRState irs)
 {
     assert(t.ty != Terror);
     genTypeInfo(e, e.loc, t, null);
@@ -6118,7 +6114,7 @@ StructDeclaration needsDtor(Type t)
  * Returns:
  *      created IR code
  */
-elem *setArray(Expression exp, elem *eptr, elem *edim, Type tb, elem *evalue, IRState *irs, int op)
+elem *setArray(Expression exp, elem *eptr, elem *edim, Type tb, elem *evalue, ref IRState irs, int op)
 {
     //elem_print(evalue);
     assert(op == EXP.blit || op == EXP.assign || op == EXP.construct);
@@ -6141,20 +6137,20 @@ Lagain:
             break;
         case Tfloat32:
         case Timaginary32:
-            if (!target.is64bit)
+            if (!target.isX86_64)
                 goto default;          // legacy binary compatibility
             r = RTLSYM.MEMSETFLOAT;
             break;
         case Tfloat64:
         case Timaginary64:
-            if (!target.is64bit)
+            if (!target.isX86_64)
                 goto default;          // legacy binary compatibility
             r = RTLSYM.MEMSETDOUBLE;
             break;
 
         case Tstruct:
         {
-            if (!target.is64bit)
+            if (!target.isX86_64)
                 goto default;
 
             TypeStruct tc = cast(TypeStruct)tb2;
@@ -6178,7 +6174,7 @@ Lagain:
                 case 2:      r = RTLSYM.MEMSET16;   break;
                 case 4:      r = RTLSYM.MEMSET32;   break;
                 case 8:      r = RTLSYM.MEMSET64;   break;
-                case 16:     r = target.is64bit ? RTLSYM.MEMSET128ii : RTLSYM.MEMSET128; break;
+                case 16:     r = target.isX86_64 ? RTLSYM.MEMSET128ii : RTLSYM.MEMSET128; break;
                 default:     r = RTLSYM.MEMSETN;    break;
             }
 
@@ -6195,7 +6191,7 @@ Lagain:
                 }
             }
 
-            if (target.is64bit && tybasic(evalue.Ety) == TYstruct && r != RTLSYM.MEMSETN)
+            if (target.isX86_64 && tybasic(evalue.Ety) == TYstruct && r != RTLSYM.MEMSETN)
             {
                 /* If this struct is in-memory only, i.e. cannot necessarily be passed as
                  * a gp register parameter.
@@ -6238,7 +6234,7 @@ Lagain:
         edim = el_bin(OPmul, TYsize_t, edim, el_long(TYsize_t, sz));
     }
 
-    if (irs.target.os == Target.OS.Windows && irs.target.is64bit && sz > REGSIZE)
+    if (irs.target.os == Target.OS.Windows && irs.target.isX86_64 && sz > registerSize)
     {
         evalue = addressElem(evalue, tb);
     }
@@ -6348,7 +6344,7 @@ elem *fillHole(Symbol *stmp, size_t *poffset, size_t offset2, size_t maxoff)
  *                  false if allocated by operator new, as the holes are already zeroed.
  */
 
-elem *toElemStructLit(StructLiteralExp sle, IRState *irs, EXP op, Symbol *sym, bool fillHoles)
+elem *toElemStructLit(StructLiteralExp sle, ref IRState irs, EXP op, Symbol *sym, bool fillHoles)
 {
     //printf("[%s] StructLiteralExp.toElem() %s\n", sle.loc.toChars(), sle.toChars());
     //printf("\tblit = %s, sym = %p fillHoles = %d\n", op == EXP.blit, sym, fillHoles);
@@ -6619,7 +6615,7 @@ elem *toElemStructLit(StructLiteralExp sle, IRState *irs, EXP op, Symbol *sym, b
  *      er with destructors appended
  */
 
-elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
+elem *appendDtors(ref IRState irs, elem *er, size_t starti, size_t endi)
 {
     //printf("appendDtors(%d .. %d)\n", starti, endi);
 
@@ -6644,7 +6640,7 @@ elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
 
     if (edtors)
     {
-        if (irs.target.os == Target.OS.Windows && !irs.target.is64bit) // Win32
+        if (irs.target.os == Target.OS.Windows && !irs.target.isX86_64) // Win32
         {
             Blockx *blx = irs.blx;
             nteh_declarvars(blx);
@@ -6698,13 +6694,13 @@ elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
  * for insertion into the parameter list.
  */
 
-elem *filelinefunction(IRState *irs, const ref Loc loc)
+elem *filelinefunction(ref IRState irs, const ref Loc loc)
 {
     const(char)* id = loc.filename;
     size_t len = strlen(id);
     Symbol *si = toStringSymbol(id, len, 1);
     elem *efilename = el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(si));
-    if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
+    if (irs.target.os == Target.OS.Windows && irs.target.isX86_64)
         efilename = addressElem(efilename, Type.tstring, true);
 
     elem *elinnum = el_long(TYint, loc.linnum);
@@ -6719,7 +6715,7 @@ elem *filelinefunction(IRState *irs, const ref Loc loc)
     len = strlen(s);
     si = toStringSymbol(s, len, 1);
     elem *efunction = el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(si));
-    if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
+    if (irs.target.os == Target.OS.Windows && irs.target.isX86_64)
         efunction = addressElem(efunction, Type.tstring, true);
 
     return el_params(efunction, elinnum, efilename, null);
@@ -6733,7 +6729,7 @@ elem *filelinefunction(IRState *irs, const ref Loc loc)
  * Returns:
  *      elem generated
  */
-elem* buildRangeError(IRState *irs, const ref Loc loc)
+elem* buildRangeError(ref IRState irs, const ref Loc loc)
 {
     final switch (irs.params.checkAction)
     {
@@ -6759,7 +6755,7 @@ elem* buildRangeError(IRState *irs, const ref Loc loc)
  * Returns:
  *      elem generated
  */
-elem* buildArraySliceError(IRState *irs, const ref Loc loc, elem* lower, elem* upper, elem* length) {
+elem* buildArraySliceError(ref IRState irs, const ref Loc loc, elem* lower, elem* upper, elem* length) {
     final switch (irs.params.checkAction)
     {
     case CHECKACTION.C:
@@ -6786,7 +6782,7 @@ elem* buildArraySliceError(IRState *irs, const ref Loc loc, elem* lower, elem* u
  * Returns:
  *      elem generated
  */
-elem* buildArrayIndexError(IRState *irs, const ref Loc loc, elem* index, elem* length) {
+elem* buildArrayIndexError(ref IRState irs, const ref Loc loc, elem* index, elem* length) {
     final switch (irs.params.checkAction)
     {
     case CHECKACTION.C:
@@ -6802,7 +6798,7 @@ elem* buildArrayIndexError(IRState *irs, const ref Loc loc, elem* index, elem* l
 }
 
 /// Returns: elem representing a C-string (char*) to the filename
-elem* locToFileElem(const IRState *irs, const ref Loc loc) {
+elem* locToFileElem(const ref IRState irs, const ref Loc loc) {
     elem* efile;
     if (loc.filename)
     {
@@ -6827,7 +6823,7 @@ elem* locToFileElem(const IRState *irs, const ref Loc loc) {
  * Returns:
  *      generated call
  */
-elem *callCAssert(IRState *irs, const ref Loc loc, Expression exp, Expression emsg, const(char)* str)
+elem *callCAssert(ref IRState irs, const ref Loc loc, Expression exp, Expression emsg, const(char)* str)
 {
     //printf("callCAssert.toElem() %s\n", e.toChars());
     Module m = cast(Module)irs.blx._module;
@@ -6944,7 +6940,7 @@ elem *genHalt(const ref Loc loc)
  * Returns:
  *      `ethis2` if successful, null otherwise
  */
-elem* setEthis2(const ref Loc loc, IRState* irs, FuncDeclaration fd, elem* ethis2, elem** ethis, elem** eside)
+elem* setEthis2(const ref Loc loc, ref IRState irs, FuncDeclaration fd, elem* ethis2, elem** ethis, elem** eside)
 {
     if (!fd.hasDualContext())
         return null;
@@ -6979,13 +6975,10 @@ elem* constructVa_start(elem* e)
 
     e.Eoper = OPva_start;
     e.Ety = TYvoid;
-    if (target.is64bit)
+    if (target.isX86_64)
     {
         // (OPparam &va &arg)
         // call as (OPva_start &va)
-        auto earg = e.EV.E2;
-        e.EV.E2 = null;
-        return el_combine(earg, e);
     }
     else // 32 bit
     {
@@ -6993,7 +6986,7 @@ elem* constructVa_start(elem* e)
         // call as (OPva_start &va)
         auto earg = e.EV.E1;
         e.EV.E1 = e.EV.E2;
-        e.EV.E2 = null;
-        return el_combine(earg, e);
+        e.EV.E2 = earg;
     }
+    return e;
 }

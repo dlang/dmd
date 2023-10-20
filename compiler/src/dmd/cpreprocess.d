@@ -15,9 +15,7 @@ module dmd.cpreprocess;
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
-import core.stdc.string;
 
-import dmd.astenums;
 import dmd.errors;
 import dmd.globals;
 import dmd.link;
@@ -29,8 +27,6 @@ import dmd.common.outbuffer;
 
 import dmd.root.array;
 import dmd.root.filename;
-import dmd.root.rmem;
-import dmd.root.rootobject;
 import dmd.root.string;
 
 // Use default for other versions
@@ -69,7 +65,7 @@ FileName preprocess(FileName csrcfile, ref const Loc loc, out bool ifile, OutBuf
 
     if (importc_h)
     {
-        if (global.params.verbose)
+        if (global.params.v.verbose)
             message("include   %s", importc_h);
     }
     else
@@ -117,7 +113,7 @@ private const(char)[] cppCommand()
         {
             VSOptions vsopt;
             vsopt.initialize();
-            auto path = vsopt.compilerPath(target.is64bit);
+            auto path = vsopt.compilerPath(target.isX86_64);
             return toDString(path);
         }
         if (target.objectFormat() == Target.ObjectFormat.omf)

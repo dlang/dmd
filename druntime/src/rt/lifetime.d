@@ -676,7 +676,7 @@ Params:
     ti = `TypeInfo` of array type
     arr = array to shrink. Its `.length` is element length, not byte length, despite `void` type
 */
-extern(C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) /+nothrow+/
+extern(C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) nothrow
 {
     // note, we do not care about shared.  We are setting the length no matter
     // what, so no lock is required.
@@ -701,7 +701,17 @@ extern(C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) /+nothrow+/
             {
                 auto oldsize = __arrayAllocLength(info, tinext);
                 if (oldsize > cursize)
-                    finalize_array(arr.ptr + cursize, oldsize - cursize, sti);
+                {
+                    try
+                    {
+                        finalize_array(arr.ptr + cursize, oldsize - cursize, sti);
+                    }
+                    catch (Exception e)
+                    {
+                        import core.exception : onFinalizeError;
+                        onFinalizeError(sti, e);
+                    }
+                }
             }
         }
         // Note: Since we "assume" the append is safe, it means it is not shared.
@@ -1297,12 +1307,19 @@ int hasArrayFinalizerInSegment(void* p, size_t size, in void[] segment) nothrow
     return cast(size_t)(cast(void*)si.xdtor - segment.ptr) < segment.length;
 }
 
+debug (VALGRIND) import etc.valgrind.valgrind;
+
 // called by the GC
 void finalize_array2(void* p, size_t size) nothrow
 {
     debug(PRINTF) printf("rt_finalize_array2(p = %p)\n", p);
 
     TypeInfo_Struct si = void;
+    debug (VALGRIND)
+    {
+        auto block = p[0..size];
+        disableAddrReportingInRange(block);
+    }
     if (size <= 256)
     {
         si = *cast(TypeInfo_Struct*)(p + size - size_t.sizeof);
@@ -1319,6 +1336,7 @@ void finalize_array2(void* p, size_t size) nothrow
         size = *cast(size_t*)p;
         p += LARGEPREFIX;
     }
+    debug (VALGRIND) enableAddrReportingInRange(block);
 
     try
     {
@@ -2363,7 +2381,7 @@ unittest
 
 unittest
 {
-    // bugzilla 13854
+    // https://issues.dlang.org/show_bug.cgi?id=13854
     auto arr = new ubyte[PAGESIZE]; // ensure page size
     auto info1 = GC.query(arr.ptr);
     assert(info1.base !is arr.ptr); // offset is required for page size or larger
@@ -2406,7 +2424,7 @@ unittest
 
 unittest
 {
-    // bugzilla 13878
+    // https://issues.dlang.org/show_bug.cgi?id=13878
     auto arr = new ubyte[1];
     auto info = GC.query(arr.ptr);
     assert(info.attr & BlkAttr.NO_SCAN); // should be NO_SCAN

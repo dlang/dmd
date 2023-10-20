@@ -733,3 +733,28 @@ void test23725()
 {
     __fnldcw(1, 2);
 }
+
+/************************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=24070
+
+typedef struct Typ Typ;
+typedef struct Field Field;
+
+struct Typ {
+	struct Field {
+	} (*fields)[1];
+};
+
+static void parse() {
+    Typ* ty;
+    void* fields = &ty->fields;
+}
+
+/************************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=24071
+
+typedef enum
+{
+    DISPLAYCONFIG_OUTPUT_TECHNOLOGY_SVIDEO                  = 1,
+    DISPLAYCONFIG_OUTPUT_TECHNOLOGY_INTERNAL                = 0x80000000,
+} DISPLAYCONFIG_VIDEO_OUTPUT_TECHNOLOGY;

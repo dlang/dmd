@@ -22,12 +22,9 @@ import dmd.backend.ty;
 import dmd.backend.type;
 
 import dmd.backend.dwarfdbginf;
-extern (C++):
 
 nothrow:
 @safe:
-
-void ph_init();
 
 /**************************************
  * Initialize configuration for backend.
@@ -47,6 +44,7 @@ void ph_init();
                     2 for fake it with C symbolic debug info
     alwaysframe   = always create standard function frame
     stackstomp    = add stack stomping code
+    ibt           = generate Indirect Branch Tracking code
     avx           = use AVX instruction set (0, 1, 2)
     pic           = position independence level (0, 1, 2)
     useModuleInfo = implement ModuleInfo
@@ -70,6 +68,7 @@ extern (C) void out_config_init(
         int symdebug,
         bool alwaysframe,
         bool stackstomp,
+        bool ibt,
         ubyte avx,
         ubyte pic,
         bool useModuleInfo,
@@ -101,12 +100,13 @@ extern (C) void out_config_init(
     model &= 32 | 64;
     if (generatedMain)
         cfg.flags2 |= CFG2genmain;
+    if (ibt)
+        cfg.flags3 |= CFG3ibt;
 
     if (dwarf < 3 || dwarf > 5)
     {
         if (dwarf)
         {
-            import dmd.backend.errors;
             error(null, 0, 0, "DWARF version %u is not supported", dwarf);
         }
 
@@ -350,7 +350,6 @@ static if (0)
     cfg.useTypeInfo = useTypeInfo;
     cfg.useExceptions = useExceptions;
 
-    ph_init();
     block_init();
 
     cod3_setdefault();

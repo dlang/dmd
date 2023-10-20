@@ -61,6 +61,8 @@ immutable Msgtable[] msgtable =
     { "IUnknown" },
     { "Object" },
     { "object" },
+    { "_size_t", "size_t" },
+    { "_ptrdiff_t", "ptrdiff_t" },
     { "string" },
     { "wstring" },
     { "dstring" },
@@ -114,6 +116,7 @@ immutable Msgtable[] msgtable =
     { "returnLabel", "__returnLabel" },
     { "line" },
     { "empty", "" },
+    { "dotdotdot", "..." }, // use for error messages
     { "p" },
     { "__vptr" },
     { "__monitor" },
@@ -305,6 +308,7 @@ immutable Msgtable[] msgtable =
     { "aaKeys", "_aaKeys" },
     { "aaValues", "_aaValues" },
     { "aaRehash", "_aaRehash" },
+    { "_aaAsStruct" },
     { "monitorenter", "_d_monitorenter" },
     { "monitorexit", "_d_monitorexit" },
     { "criticalenter", "_d_criticalenter2" },
@@ -575,7 +579,7 @@ struct Msgtable
      * Returns: the name to use in the D executable, `name_` if non-empty,
      *  otherwise `ident`
      */
-    string name()
+    string name() @safe
     {
         return name_ ? name_ : ident;
     }
@@ -602,19 +606,19 @@ string generate(immutable(Msgtable)[] msgtable, string function(Msgtable) dg)
 }
 
 // Used to generate the code for each identifier.
-string identifier(Msgtable m)
+string identifier(Msgtable m) @safe
 {
     return "Identifier " ~ m.ident ~ ";";
 }
 
 // Used to generate the code for each initializer.
-string initializer(Msgtable m)
+string initializer(Msgtable m) @safe
 {
     return m.ident ~ ` = Identifier.idPool("` ~ m.name ~ `");`;
 }
 
 // Used to generate the code for each deinitializer.
-string deinitializer(Msgtable m)
+string deinitializer(Msgtable m) @safe
 {
     return m.ident ~ " = Identifier.init;";
 }

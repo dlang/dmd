@@ -25,7 +25,6 @@ import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-extern (C++):
 
 nothrow:
 @safe:
@@ -59,7 +58,7 @@ __gshared
  * Returns:
  *      size
  */
-@trusted
+@trusted @nogc
 targ_size_t type_size(const type *t)
 {   targ_size_t s;
     tym_t tyb;
@@ -102,15 +101,8 @@ targ_size_t type_size(const type *t)
                 }
                 s = type_size(t.Tnext);
                 uint u = cast(uint)t.Tdim * cast(uint) s;
-version (MARS)
-{
                 if (t.Tdim && ((u / t.Tdim) != s || cast(int)u < 0))
                     assert(0);          // overflow should have been detected in front end
-}
-else
-{
-                static assert(0);
-}
                 s = u;
                 break;
             }
@@ -127,11 +119,8 @@ else
                 break;
 
             case TYref:
-version (MARS)
-{
                 s = tysize(TYnptr);
                 break;
-}
 
             default:
                 debug printf("%s\n", tym_str(t.Tty));
@@ -269,7 +258,7 @@ uint type_paramsize(type *t)
  *      pointer to newly created type.
  */
 
-@trusted
+@trusted @nogc
 type *type_alloc(tym_t ty)
 {   type *t;
 
@@ -306,11 +295,10 @@ debug
  * Returns:
  *      pointer to newly created type.
  */
-
+@nogc
 type *type_fake(tym_t ty)
 {   type *t;
 
-version (MARS)
     assert(ty != TYstruct);
 
     t = type_alloc(ty);
@@ -542,11 +530,8 @@ void type_free(type *t)
             el_free(t.Tel);
             goto L1;
         }
-version (MARS)
-{
         if (t.Tkey && typtr(ty))
             type_free(t.Tkey);
-}
       L1:
 
 debug
@@ -765,11 +750,8 @@ type *type_copy(type *t)
                 }
                 else
                 {
-version (MARS)
-{
                 if (tn.Tkey && typtr(tn.Tty))
                     tn.Tkey.Tcount++;
-}
                 }
                 break;
     }
@@ -1306,9 +1288,6 @@ Symbol *param_search(const(char)* name, param_t **pp)
     return s;
 }
 
-version (MARS)
-{
-
 // Return TRUE if type lists match.
 private int paramlstmatch(param_t *p1,param_t *p2)
 {
@@ -1360,6 +1339,4 @@ int typematch(type *t1,type *t2,int relax)
              ((t1.Tflags & TFfixed) == (t2.Tflags & TFfixed) &&
                  paramlstmatch(t1.Tparamtypes,t2.Tparamtypes) ))
          ;
-}
-
 }

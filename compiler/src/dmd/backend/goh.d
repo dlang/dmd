@@ -32,7 +32,6 @@ import dmd.backend.barray;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
 
-extern (C++):
 nothrow:
 @safe:
 

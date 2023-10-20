@@ -672,8 +672,7 @@ alias buildFrontendHeaders = makeRule!((builder, rule) {
         .command([dmdExeFile] ~
             flags["DFLAGS"]
               .filter!(f => startsWith(f, "-debug=", "-version=", "-I", "-J")).array ~
-            // Ignore warnings because of invalid C++ identifiers in the source code
-            ["-J" ~ env["RES"], "-c", "-o-", "-wi", "-HCf="~rule.target,
+            ["-J" ~ env["RES"], "-c", "-o-", "-HCf="~rule.target,
             // Enforce the expected target architecture
             "-m64", "-os=linux",
             ] ~ dmdSources);
@@ -1360,7 +1359,7 @@ void processEnvironment()
     else
         env.setDefault("ZIP", "zip");
 
-    string[] dflags = ["-version=MARS", "-w", "-de", env["PIC_FLAG"], env["MODEL_FLAG"], "-J"~env["G"], "-I" ~ srcDir];
+    string[] dflags = ["-w", "-de", env["PIC_FLAG"], env["MODEL_FLAG"], "-J"~env["G"], "-I" ~ srcDir];
 
     // TODO: add support for dObjc
     auto dObjc = false;
@@ -1530,11 +1529,11 @@ auto sourceFiles()
     }
     DmdSources dmd = {
         glue: fileArray(env["D"], "
-            dmsc.d e2ir.d eh.d iasm.d iasmdmd.d iasmgcc.d glue.d objc_glue.d
+            dmsc.d e2ir.d iasm.d iasmdmd.d iasmgcc.d glue.d objc_glue.d
             s2ir.d tocsym.d toctype.d tocvdebug.d todt.d toir.d toobj.d
         "),
         driver: fileArray(env["D"], "dinifile.d dmdparams.d gluelayer.d lib.d libelf.d libmach.d libmscoff.d libomf.d
-            link.d mars.d scanelf.d scanmach.d scanmscoff.d scanomf.d vsoptions.d
+            link.d mars.d main.d scanelf.d scanmach.d scanmscoff.d scanomf.d vsoptions.d
         "),
         frontend: fileArray(env["D"], "
             access.d aggregate.d aliasthis.d argtypes_x86.d argtypes_sysv_x64.d argtypes_aarch64.d arrayop.d
@@ -1545,7 +1544,7 @@ auto sourceFiles()
             dtemplate.d dtoh.d dversion.d escape.d expression.d expressionsem.d func.d hdrgen.d impcnvtab.d
             imphint.d importc.d init.d initsem.d inline.d inlinecost.d intrange.d json.d lambdacomp.d
             mtype.d mustuse.d nogc.d nspace.d ob.d objc.d opover.d optimize.d
-            parse.d parsetimevisitor.d permissivevisitor.d postordervisitor.d printast.d safe.d sapply.d
+            parse.d parsetimevisitor.d permissivevisitor.d postordervisitor.d printast.d rootobject.d safe.d sapply.d
             semantic2.d semantic3.d sideeffect.d statement.d statement_rewrite_walker.d
             statementsem.d staticassert.d staticcond.d stmtstate.d target.d templateparamsem.d traits.d
             transitivevisitor.d typesem.d typinf.d utils.d visitor.d foreachvar.d
@@ -1574,7 +1573,7 @@ auto sourceFiles()
             console.d entity.d errors.d errorsink.d file_manager.d globals.d id.d identifier.d lexer.d location.d tokens.d
         ") ~ fileArray(env["ROOT"], "
             array.d bitarray.d ctfloat.d file.d filename.d hash.d port.d region.d rmem.d
-            rootobject.d stringtable.d utf.d
+            stringtable.d utf.d
         "),
         common: fileArray(env["COMMON"], "
             bitfields.d file.d int128.d outbuffer.d string.d
@@ -1592,11 +1591,11 @@ auto sourceFiles()
         backend: fileArray(env["C"], "
             backend.d bcomplex.d evalu8.d divcoeff.d dvec.d go.d gsroa.d glocal.d gdag.d gother.d gflow.d
             dout.d inliner.d
-            gloop.d compress.d cgelem.d cgcs.d ee.d cod4.d cod5.d nteh.d blockopt.d mem.d cg.d cgreg.d
+            gloop.d compress.d cgelem.d cgcs.d ee.d cod4.d cod5.d eh.d nteh.d blockopt.d mem.d cg.d cgreg.d
             dtype.d debugprint.d fp.d symbol.d symtab.d elem.d dcode.d cgsched.d cg87.d cgxmm.d cgcod.d cod1.d cod2.d
-            cod3.d cv8.d dcgcv.d pdata.d util2.d var.d md5.d backconfig.d ph2.d drtlsym.d dwarfeh.d ptrntab.d
+            cod3.d cv8.d dcgcv.d pdata.d util2.d var.d md5.d backconfig.d drtlsym.d dwarfeh.d ptrntab.d
             dvarstats.d dwarfdbginf.d cgen.d goh.d barray.d cgcse.d elpicpie.d
-            machobj.d elfobj.d mscoffobj.d filespec.d newman.d cgobj.d aarray.d disasm86.d
+            machobj.d elfobj.d mscoffobj.d filespec.d cgobj.d aarray.d disasm86.d
             "
         ),
     };

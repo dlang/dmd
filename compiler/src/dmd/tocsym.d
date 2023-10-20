@@ -25,6 +25,7 @@ import dmd.ctfeexpr;
 import dmd.declaration;
 import dmd.dclass;
 import dmd.denum;
+import dmd.dmdparams;
 import dmd.dmodule;
 import dmd.dstruct;
 import dmd.dsymbol;
@@ -73,7 +74,7 @@ Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, SC sclass, type *t, const(cha
     import dmd.common.outbuffer : OutBuffer;
 
     OutBuffer buf;
-    mangleToBuffer(ds, &buf);
+    mangleToBuffer(ds, buf);
     size_t nlen = buf.length;
     const(char)* n = buf.peekChars();
     assert(n);
@@ -104,13 +105,15 @@ Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, SC sclass, type *t, const(cha
 
 Symbol *toSymbol(Dsymbol s)
 {
+    //printf("toSymbol() %s\n", s.toChars());
+
     extern (C++) static final class ToSymbol : Visitor
     {
         alias visit = Visitor.visit;
 
         Symbol *result;
 
-        this() scope
+        this() scope @safe
         {
             result = null;
         }
@@ -139,7 +142,7 @@ Symbol *toSymbol(Dsymbol s)
             const(char)[] id = vd.ident.toString();
             if (vd.isDataseg())
             {
-                mangleToBuffer(vd, &buf);
+                mangleToBuffer(vd, buf);
                 id = buf[];
             }
             else
@@ -172,7 +175,7 @@ Symbol *toSymbol(Dsymbol s)
             }
             else if (vd.storage_class & STC.lazy_)
             {
-                if (target.os == Target.OS.Windows && target.is64bit && vd.isParameter())
+                if (target.os == Target.OS.Windows && target.isX86_64 && vd.isParameter())
                     t = type_fake(TYnptr);
                 else
                     t = type_fake(TYdelegate);          // Tdelegate as C type
@@ -235,7 +238,7 @@ Symbol *toSymbol(Dsymbol s)
                     if (config.objfmt == OBJ_MACH && _tysize[TYnptr] == 8)
                         s.Salignment = 2;
 
-                    if (global.params.vtls)
+                    if (global.params.v.tls)
                     {
                         message(vd.loc, "`%s` is thread local", vd.toChars());
                     }
@@ -284,7 +287,7 @@ Symbol *toSymbol(Dsymbol s)
             final switch (vd.resolvedLinkage())
             {
                 case LINK.windows:
-                    m = target.is64bit ? mTYman_c : mTYman_std;
+                    m = target.isX86_64 ? mTYman_c : mTYman_std;
                     break;
 
                 case LINK.objc:
@@ -339,6 +342,39 @@ Symbol *toSymbol(Dsymbol s)
             const(char)* id = mangleExact(fd);
 
             //printf("FuncDeclaration.toSymbol(%s %s)\n", fd.kind(), fd.toChars());
+
+            /* MS-LINK cannot handle multiple COMDATs with the same name.
+             * This can happen with two .c files that define the same function.
+             * They get compiled into one .obj file with the `oneobj` setting.
+             * https://issues.dlang.org/show_bug.cgi?id=24129
+             */
+            if (driverParams.oneobj)
+            {
+                auto mod = fd.getModule();
+                if (mod &&
+                    mod.isRoot() &&               // included on command line
+                    mod.filetype == FileType.c && // a C file
+                    fd.fbody &&                   // a function definition
+                    fd._linkage == LINK.c &&
+                    !fd.skipCodegen)              // code gen is desired
+                {
+                    __gshared DsymbolTable Csymtab;  // sorry about another global variable
+                    if (Csymtab is null)
+                        Csymtab = new DsymbolTable();
+
+                    if (!Csymtab.insert(fd))    // if code was already generated for same-named function
+                    {
+                        /* Use the C symbol for the previously generated function
+                         */
+                        fd.csym = Csymtab.lookup(fd.ident).csym;
+                        result = fd.csym;
+
+                        fd.skipCodegen = true;
+                        return;
+                    }
+                }
+            }
+
             //printf("\tid = '%s'\n", id);
             //printf("\ttype = %s\n", fd.type.toChars());
             auto s = symbol_calloc(id[0 .. strlen(id)]);
@@ -402,7 +438,7 @@ Symbol *toSymbol(Dsymbol s)
                 final switch (fd.resolvedLinkage())
                 {
                     case LINK.windows:
-                        t.Tmangle = target.is64bit ? mTYman_c : mTYman_std;
+                        t.Tmangle = target.isX86_64 ? mTYman_c : mTYman_std;
                         break;
 
                     case LINK.c:
@@ -420,7 +456,7 @@ Symbol *toSymbol(Dsymbol s)
                         s.Sflags |= SFLpublic;
                         /* Nested functions use the same calling convention as
                          * member functions, because both can be used as delegates. */
-                        if ((fd.isThis() || fd.isNested()) && !target.is64bit && target.os == Target.OS.Windows)
+                        if ((fd.isThis() || fd.isNested()) && !target.isX86_64 && target.os == Target.OS.Windows)
                         {
                             if ((cast(TypeFunction)fd.type).parameterList.varargs == VarArg.variadic)
                             {
@@ -529,14 +565,14 @@ private Symbol *createImport(Symbol *sym, Loc loc)
     }
     else if (sym.Stype.Tmangle == mTYman_std && tyfunc(sym.Stype.Tty))
     {
-        if (target.os == Target.OS.Windows && target.is64bit)
+        if (target.os == Target.OS.Windows && target.isX86_64)
             idlen = snprintf(id, allocLen, "__imp_%s",n);
         else
             idlen = snprintf(id, allocLen, "_imp__%s@%u",n,cast(uint)type_paramsize(sym.Stype));
     }
     else
     {
-        idlen = snprintf(id, allocLen, (target.os == Target.OS.Windows && target.is64bit) ? "__imp_%s" : (sym.Stype.Tmangle == mTYman_cpp) ? "_imp_%s" : "_imp__%s",n);
+        idlen = snprintf(id, allocLen, (target.os == Target.OS.Windows && target.isX86_64) ? "__imp_%s" : (sym.Stype.Tmangle == mTYman_cpp) ? "_imp_%s" : "_imp__%s",n);
     }
     auto t = type_alloc(TYnptr | mTYconst);
     t.Tnext = sym.Stype;
@@ -661,7 +697,7 @@ Symbol *toInitializer(AggregateDeclaration ad)
             sd.type.size() <= 128 &&
             sd.zeroInit &&
             config.objfmt != OBJ_MACH && // same reason as in toobj.d toObjFile()
-            !(config.objfmt == OBJ_MSCOFF && !target.is64bit)) // -m32mscoff relocations are wrong
+            !(config.objfmt == OBJ_MSCOFF && !target.isX86_64)) // -m32mscoff relocations are wrong
         {
             auto bzsave = bzeroSymbol;
             ad.sinit = getBzeroSymbol();
@@ -715,51 +751,6 @@ Symbol *toInitializer(EnumDeclaration ed)
     return ed.sinit;
 }
 
-
-/********************************************
- * Determine the right symbol to look up
- * an associative array element.
- * Input:
- *      flags   0       don't add value signature
- *              1       add value signature
- */
-
-Symbol *aaGetSymbol(TypeAArray taa, const(char)* func, int flags)
-{
-    assert((flags & ~1) == 0);
-
-    // Dumb linear symbol table - should use associative array!
-    __gshared Symbol*[] sarray;
-
-    //printf("aaGetSymbol(func = '%s', flags = %d, key = %p)\n", func, flags, key);
-    import core.stdc.stdlib : alloca;
-    const allocLen = 3 + strlen(func) + 1;
-    auto id = cast(char *)alloca(allocLen);
-    const idlen = snprintf(id, allocLen, "_aa%s", func);
-
-    // See if symbol is already in sarray
-    foreach (s; sarray)
-    {
-        if (strcmp(id, s.Sident.ptr) == 0)
-        {
-            return s;                       // use existing Symbol
-        }
-    }
-
-    // Create new Symbol
-
-    auto s = symbol_calloc(id[0 .. idlen]);
-    s.Sclass = SC.extern_;
-    s.Ssymnum = SYMIDX.max;
-    symbol_func(s);
-
-    auto t = type_function(TYnfunc, null, false, Type_toCtype(taa.next));
-    t.Tmangle = mTYman_c;
-    s.Stype = t;
-
-    sarray ~= s;                         // remember it
-    return s;
-}
 
 /*****************************************************/
 /*                   CTFE stuff                      */
@@ -855,6 +846,21 @@ Symbol *toSymbolCppTypeInfo(ClassDeclaration cd)
     t.Tcount++;
     s.Stype = t;
     return s;
+}
+
+/**************************************
+ * Turn a class type into a C Symbol.
+ * Params:
+ *      t = class type
+ * Returns:
+ *      corresponding Symbol
+ */
+
+Symbol *toSymbol(Type t)
+{
+    auto tc = t.isTypeClass();
+    assert(tc);
+    return toSymbol(tc.sym);
 }
 
 /**********************************

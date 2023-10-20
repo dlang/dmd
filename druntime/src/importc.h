@@ -105,6 +105,13 @@
 #define __builtin___strcpy_chk(dest, src, x) strcpy(dest,src)
 #define __builtin___strncat_chk(dest, src, len, x) strncat(dest,src,len)
 #define __builtin___strncpy_chk(dest, src, len, x) strncpy(dest,src,len)
+#define __builtin___sprintf_chk(s, flag, os, fmt, ...) sprintf(s, fmt, __VA_ARGS__)
+#define __builtin___snprintf_chk(s, c, flag, os, fmt, ...) snprintf(s, c, fmt, __VA_ARGS__)
+#define __builtin___vsnprintf_chk(s, c, flag, os, fmt, ...) vsnprintf(s, c, fmt, __VA_ARGS__)
+#define __builtin___strlcat_chk(dest, src, x, n) strlcat(dest,src,x)
+#define __builtin___strlcpy_chk(dest, src, x, n) strlcpy(dest,src,x)
+#define __builtin_object_size
+#define __signed signed
 #endif
 
 #if __FreeBSD__
@@ -114,8 +121,6 @@
 #endif
 
 #if _MSC_VER
-//#undef _Post_writable_size
-//#define _Post_writable_size(x) // consider #include <no_sal2.h>
 #define _CRT_INSECURE_DEPRECATE(x)
 #define _CRT_NONSTDC_NO_DEPRECATE 1
 #define _CRT_SECURE_NO_WARNINGS 1
@@ -123,6 +128,11 @@
 #define __ptr64
 #define __unaligned
 #define _NO_CRT_STDIO_INLINE 1
+
+// This header disables the Windows API Annotations macros
+// Need to include sal.h to get the pragma once to prevent macro redefinition.
+#include "sal.h"
+#include "no_sal2.h"
 #endif
 
 /****************************
@@ -141,8 +151,10 @@
 // Ubuntu's assert.h uses this
 #define __PRETTY_FUNCTION__ __func__
 
+#ifndef __aarch64__
 #define _Float128 long double
 #define __float128 long double
+#endif
 #endif
 
 #if __APPLE__

@@ -26,9 +26,6 @@
 
 module dmd.backend.inliner;
 
-version (MARS)
-{
-
 import core.stdc.stdio;
 import core.stdc.ctype;
 import core.stdc.string;
@@ -47,21 +44,24 @@ import dmd.backend.barray;
 import dmd.backend.dlist;
 
 nothrow:
+@safe:
 
 private enum log = false;
 private enum log2 = false;
 
 /**********************************
  * Determine if function can be inline'd.
+ * Used to decide to save a function's intermediate code for later inlining.
  * Params:
  *      sfunc = function to check
  * Returns:
  *      true if sfunc can be inline'd.
  */
 
+@trusted
 bool canInlineFunction(Symbol *sfunc)
 {
-    if (log) printf("canInlineFunction(%s)\n",sfunc.Sident.ptr);
+    if (log) debug printf("canInlineFunction(%s)\n",sfunc.Sident.ptr);
     auto f = sfunc.Sfunc;
     auto t = sfunc.Stype;
     assert(f && tyfunc(t.Tty));
@@ -116,7 +116,7 @@ bool canInlineFunction(Symbol *sfunc)
     }
     if (!result)
         f.Fflags &= ~Finline;
-    if (log) printf("returns: %d\n",result);
+    if (log) debug printf("returns: %d\n",result);
     return result;
 }
 
@@ -127,9 +127,10 @@ bool canInlineFunction(Symbol *sfunc)
  *      sfunc = function to scan
  */
 
+@trusted
 void scanForInlines(Symbol *sfunc)
 {
-    if (log) printf("scanForInlines(%s)\n",prettyident(sfunc));
+    if (log) debug printf("scanForInlines(%s)\n",prettyident(sfunc));
     //symbol_debug(sfunc);
     func_t* f = sfunc.Sfunc;
     assert(f && tyfunc(sfunc.Stype.Tty));
@@ -164,6 +165,7 @@ private:
  * Returns:
  *      true if it can be inlined
  */
+@trusted
 bool canInlineExpression(elem* e)
 {
     if (!e)
@@ -210,6 +212,7 @@ bool canInlineExpression(elem* e)
  * Returns:
  *      replacement tree
  */
+@trusted
 elem* scanExpressionForInlines(elem *e)
 {
     //printf("scanExpressionForInlines(%p)\n",e);
@@ -306,6 +309,7 @@ elem* scanExpressionForInlines(elem *e)
  *      replacement tree.
  */
 
+@trusted
 private elem* tryInliningCall(elem *e)
 {
     //elem_debug(e);
@@ -352,7 +356,7 @@ private elem* tryInliningCall(elem *e)
  * Returns:
  *      the expression replacing the function call
  */
-
+@trusted
 private elem* inlineCall(elem *e,Symbol *sfunc)
 {
     if (debugc)
@@ -478,7 +482,7 @@ private elem* inlineCall(elem *e,Symbol *sfunc)
  * Returns:
  *      expression representing the argument list
  */
-
+@trusted
 private elem* initializeParamsWithArgs(elem* eargs, SYMIDX sistart, SYMIDX siend)
 {
     /* Create args[] and fill it with the arguments
@@ -637,7 +641,7 @@ private elem* initializeParamsWithArgs(elem* eargs, SYMIDX sistart, SYMIDX siend
 /*********************************
  * Replace references to old symbols with references to copied symbols.
  */
-
+@trusted
 private void adjustExpression(elem *e)
 {
     while (1)
@@ -682,6 +686,4 @@ private int getSize(const(elem)* e)
     if (sz == -1 && e.ET && (tybasic(e.Ety) == TYstruct || tybasic(e.Ety) == TYarray))
         sz = cast(int)type_size(e.ET);
     return sz;
-}
-
 }

@@ -55,12 +55,15 @@ static if (1)
     import dmd.backend.barray;
     import dmd.backend.code;
     import dmd.backend.code_x86;
+    import dmd.backend.drtlsym : getRtlsymPersonality;
     import dmd.backend.dwarf;
     import dmd.backend.dwarf2;
     import dmd.backend.mem;
     import dmd.backend.dlist;
     import dmd.backend.el;
+    import dmd.backend.elfobj : addSegmentToComdat;
     import dmd.backend.filespec;
+    import dmd.backend.machobj : getsegment2;
     import dmd.backend.global;
     import dmd.backend.obj;
     import dmd.backend.oper;
@@ -73,7 +76,6 @@ static if (1)
 
     import dmd.common.outbuffer;
 
-    extern (C++):
 
     nothrow:
 
@@ -88,12 +90,6 @@ static if (1)
         uint CIE_offset_unwind;     // CIE offset for unwind data
         uint CIE_offset_no_unwind;  // CIE offset for no unwind data
 
-        void addSegmentToComdat(segidx_t seg, segidx_t comdatseg);
-
-        int getsegment2(ref int seg, const(char)* sectname, const(char)* segname,
-            int align_, int flags);
-
-        Symbol* getRtlsymPersonality();
 
         private Barray!(Symbol*) resetSyms;        // Keep pointers to reset symbols
     }
@@ -1250,22 +1246,17 @@ static if (1)
 
             debug_info.buf.writeuLEB128(1);                   // abbreviation code
 
-            version (MARS)
-            {
-                debug_info.buf.write("Digital Mars D ");
-                debug_info.buf.writeStringz(config._version);     // DW_AT_producer
-                // DW_AT_language
-                auto language = (config.fulltypes == CVDWARF_D) ? DW_LANG_D : DW_LANG_C89;
-                /* if source file has .c or .i extension, emit C debug info
-                 */
-                if (filename.length >= 2 &&
-                    filename[$ - 2] == '.' &&
-                    (filename[$ - 1] == 'c' || filename[$ - 1] == 'i'))
-                    language = DW_LANG_C89;
-                debug_info.buf.writeByte(language);
-            }
-            else
-                static assert(0);
+            debug_info.buf.write("Digital Mars D ");
+            debug_info.buf.writeStringz(config._version);     // DW_AT_producer
+            // DW_AT_language
+            auto language = (config.fulltypes == CVDWARF_D) ? DW_LANG_D : DW_LANG_C89;
+            /* if source file has .c or .i extension, emit C debug info
+             */
+            if (filename.length >= 2 &&
+                filename[$ - 2] == '.' &&
+                (filename[$ - 1] == 'c' || filename[$ - 1] == 'i'))
+                language = DW_LANG_C89;
+            debug_info.buf.writeByte(language);
 
             debug_info.buf.writeStringz(filename);             // DW_AT_name
 
@@ -1459,16 +1450,7 @@ static if (1)
                     linnum_data *ld = &SegData[seg].SDlinnum_data[i];
                     const(char)* filename;
 
-                    version (MARS)
-                        filename = ld.filename;
-                    else
-                    {
-                        Sfile *sf = ld.filptr;
-                        if (sf)
-                            filename = sf.SFname;
-                        else
-                            filename = .filename;
-                    }
+                    filename = ld.filename;
 
                     if (last_filename == filename)
                     {
@@ -1759,14 +1741,11 @@ static if (1)
         if (!config.fulltypes)
             return;
 
-        version (MARS)
-        {
-            if (sfunc.Sflags & SFLnodebug)
-                return;
-            const(char)* filename = sfunc.Sfunc.Fstartline.Sfilename;
-            if (!filename)
-                return;
-        }
+        if (sfunc.Sflags & SFLnodebug)
+            return;
+        const(char)* filename = sfunc.Sfunc.Fstartline.Sfilename;
+        if (!filename)
+            return;
 
         uint funcabbrevcode;
 
@@ -1785,10 +1764,7 @@ static if (1)
         IDXSEC seg = sfunc.Sseg;
         seg_data *sd = SegData[seg];
 
-        version (MARS)
-            int filenum = dwarf_line_addfile(filename);
-        else
-            int filenum = 1;
+        int filenum = dwarf_line_addfile(filename);
 
         uint ret_type = dwarf_typidx(sfunc.Stype.Tnext);
         if (tybasic(sfunc.Stype.Tnext.Tty) == TYvoid)
@@ -1805,8 +1781,7 @@ static if (1)
         {
             Symbol *sa = globsym[si];
 
-            version (MARS)
-                if (sa.Sflags & SFLnodebug) continue;
+            if (sa.Sflags & SFLnodebug) continue;
 
             static immutable uint[14] formal_var_abbrev_suffix =
             [
@@ -1952,9 +1927,8 @@ static if (1)
             {
                 Symbol *sa = globsym[si];
 
-                version (MARS)
-                    if (sa.Sflags & SFLnodebug)
-                        continue;
+                if (sa.Sflags & SFLnodebug)
+                    continue;
 
                 uint vcode;
 
@@ -2119,11 +2093,8 @@ static if (1)
 
         symbol_debug(s);
 
-        version (MARS)
-        {
-            if (s.Sflags & SFLnodebug)
-                return;
-        }
+        if (s.Sflags & SFLnodebug)
+            return;
 
         type *t = s.Stype;
         type_debug(t);
@@ -3071,10 +3042,7 @@ static if (1)
      */
     const(char)* getSymName(Symbol* sym)
     {
-        version (MARS)
-            return sym.prettyIdent ? sym.prettyIdent : sym.Sident.ptr;
-        else
-            return sym.Sident.ptr;
+        return sym.prettyIdent ? sym.prettyIdent : sym.Sident.ptr;
     }
 
     /* ======================= Abbreviation Codes ====================== */
@@ -3235,7 +3203,6 @@ static if (1)
 }
 else
 {
-    extern (C++):
 
     void dwarf_CFA_set_loc(uint location) { }
     void dwarf_CFA_set_reg_offset(int reg, int offset) { }

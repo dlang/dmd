@@ -41,7 +41,7 @@ import dmd.tokens;
 import dmd.root.ctfloat;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
-import dmd.root.rootobject;
+import dmd.rootobject;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
@@ -344,14 +344,15 @@ immutable:
     ubyte val;
     opflag_t ty;
 
-    bool isSIL_DIL_BPL_SPL() const
+    bool isSIL_DIL_BPL_SPL() const @trusted
     {
+        bool caseSensitive = asmstate.statement.caseSensitive;
         // Be careful as these have the same val's as AH CH DH BH
         return ty == _r8 &&
-            ((val == _SIL && regstr == "SIL") ||
-             (val == _DIL && regstr == "DIL") ||
-             (val == _BPL && regstr == "BPL") ||
-             (val == _SPL && regstr == "SPL"));
+            ((val == _SIL && stringEq(regstr, "SIL", caseSensitive)) ||
+             (val == _DIL && stringEq(regstr, "DIL", caseSensitive)) ||
+             (val == _BPL && stringEq(regstr, "BPL", caseSensitive)) ||
+             (val == _SPL && stringEq(regstr, "SPL", caseSensitive)));
     }
 }
 
@@ -749,7 +750,7 @@ RETRY:
     switch (usActual)
     {
         case 0:
-            if (target.is64bit && (pop.ptb.pptb0.usFlags & _i64_bit))
+            if (target.isX86_64 && (pop.ptb.pptb0.usFlags & _i64_bit))
             {
                 asmerr("opcode `%s` is unavailable in 64bit mode", asm_opstr(pop));  // illegal opcode in 64bit mode
                 break;
@@ -792,7 +793,7 @@ RETRY:
                         continue;
 
                     // Check if match is invalid in 64bit mode
-                    if (target.is64bit && (table1.usFlags & _i64_bit))
+                    if (target.isX86_64 && (table1.usFlags & _i64_bit))
                     {
                         bInvalid64bit = true;
                         continue;
@@ -859,7 +860,7 @@ RETRY:
             {
                 if (log) { printf("table1   = "); asm_output_flags(table2.usOp1); printf("\n"); }
                 if (log) { printf("table2   = "); asm_output_flags(table2.usOp2); printf("\n"); }
-                if (target.is64bit && (table2.usFlags & _i64_bit))
+                if (target.isX86_64 && (table2.usFlags & _i64_bit))
                     asmerr("opcode `%s` is unavailable in 64bit mode", asm_opstr(pop));
 
                 const bMatch1 = asm_match_flags(opflags[0], table2.usOp1);
@@ -1354,7 +1355,7 @@ code *asm_emit(Loc loc,
     {
         emit(0x67);
         pc.Iflags |= CFaddrsize;
-        if (!target.is64bit)
+        if (!target.isX86_64)
             amods[i] = _addr16;
         else
             amods[i] = _addr32;
@@ -1475,10 +1476,10 @@ code *asm_emit(Loc loc,
 
     asmstate.statement.regs |= asm_modify_regs(ptb, opnds);
 
-    if (ptb.pptb0.usFlags & _64_bit && !target.is64bit)
+    if (ptb.pptb0.usFlags & _64_bit && !target.isX86_64)
         asmerr("use -m64 to compile 64 bit instructions");
 
-    if (target.is64bit && (ptb.pptb0.usFlags & _64_bit))
+    if (target.isX86_64 && (ptb.pptb0.usFlags & _64_bit))
     {
         emit(REX | REX_W);
         pc.Irex |= REX_W;
@@ -1503,7 +1504,7 @@ code *asm_emit(Loc loc,
         // an immediate and does not affect operation size
         case 3:
         case 2:
-            if ((!target.is64bit &&
+            if ((!target.isX86_64 &&
                   (amods[1] == _addr16 ||
                    (isOneOf(OpndSize._16, uSizemaskTable[1]) && aoptyTable[1] == _rel ) ||
                    (isOneOf(OpndSize._32, uSizemaskTable[1]) && aoptyTable[1] == _mnoi) ||
@@ -1522,7 +1523,7 @@ code *asm_emit(Loc loc,
             goto case;
 
         case 1:
-            if ((!target.is64bit &&
+            if ((!target.isX86_64 &&
                   (amods[0] == _addr16 ||
                    (isOneOf(OpndSize._16, uSizemaskTable[0]) && aoptyTable[0] == _rel ) ||
                    (isOneOf(OpndSize._32, uSizemaskTable[0]) && aoptyTable[0] == _mnoi) ||
@@ -1765,6 +1766,14 @@ code *asm_emit(Loc loc,
 
         case 0x0F0000:                      // an AMD instruction
             const puc = (cast(ubyte *) &opcode);
+            if (opcode == ENDBR32 || opcode == ENDBR64)
+            {
+                emit(puc[3]);
+                emit(puc[2]);
+                emit(puc[1]);
+                emit(puc[0]);
+                goto L3;
+            }
             emit(puc[2]);
             emit(puc[1]);
             emit(puc[0]);
@@ -1873,7 +1882,7 @@ L3:
                 {
                     reg &= 7;
                     pc.Irex |= REX_B;
-                    assert(target.is64bit);
+                    assert(target.isX86_64);
                 }
                 if (asmstate.ucItype == ITfloat)
                     pc.Irm += reg;
@@ -1955,12 +1964,12 @@ L3:
                 {
                     reg &= 7;
                     pc.Irex |= REX_B;
-                    assert(target.is64bit);
+                    assert(target.isX86_64);
                 }
                 else if (opnds[0].base.isSIL_DIL_BPL_SPL())
                 {
                     pc.Irex |= REX;
-                    assert(target.is64bit);
+                    assert(target.isX86_64);
                 }
                 if (asmstate.ucItype == ITfloat)
                     pc.Irm += reg;
@@ -1977,12 +1986,12 @@ L3:
                 {
                     reg &= 7;
                     pc.Irex |= REX_B;
-                    assert(target.is64bit);
+                    assert(target.isX86_64);
                 }
                 else if (opnds[0].base.isSIL_DIL_BPL_SPL())
                 {
                     pc.Irex |= REX;
-                    assert(target.is64bit);
+                    assert(target.isX86_64);
                 }
                 if (asmstate.ucItype == ITfloat)
                     pc.Irm += reg;
@@ -2054,7 +2063,7 @@ L3:
                     {
                         reg &= 7;
                         pc.Irex |= REX_B;
-                        assert(target.is64bit);
+                        assert(target.isX86_64);
                     }
                     if (asmstate.ucItype == ITfloat)
                         pc.Irm += reg;
@@ -2091,7 +2100,7 @@ void asmerr(const(char)* format, ...)
 
     va_list ap;
     va_start(ap, format);
-    verror(asmstate.loc, format, ap);
+    verrorReport(asmstate.loc, format, ap, ErrorKind.error);
     va_end(ap);
 
     asmstate.errors = true;
@@ -2153,9 +2162,9 @@ private @safe pure bool asm_isNonZeroInt(const ref OPND o)
 /*******************************
  */
 
-private @safe pure bool asm_is_fpreg(const(char)[] szReg)
+private @trusted bool asm_is_fpreg(const(char)[] szReg)
 {
-    return szReg == "ST";
+    return stringEq(szReg, "ST", asmstate.statement.caseSensitive);
 }
 
 /*******************************
@@ -2207,7 +2216,7 @@ private void asm_merge_opnds(ref OPND o1, ref OPND o2)
         size_t index = cast(int)o2.disp;
         if (index >= tup.objects.length)
         {
-            asmerr("tuple index `%llu` out of bounds `[0 .. %llu]`",
+            asmerr("sequence index `%llu` out of bounds `[0 .. %llu]`",
                     cast(ulong) index, cast(ulong) tup.objects.length);
         }
         else
@@ -2422,7 +2431,7 @@ void asm_make_modrm_byte(
         uint rm;
         uint reg;
         uint mod;
-        uint auchOpcode()
+        uint auchOpcode() @safe
         {
             assert(rm < 8);
             assert(reg < 8);
@@ -2436,7 +2445,7 @@ void asm_make_modrm_byte(
         uint base;
         uint index;
         uint ss;
-        uint auchOpcode()
+        uint auchOpcode() @safe
         {
             assert(base < 8);
             assert(index < 8);
@@ -2532,7 +2541,7 @@ void asm_make_modrm_byte(
                 }
                 else
                 {
-                    pc.IFL1 = target.is64bit ? FLblock : FLblockoff;
+                    pc.IFL1 = target.isX86_64 ? FLblock : FLblockoff;
                     pc.IEV1.Vlsym = cast(_LabelDsymbol*)label;
                 }
                 pc.Iflags |= CFoff;
@@ -2586,7 +2595,7 @@ void asm_make_modrm_byte(
             assert(d);
             if (d.isDataseg() || d.isCodeseg())
             {
-                if (!target.is64bit && amod == _addr16)
+                if (!target.isX86_64 && amod == _addr16)
                 {
                     asmerr("cannot have 16 bit addressing mode in 32 bit code");
                     return;
@@ -2673,7 +2682,7 @@ void asm_make_modrm_byte(
             bOffsetsym = true;
 
     }
-    else if (amod == _addr32 || (amod == _flbl && !target.is64bit))
+    else if (amod == _addr32 || (amod == _flbl && !target.isX86_64))
     {
         bool bModset = false;
 
@@ -3135,7 +3144,7 @@ Lmatch:
 /*******************************
  */
 
-bool asm_match_float_flags(opflag_t usOp, opflag_t usTable)
+bool asm_match_float_flags(opflag_t usOp, opflag_t usTable) @safe
 {
     ASM_OPERAND_TYPE    aoptyTable;
     ASM_OPERAND_TYPE    aoptyOp;
@@ -3387,18 +3396,19 @@ immutable(REG)* asm_reg_lookup(const(char)[] s)
 {
     //dbg_printf("asm_reg_lookup('%s')\n",s);
 
+    bool caseSensitive = asmstate.statement.caseSensitive;
     for (int i = 0; i < regtab.length; i++)
     {
-        if (s == regtab[i].regstr)
+        if (stringEq(s, regtab[i].regstr, caseSensitive))
         {
             return &regtab[i];
         }
     }
-    if (target.is64bit)
+    if (target.isX86_64)
     {
         for (int i = 0; i < regtab64.length; i++)
         {
-            if (s == regtab64[i].regstr)
+            if (stringEq(s, regtab64[i].regstr, caseSensitive))
             {
                 return &regtab64[i];
             }
@@ -3459,7 +3469,7 @@ OpndSize asm_type_size(Type ptype, bool bPtr)
             case 4:     u = OpndSize._32;        break;
             case 6:     u = OpndSize._48;        break;
 
-            case 8:     if (target.is64bit || bPtr)
+            case 8:     if (target.isX86_64 || bPtr)
                             u = OpndSize._64;
                         break;
 
@@ -3691,7 +3701,7 @@ code *asm_db_parse(OP *pop)
     cdb.ctor();
     if (driverParams.symdebug)
         cdb.genlinnum(Srcpos.create(asmstate.loc.filename, asmstate.loc.linnum, asmstate.loc.charnum));
-    cdb.genasm(bytes.peekChars(), cast(uint)bytes.length);
+    cdb.genasm(bytes.peekSlice());
     code *c = cdb.finish();
 
     asmstate.statement.regs |= /* mES| */ ALLREGS;
@@ -4572,7 +4582,7 @@ TOK tryExpressionToOperand(Expression e, out OPND o1, out Dsymbol s)
  * If c is a power of 2, return that power else -1.
  */
 
-private int ispow2(uint c)
+private int ispow2(uint c) @safe
 {
     int i;
 
@@ -4589,7 +4599,7 @@ private int ispow2(uint c)
  * Returns: true if szop is one of the values in sztbl
  */
 private
-bool isOneOf(OpndSize szop, OpndSize sztbl)
+bool isOneOf(OpndSize szop, OpndSize sztbl) @safe
 {
     with (OpndSize)
     {
@@ -4639,4 +4649,45 @@ unittest
         assert( isOneOf(_8, _64_32_16_8));
         assert( isOneOf(_8, _anysize));
     }
+}
+
+/**********************************
+ * Case insensitive string compare
+ * Returns: true if equal
+ */
+
+bool stringEq(const(char)[] s1, const(char)[] s2, bool caseSensitive)
+{
+    if (caseSensitive)
+        return s1 == s2;
+
+    if (s1.length != s2.length)
+        return false;
+    foreach (i, c; s1)
+    {
+        char c1 = c;
+        if ('A' <= c1 && c1 <= 'Z')
+            c1 |= 0x20;
+        char c2 = s2[i];
+        if ('A' <= c2 && c2 <= 'Z')
+            c2 |= 0x20;
+
+        if (c1 != c2)
+            return false;
+    }
+    return true;
+}
+
+unittest
+{
+    assert(!stringEq("ABZ", "ABZX", true));
+
+    assert( stringEq("ABZ", "ABZ", true));
+    assert(!stringEq("aBz", "ABZ", true));
+    assert(!stringEq("ABZ", "ABz", true));
+
+    assert( stringEq("aBZ", "ABZ", false));
+    assert( stringEq("aBz", "AbZ", false));
+    assert( stringEq("ABZ", "ABz", false));
+    assert(!stringEq("3BZ", "ABz", false));
 }

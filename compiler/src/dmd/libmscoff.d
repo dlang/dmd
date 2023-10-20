@@ -33,7 +33,6 @@ import dmd.location;
 import dmd.utils;
 
 import dmd.root.array;
-import dmd.root.file;
 import dmd.root.filename;
 import dmd.common.outbuffer;
 import dmd.root.port;
@@ -44,7 +43,7 @@ import dmd.root.stringtable;
 import dmd.scanmscoff;
 
 // Entry point (only public symbol in this module).
-public extern (C++) Library LibMSCoff_factory()
+public extern (C++) Library LibMSCoff_factory() @safe
 {
     return new LibMSCoff();
 }
@@ -59,13 +58,13 @@ struct MSCoffObjSymbol
     MSCoffObjModule* om;
 
     /// Predicate for `Array.sort`for name comparison
-    static int name_pred (scope const MSCoffObjSymbol** ppe1, scope const MSCoffObjSymbol** ppe2) nothrow @nogc pure
+    static int name_pred (scope const MSCoffObjSymbol** ppe1, scope const MSCoffObjSymbol** ppe2) nothrow @nogc pure @safe
     {
         return dstrcmp((**ppe1).name, (**ppe2).name);
     }
 
     /// Predicate for `Array.sort`for offset comparison
-    static int offset_pred (scope const MSCoffObjSymbol** ppe1, scope const MSCoffObjSymbol** ppe2) nothrow @nogc pure
+    static int offset_pred (scope const MSCoffObjSymbol** ppe1, scope const MSCoffObjSymbol** ppe2) nothrow @nogc pure @safe
     {
         return (**ppe1).om.offset - (**ppe2).om.offset;
     }
@@ -95,7 +94,7 @@ final class LibMSCoff : Library
 
         void corrupt(int reason)
         {
-            error("corrupt MS Coff object module %.*s %d",
+            eSink.error(loc, "corrupt MS Coff object module %.*s %d",
                   cast(int)module_name.length, module_name.ptr, reason);
         }
 
@@ -394,7 +393,7 @@ private:
             this.addSymbol(om, name, pickAny);
         }
 
-        scanMSCoffObjModule(&addSymbol, om.base[0 .. om.length], om.name.ptr, loc);
+        scanMSCoffObjModule(&addSymbol, om.base[0 .. om.length], om.name.ptr, loc, eSink);
     }
 
     /*****************************************************************************/
@@ -411,7 +410,7 @@ private:
      *      Longnames Member
      *      object modules...
      */
-    protected override void WriteLibToBuffer(OutBuffer* libbuf)
+    protected override void writeLibToBuffer(ref OutBuffer libbuf)
     {
         static if (LOG)
         {

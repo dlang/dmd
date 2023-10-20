@@ -35,6 +35,7 @@ struct DMDparams
 
     bool optimize;          // run optimizer
     bool nofloat;           // code should not pull in floating point support
+    bool ibt;               // generate indirect branch tracking
     PIC pic = PIC.fixed;    // generate fixed, pic or pie code
     bool stackstomp;        // add stack stomping code
 
@@ -66,7 +67,7 @@ struct Triple
 {
     private const(char)[] source;
     CPU               cpu;
-    bool              is64bit;
+    bool              isX86_64;
     bool              isLP64;
     Target.OS         os;
     ubyte             osMajor;
@@ -135,14 +136,14 @@ struct Triple
         }
 
         if (matches("x86_64"))
-            is64bit = true;
+            isX86_64 = true;
         else if (matches("x86"))
-            is64bit = false;
+            isX86_64 = false;
         else if (matches("x64"))
-            is64bit = true;
+            isX86_64 = true;
         else if (matches("x32"))
         {
-            is64bit = true;
+            isX86_64 = true;
             isLP64 = false;
         }
         else
@@ -162,7 +163,7 @@ struct Triple
     }
 
     // try parsing vendor if present
-    bool tryParseVendor(const(char)[] vendor)
+    bool tryParseVendor(const(char)[] vendor) @safe
     {
         switch (vendor)
         {
@@ -239,7 +240,7 @@ struct Triple
      * Returns:
      *  parsed number
      */
-    private pure static
+    private pure @safe static
     uint parseNumber(ref const(char)[] str, ref bool overflow)
     {
         auto s = str;
@@ -294,10 +295,10 @@ struct Triple
     }
 }
 
-void setTriple(ref Target target, const ref Triple triple)
+void setTriple(ref Target target, const ref Triple triple) @safe
 {
     target.cpu     = triple.cpu;
-    target.is64bit = triple.is64bit;
+    target.isX86_64 = triple.isX86_64;
     target.isLP64  = triple.isLP64;
     target.os      = triple.os;
     target.osMajor = triple.osMajor;

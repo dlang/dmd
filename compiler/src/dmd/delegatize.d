@@ -21,7 +21,6 @@ import dmd.dsymbol;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
-import dmd.globals;
 import dmd.init;
 import dmd.initsem;
 import dmd.location;
@@ -109,7 +108,7 @@ private void lambdaSetParent(Expression e, FuncDeclaration fd)
         }
 
     public:
-        extern (D) this(FuncDeclaration fd) scope
+        extern (D) this(FuncDeclaration fd) scope @safe
         {
             this.fd = fd;
         }
@@ -205,7 +204,7 @@ bool lambdaCheckForNestedRef(Expression e, Scope* sc)
         Scope* sc;
         bool result;
 
-        extern (D) this(Scope* sc) scope
+        extern (D) this(Scope* sc) scope @safe
         {
             this.sc = sc;
         }

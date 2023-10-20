@@ -17,20 +17,22 @@ import core.stdc.fenv;
 import dmd.root.longdouble;
 import dmd.backend.cdef;
 
-extern (C++):
 
 nothrow:
+@safe:
 
-int statusFE() @safe
+int statusFE()
 {
     return 0;
 }
 
+@trusted
 int testFE()
 {
     return fetestexcept(FE_ALL_EXCEPT);
 }
 
+@trusted
 void clearFE()
 {
     feclearexcept(FE_ALL_EXCEPT);

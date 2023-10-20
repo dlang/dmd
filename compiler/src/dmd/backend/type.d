@@ -22,7 +22,6 @@ import dmd.backend.dlist;
 import dmd.backend.el : elem;
 import dmd.backend.ty;
 
-extern (C++):
 @nogc:
 nothrow:
 @safe:
@@ -62,13 +61,7 @@ enum
 
 alias type = TYPE;
 
-void type_incCount(type* t);
-void type_setIdent(type* t, char* ident);
-
-void symbol_struct_addField(Symbol* s, const(char)* name, type* t, uint offset);
-void symbol_struct_addBitField(Symbol* s, const(char)* name, type* t, uint offset, uint fieldWidth, uint bitOffset);
-void symbol_struct_hasBitFields(Symbol* s);
-void symbol_struct_addBaseClass(Symbol* s, type* t, uint offset);
+public import dmd.backend.symbol : symbol_struct_addField, symbol_struct_addBitField, symbol_struct_hasBitFields, symbol_struct_addBaseClass;
 
 // Return true if type is a struct, class or union
 bool type_struct(const type* t) { return tybasic(t.Tty) == TYstruct; }
@@ -124,67 +117,13 @@ mangle_t type_mangle(const type *t) { return t.Tmangle; }
 // Return true if function type has a variable number of arguments
 bool variadic(const type *t) { return (t.Tflags & (TFprototype | TFfixed)) == TFprototype; }
 
-extern __gshared type*[TYMAX] tstypes;
-extern __gshared type*[TYMAX] tsptr2types;
+public import dmd.backend.var : chartype;
 
-extern __gshared
-{
-    type* tslogical;
-    type* chartype;
-    type* tsclib;
-    type* tsdlib;
-    type* tspvoid;
-    type* tspcvoid;
-    type* tsptrdiff;
-    type* tssize;
-    type* tstrace;
-}
-
-/* Functions    */
-void type_print(const type* t);
-void type_free(type *);
-void type_init();
-void type_term();
-type *type_copy(type *);
-elem *type_vla_fix(type **pt);
-type *type_setdim(type **,targ_size_t);
-type *type_setdependent(type *t);
-int type_isdependent(type *t);
-void type_hydrate(type **);
-void type_dehydrate(type **);
-
-targ_size_t type_size(const type *);
-uint type_alignsize(type *);
-bool type_zeroSize(type *t, tym_t tyf);
-uint type_parameterSize(type *t, tym_t tyf);
-uint type_paramsize(type *t);
-type *type_alloc(tym_t);
-type *type_alloc_template(Symbol *s);
-type *type_allocn(tym_t,type *tn);
-type *type_allocmemptr(Classsym *stag,type *tn);
-type *type_fake(tym_t);
-type *type_setty(type **,uint);
-type *type_settype(type **pt, type *t);
-type *type_setmangle(type **pt,mangle_t mangle);
-type *type_setcv(type **pt,tym_t cv);
-int type_embed(type *t,type *u);
-int type_isvla(type *t);
-
-param_t *param_calloc();
-param_t *param_append_type(param_t **,type *);
-void param_free_l(param_t *);
-void param_free(param_t **);
-Symbol *param_search(const(char)* name, param_t **pp);
-void param_hydrate(param_t **);
-void param_dehydrate(param_t **);
-int typematch(type *t1, type *t2, int relax);
-
-type *type_pointer(type *tnext);
-type *type_dyn_array(type *tnext);
-extern (C) type *type_static_array(targ_size_t dim, type *tnext);
-type *type_assoc_array(type *tkey, type *tvalue);
-type *type_delegate(type *tnext);
-extern (C) type *type_function(tym_t tyf, type*[] ptypes, bool variadic, type *tret);
-type *type_enum(const(char) *name, type *tbase);
-type *type_struct_class(const(char)* name, uint alignsize, uint structsize,
-        type *arg1type, type *arg2type, bool isUnion, bool isClass, bool isPOD, bool is0size);
+public import dmd.backend.dtype : type_print, type_free, type_init, type_term, type_copy,
+    type_setdim, type_setdependent, type_isdependent, type_size, type_alignsize, type_zeroSize,
+    type_parameterSize, type_paramsize, type_alloc, type_allocn, type_fake, type_setty,
+    type_settype, type_setmangle, type_setcv, type_embed, type_isvla, param_calloc,
+    param_append_type, param_free_l, param_free, param_search, typematch, type_pointer,
+    type_dyn_array, type_static_array, type_assoc_array, type_delegate, type_function,
+    type_enum, type_struct_class, tstypes, tsptr2types, tslogical, tsclib, tsdlib,
+    tspvoid, tspcvoid, tsptrdiff, tssize, tstrace;

@@ -47,7 +47,6 @@ version (Windows)
     }
 }
 
-extern (C++):
 
 nothrow:
 @safe:
@@ -56,18 +55,9 @@ nothrow:
 @trusted
 bool symbol_iscomdat2(Symbol* s)
 {
-    version (MARS)
-    {
-        return s.Sclass == SC.comdat ||
-            config.flags2 & CFG2comdat && s.Sclass == SC.inline ||
-            config.flags4 & CFG4allcomdat && s.Sclass == SC.global;
-    }
-    else
-    {
-        return s.Sclass == SC.comdat ||
-            config.flags2 & CFG2comdat && s.Sclass == SC.inline ||
-            config.flags4 & CFG4allcomdat && (s.Sclass == SC.global || s.Sclass == SC.static_);
-    }
+    return s.Sclass == SC.comdat ||
+        config.flags2 & CFG2comdat && s.Sclass == SC.inline ||
+        config.flags4 & CFG4allcomdat && s.Sclass == SC.global;
 }
 
 /***********************************
@@ -131,13 +121,12 @@ void outdata(Symbol *s)
                          dt.DTnbytes > config.threshold)
                 {
                 L1:
-                    objmod.write_bytes(SegData[dt.DTseg],dt.DTnbytes,dt.DTpbytes);
+                    objmod.write_bytes(SegData[dt.DTseg],dt.DTpbytes[0 .. dt.DTnbytes]);
                     break;
                 }
                 else
                 {
-                    version (MARS)
-                        alignOffset(CDATA, 2 << dt.DTalign);
+                    alignOffset(CDATA, 2 << dt.DTalign);
                     dt.DTabytes += objmod.data_readonly(cast(char*)dt.DTpbytes,dt.DTnbytes,&dt.DTseg);
                 }
                 break;
@@ -196,7 +185,6 @@ void outdata(Symbol *s)
                     assert(s.Sseg && s.Sseg != UNKNOWN);
                     if (s.Sclass == SC.global || (s.Sclass == SC.static_ && config.objfmt != OBJ_OMF)) // if a pubdef to be done
                         objmod.pubdefsize(s.Sseg,s,s.Soffset,datasize);   // do the definition
-                    searchfixlist(s);
                     if (config.fulltypes &&
                         !(s.Sclass == SC.static_ && funcsym_p)) // not local static
                     {
@@ -330,7 +318,6 @@ void outdata(Symbol *s)
         else
             cv_outsym(s);
     }
-    searchfixlist(s);
 
     /* Go back through list, now that we know its size, and send out    */
     /* the data.                                                        */
@@ -383,17 +370,10 @@ else
                         objmod.reftodatseg(seg,offset,dt.DTabytes,DATA,flags);
                     else
                     {
-version (MARS)
-{
                         if (dt.DTseg == CDATA)
                             objmod.reftodatseg(seg,offset,dt.DTabytes,CDATA,flags);
                         else
                             objmod.reftofarseg(seg,offset,dt.DTabytes,dt.DTseg,flags);
-}
-else
-{
-                        objmod.reftofarseg(seg,offset,dt.DTabytes,dt.DTseg,flags);
-}
                     }
 }
                 }
@@ -971,13 +951,10 @@ private void writefunc2(Symbol *sfunc)
         memset(&b._BLU,0,block.sizeof - block._BLU.offsetof);
         if (b.Belem)
         {   outelem(b.Belem, addressOfParam);
-version (MARS)
-{
             if (b.Belem.Eoper == OPhalt)
             {   b.BC = BCexit;
                 list_free(&b.Bsucc,FPNULL);
             }
-}
         }
         if (b.BC == BCasm)
             anyasm = true;
@@ -1047,7 +1024,6 @@ version (MARS)
         }
         cod3_align(cseg);               // align start of function
         objmod.func_start(sfunc);
-        searchfixlist(sfunc);           // backpatch any refs to this function
     }
 
     //printf("codgen()\n");
@@ -1092,8 +1068,6 @@ version (MARS)
             cv_func(sfunc);                 // debug info for function
     }
 
-version (MARS)
-{
     /* This is to make uplevel references to SCfastpar variables
      * from nested functions work.
      */
@@ -1116,7 +1090,6 @@ version (MARS)
      * Necessary for nested function access to lexically enclosing frames.
      */
      cod3_adjSymOffsets();
-}
 
     if (symbol_iscomdat2(sfunc))         // if generated a COMDAT
     {
@@ -1226,16 +1199,9 @@ static if (0)
 
     Symbol *s;
 
-version (MARS)
-{
     bool cdata = config.objfmt == OBJ_ELF ||
                  config.objfmt == OBJ_OMF ||
                  config.objfmt == OBJ_MSCOFF;
-}
-else
-{
-    bool cdata = config.objfmt == OBJ_ELF;
-}
     if (cdata)
     {
         /* MACHOBJ can't go here, because the const data segment goes into
@@ -1250,7 +1216,7 @@ else
         alignOffset(DATA, sz);
         s = symboldata(Offset(DATA),ty | mTYconst);
         s.Sseg = DATA;
-        objmod.write_bytes(SegData[DATA], len, p);
+        objmod.write_bytes(SegData[DATA], p[0 .. len]);
         //printf("s.Sseg = %d:x%x\n", s.Sseg, s.Soffset);
     }
 
@@ -1287,7 +1253,7 @@ else
 void out_readonly_comdat(Symbol *s, const(void)* p, uint len, uint nzeros)
 {
     objmod.readonly_comdat(s);         // create comdat segment
-    objmod.write_bytes(SegData[s.Sseg], len, cast(void *)p);
+    objmod.write_bytes(SegData[s.Sseg], p[0 .. len]);
     objmod.lidata(s.Sseg, len, nzeros);
 }
 
@@ -1295,15 +1261,7 @@ void out_readonly_comdat(Symbol *s, const(void)* p, uint len, uint nzeros)
 void Srcpos_print(ref const Srcpos srcpos, const(char)* func)
 {
     printf("%s(", func);
-version (MARS)
-{
     printf("Sfilename = %s", srcpos.Sfilename ? srcpos.Sfilename : "null".ptr);
-}
-else
-{
-    const sf = srcpos.Sfilptr ? *srcpos.Sfilptr : null;
-    printf("Sfilptr = %p (filename = %s)", sf, sf ? sf.SFname : "null".ptr);
-}
     printf(", Slinnum = %u", srcpos.Slinnum);
     printf(")\n");
 }

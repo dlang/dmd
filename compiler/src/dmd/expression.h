@@ -51,7 +51,7 @@ bool isTrivialExp(Expression *e);
 bool hasSideEffect(Expression *e, bool assumeImpureCalls = false);
 
 enum BE : int32_t;
-BE canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow);
+BE canThrow(Expression *e, FuncDeclaration *func, ErrorSink *eSink);
 
 typedef unsigned char OwnedBy;
 enum
@@ -93,9 +93,6 @@ public:
     DYNCAST dyncast() const override final { return DYNCAST_EXPRESSION; }
 
     const char *toChars() const override;
-    void error(const char *format, ...) const;
-    void warning(const char *format, ...) const;
-    void deprecation(const char *format, ...) const;
 
     virtual dinteger_t toInteger();
     virtual uinteger_t toUInteger();
@@ -348,8 +345,8 @@ public:
 
     ThisExp *syntaxCopy() override;
     Optional<bool> toBool() override;
-    bool isLvalue() override final;
-    Expression *toLvalue(Scope *sc, Expression *e) override final;
+    bool isLvalue() override;
+    Expression *toLvalue(Scope *sc, Expression *e) override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -357,6 +354,8 @@ public:
 class SuperExp final : public ThisExp
 {
 public:
+    bool isLvalue() override;
+    Expression* toLvalue(Scope* sc, Expression* e) final override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -378,6 +377,7 @@ public:
     size_t len;         // number of chars, wchars, or dchars
     unsigned char sz;   // 1: char, 2: wchar, 4: dchar
     bool committed;     // if type is committed
+    bool hexString;     // if string is parsed from a hex string literal
 
     static StringExp *create(const Loc &loc, const char *s);
     static StringExp *create(const Loc &loc, const void *s, d_size_t len);
@@ -444,6 +444,7 @@ public:
     OwnedBy ownedByCtfe;
     Expressions *keys;
     Expressions *values;
+    Expression* lowering;
 
     bool equals(const RootObject * const o) const override;
     AssocArrayLiteralExp *syntaxCopy() override;
@@ -953,6 +954,7 @@ public:
 private:
     uint8_t bitFields;
 
+public:
     SliceExp *syntaxCopy() override;
     bool isLvalue() override;
     Expression *toLvalue(Scope *sc, Expression *e) override;
@@ -1324,7 +1326,6 @@ public:
     bool isLvalue() override;
     Expression *toLvalue(Scope *sc, Expression *e) override;
     Expression *modifiableLvalue(Scope *sc, Expression *e) override;
-    void hookDtors(Scope *sc);
 
     void accept(Visitor *v) override { v->visit(this); }
 };

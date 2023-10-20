@@ -65,30 +65,5 @@ void* mem_realloc(void* p, size_t u)
 @trusted
 void mem_free(void* p) { free(p); }
 
-extern (C++)
-{
-    void mem_free_cpp(void *);
-    alias mem_freefp = mem_free_cpp;
-}
-
-version (MEM_DEBUG)
-{
-    alias mem_fstrdup = mem_strdup;
-    alias mem_fcalloc = mem_calloc;
-    alias mem_fmalloc = mem_malloc;
-    alias mem_ffree   = mem_free;
-}
-else
-{
-    @trusted
-    char *mem_fstrdup(const(char) *);
-
-    @trusted
-    void *mem_fcalloc(size_t);
-
-    @trusted
-    void *mem_fmalloc(size_t);
-
-    @trusted
-    void mem_ffree(void *) { }
-}
+@trusted
+void mem_ffree(void *) { }

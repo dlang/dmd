@@ -665,7 +665,7 @@ struct SafeS
 		int* p;
 	}
 }
-void test13x(@(10) int a, @(20) int, @(tuple(30), tuple(40)) int[] arr...)
+void test13x(@(10) int a, @(20) int, @(AliasSeq!(30), AliasSeq!(40)) int[] arr...)
 {
 }
 enum Test14UDA1;

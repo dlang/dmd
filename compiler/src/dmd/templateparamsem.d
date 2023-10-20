@@ -19,7 +19,7 @@ import dmd.globals;
 import dmd.location;
 import dmd.expression;
 import dmd.expressionsem;
-import dmd.root.rootobject;
+import dmd.rootobject;
 import dmd.mtype;
 import dmd.typesem;
 import dmd.visitor;
@@ -50,7 +50,7 @@ private extern (C++) final class TemplateParameterSemanticVisitor : Visitor
     TemplateParameters* parameters;
     bool result;
 
-    this(Scope* sc, TemplateParameters* parameters) scope
+    this(Scope* sc, TemplateParameters* parameters) scope @safe
     {
         this.sc = sc;
         this.parameters = parameters;

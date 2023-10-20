@@ -5,6 +5,18 @@ TESTS:=profile profilegc both
 DIFF:=diff
 GREP:=grep
 
+ifeq (freebsd,$(OS))
+    SHELL=/usr/local/bin/bash
+else ifeq (openbsd,$(OS))
+    SHELL=/usr/local/bin/bash
+else ifeq (netbsd,$(OS))
+    SHELL=/usr/pkg/bin/bash
+else ifeq (dragonflybsd,$(OS))
+    SHELL=/usr/local/bin/bash
+else
+    SHELL=/bin/bash
+endif
+
 .PHONY: all clean
 all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))
 
@@ -25,7 +37,9 @@ $(ROOT)/profilegc.done: $(ROOT)/%.done: $(ROOT)/%
 	@echo Testing $*
 	@rm -f $(ROOT)/myprofilegc.log
 	$(QUIET)$(TIMELIMIT)$(ROOT)/$* $(ROOT)/myprofilegc.log
-	$(QUIET)$(DIFF) myprofilegc.log.$(OS).$(MODEL).exp $(ROOT)/myprofilegc.log
+	$(QUIET)$(DIFF) \
+		<($(GREP) -vF 'core.' myprofilegc.log.$(OS).$(MODEL).exp) \
+		<($(GREP) -vF 'core.' $(ROOT)/myprofilegc.log)
 	@touch $@
 
 $(ROOT)/both.done: DFLAGS+=-profile -profile=gc
@@ -38,7 +52,9 @@ $(ROOT)/both.done: $(ROOT)/%.done: $(ROOT)/%
 	$(QUIET) cat $(ROOT)/both.def
 	$(QUIET) sort $(ROOT)/both.def -o $(ROOT)/both.def
 	$(QUIET)(sort bothnew.def.exp | $(DIFF) - $(ROOT)/both.def)
-	$(QUIET)$(DIFF) bothgc.log.exp $(ROOT)/bothgc.log
+	$(QUIET)$(DIFF) \
+		<($(GREP) -vF 'core.' bothgc.log.exp) \
+		<($(GREP) -vF 'core.' $(ROOT)/bothgc.log)
 	@touch $@
 
 $(ROOT)/%: $(SRC)/%.d

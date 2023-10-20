@@ -67,7 +67,7 @@ public void inlineScanModule(Module m)
     foreach (i; 0 .. m.members.length)
     {
         Dsymbol s = (*m.members)[i];
-        //if (global.params.verbose)
+        //if (global.params.v.verbose)
         //    message("inline scan symbol %s", s.toChars());
         inlineScanDsymbol(s);
     }
@@ -84,8 +84,8 @@ private void inlineScanDsymbol(Dsymbol s)
  * Perform the "inline copying" of a default argument for a function parameter.
  *
  * Todo:
- *  The hack for bugzilla 4820 case is still questionable. Perhaps would have to
- *  handle a delegate expression with 'null' context properly in front-end.
+ *  The hack for https://issues.dlang.org/show_bug.cgi?id=4820 case is still questionable.
+ *  Perhaps would have to handle a delegate expression with 'null' context properly in front-end.
  */
 public Expression inlineCopy(Expression e, Scope* sc)
 {
@@ -106,7 +106,7 @@ public Expression inlineCopy(Expression e, Scope* sc)
     int cost = inlineCostExpression(e);
     if (cost >= COST_MAX)
     {
-        e.error("cannot inline default argument `%s`", e.toChars());
+        error(e.loc, "cannot inline default argument `%s`", e.toChars());
         return ErrorExp.get();
     }
     scope ids = new InlineDoState(sc.parent, null);
@@ -962,7 +962,7 @@ public:
     Expression eresult;
     bool again;
 
-    extern (D) this() scope
+    extern (D) this() scope @safe
     {
     }
 
@@ -1476,7 +1476,7 @@ public:
             return;
         }
 
-        if (global.params.verbose && (eresult || sresult))
+        if (global.params.v.verbose && (eresult || sresult))
             message("inlined   %s =>\n          %s", fd.toPrettyChars(), parent.toPrettyChars());
 
         if (eresult && e.type.ty != Tvoid)
@@ -1573,7 +1573,7 @@ private extern (C++) final class InlineScanVisitorDsymbol : Visitor
     alias visit = Visitor.visit;
 public:
 
-    extern (D) this() scope
+    extern (D) this() scope @safe
     {
     }
 
@@ -2302,7 +2302,7 @@ private bool isConstruction(Expression e)
  * Returns:
  *      true if v's initializer is the only value assigned to v
  */
-private bool onlyOneAssign(VarDeclaration v, FuncDeclaration fd)
+private bool onlyOneAssign(VarDeclaration v, FuncDeclaration fd) @safe
 {
     if (!v.type.isMutable())
         return true;            // currently the only case handled atm
@@ -2348,7 +2348,7 @@ private bool expNeedsDtor(Expression exp)
         Expression exp;
 
     public:
-        extern (D) this(Expression exp) scope
+        extern (D) this(Expression exp) scope @safe
         {
             this.exp = exp;
         }

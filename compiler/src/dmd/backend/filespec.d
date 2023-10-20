@@ -11,7 +11,6 @@ import core.stdc.string;
 
 import dmd.backend.mem;
 
-extern (C++):
 
 nothrow:
 @safe:
@@ -327,40 +326,6 @@ char *filespecname(const(char)* filespec)
     return cast(char *)p;
 }
 
-/************************************
- * If first character of filespec is a ~, perform tilde-expansion.
- * Output:
- *      Input filespec is mem_free'd.
- * Returns:
- *      mem_malloc'd string
- */
-
-version (Windows)
-{
-    char *filespectilde(char *f) { return f; }
-}
-else
-{
-    char *filespectilde(char *);
-}
-
-/************************************
- * Expand all ~ in the given string.
- *
- * Output:
- *      Input filespec is mem_free'd.
- * Returns:
- *      mem_malloc'd string
- */
-
-version (Windows)
-{
-    char *filespecmultitilde(char *f) { return f; }
-}
-else
-{
-    char *filespecmultitilde(char *);
-}
 
 /*****************************
  * Convert filespec into a backup filename appropriate for the

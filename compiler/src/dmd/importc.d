@@ -20,6 +20,7 @@ import dmd.dcast;
 import dmd.declaration;
 import dmd.dscope;
 import dmd.dsymbol;
+import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.identifier;
@@ -108,11 +109,12 @@ Expression arrayFuncConv(Expression e, Scope* sc)
  *   e = evaluates to an instance of a struct
  *   sc = context
  *   id = identifier of a field in that struct
+ *   arrow = -> was used
  * Returns:
  *   if successful `e.ident`
  *   if not then `ErrorExp` and message is printed
  */
-Expression fieldLookup(Expression e, Scope* sc, Identifier id)
+Expression fieldLookup(Expression e, Scope* sc, Identifier id, bool arrow)
 {
     e = e.expressionSemantic(sc);
     if (e.isErrorExp())
@@ -123,13 +125,16 @@ Expression fieldLookup(Expression e, Scope* sc, Identifier id)
     if (t.isTypePointer())
     {
         t = t.isTypePointer().next;
+        auto pe = e.toChars();
+        if (!arrow)
+            error(e.loc, "since `%s` is a pointer, use `%s->%s` instead of `%s.%s`", pe, pe, id.toChars(), pe, id.toChars());
         e = new PtrExp(e.loc, e);
     }
     if (auto ts = t.isTypeStruct())
         s = ts.sym.search(e.loc, id, 0);
     if (!s)
     {
-        e.error("`%s` is not a member of `%s`", id.toChars(), t.toChars());
+        error(e.loc, "`%s` is not a member of `%s`", id.toChars(), t.toChars());
         return ErrorExp.get();
     }
     Expression ef = new DotVarExp(e.loc, e, s.isDeclaration());

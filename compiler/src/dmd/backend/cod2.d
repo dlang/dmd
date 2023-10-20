@@ -38,7 +38,6 @@ import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.xmm;
 
-extern (C++):
 
 nothrow:
 @safe:
@@ -47,14 +46,7 @@ import dmd.backend.cg : segfl, stackfl;
 
 __gshared int cdcmp_flag;
 
-private extern (D) uint mask(uint m) { return 1 << m; }
-
-// from divcoeff.c
-extern (C)
-{
-    bool choose_multiplier(int N, ulong d, int prec, ulong *pm, int *pshpost);
-    bool udiv_coefficients(int N, ulong d, int *pshpre, ulong *pm, int *pshpost);
-}
+import dmd.backend.divcoeff : choose_multiplier, udiv_coefficients;
 
 /*******************************
  * Swap two registers.
@@ -301,7 +293,7 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             else if (sz == 4)
                 value &= 0xFFFFFFFF;
             reg_t reg;
-            if (reghasvalue(isbyte ? BYTEREGS : ALLREGS,value,&reg))
+            if (reghasvalue(isbyte ? BYTEREGS : ALLREGS,value,reg))
             {
                 code_newreg(&cs, reg);
                 if (I64 && isbyte && reg >= 4)
@@ -328,7 +320,7 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         // Handle (exp & reg)
         reg_t reg;
         regm_t retregs;
-        if (isregvar(e2,&retregs,&reg))
+        if (isregvar(e2,retregs,reg))
         {
             code cs = void;
             cs.Iflags = 0;
@@ -457,7 +449,7 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
             reg_t reg11;
             regm_t regm;
-            if (e11.Eoper == OPvar && isregvar(e11,&regm,&reg11))
+            if (e11.Eoper == OPvar && isregvar(e11,regm,reg11))
             {
                 if (tysize(e11.Ety) <= REGSIZE)
                     retregs = mask(reg11); // only want the LSW
@@ -613,6 +605,7 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     else
     {
         regm_t regm;
+        reg_t regx;
 
         /* if (tyword + TYfptr) */
         if (_tysize[ty1] == REGSIZE && _tysize[ty2] > REGSIZE)
@@ -634,7 +627,7 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         else if (e2oper == OPvar &&
                  e1.Eoper == OPvar &&
                  e.Eoper != OPmin &&
-                 isregvar(e1,&regm,null) &&
+                 isregvar(e1,regm,regx) &&
                  regm != retregs &&
                  _tysize[ty1] == _tysize[ty2])
         {
@@ -738,7 +731,7 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                         i &= 0xFFFF;
                     }
                 }
-                rval = reghasvalue(isbyte ? BYTEREGS : ALLREGS,i,&rreg);
+                rval = reghasvalue(isbyte ? BYTEREGS : ALLREGS,i,rreg);
                 cs.IEV2.Vsize_t = i;
             L3:
                 if (!test)
@@ -2029,7 +2022,7 @@ void cdnot(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         if (config.target_cpu >= TARGET_80486 &&
             tysize(e.Ety) == 1)
         {
-            if (reghasvalue((sz == 1) ? BYTEREGS : ALLREGS,0,&reg))
+            if (reghasvalue((sz == 1) ? BYTEREGS : ALLREGS,0,reg))
             {
                 cs.Iop = 0x39;
                 if (I64 && (sz == 1) && reg >= 4)
@@ -2061,7 +2054,7 @@ void cdnot(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             goto L4;
         }
 
-        if (reghasvalue((sz == 1) ? BYTEREGS : ALLREGS,1,&reg))
+        if (reghasvalue((sz == 1) ? BYTEREGS : ALLREGS,1,reg))
             cs.Iop = 0x39;
         else
         {   cs.Iop = 0x81;
@@ -2295,7 +2288,7 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     uint jop1 = jmpopcode(e21);
     uint jop2 = jmpopcode(e22);
 
-    docommas(cdb,&e1);
+    docommas(cdb,e1);
     cgstate.stackclean++;
 
     if (!OTrel(op1) && e1 == e21 &&
@@ -2318,7 +2311,7 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             regimmed_set(findreg(retregs),0);
         codelem(cdb,e22,&retregs,false);
 
-        andregcon(&regconsave);
+        andregcon(regconsave);
         assert(stackpushsave == stackpush);
 
         *pretregs = retregs;
@@ -2449,7 +2442,7 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             retregs &= ~regcon.mvar;    // don't disturb register variables
         // NOTE: see my email (sign extension bug? possible fix, some questions
         reg_t reg;
-        regwithvalue(cdb,retregs,cast(targ_size_t)e21.EV.Vllong,&reg,tysize(e21.Ety) == 8 ? 64|8 : 8);
+        regwithvalue(cdb,retregs,cast(targ_size_t)e21.EV.Vllong,reg,tysize(e21.Ety) == 8 ? 64|8 : 8);
         retregs = mask(reg);
 
         cse_flush(cdb,1);                // flush CSE's to memory
@@ -2461,7 +2454,7 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
         codelem(cdb,e22,&retregs,false);
 
-        andregcon(&regconsave);
+        andregcon(regconsave);
         assert(stackpushsave == stackpush);
 
         freenode(e2);
@@ -2536,8 +2529,8 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     else
         codelem(cdb2,e22,&retregs,false);   // use same regs as E1
     *pretregs = retregs | psw;
-    andregcon(&regconold);
-    andregcon(&regconsave);
+    andregcon(regconold);
+    andregcon(regconsave);
     assert(global87.stackused == stackusedsave);
     assert(stackpush == stackpushsave);
     memcpy(global87.stack.ptr,_8087save.ptr,global87.stack.sizeof);
@@ -2618,7 +2611,7 @@ void cdloglog(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             regcon = regconsave;
         }
         else
-            andregcon(&regconsave);
+            andregcon(regconsave);
         assert(stackpush == stackpushsave);
         cdb.append(cnop3);
         cdb.append(cdb1);        // eval code, throw away result
@@ -2659,7 +2652,7 @@ void cdloglog(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     {
         codelem(cdb,e2,pretregs,false);
 
-        andregcon(&regconsave);
+        andregcon(regconsave);
 
         // stack depth should not change when evaluating E2
         assert(stackpush == stackpushsave);
@@ -2690,7 +2683,7 @@ void cdloglog(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     }
 
     logexp(cdb,e2,1,FLcode,cnop1);
-    andregcon(&regconsave);
+    andregcon(regconsave);
 
     // stack depth should not change when evaluating E2
     assert(stackpush == stackpushsave);
@@ -2821,7 +2814,7 @@ void cdshift(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 {   // Handle (shtlng)s << 16
                     regm_t r = retregs & mMSW;
                     codelem(cdb,e1.EV.E1,&r,false);      // eval left leaf
-                    regwithvalue(cdb,retregs & mLSW,0,&resreg,0);
+                    regwithvalue(cdb,retregs & mLSW,0,resreg,0);
                     getregs(cdb,r);
                     retregs = r | mask(resreg);
                     if (forccs)
@@ -2846,7 +2839,7 @@ void cdshift(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                     reg_t reg;
                     regm_t regm;
 
-                    if (isregvar(e1,&regm,&reg) && !(regm & retregs))
+                    if (isregvar(e1,regm,reg) && !(regm & retregs))
                     {   code cs;
                         allocreg(cdb,&retregs,&resreg,e.Ety);
                         buildEA(&cs,-1,reg,1 << shiftcnt,0);
@@ -3800,7 +3793,10 @@ void cdmemcmp(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     else
     {
         if (*pretregs != mPSW)                      // if not flags only
-            regwithvalue(cdb,mAX,0,null,0);         // put 0 in AX
+        {
+            reg_t r;
+            regwithvalue(cdb,mAX,0,r,0);         // put 0 in AX
+        }
     }
 
     getregs(cdb,mCX | mSI | mDI);
@@ -4166,7 +4162,8 @@ void cdmemset(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     retregs3 = mAX;
     if (valueIsConst)
     {
-        regwithvalue(cdb, mAX, value, null, I64?64:0);
+        reg_t r;
+        regwithvalue(cdb, mAX, value, r, I64?64:0);
         freenode(evalue);
     }
     else
@@ -4188,7 +4185,7 @@ void cdmemset(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             genregs(cdb,MOVZXb,AX,AX);                    // MOVZX EAX,AL
             regm_t regm = allregs & ~(mAX | retregs2);
             reg_t r;
-            regwithvalue(cdb,regm,cast(targ_size_t)0x01010101_01010101,&r,64); // MOV reg,0x01010101_01010101
+            regwithvalue(cdb,regm,cast(targ_size_t)0x01010101_01010101,r,64); // MOV reg,0x01010101_01010101
             cdb.gen2(0x0FAF,grex | modregrmx(3,AX,r));        // IMUL RAX,reg
         }
     }
@@ -4216,7 +4213,8 @@ void cdmemset(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         getregs(cdb,mDI);
         if (const numwords = numbytes / REGSIZE)
         {
-            regwithvalue(cdb,mCX,numwords,null, I64 ? 64 : 0);
+            reg_t r;
+            regwithvalue(cdb,mCX,numwords,r, I64 ? 64 : 0);
             getregs(cdb,mCX);
             cdb.gen1(0xF3);                     // REP
             cdb.gen1(STOS);                     // STOSW/D/Q
@@ -4433,7 +4431,7 @@ void cdstreq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
     // First, load pointer to rvalue into SI
     regm_t srcregs = mSI;                      // source is DS:SI
-    docommas(cdb,&e2);
+    docommas(cdb,e2);
     if (e2.Eoper == OPind)             // if (.. = *p)
     {   elem *e21 = e2.EV.E1;
 

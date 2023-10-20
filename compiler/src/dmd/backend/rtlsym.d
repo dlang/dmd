@@ -76,6 +76,12 @@ enum RTLSYM
     ARRAYASSIGN_L,
     ARRAYSETASSIGN,
     ARRAYEQ2,
+    AANEW,
+    AAEQUAL,
+    AAINX,
+    AADELX,
+    AAGETY,
+    AAGETRVALUEX,
 
     EXCEPT_HANDLER3,
     CPP_HANDLER,
@@ -137,6 +143,6 @@ enum RTLSYM
     CXA_ATEXIT
 }
 
-extern (C++):
+@safe:
 
 public import dmd.backend.drtlsym : getRtlsym, getRtlsymPersonality;

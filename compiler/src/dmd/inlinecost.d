@@ -53,7 +53,7 @@ static assert(STATEMENT_COST > COST_MAX);
  * Returns:
  *      true if too costly
  */
-bool tooCostly(int cost) pure nothrow
+bool tooCostly(int cost) pure nothrow @safe
 {
     return ((cost & (STATEMENT_COST - 1)) >= COST_MAX);
 }
@@ -156,11 +156,11 @@ public:
     FuncDeclaration fd;
     int cost;           // zero start for subsequent AST
 
-    extern (D) this() scope
+    extern (D) this() scope @safe
     {
     }
 
-    extern (D) this(bool hasthis, bool hdrscan, bool allowAlloca, FuncDeclaration fd) scope
+    extern (D) this(bool hasthis, bool hdrscan, bool allowAlloca, FuncDeclaration fd) scope @safe
     {
         this.hasthis = hasthis;
         this.hdrscan = hdrscan;
@@ -168,7 +168,7 @@ public:
         this.fd = fd;
     }
 
-    extern (D) this(InlineCostVisitor icv) scope
+    extern (D) this(InlineCostVisitor icv) scope @safe
     {
         nested = icv.nested;
         hasthis = icv.hasthis;
@@ -346,7 +346,7 @@ public:
                 InlineCostVisitor icv;
 
             public:
-                extern (D) this(InlineCostVisitor icv)
+                extern (D) this(InlineCostVisitor icv) @safe
                 {
                     this.icv = icv;
                 }

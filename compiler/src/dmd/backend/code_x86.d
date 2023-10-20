@@ -15,7 +15,7 @@ module dmd.backend.code_x86;
 // Online documentation: https://dlang.org/phobos/dmd_backend_code_x86.html
 
 import dmd.backend.cdef;
-import dmd.backend.cc : config;
+import dmd.backend.cc : config, FL;
 import dmd.backend.code;
 import dmd.backend.codebuilder : CodeBuilder;
 import dmd.backend.el : elem;
@@ -370,7 +370,7 @@ struct code
      * operand, usually for immediate instructions.
      */
 
-    ubyte IFL1,IFL2;    // FLavors of 1st, 2nd operands
+    FL IFL1,IFL2;         // FLavors of 1st, 2nd operands
     evc IEV1;             // 1st operand, if any
     evc IEV2;             // 2nd operand, if any
 
@@ -390,7 +390,7 @@ struct code
 
     bool isJumpOP() { return Iop == JMP || Iop == JMPS; }
 
-    extern (C++) void print()               // pretty-printer
+    void print()               // pretty-printer
     {
         code_print(&this);
     }
@@ -464,6 +464,8 @@ enum
 
     ESCAPE  = SEGDS,   // marker that special information is here
                        // (Iop2 is the type of special information)
+    ENDBR32 = 0xF30F1EFB,
+    ENDBR64 = 0xF30F1EFA,
 }
 
 
@@ -550,7 +552,6 @@ bool ADDFWAIT() { return config.target_cpu <= TARGET_80286; }
 /************************************
  */
 
-extern (C++):
 
 struct NDP
 {

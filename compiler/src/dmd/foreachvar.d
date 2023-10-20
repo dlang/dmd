@@ -35,7 +35,7 @@ import dmd.mtype;
 import dmd.postordervisitor;
 import dmd.printast;
 import dmd.root.array;
-import dmd.root.rootobject;
+import dmd.rootobject;
 import dmd.statement;
 import dmd.tokens;
 import dmd.visitor;
@@ -56,7 +56,7 @@ void foreachVar(Expression e, void delegate(VarDeclaration) dgVar)
         alias visit = typeof(super).visit;
         extern (D) void delegate(VarDeclaration) dgVar;
 
-        extern (D) this(void delegate(VarDeclaration) dgVar) scope
+        extern (D) this(void delegate(VarDeclaration) dgVar) scope @safe
         {
             this.dgVar = dgVar;
         }

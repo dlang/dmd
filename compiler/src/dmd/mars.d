@@ -1,8 +1,6 @@
 
 /**
- * Entry point for DMD.
- *
- * This modules defines the entry point (main) for DMD, as well as related
+ * This modules defines related
  * utilities needed for arguments parsing, path manipulation, etc...
  * This file is not shared with other compilers which use the DMD front-end.
  *
@@ -17,15 +15,12 @@
 module dmd.mars;
 
 import core.stdc.ctype;
-import core.stdc.limits;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
 import dmd.arraytypes;
-import dmd.astcodegen;
 import dmd.astenums;
-import dmd.builtin;
 import dmd.cond;
 import dmd.console;
 import dmd.compiler;
@@ -41,7 +36,6 @@ import dmd.dtemplate;
 import dmd.dtoh;
 import dmd.errors;
 import dmd.expression;
-import dmd.file_manager;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
@@ -49,13 +43,6 @@ import dmd.identifier;
 import dmd.inline;
 import dmd.location;
 import dmd.json;
-version (NoMain) {} else
-{
-    import dmd.glue : generateCodeAndWrite;
-    import dmd.dmsc : backend_init, backend_term;
-    import dmd.link;
-    import dmd.vsoptions;
-}
 import dmd.mtype;
 import dmd.objc;
 import dmd.root.array;
@@ -75,7 +62,7 @@ import dmd.utils;
 /**
  * Print DMD's logo on stdout
  */
-private void logo()
+void logo()
 {
     printf("DMD%llu D Compiler %.*s\n%.*s %.*s\n",
         cast(ulong)size_t.sizeof * 8,
@@ -91,7 +78,7 @@ Print DMD's logo with more debug information and error-reporting pointers.
 Params:
     stream = output stream to print the information on
 */
-private void printInternalFailure(FILE* stream)
+void printInternalFailure(FILE* stream)
 {
     fputs(("---\n" ~
     "ERROR: This is a compiler bug.\n" ~
@@ -108,7 +95,7 @@ private void printInternalFailure(FILE* stream)
 /**
  * Print DMD's usage message on stdout
  */
-private void usage()
+void usage()
 {
     import dmd.cli : CLIUsage;
     logo();
@@ -130,676 +117,10 @@ Where:
 %.*s", cast(int)inifileCanon.length, inifileCanon.ptr, cast(int)help.length, &help[0]);
 }
 
-/**
- * DMD's real entry point
- *
- * Parses command line arguments and config file, open and read all
- * provided source file and do semantic analysis on them.
- *
- * Params:
- *   argc = Number of arguments passed via command line
- *   argv = Array of string arguments passed via command line
- *
- * Returns:
- *   Application return code
- */
-version (NoMain) {} else
-private int tryMain(size_t argc, const(char)** argv, ref Param params)
-{
-    Strings files;
-    Strings libmodules;
-    global._init();
-
-    if (parseCommandlineAndConfig(argc, argv, params, files))
-        return EXIT_FAILURE;
-
-    global.compileEnv.previewIn = global.params.previewIn;
-    global.compileEnv.ddocOutput = global.params.ddoc.doOutput;
-    global.compileEnv.shortenedMethods = global.params.shortenedMethods;
-
-    if (params.usage)
-    {
-        usage();
-        return EXIT_SUCCESS;
-    }
-
-    if (params.logo)
-    {
-        logo();
-        return EXIT_SUCCESS;
-    }
-
-    /*
-    Prints a supplied usage text to the console and
-    returns the exit code for the help usage page.
-
-    Returns:
-        `EXIT_SUCCESS` if no errors occurred, `EXIT_FAILURE` otherwise
-    */
-    static int printHelpUsage(string help)
-    {
-        printf("%.*s", cast(int)help.length, &help[0]);
-        return global.errors ? EXIT_FAILURE : EXIT_SUCCESS;
-    }
-
-    /*
-    Print a message to make it clear when warnings are treated as errors.
-    */
-    static void errorOnWarning()
-    {
-        error(Loc.initial, "warnings are treated as errors");
-        errorSupplemental(Loc.initial, "Use -wi if you wish to treat warnings only as informational.");
-    }
-
-    /*
-    Generates code to check for all `params` whether any usage page
-    has been requested.
-    If so, the generated code will print the help page of the flag
-    and return with an exit code.
-
-    Params:
-        params = parameters with `Usage` suffices in `params` for which
-        their truthness should be checked.
-
-    Returns: generated code for checking the usage pages of the provided `params`.
-    */
-    static string generateUsageChecks(string[] params)
-    {
-        string s;
-        foreach (n; params)
-        {
-            s ~= q{
-                if (params.}~n~q{Usage)
-                    return printHelpUsage(CLIUsage.}~n~q{Usage);
-            };
-        }
-        return s;
-    }
-    import dmd.cli : CLIUsage;
-    mixin(generateUsageChecks(["mcpu", "transition", "check", "checkAction",
-        "preview", "revert", "externStd", "hc"]));
-
-    if (params.manual)
-    {
-        version (Windows)
-        {
-            browse("https://dlang.org/dmd-windows.html");
-        }
-        version (linux)
-        {
-            browse("https://dlang.org/dmd-linux.html");
-        }
-        version (OSX)
-        {
-            browse("https://dlang.org/dmd-osx.html");
-        }
-        version (FreeBSD)
-        {
-            browse("https://dlang.org/dmd-freebsd.html");
-        }
-        /*NOTE: No regular builds for openbsd/dragonflybsd (yet) */
-        /*
-        version (OpenBSD)
-        {
-            browse("https://dlang.org/dmd-openbsd.html");
-        }
-        version (DragonFlyBSD)
-        {
-            browse("https://dlang.org/dmd-dragonflybsd.html");
-        }
-        */
-        return EXIT_SUCCESS;
-    }
-
-    if (params.color)
-        global.console = cast(void*) createConsole(core.stdc.stdio.stderr);
-
-    target.setCPU();
-    Loc.set(params.showColumns, params.messageStyle);
-
-    if (global.errors)
-    {
-        fatal();
-    }
-    if (files.length == 0)
-    {
-        if (params.jsonFieldFlags)
-        {
-            generateJson(null);
-            return EXIT_SUCCESS;
-        }
-        usage();
-        return EXIT_FAILURE;
-    }
-
-    reconcileCommands(params, target);
-
-    // Add in command line versions
-    if (params.versionids)
-        foreach (charz; *params.versionids)
-            VersionCondition.addGlobalIdent(charz.toDString());
-    if (params.debugids)
-        foreach (charz; *params.debugids)
-            DebugCondition.addGlobalIdent(charz.toDString());
-
-    setDefaultLibrary(params, target);
-
-    // Initialization
-    target._init(params);
-    Type._init();
-    Id.initialize();
-    Module._init();
-    Expression._init();
-    Objc._init();
-
-    reconcileLinkRunLib(params, files.length, target.obj_ext);
-    version(CRuntime_Microsoft)
-    {
-        import dmd.root.longdouble;
-        initFPU();
-    }
-    import dmd.root.ctfloat : CTFloat;
-    CTFloat.initialize();
-
-    // Predefined version identifiers
-    addDefaultVersionIdentifiers(params, target);
-
-    if (params.verbose)
-    {
-        stdout.printPredefinedVersions();
-        stdout.printGlobalConfigs();
-    }
-    //printf("%d source files\n", cast(int) files.length);
-
-    // Build import search path
-
-    static Strings* buildPath(Strings* imppath)
-    {
-        Strings* result = null;
-        if (imppath)
-        {
-            foreach (const path; *imppath)
-            {
-                Strings* a = FileName.splitPath(path);
-                if (a)
-                {
-                    if (!result)
-                        result = new Strings();
-                    result.append(a);
-                }
-            }
-        }
-        return result;
-    }
-
-    if (params.mixinOut.doOutput)
-    {
-        params.mixinOut.buffer = cast(OutBuffer*)Mem.check(calloc(1, OutBuffer.sizeof));
-        atexit(&flushMixins); // see comment for flushMixins
-    }
-    scope(exit) flushMixins();
-    global.path = buildPath(params.imppath);
-    global.filePath = buildPath(params.fileImppath);
-
-    // Create Modules
-    Modules modules = createModules(files, libmodules, target);
-    // Read files
-    foreach (m; modules)
-    {
-        m.read(Loc.initial);
-    }
-
-    // Parse files
-    bool anydocfiles = false;
-    size_t filecount = modules.length;
-    for (size_t filei = 0, modi = 0; filei < filecount; filei++, modi++)
-    {
-        Module m = modules[modi];
-        if (params.verbose)
-            message("parse     %s", m.toChars());
-        if (!Module.rootModule)
-            Module.rootModule = m;
-        m.importedFrom = m; // m.isRoot() == true
-//        if (!driverParams.oneobj || modi == 0 || m.isDocFile)
-//            m.deleteObjFile();
-
-        m.parse();
-        if (m.filetype == FileType.dhdr)
-        {
-            // Remove m's object file from list of object files
-            for (size_t j = 0; j < params.objfiles.length; j++)
-            {
-                if (m.objfile.toChars() == params.objfiles[j])
-                {
-                    params.objfiles.remove(j);
-                    break;
-                }
-            }
-            if (params.objfiles.length == 0)
-                driverParams.link = false;
-        }
-        if (m.filetype == FileType.ddoc)
-        {
-            anydocfiles = true;
-            gendocfile(m);
-            // Remove m from list of modules
-            modules.remove(modi);
-            modi--;
-            // Remove m's object file from list of object files
-            for (size_t j = 0; j < params.objfiles.length; j++)
-            {
-                if (m.objfile.toChars() == params.objfiles[j])
-                {
-                    params.objfiles.remove(j);
-                    break;
-                }
-            }
-            if (params.objfiles.length == 0)
-                driverParams.link = false;
-        }
-    }
-
-    if (anydocfiles && modules.length && (driverParams.oneobj || params.objname))
-    {
-        error(Loc.initial, "conflicting Ddoc and obj generation options");
-        fatal();
-    }
-    if (global.errors)
-        fatal();
-
-    if (params.dihdr.doOutput)
-    {
-        /* Generate 'header' import files.
-         * Since 'header' import files must be independent of command
-         * line switches and what else is imported, they are generated
-         * before any semantic analysis.
-         */
-        foreach (m; modules)
-        {
-            if (m.filetype == FileType.dhdr)
-                continue;
-            if (params.verbose)
-                message("import    %s", m.toChars());
-            genhdrfile(m);
-        }
-    }
-    if (global.errors)
-        removeHdrFilesAndFail(params, modules);
-
-    // load all unconditional imports for better symbol resolving
-    foreach (m; modules)
-    {
-        if (params.verbose)
-            message("importall %s", m.toChars());
-        m.importAll(null);
-    }
-    if (global.errors)
-        removeHdrFilesAndFail(params, modules);
-
-    backend_init();
-
-    // Do semantic analysis
-    foreach (m; modules)
-    {
-        if (params.verbose)
-            message("semantic  %s", m.toChars());
-        m.dsymbolSemantic(null);
-    }
-    //if (global.errors)
-    //    fatal();
-    Module.runDeferredSemantic();
-    if (Module.deferred.length)
-    {
-        for (size_t i = 0; i < Module.deferred.length; i++)
-        {
-            Dsymbol sd = Module.deferred[i];
-            sd.error("unable to resolve forward reference in definition");
-        }
-        //fatal();
-    }
-
-    // Do pass 2 semantic analysis
-    foreach (m; modules)
-    {
-        if (params.verbose)
-            message("semantic2 %s", m.toChars());
-        m.semantic2(null);
-    }
-    Module.runDeferredSemantic2();
-    if (global.errors)
-        removeHdrFilesAndFail(params, modules);
-
-    // Do pass 3 semantic analysis
-    foreach (m; modules)
-    {
-        if (params.verbose)
-            message("semantic3 %s", m.toChars());
-        m.semantic3(null);
-    }
-    if (includeImports)
-    {
-        // Note: DO NOT USE foreach here because Module.amodules.length can
-        //       change on each iteration of the loop
-        for (size_t i = 0; i < compiledImports.length; i++)
-        {
-            auto m = compiledImports[i];
-            assert(m.isRoot);
-            if (params.verbose)
-                message("semantic3 %s", m.toChars());
-            m.semantic3(null);
-            modules.push(m);
-        }
-    }
-    Module.runDeferredSemantic3();
-    if (global.errors)
-        removeHdrFilesAndFail(params, modules);
-
-    // Scan for functions to inline
-    foreach (m; modules)
-    {
-        if (params.useInline || m.hasAlwaysInlines)
-        {
-            if (params.verbose)
-                message("inline scan %s", m.toChars());
-            inlineScanModule(m);
-        }
-    }
-
-    if (global.warnings)
-        errorOnWarning();
-
-    // Do not attempt to generate output files if errors or warnings occurred
-    if (global.errors || global.warnings)
-        removeHdrFilesAndFail(params, modules);
-
-    // inlineScan incrementally run semantic3 of each expanded functions.
-    // So deps file generation should be moved after the inlining stage.
-    if (OutBuffer* ob = params.moduleDeps.buffer)
-    {
-        foreach (i; 1 .. modules[0].aimports.length)
-            semantic3OnDependencies(modules[0].aimports[i]);
-        Module.runDeferredSemantic3();
-
-        const data = (*ob)[];
-        if (params.moduleDeps.name)
-            writeFile(Loc.initial, params.moduleDeps.name, data);
-        else
-            printf("%.*s", cast(int)data.length, data.ptr);
-    }
-
-    printCtfePerformanceStats();
-    printTemplateStats();
-
-    // Generate output files
-    if (params.json.doOutput)
-    {
-        generateJson(&modules);
-    }
-    if (!global.errors && params.ddoc.doOutput)
-    {
-        foreach (m; modules)
-        {
-            gendocfile(m);
-        }
-    }
-    if (params.vcg_ast)
-    {
-        import dmd.hdrgen;
-        foreach (mod; modules)
-        {
-            auto buf = OutBuffer();
-            buf.doindent = 1;
-            moduleToBuffer(&buf, mod);
-
-            // write the output to $(filename).cg
-            auto cgFilename = FileName.addExt(mod.srcfile.toString(), "cg");
-            File.write(cgFilename.ptr, buf[]);
-        }
-    }
-
-    if (global.params.cxxhdr.doOutput)
-        genCppHdrFiles(modules);
-
-    if (global.errors)
-        fatal();
-
-    if (driverParams.lib && params.objfiles.length == 0)
-    {
-        error(Loc.initial, "no input files");
-        return EXIT_FAILURE;
-    }
-
-    if (params.addMain && !global.hasMainFunction)
-    {
-        auto mainModule = moduleWithEmptyMain();
-        modules.push(mainModule);
-        if (!driverParams.oneobj || modules.length == 1)
-            params.objfiles.push(mainModule.objfile.toChars());
-    }
-
-    generateCodeAndWrite(modules[], libmodules[], params.libname, params.objdir,
-                         driverParams.lib, params.obj, driverParams.oneobj, params.multiobj,
-                         params.verbose);
-
-    backend_term();
-
-    if (global.errors)
-        fatal();
-    int status = EXIT_SUCCESS;
-    if (!params.objfiles.length)
-    {
-        if (driverParams.link)
-            error(Loc.initial, "no object files to link");
-    }
-    else
-    {
-        if (driverParams.link)
-            status = runLINK();
-        if (params.run)
-        {
-            if (!status)
-            {
-                status = runProgram();
-                /* Delete .obj files and .exe file
-                 */
-                foreach (m; modules)
-                {
-                    m.deleteObjFile();
-                    if (driverParams.oneobj)
-                        break;
-                }
-                params.exefile.toCStringThen!(ef => File.remove(ef.ptr));
-            }
-        }
-    }
-
-    // Output the makefile dependencies
-    if (params.makeDeps.doOutput)
-        emitMakeDeps(params);
-
-    if (global.warnings)
-        errorOnWarning();
-
-    if (global.errors || global.warnings)
-        removeHdrFilesAndFail(params, modules);
-
-    return status;
-}
-
-/**
- * Parses the command line arguments and configuration files
- *
- * Params:
- *   argc = Number of arguments passed via command line
- *   argv = Array of string arguments passed via command line
- *   params = parametes from argv
- *   files = files from argv
- * Returns: true on faiure
- */
-version(NoMain) {} else
-bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params, ref Strings files)
-{
-    // Detect malformed input
-    static bool badArgs()
-    {
-        error(Loc.initial, "missing or null command line arguments");
-        return true;
-    }
-
-    if (argc < 1 || !argv)
-        return badArgs();
-    // Convert argc/argv into arguments[] for easier handling
-    Strings arguments = Strings(argc);
-    for (size_t i = 0; i < argc; i++)
-    {
-        if (!argv[i])
-            return badArgs();
-        arguments[i] = argv[i];
-    }
-    if (const(char)* missingFile = responseExpand(arguments)) // expand response files
-        error(Loc.initial, "cannot open response file '%s'", missingFile);
-    //for (size_t i = 0; i < arguments.length; ++i) printf("arguments[%d] = '%s'\n", i, arguments[i]);
-    files.reserve(arguments.length - 1);
-    // Set default values
-    params.argv0 = arguments[0].toDString;
-
-    version (Windows)
-        enum iniName = "sc.ini";
-    else version (Posix)
-        enum iniName = "dmd.conf";
-    else
-        static assert(0, "fix this");
-
-    global.inifilename = parse_conf_arg(&arguments);
-    if (global.inifilename)
-    {
-        // can be empty as in -conf=
-        if (global.inifilename.length && !FileName.exists(global.inifilename))
-            error(Loc.initial, "config file '%.*s' does not exist.",
-                  cast(int)global.inifilename.length, global.inifilename.ptr);
-    }
-    else
-    {
-        global.inifilename = findConfFile(params.argv0, iniName);
-    }
-    // Read the configuration file
-    const iniReadResult = File.read(global.inifilename);
-    const inifileBuffer = iniReadResult.buffer.data;
-    /* Need path of configuration file, for use in expanding @P macro
-     */
-    const(char)[] inifilepath = FileName.path(global.inifilename);
-    Strings sections;
-    StringTable!(char*) environment;
-    environment._init(7);
-    /* Read the [Environment] section, so we can later
-     * pick up any DFLAGS settings.
-     */
-    sections.push("Environment");
-    parseConfFile(environment, global.inifilename, inifilepath, inifileBuffer, &sections);
-
-    const(char)[] arch = target.is64bit ? "64" : "32"; // use default
-    arch = parse_arch_arg(&arguments, arch);
-
-    // parse architecture from DFLAGS read from [Environment] section
-    {
-        Strings dflags;
-        getenv_setargv(readFromEnv(environment, "DFLAGS"), &dflags);
-        environment.reset(7); // erase cached environment updates
-        arch = parse_arch_arg(&dflags, arch);
-    }
-
-    bool is64bit = arch[0] == '6';
-
-    version(Windows) // delete LIB entry in [Environment] (necessary for optlink) to allow inheriting environment for MS-COFF
-    if (arch != "32omf")
-        environment.update("LIB", 3).value = null;
-
-    // read from DFLAGS in [Environment{arch}] section
-    char[80] envsection = void;
-    snprintf(envsection.ptr, envsection.length, "Environment%.*s", cast(int) arch.length, arch.ptr);
-    sections.push(envsection.ptr);
-    parseConfFile(environment, global.inifilename, inifilepath, inifileBuffer, &sections);
-    getenv_setargv(readFromEnv(environment, "DFLAGS"), &arguments);
-    updateRealEnvironment(environment);
-    environment.reset(1); // don't need environment cache any more
-
-    if (parseCommandLine(arguments, argc, params, files, target))
-    {
-        Loc loc;
-        errorSupplemental(loc, "run `dmd` to print the compiler manual");
-        errorSupplemental(loc, "run `dmd -man` to open browser on manual");
-        return true;
-    }
-
-    if (target.is64bit != is64bit)
-        error(Loc.initial, "the architecture must not be changed in the %s section of %.*s",
-              envsection.ptr, cast(int)global.inifilename.length, global.inifilename.ptr);
-
-    global.preprocess = &preprocess;
-    return false;
-}
-/// Emit the makefile dependencies for the -makedeps switch
-version (NoMain) {} else
-{
-    void emitMakeDeps(ref Param params)
-    {
-        assert(params.makeDeps.doOutput);
-
-        OutBuffer buf;
-
-        // start by resolving and writing the target (which is sometimes resolved during link phase)
-        if (driverParams.link && params.exefile)
-        {
-            buf.writeEscapedMakePath(&params.exefile[0]);
-        }
-        else if (driverParams.lib)
-        {
-            const(char)[] libname = params.libname ? params.libname : FileName.name(params.objfiles[0].toDString);
-            libname = FileName.forceExt(libname,target.lib_ext);
-
-            buf.writeEscapedMakePath(&libname[0]);
-        }
-        else if (params.objname)
-        {
-            buf.writeEscapedMakePath(&params.objname[0]);
-        }
-        else if (params.objfiles.length)
-        {
-            buf.writeEscapedMakePath(params.objfiles[0]);
-            foreach (of; params.objfiles[1 .. $])
-            {
-                buf.writestring(" ");
-                buf.writeEscapedMakePath(of);
-            }
-        }
-        else
-        {
-            assert(false, "cannot resolve makedeps target");
-        }
-
-        buf.writestring(":");
-
-        // then output every dependency
-        foreach (dep; params.makeDeps.files)
-        {
-            buf.writestringln(" \\");
-            buf.writestring("  ");
-            buf.writeEscapedMakePath(dep);
-        }
-        buf.writenl();
-
-        const data = buf[];
-        if (params.makeDeps.name)
-            writeFile(Loc.initial, params.makeDeps.name, data);
-        else
-            printf("%.*s", cast(int) data.length, data.ptr);
-    }
-}
-
-extern (C++) void generateJson(Modules* modules)
+extern (C++) void generateJson(ref Modules modules)
 {
     OutBuffer buf;
-    json_generate(&buf, modules);
+    json_generate(modules, buf);
 
     // Write buf to file
     const(char)[] name = global.params.json.name;
@@ -832,13 +153,14 @@ extern (C++) void generateJson(Modules* modules)
             //    name = FileName::combine(dir, name);
             jsonfilename = FileName.forceExt(n, json_ext);
         }
-        writeFile(Loc.initial, jsonfilename, buf[]);
+        if (!writeFile(Loc.initial, jsonfilename, buf[]))
+            fatal();
     }
 }
 
 version (DigitalMars)
 {
-    private void installMemErrHandler()
+    void installMemErrHandler()
     {
         // (only available on some platforms on DMD)
         const shouldDoMemoryError = getenv("DMD_INSTALL_MEMERR_HANDLER");
@@ -867,105 +189,6 @@ version (NoMain)
         }
     }
 }
-else
-{
-    // in druntime:
-    alias MainFunc = extern(C) int function(char[][] args);
-    extern (C) int _d_run_main(int argc, char** argv, MainFunc dMain);
-
-
-    // When using a C main, host DMD may not link against host druntime by default.
-    version (DigitalMars)
-    {
-        version (Win64)
-            pragma(lib, "phobos64");
-        else version (Win32)
-        {
-            version (CRuntime_Microsoft)
-                pragma(lib, "phobos32mscoff");
-            else
-                pragma(lib, "phobos");
-        }
-    }
-
-    extern extern(C) __gshared string[] rt_options;
-
-    /**
-     * DMD's entry point, C main.
-     *
-     * Without `-lowmem`, we need to switch to the bump-pointer allocation scheme
-     * right from the start, before any module ctors are run, so we need this hook
-     * before druntime is initialized and `_Dmain` is called.
-     *
-     * Returns:
-     *   Return code of the application
-     */
-    extern (C) int main(int argc, char** argv)
-    {
-        bool lowmem = false;
-        foreach (i; 1 .. argc)
-        {
-            if (strcmp(argv[i], "-lowmem") == 0)
-            {
-                lowmem = true;
-                break;
-            }
-        }
-        if (!lowmem)
-        {
-            __gshared string[] disable_options = [ "gcopt=disable:1" ];
-            rt_options = disable_options;
-            mem.disableGC();
-        }
-
-        // initialize druntime and call _Dmain() below
-        return _d_run_main(argc, argv, &_Dmain);
-    }
-
-    /**
-     * Manual D main (for druntime initialization), which forwards to `tryMain`.
-     *
-     * Returns:
-     *   Return code of the application
-     */
-    extern (C) int _Dmain(char[][])
-    {
-        // possibly install memory error handler
-        version (DigitalMars)
-        {
-            installMemErrHandler();
-        }
-
-        import core.runtime;
-
-        version(D_Coverage)
-        {
-            // for now we need to manually set the source path
-            string dirName(string path, char separator)
-            {
-                for (size_t i = path.length - 1; i > 0; i--)
-                {
-                    if (path[i] == separator)
-                        return path[0..i];
-                }
-                return path;
-            }
-            version (Windows)
-                enum sourcePath = dirName(dirName(dirName(__FILE_FULL_PATH__, '\\'), '\\'), '\\');
-            else
-                enum sourcePath = dirName(dirName(dirName(__FILE_FULL_PATH__, '/'), '/'), '/');
-
-            dmd_coverSourcePath(sourcePath);
-            dmd_coverDestPath(sourcePath);
-            dmd_coverSetMerge(true);
-        }
-
-        scope(failure) stderr.printInternalFailure;
-
-        auto args = Runtime.cArgs();
-        return tryMain(args.argc, cast(const(char)**)args.argv, global.params);
-    }
-} // !NoMain
 
 /**
  * Parses an environment variable containing command-line flags
@@ -1121,13 +344,13 @@ const(char)[] parse_conf_arg(Strings* args)
  * Note that if `-defaultlib=` or `-debuglib=` was used,
  * we don't override that either.
  */
-private void setDefaultLibrary(ref Param params, const ref Target target)
+void setDefaultLibrary(ref Param params, const ref Target target)
 {
     if (driverParams.defaultlibname is null)
     {
         if (target.os == Target.OS.Windows)
         {
-            if (target.is64bit)
+            if (target.isX86_64)
                 driverParams.defaultlibname = "phobos64";
             else if (!target.omfobj)
                 driverParams.defaultlibname = "phobos32mscoff";
@@ -1154,7 +377,7 @@ private void setDefaultLibrary(ref Param params, const ref Target target)
         driverParams.debuglibname = driverParams.defaultlibname;
 }
 
-private void printPredefinedVersions(FILE* stream)
+void printPredefinedVersions(FILE* stream)
 {
     if (global.versionids)
     {
@@ -1307,7 +530,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
     static string checkOptionsMixin(string usageFlag, string missingMsg)
     {
         return q{
-            final switch (checkOptions(arg[len - 1 .. $], params.}~usageFlag~","~
+            final switch (checkOptions(arg[len - 1 .. $], params.help.}~usageFlag~","~
                           `"`~missingMsg~`"`~q{))
             {
                 case CheckOptions.error:
@@ -1369,6 +592,9 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             printf("arguments[%d] = '%s'\n", i, arguments[i]);
         }
     }
+
+    files.reserve(arguments.length - 1);
+
     for (size_t i = 1; i < arguments.length; i++)
     {
         const(char)* p = arguments[i];
@@ -1385,7 +611,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 }
                 if (arg == "/?")
                 {
-                    params.usage = true;
+                    params.help.usage = true;
                     return false;
                 }
             }
@@ -1421,7 +647,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
              *    -checkaction=D|C|halt|context
              */
             enum len = "-checkaction=".length;
-            mixin(checkOptionsMixin("checkActionUsage",
+            mixin(checkOptionsMixin("checkAction",
                 "`-check=<behavior>` requires a behavior"));
             switch (arg[len .. $])
             {
@@ -1439,14 +665,14 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 break;
             default:
                 errorInvalidSwitch(p);
-                params.checkActionUsage = true;
+                params.help.checkAction = true;
                 return false;
             }
         }
         else if (startsWith(p + 1, "check")) // https://dlang.org/dmd.html#switch-check
         {
             enum len = "-check=".length;
-            mixin(checkOptionsMixin("checkUsage",
+            mixin(checkOptionsMixin("check",
                 "`-check=<action>` requires an action"));
             /* Parse:
              *    -check=[assert|bounds|in|invariant|out|switch][=[on|off]]
@@ -1502,7 +728,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                   check(checkarg, "switch",    params.useSwitchError)))
             {
                 errorInvalidSwitch(p);
-                params.checkUsage = true;
+                params.help.check = true;
                 return false;
             }
         }
@@ -1516,10 +742,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 switch(arg[7 .. $])
                 {
                 case "on":
-                    params.color = true;
+                    params.v.color = true;
                     break;
                 case "off":
-                    params.color = false;
+                    params.v.color = false;
                     break;
                 case "auto":
                     break;
@@ -1531,7 +757,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             else if (p[6])
                 goto Lerror;
             else
-                params.color = true;
+                params.v.color = true;
         }
         else if (startsWith(p + 1, "conf=")) // https://dlang.org/dmd.html#switch-conf
         {
@@ -1561,6 +787,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (arg == "-shared")
             driverParams.dll = true;
+        else if (arg == "-fIBT")
+        {
+            driverParams.ibt = true;
+        }
         else if (arg == "-fPIC")
         {
             driverParams.pic = PIC.pic;
@@ -1620,22 +850,22 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (arg == "-m32") // https://dlang.org/dmd.html#switch-m32
         {
-            target.is64bit = false;
+            target.isX86_64 = false;
             target.omfobj = false;
         }
         else if (arg == "-m64") // https://dlang.org/dmd.html#switch-m64
         {
-            target.is64bit = true;
+            target.isX86_64 = true;
             target.omfobj = false;
         }
         else if (arg == "-m32mscoff") // https://dlang.org/dmd.html#switch-m32mscoff
         {
-            target.is64bit = false;
+            target.isX86_64 = false;
             target.omfobj = false;
         }
         else if (arg == "-m32omf") // https://dlang.org/dmd.html#switch-m32omfobj
         {
-            target.is64bit = false;
+            target.isX86_64 = false;
             target.omfobj = true;
         }
         else if (startsWith(p + 1, "mscrtlib="))
@@ -1663,23 +893,23 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 params.trace = true;
         }
         else if (arg == "-v") // https://dlang.org/dmd.html#switch-v
-            params.verbose = true;
+            params.v.verbose = true;
         else if (arg == "-vcg-ast")
             params.vcg_ast = true;
         else if (arg == "-vasm") // https://dlang.org/dmd.html#switch-vasm
             driverParams.vasm = true;
         else if (arg == "-vtls") // https://dlang.org/dmd.html#switch-vtls
-            params.vtls = true;
+            params.v.tls = true;
         else if (startsWith(p + 1, "vtemplates")) // https://dlang.org/dmd.html#switch-vtemplates
         {
-            params.vtemplates = true;
+            params.v.templates = true;
             if (p[1 + "vtemplates".length] == '=')
             {
                 const(char)[] style = arg[1 + "vtemplates=".length .. $];
                 switch (style)
                 {
                 case "list-instances":
-                    params.vtemplatesListInstances = true;
+                    params.v.templatesListInstances = true;
                     break;
                 default:
                     error("unknown vtemplates style '%.*s', must be 'list-instances'", cast(int) style.length, style.ptr);
@@ -1687,9 +917,9 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             }
         }
         else if (arg == "-vcolumns") // https://dlang.org/dmd.html#switch-vcolumns
-            params.showColumns = true;
+            params.v.showColumns = true;
         else if (arg == "-vgc") // https://dlang.org/dmd.html#switch-vgc
-            params.vgc = true;
+            params.v.gc = true;
         else if (startsWith(p + 1, "verrors")) // https://dlang.org/dmd.html#switch-verrors
         {
             if (p[8] != '=')
@@ -1699,13 +929,13 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             }
             if (startsWith(p + 9, "spec"))
             {
-                params.showGaggedErrors = true;
+                params.v.showGaggedErrors = true;
             }
             else if (startsWith(p + 9, "context"))
             {
-                params.printErrorContext = true;
+                params.v.printErrorContext = true;
             }
-            else if (!params.errorLimit.parseDigits(p.toDString()[9 .. $]))
+            else if (!params.v.errorLimit.parseDigits(p.toDString()[9 .. $]))
             {
                 errorInvalidSwitch(p, "Only number, `spec`, or `context` are allowed for `-verrors`");
                 return true;
@@ -1713,7 +943,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (startsWith(p + 1, "verror-supplements"))
         {
-            if (!params.errorSupplementLimit.parseDigits(p.toDString()[20 .. $]))
+            if (!params.v.errorSupplementLimit.parseDigits(p.toDString()[20 .. $]))
             {
                 errorInvalidSwitch(p, "Only a number is allowed for `-verror-supplements`");
                 return true;
@@ -1726,10 +956,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             switch (style)
             {
             case "digitalmars":
-                params.messageStyle = MessageStyle.digitalmars;
+                params.v.messageStyle = MessageStyle.digitalmars;
                 break;
             case "gnu":
-                params.messageStyle = MessageStyle.gnu;
+                params.v.messageStyle = MessageStyle.gnu;
                 break;
             default:
                 error("unknown error style '%.*s', must be 'digitalmars' or 'gnu'", cast(int) style.length, style.ptr);
@@ -1746,7 +976,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             enum len = "-mcpu=".length;
             // Parse:
             //      -mcpu=identifier
-            mixin(checkOptionsMixin("mcpuUsage",
+            mixin(checkOptionsMixin("mcpu",
                 "`-mcpu=<architecture>` requires an architecture"));
             if (Identifier.isValidIdentifier(p + len))
             {
@@ -1767,14 +997,14 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                     break;
                 default:
                     errorInvalidSwitch(p, "Only `baseline`, `avx`, `avx2` or `native` are allowed for `-mcpu`");
-                    params.mcpuUsage = true;
+                    params.help.mcpu = true;
                     return false;
                 }
             }
             else
             {
                 errorInvalidSwitch(p, "Only `baseline`, `avx`, `avx2` or `native` are allowed for `-mcpu`");
-                params.mcpuUsage = true;
+                params.help.mcpu = true;
                 return false;
             }
         }
@@ -1813,7 +1043,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             enum len = "-extern-std=".length;
             // Parse:
             //      -extern-std=identifier
-            mixin(checkOptionsMixin("externStdUsage",
+            mixin(checkOptionsMixin("externStd",
                 "`-extern-std=<standard>` requires a standard"));
             const(char)[] cpprev = arg[len .. $];
 
@@ -1836,7 +1066,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 break;
             default:
                 error("switch `%s` is invalid", p);
-                params.externStdUsage = true;
+                params.help.externStd = true;
                 return false;
             }
         }
@@ -1845,7 +1075,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             enum len = "-transition=".length;
             // Parse:
             //      -transition=number
-            mixin(checkOptionsMixin("transitionUsage",
+            mixin(checkOptionsMixin("transition",
                 "`-transition=<name>` requires a name"));
             if (!parseCLIOption!("transition", Usage.transitions)(params, arg))
             {
@@ -1862,7 +1092,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                     switch (num)
                     {
                         case 3449:
-                            params.vfield = true;
+                            params.v.field = true;
                             break;
                         case 14_246:
                             params.dtorFields = FeatureState.enabled;
@@ -1874,7 +1104,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                             break;
                         default:
                             error("transition `%s` is invalid", p);
-                            params.transitionUsage = true;
+                            params.help.transition = true;
                             return false;
                     }
                 }
@@ -1891,12 +1121,12 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                             break;
                         default:
                             error("transition `%s` is invalid", p);
-                            params.transitionUsage = true;
+                            params.help.transition = true;
                             return false;
                     }
                 }
                 errorInvalidSwitch(p);
-                params.transitionUsage = true;
+                params.help.transition = true;
                 return false;
             }
         }
@@ -1905,13 +1135,13 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             enum len = "-preview=".length;
             // Parse:
             //      -preview=name
-            mixin(checkOptionsMixin("previewUsage",
+            mixin(checkOptionsMixin("preview",
                 "`-preview=<name>` requires a name"));
 
             if (!parseCLIOption!("preview", Usage.previews)(params, arg))
             {
                 error("preview `%s` is invalid", p);
-                params.previewUsage = true;
+                params.help.preview = true;
                 return false;
             }
 
@@ -1928,13 +1158,13 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             enum len = "-revert=".length;
             // Parse:
             //      -revert=name
-            mixin(checkOptionsMixin("revertUsage",
+            mixin(checkOptionsMixin("revert",
                 "`-revert=<name>` requires a name"));
 
             if (!parseCLIOption!("revert", Usage.reverts)(params, arg))
             {
                 error("revert `%s` is invalid", p);
-                params.revertUsage = true;
+                params.help.revert = true;
                 return false;
             }
         }
@@ -1942,6 +1172,12 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.warnings = DiagnosticReporting.error;
         else if (arg == "-wi")  // https://dlang.org/dmd.html#switch-wi
             params.warnings = DiagnosticReporting.inform;
+        else if (arg == "-wo")  // https://dlang.org/dmd.html#switch-wo
+        {
+            // Obsolete features has been obsoleted until a DIP for "additions"
+            // has been drafted and ratified in the language spec.
+            // Rather, these old features will just be accepted without warning.
+        }
         else if (arg == "-O")   // https://dlang.org/dmd.html#switch-O
             driverParams.optimize = true;
         else if (arg == "-o-")  // https://dlang.org/dmd.html#switch-o-
@@ -2021,7 +1257,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 break;
             case '=':
                 enum len = "-HC=".length;
-                mixin(checkOptionsMixin("hcUsage", "`-HC=<mode>` requires a valid mode"));
+                mixin(checkOptionsMixin("hc", "`-HC=<mode>` requires a valid mode"));
                 const mode = arg[len .. $];
                 switch (mode)
                 {
@@ -2033,7 +1269,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                         break;
                     default:
                         errorInvalidSwitch(p);
-                        params.hcUsage = true;
+                        params.help.hc = true;
                         return false;
                 }
                 break;
@@ -2153,7 +1389,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         else if (arg == "-release")     // https://dlang.org/dmd.html#switch-release
             params.release = true;
         else if (arg == "-betterC")     // https://dlang.org/dmd.html#switch-betterC
+        {
             params.betterC = true;
+            params.allInst = true;
+        }
         else if (arg == "-noboundscheck") // https://dlang.org/dmd.html#switch-noboundscheck
         {
             params.boundscheck = CHECKENABLE.off;
@@ -2183,6 +1422,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             }
             else
                 goto Lerror;
+        }
+        else if (arg == "-nothrow") // https://dlang.org/dmd.html#switch-nothrow
+        {
+            params.useExceptions = false;
         }
         else if (arg == "-unittest")
             params.useUnitTests = true;
@@ -2226,9 +1469,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 }
                 else if (Identifier.isValidIdentifier(p + 7))
                 {
-                    if (!params.debugids)
-                        params.debugids = new Array!(const(char)*);
-                    params.debugids.push(p + 7);
+                    DebugCondition.addGlobalIdent((p + 7).toDString());
                 }
                 else
                     goto Lerror;
@@ -2256,10 +1497,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 }
                 else if (Identifier.isValidIdentifier(p + 9))
                 {
-
-                    if (!params.versionids)
-                        params.versionids = new Array!(const(char)*);
-                    params.versionids.push(p + 9);
+                    VersionCondition.addGlobalIdent((p+9).toDString());
                 }
                 else
                     goto Lerror;
@@ -2276,14 +1514,14 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         else if (arg == "--help" ||
                  arg == "-h")
         {
-            params.usage = true;
+            params.help.usage = true;
             return false;
         }
         else if (arg == "--r")
             driverParams.debugr = true;
         else if (arg == "--version")
         {
-            params.logo = true;
+            params.v.logo = true;
             return false;
         }
         else if (arg == "--x")
@@ -2356,7 +1594,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (startsWith(p + 1, "man"))   // https://dlang.org/dmd.html#switch-man
         {
-            params.manual = true;
+            params.help.manual = true;
             return false;
         }
         else if (arg == "-run")              // https://dlang.org/dmd.html#switch-run
@@ -2408,208 +1646,14 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
     return errors;
 }
 
-/***********************************************
- * Adjust gathered command line switches and reconcile them.
- * Params:
- *      params = switches gathered from command line,
- *               and update in place
- *      target = more switches from the command line,
- *               update in place
- *      numSrcFiles = number of source files
- */
-version (NoMain) {} else
-private void reconcileCommands(ref Param params, ref Target target)
-{
-    if (target.os == Target.OS.OSX)
-    {
-        driverParams.pic = PIC.pic;
-    }
-    else if (target.os == Target.OS.Windows)
-    {
-        if (driverParams.pic)
-            error(Loc.initial, "`-fPIC` and `-fPIE` cannot be used when targetting windows");
-        if (driverParams.dwarf)
-            error(Loc.initial, "`-gdwarf` cannot be used when targetting windows");
-    }
-    else if (target.os == Target.OS.DragonFlyBSD)
-    {
-        if (!target.is64bit)
-            error(Loc.initial, "`-m32` is not supported on DragonFlyBSD, it is 64-bit only");
-    }
-
-    if (target.os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
-    {
-        if (driverParams.lib && driverParams.dll)
-            error(Loc.initial, "cannot mix `-lib` and `-shared`");
-    }
-    if (target.os == Target.OS.Windows)
-    {
-        foreach(b; params.linkswitchIsForCC[])
-        {
-            if (b)
-            {
-                // Linking code is guarded by version (Posix):
-                error(Loc.initial, "`Xcc=` link switches not available for this operating system");
-                break;
-            }
-        }
-    }
-    else
-    {
-        if (target.omfobj)
-            error(Loc.initial, "`-m32omf` can only be used when targetting windows");
-        if (driverParams.mscrtlib)
-            error(Loc.initial, "`-mscrtlib` can only be used when targetting windows");
-    }
-
-    if (params.boundscheck != CHECKENABLE._default)
-    {
-        if (params.useArrayBounds == CHECKENABLE._default)
-            params.useArrayBounds = params.boundscheck;
-    }
-
-    if (params.useUnitTests)
-    {
-        if (params.useAssert == CHECKENABLE._default)
-            params.useAssert = CHECKENABLE.on;
-    }
-
-    if (params.release)
-    {
-        if (params.useInvariants == CHECKENABLE._default)
-            params.useInvariants = CHECKENABLE.off;
-
-        if (params.useIn == CHECKENABLE._default)
-            params.useIn = CHECKENABLE.off;
-
-        if (params.useOut == CHECKENABLE._default)
-            params.useOut = CHECKENABLE.off;
-
-        if (params.useArrayBounds == CHECKENABLE._default)
-            params.useArrayBounds = CHECKENABLE.safeonly;
-
-        if (params.useAssert == CHECKENABLE._default)
-            params.useAssert = CHECKENABLE.off;
-
-        if (params.useSwitchError == CHECKENABLE._default)
-            params.useSwitchError = CHECKENABLE.off;
-    }
-    else
-    {
-        if (params.useInvariants == CHECKENABLE._default)
-            params.useInvariants = CHECKENABLE.on;
-
-        if (params.useIn == CHECKENABLE._default)
-            params.useIn = CHECKENABLE.on;
-
-        if (params.useOut == CHECKENABLE._default)
-            params.useOut = CHECKENABLE.on;
-
-        if (params.useArrayBounds == CHECKENABLE._default)
-            params.useArrayBounds = CHECKENABLE.on;
-
-        if (params.useAssert == CHECKENABLE._default)
-            params.useAssert = CHECKENABLE.on;
-
-        if (params.useSwitchError == CHECKENABLE._default)
-            params.useSwitchError = CHECKENABLE.on;
-    }
-
-    if (params.betterC)
-    {
-        if (params.checkAction != CHECKACTION.halt)
-            params.checkAction = CHECKACTION.C;
-
-        params.useModuleInfo = false;
-        params.useTypeInfo = false;
-        params.useExceptions = false;
-    }
-}
-
-/***********************************************
- * Adjust link, run and lib line switches and reconcile them.
- * Params:
- *      params = switches gathered from command line,
- *               and update in place
- *      numSrcFiles = number of source files
- *      obj_ext = object file extension
- */
-version (NoMain) {} else
-private void reconcileLinkRunLib(ref Param params, size_t numSrcFiles, const char[] obj_ext)
-{
-    if (!params.obj || driverParams.lib)
-        driverParams.link = false;
-
-    if (target.os == Target.OS.Windows)
-    {
-        if (!driverParams.mscrtlib)
-        {
-            version (Windows)
-            {
-                VSOptions vsopt;
-                vsopt.initialize();
-                driverParams.mscrtlib = vsopt.defaultRuntimeLibrary(target.is64bit).toDString;
-            }
-            else
-            {
-                if (driverParams.link)
-                    error(Loc.initial, "must supply `-mscrtlib` manually when cross compiling to windows");
-            }
-        }
-    }
-
-    if (driverParams.link)
-    {
-        params.exefile = params.objname;
-        driverParams.oneobj = true;
-        if (params.objname)
-        {
-            /* Use this to name the one object file with the same
-             * name as the exe file.
-             */
-            params.objname = FileName.forceExt(params.objname, obj_ext);
-            /* If output directory is given, use that path rather than
-             * the exe file path.
-             */
-            if (params.objdir)
-            {
-                const(char)[] name = FileName.name(params.objname);
-                params.objname = FileName.combine(params.objdir, name);
-            }
-        }
-    }
-    else if (params.run)
-    {
-        error(Loc.initial, "flags conflict with -run");
-        fatal();
-    }
-    else if (driverParams.lib)
-    {
-        params.libname = params.objname;
-        params.objname = null;
-        // Haven't investigated handling these options with multiobj
-        if (!params.cov && !params.trace)
-            params.multiobj = true;
-    }
-    else
-    {
-        if (params.objname && numSrcFiles)
-        {
-            driverParams.oneobj = true;
-            //error("multiple source files, but only one .obj name");
-            //fatal();
-        }
-    }
-}
-
 /// Sets the boolean for a flag with the given name
-private static void setFlagFor(string name, ref bool b)
+private static void setFlagFor(string name, ref bool b) @safe
 {
     b = name != "revert";
 }
 
 /// Sets the FeatureState for a flag with the given name
-private static void setFlagFor(string name, ref FeatureState s)
+private static void setFlagFor(string name, ref FeatureState s) @safe
 {
     s = name != "revert" ? FeatureState.enabled : FeatureState.disabled;
 }
@@ -2756,7 +1800,6 @@ Params:
 Returns:
   An array of path to D modules
 */
-private
 Modules createModules(ref Strings files, ref Strings libmodules, const ref Target target)
 {
     Modules modules;

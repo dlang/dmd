@@ -19,7 +19,7 @@ import core.stdc.time;
 
 import dmd.root.array;
 import dmd.root.rmem;
-import dmd.root.rootobject;
+import dmd.rootobject;
 
 import dmd.aggregate;
 import dmd.astenums;
@@ -32,7 +32,6 @@ import dmd.dsymbol;
 import dmd.dstruct;
 import dmd.dtemplate;
 import dmd.e2ir;
-import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
@@ -50,6 +49,7 @@ import dmd.toir;
 import dmd.tokens;
 import dmd.visitor;
 
+import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcv;
@@ -69,9 +69,6 @@ import dmd.backend.type;
 
 extern (C++):
 
-alias toSymbol = dmd.tocsym.toSymbol;
-alias toSymbol = dmd.glue.toSymbol;
-
 alias StmtState = dmd.stmtstate.StmtState!block;
 
 
@@ -80,7 +77,7 @@ void elem_setLoc(elem *e, const ref Loc loc) nothrow
     srcpos_setLoc(e.Esrcpos, loc);
 }
 
-void Statement_toIR(Statement s, IRState *irs)
+void Statement_toIR(Statement s, ref IRState irs)
 {
     /* Generate a block for each label
      */
@@ -98,7 +95,7 @@ void Statement_toIR(Statement s, IRState *irs)
     Statement_toIR(s, irs, &stmtstate);
 }
 
-void Statement_toIR(Statement s, IRState *irs, StmtState* stmtstate)
+void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
 {
     /****************************************
      * This should be overridden by each statement class.
@@ -106,7 +103,7 @@ void Statement_toIR(Statement s, IRState *irs, StmtState* stmtstate)
 
     void visitDefaultCase(Statement s)
     {
-        error(s.loc, "visitDefaultCase() %d for %s\n", s.stmt, s.toChars());
+        irs.eSink.error(s.loc, "visitDefaultCase() %d for %s\n", s.stmt, s.toChars());
         assert(0);
     }
 
@@ -437,22 +434,24 @@ void Statement_toIR(Statement s, IRState *irs, StmtState* stmtstate)
         block_appendexp(mystate.switchBlock, econd);
         block_next(blx,BCswitch,null);
 
-        // Corresponding free is in block_free
-        alias TCase = typeof(mystate.switchBlock.Bswitch[0]);
-        auto pu = cast(TCase *)Mem.check(.malloc(TCase.sizeof * (numcases + 1)));
-        mystate.switchBlock.Bswitch = pu;
-        /* First pair is the number of cases, and the default block
+        /* First successor is the default block
          */
-        *pu++ = numcases;
         mystate.switchBlock.appendSucc(mystate.defaultBlock);
 
-        /* Fill in the first entry for each pair, which is the case value.
-         * CaseStatement.toIR() will fill in
-         * the second entry for each pair with the block.
-         */
         if (numcases)
-            foreach (cs; *s.cases)
-                *pu++ = cs.exp.toInteger();
+        {
+            // Corresponding free is in block_free
+            alias TCase = typeof(mystate.switchBlock.Bswitch[0]);
+            auto pu = cast(TCase *)Mem.check(.malloc(TCase.sizeof * numcases));
+            mystate.switchBlock.Bswitch = pu[0 .. numcases];
+
+            /* Fill in the first entry for each pair, which is the case value.
+             * CaseStatement.toIR() will fill in
+             * the second entry for each pair with the block.
+             */
+            foreach (i, cs; *s.cases)
+                mystate.switchBlock.Bswitch[i] = cs.exp.toInteger();
+        }
 
         Statement_toIR(s._body, irs, &mystate);
 
@@ -946,14 +945,17 @@ void Statement_toIR(Statement s, IRState *irs, StmtState* stmtstate)
                                         el_combine(e3, el_var(shandler)));
 
             const numcases = s.catches.length;
-            bswitch.Bswitch = cast(targ_llong *) Mem.check(.malloc((targ_llong).sizeof * (numcases + 1)));
-            bswitch.Bswitch[0] = numcases;
+            if (numcases)
+            {
+                long* pu = cast(long*) Mem.check(.malloc(long.sizeof * numcases));
+                bswitch.Bswitch = pu[0 .. numcases];
+            }
             bswitch.appendSucc(defaultblock);
             block_next(blx, BCswitch, null);
 
             foreach (i, cs; *s.catches)
             {
-                bswitch.Bswitch[1 + i] = 1 + i;
+                bswitch.Bswitch[i] = i;
 
                 if (cs.var)
                     cs.var.csym = tryblock.jcatchvar;
@@ -991,12 +993,12 @@ void Statement_toIR(Statement s, IRState *irs, StmtState* stmtstate)
                 {
                     if (ct == catchtype)
                     {
-                        bswitch.Bswitch[1 + i] = 1 + j;  // index starts at 1
+                        bswitch.Bswitch[i] = 1 + j;  // index starts at 1
                         goto L1;
                     }
                 }
                 f.typesTable.push(catchtype);
-                bswitch.Bswitch[1 + i] = f.typesTable.length;  // index starts at 1
+                bswitch.Bswitch[i] = f.typesTable.length;  // index starts at 1
            L1:
                 block *bcase = blx.curblock;
                 bswitch.appendSucc(bcase);
@@ -1052,11 +1054,11 @@ void Statement_toIR(Statement s, IRState *irs, StmtState* stmtstate)
             /* Make a copy of the switch case table, which will later become the Action Table.
              * Need a copy since the bswitch may get rewritten by the optimizer.
              */
-            alias TAction = typeof(bcatch.actionTable[0]);
-            bcatch.actionTable = cast(TAction*)Mem.check(.malloc(TAction.sizeof * (numcases + 1)));
-            foreach (i; 0 .. numcases + 1)
-                bcatch.actionTable[i] = cast(TAction)bswitch.Bswitch[i];
-
+            alias TAction = typeof((*bcatch.actionTable)[0]);
+            bcatch.actionTable = cast(Barray!TAction*)Mem.check(.calloc(Barray!TAction.sizeof, 1));
+            bcatch.actionTable.setLength(numcases);
+            foreach (i; 0 .. numcases)
+                (*bcatch.actionTable)[i] = cast(TAction)bswitch.Bswitch[i];
         }
         else
         {
@@ -1070,7 +1072,7 @@ void Statement_toIR(Statement s, IRState *irs, StmtState* stmtstate)
                 tryblock.appendSucc(bcatch);
                 block_goto(blx, BCjcatch, null);
 
-                if (cs.type && irs.target.os == Target.OS.Windows && irs.target.is64bit) // Win64
+                if (cs.type && irs.target.os == Target.OS.Windows && irs.target.isX86_64) // Win64
                 {
                     /* The linker will attempt to merge together identical functions,
                      * even if the catch types differ. So add a reference to the
@@ -1747,7 +1749,7 @@ private void setScopeIndex(Blockx *blx, block *b, int scope_index)
  * Allocate a new block, and set the tryblock.
  */
 
-private block *block_calloc(Blockx *blx)
+private block *block_calloc(Blockx *blx) @safe
 {
     block *b = dmd.backend.global.block_calloc();
     b.Btry = blx.tryblock;
@@ -1758,7 +1760,7 @@ private block *block_calloc(Blockx *blx)
  * Add in code to increment usage count for linnum.
  */
 
-private void incUsage(IRState *irs, const ref Loc loc)
+private void incUsage(ref IRState irs, const ref Loc loc)
 {
 
     if (irs.params.cov && loc.linnum)

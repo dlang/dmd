@@ -17,9 +17,9 @@ module dmd.backend.iasm;
 import dmd.backend.cc : block;
 import dmd.backend.code_x86 : opcode_t;
 
-extern (C++):
 @nogc:
 nothrow:
+@safe:
 
 //#include <setjmp.h>
 
@@ -403,27 +403,24 @@ enum
     ITSIZE          = 0x0F,    // mask for size
 }
 
-version (MARS)
+alias OP_DB = int;
+enum
 {
-    alias OP_DB = int;
-    enum
-    {
-        // Integral types
-        OPdb,
-        OPds,
-        OPdi,
-        OPdl,
+    // Integral types
+    OPdb,
+    OPds,
+    OPdi,
+    OPdl,
 
-        // Float types
-        OPdf,
-        OPdd,
-        OPde,
+    // Float types
+    OPdf,
+    OPdd,
+    OPde,
 
-        // Deprecated
-        OPdw = OPds,
-        OPdq = OPdl,
-        OPdt = OPde,
-    }
+    // Deprecated
+    OPdw = OPds,
+    OPdq = OPdl,
+    OPdt = OPde,
 }
 
 struct PTRNTAB4

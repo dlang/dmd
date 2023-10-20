@@ -18,7 +18,6 @@ module dmd.backend.ty;
 public import dmd.backend.var : tyequiv, dttab, dttab4, tystring, tytouns, _tyrelax, tytab,
     _tysize, _tyalignsize, TYaarray, TYdelegate, TYdarray, TYptrdiff, TYsize, TYsize_t;
 
-extern (C++):
 @nogc:
 nothrow:
 @safe:

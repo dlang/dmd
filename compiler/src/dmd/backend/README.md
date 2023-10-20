@@ -65,7 +65,6 @@ Miscellaneous
 * **bcomplex.d**      our own complex number implementation
 * **md5.d**           implementation of MD5 message digest
 * **md5.di**          API for md5.d
-* **newman.d**        "new" C++ name mangling scheme
 * **os.d**            some operating system specific support
 * **cc.d**            common definitions
 * **cdef.d**          configuration
@@ -77,7 +76,6 @@ Miscellaneous
 * **oper.d**          operators for expression tree
 * **optabgen.d**      generate tables for back end
 * **ty.d**            type masks
-* **ph2.d**           leaking allocator
 * **symbol.d**        symbols for the back end
 * **type.d**          types for the back end
 * **var.d**           global variables

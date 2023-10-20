@@ -27,13 +27,11 @@ version (Windows)
     import core.sys.windows.stat;
 }
 
-import dmd.globals;
 import dmd.lib;
 import dmd.location;
 import dmd.utils;
 
 import dmd.root.array;
-import dmd.root.file;
 import dmd.root.filename;
 import dmd.common.outbuffer;
 import dmd.root.port;
@@ -89,7 +87,7 @@ final class LibMach : Library
 
         void corrupt(int reason)
         {
-            error("corrupt Mach object module %.*s %d",
+            eSink.error(loc, "corrupt Mach object module %.*s %d",
                   cast(int)module_name.length, module_name.ptr, reason);
         }
 
@@ -281,7 +279,7 @@ final class LibMach : Library
                     s = tab.lookup(name.ptr, name.length);
                     assert(s);
                     MachObjSymbol* os = cast(MachObjSymbol*)s.ptrvalue;
-                    error("multiple definition of %s: %s and %s: %s", om.name.ptr, name.ptr, os.om.name.ptr, os.name.ptr);
+                    eSink.error(loc, "multiple definition of %s: %s and %s: %s", om.name.ptr, name.ptr, os.om.name.ptr, os.name.ptr);
                 }
             }
             else
@@ -319,7 +317,7 @@ private:
             this.addSymbol(om, name, pickAny);
         }
 
-        scanMachObjModule(&addSymbol, om.base[0 .. om.length], om.name.ptr, loc);
+        scanMachObjModule(&addSymbol, om.base[0 .. om.length], om.name.ptr, loc, eSink);
     }
 
     /*****************************************************************************/
@@ -332,7 +330,7 @@ private:
      *      dictionary
      *      object modules...
      */
-    protected override void WriteLibToBuffer(OutBuffer* libbuf)
+    protected override void writeLibToBuffer(ref OutBuffer libbuf)
     {
         static if (LOG)
         {

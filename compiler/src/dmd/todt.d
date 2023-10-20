@@ -49,9 +49,6 @@ import dmd.visitor;
 import dmd.backend.cc;
 import dmd.backend.dt;
 
-alias toSymbol = dmd.tocsym.toSymbol;
-alias toSymbol = dmd.glue.toSymbol;
-
 /* A dt_t is a simple structure representing data to be added
  * to the data segment of the output object file. As such,
  * it is a list of initialized bytes, 0 data, and offsets from
@@ -224,7 +221,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
         {
             printf("Expression.toDt() op = %d e = %s \n", e.op, e.toChars());
         }
-        e.error("non-constant expression `%s`", e.toChars());
+        error(e.loc, "non-constant expression `%s`", e.toChars());
         dtb.nzeros(1);
     }
 
@@ -488,8 +485,13 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
      */
     void visitAssocArrayLiteral(AssocArrayLiteralExp e)
     {
-        e.error("static initializations of associative arrays is not allowed.");
-        errorSupplemental(e.loc, "associative arrays must be initialized at runtime: https://dlang.org/spec/hash-map.html#runtime_initialization");
+        if (!e.lowering)
+        {
+            error(e.loc, "internal compiler error: failed to detect static initialization of associative array");
+            assert(0);
+        }
+        Expression_toDt(e.lowering, dtb);
+        return;
     }
 
     void visitStructLiteral(StructLiteralExp sle)
@@ -520,7 +522,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
             if ((v.isConst() || v.isImmutable()) &&
                 e.type.toBasetype().ty != Tsarray && v._init)
             {
-                e.error("recursive reference `%s`", e.toChars());
+                error(e.loc, "recursive reference `%s`", e.toChars());
                 return;
             }
             v.inuse++;
@@ -1404,7 +1406,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
     override void visit(TypeInfoStructDeclaration d)
     {
         //printf("TypeInfoStructDeclaration.toDt() '%s'\n", d.toChars());
-        if (target.is64bit)
+        if (target.isX86_64)
             verifyStructSize(Type.typeinfostruct, 17 * target.ptrsize);
         else
             verifyStructSize(Type.typeinfostruct, 15 * target.ptrsize);
@@ -1529,7 +1531,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         // uint m_align;
         dtb.size(tc.alignsize());
 
-        if (target.is64bit)
+        if (target.isX86_64)
         {
             foreach (i; 0 .. 2)
             {

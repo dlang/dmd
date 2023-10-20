@@ -24,7 +24,6 @@ import dmd.backend.el;
 import dmd.backend.symtab;
 import dmd.backend.type;
 
-extern (C++):
 @nogc:
 nothrow:
 @safe:
@@ -361,7 +360,8 @@ nothrow:
                                 // the same function.
     union
     {
-        targ_llong*      Bswitch;      // BCswitch: pointer to switch data
+        long[] Bswitch;                // BCswitch: case expression values
+
         struct
         {
             regm_t usIasmregs;         // Registers modified
@@ -375,9 +375,9 @@ nothrow:
 
         struct
         {
-            Symbol* Bcatchtype;     // one type for each catch block
-            uint* actionTable;      // EH_DWARF: indices into typeTable, first is # of entries
-        }                           // BCjcatch
+            Symbol* Bcatchtype;       // one type for each catch block
+            Barray!uint* actionTable; // EH_DWARF: indices into typeTable
+        }                             // BCjcatch
 
         struct
         {
@@ -528,7 +528,7 @@ enum
  */
 struct BlockRange
 {
-  pure nothrow @nogc @safe:
+  pure nothrow @nogc:
 
     this(block* b)
     {
@@ -1169,7 +1169,7 @@ struct Symbol
 //#endif
 
     SC Sclass;                  // storage class (SCxxxx)
-    char Sfl;                   // flavor (FLxxxx)
+    FL Sfl;                     // flavor (FLxxxx)
     SYMFLGS Sflags;             // flag bits (SFLxxxx)
 
     vec_t       Srange;         // live range, if any
@@ -1320,8 +1320,6 @@ nothrow:
     param_t* search(char* id) return // look for Pident matching id
     { return param_t_search(&this, id); }
 
-    int searchn(char* id);      // look for Pident matching id, return index
-
     uint length()               // number of parameters in list
     { return param_t_length(&this); }
 
@@ -1332,13 +1330,8 @@ nothrow:
     { param_t_print_list(&this); }
 }
 
-void param_t_print(const scope param_t* p);
-void param_t_print_list(scope param_t* p);
-uint param_t_length(scope param_t* p);
-param_t* param_t_createTal(scope param_t* p, param_t *ptali);
-param_t* param_t_search(return scope param_t* p, const(char)* id);
-int param_t_searchn(param_t* p, char *id);
-
+import dmd.backend.dtype : param_t_print, param_t_print_list, param_t_length, param_t_createTal,
+    param_t_search, param_t_searchn;
 
 void param_debug(const param_t *p)
 {
@@ -1350,7 +1343,7 @@ void param_debug(const param_t *p)
  * These should be combined with storage classes.
  */
 
-alias FL = int;
+alias FL = ubyte;
 enum
 {
     // Change this, update debug.c too

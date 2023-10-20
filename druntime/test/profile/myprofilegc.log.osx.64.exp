@@ -6,7 +6,6 @@ bytes allocated, allocations, type, function, file:line
              48	              1	float[] D main src/profilegc.d:42
              48	              1	int[] D main src/profilegc.d:41
              32	              1	C D main src/profilegc.d:12
-             32	              1	profilegc.main.C core.lifetime._d_newclassT!(C)._d_newclassT ../../src/core/lifetime.d:2755
              32	              1	void[] profilegc.main src/profilegc.d:55
              16	              1	char[] D main src/profilegc.d:34
              16	              1	char[] D main src/profilegc.d:36
@@ -17,6 +16,4 @@ bytes allocated, allocations, type, function, file:line
              16	              1	int[] D main src/profilegc.d:14
              16	              1	int[] D main src/profilegc.d:22
              16	              1	int[] D main src/profilegc.d:37
-             16	              1	void[] core.lifetime._d_newitemT!float._d_newitemT ../../src/core/lifetime.d:2829
-             16	              1	void[] core.lifetime._d_newitemT!int._d_newitemT ../../src/core/lifetime.d:2829
              16	              1	wchar[] D main src/profilegc.d:35

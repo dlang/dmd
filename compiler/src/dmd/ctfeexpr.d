@@ -12,7 +12,6 @@
 module dmd.ctfeexpr;
 
 import core.stdc.stdio;
-import core.stdc.stdlib;
 import core.stdc.string;
 import dmd.arraytypes;
 import dmd.astenums;
@@ -45,7 +44,7 @@ extern (C++) final class ClassReferenceExp : Expression
 {
     StructLiteralExp value;
 
-    extern (D) this(const ref Loc loc, StructLiteralExp lit, Type type)
+    extern (D) this(const ref Loc loc, StructLiteralExp lit, Type type) @safe
     {
         super(loc, EXP.classReference);
         assert(lit && lit.sd && lit.sd.isClassDeclaration());
@@ -112,7 +111,7 @@ extern (C++) final class ClassReferenceExp : Expression
  * Returns:
  *    index of the field, or -1 if not found
  */
-int findFieldIndexByName(const StructDeclaration sd, const VarDeclaration v) pure
+int findFieldIndexByName(const StructDeclaration sd, const VarDeclaration v) pure @safe
 {
     foreach (i, field; sd.fields)
     {
@@ -130,7 +129,7 @@ extern (C++) final class ThrownExceptionExp : Expression
 {
     ClassReferenceExp thrown;   // the thing being tossed
 
-    extern (D) this(const ref Loc loc, ClassReferenceExp victim)
+    extern (D) this(const ref Loc loc, ClassReferenceExp victim) @safe
     {
         super(loc, EXP.thrownException);
         this.thrown = victim;
@@ -148,7 +147,7 @@ extern (C++) final class ThrownExceptionExp : Expression
         UnionExp ue = void;
         Expression e = resolveSlice((*thrown.value.elements)[0], &ue);
         StringExp se = e.toStringExp();
-        thrown.error("uncaught CTFE exception `%s(%s)`", thrown.type.toChars(), se ? se.toChars() : e.toChars());
+        error(thrown.loc, "uncaught CTFE exception `%s(%s)`", thrown.type.toChars(), se ? se.toChars() : e.toChars());
         /* Also give the line where the throw statement was. We won't have it
          * in the case where the ThrowStatement is generated internally
          * (eg, in ScopeStatement)
@@ -205,19 +204,19 @@ extern (C++) final class CTFEExp : Expression
      */
     extern (D) __gshared CTFEExp showcontext;
 
-    extern (D) static bool isCantExp(const Expression e)
+    extern (D) static bool isCantExp(const Expression e) @safe
     {
         return e && e.op == EXP.cantExpression;
     }
 
-    extern (D) static bool isGotoExp(const Expression e)
+    extern (D) static bool isGotoExp(const Expression e) @safe
     {
         return e && e.op == EXP.goto_;
     }
 }
 
 // True if 'e' is CTFEExp::cantexp, or an exception
-bool exceptionOrCantInterpret(const Expression e)
+bool exceptionOrCantInterpret(const Expression e) @safe
 {
     return e && (e.op == EXP.cantExpression || e.op == EXP.thrownException || e.op == EXP.showCtfeContext);
 }
@@ -306,9 +305,10 @@ UnionExp copyLiteral(Expression e)
     }
     if (auto aae = e.isAssocArrayLiteralExp())
     {
-        emplaceExp!(AssocArrayLiteralExp)(&ue, e.loc, copyLiteralArray(aae.keys), copyLiteralArray(aae.values));
+        emplaceExp!(AssocArrayLiteralExp)(&ue, aae.loc, copyLiteralArray(aae.keys), copyLiteralArray(aae.values));
         AssocArrayLiteralExp r = ue.exp().isAssocArrayLiteralExp();
-        r.type = e.type;
+        r.type = aae.type;
+        r.lowering = aae.lowering;
         r.ownedByCtfe = OwnedBy.ctfe;
         return ue;
     }
@@ -435,7 +435,7 @@ UnionExp copyLiteral(Expression e)
         emplaceExp!(UnionExp)(&ue, e);
         return ue;
     }
-    e.error("CTFE internal error: literal `%s`", e.toChars());
+    error(e.loc, "CTFE internal error: literal `%s`", e.toChars());
     assert(0);
 }
 
@@ -506,7 +506,7 @@ private UnionExp paintTypeOntoLiteralCopy(Type type, Expression lit)
         // Can't type paint from struct to struct*; this needs another
         // level of indirection
         if (lit.op == EXP.structLiteral && isPointer(type))
-            lit.error("CTFE internal error: painting `%s`", type.toChars());
+            error(lit.loc, "CTFE internal error: painting `%s`", type.toChars());
         ue = copyLiteral(lit);
     }
     ue.exp().type = type;
@@ -1068,25 +1068,25 @@ private bool numCmp(N)(EXP op, N n1, N n2)
 }
 
 /// Returns cmp OP 0; where OP is ==, !=, <, >=, etc. Result is 0 or 1
-bool specificCmp(EXP op, int rawCmp)
+bool specificCmp(EXP op, int rawCmp) @safe
 {
     return numCmp!int(op, rawCmp, 0);
 }
 
 /// Returns e1 OP e2; where OP is ==, !=, <, >=, etc. Result is 0 or 1
-bool intUnsignedCmp(EXP op, dinteger_t n1, dinteger_t n2)
+bool intUnsignedCmp(EXP op, dinteger_t n1, dinteger_t n2) @safe
 {
     return numCmp!dinteger_t(op, n1, n2);
 }
 
 /// Returns e1 OP e2; where OP is ==, !=, <, >=, etc. Result is 0 or 1
-bool intSignedCmp(EXP op, sinteger_t n1, sinteger_t n2)
+bool intSignedCmp(EXP op, sinteger_t n1, sinteger_t n2) @safe
 {
     return numCmp!sinteger_t(op, n1, n2);
 }
 
 /// Returns e1 OP e2; where OP is ==, !=, <, >=, etc. Result is 0 or 1
-bool realCmp(EXP op, real_t r1, real_t r2)
+bool realCmp(EXP op, real_t r1, real_t r2) @safe
 {
     // Don't rely on compiler, handle NAN arguments separately
     if (CTFloat.isNaN(r1) || CTFloat.isNaN(r2)) // if unordered
@@ -1176,7 +1176,7 @@ private int ctfeCmpArrays(const ref Loc loc, Expression e1, Expression e2, uinte
 /* Given a delegate expression e, return .funcptr.
  * If e is NullExp, return NULL.
  */
-private FuncDeclaration funcptrOf(Expression e)
+private FuncDeclaration funcptrOf(Expression e) @safe
 {
     assert(e.type.ty == Tdelegate);
     if (auto de = e.isDelegateExp())
@@ -1187,7 +1187,7 @@ private FuncDeclaration funcptrOf(Expression e)
     return null;
 }
 
-private bool isArray(const Expression e)
+private bool isArray(const Expression e) @safe
 {
     return e.op == EXP.arrayLiteral || e.op == EXP.string_ || e.op == EXP.slice || e.op == EXP.null_;
 }
@@ -1919,7 +1919,7 @@ bool isCtfeValueValid(Expression newval)
             return true; // uninitialized value
 
         default:
-            newval.error("CTFE internal error: illegal CTFE value `%s`", newval.toChars());
+            error(newval.loc, "CTFE internal error: illegal CTFE value `%s`", newval.toChars());
             return false;
     }
 }

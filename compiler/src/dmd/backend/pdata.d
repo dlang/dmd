@@ -12,9 +12,6 @@
 
 module dmd.backend.pdata;
 
-version (MARS)
-{
-
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -26,30 +23,23 @@ import dmd.backend.code_x86;
 import dmd.backend.dt;
 import dmd.backend.el;
 import dmd.backend.global;
+import dmd.backend.mscoffobj;
 import dmd.backend.obj;
 import dmd.backend.rtlsym;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-extern (C++):
 
 nothrow:
+@safe:
 
 // Determine if this Symbol is stored in a COMDAT
+@trusted
 private bool symbol_iscomdat3(Symbol* s)
 {
-    version (MARS)
-    {
-        return s.Sclass == SC.comdat ||
-            config.flags2 & CFG2comdat && s.Sclass == SC.inline ||
-            config.flags4 & CFG4allcomdat && s.Sclass == SC.global;
-    }
-    else
-    {
-        return s.Sclass == SC.comdat ||
-            config.flags2 & CFG2comdat && s.Sclass == SC.inline ||
-            config.flags4 & CFG4allcomdat && (s.Sclass == SC.global || s.Sclass == SC.static_);
-    }
+    return s.Sclass == SC.comdat ||
+        config.flags2 & CFG2comdat && s.Sclass == SC.inline ||
+        config.flags4 & CFG4allcomdat && s.Sclass == SC.global;
 }
 
 enum ALLOCA_LIMIT = 0x10000;
@@ -64,7 +54,7 @@ enum ALLOCA_LIMIT = 0x10000;
  * Params:
  *      sf = function to generate unwind data for
  */
-
+@trusted
 public void win64_pdata(Symbol *sf)
 {
     //printf("win64_pdata()\n");
@@ -111,7 +101,7 @@ private:
  * Returns:
  *      generated symbol referring to unwind data
  */
-
+@trusted
 private Symbol *win64_unwind(Symbol *sf)
 {
     // Generate the unwind name, which is $unwind$funcname
@@ -208,7 +198,7 @@ static if (0)
 }
 
 
-
+@trusted
 private dt_t *unwind_data()
 {
     UNWIND_INFO ui;
@@ -283,5 +273,4 @@ static if (1)
     auto dtb = DtBuilder(0);
     dtb.nbytes(4 + ((ui.CountOfCodes + 1) & ~1) * 2,cast(char *)&ui);
     return dtb.finish();
-}
 }

@@ -23,7 +23,6 @@
 
 module dmd.cppmangle;
 
-import core.stdc.string;
 import core.stdc.stdio;
 
 import dmd.arraytypes;
@@ -43,10 +42,9 @@ import dmd.mtype;
 import dmd.nspace;
 import dmd.root.array;
 import dmd.common.outbuffer;
-import dmd.root.rootobject;
+import dmd.rootobject;
 import dmd.root.string;
 import dmd.target;
-import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
 
@@ -139,7 +137,7 @@ private struct Context
      * Returns:
      *   The previous state of this `Context` object
      */
-    private Context push(lazy RootObject next)
+    private Context push(lazy RootObject next) @safe
     {
         auto r = this.res;
         if (r !is null)
@@ -150,7 +148,7 @@ private struct Context
     /**
      * Reset the context to a previous one, making any adjustment necessary
      */
-    private void pop(ref Context prev)
+    private void pop(ref Context prev) @safe
     {
         this.res = prev.res;
     }
@@ -236,7 +234,7 @@ private final class CppMangleVisitor : Visitor
      * See-Also:
      *  https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangle.seq-id
      */
-    private void writeSequenceFromIndex(size_t idx)
+    private void writeSequenceFromIndex(size_t idx) @safe
     {
         if (idx)
         {
@@ -485,7 +483,7 @@ private final class CppMangleVisitor : Visitor
             }
             else
             {
-                ti.error("internal compiler error: C++ `%s` template value parameter is not supported", tv.valType.toChars());
+                .error(ti.loc, "%s `%s` internal compiler error: C++ `%s` template value parameter is not supported", ti.kind, ti.toPrettyChars, tv.valType.toChars());
                 fatal();
             }
         }
@@ -520,13 +518,13 @@ private final class CppMangleVisitor : Visitor
             }
             else
             {
-                ti.error("internal compiler error: C++ `%s` template alias parameter is not supported", o.toChars());
+                .error(ti.loc, "%s `%s` internal compiler error: C++ `%s` template alias parameter is not supported", ti.kind, ti.toPrettyChars, o.toChars());
                 fatal();
             }
         }
         else if (tp.isTemplateThisParameter())
         {
-            ti.error("internal compiler error: C++ `%s` template this parameter is not supported", o.toChars());
+            .error(ti.loc, "%s `%s` internal compiler error: C++ `%s` template this parameter is not supported", ti.kind, ti.toPrettyChars, o.toChars());
             fatal();
         }
         else
@@ -575,7 +573,7 @@ private final class CppMangleVisitor : Visitor
                     Type t = isType((*ti.tiargs)[j]);
                     if (t is null)
                     {
-                        ti.error("internal compiler error: C++ `%s` template value parameter is not supported", (*ti.tiargs)[j].toChars());
+                        .error(ti.loc, "%s `%s` internal compiler error: C++ `%s` template value parameter is not supported", ti.kind, ti.toPrettyChars, (*ti.tiargs)[j].toChars());
                         fatal();
                     }
                     t.accept(this);
@@ -1013,7 +1011,7 @@ private final class CppMangleVisitor : Visitor
         // fake mangling for fields to fix https://issues.dlang.org/show_bug.cgi?id=16525
         if (!(d.storage_class & (STC.extern_ | STC.field | STC.gshared)))
         {
-            d.error("internal compiler error: C++ static non-`__gshared` non-`extern` variables not supported");
+            .error(d.loc, "%s `%s` internal compiler error: C++ static non-`__gshared` non-`extern` variables not supported", d.kind, d.toPrettyChars);
             fatal();
         }
         Dsymbol p = d.toParent();
@@ -1597,7 +1595,7 @@ private final class CppMangleVisitor : Visitor
      *   or `params.length` if there wasn't any match.
      */
     private static size_t templateParamIndex(
-        const ref Identifier ident, TemplateParameters* params)
+        const ref Identifier ident, TemplateParameters* params) @safe
     {
         foreach (idx, param; *params)
             if (param.ident == ident)
@@ -2131,7 +2129,7 @@ private void visitObject(V : Visitor)(RootObject o, V this_)
 }
 
 /// Helper function to safely get a type out of a `RootObject`
-private Type asType(RootObject o)
+private Type asType(RootObject o) @safe
 {
     if (Type ta = isType(o))
         return ta;
@@ -2143,7 +2141,7 @@ private Type asType(RootObject o)
 }
 
 /// Helper function to safely get a `FuncDeclaration` out of a `RootObject`
-private FuncDeclaration asFuncDecl(RootObject o)
+private FuncDeclaration asFuncDecl(RootObject o) @safe
 {
     Dsymbol d = isDsymbol(o);
     assert(d !is null);
@@ -2177,7 +2175,7 @@ private extern(C++) final class ComponentVisitor : Visitor
     /// Set to the result of the comparison
     private bool result;
 
-    public this(RootObject base)
+    public this(RootObject base) @safe
     {
         switch (base.dyncast())
         {
@@ -2353,7 +2351,7 @@ private bool isNamespaceEqual (CPPNamespaceDeclaration a, Nspace b, size_t idx =
 
 /// Returns:
 ///   Whether  two `CPPNamespaceDeclaration` are equals
-private bool isNamespaceEqual (CPPNamespaceDeclaration a, CPPNamespaceDeclaration b)
+private bool isNamespaceEqual (CPPNamespaceDeclaration a, CPPNamespaceDeclaration b) @safe
 {
     if (a is null || b is null)
         return false;
@@ -2558,7 +2556,7 @@ void leftOver(TypeFunction tf, const(Array!StringExp)* previous, Array!StringExp
         private const(Array!StringExp)* ignore;
 
         ///
-        public this(const(Array!StringExp)* previous, Array!StringExp* toWrite)
+        public this(const(Array!StringExp)* previous, Array!StringExp* toWrite) @safe
         {
             this.ignore = previous;
             this.toWrite = toWrite;
