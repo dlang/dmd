@@ -10350,24 +10350,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     return setError();
             }
 
-            version (none)
-            {
-                if (global.params.warnings != DiagnosticReporting.off && !global.gag && exp.op == EXP.assign &&
-                    e2x.op != EXP.slice && e2x.op != EXP.assign &&
-                    e2x.op != EXP.arrayLiteral && e2x.op != EXP.string_ &&
-                    !(e2x.op == EXP.add || e2x.op == EXP.min ||
-                      e2x.op == EXP.mul || e2x.op == EXP.div ||
-                      e2x.op == EXP.mod || e2x.op == EXP.xor ||
-                      e2x.op == EXP.and || e2x.op == EXP.or ||
-                      e2x.op == EXP.pow ||
-                      e2x.op == EXP.tilde || e2x.op == EXP.negate))
-                {
-                    const(char)* e1str = exp.e1.toChars();
-                    const(char)* e2str = e2x.toChars();
-                    exp.warning("explicit element-wise assignment `%s = (%s)[]` is better than `%s = %s`", e1str, e2str, e1str, e2str);
-                }
-            }
-
             Type t2n = t2.nextOf();
             Type t1n = t1.nextOf();
             int offset;
@@ -10414,21 +10396,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         else
         {
-            version (none)
-            {
-                if (global.params.warnings != DiagnosticReporting.off && !global.gag && exp.op == EXP.assign &&
-                    t1.ty == Tarray && t2.ty == Tsarray &&
-                    e2x.op != EXP.slice &&
-                    t2.implicitConvTo(t1))
-                {
-                    // Disallow ar[] = sa (Converted to ar[] = sa[])
-                    // Disallow da   = sa (Converted to da   = sa[])
-                    const(char)* e1str = exp.e1.toChars();
-                    const(char)* e2str = e2x.toChars();
-                    const(char)* atypestr = exp.e1.op == EXP.slice ? "element-wise" : "slice";
-                    exp.warning("explicit %s assignment `%s = (%s)[]` is better than `%s = %s`", atypestr, e1str, e2str, e1str, e2str);
-                }
-            }
             if (exp.op == EXP.blit)
                 e2x = e2x.castTo(sc, exp.e1.type);
             else

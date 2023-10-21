@@ -3854,12 +3854,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                              */
                             funcdecl.foverrides.push(fdv);
 
-                            /* Should we really require 'override' when implementing
-                             * an interface function?
-                             */
-                            //if (!isOverride())
-                            //    warning(loc, "overrides base class function %s, but is not marked with 'override'", fdv.toPrettyChars());
-
                             if (fdv.tintro)
                                 ti = fdv.tintro;
                             else if (!funcdecl.type.equals(fdv.type))
