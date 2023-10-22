@@ -23,6 +23,12 @@ import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.utf;
 
+/* if you change this, remember to update:
+ compiler/test/unit/lexer/location_offset.d
+ compiler/src/tests/cxxfrontend.cc
+ compiler/src/dmd/tokens.h
+*/
+
 enum TOK : ubyte
 {
     reserved,

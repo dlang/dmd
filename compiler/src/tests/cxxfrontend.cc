@@ -8,6 +8,8 @@
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tests/cxxfrontend.c, _cxxfrontend.c)
  */
 
+#include <stdio.h>
+
 #include "root/array.h"
 #include "root/bitarray.h"
 #include "root/complex_t.h"
@@ -1686,26 +1688,45 @@ void test_backend(FuncDeclaration *f, Type *t)
 
 int main(int argc, char **argv)
 {
+    fprintf(stderr, "cxxfrontend.cc starting test\n");
     frontend_init();
 
+    fprintf(stderr, "cxxfrontend.cc %d \n", __LINE__);
     test_tokens();
+    fprintf(stderr, "cxxfrontend.cc %d \n", __LINE__);
     test_compiler_globals();
+    fprintf(stderr, "cxxfrontend.cc %d \n", __LINE__);
     test_visitors();
+    fprintf(stderr, "cxxfrontend.cc %d \n", __LINE__);
     test_semantic();
+    fprintf(stderr, "cxxfrontend.cc %d \n", __LINE__);
     test_skip_importall();
+    fprintf(stderr, "cxxfrontend.cc %d \n", __LINE__);
     test_expression();
+    fprintf(stderr, "cxxfrontend.cc %d \n", __LINE__);
     test_target();
+    fprintf(stderr, "cxxfrontend.cc %d \n", __LINE__);
     test_parameters();
+    fprintf(stderr, "cxxfrontend.cc %d \n", __LINE__);
     test_types();
+    fprintf(stderr, "cxxfrontend.cc %d \n", __LINE__);
     test_location();
+    fprintf(stderr, "cxxfrontend.cc %d \n", __LINE__);
     test_array();
+    fprintf(stderr, "cxxfrontend.cc %d \n", __LINE__);
     test_outbuffer();
+    fprintf(stderr, "cxxfrontend.cc %d \n", __LINE__);
     test_cppmangle();
+    fprintf(stderr, "cxxfrontend.cc %d \n", __LINE__);
     test_module();
+    fprintf(stderr, "cxxfrontend.cc %d \n", __LINE__);
     test_optional();
+    fprintf(stderr, "cxxfrontend.cc %d \n", __LINE__);
     test_filename();
 
+    fprintf(stderr, "cxxfrontend.cc %d \n", __LINE__);
     frontend_term();
 
+    fprintf(stderr, "cxxfrontend.cc exit\n");
     return 0;
 }

@@ -102,7 +102,6 @@ public:
     virtual real_t toImaginary();
     virtual complex_t toComplex();
     virtual StringExp *toStringExp();
-    virtual IStringExp *toIStringExp();
     virtual bool isLvalue();
     virtual bool checkType();
     virtual bool checkValue();
@@ -377,6 +376,8 @@ class IStringExp final : public Expression
 {
 public:
     DString istring;
+
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 // Tuple
