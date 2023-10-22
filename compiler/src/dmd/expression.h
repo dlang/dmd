@@ -38,6 +38,7 @@ class TemplateDeclaration;
 class ClassDeclaration;
 class OverloadSet;
 class StringExp;
+class IStringExp;
 class LoweredAssignExp;
 #ifdef IN_GCC
 typedef union tree_node Symbol;
@@ -101,6 +102,7 @@ public:
     virtual real_t toImaginary();
     virtual complex_t toComplex();
     virtual StringExp *toStringExp();
+    virtual IStringExp *toIStringExp();
     virtual bool isLvalue();
     virtual bool checkType();
     virtual bool checkValue();
@@ -129,6 +131,7 @@ public:
     SuperExp* isSuperExp();
     NullExp* isNullExp();
     StringExp* isStringExp();
+    IStringExp* isIStringExp();
     TupleExp* isTupleExp();
     ArrayLiteralExp* isArrayLiteralExp();
     AssocArrayLiteralExp* isAssocArrayLiteralExp();
@@ -368,6 +371,12 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
     size_t numberOfCodeUnits(int tynto = 0) const;
     void writeTo(void* dest, bool zero, int tyto = 0) const;
+};
+
+class IStringExp final : public Expression
+{
+public:
+    DString istring;
 };
 
 // Tuple

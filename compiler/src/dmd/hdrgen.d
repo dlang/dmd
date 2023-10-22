@@ -2247,6 +2247,16 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
             buf.writeByte(e.postfix);
     }
 
+    void visitIString(IStringExp e)
+    {
+        buf.writestring("i\"");
+        foreach (c; e.istring)
+        {
+            writeCharLiteral(buf, c);
+        }
+        buf.writeByte('"');
+    }
+
     void visitArrayLiteral(ArrayLiteralExp e)
     {
         buf.writeByte('[');
@@ -2827,6 +2837,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         case EXP.super_:        return visitSuper(e.isSuperExp());
         case EXP.null_:         return visitNull(e.isNullExp());
         case EXP.string_:       return visitString(e.isStringExp());
+        case EXP.istring:       return visitIString(e.isIStringExp());
         case EXP.arrayLiteral:  return visitArrayLiteral(e.isArrayLiteralExp());
         case EXP.assocArrayLiteral:     return visitAssocArrayLiteral(e.isAssocArrayLiteralExp());
         case EXP.structLiteral: return visitStructLiteral(e.isStructLiteralExp());

@@ -14,6 +14,7 @@
 module dmd.expressionsem;
 
 import core.stdc.stdio;
+import core.stdc.ctype;
 
 import dmd.access;
 import dmd.aggregate;
@@ -4196,6 +4197,18 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         //printf("type = %s\n", type.toChars());
 
         result = e;
+    }
+
+    override void visit(IStringExp exp)
+    {
+        static if (LOGSEMANTIC)
+        {
+            printf("IStringExp::semantic() %s\n", exp.toChars());
+        }
+        Expression e = istringToTuple(exp, global.errorSink);
+        e = e.expressionSemantic(sc);
+        result = e;
+        return;
     }
 
     override void visit(TupleExp exp)
@@ -16313,4 +16326,132 @@ Expression toBoolean(Expression exp, Scope* sc)
             }
             return e;
     }
+}
+
+/*****************************************************
+ * Convert istring to a tuple of a format string followed by arguments.
+ * Params:
+ *      ise = istring expression
+ *      eSink = error message sink
+ * Returns:
+ *      generated tuple expression
+ */
+Expression istringToTuple(IStringExp ise, ErrorSink eSink)
+{
+    //printf("istringToTuple() %s\n", ise.toChars());
+
+    OutBuffer fmt;      // generated format string
+    OutBuffer arg;      // current arg
+    Expressions* exps = new Expressions();  // expressions for tuple
+
+    for (size_t i; i < ise.istring.length; ++i)
+    {
+        bool increment()
+        {
+            if (i + 1 == ise.istring.length)
+            {
+                eSink.error(ise.loc, "istring ended prematurely");
+                return true;
+            }
+            else
+                ++i;
+            return false;
+        }
+
+        char c = ise.istring[i];
+        if (c != '$')
+        {
+            fmt.writeByte(c);
+            continue;
+        }
+        if (increment())
+            return ErrorExp.get();
+
+        c = ise.istring[i];
+        if (c == '$')   // $$
+        {
+            fmt.writeByte(c);
+            continue;
+        }
+
+        if (c == '{')   // FormatString /*}*/
+        {
+            int braces = 1;     // brace nesting level
+            while (1)
+            {
+                if (increment())
+                    return ErrorExp.get();
+                c = ise.istring[i];
+                if (c == '{')
+                {
+                    ++braces;
+                }
+                if (c == '}' && !--braces)
+                {
+                    if (increment())
+                        return ErrorExp.get();
+                    c = ise.istring[i];
+                    break;
+                }
+                fmt.writeByte(c);
+            }
+        }
+        else
+            fmt.writestring("%s");  // default format
+
+        if (c == '(')      // '(' Expression ')'
+        {
+            // Note: parsing is crude; not handling parens in literals
+            arg.reset();        // we will put the Expression string into arg
+            int parens = 1;     // parens nesting level
+            while (1)
+            {
+                if (increment())
+                    return ErrorExp.get();
+                c = ise.istring[i];
+                if (c == '(')
+                {
+                    ++parens;
+                }
+                else if (c == ')' && !--parens)
+                {
+                    break;
+                }
+                arg.writeByte(c);
+            }
+
+            /* Create a MixinExp of the text captured by arg
+             */
+            StringExp estr = new StringExp(ise.loc, arg.extractSlice());
+            Expressions* emixins = new Expressions();
+            emixins.push(estr);
+            Expression emixin = new MixinExp(ise.loc, emixins);
+            exps.push(emixin);
+        }
+        else if (isalpha(c) || c == '_')
+        {
+            // Note: doesn't deal with Unicode code units in identifiers
+            arg.reset();                // recycle buffer usage
+            while (isalnum(c) || c == '_') // Identifier
+            {
+                arg.writeByte(c);
+                ++i;
+                if (i == ise.istring.length)
+                    break;
+                c = ise.istring[i];
+            }
+            --i;
+            Identifier id = Identifier.idPool(arg[]);
+            Expression eid = new IdentifierExp(ise.loc, id);
+            exps.push(eid);
+        }
+        else
+        {
+            eSink.error(ise.loc, "identifier expected after $");
+            return ErrorExp.get();
+        }
+    }
+    StringExp se = new StringExp(ise.loc, fmt.extractSlice[]);
+    exps.insert(0, se);
+    return new TupleExp(ise.loc, exps);
 }

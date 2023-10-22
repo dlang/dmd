@@ -124,6 +124,7 @@ enum TOK : ubyte
     // Leaf operators
     identifier,
     string_,
+    istring,
     hexadecimalString,
     this_,
     super_,
@@ -380,6 +381,7 @@ enum EXP : ubyte
     // Leaf operators
     identifier,
     string_,
+    istring,
     this_,
     super_,
     halt,
@@ -833,6 +835,7 @@ extern (C++) struct Token
         // For debugging
         TOK.error: "error",
         TOK.string_: "string",
+        TOK.istring: "istring",
         TOK.onScopeExit: "scope(exit)",
         TOK.onScopeSuccess: "scope(success)",
         TOK.onScopeFailure: "scope(failure)",
@@ -961,6 +964,7 @@ nothrow:
         const bufflen = 3 + 3 * floatvalue.sizeof + 1;
         __gshared char[bufflen + 2] buffer;     // extra 2 for suffixes
         char* p = &buffer[0];
+        char prefix = 0;
         switch (value)
         {
         case TOK.int32Literal:
@@ -1023,8 +1027,14 @@ nothrow:
             p[length + 2] = 0;
             return p[0 .. length + 2];
 
+        case TOK.istring:
+            prefix = 'i';
+            goto case TOK.string_;
+
         case TOK.string_:
             OutBuffer buf;
+            if (prefix)
+                buf.writeByte(prefix);
             buf.writeByte('"');
             for (size_t i = 0; i < len;)
             {

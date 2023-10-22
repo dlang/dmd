@@ -506,6 +506,16 @@ class Lexer
                 }
                 else
                     goto case_ident;
+
+            case 'i':
+                if (p[1] != '"' || Ccompile)
+                    goto case_ident;
+
+                ++p;
+                escapeStringConstant(t);
+                t.value = TOK.istring;
+                return;
+
             case '"':
                 escapeStringConstant(t);
                 return;
@@ -517,7 +527,6 @@ class Lexer
             case 'f':
             case 'g':
             case 'h':
-            case 'i':
             case 'j':
             case 'k':
             case 'l':

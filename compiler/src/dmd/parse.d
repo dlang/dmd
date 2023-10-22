@@ -2014,6 +2014,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         case TOK.charLiteral:
         case TOK.wcharLiteral:
         case TOK.dcharLiteral:
+        case TOK.istring:
         case TOK.string_:
         case TOK.hexadecimalString:
         case TOK.file:
@@ -5819,6 +5820,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         case TOK.null_:
         case TOK.true_:
         case TOK.false_:
+        case TOK.istring:
         case TOK.string_:
         case TOK.hexadecimalString:
         case TOK.leftParenthesis:
@@ -7339,6 +7341,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     case TOK.charLiteral:
                     case TOK.wcharLiteral:
                     case TOK.dcharLiteral:
+                    case TOK.istring:
                     case TOK.string_:
                     case TOK.hexadecimalString:
                     case TOK.file:
@@ -8255,6 +8258,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 e.isStringExp().hexString = hexString;
                 break;
             }
+
+        case TOK.istring:
+            e = new AST.IStringExp(loc, token.ustring[0 .. token.len]);
+            nextToken();
+            break;
+
         case TOK.void_:
             t = AST.Type.tvoid;
             goto LabelX;

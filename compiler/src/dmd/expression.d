@@ -754,6 +754,7 @@ extern (C++) abstract class Expression : ASTNode
         inout(SuperExp)     isSuperExp() { return op == EXP.super_ ? cast(typeof(return))this : null; }
         inout(NullExp)      isNullExp() { return op == EXP.null_ ? cast(typeof(return))this : null; }
         inout(StringExp)    isStringExp() { return op == EXP.string_ ? cast(typeof(return))this : null; }
+        inout(IStringExp)   isIStringExp() { return op == EXP.istring ? cast(typeof(return))this : null; }
         inout(TupleExp)     isTupleExp() { return op == EXP.tuple ? cast(typeof(return))this : null; }
         inout(ArrayLiteralExp) isArrayLiteralExp() { return op == EXP.arrayLiteral ? cast(typeof(return))this : null; }
         inout(AssocArrayLiteralExp) isAssocArrayLiteralExp() { return op == EXP.assocArrayLiteral ? cast(typeof(return))this : null; }
@@ -1872,6 +1873,25 @@ extern (C++) final class StringExp : Expression
         this.string = cast(char*)s;
         this.len = len;
         this.sz = sz;
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/***********************************************************
+ * https://dlang.org/spec/expression.html#string_literals
+ */
+extern (C++) final class IStringExp : Expression
+{
+    const(char)[] istring;
+
+    extern (D) this(const ref Loc loc, const(char)[] istring) scope
+    {
+        super(loc, EXP.istring);
+        this.istring = istring;
     }
 
     override void accept(Visitor v)
@@ -5527,6 +5547,7 @@ private immutable ubyte[EXP.max+1] expSize = [
     EXP.preMinusMinus: __traits(classInstanceSize, PreExp),
     EXP.identifier: __traits(classInstanceSize, IdentifierExp),
     EXP.string_: __traits(classInstanceSize, StringExp),
+    EXP.istring: __traits(classInstanceSize, IStringExp),
     EXP.this_: __traits(classInstanceSize, ThisExp),
     EXP.super_: __traits(classInstanceSize, SuperExp),
     EXP.halt: __traits(classInstanceSize, HaltExp),

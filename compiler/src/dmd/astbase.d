@@ -4575,6 +4575,7 @@ struct ASTBase
             inout(SuperExp)     isSuperExp() { return op == EXP.super_ ? cast(typeof(return))this : null; }
             inout(NullExp)      isNullExp() { return op == EXP.null_ ? cast(typeof(return))this : null; }
             inout(StringExp)    isStringExp() { return op == EXP.string_ ? cast(typeof(return))this : null; }
+            inout(IStringExp)   isIStringExp() { return op == EXP.istring ? cast(typeof(return))this : null; }
             inout(TupleExp)     isTupleExp() { return op == EXP.tuple ? cast(typeof(return))this : null; }
             inout(ArrayLiteralExp) isArrayLiteralExp() { return op == EXP.arrayLiteral ? cast(typeof(return))this : null; }
             inout(AssocArrayLiteralExp) isAssocArrayLiteralExp() { return op == EXP.assocArrayLiteral ? cast(typeof(return))this : null; }
@@ -4972,6 +4973,22 @@ struct ASTBase
             char* s = cast(char*)mem.xmalloc_noscan(nbytes + sz);
             writeTo(s, true);
             return s[0 .. nbytes];
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class IStringExp : Expression
+    {
+        const(char)[] istring;
+
+        extern (D) this(const ref Loc loc, const(char)[] istring) scope
+        {
+            super(loc, EXP.istring, __traits(classInstanceSize, IStringExp));
+            this.istring = istring;
         }
 
         override void accept(Visitor v)
