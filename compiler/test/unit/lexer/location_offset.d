@@ -502,6 +502,7 @@ enum ignoreTokens
     int128Literal,
     uns128Literal,
     halt,
+    istring,
     tuple,
     error,
     int128,
