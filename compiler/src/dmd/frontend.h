@@ -385,6 +385,7 @@ public:
     static bool showColumns;
     static MessageStyle messageStyle;
     static void set(bool showColumns, MessageStyle messageStyle);
+    Loc(const char* filename, uint32_t linnum, uint32_t charnum);
     uint32_t charnum() const;
     uint32_t charnum(uint32_t num);
     uint32_t linnum() const;
@@ -442,6 +443,7 @@ struct Visibility final
 
     Kind kind;
     Package* pkg;
+    Visibility(Kind kind, Package* pkg = nullptr);
     Visibility() :
         pkg()
     {
