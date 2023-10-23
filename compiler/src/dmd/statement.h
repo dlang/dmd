@@ -709,7 +709,7 @@ class AsmStatement : public Statement
 {
 public:
     Token *tokens;
-    bool caseSensitive;  // for register names
+    d_bool caseSensitive;  // for register names
 
     AsmStatement *syntaxCopy() override;
     void accept(Visitor *v) override { v->visit(this); }
