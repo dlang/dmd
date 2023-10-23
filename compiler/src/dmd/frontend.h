@@ -2575,7 +2575,7 @@ public:
     bool overloadInsert(Dsymbol* s) override;
     bool inUnittest();
     MATCH leastAsSpecialized(FuncDeclaration* g, Array<Identifier* >* names);
-    LabelDsymbol* searchLabel(Identifier* ident, const Loc& loc = Loc::initial);
+    LabelDsymbol* searchLabel(Identifier* ident, const Loc& loc);
     int32_t getLevel(FuncDeclaration* fd, int32_t intypeof);
     int32_t getLevelAndCheck(const Loc& loc, Scope* sc, FuncDeclaration* fd, Declaration* decl);
     enum : int32_t { LevelError = -2 };
@@ -3710,7 +3710,7 @@ public:
     const char* kind() const override;
     TypeEnum* syntaxCopy() override;
     uinteger_t size(const Loc& loc) override;
-    Type* memType(const Loc& loc = Loc::initial);
+    Type* memType();
     uint32_t alignsize() override;
     Dsymbol* toDsymbol(Scope* sc) override;
     bool isintegral() override;

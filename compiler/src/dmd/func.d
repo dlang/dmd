@@ -1189,7 +1189,7 @@ extern (C++) class FuncDeclaration : Declaration
      *
      * Returns: the `LabelDsymbol` for `ident`
      */
-    final LabelDsymbol searchLabel(Identifier ident, const ref Loc loc = Loc.initial)
+    final LabelDsymbol searchLabel(Identifier ident, const ref Loc loc)
     {
         Dsymbol s;
         if (!labtab)

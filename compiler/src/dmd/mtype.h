@@ -818,7 +818,7 @@ public:
     TypeEnum *syntaxCopy() override;
     uinteger_t size(const Loc &loc) override;
     unsigned alignsize() override;
-    Type *memType(const Loc &loc = Loc());
+    Type *memType();
     Dsymbol *toDsymbol(Scope *sc) override;
     bool isintegral() override;
     bool isfloating() override;
