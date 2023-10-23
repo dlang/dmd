@@ -2331,14 +2331,24 @@ public:
 
         if (p.defaultArg)
         {
-            //printf("%s %d\n", p.defaultArg.toChars, p.defaultArg.op);
-            buf.writestring(" = ");
-            // Always emit the FDN of a symbol for the default argument,
-            // to avoid generating an ambiguous assignment.
-            auto save = adparent;
-            adparent = null;
-            printExpressionFor(p.type, p.defaultArg);
-            adparent = save;
+            auto ve = p.defaultArg.isVarExp();
+            if (ve && !shouldEmit(ve.var))
+            {
+                // extern(D) int exd;
+                // extern(C++) void foo(int i = exd);
+                ignored("default argument %s because of linkage", ve.toChars());
+            }
+            else
+            {
+                //printf("%s %d\n", p.defaultArg.toChars, p.defaultArg.op);
+                buf.writestring(" = ");
+                // Always emit the FDN of a symbol for the default argument,
+                // to avoid generating an ambiguous assignment.
+                auto save = adparent;
+                adparent = null;
+                printExpressionFor(p.type, p.defaultArg);
+                adparent = save;
+            }
         }
     }
 
