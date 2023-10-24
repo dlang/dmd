@@ -116,8 +116,6 @@ public:
     virtual Statement *getRelatedLabeled() { return this; }
     virtual bool hasBreak() const;
     virtual bool hasContinue() const;
-    bool usesEH();
-    bool comeFrom();
     bool hasCode();
     virtual Statement *last();
 

@@ -47,11 +47,6 @@ struct Symbol;          // back end symbol
 #endif
 
 void expandTuples(Expressions *exps, Identifiers *names = nullptr);
-bool isTrivialExp(Expression *e);
-bool hasSideEffect(Expression *e, bool assumeImpureCalls = false);
-
-enum BE : int32_t;
-BE canThrow(Expression *e, FuncDeclaration *func, ErrorSink *eSink);
 
 typedef unsigned char OwnedBy;
 enum
@@ -86,7 +81,6 @@ public:
 
     size_t size() const;
     static void _init();
-    Expression *copy();
     virtual Expression *syntaxCopy();
 
     // kludge for template.isExpression()
@@ -103,13 +97,10 @@ public:
     virtual bool isLvalue();
     virtual Expression *toLvalue(Scope *sc, Expression *e);
     virtual Expression *modifiableLvalue(Scope *sc, Expression *e);
-    Expression *implicitCastTo(Scope *sc, Type *t);
     MATCH implicitConvTo(Type *t);
-    Expression *castTo(Scope *sc, Type *t);
     virtual Expression *resolveLoc(const Loc &loc, Scope *sc);
     virtual bool checkType();
     virtual bool checkValue();
-    bool checkDeprecated(Scope *sc, Dsymbol *s);
     virtual Expression *addDtorHook(Scope *sc);
     Expression *addressOf();
     Expression *deref();
@@ -258,7 +249,6 @@ public:
     Expression *toLvalue(Scope *sc, Expression *e) override;
     void accept(Visitor *v) override { v->visit(this); }
     dinteger_t getInteger() { return value; }
-    void setInteger(dinteger_t value);
     template<int v>
     static IntegerExp literal();
 };
@@ -384,7 +374,6 @@ public:
     static void emplace(UnionExp *pue, const Loc &loc, const char *s);
     bool equals(const RootObject * const o) const override;
     char32_t getCodeUnit(d_size_t i) const;
-    void setCodeUnit(d_size_t i, char32_t c);
     StringExp *toStringExp() override;
     StringExp *toUTF8(Scope *sc);
     Optional<bool> toBool() override;
@@ -430,8 +419,7 @@ public:
     static void emplace(UnionExp *pue, const Loc &loc, Expressions *elements);
     ArrayLiteralExp *syntaxCopy() override;
     bool equals(const RootObject * const o) const override;
-    Expression *getElement(d_size_t i); // use opIndex instead
-    Expression *opIndex(d_size_t i);
+    Expression *getElement(d_size_t i);
     Optional<bool> toBool() override;
     StringExp *toStringExp() override;
 
@@ -490,8 +478,6 @@ public:
     static StructLiteralExp *create(const Loc &loc, StructDeclaration *sd, void *elements, Type *stype = NULL);
     bool equals(const RootObject * const o) const override;
     StructLiteralExp *syntaxCopy() override;
-    Expression *getField(Type *type, unsigned offset);
-    int getFieldIndex(Type *type, unsigned offset);
     Expression *addDtorHook(Scope *sc) override;
     Expression *toLvalue(Scope *sc, Expression *e) override;
 
@@ -702,7 +688,6 @@ public:
     Expression *e1;
 
     UnaExp *syntaxCopy() override;
-    Expression *incompatibleTypes();
     Expression *resolveLoc(const Loc &loc, Scope *sc) override final;
 
     void accept(Visitor *v) override { v->visit(this); }
@@ -718,9 +703,6 @@ public:
     Type *att2; // Save alias this type to detect recursion
 
     BinExp *syntaxCopy() override;
-    Expression *incompatibleTypes();
-
-    Expression *reorderSettingAAElem(Scope *sc);
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -806,7 +788,6 @@ public:
     TemplateInstance *ti;
 
     DotTemplateInstanceExp *syntaxCopy() override;
-    bool findTempDecl(Scope *sc);
     bool checkType() override;
     bool checkValue() override;
     void accept(Visitor *v) override { v->visit(this); }
