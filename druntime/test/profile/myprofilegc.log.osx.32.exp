@@ -11,9 +11,9 @@ bytes allocated, allocations, type, function, file:line
              16	              1	char[] D main src/profilegc.d:36
              16	              1	closure profilegc.main.foo src/profilegc.d:45
              16	              1	float D main src/profilegc.d:16
-             16	              1	float[] D main src/profilegc.d:17
+             16	              1	float D main src/profilegc.d:17
              16	              1	int D main src/profilegc.d:13
-             16	              1	int[] D main src/profilegc.d:14
+             16	              1	int D main src/profilegc.d:14
              16	              1	int[] D main src/profilegc.d:22
              16	              1	int[] D main src/profilegc.d:37
              16	              1	wchar[] D main src/profilegc.d:35
