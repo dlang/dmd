@@ -123,7 +123,7 @@ public:
     bool isDeprecated() const override final; // is aggregate deprecated?
     void setDeprecated();
     bool isNested() const;
-    bool isExport() const override final;
+    bool isExport() override final;
     Dsymbol *searchCtor();
 
     Visibility visible() override final;
