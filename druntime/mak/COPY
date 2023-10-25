@@ -170,6 +170,7 @@ COPY=\
 	$(IMPDIR)\core\sys\freebsd\dlfcn.d \
 	$(IMPDIR)\core\sys\freebsd\err.d \
 	$(IMPDIR)\core\sys\freebsd\execinfo.d \
+	$(IMPDIR)\core\sys\freebsd\ifaddrs.d \
 	\
 	$(IMPDIR)\core\sys\freebsd\netinet\in_.d \
 	\
