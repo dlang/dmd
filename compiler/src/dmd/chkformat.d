@@ -227,6 +227,16 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
                     errorMsg(null, e, "void*", t);
                 break;
 
+            case Format.x:      // hex
+                if (!(t.isintegral() && t.size() == ptrsize))
+                    errorMsg(null, e, "size_t", t);
+                break;
+
+            case Format.x:      // hex
+                if (t.ty != Tpointer && t.ty != Tnull && t.ty != Tclass && t.ty != Tdelegate && t.ty != Taarray)
+                    errorMsg(null, e, "void*", t);
+                break;
+
             case Format.n:      // pointer to int
                 if (!(t.ty == Tpointer && tnext.ty == Tint32 && tnext.isMutable()))
                     errorMsg(null, e, "int*", t);
@@ -913,6 +923,7 @@ enum Format
     c,          // char (printf)
     lc,         // wint_t (printf)
     p,          // pointer
+    x,          // hex
     n,          // pointer to int
     hhn,        // pointer to signed char
     hn,         // pointer to short
@@ -1009,8 +1020,6 @@ Format parseGenericFormatSpecifier(scope const char[] format,
 
         case 'u':
         case 'o':
-        case 'x':
-        case 'X':
             specifier = flags == Modifier.none ? Format.u   :
                         flags == Modifier.hh   ? Format.hhu :
                         flags == Modifier.h    ? Format.hu  :
@@ -1019,6 +1028,12 @@ Format parseGenericFormatSpecifier(scope const char[] format,
                         flags == Modifier.j    ? Format.ju  :
                         flags == Modifier.z    ? Format.zd  :
                         flags == Modifier.t    ? Format.td  :
+                                                 Format.error;
+            break;
+
+        case 'x':
+        case 'X':
+            specifier = flags == Modifier.none ? Format.x   :
                                                  Format.error;
             break;
 
