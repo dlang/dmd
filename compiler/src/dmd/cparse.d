@@ -5293,7 +5293,7 @@ final class CParser(AST) : Parser!AST
             (*decls)[0] = s;
             s = new AST.AlignDeclaration(s.loc, specifier.alignExps, decls);
         }
-        else if (!specifier.packalign.isDefault())
+        else if (!specifier.packalign.isDefault() && !specifier.packalign.isUnknown())
         {
             //printf("  applying packalign %d\n", cast(int)specifier.packalign);
             // Wrap #pragma pack in an AlignDeclaration
