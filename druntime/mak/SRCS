@@ -186,6 +186,7 @@ SRCS=\
 	src\core\sys\freebsd\sys\link_elf.d \
 	src\core\sys\freebsd\sys\mman.d \
 	src\core\sys\freebsd\sys\mount.d \
+	src\core\sys\freebsd\sys\socket.d \
 	src\core\sys\freebsd\sys\sysctl.d \
 	\
 	src\core\sys\dragonflybsd\dlfcn.d \
