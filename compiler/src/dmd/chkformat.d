@@ -232,11 +232,6 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
                     errorMsg(null, e, "size_t", t);
                 break;
 
-            case Format.x:      // hex
-                if (t.ty != Tpointer && t.ty != Tnull && t.ty != Tclass && t.ty != Tdelegate && t.ty != Taarray)
-                    errorMsg(null, e, "void*", t);
-                break;
-
             case Format.n:      // pointer to int
                 if (!(t.ty == Tpointer && tnext.ty == Tint32 && tnext.isMutable()))
                     errorMsg(null, e, "int*", t);
