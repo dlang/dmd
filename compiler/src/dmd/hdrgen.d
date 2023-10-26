@@ -1595,6 +1595,8 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
     {
         if (d.storage_class & STC.local)
             return;
+        if (d.adFlags & d.hidden)
+            return;
         buf.writestring("alias ");
         if (d.aliassym)
         {
@@ -4064,6 +4066,7 @@ private void typeToBufferx(Type t, ref OutBuffer buf, HdrGenState* hgs)
 
     void visitEnum(TypeEnum t)
     {
+        //printf("visitEnum: %s\n", t.sym.toChars());
         buf.writestring(hgs.fullQual ? t.sym.toPrettyChars() : t.sym.toChars());
     }
 

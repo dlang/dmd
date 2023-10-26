@@ -1923,7 +1923,12 @@ final class CParser(AST) : Parser!AST
                     }
                 }
                 if (isalias)
-                    s = new AST.AliasDeclaration(token.loc, id, dt);
+                {
+                    auto ad = new AST.AliasDeclaration(token.loc, id, dt);
+                    ad.adFlags |= ad.hidden; // do not print when generating .di files
+                    s = ad;
+                }
+
                 insertTypedefToTypedefTab(id, dt);       // remember typedefs
             }
             else if (id)
