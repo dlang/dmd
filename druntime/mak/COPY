@@ -171,14 +171,15 @@ COPY=\
 	$(IMPDIR)\core\sys\freebsd\err.d \
 	$(IMPDIR)\core\sys\freebsd\execinfo.d \
 	$(IMPDIR)\core\sys\freebsd\ifaddrs.d \
-	\
-	$(IMPDIR)\core\sys\freebsd\netinet\in_.d \
-	\
 	$(IMPDIR)\core\sys\freebsd\pthread_np.d \
 	$(IMPDIR)\core\sys\freebsd\stdlib.d \
 	$(IMPDIR)\core\sys\freebsd\string.d \
 	$(IMPDIR)\core\sys\freebsd\time.d \
 	$(IMPDIR)\core\sys\freebsd\unistd.d \
+	\
+	$(IMPDIR)\core\sys\freebsd\net\if_dl.d \
+	\
+	$(IMPDIR)\core\sys\freebsd\netinet\in_.d \
 	\
 	$(IMPDIR)\core\sys\freebsd\sys\_bitset.d \
 	$(IMPDIR)\core\sys\freebsd\sys\_cpuset.d \
