@@ -5938,6 +5938,8 @@ public:
 
     enum : int32_t { nounderscore = 4 };
 
+    enum : int32_t { hidden = 8 };
+
     Symbol* isym;
     _d_dynamicArray< const char > mangleOverride;
     const char* kind() const override;

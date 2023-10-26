@@ -15,7 +15,6 @@ extern (C)
 		SQL_IS_YEAR = 1,
 		SQL_IS_MONTH = 2,
 	}
-	alias SQLINTERVAL = enum SQLINTERVAL;
 }
 ---
  */
