@@ -347,29 +347,6 @@ void test_target()
 
 /**********************************/
 
-void test_emplace()
-{
-    Loc loc;
-    UnionExp ue;
-
-    IntegerExp::emplace(&ue, loc, 1065353216, Type::tint32);
-    Expression *e = ue.exp();
-    assert(e->op == EXP::int64);
-    assert(e->toInteger() == 1065353216);
-
-    UnionExp ure;
-    Expression *re = Compiler::paintAsType(&ure, e, Type::tfloat32);
-    assert(re->op == EXP::float64);
-    assert(re->toReal() == CTFloat::one);
-
-    UnionExp uie;
-    Expression *ie = Compiler::paintAsType(&uie, re, Type::tint32);
-    assert(ie->op == EXP::int64);
-    assert(ie->toInteger() == e->toInteger());
-}
-
-/**********************************/
-
 void test_parameters()
 {
     Parameters *args = new Parameters;
@@ -1708,7 +1685,6 @@ int main(int argc, char **argv)
     test_skip_importall();
     test_expression();
     test_target();
-    test_emplace();
     test_parameters();
     test_types();
     test_location();

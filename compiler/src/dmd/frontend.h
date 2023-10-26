@@ -2310,13 +2310,44 @@ enum class ModifyFlags
     fieldAssign = 2,
 };
 
+struct UnionExp final
+{
+    #pragma pack(push, 8)
+private:
+    union _AnonStruct_u
+    {
+        char exp[29LLU];
+        char integerexp[40LLU];
+        char errorexp[29LLU];
+        char realexp[48LLU];
+        char complexexp[64LLU];
+        char symoffexp[64LLU];
+        char stringexp[51LLU];
+        char arrayliteralexp[48LLU];
+        char assocarrayliteralexp[56LLU];
+        char structliteralexp[76LLU];
+        char compoundliteralexp[40LLU];
+        char nullexp[29LLU];
+        char dotvarexp[49LLU];
+        char addrexp[40LLU];
+        char indexexp[74LLU];
+        char sliceexp[65LLU];
+        char vectorexp[53LLU];
+    };
+    #pragma pack(pop)
+
+    // Ignoring var u alignment 8
+    _AnonStruct_u u;
+public:
+    UnionExp() :
+        u()
+    {
+    }
+};
+
 enum : int32_t { WANTexpand = 1 };
 
 enum : int32_t { WANTvalue = 0 };
-
-typedef bool(*fp2_t)(Loc& loc, EXP , Expression , Expression );
-
-typedef UnionExp(*fp_t)(Loc& loc, Type , Expression , Expression );
 
 enum : int32_t { stageApply = 8 };
 
@@ -5043,8 +5074,6 @@ struct ASTCodegen final
     using XorAssignExp = ::XorAssignExp;
     using XorExp = ::XorExp;
     using emplaceExp = ::emplaceExp;
-    using fp2_t = ::fp2_t;
-    using fp_t = ::fp_t;
     using AttributeViolation = ::AttributeViolation;
     using BUILTIN = ::BUILTIN;
     using CtorDeclaration = ::CtorDeclaration;
@@ -6988,49 +7017,11 @@ public:
 
 extern void expandTuples(Array<Expression* >* exps, Array<Identifier* >* names = nullptr);
 
-struct UnionExp final
-{
-    Expression* exp();
-    Expression* copy();
-    #pragma pack(push, 8)
-private:
-    union _AnonStruct_u
-    {
-        char exp[29LLU];
-        char integerexp[40LLU];
-        char errorexp[29LLU];
-        char realexp[48LLU];
-        char complexexp[64LLU];
-        char symoffexp[64LLU];
-        char stringexp[51LLU];
-        char arrayliteralexp[48LLU];
-        char assocarrayliteralexp[56LLU];
-        char structliteralexp[76LLU];
-        char compoundliteralexp[40LLU];
-        char nullexp[29LLU];
-        char dotvarexp[49LLU];
-        char addrexp[40LLU];
-        char indexexp[74LLU];
-        char sliceexp[65LLU];
-        char vectorexp[53LLU];
-    };
-    #pragma pack(pop)
-
-    // Ignoring var u alignment 8
-    _AnonStruct_u u;
-public:
-    UnionExp() :
-        u()
-    {
-    }
-};
-
 class IntegerExp final : public Expression
 {
     dinteger_t value;
 public:
     static IntegerExp* create(const Loc& loc, dinteger_t value, Type* type);
-    static void emplace(UnionExp* pue, const Loc& loc, dinteger_t value, Type* type);
     bool equals(const RootObject* const o) const override;
     dinteger_t toInteger() override;
     _d_real toReal() override;
@@ -7065,7 +7056,6 @@ class RealExp final : public Expression
 public:
     _d_real value;
     static RealExp* create(const Loc& loc, _d_real value, Type* type);
-    static void emplace(UnionExp* pue, const Loc& loc, _d_real value, Type* type);
     bool equals(const RootObject* const o) const override;
     bool isIdentical(const Expression* const e) const override;
     dinteger_t toInteger() override;
@@ -7082,7 +7072,6 @@ class ComplexExp final : public Expression
 public:
     complex_t value;
     static ComplexExp* create(const Loc& loc, complex_t value, Type* type);
-    static void emplace(UnionExp* pue, const Loc& loc, complex_t value, Type* type);
     bool equals(const RootObject* const o) const override;
     bool isIdentical(const Expression* const e) const override;
     dinteger_t toInteger() override;
@@ -7169,7 +7158,6 @@ public:
 
     static StringExp* create(const Loc& loc, const char* s);
     static StringExp* create(const Loc& loc, const void* string, size_t len);
-    static void emplace(UnionExp* pue, const Loc& loc, const char* s);
     bool equals(const RootObject* const o) const override;
     size_t numberOfCodeUnits(int32_t tynto = 0) const;
     void writeTo(void* dest, bool zero, int32_t tyto = 0) const;
@@ -7203,7 +7191,6 @@ public:
     Expression* basis;
     Array<Expression* >* elements;
     static ArrayLiteralExp* create(const Loc& loc, Array<Expression* >* elements);
-    static void emplace(UnionExp* pue, const Loc& loc, Array<Expression* >* elements);
     ArrayLiteralExp* syntaxCopy() override;
     bool equals(const RootObject* const o) const override;
     Expression* getElement(size_t i);
@@ -7617,7 +7604,6 @@ public:
     uint32_t dim;
     OwnedBy ownedByCtfe;
     static VectorExp* create(const Loc& loc, Expression* e, Type* t);
-    static void emplace(UnionExp* pue, const Loc& loc, Expression* e, Type* type);
     VectorExp* syntaxCopy() override;
     void accept(Visitor* v) override;
 };

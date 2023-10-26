@@ -331,7 +331,7 @@ TemplateDeclaration getFuncTemplateDecl(Dsymbol s) @safe
  * to serve essentially as a Variant that will sit on the stack
  * during CTFE to reduce memory consumption.
  */
-extern (C++) struct UnionExp
+extern (D) struct UnionExp
 {
     // yes, default constructor does nothing
     extern (D) this(Expression e)
@@ -341,14 +341,14 @@ extern (C++) struct UnionExp
 
     /* Extract pointer to Expression
      */
-    extern (C++) Expression exp() return
+    extern (D) Expression exp() return
     {
         return cast(Expression)&u;
     }
 
     /* Convert to an allocated Expression
      */
-    extern (C++) Expression copy()
+    extern (D) Expression copy()
     {
         Expression e = exp();
         //if (e.size > sizeof(u)) printf("%s\n", EXPtoString(e.op).ptr);
@@ -1569,12 +1569,6 @@ extern (C++) final class IntegerExp : Expression
         return new IntegerExp(loc, value, type);
     }
 
-    // Same as create, but doesn't allocate memory.
-    static void emplace(UnionExp* pue, const ref Loc loc, dinteger_t value, Type type)
-    {
-        emplaceExp!(IntegerExp)(pue, loc, value, type);
-    }
-
     override bool equals(const RootObject o) const
     {
         if (this == o)
@@ -1839,12 +1833,6 @@ extern (C++) final class RealExp : Expression
         return new RealExp(loc, value, type);
     }
 
-    // Same as create, but doesn't allocate memory.
-    static void emplace(UnionExp* pue, const ref Loc loc, real_t value, Type type)
-    {
-        emplaceExp!(RealExp)(pue, loc, value, type);
-    }
-
     /********************************
      * Test to see if two reals are the same.
      * Regard NaN's as equivalent.
@@ -1935,12 +1923,6 @@ extern (C++) final class ComplexExp : Expression
     static ComplexExp create(const ref Loc loc, complex_t value, Type type) @safe
     {
         return new ComplexExp(loc, value, type);
-    }
-
-    // Same as create, but doesn't allocate memory.
-    static void emplace(UnionExp* pue, const ref Loc loc, complex_t value, Type type)
-    {
-        emplaceExp!(ComplexExp)(pue, loc, value, type);
     }
 
     override bool equals(const RootObject o) const
@@ -2276,22 +2258,6 @@ extern (C++) final class StringExp : Expression
     static StringExp create(const ref Loc loc, const(void)* string, size_t len)
     {
         return new StringExp(loc, string[0 .. len]);
-    }
-
-    // Same as create, but doesn't allocate memory.
-    static void emplace(UnionExp* pue, const ref Loc loc, const(char)* s)
-    {
-        emplaceExp!(StringExp)(pue, loc, s.toDString());
-    }
-
-    extern (D) static void emplace(UnionExp* pue, const ref Loc loc, const(void)[] string)
-    {
-        emplaceExp!(StringExp)(pue, loc, string);
-    }
-
-    extern (D) static void emplace(UnionExp* pue, const ref Loc loc, const(void)[] string, size_t len, ubyte sz, char postfix)
-    {
-        emplaceExp!(StringExp)(pue, loc, string, len, sz, postfix);
     }
 
     override bool equals(const RootObject o) const
@@ -2777,12 +2743,6 @@ extern (C++) final class ArrayLiteralExp : Expression
     static ArrayLiteralExp create(const ref Loc loc, Expressions* elements) @safe
     {
         return new ArrayLiteralExp(loc, null, elements);
-    }
-
-    // Same as create, but doesn't allocate memory.
-    static void emplace(UnionExp* pue, const ref Loc loc, Expressions* elements)
-    {
-        emplaceExp!(ArrayLiteralExp)(pue, loc, null, elements);
     }
 
     override ArrayLiteralExp syntaxCopy()
@@ -4113,9 +4073,6 @@ extern (C++) abstract class UnaExp : Expression
     }
 }
 
-alias fp_t = UnionExp function(const ref Loc loc, Type, Expression, Expression);
-alias fp2_t = bool function(const ref Loc loc, EXP, Expression, Expression);
-
 /***********************************************************
  * Base class for binary operators
  */
@@ -5322,12 +5279,6 @@ extern (C++) final class VectorExp : UnaExp
     static VectorExp create(const ref Loc loc, Expression e, Type t) @safe
     {
         return new VectorExp(loc, e, t);
-    }
-
-    // Same as create, but doesn't allocate memory.
-    static void emplace(UnionExp* pue, const ref Loc loc, Expression e, Type type)
-    {
-        emplaceExp!(VectorExp)(pue, loc, e, type);
     }
 
     override VectorExp syntaxCopy()
