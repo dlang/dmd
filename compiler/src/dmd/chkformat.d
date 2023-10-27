@@ -508,6 +508,11 @@ bool checkScanfFormat(ref const Loc loc, scope const char[] format, scope Expres
                     errorMsg(null, e, "void**", t);
                 break;
 
+            case Format.x:      // hex
+                if (!(t.isintegral() && t.size() == ptrsize))
+                    errorMsg(null, e, "size_t", t);
+                break;
+
             case Format.POSIX_ms: // pointer to pointer to char string
                 Type tnext2 = tnext ? tnext.nextOf() : null;
                 if (!(t.ty == Tpointer && tnext.ty == Tpointer && (tnext2.ty == Tchar || tnext2.ty == Tint8 || tnext2.ty == Tuns8)))
