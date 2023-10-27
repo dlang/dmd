@@ -228,8 +228,8 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
                 break;
 
             case Format.x:      // hex
-                if (!(t.isintegral() && t.size() == ptrsize))
-                    errorMsg(null, e, "size_t", t);
+                if (!(t.isintegral()))
+                    errorMsg(null, e, "integral", t);
                 break;
 
             case Format.n:      // pointer to int
@@ -509,8 +509,8 @@ bool checkScanfFormat(ref const Loc loc, scope const char[] format, scope Expres
                 break;
 
             case Format.x:      // hex
-                if (!(t.isintegral() && t.size() == ptrsize))
-                    errorMsg(null, e, "size_t", t);
+                if (!(t.isintegral()))
+                    errorMsg(null, e, "integral", t);
                 break;
 
             case Format.POSIX_ms: // pointer to pointer to char string
