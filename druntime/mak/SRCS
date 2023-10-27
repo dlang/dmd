@@ -188,6 +188,7 @@ SRCS=\
 	src\core\sys\freebsd\sys\mount.d \
 	src\core\sys\freebsd\sys\socket.d \
 	src\core\sys\freebsd\sys\sysctl.d \
+	src\core\sys\freebsd\sys\types.d \
 	\
 	src\core\sys\dragonflybsd\dlfcn.d \
 	src\core\sys\dragonflybsd\err.d \

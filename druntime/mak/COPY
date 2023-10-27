@@ -193,6 +193,7 @@ COPY=\
 	$(IMPDIR)\core\sys\freebsd\sys\mount.d \
 	$(IMPDIR)\core\sys\freebsd\sys\socket.d \
 	$(IMPDIR)\core\sys\freebsd\sys\sysctl.d \
+	$(IMPDIR)\core\sys\freebsd\sys\types.d \
 	\
 	$(IMPDIR)\core\sys\dragonflybsd\dlfcn.d \
 	$(IMPDIR)\core\sys\dragonflybsd\err.d \
