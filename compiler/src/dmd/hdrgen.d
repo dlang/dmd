@@ -58,6 +58,7 @@ struct HdrGenState
     bool hdrgen;        /// true if generating header file
     bool ddoc;          /// true if generating Ddoc file
     bool fullDump;      /// true if generating a full AST dump file
+    bool importcHdr;    /// true if generating a .di file from an ImportC file
 
     bool fullQual;      /// fully qualify types when printing
     int tpltMember;
@@ -85,6 +86,7 @@ extern (C++) void genhdrfile(Module m, ref OutBuffer buf)
     buf.writenl();
     HdrGenState hgs;
     hgs.hdrgen = true;
+    hgs.importcHdr = (m.filetype == FileType.c);
     toCBuffer(m, buf, hgs);
 }
 
@@ -1521,6 +1523,28 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
         buf.level--;
         buf.writeByte('}');
         buf.writenl();
+
+        if (!hgs.importcHdr)
+            return;
+
+        /* C enums get their members inserted into the symbol table of the enum declaration.
+         * This is accomplished in addEnumMembersToSymtab().
+         * But when generating D code from ImportC code, D rulez are followed.
+         * Accomplish this by generating an alias declaration for each member
+         */
+        foreach (em; *d.members)
+        {
+            if (!em)
+                continue;
+            buf.writestring("alias ");
+            buf.writestring(em.ident.toString);
+            buf.writestring(" = ");
+            buf.writestring(d.ident.toString);
+            buf.writeByte('.');
+            buf.writestring(em.ident.toString);
+            buf.writeByte(';');
+            buf.writenl();
+        }
     }
 
     void visitNspace(Nspace d)
