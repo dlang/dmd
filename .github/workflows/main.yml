@@ -135,9 +135,12 @@ jobs:
         with:
           fetch-depth: 50
       - name: Run in VM
-        uses: cross-platform-actions/action@v0.19.0
+        uses: cross-platform-actions/action@v0.21.0
         with:
           operating_system: freebsd
+          hypervisor: qemu
+          memory: 8G
+          sync_files: runner-to-vm
           version: ${{ matrix.freebsd_version }}
           shell: bash
           run: |
