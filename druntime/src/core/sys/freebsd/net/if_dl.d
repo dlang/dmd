@@ -29,9 +29,9 @@ struct sockaddr_dl
     ubyte[46]   sdl_data;
 }
 
-auto LLADDR(sockaddr_dl* s) { return cast(caddr_t)(s.sdl_data.ptr + s.sdl_nlen); }
-auto CLLADDR(sockaddr_dl* s) { return cast(c_caddr_t)(s.sdl_data.ptr + s.sdl_nlen); }
-auto LLINDEX(sockaddr_dl* s) { return s.sdl_index; }
+auto LLADDR()(sockaddr_dl* s) { return cast(caddr_t)(s.sdl_data.ptr + s.sdl_nlen); }
+auto CLLADDR()(const sockaddr_dl* s) { return cast(c_caddr_t)(s.sdl_data.ptr + s.sdl_nlen); }
+ushort LLINDEX()(const sockaddr_dl* s) { return s.sdl_index; }
 
 struct ifnet;
 sockaddr_dl* link_alloc_sdl(size_t, int);
