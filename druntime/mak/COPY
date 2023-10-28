@@ -244,6 +244,8 @@ COPY=\
 	$(IMPDIR)\core\sys\linux\tipc.d \
 	$(IMPDIR)\core\sys\linux\unistd.d \
 	\
+	$(IMPDIR)\core\sys\linux\linux\if_packet.d \
+	\
 	$(IMPDIR)\core\sys\linux\netinet\in_.d \
 	$(IMPDIR)\core\sys\linux\netinet\tcp.d \
 	\
