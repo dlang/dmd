@@ -239,6 +239,7 @@ SRCS=\
 	src\core\sys\linux\tipc.d \
 	src\core\sys\linux\unistd.d \
 	\
+	src\core\sys\linux\linux\if_arp.d \
 	src\core\sys\linux\linux\if_packet.d \
 	\
 	src\core\sys\linux\netinet\in_.d \
