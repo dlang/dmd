@@ -63,24 +63,7 @@ freebsd13_task:
     OS_NAME: freebsd
     CI_DFLAGS: -version=TARGET_FREEBSD13
     matrix:
-      - TASK_NAME_TYPE: latest
       - TASK_NAME_TYPE: coverage
         << : *COVERAGE_ENVIRONMENT_TEMPLATE
   install_bash_script: pkg install -y bash
-  << : *COMMON_STEPS_TEMPLATE
-
-freebsd12_task:
-  name: FreeBSD 12.3 x64, DMD (bootstrap)
-  freebsd_instance:
-    image_family: freebsd-12-3
-    cpu: 4
-    memory: 8G
-  timeout_in: 60m
-  environment:
-    OS_NAME: freebsd
-    HOST_DMD: dmd-2.095.0
-    CI_DFLAGS: -version=TARGET_FREEBSD12
-  install_bash_script: |
-    sed -i '' -e 's|pkg.FreeBSD.org|mirrors.xtom.com/freebsd-pkg|' /etc/pkg/FreeBSD.conf
-    pkg install -y bash
   << : *COMMON_STEPS_TEMPLATE
