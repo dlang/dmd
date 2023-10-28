@@ -1565,6 +1565,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
 
     void visitStructDeclaration(StructDeclaration d)
     {
+        //printf("visitStructDeclaration() %s\n", d.ident.toChars());
         buf.writestring(d.kind());
         buf.writeByte(' ');
         if (!d.isAnonymous())
@@ -1689,7 +1690,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
         //printf("FuncDeclaration::toCBuffer() '%s'\n", f.toChars());
         if (stcToBuffer(buf, f.storage_class))
             buf.writeByte(' ');
-        auto tf = cast(TypeFunction)f.type;
+        auto tf = f.type.isTypeFunction();
         typeToBuffer(tf, f.ident, buf, &hgs);
 
         if (hgs.hdrgen)
@@ -4064,6 +4065,7 @@ private void typeToBufferx(Type t, ref OutBuffer buf, HdrGenState* hgs)
 
     void visitIdentifier(TypeIdentifier t)
     {
+        //printf("visitTypeIdentifier() %s\n", t.ident.toChars());
         buf.writestring(t.ident.toString());
         visitTypeQualifiedHelper(t);
     }
@@ -4096,6 +4098,8 @@ private void typeToBufferx(Type t, ref OutBuffer buf, HdrGenState* hgs)
 
     void visitStruct(TypeStruct t)
     {
+        //printf("visitTypeStruct() %s\n", t.sym.toChars());
+
         // https://issues.dlang.org/show_bug.cgi?id=13776
         // Don't use ti.toAlias() to avoid forward reference error
         // while printing messages.
@@ -4122,6 +4126,11 @@ private void typeToBufferx(Type t, ref OutBuffer buf, HdrGenState* hgs)
     {
         if (t.mod & MODFlags.const_)
             buf.writestring("const ");
+        if (hgs.importcHdr && t.id)
+        {
+            buf.writestring(t.id.toChars());
+            return;
+        }
         buf.writestring(Token.toChars(t.tok));
         buf.writeByte(' ');
         if (t.id)

@@ -17,6 +17,11 @@ extern (C)
 	}
 	alias SQL_IS_YEAR = SQLINTERVAL.SQL_IS_YEAR;
 	alias SQL_IS_MONTH = SQLINTERVAL.SQL_IS_MONTH;
+	struct Foo
+	{
+		int x = void;
+	}
+	Foo abc();
 }
 ---
  */
@@ -32,3 +37,9 @@ typedef enum
     SQL_IS_YEAR = 1,
     SQL_IS_MONTH = 2
 } SQLINTERVAL;
+
+struct Foo {
+    int x;
+};
+
+struct Foo abc(void);
