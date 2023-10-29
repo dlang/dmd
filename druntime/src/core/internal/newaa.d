@@ -45,6 +45,7 @@ struct Impl
     uint used;
     uint deleted;
     TypeInfo_Struct entryTI;
+    size_t delegate(scope const void*) nothrow hashFn;
     uint firstUsed;
     immutable uint keysz;
     immutable uint valsz;
@@ -76,7 +77,9 @@ private size_t mix(size_t h) @safe pure nothrow @nogc
 
 struct Entry(K, V)
 {
-    /*const*/ K key; // this really should be const, but legacy issues.
+    // can make this const, because we aren't really going to use it aside from
+    // construction.
+    const K key;
     V value;
 }
 
@@ -95,6 +98,12 @@ AAShell makeAA(K, V)(V[K] src)
     size_t dim = INIT_NUM_BUCKETS;
     while (srclen * GROW_DEN > dim * GROW_NUM)
         dim = dim * GROW_FAC;
+
+    // used during runtime.
+    size_t delegate(scope const void *) nothrow hashFn = (scope const void* val) {
+        auto x = cast(K*)val;
+        return hashOf(*x);
+    };
 
     Bucket[] buckets;
     // Allocate and fill the buckets
@@ -139,6 +148,13 @@ AAShell makeAA(K, V)(V[K] src)
         return flags;
     } ();
     // return the new implementation
-    return AAShell(new Impl(buckets, cast(uint)srclen, 0, typeid(E), firstUsed,
+    return AAShell(new Impl(buckets, cast(uint)srclen, 0, typeid(E), hashFn, firstUsed,
             K.sizeof, V.sizeof, E.value.offsetof, flags));
+}
+
+
+unittest {
+    // test that AAs work with problematic key types when statically initialized
+    static int[double[2]] utaa = [[1.0, 2.0] : 5];
+    assert(utaa[[1.0, 2.0]] == 5);
 }
