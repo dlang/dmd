@@ -54,6 +54,7 @@ coverage_environment_template: &COVERAGE_ENVIRONMENT_TEMPLATE
 # FreeBSD
 freebsd13_task:
   name: FreeBSD 13.0 x64, DMD ($TASK_NAME_TYPE)
+  allow_failures: true # might be out of credits
   freebsd_instance:
     image_family: freebsd-13-0
     cpu: 4
