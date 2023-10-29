@@ -5211,8 +5211,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         case TOK.goesTo:
             if (requireDo)
                 error("missing `do { ... }` after `in` or `out`");
-            if (!compileEnv.shortenedMethods)
-                error("=> shortened method not enabled, compile with compiler switch `-preview=shortenedMethods`");
             const returnloc = token.loc;
             nextToken();
             f.fbody = new AST.ReturnStatement(returnloc, parseExpression());

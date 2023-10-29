@@ -3416,7 +3416,6 @@ struct CompileEnv final
     _d_dynamicArray< const char > timestamp;
     bool previewIn;
     bool ddocOutput;
-    bool shortenedMethods;
     bool masm;
     CompileEnv() :
         versionNumber(),
@@ -3426,11 +3425,10 @@ struct CompileEnv final
         timestamp(),
         previewIn(),
         ddocOutput(),
-        shortenedMethods(true),
         masm()
     {
     }
-    CompileEnv(uint32_t versionNumber, _d_dynamicArray< const char > date = {}, _d_dynamicArray< const char > time = {}, _d_dynamicArray< const char > vendor = {}, _d_dynamicArray< const char > timestamp = {}, bool previewIn = false, bool ddocOutput = false, bool shortenedMethods = true, bool masm = false) :
+    CompileEnv(uint32_t versionNumber, _d_dynamicArray< const char > date = {}, _d_dynamicArray< const char > time = {}, _d_dynamicArray< const char > vendor = {}, _d_dynamicArray< const char > timestamp = {}, bool previewIn = false, bool ddocOutput = false, bool masm = false) :
         versionNumber(versionNumber),
         date(date),
         time(time),
@@ -3438,7 +3436,6 @@ struct CompileEnv final
         timestamp(timestamp),
         previewIn(previewIn),
         ddocOutput(ddocOutput),
-        shortenedMethods(shortenedMethods),
         masm(masm)
         {}
 };
