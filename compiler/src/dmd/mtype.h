@@ -214,6 +214,7 @@ public:
     static ClassDeclaration *typeinfowild;
 
     static TemplateDeclaration *rtinfo;
+    static TemplateDeclaration *typeinfostructgeneric;
 
     static Type *basic[(int)TY::TMAX];
 

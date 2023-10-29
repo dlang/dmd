@@ -1434,6 +1434,7 @@ public:
     static ClassDeclaration* typeinfoshared;
     static ClassDeclaration* typeinfowild;
     static TemplateDeclaration* rtinfo;
+    static TemplateDeclaration* typeinfostructgeneric;
     static Type* basic[48LLU];
     virtual const char* kind() const;
     Type* copy() const;
@@ -8513,6 +8514,7 @@ struct Id final
     static Identifier* outer;
     static Identifier* Exception;
     static Identifier* RTInfo;
+    static Identifier* TypeInfoStructGeneric;
     static Identifier* Throwable;
     static Identifier* Error;
     static Identifier* withSym;
