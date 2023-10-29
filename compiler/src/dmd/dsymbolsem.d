@@ -1320,7 +1320,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
 
         if (!(global.params.bitfields || sc.flags & SCOPE.Cfile))
-            .error(dsym.loc, "%s `%s` use -preview=bitfields for bitfield support", dsym.kind, dsym.toPrettyChars);
+        {
+            version (IN_GCC)
+                .error(dsym.loc, "%s `%s` use `-fpreview=bitfields` for bitfield support", dsym.kind, dsym.toPrettyChars);
+            else
+                .error(dsym.loc, "%s `%s` use -preview=bitfields for bitfield support", dsym.kind, dsym.toPrettyChars);
+        }
 
         if (!dsym.parent.isStructDeclaration() && !dsym.parent.isClassDeclaration())
         {
