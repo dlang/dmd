@@ -56,7 +56,6 @@ import dmd.toctype;
 import dmd.toir;
 import dmd.tokens;
 import dmd.toobj;
-import dmd.typinf;
 import dmd.visitor;
 
 import dmd.backend.cc;
@@ -6060,7 +6059,7 @@ private
 elem *getTypeInfo(Expression e, Type t, ref IRState irs)
 {
     assert(t.ty != Terror);
-    genTypeInfo(e, e.loc, t, null);
+    TypeInfo_toObjFile(e, e.loc, t);
     elem* result = el_ptr(toSymbol(t.vtinfo));
     return result;
 }

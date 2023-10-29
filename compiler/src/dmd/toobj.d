@@ -266,6 +266,24 @@ void write_instance_pointers(Type type, Symbol *s, uint offset)
     }
 }
 
+/****************************************************
+ * Put out instance of the `TypeInfo` object associated with `t` if it
+ * hasn't already been generated
+ * Params:
+ *      e   = if not null, then expression for pretty-printing errors
+ *      loc = the location for reporting line numbers in errors
+ *      t   = the type to generate the `TypeInfo` object for
+ */
+void TypeInfo_toObjFile(Expression e, const ref Loc loc, Type t)
+{
+    // printf("TypeInfo_toObjFIle() %s\n", torig.toChars());
+    if (genTypeInfo(e, loc, t, null))
+    {
+        // generate a COMDAT for other TypeInfos not available as builtins in druntime
+        toObjFile(t.vtinfo, global.params.multiobj);
+    }
+}
+
 /* ================================================================== */
 
 void toObjFile(Dsymbol ds, bool multiobj)
@@ -379,7 +397,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             // Put out the TypeInfo
             if (gentypeinfo)
-                genTypeInfo(null, cd.loc, cd.type, null);
+                TypeInfo_toObjFile(null, cd.loc, cd.type);
             //toObjFile(cd.type.vtinfo, multiobj);
 
             if (genclassinfo)
@@ -462,7 +480,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             // Put out the TypeInfo
             if (gentypeinfo)
             {
-                genTypeInfo(null, id.loc, id.type, null);
+                TypeInfo_toObjFile(null, id.loc, id.type);
                 id.type.vtinfo.accept(this);
             }
 
@@ -498,7 +516,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                     toDebug(sd);
 
                 if (global.params.useTypeInfo && Type.dtypeinfo)
-                    genTypeInfo(null, sd.loc, sd.type, null);
+                    TypeInfo_toObjFile(null, sd.loc, sd.type);
 
                 // Generate static initializer
                 auto sinit = toInitializer(sd);
@@ -679,7 +697,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 toDebug(ed);
 
             if (global.params.useTypeInfo && Type.dtypeinfo)
-                genTypeInfo(null, ed.loc, ed.type, null);
+                TypeInfo_toObjFile(null, ed.loc, ed.type);
 
             TypeEnum tc = cast(TypeEnum)ed.type;
             if (!tc.sym.members || ed.type.isZeroInit(Loc.initial))
