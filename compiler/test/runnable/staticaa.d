@@ -56,7 +56,7 @@ struct Key
 {
     int v;
     bool opEquals(ref const Key o) const { return v == o.v; }
-    size_t toHash() const { return v; }
+    size_t toHash() const nothrow { return v; }
 }
 
 Destructing[Key] dAa = [Key(1): Destructing(10), Key(2): Destructing(20)];

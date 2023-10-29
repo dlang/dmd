@@ -73,14 +73,15 @@ private:
     uint used;
     uint deleted;
     TypeInfo_Struct entryTI;
-    // function that calculates hash of a key. Set on creation
-    // the parameter is a pointer to the key.
-    size_t delegate(scope const void*) nothrow hashFn;
     uint firstUsed;
     immutable uint keysz;
     immutable uint valsz;
     immutable uint valoff;
     Flags flags;
+
+    // function that calculates hash of a key. Set on creation
+    // the parameter is a pointer to the key.
+    size_t delegate(scope const void*) nothrow hashFn;
 
     enum Flags : ubyte
     {

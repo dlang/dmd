@@ -45,12 +45,12 @@ struct Impl
     uint used;
     uint deleted;
     TypeInfo_Struct entryTI;
-    size_t delegate(scope const void*) nothrow hashFn;
     uint firstUsed;
     immutable uint keysz;
     immutable uint valsz;
     immutable uint valoff;
     Flags flags;
+    size_t delegate(scope const void*) nothrow hashFn;
 
     enum Flags : ubyte
     {
@@ -86,8 +86,10 @@ struct Entry(K, V)
 
 // create a binary-compatible AA structure that can be used directly as an
 // associative array.
-AAShell makeAA(K, V)(V[K] src)
+// NOTE: this must only be called during CTFE
+AAShell makeAA(K, V)(V[K] src) @trusted
 {
+    assert(__ctfe, "makeAA Must only be called at compile time");
     immutable srclen = src.length;
     assert(srclen <= uint.max);
     alias E = Entry!(K, V);
@@ -148,13 +150,11 @@ AAShell makeAA(K, V)(V[K] src)
         return flags;
     } ();
     // return the new implementation
-    return AAShell(new Impl(buckets, cast(uint)srclen, 0, typeid(E), hashFn, firstUsed,
-            K.sizeof, V.sizeof, E.value.offsetof, flags));
+    return AAShell(new Impl(buckets, cast(uint)srclen, 0, typeid(E), firstUsed,
+            K.sizeof, V.sizeof, E.value.offsetof, flags, hashFn));
 }
 
-
 unittest {
-    // test that AAs work with problematic key types when statically initialized
     static int[double[2]] utaa = [[1.0, 2.0] : 5];
     assert(utaa[[1.0, 2.0]] == 5);
 }
