@@ -901,7 +901,7 @@ public:
         requiredProperty("cwd", getcwd(null, 0).toDString);
         requiredProperty("argv0", global.params.argv0);
         requiredProperty("config", global.inifilename);
-        requiredProperty("libName", global.params.libname);
+        requiredProperty("libName", global.params.lib.name);
 
         propertyStart("importPaths");
         arrayStart();

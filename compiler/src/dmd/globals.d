@@ -93,13 +93,15 @@ extern(C++) struct Output
     bool doOutput;      // Output is enabled
     bool fullOutput;    // Generate comments for hidden declarations (for -HC),
                         // and don't strip the bodies of plain (non-template) functions (for -H)
-
+    alias multiobj = fullOutput;
     const(char)[] dir;  // write to directory 'dir'
     const(char)[] name; // write to file 'name'
     Array!(const(char)*) files; // Other files associated with this output,
                                 // e.g. macro include files for Ddoc, dependencies for makedeps
     OutBuffer* buffer;  // if this output is buffered, this is the buffer
     int bufferLines;    // number of lines written to the buffer
+
+    this(bool enabled) { doOutput = enabled; }
 }
 
 /// Command line state related to printing usage about other switches
@@ -153,8 +155,6 @@ extern(C++) struct Verbose
 /// Put command line switches in here
 extern (C++) struct Param
 {
-    bool obj = true;        // write object file
-    bool multiobj;          // break one object file into multiple ones
     bool trace;             // insert profiling hooks
     bool tracegc;           // instrument calls to 'new'
     bool vcg_ast;           // write-out codegen-ast
@@ -219,10 +219,9 @@ extern (C++) struct Param
     Array!(const(char)*) modFileAliasStrings; // array of char*'s of -I module filename alias strings
     Array!(const(char)*)* imppath;      // array of char*'s of where to look for import modules
     Array!(const(char)*)* fileImppath;  // array of char*'s of where to look for file import modules
-    const(char)[] objdir;                // .obj/.lib file output directory
-    const(char)[] objname;               // .obj file output name
-    const(char)[] libname;               // .lib file output name
 
+    Output obj = Output(true);          // Generate object files
+    Output lib;                         // Generate libraries
     Output ddoc;                        // Generate embedded documentation comments
     Output dihdr;                       // Generate `.di` 'header' files
     Output cxxhdr;                      // Generate 'Cxx header' file

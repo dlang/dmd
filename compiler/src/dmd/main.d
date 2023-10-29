@@ -425,7 +425,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         }
     }
 
-    if (anydocfiles && modules.length && (driverParams.oneobj || params.objname))
+    if (anydocfiles && modules.length && (driverParams.oneobj || params.obj.name))
     {
         error(Loc.initial, "conflicting Ddoc and obj generation options");
         fatal();
@@ -604,7 +604,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (global.errors)
         fatal();
 
-    if (driverParams.lib && params.objfiles.length == 0)
+    if (params.lib.doOutput && params.objfiles.length == 0)
     {
         error(Loc.initial, "no input files");
         return EXIT_FAILURE;
@@ -618,8 +618,8 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             params.objfiles.push(mainModule.objfile.toChars());
     }
 
-    generateCodeAndWrite(modules[], libmodules[], params.libname, params.objdir,
-                         driverParams.lib, params.obj, driverParams.oneobj, params.multiobj,
+    generateCodeAndWrite(modules[], libmodules[], params.lib.name, params.obj.dir,
+                         params.lib.doOutput, params.obj.doOutput, driverParams.oneobj, params.obj.multiobj,
                          params.v.verbose);
 
     backend_term();
@@ -794,16 +794,16 @@ void emitMakeDeps(ref Param params)
     {
         buf.writeEscapedMakePath(&params.exefile[0]);
     }
-    else if (driverParams.lib)
+    else if (params.lib.doOutput)
     {
-        const(char)[] libname = params.libname ? params.libname : FileName.name(params.objfiles[0].toDString);
+        const(char)[] libname = params.lib.name ? params.lib.name : FileName.name(params.objfiles[0].toDString);
         libname = FileName.forceExt(libname,target.lib_ext);
 
         buf.writeEscapedMakePath(&libname[0]);
     }
-    else if (params.objname)
+    else if (params.obj.name)
     {
-        buf.writeEscapedMakePath(&params.objname[0]);
+        buf.writeEscapedMakePath(&params.obj.name[0]);
     }
     else if (params.objfiles.length)
     {
@@ -891,7 +891,7 @@ void reconcileCommands(ref Param params, ref Target target)
 
     if (target.os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
     {
-        if (driverParams.lib && driverParams.dll)
+        if (params.lib.doOutput && driverParams.dll)
             error(Loc.initial, "cannot mix `-lib` and `-shared`");
     }
     if (target.os == Target.OS.Windows)
@@ -989,7 +989,7 @@ void reconcileCommands(ref Param params, ref Target target)
  */
 void reconcileLinkRunLib(ref Param params, size_t numSrcFiles, const char[] obj_ext)
 {
-    if (!params.obj || driverParams.lib)
+    if (!params.obj.doOutput || params.lib.doOutput)
         driverParams.link = false;
 
     if (target.os == Target.OS.Windows)
@@ -1012,21 +1012,21 @@ void reconcileLinkRunLib(ref Param params, size_t numSrcFiles, const char[] obj_
 
     if (driverParams.link)
     {
-        params.exefile = params.objname;
+        params.exefile = params.obj.name;
         driverParams.oneobj = true;
-        if (params.objname)
+        if (params.obj.name)
         {
             /* Use this to name the one object file with the same
              * name as the exe file.
              */
-            params.objname = FileName.forceExt(params.objname, obj_ext);
+            params.obj.name = FileName.forceExt(params.obj.name, obj_ext);
             /* If output directory is given, use that path rather than
              * the exe file path.
              */
-            if (params.objdir)
+            if (params.obj.dir)
             {
-                const(char)[] name = FileName.name(params.objname);
-                params.objname = FileName.combine(params.objdir, name);
+                const(char)[] name = FileName.name(params.obj.name);
+                params.obj.name = FileName.combine(params.obj.dir, name);
             }
         }
     }
@@ -1035,17 +1035,17 @@ void reconcileLinkRunLib(ref Param params, size_t numSrcFiles, const char[] obj_
         error(Loc.initial, "flags conflict with -run");
         fatal();
     }
-    else if (driverParams.lib)
+    else if (params.lib.doOutput)
     {
-        params.libname = params.objname;
-        params.objname = null;
+        params.lib.name = params.obj.name;
+        params.obj.name = null;
         // Haven't investigated handling these options with multiobj
         if (!params.cov && !params.trace)
-            params.multiobj = true;
+            params.obj.multiobj = true;
     }
     else
     {
-        if (params.objname && numSrcFiles)
+        if (params.obj.name && numSrcFiles)
         {
             driverParams.oneobj = true;
             //error("multiple source files, but only one .obj name");

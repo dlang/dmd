@@ -476,7 +476,7 @@ extern (C++) final class Module : Package
         }
 
         srcfile = FileName(srcfilename);
-        objfile = setOutfilename(global.params.objname, global.params.objdir, filename, target.obj_ext);
+        objfile = setOutfilename(global.params.obj.name, global.params.obj.dir, filename, target.obj_ext);
         if (doDocComment)
             setDocfile();
         if (doHdrGen)
@@ -1097,7 +1097,7 @@ extern (C++) final class Module : Package
 
     extern (D) void deleteObjFile()
     {
-        if (global.params.obj)
+        if (global.params.obj.doOutput)
             File.remove(objfile.toChars());
         if (docfile)
             File.remove(docfile.toChars());

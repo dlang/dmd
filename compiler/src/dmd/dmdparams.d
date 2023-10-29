@@ -29,7 +29,6 @@ struct DMDparams
     bool vasm;              // print generated assembler for each function
 
     bool dll;               // generate shared dynamic library
-    bool lib;               // write library file instead of object file(s)
     bool link = true;       // perform link
     bool oneobj;            // write one object file instead of multiple ones
 

@@ -139,8 +139,6 @@ struct Verbose
 // Put command line switches in here
 struct Param
 {
-    d_bool obj;           // write object file
-    d_bool multiobj;      // break one object file into multiple ones
     d_bool trace;         // insert profiling hooks
     d_bool tracegc;       // instrument calls to 'new'
     d_bool vcg_ast;       // write-out codegen-ast
@@ -204,10 +202,9 @@ struct Param
     Array<const char *> modFileAliasStrings; // array of char*'s of -I module filename alias strings
     Array<const char *> *imppath;     // array of char*'s of where to look for import modules
     Array<const char *> *fileImppath; // array of char*'s of where to look for file import modules
-    DString objdir;    // .obj/.lib file output directory
-    DString objname;   // .obj file output name
-    DString libname;   // .lib file output name
 
+    Output obj;
+    Output lib;
     Output ddoc;              // Generate embedded documentation comments
     Output dihdr;             // Generate `.di` 'header' files
     Output cxxhdr;            // Generate 'Cxx header' file
