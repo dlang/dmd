@@ -236,6 +236,15 @@ struct FieldState
     uint bitOffset;     /// bit offset for field
 
     bool inFlight;      /// bit field is in flight
+
+    void print() const
+    {
+        printf("FieldState.offset      = %d bytes\n",   offset);
+        printf("          .fieldOffset = %d bytes\n",   fieldOffset);
+        printf("          .bitOffset   = %d bits\n",    bitOffset);
+        printf("          .fieldSize   = %d bytes\n",   fieldSize);
+        printf("          .inFlight    = %d\n",         inFlight);
+    }
 }
 
 // 99.9% of Dsymbols don't have attributes (at least in druntime and Phobos),
