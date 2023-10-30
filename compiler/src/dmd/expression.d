@@ -24,7 +24,6 @@ import dmd.arraytypes;
 import dmd.astenums;
 import dmd.ast_node;
 import dmd.gluelayer;
-import dmd.constfold;
 import dmd.ctfeexpr;
 import dmd.ctorflow;
 import dmd.dcast;
@@ -37,7 +36,6 @@ import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.errorsink;
@@ -1358,7 +1356,21 @@ extern (C++) abstract class Expression : ASTNode
 
     final int isConst()
     {
-        return .isConst(this);
+        //printf("Expression::isConst(): %s\n", e.toChars());
+        switch (op)
+        {
+        case EXP.int64:
+        case EXP.float64:
+        case EXP.complex80:
+            return 1;
+        case EXP.null_:
+            return 0;
+        case EXP.symbolOffset:
+            return 2;
+        default:
+            return 0;
+        }
+        assert(0);
     }
 
     /******
