@@ -4590,17 +4590,36 @@ extern (C++) final class TypeFunction : TypeNext
     }
 
     // arguments get specially formatted
-    private const(char)* getParamError(Expression arg, Parameter par)
+    private const(char)* getParamError(Expression arg, Scope* sc, Parameter par)
     {
         if (global.gag && !global.params.v.showGaggedErrors)
             return null;
+        OutBuffer buf;
+        // get more info for template function
+        if (arg.type.ty == Tvoid && sc)
+        if (auto fe = arg.isFuncExp())
+        {
+            import dmd.errorsink;
+            auto eSink = new class ErrorSinkNull
+            {
+                nothrow extern(C++) override
+                void error(const ref Loc loc, const(char)* format, ...)
+                {
+                    va_list ap;
+                    va_start(ap, format);
+                    buf.vprintf(format, ap);
+                    va_end(ap);
+                }
+            };
+            fe.matchType(par.type, sc, null, eSink);
+            return buf.extractChars();
+        }
         // show qualification when toChars() is the same but types are different
         // https://issues.dlang.org/show_bug.cgi?id=19948
         // when comparing the type with strcmp, we need to drop the qualifier
         bool qual = !arg.type.mutableOf().equals(par.type.mutableOf()) &&
             strcmp(arg.type.mutableOf().toChars(), par.type.mutableOf().toChars()) == 0;
         auto at = qual ? arg.type.toPrettyChars(true) : arg.type.toChars();
-        OutBuffer buf;
         // only mention rvalue if it's relevant
         const rv = !arg.isLvalue() && par.isReference();
         buf.printf("cannot pass %sargument `%s` of type `%s` to parameter `%s`",
@@ -4779,7 +4798,7 @@ extern (C++) final class TypeFunction : TypeNext
                         u + 1, parameterToChars(p, this, false));
                 // If an error happened previously, `pMessage` was already filled
                 else if (pMessage && !*pMessage)
-                    *pMessage = getParamError(args[u], p);
+                    *pMessage = getParamError(args[u], sc, p);
 
                 return MATCH.nomatch;
             }
@@ -7364,7 +7383,7 @@ private extern(D) MATCH argumentMatchParameter (TypeFunction tf, Parameter p,
         {
             if (p.storageClass & STC.out_)
             {
-                if (pMessage) *pMessage = tf.getParamError(arg, p);
+                if (pMessage) *pMessage = tf.getParamError(arg, sc, p);
                 return MATCH.nomatch;
             }
 
@@ -7404,7 +7423,7 @@ private extern(D) MATCH argumentMatchParameter (TypeFunction tf, Parameter p,
                      p.storageClass & STC.out_ ||
                      !arg.type.isCopyable())  // can't copy to temp for ref parameter
             {
-                if (pMessage) *pMessage = tf.getParamError(arg, p);
+                if (pMessage) *pMessage = tf.getParamError(arg, sc, p);
                 return MATCH.nomatch;
             }
             else
@@ -7443,7 +7462,7 @@ private extern(D) MATCH argumentMatchParameter (TypeFunction tf, Parameter p,
          */
         if (!ta.constConv(tp))
         {
-            if (pMessage) *pMessage = tf.getParamError(arg, p);
+            if (pMessage) *pMessage = tf.getParamError(arg, sc, p);
             return MATCH.nomatch;
         }
     }
@@ -7513,7 +7532,7 @@ private extern(D) MATCH matchTypeSafeVarArgs(TypeFunction tf, Parameter p,
 
             if (m == MATCH.nomatch)
             {
-                if (pMessage) *pMessage = tf.getParamError(arg, p);
+                if (pMessage) *pMessage = tf.getParamError(arg, null, p);
                 return MATCH.nomatch;
             }
             if (m < match)
@@ -7528,7 +7547,8 @@ private extern(D) MATCH matchTypeSafeVarArgs(TypeFunction tf, Parameter p,
     default:
         // We can have things as `foo(int[int] wat...)` but they only match
         // with an associative array proper.
-        if (pMessage && trailingArgs.length) *pMessage = tf.getParamError(trailingArgs[0], p);
+        if (pMessage && trailingArgs.length)
+            *pMessage = tf.getParamError(trailingArgs[0], null, p);
         return MATCH.nomatch;
     }
 }

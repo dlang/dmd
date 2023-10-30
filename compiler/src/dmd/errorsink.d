@@ -18,8 +18,12 @@ import dmd.location;
  */
 abstract class ErrorSink
 {
-  nothrow:
   extern (C++):
+    // subclassing ErrorSinkNull is useful to override just one method,
+    // so don't use cast(ErrorSinkNull) to check
+    final bool isNullSink() { return typeid(this) == typeid(ErrorSinkNull); }
+
+  nothrow:
 
     void error(const ref Loc loc, const(char)* format, ...);
 
