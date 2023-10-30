@@ -745,19 +745,9 @@ extern (C++) abstract class Expression : ASTNode
         return toLvalue(sc, e);
     }
 
-    extern (D) final Expression implicitCastTo(Scope* sc, Type t)
-    {
-        return .implicitCastTo(this, sc, t);
-    }
-
     final MATCH implicitConvTo(Type t)
     {
         return .implicitConvTo(this, t);
-    }
-
-    extern (D) final Expression castTo(Scope* sc, Type t)
-    {
-        return .castTo(this, sc, t);
     }
 
     /****************************************
@@ -2426,7 +2416,7 @@ extern (C++) final class StringExp : Expression
         {
             // Convert to UTF-8 string
             committed = false;
-            Expression e = castTo(sc, Type.tchar.arrayOf());
+            Expression e = castTo(this, sc, Type.tchar.arrayOf());
             e = e.optimize(WANTvalue);
             auto se = e.isStringExp();
             assert(se.sz == 1);
