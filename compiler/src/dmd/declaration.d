@@ -1813,11 +1813,7 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
             printf("BitFieldDeclaration::setFieldOffset(ad: %s, field: %s)\n", ad.toChars(), toChars());
             void print(const ref FieldState fieldState)
             {
-                printf("FieldState.offset      = %d bytes\n",   fieldState.offset);
-                printf("          .fieldOffset = %d bytes\n",   fieldState.fieldOffset);
-                printf("          .bitOffset   = %d bits\n",    fieldState.bitOffset);
-                printf("          .fieldSize   = %d bytes\n",   fieldState.fieldSize);
-                printf("          .inFlight    = %d\n",         fieldState.inFlight);
+                fieldState.print();
                 printf("          fieldWidth   = %d bits\n",    fieldWidth);
             }
             print(fieldState);
@@ -1989,7 +1985,14 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
             auto size = (pastField + 7) / 8;
             fieldState.fieldSize = size;
             //printf(" offset: %d, size: %d\n", offset, size);
-            ad.structsize = offset + size;
+            if (isunion)
+            {
+                const newstructsize = offset + size;
+                if (newstructsize > ad.structsize)
+                    ad.structsize = newstructsize;
+            }
+            else
+                ad.structsize = offset + size;
         }
         else
             fieldState.fieldSize = memsize;

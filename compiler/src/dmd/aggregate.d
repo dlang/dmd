@@ -556,6 +556,17 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     extern (D) static uint placeField(uint* nextoffset, uint memsize, uint memalignsize,
         structalign_t alignment, uint* paggsize, uint* paggalignsize, bool isunion)
     {
+        static if (0)
+        {
+            printf("placeField() nextoffset:   %u\n", *nextoffset);
+            printf(":            memsize:      %u\n", memsize);
+            printf(":            memalignsize: %u\n", memalignsize);
+            printf(":            alignment:    %u\n", alignment.get());
+            printf(":            aggsize:      %u\n", *paggsize);
+            printf(":            aggalignsize: %u\n", *paggalignsize);
+            printf(":            isunion:      %d\n", isunion);
+        }
+
         uint ofs = *nextoffset;
 
         const uint actualAlignment =
@@ -577,7 +588,10 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         if (ofs > *paggsize)
             *paggsize = ofs;
         if (!isunion)
+        {
             *nextoffset = ofs;
+            //printf("     revised nextoffset:   %u\n", ofs);
+        }
 
         if (*paggalignsize < actualAlignment)
             *paggalignsize = actualAlignment;
