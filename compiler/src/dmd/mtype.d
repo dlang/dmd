@@ -4404,10 +4404,11 @@ extern (C++) final class TypeFunction : TypeNext
      * Params:
      *  tthis = type of `this` parameter, null if none
      *  p = parameter to this function
+     *  outerVars = context variables p could escape into, if any
      * Returns:
      *  storage class with STC.scope_ or STC.return_ OR'd in
      */
-    StorageClass parameterStorageClass(Type tthis, Parameter p)
+    StorageClass parameterStorageClass(Type tthis, Parameter p, VarDeclarations* outerVars = null)
     {
         //printf("parameterStorageClass(p: %s)\n", p.toChars());
         auto stc = p.storageClass;
@@ -4473,6 +4474,16 @@ extern (C++) final class TypeFunction : TypeNext
             if (tthis && tthis.isMutable())
             {
                 foreach (VarDeclaration v; isAggregate(tthis).fields)
+                {
+                    if (v.hasPointers())
+                        return stc;
+                }
+            }
+
+            // Check escaping through nested context
+            if (outerVars && this.isMutable())
+            {
+                foreach (VarDeclaration v; *outerVars)
                 {
                     if (v.hasPointers())
                         return stc;
