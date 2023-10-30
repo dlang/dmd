@@ -4482,6 +4482,11 @@ extern (C++) final class TypeFunction : TypeNext
 
         // Check escaping through return value
         Type tret = nextOf().toBasetype();
+        if (tret.isTypeDelegate())
+            /* delegates can return copies of parameters
+             */
+            return stc;
+
         if (isref || tret.hasPointers())
         {
             return stc | STC.scope_ | STC.return_ | STC.returnScope;

@@ -26,7 +26,8 @@ struct S {
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test15544.d(46): Error: reference to local `y` assigned to non-scope `dg` in @safe code
+fail_compilation/test15544.d(47): Error: reference to local `y` assigned to non-scope `dg` in @safe code
+fail_compilation/test15544.d(43): Error: function `test15544.testClosure2` cannot close over `scope` variable `y`
 ---
 */
 
