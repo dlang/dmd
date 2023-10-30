@@ -2471,7 +2471,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             //printf("type: %s\n", arg.type.toChars());
             //printf("param: %s\n", p.toChars());
 
-            const pStc = tf.parameterStorageClass(tthis, p);
+            const pStc = tf.parameterStorageClass(tthis, p, fd ? &fd.outerVars : null);
 
             if (firstArg && (pStc & STC.return_))
             {
