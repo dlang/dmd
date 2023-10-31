@@ -1743,8 +1743,8 @@ public:
                 Parameters* p = new Parameter(STC.in_, Type.tchar.constOf().arrayOf(), null, null);
                 parameters.push(p);
                 Type tret = null;
-                tfgetmembers = new TypeFunction(parameters, tret, VarArg.none, LINK.d);
-                tfgetmembers = cast(TypeFunction)tfgetmembers.dsymbolSemantic(Loc.initial, &sc);
+                TypeFunction tf = new TypeFunction(parameters, tret, VarArg.none, LINK.d);
+                tfgetmembers = tf.dsymbolSemantic(Loc.initial, &sc).isTypeFunction();
             }
             if (fdx)
                 fdx = fdx.overloadExactMatch(tfgetmembers);
@@ -1872,11 +1872,11 @@ extern (C++) final class WithScopeSymbol : ScopeDsymbol
         Expression eold = null;
         for (Expression e = withstate.exp; e && e != eold; e = resolveAliasThis(_scope, e, true))
         {
-            if (e.op == EXP.scope_)
+            if (auto se = e.isScopeExp())
             {
-                s = (cast(ScopeExp)e).sds;
+                s = se.sds;
             }
-            else if (e.op == EXP.type)
+            else if (e.isTypeExp())
             {
                 s = e.type.toDsymbol(null);
             }
@@ -2050,11 +2050,11 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                 if (TemplateDeclaration td = s.isTemplateDeclaration())
                 {
                     dinteger_t dim = 0;
-                    if (exp.op == EXP.array)
+                    if (auto ae = exp.isArrayExp())
                     {
-                        dim = (cast(ArrayExp)exp).currentDimension;
+                        dim = ae.currentDimension;
                     }
-                    else if (exp.op == EXP.slice)
+                    else if (exp.isSliceExp())
                     {
                         dim = 0; // slices are currently always one-dimensional
                     }
@@ -2075,7 +2075,8 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                      * Note that it's impossible to have both template & function opDollar,
                      * because both take no arguments.
                      */
-                    if (exp.op == EXP.array && (cast(ArrayExp)exp).arguments.length != 1)
+                    auto ae = exp.isArrayExp();
+                    if (ae && ae.arguments.length != 1)
                     {
                         error(exp.loc, "`%s` only defines opDollar for one dimension", ad.toChars());
                         return null;
