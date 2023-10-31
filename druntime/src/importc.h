@@ -160,3 +160,8 @@
 #if __APPLE__
 #undef __SIZEOF_INT128__
 #endif
+
+// Wide-char compatibility
+#define wchar_t wchar
+#define char16_t wchar
+#define char32_t dchar
