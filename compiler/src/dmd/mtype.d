@@ -24,6 +24,7 @@ import dmd.astenums;
 import dmd.ast_node;
 import dmd.gluelayer;
 import dmd.dclass;
+import dmd.dcast;
 import dmd.declaration;
 import dmd.denum;
 import dmd.dmangle;

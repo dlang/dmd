@@ -26,7 +26,6 @@ import dmd.ast_node;
 import dmd.gluelayer;
 import dmd.ctfeexpr;
 import dmd.ctorflow;
-import dmd.dcast;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.delegatize;
@@ -741,11 +740,6 @@ extern (C++) abstract class Expression : ASTNode
             }
         }
         return toLvalue(sc, e);
-    }
-
-    final MATCH implicitConvTo(Type t)
-    {
-        return .implicitConvTo(this, t);
     }
 
     /****************************************
@@ -2189,12 +2183,13 @@ extern (C++) final class NullExp : Expression
 
     override StringExp toStringExp()
     {
-        if (implicitConvTo(Type.tstring))
+        if (this.type.implicitConvTo(Type.tstring))
         {
             auto se = new StringExp(loc, (cast(char*)mem.xcalloc(1, 1))[0 .. 0]);
             se.type = Type.tstring;
             return se;
         }
+
         return null;
     }
 

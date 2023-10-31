@@ -47,6 +47,7 @@ struct Symbol;          // back end symbol
 
 void expandTuples(Expressions *exps, Identifiers *names = nullptr);
 StringExp *toUTF8(StringExp *se, Scope *sc);
+MATCH implicitConvTo(Expression *e, Type *t);
 
 typedef unsigned char OwnedBy;
 enum
@@ -97,7 +98,6 @@ public:
     virtual bool isLvalue();
     virtual Expression *toLvalue(Scope *sc, Expression *e);
     virtual Expression *modifiableLvalue(Scope *sc, Expression *e);
-    MATCH implicitConvTo(Type *t);
     virtual Expression *resolveLoc(const Loc &loc, Scope *sc);
     virtual bool checkType();
     virtual bool checkValue();

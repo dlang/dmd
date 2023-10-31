@@ -22,6 +22,7 @@ import dmd.attrib;
 import dmd.builtin;
 import dmd.constfold;
 import dmd.ctfeexpr;
+import dmd.dcast;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dstruct;

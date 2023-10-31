@@ -932,14 +932,6 @@ struct complex_t final
     int32_t opEquals(complex_t y) const;
 };
 
-enum class MATCH
-{
-    nomatch = 0,
-    convert = 1,
-    constant = 2,
-    exact = 3,
-};
-
 template <typename T>
 struct Optional final
 {
@@ -977,7 +969,6 @@ public:
     virtual bool isLvalue();
     virtual Expression* toLvalue(Scope* sc, Expression* e);
     virtual Expression* modifiableLvalue(Scope* sc, Expression* e);
-    MATCH implicitConvTo(Type* t);
     virtual Expression* resolveLoc(const Loc& loc, Scope* sc);
     virtual bool checkType();
     virtual bool checkValue();
@@ -1105,6 +1096,14 @@ public:
     BinExp* isBinExp();
     BinAssignExp* isBinAssignExp();
     void accept(Visitor* v) override;
+};
+
+enum class MATCH
+{
+    nomatch = 0,
+    convert = 1,
+    constant = 2,
+    exact = 3,
 };
 
 enum class ThreeState : uint8_t
@@ -5861,6 +5860,8 @@ class CTFEExp final : public Expression
 public:
     const char* toChars() const override;
 };
+
+extern MATCH implicitConvTo(Expression* e, Type* t);
 
 struct BaseClass final
 {
