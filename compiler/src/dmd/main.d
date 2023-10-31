@@ -161,7 +161,6 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     global.compileEnv.previewIn        = global.params.previewIn;
     global.compileEnv.ddocOutput       = global.params.ddoc.doOutput;
-    global.compileEnv.shortenedMethods = global.params.shortenedMethods;
 
     if (params.help.usage)
     {

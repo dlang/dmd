@@ -58,6 +58,7 @@ struct HdrGenState
     bool hdrgen;        /// true if generating header file
     bool ddoc;          /// true if generating Ddoc file
     bool fullDump;      /// true if generating a full AST dump file
+    bool importcHdr;    /// true if generating a .di file from an ImportC file
 
     bool fullQual;      /// fully qualify types when printing
     int tpltMember;
@@ -85,6 +86,7 @@ extern (C++) void genhdrfile(Module m, ref OutBuffer buf)
     buf.writenl();
     HdrGenState hgs;
     hgs.hdrgen = true;
+    hgs.importcHdr = (m.filetype == FileType.c);
     toCBuffer(m, buf, hgs);
 }
 
@@ -1521,6 +1523,28 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
         buf.level--;
         buf.writeByte('}');
         buf.writenl();
+
+        if (!hgs.importcHdr)
+            return;
+
+        /* C enums get their members inserted into the symbol table of the enum declaration.
+         * This is accomplished in addEnumMembersToSymtab().
+         * But when generating D code from ImportC code, D rulez are followed.
+         * Accomplish this by generating an alias declaration for each member
+         */
+        foreach (em; *d.members)
+        {
+            if (!em)
+                continue;
+            buf.writestring("alias ");
+            buf.writestring(em.ident.toString);
+            buf.writestring(" = ");
+            buf.writestring(d.ident.toString);
+            buf.writeByte('.');
+            buf.writestring(em.ident.toString);
+            buf.writeByte(';');
+            buf.writenl();
+        }
     }
 
     void visitNspace(Nspace d)
@@ -1541,6 +1565,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
 
     void visitStructDeclaration(StructDeclaration d)
     {
+        //printf("visitStructDeclaration() %s\n", d.ident.toChars());
         buf.writestring(d.kind());
         buf.writeByte(' ');
         if (!d.isAnonymous())
@@ -1665,7 +1690,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
         //printf("FuncDeclaration::toCBuffer() '%s'\n", f.toChars());
         if (stcToBuffer(buf, f.storage_class))
             buf.writeByte(' ');
-        auto tf = cast(TypeFunction)f.type;
+        auto tf = f.type.isTypeFunction();
         typeToBuffer(tf, f.ident, buf, &hgs);
 
         if (hgs.hdrgen)
@@ -4040,6 +4065,7 @@ private void typeToBufferx(Type t, ref OutBuffer buf, HdrGenState* hgs)
 
     void visitIdentifier(TypeIdentifier t)
     {
+        //printf("visitTypeIdentifier() %s\n", t.ident.toChars());
         buf.writestring(t.ident.toString());
         visitTypeQualifiedHelper(t);
     }
@@ -4072,6 +4098,8 @@ private void typeToBufferx(Type t, ref OutBuffer buf, HdrGenState* hgs)
 
     void visitStruct(TypeStruct t)
     {
+        //printf("visitTypeStruct() %s\n", t.sym.toChars());
+
         // https://issues.dlang.org/show_bug.cgi?id=13776
         // Don't use ti.toAlias() to avoid forward reference error
         // while printing messages.
@@ -4098,6 +4126,11 @@ private void typeToBufferx(Type t, ref OutBuffer buf, HdrGenState* hgs)
     {
         if (t.mod & MODFlags.const_)
             buf.writestring("const ");
+        if (hgs.importcHdr && t.id)
+        {
+            buf.writestring(t.id.toChars());
+            return;
+        }
         buf.writestring(Token.toChars(t.tok));
         buf.writeByte(' ');
         if (t.id)

@@ -1320,7 +1320,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
 
         if (!(global.params.bitfields || sc.flags & SCOPE.Cfile))
-            .error(dsym.loc, "%s `%s` use -preview=bitfields for bitfield support", dsym.kind, dsym.toPrettyChars);
+        {
+            version (IN_GCC)
+                .error(dsym.loc, "%s `%s` use `-fpreview=bitfields` for bitfield support", dsym.kind, dsym.toPrettyChars);
+            else
+                .error(dsym.loc, "%s `%s` use -preview=bitfields for bitfield support", dsym.kind, dsym.toPrettyChars);
+        }
 
         if (!dsym.parent.isStructDeclaration() && !dsym.parent.isClassDeclaration())
         {
@@ -2260,7 +2265,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
          * so we have to do what addMember() does and install the enum members in the right symbol
          * table
          */
-        addEnumMembers(ed, sc, sc.getScopesym());
+        addEnumMembersToSymtab(ed, sc, sc.getScopesym());
 
         if (sc.flags & SCOPE.Cfile)
         {
@@ -5824,9 +5829,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
  *      sc = context of `ed`
  *      sds = symbol table that `ed` resides in
  */
-void addEnumMembers(EnumDeclaration ed, Scope* sc, ScopeDsymbol sds)
+void addEnumMembersToSymtab(EnumDeclaration ed, Scope* sc, ScopeDsymbol sds)
 {
-    //printf("addEnumMembers(ed: %p)\n", ed);
+    const bool isCEnum = (sc.flags & SCOPE.Cfile) != 0; // it's an ImportC enum
+    //printf("addEnumMembersToSymtab(ed: %s added: %d Cfile: %d)\n", ed.toChars(), ed.added, isCEnum);
     if (ed.added)
         return;
     ed.added = true;
@@ -5834,7 +5840,6 @@ void addEnumMembers(EnumDeclaration ed, Scope* sc, ScopeDsymbol sds)
     if (!ed.members)
         return;
 
-    const bool isCEnum = (sc.flags & SCOPE.Cfile) != 0; // it's an ImportC enum
     const bool isAnon = ed.isAnonymous();
 
     if ((isCEnum || isAnon) && !sds.symtab)
@@ -5847,10 +5852,15 @@ void addEnumMembers(EnumDeclaration ed, Scope* sc, ScopeDsymbol sds)
     {
         if (EnumMember em = s.isEnumMember())
         {
+            //printf("adding EnumMember %s to %s %d\n", em.toChars(), ed.toChars(), isCEnum);
             em.ed = ed;
             if (isCEnum)
             {
-                //printf("adding EnumMember %s to %p\n", em.toChars(), ed);
+                /* C doesn't add the enum member to the symbol table of the enum tag, it adds
+                 * it to the symbol table that the tag is in. This is in contrast to D, where enum
+                 * members become members of the enum tag. To accommodate this, we add
+                 * the enum members to both symbol tables.
+                 */
                 em.addMember(sc, ed);   // add em to ed's symbol table
                 em.addMember(sc, sds);  // add em to symbol table that ed is in
                 em.parent = ed; // restore it after previous addMember() changed it

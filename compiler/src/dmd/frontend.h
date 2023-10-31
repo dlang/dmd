@@ -2842,6 +2842,7 @@ struct HdrGenState final
     bool hdrgen;
     bool ddoc;
     bool fullDump;
+    bool importcHdr;
     bool fullQual;
     int32_t tpltMember;
     int32_t autoMember;
@@ -2854,6 +2855,7 @@ struct HdrGenState final
         hdrgen(),
         ddoc(),
         fullDump(),
+        importcHdr(),
         fullQual(),
         tpltMember(),
         autoMember(),
@@ -2864,10 +2866,11 @@ struct HdrGenState final
         inEnumDecl()
     {
     }
-    HdrGenState(bool hdrgen, bool ddoc = false, bool fullDump = false, bool fullQual = false, int32_t tpltMember = 0, int32_t autoMember = 0, int32_t forStmtInit = 0, int32_t insideFuncBody = 0, int32_t insideAggregate = 0, bool declstring = false, EnumDeclaration* inEnumDecl = nullptr) :
+    HdrGenState(bool hdrgen, bool ddoc = false, bool fullDump = false, bool importcHdr = false, bool fullQual = false, int32_t tpltMember = 0, int32_t autoMember = 0, int32_t forStmtInit = 0, int32_t insideFuncBody = 0, int32_t insideAggregate = 0, bool declstring = false, EnumDeclaration* inEnumDecl = nullptr) :
         hdrgen(hdrgen),
         ddoc(ddoc),
         fullDump(fullDump),
+        importcHdr(importcHdr),
         fullQual(fullQual),
         tpltMember(tpltMember),
         autoMember(autoMember),
@@ -3413,7 +3416,6 @@ struct CompileEnv final
     _d_dynamicArray< const char > timestamp;
     bool previewIn;
     bool ddocOutput;
-    bool shortenedMethods;
     bool masm;
     CompileEnv() :
         versionNumber(),
@@ -3423,11 +3425,10 @@ struct CompileEnv final
         timestamp(),
         previewIn(),
         ddocOutput(),
-        shortenedMethods(true),
         masm()
     {
     }
-    CompileEnv(uint32_t versionNumber, _d_dynamicArray< const char > date = {}, _d_dynamicArray< const char > time = {}, _d_dynamicArray< const char > vendor = {}, _d_dynamicArray< const char > timestamp = {}, bool previewIn = false, bool ddocOutput = false, bool shortenedMethods = true, bool masm = false) :
+    CompileEnv(uint32_t versionNumber, _d_dynamicArray< const char > date = {}, _d_dynamicArray< const char > time = {}, _d_dynamicArray< const char > vendor = {}, _d_dynamicArray< const char > timestamp = {}, bool previewIn = false, bool ddocOutput = false, bool masm = false) :
         versionNumber(versionNumber),
         date(date),
         time(time),
@@ -3435,7 +3436,6 @@ struct CompileEnv final
         timestamp(timestamp),
         previewIn(previewIn),
         ddocOutput(ddocOutput),
-        shortenedMethods(shortenedMethods),
         masm(masm)
         {}
 };
@@ -3854,7 +3854,7 @@ public:
     void purityLevel();
     bool hasLazyParameters();
     bool isDstyleVariadic() const;
-    StorageClass parameterStorageClass(Type* tthis, Parameter* p);
+    StorageClass parameterStorageClass(Type* tthis, Parameter* p, Array<VarDeclaration* >* outerVars = nullptr, bool indirect = false);
     Type* addStorageClass(StorageClass stc) override;
     Type* substWildTo(uint32_t __param_0_) override;
     MATCH constConv(Type* to) override;
@@ -8267,9 +8267,11 @@ extern Target target;
 
 extern bool tpsemantic(TemplateParameter* tp, Scope* sc, Array<TemplateParameter* >* parameters);
 
-extern void genTypeInfo(Expression* e, const Loc& loc, Type* torig, Scope* sc, bool genObjCode = true);
+extern bool genTypeInfo(Expression* e, const Loc& loc, Type* torig, Scope* sc);
 
 extern Type* getTypeInfoType(const Loc& loc, Type* t, Scope* sc, bool genObjCode = true);
+
+extern bool isSpeculativeType(Type* t);
 
 extern bool builtinTypeInfo(Type* t);
 

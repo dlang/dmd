@@ -54,6 +54,7 @@
 #include "target.h"
 #include "template.h"
 #include "tokens.h"
+#include "typinf.h"
 #include "version.h"
 #include "visitor.h"
 
@@ -1657,6 +1658,15 @@ public:
             visitDeclaration(d->v_argptr);
     }
 };
+
+void test_typinf(Expression *e, const Loc &loc, Type *t, Scope *sc)
+{
+    // Link tests
+    genTypeInfo(e, loc, t, sc);
+    getTypeInfoType(loc, t, sc, false);
+    isSpeculativeType(t);
+    builtinTypeInfo(t);
+}
 
 void test_backend(FuncDeclaration *f, Type *t)
 {
