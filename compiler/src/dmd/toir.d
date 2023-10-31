@@ -745,7 +745,7 @@ uint setClosureVarOffset(FuncDeclaration fd)
             memalignsize = v.type.alignsize();
             xalign = v.alignment;
         }
-        offset = AggregateDeclaration.alignmember(xalign, memalignsize, offset);
+        offset = alignmember(xalign, memalignsize, offset);
         v.offset = offset;
         //printf("closure var %s, offset = %d\n", v.toChars(), v.offset);
 
@@ -1001,7 +1001,7 @@ uint setAlignSectionVarOffset(FuncDeclaration fd)
         const memalignsize = v.type.alignsize();
         const xalign = v.alignment;
 
-        offset = AggregateDeclaration.alignmember(xalign, memalignsize, offset);
+        offset = alignmember(xalign, memalignsize, offset);
         v.offset = offset;
         //printf("align closure var %s, offset = %d\n", v.toChars(), offset);
 
