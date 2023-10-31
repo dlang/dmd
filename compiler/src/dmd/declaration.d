@@ -1288,9 +1288,9 @@ extern (C++) class VarDeclaration : Declaration
         uint memsize = cast(uint)sz;                // size of member
         uint memalignsize = target.fieldalign(t);   // size of member for alignment purposes
         offset = AggregateDeclaration.placeField(
-            &fieldState.offset,
+            fieldState.offset,
             memsize, memalignsize, alignment,
-            &ad.structsize, &ad.alignsize,
+            ad.structsize, ad.alignsize,
             isunion);
 
         //printf("\t%s: memalignsize = %d\n", toChars(), memalignsize);
@@ -1863,10 +1863,10 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
 
             uint dummy;
             offset = AggregateDeclaration.placeField(
-                &fieldState.offset,
+                fieldState.offset,
                 memsize, alignsize, alignment,
-                &ad.structsize,
-                (anon && style == TargetC.BitFieldStyle.Gcc_Clang) ? &dummy : &ad.alignsize,
+                ad.structsize,
+                (anon && style == TargetC.BitFieldStyle.Gcc_Clang) ? dummy : ad.alignsize,
                 isunion);
 
             fieldState.inFlight = true;

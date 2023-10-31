@@ -548,34 +548,34 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
      *    memsize       = size of field
      *    memalignsize  = natural alignment of field
      *    alignment     = alignment in effect for this field
-     *    paggsize      = size of aggregate (updated)
-     *    paggalignsize = alignment of aggregate (updated)
+     *    aggsize       = size of aggregate (updated)
+     *    aggalignsize  = alignment of aggregate (updated)
      *    isunion       = the aggregate is a union
      * Returns:
      *    aligned offset to place field at
      *
      */
-    extern (D) static uint placeField(uint* nextoffset, uint memsize, uint memalignsize,
-        structalign_t alignment, uint* paggsize, uint* paggalignsize, bool isunion)
+    extern (D) static uint placeField(ref uint nextoffset, uint memsize, uint memalignsize,
+        structalign_t alignment, ref uint aggsize, ref uint aggalignsize, bool isunion) @safe pure
     {
         static if (0)
         {
-            printf("placeField() nextoffset:   %u\n", *nextoffset);
+            printf("placeField() nextoffset:   %u\n", nextoffset);
             printf(":            memsize:      %u\n", memsize);
             printf(":            memalignsize: %u\n", memalignsize);
             printf(":            alignment:    %u\n", alignment.get());
-            printf(":            aggsize:      %u\n", *paggsize);
-            printf(":            aggalignsize: %u\n", *paggalignsize);
+            printf(":            aggsize:      %u\n", aggsize);
+            printf(":            aggalignsize: %u\n", aggalignsize);
             printf(":            isunion:      %d\n", isunion);
         }
 
-        uint ofs = *nextoffset;
+        uint ofs = nextoffset;
 
         const uint actualAlignment =
             alignment.isDefault() || alignment.isPack() && memalignsize < alignment.get()
                         ? memalignsize : alignment.get();
 
-        // Ensure no overflow
+        // Ensure no overflow for (memsize + actualAlignment + ofs)
         bool overflow;
         const sz = addu(memsize, actualAlignment, overflow);
         addu(ofs, sz, overflow);
@@ -587,16 +587,16 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
         uint memoffset = ofs;
         ofs += memsize;
-        if (ofs > *paggsize)
-            *paggsize = ofs;
+        if (ofs > aggsize)
+            aggsize = ofs;
         if (!isunion)
         {
-            *nextoffset = ofs;
+            nextoffset = ofs;
             //printf("     revised nextoffset:   %u\n", ofs);
         }
 
-        if (*paggalignsize < actualAlignment)
-            *paggalignsize = actualAlignment;
+        if (aggalignsize < actualAlignment)
+            aggalignsize = actualAlignment;
 
         return memoffset;
     }
