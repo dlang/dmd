@@ -20,6 +20,9 @@ extern (C)
 	struct Foo
 	{
 		int x = void;
+		wchar wc;
+		wchar csixteen;
+		dchar cthreetwo;
 	}
 	Foo abc();
 }
@@ -40,6 +43,9 @@ typedef enum
 
 struct Foo {
     int x;
+	wchar_t wc;
+	char16_t csixteen;
+	char32_t cthreetwo;
 };
 
 struct Foo abc(void);
