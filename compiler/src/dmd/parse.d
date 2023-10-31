@@ -3675,10 +3675,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             goto LabelX;
 
         case TOK.wchar_:
+        case TOK.wchar_t:
             t = AST.Type.twchar;
             goto LabelX;
 
         case TOK.dchar_:
+        case TOK.char32_t:
             t = AST.Type.tdchar;
             goto LabelX;
         LabelX:

@@ -166,6 +166,7 @@
 #endif
 
 // Wide-char compatibility
-#define wchar_t wchar
-#define char16_t wchar
-#define char32_t dchar
+#define __WCHAR_TYPE__ wchar_t
+#define wchar_t wchar_t
+#define char16_t wchar_t
+#define char32_t char32_t
