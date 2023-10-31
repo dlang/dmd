@@ -2419,23 +2419,6 @@ extern (C++) final class StringExp : Expression
         return this;
     }
 
-    /****************************************
-     * Convert string to char[].
-     */
-    StringExp toUTF8(Scope* sc)
-    {
-        if (sz != 1)
-        {
-            // Convert to UTF-8 string
-            committed = false;
-            Expression e = castTo(this, sc, Type.tchar.arrayOf());
-            e = e.optimize(WANTvalue);
-            auto se = e.isStringExp();
-            assert(se.sz == 1);
-            return se;
-        }
-        return this;
-    }
 
     /**
      * Compare two `StringExp` by length, then value
