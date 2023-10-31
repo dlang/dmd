@@ -883,6 +883,8 @@ extern (C++) struct Token
         TOK._Noreturn : "_Noreturn",
         TOK._Static_assert : "_Static_assert",
         TOK._Thread_local  : "_Thread_local",
+        TOK.wchar_t  : "wchar_t",
+        TOK.char32_t  : "char32_t",
 
         // C only extended keywords
         TOK._assert       : "__check",
