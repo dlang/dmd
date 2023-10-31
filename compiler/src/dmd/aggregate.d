@@ -507,11 +507,13 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
      * Params:
      *   alignment = struct alignment that is in effect
      *   memalignsize = natural alignment of field
-     *   poffset = pointer to offset to be aligned
+     *   offset = offset to be aligned
+     * Returns:
+     *   aligned offset
      */
-    extern (D) static void alignmember(structalign_t alignment, uint memalignsize, uint* poffset) pure nothrow @safe
+    extern (D) static uint alignmember(structalign_t alignment, uint memalignsize, uint offset) pure nothrow @safe
     {
-        //debug printf("alignment = %u %d, size = %u, offset = %u\n", alignment.get(), alignment.isPack(), memalignsize, *poffset);
+        //debug printf("alignment = %u %d, size = %u, offset = %u\n", alignment.get(), alignment.isPack(), memalignsize, offset);
         uint alignvalue;
 
         if (alignment.isDefault())
@@ -532,10 +534,10 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             alignvalue = alignment.get();
         }
         else
-            return;
+            return offset;
 
-        assert(alignvalue > 0 && !(alignvalue & (alignvalue - 1)));
-        *poffset = (*poffset + alignvalue - 1) & ~(alignvalue - 1);
+        assert(alignvalue && !(alignvalue & (alignvalue - 1))); // non-zero and power of 2
+        return (offset + alignvalue - 1) & ~(alignvalue - 1);
     }
 
     /****************************************
@@ -581,7 +583,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
         // Skip no-op for noreturn without custom aligment
         if (memalignsize != 0 || !alignment.isDefault())
-            alignmember(alignment, memalignsize, &ofs);
+            ofs = alignmember(alignment, memalignsize, ofs);
 
         uint memoffset = ofs;
         ofs += memsize;
