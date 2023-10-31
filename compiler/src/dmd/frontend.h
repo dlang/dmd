@@ -7165,7 +7165,6 @@ public:
     void writeTo(void* dest, bool zero, int32_t tyto = 0) const;
     char32_t getCodeUnit(size_t i) const;
     StringExp* toStringExp() override;
-    StringExp* toUTF8(Scope* sc);
     int32_t compare(const StringExp* const se2) const;
     Optional<bool > toBool() override;
     bool isLvalue() override;

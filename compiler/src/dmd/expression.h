@@ -46,6 +46,7 @@ struct Symbol;          // back end symbol
 #endif
 
 void expandTuples(Expressions *exps, Identifiers *names = nullptr);
+StringExp *toUTF8(StringExp *se, Scope *sc);
 
 typedef unsigned char OwnedBy;
 enum
@@ -370,7 +371,6 @@ public:
     bool equals(const RootObject * const o) const override;
     char32_t getCodeUnit(d_size_t i) const;
     StringExp *toStringExp() override;
-    StringExp *toUTF8(Scope *sc);
     Optional<bool> toBool() override;
     bool isLvalue() override;
     Expression *toLvalue(Scope *sc, Expression *e) override;

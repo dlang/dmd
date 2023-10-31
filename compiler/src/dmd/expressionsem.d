@@ -232,6 +232,24 @@ StringExp semanticString(Scope *sc, Expression exp, const char* s)
     return se;
 }
 
+/****************************************
+ * Convert string to char[].
+ */
+StringExp toUTF8(StringExp se, Scope* sc)
+{
+    if (se.sz != 1)
+    {
+        // Convert to UTF-8 string
+        se.committed = false;
+        Expression e = castTo(se, sc, Type.tchar.arrayOf());
+        e = e.optimize(WANTvalue);
+        auto result = e.isStringExp();
+        assert(result.sz == 1);
+        return result;
+    }
+    return se;
+}
+
 private Expression checkOpAssignTypes(BinExp binExp, Scope* sc)
 {
     auto e1 = binExp.e1;
