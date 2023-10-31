@@ -232,7 +232,7 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
  * Returns:
  *   The `MATCH` level between `e.type` and `t`.
  */
-MATCH implicitConvTo(Expression e, Type t)
+extern(C++) MATCH implicitConvTo(Expression e, Type t)
 {
     MATCH visit(Expression e)
     {
