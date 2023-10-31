@@ -839,7 +839,7 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
             /* Given the anon 'member's size and alignment,
              * go ahead and place it.
              */
-            anonoffset = AggregateDeclaration.placeField(
+            anonoffset = placeField(
                 fieldState.offset,
                 anonstructsize, anonalignsize, alignment,
                 ad.structsize, ad.alignsize,
