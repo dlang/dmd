@@ -709,6 +709,15 @@ extern (C++) class Dsymbol : ASTNode
         for (Dsymbol p = this; p; p = p.parent)
             ++complength;
 
+        // Easy case doesn't need allocations
+        if (complength == 1)
+        {
+            if (QualifyTypes)
+                return toPrettyCharsHelper();
+            prettystring = toChars();
+            return prettystring;
+        }
+
         // Allocate temporary array comp[]
         alias T = const(char)[];
         auto compptr = cast(T*)Mem.check(malloc(complength * T.sizeof));
