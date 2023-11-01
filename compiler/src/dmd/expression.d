@@ -2468,13 +2468,19 @@ extern (C++) class ThisExp : Expression
         return typeof(return)(true);
     }
 
-    override bool isLvalue()
+    override final bool isLvalue()
     {
-        return true;
+        // Class `this` should be an rvalue; struct `this` should be an lvalue.
+        return type.toBasetype().ty != Tclass;
     }
 
-    override Expression toLvalue(Scope* sc, Expression e)
+    override final Expression toLvalue(Scope* sc, Expression e)
     {
+        if (type.toBasetype().ty == Tclass)
+        {
+            // Class `this` is an rvalue; struct `this` is an lvalue.
+            return Expression.toLvalue(sc, e);
+        }
         return this;
     }
 
@@ -2492,18 +2498,6 @@ extern (C++) final class SuperExp : ThisExp
     extern (D) this(const ref Loc loc)
     {
         super(loc, EXP.super_);
-    }
-
-    override bool isLvalue()
-    {
-        // Class `super` should be an rvalue
-        return false;
-    }
-
-    override Expression toLvalue(Scope* sc, Expression e)
-    {
-        // Class `super` is an rvalue
-        return Expression.toLvalue(sc, e);
     }
 
     override void accept(Visitor v)
