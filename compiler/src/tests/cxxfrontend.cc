@@ -330,7 +330,7 @@ void test_expression()
 {
     Loc loc;
     IntegerExp *ie = IntegerExp::create(loc, 42, Type::tint32);
-    Expression *e = ie->ctfeInterpret();
+    Expression *e = ctfeInterpret(ie);
 
     assert(e);
     assert(e->isConst());
@@ -708,7 +708,7 @@ public:
                 }
                 sym->getModule()->accept(this);
                 if (attr->op == EXP::call)
-                    attr = attr->ctfeInterpret();
+                    attr = ctfeInterpret(attr);
                 if (attr->op != EXP::structLiteral)
                     continue;
             }
@@ -1341,7 +1341,7 @@ public:
         (void)d->sinit;
         NewExp *ne = NewExp::create(d->loc, NULL, d->type, NULL);
         ne->type = d->type;
-        Expression *e = ne->ctfeInterpret();
+        Expression *e = ctfeInterpret(ne);
         assert(e->op == EXP::classReference);
         ClassReferenceExp *exp = e->isClassReferenceExp();
         ClassDeclaration *cd = exp->originalClass();

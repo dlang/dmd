@@ -28,9 +28,7 @@ import dmd.ctfeexpr;
 import dmd.ctorflow;
 import dmd.dclass;
 import dmd.declaration;
-import dmd.delegatize;
 import dmd.dimport;
-import dmd.dinterpret;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
@@ -1329,13 +1327,6 @@ extern (C++) abstract class Expression : ASTNode
     final Expression optimize(int result, bool keepLvalue = false)
     {
         return Expression_optimize(this, result, keepLvalue);
-    }
-
-    // Entry point for CTFE.
-    // A compile-time result is required. Give an error if not possible
-    final Expression ctfeInterpret()
-    {
-        return .ctfeInterpret(this);
     }
 
     final int isConst()
