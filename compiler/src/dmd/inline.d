@@ -2187,6 +2187,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
         auto e = doInlineAs!Expression(fd.fbody, ids);
         fd.inlineNest--;
 
+        import dmd.expressionsem : toLvalue;
         // https://issues.dlang.org/show_bug.cgi?id=11322
         if (tf.isref)
             e = e.toLvalue(null, null);
