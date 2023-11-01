@@ -250,6 +250,55 @@ StringExp toUTF8(StringExp se, Scope* sc)
     return se;
 }
 
+private Expression reorderSettingAAElem(BinExp exp, Scope* sc)
+{
+    BinExp be = exp;
+
+    auto ie = be.e1.isIndexExp();
+    if (!ie)
+        return be;
+    if (ie.e1.type.toBasetype().ty != Taarray)
+        return be;
+
+    /* Fix evaluation order of setting AA element
+     * https://issues.dlang.org/show_bug.cgi?id=3825
+     * Rewrite:
+     *     aa[k1][k2][k3] op= val;
+     * as:
+     *     auto ref __aatmp = aa;
+     *     auto ref __aakey3 = k1, __aakey2 = k2, __aakey1 = k3;
+     *     auto ref __aaval = val;
+     *     __aatmp[__aakey3][__aakey2][__aakey1] op= __aaval;  // assignment
+     */
+
+    Expression e0;
+    while (1)
+    {
+        Expression de;
+        ie.e2 = extractSideEffect(sc, "__aakey", de, ie.e2);
+        e0 = Expression.combine(de, e0);
+
+        auto ie1 = ie.e1.isIndexExp();
+        if (!ie1 ||
+            ie1.e1.type.toBasetype().ty != Taarray)
+        {
+            break;
+        }
+        ie = ie1;
+    }
+    assert(ie.e1.type.toBasetype().ty == Taarray);
+
+    Expression de;
+    ie.e1 = extractSideEffect(sc, "__aatmp", de, ie.e1);
+    e0 = Expression.combine(de, e0);
+
+    be.e2 = extractSideEffect(sc, "__aaval", e0, be.e2, true);
+
+    //printf("-e0 = %s, be = %s\n", e0.toChars(), be.toChars());
+    return Expression.combine(e0, be);
+}
+
+
 private Expression checkOpAssignTypes(BinExp binExp, Scope* sc)
 {
     auto e1 = binExp.e1;
@@ -14413,7 +14462,106 @@ bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
     return check(e, returnRef);
 }
 
+/************************************************
+ * Destructors are attached to VarDeclarations.
+ * Hence, if expression returns a temp that needs a destructor,
+ * make sure and create a VarDeclaration for that temp.
+ */
+Expression addDtorHook(Expression e, Scope* sc)
+{
+    Expression visit(Expression exp)
+    {
+        return exp;
+    }
 
+    Expression visitStructLiteral(StructLiteralExp exp)
+    {
+        auto sd = exp.sd;
+        /* If struct requires a destructor, rewrite as:
+         *    (S tmp = S()),tmp
+         * so that the destructor can be hung on tmp.
+         */
+        if (sd.dtor && sc.func)
+        {
+            /* Make an identifier for the temporary of the form:
+             *   __sl%s%d, where %s is the struct name
+             */
+            char[10] buf = void;
+            const prefix = "__sl";
+            const ident = sd.ident.toString;
+            const fullLen = prefix.length + ident.length;
+            const len = fullLen < buf.length ? fullLen : buf.length;
+            buf[0 .. prefix.length] = prefix;
+            buf[prefix.length .. len] = ident[0 .. len - prefix.length];
+
+            auto tmp = copyToTemp(0, buf[0 .. len], exp);
+            Expression ae = new DeclarationExp(exp.loc, tmp);
+            Expression e = new CommaExp(exp.loc, ae, new VarExp(exp.loc, tmp));
+            e = e.expressionSemantic(sc);
+            return e;
+        }
+
+        return exp;
+    }
+
+    Expression visitCall(CallExp exp)
+    {
+        auto e1 = exp.e1;
+        auto type = exp.type;
+        /* Only need to add dtor hook if it's a type that needs destruction.
+         * Use same logic as VarDeclaration::callScopeDtor()
+         */
+
+        if (auto tf = e1.type.isTypeFunction())
+        {
+            if (tf.isref)
+                return exp;
+        }
+
+        Type tv = type.baseElemOf();
+        if (auto ts = tv.isTypeStruct())
+        {
+            StructDeclaration sd = ts.sym;
+            if (sd.dtor)
+            {
+                /* Type needs destruction, so declare a tmp
+                 * which the back end will recognize and call dtor on
+                 */
+                auto tmp = copyToTemp(0, Id.__tmpfordtor.toString(), exp);
+                auto de = new DeclarationExp(exp.loc, tmp);
+                auto ve = new VarExp(exp.loc, tmp);
+                Expression e = new CommaExp(exp.loc, de, ve);
+                e = e.expressionSemantic(sc);
+                return e;
+            }
+        }
+
+        return exp;
+    }
+
+    Expression visitCast(CastExp exp)
+    {
+        if (exp.to.toBasetype().ty == Tvoid)        // look past the cast(void)
+            exp.e1 = exp.e1.addDtorHook(sc);
+        return exp;
+    }
+
+    Expression visitComma(CommaExp exp)
+    {
+        exp.e2 = exp.e2.addDtorHook(sc);
+        return exp;
+    }
+
+    switch(e.op)
+    {
+        default: return visit(e);
+
+        case EXP.structLiteral:    return visitStructLiteral(e.isStructLiteralExp());
+        case EXP.call:             return visitCall(e.isCallExp());
+        case EXP.cast_:            return visitCast(e.isCastExp());
+        case EXP.comma:            return visitComma(e.isCommaExp());
+    }
+}
 
 /****************************************************
  * Determine if `exp`, which gets its address taken, can do so safely.
