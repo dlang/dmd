@@ -985,7 +985,6 @@ public:
     Expression* addressOf();
     Expression* deref();
     Expression* optimize(int32_t result, bool keepLvalue = false);
-    Expression* ctfeInterpret();
     int32_t isConst();
     virtual bool isIdentical(const Expression* const e) const;
     virtual Optional<bool > toBool();
@@ -6356,6 +6355,8 @@ public:
     Import* isImport() override;
     void accept(Visitor* v) override;
 };
+
+extern Expression* ctfeInterpret(Expression* e);
 
 extern void printCtfePerformanceStats();
 

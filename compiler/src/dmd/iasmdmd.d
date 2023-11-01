@@ -21,6 +21,7 @@ import core.stdc.string;
 import dmd.astenums;
 import dmd.declaration;
 import dmd.denum;
+import dmd.dinterpret;
 import dmd.dmdparams;
 import dmd.dscope;
 import dmd.dsymbol;

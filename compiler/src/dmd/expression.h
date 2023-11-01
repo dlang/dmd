@@ -45,6 +45,9 @@ typedef union tree_node Symbol;
 struct Symbol;          // back end symbol
 #endif
 
+// Entry point for CTFE.
+// A compile-time result is required. Give an error if not possible
+Expression *ctfeInterpret(Expression *e);
 void expandTuples(Expressions *exps, Identifiers *names = nullptr);
 StringExp *toUTF8(StringExp *se, Scope *sc);
 
@@ -107,9 +110,6 @@ public:
 
     Expression *optimize(int result, bool keepLvalue = false);
 
-    // Entry point for CTFE.
-    // A compile-time result is required. Give an error if not possible
-    Expression *ctfeInterpret();
     int isConst();
     virtual bool isIdentical(const Expression *e) const;
     virtual Optional<bool> toBool();
