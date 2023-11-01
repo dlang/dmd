@@ -981,7 +981,6 @@ public:
     virtual Expression* resolveLoc(const Loc& loc, Scope* sc);
     virtual bool checkType();
     virtual bool checkValue();
-    virtual Expression* addDtorHook(Scope* sc);
     Expression* addressOf();
     Expression* deref();
     Expression* optimize(int32_t result, bool keepLvalue = false);
@@ -7232,7 +7231,6 @@ public:
     static StructLiteralExp* create(const Loc& loc, StructDeclaration* sd, void* elements, Type* stype = nullptr);
     bool equals(const RootObject* const o) const override;
     StructLiteralExp* syntaxCopy() override;
-    Expression* addDtorHook(Scope* sc) override;
     Expression* toLvalue(Scope* sc, Expression* e) override;
     void accept(Visitor* v) override;
 };
@@ -7536,7 +7534,6 @@ public:
     CallExp* syntaxCopy() override;
     bool isLvalue() override;
     Expression* toLvalue(Scope* sc, Expression* e) override;
-    Expression* addDtorHook(Scope* sc) override;
     void accept(Visitor* v) override;
 };
 
@@ -7594,7 +7591,6 @@ public:
     CastExp* syntaxCopy() override;
     bool isLvalue() override;
     Expression* toLvalue(Scope* sc, Expression* e) override;
-    Expression* addDtorHook(Scope* sc) override;
     void accept(Visitor* v) override;
 };
 
@@ -7673,7 +7669,6 @@ public:
     Expression* toLvalue(Scope* sc, Expression* e) override;
     Expression* modifiableLvalue(Scope* sc, Expression* e) override;
     Optional<bool > toBool() override;
-    Expression* addDtorHook(Scope* sc) override;
     void accept(Visitor* v) override;
     static void allow(Expression* exp);
 };

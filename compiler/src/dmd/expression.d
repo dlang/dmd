@@ -64,10 +64,8 @@ import dmd.rootobject;
 import dmd.root.string;
 import dmd.root.utf;
 import dmd.safe;
-import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
-import dmd.typesem;
 import dmd.visitor;
 
 enum LOGSEMANTIC = false;
@@ -1290,16 +1288,6 @@ extern (C++) abstract class Expression : ASTNode
         errorSupplemental(loc, "Use `core.atomic.atomicOp!\"%s\"(%s, %s)` instead",
                           EXPtoString(rmwOp).ptr, toChars(), ex ? ex.toChars() : "1");
         return true;
-    }
-
-    /************************************************
-     * Destructors are attached to VarDeclarations.
-     * Hence, if expression returns a temp that needs a destructor,
-     * make sure and create a VarDeclaration for that temp.
-     */
-    Expression addDtorHook(Scope* sc)
-    {
-        return this;
     }
 
     /******************************
@@ -3086,34 +3074,6 @@ extern (C++) final class StructLiteralExp : Expression
         return -1;
     }
 
-    override Expression addDtorHook(Scope* sc)
-    {
-        /* If struct requires a destructor, rewrite as:
-         *    (S tmp = S()),tmp
-         * so that the destructor can be hung on tmp.
-         */
-        if (sd.dtor && sc.func)
-        {
-            /* Make an identifier for the temporary of the form:
-             *   __sl%s%d, where %s is the struct name
-             */
-            char[10] buf = void;
-            const prefix = "__sl";
-            const ident = sd.ident.toString;
-            const fullLen = prefix.length + ident.length;
-            const len = fullLen < buf.length ? fullLen : buf.length;
-            buf[0 .. prefix.length] = prefix;
-            buf[prefix.length .. len] = ident[0 .. len - prefix.length];
-
-            auto tmp = copyToTemp(0, buf[0 .. len], this);
-            Expression ae = new DeclarationExp(loc, tmp);
-            Expression e = new CommaExp(loc, ae, new VarExp(loc, tmp));
-            e = e.expressionSemantic(sc);
-            return e;
-        }
-        return this;
-    }
-
     override Expression toLvalue(Scope* sc, Expression e)
     {
         if (sc.flags & SCOPE.Cfile)
@@ -3979,54 +3939,6 @@ extern (C++) abstract class BinExp : Expression
 
     }
 
-    extern (D) final Expression reorderSettingAAElem(Scope* sc)
-    {
-        BinExp be = this;
-
-        auto ie = be.e1.isIndexExp();
-        if (!ie)
-            return be;
-        if (ie.e1.type.toBasetype().ty != Taarray)
-            return be;
-
-        /* Fix evaluation order of setting AA element
-         * https://issues.dlang.org/show_bug.cgi?id=3825
-         * Rewrite:
-         *     aa[k1][k2][k3] op= val;
-         * as:
-         *     auto ref __aatmp = aa;
-         *     auto ref __aakey3 = k1, __aakey2 = k2, __aakey1 = k3;
-         *     auto ref __aaval = val;
-         *     __aatmp[__aakey3][__aakey2][__aakey1] op= __aaval;  // assignment
-         */
-
-        Expression e0;
-        while (1)
-        {
-            Expression de;
-            ie.e2 = extractSideEffect(sc, "__aakey", de, ie.e2);
-            e0 = Expression.combine(de, e0);
-
-            auto ie1 = ie.e1.isIndexExp();
-            if (!ie1 ||
-                ie1.e1.type.toBasetype().ty != Taarray)
-            {
-                break;
-            }
-            ie = ie1;
-        }
-        assert(ie.e1.type.toBasetype().ty == Taarray);
-
-        Expression de;
-        ie.e1 = extractSideEffect(sc, "__aatmp", de, ie.e1);
-        e0 = Expression.combine(de, e0);
-
-        be.e2 = extractSideEffect(sc, "__aaval", e0, be.e2, true);
-
-        //printf("-e0 = %s, be = %s\n", e0.toChars(), be.toChars());
-        return Expression.combine(e0, be);
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -4605,38 +4517,6 @@ extern (C++) final class CallExp : UnaExp
         return Expression.toLvalue(sc, e);
     }
 
-    override Expression addDtorHook(Scope* sc)
-    {
-        /* Only need to add dtor hook if it's a type that needs destruction.
-         * Use same logic as VarDeclaration::callScopeDtor()
-         */
-
-        if (auto tf = e1.type.isTypeFunction())
-        {
-            if (tf.isref)
-                return this;
-        }
-
-        Type tv = type.baseElemOf();
-        if (auto ts = tv.isTypeStruct())
-        {
-            StructDeclaration sd = ts.sym;
-            if (sd.dtor)
-            {
-                /* Type needs destruction, so declare a tmp
-                 * which the back end will recognize and call dtor on
-                 */
-                auto tmp = copyToTemp(0, Id.__tmpfordtor.toString(), this);
-                auto de = new DeclarationExp(loc, tmp);
-                auto ve = new VarExp(loc, tmp);
-                Expression e = new CommaExp(loc, de, ve);
-                e = e.expressionSemantic(sc);
-                return e;
-            }
-        }
-        return this;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -4912,13 +4792,6 @@ extern (C++) final class CastExp : UnaExp
         return Expression.toLvalue(sc, e);
     }
 
-    override Expression addDtorHook(Scope* sc)
-    {
-        if (to.toBasetype().ty == Tvoid)        // look past the cast(void)
-            e1 = e1.addDtorHook(sc);
-        return this;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -5184,12 +5057,6 @@ extern (C++) final class CommaExp : BinExp
     override Optional!bool toBool()
     {
         return e2.toBool();
-    }
-
-    override Expression addDtorHook(Scope* sc)
-    {
-        e2 = e2.addDtorHook(sc);
-        return this;
     }
 
     override void accept(Visitor v)
