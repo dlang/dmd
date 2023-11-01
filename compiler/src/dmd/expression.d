@@ -678,25 +678,6 @@ extern (C++) abstract class Expression : ASTNode
         return false;
     }
 
-    /*******************************
-     * Give error if we're not an lvalue.
-     * If we can, convert expression to be an lvalue.
-     */
-    Expression toLvalue(Scope* sc, Expression e)
-    {
-        if (!e)
-            e = this;
-        else if (!loc.isValid())
-            loc = e.loc;
-
-        if (e.op == EXP.type)
-            error(loc, "`%s` is a `%s` definition and cannot be modified", e.type.toChars(), e.type.kind());
-        else
-            error(loc, "`%s` is not an lvalue and cannot be modified", e.toChars());
-
-        return ErrorExp.get();
-    }
-
     Expression modifiableLvalue(Scope* sc, Expression e)
     {
         //printf("Expression::modifiableLvalue() %s, type = %s\n", toChars(), type.toChars());
@@ -731,7 +712,7 @@ extern (C++) abstract class Expression : ASTNode
                 return ErrorExp.get();
             }
         }
-        return toLvalue(sc, e);
+        return this.toLvalue(sc, e);
     }
 
     /****************************************
@@ -1587,16 +1568,6 @@ extern (C++) final class IntegerExp : Expression
         return typeof(return)(r);
     }
 
-    override Expression toLvalue(Scope* sc, Expression e)
-    {
-        if (!e)
-            e = this;
-        else if (!loc.isValid())
-            loc = e.loc;
-        error(e.loc, "cannot modify constant `%s`", e.toChars());
-        return ErrorExp.get();
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1743,11 +1714,6 @@ extern (C++) final class ErrorExp : Expression
         }
 
         return errorexp;
-    }
-
-    override Expression toLvalue(Scope* sc, Expression e)
-    {
-        return this;
     }
 
     override void accept(Visitor v)
@@ -1987,11 +1953,6 @@ extern (C++) class IdentifierExp : Expression
         return true;
     }
 
-    override final Expression toLvalue(Scope* sc, Expression e)
-    {
-        return this;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -2034,11 +1995,6 @@ extern (C++) final class DsymbolExp : Expression
     override bool isLvalue()
     {
         return true;
-    }
-
-    override Expression toLvalue(Scope* sc, Expression e)
-    {
-        return this;
     }
 
     override void accept(Visitor v)
@@ -2085,16 +2041,6 @@ extern (C++) class ThisExp : Expression
     {
         // Class `this` should be an rvalue; struct `this` should be an lvalue.
         return type.toBasetype().ty != Tclass;
-    }
-
-    override final Expression toLvalue(Scope* sc, Expression e)
-    {
-        if (type.toBasetype().ty == Tclass)
-        {
-            // Class `this` is an rvalue; struct `this` is an lvalue.
-            return Expression.toLvalue(sc, e);
-        }
-        return this;
     }
 
     override void accept(Visitor v)
@@ -2462,12 +2408,6 @@ extern (C++) final class StringExp : Expression
          * conversion to reference of static array is only allowed.
          */
         return (type && type.toBasetype().ty == Tsarray);
-    }
-
-    override Expression toLvalue(Scope* sc, Expression e)
-    {
-        //printf("StringExp::toLvalue(%s) type = %s\n", toChars(), type ? type.toChars() : NULL);
-        return (type && type.toBasetype().ty == Tsarray) ? this : Expression.toLvalue(sc, e);
     }
 
     override Expression modifiableLvalue(Scope* sc, Expression e)
@@ -3050,14 +2990,6 @@ extern (C++) final class StructLiteralExp : Expression
         return -1;
     }
 
-    override Expression toLvalue(Scope* sc, Expression e)
-    {
-        if (sc.flags & SCOPE.Cfile)
-            return this;  // C struct literals are lvalues
-        else
-            return Expression.toLvalue(sc, e);
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -3201,15 +3133,6 @@ extern (C++) final class TemplateExp : Expression
     override bool isLvalue()
     {
         return fd !is null;
-    }
-
-    override Expression toLvalue(Scope* sc, Expression e)
-    {
-        if (!fd)
-            return Expression.toLvalue(sc, e);
-
-        assert(sc);
-        return symbolToExp(fd, loc, sc, true);
     }
 
     override bool checkType()
@@ -3409,31 +3332,6 @@ extern (C++) final class VarExp : SymbolExp
         return true;
     }
 
-    override Expression toLvalue(Scope* sc, Expression e)
-    {
-        if (var.storage_class & STC.manifest)
-        {
-            error(loc, "manifest constant `%s` cannot be modified", var.toChars());
-            return ErrorExp.get();
-        }
-        if (var.storage_class & STC.lazy_ && !delegateWasExtracted)
-        {
-            error(loc, "lazy variable `%s` cannot be modified", var.toChars());
-            return ErrorExp.get();
-        }
-        if (var.ident == Id.ctfe)
-        {
-            error(loc, "cannot modify compiler-generated variable `__ctfe`");
-            return ErrorExp.get();
-        }
-        if (var.ident == Id.dollar) // https://issues.dlang.org/show_bug.cgi?id=13574
-        {
-            error(loc, "cannot modify operator `$`");
-            return ErrorExp.get();
-        }
-        return this;
-    }
-
     override Expression modifiableLvalue(Scope* sc, Expression e)
     {
         //printf("VarExp::modifiableLvalue('%s')\n", var.toChars());
@@ -3470,11 +3368,6 @@ extern (C++) final class OverExp : Expression
     override bool isLvalue()
     {
         return true;
-    }
-
-    override Expression toLvalue(Scope* sc, Expression e)
-    {
-        return this;
     }
 
     override void accept(Visitor v)
@@ -3936,16 +3829,10 @@ extern (C++) class BinAssignExp : BinExp
         return true;
     }
 
-    override final Expression toLvalue(Scope* sc, Expression ex)
-    {
-        // Lvalue-ness will be handled in glue layer.
-        return this;
-    }
-
     override final Expression modifiableLvalue(Scope* sc, Expression e)
     {
         // should check e1.checkModifiable() ?
-        return toLvalue(sc, this);
+        return this.toLvalue(sc, this);
     }
 
     override void accept(Visitor v)
@@ -4154,46 +4041,6 @@ extern (C++) final class DotVarExp : UnaExp
             return true;
         auto vd = var.isVarDeclaration();
         return !(vd && vd.isField());
-    }
-
-    override Expression toLvalue(Scope* sc, Expression e)
-    {
-        //printf("DotVarExp::toLvalue(%s)\n", toChars());
-        if (sc && sc.flags & SCOPE.Cfile)
-        {
-            /* C11 6.5.2.3-3: A postfix expression followed by the '.' or '->' operator
-             * is an lvalue if the first expression is an lvalue.
-             */
-            if (!e1.isLvalue())
-                return Expression.toLvalue(sc, e);
-        }
-        if (!isLvalue())
-            return Expression.toLvalue(sc, e);
-        if (e1.op == EXP.this_ && sc.ctorflow.fieldinit.length && !(sc.ctorflow.callSuper & CSX.any_ctor))
-        {
-            if (VarDeclaration vd = var.isVarDeclaration())
-            {
-                auto ad = vd.isMember2();
-                if (ad && ad.fields.length == sc.ctorflow.fieldinit.length)
-                {
-                    foreach (i, f; ad.fields)
-                    {
-                        if (f == vd)
-                        {
-                            if (!(sc.ctorflow.fieldinit[i].csx & CSX.this_ctor))
-                            {
-                                /* If the address of vd is taken, assume it is thereby initialized
-                                 * https://issues.dlang.org/show_bug.cgi?id=15869
-                                 */
-                                modifyFieldVar(loc, sc, vd, e1);
-                            }
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-        return this;
     }
 
     override Expression modifiableLvalue(Scope* sc, Expression e)
@@ -4486,13 +4333,6 @@ extern (C++) final class CallExp : UnaExp
         return false;
     }
 
-    override Expression toLvalue(Scope* sc, Expression e)
-    {
-        if (isLvalue())
-            return this;
-        return Expression.toLvalue(sc, e);
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -4598,11 +4438,6 @@ extern (C++) final class PtrExp : UnaExp
     override bool isLvalue()
     {
         return true;
-    }
-
-    override Expression toLvalue(Scope* sc, Expression e)
-    {
-        return this;
     }
 
     override Expression modifiableLvalue(Scope* sc, Expression e)
@@ -4755,19 +4590,6 @@ extern (C++) final class CastExp : UnaExp
             e1.type.mutableOf().unSharedOf().equals(to.mutableOf().unSharedOf());
     }
 
-    override Expression toLvalue(Scope* sc, Expression e)
-    {
-        if (sc && sc.flags & SCOPE.Cfile)
-        {
-            /* C11 6.5.4-5: A cast does not yield an lvalue.
-             */
-            return Expression.toLvalue(sc, e);
-        }
-        if (isLvalue())
-            return this;
-        return Expression.toLvalue(sc, e);
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -4820,12 +4642,6 @@ extern (C++) final class VectorArrayExp : UnaExp
     override bool isLvalue()
     {
         return e1.isLvalue();
-    }
-
-    override Expression toLvalue(Scope* sc, Expression e)
-    {
-        e1 = e1.toLvalue(sc, e);
-        return this;
     }
 
     override void accept(Visitor v)
@@ -4883,12 +4699,6 @@ extern (C++) final class SliceExp : UnaExp
          * conversion to reference of static array is only allowed.
          */
         return (type && type.toBasetype().ty == Tsarray);
-    }
-
-    override Expression toLvalue(Scope* sc, Expression e)
-    {
-        //printf("SliceExp::toLvalue(%s) type = %s\n", toChars(), type ? type.toChars() : NULL);
-        return (type && type.toBasetype().ty == Tsarray) ? this : Expression.toLvalue(sc, e);
     }
 
     override Expression modifiableLvalue(Scope* sc, Expression e)
@@ -4964,13 +4774,6 @@ extern (C++) final class ArrayExp : UnaExp
         return true;
     }
 
-    override Expression toLvalue(Scope* sc, Expression e)
-    {
-        if (type && type.toBasetype().ty == Tvoid)
-            error(loc, "`void`s have no value");
-        return this;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -5016,12 +4819,6 @@ extern (C++) final class CommaExp : BinExp
     override bool isLvalue()
     {
         return e2.isLvalue();
-    }
-
-    override Expression toLvalue(Scope* sc, Expression e)
-    {
-        e2 = e2.toLvalue(sc, null);
-        return this;
     }
 
     override Expression modifiableLvalue(Scope* sc, Expression e)
@@ -5105,12 +4902,6 @@ extern (C++) final class DelegatePtrExp : UnaExp
         return e1.isLvalue();
     }
 
-    override Expression toLvalue(Scope* sc, Expression e)
-    {
-        e1 = e1.toLvalue(sc, e);
-        return this;
-    }
-
     override Expression modifiableLvalue(Scope* sc, Expression e)
     {
         if (sc.setUnsafe(false, this.loc, "cannot modify delegate pointer in `@safe` code `%s`", this))
@@ -5141,12 +4932,6 @@ extern (C++) final class DelegateFuncptrExp : UnaExp
     override bool isLvalue()
     {
         return e1.isLvalue();
-    }
-
-    override Expression toLvalue(Scope* sc, Expression e)
-    {
-        e1 = e1.toLvalue(sc, e);
-        return this;
     }
 
     override Expression modifiableLvalue(Scope* sc, Expression e)
@@ -5203,13 +4988,6 @@ extern (C++) final class IndexExp : BinExp
             return e1.isLvalue();
         }
         return true;
-    }
-
-    override Expression toLvalue(Scope* sc, Expression e)
-    {
-        if (isLvalue())
-            return this;
-        return Expression.toLvalue(sc, e);
     }
 
     override Expression modifiableLvalue(Scope* sc, Expression e)
@@ -5322,20 +5100,6 @@ extern (C++) class AssignExp : BinExp
             return false;
         }
         return true;
-    }
-
-    override final Expression toLvalue(Scope* sc, Expression ex)
-    {
-        if (e1.op == EXP.slice || e1.op == EXP.arrayLength)
-        {
-            return Expression.toLvalue(sc, ex);
-        }
-
-        /* In front-end level, AssignExp should make an lvalue of e1.
-         * Taking the address of e1 will be handled in low level layer,
-         * so this function does nothing.
-         */
-        return this;
     }
 
     override void accept(Visitor v)
@@ -6074,16 +5838,6 @@ extern (C++) final class CondExp : BinExp
         return e1.isLvalue() && e2.isLvalue();
     }
 
-    override Expression toLvalue(Scope* sc, Expression ex)
-    {
-        // convert (econd ? e1 : e2) to *(econd ? &e1 : &e2)
-        CondExp e = cast(CondExp)copy();
-        e.e1 = e1.toLvalue(sc, null).addressOf();
-        e.e2 = e2.toLvalue(sc, null).addressOf();
-        e.type = type.pointerTo();
-        return new PtrExp(loc, e, type);
-    }
-
     override Expression modifiableLvalue(Scope* sc, Expression e)
     {
         if (!e1.isLvalue() && !e2.isLvalue())
@@ -6093,7 +5847,7 @@ extern (C++) final class CondExp : BinExp
         }
         e1 = e1.modifiableLvalue(sc, e1);
         e2 = e2.modifiableLvalue(sc, e2);
-        return toLvalue(sc, this);
+        return this.toLvalue(sc, this);
     }
 
     override void accept(Visitor v)

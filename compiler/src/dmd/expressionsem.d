@@ -14567,6 +14567,268 @@ Expression addDtorHook(Expression e, Scope* sc)
     }
 }
 
+/*******************************
+* Give error if we're not an lvalue.
+* If we can, convert expression to be an lvalue.
+*/
+extern(C++) Expression toLvalue(Expression _this, Scope* sc, Expression e)
+{
+    Expression visit(Expression _this)
+    {
+        // BinaryAssignExp does not have an EXP associated
+        // so it's treated on the default path.
+        // Lvalue-ness will be handled in glue :layer.
+        if (_this.isBinAssignExp())
+            return _this;
+        if (!e)
+            e = _this;
+        else if (!_this.loc.isValid())
+            _this.loc = e.loc;
+
+        if (e.op == EXP.type)
+            error(_this.loc, "`%s` is a `%s` definition and cannot be modified", e.type.toChars(), e.type.kind());
+        else
+            error(_this.loc, "`%s` is not an lvalue and cannot be modified", e.toChars());
+
+        return ErrorExp.get();
+    }
+
+    Expression visitInteger(IntegerExp _this)
+    {
+        if (!e)
+            e = _this;
+        else if (!_this.loc.isValid())
+            _this.loc = e.loc;
+        error(e.loc, "cannot modify constant `%s`", e.toChars());
+        return ErrorExp.get();
+    }
+
+    Expression visitThis(ThisExp _this)
+    {
+        if (_this.type.toBasetype().ty == Tclass)
+        {
+            // Class `this` is an rvalue; struct `this` is an lvalue.
+            return visit(_this);
+        }
+
+        return _this;
+    }
+
+    Expression visitString(StringExp _this)
+    {
+        //printf("StringExp::toLvalue(%s) type = %s\n", _this.toChars(), _this.type ? _this.type.toChars() : NULL);
+        return (_this.type && _this.type.toBasetype().ty == Tsarray) ? _this : visit(_this);
+    }
+
+    Expression visitStructLiteral(StructLiteralExp _this)
+    {
+        if (sc.flags & SCOPE.Cfile)
+            return _this;  // C struct literals are lvalues
+        else
+            return visit(_this);
+    }
+
+    Expression visitTemplate(TemplateExp _this)
+    {
+        if (!_this.fd)
+            return visit(_this);
+
+        assert(sc);
+        return symbolToExp(_this.fd, _this.loc, sc, true);
+
+    }
+
+    Expression visitVar(VarExp _this)
+    {
+        auto var = _this.var;
+        if (var.storage_class & STC.manifest)
+        {
+            error(_this.loc, "manifest constant `%s` cannot be modified", var.toChars());
+            return ErrorExp.get();
+        }
+        if (var.storage_class & STC.lazy_ && !_this.delegateWasExtracted)
+        {
+            error(_this.loc, "lazy variable `%s` cannot be modified", var.toChars());
+            return ErrorExp.get();
+        }
+        if (var.ident == Id.ctfe)
+        {
+            error(_this.loc, "cannot modify compiler-generated variable `__ctfe`");
+            return ErrorExp.get();
+        }
+        if (var.ident == Id.dollar) // https://issues.dlang.org/show_bug.cgi?id=13574
+        {
+            error(_this.loc, "cannot modify operator `$`");
+            return ErrorExp.get();
+        }
+        return _this;
+    }
+
+    Expression visitDotVar(DotVarExp _this)
+    {
+        auto e1 = _this.e1;
+        auto var = _this.var;
+        //printf("DotVarExp::toLvalue(%s)\n", toChars());
+        if (sc && sc.flags & SCOPE.Cfile)
+        {
+            /* C11 6.5.2.3-3: A postfix expression followed by the '.' or '->' operator
+             * is an lvalue if the first expression is an lvalue.
+             */
+            if (!e1.isLvalue())
+                return visit(_this);
+        }
+        if (!_this.isLvalue())
+            return visit(_this);
+        if (e1.op == EXP.this_ && sc.ctorflow.fieldinit.length && !(sc.ctorflow.callSuper & CSX.any_ctor))
+        {
+            if (VarDeclaration vd = var.isVarDeclaration())
+            {
+                auto ad = vd.isMember2();
+                if (ad && ad.fields.length == sc.ctorflow.fieldinit.length)
+                {
+                    foreach (i, f; ad.fields)
+                    {
+                        if (f == vd)
+                        {
+                            if (!(sc.ctorflow.fieldinit[i].csx & CSX.this_ctor))
+                            {
+                                /* If the address of vd is taken, assume it is thereby initialized
+                                 * https://issues.dlang.org/show_bug.cgi?id=15869
+                                 */
+                                modifyFieldVar(_this.loc, sc, vd, e1);
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        return _this;
+    }
+
+    Expression visitCall(CallExp _this)
+    {
+        if (_this.isLvalue())
+            return _this;
+        return visit(_this);
+    }
+
+    Expression visitCast(CastExp _this)
+    {
+        if (sc && sc.flags & SCOPE.Cfile)
+        {
+            /* C11 6.5.4-5: A cast does not yield an lvalue.
+             */
+            return visit(_this);
+        }
+        if (_this.isLvalue())
+            return _this;
+        return visit(_this);
+    }
+
+    Expression visitVectorArray(VectorArrayExp _this)
+    {
+        _this.e1 = _this.e1.toLvalue(sc, e);
+        return _this;
+    }
+
+    Expression visitSlice(SliceExp _this)
+    {
+        //printf("SliceExp::toLvalue(%s) _this.type = %s\n", _this.toChars(), _this.type ? _this.type.toChars() : NULL);
+        return (_this.type && _this.type.toBasetype().ty == Tsarray) ? _this : visit(_this);
+    }
+
+    Expression visitArray(ArrayExp _this)
+    {
+        if (_this.type && _this.type.toBasetype().ty == Tvoid)
+            error(_this.loc, "`void`s have no value");
+        return _this;
+    }
+
+    Expression visitComma(CommaExp _this)
+    {
+        _this.e2 = _this.e2.toLvalue(sc, null);
+        return _this;
+    }
+
+    Expression visitDelegatePointer(DelegatePtrExp _this)
+    {
+        _this.e1 = _this.e1.toLvalue(sc, e);
+        return _this;
+    }
+
+    Expression visitDelegateFuncptr(DelegateFuncptrExp _this)
+    {
+        _this.e1 = _this.e1.toLvalue(sc, e);
+        return _this;
+    }
+
+    Expression visitIndex(IndexExp _this)
+    {
+        if (_this.isLvalue())
+            return _this;
+        return visit(_this);
+    }
+
+    Expression visitAssign(AssignExp _this)
+    {
+        if (_this.e1.op == EXP.slice || _this.e1.op == EXP.arrayLength)
+        {
+            return visit(_this);
+        }
+
+        /* In front-end level, AssignExp should make an lvalue of e1.
+         * Taking the address of e1 will be handled in low level layer,
+         * so this function does nothing.
+         */
+        return _this;
+    }
+
+    Expression visitCond(CondExp _this)
+    {
+        // convert (econd ? e1 : e2) to *(econd ? &e1 : &e2)
+        CondExp e = cast(CondExp)(_this.copy());
+        e.e1 = _this.e1.toLvalue(sc, null).addressOf();
+        e.e2 = _this.e2.toLvalue(sc, null).addressOf();
+        e.type = _this.type.pointerTo();
+        return new PtrExp(_this.loc, e, _this.type);
+
+    }
+
+    switch(_this.op)
+    {
+        default:                          return visit(_this);
+
+        case EXP.int64:                   return visitInteger(_this.isIntegerExp());
+        case EXP.error:                   return _this;
+        case EXP.identifier:              return _this;
+        case EXP.dSymbol:                 return _this;
+        case EXP.this_:                   return visitThis(_this.isThisExp());
+        case EXP.super_:                  return visitThis(_this.isSuperExp());
+        case EXP.string_:                 return visitString(_this.isStringExp());
+        case EXP.structLiteral:           return visitStructLiteral(_this.isStructLiteralExp());
+        case EXP.template_:               return visitTemplate(_this.isTemplateExp());
+        case EXP.variable:                return visitVar(_this.isVarExp());
+        case EXP.overloadSet:             return _this;
+        case EXP.dotVariable:             return visitDotVar(_this.isDotVarExp());
+        case EXP.call:                    return visitCall(_this.isCallExp());
+        case EXP.star:                    return _this;
+        case EXP.cast_:                   return visitCast(_this.isCastExp());
+        case EXP.vectorArray:             return visitVectorArray(_this.isVectorArrayExp());
+        case EXP.slice:                   return visitSlice(_this.isSliceExp());
+        case EXP.array:                   return visitArray(_this.isArrayExp());
+        case EXP.comma:                   return visitComma(_this.isCommaExp());
+        case EXP.delegatePointer:         return visitDelegatePointer(_this.isDelegatePtrExp());
+        case EXP.delegateFunctionPointer: return visitDelegateFuncptr(_this.isDelegateFuncptrExp());
+        case EXP.index:                   return visitIndex(_this.isIndexExp());
+        case EXP.construct:               return visitAssign(_this.isConstructExp());
+        case EXP.loweredAssignExp:        return visitAssign(_this.isLoweredAssignExp());
+        case EXP.blit:                    return visitAssign(_this.isBlitExp());
+        case EXP.assign:                  return visitAssign(_this.isAssignExp());
+        case EXP.question:                return visitCond(_this.isCondExp());
+    }
+}
+
 /****************************************************
  * Determine if `exp`, which gets its address taken, can do so safely.
  * Params:
