@@ -20,6 +20,7 @@ import core.stdc.stdio;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.ctfeexpr;
+import dmd.dcast;
 import dmd.declaration;
 import dmd.dstruct;
 import dmd.errors;
@@ -46,29 +47,6 @@ private Expression expType(Type type, Expression e)
         e.type = type;
     }
     return e;
-}
-
-/************************************
- * Returns:
- *    true if e is a constant
- */
-int isConst(Expression e)
-{
-    //printf("Expression::isConst(): %s\n", e.toChars());
-    switch (e.op)
-    {
-    case EXP.int64:
-    case EXP.float64:
-    case EXP.complex80:
-        return 1;
-    case EXP.null_:
-        return 0;
-    case EXP.symbolOffset:
-        return 2;
-    default:
-        return 0;
-    }
-    assert(0);
 }
 
 /**********************************
@@ -336,7 +314,7 @@ UnionExp Div(const ref Loc loc, Type type, Expression e1, Expression e2)
         n2 = e2.toInteger();
         if (n2 == 0)
         {
-            e2.error("divide by 0");
+            error(e2.loc, "divide by 0");
             emplaceExp!(ErrorExp)(&ue);
             return ue;
         }
@@ -345,13 +323,13 @@ UnionExp Div(const ref Loc loc, Type type, Expression e1, Expression e2)
             // Check for int.min / -1
             if (n1 == 0xFFFFFFFF80000000UL && type.toBasetype().ty != Tint64)
             {
-                e2.error("integer overflow: `int.min / -1`");
+                error(e2.loc, "integer overflow: `int.min / -1`");
                 emplaceExp!(ErrorExp)(&ue);
                 return ue;
             }
             else if (n1 == 0x8000000000000000L) // long.min / -1
             {
-                e2.error("integer overflow: `long.min / -1L`");
+                error(e2.loc, "integer overflow: `long.min / -1L`");
                 emplaceExp!(ErrorExp)(&ue);
                 return ue;
             }
@@ -401,7 +379,7 @@ UnionExp Mod(const ref Loc loc, Type type, Expression e1, Expression e2)
         n2 = e2.toInteger();
         if (n2 == 0)
         {
-            e2.error("divide by 0");
+            error(e2.loc, "divide by 0");
             emplaceExp!(ErrorExp)(&ue);
             return ue;
         }
@@ -410,13 +388,13 @@ UnionExp Mod(const ref Loc loc, Type type, Expression e1, Expression e2)
             // Check for int.min % -1
             if (n1 == 0xFFFFFFFF80000000UL && type.toBasetype().ty != Tint64)
             {
-                e2.error("integer overflow: `int.min %% -1`");
+                error(e2.loc, "integer overflow: `int.min %% -1`");
                 emplaceExp!(ErrorExp)(&ue);
                 return ue;
             }
             else if (n1 == 0x8000000000000000L) // long.min % -1
             {
-                e2.error("integer overflow: `long.min %% -1L`");
+                error(e2.loc, "integer overflow: `long.min %% -1L`");
                 emplaceExp!(ErrorExp)(&ue);
                 return ue;
             }
@@ -1135,7 +1113,7 @@ UnionExp Index(Type type, Expression e1, Expression e2, bool indexIsInBounds)
         uinteger_t i = e2.toInteger();
         if (i >= es1.len)
         {
-            e1.error("string index %llu is out of bounds `[0 .. %llu]`", i, cast(ulong)es1.len);
+            error(e1.loc, "string index %llu is out of bounds `[0 .. %llu]`", i, cast(ulong)es1.len);
             emplaceExp!(ErrorExp)(&ue);
         }
         else
@@ -1151,7 +1129,7 @@ UnionExp Index(Type type, Expression e1, Expression e2, bool indexIsInBounds)
         if (i >= length && (e1.op == EXP.arrayLiteral || !indexIsInBounds))
         {
             // C code only checks bounds if an ArrayLiteralExp
-            e1.error("array index %llu is out of bounds `%s[0 .. %llu]`", i, e1.toChars(), length);
+            error(e1.loc, "array index %llu is out of bounds `%s[0 .. %llu]`", i, e1.toChars(), length);
             emplaceExp!(ErrorExp)(&ue);
         }
         else if (ArrayLiteralExp ale = e1.isArrayLiteralExp())
@@ -1174,7 +1152,7 @@ UnionExp Index(Type type, Expression e1, Expression e2, bool indexIsInBounds)
         {
             if (i >= ale.elements.length)
             {
-                e1.error("array index %llu is out of bounds `%s[0 .. %llu]`", i, e1.toChars(), cast(ulong) ale.elements.length);
+                error(e1.loc, "array index %llu is out of bounds `%s[0 .. %llu]`", i, e1.toChars(), cast(ulong) ale.elements.length);
                 emplaceExp!(ErrorExp)(&ue);
             }
             else
@@ -1286,7 +1264,7 @@ UnionExp Slice(Type type, Expression e1, Expression lwr, Expression upr)
 
 /* Check whether slice `[newlwr .. newupr]` is in the range `[lwr .. upr]`
  */
-bool sliceBoundsCheck(uinteger_t lwr, uinteger_t upr, uinteger_t newlwr, uinteger_t newupr) pure
+bool sliceBoundsCheck(uinteger_t lwr, uinteger_t upr, uinteger_t newlwr, uinteger_t newupr) pure @safe
 {
     assert(lwr <= upr);
     return !(newlwr <= newupr &&

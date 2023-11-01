@@ -93,7 +93,7 @@ version (CRuntime_Microsoft)
 /****************************************
  * Write filename to cmdbuf, quoting if necessary.
  */
-private void writeFilename(OutBuffer* buf, const(char)[] filename)
+private void writeFilename(OutBuffer* buf, const(char)[] filename) @safe
 {
     /* Loop and see if we need to quote
      */
@@ -268,7 +268,8 @@ public int runLINK()
                 setExeFile();
             }
             // Make sure path to exe file exists
-            ensurePathToNameExists(Loc.initial, global.params.exefile);
+            if (!ensurePathToNameExists(Loc.initial, global.params.exefile))
+                fatal();
             cmdbuf.writeByte(' ');
             if (global.params.mapfile)
             {
@@ -344,7 +345,8 @@ public int runLINK()
             if (p.length > 7000)
             {
                 lnkfilename = FileName.forceExt(global.params.exefile, "lnk");
-                writeFile(Loc.initial, lnkfilename, p);
+                if (!writeFile(Loc.initial, lnkfilename, p))
+                    fatal();
                 if (lnkfilename.length < p.length)
                 {
                     p[0] = '@';
@@ -390,7 +392,8 @@ public int runLINK()
                 setExeFile();
             }
             // Make sure path to exe file exists
-            ensurePathToNameExists(Loc.initial, global.params.exefile);
+            if (!ensurePathToNameExists(Loc.initial, global.params.exefile))
+                fatal();
             cmdbuf.writeByte(',');
             if (global.params.mapfile)
                 writeFilename(&cmdbuf, global.params.mapfile);
@@ -455,7 +458,8 @@ public int runLINK()
             if (p.length > 7000)
             {
                 lnkfilename = FileName.forceExt(global.params.exefile, "lnk");
-                writeFile(Loc.initial, lnkfilename, p);
+                if (!writeFile(Loc.initial, lnkfilename, p))
+                    fatal();
                 if (lnkfilename.length < p.length)
                 {
                     p[0] = '@';
@@ -575,7 +579,8 @@ public int runLINK()
             global.params.exefile = ex;
         }
         // Make sure path to exe file exists
-        ensurePathToNameExists(Loc.initial, global.params.exefile);
+        if (!ensurePathToNameExists(Loc.initial, global.params.exefile))
+            fatal();
         if (driverParams.symdebug)
             argv.push("-g");
         if (target.isX86_64)
@@ -773,7 +778,7 @@ public int runLINK()
             // Link against -lexecinfo for backtrace symbols
             argv.push("-lexecinfo");
         }
-        if (global.params.verbose)
+        if (global.params.v.verbose)
         {
             // Print it
             OutBuffer buf;
@@ -855,7 +860,7 @@ version (Windows)
     {
         int status;
         size_t len;
-        if (global.params.verbose)
+        if (global.params.v.verbose)
             message("%s %s", cmd, args);
         if (target.objectFormat() == Target.ObjectFormat.omf)
         {
@@ -953,7 +958,7 @@ version (Windows)
 public int runProgram()
 {
     //printf("runProgram()\n");
-    if (global.params.verbose)
+    if (global.params.v.verbose)
     {
         OutBuffer buf;
         buf.writestring(global.params.exefile);
@@ -1074,7 +1079,7 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
                     }
                 }
 
-                if (global.params.verbose)
+                if (global.params.v.verbose)
                     message(buf.peekChars());
 
                 ubyte[2048] buffer = void;
@@ -1177,7 +1182,7 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
                     }
                 }
 
-                if (global.params.verbose)
+                if (global.params.v.verbose)
                     message(buf.peekChars());
 
                 ubyte[2048] buffer = void;
@@ -1300,7 +1305,7 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
         argv.push(output.xarraydup.ptr);    // and the output
         argv.push(null);                    // argv[] always ends with a null
 
-        if (global.params.verbose)
+        if (global.params.v.verbose)
         {
             OutBuffer buf;
 

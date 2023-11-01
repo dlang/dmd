@@ -47,14 +47,11 @@ import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.xmm;
 
-extern (C++):
 
 nothrow:
 @safe:
 
 enum MARS = true;
-
-private extern (D) uint mask(uint m) { return 1 << m; }
 
 //private void genorreg(ref CodeBuilder c, uint t, uint f) { genregs(c, 0x09, f, t); }
 
@@ -455,7 +452,7 @@ void cod3_align_bytes(int seg, size_t nbytes)
                 n = nops.length;
             p = cast(char*)nops;
         }
-        objmod.write_bytes(SegData[seg],cast(uint)n,cast(char*)p);
+        objmod.write_bytes(SegData[seg],p[0 .. n]);
         nbytes -= n;
     }
 }
@@ -1116,7 +1113,7 @@ static if (NTEXCEPTIONS)
             if (config.flags4 & CFG4optimized)
             {   regm_t usedsave;
 
-                docommas(cdb,&e);
+                docommas(cdb,e);
                 usedsave = regcon.used;
                 if (!OTleaf(e.Eoper))
                     gencodelem(cdb,e,&retregs,true);
@@ -1508,7 +1505,7 @@ struct CaseVal
 
     /* Sort function for qsort() */
     @trusted
-    extern (C) static nothrow int cmp(scope const(void*) p, scope const(void*) q)
+    extern (C) static nothrow pure @nogc int cmp(scope const(void*) p, scope const(void*) q)
     {
         const(CaseVal)* c1 = cast(const(CaseVal)*)p;
         const(CaseVal)* c2 = cast(const(CaseVal)*)q;
@@ -1552,21 +1549,22 @@ private void cmpval(ref CodeBuilder cdb, targ_llong val, uint sz, reg_t reg, reg
     }
 }
 
-@trusted
-private void ifthen(ref CodeBuilder cdb, CaseVal *casevals, size_t ncases,
+@trusted extern (D)
+private void ifthen(ref CodeBuilder cdb, scope CaseVal[] casevals,
         uint sz, reg_t reg, reg_t reg2, reg_t sreg, block *bdefault, bool last)
 {
+    const ncases = casevals.length;
     if (ncases >= 4 && config.flags4 & CFG4speed)
     {
         size_t pivot = ncases >> 1;
 
         // Compares for casevals[0..pivot]
         CodeBuilder cdb1; cdb1.ctor();
-        ifthen(cdb1, casevals, pivot, sz, reg, reg2, sreg, bdefault, true);
+        ifthen(cdb1, casevals[0 .. pivot], sz, reg, reg2, sreg, bdefault, true);
 
         // Compares for casevals[pivot+1..ncases]
         CodeBuilder cdb2; cdb2.ctor();
-        ifthen(cdb2, casevals + pivot + 1, ncases - pivot - 1, sz, reg, reg2, sreg, bdefault, last);
+        ifthen(cdb2, casevals[pivot + 1 .. $], sz, reg, reg2, sreg, bdefault, last);
         code *c2 = gennop(null);
 
         // Compare for caseval[pivot]
@@ -1581,7 +1579,7 @@ private void ifthen(ref CodeBuilder cdb, CaseVal *casevals, size_t ncases,
     }
     else
     {   // Not worth doing a binary search, just do a sequence of CMP/JE
-        for (size_t n = 0; n < ncases; n++)
+        foreach (size_t n; 0 .. ncases)
         {
             targ_llong val = casevals[n].val;
             cmpval(cdb, val, sz, reg, reg2, sreg);
@@ -1618,7 +1616,7 @@ void doswitch(ref CodeBuilder cdb, block *b)
     //printf("doswitch(%d)\n", b.BC);
     elem *e = b.Belem;
     elem_debug(e);
-    docommas(cdb,&e);
+    docommas(cdb,e);
     cgstate.stackclean++;
     tym_t tys = tybasic(e.Ety);
     int sz = _tysize[tys];
@@ -1658,6 +1656,8 @@ void doswitch(ref CodeBuilder cdb, block *b)
         goto Lifthen;
     else if (I16 && cast(targ_ullong)(vmax - vmin) <= ncases * 2)
         goto Ljmptab;           // >=50% of the table is case values, rest is default
+    else if (config.flags3 & CFG3ibt)
+        goto Lifthen;           // no jump table for ENDBR
     else if (cast(targ_ullong)(vmax - vmin) <= ncases * 3)
         goto Ljmptab;           // >= 33% of the table is case values, rest is default
     else if (I16)
@@ -1693,9 +1693,12 @@ void doswitch(ref CodeBuilder cdb, block *b)
         reg_t sreg = NOREG;                          // may need a scratch register
 
         // Put into casevals[0..ncases] so we can sort then slice
-        assert(ncases < size_t.max / (2 * CaseVal.sizeof));
-        CaseVal *casevals = cast(CaseVal *)malloc(ncases * CaseVal.sizeof);
-        assert(casevals);
+
+        import dmd.common.string : SmallBuffer;
+        CaseVal[10] tmp = void;
+        auto sb = SmallBuffer!(CaseVal)(ncases, tmp[]);
+        CaseVal[] casevals = sb[];
+
         foreach (n, val; b.Bswitch)
         {
             casevals[n].val = val;
@@ -1710,15 +1713,13 @@ void doswitch(ref CodeBuilder cdb, block *b)
         }
 
         // Sort cases so we can do a runtime binary search
-        qsort(casevals, ncases, CaseVal.sizeof, &CaseVal.cmp);
+        qsort(casevals.ptr, casevals.length, CaseVal.sizeof, &CaseVal.cmp);
 
         //for (uint n = 0; n < ncases; n++)
             //printf("casevals[%lld] = x%x\n", n, casevals[n].val);
 
         // Generate binary tree of comparisons
-        ifthen(cdb, casevals, ncases, sz, reg, reg2, sreg, bdefault, bdefault != b.Bnext);
-
-        free(casevals);
+        ifthen(cdb, casevals, sz, reg, reg2, sreg, bdefault, bdefault != b.Bnext);
 
         cgstate.stackclean--;
         return;
@@ -2123,27 +2124,15 @@ void outjmptab(block *b)
                 objmod.reftocodeseg(jmpseg,*poffset,targ);
             *poffset += 4;
         }
-        else if (config.exe & (EX_OSX | EX_OSX64))
+        else if (config.exe & (EX_OSX | EX_OSX64) || I64)
         {
-            targ_size_t val;
-            if (I64)
-                val = targ - b.Btableoffset;
-            else
-                val = targ - b.Btablebase;
-            objmod.write_bytes(SegData[jmpseg],4,&val);
+            const val = cast(uint)(targ - (I64 ? b.Btableoffset : b.Btablebase));
+            objmod.write_bytes(SegData[jmpseg],(&val)[0 .. 1]);
         }
         else
         {
-            if (I64)
-            {
-                targ_size_t val = targ - b.Btableoffset;
-                objmod.write_bytes(SegData[jmpseg],4,&val);
-            }
-            else
-            {
-                objmod.reftocodeseg(jmpseg,*poffset,targ);
-                *poffset += tysize(TYnptr);
-            }
+            objmod.reftocodeseg(jmpseg,*poffset,targ);
+            *poffset += tysize(TYnptr);
         }
 
         if (u == vmax)                  // for case that (vmax == ~0)
@@ -2176,7 +2165,7 @@ void outswitab(block *b)
     foreach (val; b.Bswitch)          // send out value table
     {
         //printf("\tcase %d, offset = x%x\n", n, *poffset);
-        objmod.write_bytes(SegData[seg],sz,&val);
+        objmod.write_bytes(SegData[seg],(cast(void*)&val)[0 .. sz]);
     }
     offset += alignbytes + sz * ncases;
     assert(*poffset == offset);
@@ -2187,7 +2176,7 @@ void outswitab(block *b)
         foreach (val; b.Bswitch)
         {
             auto msval = cast(targ_size_t)MSREG(val);
-            objmod.write_bytes(SegData[seg],REGSIZE,&msval);
+            objmod.write_bytes(SegData[seg],(cast(void*)&msval)[0 .. REGSIZE]);
         }
         offset += REGSIZE * ncases;
         assert(*poffset == offset);
@@ -2577,7 +2566,7 @@ bool cse_simple(code *c, elem *e)
         sz == REGSIZE &&
         e.EV.E2.Eoper == OPconst &&
         e.EV.E1.Eoper == OPvar &&
-        isregvar(e.EV.E1,&regm,&reg) &&
+        isregvar(e.EV.E1,regm,reg) &&
         !(e.EV.E1.EV.Vsym.Sflags & SFLspill)
        )
     {
@@ -2596,7 +2585,7 @@ bool cse_simple(code *c, elem *e)
     else if (e.Eoper == OPind &&
         sz <= REGSIZE &&
         e.EV.E1.Eoper == OPvar &&
-        isregvar(e.EV.E1,&regm,&reg) &&
+        isregvar(e.EV.E1,regm,reg) &&
         (I32 || I64 || regm & IDXREGS) &&
         !(e.EV.E1.EV.Vsym.Sflags & SFLspill)
        )
@@ -4729,6 +4718,9 @@ void cod3_thunk(Symbol *sthunk,Symbol *sfunc,uint p,tym_t thisty,
             MOV EAX, d2[EAX]                    EAX = this.vptr
             JMP i[EAX]                          jump to virtual function
          */
+        if (config.flags3 & CFG3ibt)
+            cdb.gen1(I32 ? ENDBR32 : ENDBR64);
+
         reg_t reg = 0;
         if (cast(int)d < 0)
         {
@@ -4873,7 +4865,6 @@ void cod3_thunk(Symbol *sthunk,Symbol *sfunc,uint p,tym_t thisty,
     {
         objmod.pubdef(seg,sthunk,sthunk.Soffset);
     }
-    searchfixlist(sthunk);              // resolve forward refs
 }
 
 /*****************************
@@ -5605,7 +5596,7 @@ targ_size_t cod3_bpoffset(Symbol *s)
             break;
 
         default:
-            WRFL(cast(FL)s.Sfl);
+            WRFL(s.Sfl);
             symbol_print(s);
             assert(0);
     }
@@ -6174,7 +6165,7 @@ void pinholeopt(code *c,block *b)
                             break;
 
                         default:
-                            WRFL(cast(FL)c.IFL2);
+                            WRFL(c.IFL2);
                             assert(0);
                     }
                     break;
@@ -6308,7 +6299,7 @@ void simplify_code(code* c)
     if (config.flags4 & CFG4optimized &&
         (c.Iop == 0x81 || c.Iop == 0x80) &&
         c.IFL2 == FLconst &&
-        reghasvalue((c.Iop == 0x80) ? BYTEREGS : ALLREGS,I64 ? c.IEV2.Vsize_t : c.IEV2.Vlong,&reg) &&
+        reghasvalue((c.Iop == 0x80) ? BYTEREGS : ALLREGS,I64 ? c.IEV2.Vsize_t : c.IEV2.Vlong,reg) &&
         !(I16 && c.Iflags & CFopsize)
        )
     {
@@ -6903,7 +6894,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
                 ggen.flush();
                 if (c.Iflags == CFaddrsize)    // kludge for DA inline asm
                 {
-                    do32bit(&ggen, FLblockoff,&c.IEV1,0,0);
+                    do32bit(ggen, FLblockoff,c.IEV1,0,0);
                 }
                 else
                 {
@@ -7067,7 +7058,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
                 switch (rm & 0xC0)
                 {
                     case 0x40:
-                        do8bit(&ggen, cast(FL) c.IFL1,&c.IEV1);     // 8 bit
+                        do8bit(ggen, cast(FL) c.IFL1,c.IEV1);     // 8 bit
                         break;
 
                     case 0:
@@ -7104,7 +7095,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
                                     val += 4;
                             }
                         }
-                        do32bit(&ggen, cast(FL)c.IFL1,&c.IEV1,cfflags,cast(int)val);
+                        do32bit(ggen, cast(FL)c.IFL1,c.IEV1,cfflags,cast(int)val);
                         break;
                     }
 
@@ -7116,7 +7107,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
             {
                 switch (rm & 0xC0)
                 {   case 0x40:
-                        do8bit(&ggen, cast(FL) c.IFL1,&c.IEV1);     // 8 bit
+                        do8bit(ggen, cast(FL) c.IFL1,c.IEV1);     // 8 bit
                         break;
 
                     case 0:
@@ -7125,7 +7116,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
                         goto case 0x80;
 
                     case 0x80:
-                        do16bit(&ggen, cast(FL)c.IFL1,&c.IEV1,CFoff);
+                        do16bit(ggen, cast(FL)c.IFL1,c.IEV1,CFoff);
                         break;
 
                     default:
@@ -7136,13 +7127,13 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
         else
         {
             if (op == ENTER)
-                do16bit(&ggen, cast(FL)c.IFL1,&c.IEV1,0);
+                do16bit(ggen, cast(FL)c.IFL1,c.IEV1,0);
         }
         flags &= CFseg | CFoff | CFselfrel;
         if (ins & T)                    /* if second operand            */
         {
             if (ins & E)            /* if data-8                    */
-                do8bit(&ggen, cast(FL) c.IFL2,&c.IEV2);
+                do8bit(ggen, cast(FL) c.IFL2,c.IEV2);
             else if (!I16)
             {
                 switch (op)
@@ -7150,7 +7141,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
                     case 0xC2:              /* RETN imm16           */
                     case 0xCA:              /* RETF imm16           */
                     do16:
-                        do16bit(&ggen, cast(FL)c.IFL2,&c.IEV2,flags);
+                        do16bit(ggen, cast(FL)c.IFL2,c.IEV2,flags);
                         break;
 
                     case 0xA1:
@@ -7158,7 +7149,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
                         if (I64 && c.Irex)
                         {
                     do64:
-                            do64bit(&ggen, cast(FL)c.IFL2,&c.IEV2,flags);
+                            do64bit(ggen, cast(FL)c.IFL2,c.IEV2,flags);
                             break;
                         }
                         goto case 0xA0;
@@ -7169,7 +7160,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
                             goto do16;
                         else
                     do32:
-                            do32bit(&ggen, cast(FL)c.IFL2,&c.IEV2,flags,0);
+                            do32bit(ggen, cast(FL)c.IFL2,c.IEV2,flags,0);
                         break;
 
                     case 0x9A:
@@ -7180,7 +7171,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
                             goto ptr1632;
 
                     case 0x68:              // PUSH immed32
-                        if (cast(FL)c.IFL2 == FLblock)
+                        if (c.IFL2 == FLblock)
                         {
                             c.IFL2 = FLblockoff;
                             goto do32;
@@ -7247,7 +7238,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
                         break;
 
                     case 0x68:              // PUSH immed16
-                        if (cast(FL)c.IFL2 == FLblock)
+                        if (c.IFL2 == FLblock)
                         {   c.IFL2 = FLblockoff;
                             goto do16;
                         }
@@ -7271,16 +7262,16 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
         else if (op == 0xF6)            /* TEST mem8,immed8             */
         {
             if ((rm & (7<<3)) == 0)
-                do8bit(&ggen, cast(FL)c.IFL2,&c.IEV2);
+                do8bit(ggen, cast(FL)c.IFL2,c.IEV2);
         }
         else if (op == 0xF7)
         {
             if ((rm & (7<<3)) == 0)     /* TEST mem16/32,immed16/32     */
             {
                 if ((I32 || I64) ^ ((c.Iflags & CFopsize) != 0))
-                    do32bit(&ggen, cast(FL)c.IFL2,&c.IEV2,flags,0);
+                    do32bit(ggen, cast(FL)c.IFL2,c.IEV2,flags,0);
                 else
-                    do16bit(&ggen, cast(FL)c.IFL2,&c.IEV2,flags);
+                    do16bit(ggen, cast(FL)c.IFL2,c.IEV2,flags);
             }
         }
 
@@ -7300,7 +7291,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
 
 
 @trusted
-private void do64bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags)
+private void do64bit(ref MiniCodeBuf pbuf, FL fl, ref evc uev,int flags)
 {
     char *p;
     Symbol *s;
@@ -7310,7 +7301,7 @@ private void do64bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags)
     switch (fl)
     {
         case FLconst:
-            ad = *cast(targ_size_t *) uev;
+            ad = *cast(targ_size_t *) &uev;
         L1:
             pbuf.genp(8,&ad);
             return;
@@ -7414,7 +7405,7 @@ private void do64bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags)
 
 
 @trusted
-private void do32bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags, int val)
+private void do32bit(ref MiniCodeBuf pbuf, FL fl, ref evc uev,int flags, int val)
 {
     char *p;
     Symbol *s;
@@ -7425,7 +7416,7 @@ private void do32bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags, int val)
     {
         case FLconst:
             assert(targ_size_t.sizeof == 4 || targ_size_t.sizeof == 8);
-            ad = * cast(targ_size_t *) uev;
+            ad = * cast(targ_size_t *) &uev;
         L1:
             pbuf.genp(4,&ad);
             return;
@@ -7480,7 +7471,7 @@ private void do32bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags, int val)
         case FLcode:
             //assert(JMPJMPTABLE);            // the only use case
             pbuf.flush();
-            ad = *cast(targ_size_t *) uev + pbuf.getOffset();
+            ad = *cast(targ_size_t *) &uev + pbuf.getOffset();
             objmod.reftocodeseg(pbuf.seg,pbuf.offset,ad);
             pbuf.write32(cast(uint)ad);
             break;
@@ -7594,7 +7585,7 @@ private void do32bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags, int val)
 
 
 @trusted
-private void do16bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags)
+private void do16bit(ref MiniCodeBuf pbuf, FL fl, ref evc uev,int flags)
 {
     char *p;
     Symbol *s;
@@ -7603,7 +7594,7 @@ private void do16bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags)
     switch (fl)
     {
         case FLconst:
-            pbuf.genp(2,cast(char *) uev);
+            pbuf.genp(2,cast(char *) &uev);
             return;
 
         case FLdatseg:
@@ -7682,19 +7673,18 @@ private void do16bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags)
 
 
 @trusted
-private void do8bit(MiniCodeBuf *pbuf, FL fl, evc *uev)
+private void do8bit(ref MiniCodeBuf pbuf, FL fl, ref evc uev)
 {
-    char c;
-    targ_ptrdiff_t delta;
+    ubyte c;
 
     switch (fl)
     {
         case FLconst:
-            c = cast(char)uev.Vuns;
+            c = cast(ubyte)uev.Vuns;
             break;
 
         case FLblock:
-            delta = uev.Vblock.Boffset - pbuf.getOffset() - 1;
+            targ_ptrdiff_t delta = uev.Vblock.Boffset - pbuf.getOffset() - 1;
             if (cast(byte)delta != delta)
             {
                 if (uev.Vblock.Bsrcpos.Slinnum)
@@ -7702,7 +7692,7 @@ private void do8bit(MiniCodeBuf *pbuf, FL fl, evc *uev)
                 printf("block displacement of %lld exceeds the maximum offset of -128 to 127.\n", cast(long)delta);
                 err_exit();
             }
-            c = cast(char)delta;
+            c = cast(ubyte)delta;
             debug assert(uev.Vblock.Boffset > pbuf.getOffset() || c != 0x7F);
             break;
 
@@ -7841,14 +7831,14 @@ extern (C) void code_print(scope code* c)
                 case FLtlsdata:
                 case FLextern:
                     printf(" ");
-                    WRFL(cast(FL)c.IFL1);
+                    WRFL(c.IFL1);
                     printf(" sym='%s'",c.IEV1.Vsym.Sident.ptr);
                     if (c.IEV1.Voffset)
                         printf(".%d", cast(int)c.IEV1.Voffset);
                     break;
 
                 default:
-                    WRFL(cast(FL)c.IFL1);
+                    WRFL(c.IFL1);
                     break;
             }
         }
@@ -7856,7 +7846,7 @@ extern (C) void code_print(scope code* c)
     if (ins & T)
     {
         printf(" ");
-        WRFL(cast(FL)c.IFL2);
+        WRFL(c.IFL2);
         switch (c.IFL2)
         {
             case FLconst:
@@ -7895,7 +7885,7 @@ extern (C) void code_print(scope code* c)
                 break;
 
             default:
-                WRFL(cast(FL)c.IFL2);
+                WRFL(c.IFL2);
                 break;
         }
     }

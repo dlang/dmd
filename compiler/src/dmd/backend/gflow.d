@@ -62,7 +62,6 @@ void *util_realloc(void* p, size_t n, size_t size)
     return q;
 }
 
-extern (C++):
 
 
 /* Since many routines are nearly identical, we can combine them with   */
@@ -201,7 +200,7 @@ private void rdgenkill()
         vec_free(b.Boutrd);
 
         /* calculate and create new vectors */
-        rdelem(b.Bgen, b.Bkill, b.Belem);
+        rdelem(b.Bgen, b.Bkill, b.Belem, deftop);
         if (b.BC == BCasm)
         {
             vec_clear(b.Bkill);        // KILL nothing
@@ -256,7 +255,6 @@ private uint numdefelems(const(elem)* e, ref uint num_unambig_def)
  */
 
 @trusted
-extern (D)
 private void asgdefelems(block *b,elem *n, DefNode[] defnod, ref size_t i)
 {
     assert(b && n);
@@ -299,7 +297,6 @@ private void asgdefelems(block *b,elem *n, DefNode[] defnod, ref size_t i)
  */
 
 @trusted
-extern (D)
 private void initDNunambigVectors(DefNode[] defnod)
 {
     //printf("initDNunambigVectors()\n");
@@ -351,7 +348,6 @@ private void initDNunambigVectors(DefNode[] defnod)
  */
 
 @trusted
-extern (D)
 private void fillInDNunambig(vec_t v, elem *e, size_t start, DefNode[] defnod)
 {
     assert(OTassign(e.Eoper));
@@ -400,16 +396,16 @@ private void fillInDNunambig(vec_t v, elem *e, size_t start, DefNode[] defnod)
  *      GEN = gen vector to create
  *      KILL = kill vector to create
  *      n = elem tree to evaluate for GEN and KILL
+ *      deftop = number of bits in vectors
  */
 
 @trusted
-private void rdelem(out vec_t GEN, out vec_t KILL,
-        elem *n)
+private void rdelem(out vec_t GEN, out vec_t KILL, elem *n, uint deftop)
 {
-    GEN = vec_calloc(go.defnod.length);
-    KILL = vec_calloc(go.defnod.length);
+    GEN  = vec_calloc(deftop);
+    KILL = vec_calloc(deftop);
     if (n)
-        accumrd(GEN, KILL, n);
+        accumrd(GEN, KILL, n, deftop);
 }
 
 /**************************************
@@ -417,19 +413,19 @@ private void rdelem(out vec_t GEN, out vec_t KILL,
  */
 
 @trusted
-private void accumrd(vec_t GEN,vec_t KILL,elem *n)
+private void accumrd(vec_t GEN,vec_t KILL,elem *n,uint deftop)
 {
     assert(GEN && KILL && n);
     const op = n.Eoper;
     if (OTunary(op))
-        accumrd(GEN,KILL,n.EV.E1);
+        accumrd(GEN,KILL,n.EV.E1,deftop);
     else if (OTbinary(op))
     {
         if (op == OPcolon || op == OPcolon2)
         {
             vec_t Gl,Kl,Gr,Kr;
-            rdelem(Gl, Kl, n.EV.E1);
-            rdelem(Gr, Kr, n.EV.E2);
+            rdelem(Gl, Kl, n.EV.E1, deftop);
+            rdelem(Gr, Kr, n.EV.E2, deftop);
 
             switch (el_returns(n.EV.E1) * 2 | int(el_returns(n.EV.E2)))
             {
@@ -481,9 +477,9 @@ private void accumrd(vec_t GEN,vec_t KILL,elem *n)
         }
         else if (op == OPandand || op == OPoror)
         {
-            accumrd(GEN,KILL,n.EV.E1);
+            accumrd(GEN,KILL,n.EV.E1,deftop);
             vec_t Gr,Kr;
-            rdelem(Gr, Kr, n.EV.E2);
+            rdelem(Gr, Kr, n.EV.E2, deftop);
             if (el_returns(n.EV.E2))
                 vec_orass(GEN,Gr);      // GEN |= Gr
 
@@ -492,13 +488,13 @@ private void accumrd(vec_t GEN,vec_t KILL,elem *n)
         }
         else if (OTrtol(op) && ERTOL(n))
         {
-            accumrd(GEN,KILL,n.EV.E2);
-            accumrd(GEN,KILL,n.EV.E1);
+            accumrd(GEN,KILL,n.EV.E2,deftop);
+            accumrd(GEN,KILL,n.EV.E1,deftop);
         }
         else
         {
-            accumrd(GEN,KILL,n.EV.E1);
-            accumrd(GEN,KILL,n.EV.E2);
+            accumrd(GEN,KILL,n.EV.E1,deftop);
+            accumrd(GEN,KILL,n.EV.E2,deftop);
         }
     }
 
@@ -1054,13 +1050,14 @@ void genkillae()
  *      gen = GEN vector to create and compute
  *      kill = KILL vector to create and compute
  *      e = elem used to conpute GEN and KILL
+ *      exptop = number of elems in vectors
  */
 
 @trusted
-private void aecpelem(out vec_t gen, out vec_t kill, elem *n)
+private void aecpelem(out vec_t gen, out vec_t kill, elem *n, uint exptop)
 {
-    gen = vec_calloc(go.exptop);
-    kill = vec_calloc(go.exptop);
+    gen = vec_calloc(exptop);
+    kill = vec_calloc(exptop);
     if (n)
     {
         if (flowxx == VBE)
@@ -1120,8 +1117,8 @@ private void accumaecpx(elem *n)
         case OPcolon2:
         {   vec_t Gl,Kl,Gr,Kr;
 
-            aecpelem(Gl,Kl, n.EV.E1);
-            aecpelem(Gr,Kr, n.EV.E2);
+            aecpelem(Gl,Kl, n.EV.E1, go.exptop);
+            aecpelem(Gr,Kr, n.EV.E2, go.exptop);
 
             /* KILL |= Kl | Kr           */
             /* GEN =((GEN - Kl) | Gl) &  */
@@ -1148,7 +1145,7 @@ private void accumaecpx(elem *n)
         {   vec_t Gr,Kr;
 
             accumaecpx(n.EV.E1);
-            aecpelem(Gr,Kr, n.EV.E2);
+            aecpelem(Gr,Kr, n.EV.E2, go.exptop);
 
             if (el_returns(n.EV.E2))
             {
@@ -1433,18 +1430,20 @@ private void lvgenkill()
 {
     /* Compute ambigsym, a vector of all variables that could be    */
     /* referenced by a *e or a call.                                */
-    vec_t ambigsym = vec_calloc(globsym.length);
-    foreach (i; 0 .. globsym.length)
-        if (!(globsym[i].Sflags & SFLunambig))
+    Symbol*[] gsym = globsym[];
+    const length = gsym.length;
+    vec_t ambigsym = vec_calloc(length);
+    foreach (i; 0 .. length)
+        if (!(gsym[i].Sflags & SFLunambig))
             vec_setbit(i,ambigsym);
 
     static if (0)
     {
         printf("ambigsym\n");
-        foreach (i; 0 .. globsym.length)
+        foreach (i; 0 .. length)
         {
             if (vec_testbit(i, ambigsym))
-                printf(" [%d] %s\n", i, globsym[i].Sident.ptr);
+                printf(" [%d] %s\n", i, gsym[i].Sident.ptr);
         }
     }
 
@@ -1452,7 +1451,7 @@ private void lvgenkill()
     {
         vec_free(b.Bgen);
         vec_free(b.Bkill);
-        lvelem(b.Bgen,b.Bkill, b.Belem, ambigsym);
+        lvelem(b.Bgen,b.Bkill, b.Belem, ambigsym, length);
         if (b.BC == BCasm)
         {
             vec_set(b.Bgen);
@@ -1461,8 +1460,8 @@ private void lvgenkill()
 
         vec_free(b.Binlv);
         vec_free(b.Boutlv);
-        b.Binlv = vec_calloc(globsym.length);
-        b.Boutlv = vec_calloc(globsym.length);
+        b.Binlv = vec_calloc(length);
+        b.Boutlv = vec_calloc(length);
     }
 
     vec_free(ambigsym);
@@ -1475,14 +1474,15 @@ private void lvgenkill()
  *      kill = create and fill in
  *      e = elem used to fill in gen and kill
  *      ambigsym = vector of symbols with ambiguous references
+ *      length = number of global symbols
  */
 
 @trusted
-private void lvelem(out vec_t gen, out vec_t kill, const elem* n, const vec_t ambigsym)
+private void lvelem(out vec_t gen, out vec_t kill, const elem* n, const vec_t ambigsym, size_t length)
 {
-    gen = vec_calloc(globsym.length);
-    kill = vec_calloc(globsym.length);
-    if (n && globsym.length)
+    gen = vec_calloc(length);
+    kill = vec_calloc(length);
+    if (n && length)
         accumlv(gen, kill, n, ambigsym);
 }
 
@@ -1516,8 +1516,8 @@ private void accumlv(vec_t GEN, vec_t KILL, const(elem)* n, const vec_t ambigsym
             case OPcolon2:
             {
                 vec_t Gl,Kl,Gr,Kr;
-                lvelem(Gl,Kl, n.EV.E1,ambigsym);
-                lvelem(Gr,Kr, n.EV.E2,ambigsym);
+                lvelem(Gl,Kl, n.EV.E1,ambigsym, globsym.length);
+                lvelem(Gr,Kr, n.EV.E2,ambigsym, globsym.length);
 
                 /* GEN |= (Gl | Gr) - KILL      */
                 /* KILL |= (Kl & Kr) - GEN      */
@@ -1541,7 +1541,7 @@ private void accumlv(vec_t GEN, vec_t KILL, const(elem)* n, const vec_t ambigsym
             {
                 vec_t Gr,Kr;
                 accumlv(GEN,KILL,n.EV.E1,ambigsym);
-                lvelem(Gr,Kr, n.EV.E2,ambigsym);
+                lvelem(Gr,Kr, n.EV.E2,ambigsym, globsym.length);
 
                 /* GEN |= Gr - KILL     */
                 /* KILL |= 0            */
@@ -1767,8 +1767,8 @@ private void accumvbe(vec_t GEN,vec_t KILL,elem *n)
         {
             vec_t Gl,Gr,Kl,Kr;
 
-            aecpelem(Gl,Kl, n.EV.E1);
-            aecpelem(Gr,Kr, n.EV.E2);
+            aecpelem(Gl,Kl, n.EV.E1, go.exptop);
+            aecpelem(Gr,Kr, n.EV.E2, go.exptop);
 
             /* GEN |=((Gr - Kl) | (Gl - Kr)) - KILL */
             vec_subass(Gr,Kl);

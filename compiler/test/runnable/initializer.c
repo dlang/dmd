@@ -830,6 +830,20 @@ void test47()
 
 /*******************************************/
 
+// https://issues.dlang.org/show_bug.cgi?id=24154
+
+void test24154()
+{
+    int x = ({
+	int ret;
+	ret = 3;
+	ret;
+    });
+    assert(x == 3, __LINE__);
+}
+
+/*******************************************/
+
 int main()
 {
     test1();
@@ -878,6 +892,7 @@ int main()
     test46();
     test22925();
     test47();
+    test24154();
 
     return 0;
 }

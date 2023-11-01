@@ -37,14 +37,11 @@ import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.xmm;
 
-extern (C++):
 
 import dmd.backend.cg : segfl, stackfl;
 
 nothrow:
 @safe:
-
-private extern (D) uint mask(uint m) { return 1 << m; }
 
 private void genorreg(ref CodeBuilder c, uint t, uint f) { genregs(c, 0x09, f, t); }
 
@@ -480,7 +477,7 @@ void logexp(ref CodeBuilder cdb, elem *e, int jcond, uint fltarg, code *targ)
     }
 
     int no87 = (jcond & 2) == 0;
-    docommas(cdb, &e);             // scan down commas
+    docommas(cdb, e);             // scan down commas
     cgstate.stackclean++;
 
     code* c, ce;
@@ -505,7 +502,7 @@ void logexp(ref CodeBuilder cdb, elem *e, int jcond, uint fltarg, code *targ)
                     logexp(cdb, e.EV.E2, jcond, fltarg, targ);
                     cdb.append(cnop);
                 }
-                andregcon(&regconsave);
+                andregcon(regconsave);
                 freenode(e);
                 cgstate.stackclean--;
                 return;
@@ -528,7 +525,7 @@ void logexp(ref CodeBuilder cdb, elem *e, int jcond, uint fltarg, code *targ)
                     regconsave = regcon;
                     logexp(cdb, e.EV.E2, jcond, fltarg, targ);
                 }
-                andregcon(&regconsave);
+                andregcon(regconsave);
                 freenode(e);
                 cgstate.stackclean--;
                 return;
@@ -566,8 +563,8 @@ void logexp(ref CodeBuilder cdb, elem *e, int jcond, uint fltarg, code *targ)
 
                 cdb.append(cnop2);
                 logexp(cdb, e.EV.E2.EV.E2, jcond, fltarg, targ);
-                andregcon(&regconold);
-                andregcon(&regconsave);
+                andregcon(regconold);
+                andregcon(regconsave);
                 freenode(e.EV.E2);
                 freenode(e);
                 cdb.append(cnop);
@@ -866,7 +863,8 @@ void getlvalue_lsw(code *c)
 @trusted
 void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
 {
-    uint fl, f, opsave;
+    FL fl;
+    uint f, opsave;
     elem* e1, e11, e12;
     bool e1isadd, e1free;
     reg_t reg;
@@ -1404,7 +1402,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                             if (preg != NOREG && regcon.params & mask(preg))
                             {
                                 //printf("sz %d, preg %s, Voffset %d\n", cast(int)sz, regm_str(mask(preg)), cast(int)voffset);
-                                if (mask(preg) & XMMREGS && sz != REGSIZE)
+                                if (mask(preg) & XMMREGS)
                                 {
                                     /* The following fails with this from std.math on Linux64:
                                         void main()
@@ -1658,7 +1656,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
             break;
 
         default:
-            WRFL(cast(FL)fl);
+            WRFL(fl);
             symbol_print(s);
             assert(0);
     }
@@ -2830,7 +2828,7 @@ void callclib(ref CodeBuilder cdb, elem* e, uint clib, regm_t* pretregs, regm_t 
             0x66,0x0f,0xa4,0xc2,0x10,   // shld EDX,EAX,16      ;DX,AX = EAX
         ];
 
-        cdb.genasm(cast(char*)lmul.ptr, lmul.sizeof);
+        cdb.genasm(lmul[]);
     }
     else
     {
@@ -3875,7 +3873,7 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
         }
         else
         {
-            int fl = FLfunc;
+            FL fl = FLfunc;
             if (!tyfunc(s.ty()))
                 fl = el_fl(e1);
             if (tym1 == TYifunc)
@@ -3915,7 +3913,7 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
         // Function calls may throw Errors
         funcsym_p.Sfunc.Fflags3 &= ~Fnothrow;
 
-        if (e1.Eoper != OPind) { WRFL(cast(FL)el_fl(e1)); printf("e1.Eoper: %s\n", oper_str(e1.Eoper)); }
+        if (e1.Eoper != OPind) { WRFL(el_fl(e1)); printf("e1.Eoper: %s\n", oper_str(e1.Eoper)); }
         save87(cdb);                   // assume 8087 regs are all trashed
         assert(e1.Eoper == OPind);
         elem *e11 = e1.EV.E1;
@@ -4287,7 +4285,7 @@ private void movParams(ref CodeBuilder cdb, elem* e, uint stackalign, uint funca
                 {   int regsize = REGSIZE;
                     regm_t retregs = (sz == 1) ? BYTEREGS : allregs;
                     reg_t reg;
-                    if (reghasvalue(retregs,*p,&reg))
+                    if (reghasvalue(retregs,*p,reg))
                     {
                         cs.Iop = (cs.Iop & 1) | 0x88;
                         cs.Irm |= modregrm(0, reg & 7, 0); // MOV EA,reg
@@ -4431,7 +4429,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
             elem* e1 = e.EV.E1;
             if (sz == 0)
             {
-                docommas(cdb, &e1); // skip over any commas
+                docommas(cdb, e1); // skip over any commas
 
                 const stackpushsave = stackpush;
                 const stackcleansave = cgstate.stackclean;
@@ -4453,7 +4451,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                 e = e1;
                 goto L1;
             }
-            docommas(cdb,&e1);             // skip over any commas
+            docommas(cdb, e1);             // skip over any commas
             code_flags_t seg = 0;          // assume no seg override
             regm_t retregs = sz ? IDXREGS : 0;
             bool doneoff = false;
@@ -4839,7 +4837,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                 for (int i = 0; i < 3; ++i)
                 {
                     reg_t reg;
-                    if (reghasvalue(allregs, value, &reg))
+                    if (reghasvalue(allregs, value, reg))
                         cdb.gen1(0x50 + reg);           // PUSH reg
                     else
                         cdb.genc2(0x68,0,value);        // PUSH value
@@ -4910,16 +4908,16 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                 {
                     if (I64 && regsize == 8 && value != cast(int)value)
                     {
-                        regwithvalue(cdb,allregs,value,&reg,64);
+                        regwithvalue(cdb,allregs,value,reg,64);
                         goto Preg;          // cannot push imm64 unless it is sign extended 32 bit value
                     }
-                    if (regsize == REGSIZE && reghasvalue(allregs,value,&reg))
+                    if (regsize == REGSIZE && reghasvalue(allregs,value,reg))
                         goto Preg;
                     cdb.genc2((szb == 1) ? 0x6A : 0x68, 0, value); // PUSH value
                 }
                 else
                 {
-                    regwithvalue(cdb, allregs, value, &reg, 0);
+                    regwithvalue(cdb, allregs, value, reg, 0);
                 Preg:
                     genpush(cdb,reg);         // PUSH reg
                 }
@@ -5313,7 +5311,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
         if (sz == 8)
             value = cast(targ_size_t)e.EV.Vullong;
 
-        if (sz == REGSIZE && reghasvalue(forregs, value, &reg))
+        if (sz == REGSIZE && reghasvalue(forregs, value, reg))
             forregs = mask(reg);
 
         regm_t save = regcon.immed.mval;

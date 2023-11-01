@@ -35,8 +35,6 @@ public:
 
     DYNCAST dyncast() const override { return DYNCAST_INITIALIZER; }
 
-    const char *toChars() const override final;
-
     ErrorInitializer   *isErrorInitializer();
     VoidInitializer    *isVoidInitializer();
     StructInitializer  *isStructInitializer();
@@ -81,7 +79,6 @@ public:
     d_bool isCarray;      // C array semantics
 
     bool isAssociativeArray() const;
-    Expression *toAssocArrayLiteral();
 
     void accept(Visitor *v) override { v->visit(this); }
 };

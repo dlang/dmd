@@ -29,7 +29,6 @@ nothrow:
 @nogc:
 @safe:
 
-extern (C++):
 
 /**********************************************
  * Free a data definition struct.
@@ -204,7 +203,6 @@ private:
 
 public:
 nothrow:
-@nogc:
     @trusted
     this(int dummy)
     {

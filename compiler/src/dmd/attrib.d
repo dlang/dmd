@@ -33,6 +33,7 @@ import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
 import dmd.dsymbolsem : dsymbolSemantic;
+import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
@@ -45,7 +46,6 @@ import dmd.mtype;
 import dmd.objc; // for objc.addSymbols
 import dmd.common.outbuffer;
 import dmd.root.array; // for each
-import dmd.tokens;
 import dmd.visitor;
 
 /***********************************************************
@@ -57,18 +57,18 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 {
     Dsymbols* decl;     /// Dsymbol's affected by this AttribDeclaration
 
-    extern (D) this(Dsymbols* decl)
+    extern (D) this(Dsymbols* decl) @safe
     {
         this.decl = decl;
     }
 
-    extern (D) this(const ref Loc loc, Dsymbols* decl)
+    extern (D) this(const ref Loc loc, Dsymbols* decl) @safe
     {
         super(loc, null);
         this.decl = decl;
     }
 
-    extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* decl)
+    extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* decl) @safe
     {
         super(loc, ident);
         this.decl = decl;
@@ -228,13 +228,13 @@ extern (C++) class StorageClassDeclaration : AttribDeclaration
 {
     StorageClass stc;
 
-    extern (D) this(StorageClass stc, Dsymbols* decl)
+    extern (D) this(StorageClass stc, Dsymbols* decl) @safe
     {
         super(decl);
         this.stc = stc;
     }
 
-    extern (D) this(const ref Loc loc, StorageClass stc, Dsymbols* decl)
+    extern (D) this(const ref Loc loc, StorageClass stc, Dsymbols* decl) @safe
     {
         super(loc, decl);
         this.stc = stc;
@@ -347,7 +347,7 @@ extern (C++) final class DeprecatedDeclaration : StorageClassDeclaration
     Expression msg;         /// deprecation message
     const(char)* msgstr;    /// cached string representation of msg
 
-    extern (D) this(Expression msg, Dsymbols* decl)
+    extern (D) this(Expression msg, Dsymbols* decl) @safe
     {
         super(STC.deprecated_, decl);
         this.msg = msg;
@@ -402,14 +402,14 @@ extern (C++) final class LinkDeclaration : AttribDeclaration
 {
     LINK linkage; /// either explicitly set or `default_`
 
-    extern (D) this(const ref Loc loc, LINK linkage, Dsymbols* decl)
+    extern (D) this(const ref Loc loc, LINK linkage, Dsymbols* decl) @safe
     {
         super(loc, null, decl);
         //printf("LinkDeclaration(linkage = %d, decl = %p)\n", linkage, decl);
         this.linkage = linkage;
     }
 
-    static LinkDeclaration create(const ref Loc loc, LINK p, Dsymbols* decl)
+    static LinkDeclaration create(const ref Loc loc, LINK p, Dsymbols* decl) @safe
     {
         return new LinkDeclaration(loc, p, decl);
     }
@@ -454,7 +454,7 @@ extern (C++) final class CPPMangleDeclaration : AttribDeclaration
 {
     CPPMANGLE cppmangle;
 
-    extern (D) this(const ref Loc loc, CPPMANGLE cppmangle, Dsymbols* decl)
+    extern (D) this(const ref Loc loc, CPPMANGLE cppmangle, Dsymbols* decl) @safe
     {
         super(loc, null, decl);
         //printf("CPPMangleDeclaration(cppmangle = %d, decl = %p)\n", cppmangle, decl);
@@ -524,19 +524,19 @@ extern (C++) final class CPPNamespaceDeclaration : AttribDeclaration
     /// CTFE-able expression, resolving to `TupleExp` or `StringExp`
     Expression exp;
 
-    extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* decl)
+    extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* decl) @safe
     {
         super(loc, ident, decl);
     }
 
-    extern (D) this(const ref Loc loc, Expression exp, Dsymbols* decl)
+    extern (D) this(const ref Loc loc, Expression exp, Dsymbols* decl) @safe
     {
         super(loc, null, decl);
         this.exp = exp;
     }
 
     extern (D) this(const ref Loc loc, Identifier ident, Expression exp, Dsymbols* decl,
-                    CPPNamespaceDeclaration parent)
+                    CPPNamespaceDeclaration parent) @safe
     {
         super(loc, ident, decl);
         this.exp = exp;
@@ -597,7 +597,7 @@ extern (C++) final class VisibilityDeclaration : AttribDeclaration
      *  visibility = visibility attribute data
      *  decl = declarations which are affected by this visibility attribute
      */
-    extern (D) this(const ref Loc loc, Visibility visibility, Dsymbols* decl)
+    extern (D) this(const ref Loc loc, Visibility visibility, Dsymbols* decl) @safe
     {
         super(loc, null, decl);
         this.visibility = visibility;
@@ -665,7 +665,7 @@ extern (C++) final class VisibilityDeclaration : AttribDeclaration
             {
                 Package pkg = m.parent ? m.parent.isPackage() : null;
                 if (!pkg || !visibility.pkg.isAncestorPackageOf(pkg))
-                    error("does not bind to one of ancestor packages of module `%s`", m.toPrettyChars(true));
+                    .error(loc, "%s `%s` does not bind to one of ancestor packages of module `%s`", kind(), toPrettyChars(false), m.toPrettyChars(true));
             }
         }
         return AttribDeclaration.addMember(sc, sds);
@@ -680,7 +680,7 @@ extern (C++) final class VisibilityDeclaration : AttribDeclaration
     {
         assert(visibility.kind > Visibility.Kind.undefined);
         OutBuffer buf;
-        visibilityToBuffer(&buf, visibility);
+        visibilityToBuffer(buf, visibility);
         return buf.extractChars();
     }
 
@@ -720,13 +720,13 @@ extern (C++) final class AlignDeclaration : AttribDeclaration
         }
     }
 
-    extern (D) this(const ref Loc loc, Expressions* exps, Dsymbols* decl)
+    extern (D) this(const ref Loc loc, Expressions* exps, Dsymbols* decl) @safe
     {
         super(loc, null, decl);
         this.exps = exps;
     }
 
-    extern (D) this(const ref Loc loc, structalign_t salign, Dsymbols* decl)
+    extern (D) this(const ref Loc loc, structalign_t salign, Dsymbols* decl) @safe
     {
         super(loc, null, decl);
         this.salign = salign;
@@ -762,7 +762,7 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
     uint anonstructsize;    /// size of anonymous struct
     uint anonalignsize;     /// size of anonymous struct for alignment purposes
 
-    extern (D) this(const ref Loc loc, bool isunion, Dsymbols* decl)
+    extern (D) this(const ref Loc loc, bool isunion, Dsymbols* decl) @safe
     {
         super(loc, null, decl);
         this.isunion = isunion;
@@ -839,10 +839,10 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
             /* Given the anon 'member's size and alignment,
              * go ahead and place it.
              */
-            anonoffset = AggregateDeclaration.placeField(
-                &fieldState.offset,
+            anonoffset = placeField(
+                fieldState.offset,
                 anonstructsize, anonalignsize, alignment,
-                &ad.structsize, &ad.alignsize,
+                ad.structsize, ad.alignsize,
                 isunion);
 
             // Add to the anon fields the base offset of this anonymous aggregate
@@ -882,7 +882,7 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
 {
     Expressions* args;      /// parameters of this pragma
 
-    extern (D) this(const ref Loc loc, Identifier ident, Expressions* args, Dsymbols* decl)
+    extern (D) this(const ref Loc loc, Identifier ident, Expressions* args, Dsymbols* decl) @safe
     {
         super(loc, ident, decl);
         this.args = args;
@@ -928,7 +928,7 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
     Condition condition;    /// condition deciding whether decl or elsedecl applies
     Dsymbols* elsedecl;     /// array of Dsymbol's for else block
 
-    extern (D) this(const ref Loc loc, Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
+    extern (D) this(const ref Loc loc, Condition condition, Dsymbols* decl, Dsymbols* elsedecl) @safe
     {
         super(loc, null, decl);
         //printf("ConditionalDeclaration::ConditionalDeclaration()\n");
@@ -1006,7 +1006,7 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
     private bool addisdone = false; /// true if members have been added to scope
     private bool onStack = false;   /// true if a call to `include` is currently active
 
-    extern (D) this(const ref Loc loc, Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
+    extern (D) this(const ref Loc loc, Condition condition, Dsymbols* decl, Dsymbols* elsedecl) @safe
     {
         super(loc, condition, decl, elsedecl);
         //printf("StaticIfDeclaration::StaticIfDeclaration()\n");
@@ -1120,7 +1120,7 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
     bool cached = false;
     Dsymbols* cache = null;
 
-    extern (D) this(StaticForeach sfe, Dsymbols* decl)
+    extern (D) this(StaticForeach sfe, Dsymbols* decl) @safe
     {
         super(sfe.loc, null, decl);
         this.sfe = sfe;
@@ -1251,7 +1251,7 @@ extern(C++) final class ForwardingAttribDeclaration : AttribDeclaration
 {
     ForwardingScopeDsymbol sym = null;
 
-    this(Dsymbols* decl)
+    this(Dsymbols* decl) @safe
     {
         super(decl);
         sym = new ForwardingScopeDsymbol();
@@ -1299,7 +1299,7 @@ extern (C++) final class MixinDeclaration : AttribDeclaration
     ScopeDsymbol scopesym;
     bool compiled;
 
-    extern (D) this(const ref Loc loc, Expressions* exps)
+    extern (D) this(const ref Loc loc, Expressions* exps) @safe
     {
         super(loc, null, null);
         //printf("MixinDeclaration(loc = %d)\n", loc.linnum);
@@ -1348,7 +1348,7 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
 {
     Expressions* atts;
 
-    extern (D) this(Expressions* atts, Dsymbols* decl)
+    extern (D) this(Expressions* atts, Dsymbols* decl) @safe
     {
         super(decl);
         this.atts = atts;
@@ -1474,12 +1474,12 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
             {
                 if (sym.isCPPNamespaceDeclaration() || sym.isNspace())
                 {
-                    exp.error("`@%s` cannot be applied to namespaces", Id.udaGNUAbiTag.toChars());
+                    .error(exp.loc, "`@%s` cannot be applied to namespaces", Id.udaGNUAbiTag.toChars());
                     sym.errors = true;
                 }
                 else if (linkage != LINK.cpp)
                 {
-                    exp.error("`@%s` can only apply to C++ symbols", Id.udaGNUAbiTag.toChars());
+                    .error(exp.loc, "`@%s` can only apply to C++ symbols", Id.udaGNUAbiTag.toChars());
                     sym.errors = true;
                 }
                 // Only one `@gnuAbiTag` is allowed by semantic2

@@ -456,7 +456,7 @@ string prettyPrint(Module m)
     auto buf = OutBuffer();
     buf.doindent = 1;
     HdrGenState hgs = { fullDump: 1 };
-    moduleToBuffer2(m, &buf, &hgs);
+    moduleToBuffer2(m, buf, &hgs);
 
     import std.string : replace, fromStringz;
     import std.exception : assumeUnique;

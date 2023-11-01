@@ -16,20 +16,14 @@ module dmd.statement;
 import core.stdc.stdarg;
 import core.stdc.stdio;
 
-import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.ast_node;
+import dmd.errors;
 import dmd.gluelayer;
 import dmd.cond;
-import dmd.dclass;
 import dmd.declaration;
-import dmd.denum;
-import dmd.dimport;
-import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dtemplate;
-import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
@@ -37,39 +31,13 @@ import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
-import dmd.dinterpret;
 import dmd.mtype;
 import dmd.common.outbuffer;
-import dmd.root.rootobject;
+import dmd.rootobject;
 import dmd.sapply;
-import dmd.sideeffect;
 import dmd.staticassert;
 import dmd.tokens;
 import dmd.visitor;
-
-/**
- * Returns:
- *     `TypeIdentifier` corresponding to `object.Throwable`
- */
-TypeIdentifier getThrowable()
-{
-    auto tid = new TypeIdentifier(Loc.initial, Id.empty);
-    tid.addIdent(Id.object);
-    tid.addIdent(Id.Throwable);
-    return tid;
-}
-
-/**
- * Returns:
- *      TypeIdentifier corresponding to `object.Exception`
- */
-TypeIdentifier getException()
-{
-    auto tid = new TypeIdentifier(Loc.initial, Id.empty);
-    tid.addIdent(Id.object);
-    tid.addIdent(Id.Exception);
-    return tid;
-}
 
 /***********************************************************
  * Specification: https://dlang.org/spec/statement.html
@@ -84,7 +52,7 @@ extern (C++) abstract class Statement : ASTNode
         return DYNCAST.statement;
     }
 
-    final extern (D) this(const ref Loc loc, STMT stmt)
+    final extern (D) this(const ref Loc loc, STMT stmt) @safe
     {
         this.loc = loc;
         this.stmt = stmt;
@@ -112,68 +80,6 @@ extern (C++) abstract class Statement : ASTNode
             }
         }
         return b;
-    }
-
-    override final const(char)* toChars() const
-    {
-        HdrGenState hgs;
-        OutBuffer buf;
-        .toCBuffer(this, &buf, &hgs);
-        buf.writeByte(0);
-        return buf.extractSlice().ptr;
-    }
-
-    static if (__VERSION__ < 2092)
-    {
-        final void error(const(char)* format, ...)
-        {
-            va_list ap;
-            va_start(ap, format);
-            .verror(loc, format, ap);
-            va_end(ap);
-        }
-
-        final void warning(const(char)* format, ...)
-        {
-            va_list ap;
-            va_start(ap, format);
-            .vwarning(loc, format, ap);
-            va_end(ap);
-        }
-
-        final void deprecation(const(char)* format, ...)
-        {
-            va_list ap;
-            va_start(ap, format);
-            .vdeprecation(loc, format, ap);
-            va_end(ap);
-        }
-    }
-    else
-    {
-        pragma(printf) final void error(const(char)* format, ...)
-        {
-            va_list ap;
-            va_start(ap, format);
-            .verror(loc, format, ap);
-            va_end(ap);
-        }
-
-        pragma(printf) final void warning(const(char)* format, ...)
-        {
-            va_list ap;
-            va_start(ap, format);
-            .vwarning(loc, format, ap);
-            va_end(ap);
-        }
-
-        pragma(printf) final void deprecation(const(char)* format, ...)
-        {
-            va_list ap;
-            va_start(ap, format);
-            .vdeprecation(loc, format, ap);
-            va_end(ap);
-        }
     }
 
     Statement getRelatedLabeled()
@@ -208,7 +114,7 @@ extern (C++) abstract class Statement : ASTNode
      * Returns:
      *     `true` if statement uses exception handling
      */
-    final bool usesEH()
+    extern (D) final bool usesEH()
     {
         extern (C++) final class UsesEH : StoppableVisitor
         {
@@ -247,7 +153,7 @@ extern (C++) abstract class Statement : ASTNode
      * Returns:
      *   `true` if statement 'comes from' somewhere else, like a goto
      */
-    final bool comeFrom()
+    extern (D) final bool comeFrom()
     {
         extern (C++) final class ComeFrom : StoppableVisitor
         {
@@ -286,7 +192,7 @@ extern (C++) abstract class Statement : ASTNode
      * Returns:
      *   `true` if statement has executable code.
      */
-    final bool hasCode()
+    extern (D) final bool hasCode()
     {
         extern (C++) final class HasCode : StoppableVisitor
         {
@@ -447,7 +353,7 @@ extern (C++) final class PeelStatement : Statement
 {
     Statement s;
 
-    extern (D) this(Statement s)
+    extern (D) this(Statement s) @safe
     {
         super(s.loc, STMT.Peel);
         this.s = s;
@@ -467,25 +373,25 @@ extern (C++) class ExpStatement : Statement
 {
     Expression exp;
 
-    final extern (D) this(const ref Loc loc, Expression exp)
+    final extern (D) this(const ref Loc loc, Expression exp) @safe
     {
         super(loc, STMT.Exp);
         this.exp = exp;
     }
 
-    final extern (D) this(const ref Loc loc, Expression exp, STMT stmt)
+    final extern (D) this(const ref Loc loc, Expression exp, STMT stmt) @safe
     {
         super(loc, stmt);
         this.exp = exp;
     }
 
-    final extern (D) this(const ref Loc loc, Dsymbol declaration)
+    final extern (D) this(const ref Loc loc, Dsymbol declaration) @safe
     {
         super(loc, STMT.Exp);
         this.exp = new DeclarationExp(loc, declaration);
     }
 
-    static ExpStatement create(const ref Loc loc, Expression exp)
+    static ExpStatement create(const ref Loc loc, Expression exp) @safe
     {
         return new ExpStatement(loc, exp);
     }
@@ -508,7 +414,7 @@ extern (C++) final class DtorExpStatement : ExpStatement
     // Wraps an expression that is the destruction of 'var'
     VarDeclaration var;
 
-    extern (D) this(const ref Loc loc, Expression exp, VarDeclaration var)
+    extern (D) this(const ref Loc loc, Expression exp, VarDeclaration var) @safe
     {
         super(loc, exp, STMT.DtorExp);
         this.var = var;
@@ -540,7 +446,7 @@ extern (C++) final class MixinStatement : Statement
         this(loc, exps);
     }
 
-    extern (D) this(const ref Loc loc, Expressions* exps)
+    extern (D) this(const ref Loc loc, Expressions* exps) @safe
     {
         super(loc, STMT.Mixin);
         this.exps = exps;
@@ -571,13 +477,13 @@ extern (C++) class CompoundStatement : Statement
      *   loc = Instantiation information
      *   statements   = An array of `Statement`s, that will referenced by this class
      */
-    final extern (D) this(const ref Loc loc, Statements* statements)
+    final extern (D) this(const ref Loc loc, Statements* statements) @safe
     {
         super(loc, STMT.Compound);
         this.statements = statements;
     }
 
-    final extern (D) this(const ref Loc loc, Statements* statements, STMT stmt)
+    final extern (D) this(const ref Loc loc, Statements* statements, STMT stmt) @safe
     {
         super(loc, stmt);
         this.statements = statements;
@@ -649,19 +555,14 @@ extern (C++) class CompoundStatement : Statement
  */
 extern (C++) final class CompoundDeclarationStatement : CompoundStatement
 {
-    extern (D) this(const ref Loc loc, Statements* statements)
+    extern (D) this(const ref Loc loc, Statements* statements) @safe
     {
         super(loc, statements, STMT.CompoundDeclaration);
     }
 
     override CompoundDeclarationStatement syntaxCopy()
     {
-        auto a = new Statements(statements.length);
-        foreach (i, s; *statements)
-        {
-            (*a)[i] = s ? s.syntaxCopy() : null;
-        }
-        return new CompoundDeclarationStatement(loc, a);
+        return new CompoundDeclarationStatement(loc, Statement.arraySyntaxCopy(statements));
     }
 
     override void accept(Visitor v)
@@ -678,7 +579,7 @@ extern (C++) final class UnrolledLoopStatement : Statement
 {
     Statements* statements;
 
-    extern (D) this(const ref Loc loc, Statements* statements)
+    extern (D) this(const ref Loc loc, Statements* statements) @safe
     {
         super(loc, STMT.UnrolledLoop);
         this.statements = statements;
@@ -686,12 +587,7 @@ extern (C++) final class UnrolledLoopStatement : Statement
 
     override UnrolledLoopStatement syntaxCopy()
     {
-        auto a = new Statements(statements.length);
-        foreach (i, s; *statements)
-        {
-            (*a)[i] = s ? s.syntaxCopy() : null;
-        }
-        return new UnrolledLoopStatement(loc, a);
+        return new UnrolledLoopStatement(loc, Statement.arraySyntaxCopy(statements));
     }
 
     override bool hasBreak() const pure nothrow
@@ -717,7 +613,7 @@ extern (C++) final class ScopeStatement : Statement
     Statement statement;
     Loc endloc;                 // location of closing curly bracket
 
-    extern (D) this(const ref Loc loc, Statement statement, Loc endloc)
+    extern (D) this(const ref Loc loc, Statement statement, Loc endloc) @safe
     {
         super(loc, STMT.Scope);
         this.statement = statement;
@@ -767,7 +663,7 @@ extern (C++) final class ForwardingStatement : Statement
     /// The wrapped statement.
     Statement statement;
 
-    extern (D) this(const ref Loc loc, ForwardingScopeDsymbol sym, Statement statement)
+    extern (D) this(const ref Loc loc, ForwardingScopeDsymbol sym, Statement statement) @safe
     {
         super(loc, STMT.Forwarding);
         this.sym = sym;
@@ -775,7 +671,7 @@ extern (C++) final class ForwardingStatement : Statement
         this.statement = statement;
     }
 
-    extern (D) this(const ref Loc loc, Statement statement)
+    extern (D) this(const ref Loc loc, Statement statement) @safe
     {
         auto sym = new ForwardingScopeDsymbol();
         sym.symtab = new DsymbolTable();
@@ -804,7 +700,7 @@ extern (C++) final class WhileStatement : Statement
     Statement _body;
     Loc endloc;             // location of closing curly bracket
 
-    extern (D) this(const ref Loc loc, Expression condition, Statement _body, Loc endloc, Parameter param = null)
+    extern (D) this(const ref Loc loc, Expression condition, Statement _body, Loc endloc, Parameter param = null) @safe
     {
         super(loc, STMT.While);
         this.condition = condition;
@@ -846,7 +742,7 @@ extern (C++) final class DoStatement : Statement
     Expression condition;
     Loc endloc;                 // location of ';' after while
 
-    extern (D) this(const ref Loc loc, Statement _body, Expression condition, Loc endloc)
+    extern (D) this(const ref Loc loc, Statement _body, Expression condition, Loc endloc) @safe
     {
         super(loc, STMT.Do);
         this._body = _body;
@@ -894,7 +790,7 @@ extern (C++) final class ForStatement : Statement
     // treat that label as referring to this loop.
     Statement relatedLabeled;
 
-    extern (D) this(const ref Loc loc, Statement _init, Expression condition, Expression increment, Statement _body, Loc endloc)
+    extern (D) this(const ref Loc loc, Statement _init, Expression condition, Expression increment, Statement _body, Loc endloc) @safe
     {
         super(loc, STMT.For);
         this._init = _init;
@@ -955,7 +851,7 @@ extern (C++) final class ForeachStatement : Statement
     Statements* cases;          // put breaks, continues, gotos and returns here
     ScopeStatements* gotos;     // forward referenced goto's go here
 
-    extern (D) this(const ref Loc loc, TOK op, Parameters* parameters, Expression aggr, Statement _body, Loc endloc)
+    extern (D) this(const ref Loc loc, TOK op, Parameters* parameters, Expression aggr, Statement _body, Loc endloc) @safe
     {
         super(loc, STMT.Foreach);
         this.op = op;
@@ -1004,7 +900,7 @@ extern (C++) final class ForeachRangeStatement : Statement
 
     VarDeclaration key;
 
-    extern (D) this(const ref Loc loc, TOK op, Parameter prm, Expression lwr, Expression upr, Statement _body, Loc endloc)
+    extern (D) this(const ref Loc loc, TOK op, Parameter prm, Expression lwr, Expression upr, Statement _body, Loc endloc) @safe
     {
         super(loc, STMT.ForeachRange);
         this.op = op;
@@ -1048,7 +944,7 @@ extern (C++) final class IfStatement : Statement
     VarDeclaration match;   // for MatchExpression results
     Loc endloc;                 // location of closing curly bracket
 
-    extern (D) this(const ref Loc loc, Parameter prm, Expression condition, Statement ifbody, Statement elsebody, Loc endloc)
+    extern (D) this(const ref Loc loc, Parameter prm, Expression condition, Statement ifbody, Statement elsebody, Loc endloc) @safe
     {
         super(loc, STMT.If);
         this.prm = prm;
@@ -1093,7 +989,7 @@ extern (C++) final class ConditionalStatement : Statement
     Statement ifbody;
     Statement elsebody;
 
-    extern (D) this(const ref Loc loc, Condition condition, Statement ifbody, Statement elsebody)
+    extern (D) this(const ref Loc loc, Condition condition, Statement ifbody, Statement elsebody) @safe
     {
         super(loc, STMT.Conditional);
         this.condition = condition;
@@ -1128,7 +1024,7 @@ extern (C++) final class StaticForeachStatement : Statement
 {
     StaticForeach sfe;
 
-    extern (D) this(const ref Loc loc, StaticForeach sfe)
+    extern (D) this(const ref Loc loc, StaticForeach sfe) @safe
     {
         super(loc, STMT.StaticForeach);
         this.sfe = sfe;
@@ -1154,7 +1050,7 @@ extern (C++) final class PragmaStatement : Statement
     Expressions* args;      // array of Expression's
     Statement _body;
 
-    extern (D) this(const ref Loc loc, const Identifier ident, Expressions* args, Statement _body)
+    extern (D) this(const ref Loc loc, const Identifier ident, Expressions* args, Statement _body) @safe
     {
         super(loc, STMT.Pragma);
         this.ident = ident;
@@ -1180,7 +1076,7 @@ extern (C++) final class StaticAssertStatement : Statement
 {
     StaticAssert sa;
 
-    extern (D) this(StaticAssert sa)
+    extern (D) this(StaticAssert sa) @safe
     {
         super(sa.loc, STMT.StaticAssert);
         this.sa = sa;
@@ -1202,75 +1098,44 @@ extern (C++) final class StaticAssertStatement : Statement
  */
 extern (C++) final class SwitchStatement : Statement
 {
+    Parameter param;
     Expression condition;           /// switch(condition)
     Statement _body;                ///
     bool isFinal;                   /// https://dlang.org/spec/statement.html#final-switch-statement
+    Loc endloc;
 
+    bool hasDefault;                /// true if has default statement
+    bool hasVars;                   /// true if has variable case values
     DefaultStatement sdefault;      /// default:
     Statement tryBody;              /// set to TryCatchStatement or TryFinallyStatement if in _body portion
     TryFinallyStatement tf;         /// set if in the 'finally' block of a TryFinallyStatement
     GotoCaseStatements gotoCases;   /// array of unresolved GotoCaseStatement's
     CaseStatements* cases;          /// array of CaseStatement's
-    int hasNoDefault;               /// !=0 if no default statement
-    int hasVars;                    /// !=0 if has variable case values
     VarDeclaration lastVar;         /// last observed variable declaration in this statement
 
-    extern (D) this(const ref Loc loc, Expression condition, Statement _body, bool isFinal)
+    extern (D) this(const ref Loc loc, Parameter param, Expression condition, Statement _body, bool isFinal, Loc endloc)
     {
         super(loc, STMT.Switch);
+        this.param = param;
         this.condition = condition;
         this._body = _body;
         this.isFinal = isFinal;
+        this.endloc = endloc;
     }
 
     override SwitchStatement syntaxCopy()
     {
-        return new SwitchStatement(loc, condition.syntaxCopy(), _body.syntaxCopy(), isFinal);
+        return new SwitchStatement(loc,
+            param ? param.syntaxCopy() : null,
+            condition.syntaxCopy(),
+            _body.syntaxCopy(),
+            isFinal,
+            endloc);
     }
 
     override bool hasBreak() const pure nothrow
     {
         return true;
-    }
-
-    /************************************
-     * Returns:
-     *  true if error
-     */
-    extern (D) bool checkLabel()
-    {
-        /*
-         * Checks the scope of a label for existing variable declaration.
-         * Params:
-         *   vd = last variable declared before this case/default label
-         * Returns: `true` if the variables declared in this label would be skipped.
-         */
-        bool checkVar(VarDeclaration vd)
-        {
-            for (auto v = vd; v && v != lastVar; v = v.lastVar)
-            {
-                if (v.isDataseg() || (v.storage_class & (STC.manifest | STC.temp) && vd.ident != Id.withSym) || v._init.isVoidInitializer())
-                    continue;
-                if (vd.ident == Id.withSym)
-                    error("`switch` skips declaration of `with` temporary at %s", v.loc.toChars());
-                else
-                    error("`switch` skips declaration of variable `%s` at %s", v.toPrettyChars(), v.loc.toChars());
-                return true;
-            }
-            return false;
-        }
-
-        enum error = true;
-
-        if (sdefault && checkVar(sdefault.lastVar))
-            return !error; // return error once fully deprecated
-
-        foreach (scase; *cases)
-        {
-            if (scase && checkVar(scase.lastVar))
-                return !error; // return error once fully deprecated
-        }
-        return !error;
     }
 
     override void accept(Visitor v)
@@ -1291,7 +1156,7 @@ extern (C++) final class CaseStatement : Statement
     VarDeclaration lastVar;
     void* extra;            // for use by Statement_toIR()
 
-    extern (D) this(const ref Loc loc, Expression exp, Statement statement)
+    extern (D) this(const ref Loc loc, Expression exp, Statement statement) @safe
     {
         super(loc, STMT.Case);
         this.exp = exp;
@@ -1318,7 +1183,7 @@ extern (C++) final class CaseRangeStatement : Statement
     Expression last;
     Statement statement;
 
-    extern (D) this(const ref Loc loc, Expression first, Expression last, Statement statement)
+    extern (D) this(const ref Loc loc, Expression first, Expression last, Statement statement) @safe
     {
         super(loc, STMT.CaseRange);
         this.first = first;
@@ -1346,7 +1211,7 @@ extern (C++) final class DefaultStatement : Statement
 
     VarDeclaration lastVar;
 
-    extern (D) this(const ref Loc loc, Statement statement)
+    extern (D) this(const ref Loc loc, Statement statement) @safe
     {
         super(loc, STMT.Default);
         this.statement = statement;
@@ -1370,7 +1235,7 @@ extern (C++) final class GotoDefaultStatement : Statement
 {
     SwitchStatement sw;
 
-    extern (D) this(const ref Loc loc)
+    extern (D) this(const ref Loc loc) @safe
     {
         super(loc, STMT.GotoDefault);
     }
@@ -1395,7 +1260,7 @@ extern (C++) final class GotoCaseStatement : Statement
 
     CaseStatement cs;   // case statement it resolves to
 
-    extern (D) this(const ref Loc loc, Expression exp)
+    extern (D) this(const ref Loc loc, Expression exp) @safe
     {
         super(loc, STMT.GotoCase);
         this.exp = exp;
@@ -1418,12 +1283,12 @@ extern (C++) final class SwitchErrorStatement : Statement
 {
     Expression exp;
 
-    extern (D) this(const ref Loc loc)
+    extern (D) this(const ref Loc loc) @safe
     {
         super(loc, STMT.SwitchError);
     }
 
-    final extern (D) this(const ref Loc loc, Expression exp)
+    final extern (D) this(const ref Loc loc, Expression exp) @safe
     {
         super(loc, STMT.SwitchError);
         this.exp = exp;
@@ -1443,7 +1308,7 @@ extern (C++) final class ReturnStatement : Statement
     Expression exp;
     size_t caseDim;
 
-    extern (D) this(const ref Loc loc, Expression exp)
+    extern (D) this(const ref Loc loc, Expression exp) @safe
     {
         super(loc, STMT.Return);
         this.exp = exp;
@@ -1472,7 +1337,7 @@ extern (C++) final class BreakStatement : Statement
 {
     Identifier ident;
 
-    extern (D) this(const ref Loc loc, Identifier ident)
+    extern (D) this(const ref Loc loc, Identifier ident) @safe
     {
         super(loc, STMT.Break);
         this.ident = ident;
@@ -1496,7 +1361,7 @@ extern (C++) final class ContinueStatement : Statement
 {
     Identifier ident;
 
-    extern (D) this(const ref Loc loc, Identifier ident)
+    extern (D) this(const ref Loc loc, Identifier ident) @safe
     {
         super(loc, STMT.Continue);
         this.ident = ident;
@@ -1521,7 +1386,7 @@ extern (C++) final class SynchronizedStatement : Statement
     Expression exp;
     Statement _body;
 
-    extern (D) this(const ref Loc loc, Expression exp, Statement _body)
+    extern (D) this(const ref Loc loc, Expression exp, Statement _body) @safe
     {
         super(loc, STMT.Synchronized);
         this.exp = exp;
@@ -1559,7 +1424,7 @@ extern (C++) final class WithStatement : Statement
     VarDeclaration wthis;
     Loc endloc;
 
-    extern (D) this(const ref Loc loc, Expression exp, Statement _body, Loc endloc)
+    extern (D) this(const ref Loc loc, Expression exp, Statement _body, Loc endloc) @safe
     {
         super(loc, STMT.With);
         this.exp = exp;
@@ -1588,7 +1453,7 @@ extern (C++) final class TryCatchStatement : Statement
 
     Statement tryBody;   /// set to enclosing TryCatchStatement or TryFinallyStatement if in _body portion
 
-    extern (D) this(const ref Loc loc, Statement _body, Catches* catches)
+    extern (D) this(const ref Loc loc, Statement _body, Catches* catches) @safe
     {
         super(loc, STMT.TryCatch);
         this._body = _body;
@@ -1632,7 +1497,7 @@ extern (C++) final class Catch : RootObject
     // was generated by the compiler, wasn't present in source code
     bool internalCatch;
 
-    extern (D) this(const ref Loc loc, Type type, Identifier ident, Statement handler)
+    extern (D) this(const ref Loc loc, Type type, Identifier ident, Statement handler) @safe
     {
         //printf("Catch(%s, loc = %s)\n", id.toChars(), loc.toChars());
         this.loc = loc;
@@ -1660,7 +1525,7 @@ extern (C++) final class TryFinallyStatement : Statement
     Statement tryBody;   /// set to enclosing TryCatchStatement or TryFinallyStatement if in _body portion
     bool bodyFallsThru;  /// true if _body falls through to finally
 
-    extern (D) this(const ref Loc loc, Statement _body, Statement finalbody)
+    extern (D) this(const ref Loc loc, Statement _body, Statement finalbody) @safe
     {
         super(loc, STMT.TryFinally);
         this._body = _body;
@@ -1668,7 +1533,7 @@ extern (C++) final class TryFinallyStatement : Statement
         this.bodyFallsThru = true;      // assume true until statementSemantic()
     }
 
-    static TryFinallyStatement create(const ref Loc loc, Statement _body, Statement finalbody)
+    static TryFinallyStatement create(const ref Loc loc, Statement _body, Statement finalbody) @safe
     {
         return new TryFinallyStatement(loc, _body, finalbody);
     }
@@ -1702,7 +1567,7 @@ extern (C++) final class ScopeGuardStatement : Statement
     TOK tok;
     Statement statement;
 
-    extern (D) this(const ref Loc loc, TOK tok, Statement statement)
+    extern (D) this(const ref Loc loc, TOK tok, Statement statement) @safe
     {
         super(loc, STMT.ScopeGuard);
         this.tok = tok;
@@ -1730,7 +1595,7 @@ extern (C++) final class ThrowStatement : Statement
     // was generated by the compiler, wasn't present in source code
     bool internalThrow;
 
-    extern (D) this(const ref Loc loc, Expression exp)
+    extern (D) this(const ref Loc loc, Expression exp) @safe
     {
         super(loc, STMT.Throw);
         this.exp = exp;
@@ -1755,7 +1620,7 @@ extern (C++) final class DebugStatement : Statement
 {
     Statement statement;
 
-    extern (D) this(const ref Loc loc, Statement statement)
+    extern (D) this(const ref Loc loc, Statement statement) @safe
     {
         super(loc, STMT.Debug);
         this.statement = statement;
@@ -1785,7 +1650,7 @@ extern (C++) final class GotoStatement : Statement
     VarDeclaration lastVar;
     bool inCtfeBlock;               /// set if goto is inside an `if (__ctfe)` block
 
-    extern (D) this(const ref Loc loc, Identifier ident)
+    extern (D) this(const ref Loc loc, Identifier ident) @safe
     {
         super(loc, STMT.Goto);
         this.ident = ident;
@@ -1794,87 +1659,6 @@ extern (C++) final class GotoStatement : Statement
     override GotoStatement syntaxCopy()
     {
         return new GotoStatement(loc, ident);
-    }
-
-    /**************
-     * Returns: true for error
-     */
-    extern (D) bool checkLabel()
-    {
-        if (!label.statement)
-            return true;        // error should have been issued for this already
-
-        if (label.statement.os != os)
-        {
-            if (os && os.tok == TOK.onScopeFailure && !label.statement.os)
-            {
-                // Jump out from scope(failure) block is allowed.
-            }
-            else
-            {
-                if (label.statement.os)
-                    error("cannot `goto` in to `%s` block", Token.toChars(label.statement.os.tok));
-                else
-                    error("cannot `goto` out of `%s` block", Token.toChars(os.tok));
-                return true;
-            }
-        }
-
-        if (label.statement.tf != tf)
-        {
-            error("cannot `goto` in or out of `finally` block");
-            return true;
-        }
-
-        if (label.statement.inCtfeBlock && !inCtfeBlock)
-        {
-            error("cannot `goto` into `if (__ctfe)` block");
-            return true;
-        }
-
-        Statement stbnext;
-        for (auto stb = tryBody; stb != label.statement.tryBody; stb = stbnext)
-        {
-            if (!stb)
-            {
-                error("cannot `goto` into `try` block");
-                return true;
-            }
-            if (auto stf = stb.isTryFinallyStatement())
-                stbnext = stf.tryBody;
-            else if (auto stc = stb.isTryCatchStatement())
-                stbnext = stc.tryBody;
-            else
-                assert(0);
-        }
-
-        VarDeclaration vd = label.statement.lastVar;
-        if (!vd || vd.isDataseg() || (vd.storage_class & STC.manifest))
-            return false;
-
-        VarDeclaration last = lastVar;
-        while (last && last != vd)
-            last = last.lastVar;
-        if (last == vd)
-        {
-            // All good, the label's scope has no variables
-        }
-        else if (vd.storage_class & STC.exptemp)
-        {
-            // Lifetime ends at end of expression, so no issue with skipping the statement
-        }
-        else if (vd.ident == Id.withSym)
-        {
-            error("`goto` skips declaration of `with` temporary at %s", vd.loc.toChars());
-            return true;
-        }
-        else
-        {
-            error("`goto` skips declaration of variable `%s` at %s", vd.toPrettyChars(), vd.loc.toChars());
-            return true;
-        }
-
-        return false;
     }
 
     override void accept(Visitor v)
@@ -1900,7 +1684,7 @@ extern (C++) final class LabelStatement : Statement
     bool breaks;                // someone did a 'break ident'
     bool inCtfeBlock;           // inside a block dominated by `if (__ctfe)`
 
-    extern (D) this(const ref Loc loc, Identifier ident, Statement statement)
+    extern (D) this(const ref Loc loc, Identifier ident, Statement statement) @safe
     {
         super(loc, STMT.Label);
         this.ident = ident;
@@ -1927,12 +1711,16 @@ extern (C++) final class LabelDsymbol : Dsymbol
     bool deleted;           // set if rewritten to return in foreach delegate
     bool iasm;              // set if used by inline assembler
 
-    extern (D) this(Identifier ident, const ref Loc loc = Loc.initial)
+    // set if label was defined multiple times, to avoid duplicate errors
+    // can be removed if generic error message deduplication is implemented
+    bool duplicated;
+
+    extern (D) this(Identifier ident, const ref Loc loc = Loc.initial) @safe
     {
         super(loc, ident);
     }
 
-    static LabelDsymbol create(Identifier ident)
+    static LabelDsymbol create(Identifier ident) @safe
     {
         return new LabelDsymbol(ident);
     }
@@ -1955,14 +1743,15 @@ extern (C++) final class LabelDsymbol : Dsymbol
 extern (C++) class AsmStatement : Statement
 {
     Token* tokens;
+    bool caseSensitive;  // for register names
 
-    extern (D) this(const ref Loc loc, Token* tokens)
+    extern (D) this(const ref Loc loc, Token* tokens) @safe
     {
         super(loc, STMT.Asm);
         this.tokens = tokens;
     }
 
-    extern (D) this(const ref Loc loc, Token* tokens, STMT stmt)
+    extern (D) this(const ref Loc loc, Token* tokens, STMT stmt) @safe
     {
         super(loc, stmt);
         this.tokens = tokens;
@@ -1990,7 +1779,7 @@ extern (C++) final class InlineAsmStatement : AsmStatement
     bool refparam;  // true if function parameter is referenced
     bool naked;     // true if function is to be naked
 
-    extern (D) this(const ref Loc loc, Token* tokens)
+    extern (D) this(const ref Loc loc, Token* tokens) @safe
     {
         super(loc, tokens, STMT.InlineAsm);
     }
@@ -2022,7 +1811,7 @@ extern (C++) final class GccAsmStatement : AsmStatement
     Identifiers* labels;        // list of goto labels
     GotoStatements* gotos;      // of the goto labels, the equivalent statements they represent
 
-    extern (D) this(const ref Loc loc, Token* tokens)
+    extern (D) this(const ref Loc loc, Token* tokens) @safe
     {
         super(loc, tokens, STMT.GccAsm);
     }
@@ -2045,7 +1834,7 @@ extern (C++) final class CompoundAsmStatement : CompoundStatement
 {
     StorageClass stc; // postfix attributes like nothrow/pure/@trusted
 
-    extern (D) this(const ref Loc loc, Statements* statements, StorageClass stc)
+    extern (D) this(const ref Loc loc, Statements* statements, StorageClass stc) @safe
     {
         super(loc, statements, STMT.CompoundAsm);
         this.stc = stc;
@@ -2053,12 +1842,7 @@ extern (C++) final class CompoundAsmStatement : CompoundStatement
 
     override CompoundAsmStatement syntaxCopy()
     {
-        auto a = new Statements(statements.length);
-        foreach (i, s; *statements)
-        {
-            (*a)[i] = s ? s.syntaxCopy() : null;
-        }
-        return new CompoundAsmStatement(loc, a, stc);
+        return new CompoundAsmStatement(loc, Statement.arraySyntaxCopy(statements), stc);
     }
 
     override void accept(Visitor v)
@@ -2074,7 +1858,7 @@ extern (C++) final class ImportStatement : Statement
 {
     Dsymbols* imports;      // Array of Import's
 
-    extern (D) this(const ref Loc loc, Dsymbols* imports)
+    extern (D) this(const ref Loc loc, Dsymbols* imports) @safe
     {
         super(loc, STMT.Import);
         this.imports = imports;
@@ -2157,7 +1941,7 @@ mixin template VisitStatement(Result)
  *      handler = string for the name of the visit handler
  * Returns: boilerplate code for a case
  */
-pure string visitStmtCase(string handler)
+pure string visitStmtCase(string handler) @safe
 {
     if (__ctfe)
     {

@@ -340,7 +340,7 @@ struct Segments
         immutable int flags;
         immutable int alignment;
 
-        this(typeof(this.tupleof) tuple)
+        this(typeof(this.tupleof) tuple) @safe
         {
             this.tupleof = tuple;
         }
@@ -518,7 +518,7 @@ static:
      *
      * Allows to pass the name of the symbol as a D string.
      */
-    Symbol* symbolName(const(char)[] name, SC sclass, type* t)
+    Symbol* symbolName(const(char)[] name, SC sclass, type* t) @safe
     {
         return symbol_name(name, sclass, t);
     }
@@ -532,7 +532,7 @@ static:
      *
      * Returns: the symbol
      */
-    Symbol* getGlobal(const(char)[] name, type* t = type_fake(TYnptr))
+    Symbol* getGlobal(const(char)[] name, type* t = type_fake(TYnptr)) @safe
     {
         return symbolName(name, SC.global, t);
     }
@@ -546,7 +546,7 @@ static:
      *
      * Returns: the symbol
      */
-    Symbol* getStatic(const(char)[] name, type* t = type_fake(TYnptr))
+    Symbol* getStatic(const(char)[] name, type* t = type_fake(TYnptr)) @safe
     {
         return symbolName(name, SC.static_, t);
     }
@@ -748,7 +748,7 @@ static:
      *
      * Returns: a string containing the type encoding
      */
-    string getTypeEncoding(Type type)
+    string getTypeEncoding(Type type) @safe
     in
     {
         assert(type !is null);
@@ -973,7 +973,7 @@ struct ObjcClassDeclaration
     /// `true` if this class is a metaclass.
     bool isMeta;
 
-    this(ClassDeclaration classDeclaration, bool isMeta)
+    this(ClassDeclaration classDeclaration, bool isMeta) @safe
     in
     {
         assert(classDeclaration !is null);
@@ -1198,7 +1198,7 @@ private:
         return symbol;
     }
 
-    Symbol* getPropertyList()
+    Symbol* getPropertyList() @safe
     {
         // properties are not supported yet
         return null;
@@ -1224,7 +1224,7 @@ private:
      *
      * Returns: the flags
      */
-    uint flags() const
+    uint flags() const @safe
     {
         uint flags = isMeta ? Flags.meta : Flags.regular;
 
@@ -1280,7 +1280,7 @@ struct ProtocolDeclaration
     /// The interface declaration
     private InterfaceDeclaration interfaceDeclaration;
 
-    this(InterfaceDeclaration interfaceDeclaration)
+    this(InterfaceDeclaration interfaceDeclaration) @safe
     in
     {
         assert(interfaceDeclaration !is null);
@@ -1593,7 +1593,7 @@ Symbol* toNameSymbol(const ObjcSelector* selector)
  *  dtb = the dt builder to add the symbol to
  *  symbol = the symbol to add
  */
-void xoffOrNull(ref DtBuilder dtb, Symbol* symbol)
+void xoffOrNull(ref DtBuilder dtb, Symbol* symbol) @safe
 {
     if (symbol)
         dtb.xoff(symbol, 0);

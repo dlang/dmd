@@ -35,7 +35,6 @@ module dmd.backend.md5;
 
 /* -- include the following line if the md5.h header file is separate -- */
 
-extern (C++):
 nothrow:
 @nogc:
 @safe:

@@ -27,7 +27,6 @@ import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-extern (C++):
 
 nothrow:
 
@@ -133,6 +132,14 @@ Symbol *getRtlsym(RTLSYM i) @trusted
         case RTLSYM.ARRAYASSIGN_L:          symbolz(ps,FLfunc,FREGSAVED,"_d_arrayassign_l", 0, t); break;
         case RTLSYM.ARRAYSETASSIGN:         symbolz(ps,FLfunc,FREGSAVED,"_d_arraysetassign", 0, t); break;
         case RTLSYM.ARRAYEQ2:               symbolz(ps,FLfunc,FREGSAVED,"_adEq2", 0, t); break;
+
+        /* Associative Arrays https://github.com/dlang/dmd/blob/master/druntime/src/rt/aaA.d */
+        case RTLSYM.AANEW:                  symbolz(ps,FLfunc,FREGSAVED,"_aaNew",        0, t); break;
+        case RTLSYM.AAEQUAL:                symbolz(ps,FLfunc,FREGSAVED,"_aaEqual",      0, t); break;
+        case RTLSYM.AAINX:                  symbolz(ps,FLfunc,FREGSAVED,"_aaInX",        0, t); break;
+        case RTLSYM.AADELX:                 symbolz(ps,FLfunc,FREGSAVED,"_aaDelX",       0, t); break;
+        case RTLSYM.AAGETY:                 symbolz(ps,FLfunc,FREGSAVED,"_aaGetY",       0, t); break;
+        case RTLSYM.AAGETRVALUEX:           symbolz(ps,FLfunc,FREGSAVED,"_aaGetRvalueX", 0, t); break;
 
         case RTLSYM.EXCEPT_HANDLER3:        symbolz(ps,FLfunc,fregsaved,"_except_handler3", 0, tsclib); break;
         case RTLSYM.CPP_HANDLER:            symbolz(ps,FLfunc,FREGSAVED,"_cpp_framehandler", 0, tsclib); break;

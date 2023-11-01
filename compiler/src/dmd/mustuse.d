@@ -12,21 +12,11 @@ module dmd.mustuse;
 
 import dmd.dscope;
 import dmd.dsymbol;
+import dmd.errors;
 import dmd.expression;
 import dmd.globals;
 import dmd.identifier;
 import dmd.location;
-
-// Used in isIncrementOrDecrement
-private static const StringExp plusPlus, minusMinus;
-
-// Loc.initial cannot be used in static initializers, so
-// these need a static constructor.
-static this()
-{
-    plusPlus = new StringExp(Loc.initial, "++");
-    minusMinus = new StringExp(Loc.initial, "--");
-}
 
 /**
  * Check whether discarding an expression would violate the requirements of
@@ -49,7 +39,7 @@ bool checkMustUse(Expression e, Scope* sc)
         // isStructDeclaration returns non-null for both structs and unions
         if (sd && hasMustUseAttribute(sd, sc) && !isAssignment(e) && !isIncrementOrDecrement(e))
         {
-            e.error("ignored value of `@%s` type `%s`; prepend a `cast(void)` if intentional",
+            error(e.loc, "ignored value of `@%s` type `%s`; prepend a `cast(void)` if intentional",
                 Id.udaMustUse.toChars(), e.type.toPrettyChars(true));
             return true;
         }
@@ -172,9 +162,15 @@ private bool isIncrementOrDecrement(Expression e)
                     {
                         if (auto argExp = (*tiargs)[0].isExpression())
                         {
-                            auto op = argExp.isStringExp();
-                            if (op && (op.compare(plusPlus) == 0 || op.compare(minusMinus) == 0))
-                                return true;
+                            if (auto op = argExp.isStringExp())
+                            {
+                                if (op.len == 2 && op.sz == 1)
+                                {
+                                    const s = op.peekString();
+                                    if (s == "++" || s == "--")
+                                        return true;
+                                }
+                            }
                         }
                     }
                 }

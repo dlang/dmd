@@ -25,7 +25,6 @@ import dmd.backend.dwarf2;
 
 import dmd.common.outbuffer;
 
-extern (C++):
 
 nothrow:
 

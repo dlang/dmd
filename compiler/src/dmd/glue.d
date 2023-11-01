@@ -1,6 +1,8 @@
 /**
  * Generate the object file for function declarations and critical sections.
  *
+ * generateCodeAndWrite() is the only function seen by the front end.
+ *
  * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
@@ -69,8 +71,11 @@ import dmd.toobj;
 import dmd.typesem;
 import dmd.utils;
 
+private:
+
 alias symbols = Array!(Symbol*);
-alias toSymbol = dmd.tocsym.toSymbol;
+
+public alias toSymbol = dmd.tocsym.toSymbol;
 
 /**
  * Generate code for `modules` and write objects/libraries
@@ -80,22 +85,42 @@ alias toSymbol = dmd.tocsym.toSymbol;
  *  libmodules = array of objects/libraries already generated (passed on command line)
  *  libname = {.lib,.a} file output name
  *  objdir = directory to write object files to
- *  lib = write library file instead of object file(s)
+ *  writeLibrary = write library file instead of object file(s)
  *  obj = generate object files
  *  oneobj = write one object file instead of multiple ones
  *  multiobj = break one object file into multiple ones
  *  verbose = print progress message when generatig code
  */
-void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
+public void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
                           const(char)[] libname, const(char)[] objdir,
-                          bool lib, bool obj, bool oneobj, bool multiobj,
+                          bool writeLibrary, bool obj, bool oneobj, bool multiobj,
                           bool verbose)
 {
+    auto eSink = global.errorSink;
+
     Library library = null;
-    if (lib)
+    if (writeLibrary)
     {
-        library = Library.factory();
-        library.setFilename(objdir, libname);
+        library = Library.factory(target.objectFormat(), target.lib_ext, eSink);
+
+        /* Determine actual file name of library to write to by combining
+         * objdir, libname, the first object file name, and lib_ext
+         */
+        const(char)[] arg;
+        if (!libname.length)
+        {
+            // get name of the first object file
+            const(char)[] n = global.params.objfiles[0].toDString;
+            n = FileName.name(n);                // remove its path
+            arg = FileName.forceExt(n, library.lib_ext); // force library name extension
+        }
+        else
+            arg = FileName.defaultExt(libname, library.lib_ext);
+        if (!FileName.absolute(arg))
+            arg = FileName.combine(objdir, arg);
+
+        library.setFilename(arg);
+
         // Add input object and input library files to output library
         foreach (p; libmodules)
             library.addObject(p.toDString(), null);
@@ -139,18 +164,41 @@ void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
             genObjFile(m, multiobj);
             obj_end(objbuf, library, m.objfile.toChars());
             obj_write_deferred(objbuf, library, glue.obj_symbols_towrite);
-            if (global.errors && !lib)
+            if (global.errors && !writeLibrary)
                 m.deleteObjFile();
         }
     }
-    if (lib && !global.errors)
-        library.write();
+    if (writeLibrary && !global.errors)
+    {
+        if (global.params.v.verbose)
+            eSink.message(Loc.initial, "library   %s", library.loc.filename);
+
+        auto filenameString = library.loc.filename.toDString;
+        if (!ensurePathToNameExists(Loc.initial, filenameString))
+            fatal();
+
+        /* Write library to temporary file. If that is successful,
+         * then and only then replace the existing file with the temporary file
+         */
+        auto tmpname = filenameString ~ ".tmp\0";
+
+        auto libbuf = OutBuffer(tmpname.ptr);
+        library.writeLibToBuffer(libbuf);
+
+        if (!libbuf.moveToFile(library.loc.filename))
+        {
+            eSink.error(library.loc, "error writing file '%s'", library.loc.filename);
+            destroy(tmpname);
+            fatal();
+        }
+        destroy(tmpname);
+    }
 }
 
 extern (C++):
 
 //extern
-__gshared Symbol* bzeroSymbol;        /// common location for immutable zeros
+public __gshared Symbol* bzeroSymbol;        /// common location for immutable zeros
 
 struct Glue
 {
@@ -177,8 +225,7 @@ private __gshared Glue glue;
  * Append s to list of object files to generate later.
  * Only happens with multiobj.
  */
-
-void obj_append(Dsymbol s)
+public void obj_append(Dsymbol s)
 {
     //printf("deferred: %s\n", s.toChars());
     glue.obj_symbols_towrite.push(s);
@@ -342,6 +389,9 @@ private void obj_start(ref OutBuffer objbuf, const(char)* srcfile)
 
     version (Windows)
     {
+        import dmd.backend.mscoffobj;
+        import dmd.backend.cgobj;
+
         // Produce Ms COFF files by default, OMF for -m32omf
         assert(objbuf.length() == 0);
         switch (target.objectFormat())
@@ -391,7 +441,8 @@ private void obj_end(ref OutBuffer objbuf, Library library, const(char)* objfile
     else
     {
         //printf("write obj %s\n", objfilename);
-        writeFile(Loc.initial, objfilename.toDString, objbuf[]);
+        if (!writeFile(Loc.initial, objfilename.toDString, objbuf[]))
+            return fatal();
 
         // For non-libraries, the object buffer should be cleared to
         // avoid repetitions.
@@ -399,22 +450,17 @@ private void obj_end(ref OutBuffer objbuf, Library library, const(char)* objfile
     }
 }
 
-bool obj_includelib(const(char)* name) nothrow
+public extern (D) bool obj_includelib(scope const char[] name) nothrow
 {
     return objmod.includelib(name);
 }
 
-extern(D) bool obj_includelib(const(char)[] name) nothrow
-{
-    return name.toCStringThen!(n => obj_includelib(n.ptr));
-}
-
-void obj_startaddress(Symbol *s)
+public void obj_startaddress(Symbol *s)
 {
     return objmod.startaddress(s);
 }
 
-bool obj_linkerdirective(const(char)* directive)
+public bool obj_linkerdirective(const(char)* directive)
 {
     return objmod.linkerdirective(directive);
 }
@@ -519,7 +565,10 @@ private void genObjFile(Module m, bool multiobj)
 
         outdata(m.cov);
 
-        m.covb = cast(uint *)Mem.check(calloc((m.numlines + 32) / 32, (*m.covb).sizeof));
+        size_t sz = m.covb[0].sizeof;
+        size_t n = (m.numlines + sz * 8) / (sz * 8);
+        uint* p =  cast(uint*)Mem.check(calloc(n, sz));
+        m.covb = p[0 .. n];
     }
 
     for (int i = 0; i < m.members.length; i++)
@@ -541,12 +590,12 @@ private void genObjFile(Module m, bool multiobj)
         bcov.Sfl = FLdata;
 
         auto dtb = DtBuilder(0);
-        dtb.nbytes((m.numlines + 32) / 32 * (*m.covb).sizeof, cast(char *)m.covb);
+        dtb.nbytes(cast(uint)(m.covb.length * m.covb[0].sizeof), cast(char*)m.covb.ptr);
         bcov.Sdt = dtb.finish();
 
         outdata(bcov);
 
-        free(m.covb);
+        free(m.covb.ptr);
         m.covb = null;
 
         /* Generate:
@@ -651,8 +700,7 @@ private UnitTestDeclaration needsDeferredNested(FuncDeclaration fd)
     return null;
 }
 
-
-void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
+public void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
 {
     ClassDeclaration cd = fd.parent.isClassDeclaration();
     //printf("FuncDeclaration_toObjFile(%p, %s.%s)\n", fd, fd.parent.toChars(), fd.toChars());
@@ -712,7 +760,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
          * but the errors were gagged.
          * Try to reproduce those errors, and then fail.
          */
-        fd.error("errors compiling the function");
+        .error(fd.loc, "%s `%s` errors compiling the function", fd.kind, fd.toPrettyChars);
         return;
     }
     assert(fd.semanticRun == PASS.semantic3done);
@@ -739,14 +787,16 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         return;
     }
 
+    Symbol *s = toSymbol(fd); // may set skipCodegen
+    func_t *f = s.Sfunc;
+    if (fd.skipCodegen) // test it again, as toSymbol() might have set it
+        return;
+
     // start code generation
     fd.semanticRun = PASS.obj;
 
-    if (global.params.verbose)
+    if (global.params.v.verbose)
         message("function  %s", fd.toPrettyChars());
-
-    Symbol *s = toSymbol(fd);
-    func_t *f = s.Sfunc;
 
     // tunnel type of "this" to debug info generation
     if (AggregateDeclaration ad = fd.parent.isAggregateDeclaration())
@@ -851,7 +901,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     Dsymbols deferToObj;                   // write these to OBJ file later
     Array!(elem*) varsInScope;
     Label*[void*] labels = null;
-    IRState irs = IRState(m, fd, &varsInScope, &deferToObj, &labels, &global.params, &target);
+    IRState irs = IRState(m, fd, &varsInScope, &deferToObj, &labels, &global.params, &target, global.errorSink);
 
     Symbol *shidden = null;
     Symbol *sthis = null;
@@ -1084,7 +1134,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         Statement sf = ExpStatement.create(fd.loc, e);
 
         Statement stf;
-        if (sbody.blockExit(fd, false) == BE.fallthru)
+        if (sbody.blockExit(fd, null) == BE.fallthru)
             stf = CompoundStatement.create(Loc.initial, sbody, sf);
         else
             stf = TryFinallyStatement.create(Loc.initial, sbody, sf);
@@ -1101,7 +1151,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         block_appendexp(irs.blx.curblock, e);
     }
 
-    buildClosure(fd, &irs);
+    buildClosure(fd, irs);
     buildAlignSection(fd, irs); // must be after buildClosure
 
     if (config.ehmethod == EHmethod.EH_WIN32 && fd.isSynchronized() && cd &&
@@ -1113,7 +1163,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         s.Sfunc.Fflags3 |= Fjmonitor;
     }
 
-    Statement_toIR(sbody, &irs);
+    Statement_toIR(sbody, irs);
 
     if (global.errors)
     {
@@ -1416,9 +1466,10 @@ private bool onlyOneMain(FuncDeclaration fd)
     if (lastMain)
     {
         const format = (target.os == Target.OS.Windows)
-            ? "only one entry point `main`, `WinMain` or `DllMain` is allowed. Previously found `%s` at %s"
-            : "only one entry point `main` is allowed. Previously found `%s` at %s";
-        error(fd.loc, format.ptr, lastMain.toChars(), lastMain.loc.toChars());
+            ? "only one entry point `main`, `WinMain` or `DllMain` is allowed"
+            : "only one entry point `main` is allowed";
+        error(fd.loc, format.ptr);
+        errorSupplemental(lastMain.loc, "previously found `%s` here", lastMain.toFullSignature());
         return false;
     }
     lastMain = fd;
@@ -1430,8 +1481,7 @@ private bool onlyOneMain(FuncDeclaration fd)
 /*****************************
  * Return back end type corresponding to D front end type.
  */
-
-tym_t totym(Type tx)
+public tym_t totym(Type tx)
 {
     tym_t t;
     switch (tx.ty)
@@ -1577,18 +1627,6 @@ tym_t totym(Type tx)
     return t;
 }
 
-/**************************************
- */
-
-Symbol *toSymbol(Type t)
-{
-    if (t.ty == Tclass)
-    {
-        return toSymbol((cast(TypeClass)t).sym);
-    }
-    assert(0);
-}
-
 /*******************************************
  * Generate readonly symbol that consists of a bunch of zeros.
  * Immutable Symbol instances can be mapped over it.
@@ -1596,7 +1634,7 @@ Symbol *toSymbol(Type t)
  * Returns:
  *    bzero symbol
  */
-Symbol* getBzeroSymbol()
+public Symbol* getBzeroSymbol()
 {
     Symbol* s = bzeroSymbol;
     if (s)
@@ -1645,7 +1683,7 @@ private elem *toEfilename(Module m)
 }
 
 // Used in e2ir.d
-elem *toEfilenamePtr(Module m)
+public elem *toEfilenamePtr(Module m)
 {
     //printf("toEfilenamePtr(%s)\n", m.toChars());
     const(char)* id = m.srcfile.toChars();

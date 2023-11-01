@@ -440,7 +440,7 @@ nothrow:
 }
 
 // Interface for C++ code
-public extern (C++) struct AAchars
+public struct AAchars
 {
 nothrow:
     alias AA = AArray!(TinfoChars, uint);
@@ -508,7 +508,7 @@ nothrow:
 }
 
 // Interface for C++ code
-public extern (C++) struct AApair
+public struct AApair
 {
 nothrow:
     alias AA = AArray!(TinfoPair, uint);
@@ -545,7 +545,7 @@ nothrow:
 }
 
 // Interface for C++ code
-public extern (C++) struct AApair2
+public struct AApair2
 {
 nothrow:
     alias AA = AArray!(TinfoPair, Pair);

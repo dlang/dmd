@@ -13,106 +13,70 @@
 module dmd.lib;
 
 import core.stdc.stdio;
-import core.stdc.stdarg;
-
-import dmd.globals;
-import dmd.location;
-import dmd.errors;
-import dmd.target;
-import dmd.utils;
 
 import dmd.common.outbuffer;
-import dmd.root.file;
-import dmd.root.filename;
-import dmd.root.string;
+import dmd.errorsink;
+import dmd.location;
+import dmd.target : Target;
 
-import dmd.libomf;
-import dmd.libmscoff;
 import dmd.libelf;
 import dmd.libmach;
+import dmd.libmscoff;
+import dmd.libomf;
 
 private enum LOG = false;
 
 class Library
 {
-    static Library factory()
+    const(char)[] lib_ext;      // library file extension
+    ErrorSink eSink;            // where the error messages go
+
+    static Library factory(Target.ObjectFormat of, const char[] lib_ext, ErrorSink eSink)
     {
-        final switch (target.objectFormat())
+        Library lib;
+        final switch (of)
         {
-            case Target.ObjectFormat.elf:   return LibElf_factory();
-            case Target.ObjectFormat.macho: return LibMach_factory();
-            case Target.ObjectFormat.coff:  return LibMSCoff_factory();
-            case Target.ObjectFormat.omf:   return LibOMF_factory();
+            case Target.ObjectFormat.elf:   lib = LibElf_factory();     break;
+            case Target.ObjectFormat.macho: lib = LibMach_factory();    break;
+            case Target.ObjectFormat.coff:  lib = LibMSCoff_factory();  break;
+            case Target.ObjectFormat.omf:   lib = LibOMF_factory();     break;
         }
+        lib.lib_ext = lib_ext;
+        lib.eSink = eSink;
+        return lib;
     }
 
     abstract void addObject(const(char)[] module_name, const ubyte[] buf);
 
-    protected abstract void WriteLibToBuffer(OutBuffer* libbuf);
+    abstract void writeLibToBuffer(ref OutBuffer libbuf);
 
 
     /***********************************
-     * Set the library file name based on the output directory
-     * and the filename.
-     * Add default library file name extension.
+     * Set library file name
      * Params:
-     *  dir = path to file
-     *  filename = name of file relative to `dir`
+     *  filename = name of library file
      */
-    final void setFilename(const(char)[] dir, const(char)[] filename)
+    final void setFilename(const char[] filename)
     {
         static if (LOG)
         {
-            printf("LibElf::setFilename(dir = '%.*s', filename = '%.*s')\n",
-                   cast(int)dir.length, dir.ptr, cast(int)filename.length, filename.ptr);
+            printf("LibElf::setFilename(filename = '%.*s')\n",
+                   cast(int)filename.length, filename.ptr);
         }
-        const(char)[] arg = filename;
-        if (!arg.length)
-        {
-            // Generate lib file name from first obj name
-            const(char)[] n = global.params.objfiles[0].toDString;
-            n = FileName.name(n);
-            arg = FileName.forceExt(n, target.lib_ext);
-        }
-        if (!FileName.absolute(arg))
-            arg = FileName.combine(dir, arg);
 
-        loc = Loc(FileName.defaultExt(arg, target.lib_ext).ptr, 0, 0);
+        loc = Loc(filename.ptr, 0, 0);
     }
 
+    /*************
+     * Retrieve library file name
+     * Returns:
+     *  filename = name of library file
+     */
     final const(char)* getFilename() const
     {
         return loc.filename;
     }
 
-    final void write()
-    {
-        if (global.params.verbose)
-            message("library   %s", loc.filename);
-
-        auto filenameString = loc.filename.toDString;
-        ensurePathToNameExists(Loc.initial, filenameString);
-        auto tmpname = filenameString ~ ".tmp\0";
-        scope(exit) destroy(tmpname);
-
-        auto libbuf = OutBuffer(tmpname.ptr);
-        WriteLibToBuffer(&libbuf);
-
-        if (!libbuf.moveToFile(loc.filename))
-        {
-            .error(loc, "error writing file '%s'", loc.filename);
-            fatal();
-        }
-    }
-
-    final void error(const(char)* format, ...)
-    {
-        va_list ap;
-        va_start(ap, format);
-        .verror(loc, format, ap);
-        va_end(ap);
-    }
-
-  protected:
+  public:
     Loc loc;                  // the filename of the library
 }

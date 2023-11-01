@@ -748,7 +748,7 @@ class TypeInfo
 
     /** Return info used by the garbage collector to do precise collection.
      */
-    @property immutable(void)* rtInfo() nothrow pure const @safe @nogc { return rtinfoHasPointers; } // better safe than sorry
+    @property immutable(void)* rtInfo() nothrow pure const @trusted @nogc { return rtinfoHasPointers; } // better safe than sorry
 }
 
 @system unittest
@@ -2903,6 +2903,14 @@ void* aaLiteral(Key, Value)(Key[] keys, Value[] values) @trusted pure
     return _d_assocarrayliteralTX(typeid(Value[Key]), *cast(void[]*)&keys, *cast(void[]*)&values);
 }
 
+// Lower an Associative Array to a newaa struct for static initialization.
+auto _aaAsStruct(K, V)(V[K] aa) @safe
+{
+    import core.internal.newaa : makeAA;
+    assert(__ctfe);
+    return makeAA!(K, V)(aa);
+}
+
 alias AssociativeArray(Key, Value) = Value[Key];
 
 /***********************************
@@ -4660,6 +4668,7 @@ version (D_ProfileGC)
     public import core.internal.array.appending : _d_arrayappendTTrace;
     public import core.internal.array.concatenation : _d_arraycatnTXTrace;
     public import core.lifetime : _d_newitemTTrace;
+    public import core.internal.array.construction : _d_newarrayTTrace;
 }
 public import core.internal.array.appending : _d_arrayappendcTXImpl;
 public import core.internal.array.comparison : __cmp;
@@ -4668,6 +4677,7 @@ public import core.internal.array.casting: __ArrayCast;
 public import core.internal.array.concatenation : _d_arraycatnTX;
 public import core.internal.array.construction : _d_arrayctor;
 public import core.internal.array.construction : _d_arraysetctor;
+public import core.internal.array.construction : _d_newarrayT;
 public import core.internal.array.arrayassign : _d_arrayassign_l;
 public import core.internal.array.arrayassign : _d_arrayassign_r;
 public import core.internal.array.arrayassign : _d_arraysetassign;

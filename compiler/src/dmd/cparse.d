@@ -231,6 +231,9 @@ final class CParser(AST) : Parser!AST
                     }
                     goto Lexp;  // function call
 
+                case TOK.semicolon:
+                    goto Lexp;
+
                 default:
                 {
                     /* If tokens look like a declaration, assume it is one
@@ -501,7 +504,7 @@ final class CParser(AST) : Parser!AST
             auto condition = cparseExpression();
             check(TOK.rightParenthesis);
             auto _body = cparseStatement(ParseStatementFlags.scope_);
-            s = new AST.SwitchStatement(loc, condition, _body, false);
+            s = new AST.SwitchStatement(loc, null, condition, _body, false, token.loc);
             break;
         }
 
@@ -626,7 +629,7 @@ final class CParser(AST) : Parser!AST
 
                 default:
                     // ImportC extensions: parse as a D asm block.
-                    s = parseAsm();
+                    s = parseAsm(compileEnv.masm);
                     break;
             }
             break;
@@ -1920,7 +1923,12 @@ final class CParser(AST) : Parser!AST
                     }
                 }
                 if (isalias)
-                    s = new AST.AliasDeclaration(token.loc, id, dt);
+                {
+                    auto ad = new AST.AliasDeclaration(token.loc, id, dt);
+                    ad.adFlags |= ad.hidden; // do not print when generating .di files
+                    s = ad;
+                }
+
                 insertTypedefToTypedefTab(id, dt);       // remember typedefs
             }
             else if (id)
@@ -1957,7 +1965,9 @@ final class CParser(AST) : Parser!AST
                         error("no initializer for function declaration");
                     if (specifier.scw & SCW.x_Thread_local)
                         error("functions cannot be `_Thread_local`"); // C11 6.7.1-4
-                    auto fd = new AST.FuncDeclaration(token.loc, Loc.initial, id, specifiersToSTC(level, specifier), dt, specifier.noreturn);
+                    StorageClass stc = specifiersToSTC(level, specifier);
+                    stc &= ~STC.gshared;        // no gshared functions
+                    auto fd = new AST.FuncDeclaration(token.loc, Loc.initial, id, stc, dt, specifier.noreturn);
                     specifiersToFuncDeclaration(fd, specifier);
                     s = fd;
                 }
@@ -2133,7 +2143,9 @@ final class CParser(AST) : Parser!AST
         auto body = cparseStatement(ParseStatementFlags.curly);  // don't start a new scope; continue with parameter scope
         typedefTab.pop();                                        // end of function scope
 
-        auto fd = new AST.FuncDeclaration(locFunc, prevloc, id, specifiersToSTC(LVL.global, specifier), ft, specifier.noreturn);
+        StorageClass stc = specifiersToSTC(LVL.global, specifier);
+        stc &= ~STC.gshared;    // no gshared functions
+        auto fd = new AST.FuncDeclaration(locFunc, prevloc, id, stc, ft, specifier.noreturn);
         specifiersToFuncDeclaration(fd, specifier);
 
         if (addFuncName)
@@ -3114,12 +3126,13 @@ final class CParser(AST) : Parser!AST
             }
 
             Identifier id;
+            const paramLoc = token.loc;
             auto t = cparseDeclarator(DTR.xparameter, tspec, id, specifier);
             if (token.value == TOK.__attribute__)
                 cparseGnuAttributes(specifier);
             if (specifier.mod & MOD.xconst)
                 t = toConst(t);
-            auto param = new AST.Parameter(specifiersToSTC(LVL.parameter, specifier),
+            auto param = new AST.Parameter(paramLoc, specifiersToSTC(LVL.parameter, specifier),
                                            t, id, null, null);
             parameters.push(param);
             if (token.value == TOK.rightParenthesis || token.value == TOK.endOfFile)
@@ -3297,8 +3310,10 @@ final class CParser(AST) : Parser!AST
                 nextToken();
             else
             {
-                error("extended-decl-modifier expected");
-                break;
+                error("extended-decl-modifier expected after `__declspec(`, saw `%s` instead", token.toChars());
+                nextToken();
+                if (token.value != TOK.rightParenthesis)
+                    break;
             }
         }
     }
@@ -5283,7 +5298,7 @@ final class CParser(AST) : Parser!AST
             (*decls)[0] = s;
             s = new AST.AlignDeclaration(s.loc, specifier.alignExps, decls);
         }
-        else if (!specifier.packalign.isDefault())
+        else if (!specifier.packalign.isDefault() && !specifier.packalign.isUnknown())
         {
             //printf("  applying packalign %d\n", cast(int)specifier.packalign);
             // Wrap #pragma pack in an AlignDeclaration

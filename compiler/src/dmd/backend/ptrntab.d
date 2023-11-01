@@ -5798,7 +5798,7 @@ unittest
 /*******************************
  */
 
-extern (C++) const(char)* asm_opstr(OP *pop)
+const(char)* asm_opstr(OP *pop)
 {
     return pop ? &(*pop).str[0] : null;
 }
@@ -5807,7 +5807,7 @@ extern (C++) const(char)* asm_opstr(OP *pop)
  */
 
 @trusted
-extern (C++) OP *asm_op_lookup(const(char)* s)
+OP *asm_op_lookup(const(char)* s)
 {
     int i;
     char[20] szBuf = void;

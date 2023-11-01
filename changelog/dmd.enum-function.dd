@@ -1,0 +1,3 @@
+A function with enum storage class is now deprecated, not an error
+
+The error was introduced in 2.105.0.

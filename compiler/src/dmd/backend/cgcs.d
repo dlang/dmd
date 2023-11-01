@@ -41,7 +41,7 @@ nothrow:
  */
 
 @trusted
-public extern (C++) void comsubs()
+public void comsubs()
 {
     debug if (debugx) printf("comsubs(%p)\n",startblock);
 
@@ -55,7 +55,7 @@ public extern (C++) void comsubs()
  */
 
 @trusted
-public extern (C++) void cgcs_term()
+public void cgcs_term()
 {
     cgcsdata.term();
     debug debugw && printf("cgcs_term()\n");

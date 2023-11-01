@@ -27,6 +27,8 @@ abstract class ErrorSink
 
     void warning(const ref Loc loc, const(char)* format, ...);
 
+    void warningSupplemental(const ref Loc loc, const(char)* format, ...);
+
     void message(const ref Loc loc, const(char)* format, ...);
 
     void deprecation(const ref Loc loc, const(char)* format, ...);
@@ -49,6 +51,8 @@ class ErrorSinkNull : ErrorSink
 
     void warning(const ref Loc loc, const(char)* format, ...) { }
 
+    void warningSupplemental(const ref Loc loc, const(char)* format, ...) { }
+
     void message(const ref Loc loc, const(char)* format, ...) { }
 
     void deprecation(const ref Loc loc, const(char)* format, ...) { }
@@ -58,6 +62,7 @@ class ErrorSinkNull : ErrorSink
 
 /*****************************************
  * Simplest implementation, just sends messages to stderr.
+ * See also: ErrorSinkCompiler.
  */
 class ErrorSinkStderr : ErrorSink
 {
@@ -103,6 +108,8 @@ class ErrorSinkStderr : ErrorSink
         fputc('\n', stderr);
         va_end(ap);
     }
+
+    void warningSupplemental(const ref Loc loc, const(char)* format, ...) { }
 
     void deprecation(const ref Loc loc, const(char)* format, ...)
     {

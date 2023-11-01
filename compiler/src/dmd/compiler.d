@@ -13,25 +13,17 @@ module dmd.compiler;
 
 import core.stdc.string;
 
-import dmd.astcodegen;
 import dmd.astenums;
 import dmd.arraytypes;
 import dmd.dmodule;
-import dmd.dscope;
-import dmd.dsymbolsem;
 import dmd.errors;
 import dmd.expression;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
-import dmd.parse;
 import dmd.root.array;
 import dmd.root.ctfloat;
-import dmd.semantic2;
-import dmd.semantic3;
-import dmd.tokens;
-import dmd.statement;
 
 version (DMDLIB)
 {
@@ -149,7 +141,7 @@ extern (C++) struct Compiler
             if (includeImportedModuleCheck(ModuleComponentRange(
                 m.md ? m.md.packages : [], m.ident, m.isPackageFile)))
             {
-                if (global.params.verbose)
+                if (global.params.v.verbose)
                     message("compileimport (%s)", m.srcfile.toChars);
                 compiledImports.push(m);
                 return true; // this import will be compiled
@@ -160,6 +152,8 @@ extern (C++) struct Compiler
 
     version (CallbackAPI)
     {
+        import dmd.statement;
+        import dmd.dscope;
         alias OnStatementSemanticStart = void function(Statement, Scope*);
         alias OnStatementSemanticDone = void function(Statement, Scope*);
 
@@ -201,7 +195,7 @@ private struct ModuleComponentRange
         else
             return Identifier.idPool("package");
     }
-    void popFront() { index++; }
+    void popFront() @safe { index++; }
 }
 
 /*

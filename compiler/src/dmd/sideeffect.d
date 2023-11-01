@@ -14,6 +14,7 @@ module dmd.sideeffect;
 import dmd.astenums;
 import dmd.declaration;
 import dmd.dscope;
+import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
@@ -31,13 +32,13 @@ import dmd.visitor;
  *  1. save evaluation order
  *  2. prevent sharing of sub-expression in AST
  */
-extern (C++) bool isTrivialExp(Expression e)
+bool isTrivialExp(Expression e)
 {
     extern (C++) final class IsTrivialExp : StoppableVisitor
     {
         alias visit = typeof(super).visit;
     public:
-        extern (D) this() scope
+        extern (D) this() scope @safe
         {
         }
 
@@ -69,13 +70,13 @@ extern (C++) bool isTrivialExp(Expression e)
  *   assumeImpureCalls = whether function calls should always be assumed to
  *                       be impure (e.g. debug is allowed to violate purity)
  */
-extern (C++) bool hasSideEffect(Expression e, bool assumeImpureCalls = false)
+bool hasSideEffect(Expression e, bool assumeImpureCalls = false)
 {
     extern (C++) final class LambdaHasSideEffect : StoppableVisitor
     {
         alias visit = typeof(super).visit;
     public:
-        extern (D) this() scope
+        extern (D) this() scope @safe
         {
         }
 
@@ -268,41 +269,6 @@ bool discardValue(Expression e)
             break;
         }
     case EXP.call:
-        /* Issue 3882: */
-        if (global.params.warnings != DiagnosticReporting.off && !global.gag)
-        {
-            CallExp ce = cast(CallExp)e;
-            if (e.type.ty == Tvoid)
-            {
-                /* Don't complain about calling void-returning functions with no side-effect,
-                 * because purity and nothrow are inferred, and because some of the
-                 * runtime library depends on it. Needs more investigation.
-                 *
-                 * One possible solution is to restrict this message to only be called in hierarchies that
-                 * never call assert (and or not called from inside unittest blocks)
-                 */
-            }
-            else if (ce.e1.type)
-            {
-                Type t = ce.e1.type.toBasetype();
-                if (t.ty == Tdelegate)
-                    t = (cast(TypeDelegate)t).next;
-                if (t.ty == Tfunction && (ce.f ? callSideEffectLevel(ce.f) : callSideEffectLevel(ce.e1.type)) > 0)
-                {
-                    const(char)* s;
-                    if (ce.f)
-                        s = ce.f.toPrettyChars();
-                    else if (ce.e1.op == EXP.star)
-                    {
-                        // print 'fp' if ce.e1 is (*fp)
-                        s = (cast(PtrExp)ce.e1).e1.toChars();
-                    }
-                    else
-                        s = ce.e1.toChars();
-                    e.warning("calling `%s` without side effects discards return value of type `%s`; prepend a `cast(void)` if intentional", s, e.type.toChars());
-                }
-            }
-        }
         return false;
     case EXP.andAnd:
     case EXP.orOr:
@@ -368,12 +334,12 @@ bool discardValue(Expression e)
         BinExp tmp = e.isBinExp();
         assert(tmp);
 
-        e.error("the result of the equality expression `%s` is discarded", e.toChars());
+        error(e.loc, "the result of the equality expression `%s` is discarded", e.toChars());
         bool seenSideEffect = false;
         foreach(expr; [tmp.e1, tmp.e2])
         {
             if (hasSideEffect(expr)) {
-                expr.errorSupplemental("note that `%s` may have a side effect", expr.toChars());
+                errorSupplemental(expr.loc, "note that `%s` may have a side effect", expr.toChars());
                 seenSideEffect |= true;
             }
         }
@@ -381,7 +347,7 @@ bool discardValue(Expression e)
     default:
         break;
     }
-    e.error("`%s` has no effect", e.toChars());
+    error(e.loc, "`%s` has no effect", e.toChars());
     return true;
 }
 

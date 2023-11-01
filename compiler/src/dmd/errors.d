@@ -11,7 +11,7 @@
 
 module dmd.errors;
 
-import core.stdc.stdarg;
+public import core.stdc.stdarg;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -24,6 +24,16 @@ import dmd.root.string;
 import dmd.console;
 
 nothrow:
+
+/// Constants used to discriminate kinds of error messages.
+enum ErrorKind
+{
+    warning,
+    deprecation,
+    error,
+    tip,
+    message,
+}
 
 /***************************
  * Error message sink for D compiler.
@@ -38,7 +48,7 @@ class ErrorSinkCompiler : ErrorSink
     {
         va_list ap;
         va_start(ap, format);
-        verror(loc, format, ap);
+        verrorReport(loc, format, ap, ErrorKind.error);
         va_end(ap);
     }
 
@@ -46,7 +56,7 @@ class ErrorSinkCompiler : ErrorSink
     {
         va_list ap;
         va_start(ap, format);
-        verrorSupplemental(loc, format, ap);
+        verrorReportSupplemental(loc, format, ap, ErrorKind.error);
         va_end(ap);
     }
 
@@ -54,7 +64,15 @@ class ErrorSinkCompiler : ErrorSink
     {
         va_list ap;
         va_start(ap, format);
-        vwarning(loc, format, ap);
+        verrorReport(loc, format, ap, ErrorKind.warning);
+        va_end(ap);
+    }
+
+    void warningSupplemental(const ref Loc loc, const(char)* format, ...)
+    {
+        va_list ap;
+        va_start(ap, format);
+        verrorReportSupplemental(loc, format, ap, ErrorKind.warning);
         va_end(ap);
     }
 
@@ -62,7 +80,7 @@ class ErrorSinkCompiler : ErrorSink
     {
         va_list ap;
         va_start(ap, format);
-        vdeprecation(loc, format, ap);
+        verrorReport(loc, format, ap, ErrorKind.deprecation);
         va_end(ap);
     }
 
@@ -70,7 +88,7 @@ class ErrorSinkCompiler : ErrorSink
     {
         va_list ap;
         va_start(ap, format);
-        vdeprecationSupplemental(loc, format, ap);
+        verrorReportSupplemental(loc, format, ap, ErrorKind.deprecation);
         va_end(ap);
     }
 
@@ -78,7 +96,7 @@ class ErrorSinkCompiler : ErrorSink
     {
         va_list ap;
         va_start(ap, format);
-        vmessage(loc, format, ap);
+        verrorReport(loc, format, ap, ErrorKind.message);
         va_end(ap);
     }
 }
@@ -105,22 +123,32 @@ else
 
 package auto previewErrorFunc(bool isDeprecated, FeatureState featureState) @safe @nogc pure nothrow
 {
-    if (featureState == FeatureState.enabled)
-        return &error;
-    else if (featureState == FeatureState.disabled || isDeprecated)
-        return &noop;
-    else
-        return &deprecation;
+    with (FeatureState) final switch (featureState)
+    {
+        case enabled:
+            return &error;
+
+        case disabled:
+            return &noop;
+
+        case default_:
+            return isDeprecated ? &noop : &deprecation;
+    }
 }
 
 package auto previewSupplementalFunc(bool isDeprecated, FeatureState featureState) @safe @nogc pure nothrow
 {
-    if (featureState == FeatureState.enabled)
-        return &errorSupplemental;
-    else if (featureState == FeatureState.disabled || isDeprecated)
-        return &noop;
-    else
-        return &deprecationSupplemental;
+    with (FeatureState) final switch (featureState)
+    {
+        case enabled:
+            return &errorSupplemental;
+
+        case disabled:
+            return &noop;
+
+        case default_:
+            return isDeprecated ? &noop : &deprecationSupplemental;
+    }
 }
 
 
@@ -136,7 +164,7 @@ static if (__VERSION__ < 2092)
     {
         va_list ap;
         va_start(ap, format);
-        verror(loc, format, ap);
+        verrorReport(loc, format, ap, ErrorKind.error);
         va_end(ap);
     }
 else
@@ -144,7 +172,7 @@ else
     {
         va_list ap;
         va_start(ap, format);
-        verror(loc, format, ap);
+        verrorReport(loc, format, ap, ErrorKind.error);
         va_end(ap);
     }
 
@@ -163,7 +191,7 @@ static if (__VERSION__ < 2092)
         const loc = Loc(filename, linnum, charnum);
         va_list ap;
         va_start(ap, format);
-        verror(loc, format, ap);
+        verrorReport(loc, format, ap, ErrorKind.error);
         va_end(ap);
     }
 else
@@ -172,7 +200,7 @@ else
         const loc = Loc(filename, linnum, charnum);
         va_list ap;
         va_start(ap, format);
-        verror(loc, format, ap);
+        verrorReport(loc, format, ap, ErrorKind.error);
         va_end(ap);
     }
 
@@ -189,7 +217,7 @@ static if (__VERSION__ < 2092)
     {
         va_list ap;
         va_start(ap, format);
-        verrorSupplemental(loc, format, ap);
+        verrorReportSupplemental(loc, format, ap, ErrorKind.error);
         va_end(ap);
     }
 else
@@ -197,7 +225,7 @@ else
     {
         va_list ap;
         va_start(ap, format);
-        verrorSupplemental(loc, format, ap);
+        verrorReportSupplemental(loc, format, ap, ErrorKind.error);
         va_end(ap);
     }
 
@@ -213,7 +241,7 @@ static if (__VERSION__ < 2092)
     {
         va_list ap;
         va_start(ap, format);
-        vwarning(loc, format, ap);
+        verrorReport(loc, format, ap, ErrorKind.warning);
         va_end(ap);
     }
 else
@@ -221,7 +249,7 @@ else
     {
         va_list ap;
         va_start(ap, format);
-        vwarning(loc, format, ap);
+        verrorReport(loc, format, ap, ErrorKind.warning);
         va_end(ap);
     }
 
@@ -238,7 +266,7 @@ static if (__VERSION__ < 2092)
     {
         va_list ap;
         va_start(ap, format);
-        vwarningSupplemental(loc, format, ap);
+        verrorReportSupplemental(loc, format, ap, ErrorKind.warning);
         va_end(ap);
     }
 else
@@ -246,7 +274,7 @@ else
     {
         va_list ap;
         va_start(ap, format);
-        vwarningSupplemental(loc, format, ap);
+        verrorReportSupplemental(loc, format, ap, ErrorKind.warning);
         va_end(ap);
     }
 
@@ -263,7 +291,7 @@ static if (__VERSION__ < 2092)
     {
         va_list ap;
         va_start(ap, format);
-        vdeprecation(loc, format, ap);
+        verrorReport(loc, format, ap, ErrorKind.deprecation);
         va_end(ap);
     }
 else
@@ -271,7 +299,7 @@ else
     {
         va_list ap;
         va_start(ap, format);
-        vdeprecation(loc, format, ap);
+        verrorReport(loc, format, ap, ErrorKind.deprecation);
         va_end(ap);
     }
 
@@ -288,7 +316,7 @@ static if (__VERSION__ < 2092)
     {
         va_list ap;
         va_start(ap, format);
-        vdeprecationSupplemental(loc, format, ap);
+        verrorReportSupplemental(loc, format, ap, ErrorKind.deprecation);
         va_end(ap);
     }
 else
@@ -296,7 +324,7 @@ else
     {
         va_list ap;
         va_start(ap, format);
-        vdeprecationSupplemental(loc, format, ap);
+        verrorReportSupplemental(loc, format, ap, ErrorKind.deprecation);
         va_end(ap);
     }
 
@@ -313,7 +341,7 @@ static if (__VERSION__ < 2092)
     {
         va_list ap;
         va_start(ap, format);
-        vmessage(loc, format, ap);
+        verrorReport(loc, format, ap, ErrorKind.message);
         va_end(ap);
     }
 else
@@ -321,7 +349,7 @@ else
     {
         va_list ap;
         va_start(ap, format);
-        vmessage(loc, format, ap);
+        verrorReport(loc, format, ap, ErrorKind.message);
         va_end(ap);
     }
 
@@ -336,7 +364,7 @@ static if (__VERSION__ < 2092)
     {
         va_list ap;
         va_start(ap, format);
-        vmessage(Loc.initial, format, ap);
+        verrorReport(Loc.initial, format, ap, ErrorKind.message);
         va_end(ap);
     }
 else
@@ -344,13 +372,13 @@ else
     {
         va_list ap;
         va_start(ap, format);
-        vmessage(Loc.initial, format, ap);
+        verrorReport(Loc.initial, format, ap, ErrorKind.message);
         va_end(ap);
     }
 
 /**
  * The type of the diagnostic handler
- * see verrorPrint for arguments
+ * see verrorReport for arguments
  * Returns: true if error handling is done, false to continue printing to stderr
  */
 alias DiagnosticHandler = bool delegate(const ref Loc location, Color headerColor, const(char)* header, const(char)* messageFormat, va_list args, const(char)* prefix1, const(char)* prefix2);
@@ -373,7 +401,7 @@ static if (__VERSION__ < 2092)
     {
         va_list ap;
         va_start(ap, format);
-        vtip(format, ap);
+        verrorReport(Loc.initial, format, ap, ErrorKind.tip);
         va_end(ap);
     }
 else
@@ -381,32 +409,211 @@ else
     {
         va_list ap;
         va_start(ap, format);
-        vtip(format, ap);
+        verrorReport(Loc.initial, format, ap, ErrorKind.tip);
         va_end(ap);
     }
+
+
+// Encapsulates an error as described by its location, format message, and kind.
+private struct ErrorInfo
+{
+    this(const ref Loc loc, const ErrorKind kind, const(char)* p1 = null, const(char)* p2 = null) @safe @nogc pure nothrow
+    {
+        this.loc = loc;
+        this.p1 = p1;
+        this.p2 = p2;
+        this.kind = kind;
+    }
+
+    const Loc loc;              // location of error
+    Classification headerColor; // color to set `header` output to
+    const(char)* p1;            // additional message prefix
+    const(char)* p2;            // additional message prefix
+    const ErrorKind kind;       // kind of error being printed
+    bool supplemental;          // true if supplemental error
+}
+
+/**
+ * Implements $(D error), $(D warning), $(D deprecation), $(D message), and
+ * $(D tip). Report a diagnostic error, taking a va_list parameter, and
+ * optionally additional message prefixes. Whether the message gets printed
+ * depends on runtime values of DiagnosticReporting and global gagging.
+ * Params:
+ *      loc         = location of error
+ *      format      = printf-style format specification
+ *      ap          = printf-style variadic arguments
+ *      kind        = kind of error being printed
+ *      p1          = additional message prefix
+ *      p2          = additional message prefix
+ */
+extern (C++) void verrorReport(const ref Loc loc, const(char)* format, va_list ap, ErrorKind kind, const(char)* p1 = null, const(char)* p2 = null)
+{
+    auto info = ErrorInfo(loc, kind, p1, p2);
+    final switch (info.kind)
+    {
+    case ErrorKind.error:
+        global.errors++;
+        if (!global.gag)
+        {
+            info.headerColor = Classification.error;
+            verrorPrint(format, ap, info);
+            if (global.params.v.errorLimit && global.errors >= global.params.v.errorLimit)
+                fatal(); // moderate blizzard of cascading messages
+        }
+        else
+        {
+            if (global.params.v.showGaggedErrors)
+            {
+                info.headerColor = Classification.gagged;
+                verrorPrint(format, ap, info);
+            }
+            global.gaggedErrors++;
+        }
+        break;
+
+    case ErrorKind.deprecation:
+        if (global.params.useDeprecated == DiagnosticReporting.error)
+            goto case ErrorKind.error;
+        else if (global.params.useDeprecated == DiagnosticReporting.inform)
+        {
+            if (!global.gag)
+            {
+                info.headerColor = Classification.deprecation;
+                verrorPrint(format, ap, info);
+            }
+            else
+            {
+                global.gaggedWarnings++;
+            }
+        }
+        break;
+
+    case ErrorKind.warning:
+        if (global.params.warnings != DiagnosticReporting.off)
+        {
+            if (!global.gag)
+            {
+                info.headerColor = Classification.warning;
+                verrorPrint(format, ap, info);
+                if (global.params.warnings == DiagnosticReporting.error)
+                    global.warnings++;
+            }
+            else
+            {
+                global.gaggedWarnings++;
+            }
+        }
+        break;
+
+    case ErrorKind.tip:
+        if (!global.gag)
+        {
+            info.headerColor = Classification.tip;
+            verrorPrint(format, ap, info);
+        }
+        break;
+
+    case ErrorKind.message:
+        const p = info.loc.toChars();
+        if (*p)
+        {
+            fprintf(stdout, "%s: ", p);
+            mem.xfree(cast(void*)p);
+        }
+        OutBuffer tmp;
+        tmp.vprintf(format, ap);
+        fputs(tmp.peekChars(), stdout);
+        fputc('\n', stdout);
+        fflush(stdout);     // ensure it gets written out in case of compiler aborts
+        break;
+    }
+}
+
+/**
+ * Implements $(D errorSupplemental), $(D warningSupplemental), and
+ * $(D deprecationSupplemental). Report an addition diagnostic error, taking a
+ * va_list parameter. Whether the message gets printed depends on runtime
+ * values of DiagnosticReporting and global gagging.
+ * Params:
+ *      loc         = location of error
+ *      format      = printf-style format specification
+ *      ap          = printf-style variadic arguments
+ *      kind        = kind of error being printed
+ */
+extern (C++) void verrorReportSupplemental(const ref Loc loc, const(char)* format, va_list ap, ErrorKind kind)
+{
+    auto info = ErrorInfo(loc, kind);
+    info.supplemental = true;
+    switch (info.kind)
+    {
+    case ErrorKind.error:
+        if (global.gag)
+        {
+            if (!global.params.v.showGaggedErrors)
+                return;
+            info.headerColor = Classification.gagged;
+        }
+        else
+            info.headerColor = Classification.error;
+        verrorPrint(format, ap, info);
+        break;
+
+    case ErrorKind.deprecation:
+        if (global.params.useDeprecated == DiagnosticReporting.error)
+            goto case ErrorKind.error;
+        else if (global.params.useDeprecated == DiagnosticReporting.inform && !global.gag)
+        {
+            info.headerColor = Classification.deprecation;
+            verrorPrint(format, ap, info);
+        }
+        break;
+
+    case ErrorKind.warning:
+        if (global.params.warnings != DiagnosticReporting.off && !global.gag)
+        {
+            info.headerColor = Classification.warning;
+            verrorPrint(format, ap, info);
+        }
+        break;
+
+    default:
+        assert(false, "internal error: unhandled kind in error report");
+    }
+}
 
 /**
  * Just print to stderr, doesn't care about gagging.
  * (format,ap) text within backticks gets syntax highlighted.
  * Params:
- *      loc         = location of error
- *      headerColor = color to set `header` output to
- *      header      = title of error message
- *      format      = printf-style format specification
- *      ap          = printf-style variadic arguments
- *      p1          = additional message prefix
- *      p2          = additional message prefix
+ *      format  = printf-style format specification
+ *      ap      = printf-style variadic arguments
+ *      info    = context of error
  */
-private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* header,
-        const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null)
+private void verrorPrint(const(char)* format, va_list ap, ref ErrorInfo info)
 {
-    if (diagnosticHandler && diagnosticHandler(loc, headerColor, header, format, ap, p1, p2))
+    const(char)* header;    // title of error message
+    if (info.supplemental)
+        header = "       ";
+    else
+    {
+        final switch (info.kind)
+        {
+            case ErrorKind.error:       header = "Error: "; break;
+            case ErrorKind.deprecation: header = "Deprecation: "; break;
+            case ErrorKind.warning:     header = "Warning: "; break;
+            case ErrorKind.tip:         header = "  Tip: "; break;
+            case ErrorKind.message:     assert(0);
+        }
+    }
+
+    if (diagnosticHandler !is null &&
+        diagnosticHandler(info.loc, info.headerColor, header, format, ap, info.p1, info.p2))
         return;
 
-    if (global.params.showGaggedErrors && global.gag)
+    if (global.params.v.showGaggedErrors && global.gag)
         fprintf(stderr, "(spec:%d) ", global.gag);
     Console con = cast(Console) global.console;
-    const p = loc.toChars();
+    const p = info.loc.toChars();
     if (con)
         con.setColorBright(true);
     if (*p)
@@ -415,19 +622,19 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
         mem.xfree(cast(void*)p);
     }
     if (con)
-        con.setColor(headerColor);
+        con.setColor(info.headerColor);
     fputs(header, stderr);
     if (con)
         con.resetColor();
     OutBuffer tmp;
-    if (p1)
+    if (info.p1)
     {
-        tmp.writestring(p1);
+        tmp.writestring(info.p1);
         tmp.writestring(" ");
     }
-    if (p2)
+    if (info.p2)
     {
-        tmp.writestring(p2);
+        tmp.writestring(info.p2);
         tmp.writestring(" ");
     }
     tmp.vprintf(format, ap);
@@ -442,9 +649,10 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
     fputc('\n', stderr);
 
     __gshared Loc old_loc;
-    if (global.params.printErrorContext &&
+    Loc loc = info.loc;
+    if (global.params.v.printErrorContext &&
         // ignore supplemental messages with same loc
-        (loc != old_loc || strchr(header, ':')) &&
+        (loc != old_loc || !info.supplemental) &&
         // ignore invalid files
         loc != Loc.initial &&
         // ignore mixins for now
@@ -485,236 +693,6 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
 }
 
 /**
- * Same as $(D error), but takes a va_list parameter, and optionally additional message prefixes.
- * Params:
- *      loc    = location of error
- *      format = printf-style format specification
- *      ap     = printf-style variadic arguments
- *      p1     = additional message prefix
- *      p2     = additional message prefix
- *      header = title of error message
- */
-extern (C++) void verror(const ref Loc loc, const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null, const(char)* header = "Error: ")
-{
-    global.errors++;
-    if (!global.gag)
-    {
-        verrorPrint(loc, Classification.error, header, format, ap, p1, p2);
-        if (global.params.errorLimit && global.errors >= global.params.errorLimit)
-            fatal(); // moderate blizzard of cascading messages
-    }
-    else
-    {
-        if (global.params.showGaggedErrors)
-            verrorPrint(loc, Classification.gagged, header, format, ap, p1, p2);
-        global.gaggedErrors++;
-    }
-}
-
-/**
- * Same as $(D errorSupplemental), but takes a va_list parameter.
- * Params:
- *      loc    = location of error
- *      format = printf-style format specification
- *      ap     = printf-style variadic arguments
- */
-static if (__VERSION__ < 2092)
-    extern (C++) void verrorSupplemental(const ref Loc loc, const(char)* format, va_list ap)
-    {
-        _verrorSupplemental(loc, format, ap);
-    }
-else
-    pragma(printf) extern (C++) void verrorSupplemental(const ref Loc loc, const(char)* format, va_list ap)
-    {
-        _verrorSupplemental(loc, format, ap);
-    }
-
-private void _verrorSupplemental(const ref Loc loc, const(char)* format, va_list ap)
-{
-    Color color;
-    if (global.gag)
-    {
-        if (!global.params.showGaggedErrors)
-            return;
-        color = Classification.gagged;
-    }
-    else
-        color = Classification.error;
-
-    verrorPrint(loc, color, "       ", format, ap);
-}
-
-/**
- * Same as $(D warning), but takes a va_list parameter.
- * Params:
- *      loc    = location of warning
- *      format = printf-style format specification
- *      ap     = printf-style variadic arguments
- */
-static if (__VERSION__ < 2092)
-    extern (C++) void vwarning(const ref Loc loc, const(char)* format, va_list ap)
-    {
-        _vwarning(loc, format, ap);
-    }
-else
-    pragma(printf) extern (C++) void vwarning(const ref Loc loc, const(char)* format, va_list ap)
-    {
-        _vwarning(loc, format, ap);
-    }
-
-private void _vwarning(const ref Loc loc, const(char)* format, va_list ap)
-{
-    if (global.params.warnings != DiagnosticReporting.off)
-    {
-        if (!global.gag)
-        {
-            verrorPrint(loc, Classification.warning, "Warning: ", format, ap);
-            if (global.params.warnings == DiagnosticReporting.error)
-                global.warnings++;
-        }
-        else
-        {
-            global.gaggedWarnings++;
-        }
-    }
-}
-
-/**
- * Same as $(D warningSupplemental), but takes a va_list parameter.
- * Params:
- *      loc    = location of warning
- *      format = printf-style format specification
- *      ap     = printf-style variadic arguments
- */
-static if (__VERSION__ < 2092)
-    extern (C++) void vwarningSupplemental(const ref Loc loc, const(char)* format, va_list ap)
-    {
-        _vwarningSupplemental(loc, format, ap);
-    }
-else
-    pragma(printf) extern (C++) void vwarningSupplemental(const ref Loc loc, const(char)* format, va_list ap)
-    {
-        _vwarningSupplemental(loc, format, ap);
-    }
-
-private void _vwarningSupplemental(const ref Loc loc, const(char)* format, va_list ap)
-{
-    if (global.params.warnings != DiagnosticReporting.off && !global.gag)
-        verrorPrint(loc, Classification.warning, "       ", format, ap);
-}
-
-/**
- * Same as $(D deprecation), but takes a va_list parameter, and optionally additional message prefixes.
- * Params:
- *      loc    = location of deprecation
- *      format = printf-style format specification
- *      ap     = printf-style variadic arguments
- *      p1     = additional message prefix
- *      p2     = additional message prefix
- */
-extern (C++) void vdeprecation(const ref Loc loc, const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null)
-{
-    static immutable header = "Deprecation: ";
-    if (global.params.useDeprecated == DiagnosticReporting.error)
-        verror(loc, format, ap, p1, p2, header.ptr);
-    else if (global.params.useDeprecated == DiagnosticReporting.inform)
-    {
-        if (!global.gag)
-        {
-            verrorPrint(loc, Classification.deprecation, header.ptr, format, ap, p1, p2);
-        }
-        else
-        {
-            global.gaggedWarnings++;
-        }
-    }
-}
-
-/**
- * Same as $(D message), but takes a va_list parameter.
- * Params:
- *      loc       = location of message
- *      format    = printf-style format specification
- *      ap        = printf-style variadic arguments
- */
-static if (__VERSION__ < 2092)
-    extern (C++) void vmessage(const ref Loc loc, const(char)* format, va_list ap)
-    {
-        _vmessage(loc, format, ap);
-    }
-else
-    pragma(printf) extern (C++) void vmessage(const ref Loc loc, const(char)* format, va_list ap)
-    {
-        _vmessage(loc, format, ap);
-    }
-
-private void _vmessage(const ref Loc loc, const(char)* format, va_list ap)
-{
-    const p = loc.toChars();
-    if (*p)
-    {
-        fprintf(stdout, "%s: ", p);
-        mem.xfree(cast(void*)p);
-    }
-    OutBuffer tmp;
-    tmp.vprintf(format, ap);
-    fputs(tmp.peekChars(), stdout);
-    fputc('\n', stdout);
-    fflush(stdout);     // ensure it gets written out in case of compiler aborts
-}
-
-/**
- * Same as $(D tip), but takes a va_list parameter.
- * Params:
- *      format    = printf-style format specification
- *      ap        = printf-style variadic arguments
- */
-static if (__VERSION__ < 2092)
-    extern (C++) void vtip(const(char)* format, va_list ap)
-    {
-        _vtip(format, ap);
-    }
-else
-    pragma(printf) extern (C++) void vtip(const(char)* format, va_list ap)
-    {
-        _vtip(format, ap);
-    }
-private void _vtip(const(char)* format, va_list ap)
-{
-    if (!global.gag)
-    {
-        Loc loc = Loc.init;
-        verrorPrint(loc, Classification.tip, "  Tip: ", format, ap);
-    }
-}
-
-/**
- * Same as $(D deprecationSupplemental), but takes a va_list parameter.
- * Params:
- *      loc    = location of deprecation
- *      format = printf-style format specification
- *      ap     = printf-style variadic arguments
- */
-static if (__VERSION__ < 2092)
-    extern (C++) void vdeprecationSupplemental(const ref Loc loc, const(char)* format, va_list ap)
-    {
-        _vdeprecationSupplemental(loc, format, ap);
-    }
-else
-    pragma(printf) extern (C++) void vdeprecationSupplemental(const ref Loc loc, const(char)* format, va_list ap)
-    {
-        _vdeprecationSupplemental(loc, format, ap);
-    }
-
-private void _vdeprecationSupplemental(const ref Loc loc, const(char)* format, va_list ap)
-{
-    if (global.params.useDeprecated == DiagnosticReporting.error)
-        verrorSupplemental(loc, format, ap);
-    else if (global.params.useDeprecated == DiagnosticReporting.inform && !global.gag)
-        verrorPrint(loc, Classification.deprecation, "       ", format, ap);
-}
-
-/**
  * The type of the fatal error handler
  * Returns: true if error handling is done, false to do exit(EXIT_FAILURE)
  */
@@ -742,7 +720,7 @@ extern (C++) void fatal()
  * Try to stop forgetting to remove the breakpoints from
  * release builds.
  */
-extern (C++) void halt()
+extern (C++) void halt() @safe
 {
     assert(0);
 }
@@ -827,11 +805,7 @@ private void colorHighlightCode(ref OutBuffer buf)
     }
     ++nested;
 
-    __gshared ErrorSinkNull errorSinkNull;
-    if (!errorSinkNull)
-        errorSinkNull = new ErrorSinkNull;
-
-    scope Lexer lex = new Lexer(null, cast(char*)buf[].ptr, 0, buf.length - 1, 0, 1, errorSinkNull, &global.compileEnv);
+    scope Lexer lex = new Lexer(null, cast(char*)buf[].ptr, 0, buf.length - 1, 0, 1, global.errorSinkNull, &global.compileEnv);
     OutBuffer res;
     const(char)* lastp = cast(char*)buf[].ptr;
     //printf("colorHighlightCode('%.*s')\n", cast(int)(buf.length - 1), buf[].ptr);

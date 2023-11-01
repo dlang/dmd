@@ -47,7 +47,6 @@ version (Windows)
     }
 }
 
-extern (C++):
 
 nothrow:
 @safe:
@@ -122,7 +121,7 @@ void outdata(Symbol *s)
                          dt.DTnbytes > config.threshold)
                 {
                 L1:
-                    objmod.write_bytes(SegData[dt.DTseg],dt.DTnbytes,dt.DTpbytes);
+                    objmod.write_bytes(SegData[dt.DTseg],dt.DTpbytes[0 .. dt.DTnbytes]);
                     break;
                 }
                 else
@@ -186,7 +185,6 @@ void outdata(Symbol *s)
                     assert(s.Sseg && s.Sseg != UNKNOWN);
                     if (s.Sclass == SC.global || (s.Sclass == SC.static_ && config.objfmt != OBJ_OMF)) // if a pubdef to be done
                         objmod.pubdefsize(s.Sseg,s,s.Soffset,datasize);   // do the definition
-                    searchfixlist(s);
                     if (config.fulltypes &&
                         !(s.Sclass == SC.static_ && funcsym_p)) // not local static
                     {
@@ -320,7 +318,6 @@ void outdata(Symbol *s)
         else
             cv_outsym(s);
     }
-    searchfixlist(s);
 
     /* Go back through list, now that we know its size, and send out    */
     /* the data.                                                        */
@@ -1027,7 +1024,6 @@ private void writefunc2(Symbol *sfunc)
         }
         cod3_align(cseg);               // align start of function
         objmod.func_start(sfunc);
-        searchfixlist(sfunc);           // backpatch any refs to this function
     }
 
     //printf("codgen()\n");
@@ -1220,7 +1216,7 @@ static if (0)
         alignOffset(DATA, sz);
         s = symboldata(Offset(DATA),ty | mTYconst);
         s.Sseg = DATA;
-        objmod.write_bytes(SegData[DATA], len, p);
+        objmod.write_bytes(SegData[DATA], p[0 .. len]);
         //printf("s.Sseg = %d:x%x\n", s.Sseg, s.Soffset);
     }
 
@@ -1257,7 +1253,7 @@ static if (0)
 void out_readonly_comdat(Symbol *s, const(void)* p, uint len, uint nzeros)
 {
     objmod.readonly_comdat(s);         // create comdat segment
-    objmod.write_bytes(SegData[s.Sseg], len, cast(void *)p);
+    objmod.write_bytes(SegData[s.Sseg], p[0 .. len]);
     objmod.lidata(s.Sseg, len, nzeros);
 }
 

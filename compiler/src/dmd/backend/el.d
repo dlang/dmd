@@ -25,7 +25,6 @@ import dmd.backend.cc : Symbol;
 
 import dmd.backend.dlist;
 
-extern (C++):
 @nogc:
 nothrow:
 @safe:
@@ -132,7 +131,7 @@ void elem_debug(const elem* e)
 }
 
 @trusted
-FL el_fl(const elem* e) { return cast(FL)e.EV.Vsym.Sfl; }
+FL el_fl(const elem* e) { return e.EV.Vsym.Sfl; }
 
 //#define Eoffset         EV.sp.Voffset
 //#define Esymnum         EV.sp.Vsymnum

@@ -23,8 +23,6 @@ import dmd.backend.el;
 
 import dmd.common.outbuffer;
 
-extern (C++):
-
 nothrow:
 
 version (Windows)
@@ -37,65 +35,6 @@ else
     static assert(0, "unsupported version");
 
 /******************************************************************/
-
-/* Functions common to all object formats
- */
-mixin(ObjMemDecl("Obj $Obj_init(OutBuffer *, const(char)* filename, const(char)* csegname)"));
-mixin(ObjMemDecl("void $Obj_initfile(const(char)* filename, const(char)* csegname, const(char)* modname)"));
-mixin(ObjMemDecl("void $Obj_termfile()"));
-mixin(ObjMemDecl("void $Obj_term(const(char)* objfilename)"));
-mixin(ObjMemDecl("void $Obj_linnum(Srcpos srcpos, int seg, targ_size_t offset)"));
-mixin(ObjMemDecl("int  $Obj_codeseg(const char *name,int suffix)"));
-mixin(ObjMemDecl("void $Obj_startaddress(Symbol *)"));
-mixin(ObjMemDecl("bool $Obj_includelib(const(char)* )"));
-mixin(ObjMemDecl("bool $Obj_linkerdirective(const(char)* )"));
-mixin(ObjMemDecl("bool $Obj_allowZeroSize()"));
-mixin(ObjMemDecl("void $Obj_exestr(const(char)* p)"));
-mixin(ObjMemDecl("void $Obj_user(const(char)* p)"));
-mixin(ObjMemDecl("void $Obj_compiler(const(char)* p)"));
-mixin(ObjMemDecl("void $Obj_wkext(Symbol *,Symbol *)"));
-mixin(ObjMemDecl("void $Obj_alias(const(char)* n1,const(char)* n2)"));
-mixin(ObjMemDecl("void $Obj_staticctor(Symbol *s,int dtor,int seg)"));
-mixin(ObjMemDecl("void $Obj_staticdtor(Symbol *s)"));
-mixin(ObjMemDecl("void $Obj_setModuleCtorDtor(Symbol *s, bool isCtor)"));
-mixin(ObjMemDecl("void $Obj_ehtables(Symbol *sfunc,uint size,Symbol *ehsym)"));
-mixin(ObjMemDecl("void $Obj_ehsections()"));
-mixin(ObjMemDecl("void $Obj_moduleinfo(Symbol *scc)"));
-mixin(ObjMemDecl("int  $Obj_comdat(Symbol *)"));
-mixin(ObjMemDecl("int  $Obj_comdatsize(Symbol *, targ_size_t symsize)"));
-mixin(ObjMemDecl("int  $Obj_readonly_comdat(Symbol *s)"));
-mixin(ObjMemDecl("void $Obj_setcodeseg(int seg)"));
-mixin(ObjMemDecl("seg_data* $Obj_tlsseg()"));
-mixin(ObjMemDecl("seg_data* $Obj_tlsseg_bss()"));
-mixin(ObjMemDecl("seg_data* $Obj_tlsseg_data()"));
-mixin(ObjMemDecl("void $Obj_export_symbol(Symbol *s, uint argsize)"));
-mixin(ObjMemDecl("void $Obj_pubdef(int seg, Symbol *s, targ_size_t offset)"));
-mixin(ObjMemDecl("void $Obj_pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize)"));
-mixin(ObjMemDecl("int  $Obj_external_def(const(char)*)"));
-mixin(ObjMemDecl("int  $Obj_data_start(Symbol *sdata, targ_size_t datasize, int seg)"));
-mixin(ObjMemDecl("int  $Obj_external(Symbol *)"));
-mixin(ObjMemDecl("int  $Obj_common_block(Symbol *s, targ_size_t size, targ_size_t count)"));
-mixin(ObjMemDecl("int  $Obj_common_block(Symbol *s, int flag, targ_size_t size, targ_size_t count)"));
-mixin(ObjMemDecl("void $Obj_lidata(int seg, targ_size_t offset, targ_size_t count)"));
-mixin(ObjMemDecl("void $Obj_write_zeros(seg_data *pseg, targ_size_t count)"));
-mixin(ObjMemDecl("void $Obj_write_byte(seg_data *pseg, uint _byte)"));
-mixin(ObjMemDecl("void $Obj_write_bytes(seg_data *pseg, uint nbytes, const(void)* p)"));
-mixin(ObjMemDecl("void $Obj_byte(int seg, targ_size_t offset, uint _byte)"));
-mixin(ObjMemDecl("uint $Obj_bytes(int seg, targ_size_t offset, uint nbytes, const(void)* p)"));
-mixin(ObjMemDecl("void $Obj_reftodatseg(int seg, targ_size_t offset, targ_size_t val, uint targetdatum, int flags)"));
-mixin(ObjMemDecl("void $Obj_reftocodeseg(int seg, targ_size_t offset, targ_size_t val)"));
-mixin(ObjMemDecl("int  $Obj_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val, int flags)"));
-mixin(ObjMemDecl("void $Obj_far16thunk(Symbol *s)"));
-mixin(ObjMemDecl("void $Obj_fltused()"));
-mixin(ObjMemDecl("int  $Obj_data_readonly(char *p, int len, int *pseg)"));
-mixin(ObjMemDecl("int  $Obj_data_readonly(char *p, int len)"));
-mixin(ObjMemDecl("int  $Obj_string_literal_segment(uint sz)"));
-mixin(ObjMemDecl("Symbol* $Obj_sym_cdata(tym_t, char *, int)"));
-mixin(ObjMemDecl("void $Obj_func_start(Symbol *sfunc)"));
-mixin(ObjMemDecl("void $Obj_func_term(Symbol *sfunc)"));
-mixin(ObjMemDecl("void $Obj_write_pointerRef(Symbol* s, uint off)"));
-mixin(ObjMemDecl("int  $Obj_jmpTableSegment(Symbol* s)"));
-mixin(ObjMemDecl("Symbol* $Obj_tlv_bootstrap()"));
 
 import dmd.backend.cgobj;
 import dmd.backend.mscoffobj;
@@ -179,7 +118,7 @@ else
             mixin(genRetVal("startaddress(s)"));
         }
 
-        bool includelib(const(char)* name)
+        bool includelib(scope const(char)[] name)
         {
             mixin(genRetVal("includelib(name)"));
         }
@@ -363,9 +302,9 @@ else
             mixin(genRetVal("write_byte(pseg, _byte)"));
         }
 
-        void write_bytes(seg_data *pseg, uint nbytes, const(void)* p)
+        void write_bytes(seg_data *pseg, const(void[]) a)
         {
-            mixin(genRetVal("write_bytes(pseg, nbytes, p)"));
+            mixin(genRetVal("write_bytes(pseg, a)"));
         }
 
         void _byte(int seg, targ_size_t offset, uint _byte)
@@ -373,7 +312,7 @@ else
             mixin(genRetVal("byte(seg, offset, _byte)"));
         }
 
-        uint bytes(int seg, targ_size_t offset, uint nbytes, const(void)* p)
+        size_t bytes(int seg, targ_size_t offset, size_t nbytes, const(void)* p)
         {
             mixin(genRetVal("bytes(seg, offset, nbytes, p)"));
         }

@@ -31,7 +31,8 @@ Note that these groups have no strict meaning, the category assignments are a bi
 
 | File                                                                        | Purpose                                                               |
 |-----------------------------------------------------------------------------|-----------------------------------------------------------------------|
-| [mars.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/mars.d)           | The entry point. Contains `main`.                                     |
+| [main.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/main.d)           | The entry point. Contains `main`.                                     |
+| [mars.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/mars.d)           | Argument parsing, path manipulation.                                  |
 | [cli.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/cli.d)             | Define the command line interface                                     |
 | [dmdparams.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dmdparams.d) | DMD-specific parameters                                               |
 | [globals.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/globals.d)     | Define a structure storing command line options                       |
@@ -83,6 +84,7 @@ Note that these groups have no strict meaning, the category assignments are a bi
 | [astcodegen.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/astcodegen.d)     | Namespace of AST nodes of a AST ready for code generation   |
 | [astenums.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/astenums.d)         | Enums common to DMD and AST                                 |
 | [expression.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/expression.d)     | Define expression AST nodes                                 |
+| [rootobject.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/rootobject.d)     | Define an abstract root class                           |
 | [statement.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/statement.d)       | Define statement AST nodes                                  |
 | [staticassert.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/staticassert.d) | Define a `static assert` AST node                           |
 | [aggregate.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/aggregate.d)       | Define an aggregate (`struct`, `union` or `class`) AST node |

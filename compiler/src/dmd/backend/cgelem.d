@@ -39,7 +39,6 @@ import dmd.backend.type;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
 
-extern (C++):
 
 nothrow:
 @safe:
@@ -1670,27 +1669,28 @@ Lopt:
 }
 
 /***************************************
- * Fill in ops[maxops] with operands of repeated operator oper.
+ * Fill in ops[] with operands of repeated operator oper.
  * Returns:
  *      true    didn't fail
- *      false   more than maxops operands
+ *      false   more than ops.length operands
  */
 
 @trusted
-bool fillinops(elem **ops, int *opsi, int maxops, int oper, elem *e)
+private
+bool fillinops(elem*[] ops, ref size_t opsi, OPER oper, elem* e)
 {
     if (e.Eoper == oper)
     {
-        if (!fillinops(ops, opsi, maxops, oper, e.EV.E1) ||
-            !fillinops(ops, opsi, maxops, oper, e.EV.E2))
+        if (!fillinops(ops, opsi, oper, e.EV.E1) ||
+            !fillinops(ops, opsi, oper, e.EV.E2))
             return false;
     }
     else
     {
-        if (*opsi >= maxops)
+        if (opsi >= ops.length)
             return false;       // error, too many
-        ops[*opsi] = e;
-        *opsi += 1;
+        ops[opsi] = e;
+        opsi += 1;
     }
     return true;
 }
@@ -1844,15 +1844,14 @@ private elem *elor(elem *e, goal_t goal)
      */
     if (sz == 4 && OPTIMIZER)
     {
-        elem*[4] ops;
-        int opsi = 0;
-        if (fillinops(ops.ptr, &opsi, 4, OPor, e) && opsi == 4)
+        elem*[4] ops = void;
+        size_t opsi = 0;
+        if (fillinops(ops, opsi, OPor, e) && opsi == ops.length)
         {
             elem *ex = null;
             uint bmask = 0;
-            for (int i = 0; i < 4; i++)
+            foreach (eo; ops)
             {
-                elem *eo = ops[i];
                 elem *eo2;
                 int shift;
                 elem *eo111;
@@ -2859,21 +2858,24 @@ L1:
  */
 
 @trusted
-private bool optim_loglog(elem **pe)
+private bool optim_loglog(ref elem* pe)
 {
     if (I16)
         return false;
-    elem *e = *pe;
+    elem *e = pe;
     const op = e.Eoper;
     assert(op == OPandand || op == OPoror);
     size_t n = el_opN(e, op);
     if (n <= 3)
         return false;
     uint ty = e.Ety;
-    assert(n < size_t.max / (2 * (elem *).sizeof));   // conservative overflow check
-    elem **array = cast(elem **)malloc(n * (elem *).sizeof);
-    assert(array);
-    elem **p = array;
+
+    import dmd.common.string : SmallBuffer;
+    elem*[100] tmp = void;
+    auto sb = SmallBuffer!(elem*)(n, tmp[]);
+    elem*[] array = sb[];
+
+    elem **p = array.ptr;
     el_opArray(&p, e, op);
 
     bool any = false;
@@ -3024,13 +3026,11 @@ private bool optim_loglog(elem **pe)
         for (size_t i = first + 1; i + (last - first) < n; ++i)
             array[i] = array[i + (last - first)];
         n -= last - first;
-        (*pe) = el_opCombine(array, n, op, ty);
+        pe = el_opCombine(array.ptr, n, op, ty);
 
-        free(array);
         return true;
     }
 
-    free(array);
     return false;
 }
 
@@ -5755,14 +5755,14 @@ beg:
             case OPoror:
                 if (rightgoal)
                     rightgoal = GOALflags;
-                if (OPTIMIZER && optim_loglog(&e))
+                if (OPTIMIZER && optim_loglog(e))
                     goto beg;
                 goto Llog;
 
             case OPandand:
                 if (rightgoal)
                     rightgoal = GOALflags;
-                if (OPTIMIZER && optim_loglog(&e))
+                if (OPTIMIZER && optim_loglog(e))
                     goto beg;
                 goto Llog;
 
@@ -6366,9 +6366,9 @@ private bool canHappenAfter(elem* a, elem* b)
  * Call table, index is OPER
  */
 
-private extern (C++) alias elfp_t = elem *function(elem *, goal_t) nothrow;
+private alias elfp_t = elem *function(elem *, goal_t) nothrow;
 
-private extern (D) immutable elfp_t[OPMAX] elxxx =
+private immutable elfp_t[OPMAX] elxxx =
 [
     OPunde:    &elerr,
     OPadd:     &eladd,

@@ -30,7 +30,7 @@ import core.sys.posix.ucontext;
 
 // Register and unregister memory error handler.
 
-bool registerMemoryErrorHandler()
+bool registerMemoryErrorHandler() nothrow
 {
     sigaction_t action;
     action.sa_sigaction = &handleSignal;
@@ -41,7 +41,7 @@ bool registerMemoryErrorHandler()
     return !sigaction(SIGSEGV, &action, oldptr);
 }
 
-bool deregisterMemoryErrorHandler()
+bool deregisterMemoryErrorHandler() nothrow
 {
     auto oldptr = &old_sigaction;
 
@@ -53,12 +53,12 @@ bool deregisterMemoryErrorHandler()
  */
 class InvalidPointerError : Error
 {
-    this(string file = __FILE__, size_t line = __LINE__, Throwable next = null)
+    this(string file = __FILE__, size_t line = __LINE__, Throwable next = null) nothrow
     {
         super("", file, line, next);
     }
 
-    this(Throwable next, string file = __FILE__, size_t line = __LINE__)
+    this(Throwable next, string file = __FILE__, size_t line = __LINE__) nothrow
     {
         super("", file, line, next);
     }
@@ -69,12 +69,12 @@ class InvalidPointerError : Error
  */
 class NullPointerError : InvalidPointerError
 {
-    this(string file = __FILE__, size_t line = __LINE__, Throwable next = null)
+    this(string file = __FILE__, size_t line = __LINE__, Throwable next = null) nothrow
     {
         super(file, line, next);
     }
 
-    this(Throwable next, string file = __FILE__, size_t line = __LINE__)
+    this(Throwable next, string file = __FILE__, size_t line = __LINE__) nothrow
     {
         super(file, line, next);
     }

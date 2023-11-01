@@ -19,7 +19,6 @@ import core.sys.windows.winbase;
 import core.sys.windows.windef;
 
 import dmd.errors;
-import dmd.globals;
 import dmd.location;
 import dmd.root.env;
 import dmd.root.rmem;
@@ -61,6 +60,15 @@ const(char)[] findConfFile(const(char)[] argv0, const(char)[] inifile)
     auto filename = FileName.combine(getenv("HOME").toDString, inifile);
     if (FileName.exists(filename))
         return filename;
+
+    version (Posix)
+    {
+        // Retry lookup in HOME with dot preceding inifile
+        filename = FileName.combine(getenv("HOME").toDString, '.' ~ inifile);
+        if (FileName.exists(filename))
+            return filename;
+    }
+
     version (Windows)
     {
         // This fix by Tim Matthews

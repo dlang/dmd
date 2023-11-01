@@ -21,6 +21,7 @@ import core.stdc.string;
 import dmd.astenums;
 import dmd.declaration;
 import dmd.denum;
+import dmd.dinterpret;
 import dmd.dmdparams;
 import dmd.dscope;
 import dmd.dsymbol;
@@ -41,7 +42,7 @@ import dmd.tokens;
 import dmd.root.ctfloat;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
-import dmd.root.rootobject;
+import dmd.rootobject;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
@@ -344,14 +345,15 @@ immutable:
     ubyte val;
     opflag_t ty;
 
-    bool isSIL_DIL_BPL_SPL() const
+    bool isSIL_DIL_BPL_SPL() const @trusted
     {
+        bool caseSensitive = asmstate.statement.caseSensitive;
         // Be careful as these have the same val's as AH CH DH BH
         return ty == _r8 &&
-            ((val == _SIL && regstr == "SIL") ||
-             (val == _DIL && regstr == "DIL") ||
-             (val == _BPL && regstr == "BPL") ||
-             (val == _SPL && regstr == "SPL"));
+            ((val == _SIL && stringEq(regstr, "SIL", caseSensitive)) ||
+             (val == _DIL && stringEq(regstr, "DIL", caseSensitive)) ||
+             (val == _BPL && stringEq(regstr, "BPL", caseSensitive)) ||
+             (val == _SPL && stringEq(regstr, "SPL", caseSensitive)));
     }
 }
 
@@ -2099,7 +2101,7 @@ void asmerr(const(char)* format, ...)
 
     va_list ap;
     va_start(ap, format);
-    verror(asmstate.loc, format, ap);
+    verrorReport(asmstate.loc, format, ap, ErrorKind.error);
     va_end(ap);
 
     asmstate.errors = true;
@@ -2161,9 +2163,9 @@ private @safe pure bool asm_isNonZeroInt(const ref OPND o)
 /*******************************
  */
 
-private @safe pure bool asm_is_fpreg(const(char)[] szReg)
+private @trusted bool asm_is_fpreg(const(char)[] szReg)
 {
-    return szReg == "ST";
+    return stringEq(szReg, "ST", asmstate.statement.caseSensitive);
 }
 
 /*******************************
@@ -2430,7 +2432,7 @@ void asm_make_modrm_byte(
         uint rm;
         uint reg;
         uint mod;
-        uint auchOpcode()
+        uint auchOpcode() @safe
         {
             assert(rm < 8);
             assert(reg < 8);
@@ -2444,7 +2446,7 @@ void asm_make_modrm_byte(
         uint base;
         uint index;
         uint ss;
-        uint auchOpcode()
+        uint auchOpcode() @safe
         {
             assert(base < 8);
             assert(index < 8);
@@ -3143,7 +3145,7 @@ Lmatch:
 /*******************************
  */
 
-bool asm_match_float_flags(opflag_t usOp, opflag_t usTable)
+bool asm_match_float_flags(opflag_t usOp, opflag_t usTable) @safe
 {
     ASM_OPERAND_TYPE    aoptyTable;
     ASM_OPERAND_TYPE    aoptyOp;
@@ -3395,9 +3397,10 @@ immutable(REG)* asm_reg_lookup(const(char)[] s)
 {
     //dbg_printf("asm_reg_lookup('%s')\n",s);
 
+    bool caseSensitive = asmstate.statement.caseSensitive;
     for (int i = 0; i < regtab.length; i++)
     {
-        if (s == regtab[i].regstr)
+        if (stringEq(s, regtab[i].regstr, caseSensitive))
         {
             return &regtab[i];
         }
@@ -3406,7 +3409,7 @@ immutable(REG)* asm_reg_lookup(const(char)[] s)
     {
         for (int i = 0; i < regtab64.length; i++)
         {
-            if (s == regtab64[i].regstr)
+            if (stringEq(s, regtab64[i].regstr, caseSensitive))
             {
                 return &regtab64[i];
             }
@@ -3699,7 +3702,7 @@ code *asm_db_parse(OP *pop)
     cdb.ctor();
     if (driverParams.symdebug)
         cdb.genlinnum(Srcpos.create(asmstate.loc.filename, asmstate.loc.linnum, asmstate.loc.charnum));
-    cdb.genasm(bytes.peekChars(), cast(uint)bytes.length);
+    cdb.genasm(bytes.peekSlice());
     code *c = cdb.finish();
 
     asmstate.statement.regs |= /* mES| */ ALLREGS;
@@ -4580,7 +4583,7 @@ TOK tryExpressionToOperand(Expression e, out OPND o1, out Dsymbol s)
  * If c is a power of 2, return that power else -1.
  */
 
-private int ispow2(uint c)
+private int ispow2(uint c) @safe
 {
     int i;
 
@@ -4597,7 +4600,7 @@ private int ispow2(uint c)
  * Returns: true if szop is one of the values in sztbl
  */
 private
-bool isOneOf(OpndSize szop, OpndSize sztbl)
+bool isOneOf(OpndSize szop, OpndSize sztbl) @safe
 {
     with (OpndSize)
     {
@@ -4647,4 +4650,45 @@ unittest
         assert( isOneOf(_8, _64_32_16_8));
         assert( isOneOf(_8, _anysize));
     }
+}
+
+/**********************************
+ * Case insensitive string compare
+ * Returns: true if equal
+ */
+
+bool stringEq(const(char)[] s1, const(char)[] s2, bool caseSensitive)
+{
+    if (caseSensitive)
+        return s1 == s2;
+
+    if (s1.length != s2.length)
+        return false;
+    foreach (i, c; s1)
+    {
+        char c1 = c;
+        if ('A' <= c1 && c1 <= 'Z')
+            c1 |= 0x20;
+        char c2 = s2[i];
+        if ('A' <= c2 && c2 <= 'Z')
+            c2 |= 0x20;
+
+        if (c1 != c2)
+            return false;
+    }
+    return true;
+}
+
+unittest
+{
+    assert(!stringEq("ABZ", "ABZX", true));
+
+    assert( stringEq("ABZ", "ABZ", true));
+    assert(!stringEq("aBz", "ABZ", true));
+    assert(!stringEq("ABZ", "ABz", true));
+
+    assert( stringEq("aBZ", "ABZ", false));
+    assert( stringEq("aBz", "AbZ", false));
+    assert( stringEq("ABZ", "ABz", false));
+    assert(!stringEq("3BZ", "ABz", false));
 }

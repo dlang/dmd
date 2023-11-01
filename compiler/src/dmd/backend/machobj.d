@@ -35,8 +35,6 @@ import dmd.backend.type;
 
 import dmd.common.outbuffer;
 
-extern (C++):
-
 nothrow:
 @safe:
 
@@ -220,7 +218,7 @@ int mach_seg_data_isCode(const ref seg_data sd)
 
 __gshared
 {
-extern Rarray!(seg_data*) SegData;
+extern (C++) extern Rarray!(seg_data*) SegData;
 
 /**
  * Section index for the __thread_vars/__tls_data section.
@@ -439,7 +437,7 @@ int MachObj_string_literal_segment(uint sz)
  * Perform initialization that applies to all .o output files.
  *      Called before any other obj_xxx routines
  */
-@trusted
+@system
 Obj MachObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
 {
     //printf("MachObj_init()\n");
@@ -1542,9 +1540,9 @@ void MachObj_startaddress(Symbol *s)
  * Output library name.
  */
 
-bool MachObj_includelib(const(char)* name)
+bool MachObj_includelib(scope const char[] name)
 {
-    //dbg_printf("MachObj_includelib(name *%s)\n",name);
+    //dbg_printf("MachObj_includelibx(name *%s)\n",name);
     return false;
 }
 
@@ -1778,7 +1776,6 @@ int MachObj_comdat(Symbol *s)
     {   // Code symbols are 'published' by MachObj_func_start()
 
         MachObj_pubdef(s.Sseg,s,s.Soffset);
-        searchfixlist(s);               // backpatch any refs to this symbol
     }
     return s.Sseg;
 }
@@ -2383,7 +2380,7 @@ void MachObj_lidata(int seg,targ_size_t offset,targ_size_t count)
     }
     else
     {
-        MachObj_bytes(seg, offset, cast(uint)count, null);
+        MachObj_bytes(seg, offset, cast(size_t)count, null);
     }
 }
 
@@ -2418,9 +2415,9 @@ void MachObj_byte(int seg,targ_size_t offset,uint byte_)
  * Append bytes to segment.
  */
 
-void MachObj_write_bytes(seg_data *pseg, uint nbytes, const(void)* p)
+void MachObj_write_bytes(seg_data *pseg, const(void[]) a)
 {
-    MachObj_bytes(pseg.SDseg, pseg.SDoffset, nbytes, p);
+    MachObj_bytes(pseg.SDseg, pseg.SDoffset, a.length, &a[0]);
 }
 
 /************************************
@@ -2429,7 +2426,7 @@ void MachObj_write_bytes(seg_data *pseg, uint nbytes, const(void)* p)
  *      nbytes
  */
 @trusted
-uint MachObj_bytes(int seg, targ_size_t offset, uint nbytes, const(void)* p)
+size_t MachObj_bytes(int seg, targ_size_t offset, size_t nbytes, const(void)* p)
 {
 static if (0)
 {
@@ -2446,7 +2443,7 @@ static if (0)
         //raise(SIGSEGV);
         assert(buf != null);
     }
-    int save = cast(int)buf.length();
+    const save = buf.length();
     //dbg_printf("MachObj_bytes(seg=%d, offset=x%lx, nbytes=%d, p=x%x)\n",
             //seg,offset,nbytes,p);
     buf.position(cast(size_t)offset, nbytes);
@@ -2731,7 +2728,7 @@ static if (0)
 
         OutBuffer *buf = SegData[seg].SDbuf;
         int save = cast(int)buf.length();
-        buf.position(cast(uint)offset, retsize);
+        buf.position(cast(size_t)offset, retsize);
         //printf("offset = x%llx, val = x%llx\n", offset, val);
         if (retsize == 8)
             buf.write64(val);

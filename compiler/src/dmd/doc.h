@@ -10,6 +10,10 @@
 
 #pragma once
 
-class Module;
+#include "root/dcompat.h" // for d_size_t
 
-void gendocfile(Module *m);
+class Module;
+class ErrorSink;
+
+void gendocfile(Module *m, const char *ddoctext_ptr, d_size_t ddoctext_length,
+                const char *datetime, ErrorSink *eSink, OutBuffer &outbuf);

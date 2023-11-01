@@ -183,7 +183,7 @@ private final class ANSIConsole : Console
 
   public:
 
-    this(FILE* fp) { _fp = fp; }
+    this(FILE* fp) @safe { _fp = fp; }
 
     @property FILE* fp() { return _fp; }
 
@@ -225,6 +225,19 @@ bool detectTerminal() nothrow
         CONSOLE_SCREEN_BUFFER_INFO sbi;
         return GetConsoleScreenBufferInfo(h, &sbi) != 0;
     }
+}
+
+/**
+ * Tries to detect the preference for colorized console output
+ * based on the `NO_COLOR` environment variable: https://no-color.org/
+ *
+ * Returns: `true` if colorized console output is preferred
+*/
+bool detectColorPreference() nothrow @trusted
+{
+    import core.stdc.stdlib : getenv;
+    const noColor = getenv("NO_COLOR");
+        return noColor == null || noColor[0] == '\0';
 }
 
 /**

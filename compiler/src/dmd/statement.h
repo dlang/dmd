@@ -113,16 +113,9 @@ public:
 
     virtual Statement *syntaxCopy();
 
-    const char *toChars() const override final;
-
-    void error(const char *format, ...);
-    void warning(const char *format, ...);
-    void deprecation(const char *format, ...);
     virtual Statement *getRelatedLabeled() { return this; }
     virtual bool hasBreak() const;
     virtual bool hasContinue() const;
-    bool usesEH();
-    bool comeFrom();
     bool hasCode();
     virtual Statement *last();
 
@@ -431,17 +424,19 @@ public:
 class SwitchStatement final : public Statement
 {
 public:
+    Parameter *param;
     Expression *condition;
     Statement *_body;
     d_bool isFinal;
+    Loc endloc;
 
+    d_bool hasDefault;             // true if default statement
+    d_bool hasVars;                // true if has variable case values
     DefaultStatement *sdefault;
     Statement *tryBody;            // set to TryCatchStatement or TryFinallyStatement if in _body portion
     TryFinallyStatement *tf;
     GotoCaseStatements gotoCases;  // array of unresolved GotoCaseStatement's
     CaseStatements *cases;         // array of CaseStatement's
-    int hasNoDefault;           // !=0 if no default statement
-    int hasVars;                // !=0 if has variable case values
     VarDeclaration *lastVar;
 
     SwitchStatement *syntaxCopy() override;
@@ -699,6 +694,7 @@ public:
 
     d_bool deleted;           // set if rewritten to return in foreach delegate
     d_bool iasm;              // set if used by inline assembler
+    d_bool duplicated;        // set if multiply defined, to avoid duplicate error messages
 
     static LabelDsymbol *create(Identifier *ident);
     LabelDsymbol *isLabel() override;
@@ -711,6 +707,7 @@ class AsmStatement : public Statement
 {
 public:
     Token *tokens;
+    d_bool caseSensitive;  // for register names
 
     AsmStatement *syntaxCopy() override;
     void accept(Visitor *v) override { v->visit(this); }

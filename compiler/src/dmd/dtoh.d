@@ -23,6 +23,7 @@ import dmd.dsymbol;
 import dmd.errors;
 import dmd.globals;
 import dmd.hdrgen;
+import dmd.id;
 import dmd.identifier;
 import dmd.location;
 import dmd.root.filename;
@@ -199,7 +200,8 @@ struct _d_dynamicArray final
     else
     {
         const(char)[] name = FileName.combine(global.params.cxxhdr.dir, global.params.cxxhdr.name);
-        writeFile(Loc.initial, name, buf[]);
+        if (!writeFile(Loc.initial, name, buf[]))
+            return fatal();
     }
 }
 
@@ -295,7 +297,7 @@ public:
     // Generates getter-setter methods to replace the use of alias this
     // This should be replaced by a `static foreach` once the gdc tester
     // gets upgraded to version 10 (to support `static foreach`).
-    private extern(D) static string generateMembers()
+    private extern(D) static string generateMembers() @safe
     {
         string result = "";
         foreach(member; __traits(allMembers, Context))
@@ -395,7 +397,7 @@ public:
     }
 
     /// Writes a final `;` and insert an empty line outside of aggregates
-    private void writeDeclEnd()
+    private void writeDeclEnd() @safe
     {
         buf.writestringln(";");
 
@@ -1045,6 +1047,10 @@ public:
     {
         debug (Debug_DtoH) mixin(traceVisit!ad);
 
+        // Declared in object.d but already included in `#include`s
+        if (ad.ident == Id._size_t || ad.ident == Id._ptrdiff_t)
+            return;
+
         if (!shouldEmitAndMarkVisited(ad))
             return;
 
@@ -1212,7 +1218,7 @@ public:
         buf.writestringln("};");
     }
 
-    private bool memberField(AST.VarDeclaration vd)
+    private bool memberField(AST.VarDeclaration vd) @safe
     {
         if (!vd.type || !vd.type.deco || !vd.ident)
             return false;
@@ -1410,7 +1416,7 @@ public:
 
     /// Ends a custom alignment section using `#pragma pack` if
     /// `alignment` specifies a custom alignment
-    private void popAlignToBuffer(structalign_t alignment)
+    private void popAlignToBuffer(structalign_t alignment) @safe
     {
         if (alignment.isDefault() || (tdparent && alignment.isUnknown()))
             return;
@@ -1807,7 +1813,7 @@ public:
         {
             buf.writestring("::");
 
-            import dmd.root.rootobject;
+            import dmd.rootobject;
             // Is this even possible?
             if (arg.dyncast != DYNCAST.identifier)
             {
@@ -2327,7 +2333,12 @@ public:
         {
             //printf("%s %d\n", p.defaultArg.toChars, p.defaultArg.op);
             buf.writestring(" = ");
+            // Always emit the FDN of a symbol for the default argument,
+            // to avoid generating an ambiguous assignment.
+            auto save = adparent;
+            adparent = null;
             printExpressionFor(p.type, p.defaultArg);
+            adparent = save;
         }
     }
 
@@ -2636,7 +2647,7 @@ public:
             import dmd.hdrgen;
             // Hex floating point literals were introduced in C++ 17
             const allowHex = global.params.cplusplus >= CppStdRevision.cpp17;
-            floatToBuffer(e.type, e.value, buf, allowHex);
+            floatToBuffer(e.type, e.value, *buf, allowHex);
         }
     }
 
@@ -3037,7 +3048,7 @@ public:
     }
 
     /// Returns: Explicit mangling for `sym` if present
-    extern(D) static const(char)[] getMangleOverride(const AST.Dsymbol sym)
+    extern(D) static const(char)[] getMangleOverride(const AST.Dsymbol sym) @safe
     {
         if (auto decl = sym.isDeclaration())
             return decl.mangleOverride;
@@ -3089,34 +3100,34 @@ void initialize()
 }
 
 /// Writes `#if <content>` into the supplied buffer
-void hashIf(ref OutBuffer buf, string content)
+void hashIf(ref OutBuffer buf, string content) @safe
 {
     buf.writestring("#if ");
     buf.writestringln(content);
 }
 
 /// Writes `#elif <content>` into the supplied buffer
-void hashElIf(ref OutBuffer buf, string content)
+void hashElIf(ref OutBuffer buf, string content) @safe
 {
     buf.writestring("#elif ");
     buf.writestringln(content);
 }
 
 /// Writes `#endif` into the supplied buffer
-void hashEndIf(ref OutBuffer buf)
+void hashEndIf(ref OutBuffer buf) @safe
 {
     buf.writestringln("#endif");
 }
 
 /// Writes `#define <content>` into the supplied buffer
-void hashDefine(ref OutBuffer buf, string content)
+void hashDefine(ref OutBuffer buf, string content) @safe
 {
     buf.writestring("#define ");
     buf.writestringln(content);
 }
 
 /// Writes `#include <content>` into the supplied buffer
-void hashInclude(ref OutBuffer buf, string content)
+void hashInclude(ref OutBuffer buf, string content) @safe
 {
     buf.writestring("#include ");
     buf.writestringln(content);
@@ -3205,6 +3216,21 @@ const(char*) keywordClass(const Identifier ident)
             if (global.params.cplusplus >= CppStdRevision.cpp20)
                 return "keyword in C++20";
             return null;
+        case "restrict":
+        case "_Alignas":
+        case "_Alignof":
+        case "_Atomic":
+        case "_Bool":
+        //case "_Complex": // handled above in C++
+        case "_Generic":
+        case "_Imaginary":
+        case "_Noreturn":
+        case "_Static_assert":
+        case "_Thread_local":
+        case "_assert":
+        case "_import":
+        //case "__...": handled in default case below
+            return "Keyword in C";
 
         default:
             // Identifiers starting with __ are reserved
@@ -3231,7 +3257,7 @@ ASTCodegen.Dsymbol outermostSymbol(ASTCodegen.Dsymbol sym)
 
 /// Fetches the symbol for user-defined types from the type `t`
 /// if `t` is either `TypeClass`, `TypeStruct` or `TypeEnum`
-ASTCodegen.Dsymbol symbolFromType(ASTCodegen.Type t)
+ASTCodegen.Dsymbol symbolFromType(ASTCodegen.Type t) @safe
 {
     if (auto tc = t.isTypeClass())
         return tc.sym;

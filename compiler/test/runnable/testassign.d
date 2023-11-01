@@ -361,7 +361,7 @@ struct CtorTest6174(Data)
 
 const char gc6174;
 const char[1] ga6174;
-static this()
+shared static this()
 {
     gc6174 = 'a';    // OK
     ga6174[0] = 'a'; // line 5, Err
@@ -726,7 +726,7 @@ struct Foo8783
 
 const Foo8783[1] foos8783;
 
-static this()
+shared static this()
 {
     foreach (i; 0 .. foos8783.length)
         foos8783[i].bar[i] = 1; // OK

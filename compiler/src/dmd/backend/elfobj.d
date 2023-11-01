@@ -42,8 +42,6 @@ import dmd.backend.type;
 
 import dmd.common.outbuffer;
 
-extern (C++):
-
 nothrow:
 
 import dmd.backend.dwarf;
@@ -273,7 +271,7 @@ IDXSYM      MAP_SEG2SYMIDX(int seg) { return SegData[seg].SDsymidx; }
 Elf32_Shdr* MAP_SEG2SEC(int seg)    { return &SecHdrTab[MAP_SEG2SECIDX(seg)]; }
 int         MAP_SEG2TYP(int seg)    { return MAP_SEG2SEC(seg).sh_flags & SHF_EXECINSTR ? CODE : DATA; }
 
-extern Rarray!(seg_data*) SegData;
+extern (C++) extern Rarray!(seg_data*) SegData;
 
 int seg_tlsseg = UNKNOWN;
 int seg_tlsseg_bss = UNKNOWN;
@@ -357,7 +355,7 @@ static if (0)
         name = s.Sfunc.Fredirect;
         len = strlen(name);
     }
-    symtab_strings.write(name, len + 1);
+    symtab_strings.write(name[0 .. len + 1]);
     if (destr != dest.ptr)                  // if we resized result
         mem_free(destr);
     //dbg_printf("\telf_addmagled symtab_strings %s namidx %d len %d size %d\n",name, namidx,len,symtab_strings.length());
@@ -549,7 +547,7 @@ static if (0)
     {
         alignOffset(DATA, tysize(ty));
         s = symboldata(Offset(DATA), ty);
-        SegData[DATA].SDbuf.write(p,len);
+        SegData[DATA].SDbuf.write(p[0 .. len]);
         s.Sseg = DATA;
         s.Soffset = Offset(DATA);   // Remember its offset into DATA section
         Offset(DATA) += len;
@@ -626,7 +624,6 @@ int ElfObj_string_literal_segment(uint sz)
  *      csegname = name for code segment
  */
 
-private
 Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
 {
     //printf("ElfObj_init(filename = %s, csegname = %s)\n",filename,csegname);
@@ -1100,7 +1097,7 @@ void ElfObj_term(const(char)* objfilename)
         {
             //printf(" - size %d\n",pseg.SDbuf.length());
             const size_t size = pseg.SDbuf.length();
-            fobjbuf.write(pseg.SDbuf.buf, cast(uint)size);
+            fobjbuf.write(pseg.SDbuf.buf[0 .. size]);
             const int nfoffset = elf_align(sechdr2.sh_addralign, cast(uint)(foffset + size));
             sechdr2.sh_size = nfoffset - foffset;
             foffset = nfoffset;
@@ -1115,7 +1112,7 @@ void ElfObj_term(const(char)* objfilename)
         sechdr = &SecHdrTab[secidx_note];               // Notes
         sechdr.sh_size = cast(uint)note_data.length();
         sechdr.sh_offset = foffset;
-        fobjbuf.write(note_data.buf, sechdr.sh_size);
+        fobjbuf.write(note_data.buf[0 .. sechdr.sh_size]);
         foffset += sechdr.sh_size;
     }
 
@@ -1124,7 +1121,7 @@ void ElfObj_term(const(char)* objfilename)
         sechdr = &SecHdrTab[SHN_COM];           // Comments
         sechdr.sh_size = cast(uint)comment_data.length();
         sechdr.sh_offset = foffset;
-        fobjbuf.write(comment_data.buf, sechdr.sh_size);
+        fobjbuf.write(comment_data.buf[0 .. sechdr.sh_size]);
         foffset += sechdr.sh_size;
     }
 
@@ -1134,7 +1131,7 @@ void ElfObj_term(const(char)* objfilename)
     sechdr.sh_size = cast(uint)section_names.length();
     sechdr.sh_offset = foffset;
     //dbg_printf("section names offset %d\n",foffset);
-    fobjbuf.write(section_names.buf, sechdr.sh_size);
+    fobjbuf.write(section_names.buf[0 .. sechdr.sh_size]);
     foffset += sechdr.sh_size;
 
     /* Symbol table and string table for symbols next
@@ -1148,7 +1145,7 @@ void ElfObj_term(const(char)* objfilename)
     sechdr.sh_info = local_cnt;
     foffset = elf_align(4,foffset);
     sechdr.sh_offset = foffset;
-    fobjbuf.write(symtab, sechdr.sh_size);
+    fobjbuf.write(symtab[0 .. sechdr.sh_size]);
     foffset += sechdr.sh_size;
     util_free(symtab);
 
@@ -1158,7 +1155,7 @@ void ElfObj_term(const(char)* objfilename)
         sechdr = &SecHdrTab[secidx_shndx];
         sechdr.sh_size = cast(uint)shndx_data.length();
         sechdr.sh_offset = foffset;
-        fobjbuf.write(shndx_data.buf, sechdr.sh_size);
+        fobjbuf.write(shndx_data.buf[0 .. sechdr.sh_size]);
         foffset += sechdr.sh_size;
     }
 
@@ -1166,7 +1163,7 @@ void ElfObj_term(const(char)* objfilename)
     sechdr = &SecHdrTab[SHN_STRINGS];   // Symbol Strings
     sechdr.sh_size = cast(uint)symtab_strings.length();
     sechdr.sh_offset = foffset;
-    fobjbuf.write(symtab_strings.buf, sechdr.sh_size);
+    fobjbuf.write(symtab_strings.buf[0 .. sechdr.sh_size]);
     foffset += sechdr.sh_size;
 
     /* Now the relocation data for program code and data sections
@@ -1232,7 +1229,7 @@ void ElfObj_term(const(char)* objfilename)
                 );
             }
 
-            fobjbuf.write(seg.SDrel.buf, sechdr.sh_size);
+            fobjbuf.write(seg.SDrel.buf[0 .. sechdr.sh_size]);
             foffset += sechdr.sh_size;
         }
     }
@@ -1429,7 +1426,7 @@ void ElfObj_startaddress(Symbol *s)
  * Output library name.
  */
 
-bool ElfObj_includelib(const(char)* name)
+bool ElfObj_includelib(scope const char[] name)
 {
     //dbg_printf("ElfObj_includelib(name *%s)\n",name);
     return false;
@@ -1742,7 +1739,6 @@ int ElfObj_comdat(Symbol *s)
     if (s.Sfl == FLdata || s.Sfl == FLtlsdata)
     {
         ElfObj_pubdef(s.Sseg,s,0);
-        searchfixlist(s);               // backpatch any refs to this symbol
     }
     return s.Sseg;
 }
@@ -1753,7 +1749,6 @@ int ElfObj_comdatsize(Symbol *s, targ_size_t symsize)
     if (s.Sfl == FLdata || s.Sfl == FLtlsdata)
     {
         ElfObj_pubdefsize(s.Sseg,s,0,symsize);
-        searchfixlist(s);               // backpatch any refs to this symbol
     }
     s.Soffset = 0;
     return s.Sseg;
@@ -2437,7 +2432,6 @@ int ElfObj_common_block(Symbol *s,targ_size_t size,targ_size_t count)
         SegData[s.Sseg].SDsym = s;
         SegData[s.Sseg].SDoffset += size * count;
         ElfObj_pubdefsize(s.Sseg, s, 0, size * count);
-        searchfixlist(s);
         return s.Sseg;
     }
     else
@@ -2448,7 +2442,6 @@ int ElfObj_common_block(Symbol *s,targ_size_t size,targ_size_t count)
         SegData[s.Sseg].SDsym = s;
         SegData[s.Sseg].SDoffset += size * count;
         ElfObj_pubdefsize(s.Sseg, s, 0, size * count);
-        searchfixlist(s);
         return s.Sseg;
     }
 static if (0)
@@ -2536,9 +2529,9 @@ void ElfObj_byte(int seg,targ_size_t offset,uint byte_)
  * Append bytes to segment.
  */
 
-void ElfObj_write_bytes(seg_data *pseg, uint nbytes, const(void)* p)
+void ElfObj_write_bytes(seg_data *pseg, const(void[]) a)
 {
-    ElfObj_bytes(pseg.SDseg, pseg.SDoffset, nbytes, p);
+    ElfObj_bytes(pseg.SDseg, pseg.SDoffset, a.length, a.ptr);
 }
 
 /************************************
@@ -2547,7 +2540,7 @@ void ElfObj_write_bytes(seg_data *pseg, uint nbytes, const(void)* p)
  *      nbytes
  */
 
-uint ElfObj_bytes(int seg, targ_size_t offset, uint nbytes, const(void)* p)
+size_t ElfObj_bytes(int seg, targ_size_t offset, size_t nbytes, const(void)* p)
 {
 static if (0)
 {
@@ -2564,7 +2557,7 @@ static if (0)
         //raise(SIGSEGV);
         assert(buf != null);
     }
-    int save = cast(int)buf.length();
+    const save = buf.length();
     //dbg_printf("ElfObj_bytes(seg=%d, offset=x%lx, nbytes=%d, p=x%x)\n",
             //seg,offset,nbytes,p);
     buf.position(cast(size_t)offset, nbytes);
@@ -3261,7 +3254,7 @@ static if (TERMCODE)
   */
 /+void objfile_write(FILE *fd, void *buffer, uint len)
 {
-    fobjbuf.write(buffer, len);
+    fobjbuf.write(buffer[0 .. len]);
 }
 +/
 

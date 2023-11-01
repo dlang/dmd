@@ -27,8 +27,6 @@ import dmd.backend.symtab;
 
 import dmd.backend.iasm;
 
-extern(C++):
-
 nothrow:
 @safe:
 

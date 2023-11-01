@@ -1991,7 +1991,7 @@ void test8976()
 // https://issues.dlang.org/show_bug.cgi?id=8940
 
 const int n8940; // or `immutable`
-static this() { n8940 = 3; }
+shared static this() { n8940 = 3; }
 
 void f8940(T)(ref int val)
 {
@@ -5033,6 +5033,13 @@ void test15653()
         static assert(!__traits(compiles, bar!U(u)), U.stringof);
     }
 }
+
+/******************************************/
+
+template foo23733(T, alias T a) {}
+
+int n23733;
+alias _ = foo23733!(int, n23733);
 
 /******************************************/
 

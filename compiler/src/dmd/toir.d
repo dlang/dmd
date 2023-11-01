@@ -45,6 +45,7 @@ import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.toctype;
 import dmd.e2ir;
+import dmd.errorsink;
 import dmd.func;
 import dmd.globals;
 import dmd.glue;
@@ -55,9 +56,6 @@ import dmd.mtype;
 import dmd.target;
 import dmd.tocvdebug;
 import dmd.tocsym;
-
-alias toSymbol = dmd.tocsym.toSymbol;
-alias toSymbol = dmd.glue.toSymbol;
 
 /****************************************
  * Our label symbol
@@ -86,11 +84,12 @@ struct IRState
     Label*[void*]* labels;          // table of labels used/declared in function
     const Param* params;            // command line parameters
     const Target* target;           // target
+    ErrorSink eSink;                // sink for error messages
     bool mayThrow;                  // the expression being evaluated may throw
     bool Cfile;                     // use C semantics
 
     this(Module m, FuncDeclaration fd, Array!(elem*)* varsInScope, Dsymbols* deferToObj, Label*[void*]* labels,
-        const Param* params, const Target* target)
+        const Param* params, const Target* target, ErrorSink eSink)
     {
         this.m = m;
         this.symbol = fd;
@@ -99,13 +98,14 @@ struct IRState
         this.labels = labels;
         this.params = params;
         this.target = target;
+        this.eSink = eSink;
         mayThrow = global.params.useExceptions
             && ClassDeclaration.throwable
             && !(fd && fd.hasNoEH);
         this.Cfile = m.filetype == FileType.c;
     }
 
-    FuncDeclaration getFunc()
+    FuncDeclaration getFunc() @safe
     {
         return symbol;
     }
@@ -149,7 +149,7 @@ struct IRState
      * Returns:
      *  true if in a nothrow section of code
      */
-    bool isNothrow()
+    bool isNothrow() @safe
     {
         return !mayThrow;
     }
@@ -169,7 +169,7 @@ extern (C++):
  * References:
  * https://dlang.org/dmd-windows.html#switch-cov
  */
-extern (D) elem *incUsageElem(IRState *irs, const ref Loc loc)
+extern (D) elem *incUsageElem(ref IRState irs, const ref Loc loc)
 {
     uint linnum = loc.linnum;
 
@@ -178,18 +178,17 @@ extern (D) elem *incUsageElem(IRState *irs, const ref Loc loc)
         loc.filename != m.srcfile.toChars())
         return null;
 
-    //printf("cov = %p, covb = %p, linnum = %u\n", m.cov, m.covb, p, linnum);
+    //printf("cov = %p, covb = %p, linnum = %u\n", m.cov, m.covb.ptr, p, linnum);
 
     linnum--;           // from 1-based to 0-based
 
     /* Set bit in covb[] indicating this is a valid code line number
      */
-    uint *p = m.covb;
-    if (p)      // covb can be null if it has already been written out to its .obj file
+    if (m.covb.length)    // covb can be null if it has already been written out to its .obj file
     {
         assert(linnum < m.numlines);
-        p += linnum / ((*p).sizeof * 8);
-        *p |= 1 << (linnum & ((*p).sizeof * 8 - 1));
+        size_t i = linnum / (m.covb[0].sizeof * 8);
+        m.covb[i] |= 1 << (linnum & (m.covb[0].sizeof * 8 - 1));
     }
 
     /* Generate: *(m.cov + linnum * 4) += 1
@@ -210,7 +209,7 @@ extern (D) elem *incUsageElem(IRState *irs, const ref Loc loc)
  * 'origSc' is the original scope we inlined from.
  * This routine is critical for implementing nested functions.
  */
-elem *getEthis(const ref Loc loc, IRState *irs, Dsymbol fd, Dsymbol fdp = null, Dsymbol origSc = null)
+elem *getEthis(const ref Loc loc, ref IRState irs, Dsymbol fd, Dsymbol fdp = null, Dsymbol origSc = null)
 {
     elem *ethis;
     FuncDeclaration thisfd = irs.getFunc();
@@ -344,7 +343,7 @@ elem *getEthis(const ref Loc loc, IRState *irs, Dsymbol fd, Dsymbol fdp = null, 
     {
         if (!irs.sthis)                // if no frame pointer for this function
         {
-            fd.error(loc, "is a nested function and cannot be accessed from `%s`", irs.getFunc().toPrettyChars());
+            irs.eSink.error(loc, "`%s` is a nested function and cannot be accessed from `%s`", fd.toChars(), irs.getFunc().toPrettyChars());
             return el_long(TYnptr, 0); // error recovery
         }
 
@@ -378,7 +377,7 @@ elem *getEthis(const ref Loc loc, IRState *irs, Dsymbol fd, Dsymbol fdp = null, 
                 if (!ad)
                 {
                   Lnoframe:
-                    irs.getFunc().error(loc, "cannot get frame pointer to `%s`", fd.toPrettyChars());
+                    irs.eSink.error(loc, "cannot get frame pointer to `%s`", fd.toPrettyChars());
                     return el_long(TYnptr, 0);      // error recovery
                 }
                 ClassDeclaration cd = ad.isClassDeclaration();
@@ -442,7 +441,7 @@ elem *fixEthis2(elem *ethis, FuncDeclaration fd, bool ctxt2 = false)
  * Returns:
  *      *(ey + (ethis2 ? ad.vthis2 : ad.vthis).offset) = this;
  */
-elem *setEthis(const ref Loc loc, IRState *irs, elem *ey, AggregateDeclaration ad, bool setthis2 = false)
+elem *setEthis(const ref Loc loc, ref IRState irs, elem *ey, AggregateDeclaration ad, bool setthis2 = false)
 {
     elem *ethis;
     FuncDeclaration thisfd = irs.getFunc();
@@ -746,7 +745,7 @@ uint setClosureVarOffset(FuncDeclaration fd)
             memalignsize = v.type.alignsize();
             xalign = v.alignment;
         }
-        AggregateDeclaration.alignmember(xalign, memalignsize, &offset);
+        offset = alignmember(xalign, memalignsize, offset);
         v.offset = offset;
         //printf("closure var %s, offset = %d\n", v.toChars(), v.offset);
 
@@ -783,7 +782,7 @@ uint setClosureVarOffset(FuncDeclaration fd)
  * getEthis() and NewExp::toElem need to use sclosure, if set, rather
  * than the current frame pointer.
  */
-void buildClosure(FuncDeclaration fd, IRState *irs)
+void buildClosure(FuncDeclaration fd, ref IRState irs)
 {
     //printf("buildClosure(fd = %s)\n", fd.toChars());
     const oldValue = fd.requiresClosure;
@@ -791,7 +790,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
     {
         /* nrvo is incompatible with closure
          */
-        if (oldValue != fd.requiresClosure && (fd.nrvo_var || irs.params.betterC))
+        if (oldValue != fd.requiresClosure && (fd.nrvo_var || !irs.params.useGC))
         {
             /* https://issues.dlang.org/show_bug.cgi?id=23112
              * This can shift due to templates being expanded that access alias symbols.
@@ -851,7 +850,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
             {
                 /* Because the value needs to survive the end of the scope!
                  */
-                v.error("has scoped destruction, cannot build closure");
+                irs.eSink.error(v.loc, "variable `%s` has scoped destruction, cannot build closure", v.toPrettyChars());
             }
             if (v.isargptr)
             {
@@ -859,7 +858,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
                  * This is actually a bug, but better to produce a nice
                  * message at compile time rather than memory corruption at runtime
                  */
-                v.error("cannot reference variadic arguments from closure");
+                irs.eSink.error(v.loc, "variable `%s` cannot reference variadic arguments from closure", v.toPrettyChars());
             }
 
             /* Set Sscope to closure */
@@ -1002,7 +1001,7 @@ uint setAlignSectionVarOffset(FuncDeclaration fd)
         const memalignsize = v.type.alignsize();
         const xalign = v.alignment;
 
-        AggregateDeclaration.alignmember(xalign, memalignsize, &offset);
+        offset = alignmember(xalign, memalignsize, offset);
         v.offset = offset;
         //printf("align closure var %s, offset = %d\n", v.toChars(), offset);
 

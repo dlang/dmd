@@ -14,7 +14,6 @@ module dmd.backend.global;
 
 // Online documentation: https://dlang.org/phobos/dmd_backend_global.html
 
-extern (C++):
 @nogc:
 nothrow:
 
@@ -40,7 +39,8 @@ nothrow:
 @safe:
 
 // FIXME: backend can't import front end modules because missing -J flag
-nothrow extern (C++) void error(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...);
+extern (C++) void error(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...);
+package extern (C++) void fatal();
 
 public import dmd.backend.eh : except_gentables;
 import dmd.backend.var : _tysize;
@@ -107,14 +107,8 @@ int REGSIZE() @trusted { return _tysize[TYnptr]; }
 public import dmd.backend.var : debuga, debugb, debugc, debugd, debuge, debugf,
     debugr, debugs, debugt, debugu, debugw, debugx, debugy;
 
-enum CR = '\r';             // Used because the MPW version of the compiler warps
-enum LF = '\n';             // \n into \r and \r into \n.  The translator version
-                            // does not and this causes problems with the compilation
-                            // with the translator
-enum CR_STR = "\r";
-enum LF_STR = "\n";
+extern (D) uint mask(uint m) { return 1 << m; }
 
-public import dmd.backend.cgxmm : mask;
 public import dmd.backend.var : OPTIMIZER, PARSER, globsym, controlc_saw, pointertype, sytab;
 public import dmd.backend.cg : fregsaved, localgot, tls_get_addr_sym;
 public import dmd.backend.blockopt : startblock, dfo, curblock, block_last;
@@ -151,9 +145,7 @@ public import dmd.backend.cg87 : loadconst, cg87_reset;
 public import dmd.backend.cod3 : cod3_thunk;
 
 public import dmd.backend.dout : outthunk, out_readonly, out_readonly_comdat,
-    out_regcand, writefunc, alignOffset, out_reset, out_readonly_sym, out_string_literal;
-
-void outdata(Symbol *s);
+    out_regcand, writefunc, alignOffset, out_reset, out_readonly_sym, out_string_literal, outdata;
 
 public import dmd.backend.blockopt : bc_goal, block_calloc, block_init, block_term, block_next,
     block_next, block_goto, block_goto, block_goto, block_goto, block_ptr, block_pred,

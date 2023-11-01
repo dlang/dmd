@@ -133,6 +133,7 @@ enum class TOK : unsigned char
     // Leaf operators
     identifier,
     string_,
+    hexadecimalString,
     this_,
     super_,
     error,
@@ -468,10 +469,7 @@ struct Token
         Identifier *ident;
     };
 
-    void free();
-
     Token() : next(NULL) {}
-    int isKeyword();
     const char *toChars() const;
 
     static const char *toChars(TOK value);

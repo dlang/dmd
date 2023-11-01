@@ -13,7 +13,6 @@ module dmd.backend.oper;
 
 // Online documentation: https://dlang.org/phobos/dmd_backend_oper.html
 
-extern (C++):
 @nogc:
 nothrow:
 @safe:
@@ -362,7 +361,7 @@ OPER opeqtoop(OPER opx)   { return opx - OPaddass + OPadd; }
 /* Convert op to op=    */
 OPER optoopeq(OPER opx)   { return opx - OPadd + OPaddass; }
 
-OPER swaprel(OPER);
+public import dmd.backend.cgelem : swaprel;
 
 /***************************
  * Determine properties of an elem.
