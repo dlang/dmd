@@ -56,6 +56,8 @@ import dmd.staticassert;
 import dmd.tokens;
 import dmd.visitor;
 
+import dmd.common.outbuffer;
+
 /***************************************
  * Calls dg(Dsymbol *sym) for each Dsymbol.
  * If dg returns !=0, stops and returns that value else returns 0.
@@ -693,7 +695,7 @@ extern (C++) class Dsymbol : ASTNode
     const(char)* toPrettyChars(bool QualifyTypes = false)
     {
         if (prettystring && !QualifyTypes)
-            return prettystring;
+            return prettystring; // value cached for speed
 
         //printf("Dsymbol::toPrettyChars() '%s'\n", toChars());
         if (!parent)
@@ -704,51 +706,22 @@ extern (C++) class Dsymbol : ASTNode
             return s;
         }
 
-        // Computer number of components
-        size_t complength = 0;
-        for (Dsymbol p = this; p; p = p.parent)
-            ++complength;
+        OutBuffer buf;
 
-        // Easy case doesn't need allocations
-        if (complength == 1)
+        void addQualifiers(Dsymbol p)
         {
-            if (QualifyTypes)
-                return toPrettyCharsHelper();
-            prettystring = toChars();
-            return prettystring;
-        }
-
-        // Allocate temporary array comp[]
-        alias T = const(char)[];
-        auto compptr = cast(T*)Mem.check(malloc(complength * T.sizeof));
-        auto comp = compptr[0 .. complength];
-
-        // Fill in comp[] and compute length of final result
-        size_t length = 0;
-        int i;
-        for (Dsymbol p = this; p; p = p.parent)
-        {
+            if (p.parent)
+            {
+                addQualifiers(p.parent);
+                buf.writeByte('.');
+            }
             const s = QualifyTypes ? p.toPrettyCharsHelper() : p.toChars();
-            const len = strlen(s);
-            comp[i] = s[0 .. len];
-            ++i;
-            length += len + 1;
+            buf.writestring(s);
         }
 
-        auto s = cast(char*)mem.xmalloc_noscan(length);
-        auto q = s + length - 1;
-        *q = 0;
-        foreach (j; 0 .. complength)
-        {
-            const t = comp[j].ptr;
-            const len = comp[j].length;
-            q -= len;
-            memcpy(q, t, len);
-            if (q == s)
-                break;
-            *--q = '.';
-        }
-        free(comp.ptr);
+        addQualifiers(this);
+        auto s = buf.extractSlice(true).ptr;
+
         if (!QualifyTypes)
             prettystring = s;
         return s;
