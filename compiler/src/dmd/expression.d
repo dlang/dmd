@@ -38,7 +38,6 @@ import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.errorsink;
-import dmd.escape;
 import dmd.expressionsem;
 import dmd.func;
 import dmd.globals;
@@ -46,11 +45,8 @@ import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.init;
-import dmd.inline;
 import dmd.location;
 import dmd.mtype;
-import dmd.nspace;
-import dmd.objc;
 import dmd.opover;
 import dmd.optimize;
 import dmd.root.complex;
@@ -6444,7 +6440,6 @@ extern (C++) final class ObjcClassReferenceExp : Expression
     {
         super(loc, EXP.objcClassReference);
         this.classDeclaration = classDeclaration;
-        type = objc.getRuntimeMetaclass(classDeclaration).getType();
     }
 
     override void accept(Visitor v)

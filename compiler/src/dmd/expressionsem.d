@@ -60,6 +60,7 @@ import dmd.location;
 import dmd.mtype;
 import dmd.mustuse;
 import dmd.nspace;
+import dmd.objc;
 import dmd.opover;
 import dmd.optimize;
 import dmd.parse;
@@ -1536,7 +1537,10 @@ L1:
              var.isFuncDeclaration && var.isFuncDeclaration.isStatic &&
              var.isFuncDeclaration.objc.selector)
     {
-        return new ObjcClassReferenceExp(e1.loc, ad.isClassDeclaration());
+        auto cls = ad.isClassDeclaration();
+        auto classObj = new ObjcClassReferenceExp(e1.loc, cls);
+        classObj.type = objc.getRuntimeMetaclass(cls).getType();
+        return classObj;
     }
 
     /* Access of a member which is a template parameter in dual-scope scenario
