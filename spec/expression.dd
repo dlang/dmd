@@ -404,7 +404,8 @@ $(GNAME ConditionalExpression):
         the result type of the conditional expression.
     )
 
-    $(P $(B Note:)
+    $(PANEL
+    $(NOTE
         When a conditional expression is the left operand of
         an $(RELATIVE_LINK2 assign_expressions, assign expression),
         parentheses are required for disambiguation:
@@ -413,8 +414,8 @@ $(GNAME ConditionalExpression):
     bool test;
     int a, b, c;
     ...
-    test ? a = b : c = 2;   // Deprecated
-    (test ? a = b : c) = 2; // Equivalent
+    test ? a = b : c = 2;   // error
+    (test ? a = b : c) = 2; // OK
     ---
 
     $(P This makes the intent clearer, because the first statement can
@@ -423,6 +424,7 @@ $(GNAME ConditionalExpression):
     ---
     test ? a = b : (c = 2);
     ---
+    )
 
 $(H2 $(LNAME2 logical_expressions, Logical Expressions))
 
@@ -493,6 +495,25 @@ $(H2 $(LNAME2 bitwise_expressions, Bitwise Expressions))
         operation is done.
     )
     $(DDOC_SEE_ALSO $(GLINK ShiftExpression), $(GLINK ComplementExpression))
+
+    $(PANEL
+    $(NOTE If an *OrExpression*, *XorExpression* or *AndExpression* appears on
+        either side of an *EqualExpression*, *IdentityExpression* or *RelExpression*,
+        it is a compile error. Instead, disambiguate by using parentheses.
+    )
+
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+---
+int x, a, b;
+x = a & 5 == b; // error
+x = a & 5 is b; // error
+x = a & 5 <= b; // error
+
+x = (a & 5) == b; // OK
+x = a & (5 == b); // OK
+---
+)
+)
 
 $(H3 $(LNAME2 or_expressions, Or Expressions))
 
@@ -850,15 +871,19 @@ $(GNAME ShiftExpression):
         -------------
     )
 
-$(H2 $(LNAME2 add_expressions, Add Expressions))
+$(H2 $(LNAME2 additive_expressions, Additive Expressions))
 
 $(GRAMMAR
 $(GNAME AddExpression):
     $(GLINK MulExpression)
     $(GSELF AddExpression) $(D +) $(GLINK MulExpression)
     $(GSELF AddExpression) $(D -) $(GLINK MulExpression)
-    $(GLINK CatExpression)
+    $(GSELF AddExpression) $(D ~) $(GLINK MulExpression)
 )
+
+$(H3 $(LNAME2 add_expressions, Add Expressions))
+    $(P In the cases of the Additive operations $(D +) and $(D -):
+    )
 
     $(P If the operands are of integral types, they undergo the $(USUAL_ARITHMETIC_CONVERSIONS),
         and then are brought to a common type using the
@@ -882,10 +907,9 @@ $(GNAME AddExpression):
     $(P Add expressions for floating point operands are not associative.
     )
 
-    $(H3 $(LNAME2 pointer_arithmetic, Pointer Arithmetic))
+    $(H4 $(LNAME2 pointer_arithmetic, Pointer Arithmetic))
 
-    $(P If the operator is $(D +) or $(D -), and
-        the first operand is a pointer, and the second is an integral type,
+    $(P If the first operand is a pointer, and the second is an integral type,
         the resulting type is the type of the first operand, and the resulting
         value is the pointer plus (or minus) the second operand multiplied by
         the size of the type pointed to by the first operand.
@@ -902,7 +926,7 @@ assert(a[2] == 4);
 ---
 )
 
-    $(P $(GLINK IndexExpression) can also be used with a pointer and has
+    $(P $(GLINK IndexOperation) can also be used with a pointer and has
     the same behaviour as adding an integer, then dereferencing the result.)
 
     $(P If the second operand is a pointer, and the first is an integral type,
@@ -935,12 +959,9 @@ assert(d == 2);
 )
 
 
-$(H2 $(LNAME2 cat_expressions, Cat Expressions))
-
-$(GRAMMAR
-$(GNAME CatExpression):
-    $(GLINK AddExpression) $(D ~) $(GLINK MulExpression)
-)
+$(H3 $(LNAME2 cat_expressions, Cat Expressions))
+    $(P In the case of the Additive operation $(D ~):
+    )
 
     $(P A $(I CatExpression) concatenates a container's data with other data, producing
         a new container.)
@@ -1531,8 +1552,8 @@ $(GNAME PostfixExpression):
     $(GSELF PostfixExpression) $(D --)
     $(GSELF PostfixExpression) $(D $(LPAREN)) $(GLINK NamedArgumentList)$(OPT) $(D $(RPAREN))
     $(GLINK2 type, TypeCtors)$(OPT) $(GLINK2 type, BasicType) $(D $(LPAREN)) $(GLINK NamedArgumentList)$(OPT) $(D $(RPAREN))
-    $(GLINK IndexExpression)
-    $(GLINK SliceExpression)
+    $(GSELF PostfixExpression) $(GLINK IndexOperation)
+    $(GSELF PostfixExpression) $(GLINK SliceOperation)
 )
 
 $(TABLE
@@ -1546,19 +1567,67 @@ $(TABLE
     )
     $(TROW `++`, Increment after use - see $(RELATIVE_LINK2 order-of-evaluation, order of evaluation))
     $(TROW `--`, Decrement after use)
-    $(TROW *IndexExpression*, Select a single element)
-    $(TROW *SliceExpression*, Select a series of elements)
+    $(TROW *IndexOperation*, Select a single element)
+    $(TROW *SliceOperation*, Select a series of elements)
 )
 
-$(H2 $(LNAME2 index_expressions, Index Expressions))
+$(H3 $(LNAME2 argument-list, Postfix Argument Lists))
 
 $(GRAMMAR
-$(GNAME IndexExpression):
-    $(GLINK PostfixExpression) $(D [) $(GLINK ArgumentList) $(D ])
+$(GNAME ArgumentList):
+    $(GLINK AssignExpression)
+    $(GLINK AssignExpression) $(D ,)
+    $(GLINK AssignExpression) $(D ,) $(GSELF ArgumentList)
+
+$(GNAME NamedArgumentList):
+    $(GLINK NamedArgument)
+    $(GLINK NamedArgument) $(D ,)
+    $(GLINK NamedArgument) $(D ,) $(I NamedArgumentList)
+
+$(GNAME NamedArgument):
+    $(IDENTIFIER) $(D :) $(GLINK AssignExpression)
+    $(GLINK AssignExpression)
 )
 
-    $(P $(I PostfixExpression) is evaluated.
-        If $(I PostfixExpression) is an expression of static or
+    $(P A callable expression can precede a list of arguments in parentheses.)
+
+---
+void f(int, int);
+
+f(5, 6);
+(&f)(5, 6);
+---
+
+    $(P A type can precede a list of arguments.)
+
+---
+struct S
+{
+    int x, y;
+}
+
+S s = S(1, 2);
+---
+
+    $(P See also: $(RELATIVE_LINK2 uniform_construction_syntax,
+    Uniform construction syntax for built-in scalar types))
+
+
+$(H3 $(LEGACY_LNAME2 index_operations, index_expressions, Index Operations))
+
+$(GRAMMAR
+$(GNAME IndexOperation):
+    $(D [) $(GLINK ArgumentList) $(D ])
+)
+
+    $(P The base $(I PostfixExpression) is evaluated.
+        The special variable `$` is declared and set to be the number
+        of elements in the base $(I PostfixExpression) (when available).
+        A new declaration scope is created for the evaluation of the
+        $(I ArgumentList) and `$` appears in that scope only.
+    )
+
+    $(P If the $(I PostfixExpression) is an expression of static or
         dynamic array type, the result of the indexing is an lvalue
         of the *i*th element in the array, where `i` is an integer
         evaluated from $(I ArgumentList).
@@ -1566,31 +1635,25 @@ $(GNAME IndexExpression):
         `*(p + i)` (see $(RELATIVE_LINK2 pointer_arithmetic, Pointer Arithmetic)).
     )
 
-    $(P If $(I PostfixExpression) is a $(DDSUBLINK spec/template, variadic-templates, $(I ValueSeq))
+    $(P If the base $(I PostfixExpression) is a $(DDSUBLINK spec/template, variadic-templates, $(I ValueSeq))
         then the $(I ArgumentList) must consist of only one argument,
         and that must be statically evaluatable to an integral constant.
         That integral constant $(I n) then selects the $(I n)th
         expression in the $(I ValueSeq), which is the result
-        of the $(I IndexExpression).
+        of the $(I IndexOperation).
         It is an error if $(I n) is out of bounds of the $(I ValueSeq).
-    )
-
-    $(P The special variable `$` is declared and set to be the number
-        of elements in the $(I PostfixExpression) (when available).
-        A new declaration scope is created for the evaluation of the
-        $(I ArgumentList) and `$` appears in that scope only.
     )
 
     $(P The index operator can be $(DDSUBLINK spec/operatoroverloading, array, overloaded).
         Using multiple indices in *ArgumentList* is only supported for operator
         overloading.)
 
-$(H2 $(LNAME2 slice_expressions, Slice Expressions))
+$(H3 $(LEGACY_LNAME2 slice_operations, slice_expressions, Slice Operations))
 
 $(GRAMMAR
-$(GNAME SliceExpression):
-    $(GLINK PostfixExpression) $(D [ ])
-    $(GLINK PostfixExpression) $(D [) $(GLINK Slice) $(D ,)$(OPT) $(D ])
+$(GNAME SliceOperation):
+    $(D [ ])
+    $(D [) $(GLINK Slice) $(D ,)$(OPT) $(D ])
 
 $(GNAME Slice):
     $(GLINK AssignExpression)
@@ -1599,21 +1662,28 @@ $(GNAME Slice):
     $(GLINK AssignExpression) $(D ..) $(GLINK AssignExpression) $(D ,) $(GSELF Slice)
 )
 
-    $(P $(I PostfixExpression) is evaluated.
-        If $(I PostfixExpression) is a static or dynamic
+    $(P The base $(I PostfixExpression) is evaluated.
+        The special variable `$` is declared and set to be the number
+        of elements in the $(I PostfixExpression) (when available).
+        A new declaration scope is created for the evaluation of the
+        $(I AssignExpression)`..`$(I AssignExpression) and `$` appears in
+        that scope only.
+    )
+
+    $(P If the base $(I PostfixExpression) is a static or dynamic
         array `a`, the result of the slice is a dynamic array
         referencing elements `a[i]` to `a[j-1]` inclusive, where `i`
         and `j` are integers evaluated from the first and second $(I
         AssignExpression) respectively.
     )
 
-    $(P If $(I PostfixExpression) is a pointer `p`, the result
+    $(P If the base $(I PostfixExpression) is a pointer `p`, the result
         will be a dynamic array referencing elements from `p[i]` to `p[j-1]`
         inclusive, where `i` and `j` are integers evaluated from the
         first and second $(I AssignExpression) respectively.
     )
 
-    $(P If $(I PostfixExpression) is a $(DDSUBLINK spec/template, variadic-templates, $(I ValueSeq)), then
+    $(P If the base $(I PostfixExpression) is a $(DDSUBLINK spec/template, variadic-templates, $(I ValueSeq)), then
         the result of the slice is a new $(I ValueSeq) formed
         from the upper and lower bounds, which must statically evaluate
         to integral constants.
@@ -1627,24 +1697,17 @@ $(GNAME Slice):
         The result of the expression is a slice of the elements in $(I PostfixExpression).
     )
 
-    $(P The special variable `$` is declared and set to be the number
-        of elements in the $(I PostfixExpression) (when available).
-        A new declaration scope is created for the evaluation of the
-        $(I AssignExpression)`..`$(I AssignExpression) and `$` appears in
-        that scope only.
-    )
-
-    $(P If the $(D [ ]) form is used, the slice is of all the elements in $(I PostfixExpression).
-        The expression cannot be a pointer.
+    $(P If the $(D [ ]) form is used, the slice is of all the elements in the base $(I PostfixExpression).
+        The base expression cannot be a pointer.
     )
 
     $(P The slice operator can be $(DDSUBLINK spec/operatoroverloading, slice, overloaded).
         Using more than one *Slice* is only supported for operator
         overloading.)
 
-    $(P A $(I SliceExpression) is not a modifiable lvalue.)
+    $(P A $(I SliceOperation) is not a modifiable lvalue.)
 
-$(H3 $(LNAME2 slice_to_static_array, Slice Conversion to Static Array))
+$(H4 $(LNAME2 slice_to_static_array, Slice Conversion to Static Array))
 
     $(P If the slice bounds can be known at compile time, the slice expression
     may be implicitly convertible to a static array lvalue. For example:)
@@ -1743,7 +1806,7 @@ $(GNAME PrimaryExpression):
     $(RELATIVE_LINK2 null, $(D null))
     $(LEGACY_LNAME2 true_false)$(DDSUBLINK spec/type, bool, `true`)
     $(DDSUBLINK spec/type, bool, `false`)
-    $(RELATIVE_LINK2 IndexExpression, `$`)
+    $(RELATIVE_LINK2 IndexOperation, `$`)
     $(GLINK_LEX IntegerLiteral)
     $(GLINK_LEX FloatLiteral)
     $(LEGACY_LNAME2 CharacterLiteral)$(LEGACY_LNAME2 character-literal)$(GLINK_LEX CharacterLiteral)
@@ -1996,7 +2059,7 @@ $(H4 $(LNAME2 cast_array_literal, Casting))
         {
             // cast array literal
             const short[] ct = cast(short[]) [cast(byte)1, 1];
-            // this is equivalent with:
+            // this is equivalent to:
             // const short[] ct = [cast(short)1, cast(short)1];
             writeln(ct);  // writes [1, 1]
 
@@ -2245,13 +2308,13 @@ $(H4 $(LNAME2 lambda-parameter-inference, Parameter Type Inference))
         auto fp = (i) { return 1; }; // error, cannot infer type of `i`
         ---
 
-$(H5 $(LNAME2 function-literal-alias, Function Literal Aliasing))
+$(H4 $(LNAME2 function-literal-alias, Function Literal Aliasing))
 
-    $(P If a function literal is
-        $(DDSUBLINK spec/declaration, alias, aliased), the inference
-        of the parameter types is done when the types are needed, as
-        the function literal becomes a
-        $(DDSUBLINK spec/template, function-templates, function template).)
+    $(P Function literals can be $(DDSUBLINK spec/declaration, alias, aliased).
+        Aliasing a function literal with unspecified parameter types produces a
+        $(DDSUBLINK spec/template, function-template, function template)
+        with type parameters for each unspecified parameter type of the literal.
+        Type inference for the literal is then done when the template is instantiated.)
 
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
@@ -2285,10 +2348,23 @@ $(H4 $(LNAME2 lambda-return-type, Return Type Inference))
     ---
     )
 
-$(H4 $(LNAME2 lambda-short-syntax, Short Syntax))
+$(H4 $(LNAME2 lambda-short-syntax, Nullary Short Syntax))
 
-    $(P Anonymous delegates can behave like arbitrary statement literals.
-        For example, here an arbitrary statement is executed by a loop:)
+    $(P *Parameters* can be omitted completely for a function literal
+        when there is a *BlockStatement* function body.)
+
+    $(NOTE This form is not allowed to be immediately called as an *ExpressionStatement*,
+        because it would require arbitrary lookahead to distinguish it from a *BlockStatement*.)
+
+---
+auto f = { writeln("hi"); }; // OK, f has type `void function()`
+f();
+{ writeln("hi"); }(); // error
+() { writeln("hi"); }(); // OK
+---
+
+    $(PANEL Anonymous delegates can behave like arbitrary statement literals.
+        For example, here an arbitrary statement is executed by a loop:
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
         -------------
@@ -2309,6 +2385,9 @@ $(H4 $(LNAME2 lambda-short-syntax, Short Syntax))
         }
         -------------
         )
+    )
+
+$(H4 $(LNAME2 lambda-short-body, Shortened Body Syntax))
 
     $(P The syntax $(D => AssignExpression) is equivalent to $(D { return AssignExpression; }).)
 
@@ -2392,7 +2471,8 @@ $(GNAME AssertArguments):
     $(GLINK AssignExpression) $(D ,) $(GLINK AssignExpression) $(D ,)$(OPT)
 )
 
-    $(P The first $(I AssignExpression) must evaluate to `true`. If it does not, an $(I Assert Failure)
+    $(P The first $(I AssignExpression) is evaluated and converted to a boolean value.
+    If the value is not `true`, an $(I Assert Failure)
     has occurred and the program enters an $(I Invalid State).
     )
 
@@ -2420,6 +2500,7 @@ $(GNAME AssertArguments):
     $(UNDEFINED_BEHAVIOR Once in an $(I Invalid State) the behavior of the continuing execution
     of the program is undefined.)
 
+    $(PANEL
     $(IMPLEMENTATION_DEFINED Whether the first $(I AssertExpression) is evaluated
     or not (at runtime) is typically set with a compiler switch. If it is not evaluated,
     any side effects specified by the $(I AssertExpression) may not occur.
@@ -2434,7 +2515,7 @@ $(GNAME AssertArguments):
     )
     )
 
-    $(NOTE $(D AssertError) is the default for $(B dmd), with an optional
+    $(NOTE Throwing $(D AssertError) is the default for $(B dmd), with an optional
     $(DDSUBLINK dmd, switch-checkaction, $(B -checkaction=context))
     switch to show certain sub-expressions used in the first *AssertExpression*
     in the error message:)
@@ -2443,7 +2524,8 @@ $(GNAME AssertArguments):
     auto x = 4;
     assert(x < 3);
     ---
-    $(P When in use, the above will throw an `AssertError` with a message `4 >= 3`.)
+    When in use, the above will throw an `AssertError` with a message `4 >= 3`.
+    )
 
     $(BEST_PRACTICE
     $(OL
@@ -2550,21 +2632,7 @@ $(GNAME NewExpression):
     $(D new) $(GLINK2 type, Type) $(D [) $(GLINK AssignExpression) $(D ])
     $(D new) $(GLINK2 type, Type) $(D $(LPAREN)) $(GLINK NamedArgumentList)$(OPT) $(D $(RPAREN))
     $(GLINK2 class, NewAnonClassExpression)
-
-$(GNAME ArgumentList):
-    $(GLINK AssignExpression)
-    $(GLINK AssignExpression) $(D ,)
-    $(GLINK AssignExpression) $(D ,) $(GSELF ArgumentList)
 )
-
-$(GNAME NamedArgumentList):
-    $(GLINK NamedArgument)
-    $(GLINK NamedArgument) $(D ,)
-    $(GLINK NamedArgument) $(D ,) $(I NamedArgumentList)
-
-$(GNAME NamedArgument):
-    $(IDENTIFIER) $(D :) $(GLINK AssignExpression)
-    $(GLINK AssignExpression)
 
     $(P $(I NewExpression)s allocate memory on the
         $(DDLINK spec/garbage, Garbage Collection, garbage
@@ -2723,6 +2791,7 @@ $(GNAME IsExpression):
 
 $(GNAME TypeSpecialization):
     $(GLINK2 type, Type)
+    $(GLINK2 type, TypeCtor)
     $(D struct)
     $(D union)
     $(D class)
@@ -2732,10 +2801,6 @@ $(GNAME TypeSpecialization):
     $(D function)
     $(D delegate)
     $(D super)
-    $(D const)
-    $(D immutable)
-    $(D inout)
-    $(D shared)
     $(D return)
     $(D __parameters)
     $(D module)
@@ -2834,6 +2899,18 @@ static assert(!is(Bar == int));
 -------------
 )
         $(P
+        If *TypeSpecialization* is a $(GLINK2 type, TypeCtor)
+        then the condition is satisfied if *Type* is of that *TypeCtor*:
+        )
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+static assert(is(const int == const));
+static assert(is(const int[] == const));
+static assert(!is(const(int)[] == const)); // head is mutable
+static assert(!is(immutable int == const));
+---
+)
+        $(P
         If $(I TypeSpecialization) is one of
                 $(D struct)
                 $(D union)
@@ -2882,22 +2959,6 @@ static assert(!is(int == class));
         static assert(is(typeof(foo) == __parameters));
         ---
         )
-        $(P
-        If *TypeSpecialization* is a $(GLINK2 type, TypeCtor) keyword
-                $(D const)
-                $(D immutable)
-                $(D inout)
-                $(D shared)
-        then the condition is satisfied if *Type* is of that *TypeCtor*:
-        )
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
----
-static assert(is(const int == const));
-static assert(is(const int[] == const));
-static assert(!is(const(int)[] == const)); // head is mutable
-static assert(!is(immutable int == const));
----
-)
         $(P $(B See also:) $(DDLINK spec/traits, Traits, Traits).)
 
 

@@ -880,9 +880,9 @@ $(P
     In that case, they are inferred as $(DDSUBLINK spec/function, return-scope-parameters, Return Scope Parameters).
 )
 
-$(H3 $(LNAME2 scope-class-var, $(D scope) variables with `class` type))
+$(H3 $(LNAME2 scope-class-var, $(D scope) Class Instances))
 $(P
-        When used on variables with a `class` type, `scope` signifies the RAII
+        When used to allocate a class instance directly, a `scope` variable signifies the RAII
         (Resource Acquisition Is Initialization) protocol.
         This means that the destructor for an object is automatically called when the
         reference to it goes out of scope. The destructor is called even
