@@ -1731,6 +1731,403 @@ private bool haveSameThis(FuncDeclaration outerFunc, FuncDeclaration calledFunc)
     return false;
 }
 
+/*********************************************
+ * Calling function f.
+ * Check the purity, i.e. if we're in a pure function
+ * we can only call other pure functions.
+ * Returns true if error occurs.
+ */
+private bool checkPurity(FuncDeclaration f, const ref Loc loc, Scope* sc)
+{
+    if (!sc.func)
+        return false;
+    if (sc.func == f)
+        return false;
+    if (sc.intypeof == 1)
+        return false;
+    if (sc.flags & (SCOPE.ctfe | SCOPE.debug_))
+        return false;
+
+    // If the call has a pure parent, then the called func must be pure.
+    if (!f.isPure() && checkImpure(sc, loc, null, f))
+    {
+        error(loc, "`pure` %s `%s` cannot call impure %s `%s`",
+            sc.func.kind(), sc.func.toPrettyChars(), f.kind(),
+            f.toPrettyChars());
+
+        if (!f.isDtorDeclaration())
+            errorSupplementalInferredAttr(f, /*max depth*/ 10, /*deprecation*/ false, STC.pure_);
+
+        f.checkOverriddenDtor(sc, loc, dd => dd.type.toTypeFunction().purity != PURE.impure, "impure");
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Checks whether `f` is a generated `DtorDeclaration` that hides a user-defined one
+ * which passes `check` while `f` doesn't (e.g. when the user defined dtor is pure but
+ * the generated dtor is not).
+ * In that case the method will identify and print all members causing the attribute
+ * missmatch.
+ *
+ * Params:
+ *   f  = potential `DtorDeclaration`
+ *   sc = scope
+ *   loc = location
+ *   check = current check (e.g. whether it's pure)
+ *   checkName = the kind of check (e.g. `"pure"`)
+ */
+void checkOverriddenDtor(FuncDeclaration f, Scope* sc, const ref Loc loc,
+            scope bool function(DtorDeclaration) check, const string checkName)
+{
+    auto dd = f.isDtorDeclaration();
+    if (!dd || !dd.isGenerated())
+        return;
+
+    // DtorDeclaration without parents should fail at an earlier stage
+    auto ad = cast(AggregateDeclaration) f.toParent2();
+    assert(ad);
+
+    if (ad.userDtors.length)
+    {
+        if (!check(ad.userDtors[0])) // doesn't match check (e.g. is impure as well)
+            return;
+
+        // Sanity check
+        assert(!check(ad.fieldDtor));
+    }
+
+    dd.loc.errorSupplemental("%s`%s.~this` is %.*s because of the following field's destructors:",
+                        dd.isGenerated() ? "generated " : "".ptr,
+                        ad.toChars,
+                        cast(int) checkName.length, checkName.ptr);
+
+    // Search for the offending fields
+    foreach (field; ad.fields)
+    {
+        // Only structs may define automatically called destructors
+        auto ts = field.type.isTypeStruct();
+        if (!ts)
+        {
+            // But they might be part of a static array
+            auto ta = field.type.isTypeSArray();
+            if (!ta)
+                continue;
+
+            ts = ta.baseElemOf().isTypeStruct();
+            if (!ts)
+                continue;
+        }
+
+        auto fieldSym = ts.toDsymbol(sc);
+        assert(fieldSym); // Resolving ts must succeed because missing defs. should error before
+
+        auto fieldSd = fieldSym.isStructDeclaration();
+        assert(fieldSd); // ts is a TypeStruct, this would imply a malformed ASR
+
+        if (fieldSd.dtor && !check(fieldSd.dtor))
+        {
+            field.loc.errorSupplemental(" - %s %s", field.type.toChars(), field.toChars());
+
+            if (fieldSd.dtor.isGenerated())
+                fieldSd.dtor.checkOverriddenDtor(sc, loc, check, checkName);
+            else
+                fieldSd.dtor.loc.errorSupplemental("   %.*s `%s.~this` is declared here",
+                                        cast(int) checkName.length, checkName.ptr, fieldSd.toChars());
+        }
+    }
+}
+
+/*******************************************
+ * Accessing variable v.
+ * Check for purity and safety violations.
+ * Returns true if error occurs.
+ */
+private bool checkPurity(VarDeclaration v, const ref Loc loc, Scope* sc)
+{
+    //printf("v = %s %s\n", v.type.toChars(), v.toChars());
+    /* Look for purity and safety violations when accessing variable v
+     * from current function.
+     */
+    if (!sc.func)
+        return false;
+    if (sc.intypeof == 1)
+        return false; // allow violations inside typeof(expression)
+    if (sc.flags & (SCOPE.ctfe | SCOPE.debug_))
+        return false; // allow violations inside compile-time evaluated expressions and debug conditionals
+    if (v.ident == Id.ctfe)
+        return false; // magic variable never violates pure and safe
+    if (v.isImmutable())
+        return false; // always safe and pure to access immutables...
+    if (v.isConst() && !v.isReference() && (v.isDataseg() || v.isParameter()) && v.type.implicitConvTo(v.type.immutableOf()))
+        return false; // or const global/parameter values which have no mutable indirections
+    if (v.storage_class & STC.manifest)
+        return false; // ...or manifest constants
+
+    // accessing empty structs is pure
+    // https://issues.dlang.org/show_bug.cgi?id=18694
+    // https://issues.dlang.org/show_bug.cgi?id=21464
+    // https://issues.dlang.org/show_bug.cgi?id=23589
+    if (v.type.ty == Tstruct)
+    {
+        StructDeclaration sd = (cast(TypeStruct)v.type).sym;
+        if (sd.members) // not opaque
+        {
+            if (sd.semanticRun >= PASS.semanticdone)
+                sd.determineSize(v.loc);
+            if (sd.hasNoFields)
+                return false;
+        }
+    }
+
+    bool err = false;
+    if (v.isDataseg())
+    {
+        // https://issues.dlang.org/show_bug.cgi?id=7533
+        // Accessing implicit generated __gate is pure.
+        if (v.ident == Id.gate)
+            return false;
+
+        if (checkImpure(sc, loc, "`pure` %s `%s` cannot access mutable static data `%s`", v))
+        {
+            error(loc, "`pure` %s `%s` cannot access mutable static data `%s`",
+                sc.func.kind(), sc.func.toPrettyChars(), v.toChars());
+            err = true;
+        }
+    }
+    else
+    {
+        /* Given:
+         * void f() {
+         *   int fx;
+         *   pure void g() {
+         *     int gx;
+         *     /+pure+/ void h() {
+         *       int hx;
+         *       /+pure+/ void i() { }
+         *     }
+         *   }
+         * }
+         * i() can modify hx and gx but not fx
+         */
+
+        Dsymbol vparent = v.toParent2();
+        for (Dsymbol s = sc.func; !err && s; s = s.toParentP(vparent))
+        {
+            if (s == vparent)
+                break;
+
+            if (AggregateDeclaration ad = s.isAggregateDeclaration())
+            {
+                if (ad.isNested())
+                    continue;
+                break;
+            }
+            FuncDeclaration ff = s.isFuncDeclaration();
+            if (!ff)
+                break;
+            if (ff.isNested() || ff.isThis())
+            {
+                if (ff.type.isImmutable() ||
+                    ff.type.isShared() && !MODimplicitConv(ff.type.mod, v.type.mod))
+                {
+                    OutBuffer ffbuf;
+                    OutBuffer vbuf;
+                    MODMatchToBuffer(&ffbuf, ff.type.mod, v.type.mod);
+                    MODMatchToBuffer(&vbuf, v.type.mod, ff.type.mod);
+                    error(loc, "%s%s `%s` cannot access %sdata `%s`",
+                        ffbuf.peekChars(), ff.kind(), ff.toPrettyChars(), vbuf.peekChars(), v.toChars());
+                    err = true;
+                    break;
+                }
+                continue;
+            }
+            break;
+        }
+    }
+
+    /* Do not allow safe functions to access __gshared data
+     */
+    if (v.storage_class & STC.gshared)
+    {
+        if (sc.setUnsafe(false, loc,
+            "`@safe` function `%s` cannot access `__gshared` data `%s`", sc.func, v))
+        {
+            err = true;
+        }
+    }
+
+    return err;
+}
+
+/*
+Check if sc.func is impure or can be made impure.
+Returns true on error, i.e. if sc.func is pure and cannot be made impure.
+*/
+private bool checkImpure(Scope* sc, Loc loc, const(char)* fmt, RootObject arg0)
+{
+    return sc.func && (isRootTraitsCompilesScope(sc)
+            ? sc.func.isPureBypassingInference() >= PURE.weak
+            : sc.func.setImpure(loc, fmt, arg0));
+}
+
+/*********************************************
+ * Calling function f.
+ * Check the safety, i.e. if we're in a @safe function
+ * we can only call @safe or @trusted functions.
+ * Returns true if error occurs.
+ */
+private bool checkSafety(FuncDeclaration f, ref Loc loc, Scope* sc)
+{
+    if (sc.func == f)
+        return false;
+    if (sc.intypeof == 1)
+        return false;
+    if (sc.flags & SCOPE.debug_)
+        return false;
+    if ((sc.flags & SCOPE.ctfe) && sc.func)
+        return false;
+
+    if (!sc.func)
+    {
+        if (sc.varDecl && !f.safetyInprocess && !f.isSafe() && !f.isTrusted())
+        {
+            if (sc.varDecl.storage_class & STC.safe)
+            {
+                error(loc, "`@safe` variable `%s` cannot be initialized by calling `@system` function `%s`",
+                    sc.varDecl.toChars(), f.toChars());
+                return true;
+            }
+            else
+            {
+                sc.varDecl.storage_class |= STC.system;
+                sc.varDecl.systemInferred = true;
+            }
+        }
+        return false;
+    }
+
+    if (!f.isSafe() && !f.isTrusted())
+    {
+        if (isRootTraitsCompilesScope(sc) ? sc.func.isSafeBypassingInference() : sc.func.setUnsafeCall(f))
+        {
+            if (!loc.isValid()) // e.g. implicitly generated dtor
+                loc = sc.func.loc;
+
+            const prettyChars = f.toPrettyChars();
+            error(loc, "`@safe` %s `%s` cannot call `@system` %s `%s`",
+                sc.func.kind(), sc.func.toPrettyChars(), f.kind(),
+                prettyChars);
+            if (!f.isDtorDeclaration)
+                errorSupplementalInferredAttr(f, /*max depth*/ 10, /*deprecation*/ false, STC.safe);
+            .errorSupplemental(f.loc, "`%s` is declared here", prettyChars);
+
+            f.checkOverriddenDtor(sc, loc, dd => dd.type.toTypeFunction().trust > TRUST.system, "@system");
+
+            return true;
+        }
+    }
+    else if (f.isSafe() && f.safetyViolation)
+    {
+        // for dip1000 by default transition, print deprecations for calling functions that will become `@system`
+        if (sc.func.isSafeBypassingInference())
+        {
+            .deprecation(loc, "`@safe` function `%s` calling `%s`", sc.func.toChars(), f.toChars());
+            errorSupplementalInferredAttr(f, 10, true, STC.safe);
+        }
+        else if (!sc.func.safetyViolation)
+        {
+            import dmd.func : AttributeViolation;
+            sc.func.safetyViolation = new AttributeViolation(loc, null, f, null, null);
+        }
+    }
+    return false;
+}
+
+/*********************************************
+ * Calling function f.
+ * Check the @nogc-ness, i.e. if we're in a @nogc function
+ * we can only call other @nogc functions.
+ * Returns true if error occurs.
+ */
+private bool checkNogc(FuncDeclaration f, ref Loc loc, Scope* sc)
+{
+    if (!sc.func)
+        return false;
+    if (sc.func == f)
+        return false;
+    if (sc.intypeof == 1)
+        return false;
+    if (sc.flags & (SCOPE.ctfe | SCOPE.debug_))
+        return false;
+    /* The original expressions (`new S(...)` or `new S[...]``) will be
+     * verified instead. This is to keep errors related to the original code
+     * and not the lowering.
+     */
+    if (f.ident == Id._d_newitemT || f.ident == Id._d_newarrayT)
+        return false;
+
+    if (!f.isNogc())
+    {
+        if (isRootTraitsCompilesScope(sc) ? sc.func.isNogcBypassingInference() : sc.func.setGCCall(f))
+        {
+            if (loc.linnum == 0) // e.g. implicitly generated dtor
+                loc = sc.func.loc;
+
+            // Lowered non-@nogc'd hooks will print their own error message inside of nogc.d (NOGCVisitor.visit(CallExp e)),
+            // so don't print anything to avoid double error messages.
+            if (!(f.ident == Id._d_HookTraceImpl || f.ident == Id._d_arraysetlengthT
+                || f.ident == Id._d_arrayappendT || f.ident == Id._d_arrayappendcTX
+                || f.ident == Id._d_arraycatnTX || f.ident == Id._d_newclassT))
+            {
+                error(loc, "`@nogc` %s `%s` cannot call non-@nogc %s `%s`",
+                    sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
+
+                if (!f.isDtorDeclaration)
+                    f.errorSupplementalInferredAttr(/*max depth*/ 10, /*deprecation*/ false, STC.nogc);
+            }
+
+            f.checkOverriddenDtor(sc, loc, dd => dd.type.toTypeFunction().isnogc, "non-@nogc");
+
+            return true;
+        }
+    }
+    return false;
+}
+
+/********************************************
+ * Check that the postblit is callable if t is an array of structs.
+ * Returns true if error happens.
+ */
+private bool checkPostblit(Type t, ref Loc loc, Scope* sc)
+{
+    if (auto ts = t.baseElemOf().isTypeStruct())
+    {
+        if (global.params.useTypeInfo && Type.dtypeinfo)
+        {
+            // https://issues.dlang.org/show_bug.cgi?id=11395
+            // Require TypeInfo generation for array concatenation
+            semanticTypeInfo(sc, t);
+        }
+
+        StructDeclaration sd = ts.sym;
+        if (sd.postblit)
+        {
+            if (sd.postblit.checkDisabled(loc, sc))
+                return true;
+
+            //checkDeprecated(sc, sd.postblit);        // necessary?
+            sd.postblit.checkPurity(loc, sc);
+            sd.postblit.checkSafety(loc, sc);
+            sd.postblit.checkNogc(loc, sc);
+            //checkAccess(sd, loc, sc, sd.postblit);   // necessary?
+            return false;
+        }
+    }
+    return false;
+}
+
 /***************************************
  * Pull out any properties.
  */
@@ -1942,7 +2339,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
     {
         if (auto v = ve.var.isVarDeclaration())
         {
-            if (ve.checkPurity(sc, v))
+            if (v.checkPurity(ve.loc, sc))
                 return ErrorExp.get();
         }
     }
@@ -5257,7 +5654,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     ve.type = t.typeSemantic(exp.loc, sc);
                 }
                 VarDeclaration v = ve.var.isVarDeclaration();
-                if (v && ve.checkPurity(sc, v))
+                if (v && v.checkPurity(ve.loc, sc))
                     return setError();
             }
 
@@ -5885,9 +6282,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             // Purity and safety check should run after testing arguments matching
             if (exp.f)
             {
-                exp.checkPurity(sc, exp.f);
-                exp.checkSafety(sc, exp.f);
-                exp.checkNogc(sc, exp.f);
+                exp.f.checkPurity(exp.loc, sc);
+                exp.f.checkSafety(exp.loc, sc);
+                exp.f.checkNogc(exp.loc, sc);
                 if (exp.f.checkNestedReference(sc, exp.loc))
                     return setError();
             }
@@ -7934,7 +8331,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (!checkAddressVar(sc, exp.e1, v))
                     return setError();
 
-                ve.checkPurity(sc, v);
+                v.checkPurity(ve.loc, sc);
             }
             FuncDeclaration f = ve.var.isFuncDeclaration();
             if (f)
@@ -8006,7 +8403,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
              */
             if (VarDeclaration v = expToVariable(exp.e1))
             {
-                exp.e1.checkPurity(sc, v);
+                v.checkPurity(exp.e1.loc, sc);
             }
         }
         else if (wasCond)
@@ -8306,9 +8703,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (cd.dtor)
         {
             err |= !cd.dtor.functionSemantic();
-            err |= exp.checkPurity(sc, cd.dtor);
-            err |= exp.checkSafety(sc, cd.dtor);
-            err |= exp.checkNogc(sc, cd.dtor);
+            err |= cd.dtor.checkPurity(exp.loc, sc);
+            err |= cd.dtor.checkSafety(exp.loc, sc);
+            err |= cd.dtor.checkNogc(exp.loc, sc);
         }
         if (err)
             return setError();
@@ -10344,7 +10741,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 if (exp.op != EXP.blit && (e2x.op == EXP.slice && (cast(UnaExp)e2x).e1.isLvalue() || e2x.op == EXP.cast_ && (cast(UnaExp)e2x).e1.isLvalue() || e2x.op != EXP.slice && e2x.isLvalue()))
                 {
-                    if (e1x.checkPostblit(sc, t1))
+                    if (t1.checkPostblit(e1x.loc, sc))
                         return setError();
                 }
 
@@ -10587,7 +10984,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             // '= null' is the only allowable block assignment (Bug 7493)
             exp.memset = MemorySet.blockAssign;    // make it easy for back end to tell what this is
             e2x = e2x.implicitCastTo(sc, t1.nextOf());
-            if (exp.op != EXP.blit && e2x.isLvalue() && exp.e1.checkPostblit(sc, t1.nextOf()))
+            if (exp.op != EXP.blit && e2x.isLvalue() && t1.nextOf.checkPostblit(exp.e1.loc, sc))
                 return setError();
         }
         else if (exp.e1.op == EXP.slice &&
@@ -10625,7 +11022,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                  e2x.op == EXP.cast_ && (cast(UnaExp)e2x).e1.isLvalue() ||
                  e2x.op != EXP.slice && e2x.isLvalue()))
             {
-                if (exp.e1.checkPostblit(sc, t1.nextOf()))
+                if (t1.nextOf().checkPostblit(exp.e1.loc, sc))
                     return setError();
             }
 
@@ -11095,7 +11492,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             // EXP.concatenateAssign
             assert(exp.op == EXP.concatenateAssign);
-            if (exp.e1.checkPostblit(sc, tb1next))
+            if (tb1next.checkPostblit(exp.e1.loc, sc))
                 return setError();
 
             exp.e2 = exp.e2.castTo(sc, exp.e1.type);
@@ -11113,7 +11510,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (tb2.ty == Tclass && (cast(TypeClass)tb2).implicitConvToThroughAliasThis(tb1next))
                 goto Laliasthis;
             // Append element
-            if (exp.e2.checkPostblit(sc, tb2))
+            if (tb2.checkPostblit(exp.e2.loc, sc))
                 return setError();
 
             if (checkNewEscape(sc, exp.e2, false))
@@ -11746,7 +12143,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             else
             {
-                if (exp.e2.checkPostblit(sc, tb2))
+                if (tb2.checkPostblit(exp.e2.loc, sc))
                     return setError();
                 // Postblit call will be done in runtime helper function
             }
@@ -11781,7 +12178,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             else
             {
-                if (exp.e1.checkPostblit(sc, tb1))
+                if (tb1.checkPostblit(exp.e1.loc, sc))
                     return setError();
             }
 
@@ -11836,7 +12233,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         if (Type tbn = tb.nextOf())
         {
-            if (exp.checkPostblit(sc, tbn))
+            if (tbn.checkPostblit(exp.loc, sc))
                 return setError();
         }
         Type t1 = exp.e1.type.toBasetype();
@@ -13582,6 +13979,14 @@ private Expression dotIdSemanticPropX(DotIdExp exp, Scope* sc)
     return exp;
 }
 
+private bool checkDisabled(Dsymbol s, ref Loc loc, Scope* sc)
+{
+    if (auto d = s.isDeclaration())
+        return d.checkDisabled(loc, sc);
+
+    return false;
+}
+
 /******************************
  * Resolve properties, i.e. `e1.ident`, without seeing UFCS.
  * Params:
@@ -13675,8 +14080,8 @@ Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, bool gag)
             // if 's' is a tuple variable, the tuple is returned.
             s = s.toAlias();
 
-            exp.checkDeprecated(sc, s);
-            exp.checkDisabled(sc, s);
+            s.checkDeprecated(exp.loc, sc);
+            s.checkDisabled(exp.loc, sc);
 
             if (auto em = s.isEnumMember())
             {
@@ -14938,15 +15343,12 @@ bool checkAddressable(Expression e, Scope* sc)
  */
 private bool checkFunctionAttributes(Expression exp, Scope* sc, FuncDeclaration f)
 {
-    with(exp)
-    {
-        bool error = checkDisabled(sc, f);
-        error |= checkDeprecated(sc, f);
-        error |= checkPurity(sc, f);
-        error |= checkSafety(sc, f);
-        error |= checkNogc(sc, f);
-        return error;
-    }
+    bool error = f.checkDisabled(exp.loc, sc);
+    error |= f.checkDeprecated(exp.loc, sc);
+    error |= f.checkPurity(exp.loc, sc);
+    error |= f.checkSafety(exp.loc, sc);
+    error |= f.checkNogc(exp.loc, sc);
+    return error;
 }
 
 /*******************************
