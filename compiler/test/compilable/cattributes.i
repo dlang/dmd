@@ -29,3 +29,11 @@ int testx(int a, int b, int c, int d, int e, int f)
 {
     return a + b + c + d + e + f + abcx + defx() + ghix() + jklx;
 }
+
+/*****************************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=24094
+
+void test24094() {
+    __declspec(align(16)) short data[64];
+}
