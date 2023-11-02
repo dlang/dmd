@@ -142,6 +142,18 @@ void testImmutable()
 
 /////////////////////////////////////////////
 
+// https://issues.dlang.org/show_bug.cgi?id=24209
+void testLocalStatic() @trusted
+{
+    static int[int] aa0 = [1: 2];
+    __gshared string[string] aa1 = null;
+
+    assert(aa0[1] == 2);
+    assert(aa1.length == 0);
+}
+
+/////////////////////////////////////////////
+
 void main()
 {
     testSimple();
@@ -150,4 +162,5 @@ void main()
     testStructInit();
     testClassInit();
     testImmutable();
+    testLocalStatic();
 }
