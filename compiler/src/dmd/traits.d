@@ -1875,15 +1875,23 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return dimError(1);
 
         auto o = (*e.args)[0];
-        Type t = isType(o);
-        AggregateDeclaration ad = t ? isAggregate(t) : null;
 
-        // Interfaces don't have an init symbol and hence cause linker errors
-        if (!ad || ad.isInterfaceDeclaration())
+        ErrorExp badArgument()
         {
             error(e.loc, "struct / class type expected as argument to __traits(initSymbol) instead of `%s`", o.toChars());
             return ErrorExp.get();
         }
+
+        Type t = isType(o);
+
+        if (!t || t.isTypeEnum())
+            return badArgument();
+
+        AggregateDeclaration ad = isAggregate(t);
+
+        // Interfaces don't have an init symbol and hence cause linker errors
+        if (!ad || ad.isInterfaceDeclaration())
+            return badArgument();
 
         Declaration d = new SymbolDeclaration(ad.loc, ad);
         d.type = Type.tvoid.arrayOf().constOf();
