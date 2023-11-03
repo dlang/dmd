@@ -167,25 +167,7 @@ $(H3 $(LNAME2 field_properties, Field Properties))
         from the beginning of the class instantiation.
         `.offsetof` is not available for fields of `extern(Objective-C)` classes
         due to their fields having a dynamic offset.
-        $(D .offsetof) can only be applied to
-        expressions which produce the type of
-        the field itself, not the class type:
         )
-
-------
-class Foo
-{
-    int x;
-}
-...
-void test(Foo foo)
-{
-    size_t o;
-
-    o = Foo.x.offsetof; // error, Foo.x needs a 'this' reference
-    o = foo.x.offsetof; // ok
-}
-------
 
 $(H2 $(LNAME2 class_properties, Class Properties))
 
