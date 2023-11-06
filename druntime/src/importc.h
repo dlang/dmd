@@ -164,3 +164,5 @@
 #if __APPLE__
 #undef __SIZEOF_INT128__
 #endif
+
+#define STBI_NO_SIMD /* disable gcc simd intrinsics */
