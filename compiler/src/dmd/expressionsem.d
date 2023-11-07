@@ -9807,6 +9807,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             break;
 
         case Tarray:
+            exp.e2 = exp.e2.optimize(WANTvalue);
             exp.e2 = exp.e2.implicitCastTo(sc, Type.tsize_t);
             if (exp.e2.type == Type.terror)
                 return setError();
@@ -10868,6 +10869,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
             }
 
+            e2x = e2x.optimize(WANTvalue);
             if (e2x.implicitConvTo(e1x.type))
             {
                 if (exp.op != EXP.blit && (e2x.op == EXP.slice && (cast(UnaExp)e2x).e1.isLvalue() || e2x.op == EXP.cast_ && (cast(UnaExp)e2x).e1.isLvalue() || e2x.op != EXP.slice && e2x.isLvalue()))
@@ -11207,6 +11209,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 e2x = e2x.castTo(sc, exp.e1.type);
             else
             {
+                e2x = e2x.optimize(WANTvalue);
                 e2x = e2x.implicitCastTo(sc, exp.e1.type);
 
                 // Fix Issue 13435: https://issues.dlang.org/show_bug.cgi?id=13435

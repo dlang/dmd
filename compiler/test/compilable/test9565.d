@@ -35,11 +35,11 @@ void main()
       static if (is(size_t == ulong))
       {
         static assert((arr[-4L ]).stringof == "arr[" ~ castPrefix ~ "-4L]");
-        static assert((arr[-4LU]).stringof == "arr[-4LU]");
+        static assert((arr[-4LU]).stringof == "arr[18446744073709551612LU]");
 
         // IntegerLiteral needs suffix if the value is greater than long.max
         static assert((arr[long.max + 0]).stringof == "arr[9223372036854775807]");
-        static assert((arr[long.max + 1]).stringof == "arr[" ~ castPrefix ~ "(9223372036854775807L + 1L)]");
+        static assert((arr[long.max + 1]).stringof == "arr[" ~ castPrefix ~ "cast(long)-9223372036854775808]");
       }
 
         foreach (Int; TypeTuple!(byte, ubyte, short, ushort, int, uint, long, ulong))
@@ -64,8 +64,11 @@ void main()
             else
                 static assert(!__traits(compiles, arr[m4]));
 
-            enum string result2 = (arr[cast(Int)-4]).stringof;
-            static assert(result2.startsWith("arr[" ~ castPrefix));
+            static if (is(size_t == ulong))
+            {
+                enum string result2 = (arr[cast(Int)-4]).stringof;
+                static assert(result2.startsWith("arr[" ~ castPrefix));
+            }
         }
     }
 

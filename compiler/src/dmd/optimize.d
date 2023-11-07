@@ -274,7 +274,7 @@ package void setLengthVarIfKnown(VarDeclaration lengthVar, Type type)
  */
 Expression Expression_optimize(Expression e, int result, bool keepLvalue)
 {
-    //printf("Expression_optimize() e: %s result: %d keepLvalue %d\n", e.toChars(), result, keepLvalue);
+    //printf("+Expression_optimize()   e: %s result: %d keepLvalue %d\n", e.toChars(), result, keepLvalue);
     Expression ret = e;
 
     void errorReturn()
@@ -1440,5 +1440,6 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         if (ex == ret)
             break;
     }
+    //printf("-Expression_optimize() ret: %s\n", ret.toChars());
     return ret;
 }
