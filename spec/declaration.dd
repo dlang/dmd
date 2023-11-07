@@ -41,31 +41,25 @@ $(H3 $(LNAME2 variable-declarations, Variable Declarations))
 
 $(GRAMMAR
 $(GNAME VarDeclarations):
-    $(GLINK StorageClasses)$(OPT) $(GLINK2 type, BasicType) $(GLINK Declarators) $(D ;)
+    $(GLINK StorageClasses)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 type, TypeSuffixes)$(OPT) $(GLINK IdentifierInitializers) $(D ;)
     $(GLINK AutoDeclaration)
 
-$(GNAME Declarators):
-    $(GLINK DeclaratorInitializer)
-    $(GLINK DeclaratorInitializer) $(D ,) $(GLINK DeclaratorIdentifierList)
+$(GNAME IdentifierInitializers): $(LEGACY_LNAME2 Declarators, DeclaratorIdentifierList)
+    $(GLINK IdentifierInitializer)
+    $(GLINK IdentifierInitializer) $(D ,) $(GSELF IdentifierInitializers)
 
-$(GNAME DeclaratorInitializer):
-    $(GLINK VarDeclarator)
-    $(GLINK VarDeclarator) $(GLINK2 template, TemplateParameters)$(OPT) $(D =) $(GLINK Initializer)
-
-$(GNAME DeclaratorIdentifierList):
-    $(GLINK DeclaratorIdentifier)
-    $(GLINK DeclaratorIdentifier) $(D ,) $(GSELF DeclaratorIdentifierList)
-
-$(GNAME DeclaratorIdentifier):$(LEGACY_LNAME2 VarDeclaratorIdentifier)
+$(GNAME IdentifierInitializer): $(LEGACY_LNAME2 DeclaratorInitializer, DeclaratorIdentifier)
     $(GLINK_LEX Identifier)
     $(GLINK_LEX Identifier) $(GLINK2 template, TemplateParameters)$(OPT) $(D =) $(GLINK Initializer)
 
-$(GNAME Declarator):
-    $(GLINK VarDeclarator)
-
-$(GNAME VarDeclarator):
+$(GNAME Declarator): $(LEGACY_LNAME2 VarDeclarator)
     $(GLINK2 type, TypeSuffixes)$(OPT) $(GLINK_LEX Identifier)
 )
+
+    $(P See also:)
+    * $(RELATIVE_LINK2 declaration_syntax, Declaration Syntax)
+    * $(GLINK AutoDeclaration)
+    * $(DDSUBLINK spec/template, variable-template, Variable Templates)
 
 $(H3 $(LNAME2 storage-classes, Storage Classes))
 
@@ -233,9 +227,13 @@ $(H2 $(LNAME2 alias, Alias Declarations))
 
 $(GRAMMAR
 $(GNAME AliasDeclaration):
-    $(D alias) $(GLINK StorageClasses)$(OPT) $(GLINK2 type, BasicType) $(GLINK Declarators) $(D ;)
+    $(D alias) $(GLINK StorageClasses)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 type, TypeSuffixes)$(OPT) $(GLINK Identifiers) $(D ;)
     $(D alias) $(GLINK StorageClasses)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 function, FuncDeclarator) $(D ;)
     $(D alias) $(GLINK AliasAssignments) $(D ;)
+
+$(GNAME Identifiers):
+    $(GLINK_LEX Identifier)
+    $(GLINK_LEX Identifier) `,` $(GSELF Identifiers)
 
 $(GNAME AliasAssignments):
     $(GLINK AliasAssignment)
