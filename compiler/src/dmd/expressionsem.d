@@ -87,6 +87,46 @@ import dmd.visitor;
 
 enum LOGSEMANTIC = false;
 
+/***********************************
+ * Determine if a `this` is needed to access `d`.
+ * Params:
+ *      sc = context
+ *      d = declaration to check
+ * Returns:
+ *      true means a `this` is needed
+ */
+private bool isNeedThisScope(Scope* sc, Declaration d)
+{
+    if (sc.intypeof == 1)
+        return false;
+
+    AggregateDeclaration ad = d.isThis();
+    if (!ad)
+        return false;
+    //printf("d = %s, ad = %s\n", d.toChars(), ad.toChars());
+
+    for (Dsymbol s = sc.parent; s; s = s.toParentLocal())
+    {
+        //printf("\ts = %s %s, toParent2() = %p\n", s.kind(), s.toChars(), s.toParent2());
+        if (AggregateDeclaration ad2 = s.isAggregateDeclaration())
+        {
+            if (ad2 == ad)
+                return false;
+            else if (ad2.isNested())
+                continue;
+            else
+                return true;
+        }
+        if (FuncDeclaration f = s.isFuncDeclaration())
+        {
+            if (f.isMemberLocal())
+                break;
+        }
+    }
+    return true;
+}
+
+
 /********************************************************
  * Perform semantic analysis and CTFE on expressions to produce
  * a string.
@@ -194,6 +234,51 @@ FuncDeclaration hasThis(Scope* sc)
     assert(fd.vthis);
     return fd;
 
+}
+
+extern (D) bool findTempDecl(DotTemplateInstanceExp exp, Scope* sc)
+{
+    auto ti = exp.ti;
+    auto e1 = exp.e1;
+    static if (LOGSEMANTIC)
+    {
+        printf("DotTemplateInstanceExp::findTempDecl('%s')\n", exp.toChars());
+    }
+    if (ti.tempdecl)
+        return true;
+
+    Expression e = new DotIdExp(exp.loc, e1, ti.name);
+    e = e.expressionSemantic(sc);
+    if (e.op == EXP.dot)
+        e = (cast(DotExp)e).e2;
+
+    Dsymbol s = null;
+    switch (e.op)
+    {
+    case EXP.overloadSet:
+        s = (cast(OverExp)e).vars;
+        break;
+
+    case EXP.dotTemplateDeclaration:
+        s = (cast(DotTemplateExp)e).td;
+        break;
+
+    case EXP.scope_:
+        s = (cast(ScopeExp)e).sds;
+        break;
+
+    case EXP.dotVariable:
+        s = (cast(DotVarExp)e).var;
+        break;
+
+    case EXP.variable:
+        s = (cast(VarExp)e).var;
+        break;
+
+    default:
+        return false;
+    }
+    return ti.updateTempDecl(sc, s);
 }
 
 /***********************************************************
@@ -5249,6 +5334,52 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         result = e;
     }
 
+    private void genIdent(FuncExp exp, Scope* sc)
+    {
+        if (exp.fd.ident == Id.empty)
+        {
+            const(char)[] s;
+            if (exp.fd.fes)
+                s = "__foreachbody";
+            else if (exp.fd.tok == TOK.reserved)
+                s = "__lambda";
+            else if (exp.fd.tok == TOK.delegate_)
+                s = "__dgliteral";
+            else
+                s = "__funcliteral";
+
+            DsymbolTable symtab;
+            if (FuncDeclaration func = sc.parent.isFuncDeclaration())
+            {
+                if (func.localsymtab is null)
+                {
+                    // Inside template constraint, symtab is not set yet.
+                    // Initialize it lazily.
+                    func.localsymtab = new DsymbolTable();
+                }
+                symtab = func.localsymtab;
+            }
+            else
+            {
+                ScopeDsymbol sds = sc.parent.isScopeDsymbol();
+                if (!sds.symtab)
+                {
+                    // Inside template constraint, symtab may not be set yet.
+                    // Initialize it lazily.
+                    assert(sds.isTemplateInstance());
+                    sds.symtab = new DsymbolTable();
+                }
+                symtab = sds.symtab;
+            }
+            assert(symtab);
+            Identifier id = Identifier.generateId(s, symtab.length() + 1);
+            exp.fd.ident = id;
+            if (exp.td)
+                exp.td.ident = id;
+            symtab.insert(exp.td ? cast(Dsymbol)exp.td : cast(Dsymbol)exp.fd);
+        }
+    }
+
     override void visit(FuncExp exp)
     {
         static if (LOGSEMANTIC)
@@ -5279,7 +5410,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         //if (fd.treq)
         //    fd.treq = fd.treq.dsymbolSemantic(loc, sc);
 
-        exp.genIdent(sc);
+        genIdent(exp, sc);
 
         // Set target of return type inference
         if (exp.fd.treq && !exp.fd.type.nextOf())
@@ -5392,7 +5523,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     return checkarg;
             }
 
-            exp.genIdent(sc);
+            genIdent(exp, sc);
 
             assert(exp.td.parameters && exp.td.parameters.length);
             exp.td.dsymbolSemantic(sc);
