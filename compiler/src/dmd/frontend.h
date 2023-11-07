@@ -967,7 +967,6 @@ public:
     virtual complex_t toComplex();
     virtual StringExp* toStringExp();
     virtual bool isLvalue();
-    virtual Expression* modifiableLvalue(Scope* sc, Expression* e);
     virtual Expression* resolveLoc(const Loc& loc, Scope* sc);
     virtual bool checkType();
     virtual bool checkValue();
@@ -7161,7 +7160,6 @@ public:
     int32_t compare(const StringExp* const se2) const;
     Optional<bool > toBool() override;
     bool isLvalue() override;
-    Expression* modifiableLvalue(Scope* sc, Expression* e) override;
     void accept(Visitor* v) override;
 };
 
@@ -7316,7 +7314,6 @@ public:
     static VarExp* create(const Loc& loc, Declaration* var, bool hasOverloads = true);
     bool equals(const RootObject* const o) const override;
     bool isLvalue() override;
-    Expression* modifiableLvalue(Scope* sc, Expression* e) override;
     void accept(Visitor* v) override;
 };
 
@@ -7413,7 +7410,6 @@ class BinAssignExp : public BinExp
 {
 public:
     bool isLvalue() final override;
-    Expression* modifiableLvalue(Scope* sc, Expression* e) final override;
     void accept(Visitor* v) override;
 };
 
@@ -7473,7 +7469,6 @@ public:
     Declaration* var;
     bool hasOverloads;
     bool isLvalue() override;
-    Expression* modifiableLvalue(Scope* sc, Expression* e) override;
     void accept(Visitor* v) override;
 };
 
@@ -7533,7 +7528,6 @@ class PtrExp final : public UnaExp
 {
 public:
     bool isLvalue() override;
-    Expression* modifiableLvalue(Scope* sc, Expression* e) override;
     void accept(Visitor* v) override;
 };
 
@@ -7613,7 +7607,6 @@ private:
 public:
     SliceExp* syntaxCopy() override;
     bool isLvalue() override;
-    Expression* modifiableLvalue(Scope* sc, Expression* e) override;
     Optional<bool > toBool() override;
     void accept(Visitor* v) override;
 };
@@ -7647,7 +7640,6 @@ public:
     const bool isGenerated;
     bool allowCommaExp;
     bool isLvalue() override;
-    Expression* modifiableLvalue(Scope* sc, Expression* e) override;
     Optional<bool > toBool() override;
     void accept(Visitor* v) override;
     static void allow(Expression* exp);
@@ -7666,7 +7658,6 @@ class DelegatePtrExp final : public UnaExp
 {
 public:
     bool isLvalue() override;
-    Expression* modifiableLvalue(Scope* sc, Expression* e) override;
     void accept(Visitor* v) override;
 };
 
@@ -7674,7 +7665,6 @@ class DelegateFuncptrExp final : public UnaExp
 {
 public:
     bool isLvalue() override;
-    Expression* modifiableLvalue(Scope* sc, Expression* e) override;
     void accept(Visitor* v) override;
 };
 
@@ -7686,7 +7676,6 @@ public:
     bool indexIsInBounds;
     IndexExp* syntaxCopy() override;
     bool isLvalue() override;
-    Expression* modifiableLvalue(Scope* sc, Expression* e) override;
     void accept(Visitor* v) override;
 };
 
@@ -7943,7 +7932,6 @@ public:
     Expression* econd;
     CondExp* syntaxCopy() override;
     bool isLvalue() override;
-    Expression* modifiableLvalue(Scope* sc, Expression* e) override;
     void accept(Visitor* v) override;
 };
 
@@ -8010,6 +7998,8 @@ extern Expression* resolveProperties(Scope* sc, Expression* e);
 extern Expression* expressionSemantic(Expression* e, Scope* sc);
 
 extern Expression* toLvalue(Expression* _this, Scope* sc, Expression* e);
+
+extern Expression* modifiableLvalue(Expression* _this, Scope* sc, Expression* e);
 
 extern const char* toChars(const Initializer* const i);
 
