@@ -688,6 +688,10 @@ $(GNAME IdentityExpression):
     ---
     )
 
+    $(DDOC_DEPRECATED Use of `is` to compare static arrays by address and
+    length is deprecated. To do so, use the slice operator and compare slices
+    of the arrays instead; for example, `a1[] is a2[]`.)
+
     $(P For other operand types, identity is defined as being the same
         as equality.
     )
