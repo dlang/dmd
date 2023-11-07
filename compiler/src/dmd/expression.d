@@ -18,14 +18,10 @@ import core.stdc.stdio;
 import core.stdc.string;
 
 import dmd.aggregate;
-import dmd.aliasthis;
-import dmd.arrayop;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.ast_node;
 import dmd.gluelayer;
-import dmd.ctfeexpr;
-import dmd.ctorflow;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dimport;
@@ -45,38 +41,20 @@ import dmd.identifier;
 import dmd.init;
 import dmd.location;
 import dmd.mtype;
-import dmd.opover;
 import dmd.optimize;
 import dmd.root.complex;
 import dmd.root.ctfloat;
-import dmd.root.filename;
 import dmd.common.outbuffer;
 import dmd.root.optional;
 import dmd.root.rmem;
 import dmd.rootobject;
 import dmd.root.string;
 import dmd.root.utf;
-import dmd.safe;
 import dmd.target;
 import dmd.tokens;
 import dmd.visitor;
 
 enum LOGSEMANTIC = false;
-
-void emplaceExp(T : Expression, Args...)(void* p, Args args)
-{
-    static if (__VERSION__ < 2099)
-        const init = typeid(T).initializer;
-    else
-        const init = __traits(initSymbol, T);
-    p[0 .. __traits(classInstanceSize, T)] = init[];
-    (cast(T)p).__ctor(args);
-}
-
-void emplaceExp(T : UnionExp)(T* p, Expression e)
-{
-    memcpy(p, cast(void*)e, e.size);
-}
 
 /// Return value for `checkModifiable`
 enum Modifiable
@@ -313,70 +291,6 @@ TemplateDeclaration getFuncTemplateDecl(Dsymbol s) @safe
         }
     }
     return null;
-}
-
-/****************************************************************/
-/* A type meant as a union of all the Expression types,
- * to serve essentially as a Variant that will sit on the stack
- * during CTFE to reduce memory consumption.
- */
-extern (D) struct UnionExp
-{
-    // yes, default constructor does nothing
-    extern (D) this(Expression e)
-    {
-        memcpy(&this, cast(void*)e, e.size);
-    }
-
-    /* Extract pointer to Expression
-     */
-    extern (D) Expression exp() return
-    {
-        return cast(Expression)&u;
-    }
-
-    /* Convert to an allocated Expression
-     */
-    extern (D) Expression copy()
-    {
-        Expression e = exp();
-        //if (e.size > sizeof(u)) printf("%s\n", EXPtoString(e.op).ptr);
-        assert(e.size <= u.sizeof);
-        switch (e.op)
-        {
-            case EXP.cantExpression:    return CTFEExp.cantexp;
-            case EXP.voidExpression:    return CTFEExp.voidexp;
-            case EXP.break_:            return CTFEExp.breakexp;
-            case EXP.continue_:         return CTFEExp.continueexp;
-            case EXP.goto_:             return CTFEExp.gotoexp;
-            default:                    return e.copy();
-        }
-    }
-
-private:
-    // Ensure that the union is suitably aligned.
-    align(8) union _AnonStruct_u
-    {
-        char[__traits(classInstanceSize, Expression)] exp;
-        char[__traits(classInstanceSize, IntegerExp)] integerexp;
-        char[__traits(classInstanceSize, ErrorExp)] errorexp;
-        char[__traits(classInstanceSize, RealExp)] realexp;
-        char[__traits(classInstanceSize, ComplexExp)] complexexp;
-        char[__traits(classInstanceSize, SymOffExp)] symoffexp;
-        char[__traits(classInstanceSize, StringExp)] stringexp;
-        char[__traits(classInstanceSize, ArrayLiteralExp)] arrayliteralexp;
-        char[__traits(classInstanceSize, AssocArrayLiteralExp)] assocarrayliteralexp;
-        char[__traits(classInstanceSize, StructLiteralExp)] structliteralexp;
-        char[__traits(classInstanceSize, CompoundLiteralExp)] compoundliteralexp;
-        char[__traits(classInstanceSize, NullExp)] nullexp;
-        char[__traits(classInstanceSize, DotVarExp)] dotvarexp;
-        char[__traits(classInstanceSize, AddrExp)] addrexp;
-        char[__traits(classInstanceSize, IndexExp)] indexexp;
-        char[__traits(classInstanceSize, SliceExp)] sliceexp;
-        char[__traits(classInstanceSize, VectorExp)] vectorexp;
-    }
-
-    _AnonStruct_u u;
 }
 
 /************************ TypeDotIdExp ************************************/
@@ -1236,7 +1150,7 @@ extern (C++) final class IntegerExp : Expression
  */
 extern (C++) final class ErrorExp : Expression
 {
-    private extern (D) this()
+    extern (D) this()
     {
         super(Loc.initial, EXP.error);
         type = Type.terror;
@@ -5384,6 +5298,155 @@ extern (C++) final class PrettyFuncInitExp : DefaultInitExp
     extern (D) this(const ref Loc loc) @safe
     {
         super(loc, EXP.prettyFunction);
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/***********************************************************
+ * A reference to a class, or an interface. We need this when we
+ * point to a base class (we must record what the type is).
+ */
+extern (C++) final class ClassReferenceExp : Expression
+{
+    StructLiteralExp value;
+
+    extern (D) this(const ref Loc loc, StructLiteralExp lit, Type type) @safe
+    {
+        super(loc, EXP.classReference);
+        assert(lit && lit.sd && lit.sd.isClassDeclaration());
+        this.value = lit;
+        this.type = type;
+    }
+
+    ClassDeclaration originalClass()
+    {
+        return value.sd.isClassDeclaration();
+    }
+
+    // Return index of the field, or -1 if not found
+    int getFieldIndex(Type fieldtype, uint fieldoffset)
+    {
+        ClassDeclaration cd = originalClass();
+        uint fieldsSoFar = 0;
+        for (size_t j = 0; j < value.elements.length; j++)
+        {
+            while (j - fieldsSoFar >= cd.fields.length)
+            {
+                fieldsSoFar += cd.fields.length;
+                cd = cd.baseClass;
+            }
+            VarDeclaration v2 = cd.fields[j - fieldsSoFar];
+            if (fieldoffset == v2.offset && fieldtype.size() == v2.type.size())
+            {
+                return cast(int)(value.elements.length - fieldsSoFar - cd.fields.length + (j - fieldsSoFar));
+            }
+        }
+        return -1;
+    }
+
+    // Return index of the field, or -1 if not found
+    // Same as getFieldIndex, but checks for a direct match with the VarDeclaration
+    int findFieldIndexByName(VarDeclaration v)
+    {
+        ClassDeclaration cd = originalClass();
+        size_t fieldsSoFar = 0;
+        for (size_t j = 0; j < value.elements.length; j++)
+        {
+            while (j - fieldsSoFar >= cd.fields.length)
+            {
+                fieldsSoFar += cd.fields.length;
+                cd = cd.baseClass;
+            }
+            VarDeclaration v2 = cd.fields[j - fieldsSoFar];
+            if (v == v2)
+            {
+                return cast(int)(value.elements.length - fieldsSoFar - cd.fields.length + (j - fieldsSoFar));
+            }
+        }
+        return -1;
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/***********************************************************
+ * This type is only used by the interpreter.
+ */
+extern (C++) final class CTFEExp : Expression
+{
+    extern (D) this(EXP tok)
+    {
+        super(Loc.initial, tok);
+        type = Type.tvoid;
+    }
+
+    override const(char)* toChars() const
+    {
+        switch (op)
+        {
+        case EXP.cantExpression:
+            return "<cant>";
+        case EXP.voidExpression:
+            return "cast(void)0";
+        case EXP.showCtfeContext:
+            return "<error>";
+        case EXP.break_:
+            return "<break>";
+        case EXP.continue_:
+            return "<continue>";
+        case EXP.goto_:
+            return "<goto>";
+        default:
+            assert(0);
+        }
+    }
+
+    extern (D) __gshared CTFEExp cantexp;
+    extern (D) __gshared CTFEExp voidexp;
+    extern (D) __gshared CTFEExp breakexp;
+    extern (D) __gshared CTFEExp continueexp;
+    extern (D) __gshared CTFEExp gotoexp;
+    /* Used when additional information is needed regarding
+     * a ctfe error.
+     */
+    extern (D) __gshared CTFEExp showcontext;
+
+    extern (D) static bool isCantExp(const Expression e) @safe
+    {
+        return e && e.op == EXP.cantExpression;
+    }
+
+    extern (D) static bool isGotoExp(const Expression e) @safe
+    {
+        return e && e.op == EXP.goto_;
+    }
+}
+
+/***********************************************************
+ * Fake class which holds the thrown exception.
+ * Used for implementing exception handling.
+ */
+extern (C++) final class ThrownExceptionExp : Expression
+{
+    ClassReferenceExp thrown;   // the thing being tossed
+
+    extern (D) this(const ref Loc loc, ClassReferenceExp victim) @safe
+    {
+        super(loc, EXP.thrownException);
+        this.thrown = victim;
+        this.type = victim.type;
+    }
+
+    override const(char)* toChars() const
+    {
+        return "CTFE ThrownException";
     }
 
     override void accept(Visitor v)
