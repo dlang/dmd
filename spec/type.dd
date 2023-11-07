@@ -140,8 +140,8 @@ $(H2 $(LEGACY_LNAME2 Derived Data Types, derived-data-types, Derived Data Types)
     $(LI $(DDSUBLINK spec/arrays, static-arrays, Static Arrays))
     $(LI $(DDSUBLINK spec/arrays, dynamic-arrays, Dynamic Arrays))
     $(LI $(DDLINK spec/hash-map, Associative Array, Associative Arrays))
-    $(LI $(DDLINK spec/function, Functions, Functions))
-    $(LI $(RELATIVE_LINK2 delegates, Delegates))
+    $(LI $(RELATIVE_LINK2 functions, Function Types))
+    $(LI $(RELATIVE_LINK2 delegates, Delegate Types))
     )
 
 $(H3 $(LNAME2 pointers, Pointers))
@@ -548,36 +548,62 @@ values `false` and `true`, respectively. Casting an expression to `bool` means
 testing for `0` or `!=0` for arithmetic types, and `null` or `!=null` for
 pointers or references.)
 
-$(H2 $(LNAME2 delegates, Delegates))
 
-$(P Delegates are an aggregate of two pieces of data: an
-object reference and a pointer to a non-static member function, or a pointer to
-a closure and a pointer to a nested function. The object reference forms the
-`this` pointer when the function is called.)
+$(H2 $(LNAME2 functions, Function Types))
 
-$(P Delegates are declared similarly to function pointers:)
+$(P A function type has the form:)
+
+$(GRAMMAR
+$(GLINK TypeCtor)$(OPT) $(GLINK BasicType) $(GLINK2 function, Parameters) $(GLINK2 function, FunctionAttributes)$(OPT)
+)
+
+$(P A function type e.g. `int(int)` is only used for type tests.
+A function type $(DDSUBLINK spec/declaration, alias-function, can be aliased).)
+
+$(P Instantiating a function type is illegal. Instead, a pointer to function
+or delegate can be used. Those have these type forms respectively:)
+
+$(GRAMMAR
+$(GLINK TypeCtor)$(OPT) $(GLINK BasicType) $(GLINK TypeSuffixes) `function` $(GLINK2 function, Parameters) $(GLINK2 function, FunctionAttributes)$(OPT)
+$(GLINK TypeCtor)$(OPT) $(GLINK BasicType) $(GLINK TypeSuffixes) `delegate` $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT)
+)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+void f(int);
+pragma(msg, typeof(f));  // void(int)
+pragma(msg, typeof(&f)); // void function(int)
+---
+)
+
+$(P See $(DDSUBLINK spec/function, function-pointers, Function Pointers).)
+
+$(H3 $(LNAME2 delegates, Delegates))
+
+$(P Delegates are an aggregate of two pieces of data, either:)
+* An object reference and a pointer to a non-static
+  $(DDSUBLINK spec/class, member-functions, member function).
+* A pointer to a closure and a pointer to a
+  $(DDSUBLINK spec/function, nested, nested function).
+  The object reference forms the `this` pointer when the function is called.)
+
+$(P Delegates are declared and initialized similarly to function pointers:)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 -------------------
-int function(int) fp; // fp is pointer to a function
 int delegate(int) dg; // dg is a delegate to a function
--------------------
-)
 
-    $(P A delegate is initialized analogously to function pointers:
-    )
-
--------------------
-int func(int);
-fp = &func;   // fp points to func
 class OB
 {
     int member(int);
 }
-OB o;
-dg = &o.member; // dg is a delegate to object o and
-                // member function member
+
+void f(OB o)
+{
+    dg = &o.member; // dg is a delegate to object o and member function member
+}
 -------------------
+)
 
     $(P Delegates cannot be initialized with static member functions
     or non-member functions.
@@ -608,12 +634,6 @@ auto c = new C();  // create an instance of C
 mfp(c, 1);  // and call c.foo(1)
 ---
 )
-
-$(P The C style syntax for declaring pointers to functions is deprecated:)
-
--------------------
-int (*fp)(int);  // fp is pointer to a function
--------------------
 
 $(H2 $(LNAME2 typeof, $(D typeof)))
 

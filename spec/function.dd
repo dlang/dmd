@@ -3135,9 +3135,17 @@ $(H2 $(LNAME2 function-pointers-delegates, Function Pointers, Delegates and Clos
 
 $(H3 $(LNAME2 function-pointers, Function Pointers))
 
-        $(P A function pointer can point to a static nested function:)
+        $(P A function pointer is declared with the `function` keyword:)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+void f(int);
+void function(int) fp = &f; // fp is a pointer to a function taking an int
+---
+)
+        $(P A function pointer can point to a static nested function:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ------
 int function() fp;  // fp is a pointer to a function returning an int
 
@@ -3149,10 +3157,12 @@ void test()
     fp = &foo;
 }
 
-void bar()
+void main()
 {
+    assert(!fp);
     test();
-    int i = fp();       // i is set to 10
+    int i = fp();
+    assert(i == 10);
 }
 ------
 )
