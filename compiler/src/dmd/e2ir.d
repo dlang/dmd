@@ -4074,7 +4074,7 @@ elem* toElem(Expression e, ref IRState irs)
     elem* visitStructLiteral(StructLiteralExp sle)
     {
         //printf("[%s] StructLiteralExp.toElem() %s\n", sle.loc.toChars(), sle.toChars());
-        return toElemStructLit(sle, irs, EXP.construct, sle.sym, true);
+        return toElemStructLit(sle, irs, EXP.construct, cast(Symbol*)sle.sym, true);
     }
 
     elem* visitObjcClassReference(ObjcClassReferenceExp e)
