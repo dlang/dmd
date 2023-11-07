@@ -15234,6 +15234,303 @@ extern(C++) Expression toLvalue(Expression _this, Scope* sc, Expression e)
     }
 }
 
+/***************************************
+ * Parameters:
+ *      sc:     scope
+ *      flag:   1: do not issue error message for invalid modification
+                2: the exp is a DotVarExp and a subfield of the leftmost
+                   variable is modified
+ * Returns:
+ *      Whether the type is modifiable
+ */
+Modifiable checkModifiable(Expression exp, Scope* sc, ModifyFlags flag = ModifyFlags.none)
+{
+    switch(exp.op)
+    {
+        case EXP.variable:
+            auto varExp = cast(VarExp)exp;
+
+            //printf("VarExp::checkModifiable %s", varExp.toChars());
+            assert(varExp.type);
+            return varExp.var.checkModify(varExp.loc, sc, null, flag);
+
+        case EXP.dotVariable:
+            auto dotVarExp = cast(DotVarExp)exp;
+
+            //printf("DotVarExp::checkModifiable %s %s\n", dotVarExp.toChars(), dotVarExp.type.toChars());
+            if (dotVarExp.e1.op == EXP.this_)
+                return dotVarExp.var.checkModify(dotVarExp.loc, sc, dotVarExp.e1, flag);
+
+            /* https://issues.dlang.org/show_bug.cgi?id=12764
+             * If inside a constructor and an expression of type `this.field.var`
+             * is encountered, where `field` is a struct declaration with
+             * default construction disabled, we must make sure that
+             * assigning to `var` does not imply that `field` was initialized
+             */
+            if (sc.func && sc.func.isCtorDeclaration())
+            {
+                // if inside a constructor scope and e1 of this DotVarExp
+                // is another DotVarExp, then check if the leftmost expression is a `this` identifier
+                if (auto dve = dotVarExp.e1.isDotVarExp())
+                {
+                    // Iterate the chain of DotVarExp to find `this`
+                    // Keep track whether access to fields was limited to union members
+                    // s.t. one can initialize an entire struct inside nested unions
+                    // (but not its members)
+                    bool onlyUnion = true;
+                    while (true)
+                    {
+                        auto v = dve.var.isVarDeclaration();
+                        assert(v);
+
+                        // Accessing union member?
+                        auto t = v.type.isTypeStruct();
+                        if (!t || !t.sym.isUnionDeclaration())
+                            onlyUnion = false;
+
+                        // Another DotVarExp left?
+                        if (!dve.e1 || dve.e1.op != EXP.dotVariable)
+                            break;
+
+                        dve = cast(DotVarExp) dve.e1;
+                    }
+
+                    if (dve.e1.op == EXP.this_)
+                    {
+                        scope v = dve.var.isVarDeclaration();
+                        /* if v is a struct member field with no initializer, no default construction
+                         * and v wasn't intialized before
+                         */
+                        if (v && v.isField() && !v._init && !v.ctorinit)
+                        {
+                            if (auto ts = v.type.isTypeStruct())
+                            {
+                                if (ts.sym.noDefaultCtor)
+                                {
+                                    /* checkModify will consider that this is an initialization
+                                     * of v while it is actually an assignment of a field of v
+                                     */
+                                    scope modifyLevel = v.checkModify(dotVarExp.loc, sc, dve.e1, !onlyUnion ? (flag | ModifyFlags.fieldAssign) : flag);
+                                    if (modifyLevel == Modifiable.initialization)
+                                    {
+                                        // https://issues.dlang.org/show_bug.cgi?id=22118
+                                        // v is a union type field that was assigned
+                                        // a variable, therefore it counts as initialization
+                                        if (v.ctorinit)
+                                            return Modifiable.initialization;
+
+                                        return Modifiable.yes;
+                                    }
+                                    return modifyLevel;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            //printf("\te1 = %s\n", e1.toChars());
+            return dotVarExp.e1.checkModifiable(sc, flag);
+
+        case EXP.star:
+            auto ptrExp = cast(PtrExp)exp;
+            if (auto se = ptrExp.e1.isSymOffExp())
+            {
+                return se.var.checkModify(ptrExp.loc, sc, null, flag);
+            }
+            else if (auto ae = ptrExp.e1.isAddrExp())
+            {
+                return ae.e1.checkModifiable(sc, flag);
+            }
+            return Modifiable.yes;
+
+        case EXP.slice:
+            auto sliceExp = cast(SliceExp)exp;
+
+            //printf("SliceExp::checkModifiable %s\n", sliceExp.toChars());
+            auto e1 = sliceExp.e1;
+            if (e1.type.ty == Tsarray || (e1.op == EXP.index && e1.type.ty != Tarray) || e1.op == EXP.slice)
+            {
+                return e1.checkModifiable(sc, flag);
+            }
+            return Modifiable.yes;
+
+        case EXP.comma:
+            return (cast(CommaExp)exp).e2.checkModifiable(sc, flag);
+
+        case EXP.index:
+            auto indexExp = cast(IndexExp)exp;
+            auto e1 = indexExp.e1;
+            if (e1.type.ty == Tsarray ||
+                e1.type.ty == Taarray ||
+                (e1.op == EXP.index && e1.type.ty != Tarray) ||
+                e1.op == EXP.slice)
+            {
+                return e1.checkModifiable(sc, flag);
+            }
+            return Modifiable.yes;
+
+        case EXP.question:
+            auto condExp = cast(CondExp)exp;
+            if (condExp.e1.checkModifiable(sc, flag) != Modifiable.no
+                && condExp.e2.checkModifiable(sc, flag) != Modifiable.no)
+                return Modifiable.yes;
+            return Modifiable.no;
+
+        default:
+            return exp.type ? Modifiable.yes : Modifiable.no; // default modifiable
+    }
+}
+
+extern(C++) Expression modifiableLvalue(Expression _this, Scope* sc, Expression e)
+{
+    Expression visit(Expression exp)
+    {
+        //printf("Expression::modifiableLvalue() %s, type = %s\n", exp.toChars(), exp.type.toChars());
+        // See if this expression is a modifiable lvalue (i.e. not const)
+        if (exp.isBinAssignExp())
+            return exp.toLvalue(sc, exp);
+
+        auto type = exp.type;
+        if (checkModifiable(exp, sc) == Modifiable.yes)
+        {
+            assert(type);
+            if (!type.isMutable())
+            {
+                if (auto dve = exp.isDotVarExp())
+                {
+                    if (isNeedThisScope(sc, dve.var))
+                        for (Dsymbol s = sc.func; s; s = s.toParentLocal())
+                    {
+                        FuncDeclaration ff = s.isFuncDeclaration();
+                        if (!ff)
+                            break;
+                        if (!ff.type.isMutable)
+                        {
+                            error(exp.loc, "cannot modify `%s` in `%s` function", exp.toChars(), MODtoChars(type.mod));
+                            return ErrorExp.get();
+                        }
+                    }
+                }
+                error(exp.loc, "cannot modify `%s` expression `%s`", MODtoChars(type.mod), exp.toChars());
+                return ErrorExp.get();
+            }
+            else if (!type.isAssignable())
+            {
+                error(exp.loc, "cannot modify struct instance `%s` of type `%s` because it contains `const` or `immutable` members",
+                    exp.toChars(), type.toChars());
+                return ErrorExp.get();
+            }
+        }
+        return exp.toLvalue(sc, e);
+    }
+
+    Expression visitString(StringExp exp)
+    {
+        error(exp.loc, "cannot modify string literal `%s`", exp.toChars());
+        return ErrorExp.get();
+    }
+
+    Expression visitVar(VarExp exp)
+    {
+        //printf("VarExp::modifiableLvalue('%s')\n", exp.var.toChars());
+        if (exp.var.storage_class & STC.manifest)
+        {
+            error(exp.loc, "cannot modify manifest constant `%s`", exp.toChars());
+            return ErrorExp.get();
+        }
+        // See if this expression is a modifiable lvalue (i.e. not const)
+        return visit(exp);
+    }
+
+    Expression visitPtr(PtrExp exp)
+    {
+        //printf("PtrExp::modifiableLvalue() %s, type %s\n", exp.toChars(), exp.type.toChars());
+        Declaration var;
+        auto e1 = exp.e1;
+        if (auto se = e1.isSymOffExp())
+            var = se.var;
+        else if (auto ve = e1.isVarExp())
+            var = ve.var;
+        if (var && var.type.isFunction_Delegate_PtrToFunction())
+        {
+            if (var.type.isTypeFunction())
+                error(exp.loc, "function `%s` is not an lvalue and cannot be modified", var.toChars());
+            else
+                error(exp.loc, "function pointed to by `%s` is not an lvalue and cannot be modified", var.toChars());
+            return ErrorExp.get();
+        }
+        return visit(exp);
+    }
+
+    Expression visitSlice(SliceExp exp)
+    {
+        error(exp.loc, "slice expression `%s` is not a modifiable lvalue", exp.toChars());
+        return exp;
+    }
+
+    Expression visitComma(CommaExp exp)
+    {
+        exp.e2 = exp.e2.modifiableLvalue(sc, e);
+        return exp;
+    }
+
+    Expression visitDelegatePtr(DelegatePtrExp exp)
+    {
+        if (sc.setUnsafe(false, exp.loc, "cannot modify delegate pointer in `@safe` code `%s`", exp))
+        {
+            return ErrorExp.get();
+        }
+        return visit(exp);
+    }
+
+    Expression visitDelegateFuncptr(DelegateFuncptrExp exp)
+    {
+        if (sc.setUnsafe(false, exp.loc, "cannot modify delegate function pointer in `@safe` code `%s`", exp))
+        {
+            return ErrorExp.get();
+        }
+        return visit(exp);
+    }
+
+    Expression visitIndex(IndexExp exp)
+    {
+        //printf("IndexExp::modifiableLvalue(%s)\n", exp.toChars());
+        Expression ex = exp.markSettingAAElem();
+        if (ex.op == EXP.error)
+            return ex;
+
+        return visit(exp);
+    }
+
+    Expression visitCond(CondExp exp)
+    {
+        if (!exp.e1.isLvalue() && !exp.e2.isLvalue())
+        {
+            error(exp.loc, "conditional expression `%s` is not a modifiable lvalue", exp.toChars());
+            return ErrorExp.get();
+        }
+        exp.e1 = exp.e1.modifiableLvalue(sc, exp.e1);
+        exp.e2 = exp.e2.modifiableLvalue(sc, exp.e2);
+        return exp.toLvalue(sc, exp);
+    }
+
+    switch(_this.op)
+    {
+        default:                          return visit(_this);
+        case EXP.string_:                 return visitString(_this.isStringExp());
+        case EXP.variable:                return visitVar(_this.isVarExp());
+        case EXP.star:                    return visitPtr(_this.isPtrExp());
+        case EXP.slice:                   return visitSlice(_this.isSliceExp());
+        case EXP.comma:                   return visitComma(_this.isCommaExp());
+        case EXP.delegatePointer:         return visitDelegatePtr(_this.isDelegatePtrExp());
+        case EXP.delegateFunctionPointer: return visitDelegateFuncptr(_this.isDelegateFuncptrExp());
+        case EXP.index:                   return visitIndex(_this.isIndexExp());
+        case EXP.question:                return visitCond(_this.isCondExp());
+    }
+}
+
+
 /****************************************************
  * Determine if `exp`, which gets its address taken, can do so safely.
  * Params:
