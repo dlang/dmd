@@ -1481,30 +1481,36 @@ $(GNAME ConstructorTemplate):
 
 $(H2 $(LNAME2 variable-template, Enum & Variable Templates))
 
-    $(P Like aggregates and functions, manifest constant and variable
-        declarations can have template parameters, providing there is
+    $(P Like aggregates and functions, $(DDSUBLINK spec/declaration, variable-declarations, variable
+        declarations) and manifest constants can have template parameters, providing there is
         an $(GLINK2 declaration, Initializer):)
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ------
-        enum string constant(TL...) = TL.stringof;
+        enum bool within(alias v, T) = v <= T.max && v >= T.min;
         ubyte[T.sizeof] storage(T) = 0;
-        auto array(alias a) = a;
-        ------
+        const triplet(alias v) = [v, v+1, v+2];
 
-    $(P These declarations are transformed into templates:)
+        static assert(within!(-128F, byte));
+        static assert(storage!(int[2]).length == 8);
+        static assert(triplet!3 == [3, 4, 5]);
+        ------
+        )
+
+    $(P Those declarations are transformed into these *TemplateDeclaration*s:)
 
         ------
-        template constant(TL...)
+        template within(alias v, T)
         {
-            enum string constant = TL.stringof;
+            enum bool within = v <= T.max && v >= T.min;
         }
         template storage(T)
         {
             ubyte[T.sizeof] storage = 0;
         }
-        template array(alias a)
+        template triplet(alias v)
         {
-            auto array = a;
+            const triplet = [v, v+1, v+2];
         }
         ------
 
