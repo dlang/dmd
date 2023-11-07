@@ -967,7 +967,6 @@ public:
     virtual complex_t toComplex();
     virtual StringExp* toStringExp();
     virtual bool isLvalue();
-    virtual Expression* resolveLoc(const Loc& loc, Scope* sc);
     virtual bool checkType();
     virtual bool checkValue();
     Expression* addressOf();
@@ -7390,7 +7389,6 @@ public:
     Expression* e1;
     UnaExp* syntaxCopy() override;
     void setNoderefOperand();
-    Expression* resolveLoc(const Loc& loc, Scope* sc) final override;
     void accept(Visitor* v) override;
 };
 
@@ -7826,7 +7824,6 @@ class CatExp final : public BinExp
 {
 public:
     Expression* lowering;
-    Expression* resolveLoc(const Loc& loc, Scope* sc) override;
     void accept(Visitor* v) override;
 };
 
@@ -7944,35 +7941,30 @@ public:
 class FileInitExp final : public DefaultInitExp
 {
 public:
-    Expression* resolveLoc(const Loc& loc, Scope* sc) override;
     void accept(Visitor* v) override;
 };
 
 class LineInitExp final : public DefaultInitExp
 {
 public:
-    Expression* resolveLoc(const Loc& loc, Scope* sc) override;
     void accept(Visitor* v) override;
 };
 
 class ModuleInitExp final : public DefaultInitExp
 {
 public:
-    Expression* resolveLoc(const Loc& loc, Scope* sc) override;
     void accept(Visitor* v) override;
 };
 
 class FuncInitExp final : public DefaultInitExp
 {
 public:
-    Expression* resolveLoc(const Loc& loc, Scope* sc) override;
     void accept(Visitor* v) override;
 };
 
 class PrettyFuncInitExp final : public DefaultInitExp
 {
 public:
-    Expression* resolveLoc(const Loc& loc, Scope* sc) override;
     void accept(Visitor* v) override;
 };
 

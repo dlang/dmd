@@ -50,6 +50,7 @@ struct Symbol;          // back end symbol
 Expression *ctfeInterpret(Expression *e);
 void expandTuples(Expressions *exps, Identifiers *names = nullptr);
 StringExp *toUTF8(StringExp *se, Scope *sc);
+Expression *resolveLoc(Expression *exp, const Loc &loc, Scope *sc);
 MATCH implicitConvTo(Expression *e, Type *t);
 Expression *toLvalue(Expression *_this, Scope *sc, Expression *e);
 Expression *modifiableLvalue(Expression* exp, Scope *sc, Expression *e);
@@ -101,7 +102,6 @@ public:
     virtual complex_t toComplex();
     virtual StringExp *toStringExp();
     virtual bool isLvalue();
-    virtual Expression *resolveLoc(const Loc &loc, Scope *sc);
     virtual bool checkType();
     virtual bool checkValue();
     Expression *addressOf();
@@ -666,7 +666,6 @@ public:
     Expression *e1;
 
     UnaExp *syntaxCopy() override;
-    Expression *resolveLoc(const Loc &loc, Scope *sc) override final;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -1285,35 +1284,30 @@ public:
 class FileInitExp final : public DefaultInitExp
 {
 public:
-    Expression *resolveLoc(const Loc &loc, Scope *sc) override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
 class LineInitExp final : public DefaultInitExp
 {
 public:
-    Expression *resolveLoc(const Loc &loc, Scope *sc) override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
 class ModuleInitExp final : public DefaultInitExp
 {
 public:
-    Expression *resolveLoc(const Loc &loc, Scope *sc) override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
 class FuncInitExp final : public DefaultInitExp
 {
 public:
-    Expression *resolveLoc(const Loc &loc, Scope *sc) override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
 class PrettyFuncInitExp final : public DefaultInitExp
 {
 public:
-    Expression *resolveLoc(const Loc &loc, Scope *sc) override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 

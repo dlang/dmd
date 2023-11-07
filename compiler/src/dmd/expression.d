@@ -679,15 +679,6 @@ extern (C++) abstract class Expression : ASTNode
     }
 
     /****************************************
-     * Resolve __FILE__, __LINE__, __MODULE__, __FUNCTION__, __PRETTY_FUNCTION__, __FILE_FULL_PATH__ to loc.
-     */
-    Expression resolveLoc(const ref Loc loc, Scope* sc)
-    {
-        this.loc = loc;
-        return this;
-    }
-
-    /****************************************
      * Check that the expression has a valid type.
      * If not, generates an error "... has no type".
      * Returns:
@@ -3242,12 +3233,6 @@ extern (C++) abstract class UnaExp : Expression
 
     }
 
-    override final Expression resolveLoc(const ref Loc loc, Scope* sc)
-    {
-        e1 = e1.resolveLoc(loc, sc);
-        return this;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -4954,13 +4939,6 @@ extern (C++) final class CatExp : BinExp
         super(loc, EXP.concatenate, e1, e2);
     }
 
-    override Expression resolveLoc(const ref Loc loc, Scope* sc)
-    {
-        e1 = e1.resolveLoc(loc, sc);
-        e2 = e2.resolveLoc(loc, sc);
-        return this;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -5344,19 +5322,6 @@ extern (C++) final class FileInitExp : DefaultInitExp
         super(loc, tok);
     }
 
-    override Expression resolveLoc(const ref Loc loc, Scope* sc)
-    {
-        //printf("FileInitExp::resolve() %s\n", toChars());
-        const(char)* s;
-        if (op == EXP.fileFullPath)
-            s = FileName.toAbsolute(loc.isValid() ? loc.filename : sc._module.srcfile.toChars());
-        else
-            s = loc.isValid() ? loc.filename : sc._module.ident.toChars();
-
-        Expression e = new StringExp(loc, s.toDString());
-        return e.expressionSemantic(sc);
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -5371,12 +5336,6 @@ extern (C++) final class LineInitExp : DefaultInitExp
     extern (D) this(const ref Loc loc) @safe
     {
         super(loc, EXP.line);
-    }
-
-    override Expression resolveLoc(const ref Loc loc, Scope* sc)
-    {
-        Expression e = new IntegerExp(loc, loc.linnum, Type.tint32);
-        return e.expressionSemantic(sc);
     }
 
     override void accept(Visitor v)
@@ -5395,13 +5354,6 @@ extern (C++) final class ModuleInitExp : DefaultInitExp
         super(loc, EXP.moduleString);
     }
 
-    override Expression resolveLoc(const ref Loc loc, Scope* sc)
-    {
-        const auto s = (sc.callsc ? sc.callsc : sc)._module.toPrettyChars().toDString();
-        Expression e = new StringExp(loc, s);
-        return e.expressionSemantic(sc);
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -5418,19 +5370,6 @@ extern (C++) final class FuncInitExp : DefaultInitExp
         super(loc, EXP.functionString);
     }
 
-    override Expression resolveLoc(const ref Loc loc, Scope* sc)
-    {
-        const(char)* s;
-        if (sc.callsc && sc.callsc.func)
-            s = sc.callsc.func.Dsymbol.toPrettyChars();
-        else if (sc.func)
-            s = sc.func.Dsymbol.toPrettyChars();
-        else
-            s = "";
-        Expression e = new StringExp(loc, s.toDString());
-        return e.expressionSemantic(sc);
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -5445,31 +5384,6 @@ extern (C++) final class PrettyFuncInitExp : DefaultInitExp
     extern (D) this(const ref Loc loc) @safe
     {
         super(loc, EXP.prettyFunction);
-    }
-
-    override Expression resolveLoc(const ref Loc loc, Scope* sc)
-    {
-        FuncDeclaration fd = (sc.callsc && sc.callsc.func)
-                        ? sc.callsc.func
-                        : sc.func;
-
-        const(char)* s;
-        if (fd)
-        {
-            const funcStr = fd.Dsymbol.toPrettyChars();
-            OutBuffer buf;
-            functionToBufferWithIdent(fd.type.isTypeFunction(), buf, funcStr, fd.isStatic);
-            s = buf.extractChars();
-        }
-        else
-        {
-            s = "";
-        }
-
-        Expression e = new StringExp(loc, s.toDString());
-        e = e.expressionSemantic(sc);
-        e.type = Type.tstring;
-        return e;
     }
 
     override void accept(Visitor v)

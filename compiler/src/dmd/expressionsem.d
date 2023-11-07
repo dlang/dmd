@@ -14871,6 +14871,106 @@ bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
     return check(e, returnRef);
 }
 
+/****************************************
+ * Resolve __FILE__, __LINE__, __MODULE__, __FUNCTION__, __PRETTY_FUNCTION__, __FILE_FULL_PATH__ to loc.
+ */
+Expression resolveLoc(Expression exp, const ref Loc loc, Scope* sc)
+{
+    Expression visit(Expression exp)
+    {
+        if (auto unaExp = exp.isUnaExp())
+        {
+            unaExp.e1 = unaExp.e1.resolveLoc(loc, sc);
+            return unaExp;
+        }
+        exp.loc = loc;
+        return exp;
+    }
+
+    Expression visitCat(CatExp exp)
+    {
+        exp.e1 = exp.e1.resolveLoc(loc, sc);
+        exp.e2 = exp.e2.resolveLoc(loc, sc);
+        return exp;
+    }
+
+    Expression visitFileInit(FileInitExp exp)
+    {
+        //printf("FileInitExp::resolve() %s\n", exp.toChars());
+        const(char)* s;
+        if (exp.op == EXP.fileFullPath)
+            s = FileName.toAbsolute(loc.isValid() ? loc.filename : sc._module.srcfile.toChars());
+        else
+            s = loc.isValid() ? loc.filename : sc._module.ident.toChars();
+
+        Expression e = new StringExp(loc, s.toDString());
+        return e.expressionSemantic(sc);
+    }
+
+    Expression visitLineInit(LineInitExp _)
+    {
+        Expression e = new IntegerExp(loc, loc.linnum, Type.tint32);
+        return e.expressionSemantic(sc);
+    }
+
+    Expression visitModuleInit(ModuleInitExp _)
+    {
+        const auto s = (sc.callsc ? sc.callsc : sc)._module.toPrettyChars().toDString();
+        Expression e = new StringExp(loc, s);
+        return e.expressionSemantic(sc);
+    }
+
+    Expression visitFuncInit(FuncInitExp _)
+    {
+        const(char)* s;
+        if (sc.callsc && sc.callsc.func)
+            s = sc.callsc.func.Dsymbol.toPrettyChars();
+        else if (sc.func)
+            s = sc.func.Dsymbol.toPrettyChars();
+        else
+            s = "";
+        Expression e = new StringExp(loc, s.toDString());
+        return e.expressionSemantic(sc);
+    }
+
+    Expression visitPrettyFunc(PrettyFuncInitExp _)
+    {
+        FuncDeclaration fd = (sc.callsc && sc.callsc.func)
+                        ? sc.callsc.func
+                        : sc.func;
+
+        const(char)* s;
+        if (fd)
+        {
+            const funcStr = fd.Dsymbol.toPrettyChars();
+            OutBuffer buf;
+            functionToBufferWithIdent(fd.type.isTypeFunction(), buf, funcStr, fd.isStatic);
+            s = buf.extractChars();
+        }
+        else
+        {
+            s = "";
+        }
+
+        Expression e = new StringExp(loc, s.toDString());
+        e = e.expressionSemantic(sc);
+        e.type = Type.tstring;
+        return e;
+    }
+
+    switch(exp.op)
+    {
+        default:                 return visit(exp);
+        case EXP.concatenate:    return visitCat(exp.isCatExp());
+        case EXP.file:
+        case EXP.fileFullPath:   return visitFileInit(exp.isFileInitExp());
+        case EXP.line:           return visitLineInit(exp.isLineInitExp);
+        case EXP.moduleString:   return visitModuleInit(exp.isModuleInitExp());
+        case EXP.functionString: return visitFuncInit(exp.isFuncInitExp());
+        case EXP.prettyFunction: return visitPrettyFunc(exp.isPrettyFuncInitExp());
+    }
+}
+
 /************************************************
  * Destructors are attached to VarDeclarations.
  * Hence, if expression returns a temp that needs a destructor,
