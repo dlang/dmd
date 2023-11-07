@@ -30,13 +30,11 @@ import dmd.dclass;
 import dmd.declaration;
 import dmd.dimport;
 import dmd.dmodule;
-import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.errorsink;
-import dmd.expressionsem;
 import dmd.func;
 import dmd.globals;
 import dmd.hdrgen;
@@ -116,45 +114,6 @@ inout(Expression) lastComma(inout Expression e)
         ex = (cast(CommaExp)ex).e2;
     return cast(inout)ex;
 
-}
-
-/***********************************
- * Determine if a `this` is needed to access `d`.
- * Params:
- *      sc = context
- *      d = declaration to check
- * Returns:
- *      true means a `this` is needed
- */
-bool isNeedThisScope(Scope* sc, Declaration d)
-{
-    if (sc.intypeof == 1)
-        return false;
-
-    AggregateDeclaration ad = d.isThis();
-    if (!ad)
-        return false;
-    //printf("d = %s, ad = %s\n", d.toChars(), ad.toChars());
-
-    for (Dsymbol s = sc.parent; s; s = s.toParentLocal())
-    {
-        //printf("\ts = %s %s, toParent2() = %p\n", s.kind(), s.toChars(), s.toParent2());
-        if (AggregateDeclaration ad2 = s.isAggregateDeclaration())
-        {
-            if (ad2 == ad)
-                return false;
-            else if (ad2.isNested())
-                continue;
-            else
-                return true;
-        }
-        if (FuncDeclaration f = s.isFuncDeclaration())
-        {
-            if (f.isMemberLocal())
-                break;
-        }
-    }
-    return true;
 }
 
 /****************************************
@@ -2940,52 +2899,6 @@ extern (C++) final class FuncExp : Expression
         return false;
     }
 
-    extern (D) void genIdent(Scope* sc)
-    {
-        if (fd.ident == Id.empty)
-        {
-            const(char)[] s;
-            if (fd.fes)
-                s = "__foreachbody";
-            else if (fd.tok == TOK.reserved)
-                s = "__lambda";
-            else if (fd.tok == TOK.delegate_)
-                s = "__dgliteral";
-            else
-                s = "__funcliteral";
-
-            DsymbolTable symtab;
-            if (FuncDeclaration func = sc.parent.isFuncDeclaration())
-            {
-                if (func.localsymtab is null)
-                {
-                    // Inside template constraint, symtab is not set yet.
-                    // Initialize it lazily.
-                    func.localsymtab = new DsymbolTable();
-                }
-                symtab = func.localsymtab;
-            }
-            else
-            {
-                ScopeDsymbol sds = sc.parent.isScopeDsymbol();
-                if (!sds.symtab)
-                {
-                    // Inside template constraint, symtab may not be set yet.
-                    // Initialize it lazily.
-                    assert(sds.isTemplateInstance());
-                    sds.symtab = new DsymbolTable();
-                }
-                symtab = sds.symtab;
-            }
-            assert(symtab);
-            Identifier id = Identifier.generateId(s, symtab.length() + 1);
-            fd.ident = id;
-            if (td)
-                td.ident = id;
-            symtab.insert(td ? cast(Dsymbol)td : cast(Dsymbol)fd);
-        }
-    }
-
     override FuncExp syntaxCopy()
     {
         if (td)
@@ -3585,49 +3498,6 @@ extern (C++) final class DotTemplateInstanceExp : UnaExp
     override DotTemplateInstanceExp syntaxCopy()
     {
         return new DotTemplateInstanceExp(loc, e1.syntaxCopy(), ti.name, TemplateInstance.arraySyntaxCopy(ti.tiargs));
-    }
-
-    extern (D) bool findTempDecl(Scope* sc)
-    {
-        static if (LOGSEMANTIC)
-        {
-            printf("DotTemplateInstanceExp::findTempDecl('%s')\n", toChars());
-        }
-        if (ti.tempdecl)
-            return true;
-
-        Expression e = new DotIdExp(loc, e1, ti.name);
-        e = e.expressionSemantic(sc);
-        if (e.op == EXP.dot)
-            e = (cast(DotExp)e).e2;
-
-        Dsymbol s = null;
-        switch (e.op)
-        {
-        case EXP.overloadSet:
-            s = (cast(OverExp)e).vars;
-            break;
-
-        case EXP.dotTemplateDeclaration:
-            s = (cast(DotTemplateExp)e).td;
-            break;
-
-        case EXP.scope_:
-            s = (cast(ScopeExp)e).sds;
-            break;
-
-        case EXP.dotVariable:
-            s = (cast(DotVarExp)e).var;
-            break;
-
-        case EXP.variable:
-            s = (cast(VarExp)e).var;
-            break;
-
-        default:
-            return false;
-        }
-        return ti.updateTempDecl(sc, s);
     }
 
     override bool checkType()
