@@ -117,6 +117,56 @@ class StaticIfCondition;
 class ForeachStatement;
 class ForeachRangeStatement;
 struct OutBuffer;
+class TypeInfoClassDeclaration;
+class Initializer;
+struct IntRange;
+struct ModuleDeclaration;
+template <typename Datum>
+struct FileMapping;
+struct Escape;
+class ErrorSink;
+class LabelStatement;
+class SwitchStatement;
+class Statement;
+class TryFinallyStatement;
+class ScopeGuardStatement;
+struct DocComment;
+class WithStatement;
+struct AA;
+class Tuple;
+class Parameter;
+class TemplateParameter;
+struct TemplatePrevious;
+struct TYPE;
+class TypeBasic;
+class TypeFunction;
+class TypeError;
+class TypeVector;
+class TypeSArray;
+class TypeDArray;
+class TypeAArray;
+class TypePointer;
+class TypeReference;
+class TypeDelegate;
+class TypeIdentifier;
+class TypeInstance;
+class TypeTypeof;
+class TypeReturn;
+class TypeStruct;
+class TypeEnum;
+class TypeClass;
+class TypeSlice;
+class TypeNull;
+class TypeMixin;
+class TypeTraits;
+class TypeNoreturn;
+class TypeTag;
+class TemplateTypeParameter;
+class TemplateValueParameter;
+class TemplateAliasParameter;
+class TemplateThisParameter;
+class TemplateTupleParameter;
+class TypeQualified;
 class StringExp;
 class IntegerExp;
 class ErrorExp;
@@ -231,56 +281,6 @@ class ThrownExceptionExp;
 class UnaExp;
 class BinExp;
 class BinAssignExp;
-class TypeInfoClassDeclaration;
-class Initializer;
-struct IntRange;
-struct ModuleDeclaration;
-template <typename Datum>
-struct FileMapping;
-struct Escape;
-class ErrorSink;
-class LabelStatement;
-class SwitchStatement;
-class Statement;
-class TryFinallyStatement;
-class ScopeGuardStatement;
-struct DocComment;
-class WithStatement;
-struct AA;
-class Tuple;
-class Parameter;
-class TemplateParameter;
-struct TemplatePrevious;
-struct TYPE;
-class TypeBasic;
-class TypeFunction;
-class TypeError;
-class TypeVector;
-class TypeSArray;
-class TypeDArray;
-class TypeAArray;
-class TypePointer;
-class TypeReference;
-class TypeDelegate;
-class TypeIdentifier;
-class TypeInstance;
-class TypeTypeof;
-class TypeReturn;
-class TypeStruct;
-class TypeEnum;
-class TypeClass;
-class TypeSlice;
-class TypeNull;
-class TypeMixin;
-class TypeTraits;
-class TypeNoreturn;
-class TypeTag;
-class TemplateTypeParameter;
-class TemplateValueParameter;
-class TemplateAliasParameter;
-class TemplateThisParameter;
-class TemplateTupleParameter;
-class TypeQualified;
 class CaseStatement;
 class Catch;
 struct Designator;
@@ -789,310 +789,6 @@ public:
     }
 };
 
-enum class EXP : uint8_t
-{
-    reserved = 0u,
-    negate = 1u,
-    cast_ = 2u,
-    null_ = 3u,
-    assert_ = 4u,
-    array = 5u,
-    call = 6u,
-    address = 7u,
-    type = 8u,
-    throw_ = 9u,
-    new_ = 10u,
-    delete_ = 11u,
-    star = 12u,
-    symbolOffset = 13u,
-    variable = 14u,
-    dotVariable = 15u,
-    dotIdentifier = 16u,
-    dotTemplateInstance = 17u,
-    dotType = 18u,
-    slice = 19u,
-    arrayLength = 20u,
-    dollar = 21u,
-    template_ = 22u,
-    dotTemplateDeclaration = 23u,
-    declaration = 24u,
-    dSymbol = 25u,
-    typeid_ = 26u,
-    uadd = 27u,
-    remove = 28u,
-    newAnonymousClass = 29u,
-    arrayLiteral = 30u,
-    assocArrayLiteral = 31u,
-    structLiteral = 32u,
-    classReference = 33u,
-    thrownException = 34u,
-    delegatePointer = 35u,
-    delegateFunctionPointer = 36u,
-    lessThan = 37u,
-    greaterThan = 38u,
-    lessOrEqual = 39u,
-    greaterOrEqual = 40u,
-    equal = 41u,
-    notEqual = 42u,
-    identity = 43u,
-    notIdentity = 44u,
-    index = 45u,
-    is_ = 46u,
-    leftShift = 47u,
-    rightShift = 48u,
-    leftShiftAssign = 49u,
-    rightShiftAssign = 50u,
-    unsignedRightShift = 51u,
-    unsignedRightShiftAssign = 52u,
-    concatenate = 53u,
-    concatenateAssign = 54u,
-    concatenateElemAssign = 55u,
-    concatenateDcharAssign = 56u,
-    add = 57u,
-    min = 58u,
-    addAssign = 59u,
-    minAssign = 60u,
-    mul = 61u,
-    div = 62u,
-    mod = 63u,
-    mulAssign = 64u,
-    divAssign = 65u,
-    modAssign = 66u,
-    and_ = 67u,
-    or_ = 68u,
-    xor_ = 69u,
-    andAssign = 70u,
-    orAssign = 71u,
-    xorAssign = 72u,
-    assign = 73u,
-    not_ = 74u,
-    tilde = 75u,
-    plusPlus = 76u,
-    minusMinus = 77u,
-    construct = 78u,
-    blit = 79u,
-    dot = 80u,
-    comma = 81u,
-    question = 82u,
-    andAnd = 83u,
-    orOr = 84u,
-    prePlusPlus = 85u,
-    preMinusMinus = 86u,
-    identifier = 87u,
-    string_ = 88u,
-    this_ = 89u,
-    super_ = 90u,
-    halt = 91u,
-    tuple = 92u,
-    error = 93u,
-    void_ = 94u,
-    int64 = 95u,
-    float64 = 96u,
-    complex80 = 97u,
-    import_ = 98u,
-    delegate_ = 99u,
-    function_ = 100u,
-    mixin_ = 101u,
-    in_ = 102u,
-    break_ = 103u,
-    continue_ = 104u,
-    goto_ = 105u,
-    scope_ = 106u,
-    traits = 107u,
-    overloadSet = 108u,
-    line = 109u,
-    file = 110u,
-    fileFullPath = 111u,
-    moduleString = 112u,
-    functionString = 113u,
-    prettyFunction = 114u,
-    pow = 115u,
-    powAssign = 116u,
-    vector = 117u,
-    voidExpression = 118u,
-    cantExpression = 119u,
-    showCtfeContext = 120u,
-    objcClassReference = 121u,
-    vectorArray = 122u,
-    compoundLiteral = 123u,
-    _Generic_ = 124u,
-    interval = 125u,
-    loweredAssignExp = 126u,
-};
-
-typedef uint64_t dinteger_t;
-
-struct complex_t final
-{
-    _d_real re;
-    _d_real im;
-    complex_t() = delete;
-    complex_t(_d_real re);
-    complex_t(_d_real re, _d_real im);
-    int32_t opEquals(complex_t y) const;
-};
-
-template <typename T>
-struct Optional final
-{
-    T value;
-    bool present;
-    Optional(T value);
-    static Optional<T > create(T val);
-    bool isPresent() const;
-    bool isEmpty() const;
-    T get();
-    bool hasValue(T exp) const;
-    Optional()
-    {
-    }
-};
-
-class Expression : public ASTNode
-{
-public:
-    Type* type;
-    Loc loc;
-    const EXP op;
-    size_t size() const;
-    static void _init();
-    static void deinitialize();
-    virtual Expression* syntaxCopy();
-    DYNCAST dyncast() const final override;
-    const char* toChars() const override;
-    virtual dinteger_t toInteger();
-    virtual uinteger_t toUInteger();
-    virtual _d_real toReal();
-    virtual _d_real toImaginary();
-    virtual complex_t toComplex();
-    virtual StringExp* toStringExp();
-    virtual bool isLvalue();
-    virtual bool checkType();
-    virtual bool checkValue();
-    Expression* addressOf();
-    Expression* deref();
-    Expression* optimize(int32_t result, bool keepLvalue = false);
-    int32_t isConst();
-    virtual bool isIdentical(const Expression* const e) const;
-    virtual Optional<bool > toBool();
-    virtual bool hasCode();
-    IntegerExp* isIntegerExp();
-    ErrorExp* isErrorExp();
-    VoidInitExp* isVoidInitExp();
-    RealExp* isRealExp();
-    ComplexExp* isComplexExp();
-    IdentifierExp* isIdentifierExp();
-    DollarExp* isDollarExp();
-    DsymbolExp* isDsymbolExp();
-    ThisExp* isThisExp();
-    SuperExp* isSuperExp();
-    NullExp* isNullExp();
-    StringExp* isStringExp();
-    TupleExp* isTupleExp();
-    ArrayLiteralExp* isArrayLiteralExp();
-    AssocArrayLiteralExp* isAssocArrayLiteralExp();
-    StructLiteralExp* isStructLiteralExp();
-    CompoundLiteralExp* isCompoundLiteralExp();
-    TypeExp* isTypeExp();
-    ScopeExp* isScopeExp();
-    TemplateExp* isTemplateExp();
-    NewExp* isNewExp();
-    NewAnonClassExp* isNewAnonClassExp();
-    SymOffExp* isSymOffExp();
-    VarExp* isVarExp();
-    OverExp* isOverExp();
-    FuncExp* isFuncExp();
-    DeclarationExp* isDeclarationExp();
-    TypeidExp* isTypeidExp();
-    TraitsExp* isTraitsExp();
-    HaltExp* isHaltExp();
-    IsExp* isExp();
-    MixinExp* isMixinExp();
-    ImportExp* isImportExp();
-    AssertExp* isAssertExp();
-    ThrowExp* isThrowExp();
-    DotIdExp* isDotIdExp();
-    DotTemplateExp* isDotTemplateExp();
-    DotVarExp* isDotVarExp();
-    DotTemplateInstanceExp* isDotTemplateInstanceExp();
-    DelegateExp* isDelegateExp();
-    DotTypeExp* isDotTypeExp();
-    CallExp* isCallExp();
-    AddrExp* isAddrExp();
-    PtrExp* isPtrExp();
-    NegExp* isNegExp();
-    UAddExp* isUAddExp();
-    ComExp* isComExp();
-    NotExp* isNotExp();
-    DeleteExp* isDeleteExp();
-    CastExp* isCastExp();
-    VectorExp* isVectorExp();
-    VectorArrayExp* isVectorArrayExp();
-    SliceExp* isSliceExp();
-    ArrayLengthExp* isArrayLengthExp();
-    ArrayExp* isArrayExp();
-    DotExp* isDotExp();
-    CommaExp* isCommaExp();
-    IntervalExp* isIntervalExp();
-    DelegatePtrExp* isDelegatePtrExp();
-    DelegateFuncptrExp* isDelegateFuncptrExp();
-    IndexExp* isIndexExp();
-    PostExp* isPostExp();
-    PreExp* isPreExp();
-    AssignExp* isAssignExp();
-    LoweredAssignExp* isLoweredAssignExp();
-    ConstructExp* isConstructExp();
-    BlitExp* isBlitExp();
-    AddAssignExp* isAddAssignExp();
-    MinAssignExp* isMinAssignExp();
-    MulAssignExp* isMulAssignExp();
-    DivAssignExp* isDivAssignExp();
-    ModAssignExp* isModAssignExp();
-    AndAssignExp* isAndAssignExp();
-    OrAssignExp* isOrAssignExp();
-    XorAssignExp* isXorAssignExp();
-    PowAssignExp* isPowAssignExp();
-    ShlAssignExp* isShlAssignExp();
-    ShrAssignExp* isShrAssignExp();
-    UshrAssignExp* isUshrAssignExp();
-    CatAssignExp* isCatAssignExp();
-    CatElemAssignExp* isCatElemAssignExp();
-    CatDcharAssignExp* isCatDcharAssignExp();
-    AddExp* isAddExp();
-    MinExp* isMinExp();
-    CatExp* isCatExp();
-    MulExp* isMulExp();
-    DivExp* isDivExp();
-    ModExp* isModExp();
-    PowExp* isPowExp();
-    ShlExp* isShlExp();
-    ShrExp* isShrExp();
-    UshrExp* isUshrExp();
-    AndExp* isAndExp();
-    OrExp* isOrExp();
-    XorExp* isXorExp();
-    LogicalExp* isLogicalExp();
-    InExp* isInExp();
-    RemoveExp* isRemoveExp();
-    EqualExp* isEqualExp();
-    IdentityExp* isIdentityExp();
-    CondExp* isCondExp();
-    GenericExp* isGenericExp();
-    DefaultInitExp* isDefaultInitExp();
-    FileInitExp* isFileInitExp();
-    LineInitExp* isLineInitExp();
-    ModuleInitExp* isModuleInitExp();
-    FuncInitExp* isFuncInitExp();
-    PrettyFuncInitExp* isPrettyFuncInitExp();
-    ObjcClassReferenceExp* isObjcClassReferenceExp();
-    ClassReferenceExp* isClassReferenceExp();
-    ThrownExceptionExp* isThrownExceptionExp();
-    UnaExp* isUnaExp();
-    BinExp* isBinExp();
-    BinAssignExp* isBinAssignExp();
-    void accept(Visitor* v) override;
-};
-
 enum class MATCH
 {
     nomatch = 0,
@@ -1328,6 +1024,8 @@ enum class Covariant
     fwdref = 3,
 };
 
+typedef uint64_t dinteger_t;
+
 class Type : public ASTNode
 {
 public:
@@ -1551,6 +1249,163 @@ public:
     TypeTag* isTypeTag();
     void accept(Visitor* v) override;
     TypeFunction* toTypeFunction();
+};
+
+enum class EXP : uint8_t
+{
+    reserved = 0u,
+    negate = 1u,
+    cast_ = 2u,
+    null_ = 3u,
+    assert_ = 4u,
+    array = 5u,
+    call = 6u,
+    address = 7u,
+    type = 8u,
+    throw_ = 9u,
+    new_ = 10u,
+    delete_ = 11u,
+    star = 12u,
+    symbolOffset = 13u,
+    variable = 14u,
+    dotVariable = 15u,
+    dotIdentifier = 16u,
+    dotTemplateInstance = 17u,
+    dotType = 18u,
+    slice = 19u,
+    arrayLength = 20u,
+    dollar = 21u,
+    template_ = 22u,
+    dotTemplateDeclaration = 23u,
+    declaration = 24u,
+    dSymbol = 25u,
+    typeid_ = 26u,
+    uadd = 27u,
+    remove = 28u,
+    newAnonymousClass = 29u,
+    arrayLiteral = 30u,
+    assocArrayLiteral = 31u,
+    structLiteral = 32u,
+    classReference = 33u,
+    thrownException = 34u,
+    delegatePointer = 35u,
+    delegateFunctionPointer = 36u,
+    lessThan = 37u,
+    greaterThan = 38u,
+    lessOrEqual = 39u,
+    greaterOrEqual = 40u,
+    equal = 41u,
+    notEqual = 42u,
+    identity = 43u,
+    notIdentity = 44u,
+    index = 45u,
+    is_ = 46u,
+    leftShift = 47u,
+    rightShift = 48u,
+    leftShiftAssign = 49u,
+    rightShiftAssign = 50u,
+    unsignedRightShift = 51u,
+    unsignedRightShiftAssign = 52u,
+    concatenate = 53u,
+    concatenateAssign = 54u,
+    concatenateElemAssign = 55u,
+    concatenateDcharAssign = 56u,
+    add = 57u,
+    min = 58u,
+    addAssign = 59u,
+    minAssign = 60u,
+    mul = 61u,
+    div = 62u,
+    mod = 63u,
+    mulAssign = 64u,
+    divAssign = 65u,
+    modAssign = 66u,
+    and_ = 67u,
+    or_ = 68u,
+    xor_ = 69u,
+    andAssign = 70u,
+    orAssign = 71u,
+    xorAssign = 72u,
+    assign = 73u,
+    not_ = 74u,
+    tilde = 75u,
+    plusPlus = 76u,
+    minusMinus = 77u,
+    construct = 78u,
+    blit = 79u,
+    dot = 80u,
+    comma = 81u,
+    question = 82u,
+    andAnd = 83u,
+    orOr = 84u,
+    prePlusPlus = 85u,
+    preMinusMinus = 86u,
+    identifier = 87u,
+    string_ = 88u,
+    this_ = 89u,
+    super_ = 90u,
+    halt = 91u,
+    tuple = 92u,
+    error = 93u,
+    void_ = 94u,
+    int64 = 95u,
+    float64 = 96u,
+    complex80 = 97u,
+    import_ = 98u,
+    delegate_ = 99u,
+    function_ = 100u,
+    mixin_ = 101u,
+    in_ = 102u,
+    break_ = 103u,
+    continue_ = 104u,
+    goto_ = 105u,
+    scope_ = 106u,
+    traits = 107u,
+    overloadSet = 108u,
+    line = 109u,
+    file = 110u,
+    fileFullPath = 111u,
+    moduleString = 112u,
+    functionString = 113u,
+    prettyFunction = 114u,
+    pow = 115u,
+    powAssign = 116u,
+    vector = 117u,
+    voidExpression = 118u,
+    cantExpression = 119u,
+    showCtfeContext = 120u,
+    objcClassReference = 121u,
+    vectorArray = 122u,
+    compoundLiteral = 123u,
+    _Generic_ = 124u,
+    interval = 125u,
+    loweredAssignExp = 126u,
+};
+
+struct complex_t final
+{
+    _d_real re;
+    _d_real im;
+    complex_t() = delete;
+    complex_t(_d_real re);
+    complex_t(_d_real re, _d_real im);
+    int32_t opEquals(complex_t y) const;
+};
+
+template <typename T>
+struct Optional final
+{
+    T value;
+    bool present;
+    Optional(T value);
+    static Optional<T > create(T val);
+    bool isPresent() const;
+    bool isEmpty() const;
+    T get();
+    bool hasValue(T exp) const;
+    Optional()
+    {
+    }
 };
 
 enum class OwnedBy : uint8_t
@@ -2302,41 +2157,6 @@ enum class ModifyFlags
     none = 0,
     noError = 1,
     fieldAssign = 2,
-};
-
-struct UnionExp final
-{
-    #pragma pack(push, 8)
-private:
-    union _AnonStruct_u
-    {
-        char exp[29LLU];
-        char integerexp[40LLU];
-        char errorexp[29LLU];
-        char realexp[48LLU];
-        char complexexp[64LLU];
-        char symoffexp[64LLU];
-        char stringexp[51LLU];
-        char arrayliteralexp[48LLU];
-        char assocarrayliteralexp[56LLU];
-        char structliteralexp[76LLU];
-        char compoundliteralexp[40LLU];
-        char nullexp[29LLU];
-        char dotvarexp[49LLU];
-        char addrexp[40LLU];
-        char indexexp[74LLU];
-        char sliceexp[65LLU];
-        char vectorexp[53LLU];
-    };
-    #pragma pack(pop)
-
-    // Ignoring var u alignment 8
-    _AnonStruct_u u;
-public:
-    UnionExp() :
-        u()
-    {
-    }
 };
 
 enum : int32_t { WANTexpand = 1 };
@@ -4745,6 +4565,41 @@ extern Type* merge(Type* type);
 
 extern Type* typeSemantic(Type* type, const Loc& loc, Scope* sc);
 
+struct UnionExp final
+{
+    #pragma pack(push, 8)
+private:
+    union _AnonStruct_u
+    {
+        char exp[29LLU];
+        char integerexp[40LLU];
+        char errorexp[29LLU];
+        char realexp[48LLU];
+        char complexexp[64LLU];
+        char symoffexp[64LLU];
+        char stringexp[51LLU];
+        char arrayliteralexp[48LLU];
+        char assocarrayliteralexp[56LLU];
+        char structliteralexp[76LLU];
+        char compoundliteralexp[40LLU];
+        char nullexp[29LLU];
+        char dotvarexp[49LLU];
+        char addrexp[40LLU];
+        char indexexp[74LLU];
+        char sliceexp[65LLU];
+        char vectorexp[53LLU];
+    };
+    #pragma pack(pop)
+
+    // Ignoring var u alignment 8
+    _AnonStruct_u u;
+public:
+    UnionExp() :
+        u()
+    {
+    }
+};
+
 enum class MODFlags
 {
     none = 0,
@@ -4961,12 +4816,14 @@ struct ASTCodegen final
     using BinAssignExp = ::BinAssignExp;
     using BinExp = ::BinExp;
     using BlitExp = ::BlitExp;
+    using CTFEExp = ::CTFEExp;
     using CallExp = ::CallExp;
     using CastExp = ::CastExp;
     using CatAssignExp = ::CatAssignExp;
     using CatDcharAssignExp = ::CatDcharAssignExp;
     using CatElemAssignExp = ::CatElemAssignExp;
     using CatExp = ::CatExp;
+    using ClassReferenceExp = ::ClassReferenceExp;
     using CmpExp = ::CmpExp;
     using ComExp = ::ComExp;
     using CommaExp = ::CommaExp;
@@ -5052,13 +4909,13 @@ struct ASTCodegen final
     using TemplateExp = ::TemplateExp;
     using ThisExp = ::ThisExp;
     using ThrowExp = ::ThrowExp;
+    using ThrownExceptionExp = ::ThrownExceptionExp;
     using TraitsExp = ::TraitsExp;
     using TupleExp = ::TupleExp;
     using TypeExp = ::TypeExp;
     using TypeidExp = ::TypeidExp;
     using UAddExp = ::UAddExp;
     using UnaExp = ::UnaExp;
-    using UnionExp = ::UnionExp;
     using UshrAssignExp = ::UshrAssignExp;
     using UshrExp = ::UshrExp;
     using VarExp = ::VarExp;
@@ -5067,7 +4924,6 @@ struct ASTCodegen final
     using VoidInitExp = ::VoidInitExp;
     using XorAssignExp = ::XorAssignExp;
     using XorExp = ::XorExp;
-    using emplaceExp = ::emplaceExp;
     using AttributeViolation = ::AttributeViolation;
     using BUILTIN = ::BUILTIN;
     using CtorDeclaration = ::CtorDeclaration;
@@ -5185,9 +5041,8 @@ struct ASTCodegen final
     using WhileStatement = ::WhileStatement;
     using WithStatement = ::WithStatement;
     using StaticAssert = ::StaticAssert;
-    using CTFEExp = ::CTFEExp;
-    using ClassReferenceExp = ::ClassReferenceExp;
-    using ThrownExceptionExp = ::ThrownExceptionExp;
+    using UnionExp = ::UnionExp;
+    using emplaceExp = ::emplaceExp;
     typedef UserAttributeDeclaration* UserAttributeDeclaration;
     typedef Ensure Ensure;
     typedef ErrorExp* ErrorExp;
@@ -5832,29 +5687,6 @@ extern const char* toCppMangleDMC(Dsymbol* s);
 extern const char* cppTypeInfoMangleDMC(Dsymbol* s);
 
 extern FileName preprocess(FileName csrcfile, const Loc& loc, bool& ifile, OutBuffer* defines);
-
-class ClassReferenceExp final : public Expression
-{
-public:
-    StructLiteralExp* value;
-    ClassDeclaration* originalClass();
-    int32_t findFieldIndexByName(VarDeclaration* v);
-    void accept(Visitor* v) override;
-};
-
-class ThrownExceptionExp final : public Expression
-{
-public:
-    ClassReferenceExp* thrown;
-    const char* toChars() const override;
-    void accept(Visitor* v) override;
-};
-
-class CTFEExp final : public Expression
-{
-public:
-    const char* toChars() const override;
-};
 
 extern MATCH implicitConvTo(Expression* e, Type* t);
 
@@ -7017,6 +6849,151 @@ public:
 
 extern void expandTuples(Array<Expression* >* exps, Array<Identifier* >* names = nullptr);
 
+class Expression : public ASTNode
+{
+public:
+    Type* type;
+    Loc loc;
+    const EXP op;
+    size_t size() const;
+    static void _init();
+    static void deinitialize();
+    virtual Expression* syntaxCopy();
+    DYNCAST dyncast() const final override;
+    const char* toChars() const override;
+    virtual dinteger_t toInteger();
+    virtual uinteger_t toUInteger();
+    virtual _d_real toReal();
+    virtual _d_real toImaginary();
+    virtual complex_t toComplex();
+    virtual StringExp* toStringExp();
+    virtual bool isLvalue();
+    virtual bool checkType();
+    virtual bool checkValue();
+    Expression* addressOf();
+    Expression* deref();
+    Expression* optimize(int32_t result, bool keepLvalue = false);
+    int32_t isConst();
+    virtual bool isIdentical(const Expression* const e) const;
+    virtual Optional<bool > toBool();
+    virtual bool hasCode();
+    IntegerExp* isIntegerExp();
+    ErrorExp* isErrorExp();
+    VoidInitExp* isVoidInitExp();
+    RealExp* isRealExp();
+    ComplexExp* isComplexExp();
+    IdentifierExp* isIdentifierExp();
+    DollarExp* isDollarExp();
+    DsymbolExp* isDsymbolExp();
+    ThisExp* isThisExp();
+    SuperExp* isSuperExp();
+    NullExp* isNullExp();
+    StringExp* isStringExp();
+    TupleExp* isTupleExp();
+    ArrayLiteralExp* isArrayLiteralExp();
+    AssocArrayLiteralExp* isAssocArrayLiteralExp();
+    StructLiteralExp* isStructLiteralExp();
+    CompoundLiteralExp* isCompoundLiteralExp();
+    TypeExp* isTypeExp();
+    ScopeExp* isScopeExp();
+    TemplateExp* isTemplateExp();
+    NewExp* isNewExp();
+    NewAnonClassExp* isNewAnonClassExp();
+    SymOffExp* isSymOffExp();
+    VarExp* isVarExp();
+    OverExp* isOverExp();
+    FuncExp* isFuncExp();
+    DeclarationExp* isDeclarationExp();
+    TypeidExp* isTypeidExp();
+    TraitsExp* isTraitsExp();
+    HaltExp* isHaltExp();
+    IsExp* isExp();
+    MixinExp* isMixinExp();
+    ImportExp* isImportExp();
+    AssertExp* isAssertExp();
+    ThrowExp* isThrowExp();
+    DotIdExp* isDotIdExp();
+    DotTemplateExp* isDotTemplateExp();
+    DotVarExp* isDotVarExp();
+    DotTemplateInstanceExp* isDotTemplateInstanceExp();
+    DelegateExp* isDelegateExp();
+    DotTypeExp* isDotTypeExp();
+    CallExp* isCallExp();
+    AddrExp* isAddrExp();
+    PtrExp* isPtrExp();
+    NegExp* isNegExp();
+    UAddExp* isUAddExp();
+    ComExp* isComExp();
+    NotExp* isNotExp();
+    DeleteExp* isDeleteExp();
+    CastExp* isCastExp();
+    VectorExp* isVectorExp();
+    VectorArrayExp* isVectorArrayExp();
+    SliceExp* isSliceExp();
+    ArrayLengthExp* isArrayLengthExp();
+    ArrayExp* isArrayExp();
+    DotExp* isDotExp();
+    CommaExp* isCommaExp();
+    IntervalExp* isIntervalExp();
+    DelegatePtrExp* isDelegatePtrExp();
+    DelegateFuncptrExp* isDelegateFuncptrExp();
+    IndexExp* isIndexExp();
+    PostExp* isPostExp();
+    PreExp* isPreExp();
+    AssignExp* isAssignExp();
+    LoweredAssignExp* isLoweredAssignExp();
+    ConstructExp* isConstructExp();
+    BlitExp* isBlitExp();
+    AddAssignExp* isAddAssignExp();
+    MinAssignExp* isMinAssignExp();
+    MulAssignExp* isMulAssignExp();
+    DivAssignExp* isDivAssignExp();
+    ModAssignExp* isModAssignExp();
+    AndAssignExp* isAndAssignExp();
+    OrAssignExp* isOrAssignExp();
+    XorAssignExp* isXorAssignExp();
+    PowAssignExp* isPowAssignExp();
+    ShlAssignExp* isShlAssignExp();
+    ShrAssignExp* isShrAssignExp();
+    UshrAssignExp* isUshrAssignExp();
+    CatAssignExp* isCatAssignExp();
+    CatElemAssignExp* isCatElemAssignExp();
+    CatDcharAssignExp* isCatDcharAssignExp();
+    AddExp* isAddExp();
+    MinExp* isMinExp();
+    CatExp* isCatExp();
+    MulExp* isMulExp();
+    DivExp* isDivExp();
+    ModExp* isModExp();
+    PowExp* isPowExp();
+    ShlExp* isShlExp();
+    ShrExp* isShrExp();
+    UshrExp* isUshrExp();
+    AndExp* isAndExp();
+    OrExp* isOrExp();
+    XorExp* isXorExp();
+    LogicalExp* isLogicalExp();
+    InExp* isInExp();
+    RemoveExp* isRemoveExp();
+    EqualExp* isEqualExp();
+    IdentityExp* isIdentityExp();
+    CondExp* isCondExp();
+    GenericExp* isGenericExp();
+    DefaultInitExp* isDefaultInitExp();
+    FileInitExp* isFileInitExp();
+    LineInitExp* isLineInitExp();
+    ModuleInitExp* isModuleInitExp();
+    FuncInitExp* isFuncInitExp();
+    PrettyFuncInitExp* isPrettyFuncInitExp();
+    ObjcClassReferenceExp* isObjcClassReferenceExp();
+    ClassReferenceExp* isClassReferenceExp();
+    ThrownExceptionExp* isThrownExceptionExp();
+    UnaExp* isUnaExp();
+    BinExp* isBinExp();
+    BinAssignExp* isBinAssignExp();
+    void accept(Visitor* v) override;
+};
+
 class IntegerExp final : public Expression
 {
     dinteger_t value;
@@ -7965,6 +7942,30 @@ public:
 class PrettyFuncInitExp final : public DefaultInitExp
 {
 public:
+    void accept(Visitor* v) override;
+};
+
+class ClassReferenceExp final : public Expression
+{
+public:
+    StructLiteralExp* value;
+    ClassDeclaration* originalClass();
+    int32_t getFieldIndex(Type* fieldtype, uint32_t fieldoffset);
+    int32_t findFieldIndexByName(VarDeclaration* v);
+    void accept(Visitor* v) override;
+};
+
+class CTFEExp final : public Expression
+{
+public:
+    const char* toChars() const override;
+};
+
+class ThrownExceptionExp final : public Expression
+{
+public:
+    ClassReferenceExp* thrown;
+    const char* toChars() const override;
     void accept(Visitor* v) override;
 };
 
