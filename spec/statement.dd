@@ -251,36 +251,38 @@ $(GNAME ElseStatement):
     $(PSSCOPE)
 )
 
-        $(P *Expression* is evaluated and must have a type that
-        can be converted to a boolean. If it's `true` the
-        $(I ThenStatement) is transferred to, else the $(I ElseStatement)
-        is transferred to.)
+        $(P If there is a declared *Identifier* variable, it is evaluated.
+        Otherwise, *Expression* is evaluated. The result is converted to a
+        boolean, using $(DDSUBLINK spec/operatoroverloading, cast, `opCast!bool()`)
+        if the method is defined.
+        If the boolean is `true`, the $(I ThenStatement) is transferred
+        to, otherwise the $(I ElseStatement) is transferred to.)
 
-        $(P The $(I ElseStatement) is associated with the innermost if
+        $(P The $(I ElseStatement) is associated with the innermost `if`
         statement which does not already have an associated $(I ElseStatement).)
 
-        $(P If an $(D auto) $(I Identifier) is provided, it is declared and
-        initialized
-        to the value
-        and type of the *Expression*. Its scope extends from when it is
-        initialized to the end of the $(I ThenStatement).)
+    $(PANEL
+        When an $(I Identifier) form of *IfCondition* is used, a
+        variable is declared with that name and initialized to the
+        value of the *Expression*.
 
-        $(P If a $(I TypeCtors) $(I Identifier) is provided, it is declared
-        to be of the type specified by $(I TypeCtors)
-        and is initialized with the value of the *Expression*.
-        Its scope extends from when it is
-        initialized to the end of the $(I ThenStatement).)
+        * If $(D auto) $(I Identifier) is provided, the type of the variable
+          is the same as *Expression*.
 
-        $(P If a $(I Declarator) is provided, it is declared and
-        initialized
-        to the value
-        of the *Expression*. Its scope extends from when it is
-        initialized to the end of the $(I ThenStatement).)
+        * If $(I TypeCtors) $(I Identifier) is provided, the variable is
+          declared to be the type of *Expression* but with $(I TypeCtors) applied.
 
+        * If the $(I BasicType) form is provided, it declares the type of the
+          variable as it would for a normal
+          $(DDSUBLINK spec/declaration, variable-declarations, variable declaration).
+
+        $(P The scope of the variable is the *ThenStatement* only.)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
 import std.regex;
-...
-if (auto m = std.regex.matchFirst("abcdef", "b(c)d"))
+
+if (auto m = matchFirst("abcdef", "b(c)d"))
 {
     writefln("[%s]", m.pre);    // prints [a]
     writefln("[%s]", m.post);   // prints [ef]
@@ -289,10 +291,13 @@ if (auto m = std.regex.matchFirst("abcdef", "b(c)d"))
 }
 else
 {
-    writeln(m.post); // Error: undefined identifier 'm'
+    writeln("no match");
+    //writeln(m.post); // Error: undefined identifier 'm'
 }
-writeln(m.pre);      // Error: undefined identifier 'm'
+//writeln(m.pre);      // Error: undefined identifier 'm'
 ---
+)
+    )
 
 $(H2 $(LEGACY_LNAME2 WhileStatement, while-statement, While Statement))
 
