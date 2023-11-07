@@ -3384,7 +3384,7 @@ public:
     Type* stype;
     union
     {
-        Symbol* sym;
+        void* sym;
         StructLiteralExp* inlinecopy;
     };
     StructLiteralExp* origin;

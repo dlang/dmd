@@ -757,7 +757,7 @@ Symbol* toSymbol(StructLiteralExp sle)
 {
     //printf("toSymbol() %p.sym: %p\n", sle, sle.sym);
     if (sle.sym)
-        return sle.sym;
+        return cast(Symbol*)sle.sym;
     auto t = type_alloc(TYint);
     t.Tcount++;
     auto s = symbol_calloc("internal");
@@ -770,14 +770,14 @@ Symbol* toSymbol(StructLiteralExp sle)
     Expression_toDt(sle, dtb);
     s.Sdt = dtb.finish();
     outdata(s);
-    return sle.sym;
+    return cast(Symbol*)sle.sym;
 }
 
 Symbol* toSymbol(ClassReferenceExp cre)
 {
     //printf("toSymbol() %p.value.sym: %p\n", cre, cre.value.sym);
     if (cre.value.origin.sym)
-        return cre.value.origin.sym;
+        return cast(Symbol*)cre.value.origin.sym;
     auto t = type_alloc(TYint);
     t.Tcount++;
     auto s = symbol_calloc("internal");
@@ -791,7 +791,7 @@ Symbol* toSymbol(ClassReferenceExp cre)
     ClassReferenceExp_toInstanceDt(cre, dtb);
     s.Sdt = dtb.finish();
     outdata(s);
-    return cre.value.sym;
+    return cast(Symbol*)cre.value.sym;
 }
 
 /**************************************
