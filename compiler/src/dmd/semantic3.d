@@ -54,6 +54,7 @@ import dmd.nspace;
 import dmd.ob;
 import dmd.objc;
 import dmd.opover;
+import dmd.optimize;
 import dmd.parse;
 import dmd.root.filename;
 import dmd.common.outbuffer;

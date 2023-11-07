@@ -42,6 +42,7 @@ import dmd.identifier;
 import dmd.location;
 import dmd.mtype;
 import dmd.nogc;
+import dmd.optimize;
 import dmd.parse;
 import dmd.root.array;
 import dmd.root.speller;

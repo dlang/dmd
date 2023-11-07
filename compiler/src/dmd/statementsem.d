@@ -55,6 +55,7 @@ import dmd.location;
 import dmd.mtype;
 import dmd.mustuse;
 import dmd.nogc;
+import dmd.optimize;
 import dmd.opover;
 import dmd.parse;
 import dmd.common.outbuffer;
