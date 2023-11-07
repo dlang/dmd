@@ -38,6 +38,7 @@ import dmd.glue;
 import dmd.init;
 import dmd.location;
 import dmd.mtype;
+import dmd.optimize;
 import dmd.target;
 import dmd.tokens;
 import dmd.tocsym;

@@ -39,7 +39,6 @@ import dmd.identifier;
 import dmd.init;
 import dmd.location;
 import dmd.mtype;
-import dmd.optimize;
 import dmd.root.complex;
 import dmd.root.ctfloat;
 import dmd.common.outbuffer;
@@ -703,11 +702,6 @@ extern (C++) abstract class Expression : ASTNode
                 return e;
             }
         return this;
-    }
-
-    final Expression optimize(int result, bool keepLvalue = false)
-    {
-        return Expression_optimize(this, result, keepLvalue);
     }
 
     final int isConst()

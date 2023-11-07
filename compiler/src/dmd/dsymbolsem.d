@@ -57,6 +57,7 @@ import dmd.nogc;
 import dmd.nspace;
 import dmd.objc;
 import dmd.opover;
+import dmd.optimize;
 import dmd.parse;
 import dmd.root.array;
 import dmd.root.filename;

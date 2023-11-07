@@ -6872,7 +6872,6 @@ public:
     virtual bool checkValue();
     Expression* addressOf();
     Expression* deref();
-    Expression* optimize(int32_t result, bool keepLvalue = false);
     int32_t isConst();
     virtual bool isIdentical(const Expression* const e) const;
     virtual Optional<bool > toBool();
