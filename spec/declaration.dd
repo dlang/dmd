@@ -169,7 +169,7 @@ int (\*[] x)(char); // C array of pointers to functions
 $(RATIONALE
 * In D types are straightforward to read from right to left,
   unlike in C where parentheses are sometimes required and the type is
-  read iteratively using the 'right-left' rule.
+  read iteratively using the clockwise/spiral rule.
 * For a C function pointer declaration `a (*b)(c);` a C parser needs
   to attempt a type lookup in order to parse it unambiguously - it
   could be a call to a function called `a` which returns a function
