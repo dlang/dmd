@@ -128,10 +128,14 @@ int[3][5] x;  // x is a static array of 5 static arrays of 3 ints
 int[3]*[5] x; // x is a static array of 5 pointers to static arrays of 3 ints
 --------------------
 
-$(H3 $(LNAME2 pointers-to-functions, Pointers to Functions))
+$(P See $(DDSUBLINK spec/type, pointers, Pointers), $(DDLINK spec/arrays, Arrays, Arrays)
+and $(GLINK2 type, TypeSuffix).)
+
+$(H3 $(LNAME2 pointers-to-functions, Function Pointers))
 
 $(P
-Pointers to functions are declared using the $(D function) keyword:
+$(DDSUBLINK spec/function, function-pointers, Function Pointers)
+are declared using the $(D function) keyword:
 )
 
 --------------------
@@ -147,19 +151,31 @@ int function(char)[] x; // x is an array of
 $(H3 $(LNAME2 c-style-declarations, C-Style Declarations))
 
 $(P
-C-style array, function pointer and pointer to array declarations are deprecated:
+C-style array, function pointer and pointer to array declarations are
+not supported. The following C declarations are for comparison only:
 )
 
---------------------
-int x[3];          // x is a static array of 3 ints
-int x[3][5];       // x is a static array of 3 arrays of 5 ints
+$(CPPCODE
+int x[3];          // C static array of 3 ints
+int x[3][5];       // C static array of 3 arrays of 5 ints
 
-int (*x[5])[3];    // x is a static array of 5 pointers to static arrays of 3 ints
-int (*x)(char);    // x is a pointer to a function taking a char argument
+int (\*x[5])[3];    // C static array of 5 pointers to static arrays of 3 ints
+int (\*x)(char);    // C pointer to a function taking a char argument
                    // and returning an int
-int (*[] x)(char); // x is an array of pointers to functions
+int (\*[] x)(char); // C array of pointers to functions
                    // taking a char argument and returning an int
---------------------
+)
+
+$(RATIONALE
+* In D types are straightforward to read from right to left,
+  unlike in C where parentheses are sometimes required and the type is
+  read iteratively using the 'right-left' rule.
+* For a C function pointer declaration `a (*b)(c);` a C parser needs
+  to attempt a type lookup in order to parse it unambiguously - it
+  could be a call to a function called `a` which returns a function
+  pointer, which is immediately called. D function pointer syntax
+  is unambiguous, avoiding the need for types to be forward declared.
+)
 
 $(H3 $(LNAME2 declaring-multiple-symbols, Declaring Multiple Symbols))
 
@@ -169,14 +185,17 @@ must be of the same type:
 )
 
 --------------------
-int x,y;   // x and y are ints
-int* x,y;  // x and y are pointers to ints
-int[] x,y; // x and y are arrays of ints
+int x, y;   // x and y are ints
+int* x, y;  // x and y are pointers to ints
+int[] x, y; // x and y are arrays of ints
+---
 
-// invalid C-style declarations
-int x,*y;  // error, multiple types
-int x[],y; // error, multiple types
---------------------
+$(P This is in contrast to C:)
+
+$(CPPCODE
+int x, *y;  // x is an int, y is a pointer to int
+int x[], y; // x is an array/pointer, y is an int
+)
 
 $(H2 $(LEGACY_LNAME2 AutoDeclaration, auto-declaration, Implicit Type Inference))
 
