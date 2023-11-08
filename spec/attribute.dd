@@ -462,7 +462,7 @@ $(H3 $(LNAME2 package, $(D package) Attribute))
 
         $(P $(D package) may have an optional parameter in the form of a dot-separated identifier
         list which is resolved as the qualified package name. The package must be either the module's
-        parent package or one of its anscestors. If this parameter is present, the symbol
+        parent package or one of its ancestors. If this parameter is present, the symbol
         will be visible in the specified package and all of its descendants.
         )
 
@@ -742,10 +742,10 @@ scope int* x; // scope ignored, global variable
 
 void main()
 {
-    static int* x;  // scope ignored, global variable
-    scope float y;  // scope ignored, no indirections
-    scope int[2] z; // scope ignored, static array is value type
-    scope int[] w;  // scope dynamic array
+    // scope static int* x;  // cannot be both scope and static
+    scope float y;           // scope ignored, no indirections
+    scope int[2] z;          // scope ignored, static array is value type
+    scope int[] w;           // scope dynamic array
 }
 ---
 )
