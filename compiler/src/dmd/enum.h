@@ -50,7 +50,6 @@ public:
     bool oneMember(Dsymbol **ps, Identifier *ident) override;
     Type *getType() override;
     const char *kind() const override;
-    Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly) override;
     bool isDeprecated() const override;       // is Dsymbol deprecated?
     Visibility visible() override;
     bool isSpecial() const;

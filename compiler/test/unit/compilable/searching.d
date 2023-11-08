@@ -8,6 +8,7 @@ module compilable.searching;
 import support : afterEach, beforeEach, compiles;
 
 import dmd.dsymbol;
+import dmd.dsymbolsem;
 import dmd.dclass : ClassDeclaration;
 import dmd.declaration : VarDeclaration;
 import dmd.dtemplate : TemplateDeclaration;

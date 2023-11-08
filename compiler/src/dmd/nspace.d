@@ -99,22 +99,6 @@ extern (C++) final class Nspace : ScopeDsymbol
         }
     }
 
-    override Dsymbol search(const ref Loc loc, Identifier ident, int flags = SearchLocalsOnly)
-    {
-        //printf("%s.Nspace.search('%s')\n", toChars(), ident.toChars());
-        if (_scope && !symtab)
-            dsymbolSemantic(this, _scope);
-
-        if (!members || !symtab) // opaque or semantic() is not yet called
-        {
-            if (!(flags & IgnoreErrors))
-                .error(loc, "%s `%s` is forward referenced when looking for `%s`", kind, toPrettyChars, ident.toChars());
-            return null;
-        }
-
-        return ScopeDsymbol.search(loc, ident, flags);
-    }
-
     override bool hasPointers()
     {
         //printf("Nspace::hasPointers() %s\n", toChars());

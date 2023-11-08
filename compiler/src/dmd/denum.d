@@ -107,19 +107,6 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         return "enum";
     }
 
-    override Dsymbol search(const ref Loc loc, Identifier ident, int flags = SearchLocalsOnly)
-    {
-        //printf("%s.EnumDeclaration::search('%s')\n", toChars(), ident.toChars());
-        if (_scope)
-        {
-            // Try one last time to resolve this enum
-            dsymbolSemantic(this, _scope);
-        }
-
-        Dsymbol s = ScopeDsymbol.search(loc, ident, flags);
-        return s;
-    }
-
     // is Dsymbol deprecated?
     override bool isDeprecated() const
     {
