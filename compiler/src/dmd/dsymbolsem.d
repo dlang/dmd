@@ -3384,9 +3384,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (!tf.isNaked() && !(funcdecl.isThis() || funcdecl.isNested()))
             {
-                OutBuffer buf;
-                MODtoBuffer(buf, tf.mod);
-                .error(funcdecl.loc, "%s `%s` without `this` cannot be `%s`", funcdecl.kind, funcdecl.toPrettyChars, buf.peekChars());
+                import core.bitop;
+                auto mods = MODtoChars(tf.mod);
+                .error(funcdecl.loc, "%s `%s` without `this` cannot be `%s`", funcdecl.kind, funcdecl.toPrettyChars, mods);
+                if (tf.next && tf.next.ty != Tvoid && popcnt(tf.mod) == 1)
+                    .errorSupplemental(funcdecl.loc,
+                        "did you mean to use `%s(%s)` as the return type?", mods, tf.next.toChars());
+
                 tf.mod = 0; // remove qualifiers
             }
 
