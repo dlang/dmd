@@ -3913,6 +3913,38 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         return maybeArray ? maybeArray : cast(AST.Type)tid;
     }
 
+    // pt = test token. If found, pt is set to the token after the type suffixes
+    private bool isTypeSuffix(Token** pt)
+    {
+        switch ((*pt).value)
+        {
+        case TOK.mul:
+            break;
+        case TOK.leftBracket:
+            *pt = peek(*pt);
+            if (isBasicType(pt)) // AA
+                isTypeSuffix(pt); // skip if present
+            else
+                isExpression(pt); // static array
+
+            if ((*pt).value != TOK.rightBracket)
+                return false;
+            break;
+        case TOK.delegate_:
+        case TOK.function_:
+            if (!skipParens(peek(*pt), pt))
+                return false;
+            skipAttributes(*pt, pt);
+            goto L1;
+        default:
+            return false;
+        }
+        *pt = peek(*pt);
+    L1:
+        isTypeSuffix(pt); // skip additional suffixes
+        return true;
+    }
+
     /******************************************
      * Parse suffixes to type t.
      *      *
@@ -4066,7 +4098,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     check(TOK.rightParenthesis);
                     break;
                 }
-                ts = t;
 
                 Token* peekt = &token;
                 /* Completely disallow C-style things like:
@@ -4080,6 +4111,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 }
                 else
                     error("unexpected `(` in declarator");
+
+                ts = t;
                 break;
             }
         default:
@@ -4887,11 +4920,14 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 if (token.value != TOK.function_ &&
                     token.value != TOK.delegate_ &&
                     isBasicType(&tlu) && tlu &&
-                    tlu.value == TOK.leftParenthesis)
+                    (tlu.value == TOK.leftParenthesis ||
+                    (isTypeSuffix(&tlu) && tlu && tlu.value == TOK.leftParenthesis)))
                 {
                     AST.Type tret = parseBasicType();
-                    auto parameterList = parseParameterList(null);
+                    if (token.value != TOK.leftParenthesis)
+                        tret = parseTypeSuffixes(tret);
 
+                    auto parameterList = parseParameterList(null);
                     parseAttributes();
                     if (udas)
                         error("user-defined attributes not allowed for `alias` declarations");
@@ -7217,6 +7253,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         return false;
     }
 
+    // pt = test token. If found, pt is set to the token after BasicType
     private bool isBasicType(Token** pt)
     {
         // This code parallels parseBasicType()
