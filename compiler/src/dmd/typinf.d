@@ -15,13 +15,17 @@ import dmd.astenums;
 import dmd.declaration;
 import dmd.dmodule;
 import dmd.dscope;
+import dmd.dsymbol;
 import dmd.dclass;
 import dmd.dstruct;
 import dmd.errors;
 import dmd.expression;
+import dmd.func;
 import dmd.globals;
+import dmd.id;
 import dmd.location;
 import dmd.mtype;
+import dmd.opover;
 import core.stdc.stdio;
 
 /****************************************************
@@ -270,4 +274,36 @@ extern (C++) bool builtinTypeInfo(Type t)
         }
     }
     return false;
+}
+
+/*******************************************
+ * Look for member of the form:
+ *      const(MemberInfo)[] getMembers(string);
+ * Returns NULL if not found
+ */
+extern(C++) FuncDeclaration findGetMembers(ScopeDsymbol dsym)
+{
+    Dsymbol s = search_function(dsym, Id.getmembers);
+    FuncDeclaration fdx = s ? s.isFuncDeclaration() : null;
+    version (none)
+    {
+        // Finish
+        __gshared TypeFunction tfgetmembers;
+        if (!tfgetmembers)
+        {
+            Scope sc;
+            sc.eSink = global.errorSink;
+            auto parameters = new Parameters();
+            Parameters* p = new Parameter(STC.in_, Type.tchar.constOf().arrayOf(), null, null);
+            parameters.push(p);
+            Type tret = null;
+            TypeFunction tf = new TypeFunction(parameters, tret, VarArg.none, LINK.d);
+            tfgetmembers = tf.dsymbolSemantic(Loc.initial, &sc).isTypeFunction();
+        }
+        if (fdx)
+            fdx = fdx.overloadExactMatch(tfgetmembers);
+    }
+    if (fdx && fdx.isVirtual())
+        fdx = null;
+    return fdx;
 }
