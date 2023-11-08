@@ -1991,25 +1991,34 @@ $(GNAME ArrayMemberInitialization):
         between square brackets $(D [) and $(D ]).
         The expressions form the elements of a dynamic array.
         The length of the array is the number of elements.
-        The common type of all the elements is taken to be the
-        array element type, and each expression is implicitly converted
-        to that type.)
+    )
+    $(P
+        The element type of the array is inferred as the common type of all the
+        elements, and each expression is implicitly converted to that type.
+        When there is an expected array type, the elements of the
+        literal will be implicitly converted to the expected element
+        type.)
 
         ---
-        auto a1 = [1,2,3];  // type is int[], with elements 1, 2 and 3
-        auto a2 = [1u,2,3]; // type is uint[], with elements 1u, 2u, and 3u
+        auto a1 = [1, 2, 3];   // type is int[], with elements 1, 2 and 3
+        auto a2 = [1u, 2, 3];  // type is uint[], with elements 1u, 2u, and 3u
+        byte[] a3 = [1, 2, 3]; // OK
+        byte[] a4 = [128];     // error
         ---
 
-    $(P By default, an array literal is typed as a dynamic array, but the element
+    $(PANEL
+        By default, an array literal is typed as a dynamic array, but the element
         count is known at compile time. Therefore, an array literal can be
-        implicitly converted to a static array of the same length.)
+        implicitly converted to a static array of the same length.
 
         -------------
-        int[2] sa = [1, 2];
+        int[2] sa = [1, 2]; // OK
+        int[2] sb = [1];    // error
         -------------
 
     $(NOTE Slicing a dynamic array with a statically known slice length also
         $(RELATIVE_LINK2 slice_to_static_array, allows conversion) to a static array.)
+    )
 
     $(P If any $(I ArrayMemberInitialization) is a
         $(DDSUBLINK spec/template, TemplateParameterSequence, ValueSeq),
@@ -2056,27 +2065,28 @@ $(H4 $(LNAME2 cast_array_literal, Casting))
         reinterpreted as the new type, and the length is recomputed:)
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
-        ---
-        import std.stdio;
-
-        void main()
-        {
+            ---
             // cast array literal
-            const short[] ct = cast(short[]) [cast(byte)1, 1];
+            const ubyte[] ct = cast(ubyte[]) [257, 257];
             // this is equivalent to:
-            // const short[] ct = [cast(short)1, cast(short)1];
+            // const ubyte[] ct = [cast(ubyte) 257, cast(ubyte) 257];
             writeln(ct);  // writes [1, 1]
 
             // cast other array expression
             // --> normal behavior of CastExpression
-            byte[] arr = [cast(byte)1, cast(byte)1];
+            byte[] arr = [1, 1];
             short[] rt = cast(short[]) arr;
             writeln(rt);  // writes [257]
-        }
-        ---
+            ---
         )
 
         In other words, casting an array literal will change the type of each initializer element.
+
+        $(BEST_PRACTICE Avoid casting an array literal when the elements could
+        implicitly convert to an expected type. Instead, declare a variable of that type
+        and initialize it with the array literal.
+        Casting is more bug-prone than implicit conversions.)
+
 
 $(H3 $(LNAME2 associative_array_literals, Associative Array Literals))
 
