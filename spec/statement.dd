@@ -671,35 +671,62 @@ foreach (string s, double d; aa)
         array are iterated over is unspecified for $(D foreach).
         This is why $(D foreach_reverse) for associative arrays is illegal.)
 
-$(H3 $(LNAME2 foreach_over_struct_and_classes, Foreach over Structs and Classes with opApply))
+$(H3 $(LNAME2 foreach_over_struct_and_classes, Foreach over Structs and Classes with `opApply`))
 
     $(P If the aggregate expression is a struct or class object,
         the $(D foreach) is defined by the
         special $(LEGACY_LNAME2 opApply, op-apply, $(D opApply)) member function, and the
         `foreach_reverse` behavior is defined by the special
         $(LEGACY_LNAME2 opApplyReverse, op-apply-reverse, $(D opApplyReverse)) member function.
-        These functions have the signatures:
+        These functions must each have the signature below:
     )
 
-        --------------
-        int opApply(scope int delegate(ref Type [, ...]) dg);
+$(GRAMMAR
+$(GNAME OpApplyDeclaration):
+    `int opApply` `(` `scope` `int delegate` `(` $(I OpApplyParameters) `)` `dg` `)` `;`
 
-        int opApplyReverse(scope int delegate(ref Type [, ...]) dg);
-        --------------
+$(GNAME OpApplyParameters):
+    *OpApplyParameter*
+    *OpApplyParameter*, *OpApplyParameters*
 
-    $(P where $(I Type) determines the type of the first $(GLINK ForeachType)
-        declared. Multiple $(I ForeachType)s are supported.
-        Each one must match a parameter of the delegate *dg*,
+$(GNAME OpApplyParameter):
+    $(GLINK ForeachTypeAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator)
+)
+
+    $(P where each $(I OpApplyParameter) of `dg` must match a $(GLINK ForeachType)
+        in a *ForeachStatement*,
         otherwise the *ForeachStatement* will cause an error.)
+
+    $(P Any *ForeachTypeAttribute* cannot be `enum`.)
+
+    $(PANEL
+    To support a `ref` iteration variable, the delegate must take a `ref` parameter:
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    struct S
+    {
+        int opApply(scope int delegate(ref uint n) dg);
+    }
+    void f(S s)
+    {
+        foreach (ref uint i; s)
+            i++;
+    }
+    ---
+    )
+    Above, `opApply` is still matched when `i` is not `ref`, so by using
+    a `ref` delegate parameter both forms are supported.
+    )
 
     $(P There can be multiple $(D opApply) and $(D opApplyReverse) functions -
         one is selected
-        by matching each parameter type of *dg* to the type of each $(I ForeachType)
+        by matching each parameter of `dg` to each $(I ForeachType)
         declared in the $(I ForeachStatement).)
 
     $(P The body of the apply
         function iterates over the elements it aggregates, passing each one
-        in successive calls to the $(I dg) delegate. The delegate return value
+        in successive calls to the `dg` delegate. The delegate return value
         determines whether to interrupt iteration:)
 
     $(UL
@@ -751,13 +778,14 @@ $(CONSOLE
 73
 82
 )
-    $(P The `scope` storage class on the $(I dg) parameter means that the delegate does
-    not escape the scope of the $(D opApply) function (an example would be assigning $(I dg) to a
-    global variable). If it cannot be statically guaranteed that $(I dg) does not escape, a closure may
+    $(PANEL
+    The `scope` storage class on the $(D dg) parameter means that the delegate does
+    not escape the scope of the $(D opApply) function (an example would be assigning $(D dg) to a
+    global variable). If it cannot be statically guaranteed that $(D dg) does not escape, a closure may
     be allocated for it on the heap instead of the stack.
-    )
 
     $(BEST_PRACTICE Annotate delegate parameters to `opApply` functions with `scope` when possible.)
+    )
 
     $(P $(B Important:) If $(D opApply) catches any exceptions, ensure that those
         exceptions did not originate from the delegate passed to $(D opApply). The user would expect
