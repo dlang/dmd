@@ -201,6 +201,75 @@ X.sizeof // is same as int.sizeof
         in order to compute the $(CODE .max) and $(CODE .min) properties.
         )
 
+$(H3 $(LNAME2 enum_copying_and_assignment, Enum Copying and Assignment))
+
+        $(P A named enum type never has a $(DDSUBLINK spec/struct,
+        struct-copy-constructor, copy constructor), $(DDSUBLINK spec/struct,
+        struct-postblit, postblit), or $(DDSUBLINK spec/struct,
+        assign-overload, identity assignment overload), even if one is defined
+        by its $(GLINK EnumBaseType).)
+
+        $(P When copying a named enum value whose base type is a `struct` with
+        a copy constructor, the copy constructor is not called:)
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+        ---
+        struct S
+        {
+            this(ref S rhs) { assert(0); }
+        }
+
+        enum E : S { A = S.init }
+
+        void main()
+        {
+            E e1;
+            E e2 = e1; // ok - copy constructor not called
+        }
+        ---
+        )
+
+        $(P When copying a named enum value whose base type is a `struct` with
+        a postblit, the postblit is not called:)
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+        ---
+        struct S
+        {
+            this(this) { assert(0); }
+        }
+
+        enum E : S { A = S.init }
+
+        void main()
+        {
+            E e1;
+            E e2 = e1; // ok - postblit not called
+        }
+        ---
+        )
+
+        $(P When assigning a named enum value to another object of the same
+        type, if the base type of those values is a `struct` with an identity
+        assignment overload, the identity assignment overload is not called:)
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+        ---
+        struct S
+        {
+            void opAssign(S rhs) { assert(0); }
+        }
+
+        enum E : S { A = S.init }
+
+        void main()
+        {
+            E e1, e2;
+            e2 = e1; // ok - opAssign not called
+        }
+        ---
+        )
+
 
 $(H2 $(LNAME2 anonymous_enums, Anonymous Enums))
 
