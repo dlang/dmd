@@ -2240,8 +2240,8 @@ $(GNAME RefOrAutoRef):
         {
             int x;
             auto dg = delegate ref int() { return x; };
-            x = 3;
-            assert(dg() == 3);
+            dg() = 3;
+            assert(x == 3);
         }
         ---
         )
