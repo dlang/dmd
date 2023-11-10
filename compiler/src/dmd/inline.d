@@ -2190,7 +2190,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
         import dmd.expressionsem : toLvalue;
         // https://issues.dlang.org/show_bug.cgi?id=11322
         if (tf.isref)
-            e = e.toLvalue(null, null);
+            e = e.toLvalue(null);
 
         /* If the inlined function returns a copy of a struct,
          * and then the return value is used subsequently as an
