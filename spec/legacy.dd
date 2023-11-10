@@ -14,8 +14,12 @@ $(COMMENT
     )
 
     $(TABLE2 Legacy Features,
-        $(THEAD Feature)
-        $(TROW $(RELATIVE_LINK2 body, `body` keyword), usage of identifier $(TT body) as a keyword is obsolete - use $(TT do) instead)
+        $(THEAD Feature, Summary)
+        $(TROW $(RELATIVE_LINK2 body, `body` keyword), $(D body) after a contract statement -
+            use $(D do) instead)
+        $(TROW `alias` target first syntax, use `alias name = target` instead.)
+        $(TROW Struct/union postblit, use a $(DDSUBLINK spec/struct, struct-copy-constructor,
+            copy constructor) instead.)
     )
 
 $(H2 $(LNAME2 body, `body` keyword))

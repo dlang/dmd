@@ -244,6 +244,8 @@ auto c = new C();  // c is a handle to an instance of class C
 
 $(H2 $(LNAME2 alias, Alias Declarations))
 
+    $(NOTE New code should use the *AliasAssignments* form only.)
+
 $(GRAMMAR
 $(GNAME AliasDeclaration):
     $(D alias) $(GLINK StorageClasses)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 type, TypeSuffixes)$(OPT) $(GLINK Identifiers) $(D ;)
