@@ -433,11 +433,12 @@ assert(S.j == 4);
 
 $(H3 $(LNAME2 alias-function, Aliasing a Function Type))
 
-        $(P Function types can be aliased:)
+        $(P $(DDSUBLINK spec/type, functions, Function types) can be
+        aliased:)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
-alias Fun = int(string p);
+alias Fun = int(string);
 int fun(string) {return 0;}
 static assert(is(typeof(fun) == Fun));
 
@@ -452,32 +453,43 @@ static assert(is(MemberFun1 == MemberFun2));
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 -----------
+import std.stdio : writeln;
+
+void fun(int v = 6) {
+    writeln("v: ", v);
+}
+
+void main() {
+    fun();  // prints v: 6
+
+    alias Foo = void function(int=7);
+    Foo foo = &fun;
+    foo();  // prints v: 7
+    foo(8); // prints v: 8
+}
+-----------
+)
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+-----------
 import std.stdio : writefln;
 
 void main() {
-    Foo foo = &foofoo;
-    foo();              // prints v: 6
-    foo(8);             // prints v: 8
-    Bar bar = &barbar;
+    fun(4);          // prints a: 4, b: 6, c: 7
+
+    Bar bar = &fun;
     //bar(4);           // compilation error, because the `Bar` alias
                         // requires an explicit 2nd argument
-    barbar(4);          // prints a: 4, b: 6, c: 7
     bar(4, 5);          // prints a: 4, b: 5, c: 9
     bar(4, 5, 6);       // prints a: 4, b: 5, c: 6
 
-    Baz baz = &barbar;
+    Baz baz = &fun;
     baz();              // prints a: 2, b: 3, c: 4
 }
 
-alias Foo = void function(int=6);
 alias Bar = void function(int, int, int=9);
 alias Baz = void function(int=2, int=3, int=4);
 
-void foofoo(int v = 6) {
-    writefln("v: %d", v);
-}
-
-void barbar(int a, int b = 6, int c = 7) {
+void fun(int a, int b = 6, int c = 7) {
     writefln("a: %d, b: %d, c: %d", a, b, c);
 }
 -----------

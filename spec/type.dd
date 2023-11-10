@@ -571,8 +571,9 @@ $(GLINK TypeCtor)$(OPT) $(GLINK BasicType) $(GLINK TypeSuffixes) `delegate` $(GL
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 void f(int);
-pragma(msg, typeof(f));  // void(int)
-pragma(msg, typeof(&f)); // void function(int)
+alias Fun = void(int);
+static assert(is(typeof(f) == Fun));
+static assert(is(Fun* == void function(int)));
 ---
 )
 
