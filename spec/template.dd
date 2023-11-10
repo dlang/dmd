@@ -933,10 +933,42 @@ $(H4 $(LNAME2 homogeneous_sequences, Homogeneous Sequences))
         ---
         )
 
+    $(NOTE A value sequence cannot be returned from a function - instead, return a
+        $(REF Tuple, std,typecons).)
+
+$(H4 $(LNAME2 lvalue-sequences, Lvalue Sequences))
+
     $(P A *TypeSeq* can similarly be used to
         $(DDSUBLINK articles/ctarguments, type-seq-instantiation, declare variables).
-        Parameters or variables declared with a *TypeSeq* are called an
+        Parameters or variables whose type is a *TypeSeq* are called an
         *lvalue sequence*.)
+
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---
+        void main()
+        {
+            import std.meta: AliasSeq;
+
+            // use a type alias just for convenience
+            alias TS = AliasSeq!(string, int);
+            TS tup; // lvalue sequence
+            assert(tup == AliasSeq!("", 0)); // TS.init
+
+            int i = 5;
+            // initialize another lvalue sequence from a sequence of a value and a symbol
+            auto tup2 = AliasSeq!("hi", i); // value of i is copied
+            i++;
+            enum hi5 = AliasSeq!("hi", 5); // rvalue sequence
+            static assert(is(typeof(hi5) == TS));
+            assert(tup2 == hi5);
+
+            // lvalue sequence elements can be modified
+            tup = tup2;
+            assert(tup == hi5);
+        }
+        ---
+        )
+
     $(UL
         $(LI `.tupleof` can be $(DDSUBLINK spec/class, class_properties, used on a class)
             or struct instance to obtain an lvalue sequence of its fields.)
@@ -952,7 +984,8 @@ $(H4 $(LNAME2 seq-ops, Sequence Operations))
     $(LI The $(I n)th element can be retrieved by
         $(DDSUBLINK spec/expression, index_operations, indexing) an
         $(I AliasSeq) with `Seq[n]`. Indexes must be known at compile-time.
-        The result is an lvalue when the element is a variable.)
+        The result is an lvalue when the element is a symbol which resolves to a variable,
+        or when the sequence is an lvalue sequence.)
     $(LI $(DDSUBLINK spec/expression, slice_operations, Slicing)
         produces a new sequence with a subset of the elements of the original sequence.)
     )
@@ -962,12 +995,13 @@ $(H4 $(LNAME2 seq-ops, Sequence Operations))
     import std.meta : AliasSeq;
 
     int v = 4;
+    // alias a sequence of 3 values and one symbol
     alias nums = AliasSeq!(1, 2, 3, v);
     static assert(nums.length == 4);
     static assert(nums[1] == 2);
 
-    // nums[3] is bound to v, an lvalue
-    nums[3]++;
+    //nums[0]++; // Error, nums[0] is an rvalue
+    nums[3]++; // OK, nums[3] is bound to v, an lvalue
     assert(v == 5);
 
     // slice first 3 elements
