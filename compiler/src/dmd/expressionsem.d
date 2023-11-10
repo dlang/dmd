@@ -3129,7 +3129,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                     ev = new CommaExp(arg.loc, ev, new VarExp(arg.loc, v));
                     arg = ev.expressionSemantic(sc);
                 }
-                arg = arg.toLvalue(sc);
+                arg = arg.toLvalue(sc, "create `in` parameter from");
 
                 // Look for mutable misaligned pointer, etc., in @safe mode
                 err |= checkUnsafeAccess(sc, arg, false, true);
@@ -3147,7 +3147,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                     ev = new CommaExp(arg.loc, ev, new VarExp(arg.loc, v));
                     arg = ev.expressionSemantic(sc);
                 }
-                arg = arg.toLvalue(sc);
+                arg = arg.toLvalue(sc, "create `ref` parameter from");
 
                 // Look for mutable misaligned pointer, etc., in @safe mode
                 err |= checkUnsafeAccess(sc, arg, false, true);
@@ -3166,7 +3166,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                     err |= checkUnsafeAccess(sc, arg, false, true);
                     err |= checkDefCtor(arg.loc, t); // t must be default constructible
                 }
-                arg = arg.toLvalue(sc);
+                arg = arg.toLvalue(sc, "create `out` parameter from");
             }
             else if (p.isLazy())
             {
@@ -8295,7 +8295,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 else
                 {
                     // `toLvalue` call further below is upon exp.e1, omitting & from the error message
-                    exp.toLvalue(sc);
+                    exp.toLvalue(sc, "take address of");
                     return setError();
                 }
             }
@@ -8385,7 +8385,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
 
-        exp.e1 = exp.e1.toLvalue(sc);
+        exp.e1 = exp.e1.toLvalue(sc, "take address of");
         if (exp.e1.op == EXP.error)
         {
             result = exp.e1;
@@ -15210,15 +15210,20 @@ Expression addDtorHook(Expression e, Scope* sc)
  * Params:
  *     _this = expression to convert
  *     sc = scope
+ *     action = for error messages, what the lvalue is needed for (e.g. take address of for `&x`, modify for `x++`)
  * Returns: converted expression, or `ErrorExp` on error
 */
-extern(C++) Expression toLvalue(Expression _this, Scope* sc)
+extern(C++) Expression toLvalue(Expression _this, Scope* sc, const(char)* action)
 {
-    return toLvalueImpl(_this, sc, _this);
+    return toLvalueImpl(_this, sc, action, _this);
 }
 
 // e = original un-lowered expression for error messages, in case of recursive calls
-private Expression toLvalueImpl(Expression _this, Scope* sc, Expression e) {
+private Expression toLvalueImpl(Expression _this, Scope* sc, const(char)* action, Expression e)
+{
+    if (!action)
+        action = "create lvalue of";
+
     Expression visit(Expression _this)
     {
         // BinaryAssignExp does not have an EXP associated
@@ -15230,9 +15235,11 @@ private Expression toLvalueImpl(Expression _this, Scope* sc, Expression e) {
             _this.loc = e.loc;
 
         if (e.op == EXP.type)
-            error(_this.loc, "`%s` is a `%s` definition and cannot be modified", e.type.toChars(), e.type.kind());
+            error(_this.loc, "cannot %s type `%s`", action, e.type.toChars());
+        else if (e.op == EXP.template_)
+            error(_this.loc, "cannot %s template `%s`, perhaps instantiate it first", action, e.toChars());
         else
-            error(_this.loc, "`%s` is not an lvalue and cannot be modified", e.toChars());
+            error(_this.loc, "cannot %s expression `%s` because it is not an lvalue", action, e.toChars());
 
         return ErrorExp.get();
     }
@@ -15241,7 +15248,7 @@ private Expression toLvalueImpl(Expression _this, Scope* sc, Expression e) {
     {
         if (!_this.loc.isValid())
             _this.loc = e.loc;
-        error(e.loc, "cannot modify constant `%s`", e.toChars());
+        error(e.loc, "cannot %s constant `%s`", action, e.toChars());
         return ErrorExp.get();
     }
 
@@ -15285,22 +15292,22 @@ private Expression toLvalueImpl(Expression _this, Scope* sc, Expression e) {
         auto var = _this.var;
         if (var.storage_class & STC.manifest)
         {
-            error(_this.loc, "manifest constant `%s` cannot be modified", var.toChars());
+            error(_this.loc, "cannot %s manifest constant `%s`", action, var.toChars());
             return ErrorExp.get();
         }
         if (var.storage_class & STC.lazy_ && !_this.delegateWasExtracted)
         {
-            error(_this.loc, "lazy variable `%s` cannot be modified", var.toChars());
+            error(_this.loc, "cannot %s lazy variable `%s`", action, var.toChars());
             return ErrorExp.get();
         }
         if (var.ident == Id.ctfe)
         {
-            error(_this.loc, "cannot modify compiler-generated variable `__ctfe`");
+            error(_this.loc, "cannot %s compiler-generated variable `__ctfe`", action);
             return ErrorExp.get();
         }
         if (var.ident == Id.dollar) // https://issues.dlang.org/show_bug.cgi?id=13574
         {
-            error(_this.loc, "cannot modify operator `$`");
+            error(_this.loc, "cannot %s operator `$`", action);
             return ErrorExp.get();
         }
         return _this;
@@ -15370,7 +15377,7 @@ private Expression toLvalueImpl(Expression _this, Scope* sc, Expression e) {
 
     Expression visitVectorArray(VectorArrayExp _this)
     {
-        _this.e1 = _this.e1.toLvalueImpl(sc, e);
+        _this.e1 = _this.e1.toLvalueImpl(sc, action, e);
         return _this;
     }
 
@@ -15389,19 +15396,19 @@ private Expression toLvalueImpl(Expression _this, Scope* sc, Expression e) {
 
     Expression visitComma(CommaExp _this)
     {
-        _this.e2 = _this.e2.toLvalue(sc);
+        _this.e2 = _this.e2.toLvalue(sc, action);
         return _this;
     }
 
     Expression visitDelegatePointer(DelegatePtrExp _this)
     {
-        _this.e1 = _this.e1.toLvalueImpl(sc, e);
+        _this.e1 = _this.e1.toLvalueImpl(sc, action, e);
         return _this;
     }
 
     Expression visitDelegateFuncptr(DelegateFuncptrExp _this)
     {
-        _this.e1 = _this.e1.toLvalueImpl(sc, e);
+        _this.e1 = _this.e1.toLvalueImpl(sc, action, e);
         return _this;
     }
 
@@ -15430,8 +15437,8 @@ private Expression toLvalueImpl(Expression _this, Scope* sc, Expression e) {
     {
         // convert (econd ? e1 : e2) to *(econd ? &e1 : &e2)
         CondExp e = cast(CondExp)(_this.copy());
-        e.e1 = _this.e1.toLvalue(sc).addressOf();
-        e.e2 = _this.e2.toLvalue(sc).addressOf();
+        e.e1 = _this.e1.toLvalue(sc, action).addressOf();
+        e.e2 = _this.e2.toLvalue(sc, action).addressOf();
         e.type = _this.type.pointerTo();
         return new PtrExp(_this.loc, e, _this.type);
 
@@ -15626,7 +15633,7 @@ extern(C++) Expression modifiableLvalue(Expression _this, Scope* sc, Expression 
         //printf("Expression::modifiableLvalue() %s, type = %s\n", exp.toChars(), exp.type.toChars());
         // See if this expression is a modifiable lvalue (i.e. not const)
         if (exp.isBinAssignExp())
-            return exp.toLvalue(sc);
+            return exp.toLvalue(sc, "modify");
 
         auto type = exp.type;
         if (checkModifiable(exp, sc) == Modifiable.yes)
@@ -15659,7 +15666,7 @@ extern(C++) Expression modifiableLvalue(Expression _this, Scope* sc, Expression 
                 return ErrorExp.get();
             }
         }
-        return exp.toLvalueImpl(sc, e);
+        return exp.toLvalueImpl(sc, "modify", e);
     }
 
     Expression visitString(StringExp exp)
@@ -15749,7 +15756,7 @@ extern(C++) Expression modifiableLvalue(Expression _this, Scope* sc, Expression 
         }
         exp.e1 = exp.e1.modifiableLvalue(sc, exp.e1);
         exp.e2 = exp.e2.modifiableLvalue(sc, exp.e2);
-        return exp.toLvalue(sc);
+        return exp.toLvalue(sc, "modify");
     }
 
     switch(_this.op)
