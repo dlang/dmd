@@ -1096,6 +1096,9 @@ private void scanAllTypeImpl(scope ScanAllThreadsTypeFn scan, void* curStackTop)
     {
         version (Windows)
         {
+            alias scanWindowsOnly = externDFunc!("core.thread.osthread.scanWindowsOnly",
+                void function(scope ScanAllThreadsTypeFn, ThreadBase) nothrow);
+
             // Ideally, we'd pass ScanType.regs or something like that, but this
             // would make portability annoying because it only makes sense on Windows.
             scanWindowsOnly(scan, t);
@@ -1104,14 +1107,6 @@ private void scanAllTypeImpl(scope ScanAllThreadsTypeFn scan, void* curStackTop)
         if (t.m_tlsgcdata !is null)
             rt_tlsgc_scan(t.m_tlsgcdata, (p1, p2) => scan(ScanType.tls, p1, p2));
     }
-}
-
-version (Windows)
-{
-    // Currently scanWindowsOnly can't be handled properly by externDFunc
-    // https://github.com/dlang/druntime/pull/3135#issuecomment-643673218
-    pragma(mangle, "_D4core6thread8osthread15scanWindowsOnlyFNbMDFNbEQBvQBt10threadbase8ScanTypePvQcZvCQDdQDbQBi10ThreadBaseZv")
-    private extern (D) void scanWindowsOnly(scope ScanAllThreadsTypeFn scan, ThreadBase) nothrow;
 }
 
 /**
