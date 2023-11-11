@@ -88,6 +88,17 @@ enum FeatureState : ubyte
     enabled  = 2,  /// Specified as `-preview=`
 }
 
+///
+enum UnittestFilter : ubyte
+{
+    ///
+    @("Include unit tests from all compiled modules")
+    all,
+    ///
+    @("Include unit tests only from modules listed explicitly")
+    explicitOnly
+}
+
 extern(C++) struct Output
 {
     bool doOutput;      // Output is enabled
@@ -160,6 +171,7 @@ extern (C++) struct Param
     bool vcg_ast;           // write-out codegen-ast
     DiagnosticReporting useDeprecated = DiagnosticReporting.inform;  // how use of deprecated features are handled
     bool useUnitTests;          // generate unittest code
+    UnittestFilter unittestFilter = UnittestFilter.all;
     bool useInline = false;     // inline expand functions
     bool release;           // build release version
     bool preservePaths;     // true means don't strip path from source file

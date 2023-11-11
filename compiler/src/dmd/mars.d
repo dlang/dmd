@@ -1427,8 +1427,31 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         {
             params.useExceptions = false;
         }
-        else if (arg == "-unittest")
+        else if (startsWith(p, "-unittest"))
+        {
+            const ugh = "-unittest".length;
             params.useUnitTests = true;
+            if (arg.length == ugh)
+                continue;
+            if (arg[ugh] != '=')
+                continue;
+            const suffix = arg[ugh+1..$];
+
+            with(UnittestFilter) switch(suffix) {
+                case "all":
+                    params.unittestFilter = all;
+                    continue;
+                case "explicit":
+                    message("`-unittest=explicit` is experimental.");
+                    params.unittestFilter = explicitOnly;
+                    continue;
+                case "?":
+                    goto default;
+                default:
+                    // TODO print help string.
+                    break;
+            }
+        }
         else if (p[1] == 'I')              // https://dlang.org/dmd.html#switch-I
         {
             if (!params.imppath)

@@ -1830,6 +1830,15 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 }
                 else if (auto ud = s.isUnitTestDeclaration())
                 {
+                    /+
+                        Skip UTs here rather than have semantic
+                        fail later.
+
+                        This works but is a little ugly i.e. use
+                        existing TypeFunction stuff?
+                    +/
+                    if (ud.skipCodegen)
+                        return;
                     if (cast(void*)ud in uniqueUnitTests)
                         return;
 
