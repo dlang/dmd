@@ -597,24 +597,25 @@ extern (C) UnitTestResult runModuleUnitTests()
     else if (Runtime.sm_moduleUnitTester !is null)
         return Runtime.sm_moduleUnitTester() ? UnitTestResult.pass : UnitTestResult.fail;
     UnitTestResult results;
-    foreach ( m; ModuleInfo )
+    foreach (m; ModuleInfo)
     {
-        if ( !m )
+        if (!m)
             continue;
         auto fp = m.unitTest;
-        if ( !fp )
+        if (!fp)
             continue;
 
         import core.exception;
+
         ++results.executed;
         try
         {
             fp();
             ++results.passed;
         }
-        catch ( Throwable e )
+        catch (Throwable e)
         {
-            if ( typeid(e) == typeid(AssertError) )
+            if (typeid(e) == typeid(AssertError))
             {
                 // Crude heuristic to figure whether the assertion originates in
                 // the unittested module. TODO: improve.
@@ -623,6 +624,7 @@ extern (C) UnitTestResult runModuleUnitTests()
                     && e.file[0 .. moduleName.length] == moduleName)
                 {
                     import core.stdc.stdio;
+
                     printf("%.*s(%llu): [unittest] %.*s\n",
                         cast(int) e.file.length, e.file.ptr, cast(ulong) e.line,
                         cast(int) e.message.length, e.message.ptr);
