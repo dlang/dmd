@@ -162,7 +162,7 @@ nothrow @nogc:
         }
     }
 
-    deprecated void set()
+    deprecated ("Use setIfInitialized() instead") void set()
     {
         setIfInitialized();
     }
