@@ -3062,6 +3062,7 @@ struct Param final
     _d_dynamicArray< const char > resfile;
     _d_dynamicArray< const char > exefile;
     _d_dynamicArray< const char > mapfile;
+    bool parsingUnittestsRequired();
     Param() :
         obj(true),
         multiobj(),
