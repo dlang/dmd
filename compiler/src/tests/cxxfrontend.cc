@@ -1179,7 +1179,7 @@ public:
                 if (mi->needmoduleinfo)
                     mi->accept(this);
             }
-            (void)findGetMembers(d);
+            (void)d->findGetMembers();
             (void)d->sctor;
             (void)d->sdtor;
             (void)d->ssharedctor;

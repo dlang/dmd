@@ -632,6 +632,7 @@ public:
     bool isforwardRef() final override;
     static void multiplyDefined(const Loc& loc, Dsymbol* s1, Dsymbol* s2);
     const char* kind() const override;
+    FuncDeclaration* findGetMembers();
     virtual Dsymbol* symtabInsert(Dsymbol* s);
     virtual Dsymbol* symtabLookup(Dsymbol* s, Identifier* id);
     bool hasStaticCtorOrDtor() override;
@@ -8227,8 +8228,6 @@ extern Type* getTypeInfoType(const Loc& loc, Type* t, Scope* sc, bool genObjCode
 extern bool isSpeculativeType(Type* t);
 
 extern bool builtinTypeInfo(Type* t);
-
-extern FuncDeclaration* findGetMembers(ScopeDsymbol* dsym);
 
 class SemanticTimeTransitiveVisitor : public SemanticTimePermissiveVisitor
 {
