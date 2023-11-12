@@ -4943,7 +4943,13 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
                     auto t = parseBasicType();
                     t = parseTypeSuffixes(t);
-                    if (token.value == TOK.leftParenthesis)
+                    if (token.value == TOK.identifier)
+                    {
+                        error("unexpected identifier `%s` after `%s`",
+                            token.ident.toChars(), t.toChars());
+                        nextToken();
+                    }
+                    else if (token.value == TOK.leftParenthesis)
                     {
                         // function type:
                         // StorageClasses Type ( Parameters ) MemberFunctionAttributes
