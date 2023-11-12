@@ -565,8 +565,8 @@ $(P Instantiating a function type is illegal. Instead, a pointer to function
 or delegate can be used. Those have these type forms respectively:)
 
 $(GRAMMAR_INFORMATIVE
-$(GLINK TypeCtor)$(OPT) $(GLINK BasicType) $(GLINK TypeSuffixes) `function` $(GLINK2 function, Parameters) $(GLINK2 function, FunctionAttributes)$(OPT)
-$(GLINK TypeCtor)$(OPT) $(GLINK BasicType) $(GLINK TypeSuffixes) `delegate` $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT)
+$(GLINK Type) `function` $(GLINK2 function, Parameters) $(GLINK2 function, FunctionAttributes)$(OPT)
+$(GLINK Type) `delegate` $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT)
 )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
