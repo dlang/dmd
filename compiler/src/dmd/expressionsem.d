@@ -15224,6 +15224,7 @@ private Expression toLvalueImpl(Expression _this, Scope* sc, const(char)* action
     if (!action)
         action = "create lvalue of";
 
+    assert(e);
     Expression visit(Expression _this)
     {
         // BinaryAssignExp does not have an EXP associated
@@ -15377,7 +15378,7 @@ private Expression toLvalueImpl(Expression _this, Scope* sc, const(char)* action
 
     Expression visitVectorArray(VectorArrayExp _this)
     {
-        _this.e1 = _this.e1.toLvalueImpl(sc, action, e);
+        _this.e1 = _this.e1.toLvalueImpl(sc, action, e ? e : _this.e1);
         return _this;
     }
 
@@ -15402,13 +15403,13 @@ private Expression toLvalueImpl(Expression _this, Scope* sc, const(char)* action
 
     Expression visitDelegatePointer(DelegatePtrExp _this)
     {
-        _this.e1 = _this.e1.toLvalueImpl(sc, action, e);
+        _this.e1 = _this.e1.toLvalueImpl(sc, action, e ? e : _this.e1);
         return _this;
     }
 
     Expression visitDelegateFuncptr(DelegateFuncptrExp _this)
     {
-        _this.e1 = _this.e1.toLvalueImpl(sc, action, e);
+        _this.e1 = _this.e1.toLvalueImpl(sc, action, e ? e : _this.e1);
         return _this;
     }
 
@@ -15666,7 +15667,7 @@ extern(C++) Expression modifiableLvalue(Expression _this, Scope* sc, Expression 
                 return ErrorExp.get();
             }
         }
-        return exp.toLvalueImpl(sc, "modify", e);
+        return exp.toLvalueImpl(sc, "modify", e ? e : exp);
     }
 
     Expression visitString(StringExp exp)
