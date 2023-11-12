@@ -52,7 +52,7 @@ void expandTuples(Expressions *exps, Identifiers *names = nullptr);
 StringExp *toUTF8(StringExp *se, Scope *sc);
 Expression *resolveLoc(Expression *exp, const Loc &loc, Scope *sc);
 MATCH implicitConvTo(Expression *e, Type *t);
-Expression *toLvalue(Expression *_this, Scope *sc);
+Expression *toLvalue(Expression *_this, Scope *sc, Expression *e);
 Expression *modifiableLvalue(Expression* exp, Scope *sc, Expression *e);
 
 typedef unsigned char OwnedBy;
