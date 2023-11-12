@@ -3913,38 +3913,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         return maybeArray ? maybeArray : cast(AST.Type)tid;
     }
 
-    // pt = test token. If found, pt is set to the token after the type suffixes
-    private bool isTypeSuffix(Token** pt)
-    {
-        switch ((*pt).value)
-        {
-        case TOK.mul:
-            break;
-        case TOK.leftBracket:
-            *pt = peek(*pt);
-            if (isBasicType(pt)) // AA
-                isTypeSuffix(pt); // skip if present
-            else
-                isExpression(pt); // static array
-
-            if ((*pt).value != TOK.rightBracket)
-                return false;
-            break;
-        case TOK.delegate_:
-        case TOK.function_:
-            if (!skipParens(peek(*pt), pt))
-                return false;
-            skipAttributes(*pt, pt);
-            goto L1;
-        default:
-            return false;
-        }
-        *pt = peek(*pt);
-    L1:
-        isTypeSuffix(pt); // skip additional suffixes
-        return true;
-    }
-
     /******************************************
      * Parse suffixes to type t.
      *      *
@@ -4098,6 +4066,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     check(TOK.rightParenthesis);
                     break;
                 }
+                ts = t;
 
                 Token* peekt = &token;
                 /* Completely disallow C-style things like:
@@ -4111,8 +4080,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 }
                 else
                     error("unexpected `(` in declarator");
-
-                ts = t;
                 break;
             }
         default:
@@ -4911,33 +4878,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 AST.Declaration v;
                 AST.Dsymbol s;
 
-                // try to parse function type:
-                // TypeCtors? BasicType ( Parameters ) MemberFunctionAttributes
                 bool attributesAppended;
                 const StorageClass funcStc = parseTypeCtor();
-                Token* tlu = &token;
                 Token* tk;
-                if (token.value != TOK.function_ &&
-                    token.value != TOK.delegate_ &&
-                    isBasicType(&tlu) && tlu &&
-                    (tlu.value == TOK.leftParenthesis ||
-                    (isTypeSuffix(&tlu) && tlu && tlu.value == TOK.leftParenthesis)))
-                {
-                    AST.Type tret = parseBasicType();
-                    if (token.value != TOK.leftParenthesis)
-                        tret = parseTypeSuffixes(tret);
-
-                    auto parameterList = parseParameterList(null);
-                    parseAttributes();
-                    if (udas)
-                        error("user-defined attributes not allowed for `alias` declarations");
-
-                    attributesAppended = true;
-                    storage_class = appendStorageClass(storage_class, funcStc);
-                    AST.Type tf = new AST.TypeFunction(parameterList, tret, link, storage_class);
-                    v = new AST.AliasDeclaration(loc, ident, tf);
-                }
-                else if (token.value == TOK.function_ ||
+                // function literal?
+                if (token.value == TOK.function_ ||
                     token.value == TOK.delegate_ ||
                     token.value == TOK.leftParenthesis &&
                         skipAttributes(peekPastParen(&token), &tk) &&
@@ -4991,12 +4936,27 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 }
                 else
                 {
-                    parseAttributes();
                     // type
+                    parseAttributes();
                     if (udas)
                         error("user-defined attributes not allowed for `alias` declarations");
 
-                    auto t = parseType();
+                    auto t = parseBasicType();
+                    t = parseTypeSuffixes(t);
+                    if (token.value == TOK.leftParenthesis)
+                    {
+                        // function type:
+                        // StorageClasses Type ( Parameters ) MemberFunctionAttributes
+                        auto parameterList = parseParameterList(null);
+                        udas = null;
+                        parseStorageClasses(storage_class, link, setAlignment, ealign, udas, linkloc);
+                        if (udas)
+                            error("user-defined attributes not allowed for `alias` declarations");
+
+                        attributesAppended = true;
+                        storage_class = appendStorageClass(storage_class, funcStc);
+                        t = new AST.TypeFunction(parameterList, t, link, storage_class);
+                    }
 
                     // Disallow meaningless storage classes on type aliases
                     if (storage_class)
@@ -5004,7 +4964,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         // Don't raise errors for STC that are part of a function/delegate type, e.g.
                         // `alias F = ref pure nothrow @nogc @safe int function();`
                         auto tp = t.isTypePointer;
-                        const isFuncType = (tp && tp.next.isTypeFunction) || t.isTypeDelegate;
+                        const isFuncType = t.isTypeFunction || (tp && tp.next.isTypeFunction) || t.isTypeDelegate;
                         const remStc = isFuncType ? (storage_class & ~STC.FUNCATTR) : storage_class;
 
                         if (remStc)
