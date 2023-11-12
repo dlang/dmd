@@ -557,8 +557,9 @@ $(GRAMMAR_INFORMATIVE
 $(GLINK2 declaration, StorageClasses)$(OPT) $(GLINK Type) $(GLINK2 function, Parameters) $(GLINK2 function, FunctionAttributes)$(OPT)
 )
 
-$(P A function type e.g. `int(int)` is only used for type tests.
-A function type $(DDSUBLINK spec/declaration, alias-function, can be aliased).)
+$(P Function types are not included in the $(GLINK Type) grammar.
+A function type e.g. `int(int)` $(DDSUBLINK spec/declaration, alias-function, can be aliased).
+A function type is only used for type tests or as the target type of a pointer.)
 
 $(P Instantiating a function type is illegal. Instead, a pointer to function
 or delegate can be used. Those have these type forms respectively:)
