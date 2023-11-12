@@ -4892,10 +4892,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     token.value == TOK.ref_ && peekNext() == TOK.leftParenthesis &&
                         skipAttributes(peekPastParen(peek(&token)), &tk) &&
                         (tk.value == TOK.goesTo || tk.value == TOK.leftCurly) ||
-                    token.value == TOK.auto_ && peekNext() == TOK.ref_ &&
-                        peekNext2() == TOK.leftParenthesis &&
-                        skipAttributes(peekPastParen(peek(peek(&token))), &tk) &&
-                        (tk.value == TOK.goesTo || tk.value == TOK.leftCurly)
+                    token.value == TOK.auto_ &&
+                        (peekNext() == TOK.leftParenthesis || // for better error
+                            peekNext() == TOK.ref_ &&
+                            peekNext2() == TOK.leftParenthesis)
                    )
                 {
                     // function (parameters) { statements... }
