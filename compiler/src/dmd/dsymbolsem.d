@@ -3385,7 +3385,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (!tf.isNaked() && !(funcdecl.isThis() || funcdecl.isNested()))
             {
-                import core.bitop;
+                import core.bitop : popcnt;
                 auto mods = MODtoChars(tf.mod);
                 .error(funcdecl.loc, "%s `%s` without `this` cannot be `%s`", funcdecl.kind, funcdecl.toPrettyChars, mods);
                 if (tf.next && tf.next.ty != Tvoid && popcnt(tf.mod) == 1)
