@@ -28,4 +28,3 @@ alias int F72() immutable inout;
 alias F73 = immutable inout int();
 static assert (is(F71 == F72));
 static assert (is(F73 == F72));
-

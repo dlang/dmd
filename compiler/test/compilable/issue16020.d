@@ -30,4 +30,3 @@ alias FT = const(int)*();
 static assert(is(FT* == const(int)* function()));
 alias FT2 = int*[2]() pure;
 static assert(is(FT2* == int*[2] function() pure));
-
