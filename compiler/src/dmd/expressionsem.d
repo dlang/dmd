@@ -3129,7 +3129,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                     ev = new CommaExp(arg.loc, ev, new VarExp(arg.loc, v));
                     arg = ev.expressionSemantic(sc);
                 }
-                arg = arg.toLvalue(sc, arg);
+                arg = arg.toLvalue(sc);
 
                 // Look for mutable misaligned pointer, etc., in @safe mode
                 err |= checkUnsafeAccess(sc, arg, false, true);
@@ -3147,7 +3147,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                     ev = new CommaExp(arg.loc, ev, new VarExp(arg.loc, v));
                     arg = ev.expressionSemantic(sc);
                 }
-                arg = arg.toLvalue(sc, arg);
+                arg = arg.toLvalue(sc);
 
                 // Look for mutable misaligned pointer, etc., in @safe mode
                 err |= checkUnsafeAccess(sc, arg, false, true);
@@ -3166,7 +3166,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                     err |= checkUnsafeAccess(sc, arg, false, true);
                     err |= checkDefCtor(arg.loc, t); // t must be default constructible
                 }
-                arg = arg.toLvalue(sc, arg);
+                arg = arg.toLvalue(sc);
             }
             else if (p.isLazy())
             {
@@ -8295,7 +8295,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 else
                 {
                     // `toLvalue` call further below is upon exp.e1, omitting & from the error message
-                    exp.toLvalue(sc, null);
+                    exp.toLvalue(sc);
                     return setError();
                 }
             }
@@ -8385,7 +8385,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
 
-        exp.e1 = exp.e1.toLvalue(sc, null);
+        exp.e1 = exp.e1.toLvalue(sc);
         if (exp.e1.op == EXP.error)
         {
             result = exp.e1;
@@ -15204,11 +15204,21 @@ Expression addDtorHook(Expression e, Scope* sc)
 }
 
 /*******************************
-* Give error if we're not an lvalue.
-* If we can, convert expression to be an lvalue.
+ * Try to convert an expression to be an lvalue.
+ *
+ * Give error if we're not an lvalue.
+ * Params:
+ *     _this = expression to convert
+ *     sc = scope
+ * Returns: converted expression, or `ErrorExp` on error
 */
-extern(C++) Expression toLvalue(Expression _this, Scope* sc, Expression e)
+extern(C++) Expression toLvalue(Expression _this, Scope* sc)
 {
+    return toLvalueImpl(_this, sc, _this);
+}
+
+// e = original un-lowered expression for error messages, in case of recursive calls
+private Expression toLvalueImpl(Expression _this, Scope* sc, Expression e) {
     Expression visit(Expression _this)
     {
         // BinaryAssignExp does not have an EXP associated
@@ -15216,9 +15226,7 @@ extern(C++) Expression toLvalue(Expression _this, Scope* sc, Expression e)
         // Lvalue-ness will be handled in glue :layer.
         if (_this.isBinAssignExp())
             return _this;
-        if (!e)
-            e = _this;
-        else if (!_this.loc.isValid())
+        if (!_this.loc.isValid())
             _this.loc = e.loc;
 
         if (e.op == EXP.type)
@@ -15231,9 +15239,7 @@ extern(C++) Expression toLvalue(Expression _this, Scope* sc, Expression e)
 
     Expression visitInteger(IntegerExp _this)
     {
-        if (!e)
-            e = _this;
-        else if (!_this.loc.isValid())
+        if (!_this.loc.isValid())
             _this.loc = e.loc;
         error(e.loc, "cannot modify constant `%s`", e.toChars());
         return ErrorExp.get();
@@ -15364,7 +15370,7 @@ extern(C++) Expression toLvalue(Expression _this, Scope* sc, Expression e)
 
     Expression visitVectorArray(VectorArrayExp _this)
     {
-        _this.e1 = _this.e1.toLvalue(sc, e);
+        _this.e1 = _this.e1.toLvalueImpl(sc, e);
         return _this;
     }
 
@@ -15383,19 +15389,19 @@ extern(C++) Expression toLvalue(Expression _this, Scope* sc, Expression e)
 
     Expression visitComma(CommaExp _this)
     {
-        _this.e2 = _this.e2.toLvalue(sc, null);
+        _this.e2 = _this.e2.toLvalue(sc);
         return _this;
     }
 
     Expression visitDelegatePointer(DelegatePtrExp _this)
     {
-        _this.e1 = _this.e1.toLvalue(sc, e);
+        _this.e1 = _this.e1.toLvalueImpl(sc, e);
         return _this;
     }
 
     Expression visitDelegateFuncptr(DelegateFuncptrExp _this)
     {
-        _this.e1 = _this.e1.toLvalue(sc, e);
+        _this.e1 = _this.e1.toLvalueImpl(sc, e);
         return _this;
     }
 
@@ -15424,8 +15430,8 @@ extern(C++) Expression toLvalue(Expression _this, Scope* sc, Expression e)
     {
         // convert (econd ? e1 : e2) to *(econd ? &e1 : &e2)
         CondExp e = cast(CondExp)(_this.copy());
-        e.e1 = _this.e1.toLvalue(sc, null).addressOf();
-        e.e2 = _this.e2.toLvalue(sc, null).addressOf();
+        e.e1 = _this.e1.toLvalue(sc).addressOf();
+        e.e2 = _this.e2.toLvalue(sc).addressOf();
         e.type = _this.type.pointerTo();
         return new PtrExp(_this.loc, e, _this.type);
 
@@ -15620,7 +15626,7 @@ extern(C++) Expression modifiableLvalue(Expression _this, Scope* sc, Expression 
         //printf("Expression::modifiableLvalue() %s, type = %s\n", exp.toChars(), exp.type.toChars());
         // See if this expression is a modifiable lvalue (i.e. not const)
         if (exp.isBinAssignExp())
-            return exp.toLvalue(sc, exp);
+            return exp.toLvalue(sc);
 
         auto type = exp.type;
         if (checkModifiable(exp, sc) == Modifiable.yes)
@@ -15653,7 +15659,7 @@ extern(C++) Expression modifiableLvalue(Expression _this, Scope* sc, Expression 
                 return ErrorExp.get();
             }
         }
-        return exp.toLvalue(sc, e);
+        return exp.toLvalueImpl(sc, e);
     }
 
     Expression visitString(StringExp exp)
@@ -15743,7 +15749,7 @@ extern(C++) Expression modifiableLvalue(Expression _this, Scope* sc, Expression 
         }
         exp.e1 = exp.e1.modifiableLvalue(sc, exp.e1);
         exp.e2 = exp.e2.modifiableLvalue(sc, exp.e2);
-        return exp.toLvalue(sc, exp);
+        return exp.toLvalue(sc);
     }
 
     switch(_this.op)
