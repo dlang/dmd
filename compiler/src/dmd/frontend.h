@@ -305,6 +305,7 @@ class TryCatchStatement;
 class DebugStatement;
 class ErrorInitializer;
 class VoidInitializer;
+class DefaultInitializer;
 class StructInitializer;
 class ArrayInitializer;
 class ExpInitializer;
@@ -1881,6 +1882,7 @@ public:
     virtual void visit(typename AST::StructInitializer i);
     virtual void visit(typename AST::ArrayInitializer i);
     virtual void visit(typename AST::VoidInitializer i);
+    virtual void visit(typename AST::DefaultInitializer i);
     virtual void visit(typename AST::CInitializer i);
 };
 
@@ -2709,11 +2711,12 @@ extern const char* toChars(const Statement* const s);
 enum class InitKind : uint8_t
 {
     void_ = 0u,
-    error = 1u,
-    struct_ = 2u,
-    array = 3u,
-    exp = 4u,
-    C_ = 5u,
+    default_ = 1u,
+    error = 2u,
+    struct_ = 3u,
+    array = 4u,
+    exp = 5u,
+    C_ = 6u,
 };
 
 class Initializer : public ASTNode
@@ -2724,6 +2727,7 @@ public:
     DYNCAST dyncast() const override;
     ErrorInitializer* isErrorInitializer();
     VoidInitializer* isVoidInitializer();
+    DefaultInitializer* isDefaultInitializer();
     StructInitializer* isStructInitializer();
     ArrayInitializer* isArrayInitializer();
     ExpInitializer* isExpInitializer();
@@ -2750,6 +2754,13 @@ public:
     Array<DesigInit > initializerList;
     Type* type;
     bool sem;
+    void accept(Visitor* v) override;
+};
+
+class DefaultInitializer final : public Initializer
+{
+public:
+    Type* type;
     void accept(Visitor* v) override;
 };
 
@@ -4946,6 +4957,7 @@ struct ASTCodegen final
     using HdrGenState = ::HdrGenState;
     using ArrayInitializer = ::ArrayInitializer;
     using CInitializer = ::CInitializer;
+    using DefaultInitializer = ::DefaultInitializer;
     using DesigInit = ::DesigInit;
     using Designator = ::Designator;
     using ErrorInitializer = ::ErrorInitializer;

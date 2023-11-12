@@ -234,5 +234,6 @@ extern(C++) class StrictVisitor(AST) : ParseTimeVisitor!AST
     override void visit(AST.StructInitializer) { assert(0); }
     override void visit(AST.ArrayInitializer) { assert(0); }
     override void visit(AST.VoidInitializer) { assert(0); }
+    override void visit(AST.DefaultInitializer) { assert(0); }
     override void visit(AST.CInitializer) { assert(0); }
 }
