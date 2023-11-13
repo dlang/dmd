@@ -422,6 +422,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             case TOK.class_:
             case TOK.interface_:
             case TOK.traits:
+            case TOK.function_:
+            case TOK.delegate_:
             Ldeclaration:
                 a = parseDeclarations(false, pAttrs, pAttrs.comment);
                 if (a && a.length)
@@ -3685,6 +3687,30 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             nextToken();
             break;
 
+        case TOK.function_:
+        case TOK.delegate_:
+            // function ref type (parameters) attributes
+            const save = token.value;
+            nextToken();
+            StorageClass stc;
+            if (token.value == TOK.ref_)
+            {
+                stc = STC.ref_;
+                nextToken();
+            }
+            auto tret = parseBasicType();
+            tret = parseTypeSuffixes(tret); // function return type
+            auto parameterList = parseParameterList(null);
+            stc = parsePostfix(stc, null);
+            auto tf = new AST.TypeFunction(parameterList, tret, linkage, stc);
+            if (save == TOK.function_ &&
+                stc & (STC.TYPECTOR | STC.scope_ | STC.return_ | STC.returnScope))
+            {
+                error("`const`/`immutable`/`shared`/`inout`/`scope`/`return` attributes are only valid for non-static member functions");
+            }
+            t = save == TOK.delegate_ ? new AST.TypeDelegate(tf) : new AST.TypePointer(tf); // pointer to function
+            break;
+
         case TOK.this_:
         case TOK.super_:
         case TOK.identifier:
@@ -4884,9 +4910,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 const StorageClass funcStc = parseTypeCtor();
                 Token* tlu = &token;
                 Token* tk;
-                if (token.value != TOK.function_ &&
-                    token.value != TOK.delegate_ &&
-                    isBasicType(&tlu) && tlu &&
+                if (isLeadingFunctionType(&token))
+                {
+                    AST.Type tf = parseBasicType();
+                    v = new AST.AliasDeclaration(loc, ident, tf);
+                }
+                else if (isBasicType(&tlu) && tlu &&
                     tlu.value == TOK.leftParenthesis)
                 {
                     AST.Type tret = parseBasicType();
@@ -5790,6 +5819,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 goto Ldeclaration;
             goto Lexp;
 
+        case TOK.delegate_:
+        case TOK.function_:
+            if (isLeadingFunctionType(&token))
+                goto Ldeclaration;
+            goto case;
+
         case TOK.assert_:
         case TOK.this_:
         case TOK.super_:
@@ -5824,8 +5859,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         case TOK.minusMinus:
         case TOK.new_:
         case TOK.delete_:
-        case TOK.delegate_:
-        case TOK.function_:
         case TOK.typeid_:
         case TOK.is_:
         case TOK.leftBracket:
@@ -7217,6 +7250,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         return false;
     }
 
+    /* Returns: Whether **pt is the start token for a type
+     * When true, sets pt to the following token. */
     private bool isBasicType(Token** pt)
     {
         // This code parallels parseBasicType()
@@ -7512,6 +7547,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
             case TOK.delegate_:
             case TOK.function_:
+                if (isLeadingFunctionType(&token))
+                    return true;
                 t = peek(t);
                 if (!isParameters(&t))
                     return false;
@@ -7752,6 +7789,37 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         t = peek(t);
         *pt = t;
         return true;
+    }
+
+    // function ref type (parameters) attributes
+    // Warning: does not work for expressions
+    private bool isLeadingFunctionType(Token *tk)
+    {
+        if (tk.value != TOK.function_ && tk.value != TOK.delegate_)
+            return false;
+        tk = peek(tk);
+        if (tk.value == TOK.ref_)
+            tk = peek(tk);
+        if (!isBasicType(&tk))
+            return false;
+        if (!skipParens(tk, &tk))
+            return false;
+        if (!skipAttributes(tk, &tk))
+            return false;
+        switch (tk.value)
+        {
+            // FunctionType identifier;
+            case TOK.identifier:
+            // alias id = FunctionType;
+            case TOK.comma:
+            case TOK.semicolon:
+                // Note: a function literal expression can end with semicolon
+                // but `FunctionLiteral;` is not a valid statement
+                return true;
+            // function literal
+            default:
+                return false;
+        }
     }
 
     private bool isExpression(Token** pt)
