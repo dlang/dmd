@@ -5901,7 +5901,7 @@ private bool isDRuntimeHook(Identifier id)
         id == Id._d_arraysetlengthTImpl || id == Id._d_arraysetlengthT ||
         id == Id._d_arraysetlengthTTrace ||
         id == Id._d_arrayappendT || id == Id._d_arrayappendTTrace ||
-        id == Id._d_arrayappendcTXImpl;
+        id == Id._d_arrayappendcTX;
 }
 
 void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList argumentList)
