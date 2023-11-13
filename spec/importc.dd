@@ -109,7 +109,7 @@ $(H2 $(LNAME2 command-line, Invoking ImportC))
     )
 
     $(P will compile `hello.c` with ImportC and link it to create the executable
-    file `hello` (`hello.exe` on Windows) which can be run
+    file `hello` (`hello.exe` on Windows)
     )
 
     $(BEST_PRACTICE explicitly use a `.i` or `.c` extension when
