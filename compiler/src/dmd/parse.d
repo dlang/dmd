@@ -4960,6 +4960,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                             error("user-defined attributes not allowed for `alias` declarations");
 
                         attributesAppended = true;
+                        // Note: method types can have a TypeCtor attribute
                         storage_class = appendStorageClass(storage_class, funcStc);
                         t = new AST.TypeFunction(parameterList, t, link, storage_class);
                     }
@@ -4969,9 +4970,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     {
                         // Don't raise errors for STC that are part of a function/delegate type, e.g.
                         // `alias F = ref pure nothrow @nogc @safe int function();`
-                        auto tp = t.isTypePointer;
-                        const isFuncType = t.isTypeFunction || (tp && tp.next.isTypeFunction) || t.isTypeDelegate;
-                        const remStc = isFuncType ? (storage_class & ~STC.FUNCATTR) : storage_class;
+                        const remStc = t.isTypeFunction ?
+                            storage_class & ~(STC.FUNCATTR | STC.TYPECTOR) : {
+                            auto tp = t.isTypePointer;
+                            const isFuncType = (tp && tp.next.isTypeFunction) || t.isTypeDelegate;
+                            return isFuncType ? (storage_class & ~STC.FUNCATTR) : storage_class;
+                        }();
 
                         if (remStc)
                         {
