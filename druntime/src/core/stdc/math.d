@@ -62,152 +62,19 @@ enum float INFINITY       = float.infinity;
 ///
 enum float NAN            = float.nan;
 
-version (FreeBSD)
-{
-    ///
-    enum int FP_ILOGB0        = -int.max;
-    ///
-    enum int FP_ILOGBNAN      = int.max;
-}
-else version (NetBSD)
-{
-    ///
-    enum int FP_ILOGB0        = -int.max;
-    ///
-    enum int FP_ILOGBNAN      = int.max;
-}
-else version (OpenBSD)
-{
-    ///
-    enum int FP_ILOGB0        = -int.max;
-    ///
-    enum int FP_ILOGBNAN      = int.max;
-}
-else version (DragonFlyBSD)
-{
-    ///
-    enum int FP_ILOGB0        = -int.max;
-    ///
-    enum int FP_ILOGBNAN      = int.max;
-}
-else version (Solaris)
-{
-    ///
-    enum int FP_ILOGB0        = -int.max;
-    ///
-    enum int FP_ILOGBNAN      = int.max;
-}
-else version (CRuntime_Bionic)
-{
-    ///
-    enum int FP_ILOGB0        = -int.max;
-    ///
-    enum int FP_ILOGBNAN      = int.max;
-}
-else version (CRuntime_UClibc)
-{
-    version (X86_Any)
-    {
-        ///
-        enum int FP_ILOGB0        = int.min;
-        ///
-        enum int FP_ILOGBNAN      = int.min;
-    }
-    else version (MIPS_Any)
-    {
-        ///
-        enum int FP_ILOGB0        = -int.max;
-        ///
-        enum int FP_ILOGBNAN      = int.max;
-    }
-    else version (ARM)
-    {
-        ///
-        enum int FP_ILOGB0        = -int.max;
-        ///
-        enum int FP_ILOGBNAN      = int.max;
-    }
-    else
-    {
-        static assert(false, "Architecture not supported.");
-    }
-}
-else version (CRuntime_Glibc)
-{
-    version (X86_Any)
-    {
-        ///
-        enum int FP_ILOGB0        = int.min;
-        ///
-        enum int FP_ILOGBNAN      = int.min;
-    }
-    else version (ARM_Any)
-    {
-        ///
-        enum int FP_ILOGB0        = -int.max;
-        ///
-        enum int FP_ILOGBNAN      = int.max;
-    }
-    else version (HPPA_Any)
-    {
-        ///
-        enum int FP_ILOGB0        = -int.max;
-        ///
-        enum int FP_ILOGBNAN      = int.max;
-    }
-    else version (MIPS_Any)
-    {
-        ///
-        enum int FP_ILOGB0        = -int.max;
-        ///
-        enum int FP_ILOGBNAN      = int.max;
-    }
-    else version (PPC_Any)
-    {
-        ///
-        enum int FP_ILOGB0        = -int.max;
-        ///
-        enum int FP_ILOGBNAN      = int.max;
-    }
-    else version (RISCV_Any)
-    {
-        ///
-        enum int FP_ILOGB0        = -int.max;
-        ///
-        enum int FP_ILOGBNAN      = int.max;
-    }
-    else version (SPARC_Any)
-    {
-        ///
-        enum int FP_ILOGB0        = -int.max;
-        ///
-        enum int FP_ILOGBNAN      = int.max;
-    }
-    else version (IBMZ_Any)
-    {
-        ///
-        enum int FP_ILOGB0        = -int.max;
-        ///
-        enum int FP_ILOGBNAN      = int.max;
-    }
-    else version (LoongArch64)
-    {
-        ///
-        enum int FP_ILOGB0        = -int.max;
-        ///
-        enum int FP_ILOGBNAN      = int.max;
-    }
-    else
-    {
-        static assert(false, "Architecture not supported.");
-    }
-}
-else
+version (X86_Any)
 {
     ///
     enum int FP_ILOGB0        = int.min;
     ///
     enum int FP_ILOGBNAN      = int.min;
+}
+else
+{
+    ///
+    enum int FP_ILOGB0        = -int.max;
+    ///
+    enum int FP_ILOGBNAN      = int.max;
 }
 
 ///
