@@ -263,7 +263,7 @@ $(GNAME AliasAssignments):
 $(GNAME AliasAssignment):
     $(GLINK_LEX Identifier) $(GLINK2 template, TemplateParameters)$(OPT) $(D =) $(GLINK StorageClasses)$(OPT) $(GLINK2 type, Type)
     $(GLINK_LEX Identifier) $(GLINK2 template, TemplateParameters)$(OPT) $(D =) $(GLINK2 expression, FunctionLiteral)
-    $(GLINK_LEX Identifier) $(GLINK2 template, TemplateParameters)$(OPT) $(D =) $(GLINK StorageClasses)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT)
+    $(GLINK_LEX Identifier) $(GLINK2 template, TemplateParameters)$(OPT) $(D =) $(GLINK StorageClasses)$(OPT) $(GLINK2 type, Type) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT)
 )
 
     $(P An $(I AliasDeclaration) creates a symbol name that refers to a type or another symbol.
