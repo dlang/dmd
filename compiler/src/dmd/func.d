@@ -3241,13 +3241,6 @@ unittest
     assert(mismatches.isMutable);
 }
 
-private const(char)* prependSpace(const(char)* str)
-{
-    if (!str || !*str) return "";
-
-    return (" " ~ str.toDString() ~ "\0").ptr;
-}
-
 /// Flag used by $(LREF resolveFuncCall).
 enum FuncResolveFlag : ubyte
 {
@@ -3361,14 +3354,11 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
         const(char)* lastprms = parametersTypeToChars(tf1.parameterList);
         const(char)* nextprms = parametersTypeToChars(tf2.parameterList);
 
-        const(char)* mod1 = prependSpace(MODtoChars(tf1.mod));
-        const(char)* mod2 = prependSpace(MODtoChars(tf2.mod));
-
         .error(loc, "`%s.%s` called with argument types `%s` matches both:\n%s:     `%s%s%s`\nand:\n%s:     `%s%s%s`",
             s.parent.toPrettyChars(), s.ident.toChars(),
             fargsBuf.peekChars(),
-            m.lastf.loc.toChars(), m.lastf.toPrettyChars(), lastprms, mod1,
-            m.nextf.loc.toChars(), m.nextf.toPrettyChars(), nextprms, mod2);
+            m.lastf.loc.toChars(), m.lastf.toPrettyChars(), lastprms, tf1.modToChars(),
+            m.nextf.loc.toChars(), m.nextf.toPrettyChars(), nextprms, tf2.modToChars());
         return null;
     }
 
