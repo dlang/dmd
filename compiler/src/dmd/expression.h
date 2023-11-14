@@ -53,7 +53,7 @@ StringExp *toUTF8(StringExp *se, Scope *sc);
 Expression *resolveLoc(Expression *exp, const Loc &loc, Scope *sc);
 MATCH implicitConvTo(Expression *e, Type *t);
 Expression *toLvalue(Expression *_this, Scope *sc, const char* action);
-Expression *modifiableLvalue(Expression* exp, Scope *sc, Expression *e);
+Expression *modifiableLvalue(Expression* exp, Scope *sc);
 
 typedef unsigned char OwnedBy;
 enum
