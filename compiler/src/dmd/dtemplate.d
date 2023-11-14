@@ -730,7 +730,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
     override const(char)* toChars() const
     {
-        return toCharsMaybeConstraints(true);
+        return toCharsFull(true);
     }
 
     /****************************
@@ -738,10 +738,10 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
      */
     const(char)* toCharsNoConstraints() const
     {
-        return toCharsMaybeConstraints(false);
+        return toCharsFull(false);
     }
 
-    const(char)* toCharsMaybeConstraints(bool includeConstraints) const
+    const(char)* toCharsFull(bool showConstraints, bool showOneMember = true) const
     {
         OutBuffer buf;
         HdrGenState hgs;
@@ -756,7 +756,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         }
         buf.writeByte(')');
 
-        if (onemember)
+        if (showOneMember && onemember)
         {
             const FuncDeclaration fd = onemember.isFuncDeclaration();
             if (fd && fd.type)
@@ -766,8 +766,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             }
         }
 
-        if (includeConstraints &&
-            constraint)
+        if (showConstraints && constraint)
         {
             buf.writestring(" if (");
             toCBuffer(constraint, buf, hgs);

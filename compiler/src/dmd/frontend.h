@@ -6642,7 +6642,7 @@ public:
     const char* kind() const override;
     const char* toChars() const override;
     const char* toCharsNoConstraints() const;
-    const char* toCharsMaybeConstraints(bool includeConstraints) const;
+    const char* toCharsFull(bool showConstraints, bool showOneMember = true) const;
     Visibility visible() override;
     const char* getConstraintEvalError(const char*& tip);
     Scope* scopeForTemplateParameters(TemplateInstance* ti, Scope* sc);

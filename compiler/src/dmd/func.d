@@ -3517,10 +3517,24 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
     // max num of overloads to print (-v or -verror-supplements overrides this).
     const uint DisplayLimit = global.params.v.errorSupplementCount();
     const(char)* constraintsTip;
-    // determine if the first candidate was printed
-    int printed;
 
-    bool matchSymbol(Dsymbol s, bool print, bool single_candidate = false)
+    int printed = 0; // number of candidates printed
+    int count = 0; // total candidates
+    bool child; // true if inside an eponymous template
+    const(char)* errorPrefix() @safe
+    {
+        if (child)
+            return "  - Containing: ";
+
+        // align with blank spaces after first message
+        enum plural = "Candidates are: ";
+        enum spaces = "                ";
+        if (printed)
+            return spaces;
+
+        return (count == 1) ? "Candidate is: " : plural;
+    }
+    bool matchSymbol(Dsymbol s, bool print)
     {
         if (auto fd = s.isFuncDeclaration())
         {
@@ -3535,10 +3549,8 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
             if (!print)
                 return true;
             auto tf = cast(TypeFunction) fd.type;
-            .errorSupplemental(fd.loc,
-                    printed ? "                `%s%s`" :
-                    single_candidate ? "Candidate is: `%s%s`" : "Candidates are: `%s%s`",
-                    fd.toPrettyChars(),
+            .errorSupplemental(fd.loc, "%s`%s%s`",
+                errorPrefix(), child ? fd.toChars() : fd.toPrettyChars(),
                 parametersTypeToChars(tf.parameterList));
         }
         else if (auto td = s.isTemplateDeclaration())
@@ -3547,31 +3559,38 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
 
             if (!print)
                 return true;
-            const tmsg = td.toCharsNoConstraints();
-            const cmsg = td.getConstraintEvalError(constraintsTip);
 
-            // add blank space if there are multiple candidates
-            // the length of the blank space is `strlen("Candidates are: ")`
+            // td.onemember may not have overloads set
+            // (see fail_compilation/onemember_overloads.d)
+            // assume if more than one member it is overloaded internally
+            bool recurse = td.onemember && td.members.length > 1;
+            const tmsg = td.toCharsFull(false, !recurse);
+            const cmsg = child ? null : td.getConstraintEvalError(constraintsTip);
 
             if (cmsg)
-            {
-                .errorSupplemental(td.loc,
-                        printed ? "                `%s`\n%s" :
-                        single_candidate ? "Candidate is: `%s`\n%s" : "Candidates are: `%s`\n%s",
-                        tmsg, cmsg);
-            }
+                .errorSupplemental(td.loc, "%s`%s`\n%s", errorPrefix(), tmsg, cmsg);
             else
+                .errorSupplemental(td.loc, "%s`%s`", errorPrefix(), tmsg);
+
+            if (recurse)
             {
-                .errorSupplemental(td.loc,
-                        printed ? "                `%s`" :
-                        single_candidate ? "Candidate is: `%s`" : "Candidates are: `%s`",
-                        tmsg);
+                child = true;
+                foreach (d; *td.members)
+                {
+                    if (d.ident != td.ident)
+                        continue;
+
+                    if (auto fd2 = d.isFuncDeclaration())
+                        matchSymbol(fd2, print);
+                    else if (auto td2 = d.isTemplateDeclaration())
+                        matchSymbol(td2, print);
+                }
+                child = false;
             }
         }
         return true;
     }
     // determine if there's > 1 candidate
-    int count = 0;
     overloadApply(declaration, (s) {
         if (matchSymbol(s, false))
             count++;
@@ -3581,7 +3600,7 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
     overloadApply(declaration, (s) {
         if (global.params.v.verbose || printed < DisplayLimit)
         {
-            if (matchSymbol(s, true, count == 1))
+            if (matchSymbol(s, true))
                 printed++;
         }
         else
