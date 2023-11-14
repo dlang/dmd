@@ -762,6 +762,11 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             {
                 TypeFunction tf = cast(TypeFunction)fd.type;
                 buf.writestring(parametersTypeToChars(tf.parameterList));
+                if (tf.mod)
+                {
+                    buf.writeByte(' ');
+                    buf.MODtoBuffer(tf.mod);
+                }
             }
         }
 
