@@ -455,11 +455,13 @@ $(SPEC_RUNNABLE_EXAMPLE_RUN
 -----------
 import std.stdio : writeln;
 
-void fun(int v = 6) {
+void fun(int v = 6)
+{
     writeln("v: ", v);
 }
 
-void main() {
+void main()
+{
     fun();  // prints v: 6
 
     alias Foo = void function(int=7);
@@ -473,7 +475,8 @@ $(SPEC_RUNNABLE_EXAMPLE_RUN
 -----------
 import std.stdio : writefln;
 
-void main() {
+void main()
+{
     fun(4);          // prints a: 4, b: 6, c: 7
 
     Bar bar = &fun;
@@ -489,7 +492,8 @@ void main() {
 alias Bar = void function(int, int, int=9);
 alias Baz = void function(int=2, int=3, int=4);
 
-void fun(int a, int b = 6, int c = 7) {
+void fun(int a, int b = 6, int c = 7)
+{
     writefln("a: %d, b: %d, c: %d", a, b, c);
 }
 -----------
