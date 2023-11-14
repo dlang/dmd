@@ -28,6 +28,7 @@ import dmd.func;
 import dmd.globals;
 import dmd.location;
 import dmd.mtype;
+import dmd.root.bitarray;
 import dmd.root.complex;
 import dmd.root.ctfloat;
 import dmd.root.port;
@@ -1270,8 +1271,8 @@ private int ctfeRawCmp(const ref Loc loc, Expression e1, Expression e2, bool ide
         size_t dim = es1.keys.length;
         if (es2.keys.length != dim)
             return 1;
-        bool* used = cast(bool*)mem.xmalloc(bool.sizeof * dim);
-        memset(used, 0, bool.sizeof * dim);
+        BitArray used;
+        used.length = dim;
         foreach (size_t i; 0 .. dim)
         {
             Expression k1 = (*es1.keys)[i];
@@ -1290,11 +1291,9 @@ private int ctfeRawCmp(const ref Loc loc, Expression e1, Expression e2, bool ide
             }
             if (!v2 || ctfeRawCmp(loc, v1, v2, identity))
             {
-                mem.xfree(used);
                 return 1;
             }
         }
-        mem.xfree(used);
         return 0;
     }
     else if (e1.op == EXP.assocArrayLiteral && e2.op == EXP.null_)
