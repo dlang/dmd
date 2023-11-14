@@ -44,14 +44,14 @@ import dmd.visitor;
 extern (D) struct UnionExp
 {
     // yes, default constructor does nothing
-    extern (D) this(Expression e)
+    extern (D) this(Expression e) nothrow
     {
         memcpy(&this, cast(void*)e, e.size);
     }
 
     /* Extract pointer to Expression
      */
-    extern (D) Expression exp() return
+    extern (D) Expression exp() return nothrow
     {
         return cast(Expression)&u;
     }
@@ -110,7 +110,7 @@ void emplaceExp(T : Expression, Args...)(void* p, Args args)
     (cast(T)p).__ctor(args);
 }
 
-void emplaceExp(T : UnionExp)(T* p, Expression e)
+void emplaceExp(T : UnionExp)(T* p, Expression e) nothrow
 {
     memcpy(p, cast(void*)e, e.size);
 }
@@ -135,7 +135,7 @@ void generateUncaughtError(ThrownExceptionExp tee)
  * Returns:
  *    index of the field, or -1 if not found
  */
-int findFieldIndexByName(const StructDeclaration sd, const VarDeclaration v) pure @safe
+int findFieldIndexByName(const StructDeclaration sd, const VarDeclaration v) pure @safe nothrow
 {
     foreach (i, field; sd.fields)
     {
@@ -146,7 +146,7 @@ int findFieldIndexByName(const StructDeclaration sd, const VarDeclaration v) pur
 }
 
 // True if 'e' is CTFEExp::cantexp, or an exception
-bool exceptionOrCantInterpret(const Expression e) @safe
+bool exceptionOrCantInterpret(const Expression e) @safe nothrow
 {
     return e && (e.op == EXP.cantExpression || e.op == EXP.thrownException || e.op == EXP.showCtfeContext);
 }
@@ -154,7 +154,7 @@ bool exceptionOrCantInterpret(const Expression e) @safe
 /************** Aggregate literals (AA/string/array/struct) ******************/
 // Given expr, which evaluates to an array/AA/string literal,
 // return true if it needs to be copied
-bool needToCopyLiteral(const Expression expr)
+bool needToCopyLiteral(const Expression expr) nothrow
 {
     Expression e = cast()expr;
     for (;;)
@@ -594,7 +594,7 @@ TypeAArray toBuiltinAAType(Type t)
 
 /************** TypeInfo operations ************************************/
 // Return true if type is TypeInfo_Class
-bool isTypeInfo_Class(const Type type)
+bool isTypeInfo_Class(const Type type) nothrow
 {
     auto tc = cast()type.isTypeClass();
     return tc && (Type.dtypeinfo == tc.sym || Type.dtypeinfo.isBaseOf(tc.sym, null));
@@ -979,7 +979,7 @@ bool isCtfeComparable(Expression e)
 }
 
 /// Map EXP comparison ops
-private bool numCmp(N)(EXP op, N n1, N n2)
+private bool numCmp(N)(EXP op, N n1, N n2) nothrow
 {
     switch (op)
     {
@@ -998,25 +998,25 @@ private bool numCmp(N)(EXP op, N n1, N n2)
 }
 
 /// Returns cmp OP 0; where OP is ==, !=, <, >=, etc. Result is 0 or 1
-bool specificCmp(EXP op, int rawCmp) @safe
+bool specificCmp(EXP op, int rawCmp) @safe nothrow
 {
     return numCmp!int(op, rawCmp, 0);
 }
 
 /// Returns e1 OP e2; where OP is ==, !=, <, >=, etc. Result is 0 or 1
-bool intUnsignedCmp(EXP op, dinteger_t n1, dinteger_t n2) @safe
+bool intUnsignedCmp(EXP op, dinteger_t n1, dinteger_t n2) @safe nothrow
 {
     return numCmp!dinteger_t(op, n1, n2);
 }
 
 /// Returns e1 OP e2; where OP is ==, !=, <, >=, etc. Result is 0 or 1
-bool intSignedCmp(EXP op, sinteger_t n1, sinteger_t n2) @safe
+bool intSignedCmp(EXP op, sinteger_t n1, sinteger_t n2) @safe nothrow
 {
     return numCmp!sinteger_t(op, n1, n2);
 }
 
 /// Returns e1 OP e2; where OP is ==, !=, <, >=, etc. Result is 0 or 1
-bool realCmp(EXP op, real_t r1, real_t r2) @safe
+bool realCmp(EXP op, real_t r1, real_t r2) @safe nothrow
 {
     // Don't rely on compiler, handle NAN arguments separately
     if (CTFloat.isNaN(r1) || CTFloat.isNaN(r2)) // if unordered
@@ -1106,7 +1106,7 @@ private int ctfeCmpArrays(const ref Loc loc, Expression e1, Expression e2, uinte
 /* Given a delegate expression e, return .funcptr.
  * If e is NullExp, return NULL.
  */
-private FuncDeclaration funcptrOf(Expression e) @safe
+private FuncDeclaration funcptrOf(Expression e) @safe nothrow
 {
     assert(e.type.ty == Tdelegate);
     if (auto de = e.isDelegateExp())
@@ -1117,7 +1117,7 @@ private FuncDeclaration funcptrOf(Expression e) @safe
     return null;
 }
 
-private bool isArray(const Expression e) @safe
+private bool isArray(const Expression e) @safe nothrow
 {
     return e.op == EXP.arrayLiteral || e.op == EXP.string_ || e.op == EXP.slice || e.op == EXP.null_;
 }
