@@ -653,16 +653,44 @@ $(GNAME IdentityExpression):
     $(GLINK ShiftExpression) $(D ! is) $(GLINK ShiftExpression)
 )
 
-    $(P The $(D is) operator compares for identity.
+    $(P The $(D is) operator compares for identity of expression values.
         To compare for nonidentity, use $(D e1 !is e2).
         The type of the result is $(D bool). The operands
         undergo the $(USUAL_ARITHMETIC_CONVERSIONS) to bring them to a common type before
         comparison.
     )
 
-    $(P For class objects, identity is defined as the object references
-        are for the same object. Null class objects can be compared with
-        $(D is).
+    $(P For class / interface objects, identity is defined as the object references being identical.
+        Null class objects can be compared with `is`.
+        Note that inferface objects need not have the same reference of the class they were cast from.
+        To test whether an `interface` shares a class instance with another `interface` / `class` value, cast both operands to `Object` before comparing with `is`.
+    )
+
+    $(SPEC_RUNNABLE_EXAMPLE_RUN
+    ---
+    interface I { void g(); }
+    interface I1 : I { void g1(); }
+    interface I2 : I { void g2(); }
+    interface J : I1, I2 { void h(); }
+
+    class C : J
+    {
+        override void g() { }
+        override void g1() { }
+        override void g2() { }
+        override void h() { }
+    }
+
+    void main() @safe
+    {
+        C c = new C;
+        I i1 = cast(I1) c;
+        I i2 = cast(I2) c;
+        assert(i1 !is i2); // not identical
+        assert(c !is i2); // not identical
+        assert(cast(Object) i1 is cast(Object) i2); // identical
+    }
+    ---
     )
 
     $(P For struct objects and floating point values, identity is defined as the
