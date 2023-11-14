@@ -15378,7 +15378,7 @@ private Expression toLvalueImpl(Expression _this, Scope* sc, const(char)* action
 
     Expression visitVectorArray(VectorArrayExp _this)
     {
-        _this.e1 = _this.e1.toLvalueImpl(sc, action, e ? e : _this.e1);
+        _this.e1 = _this.e1.toLvalueImpl(sc, action, e);
         return _this;
     }
 
@@ -15403,13 +15403,13 @@ private Expression toLvalueImpl(Expression _this, Scope* sc, const(char)* action
 
     Expression visitDelegatePointer(DelegatePtrExp _this)
     {
-        _this.e1 = _this.e1.toLvalueImpl(sc, action, e ? e : _this.e1);
+        _this.e1 = _this.e1.toLvalueImpl(sc, action, e);
         return _this;
     }
 
     Expression visitDelegateFuncptr(DelegateFuncptrExp _this)
     {
-        _this.e1 = _this.e1.toLvalueImpl(sc, action, e ? e : _this.e1);
+        _this.e1 = _this.e1.toLvalueImpl(sc, action, e);
         return _this;
     }
 
@@ -15642,6 +15642,7 @@ extern(C++) Expression modifiableLvalue(Expression _this, Scope* sc)
 // e = original / un-lowered expression to print in error messages
 private Expression modifiableLvalueImpl(Expression _this, Scope* sc, Expression e)
 {
+    assert(e);
     Expression visit(Expression exp)
     {
         //printf("Expression::modifiableLvalue() %s, type = %s\n", exp.toChars(), exp.type.toChars());
@@ -15680,7 +15681,7 @@ private Expression modifiableLvalueImpl(Expression _this, Scope* sc, Expression 
                 return ErrorExp.get();
             }
         }
-        return exp.toLvalueImpl(sc, "modify", e ? e : exp);
+        return exp.toLvalueImpl(sc, "modify", e);
     }
 
     Expression visitString(StringExp exp)
