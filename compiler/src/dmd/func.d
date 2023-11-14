@@ -3535,11 +3535,17 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
             if (!print)
                 return true;
             auto tf = cast(TypeFunction) fd.type;
+            OutBuffer buf;
+            buf.writestring(fd.toPrettyChars());
+            buf.writestring(parametersTypeToChars(tf.parameterList));
+            if (tf.mod)
+            {
+                buf.writeByte(' ');
+                buf.MODtoBuffer(tf.mod);
+            }
             .errorSupplemental(fd.loc,
-                    printed ? "                `%s%s`" :
-                    single_candidate ? "Candidate is: `%s%s`" : "Candidates are: `%s%s`",
-                    fd.toPrettyChars(),
-                parametersTypeToChars(tf.parameterList));
+                printed ? "                `%s`" :
+                single_candidate ? "Candidate is: `%s`" : "Candidates are: `%s`", buf.peekChars());
         }
         else if (auto td = s.isTemplateDeclaration())
         {
