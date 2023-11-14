@@ -741,14 +741,14 @@ Expression pointerDifference(UnionExp* pue, const ref Loc loc, Type type, Expres
     Expression agg2 = getAggregateFromPointer(e2, &ofs2);
     if (agg1 == agg2)
     {
-        Type pointee = (cast(TypePointer)agg1.type).next;
+        Type pointee = agg1.type.nextOf();
         const sz = pointee.size();
         emplaceExp!(IntegerExp)(pue, loc, (ofs1 - ofs2) * sz, type);
     }
     else if (agg1.op == EXP.string_ && agg2.op == EXP.string_ &&
              agg1.isStringExp().peekString().ptr == agg2.isStringExp().peekString().ptr)
     {
-        Type pointee = (cast(TypePointer)agg1.type).next;
+        Type pointee = agg1.type.nextOf();
         const sz = pointee.size();
         emplaceExp!(IntegerExp)(pue, loc, (ofs1 - ofs2) * sz, type);
     }
@@ -794,14 +794,14 @@ Expression pointerArithmetic(UnionExp* pue, const ref Loc loc, EXP op, Type type
         goto Lcant;
     }
     dinteger_t ofs2 = e2.toInteger();
-    Type pointee = (cast(TypeNext)agg1.type.toBasetype()).next;
+    Type pointee = agg1.type.toBasetype().nextOf();
     dinteger_t sz = pointee.size();
     sinteger_t indx;
     dinteger_t len;
-    if (agg1.op == EXP.symbolOffset)
+    if (auto soe = agg1.isSymOffExp())
     {
         indx = ofs1 / sz;
-        len = (cast(TypeSArray)agg1.isSymOffExp().var.type).dim.toInteger();
+        len = soe.var.type.isTypeSArray().dim.toInteger();
     }
     else
     {
@@ -836,9 +836,9 @@ Expression pointerArithmetic(UnionExp* pue, const ref Loc loc, EXP op, Type type
         error(loc, "CTFE internal error: pointer arithmetic `%s`", agg1.toChars());
         goto Lcant;
     }
-    if (eptr.type.toBasetype().ty == Tsarray)
+    if (auto tsa = eptr.type.toBasetype().isTypeSArray())
     {
-        dinteger_t dim = (cast(TypeSArray)eptr.type.toBasetype()).dim.toInteger();
+        dinteger_t dim = tsa.dim.toInteger();
         // Create a CTFE pointer &agg1[indx .. indx+dim]
         auto se = ctfeEmplaceExp!SliceExp(loc, agg1,
                 ctfeEmplaceExp!IntegerExp(loc, indx, Type.tsize_t),
@@ -2000,9 +2000,8 @@ void showCtfeExpr(Expression e, int level = 0)
 UnionExp voidInitLiteral(Type t, VarDeclaration var)
 {
     UnionExp ue;
-    if (t.ty == Tsarray)
+    if (auto tsa = t.isTypeSArray())
     {
-        TypeSArray tsa = cast(TypeSArray)t;
         Expression elem = voidInitLiteral(tsa.next, var).copy();
         // For aggregate value types (structs, static arrays) we must
         // create an a separate copy for each element.
@@ -2019,9 +2018,8 @@ UnionExp voidInitLiteral(Type t, VarDeclaration var)
         ArrayLiteralExp ae = ue.exp().isArrayLiteralExp();
         ae.ownedByCtfe = OwnedBy.ctfe;
     }
-    else if (t.ty == Tstruct)
+    else if (auto ts = t.isTypeStruct())
     {
-        TypeStruct ts = cast(TypeStruct)t;
         auto exps = new Expressions(ts.sym.fields.length);
         foreach (size_t i;  0 .. ts.sym.fields.length)
         {
