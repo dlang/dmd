@@ -7991,7 +7991,7 @@ extern Expression* expressionSemantic(Expression* e, Scope* sc);
 
 extern Expression* toLvalue(Expression* _this, Scope* sc, const char* action);
 
-extern Expression* modifiableLvalue(Expression* _this, Scope* sc, Expression* e);
+extern Expression* modifiableLvalue(Expression* _this, Scope* sc);
 
 extern const char* toChars(const Initializer* const i);
 
