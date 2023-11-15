@@ -1,0 +1,7 @@
+New addition of the C stdatomic header implemented in D
+
+The goal of this module is to assist in porting efforts for code from C to D and to give as close as possible same code generation as the system C compiler counterpart.
+
+If you do not care about code generation quality should the aliases to the function names not exist, you may append ``_impl`` to get at the implementation.
+
+If the code generation provided by a given function is not on-par to the system C compiler and it matters to your use case, please report it as a bug.
