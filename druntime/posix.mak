@@ -371,22 +371,36 @@ $(ROOT)/valgrind.o : src/etc/valgrind/valgrind.c src/etc/valgrind/valgrind.h src
 	@mkdir -p `dirname $@`
 	$(CC) -c $(CFLAGS) $< -o$@
 
+# Generated tagged sources
+TGEN_DIR:=tagged_generated_srcs
+
+-include $(TGEN_DIR)/TAGGED_SRCS
+TAGGED_SRCS?=TAGGED_SRCS
+
+gen_tagged_srcs:
+	mkdir $(TGEN_DIR)
+	./cp_tagged_hier.sh ./impl $(TGEN_DIR) x86_64,$(OS)
+
+gen_tagged_srcs_clean:
+	rm -rf $(TGEN_DIR)
+
+
 ######################## Create a shared library ##############################
 
 $(DRUNTIMESO) $(DRUNTIMESOLIB) dll: DFLAGS+=-version=Shared -fPIC
 dll: $(DRUNTIMESOLIB)
 
-$(DRUNTIMESO): $(OBJS) $(SRCS) $(DMD)
-	$(DMD) -shared -debuglib= -defaultlib= -of$(DRUNTIMESO) $(DFLAGS) $(SRCS) $(OBJS) $(LINKDL) -L-lpthread -L-lm
+$(DRUNTIMESO): $(OBJS) $(SRCS) $(TAGGED_SRCS) $(DMD)
+	$(DMD) -shared -debuglib= -defaultlib= -of$(DRUNTIMESO) $(DFLAGS) $(SRCS) $(TAGGED_SRCS) $(OBJS) $(LINKDL) -L-lpthread -L-lm
 
-$(DRUNTIMESOLIB): $(OBJS) $(SRCS) $(DMD)
-	$(DMD) -c -fPIC -of$(DRUNTIMESOOBJ) $(DFLAGS) $(SRCS)
+$(DRUNTIMESOLIB): $(OBJS) $(SRCS) $(TAGGED_SRCS) $(DMD)
+	$(DMD) -c -fPIC -of$(DRUNTIMESOOBJ) $(DFLAGS) $(SRCS) $(TAGGED_SRCS)
 	$(DMD) -conf= -lib -of$(DRUNTIMESOLIB) $(DRUNTIMESOOBJ) $(OBJS)
 
 ################### Library generation #########################
 
-$(DRUNTIME): $(OBJS) $(SRCS) $(DMD)
-	$(DMD) -lib -of$(DRUNTIME) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
+$(DRUNTIME): $(OBJS) $(SRCS) $(TAGGED_SRCS) $(DMD)
+	$(DMD) -lib -of$(DRUNTIME) -Xfdruntime.json $(DFLAGS) $(SRCS) $(TAGGED_SRCS) $(OBJS)
 
 lib: $(DRUNTIME)
 
@@ -510,7 +524,7 @@ install: target
 	cp -r import/* $(INSTALL_DIR)/src/druntime/import/
 endif
 
-clean: $(addsuffix /.clean,$(ADDITIONAL_TESTS))
+clean: $(addsuffix /.clean,$(ADDITIONAL_TESTS)) gen_tagged_srcs_clean
 	rm -rf $(ROOT_OF_THEM_ALL) $(IMPDIR) $(DOC_OUTPUT_DIR) druntime.zip
 
 test/%/.clean: test/%/Makefile
