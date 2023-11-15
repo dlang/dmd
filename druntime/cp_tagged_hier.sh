@@ -6,9 +6,9 @@ SRC_DIR=$1
 DST_DIR=$2
 TAGS=$3
 
-TAGS_LIST=($(echo "$TAGS" | tr "," "\n"))
+TAGS_LIST=($(echo "$TAGS,default" | tr "," "\n"))
 
-echo -e "\nChoised tags:\n$TAGS_LIST"
+echo -e "\nTags will be applied:\n$TAGS_LIST"
 
 APPLIED=""
 
@@ -39,3 +39,9 @@ do
 done
 
 echo "All tags applied"
+
+DESCR_FILE=${DST_DIR}/SRCS
+
+echo "SRCS=\\" > ${DESCR_FILE}
+find backends/ -type f -exec echo {} \\ \; >> ${DESCR_FILE}
+echo "" >> ${DESCR_FILE}
