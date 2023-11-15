@@ -23,6 +23,8 @@ function applyTaggedFiles {
         echo "Error: these file(s) already exist before tag '${TAG}' was applied:"
         echo "$FIND_EXISTED"
 
+        echo "Currently applied tags list:$APPLIED"
+        echo "Not applied tag: ${TAG}"
         exit 1
     fi
 
@@ -36,4 +38,4 @@ do
     applyTaggedFiles ${tag}
 done
 
-echo "All tags $APPLIED applied"
+echo "All tags applied"
