@@ -8,7 +8,7 @@ TAGS=$3
 
 TAGS_LIST=($(echo "$TAGS,default" | tr "," "\n"))
 
-echo -e "\nTags will be applied:\n$TAGS"
+echo -e "\nTags will be applied (except default): $TAGS"
 
 APPLIED=""
 
