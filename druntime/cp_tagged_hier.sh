@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -euox pipefail
+set -euo pipefail
 
 SRC_DIR=$1
 DST_DIR=$2
@@ -8,7 +8,7 @@ TAGS=$3
 
 TAGS_LIST=($(echo "$TAGS,default" | tr "," "\n"))
 
-echo -e "\nTags will be applied:\n$TAGS_LIST"
+echo -e "\nTags will be applied:\n$TAGS"
 
 APPLIED=""
 
@@ -40,8 +40,8 @@ done
 
 echo "All tags applied"
 
-DESCR_FILE=${DST_DIR}/SRCS
+DESCR_FILE=${DST_DIR}/TAGGED_SRCS
 
-echo "SRCS=\\" > ${DESCR_FILE}
-find backends/ -type f -exec echo {} \\ \; >> ${DESCR_FILE}
-echo "" >> ${DESCR_FILE}
+echo "TAGGED_SRCS=\\" > ${DESCR_FILE}
+find ${DST_DIR} -type f -exec echo {} \\ \; >> ${DESCR_FILE}
+echo "\\" >> ${DESCR_FILE}
