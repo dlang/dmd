@@ -43,5 +43,5 @@ echo "All tags applied"
 DESCR_FILE=${DST_DIR}/TAGGED_SRCS
 
 echo "TAGGED_SRCS=\\" > ${DESCR_FILE}
-find ${DST_DIR} -type f -exec echo {} \\ \; >> ${DESCR_FILE}
+find ${DST_DIR} -type f -exec echo {} \\ \; | grep -v TAGGED_SRCS >> ${DESCR_FILE}
 echo "\\" >> ${DESCR_FILE}
