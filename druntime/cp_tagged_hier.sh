@@ -6,9 +6,11 @@ SRC_DIR=$1
 DST_DIR=$2
 TAGS=$3
 
-TAGS_LIST=$(echo "$TAGS" | tr "," "\n")
+TAGS_LIST=($(echo "$TAGS" | tr "," "\n"))
 
-echo -e "\nChoised tags:\n$TAGS_LIST\n"
+echo -e "\nChoised tags:\n$TAGS_LIST"
+
+APPLIED=""
 
 function applyTaggedFiles {
     TAG=$1
@@ -23,9 +25,15 @@ function applyTaggedFiles {
 
         exit 1
     fi
+
+    APPLIED+=" $TAG"
+
+    echo "Currently applied tags:$APPLIED"
 }
 
 for tag in "${TAGS_LIST[@]}"
 do
     applyTaggedFiles ${tag}
 done
+
+echo "All tags $APPLIED applied"
