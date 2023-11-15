@@ -4,6 +4,11 @@ set -euox pipefail
 
 SRC_DIR=$1
 DST_DIR=$2
+TAGS=$3
+
+TAGS_LIST=$(echo "$TAGS" | tr "," "\n")
+
+echo -e "\nChoised tags:\n$TAGS_LIST\n"
 
 function applyTaggedFiles {
     TAG=$1
@@ -20,4 +25,7 @@ function applyTaggedFiles {
     fi
 }
 
-applyTaggedFiles $3
+for tag in "${TAGS_LIST[@]}"
+do
+    applyTaggedFiles ${tag}
+done
