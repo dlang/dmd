@@ -3856,6 +3856,11 @@ private void initializerToBuffer(Initializer inx, ref OutBuffer buf, HdrGenState
         buf.writestring("void");
     }
 
+    void visitDefault(DefaultInitializer iz)
+    {
+        buf.writestring("{ }");
+    }
+
     void visitStruct(StructInitializer si)
     {
         //printf("StructInitializer::toCBuffer()\n");

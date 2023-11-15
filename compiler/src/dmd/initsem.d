@@ -106,6 +106,7 @@ Expression toAssocArrayLiteral(ArrayInitializer ai)
  */
 extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedInterpret needInterpret)
 {
+    //printf("initializerSemantic() tx: %p %s\n", tx, tx.toChars());
     Type t = tx;
 
     static Initializer err()
@@ -114,6 +115,12 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
     }
 
     Initializer visitVoid(VoidInitializer i)
+    {
+        i.type = t;
+        return i;
+    }
+
+    Initializer visitDefault(DefaultInitializer i)
     {
         i.type = t;
         return i;
@@ -1017,6 +1024,12 @@ Initializer inferType(Initializer init, Scope* sc)
         return new ErrorInitializer();
     }
 
+    Initializer visitDefault(DefaultInitializer i)
+    {
+        error(i.loc, "cannot infer type from default initializer");
+        return new ErrorInitializer();
+    }
+
     Initializer visitError(ErrorInitializer i)
     {
         return i;
@@ -1173,6 +1186,11 @@ extern (C++) Expression initializerToExpression(Initializer init, Type itype = n
     Expression visitVoid(VoidInitializer)
     {
         return null;
+    }
+
+    Expression visitDefault(DefaultInitializer di)
+    {
+        return di.type ? di.type.defaultInit(Loc.initial, isCfile) : null;
     }
 
     Expression visitError(ErrorInitializer)
