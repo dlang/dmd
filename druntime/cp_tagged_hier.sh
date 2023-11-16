@@ -26,8 +26,14 @@ APPLIED=""
 
 function applyTaggedFiles {
     TAG=$1
+    SRC_TAG_DIR=${SRC_DIR}/${TAG}
 
-    cp -R --backup --suffix=.existed ${SRC_DIR}/${TAG}/* ${DST_DIR}
+    if [[ ! -d ${SRC_TAG_DIR} ]]; then
+        echo "Tag '${TAG}' doesn't corresponds to subdirectory inside of '${SRC_DIR}', skip"
+        return 0
+    fi
+
+    cp -R --backup --suffix=.existed ${SRC_TAG_DIR}/* ${DST_DIR}
 
     FIND_EXISTED=$(find ${DST_DIR} -type f -name "*.existed")
 
