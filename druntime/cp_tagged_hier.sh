@@ -8,6 +8,11 @@ SRC_COPY_FILE=$3
 DST_COPY_FILE=$4
 TAGS=$5
 
+if [[ ! -d ${SRC_DIR} ]]; then
+    echo "Tags dir '${SRC_DIR}' not found"
+    return 1
+fi
+
 if [[ -f ${DST_FILE} ]]; then
     echo "Tagged sources list already generated"
 
