@@ -377,7 +377,7 @@ $(ROOT)/valgrind.o : src/etc/valgrind/valgrind.c src/etc/valgrind/valgrind.h src
 ################################################
 
 gen_tagged_srcs:
-	./cp_tagged_hier.sh ./impl $(TGEN_DIR) $(ARCH),$(OS)
+	./cp_tagged_hier.sh ./impl $(TGEN_DIR) x86_64,$(OS)
 
 gen_tagged_srcs_clean:
 	rm -rf $(TGEN_DIR)
