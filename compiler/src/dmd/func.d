@@ -3437,8 +3437,12 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
             return null;
         }
 
-        .error(loc, "%smethod `%s` is not callable using a %sobject",
-               funcBuf.peekChars(), fd.toPrettyChars(), thisBuf.peekChars());
+        if (fd.isCtorDeclaration())
+            .error(loc, "%s%s `%s` cannot construct a %sobject",
+                   funcBuf.peekChars(), fd.kind(), fd.toPrettyChars(), thisBuf.peekChars());
+        else
+            .error(loc, "%smethod `%s` is not callable using a %sobject",
+                   funcBuf.peekChars(), fd.toPrettyChars(), thisBuf.peekChars());
 
         if (mismatches.isNotShared)
             .errorSupplemental(fd.loc, "Consider adding `shared` here");
