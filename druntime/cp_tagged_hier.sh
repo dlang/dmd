@@ -15,12 +15,12 @@ function linkFile {
     DST_PATH=$(dirname ${DST})
     mkdir -p ${DST_PATH}
 
-    #FIXME
-    #~ if [[ "$OSTYPE" == "msys" ]]; then
+    if [[ "$OSTYPE" == "msys" ]]; then
         cp ${SRC} ${DST}
-    #~ else
-        #~ ln -s ${SRC} ${DST}
-    #~ fi
+    else
+        SRC_FULL=$(readlink -f ${SRC})
+        ln -s ${SRC_FULL} ${DST}
+    fi
 }
 
 SRC_DIR=$1
