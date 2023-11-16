@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -euox pipefail
+set -euo pipefail
 
 SRC_DIR=$1
 DST_FILE=$2 #TODO: rename
