@@ -1806,25 +1806,24 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
     // either a SliceExp, an IndexExp, an ArrayExp, a TypeTuple or a TupleDeclaration.
     // Discriminated using DYNCAST and, for expressions, also EXP
     private RootObject arrayContent;
-    Scope* sc;
 
     extern (D) this(Scope* sc, Expression exp) nothrow @safe
     {
         super(exp.loc, null);
         assert(exp.op == EXP.index || exp.op == EXP.slice || exp.op == EXP.array);
-        this.sc = sc;
+        this._scope = sc;
         this.arrayContent = exp;
     }
 
     extern (D) this(Scope* sc, TypeTuple type) nothrow @safe
     {
-        this.sc = sc;
+        this._scope = sc;
         this.arrayContent = type;
     }
 
     extern (D) this(Scope* sc, TupleDeclaration td) nothrow @safe
     {
-        this.sc = sc;
+        this._scope = sc;
         this.arrayContent = td;
     }
 
@@ -1862,10 +1861,10 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
             Expression e = new IntegerExp(Loc.initial, td.objects.length, Type.tsize_t);
             v._init = new ExpInitializer(Loc.initial, e);
             v.storage_class |= STC.temp | STC.static_ | STC.const_;
-            v.dsymbolSemantic(sc);
+            v.dsymbolSemantic(_scope);
             return v;
         case type:
-            return dollarFromTypeTuple(loc, cast(TypeTuple) arrayContent, sc);
+            return dollarFromTypeTuple(loc, cast(TypeTuple) arrayContent, _scope);
         default:
             break;
         }
@@ -1906,7 +1905,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
         if (auto te = ce.isTypeExp())
         {
             if (auto ttp = te.type.isTypeTuple())
-                return dollarFromTypeTuple(loc, ttp, sc);
+                return dollarFromTypeTuple(loc, ttp, _scope);
         }
         /* *pvar is lazily initialized, so if we refer to $
          * multiple times, it gets set only once.
@@ -1955,7 +1954,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                     }
                     auto tiargs = new Objects();
                     Expression edim = new IntegerExp(Loc.initial, dim, Type.tsize_t);
-                    edim = edim.expressionSemantic(sc);
+                    edim = edim.expressionSemantic(_scope);
                     tiargs.push(edim);
                     e = new DotTemplateInstanceExp(loc, ce, td.ident, tiargs);
                 }
@@ -1976,7 +1975,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                     assert(d);
                     e = new DotVarExp(loc, ce, d);
                 }
-                e = e.expressionSemantic(sc);
+                e = e.expressionSemantic(_scope);
                 if (!e.type)
                     error(exp.loc, "`%s` has no value", e.toChars());
                 t = e.type.toBasetype();
@@ -2012,7 +2011,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
             }
             *pvar = v;
         }
-        (*pvar).dsymbolSemantic(sc);
+        (*pvar).dsymbolSemantic(_scope);
         return (*pvar);
     }
 
