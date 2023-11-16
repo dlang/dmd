@@ -104,7 +104,6 @@ SRCS=\
 	src\core\stdc\stdio.d \
 	src\core\stdc\stdlib.d \
 	src\core\stdc\string.d \
-	tagged_generated_srcs\core\stdc\tgmath.d \
 	src\core\stdc\time.d \
 	src\core\stdc\wchar_.d \
 	src\core\stdc\wctype.d \
@@ -567,7 +566,6 @@ SRCS=\
 	src\rt\ehalloc.d \
 	src\rt\invariant.d \
 	src\rt\lifetime.d \
-	tagged_generated_srcs\rt\llmath.d \
 	src\rt\memory.d \
 	src\rt\memset.d \
 	src\rt\minfo.d \

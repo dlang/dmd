@@ -1,42 +1,15 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
-
-function linkFile {
-    SRC=${1}
-    DST=${2}
-    TAG=${3}
-
-    if [[ -a ${DST} ]]; then
-        echo "Error: attempt to replace '$DST_FILE' by file from '$TAG'"
-        exit 1
-    fi
-
-    DST_PATH=$(dirname ${DST})
-    mkdir -p ${DST_PATH}
-
-    if [[ "$OSTYPE" == "msys" ]]; then
-        cp ${SRC} ${DST}
-    else
-        SRC_FULL=$(readlink -f ${SRC})
-        ln -s ${SRC_FULL} ${DST}
-    fi
-}
+set -euox pipefail
 
 SRC_DIR=$1
-DST_DIR=$2
+DST_FILE=$2
 TAGS=$3
 
-DONE_FLAG_FILE=${DST_DIR}/GENERATED
-
-if [[ -f ${DONE_FLAG_FILE} ]]; then
-    echo "Tagged sources directory already generated"
+if [[ -f ${DST_FILE} ]]; then
+    echo "Tagged sources list already generated"
 
     exit 0
-else
-    # Prepare to generate or re-generate
-    mkdir -p ${DST_DIR}
-    rm -rf ${DST_DIR}/*
 fi
 
 TAGS_LIST=($(echo "$TAGS,default" | tr "," "\n"))
@@ -54,14 +27,7 @@ function applyTaggedFiles {
         return 0
     fi
 
-    pushd ${SRC_TAG_DIR}
-    FILES=($(find . -type f))
-    popd
-
-    for curr_file in "${FILES[@]}"
-    do
-        linkFile ${SRC_TAG_DIR}/${curr_file} ${DST_DIR}/${curr_file} ${SRC_TAG_DIR}
-    done
+    SRC_FILES_LIST+=($(find ${SRC_TAG_DIR} -type f ))
 
     APPLIED+=" $TAG"
 
@@ -73,6 +39,10 @@ do
     applyTaggedFiles ${tag}
 done
 
-echo "All tags applied"
+echo "TAGGED_SRCS_LIST=\\" > ${DST_FILE}
+for l in "${SRC_FILES_LIST[@]}"
+do
+    echo "$l \\" | tr '/' '\\' >> ${DST_FILE}
+done
 
-touch ${DONE_FLAG_FILE}
+echo "All tags applied"

@@ -112,8 +112,9 @@ DRUNTIMESOLIB=$(ROOT)/libdruntime.so.a
 
 STDDOC=
 
-# Generated tagged sources
-TGEN_DIR:=tagged_generated_srcs
+TAGGED_SRCS_FILE:=mak/TAGGED_SRCS
+-include $(TAGGED_SRCS_FILE)
+TAGGED_SRCS?=$(TAGGED_SRCS_LIST)
 
 include mak/COPY
 COPY:=$(subst \,/,$(COPY))
@@ -122,7 +123,7 @@ include mak/DOCS
 DOCS:=$(subst \,/,$(DOCS))
 
 include mak/SRCS
-SRCS:=$(subst \,/,$(SRCS))
+SRCS:=$(subst \,/,$(SRCS)) $(subst \,/,$(TAGGED_SRCS))
 
 # NOTE: trace.d and cover.d are not necessary for a successful build
 #       as both are used for debugging features (profiling and coverage)
@@ -377,10 +378,10 @@ $(ROOT)/valgrind.o : src/etc/valgrind/valgrind.c src/etc/valgrind/valgrind.h src
 ################################################
 
 gen_tagged_srcs:
-	./cp_tagged_hier.sh ./impl $(TGEN_DIR) x86_64,$(OS)
+	./cp_tagged_hier.sh impl $(TAGGED_SRCS_FILE) x86_64,$(OS)
 
 gen_tagged_srcs_clean:
-	rm -rf $(TGEN_DIR)
+	rm -f $(TAGGED_SRCS_FILE)
 
 ######################## Create a shared library ##############################
 
