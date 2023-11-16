@@ -567,7 +567,7 @@ SRCS=\
 	src\rt\ehalloc.d \
 	src\rt\invariant.d \
 	src\rt\lifetime.d \
-	src\rt\llmath.d \
+	tagged_generated_srcs\rt\llmath.d \
 	src\rt\memory.d \
 	src\rt\memset.d \
 	src\rt\minfo.d \
