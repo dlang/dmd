@@ -50,7 +50,7 @@ function applyTaggedFiles {
     SRC_TAG_DIR=${SRC_DIR}/${TAG}
 
     if [[ ! -d ${SRC_TAG_DIR} ]]; then
-        echo "Tag '${TAG}' doesn't corresponds to subdirectory inside of '${SRC_DIR}', skip"
+        echo "Tag '${TAG}' doesn't corresponds to any subdirectory inside of '${SRC_DIR}', skip"
         return 0
     fi
 
