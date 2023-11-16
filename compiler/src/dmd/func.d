@@ -3412,7 +3412,10 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
     if (!tf)
         tf = fd.originalType.toTypeFunction();
 
-    if (tthis && !MODimplicitConv(tthis.mod, tf.mod)) // modifier mismatch
+    // modifier mismatch
+    if (tthis && (fd.isCtorDeclaration() ?
+        !MODimplicitConv(tf.mod, tthis.mod) :
+        !MODimplicitConv(tthis.mod, tf.mod)))
     {
         OutBuffer thisBuf, funcBuf;
         MODMatchToBuffer(&thisBuf, tthis.mod, tf.mod);
