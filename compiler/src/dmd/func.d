@@ -3449,17 +3449,15 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
 
         if (fd.isCtorDeclaration())
             .error(loc, "%s%s `%s` cannot construct a %sobject",
-                   funcBuf.peekChars(), fd.kind(), fd.toChars(), thisBuf.peekChars());
+                   funcBuf.peekChars(), fd.kind(), fd.toPrettyChars(), thisBuf.peekChars());
         else
             .error(loc, "%smethod `%s` is not callable using a %sobject",
-                   funcBuf.peekChars(), fd.toChars(), thisBuf.peekChars());
-        .errorSupplemental(fd.loc, "`%s%s%s` declared here",
-            fd.toPrettyChars(), parametersTypeToChars(tf.parameterList), tf.modToChars());
+                   funcBuf.peekChars(), fd.toPrettyChars(), thisBuf.peekChars());
 
         if (mismatches.isNotShared)
-            .errorSupplemental(fd.loc, "Consider adding `shared`");
+            .errorSupplemental(fd.loc, "Consider adding `shared` here");
         else if (mismatches.isMutable)
-            .errorSupplemental(fd.loc, "Consider adding `const` or `inout`");
+            .errorSupplemental(fd.loc, "Consider adding `const` or `inout` here");
         return null;
     }
 
