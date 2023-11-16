@@ -333,7 +333,7 @@ $(DOC_OUTPUT_DIR)/rt_util_%.html : src/rt/util/%.d $(DMD)
 
 import: copy
 
-copy: $(COPY)
+copy: gen_tagged_srcs $(COPY)
 
 $(IMPDIR)/object.d : src/object.d
 	@mkdir -p $(dir $@)
