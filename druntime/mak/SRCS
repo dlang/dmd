@@ -104,7 +104,7 @@ SRCS=\
 	src\core\stdc\stdio.d \
 	src\core\stdc\stdlib.d \
 	src\core\stdc\string.d \
-	src\core\stdc\tgmath.d \
+	tagged_generated_srcs\core\stdc\tgmath.d \
 	src\core\stdc\time.d \
 	src\core\stdc\wchar_.d \
 	src\core\stdc\wctype.d \
