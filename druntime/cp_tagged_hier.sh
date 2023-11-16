@@ -6,6 +6,18 @@ SRC_DIR=$1
 DST_DIR=$2
 TAGS=$3
 
+DESCR_FILE=${DST_DIR}/TAGGED_SRCS
+
+if [[ -f ${DESCR_FILE} ]]; then
+    echo "Tagged sources directory already generated"
+
+    exit 0
+else
+    # Prepare to generate or re-generate
+    mkdir -p ${DST_DIR}
+    rm -rf ${DST_DIR}
+fi
+
 TAGS_LIST=($(echo "$TAGS,default" | tr "," "\n"))
 
 echo -e "\nTags will be applied (except default): $TAGS"
@@ -39,8 +51,6 @@ do
 done
 
 echo "All tags applied"
-
-DESCR_FILE=${DST_DIR}/TAGGED_SRCS
 
 echo "TAGGED_SRCS=\\" > ${DESCR_FILE}
 find ${DST_DIR} -type f -exec echo {} \\ \; | grep -v TAGGED_SRCS >> ${DESCR_FILE}
