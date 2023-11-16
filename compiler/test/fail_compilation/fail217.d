@@ -1,8 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail217.d(22): Error: mutable method `fail217.Message.this` is not callable using a `immutable` object
-fail_compilation/fail217.d(13):        Consider adding `const` or `inout` here
+fail_compilation/fail217.d(23): Error: mutable constructor `this` cannot construct a `immutable` object
+fail_compilation/fail217.d(14):        `fail217.Message.this(int notifier_object)` declared here
+fail_compilation/fail217.d(14):        Consider adding `const` or `inout`
 ---
 */
 

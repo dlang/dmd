@@ -1,8 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice9759.d(25): Error: mutable method `ice9759.Json.opAssign` is not callable using a `const` object
-fail_compilation/ice9759.d(17):        Consider adding `const` or `inout` here
+fail_compilation/ice9759.d(26): Error: mutable method `opAssign` is not callable using a `const` object
+fail_compilation/ice9759.d(18):        `ice9759.Json.opAssign(Json v)` declared here
+fail_compilation/ice9759.d(18):        Consider adding `const` or `inout`
 ---
 */
 
