@@ -47,7 +47,6 @@ class CPPNamespaceDeclaration;
 class UserAttributeDeclaration;
 class Module;
 class TemplateInstance;
-class ScopeDsymbol;
 class AggregateDeclaration;
 class LabelDsymbol;
 class ClassDeclaration;
@@ -90,6 +89,7 @@ class DebugSymbol;
 class StructDeclaration;
 class UnionDeclaration;
 class InterfaceDeclaration;
+class ScopeDsymbol;
 class ForwardingScopeDsymbol;
 class WithScopeSymbol;
 class ArrayScopeSymbol;
@@ -499,7 +499,6 @@ public:
     virtual const char* kind() const;
     virtual Dsymbol* toAlias();
     virtual Dsymbol* toAlias2();
-    virtual void addMember(Scope* sc, ScopeDsymbol* sds);
     virtual void setScope(Scope* sc);
     virtual void importAll(Scope* sc);
     virtual Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 0);
@@ -3941,7 +3940,6 @@ class Nspace final : public ScopeDsymbol
 public:
     Expression* identExp;
     Nspace* syntaxCopy(Dsymbol* s) override;
-    void addMember(Scope* sc, ScopeDsymbol* sds) override;
     void setScope(Scope* sc) override;
     Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8) override;
     bool hasPointers() override;
@@ -4563,7 +4561,6 @@ public:
     Expression* exp;
     Array<Expression* >* msgs;
     StaticAssert* syntaxCopy(Dsymbol* s) override;
-    void addMember(Scope* sc, ScopeDsymbol* sds) override;
     bool oneMember(Dsymbol** ps, Identifier* ident) override;
     const char* kind() const override;
     StaticAssert* isStaticAssert() override;
@@ -5389,7 +5386,6 @@ public:
     Array<Dsymbol* >* decl;
     virtual Array<Dsymbol* >* include(Scope* sc);
     virtual Scope* newScope(Scope* sc);
-    void addMember(Scope* sc, ScopeDsymbol* sds) override;
     void setScope(Scope* sc) override;
     void importAll(Scope* sc) override;
     void addComment(const char* comment) override;
@@ -5411,7 +5407,6 @@ public:
     StorageClassDeclaration* syntaxCopy(Dsymbol* s) override;
     Scope* newScope(Scope* sc) override;
     bool oneMember(Dsymbol** ps, Identifier* ident) final override;
-    void addMember(Scope* sc, ScopeDsymbol* sds) override;
     StorageClassDeclaration* isStorageClassDeclaration() override;
     void accept(Visitor* v) override;
 };
@@ -5467,7 +5462,6 @@ public:
     _d_dynamicArray< Identifier* > pkg_identifiers;
     VisibilityDeclaration* syntaxCopy(Dsymbol* s) override;
     Scope* newScope(Scope* sc) override;
-    void addMember(Scope* sc, ScopeDsymbol* sds) override;
     const char* kind() const override;
     const char* toPrettyChars(bool __param_0_) override;
     VisibilityDeclaration* isVisibilityDeclaration() override;
@@ -5533,7 +5527,6 @@ private:
 public:
     StaticIfDeclaration* syntaxCopy(Dsymbol* s) override;
     Array<Dsymbol* >* include(Scope* sc) override;
-    void addMember(Scope* sc, ScopeDsymbol* sds) override;
     void setScope(Scope* sc) override;
     void importAll(Scope* sc) override;
     const char* kind() const override;
@@ -5552,7 +5545,6 @@ public:
     StaticForeachDeclaration* syntaxCopy(Dsymbol* s) override;
     bool oneMember(Dsymbol** ps, Identifier* ident) override;
     Array<Dsymbol* >* include(Scope* sc) override;
-    void addMember(Scope* sc, ScopeDsymbol* sds) override;
     void addComment(const char* comment) override;
     void setScope(Scope* sc) override;
     void importAll(Scope* sc) override;
@@ -5566,7 +5558,6 @@ public:
     ForwardingScopeDsymbol* sym;
     ForwardingAttribDeclaration(Array<Dsymbol* >* decl);
     Scope* newScope(Scope* sc) override;
-    void addMember(Scope* sc, ScopeDsymbol* sds) override;
     ForwardingAttribDeclaration* isForwardingAttribDeclaration() override;
     void accept(Visitor* v) override;
 };
@@ -5578,7 +5569,6 @@ public:
     ScopeDsymbol* scopesym;
     bool compiled;
     MixinDeclaration* syntaxCopy(Dsymbol* s) override;
-    void addMember(Scope* sc, ScopeDsymbol* sds) override;
     void setScope(Scope* sc) override;
     const char* kind() const override;
     MixinDeclaration* isMixinDeclaration() override;
@@ -6142,7 +6132,6 @@ private:
     uint8_t bitFields;
 public:
     EnumDeclaration* syntaxCopy(Dsymbol* s) override;
-    void addMember(Scope* sc, ScopeDsymbol* sds) override;
     void setScope(Scope* sc) override;
     bool oneMember(Dsymbol** ps, Identifier* ident) override;
     Type* getType() override;
@@ -6189,7 +6178,6 @@ public:
     Import* syntaxCopy(Dsymbol* s) override;
     void importAll(Scope* sc) override;
     Dsymbol* toAlias() override;
-    void addMember(Scope* sc, ScopeDsymbol* sd) override;
     void setScope(Scope* sc) override;
     Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8) override;
     bool overloadInsert(Dsymbol* s) override;
@@ -6602,6 +6590,8 @@ public:
 
 extern void dsymbolSemantic(Dsymbol* dsym, Scope* sc);
 
+extern void addMember(Dsymbol* dsym, Scope* sc, ScopeDsymbol* sds);
+
 extern Expression* isExpression(RootObject* o);
 
 extern Dsymbol* isDsymbol(RootObject* o);
@@ -6841,7 +6831,6 @@ public:
     uint32_t level;
     DebugSymbol* syntaxCopy(Dsymbol* s) override;
     const char* toChars() const override;
-    void addMember(Scope* sc, ScopeDsymbol* sds) override;
     const char* kind() const override;
     DebugSymbol* isDebugSymbol() override;
     void accept(Visitor* v) override;
@@ -6853,7 +6842,6 @@ public:
     uint32_t level;
     VersionSymbol* syntaxCopy(Dsymbol* s) override;
     const char* toChars() const override;
-    void addMember(Scope* sc, ScopeDsymbol* sds) override;
     const char* kind() const override;
     VersionSymbol* isVersionSymbol() override;
     void accept(Visitor* v) override;

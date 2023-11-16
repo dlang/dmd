@@ -305,33 +305,6 @@ extern (C++) final class Import : Dsymbol
         return this;
     }
 
-    /*****************************
-     * Add import to sd's symbol table.
-     */
-    override void addMember(Scope* sc, ScopeDsymbol sd)
-    {
-        //printf("Import.addMember(this=%s, sd=%s, sc=%p)\n", toChars(), sd.toChars(), sc);
-        if (names.length == 0)
-            return Dsymbol.addMember(sc, sd);
-        if (aliasId)
-            Dsymbol.addMember(sc, sd);
-        /* Instead of adding the import to sd's symbol table,
-         * add each of the alias=name pairs
-         */
-        for (size_t i = 0; i < names.length; i++)
-        {
-            Identifier name = names[i];
-            Identifier _alias = aliases[i];
-            if (!_alias)
-                _alias = name;
-            auto tname = new TypeIdentifier(loc, name);
-            auto ad = new AliasDeclaration(loc, _alias, tname);
-            ad._import = this;
-            ad.addMember(sc, sd);
-            aliasdecls.push(ad);
-        }
-    }
-
     override void setScope(Scope* sc)
     {
         Dsymbol.setScope(sc);
