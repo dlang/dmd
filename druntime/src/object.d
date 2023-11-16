@@ -2918,19 +2918,19 @@ alias AssociativeArray(Key, Value) = Value[Key];
  * Params:
  *      aa =     The associative array.
  */
-void clear(Value, Key)(Value[Key] aa)
+void clear(Value, Key)(Value[Key] aa) @trusted
 {
     _aaClear(*cast(AA *) &aa);
 }
 
 /** ditto */
-void clear(Value, Key)(Value[Key]* aa)
+void clear(Value, Key)(Value[Key]* aa) @trusted
 {
     _aaClear(*cast(AA *) aa);
 }
 
 ///
-@system unittest
+@safe unittest
 {
     auto aa = ["k1": 2];
     aa.clear;
