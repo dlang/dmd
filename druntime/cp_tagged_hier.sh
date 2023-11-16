@@ -1,6 +1,27 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+set -euox pipefail
+
+function linkFile {
+    SRC=${1}
+    DST=${2}
+    TAG=${3}
+
+    if [[ -a ${DST} ]]; then
+        echo "Error: attempt to replace '$DST_FILE' by file from '$TAG'"
+        exit 1
+    fi
+
+    DST_PATH=$(dirname ${DST})
+    mkdir -p ${DST_PATH}
+
+    #FIXME
+    #~ if [[ "$OSTYPE" == "msys" ]]; then
+        cp ${SRC} ${DST}
+    #~ else
+        #~ ln -s ${SRC} ${DST}
+    #~ fi
+}
 
 SRC_DIR=$1
 DST_DIR=$2
@@ -33,18 +54,14 @@ function applyTaggedFiles {
         return 0
     fi
 
-    cp -R --backup --suffix=.existed ${SRC_TAG_DIR}/* ${DST_DIR}
+    pushd ${SRC_TAG_DIR}
+    FILES=($(find . -type f))
+    popd
 
-    FIND_EXISTED=$(find ${DST_DIR} -type f -name "*.existed")
-
-    if [[ "$FIND_EXISTED" != "" ]]; then
-        echo "Error: these file(s) already exist before tag '${TAG}' was applied:"
-        echo "$FIND_EXISTED"
-
-        echo "Currently applied tags list:$APPLIED"
-        echo "Not applied tag: ${TAG}"
-        exit 1
-    fi
+    for curr_file in "${FILES[@]}"
+    do
+        linkFile ${SRC_TAG_DIR}/${curr_file} ${DST_DIR}/${curr_file} ${SRC_TAG_DIR}
+    done
 
     APPLIED+=" $TAG"
 
