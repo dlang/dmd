@@ -6,9 +6,9 @@ SRC_DIR=$1
 DST_DIR=$2
 TAGS=$3
 
-DESCR_FILE=${DST_DIR}/TAGGED_SRCS
+DONE_FLAG_FILE=${DST_DIR}/GENERATED
 
-if [[ -f ${DESCR_FILE} ]]; then
+if [[ -f ${DONE_FLAG_FILE} ]]; then
     echo "Tagged sources directory already generated"
 
     exit 0
@@ -52,6 +52,4 @@ done
 
 echo "All tags applied"
 
-echo "TAGGED_SRCS=\\" > ${DESCR_FILE}
-find ${DST_DIR} -type f -exec echo {} \\ \; | grep -v TAGGED_SRCS >> ${DESCR_FILE}
-echo "\\" >> ${DESCR_FILE}
+touch ${DONE_FLAG_FILE}
