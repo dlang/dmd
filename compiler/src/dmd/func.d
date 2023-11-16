@@ -3423,7 +3423,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
         if (hasOverloads)
         {
             .error(loc, "none of the overloads of `%s` are callable using a %sobject",
-                   fd.ident.toChars(), thisBuf.peekChars());
+                   fd.toChars(), thisBuf.peekChars());
             if (!global.gag || global.params.v.showGaggedErrors)
                 printCandidates(loc, fd, sc.isDeprecated());
             return null;
