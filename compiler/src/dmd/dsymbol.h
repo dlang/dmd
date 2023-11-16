@@ -374,8 +374,6 @@ class ArrayScopeSymbol final : public ScopeDsymbol
 private:
     RootObject *arrayContent;
 public:
-    Scope *sc;
-
     Dsymbol *search(const Loc &loc, Identifier *ident, int flags = IgnoreNone) override;
 
     ArrayScopeSymbol *isArrayScopeSymbol() override { return this; }
