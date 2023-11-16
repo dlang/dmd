@@ -609,7 +609,8 @@ elem* toElem(Expression e, ref IRState irs)
                     soffset = v.offset;
                 else if (v && v.inAlignSection)
                 {
-                    ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYnptr, fd.salignSection.Soffset));
+                    const vthisOffset = fd.vthis ? -toSymbol(fd.vthis).Soffset : 0;
+                    ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYnptr, vthisOffset + fd.salignSection.Soffset));
                     ethis = el_una(OPind, TYnptr, ethis);
                     soffset = v.offset;
                 }
@@ -624,10 +625,10 @@ elem* toElem(Expression e, ref IRState irs)
                     if (fd.vthis)
                     {
                         Symbol *vs = toSymbol(fd.vthis);
-                        //printf("vs = %s, offset = %x, %p\n", vs.Sident, cast(int)vs.Soffset, vs);
+                        //printf("vs = %s, offset = x%x, %p\n", vs.Sident.ptr, cast(int)vs.Soffset, vs);
                         soffset -= vs.Soffset;
                     }
-                    //printf("\tSoffset = x%x, sthis.Soffset = x%x\n", s.Soffset, irs.sthis.Soffset);
+                    //printf("\tSoffset = x%x, sthis.Soffset = x%x\n", cast(uint)s.Soffset, cast(uint)irs.sthis.Soffset);
                 }
 
                 if (!nrvo)
