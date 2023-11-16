@@ -21,7 +21,6 @@ class Nspace final : public ScopeDsymbol
   public:
     Expression *identExp;
     Nspace *syntaxCopy(Dsymbol *s) override;
-    void addMember(Scope *sc, ScopeDsymbol *sds) override;
     void setScope(Scope *sc) override;
     Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly) override;
     bool hasPointers() override;

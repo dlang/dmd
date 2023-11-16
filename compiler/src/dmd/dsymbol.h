@@ -228,7 +228,6 @@ public:
     virtual const char *kind() const;
     virtual Dsymbol *toAlias();                 // resolve real symbol
     virtual Dsymbol *toAlias2();
-    virtual void addMember(Scope *sc, ScopeDsymbol *sds);
     virtual void setScope(Scope *sc);
     virtual void importAll(Scope *sc);
     virtual Dsymbol *search(const Loc &loc, Identifier *ident, int flags = IgnoreNone);
@@ -434,3 +433,5 @@ public:
     // Number of symbols in symbol table
     size_t length() const;
 };
+
+void addMember(Dsymbol *dsym, Scope *sc, ScopeDsymbol *sds);

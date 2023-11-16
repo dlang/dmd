@@ -23,6 +23,7 @@ import dmd.astenums;
 import dmd.attrib;
 import dmd.blockexit;
 import dmd.clone;
+import dmd.cond;
 import dmd.compiler;
 import dmd.dcast;
 import dmd.dclass;
@@ -1979,7 +1980,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (!cd.compiled)
         {
             cd.decl = compileIt(cd);
-            cd.AttribDeclaration.addMember(sc, cd.scopesym);
+            attribAddMember(cd, sc, cd.scopesym);
             cd.compiled = true;
 
             if (cd._scope && cd.decl)
@@ -5828,6 +5829,365 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (idec.storage_class & STC.scope_)
                 error(idec.loc, "`scope` as a type constraint is obsolete.  Use `scope` at the usage site.");
         }
+    }
+}
+
+/*
+Adds dsym as a member of scope sds.
+
+Params:
+    dsym = dsymbol to inserted
+    sc = scope where the dsymbol is declared
+    sds = ScopeDsymbol where dsym is inserted
+*/
+extern(C++) void addMember(Dsymbol dsym, Scope* sc, ScopeDsymbol sds)
+{
+    auto addMemberVisitor = new AddMemberVisitor(sc, sds);
+    dsym.accept(addMemberVisitor);
+}
+
+private void attribAddMember(AttribDeclaration atb, Scope* sc, ScopeDsymbol sds)
+{
+    Dsymbols* d = atb.include(sc);
+    if (d)
+    {
+        Scope* sc2 = atb.newScope(sc);
+        d.foreachDsymbol( s => s.addMember(sc2, sds) );
+        if (sc2 != sc)
+            sc2.pop();
+    }
+}
+
+private extern(C++) class AddMemberVisitor : Visitor
+{
+    alias visit = Visitor.visit;
+
+    Scope* sc;
+    ScopeDsymbol sds;
+
+    this(Scope* sc, ScopeDsymbol sds)
+    {
+        this.sc = sc;
+        this.sds = sds;
+    }
+
+    override void visit(Dsymbol dsym)
+    {
+        //printf("Dsymbol::addMember('%s')\n", toChars());
+        //printf("Dsymbol::addMember(this = %p, '%s' scopesym = '%s')\n", this, toChars(), sds.toChars());
+        //printf("Dsymbol::addMember(this = %p, '%s' sds = %p, sds.symtab = %p)\n", this, toChars(), sds, sds.symtab);
+        dsym.parent = sds;
+        if (dsym.isAnonymous()) // no name, so can't add it to symbol table
+            return;
+
+        if (!sds.symtabInsert(dsym)) // if name is already defined
+        {
+            if (dsym.isAliasDeclaration() && !dsym._scope)
+                dsym.setScope(sc);
+            Dsymbol s2 = sds.symtabLookup(dsym, dsym.ident);
+            /* https://issues.dlang.org/show_bug.cgi?id=17434
+             *
+             * If we are trying to add an import to the symbol table
+             * that has already been introduced, then keep the one with
+             * larger visibility. This is fine for imports because if
+             * we have multiple imports of the same file, if a single one
+             * is public then the symbol is reachable.
+             */
+            if (auto i1 = dsym.isImport())
+            {
+                if (auto i2 = s2.isImport())
+                {
+                    if (sc.explicitVisibility && sc.visibility > i2.visibility)
+                        sds.symtab.update(dsym);
+                }
+            }
+
+            // If using C tag/prototype/forward declaration rules
+            if (sc.flags & SCOPE.Cfile && !dsym.isImport())
+            {
+                if (handleTagSymbols(*sc, dsym, s2, sds))
+                    return;
+                if (handleSymbolRedeclarations(*sc, dsym, s2, sds))
+                    return;
+
+                sds.multiplyDefined(Loc.initial, dsym, s2);  // ImportC doesn't allow overloading
+                dsym.errors = true;
+                return;
+            }
+
+            if (!s2.overloadInsert(dsym))
+            {
+                sds.multiplyDefined(Loc.initial, dsym, s2);
+                dsym.errors = true;
+            }
+        }
+        if (sds.isAggregateDeclaration() || sds.isEnumDeclaration())
+        {
+            if (dsym.ident == Id.__sizeof ||
+                !(sc && sc.flags & SCOPE.Cfile) && (dsym.ident == Id.__xalignof || dsym.ident == Id._mangleof))
+            {
+                .error(dsym.loc, "%s `%s` `.%s` property cannot be redefined", dsym.kind, dsym.toPrettyChars, dsym.ident.toChars());
+                dsym.errors = true;
+            }
+        }
+    }
+
+
+    override void visit(StaticAssert _)
+    {
+        // we didn't add anything
+    }
+
+    /*****************************
+     * Add import to sd's symbol table.
+     */
+    override void visit(Import imp)
+    {
+        //printf("Import.addMember(this=%s, sds=%s, sc=%p)\n", imp.toChars(), sds.toChars(), sc);
+        if (imp.names.length == 0)
+            return visit(cast(Dsymbol)imp);
+        if (imp.aliasId)
+            visit(cast(Dsymbol)imp);
+
+        /* Instead of adding the import to sds's symbol table,
+         * add each of the alias=name pairs
+         */
+        for (size_t i = 0; i < imp.names.length; i++)
+        {
+            Identifier name = imp.names[i];
+            Identifier _alias = imp.aliases[i];
+            if (!_alias)
+                _alias = name;
+            auto tname = new TypeIdentifier(imp.loc, name);
+            auto ad = new AliasDeclaration(imp.loc, _alias, tname);
+            ad._import = imp;
+            addMember(ad, sc, sds);
+            imp.aliasdecls.push(ad);
+        }
+    }
+
+    override void visit(AttribDeclaration atb)
+    {
+       attribAddMember(atb, sc, sds);
+    }
+
+    override void visit(StorageClassDeclaration stcd)
+    {
+        Dsymbols* d = stcd.include(sc);
+        if (d)
+        {
+            Scope* sc2 = stcd.newScope(sc);
+
+            d.foreachDsymbol( (s)
+            {
+                //printf("\taddMember %s to %s\n", s.toChars(), sds.toChars());
+                // STC.local needs to be attached before the member is added to the scope (because it influences the parent symbol)
+                if (auto decl = s.isDeclaration())
+                {
+                    decl.storage_class |= stcd.stc & STC.local;
+                    if (auto sdecl = s.isStorageClassDeclaration()) // TODO: why is this not enough to deal with the nested case?
+                    {
+                        sdecl.stc |= stcd.stc & STC.local;
+                    }
+                }
+                s.addMember(sc2, sds);
+            });
+
+            if (sc2 != sc)
+                sc2.pop();
+        }
+    }
+
+    override void visit(VisibilityDeclaration visd)
+    {
+        if (visd.pkg_identifiers)
+        {
+            Dsymbol tmp;
+            Package.resolve(visd.pkg_identifiers, &tmp, null);
+            visd.visibility.pkg = tmp ? tmp.isPackage() : null;
+            visd.pkg_identifiers = null;
+        }
+        if (visd.visibility.kind == Visibility.Kind.package_ && visd.visibility.pkg && sc._module)
+        {
+            Module m = sc._module;
+
+            // https://issues.dlang.org/show_bug.cgi?id=17441
+            // While isAncestorPackageOf does an equality check, the fix for the issue adds a check to see if
+            // each package's .isModule() properites are equal.
+            //
+            // Properties generated from `package(foo)` i.e. visibility.pkg have .isModule() == null.
+            // This breaks package declarations of the package in question if they are declared in
+            // the same package.d file, which _do_ have a module associated with them, and hence a non-null
+            // isModule()
+            if (!m.isPackage() || !visd.visibility.pkg.ident.equals(m.isPackage().ident))
+            {
+                Package pkg = m.parent ? m.parent.isPackage() : null;
+                if (!pkg || !visd.visibility.pkg.isAncestorPackageOf(pkg))
+                    .error(visd.loc, "%s `%s` does not bind to one of ancestor packages of module `%s`", visd.kind(), visd.toPrettyChars(false), m.toPrettyChars(true));
+            }
+        }
+        attribAddMember(visd, sc, sds);
+    }
+
+    override void visit(StaticIfDeclaration sid)
+    {
+        //printf("StaticIfDeclaration::addMember() '%s'\n", sid.toChars());
+        /* This is deferred until the condition evaluated later (by the include() call),
+         * so that expressions in the condition can refer to declarations
+         * in the same scope, such as:
+         *
+         * template Foo(int i)
+         * {
+         *     const int j = i + 1;
+         *     static if (j == 3)
+         *         const int k;
+         * }
+         */
+        sid.scopesym = sds;
+    }
+
+
+    override void visit(StaticForeachDeclaration sfd)
+    {
+        // used only for caching the enclosing symbol
+        sfd.scopesym = sds;
+    }
+
+    /***************************************
+     * Lazily initializes the scope to forward to.
+     */
+    override void visit(ForwardingAttribDeclaration fad)
+    {
+        fad.sym.parent = sds;
+        sds = fad.sym;
+        attribAddMember(fad, sc, fad.sym);
+    }
+
+    override void visit(MixinDeclaration md)
+    {
+        //printf("MixinDeclaration::addMember(sc = %p, sds = %p, memnum = %d)\n", sc, sds, md.memnum);
+        md.scopesym = sds;
+    }
+
+    override void visit(DebugSymbol ds)
+    {
+        //printf("DebugSymbol::addMember('%s') %s\n", sds.toChars(), ds.toChars());
+        Module m = sds.isModule();
+        // Do not add the member to the symbol table,
+        // just make sure subsequent debug declarations work.
+        if (ds.ident)
+        {
+            if (!m)
+            {
+                .error(ds.loc, "%s `%s` declaration must be at module level", ds.kind, ds.toPrettyChars);
+                ds.errors = true;
+            }
+            else
+            {
+                if (findCondition(m.debugidsNot, ds.ident))
+                {
+                    .error(ds.loc, "%s `%s` defined after use", ds.kind, ds.toPrettyChars);
+                    ds.errors = true;
+                }
+                if (!m.debugids)
+                    m.debugids = new Identifiers();
+                m.debugids.push(ds.ident);
+            }
+        }
+        else
+        {
+            if (!m)
+            {
+                .error(ds.loc, "%s `%s` level declaration must be at module level", ds.kind, ds.toPrettyChars);
+                ds.errors = true;
+            }
+            else
+                m.debuglevel = ds.level;
+        }
+    }
+
+    override void visit(VersionSymbol vs)
+    {
+        //printf("VersionSymbol::addMember('%s') %s\n", sds.toChars(), vs.toChars());
+        Module m = sds.isModule();
+        // Do not add the member to the symbol table,
+        // just make sure subsequent debug declarations work.
+        if (vs.ident)
+        {
+            VersionCondition.checkReserved(vs.loc, vs.ident.toString());
+            if (!m)
+            {
+                .error(vs.loc, "%s `%s` declaration must be at module level", vs.kind, vs.toPrettyChars);
+                vs.errors = true;
+            }
+            else
+            {
+                if (findCondition(m.versionidsNot, vs.ident))
+                {
+                    .error(vs.loc, "%s `%s` defined after use", vs.kind, vs.toPrettyChars);
+                    vs.errors = true;
+                }
+                if (!m.versionids)
+                    m.versionids = new Identifiers();
+                m.versionids.push(vs.ident);
+            }
+        }
+        else
+        {
+            if (!m)
+            {
+                .error(vs.loc, "%s `%s` level declaration must be at module level", vs.kind, vs.toPrettyChars);
+                vs.errors = true;
+            }
+            else
+                m.versionlevel = vs.level;
+        }
+    }
+
+    override void visit(Nspace ns)
+    {
+        visit(cast(Dsymbol)ns);
+
+        if (ns.members)
+        {
+            if (!ns.symtab)
+                ns.symtab = new DsymbolTable();
+            // The namespace becomes 'imported' into the enclosing scope
+            for (Scope* sce = sc; 1; sce = sce.enclosing)
+            {
+                ScopeDsymbol sds2 = sce.scopesym;
+                if (sds2)
+                {
+                    sds2.importScope(ns, Visibility(Visibility.Kind.public_));
+                    break;
+                }
+            }
+            assert(sc);
+            sc = sc.push(ns);
+            sc.linkage = LINK.cpp; // namespaces default to C++ linkage
+            sc.parent = ns;
+            ns.members.foreachDsymbol(s => s.addMember(sc, ns));
+            sc.pop();
+        }
+    }
+
+    override void visit(EnumDeclaration ed)
+    {
+        version (none)
+        {
+            printf("EnumDeclaration::addMember() %s\n", ed.toChars());
+            for (size_t i = 0; i < ed.members.length; i++)
+            {
+                EnumMember em = (*ed.members)[i].isEnumMember();
+                printf("    member %s\n", em.toChars());
+            }
+        }
+        if (!ed.isAnonymous())
+        {
+            visit(cast(Dsymbol)ed);
+        }
+
+        addEnumMembersToSymtab(ed, sc, sds);
     }
 }
 
