@@ -15,7 +15,7 @@ if [[ -f ${DONE_FLAG_FILE} ]]; then
 else
     # Prepare to generate or re-generate
     mkdir -p ${DST_DIR}
-    rm -rf ${DST_DIR}
+    rm -rf ${DST_DIR}/*
 fi
 
 TAGS_LIST=($(echo "$TAGS,default" | tr "," "\n"))
