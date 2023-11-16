@@ -3,8 +3,10 @@
 set -euox pipefail
 
 SRC_DIR=$1
-DST_FILE=$2
-TAGS=$3
+DST_FILE=$2 #TODO: rename
+SRC_COPY_FILE=$3
+DST_COPY_FILE=$4
+TAGS=$5
 
 if [[ -f ${DST_FILE} ]]; then
     echo "Tagged sources list already generated"
@@ -29,6 +31,10 @@ function applyTaggedFiles {
 
     SRC_FILES_LIST+=($(find ${SRC_TAG_DIR} -type f ))
 
+    pushd ${SRC_TAG_DIR}
+    MAYBE_COPY_LIST+=($(find * -type f ))
+    popd
+
     APPLIED+=" $TAG"
 
     echo "Currently applied tags:$APPLIED"
@@ -40,9 +46,17 @@ do
 done
 
 echo "TAGGED_SRCS_LIST=\\" > ${DST_FILE}
-for l in "${SRC_FILES_LIST[@]}"
+echo "TAGGED_COPY_LIST=\\" > ${DST_COPY_FILE}
+
+for i in "${!SRC_FILES_LIST[@]}"
 do
-    echo "$l \\" | tr '/' '\\' >> ${DST_FILE}
+    fl=$(echo "${SRC_FILES_LIST[$i]} \\" | tr '/' '\\')
+    echo ${fl} >> ${DST_FILE}
+
+    maybe_copy=$(echo "${MAYBE_COPY_LIST[$i]}" | tr '/' '\\')
+
+    #FIXME: weak code:
+    grep -F "$maybe_copy" < ${SRC_COPY_FILE} && echo ${fl} >> ${DST_COPY_FILE}
 done
 
 echo "All tags applied"

@@ -112,12 +112,22 @@ DRUNTIMESOLIB=$(ROOT)/libdruntime.so.a
 
 STDDOC=
 
-TAGGED_SRCS_FILE:=mak/TAGGED_SRCS
+###############
+
+TAGGED_COPY_LIST_FILE:=mak/TAGGED_COPY
+TAGGED_SRCS_FILE:=mak/GEN_SRCS
+TAGGED_COPY_FILE:=mak/GEN_COPY
+
 -include $(TAGGED_SRCS_FILE)
 TAGGED_SRCS?=$(TAGGED_SRCS_LIST)
 
+-include $(TAGGED_COPY_FILE)
+TAGGED_COPY?=$(TAGGED_COPY_LIST)
+
+###############
+
 include mak/COPY
-COPY:=$(subst \,/,$(COPY))
+COPY:=$(subst \,/,$(COPY)) $(subst \,/,$(TAGGED_COPY))
 
 include mak/DOCS
 DOCS:=$(subst \,/,$(DOCS))
@@ -378,10 +388,10 @@ $(ROOT)/valgrind.o : src/etc/valgrind/valgrind.c src/etc/valgrind/valgrind.h src
 ################################################
 
 gen_tagged_srcs:
-	./cp_tagged_hier.sh impl $(TAGGED_SRCS_FILE) x86_64,$(OS)
+	./cp_tagged_hier.sh impl $(TAGGED_SRCS_FILE) $(TAGGED_COPY_LIST_FILE) $(TAGGED_COPY_FILE) x86_64,$(OS)
 
 gen_tagged_srcs_clean:
-	rm -f $(TAGGED_SRCS_FILE)
+	rm -f $(TAGGED_SRCS_FILE) $(TAGGED_COPY_FILE)
 
 ######################## Create a shared library ##############################
 
