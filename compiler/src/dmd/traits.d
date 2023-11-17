@@ -99,8 +99,9 @@ private Dsymbol getDsymbolWithoutExpCtx(RootObject oarg)
 ulong getTypePointerBitmap(Loc loc, Type t, Array!(ulong)* data)
 {
     ulong sz;
-    if (t.ty == Tclass && !(cast(TypeClass)t).sym.isInterfaceDeclaration())
-        sz = (cast(TypeClass)t).sym.AggregateDeclaration.size(loc);
+    auto tc = t.isTypeClass();
+    if (tc && !tc.sym.isInterfaceDeclaration())
+        sz = tc.sym.AggregateDeclaration.size(loc);
     else
         sz = t.size(loc);
     if (sz == SIZE_INVALID)
@@ -247,7 +248,7 @@ ulong getTypePointerBitmap(Loc loc, Type t, Array!(ulong)* data)
         visit.VisitType(t);
     }
 
-    if (auto tc = t.isTypeClass())
+    if (auto tcx = t.isTypeClass())
     {
         // a "toplevel" class is treated as an instance, while TypeClass fields are treated as references
         void visitTopLevelClass(TypeClass t)
@@ -264,7 +265,7 @@ ulong getTypePointerBitmap(Loc loc, Type t, Array!(ulong)* data)
             offset = classoff;
         }
 
-        visitTopLevelClass(tc);
+        visitTopLevelClass(tcx);
     }
     else
         visit(t);
@@ -472,13 +473,13 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
     }
     if (e.ident == Id.isAbstractClass)
     {
-        return isTypeX(t => t.toBasetype().ty == Tclass &&
-                            (cast(TypeClass)t.toBasetype()).sym.isAbstract());
+        return isTypeX(t => t.toBasetype().isTypeClass() &&
+                            t.toBasetype().isTypeClass().sym.isAbstract());
     }
     if (e.ident == Id.isFinalClass)
     {
-        return isTypeX(t => t.toBasetype().ty == Tclass &&
-                            ((cast(TypeClass)t.toBasetype()).sym.storage_class & STC.final_) != 0);
+        return isTypeX(t => t.toBasetype().isTypeClass() &&
+                            (t.toBasetype().isTypeClass().sym.storage_class & STC.final_) != 0);
     }
     if (e.ident == Id.isTemplate)
     {
@@ -508,7 +509,8 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         }
 
         Type tb = t.baseElemOf();
-        if (auto sd = tb.ty == Tstruct ? (cast(TypeStruct)tb).sym : null)
+        auto ts = tb.isTypeStruct();
+        if (auto sd = ts ? ts.sym : null)
         {
             return sd.isPOD() ? True() : False();
         }
@@ -529,7 +531,8 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         }
 
         Type tb = t.baseElemOf();
-        if (auto sd = tb.ty == Tstruct ? (cast(TypeStruct)tb).sym : null)
+        auto ts = tb.isTypeStruct();
+        if (auto sd = ts ? ts.sym : null)
         {
             return (e.ident == Id.hasPostblit) ? (sd.postblit ? True() : False())
                  : (sd.hasCopyCtor ? True() : False());
@@ -793,10 +796,10 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 {
                     if (auto p = s.toParent())         // `C`'s parent is `C!2`, believe it or not
                     {
-                        if (p.isTemplateInstance())    // `C!2` is a template instance
+                        if (auto ti = p.isTemplateInstance())    // `C!2` is a template instance
                         {
                             s = p;                     // `C!2`'s parent is `T1`
-                            auto td = (cast(TemplateInstance)p).tempdecl;
+                            auto td = ti.tempdecl;
                             if (td)
                                 s = td;                // get the declaration context just in case there's two contexts
                         }
@@ -1297,7 +1300,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         if (fd && fd.parent && fd.parent.isTemplateInstance)
         {
             fd.functionSemantic3();
-            tf = cast(TypeFunction)fd.type;
+            tf = fd.type.isTypeFunction();
         }
 
         auto mods = new Expressions();
@@ -1738,9 +1741,9 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 ex = ex.expressionSemantic(sc2);
                 ex = resolvePropertiesOnly(sc2, ex);
                 ex = ex.optimize(WANTvalue);
-                if (sc2.func && sc2.func.type.ty == Tfunction)
+                if (sc2.func && sc2.func.type.isTypeFunction())
                 {
-                    const tf = cast(TypeFunction)sc2.func.type;
+                    const tf = sc2.func.type.isTypeFunction();
                     err |= tf.isnothrow && canThrow(ex, sc2.func, null);
                 }
                 ex = checkGC(sc2, ex);
