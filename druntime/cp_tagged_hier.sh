@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# MacOS ships with 2007 (last GPL2) version of Bash
+shopt compat31
+
 set -euo pipefail
 
 SRC_DIR=$1

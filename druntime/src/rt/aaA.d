@@ -41,7 +41,7 @@ struct AA
     Impl* impl;
     alias impl this;
 
-    private @property bool empty() const pure nothrow @nogc
+    private @property bool empty() const pure nothrow @nogc @safe
     {
         return impl is null || !impl.length;
     }
@@ -85,7 +85,7 @@ private:
         hasPointers = 0x2,
     }
 
-    @property size_t length() const pure nothrow @nogc
+    @property size_t length() const pure nothrow @nogc @safe
     {
         assert(used >= deleted);
         return used - deleted;
@@ -156,7 +156,7 @@ private:
         GC.free(obuckets.ptr); // safe to free b/c impossible to reference
     }
 
-    void clear() pure nothrow
+    void clear() pure nothrow @trusted
     {
         import core.stdc.string : memset;
         // clear all data, but don't change bucket array length
@@ -648,7 +648,7 @@ extern (C) bool _aaDelX(AA aa, scope const TypeInfo keyti, scope const void* pke
 }
 
 /// Remove all elements from AA.
-extern (C) void _aaClear(AA aa) pure nothrow
+extern (C) void _aaClear(AA aa) pure nothrow @safe
 {
     if (!aa.empty)
     {

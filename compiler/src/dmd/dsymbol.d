@@ -749,67 +749,6 @@ extern (C++) class Dsymbol : ASTNode
         return toAlias();
     }
 
-    void addMember(Scope* sc, ScopeDsymbol sds)
-    {
-        //printf("Dsymbol::addMember('%s')\n", toChars());
-        //printf("Dsymbol::addMember(this = %p, '%s' scopesym = '%s')\n", this, toChars(), sds.toChars());
-        //printf("Dsymbol::addMember(this = %p, '%s' sds = %p, sds.symtab = %p)\n", this, toChars(), sds, sds.symtab);
-        parent = sds;
-        if (isAnonymous()) // no name, so can't add it to symbol table
-            return;
-
-        if (!sds.symtabInsert(this)) // if name is already defined
-        {
-            if (isAliasDeclaration() && !_scope)
-                setScope(sc);
-            Dsymbol s2 = sds.symtabLookup(this,ident);
-            /* https://issues.dlang.org/show_bug.cgi?id=17434
-             *
-             * If we are trying to add an import to the symbol table
-             * that has already been introduced, then keep the one with
-             * larger visibility. This is fine for imports because if
-             * we have multiple imports of the same file, if a single one
-             * is public then the symbol is reachable.
-             */
-            if (auto i1 = isImport())
-            {
-                if (auto i2 = s2.isImport())
-                {
-                    if (sc.explicitVisibility && sc.visibility > i2.visibility)
-                        sds.symtab.update(this);
-                }
-            }
-
-            // If using C tag/prototype/forward declaration rules
-            if (sc.flags & SCOPE.Cfile && !this.isImport())
-            {
-                if (handleTagSymbols(*sc, this, s2, sds))
-                    return;
-                if (handleSymbolRedeclarations(*sc, this, s2, sds))
-                    return;
-
-                sds.multiplyDefined(Loc.initial, this, s2);  // ImportC doesn't allow overloading
-                errors = true;
-                return;
-            }
-
-            if (!s2.overloadInsert(this))
-            {
-                sds.multiplyDefined(Loc.initial, this, s2);
-                errors = true;
-            }
-        }
-        if (sds.isAggregateDeclaration() || sds.isEnumDeclaration())
-        {
-            if (ident == Id.__sizeof ||
-                !(sc && sc.flags & SCOPE.Cfile) && (ident == Id.__xalignof || ident == Id._mangleof))
-            {
-                .error(loc, "%s `%s` `.%s` property cannot be redefined", kind, toPrettyChars, ident.toChars());
-                errors = true;
-            }
-        }
-    }
-
     /*************************************
      * Set scope for future semantic analysis so we can
      * deal better with forward references.
@@ -1806,25 +1745,24 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
     // either a SliceExp, an IndexExp, an ArrayExp, a TypeTuple or a TupleDeclaration.
     // Discriminated using DYNCAST and, for expressions, also EXP
     private RootObject arrayContent;
-    Scope* sc;
 
     extern (D) this(Scope* sc, Expression exp) nothrow @safe
     {
         super(exp.loc, null);
         assert(exp.op == EXP.index || exp.op == EXP.slice || exp.op == EXP.array);
-        this.sc = sc;
+        this._scope = sc;
         this.arrayContent = exp;
     }
 
     extern (D) this(Scope* sc, TypeTuple type) nothrow @safe
     {
-        this.sc = sc;
+        this._scope = sc;
         this.arrayContent = type;
     }
 
     extern (D) this(Scope* sc, TupleDeclaration td) nothrow @safe
     {
-        this.sc = sc;
+        this._scope = sc;
         this.arrayContent = td;
     }
 
@@ -1862,10 +1800,10 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
             Expression e = new IntegerExp(Loc.initial, td.objects.length, Type.tsize_t);
             v._init = new ExpInitializer(Loc.initial, e);
             v.storage_class |= STC.temp | STC.static_ | STC.const_;
-            v.dsymbolSemantic(sc);
+            v.dsymbolSemantic(_scope);
             return v;
         case type:
-            return dollarFromTypeTuple(loc, cast(TypeTuple) arrayContent, sc);
+            return dollarFromTypeTuple(loc, cast(TypeTuple) arrayContent, _scope);
         default:
             break;
         }
@@ -1906,7 +1844,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
         if (auto te = ce.isTypeExp())
         {
             if (auto ttp = te.type.isTypeTuple())
-                return dollarFromTypeTuple(loc, ttp, sc);
+                return dollarFromTypeTuple(loc, ttp, _scope);
         }
         /* *pvar is lazily initialized, so if we refer to $
          * multiple times, it gets set only once.
@@ -1955,7 +1893,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                     }
                     auto tiargs = new Objects();
                     Expression edim = new IntegerExp(Loc.initial, dim, Type.tsize_t);
-                    edim = edim.expressionSemantic(sc);
+                    edim = edim.expressionSemantic(_scope);
                     tiargs.push(edim);
                     e = new DotTemplateInstanceExp(loc, ce, td.ident, tiargs);
                 }
@@ -1976,7 +1914,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                     assert(d);
                     e = new DotVarExp(loc, ce, d);
                 }
-                e = e.expressionSemantic(sc);
+                e = e.expressionSemantic(_scope);
                 if (!e.type)
                     error(exp.loc, "`%s` has no value", e.toChars());
                 t = e.type.toBasetype();
@@ -2012,7 +1950,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
             }
             *pvar = v;
         }
-        (*pvar).dsymbolSemantic(sc);
+        (*pvar).dsymbolSemantic(_scope);
         return (*pvar);
     }
 

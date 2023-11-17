@@ -25,8 +25,10 @@ struct VSOptions
     void initialize();
     const char *getVCBinDir(bool x64, const char *&addpath) const;
     const char *getVCLibDir(bool x64) const;
+    const char *getVCIncludeDir() const;
     const char *getUCRTLibPath(bool x64) const;
     const char *getSDKLibPath(bool x64) const;
+    const char *getSDKIncludePath() const;
 };
 
 #endif // _WIN32

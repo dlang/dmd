@@ -83,25 +83,6 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         return ed;
     }
 
-    override void addMember(Scope* sc, ScopeDsymbol sds)
-    {
-        version (none)
-        {
-            printf("EnumDeclaration::addMember() %s\n", toChars());
-            for (size_t i = 0; i < members.length; i++)
-            {
-                EnumMember em = (*members)[i].isEnumMember();
-                printf("    member %s\n", em.toChars());
-            }
-        }
-        if (!isAnonymous())
-        {
-            ScopeDsymbol.addMember(sc, sds);
-        }
-
-        addEnumMembersToSymtab(this, sc, sds);
-    }
-
     override void setScope(Scope* sc)
     {
         if (semanticRun > PASS.initial)

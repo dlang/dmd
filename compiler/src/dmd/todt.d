@@ -205,6 +205,13 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb, bool isC
         assert(0);
     }
 
+    void visitDefault(DefaultInitializer di)
+    {
+        /* Default initializers are set to 0, because C23 says so
+         */
+        dtb.nzeros(cast(uint)di.type.size());
+    }
+
     mixin VisitInitializer!void visit;
     visit.VisitInitializer(init);
 }

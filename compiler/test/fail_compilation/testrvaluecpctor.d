@@ -7,7 +7,7 @@ fail_compilation/testrvaluecpctor.d(16): Error: cannot define both an rvalue con
 fail_compilation/testrvaluecpctor.d(24):        Template instance `testrvaluecpctor.Foo!int.Foo.__ctor!(immutable(Foo!int), immutable(Foo!int))` creates an rvalue constructor for `struct Foo`
 fail_compilation/testrvaluecpctor.d(24): Error: none of the overloads of `__ctor` are callable using a `immutable` object
 fail_compilation/testrvaluecpctor.d(18):        Candidates are: `testrvaluecpctor.Foo!int.Foo.this(ref scope Foo!int rhs)`
-fail_compilation/testrvaluecpctor.d(16):                        `__ctor(Rhs, this This)(scope Rhs rhs)`
+fail_compilation/testrvaluecpctor.d(16):                        `this(Rhs, this This)(scope Rhs rhs)`
 ---
 */
 

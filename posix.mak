@@ -5,7 +5,7 @@ ECTAGS_FILES = compiler/dmd/*.[chd] compiler/dmd/backend/*.[chd] compiler/dmd/ro
 .PHONY: all clean test install auto-tester-build auto-tester-test toolchain-info
 
 all:
-	$(QUIET)$(MAKE) -C compiler/src -f posix.mak all
+	$(QUIET)$(MAKE) -C compiler/src -f posix.mak all BUILD_JOBS=$(BUILD_JOBS)
 	$(QUIET)$(MAKE) -C druntime -f posix.mak target
 
 auto-tester-build:
@@ -30,7 +30,7 @@ test:
 	$(QUIET)$(MAKE) -C compiler/test -f Makefile
 
 html:
-	$(QUIET)$(MAKE) -C compiler/src -f posix.mak html
+	$(QUIET)$(MAKE) -C compiler/src -f posix.mak html BUILD_JOBS=$(BUILD_JOBS)
 
 # Creates Exuberant Ctags tags file
 tags: posix.mak $(ECTAGS_FILES)
