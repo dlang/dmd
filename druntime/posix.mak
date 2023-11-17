@@ -118,7 +118,21 @@ TAGGED_COPY_LIST_FILE:=mak/TAGGED_COPY
 TAGGED_SRCS_FILE:=$(ROOT)/GEN_SRCS
 TAGGED_COPY_FILE:=$(ROOT)/GEN_COPY
 
-TGEN_CMD:=./cp_tagged_hier.sh config $(TAGGED_SRCS_FILE) $(TAGGED_COPY_LIST_FILE) $(TAGGED_COPY_FILE) x86_64,$(OS),default > /dev/null
+# TODO: implement tags table
+ifeq ($(MODEL), 64)
+	ARCH=x86_64
+else
+	ARCH=x86
+endif
+
+ifeq ($(OS), Win_64)
+	# Tags order doesn't matter
+	TAGS:=windows,default,$(ARCH)
+else
+	TAGS:=$(ARCH),posix,$(OS),default
+endif
+
+TGEN_CMD:=./cp_tagged_hier.sh config $(TAGGED_SRCS_FILE) $(TAGGED_COPY_LIST_FILE) $(TAGGED_COPY_FILE) $(TAGS) > /dev/null
 
 TAGGED_SRCS:=$(shell $(TGEN_CMD) && cat $(TAGGED_SRCS_FILE))
 ifneq ($(.SHELLSTATUS),0)
