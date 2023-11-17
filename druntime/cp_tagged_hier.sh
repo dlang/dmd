@@ -66,7 +66,7 @@ do
 
     # Adds copy entry if file mentioned in the list
     grep -F "$maybe_copy" ${SRC_COPY_FILE} > /dev/null && {
-        echo ${fl} >> ${DST_COPY_FILE}
+        echo 'import/'${fl} >> ${DST_COPY_FILE}
         ((COPIED=COPIED+1))
     }
 done
