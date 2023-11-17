@@ -1,6 +1,7 @@
 module core.internal.event_tests;
 
 import core.sync.event : Event;
+import core.time;
 
 // Test single-thread (non-shared) use.
 @nogc nothrow unittest
