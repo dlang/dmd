@@ -727,7 +727,7 @@ public:
             auto lowering = ne.lowering;
             if (lowering)
                 if (auto ce = lowering.isCallExp())
-                    if (ce.f.ident == Id._d_newarrayT)
+                    if (ce.f.ident == Id._d_newarrayT || ce.f.ident == Id._d_newarraymTX)
                     {
                         ne.lowering = doInlineAs!Expression(lowering, ids);
                         goto LhasLowering;

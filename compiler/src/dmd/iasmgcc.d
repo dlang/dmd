@@ -341,7 +341,7 @@ extern (C++) public Statement gccAsmSemantic(GccAsmStatement s, Scope *sc)
             e = e.expressionSemantic(sc);
             // Check argument is a valid lvalue/rvalue.
             if (i < s.outputargs)
-                e = e.modifiableLvalue(sc, null);
+                e = e.modifiableLvalue(sc);
             else if (e.checkValue())
                 e = ErrorExp.get();
             (*s.args)[i] = e;

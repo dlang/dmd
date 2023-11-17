@@ -471,6 +471,18 @@ public:
         return FileName.exists(proposed) ? proposed : null;
     }
 
+    const(char)* getVCIncludeDir() const
+    {
+        const(char)* proposed;
+
+        if (VCToolsInstallDir !is null)
+            proposed = FileName.combine(VCToolsInstallDir, "include");
+        else if (VCInstallDir !is null)
+            proposed = FileName.combine(VCInstallDir, "include");
+
+        return FileName.exists(proposed) ? proposed : null;
+    }
+
     /**
      * get the path to the universal CRT libraries
      * Params:
@@ -524,6 +536,30 @@ public:
         // try mingw fallback relative to phobos library folder that's part of LIB
         if (auto p = FileName.searchPath(getenv("LIB"w), r"mingw\kernel32.lib"[], false))
             return FileName.path(p).ptr;
+
+        return null;
+    }
+
+    const(char)* getSDKIncludePath() const
+    {
+        if (WindowsSdkDir)
+        {
+            alias umExists = returnDirIfContainsFile!"um"; // subdir in this case
+
+            const sdk = FileName.combine(WindowsSdkDir.toDString, "include");
+            if (WindowsSdkVersion)
+            {
+                if (auto p = umExists(sdk, WindowsSdkVersion.toDString)) // SDK 10.0
+                    return p;
+            }
+            // purely speculative
+            if (auto p = umExists(sdk, "win8")) // SDK 8.0
+                return p;
+            if (auto p = umExists(sdk, "winv6.3")) // SDK 8.1
+                return p;
+            if (auto p = umExists(sdk)) // SDK 7.1 or earlier
+                return p;
+        }
 
         return null;
     }

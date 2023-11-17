@@ -6655,6 +6655,19 @@ struct ASTBase
         }
     }
 
+    extern (C++) final class DefaultInitializer : Initializer
+    {
+        extern (D) this(const ref Loc loc)
+        {
+            super(loc, InitKind.default_);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
     struct Designator
     {
         Expression exp;         /// [ constant-expression ]

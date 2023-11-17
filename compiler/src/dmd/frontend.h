@@ -47,7 +47,6 @@ class CPPNamespaceDeclaration;
 class UserAttributeDeclaration;
 class Module;
 class TemplateInstance;
-class ScopeDsymbol;
 class AggregateDeclaration;
 class LabelDsymbol;
 class ClassDeclaration;
@@ -90,6 +89,7 @@ class DebugSymbol;
 class StructDeclaration;
 class UnionDeclaration;
 class InterfaceDeclaration;
+class ScopeDsymbol;
 class ForwardingScopeDsymbol;
 class WithScopeSymbol;
 class ArrayScopeSymbol;
@@ -305,6 +305,7 @@ class TryCatchStatement;
 class DebugStatement;
 class ErrorInitializer;
 class VoidInitializer;
+class DefaultInitializer;
 class StructInitializer;
 class ArrayInitializer;
 class ExpInitializer;
@@ -498,7 +499,6 @@ public:
     virtual const char* kind() const;
     virtual Dsymbol* toAlias();
     virtual Dsymbol* toAlias2();
-    virtual void addMember(Scope* sc, ScopeDsymbol* sds);
     virtual void setScope(Scope* sc);
     virtual void importAll(Scope* sc);
     virtual Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 0);
@@ -1880,6 +1880,7 @@ public:
     virtual void visit(typename AST::StructInitializer i);
     virtual void visit(typename AST::ArrayInitializer i);
     virtual void visit(typename AST::VoidInitializer i);
+    virtual void visit(typename AST::DefaultInitializer i);
     virtual void visit(typename AST::CInitializer i);
 };
 
@@ -2708,11 +2709,12 @@ extern const char* toChars(const Statement* const s);
 enum class InitKind : uint8_t
 {
     void_ = 0u,
-    error = 1u,
-    struct_ = 2u,
-    array = 3u,
-    exp = 4u,
-    C_ = 5u,
+    default_ = 1u,
+    error = 2u,
+    struct_ = 3u,
+    array = 4u,
+    exp = 5u,
+    C_ = 6u,
 };
 
 class Initializer : public ASTNode
@@ -2723,6 +2725,7 @@ public:
     DYNCAST dyncast() const override;
     ErrorInitializer* isErrorInitializer();
     VoidInitializer* isVoidInitializer();
+    DefaultInitializer* isDefaultInitializer();
     StructInitializer* isStructInitializer();
     ArrayInitializer* isArrayInitializer();
     ExpInitializer* isExpInitializer();
@@ -2749,6 +2752,13 @@ public:
     Array<DesigInit > initializerList;
     Type* type;
     bool sem;
+    void accept(Visitor* v) override;
+};
+
+class DefaultInitializer final : public Initializer
+{
+public:
+    Type* type;
     void accept(Visitor* v) override;
 };
 
@@ -3930,7 +3940,6 @@ class Nspace final : public ScopeDsymbol
 public:
     Expression* identExp;
     Nspace* syntaxCopy(Dsymbol* s) override;
-    void addMember(Scope* sc, ScopeDsymbol* sds) override;
     void setScope(Scope* sc) override;
     Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8) override;
     bool hasPointers() override;
@@ -4552,7 +4561,6 @@ public:
     Expression* exp;
     Array<Expression* >* msgs;
     StaticAssert* syntaxCopy(Dsymbol* s) override;
-    void addMember(Scope* sc, ScopeDsymbol* sds) override;
     bool oneMember(Dsymbol** ps, Identifier* ident) override;
     const char* kind() const override;
     StaticAssert* isStaticAssert() override;
@@ -4946,6 +4954,7 @@ struct ASTCodegen final
     using HdrGenState = ::HdrGenState;
     using ArrayInitializer = ::ArrayInitializer;
     using CInitializer = ::CInitializer;
+    using DefaultInitializer = ::DefaultInitializer;
     using DesigInit = ::DesigInit;
     using Designator = ::Designator;
     using ErrorInitializer = ::ErrorInitializer;
@@ -5377,7 +5386,6 @@ public:
     Array<Dsymbol* >* decl;
     virtual Array<Dsymbol* >* include(Scope* sc);
     virtual Scope* newScope(Scope* sc);
-    void addMember(Scope* sc, ScopeDsymbol* sds) override;
     void setScope(Scope* sc) override;
     void importAll(Scope* sc) override;
     void addComment(const char* comment) override;
@@ -5399,7 +5407,6 @@ public:
     StorageClassDeclaration* syntaxCopy(Dsymbol* s) override;
     Scope* newScope(Scope* sc) override;
     bool oneMember(Dsymbol** ps, Identifier* ident) final override;
-    void addMember(Scope* sc, ScopeDsymbol* sds) override;
     StorageClassDeclaration* isStorageClassDeclaration() override;
     void accept(Visitor* v) override;
 };
@@ -5455,7 +5462,6 @@ public:
     _d_dynamicArray< Identifier* > pkg_identifiers;
     VisibilityDeclaration* syntaxCopy(Dsymbol* s) override;
     Scope* newScope(Scope* sc) override;
-    void addMember(Scope* sc, ScopeDsymbol* sds) override;
     const char* kind() const override;
     const char* toPrettyChars(bool __param_0_) override;
     VisibilityDeclaration* isVisibilityDeclaration() override;
@@ -5521,7 +5527,6 @@ private:
 public:
     StaticIfDeclaration* syntaxCopy(Dsymbol* s) override;
     Array<Dsymbol* >* include(Scope* sc) override;
-    void addMember(Scope* sc, ScopeDsymbol* sds) override;
     void setScope(Scope* sc) override;
     void importAll(Scope* sc) override;
     const char* kind() const override;
@@ -5540,7 +5545,6 @@ public:
     StaticForeachDeclaration* syntaxCopy(Dsymbol* s) override;
     bool oneMember(Dsymbol** ps, Identifier* ident) override;
     Array<Dsymbol* >* include(Scope* sc) override;
-    void addMember(Scope* sc, ScopeDsymbol* sds) override;
     void addComment(const char* comment) override;
     void setScope(Scope* sc) override;
     void importAll(Scope* sc) override;
@@ -5554,7 +5558,6 @@ public:
     ForwardingScopeDsymbol* sym;
     ForwardingAttribDeclaration(Array<Dsymbol* >* decl);
     Scope* newScope(Scope* sc) override;
-    void addMember(Scope* sc, ScopeDsymbol* sds) override;
     ForwardingAttribDeclaration* isForwardingAttribDeclaration() override;
     void accept(Visitor* v) override;
 };
@@ -5566,7 +5569,6 @@ public:
     ScopeDsymbol* scopesym;
     bool compiled;
     MixinDeclaration* syntaxCopy(Dsymbol* s) override;
-    void addMember(Scope* sc, ScopeDsymbol* sds) override;
     void setScope(Scope* sc) override;
     const char* kind() const override;
     MixinDeclaration* isMixinDeclaration() override;
@@ -6130,7 +6132,6 @@ private:
     uint8_t bitFields;
 public:
     EnumDeclaration* syntaxCopy(Dsymbol* s) override;
-    void addMember(Scope* sc, ScopeDsymbol* sds) override;
     void setScope(Scope* sc) override;
     bool oneMember(Dsymbol** ps, Identifier* ident) override;
     Type* getType() override;
@@ -6177,7 +6178,6 @@ public:
     Import* syntaxCopy(Dsymbol* s) override;
     void importAll(Scope* sc) override;
     Dsymbol* toAlias() override;
-    void addMember(Scope* sc, ScopeDsymbol* sd) override;
     void setScope(Scope* sc) override;
     Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8) override;
     bool overloadInsert(Dsymbol* s) override;
@@ -6530,7 +6530,6 @@ class ArrayScopeSymbol final : public ScopeDsymbol
 {
     RootObject* arrayContent;
 public:
-    Scope* sc;
     Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 0) override;
     ArrayScopeSymbol* isArrayScopeSymbol() override;
     void accept(Visitor* v) override;
@@ -6589,6 +6588,8 @@ public:
 };
 
 extern void dsymbolSemantic(Dsymbol* dsym, Scope* sc);
+
+extern void addMember(Dsymbol* dsym, Scope* sc, ScopeDsymbol* sds);
 
 extern Expression* isExpression(RootObject* o);
 
@@ -6829,7 +6830,6 @@ public:
     uint32_t level;
     DebugSymbol* syntaxCopy(Dsymbol* s) override;
     const char* toChars() const override;
-    void addMember(Scope* sc, ScopeDsymbol* sds) override;
     const char* kind() const override;
     DebugSymbol* isDebugSymbol() override;
     void accept(Visitor* v) override;
@@ -6841,7 +6841,6 @@ public:
     uint32_t level;
     VersionSymbol* syntaxCopy(Dsymbol* s) override;
     const char* toChars() const override;
-    void addMember(Scope* sc, ScopeDsymbol* sds) override;
     const char* kind() const override;
     VersionSymbol* isVersionSymbol() override;
     void accept(Visitor* v) override;
@@ -7991,7 +7990,7 @@ extern Expression* expressionSemantic(Expression* e, Scope* sc);
 
 extern Expression* toLvalue(Expression* _this, Scope* sc, const char* action);
 
-extern Expression* modifiableLvalue(Expression* _this, Scope* sc, Expression* e);
+extern Expression* modifiableLvalue(Expression* _this, Scope* sc);
 
 extern const char* toChars(const Initializer* const i);
 
@@ -8643,6 +8642,8 @@ struct Id final
     static Identifier* _d_newitemTTrace;
     static Identifier* _d_newarrayT;
     static Identifier* _d_newarrayTTrace;
+    static Identifier* _d_newarraymTX;
+    static Identifier* _d_newarraymTXTrace;
     static Identifier* _d_assert_fail;
     static Identifier* dup;
     static Identifier* _aaApply;
