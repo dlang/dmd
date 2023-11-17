@@ -118,11 +118,10 @@ TAGGED_COPY_LIST_FILE:=mak/TAGGED_COPY
 TAGGED_SRCS_FILE:=mak/GEN_SRCS
 TAGGED_COPY_FILE:=mak/GEN_COPY
 
--include $(TAGGED_SRCS_FILE)
-TAGGED_SRCS?=$(TAGGED_SRCS_LIST)
+TGEN_CMD:=./cp_tagged_hier.sh config $(TAGGED_SRCS_FILE) $(TAGGED_COPY_LIST_FILE) $(TAGGED_COPY_FILE) x86_64,$(OS),default > /dev/null
 
--include $(TAGGED_COPY_FILE)
-TAGGED_COPY?=$(TAGGED_COPY_LIST)
+TAGGED_SRCS:=$(shell $(TGEN_CMD) && cat $(TAGGED_SRCS_FILE))
+TAGGED_COPY:=$(shell $(TGEN_CMD) && cat $(TAGGED_COPY_FILE))
 
 ###############
 
@@ -344,7 +343,7 @@ $(DOC_OUTPUT_DIR)/rt_util_%.html : src/rt/util/%.d $(DMD)
 
 import: copy
 
-copy: gen_tagged_srcs $(COPY)
+copy: $(COPY)
 
 $(IMPDIR)/object.d : src/object.d
 	@mkdir -p $(dir $@)
@@ -386,9 +385,6 @@ $(ROOT)/valgrind.o : src/etc/valgrind/valgrind.c src/etc/valgrind/valgrind.h src
 	$(CC) -c $(CFLAGS) $< -o$@
 
 ################################################
-
-gen_tagged_srcs:
-	./cp_tagged_hier.sh config $(TAGGED_SRCS_FILE) $(TAGGED_COPY_LIST_FILE) $(TAGGED_COPY_FILE) x86_64,$(OS),default
 
 gen_tagged_srcs_clean:
 	rm -f $(TAGGED_SRCS_FILE) $(TAGGED_COPY_FILE)

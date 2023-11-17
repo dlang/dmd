@@ -52,15 +52,12 @@ done
 let LINES_TO_COPY=$(grep -v '^$' ${SRC_COPY_FILE} | sort | uniq | wc -l)
 COPIED=0
 
-echo "TAGGED_SRCS_LIST=\\" > ${DST_FILE}
-echo "TAGGED_COPY_LIST=\\" > ${DST_COPY_FILE}
-
 for i in "${!SRC_FILES_LIST[@]}"
 do
-    fl=$(echo "${SRC_FILES_LIST[$i]} \\" | tr '/' '\\')
+    fl=$(echo ${SRC_FILES_LIST[$i]} | tr '/' '\\')
     echo ${fl} >> ${DST_FILE}
 
-    maybe_copy=$(echo "${MAYBE_COPY_LIST[$i]}" | tr '/' '\\')
+    maybe_copy=$(echo ${MAYBE_COPY_LIST[$i]} | tr '/' '\\')
 
     # Adds copy entry if file mentioned in the list
     grep -F "$maybe_copy" ${SRC_COPY_FILE} > /dev/null && {
