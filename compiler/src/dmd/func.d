@@ -3422,8 +3422,15 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
         auto mismatches = MODMatchToBuffer(&funcBuf, tf.mod, tthis.mod);
         if (hasOverloads)
         {
-            .error(loc, "none of the overloads of `%s` are callable using a %sobject",
-                   fd.toChars(), thisBuf.peekChars());
+            OutBuffer buf;
+            buf.argExpTypesToCBuffer(fargs);
+            if (fd.isCtorDeclaration())
+                .error(loc, "none of the overloads of `%s` can construct a %sobject with argument types `(%s)`",
+                    fd.toChars(), thisBuf.peekChars(), buf.peekChars());
+            else
+                .error(loc, "none of the overloads of `%s` are callable using a %sobject",
+                    fd.toChars(), thisBuf.peekChars());
+
             if (!global.gag || global.params.v.showGaggedErrors)
                 printCandidates(loc, fd, sc.isDeprecated());
             return null;
