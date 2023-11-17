@@ -18,6 +18,42 @@ import core.sys.posix.time;
 import core.time;
 import core.internal.abort : abort;
 
+/**
+ * represents an event. Clients of an event are suspended while waiting
+ * for the event to be "signaled".
+ *
+ * Implemented using `pthread_mutex` and `pthread_condition` on Posix and
+ * `CreateEvent` and `SetEvent` on Windows.
+---
+import core.sync.event, core.thread, std.file;
+
+struct ProcessFile
+{
+    ThreadGroup group;
+    Event event;
+    void[] buffer;
+
+    void doProcess()
+    {
+        event.wait();
+        // process buffer
+    }
+
+    void process(string filename)
+    {
+        event.initialize(true, false);
+        group = new ThreadGroup;
+        for (int i = 0; i < 10; ++i)
+            group.create(&doProcess);
+
+        buffer = std.file.read(filename);
+        event.setIfInitialized();
+        group.joinAll();
+        event.terminate();
+    }
+}
+---
+ */
 struct Event
 {
 nothrow @nogc:
@@ -42,7 +78,6 @@ nothrow @nogc:
      */
     void initialize(bool manualReset, bool initialState)
     {
-        {
             if (m_initalized)
                 return;
             pthread_mutex_init(cast(pthread_mutex_t*) &m_mutex, null) == 0 ||
@@ -67,7 +102,6 @@ nothrow @nogc:
             m_state = initialState;
             m_manualReset = manualReset;
             m_initalized = true;
-        }
     }
 
     // copying not allowed, can produce resource leaks
@@ -85,7 +119,6 @@ nothrow @nogc:
     */
     void terminate()
     {
-        {
             if (m_initalized)
             {
                 pthread_mutex_destroy(&m_mutex) == 0 ||
@@ -94,14 +127,16 @@ nothrow @nogc:
                     abort("Error: pthread_cond_destroy failed.");
                 m_initalized = false;
             }
-        }
     }
 
+    deprecated ("Use setIfInitialized() instead") void set()
+    {
+        setIfInitialized();
+    }
 
     /// Set the event to "signaled", so that waiting clients are resumed
-    void set()
+    void setIfInitialized()
     {
-        {
             if (m_initalized)
             {
                 pthread_mutex_lock(&m_mutex);
@@ -109,20 +144,17 @@ nothrow @nogc:
                 pthread_cond_broadcast(&m_cond);
                 pthread_mutex_unlock(&m_mutex);
             }
-        }
     }
 
     /// Reset the event manually
     void reset()
     {
-        {
             if (m_initalized)
             {
                 pthread_mutex_lock(&m_mutex);
                 m_state = false;
                 pthread_mutex_unlock(&m_mutex);
             }
-        }
     }
 
     /**
@@ -133,9 +165,7 @@ nothrow @nogc:
      */
     bool wait()
     {
-        {
             return wait(Duration.max);
-        }
     }
 
     /**
@@ -149,7 +179,6 @@ nothrow @nogc:
      */
     bool wait(Duration tmout)
     {
-        {
             if (!m_initalized)
                 return false;
 
@@ -178,7 +207,6 @@ nothrow @nogc:
             pthread_mutex_unlock(&m_mutex);
 
             return result == 0;
-        }
     }
 
 private:

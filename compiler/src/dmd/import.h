@@ -43,7 +43,6 @@ public:
     Import *syntaxCopy(Dsymbol *s) override; // copy only syntax trees
     void importAll(Scope *sc) override;
     Dsymbol *toAlias() override;
-    void addMember(Scope *sc, ScopeDsymbol *sds) override;
     void setScope(Scope* sc) override;
     Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly) override;
     bool overloadInsert(Dsymbol *s) override;

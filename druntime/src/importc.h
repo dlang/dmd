@@ -153,9 +153,9 @@
 
 #ifndef __aarch64__
 #define _Float32 float
-#define _Float32x float
+#define _Float32x double
 #define _Float64 double
-#define _Float64x double
+#define _Float64x long double
 #define _Float128 long double
 #define __float128 long double
 #endif

@@ -2150,7 +2150,7 @@ private bool checkNogc(FuncDeclaration f, ref Loc loc, Scope* sc)
      * verified instead. This is to keep errors related to the original code
      * and not the lowering.
      */
-    if (f.ident == Id._d_newitemT || f.ident == Id._d_newarrayT)
+    if (f.ident == Id._d_newitemT || f.ident == Id._d_newarrayT || f.ident == Id._d_newarraymTX)
         return false;
 
     if (!f.isNogc())
@@ -3209,7 +3209,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             const explicitScope = p.isLazy() ||
                 ((p.storageClass & STC.scope_) && !(p.storageClass & STC.scopeinferred));
             if ((pStc & (STC.scope_ | STC.lazy_)) &&
-                ((global.params.useDIP1000 == FeatureState.enabled) || explicitScope) &&
+                ((sc.useDIP1000 == FeatureState.enabled) || explicitScope) &&
                 !(pStc & STC.return_))
             {
                 /* Argument value cannot escape from the called function.
@@ -5115,23 +5115,23 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 tb = tb.isTypeDArray().next.toBasetype();
             }
 
-            if (nargs == 1)
-            {
-                if (global.params.betterC || !sc.needsCodegen())
+            if (global.params.betterC || !sc.needsCodegen())
                     goto LskipNewArrayLowering;
 
-                /* Class types may inherit base classes that have errors.
-                 * This may leak errors from the base class to the derived one
-                 * and then to the hook. Semantic analysis is performed eagerly
-                 * to a void this.
-                 */
-                if (auto tc = exp.type.nextOf.isTypeClass())
-                {
-                    tc.sym.dsymbolSemantic(sc);
-                    if (tc.sym.errors)
-                        goto LskipNewArrayLowering;
-                }
+            /* Class types may inherit base classes that have errors.
+                * This may leak errors from the base class to the derived one
+                * and then to the hook. Semantic analysis is performed eagerly
+                * to a void this.
+                */
+            if (auto tc = exp.type.nextOf.isTypeClass())
+            {
+                tc.sym.dsymbolSemantic(sc);
+                if (tc.sym.errors)
+                    goto LskipNewArrayLowering;
+            }
 
+            if (nargs == 1)
+            {
                 auto hook = global.params.tracegc ? Id._d_newarrayTTrace : Id._d_newarrayT;
                 if (!verifyHookExist(exp.loc, *sc, hook, "new array"))
                     goto LskipNewArrayLowering;
@@ -5162,6 +5162,45 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
                 arguments.push((*exp.arguments)[0]);
                 arguments.push(new IntegerExp(exp.loc, isShared, Type.tbool));
+
+                lowering = new CallExp(exp.loc, lowering, arguments);
+                exp.lowering = lowering.expressionSemantic(sc);
+            }
+            else
+            {
+                auto hook = global.params.tracegc ? Id._d_newarraymTXTrace : Id._d_newarraymTX;
+                if (!verifyHookExist(exp.loc, *sc, hook, "new multi-dimensional array"))
+                    goto LskipNewArrayLowering;
+
+                /* Lower the memory allocation and initialization of `new T[][]...[](n1, n2, ...)`
+                 * to `_d_newarraymTX!(T[][]...[], T)([n1, n2, ...])`.
+                 */
+                Expression lowering = new IdentifierExp(exp.loc, Id.empty);
+                lowering = new DotIdExp(exp.loc, lowering, Id.object);
+
+                auto tbn = exp.type.nextOf();
+                while (tbn.ty == Tarray)
+                    tbn = tbn.nextOf();
+                auto unqualTbn = tbn.unqualify(MODFlags.wild | MODFlags.const_ |
+                    MODFlags.immutable_ | MODFlags.shared_);
+
+                auto tiargs = new Objects();
+                tiargs.push(exp.type);
+                tiargs.push(unqualTbn);
+                lowering = new DotTemplateInstanceExp(exp.loc, lowering, hook, tiargs);
+
+                auto arguments = new Expressions();
+                if (global.params.tracegc)
+                {
+                    auto funcname = (sc.callsc && sc.callsc.func) ?
+                        sc.callsc.func.toPrettyChars() : sc.func.toPrettyChars();
+                    arguments.push(new StringExp(exp.loc, exp.loc.filename.toDString()));
+                    arguments.push(new IntegerExp(exp.loc, exp.loc.linnum, Type.tint32));
+                    arguments.push(new StringExp(exp.loc, funcname.toDString()));
+                }
+
+                arguments.push(new ArrayLiteralExp(exp.loc, Type.tsize_t.sarrayOf(nargs), exp.arguments));
+                arguments.push(new IntegerExp(exp.loc, tbn.isShared(), Type.tbool));
 
                 lowering = new CallExp(exp.loc, lowering, arguments);
                 exp.lowering = lowering.expressionSemantic(sc);
@@ -7323,7 +7362,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         exp.e1 = exp.e1.expressionSemantic(sc);
-        exp.e1 = exp.e1.modifiableLvalue(sc, exp.e1);
+        exp.e1 = exp.e1.modifiableLvalue(sc);
         exp.e1 = exp.e1.optimize(WANTvalue, /*keepLvalue*/ true);
         exp.type = exp.e1.type;
 
@@ -8803,7 +8842,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
         exp.e1 = resolveProperties(sc, exp.e1);
-        exp.e1 = exp.e1.modifiableLvalue(sc, null);
+        exp.e1 = exp.e1.modifiableLvalue(sc);
         if (exp.e1.op == EXP.error)
         {
             result = exp.e1;
@@ -10019,7 +10058,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        exp.e1 = exp.e1.modifiableLvalue(sc, exp.e1);
+        exp.e1 = exp.e1.modifiableLvalue(sc);
         exp.e1 = exp.e1.optimize(WANTvalue, /*keepLvalue*/ true);
 
         e = exp;
@@ -10781,7 +10820,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                             Expression ex;
                             ex = new IndexExp(exp.loc, ea, ek);
                             ex = ex.expressionSemantic(sc);
-                            ex = ex.modifiableLvalue(sc, ex); // allocate new slot
+                            ex = ex.modifiableLvalue(sc); // allocate new slot
                             ex = ex.optimize(WANTvalue);
 
                             ey = new ConstructExp(exp.loc, ex, ey);
@@ -10974,7 +11013,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             // e1 is not an lvalue, but we let code generator handle it
 
-            auto ale1x = ale.e1.modifiableLvalue(sc, exp.e1);
+            auto ale1x = ale.e1.modifiableLvalueImpl(sc, exp.e1);
             if (ale1x.op == EXP.error)
                 return setResult(ale1x);
             ale.e1 = ale1x;
@@ -11060,7 +11099,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 se = cast(SliceExp)se.e1;
             if (se.e1.op == EXP.question && se.e1.type.toBasetype().ty == Tsarray)
             {
-                se.e1 = se.e1.modifiableLvalue(sc, exp.e1);
+                se.e1 = se.e1.modifiableLvalueImpl(sc, exp.e1);
                 if (se.e1.op == EXP.error)
                     return setResult(se.e1);
             }
@@ -11084,7 +11123,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             // Try to do a decent error message with the expression
             // before it gets constant folded
             if (exp.op == EXP.assign)
-                e1x = e1x.modifiableLvalue(sc, e1old);
+                e1x = e1x.modifiableLvalueImpl(sc, e1old);
 
             e1x = e1x.optimize(WANTvalue, /*keepLvalue*/ true);
 
@@ -11532,7 +11571,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         else
         {
-            exp.e1 = exp.e1.modifiableLvalue(sc, exp.e1);
+            exp.e1 = exp.e1.modifiableLvalue(sc);
         }
 
         if ((exp.e1.type.isintegral() || exp.e1.type.isfloating()) && (exp.e2.type.isintegral() || exp.e2.type.isfloating()))
@@ -11591,7 +11630,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
 
-        exp.e1 = exp.e1.modifiableLvalue(sc, exp.e1);
+        exp.e1 = exp.e1.modifiableLvalue(sc);
         if (exp.e1.op == EXP.error)
         {
             result = exp.e1;
@@ -15224,6 +15263,7 @@ private Expression toLvalueImpl(Expression _this, Scope* sc, const(char)* action
     if (!action)
         action = "create lvalue of";
 
+    assert(e);
     Expression visit(Expression _this)
     {
         // BinaryAssignExp does not have an EXP associated
@@ -15626,8 +15666,22 @@ Modifiable checkModifiable(Expression exp, Scope* sc, ModifyFlags flag = ModifyF
     }
 }
 
-extern(C++) Expression modifiableLvalue(Expression _this, Scope* sc, Expression e)
+/**
+ * Similar to `toLvalue`, but also enforce it is mutable or raise an error.
+ * Params:
+ *     _this = Expression to convert
+ *     sc = scope
+ * Returns: `_this` converted to an lvalue, or an `ErrorExp`
+ */
+extern(C++) Expression modifiableLvalue(Expression _this, Scope* sc)
 {
+    return modifiableLvalueImpl(_this, sc, _this);
+}
+
+// e = original / un-lowered expression to print in error messages
+private Expression modifiableLvalueImpl(Expression _this, Scope* sc, Expression e)
+{
+    assert(e);
     Expression visit(Expression exp)
     {
         //printf("Expression::modifiableLvalue() %s, type = %s\n", exp.toChars(), exp.type.toChars());
@@ -15715,7 +15769,7 @@ extern(C++) Expression modifiableLvalue(Expression _this, Scope* sc, Expression 
 
     Expression visitComma(CommaExp exp)
     {
-        exp.e2 = exp.e2.modifiableLvalue(sc, e);
+        exp.e2 = exp.e2.modifiableLvalueImpl(sc, e);
         return exp;
     }
 
@@ -15754,8 +15808,8 @@ extern(C++) Expression modifiableLvalue(Expression _this, Scope* sc, Expression 
             error(exp.loc, "conditional expression `%s` is not a modifiable lvalue", exp.toChars());
             return ErrorExp.get();
         }
-        exp.e1 = exp.e1.modifiableLvalue(sc, exp.e1);
-        exp.e2 = exp.e2.modifiableLvalue(sc, exp.e2);
+        exp.e1 = exp.e1.modifiableLvalue(sc);
+        exp.e2 = exp.e2.modifiableLvalue(sc);
         return exp.toLvalue(sc, "modify");
     }
 
@@ -15797,7 +15851,7 @@ bool checkAddressVar(Scope* sc, Expression exp, VarDeclaration v)
     }
     if (sc.func && !sc.intypeof && !v.isDataseg())
     {
-        if (global.params.useDIP1000 != FeatureState.enabled &&
+        if (sc.useDIP1000 != FeatureState.enabled &&
             !(v.storage_class & STC.temp) &&
             sc.setUnsafe(false, exp.loc, "cannot take address of local `%s` in `@safe` function `%s`", v, sc.func))
         {
