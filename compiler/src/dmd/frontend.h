@@ -8654,6 +8654,8 @@ struct Id final
     static Identifier* _d_newitemTTrace;
     static Identifier* _d_newarrayT;
     static Identifier* _d_newarrayTTrace;
+    static Identifier* _d_newarraymTX;
+    static Identifier* _d_newarraymTXTrace;
     static Identifier* _d_assert_fail;
     static Identifier* dup;
     static Identifier* _aaApply;

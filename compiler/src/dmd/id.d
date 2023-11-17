@@ -323,6 +323,8 @@ immutable Msgtable[] msgtable =
     { "_d_newitemTTrace" },
     { "_d_newarrayT" },
     { "_d_newarrayTTrace" },
+    { "_d_newarraymTX" },
+    { "_d_newarraymTXTrace" },
     { "_d_assert_fail" },
     { "dup" },
     { "_aaApply" },

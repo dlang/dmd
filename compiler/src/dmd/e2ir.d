@@ -1248,35 +1248,8 @@ elem* toElem(Expression e, ref IRState irs)
             elem *ezprefix = ne.argprefix ? toElem(ne.argprefix, irs) : null;
 
             assert(ne.arguments && ne.arguments.length >= 1);
-            if (ne.arguments.length == 1)
-            {
-                assert(ne.lowering);
-                e = toElem(ne.lowering, irs);
-            }
-            else
-            {
-                // Multidimensional array allocations
-                foreach (i; 0 .. ne.arguments.length)
-                {
-                    assert(t.ty == Tarray);
-                    t = t.nextOf();
-                    assert(t);
-                }
-
-                // Allocate array of dimensions on the stack
-                Symbol *sdata = null;
-                elem *earray = ExpressionsToStaticArray(irs, ne.loc, ne.arguments, &sdata);
-
-                e = el_pair(TYdarray, el_long(TYsize_t, ne.arguments.length), el_ptr(sdata));
-                if (irs.target.os == Target.OS.Windows && irs.target.isX86_64)
-                    e = addressElem(e, Type.tsize_t.arrayOf());
-                e = el_param(e, getTypeInfo(ne, ne.type, irs));
-                const rtl = t.isZeroInit(Loc.initial) ? RTLSYM.NEWARRAYMTX : RTLSYM.NEWARRAYMITX;
-                e = el_bin(OPcall,TYdarray,el_var(getRtlsym(rtl)),e);
-                toTraceGC(irs, e, ne.loc);
-
-                e = el_combine(earray, e);
-            }
+            assert(ne.lowering);
+            e = toElem(ne.lowering, irs);
             e = el_combine(ezprefix, e);
         }
         else if (auto tp = t.isTypePointer())

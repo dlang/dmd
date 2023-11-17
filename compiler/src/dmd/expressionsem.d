@@ -2150,7 +2150,7 @@ private bool checkNogc(FuncDeclaration f, ref Loc loc, Scope* sc)
      * verified instead. This is to keep errors related to the original code
      * and not the lowering.
      */
-    if (f.ident == Id._d_newitemT || f.ident == Id._d_newarrayT)
+    if (f.ident == Id._d_newitemT || f.ident == Id._d_newarrayT || f.ident == Id._d_newarraymTX)
         return false;
 
     if (!f.isNogc())
@@ -5115,23 +5115,23 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 tb = tb.isTypeDArray().next.toBasetype();
             }
 
-            if (nargs == 1)
-            {
-                if (global.params.betterC || !sc.needsCodegen())
+            if (global.params.betterC || !sc.needsCodegen())
                     goto LskipNewArrayLowering;
 
-                /* Class types may inherit base classes that have errors.
-                 * This may leak errors from the base class to the derived one
-                 * and then to the hook. Semantic analysis is performed eagerly
-                 * to a void this.
-                 */
-                if (auto tc = exp.type.nextOf.isTypeClass())
-                {
-                    tc.sym.dsymbolSemantic(sc);
-                    if (tc.sym.errors)
-                        goto LskipNewArrayLowering;
-                }
+            /* Class types may inherit base classes that have errors.
+                * This may leak errors from the base class to the derived one
+                * and then to the hook. Semantic analysis is performed eagerly
+                * to a void this.
+                */
+            if (auto tc = exp.type.nextOf.isTypeClass())
+            {
+                tc.sym.dsymbolSemantic(sc);
+                if (tc.sym.errors)
+                    goto LskipNewArrayLowering;
+            }
 
+            if (nargs == 1)
+            {
                 auto hook = global.params.tracegc ? Id._d_newarrayTTrace : Id._d_newarrayT;
                 if (!verifyHookExist(exp.loc, *sc, hook, "new array"))
                     goto LskipNewArrayLowering;
@@ -5162,6 +5162,45 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
                 arguments.push((*exp.arguments)[0]);
                 arguments.push(new IntegerExp(exp.loc, isShared, Type.tbool));
+
+                lowering = new CallExp(exp.loc, lowering, arguments);
+                exp.lowering = lowering.expressionSemantic(sc);
+            }
+            else
+            {
+                auto hook = global.params.tracegc ? Id._d_newarraymTXTrace : Id._d_newarraymTX;
+                if (!verifyHookExist(exp.loc, *sc, hook, "new multi-dimensional array"))
+                    goto LskipNewArrayLowering;
+
+                /* Lower the memory allocation and initialization of `new T[][]...[](n1, n2, ...)`
+                 * to `_d_newarraymTX!(T[][]...[], T)([n1, n2, ...])`.
+                 */
+                Expression lowering = new IdentifierExp(exp.loc, Id.empty);
+                lowering = new DotIdExp(exp.loc, lowering, Id.object);
+
+                auto tbn = exp.type.nextOf();
+                while (tbn.ty == Tarray)
+                    tbn = tbn.nextOf();
+                auto unqualTbn = tbn.unqualify(MODFlags.wild | MODFlags.const_ |
+                    MODFlags.immutable_ | MODFlags.shared_);
+
+                auto tiargs = new Objects();
+                tiargs.push(exp.type);
+                tiargs.push(unqualTbn);
+                lowering = new DotTemplateInstanceExp(exp.loc, lowering, hook, tiargs);
+
+                auto arguments = new Expressions();
+                if (global.params.tracegc)
+                {
+                    auto funcname = (sc.callsc && sc.callsc.func) ?
+                        sc.callsc.func.toPrettyChars() : sc.func.toPrettyChars();
+                    arguments.push(new StringExp(exp.loc, exp.loc.filename.toDString()));
+                    arguments.push(new IntegerExp(exp.loc, exp.loc.linnum, Type.tint32));
+                    arguments.push(new StringExp(exp.loc, funcname.toDString()));
+                }
+
+                arguments.push(new ArrayLiteralExp(exp.loc, Type.tsize_t.sarrayOf(nargs), exp.arguments));
+                arguments.push(new IntegerExp(exp.loc, tbn.isShared(), Type.tbool));
 
                 lowering = new CallExp(exp.loc, lowering, arguments);
                 exp.lowering = lowering.expressionSemantic(sc);
