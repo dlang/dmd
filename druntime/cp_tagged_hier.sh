@@ -19,9 +19,9 @@ if [[ -f ${DST_FILE} ]]; then
     exit 0
 fi
 
-TAGS_LIST=($(echo "$TAGS,default" | tr "," "\n"))
+TAGS_LIST=($(echo "$TAGS" | tr "," "\n"))
 
-echo -e "\nTags will be applied (except default): $TAGS"
+echo -e "\nTags will be applied: $TAGS"
 
 APPLIED=""
 
@@ -30,7 +30,7 @@ function applyTaggedFiles {
     SRC_TAG_DIR=${SRC_DIR}/${TAG}
 
     if [[ ! -d ${SRC_TAG_DIR} ]]; then
-        echo "Tag '${TAG}' doesn't corresponds to any subdirectory inside of '${SRC_DIR}', skip"
+        echo "Warning: tag '${TAG}' doesn't corresponds to any subdirectory inside of '${SRC_DIR}', skip"
     else
         SRC_FILES_LIST+=($(find ${SRC_TAG_DIR} -type f ))
 
