@@ -49,7 +49,7 @@ do
     applyTaggedFiles ${tag}
 done
 
-let LINES_TO_COPY=$(grep -v '^$' ${SRC_COPY_FILE} | wc -l)
+let LINES_TO_COPY=$(grep -v '^$' ${SRC_COPY_FILE} | sort | uniq | wc -l)
 COPIED=0
 
 echo "TAGGED_SRCS_LIST=\\" > ${DST_FILE}
@@ -63,7 +63,7 @@ do
     maybe_copy=$(echo "${MAYBE_COPY_LIST[$i]}" | tr '/' '\\')
 
     # Adds copy entry if file mentioned in the list
-    grep -F "$maybe_copy" ${SRC_COPY_FILE} && {
+    grep -F "$maybe_copy" ${SRC_COPY_FILE} > /dev/null && {
         echo ${fl} >> ${DST_COPY_FILE}
         let "COPIED+=1"
     }
