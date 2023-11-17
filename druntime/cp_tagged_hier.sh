@@ -49,7 +49,7 @@ do
     applyTaggedFiles ${tag}
 done
 
-let LINES_TO_COPY=$(grep -v '^$' ${SRC_COPY_FILE} | sort | uniq | wc -l)
+LINES_TO_COPY=$(grep -v '^$' ${SRC_COPY_FILE} | sort | uniq | wc -l)
 COPIED=0
 
 mkdir -p $(dirname ${DST_FILE})
@@ -72,7 +72,7 @@ do
 done
 
 if [ $COPIED -ne $LINES_TO_COPY ]; then
-    echo "File '$SRC_COPY_FILE' contains $LINES_TO_COPY meaningful line(s), but to '$DST_COPY_FILE' added $COPIED lines" > /dev/stderr
+    echo "File '$SRC_COPY_FILE' contains $LINES_TO_COPY meaningful line(s), but to '$DST_COPY_FILE' added $COPIED line(s)" > /dev/stderr
 
     mv ${DST_FILE} "$DST_FILE.disabled"
     echo "File '$DST_FILE' to '$DST_FILE.disabled' to avoid considering that tags parsing process was sucessfully done" > /dev/stderr
