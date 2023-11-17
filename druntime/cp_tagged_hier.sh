@@ -3,7 +3,7 @@
 set -euo pipefail
 
 SRC_DIR=$1
-DST_FILE=$2 #TODO: rename
+DST_FILE=$2
 SRC_COPY_FILE=$3
 DST_COPY_FILE=$4
 TAGS=$5
