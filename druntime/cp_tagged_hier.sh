@@ -31,14 +31,13 @@ function applyTaggedFiles {
 
     if [[ ! -d ${SRC_TAG_DIR} ]]; then
         echo "Tag '${TAG}' doesn't corresponds to any subdirectory inside of '${SRC_DIR}', skip"
-        return 0
+    else
+        SRC_FILES_LIST+=($(find ${SRC_TAG_DIR} -type f ))
+
+        pushd ${SRC_TAG_DIR} > /dev/null
+        MAYBE_COPY_LIST+=($(find * -type f ))
+        popd > /dev/null
     fi
-
-    SRC_FILES_LIST+=($(find ${SRC_TAG_DIR} -type f ))
-
-    pushd ${SRC_TAG_DIR} > /dev/null
-    MAYBE_COPY_LIST+=($(find * -type f ))
-    popd > /dev/null
 
     APPLIED+=" $TAG"
 
