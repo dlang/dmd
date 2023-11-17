@@ -115,13 +115,20 @@ STDDOC=
 ###############
 
 TAGGED_COPY_LIST_FILE:=mak/TAGGED_COPY
-TAGGED_SRCS_FILE:=/tmp/GEN_SRCS
-TAGGED_COPY_FILE:=/tmp/GEN_COPY
+TAGGED_SRCS_FILE:=$(ROOT)/GEN_SRCS
+TAGGED_COPY_FILE:=$(ROOT)/GEN_COPY
 
 TGEN_CMD:=./cp_tagged_hier.sh config $(TAGGED_SRCS_FILE) $(TAGGED_COPY_LIST_FILE) $(TAGGED_COPY_FILE) x86_64,$(OS),default > /dev/null
 
 TAGGED_SRCS:=$(shell $(TGEN_CMD) && cat $(TAGGED_SRCS_FILE))
+ifneq ($(.SHELLSTATUS),0)
+  $(error Tagged sources list generation failed)
+endif
+
 TAGGED_COPY:=$(shell $(TGEN_CMD) && cat $(TAGGED_COPY_FILE))
+ifneq ($(.SHELLSTATUS),0)
+  $(error Tagged copy list generation failed)
+endif
 
 ###############
 
