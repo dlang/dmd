@@ -49,7 +49,7 @@ do
     applyTaggedFiles ${tag}
 done
 
-let LINES_TO_COPY=$(grep -v '^$' ${SRC_COPY_FILE} | sort | uniq | wc -l)
+LINES_TO_COPY=$(grep -v '^$' ${SRC_COPY_FILE} | sort | uniq | wc -l)
 COPIED=0
 
 mkdir -p $(dirname ${DST_FILE})
