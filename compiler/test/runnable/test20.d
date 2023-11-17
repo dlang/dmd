@@ -250,9 +250,9 @@ void test12()
 
 class Foo13
 {
-       int init (int x) { return 1; }
+       int initialize (int x) { return 1; }
 
-       static int init (long y) { return 2; }
+       static int initialize (long y) { return 2; }
 }
 
 void test13()
@@ -260,9 +260,9 @@ void test13()
     Foo13 f = new Foo13();
     int i;
 
-    i = f.init(1);
+    i = f.initialize(1);
     assert(i == 1);
-    i = f.init(1L);
+    i = f.initialize(1L);
     assert(i == 2);
 }
 

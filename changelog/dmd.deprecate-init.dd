@@ -1,0 +1,19 @@
+Members called `init` are now deprecated
+
+This applies to named enum types and structs / classes with `extern (D)` linkage.
+They conflict with the built-in `.init` property of types, complicating meta-programming.
+As a corrective action, rename them to something like `initial` or `initialize`.
+
+---
+enum E
+{
+    init, // deprecated
+    initial, // corrective action
+}
+
+struct S
+{
+    void init() { } // deprecated
+    void initialize() { } // corrective action
+}
+---

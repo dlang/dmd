@@ -132,10 +132,10 @@ class B9
 {
     this()
     {
-        init();
+        initialize();
     }
 
-    private void init()
+    private void initialize()
     {
         A9 test1 = new A9(1, 2, 3);
         A9 test2 = new A9(1, 2, 3, 4);

@@ -807,6 +807,15 @@ extern (C++) class Dsymbol : ASTNode
                 .error(loc, "%s `%s` `.%s` property cannot be redefined", kind, toPrettyChars, ident.toChars());
                 errors = true;
             }
+            if (ident == Id._init)
+            {
+                // @@@DEPRECATED_2.100@@@
+                // Should be an error in 2.113.
+                auto ad = sds.isAggregateDeclaration();
+                // Limit to D classes / structs, Objective-C classes have a standard `init` method
+                if (!ad || ad.classKind == ClassKind.d)
+                    .deprecation(loc, "declaring a member named `%s` is deprecated", ident.toChars());
+            }
         }
     }
 
