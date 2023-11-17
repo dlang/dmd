@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# MacOS ships with 2007 (last GPL2) version of Bash
+shopt compat32
+
 set -euo pipefail
 
 SRC_DIR=$1
@@ -67,7 +70,7 @@ do
     # Adds copy entry if file mentioned in the list
     grep -F "$maybe_copy" ${SRC_COPY_FILE} > /dev/null && {
         echo 'import/'${fl} >> ${DST_COPY_FILE}
-        ((COPIED=COPIED+1))
+        COPIED++
     }
 done
 
