@@ -979,6 +979,7 @@ void buildClosure(FuncDeclaration fd, ref IRState irs)
  * Reference:
  *      setClosureVarOffset
  */
+private
 uint setAlignSectionVarOffset(FuncDeclaration fd)
 {
     // Nothing to do
