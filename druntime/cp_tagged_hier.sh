@@ -9,7 +9,7 @@ DST_COPY_FILE=$4
 TAGS=$5
 
 if [[ ! -d ${SRC_DIR} ]]; then
-    echo "Tags dir '${SRC_DIR}' not found"
+    echo "Tags dir '${SRC_DIR}' not found" > /dev/stderr
     return 1
 fi
 
@@ -30,7 +30,7 @@ function applyTaggedFiles {
     SRC_TAG_DIR=${SRC_DIR}/${TAG}
 
     if [[ ! -d ${SRC_TAG_DIR} ]]; then
-        echo "Warning: tag '${TAG}' doesn't corresponds to any subdirectory inside of '${SRC_DIR}', skip"
+        echo "Warning: tag '${TAG}' doesn't corresponds to any subdirectory inside of '${SRC_DIR}', skip" > /dev/stderr
     else
         SRC_FILES_LIST+=($(find ${SRC_TAG_DIR} -type f ))
 
@@ -70,10 +70,10 @@ do
 done
 
 if [ $COPIED -ne $LINES_TO_COPY ]; then
-    echo "File '$SRC_COPY_FILE' contains $LINES_TO_COPY meaningful line(s), but to '$DST_COPY_FILE' added $COPIED lines"
+    echo "File '$SRC_COPY_FILE' contains $LINES_TO_COPY meaningful line(s), but to '$DST_COPY_FILE' added $COPIED lines" > /dev/stderr
 
     mv ${DST_FILE} "$DST_FILE.disabled"
-    echo "File '$DST_FILE' to '$DST_FILE.disabled' to avoid considering that tags parsing process was sucessfully done"
+    echo "File '$DST_FILE' to '$DST_FILE.disabled' to avoid considering that tags parsing process was sucessfully done" > /dev/stderr
     exit 1
 fi
 
