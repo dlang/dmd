@@ -31,6 +31,7 @@ SRCS=\
 	src\core\internal\dassert.d \
 	src\core\internal\destruction.d \
 	src\core\internal\entrypoint.d \
+	src\core\internal\event_tests.d \
 	src\core\internal\execinfo.d \
 	src\core\internal\hash.d \
 	src\core\internal\moving.d \
@@ -125,7 +126,6 @@ SRCS=\
 	src\core\sync\condition.d \
 	src\core\sync\config.d \
 	src\core\sync\exception.d \
-	src\core\sync\event.d \
 	src\core\sync\mutex.d \
 	src\core\sync\rwmutex.d \
 	src\core\sync\semaphore.d \

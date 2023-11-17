@@ -11,63 +11,13 @@
  */
 module core.sync.event;
 
-version (Windows)
-{
-    import core.sys.windows.basetsd /+: HANDLE +/;
-    import core.sys.windows.winerror /+: WAIT_TIMEOUT +/;
-    import core.sys.windows.winbase /+: CreateEvent, CloseHandle, SetEvent, ResetEvent,
-        WaitForSingleObject, INFINITE, WAIT_OBJECT_0+/;
-}
-else version (Posix)
-{
-    import core.sys.posix.pthread;
-    import core.sys.posix.sys.types;
-    import core.sys.posix.time;
-}
-else
-{
-    static assert(false, "Platform not supported");
-}
+import core.sys.posix.pthread;
+import core.sys.posix.sys.types;
+import core.sys.posix.time;
 
 import core.time;
 import core.internal.abort : abort;
 
-/**
- * represents an event. Clients of an event are suspended while waiting
- * for the event to be "signaled".
- *
- * Implemented using `pthread_mutex` and `pthread_condition` on Posix and
- * `CreateEvent` and `SetEvent` on Windows.
----
-import core.sync.event, core.thread, std.file;
-
-struct ProcessFile
-{
-    ThreadGroup group;
-    Event event;
-    void[] buffer;
-
-    void doProcess()
-    {
-        event.wait();
-        // process buffer
-    }
-
-    void process(string filename)
-    {
-        event.initialize(true, false);
-        group = new ThreadGroup;
-        for (int i = 0; i < 10; ++i)
-            group.create(&doProcess);
-
-        buffer = std.file.read(filename);
-        event.set();
-        group.joinAll();
-        event.terminate();
-    }
-}
----
- */
 struct Event
 {
 nothrow @nogc:
@@ -92,14 +42,6 @@ nothrow @nogc:
      */
     void initialize(bool manualReset, bool initialState)
     {
-        version (Windows)
-        {
-            if (m_event)
-                return;
-            m_event = CreateEvent(null, manualReset, initialState, null);
-            m_event || abort("Error: CreateEvent failed.");
-        }
-        else version (Posix)
         {
             if (m_initalized)
                 return;
@@ -143,13 +85,6 @@ nothrow @nogc:
     */
     void terminate()
     {
-        version (Windows)
-        {
-            if (m_event)
-                CloseHandle(m_event);
-            m_event = null;
-        }
-        else version (Posix)
         {
             if (m_initalized)
             {
@@ -166,12 +101,6 @@ nothrow @nogc:
     /// Set the event to "signaled", so that waiting clients are resumed
     void set()
     {
-        version (Windows)
-        {
-            if (m_event)
-                SetEvent(m_event);
-        }
-        else version (Posix)
         {
             if (m_initalized)
             {
@@ -186,12 +115,6 @@ nothrow @nogc:
     /// Reset the event manually
     void reset()
     {
-        version (Windows)
-        {
-            if (m_event)
-                ResetEvent(m_event);
-        }
-        else version (Posix)
         {
             if (m_initalized)
             {
@@ -210,11 +133,6 @@ nothrow @nogc:
      */
     bool wait()
     {
-        version (Windows)
-        {
-            return m_event && WaitForSingleObject(m_event, INFINITE) == WAIT_OBJECT_0;
-        }
-        else version (Posix)
         {
             return wait(Duration.max);
         }
@@ -231,24 +149,6 @@ nothrow @nogc:
      */
     bool wait(Duration tmout)
     {
-        version (Windows)
-        {
-            if (!m_event)
-                return false;
-
-            auto maxWaitMillis = dur!("msecs")(uint.max - 1);
-
-            while (tmout > maxWaitMillis)
-            {
-                auto res = WaitForSingleObject(m_event, uint.max - 1);
-                if (res != WAIT_TIMEOUT)
-                    return res == WAIT_OBJECT_0;
-                tmout -= maxWaitMillis;
-            }
-            auto ms = cast(uint)(tmout.total!"msecs");
-            return WaitForSingleObject(m_event, ms) == WAIT_OBJECT_0;
-        }
-        else version (Posix)
         {
             if (!m_initalized)
                 return false;
@@ -282,64 +182,9 @@ nothrow @nogc:
     }
 
 private:
-    version (Windows)
-    {
-        HANDLE m_event;
-    }
-    else version (Posix)
-    {
         pthread_mutex_t m_mutex;
         pthread_cond_t m_cond;
         bool m_initalized;
         bool m_state;
         bool m_manualReset;
-    }
-}
-
-// Test single-thread (non-shared) use.
-@nogc nothrow unittest
-{
-    // auto-reset, initial state false
-    Event ev1 = Event(false, false);
-    assert(!ev1.wait(1.dur!"msecs"));
-    ev1.set();
-    assert(ev1.wait());
-    assert(!ev1.wait(1.dur!"msecs"));
-
-    // manual-reset, initial state true
-    Event ev2 = Event(true, true);
-    assert(ev2.wait());
-    assert(ev2.wait());
-    ev2.reset();
-    assert(!ev2.wait(1.dur!"msecs"));
-}
-
-unittest
-{
-    import core.thread, core.atomic;
-
-    scope event      = new Event(true, false);
-    int  numThreads = 10;
-    shared int numRunning = 0;
-
-    void testFn()
-    {
-        event.wait(8.dur!"seconds"); // timeout below limit for druntime test_runner
-        numRunning.atomicOp!"+="(1);
-    }
-
-    auto group = new ThreadGroup;
-
-    for (int i = 0; i < numThreads; ++i)
-        group.create(&testFn);
-
-    auto start = MonoTime.currTime;
-    assert(numRunning == 0);
-
-    event.set();
-    group.joinAll();
-
-    assert(numRunning == numThreads);
-
-    assert(MonoTime.currTime - start < 5.dur!"seconds");
 }
