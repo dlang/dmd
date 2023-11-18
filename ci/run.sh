@@ -59,8 +59,9 @@ clone() {
 # build dmd (incl. building and running the unittests), druntime, phobos
 build() {
     source ~/dlang/*/activate # activate host compiler, incl. setting `DMD`
-    make -j$N -C compiler/src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" BUILD=debug ENABLE_WARNINGS=1 unittest
-    make -j$N -C compiler/src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=1 ENABLE_WARNINGS=1 all
+    $DMD compiler/src/build.d -ofgenerated/build
+    generated/build -j$N MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" BUILD=debug unittest
+    generated/build -j$N MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=1 dmd
     make -j$N -C druntime -f posix.mak MODEL=$MODEL
     make -j$N -C ../phobos -f posix.mak MODEL=$MODEL
     deactivate # deactivate host compiler
@@ -75,8 +76,8 @@ rebuild() {
     mkdir -p _${build_path}
     cp $build_path/dmd _${build_path}/host_dmd
     cp $build_path/dmd.conf _${build_path}
-    make -j$N -C compiler/src -f posix.mak MODEL=$MODEL HOST_DMD=../../_${build_path}/host_dmd clean
-    make -j$N -C compiler/src -f posix.mak MODEL=$MODEL HOST_DMD=../../_${build_path}/host_dmd DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=${ENABLE_RELEASE:-1} ENABLE_WARNINGS=1 all
+    rm -rf $build_path
+    generated/build -j$N MODEL=$MODEL HOST_DMD=_${build_path}/host_dmd DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=${ENABLE_RELEASE:-1} dmd
 
     # compare binaries to test reproducible build
     if [ $compare -eq 1 ]; then
@@ -100,12 +101,15 @@ test() {
 
 # test dmd
 test_dmd() {
-    # test fewer compiler argument permutations for PRs to reduce CI load
-    if [ "$FULL_BUILD" == "true" ] && [ "$OS_NAME" == "linux"  ]; then
-        make -j1 -C compiler/test MODEL=$MODEL N=$N # all ARGS by default
+    # default to testing fewer compiler argument permutations to reduce CI load
+    if [ "$FULL_BUILD" == "true" ] && [ "$OS_NAME" == "linux" ]; then
+        local args=() # use all default ARGS
     else
-        make -j1 -C compiler/test MODEL=$MODEL N=$N ARGS="-O -inline -release"
+        local args=(ARGS="-O -inline -release")
     fi
+
+    $build_path/dmd -g -i -Icompiler/test -release compiler/test/run.d -ofgenerated/run
+    generated/run -j$N --environment MODEL=$MODEL HOST_DMD=$build_path/dmd "${args[@]}"
 }
 
 # build and run druntime unit tests
