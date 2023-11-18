@@ -115,8 +115,8 @@ STDDOC=
 ###############
 
 TAGGED_COPY_LIST_FILE:=mak/TAGGED_COPY
-TAGGED_SRCS_FILE:=$(ROOT)/gen_srcs
-TAGGED_COPY_FILE:=$(ROOT)/gen_copy
+TAGGED_SRCS_FILE:=$(ROOT)/GEN_SRCS
+TAGGED_COPY_FILE:=$(ROOT)/GEN_COPY
 
 # TODO: implement tags table
 ifeq ($(MODEL), 64)
@@ -134,8 +134,7 @@ endif
 
 TGEN_CMD:=./cp_tagged_hier.sh config $(TAGGED_SRCS_FILE) $(TAGGED_COPY_LIST_FILE) $(TAGGED_COPY_FILE) $(TAGS) > /dev/null
 
-# > /dev/stderr added for debug what is happens with MacOS
-TAGGED_SRCS:=$(shell $(TGEN_CMD) > /dev/stderr && cat $(TAGGED_SRCS_FILE))
+TAGGED_SRCS:=$(shell $(TGEN_CMD) && tr x x < $(TAGGED_SRCS_FILE))
 ifneq ($(.SHELLSTATUS),0)
   $(error Tagged sources list generation failed)
 endif
