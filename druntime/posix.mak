@@ -115,8 +115,8 @@ STDDOC=
 ###############
 
 TAGGED_COPY_LIST_FILE:=mak/TAGGED_COPY
-TAGGED_SRCS_FILE:=$(ROOT)/GEN_SRCS
-TAGGED_COPY_FILE:=$(ROOT)/GEN_COPY
+TAGGED_SRCS_FILE:=$(ROOT)/gen_srcs
+TAGGED_COPY_FILE:=$(ROOT)/gen_copy
 
 # TODO: implement tags table
 ifeq ($(MODEL), 64)
