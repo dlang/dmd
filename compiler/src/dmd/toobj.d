@@ -36,6 +36,7 @@ import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.errors;
+import dmd.errorsink;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
@@ -248,18 +249,18 @@ void write_instance_pointers(Type type, Symbol *s, uint offset)
         return;
 
     Array!(ulong) data;
-    ulong sz = getTypePointerBitmap(Loc.initial, type, &data);
+    const ulong sz = getTypePointerBitmap(Loc.initial, type, data, global.errorSink);
     if (sz == ulong.max)
         return;
 
     const bytes_size_t = cast(size_t)Type.tsize_t.size(Loc.initial);
     const bits_size_t = bytes_size_t * 8;
     auto words = cast(size_t)(sz / bytes_size_t);
-    for (size_t i = 0; i < data.length; i++)
+    foreach (i, const element; data[])
     {
         size_t bits = words < bits_size_t ? words : bits_size_t;
-        for (size_t b = 0; b < bits; b++)
-            if (data[i] & (1L << b))
+        foreach (size_t b; 0 .. bits)
+            if (element & (1L << b))
             {
                 auto off = cast(uint) ((i * bits_size_t + b) * bytes_size_t);
                 objmod.write_pointerRef(s, off + offset);
