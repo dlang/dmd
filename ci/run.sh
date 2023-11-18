@@ -7,7 +7,7 @@ set -uexo pipefail
 
 # N: number of parallel build jobs
 if [ -z ${N+x} ] ; then echo "Variable 'N' needs to be set."; exit 1; fi
-# OS_NAME: linux|darwin|freebsd
+# OS_NAME: linux|osx|freebsd
 if [ -z ${OS_NAME+x} ] ; then echo "Variable 'OS_NAME' needs to be set."; exit 1; fi
 # FULL_BUILD: true|false (true on Linux: use full permutations for DMD tests)
 if [ -z ${FULL_BUILD+x} ] ; then echo "Variable 'FULL_BUILD' needs to be set."; exit 1; fi
@@ -34,7 +34,7 @@ if [ "$OS_NAME" == "linux" ]; then
 else
     NM=nm
 
-  if [ "$OS_NAME" == "darwin" ]; then
+  if [ "$OS_NAME" == "osx" ]; then
     export PATH="/usr/local/opt/llvm/bin:$PATH"
   fi
 fi

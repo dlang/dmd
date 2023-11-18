@@ -64,7 +64,7 @@ jobs:
     timeout-minutes: 40
     env:
       # for ci/run.sh:
-      OS_NAME: ${{ startsWith(matrix.os, 'ubuntu') && 'linux' || (startsWith(matrix.os, 'macos') && 'darwin' || '') }}
+      OS_NAME: ${{ startsWith(matrix.os, 'ubuntu') && 'linux' || (startsWith(matrix.os, 'macos') && 'osx' || '') }}
       MODEL: ${{ matrix.model || '64' }}
       HOST_DMD: ${{ matrix.host_dmd }}
       N: ${{ startsWith(matrix.os, 'macos') && '3' || '2' }}
@@ -102,7 +102,7 @@ jobs:
         run: ci/run.sh build
       - name: Rebuild dmd (with enabled coverage)
         if: matrix.coverage
-        run: ENABLE_RELEASE=0 ENABLE_DEBUG=1 ENABLE_COVERAGE=1 ${{ runner.os == 'macOS' && 'OS_NAME=osx' || '' }} ci/run.sh rebuild
+        run: ENABLE_RELEASE=0 ENABLE_DEBUG=1 ENABLE_COVERAGE=1 ci/run.sh rebuild
       - name: Test dmd
         run: ci/run.sh test_dmd
       - name: Test druntime
