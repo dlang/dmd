@@ -134,14 +134,20 @@ endif
 
 TGEN_CMD:=./cp_tagged_hier.sh config $(TAGGED_SRCS_FILE) $(TAGGED_COPY_LIST_FILE) $(TAGGED_COPY_FILE) $(TAGS) > /dev/null
 
-TAGGED_SRCS:=$(shell $(TGEN_CMD) && cat $(TAGGED_SRCS_FILE) > /dev/stderr)
-ifneq ($(.SHELLSTATUS),0)
-  $(error Tagged sources list generation failed)
+TAGGED_SRCS:=$(shell $(TGEN_CMD) && cat $(TAGGED_SRCS_FILE))
+
+# MacOS doesn't support .SHELLSTATUS
+ifneq ($(.SHELLSTATUS),)
+	ifneq ($(.SHELLSTATUS),0)
+	  $(error Tagged sources list generation failed)
+	endif
 endif
 
 TAGGED_COPY:=$(shell $(TGEN_CMD) && cat $(TAGGED_COPY_FILE))
-ifneq ($(.SHELLSTATUS),0)
-  $(error Tagged copy list generation failed)
+ifneq ($(.SHELLSTATUS),)
+	ifneq ($(.SHELLSTATUS),0)
+	  $(error Tagged copy list generation failed)
+	endif
 endif
 
 ###############
