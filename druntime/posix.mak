@@ -134,7 +134,7 @@ endif
 
 TGEN_CMD:=./cp_tagged_hier.sh config $(TAGGED_SRCS_FILE) $(TAGGED_COPY_LIST_FILE) $(TAGGED_COPY_FILE) $(TAGS) > /dev/null
 
-TAGGED_SRCS:=$(shell $(TGEN_CMD) && tr x x < $(TAGGED_SRCS_FILE))
+TAGGED_SRCS:=$(shell $(TGEN_CMD) && cat $(TAGGED_SRCS_FILE) > /dev/stderr)
 ifneq ($(.SHELLSTATUS),0)
   $(error Tagged sources list generation failed)
 endif
