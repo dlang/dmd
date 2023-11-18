@@ -82,7 +82,6 @@ jobs:
       - name: Set up repos
         run: |
           set -uexo pipefail
-          ln -s "$GITHUB_WORKSPACE" ../dmd
 
           ref='${{ github.ref }}'
           if [[ "$ref" =~ ^refs/pull/ ]]; then
@@ -135,7 +134,7 @@ jobs:
         with:
           fetch-depth: 50
       - name: Run in VM
-        uses: cross-platform-actions/action@v0.21.0
+        uses: cross-platform-actions/action@v0.21.1
         with:
           operating_system: freebsd
           hypervisor: qemu
@@ -171,7 +170,6 @@ jobs:
             echo '::endgroup::'
 
             echo '::group::Set up repos'
-            ln -s "$PWD" ../dmd
 
             ref='${{ github.ref }}'
             if [[ "$ref" =~ ^refs/pull/ ]]; then
