@@ -73,6 +73,8 @@ jobs:
       FULL_BUILD: true
       # for coverage:
       DMD_TEST_COVERAGE: ${{ matrix.coverage && '1' || '0' }}
+      # work around https://issues.dlang.org/show_bug.cgi?id=23517
+      MACOSX_DEPLOYMENT_TARGET: '11'
     steps:
       - uses: actions/checkout@v4
         with:
