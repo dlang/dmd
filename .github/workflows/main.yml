@@ -100,7 +100,7 @@ jobs:
 
           ci/run.sh setup_repos "$REPO_BRANCH"
       - name: Build
-        run: ci/run.sh build
+        run: VERBOSE=1 ci/run.sh build
       - name: Rebuild dmd (with enabled coverage)
         if: matrix.coverage
         run: ENABLE_RELEASE=0 ENABLE_DEBUG=1 ENABLE_COVERAGE=1 ${{ runner.os == 'macOS' && 'OS_NAME=osx' || '' }} ci/run.sh rebuild
