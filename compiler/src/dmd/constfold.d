@@ -1280,7 +1280,7 @@ UnionExp Slice(Type type, Expression e1, Expression lwr, Expression upr)
             }
             if (iupr > es1.elements.length)
             {
-                .error(e1.loc, "in slice `%s[%llu..%llu]`, upper bound is greater than array length `%llu`", e1.toChars, ilwr, iupr, es1.elements.length);
+                .error(e1.loc, "in slice `%s[%llu..%llu]`, upper bound is greater than array length `%llu`", e1.toChars, ilwr, iupr, cast(ulong) es1.elements.length);
                 isError = true;
             }
 
