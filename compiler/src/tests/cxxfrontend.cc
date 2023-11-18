@@ -285,7 +285,7 @@ void test_semantic()
     semantic2(m, NULL);
     semantic3(m, NULL);
 
-    Dsymbol *s = m->search(Loc(), Identifier::idPool("Error"));
+    Dsymbol *s = search(m, Loc(), Identifier::idPool("Error"));
     assert(s);
     AggregateDeclaration *ad = s->isAggregateDeclaration();
     assert(ad && ad->ctor && ad->sizeok == Sizeok::done);
@@ -501,7 +501,7 @@ void test_cppmangle()
     semantic2(m, NULL);
     semantic3(m, NULL);
 
-    Dsymbol *s = m->search(Loc(), Identifier::idPool("Derived"));
+    Dsymbol *s = search(m, Loc(), Identifier::idPool("Derived"));
     assert(s);
     ClassDeclaration *cd = s->isClassDeclaration();
     assert(cd && cd->sizeok == Sizeok::done);

@@ -501,7 +501,6 @@ public:
     virtual Dsymbol* toAlias2();
     virtual void setScope(Scope* sc);
     virtual void importAll(Scope* sc);
-    virtual Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 0);
     virtual bool overloadInsert(Dsymbol* s);
     virtual uinteger_t size(const Loc& loc);
     virtual bool isforwardRef();
@@ -619,14 +618,13 @@ public:
     Array<Dsymbol* >* members;
     DsymbolTable* symtab;
     uint32_t endlinnum;
-private:
     Array<Dsymbol* >* importedScopes;
     Visibility::Kind* visibilities;
+private:
     BitArray accessiblePackages;
     BitArray privateAccessiblePackages;
 public:
     ScopeDsymbol* syntaxCopy(Dsymbol* s) override;
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8) override;
     virtual void importScope(Dsymbol* s, Visibility visibility);
     virtual bool isPackageAccessible(Package* p, Visibility visibility, int32_t flags = 0);
     bool isforwardRef() final override;
@@ -3941,7 +3939,6 @@ public:
     Expression* identExp;
     Nspace* syntaxCopy(Dsymbol* s) override;
     void setScope(Scope* sc) override;
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8) override;
     bool hasPointers() override;
     void setFieldOffset(AggregateDeclaration* ad, FieldState& fieldState, bool isunion) override;
     const char* kind() const override;
@@ -5730,9 +5727,7 @@ public:
     bool com;
     bool stack;
     int32_t cppDtorVtblIndex;
-private:
     bool inuse;
-public:
     ThreeState isabstract;
     Baseok baseok;
     ObjcClassDeclaration objc;
@@ -5747,7 +5742,6 @@ public:
 
     virtual bool isBaseOf(ClassDeclaration* cd, int32_t* poffset);
     bool isBaseInfoComplete() const;
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8) final override;
     void finalizeSize() final override;
     bool hasMonitor();
     bool isFuncHidden(FuncDeclaration* fd);
@@ -5803,7 +5797,6 @@ public:
     _d_dynamicArray< const char > mangleOverride;
     const char* kind() const override;
     uinteger_t size(const Loc& loc) final override;
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8) final override;
     bool isStatic() const;
     LINK resolvedLinkage() const;
     virtual bool isDelete();
@@ -6136,7 +6129,6 @@ public:
     bool oneMember(Dsymbol** ps, Identifier* ident) override;
     Type* getType() override;
     const char* kind() const override;
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8) override;
     bool isDeprecated() const override;
     Visibility visible() override;
     bool isSpecial() const;
@@ -6179,7 +6171,6 @@ public:
     void importAll(Scope* sc) override;
     Dsymbol* toAlias() override;
     void setScope(Scope* sc) override;
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8) override;
     bool overloadInsert(Dsymbol* s) override;
     Import* isImport() override;
     void accept(Visitor* v) override;
@@ -6209,7 +6200,6 @@ public:
     bool equals(const RootObject* const o) const override;
     Package* isPackage() final override;
     bool isAncestorPackageOf(const Package* const pkg) const;
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8) override;
     void accept(Visitor* v) override;
     Module* isPackageMod();
     void resolvePKGunknown();
@@ -6252,12 +6242,10 @@ private:
 public:
     bool selfImports();
     bool rootImports();
-private:
     Identifier* searchCacheIdent;
     Dsymbol* searchCacheSymbol;
     int32_t searchCacheFlags;
     bool insearch;
-public:
     Module* importedFrom;
     Array<Dsymbol* >* decldefs;
     Array<Module* > aimports;
@@ -6280,7 +6268,6 @@ public:
     void importAll(Scope* prevsc) override;
     int32_t needModuleInfo();
     void checkImportDeprecation(const Loc& loc, Scope* sc);
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8) override;
     bool isPackageAccessible(Package* p, Visibility visibility, int32_t flags = 0) override;
     Dsymbol* symtabInsert(Dsymbol* s) override;
     static void runDeferredSemantic();
@@ -6496,7 +6483,6 @@ private:
 public:
     static StructDeclaration* create(const Loc& loc, Identifier* id, bool inObject);
     StructDeclaration* syntaxCopy(Dsymbol* s) override;
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8) final override;
     const char* kind() const override;
     void finalizeSize() final override;
     bool isPOD();
@@ -6521,16 +6507,14 @@ class WithScopeSymbol final : public ScopeDsymbol
 {
 public:
     WithStatement* withstate;
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8) override;
     WithScopeSymbol* isWithScopeSymbol() override;
     void accept(Visitor* v) override;
 };
 
 class ArrayScopeSymbol final : public ScopeDsymbol
 {
-    RootObject* arrayContent;
 public:
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 0) override;
+    RootObject* arrayContent;
     ArrayScopeSymbol* isArrayScopeSymbol() override;
     void accept(Visitor* v) override;
 };
@@ -6590,6 +6574,8 @@ public:
 extern void dsymbolSemantic(Dsymbol* dsym, Scope* sc);
 
 extern void addMember(Dsymbol* dsym, Scope* sc, ScopeDsymbol* sds);
+
+extern Dsymbol* search(Dsymbol* d, const Loc& loc, Identifier* ident, int32_t flags = 0);
 
 extern Expression* isExpression(RootObject* o);
 
