@@ -107,20 +107,11 @@ ifeq ($(HOST_DMD),)
     endif
 endif
 
-# Required version for -lowmem
-LOW_MEM_MIN_VERSION = v2.086.0
 VERSION = $(filter v2.%, $(shell $(HOST_DMD) --version 2>/dev/null))
-RUN_FLAGS = -g -i -Itools -version=NoMain
 
 ifeq ($(VERSION),)
 	# dmd was not found in $PATH
 	USE_GENERATED=1
-endif
-
-# Detect whether the host dmd satisfies MIN_VERSION
-ifeq ($(LOW_MEM_MIN_VERSION), $(firstword $(sort $(LOW_MEM_MIN_VERSION) $(VERSION))))
-	# dmd found in $PATH is too old
-	RUN_FLAGS := $(RUN_FLAGS) -lowmem
 endif
 
 ifneq ($(USE_GENERATED),)
@@ -218,17 +209,7 @@ start_all_tests: $(RUNNER)
 	@echo "Running all tests"
 	$(EXECUTE_RUNNER) all
 
-$(RESULTS_DIR)/d_do_test$(EXE): tools/d_do_test.d tools/sanitize_json.d $(RESULTS_DIR)/.created
-	@echo "Building d_do_test tool"
-	@echo "OS: '$(OS)'"
-	@echo "MODEL: '$(MODEL)'"
-	@echo "PIC: '$(PIC_FLAG)'"
-	$(RUN_HOST_DMD) $(MODEL_FLAG) $(PIC_FLAG) $(RUN_FLAGS) -unittest -run $<
-	$(RUN_HOST_DMD) $(MODEL_FLAG) $(PIC_FLAG) $(RUN_FLAGS) -od$(RESULTS_DIR) -of$@ $<
-
-# Build d_do_test here to run it's unittests
-# TODO: Migrate this to run.d
-$(RUNNER): run.d $(RESULTS_DIR)/d_do_test$(EXE)
+$(RUNNER): run.d
 	$(RUN_HOST_DMD) $(MODEL_FLAG) $(PIC_FLAG) -g -od$(RESULTS_DIR) -of$(RUNNER) -i -release $<
 
 # run.d is not reentrant because each invocation might attempt to build the required tools
