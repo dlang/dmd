@@ -3428,8 +3428,8 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
                 .error(loc, "none of the overloads of `%s` can construct a %sobject with argument types `(%s)`",
                     fd.toChars(), thisBuf.peekChars(), buf.peekChars());
             else
-                .error(loc, "none of the overloads of `%s` are callable using a %sobject",
-                    fd.toChars(), thisBuf.peekChars());
+                .error(loc, "none of the overloads of `%s` are callable using a %sobject with argument types `(%s)`",
+                    fd.toChars(), thisBuf.peekChars(), buf.peekChars());
 
             if (!global.gag || global.params.v.showGaggedErrors)
                 printCandidates(loc, fd, sc.isDeprecated());
