@@ -62,11 +62,10 @@ clone_repos
 if [ "$MODEL" == "64" ] ; then
     MAKE_FILE="win64.mak"
     LIBNAME=phobos64.lib
-elif [ "$MODEL" == "32mscoff" ] ; then
+elif [ "$MODEL" == "32" ] ; then
     MAKE_FILE="win64.mak"
     LIBNAME=phobos32mscoff.lib
-else
-    export LIB="$PWD/dmd2/windows/lib"
+else # 32omf
     MAKE_FILE="win32.mak"
     LIBNAME=phobos.lib
 fi
@@ -74,11 +73,6 @@ fi
 ################################################################################
 # Build DMD (incl. building and running the unittests)
 ################################################################################
-if [ "$MODEL" == "32omf" ] ; then
-    DMD_BIN_PATH="$DMD_DIR/generated/windows/release/32/dmd"
-else
-    DMD_BIN_PATH="$DMD_DIR/generated/windows/release/$MODEL/dmd"
-fi
 
 # no `-debug` for unittests build with old host compilers (to avoid compile errors)
 disable_debug_for_unittests=()
@@ -86,10 +80,18 @@ if [[ "$HOST_DMD_VERSION" == "2.079.0" ]]; then
     disable_debug_for_unittests=(ENABLE_DEBUG=0)
 fi
 
+# avoid the DMC runtime and its limitations for the compiler and {build,run}.d tools themselves
+TOOL_MODEL="$MODEL"
+if [[ "$MODEL" == "32omf" ]]; then
+    TOOL_MODEL=32
+fi
+
 cd "$DMD_DIR"
-"$HOST_DC" compiler/src/build.d -ofgenerated/build.exe
-generated/build.exe -j$N MODEL=$MODEL HOST_DMD=$HOST_DC BUILD=debug "${disable_debug_for_unittests[@]}" unittest
-generated/build.exe -j$N MODEL=$MODEL HOST_DMD=$HOST_DC DFLAGS="-L-LARGEADDRESSAWARE" ENABLE_RELEASE=1 ENABLE_ASSERTS=1 dmd
+"$HOST_DC" -m$TOOL_MODEL compiler/src/build.d -ofgenerated/build.exe
+generated/build.exe -j$N MODEL=$TOOL_MODEL HOST_DMD=$HOST_DC BUILD=debug "${disable_debug_for_unittests[@]}" unittest
+generated/build.exe -j$N MODEL=$TOOL_MODEL HOST_DMD=$HOST_DC DFLAGS="-L-LARGEADDRESSAWARE" ENABLE_RELEASE=1 ENABLE_ASSERTS=1 dmd
+
+DMD_BIN_PATH="$DMD_DIR/generated/windows/release/$TOOL_MODEL/dmd"
 
 ################################################################################
 # Build Druntime and Phobos
@@ -109,31 +111,34 @@ cd "$DMD_DIR/../phobos"
 
 cd "$DMD_DIR/compiler/test"
 
-# build run.d testrunner and its tools while host compiler is untampered
-if [ "$MODEL" == "32omf" ] ; then
-    TOOL_MODEL=32;
-else
-    TOOL_MODEL="$MODEL"
-fi
-
-"$HOST_DC" -m$TOOL_MODEL -g -i run.d
-./run tools
-
 # Rebuild dmd with ENABLE_COVERAGE for coverage tests
 if [ "${DMD_TEST_COVERAGE:-0}" = "1" ] ; then
 
     # Recompile debug dmd + unittests
     rm -rf "$DMD_DIR/generated/windows"
-    ../../generated/build.exe -j$N DFLAGS="-L-LARGEADDRESSAWARE" ENABLE_DEBUG=1 ENABLE_COVERAGE=1 dmd
-    ../../generated/build.exe -j$N DFLAGS="-L-LARGEADDRESSAWARE" ENABLE_DEBUG=1 ENABLE_COVERAGE=1 unittest
+    ../../generated/build.exe -j$N MODEL=$TOOL_MODEL DFLAGS="-L-LARGEADDRESSAWARE" ENABLE_DEBUG=1 ENABLE_COVERAGE=1 dmd
+    ../../generated/build.exe -j$N MODEL=$TOOL_MODEL DFLAGS="-L-LARGEADDRESSAWARE" ENABLE_DEBUG=1 ENABLE_COVERAGE=1 unittest
 fi
 
+"$HOST_DC" -m$TOOL_MODEL -g -i run.d
+
 if [ "$MODEL" == "32omf" ] ; then
+    # Pre-build the tools while the host compiler's sc.ini is untampered (see below).
+    ./run tools
+
     # WORKAROUND: Make Optlink use freshly built Phobos, not the host compiler's.
-    # Optlink apparently prefers LIB in sc.ini over the LIB env variable (and
-    # `-conf=` for DMD apparently doesn't prevent that, and there's apparently
-    # no sane way to specify a libdir for Optlink in the DMD cmdline).
+    # Optlink apparently prefers LIB in sc.ini (in the same dir as optlink.exe)
+    # over the LIB env variable (and `-conf=` for DMD apparently doesn't prevent
+    # that, and there's apparently no sane way to specify a libdir for Optlink
+    # in the DMD cmdline either).
     rm "$DMD_DIR/tools/dmd2/windows/bin/sc.ini"
+    # We also need to remove LIB from the freshly built compiler's sc.ini -
+    # not all test invocations use `-conf=`.
+    sed -i 's|^LIB=.*$||g' "$DMD_DIR/generated/windows/release/$TOOL_MODEL/sc.ini"
+    # Okay, now the lib directories are controlled by the LIB env variable.
+    # run.d prepends the dir containing freshly built phobos.lib; we still need
+    # the DMC and Windows libs from the host compiler.
+    export LIB="$DMD_DIR/tools/dmd2/windows/lib"
 fi
 
 targets=("all")
