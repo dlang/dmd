@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 set -eux -o pipefail
 
@@ -80,9 +80,16 @@ else
     DMD_BIN_PATH="$DMD_DIR/generated/windows/release/$MODEL/dmd"
 fi
 
-cd "$DMD_DIR/compiler/src"
-"$DM_MAKE" -f "$MAKE_FILE" MAKE="$DM_MAKE" BUILD=debug unittest
-DFLAGS="-L-LARGEADDRESSAWARE" "$DM_MAKE" -f "$MAKE_FILE" MAKE="$DM_MAKE" GEN="$DMD_DIR\generated" reldmd-asserts
+# no `-debug` for unittests build with old host compilers (to avoid compile errors)
+disable_debug_for_unittests=()
+if [[ "$HOST_DMD_VERSION" == "2.079.0" ]]; then
+    disable_debug_for_unittests=(ENABLE_DEBUG=0)
+fi
+
+cd "$DMD_DIR"
+"$HOST_DC" compiler/src/build.d -ofgenerated/build.exe
+generated/build.exe -j$N MODEL=$MODEL HOST_DMD=$HOST_DC BUILD=debug "${disable_debug_for_unittests[@]}" unittest
+generated/build.exe -j$N MODEL=$MODEL HOST_DMD=$HOST_DC DFLAGS="-L-LARGEADDRESSAWARE" ENABLE_RELEASE=1 ENABLE_ASSERTS=1 dmd
 
 ################################################################################
 # Build Druntime and Phobos
@@ -117,8 +124,8 @@ if [ "${DMD_TEST_COVERAGE:-0}" = "1" ] ; then
 
     # Recompile debug dmd + unittests
     rm -rf "$DMD_DIR/generated/windows"
-    DFLAGS="-L-LARGEADDRESSAWARE" ../../generated/build.exe --jobs=$N ENABLE_DEBUG=1 ENABLE_COVERAGE=1 dmd
-    DFLAGS="-L-LARGEADDRESSAWARE" ../../generated/build.exe --jobs=$N ENABLE_DEBUG=1 ENABLE_COVERAGE=1 unittest
+    ../../generated/build.exe -j$N DFLAGS="-L-LARGEADDRESSAWARE" ENABLE_DEBUG=1 ENABLE_COVERAGE=1 dmd
+    ../../generated/build.exe -j$N DFLAGS="-L-LARGEADDRESSAWARE" ENABLE_DEBUG=1 ENABLE_COVERAGE=1 unittest
 fi
 
 if [ "$MODEL" == "32omf" ] ; then
