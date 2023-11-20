@@ -1,0 +1,26 @@
+Boolean evaluation of array literals and string literals is now deprecated
+
+Boolean evaluation of a string literal could happen unintentionally
+e.g. when an `assert(0, "message")` was meant and the `0` was missing.
+
+```d
+assert("unexpected runtime condition");
+static assert("unhandled case for `", T, "`");
+
+enum int[] arr = [];
+...
+if (arr) { ... } // was arr.length meant?
+```
+
+The 2 asserts would silently always have no effect and the `if` condition
+is always true. The author of the `if` test may have intended to write `if (arr.length)`.
+
+Now these cases will be detected with deprecation messages.
+If the original behaviour was actually intended, use `expr !is null` instead:
+
+```d
+static assert("" !is null);
+enum arr = [1, 2];
+...
+static if (arr !is null) { ... }
+```
