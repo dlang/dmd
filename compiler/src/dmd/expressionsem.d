@@ -4378,7 +4378,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(CompoundLiteralExp cle)
     {
-        static if (LOGSEMANTIC)
+        static if (1 || LOGSEMANTIC)
         {
             printf("CompoundLiteralExp::semantic('%s')\n", cle.toChars());
         }

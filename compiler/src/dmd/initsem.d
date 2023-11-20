@@ -600,7 +600,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
 
     Initializer visitC(CInitializer ci)
     {
-        //printf("CInitializer::semantic() tx: %s t: %s ci: %s\n", (tx ? tx.toChars() : "".ptr), t.toChars(), ci.toChars());
+        printf("CInitializer::semantic() tx: %s t: %s ci: %s\n", (tx ? tx.toChars() : "".ptr), t.toChars(), ci.toChars());
         /* Rewrite CInitializer into ExpInitializer, ArrayInitializer, or StructInitializer
          */
         t = t.toBasetype();
@@ -993,6 +993,11 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
             }
             return initializerSemantic(ai, sc, tx, needInterpret);
         }
+        else if (t)
+	{
+printf("type %s\n", t.toChars());
+	    return err();
+	}
         else if (ExpInitializer ei = isBraceExpression())
         {
             return visitExp(ei);

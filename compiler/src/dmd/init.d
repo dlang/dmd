@@ -57,6 +57,14 @@ extern (C++) class Initializer : ASTNode
         this.kind = kind;
     }
 
+    override const(char)* toChars() const
+    {
+        OutBuffer buf;
+        HdrGenState hgs;
+        toCBuffer(this, buf, hgs);
+        return buf.extractChars();
+    }
+
     final inout(ErrorInitializer) isErrorInitializer() inout @nogc nothrow pure
     {
         // Use void* cast to skip dynamic casting call
