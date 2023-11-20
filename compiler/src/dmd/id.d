@@ -368,7 +368,6 @@ immutable Msgtable[] msgtable =
     { "_d_arraysetlengthTTrace"},
     { "_d_arrayappendT" },
     { "_d_arrayappendTTrace" },
-    { "_d_arrayappendcTXImpl" },
     { "_d_arrayappendcTX" },
     { "_d_arrayappendcTXTrace" },
     { "_d_arraycatnTX" },

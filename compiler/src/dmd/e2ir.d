@@ -609,7 +609,8 @@ elem* toElem(Expression e, ref IRState irs)
                     soffset = v.offset;
                 else if (v && v.inAlignSection)
                 {
-                    ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYnptr, fd.salignSection.Soffset));
+                    const vthisOffset = fd.vthis ? -toSymbol(fd.vthis).Soffset : 0;
+                    ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYnptr, vthisOffset + fd.salignSection.Soffset));
                     ethis = el_una(OPind, TYnptr, ethis);
                     soffset = v.offset;
                 }
@@ -624,10 +625,10 @@ elem* toElem(Expression e, ref IRState irs)
                     if (fd.vthis)
                     {
                         Symbol *vs = toSymbol(fd.vthis);
-                        //printf("vs = %s, offset = %x, %p\n", vs.Sident, cast(int)vs.Soffset, vs);
+                        //printf("vs = %s, offset = x%x, %p\n", vs.Sident.ptr, cast(int)vs.Soffset, vs);
                         soffset -= vs.Soffset;
                     }
-                    //printf("\tSoffset = x%x, sthis.Soffset = x%x\n", s.Soffset, irs.sthis.Soffset);
+                    //printf("\tSoffset = x%x, sthis.Soffset = x%x\n", cast(uint)s.Soffset, cast(uint)irs.sthis.Soffset);
                 }
 
                 if (!nrvo)
@@ -2721,24 +2722,25 @@ elem* toElem(Expression e, ref IRState irs)
     {
         //printf("CatAssignExp.toElem('%s')\n", ce.toChars());
         elem *e;
-        Type tb1 = ce.e1.type.toBasetype();
-        Type tb2 = ce.e2.type.toBasetype();
-        assert(tb1.ty == Tarray);
-        Type tb1n = tb1.nextOf().toBasetype();
-
-        elem *e1 = toElem(ce.e1, irs);
-        elem *e2 = toElem(ce.e2, irs);
-
-        /* Because e1 is an lvalue, refer to it via a pointer to it in the form
-         * of ev. Put any side effects into re1
-         */
-        elem* re1 = addressElem(e1, ce.e1.type.pointerTo(), false);
-        elem* ev = el_same(&re1);
 
         switch (ce.op)
         {
             case EXP.concatenateDcharAssign:
             {
+                Type tb1 = ce.e1.type.toBasetype();
+                Type tb2 = ce.e2.type.toBasetype();
+                assert(tb1.ty == Tarray);
+                Type tb1n = tb1.nextOf().toBasetype();
+
+                elem *e1 = toElem(ce.e1, irs);
+                elem *e2 = toElem(ce.e2, irs);
+
+                /* Because e1 is an lvalue, refer to it via a pointer to it in the form
+                * of ev. Put any side effects into re1
+                */
+                elem* re1 = addressElem(e1, ce.e1.type.pointerTo(), false);
+                elem* ev = el_same(&re1);
+
                 // Append dchar to char[] or wchar[]
                 assert(tb2.ty == Tdchar &&
                       (tb1n.ty == Tchar || tb1n.ty == Twchar));
@@ -2749,29 +2751,43 @@ elem* toElem(Expression e, ref IRState irs)
                         : RTLSYM.ARRAYAPPENDWD;
                 e = el_bin(OPcall, TYdarray, el_var(getRtlsym(rtl)), ep);
                 toTraceGC(irs, e, ce.loc);
-                elem_setLoc(e, ce.loc);
+
+                /* Generate: (re1, e, *ev)
+                */
+                e = el_combine(re1, e);
+                ev = el_una(OPind, e1.Ety, ev);
+                e = el_combine(e, ev);
+
                 break;
             }
 
             case EXP.concatenateAssign:
-            {
-                assert(0, "This case should have been rewritten to `_d_arrayappendT` in the semantic phase");
-            }
-
             case EXP.concatenateElemAssign:
             {
-                assert(0, "This case should have been rewritten to `_d_arrayappendcTX` in the semantic phase");
+                /* Do this check during code gen rather than semantic because appending is
+                * allowed during CTFE, and we cannot distinguish that in semantic.
+                */
+                if (!irs.params.useGC)
+                {
+                    irs.eSink.error(ce.loc,
+                        "appending to array in `%s` requires the GC which is not available with -betterC",
+                        ce.toChars());
+                    return el_long(TYint, 0);
+                }
+
+                if (auto lowering = ce.lowering)
+                    e = toElem(lowering, irs);
+                else if (ce.op == EXP.concatenateAssign)
+                    assert(0, "This case should have been rewritten to `_d_arrayappendT` in the semantic phase");
+                else
+                    assert(0, "This case should have been rewritten to `_d_arrayappendcTX` in the semantic phase");
+
+                break;
             }
 
             default:
                 assert(0);
         }
-
-        /* Generate: (re1, e, *ev)
-         */
-        e = el_combine(re1, e);
-        ev = el_una(OPind, e1.Ety, ev);
-        e = el_combine(e, ev);
 
         elem_setLoc(e, ce.loc);
         return e;
