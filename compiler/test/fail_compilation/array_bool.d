@@ -17,4 +17,8 @@ void main()
     assert("foo");
     enum e = "bar";
     static assert(e);
+
+    // OK
+    b = "".ptr || false;
+    b = a.ptr || false;
 }

@@ -23,7 +23,7 @@ void test2()
 
 void test3()
 {
-    pragma(inline, "string"); // works now
+    pragma(inline, "string".ptr); // works now
 }
 
 void test4()

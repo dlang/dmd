@@ -44,8 +44,8 @@ void variadic(A, T...)(A a, T v) if (N!int);
 
 // constraints_tmpl
 void dummy()() if (false);
-void message_nice(T, U)() if (P!T && "message 1" && N!U && "message 2");
-void message_ugly(T)(T v) if (!N!T && (T.stringof ~ " must be that") && N!T);
+void message_nice(T, U)() if (P!T && "message 1".ptr && N!U && "message 2".ptr);
+void message_ugly(T)(T v) if (!N!T && (T.stringof ~ " must be that").ptr && N!T);
 void args(T, U)() if (N!T || N!U);
 void lambda(alias pred)() if (N!int);
 

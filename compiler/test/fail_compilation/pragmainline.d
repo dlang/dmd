@@ -6,4 +6,4 @@ fail_compilation/pragmainline.d(8): Error: one boolean expression expected for `
 */
 
 pragma(inline, 1,2,3) void bar();
-pragma(inline, "string") void baz(); // works now
+pragma(inline, "string".ptr) void baz(); // works now
