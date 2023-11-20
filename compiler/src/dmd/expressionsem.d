@@ -14178,7 +14178,10 @@ Expression toBoolean(Expression exp, Scope* sc)
             // Note: `"".ptr` is apparently still a StringExp
             if (exp.isArrayLiteralExp() || (t.ty != Tpointer && exp.isStringExp()))
             {
+                // deprecated in 2.107
                 deprecation(exp.loc, "boolean evaluation of array literals and string literals is deprecated");
+                deprecationSupplemental(exp.loc, "If intentional, use `%s !is null` instead to preserve behaviour",
+                    exp.toChars());
             }
             return e;
     }
