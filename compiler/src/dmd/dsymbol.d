@@ -44,6 +44,7 @@ import dmd.lexer;
 import dmd.location;
 import dmd.mtype;
 import dmd.nspace;
+import dmd.opover;
 import dmd.root.aav;
 import dmd.root.rmem;
 import dmd.rootobject;
@@ -797,6 +798,64 @@ extern (C++) class Dsymbol : ASTNode
         return speller!symbol_search_fp(ident.toString());
     }
 
+    /***************************************
+     * Search for identifier id as a member of `this`.
+     * `id` may be a template instance.
+     *
+     * Params:
+     *  loc = location to print the error messages
+     *  sc = the scope where the symbol is located
+     *  id = the id of the symbol
+     *  flags = the search flags which can be `SearchLocalsOnly` or `IgnorePrivateImports`
+     *
+     * Returns:
+     *      symbol found, NULL if not
+     */
+    extern (D) final Dsymbol searchX(const ref Loc loc, Scope* sc, RootObject id, int flags)
+    {
+        //printf("Dsymbol::searchX(this=%p,%s, ident='%s')\n", this, toChars(), ident.toChars());
+        Dsymbol s = toAlias();
+        Dsymbol sm;
+        if (Declaration d = s.isDeclaration())
+        {
+            if (d.inuse)
+            {
+                .error(loc, "circular reference to `%s`", d.toPrettyChars());
+                return null;
+            }
+        }
+        switch (id.dyncast())
+        {
+        case DYNCAST.identifier:
+            sm = s.search(loc, cast(Identifier)id, flags);
+            break;
+        case DYNCAST.dsymbol:
+            {
+                // It's a template instance
+                //printf("\ttemplate instance id\n");
+                Dsymbol st = cast(Dsymbol)id;
+                TemplateInstance ti = st.isTemplateInstance();
+                sm = s.search(loc, ti.name);
+                if (!sm)
+                    return null;
+                sm = sm.toAlias();
+                TemplateDeclaration td = sm.isTemplateDeclaration();
+                if (!td)
+                    return null; // error but handled later
+                ti.tempdecl = td;
+                if (!ti.semanticRun)
+                    ti.dsymbolSemantic(sc);
+                sm = ti.toAlias();
+                break;
+            }
+        case DYNCAST.type:
+        case DYNCAST.expression:
+        default:
+            assert(0);
+        }
+        return sm;
+    }
+
     bool overloadInsert(Dsymbol s)
     {
         //printf("Dsymbol::overloadInsert('%s')\n", s.toChars());
@@ -1407,6 +1466,38 @@ public:
     override const(char)* kind() const
     {
         return "ScopeDsymbol";
+    }
+
+    /*******************************************
+     * Look for member of the form:
+     *      const(MemberInfo)[] getMembers(string);
+     * Returns NULL if not found
+     */
+    final FuncDeclaration findGetMembers()
+    {
+        Dsymbol s = search_function(this, Id.getmembers);
+        FuncDeclaration fdx = s ? s.isFuncDeclaration() : null;
+        version (none)
+        {
+            // Finish
+            __gshared TypeFunction tfgetmembers;
+            if (!tfgetmembers)
+            {
+                Scope sc;
+                sc.eSink = global.errorSink;
+                auto parameters = new Parameters();
+                Parameters* p = new Parameter(STC.in_, Type.tchar.constOf().arrayOf(), null, null);
+                parameters.push(p);
+                Type tret = null;
+                TypeFunction tf = new TypeFunction(parameters, tret, VarArg.none, LINK.d);
+                tfgetmembers = tf.dsymbolSemantic(Loc.initial, &sc).isTypeFunction();
+            }
+            if (fdx)
+                fdx = fdx.overloadExactMatch(tfgetmembers);
+        }
+        if (fdx && fdx.isVirtual())
+            fdx = null;
+        return fdx;
     }
 
     /********************************
