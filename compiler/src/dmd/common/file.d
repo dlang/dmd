@@ -23,7 +23,7 @@ import core.sys.windows.winnt;
 import core.sys.posix.fcntl;
 import core.sys.posix.unistd;
 
-import dmd.common.string;
+import dmd.common.smallbuffer;
 
 nothrow:
 

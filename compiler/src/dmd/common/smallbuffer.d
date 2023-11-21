@@ -4,11 +4,11 @@
  * Copyright: Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, https://www.digitalmars.com
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/common/string.d, common/_string.d)
- * Documentation: https://dlang.org/phobos/dmd_common_string.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/common/string.d
+ * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/common/smallbuffer.d, common/_smallbuffer.d)
+ * Documentation: https://dlang.org/phobos/dmd_common_smallbuffer.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/common/smallbuffer
  */
-module dmd.common.string;
+module dmd.common.smallbuffer;
 
 nothrow:
 

@@ -5346,7 +5346,7 @@ elem *callfunc(const ref Loc loc,
         else
             elem*[10] elems_array = void;
 
-        import dmd.common.string : SmallBuffer;
+        import dmd.common.smallbuffer : SmallBuffer;
         auto pe = SmallBuffer!(elem*)(n, elems_array[]);
         elem*[] elems = pe[];
 

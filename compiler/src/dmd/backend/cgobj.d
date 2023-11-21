@@ -1108,7 +1108,7 @@ void OmfObj_dosseg()
 @trusted
 private void obj_comment(ubyte x, const(char)* string, size_t len)
 {
-    import dmd.common.string : SmallBuffer;
+    import dmd.common.smallbuffer : SmallBuffer;
     char[128] buf = void;
     auto sb = SmallBuffer!char(2 + len, buf[]);
     char *library = sb.ptr;

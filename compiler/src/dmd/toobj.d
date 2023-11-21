@@ -18,7 +18,7 @@ import core.stdc.time;
 
 import dmd.root.array;
 import dmd.common.outbuffer;
-import dmd.common.string : SmallBuffer;
+import dmd.common.smallbuffer : SmallBuffer;
 import dmd.root.rmem;
 import dmd.rootobject;
 

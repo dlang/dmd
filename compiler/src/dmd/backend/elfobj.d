@@ -2618,7 +2618,7 @@ void ElfObj_addrel(int seg, targ_size_t offset, uint type,
             relidx = SHN_RELDATA;
         else
         {
-            import dmd.common.string : SmallBuffer;
+            import dmd.common.smallbuffer : SmallBuffer;
             // Get the section name, and make a copy because
             // elf_newsection() may reallocate the string buffer.
             char *section_name = cast(char *)GET_SECTION_NAME(secidx);
