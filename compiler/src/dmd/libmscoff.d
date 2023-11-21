@@ -49,6 +49,7 @@ public extern (C++) Library LibMSCoff_factory() @safe
 }
 
 private: // for the remainder of this module
+nothrow:
 
 enum LOG = false;
 
@@ -364,7 +365,7 @@ final class LibMSCoff : Library
 
     /*****************************************************************************/
 
-    void addSymbol(MSCoffObjModule* om, const(char)[] name, int pickAny = 0)
+    void addSymbol(MSCoffObjModule* om, const(char)[] name, int pickAny = 0) nothrow
     {
         static if (LOG)
         {
@@ -388,7 +389,7 @@ private:
             printf("LibMSCoff::scanObjModule(%s)\n", om.name.ptr);
         }
 
-        extern (D) void addSymbol(const(char)[] name, int pickAny)
+        extern (D) void addSymbol(const(char)[] name, int pickAny) nothrow
         {
             this.addSymbol(om, name, pickAny);
         }
