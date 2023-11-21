@@ -20,6 +20,8 @@ import dmd.location;
 //import core.sys.darwin.mach.loader;
 import dmd.backend.mach;
 
+nothrow:
+
 private enum LOG = false;
 
 /*****************************************
@@ -32,7 +34,7 @@ private enum LOG = false;
  *      loc =         location to use for error printing
  *      eSink =       where the error messages go
  */
-void scanMachObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
+void scanMachObjModule(void delegate(const(char)[] name, int pickAny) nothrow pAddSymbol,
         const ubyte[] base, const char* module_name, Loc loc, ErrorSink eSink)
 {
     static if (LOG)
