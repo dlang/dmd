@@ -48,6 +48,7 @@ import dmd.location;
 import dmd.mtype;
 import dmd.nspace;
 import dmd.objc_glue;
+import dmd.opover;
 import dmd.statement;
 import dmd.staticassert;
 import dmd.target;

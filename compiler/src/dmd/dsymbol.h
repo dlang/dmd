@@ -342,7 +342,6 @@ public:
     bool isforwardRef() override final;
     static void multiplyDefined(const Loc &loc, Dsymbol *s1, Dsymbol *s2);
     const char *kind() const override;
-    FuncDeclaration *findGetMembers();
     virtual Dsymbol *symtabInsert(Dsymbol *s);
     virtual Dsymbol *symtabLookup(Dsymbol *s, Identifier *id);
     bool hasStaticCtorOrDtor() override;
