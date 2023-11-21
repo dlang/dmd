@@ -201,14 +201,14 @@ void* escapeDg1(scope void* d) @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(212): Error: scope variable `p` assigned to non-scope `e.e`
+fail_compilation/retscope.d(213): Error: scope variable `dg` may not be returned
 ---
 */
 struct Escaper3 { void* e; }
 
 void* escape3 (scope void* p) @safe {
     Escaper3 e;
-    scope dg = () { return e.e; };
+    scope dg = () return scope { return e.e; }; // Remove return scope when https://issues.dlang.org/show_bug.cgi?id=22977 is fixed
     e.e = p;
     return dg();
 }
