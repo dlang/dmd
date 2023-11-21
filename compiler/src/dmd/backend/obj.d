@@ -123,7 +123,7 @@ else
             mixin(genRetVal("includelib(name)"));
         }
 
-        bool linkerdirective(const(char)* p)
+        bool linkerdirective(scope const(char)* p)
         {
             mixin(genRetVal("linkerdirective(p)"));
         }

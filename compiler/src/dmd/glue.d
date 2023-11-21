@@ -460,7 +460,7 @@ public void obj_startaddress(Symbol *s)
     return objmod.startaddress(s);
 }
 
-public bool obj_linkerdirective(const(char)* directive)
+public bool obj_linkerdirective(scope const(char)* directive)
 {
     return objmod.linkerdirective(directive);
 }

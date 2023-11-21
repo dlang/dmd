@@ -1159,7 +1159,7 @@ bool OmfObj_includelib(scope const char[] name)
 *      true if operation is supported
 */
 
-bool OmfObj_linkerdirective(const(char)* name)
+bool OmfObj_linkerdirective(scope const(char)* name)
 {
     return false;
 }
