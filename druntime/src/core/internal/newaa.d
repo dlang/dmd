@@ -154,13 +154,14 @@ AAShell makeAA(K, V)(V[K] src) @trusted
             K.sizeof, V.sizeof, E.value.offsetof, flags, hashFn));
 }
 
-version(unittest):
-struct Foo {
-    ubyte x;
-    double d;
-}
-int[Foo] utaa = [Foo(1, 2.0) : 5];
-unittest {
+unittest
+{
+    static struct Foo
+    {
+        ubyte x;
+        double d;
+    }
+    static int[Foo] utaa = [Foo(1, 2.0) : 5];
     auto k = Foo(1, 2.0);
     // verify that getHash doesn't match hashOf for Foo
     assert(typeid(Foo).getHash(&k) != hashOf(k));
