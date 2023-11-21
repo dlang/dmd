@@ -455,7 +455,22 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
         fdError("C-style variadic functions are not yet implemented in CTFE");
         return CTFEExp.cantexp;
     }
-
+    // try bc-evaluator if the interpreter has not already begun
+    if (global.params.newCTFE && !istate && !thisarg && !fd.needThis && !fd.isNested)
+    {
+        assert(!thisarg);
+        static import dmd.ctfe.ctfe_bc;
+        if (global.params.verbose)
+            message("Attempting to eval: %s\n", fd.toPrettyChars());
+        if (auto e = dmd.ctfe.ctfe_bc.evaluateFunction(fd, arguments))
+        {
+            if (global.params.verbose)
+                message("... success\n");
+            return e;
+        }
+        if (global.params.verbose)
+            message("... failed\n");
+    }
     // Nested functions always inherit the 'this' pointer from the parent,
     // except for delegates. (Note that the 'this' pointer may be null).
     // Func literals report isNested() even if they are in global scope,

@@ -182,6 +182,8 @@ extern (C++) struct Param
     Help help;
     Verbose v;
 
+    bool newCTFE;
+
     // Options for `-preview=/-revert=`
     FeatureState useDIP25 = FeatureState.enabled; // implement https://wiki.dlang.org/DIP25
     FeatureState useDIP1000;     // implement https://dlang.org/spec/memory-safe-d.html#scope-return-params

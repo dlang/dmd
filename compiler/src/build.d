@@ -1548,7 +1548,8 @@ auto sourceFiles()
             semantic2.d semantic3.d sideeffect.d statement.d statement_rewrite_walker.d
             statementsem.d staticassert.d staticcond.d stmtstate.d target.d templateparamsem.d traits.d
             transitivevisitor.d typesem.d typinf.d utils.d visitor.d foreachvar.d
-            cparse.d
+            cparse.d ctfe/ctfe_bc.d ctfe/bc.d ctfe/bc_common.d ctfe/bc_abi.d ctfe/bc_printer_backend.d
+            ctfe/bc_interpreter.d
         "),
         backendHeaders: fileArray(env["C"], "
             cc.d cdef.d cgcv.d code.d cv4.d dt.d el.d global.d
@@ -1576,7 +1577,7 @@ auto sourceFiles()
             stringtable.d utf.d
         "),
         common: fileArray(env["COMMON"], "
-            bitfields.d file.d int128.d outbuffer.d string.d
+            bitfields.d file.d int128.d outbuffer.d string.d fpconv.d
         "),
         commonHeaders: fileArray(env["COMMON"], "
             outbuffer.h

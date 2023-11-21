@@ -911,6 +911,8 @@ dmd -cov -unittest myprog.d
             "allow use of => for methods and top-level functions in addition to lambdas", false, true),
         Feature("fixImmutableConv", "fixImmutableConv",
             "disallow unsound immutable conversions that were formerly incorrectly permitted"),
+        Feature("newCTFE", "newCTFE",
+            "newCTFE brings bytecode interpretation to the CTFE process in dmd"),
         Feature("systemVariables", "systemVariables",
             "disable access to variables marked '@system' from @safe code"),
     ];
