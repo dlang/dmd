@@ -199,7 +199,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
         uint length;
         const(uint) amax = 0x80000000;
         bool errors = false;
-        //printf("ArrayInitializer::semantic(%s), ai: %s %p\n", t.toChars(), i.toChars(), i);
+        //printf("ArrayInitializer::semantic(%s), ai: %s\n", t.toChars(), toChars(i));
         if (i.sem) // if semantic() already run
         {
             return i;
@@ -600,7 +600,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
 
     Initializer visitC(CInitializer ci)
     {
-        printf("CInitializer::semantic() tx: %s t: %s ci: %s\n", (tx ? tx.toChars() : "".ptr), t.toChars(), ci.toChars());
+        //printf("CInitializer::semantic() tx: %s t: %s ci: %s\n", (tx ? tx.toChars() : "".ptr), t.toChars(), toChars(ci));
         /* Rewrite CInitializer into ExpInitializer, ArrayInitializer, or StructInitializer
          */
         t = t.toBasetype();
@@ -993,11 +993,6 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
             }
             return initializerSemantic(ai, sc, tx, needInterpret);
         }
-        else if (t)
-	{
-printf("type %s\n", t.toChars());
-	    return err();
-	}
         else if (ExpInitializer ei = isBraceExpression())
         {
             return visitExp(ei);
