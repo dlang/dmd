@@ -107,28 +107,6 @@ unittest
 }
 
 /**
-Converts a zero-terminated C string to a D slice. Takes linear time and allocates no memory.
-
-Params:
-stringz = the C string to be converted
-
-Returns:
-a slice comprehending the string. The terminating 0 is not part of the slice.
-*/
-auto asDString(C)(C* stringz) pure @nogc nothrow
-{
-    import core.stdc.string : strlen;
-    return stringz[0 .. strlen(stringz)];
-}
-
-///
-unittest
-{
-    const char* p = "123".ptr;
-    assert(p.asDString == "123");
-}
-
-/**
 (Windows only) Converts a narrow string to a wide string using `buffer` as strorage. Returns a slice managed by
 `buffer` containing the converted string. The terminating zero is not part of the returned slice,
 but is guaranteed to follow it.
