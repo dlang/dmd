@@ -702,7 +702,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             if (global.params.useTypeInfo && Type.dtypeinfo)
                 TypeInfo_toObjFile(null, ed.loc, ed.type);
 
-            TypeEnum tc = cast(TypeEnum)ed.type;
+            TypeEnum tc = ed.type.isTypeEnum();
             if (!tc.sym.members || ed.type.isZeroInit(Loc.initial))
             {
             }
@@ -785,7 +785,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
                 assert(e.op == EXP.string_);
 
-                StringExp se = cast(StringExp)e;
+                StringExp se = e.isStringExp();
                 char *name = cast(char *)mem.xmalloc(se.numberOfCodeUnits() + 1);
                 se.writeTo(name, true);
 
@@ -820,7 +820,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
                 assert(e.op == EXP.string_);
 
-                StringExp se = cast(StringExp)e;
+                StringExp se = e.isStringExp();
                 char *directive = cast(char *)mem.xmalloc(se.numberOfCodeUnits() + 1);
                 se.writeTo(directive, true);
 
@@ -898,17 +898,21 @@ void toObjFile(Dsymbol ds, bool multiobj)
             ExpInitializer ie = vd._init.isExpInitializer();
 
             Type tb = vd.type.toBasetype();
-            if (tb.ty == Tsarray && ie &&
-                !tb.nextOf().equals(ie.exp.type.toBasetype().nextOf()) &&
-                ie.exp.implicitConvTo(tb.nextOf())
-                )
+            if (auto tbsa = tb.isTypeSArray())
             {
-                auto dim = (cast(TypeSArray)tb).dim.toInteger();
-
-                // Duplicate Sdt 'dim-1' times, as we already have the first one
-                while (--dim > 0)
+                auto tbsaNext = tbsa.nextOf();
+                if (ie &&
+                    !tbsaNext.equals(ie.exp.type.toBasetype().nextOf()) &&
+                    ie.exp.implicitConvTo(tbsaNext)
+                    )
                 {
-                    Expression_toDt(ie.exp, dtb);
+                    auto dim = tbsa.dim.toInteger();
+
+                    // Duplicate Sdt 'dim-1' times, as we already have the first one
+                    while (--dim > 0)
+                    {
+                        Expression_toDt(ie.exp, dtb);
+                    }
                 }
             }
         }
