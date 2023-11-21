@@ -1436,7 +1436,7 @@ bool ElfObj_includelib(scope const char[] name)
 * Output linker directive.
 */
 
-bool ElfObj_linkerdirective(const(char)* name)
+bool ElfObj_linkerdirective(scope const(char)* name)
 {
     return false;
 }

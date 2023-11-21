@@ -18,6 +18,7 @@ import core.stdc.time;
 
 import dmd.root.array;
 import dmd.common.outbuffer;
+import dmd.common.string : SmallBuffer;
 import dmd.root.rmem;
 import dmd.rootobject;
 
@@ -821,10 +822,14 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 assert(e.op == EXP.string_);
 
                 StringExp se = e.isStringExp();
-                char *directive = cast(char *)mem.xmalloc(se.numberOfCodeUnits() + 1);
-                se.writeTo(directive, true);
+                size_t length = se.numberOfCodeUnits() + 1;
+                debug enum LEN = 2; else enum LEN = 20;
+                char[LEN] buffer = void;
+                SmallBuffer!char directive = SmallBuffer!char(length, buffer);
 
-                obj_linkerdirective(directive);
+                se.writeTo(directive.ptr, true);
+
+                obj_linkerdirective(directive.ptr);
             }
 
             visit(cast(AttribDeclaration)pd);

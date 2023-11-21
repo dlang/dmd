@@ -1550,7 +1550,7 @@ bool MachObj_includelib(scope const char[] name)
 * Output linker directive.
 */
 
-bool MachObj_linkerdirective(const(char)* name)
+bool MachObj_linkerdirective(scope const(char)* name)
 {
     return false;
 }
