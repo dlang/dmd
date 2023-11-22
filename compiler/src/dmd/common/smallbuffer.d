@@ -133,7 +133,7 @@ unittest
 `buffer` containing the converted string. The terminating zero is not part of the returned slice,
 but is guaranteed to follow it.
 */
-version(Windows) wchar[] toWStringz(const(char)[] narrow, ref SmallBuffer!wchar buffer) nothrow
+version(Windows) wchar[] toWStringz(scope const(char)[] narrow, ref SmallBuffer!wchar buffer) nothrow
 {
     import core.sys.windows.winnls : MultiByteToWideChar;
     import dmd.common.file : CodePage;
@@ -141,16 +141,17 @@ version(Windows) wchar[] toWStringz(const(char)[] narrow, ref SmallBuffer!wchar 
     if (narrow is null)
         return null;
 
-    const requiredLength = MultiByteToWideChar(CodePage, 0, narrow.ptr, cast(int) narrow.length, buffer.ptr, cast(int) buffer.length);
-    if (requiredLength < cast(int) buffer.length)
+    size_t length;
+    int i;
+    while (1)
     {
-        buffer[requiredLength] = 0;
-        return buffer[0 .. requiredLength];
+        // https://learn.microsoft.com/en-us/windows/win32/api/stringapiset/nf-stringapiset-multibytetowidechar
+        length = MultiByteToWideChar(CodePage, 0, narrow.ptr, cast(int) narrow.length, buffer.ptr, cast(int) buffer.length);
+        if (length < buffer.length)
+            break;
+        buffer.create(length + 1);
+        assert(++i == 1);   // ensure loop should only execute once or twice
     }
-
-    buffer.create(requiredLength + 1);
-    const length = MultiByteToWideChar(CodePage, 0, narrow.ptr, cast(int) narrow.length, buffer.ptr, requiredLength);
-    assert(length == requiredLength);
     buffer[length] = 0;
     return buffer[0 .. length];
 }
