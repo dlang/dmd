@@ -205,7 +205,6 @@ public:
     const char *locToChars();
     bool equals(const RootObject * const o) const override;
     bool isAnonymous() const;
-    bool checkDeprecated(const Loc &loc, Scope *sc);
     Module *getModule();
     bool isCsymbol();
     Module *getAccessModule();
@@ -430,3 +429,4 @@ public:
 
 void addMember(Dsymbol *dsym, Scope *sc, ScopeDsymbol *sds);
 Dsymbol *search(Dsymbol *d, const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
+bool checkDeprecated(Dsymbol *d, const Loc &loc, Scope *sc);

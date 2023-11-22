@@ -212,6 +212,39 @@ const(char)* getMessage(DeprecatedDeclaration dd)
     return dd.msgstr;
 }
 
+bool checkDeprecated(Dsymbol d, const ref Loc loc, Scope* sc)
+{
+    if (global.params.useDeprecated == DiagnosticReporting.off)
+        return false;
+    if (!d.isDeprecated())
+        return false;
+    // Don't complain if we're inside a deprecated symbol's scope
+    if (sc.isDeprecated())
+        return false;
+    // Don't complain if we're inside a template constraint
+    // https://issues.dlang.org/show_bug.cgi?id=21831
+    if (sc.flags & SCOPE.constraint)
+        return false;
+
+    const(char)* message = null;
+    for (Dsymbol p = d; p; p = p.parent)
+    {
+        message = p.depdecl ? p.depdecl.getMessage() : null;
+        if (message)
+            break;
+    }
+    if (message)
+        deprecation(loc, "%s `%s` is deprecated - %s", d.kind, d.toPrettyChars, message);
+    else
+        deprecation(loc, "%s `%s` is deprecated", d.kind, d.toPrettyChars);
+
+    if (auto ti = sc.parent ? sc.parent.isInstantiated() : null)
+        ti.printInstantiationTrace(Classification.deprecation);
+    else if (auto ti = sc.parent ? sc.parent.isTemplateInstance() : null)
+        ti.printInstantiationTrace(Classification.deprecation);
+
+    return true;
+}
 
 // Returns true if a contract can appear without a function body.
 package bool allowsContractWithoutBody(FuncDeclaration funcdecl)
@@ -7809,6 +7842,37 @@ extern(C++) Dsymbol search(Dsymbol d, const ref Loc loc, Identifier ident, int f
     scope v = new SearchVisitor(loc, ident, flags);
     d.accept(v);
     return v.result;
+}
+
+Dsymbol search_correct(Dsymbol d, Identifier ident)
+{
+    /***************************************************
+     * Search for symbol with correct spelling.
+     */
+    Dsymbol symbol_search_fp(const(char)[] seed, out int cost)
+    {
+        /* If not in the lexer's string table, it certainly isn't in the symbol table.
+         * Doing this first is a lot faster.
+         */
+        if (!seed.length)
+            return null;
+        Identifier id = Identifier.lookup(seed);
+        if (!id)
+            return null;
+        cost = 0;   // all the same cost
+        Dsymbol s = d;
+        Module.clearCache();
+        return s.search(Loc.initial, id, IgnoreErrors);
+    }
+
+    if (global.gag)
+        return null; // don't do it for speculative compiles; too time consuming
+    // search for exact name first
+    if (auto s = d.search(Loc.initial, ident, IgnoreErrors))
+        return s;
+
+    import dmd.root.speller : speller;
+    return speller!symbol_search_fp(ident.toString());
 }
 
 private extern(C++) class SearchVisitor : Visitor

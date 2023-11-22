@@ -479,7 +479,6 @@ public:
     const char* locToChars();
     bool equals(const RootObject* const o) const override;
     bool isAnonymous() const;
-    bool checkDeprecated(const Loc& loc, Scope* sc);
     Module* getModule();
     bool isCsymbol();
     Module* getAccessModule();
