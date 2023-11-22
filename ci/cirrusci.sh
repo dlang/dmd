@@ -6,7 +6,7 @@
 
 set -uexo pipefail
 
-# OS_NAME: linux|darwin|freebsd
+# OS_NAME: linux|osx|freebsd
 if [ -z ${OS_NAME+x} ] ; then echo "Variable 'OS_NAME' needs to be set."; exit 1; fi
 # MODEL: 32|64
 if [ -z ${MODEL+x} ] ; then echo "Variable 'MODEL' needs to be set."; exit 1; fi
@@ -27,7 +27,7 @@ if [ "$OS_NAME" == "linux" ]; then
   fi
   apt-get -q update
   apt-get install -yq $packages
-elif [ "$OS_NAME" == "darwin" ]; then
+elif [ "$OS_NAME" == "osx" ]; then
   # required for dlang install.sh
   brew install gnupg libarchive xz llvm
 elif [ "$OS_NAME" == "freebsd" ]; then
