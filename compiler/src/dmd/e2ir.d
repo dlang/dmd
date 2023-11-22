@@ -3133,7 +3133,7 @@ elem* toElem(Expression e, ref IRState irs)
                 ethis = getEthis(de.loc, irs, de.func, de.func.toParentLocal());
 
             if (ethis2)
-                ethis2 = setEthis2(de.loc, irs, de.func, ethis2, &ethis, &eeq);
+                ethis2 = setEthis2(de.loc, irs, de.func, ethis2, ethis, eeq);
         }
         else
         {
@@ -3142,7 +3142,7 @@ elem* toElem(Expression e, ref IRState irs)
                 ethis = addressElem(ethis, de.e1.type);
 
             if (ethis2)
-                ethis2 = setEthis2(de.loc, irs, de.func, ethis2, &ethis, &eeq);
+                ethis2 = setEthis2(de.loc, irs, de.func, ethis2, ethis, eeq);
 
             if (de.e1.op == EXP.super_ || de.e1.op == EXP.dotType)
                 directcall = 1;
@@ -5525,7 +5525,7 @@ elem *callfunc(const ref Loc loc,
             }
             if (ethis2)
             {
-                ethis2 = setEthis2(loc, irs, fd, ethis2, &ethis, &eside);
+                ethis2 = setEthis2(loc, irs, fd, ethis2, ethis, eside);
             }
             if (el_sideeffect(ethis))
             {
@@ -5579,7 +5579,7 @@ elem *callfunc(const ref Loc loc,
         assert(!ethis);
         ethis = getEthis(loc, irs, fd, fd.toParentLocal());
         if (ethis2)
-            ethis2 = setEthis2(loc, irs, fd, ethis2, &ethis, &eside);
+            ethis2 = setEthis2(loc, irs, fd, ethis2, ethis, eside);
     }
 
     ep = el_param(ep, ethis2 ? ethis2 : ethis);
@@ -6916,28 +6916,29 @@ elem *genHalt(const ref Loc loc)
  *      irs = current context to get the second context from
  *      fd = the target function
  *      ethis2 = dual-context array
- *      ethis = the first context
- *      eside = where to store the assignment expressions
+ *      ethis = the first context, updated
+ *      eside = where to store the assignment expressions, updated
  * Returns:
  *      `ethis2` if successful, null otherwise
  */
-elem* setEthis2(const ref Loc loc, ref IRState irs, FuncDeclaration fd, elem* ethis2, elem** ethis, elem** eside)
+private
+elem* setEthis2(const ref Loc loc, ref IRState irs, FuncDeclaration fd, elem* ethis2, ref elem* ethis, ref elem* eside)
 {
     if (!fd.hasDualContext())
         return null;
 
-    assert(ethis2 && ethis && *ethis);
+    assert(ethis2 && ethis);
 
-    elem* ectx0 = el_una(OPind, (*ethis).Ety, el_copytree(ethis2));
-    elem* eeq0 = el_bin(OPeq, (*ethis).Ety, ectx0, *ethis);
-    *ethis = el_copytree(ectx0);
-    *eside = el_combine(eeq0, *eside);
+    elem* ectx0 = el_una(OPind, ethis.Ety, el_copytree(ethis2));
+    elem* eeq0 = el_bin(OPeq, ethis.Ety, ectx0, ethis);
+    ethis = el_copytree(ectx0);
+    eside = el_combine(eeq0, eside);
 
     elem* ethis1 = getEthis(loc, irs, fd, fd.toParent2());
     elem* ectx1 = el_bin(OPadd, TYnptr, el_copytree(ethis2), el_long(TYsize_t, tysize(TYnptr)));
     ectx1 = el_una(OPind, TYnptr, ectx1);
     elem* eeq1 = el_bin(OPeq, ethis1.Ety, ectx1, ethis1);
-    *eside = el_combine(eeq1, *eside);
+    eside = el_combine(eeq1, eside);
 
     return ethis2;
 }
