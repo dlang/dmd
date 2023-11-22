@@ -6273,17 +6273,18 @@ Lagain:
 
 /*******************************************
  * Generate elem to zero fill contents of Symbol stmp
- * from *poffset..offset2.
+ * from poffset..offset2.
  * May store anywhere from 0..maxoff, as this function
  * tries to use aligned int stores whereever possible.
  * Update *poffset to end of initialized hole; *poffset will be >= offset2.
  */
-elem *fillHole(Symbol *stmp, size_t *poffset, size_t offset2, size_t maxoff)
+private
+elem* fillHole(Symbol* stmp, size_t poffset, size_t offset2, size_t maxoff)
 {
     elem *e = null;
     bool basealign = true;
 
-    while (*poffset < offset2)
+    while (poffset < offset2)
     {
         elem *e1;
         if (tybasic(stmp.Stype.Tty) == TYnptr)
@@ -6291,9 +6292,9 @@ elem *fillHole(Symbol *stmp, size_t *poffset, size_t offset2, size_t maxoff)
         else
             e1 = el_ptr(stmp);
         if (basealign)
-            *poffset &= ~3;
+            poffset &= ~3;
         basealign = true;
-        size_t sz = maxoff - *poffset;
+        size_t sz = maxoff - poffset;
         tym_t ty;
         switch (sz)
         {
@@ -6308,11 +6309,11 @@ elem *fillHole(Symbol *stmp, size_t *poffset, size_t offset2, size_t maxoff)
                 // TODO: OPmemset is better if sz is much bigger than 4?
                 break;
         }
-        e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, *poffset));
+        e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, poffset));
         e1 = el_una(OPind, ty, e1);
         e1 = el_bin(OPeq, ty, e1, el_long(ty, 0));
         e = el_combine(e, e1);
-        *poffset += tysize(ty);
+        poffset += tysize(ty);
     }
     return e;
 }
@@ -6418,7 +6419,7 @@ elem *toElemStructLit(StructLiteralExp sle, ref IRState irs, EXP op, Symbol *sym
             if (i < dim && (*sle.elements)[i] && v.type.size())
             {
                 //if (offset != v.offset) printf("  1 fillHole, %d .. %d\n", offset, v.offset);
-                e = el_combine(e, fillHole(stmp, &offset, v.offset, structsize));
+                e = el_combine(e, fillHole(stmp, offset, v.offset, structsize));
                 offset = cast(uint)(v.offset + v.type.size());
                 i++;
                 continue;
@@ -6462,14 +6463,14 @@ elem *toElemStructLit(StructLiteralExp sle, ref IRState irs, EXP op, Symbol *sym
             if (holeEnd < structsize)
             {
                 //if (offset != holeEnd) printf("  2 fillHole, %d .. %d\n", offset, holeEnd);
-                e = el_combine(e, fillHole(stmp, &offset, holeEnd, structsize));
+                e = el_combine(e, fillHole(stmp, offset, holeEnd, structsize));
                 offset = offset2;
                 continue;
             }
             i = vend;
         }
         //if (offset != sle.sd.structsize) printf("  3 fillHole, %d .. %d\n", offset, sle.sd.structsize);
-        e = el_combine(e, fillHole(stmp, &offset, sle.sd.structsize, sle.sd.structsize));
+        e = el_combine(e, fillHole(stmp, offset, sle.sd.structsize, sle.sd.structsize));
     }
 
     // CTFE may fill the hidden pointer by NullExp.
