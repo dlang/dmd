@@ -31,7 +31,6 @@ import dmd.dmodule;
 import dmd.dversion;
 import dmd.dscope;
 import dmd.dstruct;
-import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
@@ -47,7 +46,6 @@ import dmd.nspace;
 import dmd.root.aav;
 import dmd.root.rmem;
 import dmd.rootobject;
-import dmd.root.speller;
 import dmd.root.string;
 import dmd.statement;
 import dmd.staticassert;
@@ -383,40 +381,6 @@ extern (C++) class Dsymbol : ASTNode
     {
         const cstr = toPrettyChars();
         return '`' ~ cstr.toDString() ~ "`\0";
-    }
-
-    final bool checkDeprecated(const ref Loc loc, Scope* sc)
-    {
-        if (global.params.useDeprecated == DiagnosticReporting.off)
-            return false;
-        if (!this.isDeprecated())
-            return false;
-        // Don't complain if we're inside a deprecated symbol's scope
-        if (sc.isDeprecated())
-            return false;
-        // Don't complain if we're inside a template constraint
-        // https://issues.dlang.org/show_bug.cgi?id=21831
-        if (sc.flags & SCOPE.constraint)
-            return false;
-
-        const(char)* message = null;
-        for (Dsymbol p = this; p; p = p.parent)
-        {
-            message = p.depdecl ? p.depdecl.getMessage() : null;
-            if (message)
-                break;
-        }
-        if (message)
-            deprecation(loc, "%s `%s` is deprecated - %s", kind, toPrettyChars, message);
-        else
-            deprecation(loc, "%s `%s` is deprecated", kind, toPrettyChars);
-
-        if (auto ti = sc.parent ? sc.parent.isInstantiated() : null)
-            ti.printInstantiationTrace(Classification.deprecation);
-        else if (auto ti = sc.parent ? sc.parent.isTemplateInstance() : null)
-            ti.printInstantiationTrace(Classification.deprecation);
-
-        return true;
     }
 
     /**********************************
@@ -766,35 +730,6 @@ extern (C++) class Dsymbol : ASTNode
 
     void importAll(Scope* sc)
     {
-    }
-
-    extern (D) final Dsymbol search_correct(Identifier ident)
-    {
-        /***************************************************
-         * Search for symbol with correct spelling.
-         */
-        extern (D) Dsymbol symbol_search_fp(const(char)[] seed, out int cost)
-        {
-            /* If not in the lexer's string table, it certainly isn't in the symbol table.
-             * Doing this first is a lot faster.
-             */
-            if (!seed.length)
-                return null;
-            Identifier id = Identifier.lookup(seed);
-            if (!id)
-                return null;
-            cost = 0;   // all the same cost
-            Dsymbol s = this;
-            Module.clearCache();
-            return s.search(Loc.initial, id, IgnoreErrors);
-        }
-
-        if (global.gag)
-            return null; // don't do it for speculative compiles; too time consuming
-        // search for exact name first
-        if (auto s = this.search(Loc.initial, ident, IgnoreErrors))
-            return s;
-        return speller!symbol_search_fp(ident.toString());
     }
 
     bool overloadInsert(Dsymbol s)
