@@ -75,8 +75,6 @@ import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-extern (C++):
-
 /* ================================================================== */
 
 // Put out instance of ModuleInfo for this Module
