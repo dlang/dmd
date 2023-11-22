@@ -195,8 +195,6 @@ public void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
     }
 }
 
-extern (C++):
-
 //extern
 public __gshared Symbol* bzeroSymbol;        /// common location for immutable zeros
 

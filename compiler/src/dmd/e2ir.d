@@ -74,8 +74,6 @@ import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-extern (C++):
-
 alias Elems = Array!(elem *);
 
 import dmd.backend.util2 : mem_malloc2;

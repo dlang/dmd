@@ -59,8 +59,6 @@ import dmd.backend.cgcv;
 import dmd.backend.symtab;
 import dmd.backend.ty;
 
-extern (C++):
-
 
 /*************************************
  * Helper
