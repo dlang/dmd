@@ -26,3 +26,19 @@ __attribute__((__vector_size__(16))) int pluto(int i)
 
     return i ? v1 : v2;
 }
+
+// https://issues.dlang.org/show_bug.cgi?id=24125
+
+typedef int   __i128 __attribute__ ((__vector_size__ (16), __may_alias__));
+
+__i128 test1()
+{
+    return (__i128){ 1, 2, 3, 4 };
+}
+
+typedef float __m128 __attribute__ ((__vector_size__ (16), __may_alias__));
+
+__m128 test2()
+{
+    return (__m128){ 1, 2, 3, 4 };
+}
