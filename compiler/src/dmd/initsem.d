@@ -601,6 +601,16 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
     Initializer visitC(CInitializer ci)
     {
         //printf("CInitializer::semantic() tx: %s t: %s ci: %s\n", (tx ? tx.toChars() : "".ptr), t.toChars(), toChars(ci));
+        static if (0)
+            if (auto ts = tx.isTypeStruct())
+            {
+                import dmd.common.outbuffer;
+                OutBuffer buf;
+                HdrGenState hgs;
+                toCBuffer(ts.sym, buf, hgs);
+                printf("%s\n", buf.peekChars());
+            }
+
         /* Rewrite CInitializer into ExpInitializer, ArrayInitializer, or StructInitializer
          */
         t = t.toBasetype();
@@ -789,6 +799,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
             }
             const nfields = sd.fields.length;
             size_t fieldi = 0;
+            //printf("struct %s nfields = %d\n", sd.toChars(), cast(int)nfields);
 
         Loop1:
             for (size_t index = 0; index < ci.initializerList.length; )
@@ -837,7 +848,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                 {
                     if (fieldi == nfields)
                         break;
-                    if (index == 0 && ci.initializerList.length == 1 && di.initializer.isCInitializer())
+                    if (index == 0 && /*ci.initializerList.length == 1 &&*/ di.initializer.isCInitializer())
                     {
                         /* Try peeling off this set of { } and see if it works
                          */
@@ -857,6 +868,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                         if (fieldi == nfields)
                             break;
                     }
+                    //printf("field: %s\n", field.toChars());
                     auto tn = field.type.toBasetype();
                     auto tnsa = tn.isTypeSArray();
                     auto tns = tn.isTypeStruct();
