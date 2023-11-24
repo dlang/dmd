@@ -7845,6 +7845,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = ex;
             return;
         }
+        // Note: `"".ptr` is apparently still a StringExp
+        if (exp.e1.type.ty != Tpointer)
+        if (auto e = exp.e1.isStringExp())
+        {
+            // deprecated in 2.107
+            deprecation(e.loc, "assert condition cannot be a string literal");
+            deprecationSupplemental(e.loc, "If intentional, use `%s !is null` instead to preserve behaviour",
+                e.toChars());
+        }
 
         exp.e1 = resolveProperties(sc, exp.e1);
         // BUG: see if we can do compile time elimination of the Assert
