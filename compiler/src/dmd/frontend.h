@@ -8208,7 +8208,7 @@ extern bool tpsemantic(TemplateParameter* tp, Scope* sc, Array<TemplateParameter
 
 extern bool genTypeInfo(Expression* e, const Loc& loc, Type* torig, Scope* sc);
 
-extern Type* getTypeInfoType(const Loc& loc, Type* t, Scope* sc, bool genObjCode = true);
+extern Type* getTypeInfoType(const Loc& loc, Type* t, Scope* sc);
 
 extern bool isSpeculativeType(Type* t);
 

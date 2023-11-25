@@ -1663,7 +1663,7 @@ void test_typinf(Expression *e, const Loc &loc, Type *t, Scope *sc)
 {
     // Link tests
     genTypeInfo(e, loc, t, sc);
-    getTypeInfoType(loc, t, sc, false);
+    getTypeInfoType(loc, t, sc);
     isSpeculativeType(t);
     builtinTypeInfo(t);
 }
