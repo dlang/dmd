@@ -1854,17 +1854,6 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         s.sa.semantic2(sc);
         if (s.sa.errors)
             return setError();
-
-        ref exp() => s.sa.exp;
-        exp = exp.expressionSemantic(sc);
-        // Note: `"".ptr` is apparently still a StringExp
-        if (exp.type.ty != Tpointer && exp.isStringExp())
-        {
-            // deprecated in 2.107
-            deprecation(exp.loc, "static assert condition cannot be a string literal");
-            deprecationSupplemental(exp.loc, "If intentional, use `%s !is null` instead to preserve behaviour",
-                exp.toChars());
-        }
     }
 
     void visitSwitch(SwitchStatement ss)

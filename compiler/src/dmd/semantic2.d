@@ -93,6 +93,13 @@ private extern(C++) final class Semantic2Visitor : Visitor
     override void visit(StaticAssert sa)
     {
         //printf("StaticAssert::semantic2() %s\n", sa.toChars());
+        if (const e = sa.exp.isStringExp())
+        {
+            // deprecated in 2.107
+            deprecation(e.loc, "static assert condition cannot be a string literal");
+            deprecationSupplemental(e.loc, "If intentional, use `%s !is null` instead to preserve behaviour",
+                e.toChars());
+        }
         auto sds = new ScopeDsymbol();
         sc = sc.push(sds);
         sc.tinst = null;

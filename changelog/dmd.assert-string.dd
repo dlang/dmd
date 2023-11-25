@@ -13,7 +13,6 @@ Now these cases will be detected with deprecation messages.
 If the original behaviour was actually intended, use `expr !is null` instead:
 
 ```d
-enum s = "";
-assert(s !is null);
+assert("" !is null);
 static assert("" !is null);
 ```
