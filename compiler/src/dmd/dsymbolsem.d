@@ -5301,6 +5301,24 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
     // Detect `alias sym = sym;` to prevent creating loops in overload overnext lists.
     if (auto tident = ds.type.isTypeIdentifier())
     {
+        if (tident.idents.length)
+        {
+            alias mt = tident;
+            Dsymbol s = sc.search(ds.loc, mt.ident, null);
+            // detect `alias a = var1.member_var;` which confusingly resolves to
+            // `typeof(var1).member_var`, which can be valid inside the aggregate type
+            if (s && s.isVarDeclaration() &&
+                mt.ident != Id.This && mt.ident != Id._super)
+            {
+                s = tident.toDsymbol(sc);
+                if (s && s.isVarDeclaration()) {
+                    // deprecated in 2.107
+                    deprecation(mt.loc, "cannot alias member of variable `%s`", mt.ident.toChars());
+                    deprecationSupplemental(mt.loc, "Use `typeof(%s)` instead to preserve behaviour",
+                        mt.ident.toChars());
+                }
+            }
+        }
         // Selective imports are allowed to alias to the same name `import mod : sym=sym`.
         if (!ds._import)
         {
