@@ -254,6 +254,34 @@ _Static_assert(test7s2() == -2, "3");
 
 /******************************************/
 
+// https://issues.dlang.org/show_bug.cgi?id=24257
+
+#include <assert.h>
+
+struct Entry
+{
+    unsigned id : 15;
+    _Bool done : 1;
+};
+
+struct State
+{
+    struct Entry e;
+};
+
+void test24257()
+{
+    int i = 72;
+    struct State s = (struct State){i};
+    if (s.e.id != 72)
+    {
+        printf("error %d\n", __LINE__);
+        exit(1);
+    }
+}
+
+/******************************************/
+
 int main()
 {
     test1();
@@ -263,6 +291,7 @@ int main()
     test5();
     test6();
     test7();
+    test24257();
 
     return 0;
 }

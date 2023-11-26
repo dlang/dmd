@@ -3067,16 +3067,36 @@ elem* toElem(Expression e, ref IRState irs)
             e = addressElem(e, tb1);
             typ = tybasic(e.Ety);
         }
-        auto offset = el_long(TYsize_t, v.offset);
-        offset = objc.getOffset(v, tb1, offset);
-        e = el_bin(OPadd, typ, e, offset);
+
+        const tym = totym(dve.type);
+        auto voffset = v.offset;
+        uint bitfieldarg = 0;
+        auto bf = v.isBitFieldDeclaration();
+        if (bf)
+        {
+            // adjust bit offset for bitfield so the type tym encloses the bitfield
+            const szbits = tysize(tym) * 8;
+            auto bitOffset = bf.bitOffset;
+            if (bitOffset + bf.fieldWidth > szbits)
+            {
+                const advance = bf.bitOffset / szbits;
+                voffset += advance;
+                bitOffset -= advance * 8;
+                assert(bitOffset + bf.fieldWidth <= szbits);
+            }
+            //printf("voffset %u bitOffset %u fieldWidth %u bits %u\n", cast(uint)voffset, bitOffset, bf.fieldWidth, szbits);
+            bitfieldarg = bf.fieldWidth * 256 + bitOffset;
+        }
+
+        auto eoffset = el_long(TYsize_t, voffset);
+        e = el_bin(OPadd, typ, e, objc.getOffset(v, tb1, eoffset));
         if (v.storage_class & (STC.out_ | STC.ref_))
             e = el_una(OPind, TYnptr, e);
-        e = el_una(OPind, totym(dve.type), e);
-        if (auto bf = v.isBitFieldDeclaration())
+        e = el_una(OPind, tym, e);
+        if (bf)
         {
             // Insert special bitfield operator
-            auto mos = el_long(TYuint, bf.fieldWidth * 256 + bf.bitOffset);
+            auto mos = el_long(TYuint, bitfieldarg);
             e = el_bin(OPbit, e.Ety, e, mos);
         }
         if (tybasic(e.Ety) == TYstruct)
@@ -6474,13 +6494,13 @@ elem *toElemStructLit(StructLiteralExp sle, ref IRState irs, EXP op, Symbol *sym
     // CTFE may fill the hidden pointer by NullExp.
     {
         VarDeclaration vbf;
-        foreach (i, el; *sle.elements)
+        foreach (i, element; *sle.elements)
         {
-            if (!el)
+            if (!element)
                 continue;
 
             VarDeclaration v = sle.sd.fields[i];
-            assert(!v.isThisDeclaration() || el.op == EXP.null_);
+            assert(!v.isThisDeclaration() || element.op == EXP.null_);
 
             elem *e1;
             if (tybasic(stmp.Stype.Tty) == TYnptr)
@@ -6491,48 +6511,73 @@ elem *toElemStructLit(StructLiteralExp sle, ref IRState irs, EXP op, Symbol *sym
             {
                 e1 = el_ptr(stmp);
             }
-            e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, v.offset));
 
-            elem *ep = toElem(el, irs);
+            elem *ep = toElem(element, irs);
 
             Type t1b = v.type.toBasetype();
-            Type t2b = el.type.toBasetype();
+            Type t2b = element.type.toBasetype();
             if (t1b.ty == Tsarray)
             {
+                e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, v.offset));
                 if (t2b.implicitConvTo(t1b))
                 {
                     elem *esize = el_long(TYsize_t, t1b.size());
-                    ep = array_toPtr(el.type, ep);
+                    ep = array_toPtr(element.type, ep);
                     e1 = el_bin(OPmemcpy, TYnptr, e1, el_param(ep, esize));
                 }
                 else
                 {
                     elem *edim = el_long(TYsize_t, t1b.size() / t2b.size());
-                    e1 = setArray(el, e1, edim, t2b, ep, irs, op == EXP.construct ? EXP.blit : op);
+                    e1 = setArray(element, e1, edim, t2b, ep, irs, op == EXP.construct ? EXP.blit : op);
                 }
             }
             else
             {
-                tym_t ty = totym(v.type);
-                e1 = el_una(OPind, ty, e1);
-                if (tybasic(ty) == TYstruct)
+                const tym_t tym = totym(v.type);
+                auto voffset = v.offset;
+                uint bitfieldArg;
+                uint bitOffset;
+                auto bf = v.isBitFieldDeclaration();
+                if (bf)
+                {
+                    const szbits = tysize(tym) * 8;
+                    bitOffset = bf.bitOffset;
+                    if (bitOffset + bf.fieldWidth > szbits)
+                    {
+                        const advance = bitOffset / szbits;
+                        voffset += advance;
+                        bitOffset -= advance * 8;
+                        assert(bitOffset + bf.fieldWidth <= szbits);
+                    }
+                    bitfieldArg = bf.fieldWidth * 256 + bitOffset;
+
+                    //printf("2bitOffset %u fieldWidth %u bits %u\n", bitOffset, bf.fieldWidth, szbits);
+                    assert(bitOffset + bf.fieldWidth <= szbits);
+                }
+
+                e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, voffset));
+                e1 = el_una(OPind, tym, e1);
+                if (tybasic(tym) == TYstruct)
+                {
                     e1.ET = Type_toCtype(v.type);
-                if (auto bf = v.isBitFieldDeclaration())
+                    assert(!bf);
+                }
+                if (bf)
                 {
                     if (!vbf || vbf.offset + vbf.type.size() <= v.offset)
                     {
                         /* Initialize entire location the bitfield is in
                          * ep = (ep & ((1 << bf.fieldWidth) - 1)) << bf.bitOffset
                          */
-                        tym_t e1ty = e1.Ety;
-                        auto ex = el_bin(OPand, e1ty, ep, el_long(e1ty, (1L << bf.fieldWidth) - 1));
-                        ep = el_bin(OPshl, e1ty, ex, el_long(e1ty, bf.bitOffset));
+                        auto ex = el_bin(OPand, tym, ep, el_long(tym, (1L << bf.fieldWidth) - 1));
+                        ep = el_bin(OPshl, tym, ex, el_long(tym, bitOffset));
                         vbf = v;
                     }
                     else
                     {
+                        //printf("2bitOffset %u fieldWidth %u bits %u\n", bf.bitOffset, bf.fieldWidth, tysize(e1.Ety) * 8);
                         // Insert special bitfield operator
-                        auto mos = el_long(TYuint, bf.fieldWidth * 256 + bf.bitOffset);
+                        auto mos = el_long(TYuint, bitfieldArg);
                         e1 = el_bin(OPbit, e1.Ety, e1, mos);
                     }
                 }
