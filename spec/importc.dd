@@ -608,6 +608,12 @@ enum E { A = 3; }
 
     $(P A control-Z character `\x1A` in the source text means End Of File.)
 
+    $(H3 $(LNAME2 largeDecimal, Signed Integer Literal Larger Than long long))
+
+    $(P A signed integer constant with no suffix that is larger than a `long long` type,
+    but will fit into an `unsigned long long` type, is accepted and typed as `unsigned long long`.
+    This matches D behavior.)
+
 $(H2 $(LNAME2 gnu-clang-extensions, Gnu and Clang Extensions))
 
     $(P `gcc` and `clang` are presumed to have the same behavior w.r.t. extensions,
