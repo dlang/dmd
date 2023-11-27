@@ -498,7 +498,6 @@ public:
     virtual const char* kind() const;
     virtual Dsymbol* toAlias();
     virtual Dsymbol* toAlias2();
-    virtual void setScope(Scope* sc);
     virtual void importAll(Scope* sc);
     virtual bool overloadInsert(Dsymbol* s);
     virtual uinteger_t size(const Loc& loc);
@@ -3937,7 +3936,6 @@ class Nspace final : public ScopeDsymbol
 public:
     Expression* identExp;
     Nspace* syntaxCopy(Dsymbol* s) override;
-    void setScope(Scope* sc) override;
     bool hasPointers() override;
     void setFieldOffset(AggregateDeclaration* ad, FieldState& fieldState, bool isunion) override;
     const char* kind() const override;
@@ -5314,7 +5312,6 @@ public:
     bool disableNew;
     Sizeok sizeok;
     virtual Scope* newScope(Scope* sc);
-    void setScope(Scope* sc) final override;
     virtual void finalizeSize() = 0;
     uinteger_t size(const Loc& loc) final override;
     bool fill(const Loc& loc, Array<Expression* >& elements, bool ctorinit);
@@ -5382,7 +5379,6 @@ public:
     Array<Dsymbol* >* decl;
     virtual Array<Dsymbol* >* include(Scope* sc);
     virtual Scope* newScope(Scope* sc);
-    void setScope(Scope* sc) override;
     void importAll(Scope* sc) override;
     void addComment(const char* comment) override;
     const char* kind() const override;
@@ -5414,7 +5410,6 @@ public:
     const char* msgstr;
     DeprecatedDeclaration* syntaxCopy(Dsymbol* s) override;
     Scope* newScope(Scope* sc) override;
-    void setScope(Scope* sc) override;
     void accept(Visitor* v) override;
 };
 
@@ -5435,7 +5430,6 @@ public:
     CPPMANGLE cppmangle;
     CPPMangleDeclaration* syntaxCopy(Dsymbol* s) override;
     Scope* newScope(Scope* sc) override;
-    void setScope(Scope* sc) override;
     const char* toChars() const override;
     void accept(Visitor* v) override;
 };
@@ -5483,7 +5477,6 @@ public:
     uint32_t anonstructsize;
     uint32_t anonalignsize;
     AnonDeclaration* syntaxCopy(Dsymbol* s) override;
-    void setScope(Scope* sc) override;
     void setFieldOffset(AggregateDeclaration* ad, FieldState& fieldState, bool isunion) override;
     const char* kind() const override;
     AnonDeclaration* isAnonDeclaration() override;
@@ -5509,7 +5502,6 @@ public:
     bool oneMember(Dsymbol** ps, Identifier* ident) final override;
     Array<Dsymbol* >* include(Scope* sc) override;
     void addComment(const char* comment) final override;
-    void setScope(Scope* sc) override;
     void accept(Visitor* v) override;
 };
 
@@ -5523,7 +5515,6 @@ private:
 public:
     StaticIfDeclaration* syntaxCopy(Dsymbol* s) override;
     Array<Dsymbol* >* include(Scope* sc) override;
-    void setScope(Scope* sc) override;
     void importAll(Scope* sc) override;
     const char* kind() const override;
     StaticIfDeclaration* isStaticIfDeclaration() override;
@@ -5542,7 +5533,6 @@ public:
     bool oneMember(Dsymbol** ps, Identifier* ident) override;
     Array<Dsymbol* >* include(Scope* sc) override;
     void addComment(const char* comment) override;
-    void setScope(Scope* sc) override;
     void importAll(Scope* sc) override;
     const char* kind() const override;
     void accept(Visitor* v) override;
@@ -5565,7 +5555,6 @@ public:
     ScopeDsymbol* scopesym;
     bool compiled;
     MixinDeclaration* syntaxCopy(Dsymbol* s) override;
-    void setScope(Scope* sc) override;
     const char* kind() const override;
     MixinDeclaration* isMixinDeclaration() override;
     void accept(Visitor* v) override;
@@ -5577,7 +5566,6 @@ public:
     Array<Expression* >* atts;
     UserAttributeDeclaration* syntaxCopy(Dsymbol* s) override;
     Scope* newScope(Scope* sc) override;
-    void setScope(Scope* sc) override;
     Array<Expression* >* getAttributes();
     const char* kind() const override;
     void accept(Visitor* v) override;
@@ -6124,7 +6112,6 @@ private:
     uint8_t bitFields;
 public:
     EnumDeclaration* syntaxCopy(Dsymbol* s) override;
-    void setScope(Scope* sc) override;
     bool oneMember(Dsymbol** ps, Identifier* ident) override;
     Type* getType() override;
     const char* kind() const override;
@@ -6169,7 +6156,6 @@ public:
     Import* syntaxCopy(Dsymbol* s) override;
     void importAll(Scope* sc) override;
     Dsymbol* toAlias() override;
-    void setScope(Scope* sc) override;
     bool overloadInsert(Dsymbol* s) override;
     Import* isImport() override;
     void accept(Visitor* v) override;
@@ -6576,6 +6562,8 @@ extern void dsymbolSemantic(Dsymbol* dsym, Scope* sc);
 extern void addMember(Dsymbol* dsym, Scope* sc, ScopeDsymbol* sds);
 
 extern Dsymbol* search(Dsymbol* d, const Loc& loc, Identifier* ident, int32_t flags = 0);
+
+extern void setScope(Dsymbol* d, Scope* sc);
 
 extern Expression* isExpression(RootObject* o);
 

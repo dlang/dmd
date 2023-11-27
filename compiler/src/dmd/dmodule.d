@@ -969,7 +969,7 @@ extern (C++) final class Module : Package
          * If this works out well, it can be extended to all modules
          * before any semantic() on any of them.
          */
-        setScope(sc); // remember module scope for semantic
+        this.setScope(sc); // remember module scope for semantic
         for (size_t i = 0; i < members.length; i++)
         {
             Dsymbol s = (*members)[i];

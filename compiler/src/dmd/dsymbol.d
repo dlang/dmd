@@ -712,22 +712,6 @@ extern (C++) class Dsymbol : ASTNode
         return toAlias();
     }
 
-    /*************************************
-     * Set scope for future semantic analysis so we can
-     * deal better with forward references.
-     */
-    void setScope(Scope* sc)
-    {
-        //printf("Dsymbol::setScope() %p %s, %p stc = %llx\n", this, toChars(), sc, sc.stc);
-        if (!sc.nofree)
-            sc.setNoFree(); // may need it even after semantic() finishes
-        _scope = sc;
-        if (sc.depdecl)
-            depdecl = sc.depdecl;
-        if (!userAttribDecl)
-            userAttribDecl = sc.userAttribDecl;
-    }
-
     void importAll(Scope* sc)
     {
     }
