@@ -612,7 +612,14 @@ enum E { A = 3; }
 
     $(P A signed integer constant with no suffix that is larger than a `long long` type,
     but will fit into an `unsigned long long` type, is accepted and typed as `unsigned long long`.
-    This matches D behavior.)
+    This matches D behavior, and that of some C compilers.)
+
+    $(H3 $(LNAME2 dotArrow, Dot and Arror Operators))
+
+    $(P The `.` operator is used to designate a member of a struct or union value.
+        The `->` operator is used to designate a member of a struct or union value pointed to
+        by a pointer. The extension is that `.` and `->` can be used interchangeably on
+        values and pointers. This matches D's behavior for `.`.)
 
 $(H2 $(LNAME2 gnu-clang-extensions, Gnu and Clang Extensions))
 
