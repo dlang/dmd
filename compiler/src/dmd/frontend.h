@@ -4770,6 +4770,7 @@ struct ASTCodegen final
     using EnumDeclaration = ::EnumDeclaration;
     using EnumMember = ::EnumMember;
     using Import = ::Import;
+    using ForeachDg = ::ForeachDg;
     using Module = ::Module;
     using ModuleDeclaration = ::ModuleDeclaration;
     using Package = ::Package;
