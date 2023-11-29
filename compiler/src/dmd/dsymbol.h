@@ -227,7 +227,6 @@ public:
     virtual const char *kind() const;
     virtual Dsymbol *toAlias();                 // resolve real symbol
     virtual Dsymbol *toAlias2();
-    virtual void setScope(Scope *sc);
     virtual void importAll(Scope *sc);
     virtual bool overloadInsert(Dsymbol *s);
     virtual uinteger_t size(const Loc &loc);
@@ -430,3 +429,4 @@ public:
 void addMember(Dsymbol *dsym, Scope *sc, ScopeDsymbol *sds);
 Dsymbol *search(Dsymbol *d, const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
 bool checkDeprecated(Dsymbol *d, const Loc &loc, Scope *sc);
+void setScope(Dsymbol *d, Scope *sc);
