@@ -203,11 +203,11 @@ X.sizeof // is same as int.sizeof
 
 $(H3 $(LNAME2 enum_copying_and_assignment, Enum Copying and Assignment))
 
-        $(P A named enum type never has a $(DDSUBLINK spec/struct,
-        struct-copy-constructor, copy constructor), $(DDSUBLINK spec/struct,
-        struct-postblit, postblit), or $(DDSUBLINK spec/struct,
-        assign-overload, identity assignment overload), even if one is defined
-        by its $(GLINK EnumBaseType).)
+        $(P A named enum type never has a
+        $(DDSUBLINK spec/struct, struct-copy-constructor, copy constructor),
+        $(DDSUBLINK spec/struct, struct-postblit, postblit), or
+        $(DDSUBLINK spec/struct, assign-overload, identity assignment overload),
+        even if one is defined by its $(GLINK EnumBaseType).)
 
         $(P When copying a named enum value whose base type is a `struct` with
         a copy constructor, the copy constructor is not called:)
