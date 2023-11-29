@@ -8745,3 +8745,146 @@ private extern(C++) class SetScopeVisitor : Visitor
         visit(cast(AttribDeclaration)uad);
     }
 }
+
+extern(C++) void importAll(Dsymbol d, Scope* sc)
+{
+    scope iav = new ImportAllVisitor(sc);
+    d.accept(iav);
+}
+
+extern(C++) class ImportAllVisitor : Visitor
+{
+    alias visit = typeof(super).visit;
+    Scope* sc;
+
+    this(Scope* sc)
+    {
+        this.sc = sc;
+    }
+
+    override void visit(Dsymbol d) {}
+
+    override void visit(Import imp)
+    {
+        if (imp.mod) return; // Already done
+
+        /*
+         * https://issues.dlang.org/show_bug.cgi?id=15525
+         *
+         * Loading the import has failed,
+         * most likely because of parsing errors.
+         * Therefore we cannot trust the resulting AST.
+         */
+        if (imp.load(sc))
+        {
+            // https://issues.dlang.org/show_bug.cgi?id=23873
+            // For imports that are not at module or function level,
+            // e.g. aggregate level, the import symbol is added to the
+            // symbol table and later semantic is performed on it.
+            // This leads to semantic analysis on an malformed AST
+            // which causes all kinds of segfaults.
+            // The fix is to note that the module has errors and avoid
+            // semantic analysis on it.
+            if(imp.mod)
+                imp.mod.errors = true;
+            return;
+        }
+
+        if (!imp.mod) return; // Failed
+
+        if (sc.stc & STC.static_)
+            imp.isstatic = true;
+        imp.mod.importAll(null);
+        imp.mod.checkImportDeprecation(imp.loc, sc);
+        if (sc.explicitVisibility)
+            imp.visibility = sc.visibility;
+        if (!imp.isstatic && !imp.aliasId && !imp.names.length)
+            sc.scopesym.importScope(imp.mod, imp.visibility);
+        // Enable access to pkgs/mod as soon as posible, because compiler
+        // can traverse them before the import gets semantic (Issue: 21501)
+        if (!imp.aliasId && !imp.names.length)
+            imp.addPackageAccess(sc.scopesym);
+    }
+
+    override void visit(Module m)
+    {
+        //printf("+Module::importAll(this = %p, '%s'): parent = %p\n", m, m.toChars(), m.parent);
+        if (m._scope)
+            return; // already done
+        if (m.filetype == FileType.ddoc)
+        {
+            error(m.loc, "%s `%s` is a Ddoc file, cannot import it", m.kind, m.toPrettyChars);
+            return;
+        }
+
+        /* Note that modules get their own scope, from scratch.
+         * This is so regardless of where in the syntax a module
+         * gets imported, it is unaffected by context.
+         * Ignore prevsc.
+         */
+        Scope* sc = Scope.createGlobal(m, global.errorSink); // create root scope
+
+        if (m.md && m.md.msg)
+            m.md.msg = semanticString(sc, m.md.msg, "deprecation message");
+
+        // Add import of "object", even for the "object" module.
+        // If it isn't there, some compiler rewrites, like
+        //    classinst == classinst -> .object.opEquals(classinst, classinst)
+        // would fail inside object.d.
+        if (m.filetype != FileType.c &&
+            (m.members.length == 0 ||
+             (*m.members)[0].ident != Id.object ||
+             (*m.members)[0].isImport() is null))
+        {
+            auto im = new Import(Loc.initial, null, Id.object, null, 0);
+            m.members.shift(im);
+        }
+        if (!m.symtab)
+        {
+            // Add all symbols into module's symbol table
+            m.symtab = new DsymbolTable();
+            for (size_t i = 0; i < m.members.length; i++)
+            {
+                Dsymbol s = (*m.members)[i];
+                s.addMember(sc, sc.scopesym);
+            }
+        }
+        // anything else should be run after addMember, so version/debug symbols are defined
+        /* Set scope for the symbols so that if we forward reference
+         * a symbol, it can possibly be resolved on the spot.
+         * If this works out well, it can be extended to all modules
+         * before any semantic() on any of them.
+         */
+        m.setScope(sc); // remember module scope for semantic
+        for (size_t i = 0; i < m.members.length; i++)
+        {
+            Dsymbol s = (*m.members)[i];
+            s.setScope(sc);
+        }
+        for (size_t i = 0; i < m.members.length; i++)
+        {
+            Dsymbol s = (*m.members)[i];
+            s.importAll(sc);
+        }
+        sc = sc.pop();
+        sc.pop(); // 2 pops because Scope.createGlobal() created 2
+    }
+
+    override void visit(AttribDeclaration atb)
+    {
+        Dsymbols* d = atb.include(sc);
+        //printf("\tAttribDeclaration::importAll '%s', d = %p\n", toChars(), d);
+        if (d)
+        {
+            Scope* sc2 = atb.newScope(sc);
+            d.foreachDsymbol( s => s.importAll(sc2) );
+            if (sc2 != sc)
+                sc2.pop();
+        }
+    }
+
+    // do not evaluate condition before semantic pass
+    override void visit(StaticIfDeclaration _) {}
+    // do not evaluate aggregate before semantic pass
+    override void visit(StaticForeachDeclaration _) {}
+}

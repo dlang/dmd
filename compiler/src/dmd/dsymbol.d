@@ -713,10 +713,6 @@ extern (C++) class Dsymbol : ASTNode
         return toAlias();
     }
 
-    void importAll(Scope* sc)
-    {
-    }
-
     bool overloadInsert(Dsymbol s)
     {
         //printf("Dsymbol::overloadInsert('%s')\n", s.toChars());

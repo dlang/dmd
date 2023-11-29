@@ -121,7 +121,6 @@ public:
     const char *kind() const override;
     bool read(const Loc &loc); // read file, returns 'true' if succeed, 'false' otherwise.
     Module *parse();    // syntactic parse
-    void importAll(Scope *sc) override;
     int needModuleInfo();
     bool isPackageAccessible(Package *p, Visibility visibility, SearchOptFlags flags = (SearchOptFlags)SearchOpt::all) override;
     Dsymbol *symtabInsert(Dsymbol *s) override;

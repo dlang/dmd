@@ -26,7 +26,6 @@ public:
 
     virtual Dsymbols *include(Scope *sc);
     virtual Scope *newScope(Scope *sc);
-    void importAll(Scope *sc) override;
     void addComment(const utf8_t *comment) override;
     const char *kind() const override;
     bool oneMember(Dsymbol **ps, Identifier *ident) override;
@@ -171,7 +170,6 @@ public:
 
     StaticIfDeclaration *syntaxCopy(Dsymbol *s) override;
     Dsymbols *include(Scope *sc) override;
-    void importAll(Scope *sc) override;
     StaticIfDeclaration *isStaticIfDeclaration() override { return this; }
     const char *kind() const override;
     void accept(Visitor *v) override { v->visit(this); }
@@ -190,7 +188,6 @@ public:
     bool oneMember(Dsymbol **ps, Identifier *ident) override;
     Dsymbols *include(Scope *sc) override;
     void addComment(const utf8_t *comment) override;
-    void importAll(Scope *sc) override;
     const char *kind() const override;
     void accept(Visitor *v) override { v->visit(this); }
 };

@@ -123,19 +123,6 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
         return sc;
     }
 
-    override void importAll(Scope* sc)
-    {
-        Dsymbols* d = include(sc);
-        //printf("\tAttribDeclaration::importAll '%s', d = %p\n", toChars(), d);
-        if (d)
-        {
-            Scope* sc2 = newScope(sc);
-            d.foreachDsymbol( s => s.importAll(sc2) );
-            if (sc2 != sc)
-                sc2.pop();
-        }
-    }
-
     override void addComment(const(char)* comment)
     {
         //printf("AttribDeclaration::addComment %s\n", comment);
@@ -943,11 +930,6 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
         }
     }
 
-    override void importAll(Scope* sc)
-    {
-        // do not evaluate condition before semantic pass
-    }
-
     override const(char)* kind() const
     {
         return "static if";
@@ -1055,11 +1037,6 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
     {
         // do nothing
         // change this to give semantics to documentation comments on static foreach declarations
-    }
-
-    override void importAll(Scope* sc)
-    {
-        // do not evaluate aggregate before semantic pass
     }
 
     override const(char)* kind() const
