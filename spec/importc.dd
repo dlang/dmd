@@ -150,7 +150,9 @@ $(H2 $(LNAME2 preprocessor, Preprocessor))
     $(LI Otherwise the $(TT cpp) preprocessor will be used.)
     )
 
-    $(P The druntime file $(TT src/importc.h) will automatically be $(TT #include)d.)
+    $(P The druntime file $(LINK2 https://github.com/dlang/dmd/blob/master/druntime/src/importc.h, $(TT src/importc.h))
+    will automatically be $(TT #include)d first. $(TT importc.h) provides adjustments to the source code to
+    account for various C compiler extensions not supported by ImportC.)
 
     $(P The $(DDSUBLINK dmd, switch-v, $(TT -v)) switch can be used to observe the command
     that invokes the preprocessor.
@@ -278,6 +280,13 @@ $(H2 $(LNAME2 preprocessor-directives, Preprocessor Directives))
     $(LI $(TT #pragma pack ( pop )))
     $(LI $(TT #pragma pack ( pop PopList )))
     )
+
+$(H2 $(LNAME2 _builtins, $(TT src/__builtins.di)))
+
+    $(P The first thing the compiler does when preprocessing is complete is to import
+    $(LINK2 https://github.com/dlang/dmd/blob/master/druntime/src/__builtins.di, $(TT src/__builtins.di)).
+    It provides support for various builtins provided by other C compilers.
+    $(TT __builtins.di) is a D file.)
 
 $(H2 $(LNAME2 implementation, Implementation))
 
