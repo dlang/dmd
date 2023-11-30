@@ -6297,6 +6297,8 @@ struct ModuleDeclaration final
 
 extern void getLocalClasses(Module* mod, Array<ClassDeclaration* >& aclasses);
 
+extern FuncDeclaration* findGetMembers(ScopeDsymbol* dsym);
+
 extern void gendocfile(Module* m, const char* const ddoctext_ptr, size_t ddoctext_length, const char* const datetime, ErrorSink* eSink, OutBuffer& outbuf);
 
 struct Scope final
@@ -8201,8 +8203,6 @@ extern Type* getTypeInfoType(const Loc& loc, Type* t, Scope* sc, bool genObjCode
 extern bool isSpeculativeType(Type* t);
 
 extern bool builtinTypeInfo(Type* t);
-
-extern FuncDeclaration* findGetMembers(ScopeDsymbol* dsym);
 
 class SemanticTimeTransitiveVisitor : public SemanticTimePermissiveVisitor
 {
