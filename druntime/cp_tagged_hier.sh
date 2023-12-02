@@ -10,12 +10,11 @@ TAGS=$5
 
 if [[ ! -d ${SRC_DIR} ]]; then
     echo "Tags dir '${SRC_DIR}' not found" > /dev/stderr
-    return 1
+    exit 1
 fi
 
 if [[ -f ${DST_FILE} ]]; then
     echo "Tagged sources list already generated"
-
     exit 0
 fi
 
