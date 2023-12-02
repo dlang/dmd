@@ -37,6 +37,15 @@ DRUNTIME=lib\$(DRUNTIME_BASE).lib
 
 DOCFMT=
 
+##################
+
+TAGGED_COPY_LIST_FILE=mak\TAGGED_COPY
+#FIXME: specify temporary dirs
+TAGGED_SRCS_FILE=mak\gen\SRCS
+TAGGED_COPY_FILE=mak\gen\COPY
+
+##################
+
 target: copydir copy $(DRUNTIME)
 
 $(mak\COPY)
@@ -56,8 +65,17 @@ import: copy
 copydir:
 	"$(MAKE)" -f mak/WINDOWS copydir DMD="$(DMD)" HOST_DMD="$(HOST_DMD)" MODEL=$(MODEL) IMPDIR="$(IMPDIR)"
 
-copy:
+copy: $(TAGGED_SRCS_FILE)
 	"$(MAKE)" -f mak/WINDOWS copy DMD="$(DMD)" HOST_DMD="$(HOST_DMD)" MODEL=$(MODEL) IMPDIR="$(IMPDIR)"
+
+$(TAGGED_SRCS_FILE):
+	# DM make can't ignore unavail makefiles, create empty if need for use in mak/WINDOWS
+	if not exist $@ (install -D /dev/null $@ && echo UNUSED_VAR=123 > $@)
+	"$(MAKE)" -f mak/WINDOWS gen_tagged_srcs IMPDIR="$(IMPDIR)" TAGGED_COPY_LIST_FILE="$(TAGGED_COPY_LIST_FILE)" TAGGED_SRCS_FILE="$(TAGGED_SRCS_FILE)" TAGGED_COPY_FILE="$(TAGGED_COPY_FILE)"
+
+gen_tagged_srcs_clean:
+	rm -f $(TAGGED_SRCS_FILE) $(TAGGED_COPY_FILE)
+	rm -f $(TAGGED_SRCS_FILE).tmp
 
 ################### C\ASM Targets ############################
 
@@ -135,6 +153,6 @@ druntime.zip: import
 install: druntime.zip
 	unzip -o druntime.zip -d \dmd2\src\druntime
 
-clean:
+clean: gen_tagged_srcs_clean
 	del $(DRUNTIME) $(OBJS_TO_DELETE)
 	rmdir /S /Q $(DOCDIR) $(IMPDIR)

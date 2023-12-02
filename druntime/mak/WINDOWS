@@ -1,5 +1,8 @@
 $(mak\COPY)
 
+#FIXME: remove
+TAGGED_COPY_FILE=mak\gen\COPY
+
 ######################## Header file copy ##############################
 
 import: copy
@@ -8,6 +11,7 @@ copydir: $(IMPDIR)
 
 copy: ..\generated\windows\copyimports.exe
 	@~..\generated\windows\copyimports.exe $(COPY)
+	@+FOR /F "tokens=1-3,* delims=\" %L IN ($(TAGGED_COPY_FILE)) DO (install -D %M\%N\%O import\%O)
 
 ..\generated\windows\copyimports.exe: mak\copyimports.d ..\generated\windows\host_dmd.bat
 	..\generated\windows\host_dmd.bat -of=$@ -m$(MODEL) mak\copyimports.d
@@ -26,3 +30,8 @@ ATCLIENT_DMD = ../../release-build/dmd-2.079.0/windows/bin/dmd.exe
 	-+if not "$(DMD_DIR)"  == "" ("$(DMD_DIR)\dmd2\Windows\bin\dmd.exe" --version >nul 2>&1 && echo @"$(DMD_DIR)\dmd2\Windows\bin\dmd.exe" %* >$@)
 	-+if not "$(HOST_DC)"  == "" ("$(HOST_DC)"  --version >nul 2>&1 && echo @"$(HOST_DC)" %* >$@)
 	-+if not "$(HOST_DMD)" == "" ("$(HOST_DMD)" --version >nul 2>&1 && echo @"$(HOST_DMD)" %* >$@)
+
+gen_tagged_srcs:
+	@+cp_tagged_hier.sh config $(TAGGED_SRCS_FILE).tmp $(TAGGED_COPY_LIST_FILE) $(TAGGED_COPY_FILE) x86_64,windows,default
+	@echo SRCS_TAGGED=\ > $(TAGGED_SRCS_FILE)
+	@type $(TAGGED_SRCS_FILE).tmp >> $(TAGGED_SRCS_FILE)
