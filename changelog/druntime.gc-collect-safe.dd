@@ -1,6 +1,0 @@
-4 `core.memory.GC` functions have been marked `@safe`
-
-* `GC.enable`
-* `GC.disable`
-* `GC.collect`
-* `GC.minimize`
