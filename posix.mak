@@ -2,11 +2,17 @@ INSTALL_DIR=$(PWD)/../install
 ECTAGS_LANGS = Make,C,C++,D,Sh
 ECTAGS_FILES = compiler/dmd/*.[chd] compiler/dmd/backend/*.[chd] compiler/dmd/root/*.[chd]
 
+GENERATED = generated
+HOST_DMD?=dmd
+
 .PHONY: all clean test install auto-tester-build auto-tester-test toolchain-info
 
-all:
-	$(QUIET)$(MAKE) -C compiler/src -f posix.mak all BUILD_JOBS=$(BUILD_JOBS)
+all: $(GENERATED)/build
+	$(GENERATED)/build dmd
 	$(QUIET)$(MAKE) -C druntime -f posix.mak target
+
+$(GENERATED)/build: compiler/src/build.d
+	$(HOST_DMD) -of$@ -g $<
 
 auto-tester-build:
 	echo "Auto-Tester has been disabled"
@@ -16,21 +22,21 @@ auto-tester-test:
 
 buildkite-test: test
 
-toolchain-info:
-	$(QUIET)$(MAKE) -C compiler/src -f posix.mak toolchain-info
+toolchain-info: $(GENERATED)/build
+	$(GENERATED)/build $@
 
 clean:
-	$(QUIET)$(MAKE) -C compiler/src -f posix.mak clean
+	rm -Rf $(GENERATED)
 	$(QUIET)$(MAKE) -C compiler/test -f Makefile clean
 	$(RM) tags
 
-test:
-	$(QUIET)$(MAKE) -C compiler/src -f posix.mak unittest
-	$(QUIET)$(MAKE) -C compiler/src -f posix.mak dmd
+test: $(GENERATED)/build
+	$(GENERATED)/build unittest
+	$(GENERATED)/build dmd
 	$(QUIET)$(MAKE) -C compiler/test -f Makefile
 
-html:
-	$(QUIET)$(MAKE) -C compiler/src -f posix.mak html BUILD_JOBS=$(BUILD_JOBS)
+html: $(GENERATED)/build
+	$(GENERATED)/build $@
 
 # Creates Exuberant Ctags tags file
 tags: posix.mak $(ECTAGS_FILES)
@@ -41,11 +47,12 @@ ifneq (,$(findstring Darwin_64_32, $(PWD)))
 install:
 	echo "Darwin_64_32_disabled"
 else
-install: all
-	$(MAKE) INSTALL_DIR=$(INSTALL_DIR) -C compiler/src -f posix.mak install
+install: all $(GENERATED)/build
+	$(GENERATED)/build man
+	$(GENERATED)/build install INSTALL_DIR=$(INSTALL_DIR)
 	cp -r compiler/samples $(INSTALL_DIR)
 	mkdir -p $(INSTALL_DIR)/man
-	cp -r compiler/docs/man/* $(INSTALL_DIR)/man/
+	cp -r generated/docs/man/* $(INSTALL_DIR)/man/
 endif
 
 # Checks that all files have been committed and no temporary, untracked files exist.
@@ -58,8 +65,8 @@ check-clean-git:
 		exit 1; \
 	fi
 
-style:
-	$(QUIET)$(MAKE) -C compiler/src -f posix.mak style
+style: $(GENERATED)/build
+	$(GENERATED)/build $@
 
 .DELETE_ON_ERROR: # GNU Make directive (delete output files on error)
 
