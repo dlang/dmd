@@ -14,6 +14,9 @@ all: $(GENERATED)/build
 $(GENERATED)/build: compiler/src/build.d
 	$(HOST_DMD) -of$@ -g $<
 
+$(GENERATED)/run: compiler/test/run.d
+	$(HOST_DMD) -of$@ -g -i -Icompiler/test -release $<
+
 auto-tester-build:
 	echo "Auto-Tester has been disabled"
 
@@ -27,13 +30,12 @@ toolchain-info: $(GENERATED)/build
 
 clean:
 	rm -Rf $(GENERATED)
-	$(QUIET)$(MAKE) -C compiler/test -f Makefile clean
+	cd compiler/test && rm -rf test_results *.lst trace.log trace.def
 	$(RM) tags
 
-test: $(GENERATED)/build
+test: all $(GENERATED)/build $(GENERATED)/run
 	$(GENERATED)/build unittest
-	$(GENERATED)/build dmd
-	$(QUIET)$(MAKE) -C compiler/test -f Makefile
+	$(GENERATED)/run --environment HOST_DMD=$(HOST_DMD)
 
 html: $(GENERATED)/build
 	$(GENERATED)/build $@
