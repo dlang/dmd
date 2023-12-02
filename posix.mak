@@ -32,10 +32,12 @@ clean:
 	rm -Rf $(GENERATED)
 	cd compiler/test && rm -rf test_results *.lst trace.log trace.def
 	$(RM) tags
+	$(QUIET)$(MAKE) -C druntime -f posix.mak clean
 
 test: all $(GENERATED)/build $(GENERATED)/run
 	$(GENERATED)/build unittest
 	$(GENERATED)/run --environment HOST_DMD=$(HOST_DMD)
+	$(QUIET)$(MAKE) -C druntime -f posix.mak unittest
 
 html: $(GENERATED)/build
 	$(GENERATED)/build $@
