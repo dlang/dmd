@@ -117,7 +117,7 @@ test_exceptions:
 	"$(MAKE)" -f test\exceptions\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) DRUNTIMELIB=$(DRUNTIME) test
 
 test_hash:
-	"$(DMD)" -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIME) -run test\hash\src\test_hash.d
+	"$(DMD)" -m$(MODEL) -conf= -Iimport -defaultlib=$(DRUNTIME) -run test\hash\src\test_hash.d
 
 test_stdcpp:
 	setmscver.bat
