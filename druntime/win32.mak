@@ -66,7 +66,7 @@ $(TAGGED_SRCS_FILE):
 	rm -rf mak/gen
 	# DM make can't ignore unavail makefiles, create empty if need for use in mak/WINDOWS
 	if not exist $@ (install -D /dev/null $@ && echo UNUSED_VAR=123 > $@)
-	"$(MAKE)" -f mak/WINDOWS gen_tagged_srcs ARCH="x86" TAGGED_COPY_LIST_FILE="$(TAGGED_COPY_LIST_FILE)" TAGGED_SRCS_FILE="$(TAGGED_SRCS_FILE)" TAGGED_COPY_FILE="$(TAGGED_COPY_FILE)"
+	"$(MAKE)" -f mak/WINDOWS gen_tagged_srcs TAGGED_COPY_LIST_FILE="$(TAGGED_COPY_LIST_FILE)" TAGGED_SRCS_FILE="$(TAGGED_SRCS_FILE)" TAGGED_COPY_FILE="$(TAGGED_COPY_FILE)"
 
 gen_tagged_srcs_clean:
 	rm -f $(TAGGED_SRCS_FILE) $(TAGGED_COPY_FILE)

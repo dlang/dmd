@@ -7,8 +7,10 @@ set DMD_DIR=%cd%
 if "%CONFIGURATION%" == "" set CONFIGURATION=RelWithAsserts
 set PLATFORM=Win32
 set MODEL=32mscoff
+set ARCH_TAG=x86
 if "%ARCH%"=="x64" set PLATFORM=x64
 if "%ARCH%"=="x64" set MODEL=64
+if "%ARCH%"=="x64" set ARCH_TAG=x86_64
 set DMD=%DMD_DIR%\generated\Windows\%CONFIGURATION%\%PLATFORM%\dmd.exe
 
 set VISUALD_INSTALLER=VisualD-%VISUALD_VER%.exe
