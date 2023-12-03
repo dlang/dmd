@@ -28,7 +28,8 @@ ATCLIENT_DMD = ../../release-build/dmd-2.079.0/windows/bin/dmd.exe
 	-+if not "$(HOST_DMD)" == "" ("$(HOST_DMD)" --version >nul 2>&1 && echo @"$(HOST_DMD)" %* >$@)
 
 gen_tagged_srcs:
-	+cp_tagged_hier.sh config $(TAGGED_SRCS_FILE).tmp $(TAGGED_COPY_LIST_FILE) $(TAGGED_COPY_FILE) x86_64,windows,default
+	bash cp_tagged_hier.sh config $(TAGGED_SRCS_FILE).tmp $(TAGGED_COPY_LIST_FILE) $(TAGGED_COPY_FILE) x86_64,windows,default
+	dir mak\gen
 	@echo SRCS_TAGGED=\> $(TAGGED_SRCS_FILE)
 	@+sed 's/$$/ \\\\/' $(TAGGED_SRCS_FILE).tmp >> $(TAGGED_SRCS_FILE)
 
