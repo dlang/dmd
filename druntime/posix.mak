@@ -376,8 +376,7 @@ strip_first_dirs:=cut -d '/' -f4-
 IMP_PATH=$(IMPDIR)/$(shell echo $@ | $(strip_first_dirs))
 
 $(IMPDIR)/config/%.d : config/%.d
-	@mkdir -p $(dir $(IMP_PATH))
-	@cp $< $(IMP_PATH)
+	@install -D $< $(IMP_PATH)
 
 $(IMPDIR)/%.di : src/%.di
 	@mkdir -p $(dir $@)
