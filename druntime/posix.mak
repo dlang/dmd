@@ -125,12 +125,8 @@ else
 	ARCH=x86
 endif
 
-ifeq ($(OS), Win_64)
-	# Tags order doesn't matter
-	TAGS:=windows,default,$(ARCH)
-else
-	TAGS:=$(ARCH),posix,$(OS),default
-endif
+# Tags order doesn't matter
+TAGS:=$(ARCH),posix,$(OS),default
 
 TGEN_CMD:=./cp_tagged_hier.sh config $(TAGGED_SRCS_FILE) $(TAGGED_COPY_LIST_FILE) $(TAGGED_COPY_FILE) $(TAGS) > /dev/null
 
