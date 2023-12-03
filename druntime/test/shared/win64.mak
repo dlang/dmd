@@ -17,8 +17,8 @@ loadlibwin:
 	del loadlibwin.exe loadlibwin.obj
 
 dllgc:
-	$(DMD) -g -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIMELIB) -version=DLL -shared -ofdllgc.dll test\shared\src\dllgc.d
-	$(DMD) -g -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIMELIB) -ofloaddllgc.exe test\shared\src\dllgc.d
+	$(DMD) -g -m$(MODEL) -conf= -Iimport -defaultlib=$(DRUNTIMELIB) -version=DLL -shared -ofdllgc.dll test\shared\src\dllgc.d
+	$(DMD) -g -m$(MODEL) -conf= -Iimport -defaultlib=$(DRUNTIMELIB) -ofloaddllgc.exe test\shared\src\dllgc.d
 	loaddllgc.exe
 	del loaddllgc.exe loaddllgc.obj dllgc.dll dllgc.obj
 
