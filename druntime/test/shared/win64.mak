@@ -7,12 +7,12 @@ DRUNTIMELIB=druntime64.lib
 test: loadlibwin dllrefcount dllgc dynamiccast
 
 dllrefcount:
-	$(DMD) -g -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIMELIB) test\shared\src\dllrefcount.d
+	$(DMD) -g -m$(MODEL) -conf= -Iimport -defaultlib=$(DRUNTIMELIB) test\shared\src\dllrefcount.d
 	dllrefcount.exe
 	del dllrefcount.exe dllrefcount.obj
 
 loadlibwin:
-	$(DMD) -g -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIMELIB) test\shared\src\loadlibwin.d
+	$(DMD) -g -m$(MODEL) -conf= -Iimport -defaultlib=$(DRUNTIMELIB) test\shared\src\loadlibwin.d
 	loadlibwin.exe
 	del loadlibwin.exe loadlibwin.obj
 
@@ -23,8 +23,8 @@ dllgc:
 	del loaddllgc.exe loaddllgc.obj dllgc.dll dllgc.obj
 
 dynamiccast:
-	$(DMD) -g -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIMELIB) -version=DLL -shared -ofdynamiccast.dll test\shared\src\dynamiccast.d
-	$(DMD) -g -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIMELIB) -ofdynamiccast.exe test\shared\src\dynamiccast.d
+	$(DMD) -g -m$(MODEL) -conf= -Iimport -defaultlib=$(DRUNTIMELIB) -version=DLL -shared -ofdynamiccast.dll test\shared\src\dynamiccast.d
+	$(DMD) -g -m$(MODEL) -conf= -Iimport -defaultlib=$(DRUNTIMELIB) -ofdynamiccast.exe test\shared\src\dynamiccast.d
 	dynamiccast.exe
 	cmd /c "if not exist dynamiccast_endbar exit 1"
 	cmd /c "if not exist dynamiccast_endmain exit 1"
