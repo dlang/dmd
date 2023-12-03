@@ -3,8 +3,6 @@ $(mak\gen\SRCS_TAGGED)
 
 ######################## Header file copy ##############################
 
-import: copy
-
 copydir: $(IMPDIR)
 
 copy: ..\generated\windows\copyimports.exe
