@@ -59,7 +59,7 @@ OBJS_TO_DELETE= errno_c_32omf.obj
 import: copy
 
 copy: $(TAGGED_SRCS_FILE)
-	"$(MAKE)" -f mak/WINDOWS copy DMD="$(DMD)" HOST_DMD="$(HOST_DMD)" MODEL=32 IMPDIR="$(IMPDIR)"
+	"$(MAKE)" -f mak/WINDOWS copy DMD="$(DMD)" HOST_DMD="$(HOST_DMD)" MODEL=32 IMPDIR="$(IMPDIR)" TAGGED_COPY_FILE="$(TAGGED_COPY_FILE)"
 
 $(TAGGED_SRCS_FILE):
 	# rm is need here because CI process saves files tree over restarts
