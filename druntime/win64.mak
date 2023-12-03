@@ -46,7 +46,7 @@ TAGGED_COPY_FILE=mak\gen\COPY
 
 ##################
 
-target: copydir copy $(DRUNTIME)
+target: copy $(DRUNTIME)
 
 $(mak\COPY)
 $(mak\DOCS)
@@ -61,9 +61,6 @@ OBJS_TO_DELETE= errno_c_$(MODEL).obj
 ######################## Header file copy ##############################
 
 import: copy
-
-copydir: $(TAGGED_SRCS_FILE)
-	"$(MAKE)" -f mak/WINDOWS copydir DMD="$(DMD)" HOST_DMD="$(HOST_DMD)" MODEL=$(MODEL) IMPDIR="$(IMPDIR)"
 
 copy: $(TAGGED_SRCS_FILE)
 	"$(MAKE)" -f mak/WINDOWS copy DMD="$(DMD)" HOST_DMD="$(HOST_DMD)" MODEL=$(MODEL) IMPDIR="$(IMPDIR)"
