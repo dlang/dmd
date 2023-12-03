@@ -41,7 +41,7 @@ DOCFMT=
 
 TAGGED_COPY_LIST_FILE=mak\TAGGED_COPY
 #FIXME: specify temporary dirs
-TAGGED_SRCS_FILE=mak\gen\SRCS_TAGGED
+TAGGED_SRCS_FILE=mak/gen/SRCS_TAGGED
 TAGGED_COPY_FILE=mak\gen\COPY
 
 ##################
