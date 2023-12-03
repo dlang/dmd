@@ -39,3 +39,6 @@ gen_tagged_srcs:
 
 druntime:
 	*"$(DMD)" -lib -of$(DRUNTIME) -Xfdruntime.json $(DFLAGS) $(SRCS) $(SRCS_TAGGED) $(OBJS)
+
+unittest_build:
+	*"$(DMD)" $(UDFLAGS) -version=druntime_unittest $(UTFLAGS) -ofunittest.exe -main $(SRCS) $(SRCS_TAGGED) $(DRUNTIME) -debuglib=$(DRUNTIME) -defaultlib=$(DRUNTIME) user32.lib

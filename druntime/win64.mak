@@ -92,7 +92,7 @@ $(DRUNTIME): $(OBJS) $(SRCS) win64.mak
 
 # due to -conf= on the command line, LINKCMD and LIB need to be set in the environment
 unittest: $(SRCS) $(DRUNTIME)
-	*"$(DMD)" $(UDFLAGS) -version=druntime_unittest $(UTFLAGS) -ofunittest.exe -main $(SRCS) $(DRUNTIME) -debuglib=$(DRUNTIME) -defaultlib=$(DRUNTIME) user32.lib
+	"$(MAKE)" -f mak/WINDOWS unittest_build DRUNTIME="$(DRUNTIME)" UTFLAGS="$(UTFLAGS)" SRCS="$(SRCS)"
 	.\unittest.exe
 
 ################### tests ######################################
