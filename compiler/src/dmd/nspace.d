@@ -85,36 +85,6 @@ extern (C++) final class Nspace : ScopeDsymbol
         return ns;
     }
 
-    override void setScope(Scope* sc)
-    {
-        ScopeDsymbol.setScope(sc);
-        if (members)
-        {
-            assert(sc);
-            sc = sc.push(this);
-            sc.linkage = LINK.cpp; // namespaces default to C++ linkage
-            sc.parent = this;
-            members.foreachDsymbol(s => s.setScope(sc));
-            sc.pop();
-        }
-    }
-
-    override Dsymbol search(const ref Loc loc, Identifier ident, int flags = SearchLocalsOnly)
-    {
-        //printf("%s.Nspace.search('%s')\n", toChars(), ident.toChars());
-        if (_scope && !symtab)
-            dsymbolSemantic(this, _scope);
-
-        if (!members || !symtab) // opaque or semantic() is not yet called
-        {
-            if (!(flags & IgnoreErrors))
-                .error(loc, "%s `%s` is forward referenced when looking for `%s`", kind, toPrettyChars, ident.toChars());
-            return null;
-        }
-
-        return ScopeDsymbol.search(loc, ident, flags);
-    }
-
     override bool hasPointers()
     {
         //printf("Nspace::hasPointers() %s\n", toChars());

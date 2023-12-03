@@ -83,13 +83,6 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         return ed;
     }
 
-    override void setScope(Scope* sc)
-    {
-        if (semanticRun > PASS.initial)
-            return;
-        ScopeDsymbol.setScope(sc);
-    }
-
     override bool oneMember(Dsymbol* ps, Identifier ident)
     {
         if (isAnonymous())
@@ -105,19 +98,6 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
     override const(char)* kind() const
     {
         return "enum";
-    }
-
-    override Dsymbol search(const ref Loc loc, Identifier ident, int flags = SearchLocalsOnly)
-    {
-        //printf("%s.EnumDeclaration::search('%s')\n", toChars(), ident.toChars());
-        if (_scope)
-        {
-            // Try one last time to resolve this enum
-            dsymbolSemantic(this, _scope);
-        }
-
-        Dsymbol s = ScopeDsymbol.search(loc, ident, flags);
-        return s;
     }
 
     // is Dsymbol deprecated?

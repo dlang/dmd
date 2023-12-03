@@ -155,8 +155,6 @@ struct IRState
     }
 }
 
-extern (C++):
-
 /*********************************************
  * Produce elem which increments the usage count for a particular line.
  * Sets corresponding bit in bitmap `m.covb[linnum]`.
@@ -979,6 +977,7 @@ void buildClosure(FuncDeclaration fd, ref IRState irs)
  * Reference:
  *      setClosureVarOffset
  */
+private
 uint setAlignSectionVarOffset(FuncDeclaration fd)
 {
     // Nothing to do

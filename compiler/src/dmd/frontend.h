@@ -479,7 +479,6 @@ public:
     const char* locToChars();
     bool equals(const RootObject* const o) const override;
     bool isAnonymous() const;
-    bool checkDeprecated(const Loc& loc, Scope* sc);
     Module* getModule();
     bool isCsymbol();
     Module* getAccessModule();
@@ -499,9 +498,7 @@ public:
     virtual const char* kind() const;
     virtual Dsymbol* toAlias();
     virtual Dsymbol* toAlias2();
-    virtual void setScope(Scope* sc);
     virtual void importAll(Scope* sc);
-    virtual Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 0);
     virtual bool overloadInsert(Dsymbol* s);
     virtual uinteger_t size(const Loc& loc);
     virtual bool isforwardRef();
@@ -619,14 +616,13 @@ public:
     Array<Dsymbol* >* members;
     DsymbolTable* symtab;
     uint32_t endlinnum;
-private:
     Array<Dsymbol* >* importedScopes;
     Visibility::Kind* visibilities;
+private:
     BitArray accessiblePackages;
     BitArray privateAccessiblePackages;
 public:
     ScopeDsymbol* syntaxCopy(Dsymbol* s) override;
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8) override;
     virtual void importScope(Dsymbol* s, Visibility visibility);
     virtual bool isPackageAccessible(Package* p, Visibility visibility, int32_t flags = 0);
     bool isforwardRef() final override;
@@ -3940,8 +3936,6 @@ class Nspace final : public ScopeDsymbol
 public:
     Expression* identExp;
     Nspace* syntaxCopy(Dsymbol* s) override;
-    void setScope(Scope* sc) override;
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8) override;
     bool hasPointers() override;
     void setFieldOffset(AggregateDeclaration* ad, FieldState& fieldState, bool isunion) override;
     const char* kind() const override;
@@ -5318,7 +5312,6 @@ public:
     bool disableNew;
     Sizeok sizeok;
     virtual Scope* newScope(Scope* sc);
-    void setScope(Scope* sc) final override;
     virtual void finalizeSize() = 0;
     uinteger_t size(const Loc& loc) final override;
     bool fill(const Loc& loc, Array<Expression* >& elements, bool ctorinit);
@@ -5386,7 +5379,6 @@ public:
     Array<Dsymbol* >* decl;
     virtual Array<Dsymbol* >* include(Scope* sc);
     virtual Scope* newScope(Scope* sc);
-    void setScope(Scope* sc) override;
     void importAll(Scope* sc) override;
     void addComment(const char* comment) override;
     const char* kind() const override;
@@ -5418,7 +5410,6 @@ public:
     const char* msgstr;
     DeprecatedDeclaration* syntaxCopy(Dsymbol* s) override;
     Scope* newScope(Scope* sc) override;
-    void setScope(Scope* sc) override;
     void accept(Visitor* v) override;
 };
 
@@ -5439,7 +5430,6 @@ public:
     CPPMANGLE cppmangle;
     CPPMangleDeclaration* syntaxCopy(Dsymbol* s) override;
     Scope* newScope(Scope* sc) override;
-    void setScope(Scope* sc) override;
     const char* toChars() const override;
     void accept(Visitor* v) override;
 };
@@ -5487,7 +5477,6 @@ public:
     uint32_t anonstructsize;
     uint32_t anonalignsize;
     AnonDeclaration* syntaxCopy(Dsymbol* s) override;
-    void setScope(Scope* sc) override;
     void setFieldOffset(AggregateDeclaration* ad, FieldState& fieldState, bool isunion) override;
     const char* kind() const override;
     AnonDeclaration* isAnonDeclaration() override;
@@ -5513,7 +5502,6 @@ public:
     bool oneMember(Dsymbol** ps, Identifier* ident) final override;
     Array<Dsymbol* >* include(Scope* sc) override;
     void addComment(const char* comment) final override;
-    void setScope(Scope* sc) override;
     void accept(Visitor* v) override;
 };
 
@@ -5527,7 +5515,6 @@ private:
 public:
     StaticIfDeclaration* syntaxCopy(Dsymbol* s) override;
     Array<Dsymbol* >* include(Scope* sc) override;
-    void setScope(Scope* sc) override;
     void importAll(Scope* sc) override;
     const char* kind() const override;
     StaticIfDeclaration* isStaticIfDeclaration() override;
@@ -5546,7 +5533,6 @@ public:
     bool oneMember(Dsymbol** ps, Identifier* ident) override;
     Array<Dsymbol* >* include(Scope* sc) override;
     void addComment(const char* comment) override;
-    void setScope(Scope* sc) override;
     void importAll(Scope* sc) override;
     const char* kind() const override;
     void accept(Visitor* v) override;
@@ -5569,7 +5555,6 @@ public:
     ScopeDsymbol* scopesym;
     bool compiled;
     MixinDeclaration* syntaxCopy(Dsymbol* s) override;
-    void setScope(Scope* sc) override;
     const char* kind() const override;
     MixinDeclaration* isMixinDeclaration() override;
     void accept(Visitor* v) override;
@@ -5581,7 +5566,6 @@ public:
     Array<Expression* >* atts;
     UserAttributeDeclaration* syntaxCopy(Dsymbol* s) override;
     Scope* newScope(Scope* sc) override;
-    void setScope(Scope* sc) override;
     Array<Expression* >* getAttributes();
     const char* kind() const override;
     void accept(Visitor* v) override;
@@ -5730,9 +5714,7 @@ public:
     bool com;
     bool stack;
     int32_t cppDtorVtblIndex;
-private:
     bool inuse;
-public:
     ThreeState isabstract;
     Baseok baseok;
     ObjcClassDeclaration objc;
@@ -5747,7 +5729,6 @@ public:
 
     virtual bool isBaseOf(ClassDeclaration* cd, int32_t* poffset);
     bool isBaseInfoComplete() const;
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8) final override;
     void finalizeSize() final override;
     bool hasMonitor();
     bool isFuncHidden(FuncDeclaration* fd);
@@ -5803,7 +5784,6 @@ public:
     _d_dynamicArray< const char > mangleOverride;
     const char* kind() const override;
     uinteger_t size(const Loc& loc) final override;
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8) final override;
     bool isStatic() const;
     LINK resolvedLinkage() const;
     virtual bool isDelete();
@@ -6132,11 +6112,9 @@ private:
     uint8_t bitFields;
 public:
     EnumDeclaration* syntaxCopy(Dsymbol* s) override;
-    void setScope(Scope* sc) override;
     bool oneMember(Dsymbol** ps, Identifier* ident) override;
     Type* getType() override;
     const char* kind() const override;
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8) override;
     bool isDeprecated() const override;
     Visibility visible() override;
     bool isSpecial() const;
@@ -6178,8 +6156,6 @@ public:
     Import* syntaxCopy(Dsymbol* s) override;
     void importAll(Scope* sc) override;
     Dsymbol* toAlias() override;
-    void setScope(Scope* sc) override;
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8) override;
     bool overloadInsert(Dsymbol* s) override;
     Import* isImport() override;
     void accept(Visitor* v) override;
@@ -6209,7 +6185,6 @@ public:
     bool equals(const RootObject* const o) const override;
     Package* isPackage() final override;
     bool isAncestorPackageOf(const Package* const pkg) const;
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8) override;
     void accept(Visitor* v) override;
     Module* isPackageMod();
     void resolvePKGunknown();
@@ -6252,12 +6227,10 @@ private:
 public:
     bool selfImports();
     bool rootImports();
-private:
     Identifier* searchCacheIdent;
     Dsymbol* searchCacheSymbol;
     int32_t searchCacheFlags;
     bool insearch;
-public:
     Module* importedFrom;
     Array<Dsymbol* >* decldefs;
     Array<Module* > aimports;
@@ -6280,7 +6253,6 @@ public:
     void importAll(Scope* prevsc) override;
     int32_t needModuleInfo();
     void checkImportDeprecation(const Loc& loc, Scope* sc);
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8) override;
     bool isPackageAccessible(Package* p, Visibility visibility, int32_t flags = 0) override;
     Dsymbol* symtabInsert(Dsymbol* s) override;
     static void runDeferredSemantic();
@@ -6325,6 +6297,8 @@ struct ModuleDeclaration final
 
 extern void getLocalClasses(Module* mod, Array<ClassDeclaration* >& aclasses);
 
+extern FuncDeclaration* findGetMembers(ScopeDsymbol* dsym);
+
 extern void gendocfile(Module* m, const char* const ddoctext_ptr, size_t ddoctext_length, const char* const datetime, ErrorSink* eSink, OutBuffer& outbuf);
 
 struct Scope final
@@ -6368,6 +6342,7 @@ struct Scope final
     void* anchorCounts;
     Identifier* prevAnchor;
     AliasDeclaration* aliasAsg;
+    Dsymbol* search(const Loc& loc, Identifier* ident, Dsymbol** pscopesym, int32_t flags = 0);
     Scope() :
         enclosing(),
         _module(),
@@ -6496,7 +6471,6 @@ private:
 public:
     static StructDeclaration* create(const Loc& loc, Identifier* id, bool inObject);
     StructDeclaration* syntaxCopy(Dsymbol* s) override;
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8) final override;
     const char* kind() const override;
     void finalizeSize() final override;
     bool isPOD();
@@ -6521,16 +6495,14 @@ class WithScopeSymbol final : public ScopeDsymbol
 {
 public:
     WithStatement* withstate;
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8) override;
     WithScopeSymbol* isWithScopeSymbol() override;
     void accept(Visitor* v) override;
 };
 
 class ArrayScopeSymbol final : public ScopeDsymbol
 {
-    RootObject* arrayContent;
 public:
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 0) override;
+    RootObject* arrayContent;
     ArrayScopeSymbol* isArrayScopeSymbol() override;
     void accept(Visitor* v) override;
 };
@@ -6590,6 +6562,10 @@ public:
 extern void dsymbolSemantic(Dsymbol* dsym, Scope* sc);
 
 extern void addMember(Dsymbol* dsym, Scope* sc, ScopeDsymbol* sds);
+
+extern Dsymbol* search(Dsymbol* d, const Loc& loc, Identifier* ident, int32_t flags = 0);
+
+extern void setScope(Dsymbol* d, Scope* sc);
 
 extern Expression* isExpression(RootObject* o);
 
@@ -7768,6 +7744,7 @@ public:
 class CatAssignExp : public BinAssignExp
 {
 public:
+    Expression* lowering;
     void accept(Visitor* v) override;
 };
 
@@ -8227,8 +8204,6 @@ extern bool isSpeculativeType(Type* t);
 
 extern bool builtinTypeInfo(Type* t);
 
-extern FuncDeclaration* findGetMembers(ScopeDsymbol* dsym);
-
 class SemanticTimeTransitiveVisitor : public SemanticTimePermissiveVisitor
 {
 public:
@@ -8675,7 +8650,6 @@ struct Id final
     static Identifier* _d_arraysetlengthTTrace;
     static Identifier* _d_arrayappendT;
     static Identifier* _d_arrayappendTTrace;
-    static Identifier* _d_arrayappendcTXImpl;
     static Identifier* _d_arrayappendcTX;
     static Identifier* _d_arrayappendcTXTrace;
     static Identifier* _d_arraycatnTX;

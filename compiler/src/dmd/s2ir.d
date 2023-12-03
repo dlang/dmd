@@ -67,8 +67,6 @@ import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-extern (C++):
-
 alias StmtState = dmd.stmtstate.StmtState!block;
 
 

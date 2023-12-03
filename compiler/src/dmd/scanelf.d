@@ -18,6 +18,8 @@ import core.checkedint;
 import dmd.errorsink;
 import dmd.location;
 
+nothrow:
+
 enum LOG = false;
 
 /*****************************************
@@ -30,8 +32,8 @@ enum LOG = false;
  *      loc =         location to use for error printing
  *      eSink =       where the error messages go
  */
-void scanElfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
-        const(ubyte)[] base, const(char)* module_name, Loc loc, ErrorSink eSink)
+void scanElfObjModule(void delegate(const(char)[] name, int pickAny) nothrow pAddSymbol,
+        scope const ubyte[] base, const char* module_name, Loc loc, ErrorSink eSink)
 {
     static if (LOG)
     {
@@ -63,7 +65,7 @@ void scanElfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
         return eSink.error(loc, "ELF object module `%s` is unrecognized class %d", module_name, base[EI_CLASS]);
     }
 
-    void scanELF(uint model)()
+    void scanELF(uint model)() nothrow
     {
         static if (model == 32)
         {

@@ -1694,7 +1694,7 @@ void doswitch(ref CodeBuilder cdb, block *b)
 
         // Put into casevals[0..ncases] so we can sort then slice
 
-        import dmd.common.string : SmallBuffer;
+        import dmd.common.smallbuffer : SmallBuffer;
         CaseVal[10] tmp = void;
         auto sb = SmallBuffer!(CaseVal)(ncases, tmp[]);
         CaseVal[] casevals = sb[];

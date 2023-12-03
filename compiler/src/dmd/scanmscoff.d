@@ -19,6 +19,8 @@ import dmd.root.string;
 import dmd.errorsink;
 import dmd.location;
 
+nothrow:
+
 private enum LOG = false;
 
 /*****************************************
@@ -31,7 +33,7 @@ private enum LOG = false;
  *      loc =         location to use for error printing
  *      eSink =       where the error messages go
  */
-void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
+void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) nothrow pAddSymbol,
         scope const ubyte[] base, const char* module_name, Loc loc, ErrorSink eSink)
 {
     static if (LOG)

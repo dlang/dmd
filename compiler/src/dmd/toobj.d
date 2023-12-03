@@ -18,6 +18,7 @@ import core.stdc.time;
 
 import dmd.root.array;
 import dmd.common.outbuffer;
+import dmd.common.smallbuffer : SmallBuffer;
 import dmd.root.rmem;
 import dmd.rootobject;
 
@@ -36,6 +37,7 @@ import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.errors;
+import dmd.errorsink;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
@@ -47,7 +49,6 @@ import dmd.location;
 import dmd.mtype;
 import dmd.nspace;
 import dmd.objc_glue;
-import dmd.opover;
 import dmd.statement;
 import dmd.staticassert;
 import dmd.target;
@@ -73,8 +74,6 @@ import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
-
-extern (C++):
 
 /* ================================================================== */
 
@@ -248,18 +247,18 @@ void write_instance_pointers(Type type, Symbol *s, uint offset)
         return;
 
     Array!(ulong) data;
-    ulong sz = getTypePointerBitmap(Loc.initial, type, &data);
+    const ulong sz = getTypePointerBitmap(Loc.initial, type, data, global.errorSink);
     if (sz == ulong.max)
         return;
 
     const bytes_size_t = cast(size_t)Type.tsize_t.size(Loc.initial);
     const bits_size_t = bytes_size_t * 8;
     auto words = cast(size_t)(sz / bytes_size_t);
-    for (size_t i = 0; i < data.length; i++)
+    foreach (i, const element; data[])
     {
         size_t bits = words < bits_size_t ? words : bits_size_t;
-        for (size_t b = 0; b < bits; b++)
-            if (data[i] & (1L << b))
+        foreach (size_t b; 0 .. bits)
+            if (element & (1L << b))
             {
                 auto off = cast(uint) ((i * bits_size_t + b) * bytes_size_t);
                 objmod.write_pointerRef(s, off + offset);
@@ -701,7 +700,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             if (global.params.useTypeInfo && Type.dtypeinfo)
                 TypeInfo_toObjFile(null, ed.loc, ed.type);
 
-            TypeEnum tc = cast(TypeEnum)ed.type;
+            TypeEnum tc = ed.type.isTypeEnum();
             if (!tc.sym.members || ed.type.isZeroInit(Loc.initial))
             {
             }
@@ -784,7 +783,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
                 assert(e.op == EXP.string_);
 
-                StringExp se = cast(StringExp)e;
+                StringExp se = e.isStringExp();
                 char *name = cast(char *)mem.xmalloc(se.numberOfCodeUnits() + 1);
                 se.writeTo(name, true);
 
@@ -819,11 +818,15 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
                 assert(e.op == EXP.string_);
 
-                StringExp se = cast(StringExp)e;
-                char *directive = cast(char *)mem.xmalloc(se.numberOfCodeUnits() + 1);
-                se.writeTo(directive, true);
+                StringExp se = e.isStringExp();
+                size_t length = se.numberOfCodeUnits() + 1;
+                debug enum LEN = 2; else enum LEN = 20;
+                char[LEN] buffer = void;
+                SmallBuffer!char directive = SmallBuffer!char(length, buffer);
 
-                obj_linkerdirective(directive);
+                se.writeTo(directive.ptr, true);
+
+                obj_linkerdirective(directive.ptr);
             }
 
             visit(cast(AttribDeclaration)pd);
@@ -897,17 +900,21 @@ void toObjFile(Dsymbol ds, bool multiobj)
             ExpInitializer ie = vd._init.isExpInitializer();
 
             Type tb = vd.type.toBasetype();
-            if (tb.ty == Tsarray && ie &&
-                !tb.nextOf().equals(ie.exp.type.toBasetype().nextOf()) &&
-                ie.exp.implicitConvTo(tb.nextOf())
-                )
+            if (auto tbsa = tb.isTypeSArray())
             {
-                auto dim = (cast(TypeSArray)tb).dim.toInteger();
-
-                // Duplicate Sdt 'dim-1' times, as we already have the first one
-                while (--dim > 0)
+                auto tbsaNext = tbsa.nextOf();
+                if (ie &&
+                    !tbsaNext.equals(ie.exp.type.toBasetype().nextOf()) &&
+                    ie.exp.implicitConvTo(tbsaNext)
+                    )
                 {
-                    Expression_toDt(ie.exp, dtb);
+                    auto dim = tbsa.dim.toInteger();
+
+                    // Duplicate Sdt 'dim-1' times, as we already have the first one
+                    while (--dim > 0)
+                    {
+                        Expression_toDt(ie.exp, dtb);
+                    }
                 }
             }
         }

@@ -31,11 +31,9 @@ import dmd.dmodule;
 import dmd.dversion;
 import dmd.dscope;
 import dmd.dstruct;
-import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
-import dmd.expressionsem;
 import dmd.func;
 import dmd.globals;
 import dmd.id;
@@ -48,7 +46,6 @@ import dmd.nspace;
 import dmd.root.aav;
 import dmd.root.rmem;
 import dmd.rootobject;
-import dmd.root.speller;
 import dmd.root.string;
 import dmd.statement;
 import dmd.staticassert;
@@ -386,40 +383,6 @@ extern (C++) class Dsymbol : ASTNode
         return '`' ~ cstr.toDString() ~ "`\0";
     }
 
-    final bool checkDeprecated(const ref Loc loc, Scope* sc)
-    {
-        if (global.params.useDeprecated == DiagnosticReporting.off)
-            return false;
-        if (!this.isDeprecated())
-            return false;
-        // Don't complain if we're inside a deprecated symbol's scope
-        if (sc.isDeprecated())
-            return false;
-        // Don't complain if we're inside a template constraint
-        // https://issues.dlang.org/show_bug.cgi?id=21831
-        if (sc.flags & SCOPE.constraint)
-            return false;
-
-        const(char)* message = null;
-        for (Dsymbol p = this; p; p = p.parent)
-        {
-            message = p.depdecl ? p.depdecl.getMessage() : null;
-            if (message)
-                break;
-        }
-        if (message)
-            deprecation(loc, "%s `%s` is deprecated - %s", kind, toPrettyChars, message);
-        else
-            deprecation(loc, "%s `%s` is deprecated", kind, toPrettyChars);
-
-        if (auto ti = sc.parent ? sc.parent.isInstantiated() : null)
-            ti.printInstantiationTrace(Classification.deprecation);
-        else if (auto ti = sc.parent ? sc.parent.isTemplateInstance() : null)
-            ti.printInstantiationTrace(Classification.deprecation);
-
-        return true;
-    }
-
     /**********************************
      * Determine which Module a Dsymbol is in.
      */
@@ -749,68 +712,8 @@ extern (C++) class Dsymbol : ASTNode
         return toAlias();
     }
 
-    /*************************************
-     * Set scope for future semantic analysis so we can
-     * deal better with forward references.
-     */
-    void setScope(Scope* sc)
-    {
-        //printf("Dsymbol::setScope() %p %s, %p stc = %llx\n", this, toChars(), sc, sc.stc);
-        if (!sc.nofree)
-            sc.setNoFree(); // may need it even after semantic() finishes
-        _scope = sc;
-        if (sc.depdecl)
-            depdecl = sc.depdecl;
-        if (!userAttribDecl)
-            userAttribDecl = sc.userAttribDecl;
-    }
-
     void importAll(Scope* sc)
     {
-    }
-
-    /*********************************************
-     * Search for ident as member of s.
-     * Params:
-     *  loc = location to print for error messages
-     *  ident = identifier to search for
-     *  flags = IgnoreXXXX
-     * Returns:
-     *  null if not found
-     */
-    Dsymbol search(const ref Loc loc, Identifier ident, int flags = IgnoreNone)
-    {
-        //printf("Dsymbol::search(this=%p,%s, ident='%s')\n", this, toChars(), ident.toChars());
-        return null;
-    }
-
-    extern (D) final Dsymbol search_correct(Identifier ident)
-    {
-        /***************************************************
-         * Search for symbol with correct spelling.
-         */
-        extern (D) Dsymbol symbol_search_fp(const(char)[] seed, out int cost)
-        {
-            /* If not in the lexer's string table, it certainly isn't in the symbol table.
-             * Doing this first is a lot faster.
-             */
-            if (!seed.length)
-                return null;
-            Identifier id = Identifier.lookup(seed);
-            if (!id)
-                return null;
-            cost = 0;   // all the same cost
-            Dsymbol s = this;
-            Module.clearCache();
-            return s.search(Loc.initial, id, IgnoreErrors);
-        }
-
-        if (global.gag)
-            return null; // don't do it for speculative compiles; too time consuming
-        // search for exact name first
-        if (auto s = search(Loc.initial, ident, IgnoreErrors))
-            return s;
-        return speller!symbol_search_fp(ident.toString());
     }
 
     bool overloadInsert(Dsymbol s)
@@ -1219,11 +1122,11 @@ extern (C++) class ScopeDsymbol : Dsymbol
     Dsymbols* members;          // all Dsymbol's in this scope
     DsymbolTable symtab;        // members[] sorted into table
     uint endlinnum;             // the linnumber of the statement after the scope (0 if unknown)
-
-private:
     /// symbols whose members have been imported, i.e. imported modules and template mixins
     Dsymbols* importedScopes;
     Visibility.Kind* visibilities; // array of Visibility.Kind, one for each import
+
+private:
 
     import dmd.root.bitarray;
     BitArray accessiblePackages, privateAccessiblePackages;// whitelists of accessible (imported) packages
@@ -1253,166 +1156,7 @@ public:
         return sds;
     }
 
-    /*****************************************
-     * This function is #1 on the list of functions that eat cpu time.
-     * Be very, very careful about slowing it down.
-     */
-    override Dsymbol search(const ref Loc loc, Identifier ident, int flags = SearchLocalsOnly)
-    {
-        //printf("%s.ScopeDsymbol::search(ident='%s', flags=x%x)\n", toChars(), ident.toChars(), flags);
-        //if (strcmp(ident.toChars(),"c") == 0) *(char*)0=0;
-
-        // Look in symbols declared in this module
-        if (symtab && !(flags & SearchImportsOnly))
-        {
-            //printf(" look in locals\n");
-            auto s1 = symtab.lookup(ident);
-            if (s1)
-            {
-                //printf("\tfound in locals = '%s.%s'\n",toChars(),s1.toChars());
-                return s1;
-            }
-        }
-        //printf(" not found in locals\n");
-
-        // Look in imported scopes
-        if (!importedScopes)
-            return null;
-
-        //printf(" look in imports\n");
-        Dsymbol s = null;
-        OverloadSet a = null;
-        // Look in imported modules
-        for (size_t i = 0; i < importedScopes.length; i++)
-        {
-            // If private import, don't search it
-            if ((flags & IgnorePrivateImports) && visibilities[i] == Visibility.Kind.private_)
-                continue;
-            int sflags = flags & (IgnoreErrors | IgnoreAmbiguous); // remember these in recursive searches
-            Dsymbol ss = (*importedScopes)[i];
-            //printf("\tscanning import '%s', visibilities = %d, isModule = %p, isImport = %p\n", ss.toChars(), visibilities[i], ss.isModule(), ss.isImport());
-
-            if (ss.isModule())
-            {
-                if (flags & SearchLocalsOnly)
-                    continue;
-            }
-            else // mixin template
-            {
-                if (flags & SearchImportsOnly)
-                    continue;
-
-                sflags |= SearchLocalsOnly;
-            }
-
-            /* Don't find private members if ss is a module
-             */
-            Dsymbol s2 = ss.search(loc, ident, sflags | (ss.isModule() ? IgnorePrivateImports : IgnoreNone));
-            import dmd.access : symbolIsVisible;
-            if (!s2 || !(flags & IgnoreSymbolVisibility) && !symbolIsVisible(this, s2))
-                continue;
-            if (!s)
-            {
-                s = s2;
-                if (s && s.isOverloadSet())
-                    a = mergeOverloadSet(ident, a, s);
-            }
-            else if (s2 && s != s2)
-            {
-                if (s.toAlias() == s2.toAlias() || s.getType() == s2.getType() && s.getType())
-                {
-                    /* After following aliases, we found the same
-                     * symbol, so it's not an ambiguity.  But if one
-                     * alias is deprecated or less accessible, prefer
-                     * the other.
-                     */
-                    if (s.isDeprecated() || s.visible() < s2.visible() && s2.visible().kind != Visibility.Kind.none)
-                        s = s2;
-                }
-                else
-                {
-                    /* Two imports of the same module should be regarded as
-                     * the same.
-                     */
-                    Import i1 = s.isImport();
-                    Import i2 = s2.isImport();
-                    if (!(i1 && i2 && (i1.mod == i2.mod || (!i1.parent.isImport() && !i2.parent.isImport() && i1.ident.equals(i2.ident)))))
-                    {
-                        /* https://issues.dlang.org/show_bug.cgi?id=8668
-                         * Public selective import adds AliasDeclaration in module.
-                         * To make an overload set, resolve aliases in here and
-                         * get actual overload roots which accessible via s and s2.
-                         */
-                        s = s.toAlias();
-                        s2 = s2.toAlias();
-                        /* If both s2 and s are overloadable (though we only
-                         * need to check s once)
-                         */
-
-                        auto so2 = s2.isOverloadSet();
-                        if ((so2 || s2.isOverloadable()) && (a || s.isOverloadable()))
-                        {
-                            if (symbolIsVisible(this, s2))
-                            {
-                                a = mergeOverloadSet(ident, a, s2);
-                            }
-                            if (!symbolIsVisible(this, s))
-                                s = s2;
-                            continue;
-                        }
-
-                        /* Two different overflow sets can have the same members
-                         * https://issues.dlang.org/show_bug.cgi?id=16709
-                         */
-                        auto so = s.isOverloadSet();
-                        if (so && so2)
-                        {
-                            if (so.a.length == so2.a.length)
-                            {
-                                foreach (j; 0 .. so.a.length)
-                                {
-                                    if (so.a[j] !is so2.a[j])
-                                        goto L1;
-                                }
-                                continue;  // the same
-                              L1:
-                                {   } // different
-                            }
-                        }
-
-                        if (flags & IgnoreAmbiguous) // if return NULL on ambiguity
-                            return null;
-
-                        /* If two imports from C import files, pick first one, as C has global name space
-                         */
-                        if (s.isCsymbol() && s2.isCsymbol())
-                            continue;
-
-                        if (!(flags & IgnoreErrors))
-                            ScopeDsymbol.multiplyDefined(loc, s, s2);
-                        break;
-                    }
-                }
-            }
-        }
-        if (s)
-        {
-            /* Build special symbol if we had multiple finds
-             */
-            if (a)
-            {
-                if (!s.isOverloadSet())
-                    a = mergeOverloadSet(ident, a, s);
-                s = a;
-            }
-            //printf("\tfound in imports %s.%s\n", toChars(), s.toChars());
-            return s;
-        }
-        //printf(" not found in imports\n");
-        return null;
-    }
-
-    extern (D) private OverloadSet mergeOverloadSet(Identifier ident, OverloadSet os, Dsymbol s)
+    extern (D) final OverloadSet mergeOverloadSet(Identifier ident, OverloadSet os, Dsymbol s)
     {
         if (!os)
         {
@@ -1692,40 +1436,6 @@ extern (C++) final class WithScopeSymbol : ScopeDsymbol
         this.withstate = withstate;
     }
 
-    override Dsymbol search(const ref Loc loc, Identifier ident, int flags = SearchLocalsOnly)
-    {
-        //printf("WithScopeSymbol.search(%s)\n", ident.toChars());
-        if (flags & SearchImportsOnly)
-            return null;
-        // Acts as proxy to the with class declaration
-        Dsymbol s = null;
-        Expression eold = null;
-        for (Expression e = withstate.exp; e && e != eold; e = resolveAliasThis(_scope, e, true))
-        {
-            if (auto se = e.isScopeExp())
-            {
-                s = se.sds;
-            }
-            else if (e.isTypeExp())
-            {
-                s = e.type.toDsymbol(null);
-            }
-            else
-            {
-                Type t = e.type.toBasetype();
-                s = t.toDsymbol(null);
-            }
-            if (s)
-            {
-                s = s.search(loc, ident, flags);
-                if (s)
-                    return s;
-            }
-            eold = e;
-        }
-        return null;
-    }
-
     override inout(WithScopeSymbol) isWithScopeSymbol() inout
     {
         return this;
@@ -1744,7 +1454,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
 {
     // either a SliceExp, an IndexExp, an ArrayExp, a TypeTuple or a TupleDeclaration.
     // Discriminated using DYNCAST and, for expressions, also EXP
-    private RootObject arrayContent;
+    RootObject arrayContent;
 
     extern (D) this(Scope* sc, Expression exp) nothrow @safe
     {
@@ -1764,194 +1474,6 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
     {
         this._scope = sc;
         this.arrayContent = td;
-    }
-
-    /// This override is used to solve `$`
-    override Dsymbol search(const ref Loc loc, Identifier ident, int flags = IgnoreNone)
-    {
-        //printf("ArrayScopeSymbol::search('%s', flags = %d)\n", ident.toChars(), flags);
-        if (ident != Id.dollar)
-            return null;
-
-        VarDeclaration* pvar;
-        Expression ce;
-
-        static Dsymbol dollarFromTypeTuple(const ref Loc loc, TypeTuple tt, Scope* sc)
-        {
-
-            /* $ gives the number of type entries in the type tuple
-             */
-            auto v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, null);
-            Expression e = new IntegerExp(Loc.initial, tt.arguments.length, Type.tsize_t);
-            v._init = new ExpInitializer(Loc.initial, e);
-            v.storage_class |= STC.temp | STC.static_ | STC.const_;
-            v.dsymbolSemantic(sc);
-            return v;
-        }
-
-        const DYNCAST kind = arrayContent.dyncast();
-        switch (kind) with (DYNCAST)
-        {
-        case dsymbol:
-            TupleDeclaration td = cast(TupleDeclaration) arrayContent;
-            /* $ gives the number of elements in the tuple
-             */
-            auto v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, null);
-            Expression e = new IntegerExp(Loc.initial, td.objects.length, Type.tsize_t);
-            v._init = new ExpInitializer(Loc.initial, e);
-            v.storage_class |= STC.temp | STC.static_ | STC.const_;
-            v.dsymbolSemantic(_scope);
-            return v;
-        case type:
-            return dollarFromTypeTuple(loc, cast(TypeTuple) arrayContent, _scope);
-        default:
-            break;
-        }
-        Expression exp = cast(Expression) arrayContent;
-        if (auto ie = exp.isIndexExp())
-        {
-            /* array[index] where index is some function of $
-             */
-            pvar = &ie.lengthVar;
-            ce = ie.e1;
-        }
-        else if (auto se = exp.isSliceExp())
-        {
-            /* array[lwr .. upr] where lwr or upr is some function of $
-             */
-            pvar = &se.lengthVar;
-            ce = se.e1;
-        }
-        else if (auto ae = exp.isArrayExp())
-        {
-            /* array[e0, e1, e2, e3] where e0, e1, e2 are some function of $
-             * $ is a opDollar!(dim)() where dim is the dimension(0,1,2,...)
-             */
-            pvar = &ae.lengthVar;
-            ce = ae.e1;
-        }
-        else
-        {
-            /* Didn't find $, look in enclosing scope(s).
-             */
-            return null;
-        }
-        ce = ce.lastComma();
-        /* If we are indexing into an array that is really a type
-         * tuple, rewrite this as an index into a type tuple and
-         * try again.
-         */
-        if (auto te = ce.isTypeExp())
-        {
-            if (auto ttp = te.type.isTypeTuple())
-                return dollarFromTypeTuple(loc, ttp, _scope);
-        }
-        /* *pvar is lazily initialized, so if we refer to $
-         * multiple times, it gets set only once.
-         */
-        if (!*pvar) // if not already initialized
-        {
-            /* Create variable v and set it to the value of $
-             */
-            VarDeclaration v;
-            Type t;
-            if (auto tupexp = ce.isTupleExp())
-            {
-                /* It is for an expression tuple, so the
-                 * length will be a const.
-                 */
-                Expression e = new IntegerExp(Loc.initial, tupexp.exps.length, Type.tsize_t);
-                v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, new ExpInitializer(Loc.initial, e));
-                v.storage_class |= STC.temp | STC.static_ | STC.const_;
-            }
-            else if (ce.type && (t = ce.type.toBasetype()) !is null && (t.ty == Tstruct || t.ty == Tclass))
-            {
-                // Look for opDollar
-                assert(exp.op == EXP.array || exp.op == EXP.slice);
-                AggregateDeclaration ad = isAggregate(t);
-                assert(ad);
-                Dsymbol s = ad.search(loc, Id.opDollar);
-                if (!s) // no dollar exists -- search in higher scope
-                    return null;
-                s = s.toAlias();
-                Expression e = null;
-                // Check for multi-dimensional opDollar(dim) template.
-                if (TemplateDeclaration td = s.isTemplateDeclaration())
-                {
-                    dinteger_t dim = 0;
-                    if (auto ae = exp.isArrayExp())
-                    {
-                        dim = ae.currentDimension;
-                    }
-                    else if (exp.isSliceExp())
-                    {
-                        dim = 0; // slices are currently always one-dimensional
-                    }
-                    else
-                    {
-                        assert(0);
-                    }
-                    auto tiargs = new Objects();
-                    Expression edim = new IntegerExp(Loc.initial, dim, Type.tsize_t);
-                    edim = edim.expressionSemantic(_scope);
-                    tiargs.push(edim);
-                    e = new DotTemplateInstanceExp(loc, ce, td.ident, tiargs);
-                }
-                else
-                {
-                    /* opDollar exists, but it's not a template.
-                     * This is acceptable ONLY for single-dimension indexing.
-                     * Note that it's impossible to have both template & function opDollar,
-                     * because both take no arguments.
-                     */
-                    auto ae = exp.isArrayExp();
-                    if (ae && ae.arguments.length != 1)
-                    {
-                        error(exp.loc, "`%s` only defines opDollar for one dimension", ad.toChars());
-                        return null;
-                    }
-                    Declaration d = s.isDeclaration();
-                    assert(d);
-                    e = new DotVarExp(loc, ce, d);
-                }
-                e = e.expressionSemantic(_scope);
-                if (!e.type)
-                    error(exp.loc, "`%s` has no value", e.toChars());
-                t = e.type.toBasetype();
-                if (t && t.ty == Tfunction)
-                    e = new CallExp(e.loc, e);
-                v = new VarDeclaration(loc, null, Id.dollar, new ExpInitializer(Loc.initial, e));
-                v.storage_class |= STC.temp | STC.ctfe | STC.rvalue;
-            }
-            else
-            {
-                /* For arrays, $ will either be a compile-time constant
-                 * (in which case its value in set during constant-folding),
-                 * or a variable (in which case an expression is created in
-                 * toir.c).
-                 */
-
-                // https://issues.dlang.org/show_bug.cgi?id=16213
-                // For static arrays $ is known at compile time,
-                // so declare it as a manifest constant.
-                auto tsa = ce.type ? ce.type.isTypeSArray() : null;
-                if (tsa)
-                {
-                    auto e = new ExpInitializer(loc, tsa.dim);
-                    v = new VarDeclaration(loc, tsa.dim.type, Id.dollar, e, STC.manifest);
-                }
-                else
-                {
-                    auto e = new VoidInitializer(Loc.initial);
-                    e.type = Type.tsize_t;
-                    v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, e);
-                    v.storage_class |= STC.temp | STC.ctfe; // it's never a true static variable
-                }
-            }
-            *pvar = v;
-        }
-        (*pvar).dsymbolSemantic(_scope);
-        return (*pvar);
     }
 
     override inout(ArrayScopeSymbol) isArrayScopeSymbol() inout

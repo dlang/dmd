@@ -21,6 +21,8 @@ import dmd.location;
 import dmd.root.rmem;
 import dmd.root.string;
 
+nothrow:
+
 private enum LOG = false;
 
 /*****************************************
@@ -33,7 +35,7 @@ private enum LOG = false;
  *      loc =         location to use for error printing
  *      eSink =       where the error messages go
  */
-void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
+void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) nothrow pAddSymbol,
         scope const ubyte[] base, scope const char* module_name, Loc loc, ErrorSink eSink)
 {
     static if (LOG)
@@ -182,7 +184,7 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
  * Returns:
  *      true for corrupt OMF data
  */
-bool scanOmfLib(void delegate(char* name, void* base, size_t length) pAddObjModule, scope void* buf, size_t buflen, uint pagesize)
+bool scanOmfLib(void delegate(char* name, void* base, size_t length) nothrow pAddObjModule, scope void* buf, size_t buflen, uint pagesize)
 {
     /* Split up the buffer buf[0..buflen] into multiple object modules,
      * each aligned on a pagesize boundary.

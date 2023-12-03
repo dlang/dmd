@@ -36,6 +36,7 @@ extern (C++) Library LibOMF_factory()
 }
 
 private: // for the remainder of this module
+nothrow:
 
 enum LOG = false;
 
@@ -170,7 +171,7 @@ final class LibOMF : Library
 
     /*****************************************************************************/
 
-    void addSymbol(OmfObjModule* om, const(char)[] name, int pickAny = 0)
+    void addSymbol(OmfObjModule* om, const(char)[] name, int pickAny = 0) nothrow
     {
         assert(name.length == strlen(name.ptr));
         static if (LOG)
@@ -215,7 +216,7 @@ private:
             printf("LibMSCoff::scanObjModule(%s)\n", om.name.ptr);
         }
 
-        extern (D) void addSymbol(const(char)[] name, int pickAny)
+        extern (D) void addSymbol(const(char)[] name, int pickAny) nothrow
         {
             this.addSymbol(om, name, pickAny);
         }

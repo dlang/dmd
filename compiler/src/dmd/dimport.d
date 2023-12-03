@@ -305,35 +305,6 @@ extern (C++) final class Import : Dsymbol
         return this;
     }
 
-    override void setScope(Scope* sc)
-    {
-        Dsymbol.setScope(sc);
-        if (aliasdecls.length)
-        {
-            if (!mod)
-                importAll(sc);
-
-            sc = sc.push(mod);
-            sc.visibility = visibility;
-            foreach (ad; aliasdecls)
-                ad.setScope(sc);
-            sc = sc.pop();
-        }
-    }
-
-    override Dsymbol search(const ref Loc loc, Identifier ident, int flags = SearchLocalsOnly)
-    {
-        //printf("%s.Import.search(ident = '%s', flags = x%x)\n", toChars(), ident.toChars(), flags);
-        if (!pkg)
-        {
-            load(null);
-            mod.importAll(null);
-            mod.dsymbolSemantic(null);
-        }
-        // Forward it to the package/module
-        return pkg.search(loc, ident, flags);
-    }
-
     override bool overloadInsert(Dsymbol s)
     {
         /* Allow multiple imports with the same package base, but disallow
