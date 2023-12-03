@@ -41,7 +41,7 @@ DOCFMT=
 
 TAGGED_COPY_LIST_FILE=mak\TAGGED_COPY
 #FIXME: specify temporary dirs
-TAGGED_SRCS_FILE=mak\gen\SRCS
+TAGGED_SRCS_FILE=mak\gen\SRCS_TAGGED
 TAGGED_COPY_FILE=mak\gen\COPY
 
 ##################
@@ -62,7 +62,7 @@ OBJS_TO_DELETE= errno_c_$(MODEL).obj
 
 import: copy
 
-copydir:
+copydir: $(TAGGED_SRCS_FILE)
 	"$(MAKE)" -f mak/WINDOWS copydir DMD="$(DMD)" HOST_DMD="$(HOST_DMD)" MODEL=$(MODEL) IMPDIR="$(IMPDIR)"
 
 copy: $(TAGGED_SRCS_FILE)
@@ -88,7 +88,7 @@ errno_c_$(MODEL).obj: src\core\stdc\errno.c
 ################### Library generation #########################
 
 $(DRUNTIME): $(OBJS) $(SRCS) win64.mak
-	*"$(DMD)" -lib -of$(DRUNTIME) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
+	"$(MAKE)" -f mak/WINDOWS druntime DRUNTIME="$(DRUNTIME)" DFLAGS="$(DFLAGS)" SRCS="$(SRCS)" OBJS="$(OBJS)"
 
 # due to -conf= on the command line, LINKCMD and LIB need to be set in the environment
 unittest: $(SRCS) $(DRUNTIME)

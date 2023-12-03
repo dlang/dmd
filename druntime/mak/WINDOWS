@@ -1,4 +1,5 @@
 $(mak\COPY)
+$(mak\gen\SRCS_TAGGED)
 
 #FIXME: remove
 TAGGED_COPY_FILE=mak\gen\COPY
@@ -33,5 +34,8 @@ ATCLIENT_DMD = ../../release-build/dmd-2.079.0/windows/bin/dmd.exe
 
 gen_tagged_srcs:
 	@+cp_tagged_hier.sh config $(TAGGED_SRCS_FILE).tmp $(TAGGED_COPY_LIST_FILE) $(TAGGED_COPY_FILE) x86_64,windows,default
-	@echo SRCS_TAGGED=\ > $(TAGGED_SRCS_FILE)
-	@type $(TAGGED_SRCS_FILE).tmp >> $(TAGGED_SRCS_FILE)
+	@echo SRCS_TAGGED=\> $(TAGGED_SRCS_FILE)
+	@+sed 's/$$/ \\\\/' $(TAGGED_SRCS_FILE).tmp >> $(TAGGED_SRCS_FILE)
+
+druntime:
+	*"$(DMD)" -lib -of$(DRUNTIME) -Xfdruntime.json $(DFLAGS) $(SRCS) $(SRCS_TAGGED) $(OBJS)
