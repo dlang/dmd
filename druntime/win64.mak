@@ -87,11 +87,11 @@ errno_c_$(MODEL).obj: src\core\stdc\errno.c
 ################### Library generation #########################
 
 $(DRUNTIME): $(OBJS) $(SRCS) $(TAGGED_SRCS_FILE) win64.mak
-	"$(MAKE)" -f mak/WINDOWS druntime DRUNTIME="$(DRUNTIME)" DFLAGS="$(DFLAGS)" SRCS="$(SRCS)" OBJS="$(OBJS)"
+	"$(MAKE)" -f mak/WINDOWS druntime DMD="$(DMD)" DRUNTIME="$(DRUNTIME)" DFLAGS="$(DFLAGS)" SRCS="$(SRCS)" OBJS="$(OBJS)"
 
 # due to -conf= on the command line, LINKCMD and LIB need to be set in the environment
 unittest: $(SRCS) $(DRUNTIME)
-	"$(MAKE)" -f mak/WINDOWS unittest_build DRUNTIME="$(DRUNTIME)" UTFLAGS="$(UTFLAGS)" SRCS="$(SRCS)"
+	"$(MAKE)" -f mak/WINDOWS unittest_build DMD="$(DMD)" DRUNTIME="$(DRUNTIME)" UTFLAGS="$(UTFLAGS)" SRCS="$(SRCS)"
 	.\unittest.exe
 
 ################### tests ######################################
