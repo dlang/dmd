@@ -51,8 +51,10 @@ done
 LINES_TO_COPY=$(grep -v '^$' ${SRC_COPY_FILE} | sort | uniq | wc -l)
 COPIED=0
 
-install -D /dev/null ${DST_FILE}
-install -D /dev/null ${DST_COPY_FILE}
+mkdir -p $(dirname ${DST_FILE})
+mkdir -p $(dirname ${DST_COPY_FILE})
+echo -ne > ${DST_FILE}
+echo -ne > ${DST_COPY_FILE}
 
 for i in "${!SRC_FILES_LIST[@]}"
 do
