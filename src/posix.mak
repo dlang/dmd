@@ -2,31 +2,31 @@
 
 
 all:
-	$(QUIET)$(MAKE) -C .. -f posix.mak $@
+	$(QUIET)$(MAKE) -C .. $@
 
 buildkite-test:
-	$(QUIET)$(MAKE) -C .. -f posix.mak $@
+	$(QUIET)$(MAKE) -C .. $@
 
 toolchain-info:
-	$(QUIET)$(MAKE) -C .. -f posix.mak $@
+	$(QUIET)$(MAKE) -C .. $@
 
 clean:
-	$(QUIET)$(MAKE) -C .. -f posix.mak $@
+	$(QUIET)$(MAKE) -C .. $@
 
 test:
-	$(QUIET)$(MAKE) -C .. -f posix.mak $@
+	$(QUIET)$(MAKE) -C .. $@
 
 html:
-	$(QUIET)$(MAKE) -C .. -f posix.mak $@
+	$(QUIET)$(MAKE) -C .. $@
 
 tags:
-	$(QUIET)$(MAKE) -C .. -f posix.mak $@
+	$(QUIET)$(MAKE) -C .. $@
 
 install:
-	$(QUIET)$(MAKE) -C .. -f posix.mak $@
+	$(QUIET)$(MAKE) -C .. $@
 
 check-clean-git:
-	$(QUIET)$(MAKE) -C .. -f posix.mak $@
+	$(QUIET)$(MAKE) -C .. $@
 
 style:
-	$(QUIET)$(MAKE) -C .. -f posix.mak $@
+	$(QUIET)$(MAKE) -C .. $@
