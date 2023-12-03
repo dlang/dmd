@@ -37,7 +37,7 @@ DRUNTIME=lib\$(DRUNTIME_BASE).lib
 
 DOCFMT=
 
-target: copydir copy $(DRUNTIME)
+target: copy $(DRUNTIME)
 
 $(mak\COPY)
 $(mak\DOCS)
@@ -52,9 +52,6 @@ OBJS_TO_DELETE= errno_c_$(MODEL).obj
 ######################## Header file copy ##############################
 
 import: copy
-
-copydir:
-	"$(MAKE)" -f mak/WINDOWS copydir DMD="$(DMD)" HOST_DMD="$(HOST_DMD)" MODEL=$(MODEL) IMPDIR="$(IMPDIR)"
 
 copy:
 	"$(MAKE)" -f mak/WINDOWS copy DMD="$(DMD)" HOST_DMD="$(HOST_DMD)" MODEL=$(MODEL) IMPDIR="$(IMPDIR)"
