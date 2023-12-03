@@ -268,9 +268,41 @@ $(H3 $(LNAME2 objc-member-functions, Objective-C linkage))
         )
 
 
-$(H2 $(LNAME2 synchronized-classes, Synchronized Classes))
+$(H2 $(LNAME2 synchronized-methods, Synchronized Method Calls))
 
-        $(P All member functions of synchronized classes are synchronized.
+        $(P Member functions of a (non-`synchronized`) class can be individually
+        marked as `synchronized`.
+        The class instance's monitor object will be locked when the method is
+        called and unlocked when the call terminates.
+        )
+
+        $(P A synchronized method can only be called on a
+        $(DDSUBLINK spec/const3, shared, `shared`) class instance.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+class C
+{
+    void foo();
+    synchronized int bar();
+}
+
+void test(C c)
+{
+    c.foo; // OK
+    //c.bar; // Error, `c` is not `shared`
+
+    shared C sc = new shared C;
+    //sc.foo; // Error, `foo` not callable using a `shared` object
+    sc.bar; // OK
+}
+---
+)
+        $(P See also $(GLINK2 statement, SynchronizedStatement).)
+
+$(H3 $(LNAME2 synchronized-classes, Synchronized Classes))
+
+        $(P Each member function of a `synchronized` class is implicitly `synchronized`.
         A static member function is synchronized on the $(I classinfo)
         object for the class, which means that one monitor is used
         for all static member functions for that synchronized class.
@@ -297,16 +329,7 @@ $(H2 $(LNAME2 synchronized-classes, Synchronized Classes))
             }
         }
         ---
-
-        $(P Member functions of non-synchronized classes can be individually marked as synchronized.
-        )
-
-        ---
-        class Foo
-        {
-            synchronized void foo() { }  // foo is synchronized
-        }
-        ---
+        $(NOTE `bar` uses a $(GLINK2 statement, SynchronizedStatement).)
 
         $(P Member fields of a synchronized class cannot be public:
         )
@@ -314,7 +337,7 @@ $(H2 $(LNAME2 synchronized-classes, Synchronized Classes))
         ---
         synchronized class Foo
         {
-            int foo;  // disallowed: public field
+            int foo;  // Error: public field
         }
 
         synchronized class Bar
@@ -323,8 +346,8 @@ $(H2 $(LNAME2 synchronized-classes, Synchronized Classes))
         }
         ---
 
-        $(P The $(D synchronized) attribute can only be applied to classes,
-        structs cannot be marked to be synchronized.)
+        $(NOTE struct types cannot be marked `synchronized`.)
+
 
 $(H2 $(LNAME2 constructors, Constructors))
 
