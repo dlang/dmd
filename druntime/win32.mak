@@ -32,7 +32,15 @@ DRUNTIME=lib\$(DRUNTIME_BASE).lib
 
 DOCFMT=
 
-target: copydir copy $(DRUNTIME)
+##################
+
+TAGGED_COPY_LIST_FILE=mak\TAGGED_COPY
+TAGGED_SRCS_FILE=mak\gen\SRCS_TAGGED
+TAGGED_COPY_FILE=mak\gen\COPY
+
+##################
+
+target: copy $(DRUNTIME)
 
 $(mak\COPY)
 $(mak\DOCS)
@@ -50,11 +58,19 @@ OBJS_TO_DELETE= errno_c_32omf.obj
 
 import: copy
 
-copydir:
-	"$(MAKE)" -f mak/WINDOWS copydir DMD="$(DMD)" HOST_DMD="$(HOST_DMD)" MODEL=32 IMPDIR="$(IMPDIR)"
-
-copy:
+copy: $(TAGGED_SRCS_FILE)
 	"$(MAKE)" -f mak/WINDOWS copy DMD="$(DMD)" HOST_DMD="$(HOST_DMD)" MODEL=32 IMPDIR="$(IMPDIR)"
+
+$(TAGGED_SRCS_FILE):
+	# rm is need here because CI process saves files tree over restarts
+	rm -rf mak/gen
+	# DM make can't ignore unavail makefiles, create empty if need for use in mak/WINDOWS
+	if not exist $@ (install -D /dev/null $@ && echo UNUSED_VAR=123 > $@)
+	"$(MAKE)" -f mak/WINDOWS gen_tagged_srcs ARCH="x86" TAGGED_COPY_LIST_FILE="$(TAGGED_COPY_LIST_FILE)" TAGGED_SRCS_FILE="$(TAGGED_SRCS_FILE)" TAGGED_COPY_FILE="$(TAGGED_COPY_FILE)"
+
+gen_tagged_srcs_clean:
+	rm -f $(TAGGED_SRCS_FILE) $(TAGGED_COPY_FILE)
+	rm -f $(TAGGED_SRCS_FILE).tmp
 
 ################### Win32 Import Libraries ###################
 
@@ -108,8 +124,8 @@ rebuild_minit_obj: src\rt\minit.asm
 
 ################### Library generation #########################
 
-$(DRUNTIME): $(OBJS) $(SRCS) win32.mak
-	*$(DMD) -lib -of$(DRUNTIME) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
+$(DRUNTIME): $(OBJS) $(SRCS) $(TAGGED_SRCS_FILE) win32.mak
+	~"$(MAKE)" -f mak/WINDOWS druntime DMD="$(DMD)" DRUNTIME="$(DRUNTIME)" DFLAGS="$(DFLAGS)" SRCS="$(SRCS)" OBJS="$(OBJS)"
 
 ################### Unittests #########################
 # Unittest are not run because OPTLINK tends to crash when linking
@@ -120,8 +136,8 @@ unittest: unittest.obj
 	@echo "Unittests cannot be linked on Win32 + OMF due to OPTLINK issues"
 
 # Split compilation into a different step to avoid unnecessary rebuilds
-unittest.obj: $(SRCS) win32.mak
-	*$(DMD) $(UDFLAGS) $(UTFLAGS) -c -of$@ $(SRCS)
+unittest.obj: $(SRCS) $(DRUNTIME) win32.mak
+	~"$(MAKE)" -f mak/WINDOWS unittest.obj DMD="$(DMD)" UDFLAGS="$(UDFLAGS)" UTFLAGS="$(UTFLAGS)" SRCS="$(SRCS)"
 
 ################### tests ######################################
 
@@ -164,6 +180,6 @@ druntime.zip:
 install: druntime.zip
 	unzip -o druntime.zip -d \dmd2\src\druntime
 
-clean:
+clean: gen_tagged_srcs_clean
 	del $(DRUNTIME) $(OBJS_TO_DELETE)
 	rmdir /S /Q $(DOCDIR) $(IMPDIR)
