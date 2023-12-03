@@ -87,7 +87,7 @@ errno_c_$(MODEL).obj: src\core\stdc\errno.c
 
 ################### Library generation #########################
 
-$(DRUNTIME): $(OBJS) $(SRCS) win64.mak
+$(DRUNTIME): $(OBJS) $(SRCS) $(TAGGED_SRCS_FILE) win64.mak
 	"$(MAKE)" -f mak/WINDOWS druntime DRUNTIME="$(DRUNTIME)" DFLAGS="$(DFLAGS)" SRCS="$(SRCS)" OBJS="$(OBJS)"
 
 # due to -conf= on the command line, LINKCMD and LIB need to be set in the environment
