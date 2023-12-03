@@ -1,9 +1,6 @@
 $(mak\COPY)
 $(mak\gen\SRCS_TAGGED)
 
-#FIXME: remove
-TAGGED_COPY_FILE=mak\gen\COPY
-
 ######################## Header file copy ##############################
 
 import: copy
