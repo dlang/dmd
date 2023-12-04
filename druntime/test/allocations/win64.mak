@@ -7,6 +7,6 @@ DRUNTIMELIB=druntime64.lib
 test: alloc_from_assert
 
 alloc_from_assert:
-	$(DMD) -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIMELIB) test\allocations\src\$@.d
+	$(DMD) -m$(MODEL) -conf= -Iimport -defaultlib=$(DRUNTIMELIB) test\allocations\src\$@.d
 	$@.exe
 	del $@.*
