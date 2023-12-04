@@ -227,7 +227,7 @@ $(DOC_OUTPUT_DIR)/core_internal_util_%.html : src/core/internal/util/%.d $(DMD)
 $(DOC_OUTPUT_DIR)/core_internal_vararg_%.html : src/core/internal/vararg/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
-$(DOC_OUTPUT_DIR)/core_stdc_%.html : src/core/stdc/%.d $(DMD)
+$(DOC_OUTPUT_DIR)/core_stdc_%.html : import/core/stdc/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOC_OUTPUT_DIR)/core_stdcpp_%.html : src/core/stdcpp/%.d $(DMD)
@@ -236,7 +236,7 @@ $(DOC_OUTPUT_DIR)/core_stdcpp_%.html : src/core/stdcpp/%.d $(DMD)
 $(DOC_OUTPUT_DIR)/core_sync.html : src/core/sync/package.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
-$(DOC_OUTPUT_DIR)/core_sync_%.html : src/core/sync/%.d $(DMD)
+$(DOC_OUTPUT_DIR)/core_sync_%.html : import/core/sync/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOC_OUTPUT_DIR)/core_sys_bionic_%.html : src/core/sys/bionic/%.d $(DMD)
