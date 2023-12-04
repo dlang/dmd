@@ -1882,7 +1882,7 @@ void main()
 $(H2 $(LEGACY_LNAME2 SynchronizedStatement, synchronized-statement, Synchronized Statement))
 
         $(P The synchronized statement wraps a statement with
-        a mutex to synchronize access among multiple threads.
+        mutex locking and unlocking to synchronize access among multiple threads.
         )
 
 $(GRAMMAR
@@ -1891,33 +1891,48 @@ $(GNAME SynchronizedStatement):
     $(D synchronized $(LPAREN)) $(EXPRESSION) $(D $(RPAREN)) $(PSSCOPE)
 )
 
-        $(P Synchronized allows only one thread at a time to execute
-        $(I ScopeStatement) by using a mutex.
-        )
-
-        $(P What mutex is used is determined by the *Expression*.
-        If there is no *Expression*, then a global mutex is created,
-        one per such synchronized statement.
+        $(P A synchronized statement without *Expression* allows only one thread
+        at a time to execute $(I ScopeStatement) by locking a mutex.
+        A global mutex is created, one per synchronized statement.
         Different synchronized statements will have different global mutexes.
         )
 
         $(P If there is an *Expression*, it must evaluate to either an
-        Object or an instance of an $(I Interface), in which case it
-        is cast to the Object instance that implemented that $(I Interface).
+        Object or an instance of an $(DDLINK spec/interface, Interfaces, interface),
+        in which case it
+        is cast to the Object instance that implemented that interface.
         The mutex used is specific to that Object instance, and
         is shared by all synchronized statements referring to that instance.
+        If the object's mutex is already locked when reaching the synchronized
+        statement, it will block every thread until that mutex is unlocked by
+        other code.
         )
 
+$(PANEL
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+void work();
+
+void f(Object o)
+{
+    synchronized (o) work();
+}
+
+void g(Object o)
+{
+    synchronized (o) work();
+}
+---
+)
+        $(P If `f` and `g` are called by different threads but with the same
+        argument, the `work` calls cannot execute simultaneously. If the
+        `(o)` part of the `synchronized` statements is removed in one
+        or both functions, then both `work` calls could execute
+        simultaneously, because they would be protected by different mutexes.)
+)
         $(P The synchronization gets released even if $(I ScopeStatement)
         terminates with an exception, goto, or return.
         )
-
-        $(P Example:
-        )
-
---------------
-synchronized { ... }
---------------
 
         $(P This implements a standard critical section.
         )
@@ -1927,6 +1942,8 @@ synchronized { ... }
         itself and the behavior will be as expected: The mutex will be
         locked and unlocked as many times as there is recursion.
         )
+
+        $(P See also $(DDSUBLINK spec/class, synchronized-classes, synchronized classes).)
 
 $(H2 $(LEGACY_LNAME2 TryStatement, try-statement, Try Statement))
 
