@@ -352,7 +352,7 @@ $(DOC_OUTPUT_DIR)/gc_impl_manual_%.html : src/gc/impl/manual/%.d $(DMD)
 $(DOC_OUTPUT_DIR)/gc_impl_proto_%.html : src/gc/impl/proto/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
-$(DOC_OUTPUT_DIR)/rt_%.html : src/rt/%.d $(DMD)
+$(DOC_OUTPUT_DIR)/rt_%.html : import/rt/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOC_OUTPUT_DIR)/rt_typeinfo_%.html : src/rt/typeinfo/%.d $(DMD)
