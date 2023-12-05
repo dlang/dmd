@@ -217,7 +217,7 @@ _Static_assert('ab' == 0x6162, "ok");
 _Static_assert('abc' == 0x616263, "ok");
 _Static_assert('abcd' == 0x61626364, "ok");
 _Static_assert(u'a' == 0x61, "ok");
-_Static_assert(u'ab' == 0x610062, "ok");
+_Static_assert(u'ab' == 0x62, "ok");
 _Static_assert(U'a' == 0x61, "ok");
 _Static_assert(u'\u1234' == 0x1234, "ok");
 _Static_assert(L'\u1234' == 0x1234, "ok");
