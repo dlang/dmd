@@ -25,6 +25,8 @@ extern (C):
 
 void __ULDIV2__()
 {
+    version (D_InlineAsm_X86)
+    {
         asm
         {
             naked                   ;
@@ -183,10 +185,17 @@ quo1:       // Quotient is 1
             xor     EDX,EDX         ;
             ret                     ;
         }
+    }
+    else version (D_InlineAsm_X86_64)
+        assert(0);
+    else
+        static assert(0);
 }
 
 void __ULDIV__()
 {
+    version (D_InlineAsm_X86)
+    {
         asm
         {
             naked                   ;
@@ -344,6 +353,11 @@ quo1:       // Quotient is 1
             xor     EDX,EDX         ;
             ret                     ;
         }
+    }
+    else version (D_InlineAsm_X86_64)
+        assert(0);
+    else
+        static assert(0);
 }
 
 
@@ -359,6 +373,8 @@ quo1:       // Quotient is 1
 
 void __LDIV2__()
 {
+    version (D_InlineAsm_X86)
+    {
         asm
         {
             naked                   ;
@@ -414,10 +430,17 @@ L10:        test    ECX,ECX         ;       // [ECX,EBX] negative?
 
 L12:        jmp     __ULDIV2__      ;
         }
+    }
+    else version (D_InlineAsm_X86_64)
+        assert(0);
+    else
+        static assert(0);
 }
 
 void __LDIV__()
 {
+    version (D_InlineAsm_X86)
+    {
         asm
         {
             naked                   ;
@@ -466,6 +489,11 @@ L10:        test    ECX,ECX         ;       // [ECX,EBX] negative?
 
 L12:        jmp     __ULDIV__       ;
         }
+    }
+    else version (D_InlineAsm_X86_64)
+        assert(0);
+    else
+        static assert(0);
 }
 
 
