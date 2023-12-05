@@ -319,13 +319,13 @@ $(DOC_OUTPUT_DIR)/gc_impl_proto_%.html : import/gc/impl/proto/%.d $(DMD)
 
 # -Isrc added here because rt.* modules isn't purposed to import,
 # i.e., not copied to import/ dir, but we want to generate documentation for them too
-$(DOC_OUTPUT_DIR)/rt_%.html : import/rt/%.d $(DMD)
+$(DOC_OUTPUT_DIR)/rt_%.html : src/rt/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Isrc -Df$@ project.ddoc $(DOCFMT) $<
 
-$(DOC_OUTPUT_DIR)/rt_typeinfo_%.html : import/rt/typeinfo/%.d $(DMD)
+$(DOC_OUTPUT_DIR)/rt_typeinfo_%.html : src/rt/typeinfo/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Isrc -Df$@ project.ddoc $(DOCFMT) $<
 
-$(DOC_OUTPUT_DIR)/rt_util_%.html : import/rt/util/%.d $(DMD)
+$(DOC_OUTPUT_DIR)/rt_util_%.html : src/rt/util/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Isrc -Df$@ project.ddoc $(DOCFMT) $<
 
 ######################## Header file copy ##############################
