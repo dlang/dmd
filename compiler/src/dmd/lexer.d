@@ -3263,7 +3263,7 @@ class Lexer
         while (1)
         {
             printf("%s ", (*tk).toChars());
-            if (tk.value == TOK.endOfFile)
+            if (tk.value == TOK.endOfFile || tk.value == TOK.endOfLine)
                 break;
             tk = peek(tk);
         }
