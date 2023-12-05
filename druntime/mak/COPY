@@ -106,6 +106,7 @@ COPY=\
 	$(IMPDIR)\core\stdc\stdio.d \
 	$(IMPDIR)\core\stdc\stdlib.d \
 	$(IMPDIR)\core\stdc\string.d \
+	$(IMPDIR)\core\stdc\tgmath.d \
 	$(IMPDIR)\core\stdc\time.d \
 	$(IMPDIR)\core\stdc\wchar_.d \
 	$(IMPDIR)\core\stdc\wctype.d \
