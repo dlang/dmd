@@ -1878,7 +1878,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
         /* look for pre-existing declaration
          */
         Dsymbol scopesym;
-        auto s = sc2.search(mtype.loc, mtype.id, &scopesym, IgnoreErrors | TagNameSpace);
+        auto s = sc2.search(mtype.loc, mtype.id, scopesym, IgnoreErrors | TagNameSpace);
         if (!s || s.isModule())
         {
             // no pre-existing declaration, so declare it
@@ -2753,7 +2753,7 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
         }
 
         Dsymbol scopesym;
-        Dsymbol s = sc.search(loc, mt.ident, &scopesym);
+        Dsymbol s = sc.search(loc, mt.ident, scopesym);
         /*
          * https://issues.dlang.org/show_bug.cgi?id=1170
          * https://issues.dlang.org/show_bug.cgi?id=10739
@@ -2776,7 +2776,7 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
                         mixinTempl.dsymbolSemantic(sc);
                 }
                 sds.members.foreachDsymbol( s => semanticOnMixin(s) );
-                s = sc.search(loc, mt.ident, &scopesym);
+                s = sc.search(loc, mt.ident, scopesym);
             }
         }
 

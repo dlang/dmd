@@ -6465,7 +6465,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
              */
             Identifier id = name;
             Dsymbol scopesym;
-            Dsymbol s = sc.search(loc, id, &scopesym);
+            Dsymbol s = sc.search(loc, id, scopesym);
             if (!s)
             {
                 s = sc.search_correct(id);

@@ -3743,7 +3743,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         Dsymbol scopesym;
-        Dsymbol s = sc.search(exp.loc, exp.ident, &scopesym);
+        Dsymbol s = sc.search(exp.loc, exp.ident, scopesym);
         if (s)
         {
             if (s.errors)
@@ -6744,7 +6744,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             if (!sc.insert(s))
             {
-                auto conflict = sc.search(Loc.initial, s.ident, null);
+                Dsymbol pscopesym;
+                auto conflict = sc.search(Loc.initial, s.ident, pscopesym);
                 error(e.loc, "declaration `%s` is already defined", s.toPrettyChars());
                 errorSupplemental(conflict.loc, "`%s` `%s` is defined here",
                                   conflict.kind(), conflict.toChars());
@@ -6986,7 +6987,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
              */
             if (!tup && !sc.insert(s))
             {
-                auto conflict = sc.search(Loc.initial, s.ident, null);
+                Dsymbol pscopesym;
+                auto conflict = sc.search(Loc.initial, s.ident, pscopesym);
                 error(e.loc, "declaration `%s` is already defined", s.toPrettyChars());
                 errorSupplemental(conflict.loc, "`%s` `%s` is defined here",
                                   conflict.kind(), conflict.toChars());
@@ -7293,7 +7295,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     s.dsymbolSemantic(sc);
                     if (!sc.insert(s))
                     {
-                        auto conflict = sc.search(Loc.initial, s.ident, null);
+                        Dsymbol pscopesym;
+                        auto conflict = sc.search(Loc.initial, s.ident, pscopesym);
                         error(e.loc, "declaration `%s` is already defined", s.toPrettyChars());
                         errorSupplemental(conflict.loc, "`%s` `%s` is defined here",
                                           conflict.kind(), conflict.toChars());
@@ -16038,7 +16041,8 @@ VarDeclaration makeThis2Argument(const ref Loc loc, Scope* sc, FuncDeclaration f
  */
 bool verifyHookExist(const ref Loc loc, ref Scope sc, Identifier id, string description, Identifier module_ = Id.object)
 {
-    auto rootSymbol = sc.search(loc, Id.empty, null);
+    Dsymbol pscopesym;
+    auto rootSymbol = sc.search(loc, Id.empty, pscopesym);
     if (auto moduleSymbol = rootSymbol.search(loc, module_))
         if (moduleSymbol.search(loc, id))
           return true;
