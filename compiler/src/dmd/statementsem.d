@@ -2261,7 +2261,8 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                             continue;
                         assert(scx.sw == sw);
 
-                        if (!scx.search(cs.exp.loc, v.ident, null))
+                        Dsymbol pscopesym;
+                        if (!scx.search(cs.exp.loc, v.ident, pscopesym))
                         {
                             error(cs.loc, "`case` variable `%s` declared at %s cannot be declared in `switch` body",
                                 v.toChars(), v.loc.toChars());

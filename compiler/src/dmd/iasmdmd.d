@@ -4416,7 +4416,10 @@ void asm_primary_exp(out OPND o1)
                 if (asmstate.sc.func.labtab)
                     s = asmstate.sc.func.labtab.lookup(asmstate.tok.ident);
                 if (!s)
-                    s = asmstate.sc.search(Loc.initial, asmstate.tok.ident, null);
+                {
+                    Dsymbol pscopesym;
+                    s = asmstate.sc.search(Loc.initial, asmstate.tok.ident, pscopesym);
+                }
                 if (!s)
                 {
                     // Assume it is a label, and define that label

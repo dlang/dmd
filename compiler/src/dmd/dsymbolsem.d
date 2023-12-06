@@ -481,7 +481,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         Dsymbol s = ad.search(dsym.loc, dsym.ident);
         if (!s)
         {
-            s = sc.search(dsym.loc, dsym.ident, null);
+            Dsymbol pscopesym;
+            s = sc.search(dsym.loc, dsym.ident, pscopesym);
             if (s)
                 error(dsym.loc, "`%s` is not a member of `%s`", s.toChars(), ad.toChars());
             else
@@ -4243,7 +4244,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             // check if `_d_cmain` is defined
             bool cmainTemplateExists()
             {
-                auto rootSymbol = sc.search(funcdecl.loc, Id.empty, null);
+                Dsymbol pscopesym;
+                auto rootSymbol = sc.search(funcdecl.loc, Id.empty, pscopesym);
                 if (auto moduleSymbol = rootSymbol.search(funcdecl.loc, Id.object))
                     if (moduleSymbol.search(funcdecl.loc, Id.CMain))
                         return true;
@@ -7328,7 +7330,7 @@ private void aliasAssignSemantic(AliasAssign ds, Scope* sc)
     AliasDeclaration findAliasDeclaration(AliasAssign ds, Scope* sc)
     {
         Dsymbol scopesym;
-        Dsymbol as = sc.search(ds.loc, ds.ident, &scopesym);
+        Dsymbol as = sc.search(ds.loc, ds.ident, scopesym);
         if (!as)
         {
             .error(ds.loc, "%s `%s` undefined identifier `%s`", ds.kind, ds.toPrettyChars, ds.ident.toChars());
