@@ -312,6 +312,7 @@ jobs:
       run: |
         echo "VISUAL_STUDIO_LIB_NOT_DM=$(which lib.exe)" >> $GITHUB_ENV
         echo "HOST_DMD=${{ env.DC }}" >> $GITHUB_ENV
+        echo "ARCH_TAG=x86_64" >> $GITHUB_ENV
         echo "${{ github.workspace }}/tools/dm/bin/" >> $GITHUB_PATH
 
     ########################################
