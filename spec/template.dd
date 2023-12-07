@@ -78,8 +78,9 @@ $(H2 $(LNAME2 template_instantiation, Template Instantiation))
 
 $(H3 $(LNAME2 explicit_tmp_instantiation, Explicit Template Instantiation))
 
-    $(P Templates are explicitly instantiated with:
-    )
+    $(P Templates are explicitly instantiated using a `!` after the
+    template name, then either an argument list or a single token
+    argument.)
 
 $(GRAMMAR
 $(GNAME TemplateInstance):
@@ -94,6 +95,24 @@ $(GNAME TemplateArgumentList):
     $(GLINK TemplateArgument) $(D ,)
     $(GLINK TemplateArgument) $(D ,) $(GSELF TemplateArgumentList)
 
+$(GNAME TemplateSingleArgument):
+    $(GLINK_LEX Identifier)
+    $(GLINK2 type, FundamentalType)
+    $(GLINK_LEX CharacterLiteral)
+    $(GLINK_LEX StringLiteral)
+    $(GLINK_LEX IntegerLiteral)
+    $(GLINK_LEX FloatLiteral)
+    $(D true)
+    $(D false)
+    $(D null)
+    $(D this)
+    $(GLINK2 expression, SpecialKeyword)
+)
+
+    $(P A template argument can be a type, compile-time expression
+    or a symbol.)
+
+$(GRAMMAR
 $(GNAME TemplateArgument):
     $(GLINK2 type, Type)
     $(ASSIGNEXPRESSION)
@@ -108,19 +127,6 @@ $(GNAME SymbolTail):
     $(GLINK_LEX Identifier) $(D .) $(GSELF SymbolTail)
     $(GLINK TemplateInstance)
     $(GLINK TemplateInstance) $(D .) $(GSELF SymbolTail)
-
-$(GNAME TemplateSingleArgument):
-    $(GLINK_LEX Identifier)
-    $(GLINK2 type, FundamentalType)
-    $(GLINK_LEX CharacterLiteral)
-    $(GLINK_LEX StringLiteral)
-    $(GLINK_LEX IntegerLiteral)
-    $(GLINK_LEX FloatLiteral)
-    $(D true)
-    $(D false)
-    $(D null)
-    $(D this)
-    $(GLINK2 expression, SpecialKeyword)
 )
 
     $(P Once instantiated, the declarations inside the template, called
