@@ -606,7 +606,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
             {
                 import dmd.common.outbuffer;
                 OutBuffer buf;
-                HdrGenStage hgs;
+                HdrGenState hgs;
                 toCBuffer(ts.sym, buf, hgs);
                 printf("%s\n", buf.peekChars());
             }
@@ -849,7 +849,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                 {
                     if (fieldi == nfields)
                         break;
-                    if (/*index == 0 && ci.initializerList.length == 1 &&*/ di.initializer.isCInitializer())
+                    if (index + 1 == ci.initializerList.length && di.initializer.isCInitializer())
                     {
                         /* Try peeling off this set of { } and see if it works
                          */
