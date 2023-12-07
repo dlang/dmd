@@ -45,9 +45,26 @@ void test2()
 
 /**************************************/
 
+// https://issues.dlang.org/show_bug.cgi?id=24266
+
+struct S3
+{
+    int context[4];
+    int id;
+};
+
+void test3()
+{
+    struct S3 tn = (struct S3) {{0}, 4};
+    assert(tn.id == 4);
+}
+
+/**************************************/
+
 int main()
 {
     test1();
     test2();
+    test3();
     return 0;
 }
