@@ -3638,11 +3638,11 @@ struct MarkdownLinkReferences
         {
             auto loc = Loc();
             Dsymbol pscopesym;
-            auto symbol = _scope.search(loc, id, pscopesym, IgnoreErrors);
+            auto symbol = _scope.search(loc, id, pscopesym, SearchOpt.ignoreErrors);
             for (size_t i = 1; symbol && i < ids.length; ++i)
             {
                 id = Identifier.lookup(ids[i].ptr, ids[i].length);
-                symbol = id !is null ? symbol.search(loc, id, IgnoreErrors) : null;
+                symbol = id !is null ? symbol.search(loc, id, SearchOpt.ignoreErrors) : null;
             }
             if (symbol)
                 link = MarkdownLink(createHref(symbol), null, name, symbol);

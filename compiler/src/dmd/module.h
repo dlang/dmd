@@ -88,7 +88,7 @@ public:
 
     Identifier *searchCacheIdent;
     Dsymbol *searchCacheSymbol; // cached value of search
-    int searchCacheFlags;       // cached flags
+    SearchOptFlags searchCacheFlags;       // cached flags
     d_bool insearch;
 
     // module from command line we're imported from,
@@ -123,7 +123,7 @@ public:
     Module *parse();    // syntactic parse
     void importAll(Scope *sc) override;
     int needModuleInfo();
-    bool isPackageAccessible(Package *p, Visibility visibility, int flags = 0) override;
+    bool isPackageAccessible(Package *p, Visibility visibility, SearchOptFlags flags = (SearchOptFlags)SearchOpt::all) override;
     Dsymbol *symtabInsert(Dsymbol *s) override;
     static void runDeferredSemantic();
     static void runDeferredSemantic2();

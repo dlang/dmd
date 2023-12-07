@@ -624,7 +624,7 @@ private:
 public:
     ScopeDsymbol* syntaxCopy(Dsymbol* s) override;
     virtual void importScope(Dsymbol* s, Visibility visibility);
-    virtual bool isPackageAccessible(Package* p, Visibility visibility, int32_t flags = 0);
+    virtual bool isPackageAccessible(Package* p, Visibility visibility, uint32_t flags = 0u);
     bool isforwardRef() final override;
     static void multiplyDefined(const Loc& loc, Dsymbol* s1, Dsymbol* s2);
     const char* kind() const override;
@@ -2064,18 +2064,20 @@ struct FieldState final
         {}
 };
 
-enum
+enum class SearchOpt : uint32_t
 {
-    IgnoreNone = 0,
-    IgnorePrivateImports = 1,
-    IgnoreErrors = 2,
-    IgnoreAmbiguous = 4,
-    SearchLocalsOnly = 8,
-    SearchImportsOnly = 16,
-    SearchUnqualifiedModule = 32,
-    IgnoreSymbolVisibility = 128,
-    TagNameSpace = 256,
+    all = 0u,
+    ignorePrivateImports = 1u,
+    ignoreErrors = 2u,
+    ignoreAmbiguous = 4u,
+    localsOnly = 8u,
+    importsOnly = 16u,
+    unqualifiedModule = 32u,
+    tagNameSpace = 64u,
+    ignoreVisibility = 128u,
 };
+
+typedef uint32_t SearchOptFlags;
 
 enum : int32_t { IDX_NOTFOUND = 305419896 };
 
@@ -4784,6 +4786,8 @@ struct ASTCodegen final
     using OverloadSet = ::OverloadSet;
     using PASS = ::PASS;
     using ScopeDsymbol = ::ScopeDsymbol;
+    using SearchOpt = ::SearchOpt;
+    using SearchOptFlags = ::SearchOptFlags;
     using Ungag = ::Ungag;
     using Visibility = ::Visibility;
     using WithScopeSymbol = ::WithScopeSymbol;
@@ -5058,6 +5062,7 @@ struct ASTCodegen final
     typedef Dsymbol* Dsymbol;
     typedef Array<Dsymbol* > Dsymbols;
     typedef Visibility Visibility;
+    typedef SearchOpt SearchOpt;
     typedef PASS PASS;
     ASTCodegen()
     {
@@ -6229,7 +6234,7 @@ public:
     bool rootImports();
     Identifier* searchCacheIdent;
     Dsymbol* searchCacheSymbol;
-    int32_t searchCacheFlags;
+    uint32_t searchCacheFlags;
     bool insearch;
     Module* importedFrom;
     Array<Dsymbol* >* decldefs;
@@ -6253,7 +6258,7 @@ public:
     void importAll(Scope* prevsc) override;
     int32_t needModuleInfo();
     void checkImportDeprecation(const Loc& loc, Scope* sc);
-    bool isPackageAccessible(Package* p, Visibility visibility, int32_t flags = 0) override;
+    bool isPackageAccessible(Package* p, Visibility visibility, uint32_t flags = 0u) override;
     Dsymbol* symtabInsert(Dsymbol* s) override;
     static void runDeferredSemantic();
     static void runDeferredSemantic2();
@@ -6342,7 +6347,7 @@ struct Scope final
     void* anchorCounts;
     Identifier* prevAnchor;
     AliasDeclaration* aliasAsg;
-    Dsymbol* search(const Loc& loc, Identifier* ident, Dsymbol*& pscopesym, int32_t flags = 0);
+    Dsymbol* search(const Loc& loc, Identifier* ident, Dsymbol*& pscopesym, uint32_t flags = 0u);
     Scope() :
         enclosing(),
         _module(),
@@ -6563,7 +6568,7 @@ extern void dsymbolSemantic(Dsymbol* dsym, Scope* sc);
 
 extern void addMember(Dsymbol* dsym, Scope* sc, ScopeDsymbol* sds);
 
-extern Dsymbol* search(Dsymbol* d, const Loc& loc, Identifier* ident, int32_t flags = 0);
+extern Dsymbol* search(Dsymbol* d, const Loc& loc, Identifier* ident, uint32_t flags = 0u);
 
 extern void setScope(Dsymbol* d, Scope* sc);
 

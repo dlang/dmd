@@ -614,7 +614,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     final bool isFuncHidden(FuncDeclaration fd)
     {
         //printf("ClassDeclaration.isFuncHidden(class = %s, fd = %s)\n", toChars(), fd.toPrettyChars());
-        Dsymbol s = this.search(Loc.initial, fd.ident, IgnoreAmbiguous | IgnoreErrors);
+        Dsymbol s = this.search(Loc.initial, fd.ident, SearchOpt.ignoreAmbiguous | SearchOpt.ignoreErrors);
         if (!s)
         {
             //printf("not found\n");

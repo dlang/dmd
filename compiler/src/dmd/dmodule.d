@@ -401,7 +401,7 @@ extern (C++) final class Module : Package
 
     Identifier searchCacheIdent;
     Dsymbol searchCacheSymbol;  // cached value of search
-    int searchCacheFlags;       // cached flags
+    SearchOptFlags searchCacheFlags;       // cached flags
     bool insearch;
 
     /**
@@ -1021,14 +1021,14 @@ extern (C++) final class Module : Package
         }
     }
 
-    override bool isPackageAccessible(Package p, Visibility visibility, int flags = 0)
+    override bool isPackageAccessible(Package p, Visibility visibility, SearchOptFlags flags = SearchOpt.all)
     {
         if (insearch) // don't follow import cycles
             return false;
         insearch = true;
         scope (exit)
             insearch = false;
-        if (flags & IgnorePrivateImports)
+        if (flags & SearchOpt.ignorePrivateImports)
             visibility = Visibility(Visibility.Kind.public_); // only consider public imports
         return super.isPackageAccessible(p, visibility);
     }

@@ -875,7 +875,7 @@ private Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
     Loc loc = ue.loc;
 
     // TODO: merge with Scope.search.searchScopes()
-    Dsymbol searchScopes(int flags)
+    Dsymbol searchScopes(SearchOptFlags flags)
     {
         Dsymbol s = null;
         for (Scope* scx = sc; scx; scx = scx.enclosing)
@@ -883,7 +883,7 @@ private Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
             if (!scx.scopesym)
                 continue;
             if (scx.scopesym.isModule())
-                flags |= SearchUnqualifiedModule;    // tell Module.search() that SearchLocalsOnly is to be obeyed
+                flags |= SearchOpt.unqualifiedModule;    // tell Module.search() that SearchOpt.localsOnly is to be obeyed
             s = scx.scopesym.search(loc, ident, flags);
             if (s)
             {
@@ -910,18 +910,18 @@ private Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
         return s;
     }
 
-    int flags = 0;
+    SearchOptFlags flags = SearchOpt.all;
     Dsymbol s;
 
     if (sc.flags & SCOPE.ignoresymbolvisibility)
-        flags |= IgnoreSymbolVisibility;
+        flags |= SearchOpt.ignoreVisibility;
 
     // First look in local scopes
-    s = searchScopes(flags | SearchLocalsOnly);
+    s = searchScopes(flags | SearchOpt.localsOnly);
     if (!s)
     {
         // Second look in imported modules
-        s = searchScopes(flags | SearchImportsOnly);
+        s = searchScopes(flags | SearchOpt.importsOnly);
     }
 
     if (!s)
@@ -14211,15 +14211,15 @@ Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, bool gag)
 
     if (auto ie = eright.isScopeExp()) // also used for template alias's
     {
-        auto flags = SearchLocalsOnly;
+        SearchOptFlags flags = SearchOpt.localsOnly;
         /* Disable access to another module's private imports.
          * The check for 'is sds our current module' is because
          * the current module should have access to its own imports.
          */
         if (ie.sds.isModule() && ie.sds != sc._module)
-            flags |= IgnorePrivateImports;
+            flags |= SearchOpt.ignorePrivateImports;
         if (sc.flags & SCOPE.ignoresymbolvisibility)
-            flags |= IgnoreSymbolVisibility;
+            flags |= SearchOpt.ignoreVisibility;
         Dsymbol s = ie.sds.search(exp.loc, exp.ident, flags);
         /* Check for visibility before resolving aliases because public
          * aliases to private symbols are public.

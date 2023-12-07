@@ -175,7 +175,7 @@ Dsymbol findSymbol(Dsymbol sym, string name, bool allowMissing = false)
 
     const oldErrors = global.errors;
     Identifier id = Identifier.idPool(name);
-    Dsymbol found = sym.search(Loc.initial, id, IgnoreErrors);
+    Dsymbol found = sym.search(Loc.initial, id, SearchOpt.ignoreErrors);
 
     assert(global.errors == oldErrors, "Searching " ~ name ~ " caused errors!");
     assert(allowMissing || found, name ~ " not found!");
