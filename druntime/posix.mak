@@ -11,12 +11,28 @@ TOOLS_DIR=../../tools
 
 include $(DMD_DIR)/src/osmodel.mak
 
+ifeq (windows,$(OS))
+    DOTEXE:=.exe
+    DOTDLL:=.dll
+    DOTLIB:=.lib
+    DOTOBJ:=.obj
+else
+    DOTEXE:=
+    DOTDLL:=$(if $(findstring $(OS),osx),.dylib,.so)
+    DOTLIB:=.a
+    DOTOBJ:=.o
+endif
+
+ifeq (osx,$(OS))
+    export MACOSX_DEPLOYMENT_TARGET=10.9
+endif
+
 # Default to a release built, override with BUILD=debug
 ifeq (,$(BUILD))
-BUILD_WAS_SPECIFIED=0
-BUILD=release
+    BUILD_WAS_SPECIFIED=0
+    BUILD=release
 else
-BUILD_WAS_SPECIFIED=1
+    BUILD_WAS_SPECIFIED=1
 endif
 
 ifneq ($(BUILD),release)
@@ -25,7 +41,7 @@ ifneq ($(BUILD),release)
     endif
 endif
 
-DMD=$(DMD_DIR)/../generated/$(OS)/$(BUILD)/$(MODEL)/dmd
+DMD=$(DMD_DIR)/../generated/$(OS)/$(BUILD)/$(MODEL)/dmd$(DOTEXE)
 INSTALL_DIR=../../install
 
 # directory where the html files for the documentation are placed
@@ -36,22 +52,17 @@ OPTIONAL_COVERAGE:=$(if $(TEST_COVERAGE),-cov=ctfe,)
 
 # default to PIC, use PIC=1/0 to en-/disable PIC.
 # Note that shared libraries and C files are always compiled with PIC.
-ifeq ($(PIC),)
-    PIC:=1
-endif
-ifeq ($(PIC),1)
-    override PIC:=-fPIC
-else
+ifeq (windows,$(OS))
     override PIC:=
-endif
-
-ifeq (osx,$(OS))
-	DOTDLL:=.dylib
-	DOTLIB:=.a
-	export MACOSX_DEPLOYMENT_TARGET=10.9
 else
-	DOTDLL:=.so
-	DOTLIB:=.a
+    ifeq ($(PIC),)
+        PIC:=1
+    endif
+    ifeq ($(PIC),1)
+        override PIC:=-fPIC
+    else
+        override PIC:=
+    endif
 endif
 
 # build with shared library support
@@ -65,7 +76,7 @@ MAKEFILE = $(firstword $(MAKEFILE_LIST))
 DDOCFLAGS=-conf= -c -w -o- -Iimport -version=CoreDdoc
 
 # Set CFLAGS
-CFLAGS=$(MODEL_FLAG) -fPIC -DHAVE_UNISTD_H
+CFLAGS=$(if $(findstring $(OS),windows),,$(MODEL_FLAG) -fPIC -DHAVE_UNISTD_H)
 ifeq ($(BUILD),debug)
 	CFLAGS += -g
 else
@@ -98,17 +109,16 @@ SHARED=$(if $(findstring $(OS),linux freebsd),1,)
 ROOT_DIR := $(shell pwd)
 PHOBOS_DFLAGS=-conf= $(MODEL_FLAG) -I$(ROOT_DIR)/import -I$(PHOBOS_PATH) -L-L$(PHOBOS_PATH)/generated/$(OS)/$(BUILD)/$(MODEL) $(PIC)
 ifeq (1,$(SHARED))
-PHOBOS_DFLAGS+=-defaultlib=libphobos2.so -L-rpath=$(PHOBOS_PATH)/generated/$(OS)/$(BUILD)/$(MODEL)
+PHOBOS_DFLAGS+=-defaultlib=libphobos2$(DOTDLL) -L-rpath=$(PHOBOS_PATH)/generated/$(OS)/$(BUILD)/$(MODEL)
 endif
 
 ROOT_OF_THEM_ALL = ../generated
 ROOT = $(ROOT_OF_THEM_ALL)/$(OS)/$(BUILD)/$(MODEL)
 OBJDIR=obj/$(OS)/$(BUILD)/$(MODEL)
-DRUNTIME_BASE=druntime-$(OS)$(MODEL)
-DRUNTIME=$(ROOT)/libdruntime.a
-DRUNTIMESO=$(ROOT)/libdruntime.so
-DRUNTIMESOOBJ=$(ROOT)/libdruntime.so.o
-DRUNTIMESOLIB=$(ROOT)/libdruntime.so.a
+DRUNTIME=$(ROOT)/$(if $(findstring $(OS),windows),,lib)druntime$(DOTLIB)
+DRUNTIMESO=$(ROOT)/$(if $(findstring $(OS),windows),,lib)druntime$(DOTDLL)
+DRUNTIMESOOBJ=$(DRUNTIMESO)$(DOTOBJ)
+DRUNTIMESOLIB=$(DRUNTIMESO)$(DOTLIB)
 
 STDDOC=
 
@@ -123,10 +133,6 @@ SRCS:=$(subst \,/,$(SRCS))
 
 # NOTE: trace.d and cover.d are not necessary for a successful build
 #       as both are used for debugging features (profiling and coverage)
-# NOTE: a pre-compiled minit.obj has been provided in dmd for Win32	 and
-#       minit.asm is not used by dmd for Linux
-
-OBJS= $(ROOT)/errno_c.o $(ROOT)/threadasm.o $(ROOT)/valgrind.o
 
 # use timelimit to avoid deadlocks if available
 TIMELIMIT:=$(if $(shell which timelimit 2>/dev/null || true),timelimit -t 10 ,)
@@ -352,7 +358,7 @@ $(IMPDIR)/%.h : src/%.h
 
 ######################## Build DMD if non-existent ##############################
 
-$(DMD_DIR)/../generated/$(OS)/$(BUILD)/$(MODEL)/dmd:
+$(DMD_DIR)/../generated/$(OS)/$(BUILD)/$(MODEL)/dmd$(DOTEXE):
 	$(MAKE) -C $(DMD_DIR)/.. dmd BUILD=$(BUILD) OS=$(OS) MODEL=$(MODEL) DMD=""
 
 # alias using the absolute path (the Phobos Makefile specifies an absolute path)
@@ -360,32 +366,41 @@ $(abspath $(DMD_DIR)/../generated/$(OS)/$(BUILD)/$(MODEL)/dmd): $(DMD_DIR)/../ge
 
 ################### C/ASM Targets ############################
 
-$(ROOT)/%.o : src/rt/%.c $(DMD)
+# Although dmd is compiling the .c files, the preprocessor used on Windows is cl.exe.
+# The INCLUDE environment variable needs to be set with the path to the VC system include files.
+
+# NOTE: minit.asm is only used for -m32omf on Windows
+OBJS:=$(ROOT)/errno_c$(DOTOBJ)
+ifneq (windows,$(OS))
+    OBJS+=$(ROOT)/threadasm$(DOTOBJ) $(ROOT)/valgrind$(DOTOBJ)
+endif
+
+$(ROOT)/%$(DOTOBJ) : src/rt/%.c $(DMD)
 	@mkdir -p $(dir $@)
 	$(DMD) -c $(DFLAGS) -I. $< -of$@
 
-$(ROOT)/errno_c.o : src/core/stdc/errno.c $(DMD)
+$(ROOT)/errno_c$(DOTOBJ) : src/core/stdc/errno.c $(DMD)
 	@mkdir -p $(dir $@)
-	$(DMD) -c $(DFLAGS) -I. $< -of$@
+	$(DMD) -c $(DFLAGS) -I. -P=-I. $< -of$@
 
-$(ROOT)/threadasm.o : src/core/threadasm.S
+$(ROOT)/threadasm$(DOTOBJ) : src/core/threadasm.S
 	@mkdir -p $(dir $@)
 	$(CC) -c $(CFLAGS) $< -o$@
 
-$(ROOT)/valgrind.o : src/etc/valgrind/valgrind.c src/etc/valgrind/valgrind.h src/etc/valgrind/memcheck.h
+$(ROOT)/valgrind$(DOTOBJ) : src/etc/valgrind/valgrind.c src/etc/valgrind/valgrind.h src/etc/valgrind/memcheck.h
 	@mkdir -p `dirname $@`
 	$(CC) -c $(CFLAGS) $< -o$@
 
 ######################## Create a shared library ##############################
 
-$(DRUNTIMESO) $(DRUNTIMESOLIB) dll: DFLAGS+=-version=Shared -fPIC
+$(DRUNTIMESO) $(DRUNTIMESOLIB) dll: DFLAGS+=-version=Shared $(if $(findstring $(OS),windows),,-fPIC)
 dll: $(DRUNTIMESOLIB)
 
 $(DRUNTIMESO): $(OBJS) $(SRCS) $(DMD)
 	$(DMD) -shared -debuglib= -defaultlib= -of$(DRUNTIMESO) $(DFLAGS) $(SRCS) $(OBJS) $(LINKDL) -L-lpthread -L-lm
 
 $(DRUNTIMESOLIB): $(OBJS) $(SRCS) $(DMD)
-	$(DMD) -c -fPIC -of$(DRUNTIMESOOBJ) $(DFLAGS) $(SRCS)
+	$(DMD) -c $(if $(findstring $(OS),windows),,-fPIC) -of$(DRUNTIMESOOBJ) $(DFLAGS) $(SRCS)
 	$(DMD) -conf= -lib -of$(DRUNTIMESOLIB) $(DRUNTIMESOOBJ) $(OBJS)
 
 ################### Library generation #########################
@@ -396,7 +411,8 @@ $(DRUNTIME): $(OBJS) $(SRCS) $(DMD)
 lib: $(DRUNTIME)
 
 UT_MODULES:=$(patsubst src/%.d,$(ROOT)/unittest/%,$(SRCS))
-HAS_ADDITIONAL_TESTS:=$(shell test -d test && echo 1)
+# TODO: Windows
+HAS_ADDITIONAL_TESTS:=$(if $(findstring $(OS),windows),,$(shell test -d test && echo 1))
 ifeq ($(HAS_ADDITIONAL_TESTS),1)
 	ADDITIONAL_TESTS:=test/init_fini test/exceptions test/coverage test/profile test/cycles test/allocations test/typeinfo \
 	    test/aa test/cpuid test/gc test/hash test/lifetime \
@@ -428,19 +444,19 @@ $(addprefix $(ROOT)/unittest/,$(DISABLED_TESTS)) :
 
 ifeq (,$(SHARED))
 
-$(ROOT)/unittest/test_runner: $(OBJS) $(SRCS) src/test_runner.d $(DMD)
-	$(DMD) $(UDFLAGS) $(UTFLAGS) -of$@ src/test_runner.d $(SRCS) $(OBJS) -debuglib= -defaultlib= -L-lpthread -L-lm
+$(ROOT)/unittest/test_runner$(DOTEXE): $(OBJS) $(SRCS) src/test_runner.d $(DMD)
+	$(DMD) $(UDFLAGS) $(UTFLAGS) -of$@ src/test_runner.d $(SRCS) $(OBJS) -defaultlib= $(if $(findstring $(OS),windows),user32.lib,-L-lpthread -L-lm)
 
 else
 
 UT_DRUNTIME:=$(ROOT)/unittest/libdruntime-ut$(DOTDLL)
 
-$(UT_DRUNTIME): UDFLAGS+=-version=Shared -fPIC
+$(UT_DRUNTIME): UDFLAGS+=-version=Shared $(if $(findstring $(OS),windows),,-fPIC)
 $(UT_DRUNTIME): $(OBJS) $(SRCS) $(DMD)
-	$(DMD) $(UDFLAGS) -shared $(UTFLAGS) -of$@ $(SRCS) $(OBJS) $(LINKDL) -debuglib= -defaultlib= -L-lpthread -L-lm
+	$(DMD) $(UDFLAGS) -shared $(UTFLAGS) -of$@ $(SRCS) $(OBJS) $(LINKDL) -defaultlib= $(if $(findstring $(OS),windows),user32.lib,-L-lpthread -L-lm)
 
-$(ROOT)/unittest/test_runner: $(UT_DRUNTIME) src/test_runner.d $(DMD)
-	$(DMD) $(UDFLAGS) -of$@ src/test_runner.d -L$(UT_DRUNTIME) -debuglib= -defaultlib= -L-lpthread -L-lm
+$(ROOT)/unittest/test_runner$(DOTEXE): $(UT_DRUNTIME) src/test_runner.d $(DMD)
+	$(DMD) $(UDFLAGS) -of$@ src/test_runner.d -L$(UT_DRUNTIME) -defaultlib= $(if $(findstring $(OS),windows),user32.lib,-L-lpthread -L-lm)
 
 endif
 
@@ -450,7 +466,7 @@ BETTERCTESTS_DIR=$(ROOT)/betterctests
 # macro that returns the module name given the src path
 moduleName=$(subst rt.invariant,invariant,$(subst object_,object,$(subst /,.,$(1))))
 
-$(ROOT)/unittest/% : $(ROOT)/unittest/test_runner
+$(ROOT)/unittest/% : $(ROOT)/unittest/test_runner$(DOTEXE)
 	@mkdir -p $(dir $@)
 # make the file very old so it builds and runs again if it fails
 	@touch -t 197001230123 $@
