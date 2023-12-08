@@ -4634,6 +4634,13 @@ private elem * elbool(elem *e, goal_t goal)
             e1.Eoper = e.Eoper;
             return optelem(el_selecte1(e), goal);
 
+        case OPcomma:
+            // Replace bool(x,y) with x,bool(y)
+            e.EV.E1 = e1.EV.E2;
+            e1.EV.E2 = e;
+            e1.Ety = e.Ety;
+            return optelem(e1, goal);
+
         default:
             break;
     }
