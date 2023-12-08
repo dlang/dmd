@@ -57,9 +57,7 @@ clean:
 	rm -rf $(GENERATED)
 	cd compiler/test && rm -rf test_results *.lst trace.log trace.def
 	$(RM) tags
-ifneq (windows,$(OS))
 	$(QUIET)$(MAKE) -C druntime -f posix.mak clean
-endif
 
 dmd: $(BUILD_EXE)
 	$(BUILD_EXE) $@
@@ -69,18 +67,10 @@ dmd-test: dmd druntime $(BUILD_EXE) $(RUN_EXE)
 	$(RUN_EXE) --environment
 
 druntime: dmd
-ifeq (windows,$(OS))
-	@echo "Building druntime via top-level Makefile on Windows will come soon"
-else
 	$(QUIET)$(MAKE) -C druntime -f posix.mak
-endif
 
 druntime-test: dmd
-ifeq (windows,$(OS))
-	@echo "Testing druntime via top-level Makefile on Windows will come soon"
-else
 	$(QUIET)$(MAKE) -C druntime -f posix.mak unittest
-endif
 
 test: dmd-test druntime-test
 
