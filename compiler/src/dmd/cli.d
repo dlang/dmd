@@ -459,7 +459,7 @@ dmd -cov -unittest myprog.d
              $(P Note that multiple `-i=...` options are allowed, each one adds a pattern.)}"
         ),
         Option("ignore",
-            "ignore unsupported pragmas"
+            "deprecated flag, unsupported pragmas are always ignored now"
         ),
         Option("inline",
             "do function inlining",
