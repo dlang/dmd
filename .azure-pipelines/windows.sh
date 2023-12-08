@@ -26,6 +26,7 @@ echo "GREP_VERSION: $(grep --version)"
 # Prepare DigitalMars make and C compiler
 ################################################################################
 
+GNU_MAKE="$(which make)" # must be done before installing dmd (tampers with PATH)
 install_host_dmc
 DM_MAKE="$PWD/dm/bin/make.exe"
 
@@ -91,7 +92,7 @@ cd "$DMD_DIR"
 generated/build.exe -j$N MODEL=$TOOL_MODEL HOST_DMD=$HOST_DC BUILD=debug "${disable_debug_for_unittests[@]}" unittest
 generated/build.exe -j$N MODEL=$TOOL_MODEL HOST_DMD=$HOST_DC DFLAGS="-L-LARGEADDRESSAWARE" ENABLE_RELEASE=1 ENABLE_ASSERTS=1 dmd
 
-DMD_BIN_PATH="$DMD_DIR/generated/windows/release/$TOOL_MODEL/dmd"
+DMD_BIN_PATH="$DMD_DIR/generated/windows/release/$TOOL_MODEL/dmd.exe"
 
 ################################################################################
 # Build Druntime and Phobos
@@ -99,11 +100,19 @@ DMD_BIN_PATH="$DMD_DIR/generated/windows/release/$TOOL_MODEL/dmd"
 
 LIBS_MAKE_ARGS=(-f "$MAKE_FILE" MODEL=$MODEL DMD="$DMD_BIN_PATH" VCDIR=. CC="$CC" AR="$AR" MAKE="$DM_MAKE")
 
-cd "$DMD_DIR/druntime"
-"$DM_MAKE" "${LIBS_MAKE_ARGS[@]}"
+if [[ "$MODEL" == "32omf" ]]; then
+    cd "$DMD_DIR/druntime"
+    "$DM_MAKE" "${LIBS_MAKE_ARGS[@]}"
+else
+    "$GNU_MAKE" -j$N -C "$DMD_DIR/druntime" -f posix.mak MODEL=$MODEL DMD="$DMD_BIN_PATH"
+fi
 
 cd "$DMD_DIR/../phobos"
-"$DM_MAKE" "${LIBS_MAKE_ARGS[@]}" DRUNTIME="$DMD_DIR\druntime"
+if [[ "$MODEL" == "32omf" ]]; then
+    "$DM_MAKE" "${LIBS_MAKE_ARGS[@]}" DRUNTIME="$DMD_DIR\druntime"
+else
+    "$DM_MAKE" "${LIBS_MAKE_ARGS[@]}" DRUNTIME="$DMD_DIR\druntime" DRUNTIMELIB="$DMD_DIR/generated/windows/release/$MODEL/druntime.lib"
+fi
 
 ################################################################################
 # Run DMD testsuite
@@ -164,7 +173,12 @@ fi
 ################################################################################
 
 cd "$DMD_DIR/druntime"
-"$DM_MAKE" "${LIBS_MAKE_ARGS[@]}" unittest test_all
+if [[ "$MODEL" == "32omf" ]]; then
+    "$DM_MAKE" "${LIBS_MAKE_ARGS[@]}" unittest test_all
+else
+    "$GNU_MAKE" -j$N -f posix.mak MODEL=$MODEL DMD="$DMD_BIN_PATH" unittest
+    "$DM_MAKE" "${LIBS_MAKE_ARGS[@]}" test_all
+fi
 
 ################################################################################
 # Build and run Phobos unittests
@@ -179,7 +193,7 @@ else
     else
         cp "$DMD_DIR/tools/dmd2/windows/bin/libcurl.dll" .
     fi
-    "$DM_MAKE" "${LIBS_MAKE_ARGS[@]}" DRUNTIME="$DMD_DIR\druntime" unittest
+    "$DM_MAKE" "${LIBS_MAKE_ARGS[@]}" DRUNTIME="$DMD_DIR\druntime" DRUNTIMELIB="$DMD_DIR/generated/windows/release/$MODEL/druntime.lib" unittest
 fi
 
 ################################################################################

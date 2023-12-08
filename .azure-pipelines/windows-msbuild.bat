@@ -43,12 +43,11 @@ msbuild /target:dmd /p:Configuration=%CONFIGURATION% /p:Platform=%PLATFORM% %LDC
 %DMD% --version
 
 echo [STEP]: Building druntime
-cd "%DMD_DIR%\druntime"
-"%DM_MAKE%" -f win64.mak MODEL=%MODEL% "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "MAKE=%DM_MAKE%" "HOST_DMD=%HOST_DMD%" target || exit /B 2
+make -j%N% -C "%DMD_DIR%\druntime" -f posix.mak MODEL=%MODEL% "DMD=%DMD%" "HOST_DMD=%HOST_DMD%" || exit /B 2
 
 echo [STEP]: Building phobos
 cd "%DMD_DIR%\..\phobos"
-"%DM_MAKE%" -f win64.mak MODEL=%MODEL% "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "AR=%MSVC_AR%" "MAKE=%DM_MAKE%" "DRUNTIME=%DMD_DIR%\druntime" || exit /B 3
+"%DM_MAKE%" -f win64.mak MODEL=%MODEL% "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "AR=%MSVC_AR%" "MAKE=%DM_MAKE%" "DRUNTIME=%DMD_DIR%\druntime" "DRUNTIMELIB=%DMD_DIR%\generated\windows\release\%MODEL%\druntime.lib" || exit /B 3
 :: The expected Phobos filename for 32-bit COFF is phobos32mscoff.lib, not phobos32.lib.
 if "%MODEL%" == "32" ren phobos32.lib phobos32mscoff.lib || exit /B 3
 
@@ -93,7 +92,8 @@ if not "%C_RUNTIME%" == "mingw" goto not_mingw
 
 echo [STEP]: Building and running druntime tests
 cd "%DMD_DIR%\druntime"
-"%DM_MAKE%" -f win64.mak MODEL=%MODEL% "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "MAKE=%DM_MAKE%" unittest %DRUNTIME_TESTS% || exit /B 5
+make -j%N% -f posix.mak MODEL=%MODEL% "DMD=%DMD%" unittest || exit /B 5
+"%DM_MAKE%" -f win64.mak MODEL=%MODEL% "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "MAKE=%DM_MAKE%" %DRUNTIME_TESTS% || exit /B 5
 
 echo [STEP]: Running DMD testsuite
 cd "%DMD_DIR%\compiler\test"
@@ -108,4 +108,4 @@ if "%D_COMPILER%_%MODEL%" == "ldc_64" copy %LDC_DIR%\lib64\libcurl.dll .
 if "%D_COMPILER%_%MODEL%" == "ldc_32" copy %LDC_DIR%\lib32\libcurl.dll .
 if "%D_COMPILER%_%MODEL%" == "dmd_64" copy %DMD_DIR%\dmd2\windows\bin64\libcurl.dll .
 if "%D_COMPILER%_%MODEL%" == "dmd_32" copy %DMD_DIR%\dmd2\windows\bin\libcurl.dll .
-"%DM_MAKE%" -f win64.mak MODEL=%MODEL% "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "MAKE=%DM_MAKE%" "DRUNTIME=%DMD_DIR%\druntime" unittest || exit /B 7
+"%DM_MAKE%" -f win64.mak MODEL=%MODEL% "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "MAKE=%DM_MAKE%" "DRUNTIME=%DMD_DIR%\druntime" "DRUNTIMELIB=%DMD_DIR%\generated\windows\release\%MODEL%\druntime.lib" unittest || exit /B 7
