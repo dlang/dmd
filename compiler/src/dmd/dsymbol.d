@@ -203,20 +203,21 @@ enum PASS : ubyte
 }
 
 // Search options
-enum : int
+alias SearchOptFlags = uint;
+enum SearchOpt : SearchOptFlags
 {
-    IgnoreNone              = 0x00, // default
-    IgnorePrivateImports    = 0x01, // don't search private imports
-    IgnoreErrors            = 0x02, // don't give error messages
-    IgnoreAmbiguous         = 0x04, // return NULL if ambiguous
-    SearchLocalsOnly        = 0x08, // only look at locals (don't search imports)
-    SearchImportsOnly       = 0x10, // only look in imports
-    SearchUnqualifiedModule = 0x20, // the module scope search is unqualified,
+    all                     = 0x00, // search for all symbols
+    ignorePrivateImports    = 0x01, // don't search private imports
+    ignoreErrors            = 0x02, // don't give error messages
+    ignoreAmbiguous         = 0x04, // return NULL if ambiguous
+    localsOnly              = 0x08, // only look at locals (don't search imports)
+    importsOnly             = 0x10, // only look in imports
+    unqualifiedModule       = 0x20, // the module scope search is unqualified,
                                     // meaning don't search imports in that scope,
                                     // because qualified module searches search
                                     // their imports
-    IgnoreSymbolVisibility  = 0x80, // also find private and package protected symbols
-    TagNameSpace            = 0x100, // search ImportC tag symbol table
+    tagNameSpace            = 0x40, // search ImportC tag symbol table
+    ignoreVisibility        = 0x80, // also find private and package protected symbols
 }
 
 /***********************************************************
@@ -1263,7 +1264,7 @@ public:
         (*pary)[p.tag] = true;
     }
 
-    bool isPackageAccessible(Package p, Visibility visibility, int flags = 0) nothrow
+    bool isPackageAccessible(Package p, Visibility visibility, SearchOptFlags flags = SearchOpt.all) nothrow
     {
         if (p.tag < accessiblePackages.length && accessiblePackages[p.tag] ||
             visibility.kind == Visibility.Kind.private_ && p.tag < privateAccessiblePackages.length && privateAccessiblePackages[p.tag])
@@ -1272,7 +1273,7 @@ public:
         {
             // only search visible scopes && imported modules should ignore private imports
             if (visibility.kind <= visibilities[i] &&
-                ss.isScopeDsymbol.isPackageAccessible(p, visibility, IgnorePrivateImports))
+                ss.isScopeDsymbol.isPackageAccessible(p, visibility, SearchOpt.ignorePrivateImports))
                 return true;
         }
         return false;

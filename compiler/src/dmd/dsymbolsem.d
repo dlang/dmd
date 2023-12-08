@@ -1617,7 +1617,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 AliasDeclaration ad = imp.aliasdecls[i];
                 //printf("\tImport %s alias %s = %s, scope = %p\n", toPrettyChars(), aliases[i].toChars(), names[i].toChars(), ad._scope);
-                Dsymbol sym = imp.mod.search(imp.loc, imp.names[i], IgnorePrivateImports);
+                Dsymbol sym = imp.mod.search(imp.loc, imp.names[i], SearchOpt.ignorePrivateImports);
                 if (sym)
                 {
                     import dmd.access : symbolIsVisible;
@@ -7957,11 +7957,11 @@ void checkPrintfScanfSignature(FuncDeclaration funcdecl, TypeFunction f, Scope* 
  *  d = dsymbol where ident is searched for
  *  loc = location to print for error messages
  *  ident = identifier to search for
- *  flags = IgnoreXXXX
+ *  flags = search options
  * Returns:
  *  null if not found
  */
-extern(C++) Dsymbol search(Dsymbol d, const ref Loc loc, Identifier ident, int flags = IgnoreNone)
+extern(C++) Dsymbol search(Dsymbol d, const ref Loc loc, Identifier ident, SearchOptFlags flags = SearchOpt.all)
 {
     scope v = new SearchVisitor(loc, ident, flags);
     d.accept(v);
@@ -7986,13 +7986,13 @@ Dsymbol search_correct(Dsymbol d, Identifier ident)
         cost = 0;   // all the same cost
         Dsymbol s = d;
         Module.clearCache();
-        return s.search(Loc.initial, id, IgnoreErrors);
+        return s.search(Loc.initial, id, SearchOpt.ignoreErrors);
     }
 
     if (global.gag)
         return null; // don't do it for speculative compiles; too time consuming
     // search for exact name first
-    if (auto s = d.search(Loc.initial, ident, IgnoreErrors))
+    if (auto s = d.search(Loc.initial, ident, SearchOpt.ignoreErrors))
         return s;
 
     import dmd.root.speller : speller;
@@ -8005,10 +8005,10 @@ private extern(C++) class SearchVisitor : Visitor
 
     const Loc loc;
     Identifier ident;
-    int flags;
+    SearchOptFlags flags;
     Dsymbol result;
 
-    this(const ref Loc loc, Identifier ident, int flags)
+    this(const ref Loc loc, Identifier ident, SearchOptFlags flags)
     {
         this.loc = loc;
         this.ident = ident;
@@ -8032,7 +8032,7 @@ private extern(C++) class SearchVisitor : Visitor
         //if (strcmp(ident.toChars(),"c") == 0) *(char*)0=0;
 
         // Look in symbols declared in this module
-        if (sds.symtab && !(flags & SearchImportsOnly))
+        if (sds.symtab && !(flags & SearchOpt.importsOnly))
         {
             //printf(" look in locals\n");
             auto s1 = sds.symtab.lookup(ident);
@@ -8055,30 +8055,30 @@ private extern(C++) class SearchVisitor : Visitor
         for (size_t i = 0; i < sds.importedScopes.length; i++)
         {
             // If private import, don't search it
-            if ((flags & IgnorePrivateImports) && sds.visibilities[i] == Visibility.Kind.private_)
+            if ((flags & SearchOpt.ignorePrivateImports) && sds.visibilities[i] == Visibility.Kind.private_)
                 continue;
-            int sflags = flags & (IgnoreErrors | IgnoreAmbiguous); // remember these in recursive searches
+            SearchOptFlags sflags = flags & (SearchOpt.ignoreErrors | SearchOpt.ignoreAmbiguous); // remember these in recursive searches
             Dsymbol ss = (*sds.importedScopes)[i];
             //printf("\tscanning import '%s', visibilities = %d, isModule = %p, isImport = %p\n", ss.toChars(), visibilities[i], ss.isModule(), ss.isImport());
 
             if (ss.isModule())
             {
-                if (flags & SearchLocalsOnly)
+                if (flags & SearchOpt.localsOnly)
                     continue;
             }
             else // mixin template
             {
-                if (flags & SearchImportsOnly)
+                if (flags & SearchOpt.importsOnly)
                     continue;
 
-                sflags |= SearchLocalsOnly;
+                sflags |= SearchOpt.localsOnly;
             }
 
             /* Don't find private members if ss is a module
              */
-            Dsymbol s2 = ss.search(loc, ident, sflags | (ss.isModule() ? IgnorePrivateImports : IgnoreNone));
+            Dsymbol s2 = ss.search(loc, ident, sflags | (ss.isModule() ? SearchOpt.ignorePrivateImports : SearchOpt.all));
             import dmd.access : symbolIsVisible;
-            if (!s2 || !(flags & IgnoreSymbolVisibility) && !symbolIsVisible(sds, s2))
+            if (!s2 || !(flags & SearchOpt.ignoreVisibility) && !symbolIsVisible(sds, s2))
                 continue;
             if (!s)
             {
@@ -8149,7 +8149,7 @@ private extern(C++) class SearchVisitor : Visitor
                             }
                         }
 
-                        if (flags & IgnoreAmbiguous) // if return NULL on ambiguity
+                        if (flags & SearchOpt.ignoreAmbiguous) // if return NULL on ambiguity
                             return setResult(null);
 
                         /* If two imports from C import files, pick first one, as C has global name space
@@ -8157,7 +8157,7 @@ private extern(C++) class SearchVisitor : Visitor
                         if (s.isCsymbol() && s2.isCsymbol())
                             continue;
 
-                        if (!(flags & IgnoreErrors))
+                        if (!(flags & SearchOpt.ignoreErrors))
                             ScopeDsymbol.multiplyDefined(loc, s, s2);
                         break;
                     }
@@ -8184,7 +8184,7 @@ private extern(C++) class SearchVisitor : Visitor
     override void visit(WithScopeSymbol ws)
     {
         //printf("WithScopeSymbol.search(%s)\n", ident.toChars());
-        if (flags & SearchImportsOnly)
+        if (flags & SearchOpt.importsOnly)
             return setResult(null);
         // Acts as proxy to the with class declaration
         Dsymbol s = null;
@@ -8425,7 +8425,7 @@ private extern(C++) class SearchVisitor : Visitor
 
         if (!ns.members || !ns.symtab) // opaque or semantic() is not yet called
         {
-            if (!(flags & IgnoreErrors))
+            if (!(flags & SearchOpt.ignoreErrors))
                 .error(loc, "%s `%s` is forward referenced when looking for `%s`", ns.kind, ns.toPrettyChars, ident.toChars());
             return setResult(null);
         }
@@ -8448,7 +8448,7 @@ private extern(C++) class SearchVisitor : Visitor
     override void visit(Package pkg)
     {
         //printf("%s Package.search('%s', flags = x%x)\n", pkg.toChars(), ident.toChars(), flags);
-        flags &= ~SearchLocalsOnly;  // searching an import is always transitive
+        flags &= ~cast(int)SearchOpt.localsOnly;  // searching an import is always transitive
         if (!pkg.isModule() && pkg.mod)
         {
             // Prefer full package name.
@@ -8475,8 +8475,8 @@ private extern(C++) class SearchVisitor : Visitor
         /* Qualified module searches always search their imports,
          * even if SearchLocalsOnly
          */
-        if (!(flags & SearchUnqualifiedModule))
-            flags &= ~(SearchUnqualifiedModule | SearchLocalsOnly);
+        if (!(flags & SearchOpt.unqualifiedModule))
+            flags &= ~(SearchOpt.unqualifiedModule | SearchOpt.localsOnly);
 
         if (m.searchCacheIdent == ident && m.searchCacheFlags == flags)
         {
@@ -8525,7 +8525,7 @@ private extern(C++) class SearchVisitor : Visitor
         if (!sd.members || !sd.symtab) // opaque or semantic() is not yet called
         {
             // .stringof is always defined (but may be hidden by some other symbol)
-            if(ident != Id.stringof && !(flags & IgnoreErrors) && sd.semanticRun < PASS.semanticdone)
+            if(ident != Id.stringof && !(flags & SearchOpt.ignoreErrors) && sd.semanticRun < PASS.semanticdone)
                 .error(loc, "%s `%s` is forward referenced when looking for `%s`", sd.kind, sd.toPrettyChars, ident.toChars());
             return setResult(null);
         }
@@ -8551,7 +8551,7 @@ private extern(C++) class SearchVisitor : Visitor
         if (!cd.members || !cd.symtab) // opaque or addMember is not yet done
         {
             // .stringof is always defined (but may be hidden by some other symbol)
-            if (ident != Id.stringof && !(flags & IgnoreErrors) && cd.semanticRun < PASS.semanticdone)
+            if (ident != Id.stringof && !(flags & SearchOpt.ignoreErrors) && cd.semanticRun < PASS.semanticdone)
                 cd.classError("%s `%s` is forward referenced when looking for `%s`", ident.toChars());
             //*(char*)0=0;
             return setResult(null);
@@ -8561,7 +8561,7 @@ private extern(C++) class SearchVisitor : Visitor
         auto s = result;
 
         // don't search imports of base classes
-        if (flags & SearchImportsOnly)
+        if (flags & SearchOpt.importsOnly)
             return setResult(s);
 
         if (s)
@@ -8586,7 +8586,7 @@ private extern(C++) class SearchVisitor : Visitor
                 continue;
             else if (s == cd) // happens if s is nested in this and derives from this
                 s = null;
-            else if (!(flags & IgnoreSymbolVisibility) && !(s.visible().kind == Visibility.Kind.protected_) && !symbolIsVisible(cd, s))
+            else if (!(flags & SearchOpt.ignoreVisibility) && !(s.visible().kind == Visibility.Kind.protected_) && !symbolIsVisible(cd, s))
                 s = null;
             else
                 break;
