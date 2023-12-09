@@ -4097,7 +4097,7 @@ $(H3 $(LNAME2 safe-aliasing, Safe Aliasing))
 
     $(NOTE Safe aliasing does not imply that all aliased
     views of the data have $(RELATIVE_LINK2 safe-values, safe values).
-    Those must examined separately for safety.)
+    Those must be examined separately for safety.)
 
     $(P Examples:)
 
