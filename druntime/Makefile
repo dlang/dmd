@@ -340,10 +340,6 @@ import: copy
 
 copy: $(COPY)
 
-$(IMPDIR)/object.d : src/object.d
-	@mkdir -p $(dir $@)
-	@cp $< $@
-
 $(IMPDIR)/%.di : src/%.di
 	@mkdir -p $(dir $@)
 	@cp $< $@
@@ -367,7 +363,8 @@ $(abspath $(DMD_DIR)/../generated/$(OS)/$(BUILD)/$(MODEL)/dmd): $(DMD_DIR)/../ge
 ################### C/ASM Targets ############################
 
 # Although dmd is compiling the .c files, the preprocessor used on Windows is cl.exe.
-# The INCLUDE environment variable needs to be set with the path to the VC system include files.
+# Until https://issues.dlang.org/show_bug.cgi?id=24111 is fixed, the INCLUDE
+# enviroment variable needs to be set with the path to the VC system include files.
 
 OBJS:=$(ROOT)/errno_c$(DOTOBJ)
 ifeq (32omf,$(MODEL))
@@ -467,7 +464,7 @@ $(ROOT)/unittest/test_runner$(DOTEXE): $(UT_DRUNTIME) src/test_runner.d $(DMD)
 
 endif
 
-TESTS_EXTRACTOR=$(ROOT)/tests_extractor
+TESTS_EXTRACTOR=$(ROOT)/tests_extractor$(DOTEXE)
 BETTERCTESTS_DIR=$(ROOT)/betterctests
 
 # macro that returns the module name given the src path
@@ -492,13 +489,13 @@ test/%/.run: test/%/Makefile $(DMD)
 
 #################### benchmark suite ##########################
 
-$(ROOT)/benchmark: benchmark/runbench.d target $(DMD)
+$(ROOT)/benchmark$(DOTEXE): benchmark/runbench.d target $(DMD)
 	$(DMD) $(PHOBOS_DFLAGS) -de $< -of$@
 
-benchmark: $(ROOT)/benchmark
+benchmark: $(ROOT)/benchmark$(DOTEXE)
 	DMD=$(DMD) $<
 
-benchmark-compile-only: $(ROOT)/benchmark $(DMD)
+benchmark-compile-only: $(ROOT)/benchmark$(DOTEXE) $(DMD)
 	DMD=$(DMD) $< --repeat=0 --dflags="$(PHOBOS_DFLAGS) -de"
 
 #################### test for undesired white spaces ##########################
@@ -556,7 +553,7 @@ test/%/.clean: test/%/Makefile
 
 $(TESTS_EXTRACTOR): $(TOOLS_DIR)/tests_extractor.d | $(LIB)
 	$(DUB) build --force --single $<
-	mv $(TOOLS_DIR)/tests_extractor $@
+	mv $(TOOLS_DIR)/tests_extractor$(DOTEXE) $@
 
 test_extractor: $(TESTS_EXTRACTOR)
 
