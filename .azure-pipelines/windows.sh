@@ -164,8 +164,7 @@ fi
 ################################################################################
 
 cd "$DMD_DIR/druntime"
-"$GNU_MAKE" -j$N MODEL=$MODEL DMD="$DMD_BIN_PATH" unittest
-"$DM_MAKE" "${LIBS_MAKE_ARGS[@]}" test_all
+"$GNU_MAKE" -j$N MODEL=$MODEL DMD="$DMD_BIN_PATH" CC="$CC" unittest
 
 ################################################################################
 # Build and run Phobos unittests

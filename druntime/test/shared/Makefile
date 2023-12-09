@@ -1,6 +1,6 @@
 LINK_SHARED:=1
 
-include ../common.mak
+include ../common.mak # affected by LINK_SHARED!
 
 TESTS:=link load linkD linkDR loadDR host finalize dynamiccast
 TESTS+=link_linkdep load_linkdep link_loaddep load_loaddep load_13414

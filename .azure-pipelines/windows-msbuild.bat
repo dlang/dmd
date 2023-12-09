@@ -1,5 +1,10 @@
 setlocal
 @echo on
+
+:: put bash and GNU tools in front of PATH
+set PATH=C:\Program Files\Git\usr\bin;%PATH%
+
+:: now set up MSVC environment (=> first link.exe etc. in PATH is MSVC's, not GNU's)
 call "%VSINSTALLDIR%\VC\Auxiliary\Build\vcvarsall.bat" %ARCH%
 @echo on
 
@@ -60,7 +65,6 @@ run.exe tools "BUILD=%CONFIGURATION%" "DMD_MODEL=%PLATFORM%" || exit /B 4
 :: FIXME: skip unit_tests temporarily due to unclear (spurious?) CI failures
 :: set DMD_TESTS=all
 set DMD_TESTS=runnable runnable_cxx compilable fail_compilation dshell
-set DRUNTIME_TESTS=test_all
 cd "%DMD_DIR%"
 if not "%C_RUNTIME%" == "mingw" goto not_mingw
     rem install recent LLD and mingw libraries to built dmd
@@ -86,15 +90,12 @@ if not "%C_RUNTIME%" == "mingw" goto not_mingw
     set DMD_TESTS=runnable compilable fail_compilation dshell
     rem FIXME: debug info incomplete when linking through lld-link
     del compiler\test\runnable\testpdb.d
-
-    set DRUNTIME_TESTS=test_mingw
 :not_mingw
 
 echo [STEP]: Building and running druntime tests
 cd "%DMD_DIR%\druntime"
 :: only build & run the debug unittests, skip the release ones (Azure CI running out of memory when doing these in parallel)
-make -j%N% MODEL=%MODEL% "DMD=%DMD%" BUILD=debug unittest || exit /B 5
-"%DM_MAKE%" -f win64.mak MODEL=%MODEL% "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "MAKE=%DM_MAKE%" %DRUNTIME_TESTS% || exit /B 5
+make -j%N% MODEL=%MODEL% "DMD=%DMD%" BUILD=debug "CC=%MSVC_CC%" unittest || exit /B 5
 
 echo [STEP]: Running DMD testsuite
 cd "%DMD_DIR%\compiler\test"
