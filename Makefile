@@ -6,9 +6,22 @@ ECTAGS_FILES = compiler/dmd/*.[chd] compiler/dmd/backend/*.[chd] compiler/dmd/ro
 
 EXE=$(if $(findstring windows,$(OS)),.exe,)
 
-HOST_DMD?=$(DMD)
 ifeq (,$(HOST_DMD))
-    HOST_DMD=dmd$(EXE)
+    ifneq (,$(HOST_DC))
+        $(warning The HOST_DC variable is deprecated, please use HOST_DMD instead.)
+        HOST_DMD:=$(HOST_DC)
+    else ifneq (,$(DMD))
+        HOST_DMD:=$(DMD)
+    else ifneq (,$(shell which dmd))
+        HOST_DMD:=dmd$(EXE)
+    else ifneq (,$(shell which ldmd2))
+        HOST_DMD:=ldmd2$(EXE)
+    else ifneq (,$(shell which gdmd))
+        HOST_DMD:=gdmd$(EXE)
+    else
+        $(error Couldn't find a D host compiler. Please set variable HOST_DMD to the path to a dmd/ldmd2/gdmd executable)
+    endif
+    $(info Using D host compiler: $(HOST_DMD))
 endif
 export HOST_DMD
 
