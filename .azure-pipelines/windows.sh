@@ -100,7 +100,7 @@ DMD_BIN_PATH="$DMD_DIR/generated/windows/release/$TOOL_MODEL/dmd.exe"
 
 LIBS_MAKE_ARGS=(-f "$MAKE_FILE" MODEL=$MODEL DMD="$DMD_BIN_PATH" VCDIR=. CC="$CC" AR="$AR" MAKE="$DM_MAKE")
 
-"$GNU_MAKE" -j$N -C "$DMD_DIR/druntime" -f posix.mak MODEL=$MODEL DMD="$DMD_BIN_PATH"
+"$GNU_MAKE" -j$N -C "$DMD_DIR/druntime" MODEL=$MODEL DMD="$DMD_BIN_PATH"
 
 cd "$DMD_DIR/../phobos"
 "$DM_MAKE" "${LIBS_MAKE_ARGS[@]}" DRUNTIME="$DMD_DIR\druntime" DRUNTIMELIB="$DMD_DIR/generated/windows/release/$MODEL/druntime.lib"
@@ -164,7 +164,7 @@ fi
 ################################################################################
 
 cd "$DMD_DIR/druntime"
-"$GNU_MAKE" -j$N -f posix.mak MODEL=$MODEL DMD="$DMD_BIN_PATH" unittest
+"$GNU_MAKE" -j$N MODEL=$MODEL DMD="$DMD_BIN_PATH" unittest
 "$DM_MAKE" "${LIBS_MAKE_ARGS[@]}" test_all
 
 ################################################################################

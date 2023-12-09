@@ -62,7 +62,7 @@ build() {
     $DMD compiler/src/build.d -ofgenerated/build
     generated/build -j$N MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" BUILD=debug unittest
     generated/build -j$N MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=1 dmd
-    make -j$N -C druntime -f posix.mak MODEL=$MODEL
+    make -j$N -C druntime MODEL=$MODEL
     make -j$N -C ../phobos -f posix.mak MODEL=$MODEL
     deactivate # deactivate host compiler
 }
@@ -114,7 +114,7 @@ test_dmd() {
 
 # build and run druntime unit tests
 test_druntime() {
-    make -j$N -C druntime -f posix.mak MODEL=$MODEL unittest
+    make -j$N -C druntime MODEL=$MODEL unittest
 }
 
 # build and run Phobos unit tests

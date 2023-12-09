@@ -57,7 +57,7 @@ clean:
 	rm -rf $(GENERATED)
 	cd compiler/test && rm -rf test_results *.lst trace.log trace.def
 	$(RM) tags
-	$(QUIET)$(MAKE) -C druntime -f posix.mak clean
+	$(QUIET)$(MAKE) -C druntime clean
 
 dmd: $(BUILD_EXE)
 	$(BUILD_EXE) $@
@@ -67,10 +67,10 @@ dmd-test: dmd druntime $(BUILD_EXE) $(RUN_EXE)
 	$(RUN_EXE) --environment
 
 druntime: dmd
-	$(QUIET)$(MAKE) -C druntime -f posix.mak
+	$(QUIET)$(MAKE) -C druntime
 
 druntime-test: dmd
-	$(QUIET)$(MAKE) -C druntime -f posix.mak unittest
+	$(QUIET)$(MAKE) -C druntime unittest
 
 test: dmd-test druntime-test
 
