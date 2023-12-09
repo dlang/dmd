@@ -43,7 +43,7 @@ msbuild /target:dmd /p:Configuration=%CONFIGURATION% /p:Platform=%PLATFORM% %LDC
 %DMD% --version
 
 echo [STEP]: Building druntime
-make -j%N% -C "%DMD_DIR%\druntime" -f posix.mak MODEL=%MODEL% "DMD=%DMD%" "HOST_DMD=%HOST_DMD%" || exit /B 2
+make -j%N% -C "%DMD_DIR%\druntime" MODEL=%MODEL% "DMD=%DMD%" || exit /B 2
 
 echo [STEP]: Building phobos
 cd "%DMD_DIR%\..\phobos"
@@ -92,7 +92,7 @@ if not "%C_RUNTIME%" == "mingw" goto not_mingw
 
 echo [STEP]: Building and running druntime tests
 cd "%DMD_DIR%\druntime"
-make -j%N% -f posix.mak MODEL=%MODEL% "DMD=%DMD%" unittest || exit /B 5
+make -j%N% MODEL=%MODEL% "DMD=%DMD%" unittest || exit /B 5
 "%DM_MAKE%" -f win64.mak MODEL=%MODEL% "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "MAKE=%DM_MAKE%" %DRUNTIME_TESTS% || exit /B 5
 
 echo [STEP]: Running DMD testsuite
