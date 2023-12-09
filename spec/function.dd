@@ -4011,8 +4011,8 @@ $(H3 $(LNAME2 safe-values, Safe Values))
             bool b = true; /* b is initialized safe */
             *(cast(ubyte*) &b) = 0xAA; /* b is now unsafe because it's not 0 or 1 */
             int[3] a;
-            int[] d1 = a[0 .. 2]; /* d1 is safe. */
-            int[] d2 = a.ptr[0 .. 3]; /* d2 is unsafe because it goes beyond a's
+            int[] d1 = a[0 .. 3]; /* d1 is safe. */
+            int[] d2 = a.ptr[0 .. 4]; /* d2 is unsafe because it goes beyond a's
                 bounds. */
             int*[] d3 = [cast(int*) 0xDEADBEEF]; /* d3 is unsafe because the
                 element is unsafe. */
