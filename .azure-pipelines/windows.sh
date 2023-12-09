@@ -100,19 +100,10 @@ DMD_BIN_PATH="$DMD_DIR/generated/windows/release/$TOOL_MODEL/dmd.exe"
 
 LIBS_MAKE_ARGS=(-f "$MAKE_FILE" MODEL=$MODEL DMD="$DMD_BIN_PATH" VCDIR=. CC="$CC" AR="$AR" MAKE="$DM_MAKE")
 
-if [[ "$MODEL" == "32omf" ]]; then
-    cd "$DMD_DIR/druntime"
-    "$DM_MAKE" "${LIBS_MAKE_ARGS[@]}"
-else
-    "$GNU_MAKE" -j$N -C "$DMD_DIR/druntime" -f posix.mak MODEL=$MODEL DMD="$DMD_BIN_PATH"
-fi
+"$GNU_MAKE" -j$N -C "$DMD_DIR/druntime" -f posix.mak MODEL=$MODEL DMD="$DMD_BIN_PATH"
 
 cd "$DMD_DIR/../phobos"
-if [[ "$MODEL" == "32omf" ]]; then
-    "$DM_MAKE" "${LIBS_MAKE_ARGS[@]}" DRUNTIME="$DMD_DIR\druntime"
-else
-    "$DM_MAKE" "${LIBS_MAKE_ARGS[@]}" DRUNTIME="$DMD_DIR\druntime" DRUNTIMELIB="$DMD_DIR/generated/windows/release/$MODEL/druntime.lib"
-fi
+"$DM_MAKE" "${LIBS_MAKE_ARGS[@]}" DRUNTIME="$DMD_DIR\druntime" DRUNTIMELIB="$DMD_DIR/generated/windows/release/$MODEL/druntime.lib"
 
 ################################################################################
 # Run DMD testsuite
@@ -173,12 +164,8 @@ fi
 ################################################################################
 
 cd "$DMD_DIR/druntime"
-if [[ "$MODEL" == "32omf" ]]; then
-    "$DM_MAKE" "${LIBS_MAKE_ARGS[@]}" unittest test_all
-else
-    "$GNU_MAKE" -j$N -f posix.mak MODEL=$MODEL DMD="$DMD_BIN_PATH" unittest
-    "$DM_MAKE" "${LIBS_MAKE_ARGS[@]}" test_all
-fi
+"$GNU_MAKE" -j$N -f posix.mak MODEL=$MODEL DMD="$DMD_BIN_PATH" unittest
+"$DM_MAKE" "${LIBS_MAKE_ARGS[@]}" test_all
 
 ################################################################################
 # Build and run Phobos unittests
