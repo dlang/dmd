@@ -369,9 +369,11 @@ $(abspath $(DMD_DIR)/../generated/$(OS)/$(BUILD)/$(MODEL)/dmd): $(DMD_DIR)/../ge
 # Although dmd is compiling the .c files, the preprocessor used on Windows is cl.exe.
 # The INCLUDE environment variable needs to be set with the path to the VC system include files.
 
-# NOTE: minit.asm is only used for -m32omf on Windows
 OBJS:=$(ROOT)/errno_c$(DOTOBJ)
-ifneq (windows,$(OS))
+ifeq (32omf,$(MODEL))
+    # minit.asm is only used for -m32omf on Windows; there's a pre-built minit.obj
+    OBJS+=src/rt/minit$(DOTOBJ)
+else ifneq (windows,$(OS))
     OBJS+=$(ROOT)/threadasm$(DOTOBJ) $(ROOT)/valgrind$(DOTOBJ)
 endif
 
@@ -423,7 +425,12 @@ endif
 
 .PHONY : unittest
 ifeq (1,$(BUILD_WAS_SPECIFIED))
+ifeq (32omf,$(MODEL))
+unittest : $(addsuffix /.run,$(ADDITIONAL_TESTS))
+	@echo "Skipping druntime unittests because they cannot be linked on Win32 + OMF due to OPTLINK issues."
+else
 unittest : $(UT_MODULES) $(addsuffix /.run,$(ADDITIONAL_TESTS))
+endif
 else
 unittest : unittest-debug unittest-release
 unittest-%: target
