@@ -410,14 +410,16 @@ $(DRUNTIME): $(OBJS) $(SRCS) $(DMD)
 lib: $(DRUNTIME)
 
 UT_MODULES:=$(patsubst src/%.d,$(ROOT)/unittest/%,$(SRCS))
-# TODO: Windows
-HAS_ADDITIONAL_TESTS:=$(if $(findstring $(OS),windows),,$(shell test -d test && echo 1))
+HAS_ADDITIONAL_TESTS:=$(shell test -d test && echo 1)
 ifeq ($(HAS_ADDITIONAL_TESTS),1)
-	ADDITIONAL_TESTS:=test/init_fini test/exceptions test/coverage test/profile test/cycles test/allocations test/typeinfo \
-	    test/aa test/cpuid test/gc test/hash test/lifetime \
-	    test/thread test/unittest test/imports test/betterc test/stdcpp test/config \
-	    test/traits test/valgrind
-	ADDITIONAL_TESTS+=$(if $(SHARED),test/shared,)
+    ADDITIONAL_TESTS:=test/init_fini test/exceptions test/coverage test/profile test/cycles test/allocations test/typeinfo \
+        test/aa test/cpuid test/gc test/hash test/lifetime \
+        test/thread test/unittest test/imports test/betterc test/config \
+        test/traits test/uuid test/valgrind
+    ifneq (windows,$(OS)) # FIXME
+        ADDITIONAL_TESTS+=test/stdcpp
+    endif
+    ADDITIONAL_TESTS+=$(if $(SHARED),test/shared,)
 endif
 
 .PHONY : unittest
