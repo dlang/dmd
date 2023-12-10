@@ -24,10 +24,7 @@ set LDC_DIR=%DMD_DIR%\ldc2-%LDC_VERSION%-windows-multilib
 if "%D_COMPILER%" == "ldc" set HOST_DMD=%LDC_DIR%\bin\ldmd2.exe
 if "%D_COMPILER%" == "dmd" set HOST_DMD=%DMD_DIR%\dmd2\windows\bin\dmd.exe
 
-REM take the first found cl.exe, in case there was already one in the path when vcvarsall.bat was called
-FOR /F "tokens=* USEBACKQ" %%F IN (`where cl.exe`) DO (SET MSVC_CC=%%~fsF
-  goto CC_DONE)
-:CC_DONE
+set MSVC_CC=cl.exe
 FOR /F "tokens=* USEBACKQ" %%F IN (`where lib.exe`) DO (SET MSVC_AR=%%~fsF)
 
 REM add grep to PATH
