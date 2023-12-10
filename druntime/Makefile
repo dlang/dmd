@@ -430,7 +430,7 @@ endif
 .PHONY : unittest
 ifeq (1,$(BUILD_WAS_SPECIFIED))
 ifeq (32omf,$(MODEL))
-unittest : $(addsuffix /.run,$(ADDITIONAL_TESTS))
+unittest :
 	@echo "Skipping druntime unittests because they cannot be linked on Win32 + OMF due to OPTLINK issues."
 else
 unittest : $(UT_MODULES) $(addsuffix /.run,$(ADDITIONAL_TESTS))
