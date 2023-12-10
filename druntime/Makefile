@@ -414,16 +414,17 @@ HAS_ADDITIONAL_TESTS:=$(shell test -d test && echo 1)
 ifeq ($(HAS_ADDITIONAL_TESTS),1)
     ADDITIONAL_TESTS:=test/init_fini test/exceptions test/coverage test/profile test/cycles test/allocations test/typeinfo \
         test/aa test/cpuid test/gc test/hash test/lifetime \
-        test/thread test/unittest test/imports test/betterc test/config \
-        test/traits test/uuid test/valgrind
-    ifneq (32omf,$(MODEL))
-        ADDITIONAL_TESTS+=test/stdcpp
-    endif
+        test/thread test/unittest test/imports test/betterc test/stdcpp test/config test/traits
     ifneq (,$(SHARED))
         ADDITIONAL_TESTS+=test/shared
     else ifeq (windows,$(OS))
         # although a druntime DLL isn't supported yet, there are Windows-specific general DLL tests
         ADDITIONAL_TESTS+=test/shared
+    endif
+    ifeq (windows,$(OS))
+        ADDITIONAL_TESTS+=test/uuid
+    else
+        ADDITIONAL_TESTS+=test/valgrind
     endif
 endif
 

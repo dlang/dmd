@@ -5,7 +5,7 @@ include ../common.mak
 ifeq (windows,$(OS))
 
 CC:=cl
-EXTRA_CXXFLAGS:=/EHsc
+EXTRA_CXXFLAGS:=/nologo /EHsc
 EXTRA_DFLAGS:=
 
 TESTS:=allocator array memory new string utility vector
