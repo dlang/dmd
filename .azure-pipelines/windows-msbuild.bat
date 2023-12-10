@@ -91,8 +91,7 @@ if not "%C_RUNTIME%" == "mingw" goto not_mingw
 
 echo [STEP]: Building and running druntime tests
 cd "%DMD_DIR%\druntime"
-:: only build & run the debug unittests, skip the release ones (Azure CI running out of memory when doing these in parallel)
-make -j%N% MODEL=%MODEL% "DMD=%DMD%" BUILD=debug "CC=%MSVC_CC%" unittest || exit /B 5
+make -j%N% MODEL=%MODEL% "DMD=%DMD%" "CC=%MSVC_CC%" unittest || exit /B 5
 
 echo [STEP]: Running DMD testsuite
 cd "%DMD_DIR%\compiler\test"
