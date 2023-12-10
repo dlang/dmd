@@ -13,7 +13,6 @@ jobs:
     strategy:
       matrix:
         x64:
-          OS: Win_64
           MODEL: 64
           ARCH: x64
     steps:
@@ -29,11 +28,9 @@ jobs:
     strategy:
       matrix:
         x64:
-          OS: Win_64
           MODEL: 64
           ARCH: x64
         x86-OMF:
-          OS: Win_32
           MODEL: 32omf
           ARCH: x86
     steps:
@@ -52,13 +49,11 @@ jobs:
     strategy:
       matrix:
         x64:
-          OS: Win_64
           MODEL: 64
           ARCH: x64
 
         # x64 only because 32bit causes weird linker errors for several tests???
         # x86-OMF:
-        #   OS: Win_32
         #   MODEL: 32omf
         #   ARCH: x86
     steps:
@@ -75,17 +70,14 @@ jobs:
     strategy:
       matrix:
         x64_Debug:
-          OS: Win_64
           MODEL: 64
           ARCH: x64
           CONFIGURATION: Debug
         x86-mscoff:
-          OS: Win_32
-          MODEL: 32mscoff
+          MODEL: 32
           ARCH: x86
         x86-mscoff_MinGW:
-          OS: Win_32
-          MODEL: 32mscoff
+          MODEL: 32
           ARCH: x86
           C_RUNTIME: mingw
     steps:

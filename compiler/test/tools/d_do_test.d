@@ -172,6 +172,15 @@ immutable(EnvData) processEnvironment()
     envData.compiler       = "dmd"; //should be replaced for other compilers
     envData.ccompiler      = environment.get("CC");
     envData.model          = envGetRequired("MODEL");
+    if (envData.os == "windows" && envData.model == "32")
+    {
+        // FIXME: we need to translate the default 32-bit model (COFF) on Windows to legacy `32mscoff`.
+        // Reason: OMF-specific tests are currently specified like this:
+        //   DISABLED: win32mscoff win64 …
+        // and `DISABLED: win32` would disable it for `win32omf` too.
+        // So we'd need something like an `ENABLED: win32omf` parameter to restrict tests to specific platforms.
+        envData.model = "32mscoff";
+    }
     envData.required_args  = environment.get("REQUIRED_ARGS");
     envData.dobjc          = environment.get("D_OBJC") == "1";
     envData.coverage_build = environment.get("DMD_TEST_COVERAGE") == "1";
@@ -190,6 +199,8 @@ immutable(EnvData) processEnvironment()
             envData.ccompiler = "dmc";
         else if (envData.model == "64")
             envData.ccompiler = `C:\"Program Files (x86)"\"Microsoft Visual Studio 10.0"\VC\bin\amd64\cl.exe`;
+        else if (envData.model == "32mscoff")
+            envData.ccompiler = `C:\"Program Files (x86)"\"Microsoft Visual Studio 10.0"\VC\bin\amd64_x86\cl.exe`;
         else
         {
             writeln("Unknown $OS$MODEL combination: ", envData.os, envData.model);
@@ -519,8 +530,8 @@ private bool consumeNextToken(ref string file, const string token, ref const Env
                 file = file.stripLeft!(ch => ch == ' '); // Don't read line breaks
 
                 // Check if the current environment matches an entry in oss, which can either
-                // be an OS (e.g. "linux") or a combination of OS + MODEL (e.g. "windows32").
-                // The latter is important on windows because m32 might require other
+                // be an OS (e.g. "linux") or a combination of OS + MODEL (e.g. "windows32omf").
+                // The latter is important on windows because m32omf might require other
                 // parameters than m32mscoff/m64.
                 if (!oss.canFind!(o => o.skipOver(envData.os) && (o.empty || o == envData.model)))
                     continue; // Parameter was skipped
@@ -618,9 +629,9 @@ string getDisabledReason(string[] disabledPlatforms, const ref EnvData envData)
 
 unittest
 {
-    immutable EnvData win32         = { os: "windows",  model: "32", };
-    immutable EnvData win32mscoff   = { os: "windows",  model: "32mscoff", };
-    immutable EnvData win64         = { os: "windows",  model: "64", };
+    immutable EnvData win32omf      = { os: "windows",  model: "32omf" };
+    immutable EnvData win32mscoff   = { os: "windows",  model: "32mscoff" };
+    immutable EnvData win64         = { os: "windows",  model: "64" };
 
     assert(getDisabledReason(null, win64) is null);
 
@@ -631,10 +642,10 @@ unittest
     assert(getDisabledReason([ "linux", "win32" ], win64) is null);
 
     assert(getDisabledReason([ "win32mscoff" ], win32mscoff) == "on win32mscoff");
-    assert(getDisabledReason([ "win32mscoff" ], win32) is null);
+    assert(getDisabledReason([ "win32mscoff" ], win32omf) is null);
 
     assert(getDisabledReason([ "win32" ], win32mscoff) == "on win32");
-    assert(getDisabledReason([ "win32" ], win32) == "on win32");
+    assert(getDisabledReason([ "win32" ], win32omf) == "on win32");
 }
 /**
  * Reads the test configuration from the source code (using `findTestParameter` and
