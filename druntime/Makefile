@@ -419,7 +419,12 @@ ifeq ($(HAS_ADDITIONAL_TESTS),1)
     ifneq (32omf,$(MODEL))
         ADDITIONAL_TESTS+=test/stdcpp
     endif
-    ADDITIONAL_TESTS+=$(if $(SHARED),test/shared,)
+    ifneq (,$(SHARED))
+        ADDITIONAL_TESTS+=test/shared
+    else ifeq (windows,$(OS))
+        # although a druntime DLL isn't supported yet, there are Windows-specific general DLL tests
+        ADDITIONAL_TESTS+=test/shared
+    endif
 endif
 
 .PHONY : unittest
@@ -481,8 +486,12 @@ $(ROOT)/unittest/% : $(ROOT)/unittest/test_runner$(DOTEXE)
 # succeeded, render the file new again
 	@touch $@
 
+ifeq (,$(SHARED))
+$(addsuffix /.run,$(ADDITIONAL_TESTS)): $(DRUNTIME)
+else
 $(addsuffix /.run,$(filter-out test/shared,$(ADDITIONAL_TESTS))): $(DRUNTIME)
 test/shared/.run: $(DRUNTIMESO)
+endif
 
 test/%/.run: test/%/Makefile $(DMD)
 	$(QUIET)$(MAKE) -C test/$* MODEL=$(MODEL) OS=$(OS) DMD=$(abspath $(DMD)) BUILD=$(BUILD) \
