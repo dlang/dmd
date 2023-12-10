@@ -104,6 +104,10 @@ LIBS_MAKE_ARGS=(-f "$MAKE_FILE" MODEL=$MODEL DMD="$DMD_BIN_PATH" VCDIR=. CC="$CC
 
 cd "$DMD_DIR/../phobos"
 "$DM_MAKE" "${LIBS_MAKE_ARGS[@]}" DRUNTIME="$DMD_DIR\druntime" DRUNTIMELIB="$DMD_DIR/generated/windows/release/$MODEL/druntime.lib"
+if [[ "$MODEL" == "32" ]]; then
+    # the expected Phobos filename for 32-bit COFF is phobos32mscoff.lib, not phobos32.lib
+    mv phobos32.lib phobos32mscoff.lib
+fi
 
 ################################################################################
 # Run DMD testsuite
@@ -148,7 +152,7 @@ if [ "$HOST_DMD_VERSION" = "2.079.0" ] ; then
     targets=("runnable" "compilable" "fail_compilation" "dshell")
     args=() # use default set of args
 fi
-CC="$CC" ./run --environment --jobs=$N "${targets[@]}" "${args[@]}"
+./run --environment --jobs=$N "${targets[@]}" "${args[@]}" CC="$CC"
 
 ###############################################################################
 # Upload coverage reports and exit if ENABLE_COVERAGE is specified

@@ -33,6 +33,9 @@ jobs:
         x86-OMF:
           MODEL: 32omf
           ARCH: x86
+        x86:
+          MODEL: 32
+          ARCH: x86
     steps:
       - template: .azure-pipelines/windows.yml
       - template: .azure-pipelines/windows-artifact.yml
