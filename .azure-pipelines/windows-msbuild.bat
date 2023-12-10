@@ -95,8 +95,7 @@ make -j%N% MODEL=%MODEL% "DMD=%DMD%" "CC=%MSVC_CC%" unittest || exit /B 5
 
 echo [STEP]: Running DMD testsuite
 cd "%DMD_DIR%\compiler\test"
-set CC=%MSVC_CC%
-run.exe --environment --jobs=%N% %DMD_TESTS% "ARGS=-O -inline -g" "BUILD=%CONFIGURATION%" "DMD_MODEL=%PLATFORM%" || exit /B 6
+run.exe --environment --jobs=%N% %DMD_TESTS% "ARGS=-O -inline -g" "BUILD=%CONFIGURATION%" "DMD_MODEL=%PLATFORM%" "CC=%MSVC_CC%" || exit /B 6
 
 echo [STEP]: Building and running Phobos unittests
 rem FIXME: lld-link fails to link phobos unittests ("error: relocation against symbol in discarded section: __TMP2427")
