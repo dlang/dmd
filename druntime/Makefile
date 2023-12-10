@@ -416,7 +416,7 @@ ifeq ($(HAS_ADDITIONAL_TESTS),1)
         test/aa test/cpuid test/gc test/hash test/lifetime \
         test/thread test/unittest test/imports test/betterc test/config \
         test/traits test/uuid test/valgrind
-    ifneq (windows,$(OS)) # FIXME
+    ifneq (32omf,$(MODEL))
         ADDITIONAL_TESTS+=test/stdcpp
     endif
     ADDITIONAL_TESTS+=$(if $(SHARED),test/shared,)

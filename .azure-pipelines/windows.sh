@@ -35,7 +35,7 @@ if [ "$MODEL" == "32omf" ] ; then
     AR="$PWD/dm/bin/lib.exe"
     export CPPCMD="$PWD/dm/bin/sppn.exe"
 else
-    CC="$(where cl.exe)"
+    CC="cl.exe"
     AR="$(where lib.exe)" # must be done before installing dmd
 fi
 
