@@ -24,16 +24,20 @@ $(ROOT)/%: $(SRC)/%.cpp $(SRC)/%_test.d
 	@mkdir -p $(dir $@)
 
 	$(QUIET)$(CC) /MT $(EXTRA_CXXFLAGS) -c /Fo$@_cpp$(DOTOBJ) $<
-	$(QUIET)$(DMD) -mscrtlib=libcmt $(DFLAGS) $(EXTRA_DFLAGS) -main -unittest -version=CoreUnittest -version=_MSC_VER_$(MSC_VER) $@_cpp$(DOTOBJ) -run $(SRC)/$*_test.d
+	$(QUIET)$(DMD) -mscrtlib=libcmt $(DFLAGS) $(EXTRA_DFLAGS) -main -unittest -version=CoreUnittest -version=_MSC_VER_$(MSC_VER) -of$@$(DOTEXE) $@_cpp$(DOTOBJ) $(SRC)/$*_test.d
+	$(QUIET)$(TIMELIMIT)$@ $(RUN_ARGS)
 
 	$(QUIET)$(CC) /MD $(EXTRA_CXXFLAGS) -c /Fo$@_cpp$(DOTOBJ) $<
-	$(QUIET)$(DMD) -mscrtlib=msvcrt $(DFLAGS) $(EXTRA_DFLAGS) -main -unittest -version=CoreUnittest -version=_MSC_VER_$(MSC_VER) $@_cpp$(DOTOBJ) -run $(SRC)/$*_test.d
+	$(QUIET)$(DMD) -mscrtlib=msvcrt $(DFLAGS) $(EXTRA_DFLAGS) -main -unittest -version=CoreUnittest -version=_MSC_VER_$(MSC_VER) -of$@$(DOTEXE) $@_cpp$(DOTOBJ) $(SRC)/$*_test.d
+	$(QUIET)$(TIMELIMIT)$@ $(RUN_ARGS)
 
 	$(QUIET)$(CC) /MTd $(EXTRA_CXXFLAGS) -c /Fo$@_cpp$(DOTOBJ) $<
-	$(QUIET)$(DMD) -mscrtlib=libcmtd $(DFLAGS) $(EXTRA_DFLAGS) -main -unittest -version=CoreUnittest -version=_MSC_VER_$(MSC_VER) $@_cpp$(DOTOBJ) -run $(SRC)/$*_test.d
+	$(QUIET)$(DMD) -mscrtlib=libcmtd $(DFLAGS) $(EXTRA_DFLAGS) -main -unittest -version=CoreUnittest -version=_MSC_VER_$(MSC_VER) -of$@$(DOTEXE) $@_cpp$(DOTOBJ) $(SRC)/$*_test.d
+	$(QUIET)$(TIMELIMIT)$@ $(RUN_ARGS)
 
 	$(QUIET)$(CC) /MDd $(EXTRA_CXXFLAGS) -c /Fo$@_cpp$(DOTOBJ) $<
-	$(QUIET)$(DMD) -mscrtlib=msvcrtd $(DFLAGS) $(EXTRA_DFLAGS) -main -unittest -version=CoreUnittest -version=_MSC_VER_$(MSC_VER) $@_cpp$(DOTOBJ) -run $(SRC)/$*_test.d
+	$(QUIET)$(DMD) -mscrtlib=msvcrtd $(DFLAGS) $(EXTRA_DFLAGS) -main -unittest -version=CoreUnittest -version=_MSC_VER_$(MSC_VER) -of$@$(DOTEXE) $@_cpp$(DOTOBJ) $(SRC)/$*_test.d
+	$(QUIET)$(TIMELIMIT)$@ $(RUN_ARGS)
 
 else # Posix:
 

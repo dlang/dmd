@@ -9,30 +9,34 @@ ifeq (windows,$(OS))
 
 TESTS:=loadlibwin dllrefcount dllgc dynamiccast
 
-all: $(addprefix $(ROOT)/,$(TESTS))
+all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))
 
-$(ROOT)/dllrefcount: $(SRC)/dllrefcount.d
-	@echo Testing dllrefcount
-	$(QUIET)$(DMD) $(DFLAGS) -run $<
+$(ROOT)/%.done: $(ROOT)/%$(DOTEXE)
+	@echo Testing $*
+	$(QUIET)$(TIMELIMIT)$< $(RUN_ARGS)
+	@touch $@
 
-$(ROOT)/loadlibwin: $(SRC)/loadlibwin.d
-	@echo Testing loadlibwin
-	$(QUIET)$(DMD) $(DFLAGS) -run $<
-
-$(ROOT)/dllgc: $(SRC)/dllgc.d
-	@echo Testing dllgc
-	$(QUIET)$(DMD) $(DFLAGS) -version=DLL -shared -of$(ROOT)/dllgc$(DOTDLL) $<
-	$(QUIET)$(DMD) $(DFLAGS) -of$(ROOT)/loaddllgc$(DOTEXE) $<
-	$(QUIET)$(ROOT)/loaddllgc
-
-$(ROOT)/dynamiccast: $(SRC)/dynamiccast.d
-	@echo Testing dynamiccast
-	$(QUIET)$(DMD) $(DFLAGS) -version=DLL -shared -of$(ROOT)/dynamiccast$(DOTDLL) $<
-	$(QUIET)$(DMD) $(DFLAGS) -of$(ROOT)/dynamiccast$(DOTEXE) $<
+$(ROOT)/dynamiccast.done: $(ROOT)/%.done: $(ROOT)/%$(DOTEXE)
+	@echo Testing $*
 	$(QUIET)rm -f $(ROOT)/dynamiccast_end{bar,main}
-	$(QUIET)$(ROOT)/dynamiccast
+	$(QUIET)$(TIMELIMIT)$< $(RUN_ARGS)
 	$(QUIET)test -f $(ROOT)/dynamiccast_endbar
 	$(QUIET)test -f $(ROOT)/dynamiccast_endmain
+	@touch $@
+
+$(ROOT)/dllrefcount$(DOTEXE): $(SRC)/dllrefcount.d
+	$(QUIET)$(DMD) $(DFLAGS) -of$@ $<
+
+$(ROOT)/loadlibwin$(DOTEXE): $(SRC)/loadlibwin.d
+	$(QUIET)$(DMD) $(DFLAGS) -of$@ $<
+
+$(ROOT)/dllgc$(DOTEXE): $(SRC)/dllgc.d
+	$(QUIET)$(DMD) $(DFLAGS) -version=DLL -shared -of$(ROOT)/dllgc$(DOTDLL) $<
+	$(QUIET)$(DMD) $(DFLAGS) -of$@ $<
+
+$(ROOT)/dynamiccast$(DOTEXE): $(SRC)/dynamiccast.d
+	$(QUIET)$(DMD) $(DFLAGS) -version=DLL -shared -of$(ROOT)/dynamiccast$(DOTDLL) $<
+	$(QUIET)$(DMD) $(DFLAGS) -of$@ $<
 
 else # Posix:
 
