@@ -29,13 +29,12 @@ GENERATED=generated
 BUILD_EXE=$(GENERATED)/build$(EXE)
 RUN_EXE=$(GENERATED)/run$(EXE)
 
-.PHONY: all clean test install auto-tester-build auto-tester-test toolchain-info
+.PHONY: all clean test html install \
+        dmd dmd-test druntime druntime-test \
+        auto-tester-build auto-tester-test buildkite-test \
+        toolchain-info check-clean-git style
 
-all: $(BUILD_EXE)
-	$(BUILD_EXE) dmd
-ifneq (windows,$(OS))
-	$(QUIET)$(MAKE) -C druntime -f posix.mak target
-endif
+all: dmd druntime
 
 $(BUILD_EXE): compiler/src/build.d
 	$(HOST_DMD) -of$@ -g $<
@@ -62,12 +61,28 @@ ifneq (windows,$(OS))
 	$(QUIET)$(MAKE) -C druntime -f posix.mak clean
 endif
 
-test: all $(BUILD_EXE) $(RUN_EXE)
+dmd: $(BUILD_EXE)
+	$(BUILD_EXE) $@
+
+dmd-test: dmd druntime $(BUILD_EXE) $(RUN_EXE)
 	$(BUILD_EXE) unittest
 	$(RUN_EXE) --environment
-ifneq (windows,$(OS))
+
+druntime: dmd
+ifeq (windows,$(OS))
+	@echo "Building druntime via top-level Makefile on Windows will come soon"
+else
+	$(QUIET)$(MAKE) -C druntime -f posix.mak
+endif
+
+druntime-test: dmd
+ifeq (windows,$(OS))
+	@echo "Testing druntime via top-level Makefile on Windows will come soon"
+else
 	$(QUIET)$(MAKE) -C druntime -f posix.mak unittest
 endif
+
+test: dmd-test druntime-test
 
 html: $(BUILD_EXE)
 	$(BUILD_EXE) $@
