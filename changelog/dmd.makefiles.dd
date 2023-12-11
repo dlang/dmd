@@ -1,0 +1,11 @@
+Makefiles cleanup for the compiler
+
+The Makefiles for building the compiler (`compiler/src/{posix,win32,win64}.mak`) have been deprecated for a while, and finally removed. Please use the `compiler/src/build.d` tool directly now (see [docs](https://github.com/dlang/dmd/tree/master/compiler/src#building-the-compiler)), or build compiler and druntime in one step via the top-level Makefile in the repo root, e.g., for an optimized build using an LDC host compiler: `make -jN HOST_DMD=ldmd2 ENABLE_RELEASE=1 ENABLE_LTO=1`
+
+The top-level Makefile has been renamed from `posix.mak` to `Makefile` (with a deprecated `posix.mak` forwarder). The semantics of some targets have slightly changed, e.g., druntime is included in the `test` and `clean` targets now.
+
+The legacy `src/posix.mak` file still exists, but forwards to the top-level Makefile. So e.g. the default `all` target now includes druntime too, not just the compiler.
+
+Top-level `win{32,64}.mak` and legacy `src/win{32,64}.mak` files (for DigitalMars make) have been removed altogether. The generic top-level `Makefile` works on Windows too - with a GNU make (and a git installation providing bash and GNU tools).
+
+Long-deprecated `compiler/test/Makefile` has also been removed; use `compiler/test/run.d` directly instead (see [docs](https://github.com/dlang/dmd/tree/master/compiler/test#quick-guide)).
