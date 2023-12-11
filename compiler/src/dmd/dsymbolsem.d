@@ -572,7 +572,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             printf(" type = %s\n", dsym.type ? dsym.type.toChars() : "null");
             printf(" stc = x%llx\n", dsym.storage_class);
             printf(" storage_class = x%llx\n", dsym.storage_class);
-            printf("linkage = %d\n", dsym.linkage);
+            printf("linkage = %d\n", dsym._linkage);
             //if (strcmp(toChars(), "mul") == 0) assert(0);
         }
         //if (semanticRun > PASS.initial)
