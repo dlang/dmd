@@ -1899,6 +1899,7 @@ final class CParser(AST) : Parser!AST
                 }
 
                 bool isalias = true;
+                Identifier idt;
                 if (auto ts = dt.isTypeStruct())
                 {
                     if (ts.sym.isAnonymous())
@@ -1908,6 +1909,7 @@ final class CParser(AST) : Parser!AST
                         ts.sym.ident = id;
                         isalias = false;
                     }
+                    idt = ts.sym.ident;
                 }
                 else if (auto te = dt.isTypeEnum())
                 {
@@ -1917,6 +1919,7 @@ final class CParser(AST) : Parser!AST
                         te.sym.ident = id;
                         isalias = false;
                     }
+                    idt = te.sym.ident;
                 }
                 else if (auto tt = dt.isTypeTag())
                 {
@@ -1930,11 +1933,13 @@ final class CParser(AST) : Parser!AST
                         Specifier spec;
                         declareTag(tt, spec);
                     }
+                    idt = tt.id;
                 }
                 if (isalias)
                 {
                     auto ad = new AST.AliasDeclaration(token.loc, id, dt);
-                    ad.adFlags |= ad.hidden; // do not print when generating .di files
+                    if (id == idt)
+                        ad.adFlags |= ad.hidden; // do not print when generating .di files
                     s = ad;
                 }
 
