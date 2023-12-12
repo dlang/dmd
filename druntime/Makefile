@@ -543,8 +543,8 @@ install:
 	echo "Darwin_64_32_disabled"
 else
 install: target
-	mkdir -p $(INSTALL_DIR)/src/druntime/import
-	cp -r import/* $(INSTALL_DIR)/src/druntime/import/
+	mkdir -p '$(INSTALL_DIR)'/src/druntime/import
+	cp -r import/* '$(INSTALL_DIR)'/src/druntime/import/
 endif
 
 clean: $(addsuffix /.clean,$(ADDITIONAL_TESTS))
