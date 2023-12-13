@@ -624,7 +624,7 @@ private:
 public:
     ScopeDsymbol* syntaxCopy(Dsymbol* s) override;
     virtual void importScope(Dsymbol* s, Visibility visibility);
-    virtual bool isPackageAccessible(Package* p, Visibility visibility, int32_t flags = 0);
+    virtual bool isPackageAccessible(Package* p, Visibility visibility, uint32_t flags = 0u);
     bool isforwardRef() final override;
     static void multiplyDefined(const Loc& loc, Dsymbol* s1, Dsymbol* s2);
     const char* kind() const override;
@@ -2064,18 +2064,20 @@ struct FieldState final
         {}
 };
 
-enum
+enum class SearchOpt : uint32_t
 {
-    IgnoreNone = 0,
-    IgnorePrivateImports = 1,
-    IgnoreErrors = 2,
-    IgnoreAmbiguous = 4,
-    SearchLocalsOnly = 8,
-    SearchImportsOnly = 16,
-    SearchUnqualifiedModule = 32,
-    IgnoreSymbolVisibility = 128,
-    TagNameSpace = 256,
+    all = 0u,
+    ignorePrivateImports = 1u,
+    ignoreErrors = 2u,
+    ignoreAmbiguous = 4u,
+    localsOnly = 8u,
+    importsOnly = 16u,
+    unqualifiedModule = 32u,
+    tagNameSpace = 64u,
+    ignoreVisibility = 128u,
 };
+
+typedef uint32_t SearchOptFlags;
 
 enum : int32_t { IDX_NOTFOUND = 305419896 };
 
@@ -3084,7 +3086,7 @@ struct Param final
         cov(),
         covPercent(),
         ctfe_cov(false),
-        ignoreUnsupportedPragmas(),
+        ignoreUnsupportedPragmas(true),
         useModuleInfo(true),
         useTypeInfo(true),
         useExceptions(true),
@@ -3144,7 +3146,7 @@ struct Param final
         mapfile()
     {
     }
-    Param(bool obj, bool multiobj = false, bool trace = false, bool tracegc = false, bool vcg_ast = false, DiagnosticReporting useDeprecated = (DiagnosticReporting)1u, bool useUnitTests = false, bool useInline = false, bool release = false, bool preservePaths = false, DiagnosticReporting warnings = (DiagnosticReporting)2u, bool cov = false, uint8_t covPercent = 0u, bool ctfe_cov = false, bool ignoreUnsupportedPragmas = false, bool useModuleInfo = true, bool useTypeInfo = true, bool useExceptions = true, bool useGC = true, bool betterC = false, bool addMain = false, bool allInst = false, bool bitfields = false, CppStdRevision cplusplus = (CppStdRevision)201103u, Help help = Help(), Verbose v = Verbose(), FeatureState useDIP25 = (FeatureState)2u, FeatureState useDIP1000 = (FeatureState)0u, bool ehnogc = false, bool useDIP1021 = false, FeatureState fieldwise = (FeatureState)0u, bool fixAliasThis = false, FeatureState rvalueRefParam = (FeatureState)0u, FeatureState noSharedAccess = (FeatureState)0u, bool previewIn = false, bool inclusiveInContracts = false, bool shortenedMethods = true, bool fixImmutableConv = false, bool fix16997 = true, FeatureState dtorFields = (FeatureState)0u, FeatureState systemVariables = (FeatureState)0u, CHECKENABLE useInvariants = (CHECKENABLE)0u, CHECKENABLE useIn = (CHECKENABLE)0u, CHECKENABLE useOut = (CHECKENABLE)0u, CHECKENABLE useArrayBounds = (CHECKENABLE)0u, CHECKENABLE useAssert = (CHECKENABLE)0u, CHECKENABLE useSwitchError = (CHECKENABLE)0u, CHECKENABLE boundscheck = (CHECKENABLE)0u, CHECKACTION checkAction = (CHECKACTION)0u, _d_dynamicArray< const char > argv0 = {}, Array<const char* > modFileAliasStrings = Array<const char* >(), Array<const char* >* imppath = nullptr, Array<const char* >* fileImppath = nullptr, _d_dynamicArray< const char > objdir = {}, _d_dynamicArray< const char > objname = {}, _d_dynamicArray< const char > libname = {}, Output ddoc = Output(), Output dihdr = Output(), Output cxxhdr = Output(), Output json = Output(), JsonFieldFlags jsonFieldFlags = (JsonFieldFlags)0u, Output makeDeps = Output(), Output mixinOut = Output(), Output moduleDeps = Output(), uint32_t debuglevel = 0u, uint32_t versionlevel = 0u, bool run = false, Array<const char* > runargs = Array<const char* >(), Array<const char* > cppswitches = Array<const char* >(), const char* cpp = nullptr, Array<const char* > objfiles = Array<const char* >(), Array<const char* > linkswitches = Array<const char* >(), Array<bool > linkswitchIsForCC = Array<bool >(), Array<const char* > libfiles = Array<const char* >(), Array<const char* > dllfiles = Array<const char* >(), _d_dynamicArray< const char > deffile = {}, _d_dynamicArray< const char > resfile = {}, _d_dynamicArray< const char > exefile = {}, _d_dynamicArray< const char > mapfile = {}) :
+    Param(bool obj, bool multiobj = false, bool trace = false, bool tracegc = false, bool vcg_ast = false, DiagnosticReporting useDeprecated = (DiagnosticReporting)1u, bool useUnitTests = false, bool useInline = false, bool release = false, bool preservePaths = false, DiagnosticReporting warnings = (DiagnosticReporting)2u, bool cov = false, uint8_t covPercent = 0u, bool ctfe_cov = false, bool ignoreUnsupportedPragmas = true, bool useModuleInfo = true, bool useTypeInfo = true, bool useExceptions = true, bool useGC = true, bool betterC = false, bool addMain = false, bool allInst = false, bool bitfields = false, CppStdRevision cplusplus = (CppStdRevision)201103u, Help help = Help(), Verbose v = Verbose(), FeatureState useDIP25 = (FeatureState)2u, FeatureState useDIP1000 = (FeatureState)0u, bool ehnogc = false, bool useDIP1021 = false, FeatureState fieldwise = (FeatureState)0u, bool fixAliasThis = false, FeatureState rvalueRefParam = (FeatureState)0u, FeatureState noSharedAccess = (FeatureState)0u, bool previewIn = false, bool inclusiveInContracts = false, bool shortenedMethods = true, bool fixImmutableConv = false, bool fix16997 = true, FeatureState dtorFields = (FeatureState)0u, FeatureState systemVariables = (FeatureState)0u, CHECKENABLE useInvariants = (CHECKENABLE)0u, CHECKENABLE useIn = (CHECKENABLE)0u, CHECKENABLE useOut = (CHECKENABLE)0u, CHECKENABLE useArrayBounds = (CHECKENABLE)0u, CHECKENABLE useAssert = (CHECKENABLE)0u, CHECKENABLE useSwitchError = (CHECKENABLE)0u, CHECKENABLE boundscheck = (CHECKENABLE)0u, CHECKACTION checkAction = (CHECKACTION)0u, _d_dynamicArray< const char > argv0 = {}, Array<const char* > modFileAliasStrings = Array<const char* >(), Array<const char* >* imppath = nullptr, Array<const char* >* fileImppath = nullptr, _d_dynamicArray< const char > objdir = {}, _d_dynamicArray< const char > objname = {}, _d_dynamicArray< const char > libname = {}, Output ddoc = Output(), Output dihdr = Output(), Output cxxhdr = Output(), Output json = Output(), JsonFieldFlags jsonFieldFlags = (JsonFieldFlags)0u, Output makeDeps = Output(), Output mixinOut = Output(), Output moduleDeps = Output(), uint32_t debuglevel = 0u, uint32_t versionlevel = 0u, bool run = false, Array<const char* > runargs = Array<const char* >(), Array<const char* > cppswitches = Array<const char* >(), const char* cpp = nullptr, Array<const char* > objfiles = Array<const char* >(), Array<const char* > linkswitches = Array<const char* >(), Array<bool > linkswitchIsForCC = Array<bool >(), Array<const char* > libfiles = Array<const char* >(), Array<const char* > dllfiles = Array<const char* >(), _d_dynamicArray< const char > deffile = {}, _d_dynamicArray< const char > resfile = {}, _d_dynamicArray< const char > exefile = {}, _d_dynamicArray< const char > mapfile = {}) :
         obj(obj),
         multiobj(multiobj),
         trace(trace),
@@ -4768,6 +4770,7 @@ struct ASTCodegen final
     using EnumDeclaration = ::EnumDeclaration;
     using EnumMember = ::EnumMember;
     using Import = ::Import;
+    using ForeachDg = ::ForeachDg;
     using Module = ::Module;
     using ModuleDeclaration = ::ModuleDeclaration;
     using Package = ::Package;
@@ -4784,6 +4787,8 @@ struct ASTCodegen final
     using OverloadSet = ::OverloadSet;
     using PASS = ::PASS;
     using ScopeDsymbol = ::ScopeDsymbol;
+    using SearchOpt = ::SearchOpt;
+    using SearchOptFlags = ::SearchOptFlags;
     using Ungag = ::Ungag;
     using Visibility = ::Visibility;
     using WithScopeSymbol = ::WithScopeSymbol;
@@ -5058,6 +5063,7 @@ struct ASTCodegen final
     typedef Dsymbol* Dsymbol;
     typedef Array<Dsymbol* > Dsymbols;
     typedef Visibility Visibility;
+    typedef SearchOpt SearchOpt;
     typedef PASS PASS;
     ASTCodegen()
     {
@@ -6229,7 +6235,7 @@ public:
     bool rootImports();
     Identifier* searchCacheIdent;
     Dsymbol* searchCacheSymbol;
-    int32_t searchCacheFlags;
+    uint32_t searchCacheFlags;
     bool insearch;
     Module* importedFrom;
     Array<Dsymbol* >* decldefs;
@@ -6253,7 +6259,7 @@ public:
     void importAll(Scope* prevsc) override;
     int32_t needModuleInfo();
     void checkImportDeprecation(const Loc& loc, Scope* sc);
-    bool isPackageAccessible(Package* p, Visibility visibility, int32_t flags = 0) override;
+    bool isPackageAccessible(Package* p, Visibility visibility, uint32_t flags = 0u) override;
     Dsymbol* symtabInsert(Dsymbol* s) override;
     static void runDeferredSemantic();
     static void runDeferredSemantic2();
@@ -6342,7 +6348,7 @@ struct Scope final
     void* anchorCounts;
     Identifier* prevAnchor;
     AliasDeclaration* aliasAsg;
-    Dsymbol* search(const Loc& loc, Identifier* ident, Dsymbol** pscopesym, int32_t flags = 0);
+    Dsymbol* search(const Loc& loc, Identifier* ident, Dsymbol*& pscopesym, uint32_t flags = 0u);
     Scope() :
         enclosing(),
         _module(),
@@ -6563,7 +6569,7 @@ extern void dsymbolSemantic(Dsymbol* dsym, Scope* sc);
 
 extern void addMember(Dsymbol* dsym, Scope* sc, ScopeDsymbol* sds);
 
-extern Dsymbol* search(Dsymbol* d, const Loc& loc, Identifier* ident, int32_t flags = 0);
+extern Dsymbol* search(Dsymbol* d, const Loc& loc, Identifier* ident, uint32_t flags = 0u);
 
 extern void setScope(Dsymbol* d, Scope* sc);
 

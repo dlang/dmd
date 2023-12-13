@@ -49,6 +49,8 @@ version (DigitalMars)
         enum SizedReg(int reg, T = size_t) = registerNames[reg][RegIndex!T];
     }
 
+    enum IsAtomicLockFree(T) = T.sizeof <= size_t.sizeof * 2;
+
     inout(T) atomicLoad(MemoryOrder order = MemoryOrder.seq, T)(inout(T)* src) pure nothrow @nogc @trusted
         if (CanCAS!T)
     {
@@ -649,6 +651,11 @@ version (DigitalMars)
         }
     }
 
+    void atomicSignalFence(MemoryOrder order = MemoryOrder.seq)() pure nothrow @nogc @trusted
+    {
+        // no-op, dmd doesn't reorder instructions
+    }
+
     void pause() pure nothrow @nogc @trusted
     {
         version (D_InlineAsm_X86)
@@ -680,6 +687,8 @@ else version (GNU)
 {
     import gcc.builtins;
     import gcc.config;
+
+    enum IsAtomicLockFree(T) = __atomic_is_lock_free(T.sizeof, null);
 
     inout(T) atomicLoad(MemoryOrder order = MemoryOrder.seq, T)(inout(T)* src) pure nothrow @nogc @trusted
         if (CanCAS!T)
@@ -943,6 +952,11 @@ else version (GNU)
             getAtomicMutex.lock();
             getAtomicMutex.unlock();
         }
+    }
+
+    void atomicSignalFence(MemoryOrder order = MemoryOrder.seq)() pure nothrow @nogc @trusted
+    {
+        __atomic_signal_fence(order);
     }
 
     void pause() pure nothrow @nogc @trusted

@@ -401,7 +401,7 @@ extern (C++) final class Module : Package
 
     Identifier searchCacheIdent;
     Dsymbol searchCacheSymbol;  // cached value of search
-    int searchCacheFlags;       // cached flags
+    SearchOptFlags searchCacheFlags;       // cached flags
     bool insearch;
 
     /**
@@ -1021,14 +1021,14 @@ extern (C++) final class Module : Package
         }
     }
 
-    override bool isPackageAccessible(Package p, Visibility visibility, int flags = 0)
+    override bool isPackageAccessible(Package p, Visibility visibility, SearchOptFlags flags = SearchOpt.all)
     {
         if (insearch) // don't follow import cycles
             return false;
         insearch = true;
         scope (exit)
             insearch = false;
-        if (flags & IgnorePrivateImports)
+        if (flags & SearchOpt.ignorePrivateImports)
             visibility = Visibility(Visibility.Kind.public_); // only consider public imports
         return super.isPackageAccessible(p, visibility);
     }
@@ -1384,7 +1384,53 @@ extern (C++) void getLocalClasses(Module mod, ref ClassDeclarations aclasses)
         return 0;
     }
 
-    ScopeDsymbol._foreach(null, mod.members, &pushAddClassDg);
+    _foreach(null, mod.members, &pushAddClassDg);
+}
+
+
+alias ForeachDg = int delegate(size_t idx, Dsymbol s);
+
+/***************************************
+ * Expands attribute declarations in members in depth first
+ * order. Calls dg(size_t symidx, Dsymbol *sym) for each
+ * member.
+ * If dg returns !=0, stops and returns that value else returns 0.
+ * Use this function to avoid the O(N + N^2/2) complexity of
+ * calculating dim and calling N times getNth.
+ * Returns:
+ *  last value returned by dg()
+ */
+int _foreach(Scope* sc, Dsymbols* members, scope ForeachDg dg, size_t* pn = null)
+{
+    assert(dg);
+    if (!members)
+        return 0;
+    size_t n = pn ? *pn : 0; // take over index
+    int result = 0;
+    foreach (size_t i; 0 .. members.length)
+    {
+        import dmd.attrib : AttribDeclaration;
+        import dmd.dtemplate : TemplateMixin;
+
+        Dsymbol s = (*members)[i];
+        if (AttribDeclaration a = s.isAttribDeclaration())
+            result = _foreach(sc, a.include(sc), dg, &n);
+        else if (TemplateMixin tm = s.isTemplateMixin())
+            result = _foreach(sc, tm.members, dg, &n);
+        else if (s.isTemplateInstance())
+        {
+        }
+        else if (s.isUnitTestDeclaration())
+        {
+        }
+        else
+            result = dg(n++, s);
+        if (result)
+            break;
+    }
+    if (pn)
+        *pn = n; // update index
+    return result;
 }
 
 /**

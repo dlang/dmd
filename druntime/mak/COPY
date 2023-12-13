@@ -89,6 +89,7 @@ COPY=\
 	$(IMPDIR)\core\internal\vararg\sysv_x64.d \
 	\
 	$(IMPDIR)\core\stdc\assert_.d \
+	$(IMPDIR)\core\stdc\stdatomic.d \
 	$(IMPDIR)\core\stdc\complex.d \
 	$(IMPDIR)\core\stdc\config.d \
 	$(IMPDIR)\core\stdc\ctype.d \

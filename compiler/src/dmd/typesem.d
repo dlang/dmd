@@ -228,7 +228,7 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
 
         Type t = s.getType(); // type symbol, type alias, or type tuple?
         uint errorsave = global.errors;
-        int flags = t is null ? SearchLocalsOnly : IgnorePrivateImports;
+        SearchOptFlags flags = t is null ? SearchOpt.localsOnly : SearchOpt.ignorePrivateImports;
 
         Dsymbol sm = s.searchX(loc, sc, id, flags);
         if (sm)
@@ -380,12 +380,12 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
  *  loc = location to print the error messages
  *  sc = the scope where the symbol is located
  *  id = the id of the symbol
- *  flags = the search flags which can be `SearchLocalsOnly` or `IgnorePrivateImports`
+ *  flags = the search flags which can be `SearchLocalsOnly` or `SearchOpt.ignorePrivateImports`
  *
  * Returns:
  *      symbol found, NULL if not
  */
-private Dsymbol searchX(Dsymbol dsym, const ref Loc loc, Scope* sc, RootObject id, int flags)
+private Dsymbol searchX(Dsymbol dsym, const ref Loc loc, Scope* sc, RootObject id, SearchOptFlags flags)
 {
     //printf("Dsymbol::searchX(this=%p,%s, ident='%s')\n", this, toChars(), ident.toChars());
     Dsymbol s = dsym.toAlias();
@@ -1878,7 +1878,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
         /* look for pre-existing declaration
          */
         Dsymbol scopesym;
-        auto s = sc2.search(mtype.loc, mtype.id, &scopesym, IgnoreErrors | TagNameSpace);
+        auto s = sc2.search(mtype.loc, mtype.id, scopesym, SearchOpt.ignoreErrors | SearchOpt.tagNameSpace);
         if (!s || s.isModule())
         {
             // no pre-existing declaration, so declare it
@@ -2753,7 +2753,7 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
         }
 
         Dsymbol scopesym;
-        Dsymbol s = sc.search(loc, mt.ident, &scopesym);
+        Dsymbol s = sc.search(loc, mt.ident, scopesym);
         /*
          * https://issues.dlang.org/show_bug.cgi?id=1170
          * https://issues.dlang.org/show_bug.cgi?id=10739
@@ -2776,7 +2776,7 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
                         mixinTempl.dsymbolSemantic(sc);
                 }
                 sds.members.foreachDsymbol( s => semanticOnMixin(s) );
-                s = sc.search(loc, mt.ident, &scopesym);
+                s = sc.search(loc, mt.ident, scopesym);
             }
         }
 
@@ -3794,8 +3794,8 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             return e;
         }
 
-        immutable flags = sc.flags & SCOPE.ignoresymbolvisibility ? IgnoreSymbolVisibility : 0;
-        s = mt.sym.search(e.loc, ident, flags | IgnorePrivateImports);
+        immutable flags = sc.flags & SCOPE.ignoresymbolvisibility ? SearchOpt.ignoreVisibility : 0;
+        s = mt.sym.search(e.loc, ident, flags | SearchOpt.ignorePrivateImports);
     L1:
         if (!s)
         {
@@ -4074,8 +4074,8 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             return e;
         }
 
-        int flags = sc.flags & SCOPE.ignoresymbolvisibility ? IgnoreSymbolVisibility : 0;
-        s = mt.sym.search(e.loc, ident, flags | IgnorePrivateImports);
+        SearchOptFlags flags = sc.flags & SCOPE.ignoresymbolvisibility ? SearchOpt.ignoreVisibility : SearchOpt.all;
+        s = mt.sym.search(e.loc, ident, flags | SearchOpt.ignorePrivateImports);
 
     L1:
         if (!s)
@@ -4723,7 +4723,7 @@ Type getComplexLibraryType(const ref Loc loc, Scope* sc, TY ty)
         return *pt;
     }
 
-    Dsymbol s = mConfig.searchX(Loc.initial, sc, id, IgnorePrivateImports);
+    Dsymbol s = mConfig.searchX(Loc.initial, sc, id, SearchOpt.ignorePrivateImports);
     if (!s)
     {
         error(loc, "`%s` not found in core.stdc.config", id.toChars());
