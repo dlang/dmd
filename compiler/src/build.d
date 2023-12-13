@@ -576,7 +576,7 @@ alias dmdPGO = makeRule!((builder, rule) {
             // Run phobos unittests
             //TODO makefiles
             //generated/linux/release/64/unittest/test_runner builds the unittests without running them.
-            const scope cmd = ["make", "-C", "../phobos", "-j" ~ jobs.to!string, "-fposix.mak", "generated/linux/release/64/unittest/test_runner", "DMD_DIR="~compilerDir];
+            const scope cmd = ["make", "-C", "../phobos", "-j" ~ jobs.to!string, "generated/linux/release/64/unittest/test_runner", "DMD_DIR="~compilerDir];
             log("%-(%s %)", cmd);
             if (spawnProcess(cmd, null, Config.init, compilerDir).wait())
                 stderr.writeln("Phobos Tests failed! This will not end the PGO build because some data may have been gathered");

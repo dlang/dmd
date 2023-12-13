@@ -18,14 +18,10 @@ set DMD=%DMD_DIR%\generated\Windows\%CONFIGURATION%\%PLATFORM%\dmd.exe
 
 set VISUALD_INSTALLER=VisualD-%VISUALD_VER%.exe
 set N=3
-set DM_MAKE=%DMD_DIR%\dm\path\make.exe
 set LDC_DIR=%DMD_DIR%\ldc2-%LDC_VERSION%-windows-multilib
 
 if "%D_COMPILER%" == "ldc" set HOST_DMD=%LDC_DIR%\bin\ldmd2.exe
 if "%D_COMPILER%" == "dmd" set HOST_DMD=%DMD_DIR%\dmd2\windows\bin\dmd.exe
-
-set MSVC_CC=cl.exe
-FOR /F "tokens=* USEBACKQ" %%F IN (`where lib.exe`) DO (SET MSVC_AR=%%~fsF)
 
 REM add grep to PATH
 set PATH=%DMD_DIR%\tools;%PATH%
@@ -48,10 +44,7 @@ echo [STEP]: Building druntime
 make -j%N% -C "%DMD_DIR%\druntime" MODEL=%MODEL% "DMD=%DMD%" || exit /B 2
 
 echo [STEP]: Building phobos
-cd "%DMD_DIR%\..\phobos"
-"%DM_MAKE%" -f win64.mak MODEL=%MODEL% "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "AR=%MSVC_AR%" "MAKE=%DM_MAKE%" "DRUNTIME=%DMD_DIR%\druntime" "DRUNTIMELIB=%DMD_DIR%\generated\windows\release\%MODEL%\druntime.lib" || exit /B 3
-:: The expected Phobos filename for 32-bit COFF is phobos32mscoff.lib, not phobos32.lib.
-if "%MODEL%" == "32" ren phobos32.lib phobos32mscoff.lib || exit /B 3
+make -j%N% -C "%DMD_DIR%\..\phobos" MODEL=%MODEL% "DMD=%DMD%" "DMD_DIR=%DMD_DIR%" || exit /B 3
 
 echo [STEP]: Building run.d testrunner and its tools
 REM needs to be done before tampering with LIB and DFLAGS env variables (affecting the ldmd2 host compiler too)
@@ -94,11 +87,11 @@ if not "%C_RUNTIME%" == "mingw" goto not_mingw
 
 echo [STEP]: Building and running druntime tests
 cd "%DMD_DIR%\druntime"
-make -j%N% MODEL=%MODEL% "DMD=%DMD%" "CC=%MSVC_CC%" %DRUNTIME_TESTS_TARGET% || exit /B 5
+make -j%N% MODEL=%MODEL% "DMD=%DMD%" %DRUNTIME_TESTS_TARGET% || exit /B 5
 
 echo [STEP]: Running DMD testsuite
 cd "%DMD_DIR%\compiler\test"
-run.exe --environment --jobs=%N% %DMD_TESTS% "ARGS=-O -inline -g" "BUILD=%CONFIGURATION%" "DMD_MODEL=%PLATFORM%" "CC=%MSVC_CC%" || exit /B 6
+run.exe --environment --jobs=%N% %DMD_TESTS% "ARGS=-O -inline -g" "BUILD=%CONFIGURATION%" "DMD_MODEL=%PLATFORM%" CC=cl.exe || exit /B 6
 
 echo [STEP]: Building and running Phobos unittests
 rem FIXME: lld-link fails to link phobos unittests ("error: relocation against symbol in discarded section: __TMP2427")
@@ -108,4 +101,4 @@ if "%D_COMPILER%_%MODEL%" == "ldc_64" copy %LDC_DIR%\lib64\libcurl.dll .
 if "%D_COMPILER%_%MODEL%" == "ldc_32" copy %LDC_DIR%\lib32\libcurl.dll .
 if "%D_COMPILER%_%MODEL%" == "dmd_64" copy %DMD_DIR%\dmd2\windows\bin64\libcurl.dll .
 if "%D_COMPILER%_%MODEL%" == "dmd_32" copy %DMD_DIR%\dmd2\windows\bin\libcurl.dll .
-"%DM_MAKE%" -f win64.mak MODEL=%MODEL% "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "MAKE=%DM_MAKE%" "DRUNTIME=%DMD_DIR%\druntime" "DRUNTIMELIB=%DMD_DIR%\generated\windows\release\%MODEL%\druntime.lib" unittest || exit /B 7
+make -j%N% MODEL=%MODEL% "DMD=%DMD%" "DMD_DIR=%DMD_DIR%" unittest || exit /B 7

@@ -118,7 +118,7 @@ coverage()
     # build dmd, druntime, and phobos
     $builder MODEL=$MODEL HOST_DMD=$DMD BUILD=$BUILD all
     make -j$N -C druntime MODEL=$MODEL BUILD=$BUILD
-    make -j$N -C ../phobos -f posix.mak MODEL=$MODEL BUILD=$BUILD
+    make -j$N -C ../phobos MODEL=$MODEL BUILD=$BUILD
 
     # save the built dmd as host compiler this time
     # `generated` gets removed in 'clean', so we create another _generated
@@ -190,7 +190,7 @@ test_cxx()
     echo "Test CXX frontend.h header generation"
     ./compiler/src/build.d
     make -j$N -C druntime MODEL=$MODEL BUILD=$BUILD
-    make -j$N -C ../phobos -f posix.mak MODEL=$MODEL BUILD=$BUILD
+    make -j$N -C ../phobos MODEL=$MODEL BUILD=$BUILD
     ./compiler/src/build.d cxx-headers-test
     deactivate
 }

@@ -26,17 +26,14 @@ echo "GREP_VERSION: $(grep --version)"
 # Prepare DigitalMars make and C compiler
 ################################################################################
 
-GNU_MAKE="$(which make)" # must be done before installing dmd (tampers with PATH)
-install_host_dmc
-DM_MAKE="$PWD/dm/bin/make.exe"
+GNU_MAKE="$(which make)" # must be done before installing dmc (tampers with PATH)
 
 if [ "$MODEL" == "32omf" ] ; then
+    install_host_dmc
     CC="$PWD/dm/bin/dmc.exe"
-    AR="$PWD/dm/bin/lib.exe"
     export CPPCMD="$PWD/dm/bin/sppn.exe"
 else
     CC="cl.exe"
-    AR="$(where lib.exe)" # must be done before installing dmd
 fi
 
 ################################################################################
@@ -98,16 +95,9 @@ DMD_BIN_PATH="$DMD_DIR/generated/windows/release/$TOOL_MODEL/dmd.exe"
 # Build Druntime and Phobos
 ################################################################################
 
-LIBS_MAKE_ARGS=(-f "$MAKE_FILE" MODEL=$MODEL DMD="$DMD_BIN_PATH" VCDIR=. CC="$CC" AR="$AR" MAKE="$DM_MAKE")
-
 "$GNU_MAKE" -j$N -C "$DMD_DIR/druntime" MODEL=$MODEL DMD="$DMD_BIN_PATH"
 
-cd "$DMD_DIR/../phobos"
-"$DM_MAKE" "${LIBS_MAKE_ARGS[@]}" DRUNTIME="$DMD_DIR\druntime" DRUNTIMELIB="$DMD_DIR/generated/windows/release/$MODEL/druntime.lib"
-if [[ "$MODEL" == "32" ]]; then
-    # the expected Phobos filename for 32-bit COFF is phobos32mscoff.lib, not phobos32.lib
-    mv phobos32.lib phobos32mscoff.lib
-fi
+"$GNU_MAKE" -j$N -C "$DMD_DIR/../phobos" MODEL=$MODEL DMD="$DMD_BIN_PATH" CC="$CC" DMD_DIR="$DMD_DIR"
 
 ################################################################################
 # Run DMD testsuite
@@ -183,7 +173,7 @@ else
     else
         cp "$DMD_DIR/tools/dmd2/windows/bin/libcurl.dll" .
     fi
-    "$DM_MAKE" "${LIBS_MAKE_ARGS[@]}" DRUNTIME="$DMD_DIR\druntime" DRUNTIMELIB="$DMD_DIR/generated/windows/release/$MODEL/druntime.lib" unittest
+    "$GNU_MAKE" -j$N MODEL=$MODEL DMD="$DMD_BIN_PATH" CC="$CC" DMD_DIR="$DMD_DIR" unittest
 fi
 
 ################################################################################
