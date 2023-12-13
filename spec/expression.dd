@@ -1645,7 +1645,7 @@ $(H4 $(LNAME2 argument-parameter-matching, Matching Arguments to Parameters))
     )
     $(P
         Any other argument is assigned to the next parameter relative to the preceding argument's parameter.
-        It is an error if no such field exists, i.e. when the preceding argument assigns to the last parameter.
+        It is an error if no such parameter exists, i.e. when the preceding argument assigns to the last parameter.
     )
     $(P
         Assigning a parameter more than once is an error.
@@ -1655,7 +1655,8 @@ $(H4 $(LNAME2 argument-parameter-matching, Matching Arguments to Parameters))
 
 $(H4 $(LNAME2 type-constructor-arguments, Constructing a Type with an Argument List))
     $(P A type can precede a list of arguments.
-    See: $(DDSUBLINK spec/struct, struct-literal, Struct Literals)) and $(RELATIVE_LINK2 uniform_construction_syntax, Uniform construction syntax for built-in scalar types))
+    See: $(DDSUBLINK spec/struct, struct-literal, Struct Literals) and $(RELATIVE_LINK2 uniform_construction_syntax, Uniform construction syntax for built-in scalar types)
+    )
 
 $(H3 $(LEGACY_LNAME2 index_operations, index_expressions, Index Operations))
 
