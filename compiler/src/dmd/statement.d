@@ -26,13 +26,10 @@ import dmd.declaration;
 import dmd.dsymbol;
 import dmd.expression;
 import dmd.func;
-import dmd.globals;
-import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
 import dmd.mtype;
-import dmd.common.outbuffer;
 import dmd.rootobject;
 import dmd.sapply;
 import dmd.staticassert;
@@ -333,6 +330,8 @@ extern (C++) final class ErrorStatement : Statement
     extern (D) this()
     {
         super(Loc.initial, STMT.Error);
+
+        import dmd.globals;
         assert(global.gaggedErrors || global.errors);
     }
 
