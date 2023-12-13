@@ -1280,16 +1280,16 @@ $(H2 $(LNAME2 function-overloading, Function Overloading))
         )
 
         $(OL
-        $(LI no match)
-        $(LI match with implicit conversions)
-        $(LI match with qualifier conversion (if the argument type is
+        $(LI No match)
+        $(LI Match with implicit conversions)
+        $(LI Match with qualifier conversion (if the argument type is
         $(GLOSSARY qualifier-convertible) to the parameter type))
-        $(LI exact match)
+        $(LI Exact match)
         )
 
-        $(P Named Arguments are resolved for a candidate according to
+        $(P Named arguments are resolved for a candidate according to
         $(DDSUBLINK spec/expression, argument-parameter-matching, Matching Arguments to Parameters).
-        If this fails (for example, because the overload does not have a parameter with an argument's assigned named),
+        If this fails (for example, because the overload does not have a parameter matching a named argument),
         the level is $(I no match). Other than that, named arguments do not affect the matching level.
         )
 

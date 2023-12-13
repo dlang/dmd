@@ -470,38 +470,34 @@ $(H2 $(LEGACY_LNAME2 StructLiteral, struct-literal, Struct Literals))
         ---
         struct S { int x; float y; }
 
-        int foo(S s) { return s.x; }
-
-        foo( S(1, 2) ); // set field x to 1, field y to 2
-        foo( S(y: 2, x: 1) ); // same as above
+        S s1 = S(1, 2); // set field x to 1, field y to 2
+        S s2 = S(y: 2, x: 1); // same as above
+        assert(s1 == s2);
         ---
         )
 
-        $(P Struct literals are syntactically like function calls.
-        If a struct has a $(RELATIVE_LINK2 struct-constructor, Constructor)
+        $(P
+        If a struct has a $(RELATIVE_LINK2 struct-constructor, constructor)
         or a member function named `opCall`, then
         struct literals for that struct are not possible. See also
         $(DDSUBLINK spec/operatoroverloading, FunctionCall, opCall operator overloading)
         for the issue workaround.)
-        $(P
-            If the first argument has no name, it will be assigned to the struct field that is defined first lexically.
-        )
-        $(P
-            A named argument is assigned to the struct field with the same name.
-            It is an error if no such field exists.
-        )
-        $(P
-            Any other argument is assigned to the next lexically defined struct field relative to the preceding argument's struct field.
-            It is an error if no such field exists, i.e. when the preceding argument assigns to the last struct field.
-        )
-        $(P
-            It is also an error to assign a field more than once.
-        )
-        $(P
-            Any fields not assigned a value are initialized with their respective default initializers.
-        )
-        $(NOTE
-            These rules are consistent with function calls, see $(DDSUBLINK spec/expression, argument-parameter-matching, Matching Arguments to Parameters).
+
+        $(P Struct literals are syntactically like function calls.)
+
+        $(PANEL
+        Arguments are assigned to fields as follows:
+
+          1. If the first argument has no name, it will be assigned to the struct field that is defined first lexically.
+          1. A named argument is assigned to the struct field with the same name.
+             It is an error if no such field exists.
+          1. Any other argument is assigned to the next lexically defined struct field relative to the preceding argument's struct field.
+             It is an error if no such field exists, i.e. when the preceding argument assigns to the last struct field.
+          1. It is also an error to assign a field more than once.
+          1. Any fields not assigned a value are initialized with their respective default initializers.
+
+        **Note:**
+            These rules are consistent with function calls, see $(DDSUBLINK spec/function, argument-parameter-matching, Matching Arguments to Parameters).
         )
         $(P
         If there is a union field in the struct, only one
@@ -509,14 +505,18 @@ $(H2 $(LEGACY_LNAME2 StructLiteral, struct-literal, Struct Literals))
         struct literal. This matches the behaviour for union literals.
         )
 
-        $(SPEC_RUNNABLE_EXAMPLE_FAIL
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
-        struct S { int x = 1; int y = 2, int z = 3; }
+        struct S { int x = 1, y = 2, z = 3; }
 
         S s0 = S(y: 5, 6, x: 4); // `6` is assigned to field `z`, which comes after `y`
+        assert(s0.z == 6);
+
         S s1 = S(y: 5, z: 6);    // Field x is not assigned, set to default initializer `1`
-        S s2 = S(y: 5, x: 4, 5); // Error: field `y` is assigned twice
-        S s3 = S(z: 2, 3);       // Error: no field beyond `z`
+        assert(s1.x == 1);
+
+        //S s2 = S(y: 5, x: 4, 5); // Error: field `y` is assigned twice
+        //S s3 = S(z: 2, 3);       // Error: no field beyond `z`
         ---
         )
 
