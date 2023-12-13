@@ -375,6 +375,8 @@ void setDefaultLibrary(ref Param params, const ref Target target)
 
     if (driverParams.debuglibname is null)
         driverParams.debuglibname = driverParams.defaultlibname;
+    else if (!driverParams.debuglibname.length)  // if `-debuglib=` (i.e. an empty debuglib)
+        driverParams.debuglibname = null;
 }
 
 void printPredefinedVersions(FILE* stream)

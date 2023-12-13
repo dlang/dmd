@@ -277,31 +277,6 @@ jobs:
             exit 1
         fi
 
-    # Restore or install dmc (and DM make)
-    - name: '[Windows] Restore dmc from cache'
-      id: cache-dmc
-      if: runner.os == 'Windows'
-      uses: actions/cache@v3
-      with:
-        path: ${{ github.workspace }}\tools\
-        key: ${{ matrix.os }}-dmc857
-
-    - name: '[Windows] Install dmc'
-      if: runner.os == 'Windows' && steps.cache-dmc.outputs.cache-hit != 'true'
-      shell: powershell
-      run: |
-        $url = "http://ftp.digitalmars.com/Digital_Mars_C++/Patch/dm857c.zip"
-        $sha256hash = "F51CDFEB45EAF4FFBF7ABF0FE9B3D548B202B4528401005C2C3192B00BC32367"
-        Write-Host ('Downloading {0} ...' -f $url)
-        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-        $ProgressPreference = 'SilentlyContinue'
-        New-Item -ItemType directory -Path ${{ github.workspace }}\tools\
-        Invoke-WebRequest -Uri $url -OutFile '${{ github.workspace }}\tools\dmc.zip'
-        if ((Get-FileHash '${{ github.workspace }}\tools\dmc.zip' -Algorithm "SHA256").Hash -ne $sha256hash) {
-          exit 1
-        }
-        Expand-Archive '${{ github.workspace }}\tools\dmc.zip' -DestinationPath ${{ github.workspace }}\tools\
-
     - name: '[Windows] Add VC toolset to PATH'
       if: runner.os == 'Windows'
       uses: ilammy/msvc-dev-cmd@v1
@@ -310,10 +285,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: bash
       run: |
-        echo "VISUAL_STUDIO_LIB_NOT_DM=$(which lib.exe)" >> $GITHUB_ENV
         echo "HOST_DMD=${{ env.DC }}" >> $GITHUB_ENV
-        echo "GNU_MAKE=$(which make.exe)" >> $GITHUB_ENV
-        echo "${{ github.workspace }}/tools/dm/bin/" >> $GITHUB_PATH
 
     ########################################
     #    Building DMD, druntime, Phobos    #
@@ -326,13 +298,13 @@ jobs:
         # All hosts are 64 bits but let's be explicit
         ./dmd/compiler/src/build.d -j2 MODEL=64
         make -C dmd/druntime -j2 MODEL=64
-        make -C phobos   -f posix.mak -j2 MODEL=64
+        make -C phobos       -j2 MODEL=64
         # Both version can live side by side (they end up in a different directory)
         # However, since clang does not provide a multilib package, only test 32 bits with g++
         if [ ${{ matrix.compiler }} == "g++" ]; then
           ./dmd/compiler/src/build.d install -j2 MODEL=32
           make -C dmd/druntime install -j2 MODEL=32
-          make -C phobos   -f posix.mak install -j2 MODEL=32
+          make -C phobos       install -j2 MODEL=32
         fi
 
     - name: '[Windows] Build compiler & standard library'
@@ -344,12 +316,10 @@ jobs:
         # Note: Only CC for druntime and AR for Phobos are required ATM,
         # but providing all three to avoid surprise for future contributors
         # Those should really be in the path, though.
-        "$GNU_MAKE" -j2 -C dmd/druntime
+        make -j2 -C dmd/druntime
         if [ $? -ne 0 ]; then return 1; fi
-        cd phobos/
-        make -f win64.mak CC=cl.exe LD=link "AR=$VISUAL_STUDIO_LIB_NOT_DM" "DRUNTIMELIB=../dmd/generated/windows/release/64/druntime.lib"
+        make -j2 -C phobos
         if [ $? -ne 0 ]; then return 1; fi
-        cd ../
 
     ########################################
     #        Running the test suite        #
@@ -370,7 +340,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: bash
       run: |
-        "$GNU_MAKE" -j2 -C dmd/druntime test/stdcpp/.run CC=cl.exe LD=link "AR=$VISUAL_STUDIO_LIB_NOT_DM"
+        make -j2 -C dmd/druntime test/stdcpp/.run
         if [ $? -ne 0 ]; then return 1; fi
 
     ########################################
