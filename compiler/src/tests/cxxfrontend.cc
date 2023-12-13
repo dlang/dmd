@@ -280,7 +280,7 @@ void test_semantic()
     m->src = src;
     m->parse();
     m->importedFrom = m;
-    m->importAll(NULL);
+    importAll(m, NULL);
     dsymbolSemantic(m, NULL);
     semantic2(m, NULL);
     semantic3(m, NULL);
@@ -496,7 +496,7 @@ void test_cppmangle()
     m->src = src;
     m->parse();
     m->importedFrom = m;
-    m->importAll(NULL);
+    importAll(m, NULL);
     dsymbolSemantic(m, NULL);
     semantic2(m, NULL);
     semantic3(m, NULL);
