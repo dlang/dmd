@@ -501,7 +501,7 @@ $(H2 $(LEGACY_LNAME2 StructLiteral, struct-literal, Struct Literals))
             Any fields not assigned a value are initialized with their respective default initializers.
         )
         $(NOTE
-            These rules are consistent with function calls, see $(DDSUBLINK spec/function, argument-parameter-matching, Matching Arguments to Parameters).
+            These rules are consistent with function calls, see $(DDSUBLINK spec/expression, argument-parameter-matching, Matching Arguments to Parameters).
         )
         $(P
         If there is a union field in the struct, only one
