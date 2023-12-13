@@ -1287,6 +1287,12 @@ $(H2 $(LNAME2 function-overloading, Function Overloading))
         $(LI exact match)
         )
 
+        $(P Named Arguments are resolved for a candidate according to
+        $(DDSUBLINK spec/expression, argument-parameter-matching, Matching Arguments to Parameters).
+        If this fails (for example, because the overload does not have a parameter with an argument's assigned named),
+        the level is $(I no match). Other than that, named arguments do not affect the matching level.
+        )
+
         $(P Each argument (including any $(CODE this) reference) is
         compared against the function's corresponding parameter to
         determine the match level for that argument. The match level
@@ -1693,10 +1699,6 @@ pure void f()
     g();  // error, cannot access mutable global `m.b` in pure function
 }
 ---
-
-        $(P If the default value for a parameter is given, all following
-        parameters must also have default values.
-        )
 
         $(P See also: function type aliases
         $(DDSUBLINK spec/declaration, alias-function, with default values).)

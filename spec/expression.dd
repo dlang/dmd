@@ -1621,7 +1621,7 @@ $(GNAME NamedArgument):
     $(GLINK AssignExpression)
 )
 
-    $(P A callable expression can precede a list of arguments in parentheses.)
+    $(P A callable expression can precede a list of named arguments in parentheses.)
 
 ---
 void f(int, int);
@@ -1630,20 +1630,32 @@ f(5, 6);
 (&f)(5, 6);
 ---
 
-    $(P A type can precede a list of arguments.)
+$(H4 $(LNAME2 argument-parameter-matching, Matching Arguments to Parameters))
 
----
-struct S
-{
-    int x, y;
-}
+    $(P
+        Arguments in the `NamedArgumentList` are matched to function parameters as follows:
+    )
 
-S s = S(1, 2);
----
+    $(P
+        If the first argument has no name, it will be assigned to the first function parameter.
+    )
+    $(P
+        A named argument is assigned to the function parameter with the same name.
+        It is an error if no such parameter exists.
+    )
+    $(P
+        Any other argument is assigned to the next parameter relative to the preceding argument's parameter.
+        It is an error if no such field exists, i.e. when the preceding argument assigns to the last parameter.
+    )
+    $(P
+        Assigning a parameter more than once is an error.
+        Not assigning a parameter any argument is also an error,
+        unless the parameter has a $(DDSUBLINK spec/function, function-default-args, Default Argument).
+    )
 
-    $(P See also: $(RELATIVE_LINK2 uniform_construction_syntax,
-    Uniform construction syntax for built-in scalar types))
-
+$(H4 $(LNAME2 type-constructor-arguments, Constructing a Type with an Argument List))
+    $(P A type can precede a list of arguments.
+    See: $(DDSUBLINK spec/struct, struct-literal, Struct Literals)) and $(RELATIVE_LINK2 uniform_construction_syntax, Uniform construction syntax for built-in scalar types))
 
 $(H3 $(LEGACY_LNAME2 index_operations, index_expressions, Index Operations))
 
@@ -2497,6 +2509,12 @@ $(H3 $(LNAME2 uniform_construction_syntax, Uniform construction syntax for built
         ---
         auto a = ushort();  // same as: ushort.init
         auto b = wchar();   // same as: wchar.init
+        ---
+
+    $(P The argument may not be given a name:)
+
+        ---
+        auto a = short(x: 1); // Error
         ---
 
     $(P See also: $(DDSUBLINK spec/type, usual-arithmetic-conversions, Usual Arithmetic Conversions).)
