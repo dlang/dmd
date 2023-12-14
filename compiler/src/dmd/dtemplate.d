@@ -7831,15 +7831,6 @@ extern (C++) final class TemplateMixin : TemplateInstance
         return members.foreachDsymbol( (s) { return s.hasPointers(); } ) != 0;
     }
 
-    override void setFieldOffset(AggregateDeclaration ad, ref FieldState fieldState, bool isunion)
-    {
-        //printf("TemplateMixin.setFieldOffset() %s\n", toChars());
-        if (_scope) // if fwd reference
-            dsymbolSemantic(this, null); // try to resolve it
-
-        members.foreachDsymbol( (s) { s.setFieldOffset(ad, fieldState, isunion); } );
-    }
-
     override const(char)* toChars() const
     {
         OutBuffer buf;

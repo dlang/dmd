@@ -29,7 +29,6 @@ public:
     void addComment(const utf8_t *comment) override;
     const char *kind() const override;
     bool oneMember(Dsymbol **ps, Identifier *ident) override;
-    void setFieldOffset(AggregateDeclaration *ad, FieldState& fieldState, bool isunion) override;
     bool hasPointers() override final;
     bool hasStaticCtorOrDtor() override final;
     void checkCtorConstInit() override final;
@@ -131,7 +130,6 @@ public:
     unsigned anonalignsize;     // size of anonymous struct for alignment purposes
 
     AnonDeclaration *syntaxCopy(Dsymbol *s) override;
-    void setFieldOffset(AggregateDeclaration *ad, FieldState& fieldState, bool isunion) override;
     const char *kind() const override;
     AnonDeclaration *isAnonDeclaration() override { return this; }
     void accept(Visitor *v) override { v->visit(this); }

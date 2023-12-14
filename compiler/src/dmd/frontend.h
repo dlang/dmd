@@ -52,7 +52,6 @@ class LabelDsymbol;
 class ClassDeclaration;
 class Type;
 class Package;
-struct FieldState;
 template <typename T>
 struct Array;
 class UnitTestDeclaration;
@@ -516,7 +515,6 @@ public:
     virtual Visibility visible();
     virtual Dsymbol* syntaxCopy(Dsymbol* s);
     virtual bool oneMember(Dsymbol** ps, Identifier* ident);
-    virtual void setFieldOffset(AggregateDeclaration* ad, FieldState& fieldState, bool isunion);
     virtual bool hasPointers();
     virtual bool hasStaticCtorOrDtor();
     virtual void addObjcSymbols(Array<ClassDeclaration* >* classes, Array<ClassDeclaration* >* categories);
@@ -1536,7 +1534,6 @@ public:
     const char* kind() const override;
     bool oneMember(Dsymbol** ps, Identifier* ident) override;
     bool hasPointers() override;
-    void setFieldOffset(AggregateDeclaration* ad, FieldState& fieldState, bool isunion) override;
     const char* toChars() const override;
     TemplateMixin* isTemplateMixin() override;
     void accept(Visitor* v) override;
@@ -5349,7 +5346,6 @@ public:
     Expression* identExp;
     Nspace* syntaxCopy(Dsymbol* s) override;
     bool hasPointers() override;
-    void setFieldOffset(AggregateDeclaration* ad, FieldState& fieldState, bool isunion) override;
     const char* kind() const override;
     Nspace* isNspace() override;
     void accept(Visitor* v) override;
@@ -6798,7 +6794,6 @@ public:
     void addComment(const char* comment) override;
     const char* kind() const override;
     bool oneMember(Dsymbol** ps, Identifier* ident) override;
-    void setFieldOffset(AggregateDeclaration* ad, FieldState& fieldState, bool isunion) override;
     bool hasPointers() final override;
     bool hasStaticCtorOrDtor() final override;
     void checkCtorConstInit() final override;
@@ -6892,7 +6887,6 @@ public:
     uint32_t anonstructsize;
     uint32_t anonalignsize;
     AnonDeclaration* syntaxCopy(Dsymbol* s) override;
-    void setFieldOffset(AggregateDeclaration* ad, FieldState& fieldState, bool isunion) override;
     const char* kind() const override;
     AnonDeclaration* isAnonDeclaration() override;
     void accept(Visitor* v) override;
@@ -7334,7 +7328,6 @@ public:
     uint8_t isdataseg;
     static VarDeclaration* create(const Loc& loc, Type* type, Identifier* ident, Initializer* _init, StorageClass storage_class = static_cast<StorageClass>(STC::undefined_));
     VarDeclaration* syntaxCopy(Dsymbol* s) override;
-    void setFieldOffset(AggregateDeclaration* ad, FieldState& fieldState, bool isunion) override;
     const char* kind() const override;
     AggregateDeclaration* isThis() final override;
     bool needThis() final override;
@@ -7364,7 +7357,6 @@ public:
     BitFieldDeclaration* isBitFieldDeclaration() final override;
     void accept(Visitor* v) override;
     uint64_t getMinMax(Identifier* id);
-    void setFieldOffset(AggregateDeclaration* ad, FieldState& fieldState, bool isunion) final override;
 };
 
 class SymbolDeclaration final : public Declaration
@@ -7993,6 +7985,8 @@ public:
     void visit(StaticIfDeclaration* _) override;
     void visit(StaticForeachDeclaration* _) override;
 };
+
+extern void setFieldOffset(Dsymbol* d, AggregateDeclaration* ad, FieldState* fieldState, bool isunion);
 
 extern void genCppHdrFiles(Array<Module* >& ms);
 
