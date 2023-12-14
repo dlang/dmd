@@ -2016,8 +2016,9 @@ class Lexer
                 }
                 if (d1 >= 0x1_0000)
                     error(loc, "x%x does not fit in 16 bits", d1);
-                u = d1;
-                break;
+                t.unsvalue = d1;
+                t.value = TOK.wcharLiteral; // C11 6.4.4.4-9
+                return;
 
             case 'U':
                 dchar d;
@@ -2028,8 +2029,9 @@ class Lexer
                 else if (idx < n)
                     error(loc, "max number of chars in 32 bit character literal is 1, had %d",
                         cast(int)((n + 3) >> 2));
-                u = d;
-                break;
+                t.unsvalue = d;
+                t.value = TOK.dcharLiteral; // C11 6.4.4.4-9
+                return;
 
             default:
                 assert(0);
