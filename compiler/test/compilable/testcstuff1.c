@@ -210,7 +210,7 @@ __declspec(restrict) void* testrestrictdeclspec()
 
 // Character literals
 _Static_assert(sizeof('a') == 4, "ok");
-_Static_assert(sizeof(u'a') == 4, "ok");
+_Static_assert(sizeof(u'a') == 2, "ok");
 _Static_assert(sizeof(U'a') == 4, "ok");
 _Static_assert('a' == 0x61, "ok");
 _Static_assert('ab' == 0x6162, "ok");
@@ -219,6 +219,7 @@ _Static_assert('abcd' == 0x61626364, "ok");
 _Static_assert(u'a' == 0x61, "ok");
 _Static_assert(u'ab' == 0x62, "ok");
 _Static_assert(U'a' == 0x61, "ok");
+_Static_assert(U'a' - 500 > 0, "ok");
 _Static_assert(u'\u1234' == 0x1234, "ok");
 _Static_assert(L'\u1234' == 0x1234, "ok");
 

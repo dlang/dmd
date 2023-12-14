@@ -247,6 +247,8 @@ final class CParser(AST) : Parser!AST
             break;
 
         case TOK.charLiteral:
+        case TOK.wcharLiteral:
+        case TOK.dcharLiteral:
         case TOK.int32Literal:
         case TOK.uns32Literal:
         case TOK.int64Literal:
@@ -725,6 +727,12 @@ final class CParser(AST) : Parser!AST
             nextToken();
             break;
 
+        case TOK.wcharLiteral:
+            e = new AST.IntegerExp(loc, token.intvalue, AST.Type.tuns16);
+            nextToken();
+            break;
+
+        case TOK.dcharLiteral:
         case TOK.uns32Literal:
             e = new AST.IntegerExp(loc, token.unsvalue, AST.Type.tuns32);
             nextToken();
@@ -4946,6 +4954,8 @@ final class CParser(AST) : Parser!AST
         {
             case TOK.identifier:
             case TOK.charLiteral:
+            case TOK.wcharLiteral:
+            case TOK.dcharLiteral:
             case TOK.int32Literal:
             case TOK.uns32Literal:
             case TOK.int64Literal:
@@ -5851,6 +5861,8 @@ final class CParser(AST) : Parser!AST
 
                         case TOK.int32Literal:
                         case TOK.charLiteral:       t = AST.Type.tint32;    goto Linteger;
+                        case TOK.wcharLiteral:      t = AST.Type.tuns16;    goto Linteger;
+                        case TOK.dcharLiteral:
                         case TOK.uns32Literal:      t = AST.Type.tuns32;    goto Linteger;
                         case TOK.int64Literal:      t = AST.Type.tint64;    goto Linteger;
                         case TOK.uns64Literal:      t = AST.Type.tuns64;    goto Linteger;
