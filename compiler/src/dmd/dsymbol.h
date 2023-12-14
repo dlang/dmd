@@ -247,7 +247,6 @@ public:
     virtual Visibility visible();
     virtual Dsymbol *syntaxCopy(Dsymbol *s);    // copy only syntax trees
     virtual bool oneMember(Dsymbol **ps, Identifier *ident);
-    virtual void setFieldOffset(AggregateDeclaration *ad, FieldState& fieldState, bool isunion);
     virtual bool hasPointers();
     virtual bool hasStaticCtorOrDtor();
     virtual void addObjcSymbols(ClassDeclarations *, ClassDeclarations *) { }
@@ -431,3 +430,4 @@ Dsymbol *search(Dsymbol *d, const Loc &loc, Identifier *ident, SearchOptFlags fl
 bool checkDeprecated(Dsymbol *d, const Loc &loc, Scope *sc);
 void setScope(Dsymbol *d, Scope *sc);
 void importAll(Dsymbol *d, Scope *sc);
+void setFieldOffset(Dsymbol *d, AggregateDeclaration *ad, FieldState& fieldState, bool isunion);

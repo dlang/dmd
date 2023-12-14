@@ -8888,3 +8888,411 @@ extern(C++) class ImportAllVisitor : Visitor
     // do not evaluate aggregate before semantic pass
     override void visit(StaticForeachDeclaration _) {}
 }
+
+extern(C++) void setFieldOffset(Dsymbol d, AggregateDeclaration ad, FieldState* fieldState, bool isunion)
+{
+    scope v = new SetFieldOffsetVisitor(ad, fieldState, isunion);
+    d.accept(v);
+}
+
+private extern(C++) class SetFieldOffsetVisitor : Visitor
+{
+    alias visit = Visitor.visit;
+
+    AggregateDeclaration ad;
+    FieldState* fieldState;
+    bool isunion;
+
+    this(AggregateDeclaration ad, FieldState* fieldState, bool isunion)
+    {
+        this.ad = ad;
+        this.fieldState = fieldState;
+        this.isunion = isunion;
+    }
+
+    override void visit(Dsymbol d) {}
+
+    override void visit(Nspace ns)
+    {
+        //printf("Nspace::setFieldOffset() %s\n", toChars());
+        if (ns._scope) // if fwd reference
+            dsymbolSemantic(ns, null); // try to resolve it
+        ns.members.foreachDsymbol( s => s.setFieldOffset(ad, fieldState, isunion) );
+    }
+
+    override void visit(VarDeclaration vd)
+    {
+        //printf("VarDeclaration::setFieldOffset(ad = %s) %s\n", ad.toChars(), vd.toChars());
+
+        if (vd.aliasTuple)
+        {
+            // If this variable was really a tuple, set the offsets for the tuple fields
+            vd.aliasTuple.foreachVar((s) { s.setFieldOffset(ad, fieldState, isunion); });
+            return;
+        }
+
+        if (!vd.isField())
+            return;
+        assert(!(vd.storage_class & (STC.static_ | STC.extern_ | STC.parameter)));
+
+        //printf("+VarDeclaration::setFieldOffset(ad = %s) %s\n", ad.toChars(), toChars());
+
+        /* Fields that are tuples appear both as part of TupleDeclarations and
+         * as members. That means ignore them if they are already a field.
+         */
+        if (vd.offset)
+        {
+            // already a field
+            fieldState.offset = ad.structsize; // https://issues.dlang.org/show_bug.cgi?id=13613
+            return;
+        }
+        for (size_t i = 0; i < ad.fields.length; i++)
+        {
+            if (ad.fields[i] == vd)
+            {
+                // already a field
+                fieldState.offset = ad.structsize; // https://issues.dlang.org/show_bug.cgi?id=13613
+                return;
+            }
+        }
+
+        // Check for forward referenced types which will fail the size() call
+        Type t = vd.type.toBasetype();
+        if (vd.storage_class & STC.ref_)
+        {
+            // References are the size of a pointer
+            t = Type.tvoidptr;
+        }
+        Type tv = t.baseElemOf();
+        if (tv.ty == Tstruct)
+        {
+            auto ts = cast(TypeStruct)tv;
+            assert(ts.sym != ad);   // already checked in ad.determineFields()
+            if (!ts.sym.determineSize(vd.loc))
+            {
+                vd.type = Type.terror;
+                vd.errors = true;
+                return;
+            }
+        }
+
+        // List in ad.fields. Even if the type is error, it's necessary to avoid
+        // pointless error diagnostic "more initializers than fields" on struct literal.
+        ad.fields.push(vd);
+
+        if (t.ty == Terror)
+            return;
+
+        /* If coming after a bit field in progress,
+         * advance past the field
+         */
+        fieldState.inFlight = false;
+
+        const sz = t.size(vd.loc);
+        assert(sz != SIZE_INVALID && sz < uint.max);
+        uint memsize = cast(uint)sz;                // size of member
+        uint memalignsize = target.fieldalign(t);   // size of member for alignment purposes
+        vd.offset = placeField(
+            fieldState.offset,
+            memsize, memalignsize, vd.alignment,
+            ad.structsize, ad.alignsize,
+            isunion);
+
+        //printf("\t%s: memalignsize = %d\n", toChars(), memalignsize);
+        //printf(" addField '%s' to '%s' at offset %d, size = %d\n", toChars(), ad.toChars(), offset, memsize);
+    }
+
+    override void visit(BitFieldDeclaration bfd)
+    {
+        enum log = false;
+        static if (log)
+        {
+            printf("BitFieldDeclaration::setFieldOffset(ad: %s, field: %s)\n", ad.toChars(), bfd.toChars());
+            void print(const FieldState* fieldState)
+            {
+                fieldState.print();
+                printf("          fieldWidth   = %d bits\n",    bfd.fieldWidth);
+            }
+            print(fieldState);
+        }
+
+        Type t = bfd.type.toBasetype();
+        const bool anon = bfd.isAnonymous();
+
+        // List in ad.fields. Even if the type is error, it's necessary to avoid
+        // pointless error diagnostic "more initializers than fields" on struct literal.
+        if (!anon)
+            ad.fields.push(bfd);
+
+        if (t.ty == Terror)
+            return;
+
+        const sz = t.size(bfd.loc);
+        assert(sz != SIZE_INVALID && sz < uint.max);
+        uint memsize = cast(uint)sz;                // size of member
+        uint memalignsize = target.fieldalign(t);   // size of member for alignment purposes
+        if (log) printf("          memsize: %u memalignsize: %u\n", memsize, memalignsize);
+
+        if (bfd.fieldWidth == 0 && !anon)
+            error(bfd.loc, "named bit fields cannot have 0 width");
+        if (bfd.fieldWidth > memsize * 8)
+            error(bfd.loc, "bit field width %d is larger than type", bfd.fieldWidth);
+
+        const style = target.c.bitFieldStyle;
+
+        void startNewField()
+        {
+            if (log) printf("startNewField()\n");
+            uint alignsize;
+            if (style == TargetC.BitFieldStyle.Gcc_Clang)
+            {
+                if (bfd.fieldWidth > 32)
+                    alignsize = memalignsize;
+                else if (bfd.fieldWidth > 16)
+                    alignsize = 4;
+                else if (bfd.fieldWidth > 8)
+                    alignsize = 2;
+                else
+                    alignsize = 1;
+            }
+            else
+                alignsize = memsize; // not memalignsize
+
+            uint dummy;
+            bfd.offset = placeField(
+                fieldState.offset,
+                memsize, alignsize, bfd.alignment,
+                ad.structsize,
+                (anon && style == TargetC.BitFieldStyle.Gcc_Clang) ? dummy : ad.alignsize,
+                isunion);
+
+            fieldState.inFlight = true;
+            fieldState.fieldOffset = bfd.offset;
+            fieldState.bitOffset = 0;
+            fieldState.fieldSize = memsize;
+        }
+
+        if (style == TargetC.BitFieldStyle.Gcc_Clang)
+        {
+            if (bfd.fieldWidth == 0)
+            {
+                if (!isunion)
+                {
+                    // Use type of zero width field to align to next field
+                    fieldState.offset = (fieldState.offset + memalignsize - 1) & ~(memalignsize - 1);
+                    ad.structsize = fieldState.offset;
+                }
+
+                fieldState.inFlight = false;
+                return;
+            }
+
+            if (ad.alignsize == 0)
+                ad.alignsize = 1;
+            if (!anon &&
+                  ad.alignsize < memalignsize)
+                ad.alignsize = memalignsize;
+        }
+        else if (style == TargetC.BitFieldStyle.MS)
+        {
+            if (ad.alignsize == 0)
+                ad.alignsize = 1;
+            if (bfd.fieldWidth == 0)
+            {
+                if (fieldState.inFlight && !isunion)
+                {
+                    // documentation says align to next int
+                    //const alsz = cast(uint)Type.tint32.size();
+                    const alsz = memsize; // but it really does this
+                    fieldState.offset = (fieldState.offset + alsz - 1) & ~(alsz - 1);
+                    ad.structsize = fieldState.offset;
+                }
+
+                fieldState.inFlight = false;
+                return;
+            }
+        }
+        else if (style == TargetC.BitFieldStyle.DM)
+        {
+            if (anon && bfd.fieldWidth && (!fieldState.inFlight || fieldState.bitOffset == 0))
+                return;  // this probably should be a bug in DMC
+            if (ad.alignsize == 0)
+                ad.alignsize = 1;
+            if (bfd.fieldWidth == 0)
+            {
+                if (fieldState.inFlight && !isunion)
+                {
+                    const alsz = memsize;
+                    fieldState.offset = (fieldState.offset + alsz - 1) & ~(alsz - 1);
+                    ad.structsize = fieldState.offset;
+                }
+
+                fieldState.inFlight = false;
+                return;
+            }
+        }
+
+        if (!fieldState.inFlight)
+        {
+            //printf("not in flight\n");
+            startNewField();
+        }
+        else if (style == TargetC.BitFieldStyle.Gcc_Clang)
+        {
+            // If the bit-field spans more units of alignment than its type,
+            // start a new field at the next alignment boundary.
+            if (fieldState.bitOffset == fieldState.fieldSize * 8 &&
+                fieldState.bitOffset + bfd.fieldWidth > memalignsize * 8)
+            {
+                if (log) printf("more units of alignment than its type\n");
+                startNewField();        // the bit field is full
+            }
+            else
+            {
+                // if alignment boundary is crossed
+                uint start = fieldState.fieldOffset * 8 + fieldState.bitOffset;
+                uint end   = start + bfd.fieldWidth;
+                //printf("%s start: %d end: %d memalignsize: %d\n", ad.toChars(), start, end, memalignsize);
+                if (start / (memalignsize * 8) != (end - 1) / (memalignsize * 8))
+                {
+                    if (log) printf("alignment is crossed\n");
+                    startNewField();
+                }
+            }
+        }
+        else if (style == TargetC.BitFieldStyle.DM ||
+                 style == TargetC.BitFieldStyle.MS)
+        {
+            if (memsize != fieldState.fieldSize ||
+                fieldState.bitOffset + bfd.fieldWidth > fieldState.fieldSize * 8)
+            {
+                //printf("new field\n");
+                startNewField();
+            }
+        }
+        else
+            assert(0);
+
+        bfd.offset = fieldState.fieldOffset;
+        bfd.bitOffset = fieldState.bitOffset;
+
+        const pastField = bfd.bitOffset + bfd.fieldWidth;
+        if (style == TargetC.BitFieldStyle.Gcc_Clang)
+        {
+            auto size = (pastField + 7) / 8;
+            fieldState.fieldSize = size;
+            //printf(" offset: %d, size: %d\n", offset, size);
+            if (isunion)
+            {
+                const newstructsize = bfd.offset + size;
+                if (newstructsize > ad.structsize)
+                    ad.structsize = newstructsize;
+            }
+            else
+                ad.structsize = bfd.offset + size;
+        }
+        else
+            fieldState.fieldSize = memsize;
+        //printf("at end: ad.structsize = %d\n", cast(int)ad.structsize);
+        //print(fieldState);
+
+        if (!isunion)
+        {
+            fieldState.offset = bfd.offset + fieldState.fieldSize;
+            fieldState.bitOffset = pastField;
+        }
+
+        //printf("\t%s: offset = %d bitOffset = %d fieldWidth = %d memsize = %d\n", toChars(), offset, bitOffset, fieldWidth, memsize);
+        //printf("\t%s: memalignsize = %d\n", toChars(), memalignsize);
+        //printf(" addField '%s' to '%s' at offset %d, size = %d\n", toChars(), ad.toChars(), offset, memsize);
+    }
+
+    override void visit(TemplateMixin tm)
+    {
+        //printf("TemplateMixin.setFieldOffset() %s\n", tm.toChars());
+        if (tm._scope) // if fwd reference
+            dsymbolSemantic(tm, null); // try to resolve it
+
+        tm.members.foreachDsymbol( (s) { s.setFieldOffset(ad, fieldState, isunion); } );
+    }
+
+    override void visit(AttribDeclaration atd)
+    {
+        atd.include(null).foreachDsymbol( s => s.setFieldOffset(ad, fieldState, isunion) );
+    }
+
+    override void visit(AnonDeclaration anond)
+    {
+        //printf("\tAnonDeclaration::setFieldOffset %s %p\n", isunion ? "union" : "struct", anond);
+        if (anond.decl)
+        {
+            /* This works by treating an AnonDeclaration as an aggregate 'member',
+             * so in order to place that member we need to compute the member's
+             * size and alignment.
+             */
+            size_t fieldstart = ad.fields.length;
+
+            /* Hackishly hijack ad's structsize and alignsize fields
+             * for use in our fake anon aggregate member.
+             */
+            uint savestructsize = ad.structsize;
+            uint savealignsize = ad.alignsize;
+            ad.structsize = 0;
+            ad.alignsize = 0;
+
+            FieldState fs;
+            anond.decl.foreachDsymbol( (s)
+            {
+                s.setFieldOffset(ad, &fs, anond.isunion);
+                if (anond.isunion)
+                    fs.offset = 0;
+            });
+
+            /* https://issues.dlang.org/show_bug.cgi?id=13613
+             * If the fields in this.members had been already
+             * added in ad.fields, just update *poffset for the subsequent
+             * field offset calculation.
+             */
+            if (fieldstart == ad.fields.length)
+            {
+                ad.structsize = savestructsize;
+                ad.alignsize = savealignsize;
+                fieldState.offset = ad.structsize;
+                return;
+            }
+
+            anond.anonstructsize = ad.structsize;
+            anond.anonalignsize = ad.alignsize;
+            ad.structsize = savestructsize;
+            ad.alignsize = savealignsize;
+
+            // 0 sized structs are set to 1 byte
+            if (anond.anonstructsize == 0)
+            {
+                anond.anonstructsize = 1;
+                anond.anonalignsize = 1;
+            }
+
+            assert(anond._scope);
+            auto alignment = anond._scope.alignment();
+
+            /* Given the anon 'member's size and alignment,
+             * go ahead and place it.
+             */
+            anond.anonoffset = placeField(
+                fieldState.offset,
+                anond.anonstructsize, anond.anonalignsize, alignment,
+                ad.structsize, ad.alignsize,
+                isunion);
+
+            // Add to the anon fields the base offset of this anonymous aggregate
+            //printf("anon fields, anonoffset = %d\n", anonoffset);
+            foreach (const i; fieldstart .. ad.fields.length)
+            {
+                VarDeclaration v = ad.fields[i];
+                //printf("\t[%d] %s %d\n", i, v.toChars(), v.offset);
+                v.offset += anond.anonoffset;
+            }
+        }
+    }
+}

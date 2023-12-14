@@ -919,10 +919,6 @@ extern (C++) class Dsymbol : ASTNode
         return true;
     }
 
-    void setFieldOffset(AggregateDeclaration ad, ref FieldState fieldState, bool isunion)
-    {
-    }
-
     /*****************************************
      * Is Dsymbol a variable that contains pointers?
      */
