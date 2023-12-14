@@ -330,7 +330,6 @@ class InlineAsmStatement;
 class GccAsmStatement;
 class ImportStatement;
 struct Token;
-struct code;
 class Object;
 class TypeInfo_Class;
 class TypeInfo;
@@ -5744,7 +5743,7 @@ public:
 class InlineAsmStatement final : public AsmStatement
 {
 public:
-    code* asmcode;
+    void* asmcode;
     uint32_t asmalign;
     uint32_t regs;
     bool refparam;

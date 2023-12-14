@@ -20,7 +20,6 @@ import dmd.arraytypes;
 import dmd.astenums;
 import dmd.ast_node;
 import dmd.errors;
-import dmd.gluelayer;
 import dmd.cond;
 import dmd.declaration;
 import dmd.dsymbol;
@@ -1772,7 +1771,7 @@ extern (C++) class AsmStatement : Statement
  */
 extern (C++) final class InlineAsmStatement : AsmStatement
 {
-    code* asmcode;
+    void* asmcode;
     uint asmalign;  // alignment of this statement
     uint regs;      // mask of registers modified (must match regm_t in back end)
     bool refparam;  // true if function parameter is referenced
