@@ -118,7 +118,7 @@ extern (C++) type* Type_toCtype(Type t)
     static type* visitFunction(TypeFunction t)
     {
         const nparams = t.parameterList.length;
-        import dmd.common.string : SmallBuffer;
+        import dmd.common.smallbuffer : SmallBuffer;
         type*[10] tmp = void;
         auto sb = SmallBuffer!(type*)(nparams, tmp[]);
         type*[] types = sb[];

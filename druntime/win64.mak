@@ -28,7 +28,6 @@ HOST_DMD=dmd
 
 DFLAGS=-m$(MODEL) -conf= -O -release -preview=dip1000 -preview=fieldwise -preview=dtorfields -inline -w -Isrc -Iimport
 UDFLAGS=-m$(MODEL) -conf= -O -release -preview=dip1000 -preview=fieldwise -w -version=_MSC_VER_$(_MSC_VER) -Isrc -Iimport
-DDOCFLAGS=-conf= -c -w -o- -Isrc -Iimport -version=CoreDdoc
 
 UTFLAGS=-version=CoreUnittest -unittest -checkaction=context
 
@@ -37,7 +36,7 @@ DRUNTIME=lib\$(DRUNTIME_BASE).lib
 
 DOCFMT=
 
-target: copydir copy $(DRUNTIME)
+target: copy $(DRUNTIME)
 
 $(mak\COPY)
 $(mak\DOCS)
@@ -52,9 +51,6 @@ OBJS_TO_DELETE= errno_c_$(MODEL).obj
 ######################## Header file copy ##############################
 
 import: copy
-
-copydir:
-	"$(MAKE)" -f mak/WINDOWS copydir DMD="$(DMD)" HOST_DMD="$(HOST_DMD)" MODEL=$(MODEL) IMPDIR="$(IMPDIR)"
 
 copy:
 	"$(MAKE)" -f mak/WINDOWS copy DMD="$(DMD)" HOST_DMD="$(HOST_DMD)" MODEL=$(MODEL) IMPDIR="$(IMPDIR)"

@@ -1322,15 +1322,16 @@ bool compareOutput(string output, string refoutput, const ref EnvData envData)
         {
             // special content is the expected path tail
             // Substitute / with the appropriate directory separator
-            auto pathEnd = refparts[0].replace("/", envData.sep);
+            const pathTail = refparts[0].replace("/", envData.sep);
 
-            /// ( whole path, remaining output )
-            auto parts = output.findSplitAfter(pathEnd);
-            if (parts[0].empty || !exists(parts[0])) {
+            const newlineIndex = output.indexOf('\n');
+            const outputLine = newlineIndex == -1 ? output : output[0 .. newlineIndex];
+
+            const path = outputLine.findLastSplitAfter(pathTail)[0];
+            if (path.empty || !exists(path))
                 return false;
-            }
 
-            output = parts[1];
+            output = output[path.length .. $];
             continue;
         }
 
@@ -1384,6 +1385,32 @@ bool compareOutput(string output, string refoutput, const ref EnvData envData)
         if (toSkip !is null && !output.skipOver(toSkip))
             return false;
     }
+}
+
+private string[2] findLastSplitAfter(in string haystack, in string needle)
+{
+    string[2] r = [null, haystack];
+
+    foreach_reverse (end; needle.length .. haystack.length + 1) // include haystack.length
+    {
+        const candidateTail = haystack[end - needle.length .. end];
+        if (candidateTail == needle)
+        {
+            r[0] = haystack[0 .. end];
+            r[1] = haystack[end .. $];
+            break;
+        }
+    }
+
+    return r;
+}
+
+unittest
+{
+    assert("abc".findLastSplitAfter("abcd") == ["", "abc"]);
+    assert("abc".findLastSplitAfter("abc") == ["abc", ""]);
+    assert("abc".findLastSplitAfter("ab") == ["ab", "c"]);
+    assert("/phobos/bla/phobos/blub".findLastSplitAfter("phobos") == ["/phobos/bla/phobos", "/blub"]);
 }
 
 unittest

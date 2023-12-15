@@ -1,0 +1,3 @@
+Unrecognized pragmas are no longer an error, but instead simply ignored
+
+Previously, unrecognized pragmas would issue a hard error unless you used the `-ignore` dmd switch. Now, they are always ignored and the `-ignore` dmd switch is ignored.

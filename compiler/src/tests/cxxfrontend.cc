@@ -54,6 +54,7 @@
 #include "target.h"
 #include "template.h"
 #include "tokens.h"
+#include "typinf.h"
 #include "version.h"
 #include "visitor.h"
 
@@ -279,12 +280,12 @@ void test_semantic()
     m->src = src;
     m->parse();
     m->importedFrom = m;
-    m->importAll(NULL);
+    importAll(m, NULL);
     dsymbolSemantic(m, NULL);
     semantic2(m, NULL);
     semantic3(m, NULL);
 
-    Dsymbol *s = m->search(Loc(), Identifier::idPool("Error"));
+    Dsymbol *s = search(m, Loc(), Identifier::idPool("Error"));
     assert(s);
     AggregateDeclaration *ad = s->isAggregateDeclaration();
     assert(ad && ad->ctor && ad->sizeok == Sizeok::done);
@@ -329,7 +330,7 @@ void test_expression()
 {
     Loc loc;
     IntegerExp *ie = IntegerExp::create(loc, 42, Type::tint32);
-    Expression *e = ie->ctfeInterpret();
+    Expression *e = ctfeInterpret(ie);
 
     assert(e);
     assert(e->isConst());
@@ -343,29 +344,6 @@ void test_expression()
 void test_target()
 {
     assert(target.isVectorOpSupported(Type::tint32, EXP::pow));
-}
-
-/**********************************/
-
-void test_emplace()
-{
-    Loc loc;
-    UnionExp ue;
-
-    IntegerExp::emplace(&ue, loc, 1065353216, Type::tint32);
-    Expression *e = ue.exp();
-    assert(e->op == EXP::int64);
-    assert(e->toInteger() == 1065353216);
-
-    UnionExp ure;
-    Expression *re = Compiler::paintAsType(&ure, e, Type::tfloat32);
-    assert(re->op == EXP::float64);
-    assert(re->toReal() == CTFloat::one);
-
-    UnionExp uie;
-    Expression *ie = Compiler::paintAsType(&uie, re, Type::tint32);
-    assert(ie->op == EXP::int64);
-    assert(ie->toInteger() == e->toInteger());
 }
 
 /**********************************/
@@ -518,12 +496,12 @@ void test_cppmangle()
     m->src = src;
     m->parse();
     m->importedFrom = m;
-    m->importAll(NULL);
+    importAll(m, NULL);
     dsymbolSemantic(m, NULL);
     semantic2(m, NULL);
     semantic3(m, NULL);
 
-    Dsymbol *s = m->search(Loc(), Identifier::idPool("Derived"));
+    Dsymbol *s = search(m, Loc(), Identifier::idPool("Derived"));
     assert(s);
     ClassDeclaration *cd = s->isClassDeclaration();
     assert(cd && cd->sizeok == Sizeok::done);
@@ -540,11 +518,6 @@ void test_cppmangle()
     assert(fd);
     mangle = cppThunkMangleItanium(fd, b->offset);
     assert(strcmp(mangle, "_ZThn8_N7Derived7MethodDEv") == 0);
-
-    assert(fd->fbody);
-    auto rs = (*fd->fbody->isCompoundStatement()->statements)[0]->isReturnStatement();
-    assert(rs);
-    assert(!canThrow(rs->exp, fd, NULL));
 
     assert(!global.endGagging(errors));
 }
@@ -735,7 +708,7 @@ public:
                 }
                 sym->getModule()->accept(this);
                 if (attr->op == EXP::call)
-                    attr = attr->ctfeInterpret();
+                    attr = ctfeInterpret(attr);
                 if (attr->op != EXP::structLiteral)
                     continue;
             }
@@ -1206,7 +1179,7 @@ public:
                 if (mi->needmoduleinfo)
                     mi->accept(this);
             }
-            (void)d->findGetMembers();
+            (void)findGetMembers(d);
             (void)d->sctor;
             (void)d->sdtor;
             (void)d->ssharedctor;
@@ -1368,7 +1341,7 @@ public:
         (void)d->sinit;
         NewExp *ne = NewExp::create(d->loc, NULL, d->type, NULL);
         ne->type = d->type;
-        Expression *e = ne->ctfeInterpret();
+        Expression *e = ctfeInterpret(ne);
         assert(e->op == EXP::classReference);
         ClassReferenceExp *exp = e->isClassReferenceExp();
         ClassDeclaration *cd = exp->originalClass();
@@ -1686,6 +1659,15 @@ public:
     }
 };
 
+void test_typinf(Expression *e, const Loc &loc, Type *t, Scope *sc)
+{
+    // Link tests
+    genTypeInfo(e, loc, t, sc);
+    getTypeInfoType(loc, t, sc, false);
+    isSpeculativeType(t);
+    builtinTypeInfo(t);
+}
+
 void test_backend(FuncDeclaration *f, Type *t)
 {
     MiniGlueVisitor v(f);
@@ -1713,7 +1695,6 @@ int main(int argc, char **argv)
     test_skip_importall();
     test_expression();
     test_target();
-    test_emplace();
     test_parameters();
     test_types();
     test_location();

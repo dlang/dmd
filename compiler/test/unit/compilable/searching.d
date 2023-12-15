@@ -8,6 +8,7 @@ module compilable.searching;
 import support : afterEach, beforeEach, compiles;
 
 import dmd.dsymbol;
+import dmd.dsymbolsem;
 import dmd.dclass : ClassDeclaration;
 import dmd.declaration : VarDeclaration;
 import dmd.dtemplate : TemplateDeclaration;
@@ -174,7 +175,7 @@ Dsymbol findSymbol(Dsymbol sym, string name, bool allowMissing = false)
 
     const oldErrors = global.errors;
     Identifier id = Identifier.idPool(name);
-    Dsymbol found = sym.search(Loc.initial, id, IgnoreErrors);
+    Dsymbol found = sym.search(Loc.initial, id, SearchOpt.ignoreErrors);
 
     assert(global.errors == oldErrors, "Searching " ~ name ~ " caused errors!");
     assert(allowMissing || found, name ~ " not found!");

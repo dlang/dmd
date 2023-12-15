@@ -20,19 +20,15 @@ import dmd.arraytypes;
 import dmd.astenums;
 import dmd.ast_node;
 import dmd.errors;
-import dmd.gluelayer;
 import dmd.cond;
 import dmd.declaration;
 import dmd.dsymbol;
 import dmd.expression;
 import dmd.func;
-import dmd.globals;
-import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
 import dmd.mtype;
-import dmd.common.outbuffer;
 import dmd.rootobject;
 import dmd.sapply;
 import dmd.staticassert;
@@ -114,7 +110,7 @@ extern (C++) abstract class Statement : ASTNode
      * Returns:
      *     `true` if statement uses exception handling
      */
-    final bool usesEH()
+    extern (D) final bool usesEH()
     {
         extern (C++) final class UsesEH : StoppableVisitor
         {
@@ -153,7 +149,7 @@ extern (C++) abstract class Statement : ASTNode
      * Returns:
      *   `true` if statement 'comes from' somewhere else, like a goto
      */
-    final bool comeFrom()
+    extern (D) final bool comeFrom()
     {
         extern (C++) final class ComeFrom : StoppableVisitor
         {
@@ -192,7 +188,7 @@ extern (C++) abstract class Statement : ASTNode
      * Returns:
      *   `true` if statement has executable code.
      */
-    final bool hasCode()
+    extern (D) final bool hasCode()
     {
         extern (C++) final class HasCode : StoppableVisitor
         {
@@ -333,6 +329,8 @@ extern (C++) final class ErrorStatement : Statement
     extern (D) this()
     {
         super(Loc.initial, STMT.Error);
+
+        import dmd.globals;
         assert(global.gaggedErrors || global.errors);
     }
 
@@ -1773,7 +1771,7 @@ extern (C++) class AsmStatement : Statement
  */
 extern (C++) final class InlineAsmStatement : AsmStatement
 {
-    code* asmcode;
+    void* asmcode;
     uint asmalign;  // alignment of this statement
     uint regs;      // mask of registers modified (must match regm_t in back end)
     bool refparam;  // true if function parameter is referenced

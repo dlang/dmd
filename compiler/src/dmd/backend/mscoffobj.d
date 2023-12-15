@@ -993,7 +993,7 @@ bool MsCoffObj_includelib(scope const char[] name)
 */
 
 @trusted
-bool MsCoffObj_linkerdirective(const(char)* directive)
+bool MsCoffObj_linkerdirective(scope const(char)* directive)
 {
     int seg = MsCoffObj_seg_drectve();
     //dbg_printf("MsCoffObj::linkerdirective(directive *%s)\n",directive);

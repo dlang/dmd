@@ -89,6 +89,7 @@ COPY=\
 	$(IMPDIR)\core\internal\vararg\sysv_x64.d \
 	\
 	$(IMPDIR)\core\stdc\assert_.d \
+	$(IMPDIR)\core\stdc\stdatomic.d \
 	$(IMPDIR)\core\stdc\complex.d \
 	$(IMPDIR)\core\stdc\config.d \
 	$(IMPDIR)\core\stdc\ctype.d \
@@ -170,14 +171,16 @@ COPY=\
 	$(IMPDIR)\core\sys\freebsd\dlfcn.d \
 	$(IMPDIR)\core\sys\freebsd\err.d \
 	$(IMPDIR)\core\sys\freebsd\execinfo.d \
-	\
-	$(IMPDIR)\core\sys\freebsd\netinet\in_.d \
-	\
+	$(IMPDIR)\core\sys\freebsd\ifaddrs.d \
 	$(IMPDIR)\core\sys\freebsd\pthread_np.d \
 	$(IMPDIR)\core\sys\freebsd\stdlib.d \
 	$(IMPDIR)\core\sys\freebsd\string.d \
 	$(IMPDIR)\core\sys\freebsd\time.d \
 	$(IMPDIR)\core\sys\freebsd\unistd.d \
+	\
+	$(IMPDIR)\core\sys\freebsd\net\if_dl.d \
+	\
+	$(IMPDIR)\core\sys\freebsd\netinet\in_.d \
 	\
 	$(IMPDIR)\core\sys\freebsd\sys\_bitset.d \
 	$(IMPDIR)\core\sys\freebsd\sys\_cpuset.d \
@@ -190,7 +193,9 @@ COPY=\
 	$(IMPDIR)\core\sys\freebsd\sys\link_elf.d \
 	$(IMPDIR)\core\sys\freebsd\sys\mman.d \
 	$(IMPDIR)\core\sys\freebsd\sys\mount.d \
+	$(IMPDIR)\core\sys\freebsd\sys\socket.d \
 	$(IMPDIR)\core\sys\freebsd\sys\sysctl.d \
+	$(IMPDIR)\core\sys\freebsd\sys\types.d \
 	\
 	$(IMPDIR)\core\sys\dragonflybsd\dlfcn.d \
 	$(IMPDIR)\core\sys\dragonflybsd\err.d \
@@ -239,6 +244,9 @@ COPY=\
 	$(IMPDIR)\core\sys\linux\timerfd.d \
 	$(IMPDIR)\core\sys\linux\tipc.d \
 	$(IMPDIR)\core\sys\linux\unistd.d \
+	\
+	$(IMPDIR)\core\sys\linux\linux\if_arp.d \
+	$(IMPDIR)\core\sys\linux\linux\if_packet.d \
 	\
 	$(IMPDIR)\core\sys\linux\netinet\in_.d \
 	$(IMPDIR)\core\sys\linux\netinet\tcp.d \

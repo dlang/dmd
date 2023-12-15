@@ -46,7 +46,6 @@ import dmd.toctype;
 import dmd.todt;
 import dmd.toir;
 import dmd.tokens;
-import dmd.typinf;
 import dmd.visitor;
 import dmd.dmangle;
 
@@ -60,8 +59,6 @@ import dmd.backend.cgcv;
 import dmd.backend.symtab;
 import dmd.backend.ty;
 
-extern (C++):
-
 
 /*************************************
  * Helper
@@ -70,7 +67,7 @@ extern (C++):
 Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, SC sclass, type *t, const(char)* suffix)
 {
     //printf("Dsymbol::toSymbolX('%s')\n", prefix);
-    import dmd.common.string : SmallBuffer;
+    import dmd.common.smallbuffer : SmallBuffer;
     import dmd.common.outbuffer : OutBuffer;
 
     OutBuffer buf;

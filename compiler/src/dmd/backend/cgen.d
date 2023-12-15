@@ -341,7 +341,8 @@ static if (TARGET_SEGMENTED)
             // outdata(Symbol *s)
             if (f.sym.Sseg == UNKNOWN)
             {
-                printf("Error: no definition for static %s\n", prettyident(f.sym)); // no definition found for static
+                error(null, 0, 0, "no definition found for static `%s` in this module, statics defined in one module cannot be referenced from another",
+                    prettyident(f.sym)); // no definition found for static
                 err_exit(); // BUG: do better
             }
         }

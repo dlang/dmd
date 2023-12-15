@@ -67,8 +67,6 @@ import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-extern (C++):
-
 alias StmtState = dmd.stmtstate.StmtState!block;
 
 
@@ -1380,11 +1378,11 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
         block_next(blx,BCgoto,null);
         basm = blx.curblock;
         bpre.appendSucc(basm);
-        basm.Bcode = s.asmcode;
+        basm.Bcode = cast(code*)s.asmcode;
         basm.Balign = cast(ubyte)s.asmalign;
 
         // Loop through each instruction, fixing Dsymbols into Symbol's
-        for (code *c = s.asmcode; c; c = c.next)
+        for (code *c = cast(code*)s.asmcode; c; c = c.next)
         {
             switch (c.IFL1)
             {

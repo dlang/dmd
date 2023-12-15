@@ -147,20 +147,21 @@ enum
 
 /* Flags for symbol search
  */
-enum
+typedef uint SearchOptFlags;
+enum class SearchOpt : SearchOptFlags
 {
-    IgnoreNone              = 0x00, // default
-    IgnorePrivateImports    = 0x01, // don't search private imports
-    IgnoreErrors            = 0x02, // don't give error messages
-    IgnoreAmbiguous         = 0x04, // return NULL if ambiguous
-    SearchLocalsOnly        = 0x08, // only look at locals (don't search imports)
-    SearchImportsOnly       = 0x10, // only look in imports
-    SearchUnqualifiedModule = 0x20, // the module scope search is unqualified,
-                                    // meaning don't search imports in that scope,
-                                    // because qualified module searches search
-                                    // their imports
-    IgnoreSymbolVisibility  = 0x80,  // also find private and package protected symbols
-    TagNameSpace            = 0x100, // search ImportC tag symbol table
+    all                    = 0x00, // default
+    ignorePrivateImports   = 0x01, // don't search private imports
+    ignoreErrors           = 0x02, // don't give error messages
+    ignoreAmbiguous        = 0x04, // return NULL if ambiguous
+    localsOnly             = 0x08, // only look at locals (don't search imports)
+    importsOnly            = 0x10, // only look in imports
+    unqualifiedModule      = 0x20, // the module scope search is unqualified,
+                                   // meaning don't search imports in that scope,
+                                   // because qualified module searches search
+                                   // their imports
+    tagNameSpace           = 0x40, // search ImportC tag symbol table
+    ignoreVisibility       = 0x80, // also find private and package protected symbols
 };
 
 struct FieldState
@@ -205,7 +206,6 @@ public:
     const char *locToChars();
     bool equals(const RootObject * const o) const override;
     bool isAnonymous() const;
-    bool checkDeprecated(const Loc &loc, Scope *sc);
     Module *getModule();
     bool isCsymbol();
     Module *getAccessModule();
@@ -228,10 +228,6 @@ public:
     virtual const char *kind() const;
     virtual Dsymbol *toAlias();                 // resolve real symbol
     virtual Dsymbol *toAlias2();
-    virtual void addMember(Scope *sc, ScopeDsymbol *sds);
-    virtual void setScope(Scope *sc);
-    virtual void importAll(Scope *sc);
-    virtual Dsymbol *search(const Loc &loc, Identifier *ident, int flags = IgnoreNone);
     virtual bool overloadInsert(Dsymbol *s);
     virtual uinteger_t size(const Loc &loc);
     virtual bool isforwardRef();
@@ -251,7 +247,6 @@ public:
     virtual Visibility visible();
     virtual Dsymbol *syntaxCopy(Dsymbol *s);    // copy only syntax trees
     virtual bool oneMember(Dsymbol **ps, Identifier *ident);
-    virtual void setFieldOffset(AggregateDeclaration *ad, FieldState& fieldState, bool isunion);
     virtual bool hasPointers();
     virtual bool hasStaticCtorOrDtor();
     virtual void addObjcSymbols(ClassDeclarations *, ClassDeclarations *) { }
@@ -331,22 +326,19 @@ public:
     Dsymbols *members;          // all Dsymbol's in this scope
     DsymbolTable *symtab;       // members[] sorted into table
     unsigned endlinnum;         // the linnumber of the statement after the scope (0 if unknown)
-
-private:
     Dsymbols *importedScopes;   // imported Dsymbol's
     Visibility::Kind *visibilities;   // array of `Visibility.Kind`, one for each import
 
+private:
     BitArray accessiblePackages, privateAccessiblePackages;
 
 public:
     ScopeDsymbol *syntaxCopy(Dsymbol *s) override;
-    Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly) override;
     virtual void importScope(Dsymbol *s, Visibility visibility);
-    virtual bool isPackageAccessible(Package *p, Visibility visibility, int flags = 0);
+    virtual bool isPackageAccessible(Package *p, Visibility visibility, SearchOptFlags flags = (SearchOptFlags)SearchOpt::all);
     bool isforwardRef() override final;
     static void multiplyDefined(const Loc &loc, Dsymbol *s1, Dsymbol *s2);
     const char *kind() const override;
-    FuncDeclaration *findGetMembers();
     virtual Dsymbol *symtabInsert(Dsymbol *s);
     virtual Dsymbol *symtabLookup(Dsymbol *s, Identifier *id);
     bool hasStaticCtorOrDtor() override;
@@ -362,7 +354,6 @@ class WithScopeSymbol final : public ScopeDsymbol
 public:
     WithStatement *withstate;
 
-    Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly) override;
 
     WithScopeSymbol *isWithScopeSymbol() override { return this; }
     void accept(Visitor *v) override { v->visit(this); }
@@ -372,12 +363,8 @@ public:
 
 class ArrayScopeSymbol final : public ScopeDsymbol
 {
-private:
-    RootObject *arrayContent;
 public:
-    Scope *sc;
-
-    Dsymbol *search(const Loc &loc, Identifier *ident, int flags = IgnoreNone) override;
+    RootObject *arrayContent;
 
     ArrayScopeSymbol *isArrayScopeSymbol() override { return this; }
     void accept(Visitor *v) override { v->visit(this); }
@@ -437,3 +424,10 @@ public:
     // Number of symbols in symbol table
     size_t length() const;
 };
+
+void addMember(Dsymbol *dsym, Scope *sc, ScopeDsymbol *sds);
+Dsymbol *search(Dsymbol *d, const Loc &loc, Identifier *ident, SearchOptFlags flags = (SearchOptFlags)SearchOpt::localsOnly);
+bool checkDeprecated(Dsymbol *d, const Loc &loc, Scope *sc);
+void setScope(Dsymbol *d, Scope *sc);
+void importAll(Dsymbol *d, Scope *sc);
+void setFieldOffset(Dsymbol *d, AggregateDeclaration *ad, FieldState& fieldState, bool isunion);

@@ -247,6 +247,8 @@ final class CParser(AST) : Parser!AST
             break;
 
         case TOK.charLiteral:
+        case TOK.wcharLiteral:
+        case TOK.dcharLiteral:
         case TOK.int32Literal:
         case TOK.uns32Literal:
         case TOK.int64Literal:
@@ -328,6 +330,7 @@ final class CParser(AST) : Parser!AST
         case TOK._Atomic:
 
         case TOK.__attribute__:
+        case TOK.__declspec:
 
         Ldeclaration:
         {
@@ -724,6 +727,12 @@ final class CParser(AST) : Parser!AST
             nextToken();
             break;
 
+        case TOK.wcharLiteral:
+            e = new AST.IntegerExp(loc, token.intvalue, AST.Type.tuns16);
+            nextToken();
+            break;
+
+        case TOK.dcharLiteral:
         case TOK.uns32Literal:
             e = new AST.IntegerExp(loc, token.unsvalue, AST.Type.tuns32);
             nextToken();
@@ -1889,7 +1898,16 @@ final class CParser(AST) : Parser!AST
                 if (specifier.alignExps)
                     error("no alignment-specifier for typedef declaration"); // C11 6.7.5-2
 
+                if (specifier.vector_size)
+                {
+                    auto length = new AST.IntegerExp(token.loc, specifier.vector_size / dt.size(), AST.Type.tuns32);
+                    auto tsa = new AST.TypeSArray(dt, length);
+                    dt = new AST.TypeVector(tsa);
+                    specifier.vector_size = 0;          // used it up
+                }
+
                 bool isalias = true;
+                Identifier idt;
                 if (auto ts = dt.isTypeStruct())
                 {
                     if (ts.sym.isAnonymous())
@@ -1899,6 +1917,7 @@ final class CParser(AST) : Parser!AST
                         ts.sym.ident = id;
                         isalias = false;
                     }
+                    idt = ts.sym.ident;
                 }
                 else if (auto te = dt.isTypeEnum())
                 {
@@ -1908,6 +1927,7 @@ final class CParser(AST) : Parser!AST
                         te.sym.ident = id;
                         isalias = false;
                     }
+                    idt = te.sym.ident;
                 }
                 else if (auto tt = dt.isTypeTag())
                 {
@@ -1921,9 +1941,16 @@ final class CParser(AST) : Parser!AST
                         Specifier spec;
                         declareTag(tt, spec);
                     }
+                    idt = tt.id;
                 }
                 if (isalias)
-                    s = new AST.AliasDeclaration(token.loc, id, dt);
+                {
+                    auto ad = new AST.AliasDeclaration(token.loc, id, dt);
+                    if (id == idt)
+                        ad.adFlags |= ad.hidden; // do not print when generating .di files
+                    s = ad;
+                }
+
                 insertTypedefToTypedefTab(id, dt);       // remember typedefs
             }
             else if (id)
@@ -2017,6 +2044,9 @@ final class CParser(AST) : Parser!AST
                 }
                 symbols.push(s);
             }
+            if (level == LVL.global && !id)
+                error("expected identifier for declaration");
+
             first = false;
 
             switch (token.value)
@@ -2159,6 +2189,7 @@ final class CParser(AST) : Parser!AST
      * C11 Initialization
      * initializer:
      *    assignment-expression
+     *    { }                       // C23 6.7.10 addition
      *    { initializer-list }
      *    { initializer-list , }
      *
@@ -2188,6 +2219,12 @@ final class CParser(AST) : Parser!AST
         }
         nextToken();
         const loc = token.loc;
+
+        if (token.value == TOK.rightCurly)      // { }
+        {
+            nextToken();
+            return new AST.DefaultInitializer(loc);
+        }
 
         /* Collect one or more `designation (opt) initializer`
          * into ci.initializerList, but lazily create ci
@@ -2730,7 +2767,7 @@ final class CParser(AST) : Parser!AST
     private AST.Type cparseDeclarator(DTR declarator, AST.Type tbase,
         out Identifier pident, ref Specifier specifier)
     {
-        //printf("cparseDeclarator(%d, %p)\n", declarator, t);
+        //printf("cparseDeclarator(%d, %s)\n", declarator, tbase.toChars());
         AST.Types constTypes; // all the Types that will need `const` applied to them
 
         /* Insert tx -> t into
@@ -2749,6 +2786,7 @@ final class CParser(AST) : Parser!AST
 
         AST.Type parseDecl(AST.Type t)
         {
+            //printf("parseDecl() t: %s\n", t.toChars());
             AST.Type ts;
             while (1)
             {
@@ -2764,9 +2802,18 @@ final class CParser(AST) : Parser!AST
                     break;
 
                 case TOK.leftParenthesis:   // ( declarator )
+                    //printf("leftParen\n");
                     /* like: T (*fp)();
                      *       T ((*fp))();
                      */
+                    auto tk = &token;
+                    if (!isCDeclarator(tk, declarator))
+                    {
+                        /* Not ( declarator ), might be parameter-list
+                         */
+                        ts = t;
+                        break;
+                    }
                     nextToken();
 
                     if (token.value == TOK.__stdcall) // T (__stdcall*fp)();
@@ -2780,6 +2827,7 @@ final class CParser(AST) : Parser!AST
                     break;
 
                 case TOK.mul:               // pointer
+                    //printf("star\n");
                     t = new AST.TypePointer(t);
                     nextToken();
                     // add post fixes const/volatile/restrict/_Atomic
@@ -2791,6 +2839,7 @@ final class CParser(AST) : Parser!AST
                     continue;
 
                 default:
+                    //printf("default %s\n", token.toChars());
                     if (declarator == DTR.xdirect)
                     {
                         if (!t || t.isTypeIdentifier())
@@ -2908,7 +2957,7 @@ final class CParser(AST) : Parser!AST
                         if (specifier._pure)
                             stc |= STC.pure_;
                         AST.Type tf = new AST.TypeFunction(parameterList, t, lkg, stc);
-    //                  tf = tf.addSTC(storageClass);  // TODO
+                        //tf = tf.addSTC(storageClass);  // TODO
                         insertTx(ts, tf, t);  // ts -> ... -> tf -> t
 
                         if (ts != tf)
@@ -2921,6 +2970,8 @@ final class CParser(AST) : Parser!AST
                 }
                 break;
             }
+            if (declarator == DTR.xdirect && !pident)
+                error("expected identifier for declarator");
             return ts;
         }
 
@@ -4234,6 +4285,7 @@ final class CParser(AST) : Parser!AST
                 case TOK.rightParenthesis:
                 case TOK.rightBracket:
                 case TOK.endOfFile:
+                case TOK.endOfLine:
                     if (!any)
                         return false;
                     break;
@@ -4550,6 +4602,7 @@ final class CParser(AST) : Parser!AST
      */
     private bool isCDeclarator(ref Token* pt, DTR declarator)
     {
+        //printf("isCDeclarator()\n");
         auto t = pt;
         while (1)
         {
@@ -4572,6 +4625,8 @@ final class CParser(AST) : Parser!AST
         else if (t.value == TOK.leftParenthesis)
         {
             t = peek(t);
+            if (t.value == TOK.__stdcall)
+                t = peek(t);
             if (!isCDeclarator(t, declarator))
                 return false;
             if (t.value != TOK.rightParenthesis)
@@ -4899,6 +4954,8 @@ final class CParser(AST) : Parser!AST
         {
             case TOK.identifier:
             case TOK.charLiteral:
+            case TOK.wcharLiteral:
+            case TOK.dcharLiteral:
             case TOK.int32Literal:
             case TOK.uns32Literal:
             case TOK.int64Literal:
@@ -5293,7 +5350,7 @@ final class CParser(AST) : Parser!AST
             (*decls)[0] = s;
             s = new AST.AlignDeclaration(s.loc, specifier.alignExps, decls);
         }
-        else if (!specifier.packalign.isDefault())
+        else if (!specifier.packalign.isDefault() && !specifier.packalign.isUnknown())
         {
             //printf("  applying packalign %d\n", cast(int)specifier.packalign);
             // Wrap #pragma pack in an AlignDeclaration
@@ -5753,6 +5810,9 @@ final class CParser(AST) : Parser!AST
         buf.writeByte(0);
         auto slice = buf.peekChars()[0 .. length];
         resetDefineLines(slice);                // reset lexer
+        auto save = eSink;
+        auto eLatch = new ErrorSinkLatch();
+        eSink = eLatch;
 
         const(char)* endp = &slice[length - 7];
 
@@ -5760,40 +5820,40 @@ final class CParser(AST) : Parser!AST
                                     // indexed by Identifier, returns index into symbols[]
                                     // The memory for this is leaked
 
-        void addVar(AST.VarDeclaration v)
+        void addVar(AST.Dsymbol s)
         {
-            //printf("addVar() %s\n", v.toChars());
-            v.isCmacro(true);           // mark it as coming from a C #define
+            //printf("addVar() %s\n", s.toChars());
+            if (auto v = s.isVarDeclaration())
+                v.isCmacro(true);       // mark it as coming from a C #define
             /* If it's already defined, replace the earlier
              * definition
              */
-            if (size_t* pd = cast(void*)v.ident in defineTab)
+            if (size_t* pd = cast(void*)s.ident in defineTab)
             {
                 //printf("replacing %s\n", v.toChars());
-                (*symbols)[*pd] = v;
+                (*symbols)[*pd] = s;
                 return;
             }
-            defineTab[cast(void*)v.ident] = symbols.length;
-            symbols.push(v);
+            defineTab[cast(void*)s.ident] = symbols.length;
+            symbols.push(s);
         }
-
-        Token n;
 
         while (p < endp)
         {
             if (p[0 .. 7] == "#define")
             {
                 p += 7;
-                scan(&n);
-                //printf("%s\n", n.toChars());
-                if (n.value == TOK.identifier)
+                nextToken();
+                //printf("define %s\n", token.toChars());
+                if (token.value == TOK.identifier)
                 {
-                    auto id = n.ident;
-                    scan(&n);
+                    auto id = token.ident;
+                    const params = *p == '(';
+                    nextToken();
 
                     AST.Type t;
 
-                    switch (n.value)
+                    switch (token.value)
                     {
                         case TOK.endOfLine:     // #define identifier
                             nextDefineLine();
@@ -5801,14 +5861,16 @@ final class CParser(AST) : Parser!AST
 
                         case TOK.int32Literal:
                         case TOK.charLiteral:       t = AST.Type.tint32;    goto Linteger;
+                        case TOK.wcharLiteral:      t = AST.Type.tuns16;    goto Linteger;
+                        case TOK.dcharLiteral:
                         case TOK.uns32Literal:      t = AST.Type.tuns32;    goto Linteger;
                         case TOK.int64Literal:      t = AST.Type.tint64;    goto Linteger;
                         case TOK.uns64Literal:      t = AST.Type.tuns64;    goto Linteger;
 
                         Linteger:
-                            const intvalue = n.intvalue;
-                            scan(&n);
-                            if (n.value == TOK.endOfLine)
+                            const intvalue = token.intvalue;
+                            nextToken();
+                            if (token.value == TOK.endOfLine)
                             {
                                 /* Declare manifest constant:
                                  *  enum id = intvalue;
@@ -5829,9 +5891,9 @@ final class CParser(AST) : Parser!AST
                         case TOK.imaginary80Literal:  t = AST.Type.timaginary80; goto Lfloat;
 
                         Lfloat:
-                            const floatvalue = n.floatvalue;
-                            scan(&n);
-                            if (n.value == TOK.endOfLine)
+                            const floatvalue = token.floatvalue;
+                            nextToken();
+                            if (token.value == TOK.endOfLine)
                             {
                                 /* Declare manifest constant:
                                  *  enum id = floatvalue;
@@ -5845,11 +5907,11 @@ final class CParser(AST) : Parser!AST
                             break;
 
                         case TOK.string_:
-                            const str = n.ustring;
-                            const len = n.len;
-                            const postfix = n.postfix;
-                            scan(&n);
-                            if (n.value == TOK.endOfLine)
+                            const str = token.ustring;
+                            const len = token.len;
+                            const postfix = token.postfix;
+                            nextToken();
+                            if (token.value == TOK.endOfLine)
                             {
                                 /* Declare manifest constant:
                                  *  enum id = "string";
@@ -5862,6 +5924,39 @@ final class CParser(AST) : Parser!AST
                             }
                             break;
 
+                        case TOK.leftParenthesis:
+                            /* Look for:
+                             *  #define ID ( expression )
+                             * and rewrite it to a template function:
+                             *  auto ID()() { return expression; }
+                             */
+                            if (params)
+                                break;                  // no parameters
+                            nextToken();
+                            eLatch.sawErrors = false;
+                            auto exp = cparseExpression();
+                            if (eLatch.sawErrors)   // parsing errors
+                                break;              // abandon this #define
+                            if (token.value != TOK.rightParenthesis)
+                                break;
+                            nextToken();
+                            if (token.value != TOK.endOfLine)
+                                break;
+                            auto ret = new AST.ReturnStatement(exp.loc, exp);
+                            auto parameterList = AST.ParameterList(new AST.Parameters(), VarArg.none, 0);
+                            StorageClass stc = STC.auto_;
+                            auto tf = new AST.TypeFunction(parameterList, null, LINK.d, stc);
+                            auto fd = new AST.FuncDeclaration(exp.loc, exp.loc, id, stc, tf, 0);
+                            fd.fbody = ret;
+                            AST.Dsymbols* decldefs = new AST.Dsymbols();
+                            decldefs.push(fd);
+                            AST.TemplateParameters* tpl = new AST.TemplateParameters();
+                            AST.Expression constraint = null;
+                            auto tempdecl = new AST.TemplateDeclaration(exp.loc, id, tpl, constraint, decldefs, false);
+                            addVar(tempdecl);
+                            nextDefineLine();
+                            continue;
+
                         default:
                             break;
                     }
@@ -5870,8 +5965,8 @@ final class CParser(AST) : Parser!AST
             }
             else
             {
-                scan(&n);
-                if (n.value != TOK.endOfLine)
+                scan(&token);
+                if (token.value != TOK.endOfLine)
                 {
                     skipToNextLine();
                 }
@@ -5879,6 +5974,7 @@ final class CParser(AST) : Parser!AST
             nextDefineLine();
         }
 
+        eSink = save;
         defines = buf;
     }
 

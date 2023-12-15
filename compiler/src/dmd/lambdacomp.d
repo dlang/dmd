@@ -22,6 +22,7 @@ import dmd.astenums;
 import dmd.declaration;
 import dmd.denum;
 import dmd.dsymbol;
+import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.expression;
 import dmd.func;
@@ -243,7 +244,7 @@ public:
         {
             // we must check what the identifier expression is.
             Dsymbol scopesym;
-            Dsymbol s = sc.search(exp.loc, exp.ident, &scopesym);
+            Dsymbol s = sc.search(exp.loc, exp.ident, scopesym);
             if (s)
             {
                 auto v = s.isVarDeclaration();
