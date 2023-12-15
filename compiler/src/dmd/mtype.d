@@ -4650,10 +4650,11 @@ extern (C++) final class TypeFunction : TypeNext
      *      flag = 1: performing a partial ordering match
      *      pMessage = address to store error message, or null
      *      sc = context
+     *      argLoc = location of the argument that doesn't match
      * Returns:
      *      MATCHxxxx
      */
-    extern (D) MATCH callMatch(Type tthis, ArgumentList argumentList, int flag = 0, const(char)** pMessage = null, Scope* sc = null)
+    extern (D) MATCH callMatch(Type tthis, ArgumentList argumentList, int flag = 0, const(char)** pMessage = null, Scope* sc = null, Loc* argLoc = null)
     {
         //printf("TypeFunction::callMatch() %s\n", toChars());
         MATCH match = MATCH.exact; // assume exact match
@@ -4765,13 +4766,13 @@ extern (C++) final class TypeFunction : TypeNext
         foreach (u, p; parameterList)
         {
             MATCH m;
-
+            Expression arg;
             assert(p);
 
             // One or more arguments remain
             if (u < args.length)
             {
-                Expression arg = args[u];
+                arg = args[u];
                 if (!arg)
                     continue; // default argument
                 m = argumentMatchParameter(this, p, arg, wildmatch, flag, sc, pMessage);
@@ -4803,6 +4804,9 @@ extern (C++) final class TypeFunction : TypeNext
                 // If an error happened previously, `pMessage` was already filled
                 else if (pMessage && !*pMessage)
                     *pMessage = getParamError(args[u], p);
+
+                if (argLoc && arg)
+                    *argLoc = arg.loc;
 
                 return MATCH.nomatch;
             }
