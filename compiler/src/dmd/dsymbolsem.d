@@ -246,6 +246,20 @@ bool checkDeprecated(Dsymbol d, const ref Loc loc, Scope* sc)
     return true;
 }
 
+/*********************************
+ * Check type to see if it is based on a deprecated symbol.
+ */
+private void checkDeprecated(Type type, const ref Loc loc, Scope* sc)
+{
+    if (Dsymbol s = type.toDsymbol(sc))
+    {
+        s.checkDeprecated(loc, sc);
+    }
+
+    if (auto tn = type.nextOf())
+        tn.checkDeprecated(loc, sc);
+}
+
 // Returns true if a contract can appear without a function body.
 package bool allowsContractWithoutBody(FuncDeclaration funcdecl)
 {

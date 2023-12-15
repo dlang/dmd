@@ -1061,17 +1061,6 @@ extern (C++) abstract class Type : ASTNode
         return isscalar();
     }
 
-    /*********************************
-     * Check type to see if it is based on a deprecated symbol.
-     */
-    void checkDeprecated(const ref Loc loc, Scope* sc)
-    {
-        if (Dsymbol s = toDsymbol(sc))
-        {
-            s.checkDeprecated(loc, sc);
-        }
-    }
-
     final bool isConst() const nothrow pure @nogc @safe
     {
         return (mod & MODFlags.const_) != 0;
@@ -2823,13 +2812,6 @@ extern (C++) abstract class TypeNext : Type
     {
         super(ty);
         this.next = next;
-    }
-
-    override final void checkDeprecated(const ref Loc loc, Scope* sc)
-    {
-        Type.checkDeprecated(loc, sc);
-        if (next) // next can be NULL if TypeFunction and auto return type
-            next.checkDeprecated(loc, sc);
     }
 
     override final int hasWild() const

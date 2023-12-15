@@ -1830,7 +1830,6 @@ public:
     virtual bool isString();
     virtual bool isAssignable();
     virtual bool isBoolean();
-    virtual void checkDeprecated(const Loc& loc, Scope* sc);
     bool isConst() const;
     bool isImmutable() const;
     bool isMutable() const;
@@ -4804,7 +4803,6 @@ class TypeNext : public Type
 {
 public:
     Type* next;
-    void checkDeprecated(const Loc& loc, Scope* sc) final override;
     int32_t hasWild() const final override;
     Type* nextOf() final override;
     Type* makeConst() final override;
