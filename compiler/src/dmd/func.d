@@ -1161,6 +1161,7 @@ extern (C++) class FuncDeclaration : Declaration
             args.push(e);
         }
 
+        import dmd.typesem : callMatch;
         MATCH m = tg.callMatch(null, ArgumentList(&args, names), 1);
         if (m > MATCH.nomatch)
         {
