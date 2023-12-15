@@ -1,8 +1,9 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/test22102.c(254): Error: identifier or `(` expected
-fail_compilation/test22102.c(254): Error: found `;` when expecting `)`
-fail_compilation/test22102.c(255): Error: `=`, `;` or `,` expected to end declaration instead of `int22102`
+fail_compilation/test22102.c(254): Error: expected identifier for declarator
+fail_compilation/test22102.c(255): Error: no type-specifier for parameter
+fail_compilation/test22102.c(255): Error: found `0` when expecting `,`
+fail_compilation/test22102.c(255): Error: expected identifier for declarator
 ---
 */
 /***************************************************/

@@ -724,9 +724,20 @@ public:
         {
             //printf("NewExp.doInlineAs!%s(): %s\n", Result.stringof.ptr, e.toChars());
             auto ne = e.copy().isNewExp();
+            auto lowering = ne.lowering;
+            if (lowering)
+                if (auto ce = lowering.isCallExp())
+                    if (ce.f.ident == Id._d_newarrayT || ce.f.ident == Id._d_newarraymTX)
+                    {
+                        ne.lowering = doInlineAs!Expression(lowering, ids);
+                        goto LhasLowering;
+                    }
+
             ne.thisexp = doInlineAs!Expression(e.thisexp, ids);
             ne.argprefix = doInlineAs!Expression(e.argprefix, ids);
             ne.arguments = arrayExpressionDoInline(e.arguments);
+
+        LhasLowering:
             result = ne;
 
             semanticTypeInfo(null, e.type);
@@ -760,6 +771,21 @@ public:
             }
 
             result = ce;
+        }
+
+        override void visit(CatAssignExp e)
+        {
+            auto cae = cast(CatAssignExp) e.copy();
+
+            if (auto lowering = cae.lowering)
+                cae.lowering = doInlineAs!Expression(cae.lowering, ids);
+            else
+            {
+                cae.e1 = doInlineAs!Expression(e.e1, ids);
+                cae.e2 = doInlineAs!Expression(e.e2, ids);
+            }
+
+            result = cae;
         }
 
         override void visit(BinExp e)
@@ -1266,6 +1292,14 @@ public:
 
         inlineScan(e.e1);
         inlineScan(e.e2);
+    }
+
+    override void visit(CatAssignExp e)
+    {
+        if (auto lowering = e.lowering)
+            inlineScan(lowering);
+        else
+            visit(cast(BinExp) e);
     }
 
     override void visit(BinExp e)
@@ -2176,9 +2210,10 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
         auto e = doInlineAs!Expression(fd.fbody, ids);
         fd.inlineNest--;
 
+        import dmd.expressionsem : toLvalue;
         // https://issues.dlang.org/show_bug.cgi?id=11322
         if (tf.isref)
-            e = e.toLvalue(null, null);
+            e = e.toLvalue(null, "`ref` return");
 
         /* If the inlined function returns a copy of a struct,
          * and then the return value is used subsequently as an

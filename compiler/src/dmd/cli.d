@@ -459,7 +459,7 @@ dmd -cov -unittest myprog.d
              $(P Note that multiple `-i=...` options are allowed, each one adds a pattern.)}"
         ),
         Option("ignore",
-            "ignore unsupported pragmas"
+            "deprecated flag, unsupported pragmas are always ignored now"
         ),
         Option("inline",
             "do function inlining",
@@ -908,7 +908,7 @@ dmd -cov -unittest myprog.d
         Feature("inclusiveincontracts", "inclusiveInContracts",
             "'in' contracts of overridden methods must be a superset of parent contract"),
         Feature("shortenedMethods", "shortenedMethods",
-            "allow use of => for methods and top-level functions in addition to lambdas", false, false),
+            "allow use of => for methods and top-level functions in addition to lambdas", false, true),
         Feature("fixImmutableConv", "fixImmutableConv",
             "disallow unsound immutable conversions that were formerly incorrectly permitted"),
         Feature("systemVariables", "systemVariables",

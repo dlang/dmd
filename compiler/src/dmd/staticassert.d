@@ -14,14 +14,11 @@
 module dmd.staticassert;
 
 import dmd.arraytypes;
-import dmd.dscope;
 import dmd.dsymbol;
 import dmd.expression;
-import dmd.globals;
 import dmd.location;
 import dmd.id;
 import dmd.identifier;
-import dmd.mtype;
 import dmd.visitor;
 
 /***********************************************************
@@ -50,11 +47,6 @@ extern (C++) final class StaticAssert : Dsymbol
     {
         assert(!s);
         return new StaticAssert(loc, exp.syntaxCopy(), msgs ? Expression.arraySyntaxCopy(msgs) : null);
-    }
-
-    override void addMember(Scope* sc, ScopeDsymbol sds)
-    {
-        // we didn't add anything
     }
 
     override bool oneMember(Dsymbol* ps, Identifier ident)

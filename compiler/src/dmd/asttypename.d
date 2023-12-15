@@ -32,7 +32,6 @@ import dmd.denum;
 import dmd.dimport;
 import dmd.dmodule;
 import dmd.mtype;
-import dmd.typinf;
 import dmd.identifier;
 import dmd.init;
 import dmd.root.complex;

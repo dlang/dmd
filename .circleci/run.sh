@@ -157,7 +157,7 @@ check_clean_git()
     rm -f compiler/test/compilable/vcg-ast.d.cg
     rm -f compiler/test/compilable/vcg-ast-arraylength.d.cg
     # Ensure that there are no untracked changes
-    make -f posix.mak check-clean-git
+    make check-clean-git HOST_DMD=dummy
 }
 
 # sanitycheck for the run_individual_tests script

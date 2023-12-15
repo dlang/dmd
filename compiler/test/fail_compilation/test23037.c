@@ -11,9 +11,11 @@ fail_compilation/test23037.c(202): Error: no type-specifier for struct member
 fail_compilation/test23037.c(203): Error: type-specifier omitted before declaration of `x`
 fail_compilation/test23037.c(204): Error: type-specifier omitted for parameter `x`
 fail_compilation/test23037.c(205): Error: type-specifier omitted before bit field declaration of `x`
-fail_compilation/test23037.c(206): Error: no type-specifier for declarator
-fail_compilation/test23037.c(206): Error: found `;` when expecting `)`
-fail_compilation/test23037.c(207): Error: `=`, `;` or `,` expected to end declaration instead of `const`
+fail_compilation/test23037.c(206): Error: expected identifier for declarator
+fail_compilation/test23037.c(206): Error: expected identifier for declaration
+fail_compilation/test23037.c(207): Error: no type-specifier for declarator
+fail_compilation/test23037.c(207): Error: expected identifier for declarator
+fail_compilation/test23037.c(207): Error: expected identifier for declaration
 ---
 */
 

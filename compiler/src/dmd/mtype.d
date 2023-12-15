@@ -19,11 +19,11 @@ import core.stdc.string;
 
 import dmd.aggregate;
 import dmd.arraytypes;
-import dmd.attrib;
 import dmd.astenums;
 import dmd.ast_node;
 import dmd.gluelayer;
 import dmd.dclass;
+import dmd.dcast;
 import dmd.declaration;
 import dmd.denum;
 import dmd.dmangle;
@@ -521,262 +521,6 @@ extern (C++) abstract class Type : ASTNode
         return mcache;
     }
 
-    /*******************************
-     * Covariant means that 'this' can substitute for 't',
-     * i.e. a pure function is a match for an impure type.
-     * Params:
-     *      t = type 'this' is covariant with
-     *      pstc = if not null, store STCxxxx which would make it covariant
-     *      cppCovariant = true if extern(C++) function types should follow C++ covariant rules
-     * Returns:
-     *     An enum value of either `Covariant.yes` or a reason it's not covariant.
-     */
-    final Covariant covariant(Type t, StorageClass* pstc = null, bool cppCovariant = false)
-    {
-        version (none)
-        {
-            printf("Type::covariant(t = %s) %s\n", t.toChars(), toChars());
-            printf("deco = %p, %p\n", deco, t.deco);
-            //    printf("ty = %d\n", next.ty);
-            printf("mod = %x, %x\n", mod, t.mod);
-        }
-        if (pstc)
-            *pstc = 0;
-        StorageClass stc = 0;
-
-        bool notcovariant = false;
-
-        if (equals(t))
-            return Covariant.yes;
-
-        TypeFunction t1 = this.isTypeFunction();
-        TypeFunction t2 = t.isTypeFunction();
-
-        if (!t1 || !t2)
-            goto Ldistinct;
-
-        if (t1.parameterList.varargs != t2.parameterList.varargs)
-            goto Ldistinct;
-
-        if (t1.parameterList.parameters && t2.parameterList.parameters)
-        {
-            if (t1.parameterList.length != t2.parameterList.length)
-                goto Ldistinct;
-
-            foreach (i, fparam1; t1.parameterList)
-            {
-                Parameter fparam2 = t2.parameterList[i];
-                Type tp1 = fparam1.type;
-                Type tp2 = fparam2.type;
-
-                if (!tp1.equals(tp2))
-                {
-                    if (tp1.ty == tp2.ty)
-                    {
-                        if (auto tc1 = tp1.isTypeClass())
-                        {
-                            if (tc1.sym == (cast(TypeClass)tp2).sym && MODimplicitConv(tp2.mod, tp1.mod))
-                                goto Lcov;
-                        }
-                        else if (auto ts1 = tp1.isTypeStruct())
-                        {
-                            if (ts1.sym == (cast(TypeStruct)tp2).sym && MODimplicitConv(tp2.mod, tp1.mod))
-                                goto Lcov;
-                        }
-                        else if (tp1.ty == Tpointer)
-                        {
-                            if (tp2.implicitConvTo(tp1))
-                                goto Lcov;
-                        }
-                        else if (tp1.ty == Tarray)
-                        {
-                            if (tp2.implicitConvTo(tp1))
-                                goto Lcov;
-                        }
-                        else if (tp1.ty == Tdelegate)
-                        {
-                            if (tp2.implicitConvTo(tp1))
-                                goto Lcov;
-                        }
-                    }
-                    goto Ldistinct;
-                }
-            Lcov:
-                notcovariant |= !fparam1.isCovariant(t1.isref, fparam2);
-
-                /* https://issues.dlang.org/show_bug.cgi?id=23135
-                 * extern(C++) mutable parameters are not covariant with const.
-                 */
-                if (t1.linkage == LINK.cpp && cppCovariant)
-                {
-                    notcovariant |= tp1.isNaked() != tp2.isNaked();
-                    if (auto tpn1 = tp1.nextOf())
-                        notcovariant |= tpn1.isNaked() != tp2.nextOf().isNaked();
-                }
-            }
-        }
-        else if (t1.parameterList.parameters != t2.parameterList.parameters)
-        {
-            if (t1.parameterList.length || t2.parameterList.length)
-                goto Ldistinct;
-        }
-
-        // The argument lists match
-        if (notcovariant)
-            goto Lnotcovariant;
-        if (t1.linkage != t2.linkage)
-            goto Lnotcovariant;
-
-        {
-            // Return types
-            Type t1n = t1.next;
-            Type t2n = t2.next;
-
-            if (!t1n || !t2n) // happens with return type inference
-                goto Lnotcovariant;
-
-            if (t1n.equals(t2n))
-                goto Lcovariant;
-            if (t1n.ty == Tclass && t2n.ty == Tclass)
-            {
-                /* If same class type, but t2n is const, then it's
-                 * covariant. Do this test first because it can work on
-                 * forward references.
-                 */
-                if ((cast(TypeClass)t1n).sym == (cast(TypeClass)t2n).sym && MODimplicitConv(t1n.mod, t2n.mod))
-                    goto Lcovariant;
-
-                // If t1n is forward referenced:
-                ClassDeclaration cd = (cast(TypeClass)t1n).sym;
-                if (cd.semanticRun < PASS.semanticdone && !cd.isBaseInfoComplete())
-                    cd.dsymbolSemantic(null);
-                if (!cd.isBaseInfoComplete())
-                {
-                    return Covariant.fwdref;
-                }
-            }
-            if (t1n.ty == Tstruct && t2n.ty == Tstruct)
-            {
-                if ((cast(TypeStruct)t1n).sym == (cast(TypeStruct)t2n).sym && MODimplicitConv(t1n.mod, t2n.mod))
-                    goto Lcovariant;
-            }
-            else if (t1n.ty == t2n.ty && t1n.implicitConvTo(t2n))
-            {
-                if (t1.isref && t2.isref)
-                {
-                    // Treat like pointers to t1n and t2n
-                    if (t1n.constConv(t2n) < MATCH.constant)
-                        goto Lnotcovariant;
-                }
-                goto Lcovariant;
-            }
-            else if (t1n.ty == Tnull)
-            {
-                // NULL is covariant with any pointer type, but not with any
-                // dynamic arrays, associative arrays or delegates.
-                // https://issues.dlang.org/show_bug.cgi?id=8589
-                // https://issues.dlang.org/show_bug.cgi?id=19618
-                Type t2bn = t2n.toBasetype();
-                if (t2bn.ty == Tnull || t2bn.ty == Tpointer || t2bn.ty == Tclass)
-                    goto Lcovariant;
-            }
-            // bottom type is covariant to any type
-            else if (t1n.ty == Tnoreturn)
-                goto Lcovariant;
-        }
-        goto Lnotcovariant;
-
-    Lcovariant:
-        if (t1.isref != t2.isref)
-            goto Lnotcovariant;
-
-        if (!t1.isref && (t1.isScopeQual || t2.isScopeQual))
-        {
-            StorageClass stc1 = t1.isScopeQual ? STC.scope_ : 0;
-            StorageClass stc2 = t2.isScopeQual ? STC.scope_ : 0;
-            if (t1.isreturn)
-            {
-                stc1 |= STC.return_;
-                if (!t1.isScopeQual)
-                    stc1 |= STC.ref_;
-            }
-            if (t2.isreturn)
-            {
-                stc2 |= STC.return_;
-                if (!t2.isScopeQual)
-                    stc2 |= STC.ref_;
-            }
-            if (!Parameter.isCovariantScope(t1.isref, stc1, stc2))
-                goto Lnotcovariant;
-        }
-
-        // We can subtract 'return ref' from 'this', but cannot add it
-        else if (t1.isreturn && !t2.isreturn)
-            goto Lnotcovariant;
-
-        /* https://issues.dlang.org/show_bug.cgi?id=23135
-         * extern(C++) mutable member functions are not covariant with const.
-         */
-        if (t1.linkage == LINK.cpp && cppCovariant && t1.isNaked() != t2.isNaked())
-            goto Lnotcovariant;
-
-        /* Can convert mutable to const
-         */
-        if (!MODimplicitConv(t2.mod, t1.mod))
-        {
-            version (none)
-            {
-                //stop attribute inference with const
-                // If adding 'const' will make it covariant
-                if (MODimplicitConv(t2.mod, MODmerge(t1.mod, MODFlags.const_)))
-                    stc |= STC.const_;
-                else
-                    goto Lnotcovariant;
-            }
-            else
-            {
-                goto Ldistinct;
-            }
-        }
-
-        /* Can convert pure to impure, nothrow to throw, and nogc to gc
-         */
-        if (!t1.purity && t2.purity)
-            stc |= STC.pure_;
-
-        if (!t1.isnothrow && t2.isnothrow)
-            stc |= STC.nothrow_;
-
-        if (!t1.isnogc && t2.isnogc)
-            stc |= STC.nogc;
-
-        /* Can convert safe/trusted to system
-         */
-        if (t1.trust <= TRUST.system && t2.trust >= TRUST.trusted)
-        {
-            // Should we infer trusted or safe? Go with safe.
-            stc |= STC.safe;
-        }
-
-        if (stc)
-        {
-            if (pstc)
-                *pstc = stc;
-            goto Lnotcovariant;
-        }
-
-        //printf("\tcovaraint: 1\n");
-        return Covariant.yes;
-
-    Ldistinct:
-        //printf("\tcovaraint: 0\n");
-        return Covariant.distinct;
-
-    Lnotcovariant:
-        //printf("\tcovaraint: 2\n");
-        return Covariant.no;
-    }
-
     /********************************
      * For pretty-printing a type.
      */
@@ -1058,17 +802,6 @@ extern (C++) abstract class Type : ASTNode
     bool isBoolean()
     {
         return isscalar();
-    }
-
-    /*********************************
-     * Check type to see if it is based on a deprecated symbol.
-     */
-    void checkDeprecated(const ref Loc loc, Scope* sc)
-    {
-        if (Dsymbol s = toDsymbol(sc))
-        {
-            s.checkDeprecated(loc, sc);
-        }
     }
 
     final bool isConst() const nothrow pure @nogc @safe
@@ -1393,7 +1126,7 @@ extern (C++) abstract class Type : ASTNode
      * For our new type 'this', which is type-constructed from t,
      * fill in the cto, ito, sto, scto, wto shortcuts.
      */
-    final void fixTo(Type t)
+    extern (D) final void fixTo(Type t)
     {
         // If fixing this: immutable(T*) by t: immutable(T)*,
         // cache t to this.xto won't break transitivity.
@@ -1528,7 +1261,7 @@ extern (C++) abstract class Type : ASTNode
     /***************************
      * Look for bugs in constructing types.
      */
-    final void check()
+    extern (D) final void check()
     {
         if (mcache)
         with (mcache)
@@ -1722,7 +1455,7 @@ extern (C++) abstract class Type : ASTNode
      * Apply STCxxxx bits to existing type.
      * Use *before* semantic analysis is run.
      */
-    final Type addSTC(StorageClass stc)
+    extern (D) final Type addSTC(StorageClass stc)
     {
         Type t = this;
         if (t.isImmutable())
@@ -2555,7 +2288,7 @@ extern (C++) abstract class Type : ASTNode
      * Return the mask that an integral type will
      * fit into.
      */
-    final uinteger_t sizemask()
+    extern (D) final uinteger_t sizemask()
     {
         uinteger_t m;
         switch (toBasetype().ty)
@@ -2822,13 +2555,6 @@ extern (C++) abstract class TypeNext : Type
     {
         super(ty);
         this.next = next;
-    }
-
-    override final void checkDeprecated(const ref Loc loc, Scope* sc)
-    {
-        Type.checkDeprecated(loc, sc);
-        if (next) // next can be NULL if TypeFunction and auto return type
-            next.checkDeprecated(loc, sc);
     }
 
     override final int hasWild() const
@@ -4404,10 +4130,13 @@ extern (C++) final class TypeFunction : TypeNext
      * Params:
      *  tthis = type of `this` parameter, null if none
      *  p = parameter to this function
+     *  outerVars = context variables p could escape into, if any
+     *  indirect = is this for an indirect or virtual function call?
      * Returns:
      *  storage class with STC.scope_ or STC.return_ OR'd in
      */
-    StorageClass parameterStorageClass(Type tthis, Parameter p)
+    StorageClass parameterStorageClass(Type tthis, Parameter p, VarDeclarations* outerVars = null,
+        bool indirect = false)
     {
         //printf("parameterStorageClass(p: %s)\n", p.toChars());
         auto stc = p.storageClass;
@@ -4441,6 +4170,15 @@ extern (C++) final class TypeFunction : TypeNext
         // See if p can escape via any of the other parameters
         if (purity == PURE.weak)
         {
+            /*
+             * Indirect calls may escape p through a nested context
+             * See:
+             *   https://issues.dlang.org/show_bug.cgi?id=24212
+             *   https://issues.dlang.org/show_bug.cgi?id=24213
+             */
+            if (indirect)
+                return stc;
+
             // Check escaping through parameters
             foreach (i, fparam; parameterList)
             {
@@ -4473,6 +4211,16 @@ extern (C++) final class TypeFunction : TypeNext
             if (tthis && tthis.isMutable())
             {
                 foreach (VarDeclaration v; isAggregate(tthis).fields)
+                {
+                    if (v.hasPointers())
+                        return stc;
+                }
+            }
+
+            // Check escaping through nested context
+            if (outerVars && this.isMutable())
+            {
+                foreach (VarDeclaration v; *outerVars)
                 {
                     if (v.hasPointers())
                         return stc;
@@ -5227,7 +4975,7 @@ extern (C++) abstract class TypeQualified : Type
     // us a `TypeQualified`
     abstract override TypeQualified syntaxCopy();
 
-    final void syntaxCopyHelper(TypeQualified t)
+    extern (D) final void syntaxCopyHelper(TypeQualified t)
     {
         //printf("TypeQualified::syntaxCopyHelper(%s) %s\n", t.toChars(), toChars());
         idents.setDim(t.idents.length);
@@ -5265,17 +5013,17 @@ extern (C++) abstract class TypeQualified : Type
         }
     }
 
-    final void addIdent(Identifier ident)
+    extern (D) final void addIdent(Identifier ident)
     {
         idents.push(ident);
     }
 
-    final void addInst(TemplateInstance inst)
+    extern (D) final void addInst(TemplateInstance inst)
     {
         idents.push(inst);
     }
 
-    final void addIndex(RootObject e)
+    extern (D) final void addIndex(RootObject e)
     {
         idents.push(e);
     }
@@ -6912,7 +6660,7 @@ extern (C++) final class Parameter : ASTNode
         return isCovariantScope(returnByRef, thisSTC, otherSTC);
     }
 
-    extern (D) private static bool isCovariantScope(bool returnByRef, StorageClass from, StorageClass to) pure nothrow @nogc @safe
+    extern (D) static bool isCovariantScope(bool returnByRef, StorageClass from, StorageClass to) pure nothrow @nogc @safe
     {
         // Workaround for failing covariance when finding a common type of delegates,
         // some of which have parameters with inferred scope
@@ -7714,4 +7462,37 @@ TypeIdentifier getException()
     tid.addIdent(Id.object);
     tid.addIdent(Id.Exception);
     return tid;
+}
+
+/**************************************
+ * Check and set 'att' if 't' is a recursive 'alias this' type
+ *
+ * The goal is to prevent endless loops when there is a cycle in the alias this chain.
+ * Since there is no multiple `alias this`, the chain either ends in a leaf,
+ * or it loops back on itself as some point.
+ *
+ * Example: S0 -> (S1 -> S2 -> S3 -> S1)
+ *
+ * `S0` is not a recursive alias this, so this returns `false`, and a rewrite to `S1` can be tried.
+ * `S1` is a recursive alias this type, but since `att` is initialized to `null`,
+ * this still returns `false`, but `att1` is set to `S1`.
+ * A rewrite to `S2` and `S3` can be tried, but when we want to try a rewrite to `S1` again,
+ * we notice `att == t`, so we're back at the start of the loop, and this returns `true`.
+ *
+ * Params:
+ *   att = type reference used to detect recursion. Should be initialized to `null`.
+ *   t   = type of 'alias this' rewrite to attempt
+ *
+ * Returns:
+ *   `false` if the rewrite is safe, `true` if it would loop back around
+ */
+bool isRecursiveAliasThis(ref Type att, Type t)
+{
+    //printf("+isRecursiveAliasThis(att = %s, t = %s)\n", att ? att.toChars() : "null", t.toChars());
+    auto tb = t.toBasetype();
+    if (att && tb.equivalent(att))
+        return true;
+    else if (!att && tb.checkAliasThisRec())
+        att = tb;
+    return false;
 }

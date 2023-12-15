@@ -15,6 +15,7 @@ import core.stdc.string;
 
 import dmd.astenums;
 import dmd.arraytypes;
+import dmd.ctfeexpr;
 import dmd.dmodule;
 import dmd.errors;
 import dmd.expression;

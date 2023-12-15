@@ -49,6 +49,7 @@ import dmd.attrib;
 import dmd.dcast;
 import dmd.dclass;
 import dmd.declaration;
+import dmd.dinterpret;
 import dmd.dmangle;
 import dmd.dmodule;
 import dmd.dscope;
@@ -68,6 +69,7 @@ import dmd.initsem;
 import dmd.location;
 import dmd.mtype;
 import dmd.opover;
+import dmd.optimize;
 import dmd.root.array;
 import dmd.common.outbuffer;
 import dmd.rootobject;
@@ -744,7 +746,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         OutBuffer buf;
         HdrGenState hgs;
 
-        buf.writestring(ident.toString());
+        buf.writestring(ident == Id.ctor ? "this" : ident.toString());
         buf.writeByte('(');
         foreach (i, const tp; *parameters)
         {
@@ -761,6 +763,11 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             {
                 TypeFunction tf = cast(TypeFunction)fd.type;
                 buf.writestring(parametersTypeToChars(tf.parameterList));
+                if (tf.mod)
+                {
+                    buf.writeByte(' ');
+                    buf.MODtoBuffer(tf.mod);
+                }
             }
         }
 
@@ -1241,7 +1248,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
      *      match   this is at least as specialized as td2
      *      0       td2 is more specialized than this
      */
-    MATCH leastAsSpecialized(Scope* sc, TemplateDeclaration td2, ArgumentList argumentList)
+    extern (D) MATCH leastAsSpecialized(Scope* sc, TemplateDeclaration td2, ArgumentList argumentList)
     {
         enum LOG_LEASTAS = 0;
         static if (LOG_LEASTAS)
@@ -2258,7 +2265,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     /**************************************************
      * Declare template parameter tp with value o, and install it in the scope sc.
      */
-    RootObject declareParameter(Scope* sc, TemplateParameter tp, RootObject o)
+    extern (D) RootObject declareParameter(Scope* sc, TemplateParameter tp, RootObject o)
     {
         //printf("TemplateDeclaration.declareParameter('%s', o = %p)\n", tp.ident.toChars(), o);
         Type ta = isType(o);
@@ -2508,7 +2515,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
      * Returns:
      *   The last template parameter if it's a `TemplateTupleParameter`
      */
-    TemplateTupleParameter isVariadic()
+    extern (D) TemplateTupleParameter isVariadic()
     {
         size_t dim = parameters.length;
         if (dim == 0)
@@ -5725,13 +5732,19 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
     override RootObject defaultArg(const ref Loc instLoc, Scope* sc)
     {
         RootObject da = defaultAlias;
-        Type ta = isType(defaultAlias);
-        if (ta)
+        if (auto ta = isType(defaultAlias))
         {
-            if (ta.ty == Tinstance)
+            switch (ta.ty)
             {
-                // If the default arg is a template, instantiate for each type
+            // If the default arg is a template, instantiate for each type
+            case Tinstance :
+            // same if the default arg is a mixin, traits, typeof
+            // since the content might rely on a previous parameter
+            // (https://issues.dlang.org/show_bug.cgi?id=23686)
+            case Tmixin, Ttypeof, Ttraits :
                 da = ta.syntaxCopy();
+                break;
+            default:
             }
         }
 
@@ -6203,7 +6216,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         return false;
     }
 
-    final size_t toHash()
+    extern (D) final size_t toHash()
     {
         if (!hash)
         {
@@ -6452,7 +6465,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
              */
             Identifier id = name;
             Dsymbol scopesym;
-            Dsymbol s = sc.search(loc, id, &scopesym);
+            Dsymbol s = sc.search(loc, id, scopesym);
             if (!s)
             {
                 s = sc.search_correct(id);
@@ -7502,7 +7515,12 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         }
         //printf("\t-. mi = %s\n", mi.toPrettyChars());
 
-        assert(!memberOf || (!memberOf.isRoot() && mi.isRoot()), "can only re-append from non-root to root module");
+        if (memberOf) // already appended to some module
+        {
+            assert(mi.isRoot(), "can only re-append to a root module");
+            if (memberOf.isRoot())
+                return null; // no need to move to another root module
+        }
 
         Dsymbols* a = mi.members;
         a.push(this);
@@ -7811,15 +7829,6 @@ extern (C++) final class TemplateMixin : TemplateInstance
     {
         //printf("TemplateMixin.hasPointers() %s\n", toChars());
         return members.foreachDsymbol( (s) { return s.hasPointers(); } ) != 0;
-    }
-
-    override void setFieldOffset(AggregateDeclaration ad, ref FieldState fieldState, bool isunion)
-    {
-        //printf("TemplateMixin.setFieldOffset() %s\n", toChars());
-        if (_scope) // if fwd reference
-            dsymbolSemantic(this, null); // try to resolve it
-
-        members.foreachDsymbol( (s) { s.setFieldOffset(ad, fieldState, isunion); } );
     }
 
     override const(char)* toChars() const

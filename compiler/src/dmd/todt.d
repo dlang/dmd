@@ -38,12 +38,12 @@ import dmd.glue;
 import dmd.init;
 import dmd.location;
 import dmd.mtype;
+import dmd.optimize;
 import dmd.target;
 import dmd.tokens;
 import dmd.tocsym;
 import dmd.toobj;
 import dmd.typesem;
-import dmd.typinf;
 import dmd.visitor;
 
 import dmd.backend.cc;
@@ -203,6 +203,13 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb, bool isC
         /* Should have been rewritten to Exp/Struct/ArrayInitializer by semantic()
          */
         assert(0);
+    }
+
+    void visitDefault(DefaultInitializer di)
+    {
+        /* Default initializers are set to 0, because C23 says so
+         */
+        dtb.nzeros(cast(uint)di.type.size());
     }
 
     mixin VisitInitializer!void visit;
@@ -600,7 +607,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
     {
         if (Type t = isType(e.obj))
         {
-            genTypeInfo(e, e.loc, t, null);
+            TypeInfo_toObjFile(e, e.loc, t);
             Symbol *s = toSymbol(t.vtinfo);
             dtb.xoff(s, 0);
             return;
@@ -1177,7 +1184,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
             dtb.size(0);                                  // monitor
         Type tm = d.tinfo.mutableOf();
         tm = tm.merge();
-        genTypeInfo(null, d.loc, tm, null);
+        TypeInfo_toObjFile(null, d.loc, tm);
         dtb.xoff(toSymbol(tm.vtinfo), 0);
     }
 
@@ -1191,7 +1198,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
             dtb.size(0);                                      // monitor
         Type tm = d.tinfo.mutableOf();
         tm = tm.merge();
-        genTypeInfo(null, d.loc, tm, null);
+        TypeInfo_toObjFile(null, d.loc, tm);
         dtb.xoff(toSymbol(tm.vtinfo), 0);
     }
 
@@ -1205,7 +1212,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
             dtb.size(0);                                 // monitor
         Type tm = d.tinfo.unSharedOf();
         tm = tm.merge();
-        genTypeInfo(null, d.loc, tm, null);
+        TypeInfo_toObjFile(null, d.loc, tm);
         dtb.xoff(toSymbol(tm.vtinfo), 0);
     }
 
@@ -1219,7 +1226,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
             dtb.size(0);                              // monitor
         Type tm = d.tinfo.mutableOf();
         tm = tm.merge();
-        genTypeInfo(null, d.loc, tm, null);
+        TypeInfo_toObjFile(null, d.loc, tm);
         dtb.xoff(toSymbol(tm.vtinfo), 0);
     }
 
@@ -1246,7 +1253,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         // TypeInfo for enum members
         if (sd.memtype)
         {
-            genTypeInfo(null, d.loc, sd.memtype, null);
+            TypeInfo_toObjFile(null, d.loc, sd.memtype);
             dtb.xoff(toSymbol(sd.memtype.vtinfo), 0);
         }
         else
@@ -1286,7 +1293,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
 
         auto tc = d.tinfo.isTypePointer();
 
-        genTypeInfo(null, d.loc, tc.next, null);
+        TypeInfo_toObjFile(null, d.loc, tc.next);
         dtb.xoff(toSymbol(tc.next.vtinfo), 0); // TypeInfo for type being pointed to
     }
 
@@ -1301,7 +1308,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
 
         auto tc = d.tinfo.isTypeDArray();
 
-        genTypeInfo(null, d.loc, tc.next, null);
+        TypeInfo_toObjFile(null, d.loc, tc.next);
         dtb.xoff(toSymbol(tc.next.vtinfo), 0); // TypeInfo for array of type
     }
 
@@ -1316,7 +1323,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
 
         auto tc = d.tinfo.isTypeSArray();
 
-        genTypeInfo(null, d.loc, tc.next, null);
+        TypeInfo_toObjFile(null, d.loc, tc.next);
         dtb.xoff(toSymbol(tc.next.vtinfo), 0);   // TypeInfo for array of type
 
         dtb.size(tc.dim.toInteger());          // length
@@ -1333,7 +1340,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
 
         auto tc = d.tinfo.isTypeVector();
 
-        genTypeInfo(null, d.loc, tc.basetype, null);
+        TypeInfo_toObjFile(null, d.loc, tc.basetype);
         dtb.xoff(toSymbol(tc.basetype.vtinfo), 0); // TypeInfo for equivalent static array
     }
 
@@ -1348,10 +1355,10 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
 
         auto tc = d.tinfo.isTypeAArray();
 
-        genTypeInfo(null, d.loc, tc.next, null);
+        TypeInfo_toObjFile(null, d.loc, tc.next);
         dtb.xoff(toSymbol(tc.next.vtinfo), 0);   // TypeInfo for array of type
 
-        genTypeInfo(null, d.loc, tc.index, null);
+        TypeInfo_toObjFile(null, d.loc, tc.index);
         dtb.xoff(toSymbol(tc.index.vtinfo), 0);  // TypeInfo for array of type
     }
 
@@ -1366,7 +1373,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
 
         auto tc = d.tinfo.isTypeFunction();
 
-        genTypeInfo(null, d.loc, tc.next, null);
+        TypeInfo_toObjFile(null, d.loc, tc.next);
         dtb.xoff(toSymbol(tc.next.vtinfo), 0); // TypeInfo for function return value
 
         const name = d.tinfo.deco;
@@ -1390,7 +1397,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
 
         auto tc = d.tinfo.isTypeDelegate();
 
-        genTypeInfo(null, d.loc, tc.next.nextOf(), null);
+        TypeInfo_toObjFile(null, d.loc, tc.next.nextOf());
         dtb.xoff(toSymbol(tc.next.nextOf().vtinfo), 0); // TypeInfo for delegate return value
 
         const name = d.tinfo.deco;
@@ -1538,7 +1545,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
                 // m_argi
                 if (auto t = sd.argType(i))
                 {
-                    genTypeInfo(null, d.loc, t, null);
+                    TypeInfo_toObjFile(null, d.loc, t);
                     dtb.xoff(toSymbol(t.vtinfo), 0);
                 }
                 else
@@ -1600,7 +1607,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         auto dtbargs = DtBuilder(0);
         foreach (arg; *tu.arguments)
         {
-            genTypeInfo(null, d.loc, arg.type, null);
+            TypeInfo_toObjFile(null, d.loc, arg.type);
             Symbol* s = toSymbol(arg.type.vtinfo);
             dtbargs.xoff(s, 0);
         }
