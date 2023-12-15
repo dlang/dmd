@@ -46,21 +46,13 @@
 
 module dmd.nspace;
 
-import dmd.aggregate;
 import dmd.arraytypes;
-import dmd.astenums;
-import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dsymbolsem;
-import dmd.errors;
 import dmd.expression;
-import dmd.globals;
 import dmd.identifier;
 import dmd.location;
 import dmd.visitor;
 import core.stdc.stdio;
-
-private enum LOG = false;
 
 /// Ditto
 extern (C++) final class Nspace : ScopeDsymbol
