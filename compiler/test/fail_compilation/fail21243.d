@@ -5,11 +5,7 @@ fail_compilation/fail21243.d(1): Error: semicolon expected following auto declar
 fail_compilation/fail21243.d(1): Error: semicolon needed to end declaration of `x` instead of `)`
 fail_compilation/fail21243.d(1): Error: declaration expected, not `)`
 fail_compilation/fail21243.d(2): Error: `auto` can only be used as part of `auto ref` for function literal return values
-fail_compilation/fail21243.d(3): Error: basic type expected, not `(`
-fail_compilation/fail21243.d(3): Error: function declaration without return type. (Note that constructors are always named `this`)
-fail_compilation/fail21243.d(3): Deprecation: storage class `auto` has no effect in type aliases
-fail_compilation/fail21243.d(3): Error: semicolon expected to close `alias` declaration, not `=>`
-fail_compilation/fail21243.d(3): Error: declaration expected, not `=>`
+fail_compilation/fail21243.d(3): Error: `auto` can only be used as part of `auto ref` for function literal return values
 fail_compilation/fail21243.d(4): Error: `auto` can only be used as part of `auto ref` for function literal return values
 ---
 +/

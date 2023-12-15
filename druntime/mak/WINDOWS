@@ -2,10 +2,6 @@ $(mak\COPY)
 
 ######################## Header file copy ##############################
 
-import: copy
-
-copydir: $(IMPDIR)
-
 copy: ..\generated\windows\copyimports.exe
 	@~..\generated\windows\copyimports.exe $(COPY)
 

@@ -155,8 +155,6 @@ struct IRState
     }
 }
 
-extern (C++):
-
 /*********************************************
  * Produce elem which increments the usage count for a particular line.
  * Sets corresponding bit in bitmap `m.covb[linnum]`.
@@ -745,7 +743,7 @@ uint setClosureVarOffset(FuncDeclaration fd)
             memalignsize = v.type.alignsize();
             xalign = v.alignment;
         }
-        AggregateDeclaration.alignmember(xalign, memalignsize, &offset);
+        offset = alignmember(xalign, memalignsize, offset);
         v.offset = offset;
         //printf("closure var %s, offset = %d\n", v.toChars(), v.offset);
 
@@ -979,6 +977,7 @@ void buildClosure(FuncDeclaration fd, ref IRState irs)
  * Reference:
  *      setClosureVarOffset
  */
+private
 uint setAlignSectionVarOffset(FuncDeclaration fd)
 {
     // Nothing to do
@@ -1001,7 +1000,7 @@ uint setAlignSectionVarOffset(FuncDeclaration fd)
         const memalignsize = v.type.alignsize();
         const xalign = v.alignment;
 
-        AggregateDeclaration.alignmember(xalign, memalignsize, &offset);
+        offset = alignmember(xalign, memalignsize, offset);
         v.offset = offset;
         //printf("align closure var %s, offset = %d\n", v.toChars(), offset);
 

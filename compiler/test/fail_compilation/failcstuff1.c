@@ -17,11 +17,20 @@ fail_compilation/failcstuff1.c(206): Error: storage class not allowed in specifi
 fail_compilation/failcstuff1.c(207): Error: storage class not allowed in specifier-qualified-list
 fail_compilation/failcstuff1.c(208): Error: storage class not allowed in specifier-qualified-list
 fail_compilation/failcstuff1.c(251): Error: identifier or `(` expected
+fail_compilation/failcstuff1.c(251): Error: expected identifier for declarator
+fail_compilation/failcstuff1.c(251): Error: expected identifier for declaration
 fail_compilation/failcstuff1.c(252): Error: identifier or `(` expected
+fail_compilation/failcstuff1.c(252): Error: expected identifier for declarator
+fail_compilation/failcstuff1.c(252): Error: expected identifier for declaration
 fail_compilation/failcstuff1.c(253): Error: identifier or `(` expected
+fail_compilation/failcstuff1.c(253): Error: expected identifier for declarator
+fail_compilation/failcstuff1.c(253): Error: expected identifier for declaration
 fail_compilation/failcstuff1.c(258): Error: identifier or `(` expected
+fail_compilation/failcstuff1.c(258): Error: expected identifier for declarator
 fail_compilation/failcstuff1.c(259): Error: identifier or `(` expected
+fail_compilation/failcstuff1.c(259): Error: expected identifier for declarator
 fail_compilation/failcstuff1.c(260): Error: identifier or `(` expected
+fail_compilation/failcstuff1.c(260): Error: expected identifier for declarator
 fail_compilation/failcstuff1.c(301): Error: illegal type combination
 fail_compilation/failcstuff1.c(352): Error: found `2` when expecting `:`
 fail_compilation/failcstuff1.c(352): Error: found `:` instead of statement
@@ -39,12 +48,10 @@ fail_compilation/failcstuff1.c(460): Error: variable length arrays are not suppo
 fail_compilation/failcstuff1.c(460): Error: variable length array used outside of function prototype
 fail_compilation/failcstuff1.c(461): Error: array type has incomplete element type `int[0]`
 fail_compilation/failcstuff1.c(462): Error: `=`, `;` or `,` expected to end declaration instead of `const`
-fail_compilation/failcstuff1.c(502): Error: identifier or `(` expected
-fail_compilation/failcstuff1.c(502): Error: found `;` when expecting `)`
-fail_compilation/failcstuff1.c(503): Error: `=`, `;` or `,` expected to end declaration instead of `int`
-fail_compilation/failcstuff1.c(504): Error: identifier or `(` expected
-fail_compilation/failcstuff1.c(504): Error: found `;` when expecting `)`
-fail_compilation/failcstuff1.c(505): Error: `=`, `;` or `,` expected to end declaration instead of `int`
+fail_compilation/failcstuff1.c(502): Error: no type-specifier for parameter
+fail_compilation/failcstuff1.c(502): Error: found `0` when expecting `,`
+fail_compilation/failcstuff1.c(502): Error: expected identifier for declarator
+fail_compilation/failcstuff1.c(504): Error: expected identifier for declarator
 fail_compilation/failcstuff1.c(551): Error: missing comma or semicolon after declaration of `pluto`, found `p` instead
 fail_compilation/failcstuff1.c(601): Error: `=`, `;` or `,` expected to end declaration instead of `'s'`
 fail_compilation/failcstuff1.c(652): Error: multiple storage classes in declaration specifiers

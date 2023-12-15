@@ -48,6 +48,7 @@ public extern (C++) Library LibMach_factory()
 }
 
 private: // for the remainder of this module
+nothrow:
 
 enum LOG = false;
 
@@ -261,7 +262,7 @@ final class LibMach : Library
 
     /*****************************************************************************/
 
-    void addSymbol(MachObjModule* om, const(char)[] name, int pickAny = 0)
+    void addSymbol(MachObjModule* om, const(char)[] name, int pickAny = 0) nothrow
     {
         static if (LOG)
         {
@@ -312,7 +313,7 @@ private:
             printf("LibMach::scanObjModule(%s)\n", om.name.ptr);
         }
 
-        extern (D) void addSymbol(const(char)[] name, int pickAny)
+        extern (D) void addSymbol(const(char)[] name, int pickAny) nothrow
         {
             this.addSymbol(om, name, pickAny);
         }

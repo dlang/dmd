@@ -10,7 +10,7 @@ steps:
       @echo on
       call "%VSINSTALLDIR%\VC\Auxiliary\Build\vcvarsall.bat" %ARCH%
       bash --version
-      sh --login .azure-pipelines/windows.sh
+      bash --login .azure-pipelines/windows.sh
     displayName: Build and test
 
   # Try to upload the coverage files from the previous step to CodeCov

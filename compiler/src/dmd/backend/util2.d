@@ -76,7 +76,7 @@ int binary(const(char)* p, const(char)*  *table,int high)
 version (X86asm)
 {
     alias len = high;        // reuse parameter storage
-    asm nothrow
+    asm nothrow @nogc
     {
 
 // First find the length of the identifier.

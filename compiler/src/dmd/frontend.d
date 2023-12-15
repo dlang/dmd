@@ -425,7 +425,7 @@ Run full semantic analysis on a module.
 */
 void fullSemantic(Module m)
 {
-    import dmd.dsymbolsem : dsymbolSemantic;
+    import dmd.dsymbolsem : dsymbolSemantic, importAll;
     import dmd.semantic2 : semantic2;
     import dmd.semantic3 : semantic3;
 

@@ -33,6 +33,7 @@ import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.file_manager;
+import dmd.func;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
@@ -268,22 +269,6 @@ extern (C++) class Package : ScopeDsymbol
         return isAncestorPackageOf(pkg.parent.isPackage());
     }
 
-    override Dsymbol search(const ref Loc loc, Identifier ident, int flags = SearchLocalsOnly)
-    {
-        //printf("%s Package.search('%s', flags = x%x)\n", toChars(), ident.toChars(), flags);
-        flags &= ~SearchLocalsOnly;  // searching an import is always transitive
-        if (!isModule() && mod)
-        {
-            // Prefer full package name.
-            Dsymbol s = symtab ? symtab.lookup(ident) : null;
-            if (s)
-                return s;
-            //printf("[%s] through pkdmod: %s\n", loc.toChars(), toChars());
-            return mod.search(loc, ident, flags);
-        }
-        return ScopeDsymbol.search(loc, ident, flags);
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -414,10 +399,10 @@ extern (C++) final class Module : Package
         return rootimports == ThreeState.yes;
     }
 
-    private Identifier searchCacheIdent;
-    private Dsymbol searchCacheSymbol;  // cached value of search
-    private int searchCacheFlags;       // cached flags
-    private bool insearch;
+    Identifier searchCacheIdent;
+    Dsymbol searchCacheSymbol;  // cached value of search
+    SearchOptFlags searchCacheFlags;       // cached flags
+    bool insearch;
 
     /**
      * A root module is one that will be compiled all the way to
@@ -793,7 +778,7 @@ extern (C++) final class Module : Package
         }
         else
         {
-            const bool doUnittests = global.params.useUnitTests || global.params.ddoc.doOutput || global.params.dihdr.doOutput;
+            const bool doUnittests = global.params.parsingUnittestsRequired();
             scope p = new Parser!AST(this, buf, cast(bool) docfile, global.errorSink, &global.compileEnv, doUnittests);
             p.transitionIn = global.params.v.vin;
             p.nextToken();
@@ -936,70 +921,6 @@ extern (C++) final class Module : Package
         return this;
     }
 
-    override void importAll(Scope* prevsc)
-    {
-        //printf("+Module::importAll(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
-        if (_scope)
-            return; // already done
-        if (filetype == FileType.ddoc)
-        {
-            error(loc, "%s `%s` is a Ddoc file, cannot import it", kind, toPrettyChars);
-            return;
-        }
-
-        /* Note that modules get their own scope, from scratch.
-         * This is so regardless of where in the syntax a module
-         * gets imported, it is unaffected by context.
-         * Ignore prevsc.
-         */
-        Scope* sc = Scope.createGlobal(this, global.errorSink); // create root scope
-
-        if (md && md.msg)
-            md.msg = semanticString(sc, md.msg, "deprecation message");
-
-        // Add import of "object", even for the "object" module.
-        // If it isn't there, some compiler rewrites, like
-        //    classinst == classinst -> .object.opEquals(classinst, classinst)
-        // would fail inside object.d.
-        if (filetype != FileType.c &&
-            (members.length == 0 ||
-             (*members)[0].ident != Id.object ||
-             (*members)[0].isImport() is null))
-        {
-            auto im = new Import(Loc.initial, null, Id.object, null, 0);
-            members.shift(im);
-        }
-        if (!symtab)
-        {
-            // Add all symbols into module's symbol table
-            symtab = new DsymbolTable();
-            for (size_t i = 0; i < members.length; i++)
-            {
-                Dsymbol s = (*members)[i];
-                s.addMember(sc, sc.scopesym);
-            }
-        }
-        // anything else should be run after addMember, so version/debug symbols are defined
-        /* Set scope for the symbols so that if we forward reference
-         * a symbol, it can possibly be resolved on the spot.
-         * If this works out well, it can be extended to all modules
-         * before any semantic() on any of them.
-         */
-        setScope(sc); // remember module scope for semantic
-        for (size_t i = 0; i < members.length; i++)
-        {
-            Dsymbol s = (*members)[i];
-            s.setScope(sc);
-        }
-        for (size_t i = 0; i < members.length; i++)
-        {
-            Dsymbol s = (*members)[i];
-            s.importAll(sc);
-        }
-        sc = sc.pop();
-        sc.pop(); // 2 pops because Scope.createGlobal() created 2
-    }
-
     /**********************************
      * Determine if we need to generate an instance of ModuleInfo
      * for this Module.
@@ -1036,55 +957,14 @@ extern (C++) final class Module : Package
         }
     }
 
-    override Dsymbol search(const ref Loc loc, Identifier ident, int flags = SearchLocalsOnly)
-    {
-        /* Since modules can be circularly referenced,
-         * need to stop infinite recursive searches.
-         * This is done with the cache.
-         */
-        //printf("%s Module.search('%s', flags = x%x) insearch = %d\n", toChars(), ident.toChars(), flags, insearch);
-        if (insearch)
-            return null;
-
-        /* Qualified module searches always search their imports,
-         * even if SearchLocalsOnly
-         */
-        if (!(flags & SearchUnqualifiedModule))
-            flags &= ~(SearchUnqualifiedModule | SearchLocalsOnly);
-
-        if (searchCacheIdent == ident && searchCacheFlags == flags)
-        {
-            //printf("%s Module::search('%s', flags = %d) insearch = %d searchCacheSymbol = %s\n",
-            //        toChars(), ident.toChars(), flags, insearch, searchCacheSymbol ? searchCacheSymbol.toChars() : "null");
-            return searchCacheSymbol;
-        }
-
-        uint errors = global.errors;
-
-        insearch = true;
-        Dsymbol s = ScopeDsymbol.search(loc, ident, flags);
-        insearch = false;
-
-        if (errors == global.errors)
-        {
-            // https://issues.dlang.org/show_bug.cgi?id=10752
-            // Can cache the result only when it does not cause
-            // access error so the side-effect should be reproduced in later search.
-            searchCacheIdent = ident;
-            searchCacheSymbol = s;
-            searchCacheFlags = flags;
-        }
-        return s;
-    }
-
-    override bool isPackageAccessible(Package p, Visibility visibility, int flags = 0)
+    override bool isPackageAccessible(Package p, Visibility visibility, SearchOptFlags flags = SearchOpt.all)
     {
         if (insearch) // don't follow import cycles
             return false;
         insearch = true;
         scope (exit)
             insearch = false;
-        if (flags & IgnorePrivateImports)
+        if (flags & SearchOpt.ignorePrivateImports)
             visibility = Visibility(Visibility.Kind.public_); // only consider public imports
         return super.isPackageAccessible(p, visibility);
     }
@@ -1095,7 +975,7 @@ extern (C++) final class Module : Package
         return Package.symtabInsert(s);
     }
 
-    void deleteObjFile()
+    extern (D) void deleteObjFile()
     {
         if (global.params.obj)
             File.remove(objfile.toChars());
@@ -1440,7 +1320,53 @@ extern (C++) void getLocalClasses(Module mod, ref ClassDeclarations aclasses)
         return 0;
     }
 
-    ScopeDsymbol._foreach(null, mod.members, &pushAddClassDg);
+    _foreach(null, mod.members, &pushAddClassDg);
+}
+
+
+alias ForeachDg = int delegate(size_t idx, Dsymbol s);
+
+/***************************************
+ * Expands attribute declarations in members in depth first
+ * order. Calls dg(size_t symidx, Dsymbol *sym) for each
+ * member.
+ * If dg returns !=0, stops and returns that value else returns 0.
+ * Use this function to avoid the O(N + N^2/2) complexity of
+ * calculating dim and calling N times getNth.
+ * Returns:
+ *  last value returned by dg()
+ */
+int _foreach(Scope* sc, Dsymbols* members, scope ForeachDg dg, size_t* pn = null)
+{
+    assert(dg);
+    if (!members)
+        return 0;
+    size_t n = pn ? *pn : 0; // take over index
+    int result = 0;
+    foreach (size_t i; 0 .. members.length)
+    {
+        import dmd.attrib : AttribDeclaration;
+        import dmd.dtemplate : TemplateMixin;
+
+        Dsymbol s = (*members)[i];
+        if (AttribDeclaration a = s.isAttribDeclaration())
+            result = _foreach(sc, a.include(sc), dg, &n);
+        else if (TemplateMixin tm = s.isTemplateMixin())
+            result = _foreach(sc, tm.members, dg, &n);
+        else if (s.isTemplateInstance())
+        {
+        }
+        else if (s.isUnitTestDeclaration())
+        {
+        }
+        else
+            result = dg(n++, s);
+        if (result)
+            break;
+    }
+    if (pn)
+        *pn = n; // update index
+    return result;
 }
 
 /**
@@ -1632,4 +1558,37 @@ private const(char)[] processSource (const(ubyte)[] src, Module mod)
     }
 
     return buf;
+}
+
+/*******************************************
+ * Look for member of the form:
+ *      const(MemberInfo)[] getMembers(string);
+ * Returns NULL if not found
+ */
+extern(C++) FuncDeclaration findGetMembers(ScopeDsymbol dsym)
+{
+    import dmd.opover : search_function;
+    Dsymbol s = search_function(dsym, Id.getmembers);
+    FuncDeclaration fdx = s ? s.isFuncDeclaration() : null;
+    version (none)
+    {
+        // Finish
+        __gshared TypeFunction tfgetmembers;
+        if (!tfgetmembers)
+        {
+            Scope sc;
+            sc.eSink = global.errorSink;
+            auto parameters = new Parameters();
+            Parameters* p = new Parameter(STC.in_, Type.tchar.constOf().arrayOf(), null, null);
+            parameters.push(p);
+            Type tret = null;
+            TypeFunction tf = new TypeFunction(parameters, tret, VarArg.none, LINK.d);
+            tfgetmembers = tf.dsymbolSemantic(Loc.initial, &sc).isTypeFunction();
+        }
+        if (fdx)
+            fdx = fdx.overloadExactMatch(tfgetmembers);
+    }
+    if (fdx && fdx.isVirtual())
+        fdx = null;
+    return fdx;
 }

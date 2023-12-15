@@ -2870,7 +2870,7 @@ private bool optim_loglog(ref elem* pe)
         return false;
     uint ty = e.Ety;
 
-    import dmd.common.string : SmallBuffer;
+    import dmd.common.smallbuffer : SmallBuffer;
     elem*[100] tmp = void;
     auto sb = SmallBuffer!(elem*)(n, tmp[]);
     elem*[] array = sb[];
@@ -4633,6 +4633,13 @@ private elem * elbool(elem *e, goal_t goal)
         case OPnp_fp:
             e1.Eoper = e.Eoper;
             return optelem(el_selecte1(e), goal);
+
+        case OPcomma:
+            // Replace bool(x,y) with x,bool(y)
+            e.EV.E1 = e1.EV.E2;
+            e1.EV.E2 = e;
+            e1.Ety = e.Ety;
+            return optelem(e1, goal);
 
         default:
             break;
