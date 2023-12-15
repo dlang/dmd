@@ -1,7 +1,17 @@
 # This makefile is designed to be run by gnu make.
-# The default make program on FreeBSD 8.1 is not gnu make; to install gnu make:
-#    pkg_add -r gmake
-# and then run as gmake rather than make.
+# - Windows: you may download a prebuilt zipped .exe from https://github.com/dlang/dmd/releases/download/nightly/gnumake-4.4-win64.zip.
+#   You also need a Git for Windows installation, for bash and common GNU tools like cp,mkdir,mv,rm,touch,which.
+# - FreeBSD: the default make program on FreeBSD is not gnu make; to install gnu make:
+#     pkg install gmake
+#   and then run as gmake rather than make.
+#
+# Examples:
+# - Build druntime:
+#     make -j$(nproc)
+# - Build and run druntime tests:
+#     make -j$(nproc) unittest
+# - Build and run druntime tests in debug mode only:
+#     make -j$(nproc) unittest-debug
 
 QUIET:=
 

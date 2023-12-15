@@ -1,3 +1,22 @@
+# This makefile is designed to be run by gnu make.
+# - Windows: you may download a prebuilt zipped .exe from https://github.com/dlang/dmd/releases/download/nightly/gnumake-4.4-win64.zip.
+#   You also need a Git for Windows installation, for bash and common GNU tools like cp,mkdir,mv,rm,touch,which.
+# - FreeBSD: the default make program on FreeBSD is not gnu make; to install gnu make:
+#     pkg install gmake
+#   and then run as gmake rather than make.
+#
+# Examples:
+# - Build compiler (unoptimized) and druntime:
+#     make -j$(nproc)
+# - Build compiler (optimized) and druntime using an LDC host compiler:
+#     make -j$(nproc) HOST_DMD=ldmd2 ENABLE_RELEASE=1 [ENABLE_LTO=1]
+# - Build and run druntime tests:
+#     make -j$(nproc) druntime-test
+# - Run compiler tests (needs a built Phobos as prerequisite):
+#     make -j$(nproc) dmd-test
+#
+# See compiler/src/build.d for variables affecting the compiler build.
+
 include compiler/src/osmodel.mak
 
 INSTALL_DIR=$(shell pwd)/../install
