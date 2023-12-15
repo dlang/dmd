@@ -434,7 +434,7 @@ public:
 
     union
     {
-        void *sym;                // back end symbol to initialize with literal (used as a Symbol*)
+        Symbol *sym;                // back end symbol to initialize with literal
 
         // those fields need to prevent a infinite recursion when one field of struct initialized with 'this' pointer.
         StructLiteralExp *inlinecopy;
