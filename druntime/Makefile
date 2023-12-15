@@ -358,7 +358,7 @@ $(DMD_DIR)/../generated/$(OS)/$(BUILD)/$(MODEL)/dmd$(DOTEXE):
 	$(MAKE) -C $(DMD_DIR)/.. dmd BUILD=$(BUILD) OS=$(OS) MODEL=$(MODEL) DMD=""
 
 # alias using the absolute path (the Phobos Makefile specifies an absolute path)
-$(abspath $(DMD_DIR)/../generated/$(OS)/$(BUILD)/$(MODEL)/dmd): $(DMD_DIR)/../generated/$(OS)/$(BUILD)/$(MODEL)/dmd
+$(abspath $(DMD_DIR)/../generated/$(OS)/$(BUILD)/$(MODEL)/dmd$(DOTEXE)): $(DMD_DIR)/../generated/$(OS)/$(BUILD)/$(MODEL)/dmd$(DOTEXE)
 
 ################### C/ASM Targets ############################
 
@@ -575,12 +575,12 @@ test_extractor: $(TESTS_EXTRACTOR)
 #
 # Extract @betterC tests of a module and run them in -betterC
 #
-#   make -f betterc -j20                       # all tests
-#   make -f posix.mak src/core/memory.betterc  # individual module
+#   make betterc -j20             # all tests
+#   make src/core/memory.betterc  # individual module
 ################################################################################
 
 betterc: | $(TESTS_EXTRACTOR) $(BETTERCTESTS_DIR)/.directory
-	$(MAKE) -f posix.mak $$(find src -type f -name '*.d' | sed 's/[.]d/.betterc/')
+	$(MAKE) $$(find src -type f -name '*.d' | sed 's/[.]d/.betterc/')
 
 %.betterc: %.d | $(TESTS_EXTRACTOR) $(BETTERCTESTS_DIR)/.directory
 	@$(TESTS_EXTRACTOR) --betterC --attributes betterC \
@@ -614,7 +614,7 @@ publictests: $(addsuffix .publictests, $(basename $(SRCS)))
 ################################################################################
 # Extract public tests of a module and test them in an separate file (i.e. without its module)
 # This is done to check for potentially missing imports in the examples, e.g.
-# make -f posix.mak src/core/time.publictests
+# make src/core/time.publictests
 ################################################################################
 %.publictests: %.d $(TESTS_EXTRACTOR) $(DRUNTIME) | $(PUBLICTESTS_DIR)/.directory
 	@$(TESTS_EXTRACTOR) --inputdir  $< --outputdir $(PUBLICTESTS_DIR)
