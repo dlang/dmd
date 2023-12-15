@@ -352,8 +352,8 @@ $(IMPDIR)/%.h : src/%.h
 
 ######################## Build DMD if non-existent ##############################
 
-$(DMD):
-	$(MAKE) -C $(DMD_DIR)/src -f posix.mak BUILD=$(BUILD) OS=$(OS) MODEL=$(MODEL)
+$(DMD_DIR)/../generated/$(OS)/$(BUILD)/$(MODEL)/dmd:
+	$(MAKE) -C $(DMD_DIR)/.. dmd BUILD=$(BUILD) OS=$(OS) MODEL=$(MODEL) DMD=""
 
 ################### C/ASM Targets ############################
 
