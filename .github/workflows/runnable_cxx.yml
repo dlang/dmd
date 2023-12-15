@@ -312,6 +312,7 @@ jobs:
       run: |
         echo "VISUAL_STUDIO_LIB_NOT_DM=$(which lib.exe)" >> $GITHUB_ENV
         echo "HOST_DMD=${{ env.DC }}" >> $GITHUB_ENV
+        echo "GNU_MAKE=$(which make.exe)" >> $GITHUB_ENV
         echo "${{ github.workspace }}/tools/dm/bin/" >> $GITHUB_PATH
 
     ########################################
@@ -343,11 +344,10 @@ jobs:
         # Note: Only CC for druntime and AR for Phobos are required ATM,
         # but providing all three to avoid surprise for future contributors
         # Those should really be in the path, though.
-        cd dmd/druntime
-        make -f win64.mak
+        "$GNU_MAKE" -j2 -C dmd/druntime
         if [ $? -ne 0 ]; then return 1; fi
-        cd ../../phobos/
-        make -f win64.mak CC=cl.exe LD=link "AR=$VISUAL_STUDIO_LIB_NOT_DM"
+        cd phobos/
+        make -f win64.mak CC=cl.exe LD=link "AR=$VISUAL_STUDIO_LIB_NOT_DM" "DRUNTIMELIB=../dmd/generated/windows/release/64/druntime.lib"
         if [ $? -ne 0 ]; then return 1; fi
         cd ../
 
@@ -370,8 +370,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: bash
       run: |
-        cd dmd/druntime
-        make -f win64.mak test_stdcpp CC=cl.exe LD=link "AR=$VISUAL_STUDIO_LIB_NOT_DM"
+        "$GNU_MAKE" -j2 -C dmd/druntime test/stdcpp/.run CC=cl.exe LD=link "AR=$VISUAL_STUDIO_LIB_NOT_DM"
         if [ $? -ne 0 ]; then return 1; fi
 
     ########################################
