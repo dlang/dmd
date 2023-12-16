@@ -62,6 +62,7 @@ run.exe tools "BUILD=%CONFIGURATION%" "DMD_MODEL=%PLATFORM%" || exit /B 4
 :: FIXME: skip unit_tests temporarily due to unclear (spurious?) CI failures
 :: set DMD_TESTS=all
 set DMD_TESTS=runnable runnable_cxx compilable fail_compilation dshell
+set DRUNTIME_TESTS_TARGET=unittest
 cd "%DMD_DIR%"
 if not "%C_RUNTIME%" == "mingw" goto not_mingw
     rem install recent LLD and mingw libraries to built dmd
@@ -87,11 +88,13 @@ if not "%C_RUNTIME%" == "mingw" goto not_mingw
     set DMD_TESTS=runnable compilable fail_compilation dshell
     rem FIXME: debug info incomplete when linking through lld-link
     del compiler\test\runnable\testpdb.d
+    rem Somehow, and only for the MinGW CI job, building the druntime unittest runner in release mode can take ages (~15 mins with -j1)
+    set DRUNTIME_TESTS_TARGET=unittest-debug
 :not_mingw
 
 echo [STEP]: Building and running druntime tests
 cd "%DMD_DIR%\druntime"
-make -j%N% MODEL=%MODEL% "DMD=%DMD%" "CC=%MSVC_CC%" unittest || exit /B 5
+make -j%N% MODEL=%MODEL% "DMD=%DMD%" "CC=%MSVC_CC%" %DRUNTIME_TESTS_TARGET% || exit /B 5
 
 echo [STEP]: Running DMD testsuite
 cd "%DMD_DIR%\compiler\test"
