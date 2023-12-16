@@ -446,7 +446,7 @@ extern (C++) struct Target
             realsize = 10;
             realpad = 0;
             realalignsize = 2;
-            if (ptrsize == 4)
+            if (omfobj)
             {
                 /* Optlink cannot deal with individual data chunks
                  * larger than 16Mb
