@@ -1574,6 +1574,11 @@ Expressions* resolveStructLiteralNamedArgs(StructDeclaration sd, Type t, Scope* 
                 cast(int) nfields, nfields != 1 ? "s".ptr : "".ptr);
             return null;
         }
+        if (fieldi >= nfields)
+        {
+            error(argLoc, "trying to initialize past the last field `%s` of `%s`", sd.fields[nfields - 1].toChars(), sd.toChars());
+            return null;
+        }
 
         VarDeclaration vd = sd.fields[fieldi];
         if (elems[fieldi])
