@@ -172,8 +172,9 @@ extern (D) elem *incUsageElem(ref IRState irs, const ref Loc loc)
     uint linnum = loc.linnum;
 
     Module m = cast(Module)irs.blx._module;
+    //printf("m.cov %p linnum %d filename %s srcfile %s\n", m.cov, linnum, loc.filename, m.srcfile.toChars());
     if (!m.cov || !linnum ||
-        loc.filename != m.srcfile.toChars())
+        strcmp(loc.filename, m.srcfile.toChars()))
         return null;
 
     //printf("cov = %p, covb = %p, linnum = %u\n", m.cov, m.covb.ptr, p, linnum);
