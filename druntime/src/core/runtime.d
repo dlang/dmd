@@ -699,6 +699,19 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null ) // @nogc
     if (GC.inFinalizer)
         return null;*/
 
+    static bool reentryGuard = false;
+    if(reentryGuard)
+        // avoid an infinite loop because generating a stack trace is causing
+        // another throw, trying to generate a new stack trace...
+        return null;
+
+    // ****** IMPORTANT NOTE ******
+    //
+    // do NOT use scope guards here. As we are in the middle of
+    // throwing an exception, and scope guards, particularly scope(exit) will
+    // rethrow any in-flight exceptions, this will create an infinite recursion!
+    reentryGuard = true;
+
     static T allocate(T, Args...)(auto ref Args args) @nogc
     {
         import core.lifetime : emplace;
@@ -706,25 +719,39 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null ) // @nogc
         auto result = cast(T)malloc(__traits(classInstanceSize, T));
         return emplace(result, args);
     }
-    version (Windows)
+
+    Throwable.TraceInfo result = null;
+
+    try
     {
-        import core.sys.windows.stacktrace;
-        static if (__traits(compiles, allocate!StackTrace(0, null)))
+        version (Windows)
         {
-            import core.sys.windows.winnt : CONTEXT;
-            version (Win64)
-                enum FIRSTFRAME = 4;
-            else version (Win32)
-                enum FIRSTFRAME = 0;
-            return allocate!StackTrace(FIRSTFRAME, cast(CONTEXT*)ptr);
+            import core.sys.windows.stacktrace;
+            static if (__traits(compiles, allocate!StackTrace(0, null)))
+            {
+                import core.sys.windows.winnt : CONTEXT;
+                version (Win64)
+                    enum FIRSTFRAME = 4;
+                else version (Win32)
+                    enum FIRSTFRAME = 0;
+                result = allocate!StackTrace(FIRSTFRAME, cast(CONTEXT*)ptr);
+            }
         }
-        else
-            return null;
+        else static if (__traits(compiles, allocate!DefaultTraceInfo()))
+            result = allocate!DefaultTraceInfo();
     }
-    else static if (__traits(compiles, allocate!DefaultTraceInfo()))
-        return allocate!DefaultTraceInfo();
-    else
-        return null;
+    catch (Throwable)
+    {
+        // ignore any thrown errors here. This code *cannot* throw, see
+        // note above.
+
+        // TODO: print an error?
+    }
+
+    // reset the reentry guard. See not above, do NOT try to make this a scope
+    // guard.
+    reentryGuard = false;
+    return result;
 }
 
 /// Example of a simple program printing its stack trace

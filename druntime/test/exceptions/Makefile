@@ -25,7 +25,7 @@ ifeq ($(OS)-$(BUILD),osx-debug)
 endif
 
 ifeq ($(BUILD),debug)
-	TESTS+=assert_fail
+	TESTS+=assert_fail invariant_on_invalid_object
 endif
 
 DIFF:=diff
@@ -79,6 +79,7 @@ $(ROOT)/rt_trap_exceptions.done: STDERR_EXP="object.Exception@src/rt_trap_except
 $(ROOT)/rt_trap_exceptions.done: STDERR_EXP2="src/rt_trap_exceptions.d:8 main"
 $(ROOT)/assert_fail.done: STDERR_EXP="success."
 $(ROOT)/cpp_demangle.done: STDERR_EXP="thrower(int)"
+$(ROOT)/invariant_on_invalid_object.done: STDERR_EXP="object is null or has null vtbl"
 
 $(ROOT)/message_with_null.done: STDERR_EXP=" world"
 
