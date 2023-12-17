@@ -23,6 +23,7 @@
 
 #ifndef __APPLE__ // /Applications/Xcode-14.2.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/tgmath.h(39): Error: named parameter required before `...`
 #include <math.h>
+float x = NAN;
 #endif
 
 #ifndef _MSC_VER // setjmp.h(51): Error: missing tag `identifier` after `struct
