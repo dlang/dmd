@@ -837,6 +837,51 @@ $(H2 $(LNAME2 wrapping, Wrapping C Code))
     $(P Then, `import file_ic;` instead of `import file;`, and use `S_t` when $(CCODE struct S) is desired.)
 
 
+$(H2 $(LNAME2 ctod, Converting C Code to D Code))
+
+    $(P Sometimes its desirable to go further than importing C code, to actually do a C source to
+    D source conversion. Reasons include:)
+
+    $(UL
+    $(LI Migrating a C project to a D project.)
+    $(LI Equivalent D code can compile much faster, due to not needing a preprocessor, etc.)
+    $(LI Tweaking the D code to add attributes for memory safety, purity, etc.)
+    $(LI Eliminating the need for C-isms in the D part of the project.)
+    )
+
+    $(P This can be done with the D compiler by using the $(TT -Hf) switch:)
+
+$(CONSOLE
+dmd -c mycode.c -Hf=mycode.di
+)
+
+    $(P which will convert the C source code in $(TT mycode.c) to D source code in $(TT mycode.di).
+    If the $(TT -inline) switch is also used, it will emit the C function bodies as well, instead
+    of just the function prototypes.)
+
+$(H3 Impedance Mismatch)
+
+    $(P A precise mapping of C semantics, with all its oddities, to D source code is not
+    always practical. ImportC uses C semantics in its semantic analysis to get much closer
+    to exact C semantics than is expressible in D source code. Hence, the translation to
+    D source code will be less than perfect. For example:)
+
+    $(CCODE
+    int S;
+    struct S { int a, b; };
+    int foo(struct S s)
+    {
+        return S + s.a;
+    }
+    )
+
+    $(P will work fine in ImportC, because the `int S` and the `struct S` are in different
+    symbol tables. But in the generated D code, both symbols would be in the same symbol table, and will collide.
+    Such D source code translated from C will need to be adjusted by the user.)
+
+    $(P Nevertheless, reports from the field are that this conversion capability is a huge
+    timesaver for users who need to deal with existing C code.)
+
 $(H2 $(LNAME2 warnings, Warnings))
 
     $(P Many suspicious C constructs normally cause warnings to be emitted by default by
