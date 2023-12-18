@@ -741,9 +741,9 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
         // name,type,flags,addr,offset,size,link,info,addralign,entsize
         elf_newsection2(0,               SHT_NULL,   0,                 0,0,0,0,0, 0,0);
         elf_newsection2(NAMIDX.TEXT,SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,0,0,0,0,0, 16,0);
-        elf_newsection2(NAMIDX.RELTEXT,SHT_REL, 0,0,0,0,SHN_SYMTAB,      SHN_TEXT, 4,8);
+        elf_newsection2(NAMIDX.RELTEXT,SHT_REL,SHF_INFO_LINK, 0,0,0,SHN_SYMTAB,      SHN_TEXT, 4,8);
         elf_newsection2(NAMIDX.DATA,SHT_PROGBITS,SHF_ALLOC|SHF_WRITE,   0,0,0,0,0, 4,0);
-        elf_newsection2(NAMIDX.RELDATA,SHT_REL, 0,0,0,0,SHN_SYMTAB,      SHN_DATA, 4,8);
+        elf_newsection2(NAMIDX.RELDATA,SHT_REL,SHF_INFO_LINK ,0,0,0,SHN_SYMTAB,      SHN_DATA, 4,8);
         elf_newsection2(NAMIDX.BSS, SHT_NOBITS,SHF_ALLOC|SHF_WRITE,     0,0,0,0,0, 32,0);
         elf_newsection2(NAMIDX.RODATA,SHT_PROGBITS,SHF_ALLOC,           0,0,0,0,0, 4,0);
         elf_newsection2(NAMIDX.STRTAB,SHT_STRTAB, 0,                    0,0,0,0,0, 1,0);
