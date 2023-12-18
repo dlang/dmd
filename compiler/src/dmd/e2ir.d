@@ -1345,8 +1345,8 @@ elem* toElem(Expression e, ref IRState irs)
                 elem *ez = el_calloc();
                 ez.Eoper = OPconst;
                 ez.Ety = e.Ety;
-                ez.EV.Vcent.lo = 0;
-                ez.EV.Vcent.hi = 0;
+                foreach (ref v; ez.EV.Vlong8)
+                    v = 0;
                 e = el_bin(OPmin, totym(ne.type), ez, e);
                 break;
             }
@@ -1384,8 +1384,8 @@ elem* toElem(Expression e, ref IRState irs)
                 elem *ec = el_calloc();
                 ec.Eoper = OPconst;
                 ec.Ety = e1.Ety;
-                ec.EV.Vcent.lo = ~0L;
-                ec.EV.Vcent.hi = ~0L;
+                foreach (ref v; ec.EV.Vlong8)
+                    v = ~0L;
                 e = el_bin(OPxor, ty, e1, ec);
                 break;
             }
@@ -2038,8 +2038,8 @@ elem* toElem(Expression e, ref IRState irs)
             elem *ec = el_calloc();
             ec.Eoper = OPconst;
             ec.Ety = totym(t1);
-            ec.EV.Vcent.lo = ~0L;
-            ec.EV.Vcent.hi = ~0L;
+            foreach (ref v; ec.EV.Vlong8)
+                v = ~0L;
             e = el_bin(OPxor, ec.Ety, ex, ec);
         }
         else
