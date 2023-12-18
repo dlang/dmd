@@ -523,7 +523,7 @@ private Pair* elf_addsectionname(const(char)* name, const(char)* suffix = null, 
 private IDXSEC elf_newsection(const(char)* name, const(char)* suffix,
         Elf32_Word type, Elf32_Word flags)
 {
-    // dbg_printf("elf_newsection(%s,%s,type %d, flags x%x)\n",
+    // printf("elf_newsection(%s,%s,type %d, flags x%x)\n",
     //        name?name:"",suffix?suffix:"",type,flags);
     bool added = false;
     Pair* pidx = elf_addsectionname(name, suffix, &added);
@@ -610,7 +610,7 @@ int ElfObj_string_literal_segment(uint sz)
     static immutable char[4][3] name = [ "1.1", "2.2", "4.4" ];
     const int i = (sz == 4) ? 2 : sz - 1;
     const IDXSEC seg =
-        ElfObj_getsegment(".rodata.str".ptr, name[i].ptr, SHT_PROGBITS, SHF_ALLOC | SHF_MERGE | SHF_STRINGS, sz);
+        ElfObj_getsegment(".rodata.str".ptr, name[i].ptr, SHT_PROGBITS, SHF_ALLOC | SHF_MERGE | SHF_STRINGS, sz, sz);
     return seg;
 }
 
@@ -1650,11 +1650,11 @@ else
         {
             // Create a new COMDAT section group
             Pair* pidx2 = elf_addsectionname(".group");
-            groupseg = elf_addsegment(pidx2.start, SHT_GROUP, 0, (IDXSYM).sizeof);
+            groupseg = elf_addsegment(pidx2.start, SHT_GROUP, 0, (IDXSYM).sizeof, 0);
             MAP_SEG2SEC(groupseg).sh_link = SHN_SYMTAB;
             MAP_SEG2SEC(groupseg).sh_entsize = (IDXSYM).sizeof;
             // Create a new TEXT section for the comdat symbol with the SHF_GROUP bit set
-            s.Sseg = elf_addsegment(pidx.start, SHT_PROGBITS, SHF_ALLOC|SHF_EXECINSTR|SHF_GROUP, align_);
+            s.Sseg = elf_addsegment(pidx.start, SHT_PROGBITS, SHF_ALLOC|SHF_EXECINSTR|SHF_GROUP, align_, 0);
             // add TEXT section to COMDAT section group
             SegData[groupseg].SDbuf.write32(GRP_COMDAT);
             SegData[groupseg].SDbuf.write32(MAP_SEG2SECIDX(s.Sseg));
@@ -1876,13 +1876,14 @@ private segidx_t elf_addsegment2(IDXSEC shtidx, IDXSYM symidx, IDXSEC relidx)
  *        type = section header type, e.g. SHT_PROGBITS
  *       flags = section header flags, e.g. SHF_ALLOC
  *       align_ = section alignment
+ *       entsize = entity size. For merging string literals with SHF_MERGE, should be size of char/wchar/dchar
  * Returns:
  *      SegData index of newly created section.
  */
-private segidx_t elf_addsegment(IDXSTR namidx, int type, int flags, int align_)
+private segidx_t elf_addsegment(IDXSTR namidx, int type, int flags, int align_, int entsize)
 {
     //dbg_printf("\tNew segment - %d size %d\n", seg,SegData[seg].SDbuf);
-    IDXSEC shtidx = elf_newsection2(namidx,type,flags,0,0,0,0,0,0,0);
+    IDXSEC shtidx = elf_newsection2(namidx,type,flags,0,0,0,0,0,0,entsize);
     SecHdrTab[shtidx].sh_addralign = align_;
     IDXSYM symidx = elf_addsym(0, 0, 0, STT_SECTION, STB_LOCAL, shtidx);
     segidx_t seg = elf_addsegment2(shtidx, symidx, 0);
@@ -1920,11 +1921,12 @@ private int elf_getsegment(IDXSTR namidx)
  *        type = section header type, e.g. SHT_PROGBITS
  *       flags = section header flags, e.g. SHF_ALLOC
  *       align_ = section alignment
+ *       entsize = entity size, 0 for default
  * Returns:
  *      SegData index of found or newly created section.
  */
 segidx_t ElfObj_getsegment(const(char)* name, const(char)* suffix, int type, int flags,
-        int align_)
+        int align_, int entsize = 0)
 {
     //printf("ElfObj_getsegment(%s,%s,flags %x, align_ %d)\n",name,suffix,flags,align_);
     bool added = false;
@@ -1938,7 +1940,7 @@ segidx_t ElfObj_getsegment(const(char)* name, const(char)* suffix, int type, int
     }
     else
         // New segment, cache the segment index in the hash table
-        pidx.end = elf_addsegment(pidx.start, type, flags, align_);
+        pidx.end = elf_addsegment(pidx.start, type, flags, align_, entsize);
     return pidx.end;
 }
 
