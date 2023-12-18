@@ -17,7 +17,7 @@ if "%ARCH%"=="x64" set MODEL=64
 set DMD=%DMD_DIR%\generated\Windows\%CONFIGURATION%\%PLATFORM%\dmd.exe
 
 set VISUALD_INSTALLER=VisualD-%VISUALD_VER%.exe
-set N=3
+set N=2
 set LDC_DIR=%DMD_DIR%\ldc2-%LDC_VERSION%-windows-multilib
 
 if "%D_COMPILER%" == "ldc" set HOST_DMD=%LDC_DIR%\bin\ldmd2.exe
