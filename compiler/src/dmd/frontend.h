@@ -4052,6 +4052,7 @@ struct HdrGenState final
     bool fullDump;
     bool importcHdr;
     bool doFuncBodies;
+    bool vcg_ast;
     bool fullQual;
     int32_t tpltMember;
     int32_t autoMember;
@@ -4066,6 +4067,7 @@ struct HdrGenState final
         fullDump(),
         importcHdr(),
         doFuncBodies(),
+        vcg_ast(),
         fullQual(),
         tpltMember(),
         autoMember(),
@@ -4076,12 +4078,13 @@ struct HdrGenState final
         inEnumDecl()
     {
     }
-    HdrGenState(bool hdrgen, bool ddoc = false, bool fullDump = false, bool importcHdr = false, bool doFuncBodies = false, bool fullQual = false, int32_t tpltMember = 0, int32_t autoMember = 0, int32_t forStmtInit = 0, int32_t insideFuncBody = 0, int32_t insideAggregate = 0, bool declstring = false, EnumDeclaration* inEnumDecl = nullptr) :
+    HdrGenState(bool hdrgen, bool ddoc = false, bool fullDump = false, bool importcHdr = false, bool doFuncBodies = false, bool vcg_ast = false, bool fullQual = false, int32_t tpltMember = 0, int32_t autoMember = 0, int32_t forStmtInit = 0, int32_t insideFuncBody = 0, int32_t insideAggregate = 0, bool declstring = false, EnumDeclaration* inEnumDecl = nullptr) :
         hdrgen(hdrgen),
         ddoc(ddoc),
         fullDump(fullDump),
         importcHdr(importcHdr),
         doFuncBodies(doFuncBodies),
+        vcg_ast(vcg_ast),
         fullQual(fullQual),
         tpltMember(tpltMember),
         autoMember(autoMember),
@@ -4097,7 +4100,7 @@ enum : int32_t { TEST_EMIT_ALL = 0 };
 
 extern void genhdrfile(Module* m, bool doFuncBodies, OutBuffer& buf);
 
-extern void moduleToBuffer(OutBuffer& buf, Module* m);
+extern void moduleToBuffer(OutBuffer& buf, bool vcg_ast, Module* m);
 
 extern const char* parametersTypeToChars(ParameterList pl);
 

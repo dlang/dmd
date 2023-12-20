@@ -589,7 +589,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         {
             auto buf = OutBuffer();
             buf.doindent = 1;
-            moduleToBuffer(buf, mod);
+            moduleToBuffer(buf, params.vcg_ast, mod);
 
             // write the output to $(filename).cg
             auto cgFilename = FileName.addExt(mod.srcfile.toString(), "cg");
