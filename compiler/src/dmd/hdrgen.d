@@ -61,6 +61,7 @@ struct HdrGenState
     bool fullDump;      /// true if generating a full AST dump file
     bool importcHdr;    /// true if generating a .di file from an ImportC file
     bool doFuncBodies;  /// include function bodies in output
+    bool vcg_ast;       /// write out codegen-ast
 
     bool fullQual;      /// fully qualify types when printing
     int tpltMember;
@@ -131,12 +132,14 @@ public const(char)[] toString(const Initializer i)
  * Dumps the full contents of module `m` to `buf`.
  * Params:
  *   buf = buffer to write to.
+ *   vcg_ast = write out codegen ast
  *   m = module to visit all members of.
  */
-extern (C++) void moduleToBuffer(ref OutBuffer buf, Module m)
+extern (C++) void moduleToBuffer(ref OutBuffer buf, bool vcg_ast, Module m)
 {
     HdrGenState hgs;
     hgs.fullDump = true;
+    hgs.vcg_ast = vcg_ast;
     toCBuffer(m, buf, hgs);
 }
 
@@ -2475,7 +2478,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, HdrGenState*
 
     void visitLoweredAssignExp(LoweredAssignExp e)
     {
-        if (global.params.vcg_ast)
+        if (hgs.vcg_ast)
         {
             expressionToBuffer(e.lowering, buf, hgs);
             return;
