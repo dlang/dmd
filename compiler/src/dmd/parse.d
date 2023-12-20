@@ -3502,6 +3502,20 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      */
     AST.Type parseType(Identifier* pident = null, AST.TemplateParameters** ptpl = null, Loc* pdeclLoc = null)
     {
+        // Handle linkage for function pointer and delegate types
+        const bool hasLinkage = token.value == TOK.extern_;
+        LINK link = LINK.default_;
+        if (hasLinkage)
+        {
+            auto l = parseLinkage();
+            // Reject C++-class-specific stuff
+            if (l.cppmangle != CPPMANGLE.def)
+                error("C++ mangle declaration not allowed here");
+            if (l.idents != null || l.identExps != null)
+                error("C++ namespaces not allowed here");
+            link = l.link;
+            printf("Linkage seen: %d\n", link);
+        }
         // Handle `ref` TypeCtors(opt) BasicType CallableSuffix TypeSuffixes(opt)
         const bool isRef = token.value == TOK.ref_;
         if (isRef) nextToken();
@@ -3560,7 +3574,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         AST.Type t;
         t = parseBasicType();
-        if (isRef)
+        if (hasLinkage || isRef)
         {
             t = t.addSTC(stc);
             stc = STC.undefined_;
@@ -3569,7 +3583,13 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         if (pdeclLoc)
             *pdeclLoc = token.loc;
         int alt = 0;
-        t = parseDeclarator(t, alt, pident, ptpl, 0, null, null, isRef);
+        t = parseDeclarator(t, alt, pident, ptpl, 0, null, null, isRef, link);
+        if (t.ty == Tdelegate || t.ty == Tpointer && (cast(AST.TypeNext)t).nextOf.ty == Tfunction)
+        {
+            auto ll = (cast(AST.TypeFunction)(cast(AST.TypeNext)t).nextOf).linkage;
+            if (ll != LINK.d)
+                printf("Linkage applied: %d\n", ll);
+        }
         checkCstyleTypeSyntax(typeLoc, t, alt, pident ? *pident : null);
 
         t = t.addSTC(stc);
@@ -3946,13 +3966,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      * See_Also:
      *      https://dlang.org/spec/declaration.html#TypeSuffixes
      */
-    private AST.Type parseTypeSuffixes(AST.Type t, bool isRefCallable = false)
+    private AST.Type parseTypeSuffixes(AST.Type t, bool isRef = false, LINK link = LINK.default_)
     {
-        // ref TypeCtors(opt) BasicType CallableSuffix TypeSuffixes(opt)
-        if (isRefCallable && token.value != TOK.delegate_ && token.value != TOK.function_)
-            error("`ref` is only valid for `function` and `delegate` types");
-
         //printf("parseTypeSuffixes()\n");
+        const requireCallable = isRef || link != LINK.default_;
+        bool lastSuffixWasCallable = false;
         while (1)
         {
             switch (token.value)
@@ -3960,6 +3978,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             case TOK.mul:
                 t = new AST.TypePointer(t);
                 nextToken();
+                lastSuffixWasCallable = false;
                 continue;
 
             case TOK.leftBracket:
@@ -4004,29 +4023,30 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     inBrackets--;
                     check(TOK.rightBracket);
                 }
+                lastSuffixWasCallable = false;
                 continue;
 
             case TOK.delegate_:
             case TOK.function_:
                 {
-                    // Handle delegate declaration:
-                    //      ref(opt) type delegate(parameter list) nothrow pure
-                    //      ref(opt) type function(parameter list) nothrow pure
+                    // Handle latter part of delegate declaration:
+                    //      Linkage(opt) ref(opt) type delegate(parameter list) nothrow pure
+                    //      Linkage(opt) ref(opt) type function(parameter list) nothrow pure
                     const save = token.value;
                     nextToken();
 
                     auto parameterList = parseParameterList(null);
 
-                    StorageClass stc;
-                    if (isRefCallable)
-                    {
-                        stc = parsePostfix(STC.ref_, null);
-                        isRefCallable = false; // ref applies to the innermost
-                    }
-                    else
-                    {
-                        stc = parsePostfix(STC.undefined_, null);
-                    }
+                    StorageClass stc = parsePostfix(STC.undefined_, null);
+                    // if (isRefCallable)
+                    // {
+                    //     stc = parsePostfix(STC.ref_, null);
+                    //     isRefCallable = false;
+                    // }
+                    // else
+                    // {
+                    //     stc = parsePostfix(STC.undefined_, null);
+                    // }
                     auto tf = new AST.TypeFunction(parameterList, t, linkage, stc);
                     if (stc & (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild | STC.return_))
                     {
@@ -4036,10 +4056,23 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                             tf = cast(AST.TypeFunction)tf.addSTC(stc);
                     }
                     t = save == TOK.delegate_ ? new AST.TypeDelegate(tf) : new AST.TypePointer(tf); // pointer to function
+                    lastSuffixWasCallable = true;
                     continue;
                 }
             default:
-                return t;
+                {
+                    if (requireCallable && !lastSuffixWasCallable)
+                    {
+                        error("linkage and `ref` are only valid for `function` and `delegate` types");
+                    }
+                    if (requireCallable)
+                    {
+                        auto fp = cast(AST.TypeFunction) (cast(AST.TypeNext)t).nextOf;
+                        if (isRef) fp.isref = true;
+                        if (link != LINK.default_) fp.linkage = link;
+                    }
+                    return t;
+                }
             }
             assert(0);
         }
@@ -4063,10 +4096,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      */
     private AST.Type parseDeclarator(AST.Type t, ref int palt, Identifier* pident,
         AST.TemplateParameters** tpl = null, StorageClass storageClass = 0,
-        bool* pdisable = null, AST.Expressions** pudas = null, bool isRefCallable = false)
+        bool* pdisable = null, AST.Expressions** pudas = null, bool isRefCallable = false, LINK link = LINK.default_)
     {
         //printf("parseDeclarator(tpl = %p)\n", tpl);
-        t = parseTypeSuffixes(t, isRefCallable);
+        t = parseTypeSuffixes(t, isRefCallable, link);
         AST.Type ts;
         switch (token.value)
         {
@@ -4358,7 +4391,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     link = res.link;
                     if (res.idents || res.identExps)
                     {
-                        error("C++ name spaces not allowed here");
+                        error("C++ namespaces not allowed here");
                     }
                     if (res.cppmangle != CPPMANGLE.def)
                     {
@@ -5036,6 +5069,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     auto a2 = new AST.Dsymbols();
                     a2.push(s);
                     s = new AST.LinkDeclaration(linkloc, link, a2);
+                    printf("Uses LinkDeclaration: linkage = %d\n", link);
                 }
                 a.push(s);
 
