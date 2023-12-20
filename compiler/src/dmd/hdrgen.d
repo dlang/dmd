@@ -151,14 +151,14 @@ extern (C++) void moduleToBuffer(ref OutBuffer buf, Module m)
     toCBuffer(m, buf, hgs);
 }
 
-void moduleToBuffer2(Module m, ref OutBuffer buf, HdrGenState* hgs)
+void moduleToBuffer2(Module m, ref OutBuffer buf, ref HdrGenState hgs)
 {
     if (m.md)
     {
         if (m.userAttribDecl)
         {
             buf.writestring("@(");
-            argsToBuffer(m.userAttribDecl.atts, buf, hgs);
+            argsToBuffer(m.userAttribDecl.atts, buf, &hgs);
             buf.writeByte(')');
             buf.writenl();
         }
@@ -167,7 +167,7 @@ void moduleToBuffer2(Module m, ref OutBuffer buf, HdrGenState* hgs)
             if (m.md.msg)
             {
                 buf.writestring("deprecated(");
-                m.md.msg.expressionToBuffer(buf, hgs);
+                m.md.msg.expressionToBuffer(buf, &hgs);
                 buf.writestring(") ");
             }
             else
@@ -181,7 +181,7 @@ void moduleToBuffer2(Module m, ref OutBuffer buf, HdrGenState* hgs)
 
     foreach (s; *m.members)
     {
-        s.dsymbolToBuffer(buf, hgs);
+        s.dsymbolToBuffer(buf, &hgs);
     }
 }
 
@@ -1374,7 +1374,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
             assert(fd.type);
             if (stcToBuffer(buf, fd.storage_class))
                 buf.writeByte(' ');
-            functionToBufferFull(cast(TypeFunction)fd.type, buf, d.ident, &hgs, d);
+            functionToBufferFull(cast(TypeFunction)fd.type, buf, d.ident, hgs, d);
             visitTemplateConstraint(d.constraint);
             hgs.tpltMember++;
             bodyToBuffer(fd);
@@ -1888,7 +1888,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
 
     void visitModule(Module m)
     {
-        moduleToBuffer2(m, buf, &hgs);
+        moduleToBuffer2(m, buf, hgs);
     }
 
     extern (C++)
@@ -3269,10 +3269,10 @@ extern (D) string visibilityToString(Visibility.Kind kind) nothrow pure @safe
 }
 
 // Print the full function signature with correct ident, attributes and template args
-void functionToBufferFull(TypeFunction tf, ref OutBuffer buf, const Identifier ident, HdrGenState* hgs, TemplateDeclaration td)
+void functionToBufferFull(TypeFunction tf, ref OutBuffer buf, const Identifier ident, ref HdrGenState hgs, TemplateDeclaration td)
 {
     //printf("TypeFunction::toCBuffer() this = %p\n", this);
-    visitFuncIdentWithPrefix(tf, ident, td, buf, hgs);
+    visitFuncIdentWithPrefix(tf, ident, td, buf, &hgs);
 }
 
 // ident is inserted before the argument list and will be "function" or "delegate" for a type
