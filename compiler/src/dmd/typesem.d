@@ -843,7 +843,7 @@ private extern(D) MATCH argumentMatchParameter (TypeFunction tf, Parameter p,
                     ta = tn.sarrayOf(dim);
                 }
             }
-            else if ((p.storageClass & STC.in_) && global.params.previewIn)
+            else if (p.storageClass & STC.constscoperef)
             {
                 // Allow converting a literal to an `in` which is `ref`
                 if (arg.op == EXP.arrayLiteral && tp.ty == Tsarray)
@@ -1678,7 +1678,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
 
             // default arg must be an lvalue
             if (isRefOrOut && !isAuto &&
-                !(global.params.previewIn && (fparam.storageClass & STC.in_)) &&
+                !(fparam.storageClass & STC.constscoperef) &&
                 global.params.rvalueRefParam != FeatureState.enabled)
                 e = e.toLvalue(sc, "create default argument for `ref` / `out` parameter from");
 
@@ -1784,13 +1784,13 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                     switch (tf.linkage)
                     {
                     case LINK.cpp:
-                        if (global.params.previewIn)
+                        if (fparam.storageClass & STC.constscoperef)
                             fparam.storageClass |= STC.ref_;
                         break;
                     case LINK.default_, LINK.d:
                         break;
                     default:
-                        if (global.params.previewIn)
+                        if (fparam.storageClass & STC.constscoperef)
                         {
                             .error(loc, "cannot use `in` parameters with `extern(%s)` functions",
                                    linkageToChars(tf.linkage));
@@ -1820,7 +1820,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                     if (tb2.ty == Tstruct && !tb2.isTypeStruct().sym.members ||
                         tb2.ty == Tenum   && !tb2.isTypeEnum().sym.memtype)
                     {
-                        if (global.params.previewIn && (fparam.storageClass & STC.in_))
+                        if (fparam.storageClass & STC.constscoperef)
                         {
                             .error(loc, "cannot infer `ref` for `in` parameter `%s` of opaque type `%s`",
                                    fparam.toChars(), fparam.type.toChars());
@@ -1902,7 +1902,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                 fparam.storageClass &= ~(STC.TYPECTOR);
 
                 // -preview=in: add `ref` storage class to suited `in` params
-                if (global.params.previewIn && (fparam.storageClass & (STC.in_ | STC.ref_)) == STC.in_)
+                if ((fparam.storageClass & (STC.constscoperef | STC.ref_)) == STC.constscoperef)
                 {
                     auto ts = t.baseElemOf().isTypeStruct();
                     const isPOD = !ts || ts.sym.isPOD();

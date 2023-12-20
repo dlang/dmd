@@ -525,7 +525,7 @@ extern (C++) abstract class Type : ASTNode
      */
     final override const(char)* toChars() const
     {
-	return dmd.hdrgen.toChars(this);
+        return dmd.hdrgen.toChars(this);
     }
 
     /// ditto
@@ -4135,7 +4135,7 @@ extern (C++) final class TypeFunction : TypeNext
         auto stc = p.storageClass;
 
         // When the preview switch is enable, `in` parameters are `scope`
-        if (stc & STC.in_ && global.params.previewIn)
+        if (stc & STC.constscoperef)
             return stc | STC.scope_;
 
         if (stc & (STC.scope_ | STC.return_ | STC.lazy_) || purity == PURE.impure)
@@ -6427,28 +6427,22 @@ extern (C++) final class Parameter : ASTNode
      * Params:
      *  returnByRef = true if the function returns by ref
      *  p = Parameter to compare with
-     *  previewIn = Whether `-preview=in` is being used, and thus if
-     *              `in` means `scope [ref]`.
-     *
      * Returns:
      *  true = `this` can be used in place of `p`
      *  false = nope
      */
-    bool isCovariant(bool returnByRef, const Parameter p, bool previewIn = global.params.previewIn)
+    bool isCovariant(bool returnByRef, const Parameter p)
         const pure nothrow @nogc @safe
     {
         ulong thisSTC = this.storageClass;
         ulong otherSTC = p.storageClass;
 
-        if (previewIn)
-        {
-            if (thisSTC & STC.in_)
-                thisSTC |= STC.scope_;
-            if (otherSTC & STC.in_)
-                otherSTC |= STC.scope_;
-        }
+        if (thisSTC & STC.constscoperef)
+            thisSTC |= STC.scope_;
+        if (otherSTC & STC.constscoperef)
+            otherSTC |= STC.scope_;
 
-        const mask = STC.ref_ | STC.out_ | STC.lazy_ | (previewIn ? STC.in_ : 0);
+        const mask = STC.ref_ | STC.out_ | STC.lazy_ | (((thisSTC | otherSTC) & STC.constscoperef) ? STC.in_ : 0);
         if ((thisSTC & mask) != (otherSTC & mask))
             return false;
         return isCovariantScope(returnByRef, thisSTC, otherSTC);

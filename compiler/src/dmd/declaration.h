@@ -54,7 +54,7 @@ struct AttributeViolation;
     #define STCforeach            0x4000ULL    /// variable for foreach loop
     #define STCvariadic           0x8000ULL    /// the `variadic` parameter in: T foo(T a, U b, V variadic...)
 
-    //                            0x10000ULL
+    #define STCconstscoperef      0x10000ULL    /// when `in` means const|scope|ref
     #define STCtemplateparameter  0x20000ULL    /// template parameter
     #define STCref                0x40000ULL    /// `ref`
     #define STCscope              0x80000ULL    /// `scope`
