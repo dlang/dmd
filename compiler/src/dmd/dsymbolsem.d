@@ -4096,7 +4096,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
                     auto fd = s.isFuncDeclaration();
                     functionToBufferFull(cast(TypeFunction)(funcdecl.type), buf,
-                        new Identifier(funcdecl.toPrettyChars()), &hgs, null);
+                        new Identifier(funcdecl.toPrettyChars()), hgs, null);
                     const(char)* funcdeclToChars = buf.peekChars();
 
                     if (fd)
@@ -4119,7 +4119,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         else
                         {
                             functionToBufferFull(cast(TypeFunction)(fd.type), buf1,
-                                new Identifier(fd.toPrettyChars()), &hgs, null);
+                                new Identifier(fd.toPrettyChars()), hgs, null);
 
                             error(funcdecl.loc, "function `%s` does not override any function, did you mean to override `%s`?",
                                 funcdeclToChars, buf1.peekChars());
