@@ -448,7 +448,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
                 message("import    %s", m.toChars());
 
             buf.reset();         // reuse the buffer
-            genhdrfile(m, buf);
+            genhdrfile(m, params.dihdr.fullOutput, buf);
             if (!writeFile(m.loc, m.hdrfile.toString(), buf[]))
                 fatal();
         }
