@@ -60,6 +60,7 @@ struct HdrGenState
     bool ddoc;          /// true if generating Ddoc file
     bool fullDump;      /// true if generating a full AST dump file
     bool importcHdr;    /// true if generating a .di file from an ImportC file
+    bool doFuncBodies;  /// include function bodies in output
 
     bool fullQual;      /// fully qualify types when printing
     int tpltMember;
@@ -78,9 +79,10 @@ enum TEST_EMIT_ALL = 0;
  * Generate a header (.di) file for Module m.
  * Params:
  *      m = Module to generate header for
+ *      doFuncBodies = generate function definitions rather than just declarations
  *      buf = buffer to write the data to
  */
-extern (C++) void genhdrfile(Module m, ref OutBuffer buf)
+extern (C++) void genhdrfile(Module m, bool doFuncBodies, ref OutBuffer buf)
 {
     buf.doindent = 1;
     buf.printf("// D import file generated from '%s'", m.srcfile.toChars());
@@ -88,6 +90,7 @@ extern (C++) void genhdrfile(Module m, ref OutBuffer buf)
     HdrGenState hgs;
     hgs.hdrgen = true;
     hgs.importcHdr = (m.filetype == FileType.c);
+    hgs.doFuncBodies = doFuncBodies;
     toCBuffer(m, buf, hgs);
 }
 
@@ -1093,12 +1096,12 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
         // https://issues.dlang.org/show_bug.cgi?id=14690
         // Unconditionally perform a full output dump
         // for `pragma(inline)` declarations.
-        bool savedFullDump = global.params.dihdr.fullOutput;
+        const saved = hgs.doFuncBodies;
         if (d.ident == Id.Pinline)
-            global.params.dihdr.fullOutput = true;
+            hgs.doFuncBodies = true;
 
         visitAttribDeclaration(d);
-        global.params.dihdr.fullOutput = savedFullDump;
+        hgs.doFuncBodies = saved;
     }
 
     void visitConditionalDeclaration(ConditionalDeclaration d)
@@ -1288,7 +1291,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
 
     void bodyToBuffer(FuncDeclaration f)
     {
-        if (!f.fbody || (hgs.hdrgen && global.params.dihdr.fullOutput == false && !hgs.autoMember && !hgs.tpltMember && !hgs.insideFuncBody))
+        if (!f.fbody || (hgs.hdrgen && hgs.doFuncBodies == false && !hgs.autoMember && !hgs.tpltMember && !hgs.insideFuncBody))
         {
             if (!f.fbody && (f.fensures || f.frequires))
             {
@@ -1706,7 +1709,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
                 bodyToBuffer(f);
                 hgs.autoMember--;
             }
-            else if (hgs.tpltMember == 0 && global.params.dihdr.fullOutput == false && !hgs.insideFuncBody)
+            else if (hgs.tpltMember == 0 && hgs.doFuncBodies == false && !hgs.insideFuncBody)
             {
                 if (!f.fbody)
                 {
