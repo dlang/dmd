@@ -6739,7 +6739,7 @@ enum ScopeRef
  * Returns:
  *      corresponding string
  */
-const(char)* toChars(ScopeRef sr) pure nothrow @nogc @safe
+const(char)* ScopeRefToChars(ScopeRef sr) pure nothrow @nogc @safe
 {
     with (ScopeRef)
     {
