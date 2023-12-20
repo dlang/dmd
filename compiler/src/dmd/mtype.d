@@ -525,13 +525,7 @@ extern (C++) abstract class Type : ASTNode
      */
     final override const(char)* toChars() const
     {
-        OutBuffer buf;
-        buf.reserve(16);
-        HdrGenState hgs;
-        hgs.fullQual = (ty == Tclass && !mod);
-
-        toCBuffer(this, buf, null, hgs);
-        return buf.extractChars();
+	return dmd.hdrgen.toChars(this);
     }
 
     /// ditto

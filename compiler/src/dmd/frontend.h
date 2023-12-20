@@ -7999,6 +7999,8 @@ extern Expression* modifiableLvalue(Expression* _this, Scope* sc);
 
 extern const char* toChars(const Initializer* const i);
 
+extern const char* toChars(const Type* const t);
+
 extern void json_generate(Array<Module* >& modules, OutBuffer& buf);
 
 extern JsonFieldFlags tryParseJsonField(const char* fieldName);

@@ -119,6 +119,17 @@ public extern (C++) const(char)* toChars(const Initializer i)
     return buf.extractChars();
 }
 
+public extern (C++) const(char)* toChars(const Type t)
+{
+    OutBuffer buf;
+    buf.reserve(16);
+    HdrGenState hgs;
+    hgs.fullQual = (t.ty == Tclass && !t.mod);
+
+    toCBuffer(t, buf, null, hgs);
+    return buf.extractChars();
+}
+
 public const(char)[] toString(const Initializer i)
 {
     OutBuffer buf;
