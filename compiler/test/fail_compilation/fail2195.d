@@ -3,7 +3,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail2195.d(16): Deprecation: variable `variable` is shadowing variable `fail2195.main.variable`. Rename the `foreach` variable.
+fail_compilation/fail2195.d(16): Deprecation: variable `variable` is shadowing variable `fail2195.main.variable`
 ---
 */
 
