@@ -662,10 +662,20 @@ $(P Applying a qualifier to a type that already has that qualifier is legal but
 has no effect, e.g. given an unqualified type `T`, $(D shared(const shared T))
 yields the type $(D const shared T).)
 
-$(P Applying the `immutable` qualifier to any type (qualified or not) results in
+$(PANEL Applying the `immutable` qualifier to any type (qualified or not) results in
 $(D immutable T). Applying any qualifier to $(D immutable T) results in
 `immutable T`. This makes `immutable` a fixed point of qualifier combinations and
-makes types such as $(D const(immutable(shared T))) impossible to create.)
+makes types such as $(D const(immutable(shared T))) impossible to create.
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+alias SInt = shared int;
+alias IInt = immutable int;
+static assert(is(immutable(SInt) == IInt));
+static assert(is(shared(IInt) == IInt));
+---
+)
+)
 
 $(P Assuming `T` is an unqualified type, the graph below illustrates how
 qualifiers combine (combinations with `immutable` are omitted). For each node,
