@@ -3765,8 +3765,18 @@ private void visitFuncIdentWithPostfix(TypeFunction t, const char[] ident, ref O
         return;
     }
     t.inuse++;
+    bool parenWritten = false;
+    void openParenthesis()
+    {
+        if (!parenWritten)
+        {
+            buf.writeByte('(');
+            parenWritten = true;
+        }
+    }
     if (t.linkage > LINK.d && hgs.ddoc != 1 && !hgs.hdrgen)
     {
+        openParenthesis();
         linkageToBuffer(buf, t.linkage);
         buf.writeByte(' ');
     }
@@ -3775,13 +3785,19 @@ private void visitFuncIdentWithPostfix(TypeFunction t, const char[] ident, ref O
     if (t.next)
     {
         if (t.isref)
-            buf.write("(ref ");
+        {
+            openParenthesis();
+            buf.write("ref ");
+        }
         typeToBuffer(t.next, null, buf, hgs);
         if (ident)
             buf.writeByte(' ');
     }
     else if (hgs.ddoc)
+    {
+        openParenthesis();
         buf.writestring("auto ");
+    }
     if (ident)
         buf.writestring(ident);
     parametersToBuffer(t.parameterList, buf, hgs);
@@ -3795,12 +3811,12 @@ private void visitFuncIdentWithPostfix(TypeFunction t, const char[] ident, ref O
 
     void writeAttribute(string str)
     {
-        if (str == "ref") return; // 'ref' is handeld above
+        if (str == "ref") return; // 'ref' is handled above
         buf.writeByte(' ');
         buf.writestring(str);
     }
     t.attributesApply(&writeAttribute);
-    if (t.isref)
+    if (parenWritten)
         buf.writeByte(')');
     t.inuse--;
 }
