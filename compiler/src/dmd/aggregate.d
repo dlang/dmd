@@ -65,7 +65,7 @@ enum ClassKind : ubyte
  * Returns:
  *     0-terminated string for `c`
  */
-const(char)* toChars(ClassKind c) @safe
+const(char)* ClassKindToChars(ClassKind c) @safe
 {
     final switch (c)
     {
