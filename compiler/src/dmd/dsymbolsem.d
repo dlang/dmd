@@ -1046,7 +1046,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if ((dsym.storage_class & (STC.ref_ | STC.parameter | STC.foreach_ | STC.temp | STC.result)) == STC.ref_ && dsym.ident != Id.This)
         {
-            .error(dsym.loc, "%s `%s` - only parameters, functions and `foreach` declarations can be `ref`", dsym.kind, dsym.toPrettyChars);
+            .error(dsym.loc, "%s `%s` - only parameters, functions and `foreach` declarations can be `ref`; use parentheses for a function pointer or delegate type with `ref` return", dsym.kind, dsym.toPrettyChars);
         }
 
         if (dsym.type.hasWild())
