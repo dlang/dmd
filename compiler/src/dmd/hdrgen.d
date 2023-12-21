@@ -161,7 +161,7 @@ void moduleToBuffer2(Module m, ref OutBuffer buf, ref HdrGenState hgs)
         if (m.userAttribDecl)
         {
             buf.writestring("@(");
-            argsToBuffer(m.userAttribDecl.atts, buf, &hgs);
+            argsToBuffer(m.userAttribDecl.atts, buf, hgs);
             buf.writeByte(')');
             buf.writenl();
         }
@@ -170,7 +170,7 @@ void moduleToBuffer2(Module m, ref OutBuffer buf, ref HdrGenState hgs)
             if (m.md.msg)
             {
                 buf.writestring("deprecated(");
-                m.md.msg.expressionToBuffer(buf, &hgs);
+                m.md.msg.expressionToBuffer(buf, hgs);
                 buf.writestring(") ");
             }
             else
@@ -184,11 +184,11 @@ void moduleToBuffer2(Module m, ref OutBuffer buf, ref HdrGenState hgs)
 
     foreach (s; *m.members)
     {
-        s.dsymbolToBuffer(buf, &hgs);
+        s.dsymbolToBuffer(buf, hgs);
     }
 }
 
-private void statementToBuffer(Statement s, ref OutBuffer buf, HdrGenState* hgs)
+private void statementToBuffer(Statement s, ref OutBuffer buf, ref HdrGenState hgs)
 {
     void visitDefaultCase(Statement s)
     {
@@ -257,7 +257,7 @@ private void statementToBuffer(Statement s, ref OutBuffer buf, HdrGenState* hgs)
                 auto d = ds.exp.isDeclarationExp().declaration;
                 if (auto v = d.isVarDeclaration())
                 {
-                    visitVarDecl(v, anywritten, buf, *hgs);
+                    visitVarDecl(v, anywritten, buf, hgs);
                 }
                 else
                     d.dsymbolToBuffer(buf, hgs);
@@ -861,9 +861,9 @@ private void statementToBuffer(Statement s, ref OutBuffer buf, HdrGenState* hgs)
     visit.VisitStatement(s);
 }
 
-private void dsymbolToBuffer(Dsymbol s, ref OutBuffer buf, HdrGenState* hgs)
+private void dsymbolToBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
 {
-    toCBuffer(s, buf, *hgs);
+    toCBuffer(s, buf, hgs);
 }
 
 void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
@@ -877,13 +877,13 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
     {
         buf.writestring(s.kind());
         buf.writeByte('(');
-        s.exp.expressionToBuffer(buf, &hgs);
+        s.exp.expressionToBuffer(buf, hgs);
         if (s.msgs)
         {
             foreach (m; (*s.msgs)[])
             {
                 buf.writestring(", ");
-                m.expressionToBuffer(buf, &hgs);
+                m.expressionToBuffer(buf, hgs);
             }
         }
         buf.writestring(");");
@@ -915,13 +915,13 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
     void visitEnumMember(EnumMember em)
     {
         if (em.type)
-            typeToBuffer(em.type, em.ident, buf, &hgs);
+            typeToBuffer(em.type, em.ident, buf, hgs);
         else
             buf.writestring(em.ident.toString());
         if (em.value)
         {
             buf.writestring(" = ");
-            em.value.expressionToBuffer(buf, &hgs);
+            em.value.expressionToBuffer(buf, hgs);
         }
     }
 
@@ -1014,7 +1014,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
     void visitDeprecatedDeclaration(DeprecatedDeclaration d)
     {
         buf.writestring("deprecated(");
-        d.msg.expressionToBuffer(buf, &hgs);
+        d.msg.expressionToBuffer(buf, hgs);
         buf.writestring(") ");
         visitAttribDeclaration(d);
     }
@@ -1102,7 +1102,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
         if (d.args && d.args.length)
         {
             buf.writestring(", ");
-            argsToBuffer(d.args, buf, &hgs);
+            argsToBuffer(d.args, buf, hgs);
         }
 
         buf.writeByte(')');
@@ -1120,7 +1120,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
 
     void visitConditionalDeclaration(ConditionalDeclaration d)
     {
-        d.condition.conditionToBuffer(buf, &hgs);
+        d.condition.conditionToBuffer(buf, hgs);
         if (d.decl || d.elsedecl)
         {
             buf.writenl();
@@ -1166,12 +1166,12 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
                 if (stcToBuffer(buf, p.storageClass))
                     buf.writeByte(' ');
                 if (p.type)
-                    typeToBuffer(p.type, p.ident, buf, &hgs);
+                    typeToBuffer(p.type, p.ident, buf, hgs);
                 else
                     buf.writestring(p.ident.toString());
             }
             buf.writestring("; ");
-            s.aggr.expressionToBuffer(buf, &hgs);
+            s.aggr.expressionToBuffer(buf, hgs);
             buf.writeByte(')');
             buf.writenl();
         }
@@ -1183,13 +1183,13 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
             buf.writestring(Token.toString(s.op));
             buf.writestring(" (");
             if (s.prm.type)
-                typeToBuffer(s.prm.type, s.prm.ident, buf, &hgs);
+                typeToBuffer(s.prm.type, s.prm.ident, buf, hgs);
             else
                 buf.writestring(s.prm.ident.toString());
             buf.writestring("; ");
-            s.lwr.expressionToBuffer(buf, &hgs);
+            s.lwr.expressionToBuffer(buf, hgs);
             buf.writestring(" .. ");
-            s.upr.expressionToBuffer(buf, &hgs);
+            s.upr.expressionToBuffer(buf, hgs);
             buf.writeByte(')');
             buf.writenl();
         }
@@ -1217,7 +1217,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
     void visitMixinDeclaration(MixinDeclaration d)
     {
         buf.writestring("mixin(");
-        argsToBuffer(d.exps, buf, &hgs, null);
+        argsToBuffer(d.exps, buf, hgs, null);
         buf.writestring(");");
         buf.writenl();
     }
@@ -1225,7 +1225,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
     void visitUserAttributeDeclaration(UserAttributeDeclaration d)
     {
         buf.writestring("@(");
-        argsToBuffer(d.atts, buf, &hgs);
+        argsToBuffer(d.atts, buf, hgs);
         buf.writeByte(')');
         visitAttribDeclaration(d);
     }
@@ -1235,7 +1235,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
         if (!constraint)
             return;
         buf.writestring(" if (");
-        constraint.expressionToBuffer(buf, &hgs);
+        constraint.expressionToBuffer(buf, hgs);
         buf.writeByte(')');
     }
 
@@ -1253,7 +1253,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
                 {
                     assert(es.exp && es.exp.op == EXP.assert_);
                     buf.writestring(" (");
-                    (cast(AssertExp)es.exp).e1.expressionToBuffer(buf, &hgs);
+                    (cast(AssertExp)es.exp).e1.expressionToBuffer(buf, hgs);
                     buf.writeByte(')');
                     buf.writenl();
                     requireDo = false;
@@ -1261,7 +1261,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
                 else
                 {
                     buf.writenl();
-                    frequire.statementToBuffer(buf, &hgs);
+                    frequire.statementToBuffer(buf, hgs);
                     requireDo = true;
                 }
             }
@@ -1281,7 +1281,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
                         buf.writestring(fensure.id.toString());
                     }
                     buf.writestring("; ");
-                    (cast(AssertExp)es.exp).e1.expressionToBuffer(buf, &hgs);
+                    (cast(AssertExp)es.exp).e1.expressionToBuffer(buf, hgs);
                     buf.writeByte(')');
                     buf.writenl();
                     requireDo = false;
@@ -1295,7 +1295,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
                         buf.writeByte(')');
                     }
                     buf.writenl();
-                    fensure.ensure.statementToBuffer(buf, &hgs);
+                    fensure.ensure.statementToBuffer(buf, hgs);
                     requireDo = true;
                 }
             }
@@ -1343,7 +1343,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
         buf.writeByte('{');
         buf.writenl();
         buf.level++;
-        f.fbody.statementToBuffer(buf, &hgs);
+        f.fbody.statementToBuffer(buf, hgs);
         buf.level--;
         buf.writeByte('}');
         buf.writenl();
@@ -1361,7 +1361,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
         {
             if (i)
                 buf.writestring(", ");
-            typeToBuffer(b.type, null, buf, &hgs);
+            typeToBuffer(b.type, null, buf, hgs);
         }
     }
 
@@ -1419,7 +1419,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
             if (stcToBuffer(buf, vd.storage_class))
                 buf.writeByte(' ');
             if (vd.type)
-                typeToBuffer(vd.type, vd.ident, buf, &hgs);
+                typeToBuffer(vd.type, vd.ident, buf, hgs);
             else
                 buf.writestring(vd.ident.toString());
             buf.writeByte('(');
@@ -1430,9 +1430,9 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
                 buf.writestring(" = ");
                 ExpInitializer ie = vd._init.isExpInitializer();
                 if (ie && (ie.exp.op == EXP.construct || ie.exp.op == EXP.blit))
-                    (cast(AssignExp)ie.exp).e2.expressionToBuffer(buf, &hgs);
+                    (cast(AssignExp)ie.exp).e2.expressionToBuffer(buf, hgs);
                 else
-                    vd._init.initializerToBuffer(buf, &hgs);
+                    vd._init.initializerToBuffer(buf, hgs);
             }
             buf.writeByte(';');
             buf.writenl();
@@ -1480,20 +1480,20 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
     void visitTemplateInstance(TemplateInstance ti)
     {
         buf.writestring(ti.name.toChars());
-        tiargsToBuffer(ti, buf, &hgs);
+        tiargsToBuffer(ti, buf, hgs);
 
         if (hgs.fullDump)
         {
             buf.writenl();
-            dumpTemplateInstance(ti, buf, &hgs);
+            dumpTemplateInstance(ti, buf, hgs);
         }
     }
 
     void visitTemplateMixin(TemplateMixin tm)
     {
         buf.writestring("mixin ");
-        typeToBuffer(tm.tqual, null, buf, &hgs);
-        tiargsToBuffer(tm, buf, &hgs);
+        typeToBuffer(tm.tqual, null, buf, hgs);
+        tiargsToBuffer(tm, buf, hgs);
         if (tm.ident && memcmp(tm.ident.toChars(), cast(const(char)*)"__mixin", 7) != 0)
         {
             buf.writeByte(' ');
@@ -1502,7 +1502,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
         buf.writeByte(';');
         buf.writenl();
         if (hgs.fullDump)
-            dumpTemplateInstance(tm, buf, &hgs);
+            dumpTemplateInstance(tm, buf, hgs);
     }
 
     void visitEnumDeclaration(EnumDeclaration d)
@@ -1518,7 +1518,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
         if (d.memtype)
         {
             buf.writestring(" : ");
-            typeToBuffer(d.memtype, null, buf, &hgs);
+            typeToBuffer(d.memtype, null, buf, hgs);
         }
         if (!d.members)
         {
@@ -1666,7 +1666,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
         {
             if (stcToBuffer(buf, d.storage_class))
                 buf.writeByte(' ');
-            typeToBuffer(d.type, d.ident, buf, &hgs);
+            typeToBuffer(d.type, d.ident, buf, hgs);
         }
         else if (d.ident)
         {
@@ -1675,7 +1675,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
             buf.writestring(" = ");
             if (stcToBuffer(buf, d.storage_class))
                 buf.writeByte(' ');
-            typeToBuffer(d.type, null, buf, &hgs);
+            typeToBuffer(d.type, null, buf, hgs);
             hgs.declstring = false;
         }
         buf.writeByte(';');
@@ -1689,7 +1689,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
         if (d.aliassym)
             toCBuffer(d.aliassym, buf, hgs);
         else // d.type
-            typeToBuffer(d.type, null, buf, &hgs);
+            typeToBuffer(d.type, null, buf, hgs);
         buf.writeByte(';');
         buf.writenl();
     }
@@ -1709,7 +1709,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
         if (stcToBuffer(buf, f.storage_class))
             buf.writeByte(' ');
         auto tf = f.type.isTypeFunction();
-        typeToBuffer(tf, f.ident, buf, &hgs);
+        typeToBuffer(tf, f.ident, buf, hgs);
 
         if (hgs.hdrgen)
         {
@@ -1757,8 +1757,8 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
         TypeFunction tf = cast(TypeFunction)f.type;
 
         if (!f.inferRetType && tf.next)
-            typeToBuffer(tf.next, null, buf, &hgs);
-        parametersToBuffer(tf.parameterList, buf, &hgs);
+            typeToBuffer(tf.next, null, buf, hgs);
+        parametersToBuffer(tf.parameterList, buf, hgs);
 
         // https://issues.dlang.org/show_bug.cgi?id=20074
         void printAttribute(string str)
@@ -1781,7 +1781,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
         if (rs && rs.exp)
         {
             buf.writestring(" => ");
-            rs.exp.expressionToBuffer(buf, &hgs);
+            rs.exp.expressionToBuffer(buf, hgs);
         }
         else
         {
@@ -1850,7 +1850,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
         {
             assert(es.exp && es.exp.op == EXP.assert_);
             buf.writestring(" (");
-            (cast(AssertExp)es.exp).e1.expressionToBuffer(buf, &hgs);
+            (cast(AssertExp)es.exp).e1.expressionToBuffer(buf, hgs);
             buf.writestring(");");
             buf.writenl();
         }
@@ -1875,9 +1875,9 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
         if (stcToBuffer(buf, d.storage_class))
             buf.writeByte(' ');
         Identifier id = d.isAnonymous() ? null : d.ident;
-        typeToBuffer(d.type, id, buf, &hgs);
+        typeToBuffer(d.type, id, buf, hgs);
         buf.writestring(" : ");
-        d.width.expressionToBuffer(buf, &hgs);
+        d.width.expressionToBuffer(buf, hgs);
         buf.writeByte(';');
         buf.writenl();
     }
@@ -1980,9 +1980,9 @@ private void visitVarDecl(VarDeclaration v, bool anywritten, ref OutBuffer buf, 
     {
         auto ie = v._init.isExpInitializer();
         if (ie && (ie.exp.op == EXP.construct || ie.exp.op == EXP.blit))
-            (cast(AssignExp)ie.exp).e2.expressionToBuffer(buf, &hgs);
+            (cast(AssignExp)ie.exp).e2.expressionToBuffer(buf, hgs);
         else
-            v._init.initializerToBuffer(buf, &hgs);
+            v._init.initializerToBuffer(buf, hgs);
     }
 
     const commentIt = hgs.importcHdr && isSpecialCName(v.ident);
@@ -2005,7 +2005,7 @@ private void visitVarDecl(VarDeclaration v, bool anywritten, ref OutBuffer buf, 
         if (stcToBuffer(buf, stc))
             buf.writeByte(' ');
         if (v.type)
-            typeToBuffer(v.type, v.ident, buf, &hgs);
+            typeToBuffer(v.type, v.ident, buf, hgs);
         else if (useTypeof)
         {
             buf.writestring("typeof(");
@@ -2050,7 +2050,7 @@ private bool isSpecialCName(Identifier id)
 /*********************************************
  * Print expression to buffer.
  */
-private void expressionPrettyPrint(Expression e, ref OutBuffer buf, HdrGenState* hgs)
+private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenState hgs)
 {
     void visit(Expression e)
     {
@@ -2303,7 +2303,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, HdrGenState*
         {
             e.sds.dsymbolToBuffer(buf, hgs);
         }
-        else if (hgs !is null && hgs.ddoc)
+        else if (hgs.ddoc)
         {
             // fixes bug 6491
             if (auto m = e.sds.isModule())
@@ -2420,7 +2420,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, HdrGenState*
             //   which isn't correct as regular D code.
                 buf.writeByte('(');
 
-                visitVarDecl(var, false, buf, *hgs);
+                visitVarDecl(var, false, buf, hgs);
 
                 buf.writeByte(';');
                 buf.writeByte(')');
@@ -2476,7 +2476,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, HdrGenState*
         if (e.parameters && e.parameters.length)
         {
             buf.writestring(", ");
-            visitTemplateParameters(e.parameters, buf, *hgs);
+            visitTemplateParameters(e.parameters, buf, hgs);
         }
         buf.writeByte(')');
     }
@@ -2954,12 +2954,12 @@ public:
         if (tp.specType)
         {
             buf.writestring(" : ");
-            typeToBuffer(tp.specType, null, *buf, hgs);
+            typeToBuffer(tp.specType, null, *buf, *hgs);
         }
         if (tp.defaultType)
         {
             buf.writestring(" = ");
-            typeToBuffer(tp.defaultType, null, *buf, hgs);
+            typeToBuffer(tp.defaultType, null, *buf, *hgs);
         }
     }
 
@@ -2973,33 +2973,33 @@ public:
     {
         buf.writestring("alias ");
         if (tp.specType)
-            typeToBuffer(tp.specType, tp.ident, *buf, hgs);
+            typeToBuffer(tp.specType, tp.ident, *buf, *hgs);
         else
             buf.writestring(tp.ident.toString());
         if (tp.specAlias)
         {
             buf.writestring(" : ");
-            objectToBuffer(tp.specAlias, *buf, hgs);
+            objectToBuffer(tp.specAlias, *buf, *hgs);
         }
         if (tp.defaultAlias)
         {
             buf.writestring(" = ");
-            objectToBuffer(tp.defaultAlias, *buf, hgs);
+            objectToBuffer(tp.defaultAlias, *buf, *hgs);
         }
     }
 
     override void visit(TemplateValueParameter tp)
     {
-        typeToBuffer(tp.valType, tp.ident, *buf, hgs);
+        typeToBuffer(tp.valType, tp.ident, *buf, *hgs);
         if (tp.specValue)
         {
             buf.writestring(" : ");
-            tp.specValue.expressionToBuffer(*buf, hgs);
+            tp.specValue.expressionToBuffer(*buf, *hgs);
         }
         if (tp.defaultValue)
         {
             buf.writestring(" = ");
-            tp.defaultValue.expressionToBuffer(*buf, hgs);
+            tp.defaultValue.expressionToBuffer(*buf, *hgs);
         }
     }
 
@@ -3010,9 +3010,9 @@ public:
     }
 }
 
-private void conditionToBuffer(Condition c, ref OutBuffer buf, HdrGenState* hgs)
+private void conditionToBuffer(Condition c, ref OutBuffer buf, ref HdrGenState hgs)
 {
-    scope v = new ConditionPrettyPrintVisitor(&buf, hgs);
+    scope v = new ConditionPrettyPrintVisitor(&buf, &hgs);
     c.accept(v);
 }
 
@@ -3052,19 +3052,19 @@ public:
     override void visit(StaticIfCondition c)
     {
         buf.writestring("static if (");
-        c.exp.expressionToBuffer(*buf, hgs);
+        c.exp.expressionToBuffer(*buf, *hgs);
         buf.writeByte(')');
     }
 }
 
 void toCBuffer(const Statement s, ref OutBuffer buf, ref HdrGenState hgs)
 {
-    (cast()s).statementToBuffer(buf, &hgs);
+    (cast()s).statementToBuffer(buf, hgs);
 }
 
 void toCBuffer(const Type t, ref OutBuffer buf, const Identifier ident, ref HdrGenState hgs)
 {
-    typeToBuffer(cast() t, ident, buf, &hgs);
+    typeToBuffer(cast() t, ident, buf, hgs);
 }
 
 // used from TemplateInstance::toChars() and TemplateMixin::toChars()
@@ -3074,12 +3074,12 @@ void toCBufferInstance(const TemplateInstance ti, ref OutBuffer buf, bool qualif
     hgs.fullQual = qualifyTypes;
 
     buf.writestring(ti.name.toChars());
-    tiargsToBuffer(cast() ti, buf, &hgs);
+    tiargsToBuffer(cast() ti, buf, hgs);
 }
 
 void toCBuffer(const Initializer iz, ref OutBuffer buf, ref HdrGenState hgs)
 {
-    initializerToBuffer(cast() iz, buf, &hgs);
+    initializerToBuffer(cast() iz, buf, hgs);
 }
 
 bool stcToBuffer(ref OutBuffer buf, StorageClass stc) @safe
@@ -3275,19 +3275,19 @@ extern (D) string visibilityToString(Visibility.Kind kind) nothrow pure @safe
 void functionToBufferFull(TypeFunction tf, ref OutBuffer buf, const Identifier ident, ref HdrGenState hgs, TemplateDeclaration td)
 {
     //printf("TypeFunction::toCBuffer() this = %p\n", this);
-    visitFuncIdentWithPrefix(tf, ident, td, buf, &hgs);
+    visitFuncIdentWithPrefix(tf, ident, td, buf, hgs);
 }
 
 // ident is inserted before the argument list and will be "function" or "delegate" for a type
 void functionToBufferWithIdent(TypeFunction tf, ref OutBuffer buf, const(char)* ident, bool isStatic)
 {
     HdrGenState hgs;
-    visitFuncIdentWithPostfix(tf, ident.toDString(), buf, &hgs, isStatic);
+    visitFuncIdentWithPostfix(tf, ident.toDString(), buf, hgs, isStatic);
 }
 
 void toCBuffer(const Expression e, ref OutBuffer buf, ref HdrGenState hgs)
 {
-    expressionPrettyPrint(cast()e, buf, &hgs);
+    expressionPrettyPrint(cast()e, buf, hgs);
 }
 
 /**************************************************
@@ -3302,7 +3302,7 @@ void argExpTypesToCBuffer(ref OutBuffer buf, Expressions* arguments)
     {
         if (i)
             buf.writestring(", ");
-        typeToBuffer(arg.type, null, buf, &hgs);
+        typeToBuffer(arg.type, null, buf, hgs);
     }
 }
 
@@ -3315,7 +3315,7 @@ void arrayObjectsToBuffer(ref OutBuffer buf, Objects* objects)
     {
         if (i)
             buf.writestring(", ");
-        objectToBuffer(o, buf, &hgs);
+        objectToBuffer(o, buf, hgs);
     }
 }
 
@@ -3329,7 +3329,7 @@ extern (C++) const(char)* parametersTypeToChars(ParameterList pl)
 {
     OutBuffer buf;
     HdrGenState hgs;
-    parametersToBuffer(pl, buf, &hgs);
+    parametersToBuffer(pl, buf, hgs);
     return buf.extractChars();
 }
 
@@ -3347,7 +3347,7 @@ const(char)* parameterToChars(Parameter parameter, TypeFunction tf, bool fullQua
     HdrGenState hgs;
     hgs.fullQual = fullQual;
 
-    parameterToBuffer(parameter, buf, &hgs);
+    parameterToBuffer(parameter, buf, hgs);
 
     if (tf.parameterList.varargs == VarArg.typesafe && parameter == tf.parameterList[tf.parameterList.parameters.length - 1])
     {
@@ -3365,7 +3365,7 @@ const(char)* parameterToChars(Parameter parameter, TypeFunction tf, bool fullQua
  *      hgs = context
  */
 
-private void parametersToBuffer(ParameterList pl, ref OutBuffer buf, HdrGenState* hgs)
+private void parametersToBuffer(ParameterList pl, ref OutBuffer buf, ref HdrGenState hgs)
 {
     buf.writeByte('(');
     foreach (i; 0 .. pl.length)
@@ -3403,7 +3403,7 @@ private void parametersToBuffer(ParameterList pl, ref OutBuffer buf, HdrGenState
  *      buf = buffer to write it to
  *      hgs = context
  */
-private void parameterToBuffer(Parameter p, ref OutBuffer buf, HdrGenState* hgs)
+private void parameterToBuffer(Parameter p, ref OutBuffer buf, ref HdrGenState hgs)
 {
     if (p.userAttribDecl)
     {
@@ -3475,7 +3475,7 @@ private void parameterToBuffer(Parameter p, ref OutBuffer buf, HdrGenState* hgs)
  *     basis = replace `null`s in argument list with this expression (for sparse array literals)
  *     names = if non-null, use these as the names for the arguments
  */
-private void argsToBuffer(Expressions* expressions, ref OutBuffer buf, HdrGenState* hgs, Expression basis = null, Identifiers* names = null)
+private void argsToBuffer(Expressions* expressions, ref OutBuffer buf, ref HdrGenState hgs, Expression basis = null, Identifiers* names = null)
 {
     if (!expressions || !expressions.length)
         return;
@@ -3526,7 +3526,7 @@ private void argsToBuffer(Expressions* expressions, ref OutBuffer buf, HdrGenSta
     }
 }
 
-private void sizeToBuffer(Expression e, ref OutBuffer buf, HdrGenState* hgs)
+private void sizeToBuffer(Expression e, ref OutBuffer buf, ref HdrGenState hgs)
 {
     if (e.type == Type.tsize_t)
     {
@@ -3554,7 +3554,7 @@ private void sizeToBuffer(Expression e, ref OutBuffer buf, HdrGenState* hgs)
     expToBuffer(e, PREC.assign, buf, hgs);
 }
 
-private void expressionToBuffer(Expression e, ref OutBuffer buf, HdrGenState* hgs)
+private void expressionToBuffer(Expression e, ref OutBuffer buf, ref HdrGenState hgs)
 {
     expressionPrettyPrint(e, buf, hgs);
 }
@@ -3563,7 +3563,7 @@ private void expressionToBuffer(Expression e, ref OutBuffer buf, HdrGenState* hg
  * Write expression out to buf, but wrap it
  * in ( ) if its precedence is less than pr.
  */
-private void expToBuffer(Expression e, PREC pr, ref OutBuffer buf, HdrGenState* hgs)
+private void expToBuffer(Expression e, PREC pr, ref OutBuffer buf, ref HdrGenState hgs)
 {
     debug
     {
@@ -3597,7 +3597,7 @@ private void expToBuffer(Expression e, PREC pr, ref OutBuffer buf, HdrGenState* 
 /**************************************************
  * An entry point to pretty-print type.
  */
-private void typeToBuffer(Type t, const Identifier ident, ref OutBuffer buf, HdrGenState* hgs,
+private void typeToBuffer(Type t, const Identifier ident, ref OutBuffer buf, ref HdrGenState hgs,
                           ubyte modMask = 0)
 {
     if (auto tf = t.isTypeFunction())
@@ -3613,7 +3613,7 @@ private void typeToBuffer(Type t, const Identifier ident, ref OutBuffer buf, Hdr
     }
 }
 
-private void visitWithMask(Type t, ubyte modMask, ref OutBuffer buf, HdrGenState* hgs)
+private void visitWithMask(Type t, ubyte modMask, ref OutBuffer buf, ref HdrGenState hgs)
 {
     // Tuples and functions don't use the type constructor syntax
     if (modMask == t.mod || t.ty == Tfunction || t.ty == Ttuple)
@@ -3649,7 +3649,7 @@ private void visitWithMask(Type t, ubyte modMask, ref OutBuffer buf, HdrGenState
 }
 
 
-private void dumpTemplateInstance(TemplateInstance ti, ref OutBuffer buf, HdrGenState* hgs)
+private void dumpTemplateInstance(TemplateInstance ti, ref OutBuffer buf, ref HdrGenState hgs)
 {
     buf.writeByte('{');
     buf.writenl();
@@ -3672,7 +3672,7 @@ private void dumpTemplateInstance(TemplateInstance ti, ref OutBuffer buf, HdrGen
 
 }
 
-private void tiargsToBuffer(TemplateInstance ti, ref OutBuffer buf, HdrGenState* hgs)
+private void tiargsToBuffer(TemplateInstance ti, ref OutBuffer buf, ref HdrGenState hgs)
 {
     buf.writeByte('!');
     if (ti.nest)
@@ -3721,7 +3721,7 @@ private void tiargsToBuffer(TemplateInstance ti, ref OutBuffer buf, HdrGenState*
  * This makes a 'pretty' version of the template arguments.
  * It's analogous to genIdent() which makes a mangled version.
  */
-private void objectToBuffer(RootObject oarg, ref OutBuffer buf, HdrGenState* hgs)
+private void objectToBuffer(RootObject oarg, ref OutBuffer buf, ref HdrGenState hgs)
 {
     //printf("objectToBuffer()\n");
     /* The logic of this should match what genIdent() does. The _dynamic_cast()
@@ -3774,7 +3774,7 @@ private void objectToBuffer(RootObject oarg, ref OutBuffer buf, HdrGenState* hgs
 }
 
 
-private void visitFuncIdentWithPostfix(TypeFunction t, const char[] ident, ref OutBuffer buf, HdrGenState* hgs, bool isStatic)
+private void visitFuncIdentWithPostfix(TypeFunction t, const char[] ident, ref OutBuffer buf, ref HdrGenState hgs, bool isStatic)
 {
     if (t.inuse)
     {
@@ -3819,7 +3819,7 @@ private void visitFuncIdentWithPostfix(TypeFunction t, const char[] ident, ref O
 }
 
 private void visitFuncIdentWithPrefix(TypeFunction t, const Identifier ident, TemplateDeclaration td,
-    ref OutBuffer buf, HdrGenState* hgs)
+    ref OutBuffer buf, ref HdrGenState hgs)
 {
     if (t.inuse)
     {
@@ -3875,7 +3875,7 @@ private void visitFuncIdentWithPrefix(TypeFunction t, const Identifier ident, Te
         {
             if (i)
                 buf.writestring(", ");
-            toCBuffer(p, buf, *hgs);
+            toCBuffer(p, buf, hgs);
         }
         buf.writeByte(')');
     }
@@ -3888,7 +3888,7 @@ private void visitFuncIdentWithPrefix(TypeFunction t, const Identifier ident, Te
 }
 
 
-private void initializerToBuffer(Initializer inx, ref OutBuffer buf, HdrGenState* hgs)
+private void initializerToBuffer(Initializer inx, ref OutBuffer buf, ref HdrGenState hgs)
 {
     void visitError(ErrorInitializer iz)
     {
@@ -3961,7 +3961,7 @@ private void initializerToBuffer(Initializer inx, ref OutBuffer buf, HdrGenState
                     if (d.exp)
                     {
                         buf.writeByte('[');
-                        toCBuffer(d.exp, buf, *hgs);
+                        toCBuffer(d.exp, buf, hgs);
                         buf.writeByte(']');
                     }
                     else
@@ -3982,7 +3982,7 @@ private void initializerToBuffer(Initializer inx, ref OutBuffer buf, HdrGenState
 }
 
 
-private void typeToBufferx(Type t, ref OutBuffer buf, HdrGenState* hgs)
+private void typeToBufferx(Type t, ref OutBuffer buf, ref HdrGenState hgs)
 {
     void visitType(Type t)
     {
