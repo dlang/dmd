@@ -2964,7 +2964,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (tempdecl.members)
         {
             Dsymbol s;
-            if (Dsymbol.oneMembers(tempdecl.members, &s, tempdecl.ident) && s)
+            if (Dsymbol.oneMembers(tempdecl.members, s, tempdecl.ident) && s)
             {
                 tempdecl.onemember = s;
                 s.parent = tempdecl;
@@ -6807,7 +6807,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
     if (tempinst.members.length)
     {
         Dsymbol s;
-        if (Dsymbol.oneMembers(tempinst.members, &s, tempdecl.ident) && s)
+        if (Dsymbol.oneMembers(tempinst.members, s, tempdecl.ident) && s)
         {
             //printf("tempdecl.ident = %s, s = `%s %s`\n", tempdecl.ident.toChars(), s.kind(), s.toPrettyChars());
             //printf("setting aliasdecl\n");
@@ -6852,7 +6852,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
     if (tempinst.members.length)
     {
         Dsymbol s;
-        if (Dsymbol.oneMembers(tempinst.members, &s, tempdecl.ident) && s)
+        if (Dsymbol.oneMembers(tempinst.members, s, tempdecl.ident) && s)
         {
             if (!tempinst.aliasdecl || tempinst.aliasdecl != s)
             {

@@ -83,7 +83,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         return ed;
     }
 
-    override bool oneMember(Dsymbol* ps, Identifier ident)
+    override bool oneMember(out Dsymbol ps, Identifier ident)
     {
         if (isAnonymous())
             return Dsymbol.oneMembers(members, ps, ident);

@@ -49,10 +49,10 @@ extern (C++) final class StaticAssert : Dsymbol
         return new StaticAssert(loc, exp.syntaxCopy(), msgs ? Expression.arraySyntaxCopy(msgs) : null);
     }
 
-    override bool oneMember(Dsymbol* ps, Identifier ident)
+    override bool oneMember(out Dsymbol ps, Identifier ident)
     {
         //printf("StaticAssert::oneMember())\n");
-        *ps = null;
+        ps = null;
         return true;
     }
 
