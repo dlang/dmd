@@ -420,10 +420,7 @@ extern (C++) abstract class Expression : ASTNode
 
     override const(char)* toChars() const
     {
-        OutBuffer buf;
-        HdrGenState hgs;
-        toCBuffer(this, buf, hgs);
-        return buf.extractChars();
+        return .toChars(this);
     }
 
     /**********************************
