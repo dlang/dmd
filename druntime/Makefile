@@ -15,11 +15,10 @@
 
 QUIET:=
 
-DMD_DIR=../compiler
 DUB=dub
 TOOLS_DIR=../../tools
 
-include $(DMD_DIR)/src/osmodel.mak
+include ../compiler/src/osmodel.mak
 
 ifeq (windows,$(OS))
     DOTEXE:=.exe
@@ -51,7 +50,7 @@ ifneq ($(BUILD),release)
     endif
 endif
 
-DMD=$(DMD_DIR)/../generated/$(OS)/$(BUILD)/$(MODEL)/dmd$(DOTEXE)
+DMD=../generated/$(OS)/$(BUILD)/$(MODEL)/dmd$(DOTEXE)
 INSTALL_DIR=../../install
 
 # directory where the html files for the documentation are placed
@@ -364,11 +363,11 @@ $(IMPDIR)/%.h : src/%.h
 
 ######################## Build DMD if non-existent ##############################
 
-$(DMD_DIR)/../generated/$(OS)/$(BUILD)/$(MODEL)/dmd$(DOTEXE):
-	$(MAKE) -C $(DMD_DIR)/.. dmd BUILD=$(BUILD) OS=$(OS) MODEL=$(MODEL) DMD=""
+../generated/$(OS)/$(BUILD)/$(MODEL)/dmd$(DOTEXE):
+	$(MAKE) -C .. dmd BUILD=$(BUILD) OS=$(OS) MODEL=$(MODEL) DMD=""
 
 # alias using the absolute path (the Phobos Makefile specifies an absolute path)
-$(abspath $(DMD_DIR)/../generated/$(OS)/$(BUILD)/$(MODEL)/dmd$(DOTEXE)): $(DMD_DIR)/../generated/$(OS)/$(BUILD)/$(MODEL)/dmd$(DOTEXE)
+$(abspath ../generated/$(OS)/$(BUILD)/$(MODEL)/dmd$(DOTEXE)): ../generated/$(OS)/$(BUILD)/$(MODEL)/dmd$(DOTEXE)
 
 ################### C/ASM Targets ############################
 
