@@ -434,7 +434,11 @@ extern (C++) class StructDeclaration : AggregateDeclaration
 
         ispod = ThreeState.yes;
 
-        if (enclosing || postblit || dtor || hasCopyCtor)
+        import dmd.clone;
+        bool hasCpCtorLocal;
+        needCopyCtor(this, hasCpCtorLocal);
+
+        if (enclosing || search(this, loc, Id.postblit) || search(this, loc, Id.dtor) || hasCpCtorLocal)
         {
             ispod = ThreeState.no;
             return false;

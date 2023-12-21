@@ -1571,7 +1571,7 @@ private Statement generateCopyCtorBody(StructDeclaration sd)
  *  `true` if one needs to be generated
  *  `false` otherwise
  */
-private bool needCopyCtor(StructDeclaration sd, out bool hasCpCtor)
+bool needCopyCtor(StructDeclaration sd, out bool hasCpCtor)
 {
     if (global.errors)
         return false;
