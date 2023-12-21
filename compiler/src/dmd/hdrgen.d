@@ -112,6 +112,14 @@ public extern (C++) const(char)* toChars(const Statement s)
     return buf.extractSlice().ptr;
 }
 
+public extern (C++) const(char)* toChars(const Expression e)
+{
+    HdrGenState hgs;
+    OutBuffer buf;
+    toCBuffer(e, buf, hgs);
+    return buf.extractChars();
+}
+
 public extern (C++) const(char)* toChars(const Initializer i)
 {
     OutBuffer buf;

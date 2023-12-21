@@ -8000,6 +8000,8 @@ extern Expression* toLvalue(Expression* _this, Scope* sc, const char* action);
 
 extern Expression* modifiableLvalue(Expression* _this, Scope* sc);
 
+extern const char* toChars(const Expression* const e);
+
 extern const char* toChars(const Initializer* const i);
 
 extern const char* toChars(const Type* const t);
