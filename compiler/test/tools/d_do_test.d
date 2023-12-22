@@ -138,7 +138,6 @@ struct EnvData
     bool coverage_build;         /// `COVERAGE`: coverage build, skip linking & executing to save time
     bool autoUpdate;             /// `AUTO_UPDATE`: update `(TEST|RUN)_OUTPUT` on missmatch
     bool printRuntime;           /// `PRINT_RUNTIME`: Print time spent on a single test
-    bool usingMicrosoftCompiler; /// Using Visual Studio toolchain
     bool tryDisabled;            /// `TRY_DISABLED`:Silently try disabled tests (ignore failure and report success)
 }
 
@@ -198,17 +197,15 @@ immutable(EnvData) processEnvironment()
         else if (envData.model == "32omf")
             envData.ccompiler = "dmc";
         else if (envData.model == "64")
-            envData.ccompiler = `C:\"Program Files (x86)"\"Microsoft Visual Studio 10.0"\VC\bin\amd64\cl.exe`;
+            envData.ccompiler = "cl";
         else if (envData.model == "32mscoff")
-            envData.ccompiler = `C:\"Program Files (x86)"\"Microsoft Visual Studio 10.0"\VC\bin\amd64_x86\cl.exe`;
+            envData.ccompiler = "cl";
         else
         {
             writeln("Unknown $OS$MODEL combination: ", envData.os, envData.model);
             throw new SilentQuit();
         }
     }
-
-    envData.usingMicrosoftCompiler = envData.ccompiler.toLower.endsWith("cl.exe");
 
     version (Windows) {} else
     {
@@ -1098,13 +1095,13 @@ bool collectExtraSources (in string input_dir, in string output_dir, in string[]
         auto curSrc = input_dir ~ envData.sep ~"extra-files" ~ envData.sep ~ cur;
         auto curObj = output_dir ~ envData.sep ~ cur ~ envData.obj;
         string command = quoteSpaces(compiler);
-        if (envData.usingMicrosoftCompiler)
-        {
-            command ~= ` /c /nologo `~curSrc~` /Fo`~curObj;
-        }
-        else if (envData.compiler == "dmd" && envData.os == "windows" && envData.model == "32omf")
+        if (envData.model == "32omf") // dmc.exe
         {
             command ~= " -c "~curSrc~" -o"~curObj;
+        }
+        else if (envData.os == "windows") // cl.exe
+        {
+            command ~= ` /c /nologo `~curSrc~` /Fo`~curObj;
         }
         else
         {
@@ -1832,7 +1829,7 @@ int tryMain(string[] args)
             {
                 toCleanup ~= test_app_dmd;
                 version(Windows)
-                    if (envData.usingMicrosoftCompiler)
+                    if (envData.model != "32omf")
                     {
                         toCleanup ~= test_app_dmd_base ~ to!string(permuteIndex) ~ ".ilk";
                         toCleanup ~= test_app_dmd_base ~ to!string(permuteIndex) ~ ".pdb";
