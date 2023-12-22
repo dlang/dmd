@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  posix:
+  main:
     strategy:
       fail-fast: false
       matrix:
@@ -61,12 +61,20 @@ jobs:
             # de-facto bootstrap version on OSX
             # See: https://github.com/dlang/dmd/pull/13890
             host_dmd: dmd-2.099.1
+          # Windows
+          - job_name: Windows x64, LDC
+            os: windows-2022
+            host_dmd: ldc-latest
+          - job_name: Windows x86, LDC
+            os: windows-2022
+            host_dmd: ldc-latest
+            model: 32
     name: ${{ matrix.job_name }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
     env:
       # for ci/run.sh:
-      OS_NAME: ${{ startsWith(matrix.os, 'ubuntu') && 'linux' || (startsWith(matrix.os, 'macos') && 'osx' || '') }}
+      OS_NAME: ${{ startsWith(matrix.os, 'ubuntu') && 'linux' || (startsWith(matrix.os, 'macos') && 'osx' || (startsWith(matrix.os, 'windows') && 'windows' || '')) }}
       MODEL: ${{ matrix.model || '64' }}
       HOST_DMD: ${{ matrix.host_dmd }}
       N: ${{ startsWith(matrix.os, 'macos') && '3' || '2' }}
@@ -75,14 +83,32 @@ jobs:
       DMD_TEST_COVERAGE: ${{ matrix.coverage && '1' || '0' }}
       # work around https://issues.dlang.org/show_bug.cgi?id=23517
       MACOSX_DEPLOYMENT_TARGET: '11'
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 50
-      - name: Install prerequisites
+
+      - name: 'Posix: Install prerequisites'
+        if: runner.os != 'Windows'
         run: ${{ runner.os == 'macOS' && 'ci/cirrusci.sh' || 'sudo -E ci/cirrusci.sh' }}
-      - name: Install host compiler
+      - name: 'Windows: Set up MSVC environment'
+        if: runner.os == 'Windows'
+        uses: seanmiddleditch/gha-setup-vsdevenv@v4
+        with:
+          arch: ${{ env.MODEL == '64' && 'x64' || 'x86' }}
+
+      - name: 'Posix: Install host compiler'
+        if: runner.os != 'Windows'
         run: ci/run.sh install_host_compiler
+      - name: 'Windows: Install host compiler'
+        if: runner.os == 'Windows'
+        uses: dlang-community/setup-dlang@v1.3.0
+        with:
+          compiler: ${{ matrix.host_dmd }}
+
       - name: Set up repos
         run: |
           set -uexo pipefail
@@ -104,6 +130,12 @@ jobs:
           ci/run.sh setup_repos "$REPO_BRANCH"
       - name: Build
         run: ${{ matrix.disable_debug_for_dmd_unittests && 'ENABLE_DEBUG=0' || '' }} ci/run.sh build
+        env:
+          # on Windows, `ci/run.sh build` expects the DMD env var to be set to the DMD-CLI-compatible host compiler
+          DMD: ${{ runner.os == 'Windows' && (startsWith(matrix.host_dmd, 'ldc') && 'ldmd2' || 'dmd') || '' }}
+          # work around the LDC host compiler on Windows assuming the first link.exe in PATH is the MSVC one
+          # (VSINSTALLDIR is set, but GHA uses Git's bin\bash.exe for `shell: bash`, which prepends Git's usr\bin to PATH, with GNU link.exe)
+          LDC_VSDIR_FORCE: ${{ runner.os == 'Windows' && startsWith(matrix.host_dmd, 'ldc') && '1' || '' }}
       - name: Rebuild dmd (with enabled coverage)
         if: matrix.coverage
         run: ENABLE_RELEASE=0 ENABLE_DEBUG=1 ENABLE_COVERAGE=1 ci/run.sh rebuild
@@ -112,6 +144,13 @@ jobs:
       - name: Test druntime
         if: '!matrix.coverage'
         run: ci/run.sh test_druntime
+      - name: 'Windows x86: Add 32-bit libcurl.dll to PATH (required for Phobos unittests)'
+        if: runner.os == 'Windows' && env.MODEL == '32' && !matrix.coverage
+        run: |
+          # LDC
+          echo "$(dirname "$(which $DC)")/../lib32" >> $GITHUB_PATH
+          # DMD
+          echo "$(dirname "$(which $DC)")/../bin" >> $GITHUB_PATH
       - name: Test phobos
         if: '!matrix.coverage'
         run: ci/run.sh test_phobos
