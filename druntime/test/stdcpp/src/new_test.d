@@ -135,3 +135,56 @@ unittest
         assert(MyClassGC.numDeleted == 1);
     }
 }
+
+unittest
+{
+    import core.stdcpp.new_: cpp_new, cpp_delete;
+
+    {
+        extern(C++) static struct S
+        {
+            __gshared int numDeleted;
+            __gshared int lastDeleted;
+            int i;
+            ~this()
+            {
+                lastDeleted = i;
+                numDeleted++;
+            }
+        }
+        S *s = cpp_new!S(12345);
+        cpp_delete(s);
+        assert(S.numDeleted == 1);
+        assert(S.lastDeleted == 12345);
+        s = null;
+        cpp_delete(s);
+        assert(S.numDeleted == 1);
+        assert(S.lastDeleted == 12345);
+    }
+
+    {
+        extern(C++) static class C
+        {
+            __gshared int numDeleted;
+            __gshared int lastDeleted;
+            int i;
+            this(int i)
+            {
+                this.i = i;
+            }
+            ~this()
+            {
+                lastDeleted = i;
+                numDeleted++;
+            }
+        }
+        C c = cpp_new!C(54321);
+        cpp_delete(c);
+        assert(C.numDeleted == 1);
+        assert(C.lastDeleted == 54321);
+        c = null;
+        cpp_delete(c);
+        assert(C.numDeleted == 1);
+        assert(C.lastDeleted == 54321);
+    }
+}
