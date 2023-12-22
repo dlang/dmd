@@ -7,7 +7,7 @@ set -uexo pipefail
 
 # N: number of parallel build jobs
 if [ -z ${N+x} ] ; then echo "Variable 'N' needs to be set."; exit 1; fi
-# OS_NAME: linux|osx|freebsd
+# OS_NAME: linux|osx|freebsd|windows
 if [ -z ${OS_NAME+x} ] ; then echo "Variable 'OS_NAME' needs to be set."; exit 1; fi
 # FULL_BUILD: true|false (true on Linux: use full permutations for DMD tests)
 if [ -z ${FULL_BUILD+x} ] ; then echo "Variable 'FULL_BUILD' needs to be set."; exit 1; fi
@@ -58,13 +58,17 @@ clone() {
 
 # build dmd (incl. building and running the unittests), druntime, phobos
 build() {
-    source ~/dlang/*/activate # activate host compiler, incl. setting `DMD`
+    if [ "$OS_NAME" != "windows" ]; then
+        source ~/dlang/*/activate # activate host compiler, incl. setting `DMD`
+    fi
     $DMD compiler/src/build.d -ofgenerated/build
     generated/build -j$N MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" BUILD=debug unittest
     generated/build -j$N MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=1 dmd
     make -j$N -C druntime MODEL=$MODEL
     make -j$N -C ../phobos MODEL=$MODEL
-    deactivate # deactivate host compiler
+    if [ "$OS_NAME" != "windows" ]; then
+        deactivate # deactivate host compiler
+    fi
 }
 
 # self-compile dmd
@@ -124,7 +128,9 @@ test_phobos() {
 
 # test dub package
 test_dub_package() {
-    source ~/dlang/*/activate # activate host compiler
+    if [ "$OS_NAME" != "windows" ]; then
+        source ~/dlang/*/activate # activate host compiler
+    fi
     # GDC's standard library is too old for some example scripts
     if [[ "${DMD:-dmd}" =~ "gdmd" ]] ; then
         echo "Skipping DUB examples on GDC."
@@ -146,7 +152,9 @@ test_dub_package() {
         # Test rdmd build
         "${build_path}/dmd" -version=NoBackend -version=GC -version=NoMain -Jgenerated/dub -Jsrc/dmd/res -Isrc -i -run test/dub_package/frontend.d
     fi
-    deactivate
+    if [ "$OS_NAME" != "windows" ]; then
+        deactivate
+    fi
 }
 
 # clone phobos repos if not already available
