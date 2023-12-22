@@ -65,9 +65,9 @@ jobs:
           - job_name: Windows x64, LDC
             os: windows-2022
             host_dmd: ldc-latest
-          - job_name: Windows x86, LDC
+          - job_name: Windows x86, DMD (latest)
             os: windows-2022
-            host_dmd: ldc-latest
+            host_dmd: dmd-latest
             model: 32
     name: ${{ matrix.job_name }}
     runs-on: ${{ matrix.os }}
