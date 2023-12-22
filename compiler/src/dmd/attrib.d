@@ -1296,3 +1296,27 @@ int foreachUdaNoSemantic(Dsymbol sym, int delegate(Expression) dg)
 
     return 0;
 }
+
+
+/**
+ * Returns: true if the given expression is an enum from `core.attribute` named `id`
+ */
+bool isEnumAttribute(Expression e, Identifier id)
+{
+    import dmd.attrib : isCoreUda;
+    import dmd.id : Id;
+
+    // Logic based on dmd.objc.Supported.declaredAsOptionalCount
+    auto typeExp = e.isTypeExp;
+    if (!typeExp)
+        return false;
+
+    auto typeEnum = typeExp.type.isTypeEnum();
+    if (!typeEnum)
+        return false;
+
+    if (isCoreUda(typeEnum.sym, id))
+        return true;
+
+    return false;
+}

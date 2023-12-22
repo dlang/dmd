@@ -222,20 +222,7 @@ private bool hasMustUseAttribute(Dsymbol sym, Scope* sc)
  */
 private bool isMustUseAttribute(Expression e)
 {
-    import dmd.attrib : isCoreUda;
+    import dmd.attrib : isEnumAttribute;
     import dmd.id : Id;
-
-    // Logic based on dmd.objc.Supported.declaredAsOptionalCount
-    auto typeExp = e.isTypeExp;
-    if (!typeExp)
-        return false;
-
-    auto typeEnum = typeExp.type.isTypeEnum();
-    if (!typeEnum)
-        return false;
-
-    if (isCoreUda(typeEnum.sym, Id.udaMustUse))
-        return true;
-
-    return false;
+    return isEnumAttribute(e, Id.udaMustUse);
 }
