@@ -3,11 +3,11 @@
 // PERMUTE_ARGS: -cov
 
 import standalone_b;
-import core.attribute : __standalone;
+import core.attribute : standalone;
 
 immutable int* x;
 
-@__standalone @system shared static this()
+@standalone @system shared static this()
 {
     x = new int(1);
 }

@@ -301,4 +301,4 @@ enum mustuse;
  *
  * This is only allowed on `shared` static constructors, not thread-local module constructors.
  */
-enum __standalone;
+enum standalone;

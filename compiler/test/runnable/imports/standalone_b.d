@@ -1,11 +1,11 @@
 module standalone_b;
 
 import standalone_modctor;
-import core.attribute : __standalone;
+import core.attribute : standalone;
 
 immutable int* y;
 
-@__standalone @system shared static this()
+@standalone @system shared static this()
 {
     y = new int(2);
 }
