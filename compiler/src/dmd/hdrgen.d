@@ -3434,7 +3434,7 @@ private void parameterToBuffer(Parameter p, ref OutBuffer buf, ref HdrGenState h
     if (p.storageClass & STC.in_)
     {
         buf.writestring("in ");
-        if (global.params.previewIn && p.storageClass & STC.ref_)
+        if ((p.storageClass & (STC.constscoperef | STC.ref_)) == (STC.constscoperef | STC.ref_))
             stc &= ~STC.ref_;
     }
     else if (p.storageClass & STC.lazy_)

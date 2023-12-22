@@ -528,7 +528,7 @@ void mangleParameter(Parameter p, ref OutBuffer buf, ref Backref backref)
     if (stc & STC.return_)
         buf.writestring("Nk"); // return
 
-    switch (stc & (STC.IOR | STC.lazy_))
+    switch (stc & ((STC.IOR | STC.lazy_) & ~STC.constscoperef))
     {
     case 0:
         break;
