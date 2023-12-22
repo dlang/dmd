@@ -35,7 +35,6 @@ import dmd.dtemplate;
 import dmd.dversion;
 import dmd.expression;
 import dmd.func;
-import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.init;
@@ -2067,7 +2066,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
     void visitInteger(IntegerExp e)
     {
-        const dinteger_t v = e.toInteger();
+        const ulong v = e.toInteger();
         if (e.type)
         {
             Type t = e.type;
@@ -2161,11 +2160,8 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
             default:
                 /* This can happen if errors, such as
                  * the type is painted on like in fromConstInitializer().
+                 * Just ignore
                  */
-                if (!global.errors)
-                {
-                    assert(0);
-                }
                 break;
             }
         }
@@ -3540,10 +3536,10 @@ private void sizeToBuffer(Expression e, ref OutBuffer buf, ref HdrGenState hgs)
     {
         Expression ex = (e.op == EXP.cast_ ? (cast(CastExp)e).e1 : e);
         ex = ex.optimize(WANTvalue);
-        const dinteger_t uval = ex.op == EXP.int64 ? ex.toInteger() : cast(dinteger_t)-1;
-        if (cast(sinteger_t)uval >= 0)
+        const ulong uval = ex.op == EXP.int64 ? ex.toInteger() : cast(ulong)-1;
+        if (cast(long)uval >= 0)
         {
-            dinteger_t sizemax = void;
+            ulong sizemax = void;
             if (target.ptrsize == 8)
                 sizemax = 0xFFFFFFFFFFFFFFFFUL;
             else if (target.ptrsize == 4)
