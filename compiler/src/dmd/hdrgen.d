@@ -49,7 +49,6 @@ import dmd.rootobject;
 import dmd.root.string;
 import dmd.statement;
 import dmd.staticassert;
-import dmd.target;
 import dmd.tokens;
 import dmd.visitor;
 
@@ -2144,14 +2143,8 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
             case Tpointer:
                 buf.writestring("cast(");
                 buf.writestring(t.toChars());
-                buf.writeByte(')');
-                if (target.ptrsize == 8)
-                    goto case Tuns64;
-                else if (target.ptrsize == 4 ||
-                         target.ptrsize == 2)
-                    goto case Tuns32;
-                else
-                    assert(0);
+                buf.writestring(")cast(size_t)");
+                goto case Tuns64;
 
             case Tvoid:
                 buf.writestring("cast(void)0");
@@ -3539,17 +3532,14 @@ private void sizeToBuffer(Expression e, ref OutBuffer buf, ref HdrGenState hgs)
         const ulong uval = ex.op == EXP.int64 ? ex.toInteger() : cast(ulong)-1;
         if (cast(long)uval >= 0)
         {
-            ulong sizemax = void;
-            if (target.ptrsize == 8)
-                sizemax = 0xFFFFFFFFFFFFFFFFUL;
-            else if (target.ptrsize == 4)
-                sizemax = 0xFFFFFFFFU;
-            else if (target.ptrsize == 2)
-                sizemax = 0xFFFFU;
-            else
-                assert(0);
-            if (uval <= sizemax && uval <= 0x7FFFFFFFFFFFFFFFUL)
+            if (uval <= 0xFFFFU)
             {
+                buf.print(uval);
+                return;
+            }
+            if (uval <= 0x7FFF_FFFF_FFFF_FFFFUL)
+            {
+                buf.writestring("cast(size_t)");
                 buf.print(uval);
                 return;
             }
