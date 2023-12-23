@@ -76,7 +76,7 @@ struct Barray(T)
      */
     void push(T t)
     {
-        const i = length;
+        const i = array.length;
         setLength(i + 1);
         array[i] = t;
     }
@@ -89,7 +89,7 @@ struct Barray(T)
     @trusted
     T* push()
     {
-        const i = length;
+        const i = array.length;
         setLength(i + 1);
         auto p = &array[i];
         memset(p, 0, T.sizeof);
@@ -104,7 +104,7 @@ struct Barray(T)
      */
     void remove(size_t i)
     {
-        const len = length - 1;
+        const len = array.length - 1;
         if (i != len)
         {
             array[i] = array[len];
