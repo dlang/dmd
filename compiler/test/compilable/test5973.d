@@ -25,7 +25,7 @@ class F : E
 {
     void test()
     {
-        i = 5;
+        x.i = 5;
     }
 }
 

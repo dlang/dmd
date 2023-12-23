@@ -188,7 +188,7 @@ extern (C++) struct Param
     bool ehnogc;                 // use @nogc exception handling
     bool useDIP1021;             // implement https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1021.md
     FeatureState fieldwise;      // do struct equality testing field-wise rather than by memcmp()
-    bool fixAliasThis;           // if the current scope has an alias this, check it before searching upper scopes
+    bool fixAliasThis = true;    // if the current scope has an alias this, check it before searching upper scopes
     FeatureState rvalueRefParam; // allow rvalues to be arguments to ref parameters
                                  // https://dconf.org/2019/talks/alexandrescu.html
                                  // https://gist.github.com/andralex/e5405a5d773f07f73196c05f8339435a

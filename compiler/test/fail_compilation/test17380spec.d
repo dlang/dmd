@@ -1,4 +1,4 @@
-/* REQUIRED_ARGS: -verrors=spec
+/* REQUIRED_ARGS: -verrors=spec -revert=fixAliasThis
 TEST_OUTPUT:
 ---
 (spec:1) fail_compilation/test17380spec.d(15): Error: cannot resolve identifier `ThisTypeDoesNotExistAndCrashesTheCompiler`

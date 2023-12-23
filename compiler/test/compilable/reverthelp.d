@@ -9,5 +9,6 @@ Revertable language changes listed by -revert=name:
   =dip1000          revert DIP1000 changes https://github.com/dlang/DIPs/blob/master/DIPs/other/DIP1000.md (Scoped Pointers)
   =intpromote       revert integral promotions for unary + - ~ operators
   =dtorfields       don't destruct fields of partially constructed objects
+  =fixAliasThis     when a symbol is resolved, check alias this scope before going to upper scopes
 ----
 */
