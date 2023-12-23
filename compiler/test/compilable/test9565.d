@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -o-
+// REQUIRED_ARGS: -o- -m32
 // PERMUTE_ARGS:
 
 template TypeTuple(T...) { alias TypeTuple = T; }
@@ -30,7 +30,7 @@ void main()
 
         // index == NegExp
         static assert((arr[-4  ]).stringof == "arr[" ~ castPrefix ~ "-4]");
-        static assert((arr[-4U ]).stringof == "arr[4294967292]");
+        static assert((arr[-4U ]).stringof == "arr[cast(size_t)4294967292]");
         static assert((arr[int.min] ).stringof == "arr[" ~ castPrefix ~ "-2147483648]");
       static if (is(size_t == ulong))
       {
