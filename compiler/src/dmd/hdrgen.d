@@ -944,7 +944,8 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
         }
         foreach (const pid; imp.packages)
         {
-            buf.printf("%s.", pid.toChars());
+            buf.write(pid.toString());
+            buf.writeByte('.');
         }
         buf.writestring(imp.id.toString());
         if (imp.names.length)
@@ -1073,7 +1074,9 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
             {
                 if (i)
                     buf.writeByte(' ');
-                buf.printf("align (%s)", exp.toChars());
+                buf.writestring("align (");
+                toCBuffer(exp, buf, hgs);
+                buf.writeByte(')');
             }
             if (d.decl && d.decl.length < 2)
                 buf.writeByte(' ');
@@ -1500,7 +1503,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
         buf.writestring("mixin ");
         typeToBuffer(tm.tqual, null, buf, hgs);
         tiargsToBuffer(tm, buf, hgs);
-        if (tm.ident && memcmp(tm.ident.toChars(), cast(const(char)*)"__mixin", 7) != 0)
+        if (tm.ident && memcmp(tm.ident.toString().ptr, cast(const(char)*) "__mixin", 7) != 0)
         {
             buf.writeByte(' ');
             buf.writestring(tm.ident.toString());
@@ -2082,7 +2085,8 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
                         {
                             if ((cast(EnumMember)em).value.toInteger == v)
                             {
-                                buf.printf("%s.%s", sym.toChars(), em.ident.toChars());
+                                const id = em.ident.toString();
+                                buf.printf("%s.%.*s", sym.toChars(), cast(int)id.length, id.ptr);
                                 return ;
                             }
                         }
@@ -2142,7 +2146,11 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
                 break;
             case Tpointer:
                 buf.writestring("cast(");
-                buf.writestring(t.toChars());
+
+                HdrGenState hgs2;               // should re-examine need for new hgs
+                hgs2.fullQual = (t.ty == Tclass && !t.mod);
+                toCBuffer(t, buf, null, hgs2);
+
                 buf.writestring(")cast(size_t)");
                 goto case Tuns64;
 
@@ -3438,14 +3446,15 @@ private void parameterToBuffer(Parameter p, ref OutBuffer buf, ref HdrGenState h
         STC.return_ | STC.returninferred | STC.scope_ | STC.scopeinferred | STC.out_ | STC.ref_ | STC.returnScope)))
         buf.writeByte(' ');
 
+    const(char)[] s;
     if (p.storageClass & STC.alias_)
     {
         if (p.ident)
             buf.writestring(p.ident.toString());
     }
-    else if (p.type.ty == Tident &&
-             (cast(TypeIdentifier)p.type).ident.toString().length > 3 &&
-             strncmp((cast(TypeIdentifier)p.type).ident.toChars(), "__T", 3) == 0)
+    else if (p.type.isTypeIdentifier() &&
+             (s = p.type.isTypeIdentifier().ident.toString()).length > 3 &&
+             s[0..3] == "__T")
     {
         // print parameter name, instead of undetermined type parameter
         buf.writestring(p.ident.toString());
@@ -3686,7 +3695,9 @@ private void tiargsToBuffer(TemplateInstance ti, ref OutBuffer buf, ref HdrGenSt
         {
             if (t.equals(Type.tstring) || t.equals(Type.twstring) || t.equals(Type.tdstring) || t.mod == 0 && (t.isTypeBasic() || t.ty == Tident && (cast(TypeIdentifier)t).idents.length == 0))
             {
-                buf.writestring(t.toChars());
+                HdrGenState hgs2;       // re-examine need for new hgs
+                hgs2.fullQual = (t.ty == Tclass && !t.mod);
+                toCBuffer(t, buf, null, hgs2);
                 return;
             }
         }
@@ -3694,7 +3705,7 @@ private void tiargsToBuffer(TemplateInstance ti, ref OutBuffer buf, ref HdrGenSt
         {
             if (e.op == EXP.int64 || e.op == EXP.float64 || e.op == EXP.null_ || e.op == EXP.string_ || e.op == EXP.this_)
             {
-                buf.writestring(e.toChars());
+                toCBuffer(e, buf, hgs);
                 return;
             }
         }
@@ -3736,8 +3747,10 @@ private void objectToBuffer(RootObject oarg, ref OutBuffer buf, ref HdrGenState 
     }
     else if (Dsymbol s = isDsymbol(oarg))
     {
-        const p = s.ident ? s.ident.toChars() : s.toChars();
-        buf.writestring(p);
+        if (s.ident)
+            buf.writestring(s.ident.toString());
+        else
+            buf.writestring(s.toChars());
     }
     else if (auto v = isTuple(oarg))
     {
@@ -4166,13 +4179,13 @@ private void typeToBufferx(Type t, ref OutBuffer buf, ref HdrGenState hgs)
             buf.writestring("const ");
         if (hgs.importcHdr && t.id)
         {
-            buf.writestring(t.id.toChars());
+            buf.writestring(t.id.toString());
             return;
         }
         buf.writestring(Token.toChars(t.tok));
         buf.writeByte(' ');
         if (t.id)
-            buf.writestring(t.id.toChars());
+            buf.writestring(t.id.toString());
         if (t.tok == TOK.enum_ && t.base && t.base.ty != TY.Tint32)
         {
             buf.writestring(" : ");
