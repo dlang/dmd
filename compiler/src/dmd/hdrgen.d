@@ -826,7 +826,7 @@ private void statementToBuffer(Statement s, ref OutBuffer buf, ref HdrGenState h
         buf.level++;
         while (t)
         {
-            buf.writestring(t.toChars());
+            buf.writestring(t.toString());
             if (t.next &&
                 t.value != TOK.min      &&
                 t.value != TOK.comma    && t.next.value != TOK.comma    &&
@@ -2468,7 +2468,10 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         typeToBuffer(e.targ, e.id, buf, hgs);
         if (e.tok2 != TOK.reserved)
         {
-            buf.printf(" %s %s", Token.toChars(e.tok), Token.toChars(e.tok2));
+            buf.writeByte(' ');
+            buf.writestring(Token.toString(e.tok));
+            buf.writeByte(' ');
+            buf.writestring(Token.toString(e.tok2));
         }
         else if (e.tspec)
         {
@@ -4182,7 +4185,7 @@ private void typeToBufferx(Type t, ref OutBuffer buf, ref HdrGenState hgs)
             buf.writestring(t.id.toString());
             return;
         }
-        buf.writestring(Token.toChars(t.tok));
+        buf.writestring(Token.toString(t.tok));
         buf.writeByte(' ');
         if (t.id)
             buf.writestring(t.id.toString());
