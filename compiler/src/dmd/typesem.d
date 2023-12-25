@@ -711,7 +711,15 @@ private extern(D) bool isCopyConstructorCallable (StructDeclaration argStruct,
                 s ~= "@safe ";
             if (!f.isNogc && sc.func.setGC(arg.loc, null))
                 s ~= "nogc ";
-            if (s)
+            if (f.isDisabled() && !f.isGenerated())
+            {
+                /* https://issues.dlang.org/show_bug.cgi?id=24301
+                 * Copy constructor is explicitly disabled
+                 */
+                buf.printf("`%s` copy constructor cannot be used because it is annotated with `@disable`",
+                    f.type.toChars());
+            }
+            else if (s)
             {
                 s[$-1] = '\0';
                 buf.printf("`%s` copy constructor cannot be called from a `%s` context", f.type.toChars(), s.ptr);
