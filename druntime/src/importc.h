@@ -60,6 +60,11 @@
 #define __int32 int
 #define __int64 long long
 
+/* Linux builtin types */
+typedef unsigned short __uint16_t;
+typedef unsigned int __uint32_t;
+typedef unsigned long long __uint64_t;
+
 /*********************
  * Obsolete detritus
  */
