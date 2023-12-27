@@ -1845,14 +1845,27 @@ $(H3 $(GNAME compiles))
         compile (are semantically correct).
         The arguments can be symbols, types, or expressions that
         are syntactically correct.
-        The arguments cannot be statements or declarations.
+        The arguments cannot be statements or declarations - instead
+        these can be wrapped in a $(DDSUBLINK spec/expression, function_literals,
+        function literal) expression.
         )
 
         $(P If there are no arguments, the result is $(D false).)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
-import std.stdio;
+static assert(!__traits(compiles));
+static assert(__traits(compiles, 1 + 1)); // expression
+static assert(__traits(compiles, typeof(1))); // type
+static assert(__traits(compiles, object)); // symbol
+static assert(__traits(compiles, 1, 2, 3, int, long));
+static assert(!__traits(compiles, 3[1])); // semantic error
+static assert(!__traits(compiles, 1, 2, 3, int, long, 3[1]));
+
+enum n = 3;
+// wrap a declaration/statement in a function literal
+static assert(__traits(compiles, { int[n] arr; }));
+static assert(!__traits(compiles, { foreach (e; n) {} }));
 
 struct S
 {
@@ -1860,29 +1873,23 @@ struct S
     int s2;
 }
 
-int foo();
-int bar();
+static assert(__traits(compiles, S.s1 = 0));
+static assert(!__traits(compiles, S.s2 = 0));
+static assert(!__traits(compiles, S.s3));
 
-void main()
-{
-    writeln(__traits(compiles));                      // false
-    writeln(__traits(compiles, foo));                 // true
-    writeln(__traits(compiles, foo + 1));             // true
-    writeln(__traits(compiles, &foo + 1));            // false
-    writeln(__traits(compiles, typeof(1)));           // true
-    writeln(__traits(compiles, S.s1));                // true
-    writeln(__traits(compiles, S.s3));                // false
-    writeln(__traits(compiles, 1,2,3,int,long,std));  // true
-    writeln(__traits(compiles, 3[1]));                // false
-    writeln(__traits(compiles, 1,2,3,int,long,3[1])); // false
-}
+int foo();
+
+static assert(__traits(compiles, foo));
+static assert(__traits(compiles, foo + 1)); // call foo with optional parens
+static assert(!__traits(compiles, &foo + 1));
 ---
 )
 
         $(P This is useful for:)
 
         $(UL
-        $(LI Giving better error messages inside generic code than
+        $(LI Giving better error messages (using $(DDSUBLINK spec/version, static-assert,
+        `static assert`)) inside generic code than
         the sometimes hard to follow compiler ones.)
         $(LI Doing a finer grained specialization than template
         partial specialization allows for.)
