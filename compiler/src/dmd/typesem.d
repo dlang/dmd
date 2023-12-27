@@ -2326,11 +2326,16 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
     Type visitTag(TypeTag mtype)
     {
         //printf("TypeTag.semantic() %s\n", mtype.toChars());
+        Type returnType(Type t)
+        {
+            return t.deco ? t : t.merge();
+        }
+
         if (mtype.resolved)
         {
             /* struct S s, *p;
              */
-            return mtype.resolved.addSTC(mtype.mod);
+            return returnType(mtype.resolved.addSTC(mtype.mod));
         }
 
         /* Find the current scope by skipping tag scopes.
@@ -2403,7 +2408,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
         {
             mtype.id = Identifier.generateId("__tag"[]);
             declareTag();
-            return mtype.resolved.addSTC(mtype.mod);
+            return returnType(mtype.resolved.addSTC(mtype.mod));
         }
 
         /* look for pre-existing declaration
@@ -2416,7 +2421,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             if (mtype.tok == TOK.enum_ && !mtype.members)
                 .error(mtype.loc, "`enum %s` is incomplete without members", mtype.id.toChars()); // C11 6.7.2.3-3
             declareTag();
-            return mtype.resolved.addSTC(mtype.mod);
+            return returnType(mtype.resolved.addSTC(mtype.mod));
         }
 
         /* A redeclaration only happens if both declarations are in
@@ -2516,7 +2521,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                 declareTag();
             }
         }
-        return mtype.resolved.addSTC(mtype.mod);
+        return returnType(mtype.resolved.addSTC(mtype.mod));
     }
 
     switch (type.ty)
