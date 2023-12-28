@@ -695,7 +695,6 @@ extern (C++) class FuncDeclaration : Declaration
         int result = 0;
         if (fd.ident == ident)
         {
-            import dmd.typesem : covariant;
             const cov = type.covariant(fd.type);
             if (cov != Covariant.distinct)
             {
@@ -722,8 +721,6 @@ extern (C++) class FuncDeclaration : Declaration
     final int findVtblIndex(Dsymbols* vtbl, int dim)
     {
         //printf("findVtblIndex() %s\n", toChars());
-        import dmd.typesem : covariant;
-
         FuncDeclaration mismatch = null;
         StorageClass mismatchstc = 0;
         int mismatchvi = -1;
@@ -950,7 +947,6 @@ extern (C++) class FuncDeclaration : Declaration
              */
             if (t.ty == Tfunction)
             {
-                import dmd.typesem : covariant;
                 auto tf = cast(TypeFunction)f.type;
                 if (tf.covariant(t) == Covariant.yes &&
                     tf.nextOf().implicitConvTo(t.nextOf()) >= MATCH.constant)

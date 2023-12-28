@@ -7,7 +7,6 @@ module semantic.covariance;
 import dmd.astenums : STC, StorageClass;
 import dmd.func : FuncDeclaration;
 import dmd.mtype : Covariant, Type;
-import dmd.typesem : covariant;
 
 import support;
 

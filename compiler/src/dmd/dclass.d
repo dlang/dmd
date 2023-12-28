@@ -670,7 +670,6 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
         void searchVtbl(ref Dsymbols vtbl)
         {
-            import dmd.typesem : covariant;
             bool seenInterfaceVirtual;
             foreach (s; vtbl)
             {

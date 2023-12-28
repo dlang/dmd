@@ -1690,6 +1690,14 @@ enum class TY : uint8_t
     Ttag = 47u,
 };
 
+enum class Covariant
+{
+    distinct = 0,
+    yes = 1,
+    no = 2,
+    fwdref = 3,
+};
+
 typedef uint64_t dinteger_t;
 
 class Type : public ASTNode
@@ -1800,6 +1808,7 @@ public:
     bool equivalent(Type* t);
     DYNCAST dyncast() const final override;
     size_t getUniqueID() const;
+    Covariant covariant(Type* t, uint64_t* pstc = nullptr, bool cppCovariant = false);
     const char* toChars() const final override;
     char* toPrettyChars(bool QualifyTypes = false);
     static void _init();
@@ -4202,14 +4211,6 @@ public:
 extern Initializer* initializerSemantic(Initializer* init, Scope* sc, Type*& tx, NeedInterpret needInterpret);
 
 extern Expression* initializerToExpression(Initializer* init, Type* itype = nullptr, const bool isCfile = false);
-
-enum class Covariant
-{
-    distinct = 0,
-    yes = 1,
-    no = 2,
-    fwdref = 3,
-};
 
 enum class DotExpFlag
 {
