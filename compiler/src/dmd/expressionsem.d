@@ -15037,6 +15037,8 @@ bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
  */
 Expression resolveLoc(Expression exp, const ref Loc loc, Scope* sc)
 {
+    exp.loc = loc;
+
     Expression visit(Expression exp)
     {
         if (auto unaExp = exp.isUnaExp())
@@ -15044,7 +15046,6 @@ Expression resolveLoc(Expression exp, const ref Loc loc, Scope* sc)
             unaExp.e1 = unaExp.e1.resolveLoc(loc, sc);
             return unaExp;
         }
-        exp.loc = loc;
         return exp;
     }
 
