@@ -513,7 +513,7 @@ unittest
 
 ///
 pragma(inline, true)
-A atomic_exchange_impl(A, C)(const shared(A)* obj, C desired) @trusted
+A atomic_exchange_impl(A, C)(shared(A)* obj, C desired) @trusted
 {
     assert(obj !is null);
     return atomicExchange(cast(shared(A)*)obj, cast(A)desired);
@@ -528,7 +528,7 @@ unittest
 
 ///
 pragma(inline, true)
-A atomic_exchange_explicit_impl(A, C)(const shared(A)* obj, C desired, memory_order order) @trusted
+A atomic_exchange_explicit_impl(A, C)(shared(A)* obj, C desired, memory_order order) @trusted
 {
     assert(obj !is null);
 
