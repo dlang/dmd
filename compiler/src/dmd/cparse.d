@@ -1931,20 +1931,18 @@ final class CParser(AST) : Parser!AST
                 }
                 else if (auto tt = dt.isTypeTag())
                 {
-                    if (tt.id || tt.tok == TOK.enum_)
-                    {
-                        if (!tt.id && id)
-                            /* This applies for enums declared as
-                             * typedef enum {A} E;
-                             */
-                            tt.id = id;
-                        Specifier spec;
-                        declareTag(tt, spec);
-                    }
+                    if (!tt.id && id)
+                        /* This applies for enums declared as
+                         * typedef enum {A} E;
+                         */
+                        tt.id = id;
+                    Specifier spec;
+                    declareTag(tt, spec);
                     idt = tt.id;
                 }
                 if (isalias)
                 {
+                    //printf("AliasDeclaration %s %s\n", id.toChars(), dt.toChars());
                     auto ad = new AST.AliasDeclaration(token.loc, id, dt);
                     if (id == idt)
                         ad.adFlags |= ad.hidden; // do not print when generating .di files
