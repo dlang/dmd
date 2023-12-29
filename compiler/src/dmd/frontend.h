@@ -6739,7 +6739,6 @@ public:
 
     enum : int32_t { hidden = 8 };
 
-    Symbol* isym;
     _d_dynamicArray< const char > mangleOverride;
     const char* kind() const override;
     uinteger_t size(const Loc& loc) final override;
