@@ -1437,16 +1437,19 @@ int runProcessCollectStdout(const(wchar)* szCommand, ubyte[] buffer, void delega
 
     while (true)
     {
+        bSuccess = GetExitCodeProcess(piProcInfo.hProcess, &exitCode);
+        // flush pipe even if program finished
         DWORD dwlen = cast(DWORD)buffer.length;
-        bSuccess = PeekNamedPipe(hStdOutRead, buffer.ptr + bytesFilled, dwlen - bytesFilled, &bytesRead, &bytesAvailable, null);
+        if (bSuccess)
+            bSuccess = PeekNamedPipe(hStdOutRead, buffer.ptr + bytesFilled, dwlen - bytesFilled, &bytesRead, &bytesAvailable, null);
         if (bSuccess && bytesRead > 0)
             bSuccess = ReadFile(hStdOutRead, buffer.ptr + bytesFilled, dwlen - bytesFilled, &bytesRead, null);
         if (bSuccess && bytesRead > 0)
         {
             sink(buffer[0 .. bytesRead]);
+            continue; // keep on reading from pipe before returning
         }
 
-        bSuccess = GetExitCodeProcess(piProcInfo.hProcess, &exitCode);
         if (!bSuccess || exitCode != 259) //259 == STILL_ACTIVE
         {
             break;
