@@ -499,6 +499,8 @@ void outcommon(Symbol *s,targ_size_t n)
 @trusted
 void out_readonly(Symbol *s)
 {
+    if (config.flags2 & CFG2noreadonly)
+        return;
     if (config.objfmt == OBJ_ELF || config.objfmt == OBJ_MACH)
     {
         /* Cannot have pointers in CDATA when compiling PIC code, because

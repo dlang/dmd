@@ -19,6 +19,7 @@ LDL:=$(subst -L,,$(LINKDL)) # -ldl
 SRC:=src
 GENERATED:=./generated
 ROOT:=$(GENERATED)/$(OS)/$(BUILD)/$(MODEL)
+DRUNTIME_IMPLIB:=$(subst .dll,.lib,$(DRUNTIMESO))
 
 MODEL_FLAG:=$(if $(findstring $(MODEL),default),,-m$(MODEL))
 CFLAGS_BASE:=$(if $(findstring $(OS),windows),/Wall,$(MODEL_FLAG) $(PIC) -Wall)
@@ -27,7 +28,7 @@ ifeq (osx64,$(OS)$(MODEL))
 endif
 DFLAGS:=$(MODEL_FLAG) $(PIC) -w -I../../src -I../../import -I$(SRC) -defaultlib= -preview=dip1000 $(if $(findstring $(OS),windows),,-L-lpthread -L-lm $(LINKDL))
 # LINK_SHARED may be set by importing makefile
-DFLAGS+=$(if $(LINK_SHARED),-L$(DRUNTIMESO),-L$(DRUNTIME))
+DFLAGS+=$(if $(LINK_SHARED),-L$(DRUNTIME_IMPLIB) $(if $(findstring $(OS),windows),-dllimport=defaultLibsOnly),-L$(DRUNTIME))
 ifeq ($(BUILD),debug)
     DFLAGS+=-g -debug
     CFLAGS:=$(CFLAGS_BASE) $(if $(findstring $(OS),windows),/Zi,-g)

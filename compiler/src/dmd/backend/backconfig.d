@@ -54,6 +54,8 @@ nothrow:
     _version      = Compiler version
     exefmt        = Executable file format
     generatedMain = a main entrypoint is generated
+    dataimports   = do not place data symbols into read-only segment,
+                    it might be necessary to resolve relocations at runtime
  */
 public
 @trusted
@@ -77,8 +79,8 @@ extern (C) void out_config_init(
         ubyte dwarf,
         string _version,
         exefmt_t exefmt,
-        bool generatedMain      // a main entrypoint is generated
-        )
+        bool generatedMain,     // a main entrypoint is generated
+        bool dataimports)
 {
     //printf("out_config_init()\n");
 
@@ -141,6 +143,8 @@ extern (C) void out_config_init(
                 cfg.flags |= CFGnoebp;    // test suite fails without this
         }
 
+        if (dataimports)
+            cfg.flags2 |= CFG2noreadonly;
         if (exe)
             cfg.wflags |= WFexe;         // EXE file only optimizations
         cfg.flags4 |= CFG4underscore;

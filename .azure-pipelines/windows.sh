@@ -160,6 +160,19 @@ fi
 cd "$DMD_DIR/druntime"
 "$GNU_MAKE" -j$N MODEL=$MODEL DMD="$DMD_BIN_PATH" CC="$CC" unittest
 
+if [ "$MODEL" != "32omf" ] ; then
+    # run some tests for shared druntime
+    # the test_runner links against libdruntime-ut.dll and runs all unittests
+    #  no matter what module name is passed in
+
+    # no separate output for static or shared builds, so clean directories to force rebuild
+    rm -rf test/shared/generated
+    # running additional tests needs druntime_shared.dll on the path
+    export PATH="$PATH:$DMD_DIR/generated/windows/release/$MODEL"
+    "$GNU_MAKE" -j$N unittest MODEL=$MODEL BUILD=release SHARED=1 DMD="$DMD_BIN_PATH" CC="$CC" \
+        UT_MODULES=../generated/windows/release/$MODEL/unittest/object ADDITIONAL_TESTS=test/shared
+fi
+
 ################################################################################
 # Build and run Phobos unittests
 ################################################################################

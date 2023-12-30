@@ -534,6 +534,10 @@ Symbol *toSymbol(Dsymbol s)
     scope ToSymbol v = new ToSymbol();
     s.accept(v);
     s.csym = v.result;
+
+    if (isDllImported(s))
+        s.csym.Sisym = createImport(s.csym, s.loc);
+
     return v.result;
 }
 
@@ -557,7 +561,12 @@ private Symbol *createImport(Symbol *sym, Loc loc)
     int idlen;
     if (target.os & Target.OS.Posix)
     {
-        error(loc, "could not generate import symbol for this platform");
+        error(loc, "could not generate import symbol `%s` for this platform", n);
+        fatal();
+    }
+    else if (target.os & Target.OS.Windows && sym.Stype.Tty & mTYthread)
+    {
+        error(loc, "cannot generate import symbol for thread local symbol `%s`", n);
         fatal();
     }
     else if (sym.Stype.Tmangle == mTYman_std && tyfunc(sym.Stype.Tty))
@@ -580,6 +589,8 @@ private Symbol *createImport(Symbol *sym, Loc loc)
     s.Stype = t;
     s.Sclass = SC.extern_;
     s.Sfl = FLextern;
+    s.Sflags |= SFLimported;
+
     return s;
 }
 
@@ -587,15 +598,11 @@ private Symbol *createImport(Symbol *sym, Loc loc)
  * Generate import symbol from symbol.
  */
 
-Symbol *toImport(Declaration ds)
+Symbol *toImport(Dsymbol ds)
 {
-    if (!ds.isym)
-    {
-        if (!ds.csym)
-            ds.csym = toSymbol(ds);
-        ds.isym = createImport(ds.csym, ds.loc);
-    }
-    return ds.isym;
+    if (!ds.csym)
+        toSymbol(ds);
+    return ds.csym.Sisym;
 }
 
 /*************************************
@@ -728,6 +735,8 @@ Symbol *toInitializer(AggregateDeclaration ad)
             s.Sflags |= SFLnodebug;
             if (sd)
                 s.Salignment = sd.alignment.isDefault() ? -1 : sd.alignment.get();
+            if (isDllImported(ad))
+                s.Sisym = createImport(s, ad.loc);
             ad.sinit = s;
         }
     }
@@ -743,6 +752,8 @@ Symbol *toInitializer(EnumDeclaration ed)
         auto s = toSymbolX(ed, "__init", SC.extern_, stag.Stype, "Z");
         s.Sfl = FLextern;
         s.Sflags |= SFLnodebug;
+        if (isDllImported(ed))
+            s.Sisym = createImport(s, ed.loc);
         ed.sinit = s;
     }
     return ed.sinit;

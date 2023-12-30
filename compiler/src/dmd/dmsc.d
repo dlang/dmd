@@ -87,7 +87,8 @@ void backend_init()
         driverParams.dwarf,
         global.versionString(),
         exfmt,
-        params.addMain
+        params.addMain,
+        driverParams.symImport != SymImport.none
     );
 
     out_config_debug(

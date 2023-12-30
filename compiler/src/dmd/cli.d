@@ -336,6 +336,15 @@ dmd -cov -unittest myprog.d
             With $(I filename), write module dependencies as text to $(I filename)
             (only imports).`,
         ),
+        Option("dllimport=<value>",
+            "Windows only: select symbols to dllimport (none/defaultLibsOnly/all)",
+            `Which global variables to dllimport implicitly if not defined in a root module
+            $(UL
+                $(LI $(I none): None)
+                $(LI $(I defaultLibsOnly): Only druntime/Phobos symbols)
+                $(LI $(I all): All)
+            )`,
+        ),
         Option("extern-std=<standard>",
             "set C++ name mangling compatibility with <standard>",
             "Standards supported are:
@@ -811,6 +820,14 @@ dmd -cov -unittest myprog.d
         ),
         Option("vgc",
             "list all gc allocations including hidden ones"
+        ),
+        Option("visibility=<value>",
+            "default visibility of symbols (default/hidden/public)",
+            "$(UL
+               $(LI $(I default): Hidden for Windows targets without -shared, otherwise public)
+               $(LI $(I hidden):  Only export symbols marked with 'export')
+               $(LI $(I public):  Export all symbols)
+            )",
         ),
         Option("vtls",
             "list all variables going into thread local storage"

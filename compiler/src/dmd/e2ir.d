@@ -31,6 +31,7 @@ import dmd.ctfeexpr;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.denum;
+import dmd.dmdparams;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
@@ -56,6 +57,7 @@ import dmd.toctype;
 import dmd.toir;
 import dmd.tokens;
 import dmd.toobj;
+import dmd.typinf;
 import dmd.visitor;
 
 import dmd.backend.cc;
@@ -492,6 +494,74 @@ void clearStringTab()
 private __gshared StringTable!(Symbol*) *stringTab;
 
 /*********************************************
+ * Figure out whether a data symbol should be dllimported
+ * Params:
+ *      var = declaration of the symbol
+ * Returns:
+ *      true if symbol should be imported from a DLL
+ */
+bool isDllImported(Dsymbol var)
+{
+    if (!(target.os & Target.OS.Windows))
+        return false;
+    if (var.isImportedSymbol())
+        return true;
+    if (driverParams.symImport == SymImport.none)
+        return false;
+    if (auto vd = var.isDeclaration())
+        if (!vd.isDataseg() || vd.isThreadlocal())
+            return false;
+    if (var.isFuncDeclaration())
+        return false; // can always jump through import table
+    if (auto tid = var.isTypeInfoDeclaration())
+    {
+        if (builtinTypeInfo(tid.tinfo))
+            return true;
+        else if (auto ad = isAggregate(tid.type))
+            var = ad;
+    }
+    if (driverParams.symImport == SymImport.defaultLibsOnly)
+    {
+        auto m = var.getModule();
+        if (!m || !m.md)
+            return false;
+        const id = m.md.packages.length ? m.md.packages[0] : null;
+        if (id && id != Id.core && id != Id.std)
+            return false;
+        else if (!id && m.md.id != Id.std && m.md.id != Id.object)
+            return false;
+    }
+    else if (driverParams.symImport != SymImport.all)
+        return false;
+    if (auto mod = var.isModule())
+        return !mod.isRoot(); // non-root ModuleInfo symbol
+    if (var.inNonRoot())
+        return true; // not instantiated, and defined in non-root
+    if (auto ti = var.isInstantiated()) // && !defineOnDeclare(sym, false))
+        return !ti.needsCodegen(); // instantiated but potentially culled (needsCodegen())
+    if (auto vd = var.isVarDeclaration())
+        if (vd.storage_class & STC.extern_)
+            return true; // externally defined global variable
+    return false;
+}
+
+/*********************************************
+ * Generate a backend symbol for a frontend symbol
+ * Params:
+ *      s = frontend symbol
+ * Returns:
+ *      the backend symbol or the associated symbol in the
+ *      import table if it is expected to be imported from a DLL
+ */
+Symbol* toExtSymbol(Dsymbol s)
+{
+    if (isDllImported(s))
+        return toImport(s);
+    else
+        return toSymbol(s);
+}
+
+/*********************************************
  * Convert Expression to backend elem.
  * Params:
  *      e = expression tree
@@ -683,7 +753,7 @@ elem* toElem(Expression e, ref IRState irs)
             symbol_add(s);
         }
 
-        if (se.var.isImportedSymbol())
+        if (se.op == EXP.variable && isDllImported(se.var))
         {
             assert(se.op == EXP.variable);
             if (target.os & Target.OS.Posix)
@@ -4587,7 +4657,7 @@ elem *toElemCast(CastExp ce, elem *e, bool isLvalue, ref IRState irs)
             const rtl = cdfrom.isInterfaceDeclaration()
                         ? RTLSYM.INTERFACE_CAST
                         : RTLSYM.DYNAMIC_CAST;
-            elem *ep = el_param(el_ptr(toSymbol(cdto)), e);
+            elem *ep = el_param(el_ptr(toExtSymbol(cdto)), e);
             e = el_bin(OPcall, TYnptr, el_var(getRtlsym(rtl)), ep);
         }
         return Lret(ce, e);
@@ -6067,7 +6137,7 @@ elem *getTypeInfo(Expression e, Type t, ref IRState irs)
 {
     assert(t.ty != Terror);
     TypeInfo_toObjFile(e, e.loc, t);
-    elem* result = el_ptr(toSymbol(t.vtinfo));
+    elem* result = el_ptr(toExtSymbol(t.vtinfo));
     return result;
 }
 

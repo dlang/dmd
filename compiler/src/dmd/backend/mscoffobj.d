@@ -91,6 +91,7 @@ IMAGE_SECTION_HEADER* ScnhdrTab() { return cast(IMAGE_SECTION_HEADER *)ScnhdrBuf
     extern (D) int pointersSeg;      // segment index for __pointers
 
     OutBuffer *ptrref_buf;           // buffer for pointer references
+    OutBuffer *impref_buf;           // buffer for import table references
 
     int floatused;
 
@@ -603,6 +604,7 @@ void MsCoffObj_term(const(char)* objfilename)
 
     objflush_pointerRefs();
     outfixlist();           // backpatches
+    objflush_importTableRefs();
 
     if (configv.addlinenumbers)
     {
@@ -2076,6 +2078,12 @@ static if (0)
 void MsCoffObj_addrel(segidx_t seg, targ_size_t offset, Symbol *targsym,
         uint targseg, int rtype, int val)
 {
+    if (targsym && targsym.Sflags & SFLimported && !SegData[seg].isCode())
+    {
+        assert(rtype == RELaddr && val == 0);
+        write_importTableRef(seg, offset, targsym);
+        return;
+    }
     //printf("addrel()\n");
     if (!targsym)
     {   // Generate one
@@ -2231,7 +2239,11 @@ static if (0)
     }
     else
     {
-        if (I64 || I32)
+        if ((s.Sisym || (s.Sflags & SFLimported)) && !SegData[seg].isCode())
+        {
+            write_importTableRef(seg, offset, s.Sisym ? s.Sisym : s);
+        }
+        else if (I64 || I32)
         {
             //if (s.Sclass != SCcomdat)
                 //val += s.Soffset;
@@ -2481,4 +2493,107 @@ extern (D) private void objflush_pointerRefs()
         objflush_pointerRef(s, soff);
     }
     ptrref_buf.reset();
+}
+
+/*****************************************
+ * write a reference to the import table into the object file
+ * Params:
+ *      seg  = segment of the reference
+ *      soff = offset of the reference in the segment
+ *      imp  = symbol referenced in the import table
+ */
+@trusted
+void write_importTableRef(segidx_t seg, targ_size_t soff, Symbol* imp)
+{
+    if (!imp.Sxtrnnum)
+        MsCoffObj_external(imp);
+
+    if (!impref_buf)
+    {
+        impref_buf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
+        if (!impref_buf)
+            err_nomem();
+    }
+
+    // defer writing pointer references until the symbols are written out
+    impref_buf.write32(seg);
+    impref_buf.write32(cast(uint)soff);
+    impref_buf.write((&imp)[0 .. 1]);
+}
+
+/*****************************************
+ * flush all pointer references saved by write_importTableRef
+ * to the object file as a crt_constructor function
+ */
+@trusted
+extern (D) private void objflush_importTableRefs()
+{
+    if (!impref_buf)
+        return;
+
+    auto align_ = I64 ? 16 : 4;
+    auto seg = MsCoffObj_getsegment(".text", IMAGE_SCN_CNT_CODE |
+                                    IMAGE_SCN_LNK_COMDAT |
+                                    (I64 ? IMAGE_SCN_ALIGN_16BYTES : IMAGE_SCN_ALIGN_4BYTES) |
+                                    IMAGE_SCN_MEM_EXECUTE |
+                                    IMAGE_SCN_MEM_READ);
+
+    targ_size_t offset = SegData[seg].SDoffset;
+    OutBuffer* buf = SegData[seg].SDbuf;
+    buf.setsize(cast(uint)offset);
+
+    ubyte *p = impref_buf.buf;
+    ubyte *end = impref_buf.buf + impref_buf.length();
+    while (p < end)
+    {
+        int sseg = *cast(int*)p;
+        p += sseg.sizeof;
+        uint soff = *cast(uint*)p;
+        p += soff.sizeof;
+        Symbol* imp = *cast(Symbol**)p;
+        p += imp.sizeof;
+
+        if (I64)
+        {
+            buf.writeByte(0x48); // opcode for mov RAX,[addr]
+            buf.writeByte(0x8b);
+            buf.writeByte(0x05);
+        }
+        else
+            buf.writeByte(0xA1);
+        SegData[seg].SDoffset = offset = buf.length;
+        MsCoffObj_addrel(seg, offset, imp, 0, RELaddr32, 0);
+        buf.write32(0);
+
+        if (I64)
+        {
+            buf.writeByte(0x48); // opcode for add [addr],RAX
+            buf.writeByte(0x01);
+            buf.writeByte(0x05);
+        }
+        else
+        {
+            buf.writeByte(0x01);
+            buf.writeByte(0x05);
+        }
+
+        SegData[seg].SDoffset = offset = buf.length;
+        MsCoffObj_addrel(seg, offset, null, sseg, RELaddr32, 0);
+        //buf.setsize(cast(uint)offset);
+        buf.write32(soff);
+    }
+    buf.writeByte(0xc3); // ret
+    SegData[seg].SDoffset = buf.length();
+
+    // use an early .CRT$XC group so C init code can access relocated pointers, too
+    const int align2 = I64 ? IMAGE_SCN_ALIGN_8BYTES : IMAGE_SCN_ALIGN_4BYTES;
+    const int attr = IMAGE_SCN_CNT_INITIALIZED_DATA | align2 | IMAGE_SCN_MEM_READ;
+    const int cseg = MsCoffObj_getsegment(".CRT$XCB", attr);
+
+    MsCoffObj_addrel(cseg, SegData[cseg].SDoffset, null, seg, RELaddr, 0);
+    OutBuffer* cbuf = SegData[cseg].SDbuf;
+    cbuf.fill0(I64 ? 8 : 4);
+    SegData[cseg].SDoffset = cbuf.length();
+
+    impref_buf.reset();
 }
