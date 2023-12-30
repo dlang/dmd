@@ -514,8 +514,12 @@ bool isDllImported(Dsymbol var)
     if (var.isFuncDeclaration())
         return false; // can always jump through import table
     if (auto tid = var.isTypeInfoDeclaration())
+    {
         if (builtinTypeInfo(tid.tinfo))
             return true;
+        else if (auto ad = isAggregate(tid.type))
+            var = ad;
+    }
     if (driverParams.symImport == SymImport.defaultLibsOnly)
     {
         auto m = var.getModule();

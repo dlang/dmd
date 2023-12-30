@@ -2501,7 +2501,6 @@ extern (D) private void objflush_pointerRefs()
  *      seg  = segment of the reference
  *      soff = offset of the reference in the segment
  *      imp  = symbol referenced in the import table
- *      ioff = offset to add to pointer from import table
  */
 @trusted
 void write_importTableRef(segidx_t seg, targ_size_t soff, Symbol* imp)

@@ -286,6 +286,11 @@ elem * el_ptr(Symbol *s)
 
     elem *e;
 
+    if (config.exe & EX_windos)
+    {
+        if (s.Sisym)
+            s = s.Sisym; // if imported, prefer the __imp_... symbol
+    }
     if (config.exe & EX_posix)
     {
         if (config.flags3 & CFG3pic &&

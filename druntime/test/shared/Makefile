@@ -8,6 +8,9 @@ include ../common.mak # affected by LINK_SHARED!
 ifeq (windows,$(OS))
 
 TESTS:=loadlibwin dllrefcount dllgc dynamiccast
+ifeq ($(SHARED),1)
+DFLAGS+=-version=SharedRuntime
+endif
 
 all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))
 

@@ -735,6 +735,8 @@ Symbol *toInitializer(AggregateDeclaration ad)
             s.Sflags |= SFLnodebug;
             if (sd)
                 s.Salignment = sd.alignment.isDefault() ? -1 : sd.alignment.get();
+            if (isDllImported(ad))
+                s.Sisym = createImport(s, ad.loc);
             ad.sinit = s;
         }
     }
@@ -750,6 +752,8 @@ Symbol *toInitializer(EnumDeclaration ed)
         auto s = toSymbolX(ed, "__init", SC.extern_, stag.Stype, "Z");
         s.Sfl = FLextern;
         s.Sflags |= SFLnodebug;
+        if (isDllImported(ed))
+            s.Sisym = createImport(s, ed.loc);
         ed.sinit = s;
     }
     return ed.sinit;
