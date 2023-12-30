@@ -1725,9 +1725,12 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             else
             {
                 e = inferType(e, fparam.type);
+                Scope* sc2 = sc.push();
+                sc2.inDefaultArg = true;
                 Initializer iz = new ExpInitializer(e.loc, e);
-                iz = iz.initializerSemantic(sc, fparam.type, INITnointerpret);
+                iz = iz.initializerSemantic(sc2, fparam.type, INITnointerpret);
                 e = iz.initializerToExpression();
+                sc2.pop();
             }
             if (e.op == EXP.function_) // https://issues.dlang.org/show_bug.cgi?id=4820
             {

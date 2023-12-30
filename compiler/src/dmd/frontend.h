@@ -7268,6 +7268,7 @@ struct Scope final
     Dsymbol* inunion;
     bool nofree;
     bool inLoop;
+    bool inDefaultArg;
     int32_t intypeof;
     VarDeclaration* lastVar;
     ErrorSink* eSink;
@@ -7309,6 +7310,7 @@ struct Scope final
         inunion(),
         nofree(),
         inLoop(),
+        inDefaultArg(),
         intypeof(),
         lastVar(),
         eSink(),
@@ -7331,7 +7333,7 @@ struct Scope final
         aliasAsg()
     {
     }
-    Scope(Scope* enclosing, Module* _module = nullptr, ScopeDsymbol* scopesym = nullptr, FuncDeclaration* func = nullptr, VarDeclaration* varDecl = nullptr, Dsymbol* parent = nullptr, LabelStatement* slabel = nullptr, SwitchStatement* sw = nullptr, Statement* tryBody = nullptr, TryFinallyStatement* tf = nullptr, ScopeGuardStatement* os = nullptr, Statement* sbreak = nullptr, Statement* scontinue = nullptr, ForeachStatement* fes = nullptr, Scope* callsc = nullptr, Dsymbol* inunion = nullptr, bool nofree = false, bool inLoop = false, int32_t intypeof = 0, VarDeclaration* lastVar = nullptr, ErrorSink* eSink = nullptr, Module* minst = nullptr, TemplateInstance* tinst = nullptr, CtorFlow ctorflow = CtorFlow(), AlignDeclaration* aligndecl = nullptr, CPPNamespaceDeclaration* namespace_ = nullptr, LINK linkage = (LINK)1u, CPPMANGLE cppmangle = (CPPMANGLE)0u, PragmaDeclaration* inlining = nullptr, Visibility visibility = Visibility((Visibility::Kind)5u, nullptr), int32_t explicitVisibility = 0, uint64_t stc = 0LLU, DeprecatedDeclaration* depdecl = nullptr, uint32_t flags = 0u, UserAttributeDeclaration* userAttribDecl = nullptr, DocComment* lastdc = nullptr, void* anchorCounts = nullptr, Identifier* prevAnchor = nullptr, AliasDeclaration* aliasAsg = nullptr) :
+    Scope(Scope* enclosing, Module* _module = nullptr, ScopeDsymbol* scopesym = nullptr, FuncDeclaration* func = nullptr, VarDeclaration* varDecl = nullptr, Dsymbol* parent = nullptr, LabelStatement* slabel = nullptr, SwitchStatement* sw = nullptr, Statement* tryBody = nullptr, TryFinallyStatement* tf = nullptr, ScopeGuardStatement* os = nullptr, Statement* sbreak = nullptr, Statement* scontinue = nullptr, ForeachStatement* fes = nullptr, Scope* callsc = nullptr, Dsymbol* inunion = nullptr, bool nofree = false, bool inLoop = false, bool inDefaultArg = false, int32_t intypeof = 0, VarDeclaration* lastVar = nullptr, ErrorSink* eSink = nullptr, Module* minst = nullptr, TemplateInstance* tinst = nullptr, CtorFlow ctorflow = CtorFlow(), AlignDeclaration* aligndecl = nullptr, CPPNamespaceDeclaration* namespace_ = nullptr, LINK linkage = (LINK)1u, CPPMANGLE cppmangle = (CPPMANGLE)0u, PragmaDeclaration* inlining = nullptr, Visibility visibility = Visibility((Visibility::Kind)5u, nullptr), int32_t explicitVisibility = 0, uint64_t stc = 0LLU, DeprecatedDeclaration* depdecl = nullptr, uint32_t flags = 0u, UserAttributeDeclaration* userAttribDecl = nullptr, DocComment* lastdc = nullptr, void* anchorCounts = nullptr, Identifier* prevAnchor = nullptr, AliasDeclaration* aliasAsg = nullptr) :
         enclosing(enclosing),
         _module(_module),
         scopesym(scopesym),
@@ -7350,6 +7352,7 @@ struct Scope final
         inunion(inunion),
         nofree(nofree),
         inLoop(inLoop),
+        inDefaultArg(inDefaultArg),
         intypeof(intypeof),
         lastVar(lastVar),
         eSink(eSink),
