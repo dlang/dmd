@@ -4849,8 +4849,14 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             if (ts.sym != sd)
             {
-                auto ti = ts.sym.isInstantiated();
+                TemplateInstance ti = ts.sym.isInstantiated();
                 if (ti && isError(ti))
+                    ts.sym = sd;
+                /* For C modules, if module A contains `struct S;` and
+                 * module B contains `struct S { members...}` then replace
+                 * the former with the latter
+                 */
+                else if (!ts.sym.members && sd.members)
                     ts.sym = sd;
             }
         }
