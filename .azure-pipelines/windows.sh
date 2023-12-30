@@ -164,6 +164,9 @@ if [ "$MODEL" != "32omf" ] ; then
     # run some tests for shared druntime
     # the test_runner links against libdruntime-ut.dll and runs all unittests
     #  no matter what module name is passed in
+
+    # no separate output for static or shared builds, so clean directories to force rebuild
+    rm -rf test/shared/generated
     # running additional tests needs druntime_shared.dll on the path
     export PATH="$PATH:$PWD/generated/windows/release/$MODEL"
     "$GNU_MAKE" -j$N unittest MODEL=$MODEL SHARED=1 DMD="$DMD_BIN_PATH" CC="$CC" \
