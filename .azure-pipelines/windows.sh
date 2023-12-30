@@ -169,7 +169,7 @@ if [ "$MODEL" != "32omf" ] ; then
     rm -rf test/shared/generated
     # running additional tests needs druntime_shared.dll on the path
     export PATH="$PATH:$PWD/generated/windows/release/$MODEL"
-    "$GNU_MAKE" -j$N unittest MODEL=$MODEL SHARED=1 DMD="$DMD_BIN_PATH" CC="$CC" \
+    "$GNU_MAKE" -j$N unittest MODEL=$MODEL BUILD=release SHARED=1 DMD="$DMD_BIN_PATH" CC="$CC" \
         UT_MODULES=../generated/windows/release/$MODEL/unittest/object ADDITIONAL_TESTS=test/shared
 fi
 
