@@ -282,59 +282,54 @@ nothrow:
     }
 
     /**
-     * Looks up the given filename from the internal file buffer table, and returns the lines within the file.
-     * If the file does not already exist within the table, it will be read from the filesystem.
-     * If it has been read before,
-     *
-     * Returns: the loaded source file if it was found in memory,
-     *      otherwise `null`
+     * Take `text` and slice it up into lines.
+     * Params:
+     *  text = character text
+     * Returns:
+     *  GC allocated array of slices into `text`, one slice per line
      */
-    const(char)[][] getLines(FileName file)
+    const(char)[][] splitTextIntoLines(const char[] text)
     {
         const(char)[][] lines;
-        if (const buffer = lookup(file))
+        size_t start, end;
+        for (auto i = 0; i < text.length; i++)
         {
-            const slice = buffer;
-            size_t start, end;
-            for (auto i = 0; i < slice.length; i++)
+            const c = text[i];
+            if (c == '\n' || c == '\r')
             {
-                const c = slice[i];
-                if (c == '\n' || c == '\r')
+                if (i != 0)
                 {
-                    if (i != 0)
+                    end = i;
+                    // Appending lines one at a time will certainly be slow
+                    lines ~= cast(const(char)[])text[start .. end];
+                }
+                // Check for Windows-style CRLF newlines
+                if (c == '\r')
+                {
+                    if (text.length > i + 1 && text[i + 1] == '\n')
                     {
-                        end = i;
-                        // Appending lines one at a time will certainly be slow
-                        lines ~= cast(const(char)[])slice[start .. end];
-                    }
-                    // Check for Windows-style CRLF newlines
-                    if (c == '\r')
-                    {
-                        if (slice.length > i + 1 && slice[i + 1] == '\n')
-                        {
-                            // This is a CRLF sequence, skip over two characters
-                            start = i + 2;
-                            i++;
-                        }
-                        else
-                        {
-                            // Just a CR sequence
-                            start = i + 1;
-                        }
+                        // This is a CRLF sequence, skip over two characters
+                        start = i + 2;
+                        i++;
                     }
                     else
                     {
-                        // The next line should start after the LF sequence
+                        // Just a CR sequence
                         start = i + 1;
                     }
                 }
+                else
+                {
+                    // The next line should start after the LF sequence
+                    start = i + 1;
+                }
             }
+        }
 
-            if (slice[$ - 1] != '\r' && slice[$ - 1] != '\n')
-            {
-                end = slice.length;
-                lines ~= cast(const(char)[])slice[start .. end];
-            }
+        if (text[$ - 1] != '\r' && text[$ - 1] != '\n')
+        {
+            end = text.length;
+            lines ~= cast(const(char)[])text[start .. end];
         }
 
         return lines;
