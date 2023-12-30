@@ -141,10 +141,10 @@ extern (C) void out_config_init(
             cfg.objfmt = mscoff ? OBJ_MSCOFF : OBJ_OMF;
             if (mscoff)
                 cfg.flags |= CFGnoebp;    // test suite fails without this
-            if (dataimports)
-                cfg.flags2 |= CFG2noreadonly;
         }
 
+        if (dataimports)
+            cfg.flags2 |= CFG2noreadonly;
         if (exe)
             cfg.wflags |= WFexe;         // EXE file only optimizations
         cfg.flags4 |= CFG4underscore;

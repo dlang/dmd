@@ -57,6 +57,7 @@ import dmd.toctype;
 import dmd.toir;
 import dmd.tokens;
 import dmd.toobj;
+import dmd.typinf;
 import dmd.visitor;
 
 import dmd.backend.cc;
@@ -508,17 +509,32 @@ bool isDllImported(Dsymbol var)
     if (driverParams.symImport == SymImport.none)
         return false;
     if (auto vd = var.isDeclaration())
-        if (!vd.isStatic() || vd.isThreadlocal())
+        if (!vd.isDataseg() || vd.isThreadlocal())
             return false;
-    if (driverParams.symImport != SymImport.all)
-        return false;  // todo: check std/core
-    auto m = var.getModule();
-    if (m)
-        return !m.isRoot();
+    if (var.isFuncDeclaration())
+        return false; // can always jump through import table
+    if (auto tid = var.isTypeInfoDeclaration())
+        if (builtinTypeInfo(tid.tinfo))
+            return true;
+    if (driverParams.symImport == SymImport.defaultLibsOnly)
+    {
+        auto m = var.getModule();
+        if (!m || !m.md)
+            return false;
+        const id = m.md.packages.length ? m.md.packages[0] : null;
+        if (id && id != Id.core && id != Id.std)
+            return false;
+        else if (!id && m.md.id != Id.std && m.md.id != Id.object)
+            return false;
+    }
+    else if (driverParams.symImport != SymImport.all)
+        return false;
+    if (auto mod = var.isModule())
+        return !mod.isRoot(); // non-root ModuleInfo symbol
     if (var.inNonRoot())
         return true; // not instantiated, and defined in non-root
-    if (var.isInstantiated()) // && !defineOnDeclare(sym, false))
-        return true; // instantiated but potentially culled (needsCodegen())
+    if (auto ti = var.isInstantiated()) // && !defineOnDeclare(sym, false))
+        return !ti.needsCodegen(); // instantiated but potentially culled (needsCodegen())
     if (auto vd = var.isVarDeclaration())
         if (vd.storage_class & STC.extern_)
             return true; // externally defined global variable

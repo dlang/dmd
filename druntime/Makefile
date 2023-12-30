@@ -483,7 +483,7 @@ $(UT_DRUNTIME): $(OBJS) $(SRCS) $(DMD)
 	$(DMD) $(UDFLAGS) -shared $(UTFLAGS) -of$@ $(SRCS) $(OBJS) $(LINKDL) -defaultlib= $(if $(findstring $(OS),windows),user32.lib -L/IMPLIB:$(UT_DRUNTIMELIB),) $(SOLIBS)
 
 $(ROOT)/unittest/test_runner$(DOTEXE): $(UT_DRUNTIME) src/test_runner.d $(DMD)
-	$(DMD) $(UDFLAGS) -of$@ src/test_runner.d -L$(UT_DRUNTIMELIB) -defaultlib= $(if $(findstring $(OS),windows),user32.lib,-L-lpthread -L-lm)
+	$(DMD) $(UDFLAGS) -of$@ src/test_runner.d -L$(UT_DRUNTIMELIB) -defaultlib= $(if $(findstring $(OS),windows),-dllimport=defaultLibsOnly user32.lib,-L-lpthread -L-lm)
 
 endif
 
