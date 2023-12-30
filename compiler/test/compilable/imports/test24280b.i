@@ -31,3 +31,7 @@ void langmap(struct Lang *self)
 {
     Slice slice = *self->slices;
 }
+
+/* https://issues.dlang.org/show_bug.cgi?id=24306 */
+
+struct T { };
