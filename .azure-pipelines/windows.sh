@@ -168,7 +168,7 @@ if [ "$MODEL" != "32omf" ] ; then
     # no separate output for static or shared builds, so clean directories to force rebuild
     rm -rf test/shared/generated
     # running additional tests needs druntime_shared.dll on the path
-    export PATH="$PATH:$PWD/generated/windows/release/$MODEL"
+    export PATH="$PATH:$DMD_DIR/generated/windows/release/$MODEL"
     "$GNU_MAKE" -j$N unittest MODEL=$MODEL BUILD=release SHARED=1 DMD="$DMD_BIN_PATH" CC="$CC" \
         UT_MODULES=../generated/windows/release/$MODEL/unittest/object ADDITIONAL_TESTS=test/shared
 fi
