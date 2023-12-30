@@ -340,9 +340,9 @@ dmd -cov -unittest myprog.d
             "Windows only: select symbols to dllimport (none/defaultLibsOnly/all)",
             `Which global variables to dllimport implicitly if not defined in a root module
             $(UL
-                $(LI $(I none): None
-                $(LI $(I defaultLibsOnly): Only druntime/Phobos symbols
-                $(LI $(I all): All
+                $(LI $(I none): None)
+                $(LI $(I defaultLibsOnly): Only druntime/Phobos symbols)
+                $(LI $(I all): All)
             )`,
         ),
         Option("extern-std=<standard>",
