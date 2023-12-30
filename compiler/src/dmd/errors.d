@@ -661,9 +661,9 @@ private void verrorPrint(const(char)* format, va_list ap, ref ErrorInfo info)
     {
         import dmd.root.filename : FileName;
         const fileName = FileName(loc.filename.toDString);
-        if (auto file = global.fileManager.lookup(fileName))
+        if (auto text = global.fileManager.lookup(fileName))
         {
-            const(char)[][] lines = global.fileManager.getLines(fileName);
+            const(char[])[] lines = global.fileManager.splitTextIntoLines(cast(const(char[])) text);
             if (loc.linnum - 1 < lines.length)
             {
                 auto line = lines[loc.linnum - 1];
