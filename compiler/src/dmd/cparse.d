@@ -605,15 +605,23 @@ final class CParser(AST) : Parser!AST
         {
             Identifier ident;
             nextToken();
-            if (token.value != TOK.identifier)
-            {
-                error("identifier expected following `goto`");
-                ident = null;
-            }
-            else
+            if (token.value == TOK.identifier)
             {
                 ident = token.ident;
                 nextToken();
+            }
+            else if (token.value == TOK.mul)
+            {
+                /* https://gcc.gnu.org/onlinedocs/gcc/Labels-as-Values.html
+                 */
+                error("`goto *` computed goto extension is not supported");
+                ident = null;
+                cparseUnaryExp();   // parse and throw away
+            }
+            else
+            {
+                error("identifier expected following `goto`");
+                ident = null;
             }
             s = new AST.GotoStatement(loc, ident);
             check(TOK.semicolon, "`goto` statement");
@@ -1055,6 +1063,14 @@ final class CParser(AST) : Parser!AST
             e = new AST.DotIdExp(loc, e, Id.__sizeof);
             break;
         }
+
+        case TOK.andAnd:
+            /* https://gcc.gnu.org/onlinedocs/gcc/Labels-as-Values.html
+             */
+            error("unary `&&` computed goto extension is not supported");
+            nextToken();
+            e = cparseCastExp();
+            break;
 
         case TOK._Alignof:
         {
