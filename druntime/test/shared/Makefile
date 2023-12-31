@@ -1,4 +1,4 @@
-# druntime DLL not supported on Windows yet
+# druntime DLL only partially supported on Windows
 LINK_SHARED:=$(if $(findstring $(OS),windows),$(SHARED),1)
 
 include ../common.mak # affected by LINK_SHARED!
@@ -10,6 +10,7 @@ ifeq (windows,$(OS))
 TESTS:=loadlibwin dllrefcount dllgc dynamiccast
 ifeq ($(SHARED),1)
 DFLAGS+=-version=SharedRuntime
+PATH:=$(dir $(DRUNTIMESO));$(PATH)
 endif
 
 all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))
