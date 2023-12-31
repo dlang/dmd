@@ -663,28 +663,32 @@ private void verrorPrint(const(char)* format, va_list ap, ref ErrorInfo info)
         const fileName = FileName(loc.filename.toDString);
         if (auto text = global.fileManager.lookup(fileName))
         {
-            const(char[])[] lines = global.fileManager.splitTextIntoLines(cast(const(char[])) text);
-            if (loc.linnum - 1 < lines.length)
+            auto range = global.fileManager.splitLines(cast(const(char[])) text);
+            size_t linnum;
+            foreach (line; range)
             {
-                auto line = lines[loc.linnum - 1];
+                ++linnum;
+                if (linnum != loc.linnum)
+                    continue;
                 if (loc.charnum < line.length)
                 {
                     fprintf(stderr, "%.*s\n", cast(int)line.length, line.ptr);
                     // The number of column bytes and the number of display columns
                     // occupied by a character are not the same for non-ASCII charaters.
                     // https://issues.dlang.org/show_bug.cgi?id=21849
-                    size_t c = 0;
-                    while (c < loc.charnum - 1)
+                    size_t col = 0;
+                    while (col < loc.charnum - 1)
                     {
                         import dmd.root.utf : utf_decodeChar;
                         dchar u;
-                        const msg = utf_decodeChar(line, c, u);
+                        const msg = utf_decodeChar(line, col, u);
                         assert(msg is null, msg);
                         fputc(' ', stderr);
                     }
                     fputc('^', stderr);
                     fputc('\n', stderr);
                 }
+                break;
             }
         }
     }
