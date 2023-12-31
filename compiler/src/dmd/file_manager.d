@@ -10,6 +10,7 @@
 
 module dmd.file_manager;
 
+import core.stdc.stdio;
 import dmd.root.stringtable : StringTable;
 import dmd.root.file : File, Buffer;
 import dmd.root.filename : FileName, isDirSeparator;
@@ -281,58 +282,103 @@ nothrow:
         return fb;
     }
 
-    /**
-     * Take `text` and slice it up into lines.
+    /**********************************
+     * Take `text` and turn it into an InputRange that emits
+     * slices into `text` for each line.
      * Params:
-     *  text = character text
+     *  text = array of characters
      * Returns:
-     *  GC allocated array of slices into `text`, one slice per line
+     *  InputRange accessing `text` as a sequence of lines
+     * Reference:
+     *  `std.string.splitLines()`
      */
-    const(char)[][] splitTextIntoLines(const char[] text)
+    auto splitLines(const char[] text)
     {
-        const(char)[][] lines;
-        size_t start, end;
-        for (auto i = 0; i < text.length; i++)
+        struct Range
         {
-            const c = text[i];
-            if (c == '\n' || c == '\r')
+          @safe:
+          @nogc:
+          nothrow:
+          pure:
+          private:
+
+            const char[] text;
+            size_t index;       // index of start of line
+            size_t eolIndex;    // index of end of line before newline characters
+            size_t nextIndex;   // index past end of line
+
+            public this(const char[] text)
             {
-                if (i != 0)
+                this.text = text;
+            }
+
+            public bool empty() { return index == text.length; }
+
+            public void popFront() { advance(); index = nextIndex; }
+
+            public const(char)[] front() { advance(); return text[index .. eolIndex]; }
+
+            private void advance()
+            {
+                if (index != nextIndex) // if already advanced
+                    return;
+
+                for (size_t i = index; i < text.length; ++i)
                 {
-                    end = i;
-                    // Appending lines one at a time will certainly be slow
-                    lines ~= cast(const(char)[])text[start .. end];
-                }
-                // Check for Windows-style CRLF newlines
-                if (c == '\r')
-                {
-                    if (text.length > i + 1 && text[i + 1] == '\n')
+                    switch (text[i])
                     {
-                        // This is a CRLF sequence, skip over two characters
-                        start = i + 2;
-                        i++;
+                        case '\v', '\f', '\n':
+                            eolIndex = i;
+                            nextIndex = i + 1;
+                            return;
+
+                        case '\r':
+                            if (i + 1 < text.length && text[i + 1] == '\n') // decode "\r\n"
+                            {
+                                eolIndex = i;
+                                nextIndex = i + 2;
+                                return;
+                            }
+                            eolIndex = i;
+                            nextIndex = i + 1;
+                            return;
+
+                        /* Manually decode:
+                         *  NEL is C2 85
+                         */
+                        case 0xC2:
+                            if (i + 1 < text.length && text[i + 1] == 0x85)
+                            {
+                                eolIndex = i;
+                                nextIndex = i + 2;
+                                return;
+                            }
+                            break;
+
+                        /* Manually decode:
+                         *  lineSep is E2 80 A8
+                         *  paraSep is E2 80 A9
+                         */
+                        case 0xE2:
+                            if (i + 2 < text.length &&
+                                text[i + 1] == 0x80 &&
+                                (text[i + 2] == 0xA8 || text[i + 2] == 0xA9)
+                               )
+                            {
+                                eolIndex = i;
+                                nextIndex = i + 3;
+                                return;
+                            }
+                            break;
+
+                        default:
+                            break;
                     }
-                    else
-                    {
-                        // Just a CR sequence
-                        start = i + 1;
-                    }
-                }
-                else
-                {
-                    // The next line should start after the LF sequence
-                    start = i + 1;
                 }
             }
         }
 
-        if (text[$ - 1] != '\r' && text[$ - 1] != '\n')
-        {
-            end = text.length;
-            lines ~= cast(const(char)[])text[start .. end];
-        }
-
-        return lines;
+        return Range(text);
     }
 
     /**
