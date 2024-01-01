@@ -1280,11 +1280,17 @@ $(H2 $(LNAME2 function-overloading, Function Overloading))
         )
 
         $(OL
-        $(LI no match)
-        $(LI match with implicit conversions)
-        $(LI match with qualifier conversion (if the argument type is
+        $(LI No match)
+        $(LI Match with implicit conversions)
+        $(LI Match with qualifier conversion (if the argument type is
         $(GLOSSARY qualifier-convertible) to the parameter type))
-        $(LI exact match)
+        $(LI Exact match)
+        )
+
+        $(P Named arguments are resolved for a candidate according to
+        $(DDSUBLINK spec/expression, argument-parameter-matching, Matching Arguments to Parameters).
+        If this fails (for example, because the overload does not have a parameter matching a named argument),
+        the level is $(I no match). Other than that, named arguments do not affect the matching level.
         )
 
         $(P Each argument (including any $(CODE this) reference) is
@@ -1693,10 +1699,6 @@ pure void f()
     g();  // error, cannot access mutable global `m.b` in pure function
 }
 ---
-
-        $(P If the default value for a parameter is given, all following
-        parameters must also have default values.
-        )
 
         $(P See also: function type aliases
         $(DDSUBLINK spec/declaration, alias-function, with default values).)
@@ -3135,9 +3137,17 @@ $(H2 $(LNAME2 function-pointers-delegates, Function Pointers, Delegates and Clos
 
 $(H3 $(LNAME2 function-pointers, Function Pointers))
 
-        $(P A function pointer can point to a static nested function:)
+        $(P A function pointer is declared with the `function` keyword:)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+void f(int);
+void function(int) fp = &f; // fp is a pointer to a function taking an int
+---
+)
+        $(P A function pointer can point to a static nested function:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ------
 int function() fp;  // fp is a pointer to a function returning an int
 
@@ -3149,10 +3159,12 @@ void test()
     fp = &foo;
 }
 
-void bar()
+void main()
 {
+    assert(!fp);
     test();
-    int i = fp();       // i is set to 10
+    int i = fp();
+    assert(i == 10);
 }
 ------
 )
@@ -3956,7 +3968,9 @@ $(H3 $(LNAME2 safe-interfaces, Safe Interfaces))
 
 $(H3 $(LNAME2 safe-values, Safe Values))
 
-        $(P For $(DDSUBLINK spec/type, basic-data-types, basic data types), all
+        $(P For a `bool`, only 0 and 1 are safe values.)
+
+        $(P For all other $(DDSUBLINK spec/type, basic-data-types, basic data types), all
         possible bit patterns are safe.)
 
         $(P A pointer is a safe value when it is one of:)
@@ -3996,9 +4010,11 @@ $(H3 $(LNAME2 safe-values, Safe Values))
         ---
         int[] f() @system
         {
+            bool b = true; /* b is initialized safe */
+            *(cast(ubyte*) &b) = 0xAA; /* b is now unsafe because it's not 0 or 1 */
             int[3] a;
-            int[] d1 = a[0 .. 2]; /* d1 is safe. */
-            int[] d2 = a.ptr[0 .. 3]; /* d2 is unsafe because it goes beyond a's
+            int[] d1 = a[0 .. 3]; /* d1 is safe. */
+            int[] d2 = a.ptr[0 .. 4]; /* d2 is unsafe because it goes beyond a's
                 bounds. */
             int*[] d3 = [cast(int*) 0xDEADBEEF]; /* d3 is unsafe because the
                 element is unsafe. */
@@ -4083,7 +4099,7 @@ $(H3 $(LNAME2 safe-aliasing, Safe Aliasing))
 
     $(NOTE Safe aliasing does not imply that all aliased
     views of the data have $(RELATIVE_LINK2 safe-values, safe values).
-    Those must examined separately for safety.)
+    Those must be examined separately for safety.)
 
     $(P Examples:)
 

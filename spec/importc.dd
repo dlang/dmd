@@ -109,7 +109,7 @@ $(H2 $(LNAME2 command-line, Invoking ImportC))
     )
 
     $(P will compile `hello.c` with ImportC and link it to create the executable
-    file `hello` (`hello.exe` on Windows) which can be run
+    file `hello` (`hello.exe` on Windows)
     )
 
     $(BEST_PRACTICE explicitly use a `.i` or `.c` extension when
@@ -150,8 +150,6 @@ $(H2 $(LNAME2 preprocessor, Preprocessor))
     $(LI Otherwise the $(TT cpp) preprocessor will be used.)
     )
 
-    $(P The druntime file $(TT src/importc.h) will automatically be $(TT #include)d.)
-
     $(P The $(DDSUBLINK dmd, switch-v, $(TT -v)) switch can be used to observe the command
     that invokes the preprocessor.
     )
@@ -160,6 +158,19 @@ $(H2 $(LNAME2 preprocessor, Preprocessor))
     to the preprocessor.
     )
 
+    $(H4 $(LNAME2 importc-h, $(TT importc.h)))
+
+    $(P The druntime file $(LINK2 https://github.com/dlang/dmd/blob/master/druntime/src/importc.h, $(TT src/importc.h))
+    will automatically be $(TT #include)d first. $(TT importc.h) provides adjustments to the source code to
+    account for various C compiler extensions not supported by ImportC.)
+
+    $(H4 $(LNAME2 no-builtin-macro-redefined, no-builtin-macro-redefined))
+
+    $(P On Posix systems, ImportC will pass the switch $(TT -Wno-builtin-macro-redefined) to the C preprocessor
+    used by $(TT gcc) and $(TT clang).
+    This $(LINK2 https://gcc.gnu.org/legacy-ml/gcc-patches/2008-07/msg02321.html, switch)
+    does not exist in $(TT gcc) preprocessors made before 2008.
+    The workaround is to run the preprocessor manually.)
 
     $(H3 $(LNAME2 manual-cpp, Running the Preprocessor Manually))
 
@@ -278,6 +289,13 @@ $(H2 $(LNAME2 preprocessor-directives, Preprocessor Directives))
     $(LI $(TT #pragma pack ( pop )))
     $(LI $(TT #pragma pack ( pop PopList )))
     )
+
+$(H2 $(LNAME2 _builtins, $(TT src/__builtins.di)))
+
+    $(P The first thing the compiler does when preprocessing is complete is to import
+    $(LINK2 https://github.com/dlang/dmd/blob/master/druntime/src/__builtins.di, $(TT src/__builtins.di)).
+    It provides support for various builtins provided by other C compilers.
+    $(TT __builtins.di) is a D file.)
 
 $(H2 $(LNAME2 implementation, Implementation))
 
@@ -608,6 +626,19 @@ enum E { A = 3; }
 
     $(P A control-Z character `\x1A` in the source text means End Of File.)
 
+    $(H3 $(LNAME2 largeDecimal, Signed Integer Literal Larger Than long long))
+
+    $(P A signed integer constant with no suffix that is larger than a `long long` type,
+    but will fit into an `unsigned long long` type, is accepted and typed as `unsigned long long`.
+    This matches D behavior, and that of some C compilers.)
+
+    $(H3 $(LNAME2 dotArrow, Dot and Arror Operators))
+
+    $(P The `.` operator is used to designate a member of a struct or union value.
+        The `->` operator is used to designate a member of a struct or union value pointed to
+        by a pointer. The extension is that `.` and `->` can be used interchangeably on
+        values and pointers. This matches D's behavior for `.`.)
+
 $(H2 $(LNAME2 gnu-clang-extensions, Gnu and Clang Extensions))
 
     $(P `gcc` and `clang` are presumed to have the same behavior w.r.t. extensions,
@@ -627,6 +658,9 @@ $(H2 $(LNAME2 gnu-clang-extensions, Gnu and Clang Extensions))
     $(LI `__attribute__((naked))`)
     $(LI `__attribute__((noinline))`)
     $(LI $(RELATIVE_LINK2 noreturn, `__attribute__((noreturn))`))
+    $(LI `__attribute__((nothrow))`)
+    $(LI `__attribute__((pure))`)
+    $(LI `__attribute__((vector_size(N)))`)
     $(LI others are ignored)
     )
 
@@ -671,6 +705,7 @@ $(H2 $(LNAME2 visualc-extensions, Visual C Extensions))
     $(P The following $(LINK2 https://learn.microsoft.com/en-us/cpp/cpp/declspec?view=msvc-170, `__declspec` extensions):)
 
     $(OL
+    $(LI `__declspec()`)
     $(LI `__declspec(align(N))`)
     $(LI `__declspec(deprecated)`)
     $(LI `__declspec(dllexport)`)
@@ -678,6 +713,7 @@ $(H2 $(LNAME2 visualc-extensions, Visual C Extensions))
     $(LI `__declspec(naked)`)
     $(LI `__declspec(noinline)`)
     $(LI `__declspec(noreturn)`)
+    $(LI `__declspec(nothrow)`)
     $(LI `__declspec(thread)`)
     $(LI others are ignored)
     )
@@ -809,6 +845,51 @@ $(H2 $(LNAME2 wrapping, Wrapping C Code))
 
     $(P Then, `import file_ic;` instead of `import file;`, and use `S_t` when $(CCODE struct S) is desired.)
 
+
+$(H2 $(LNAME2 ctod, Converting C Code to D Code))
+
+    $(P Sometimes its desirable to go further than importing C code, to actually do a C source to
+    D source conversion. Reasons include:)
+
+    $(UL
+    $(LI Migrating a C project to a D project.)
+    $(LI Equivalent D code can compile much faster, due to not needing a preprocessor, etc.)
+    $(LI Tweaking the D code to add attributes for memory safety, purity, etc.)
+    $(LI Eliminating the need for C-isms in the D part of the project.)
+    )
+
+    $(P This can be done with the D compiler by using the $(TT -Hf) switch:)
+
+$(CONSOLE
+dmd -c mycode.c -Hf=mycode.di
+)
+
+    $(P which will convert the C source code in $(TT mycode.c) to D source code in $(TT mycode.di).
+    If the $(TT -inline) switch is also used, it will emit the C function bodies as well, instead
+    of just the function prototypes.)
+
+$(H3 Impedance Mismatch)
+
+    $(P A precise mapping of C semantics, with all its oddities, to D source code is not
+    always practical. ImportC uses C semantics in its semantic analysis to get much closer
+    to exact C semantics than is expressible in D source code. Hence, the translation to
+    D source code will be less than perfect. For example:)
+
+    $(CCODE
+    int S;
+    struct S { int a, b; };
+    int foo(struct S s)
+    {
+        return S + s.a;
+    }
+    )
+
+    $(P will work fine in ImportC, because the `int S` and the `struct S` are in different
+    symbol tables. But in the generated D code, both symbols would be in the same symbol table, and will collide.
+    Such D source code translated from C will need to be adjusted by the user.)
+
+    $(P Nevertheless, reports from the field are that this conversion capability is a huge
+    timesaver for users who need to deal with existing C code.)
 
 $(H2 $(LNAME2 warnings, Warnings))
 

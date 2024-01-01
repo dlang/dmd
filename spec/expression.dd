@@ -653,16 +653,44 @@ $(GNAME IdentityExpression):
     $(GLINK ShiftExpression) $(D ! is) $(GLINK ShiftExpression)
 )
 
-    $(P The $(D is) operator compares for identity.
+    $(P The $(D is) operator compares for identity of expression values.
         To compare for nonidentity, use $(D e1 !is e2).
         The type of the result is $(D bool). The operands
         undergo the $(USUAL_ARITHMETIC_CONVERSIONS) to bring them to a common type before
         comparison.
     )
 
-    $(P For class objects, identity is defined as the object references
-        are for the same object. Null class objects can be compared with
-        $(D is).
+    $(P For class / interface objects, identity is defined as the object references being identical.
+        Null class objects can be compared with `is`.
+        Note that interface objects need not have the same reference of the class they were cast from.
+        To test whether an `interface` shares a class instance with another `interface` / `class` value, cast both operands to `Object` before comparing with `is`.
+    )
+
+    $(SPEC_RUNNABLE_EXAMPLE_RUN
+    ---
+    interface I { void g(); }
+    interface I1 : I { void g1(); }
+    interface I2 : I { void g2(); }
+    interface J : I1, I2 { void h(); }
+
+    class C : J
+    {
+        override void g() { }
+        override void g1() { }
+        override void g2() { }
+        override void h() { }
+    }
+
+    void main() @safe
+    {
+        C c = new C;
+        I i1 = cast(I1) c;
+        I i2 = cast(I2) c;
+        assert(i1 !is i2); // not identical
+        assert(c !is i2); // not identical
+        assert(cast(Object) i1 is cast(Object) i2); // identical
+    }
+    ---
     )
 
     $(P For struct objects and floating point values, identity is defined as the
@@ -687,6 +715,10 @@ $(GNAME IdentityExpression):
     assert(a !is b);
     ---
     )
+
+    $(DDOC_DEPRECATED Use of `is` to compare static arrays by address and
+    length is deprecated. To do so, use the slice operator and compare slices
+    of the arrays instead; for example, `a1[] is a2[]`.)
 
     $(P For other operand types, identity is defined as being the same
         as equality.
@@ -1589,7 +1621,7 @@ $(GNAME NamedArgument):
     $(GLINK AssignExpression)
 )
 
-    $(P A callable expression can precede a list of arguments in parentheses.)
+    $(P A callable expression can precede a list of named arguments in parentheses.)
 
 ---
 void f(int, int);
@@ -1598,20 +1630,27 @@ f(5, 6);
 (&f)(5, 6);
 ---
 
-    $(P A type can precede a list of arguments.)
+$(H4 $(LNAME2 argument-parameter-matching, Matching Arguments to Parameters))
 
----
-struct S
-{
-    int x, y;
-}
+    $(P
+        Arguments in a `NamedArgumentList` are matched to function parameters as follows:
+    )
 
-S s = S(1, 2);
----
+    1.  If the first argument has no name, it will be assigned to the first function parameter.
+    1.  A named argument is assigned to a function parameter with the same name.
+        It is an error if no such parameter exists.
+    1.  Any unnamed argument is assigned to the next parameter relative to the preceding argument's parameter.
+        It is an error if no such parameter exists, i.e. when the preceding argument assigns to the last parameter.
+    1.  Assigning a parameter more than once is an error.
+    1.  Not assigning a parameter an argument is also an error,
+        unless the parameter has a $(DDSUBLINK spec/function, function-default-args, Default Argument).
 
-    $(P See also: $(RELATIVE_LINK2 uniform_construction_syntax,
-    Uniform construction syntax for built-in scalar types))
+$(H4 $(LNAME2 type-constructor-arguments, Constructing a Type with an Argument List))
 
+    $(P A type can precede a list of arguments. See:)
+
+    * $(DDSUBLINK spec/struct, struct-literal, Struct Literals)
+    * $(RELATIVE_LINK2 uniform_construction_syntax, Uniform construction syntax for built-in scalar types)
 
 $(H3 $(LEGACY_LNAME2 index_operations, index_expressions, Index Operations))
 
@@ -1987,25 +2026,34 @@ $(GNAME ArrayMemberInitialization):
         between square brackets $(D [) and $(D ]).
         The expressions form the elements of a dynamic array.
         The length of the array is the number of elements.
-        The common type of all the elements is taken to be the
-        array element type, and each expression is implicitly converted
-        to that type.)
+    )
+    $(P
+        The element type of the array is inferred as the common type of all the
+        elements, and each expression is implicitly converted to that type.
+        When there is an expected array type, the elements of the
+        literal will be implicitly converted to the expected element
+        type.)
 
         ---
-        auto a1 = [1,2,3];  // type is int[], with elements 1, 2 and 3
-        auto a2 = [1u,2,3]; // type is uint[], with elements 1u, 2u, and 3u
+        auto a1 = [1, 2, 3];   // type is int[], with elements 1, 2 and 3
+        auto a2 = [1u, 2, 3];  // type is uint[], with elements 1u, 2u, and 3u
+        byte[] a3 = [1, 2, 3]; // OK
+        byte[] a4 = [128];     // error
         ---
 
-    $(P By default, an array literal is typed as a dynamic array, but the element
+    $(PANEL
+        By default, an array literal is typed as a dynamic array, but the element
         count is known at compile time. Therefore, an array literal can be
-        implicitly converted to a static array of the same length.)
+        implicitly converted to a static array of the same length.
 
         -------------
-        int[2] sa = [1, 2];
+        int[2] sa = [1, 2]; // OK
+        int[2] sb = [1];    // error
         -------------
 
     $(NOTE Slicing a dynamic array with a statically known slice length also
         $(RELATIVE_LINK2 slice_to_static_array, allows conversion) to a static array.)
+    )
 
     $(P If any $(I ArrayMemberInitialization) is a
         $(DDSUBLINK spec/template, TemplateParameterSequence, ValueSeq),
@@ -2052,27 +2100,28 @@ $(H4 $(LNAME2 cast_array_literal, Casting))
         reinterpreted as the new type, and the length is recomputed:)
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
-        ---
-        import std.stdio;
-
-        void main()
-        {
+            ---
             // cast array literal
-            const short[] ct = cast(short[]) [cast(byte)1, 1];
+            const ubyte[] ct = cast(ubyte[]) [257, 257];
             // this is equivalent to:
-            // const short[] ct = [cast(short)1, cast(short)1];
+            // const ubyte[] ct = [cast(ubyte) 257, cast(ubyte) 257];
             writeln(ct);  // writes [1, 1]
 
             // cast other array expression
             // --> normal behavior of CastExpression
-            byte[] arr = [cast(byte)1, cast(byte)1];
+            byte[] arr = [1, 1];
             short[] rt = cast(short[]) arr;
             writeln(rt);  // writes [257]
-        }
-        ---
+            ---
         )
 
         In other words, casting an array literal will change the type of each initializer element.
+
+        $(BEST_PRACTICE Avoid casting an array literal when the elements could
+        implicitly convert to an expected type. Instead, declare a variable of that type
+        and initialize it with the array literal.
+        Casting is more bug-prone than implicit conversions.)
+
 
 $(H3 $(LNAME2 associative_array_literals, Associative Array Literals))
 
@@ -2226,8 +2275,8 @@ $(GNAME RefOrAutoRef):
         {
             int x;
             auto dg = delegate ref int() { return x; };
-            x = 3;
-            assert(dg() == 3);
+            dg() = 3;
+            assert(x == 3);
         }
         ---
         )
@@ -2455,6 +2504,12 @@ $(H3 $(LNAME2 uniform_construction_syntax, Uniform construction syntax for built
         ---
         auto a = ushort();  // same as: ushort.init
         auto b = wchar();   // same as: wchar.init
+        ---
+
+    $(P The argument may not be given a name:)
+
+        ---
+        auto a = short(x: 1); // Error
         ---
 
     $(P See also: $(DDSUBLINK spec/type, usual-arithmetic-conversions, Usual Arithmetic Conversions).)

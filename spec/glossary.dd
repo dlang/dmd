@@ -272,6 +272,7 @@ void test()
         `arg.funct()`.)
 )
 
+$(SPEC_SUBNAV_PREV_NEXT windows, Windows Programming, legacy, Legacy Code)
 )
 
 Macros:

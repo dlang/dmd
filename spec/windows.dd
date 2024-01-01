@@ -36,7 +36,7 @@ $(H3 $(LNAME2 omf-windows, Windows GUI Programs))
 
 $(H3 $(LNAME2 omf-dlls, DLLs))
 
-$(SPEC_SUBNAV_PREV ob, Live Functions)
+$(SPEC_SUBNAV_PREV_NEXT ob, Live Functions, glossary, Glossary)
 )
 
 Macros:

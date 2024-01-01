@@ -5,21 +5,25 @@ $(SPEC_S Legacy Code,
 $(HEADERNAV_TOC)
 
     $(P To maintain compatibility with older D code, many legacy features remain supported.
+$(COMMENT
     If the $(TT -wo) compiler command line switch is used, the compiler will give warning messages
     for each use of a legacy feature.
+)
     This page describes each legacy feature that is supported, with a suggestion of how to
     modernize the code.
     )
 
-)
-
     $(TABLE2 Legacy Features,
-        $(THEAD Feature)
-        $(TROW $(DEPLINK body keyword), usage of identifier $(TT body) as a keyword is obsolete use $(TT do) instead)
+        $(THEAD Feature, Summary)
+        $(TROW $(RELATIVE_LINK2 body, `body` keyword), $(D body) after a contract statement -
+            use $(D do) instead)
+        $(TROW `alias` target first syntax, use `alias name = target` instead.)
+        $(TROW Struct/union postblit, use a $(DDSUBLINK spec/struct, struct-copy-constructor,
+            copy constructor) instead.)
     )
 
-$(H3 $(DEPNAME body keyword))
-    $(P `body` was a keyword used to specify a function/method's body in the presence of contracts
+$(H2 $(LNAME2 body, `body` keyword))
+    $(P `body` was a keyword used to specify a function/method's body after a contract statement:)
         ---
         class Foo
         {
@@ -34,27 +38,26 @@ $(H3 $(DEPNAME body keyword))
             void noBody() { /* No contracts, no body */ }
         }
         ---
-    )
-$(H4 Corrective Action)
-    $(P Use the `do` keyword instead (introduced v2.075.0)
+
+$(H3 Corrective Action)
+
+    $(P Use the `do` keyword instead (introduced in v2.075.0):)
         ---
         void bar(int i)
         in { assert(i >= 42); }
         do { /* Look ma, no body! */ }
         ---
-    )
-$(H4 Rationale)
-    $(P The `body` keyword was only used for this single purpose.
+
+    $(RATIONALE The `body` keyword was only used for this single purpose.
         Since D grammar aims to be context free, this common word was reserved,
         which led to frequent trouble for people interfacing with other languages
         (e.g. javascript) or auto-generating code.
     )
 
 
+$(SPEC_SUBNAV_PREV glossary, Glossary)
+)
+
 Macros:
         CHAPTER=45
         TITLE=Legacy Code
-        DEPLINK=$(RELATIVE_LINK2 $0, $0)
-        DEPLINK2=$(LINK2 $1.html#$2, $2)
-        DEPNAME=$(LNAME2 $0, $0)
-    D=<span class="d_inlinecode">$0</span>
