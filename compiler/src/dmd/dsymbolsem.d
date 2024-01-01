@@ -21,17 +21,14 @@ import dmd.arraytypes;
 import dmd.astcodegen;
 import dmd.astenums;
 import dmd.attrib;
-import dmd.blockexit;
 import dmd.clone;
 import dmd.cond;
-import dmd.compiler;
 import dmd.dcast;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.denum;
 import dmd.dimport;
 import dmd.dinterpret;
-import dmd.dmangle;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
@@ -56,7 +53,6 @@ import dmd.hdrgen;
 import dmd.location;
 import dmd.mtype;
 import dmd.mustuse;
-import dmd.nogc;
 import dmd.nspace;
 import dmd.objc;
 import dmd.opover;
@@ -67,11 +63,9 @@ import dmd.root.filename;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.rootobject;
-import dmd.root.utf;
 import dmd.semantic2;
 import dmd.semantic3;
 import dmd.sideeffect;
-import dmd.statementsem;
 import dmd.staticassert;
 import dmd.tokens;
 import dmd.utils;
@@ -86,48 +80,6 @@ else version (IN_LLVM) {}
 else version = MARS;
 
 enum LOG = false;
-
-package uint setMangleOverride(Dsymbol s, const(char)[] sym)
-{
-    if (s.isFuncDeclaration() || s.isVarDeclaration())
-    {
-        s.isDeclaration().mangleOverride = sym;
-        return 1;
-    }
-
-    if (auto ad = s.isAttribDeclaration())
-    {
-        uint nestedCount = 0;
-
-        ad.include(null).foreachDsymbol( (s) { nestedCount += setMangleOverride(s, sym); } );
-
-        return nestedCount;
-    }
-    return 0;
-}
-
-/**
- * Apply pragma printf/scanf to FuncDeclarations under `s`,
- * poking through attribute declarations such as `extern(C)`
- * but not through aggregates or function bodies.
- *
- * Params:
- *    s = symbol to apply
- *    printf = `true` for printf, `false` for scanf
- */
-private void setPragmaPrintf(Dsymbol s, bool printf)
-{
-    if (auto fd = s.isFuncDeclaration())
-    {
-        fd.printf = printf;
-        fd.scanf = !printf;
-    }
-
-    if (auto ad = s.isAttribDeclaration())
-    {
-        ad.include(null).foreachDsymbol( (s) { setPragmaPrintf(s, printf); } );
-    }
-}
 
 /*************************************
  * Does semantic analysis on the public face of declarations.
@@ -1800,311 +1752,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     override void visit(PragmaDeclaration pd)
     {
-        StringExp verifyMangleString(ref Expression e)
-        {
-            auto se = semanticString(sc, e, "mangled name");
-            if (!se)
-                return null;
-            e = se;
-            if (!se.len)
-            {
-                .error(pd.loc, "%s `%s` - zero-length string not allowed for mangled name", pd.kind, pd.toPrettyChars);
-                return null;
-            }
-            if (se.sz != 1)
-            {
-                .error(pd.loc, "%s `%s` - mangled name characters can only be of type `char`", pd.kind, pd.toPrettyChars);
-                return null;
-            }
-            version (all)
-            {
-                /* Note: D language specification should not have any assumption about backend
-                 * implementation. Ideally pragma(mangle) can accept a string of any content.
-                 *
-                 * Therefore, this validation is compiler implementation specific.
-                 */
-                auto slice = se.peekString();
-                for (size_t i = 0; i < se.len;)
-                {
-                    dchar c = slice[i];
-                    if (c < 0x80)
-                    {
-                        if (c.isValidMangling)
-                        {
-                            ++i;
-                            continue;
-                        }
-                        else
-                        {
-                            .error(pd.loc, "%s `%s` char 0x%02x not allowed in mangled name", pd.kind, pd.toPrettyChars, c);
-                            break;
-                        }
-                    }
-                    if (const msg = utf_decodeChar(slice, i, c))
-                    {
-                        .error(pd.loc, "%s `%s` %.*s", pd.kind, pd.toPrettyChars, cast(int)msg.length, msg.ptr);
-                        break;
-                    }
-                    if (!isUniAlpha(c))
-                    {
-                        .error(pd.loc, "%s `%s` char `0x%04x` not allowed in mangled name", pd.kind, pd.toPrettyChars, c);
-                        break;
-                    }
-                }
-            }
-            return se;
-        }
-        void declarations()
-        {
-            if (!pd.decl)
-                return;
-
-            Scope* sc2 = pd.newScope(sc);
-            scope(exit)
-                if (sc2 != sc)
-                    sc2.pop();
-
-            foreach (s; (*pd.decl)[])
-            {
-                if (pd.ident == Id.printf || pd.ident == Id.scanf)
-                {
-                    s.setPragmaPrintf(pd.ident == Id.printf);
-                    s.dsymbolSemantic(sc2);
-                    continue;
-                }
-
-                s.dsymbolSemantic(sc2);
-                if (pd.ident != Id.mangle)
-                    continue;
-                assert(pd.args);
-                if (auto ad = s.isAggregateDeclaration())
-                {
-                    Expression e = (*pd.args)[0];
-                    sc2 = sc2.startCTFE();
-                    e = e.expressionSemantic(sc);
-                    e = resolveProperties(sc2, e);
-                    sc2 = sc2.endCTFE();
-                    AggregateDeclaration agg;
-                    if (auto tc = e.type.isTypeClass())
-                        agg = tc.sym;
-                    else if (auto ts = e.type.isTypeStruct())
-                        agg = ts.sym;
-                    ad.pMangleOverride = new MangleOverride;
-                    void setString(ref Expression e)
-                    {
-                        if (auto se = verifyMangleString(e))
-                        {
-                            const name = (cast(const(char)[])se.peekData()).xarraydup;
-                            ad.pMangleOverride.id = Identifier.idPool(name);
-                            e = se;
-                        }
-                        else
-                            error(e.loc, "must be a string");
-                    }
-                    if (agg)
-                    {
-                        ad.pMangleOverride.agg = agg;
-                        if (pd.args.length == 2)
-                        {
-                            setString((*pd.args)[1]);
-                        }
-                        else
-                            ad.pMangleOverride.id = agg.ident;
-                    }
-                    else
-                        setString((*pd.args)[0]);
-                }
-                else if (auto td = s.isTemplateDeclaration())
-                {
-                    .error(pd.loc, "%s `%s` cannot apply to a template declaration", pd.kind, pd.toPrettyChars);
-                    errorSupplemental(pd.loc, "use `template Class(Args...){ pragma(mangle, \"other_name\") class Class {} }`");
-                }
-                else if (auto se = verifyMangleString((*pd.args)[0]))
-                {
-                    const name = (cast(const(char)[])se.peekData()).xarraydup;
-                    uint cnt = setMangleOverride(s, name);
-                    if (cnt > 1)
-                        .error(pd.loc, "%s `%s` can only apply to a single declaration", pd.kind, pd.toPrettyChars);
-                }
-            }
-        }
-
-        void noDeclarations()
-        {
-            if (pd.decl)
-            {
-                .error(pd.loc, "%s `%s` is missing a terminating `;`", pd.kind, pd.toPrettyChars);
-                declarations();
-                // do them anyway, to avoid segfaults.
-            }
-        }
-
-        // Should be merged with PragmaStatement
-        //printf("\tPragmaDeclaration::semantic '%s'\n", pd.toChars());
-        if (target.supportsLinkerDirective())
-        {
-            if (pd.ident == Id.linkerDirective)
-            {
-                if (!pd.args || pd.args.length != 1)
-                    .error(pd.loc, "%s `%s` one string argument expected for pragma(linkerDirective)", pd.kind, pd.toPrettyChars);
-                else
-                {
-                    auto se = semanticString(sc, (*pd.args)[0], "linker directive");
-                    if (!se)
-                        return noDeclarations();
-                    (*pd.args)[0] = se;
-                    if (global.params.v.verbose)
-                        message("linkopt   %.*s", cast(int)se.len, se.peekString().ptr);
-                }
-                return noDeclarations();
-            }
-        }
-        if (pd.ident == Id.msg)
-        {
-            if (!pd.args)
-                return noDeclarations();
-
-            if (!pragmaMsgSemantic(pd.loc, sc, pd.args))
-                return;
-
-            return noDeclarations();
-        }
-        else if (pd.ident == Id.lib)
-        {
-            if (!pd.args || pd.args.length != 1)
-                .error(pd.loc, "%s `%s` string expected for library name", pd.kind, pd.toPrettyChars);
-            else
-            {
-                auto se = semanticString(sc, (*pd.args)[0], "library name");
-                if (!se)
-                    return noDeclarations();
-                (*pd.args)[0] = se;
-
-                auto name = se.peekString().xarraydup;
-                if (global.params.v.verbose)
-                    message("library   %s", name.ptr);
-                if (global.params.moduleDeps.buffer && !global.params.moduleDeps.name)
-                {
-                    OutBuffer* ob = global.params.moduleDeps.buffer;
-                    Module imod = sc._module;
-                    ob.writestring("depsLib ");
-                    ob.writestring(imod.toPrettyChars());
-                    ob.writestring(" (");
-                    escapePath(ob, imod.srcfile.toChars());
-                    ob.writestring(") : ");
-                    ob.writestring(name);
-                    ob.writenl();
-                }
-                mem.xfree(name.ptr);
-            }
-            return noDeclarations();
-        }
-        else if (pd.ident == Id.startaddress)
-        {
-            pragmaStartAddressSemantic(pd.loc, sc, pd.args);
-            return noDeclarations();
-        }
-        else if (pd.ident == Id.Pinline)
-        {
-            // this pragma now gets evaluated on demand in function semantic
-
-            return declarations();
-        }
-        else if (pd.ident == Id.mangle)
-        {
-            if (!pd.args)
-                pd.args = new Expressions();
-            if (pd.args.length == 0 || pd.args.length > 2)
-            {
-                .error(pd.loc, pd.args.length == 0 ? "%s `%s` - string expected for mangled name"
-                                          : "%s `%s` expected 1 or 2 arguments", pd.kind, pd.toPrettyChars);
-                pd.args.setDim(1);
-                (*pd.args)[0] = ErrorExp.get(); // error recovery
-            }
-            return declarations();
-        }
-        else if (pd.ident == Id.crt_constructor || pd.ident == Id.crt_destructor)
-        {
-            if (pd.args && pd.args.length != 0)
-                .error(pd.loc, "%s `%s` takes no argument", pd.kind, pd.toPrettyChars);
-            else
-            {
-                immutable isCtor = pd.ident == Id.crt_constructor;
-
-                static uint recurse(Dsymbol s, bool isCtor)
-                {
-                    if (auto ad = s.isAttribDeclaration())
-                    {
-                        uint nestedCount;
-                        auto decls = ad.include(null);
-                        if (decls)
-                        {
-                            for (size_t i = 0; i < decls.length; ++i)
-                                nestedCount += recurse((*decls)[i], isCtor);
-                        }
-                        return nestedCount;
-                    }
-                    else if (auto f = s.isFuncDeclaration())
-                    {
-                        if (isCtor)
-                            f.isCrtCtor = true;
-                        else
-                            f.isCrtDtor = true;
-
-                        return 1;
-                    }
-                    else
-                        return 0;
-                    assert(0);
-                }
-
-                if (recurse(pd, isCtor) > 1)
-                    .error(pd.loc, "%s `%s` can only apply to a single declaration", pd.kind, pd.toPrettyChars);
-            }
-            return declarations();
-        }
-        else if (pd.ident == Id.printf || pd.ident == Id.scanf)
-        {
-            if (pd.args && pd.args.length != 0)
-                .error(pd.loc, "%s `%s` takes no argument", pd.kind, pd.toPrettyChars);
-            return declarations();
-        }
-        else if (!global.params.ignoreUnsupportedPragmas)
-        {
-            error(pd.loc, "unrecognized `pragma(%s)`", pd.ident.toChars());
-            return declarations();
-        }
-
-        if (!global.params.v.verbose)
-            return declarations();
-
-        /* Print unrecognized pragmas
-         */
-        OutBuffer buf;
-        buf.writestring(pd.ident.toString());
-        if (pd.args)
-        {
-            const errors_save = global.startGagging();
-            for (size_t i = 0; i < pd.args.length; i++)
-            {
-                Expression e = (*pd.args)[i];
-                sc = sc.startCTFE();
-                e = e.expressionSemantic(sc);
-                e = resolveProperties(sc, e);
-                sc = sc.endCTFE();
-                e = e.ctfeInterpret();
-                if (i == 0)
-                    buf.writestring(" (");
-                else
-                    buf.writeByte(',');
-                buf.writestring(e.toChars());
-            }
-            if (pd.args.length)
-                buf.writeByte(')');
-            global.endGagging(errors_save);
-        }
-        message("pragma    %s", buf.peekChars());
-        return declarations();
+        import dmd.pragmasem : pragmaDeclSemantic;
+        pragmaDeclSemantic(pd, sc);
     }
 
     override void visit(StaticIfDeclaration sid)
@@ -2877,7 +2526,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         // evaluate pragma(inline)
         if (auto pragmadecl = sc.inlining)
+        {
+            import dmd.pragmasem : evalPragmaInline;
             funcdecl.inlining = evalPragmaInline(pragmadecl.loc, sc, pragmadecl.args);
+        }
 
         funcdecl.visibility = sc.visibility;
         funcdecl.userAttribDecl = sc.userAttribDecl;
@@ -7276,50 +6928,6 @@ private CallExp doAtomicOp (string op, Identifier var, Expression arg)
         loc, sc, Id.atomicOp, tiargs);
 
     return CallExp.create(loc, dti, args);
-}
-
-/***************************************
- * Interpret a `pragma(inline, x)`
- *
- * Params:
- *   loc = location for error messages
- *   sc = scope for evaluation of argument
- *   args = pragma arguments
- * Returns: corresponding `PINLINE` state
- */
-PINLINE evalPragmaInline(Loc loc, Scope* sc, Expressions* args)
-{
-    if (!args || args.length == 0)
-        return PINLINE.default_;
-
-    if (args && args.length > 1)
-    {
-        .error(loc, "one boolean expression expected for `pragma(inline)`, not %llu", cast(ulong) args.length);
-        args.setDim(1);
-        (*args)[0] = ErrorExp.get();
-    }
-
-    Expression e = (*args)[0];
-    if (!e.type)
-    {
-        sc = sc.startCTFE();
-        e = e.expressionSemantic(sc);
-        e = resolveProperties(sc, e);
-        sc = sc.endCTFE();
-        e = e.ctfeInterpret();
-        e = e.toBoolean(sc);
-        if (e.isErrorExp())
-            .error(loc, "pragma(`inline`, `true` or `false`) expected, not `%s`", (*args)[0].toChars());
-        (*args)[0] = e;
-    }
-
-    const opt = e.toBool();
-    if (opt.isEmpty())
-        return PINLINE.default_;
-    else if (opt.get())
-        return PINLINE.always;
-    else
-        return PINLINE.never;
 }
 
 /***************************************************
