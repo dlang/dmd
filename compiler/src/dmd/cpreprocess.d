@@ -57,7 +57,7 @@ FileName preprocess(FileName csrcfile, ref const Loc loc, out bool ifile, OutBuf
         auto f = FileName.combine(entry, "importc.h");
         if (FileName.exists(f) == 1)
         {
-            importc_h = f;
+            importc_h = FileName.toAbsolute(f);
             break;
         }
         FileName.free(f);
