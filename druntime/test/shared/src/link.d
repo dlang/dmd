@@ -1,5 +1,7 @@
 import lib;
 
+version (DigitalMars) version (Win64) version = NoExceptions;
+
 void testEH()
 {
     bool passed;
@@ -38,6 +40,9 @@ void testInit()
 {
     import core.thread;
 
+    assert(shared_static_ctor == 1);
+    assert(static_ctor == 1);
+
     assert(lib.static_ctor == 1);
     assert(lib.static_dtor == 0);
     static void foo()
@@ -58,7 +63,9 @@ void testInit()
 
 void main()
 {
-    testEH();
+    version (NoExceptions) {}
+    else
+        testEH();
     testGC();
     testInit();
 }

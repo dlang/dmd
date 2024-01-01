@@ -485,6 +485,10 @@ private extern (C) int _d_run_main2(char[][] args, size_t totalArgsLength, MainF
     {
         if (rt_init())
         {
+            version(Shared) version(CRuntime_Microsoft) {
+                if (auto handle = handleForAddr(mainFunc))
+                    rt_initSharedModule(handle);
+            }
             auto utResult = runModuleUnitTests();
             assert(utResult.passed <= utResult.executed);
             if (utResult.passed == utResult.executed)
@@ -667,4 +671,10 @@ extern (C) void _d_print_throwable(Throwable t)
         fwrite(buf.ptr, char.sizeof, buf.length, stderr);
     }
     formatThrowable(t, &sink);
+}
+
+version (Shared) version (CRuntime_Microsoft)
+{
+    import core.sys.windows.dll;
+    mixin SimpleDllMain;
 }

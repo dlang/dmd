@@ -131,3 +131,9 @@ extern(C) void setFinalizeCounter(shared(size_t)* p)
 {
     _finalizeCounter = p;
 }
+
+version (Windows)
+{
+    import core.sys.windows.dll;
+    mixin SimpleDllMain;
+}
