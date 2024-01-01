@@ -166,8 +166,8 @@ jobs:
           - job_name: FreeBSD 13.2 x64, DMD (latest)
             freebsd_version: '13.2'
             host_dmd: dmd
-          - job_name: FreeBSD 12.4 x64, DMD (bootstrap)
-            freebsd_version: '12.4'
+          - job_name: FreeBSD 13.2 x64, DMD (bootstrap)
+            freebsd_version: '13.2'
             host_dmd: dmd-2.095.0
     name: ${{ matrix.job_name }}
     runs-on: macos-latest
@@ -177,7 +177,7 @@ jobs:
         with:
           fetch-depth: 50
       - name: Run in VM
-        uses: cross-platform-actions/action@v0.21.1
+        uses: cross-platform-actions/action@v0.22.0
         with:
           operating_system: freebsd
           hypervisor: qemu
