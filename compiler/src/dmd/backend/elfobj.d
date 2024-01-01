@@ -609,8 +609,8 @@ int ElfObj_string_literal_segment(uint sz)
      */
     static immutable char[4][3] name = [ "1.1", "2.2", "4.4" ];
     const int i = (sz == 4) ? 2 : sz - 1;
-    const IDXSEC seg =
-        ElfObj_getsegment(".rodata.str".ptr, name[i].ptr, SHT_PROGBITS, SHF_ALLOC | SHF_MERGE | SHF_STRINGS, sz);
+    // FIXME: can't use SHF_MERGE | SHF_STRINGS because of https://issues.dlang.org/show_bug.cgi?id=22483
+    const IDXSEC seg = ElfObj_getsegment(".rodata.str".ptr, name[i].ptr, SHT_PROGBITS, SHF_ALLOC, sz);
     return seg;
 }
 
