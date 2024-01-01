@@ -1,7 +1,7 @@
 /**
  * Perform constant folding.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/optimize.d, _optimize.d)
@@ -272,9 +272,9 @@ package void setLengthVarIfKnown(VarDeclaration lengthVar, Type type)
  * Returns:
  *      Constant folded version of `e`
  */
-Expression Expression_optimize(Expression e, int result, bool keepLvalue)
+Expression optimize(Expression e, int result, bool keepLvalue = false)
 {
-    //printf("Expression_optimize() e: %s result: %d keepLvalue %d\n", e.toChars(), result, keepLvalue);
+    //printf("optimize() e: %s result: %d keepLvalue %d\n", e.toChars(), result, keepLvalue);
     Expression ret = e;
 
     void errorReturn()
@@ -288,7 +288,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
     {
         if (!e)
             return false;
-        Expression ex = Expression_optimize(e, flags, keepLvalue);
+        Expression ex = optimize(e, flags, keepLvalue);
         if (ex.op == EXP.error)
         {
             ret = ex; // store error result
@@ -591,7 +591,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
 
                     Expression add = new AddExp(ae.loc, ex, new IntegerExp(ae.e2.loc, offset, ae.e2.type));
                     add.type = e.type;
-                    ret = Expression_optimize(add, result, keepLvalue);
+                    ret = optimize(add, result, keepLvalue);
                     return;
                 }
             }
@@ -931,7 +931,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
     void visitCatAssign(CatAssignExp e)
     {
         if (auto lowering = e.lowering)
-            Expression_optimize(lowering, result, keepLvalue);
+            optimize(lowering, result, keepLvalue);
         else
             visitBinAssign(e);
     }
@@ -1247,7 +1247,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                 ret = new CastExp(e.loc, ret, Type.tvoid);
                 ret.type = e.type;
             }
-            ret = Expression_optimize(ret, result, false);
+            ret = optimize(ret, result, false);
             return;
         }
         expOptimize(e.e2, WANTvalue);
@@ -1302,7 +1302,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                 // `["c"] ~ "a" ~ "b"` becoming `["c"] ~ "ab"`
                 scope CatExp cex = new CatExp(e.loc, ce1.e2, e.e2);
                 cex.type = e.type;
-                Expression ex = Expression_optimize(cex, result, false);
+                Expression ex = optimize(cex, result, false);
                 if (ex != cex)
                 {
                     e.e1 = ce1.e1;
@@ -1331,9 +1331,9 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             return;
         const opt = e.econd.toBool();
         if (opt.hasValue(true))
-            ret = Expression_optimize(e.e1, result, keepLvalue);
+            ret = optimize(e.e1, result, keepLvalue);
         else if (opt.hasValue(false))
-            ret = Expression_optimize(e.e2, result, keepLvalue);
+            ret = optimize(e.e2, result, keepLvalue);
         else
         {
             expOptimize(e.e1, result, keepLvalue);

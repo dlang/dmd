@@ -1,7 +1,7 @@
 /**
  * A library in the Mach-O format, used on macOS.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/libmach.d, _libmach.d)
@@ -48,6 +48,7 @@ public extern (C++) Library LibMach_factory()
 }
 
 private: // for the remainder of this module
+nothrow:
 
 enum LOG = false;
 
@@ -261,7 +262,7 @@ final class LibMach : Library
 
     /*****************************************************************************/
 
-    void addSymbol(MachObjModule* om, const(char)[] name, int pickAny = 0)
+    void addSymbol(MachObjModule* om, const(char)[] name, int pickAny = 0) nothrow
     {
         static if (LOG)
         {
@@ -312,7 +313,7 @@ private:
             printf("LibMach::scanObjModule(%s)\n", om.name.ptr);
         }
 
-        extern (D) void addSymbol(const(char)[] name, int pickAny)
+        extern (D) void addSymbol(const(char)[] name, int pickAny) nothrow
         {
             this.addSymbol(om, name, pickAny);
         }

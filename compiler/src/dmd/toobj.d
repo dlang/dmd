@@ -1,7 +1,7 @@
 /**
  * Convert an AST that went through all semantic phases into an object file.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _toobj.d)
@@ -18,6 +18,7 @@ import core.stdc.time;
 
 import dmd.root.array;
 import dmd.common.outbuffer;
+import dmd.common.smallbuffer : SmallBuffer;
 import dmd.root.rmem;
 import dmd.rootobject;
 
@@ -36,6 +37,7 @@ import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.errors;
+import dmd.errorsink;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
@@ -72,8 +74,6 @@ import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
-
-extern (C++):
 
 /* ================================================================== */
 
@@ -214,6 +214,8 @@ void genModuleInfo(Module m)
     //////////////////////////////////////////////
 
     objmod.moduleinfo(msym);
+    if (driverParams.exportVisibility == ExpVis.public_)
+        objmod.export_symbol(msym, 0);
 }
 
 /*****************************************
@@ -247,18 +249,18 @@ void write_instance_pointers(Type type, Symbol *s, uint offset)
         return;
 
     Array!(ulong) data;
-    ulong sz = getTypePointerBitmap(Loc.initial, type, &data);
+    const ulong sz = getTypePointerBitmap(Loc.initial, type, data, global.errorSink);
     if (sz == ulong.max)
         return;
 
     const bytes_size_t = cast(size_t)Type.tsize_t.size(Loc.initial);
     const bits_size_t = bytes_size_t * 8;
     auto words = cast(size_t)(sz / bytes_size_t);
-    for (size_t i = 0; i < data.length; i++)
+    foreach (i, const element; data[])
     {
         size_t bits = words < bits_size_t ? words : bits_size_t;
-        for (size_t b = 0; b < bits; b++)
-            if (data[i] & (1L << b))
+        foreach (size_t b; 0 .. bits)
+            if (element & (1L << b))
             {
                 auto off = cast(uint) ((i * bits_size_t + b) * bytes_size_t);
                 objmod.write_pointerRef(s, off + offset);
@@ -392,6 +394,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 sinit.Sdt = dtb.finish();
                 out_readonly(sinit);
                 outdata(sinit);
+                if (cd.isExport() || driverParams.exportVisibility == ExpVis.public_)
+                    objmod.export_symbol(sinit, 0);
             }
 
             //////////////////////////////////////////////
@@ -438,8 +442,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
             cd.vtblsym.csym.Sfl = FLdata;
             out_readonly(cd.vtblsym.csym);
             outdata(cd.vtblsym.csym);
-            if (cd.isExport())
-                objmod.export_symbol(cd.vtblsym.csym,0);
+            if (cd.isExport() || driverParams.exportVisibility == ExpVis.public_)
+                objmod.export_symbol(cd.vtblsym.csym, 0);
         }
 
         override void visit(InterfaceDeclaration id)
@@ -544,6 +548,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
                     else
                         out_readonly(sinit);    // put in read-only segment
                     outdata(sinit);
+                    if (sd.isExport() || driverParams.exportVisibility == ExpVis.public_)
+                        objmod.export_symbol(sinit, 0);
                 }
 
                 // Put out the members
@@ -673,7 +679,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             outdata(s);
             if (vd.type.isMutable() || !vd._init)
                 write_pointers(vd.type, s, 0);
-            if (vd.isExport())
+            if (vd.isExport() || driverParams.exportVisibility == ExpVis.public_)
                 objmod.export_symbol(s, 0);
         }
 
@@ -700,7 +706,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             if (global.params.useTypeInfo && Type.dtypeinfo)
                 TypeInfo_toObjFile(null, ed.loc, ed.type);
 
-            TypeEnum tc = cast(TypeEnum)ed.type;
+            TypeEnum tc = ed.type.isTypeEnum();
             if (!tc.sym.members || ed.type.isZeroInit(Loc.initial))
             {
             }
@@ -755,7 +761,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             }
 
             outdata(s);
-            if (tid.isExport())
+            if (tid.isExport() || driverParams.exportVisibility == ExpVis.public_)
                 objmod.export_symbol(s, 0);
         }
 
@@ -783,7 +789,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
                 assert(e.op == EXP.string_);
 
-                StringExp se = cast(StringExp)e;
+                StringExp se = e.isStringExp();
                 char *name = cast(char *)mem.xmalloc(se.numberOfCodeUnits() + 1);
                 se.writeTo(name, true);
 
@@ -818,11 +824,15 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
                 assert(e.op == EXP.string_);
 
-                StringExp se = cast(StringExp)e;
-                char *directive = cast(char *)mem.xmalloc(se.numberOfCodeUnits() + 1);
-                se.writeTo(directive, true);
+                StringExp se = e.isStringExp();
+                size_t length = se.numberOfCodeUnits() + 1;
+                debug enum LEN = 2; else enum LEN = 20;
+                char[LEN] buffer = void;
+                SmallBuffer!char directive = SmallBuffer!char(length, buffer);
 
-                obj_linkerdirective(directive);
+                se.writeTo(directive.ptr, true);
+
+                obj_linkerdirective(directive.ptr);
             }
 
             visit(cast(AttribDeclaration)pd);
@@ -896,17 +906,21 @@ void toObjFile(Dsymbol ds, bool multiobj)
             ExpInitializer ie = vd._init.isExpInitializer();
 
             Type tb = vd.type.toBasetype();
-            if (tb.ty == Tsarray && ie &&
-                !tb.nextOf().equals(ie.exp.type.toBasetype().nextOf()) &&
-                ie.exp.implicitConvTo(tb.nextOf())
-                )
+            if (auto tbsa = tb.isTypeSArray())
             {
-                auto dim = (cast(TypeSArray)tb).dim.toInteger();
-
-                // Duplicate Sdt 'dim-1' times, as we already have the first one
-                while (--dim > 0)
+                auto tbsaNext = tbsa.nextOf();
+                if (ie &&
+                    !tbsaNext.equals(ie.exp.type.toBasetype().nextOf()) &&
+                    ie.exp.implicitConvTo(tbsaNext)
+                    )
                 {
-                    Expression_toDt(ie.exp, dtb);
+                    auto dim = tbsa.dim.toInteger();
+
+                    // Duplicate Sdt 'dim-1' times, as we already have the first one
+                    while (--dim > 0)
+                    {
+                        Expression_toDt(ie.exp, dtb);
+                    }
                 }
             }
         }
@@ -1435,7 +1449,7 @@ Louter:
     cd.csym.Sdt = dtb.finish();
     // ClassInfo cannot be const data, because we use the monitor on it
     outdata(cd.csym);
-    if (cd.isExport())
+    if (cd.isExport() || driverParams.exportVisibility == ExpVis.public_)
         objmod.export_symbol(cd.csym, 0);
 }
 
@@ -1590,6 +1604,6 @@ private void genClassInfoForInterface(InterfaceDeclaration id)
     id.csym.Sdt = dtb.finish();
     out_readonly(id.csym);
     outdata(id.csym);
-    if (id.isExport())
+    if (id.isExport() || driverParams.exportVisibility == ExpVis.public_)
         objmod.export_symbol(id.csym, 0);
 }

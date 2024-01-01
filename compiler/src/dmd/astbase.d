@@ -1,7 +1,7 @@
 /**
  * Defines AST nodes for the parsing stage.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/astbase.d, _astbase.d)
  * Documentation:  https://dlang.org/phobos/dmd_astbase.html
@@ -100,13 +100,13 @@ struct ASTBase
             return ident ? ident.toChars() : "__anonymous";
         }
 
-        bool oneMember(Dsymbol *ps, Identifier ident)
+        bool oneMember(out Dsymbol ps, Identifier ident)
         {
-            *ps = this;
+            ps = this;
             return true;
         }
 
-        extern (D) static bool oneMembers(ref Dsymbols members, Dsymbol* ps, Identifier ident)
+        extern (D) static bool oneMembers(ref Dsymbols members, out Dsymbol ps, Identifier ident)
         {
             Dsymbol s = null;
             for (size_t i = 0; i < members.length; i++)
@@ -115,21 +115,21 @@ struct ASTBase
                 bool x = sx.oneMember(ps, ident);
                 if (!x)
                 {
-                    assert(*ps is null);
+                    assert(ps is null);
                     return false;
                 }
-                if (*ps)
+                if (ps)
                 {
                     assert(ident);
-                    if (!(*ps).ident || !(*ps).ident.equals(ident))
+                    if (!ps.ident || !ps.ident.equals(ident))
                         continue;
                     if (!s)
-                        s = *ps;
-                    else if (s.isOverloadable() && (*ps).isOverloadable())
+                        s = ps;
+                    else if (s.isOverloadable() && ps.isOverloadable())
                     {
                         // keep head of overload set
                         FuncDeclaration f1 = s.isFuncDeclaration();
-                        FuncDeclaration f2 = (*ps).isFuncDeclaration();
+                        FuncDeclaration f2 = ps.isFuncDeclaration();
                         if (f1 && f2)
                         {
                             for (; f1 != f2; f1 = f1.overnext0)
@@ -144,13 +144,13 @@ struct ASTBase
                     }
                     else // more than one symbol
                     {
-                        *ps = null;
+                        ps = null;
                         //printf("\tfalse 2\n");
                         return false;
                     }
                 }
             }
-            *ps = s;
+            ps = s;
             return true;
         }
 
@@ -928,7 +928,7 @@ struct ASTBase
             if (members && ident)
             {
                 Dsymbol s;
-                if (Dsymbol.oneMembers(*members, &s, ident) && s)
+                if (Dsymbol.oneMembers(*members, s, ident) && s)
                 {
                     onemember = s;
                     s.parent = this;
@@ -6647,6 +6647,19 @@ struct ASTBase
         extern (D) this(const ref Loc loc)
         {
             super(loc, InitKind.void_);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class DefaultInitializer : Initializer
+    {
+        extern (D) this(const ref Loc loc)
+        {
+            super(loc, InitKind.default_);
         }
 
         override void accept(Visitor v)

@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -15,6 +15,8 @@
 class Expression;
 class Type;
 struct Scope;
+class FuncDeclaration;
+class ScopeDsymbol;
 
 bool genTypeInfo(Expression *e, const Loc &loc, Type *torig, Scope *sc);
 Type *getTypeInfoType(const Loc &loc, Type *t, Scope *sc, bool genObjCode = true);

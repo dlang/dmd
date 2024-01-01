@@ -1087,7 +1087,7 @@ bool openDebugInfo(IDiaDataSource* source, IDiaSession* session, IDiaSymbol* glo
 {
     wchar[MAX_PATH] exepath;
     DWORD len = GetModuleFileNameW(null, exepath.ptr, MAX_PATH);
-    len < MAX_PATH || assert("executable path too long");
+    len < MAX_PATH || assert(false, "executable path too long");
 
     HRESULT hr = CoInitialize(NULL);
 

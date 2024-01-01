@@ -1,7 +1,7 @@
 /**
  * A library in the OMF format, a legacy format for 32-bit Windows.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/libomf.d, _libomf.d)
@@ -36,6 +36,7 @@ extern (C++) Library LibOMF_factory()
 }
 
 private: // for the remainder of this module
+nothrow:
 
 enum LOG = false;
 
@@ -170,7 +171,7 @@ final class LibOMF : Library
 
     /*****************************************************************************/
 
-    void addSymbol(OmfObjModule* om, const(char)[] name, int pickAny = 0)
+    void addSymbol(OmfObjModule* om, const(char)[] name, int pickAny = 0) nothrow
     {
         assert(name.length == strlen(name.ptr));
         static if (LOG)
@@ -215,7 +216,7 @@ private:
             printf("LibMSCoff::scanObjModule(%s)\n", om.name.ptr);
         }
 
-        extern (D) void addSymbol(const(char)[] name, int pickAny)
+        extern (D) void addSymbol(const(char)[] name, int pickAny) nothrow
         {
             this.addSymbol(om, name, pickAny);
         }

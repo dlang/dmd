@@ -22,6 +22,16 @@ extern (C)
 		int x = void;
 	}
 	Foo abc();
+	union S
+	{
+		int x = void;
+	}
+	alias T = S;
+	/+enum int __DATE__ = 1+/;
+	/+enum int __TIME__ = 1+/;
+	/+enum int __TIMESTAMP__ = 1+/;
+	/+enum int __EOF__ = 1+/;
+	/+enum int __VENDOR__ = 1+/;
 }
 ---
  */
@@ -43,3 +53,19 @@ struct Foo {
 };
 
 struct Foo abc(void);
+
+// https://issues.dlang.org/show_bug.cgi?id=24276
+
+union S
+{
+     int x;
+};
+typedef S T;
+
+// https://issues.dlang.org/show_bug.cgi?id=24200
+
+#define __DATE__ 1
+#define __TIME__  1
+#define __TIMESTAMP__  1
+#define __EOF__  1
+#define __VENDOR__  1

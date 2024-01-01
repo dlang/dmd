@@ -1,7 +1,7 @@
 /**
  * A library in the COFF format, used on 32-bit and 64-bit Windows targets.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/libmscoff.d, _libmscoff.d)
@@ -49,6 +49,7 @@ public extern (C++) Library LibMSCoff_factory() @safe
 }
 
 private: // for the remainder of this module
+nothrow:
 
 enum LOG = false;
 
@@ -364,7 +365,7 @@ final class LibMSCoff : Library
 
     /*****************************************************************************/
 
-    void addSymbol(MSCoffObjModule* om, const(char)[] name, int pickAny = 0)
+    void addSymbol(MSCoffObjModule* om, const(char)[] name, int pickAny = 0) nothrow
     {
         static if (LOG)
         {
@@ -388,7 +389,7 @@ private:
             printf("LibMSCoff::scanObjModule(%s)\n", om.name.ptr);
         }
 
-        extern (D) void addSymbol(const(char)[] name, int pickAny)
+        extern (D) void addSymbol(const(char)[] name, int pickAny) nothrow
         {
             this.addSymbol(om, name, pickAny);
         }

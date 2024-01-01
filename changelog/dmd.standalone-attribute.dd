@@ -1,0 +1,32 @@
+Added `@standalone` for module constructors
+
+When two modules import each other and both have module constructors,
+druntime would throw an error because it can't determine which to run first.
+
+This could be circumvented by using `pragma(crt_constructor)` instead, but in C runtime constructors, druntime isn't initialized.
+Therefore the Garbage Collector can't be used in such constructors.
+
+`@standalone` is a new attribute that can be used to mark module constructors that run after druntime has been initialized,
+but do not depend on any other module constructors being run before it, so it will not cause a cyclic dependency error.
+It must be imported from `core.attribute`.
+
+The compiler doesn't verify that the module constructor truly doesn't depend on other variables being initialized, so it must be enforced manually.
+Because of this, they must be marked `@system` or `@trusted`.
+
+---
+import core.attribute : standalone;
+
+immutable int* x;
+
+@standalone @system shared static this()
+{
+    x = new int(10);
+}
+
+void main()
+{
+    assert(*x == 10);
+}
+---
+
+If possible, prefer to solve cyclic dependency errors by putting the offending module constructors into their own smaller modules instead of using `@standalone`.

@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/abi.html#name_mangling, Name Mangling)
  *
- * Copyright: Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors: Walter Bright, https://www.digitalmars.com
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dmangle.d, _dmangle.d)
@@ -152,6 +152,7 @@ import dmd.identifier;
 import dmd.mtype;
 import dmd.root.ctfloat;
 import dmd.common.outbuffer;
+import dmd.optimize;
 import dmd.root.aav;
 import dmd.root.string;
 import dmd.root.stringtable;
@@ -527,7 +528,7 @@ void mangleParameter(Parameter p, ref OutBuffer buf, ref Backref backref)
     if (stc & STC.return_)
         buf.writestring("Nk"); // return
 
-    switch (stc & (STC.IOR | STC.lazy_))
+    switch (stc & ((STC.IOR | STC.lazy_) & ~STC.constscoperef))
     {
     case 0:
         break;

@@ -1,7 +1,7 @@
 /**
  * Invoke the linker as a separate process.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/link.d, _link.d)
@@ -28,7 +28,7 @@ import dmd.root.env;
 import dmd.root.file;
 import dmd.root.filename;
 import dmd.common.outbuffer;
-import dmd.common.string;
+import dmd.common.smallbuffer;
 import dmd.root.rmem;
 import dmd.root.string;
 import dmd.utils;
@@ -1437,16 +1437,19 @@ int runProcessCollectStdout(const(wchar)* szCommand, ubyte[] buffer, void delega
 
     while (true)
     {
+        bSuccess = GetExitCodeProcess(piProcInfo.hProcess, &exitCode);
+        // flush pipe even if program finished
         DWORD dwlen = cast(DWORD)buffer.length;
-        bSuccess = PeekNamedPipe(hStdOutRead, buffer.ptr + bytesFilled, dwlen - bytesFilled, &bytesRead, &bytesAvailable, null);
+        if (bSuccess)
+            bSuccess = PeekNamedPipe(hStdOutRead, buffer.ptr + bytesFilled, dwlen - bytesFilled, &bytesRead, &bytesAvailable, null);
         if (bSuccess && bytesRead > 0)
             bSuccess = ReadFile(hStdOutRead, buffer.ptr + bytesFilled, dwlen - bytesFilled, &bytesRead, null);
         if (bSuccess && bytesRead > 0)
         {
             sink(buffer[0 .. bytesRead]);
+            continue; // keep on reading from pipe before returning
         }
 
-        bSuccess = GetExitCodeProcess(piProcInfo.hProcess, &exitCode);
         if (!bSuccess || exitCode != 259) //259 == STILL_ACTIVE
         {
             break;

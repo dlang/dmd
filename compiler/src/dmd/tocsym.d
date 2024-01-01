@@ -1,7 +1,7 @@
 /**
  * Convert a D symbol to a symbol the linker understands (with mangled name).
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _tocsym.d)
@@ -59,8 +59,6 @@ import dmd.backend.cgcv;
 import dmd.backend.symtab;
 import dmd.backend.ty;
 
-extern (C++):
-
 
 /*************************************
  * Helper
@@ -69,7 +67,7 @@ extern (C++):
 Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, SC sclass, type *t, const(char)* suffix)
 {
     //printf("Dsymbol::toSymbolX('%s')\n", prefix);
-    import dmd.common.string : SmallBuffer;
+    import dmd.common.smallbuffer : SmallBuffer;
     import dmd.common.outbuffer : OutBuffer;
 
     OutBuffer buf;
@@ -536,6 +534,10 @@ Symbol *toSymbol(Dsymbol s)
     scope ToSymbol v = new ToSymbol();
     s.accept(v);
     s.csym = v.result;
+
+    if (isDllImported(s))
+        s.csym.Sisym = createImport(s.csym, s.loc);
+
     return v.result;
 }
 
@@ -559,7 +561,12 @@ private Symbol *createImport(Symbol *sym, Loc loc)
     int idlen;
     if (target.os & Target.OS.Posix)
     {
-        error(loc, "could not generate import symbol for this platform");
+        error(loc, "could not generate import symbol `%s` for this platform", n);
+        fatal();
+    }
+    else if (target.os & Target.OS.Windows && sym.Stype.Tty & mTYthread)
+    {
+        error(loc, "cannot generate import symbol for thread local symbol `%s`", n);
         fatal();
     }
     else if (sym.Stype.Tmangle == mTYman_std && tyfunc(sym.Stype.Tty))
@@ -582,6 +589,8 @@ private Symbol *createImport(Symbol *sym, Loc loc)
     s.Stype = t;
     s.Sclass = SC.extern_;
     s.Sfl = FLextern;
+    s.Sflags |= SFLimported;
+
     return s;
 }
 
@@ -589,15 +598,11 @@ private Symbol *createImport(Symbol *sym, Loc loc)
  * Generate import symbol from symbol.
  */
 
-Symbol *toImport(Declaration ds)
+Symbol *toImport(Dsymbol ds)
 {
-    if (!ds.isym)
-    {
-        if (!ds.csym)
-            ds.csym = toSymbol(ds);
-        ds.isym = createImport(ds.csym, ds.loc);
-    }
-    return ds.isym;
+    if (!ds.csym)
+        toSymbol(ds);
+    return ds.csym.Sisym;
 }
 
 /*************************************
@@ -730,6 +735,8 @@ Symbol *toInitializer(AggregateDeclaration ad)
             s.Sflags |= SFLnodebug;
             if (sd)
                 s.Salignment = sd.alignment.isDefault() ? -1 : sd.alignment.get();
+            if (isDllImported(ad))
+                s.Sisym = createImport(s, ad.loc);
             ad.sinit = s;
         }
     }
@@ -745,6 +752,8 @@ Symbol *toInitializer(EnumDeclaration ed)
         auto s = toSymbolX(ed, "__init", SC.extern_, stag.Stype, "Z");
         s.Sfl = FLextern;
         s.Sflags |= SFLnodebug;
+        if (isDllImported(ed))
+            s.Sisym = createImport(s, ed.loc);
         ed.sinit = s;
     }
     return ed.sinit;
@@ -759,7 +768,7 @@ Symbol* toSymbol(StructLiteralExp sle)
 {
     //printf("toSymbol() %p.sym: %p\n", sle, sle.sym);
     if (sle.sym)
-        return sle.sym;
+        return cast(Symbol*)sle.sym;
     auto t = type_alloc(TYint);
     t.Tcount++;
     auto s = symbol_calloc("internal");
@@ -772,14 +781,14 @@ Symbol* toSymbol(StructLiteralExp sle)
     Expression_toDt(sle, dtb);
     s.Sdt = dtb.finish();
     outdata(s);
-    return sle.sym;
+    return cast(Symbol*)sle.sym;
 }
 
 Symbol* toSymbol(ClassReferenceExp cre)
 {
     //printf("toSymbol() %p.value.sym: %p\n", cre, cre.value.sym);
     if (cre.value.origin.sym)
-        return cre.value.origin.sym;
+        return cast(Symbol*)cre.value.origin.sym;
     auto t = type_alloc(TYint);
     t.Tcount++;
     auto s = symbol_calloc("internal");
@@ -793,7 +802,7 @@ Symbol* toSymbol(ClassReferenceExp cre)
     ClassReferenceExp_toInstanceDt(cre, dtb);
     s.Sdt = dtb.finish();
     outdata(s);
-    return cre.value.sym;
+    return cast(Symbol*)cre.value.sym;
 }
 
 /**************************************

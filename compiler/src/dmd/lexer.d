@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/lex.html, Lexical)
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/lexer.d, _lexer.d)
@@ -2008,23 +2008,17 @@ class Lexer
             case 'u':
                 dchar d1;
                 size_t idx;
-                auto msg = utf_decodeChar(str, idx, d1);
-                dchar d2 = 0;
-                if (idx < n && !msg)
-                    msg = utf_decodeChar(str, idx, d2);
-                if (msg)
-                    error(loc, "%.*s", cast(int)msg.length, msg.ptr);
-                else if (idx < n)
-                    error(loc, "max number of chars in 16 bit character literal is 2, had %d",
-                        cast(int)((n + 1) >> 1));
-                else if (d1 > 0x1_0000)
-                    error(loc, "%d does not fit in 16 bits", d1);
-                else if (d2 > 0x1_0000)
-                    error(loc, "%d does not fit in 16 bits", d2);
-                u = d1;
-                if (d2)
-                    u = (d1 << 16) | d2;
-                break;
+                while (idx < n)
+                {
+                    string msg = utf_decodeChar(str, idx, d1);
+                    if (msg)
+                        error(loc, "%.*s", cast(int)msg.length, msg.ptr);
+                }
+                if (d1 >= 0x1_0000)
+                    error(loc, "x%x does not fit in 16 bits", d1);
+                t.unsvalue = d1;
+                t.value = TOK.wcharLiteral; // C11 6.4.4.4-9
+                return;
 
             case 'U':
                 dchar d;
@@ -2035,8 +2029,9 @@ class Lexer
                 else if (idx < n)
                     error(loc, "max number of chars in 32 bit character literal is 1, had %d",
                         cast(int)((n + 3) >> 2));
-                u = d;
-                break;
+                t.unsvalue = d;
+                t.value = TOK.dcharLiteral; // C11 6.4.4.4-9
+                return;
 
             default:
                 assert(0);
@@ -3257,6 +3252,24 @@ class Lexer
     {
         scanloc.linnum = scanloc.linnum + 1;
         line = p;
+    }
+
+    /****************************
+     * Print the tokens from the current `token` to the end,
+     * while not advancing the parser forward.
+     * Useful for debugging.
+     */
+    void printRestOfTokens()
+    {
+        auto tk = &token;
+        while (1)
+        {
+            printf("%s ", (*tk).toChars());
+            if (tk.value == TOK.endOfFile || tk.value == TOK.endOfLine)
+                break;
+            tk = peek(tk);
+        }
+        printf("\n");
     }
 }
 

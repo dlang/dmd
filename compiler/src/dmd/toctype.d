@@ -1,7 +1,7 @@
 /**
  * Convert a D type to a type the backend understands.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/toctype.d, _toctype.d)
@@ -118,7 +118,7 @@ extern (C++) type* Type_toCtype(Type t)
     static type* visitFunction(TypeFunction t)
     {
         const nparams = t.parameterList.length;
-        import dmd.common.string : SmallBuffer;
+        import dmd.common.smallbuffer : SmallBuffer;
         type*[10] tmp = void;
         auto sb = SmallBuffer!(type*)(nparams, tmp[]);
         type*[] types = sb[];

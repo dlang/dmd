@@ -1,7 +1,7 @@
 /**
  * Encapsulate path and file names.
  *
- * Copyright: Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, https://www.digitalmars.com
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/root/filename.d, root/_filename.d)
@@ -37,7 +37,7 @@ version (Windows)
     import core.sys.windows.windef;
     import core.sys.windows.winnls;
 
-    import dmd.common.string : extendedPathThen;
+    import dmd.common.smallbuffer : extendedPathThen;
 
     extern (Windows) DWORD GetFullPathNameW(LPCWSTR, DWORD, LPWSTR, LPWSTR*) nothrow @nogc;
     extern (Windows) void SetLastError(DWORD) nothrow @nogc;
@@ -1177,7 +1177,7 @@ version(Windows)
      */
     private auto toWStringzThen(alias F)(const(char)[] str) nothrow
     {
-        import dmd.common.string : SmallBuffer, toWStringz;
+        import dmd.common.smallbuffer : SmallBuffer, toWStringz;
 
         if (!str.length) return F(""w.ptr);
 

@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/function.html#nothrow-functions, Nothrow Functions)
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/canthrow.d, _canthrow.d)
@@ -80,7 +80,8 @@ CT canThrow(Expression e, FuncDeclaration func, ErrorSink eSink)
                     if (!f.isDtorDeclaration())
                         errorSupplementalInferredAttr(f, 10, false, STC.nothrow_);
 
-                    e.checkOverriddenDtor(null, f, dd => dd.type.toTypeFunction().isnothrow, "not nothrow");
+                    import dmd.expressionsem : checkOverriddenDtor;
+                    f.checkOverriddenDtor(null, e.loc, dd => dd.type.toTypeFunction().isnothrow, "not nothrow");
                 }
                 else if (func)
                 {

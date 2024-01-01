@@ -1,7 +1,7 @@
 /**
  * Semantic analysis of initializers.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/initsem.d, _initsem.d)
@@ -24,6 +24,7 @@ import dmd.dinterpret;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
+import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
@@ -38,6 +39,7 @@ import dmd.init;
 import dmd.location;
 import dmd.mtype;
 import dmd.opover;
+import dmd.optimize;
 import dmd.statement;
 import dmd.target;
 import dmd.tokens;
@@ -105,6 +107,7 @@ Expression toAssocArrayLiteral(ArrayInitializer ai)
  */
 extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedInterpret needInterpret)
 {
+    //printf("initializerSemantic() tx: %p %s\n", tx, tx.toChars());
     Type t = tx;
 
     static Initializer err()
@@ -113,6 +116,12 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
     }
 
     Initializer visitVoid(VoidInitializer i)
+    {
+        i.type = t;
+        return i;
+    }
+
+    Initializer visitDefault(DefaultInitializer i)
     {
         i.type = t;
         return i;
@@ -190,7 +199,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
         uint length;
         const(uint) amax = 0x80000000;
         bool errors = false;
-        //printf("ArrayInitializer::semantic(%s), ai: %s %p\n", t.toChars(), i.toChars(), i);
+        //printf("ArrayInitializer::semantic(%s), ai: %s\n", t.toChars(), toChars(i));
         if (i.sem) // if semantic() already run
         {
             return i;
@@ -591,7 +600,17 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
 
     Initializer visitC(CInitializer ci)
     {
-        //printf("CInitializer::semantic() tx: %s t: %s ci: %s\n", (tx ? tx.toChars() : "".ptr), t.toChars(), ci.toChars());
+        //printf("CInitializer::semantic() tx: %s t: %s ci: %s\n", (tx ? tx.toChars() : "".ptr), t.toChars(), toChars(ci));
+        static if (0)
+            if (auto ts = tx.isTypeStruct())
+            {
+                import dmd.common.outbuffer;
+                OutBuffer buf;
+                HdrGenState hgs;
+                toCBuffer(ts.sym, buf, hgs);
+                printf("%s\n", buf.peekChars());
+            }
+
         /* Rewrite CInitializer into ExpInitializer, ArrayInitializer, or StructInitializer
          */
         t = t.toBasetype();
@@ -784,8 +803,6 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
         Loop1:
             for (size_t index = 0; index < ci.initializerList.length; )
             {
-                CInitializer cprev;
-             L1:
                 DesigInit di = ci.initializerList[index];
                 Designators* dlist = di.designatorList;
                 if (dlist)
@@ -813,14 +830,6 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                             continue Loop1;
                         }
                     }
-                    if (cprev)
-                    {
-                        /* The peeling didn't work, so unpeel it
-                         */
-                        ci = cprev;
-                        di = ci.initializerList[index];
-                        goto L2;
-                    }
                     error(ci.loc, "`.%s` is not a field of `%s`\n", id.toChars(), sd.toChars());
                     return err();
                 }
@@ -828,16 +837,55 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                 {
                     if (fieldi == nfields)
                         break;
-                    if (index == 0 && ci.initializerList.length == 1 && di.initializer.isCInitializer())
+
+                    auto ix = di.initializer;
+
+                    /* If a C initializer is wrapped in a C initializer, with no designators,
+                     * peel off the outer one
+                     */
+                    if (ix.isCInitializer())
                     {
-                        /* Try peeling off this set of { } and see if it works
-                         */
-                        cprev = ci;
-                        ci = di.initializer.isCInitializer();
-                        goto L1;
+                        CInitializer cix = ix.isCInitializer();
+                        if (cix.initializerList.length == 1)
+                        {
+                            DesigInit dix = cix.initializerList[0];
+                            if (!dix.designatorList)
+                            {
+                                Initializer inix = dix.initializer;
+                                if (inix.isCInitializer())
+                                    ix = inix;
+                            }
+                        }
                     }
 
-                L2:
+                    if (auto cix = ix.isCInitializer())
+                    {
+                        /* ImportC loses the structure from anonymous structs, but this is retained
+                         * by the initializer syntax. if a CInitializer has a Designator, it is probably
+                         * a nested anonymous struct
+                         */
+                        if (cix.initializerList.length)
+                        {
+                            DesigInit dix = cix.initializerList[0];
+                            Designators* dlistx = dix.designatorList;
+                            if (dlistx && (*dlistx).length == 1 && (*dlistx)[0].ident)
+                            {
+                                auto id = (*dlistx)[0].ident;
+                                foreach (k, f; sd.fields[])         // linear search for now
+                                {
+                                    if (f.ident == id)
+                                    {
+                                        fieldi = k;
+                                        si.addInit(id, dix.initializer);
+                                        ++fieldi;
+                                        ++index;
+                                        continue Loop1;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     VarDeclaration field;
                     while (1)   // skip field if it overlaps with previously seen fields
                     {
@@ -848,10 +896,11 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                         if (fieldi == nfields)
                             break;
                     }
+
                     auto tn = field.type.toBasetype();
                     auto tnsa = tn.isTypeSArray();
                     auto tns = tn.isTypeStruct();
-                    auto ix = di.initializer;
+
                     if (tnsa && ix.isExpInitializer())
                     {
                         ExpInitializer ei = ix.isExpInitializer();
@@ -990,7 +1039,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
         }
         else
         {
-            error(ci.loc, "unrecognized C initializer `%s`", toChars(ci));
+            error(ci.loc, "unrecognized C initializer `%s` for type `%s`", toChars(ci), t.toChars());
             return err();
         }
     }
@@ -1013,6 +1062,12 @@ Initializer inferType(Initializer init, Scope* sc)
     Initializer visitVoid(VoidInitializer i)
     {
         error(i.loc, "cannot infer type from void initializer");
+        return new ErrorInitializer();
+    }
+
+    Initializer visitDefault(DefaultInitializer i)
+    {
+        error(i.loc, "cannot infer type from default initializer");
         return new ErrorInitializer();
     }
 
@@ -1172,6 +1227,11 @@ extern (C++) Expression initializerToExpression(Initializer init, Type itype = n
     Expression visitVoid(VoidInitializer)
     {
         return null;
+    }
+
+    Expression visitDefault(DefaultInitializer di)
+    {
+        return di.type ? di.type.defaultInit(Loc.initial, isCfile) : null;
     }
 
     Expression visitError(ErrorInitializer)

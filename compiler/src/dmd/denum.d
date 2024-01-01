@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/enum.html, Enums)
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/denum.d, _denum.d)
@@ -83,33 +83,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         return ed;
     }
 
-    override void addMember(Scope* sc, ScopeDsymbol sds)
-    {
-        version (none)
-        {
-            printf("EnumDeclaration::addMember() %s\n", toChars());
-            for (size_t i = 0; i < members.length; i++)
-            {
-                EnumMember em = (*members)[i].isEnumMember();
-                printf("    member %s\n", em.toChars());
-            }
-        }
-        if (!isAnonymous())
-        {
-            ScopeDsymbol.addMember(sc, sds);
-        }
-
-        addEnumMembersToSymtab(this, sc, sds);
-    }
-
-    override void setScope(Scope* sc)
-    {
-        if (semanticRun > PASS.initial)
-            return;
-        ScopeDsymbol.setScope(sc);
-    }
-
-    override bool oneMember(Dsymbol* ps, Identifier ident)
+    override bool oneMember(out Dsymbol ps, Identifier ident)
     {
         if (isAnonymous())
             return Dsymbol.oneMembers(members, ps, ident);
@@ -124,19 +98,6 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
     override const(char)* kind() const
     {
         return "enum";
-    }
-
-    override Dsymbol search(const ref Loc loc, Identifier ident, int flags = SearchLocalsOnly)
-    {
-        //printf("%s.EnumDeclaration::search('%s')\n", toChars(), ident.toChars());
-        if (_scope)
-        {
-            // Try one last time to resolve this enum
-            dsymbolSemantic(this, _scope);
-        }
-
-        Dsymbol s = ScopeDsymbol.search(loc, ident, flags);
-        return s;
     }
 
     // is Dsymbol deprecated?

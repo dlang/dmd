@@ -2,7 +2,7 @@
  *
  * Not optimized for speed.
  *
- * Copyright: Copyright D Language Foundation 2022.
+ * Copyright: Copyright (C) 2022-2024 by The D Language Foundation, All Rights Reserved
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Authors:   Walter Bright
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/common/int128.d, root/_int128.d)

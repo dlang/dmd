@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -46,12 +46,9 @@ public:
     bool inuse(bool v);
 
     EnumDeclaration *syntaxCopy(Dsymbol *s) override;
-    void addMember(Scope *sc, ScopeDsymbol *sds) override;
-    void setScope(Scope *sc) override;
-    bool oneMember(Dsymbol **ps, Identifier *ident) override;
+    bool oneMember(Dsymbol *&ps, Identifier *ident) override;
     Type *getType() override;
     const char *kind() const override;
-    Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly) override;
     bool isDeprecated() const override;       // is Dsymbol deprecated?
     Visibility visible() override;
     bool isSpecial() const;

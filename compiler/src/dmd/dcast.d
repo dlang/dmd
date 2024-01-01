@@ -1,7 +1,7 @@
 /**
  * Semantic analysis for cast-expressions.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dcast.d, _dcast.d)
@@ -24,6 +24,7 @@ import dmd.dinterpret;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
+import dmd.dsymbolsem;
 import dmd.errors;
 import dmd.escape;
 import dmd.expression;
@@ -38,6 +39,7 @@ import dmd.init;
 import dmd.intrange;
 import dmd.mtype;
 import dmd.opover;
+import dmd.optimize;
 import dmd.root.ctfloat;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
@@ -67,7 +69,6 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
     Expression visit(Expression e)
     {
         // printf("Expression.implicitCastTo(%s of type %s) => %s\n", e.toChars(), e.type.toChars(), t.toChars());
-
         if (const match = (sc && sc.flags & SCOPE.Cfile) ? e.cimplicitConvTo(t) : e.implicitConvTo(t))
         {
             // no need for an extra cast when matching is exact
@@ -801,8 +802,8 @@ extern(C++) MATCH implicitConvTo(Expression e, Type t)
 
             return result;
         }
-        else if (tb.ty == Tvector && (typeb.ty == Tarray || typeb.ty == Tsarray))
-        {
+        else if (tb.ty == Tvector && (typeb.ty == Tarray || typeb.ty == Tsarray || typeb.ty == Tpointer))
+        {   // Tpointer because ImportC eagerly converts Tsarray to Tpointer
             result = MATCH.exact;
             // Convert array literal to vector type
             TypeVector tv = tb.isTypeVector();
@@ -1486,6 +1487,10 @@ MATCH cimplicitConvTo(Expression e, Type t)
 
     if (tb.equals(typeb))
         return MATCH.exact;
+
+    if (tb.isTypeVector() || typeb.isTypeVector())
+        return implicitConvTo(e, t);    // permissive checking doesn't apply to vectors
+
     if ((typeb.isintegral() || typeb.isfloating()) &&
         (tb.isintegral() || tb.isfloating()))
         return MATCH.convert;
@@ -2297,9 +2302,10 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 ae.type = tp;
             }
         }
-        else if (tb.ty == Tvector && (typeb.ty == Tarray || typeb.ty == Tsarray))
+        else if (tb.ty == Tvector && (typeb.ty == Tarray || typeb.ty == Tsarray || typeb.ty == Tpointer))
         {
             // Convert array literal to vector type
+            // The Tpointer case comes from C eagerly converting Tsarray to Tpointer
             TypeVector tv = tb.isTypeVector();
             TypeSArray tbase = tv.basetype.isTypeSArray();
             assert(tbase.ty == Tsarray);

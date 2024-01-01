@@ -4,7 +4,7 @@
  * Specification: $(LINK2 https://dlang.org/spec/struct.html, Structs, Unions),
  *                $(LINK2 https://dlang.org/spec/class.html, Class).
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/aggregate.d, _aggregate.d)
@@ -65,7 +65,7 @@ enum ClassKind : ubyte
  * Returns:
  *     0-terminated string for `c`
  */
-const(char)* toChars(ClassKind c) @safe
+const(char)* ClassKindToChars(ClassKind c) @safe
 {
     final switch (c)
     {
@@ -176,16 +176,6 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         sc2.userAttribDecl = null;
         sc2.namespace = null;
         return sc2;
-    }
-
-    override final void setScope(Scope* sc)
-    {
-        // Might need a scope to resolve forward references. The check for
-        // semanticRun prevents unnecessary setting of _scope during deferred
-        // setScope phases for aggregates which already finished semantic().
-        // See https://issues.dlang.org/show_bug.cgi?id=16607
-        if (semanticRun < PASS.semanticdone)
-            ScopeDsymbol.setScope(sc);
     }
 
     /***************************************
@@ -663,7 +653,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
      */
     extern (D) final Dsymbol searchCtor()
     {
-        auto s = search(Loc.initial, Id.ctor);
+        auto s = this.search(Loc.initial, Id.ctor);
         if (s)
         {
             if (!(s.isCtorDeclaration() ||

@@ -50,6 +50,17 @@ void test3()
 }
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=24264
+// EXTRA_SOURCES: imports/ccov2.c
+
+import ccov2;
+
+int test24264()
+{
+    return def();
+}
+
+/***************************************************/
 
 int main(string[] args)
 {
@@ -57,5 +68,6 @@ int main(string[] args)
     test1();
     test2();
     test3();
+    test24264();
     return 0;
 }

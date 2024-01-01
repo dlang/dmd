@@ -33,6 +33,7 @@
 #define __attribute __attribute__
 #define __alignof _Alignof
 #define __vector_size__ vector_size
+#define __typeof typeof
 
 /********************
  * Clang nullability extension used by macOS headers.
@@ -59,6 +60,11 @@
 #define __int16 short
 #define __int32 int
 #define __int64 long long
+
+/* Linux builtin types */
+typedef unsigned short __uint16_t;
+typedef unsigned int __uint32_t;
+typedef unsigned long long __uint64_t;
 
 /*********************
  * Obsolete detritus
@@ -153,9 +159,9 @@
 
 #ifndef __aarch64__
 #define _Float32 float
-#define _Float32x float
+#define _Float32x double
 #define _Float64 double
-#define _Float64x double
+#define _Float64x long double
 #define _Float128 long double
 #define __float128 long double
 #endif

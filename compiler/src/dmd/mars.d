@@ -4,7 +4,7 @@
  * utilities needed for arguments parsing, path manipulation, etc...
  * This file is not shared with other compilers which use the DMD front-end.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/mars.d, _mars.d)
@@ -375,6 +375,8 @@ void setDefaultLibrary(ref Param params, const ref Target target)
 
     if (driverParams.debuglibname is null)
         driverParams.debuglibname = driverParams.defaultlibname;
+    else if (!driverParams.debuglibname.length)  // if `-debuglib=` (i.e. an empty debuglib)
+        driverParams.debuglibname = null;
 }
 
 void printPredefinedVersions(FILE* stream)
@@ -787,6 +789,44 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (arg == "-shared")
             driverParams.dll = true;
+        else if (startsWith(p + 1, "visibility="))
+        {
+            const(char)[] vis = arg["-visibility=".length .. $];
+
+            switch (vis)
+            {
+                case "default":
+                    driverParams.exportVisibility = ExpVis.default_;
+                    break;
+                case "hidden":
+                    driverParams.exportVisibility = ExpVis.hidden;
+                    break;
+                case "public":
+                    driverParams.exportVisibility = ExpVis.public_;
+                    break;
+                default:
+                    error("unknown visibility '%.*s', must be 'default', 'hidden' or 'public'", cast(int) vis.length, vis.ptr);
+            }
+        }
+        else if (startsWith(p + 1, "dllimport="))
+        {
+            const(char)[] imp = arg["-dllimport=".length .. $];
+
+            switch (imp)
+            {
+                case "none":
+                    driverParams.symImport = SymImport.none;
+                    break;
+                case "defaultLibsOnly":
+                    driverParams.symImport = SymImport.defaultLibsOnly;
+                    break;
+                case "all":
+                    driverParams.symImport = SymImport.all;
+                    break;
+                default:
+                    error("unknown dllimport '%.*s', must be 'none', 'defaultLibsOnly' or 'all'", cast(int) imp.length, imp.ptr);
+            }
+        }
         else if (arg == "-fIBT")
         {
             driverParams.ibt = true;

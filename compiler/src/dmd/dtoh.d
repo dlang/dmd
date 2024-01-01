@@ -2,7 +2,7 @@
  * This module contains the implementation of the C++ header generation available through
  * the command line switch -Hc.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dtohd, _dtoh.d)
@@ -20,6 +20,7 @@ import dmd.astenums;
 import dmd.arraytypes;
 import dmd.attrib;
 import dmd.dsymbol;
+import dmd.dsymbolsem;
 import dmd.errors;
 import dmd.globals;
 import dmd.hdrgen;
@@ -3283,7 +3284,7 @@ ASTCodegen.Dsymbol symbolFromType(ASTCodegen.Type t) @safe
  */
 ASTCodegen.Dsymbol findMember(ASTCodegen.Dsymbol sym, Identifier name)
 {
-    if (auto mem = sym.search(Loc.initial, name, ASTCodegen.IgnoreErrors))
+    if (auto mem = sym.search(Loc.initial, name, ASTCodegen.SearchOpt.ignoreErrors))
         return mem;
 
     // search doesn't work for declarations inside of uninstantiated

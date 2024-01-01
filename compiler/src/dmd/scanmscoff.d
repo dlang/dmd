@@ -1,7 +1,7 @@
 /**
  * Extract symbols from a COFF object file.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/scanmscoff.d, _scanmscoff.d)
@@ -19,6 +19,8 @@ import dmd.root.string;
 import dmd.errorsink;
 import dmd.location;
 
+nothrow:
+
 private enum LOG = false;
 
 /*****************************************
@@ -31,7 +33,7 @@ private enum LOG = false;
  *      loc =         location to use for error printing
  *      eSink =       where the error messages go
  */
-void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
+void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) nothrow pAddSymbol,
         scope const ubyte[] base, const char* module_name, Loc loc, ErrorSink eSink)
 {
     static if (LOG)

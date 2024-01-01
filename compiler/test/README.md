@@ -204,6 +204,7 @@ Valid platforms:
 Valid models:
 - 32
 - 32mscoff  (windows only)
+- 32omf  (windows only)
 - 64
 
 Note that test parameters *MUST* be followed by a colon (intermediate whitespace is allowed).
@@ -423,7 +424,7 @@ depend on the current platform and target:
 
                     Supported conditions:
                     - OS: posix, windows, ...
-                    - Model: 64, 32mscoff and 32 (also matches 32mscoff)
+                    - Model: 64, 32mscoff, 32omf and 32 (also matches 32mscoff + 32omf)
 
     $r:<regex>$     any text matching <regex> (using $ inside of <regex> is not
                     supported, use multiple regexes instead)

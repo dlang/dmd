@@ -6,7 +6,7 @@
  * utilities needed for arguments parsing, path manipulation, etc...
  * This file is not shared with other compilers which use the DMD front-end.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/main.d, _main.d)
@@ -448,7 +448,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
                 message("import    %s", m.toChars());
 
             buf.reset();         // reuse the buffer
-            genhdrfile(m, buf);
+            genhdrfile(m, params.dihdr.fullOutput, buf);
             if (!writeFile(m.loc, m.hdrfile.toString(), buf[]))
                 fatal();
         }
@@ -589,7 +589,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         {
             auto buf = OutBuffer();
             buf.doindent = 1;
-            moduleToBuffer(buf, mod);
+            moduleToBuffer(buf, params.vcg_ast, mod);
 
             // write the output to $(filename).cg
             auto cgFilename = FileName.addExt(mod.srcfile.toString(), "cg");

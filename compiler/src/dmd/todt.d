@@ -2,7 +2,7 @@
  * Put initializers and objects created from CTFE into a `dt_t` data structure
  * so the backend puts them into the data segment.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/todt.d, _todt.d)
@@ -38,6 +38,7 @@ import dmd.glue;
 import dmd.init;
 import dmd.location;
 import dmd.mtype;
+import dmd.optimize;
 import dmd.target;
 import dmd.tokens;
 import dmd.tocsym;
@@ -202,6 +203,13 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb, bool isC
         /* Should have been rewritten to Exp/Struct/ArrayInitializer by semantic()
          */
         assert(0);
+    }
+
+    void visitDefault(DefaultInitializer di)
+    {
+        /* Default initializers are set to 0, because C23 says so
+         */
+        dtb.nzeros(cast(uint)di.type.size());
     }
 
     mixin VisitInitializer!void visit;

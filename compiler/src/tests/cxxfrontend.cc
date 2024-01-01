@@ -280,12 +280,12 @@ void test_semantic()
     m->src = src;
     m->parse();
     m->importedFrom = m;
-    m->importAll(NULL);
+    importAll(m, NULL);
     dsymbolSemantic(m, NULL);
     semantic2(m, NULL);
     semantic3(m, NULL);
 
-    Dsymbol *s = m->search(Loc(), Identifier::idPool("Error"));
+    Dsymbol *s = search(m, Loc(), Identifier::idPool("Error"));
     assert(s);
     AggregateDeclaration *ad = s->isAggregateDeclaration();
     assert(ad && ad->ctor && ad->sizeok == Sizeok::done);
@@ -496,12 +496,12 @@ void test_cppmangle()
     m->src = src;
     m->parse();
     m->importedFrom = m;
-    m->importAll(NULL);
+    importAll(m, NULL);
     dsymbolSemantic(m, NULL);
     semantic2(m, NULL);
     semantic3(m, NULL);
 
-    Dsymbol *s = m->search(Loc(), Identifier::idPool("Derived"));
+    Dsymbol *s = search(m, Loc(), Identifier::idPool("Derived"));
     assert(s);
     ClassDeclaration *cd = s->isClassDeclaration();
     assert(cd && cd->sizeok == Sizeok::done);
@@ -1179,7 +1179,7 @@ public:
                 if (mi->needmoduleinfo)
                     mi->accept(this);
             }
-            (void)d->findGetMembers();
+            (void)findGetMembers(d);
             (void)d->sctor;
             (void)d->sdtor;
             (void)d->ssharedctor;

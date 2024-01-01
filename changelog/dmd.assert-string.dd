@@ -1,0 +1,18 @@
+A string literal as an assert condition is deprecated
+
+Boolean evaluation of a string literal could happen unintentionally
+e.g. when an `assert(0, "message")` was meant and the `0` was missing.
+
+```d
+assert("unexpected runtime condition");
+static assert("unhandled case for `", T, "`");
+```
+
+The 2 asserts would silently always have no effect.
+Now these cases will be detected with deprecation messages.
+If the original behaviour was actually intended, use `expr !is null` instead:
+
+```d
+assert("" !is null);
+static assert("" !is null);
+```

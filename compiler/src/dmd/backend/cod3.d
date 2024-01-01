@@ -10,7 +10,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cod3.d, backend/cod3.d)
@@ -1694,7 +1694,7 @@ void doswitch(ref CodeBuilder cdb, block *b)
 
         // Put into casevals[0..ncases] so we can sort then slice
 
-        import dmd.common.string : SmallBuffer;
+        import dmd.common.smallbuffer : SmallBuffer;
         CaseVal[10] tmp = void;
         auto sb = SmallBuffer!(CaseVal)(ncases, tmp[]);
         CaseVal[] casevals = sb[];

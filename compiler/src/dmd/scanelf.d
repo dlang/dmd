@@ -1,7 +1,7 @@
 /**
  * Extract symbols from an ELF object file.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/scanelf.d, _scanelf.d)
@@ -18,6 +18,8 @@ import core.checkedint;
 import dmd.errorsink;
 import dmd.location;
 
+nothrow:
+
 enum LOG = false;
 
 /*****************************************
@@ -30,8 +32,8 @@ enum LOG = false;
  *      loc =         location to use for error printing
  *      eSink =       where the error messages go
  */
-void scanElfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
-        const(ubyte)[] base, const(char)* module_name, Loc loc, ErrorSink eSink)
+void scanElfObjModule(void delegate(const(char)[] name, int pickAny) nothrow pAddSymbol,
+        scope const ubyte[] base, const char* module_name, Loc loc, ErrorSink eSink)
 {
     static if (LOG)
     {
@@ -63,7 +65,7 @@ void scanElfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
         return eSink.error(loc, "ELF object module `%s` is unrecognized class %d", module_name, base[EI_CLASS]);
     }
 
-    void scanELF(uint model)()
+    void scanELF(uint model)() nothrow
     {
         static if (model == 32)
         {

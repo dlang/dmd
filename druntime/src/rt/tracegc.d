@@ -17,8 +17,6 @@ module rt.tracegc;
 
 // version = tracegc;
 
-extern (C) void[] _d_newarraymTX(const TypeInfo ti, size_t[] dims);
-extern (C) void[] _d_newarraymiTX(const TypeInfo ti, size_t[] dims);
 extern (C) void _d_callfinalizer(void* p);
 extern (C) void _d_callinterfacefinalizer(void *p);
 extern (C) void _d_delclass(Object* p);

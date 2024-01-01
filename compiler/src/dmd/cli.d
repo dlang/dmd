@@ -5,7 +5,7 @@
  * However, this file will be used to generate the
  * $(LINK2 https://dlang.org/dmd-linux.html, online documentation) and MAN pages.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/cli.d, _cli.d)
@@ -336,6 +336,15 @@ dmd -cov -unittest myprog.d
             With $(I filename), write module dependencies as text to $(I filename)
             (only imports).`,
         ),
+        Option("dllimport=<value>",
+            "Windows only: select symbols to dllimport (none/defaultLibsOnly/all)",
+            `Which global variables to dllimport implicitly if not defined in a root module
+            $(UL
+                $(LI $(I none): None)
+                $(LI $(I defaultLibsOnly): Only druntime/Phobos symbols)
+                $(LI $(I all): All)
+            )`,
+        ),
         Option("extern-std=<standard>",
             "set C++ name mangling compatibility with <standard>",
             "Standards supported are:
@@ -459,7 +468,7 @@ dmd -cov -unittest myprog.d
              $(P Note that multiple `-i=...` options are allowed, each one adds a pattern.)}"
         ),
         Option("ignore",
-            "ignore unsupported pragmas"
+            "deprecated flag, unsupported pragmas are always ignored now"
         ),
         Option("inline",
             "do function inlining",
@@ -811,6 +820,14 @@ dmd -cov -unittest myprog.d
         ),
         Option("vgc",
             "list all gc allocations including hidden ones"
+        ),
+        Option("visibility=<value>",
+            "default visibility of symbols (default/hidden/public)",
+            "$(UL
+               $(LI $(I default): Hidden for Windows targets without -shared, otherwise public)
+               $(LI $(I hidden):  Only export symbols marked with 'export')
+               $(LI $(I public):  Export all symbols)
+            )",
         ),
         Option("vtls",
             "list all variables going into thread local storage"

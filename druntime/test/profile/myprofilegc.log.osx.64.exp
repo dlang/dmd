@@ -1,11 +1,13 @@
 bytes allocated, allocations, type, function, file:line
             496	              1	immutable(char)[][int] D main src/profilegc.d:23
-            160	              1	float[][] D main src/profilegc.d:18
-            160	              1	int[][] D main src/profilegc.d:15
+            160	              1	float D main src/profilegc.d:18
+            160	              1	int D main src/profilegc.d:15
              64	              1	double[] profilegc.main src/profilegc.d:56
              48	              1	float[] D main src/profilegc.d:42
              48	              1	int[] D main src/profilegc.d:41
              32	              1	C D main src/profilegc.d:12
+             32	              1	ulong[] D main src/profilegc.d:15
+             32	              1	ulong[] D main src/profilegc.d:18
              32	              1	void[] profilegc.main src/profilegc.d:55
              16	              1	char[] D main src/profilegc.d:34
              16	              1	char[] D main src/profilegc.d:36

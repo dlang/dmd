@@ -576,7 +576,7 @@ alias dmdPGO = makeRule!((builder, rule) {
             // Run phobos unittests
             //TODO makefiles
             //generated/linux/release/64/unittest/test_runner builds the unittests without running them.
-            const scope cmd = ["make", "-C", "../phobos", "-j" ~ jobs.to!string, "-fposix.mak", "generated/linux/release/64/unittest/test_runner", "DMD_DIR="~compilerDir];
+            const scope cmd = ["make", "-C", "../phobos", "-j" ~ jobs.to!string, "generated/linux/release/64/unittest/test_runner", "DMD_DIR="~compilerDir];
             log("%-(%s %)", cmd);
             if (spawnProcess(cmd, null, Config.init, compilerDir).wait())
                 stderr.writeln("Phobos Tests failed! This will not end the PGO build because some data may have been gathered");
@@ -1497,7 +1497,7 @@ string detectHostCxx()
 alias allRepoSources = memoize!(() => srcDir.dirEntries("*.{d,h,di}", SpanMode.depth).map!(e => e.name).array);
 
 /// Returns: all make/build files
-alias buildFiles = memoize!(() => "win32.mak posix.mak osmodel.mak build.d".split().map!(e => srcDir.buildPath(e)).array);
+alias buildFiles = memoize!(() => "osmodel.mak build.d".split().map!(e => srcDir.buildPath(e)).array);
 
 /// Returns: all sources used in the build
 alias allBuildSources = memoize!(() => buildFiles
@@ -1576,7 +1576,7 @@ auto sourceFiles()
             stringtable.d utf.d
         "),
         common: fileArray(env["COMMON"], "
-            bitfields.d file.d int128.d outbuffer.d string.d
+            bitfields.d file.d int128.d outbuffer.d smallbuffer.d
         "),
         commonHeaders: fileArray(env["COMMON"], "
             outbuffer.h

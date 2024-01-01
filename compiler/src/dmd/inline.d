@@ -4,7 +4,7 @@
  * The AST is traversed, and every function call is considered for inlining using `inlinecost.d`.
  * The function call is then inlined if this cost is below a threshold.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/inline.d, _inline.d)
@@ -669,7 +669,6 @@ public:
                 memcpy(cast(void*)vto, cast(void*)vd, __traits(classInstanceSize, VarDeclaration));
                 vto.parent = ids.parent;
                 vto.csym = null;
-                vto.isym = null;
 
                 ids.from.push(vd);
                 ids.to.push(vto);
@@ -727,7 +726,7 @@ public:
             auto lowering = ne.lowering;
             if (lowering)
                 if (auto ce = lowering.isCallExp())
-                    if (ce.f.ident == Id._d_newarrayT)
+                    if (ce.f.ident == Id._d_newarrayT || ce.f.ident == Id._d_newarraymTX)
                     {
                         ne.lowering = doInlineAs!Expression(lowering, ids);
                         goto LhasLowering;
@@ -845,7 +844,6 @@ public:
                 memcpy(cast(void*)vto, cast(void*)vd, __traits(classInstanceSize, VarDeclaration));
                 vto.parent = ids.parent;
                 vto.csym = null;
-                vto.isym = null;
 
                 ids.from.push(vd);
                 ids.to.push(vto);
@@ -874,7 +872,6 @@ public:
                 memcpy(cast(void*)vto, cast(void*)vd, __traits(classInstanceSize, VarDeclaration));
                 vto.parent = ids.parent;
                 vto.csym = null;
-                vto.isym = null;
 
                 ids.from.push(vd);
                 ids.to.push(vto);
@@ -2210,9 +2207,10 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
         auto e = doInlineAs!Expression(fd.fbody, ids);
         fd.inlineNest--;
 
+        import dmd.expressionsem : toLvalue;
         // https://issues.dlang.org/show_bug.cgi?id=11322
         if (tf.isref)
-            e = e.toLvalue(null, null);
+            e = e.toLvalue(null, "`ref` return");
 
         /* If the inlined function returns a copy of a struct,
          * and then the return value is used subsequently as an

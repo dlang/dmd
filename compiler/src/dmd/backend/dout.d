@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/out.d, backend/out.d)
@@ -499,6 +499,8 @@ void outcommon(Symbol *s,targ_size_t n)
 @trusted
 void out_readonly(Symbol *s)
 {
+    if (config.flags2 & CFG2noreadonly)
+        return;
     if (config.objfmt == OBJ_ELF || config.objfmt == OBJ_MACH)
     {
         /* Cannot have pointers in CDATA when compiling PIC code, because
