@@ -158,7 +158,15 @@ void atomicStore(MemoryOrder ms = MemoryOrder.seq, T, V)(ref shared T val, V new
         static assert(!hasUnsharedIndirections!V, "Copying argument `" ~ V.stringof ~ " newval` to `" ~ shared(T).stringof ~ " here` would violate shared.");
         alias Thunk = V;
     }
-    atomicStore!ms(*cast(T*)&val, *cast(Thunk*)&newval);
+
+    static if (__traits(isFloating, T))
+    {
+        alias IntTy = IntForFloat!T;
+        alias IntTz = IntForFloat!Thunk;
+        core.internal.atomic.atomicStore!ms(cast(IntTy*)&val, *cast(IntTz*)&newval);
+    }
+    else
+        core.internal.atomic.atomicStore!ms(cast(T*)&val, *cast(Thunk*)&newval);
 }
 
 /// Ditto
