@@ -5115,7 +5115,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 tb = tb.isTypeDArray().next.toBasetype();
             }
 
-            if (global.params.betterC || !sc.needsCodegen())
+            if (!global.params.useGC || !sc.needsCodegen())
                     goto LskipNewArrayLowering;
 
             /* Class types may inherit base classes that have errors.
