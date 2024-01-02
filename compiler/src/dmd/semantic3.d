@@ -231,8 +231,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             if (sc.flags & SCOPE.Cfile && funcdecl.isCMain() && f.next.ty == Tint32)
                 return true;
 
-            return f.next.ty == Tvoid &&
-                (funcdecl.isMain() || global.params.betterC && funcdecl.isCMain());
+            return f.next.ty == Tvoid && (funcdecl.isMain() || funcdecl.isCMain());
         }
 
         VarDeclaration _arguments = null;
