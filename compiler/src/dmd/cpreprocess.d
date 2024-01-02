@@ -15,6 +15,7 @@ module dmd.cpreprocess;
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
+import core.stdc.string;
 
 import dmd.errors;
 import dmd.globals;
@@ -27,6 +28,7 @@ import dmd.common.outbuffer;
 
 import dmd.root.array;
 import dmd.root.filename;
+import dmd.root.rmem;
 import dmd.root.string;
 
 // Use default for other versions
@@ -42,7 +44,7 @@ version (Windows) version = runPreprocessor;
  *      ifile = set to true if an output file was written
  *      defines = buffer to append any `#define` and `#undef` lines encountered to
  * Result:
- *      filename of output
+ *      filename of preprocessed output
  */
 extern (C++)
 FileName preprocess(FileName csrcfile, ref const Loc loc, out bool ifile, OutBuffer* defines)
@@ -82,10 +84,10 @@ FileName preprocess(FileName csrcfile, ref const Loc loc, out bool ifile, OutBuf
            To get the dmc C headers, dmc will need to be installed:
            http://ftp.digitalmars.com/Digital_Mars_C++/Patch/dm857c.zip
          */
-        const name = FileName.name(csrcfile.toString());
-        const ext = FileName.ext(name);
-        assert(ext);
-        const ifilename = FileName.addExt(name[0 .. name.length - (ext.length + 1)], i_ext);
+        const(char)* tmpname = tmpnam(null);        // generate unique temporary file name for preprocessed output
+        assert(tmpname);
+        const(char)[] ifilename = tmpname[0 .. strlen(tmpname) + 1];
+        ifilename = xarraydup(ifilename);
         const command = global.params.cpp ? toDString(global.params.cpp) : cppCommand();
         auto status = runPreprocessor(command, csrcfile.toString(), importc_h, global.params.cppswitches, ifilename, defines);
         if (status)
