@@ -5115,7 +5115,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 tb = tb.isTypeDArray().next.toBasetype();
             }
 
-            if (global.params.betterC || !sc.needsCodegen())
+            if (!global.params.useGC && sc.needsCodegen())
+            {
+                version(IN_GCC)
+                    error(exp.loc, "expression `%s` allocates with the GC and cannot be used with switch `-fno-rtti`", exp.toChars());
+                else
+                    error(exp.loc, "expression `%s` allocates with the GC and cannot be used with switch `-betterC`", exp.toChars());
+                return setError();
+            }
+
+            if (!sc.needsCodegen())
                     goto LskipNewArrayLowering;
 
             /* Class types may inherit base classes that have errors.
