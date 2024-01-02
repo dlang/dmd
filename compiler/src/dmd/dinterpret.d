@@ -6237,6 +6237,11 @@ public:
         {
             if (soe.offset == 0 && soe.var.isFuncDeclaration())
                 return;
+            if (soe.offset == 0 && soe.var.isVarDeclaration() && soe.var.isImmutable())
+            {
+                result = getVarExp(e.loc, istate, soe.var, CTFEGoal.RValue);
+                return;
+            }
             error(e.loc, "cannot dereference pointer to static variable `%s` at compile time", soe.var.toChars());
             result = CTFEExp.cantexp;
             return;
