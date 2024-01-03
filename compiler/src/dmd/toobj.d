@@ -245,6 +245,7 @@ void write_pointers(Type type, Symbol *s, uint offset)
 */
 void write_instance_pointers(Type type, Symbol *s, uint offset)
 {
+    import dmd.typesem : hasPointers;
     if (!type.hasPointers())
         return;
 

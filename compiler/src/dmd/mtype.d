@@ -2189,16 +2189,6 @@ extern (C++) abstract class Type : ASTNode
         return mod & MODFlags.wild;
     }
 
-    /***************************************
-     * Return !=0 if type has pointers that need to
-     * be scanned by the GC during a collection cycle.
-     */
-    bool hasPointers()
-    {
-        //printf("Type::hasPointers() %s, %d\n", toChars(), ty);
-        return false;
-    }
-
     /*************************************
      * Detect if type has pointer fields that are initialized to void.
      * Local stack variables with such void fields can remain uninitialized,
@@ -3531,24 +3521,6 @@ extern (C++) final class TypeSArray : TypeArray
         return ae;
     }
 
-    override bool hasPointers()
-    {
-        /* Don't want to do this, because:
-         *    struct S { T* array[0]; }
-         * may be a variable length struct.
-         */
-        //if (dim.toInteger() == 0)
-        //    return false;
-
-        if (next.ty == Tvoid)
-        {
-            // Arrays of void contain arbitrary data, which may include pointers
-            return true;
-        }
-        else
-            return next.hasPointers();
-    }
-
     override bool hasSystemFields()
     {
         return next.hasSystemFields();
@@ -3673,11 +3645,6 @@ extern (C++) final class TypeDArray : TypeArray
         return Type.implicitConvTo(to);
     }
 
-    override bool hasPointers()
-    {
-        return true;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -3730,11 +3697,6 @@ extern (C++) final class TypeAArray : TypeArray
     }
 
     override bool isBoolean()
-    {
-        return true;
-    }
-
-    override bool hasPointers()
     {
         return true;
     }
@@ -3873,11 +3835,6 @@ extern (C++) final class TypePointer : TypeNext
     }
 
     override bool isZeroInit(const ref Loc loc)
-    {
-        return true;
-    }
-
-    override bool hasPointers()
     {
         return true;
     }
@@ -4515,11 +4472,6 @@ extern (C++) final class TypeDelegate : TypeNext
         return true;
     }
 
-    override bool hasPointers()
-    {
-        return true;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -5098,15 +5050,6 @@ extern (C++) final class TypeStruct : Type
         return false;
     }
 
-    override bool hasPointers()
-    {
-        if (sym.members && !sym.determineFields() && sym.type != Type.terror)
-            error(sym.loc, "no size because of forward references");
-
-        sym.determineTypeProperties();
-        return sym.hasPointerField;
-    }
-
     override bool hasVoidInitPointers()
     {
         sym.size(Loc.initial); // give error for forward references
@@ -5395,11 +5338,6 @@ extern (C++) final class TypeEnum : Type
         return sym.getDefaultValue(loc).toBool().hasValue(false);
     }
 
-    override bool hasPointers()
-    {
-        return memType().hasPointers();
-    }
-
     override bool hasVoidInitPointers()
     {
         return memType().hasVoidInitPointers();
@@ -5586,11 +5524,6 @@ extern (C++) final class TypeClass : Type
     }
 
     override bool isBoolean()
-    {
-        return true;
-    }
-
-    override bool hasPointers()
     {
         return true;
     }
@@ -5834,14 +5767,6 @@ extern (C++) final class TypeNull : Type
         }
 
         return MATCH.nomatch;
-    }
-
-    override bool hasPointers()
-    {
-        /* Although null isn't dereferencable, treat it as a pointer type for
-         * attribute inference, generic code, etc.
-         */
-        return true;
     }
 
     override bool isBoolean()

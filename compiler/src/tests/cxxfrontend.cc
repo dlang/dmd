@@ -220,7 +220,7 @@ void test_visitors()
     assert(tv.stmt == true);
 
     TypePointer *tp = TypePointer::create(Type::tvoid);
-    assert(tp->hasPointers() == true);
+    assert(hasPointers(tp) == true);
     tp->accept(&tv);
     assert(tv.type == true);
 
