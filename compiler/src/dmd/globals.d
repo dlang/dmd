@@ -281,6 +281,8 @@ extern (C++) struct Global
     Array!(const(char)*)* path;         /// Array of char*'s which form the import lookup path
     Array!(const(char)*)* filePath;     /// Array of char*'s which form the file import lookup path
 
+    const(char)* importc_h;             /// full path of the file importc.h
+
     private enum string _version = import("VERSION");
     char[26] datetime;      /// string returned by ctime()
     CompileEnv compileEnv;
@@ -308,7 +310,7 @@ extern (C++) struct Global
     ErrorSink errorSink;       /// where the error messages go
     ErrorSink errorSinkNull;   /// where the error messages are ignored
 
-    extern (C++) FileName function(FileName, ref const Loc, out bool, OutBuffer*) preprocess;
+    extern (C++) FileName function(FileName, const(char)*, ref const Loc, out bool, ref OutBuffer) preprocess;
 
   nothrow:
 
