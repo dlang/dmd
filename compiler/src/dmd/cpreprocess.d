@@ -35,7 +35,6 @@ import dmd.root.string;
 version (Posix)   version = runPreprocessor;
 version (Windows) version = runPreprocessor;
 
-
 /***************************************
  * Preprocess C file.
  * Params:
@@ -50,20 +49,8 @@ extern (C++)
 FileName preprocess(FileName csrcfile, ref const Loc loc, out bool ifile, OutBuffer* defines)
 {
     /* Look for "importc.h" by searching along import path.
-     * It should be in the same place as "object.d"
      */
-    const(char)* importc_h;
-
-    foreach (entry; (global.path ? (*global.path)[] : null))
-    {
-        auto f = FileName.combine(entry, "importc.h");
-        if (FileName.exists(f) == 1)
-        {
-            importc_h = FileName.toAbsolute(f);
-            break;
-        }
-        FileName.free(f);
-    }
+    const(char)* importc_h = findImportcH(global.path ? (*global.path)[] : null);
 
     if (importc_h)
     {
@@ -104,6 +91,34 @@ FileName preprocess(FileName csrcfile, ref const Loc loc, out bool ifile, OutBuf
         return csrcfile;        // no-op
 }
 
+
+/***************************************
+ * Find importc.h by looking along the path
+ * Params:
+ *      path = import path
+ * Returns:
+ *      importc.h file name, null if not found
+ */
+const(char)* findImportcH(const(char)*[] path)
+{
+    /* Look for "importc.h" by searching along import path.
+     * It should be in the same place as "object.d"
+     */
+    foreach (entry; path)
+    {
+        auto f = FileName.combine(entry, "importc.h");
+        if (FileName.exists(f) == 1)
+        {
+            return FileName.toAbsolute(f);
+        }
+        FileName.free(f);
+    }
+    return null;
+}
+
+/******************************************
+ * Pick the C preprocessor program to run.
+ */
 private const(char)[] cppCommand()
 {
     if (auto p = getenv("CPPCMD"))
