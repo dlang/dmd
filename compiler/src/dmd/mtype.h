@@ -608,7 +608,6 @@ public:
     void purityLevel();
     bool hasLazyParameters();
     bool isDstyleVariadic() const;
-    StorageClass parameterStorageClass(Type* tthis, Parameter *p, VarDeclarations* outerVars = nullptr, bool indirect = false);
     Type *addStorageClass(StorageClass stc) override;
 
     Type *substWildTo(unsigned mod) override;
