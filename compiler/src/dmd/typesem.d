@@ -5295,7 +5295,7 @@ Type getComplexLibraryType(const ref Loc loc, Scope* sc, TY ty)
  * Returns:
  *     An enum value of either `Covariant.yes` or a reason it's not covariant.
  */
-Covariant covariant(Type src, Type t, StorageClass* pstc = null, bool cppCovariant = false)
+extern(C++) Covariant covariant(Type src, Type t, StorageClass* pstc = null, bool cppCovariant = false)
 {
     version (none)
     {

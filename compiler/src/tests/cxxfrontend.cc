@@ -1682,6 +1682,11 @@ void test_backend(FuncDeclaration *f, Type *t)
     f->fbody->accept(&v);
 }
 
+void link_test_typesem(Type *t1, Type *t2)
+{
+    covariant(t1, t2);
+}
+
 /**********************************/
 
 int main(int argc, char **argv)
