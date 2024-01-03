@@ -741,6 +741,8 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         return toCharsMaybeConstraints(false);
     }
 
+    // Note: this function is not actually `const`, because iterating the
+    // function parameter list may run dsymbolsemantic on enum types
     const(char)* toCharsMaybeConstraints(bool includeConstraints) const
     {
         OutBuffer buf;
@@ -761,6 +763,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             const FuncDeclaration fd = onemember.isFuncDeclaration();
             if (fd && fd.type)
             {
+                // !! Casts away const
                 TypeFunction tf = cast(TypeFunction)fd.type;
                 buf.writestring(parametersTypeToChars(tf.parameterList));
                 if (tf.mod)
@@ -1458,10 +1461,9 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
         ParameterList fparameters = fd.getParameterList(); // function parameter list
         const nfparams = fparameters.length; // number of function parameters
-        const nfargs = argumentList.length; // number of function arguments
         if (argumentList.hasNames)
             return matcherror(); // TODO: resolve named args
-        Expressions* fargs = argumentList.arguments; // TODO: resolve named args
+        Expression[] fargs = argumentList.arguments ? (*argumentList.arguments)[] : null;
 
         /* Check for match of function arguments with variadic template
          * parameter, such as:
@@ -1475,7 +1477,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             // TemplateTupleParameter always makes most lesser matching.
             matchTiargs = MATCH.convert;
 
-            if (nfparams == 0 && nfargs != 0) // if no function parameters
+            if (nfparams == 0 && argumentList.length != 0) // if no function parameters
             {
                 if (!declaredTuple)
                 {
@@ -1498,7 +1500,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     auto fparam = (*fparameters.parameters)[fptupindex]; // fparameters[fptupindex] ?
                     if (fparam.type.ty != Tident)
                         continue;
-                    TypeIdentifier tid = cast(TypeIdentifier)fparam.type;
+                    TypeIdentifier tid = fparam.type.isTypeIdentifier();
                     if (!tp.ident.equals(tid.ident) || tid.idents.length)
                         continue;
 
@@ -1576,7 +1578,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             //printf("%s\n\tnfargs = %d, nfparams = %d, tuple_dim = %d\n", toChars(), nfargs, nfparams, declaredTuple ? declaredTuple.objects.length : 0);
             //printf("\ttp = %p, fptupindex = %d, found = %d, declaredTuple = %s\n", tp, fptupindex, fptupindex != IDX_NOTFOUND, declaredTuple ? declaredTuple.toChars() : NULL);
             size_t argi = 0;
-            size_t nfargs2 = nfargs; // nfargs + supplied defaultArgs
+            size_t nfargs2 = fargs.length; // nfargs + supplied defaultArgs
             uint inoutMatch = 0; // for debugging only
             for (size_t parami = 0; parami < nfparams; parami++)
             {
@@ -1592,8 +1594,8 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                  */
                 if (fptupindex != IDX_NOTFOUND && parami == fptupindex)
                 {
-                    assert(prmtype.ty == Tident);
-                    TypeIdentifier tid = cast(TypeIdentifier)prmtype;
+                    TypeIdentifier tid = prmtype.isTypeIdentifier();
+                    assert(tid);
                     if (!declaredTuple)
                     {
                         /* The types of the function arguments
@@ -1606,7 +1608,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                          * void foo(U, T...)(int y, T, U, double, int bar = 0) {}  // rem == 2 (U, double)
                          */
                         size_t rem = 0;
-                        for (size_t j = parami + 1; j < nfparams; j++)
+                        foreach (j; parami + 1 .. nfparams)
                         {
                             Parameter p = fparameters[j];
                             if (p.defaultArg)
@@ -1616,7 +1618,10 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                             if (!reliesOnTemplateParameters(p.type, (*parameters)[inferStart .. parameters.length]))
                             {
                                 Type pt = p.type.syntaxCopy().typeSemantic(fd.loc, paramscope);
-                                rem += pt.ty == Ttuple ? (cast(TypeTuple)pt).arguments.length : 1;
+                                if (auto ptt = pt.isTypeTuple())
+                                    rem += ptt.arguments.length;
+                                else
+                                    rem += 1;
                             }
                             else
                             {
@@ -1627,9 +1632,9 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                         if (nfargs2 - argi < rem)
                             return nomatch();
                         declaredTuple.objects.setDim(nfargs2 - argi - rem);
-                        for (size_t i = 0; i < declaredTuple.objects.length; i++)
+                        foreach (i; 0 .. declaredTuple.objects.length)
                         {
-                            farg = (*fargs)[argi + i];
+                            farg = fargs[argi + i];
 
                             // Check invalid arguments to detect errors early.
                             if (farg.op == EXP.error || farg.type.ty == Terror)
@@ -1687,20 +1692,19 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     // should copy prmtype to avoid affecting semantic result
                     prmtype = prmtype.syntaxCopy().typeSemantic(fd.loc, paramscope);
 
-                    if (prmtype.ty == Ttuple)
+                    if (TypeTuple tt = prmtype.isTypeTuple())
                     {
-                        TypeTuple tt = cast(TypeTuple)prmtype;
-                        size_t tt_dim = tt.arguments.length;
+                        const tt_dim = tt.arguments.length;
                         for (size_t j = 0; j < tt_dim; j++, ++argi)
                         {
                             Parameter p = (*tt.arguments)[j];
                             if (j == tt_dim - 1 && fparameters.varargs == VarArg.typesafe &&
-                                parami + 1 == nfparams && argi < nfargs)
+                                parami + 1 == nfparams && argi < fargs.length)
                             {
                                 prmtype = p.type;
                                 goto Lvarargs;
                             }
-                            if (argi >= nfargs)
+                            if (argi >= fargs.length)
                             {
                                 if (p.defaultArg)
                                     continue;
@@ -1711,7 +1715,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
                                 return nomatch();
                             }
-                            farg = (*fargs)[argi];
+                            farg = fargs[argi];
                             if (!farg.implicitConvTo(p.type))
                                 return nomatch();
                         }
@@ -1719,7 +1723,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     }
                 }
 
-                if (argi >= nfargs) // if not enough arguments
+                if (argi >= fargs.length) // if not enough arguments
                 {
                     if (!fparam.defaultArg)
                         goto Lvarargs;
@@ -1741,7 +1745,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                      *  // at fparam `N start = 0`, N should be 'size_t' before
                      *  // the deduction result from fparam.defaultArg.
                      */
-                    if (argi == nfargs)
+                    if (argi == fargs.length)
                     {
                         foreach (ref dedtype; *dedtypes)
                         {
@@ -1822,7 +1826,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 }
                 else
                 {
-                    farg = (*fargs)[argi];
+                    farg = fargs[argi];
                 }
                 {
                     // Check invalid arguments to detect errors early.
@@ -1851,8 +1855,15 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     {
                         /* Allow expressions that have CT-known boundaries and type [] to match with [dim]
                          */
-                        Type taai;
-                        if (argtype.ty == Tarray && (prmtype.ty == Tsarray || prmtype.ty == Taarray && (taai = (cast(TypeAArray)prmtype).index).ty == Tident && (cast(TypeIdentifier)taai).idents.length == 0))
+                        bool inferIndexType = (argtype.ty == Tarray) && (prmtype.ty == Tsarray || prmtype.ty == Taarray);
+                        if (auto aaType = prmtype.isTypeAArray())
+                        {
+                            if (auto indexType = aaType.index.isTypeIdentifier())
+                            {
+                                inferIndexType = indexType.idents.length == 0;
+                            }
+                        }
+                        if (inferIndexType)
                         {
                             if (StringExp se = farg.isStringExp())
                             {
@@ -1892,7 +1903,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                         }
                     }
 
-                    if (fparameters.varargs == VarArg.typesafe && parami + 1 == nfparams && argi + 1 < nfargs)
+                    if (fparameters.varargs == VarArg.typesafe && parami + 1 == nfparams && argi + 1 < fargs.length)
                         goto Lvarargs;
 
                     uint im = 0;
@@ -1984,17 +1995,15 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 case Taarray:
                     {
                         // Perhaps we can do better with this, see TypeFunction.callMatch()
-                        if (tb.ty == Tsarray)
+                        if (TypeSArray tsa = tb.isTypeSArray())
                         {
-                            TypeSArray tsa = cast(TypeSArray)tb;
                             dinteger_t sz = tsa.dim.toInteger();
-                            if (sz != nfargs - argi)
+                            if (sz != fargs.length - argi)
                                 return nomatch();
                         }
-                        else if (tb.ty == Taarray)
+                        else if (TypeAArray taa = tb.isTypeAArray())
                         {
-                            TypeAArray taa = cast(TypeAArray)tb;
-                            Expression dim = new IntegerExp(instLoc, nfargs - argi, Type.tsize_t);
+                            Expression dim = new IntegerExp(instLoc, fargs.length - argi, Type.tsize_t);
 
                             size_t i = templateParameterLookup(taa.index, parameters);
                             if (i == IDX_NOTFOUND)
@@ -2057,9 +2066,9 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     {
                         TypeArray ta = cast(TypeArray)tb;
                         Type tret = fparam.isLazyArray();
-                        for (; argi < nfargs; argi++)
+                        for (; argi < fargs.length; argi++)
                         {
-                            Expression arg = (*fargs)[argi];
+                            Expression arg = fargs[argi];
                             assert(arg);
 
                             MATCH m;
@@ -2112,8 +2121,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     Lmatch:
         foreach (ref dedtype; *dedtypes)
         {
-            Type at = isType(dedtype);
-            if (at)
+            if (Type at = isType(dedtype))
             {
                 if (at.ty == Tnone)
                 {
@@ -2233,7 +2241,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             sc2.minst = sc.minst;
             sc2.stc |= fd.storage_class & STC.deprecated_;
 
-            fd = doHeaderInstantiation(ti, sc2, fd, tthis, fargs);
+            fd = doHeaderInstantiation(ti, sc2, fd, tthis, argumentList.arguments);
 
             sc2 = sc2.pop();
             sc2 = sc2.pop();
@@ -2396,7 +2404,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             }
             if (hasttp)
             {
-                tf = cast(TypeFunction)tf.addSTC(ModToStc(tthis.mod));
+                tf = tf.addSTC(ModToStc(tthis.mod)).isTypeFunction();
                 assert(!tf.deco);
             }
         }
@@ -2662,7 +2670,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
             return 1;
         }
         //printf("fd = %s %s, fargs = %s\n", fd.toChars(), fd.type.toChars(), fargs.toChars());
-        auto tf = cast(TypeFunction)fd.type;
+        auto tf = fd.type.isTypeFunction();
 
         int prop = tf.isproperty ? 1 : 2;
         if (property == 0)
@@ -2918,7 +2926,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
 
             Type tthis_fd = fd.needThis() && !fd.isCtorDeclaration() ? tthis : null;
 
-            auto tf = cast(TypeFunction)fd.type;
+            auto tf = fd.type.isTypeFunction();
             MATCH mfa = tf.callMatch(tthis_fd, argumentList, 0, null, sc);
             if (mfa < m.last)
                 return 0;
@@ -2979,7 +2987,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
             if (isCtorCall)
             {
                 // Constructor call requires additional check.
-                auto tf = cast(TypeFunction)fd.type;
+                auto tf = fd.type.isTypeFunction();
                 assert(tf.next);
                 if (MODimplicitConv(tf.mod, tthis_fd.mod) ||
                     tf.isWild() && tf.isShared() == tthis_fd.isShared() ||
@@ -3175,9 +3183,8 @@ private size_t templateIdentifierLookup(Identifier id, TemplateParameters* param
 
 private size_t templateParameterLookup(Type tparam, TemplateParameters* parameters)
 {
-    if (tparam.ty == Tident)
+    if (TypeIdentifier tident = tparam.isTypeIdentifier())
     {
-        TypeIdentifier tident = cast(TypeIdentifier)tparam;
         //printf("\ttident = '%s'\n", tident.toChars());
         return templateIdentifierLookup(tident.ident, parameters);
     }
@@ -3948,7 +3955,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     }
                 }
 
-                size_t nfargs = t.parameterList.length;
+                const size_t nfargs = t.parameterList.length;
                 size_t nfparams = tp.parameterList.length;
 
                 /* See if tuple match
@@ -4870,7 +4877,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
 
                 // Parameter types inference from 'tof'
                 assert(e.td._scope);
-                TypeFunction tf = cast(TypeFunction)e.fd.type;
+                TypeFunction tf = e.fd.type.isTypeFunction();
                 //printf("\ttof = %s\n", tof.toChars());
                 //printf("\ttf  = %s\n", tf.toChars());
                 const dim = tf.parameterList.length;
@@ -4929,7 +4936,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             // Allow conversion from implicit function pointer to delegate
             if (e.tok == TOK.reserved && t.ty == Tpointer && tparam.ty == Tdelegate)
             {
-                TypeFunction tf = cast(TypeFunction)t.nextOf();
+                TypeFunction tf = t.nextOf().isTypeFunction();
                 t = (new TypeDelegate(tf)).merge();
             }
             //printf("tparam = %s <= e.type = %s, t = %s\n", tparam.toChars(), e.type.toChars(), t.toChars());
@@ -6716,10 +6723,9 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 }
 
             Ltype:
-                if (ta.ty == Ttuple)
+                if (TypeTuple tt = ta.isTypeTuple())
                 {
                     // Expand tuple
-                    TypeTuple tt = cast(TypeTuple)ta;
                     size_t dim = tt.arguments.length;
                     tiargs.remove(j);
                     if (dim)
@@ -7262,7 +7268,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                  * to instantiate the template.
                  */
                 //printf("tp = %p, td.parameters.length = %d, tiargs.length = %d\n", tp, td.parameters.length, tiargs.length);
-                auto tf = cast(TypeFunction)fd.type;
+                auto tf = fd.type.isTypeFunction();
                 if (tf.parameterList.length)
                 {
                     auto tp = td.isVariadic();
