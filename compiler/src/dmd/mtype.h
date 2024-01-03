@@ -304,7 +304,6 @@ public:
     virtual bool isZeroInit(const Loc &loc = Loc()); // if initializer is 0
     Identifier *getTypeInfoIdent();
     virtual int hasWild() const;
-    virtual bool hasPointers();
     virtual bool hasVoidInitPointers();
     virtual bool hasSystemFields();
     virtual bool hasInvariant();
@@ -451,7 +450,6 @@ public:
     MATCH constConv(Type *to) override;
     MATCH implicitConvTo(Type *to) override;
     Expression *defaultInitLiteral(const Loc &loc) override;
-    bool hasPointers() override;
     bool hasSystemFields() override;
     bool hasVoidInitPointers() override;
     bool hasInvariant() override;
@@ -474,7 +472,6 @@ public:
     bool isZeroInit(const Loc &loc) override;
     bool isBoolean() override;
     MATCH implicitConvTo(Type *to) override;
-    bool hasPointers() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -491,7 +488,6 @@ public:
     uinteger_t size(const Loc &loc) override;
     bool isZeroInit(const Loc &loc) override;
     bool isBoolean() override;
-    bool hasPointers() override;
     MATCH implicitConvTo(Type *to) override;
     MATCH constConv(Type *to) override;
 
@@ -509,7 +505,6 @@ public:
     MATCH constConv(Type *to) override;
     bool isscalar() override;
     bool isZeroInit(const Loc &loc) override;
-    bool hasPointers() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -658,7 +653,6 @@ public:
     MATCH implicitConvTo(Type *to) override;
     bool isZeroInit(const Loc &loc) override;
     bool isBoolean() override;
-    bool hasPointers() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -784,7 +778,6 @@ public:
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
     bool needsNested() override;
-    bool hasPointers() override;
     bool hasVoidInitPointers() override;
     bool hasSystemFields() override;
     bool hasInvariant() override;
@@ -823,7 +816,6 @@ public:
     MATCH implicitConvTo(Type *to) override;
     MATCH constConv(Type *to) override;
     bool isZeroInit(const Loc &loc) override;
-    bool hasPointers() override;
     bool hasVoidInitPointers() override;
     bool hasSystemFields() override;
     bool hasInvariant() override;
@@ -852,7 +844,6 @@ public:
     bool isZeroInit(const Loc &loc) override;
     bool isscope() override;
     bool isBoolean() override;
-    bool hasPointers() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -893,7 +884,6 @@ public:
 
     TypeNull *syntaxCopy() override;
     MATCH implicitConvTo(Type *to) override;
-    bool hasPointers() override;
     bool isBoolean() override;
 
     uinteger_t size(const Loc &loc) override;
@@ -924,6 +914,8 @@ public:
 
 /**************************************************************/
 
+
 // If the type is a class or struct, returns the symbol for it, else null.
 AggregateDeclaration *isAggregate(Type *t);
+bool hasPointers(Type *t);
 Covariant covariant(Type *, Type *, StorageClass * = NULL, bool = false);

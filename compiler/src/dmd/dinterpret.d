@@ -6648,6 +6648,7 @@ Expressions* copyArrayOnWrite(Expressions* exps, Expressions* original)
 private
 bool stopPointersEscaping(const ref Loc loc, Expression e)
 {
+    import dmd.typesem : hasPointers;
     if (!e.type.hasPointers())
         return true;
     if (isPointer(e.type))

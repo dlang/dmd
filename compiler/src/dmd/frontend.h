@@ -1875,7 +1875,6 @@ public:
     virtual bool isZeroInit(const Loc& loc);
     Identifier* getTypeInfoIdent();
     virtual int32_t hasWild() const;
-    virtual bool hasPointers();
     virtual bool hasVoidInitPointers();
     virtual bool hasSystemFields();
     virtual bool hasInvariant();
@@ -4310,7 +4309,6 @@ public:
     uinteger_t size(const Loc& loc) override;
     bool isZeroInit(const Loc& loc) override;
     bool isBoolean() override;
-    bool hasPointers() override;
     MATCH implicitConvTo(Type* to) override;
     MATCH constConv(Type* to) override;
     void accept(Visitor* v) override;
@@ -4367,7 +4365,6 @@ public:
     bool isZeroInit(const Loc& loc) override;
     bool isscope() override;
     bool isBoolean() override;
-    bool hasPointers() override;
     void accept(Visitor* v) override;
 };
 
@@ -4382,7 +4379,6 @@ public:
     bool isZeroInit(const Loc& loc) override;
     bool isBoolean() override;
     MATCH implicitConvTo(Type* to) override;
-    bool hasPointers() override;
     void accept(Visitor* v) override;
 };
 
@@ -4398,7 +4394,6 @@ public:
     MATCH implicitConvTo(Type* to) override;
     bool isZeroInit(const Loc& loc) override;
     bool isBoolean() override;
-    bool hasPointers() override;
     void accept(Visitor* v) override;
 };
 
@@ -4428,7 +4423,6 @@ public:
     MATCH implicitConvTo(Type* to) override;
     MATCH constConv(Type* to) override;
     bool isZeroInit(const Loc& loc) override;
-    bool hasPointers() override;
     bool hasVoidInitPointers() override;
     bool hasSystemFields() override;
     bool hasInvariant() override;
@@ -4623,7 +4617,6 @@ public:
     const char* kind() const override;
     TypeNull* syntaxCopy() override;
     MATCH implicitConvTo(Type* to) override;
-    bool hasPointers() override;
     bool isBoolean() override;
     uinteger_t size(const Loc& loc) override;
     void accept(Visitor* v) override;
@@ -4640,7 +4633,6 @@ public:
     MATCH constConv(Type* to) override;
     bool isscalar() override;
     bool isZeroInit(const Loc& loc) override;
-    bool hasPointers() override;
     void accept(Visitor* v) override;
 };
 
@@ -4678,7 +4670,6 @@ public:
     MATCH constConv(Type* to) override;
     MATCH implicitConvTo(Type* to) override;
     Expression* defaultInitLiteral(const Loc& loc) override;
-    bool hasPointers() override;
     bool hasSystemFields() override;
     bool hasVoidInitPointers() override;
     bool hasInvariant() override;
@@ -4718,7 +4709,6 @@ public:
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
     bool needsNested() override;
-    bool hasPointers() override;
     bool hasVoidInitPointers() override;
     bool hasSystemFields() override;
     bool hasInvariant() override;
@@ -5441,6 +5431,8 @@ public:
 extern Covariant covariant(Type* src, Type* t, uint64_t* pstc = nullptr, bool cppCovariant = false);
 
 extern Expression* defaultInit(Type* mt, const Loc& loc, const bool isCfile = false);
+
+extern bool hasPointers(Type* t);
 
 extern Type* merge(Type* type);
 

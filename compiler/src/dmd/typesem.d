@@ -1017,6 +1017,70 @@ private extern(D) MATCH matchTypeSafeVarArgs(TypeFunction tf, Parameter p,
     }
 }
 
+/***************************************
+ * Return !=0 if type has pointers that need to
+ * be scanned by the GC during a collection cycle.
+ */
+extern(C++) bool hasPointers(Type t)
+{
+    bool visitType(Type _)              { return false; }
+    bool visitDArray(TypeDArray _)      { return true; }
+    bool visitAArray(TypeAArray _)      { return true; }
+    bool visitPointer(TypePointer _)    { return true; }
+    bool visitDelegate(TypeDelegate _)  { return true; }
+    bool visitClass(TypeClass _)        { return true; }
+    bool visitEnum(TypeEnum t)          { return t.memType().hasPointers(); }
+
+    /* Although null isn't dereferencable, treat it as a pointer type for
+     * attribute inference, generic code, etc.
+     */
+    bool visitNull(TypeNull _)          { return true; }
+
+    bool visitSArray(TypeSArray t)
+    {
+        /* Don't want to do this, because:
+         *    struct S { T* array[0]; }
+         * may be a variable length struct.
+         */
+        //if (dim.toInteger() == 0)
+        //    return false;
+
+        if (t.next.ty == Tvoid)
+        {
+            // Arrays of void contain arbitrary data, which may include pointers
+            return true;
+        }
+        else
+            return t.next.hasPointers();
+    }
+
+    bool visitStruct(TypeStruct t)
+    {
+        StructDeclaration sym = t.sym;
+
+        if (sym.members && !sym.determineFields() && sym.type != Type.terror)
+            error(sym.loc, "no size because of forward references");
+
+        sym.determineTypeProperties();
+        return sym.hasPointerField;
+    }
+
+
+    switch(t.ty)
+    {
+        default:            return visitType(t);
+        case Tsarray:       return visitSArray(t.isTypeSArray());
+        case Tarray:        return visitDArray(t.isTypeDArray());
+        case Taarray:       return visitAArray(t.isTypeAArray());
+        case Tpointer:      return visitPointer(t.isTypePointer());
+        case Tdelegate:     return visitDelegate(t.isTypeDelegate());
+        case Tstruct:       return visitStruct(t.isTypeStruct());
+        case Tenum:         return visitEnum(t.isTypeEnum());
+        case Tclass:        return visitClass(t.isTypeClass());
+        case Tnull:         return visitNull(t.isTypeNull());
+    }
+}
+
 /******************************************
  * Perform semantic analysis on a type.
  * Params:

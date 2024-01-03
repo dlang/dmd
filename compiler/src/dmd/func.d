@@ -3624,6 +3624,7 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
  */
 Type getIndirection(Type t)
 {
+    import dmd.typesem : hasPointers;
     t = t.baseElemOf();
     if (t.ty == Tarray || t.ty == Tpointer)
         return t.nextOf().toBasetype();
@@ -3670,6 +3671,7 @@ private bool traverseIndirections(Type ta, Type tb)
 
     static bool traverse(Type ta, Type tb, ref scope AssocArray!(const(char)*, bool) table, bool reversePass)
     {
+        import dmd.typesem : hasPointers;
         //printf("traverse(%s, %s)\n", ta.toChars(), tb.toChars());
         ta = ta.baseElemOf();
         tb = tb.baseElemOf();
