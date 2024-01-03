@@ -2727,6 +2727,7 @@ extern (C++) class FuncDeclaration : Declaration
                 {
                     Type t1 = fdv.type.nextOf().toBasetype();
                     Type t2 = this.type.nextOf().toBasetype();
+                    import dmd.typesem : isBaseOf;
                     if (t1.isBaseOf(t2, null))
                     {
                         /* Making temporary reference variable is necessary

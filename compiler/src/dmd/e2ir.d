@@ -3881,6 +3881,7 @@ elem* toElem(Expression e, ref IRState irs)
             // If se is in left side operand of element-wise
             // assignment, the element type can be painted to the base class.
             int offset;
+            import dmd.typesem : isBaseOf;
             assert(t1.nextOf().equivalent(tb.nextOf()) ||
                    tb.nextOf().isBaseOf(t1.nextOf(), &offset) && offset == 0);
         }
