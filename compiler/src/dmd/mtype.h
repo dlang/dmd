@@ -14,6 +14,7 @@
 
 #include "arraytypes.h"
 #include "ast_node.h"
+#include "expression.h"
 #include "globals.h"
 #include "visitor.h"
 
@@ -567,7 +568,7 @@ public:
     TRUST trust;                 // level of trust
     PURE purity;                 // PURExxxx
     char inuse;
-    Expressions *fargs;          // function arguments
+    ArgumentList inferenceArguments; // function arguments
 
     static TypeFunction *create(Parameters *parameters, Type *treturn, VarArg varargs, LINK linkage, StorageClass stc = 0);
     const char *kind() override;

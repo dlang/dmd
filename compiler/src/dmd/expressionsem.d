@@ -2984,6 +2984,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                         foreach (u; 0 .. elements.length)
                         {
                             Expression a = (*arguments)[i + u];
+                            assert(a);
                             if (tret && a.implicitConvTo(tret))
                             {
                                 // p is a lazy array of delegates, tret is return type of the delegates
