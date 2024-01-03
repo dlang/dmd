@@ -39,6 +39,7 @@ version (Windows) version = runPreprocessor;
  * Preprocess C file.
  * Params:
  *      csrcfile = C file to be preprocessed, with .c or .h extension
+ *      importc_h = the path/file of importc.h
  *      loc = The source location where preprocess is requested from
  *      ifile = set to true if an output file was written
  *      defines = buffer to append any `#define` and `#undef` lines encountered to
@@ -46,23 +47,8 @@ version (Windows) version = runPreprocessor;
  *      filename of preprocessed output
  */
 extern (C++)
-FileName preprocess(FileName csrcfile, ref const Loc loc, out bool ifile, OutBuffer* defines)
+FileName preprocess(FileName csrcfile, const(char)* importc_h, ref const Loc loc, out bool ifile, ref OutBuffer defines)
 {
-    /* Look for "importc.h" by searching along import path.
-     */
-    const(char)* importc_h = findImportcH(global.path ? (*global.path)[] : null);
-
-    if (importc_h)
-    {
-        if (global.params.v.verbose)
-            message("include   %s", importc_h);
-    }
-    else
-    {
-        error(loc, "cannot find \"importc.h\" along import path");
-        fatal();
-    }
-
     //printf("preprocess %s\n", csrcfile.toChars());
     version (runPreprocessor)
     {

@@ -285,6 +285,8 @@ struct Global
     Array<const char *> *path;        // Array of char*'s which form the import lookup path
     Array<const char *> *filePath;    // Array of char*'s which form the file import lookup path
 
+    const char* importc_h;            // full path of the file importc.h
+
     char datetime[26];       /// string returned by ctime()
     CompileEnv compileEnv;
 
@@ -307,7 +309,7 @@ struct Global
     ErrorSink* errorSink;       // where the error messages go
     ErrorSink* errorSinkNull;   // where the error messages disappear
 
-    FileName (*preprocess)(FileName, const Loc&, bool&, OutBuffer&);
+    FileName (*preprocess)(FileName, const char*, const Loc&, bool&, OutBuffer&);
 
     /* Start gagging. Return the current number of gagged errors
      */
