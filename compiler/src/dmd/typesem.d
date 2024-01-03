@@ -5541,6 +5541,123 @@ Lnotcovariant:
     return Covariant.no;
 }
 
+/************************************
+ * Take the specified storage class for p,
+ * and use the function signature to infer whether
+ * STC.scope_ and STC.return_ should be OR'd in.
+ * (This will not affect the name mangling.)
+ * Params:
+ *  tf = TypeFunction to use to get the signature from
+ *  tthis = type of `this` parameter, null if none
+ *  p = parameter to this function
+ *  outerVars = context variables p could escape into, if any
+ *  indirect = is this for an indirect or virtual function call?
+ * Returns:
+ *  storage class with STC.scope_ or STC.return_ OR'd in
+ */
+StorageClass parameterStorageClass(TypeFunction tf, Type tthis, Parameter p, VarDeclarations* outerVars = null,
+    bool indirect = false)
+{
+    //printf("parameterStorageClass(p: %s)\n", p.toChars());
+    auto stc = p.storageClass;
+
+    // When the preview switch is enable, `in` parameters are `scope`
+    if (stc & STC.constscoperef)
+        return stc | STC.scope_;
+
+    if (stc & (STC.scope_ | STC.return_ | STC.lazy_) || tf.purity == PURE.impure)
+        return stc;
+
+    /* If haven't inferred the return type yet, can't infer storage classes
+     */
+    if (!tf.nextOf() || !tf.isnothrow())
+        return stc;
+
+    tf.purityLevel();
+
+    static bool mayHavePointers(Type t)
+    {
+        if (auto ts = t.isTypeStruct())
+        {
+            auto sym = ts.sym;
+            if (sym.members && !sym.determineFields() && sym.type != Type.terror)
+                // struct is forward referenced, so "may have" pointers
+                return true;
+        }
+        return t.hasPointers();
+    }
+
+    // See if p can escape via any of the other parameters
+    if (tf.purity == PURE.weak)
+    {
+        /*
+         * Indirect calls may escape p through a nested context
+         * See:
+         *   https://issues.dlang.org/show_bug.cgi?id=24212
+         *   https://issues.dlang.org/show_bug.cgi?id=24213
+         */
+        if (indirect)
+            return stc;
+
+        // Check escaping through parameters
+        foreach (i, fparam; tf.parameterList)
+        {
+            Type t = fparam.type;
+            if (!t)
+                continue;
+            t = t.baseElemOf();     // punch thru static arrays
+            if (t.isMutable() && t.hasPointers())
+            {
+                if (fparam.isReference() && fparam != p)
+                    return stc;
+
+                if (t.ty == Tdelegate)
+                    return stc;     // could escape thru delegate
+
+                if (t.ty == Tclass)
+                    return stc;
+
+                /* if t is a pointer to mutable pointer
+                 */
+                if (auto tn = t.nextOf())
+                {
+                    if (tn.isMutable() && mayHavePointers(tn))
+                        return stc;   // escape through pointers
+                }
+            }
+        }
+
+        // Check escaping through `this`
+        if (tthis && tthis.isMutable())
+        {
+            foreach (VarDeclaration v; isAggregate(tthis).fields)
+            {
+                if (v.hasPointers())
+                    return stc;
+            }
+        }
+
+        // Check escaping through nested context
+        if (outerVars && tf.isMutable())
+        {
+            foreach (VarDeclaration v; *outerVars)
+            {
+                if (v.hasPointers())
+                    return stc;
+            }
+        }
+    }
+
+    // Check escaping through return value
+    Type tret = tf.nextOf().toBasetype();
+    if (tf.isref || tret.hasPointers())
+    {
+        return stc | STC.scope_ | STC.return_ | STC.returnScope;
+    }
+    else
+        return stc | STC.scope_;
+}
+
 /******************************* Private *****************************************/
 
 private:
