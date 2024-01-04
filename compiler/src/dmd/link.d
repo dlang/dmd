@@ -1050,7 +1050,7 @@ public int runProgram()
  *    exit status.
  */
 public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char)* importc_h, ref Array!(const(char)*) cppswitches,
-    const(char)[] output, ref OutBuffer defines)
+    const(char)[] output, OutBuffer* defines)
 {
     //printf("runPreprocessor() cpp: %.*s filename: %.*s\n", cast(int)cpp.length, cpp.ptr, cast(int)filename.length, filename.ptr);
     version (Windows)
