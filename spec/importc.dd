@@ -26,16 +26,14 @@ $(H2 $(LNAME2 examples, Quick Examples))
     {
         printf("hello world\n");
         return 0;
-    }
-    )
+    })
 
     $(P Compile and run:)
 
     $(CONSOLE
     dmd hello.c
     ./hello
-    hello world
-    )
+    hello world)
 
     $(P C function in file $(TT functions.c):)
 
@@ -390,6 +388,41 @@ $(H2 $(LNAME2 limitations, Limitations))
     $(H3 $(LNAME2 compatible_types, Compatible Types))
 
     $(P $(I Compatible Types) (C11 6.7.2) are identical types in ImportC.)
+
+
+$(H2 $(LNAME2 impedance-mismatch, Impedance Mismatch))
+
+    $(P While every effort is made to match up C and D so it "just works", the languages have some
+    fundamental differences that appear now and then.
+    )
+
+    $(H3 $(LNAME2 keyword-mismatch, Keyword Mismatch))
+
+    $(P D and C use mostly the same keywords, C has keywords that D doesn't have, and vice versa. This
+    does not affect compilation of C code, but it can cause difficulty when accessing C variables and types
+    from D. For example, the D `version` keyword is not uncommonly used as a struct member in C:)
+
+    $(P C code in file $(TT defs.c):)
+$(CCODE
+struct S { int version; };)
+
+    $(P Accessing it from D:)
+    ---
+    import defs;
+    int tech(S* s) {
+        return s.version; // fails because version is a D keyword
+    }
+    ---
+
+    $(P A workaround is available:)
+    ---
+    import defs;
+    int tech(S* s) {
+        return __traits(getMember, *s, "version");
+    }
+    ---
+
+
 
     $(H3 $(LNAME2 same_only_different, Same only Different Types))
 
