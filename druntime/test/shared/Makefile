@@ -43,7 +43,7 @@ $(ROOT)/dynamiccast$(DOTEXE): $(SRC)/dynamiccast.d
 	$(QUIET)$(DMD) $(DFLAGS) -version=DLL -shared -of$(ROOT)/dynamiccast$(DOTDLL) $<
 	$(QUIET)$(DMD) $(DFLAGS) -of$@ $<
 
-$(ROOT)/link$(DOTEXE): $(SRC)/link.d $(SRC)/lib.d $(DRUNTIME)
+$(ROOT)/link$(DOTEXE): $(SRC)/link.d $(SRC)/lib.d $(DRUNTIMESO)
 	$(QUIET)$(DMD) $(DFLAGS) -shared -of$(ROOT)/lib$(DOTDLL) -visibility=public $(SRC)/lib.d
 	$(QUIET)$(DMD) $(subst defaultLibsOnly,all,$(DFLAGS)) -of$@ $(SRC)/link.d $(ROOT)/lib$(DOTLIB)
 
