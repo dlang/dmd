@@ -484,7 +484,14 @@ struct MachObjModule
     uint length; // in bytes
     uint offset; // offset from start of library
     const(char)[] name; // module name (file name) with terminating 0
+version (OpenBSD)
+{
+    long file_time; // file time
+}
+else
+{
     c_long file_time; // file time
+}
     uint user_id;
     uint group_id;
     uint file_mode;
