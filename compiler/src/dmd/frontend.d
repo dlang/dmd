@@ -1,7 +1,7 @@
 /**
  * Contains high-level interfaces for interacting with DMD as a library.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/id.d, _id.d)
@@ -425,7 +425,7 @@ Run full semantic analysis on a module.
 */
 void fullSemantic(Module m)
 {
-    import dmd.dsymbolsem : dsymbolSemantic;
+    import dmd.dsymbolsem : dsymbolSemantic, importAll;
     import dmd.semantic2 : semantic2;
     import dmd.semantic3 : semantic3;
 
@@ -456,7 +456,7 @@ string prettyPrint(Module m)
     auto buf = OutBuffer();
     buf.doindent = 1;
     HdrGenState hgs = { fullDump: 1 };
-    moduleToBuffer2(m, &buf, &hgs);
+    moduleToBuffer2(m, buf, hgs);
 
     import std.string : replace, fromStringz;
     import std.exception : assumeUnique;

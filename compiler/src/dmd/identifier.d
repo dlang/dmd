@@ -1,7 +1,7 @@
 /**
  * Defines an identifier, which is the name of a `Dsymbol`.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/identifier.d, _identifier.d)
@@ -17,7 +17,7 @@ import core.stdc.string;
 import dmd.id;
 import dmd.location;
 import dmd.common.outbuffer;
-import dmd.root.rootobject;
+import dmd.rootobject;
 import dmd.root.string;
 import dmd.root.stringtable;
 import dmd.root.utf;
@@ -64,13 +64,13 @@ nothrow:
     }
 
     /// ditto
-    extern (D) this(const(char)[] name, int value)
+    extern (D) this(const(char)[] name, int value) @safe
     {
         //printf("Identifier('%.*s', %d)\n", cast(int)name.length, name.ptr, value);
         this(name, value, false);
     }
 
-    extern (D) private this(const(char)[] name, int value, bool isAnonymous)
+    extern (D) private this(const(char)[] name, int value, bool isAnonymous) @safe
     {
         //printf("Identifier('%.*s', %d, %d)\n", cast(int)name.length, name.ptr, value, isAnonymous);
         this.name = name;
@@ -315,7 +315,7 @@ nothrow:
     /**********************************
      * ditto
      */
-    extern (D) static bool isValidIdentifier(const(char)[] str)
+    extern (D) static bool isValidIdentifier(const(char)[] str) @safe
     {
         if (str.length == 0 ||
             (str[0] >= '0' && str[0] <= '9')) // beware of isdigit() on signed chars

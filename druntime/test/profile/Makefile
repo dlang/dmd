@@ -2,14 +2,27 @@ include ../common.mak
 
 TESTS:=profile profilegc both
 
-DIFF:=diff
+DIFF:=diff --strip-trailing-cr
 GREP:=grep
+SED:=sed
+
+ifeq (freebsd,$(OS))
+    SHELL=/usr/local/bin/bash
+else ifeq (openbsd,$(OS))
+    SHELL=/usr/local/bin/bash
+else ifeq (netbsd,$(OS))
+    SHELL=/usr/pkg/bin/bash
+else ifeq (dragonflybsd,$(OS))
+    SHELL=/usr/local/bin/bash
+else ifneq (windows,$(OS)) # already using a bash shell on Windows via common.mak
+    SHELL=/bin/bash
+endif
 
 .PHONY: all clean
 all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))
 
 $(ROOT)/profile.done: DFLAGS+=-profile
-$(ROOT)/profile.done: $(ROOT)/%.done: $(ROOT)/%
+$(ROOT)/profile.done: $(ROOT)/%.done: $(ROOT)/%$(DOTEXE)
 	@echo Testing $*
 	@rm -f $(ROOT)/mytrace.log $(ROOT)/mytrace.def
 	$(QUIET)$(TIMELIMIT)$(ROOT)/$* $(ROOT)/mytrace.log $(ROOT)/mytrace.def
@@ -21,15 +34,17 @@ $(ROOT)/profile.done: $(ROOT)/%.done: $(ROOT)/%
 	@touch $@
 
 $(ROOT)/profilegc.done: DFLAGS+=-profile=gc
-$(ROOT)/profilegc.done: $(ROOT)/%.done: $(ROOT)/%
+$(ROOT)/profilegc.done: $(ROOT)/%.done: $(ROOT)/%$(DOTEXE)
 	@echo Testing $*
 	@rm -f $(ROOT)/myprofilegc.log
 	$(QUIET)$(TIMELIMIT)$(ROOT)/$* $(ROOT)/myprofilegc.log
-	$(QUIET)$(DIFF) myprofilegc.log.$(OS).$(MODEL).exp $(ROOT)/myprofilegc.log
+	$(QUIET)$(DIFF) \
+		<($(GREP) -vF 'core.' myprofilegc.log.$(OS).$(shell echo $(MODEL) | cut -c 1-2).exp) \
+		<($(GREP) -vF 'core.' $(ROOT)/myprofilegc.log)
 	@touch $@
 
 $(ROOT)/both.done: DFLAGS+=-profile -profile=gc
-$(ROOT)/both.done: $(ROOT)/%.done: $(ROOT)/%
+$(ROOT)/both.done: $(ROOT)/%.done: $(ROOT)/%$(DOTEXE)
 	@echo Testing $*
 	@rm -f $(ROOT)/both.log $(ROOT)/both.def $(ROOT)/bothgc.log
 	$(QUIET)$(TIMELIMIT)$(ROOT)/$* $(ROOT)/both.log $(ROOT)/both.def $(ROOT)/bothgc.log
@@ -38,10 +53,18 @@ $(ROOT)/both.done: $(ROOT)/%.done: $(ROOT)/%
 	$(QUIET) cat $(ROOT)/both.def
 	$(QUIET) sort $(ROOT)/both.def -o $(ROOT)/both.def
 	$(QUIET)(sort bothnew.def.exp | $(DIFF) - $(ROOT)/both.def)
-	$(QUIET)$(DIFF) bothgc.log.exp $(ROOT)/bothgc.log
+ifeq (windows,$(OS))
+	$(QUIET)$(DIFF) \
+		<($(GREP) -vF 'core.' bothgc.log.exp) \
+		<($(GREP) -vF 'core.' $(ROOT)/bothgc.log | $(SED) 's: src\\\\: src/:g')
+else
+	$(QUIET)$(DIFF) \
+		<($(GREP) -vF 'core.' bothgc.log.exp) \
+		<($(GREP) -vF 'core.' $(ROOT)/bothgc.log)
+endif
 	@touch $@
 
-$(ROOT)/%: $(SRC)/%.d
+$(ROOT)/%$(DOTEXE): $(SRC)/%.d
 	$(QUIET)$(DMD) $(DFLAGS) -of$(ROOT)/$* $<
 
 clean:

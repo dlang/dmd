@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1983-1998 by Symantec
- *              Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/ty.d, backend/_ty.d)
@@ -18,7 +18,6 @@ module dmd.backend.ty;
 public import dmd.backend.var : tyequiv, dttab, dttab4, tystring, tytouns, _tyrelax, tytab,
     _tysize, _tyalignsize, TYaarray, TYdelegate, TYdarray, TYptrdiff, TYsize, TYsize_t;
 
-extern (C++):
 @nogc:
 nothrow:
 @safe:

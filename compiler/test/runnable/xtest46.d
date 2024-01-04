@@ -2,28 +2,24 @@
 //
 /* TEST_OUTPUT:
 ---
-runnable/xtest46.d(165): Deprecation: alias this for classes/interfaces is deprecated
 Boo!double
 Boo!int
 true
 int
 !! immutable(int)[]
-runnable/xtest46.d(2932): Deprecation: alias this for classes/interfaces is deprecated
-runnable/xtest46.d(2964): Deprecation: alias this for classes/interfaces is deprecated
 int(int i, long j = 7L)
 long
 C10390(C10390(C10390(<recursion>)))
-tuple(height)
-tuple(get, get)
-tuple(clear)
-tuple(draw, draw)
+AliasSeq!(height)
+AliasSeq!(get, get)
+AliasSeq!(clear)
+AliasSeq!(draw, draw)
 const(int)
 string[]
 double[]
 double[]
 {}
-runnable/xtest46.d(4670): Deprecation: alias this for classes/interfaces is deprecated
-tuple("m")
+AliasSeq!("m")
 true
 TFunction1: extern (C) void function()
 ---

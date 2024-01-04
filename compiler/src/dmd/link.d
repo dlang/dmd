@@ -1,7 +1,7 @@
 /**
  * Invoke the linker as a separate process.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/link.d, _link.d)
@@ -28,7 +28,7 @@ import dmd.root.env;
 import dmd.root.file;
 import dmd.root.filename;
 import dmd.common.outbuffer;
-import dmd.common.string;
+import dmd.common.smallbuffer;
 import dmd.root.rmem;
 import dmd.root.string;
 import dmd.utils;
@@ -93,7 +93,7 @@ version (CRuntime_Microsoft)
 /****************************************
  * Write filename to cmdbuf, quoting if necessary.
  */
-private void writeFilename(OutBuffer* buf, const(char)[] filename)
+private void writeFilename(OutBuffer* buf, const(char)[] filename) @safe
 {
     /* Loop and see if we need to quote
      */
@@ -268,7 +268,8 @@ public int runLINK()
                 setExeFile();
             }
             // Make sure path to exe file exists
-            ensurePathToNameExists(Loc.initial, global.params.exefile);
+            if (!ensurePathToNameExists(Loc.initial, global.params.exefile))
+                fatal();
             cmdbuf.writeByte(' ');
             if (global.params.mapfile)
             {
@@ -317,13 +318,13 @@ public int runLINK()
                 driverParams.mscrtlib[0..6] != "msvcrt" || !isdigit(driverParams.mscrtlib[6]))
                 vsopt.initialize();
 
-            const(char)* linkcmd = getenv(target.is64bit ? "LINKCMD64" : "LINKCMD");
+            const(char)* linkcmd = getenv(target.isX86_64 ? "LINKCMD64" : "LINKCMD");
             if (!linkcmd)
                 linkcmd = getenv("LINKCMD"); // backward compatible
             if (!linkcmd)
-                linkcmd = vsopt.linkerPath(target.is64bit);
+                linkcmd = vsopt.linkerPath(target.isX86_64);
 
-            if (!target.is64bit && FileName.equals(FileName.name(linkcmd), "lld-link.exe"))
+            if (!target.isX86_64 && FileName.equals(FileName.name(linkcmd), "lld-link.exe"))
             {
                 // object files not SAFESEH compliant, but LLD is more picky than MS link
                 cmdbuf.writestring(" /SAFESEH:NO");
@@ -332,7 +333,7 @@ public int runLINK()
                 vsopt.uninitialize();
             }
 
-            if (const(char)* lflags = vsopt.linkOptions(target.is64bit))
+            if (const(char)* lflags = vsopt.linkOptions(target.isX86_64))
             {
                 cmdbuf.writeByte(' ');
                 cmdbuf.writestring(lflags);
@@ -344,7 +345,8 @@ public int runLINK()
             if (p.length > 7000)
             {
                 lnkfilename = FileName.forceExt(global.params.exefile, "lnk");
-                writeFile(Loc.initial, lnkfilename, p);
+                if (!writeFile(Loc.initial, lnkfilename, p))
+                    fatal();
                 if (lnkfilename.length < p.length)
                 {
                     p[0] = '@';
@@ -390,7 +392,8 @@ public int runLINK()
                 setExeFile();
             }
             // Make sure path to exe file exists
-            ensurePathToNameExists(Loc.initial, global.params.exefile);
+            if (!ensurePathToNameExists(Loc.initial, global.params.exefile))
+                fatal();
             cmdbuf.writeByte(',');
             if (global.params.mapfile)
                 writeFilename(&cmdbuf, global.params.mapfile);
@@ -455,7 +458,8 @@ public int runLINK()
             if (p.length > 7000)
             {
                 lnkfilename = FileName.forceExt(global.params.exefile, "lnk");
-                writeFile(Loc.initial, lnkfilename, p);
+                if (!writeFile(Loc.initial, lnkfilename, p))
+                    fatal();
                 if (lnkfilename.length < p.length)
                 {
                     p[0] = '@';
@@ -575,10 +579,11 @@ public int runLINK()
             global.params.exefile = ex;
         }
         // Make sure path to exe file exists
-        ensurePathToNameExists(Loc.initial, global.params.exefile);
+        if (!ensurePathToNameExists(Loc.initial, global.params.exefile))
+            fatal();
         if (driverParams.symdebug)
             argv.push("-g");
-        if (target.is64bit)
+        if (target.isX86_64)
             argv.push("-m64");
         else
             argv.push("-m32");
@@ -773,7 +778,7 @@ public int runLINK()
             // Link against -lexecinfo for backtrace symbols
             argv.push("-lexecinfo");
         }
-        if (global.params.verbose)
+        if (global.params.v.verbose)
         {
             // Print it
             OutBuffer buf;
@@ -855,7 +860,7 @@ version (Windows)
     {
         int status;
         size_t len;
-        if (global.params.verbose)
+        if (global.params.v.verbose)
             message("%s %s", cmd, args);
         if (target.objectFormat() == Target.ObjectFormat.omf)
         {
@@ -953,7 +958,7 @@ version (Windows)
 public int runProgram()
 {
     //printf("runProgram()\n");
-    if (global.params.verbose)
+    if (global.params.v.verbose)
     {
         OutBuffer buf;
         buf.writestring(global.params.exefile);
@@ -1045,7 +1050,7 @@ public int runProgram()
  *    exit status.
  */
 public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char)* importc_h, ref Array!(const(char)*) cppswitches,
-    const(char)[] output, OutBuffer* defines)
+    const(char)[] output, ref OutBuffer defines)
 {
     //printf("runPreprocessor() cpp: %.*s filename: %.*s\n", cast(int)cpp.length, cpp.ptr, cast(int)filename.length, filename.ptr);
     version (Windows)
@@ -1074,7 +1079,7 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
                     }
                 }
 
-                if (global.params.verbose)
+                if (global.params.v.verbose)
                     message(buf.peekChars());
 
                 ubyte[2048] buffer = void;
@@ -1177,7 +1182,7 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
                     }
                 }
 
-                if (global.params.verbose)
+                if (global.params.v.verbose)
                     message(buf.peekChars());
 
                 ubyte[2048] buffer = void;
@@ -1272,7 +1277,7 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
         }
 
         // Set memory model
-        argv.push(target.is64bit ? "-m64" : "-m32");
+        argv.push(target.isX86_64 ? "-m64" : "-m32");
 
         // merge #define's with output
         argv.push("-dD");       // https://gcc.gnu.org/onlinedocs/cpp/Invocation.html#index-dD
@@ -1300,7 +1305,7 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
         argv.push(output.xarraydup.ptr);    // and the output
         argv.push(null);                    // argv[] always ends with a null
 
-        if (global.params.verbose)
+        if (global.params.v.verbose)
         {
             OutBuffer buf;
 
@@ -1432,16 +1437,19 @@ int runProcessCollectStdout(const(wchar)* szCommand, ubyte[] buffer, void delega
 
     while (true)
     {
+        bSuccess = GetExitCodeProcess(piProcInfo.hProcess, &exitCode);
+        // flush pipe even if program finished
         DWORD dwlen = cast(DWORD)buffer.length;
-        bSuccess = PeekNamedPipe(hStdOutRead, buffer.ptr + bytesFilled, dwlen - bytesFilled, &bytesRead, &bytesAvailable, null);
+        if (bSuccess)
+            bSuccess = PeekNamedPipe(hStdOutRead, buffer.ptr + bytesFilled, dwlen - bytesFilled, &bytesRead, &bytesAvailable, null);
         if (bSuccess && bytesRead > 0)
             bSuccess = ReadFile(hStdOutRead, buffer.ptr + bytesFilled, dwlen - bytesFilled, &bytesRead, null);
         if (bSuccess && bytesRead > 0)
         {
             sink(buffer[0 .. bytesRead]);
+            continue; // keep on reading from pipe before returning
         }
 
-        bSuccess = GetExitCodeProcess(piProcInfo.hProcess, &exitCode);
         if (!bSuccess || exitCode != 259) //259 == STILL_ACTIVE
         {
             break;

@@ -1,7 +1,7 @@
 /**
  * Implements a complex number type.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/root/complex.d, _complex.d)
@@ -29,7 +29,7 @@ extern (C++) struct complex_t
         this(re, CTFloat.zero);
     }
 
-    this(real_t re, real_t im)
+    this(real_t re, real_t im) @safe
     {
         this.re = re;
         this.im = im;
@@ -99,18 +99,18 @@ extern (C++) struct complex_t
         return re || im;
     }
 
-    int opEquals(complex_t y) const
+    int opEquals(complex_t y) const @safe
     {
         return re == y.re && im == y.im;
     }
 }
 
-extern (C++) real_t creall(complex_t x)
+extern (C++) real_t creall(complex_t x) @safe
 {
     return x.re;
 }
 
-extern (C++) real_t cimagl(complex_t x)
+extern (C++) real_t cimagl(complex_t x) @safe
 {
     return x.im;
 }

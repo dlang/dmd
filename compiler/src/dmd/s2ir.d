@@ -1,7 +1,7 @@
 /**
  * Convert statements to Intermediate Representation (IR) for the back-end.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _s2ir.d)
@@ -19,7 +19,7 @@ import core.stdc.time;
 
 import dmd.root.array;
 import dmd.root.rmem;
-import dmd.root.rootobject;
+import dmd.rootobject;
 
 import dmd.aggregate;
 import dmd.astenums;
@@ -32,7 +32,6 @@ import dmd.dsymbol;
 import dmd.dstruct;
 import dmd.dtemplate;
 import dmd.e2ir;
-import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
@@ -68,11 +67,6 @@ import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-extern (C++):
-
-alias toSymbol = dmd.tocsym.toSymbol;
-alias toSymbol = dmd.glue.toSymbol;
-
 alias StmtState = dmd.stmtstate.StmtState!block;
 
 
@@ -81,7 +75,7 @@ void elem_setLoc(elem *e, const ref Loc loc) nothrow
     srcpos_setLoc(e.Esrcpos, loc);
 }
 
-void Statement_toIR(Statement s, IRState *irs)
+void Statement_toIR(Statement s, ref IRState irs)
 {
     /* Generate a block for each label
      */
@@ -99,7 +93,7 @@ void Statement_toIR(Statement s, IRState *irs)
     Statement_toIR(s, irs, &stmtstate);
 }
 
-void Statement_toIR(Statement s, IRState *irs, StmtState* stmtstate)
+void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
 {
     /****************************************
      * This should be overridden by each statement class.
@@ -107,7 +101,7 @@ void Statement_toIR(Statement s, IRState *irs, StmtState* stmtstate)
 
     void visitDefaultCase(Statement s)
     {
-        error(s.loc, "visitDefaultCase() %d for %s\n", s.stmt, s.toChars());
+        irs.eSink.error(s.loc, "visitDefaultCase() %d for %s\n", s.stmt, s.toChars());
         assert(0);
     }
 
@@ -1076,7 +1070,7 @@ void Statement_toIR(Statement s, IRState *irs, StmtState* stmtstate)
                 tryblock.appendSucc(bcatch);
                 block_goto(blx, BCjcatch, null);
 
-                if (cs.type && irs.target.os == Target.OS.Windows && irs.target.is64bit) // Win64
+                if (cs.type && irs.target.os == Target.OS.Windows && irs.target.isX86_64) // Win64
                 {
                     /* The linker will attempt to merge together identical functions,
                      * even if the catch types differ. So add a reference to the
@@ -1384,11 +1378,11 @@ void Statement_toIR(Statement s, IRState *irs, StmtState* stmtstate)
         block_next(blx,BCgoto,null);
         basm = blx.curblock;
         bpre.appendSucc(basm);
-        basm.Bcode = s.asmcode;
+        basm.Bcode = cast(code*)s.asmcode;
         basm.Balign = cast(ubyte)s.asmalign;
 
         // Loop through each instruction, fixing Dsymbols into Symbol's
-        for (code *c = s.asmcode; c; c = c.next)
+        for (code *c = cast(code*)s.asmcode; c; c = c.next)
         {
             switch (c.IFL1)
             {
@@ -1753,7 +1747,7 @@ private void setScopeIndex(Blockx *blx, block *b, int scope_index)
  * Allocate a new block, and set the tryblock.
  */
 
-private block *block_calloc(Blockx *blx)
+private block *block_calloc(Blockx *blx) @safe
 {
     block *b = dmd.backend.global.block_calloc();
     b.Btry = blx.tryblock;
@@ -1764,7 +1758,7 @@ private block *block_calloc(Blockx *blx)
  * Add in code to increment usage count for linnum.
  */
 
-private void incUsage(IRState *irs, const ref Loc loc)
+private void incUsage(ref IRState irs, const ref Loc loc)
 {
 
     if (irs.params.cov && loc.linnum)

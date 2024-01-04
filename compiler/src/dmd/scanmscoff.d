@@ -1,7 +1,7 @@
 /**
  * Extract symbols from a COFF object file.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/scanmscoff.d, _scanmscoff.d)
@@ -11,22 +11,15 @@
 
 module dmd.scanmscoff;
 
-import core.stdc.string, core.stdc.stdlib;
+import core.stdc.stdio;
+import core.stdc.string;
 
-version (Windows)
-    import core.sys.windows.winnt;
-else
-{
-    alias BYTE  = ubyte;
-    alias WORD  = ushort;
-    alias DWORD = uint;
-}
-
-import dmd.root.rmem;
 import dmd.root.string;
 
-import dmd.globals, dmd.errors;
+import dmd.errorsink;
 import dmd.location;
+
+nothrow:
 
 private enum LOG = false;
 
@@ -38,9 +31,10 @@ private enum LOG = false;
  *      base =        array of contents of object module
  *      module_name = name of the object module (used for error messages)
  *      loc =         location to use for error printing
+ *      eSink =       where the error messages go
  */
-void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
-        const(ubyte)[] base, const(char)* module_name, Loc loc)
+void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) nothrow pAddSymbol,
+        scope const ubyte[] base, const char* module_name, Loc loc, ErrorSink eSink)
 {
     static if (LOG)
     {
@@ -49,10 +43,10 @@ void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) pAddSymb
 
     void corrupt(int reason)
     {
-        error(loc, "corrupt MS-Coff object module `%s` %d", module_name, reason);
+        eSink.error(loc, "corrupt MS-Coff object module `%s` %d", module_name, reason);
     }
 
-    const buf = base.ptr;
+    const buf = &base[0];
     const buflen = base.length;
     /* First do sanity checks on object file
      */
@@ -60,21 +54,19 @@ void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) pAddSymb
         return corrupt(__LINE__);
 
     BIGOBJ_HEADER* header = cast(BIGOBJ_HEADER*)buf;
-    char is_old_coff = false;
+    bool is_old_coff = false;
+    BIGOBJ_HEADER bigobj_header = void;
     if (header.Sig2 != 0xFFFF && header.Version != 2)
     {
         is_old_coff = true;
-        IMAGE_FILE_HEADER* header_old;
-        header_old = cast(IMAGE_FILE_HEADER*)Mem.check(malloc(IMAGE_FILE_HEADER.sizeof));
-        memcpy(header_old, buf, IMAGE_FILE_HEADER.sizeof);
-        header = cast(BIGOBJ_HEADER*)Mem.check(malloc(BIGOBJ_HEADER.sizeof));
-        *header = BIGOBJ_HEADER.init;
-        header.Machine = header_old.Machine;
-        header.NumberOfSections = header_old.NumberOfSections;
-        header.TimeDateStamp = header_old.TimeDateStamp;
+        IMAGE_FILE_HEADER header_old = *cast(IMAGE_FILE_HEADER*)buf;
+        bigobj_header = BIGOBJ_HEADER.init;
+        header = &bigobj_header;
+        header.Machine              = header_old.Machine;
+        header.NumberOfSections     = header_old.NumberOfSections;
+        header.TimeDateStamp        = header_old.TimeDateStamp;
         header.PointerToSymbolTable = header_old.PointerToSymbolTable;
-        header.NumberOfSymbols = header_old.NumberOfSymbols;
-        free(header_old);
+        header.NumberOfSymbols      = header_old.NumberOfSymbols;
     }
     switch (header.Machine)
     {
@@ -84,33 +76,30 @@ void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) pAddSymb
         break;
     default:
         if (buf[0] == 0x80)
-            error(loc, "object module `%s` is 32 bit OMF, but it should be 64 bit MS-Coff", module_name);
+            eSink.error(loc, "object module `%s` is 32 bit OMF, but it should be 64 bit MS-Coff", module_name);
         else
-            error(loc, "MS-Coff object module `%s` has magic = %x, should be %x", module_name, header.Machine, IMAGE_FILE_MACHINE_AMD64);
+            eSink.error(loc, "MS-Coff object module `%s` has magic = %x, should be %x", module_name, header.Machine, IMAGE_FILE_MACHINE_AMD64);
         return;
     }
     // Get string table:  string_table[0..string_len]
     size_t off = header.PointerToSymbolTable;
     if (off == 0)
     {
-        error(loc, "MS-Coff object module `%s` has no string table", module_name);
+        eSink.error(loc, "MS-Coff object module `%s` has no string table", module_name);
         return;
     }
     off += header.NumberOfSymbols * (is_old_coff ? SymbolTable.sizeof : SymbolTable32.sizeof);
     if (off + 4 > buflen)
         return corrupt(__LINE__);
 
-    uint string_len = *cast(uint*)(buf + off);
+    size_t string_len = *cast(uint*)(buf + off);
     char* string_table = cast(char*)(buf + off + 4);
     if (off + string_len > buflen)
         return corrupt(__LINE__);
 
     string_len -= 4;
-    for (int i = 0; i < header.NumberOfSymbols; i++)
+    foreach (i; 0 .. header.NumberOfSymbols)
     {
-        SymbolTable32* n;
-        char[8 + 1] s;
-        char* p;
         static if (LOG)
         {
             printf("Symbol %d:\n", i);
@@ -119,26 +108,28 @@ void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) pAddSymb
         if (off > buflen)
             return corrupt(__LINE__);
 
-        n = cast(SymbolTable32*)(buf + off);
+        auto n = cast(SymbolTable32*)(buf + off);
+        SymbolTable32 st32 = void;
         if (is_old_coff)
         {
-            SymbolTable* n2;
-            n2 = cast(SymbolTable*)Mem.check(malloc(SymbolTable.sizeof));
-            memcpy(n2, (buf + off), SymbolTable.sizeof);
-            n = cast(SymbolTable32*)Mem.check(malloc(SymbolTable32.sizeof));
-            memcpy(n, n2, (n2.Name).sizeof);
-            n.Value = n2.Value;
-            n.SectionNumber = n2.SectionNumber;
-            n.Type = n2.Type;
-            n.StorageClass = n2.StorageClass;
+            SymbolTable n2 = *cast(SymbolTable*)n;
+            st32 = SymbolTable32.init;
+            n = &st32;
+            n.Name               = n2.Name;
+            n.Value              = n2.Value;
+            n.SectionNumber      = n2.SectionNumber;
+            n.Type               = n2.Type;
+            n.StorageClass       = n2.StorageClass;
             n.NumberOfAuxSymbols = n2.NumberOfAuxSymbols;
-            free(n2);
         }
+
+        char[SYMNMLEN + 1] s = void;
+        char* p;
         if (n.Zeros)
         {
-            strncpy(s.ptr, cast(const(char)*)n.Name, 8);
+            s[0 .. SYMNMLEN] = n.Name;
             s[SYMNMLEN] = 0;
-            p = s.ptr;
+            p = &s[0];
         }
         else
             p = string_table + n.Offset - 4;
@@ -183,11 +174,15 @@ void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) pAddSymb
         default:
             continue;
         }
-        pAddSymbol(p.toDString(), 1);
+        pAddSymbol(p[0 .. strlen(p)], 1);
     }
 }
 
 private: // for the remainder of this module
+
+alias BYTE  = ubyte;
+alias WORD  = ushort;
+alias DWORD = uint;
 
 align(1)
 struct BIGOBJ_HEADER
@@ -237,7 +232,7 @@ align(1) struct SymbolTable32
 {
     union
     {
-        BYTE[SYMNMLEN] Name;
+        char[SYMNMLEN] Name;
         struct
         {
             DWORD Zeros;
@@ -254,7 +249,7 @@ align(1) struct SymbolTable32
 
 align(1) struct SymbolTable
 {
-    BYTE[SYMNMLEN] Name;
+    char[SYMNMLEN] Name;
     DWORD Value;
     WORD SectionNumber;
     WORD Type;

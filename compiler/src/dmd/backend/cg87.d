@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1987-1995 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cg87.d, backend/cg87.d)
@@ -30,7 +30,6 @@ import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.evalu8 : el_toldoubled;
 
-extern (C++):
 
 nothrow:
 @safe:
@@ -38,9 +37,6 @@ nothrow:
 // NOTE: this could be a TLS global which would allow this variable to be used in
 //       a multi-threaded version of the backend
 __gshared Globals87 global87;
-
-private extern (D) uint mask(uint m) { return 1 << m; }
-
 
 // Constants that the 8087 supports directly
 // BUG: rewrite for 80 bit long doubles
@@ -83,9 +79,12 @@ enum NDPP = 0;       // print out debugging info
 @trusted
 bool NOSAHF() { return I64 || config.fpxmmregs; }     // can't use SAHF instruction
 
-enum CW_roundto0 = 0xFBF;
-enum CW_roundtonearest = 0x3BF;
-
+/** 87 Control Word rounding modes */
+enum CW : ushort
+{
+    roundto0       = 0xFBF,
+    roundtonearest = 0x3BF,
+}
 
 /**********************************
  * When we need to temporarilly save 8087 registers, we record information
@@ -93,13 +92,13 @@ enum CW_roundtonearest = 0x3BF;
  */
 
 @trusted
-private void getlvalue87(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
+private void getlvalue87(ref CodeBuilder cdb, ref code pcs,elem *e,regm_t keepmsk)
 {
     // the x87 instructions cannot read XMM registers
     if (e.Eoper == OPvar || e.Eoper == OPrelconst)
         e.EV.Vsym.Sflags &= ~GTregcand;
 
-    getlvalue(cdb, pcs, e, keepmsk);
+    getlvalue(cdb, &pcs, e, keepmsk);
     if (ADDFWAIT())
         pcs.Iflags |= CFwait;
     if (I32)
@@ -113,7 +112,7 @@ private void getlvalue87(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
  */
 
 @trusted
-private void ndp_fstp(ref CodeBuilder cdb, int i, tym_t ty)
+private void ndp_fstp(ref CodeBuilder cdb, size_t i, tym_t ty)
 {
     switch (tybasic(ty))
     {
@@ -142,7 +141,7 @@ private void ndp_fstp(ref CodeBuilder cdb, int i, tym_t ty)
 }
 
 @trusted
-private void ndp_fld(ref CodeBuilder cdb, int i, tym_t ty)
+private void ndp_fld(ref CodeBuilder cdb, size_t i, tym_t ty)
 {
     switch (tybasic(ty))
     {
@@ -171,20 +170,26 @@ private void ndp_fld(ref CodeBuilder cdb, int i, tym_t ty)
 }
 
 /**************************
- * Return index of empty slot in global87.save[].
+ * Insert e into next available slot in save[].
+ * Params:
+ *    save = array of NDP
+ *    ndp = NDP to insert into save[]
+ * Returns:
+ *    index of slot in save[] where ndp was inserted
  */
 
-@trusted
-private int getemptyslot()
+@safe
+private size_t getemptyslot(T)(ref T save, ref NDP ndp)
 {
-    int i;
-
-    for (i = 0; i < global87.save.length; ++i)
-        if (global87.save[i].e == null)
+    foreach (i, ref n; save[])
+        if (n.e == null)
+        {
+            n = ndp;
             return i;
+        }
 
-    global87.save.push(NDP());
-    return i;
+    save.push(ndp);
+    return save.length - 1;
 }
 
 /*********************************
@@ -223,8 +228,7 @@ void push87(ref CodeBuilder cdb, int line, const(char)* file)
     // if we would lose the top register off of the stack
     if (global87.stack[7].e != null)
     {
-        int i = getemptyslot();
-        global87.save[i] = global87.stack[7];
+        const i = getemptyslot(global87.save, global87.stack[7]);
         cdb.genf2(0xD9,0xF6);                         // FDECSTP
         genfwait(cdb);
         ndp_fstp(cdb, i, global87.stack[7].e.Ety);       // FSTP i[BP]
@@ -362,9 +366,8 @@ void save87(ref CodeBuilder cdb)
     while (global87.stack[0].e && global87.stackused)
     {
         // Save it
-        int i = getemptyslot();
-        if (NDPP) printf("saving %p in temporary global87.save[%d]\n",global87.stack[0].e,i);
-        global87.save[i] = global87.stack[0];
+        const i = getemptyslot(global87.save, global87.stack[0]);
+        if (NDPP) printf("saving %p in temporary global87.save[%d]\n",global87.stack[0].e, cast(int)i);
 
         genfwait(cdb);
         ndp_fstp(cdb,i,global87.stack[0].e.Ety); // FSTP i[BP]
@@ -392,9 +395,8 @@ void save87regs(ref CodeBuilder cdb, uint n)
             genfwait(cdb);
             if (k <= global87.stackused)
             {
-                int i = getemptyslot();
+                const i = getemptyslot(global87.save, global87.stack[k - 1]);
                 ndp_fstp(cdb, i, global87.stack[k - 1].e.Ety);   // FSTP i[BP]
-                global87.save[i] = global87.stack[k - 1];
                 global87.stack[k - 1] = NDP();
             }
         }
@@ -420,8 +422,8 @@ void gensaverestore87(regm_t regm, ref CodeBuilder cdbsave, ref CodeBuilder cdbr
     //printf("gensaverestore87(%s)\n", regm_str(regm));
     assert(regm == mST0 || regm == mST01);
 
-    int i = getemptyslot();
-    global87.save[i].e = el_calloc();       // this blocks slot [i] for the life of this function
+    auto ndp0 = NDP(el_calloc());
+    const i = getemptyslot(global87.save, ndp0);  // this blocks slot [i] for the life of this function
     ndp_fstp(cdbsave, i, TYldouble);
 
     CodeBuilder cdb2a;
@@ -430,8 +432,8 @@ void gensaverestore87(regm_t regm, ref CodeBuilder cdbsave, ref CodeBuilder cdbr
 
     if (regm == mST01)
     {
-        int j = getemptyslot();
-        global87.save[j].e = el_calloc();
+        auto ndp1 = NDP(el_calloc());
+        const j = getemptyslot(global87.save, ndp1);
         ndp_fstp(cdbsave, j, TYldouble);
         ndp_fld(cdbrestore, j, TYldouble);
     }
@@ -1655,7 +1657,7 @@ L5:
                 note87(eleft,eoffset,0);
                 noted = true;
             }
-            docommas(cdb,&e);
+            docommas(cdb,e);
             goto L5;
 
         case OPvar:
@@ -1675,7 +1677,7 @@ L5:
                 }
                 else
                 {
-                    getlvalue87(cdb,&cs,e,0);
+                    getlvalue87(cdb,cs,e,0);
                     makesure87(cdb,eleft,eoffset,0,0);
                     cs.Iop = ESC(mf,0);
                     cs.Irm |= modregrm(0,op,0);
@@ -1721,7 +1723,7 @@ L5:
                 static if (1)
                 {
                   L4:
-                    getlvalue87(cdb,&cs,e.EV.E1,0);
+                    getlvalue87(cdb,cs,e.EV.E1,0);
                     cs.Iop = ESC(mf1,0);
                     if (op != -1)
                     {
@@ -1762,7 +1764,7 @@ L5:
             if (e.EV.E1.Eoper == OPvar ||
                 (e.EV.E1.Eoper == OPind && e.EV.E1.Ecount == 0))
             {
-                getlvalue87(cdb,&cs,e.EV.E1,0);
+                getlvalue87(cdb,cs,e.EV.E1,0);
                 cs.Iop = 0xDF;
                 push87(cdb);
                 cs.Irm |= modregrm(0,5,0);
@@ -1829,7 +1831,7 @@ L5:
                 note87(eleft,eoffset,0);    // don't trash this value
             retregs = ALLREGS & mLSW;
             codelem(cdb,e.EV.E1,&retregs,false);
-            regwithvalue(cdb,ALLREGS & mMSW,0,&reg,0);  // 0-extend
+            regwithvalue(cdb,ALLREGS & mMSW,0,reg,0);  // 0-extend
             retregs |= mask(reg);
             mf1 = MFlong;
             goto L3;
@@ -2027,12 +2029,12 @@ void eq87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             while (e2.Eoper == OPcomma)
                 e2 = e2.EV.E2;
             note87(e2,0,0);
-            getlvalue87(cdb, &cs, e.EV.E1, 0);
+            getlvalue87(cdb, cs, e.EV.E1, 0);
             makesure87(cdb,e2,0,0,1);
         }
         else
         {
-            getlvalue87(cdb, &cs, e.EV.E1, 0);
+            getlvalue87(cdb, cs, e.EV.E1, 0);
         }
         cs.Irm |= modregrm(0,op2,0);            // OR in reg field
         cdb.gen(&cs);
@@ -2134,7 +2136,7 @@ void complex_eq87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         cs.Iflags = 0;
         cs.Irex = 0;
         cs.Iop = op1;
-        getlvalue87(cdb, &cs, e.EV.E1, 0);
+        getlvalue87(cdb, cs, e.EV.E1, 0);
         cs.IEV1.Voffset += sz;
         cs.Irm |= modregrm(0, op2, 0);
         makesure87(cdb,e.EV.E2, sz, 0, 0);
@@ -2236,7 +2238,7 @@ private void cnvteq87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     freenode(e.EV.E2);
 
     genfwait(cdb);
-    genrnd(cdb, CW_roundto0);               // FLDCW roundto0
+    genSetRoundingMode(cdb, CW.roundto0);   // FLDCW roundto0
 
     pop87();
     cs.Iflags = ADDFWAIT() ? CFwait : 0;
@@ -2245,7 +2247,7 @@ private void cnvteq87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     loadea(cdb,e.EV.E1,&cs,op1,op2,0,0,0);
 
     genfwait(cdb);
-    genrnd(cdb, CW_roundtonearest);         // FLDCW roundtonearest
+    genSetRoundingMode(cdb, CW.roundtonearest);   // FLDCW roundtonearest
 
     freenode(e.EV.E1);
 }
@@ -2300,7 +2302,7 @@ public void opass87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     regm_t retregs = mST0;
     codelem(cdb,e.EV.E2,&retregs,false);     // evaluate rvalue
     note87(e.EV.E2,0,0);
-    getlvalue87(cdb,&cs,e.EV.E1,e.Eoper==OPmodass?mAX:0);
+    getlvalue87(cdb,cs,e.EV.E1,e.Eoper==OPmodass?mAX:0);
     makesure87(cdb,e.EV.E2,0,0,0);
     if (config.flags4 & CFG4fdivcall && e.Eoper == OPdivass)
     {
@@ -2417,7 +2419,7 @@ private void opmod_complex87(ref CodeBuilder cdb, elem *e,regm_t *pretregs)
     regm_t retregs = mST0;
     codelem(cdb,e.EV.E2,&retregs,false);         // FLD E2
     note87(e.EV.E2,0,0);
-    getlvalue87(cdb,&cs,e.EV.E1,0);
+    getlvalue87(cdb,cs,e.EV.E1,0);
     makesure87(cdb,e.EV.E2,0,0,0);
 
     push87(cdb);
@@ -2514,7 +2516,7 @@ private void opass_complex87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         retregs = mST0;
         codelem(cdb,e.EV.E2, &retregs, false);
         note87(e.EV.E2, 0, 0);
-        getlvalue87(cdb,&cs, e.EV.E1, 0);
+        getlvalue87(cdb,cs, e.EV.E1, 0);
         makesure87(cdb,e.EV.E2,0,0,0);
         push87(cdb);
         cdb.genf2(0xD9,0xC0);                   // FLD ST(0)
@@ -2523,7 +2525,7 @@ private void opass_complex87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     else
     {
         loadComplex(cdb,e.EV.E2);
-        getlvalue87(cdb,&cs,e.EV.E1,0);
+        getlvalue87(cdb,cs,e.EV.E1,0);
         makesure87(cdb,e.EV.E2,sz2,0,0);
         makesure87(cdb,e.EV.E2,0,1,0);
     }
@@ -2782,7 +2784,7 @@ void cdnegass87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     int sz = _tysize[tyml];
 
     code cs;
-    getlvalue87(cdb,&cs,e1,0);
+    getlvalue87(cdb,cs,e1,0);
 
     /* If the EA is really an XMM register, modEA() will fail.
      * So disallow putting e1 into a register.
@@ -2855,7 +2857,7 @@ void post87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     //printf("post87(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
     code cs;
     assert(*pretregs);
-    getlvalue87(cdb,&cs,e.EV.E1,0);
+    getlvalue87(cdb,cs,e.EV.E1,0);
     tym_t ty1 = tybasic(e.EV.E1.Ety);
     switch (ty1)
     {
@@ -3245,12 +3247,12 @@ void cnvt87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
         if (config.flags3 & CFG3pic)
         {
-            cdb.genc(0xC7,modregrm(2,0,4) + 256*modregrm(0,4,SP),FLconst,szoff+2,FLconst,CW_roundto0); // MOV szoff+2[ESP], CW_roundto0
+            cdb.genc(0xC7,modregrm(2,0,4) + 256*modregrm(0,4,SP),FLconst,szoff+2,FLconst,CW.roundto0); // MOV szoff+2[ESP], CW.roundto0
             code_orflag(cdb.last(), CFopsize);
             cdb.genc1(0xD9,modregrm(2,5,4) + 256*modregrm(0,4,SP),FLconst,szoff+2); // FLDCW szoff+2[ESP]
         }
         else
-            genrnd(cdb, CW_roundto0);   // FLDCW roundto0
+            genSetRoundingMode(cdb, CW.roundto0);   // FLDCW roundto0
 
         pop87();
 
@@ -3285,7 +3287,7 @@ void cnvt87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         codelem(cdb,e.EV.E1,&retregs,false);
 
         genfwait(cdb);
-        genrnd(cdb, CW_roundto0);                  // FLDCW roundto0
+        genSetRoundingMode(cdb, CW.roundto0);      // FLDCW roundto0
 
         pop87();
         cdb.genfltreg(mf,rf,0);                    // FISTP floatreg
@@ -3304,7 +3306,7 @@ void cnvt87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         }
         else
             cdb.genfltreg(LOD,reg,0);                // MOV reg,floatreg
-        genrnd(cdb, CW_roundtonearest);              // FLDCW roundtonearest
+        genSetRoundingMode(cdb, CW.roundtonearest);  // FLDCW roundtonearest
         fixresult(cdb,e,retregs,pretregs);
     }
 }
@@ -3457,7 +3459,7 @@ void cdind87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     //printf("cdind87(e = %p, *pretregs = %s)\n",e,regm_str(*pretregs));
     code cs;
 
-    getlvalue87(cdb,&cs,e,0);           // get addressing mode
+    getlvalue87(cdb,cs,e,0);           // get addressing mode
     if (*pretregs)
     {
         switch (tybasic(e.Ety))
@@ -3499,11 +3501,14 @@ void cg87_reset()
 
 
 /*****************************************
- * Initialize control word constants.
+ * Set rounding mode.
+ * Params:
+ *      cdb = code sink
+ *      cw = control word spedifying rounding mode
  */
 
 @trusted
-private void genrnd(ref CodeBuilder cdb, short cw)
+private void genSetRoundingMode(ref CodeBuilder cdb, CW cw)
 {
     if (config.flags3 & CFG3pic)
     {
@@ -3518,16 +3523,14 @@ private void genrnd(ref CodeBuilder cdb, short cw)
     {
         if (!oldd.round)                // if not initialized
         {
-            short cwi;
-
             oldd.round = 1;
 
-            cwi = CW_roundto0;          // round to 0
+            auto cwi = CW.roundto0;          // round to 0
             oldd.roundto0 = out_readonly_sym(TYshort,&cwi,2);
-            cwi = CW_roundtonearest;            // round to nearest
+            cwi = CW.roundtonearest;            // round to nearest
             oldd.roundtonearest = out_readonly_sym(TYshort,&cwi,2);
         }
-        Symbol *rnddir = (cw == CW_roundto0) ? oldd.roundto0 : oldd.roundtonearest;
+        Symbol *rnddir = (cw == CW.roundto0) ? oldd.roundto0 : oldd.roundtonearest;
         code cs;
         cs.Iop = 0xD9;
         cs.Iflags = CFoff;

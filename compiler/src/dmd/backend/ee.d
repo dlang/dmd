@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1995-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/ee.d, backend/ee.d)
@@ -27,16 +27,15 @@ import dmd.backend.symtab;
 
 import dmd.backend.iasm;
 
-extern(C++):
-
 nothrow:
+@safe:
 
 __gshared EEcontext eecontext;
 
 //////////////////////////////////////
 // Convert any symbols generated for the debugger expression to SCstack
 // storage class.
-
+@trusted
 void eecontext_convs(SYMIDX marksi)
 {
     symtab_t *ps;

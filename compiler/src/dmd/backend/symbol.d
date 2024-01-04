@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/symbol.d
@@ -34,7 +34,6 @@ import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-extern (C++):
 
 nothrow:
 @safe:
@@ -43,7 +42,7 @@ import dmd.backend.code_x86;
 
 void struct_free(struct_t *st) { }
 
-@trusted
+@trusted @nogc
 func_t* func_calloc()
 {
     func_t* f = cast(func_t *) calloc(1, func_t.sizeof);
@@ -272,7 +271,7 @@ Symbol * symbol_calloc(const(char)[] id)
  *      created Symbol
  */
 
-@trusted
+@trusted @nogc
 extern (C)
 Symbol * symbol_name(const(char)[] name, SC sclass, type *t)
 {
@@ -308,7 +307,7 @@ Funcsym *symbol_funcalias(Funcsym *sf)
  * Create a symbol, give it a name, storage class and type.
  */
 
-@trusted
+@trusted @nogc
 Symbol * symbol_generate(SC sclass,type *t)
 {
     __gshared int tmpnum;
@@ -359,7 +358,7 @@ Symbol *symbol_genauto(tym_t ty)
  * Add in the variants for a function symbol.
  */
 
-@trusted
+@trusted @nogc
 void symbol_func(Symbol *s)
 {
     //printf("symbol_func(%s, x%x)\n", s.Sident.ptr, fregsaved);

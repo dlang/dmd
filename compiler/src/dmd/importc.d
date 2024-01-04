@@ -3,7 +3,7 @@
  *
  * Specification: C11
  *
- * Copyright:   Copyright (C) 2021-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2021-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/importc.d, _importc.d)
@@ -20,6 +20,8 @@ import dmd.dcast;
 import dmd.declaration;
 import dmd.dscope;
 import dmd.dsymbol;
+import dmd.dsymbolsem;
+import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.identifier;
@@ -126,14 +128,14 @@ Expression fieldLookup(Expression e, Scope* sc, Identifier id, bool arrow)
         t = t.isTypePointer().next;
         auto pe = e.toChars();
         if (!arrow)
-            e.error("since `%s` is a pointer, use `%s->%s` instead of `%s.%s`", pe, pe, id.toChars(), pe, id.toChars());
+            error(e.loc, "since `%s` is a pointer, use `%s->%s` instead of `%s.%s`", pe, pe, id.toChars(), pe, id.toChars());
         e = new PtrExp(e.loc, e);
     }
     if (auto ts = t.isTypeStruct())
         s = ts.sym.search(e.loc, id, 0);
     if (!s)
     {
-        e.error("`%s` is not a member of `%s`", id.toChars(), t.toChars());
+        error(e.loc, "`%s` is not a member of `%s`", id.toChars(), t.toChars());
         return ErrorExp.get();
     }
     Expression ef = new DotVarExp(e.loc, e, s.isDeclaration());

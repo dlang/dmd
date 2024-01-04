@@ -8,7 +8,7 @@ module dmd.transitivevisitor;
 import dmd.astenums;
 import dmd.permissivevisitor;
 import dmd.tokens;
-import dmd.root.rootobject;
+import dmd.rootobject;
 
 import core.stdc.stdio;
 
@@ -162,14 +162,14 @@ package mixin template ParseVisitMethods(AST)
     }
 
     override void visit(AST.StaticForeachStatement s)
-	{
+    {
         // printf("Visiting StaticForeachStatement\n");
-		if (s.sfe.aggrfe)
+        if (s.sfe.aggrfe)
             s.sfe.aggrfe.accept(this);
 
-		if (s.sfe.rangefe)
+        if (s.sfe.rangefe)
             s.sfe.rangefe.accept(this);
-	}
+    }
 
     override void visit(AST.IfStatement s)
     {

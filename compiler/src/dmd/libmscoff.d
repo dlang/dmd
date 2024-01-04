@@ -1,7 +1,7 @@
 /**
  * A library in the COFF format, used on 32-bit and 64-bit Windows targets.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/libmscoff.d, _libmscoff.d)
@@ -33,7 +33,6 @@ import dmd.location;
 import dmd.utils;
 
 import dmd.root.array;
-import dmd.root.file;
 import dmd.root.filename;
 import dmd.common.outbuffer;
 import dmd.root.port;
@@ -44,12 +43,13 @@ import dmd.root.stringtable;
 import dmd.scanmscoff;
 
 // Entry point (only public symbol in this module).
-public extern (C++) Library LibMSCoff_factory()
+public extern (C++) Library LibMSCoff_factory() @safe
 {
     return new LibMSCoff();
 }
 
 private: // for the remainder of this module
+nothrow:
 
 enum LOG = false;
 
@@ -59,13 +59,13 @@ struct MSCoffObjSymbol
     MSCoffObjModule* om;
 
     /// Predicate for `Array.sort`for name comparison
-    static int name_pred (scope const MSCoffObjSymbol** ppe1, scope const MSCoffObjSymbol** ppe2) nothrow @nogc pure
+    static int name_pred (scope const MSCoffObjSymbol** ppe1, scope const MSCoffObjSymbol** ppe2) nothrow @nogc pure @safe
     {
         return dstrcmp((**ppe1).name, (**ppe2).name);
     }
 
     /// Predicate for `Array.sort`for offset comparison
-    static int offset_pred (scope const MSCoffObjSymbol** ppe1, scope const MSCoffObjSymbol** ppe2) nothrow @nogc pure
+    static int offset_pred (scope const MSCoffObjSymbol** ppe1, scope const MSCoffObjSymbol** ppe2) nothrow @nogc pure @safe
     {
         return (**ppe1).om.offset - (**ppe2).om.offset;
     }
@@ -95,7 +95,7 @@ final class LibMSCoff : Library
 
         void corrupt(int reason)
         {
-            error("corrupt MS Coff object module %.*s %d",
+            eSink.error(loc, "corrupt MS Coff object module %.*s %d",
                   cast(int)module_name.length, module_name.ptr, reason);
         }
 
@@ -365,7 +365,7 @@ final class LibMSCoff : Library
 
     /*****************************************************************************/
 
-    void addSymbol(MSCoffObjModule* om, const(char)[] name, int pickAny = 0)
+    void addSymbol(MSCoffObjModule* om, const(char)[] name, int pickAny = 0) nothrow
     {
         static if (LOG)
         {
@@ -389,12 +389,12 @@ private:
             printf("LibMSCoff::scanObjModule(%s)\n", om.name.ptr);
         }
 
-        extern (D) void addSymbol(const(char)[] name, int pickAny)
+        extern (D) void addSymbol(const(char)[] name, int pickAny) nothrow
         {
             this.addSymbol(om, name, pickAny);
         }
 
-        scanMSCoffObjModule(&addSymbol, om.base[0 .. om.length], om.name.ptr, loc);
+        scanMSCoffObjModule(&addSymbol, om.base[0 .. om.length], om.name.ptr, loc, eSink);
     }
 
     /*****************************************************************************/
@@ -411,7 +411,7 @@ private:
      *      Longnames Member
      *      object modules...
      */
-    protected override void WriteLibToBuffer(OutBuffer* libbuf)
+    protected override void writeLibToBuffer(ref OutBuffer libbuf)
     {
         static if (LOG)
         {

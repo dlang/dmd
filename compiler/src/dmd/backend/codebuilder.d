@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/codebuilder.d, backend/_codebuilder.d)
@@ -27,7 +27,7 @@ import dmd.backend.type;
 
 @safe:
 
-extern (C++) struct CodeBuilder
+struct CodeBuilder
 {
   private:
 
@@ -184,14 +184,14 @@ extern (C++) struct CodeBuilder
      * Generate an ASM sequence.
      */
     @trusted
-    void genasm(char *s, uint slen)
+    void genasm(const ubyte[] bytes)
     {
         code *ce = code_calloc();
         ce.Iop = ASM;
         ce.IFL1 = FLasm;
-        ce.IEV1.len = slen;
-        ce.IEV1.bytes = cast(char *) mem_malloc(slen);
-        memcpy(ce.IEV1.bytes,s,slen);
+        ce.IEV1.len = bytes.length;
+        ce.IEV1.bytes = cast(char *) mem_malloc(bytes.length);
+        memcpy(ce.IEV1.bytes,bytes.ptr,bytes.length);
 
         *pTail = ce;
         pTail = &ce.next;
@@ -225,14 +225,14 @@ extern (C++) struct CodeBuilder
     }
 
     @trusted
-    void gencs(opcode_t op, uint ea, uint FL2, Symbol *s)
+    void gencs(opcode_t op, uint ea, FL FL2, Symbol *s)
     {
         code cs;
         cs.Iop = op;
         cs.Iflags = 0;
         cs.Iea = ea;
         ccheck(&cs);
-        cs.IFL2 = cast(ubyte)FL2;
+        cs.IFL2 = FL2;
         cs.IEV2.Vsym = s;
         cs.IEV2.Voffset = 0;
 
@@ -255,7 +255,7 @@ extern (C++) struct CodeBuilder
     }
 
     @trusted
-    void genc1(opcode_t op, uint ea, uint FL1, targ_size_t EV1)
+    void genc1(opcode_t op, uint ea, FL FL1, targ_size_t EV1)
     {
         code cs;
         assert(FL1 < FLMAX);
@@ -263,14 +263,14 @@ extern (C++) struct CodeBuilder
         cs.Iflags = CFoff;
         cs.Iea = ea;
         ccheck(&cs);
-        cs.IFL1 = cast(ubyte)FL1;
+        cs.IFL1 = FL1;
         cs.IEV1.Vsize_t = EV1;
 
         gen(&cs);
     }
 
     @trusted
-    void genc(opcode_t op, uint ea, uint FL1, targ_size_t EV1, uint FL2, targ_size_t EV2)
+    void genc(opcode_t op, uint ea, FL FL1, targ_size_t EV1, FL FL2, targ_size_t EV2)
     {
         code cs;
         assert(FL1 < FLMAX);
@@ -278,10 +278,10 @@ extern (C++) struct CodeBuilder
         cs.Iea = ea;
         ccheck(&cs);
         cs.Iflags = CFoff;
-        cs.IFL1 = cast(ubyte)FL1;
+        cs.IFL1 = FL1;
         cs.IEV1.Vsize_t = EV1;
         assert(FL2 < FLMAX);
-        cs.IFL2 = cast(ubyte)FL2;
+        cs.IFL2 = FL2;
         cs.IEV2.Vsize_t = EV2;
 
         gen(&cs);
@@ -347,7 +347,7 @@ extern (C++) struct CodeBuilder
      * Generate code to deal with floatreg.
      */
     @trusted
-    void genfltreg(opcode_t opcode,uint reg,targ_size_t offset)
+    void genfltreg(opcode_t opcode,int reg,targ_size_t offset)
     {
         floatreg = true;
         reflocal = true;

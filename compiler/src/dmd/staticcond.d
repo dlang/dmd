@@ -1,7 +1,7 @@
 /**
  * Lazily evaluate static conditions for `static if`, `static assert` and template constraints.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/staticcond.d, _staticcond.d)
@@ -12,6 +12,7 @@
 module dmd.staticcond;
 
 import dmd.arraytypes;
+import dmd.dinterpret;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
@@ -21,6 +22,7 @@ import dmd.expressionsem;
 import dmd.globals;
 import dmd.identifier;
 import dmd.mtype;
+import dmd.optimize;
 import dmd.root.array;
 import dmd.common.outbuffer;
 import dmd.tokens;
@@ -111,7 +113,8 @@ bool evalStaticCondition(Scope* sc, Expression original, Expression e, out bool 
         const opt = e.toBool();
         if (opt.isEmpty())
         {
-            e.error("expression `%s` is not constant", e.toChars());
+            if (!e.type.isTypeError())
+                error(e.loc, "expression `%s` is not constant", e.toChars());
             errors = true;
             return false;
         }

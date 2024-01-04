@@ -1,7 +1,7 @@
 /**
  * Contains the `Id` struct with a list of predefined symbols the compiler knows about.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/id.d, _id.d)
@@ -61,6 +61,8 @@ immutable Msgtable[] msgtable =
     { "IUnknown" },
     { "Object" },
     { "object" },
+    { "_size_t", "size_t" },
+    { "_ptrdiff_t", "ptrdiff_t" },
     { "string" },
     { "wstring" },
     { "dstring" },
@@ -114,6 +116,7 @@ immutable Msgtable[] msgtable =
     { "returnLabel", "__returnLabel" },
     { "line" },
     { "empty", "" },
+    { "dotdotdot", "..." }, // use for error messages
     { "p" },
     { "__vptr" },
     { "__monitor" },
@@ -305,6 +308,7 @@ immutable Msgtable[] msgtable =
     { "aaKeys", "_aaKeys" },
     { "aaValues", "_aaValues" },
     { "aaRehash", "_aaRehash" },
+    { "_aaAsStruct" },
     { "monitorenter", "_d_monitorenter" },
     { "monitorexit", "_d_monitorexit" },
     { "criticalenter", "_d_criticalenter2" },
@@ -317,6 +321,10 @@ immutable Msgtable[] msgtable =
     { "_d_newclassTTrace" },
     { "_d_newitemT" },
     { "_d_newitemTTrace" },
+    { "_d_newarrayT" },
+    { "_d_newarrayTTrace" },
+    { "_d_newarraymTX" },
+    { "_d_newarraymTXTrace" },
     { "_d_assert_fail" },
     { "dup" },
     { "_aaApply" },
@@ -360,7 +368,6 @@ immutable Msgtable[] msgtable =
     { "_d_arraysetlengthTTrace"},
     { "_d_arrayappendT" },
     { "_d_arrayappendTTrace" },
-    { "_d_arrayappendcTXImpl" },
     { "_d_arrayappendcTX" },
     { "_d_arrayappendcTXTrace" },
     { "_d_arraycatnTX" },
@@ -514,6 +521,7 @@ immutable Msgtable[] msgtable =
     { "udaSelector", "selector" },
     { "udaOptional", "optional"},
     { "udaMustUse", "mustuse" },
+    { "udaStandalone", "standalone" },
 
     // C names, for undefined identifier error messages
     { "NULL" },
@@ -575,7 +583,7 @@ struct Msgtable
      * Returns: the name to use in the D executable, `name_` if non-empty,
      *  otherwise `ident`
      */
-    string name()
+    string name() @safe
     {
         return name_ ? name_ : ident;
     }
@@ -602,19 +610,19 @@ string generate(immutable(Msgtable)[] msgtable, string function(Msgtable) dg)
 }
 
 // Used to generate the code for each identifier.
-string identifier(Msgtable m)
+string identifier(Msgtable m) @safe
 {
     return "Identifier " ~ m.ident ~ ";";
 }
 
 // Used to generate the code for each initializer.
-string initializer(Msgtable m)
+string initializer(Msgtable m) @safe
 {
     return m.ident ~ ` = Identifier.idPool("` ~ m.name ~ `");`;
 }
 
 // Used to generate the code for each deinitializer.
-string deinitializer(Msgtable m)
+string deinitializer(Msgtable m) @safe
 {
     return m.ident ~ " = Identifier.init;";
 }

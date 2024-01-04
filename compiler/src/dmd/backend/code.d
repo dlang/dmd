@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/code.d, backend/_code.d)
@@ -27,7 +27,6 @@ import dmd.backend.type;
 
 import dmd.common.outbuffer;
 
-extern (C++):
 
 nothrow:
 @safe:
@@ -285,24 +284,10 @@ enum BackendPass
     final_,     /// final pass
 }
 
-public import dmd.backend.cgcod : retsize;
-
-debug
-{
-    reg_t findreg(regm_t regm , int line, const(char)* file);
-    @trusted
-    extern (D) reg_t findreg(regm_t regm , int line = __LINE__, string file = __FILE__)
-    { return findreg(regm, line, file.ptr); }
-}
-else
-{
-    reg_t findreg(regm_t regm);
-}
+public import dmd.backend.cgcod : retsize, findreg;
 
 reg_t findregmsw(uint regm) { return findreg(regm & mMSW); }
 reg_t findreglsw(uint regm) { return findreg(regm & (mLSW | mBP)); }
-
-void cdsetjmp(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
 
 public import dmd.backend.cod1;
 public import dmd.backend.cod2;
@@ -310,8 +295,6 @@ public import dmd.backend.cod3;
 public import dmd.backend.cod4;
 public import dmd.backend.cod5;
 public import dmd.backend.cgen : outfixlist, addtofixlist;
-
-void searchfixlist(Symbol *s) {}
 
 public import dmd.backend.cgxmm;
 public import dmd.backend.cg87;

@@ -8,7 +8,7 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2016-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2016-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/gsroa.c, backend/gsroa.d)
@@ -34,7 +34,6 @@ import dmd.backend.type;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
 
-extern (C++):
 
 nothrow:
 @safe:
@@ -345,7 +344,7 @@ if (enable) // disable while we test the inliner
         enum tmp_length = 6;
     SymInfo[tmp_length] tmp = void;
 
-    import dmd.common.string : SmallBuffer;
+    import dmd.common.smallbuffer : SmallBuffer;
     auto sb = SmallBuffer!(SymInfo)(3 * sia_length, tmp[]);
     SymInfo* sip = sb.ptr;
     memset(sip, 0, 3 * sia_length * SymInfo.sizeof);

@@ -1,7 +1,7 @@
 /**
  * Allocate memory using `malloc` or the GC depending on the configuration.
  *
- * Copyright: Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, https://www.digitalmars.com
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/root/rmem.d, root/_rmem.d)
@@ -110,7 +110,7 @@ extern (C++) struct Mem
      * Returns:
      *  p if not null
      */
-    static void* check(void* p) pure nothrow @nogc
+    static void* check(void* p) pure nothrow @nogc @safe
     {
         return p ? p : error();
     }

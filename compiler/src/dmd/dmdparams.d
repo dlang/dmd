@@ -1,7 +1,7 @@
 /**
  * DMD-specific parameters.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dmdparams.d, _dmdparams.d)
@@ -21,6 +21,22 @@ enum PIC : ubyte
     pie,                /// Position Independent Executable
 }
 
+/// export visibility
+enum ExpVis : ubyte
+{
+    default_,           /// hidden for Windows targets without -shared, otherwise public
+    hidden,             /// only export symbols marked with 'export'
+    public_,            /// export all symbols
+}
+
+/// symbol dllimport
+enum SymImport : ubyte
+{
+    none,               /// no symbols
+    defaultLibsOnly,    /// only druntime/phobos symbols
+    all,                /// all non-root symbols
+}
+
 struct DMDparams
 {
     bool alwaysframe;       // always emit standard stack frame
@@ -35,8 +51,11 @@ struct DMDparams
 
     bool optimize;          // run optimizer
     bool nofloat;           // code should not pull in floating point support
+    bool ibt;               // generate indirect branch tracking
     PIC pic = PIC.fixed;    // generate fixed, pic or pie code
     bool stackstomp;        // add stack stomping code
+    ExpVis exportVisibility = ExpVis.hidden; // which symbols to "dllexport"
+    SymImport symImport;    // which symbols to "dllimport"
 
     bool symdebug;          // insert debug symbolic information
     bool symdebugref;       // insert debug information for all referenced types, too
@@ -66,7 +85,7 @@ struct Triple
 {
     private const(char)[] source;
     CPU               cpu;
-    bool              is64bit;
+    bool              isX86_64;
     bool              isLP64;
     Target.OS         os;
     ubyte             osMajor;
@@ -135,14 +154,14 @@ struct Triple
         }
 
         if (matches("x86_64"))
-            is64bit = true;
+            isX86_64 = true;
         else if (matches("x86"))
-            is64bit = false;
+            isX86_64 = false;
         else if (matches("x64"))
-            is64bit = true;
+            isX86_64 = true;
         else if (matches("x32"))
         {
-            is64bit = true;
+            isX86_64 = true;
             isLP64 = false;
         }
         else
@@ -162,7 +181,7 @@ struct Triple
     }
 
     // try parsing vendor if present
-    bool tryParseVendor(const(char)[] vendor)
+    bool tryParseVendor(const(char)[] vendor) @safe
     {
         switch (vendor)
         {
@@ -239,7 +258,7 @@ struct Triple
      * Returns:
      *  parsed number
      */
-    private pure static
+    private pure @safe static
     uint parseNumber(ref const(char)[] str, ref bool overflow)
     {
         auto s = str;
@@ -294,10 +313,10 @@ struct Triple
     }
 }
 
-void setTriple(ref Target target, const ref Triple triple)
+void setTriple(ref Target target, const ref Triple triple) @safe
 {
     target.cpu     = triple.cpu;
-    target.is64bit = triple.is64bit;
+    target.isX86_64 = triple.isX86_64;
     target.isLP64  = triple.isLP64;
     target.os      = triple.os;
     target.osMajor = triple.osMajor;

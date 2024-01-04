@@ -1,7 +1,7 @@
 /**
  * Most of the logic to implement scoped pointers and scoped references is here.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/escape.d, _escape.d)
@@ -25,17 +25,20 @@ import dmd.dsymbol;
 import dmd.errors;
 import dmd.expression;
 import dmd.func;
-import dmd.globals;
+import dmd.globals : FeatureState;
 import dmd.id;
 import dmd.identifier;
 import dmd.init;
 import dmd.location;
 import dmd.mtype;
 import dmd.printast;
-import dmd.root.rootobject;
+import dmd.rootobject;
 import dmd.tokens;
+import dmd.typesem : hasPointers, parameterStorageClass;
 import dmd.visitor;
 import dmd.arraytypes;
+
+private:
 
 /// Groups global state for escape checking together
 package(dmd) struct EscapeState
@@ -69,6 +72,7 @@ package(dmd) struct EscapeState
  * Returns:
  *      `true` if error
  */
+public
 bool checkMutableArguments(Scope* sc, FuncDeclaration fd, TypeFunction tf,
     Expression ethis, Expressions* arguments, bool gag)
 {
@@ -93,22 +97,7 @@ bool checkMutableArguments(Scope* sc, FuncDeclaration fd, TypeFunction tf,
         bool isMutable;         // true if reference to mutable
     }
 
-    /* Store escapeBy as static data escapeByStorage so we can keep reusing the same
-     * arrays rather than reallocating them.
-     */
-    __gshared EscapeBy[] escapeByStorage;
-    auto escapeBy = escapeByStorage;
-    if (escapeBy.length < len)
-    {
-        auto newPtr = cast(EscapeBy*)mem.xrealloc(escapeBy.ptr, len * EscapeBy.sizeof);
-        // Clear the new section
-        memset(newPtr + escapeBy.length, 0, (len - escapeBy.length) * EscapeBy.sizeof);
-        escapeBy = newPtr[0 .. len];
-        escapeByStorage = escapeBy;
-    }
-    else
-        escapeBy = escapeBy[0 .. len];
-
+    auto escapeBy = new EscapeBy[len];
     const paramLength = tf.parameterList.length;
 
     // Fill in escapeBy[] with arguments[], ethis, and outerVars[]
@@ -181,7 +170,7 @@ bool checkMutableArguments(Scope* sc, FuncDeclaration fd, TypeFunction tf,
         if (!(eb.isMutable || eb2.isMutable))
             return;
 
-        if (!tf.islive && !(global.params.useDIP1000 == FeatureState.enabled && sc.func.setUnsafe()))
+        if (!tf.islive && !(sc.useDIP1000 == FeatureState.enabled && sc.func && sc.func.setUnsafe()))
             return;
 
         if (!gag)
@@ -194,7 +183,7 @@ bool checkMutableArguments(Scope* sc, FuncDeclaration fd, TypeFunction tf,
             const(char)* msg = eb.isMutable && eb2.isMutable
                                 ? "more than one mutable reference %s `%s` in arguments to `%s()`"
                                 : "mutable and const references %s `%s` in arguments to `%s()`";
-            error((*arguments)[i].loc, msg,
+            sc.eSink.error((*arguments)[i].loc, msg,
                   referenceVerb,
                   v.toChars(),
                   fd ? fd.toPrettyChars() : "indirectly");
@@ -228,13 +217,6 @@ bool checkMutableArguments(Scope* sc, FuncDeclaration fd, TypeFunction tf,
         escape(i, eb, false);
     }
 
-    /* Reset the arrays in escapeBy[] so we can reuse them next time through
-     */
-    foreach (ref eb; escapeBy)
-    {
-        eb.er.reset();
-    }
-
     return errors;
 }
 
@@ -248,6 +230,7 @@ bool checkMutableArguments(Scope* sc, FuncDeclaration fd, TypeFunction tf,
  * Returns:
  *      `true` if any elements escaped
  */
+public
 bool checkArrayLiteralEscape(Scope *sc, ArrayLiteralExp ae, bool gag)
 {
     bool errors;
@@ -271,6 +254,7 @@ bool checkArrayLiteralEscape(Scope *sc, ArrayLiteralExp ae, bool gag)
  * Returns:
  *      `true` if any elements escaped
  */
+public
 bool checkAssocArrayLiteralEscape(Scope *sc, AssocArrayLiteralExp ae, bool gag)
 {
     bool errors;
@@ -296,6 +280,7 @@ bool checkAssocArrayLiteralEscape(Scope *sc, AssocArrayLiteralExp ae, bool gag)
  *    v = parameter that was not inferred
  *    recursionLimit = recursion limit for printing the reason
  */
+private
 void printScopeFailure(E)(E printFunc, VarDeclaration v, int recursionLimit)
 {
     recursionLimit--;
@@ -338,12 +323,13 @@ void printScopeFailure(E)(E printFunc, VarDeclaration v, int recursionLimit)
  * Returns:
  *      `true` if pointers to the stack can escape via assignment
  */
+public
 bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier parId, VarDeclaration vPar, STC parStc, Expression arg, bool assertmsg, bool gag)
 {
     enum log = false;
-    if (log) printf("checkParamArgumentEscape(arg: %s par: %s)\n",
+    if (log) printf("checkParamArgumentEscape(arg: %s par: %s parSTC: %llx)\n",
         arg ? arg.toChars() : "null",
-        parId ? parId.toChars() : "null");
+        parId ? parId.toChars() : "null", parStc);
     //printf("type = %s, %d\n", arg.type.toChars(), arg.type.hasPointers());
 
     if (!arg.type.hasPointers())
@@ -356,7 +342,7 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier parId, 
     if (parStc & STC.scope_)
     {
         // These errors only apply to non-scope parameters
-        // When the paraneter is `scope`, only `checkScopeVarAddr` on `er.byref` is needed
+        // When the parameter is `scope`, only `checkScopeVarAddr` on `er.byref` is needed
         er.byfunc.setDim(0);
         er.byvalue.setDim(0);
         er.byexp.setDim(0);
@@ -387,11 +373,12 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier parId, 
             (!fdc && parId) ? (desc ~ " `%s` assigned to non-scope parameter `%s`") :
             (desc ~ " `%s` assigned to non-scope anonymous parameter");
 
-        auto param = isThis ? v : (parId ? parId : fdc);
-        if (sc.setUnsafeDIP1000(gag, arg.loc, msg, v, param, fdc))
+        if (isThis ?
+            sc.setUnsafeDIP1000(gag, arg.loc, msg, arg, fdc.toParent2(), fdc) :
+            sc.setUnsafeDIP1000(gag, arg.loc, msg, v, parId ? parId : fdc, fdc))
         {
             result = true;
-            printScopeFailure(previewSupplementalFunc(sc.isDeprecated(), global.params.useDIP1000), vPar, 10);
+            printScopeFailure(previewSupplementalFunc(sc.isDeprecated(), sc.useDIP1000), vPar, 10);
         }
     }
 
@@ -488,6 +475,7 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier parId, 
  * Returns:
  *      `true` if assignment to `firstArg` would cause an error
  */
+public
 bool checkParamArgumentReturn(Scope* sc, Expression firstArg, Expression arg, Parameter param, bool gag)
 {
     enum log = false;
@@ -508,7 +496,7 @@ bool checkParamArgumentReturn(Scope* sc, Expression firstArg, Expression arg, Pa
     const byRef = param.isReference() && !(param.storageClass & STC.scope_)
         && !(param.storageClass & STC.returnScope); // fixme: it's possible to infer returnScope without scope with vaIsFirstRef
 
-    scope e = new AssignExp(arg.loc, firstArg, arg);
+    auto e = new AssignExp(arg.loc, firstArg, arg);
     return checkAssignEscape(sc, e, gag, byRef);
 }
 
@@ -523,6 +511,7 @@ bool checkParamArgumentReturn(Scope* sc, Expression firstArg, Expression arg, Pa
  * Returns:
  *      `true` if construction would cause an escaping reference error
  */
+public
 bool checkConstructorEscape(Scope* sc, CallExp ce, bool gag)
 {
     enum log = false;
@@ -564,6 +553,7 @@ bool checkConstructorEscape(Scope* sc, CallExp ce, bool gag)
 }
 
 /// How a `return` parameter escapes its pointer value
+public
 enum ReturnParamDest
 {
     returnVal, /// through return statement: `return x`
@@ -585,6 +575,7 @@ enum ReturnParamDest
  *   tthis = type of `this` parameter, or `null` if none
  * Returns: What a `return` parameter should transfer the lifetime of the argument to
  */
+public
 ReturnParamDest returnParamDest(TypeFunction tf, Type tthis)
 {
     assert(tf);
@@ -617,6 +608,7 @@ ReturnParamDest returnParamDest(TypeFunction tf, Type tthis)
  * Returns:
  *      `true` if pointers to the stack can escape via assignment
  */
+public
 bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
 {
     enum log = false;
@@ -933,7 +925,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
             !(va && va.storage_class & STC.temp))
         {
             if (!gag)
-                deprecation(ee.loc, "slice of static array temporary returned by `%s` assigned to longer lived variable `%s`",
+                sc.eSink.deprecation(ee.loc, "slice of static array temporary returned by `%s` assigned to longer lived variable `%s`",
                     ee.toChars(), e1.toChars());
             //result = true;
             continue;
@@ -980,6 +972,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
  * Returns:
  *      `true` if pointers to the stack can escape
  */
+public
 bool checkThrowEscape(Scope* sc, Expression e, bool gag)
 {
     //printf("[%s] checkThrowEscape, e = %s\n", e.loc.toChars(), e.toChars());
@@ -1023,6 +1016,7 @@ bool checkThrowEscape(Scope* sc, Expression e, bool gag)
  * Returns:
  *      `true` if pointers to the stack can escape
  */
+public
 bool checkNewEscape(Scope* sc, Expression e, bool gag)
 {
     import dmd.globals: FeatureState;
@@ -1101,7 +1095,7 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
         {
             if (p == sc.func)
             {
-                result |= escapingRef(v, global.params.useDIP1000);
+                result |= escapingRef(v, sc.useDIP1000);
                 continue;
             }
         }
@@ -1117,7 +1111,7 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
         {
             //printf("escaping reference to local ref variable %s\n", v.toChars());
             //printf("storage class = x%llx\n", v.storage_class);
-            result |= escapingRef(v, global.params.useDIP25);
+            result |= escapingRef(v, sc.useDIP25);
             continue;
         }
         // Don't need to be concerned if v's parent does not return a ref
@@ -1132,12 +1126,12 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
             const(char)* msg = "storing reference to outer local variable `%s` into allocated memory causes it to escape";
             if (!gag)
             {
-                previewErrorFunc(sc.isDeprecated(), global.params.useDIP25)(e.loc, msg, v.toChars());
+                previewErrorFunc(sc.isDeprecated(), sc.useDIP25)(e.loc, msg, v.toChars());
             }
 
             // If -preview=dip25 is used, the user wants an error
             // Otherwise, issue a deprecation
-            result |= (global.params.useDIP25 == FeatureState.enabled);
+            result |= (sc.useDIP25 == FeatureState.enabled);
         }
     }
 
@@ -1145,7 +1139,7 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
     {
         if (log) printf("byexp %s\n", ee.toChars());
         if (!gag)
-            error(ee.loc, "storing reference to stack allocated value returned by `%s` into allocated memory causes it to escape",
+            sc.eSink.error(ee.loc, "storing reference to stack allocated value returned by `%s` into allocated memory causes it to escape",
                   ee.toChars());
         result = true;
     }
@@ -1165,6 +1159,7 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
  * Returns:
  *      `true` if pointers to the stack can escape
  */
+public
 bool checkReturnEscape(Scope* sc, Expression e, bool gag)
 {
     //printf("[%s] checkReturnEscape, e: %s\n", e.loc.toChars(), e.toChars());
@@ -1182,6 +1177,7 @@ bool checkReturnEscape(Scope* sc, Expression e, bool gag)
  * Returns:
  *      `true` if references to the stack can escape
  */
+public
 bool checkReturnEscapeRef(Scope* sc, Expression e, bool gag)
 {
     version (none)
@@ -1269,7 +1265,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                     // https://issues.dlang.org/show_bug.cgi?id=23191
                     if (!gag)
                     {
-                        previewErrorFunc(sc.isDeprecated(), global.params.useDIP1000)(e.loc,
+                        previewErrorFunc(sc.isDeprecated(), sc.useDIP1000)(e.loc,
                             "scope parameter `%s` may not be returned", v.toChars()
                         );
                         result = true;
@@ -1287,7 +1283,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
         else if (v.isTypesafeVariadicArray && p == sc.func)
         {
             if (!gag)
-                error(e.loc, "returning `%s` escapes a reference to variadic parameter `%s`", e.toChars(), v.toChars());
+                sc.eSink.error(e.loc, "returning `%s` escapes a reference to variadic parameter `%s`", e.toChars(), v.toChars());
             result = false;
         }
         else
@@ -1301,7 +1297,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
     {
         if (log)
         {
-            printf("byref `%s` %s\n", v.toChars(), toChars(buildScopeRef(v.storage_class)));
+            printf("byref `%s` %s\n", v.toChars(), ScopeRefToChars(buildScopeRef(v.storage_class)));
         }
 
         // 'featureState' tells us whether to emit an error or a deprecation,
@@ -1408,7 +1404,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                 {
                     //printf("escaping reference to local ref variable %s\n", v.toChars());
                     //printf("storage class = x%llx\n", v.storage_class);
-                    escapingRef(v, global.params.useDIP25);
+                    escapingRef(v, sc.useDIP25);
                     continue;
                 }
                 // Don't need to be concerned if v's parent does not return a ref
@@ -1420,7 +1416,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                     {
                         const(char)* msg = "escaping reference to outer local variable `%s`";
                         if (!gag)
-                            previewErrorFunc(sc.isDeprecated(), global.params.useDIP25)(e.loc, msg, v.toChars());
+                            previewErrorFunc(sc.isDeprecated(), sc.useDIP25)(e.loc, msg, v.toChars());
                         result = true;
                         continue;
                     }
@@ -1441,7 +1437,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
         else
         {
             if (!gag)
-                error(ee.loc, "escaping reference to stack allocated value returned by `%s`", ee.toChars());
+                sc.eSink.error(ee.loc, "escaping reference to stack allocated value returned by `%s`", ee.toChars());
             result = true;
         }
     }
@@ -1455,6 +1451,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
  *      va = variable to infer scope for
  * Returns: `true` if succesful or already `scope`
  */
+private
 bool inferScope(VarDeclaration va)
 {
     if (!va)
@@ -1547,6 +1544,7 @@ private bool inferReturn(FuncDeclaration fd, VarDeclaration v, bool returnScope)
  *      live = if @live semantics apply, i.e. expressions `p`, `*p`, `**p`, etc., all return `p`.
   *     retRefTransition = if `e` is returned through a `return ref scope` function call
  */
+public
 void escapeByValue(Expression e, EscapeByResults* er, bool live = false, bool retRefTransition = false)
 {
     //printf("[%s] escapeByValue, e: %s\n", e.loc.toChars(), e.toChars());
@@ -1945,6 +1943,7 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false, bool re
  *      live = if @live semantics apply, i.e. expressions `p`, `*p`, `**p`, etc., all return `p`.
  *      retRefTransition = if `e` is returned through a `return ref scope` function call
  */
+private
 void escapeByRef(Expression e, EscapeByResults* er, bool live = false, bool retRefTransition = false)
 {
     //printf("[%s] escapeByRef, e: %s, retRefTransition: %d\n", e.loc.toChars(), e.toChars(), retRefTransition);
@@ -2179,6 +2178,7 @@ void escapeByRef(Expression e, EscapeByResults* er, bool live = false, bool retR
 /************************************
  * Aggregate the data collected by the escapeBy??() functions.
  */
+public
 struct EscapeByResults
 {
     VarDeclarations byref;      // array into which variables being returned by ref are inserted
@@ -2316,6 +2316,7 @@ private void doNotInferScope(VarDeclaration v, RootObject o)
  *   f = final function type. `funcdecl.type` started as the 'premature type' before attribute
  *       inference, then its inferred attributes are copied over to final type `f`
  */
+public
 void finishScopeParamInference(FuncDeclaration funcdecl, ref TypeFunction f)
 {
 
@@ -2343,7 +2344,7 @@ void finishScopeParamInference(FuncDeclaration funcdecl, ref TypeFunction f)
         VarDeclaration[10] tmp = void;
         size_t dim = (funcdecl.vthis !is null) + (funcdecl.parameters ? funcdecl.parameters.length : 0);
 
-        import dmd.common.string : SmallBuffer;
+        import dmd.common.smallbuffer : SmallBuffer;
         auto sb = SmallBuffer!VarDeclaration(dim, tmp[]);
         VarDeclaration[] array = sb[];
 
@@ -2448,6 +2449,7 @@ private void eliminateMaybeScopes(VarDeclaration[] array)
  * Returns:
  *      true if it's a pointer (or reference) to mutable data
  */
+private
 bool isReferenceToMutable(Type t)
 {
     t = t.baseElemOf();
@@ -2487,6 +2489,9 @@ bool isReferenceToMutable(Type t)
             }
             break;
 
+        case Tnull:
+            return false;
+
         default:
             assert(0);
     }
@@ -2504,6 +2509,7 @@ bool isReferenceToMutable(Type t)
  * Returns:
  *      true if it's a pointer (or reference) to mutable data
  */
+private
 bool isReferenceToMutable(Parameter p, Type t)
 {
     if (p.isReference())
@@ -2579,10 +2585,11 @@ private void addMaybe(VarDeclaration va, VarDeclaration v)
 }
 
 // `setUnsafePreview` partially evaluated for dip1000
-private bool setUnsafeDIP1000(Scope* sc, bool gag, Loc loc, const(char)* msg,
+public
+bool setUnsafeDIP1000(Scope* sc, bool gag, Loc loc, const(char)* msg,
     RootObject arg0 = null, RootObject arg1 = null, RootObject arg2 = null)
 {
-    return setUnsafePreview(sc, global.params.useDIP1000, gag, loc, msg, arg0, arg1, arg2);
+    return setUnsafePreview(sc, sc.useDIP1000, gag, loc, msg, arg0, arg1, arg2);
 }
 
 /***************************************

@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -28,7 +28,7 @@ const char *cppTypeInfoMangleMSVC(Dsymbol *s);
 
 // In dmangle.d
 const char *mangleExact(FuncDeclaration *fd);
-void mangleToBuffer(Type *s, OutBuffer *buf);
-void mangleToBuffer(Expression *s, OutBuffer *buf);
-void mangleToBuffer(Dsymbol *s, OutBuffer *buf);
-void mangleToBuffer(TemplateInstance *s, OutBuffer *buf);
+void mangleToBuffer(Type *s, OutBuffer& buf);
+void mangleToBuffer(Expression *s, OutBuffer& buf);
+void mangleToBuffer(Dsymbol *s, OutBuffer& buf);
+void mangleToBuffer(TemplateInstance *s, OutBuffer& buf);

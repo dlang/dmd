@@ -7,7 +7,7 @@ set -uexo pipefail
 
 # N: number of parallel build jobs
 if [ -z ${N+x} ] ; then echo "Variable 'N' needs to be set."; exit 1; fi
-# OS_NAME: linux|darwin|freebsd
+# OS_NAME: linux|osx|freebsd|windows
 if [ -z ${OS_NAME+x} ] ; then echo "Variable 'OS_NAME' needs to be set."; exit 1; fi
 # FULL_BUILD: true|false (true on Linux: use full permutations for DMD tests)
 if [ -z ${FULL_BUILD+x} ] ; then echo "Variable 'FULL_BUILD' needs to be set."; exit 1; fi
@@ -34,7 +34,7 @@ if [ "$OS_NAME" == "linux" ]; then
 else
     NM=nm
 
-  if [ "$OS_NAME" == "darwin" ]; then
+  if [ "$OS_NAME" == "osx" ]; then
     export PATH="/usr/local/opt/llvm/bin:$PATH"
   fi
 fi
@@ -58,12 +58,17 @@ clone() {
 
 # build dmd (incl. building and running the unittests), druntime, phobos
 build() {
-    source ~/dlang/*/activate # activate host compiler, incl. setting `DMD`
-    make -j$N -C compiler/src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" BUILD=debug ENABLE_WARNINGS=1 unittest
-    make -j$N -C compiler/src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=1 ENABLE_WARNINGS=1 all
-    make -j$N -C druntime -f posix.mak MODEL=$MODEL
-    make -j$N -C ../phobos -f posix.mak MODEL=$MODEL
-    deactivate # deactivate host compiler
+    if [ "$OS_NAME" != "windows" ]; then
+        source ~/dlang/*/activate # activate host compiler, incl. setting `DMD`
+    fi
+    $DMD compiler/src/build.d -ofgenerated/build
+    generated/build -j$N MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" BUILD=debug unittest
+    generated/build -j$N MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=1 dmd
+    make -j$N -C druntime MODEL=$MODEL
+    make -j$N -C ../phobos MODEL=$MODEL
+    if [ "$OS_NAME" != "windows" ]; then
+        deactivate # deactivate host compiler
+    fi
 }
 
 # self-compile dmd
@@ -75,8 +80,8 @@ rebuild() {
     mkdir -p _${build_path}
     cp $build_path/dmd _${build_path}/host_dmd
     cp $build_path/dmd.conf _${build_path}
-    make -j$N -C compiler/src -f posix.mak MODEL=$MODEL HOST_DMD=../../_${build_path}/host_dmd clean
-    make -j$N -C compiler/src -f posix.mak MODEL=$MODEL HOST_DMD=../../_${build_path}/host_dmd DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=${ENABLE_RELEASE:-1} ENABLE_WARNINGS=1 all
+    rm -rf $build_path
+    generated/build -j$N MODEL=$MODEL HOST_DMD=_${build_path}/host_dmd DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=${ENABLE_RELEASE:-1} dmd
 
     # compare binaries to test reproducible build
     if [ $compare -eq 1 ]; then
@@ -100,27 +105,32 @@ test() {
 
 # test dmd
 test_dmd() {
-    # test fewer compiler argument permutations for PRs to reduce CI load
-    if [ "$FULL_BUILD" == "true" ] && [ "$OS_NAME" == "linux"  ]; then
-        make -j1 -C compiler/test MODEL=$MODEL N=$N # all ARGS by default
+    # default to testing fewer compiler argument permutations to reduce CI load
+    if [ "$FULL_BUILD" == "true" ] && [ "$OS_NAME" == "linux" ]; then
+        local args=() # use all default ARGS
     else
-        make -j1 -C compiler/test MODEL=$MODEL N=$N ARGS="-O -inline -release"
+        local args=(ARGS="-O -inline -release")
     fi
+
+    $build_path/dmd -g -i -Icompiler/test -release compiler/test/run.d -ofgenerated/run
+    generated/run -j$N --environment MODEL=$MODEL HOST_DMD=$build_path/dmd "${args[@]}"
 }
 
 # build and run druntime unit tests
 test_druntime() {
-    make -j$N -C druntime -f posix.mak MODEL=$MODEL unittest
+    make -j$N -C druntime MODEL=$MODEL unittest
 }
 
 # build and run Phobos unit tests
 test_phobos() {
-    make -j$N -C ../phobos -f posix.mak MODEL=$MODEL unittest
+    make -j$N -C ../phobos MODEL=$MODEL unittest
 }
 
 # test dub package
 test_dub_package() {
-    source ~/dlang/*/activate # activate host compiler
+    if [ "$OS_NAME" != "windows" ]; then
+        source ~/dlang/*/activate # activate host compiler
+    fi
     # GDC's standard library is too old for some example scripts
     if [[ "${DMD:-dmd}" =~ "gdmd" ]] ; then
         echo "Skipping DUB examples on GDC."
@@ -142,7 +152,9 @@ test_dub_package() {
         # Test rdmd build
         "${build_path}/dmd" -version=NoBackend -version=GC -version=NoMain -Jgenerated/dub -Jsrc/dmd/res -Isrc -i -run test/dub_package/frontend.d
     fi
-    deactivate
+    if [ "$OS_NAME" != "windows" ]; then
+        deactivate
+    fi
 }
 
 # clone phobos repos if not already available
@@ -170,6 +182,17 @@ testsuite() {
 }
 
 download_install_sh() {
+  if command -v gpg > /dev/null; then
+    curl -fsSL \
+      -A "$CURL_USER_AGENT" \
+      --connect-timeout 5 \
+      --speed-time 30 \
+      --speed-limit 1024 \
+      --retry 5 \
+      --retry-delay 5 \
+      https://dlang.org/d-keyring.gpg | gpg --import /dev/stdin
+  fi
+
   local mirrors location
   location="${1:-install.sh}"
   mirrors=(

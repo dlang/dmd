@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/function.html#nogc-functions, No-GC Functions)
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/nogc.d, _nogc.d)
@@ -19,6 +19,7 @@ import dmd.aggregate;
 import dmd.astenums;
 import dmd.declaration;
 import dmd.dscope;
+import dmd.dtemplate : isDsymbol;
 import dmd.errors;
 import dmd.expression;
 import dmd.func;
@@ -40,7 +41,7 @@ public:
     bool checkOnly;     // don't print errors
     bool err;
 
-    extern (D) this(FuncDeclaration f) scope
+    extern (D) this(FuncDeclaration f) scope @safe
     {
         this.f = f;
     }
@@ -85,7 +86,7 @@ public:
         }
         if (f.setGC(e.loc, format))
         {
-            e.error(format, f.kind(), f.toPrettyChars());
+            error(e.loc, format, f.kind(), f.toPrettyChars());
             err = true;
             return true;
         }
@@ -106,12 +107,6 @@ public:
             if (setGC(e, "setting `length` in `@nogc` %s `%s` may cause a GC allocation"))
                 return;
             f.printGCUsage(e.loc, "setting `length` may cause a GC allocation");
-        }
-        else if (fd.ident == Id._d_arrayappendT || fd.ident == Id._d_arrayappendcTX)
-        {
-            if (setGC(e, "cannot use operator `~=` in `@nogc` %s `%s`"))
-                return;
-            f.printGCUsage(e.loc, "operator `~=` may cause a GC allocation");
         }
     }
 
@@ -186,20 +181,14 @@ public:
 
     override void visit(CatAssignExp e)
     {
-        /* CatAssignExp will exist in `__traits(compiles, ...)` and in the `.e1` branch of a `__ctfe ? :` CondExp.
-         * The other branch will be `_d_arrayappendcTX(e1, 1), e1[$-1]=e2` which will generate the warning about
-         * GC usage. See visit(CallExp).
-         */
         if (checkOnly)
         {
             err = true;
             return;
         }
-        if (f.setGC(e.loc, null))
-        {
-            err = true;
+        if (setGC(e, "cannot use operator `~=` in `@nogc` %s `%s`"))
             return;
-        }
+        f.printGCUsage(e.loc, "operator `~=` may cause a GC allocation");
     }
 
     override void visit(CatExp e)
@@ -219,12 +208,12 @@ Expression checkGC(Scope* sc, Expression e)
      * Just don't generate code for it.
      * Detect non-CTFE use of the GC in betterC code.
      */
-    const betterC = global.params.betterC;
+    const betterC = !global.params.useGC;
     FuncDeclaration f = sc.func;
     if (e && e.op != EXP.error && f && sc.intypeof != 1 &&
            (!(sc.flags & SCOPE.ctfe) || betterC) &&
            (f.type.ty == Tfunction &&
-            (cast(TypeFunction)f.type).isnogc || f.nogcInprocess || global.params.vgc) &&
+            (cast(TypeFunction)f.type).isnogc || f.nogcInprocess || global.params.v.gc) &&
            !(sc.flags & SCOPE.debug_))
     {
         scope NOGCVisitor gcv = new NOGCVisitor(f);
@@ -255,7 +244,7 @@ private FuncDeclaration stripHookTraceImpl(FuncDeclaration fd)
 {
     import dmd.id : Id;
     import dmd.dsymbol : Dsymbol;
-    import dmd.root.rootobject : RootObject, DYNCAST;
+    import dmd.rootobject : RootObject, DYNCAST;
 
     if (fd.ident != Id._d_HookTraceImpl)
         return fd;
@@ -263,6 +252,7 @@ private FuncDeclaration stripHookTraceImpl(FuncDeclaration fd)
     // Get the Hook from the second template parameter
     auto templateInstance = fd.parent.isTemplateInstance;
     RootObject hook = (*templateInstance.tiargs)[1];
-    assert(hook.dyncast() == DYNCAST.dsymbol, "Expected _d_HookTraceImpl's second template parameter to be an alias to the hook!");
-    return (cast(Dsymbol)hook).isFuncDeclaration;
+    Dsymbol s = hook.isDsymbol();
+    assert(s, "Expected _d_HookTraceImpl's second template parameter to be an alias to the hook!");
+    return s.isFuncDeclaration;
 }

@@ -1,7 +1,7 @@
 /**
  * Stores command line options and contains other miscellaneous declarations.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/globals.d, _globals.d)
@@ -81,11 +81,11 @@ enum CppStdRevision : uint
 }
 
 /// Trivalent boolean to represent the state of a `revert`able change
-enum FeatureState : byte
+enum FeatureState : ubyte
 {
-    default_ = -1, /// Not specified by the user
-    disabled = 0,  /// Specified as `-revert=`
-    enabled = 1    /// Specified as `-preview=`
+    default_ = 0,  /// Not specified by the user
+    disabled = 1,  /// Specified as `-revert=`
+    enabled  = 2,  /// Specified as `-preview=`
 }
 
 extern(C++) struct Output
@@ -101,6 +101,55 @@ extern(C++) struct Output
     OutBuffer* buffer;  // if this output is buffered, this is the buffer
     int bufferLines;    // number of lines written to the buffer
 }
+
+/// Command line state related to printing usage about other switches
+extern(C++) struct Help
+{
+    bool manual;       // open browser on compiler manual
+    bool usage;        // print usage and exit
+    // print help of switch:
+    bool mcpu;         // -mcpu
+    bool transition;   // -transition
+    bool check;        // -check
+    bool checkAction;  // -checkaction
+    bool revert;       // -revert
+    bool preview;      // -preview
+    bool externStd;    // -extern-std
+    bool hc;           // -HC
+}
+
+extern(C++) struct Verbose
+{
+    bool verbose;           // verbose compile
+    bool showColumns;       // print character (column) numbers in diagnostics
+    bool tls;               // identify thread local variables
+    bool templates;         // collect and list statistics on template instantiations
+    // collect and list statistics on template instantiations origins.
+    // TODO: make this an enum when we want to list other kinds of instances
+    bool templatesListInstances;
+    bool gc;                // identify gc usage
+    bool field;             // identify non-mutable field variables
+    bool complex = true;    // identify complex/imaginary type usage
+    bool vin;               // identify 'in' parameters
+    bool showGaggedErrors;  // print gagged errors anyway
+    bool printErrorContext; // print errors with the error context (the error line in the source file)
+    bool logo;              // print compiler logo
+    bool color;             // use ANSI colors in console output
+    bool cov;               // generate code coverage data
+    MessageStyle messageStyle = MessageStyle.digitalmars; // style of file/line annotations on messages
+    uint errorLimit = 20;
+    uint errorSupplementLimit = 6;      // Limit the number of supplemental messages for each error (0 means unlimited)
+
+    uint errorSupplementCount()
+    {
+        if (verbose)
+            return uint.max;
+        if (errorSupplementLimit == 0)
+            return uint.max;
+        return errorSupplementLimit;
+    }
+}
+
 /// Put command line switches in here
 extern (C++) struct Param
 {
@@ -108,30 +157,21 @@ extern (C++) struct Param
     bool multiobj;          // break one object file into multiple ones
     bool trace;             // insert profiling hooks
     bool tracegc;           // instrument calls to 'new'
-    bool verbose;           // verbose compile
     bool vcg_ast;           // write-out codegen-ast
-    bool showColumns;       // print character (column) numbers in diagnostics
-    bool vtls;              // identify thread local variables
-    bool vtemplates;        // collect and list statistics on template instantiations
-    bool vtemplatesListInstances; // collect and list statistics on template instantiations origins. TODO: make this an enum when we want to list other kinds of instances
-    bool vgc;               // identify gc usage
-    bool vfield;            // identify non-mutable field variables
-    bool vcomplex = true;   // identify complex/imaginary type usage
-    bool vin;               // identify 'in' parameters
     DiagnosticReporting useDeprecated = DiagnosticReporting.inform;  // how use of deprecated features are handled
     bool useUnitTests;          // generate unittest code
     bool useInline = false;     // inline expand functions
     bool release;           // build release version
     bool preservePaths;     // true means don't strip path from source file
     DiagnosticReporting warnings = DiagnosticReporting.off;  // how compiler warnings are handled
-    bool color;             // use ANSI colors in console output
     bool cov;               // generate code coverage data
     ubyte covPercent;       // 0..100 code coverage percentage required
     bool ctfe_cov = false;  // generate coverage data for ctfe
-    bool ignoreUnsupportedPragmas;  // rather than error on them
+    bool ignoreUnsupportedPragmas = true;  // rather than error on them
     bool useModuleInfo = true;   // generate runtime module information
     bool useTypeInfo = true;     // generate runtime type information
     bool useExceptions = true;   // support exception handling
+    bool useGC = true;           // support features that require the D runtime GC
     bool betterC;           // be a "better C" compiler; no dependency on D runtime
     bool addMain;           // add a default main() function
     bool allInst;           // generate code for all template instantiations
@@ -139,19 +179,8 @@ extern (C++) struct Param
 
     CppStdRevision cplusplus = CppStdRevision.cpp11;    // version of C++ standard to support
 
-    bool showGaggedErrors;  // print gagged errors anyway
-    bool printErrorContext;  // print errors with the error context (the error line in the source file)
-    bool manual;            // open browser on compiler manual
-    bool usage;             // print usage and exit
-    bool mcpuUsage;         // print help on -mcpu switch
-    bool transitionUsage;   // print help on -transition switch
-    bool checkUsage;        // print help on -check switch
-    bool checkActionUsage;  // print help on -checkaction switch
-    bool revertUsage;       // print help on -revert switch
-    bool previewUsage;      // print help on -preview switch
-    bool externStdUsage;    // print help on -extern-std switch
-    bool hcUsage;           // print help on -HC switch
-    bool logo;              // print compiler logo
+    Help help;
+    Verbose v;
 
     // Options for `-preview=/-revert=`
     FeatureState useDIP25 = FeatureState.enabled; // implement https://wiki.dlang.org/DIP25
@@ -186,9 +215,6 @@ extern (C++) struct Param
 
     CHECKACTION checkAction = CHECKACTION.D; // action to take when bounds, asserts or switch defaults are violated
 
-    uint errorLimit = 20;
-    uint errorSupplementLimit = 6;      // Limit the number of supplemental messages for each error (0 means unlimited)
-
     const(char)[] argv0;                // program name
     Array!(const(char)*) modFileAliasStrings; // array of char*'s of -I module filename alias strings
     Array!(const(char)*)* imppath;      // array of char*'s of where to look for import modules
@@ -207,13 +233,7 @@ extern (C++) struct Param
     Output moduleDeps;                  // Generate `.deps` module dependencies
 
     uint debuglevel;                    // debug level
-    Array!(const(char)*)* debugids;     // debug identifiers
-
     uint versionlevel;                  // version level
-    Array!(const(char)*)* versionids;   // version identifiers
-
-
-    MessageStyle messageStyle = MessageStyle.digitalmars; // style of file/line annotations on messages
 
     bool run; // run resulting executable
     Strings runargs; // arguments for executable
@@ -230,6 +250,12 @@ extern (C++) struct Param
     const(char)[] resfile;
     const(char)[] exefile;
     const(char)[] mapfile;
+
+    ///
+    bool parsingUnittestsRequired()
+    {
+        return useUnitTests || ddoc.doOutput || dihdr.doOutput;
+    }
 }
 
 enum mars_ext = "d";        // for D source files
@@ -249,13 +275,16 @@ extern (C++) struct Global
 {
     const(char)[] inifilename; /// filename of configuration file as given by `-conf=`, or default value
 
-    string copyright = "Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved";
+    string copyright = "Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved";
     string written = "written by Walter Bright";
 
     Array!(const(char)*)* path;         /// Array of char*'s which form the import lookup path
     Array!(const(char)*)* filePath;     /// Array of char*'s which form the file import lookup path
 
+    const(char)* importc_h;             /// full path of the file importc.h
+
     private enum string _version = import("VERSION");
+    char[26] datetime;      /// string returned by ctime()
     CompileEnv compileEnv;
 
     Param params;           /// command line parameters
@@ -279,8 +308,9 @@ extern (C++) struct Global
     enum recursionLimit = 500; /// number of recursive template expansions before abort
 
     ErrorSink errorSink;       /// where the error messages go
+    ErrorSink errorSinkNull;   /// where the error messages are ignored
 
-    extern (C++) FileName function(FileName, ref const Loc, out bool, OutBuffer*) preprocess;
+    extern (C++) FileName function(FileName, const(char)*, ref const Loc, out bool, ref OutBuffer) preprocess;
 
   nothrow:
 
@@ -295,7 +325,7 @@ extern (C++) struct Global
      *
      * Returns: the current number of gagged errors, which should later be passed to `endGagging`
      */
-    extern (C++) uint startGagging()
+    extern (C++) uint startGagging() @safe
     {
         ++gag;
         gaggedWarnings = 0;
@@ -309,7 +339,7 @@ extern (C++) struct Global
      *   oldGagged = the previous number of errors, as returned by `startGagging`
      * Returns: true if errors occurred while gagged.
      */
-    extern (C++) bool endGagging(uint oldGagged)
+    extern (C++) bool endGagging(uint oldGagged) @safe
     {
         bool anyErrs = (gaggedErrors != oldGagged);
         --gag;
@@ -325,7 +355,7 @@ extern (C++) struct Global
      *
      * An error message may or may not have been printed.
      */
-    extern (C++) void increaseErrorCount()
+    extern (C++) void increaseErrorCount() @safe
     {
         if (gag)
             ++gaggedErrors;
@@ -335,6 +365,7 @@ extern (C++) struct Global
     extern (C++) void _init()
     {
         errorSink = new ErrorSinkCompiler;
+        errorSinkNull = new ErrorSinkNull;
 
         this.fileManager = new FileManager();
         version (MARS)
@@ -342,8 +373,8 @@ extern (C++) struct Global
             compileEnv.vendor = "Digital Mars D";
 
             // -color=auto is the default value
-            import dmd.console : detectTerminal;
-            params.color = detectTerminal();
+            import dmd.console : detectTerminal, detectColorPreference;
+            params.v.color = detectTerminal() && detectColorPreference();
         }
         else version (IN_GCC)
         {
@@ -367,6 +398,7 @@ extern (C++) struct Global
             core.stdc.time.time(&ct);
         const p = ctime(&ct);
         assert(p);
+        datetime[] = p[0 .. 26];
 
         __gshared char[11 + 1] date = 0;        // put in BSS segment
         __gshared char[8  + 1] time = 0;
@@ -395,7 +427,7 @@ extern (C++) struct Global
     /**
      * Computes the version number __VERSION__ from the compiler version string.
      */
-    extern (D) private static uint parseVersionNumber(string version_)
+    extern (D) private static uint parseVersionNumber(string version_) @safe
     {
         //
         // parse _version
@@ -427,7 +459,7 @@ extern (C++) struct Global
     /**
     Returns: the version as the number that would be returned for __VERSION__
     */
-    extern(C++) uint versionNumber()
+    extern(C++) uint versionNumber() @safe
     {
         return compileEnv.versionNumber;
     }
@@ -435,7 +467,7 @@ extern (C++) struct Global
     /**
     Returns: compiler version string.
     */
-    extern(D) string versionString()
+    extern(D) string versionString() @safe
     {
         return _version;
     }

@@ -830,6 +830,44 @@ void test47()
 
 /*******************************************/
 
+// https://issues.dlang.org/show_bug.cgi?id=24154
+
+void test24154()
+{
+    int x = ({
+	int ret;
+	ret = 3;
+	ret;
+    });
+    assert(x == 3, __LINE__);
+}
+
+/*******************************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=24155
+
+struct S24155 { int x, y; };
+
+struct S24155 s = { };
+
+void abc(int i)
+{
+    assert(s.x == 0 && s.y == 0, __LINE__);
+    struct S24155 s1 = { };
+    assert(s1.x == 0 && s1.y == 0, __LINE__);
+    struct S24155 s2 = { { i }, { } };
+    assert(s2.x == i && s2.y == 0, __LINE__);
+    struct S24155 s3 = { { }, { i } };
+    assert(s3.x == 0 && s3.y == i, __LINE__);
+}
+
+void test24155()
+{
+    abc(1);
+}
+
+/*******************************************/
+
 int main()
 {
     test1();
@@ -878,6 +916,8 @@ int main()
     test46();
     test22925();
     test47();
+    test24154();
+    test24155();
 
     return 0;
 }

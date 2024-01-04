@@ -4,7 +4,7 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2018-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2018-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/barrayf.d, backend/barray.d)
@@ -20,7 +20,6 @@ import core.stdc.string;
 nothrow:
 @safe:
 
-extern (C++):
 
 import dmd.backend.global : err_nomem;
 
@@ -29,8 +28,6 @@ import dmd.backend.global : err_nomem;
  */
 struct Barray(T)
 {
-  @safe:
-
     /**********************
      * Set useable length of array.
      * Params:
@@ -79,7 +76,7 @@ struct Barray(T)
      */
     void push(T t)
     {
-        const i = length;
+        const i = array.length;
         setLength(i + 1);
         array[i] = t;
     }
@@ -92,7 +89,7 @@ struct Barray(T)
     @trusted
     T* push()
     {
-        const i = length;
+        const i = array.length;
         setLength(i + 1);
         auto p = &array[i];
         memset(p, 0, T.sizeof);
@@ -107,7 +104,7 @@ struct Barray(T)
      */
     void remove(size_t i)
     {
-        const len = length - 1;
+        const len = array.length - 1;
         if (i != len)
         {
             array[i] = array[len];
@@ -161,8 +158,6 @@ unittest
 
 struct Rarray(T)
 {
-  @safe:
-
     /*******************
      * Append an uninitialized element of T to array.
      * This leaves allocations used by T intact.

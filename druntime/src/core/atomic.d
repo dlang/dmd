@@ -1203,7 +1203,7 @@ version (CoreUnittest)
         }
     }
 
-    @betterC pure nothrow @nogc @safe unittest // issue 16651
+    @betterC pure nothrow @nogc @safe unittest // https://issues.dlang.org/show_bug.cgi?id=16651
     {
         shared ulong a = 2;
         uint b = 1;
@@ -1216,7 +1216,7 @@ version (CoreUnittest)
         assert(c == 1);
     }
 
-    pure nothrow @safe unittest // issue 16230
+    pure nothrow @safe unittest // https://issues.dlang.org/show_bug.cgi?id=16230
     {
         shared int i;
         static assert(is(typeof(atomicLoad(i)) == int));

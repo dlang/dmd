@@ -1,7 +1,7 @@
 /**
  * A library in the ELF format, used on Unix.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/libelf.d, _libelf.d)
@@ -25,13 +25,11 @@ version (Windows)
     import core.sys.windows.stat;
 }
 
-import dmd.globals;
 import dmd.lib;
 import dmd.location;
 import dmd.utils;
 
 import dmd.root.array;
-import dmd.root.file;
 import dmd.root.filename;
 import dmd.common.outbuffer;
 import dmd.root.port;
@@ -48,6 +46,7 @@ public extern (C++) Library LibElf_factory()
 }
 
 private: // for the remainder of this module
+nothrow:
 
 enum LOG = false;
 
@@ -87,7 +86,7 @@ final class LibElf : Library
 
         void corrupt(int reason)
         {
-            error("corrupt ELF object module %.*s %d",
+            eSink.error(loc, "corrupt ELF object module %.*s %d",
                   cast(int)module_name.length, module_name.ptr, reason);
         }
 
@@ -309,7 +308,7 @@ final class LibElf : Library
 
     /*****************************************************************************/
 
-    void addSymbol(ElfObjModule* om, const(char)[] name, int pickAny = 0)
+    void addSymbol(ElfObjModule* om, const(char)[] name, int pickAny = 0) nothrow
     {
         static if (LOG)
         {
@@ -324,7 +323,7 @@ final class LibElf : Library
                 s = tab.lookup(name.ptr, name.length);
                 assert(s);
                 ElfObjSymbol* os = s.value;
-                error("multiple definition of %s: %s and %s: %s", om.name.ptr, name.ptr, os.om.name.ptr, os.name.ptr);
+                eSink.error(loc, "multiple definition of %s: %s and %s: %s", om.name.ptr, name.ptr, os.om.name.ptr, os.name.ptr);
             }
         }
         else
@@ -349,12 +348,12 @@ private:
             printf("LibElf::scanObjModule(%s)\n", om.name.ptr);
         }
 
-        extern (D) void addSymbol(const(char)[] name, int pickAny)
+        extern (D) void addSymbol(const(char)[] name, int pickAny) nothrow
         {
             this.addSymbol(om, name, pickAny);
         }
 
-        scanElfObjModule(&addSymbol, om.base[0 .. om.length], om.name.ptr, loc);
+        scanElfObjModule(&addSymbol, om.base[0 .. om.length], om.name.ptr, loc, eSink);
     }
 
     /*****************************************************************************/
@@ -367,7 +366,7 @@ private:
      *      dictionary
      *      object modules...
      */
-    protected override void WriteLibToBuffer(OutBuffer* libbuf)
+    protected override void writeLibToBuffer(ref OutBuffer libbuf)
     {
         static if (LOG)
         {

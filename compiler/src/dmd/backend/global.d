@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/global.d, backend/global.d)
@@ -14,7 +14,6 @@ module dmd.backend.global;
 
 // Online documentation: https://dlang.org/phobos/dmd_backend_global.html
 
-extern (C++):
 @nogc:
 nothrow:
 
@@ -40,29 +39,76 @@ nothrow:
 @safe:
 
 // FIXME: backend can't import front end modules because missing -J flag
+extern (C++) void error(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...);
+package extern (C++) void fatal();
 
-// import dmd.dmsc : _align, symboldata, size;
-targ_size_t _align(targ_size_t,targ_size_t);
-@trusted Symbol *symboldata(targ_size_t offset,tym_t ty);
-targ_size_t size(tym_t);
+public import dmd.backend.eh : except_gentables;
+import dmd.backend.var : _tysize;
+import dmd.backend.ty : TYnptr, TYvoid, tybasic, tysize;
 
-// import dmd.e2ir : REGSIZE;
-int REGSIZE();
+/***********************************
+ * Returns: aligned `offset` if it is of size `size`.
+ */
+targ_size_t _align(targ_size_t size, targ_size_t offset) @trusted
+{
+    switch (size)
+    {
+        case 1:
+            break;
+        case 2:
+        case 4:
+        case 8:
+        case 16:
+        case 32:
+        case 64:
+            offset = (offset + size - 1) & ~(size - 1);
+            break;
+        default:
+            if (size >= 16)
+                offset = (offset + 15) & ~15;
+            else
+                offset = (offset + _tysize[TYnptr] - 1) & ~(_tysize[TYnptr] - 1);
+            break;
+    }
+    return offset;
+}
 
-// import dmd.eh : except_gentables;
-Symbol* except_gentables();
+/*******************************
+ * Get size of ty
+ */
+targ_size_t size(tym_t ty) @trusted
+{
+    int sz = (tybasic(ty) == TYvoid) ? 1 : tysize(ty);
+    debug
+    {
+        if (sz == -1)
+            printf("ty: %s\n", tym_str(ty));
+    }
+    assert(sz!= -1);
+    return sz;
+}
+
+/****************************
+ * Generate symbol of type ty at DATA:offset
+ */
+Symbol *symboldata(targ_size_t offset, tym_t ty)
+{
+    Symbol *s = symbol_generate(SC.locstat, type_fake(ty));
+    s.Sfl = FLdata;
+    s.Soffset = offset;
+    s.Stype.Tmangle = mTYman_sys; // writes symbol unmodified in Obj::mangle
+    symbol_keep(s);               // keep around
+    return s;
+}
+
+/// Size of a register in bytes
+int REGSIZE() @trusted { return _tysize[TYnptr]; }
 
 public import dmd.backend.var : debuga, debugb, debugc, debugd, debuge, debugf,
     debugr, debugs, debugt, debugu, debugw, debugx, debugy;
 
-enum CR = '\r';             // Used because the MPW version of the compiler warps
-enum LF = '\n';             // \n into \r and \r into \n.  The translator version
-                            // does not and this causes problems with the compilation
-                            // with the translator
-enum CR_STR = "\r";
-enum LF_STR = "\n";
+extern (D) uint mask(uint m) { return 1 << m; }
 
-public import dmd.backend.cgxmm : mask;
 public import dmd.backend.var : OPTIMIZER, PARSER, globsym, controlc_saw, pointertype, sytab;
 public import dmd.backend.cg : fregsaved, localgot, tls_get_addr_sym;
 public import dmd.backend.blockopt : startblock, dfo, curblock, block_last;
@@ -99,9 +145,7 @@ public import dmd.backend.cg87 : loadconst, cg87_reset;
 public import dmd.backend.cod3 : cod3_thunk;
 
 public import dmd.backend.dout : outthunk, out_readonly, out_readonly_comdat,
-    out_regcand, writefunc, alignOffset, out_reset, out_readonly_sym, out_string_literal;
-
-void outdata(Symbol *s);
+    out_regcand, writefunc, alignOffset, out_reset, out_readonly_sym, out_string_literal, outdata;
 
 public import dmd.backend.blockopt : bc_goal, block_calloc, block_init, block_term, block_next,
     block_next, block_goto, block_goto, block_goto, block_goto, block_ptr, block_pred,

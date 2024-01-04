@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -54,7 +54,7 @@ struct AttributeViolation;
     #define STCforeach            0x4000ULL    /// variable for foreach loop
     #define STCvariadic           0x8000ULL    /// the `variadic` parameter in: T foo(T a, U b, V variadic...)
 
-    //                            0x10000ULL
+    #define STCconstscoperef      0x10000ULL    /// when `in` means const|scope|ref
     #define STCtemplateparameter  0x20000ULL    /// template parameter
     #define STCref                0x40000ULL    /// `ref`
     #define STCscope              0x80000ULL    /// `scope`
@@ -118,13 +118,11 @@ public:
     LINK _linkage;              // may be `LINK::system`; use `resolvedLinkage()` to resolve it
     short inuse;                // used to detect cycles
     uint8_t adFlags;
-    Symbol* isym;               // import version of csym
     DString mangleOverride;     // overridden symbol with pragma(mangle, "...")
 
     const char *kind() const override;
     uinteger_t size(const Loc &loc) override final;
 
-    Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly) override final;
 
     bool isStatic() const { return (storage_class & STCstatic) != 0; }
     LINK resolvedLinkage() const; // returns the linkage, resolving the target-specific `System` one
@@ -244,7 +242,7 @@ public:
     // The index of this variable on the CTFE stack, ~0u if not allocated
     unsigned ctfeAdrOnStack;
 private:
-    uint16_t bitFields;
+    uint32_t bitFields;
 public:
     int8_t canassign; // // it can be assigned to
     uint8_t isdataseg; // private data for isDataseg
@@ -278,9 +276,10 @@ public:
     bool inAlignSection() const; // is inserted into aligned section on stack
     bool inAlignSection(bool v);
 #endif
+    bool systemInferred() const;
+    bool systemInferred(bool v);
     static VarDeclaration *create(const Loc &loc, Type *t, Identifier *id, Initializer *init, StorageClass storage_class = STCundefined);
     VarDeclaration *syntaxCopy(Dsymbol *) override;
-    void setFieldOffset(AggregateDeclaration *ad, FieldState& fieldState, bool isunion) override final;
     const char *kind() const override;
     AggregateDeclaration *isThis() override final;
     bool needThis() override final;
@@ -703,15 +702,11 @@ public:
     bool functionSemantic3();
     bool equals(const RootObject * const o) const override final;
 
-    int overrides(FuncDeclaration *fd);
     int findVtblIndex(Dsymbols *vtbl, int dim);
-    BaseClass *overrideInterface();
     bool overloadInsert(Dsymbol *s) override;
     bool inUnittest();
     MATCH leastAsSpecialized(FuncDeclaration *g, Identifiers *names);
     LabelDsymbol *searchLabel(Identifier *ident, const Loc &loc);
-    int getLevel(FuncDeclaration *fd, int intypeof); // lexical nesting level difference
-    int getLevelAndCheck(const Loc &loc, Scope *sc, FuncDeclaration *fd);
     const char *toPrettyChars(bool QualifyTypes = false) override;
     const char *toFullSignature();  // for diagnostics, e.g. 'int foo(int x, int y) pure'
     bool isMain() const;
@@ -724,13 +719,9 @@ public:
     bool isOverloadable() const override final;
     bool isAbstract() override final;
     PURE isPure();
-    PURE isPureBypassingInference();
     bool isSafe();
-    bool isSafeBypassingInference();
     bool isTrusted();
-
     bool isNogc();
-    bool isNogcBypassingInference();
 
     virtual bool isNested() const;
     AggregateDeclaration *isThis() override;
@@ -749,8 +740,6 @@ public:
 
     static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, const char *name, StorageClass stc=0);
     static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, Identifier *id, StorageClass stc=0);
-
-    bool checkNRVO();
 
     FuncDeclaration *isFuncDeclaration() override final { return this; }
 
@@ -786,8 +775,6 @@ public:
     bool isVirtual() const override;
     bool addPreInvariant() override;
     bool addPostInvariant() override;
-
-    void modifyReturns(Scope *sc, Type *tret);
 
     FuncLiteralDeclaration *isFuncLiteralDeclaration() override { return this; }
     const char *kind() const override;
@@ -855,6 +842,7 @@ public:
 class SharedStaticCtorDeclaration final : public StaticCtorDeclaration
 {
 public:
+    bool standalone;
     SharedStaticCtorDeclaration *syntaxCopy(Dsymbol *) override;
 
     SharedStaticCtorDeclaration *isSharedStaticCtorDeclaration() override { return this; }

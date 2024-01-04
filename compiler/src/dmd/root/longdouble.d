@@ -1,7 +1,7 @@
 /**
  * 80-bit floating point value implementation if the C/D compiler does not support them natively.
  *
- * Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * All Rights Reserved, written by Rainer Schuetze
  * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.

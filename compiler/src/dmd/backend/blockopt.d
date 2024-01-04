@@ -2,7 +2,7 @@
  * Manipulating basic blocks and their edges.
  *
  * Copyright:   Copyright (C) 1986-1997 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/blockopt.d, backend/blockopt.d)
@@ -36,8 +36,6 @@ static if (NTEXCEPTIONS)
     enum SCPP_OR_NTEXCEPTIONS = true;
 else
     enum SCPP_OR_NTEXCEPTIONS = false;
-
-extern(C++):
 
 nothrow:
 @safe:
@@ -1056,7 +1054,6 @@ private void brrear()
  *      dfo = array to fill in in DFO
  *      startblock = list of blocks
  */
-@safe
 void compdfo(ref Barray!(block*) dfo, block* startblock)
 {
     debug if (debugc) printf("compdfo()\n");

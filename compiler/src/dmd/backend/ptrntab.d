@@ -2,7 +2,7 @@
  * Instruction tables for inline assembler.
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/ptrntab.d, backend/ptrntab.d)
  * Documentation:  https://dlang.org/phobos/dmd_backend_ptrntab.html
@@ -51,6 +51,8 @@ alias aptb0AAA = OPTABLE0!(     0x37  ,_i64_bit | _modax);
 alias aptb0AAD = OPTABLE0!(     0xd50a,_i64_bit | _modax);
 alias aptb0AAM = OPTABLE0!(     0xd40a,_i64_bit | _modax);
 alias aptb0AAS = OPTABLE0!(     0x3f,  _i64_bit | _modax);
+alias aptb0ENDBR32 = OPTABLE0!( ENDBR32, _I386);
+alias aptb0ENDBR64 = OPTABLE0!( ENDBR64, _I386);
 alias aptb0CBW = OPTABLE0!(     0x98,_16_bit | _modax);
 alias aptb0CWDE = OPTABLE0!(    0x98,_32_bit | _I386 | _modax);
 alias aptb0CDQE = OPTABLE0!(    0x98,_64_bit | _modax);
@@ -4933,6 +4935,8 @@ immutable OP[] optab = [
     { "dt",         ITdata | OPdt,  { null } },
     { "dw",         ITdata | OPdw,  { null } },
     { "emms",       0,              { &aptb0EMMS[0] } },
+    { "endbr32",    0,              { &aptb0ENDBR32[0] } },
+    { "endbr64",    0,              { &aptb0ENDBR64[0] } },
     { "enter",      2,              { &aptb2ENTER[0] } },
     { "extractps",  3,              { &aptb3EXTRACTPS[0] } },
     { "f2xm1",      ITfloat | 0,    { &aptb0F2XM1[0] } },
@@ -5794,7 +5798,7 @@ unittest
 /*******************************
  */
 
-extern (C++) const(char)* asm_opstr(OP *pop)
+const(char)* asm_opstr(OP *pop)
 {
     return pop ? &(*pop).str[0] : null;
 }
@@ -5803,7 +5807,7 @@ extern (C++) const(char)* asm_opstr(OP *pop)
  */
 
 @trusted
-extern (C++) OP *asm_op_lookup(const(char)* s)
+OP *asm_op_lookup(const(char)* s)
 {
     int i;
     char[20] szBuf = void;

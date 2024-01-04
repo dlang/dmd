@@ -154,13 +154,13 @@ unittest
     assert(sur16.module_ is null);
 
     assert(diagnosticMessages.length == 7);
-    assert(diagnosticMessages[0] == "source file must start with BOM or ASCII character, not \\x84");
-    assert(diagnosticMessages[1] == "odd length of UTF-16 char source 3");
-    assert(diagnosticMessages[2] == "odd length of UTF-32 char source 3");
-    assert(diagnosticMessages[3] == "UTF-32 value 84810000 greater than 0x10FFFF");
-    assert(diagnosticMessages[4] == "illegal UTF-16 value ffff");
-    assert(diagnosticMessages[5] == "unpaired surrogate UTF-16 value dc00");
-    assert(diagnosticMessages[6] == "surrogate UTF-16 low value e000 out of range");
+    assert(endsWith(diagnosticMessages[0], "source file must start with BOM or ASCII character, not \\x84"));
+    assert(endsWith(diagnosticMessages[1], "odd length of UTF-16 char source 3"));
+    assert(endsWith(diagnosticMessages[2], "odd length of UTF-32 char source 3"));
+    assert(endsWith(diagnosticMessages[3], "UTF-32 value 84810000 greater than 0x10FFFF"));
+    assert(endsWith(diagnosticMessages[4], "illegal UTF-16 value ffff"));
+    assert(endsWith(diagnosticMessages[5], "unpaired surrogate UTF-16 value dc00"));
+    assert(endsWith(diagnosticMessages[6], "surrogate UTF-16 low value e000 out of range"));
 }
 
 @("initDMD - contract checking")
@@ -271,8 +271,8 @@ unittest
         }
     });
 
-    assert(diagnosticMessages[0] == "no identifier for declarator `temp`");
-    assert(diagnosticMessages[1] == "found `==` instead of statement");
+    assert(endsWith(diagnosticMessages[0], "no identifier for declarator `temp`"));
+    assert(endsWith(diagnosticMessages[1], "found `==` instead of statement"));
 }
 
 @("addStringImport") unittest
@@ -388,5 +388,10 @@ unittest
     t.module_.fullSemantic();
 
     assert(global.errors == 1);
-    assert(diagnosticMessages[0] == "is a Ddoc file, cannot import it");
+    assert(endsWith(diagnosticMessages[0], "is a Ddoc file, cannot import it"));
+}
+
+bool endsWith(string diag, string msg)
+{
+    return diag.length >= msg.length && diag[$ - msg.length .. $] == msg;
 }

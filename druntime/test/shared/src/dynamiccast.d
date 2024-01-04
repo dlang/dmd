@@ -72,7 +72,8 @@ else
         return null;
     }
 
-    version (DigitalMars) version (Win64) version = DMD_Win64;
+    version (DigitalMars) version (Win64) version = NoExceptions;
+    version (SharedRuntime) version (DigitalMars) version (Win32) version = NoExceptions;
 
     void main(string[] args)
     {
@@ -101,7 +102,7 @@ else
         auto o = getFunc!(Object function(Object))("foo")(c);
         assert(cast(C) o);
 
-        version (DMD_Win64)
+        version (NoExceptions)
         {
             // FIXME: apparent crash & needs more work, see https://github.com/dlang/druntime/pull/2874
             fclose(fopen("dynamiccast_endbar", "w"));

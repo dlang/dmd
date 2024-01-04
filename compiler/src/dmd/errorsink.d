@@ -1,7 +1,7 @@
 /**
  * Provides an abstraction for what to do with error messages.
  *
- * Copyright:   Copyright (C) 2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2023-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/errorsink.d, _errorsink.d)
@@ -27,6 +27,8 @@ abstract class ErrorSink
 
     void warning(const ref Loc loc, const(char)* format, ...);
 
+    void warningSupplemental(const ref Loc loc, const(char)* format, ...);
+
     void message(const ref Loc loc, const(char)* format, ...);
 
     void deprecation(const ref Loc loc, const(char)* format, ...);
@@ -49,6 +51,8 @@ class ErrorSinkNull : ErrorSink
 
     void warning(const ref Loc loc, const(char)* format, ...) { }
 
+    void warningSupplemental(const ref Loc loc, const(char)* format, ...) { }
+
     void message(const ref Loc loc, const(char)* format, ...) { }
 
     void deprecation(const ref Loc loc, const(char)* format, ...) { }
@@ -57,7 +61,22 @@ class ErrorSinkNull : ErrorSink
 }
 
 /*****************************************
+ * Ignores the messages, but sets `sawErrors` for any calls to `error()`
+ */
+class ErrorSinkLatch : ErrorSinkNull
+{
+  nothrow:
+  extern (C++):
+  override:
+
+    bool sawErrors;
+
+    void error(const ref Loc loc, const(char)* format, ...) { sawErrors = true; }
+}
+
+/*****************************************
  * Simplest implementation, just sends messages to stderr.
+ * See also: ErrorSinkCompiler.
  */
 class ErrorSinkStderr : ErrorSink
 {
@@ -103,6 +122,8 @@ class ErrorSinkStderr : ErrorSink
         fputc('\n', stderr);
         va_end(ap);
     }
+
+    void warningSupplemental(const ref Loc loc, const(char)* format, ...) { }
 
     void deprecation(const ref Loc loc, const(char)* format, ...)
     {

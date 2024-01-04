@@ -7,7 +7,7 @@
  * Compute common subexpressions for non-optimized builds.
  *
  * Copyright:   Copyright (C) 1985-1995 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgcs.d
@@ -41,7 +41,7 @@ nothrow:
  */
 
 @trusted
-public extern (C++) void comsubs()
+public void comsubs()
 {
     debug if (debugx) printf("comsubs(%p)\n",startblock);
 
@@ -55,7 +55,7 @@ public extern (C++) void comsubs()
  */
 
 @trusted
-public extern (C++) void cgcs_term()
+public void cgcs_term()
 {
     cgcsdata.term();
     debug debugw && printf("cgcs_term()\n");

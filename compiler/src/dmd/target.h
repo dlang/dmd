@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 2013-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 2013-2024 by The D Language Foundation, All Rights Reserved
  * written by Iain Buclaw
  * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -156,7 +156,7 @@ struct Target
 
     DString architectureName;    // name of the platform architecture (e.g. X86_64)
     CPU cpu;                // CPU instruction set to target
-    d_bool is64bit;           // generate 64 bit code for x86_64; true by default for 64 bit dmd
+    d_bool isX86_64;          // generate 64 bit code for x86_64; true by default for 64 bit dmd
     d_bool isLP64;            // pointers are 64 bits
 
     // Environmental

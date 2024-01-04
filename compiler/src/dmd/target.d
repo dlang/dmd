@@ -15,7 +15,7 @@
  * - $(LINK2 https://github.com/ldc-developers/ldc, LDC repository)
  * - $(LINK2 https://github.com/D-Programming-GDC/gcc, GDC repository)
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/target.d, _target.d)
@@ -46,7 +46,7 @@ enum CPU : ubyte
     native              // the machine the compiler is being run on
 }
 
-Target.OS defaultTargetOS()
+Target.OS defaultTargetOS() @safe
 {
     version (Windows)
         return Target.OS.Windows;
@@ -66,7 +66,7 @@ Target.OS defaultTargetOS()
         static assert(0, "unknown TARGET");
 }
 
-ubyte defaultTargetOSMajor()
+ubyte defaultTargetOSMajor() @safe
 {
     version (FreeBSD)
     {
@@ -135,9 +135,12 @@ void addDefaultVersionIdentifiers(const ref Param params, const ref Target tgt)
     }
     else
     {
-        VersionCondition.addPredefinedGlobalIdent("D_ModuleInfo");
-        VersionCondition.addPredefinedGlobalIdent("D_Exceptions");
-        VersionCondition.addPredefinedGlobalIdent("D_TypeInfo");
+        if (params.useModuleInfo)
+            VersionCondition.addPredefinedGlobalIdent("D_ModuleInfo");
+        if (params.useExceptions)
+            VersionCondition.addPredefinedGlobalIdent("D_Exceptions");
+        if (params.useTypeInfo)
+            VersionCondition.addPredefinedGlobalIdent("D_TypeInfo");
     }
 
     VersionCondition.addPredefinedGlobalIdent("D_HardFloat");
@@ -183,7 +186,7 @@ void addPredefinedGlobalIdentifiers(const ref Target tgt)
             case OS.Windows:
             {
                  predef("Windows");
-                 VersionCondition.addPredefinedGlobalIdent(tgt.is64bit ? "Win64" : "Win32");
+                 VersionCondition.addPredefinedGlobalIdent(tgt.isX86_64 ? "Win64" : "Win32");
                  break;
             }
             case OS.OSX:
@@ -213,7 +216,7 @@ void addPredefinedGlobalIdentifiers(const ref Target tgt)
     addCRuntimePredefinedGlobalIdent(tgt.c);
     addCppRuntimePredefinedGlobalIdent(tgt.cpp);
 
-    if (tgt.is64bit)
+    if (tgt.isX86_64)
     {
         VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86_64");
         VersionCondition.addPredefinedGlobalIdent("X86_64");
@@ -226,7 +229,7 @@ void addPredefinedGlobalIdentifiers(const ref Target tgt)
     }
     if (tgt.isLP64)
         VersionCondition.addPredefinedGlobalIdent("D_LP64");
-    else if (tgt.is64bit)
+    else if (tgt.isX86_64)
         VersionCondition.addPredefinedGlobalIdent("X32");
 }
 
@@ -342,7 +345,7 @@ extern (C++) struct Target
     /// Architecture name
     const(char)[] architectureName;
     CPU cpu = CPU.baseline; // CPU instruction set to target
-    bool is64bit = (size_t.sizeof == 8);  // generate 64 bit code for x86_64; true by default for 64 bit dmd
+    bool isX86_64 = (size_t.sizeof == 8);  // generate 64 bit code for x86_64; true by default for 64 bit dmd
     bool isLP64;            // pointers are 64 bits
 
     // Environmental
@@ -398,7 +401,7 @@ extern (C++) struct Target
      */
     extern (C++) void _init(ref const Param params)
     {
-        // is64bit, omfobj and cpu are initialized in parseCommandLine
+        // isX86_64, omfobj and cpu are initialized in parseCommandLine
 
         this.params = &params;
 
@@ -406,7 +409,7 @@ extern (C++) struct Target
         DoubleProperties.initialize();
         RealProperties.initialize();
 
-        isLP64 = is64bit;
+        isLP64 = isX86_64;
 
         // These have default values for 32 bit code, they get
         // adjusted for 64 bit code.
@@ -443,7 +446,7 @@ extern (C++) struct Target
             realsize = 10;
             realpad = 0;
             realalignsize = 2;
-            if (ptrsize == 4)
+            if (omfobj)
             {
                 /* Optlink cannot deal with individual data chunks
                  * larger than 16Mb
@@ -453,7 +456,7 @@ extern (C++) struct Target
         }
         else
             assert(0);
-        if (is64bit)
+        if (isX86_64)
         {
             if (os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.DragonFlyBSD | Target.OS.Solaris))
             {
@@ -467,7 +470,7 @@ extern (C++) struct Target
         cpp.initialize(params, this);
         objc.initialize(params, this);
 
-        if (is64bit)
+        if (isX86_64)
             architectureName = "X86_64";
         else
             architectureName = "X86";
@@ -496,7 +499,7 @@ extern (C++) struct Target
     /**
      Determine the object format to be used
      */
-    extern(D) Target.ObjectFormat objectFormat()
+    extern(D) Target.ObjectFormat objectFormat() @safe
     {
         if (os == Target.OS.OSX)
             return Target.ObjectFormat.macho;
@@ -511,7 +514,7 @@ extern (C++) struct Target
     /**
      * Determine the instruction set to be used
      */
-    void setCPU()
+    void setCPU() @safe
     {
         if(!isXmmSupported())
         {
@@ -543,7 +546,7 @@ extern (C++) struct Target
      * This can be used to restore the state set by `_init` to its original
      * state.
      */
-    void deinitialize()
+    void deinitialize() @safe
     {
         this = this.init;
     }
@@ -574,7 +577,7 @@ extern (C++) struct Target
         case TY.Timaginary64:
         case TY.Tcomplex64:
             if (os & Target.OS.Posix)
-                return is64bit ? 8 : 4;
+                return isX86_64 ? 8 : 4;
             break;
         default:
             break;
@@ -593,7 +596,7 @@ extern (C++) struct Target
     {
         const size = type.alignsize();
 
-        if ((is64bit || os == Target.OS.OSX) && (size == 16 || size == 32))
+        if ((isX86_64 || os == Target.OS.OSX) && (size == 16 || size == 32))
             return size;
 
         return (8 < size) ? 8 : size;
@@ -618,7 +621,7 @@ extern (C++) struct Target
         }
         else if (os & Target.OS.Posix)
         {
-            if (is64bit)
+            if (isX86_64)
             {
                 import dmd.identifier : Identifier;
                 import dmd.mtype : TypeIdentifier;
@@ -650,7 +653,7 @@ extern (C++) struct Target
      *      2   vector element type is not supported
      *      3   vector size is not supported
      */
-    extern (C++) int isVectorTypeSupported(int sz, Type type)
+    extern (C++) int isVectorTypeSupported(int sz, Type type) @safe
     {
         if (!isXmmSupported())
             return 1; // not supported
@@ -928,7 +931,7 @@ extern (C++) struct Target
      * Returns:
      *      `LINK` to use for `extern(System)`
      */
-    extern (C++) LINK systemLinkage()
+    extern (C++) LINK systemLinkage() @safe
     {
         return os == Target.OS.Windows ? LINK.windows : LINK.c;
     }
@@ -946,7 +949,7 @@ extern (C++) struct Target
     {
         import dmd.argtypes_x86 : toArgTypes_x86;
         import dmd.argtypes_sysv_x64 : toArgTypes_sysv_x64;
-        if (is64bit)
+        if (isX86_64)
         {
             // no argTypes for Win64 yet
             return isPOSIX ? toArgTypes_sysv_x64(t) : null;
@@ -993,7 +996,7 @@ extern (C++) struct Target
         const sz = tn.size();
         Type tns = tn;
 
-        if (os == Target.OS.Windows && is64bit)
+        if (os == Target.OS.Windows && isX86_64)
         {
             // https://msdn.microsoft.com/en-us/library/7572ztz4%28v=vs.100%29.aspx
             if (tns.ty == TY.Tcomplex32)
@@ -1025,7 +1028,7 @@ extern (C++) struct Target
                     return true;
             }
         }
-        else if (is64bit && isPOSIX)
+        else if (isX86_64 && isPOSIX)
         {
             TypeTuple tt = toArgTypes_sysv_x64(tn);
             if (!tt)
@@ -1041,7 +1044,7 @@ extern (C++) struct Target
             if (tns.ty != TY.Tstruct)
             {
     L2:
-                if (os == Target.OS.linux && tf.linkage != LINK.d && !is64bit)
+                if (os == Target.OS.linux && tf.linkage != LINK.d && !isX86_64)
                 {
                                                     // 32 bit C/C++ structs always on stack
                 }
@@ -1068,12 +1071,12 @@ extern (C++) struct Target
         if (auto ts = tns.isTypeStruct())
         {
             auto sd = ts.sym;
-            if (os == Target.OS.linux && tf.linkage != LINK.d && !is64bit)
+            if (os == Target.OS.linux && tf.linkage != LINK.d && !isX86_64)
             {
                 //printf("  2 true\n");
                 return true;            // 32 bit C/C++ structs always on stack
             }
-            if (os == Target.OS.Windows && tf.linkage == LINK.cpp && !is64bit &&
+            if (os == Target.OS.Windows && tf.linkage == LINK.cpp && !isX86_64 &&
                      sd.isPOD() && sd.ctor)
             {
                 // win32 returns otherwise POD structs with ctors via memory
@@ -1086,7 +1089,7 @@ extern (C++) struct Target
                     goto L2;
                 goto Lagain;
             }
-            else if (is64bit && sd.numArgTypes() == 0)
+            else if (isX86_64 && sd.numArgTypes() == 0)
                 return true;
             else if (sd.isPOD())
             {
@@ -1100,7 +1103,7 @@ extern (C++) struct Target
                         return false;     // return small structs in regs
                                             // (not 3 byte structs!)
                     case 16:
-                        if (os & Target.OS.Posix && is64bit)
+                        if (os & Target.OS.Posix && isX86_64)
                            return false;
                         break;
 
@@ -1121,7 +1124,7 @@ extern (C++) struct Target
                 return true;
         }
         else if (os == Target.OS.Windows &&
-                 !is64bit &&
+                 !isX86_64 &&
                  tf.linkage == LINK.cpp &&
                  tf.isfloating())
         {
@@ -1149,7 +1152,7 @@ extern (C++) struct Target
     extern (C++) bool preferPassByRef(Type t)
     {
         const size = t.size();
-        if (is64bit)
+        if (isX86_64)
         {
             if (os == Target.OS.Windows)
             {
@@ -1203,6 +1206,7 @@ extern (C++) struct Target
         cppStd,
         floatAbi,
         objectFormat,
+        CET
     }
 
     /**
@@ -1245,6 +1249,8 @@ extern (C++) struct Target
                 return stringExp("");
             case cppStd.stringof:
                 return new IntegerExp(params.cplusplus);
+            case CET.stringof:
+                return new IntegerExp(driverParams.ibt);
 
             default:
                 return null;
@@ -1256,7 +1262,7 @@ extern (C++) struct Target
      *  tf = type of function being called
      * Returns: `true` if the callee invokes destructors for arguments.
      */
-    extern (C++) bool isCalleeDestroyingArgs(TypeFunction tf)
+    extern (C++) bool isCalleeDestroyingArgs(TypeFunction tf) @safe
     {
         // On windows, the callee destroys arguments always regardless of function linkage,
         // and regardless of whether the caller or callee cleans the stack.
@@ -1276,7 +1282,7 @@ extern (C++) struct Target
      */
     extern (C++) bool libraryObjectMonitors(FuncDeclaration fd, Statement fbody)
     {
-        if (!is64bit && os == Target.OS.Windows && !fd.isStatic() && !fbody.usesEH() && !params.trace)
+        if (!isX86_64 && os == Target.OS.Windows && !fd.isStatic() && !fbody.usesEH() && !params.trace)
         {
             /* The back end uses the "jmonitor" hack for syncing;
              * no need to do the sync in the library.
@@ -1291,7 +1297,7 @@ extern (C++) struct Target
      * Returns:
      *      `false` if the target does not support `pragma(linkerDirective)`.
      */
-    extern (C++) bool supportsLinkerDirective() const
+    extern (C++) bool supportsLinkerDirective() const @safe
     {
         return os == Target.OS.Windows && !omfobj;
     }
@@ -1305,16 +1311,16 @@ extern (C++) struct Target
      * Returns:
      *  true if xmm usage is supported
      */
-    extern (D) bool isXmmSupported()
+    extern (D) bool isXmmSupported() @safe
     {
-        return is64bit || os == Target.OS.OSX;
+        return isX86_64 || os == Target.OS.OSX;
     }
 
     /**
      * Returns:
      *  true if generating code for POSIX
      */
-    extern (D) @property bool isPOSIX() scope const nothrow @nogc
+    extern (D) @property bool isPOSIX() scope const nothrow @nogc @safe
     out(result) { assert(result || os == Target.OS.Windows); }
     do
     {
@@ -1325,9 +1331,9 @@ extern (C++) struct Target
      * Returns:
      *  alignment of the stack
      */
-    extern (D) uint stackAlign()
+    extern (D) uint stackAlign() @safe
     {
-        return isXmmSupported() ? 16 : (is64bit ? 8 : 4);
+        return isXmmSupported() ? 16 : (isX86_64 ? 8 : 4);
     }
 }
 
@@ -1370,7 +1376,7 @@ struct TargetC
     Runtime runtime;          /// vendor of the C runtime to link against
     BitFieldStyle bitFieldStyle; /// different C compilers do it differently
 
-    extern (D) void initialize(ref const Param params, ref const Target target)
+    extern (D) void initialize(ref const Param params, ref const Target target) @safe
     {
         const os = target.os;
         boolsize = 1;
@@ -1385,14 +1391,14 @@ struct TargetC
             longsize = 4;
         else
             assert(0);
-        if (target.is64bit)
+        if (target.isX86_64)
         {
             if (os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.DragonFlyBSD | Target.OS.Solaris))
                 longsize = 8;
             else if (os == Target.OS.OSX)
                 longsize = 8;
         }
-        if (target.is64bit && os == Target.OS.Windows)
+        if (target.isX86_64 && os == Target.OS.Windows)
             long_doublesize = 8;
         else
             long_doublesize = target.realsize;
@@ -1457,7 +1463,7 @@ struct TargetCPP
     bool wrapDtorInExternD;   /// set if C++ dtors require a D wrapper to be callable from runtime
     Runtime runtime;          /// vendor of the C++ runtime to link against
 
-    extern (D) void initialize(ref const Param params, ref const Target target)
+    extern (D) void initialize(ref const Param params, ref const Target target) @safe
     {
         const os = target.os;
         if (os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.DragonFlyBSD | Target.OS.Solaris))
@@ -1483,7 +1489,7 @@ struct TargetCPP
         else
             assert(0);
         // C++ and D ABI incompatible on all (?) x86 32-bit platforms
-        wrapDtorInExternD = !target.is64bit;
+        wrapDtorInExternD = !target.isX86_64;
     }
 
     /**
@@ -1615,9 +1621,9 @@ struct TargetObjC
 {
     bool supported;     /// set if compiler can interface with Objective-C
 
-    extern (D) void initialize(ref const Param params, ref const Target target)
+    extern (D) void initialize(ref const Param params, ref const Target target) @safe
     {
-        if (target.os == Target.OS.OSX && target.is64bit)
+        if (target.os == Target.OS.OSX && target.isX86_64)
             supported = true;
     }
 }

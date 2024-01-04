@@ -3,7 +3,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgobj.d, backend/cgobj.d)
@@ -35,8 +35,6 @@ import dmd.backend.type;
 
 import dmd.common.outbuffer;
 
-extern (C++):
-
 nothrow:
 @safe:
 
@@ -46,6 +44,7 @@ import dmd.backend.filespec : filespecdotext, filespecgetroot, filespecname;
 
 version (Windows)
 {
+    extern (C) int memicmp(const(void)*, const(void)*, size_t) pure nothrow @nogc;
     extern (C) int stricmp(const(char)*, const(char)*) pure nothrow @nogc;
     alias filespeccmp = stricmp;
 }
@@ -67,11 +66,6 @@ struct Loc
         filename = null;
     }
 }
-
-static if (__VERSION__ < 2092)
-    void error(Loc loc, const(char)* format, ...);
-else
-    pragma(printf) void error(Loc loc, const(char)* format, ...);
 
 version (Windows)
 {
@@ -397,78 +391,41 @@ static if (MULTISCOPE)
 
 __gshared
 {
-    Rarray!(seg_data*) SegData;
+    extern (C++) Rarray!(seg_data*) SegData;
     Objstate obj;
 }
 
 
 /*******************************
  * Output an object file data record.
- * Input:
- *      rectyp  =       record type
- *      record  .      the data
- *      reclen  =       # of bytes in record
+ * Params:
+ *      rectyp = record type
+ *      record = the data
  */
 
 @trusted
-void objrecord(uint rectyp, const(char)* record, uint reclen)
+void objrecord(uint rectyp, scope const(char)[] record)
 {
     auto o = obj.buf;
 
     //printf("rectyp = x%x, record[0] = x%x, reclen = x%x\n",rectyp,record[0],reclen);
-    o.reserve(reclen + 4);
+    o.reserve(record.length + 4);
     o.writeByten(cast(ubyte)rectyp);
-    o.write16n(reclen + 1);  // record length includes checksum
-    o.writen(record,reclen);
+    o.write16n(cast(int)(record.length) + 1);  // record length includes checksum
+    o.writen(record.ptr, record.length);
     o.writeByten(0);           // use 0 for checksum
 }
 
-void error(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...);
-void fatal();
-
+@trusted
 void too_many_symbols()
 {
-    error(null, 0, 0, "more than %d symbols in object file", 0x7FFF);
+    error(null, 0, 0, "more than %d symbols in object file %s", 0x7FFF, obj.modname);
     fatal();
 }
 
 version (X86) version (DigitalMars)
     version = X86ASM;
 
-version (X86ASM)
-{
-@trusted
-int insidx(char *p,uint index)
-{
-    asm nothrow
-    {
-        naked                           ;
-        mov     EAX,[ESP+8]             ; // index
-        mov     ECX,[ESP+4]             ; // p
-
-        cmp     EAX,0x7F                ;
-        jae     L1                      ;
-        mov     [ECX],AL                ;
-        mov     EAX,1                   ;
-        ret                             ;
-
-
-    L1:                                 ;
-        cmp     EAX,0x7FFF              ;
-        ja      L2                      ;
-
-        mov     [ECX+1],AL              ;
-        or      EAX,0x8000              ;
-        mov     [ECX],AH                ;
-        mov     EAX,2                   ;
-        ret                             ;
-    }
-    L2:
-        too_many_symbols();
-}
-}
-else
-{
 @trusted
 int insidx(char *p,uint index)
 {
@@ -492,7 +449,6 @@ int insidx(char *p,uint index)
         too_many_symbols();
         return 0;
     }
-}
 }
 
 /**************************
@@ -627,8 +583,7 @@ segidx_t OmfObj_seg_debugT()
  *      filename        source file name
  *      csegname        code segment name (can be null)
  */
-
-@trusted
+@system
 Obj OmfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
 {
         //printf("OmfObj_init()\n");
@@ -824,8 +779,9 @@ void OmfObj_term(const(char)* objfilename)
                 //printf("objrecord(rectyp=x%02x, d=%p, p=%p, size = %d)\n",
                 //rectyp,d,d.header.ptr + ((d.header).sizeof - headersize),d.i + headersize);
 
-                objrecord(rectyp,cast(char*)d.header.ptr + ((d.header).sizeof - headersize),
-                        d.i + headersize);
+                const start = d.header.length - headersize;
+                const length = d.i + headersize;
+                objrecord(rectyp,cast(char[])d.header.ptr[start .. start + length]);
                 objfixupp(d.fixuplist);
             }
         }
@@ -967,7 +923,7 @@ static if (MULTISCOPE)
         }
         else if (obj.linreci > LINRECMAX - (2 + _tysize[TYint]))
         {
-            objrecord(obj.mlinnum,obj.linrec,obj.linreci);  // output data
+            objrecord(obj.mlinnum,obj.linrec[0 .. obj.linreci]);  // output data
             obj.linreci = obj.linrecheader;
             if (seg_is_comdat(SegData[seg].segidx))        // if LINSYM record
                 obj.linrec[0] |= 1;         // continuation bit
@@ -1031,11 +987,11 @@ private void linnum_flush()
         foreach (i; 0 .. obj.linreclist.length - 1)
         {
             obj.linrec = obj.linreclist[i];
-            objrecord(obj.mlinnum, obj.linrec, LINRECMAX);
+            objrecord(obj.mlinnum, obj.linrec[0 .. LINRECMAX]);
             mem_free(obj.linrec);
         }
         obj.linrec = obj.linreclist[obj.linreclist.length - 1];
-        objrecord(obj.mlinnum,obj.linrec,obj.linreci);
+        objrecord(obj.mlinnum,obj.linrec[0 .. obj.linreci]);
         obj.linreclist.reset();
 
         // Put out File Names Table
@@ -1044,14 +1000,14 @@ private void linnum_flush()
         TOLONG(obj.linrec + 10,1);              // number of source and listing files
         const len = obj_namestring(obj.linrec + 14,obj.modname);
         assert(14 + len <= LINRECMAX);
-        objrecord(obj.mlinnum,obj.linrec,cast(uint)(14 + len));
+        objrecord(obj.mlinnum,obj.linrec[0 .. 14 + len]);
 
         mem_free(obj.linrec);
         obj.linrec = null;
     }
     else if (obj.linrec)                        // if some line numbers to send
     {
-        objrecord(obj.mlinnum,obj.linrec,obj.linreci);
+        objrecord(obj.mlinnum,obj.linrec[0 .. obj.linreci]);
         mem_free(obj.linrec);
         obj.linrec = null;
     }
@@ -1142,7 +1098,7 @@ void OmfObj_dosseg()
 {
     static immutable char[2] dosseg = [ 0x80,0x9E ];
 
-    objrecord(COMENT, dosseg.ptr, dosseg.sizeof);
+    objrecord(COMENT, dosseg);
 }
 
 /*******************************
@@ -1152,7 +1108,7 @@ void OmfObj_dosseg()
 @trusted
 private void obj_comment(ubyte x, const(char)* string, size_t len)
 {
-    import dmd.common.string : SmallBuffer;
+    import dmd.common.smallbuffer : SmallBuffer;
     char[128] buf = void;
     auto sb = SmallBuffer!char(2 + len, buf[]);
     char *library = sb.ptr;
@@ -1160,7 +1116,7 @@ private void obj_comment(ubyte x, const(char)* string, size_t len)
     library[0] = 0;
     library[1] = x;
     memcpy(library + 2,string,len);
-    objrecord(COMENT,library,cast(uint)(len + 2));
+    objrecord(COMENT,library[0 .. 2 + len]);
 }
 
 /*******************************
@@ -1172,15 +1128,26 @@ private void obj_comment(ubyte x, const(char)* string, size_t len)
  */
 
 @trusted
-bool OmfObj_includelib(const(char)* name)
+bool OmfObj_includelib(scope const char[] name)
 {
-    const(char)* p;
-    size_t len = strlen(name);
+    const(char)[] n = name;
 
-    p = filespecdotext(name);
-    if (!filespeccmp(p,".lib"))
-        len -= strlen(p);               // lop off .LIB extension
-    obj_comment(0x9F, name, len);
+    // lop off .LIB extension
+    if (name.length >= 4)
+    {
+        version (Windows)
+        {
+            if (memicmp(name[$ - 4 .. $].ptr, ".lib".ptr, 4) == 0)
+                n = name[0 .. $ - 4];
+        }
+        else
+        {
+            if (memcmp(name[$ - 4 .. $].ptr, ".lib".ptr, 4) == 0)
+                n = name[0 .. $ - 4];
+        }
+    }
+
+    obj_comment(0x9F, n.ptr, n.length);
     return true;
 }
 
@@ -1192,7 +1159,7 @@ bool OmfObj_includelib(const(char)* name)
 *      true if operation is supported
 */
 
-bool OmfObj_linkerdirective(const(char)* name)
+bool OmfObj_linkerdirective(scope const(char)* name)
 {
     return false;
 }
@@ -1265,7 +1232,7 @@ private void obj_defaultlib()
 
     if (!(config.flags2 & CFG2nodeflib))
     {
-        objmod.includelib(configv.deflibname ? configv.deflibname : library.ptr);
+        objmod.includelib(configv.deflibname ? configv.deflibname[0 .. strlen(configv.deflibname)] : library);
     }
 }
 
@@ -1303,7 +1270,7 @@ void OmfObj_wkext(Symbol *s1,Symbol *s2)
     int i = 2;
     i += insidx(&buffer[2],s1.Sxtrnnum);
     i += insidx(&buffer[i],x2);
-    objrecord(COMENT,buffer.ptr,i);
+    objrecord(COMENT,buffer[0 .. i]);
 }
 
 /*******************************
@@ -1322,7 +1289,7 @@ void OmfObj_lzext(Symbol *s1,Symbol *s2)
     i = 2;
     i += insidx(&buffer[2],s1.Sxtrnnum);
     i += insidx(&buffer[i],s2.Sxtrnnum);
-    objrecord(COMENT,buffer.ptr,i);
+    objrecord(COMENT,buffer[0 .. i]);
 }
 
 /*******************************
@@ -1338,7 +1305,7 @@ void OmfObj_alias(const(char)* n1,const(char)* n2)
     buffer = cast(char *) alloca(strlen(n1) + strlen(n2) + 2 * ONS_OHD);
     len = obj_namestring(buffer,n1);
     len += obj_namestring(buffer + len,n2);
-    objrecord(ALIAS,buffer,len);
+    objrecord(ALIAS,buffer[0 .. len]);
 }
 
 /*******************************
@@ -1367,7 +1334,7 @@ void OmfObj_theadr(const(char)* modname)
 
     char *theadr = cast(char *)alloca(ONS_OHD + strlen(modname));
     int i = obj_namestring(theadr,modname);
-    objrecord(THEADR,theadr,i);                 // module name record
+    objrecord(THEADR,theadr[0 .. i]);           // module name record
 }
 
 /*******************************
@@ -1415,7 +1382,7 @@ private void objheader(char *csegname)
         {
             // Indicate we're in EASY OMF (hah!) format
             static immutable char[7] easy_omf = [ 0x80,0xAA,'8','0','3','8','6' ];
-            objrecord(COMENT,easy_omf.ptr,easy_omf.sizeof);
+            objrecord(COMENT,easy_omf);
         }
     }
 
@@ -1431,13 +1398,13 @@ private void objheader(char *csegname)
         else
             comment[3] = 'x';
     }
-    objrecord(COMENT,comment.ptr,comment.sizeof);
+    objrecord(COMENT,comment);
 
     // Send out comment indicating we're using extensions to .OBJ format
     if (config.exe == EX_OS2)
-        objrecord(COMENT, pmdeb.ptr, pmdeb.sizeof);
+        objrecord(COMENT, pmdeb);
     else
-        objrecord(COMENT, exten.ptr, exten.sizeof);
+        objrecord(COMENT, exten);
 
     // Change DGROUP to FLAT if we are doing flat memory model
     // (Watch out, objheader() is called twice!)
@@ -1463,10 +1430,10 @@ private void objheader(char *csegname)
         texti++;
         memcpy(p + texti,csegname,i);
         memcpy(p + texti + i,lnames.ptr + texti + 5,lnamesize - (texti + 5));
-        objrecord(LNAMES,p,cast(uint)(lnamesize + i - 5));
+        objrecord(LNAMES,p[0 .. lnamesize + i - 5]);
     }
     else
-        objrecord(LNAMES,lnames.ptr,lnamesize);
+        objrecord(LNAMES,lnames[0 .. lnamesize]);
 }
 
 /********************************
@@ -1554,7 +1521,7 @@ private void objsegdef(int attr,targ_size_t size,int segnamidx,int classnamidx)
     debug
     assert(reclen <= sd.sizeof);
 
-    objrecord(SEGDEF + (sd[0] & 1),sd.ptr,reclen);
+    objrecord(SEGDEF + (sd[0] & 1),sd[0 .. reclen]);
 }
 
 /*********************************
@@ -1610,19 +1577,19 @@ void OmfObj_segment_group(targ_size_t codesize,targ_size_t datasize,
         obj.segidx += 2;                        // next segment index
     }
 
-    objrecord(GRPDEF,grpdef.ptr,(config.exe & EX_flat) ? 1 : grpdef.sizeof);
+    objrecord(GRPDEF,grpdef[0 .. (config.exe & EX_flat) ? 1 : grpdef.sizeof]);
 static if (0)
 {
     // Define fixup threads, we don't use them
     {
         static immutable char[12] thread = [ 0,3,1,2,2,1,3,4,0x40,1,0x45,1 ];
-        objrecord(obj.mfixupp,thread.ptr,thread.sizeof);
+        objrecord(obj.mfixupp,thread);
     }
     // This comment appears to indicate that no more PUBDEFs, EXTDEFs,
     // or COMDEFs are coming.
     {
         static immutable char[3] cv = [0,0xA2,1];
-        objrecord(COMENT,cv.ptr,cv.sizeof);
+        objrecord(COMENT,cv);
     }
 }
 }
@@ -1654,7 +1621,7 @@ void OmfObj_staticctor(Symbol *s,int dtor,int seg)
     assert(I32 || tyfarfunc(s.ty()));
 
     // Put out LNAMES record
-    objrecord(LNAMES,lnamector.ptr,lnamector.sizeof - 1);
+    objrecord(LNAMES,lnamector[0 .. $ - 1]);
 
     int dsegattr = I32
         ? SEG_ATTR(SEG_ALIGN4,SEG_C_PUBLIC,0,USE32)
@@ -1687,9 +1654,9 @@ void OmfObj_staticctor(Symbol *s,int dtor,int seg)
 
         // Put out LNAMES record
         if (LARGEDATA)
-            objrecord(LNAMES,lnamedtorf.ptr,lnamedtorf.sizeof - 1);
+            objrecord(LNAMES,lnamedtorf[0 .. $ - 1]);
         else
-            objrecord(LNAMES,lnamedtor.ptr,lnamedtor.sizeof - 1);
+            objrecord(LNAMES,lnamedtor[0 .. $ - 1]);
 
         // Put out beginning segment
         objsegdef(dsegattr,0,obj.lnameidx,BSSCLASS);
@@ -1745,7 +1712,7 @@ void OmfObj_setModuleCtorDtor(Symbol *s, bool isCtor)
         i += 2;
 
     // Put out LNAMES record
-    objrecord(LNAMES,lnames[i].ptr,lnamesize[i]);
+    objrecord(LNAMES,lnames[i][0 .. lnamesize[i]]);
 
     dsegattr = I32
         ? SEG_ATTR(SEG_ALIGN4,SEG_C_PUBLIC,0,USE32)
@@ -1791,7 +1758,7 @@ void OmfObj_ehtables(Symbol *sfunc,uint size,Symbol *ehsym)
     if (obj.fisegi == 0)
     {
         // Put out LNAMES record
-        objrecord(LNAMES,lnames.ptr,lnames.sizeof - 1);
+        objrecord(LNAMES,lnames[0 .. $ - 1]);
 
         dsegattr = I32
             ? SEG_ATTR(SEG_ALIGN4,SEG_C_PUBLIC,0,USE32)
@@ -1843,7 +1810,7 @@ void OmfObj_moduleinfo(Symbol *scc)
     if (obj.fmsegi == 0)
     {
         // Put out LNAMES record
-        objrecord(LNAMES,lnames.ptr,lnames.sizeof - 1);
+        objrecord(LNAMES,lnames[0 .. $ - 1]);
 
         int dsegattr = I32
             ? SEG_ATTR(SEG_ALIGN4,SEG_C_PUBLIC,0,USE32)
@@ -1917,7 +1884,7 @@ static int generate_comdat(Symbol *s, bool is_readonly_comdat)
 
     // Put out LNAME for name of Symbol
     lnamesize = OmfObj_mangle(s,lnames.ptr);
-    objrecord((s.Sclass == SC.static_ ? LLNAMES : LNAMES),lnames.ptr,cast(uint)lnamesize);
+    objrecord((s.Sclass == SC.static_ ? LLNAMES : LNAMES),lnames[0 .. lnamesize]);
 
     // Put out CEXTDEF for name of Symbol
     outextdata();
@@ -1925,7 +1892,7 @@ static int generate_comdat(Symbol *s, bool is_readonly_comdat)
     p += insidx(p,obj.lnameidx++);
     ti = (config.fulltypes == CVOLD) ? cv_typidx(s.Stype) : 0;
     p += instypidx(p,ti);
-    objrecord(CEXTDEF,cextdef.ptr,cast(uint)(p - cextdef.ptr));
+    objrecord(CEXTDEF,cextdef[0 .. p - cextdef.ptr]);
     s.Sxtrnnum = ++obj.extidx;
 
     seg_data *pseg = getsegment();
@@ -2047,7 +2014,7 @@ int OmfObj_codeseg(const char *name,int suffix)
     strcpy(lnames + 1,name);
     if (suffix)
         strcat(lnames + 1,"_TEXT");
-    objrecord(LNAMES,lnames,cast(uint)(lnamesize + 1));
+    objrecord(LNAMES,lnames[0 .. lnamesize + 1]);
 
     cseg = obj_newfarseg(0,4);
     SegData[cseg].attr = obj.csegattr;
@@ -2084,7 +2051,7 @@ seg_data* OmfObj_tlsseg()
     {
         int segattr;
 
-        objrecord(LNAMES,tlssegname.ptr,tlssegname.sizeof - 1);
+        objrecord(LNAMES,tlssegname[0 .. $ - 1]);
 
         segattr = SEG_ATTR(SEG_ALIGN16,SEG_C_PUBLIC,0,USE32);
 
@@ -2145,7 +2112,7 @@ int OmfObj_fardata(char *name,targ_size_t size,targ_size_t *poffset)
 
     if (obj.fardataidx == 0)            // if haven't put out far data lname
     {   // Put out class lname
-        objrecord(LNAMES,fardataclass.ptr,fardataclass.sizeof - 1);
+        objrecord(LNAMES,fardataclass[0 .. $ - 1]);
         obj.fardataidx = obj.lnameidx++;
     }
 
@@ -2159,7 +2126,7 @@ int OmfObj_fardata(char *name,targ_size_t size,targ_size_t *poffset)
     len = cast(int)strlen(buffer + 1);
     buffer[0] = cast(char)len;
     assert(len <= 255);
-    objrecord(LNAMES,buffer,len + 1);
+    objrecord(LNAMES,buffer[0 .. len + 1]);
 
     mem_free(name);
 
@@ -2358,7 +2325,7 @@ void OmfObj_export_symbol(Symbol* s, uint argsize)
         argsize = 0;                            // hope we don't need callgate
     coment[3] = cast(char)((argsize + 1) >> 1); // # words on stack
     coment[4 + len] = 0;                        // no internal name
-    objrecord(COMENT,coment,cast(uint)(4 + len + 1));       // module name record
+    objrecord(COMENT,coment[0 .. 4 + len + 1]);       // module name record
 }
 
 /*******************************
@@ -2431,7 +2398,7 @@ private void outpubdata()
 {
     if (obj.pubdatai)
     {
-        objrecord(obj.mpubdef,obj.pubdata.ptr,obj.pubdatai);
+        objrecord(obj.mpubdef,obj.pubdata[0 .. obj.pubdatai]);
         obj.pubdatai = 0;
     }
 }
@@ -2484,7 +2451,7 @@ private void outextdata()
 {
     if (obj.extdatai)
     {
-        objrecord(EXTDEF, obj.extdata.ptr, obj.extdatai);
+        objrecord(EXTDEF, obj.extdata[0 .. obj.extdatai]);
         obj.extdatai = 0;
     }
 }
@@ -2612,7 +2579,7 @@ int OmfObj_common_block(Symbol *s,int flag,targ_size_t size,targ_size_t count)
         i = storelength(cast(uint) count,i);
   }
   assert(i <= obj.extdata.length);
-  objrecord(COMDEF,obj.extdata.ptr,i);
+  objrecord(COMDEF,obj.extdata[0 .. i]);
   return ++obj.extidx;
 }
 
@@ -2681,7 +2648,7 @@ Lagain:
             TOWORD(di + 4 + 2 + 2 + 2,0);       // block count
             TOWORD(di + 4 + 2 + 2 + 2 + 2,1);   // 1 byte of 0
             reclen = i + 4 + 5 * 2;
-            objrecord(obj.mlidata,data.ptr,reclen);
+            objrecord(obj.mlidata,data[0 .. reclen]);
 
             offset += (count & ~cast(targ_size_t)0x7FFF);
             count &= 0x7FFF;
@@ -2693,7 +2660,7 @@ Lagain:
             TOWORD(di + 4 + 2,0);                       // block count
             TOWORD(di + 4 + 2 + 2,1);                   // 1 byte of 0
             reclen = i + 4 + 2 + 2 + 2;
-            objrecord(obj.mlidata,data.ptr,reclen);
+            objrecord(obj.mlidata,data[0 .. reclen]);
         }
     }
     else
@@ -2702,7 +2669,7 @@ Lagain:
         TOWORD(di + _tysize[TYint] * 2,0);     // block count
         TOWORD(di + _tysize[TYint] * 2 + 2,1); // repeat 1 byte of 0s
         reclen = i + (I32 ? 12 : 8);
-        objrecord(obj.mlidata,data.ptr,reclen);
+        objrecord(obj.mlidata,data[0 .. reclen]);
     }
     assert(reclen <= data.sizeof);
 }
@@ -2847,12 +2814,12 @@ private void obj_modend()
         i += insidx(&mdata[i],targetdatum);
         TOOFFSET(mdata.ptr + i,offset);
 
-        objrecord(obj.mmodend,mdata.ptr,i + _tysize[TYint]);       // write mdata[] to .OBJ file
+        objrecord(obj.mmodend,mdata[0 .. _tysize[TYint]]);       // write mdata[] to .OBJ file
     }
     else
     {   static immutable char[1] modend = [0];
 
-        objrecord(obj.mmodend,modend.ptr,modend.sizeof);
+        objrecord(obj.mmodend,modend);
     }
 }
 
@@ -2876,7 +2843,7 @@ static if (1)   // store in one record
   {     ubyte fd;
 
         if (i >= data.sizeof - (3 + 2 + 2))    // if not enough room
-        {   objrecord(obj.mfixupp,data.ptr,i);
+        {   objrecord(obj.mfixupp,data[0 .. i]);
             i = 0;
         }
 
@@ -2903,7 +2870,7 @@ static if (1)   // store in one record
   }
   assert(i <= data.sizeof);
   if (i)
-      objrecord(obj.mfixupp,data.ptr,i);
+      objrecord(obj.mfixupp,data[0 .. i]);
 }
 else   // store in multiple records
 {
@@ -2918,7 +2885,7 @@ else   // store in multiple records
         data[2] = f.FUlcfd;
         i = 3 + insidx(&data[3],f.FUframedatum);
         i += insidx(&data[i],f.FUtargetdatum);
-        objrecord(obj.mfixupp,data,i);
+        objrecord(obj.mfixupp,data[0 .. i]);
   }
 }
 }
@@ -3054,10 +3021,11 @@ L1:     { }
  * Append bytes to segment.
  */
 
-void OmfObj_write_bytes(seg_data *pseg, uint nbytes, const(void)* p)
+@trusted
+void OmfObj_write_bytes(seg_data *pseg, const(void[]) a)
 {
-    OmfObj_bytes(pseg.SDseg, pseg.SDoffset, nbytes, p);
-    pseg.SDoffset += nbytes;
+    OmfObj_bytes(pseg.SDseg, pseg.SDoffset, a.length, a.ptr);
+    pseg.SDoffset += a.length;
 }
 
 /************************************
@@ -3067,9 +3035,9 @@ void OmfObj_write_bytes(seg_data *pseg, uint nbytes, const(void)* p)
  */
 
 @trusted
-uint OmfObj_bytes(int seg, targ_size_t offset, uint nbytes, const(void)* p)
+size_t OmfObj_bytes(int seg, targ_size_t offset, size_t nbytes, const(void)* p)
 {
-    uint n = nbytes;
+    size_t n = nbytes;
 
     //dbg_printf("OmfObj_bytes(seg=%d, offset=x%lx, nbytes=x%x, p=%p)\n",seg,offset,nbytes,p);
     Ledatarec *lr = cast(Ledatarec*)SegData[seg].ledata;
@@ -3110,7 +3078,7 @@ uint OmfObj_bytes(int seg, targ_size_t offset, uint nbytes, const(void)* p)
     {
         uint i = cast(uint)(offset - lr.offset);
         if (lr.i < i + nbytes)
-            lr.i = i + nbytes;
+            lr.i = cast(uint)(i + nbytes);
         memcpy(lr.data.ptr + i,p,nbytes);
     }
     return n;
@@ -3652,7 +3620,7 @@ void OmfObj_far16thunk(Symbol *s)
         static immutable char[8] lname = "\06CODE16";
 
         // Put out LNAMES record
-        objrecord(LNAMES,lname.ptr,lname.sizeof - 1);
+        objrecord(LNAMES,lname[0 .. $ - 1]);
 
         obj.code16segi = obj_newfarseg(0,4);
         obj.CODE16offset = 0;
@@ -3776,7 +3744,7 @@ private void objflush_pointerRef(Symbol* s, uint soff)
         static immutable char[12] lnames_tls = "\03TPB\02TP\03TPE";
         const lnames = isTls ? lnames_tls.ptr : lnames_dat.ptr;
         // Put out LNAMES record
-        objrecord(LNAMES,lnames,lnames_dat.sizeof - 1);
+        objrecord(LNAMES,lnames[0 .. lnames_dat.sizeof - 1]);
 
         int dsegattr = obj.csegattr;
 

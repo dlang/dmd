@@ -1,0 +1,5 @@
+Makefiles cleanup for druntime
+
+The `{posix,win32,win64}.mak` Makefiles have been merged to a generic `Makefile` (including the ones in `druntime/test/`). `posix.mak` is kept as a deprecated forwarder for now.
+
+On Windows, you can/need to use the generic Makefile too - with a GNU make (and a git installation providing bash and GNU tools). Windows devs can finally exploit parallelism via `-j`! You may download a prebuilt zipped .exe from https://github.com/dlang/dmd/releases/download/nightly/gnumake-4.4-win64.zip.

@@ -16,7 +16,6 @@ import core.stdc.math : fabs, fabsl, sqrt;
 version(CRuntime_Microsoft)
     private import dmd.root.longdouble : fabsl, sqrt; // needed if longdouble is longdouble_soft
 
-extern (C++):
 @nogc:
 @safe:
 nothrow:

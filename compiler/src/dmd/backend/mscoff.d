@@ -28,6 +28,8 @@ struct BIGOBJ_HEADER
     uint NumberOfSymbols;        // number of entries in the symbol table
 }
 
+static assert(BIGOBJ_HEADER.sizeof == 56);
+
 enum
 {
     IMAGE_FILE_MACHINE_UNKNOWN            = 0,           // applies to any machine type
@@ -61,6 +63,8 @@ struct IMAGE_FILE_HEADER
     ushort SizeOfOptionalHeader;
     ushort Characteristics;
 }
+
+static assert(IMAGE_FILE_HEADER.sizeof == 20);
 
 /***********************************************/
 
@@ -155,6 +159,8 @@ struct SymbolTable32
     ubyte NumberOfAuxSymbols;
 }
 
+static assert(SymbolTable32.sizeof == 20);
+
 struct SymbolTable
 {
     ubyte[SYMNMLEN] Name;
@@ -165,6 +171,8 @@ struct SymbolTable
     ubyte NumberOfAuxSymbols;
 }
 
+static assert(SymbolTable.sizeof == 18);
+
 /***********************************************/
 
 struct reloc
@@ -174,6 +182,8 @@ struct reloc
     uint r_symndx;          // symbol table index
     ushort r_type;          // IMAGE_REL_XXX kind of relocation to be performed
 }
+
+static assert(reloc.sizeof == 10);
 
 enum
 {
@@ -221,6 +231,7 @@ struct lineno
     ushort l_lnno;
 }
 
+static assert(lineno.sizeof == 6);
 
 /***********************************************/
 
@@ -279,12 +290,13 @@ union auxent
         ubyte Selection;
         ubyte Unused;
         ushort NumberHighPart;
-        ushort Zeros;
     }
     S x_section;
 
     char[18] filler;
 }
+
+static assert(auxent.sizeof == 18);
 
 // auxent.x_section.Zeros
 enum
