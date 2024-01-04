@@ -1253,7 +1253,7 @@ $(H2 $(LEGACY_LNAME2 SwitchStatement, switch-statement, Switch Statement))
 
 $(GRAMMAR
 $(GNAME SwitchStatement):
-    $(D switch $(LPAREN)) $(EXPRESSION) $(D $(RPAREN)) $(PSSCOPE)
+    $(D switch $(LPAREN)) $(GLINK IfCondition) $(D $(RPAREN)) $(PSSCOPE)
 
 $(GNAME CaseStatement):
     $(D case) $(GLINK2 expression, ArgumentList) $(D :) $(PSSEMI_PSCURLYSCOPE_LIST)$(OPT)
@@ -1274,14 +1274,22 @@ $(GNAME StatementNoCaseNoDefault):
     $(GLINK ScopeBlockStatement)
 )
 
-        $(P $(I Expression) is evaluated.
-        If the type of $(I Expression) is an `enum`, it is
+        $(P The *Expression* from the $(I IfCondition) is evaluated.
+        If the type of the *Expression* is an `enum`, it is
         (recursively) converted to its $(GLINK2 enum, EnumBaseType).
-        Then, if the type is an integral, $(I Expression) undergoes
+        Then, if the type is an integral, the *Expression* undergoes
         $(DDSUBLINK spec/type, integer-promotions, Integer Promotions).
-        Then, the type of $(I Expression) must be either an integral or
+        Then, the type of the *Expression* must be either an integral or
         a static or dynamic array of $(CODE char), $(CODE wchar), or $(CODE dchar).
         )
+
+        $(P If an $(I Identifier) `=` prefix is provided, a variable is declared with that
+        name, initialized to the value and type of the *Expression*. Its scope
+        extends from when it is initialized to the end of the *ScopeStatement*.)
+
+        $(P If $(I TypeCtors) and/or a specific type is provided for *Identifier*, those
+        are used for the variable declaration which is initialized by an implicit
+        conversion from the value of the *Expression*.)
 
         $(P The resulting value is
         compared against each of the case expressions. If there is
@@ -1467,7 +1475,7 @@ $(H2 $(LEGACY_LNAME2 FinalSwitchStatement, final-switch-statement, Final Switch 
 
 $(GRAMMAR
 $(GNAME FinalSwitchStatement):
-    $(D final switch $(LPAREN)) $(EXPRESSION) $(D $(RPAREN)) $(PSSCOPE)
+    $(D final switch $(LPAREN)) $(GLINK IfCondition) $(D $(RPAREN)) $(PSSCOPE)
 )
 
         $(P A final switch statement is just like a switch statement,
