@@ -6712,7 +6712,7 @@ Statement findGotoTarget(InterState* istate, Identifier ident)
     Statement target = null;
     if (ident)
     {
-        LabelDsymbol label = istate.fd.searchLabel(ident);
+        LabelDsymbol label = istate.fd.searchLabel(ident, Loc.initial);
         assert(label && label.statement);
         LabelStatement ls = label.statement;
         target = ls.gotoTarget ? ls.gotoTarget : ls.statement;
