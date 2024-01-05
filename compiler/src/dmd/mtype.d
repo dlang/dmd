@@ -5220,9 +5220,9 @@ extern (C++) final class TypeEnum : Type
         return sym.getMemtype(loc).size(loc);
     }
 
-    Type memType(const ref Loc loc = Loc.initial)
+    Type memType()
     {
-        return sym.getMemtype(loc);
+        return sym.getMemtype(Loc.initial);
     }
 
     override uint alignsize()
