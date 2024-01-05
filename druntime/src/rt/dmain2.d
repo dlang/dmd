@@ -672,9 +672,3 @@ extern (C) void _d_print_throwable(Throwable t)
     }
     formatThrowable(t, &sink);
 }
-
-version (Shared) version (CRuntime_Microsoft)
-{
-    import core.sys.windows.dll;
-    mixin SimpleDllMain;
-}

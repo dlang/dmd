@@ -21,8 +21,8 @@ import core.stdc.stdlib : calloc, malloc, free;
 import core.sys.windows.winbase : FreeLibrary, GetCurrentThreadId, GetModuleHandleExW,
     GetProcAddress, LoadLibraryA, LoadLibraryW,
     GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT;
-import core.sys.windows.winnt : WCHAR, IMAGE_DOS_HEADER, IMAGE_FILE_HEADER, IMAGE_NT_HEADERS,
-    IMAGE_SECTION_HEADER, IMAGE_TLS_DIRECTORY, IMAGE_DIRECTORY_ENTRY_TLS;
+import core.sys.windows.winnt : WCHAR, IMAGE_DOS_HEADER, IMAGE_DOS_SIGNATURE, IMAGE_FILE_HEADER,
+    IMAGE_NT_HEADERS, IMAGE_SECTION_HEADER, IMAGE_TLS_DIRECTORY, IMAGE_DIRECTORY_ENTRY_TLS;
 import core.sys.windows.threadaux;
 import core.thread;
 import rt.deh, rt.minfo;
@@ -446,8 +446,6 @@ extern (C) int rt_unloadLibrary(void* ptr)
 // PE/COFF program header iteration
 ///////////////////////////////////////////////////////////////////////////////
 
-enum IMAGE_DOS_SIGNATURE = 0x5A4D;      // MZ
-
 bool compareSectionName(ref IMAGE_SECTION_HEADER section, string name) nothrow @nogc
 {
     if (name[] != section.Name[0 .. name.length])
@@ -479,4 +477,11 @@ version (Shared) package void* handleForAddr(void* addr) nothrow @nogc
                             cast(const(wchar)*) addr, &hModule))
         return null;
     return hModule;
+}
+
+// DLL entry point for druntime_shared.dll
+version (Shared)
+{
+    import core.sys.windows.dll;
+    mixin SimpleDllMain;
 }
