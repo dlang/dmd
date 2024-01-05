@@ -470,14 +470,14 @@ bool dll_process_attach( HINSTANCE hInstance, bool attach_threads,
         }, null );
 }
 
-version (Shared) private extern(C) extern __gshared void* __ImageBase;
+version (Shared) version (DigitalMars) private extern(C) extern __gshared void* __ImageBase;
 
 /** same as above, but checking for shared runtime
  */
 pragma(inline, false) // version (Shared) only set when compiling druntime
 bool dll_process_attach( HINSTANCE hInstance, bool attach_threads = true )
 {
-    version (Shared)
+    version (Shared) version (DigitalMars)
     {
         // cannot declare rt_initSharedModule globally as it then conflicts with the definition in sections_win64.d
         pragma(mangle, "rt_initSharedModule") extern(C) bool rt_initSharedModule( void* handle );
@@ -502,7 +502,7 @@ bool dll_process_attach( HINSTANCE hInstance, bool attach_threads = true )
 pragma(inline, false) // version (Shared) only set when compiling druntime
 void dll_process_detach( HINSTANCE hInstance, bool detach_threads = true )
 {
-    version (Shared)
+    version (Shared) version (DigitalMars)
     {
         // cannot declare rt_termSharedModule globally as it then conflicts with the definition in sections_win64.d
         pragma(mangle, "rt_termSharedModule") extern(C) bool rt_termSharedModule( void* handle );
@@ -561,7 +561,7 @@ static ~this() { tlsCtorRun = false; }
 pragma(inline, false) // version (Shared) only set when compiling druntime
 bool dll_thread_attach( bool attach_thread = true, bool initTls = true, HINSTANCE hInstance = null )
 {
-    version (Shared)
+    version (Shared) version (DigitalMars)
     {
         if ( hInstance && hInstance != &__ImageBase )
             return true;
@@ -591,7 +591,7 @@ bool dll_thread_attach( bool attach_thread = true, bool initTls = true, HINSTANC
 pragma(inline, false) // version (Shared) only set when compiling druntime
 bool dll_thread_detach( bool detach_thread = true, bool exitTls = true, HINSTANCE hInstance = null )
 {
-    version (Shared)
+    version (Shared) version (DigitalMars)
     {
         if ( hInstance && hInstance != &__ImageBase )
             return true;

@@ -29,15 +29,12 @@ void testGC()
     lib.free();
 }
 
-// order of dtor calls during termination reversed as lib.dll is unloaded before druntime_shared.dll
-shared uint lib_unloaded = 0;
-
 import core.atomic : atomicOp;
 shared static this() { _assert(lib.shared_static_ctor == 1); }
-shared static ~this() { _assert(lib.shared_static_dtor == lib_unloaded); }
+shared static ~this() { _assert(lib.shared_static_dtor == 0); }
 shared uint static_ctor, static_dtor;
 static this() { _assert(lib.static_ctor == atomicOp!"+="(static_ctor, 1)); }
-static ~this() { _assert(lib.static_dtor + 1 - lib_unloaded == atomicOp!"+="(static_dtor, 1)); }
+static ~this() { _assert(lib.static_dtor + 1 == atomicOp!"+="(static_dtor, 1)); }
 
 void testInit()
 {
@@ -71,5 +68,4 @@ void main()
         testEH();
     testGC();
     testInit();
-    version (Windows) lib_unloaded = 1;
 }
