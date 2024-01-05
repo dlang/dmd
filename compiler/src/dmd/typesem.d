@@ -5722,6 +5722,27 @@ StorageClass parameterStorageClass(TypeFunction tf, Type tthis, Parameter p, Var
         return stc | STC.scope_;
 }
 
+extern(C++) bool isBaseOf(Type tthis, Type t, int* poffset)
+{
+    auto tc = tthis.isTypeClass();
+    if (!tc)
+        return false;
+
+    if (!t || t.ty != Tclass)
+        return false;
+
+    ClassDeclaration cd = t.isTypeClass().sym;
+    if (cd.semanticRun < PASS.semanticdone && !cd.isBaseInfoComplete())
+        cd.dsymbolSemantic(null);
+    if (tc.sym.semanticRun < PASS.semanticdone && !tc.sym.isBaseInfoComplete())
+        tc.sym.dsymbolSemantic(null);
+
+    if (tc.sym.isBaseOf(cd, poffset))
+        return true;
+
+    return false;
+}
+
 /******************************* Private *****************************************/
 
 private:

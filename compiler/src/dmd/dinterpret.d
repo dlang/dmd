@@ -1416,6 +1416,7 @@ Expression interpretStatement(UnionExp* pue, Statement s, InterState* istate)
             foreach (ca; *s.catches)
             {
                 Type catype = ca.type;
+                import dmd.typesem : isBaseOf;
                 if (!catype.equals(extype) && !catype.isBaseOf(extype, null))
                     continue;
 

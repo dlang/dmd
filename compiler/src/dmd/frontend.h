@@ -1862,7 +1862,6 @@ public:
     virtual Type* makeMutable();
     virtual Dsymbol* toDsymbol(Scope* sc);
     Type* toBasetype();
-    virtual bool isBaseOf(Type* t, int32_t* poffset);
     virtual MATCH implicitConvTo(Type* to);
     virtual MATCH constConv(Type* to);
     virtual uint8_t deduceWild(Type* t, bool isRef);
@@ -4357,7 +4356,6 @@ public:
     TypeClass* syntaxCopy() override;
     Dsymbol* toDsymbol(Scope* sc) override;
     ClassDeclaration* isClassHandle() override;
-    bool isBaseOf(Type* t, int32_t* poffset) override;
     MATCH implicitConvTo(Type* to) override;
     MATCH constConv(Type* to) override;
     uint8_t deduceWild(Type* t, bool isRef) override;
@@ -5433,6 +5431,8 @@ extern Covariant covariant(Type* src, Type* t, uint64_t* pstc = nullptr, bool cp
 extern Expression* defaultInit(Type* mt, const Loc& loc, const bool isCfile = false);
 
 extern bool hasPointers(Type* t);
+
+extern bool isBaseOf(Type* tthis, Type* t, int32_t* poffset);
 
 extern Type* merge(Type* type);
 

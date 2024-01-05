@@ -1925,11 +1925,6 @@ extern (C++) abstract class Type : ASTNode
         return ((te = isTypeEnum()) !is null) ? te.toBasetype2() : this;
     }
 
-    bool isBaseOf(Type t, int* poffset)
-    {
-        return 0; // assume not
-    }
-
     /********************************
      * Determine if 'this' can be implicitly converted
      * to type 'to'.
@@ -5401,22 +5396,6 @@ extern (C++) final class TypeClass : Type
     override inout(ClassDeclaration) isClassHandle() inout
     {
         return sym;
-    }
-
-    override bool isBaseOf(Type t, int* poffset)
-    {
-        if (t && t.ty == Tclass)
-        {
-            ClassDeclaration cd = (cast(TypeClass)t).sym;
-            if (cd.semanticRun < PASS.semanticdone && !cd.isBaseInfoComplete())
-                cd.dsymbolSemantic(null);
-            if (sym.semanticRun < PASS.semanticdone && !sym.isBaseInfoComplete())
-                sym.dsymbolSemantic(null);
-
-            if (sym.isBaseOf(cd, poffset))
-                return true;
-        }
-        return false;
     }
 
     extern (D) MATCH implicitConvToWithoutAliasThis(Type to)
