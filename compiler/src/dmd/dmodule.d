@@ -705,7 +705,7 @@ extern (C++) final class Module : Package
             filename = global.preprocess(srcfile, global.importc_h, loc, ifile, defines);  // run C preprocessor
         }
 
-        if (auto result = global.fileManager.lookup(filename))
+        if (auto result = global.fileManager.getFileContents(filename))
         {
             this.src = result;
             if (global.params.makeDeps.doOutput)
