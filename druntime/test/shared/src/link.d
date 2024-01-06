@@ -1,7 +1,5 @@
 import lib;
 
-version (DigitalMars) version = NoExceptions;
-
 void testEH()
 {
     bool passed;
@@ -63,9 +61,7 @@ void testInit()
 
 void main()
 {
-    version (NoExceptions) {}
-    else
-        testEH();
+    testEH();
     testGC();
     testInit();
 }

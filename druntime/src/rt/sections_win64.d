@@ -28,6 +28,8 @@ import core.thread;
 import rt.deh, rt.minfo;
 import core.internal.container.array;
 
+version (DigitalMars) version (Win64) version = hasEHTables;
+
 struct SectionGroup
 {
     static int opApply(scope int delegate(ref SectionGroup) dg)
@@ -60,13 +62,10 @@ struct SectionGroup
         return _moduleGroup;
     }
 
-    version (DigitalMars)
-    version (Win64)
+    version (hasEHTables)
     @property immutable(FuncTable)[] ehTables() const nothrow @nogc
     {
-        auto pbeg = cast(immutable(FuncTable)*)&_deh_beg;
-        auto pend = cast(immutable(FuncTable)*)&_deh_end;
-        return pbeg[0 .. pend - pbeg];
+        return _ehTables[];
     }
 
     @property inout(void[])[] gcRanges() inout nothrow @nogc
@@ -79,6 +78,7 @@ private:
     void[][] _gcRanges;
     void* _handle;
     void[] _tpSection; // range with offsets of pointers in TLS
+    version (hasEHTables) immutable(FuncTable)[] _ehTables;
 }
 
 shared(bool) conservative;
@@ -96,6 +96,23 @@ void initSections(void* handle) nothrow @nogc
     auto sectionGroup = cast(SectionGroup*)calloc(1, SectionGroup.sizeof);
     sectionGroup._moduleGroup = ModuleGroup(getModuleInfos(handle));
     sectionGroup._handle = handle;
+    version (hasEHTables)
+    {
+        auto ehsec = findImageSection(handle, "._deh");
+        if (ehsec.length)
+        {
+            // skip empty brace data, the first entry starts with a non-zero function pointer
+            size_t pos = 0;
+            while (pos + FuncTable.sizeof <= ehsec.length)
+            {
+                if ((*cast(FuncTable*)(ehsec.ptr + pos)).fptr)
+                    break;
+                pos += (void*).sizeof;
+            }
+            size_t cnt = (ehsec.length - pos) / FuncTable.sizeof;
+            sectionGroup._ehTables = (cast(immutable(FuncTable*))(ehsec.ptr + pos))[0 .. cnt];
+        }
+    }
 
     // the ".data" image section includes both object file sections ".data" and ".bss"
     void[] dataSection = findImageSection(handle, ".data");
