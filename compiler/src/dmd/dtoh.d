@@ -784,8 +784,8 @@ public:
             // Ensure return type is declared before a function that returns that is declared.
             if (auto sty = tf.next.isTypeStruct())
                 ensureDeclared(sty.sym);
-            //else if (auto cty = tf.next.isTypeClass())
-            //    includeSymbol(cty.sym); // classes are returned by pointer only need to forward declare
+            else if (auto cty = tf.next.isTypeClass())
+                includeSymbol(cty.sym); // classes are returned by pointer only need to forward declare
             //else if (auto ety = tf.next.isTypeEnum())
             //    ensureDeclared(ety.sym);
         }
