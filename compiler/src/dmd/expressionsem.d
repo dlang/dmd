@@ -7584,7 +7584,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         {
             auto fileName = FileName(resolvedNamez);
-            if (auto fmResult = global.fileManager.lookup(fileName))
+            if (auto fmResult = global.fileManager.getFileContents(fileName))
             {
                 se = new StringExp(e.loc, fmResult);
             }
