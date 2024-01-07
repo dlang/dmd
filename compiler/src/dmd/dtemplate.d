@@ -5632,7 +5632,11 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
         if (e)
         {
             e = e.syntaxCopy();
-            if ((e = e.expressionSemantic(sc)) is null)
+            Scope* sc2 = sc.push();
+            sc2.inDefaultArg = true;
+            e = e.expressionSemantic(sc2);
+            sc2.pop();
+            if (e is null)
                 return null;
             if (auto te = e.isTemplateExp())
             {
@@ -6698,6 +6702,12 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         if (!tiargs)
             return true;
         bool err = false;
+
+        // The arguments are not treated as part of a default argument,
+        // because they are evaluated at compile time.
+        sc = sc.push();
+        sc.inDefaultArg = false;
+
         for (size_t j = 0; j < tiargs.length; j++)
         {
             RootObject o = (*tiargs)[j];
@@ -6929,6 +6939,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             }
             //printf("1: (*tiargs)[%d] = %p\n", j, (*tiargs)[j]);
         }
+        sc.pop();
         version (none)
         {
             printf("-TemplateInstance.semanticTiargs()\n");

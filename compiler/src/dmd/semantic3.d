@@ -345,6 +345,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             sc2.tf = null;
             sc2.os = null;
             sc2.inLoop = false;
+            sc2.inDefaultArg = false;
             sc2.userAttribDecl = null;
             if (sc2.intypeof == 1)
                 sc2.intypeof = 2;

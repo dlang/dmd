@@ -179,7 +179,7 @@ void test7()
 
 void foo8(int n1 = __LINE__ + 0, int n2 = __LINE__, string s = __FILE__)
 {
-    assert(n1 < n2);
+    assert(n1 == n2);
     printf("n1 = %d, n2 = %d, s = %.*s\n", n1, n2, cast(int)s.length, s.ptr);
 }
 
@@ -192,7 +192,7 @@ void test8()
 
 void foo9(int n1 = __LINE__ + 0, int n2 = __LINE__, string s = __FILE__)()
 {
-    assert(n1 < n2);
+    assert(n1 == n2);
     printf("n1 = %d, n2 = %d, s = %.*s\n", n1, n2, cast(int)s.length, s.ptr);
 }
 
