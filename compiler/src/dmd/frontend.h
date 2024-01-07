@@ -6624,7 +6624,7 @@ extern const char* toCppMangleDMC(Dsymbol* s);
 
 extern const char* cppTypeInfoMangleDMC(Dsymbol* s);
 
-extern FileName preprocess(FileName csrcfile, const char* importc_h, const Loc& loc, bool& ifile, OutBuffer& defines);
+extern FileName preprocess(FileName csrcfile, const Loc& loc, bool& ifile, OutBuffer* defines);
 
 extern MATCH implicitConvTo(Expression* e, Type* t);
 
@@ -8351,7 +8351,6 @@ struct Global final
     _d_dynamicArray< const char > written;
     Array<const char* >* path;
     Array<const char* >* filePath;
-    const char* importc_h;
     char datetime[26LLU];
     CompileEnv compileEnv;
     Param params;
@@ -8370,7 +8369,7 @@ struct Global final
 
     ErrorSink* errorSink;
     ErrorSink* errorSinkNull;
-    FileName(*preprocess)(FileName , const char* , const Loc& , bool& , OutBuffer& );
+    FileName(*preprocess)(FileName , const Loc& , bool& , OutBuffer* );
     uint32_t startGagging();
     bool endGagging(uint32_t oldGagged);
     void increaseErrorCount();
@@ -8383,7 +8382,6 @@ struct Global final
         written(24, "written by Walter Bright"),
         path(),
         filePath(),
-        importc_h(),
         compileEnv(),
         params(),
         errors(),
@@ -8402,13 +8400,12 @@ struct Global final
         preprocess()
     {
     }
-    Global(_d_dynamicArray< const char > inifilename, _d_dynamicArray< const char > copyright = { 73, "Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved" }, _d_dynamicArray< const char > written = { 24, "written by Walter Bright" }, Array<const char* >* path = nullptr, Array<const char* >* filePath = nullptr, const char* importc_h = nullptr, CompileEnv compileEnv = CompileEnv(), Param params = Param(), uint32_t errors = 0u, uint32_t warnings = 0u, uint32_t gag = 0u, uint32_t gaggedErrors = 0u, uint32_t gaggedWarnings = 0u, void* console = nullptr, Array<Identifier* >* versionids = nullptr, Array<Identifier* >* debugids = nullptr, bool hasMainFunction = false, uint32_t varSequenceNumber = 1u, FileManager* fileManager = nullptr, ErrorSink* errorSink = nullptr, ErrorSink* errorSinkNull = nullptr, FileName(*preprocess)(FileName , const char* , const Loc& , bool& , OutBuffer& ) = nullptr) :
+    Global(_d_dynamicArray< const char > inifilename, _d_dynamicArray< const char > copyright = { 73, "Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved" }, _d_dynamicArray< const char > written = { 24, "written by Walter Bright" }, Array<const char* >* path = nullptr, Array<const char* >* filePath = nullptr, CompileEnv compileEnv = CompileEnv(), Param params = Param(), uint32_t errors = 0u, uint32_t warnings = 0u, uint32_t gag = 0u, uint32_t gaggedErrors = 0u, uint32_t gaggedWarnings = 0u, void* console = nullptr, Array<Identifier* >* versionids = nullptr, Array<Identifier* >* debugids = nullptr, bool hasMainFunction = false, uint32_t varSequenceNumber = 1u, FileManager* fileManager = nullptr, ErrorSink* errorSink = nullptr, ErrorSink* errorSinkNull = nullptr, FileName(*preprocess)(FileName , const Loc& , bool& , OutBuffer* ) = nullptr) :
         inifilename(inifilename),
         copyright(copyright),
         written(written),
         path(path),
         filePath(filePath),
-        importc_h(importc_h),
         compileEnv(compileEnv),
         params(params),
         errors(errors),
