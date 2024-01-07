@@ -17,6 +17,7 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+import dmd.astenums;
 import dmd.errors;
 import dmd.globals;
 import dmd.link;
@@ -27,6 +28,7 @@ import dmd.vsoptions;
 import dmd.common.outbuffer;
 
 import dmd.root.array;
+import dmd.root.file;
 import dmd.root.filename;
 import dmd.root.rmem;
 import dmd.root.string;
@@ -40,13 +42,12 @@ version (Windows) version = runPreprocessor;
  * Params:
  *      csrcfile = C file to be preprocessed, with .c or .h extension
  *      loc = The source location where preprocess is requested from
- *      ifile = set to true if an output file was written
  *      defines = buffer to append any `#define` and `#undef` lines encountered to
  * Result:
- *      filename of preprocessed output
+ *      the text of the preprocessed file
  */
 extern (C++)
-FileName preprocess(FileName csrcfile, ref const Loc loc, out bool ifile, OutBuffer* defines)
+DArray!ubyte preprocess(FileName csrcfile, ref const Loc loc, ref OutBuffer defines)
 {
     /* Look for "importc.h" by searching along import path.
      */
@@ -84,11 +85,17 @@ FileName preprocess(FileName csrcfile, ref const Loc loc, out bool ifile, OutBuf
             fatal();
         }
         //printf("C preprocess succeeded %s\n", ifilename.ptr);
-        ifile = true;
-        return FileName(ifilename);
+        auto readResult = File.read(ifilename);
+        File.remove(ifilename.ptr);
+        Mem.xfree(cast(void*)ifilename.ptr);
+        if (!readResult.success)
+            return DArray!ubyte();
+        return DArray!ubyte(readResult.extractSlice());
     }
     else
-        return csrcfile;        // no-op
+    {
+        return DArray!ubyte(global.fileManager.getFileContents(csrcfile));
+    }
 }
 
 
