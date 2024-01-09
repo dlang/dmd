@@ -150,7 +150,7 @@ extern (C++) bool isError(const RootObject o)
     if (const e = isExpression(o))
         return (e.op == EXP.error || !e.type || e.type.ty == Terror);
     if (const v = isTuple(o))
-        return arrayObjectIsError(&v.objects);
+        return arrayObjectIsError(v.objects);
     const s = isDsymbol(o);
     assert(s);
     if (s.errors)
@@ -161,9 +161,9 @@ extern (C++) bool isError(const RootObject o)
 /**************************************
  * Are any of the Objects an error?
  */
-bool arrayObjectIsError(const Objects* args)
+bool arrayObjectIsError(const ref Objects args)
 {
-    foreach (const o; *args)
+    foreach (const o; args)
     {
         if (isError(o))
             return true;
@@ -187,6 +187,13 @@ inout(Type) getType(inout RootObject o)
 
 }
 
+/***********************************
+ * If oarg represents a Dsymbol, return that Dsymbol
+ * Params:
+ *      oarg = argument to check
+ * Returns:
+ *      Dsymbol if a symbol, null if not
+ */
 Dsymbol getDsymbol(RootObject oarg)
 {
     //printf("getDsymbol()\n");
@@ -256,8 +263,11 @@ private Expression getExpression(RootObject o)
 }
 
 /******************************
- * If o1 matches o2, return true.
- * Else, return false.
+ * See if two objects match
+ * Params:
+ *      o1 = first object
+ *      o2 = second object
+ * Returns: true if they match
  */
 private bool match(RootObject o1, RootObject o2)
 {
@@ -343,7 +353,7 @@ private bool match(RootObject o1, RootObject o2)
             printf("\tu1 = %s\n", u1.toChars());
             printf("\tu2 = %s\n", u2.toChars());
         }
-        if (!arrayObjectMatch(&u1.objects, &u2.objects))
+        if (!arrayObjectMatch(u1.objects, u2.objects))
             goto Lnomatch;
 
         goto Lmatch;
@@ -362,15 +372,15 @@ Lnomatch:
 /************************************
  * Match an array of them.
  */
-private bool arrayObjectMatch(Objects* oa1, Objects* oa2)
+private bool arrayObjectMatch(ref Objects oa1, ref Objects oa2)
 {
-    if (oa1 == oa2)
+    if (&oa1 == &oa2)
         return true;
     if (oa1.length != oa2.length)
         return false;
     immutable oa1dim = oa1.length;
-    auto oa1d = (*oa1)[].ptr;
-    auto oa2d = (*oa2)[].ptr;
+    auto oa1d = oa1[].ptr;
+    auto oa2d = oa2[].ptr;
     foreach (j; 0 .. oa1dim)
     {
         RootObject o1 = oa1d[j];
@@ -386,12 +396,12 @@ private bool arrayObjectMatch(Objects* oa1, Objects* oa2)
 /************************************
  * Return hash of Objects.
  */
-private size_t arrayObjectHash(Objects* oa1)
+private size_t arrayObjectHash(ref Objects oa1)
 {
     import dmd.root.hash : mixHash;
 
     size_t hash = 0;
-    foreach (o1; *oa1)
+    foreach (o1; oa1)
     {
         /* Must follow the logic of match()
          */
@@ -407,7 +417,7 @@ private size_t arrayObjectHash(Objects* oa1)
             hash = mixHash(hash, mixHash(cast(size_t)cast(void*)s1.getIdent(), cast(size_t)cast(void*)s1.parent));
         }
         else if (auto u1 = isTuple(o1))
-            hash = mixHash(hash, arrayObjectHash(&u1.objects));
+            hash = mixHash(hash, arrayObjectHash(u1.objects));
     }
     return hash;
 }
@@ -672,7 +682,9 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
     /**********************************
      * Overload existing TemplateDeclaration 'this' with the new one 's'.
-     * Return true if successful; i.e. no conflict.
+     * Params:
+     *    s = symbol to be inserted
+     * Return: true if successful; i.e. no conflict.
      */
     override bool overloadInsert(Dsymbol s)
     {
@@ -760,16 +772,17 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
         if (onemember)
         {
-            const FuncDeclaration fd = onemember.isFuncDeclaration();
-            if (fd && fd.type)
+            if (const fd = onemember.isFuncDeclaration())
             {
-                // !! Casts away const
-                TypeFunction tf = cast(TypeFunction)fd.type;
-                buf.writestring(parametersTypeToChars(tf.parameterList));
-                if (tf.mod)
+                if (TypeFunction tf = cast(TypeFunction)fd.type.isTypeFunction())
                 {
-                    buf.writeByte(' ');
-                    buf.MODtoBuffer(tf.mod);
+                    // !! Casted away const
+                    buf.writestring(parametersTypeToChars(tf.parameterList));
+                    if (tf.mod)
+                    {
+                        buf.writeByte(' ');
+                        buf.MODtoBuffer(tf.mod);
+                    }
                 }
             }
         }
@@ -793,7 +806,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     /****************************
      * Check to see if constraint is satisfied.
      */
-    extern (D) bool evaluateConstraint(TemplateInstance ti, Scope* sc, Scope* paramscope, Objects* dedargs, FuncDeclaration fd)
+    private bool evaluateConstraint(TemplateInstance ti, Scope* sc, Scope* paramscope, Objects* dedargs, FuncDeclaration fd)
     {
         /* Detect recursive attempts to instantiate this template declaration,
          * https://issues.dlang.org/show_bug.cgi?id=4072
@@ -810,7 +823,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
         for (TemplatePrevious* p = previous; p; p = p.prev)
         {
-            if (!arrayObjectMatch(p.dedargs, dedargs))
+            if (!arrayObjectMatch(*p.dedargs, *dedargs))
                 continue;
             //printf("recursive, no match p.sc=%p %p %s\n", p.sc, this, this.toChars());
             /* It must be a subscope of p.sc, other scope chains are not recursive
@@ -1058,7 +1071,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
      *      dedtypes        deduced arguments
      * Return match level.
      */
-    extern (D) MATCH matchWithInstance(Scope* sc, TemplateInstance ti, Objects* dedtypes, ArgumentList argumentList, int flag)
+    private MATCH matchWithInstance(Scope* sc, TemplateInstance ti, ref Objects dedtypes, ArgumentList argumentList, int flag)
     {
         enum LOGM = 0;
         static if (LOGM)
@@ -1125,7 +1138,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     printf("\tparameter[%d] is %s : %s\n", i, tp.ident.toChars(), ttp.specType ? ttp.specType.toChars() : "");
             }
 
-            m2 = tp.matchArg(ti.loc, paramscope, ti.tiargs, i, parameters, dedtypes, &sparam);
+            m2 = tp.matchArg(ti.loc, paramscope, ti.tiargs, i, parameters, &dedtypes, &sparam);
             //printf("\tm2 = %d\n", m2);
             if (m2 == MATCH.nomatch)
             {
@@ -1154,7 +1167,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             /* Any parameter left without a type gets the type of
              * its corresponding arg
              */
-            foreach (i, ref dedtype; *dedtypes)
+            foreach (i, ref dedtype; dedtypes)
             {
                 if (!dedtype)
                 {
@@ -1205,7 +1218,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             }
 
             // TODO: dedtypes => ti.tiargs ?
-            if (!evaluateConstraint(ti, sc, paramscope, dedtypes, fd))
+            if (!evaluateConstraint(ti, sc, paramscope, &dedtypes, fd))
                 return nomatch();
         }
 
@@ -1286,7 +1299,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         Objects dedtypes = Objects(td2.parameters.length);
 
         // Attempt a type deduction
-        MATCH m = td2.matchWithInstance(sc, ti, &dedtypes, argumentList, 1);
+        MATCH m = td2.matchWithInstance(sc, ti, dedtypes, argumentList, 1);
         if (m > MATCH.nomatch)
         {
             /* A non-variadic template is more specialized than a
@@ -2858,7 +2871,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
             auto ti = new TemplateInstance(loc, td, tiargs);
             Objects dedtypes = Objects(td.parameters.length);
             assert(td.semanticRun != PASS.initial);
-            MATCH mta = td.matchWithInstance(sc, ti, &dedtypes, argumentList, 0);
+            MATCH mta = td.matchWithInstance(sc, ti, dedtypes, argumentList, 0);
             //printf("matchWithInstance = %d\n", mta);
             if (mta == MATCH.nomatch || mta < ta_last)   // no match or less match
                 return 0;
@@ -2877,7 +2890,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
                 // Check for recursive instantiation of tdx.
                 for (TemplatePrevious* p = tdx.previous; p; p = p.prev)
                 {
-                    if (arrayObjectMatch(p.dedargs, &dedtypesX))
+                    if (arrayObjectMatch(*p.dedargs, dedtypesX))
                     {
                         //printf("recursive, no match p.sc=%p %p %s\n", p.sc, this, this.toChars());
                         /* It must be a subscope of p.sc, other scope chains are not recursive
@@ -6183,7 +6196,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         }
         //printf("parent = %s, ti.parent = %s\n", parent.toPrettyChars(), ti.parent.toPrettyChars());
 
-        if (!arrayObjectMatch(&tdtypes, &ti.tdtypes))
+        if (!arrayObjectMatch(tdtypes, ti.tdtypes))
             goto Lnotequals;
 
         /* Template functions may have different instantiations based on
@@ -6228,7 +6241,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         if (!hash)
         {
             hash = cast(size_t)cast(void*)enclosing;
-            hash += arrayObjectHash(&tdtypes);
+            hash += arrayObjectHash(tdtypes);
             hash += hash == 0;
         }
         return hash;
@@ -6988,7 +7001,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             assert(tempdecl._scope);
             // Deduce tdtypes
             tdtypes.setDim(tempdecl.parameters.length);
-            if (!tempdecl.matchWithInstance(sc, this, &tdtypes, argumentList, 2))
+            if (!tempdecl.matchWithInstance(sc, this, tdtypes, argumentList, 2))
             {
                 .error(loc, "%s `%s` incompatible arguments for template instantiation", kind, toPrettyChars);
                 return false;
@@ -7038,7 +7051,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 dedtypes.zero();
                 assert(td.semanticRun != PASS.initial);
 
-                MATCH m = td.matchWithInstance(sc, this, &dedtypes, argumentList, 0);
+                MATCH m = td.matchWithInstance(sc, this, dedtypes, argumentList, 0);
                 //printf("matchWithInstance = %d\n", m);
                 if (m == MATCH.nomatch) // no match at all
                     return 0;
@@ -7314,7 +7327,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                             return 1;
                         }
                     }
-                    MATCH m = td.matchWithInstance(sc, this, &dedtypes, ArgumentList(), 0);
+                    MATCH m = td.matchWithInstance(sc, this, dedtypes, ArgumentList(), 0);
                     if (m == MATCH.nomatch)
                         return 0;
                 }

@@ -3295,7 +3295,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
         printf("\tfnames: %s\n", fnames ? fnames.toChars() : "null");
     }
 
-    if (tiargs && arrayObjectIsError(tiargs))
+    if (tiargs && arrayObjectIsError(*tiargs))
         return null;
     if (fargs !is null)
         foreach (arg; *fargs)
