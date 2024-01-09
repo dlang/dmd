@@ -7301,7 +7301,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     TemplateParameter tp = (*e.parameters)[i];
                     Declaration s = null;
 
-                    m = tp.matchArg(e.loc, sc, &tiargs, i, e.parameters, &dedtypes, &s);
+                    m = tp.matchArg(e.loc, sc, &tiargs, i, e.parameters, dedtypes, &s);
                     if (m == MATCH.nomatch)
                         return no();
                     s.dsymbolSemantic(sc);
