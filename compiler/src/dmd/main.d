@@ -561,7 +561,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     }
 
     printCtfePerformanceStats();
-    printTemplateStats();
+    printTemplateStats(global.params.v.templatesListInstances, global.errorSink);
 
     // Generate output files
     if (params.json.doOutput)

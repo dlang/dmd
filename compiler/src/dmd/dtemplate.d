@@ -56,6 +56,7 @@ import dmd.dscope;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.errors;
+import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
@@ -8487,21 +8488,24 @@ struct TemplateStats
 
     /*******************************
      * Add this instance
+     * Params:
+     *  td = template declaration
+     *  ti = instance of td
+     *  listInstances = keep track of instances of templates
      */
     static void incInstance(const TemplateDeclaration td,
-                            const TemplateInstance ti)
+                            const TemplateInstance ti,
+                            bool listInstances)
     {
         void log(ref TemplateStats ts)
         {
             if (ts.allInstances is null)
                 ts.allInstances = new TemplateInstances();
-            if (global.params.v.templatesListInstances)
+            if (listInstances)
                 ts.allInstances.push(cast() ti);
         }
 
-    // message(ti.loc, "incInstance %p %p", td, ti);
-        if (!global.params.v.templates)
-            return;
+        // message(ti.loc, "incInstance %p %p", td, ti);
         if (!td)
             return;
         assert(ti);
@@ -8524,8 +8528,6 @@ struct TemplateStats
                           const TemplateInstance ti)
     {
         // message(ti.loc, "incUnique %p %p", td, ti);
-        if (!global.params.v.templates)
-            return;
         if (!td)
             return;
         assert(ti);
@@ -8536,7 +8538,13 @@ struct TemplateStats
     }
 }
 
-extern (C++) void printTemplateStats()
+/********************************
+ * Print informational statistics on template instantiations.
+ * Params:
+ *      listInstances = list instances of templates
+ *      eSink = where the print is sent
+ */
+extern (C++) void printTemplateStats(bool listInstances, ErrorSink eSink)
 {
     static struct TemplateDeclarationStats
     {
@@ -8553,11 +8561,12 @@ extern (C++) void printTemplateStats()
         }
     }
 
-    if (!global.params.v.templates)
-        return;
+    const stats_length = TemplateStats.stats.length;
+    if (!stats_length)
+        return;         // nothing to report
 
     Array!(TemplateDeclarationStats) sortedStats;
-    sortedStats.reserve(TemplateStats.stats.length);
+    sortedStats.reserve(stats_length);
     foreach (td_, ref ts; TemplateStats.stats)
     {
         sortedStats.push(TemplateDeclarationStats(cast(TemplateDeclaration) td_, ts));
@@ -8567,10 +8576,9 @@ extern (C++) void printTemplateStats()
 
     foreach (const ref ss; sortedStats[])
     {
-        if (global.params.v.templatesListInstances &&
-            ss.ts.allInstances)
+        if (listInstances && ss.ts.allInstances)
         {
-            message(ss.td.loc,
+            eSink.message(ss.td.loc,
                     "vtemplate: %u (%u distinct) instantiation(s) of template `%s` found, they are:",
                     ss.ts.numInstantiations,
                     ss.ts.uniqueInstantiations,
@@ -8578,14 +8586,14 @@ extern (C++) void printTemplateStats()
             foreach (const ti; (*ss.ts.allInstances)[])
             {
                 if (ti.tinst)   // if has enclosing instance
-                    message(ti.loc, "vtemplate: implicit instance `%s`", ti.toChars());
+                    eSink.message(ti.loc, "vtemplate: implicit instance `%s`", ti.toChars());
                 else
-                    message(ti.loc, "vtemplate: explicit instance `%s`", ti.toChars());
+                    eSink.message(ti.loc, "vtemplate: explicit instance `%s`", ti.toChars());
             }
         }
         else
         {
-            message(ss.td.loc,
+            eSink.message(ss.td.loc,
                     "vtemplate: %u (%u distinct) instantiation(s) of template `%s` found",
                     ss.ts.numInstantiations,
                     ss.ts.uniqueInstantiations,
