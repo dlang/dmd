@@ -29,7 +29,6 @@ import dmd.denum;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
@@ -5272,16 +5271,7 @@ extern (C++) final class TypeClass : Type
 
     extern (D) MATCH implicitConvToWithoutAliasThis(Type to)
     {
-        // Run semantic before checking whether class is convertible
         ClassDeclaration cdto = to.isClassHandle();
-        if (cdto)
-        {
-            //printf("TypeClass::implicitConvTo(to = '%s') %s, isbase = %d %d\n", to.toChars(), toChars(), cdto.isBaseInfoComplete(), sym.isBaseInfoComplete());
-            if (cdto.semanticRun < PASS.semanticdone && !cdto.isBaseInfoComplete())
-                cdto.dsymbolSemantic(null);
-            if (sym.semanticRun < PASS.semanticdone && !sym.isBaseInfoComplete())
-                sym.dsymbolSemantic(null);
-        }
         MATCH m = constConv(to);
         if (m > MATCH.nomatch)
             return m;
