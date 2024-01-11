@@ -1938,7 +1938,7 @@ extern Tuple* isTuple(RootObject* o);
 
 extern Type* isType(RootObject* o);
 
-extern void printTemplateStats();
+extern void printTemplateStats(bool listInstances, ErrorSink* eSink);
 
 class DebugSymbol final : public Dsymbol
 {
