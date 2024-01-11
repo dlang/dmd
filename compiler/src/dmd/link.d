@@ -19,6 +19,7 @@ import core.sys.posix.stdlib;
 import core.sys.posix.unistd;
 import core.sys.windows.winbase;
 import core.sys.windows.windef;
+import dmd.astenums;
 import dmd.dmdparams;
 import dmd.errors;
 import dmd.globals;
@@ -1040,19 +1041,50 @@ public int runProgram()
 /***************************************
  * Run the C preprocessor.
  * Params:
+ *    loc = source location where preprocess is requested from
  *    cpp = name of C preprocessor program
  *    filename = C source file name
  *    importc_h = filename of importc.h
  *    cppswitches = array of switches to pass to C preprocessor
- *    output = preprocessed output file name
  *    defines = buffer to append any `#define` and `#undef` lines encountered to
  * Returns:
- *    exit status.
+ *    the text of the preprocessed file
  */
-public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char)* importc_h, ref Array!(const(char)*) cppswitches,
-    const(char)[] output, ref OutBuffer defines)
+public DArray!ubyte runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] filename, const(char)* importc_h, ref Array!(const(char)*) cppswitches,
+    ref OutBuffer defines)
 {
     //printf("runPreprocessor() cpp: %.*s filename: %.*s\n", cast(int)cpp.length, cpp.ptr, cast(int)filename.length, filename.ptr);
+
+    /*
+       To get sppn.exe: http://ftp.digitalmars.com/sppn.zip
+       To get the dmc C headers, dmc will need to be installed:
+       http://ftp.digitalmars.com/Digital_Mars_C++/Patch/dm857c.zip
+     */
+
+    // generate unique temporary file name for preprocessed output
+    const(char)* tmpname = tmpnam(null);
+    assert(tmpname);
+    const(char)[] ifilename = tmpname[0 .. strlen(tmpname) + 1];
+    ifilename = xarraydup(ifilename);
+    const(char)[] output = ifilename;
+
+    DArray!ubyte returnResult(int status)
+    {
+        if (status)
+        {
+            error(loc, "C preprocess command %.*s failed for file %s, exit status %d\n",
+                cast(int)cpp.length, cpp.ptr, filename.ptr, status);
+            fatal();
+        }
+        //printf("C preprocess succeeded %s\n", ifilename.ptr);
+        auto readResult = File.read(ifilename);
+        File.remove(ifilename.ptr);
+        Mem.xfree(cast(void*)ifilename.ptr);
+        if (!readResult.success)
+            return DArray!ubyte();
+        return DArray!ubyte(readResult.extractSlice());
+    }
+
     version (Windows)
     {
         // Build argv[]
@@ -1136,7 +1168,7 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
                 if (linebuf.length && print)  // anything leftover from stdout collection
                     printf("%s\n", defines.peekChars());
 
-                return exitCode;
+                return returnResult(exitCode);
             }
             else
             {
@@ -1152,7 +1184,8 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
 
                 argv.push(null);                     // argv[] always ends with a null
                 // spawnlp returns intptr_t in some systems, not int
-                return spawnvp(_P_WAIT, "cl".ptr, argv.tdata());
+                auto exitCode = spawnvp(_P_WAIT, "cl".ptr, argv.tdata());
+                return returnResult(exitCode);
             }
         }
         else if (target.objectFormat() == Target.ObjectFormat.omf)
@@ -1241,7 +1274,7 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
                 //printf("szCommand: %ls\n", szCommand.ptr);
                 int exitCode = runProcessCollectStdout(szCommand.ptr, buffer[], &sinkomf);
                 printf("\n");
-                return exitCode;
+                return returnResult(exitCode);
             }
             else
             {
@@ -1256,7 +1289,8 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
 
                 argv.push(null);              // argv[] always ends with a null
                 // spawnlp returns intptr_t in some systems, not int
-                return spawnvp(_P_WAIT, cmd, argv.tdata());
+                auto exitCode = spawnvp(_P_WAIT, cmd, argv.tdata());
+                return returnResult(exitCode);
             }
         }
         else
@@ -1330,7 +1364,7 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
                     // If execv returns, it failed to execute
                     perror(fnp.ptr);
                 });
-            return -1;
+            return returnResult(-1);
         }
         int status;
         waitpid(childpid, &status, 0);
@@ -1344,7 +1378,7 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
             error(Loc.initial, "program killed by signal %d", WTERMSIG(status));
             status = 1;
         }
-        return status;
+        return returnResult(status);
     }
     else
     {
