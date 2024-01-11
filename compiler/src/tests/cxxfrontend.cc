@@ -694,7 +694,7 @@ public:
             for (size_t i = 0; i < attrs->length; i++)
             {
                 Expression *attr = (*attrs)[i];
-                Dsymbol *sym = attr->type->toDsymbol(0);
+                Dsymbol *sym = toDsymbol(attr->type, 0);
                 if (!sym)
                 {
                     if (TemplateExp *te = attr->isTemplateExp())
