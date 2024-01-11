@@ -1872,7 +1872,6 @@ public:
     virtual structalign_t alignment();
     virtual Expression* defaultInitLiteral(const Loc& loc);
     virtual bool isZeroInit(const Loc& loc);
-    Identifier* getTypeInfoIdent();
     virtual int32_t hasWild() const;
     virtual bool hasVoidInitPointers();
     virtual bool hasSystemFields();
