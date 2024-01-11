@@ -584,6 +584,20 @@ public:
             toBuffer(*buf, id.toString(), s);
     }
 
+    void mangleInteger(dinteger_t v)
+    {
+        if (cast(sinteger_t) v < 0)
+        {
+            buf.writeByte('N');
+            buf.print(-v);
+        }
+        else
+        {
+            buf.writeByte('i');
+            buf.print(v);
+        }
+    }
+
     ////////////////////////////////////////////////////////////////////////////
     void mangleDecl(Declaration sthis)
     {
@@ -991,17 +1005,7 @@ public:
 
     override void visit(IntegerExp e)
     {
-        const v = e.toInteger();
-        if (cast(sinteger_t)v < 0)
-        {
-            buf.writeByte('N');
-            buf.print(-v);
-        }
-        else
-        {
-            buf.writeByte('i');
-            buf.print(v);
-        }
+        mangleInteger(e.toInteger());
     }
 
     override void visit(RealExp e)
@@ -1028,6 +1032,7 @@ public:
         char m;
         OutBuffer tmp;
         const(char)[] q;
+
         /* Write string in UTF-8 format
          */
         switch (e.sz)
@@ -1065,7 +1070,15 @@ public:
             q = tmp[];
             break;
         }
-
+        case 8:
+            // String of size 8 has to be hexstring cast to long[], mangle as array literal
+            buf.writeByte('A');
+            buf.print(e.len);
+            foreach (i; 0 .. e.len)
+            {
+                mangleInteger(e.getIndex(i));
+            }
+            return;
         default:
             assert(0);
         }

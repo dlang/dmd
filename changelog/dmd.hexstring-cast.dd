@@ -1,0 +1,20 @@
+Hex strings can now be cast to integer arrays
+
+Hex strings are the most efficient way to embed binary data into source files.
+However, they couldn't easily be used to initialize a `short[]`, `int[]` or `long[]` because re-interpret casting arrays is not allowed during CTFE.
+Now, hex strings can be cast to integer arrays with element types larger than `byte`.
+A big endian byte order is assumed, consistent with how integer literals are written.
+
+---
+immutable uint[] data = cast(immutable uint[]) x"AABBCCDD";
+
+static assert(data[0] == 0xAABBCCDD);
+---
+
+When the hex string has a character postfix, or its length is not a multiple of the element size, it is an error:
+
+---
+auto e = cast(immutable ushort[]) x"AABBCC"; // Error, 3 bytes is not a multiple of `ushort.sizeof`
+
+auto f = cast(immutable ushort[]) x"AABB"w; // Error, hex string has wide character postfix
+---
