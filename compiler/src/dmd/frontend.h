@@ -1807,7 +1807,6 @@ public:
     uinteger_t size();
     virtual uinteger_t size(const Loc& loc);
     virtual uint32_t alignsize();
-    Type* trySemantic(const Loc& loc, Scope* sc);
     Type* merge2();
     void modToBuffer(OutBuffer& buf) const;
     char* modToChars() const;
@@ -5426,6 +5425,8 @@ extern bool isBaseOf(Type* tthis, Type* t, int32_t* poffset);
 extern Type* merge(Type* type);
 
 extern Dsymbol* toDsymbol(Type* type, Scope* sc);
+
+extern Type* trySemantic(Type* type, const Loc& loc, Scope* sc);
 
 extern Type* typeSemantic(Type* type, const Loc& loc, Scope* sc);
 

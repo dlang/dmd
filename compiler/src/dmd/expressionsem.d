@@ -7087,7 +7087,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             sc2.tinst = null;
             sc2.minst = null;
             sc2.flags |= SCOPE.fullinst;
-            Type t = e.targ.trySemantic(e.loc, sc2);
+            Type t = dmd.typesem.trySemantic(e.targ, e.loc, sc2);
             sc2.pop();
             if (!t) // errors, so condition is false
                 return no();

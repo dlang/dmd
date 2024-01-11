@@ -657,31 +657,6 @@ extern (C++) abstract class Type : ASTNode
         return cast(uint)size(Loc.initial);
     }
 
-    final Type trySemantic(const ref Loc loc, Scope* sc)
-    {
-        //printf("+trySemantic(%s) %d\n", toChars(), global.errors);
-
-        // Needed to display any deprecations that were gagged
-        auto tcopy = this.syntaxCopy();
-
-        const errors = global.startGagging();
-        Type t = typeSemantic(this, loc, sc);
-        if (global.endGagging(errors) || t.ty == Terror) // if any errors happened
-        {
-            t = null;
-        }
-        else
-        {
-            // If `typeSemantic` succeeded, there may have been deprecations that
-            // were gagged due the `startGagging` above.  Run again to display
-            // those deprecations.  https://issues.dlang.org/show_bug.cgi?id=19107
-            if (global.gaggedWarnings > 0)
-                typeSemantic(tcopy, loc, sc);
-        }
-        //printf("-trySemantic(%s) %d\n", toChars(), global.errors);
-        return t;
-    }
-
     /*************************************
      * This version does a merge even if the deco is already computed.
      * Necessary for types that have a deco, but are not merged.
