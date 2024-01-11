@@ -3526,24 +3526,10 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
     {
         alias visit = Visitor.visit;
     public:
-        Scope* sc;
-        Type tparam;
-        TemplateParameters* parameters;
-        Objects* dedtypes;
-        uint* wm;
-        size_t inferStart;
-        bool ignoreAliasThis;
         MATCH result;
 
-        extern (D) this(Scope* sc, Type tparam, TemplateParameters* parameters, Objects* dedtypes, uint* wm, size_t inferStart, bool ignoreAliasThis) @safe
+        extern (D) this() @safe
         {
-            this.sc = sc;
-            this.tparam = tparam;
-            this.parameters = parameters;
-            this.dedtypes = dedtypes;
-            this.wm = wm;
-            this.inferStart = inferStart;
-            this.ignoreAliasThis = ignoreAliasThis;
             result = MATCH.nomatch;
         }
 
@@ -4735,7 +4721,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
         }
     }
 
-    scope DeduceType v = new DeduceType(sc, tparam, parameters, dedtypes, wm, inferStart, ignoreAliasThis);
+    scope DeduceType v = new DeduceType();
     if (Type t = isType(o))
         t.accept(v);
     else if (Expression e = isExpression(o))
