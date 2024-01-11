@@ -301,7 +301,6 @@ public:
     virtual structalign_t alignment();
     virtual Expression *defaultInitLiteral(const Loc &loc);
     virtual bool isZeroInit(const Loc &loc = Loc()); // if initializer is 0
-    Identifier *getTypeInfoIdent();
     virtual int hasWild() const;
     virtual bool hasVoidInitPointers();
     virtual bool hasSystemFields();
