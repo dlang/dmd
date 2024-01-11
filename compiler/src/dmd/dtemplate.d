@@ -4257,59 +4257,6 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             visit(cast(Type)t);
         }
 
-        /* Helper for TypeClass.deduceType().
-         * Classes can match with implicit conversion to a base class or interface.
-         * This is complicated, because there may be more than one base class which
-         * matches. In such cases, one or more parameters remain ambiguous.
-         * For example,
-         *
-         *   interface I(X, Y) {}
-         *   class C : I(uint, double), I(char, double) {}
-         *   C x;
-         *   foo(T, U)( I!(T, U) x)
-         *
-         *   deduces that U is double, but T remains ambiguous (could be char or uint).
-         *
-         * Given a baseclass b, and initial deduced types 'dedtypes', this function
-         * tries to match tparam with b, and also tries all base interfaces of b.
-         * If a match occurs, numBaseClassMatches is incremented, and the new deduced
-         * types are ANDed with the current 'best' estimate for dedtypes.
-         */
-        static void deduceBaseClassParameters(ref BaseClass b, Scope* sc, Type tparam, TemplateParameters* parameters, Objects* dedtypes, Objects* best, ref int numBaseClassMatches)
-        {
-            TemplateInstance parti = b.sym ? b.sym.parent.isTemplateInstance() : null;
-            if (parti)
-            {
-                // Make a temporary copy of dedtypes so we don't destroy it
-                auto tmpdedtypes = new Objects(dedtypes.length);
-                memcpy(tmpdedtypes.tdata(), dedtypes.tdata(), dedtypes.length * (void*).sizeof);
-
-                auto t = new TypeInstance(Loc.initial, parti);
-                MATCH m = deduceType(t, sc, tparam, parameters, tmpdedtypes);
-                if (m > MATCH.nomatch)
-                {
-                    // If this is the first ever match, it becomes our best estimate
-                    if (numBaseClassMatches == 0)
-                        memcpy(best.tdata(), tmpdedtypes.tdata(), tmpdedtypes.length * (void*).sizeof);
-                    else
-                        for (size_t k = 0; k < tmpdedtypes.length; ++k)
-                        {
-                            // If we've found more than one possible type for a parameter,
-                            // mark it as unknown.
-                            if ((*tmpdedtypes)[k] != (*best)[k])
-                                (*best)[k] = (*dedtypes)[k];
-                        }
-                    ++numBaseClassMatches;
-                }
-            }
-
-            // Now recursively test the inherited interfaces
-            foreach (ref bi; b.baseInterfaces)
-            {
-                deduceBaseClassParameters(bi, sc, tparam, parameters, dedtypes, best, numBaseClassMatches);
-            }
-        }
-
         override void visit(TypeClass t)
         {
             //printf("TypeClass.deduceType(this = %s)\n", t.toChars());
@@ -4801,6 +4748,59 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
     return v.result;
 }
 
+
+/* Helper for TypeClass.deduceType().
+ * Classes can match with implicit conversion to a base class or interface.
+ * This is complicated, because there may be more than one base class which
+ * matches. In such cases, one or more parameters remain ambiguous.
+ * For example,
+ *
+ *   interface I(X, Y) {}
+ *   class C : I(uint, double), I(char, double) {}
+ *   C x;
+ *   foo(T, U)( I!(T, U) x)
+ *
+ *   deduces that U is double, but T remains ambiguous (could be char or uint).
+ *
+ * Given a baseclass b, and initial deduced types 'dedtypes', this function
+ * tries to match tparam with b, and also tries all base interfaces of b.
+ * If a match occurs, numBaseClassMatches is incremented, and the new deduced
+ * types are ANDed with the current 'best' estimate for dedtypes.
+ */
+private void deduceBaseClassParameters(ref BaseClass b, Scope* sc, Type tparam, TemplateParameters* parameters, Objects* dedtypes, Objects* best, ref int numBaseClassMatches)
+{
+    TemplateInstance parti = b.sym ? b.sym.parent.isTemplateInstance() : null;
+    if (parti)
+    {
+        // Make a temporary copy of dedtypes so we don't destroy it
+        auto tmpdedtypes = new Objects(dedtypes.length);
+        memcpy(tmpdedtypes.tdata(), dedtypes.tdata(), dedtypes.length * (void*).sizeof);
+
+        auto t = new TypeInstance(Loc.initial, parti);
+        MATCH m = deduceType(t, sc, tparam, parameters, tmpdedtypes);
+        if (m > MATCH.nomatch)
+        {
+            // If this is the first ever match, it becomes our best estimate
+            if (numBaseClassMatches == 0)
+                memcpy(best.tdata(), tmpdedtypes.tdata(), tmpdedtypes.length * (void*).sizeof);
+            else
+                for (size_t k = 0; k < tmpdedtypes.length; ++k)
+                {
+                    // If we've found more than one possible type for a parameter,
+                    // mark it as unknown.
+                    if ((*tmpdedtypes)[k] != (*best)[k])
+                        (*best)[k] = (*dedtypes)[k];
+                }
+            ++numBaseClassMatches;
+        }
+    }
+
+    // Now recursively test the inherited interfaces
+    foreach (ref bi; b.baseInterfaces)
+    {
+        deduceBaseClassParameters(bi, sc, tparam, parameters, dedtypes, best, numBaseClassMatches);
+    }
+}
 
 /********************
  * Match template `parameters` to the target template instance.
