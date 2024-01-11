@@ -67,30 +67,8 @@ DArray!ubyte preprocess(FileName csrcfile, ref const Loc loc, ref OutBuffer defi
     //printf("preprocess %s\n", csrcfile.toChars());
     version (runPreprocessor)
     {
-        /*
-           To get sppn.exe: http://ftp.digitalmars.com/sppn.zip
-           To get the dmc C headers, dmc will need to be installed:
-           http://ftp.digitalmars.com/Digital_Mars_C++/Patch/dm857c.zip
-         */
-        const(char)* tmpname = tmpnam(null);        // generate unique temporary file name for preprocessed output
-        assert(tmpname);
-        const(char)[] ifilename = tmpname[0 .. strlen(tmpname) + 1];
-        ifilename = xarraydup(ifilename);
         const command = global.params.cpp ? toDString(global.params.cpp) : cppCommand();
-        auto status = runPreprocessor(command, csrcfile.toString(), importc_h, global.params.cppswitches, ifilename, defines);
-        if (status)
-        {
-            error(loc, "C preprocess command %.*s failed for file %s, exit status %d\n",
-                cast(int)command.length, command.ptr, csrcfile.toChars(), status);
-            fatal();
-        }
-        //printf("C preprocess succeeded %s\n", ifilename.ptr);
-        auto readResult = File.read(ifilename);
-        File.remove(ifilename.ptr);
-        Mem.xfree(cast(void*)ifilename.ptr);
-        if (!readResult.success)
-            return DArray!ubyte();
-        return DArray!ubyte(readResult.extractSlice());
+        return runPreprocessor(loc, command, csrcfile.toString(), importc_h, global.params.cppswitches, defines);
     }
     else
     {
