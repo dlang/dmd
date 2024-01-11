@@ -6365,6 +6365,7 @@ public:
             {
                 if (auto t = isType(ex.isTypeidExp().obj))
                 {
+                    import dmd.typesem : toDsymbol;
                     auto sym = t.toDsymbol(null);
                     if (auto ident = (sym ? sym.ident : null))
                     {

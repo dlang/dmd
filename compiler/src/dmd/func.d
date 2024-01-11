@@ -1782,6 +1782,7 @@ extern (C++) class FuncDeclaration : Declaration
             case Tstruct:
                 /* Drill down and check the struct's fields
                  */
+                import dmd.typesem : toDsymbol;
                 auto sym = t.toDsymbol(null).isStructDeclaration();
                 const tName = t.toChars.toDString;
                 const entry = parentTypes.insert(tName, t);
@@ -1863,6 +1864,7 @@ extern (C++) class FuncDeclaration : Declaration
                     case Tstruct:
                         /* Drill down and check the struct's fields
                          */
+                        import dmd.typesem : toDsymbol;
                         auto sym = tp.toDsymbol(null).isStructDeclaration();
                         foreach (v; sym.fields)
                         {
@@ -3709,6 +3711,7 @@ private bool traverseIndirections(Type ta, Type tb)
             else
                 *found = true;
 
+            import dmd.typesem : toDsymbol;
             AggregateDeclaration sym = tb.toDsymbol(null).isAggregateDeclaration();
             foreach (v; sym.fields)
             {

@@ -1860,7 +1860,6 @@ public:
     virtual Type* makeSharedWild();
     virtual Type* makeSharedWildConst();
     virtual Type* makeMutable();
-    virtual Dsymbol* toDsymbol(Scope* sc);
     Type* toBasetype();
     virtual MATCH implicitConvTo(Type* to);
     virtual MATCH constConv(Type* to);
@@ -4353,7 +4352,6 @@ public:
     const char* kind() const override;
     uinteger_t size(const Loc& loc) override;
     TypeClass* syntaxCopy() override;
-    Dsymbol* toDsymbol(Scope* sc) override;
     ClassDeclaration* isClassHandle() override;
     MATCH implicitConvTo(Type* to) override;
     MATCH constConv(Type* to) override;
@@ -4403,7 +4401,6 @@ public:
     uinteger_t size(const Loc& loc) override;
     Type* memType();
     uint32_t alignsize() override;
-    Dsymbol* toDsymbol(Scope* sc) override;
     bool isintegral() override;
     bool isfloating() override;
     bool isreal() override;
@@ -4569,7 +4566,6 @@ public:
     static TypeIdentifier* create(const Loc& loc, Identifier* ident);
     const char* kind() const override;
     TypeIdentifier* syntaxCopy() override;
-    Dsymbol* toDsymbol(Scope* sc) override;
     void accept(Visitor* v) override;
 };
 
@@ -4579,7 +4575,6 @@ public:
     TemplateInstance* tempinst;
     const char* kind() const override;
     TypeInstance* syntaxCopy() override;
-    Dsymbol* toDsymbol(Scope* sc) override;
     void accept(Visitor* v) override;
 };
 
@@ -4591,7 +4586,6 @@ public:
     RootObject* obj;
     const char* kind() const override;
     TypeMixin* syntaxCopy() override;
-    Dsymbol* toDsymbol(Scope* sc) override;
     void accept(Visitor* v) override;
 };
 
@@ -4648,7 +4642,6 @@ class TypeReturn final : public TypeQualified
 public:
     const char* kind() const override;
     TypeReturn* syntaxCopy() override;
-    Dsymbol* toDsymbol(Scope* sc) override;
     void accept(Visitor* v) override;
 };
 
@@ -4697,7 +4690,6 @@ public:
     uinteger_t size(const Loc& loc) override;
     uint32_t alignsize() override;
     TypeStruct* syntaxCopy() override;
-    Dsymbol* toDsymbol(Scope* sc) override;
     structalign_t alignment() override;
     Expression* defaultInitLiteral(const Loc& loc) override;
     bool isZeroInit(const Loc& loc) override;
@@ -4740,7 +4732,6 @@ public:
     RootObject* obj;
     const char* kind() const override;
     TypeTraits* syntaxCopy() override;
-    Dsymbol* toDsymbol(Scope* sc) override;
     void accept(Visitor* v) override;
     uinteger_t size(const Loc& loc) override;
 };
@@ -4768,7 +4759,6 @@ public:
     int32_t inuse;
     const char* kind() const override;
     TypeTypeof* syntaxCopy() override;
-    Dsymbol* toDsymbol(Scope* sc) override;
     uinteger_t size(const Loc& loc) override;
     void accept(Visitor* v) override;
 };
@@ -5434,6 +5424,8 @@ extern bool hasPointers(Type* t);
 extern bool isBaseOf(Type* tthis, Type* t, int32_t* poffset);
 
 extern Type* merge(Type* type);
+
+extern Dsymbol* toDsymbol(Type* type, Scope* sc);
 
 extern Type* typeSemantic(Type* type, const Loc& loc, Scope* sc);
 

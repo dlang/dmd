@@ -5283,6 +5283,117 @@ extern (C++) Expression defaultInit(Type mt, const ref Loc loc, const bool isCfi
     }
 }
 
+/*
+If `type` resolves to a dsymbol, then that
+dsymbol is returned.
+
+Params:
+  type = the type that is checked
+  sc   = the scope where the type is used
+
+Returns:
+  The dsymbol to which the type resolve or `null`
+  if the type does resolve to any symbol (for example,
+  in the case of basic types).
+*/
+extern(C++) Dsymbol toDsymbol(Type type, Scope* sc)
+{
+    Dsymbol visitType(Type _)            { return null; }
+    Dsymbol visitStruct(TypeStruct type) { return type.sym; }
+    Dsymbol visitEnum(TypeEnum type)     { return type.sym; }
+    Dsymbol visitClass(TypeClass type)   { return type.sym; }
+
+    Dsymbol visitTraits(TypeTraits type)
+    {
+        Type t;
+        Expression e;
+        Dsymbol s;
+        resolve(type, type.loc, sc, e, t, s);
+        if (t && t.ty != Terror)
+            s = t.toDsymbol(sc);
+        else if (e)
+            s = getDsymbol(e);
+
+        return s;
+    }
+
+    Dsymbol visitMixin(TypeMixin type)
+    {
+        Type t;
+        Expression e;
+        Dsymbol s;
+        resolve(type, type.loc, sc, e, t, s);
+        if (t)
+            s = t.toDsymbol(sc);
+        else if (e)
+            s = getDsymbol(e);
+
+        return s;
+    }
+
+    Dsymbol visitIdentifier(TypeIdentifier type)
+    {
+        //printf("TypeIdentifier::toDsymbol('%s')\n", toChars());
+        if (!sc)
+            return null;
+
+        Type t;
+        Expression e;
+        Dsymbol s;
+        resolve(type, type.loc, sc, e, t, s);
+        if (t && t.ty != Tident)
+            s = t.toDsymbol(sc);
+        if (e)
+            s = getDsymbol(e);
+
+        return s;
+    }
+
+    Dsymbol visitInstance(TypeInstance type)
+    {
+        Type t;
+        Expression e;
+        Dsymbol s;
+        //printf("TypeInstance::semantic(%s)\n", toChars());
+        resolve(type, type.loc, sc, e, t, s);
+        if (t && t.ty != Tinstance)
+            s = t.toDsymbol(sc);
+        return s;
+    }
+
+    Dsymbol visitTypeof(TypeTypeof type)
+    {
+        //printf("TypeTypeof::toDsymbol('%s')\n", toChars());
+        Expression e;
+        Type t;
+        Dsymbol s;
+        resolve(type, type.loc, sc, e, t, s);
+        return s;
+    }
+
+    Dsymbol visitReturn(TypeReturn type)
+    {
+        Expression e;
+        Type t;
+        Dsymbol s;
+        resolve(type, type.loc, sc, e, t, s);
+        return s;
+    }
+
+    switch(type.ty)
+    {
+        default:                return visitType(type);
+        case Ttraits:           return visitTraits(type.isTypeTraits());
+        case Tmixin:            return visitMixin(type.isTypeMixin());
+        case Tident:            return visitIdentifier(type.isTypeIdentifier());
+        case Tinstance:         return visitInstance(type.isTypeInstance());
+        case Ttypeof:           return visitTypeof(type.isTypeTypeof());
+        case Treturn:           return visitReturn(type.isTypeReturn());
+        case Tstruct:           return visitStruct(type.isTypeStruct());
+        case Tenum:             return visitEnum(type.isTypeEnum());
+        case Tclass:            return visitClass(type.isTypeClass());
+    }
+}
 
 /**********************************************
  * Extract complex type from core.stdc.config

@@ -384,7 +384,6 @@ private Expression reorderSettingAAElem(BinExp exp, Scope* sc)
     return Expression.combine(e0, be);
 }
 
-
 private Expression checkOpAssignTypes(BinExp binExp, Scope* sc)
 {
     auto e1 = binExp.e1;
@@ -561,6 +560,39 @@ private Expression extractOpDollarSideEffect(Scope* sc, UnaExp ue)
     }
     ue.e1 = e1;
     return e0;
+}
+
+/****************************************
+ * Expand alias this tuples.
+ */
+TupleDeclaration isAliasThisTuple(Expression e)
+{
+    if (!e.type)
+        return null;
+
+    Type t = e.type.toBasetype();
+    while (true)
+    {
+        if (Dsymbol s = t.toDsymbol(null))
+        {
+            if (auto ad = s.isAggregateDeclaration())
+            {
+                s = ad.aliasthis ? ad.aliasthis.sym : null;
+                if (s && s.isVarDeclaration())
+                {
+                    TupleDeclaration td = s.isVarDeclaration().toAlias().isTupleDeclaration();
+                    if (td && td.isexp)
+                        return td;
+                }
+                if (Type att = t.aliasthisOf())
+                {
+                    t = att;
+                    continue;
+                }
+            }
+        }
+        return null;
+    }
 }
 
 /**************************************
