@@ -233,7 +233,6 @@ public:
     uinteger_t size();
     virtual uinteger_t size(const Loc &loc);
     virtual unsigned alignsize();
-    Type *trySemantic(const Loc &loc, Scope *sc);
     Type *merge2();
     void modToBuffer(OutBuffer& buf) const;
     char *modToChars() const;
@@ -909,3 +908,4 @@ bool hasPointers(Type *t);
 Dsymbol *toDsymbol(Type *t, Scope *sc);
 Covariant covariant(Type *, Type *, StorageClass * = NULL, bool = false);
 bool isBaseOf(Type *tthis, Type *t, int *poffset);
+Type *trySemantic(Type *type, const Loc &loc, Scope *sc);

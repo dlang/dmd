@@ -698,7 +698,7 @@ private extern(D) bool isCopyConstructorCallable (StructDeclaration argStruct,
     Expression e = new DotIdExp(arg.loc, ve, Id.ctor);
     e = new CallExp(arg.loc, e, arg);
     //printf("e = %s\n", e.toChars());
-    if (.trySemantic(e, sc))
+    if (dmd.expressionsem.trySemantic(e, sc))
         return true;
 
     if (pMessage)
@@ -2629,6 +2629,31 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
         case Tmixin:     return visitMixin(type.isTypeMixin());
         case Ttag:       return visitTag(type.isTypeTag());
     }
+}
+
+extern(C++) Type trySemantic(Type type, const ref Loc loc, Scope* sc)
+{
+    //printf("+trySemantic(%s) %d\n", toChars(), global.errors);
+
+    // Needed to display any deprecations that were gagged
+    auto tcopy = type.syntaxCopy();
+
+    const errors = global.startGagging();
+    Type t = typeSemantic(type, loc, sc);
+    if (global.endGagging(errors) || t.ty == Terror) // if any errors happened
+    {
+        t = null;
+    }
+    else
+    {
+        // If `typeSemantic` succeeded, there may have been deprecations that
+        // were gagged due the `startGagging` above.  Run again to display
+        // those deprecations.  https://issues.dlang.org/show_bug.cgi?id=19107
+        if (global.gaggedWarnings > 0)
+            typeSemantic(tcopy, loc, sc);
+    }
+    //printf("-trySemantic(%s) %d\n", toChars(), global.errors);
+    return t;
 }
 
 /************************************
