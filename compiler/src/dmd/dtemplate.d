@@ -1666,7 +1666,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                             }
                             else
                             {
-                                m = deduceTypeHelper(farg.type, &tt, tid);
+                                m = deduceTypeHelper(farg.type, tt, tid);
                             }
                             if (m == MATCH.nomatch)
                                 return nomatch();
@@ -3288,7 +3288,7 @@ private Type rawTypeMerge(Type t1, Type t2)
     return null;
 }
 
-private MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
+private MATCH deduceTypeHelper(Type t, out Type at, Type tparam)
 {
     // 9*9 == 81 cases
 
@@ -3318,7 +3318,7 @@ private MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
         // foo(U)                       shared(inout(const(T))) => shared(inout(const(T)))
         // foo(U)                       immutable(T)            => immutable(T)
         {
-            *at = t;
+            at = t;
             return MATCH.exact;
         }
     case X(MODFlags.const_, MODFlags.const_):
@@ -3338,7 +3338,7 @@ private MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
         // foo(shared(inout(const(U)))) shared(inout(const(T))) => T
         // foo(immutable(U))            immutable(T)            => T
         {
-            *at = t.mutableOf().unSharedOf();
+            at = t.mutableOf().unSharedOf();
             return MATCH.exact;
         }
     case X(MODFlags.const_, MODFlags.shared_ | MODFlags.const_):
@@ -3348,7 +3348,7 @@ private MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
         // foo(inout(U))                shared(inout(T))        => shared(T)
         // foo(inout(const(U)))         shared(inout(const(T))) => shared(T)
         {
-            *at = t.mutableOf();
+            at = t.mutableOf();
             return MATCH.exact;
         }
     case X(MODFlags.const_, 0):
@@ -3366,13 +3366,13 @@ private MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
         // foo(const(U))                immutable(T)            => T
         // foo(shared(const(U)))        immutable(T)            => T
         {
-            *at = t.mutableOf();
+            at = t.mutableOf();
             return MATCH.constant;
         }
     case X(MODFlags.const_, MODFlags.shared_):
         // foo(const(U))                shared(T)               => shared(T)
         {
-            *at = t;
+            at = t;
             return MATCH.constant;
         }
     case X(MODFlags.shared_, MODFlags.shared_ | MODFlags.const_):
@@ -3382,13 +3382,13 @@ private MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
         // foo(shared(U))               shared(inout(T))        => inout(T)
         // foo(shared(U))               shared(inout(const(T))) => inout(const(T))
         {
-            *at = t.unSharedOf();
+            at = t.unSharedOf();
             return MATCH.exact;
         }
     case X(MODFlags.shared_ | MODFlags.const_, MODFlags.shared_):
         // foo(shared(const(U)))        shared(T)               => T
         {
-            *at = t.unSharedOf();
+            at = t.unSharedOf();
             return MATCH.constant;
         }
     case X(MODFlags.wildconst, MODFlags.immutable_):
@@ -3400,13 +3400,13 @@ private MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
         // foo(shared(inout(const(U)))) immutable(T)            => T
         // foo(shared(inout(const(U)))) shared(inout(T))        => T
         {
-            *at = t.unSharedOf().mutableOf();
+            at = t.unSharedOf().mutableOf();
             return MATCH.constant;
         }
     case X(MODFlags.shared_ | MODFlags.const_, MODFlags.shared_ | MODFlags.wild):
         // foo(shared(const(U)))        shared(inout(T))        => T
         {
-            *at = t.unSharedOf().mutableOf();
+            at = t.unSharedOf().mutableOf();
             return MATCH.constant;
         }
     case X(MODFlags.wild, 0):
@@ -3700,7 +3700,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     }
                     goto Lnomatch;
                 }
-                else if (MATCH m = deduceTypeHelper(t, &tt, tparam))
+                else if (MATCH m = deduceTypeHelper(t, tt, tparam))
                 {
                     // type vs (none)
                     if (!at)
@@ -4399,7 +4399,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 *wm |= wx;
                 result = MATCH.constant;
             }
-            else if (MATCH m = deduceTypeHelper(e.type, &tt, tparam))
+            else if (MATCH m = deduceTypeHelper(e.type, tt, tparam))
             {
                 result = m;
             }
