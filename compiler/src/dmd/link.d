@@ -22,6 +22,7 @@ import core.sys.windows.windef;
 import dmd.astenums;
 import dmd.dmdparams;
 import dmd.errors;
+import dmd.errorsink;
 import dmd.globals;
 import dmd.location;
 import dmd.root.array;
@@ -122,54 +123,35 @@ private void writeFilename(OutBuffer* buf, const(char)* filename)
 version (Posix)
 {
     /*****************************
-     * As it forwards the linker error message to stderr, checks for the presence
-     * of an error indicating lack of a main function (NME_ERR_MSG).
+     * Extract stderr piped through `fd` into OutBuffer `o` so it can be parsed for better error messages.
      *
-     * Returns:
-     *      1 if there is a no main error
-     *     -1 if there is an IO error
-     *      0 otherwise
+     * Returns: `true` on success, `false` on IO error
      */
-    private int findNoMainError(int fd)
+    private bool pipeProcessOutput(int fd, ref OutBuffer o)
     {
-        version (OSX)
-        {
-            static immutable(char*) nmeErrorMessage = "`__Dmain`, referenced from:";
-        }
-        else
-        {
-            static immutable(char*) nmeErrorMessage = "undefined reference to `_Dmain`";
-        }
         FILE* stream = fdopen(fd, "r");
         if (stream is null)
-            return -1;
+            return false;
         const(size_t) len = 64 * 1024 - 1;
-        char[len + 1] buffer; // + '\0'
+        char[len + 1] buffer = '\0'; // + '\0'
         size_t beg = 0, end = len;
-        bool nmeFound = false;
         for (;;)
         {
             // read linker output
             const(size_t) n = fread(&buffer[beg], 1, len - beg, stream);
             if (beg + n < len && ferror(stream))
-                return -1;
-            buffer[(end = beg + n)] = '\0';
-            // search error message, stop at last complete line
-            const(char)* lastSep = strrchr(buffer.ptr, '\n');
-            if (lastSep)
-                buffer[(end = lastSep - &buffer[0])] = '\0';
-            if (strstr(&buffer[0], nmeErrorMessage))
-                nmeFound = true;
-            if (lastSep)
-                buffer[end++] = '\n';
-            if (fwrite(&buffer[0], 1, end, stderr) < end)
-                return -1;
+                return false;
+            end = beg + n;
+
+            o.writestring(buffer[0 .. end]);
+            if (fwrite(&buffer[0], char.sizeof, end, stderr) < end)
+                return false;
             if (beg + n < len && feof(stream))
                 break;
             // copy over truncated last line
             memcpy(&buffer[0], &buffer[end], (beg = len - end));
         }
-        return nmeFound ? 1 : 0;
+        return true;
     }
 }
 
@@ -815,23 +797,25 @@ public int runLINK()
             return -1;
         }
         close(fds[1]);
-        const(int) nme = findNoMainError(fds[0]);
+        OutBuffer buf;
+        const pipeSuccess = pipeProcessOutput(fds[0], buf);
+
+        ///
         waitpid(childpid, &status, 0);
         if (WIFEXITED(status))
         {
             status = WEXITSTATUS(status);
             if (status)
             {
-                if (nme == -1)
+                if (!pipeSuccess)
                 {
                     perror("error with the linker pipe");
                     return -1;
                 }
                 else
                 {
+                    parseLinkerOutput(cast(const(char)[]) buf.peekSlice(), new ErrorSinkCompiler());
                     error(Loc.initial, "linker exited with status %d", status);
-                    if (nme == 1)
-                        error(Loc.initial, "no main function specified");
                 }
             }
         }
@@ -1498,4 +1482,191 @@ int runProcessCollectStdout(const(wchar)* szCommand, ubyte[] buffer, void delega
     CloseHandle(piProcInfo.hThread);
 
     return exitCode;
+}
+
+/**
+Translate linker output to more user-friendly error messages, by extracting mangled symbols and demangling them
+Params:
+    linkerOutput = text that the linker printed
+    eSink = sink for translated errors
+*/
+void parseLinkerOutput(const(char)[] linkerOutput, ErrorSink eSink)
+{
+    // Some linkers quote symbols like `so' or 'so', strip the quotes
+    static string unquote(string s)
+    {
+        if (s.length < 2)
+            return s;
+        if (s[0] == '\'' || s[0] == '`')
+            s = s[1 .. $];
+        if (s[$ - 1] == '\'')
+            s = s[0 .. $ - 1];
+        return s;
+    }
+
+    bool missingSymbols = false;
+    bool missingDfunction = false;
+    bool missingMain = false;
+
+    void missingSymbol(const(char)[] name, const(char)[] referencedFrom)
+    {
+        import core.demangle: demangle;
+        if (name.startsWith("__D"))
+            name = name[1 .. $]; // MS LINK prepends underscore to the existing one
+        auto sym = demangle(name);
+
+        missingSymbols = true;
+        if (sym == "main")
+            missingMain = true;
+        if (sym != name)
+            missingDfunction = true;
+
+        eSink.error(Loc.initial, "undefined reference to `%.*s`", cast(int) sym.length, sym.ptr);
+        if (referencedFrom.length > 0)
+        {
+            if (referencedFrom.startsWith("__D"))
+                referencedFrom = referencedFrom[1 .. $];
+
+            const(char)[] refFunc = demangle(referencedFrom);
+            eSink.errorSupplemental(Loc.initial, "referenced from `%.*s`", cast(int) refFunc.length, refFunc.ptr);
+        }
+    }
+
+    void parseLine(const char[] line)
+    {
+        if (auto s0 = line.findSplit(" undefined reference to "))
+        {
+            if (string sym = unquote(s0[2]))
+            {
+                if (auto r = s0[0].findBetween("(.text.", "["))
+                    missingSymbol(sym, r);
+                else if (auto r = s0[0].findBetween(":function ", ":(.text"))
+                    missingSymbol(sym, r);
+                else
+                    missingSymbol(sym, null);
+            }
+        }
+        if (auto s0 = line.findSplit("LNK2019: unresolved external symbol "))
+        {
+            if (auto s1 = s0[2].findSplit(" referenced in function "))
+                missingSymbol(s1[0], s1[2]);
+            else
+                missingSymbol(s0[2], null);
+        }
+        if (auto s0 = line.findSplit("undefined symbol: "))
+        {
+            missingSymbol(s0[2], null);
+        }
+    }
+
+    size_t s = 0;
+    foreach (i; 0 .. linkerOutput.length)
+    {
+        if (linkerOutput[i] == '\n')
+        {
+            parseLine(linkerOutput[s .. i]);
+            s = i + 1;
+        }
+    }
+    parseLine(linkerOutput[s .. $]);
+
+    if (missingMain)
+        eSink.errorSupplemental(Loc.initial, "perhaps define a `void main() {}` function or use the `-main` switch");
+
+    if (missingDfunction)
+        eSink.errorSupplemental(Loc.initial, "perhaps `.d` files need to be added on the command line, or use `-i` to compile imports");
+    else if (missingSymbols)
+        eSink.errorSupplemental(Loc.initial, "perhaps a library needs to be added with the `-L` flag or `pragma(lib, ...)`");
+}
+
+unittest
+{
+    // The following strings are the output of various linkers for this code:
+    // module app; void f(); void g() { f(); }
+
+    // ld (bfd is very similar)
+    string ldOutput = "
+/usr/bin/ld: app.o: in function `_D3app1gFZv':
+app.d:(.text._D3app1gFZv[_D3app1gFZv]+0x5): undefined reference to `_D3app1fFZv'
+";
+
+    // lld (mold is very similar)
+    string lldOutput = "
+ld.lld: error: undefined symbol: _D3app1fFZv
+>>> referenced by app.d
+>>>               app.o:(_D3app1gFZv)
+>>> did you mean: _D3app1gFZv
+>>> defined in: app.o
+";
+
+    // gold linker
+    string goldOutput = "
+app.o:app.d:function _D3app1gFZv:(.text._D3app1gFZv+0x5): error: undefined reference to '_D3app1fFZv'
+";
+
+    // Microsoft LINK
+    string linkOutput = "
+app.obj : error LNK2019: unresolved external symbol __D3app1fFZv referenced in function __D3app1gFZv
+app.exe : fatal error LNK1120: 1 unresolved externals
+";
+
+    class ErrorSinkTest : ErrorSink
+    {
+        public int errorCount = 0;
+        string expectedFormat = "undefined reference to `%.*s`";
+        string[] expectedSymbols;
+
+        extern(C++): override:
+
+        void error(const ref Loc loc, const(char)* format, ...)
+        {
+            assert(format[0 .. strlen(format)] == expectedFormat);
+            va_list ap;
+            va_start(ap, format);
+            const expectedSymbol = expectedSymbols[errorCount++];
+            assert(va_arg!int(ap) == expectedSymbol.length);
+            const actualSymbol = va_arg!(char*)(ap)[0 .. expectedSymbol.length];
+            assert(actualSymbol == expectedSymbol, "expected " ~ expectedSymbol ~ ", not " ~ actualSymbol);
+        }
+
+        void errorSupplemental(const ref Loc loc, const(char)* format, ...)
+        {
+            assert(format.startsWith("perhaps") || format.startsWith("referenced from "));
+        }
+
+        void warning(const ref Loc loc, const(char)* format, ...) {}
+        void warningSupplemental(const ref Loc loc, const(char)* format, ...) {}
+        void message(const ref Loc loc, const(char)* format, ...) {}
+        void deprecation(const ref Loc loc, const(char)* format, ...) {}
+        void deprecationSupplemental(const ref Loc loc, const(char)* format, ...) {}
+    }
+
+    void test(T...)(string linkerName, string output, T expectedSymbols)
+    {
+        auto testSink = new ErrorSinkTest();
+        testSink.expectedSymbols = [expectedSymbols];
+        parseLinkerOutput(output, testSink);
+        assert(testSink.errorCount > 0, "failed to demangle output of " ~ linkerName);
+    }
+
+    test("ld", ldOutput, "void app.f()");
+    test("lld", lldOutput, "void app.f()");
+    test("gold", goldOutput, "void app.f()");
+    test("link", linkOutput, "void app.f()");
+
+    string missingMainOutput = "
+/usr/bin/ld: /usr/lib/gcc/x86_64-pc-linux-gnu/13.2.1/../../../../lib/Scrt1.o: in function `_start':
+(.text+0x1b): undefined reference to `main'
+";
+
+    test("ld", missingMainOutput, "main");
+
+    string missingExternCOutput = "
+/usr/bin/ld: app.o: in function `_D3app__T2αVAyaa3_616263ZQrFZv':
+../test/app.d:(.text._D3app__T2αVAyaa3_616263ZQrFZv[_D3app__T2αVAyaa3_616263ZQrFZv]+0x5): undefined reference to `my_A'
+/usr/bin/ld: ../test/app.d:(.text._D3app__T2αVAyaa3_616263ZQrFZv[_D3app__T2αVAyaa3_616263ZQrFZv]+0xa): undefined reference to `my_B'
+";
+
+    test("ld", missingExternCOutput, "my_A", "my_B");
+
 }
