@@ -3752,6 +3752,14 @@ $(H2 $(LNAME2 nogc-functions, No-GC Functions))
             }
             ---
 
+        $(BEST_PRACTICE Since a function marked `@nogc` will not do any GC allocations,
+        that implies it will not cause any GC collections to run. However,
+        another thread may still allocate with the GC and trigger a collection.
+        The recommended way to prevent GC collections from being run is to call
+        $(LINK2 https://dlang.org/phobos/core_memory.html#GC.disable, core.memory.GC.disable())
+        instead. This will stop collections from being run in any thread until a corresponding
+        call to `core.memory.GC.enable()` is run. GC allocations can still be performed
+        when `GC.disable()` is in effect.)
 
 $(H2 $(LNAME2 function-safety, Function Safety))
 
