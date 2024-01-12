@@ -779,17 +779,17 @@ public int runLINK()
             // Link against -lexecinfo for backtrace symbols
             argv.push("-lexecinfo");
         }
-        if (global.params.v.verbose)
+        OutBuffer buf;
+        foreach (i; 0 .. argv.length)
         {
-            // Print it
-            OutBuffer buf;
-            for (size_t i = 0; i < argv.length; i++)
-            {
-                buf.writestring(argv[i]);
-                buf.writeByte(' ');
-            }
-            message(buf.peekChars());
+            buf.writestring(argv[i]);
+            buf.writeByte(' ');
         }
+        const(char)* linkerCommand = buf.peekChars();
+
+        if (global.params.v.verbose)
+            message("%s", linkerCommand);
+
         argv.push(null);
         // set up pipes
         int[2] fds;
@@ -830,6 +830,7 @@ public int runLINK()
                 else
                 {
                     error(Loc.initial, "linker exited with status %d", status);
+                    errorSupplemental(Loc.initial, "%s", linkerCommand);
                     if (nme == 1)
                         error(Loc.initial, "no main function specified");
                 }
@@ -923,7 +924,10 @@ version (Windows)
             if (status == -1)
                 error(Loc.initial, "can't run '%s', check PATH", cmd);
             else
+            {
                 error(Loc.initial, "linker exited with status %d", status);
+                errorSupplemental(Loc.initial, "%s %s", cmd, args);
+            }
         }
         return status;
     }
