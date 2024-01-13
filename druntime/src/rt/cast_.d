@@ -88,6 +88,15 @@ void* _d_dynamic_cast(Object o, ClassInfo c)
     return res;
 }
 
+void* _d_paint_cast(Object o, ClassInfo c)
+{
+    /* If o is really an instance of c, just do a paint
+     */
+    auto p = (o && cast(void*)(areClassInfosEqual(typeid(o), c)) ? o : null);
+    debug assert(cast(void*)p is cast(void*)_d_dynamic_cast(o, c));
+    return cast(void*)p;
+}
+
 int _d_isbaseof2(scope ClassInfo oc, scope const ClassInfo c, scope ref size_t offset) @safe
 {
     if (areClassInfosEqual(oc, c))
