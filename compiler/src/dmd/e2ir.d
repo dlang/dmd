@@ -235,7 +235,7 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
             void printHash()
             {
                 // Replace long string with hash of that string
-                import dmd.backend.md5;
+                import dmd.common.md5;
                 MD5_CTX mdContext = void;
                 MD5Init(&mdContext);
                 MD5Update(&mdContext, cast(ubyte*)str, cast(uint)(len * sz));
