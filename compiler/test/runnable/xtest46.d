@@ -8032,6 +8032,26 @@ void test18232()
 }
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=24332
+
+void test24332()
+{
+    class A {}
+    final class B : A {}
+
+    auto foo(A a) {
+        return cast(B) a;
+    }
+
+    auto a = new A();
+    auto n = cast(B) a;
+    assert(n is null);
+    auto b = cast(A) new B();
+    auto c = cast(B) b;
+    assert(c);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -8352,6 +8372,7 @@ int main()
     test17349();
     test17915();
     test18232();
+    test24332();
 
     printf("Success\n");
     return 0;

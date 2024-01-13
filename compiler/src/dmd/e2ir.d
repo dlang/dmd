@@ -4655,9 +4655,26 @@ elem *toElemCast(CastExp ce, elem *e, bool isLvalue, ref IRState irs)
              *  - class     => foreign interface (cross cast)
              *  - interface => base or foreign interface (cross cast)
              */
-            const rtl = cdfrom.isInterfaceDeclaration()
+            auto rtl = cdfrom.isInterfaceDeclaration()
                         ? RTLSYM.INTERFACE_CAST
                         : RTLSYM.DYNAMIC_CAST;
+
+            /* Check for:
+             *  class A { }
+             *  final class B : A { }
+             *  ... cast(B) A ...
+             */
+            if (rtl == RTLSYM.DYNAMIC_CAST &&
+                cdto.storage_class & STC.final_ &&
+                cdto.baseClass == cdfrom &&
+                (!cdto.interfaces || cdto.interfaces.length == 0) &&
+                (!cdfrom.interfaces || cdfrom.interfaces.length == 0))
+            {
+                /* do shortcut cast: if e is an instance of B, then it's just a type paint
+                 */
+                //printf("cdfrom: %s cdto: %s\n", cdfrom.toChars(), cdto.toChars());
+                rtl = RTLSYM.PAINT_CAST;
+            }
             elem *ep = el_param(el_ptr(toExtSymbol(cdto)), e);
             e = el_bin(OPcall, TYnptr, el_var(getRtlsym(rtl)), ep);
         }
