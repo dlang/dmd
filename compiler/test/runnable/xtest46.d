@@ -8049,6 +8049,9 @@ void test24332()
     auto b = cast(A) new B();
     auto c = cast(B) b;
     assert(c);
+    B e;
+    auto d = cast(B) cast(A) e;
+    assert(d is null);
 }
 
 /***************************************************/
