@@ -3444,16 +3444,19 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
             return null;
         }
 
-        const(char)* failMessage;
-        functionResolve(m, orig_s, loc, sc, tiargs, tthis, argumentList, &failMessage);
-        if (failMessage)
+        bool calledHelper;
+        void errorHelper(const(char)* failMessage) scope
         {
             .error(loc, "%s `%s%s%s` is not callable using argument types `%s`",
                    fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameterList),
                    tf.modToChars(), fargsBuf.peekChars());
             errorSupplemental(loc, failMessage);
-            return null;
+            calledHelper = true;
         }
+
+        functionResolve(m, orig_s, loc, sc, tiargs, tthis, argumentList, &errorHelper);
+        if (calledHelper)
+            return null;
 
         if (fd.isCtorDeclaration())
             .error(loc, "%s%s `%s` cannot construct a %sobject",
@@ -3508,10 +3511,13 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
                 }
             }
         }
-        const(char)* failMessage;
-        functionResolve(m, orig_s, loc, sc, tiargs, tthis, argumentList, &failMessage);
-        if (failMessage)
+
+        void errorHelper2(const(char)* failMessage) scope
+        {
             errorSupplemental(loc, failMessage);
+        }
+
+        functionResolve(m, orig_s, loc, sc, tiargs, tthis, argumentList, &errorHelper2);
     }
     return null;
 }
