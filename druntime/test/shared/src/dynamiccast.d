@@ -40,17 +40,18 @@ else
     T getFunc(T)(const(char)* sym)
     {
         import core.runtime : Runtime;
+        import utils : dllExt;
 
         version (Windows)
         {
             import core.sys.windows.winbase : GetProcAddress;
-            return cast(T) Runtime.loadLibrary("dynamiccast.dll")
+            return cast(T) Runtime.loadLibrary("dynamiccast." ~ dllExt)
                 .GetProcAddress(sym);
         }
         else version (Posix)
         {
             import core.sys.posix.dlfcn : dlsym;
-            return cast(T) Runtime.loadLibrary("./dynamiccast.so")
+            return cast(T) Runtime.loadLibrary("./dynamiccast." ~ dllExt)
                 .dlsym(sym);
         }
         else static assert(0);

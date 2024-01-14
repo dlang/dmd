@@ -2,7 +2,6 @@ import core.runtime;
 import core.stdc.stdio;
 import core.stdc.string;
 import core.thread;
-import core.sys.posix.dlfcn;
 
 version (DragonFlyBSD) import core.sys.dragonflybsd.dlfcn : RTLD_NOLOAD;
 version (FreeBSD) import core.sys.freebsd.dlfcn : RTLD_NOLOAD;
@@ -11,17 +10,12 @@ version (NetBSD) import core.sys.netbsd.dlfcn : RTLD_NOLOAD;
 version (OSX) import core.sys.darwin.dlfcn : RTLD_NOLOAD;
 version (Solaris) import core.sys.solaris.dlfcn : RTLD_NOLOAD;
 
-static assert(__traits(compiles, RTLD_NOLOAD), "unimplemented");
-
-void loadSym(T)(void* handle, ref T val, const char* mangle)
-{
-    val = cast(T).dlsym(handle, mangle);
-}
-
 void* openLib(string s)
 {
     auto h = Runtime.loadLibrary(s);
     assert(h !is null);
+
+    import utils : loadSym;
 
     loadSym(h, libThrowException, "_D3lib14throwExceptionFZv");
     loadSym(h, libCollectException, "_D3lib16collectExceptionFDFZvZC9Exception");
@@ -137,13 +131,23 @@ void main(string[] args)
 {
     auto name = args[0] ~ '\0';
     const pathlen = strrchr(name.ptr, '/') - name.ptr + 1;
-    name = name[0 .. pathlen] ~ "lib.so";
+    import utils : dllExt;
+    name = name[0 .. pathlen] ~ "lib." ~ dllExt;
 
     runTests(name);
 
     // lib is no longer resident
     name ~= '\0';
-    assert(.dlopen(name.ptr, RTLD_LAZY | RTLD_NOLOAD) is null);
+    version (Windows)
+    {
+        import core.sys.windows.winbase;
+        assert(!GetModuleHandleA(name.ptr));
+    }
+    else
+    {
+        import core.sys.posix.dlfcn;
+        assert(dlopen(name.ptr, RTLD_LAZY | RTLD_NOLOAD) is null);
+    }
     name = name[0 .. $-1];
 
     auto thr = new Thread({runTests(name);});
