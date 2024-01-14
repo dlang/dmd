@@ -117,7 +117,6 @@ UTFLAGS:=-version=CoreUnittest -unittest -checkaction=context
 
 # Set PHOBOS_DFLAGS (for linking against Phobos)
 PHOBOS_PATH=../../phobos
-SHARED=$(if $(findstring $(OS),linux freebsd),1,)
 ROOT_DIR := $(shell pwd)
 PHOBOS_DFLAGS=-conf= $(MODEL_FLAG) -I$(ROOT_DIR)/import -I$(PHOBOS_PATH) -L-L$(PHOBOS_PATH)/generated/$(OS)/$(BUILD)/$(MODEL) $(PIC)
 ifeq (1,$(SHARED))
@@ -428,14 +427,8 @@ UT_MODULES:=$(patsubst src/%.d,$(ROOT)/unittest/%,$(UT_SRCS))
 HAS_ADDITIONAL_TESTS:=$(shell test -d test && echo 1)
 ifeq ($(HAS_ADDITIONAL_TESTS),1)
     ADDITIONAL_TESTS:=test/init_fini test/exceptions test/coverage test/profile test/cycles test/allocations test/typeinfo \
-        test/aa test/cpuid test/gc test/hash test/lifetime \
+        test/aa test/cpuid test/gc test/hash test/lifetime test/shared \
         test/thread test/unittest test/imports test/betterc test/stdcpp test/config test/traits
-    ifneq (,$(SHARED))
-        ADDITIONAL_TESTS+=test/shared
-    else ifeq (windows,$(OS))
-        # although a druntime DLL isn't supported yet, there are Windows-specific general DLL tests
-        ADDITIONAL_TESTS+=test/shared
-    endif
     ifeq (windows,$(OS))
         ADDITIONAL_TESTS+=test/uuid
     else
@@ -513,7 +506,7 @@ endif
 test/%/.run: test/%/Makefile $(DMD)
 	$(QUIET)$(MAKE) -C test/$* MODEL=$(MODEL) OS=$(OS) DMD=$(abspath $(DMD)) BUILD=$(BUILD) \
 		DRUNTIME=$(abspath $(DRUNTIME)) DRUNTIMESO=$(abspath $(DRUNTIMESO)) LINKDL=$(LINKDL) \
-		QUIET=$(QUIET) TIMELIMIT='$(TIMELIMIT)' PIC=$(PIC)
+		QUIET=$(QUIET) TIMELIMIT='$(TIMELIMIT)' PIC=$(PIC) SHARED=$(SHARED)
 
 #################### benchmark suite ##########################
 

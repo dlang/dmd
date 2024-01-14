@@ -9,6 +9,7 @@ LINKDL:=
 QUIET:=
 TIMELIMIT:=
 PIC:=
+SHARED:=
 
 # Windows: set up bash shell
 ifeq (windows,$(OS))
