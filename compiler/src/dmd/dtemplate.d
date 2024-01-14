@@ -2624,10 +2624,10 @@ extern (C++) final class TypeDeduced : Type
  *      tiargs      = initial list of template arguments
  *      tthis       = if !NULL, the 'this' pointer argument
  *      argumentList= arguments to function
- *      pMessage    = address to store error message, or null
+ *      errorHelper = delegate to send error message to if not null
  */
 void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiargs,
-    Type tthis, ArgumentList argumentList, const(char)** pMessage = null)
+    Type tthis, ArgumentList argumentList, void delegate(const(char)*) scope errorHelper = null)
 {
     version (none)
     {
@@ -2733,8 +2733,12 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
             else if (shared_this && !shared_dtor && tthis_fd !is null)
                 tf.mod = tthis_fd.mod;
         }
+        const(char)* failMessage;
+        const(char)** pMessage = errorHelper ? &failMessage : null;
         MATCH mfa = tf.callMatch(tthis_fd, argumentList, 0, pMessage, sc);
         //printf("test1: mfa = %d\n", mfa);
+        if (failMessage)
+            errorHelper(failMessage);
         if (mfa == MATCH.nomatch)
             return 0;
 
