@@ -1220,11 +1220,34 @@ private size_t emitVtbl(ref DtBuilder dtb, BaseClass *b, ref FuncDeclarations bv
  */
 private void genClassInfoForClass(ClassDeclaration cd, Symbol* sinit)
 {
+    if (Type.typeinfoclass)
+    {
+        if (Type.typeinfoclass.structsize != target.classinfosize)
+        {
+            debug printf("target.classinfosize = x%x, Type.typeinfoclass.structsize = x%x\n", target.classinfosize, Type.typeinfoclass.structsize);
+            .error(cd.loc, "%s `%s` mismatch between dmd and object.d or object.di found. Check installation and import paths with -v compiler switch.", cd.kind, cd.toPrettyChars);
+            fatal();
+        }
+    }
+
     // Put out the ClassInfo, which will be the __ClassZ symbol in the object file
     SC scclass = SC.comdat;
     cd.csym.Sclass = scclass;
     cd.csym.Sfl = FLdata;
 
+    auto dtb = DtBuilder(0);
+
+    ClassInfoToDt(dtb, cd, sinit);
+
+    cd.csym.Sdt = dtb.finish();
+    // ClassInfo cannot be const data, because we use the monitor on it
+    outdata(cd.csym);
+    if (cd.isExport() || driverParams.exportVisibility == ExpVis.public_)
+        objmod.export_symbol(cd.csym, 0);
+}
+
+private void ClassInfoToDt(ref DtBuilder dtb, ClassDeclaration cd, Symbol* sinit)
+{
     /* The layout is:
        {
             void **vptr;
@@ -1246,17 +1269,6 @@ private void genClassInfoForClass(ClassDeclaration cd, Symbol* sinit)
        }
      */
     uint offset = target.classinfosize;    // must be ClassInfo.size
-    if (Type.typeinfoclass)
-    {
-        if (Type.typeinfoclass.structsize != target.classinfosize)
-        {
-            debug printf("target.classinfosize = x%x, Type.typeinfoclass.structsize = x%x\n", offset, Type.typeinfoclass.structsize);
-            .error(cd.loc, "%s `%s` mismatch between dmd and object.d or object.di found. Check installation and import paths with -v compiler switch.", cd.kind, cd.toPrettyChars);
-            fatal();
-        }
-    }
-
-    auto dtb = DtBuilder(0);
 
     if (auto tic = Type.typeinfoclass)
     {
@@ -1446,12 +1458,6 @@ Louter:
     dtb.nbytes(cast(uint)(namelen + 1), name);
     const size_t namepad = -(namelen + 1) & (target.ptrsize - 1); // align
     dtb.nzeros(cast(uint)namepad);
-
-    cd.csym.Sdt = dtb.finish();
-    // ClassInfo cannot be const data, because we use the monitor on it
-    outdata(cd.csym);
-    if (cd.isExport() || driverParams.exportVisibility == ExpVis.public_)
-        objmod.export_symbol(cd.csym, 0);
 }
 
 /******************************************************
@@ -1468,6 +1474,19 @@ private void genClassInfoForInterface(InterfaceDeclaration id)
     id.csym.Sclass = scclass;
     id.csym.Sfl = FLdata;
 
+    auto dtb = DtBuilder(0);
+
+    InterfaceInfoToDt(dtb, id);
+
+    id.csym.Sdt = dtb.finish();
+    out_readonly(id.csym);
+    outdata(id.csym);
+    if (id.isExport() || driverParams.exportVisibility == ExpVis.public_)
+        objmod.export_symbol(id.csym, 0);
+}
+
+private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
+{
     /* The layout is:
        {
             void **vptr;
@@ -1488,8 +1507,6 @@ private void genClassInfoForInterface(InterfaceDeclaration id)
             //TypeInfo typeinfo;
        }
      */
-    auto dtb = DtBuilder(0);
-
     if (auto tic = Type.typeinfoclass)
     {
         dtb.xoff(toVtblSymbol(tic), 0, TYnptr); // vtbl for ClassInfo
@@ -1601,10 +1618,4 @@ private void genClassInfoForInterface(InterfaceDeclaration id)
     dtb.nbytes(cast(uint)(namelen + 1), name);
     const size_t namepad =  -(namelen + 1) & (target.ptrsize - 1); // align
     dtb.nzeros(cast(uint)namepad);
-
-    id.csym.Sdt = dtb.finish();
-    out_readonly(id.csym);
-    outdata(id.csym);
-    if (id.isExport() || driverParams.exportVisibility == ExpVis.public_)
-        objmod.export_symbol(id.csym, 0);
 }
