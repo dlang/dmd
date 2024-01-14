@@ -7312,7 +7312,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             Objects dedtypes = Objects(e.parameters.length);
             dedtypes.zero();
 
-            MATCH m = deduceType(e.targ, sc, e.tspec, e.parameters, dedtypes, null, 0, e.tok == TOK.equal);
+            MATCH m = deduceType(e.targ, sc, e.tspec, *e.parameters, dedtypes, null, 0, e.tok == TOK.equal);
 
             if (m == MATCH.nomatch || (m != MATCH.exact && e.tok == TOK.equal))
             {
