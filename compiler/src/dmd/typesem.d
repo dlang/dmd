@@ -519,6 +519,77 @@ Expression typeToExpression(Type t)
     }
 }
 
+/*************************************
+ * https://issues.dlang.org/show_bug.cgi?id=14488
+ * Check if the inner most base type is complex or imaginary.
+ * Should only give alerts when set to emit transitional messages.
+ * Params:
+ *  type = type to check
+ *  loc = The source location.
+ *  sc = scope of the type
+ */
+extern (D) bool checkComplexTransition(Type type, const ref Loc loc, Scope* sc)
+{
+    if (sc.isDeprecated())
+        return false;
+    // Don't complain if we're inside a template constraint
+    // https://issues.dlang.org/show_bug.cgi?id=21831
+    if (sc.flags & SCOPE.constraint)
+        return false;
+
+    Type t = type.baseElemOf();
+    while (t.ty == Tpointer || t.ty == Tarray)
+        t = t.nextOf().baseElemOf();
+
+    // Basetype is an opaque enum, nothing to check.
+    if (t.ty == Tenum && !(cast(TypeEnum)t).sym.memtype)
+        return false;
+
+    if (t.isimaginary() || t.iscomplex())
+    {
+        if (sc.flags & SCOPE.Cfile)
+            return true;            // complex/imaginary not deprecated in C code
+        Type rt;
+        switch (t.ty)
+        {
+        case Tcomplex32:
+        case Timaginary32:
+            rt = Type.tfloat32;
+            break;
+
+        case Tcomplex64:
+        case Timaginary64:
+            rt = Type.tfloat64;
+            break;
+
+        case Tcomplex80:
+        case Timaginary80:
+            rt = Type.tfloat80;
+            break;
+
+        default:
+            assert(0);
+        }
+        // @@@DEPRECATED_2.117@@@
+        // Deprecated in 2.097 - Can be made an error from 2.117.
+        // The deprecation period is longer than usual as `cfloat`,
+        // `cdouble`, and `creal` were quite widely used.
+        if (t.iscomplex())
+        {
+            deprecation(loc, "use of complex type `%s` is deprecated, use `std.complex.Complex!(%s)` instead",
+                type.toChars(), rt.toChars());
+            return true;
+        }
+        else
+        {
+            deprecation(loc, "use of imaginary type `%s` is deprecated, use `%s` instead",
+                type.toChars(), rt.toChars());
+            return true;
+        }
+    }
+    return false;
+}
+
 /********************************
  * 'args' are being matched to function type 'tf'
  * Determine match level.
