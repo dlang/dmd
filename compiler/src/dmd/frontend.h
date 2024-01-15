@@ -148,7 +148,6 @@ class TemplateThisParameter;
 class TemplateTupleParameter;
 struct TemplatePrevious;
 class TypeQualified;
-struct TYPE;
 class TypeBasic;
 class TypeFunction;
 class TypeError;
@@ -1738,7 +1737,7 @@ public:
     Type* rto;
     Type* arrayof;
     TypeInfoDeclaration* vtinfo;
-    TYPE* ctype;
+    void* ctype;
     static Type* tvoid;
     static Type* tint8;
     static Type* tuns8;
