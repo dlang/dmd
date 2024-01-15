@@ -1,4 +1,4 @@
-# druntime DLL not supported on Windows yet
+# druntime DLL only partially supported on Windows
 LINK_SHARED:=$(if $(findstring $(OS),windows),$(SHARED),1)
 
 include ../common.mak # affected by LINK_SHARED!
@@ -9,7 +9,9 @@ ifeq (windows,$(OS))
 
 TESTS:=loadlibwin dllrefcount dllgc dynamiccast
 ifeq ($(SHARED),1)
+TESTS+=link
 DFLAGS+=-version=SharedRuntime
+PATH:=$(dir $(DRUNTIMESO));$(PATH)
 endif
 
 all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))
@@ -40,6 +42,10 @@ $(ROOT)/dllgc$(DOTEXE): $(SRC)/dllgc.d
 $(ROOT)/dynamiccast$(DOTEXE): $(SRC)/dynamiccast.d
 	$(QUIET)$(DMD) $(DFLAGS) -version=DLL -shared -of$(ROOT)/dynamiccast$(DOTDLL) $<
 	$(QUIET)$(DMD) $(DFLAGS) -of$@ $<
+
+$(ROOT)/link$(DOTEXE): $(SRC)/link.d $(SRC)/lib.d $(DRUNTIMESO)
+	$(QUIET)$(DMD) $(DFLAGS) -shared -of$(ROOT)/lib$(DOTDLL) -visibility=public $(SRC)/lib.d
+	$(QUIET)$(DMD) $(subst defaultLibsOnly,all,$(DFLAGS)) -of$@ $(SRC)/link.d $(ROOT)/lib$(DOTLIB)
 
 else # Posix:
 
