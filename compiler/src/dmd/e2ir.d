@@ -4675,6 +4675,11 @@ elem *toElemCast(CastExp ce, elem *e, bool isLvalue, ref IRState irs)
                 //printf("cdfrom: %s cdto: %s\n", cdfrom.toChars(), cdto.toChars());
                 rtl = RTLSYM.PAINT_CAST;
             }
+            else if (rtl == RTLSYM.DYNAMIC_CAST &&
+                     !cdto.isInterfaceDeclaration())
+            {
+                rtl = RTLSYM.CLASS_CAST;
+            }
             elem *ep = el_param(el_ptr(toExtSymbol(cdto)), e);
             e = el_bin(OPcall, TYnptr, el_var(getRtlsym(rtl)), ep);
         }

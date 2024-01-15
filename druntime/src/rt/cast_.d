@@ -58,7 +58,7 @@ Object _d_toObject(return scope void* p)
 }
 
 /*************************************
- * Attempts to cast Object o to class c.
+ * Attempts to cast interface Object o to class c.
  * Returns o if successful, null if not.
  */
 void* _d_interface_cast(void* p, ClassInfo c)
@@ -70,9 +70,20 @@ void* _d_interface_cast(void* p, ClassInfo c)
     Interface* pi = **cast(Interface***) p;
 
     debug(cast_) printf("\tpi.offset = %d\n", pi.offset);
-    return _d_dynamic_cast(cast(Object)(p - pi.offset), c);
+    Object o2 = cast(Object)(p - pi.offset);
+    void* res = null;
+    size_t offset = 0;
+    if (o2 && _d_isbaseof2(typeid(o2), c, offset))
+    {
+        debug(cast_) printf("\toffset = %d\n", offset);
+        res = cast(void*) o2 + offset;
+    }
+    debug(cast_) printf("\tresult = %p\n", res);
+    return res;
 }
 
+/* Dynamic cast from class to class or interface
+ */
 void* _d_dynamic_cast(Object o, ClassInfo c)
 {
     debug(cast_) printf("_d_dynamic_cast(o = %p, c = '%.*s')\n", o, c.name);
@@ -88,6 +99,29 @@ void* _d_dynamic_cast(Object o, ClassInfo c)
     return res;
 }
 
+/* Dynamic cast from a class to a class
+ */
+void* _d_class_cast(Object o, ClassInfo c)
+{
+    debug(cast_) printf("_d_cast_cast(o = %p, c = '%.*s')\n", o, c.name);
+
+    if (!o)
+        return null;
+
+    ClassInfo oc = typeid(o);
+    do
+    {
+        if (areClassInfosEqual(oc, c))
+            return cast(void*)o;
+        oc = oc.base;
+    } while (oc);
+
+    debug(cast_) printf("\tresult = %p\n", res);
+    return null;
+}
+
+/* Dynamic cast from a class to a final class only one level down
+ */
 void* _d_paint_cast(Object o, ClassInfo c)
 {
     /* If o is really an instance of c, just do a paint
