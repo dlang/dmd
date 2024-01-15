@@ -463,6 +463,90 @@ bool isCopyable(Type t)
     return true;
 }
 
+/************************************
+ * Determine mutability of indirections in (ref) t.
+ *
+ * Returns: When the type has any mutable indirections, returns 0.
+ * When all indirections are immutable, returns 2.
+ * Otherwise, when the type has const/inout indirections, returns 1.
+ *
+ * Params:
+ *      isref = if true, check `ref t`; otherwise, check just `t`
+ *      t = the type that is being checked
+ */
+int mutabilityOfType(bool isref, Type t)
+{
+    if (isref)
+    {
+        if (t.mod & MODFlags.immutable_)
+            return 2;
+        if (t.mod & (MODFlags.const_ | MODFlags.wild))
+            return 1;
+        return 0;
+    }
+
+    t = t.baseElemOf();
+
+    if (!t.hasPointers() || t.mod & MODFlags.immutable_)
+        return 2;
+
+    /* Accept immutable(T)[] and immutable(T)* as being strongly pure
+     */
+    if (t.ty == Tarray || t.ty == Tpointer)
+    {
+        Type tn = t.nextOf().toBasetype();
+        if (tn.mod & MODFlags.immutable_)
+            return 2;
+        if (tn.mod & (MODFlags.const_ | MODFlags.wild))
+            return 1;
+    }
+
+    /* The rest of this is too strict; fix later.
+     * For example, the only pointer members of a struct may be immutable,
+     * which would maintain strong purity.
+     * (Just like for dynamic arrays and pointers above.)
+     */
+    if (t.mod & (MODFlags.const_ | MODFlags.wild))
+        return 1;
+
+    /* Should catch delegates and function pointers, and fold in their purity
+     */
+    return 0;
+}
+
+/********************************************
+ * Set 'purity' field of 'typeFunction'.
+ * Do this lazily, as the parameter types might be forward referenced.
+ */
+extern(C++) void purityLevel(TypeFunction typeFunction)
+{
+    TypeFunction tf = typeFunction;
+    if (tf.purity != PURE.fwdref)
+        return;
+
+    typeFunction.purity = PURE.const_; // assume strong until something weakens it
+
+    /* Evaluate what kind of purity based on the modifiers for the parameters
+     */
+    foreach (i, fparam; tf.parameterList)
+    {
+        Type t = fparam.type;
+        if (!t)
+            continue;
+
+        if (fparam.storageClass & (STC.lazy_ | STC.out_))
+        {
+            typeFunction.purity = PURE.weak;
+            break;
+        }
+        const pref = (fparam.storageClass & STC.ref_) != 0;
+        if (mutabilityOfType(pref, t) == 0)
+            typeFunction.purity = PURE.weak;
+    }
+
+    tf.purity = typeFunction.purity;
+}
+
 /******************************************
  * We've mistakenly parsed `t` as a type.
  * Redo `t` as an Expression only if there are no type modifiers.
