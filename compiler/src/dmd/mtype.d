@@ -23,7 +23,6 @@ import dmd.astenums;
 import dmd.ast_node;
 import dmd.gluelayer;
 import dmd.dclass;
-import dmd.dcast;
 import dmd.declaration;
 import dmd.denum;
 import dmd.dscope;
@@ -37,9 +36,7 @@ import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
-import dmd.init;
 import dmd.location;
-import dmd.opover;
 import dmd.root.ctfloat;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
@@ -6256,39 +6253,6 @@ bool isIndexableNonAggregate(Type t)
     t = t.toBasetype();
     return (t.ty == Tpointer || t.ty == Tsarray || t.ty == Tarray || t.ty == Taarray ||
             t.ty == Ttuple || t.ty == Tvector);
-}
-
-/***************************************************
- * Determine if type t is copyable.
- * Params:
- *      t = type to check
- * Returns:
- *      true if we can copy it
- */
-bool isCopyable(Type t)
-{
-    //printf("isCopyable() %s\n", t.toChars());
-    if (auto ts = t.isTypeStruct())
-    {
-        if (ts.sym.postblit &&
-            ts.sym.postblit.storage_class & STC.disable)
-            return false;
-        if (ts.sym.hasCopyCtor)
-        {
-            // check if there is a matching overload of the copy constructor and whether it is disabled or not
-            // `assert(ctor)` fails on Win32 and Win_32_64. See: https://auto-tester.puremagic.com/pull-history.ghtml?projectid=1&repoid=1&pullid=10575
-            Dsymbol ctor = search_function(ts.sym, Id.ctor);
-            assert(ctor);
-            scope el = new IdentifierExp(Loc.initial, Id.p); // dummy lvalue
-            el.type = cast() ts;
-            Expressions* args = new Expressions();
-            args.push(el);
-            FuncDeclaration f = resolveFuncCall(Loc.initial, null, ctor, null, cast()ts, ArgumentList(args), FuncResolveFlag.quiet);
-            if (!f || f.storage_class & STC.disable)
-                return false;
-        }
-    }
-    return true;
 }
 
 /***************************************
