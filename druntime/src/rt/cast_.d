@@ -82,7 +82,13 @@ void* _d_interface_cast(void* p, ClassInfo c)
     return res;
 }
 
-/* Dynamic cast from class to class or interface
+/*****
+ * Dynamic cast from a class object `o` to class or interface `c`, where `c` is a subtype of `o`.
+ * Params:
+ *      o = instance of class
+ *      c = a subclass of o
+ * Returns:
+ *      null if o is null or c is not a subclass of o. Otherwise, return o.
  */
 void* _d_dynamic_cast(Object o, ClassInfo c)
 {
@@ -99,28 +105,54 @@ void* _d_dynamic_cast(Object o, ClassInfo c)
     return res;
 }
 
-/* Dynamic cast from a class to a class
+/*****
+ * Dynamic cast from a class object o to class c, where c is a subclass of o.
+ * Params:
+ *      o = instance of class
+ *      c = a subclass of o
+ * Returns:
+ *      null if o is null or c is not a subclass of o. Otherwise, return o.
  */
 void* _d_class_cast(Object o, ClassInfo c)
 {
-    debug(cast_) printf("_d_cast_cast(o = %p, c = '%.*s')\n", o, c.name);
+    debug(cast_) printf("_d_cast_cast(o = %p, c = '%.*s', level %d)\n", o, c.name, level);
 
     if (!o)
         return null;
 
     ClassInfo oc = typeid(o);
+    int delta = oc.depth;
+
+    if (delta && c.depth)
+    {
+        delta -= c.depth;
+        if (delta < 0)
+            return null;
+
+        while (delta--)
+            oc = oc.base;
+        if (areClassInfosEqual(oc, c))
+            return cast(void*)o;
+        return null;
+    }
+
+    // no depth data - support the old way
     do
     {
         if (areClassInfosEqual(oc, c))
             return cast(void*)o;
         oc = oc.base;
     } while (oc);
-
-    debug(cast_) printf("\tresult = %p\n", res);
     return null;
 }
 
-/* Dynamic cast from a class to a final class only one level down
+/**
+ * Dynamic cast `o` to final class `c` only one level down
+ * Params:
+ *      o = object that is instance of a class
+ *      c = class to cast it to
+ * Returns:
+ *      o if it succeeds, null if it fails
  */
 void* _d_paint_cast(Object o, ClassInfo c)
 {

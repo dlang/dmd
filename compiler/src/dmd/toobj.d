@@ -1260,6 +1260,7 @@ private void ClassInfoToDt(ref DtBuilder dtb, ClassDeclaration cd, Symbol* sinit
             void* destructor;
             void function(Object) classInvariant;   // class invariant
             ClassFlags m_flags;
+            ushort depth;
             void* deallocator;
             OffsetTypeInfo[] offTi;
             void function(Object) defaultConstructor;
@@ -1367,7 +1368,13 @@ Louter:
             }
         }
     }
-    dtb.size(flags);
+
+    int depth = 0;
+    for (ClassDeclaration pc = cd; pc; pc = pc.baseClass)
+        ++depth;  // distance to Object
+
+    // m_flags and depth, align to size_t
+    dtb.size((depth << 16) | flags);
 
     // deallocator
     dtb.size(0);
@@ -1499,6 +1506,7 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
             void* destructor;
             void function(Object) classInvariant;   // class invariant
             ClassFlags m_flags;
+            ushort depth;
             void* deallocator;
             OffsetTypeInfo[] offTi;
             void function(Object) defaultConstructor;
@@ -1566,7 +1574,7 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
     // flags
     ClassFlags flags = ClassFlags.hasOffTi | ClassFlags.hasTypeInfo;
     if (id.isCOMinterface()) flags |= ClassFlags.isCOMclass;
-    dtb.size(flags);
+    dtb.size(flags); // depth part is 0
 
     // deallocator
     dtb.size(0);
