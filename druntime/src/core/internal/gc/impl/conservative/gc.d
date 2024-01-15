@@ -160,7 +160,7 @@ class ConservativeGC : GC
 
     Gcx *gcx;                   // implementation
 
-    static gcLock = shared(AlignedSpinLock)(SpinLock.Contention.lengthy);
+    static gcLock = shared(AlignedSpinLock)(SpinLock.Contention.brief);
     static bool _inFinalizer;
     __gshared bool isPrecise = false;
 
