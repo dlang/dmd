@@ -21,7 +21,6 @@ import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.ast_node;
-import dmd.gluelayer;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.denum;
@@ -357,7 +356,7 @@ extern (C++) abstract class Type : ASTNode
 
     TypeInfoDeclaration vtinfo;     // TypeInfo object for this Type
 
-    type* ctype;                    // for back end
+    void* ctype;                    // for back end
 
     extern (C++) __gshared Type tvoid;
     extern (C++) __gshared Type tint8;
