@@ -596,7 +596,6 @@ public:
     static TypeFunction *create(Parameters *parameters, Type *treturn, VarArg varargs, LINK linkage, StorageClass stc = 0);
     const char *kind() override;
     TypeFunction *syntaxCopy() override;
-    void purityLevel();
     bool hasLazyParameters();
     bool isDstyleVariadic() const;
     Type *addStorageClass(StorageClass stc) override;
@@ -909,3 +908,4 @@ Dsymbol *toDsymbol(Type *t, Scope *sc);
 Covariant covariant(Type *, Type *, StorageClass * = NULL, bool = false);
 bool isBaseOf(Type *tthis, Type *t, int *poffset);
 Type *trySemantic(Type *type, const Loc &loc, Scope *sc);
+void purityLevel(TypeFunction *type);

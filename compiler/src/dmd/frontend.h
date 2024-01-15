@@ -4537,7 +4537,6 @@ public:
     static TypeFunction* create(Array<Parameter* >* parameters, Type* treturn, uint8_t varargs, LINK linkage, StorageClass stc = 0);
     const char* kind() const override;
     TypeFunction* syntaxCopy() override;
-    void purityLevel();
     bool hasLazyParameters();
     bool isDstyleVariadic() const;
     Type* addStorageClass(StorageClass stc) override;
@@ -5423,6 +5422,8 @@ extern bool hasPointers(Type* t);
 extern bool isBaseOf(Type* tthis, Type* t, int32_t* poffset);
 
 extern Type* merge(Type* type);
+
+extern void purityLevel(TypeFunction* typeFunction);
 
 extern Dsymbol* toDsymbol(Type* type, Scope* sc);
 

@@ -1471,6 +1471,9 @@ extern (C++) class FuncDeclaration : Declaration
     final PURE isPure()
     {
         //printf("FuncDeclaration::isPure() '%s'\n", toChars());
+
+        import dmd.typesem : purityLevel;
+
         TypeFunction tf = type.toTypeFunction();
         if (purityInprocess)
             setImpure();
