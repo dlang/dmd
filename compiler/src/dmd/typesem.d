@@ -494,12 +494,12 @@ Expression typeToExpression(Type t)
  *      tthis = type of `this` pointer, null if not member function
  *      argumentList = arguments to function call
  *      flag = 1: performing a partial ordering match
- *      pMessage = address to store error message, or null
+ *      errorHelper = delegate to call for error messages
  *      sc = context
  * Returns:
  *      MATCHxxxx
  */
-extern (D) MATCH callMatch(TypeFunction tf, Type tthis, ArgumentList argumentList, int flag = 0, const(char)** pMessage = null, Scope* sc = null)
+extern (D) MATCH callMatch(TypeFunction tf, Type tthis, ArgumentList argumentList, int flag = 0, void delegate(const(char)*) scope errorHelper = null, Scope* sc = null)
 {
     //printf("TypeFunction::callMatch() %s\n", tf.toChars());
     MATCH match = MATCH.exact; // assume exact match
@@ -542,7 +542,7 @@ extern (D) MATCH callMatch(TypeFunction tf, Type tthis, ArgumentList argumentLis
         {
             // suppress early exit if an error message is wanted,
             // so we can check any matching args are valid
-            if (!pMessage)
+            if (!errorHelper)
                 return MATCH.nomatch;
         }
         // too many args; no match
@@ -552,18 +552,25 @@ extern (D) MATCH callMatch(TypeFunction tf, Type tthis, ArgumentList argumentLis
     // https://issues.dlang.org/show_bug.cgi?id=22997
     if (parameterList.varargs == VarArg.none && nparams > argumentList.length && !parameterList.hasDefaultArgs)
     {
-        OutBuffer buf;
-        buf.printf("too few arguments, expected %d, got %d", cast(int)nparams, cast(int)argumentList.length);
-        if (pMessage)
-            *pMessage = buf.extractChars();
+        if (errorHelper)
+        {
+            OutBuffer buf;
+            buf.printf("too few arguments, expected %d, got %d", cast(int)nparams, cast(int)argumentList.length);
+            errorHelper(buf.peekChars());
+        }
         return MATCH.nomatch;
     }
+    const(char)* failMessage;
+    const(char)** pMessage = errorHelper ? &failMessage : null;
     auto resolvedArgs = tf.resolveNamedArgs(argumentList, pMessage);
     Expression[] args;
     if (!resolvedArgs)
     {
-        if (!pMessage || *pMessage)
+        if (failMessage)
+        {
+            errorHelper(failMessage);
             return MATCH.nomatch;
+        }
 
         // if no message was provided, it was because of overflow which will be diagnosed below
         match = MATCH.nomatch;
@@ -642,6 +649,8 @@ extern (D) MATCH callMatch(TypeFunction tf, Type tthis, ArgumentList argumentLis
                 if (auto vmatch = matchTypeSafeVarArgs(tf, p, trailingArgs, pMessage))
                     return vmatch < match ? vmatch : match;
                 // Error message was already generated in `matchTypeSafeVarArgs`
+                if (failMessage)
+                    errorHelper(failMessage);
                 return MATCH.nomatch;
             }
             if (pMessage && u >= args.length)
@@ -651,16 +660,18 @@ extern (D) MATCH callMatch(TypeFunction tf, Type tthis, ArgumentList argumentLis
             else if (pMessage && !*pMessage)
                 *pMessage = tf.getParamError(args[u], p);
 
+            if (errorHelper)
+                errorHelper(*pMessage);
             return MATCH.nomatch;
         }
         if (m < match)
             match = m; // pick worst match
     }
 
-    if (pMessage && !parameterList.varargs && args.length > nparams)
+    if (errorHelper && !parameterList.varargs && args.length > nparams)
     {
         // all parameters had a match, but there are surplus args
-        *pMessage = tf.getMatchError("expected %d argument(s), not %d", nparams, args.length);
+        errorHelper(tf.getMatchError("expected %d argument(s), not %d", nparams, args.length));
         return MATCH.nomatch;
     }
     //printf("match = %d\n", match);

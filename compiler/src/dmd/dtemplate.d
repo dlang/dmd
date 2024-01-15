@@ -2735,7 +2735,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
         }
         const(char)* failMessage;
         const(char)** pMessage = errorHelper ? &failMessage : null;
-        MATCH mfa = tf.callMatch(tthis_fd, argumentList, 0, pMessage, sc);
+        MATCH mfa = tf.callMatch(tthis_fd, argumentList, 0, errorHelper, sc);
         //printf("test1: mfa = %d\n", mfa);
         if (failMessage)
             errorHelper(failMessage);

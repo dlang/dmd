@@ -6473,8 +6473,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
             }
 
-            const(char)* failMessage;
-            if (!tf.callMatch(null, exp.argumentList, 0, &failMessage, sc))
+            void errorHelper(const(char)* failMessage) scope
             {
                 OutBuffer buf;
                 buf.writeByte('(');
@@ -6488,8 +6487,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     p, exp.e1.toChars(), parametersTypeToChars(tf.parameterList), buf.peekChars());
                 if (failMessage)
                     errorSupplemental(exp.loc, "%s", failMessage);
-                return setError();
             }
+
+            if (tf.callMatch(null, exp.argumentList, 0, &errorHelper, sc) == MATCH.nomatch)
+                return setError();
+
             // Purity and safety check should run after testing arguments matching
             if (exp.f)
             {
@@ -6546,8 +6548,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 exp.f = exp.f.toAliasFunc();
                 TypeFunction tf = cast(TypeFunction)exp.f.type;
-                const(char)* failMessage;
-                if (!tf.callMatch(null, exp.argumentList, 0, &failMessage, sc))
+
+                void errorHelper2(const(char)* failMessage) scope
                 {
                     OutBuffer buf;
                     buf.writeByte('(');
@@ -6568,6 +6570,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         errorSupplemental(exp.loc, "%s", failMessage);
                     exp.f = null;
                 }
+
+                if (tf.callMatch(null, exp.argumentList, 0, &errorHelper2, sc) == MATCH.nomatch)
+                    exp.f = null;
             }
             if (!exp.f || exp.f.errors)
                 return setError();
