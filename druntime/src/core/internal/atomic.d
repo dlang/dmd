@@ -54,7 +54,8 @@ version (DigitalMars)
     inout(T) atomicLoad(MemoryOrder order = MemoryOrder.seq, T)(inout(T)* src) pure nothrow @nogc @trusted
         if (CanCAS!T)
     {
-        static assert(order != MemoryOrder.rel, "invalid MemoryOrder for atomicLoad()");
+        static assert(order != MemoryOrder.rel && order != MemoryOrder.acq_rel,
+                      "invalid MemoryOrder for atomicLoad()");
 
         static if (T.sizeof == size_t.sizeof * 2)
         {
@@ -171,7 +172,8 @@ version (DigitalMars)
     void atomicStore(MemoryOrder order = MemoryOrder.seq, T)(T* dest, T value) pure nothrow @nogc @trusted
         if (CanCAS!T)
     {
-        static assert(order != MemoryOrder.acq, "Invalid MemoryOrder for atomicStore()");
+        static assert(order != MemoryOrder.acq && order != MemoryOrder.acq_rel,
+                      "Invalid MemoryOrder for atomicStore()");
 
         static if (T.sizeof == size_t.sizeof * 2)
         {
@@ -293,6 +295,8 @@ version (DigitalMars)
     T atomicExchange(MemoryOrder order = MemoryOrder.seq, bool result = true, T)(T* dest, T value) pure nothrow @nogc @trusted
     if (CanCAS!T)
     {
+        static assert(order != MemoryOrder.acq, "Invalid MemoryOrder for atomicExchange()");
+
         version (D_InlineAsm_X86)
         {
             static assert(T.sizeof <= 4, "64bit atomicExchange not supported on 32bit target." );
@@ -705,40 +709,35 @@ else version (GNU)
     inout(T) atomicLoad(MemoryOrder order = MemoryOrder.seq, T)(inout(T)* src) pure nothrow @nogc @trusted
         if (CanCAS!T)
     {
-        // MemoryOrder.rel and MemoryOrder.acq_rel are not valid for load.
-        static assert(order != MemoryOrder.rel, "invalid MemoryOrder for atomicLoad()");
-
-        static if (order == MemoryOrder.acq_rel)
-            enum smodel = PreferAcquireRelease ? MemoryOrder.acq : MemoryOrder.seq;
-        else
-            enum smodel = order;
+        static assert(order != MemoryOrder.rel && order != MemoryOrder.acq_rel,
+                      "invalid MemoryOrder for atomicLoad()");
 
         static if (GNU_Have_Atomics || GNU_Have_LibAtomic)
         {
             static if (T.sizeof == ubyte.sizeof)
             {
-                ubyte value = __atomic_load_1(cast(shared)src, smodel);
+                ubyte value = __atomic_load_1(cast(shared)src, order);
                 return *cast(typeof(return)*)&value;
             }
             else static if (T.sizeof == ushort.sizeof)
             {
-                ushort value = __atomic_load_2(cast(shared)src, smodel);
+                ushort value = __atomic_load_2(cast(shared)src, order);
                 return *cast(typeof(return)*)&value;
             }
             else static if (T.sizeof == uint.sizeof)
             {
-                uint value = __atomic_load_4(cast(shared)src, smodel);
+                uint value = __atomic_load_4(cast(shared)src, order);
                 return *cast(typeof(return)*)&value;
             }
             else static if (T.sizeof == ulong.sizeof && GNU_Have_64Bit_Atomics)
             {
-                ulong value = __atomic_load_8(cast(shared)src, smodel);
+                ulong value = __atomic_load_8(cast(shared)src, order);
                 return *cast(typeof(return)*)&value;
             }
             else static if (GNU_Have_LibAtomic)
             {
                 T value;
-                __atomic_load(T.sizeof, cast(shared)src, &value, smodel);
+                __atomic_load(T.sizeof, cast(shared)src, &value, order);
                 return *cast(typeof(return)*)&value;
             }
             else
@@ -755,26 +754,21 @@ else version (GNU)
     void atomicStore(MemoryOrder order = MemoryOrder.seq, T)(T* dest, T value) pure nothrow @nogc @trusted
         if (CanCAS!T)
     {
-        // MemoryOrder.acq and MemoryOrder.acq_rel are not valid for store.
-        static assert(order != MemoryOrder.acq, "Invalid MemoryOrder for atomicStore()");
-
-        static if (order == MemoryOrder.acq_rel)
-            enum smodel = PreferAcquireRelease ? MemoryOrder.rel : MemoryOrder.seq;
-        else
-            enum smodel = order;
+        static assert(order != MemoryOrder.acq && order != MemoryOrder.acq_rel,
+                      "Invalid MemoryOrder for atomicStore()");
 
         static if (GNU_Have_Atomics || GNU_Have_LibAtomic)
         {
             static if (T.sizeof == ubyte.sizeof)
-                __atomic_store_1(cast(shared)dest, *cast(ubyte*)&value, smodel);
+                __atomic_store_1(cast(shared)dest, *cast(ubyte*)&value, order);
             else static if (T.sizeof == ushort.sizeof)
-                __atomic_store_2(cast(shared)dest, *cast(ushort*)&value, smodel);
+                __atomic_store_2(cast(shared)dest, *cast(ushort*)&value, order);
             else static if (T.sizeof == uint.sizeof)
-                __atomic_store_4(cast(shared)dest, *cast(uint*)&value, smodel);
+                __atomic_store_4(cast(shared)dest, *cast(uint*)&value, order);
             else static if (T.sizeof == ulong.sizeof && GNU_Have_64Bit_Atomics)
-                __atomic_store_8(cast(shared)dest, *cast(ulong*)&value, smodel);
+                __atomic_store_8(cast(shared)dest, *cast(ulong*)&value, order);
             else static if (GNU_Have_LibAtomic)
-                __atomic_store(T.sizeof, cast(shared)dest, cast(void*)&value, smodel);
+                __atomic_store(T.sizeof, cast(shared)dest, cast(void*)&value, order);
             else
                 static assert(0, "Invalid template type specified.");
         }
@@ -845,38 +839,34 @@ else version (GNU)
     T atomicExchange(MemoryOrder order = MemoryOrder.seq, bool result = true, T)(T* dest, T value) pure nothrow @nogc @trusted
         if (is(T : ulong) || is(T == class) || is(T == interface) || is(T U : U*))
     {
+        static assert(order != MemoryOrder.acq, "Invalid MemoryOrder for atomicExchange()");
+
         static if (GNU_Have_Atomics || GNU_Have_LibAtomic)
         {
-            // MemoryOrder.acq is not valid for exchange.
-            static if (order == MemoryOrder.acq)
-                enum smodel = PreferAcquireRelease ? MemoryOrder.acq_rel : MemoryOrder.seq;
-            else
-                enum smodel = order;
-
             static if (T.sizeof == byte.sizeof)
             {
-                ubyte res = __atomic_exchange_1(cast(shared)dest, *cast(ubyte*)&value, smodel);
+                ubyte res = __atomic_exchange_1(cast(shared)dest, *cast(ubyte*)&value, order);
                 return *cast(typeof(return)*)&res;
             }
             else static if (T.sizeof == short.sizeof)
             {
-                ushort res = __atomic_exchange_2(cast(shared)dest, *cast(ushort*)&value, smodel);
+                ushort res = __atomic_exchange_2(cast(shared)dest, *cast(ushort*)&value, order);
                 return *cast(typeof(return)*)&res;
             }
             else static if (T.sizeof == int.sizeof)
             {
-                uint res = __atomic_exchange_4(cast(shared)dest, *cast(uint*)&value, smodel);
+                uint res = __atomic_exchange_4(cast(shared)dest, *cast(uint*)&value, order);
                 return *cast(typeof(return)*)&res;
             }
             else static if (T.sizeof == long.sizeof && GNU_Have_64Bit_Atomics)
             {
-                ulong res = __atomic_exchange_8(cast(shared)dest, *cast(ulong*)&value, smodel);
+                ulong res = __atomic_exchange_8(cast(shared)dest, *cast(ulong*)&value, order);
                 return *cast(typeof(return)*)&res;
             }
             else static if (GNU_Have_LibAtomic)
             {
                 T res = void;
-                __atomic_exchange(T.sizeof, cast(shared)dest, cast(void*)&value, &res, smodel);
+                __atomic_exchange(T.sizeof, cast(shared)dest, cast(void*)&value, &res, order);
                 return res;
             }
             else

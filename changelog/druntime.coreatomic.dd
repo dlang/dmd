@@ -1,0 +1,8 @@
+Using an invalid MemoryOrder for core.atomic operations are now rejected at compile time
+
+The following core.atomic functions have become more restrictive:
+- atomicStore now rejects `MemoryOrder.acq_rel`. Previously it only rejected `MemoryOrder.acq`.
+- atomicLoad now rejects `MemoryOrder.acq_rel`. Previously it only rejected `MemoryOrder.rel`.
+- atomicExchange now rejects `MemoryOrder.acq`. Previously it accepted all MemoryOrders.
+
+Code that previously used any of these MemoryOrders should switch to `MemoryOrder.seq` instead.

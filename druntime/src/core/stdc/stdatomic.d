@@ -169,6 +169,7 @@ void atomic_flag_clear_explicit_impl()(atomic_flag* obj, memory_order order)
             break;
 
         case memory_order.memory_order_acquire:
+        case memory_order.memory_order_acq_rel:
             // Ideally this would error at compile time but alas it is not an intrinsic.
             // Note: this is not a valid memory order for this operation.
             atomicStore!(memory_order.memory_order_seq_cst)(&obj.b, false);
@@ -176,10 +177,6 @@ void atomic_flag_clear_explicit_impl()(atomic_flag* obj, memory_order order)
 
         case memory_order.memory_order_release:
             atomicStore!(memory_order.memory_order_release)(&obj.b, false);
-            break;
-
-        case memory_order.memory_order_acq_rel:
-            atomicStore!(memory_order.memory_order_acq_rel)(&obj.b, false);
             break;
 
         case memory_order.memory_order_seq_cst:
@@ -216,7 +213,9 @@ bool atomic_flag_test_and_set_explicit_impl()(atomic_flag* obj, memory_order ord
             return atomicExchange!(memory_order.memory_order_relaxed)(&obj.b, true);
 
         case memory_order.memory_order_acquire:
-            return atomicExchange!(memory_order.memory_order_acquire)(&obj.b, true);
+            // Ideally this would error at compile time but alas it is not an intrinsic.
+            // Note: this is not a valid memory order for this operation.
+            return atomicExchange!(memory_order.memory_order_seq_cst)(&obj.b, true);
 
         case memory_order.memory_order_release:
             return atomicExchange!(memory_order.memory_order_release)(&obj.b, true);
@@ -436,6 +435,7 @@ void atomic_store_explicit_impl(A, C)(shared(A)* obj, C desired, memory_order or
             break;
 
         case memory_order.memory_order_acquire:
+        case memory_order.memory_order_acq_rel:
             // Ideally this would error at compile time but alas it is not an intrinsic.
             // Note: this is not a valid memory order for this operation.
             atomicStore!(memory_order.memory_order_release)(obj, cast(A)desired);
@@ -443,10 +443,6 @@ void atomic_store_explicit_impl(A, C)(shared(A)* obj, C desired, memory_order or
 
         case memory_order.memory_order_release:
             atomicStore!(memory_order.memory_order_release)(obj, cast(A)desired);
-            break;
-
-        case memory_order.memory_order_acq_rel:
-            atomicStore!(memory_order.memory_order_acq_rel)(obj, cast(A)desired);
             break;
 
         case memory_order.memory_order_seq_cst:
@@ -492,12 +488,10 @@ A atomic_load_explicit_impl(A)(const shared(A)* obj, memory_order order) @truste
             return atomicLoad!(memory_order.memory_order_acquire)(obj);
 
         case memory_order.memory_order_release:
+        case memory_order.memory_order_acq_rel:
             // Ideally this would error at compile time but alas it is not an intrinsic.
             // Note: this is not a valid memory order for this operation.
             return atomicLoad!(memory_order.memory_order_acquire)(obj);
-
-        case memory_order.memory_order_acq_rel:
-            return atomicLoad!(memory_order.memory_order_acq_rel)(obj);
 
         case memory_order.memory_order_seq_cst:
             return atomicLoad!(memory_order.memory_order_seq_cst)(obj);
@@ -538,7 +532,9 @@ A atomic_exchange_explicit_impl(A, C)(shared(A)* obj, C desired, memory_order or
             return atomicExchange!(memory_order.memory_order_relaxed)(obj, cast(A)desired);
 
         case memory_order.memory_order_acquire:
-            return atomicExchange!(memory_order.memory_order_acquire)(obj, cast(A)desired);
+            // Ideally this would error at compile time but alas it is not an intrinsic.
+            // Note: this is not a valid memory order for this operation.
+            return atomicExchange!(memory_order.memory_order_seq_cst)(obj, cast(A)desired);
 
         case memory_order.memory_order_release:
             return atomicExchange!(memory_order.memory_order_release)(obj, cast(A)desired);
