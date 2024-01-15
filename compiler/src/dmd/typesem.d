@@ -430,6 +430,39 @@ private Dsymbol searchX(Dsymbol dsym, const ref Loc loc, Scope* sc, RootObject i
     return sm;
 }
 
+/***************************************************
+ * Determine if type t is copyable.
+ * Params:
+ *      t = type to check
+ * Returns:
+ *      true if we can copy it
+ */
+bool isCopyable(Type t)
+{
+    //printf("isCopyable() %s\n", t.toChars());
+    if (auto ts = t.isTypeStruct())
+    {
+        if (ts.sym.postblit &&
+            ts.sym.postblit.storage_class & STC.disable)
+            return false;
+        if (ts.sym.hasCopyCtor)
+        {
+            // check if there is a matching overload of the copy constructor and whether it is disabled or not
+            // `assert(ctor)` fails on Win32 and Win_32_64. See: https://auto-tester.puremagic.com/pull-history.ghtml?projectid=1&repoid=1&pullid=10575
+            Dsymbol ctor = search_function(ts.sym, Id.ctor);
+            assert(ctor);
+            scope el = new IdentifierExp(Loc.initial, Id.p); // dummy lvalue
+            el.type = cast() ts;
+            Expressions* args = new Expressions();
+            args.push(el);
+            FuncDeclaration f = resolveFuncCall(Loc.initial, null, ctor, null, cast()ts, ArgumentList(args), FuncResolveFlag.quiet);
+            if (!f || f.storage_class & STC.disable)
+                return false;
+        }
+    }
+    return true;
+}
+
 /******************************************
  * We've mistakenly parsed `t` as a type.
  * Redo `t` as an Expression only if there are no type modifiers.
