@@ -775,7 +775,7 @@ pragma(inline, true)
 A atomic_fetch_add_impl(A, M)(shared(A)* obj, M arg) @trusted
 {
     assert(obj !is null);
-    return atomicFetchAdd(cast(A*)obj, arg);
+    return atomic_fetch_op!(memory_order.memory_order_seq_cst, "+=")(cast(A*)obj, arg);
 }
 
 ///
@@ -790,7 +790,7 @@ pragma(inline, true)
 A atomic_fetch_sub_impl(A, M)(shared(A)* obj, M arg) @trusted
 {
     assert(obj !is null);
-    return atomicFetchSub(cast(A*)obj, arg);
+    return atomic_fetch_op!(memory_order.memory_order_seq_cst, "-=")(cast(A*)obj, arg);
 }
 
 ///
@@ -810,15 +810,15 @@ A atomic_fetch_add_explicit_impl(A, M)(shared(A)* obj, M arg, memory_order order
     final switch(order)
     {
         case memory_order.memory_order_relaxed:
-            return atomicFetchAdd!(memory_order.memory_order_relaxed)(cast(A*)obj, arg);
+            return atomic_fetch_op!(memory_order.memory_order_relaxed, "+=")(cast(A*)obj, arg);
         case memory_order.memory_order_acquire:
-            return atomicFetchAdd!(memory_order.memory_order_acquire)(cast(A*)obj, arg);
+            return atomic_fetch_op!(memory_order.memory_order_acquire, "+=")(cast(A*)obj, arg);
         case memory_order.memory_order_release:
-            return atomicFetchAdd!(memory_order.memory_order_release)(cast(A*)obj, arg);
+            return atomic_fetch_op!(memory_order.memory_order_release, "+=")(cast(A*)obj, arg);
         case memory_order.memory_order_acq_rel:
-            return atomicFetchAdd!(memory_order.memory_order_acq_rel)(cast(A*)obj, arg);
+            return atomic_fetch_op!(memory_order.memory_order_acq_rel, "+=")(cast(A*)obj, arg);
         case memory_order.memory_order_seq_cst:
-            return atomicFetchAdd!(memory_order.memory_order_seq_cst)(cast(A*)obj, arg);
+            return atomic_fetch_op!(memory_order.memory_order_seq_cst, "+=")(cast(A*)obj, arg);
     }
 }
 
@@ -839,15 +839,15 @@ A atomic_fetch_sub_explicit_impl(A, M)(shared(A)* obj, M arg, memory_order order
     final switch(order)
     {
         case memory_order.memory_order_relaxed:
-            return atomicFetchSub!(memory_order.memory_order_relaxed)(cast(A*)obj, arg);
+            return atomic_fetch_op!(memory_order.memory_order_relaxed, "-=")(cast(A*)obj, arg);
         case memory_order.memory_order_acquire:
-            return atomicFetchSub!(memory_order.memory_order_acquire)(cast(A*)obj, arg);
+            return atomic_fetch_op!(memory_order.memory_order_acquire, "-=")(cast(A*)obj, arg);
         case memory_order.memory_order_release:
-            return atomicFetchSub!(memory_order.memory_order_release)(cast(A*)obj, arg);
+            return atomic_fetch_op!(memory_order.memory_order_release, "-=")(cast(A*)obj, arg);
         case memory_order.memory_order_acq_rel:
-            return atomicFetchSub!(memory_order.memory_order_acq_rel)(cast(A*)obj, arg);
+            return atomic_fetch_op!(memory_order.memory_order_acq_rel, "-=")(cast(A*)obj, arg);
         case memory_order.memory_order_seq_cst:
-            return atomicFetchSub!(memory_order.memory_order_seq_cst)(cast(A*)obj, arg);
+            return atomic_fetch_op!(memory_order.memory_order_seq_cst, "-=")(cast(A*)obj, arg);
     }
 }
 
@@ -864,17 +864,7 @@ pragma(inline, true)
 A atomic_fetch_or_impl(A, M)(shared(A)* obj, M arg) @trusted
 {
     assert(obj !is null);
-
-    // copied from atomicOp
-
-    A set, get = atomicLoad(cast(A*)obj);
-
-    do
-    {
-        set = get | arg;
-    } while (!atomicCompareExchangeWeak!(memory_order.memory_order_seq_cst, memory_order.memory_order_seq_cst)(cast(A*)obj, &get, cast(A)set));
-
-    return get;
+    return atomic_fetch_op!(memory_order.memory_order_seq_cst, "|=")(cast(A*)obj, arg);
 }
 
 ///
@@ -891,52 +881,19 @@ A atomic_fetch_or_explicit_impl(A, M)(shared(A)* obj, M arg, memory_order order)
 {
     assert(obj !is null);
 
-    A set, get;
-
     final switch(order)
     {
         case memory_order.memory_order_relaxed:
-            get = atomicLoad!(memory_order.memory_order_relaxed)(cast(A*)obj);
-            do
-            {
-                set = get | arg;
-            } while (!atomicCompareExchangeWeak!(memory_order.memory_order_relaxed, memory_order.memory_order_relaxed)(cast(A*)obj, &get, cast(A)set));
-            break;
-
+            return atomic_fetch_op!(memory_order.memory_order_relaxed, "|=")(cast(A*)obj, arg);
         case memory_order.memory_order_acquire:
-            get = atomicLoad!(memory_order.memory_order_acquire)(cast(A*)obj);
-            do
-            {
-                set = get | arg;
-            } while (!atomicCompareExchangeWeak!(memory_order.memory_order_acquire, memory_order.memory_order_acquire)(cast(A*)obj, &get, cast(A)set));
-            break;
-
+            return atomic_fetch_op!(memory_order.memory_order_acquire, "|=")(cast(A*)obj, arg);
         case memory_order.memory_order_release:
-            get = atomicLoad!(memory_order.memory_order_relaxed)(cast(A*)obj);
-            do
-            {
-                set = get | arg;
-            } while (!atomicCompareExchangeWeak!(memory_order.memory_order_release, memory_order.memory_order_release)(cast(A*)obj, &get, cast(A)set));
-            break;
-
+            return atomic_fetch_op!(memory_order.memory_order_release, "|=")(cast(A*)obj, arg);
         case memory_order.memory_order_acq_rel:
-            get = atomicLoad!(memory_order.memory_order_acq_rel)(cast(A*)obj);
-            do
-            {
-                set = get | arg;
-            } while (!atomicCompareExchangeWeak!(memory_order.memory_order_acq_rel, memory_order.memory_order_acq_rel)(cast(A*)obj, &get, cast(A)set));
-            break;
-
+            return atomic_fetch_op!(memory_order.memory_order_acq_rel, "|=")(cast(A*)obj, arg);
         case memory_order.memory_order_seq_cst:
-            get = atomicLoad!(memory_order.memory_order_relaxed)(cast(A*)obj);
-            do
-            {
-                set = get | arg;
-            } while (!atomicCompareExchangeWeak!(memory_order.memory_order_seq_cst, memory_order.memory_order_seq_cst)(cast(A*)obj, &get, cast(A)set));
-            break;
+            return atomic_fetch_op!(memory_order.memory_order_seq_cst, "|=")(cast(A*)obj, arg);
     }
-
-    return get;
 }
 
 ///
@@ -952,17 +909,7 @@ pragma(inline, true)
 A atomic_fetch_xor_impl(A, M)(shared(A)* obj, M arg) @trusted
 {
     assert(obj !is null);
-
-    // copied from atomicOp
-
-    A set, get = atomicLoad(cast(A*)obj);
-
-    do
-    {
-        set = get ^ arg;
-    } while (!atomicCompareExchangeWeak!(memory_order.memory_order_seq_cst, memory_order.memory_order_seq_cst)(cast(A*)obj, &get, cast(A)set));
-
-    return get;
+    return atomic_fetch_op!(memory_order.memory_order_seq_cst, "^=")(cast(A*)obj, arg);
 }
 
 ///
@@ -979,52 +926,19 @@ A atomic_fetch_xor_explicit_impl(A, M)(shared(A)* obj, M arg, memory_order order
 {
     assert(obj !is null);
 
-    A set, get;
-
     final switch(order)
     {
         case memory_order.memory_order_relaxed:
-            get = atomicLoad!(memory_order.memory_order_relaxed)(cast(A*)obj);
-            do
-            {
-                set = get ^ arg;
-            } while (!atomicCompareExchangeWeak!(memory_order.memory_order_relaxed, memory_order.memory_order_relaxed)(cast(A*)obj, &get, cast(A)set));
-            break;
-
+           return atomic_fetch_op!(memory_order.memory_order_relaxed, "^=")(cast(A*)obj, arg);
         case memory_order.memory_order_acquire:
-            get = atomicLoad!(memory_order.memory_order_acquire)(cast(A*)obj);
-            do
-            {
-                set = get ^ arg;
-            } while (!atomicCompareExchangeWeak!(memory_order.memory_order_acquire, memory_order.memory_order_acquire)(cast(A*)obj, &get, cast(A)set));
-            break;
-
+            return atomic_fetch_op!(memory_order.memory_order_acquire, "^=")(cast(A*)obj, arg);
         case memory_order.memory_order_release:
-            get = atomicLoad!(memory_order.memory_order_relaxed)(cast(A*)obj);
-            do
-            {
-                set = get ^ arg;
-            } while (!atomicCompareExchangeWeak!(memory_order.memory_order_release, memory_order.memory_order_release)(cast(A*)obj, &get, cast(A)set));
-            break;
-
+            return atomic_fetch_op!(memory_order.memory_order_release, "^=")(cast(A*)obj, arg);
         case memory_order.memory_order_acq_rel:
-            get = atomicLoad!(memory_order.memory_order_acq_rel)(cast(A*)obj);
-            do
-            {
-                set = get ^ arg;
-            } while (!atomicCompareExchangeWeak!(memory_order.memory_order_acq_rel, memory_order.memory_order_acq_rel)(cast(A*)obj, &get, cast(A)set));
-            break;
-
+            return atomic_fetch_op!(memory_order.memory_order_acq_rel, "^=")(cast(A*)obj, arg);
         case memory_order.memory_order_seq_cst:
-            get = atomicLoad!(memory_order.memory_order_relaxed)(cast(A*)obj);
-            do
-            {
-                set = get ^ arg;
-            } while (!atomicCompareExchangeWeak!(memory_order.memory_order_seq_cst, memory_order.memory_order_seq_cst)(cast(A*)obj, &get, cast(A)set));
-            break;
+            return atomic_fetch_op!(memory_order.memory_order_seq_cst, "^=")(cast(A*)obj, arg);
     }
-
-    return get;
 }
 
 ///
@@ -1040,17 +954,7 @@ pragma(inline, true)
 A atomic_fetch_and_impl(A, M)(shared(A)* obj, M arg) @trusted
 {
     assert(obj !is null);
-
-    // copied from atomicOp
-
-    A set, get = atomicLoad(cast(A*)obj);
-
-    do
-    {
-        set = get & arg;
-    } while (!atomicCompareExchangeWeak!(memory_order.memory_order_seq_cst, memory_order.memory_order_seq_cst)(cast(A*)obj, &get, cast(A)set));
-
-    return get;
+    return atomic_fetch_op!(memory_order.memory_order_seq_cst, "&=")(cast(A*)obj, arg);
 }
 
 ///
@@ -1067,52 +971,19 @@ A atomic_fetch_and_explicit_impl(A, M)(shared(A)* obj, M arg, memory_order order
 {
     assert(obj !is null);
 
-    A set, get;
-
     final switch(order)
     {
         case memory_order.memory_order_relaxed:
-            get = atomicLoad!(memory_order.memory_order_relaxed)(cast(A*)obj);
-            do
-            {
-                set = get & arg;
-            } while (!atomicCompareExchangeWeak!(memory_order.memory_order_relaxed, memory_order.memory_order_relaxed)(cast(A*)obj, &get, cast(A)set));
-            break;
-
+            return atomic_fetch_op!(memory_order.memory_order_relaxed, "&=")(cast(A*)obj, arg);
         case memory_order.memory_order_acquire:
-            get = atomicLoad!(memory_order.memory_order_acquire)(cast(A*)obj);
-            do
-            {
-                set = get & arg;
-            } while (!atomicCompareExchangeWeak!(memory_order.memory_order_acquire, memory_order.memory_order_acquire)(cast(A*)obj, &get, cast(A)set));
-            break;
-
+            return atomic_fetch_op!(memory_order.memory_order_acquire, "&=")(cast(A*)obj, arg);
         case memory_order.memory_order_release:
-            get = atomicLoad!(memory_order.memory_order_relaxed)(cast(A*)obj);
-            do
-            {
-                set = get & arg;
-            } while (!atomicCompareExchangeWeak!(memory_order.memory_order_release, memory_order.memory_order_release)(cast(A*)obj, &get, cast(A)set));
-            break;
-
+            return atomic_fetch_op!(memory_order.memory_order_release, "&=")(cast(A*)obj, arg);
         case memory_order.memory_order_acq_rel:
-            get = atomicLoad!(memory_order.memory_order_acq_rel)(cast(A*)obj);
-            do
-            {
-                set = get & arg;
-            } while (!atomicCompareExchangeWeak!(memory_order.memory_order_acq_rel, memory_order.memory_order_acq_rel)(cast(A*)obj, &get, cast(A)set));
-            break;
-
+            return atomic_fetch_op!(memory_order.memory_order_acq_rel, "&=")(cast(A*)obj, arg);
         case memory_order.memory_order_seq_cst:
-            get = atomicLoad!(memory_order.memory_order_relaxed)(cast(A*)obj);
-            do
-            {
-                set = get & arg;
-            } while (!atomicCompareExchangeWeak!(memory_order.memory_order_seq_cst, memory_order.memory_order_seq_cst)(cast(A*)obj, &get, cast(A)set));
-            break;
+            return atomic_fetch_op!(memory_order.memory_order_seq_cst, "&=")(cast(A*)obj, arg);
     }
-
-    return get;
 }
 
 ///
@@ -1121,4 +992,33 @@ unittest
     shared(int) val = 5;
     atomic_fetch_and_explicit_impl(&val, 3, memory_order.memory_order_seq_cst);
     assert(atomic_load_impl(&val) == 1);
+}
+
+private:
+
+pragma(inline, true)
+A atomic_fetch_op(memory_order order, string op, A, M)(A* obj, M arg) @trusted
+{
+    static if (op == "+=" || op == "-=")
+    {
+        static if (op == "+=")
+        {
+            return atomicFetchAdd!order(obj, arg);
+        }
+        else static if (op == "-=")
+        {
+            return atomicFetchSub!order(obj, arg);
+        }
+    }
+    else
+    {
+        // copied from core.atomic
+        A set, get = atomicLoad!(MemoryOrder.raw, A)(obj);
+        do
+        {
+            set = get;
+            mixin("set " ~ op ~ " arg;"); // will error if op (which is not exposed to user) is invalid
+        } while (!atomicCompareExchangeWeak!(order, order)(obj, &get, set));
+        return get; // unlike core.atomic we return the prior value, not the new one.
+    }
 }
