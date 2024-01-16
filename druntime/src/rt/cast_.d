@@ -23,10 +23,12 @@ pure:
 // but we are trying to implement dynamic cast.
 extern (D) private bool areClassInfosEqual(scope const ClassInfo a, scope const ClassInfo b) @safe
 {
-    if (a is b)
-        return true;
-    // take care of potential duplicates across binaries
-    return a.name == b.name;
+    // same class if signatures match, works with potential duplicates across binaries
+    return a is b ||
+        (a.m_flags & TypeInfo_Class.ClassFlags.hasNameSig
+        ? (a.nameSig[0] == b.nameSig[0] &&
+           a.nameSig[1] == b.nameSig[1])  // new fast way
+        : (a is b || a.name == b.name));  // old slow way for temporary binary compatibility
 }
 
 /******************************************

@@ -1,0 +1,10 @@
+Added .nameSig field to TypeInfo_Class in object.d
+
+This is a 16 byte md5 signature of the fully qualified name of the class.
+It is used to compare two classes for equality, rather than comparing the
+pointers with a fallback to doing a string compare on the name, which can
+be rather slow.
+
+The result is both druntime and phobos will need to be recompiled to be
+compatible with this change. Any libraries will need to be recompiled
+as well.

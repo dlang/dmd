@@ -1263,6 +1263,7 @@ private void ClassInfoToDt(ref DtBuilder dtb, ClassDeclaration cd, Symbol* sinit
             void* deallocator;
             OffsetTypeInfo[] offTi;
             void function(Object) defaultConstructor;
+            ulong[2] nameSig;
             //const(MemberInfo[]) function(string) xgetMembers;   // module getMembers() function
             immutable(void)* m_RTInfo;
             //TypeInfo typeinfo;
@@ -1381,6 +1382,17 @@ Louter:
         dtb.xoff(toSymbol(cd.defaultCtor), 0, TYnptr);
     else
         dtb.size(0);
+
+    // ulong[2] nameSig
+    {
+        import dmd.common.md5;
+        MD5_CTX mdContext = void;
+        MD5Init(&mdContext);
+        MD5Update(&mdContext, cast(ubyte*)name, cast(uint)namelen);
+        MD5Final(&mdContext);
+        assert(mdContext.digest.length == 16);
+        dtb.nbytes(16, cast(char*)mdContext.digest.ptr);
+    }
 
     // m_RTInfo
     if (cd.getRTInfo)
@@ -1502,6 +1514,7 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
             void* deallocator;
             OffsetTypeInfo[] offTi;
             void function(Object) defaultConstructor;
+            ulong[2] nameSig;
             //const(MemberInfo[]) function(string) xgetMembers;   // module getMembers() function
             immutable(void)* m_RTInfo;
             //TypeInfo typeinfo;
@@ -1577,6 +1590,17 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
 
     // defaultConstructor
     dtb.size(0);
+
+    // ulong[2] nameSig
+    {
+        import dmd.common.md5;
+        MD5_CTX mdContext = void;
+        MD5Init(&mdContext);
+        MD5Update(&mdContext, cast(ubyte*)name, cast(uint)namelen);
+        MD5Final(&mdContext);
+        assert(mdContext.digest.length == 16);
+        dtb.nbytes(16, cast(char*)mdContext.digest.ptr);
+    }
 
     // xgetMembers
     //dtb.size(0);

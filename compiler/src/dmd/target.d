@@ -414,7 +414,7 @@ extern (C++) struct Target
         // These have default values for 32 bit code, they get
         // adjusted for 64 bit code.
         ptrsize = 4;
-        classinfosize = 0x4C; // 76
+        classinfosize = 0x4C+16; // 92
 
         /* gcc uses int.max for 32 bit compilations, and long.max for 64 bit ones.
          * Set to int.max for both, because the rest of the compiler cannot handle
@@ -427,7 +427,7 @@ extern (C++) struct Target
         if (isLP64)
         {
             ptrsize = 8;
-            classinfosize = 0x98; // 152
+            classinfosize = 0x98+16; // 168
         }
         if (os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.DragonFlyBSD | Target.OS.Solaris))
         {
