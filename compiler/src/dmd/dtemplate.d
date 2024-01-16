@@ -1896,7 +1896,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
                         oarg = argtype;
                     }
-                    else if ((fparam.storageClass & STC.out_) == 0 && (argtype.ty == Tarray || argtype.ty == Tpointer) && templateParameterLookup(prmtype, parameters) != IDX_NOTFOUND && (cast(TypeIdentifier)prmtype).idents.length == 0)
+                    else if ((fparam.storageClass & STC.out_) == 0 && (argtype.ty == Tarray || argtype.ty == Tpointer) && templateParameterLookup(prmtype, parameters) != IDX_NOTFOUND && prmtype.isTypeIdentifier().idents.length == 0)
                     {
                         /* The farg passing to the prmtype always make a copy. Therefore,
                          * we can shrink the set of the deduced type arguments for prmtype
@@ -3574,7 +3574,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, ref TemplateParameters pa
 
                 TemplateParameter tp = parameters[i];
 
-                TypeIdentifier tident = cast(TypeIdentifier)tparam;
+                TypeIdentifier tident = tparam.isTypeIdentifier();
                 if (tident.idents.length > 0)
                 {
                     //printf("matching %s to %s\n", tparam.toChars(), t.toChars());
@@ -3673,7 +3673,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, ref TemplateParameters pa
                     // type vs expressions
                     if (at.ty == Tnone)
                     {
-                        TypeDeduced xt = cast(TypeDeduced)at;
+                        auto xt = cast(TypeDeduced)at;
                         result = xt.matchAll(tt);
                         if (result > MATCH.nomatch)
                         {
@@ -3717,7 +3717,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, ref TemplateParameters pa
                     // type vs expressions
                     if (at.ty == Tnone)
                     {
-                        TypeDeduced xt = cast(TypeDeduced)at;
+                        auto xt = cast(TypeDeduced)at;
                         result = xt.matchAll(tt);
                         if (result > MATCH.nomatch)
                         {
@@ -3768,9 +3768,8 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, ref TemplateParameters pa
                 MATCH m = t.implicitConvTo(tparam);
                 if (m == MATCH.nomatch && !ignoreAliasThis)
                 {
-                    if (t.ty == Tclass)
+                    if (auto tc = t.isTypeClass())
                     {
-                        TypeClass tc = cast(TypeClass)t;
                         if (tc.sym.aliasthis && !(tc.att & AliasThisRec.tracingDT))
                         {
                             if (auto ato = t.aliasthisOf())
@@ -3781,9 +3780,8 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, ref TemplateParameters pa
                             }
                         }
                     }
-                    else if (t.ty == Tstruct)
+                    else if (auto ts = t.isTypeStruct())
                     {
-                        TypeStruct ts = cast(TypeStruct)t;
                         if (ts.sym.aliasthis && !(ts.att & AliasThisRec.tracingDT))
                         {
                             if (auto ato = t.aliasthisOf())
@@ -3833,9 +3831,8 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, ref TemplateParameters pa
 
         override void visit(TypeVector t)
         {
-            if (tparam.ty == Tvector)
+            if (auto tp = tparam.isTypeVector())
             {
-                TypeVector tp = cast(TypeVector)tparam;
                 result = deduceType(t.basetype, sc, tp.basetype, parameters, dedtypes, wm);
                 return;
             }
@@ -3862,9 +3859,8 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, ref TemplateParameters pa
                 TemplateParameter tp = null;
                 Expression edim = null;
                 size_t i;
-                if (tparam.ty == Tsarray)
+                if (auto tsa = tparam.isTypeSArray())
                 {
-                    TypeSArray tsa = cast(TypeSArray)tparam;
                     if (tsa.dim.isVarExp() && tsa.dim.isVarExp().var.storage_class & STC.templateparameter)
                     {
                         Identifier id = tsa.dim.isVarExp().var.ident;
@@ -3875,9 +3871,8 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, ref TemplateParameters pa
                     else
                         edim = tsa.dim;
                 }
-                else if (tparam.ty == Taarray)
+                else if (auto taa = tparam.isTypeAArray())
                 {
-                    TypeAArray taa = cast(TypeAArray)tparam;
                     i = templateParameterLookup(taa.index, &parameters);
                     if (i != IDX_NOTFOUND)
                         tp = parameters[i];
@@ -3914,7 +3909,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, ref TemplateParameters pa
             // Extra check that index type must match
             if (tparam && tparam.ty == Taarray)
             {
-                TypeAArray tp = cast(TypeAArray)tparam;
+                TypeAArray tp = tparam.isTypeAArray();
                 if (!deduceType(t.index, sc, tp.index, parameters, dedtypes))
                 {
                     result = MATCH.nomatch;
@@ -3974,7 +3969,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, ref TemplateParameters pa
                     assert(fparam.type);
                     if (fparam.type.ty != Tident)
                         goto L1;
-                    TypeIdentifier tid = cast(TypeIdentifier)fparam.type;
+                    TypeIdentifier tid = fparam.type.isTypeIdentifier();
                     if (tid.idents.length)
                         goto L1;
 
@@ -4064,7 +4059,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, ref TemplateParameters pa
             // Extra check
             if (tparam && tparam.ty == Tident)
             {
-                TypeIdentifier tp = cast(TypeIdentifier)tparam;
+                TypeIdentifier tp = tparam.isTypeIdentifier();
                 for (size_t i = 0; i < t.idents.length; i++)
                 {
                     RootObject id1 = t.idents[i];
@@ -4087,7 +4082,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, ref TemplateParameters pa
                 TemplateDeclaration tempdecl = t.tempinst.tempdecl.isTemplateDeclaration();
                 assert(tempdecl);
 
-                TypeInstance tp = cast(TypeInstance)tparam;
+                TypeInstance tp = tparam.isTypeInstance();
 
                 //printf("tempinst.tempdecl = %p\n", tempdecl);
                 //printf("tp.tempinst.tempdecl = %p\n", tp.tempinst.tempdecl);
@@ -4187,7 +4182,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, ref TemplateParameters pa
                 /* Match things like:
                  *  S!(T).foo
                  */
-                TypeInstance tpi = cast(TypeInstance)tparam;
+                TypeInstance tpi = tparam.isTypeInstance();
                 if (tpi.idents.length)
                 {
                     RootObject id = tpi.idents[tpi.idents.length - 1];
@@ -4210,7 +4205,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, ref TemplateParameters pa
             // Extra check
             if (tparam && tparam.ty == Tstruct)
             {
-                TypeStruct tp = cast(TypeStruct)tparam;
+                TypeStruct tp = tparam.isTypeStruct();
 
                 //printf("\t%d\n", cast(MATCH) t.implicitConvTo(tp));
                 if (wm && t.deduceWild(tparam, false))
@@ -4229,7 +4224,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, ref TemplateParameters pa
             // Extra check
             if (tparam && tparam.ty == Tenum)
             {
-                TypeEnum tp = cast(TypeEnum)tparam;
+                TypeEnum tp = tparam.isTypeEnum();
                 if (t.sym == tp.sym)
                     visit(cast(Type)t);
                 else
@@ -4275,7 +4270,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, ref TemplateParameters pa
                 /* Match things like:
                  *  S!(T).foo
                  */
-                TypeInstance tpi = cast(TypeInstance)tparam;
+                TypeInstance tpi = tparam.isTypeInstance();
                 if (tpi.idents.length)
                 {
                     RootObject id = tpi.idents[tpi.idents.length - 1];
@@ -4338,7 +4333,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, ref TemplateParameters pa
             // Extra check
             if (tparam && tparam.ty == Tclass)
             {
-                TypeClass tp = cast(TypeClass)tparam;
+                TypeClass tp = tparam.isTypeClass();
 
                 //printf("\t%d\n", cast(MATCH) t.implicitConvTo(tp));
                 if (wm && t.deduceWild(tparam, false))
@@ -4356,7 +4351,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, ref TemplateParameters pa
         {
             //printf("Expression.deduceType(e = %s)\n", e.toChars());
             size_t i = templateParameterLookup(tparam, &parameters);
-            if (i == IDX_NOTFOUND || (cast(TypeIdentifier)tparam).idents.length > 0)
+            if (i == IDX_NOTFOUND || tparam.isTypeIdentifier().idents.length > 0)
             {
                 if (e == emptyArrayElement && tparam.ty == Tarray)
                 {
