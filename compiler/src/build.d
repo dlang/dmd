@@ -1537,7 +1537,7 @@ auto sourceFiles()
         "),
         frontend: fileArray(env["D"], "
             access.d aggregate.d aliasthis.d argtypes_x86.d argtypes_sysv_x64.d argtypes_aarch64.d arrayop.d
-            arraytypes.d astenums.d ast_node.d astcodegen.d asttypename.d attrib.d blockexit.d builtin.d canthrow.d chkformat.d
+            arraytypes.d astenums.d ast_node.d astcodegen.d asttypename.d attrib.d basicmangle.d blockexit.d builtin.d canthrow.d chkformat.d
             cli.d clone.d compiler.d cond.d constfold.d cppmangle.d cppmanglewin.d cpreprocess.d ctfeexpr.d
             ctorflow.d dcast.d dclass.d declaration.d delegatize.d denum.d dimport.d
             dinterpret.d dmacro.d dmangle.d dmodule.d doc.d dscope.d dstruct.d dsymbol.d dsymbolsem.d
