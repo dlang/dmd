@@ -1646,10 +1646,10 @@ class TypeInfo_Class : TypeInfo
     string      name;           /// class name
     void*[]     vtbl;           /// virtual function pointer table
     Interface[] interfaces;     /// interfaces this class implements
-    TypeInfo_Class   base;           /// base class
+    TypeInfo_Class   base;      /// base class
     void*       destructor;
     void function(Object) classInvariant;
-    enum ClassFlags : uint
+    enum ClassFlags : ushort
     {
         isCOMclass = 0x1,
         noPointers = 0x2,
@@ -1663,7 +1663,8 @@ class TypeInfo_Class : TypeInfo
         hasNameSig = 0x200,
     }
     ClassFlags m_flags;
-    void*       deallocator;
+    ushort     depth;           /// inheritance distance from Object
+    void*      deallocator;
     OffsetTypeInfo[] m_offTi;
     void function(Object) defaultConstructor;   // default Constructor
     ulong[2] nameSig;            /// unique signature for `name`

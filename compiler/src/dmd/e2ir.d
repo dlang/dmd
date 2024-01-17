@@ -4678,6 +4678,27 @@ elem *toElemCast(CastExp ce, elem *e, bool isLvalue, ref IRState irs)
             else if (rtl == RTLSYM.DYNAMIC_CAST &&
                      !cdto.isInterfaceDeclaration())
             {
+                //printf("cdfrom: %s cdto: %s\n", cdfrom.toChars(), cdto.toChars());
+                int level = 0;
+                auto b = cdto;
+                while (1)
+                {
+                    if (b == cdfrom)
+                        break;
+                    b = b.baseClass;
+                    if (!b)
+                    {
+                        // did not find cdfrom, so cast fails, return null
+                        e = el_long(TYnptr, 0);
+                        return Lret(ce, e);
+                    }
+                    ++level;
+                }
+                if (level == 0)
+                {
+                    return Lret(ce, e); // cast to self
+                }
+                // _d_class_cast(e, cdto);
                 rtl = RTLSYM.CLASS_CAST;
             }
             elem *ep = el_param(el_ptr(toExtSymbol(cdto)), e);
