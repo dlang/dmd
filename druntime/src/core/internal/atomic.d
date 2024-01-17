@@ -346,6 +346,10 @@ version (DigitalMars)
     bool atomicCompareExchangeStrong(MemoryOrder succ = MemoryOrder.seq, MemoryOrder fail = MemoryOrder.seq, T)(T* dest, T* compare, T value) pure nothrow @nogc @trusted
         if (CanCAS!T)
     {
+        static assert(fail != MemoryOrder.rel && fail != MemoryOrder.acq_rel,
+                      "Invalid fail MemoryOrder for atomicCompareExchangeStrong()");
+        static assert (succ >= fail, "The first MemoryOrder argument for atomicCompareExchangeStrong() cannot be weaker than the second argument");
+
         version (D_InlineAsm_X86)
         {
             static if (T.sizeof <= 4)
@@ -489,6 +493,10 @@ version (DigitalMars)
     bool atomicCompareExchangeStrongNoResult(MemoryOrder succ = MemoryOrder.seq, MemoryOrder fail = MemoryOrder.seq, T)(T* dest, const T compare, T value) pure nothrow @nogc @trusted
         if (CanCAS!T)
     {
+        static assert(fail != MemoryOrder.rel && fail != MemoryOrder.acq_rel,
+                      "Invalid fail MemoryOrder for atomicCompareExchangeStrongNoResult()");
+        static assert (succ >= fail, "The first MemoryOrder argument for atomicCompareExchangeStrongNoResult() cannot be weaker than the second argument");
+
         version (D_InlineAsm_X86)
         {
             static if (T.sizeof <= 4)
@@ -691,18 +699,6 @@ else version (GNU)
 {
     import gcc.builtins;
     import gcc.config;
-
-    // Targets where MemoryOrder.acq_rel is sufficiently cheaper than using
-    // MemoryOrder.seq, used when the MemoryOrder requested is not valid for
-    // a given atomic operation.
-    version (IA64)
-        private enum PreferAcquireRelease = true;
-    else version (PPC)
-        private enum PreferAcquireRelease = true;
-    else version (PPC64)
-        private enum PreferAcquireRelease = true;
-    else
-        private enum PreferAcquireRelease = false;
 
     enum IsAtomicLockFree(T) = __atomic_is_lock_free(T.sizeof, null);
 
@@ -910,46 +906,29 @@ else version (GNU)
     private bool atomicCompareExchangeImpl(MemoryOrder succ = MemoryOrder.seq, MemoryOrder fail = MemoryOrder.seq, bool weak, T)(T* dest, T* compare, T value) pure nothrow @nogc @trusted
         if (CanCAS!T)
     {
+        static assert(fail != MemoryOrder.rel && fail != MemoryOrder.acq_rel,
+                      "Invalid fail MemoryOrder for atomicCompareExchange()");
+        static assert (succ >= fail, "The first MemoryOrder argument for atomicCompareExchange() cannot be weaker than the second argument");
+
         bool res = void;
 
         static if (GNU_Have_Atomics || GNU_Have_LibAtomic)
         {
-            static if (fail == MemoryOrder.rel || fail == MemoryOrder.acq_rel)
-            {
-                // MemoryOrder.rel and MemoryOrder.acq_rel are not valid failure models.
-                enum smodel = (succ != MemoryOrder.seq && PreferAcquireRelease)
-                        ? MemoryOrder.acq_rel : MemoryOrder.seq;
-                enum fmodel = (succ != MemoryOrder.seq && PreferAcquireRelease)
-                        ? MemoryOrder.raw : MemoryOrder.seq;
-            }
-            else static if (fail > succ)
-            {
-                // Failure memory model cannot be stronger than success.
-                enum smodel = (fail != MemoryOrder.seq && PreferAcquireRelease)
-                        ? MemoryOrder.acq_rel : MemoryOrder.seq;
-                enum fmodel = fail;
-            }
-            else
-            {
-                enum smodel = succ;
-                enum fmodel = fail;
-            }
-
             static if (T.sizeof == byte.sizeof)
                 res = __atomic_compare_exchange_1(cast(shared)dest, compare, *cast(ubyte*)&value,
-                                                  weak, smodel, fmodel);
+                                                  weak, succ, fail);
             else static if (T.sizeof == short.sizeof)
                 res = __atomic_compare_exchange_2(cast(shared)dest, compare, *cast(ushort*)&value,
-                                                  weak, smodel, fmodel);
+                                                  weak, succ, fail);
             else static if (T.sizeof == int.sizeof)
                 res = __atomic_compare_exchange_4(cast(shared)dest, compare, *cast(uint*)&value,
-                                                  weak, smodel, fmodel);
+                                                  weak, succ, fail);
             else static if (T.sizeof == long.sizeof && GNU_Have_64Bit_Atomics)
                 res = __atomic_compare_exchange_8(cast(shared)dest, compare, *cast(ulong*)&value,
-                                                  weak, smodel, fmodel);
+                                                  weak, succ, fail);
             else static if (GNU_Have_LibAtomic)
                 res = __atomic_compare_exchange(T.sizeof, cast(shared)dest, compare, cast(void*)&value,
-                                                smodel, fmodel);
+                                                succ, fail);
             else
                 static assert(0, "Invalid template type specified.");
         }
